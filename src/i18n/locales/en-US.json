@@ -895,7 +895,9 @@
       "running": "Running",
       "session": "sessions",
       "tokens": "tokens",
-      "tool": "tools"
+      "tool": "tools",
+      "failed": "Failed",
+      "iteration": "iterations"
     },
     "benchmarks": {
       "failed": "Failed",
@@ -949,7 +951,8 @@
         "copyFailed": "Copy failed",
         "joinFailed": "Join failed",
         "maxParticipants": "Max Participants",
-        "joinSuccess": "Joined successfully"
+        "joinSuccess": "Joined successfully",
+        "copied": "Copied"
       }
     },
     "conversationNotFound": "Conversation not found",
@@ -1770,7 +1773,10 @@
       "importPlaceholder": "Paste JSON config, e.g.:\n{\n  \"mcpServers\": {\n    \"server-name\": {\n      \"command\": \"uvx\",\n      \"args\": [\"mcp-server-fetch\"]\n    }\n  }\n}",
       "importParseError": "Invalid JSON format",
       "importEmpty": "No valid MCP server config found",
-      "importSuccess": "Successfully imported {{count}} server(s)"
+      "importSuccess": "Successfully imported {{count}} server(s)",
+      "notConfigured": "No connections configured",
+      "builtinServer": "Built-in Server",
+      "toolCount": "{{count}} tools"
     },
     "tools": {
       "title": "Tool Manager",
@@ -2622,7 +2628,10 @@
       "visualEditorDesc": "Create and edit workflows with drag-and-drop DAG editor",
       "openEditor": "Open Editor",
       "myWorkflows": "My Workflows",
-      "marketplace": "Marketplace"
+      "marketplace": "Marketplace",
+      "createdSuccess": "Created successfully",
+      "deletedSuccess": "Deleted successfully",
+      "sampleAdded": "Sample added"
     },
     "theme": {
       "label": "Theme",
@@ -2970,7 +2979,9 @@
   "tray": {
     "show": "Show",
     "hide": "Hide",
-    "quit": "Quit"
+    "quit": "Quit",
+    "key": "Key",
+    "value": "Value"
   },
   "error": {
     "network": "Network connection failed",
@@ -3076,7 +3087,8 @@
       "settings": "Settings",
       "settingsDesc": "Open settings page",
       "gateway": "Gateway",
-      "gatewayDesc": "Manage remote connections"
+      "gatewayDesc": "Manage remote connections",
+      "workflow": "Workflow"
     },
     "search": "Search",
     "noResults": "No results",
@@ -3095,7 +3107,30 @@
       "saveWiki": "Save",
       "continueAsk": "Follow up",
       "error": "Error",
-      "noWikiSelected": "Please select a Wiki in the knowledge base first"
+      "noWikiSelected": "Please select a Wiki in the knowledge base first",
+      "errorCode": {
+        "PROVIDER_QUERY_FAILED": "Provider query failed",
+        "NO_AVAILABLE_PROVIDER": "No available provider",
+        "API_KEY_DECRYPT_FAILED": "API key decryption failed",
+        "UNSUPPORTED_PROVIDER": "Unsupported provider type",
+        "LLM_CALL_FAILED": "LLM call failed",
+        "AGENT_PROFILE_NOT_FOUND": "Agent profile not found",
+        "TOOL_CALL_FAILED": "Tool call failed",
+        "TOOL_NOT_CONFIGURED": "Tool executor callback not configured",
+        "SUBWORKFLOW_FAILED": "Sub-workflow execution failed",
+        "SUBWORKFLOW_NOT_CONFIGURED": "Sub-workflow executor callback not configured",
+        "VECTOR_RETRIEVE_FAILED": "Vector retrieval failed",
+        "VECTOR_NOT_CONFIGURED": "Vector retrieve executor callback not configured",
+        "VARIABLE_NOT_FOUND": "Required variable not found",
+        "VALIDATION_FAILED": "Validation failed",
+        "TIMEOUT": "Execution timeout",
+        "CIRCUIT_BREAKER_OPEN": "Circuit breaker open",
+        "NODE_TYPE_MISMATCH": "Node type mismatch",
+        "UNSUPPORTED_NODE_TYPE": "Unsupported node type",
+        "CACHE_DESERIALIZE_FAILED": "Cache data deserialization failed",
+        "MODEL_NOT_CONFIGURED": "Model not configured",
+        "NODE_NOT_FOUND": "Node not found"
+      }
     }
   },
   "appLaunch": {
@@ -3470,7 +3505,9 @@
       "dragHint": "Drag these node types from the left panel onto the canvas",
       "clickCanvasToAdd": "Selected \"{{label}}\" — click on the canvas to place the node",
       "noRecommendations": "No recommendations yet",
-      "aiAssistant": "AI Assistant"
+      "aiAssistant": "AI Assistant",
+      "replaceConfirmTitle": "Confirm Replace",
+      "replaceConfirmContent": "The current canvas has {{nodes}} nodes and {{edges}} edges. Generating will replace all of them. Continue?"
     },
     "templateList": {
       "deleted": "Template deleted",
@@ -3937,7 +3974,20 @@
       "variables": "Variables",
       "performance": "Performance",
       "slowestNode": "Slowest Node",
-      "fastestNode": "Fastest Node"
+      "fastestNode": "Fastest Node",
+      "title": "Debug Panel",
+      "columnNode": "Node",
+      "columnDuration": "Duration",
+      "columnRetries": "Retries",
+      "columnStatus": "Status",
+      "executionLabel": "Execution: {{id}} | Workflow: {{name}} | Trigger: {{trigger}}",
+      "variableSnapshots": "Variable Snapshots",
+      "performanceAnalysis": "Performance Analysis",
+      "labelNode": "Node",
+      "labelType": "Type",
+      "labelError": "Error",
+      "labelInput": "Input",
+      "labelOutput": "Output"
     },
     "applySemanticCheck": "Apply",
     "applyUpgrade": "Apply Upgrade",
@@ -3985,7 +4035,30 @@
       "warning": "{{count}} warnings",
       "dagEditor": "DAG Editor",
       "fitView": "Fit View",
-      "resetZoom": "Reset Zoom"
+      "resetZoom": "Reset Zoom",
+      "errorCode": {
+        "PROVIDER_QUERY_FAILED": "Provider query failed",
+        "NO_AVAILABLE_PROVIDER": "No available provider",
+        "API_KEY_DECRYPT_FAILED": "API key decryption failed",
+        "UNSUPPORTED_PROVIDER": "Unsupported provider type",
+        "LLM_CALL_FAILED": "LLM call failed",
+        "AGENT_PROFILE_NOT_FOUND": "Agent profile not found",
+        "TOOL_CALL_FAILED": "Tool call failed",
+        "TOOL_NOT_CONFIGURED": "Tool executor callback not configured",
+        "SUBWORKFLOW_FAILED": "Sub-workflow execution failed",
+        "SUBWORKFLOW_NOT_CONFIGURED": "Sub-workflow executor callback not configured",
+        "VECTOR_RETRIEVE_FAILED": "Vector retrieval failed",
+        "VECTOR_NOT_CONFIGURED": "Vector retrieve executor callback not configured",
+        "VARIABLE_NOT_FOUND": "Required variable not found",
+        "VALIDATION_FAILED": "Validation failed",
+        "TIMEOUT": "Execution timeout",
+        "CIRCUIT_BREAKER_OPEN": "Circuit breaker open",
+        "NODE_TYPE_MISMATCH": "Node type mismatch",
+        "UNSUPPORTED_NODE_TYPE": "Unsupported node type",
+        "CACHE_DESERIALIZE_FAILED": "Cache data deserialization failed",
+        "MODEL_NOT_CONFIGURED": "Model not configured",
+        "NODE_NOT_FOUND": "Node not found"
+      }
     },
     "agentNode": {
       "tools": "🔧 Tools",
@@ -4116,7 +4189,9 @@
       "rhaiTemplateDesc": "Rhai Script",
       "templateRhaiTools": "── Template Rhai Tools ──",
       "globalTools": "── Global Tools ──"
-    }
+    },
+    "selfLoopNotAllowed": "Self-loop is not allowed",
+    "edgeAlreadyExists": "Edge already exists"
   },
   "atomicSkill": {
     "entryType": "Entry Type",
@@ -4787,7 +4862,30 @@
       "source": "Source",
       "status": "Status",
       "sync": "Sync",
-      "type": "Type"
+      "type": "Type",
+      "errorCode": {
+        "PROVIDER_QUERY_FAILED": "Provider query failed",
+        "NO_AVAILABLE_PROVIDER": "No available provider",
+        "API_KEY_DECRYPT_FAILED": "API key decryption failed",
+        "UNSUPPORTED_PROVIDER": "Unsupported provider type",
+        "LLM_CALL_FAILED": "LLM call failed",
+        "AGENT_PROFILE_NOT_FOUND": "Agent profile not found",
+        "TOOL_CALL_FAILED": "Tool call failed",
+        "TOOL_NOT_CONFIGURED": "Tool executor callback not configured",
+        "SUBWORKFLOW_FAILED": "Sub-workflow execution failed",
+        "SUBWORKFLOW_NOT_CONFIGURED": "Sub-workflow executor callback not configured",
+        "VECTOR_RETRIEVE_FAILED": "Vector retrieval failed",
+        "VECTOR_NOT_CONFIGURED": "Vector retrieve executor callback not configured",
+        "VARIABLE_NOT_FOUND": "Required variable not found",
+        "VALIDATION_FAILED": "Validation failed",
+        "TIMEOUT": "Execution timeout",
+        "CIRCUIT_BREAKER_OPEN": "Circuit breaker open",
+        "NODE_TYPE_MISMATCH": "Node type mismatch",
+        "UNSUPPORTED_NODE_TYPE": "Unsupported node type",
+        "CACHE_DESERIALIZE_FAILED": "Cache data deserialization failed",
+        "MODEL_NOT_CONFIGURED": "Model not configured",
+        "NODE_NOT_FOUND": "Node not found"
+      }
     },
     "pageNotFound": "Page not found",
     "pageType": "Page Type",

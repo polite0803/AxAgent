@@ -671,27 +671,27 @@
         "DESKTOP_NATIVE_NOTIFICATION_FAILED": "Native notification failed"
       },
       "errorCode": {
-        "PROVIDER_QUERY_FAILED": "Provider query failed",
-        "NO_AVAILABLE_PROVIDER": "No available LLM provider",
-        "API_KEY_DECRYPT_FAILED": "API key decryption failed",
-        "UNSUPPORTED_PROVIDER": "Unsupported provider type",
-        "LLM_CALL_FAILED": "LLM call failed",
-        "AGENT_PROFILE_NOT_FOUND": "Agent profile not found",
-        "TOOL_CALL_FAILED": "Tool call failed",
-        "TOOL_NOT_CONFIGURED": "Tool callback not configured",
-        "SUBWORKFLOW_FAILED": "Sub-workflow execution failed",
-        "SUBWORKFLOW_NOT_CONFIGURED": "Sub-workflow callback not configured",
-        "VECTOR_RETRIEVE_FAILED": "Vector retrieval failed",
-        "VECTOR_NOT_CONFIGURED": "Vector retrieve callback not configured",
-        "VARIABLE_NOT_FOUND": "Required variable not found",
-        "VALIDATION_FAILED": "Validation failed",
-        "TIMEOUT": "Execution timeout",
-        "CIRCUIT_BREAKER_OPEN": "Circuit breaker open",
-        "NODE_TYPE_MISMATCH": "Node type mismatch",
-        "UNSUPPORTED_NODE_TYPE": "Unsupported node type",
-        "CACHE_DESERIALIZE_FAILED": "Cache deserialization failed",
-        "MODEL_NOT_CONFIGURED": "Model not configured",
-        "NODE_NOT_FOUND": "Node not found"
+        "PROVIDER_QUERY_FAILED": "Ошибка запроса провайдера LLM",
+        "NO_AVAILABLE_PROVIDER": "Нет доступного провайдера LLM",
+        "API_KEY_DECRYPT_FAILED": "Ошибка расшифровки ключа API",
+        "UNSUPPORTED_PROVIDER": "Неподдерживаемый тип провайдера LLM",
+        "LLM_CALL_FAILED": "Ошибка вызова LLM",
+        "AGENT_PROFILE_NOT_FOUND": "Профиль агента не найден",
+        "TOOL_CALL_FAILED": "Ошибка вызова инструмента",
+        "TOOL_NOT_CONFIGURED": "Обратный вызов исполнителя инструмента не настроен",
+        "SUBWORKFLOW_FAILED": "Ошибка выполнения подпроцесса",
+        "SUBWORKFLOW_NOT_CONFIGURED": "Обратный вызов исполнителя подпроцесса не настроен",
+        "VECTOR_RETRIEVE_FAILED": "Ошибка векторного поиска",
+        "VECTOR_NOT_CONFIGURED": "Обратный вызов исполнителя векторного поиска не настроен",
+        "VARIABLE_NOT_FOUND": "Требуемая переменная не найдена",
+        "VALIDATION_FAILED": "Ошибка валидации",
+        "TIMEOUT": "Тайм-аут выполнения",
+        "CIRCUIT_BREAKER_OPEN": "Автоматический выключатель разомкнут",
+        "NODE_TYPE_MISMATCH": "Несоответствие типа узла",
+        "UNSUPPORTED_NODE_TYPE": "Неподдерживаемый тип узла",
+        "CACHE_DESERIALIZE_FAILED": "Ошибка десериализации кэшированных данных",
+        "MODEL_NOT_CONFIGURED": "Модель не настроена",
+        "NODE_NOT_FOUND": "Узел не найден"
       },
       "loading": "Loading...",
       "cancelled": "Cancelled",
@@ -813,7 +813,9 @@
       "tokens": "tokens",
       "tool": "tools",
       "askUser": "questions",
-      "loading": "Loading..."
+      "loading": "Loading...",
+      "failed": "Не удалось",
+      "iteration": "итераций"
     },
     "benchmarks": {
       "failed": "Failed",
@@ -1614,7 +1616,10 @@
       "importPlaceholder": "Вставьте JSON-конфигурацию, напр.:\n{\n  \"mcpServers\": {\n    \"server-name\": {\n      \"command\": \"uvx\",\n      \"args\": [\"mcp-server-fetch\"]\n    }\n  }\n}",
       "importParseError": "Неверный формат JSON",
       "importEmpty": "Не найдено допустимой конфигурации MCP-сервера",
-      "importSuccess": "Успешно импортировано {{count}} сервер(ов)"
+      "importSuccess": "Успешно импортировано {{count}} сервер(ов)",
+      "notConfigured": "Соединения не настроены",
+      "builtinServer": "Встроенный сервер",
+      "toolCount": "{{count}} инструментов"
     },
     "knowledge": {
       "title": "База знаний",
@@ -3321,7 +3326,30 @@
       "saveWiki": "Save",
       "continueAsk": "Follow up",
       "error": "Error",
-      "noWikiSelected": "Сначала выберите Wiki в базе знаний"
+      "noWikiSelected": "Сначала выберите Wiki в базе знаний",
+      "errorCode": {
+        "PROVIDER_QUERY_FAILED": "Ошибка запроса провайдера LLM",
+        "NO_AVAILABLE_PROVIDER": "Нет доступного провайдера LLM",
+        "API_KEY_DECRYPT_FAILED": "Ошибка расшифровки ключа API",
+        "UNSUPPORTED_PROVIDER": "Неподдерживаемый тип провайдера LLM",
+        "LLM_CALL_FAILED": "Ошибка вызова LLM",
+        "AGENT_PROFILE_NOT_FOUND": "Профиль агента не найден",
+        "TOOL_CALL_FAILED": "Ошибка вызова инструмента",
+        "TOOL_NOT_CONFIGURED": "Обратный вызов исполнителя инструмента не настроен",
+        "SUBWORKFLOW_FAILED": "Ошибка выполнения подпроцесса",
+        "SUBWORKFLOW_NOT_CONFIGURED": "Обратный вызов исполнителя подпроцесса не настроен",
+        "VECTOR_RETRIEVE_FAILED": "Ошибка векторного поиска",
+        "VECTOR_NOT_CONFIGURED": "Обратный вызов исполнителя векторного поиска не настроен",
+        "VARIABLE_NOT_FOUND": "Требуемая переменная не найдена",
+        "VALIDATION_FAILED": "Ошибка валидации",
+        "TIMEOUT": "Тайм-аут выполнения",
+        "CIRCUIT_BREAKER_OPEN": "Автоматический выключатель разомкнут",
+        "NODE_TYPE_MISMATCH": "Несоответствие типа узла",
+        "UNSUPPORTED_NODE_TYPE": "Неподдерживаемый тип узла",
+        "CACHE_DESERIALIZE_FAILED": "Ошибка десериализации кэшированных данных",
+        "MODEL_NOT_CONFIGURED": "Модель не настроена",
+        "NODE_NOT_FOUND": "Узел не найден"
+      }
     },
     "noResults": "No results",
     "search": "Search"
@@ -3363,7 +3391,9 @@
       "noRecommendations": "No recommendations yet",
       "aiAssistant": "AI Assistant",
       "clickCanvasToAdd": "Selected \"{{label}}\" — click on the canvas to place the node",
-      "explanation": "Explanation"
+      "explanation": "Explanation",
+      "replaceConfirmTitle": "Подтвердить замену",
+      "replaceConfirmContent": "На текущем холсте {{nodes}} узлов и {{edges}} рёбер. Генерация заменит их все. Продолжить?"
     },
     "previewInDevelopment": "Preview feature is in development",
     "publishInDevelopment": "Publish feature is in development",
@@ -3695,7 +3725,21 @@
       "expertNotFound": "",
       "profileMatched": "",
       "profileCreated": "",
-      "profileCreateFailed": ""
+      "profileCreateFailed": "",
+      "executionMode": "Режим выполнения",
+      "executionReact": "Реактивный",
+      "executionPlan": "Плановый",
+      "executionReactHint": "Узлы выполняются реактивно при изменении восходящих данных",
+      "executionPlanHint": "Узлы выполняются в плановом топологическом порядке",
+      "toolName": "Имя инструмента",
+      "toolNamePlaceholder": "Введите имя инструмента",
+      "toolNameHint": "Имя, используемое для вызова этого инструмента из LLM",
+      "aggregation": "Агрегация",
+      "aggregationAll": "Все",
+      "aggregationFirst": "Первый",
+      "aggregationRace": "Гонка",
+      "aggregationMajority": "Большинство",
+      "aggregationHint": "Как агрегировать результаты из нескольких параллельных ветвей"
     },
     "debug": {
       "totalDuration": "Total Duration",
@@ -3708,7 +3752,20 @@
       "variables": "Variables",
       "performance": "Performance",
       "slowestNode": "Slowest Node",
-      "fastestNode": "Fastest Node"
+      "fastestNode": "Fastest Node",
+      "title": "Панель отладки",
+      "columnNode": "Узел",
+      "columnDuration": "Длительность",
+      "columnRetries": "Повторные попытки",
+      "columnStatus": "Статус",
+      "executionLabel": "Выполнение: {{id}} | Процесс: {{name}} | Триггер: {{trigger}}",
+      "variableSnapshots": "Снимки переменных",
+      "performanceAnalysis": "Анализ производительности",
+      "labelNode": "Узел",
+      "labelType": "Тип",
+      "labelError": "Ошибка",
+      "labelInput": "Ввод",
+      "labelOutput": "Вывод"
     },
     "applySemanticCheck": "Apply",
     "applyUpgrade": "Apply Upgrade",
@@ -3864,7 +3921,17 @@
       "invalidJson": "Неверный формат JSON",
       "unsupportedNodeType": "Editing this node type is not supported yet",
       "llmRouting": "Динамическая маршрутизация LLM",
-      "llmRoutingHint": "ИИ решает, какую ветвь выбрать на основе контекста"
+      "llmRoutingHint": "ИИ решает, какую ветвь выбрать на основе контекста",
+      "aiGenerate": "Генерация ИИ",
+      "codeTemplates": "Шаблоны кода",
+      "showTools": "Показать инструменты",
+      "hideTools": "Скрыть инструменты",
+      "availableTools": "Доступные инструменты",
+      "noToolsAvailable": "Нет доступных инструментов",
+      "routingPrompt": "Промпт маршрутизации",
+      "routingPromptPlaceholder": "Опишите маршрутизацию между ветвями...",
+      "routingModel": "Модель маршрутизации",
+      "routingModelPlaceholder": "Выберите модель для принятия решений о маршрутизации"
     },
     "statusBar": {
       "unsaved": "Не сохранено",
@@ -3878,7 +3945,30 @@
       "warning": "{{count}} warnings",
       "dagEditor": "DAG Editor",
       "fitView": "Fit View",
-      "resetZoom": "Reset Zoom"
+      "resetZoom": "Reset Zoom",
+      "errorCode": {
+        "PROVIDER_QUERY_FAILED": "Ошибка запроса провайдера LLM",
+        "NO_AVAILABLE_PROVIDER": "Нет доступного провайдера LLM",
+        "API_KEY_DECRYPT_FAILED": "Ошибка расшифровки ключа API",
+        "UNSUPPORTED_PROVIDER": "Неподдерживаемый тип провайдера LLM",
+        "LLM_CALL_FAILED": "Ошибка вызова LLM",
+        "AGENT_PROFILE_NOT_FOUND": "Профиль агента не найден",
+        "TOOL_CALL_FAILED": "Ошибка вызова инструмента",
+        "TOOL_NOT_CONFIGURED": "Обратный вызов исполнителя инструмента не настроен",
+        "SUBWORKFLOW_FAILED": "Ошибка выполнения подпроцесса",
+        "SUBWORKFLOW_NOT_CONFIGURED": "Обратный вызов исполнителя подпроцесса не настроен",
+        "VECTOR_RETRIEVE_FAILED": "Ошибка векторного поиска",
+        "VECTOR_NOT_CONFIGURED": "Обратный вызов исполнителя векторного поиска не настроен",
+        "VARIABLE_NOT_FOUND": "Требуемая переменная не найдена",
+        "VALIDATION_FAILED": "Ошибка валидации",
+        "TIMEOUT": "Тайм-аут выполнения",
+        "CIRCUIT_BREAKER_OPEN": "Автоматический выключатель разомкнут",
+        "NODE_TYPE_MISMATCH": "Несоответствие типа узла",
+        "UNSUPPORTED_NODE_TYPE": "Неподдерживаемый тип узла",
+        "CACHE_DESERIALIZE_FAILED": "Ошибка десериализации кэшированных данных",
+        "MODEL_NOT_CONFIGURED": "Модель не настроена",
+        "NODE_NOT_FOUND": "Узел не найден"
+      }
     },
     "agentNode": {
       "tools": "Инструменты",
@@ -4009,7 +4099,11 @@
       "rhaiTemplateDesc": "Скрипт Rhai",
       "templateRhaiTools": "── Шаблоны Rhai ──",
       "globalTools": "── Глобальные инструменты ──"
-    }
+    },
+    "autoLayout": "Автоматическая компоновка",
+    "autoLayoutTooltip": "Автоматически расположить узлы",
+    "selfLoopNotAllowed": "Самоциклы не допускаются",
+    "edgeAlreadyExists": "Ребро уже существует"
   },
   "atomicSkill": {
     "entryType": "Entry Type",
@@ -4650,7 +4744,30 @@
       "source": "Source",
       "status": "Status",
       "sync": "Sync",
-      "type": "Type"
+      "type": "Type",
+      "errorCode": {
+        "PROVIDER_QUERY_FAILED": "Ошибка запроса провайдера LLM",
+        "NO_AVAILABLE_PROVIDER": "Нет доступного провайдера LLM",
+        "API_KEY_DECRYPT_FAILED": "Ошибка расшифровки ключа API",
+        "UNSUPPORTED_PROVIDER": "Неподдерживаемый тип провайдера LLM",
+        "LLM_CALL_FAILED": "Ошибка вызова LLM",
+        "AGENT_PROFILE_NOT_FOUND": "Профиль агента не найден",
+        "TOOL_CALL_FAILED": "Ошибка вызова инструмента",
+        "TOOL_NOT_CONFIGURED": "Обратный вызов исполнителя инструмента не настроен",
+        "SUBWORKFLOW_FAILED": "Ошибка выполнения подпроцесса",
+        "SUBWORKFLOW_NOT_CONFIGURED": "Обратный вызов исполнителя подпроцесса не настроен",
+        "VECTOR_RETRIEVE_FAILED": "Ошибка векторного поиска",
+        "VECTOR_NOT_CONFIGURED": "Обратный вызов исполнителя векторного поиска не настроен",
+        "VARIABLE_NOT_FOUND": "Требуемая переменная не найдена",
+        "VALIDATION_FAILED": "Ошибка валидации",
+        "TIMEOUT": "Тайм-аут выполнения",
+        "CIRCUIT_BREAKER_OPEN": "Автоматический выключатель разомкнут",
+        "NODE_TYPE_MISMATCH": "Несоответствие типа узла",
+        "UNSUPPORTED_NODE_TYPE": "Неподдерживаемый тип узла",
+        "CACHE_DESERIALIZE_FAILED": "Ошибка десериализации кэшированных данных",
+        "MODEL_NOT_CONFIGURED": "Модель не настроена",
+        "NODE_NOT_FOUND": "Узел не найден"
+      }
     },
     "pageNotFound": "Page not found",
     "pageType": "Page Type",
@@ -6577,5 +6694,11 @@
         "generationUser": "Generate workflow based on: {0}"
       }
     }
+  },
+  "appHeader": {
+    "knowledgeContext": "Знания",
+    "gatewayContext": "Шлюз",
+    "filesContext": "Файлы",
+    "terminalContext": "Терминал"
   }
 }

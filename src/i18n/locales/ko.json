@@ -671,27 +671,27 @@
         "DESKTOP_NATIVE_NOTIFICATION_FAILED": "Native notification failed"
       },
       "errorCode": {
-        "PROVIDER_QUERY_FAILED": "Provider query failed",
-        "NO_AVAILABLE_PROVIDER": "No available LLM provider",
-        "API_KEY_DECRYPT_FAILED": "API key decryption failed",
-        "UNSUPPORTED_PROVIDER": "Unsupported provider type",
-        "LLM_CALL_FAILED": "LLM call failed",
-        "AGENT_PROFILE_NOT_FOUND": "Agent profile not found",
-        "TOOL_CALL_FAILED": "Tool call failed",
-        "TOOL_NOT_CONFIGURED": "Tool callback not configured",
-        "SUBWORKFLOW_FAILED": "Sub-workflow execution failed",
-        "SUBWORKFLOW_NOT_CONFIGURED": "Sub-workflow callback not configured",
-        "VECTOR_RETRIEVE_FAILED": "Vector retrieval failed",
-        "VECTOR_NOT_CONFIGURED": "Vector retrieve callback not configured",
-        "VARIABLE_NOT_FOUND": "Required variable not found",
-        "VALIDATION_FAILED": "Validation failed",
-        "TIMEOUT": "Execution timeout",
-        "CIRCUIT_BREAKER_OPEN": "Circuit breaker open",
-        "NODE_TYPE_MISMATCH": "Node type mismatch",
-        "UNSUPPORTED_NODE_TYPE": "Unsupported node type",
-        "CACHE_DESERIALIZE_FAILED": "Cache deserialization failed",
-        "MODEL_NOT_CONFIGURED": "Model not configured",
-        "NODE_NOT_FOUND": "Node not found"
+        "PROVIDER_QUERY_FAILED": "LLM 제공자 쿼리 실패",
+        "NO_AVAILABLE_PROVIDER": "사용 가능한 LLM 제공자 없음",
+        "API_KEY_DECRYPT_FAILED": "API 키 복호화 실패",
+        "UNSUPPORTED_PROVIDER": "지원되지 않는 LLM 제공자 유형",
+        "LLM_CALL_FAILED": "LLM 호출 실패",
+        "AGENT_PROFILE_NOT_FOUND": "에이전트 프로필을 찾을 수 없음",
+        "TOOL_CALL_FAILED": "도구 호출 실패",
+        "TOOL_NOT_CONFIGURED": "도구 실행자 콜백이 구성되지 않음",
+        "SUBWORKFLOW_FAILED": "하위 워크플로 실행 실패",
+        "SUBWORKFLOW_NOT_CONFIGURED": "하위 워크플로 실행자 콜백이 구성되지 않음",
+        "VECTOR_RETRIEVE_FAILED": "벡터 검색 실패",
+        "VECTOR_NOT_CONFIGURED": "벡터 검색 실행자 콜백이 구성되지 않음",
+        "VARIABLE_NOT_FOUND": "필수 변수를 찾을 수 없음",
+        "VALIDATION_FAILED": "유효성 검사 실패",
+        "TIMEOUT": "실행 시간 초과",
+        "CIRCUIT_BREAKER_OPEN": "서킷 브레이커 열림",
+        "NODE_TYPE_MISMATCH": "노드 유형 불일치",
+        "UNSUPPORTED_NODE_TYPE": "지원되지 않는 노드 유형",
+        "CACHE_DESERIALIZE_FAILED": "캐시 데이터 역직렬화 실패",
+        "MODEL_NOT_CONFIGURED": "모델이 구성되지 않음",
+        "NODE_NOT_FOUND": "노드를 찾을 수 없음"
       },
       "loading": "Loading...",
       "cancelled": "Cancelled",
@@ -813,7 +813,9 @@
       "tokens": "tokens",
       "tool": "tools",
       "askUser": "questions",
-      "loading": "Loading..."
+      "loading": "Loading...",
+      "failed": "실패",
+      "iteration": "회 반복"
     },
     "benchmarks": {
       "failed": "Failed",
@@ -1653,7 +1655,10 @@
       "importPlaceholder": "JSON 설정을 붙여넣으세요. 예:\n{\n  \"mcpServers\": {\n    \"server-name\": {\n      \"command\": \"uvx\",\n      \"args\": [\"mcp-server-fetch\"]\n    }\n  }\n}",
       "importParseError": "잘못된 JSON 형식",
       "importEmpty": "유효한 MCP 서버 설정을 찾을 수 없습니다",
-      "importSuccess": "{{count}}개의 서버를 가져왔습니다"
+      "importSuccess": "{{count}}개의 서버를 가져왔습니다",
+      "notConfigured": "연결이 구성되지 않음",
+      "builtinServer": "내장 서버",
+      "toolCount": "{{count}}개 도구"
     },
     "knowledge": {
       "title": "지식 베이스",
@@ -3321,7 +3326,30 @@
       "saveWiki": "Save",
       "continueAsk": "Follow up",
       "error": "Error",
-      "noWikiSelected": "먼저 지식 베이스에서 Wiki를 선택하세요"
+      "noWikiSelected": "먼저 지식 베이스에서 Wiki를 선택하세요",
+      "errorCode": {
+        "PROVIDER_QUERY_FAILED": "LLM 제공자 쿼리 실패",
+        "NO_AVAILABLE_PROVIDER": "사용 가능한 LLM 제공자 없음",
+        "API_KEY_DECRYPT_FAILED": "API 키 복호화 실패",
+        "UNSUPPORTED_PROVIDER": "지원되지 않는 LLM 제공자 유형",
+        "LLM_CALL_FAILED": "LLM 호출 실패",
+        "AGENT_PROFILE_NOT_FOUND": "에이전트 프로필을 찾을 수 없음",
+        "TOOL_CALL_FAILED": "도구 호출 실패",
+        "TOOL_NOT_CONFIGURED": "도구 실행자 콜백이 구성되지 않음",
+        "SUBWORKFLOW_FAILED": "하위 워크플로 실행 실패",
+        "SUBWORKFLOW_NOT_CONFIGURED": "하위 워크플로 실행자 콜백이 구성되지 않음",
+        "VECTOR_RETRIEVE_FAILED": "벡터 검색 실패",
+        "VECTOR_NOT_CONFIGURED": "벡터 검색 실행자 콜백이 구성되지 않음",
+        "VARIABLE_NOT_FOUND": "필수 변수를 찾을 수 없음",
+        "VALIDATION_FAILED": "유효성 검사 실패",
+        "TIMEOUT": "실행 시간 초과",
+        "CIRCUIT_BREAKER_OPEN": "서킷 브레이커 열림",
+        "NODE_TYPE_MISMATCH": "노드 유형 불일치",
+        "UNSUPPORTED_NODE_TYPE": "지원되지 않는 노드 유형",
+        "CACHE_DESERIALIZE_FAILED": "캐시 데이터 역직렬화 실패",
+        "MODEL_NOT_CONFIGURED": "모델이 구성되지 않음",
+        "NODE_NOT_FOUND": "노드를 찾을 수 없음"
+      }
     },
     "noResults": "No results",
     "search": "Search"
@@ -3363,7 +3391,9 @@
       "noRecommendations": "No recommendations yet",
       "aiAssistant": "AI Assistant",
       "clickCanvasToAdd": "Selected \"{{label}}\" — click on the canvas to place the node",
-      "explanation": "Explanation"
+      "explanation": "Explanation",
+      "replaceConfirmTitle": "바꾸기 확인",
+      "replaceConfirmContent": "현재 캔버스에 {{nodes}}개의 노드와 {{edges}}개의 간선이 있습니다. 생성 시 모두 교체됩니다. 계속하시겠습니까?"
     },
     "previewInDevelopment": "Preview feature is in development",
     "publishInDevelopment": "Publish feature is in development",
@@ -3695,7 +3725,21 @@
       "expertNotFound": "",
       "profileMatched": "",
       "profileCreated": "",
-      "profileCreateFailed": ""
+      "profileCreateFailed": "",
+      "executionMode": "실행 모드",
+      "executionReact": "반응형",
+      "executionPlan": "계획형",
+      "executionReactHint": "상위 데이터가 변경되면 노드가 반응형으로 실행됩니다",
+      "executionPlanHint": "노드가 계획된 위상 순서로 실행됩니다",
+      "toolName": "도구 이름",
+      "toolNamePlaceholder": "도구 이름 입력",
+      "toolNameHint": "LLM에서 이 도구를 호출할 때 사용하는 이름",
+      "aggregation": "집계",
+      "aggregationAll": "전체",
+      "aggregationFirst": "첫 번째",
+      "aggregationRace": "경쟁",
+      "aggregationMajority": "다수결",
+      "aggregationHint": "여러 병렬 브랜치의 결과를 집계하는 방법"
     },
     "debug": {
       "totalDuration": "Total Duration",
@@ -3708,7 +3752,20 @@
       "variables": "Variables",
       "performance": "Performance",
       "slowestNode": "Slowest Node",
-      "fastestNode": "Fastest Node"
+      "fastestNode": "Fastest Node",
+      "title": "디버그 패널",
+      "columnNode": "노드",
+      "columnDuration": "소요 시간",
+      "columnRetries": "재시도",
+      "columnStatus": "상태",
+      "executionLabel": "실행: {{id}} | 워크플로: {{name}} | 트리거: {{trigger}}",
+      "variableSnapshots": "변수 스냅샷",
+      "performanceAnalysis": "성능 분석",
+      "labelNode": "노드",
+      "labelType": "유형",
+      "labelError": "오류",
+      "labelInput": "입력",
+      "labelOutput": "출력"
     },
     "applySemanticCheck": "Apply",
     "applyUpgrade": "Apply Upgrade",
@@ -3864,7 +3921,17 @@
       "invalidJson": "잘못된 JSON 형식",
       "unsupportedNodeType": "Editing this node type is not supported yet",
       "llmRouting": "LLM 동적 라우팅",
-      "llmRoutingHint": "AI가 컨텍스트에 따라 분기를 결정"
+      "llmRoutingHint": "AI가 컨텍스트에 따라 분기를 결정",
+      "aiGenerate": "AI 생성",
+      "codeTemplates": "코드 템플릿",
+      "showTools": "도구 표시",
+      "hideTools": "도구 숨기기",
+      "availableTools": "사용 가능한 도구",
+      "noToolsAvailable": "사용 가능한 도구 없음",
+      "routingPrompt": "라우팅 프롬프트",
+      "routingPromptPlaceholder": "브랜치 간 라우팅 방법 설명...",
+      "routingModel": "라우팅 모델",
+      "routingModelPlaceholder": "라우팅 결정에 사용할 모델 선택"
     },
     "statusBar": {
       "unsaved": "저장 안 됨",
@@ -3878,7 +3945,30 @@
       "warning": "{{count}} warnings",
       "dagEditor": "DAG Editor",
       "fitView": "Fit View",
-      "resetZoom": "Reset Zoom"
+      "resetZoom": "Reset Zoom",
+      "errorCode": {
+        "PROVIDER_QUERY_FAILED": "LLM 제공자 쿼리 실패",
+        "NO_AVAILABLE_PROVIDER": "사용 가능한 LLM 제공자 없음",
+        "API_KEY_DECRYPT_FAILED": "API 키 복호화 실패",
+        "UNSUPPORTED_PROVIDER": "지원되지 않는 LLM 제공자 유형",
+        "LLM_CALL_FAILED": "LLM 호출 실패",
+        "AGENT_PROFILE_NOT_FOUND": "에이전트 프로필을 찾을 수 없음",
+        "TOOL_CALL_FAILED": "도구 호출 실패",
+        "TOOL_NOT_CONFIGURED": "도구 실행자 콜백이 구성되지 않음",
+        "SUBWORKFLOW_FAILED": "하위 워크플로 실행 실패",
+        "SUBWORKFLOW_NOT_CONFIGURED": "하위 워크플로 실행자 콜백이 구성되지 않음",
+        "VECTOR_RETRIEVE_FAILED": "벡터 검색 실패",
+        "VECTOR_NOT_CONFIGURED": "벡터 검색 실행자 콜백이 구성되지 않음",
+        "VARIABLE_NOT_FOUND": "필수 변수를 찾을 수 없음",
+        "VALIDATION_FAILED": "유효성 검사 실패",
+        "TIMEOUT": "실행 시간 초과",
+        "CIRCUIT_BREAKER_OPEN": "서킷 브레이커 열림",
+        "NODE_TYPE_MISMATCH": "노드 유형 불일치",
+        "UNSUPPORTED_NODE_TYPE": "지원되지 않는 노드 유형",
+        "CACHE_DESERIALIZE_FAILED": "캐시 데이터 역직렬화 실패",
+        "MODEL_NOT_CONFIGURED": "모델이 구성되지 않음",
+        "NODE_NOT_FOUND": "노드를 찾을 수 없음"
+      }
     },
     "agentNode": {
       "tools": "도구",
@@ -4009,7 +4099,11 @@
       "rhaiTemplateDesc": "Rhai 스크립트",
       "templateRhaiTools": "── 템플릿 Rhai 도구 ──",
       "globalTools": "── 전역 도구 ──"
-    }
+    },
+    "autoLayout": "자동 레이아웃",
+    "autoLayoutTooltip": "노드 자동 정렬",
+    "selfLoopNotAllowed": "자기 루프는 허용되지 않습니다",
+    "edgeAlreadyExists": "간선이 이미 존재합니다"
   },
   "atomicSkill": {
     "entryType": "Entry Type",
@@ -4650,7 +4744,30 @@
       "source": "Source",
       "status": "Status",
       "sync": "Sync",
-      "type": "Type"
+      "type": "Type",
+      "errorCode": {
+        "PROVIDER_QUERY_FAILED": "LLM 제공자 쿼리 실패",
+        "NO_AVAILABLE_PROVIDER": "사용 가능한 LLM 제공자 없음",
+        "API_KEY_DECRYPT_FAILED": "API 키 복호화 실패",
+        "UNSUPPORTED_PROVIDER": "지원되지 않는 LLM 제공자 유형",
+        "LLM_CALL_FAILED": "LLM 호출 실패",
+        "AGENT_PROFILE_NOT_FOUND": "에이전트 프로필을 찾을 수 없음",
+        "TOOL_CALL_FAILED": "도구 호출 실패",
+        "TOOL_NOT_CONFIGURED": "도구 실행자 콜백이 구성되지 않음",
+        "SUBWORKFLOW_FAILED": "하위 워크플로 실행 실패",
+        "SUBWORKFLOW_NOT_CONFIGURED": "하위 워크플로 실행자 콜백이 구성되지 않음",
+        "VECTOR_RETRIEVE_FAILED": "벡터 검색 실패",
+        "VECTOR_NOT_CONFIGURED": "벡터 검색 실행자 콜백이 구성되지 않음",
+        "VARIABLE_NOT_FOUND": "필수 변수를 찾을 수 없음",
+        "VALIDATION_FAILED": "유효성 검사 실패",
+        "TIMEOUT": "실행 시간 초과",
+        "CIRCUIT_BREAKER_OPEN": "서킷 브레이커 열림",
+        "NODE_TYPE_MISMATCH": "노드 유형 불일치",
+        "UNSUPPORTED_NODE_TYPE": "지원되지 않는 노드 유형",
+        "CACHE_DESERIALIZE_FAILED": "캐시 데이터 역직렬화 실패",
+        "MODEL_NOT_CONFIGURED": "모델이 구성되지 않음",
+        "NODE_NOT_FOUND": "노드를 찾을 수 없음"
+      }
     },
     "pageNotFound": "Page not found",
     "pageType": "Page Type",
@@ -6577,5 +6694,11 @@
         "generationUser": "Generate workflow based on: {0}"
       }
     }
+  },
+  "appHeader": {
+    "knowledgeContext": "지식",
+    "gatewayContext": "게이트웨이",
+    "filesContext": "파일",
+    "terminalContext": "터미널"
   }
 }

@@ -671,27 +671,27 @@
         "DESKTOP_NATIVE_NOTIFICATION_FAILED": "Native notification failed"
       },
       "errorCode": {
-        "PROVIDER_QUERY_FAILED": "Provider query failed",
-        "NO_AVAILABLE_PROVIDER": "No available LLM provider",
-        "API_KEY_DECRYPT_FAILED": "API key decryption failed",
-        "UNSUPPORTED_PROVIDER": "Unsupported provider type",
-        "LLM_CALL_FAILED": "LLM call failed",
-        "AGENT_PROFILE_NOT_FOUND": "Agent profile not found",
-        "TOOL_CALL_FAILED": "Tool call failed",
-        "TOOL_NOT_CONFIGURED": "Tool callback not configured",
-        "SUBWORKFLOW_FAILED": "Sub-workflow execution failed",
-        "SUBWORKFLOW_NOT_CONFIGURED": "Sub-workflow callback not configured",
-        "VECTOR_RETRIEVE_FAILED": "Vector retrieval failed",
-        "VECTOR_NOT_CONFIGURED": "Vector retrieve callback not configured",
-        "VARIABLE_NOT_FOUND": "Required variable not found",
-        "VALIDATION_FAILED": "Validation failed",
-        "TIMEOUT": "Execution timeout",
-        "CIRCUIT_BREAKER_OPEN": "Circuit breaker open",
-        "NODE_TYPE_MISMATCH": "Node type mismatch",
-        "UNSUPPORTED_NODE_TYPE": "Unsupported node type",
-        "CACHE_DESERIALIZE_FAILED": "Cache deserialization failed",
-        "MODEL_NOT_CONFIGURED": "Model not configured",
-        "NODE_NOT_FOUND": "Node not found"
+        "PROVIDER_QUERY_FAILED": "LLM प्रदाता क्वेरी विफल",
+        "NO_AVAILABLE_PROVIDER": "कोई LLM प्रदाता उपलब्ध नहीं",
+        "API_KEY_DECRYPT_FAILED": "API कुंजी डिक्रिप्शन विफल",
+        "UNSUPPORTED_PROVIDER": "असमर्थित LLM प्रदाता प्रकार",
+        "LLM_CALL_FAILED": "LLM कॉल विफल",
+        "AGENT_PROFILE_NOT_FOUND": "एजेंट प्रोफ़ाइल नहीं मिली",
+        "TOOL_CALL_FAILED": "टूल कॉल विफल",
+        "TOOL_NOT_CONFIGURED": "टूल निष्पादक कॉलबैक कॉन्फ़िगर नहीं किया गया",
+        "SUBWORKFLOW_FAILED": "उप-वर्कफ़्लो निष्पादन विफल",
+        "SUBWORKFLOW_NOT_CONFIGURED": "उप-वर्कफ़्लो निष्पादक कॉलबैक कॉन्फ़िगर नहीं किया गया",
+        "VECTOR_RETRIEVE_FAILED": "वेक्टर पुनर्प्राप्ति विफल",
+        "VECTOR_NOT_CONFIGURED": "वेक्टर पुनर्प्राप्ति निष्पादक कॉलबैक कॉन्फ़िगर नहीं किया गया",
+        "VARIABLE_NOT_FOUND": "आवश्यक चर नहीं मिला",
+        "VALIDATION_FAILED": "सत्यापन विफल",
+        "TIMEOUT": "निष्पादन टाइमआउट",
+        "CIRCUIT_BREAKER_OPEN": "सर्किट ब्रेकर खुला",
+        "NODE_TYPE_MISMATCH": "नोड प्रकार बेमेल",
+        "UNSUPPORTED_NODE_TYPE": "असमर्थित नोड प्रकार",
+        "CACHE_DESERIALIZE_FAILED": "कैश डेटा डीसिरियलाइज़ेशन विफल",
+        "MODEL_NOT_CONFIGURED": "मॉडल कॉन्फ़िगर नहीं किया गया",
+        "NODE_NOT_FOUND": "नोड नहीं मिला"
       },
       "loading": "Loading...",
       "cancelled": "Cancelled",
@@ -813,7 +813,9 @@
       "tokens": "tokens",
       "tool": "tools",
       "askUser": "questions",
-      "loading": "Loading..."
+      "loading": "Loading...",
+      "failed": "विफल",
+      "iteration": "पुनरावृत्तियाँ"
     },
     "benchmarks": {
       "failed": "Failed",
@@ -1571,7 +1573,10 @@
       "importPlaceholder": "JSON कॉन्फ़िग पेस्ट करें, उदाहरण:\n{\n  \"mcpServers\": {\n    \"server-name\": {\n      \"command\": \"uvx\",\n      \"args\": [\"mcp-server-fetch\"]\n    }\n  }\n}",
       "importParseError": "अमान्य JSON प्रारूप",
       "importEmpty": "कोई मान्य MCP सर्वर कॉन्फ़िग नहीं मिला",
-      "importSuccess": "{{count}} सर्वर सफलतापूर्वक आयात किए गए"
+      "importSuccess": "{{count}} सर्वर सफलतापूर्वक आयात किए गए",
+      "notConfigured": "कोई कनेक्शन कॉन्फ़िगर नहीं किया गया",
+      "builtinServer": "अंतर्निहित सर्वर",
+      "toolCount": "{{count}} उपकरण"
     },
     "knowledge": {
       "title": "ज्ञान आधार",
@@ -3501,7 +3506,30 @@
       "source": "Source",
       "status": "Status",
       "sync": "Sync",
-      "type": "Type"
+      "type": "Type",
+      "errorCode": {
+        "PROVIDER_QUERY_FAILED": "LLM प्रदाता क्वेरी विफल",
+        "NO_AVAILABLE_PROVIDER": "कोई LLM प्रदाता उपलब्ध नहीं",
+        "API_KEY_DECRYPT_FAILED": "API कुंजी डिक्रिप्शन विफल",
+        "UNSUPPORTED_PROVIDER": "असमर्थित LLM प्रदाता प्रकार",
+        "LLM_CALL_FAILED": "LLM कॉल विफल",
+        "AGENT_PROFILE_NOT_FOUND": "एजेंट प्रोफ़ाइल नहीं मिली",
+        "TOOL_CALL_FAILED": "टूल कॉल विफल",
+        "TOOL_NOT_CONFIGURED": "टूल निष्पादक कॉलबैक कॉन्फ़िगर नहीं किया गया",
+        "SUBWORKFLOW_FAILED": "उप-वर्कफ़्लो निष्पादन विफल",
+        "SUBWORKFLOW_NOT_CONFIGURED": "उप-वर्कफ़्लो निष्पादक कॉलबैक कॉन्फ़िगर नहीं किया गया",
+        "VECTOR_RETRIEVE_FAILED": "वेक्टर पुनर्प्राप्ति विफल",
+        "VECTOR_NOT_CONFIGURED": "वेक्टर पुनर्प्राप्ति निष्पादक कॉलबैक कॉन्फ़िगर नहीं किया गया",
+        "VARIABLE_NOT_FOUND": "आवश्यक चर नहीं मिला",
+        "VALIDATION_FAILED": "सत्यापन विफल",
+        "TIMEOUT": "निष्पादन टाइमआउट",
+        "CIRCUIT_BREAKER_OPEN": "सर्किट ब्रेकर खुला",
+        "NODE_TYPE_MISMATCH": "नोड प्रकार बेमेल",
+        "UNSUPPORTED_NODE_TYPE": "असमर्थित नोड प्रकार",
+        "CACHE_DESERIALIZE_FAILED": "कैश डेटा डीसिरियलाइज़ेशन विफल",
+        "MODEL_NOT_CONFIGURED": "मॉडल कॉन्फ़िगर नहीं किया गया",
+        "NODE_NOT_FOUND": "नोड नहीं मिला"
+      }
     },
     "pageNotFound": "Page not found",
     "pageType": "Page Type",
@@ -3720,7 +3748,30 @@
       "saveWiki": "Save",
       "continueAsk": "Follow up",
       "error": "Error",
-      "noWikiSelected": "कृपया पहले नॉलेज बेस में एक Wiki चुनें"
+      "noWikiSelected": "कृपया पहले नॉलेज बेस में एक Wiki चुनें",
+      "errorCode": {
+        "PROVIDER_QUERY_FAILED": "LLM प्रदाता क्वेरी विफल",
+        "NO_AVAILABLE_PROVIDER": "कोई LLM प्रदाता उपलब्ध नहीं",
+        "API_KEY_DECRYPT_FAILED": "API कुंजी डिक्रिप्शन विफल",
+        "UNSUPPORTED_PROVIDER": "असमर्थित LLM प्रदाता प्रकार",
+        "LLM_CALL_FAILED": "LLM कॉल विफल",
+        "AGENT_PROFILE_NOT_FOUND": "एजेंट प्रोफ़ाइल नहीं मिली",
+        "TOOL_CALL_FAILED": "टूल कॉल विफल",
+        "TOOL_NOT_CONFIGURED": "टूल निष्पादक कॉलबैक कॉन्फ़िगर नहीं किया गया",
+        "SUBWORKFLOW_FAILED": "उप-वर्कफ़्लो निष्पादन विफल",
+        "SUBWORKFLOW_NOT_CONFIGURED": "उप-वर्कफ़्लो निष्पादक कॉलबैक कॉन्फ़िगर नहीं किया गया",
+        "VECTOR_RETRIEVE_FAILED": "वेक्टर पुनर्प्राप्ति विफल",
+        "VECTOR_NOT_CONFIGURED": "वेक्टर पुनर्प्राप्ति निष्पादक कॉलबैक कॉन्फ़िगर नहीं किया गया",
+        "VARIABLE_NOT_FOUND": "आवश्यक चर नहीं मिला",
+        "VALIDATION_FAILED": "सत्यापन विफल",
+        "TIMEOUT": "निष्पादन टाइमआउट",
+        "CIRCUIT_BREAKER_OPEN": "सर्किट ब्रेकर खुला",
+        "NODE_TYPE_MISMATCH": "नोड प्रकार बेमेल",
+        "UNSUPPORTED_NODE_TYPE": "असमर्थित नोड प्रकार",
+        "CACHE_DESERIALIZE_FAILED": "कैश डेटा डीसिरियलाइज़ेशन विफल",
+        "MODEL_NOT_CONFIGURED": "मॉडल कॉन्फ़िगर नहीं किया गया",
+        "NODE_NOT_FOUND": "नोड नहीं मिला"
+      }
     },
     "noResults": "No results",
     "search": "Search"
@@ -3762,7 +3813,9 @@
       "noRecommendations": "No recommendations yet",
       "aiAssistant": "AI Assistant",
       "clickCanvasToAdd": "Selected \"{{label}}\" — click on the canvas to place the node",
-      "explanation": "Explanation"
+      "explanation": "Explanation",
+      "replaceConfirmTitle": "प्रतिस्थापन की पुष्टि करें",
+      "replaceConfirmContent": "वर्तमान कैनवास में {{nodes}} नोड और {{edges}} किनारे हैं। जनरेशन सभी को बदल देगा। जारी रखें?"
     },
     "previewInDevelopment": "Preview feature is in development",
     "publishInDevelopment": "Publish feature is in development",
@@ -4094,7 +4147,21 @@
       "expertNotFound": "",
       "profileMatched": "",
       "profileCreated": "",
-      "profileCreateFailed": ""
+      "profileCreateFailed": "",
+      "executionMode": "निष्पादन मोड",
+      "executionReact": "रिएक्टिव",
+      "executionPlan": "नियोजित",
+      "executionReactHint": "अपस्ट्रीम डेटा बदलने पर नोड प्रतिक्रियाशील रूप से निष्पादित होते हैं",
+      "executionPlanHint": "नोड नियोजित टोपोलॉजिकल क्रम में निष्पादित होते हैं",
+      "toolName": "टूल का नाम",
+      "toolNamePlaceholder": "टूल का नाम दर्ज करें",
+      "toolNameHint": "LLM से इस टूल को कॉल करने के लिए उपयोग किया जाने वाला नाम",
+      "aggregation": "एकत्रीकरण",
+      "aggregationAll": "सभी",
+      "aggregationFirst": "पहला",
+      "aggregationRace": "रेस",
+      "aggregationMajority": "बहुमत",
+      "aggregationHint": "एकाधिक समानांतर शाखाओं से परिणामों को एकत्रित करने का तरीका"
     },
     "debug": {
       "totalDuration": "Total Duration",
@@ -4107,7 +4174,20 @@
       "variables": "Variables",
       "performance": "Performance",
       "slowestNode": "Slowest Node",
-      "fastestNode": "Fastest Node"
+      "fastestNode": "Fastest Node",
+      "title": "डीबग पैनल",
+      "columnNode": "नोड",
+      "columnDuration": "अवधि",
+      "columnRetries": "पुनः प्रयास",
+      "columnStatus": "स्थिति",
+      "executionLabel": "निष्पादन: {{id}} | वर्कफ़्लो: {{name}} | ट्रिगर: {{trigger}}",
+      "variableSnapshots": "चर स्नैपशॉट",
+      "performanceAnalysis": "प्रदर्शन विश्लेषण",
+      "labelNode": "नोड",
+      "labelType": "प्रकार",
+      "labelError": "त्रुटि",
+      "labelInput": "इनपुट",
+      "labelOutput": "आउटपुट"
     },
     "applySemanticCheck": "Apply",
     "applyUpgrade": "Apply Upgrade",
@@ -4263,7 +4343,17 @@
       "invalidJson": "अमान्य JSON प्रारूप",
       "unsupportedNodeType": "Editing this node type is not supported yet",
       "llmRouting": "LLM डायनामिक रूटिंग",
-      "llmRoutingHint": "AI को संदर्भ के आधार पर शाखा चुनने दें"
+      "llmRoutingHint": "AI को संदर्भ के आधार पर शाखा चुनने दें",
+      "aiGenerate": "AI जनरेशन",
+      "codeTemplates": "कोड टेम्पलेट",
+      "showTools": "टूल दिखाएं",
+      "hideTools": "टूल छिपाएं",
+      "availableTools": "उपलब्ध उपकरण",
+      "noToolsAvailable": "कोई टूल उपलब्ध नहीं",
+      "routingPrompt": "राउटिंग प्रॉम्प्ट",
+      "routingPromptPlaceholder": "शाखाओं के बीच राउटिंग का वर्णन करें...",
+      "routingModel": "राउटिंग मॉडल",
+      "routingModelPlaceholder": "राउटिंग निर्णयों के लिए मॉडल चुनें"
     },
     "statusBar": {
       "unsaved": "सहेजा नहीं गया",
@@ -4277,7 +4367,30 @@
       "warning": "{{count}} warnings",
       "dagEditor": "DAG Editor",
       "fitView": "Fit View",
-      "resetZoom": "Reset Zoom"
+      "resetZoom": "Reset Zoom",
+      "errorCode": {
+        "PROVIDER_QUERY_FAILED": "LLM प्रदाता क्वेरी विफल",
+        "NO_AVAILABLE_PROVIDER": "कोई LLM प्रदाता उपलब्ध नहीं",
+        "API_KEY_DECRYPT_FAILED": "API कुंजी डिक्रिप्शन विफल",
+        "UNSUPPORTED_PROVIDER": "असमर्थित LLM प्रदाता प्रकार",
+        "LLM_CALL_FAILED": "LLM कॉल विफल",
+        "AGENT_PROFILE_NOT_FOUND": "एजेंट प्रोफ़ाइल नहीं मिली",
+        "TOOL_CALL_FAILED": "टूल कॉल विफल",
+        "TOOL_NOT_CONFIGURED": "टूल निष्पादक कॉलबैक कॉन्फ़िगर नहीं किया गया",
+        "SUBWORKFLOW_FAILED": "उप-वर्कफ़्लो निष्पादन विफल",
+        "SUBWORKFLOW_NOT_CONFIGURED": "उप-वर्कफ़्लो निष्पादक कॉलबैक कॉन्फ़िगर नहीं किया गया",
+        "VECTOR_RETRIEVE_FAILED": "वेक्टर पुनर्प्राप्ति विफल",
+        "VECTOR_NOT_CONFIGURED": "वेक्टर पुनर्प्राप्ति निष्पादक कॉलबैक कॉन्फ़िगर नहीं किया गया",
+        "VARIABLE_NOT_FOUND": "आवश्यक चर नहीं मिला",
+        "VALIDATION_FAILED": "सत्यापन विफल",
+        "TIMEOUT": "निष्पादन टाइमआउट",
+        "CIRCUIT_BREAKER_OPEN": "सर्किट ब्रेकर खुला",
+        "NODE_TYPE_MISMATCH": "नोड प्रकार बेमेल",
+        "UNSUPPORTED_NODE_TYPE": "असमर्थित नोड प्रकार",
+        "CACHE_DESERIALIZE_FAILED": "कैश डेटा डीसिरियलाइज़ेशन विफल",
+        "MODEL_NOT_CONFIGURED": "मॉडल कॉन्फ़िगर नहीं किया गया",
+        "NODE_NOT_FOUND": "नोड नहीं मिला"
+      }
     },
     "agentNode": {
       "tools": "उपकरण",
@@ -4408,7 +4521,11 @@
       "rhaiTemplateDesc": "Rhai स्क्रिप्ट",
       "templateRhaiTools": "── टेम्पलेट Rhai टूल्स ──",
       "globalTools": "── ग्लोबल टूल्स ──"
-    }
+    },
+    "autoLayout": "स्वतः लेआउट",
+    "autoLayoutTooltip": "नोड स्वतः व्यवस्थित करें",
+    "selfLoopNotAllowed": "सेल्फ-लूप की अनुमति नहीं है",
+    "edgeAlreadyExists": "किनारा पहले से मौजूद है"
   },
   "atomicSkill": {
     "entryType": "Entry Type",
@@ -4864,7 +4981,21 @@
     "scheduledWas": "Scheduled: {{time}}",
     "retry": "Retry",
     "applied": "Applied",
-    "copied": "Copied to clipboard"
+    "copied": "Copied to clipboard",
+    "insight": {
+      "title": "सक्रिय अंतर्दृष्टि",
+      "refresh": "रीफ़्रेश",
+      "all": "सभी",
+      "empty": "अभी तक कोई अंतर्दृष्टि नहीं",
+      "evidence": "साक्ष्य",
+      "suggestedAction": "सुझावित कार्रवाई",
+      "category": {
+        "pattern": "पैटर्न",
+        "preference": "वरीयता",
+        "improvement": "सुधार",
+        "warning": "चेतावनी"
+      }
+    }
   },
   "review": {
     "commentPlaceholder": "Enter comment...",
@@ -6556,5 +6687,18 @@
         "generationUser": "Generate workflow based on: {0}"
       }
     }
+  },
+  "appHeader": {
+    "knowledgeContext": "ज्ञान",
+    "gatewayContext": "गेटवे",
+    "filesContext": "फ़ाइलें",
+    "terminalContext": "टर्मिनल"
+  },
+  "errorNotification": {
+    "retry": "पुनः प्रयास"
+  },
+  "backendStatus": {
+    "done": "पूर्ण",
+    "failed": "विफल"
   }
 }

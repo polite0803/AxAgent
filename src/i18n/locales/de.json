@@ -671,27 +671,27 @@
         "DESKTOP_NATIVE_NOTIFICATION_FAILED": "Native notification failed"
       },
       "errorCode": {
-        "PROVIDER_QUERY_FAILED": "Provider query failed",
-        "NO_AVAILABLE_PROVIDER": "No available LLM provider",
-        "API_KEY_DECRYPT_FAILED": "API key decryption failed",
-        "UNSUPPORTED_PROVIDER": "Unsupported provider type",
-        "LLM_CALL_FAILED": "LLM call failed",
-        "AGENT_PROFILE_NOT_FOUND": "Agent profile not found",
-        "TOOL_CALL_FAILED": "Tool call failed",
-        "TOOL_NOT_CONFIGURED": "Tool callback not configured",
-        "SUBWORKFLOW_FAILED": "Sub-workflow execution failed",
-        "SUBWORKFLOW_NOT_CONFIGURED": "Sub-workflow callback not configured",
-        "VECTOR_RETRIEVE_FAILED": "Vector retrieval failed",
-        "VECTOR_NOT_CONFIGURED": "Vector retrieve callback not configured",
-        "VARIABLE_NOT_FOUND": "Required variable not found",
-        "VALIDATION_FAILED": "Validation failed",
-        "TIMEOUT": "Execution timeout",
-        "CIRCUIT_BREAKER_OPEN": "Circuit breaker open",
-        "NODE_TYPE_MISMATCH": "Node type mismatch",
-        "UNSUPPORTED_NODE_TYPE": "Unsupported node type",
-        "CACHE_DESERIALIZE_FAILED": "Cache deserialization failed",
-        "MODEL_NOT_CONFIGURED": "Model not configured",
-        "NODE_NOT_FOUND": "Node not found"
+        "PROVIDER_QUERY_FAILED": "LLM-Anbieterabfrage fehlgeschlagen",
+        "NO_AVAILABLE_PROVIDER": "Kein LLM-Anbieter verfügbar",
+        "API_KEY_DECRYPT_FAILED": "Entschlüsselung des API-Schlüssels fehlgeschlagen",
+        "UNSUPPORTED_PROVIDER": "Nicht unterstützter LLM-Anbietertyp",
+        "LLM_CALL_FAILED": "LLM-Aufruf fehlgeschlagen",
+        "AGENT_PROFILE_NOT_FOUND": "Agent-Profil nicht gefunden",
+        "TOOL_CALL_FAILED": "Tool-Aufruf fehlgeschlagen",
+        "TOOL_NOT_CONFIGURED": "Tool-Executor-Callback nicht konfiguriert",
+        "SUBWORKFLOW_FAILED": "Ausführung des Unter-Workflows fehlgeschlagen",
+        "SUBWORKFLOW_NOT_CONFIGURED": "Unter-Workflow-Executor-Callback nicht konfiguriert",
+        "VECTOR_RETRIEVE_FAILED": "Vektorabfrage fehlgeschlagen",
+        "VECTOR_NOT_CONFIGURED": "Vektorabfrage-Executor-Callback nicht konfiguriert",
+        "VARIABLE_NOT_FOUND": "Erforderliche Variable nicht gefunden",
+        "VALIDATION_FAILED": "Validierung fehlgeschlagen",
+        "TIMEOUT": "Ausführungszeitüberschreitung",
+        "CIRCUIT_BREAKER_OPEN": "Leistungsschutzschalter geöffnet",
+        "NODE_TYPE_MISMATCH": "Knotentyp-Konflikt",
+        "UNSUPPORTED_NODE_TYPE": "Nicht unterstützter Knotentyp",
+        "CACHE_DESERIALIZE_FAILED": "Deserialisierung der Cache-Daten fehlgeschlagen",
+        "MODEL_NOT_CONFIGURED": "Modell nicht konfiguriert",
+        "NODE_NOT_FOUND": "Knoten nicht gefunden"
       },
       "loading": "Loading...",
       "cancelled": "Cancelled",
@@ -813,7 +813,9 @@
       "tokens": "tokens",
       "tool": "tools",
       "askUser": "questions",
-      "loading": "Loading..."
+      "loading": "Loading...",
+      "failed": "Fehlgeschlagen",
+      "iteration": "Iterationen"
     },
     "benchmarks": {
       "failed": "Failed",
@@ -1573,7 +1575,10 @@
       "importPlaceholder": "JSON-Konfiguration einfügen, z. B.:\n{\n  \"mcpServers\": {\n    \"server-name\": {\n      \"command\": \"uvx\",\n      \"args\": [\"mcp-server-fetch\"]\n    }\n  }\n}",
       "importParseError": "Ungültiges JSON-Format",
       "importEmpty": "Keine gültige MCP-Server-Konfiguration gefunden",
-      "importSuccess": "{{count}} Server erfolgreich importiert"
+      "importSuccess": "{{count}} Server erfolgreich importiert",
+      "notConfigured": "Keine Verbindungen konfiguriert",
+      "builtinServer": "Integrierter Server",
+      "toolCount": "{{count}} Werkzeuge"
     },
     "knowledge": {
       "title": "Wissensdatenbank",
@@ -2814,7 +2819,7 @@
     "proxyTestFailed": "Proxy-Test fehlgeschlagen",
     "invalidFormat": "Ungültiges Format",
     "page": "Error",
-    "message": "错误",
+    "message": "Fehler",
     "pageNotFound": "Sorry, the page you visited does not exist."
   },
   "desktop": {
@@ -3256,8 +3261,8 @@
   },
   "searchProvider": {
     "tavily": "Tavily",
-    "zhipu": "智谱",
-    "bocha": "博查"
+    "zhipu": "Zhipu",
+    "bocha": "Bocha"
   },
   "terminal": {
     "online": "Online",
@@ -3501,7 +3506,30 @@
       "source": "Source",
       "status": "Status",
       "sync": "Sync",
-      "type": "Type"
+      "type": "Type",
+      "errorCode": {
+        "PROVIDER_QUERY_FAILED": "LLM-Anbieterabfrage fehlgeschlagen",
+        "NO_AVAILABLE_PROVIDER": "Kein LLM-Anbieter verfügbar",
+        "API_KEY_DECRYPT_FAILED": "Entschlüsselung des API-Schlüssels fehlgeschlagen",
+        "UNSUPPORTED_PROVIDER": "Nicht unterstützter LLM-Anbietertyp",
+        "LLM_CALL_FAILED": "LLM-Aufruf fehlgeschlagen",
+        "AGENT_PROFILE_NOT_FOUND": "Agent-Profil nicht gefunden",
+        "TOOL_CALL_FAILED": "Tool-Aufruf fehlgeschlagen",
+        "TOOL_NOT_CONFIGURED": "Tool-Executor-Callback nicht konfiguriert",
+        "SUBWORKFLOW_FAILED": "Ausführung des Unter-Workflows fehlgeschlagen",
+        "SUBWORKFLOW_NOT_CONFIGURED": "Unter-Workflow-Executor-Callback nicht konfiguriert",
+        "VECTOR_RETRIEVE_FAILED": "Vektorabfrage fehlgeschlagen",
+        "VECTOR_NOT_CONFIGURED": "Vektorabfrage-Executor-Callback nicht konfiguriert",
+        "VARIABLE_NOT_FOUND": "Erforderliche Variable nicht gefunden",
+        "VALIDATION_FAILED": "Validierung fehlgeschlagen",
+        "TIMEOUT": "Ausführungszeitüberschreitung",
+        "CIRCUIT_BREAKER_OPEN": "Leistungsschutzschalter geöffnet",
+        "NODE_TYPE_MISMATCH": "Knotentyp-Konflikt",
+        "UNSUPPORTED_NODE_TYPE": "Nicht unterstützter Knotentyp",
+        "CACHE_DESERIALIZE_FAILED": "Deserialisierung der Cache-Daten fehlgeschlagen",
+        "MODEL_NOT_CONFIGURED": "Modell nicht konfiguriert",
+        "NODE_NOT_FOUND": "Knoten nicht gefunden"
+      }
     },
     "pageNotFound": "Page not found",
     "pageType": "Page Type",
@@ -3720,7 +3748,30 @@
       "saveWiki": "Speichern",
       "continueAsk": "Weiter fragen",
       "error": "Fehler",
-      "noWikiSelected": "Bitte wählen Sie zuerst ein Wiki in der Wissensdatenbank aus"
+      "noWikiSelected": "Bitte wählen Sie zuerst ein Wiki in der Wissensdatenbank aus",
+      "errorCode": {
+        "PROVIDER_QUERY_FAILED": "LLM-Anbieterabfrage fehlgeschlagen",
+        "NO_AVAILABLE_PROVIDER": "Kein LLM-Anbieter verfügbar",
+        "API_KEY_DECRYPT_FAILED": "Entschlüsselung des API-Schlüssels fehlgeschlagen",
+        "UNSUPPORTED_PROVIDER": "Nicht unterstützter LLM-Anbietertyp",
+        "LLM_CALL_FAILED": "LLM-Aufruf fehlgeschlagen",
+        "AGENT_PROFILE_NOT_FOUND": "Agent-Profil nicht gefunden",
+        "TOOL_CALL_FAILED": "Tool-Aufruf fehlgeschlagen",
+        "TOOL_NOT_CONFIGURED": "Tool-Executor-Callback nicht konfiguriert",
+        "SUBWORKFLOW_FAILED": "Ausführung des Unter-Workflows fehlgeschlagen",
+        "SUBWORKFLOW_NOT_CONFIGURED": "Unter-Workflow-Executor-Callback nicht konfiguriert",
+        "VECTOR_RETRIEVE_FAILED": "Vektorabfrage fehlgeschlagen",
+        "VECTOR_NOT_CONFIGURED": "Vektorabfrage-Executor-Callback nicht konfiguriert",
+        "VARIABLE_NOT_FOUND": "Erforderliche Variable nicht gefunden",
+        "VALIDATION_FAILED": "Validierung fehlgeschlagen",
+        "TIMEOUT": "Ausführungszeitüberschreitung",
+        "CIRCUIT_BREAKER_OPEN": "Leistungsschutzschalter geöffnet",
+        "NODE_TYPE_MISMATCH": "Knotentyp-Konflikt",
+        "UNSUPPORTED_NODE_TYPE": "Nicht unterstützter Knotentyp",
+        "CACHE_DESERIALIZE_FAILED": "Deserialisierung der Cache-Daten fehlgeschlagen",
+        "MODEL_NOT_CONFIGURED": "Modell nicht konfiguriert",
+        "NODE_NOT_FOUND": "Knoten nicht gefunden"
+      }
     },
     "noResults": "No results",
     "search": "Search"
@@ -3762,7 +3813,9 @@
       "noRecommendations": "No recommendations yet",
       "aiAssistant": "AI Assistant",
       "clickCanvasToAdd": "Selected \"{{label}}\" — click on the canvas to place the node",
-      "explanation": "Explanation"
+      "explanation": "Explanation",
+      "replaceConfirmTitle": "Ersetzen bestätigen",
+      "replaceConfirmContent": "Die aktuelle Leinwand hat {{nodes}} Knoten und {{edges}} Kanten. Die Generierung wird alle ersetzen. Fortfahren?"
     },
     "previewInDevelopment": "Preview feature is in development",
     "publishInDevelopment": "Publish feature is in development",
@@ -4094,7 +4147,21 @@
       "expertNotFound": "",
       "profileMatched": "",
       "profileCreated": "",
-      "profileCreateFailed": ""
+      "profileCreateFailed": "",
+      "executionMode": "Ausführungsmodus",
+      "executionReact": "Reaktiv",
+      "executionPlan": "Geplant",
+      "executionReactHint": "Knoten werden reaktiv ausgeführt, wenn sich Upstream-Daten ändern",
+      "executionPlanHint": "Knoten werden in einer geplanten topologischen Reihenfolge ausgeführt",
+      "toolName": "Werkzeugname",
+      "toolNamePlaceholder": "Werkzeugnamen eingeben",
+      "toolNameHint": "Name zum Aufrufen dieses Tools vom LLM",
+      "aggregation": "Aggregation",
+      "aggregationAll": "Alle",
+      "aggregationFirst": "Erster",
+      "aggregationRace": "Wettlauf",
+      "aggregationMajority": "Mehrheit",
+      "aggregationHint": "Wie Ergebnisse aus mehreren parallelen Zweigen aggregiert werden"
     },
     "debug": {
       "totalDuration": "Total Duration",
@@ -4107,7 +4174,20 @@
       "variables": "Variables",
       "performance": "Performance",
       "slowestNode": "Slowest Node",
-      "fastestNode": "Fastest Node"
+      "fastestNode": "Fastest Node",
+      "title": "Debug-Panel",
+      "columnNode": "Knoten",
+      "columnDuration": "Dauer",
+      "columnRetries": "Wiederholungen",
+      "columnStatus": "Status",
+      "executionLabel": "Ausführung: {{id}} | Workflow: {{name}} | Auslöser: {{trigger}}",
+      "variableSnapshots": "Variablen-Snapshots",
+      "performanceAnalysis": "Leistungsanalyse",
+      "labelNode": "Knoten",
+      "labelType": "Typ",
+      "labelError": "Fehler",
+      "labelInput": "Eingabe",
+      "labelOutput": "Ausgabe"
     },
     "applySemanticCheck": "Apply",
     "applyUpgrade": "Apply Upgrade",
@@ -4263,7 +4343,17 @@
       "invalidJson": "Ungültiges JSON-Format",
       "unsupportedNodeType": "Editing this node type is not supported yet",
       "llmRouting": "LLM Dynamisches Routing",
-      "llmRoutingHint": "KI entscheidet basierend auf Kontext, welcher Zweig genommen wird"
+      "llmRoutingHint": "KI entscheidet basierend auf Kontext, welcher Zweig genommen wird",
+      "aiGenerate": "KI-Generierung",
+      "codeTemplates": "Code-Vorlagen",
+      "showTools": "Werkzeuge anzeigen",
+      "hideTools": "Werkzeuge ausblenden",
+      "availableTools": "Verfügbare Werkzeuge",
+      "noToolsAvailable": "Keine Werkzeuge verfügbar",
+      "routingPrompt": "Routing-Prompt",
+      "routingPromptPlaceholder": "Beschreiben Sie das Routing zwischen Zweigen...",
+      "routingModel": "Routing-Modell",
+      "routingModelPlaceholder": "Modell für Routing-Entscheidungen auswählen"
     },
     "statusBar": {
       "unsaved": "Ungespeichert",
@@ -4277,7 +4367,30 @@
       "warning": "{{count}} warnings",
       "dagEditor": "DAG Editor",
       "fitView": "Fit View",
-      "resetZoom": "Reset Zoom"
+      "resetZoom": "Reset Zoom",
+      "errorCode": {
+        "PROVIDER_QUERY_FAILED": "LLM-Anbieterabfrage fehlgeschlagen",
+        "NO_AVAILABLE_PROVIDER": "Kein LLM-Anbieter verfügbar",
+        "API_KEY_DECRYPT_FAILED": "Entschlüsselung des API-Schlüssels fehlgeschlagen",
+        "UNSUPPORTED_PROVIDER": "Nicht unterstützter LLM-Anbietertyp",
+        "LLM_CALL_FAILED": "LLM-Aufruf fehlgeschlagen",
+        "AGENT_PROFILE_NOT_FOUND": "Agent-Profil nicht gefunden",
+        "TOOL_CALL_FAILED": "Tool-Aufruf fehlgeschlagen",
+        "TOOL_NOT_CONFIGURED": "Tool-Executor-Callback nicht konfiguriert",
+        "SUBWORKFLOW_FAILED": "Ausführung des Unter-Workflows fehlgeschlagen",
+        "SUBWORKFLOW_NOT_CONFIGURED": "Unter-Workflow-Executor-Callback nicht konfiguriert",
+        "VECTOR_RETRIEVE_FAILED": "Vektorabfrage fehlgeschlagen",
+        "VECTOR_NOT_CONFIGURED": "Vektorabfrage-Executor-Callback nicht konfiguriert",
+        "VARIABLE_NOT_FOUND": "Erforderliche Variable nicht gefunden",
+        "VALIDATION_FAILED": "Validierung fehlgeschlagen",
+        "TIMEOUT": "Ausführungszeitüberschreitung",
+        "CIRCUIT_BREAKER_OPEN": "Leistungsschutzschalter geöffnet",
+        "NODE_TYPE_MISMATCH": "Knotentyp-Konflikt",
+        "UNSUPPORTED_NODE_TYPE": "Nicht unterstützter Knotentyp",
+        "CACHE_DESERIALIZE_FAILED": "Deserialisierung der Cache-Daten fehlgeschlagen",
+        "MODEL_NOT_CONFIGURED": "Modell nicht konfiguriert",
+        "NODE_NOT_FOUND": "Knoten nicht gefunden"
+      }
     },
     "agentNode": {
       "tools": "Werkzeuge",
@@ -4408,7 +4521,11 @@
       "rhaiTemplateDesc": "Rhai-Skript",
       "templateRhaiTools": "── Vorlagen-Rhai-Tools ──",
       "globalTools": "── Globale Tools ──"
-    }
+    },
+    "autoLayout": "Automatische Anordnung",
+    "autoLayoutTooltip": "Knoten automatisch anordnen",
+    "selfLoopNotAllowed": "Selbstschleifen sind nicht erlaubt",
+    "edgeAlreadyExists": "Kante existiert bereits"
   },
   "atomicSkill": {
     "entryType": "Entry Type",
@@ -6442,7 +6559,7 @@
   },
   "chat:workflow": {
     "templateList": {
-      "presetsImported": "导入成功"
+      "presetsImported": "Import erfolgreich"
     }
   },
   "report": {
@@ -6577,5 +6694,11 @@
         "generationUser": "Generate workflow based on: {0}"
       }
     }
+  },
+  "appHeader": {
+    "knowledgeContext": "Wissen",
+    "gatewayContext": "Gateway",
+    "filesContext": "Dateien",
+    "terminalContext": "Terminal"
   }
 }

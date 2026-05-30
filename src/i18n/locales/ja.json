@@ -671,27 +671,27 @@
         "DESKTOP_NATIVE_NOTIFICATION_FAILED": "Native notification failed"
       },
       "errorCode": {
-        "PROVIDER_QUERY_FAILED": "Provider query failed",
-        "NO_AVAILABLE_PROVIDER": "No available LLM provider",
-        "API_KEY_DECRYPT_FAILED": "API key decryption failed",
-        "UNSUPPORTED_PROVIDER": "Unsupported provider type",
-        "LLM_CALL_FAILED": "LLM call failed",
-        "AGENT_PROFILE_NOT_FOUND": "Agent profile not found",
-        "TOOL_CALL_FAILED": "Tool call failed",
-        "TOOL_NOT_CONFIGURED": "Tool callback not configured",
-        "SUBWORKFLOW_FAILED": "Sub-workflow execution failed",
-        "SUBWORKFLOW_NOT_CONFIGURED": "Sub-workflow callback not configured",
-        "VECTOR_RETRIEVE_FAILED": "Vector retrieval failed",
-        "VECTOR_NOT_CONFIGURED": "Vector retrieve callback not configured",
-        "VARIABLE_NOT_FOUND": "Required variable not found",
-        "VALIDATION_FAILED": "Validation failed",
-        "TIMEOUT": "Execution timeout",
-        "CIRCUIT_BREAKER_OPEN": "Circuit breaker open",
-        "NODE_TYPE_MISMATCH": "Node type mismatch",
-        "UNSUPPORTED_NODE_TYPE": "Unsupported node type",
-        "CACHE_DESERIALIZE_FAILED": "Cache deserialization failed",
-        "MODEL_NOT_CONFIGURED": "Model not configured",
-        "NODE_NOT_FOUND": "Node not found"
+        "PROVIDER_QUERY_FAILED": "LLM プロバイダーのクエリに失敗しました",
+        "NO_AVAILABLE_PROVIDER": "利用可能なLLMプロバイダーがありません",
+        "API_KEY_DECRYPT_FAILED": "APIキーの復号に失敗しました",
+        "UNSUPPORTED_PROVIDER": "サポートされていないLLMプロバイダータイプ",
+        "LLM_CALL_FAILED": "LLM呼び出しに失敗しました",
+        "AGENT_PROFILE_NOT_FOUND": "エージェントプロファイルが見つかりません",
+        "TOOL_CALL_FAILED": "ツール呼び出しに失敗しました",
+        "TOOL_NOT_CONFIGURED": "ツールエグゼキューターのコールバックが設定されていません",
+        "SUBWORKFLOW_FAILED": "サブワークフローの実行に失敗しました",
+        "SUBWORKFLOW_NOT_CONFIGURED": "サブワークフローエグゼキューターのコールバックが設定されていません",
+        "VECTOR_RETRIEVE_FAILED": "ベクトル検索に失敗しました",
+        "VECTOR_NOT_CONFIGURED": "ベクトル検索エグゼキューターのコールバックが設定されていません",
+        "VARIABLE_NOT_FOUND": "必要な変数が見つかりません",
+        "VALIDATION_FAILED": "バリデーションに失敗しました",
+        "TIMEOUT": "実行タイムアウト",
+        "CIRCUIT_BREAKER_OPEN": "サーキットブレーカーがオープンです",
+        "NODE_TYPE_MISMATCH": "ノードタイプの不一致",
+        "UNSUPPORTED_NODE_TYPE": "サポートされていないノードタイプ",
+        "CACHE_DESERIALIZE_FAILED": "キャッシュデータの逆シリアル化に失敗しました",
+        "MODEL_NOT_CONFIGURED": "モデルが設定されていません",
+        "NODE_NOT_FOUND": "ノードが見つかりません"
       },
       "loading": "Loading...",
       "cancelled": "Cancelled",
@@ -813,7 +813,9 @@
       "tokens": "个令牌",
       "tool": "个工具",
       "askUser": "questions",
-      "loading": "Loading..."
+      "loading": "Loading...",
+      "failed": "失敗",
+      "iteration": "回の反復"
     },
     "benchmarks": {
       "failed": "失敗",
@@ -1653,7 +1655,10 @@
       "importPlaceholder": "粘贴 JSON 配置，例如：\n{\n  \"mcpServers\": {\n    \"server-name\": {\n      \"command\": \"uvx\",\n      \"args\": [\"mcp-server-fetch\"]\n    }\n  }\n}",
       "importParseError": "JSON 格式无效",
       "importEmpty": "有効なMCPサーバー設定が見つかりません",
-      "importSuccess": "成功导入 {{count}} 个服务器"
+      "importSuccess": "成功导入 {{count}} 个服务器",
+      "notConfigured": "接続が設定されていません",
+      "builtinServer": "内蔵サーバー",
+      "toolCount": "{{count}} ツール"
     },
     "knowledge": {
       "title": "ナレッジベース",
@@ -3303,7 +3308,8 @@
       "settings": "設定",
       "settingsDesc": "打开设置页面",
       "gateway": "远程网关",
-      "gatewayDesc": "管理远程连接"
+      "gatewayDesc": "管理远程连接",
+      "workflow": "ワークフロー"
     },
     "result": {
       "noKnowledge": "未找到相关知识。",
@@ -3320,7 +3326,30 @@
       "saveWiki": "保存",
       "continueAsk": "追问",
       "error": "エラー",
-      "noWikiSelected": "请先在知识库中选择一个 Wiki"
+      "noWikiSelected": "请先在知识库中选择一个 Wiki",
+      "errorCode": {
+        "PROVIDER_QUERY_FAILED": "LLM プロバイダーのクエリに失敗しました",
+        "NO_AVAILABLE_PROVIDER": "利用可能なLLMプロバイダーがありません",
+        "API_KEY_DECRYPT_FAILED": "APIキーの復号に失敗しました",
+        "UNSUPPORTED_PROVIDER": "サポートされていないLLMプロバイダータイプ",
+        "LLM_CALL_FAILED": "LLM呼び出しに失敗しました",
+        "AGENT_PROFILE_NOT_FOUND": "エージェントプロファイルが見つかりません",
+        "TOOL_CALL_FAILED": "ツール呼び出しに失敗しました",
+        "TOOL_NOT_CONFIGURED": "ツールエグゼキューターのコールバックが設定されていません",
+        "SUBWORKFLOW_FAILED": "サブワークフローの実行に失敗しました",
+        "SUBWORKFLOW_NOT_CONFIGURED": "サブワークフローエグゼキューターのコールバックが設定されていません",
+        "VECTOR_RETRIEVE_FAILED": "ベクトル検索に失敗しました",
+        "VECTOR_NOT_CONFIGURED": "ベクトル検索エグゼキューターのコールバックが設定されていません",
+        "VARIABLE_NOT_FOUND": "必要な変数が見つかりません",
+        "VALIDATION_FAILED": "バリデーションに失敗しました",
+        "TIMEOUT": "実行タイムアウト",
+        "CIRCUIT_BREAKER_OPEN": "サーキットブレーカーがオープンです",
+        "NODE_TYPE_MISMATCH": "ノードタイプの不一致",
+        "UNSUPPORTED_NODE_TYPE": "サポートされていないノードタイプ",
+        "CACHE_DESERIALIZE_FAILED": "キャッシュデータの逆シリアル化に失敗しました",
+        "MODEL_NOT_CONFIGURED": "モデルが設定されていません",
+        "NODE_NOT_FOUND": "ノードが見つかりません"
+      }
     },
     "noResults": "无结果",
     "search": "検索"
@@ -3362,7 +3391,9 @@
       "noRecommendations": "暂无推荐",
       "aiAssistant": "AI 助手",
       "clickCanvasToAdd": "已选择 \"{{label}}\" — 点击画布放置节点",
-      "explanation": "Explanation"
+      "explanation": "Explanation",
+      "replaceConfirmTitle": "置換の確認",
+      "replaceConfirmContent": "現在のキャンバスには {{nodes}} 個のノードと {{edges}} 本のエッジがあります。生成によりすべて置換されます。続行しますか？"
     },
     "previewInDevelopment": "预览功能开发中",
     "publishInDevelopment": "发布功能开发中",
@@ -3694,7 +3725,21 @@
       "expertNotFound": "",
       "profileMatched": "",
       "profileCreated": "",
-      "profileCreateFailed": ""
+      "profileCreateFailed": "",
+      "executionMode": "実行モード",
+      "executionReact": "リアクティブ",
+      "executionPlan": "プラン型",
+      "executionReactHint": "上流データが変更されるとノードがリアクティブに実行されます",
+      "executionPlanHint": "ノードは計画されたトポロジカル順序で実行されます",
+      "toolName": "ツール名",
+      "toolNamePlaceholder": "ツール名を入力",
+      "toolNameHint": "LLMからこのツールを呼び出す際に使用する名前",
+      "aggregation": "集約",
+      "aggregationAll": "すべて",
+      "aggregationFirst": "最初",
+      "aggregationRace": "レース",
+      "aggregationMajority": "マジョリティ",
+      "aggregationHint": "複数の並列ブランチの結果を集約する方法"
     },
     "debug": {
       "totalDuration": "总耗时",
@@ -3707,7 +3752,20 @@
       "variables": "Variables",
       "performance": "Performance",
       "slowestNode": "Slowest Node",
-      "fastestNode": "Fastest Node"
+      "fastestNode": "Fastest Node",
+      "title": "デバッグパネル",
+      "columnNode": "ノード",
+      "columnDuration": "所要時間",
+      "columnRetries": "リトライ",
+      "columnStatus": "ステータス",
+      "executionLabel": "実行: {{id}} | ワークフロー: {{name}} | トリガー: {{trigger}}",
+      "variableSnapshots": "変数スナップショット",
+      "performanceAnalysis": "パフォーマンス分析",
+      "labelNode": "ノード",
+      "labelType": "タイプ",
+      "labelError": "エラー",
+      "labelInput": "入力",
+      "labelOutput": "出力"
     },
     "applySemanticCheck": "適用",
     "applyUpgrade": "应用升级",
@@ -3863,7 +3921,17 @@
       "invalidJson": "無効なJSON形式",
       "unsupportedNodeType": "不支持的节点类型",
       "llmRouting": "LLM動的ルーティング",
-      "llmRoutingHint": "AIがコンテキストに基づいて分岐を決定"
+      "llmRoutingHint": "AIがコンテキストに基づいて分岐を決定",
+      "aiGenerate": "AI生成",
+      "codeTemplates": "コードテンプレート",
+      "showTools": "ツールを表示",
+      "hideTools": "ツールを非表示",
+      "availableTools": "利用可能なツール",
+      "noToolsAvailable": "利用可能なツールがありません",
+      "routingPrompt": "ルーティングプロンプト",
+      "routingPromptPlaceholder": "ブランチ間のルーティング方法を説明...",
+      "routingModel": "ルーティングモデル",
+      "routingModelPlaceholder": "ルーティング決定に使用するモデルを選択"
     },
     "statusBar": {
       "unsaved": "未保存",
@@ -3877,7 +3945,30 @@
       "warning": "警告",
       "dagEditor": "DAG 编辑器",
       "fitView": "适应视图",
-      "resetZoom": "重置缩放"
+      "resetZoom": "重置缩放",
+      "errorCode": {
+        "PROVIDER_QUERY_FAILED": "LLM プロバイダーのクエリに失敗しました",
+        "NO_AVAILABLE_PROVIDER": "利用可能なLLMプロバイダーがありません",
+        "API_KEY_DECRYPT_FAILED": "APIキーの復号に失敗しました",
+        "UNSUPPORTED_PROVIDER": "サポートされていないLLMプロバイダータイプ",
+        "LLM_CALL_FAILED": "LLM呼び出しに失敗しました",
+        "AGENT_PROFILE_NOT_FOUND": "エージェントプロファイルが見つかりません",
+        "TOOL_CALL_FAILED": "ツール呼び出しに失敗しました",
+        "TOOL_NOT_CONFIGURED": "ツールエグゼキューターのコールバックが設定されていません",
+        "SUBWORKFLOW_FAILED": "サブワークフローの実行に失敗しました",
+        "SUBWORKFLOW_NOT_CONFIGURED": "サブワークフローエグゼキューターのコールバックが設定されていません",
+        "VECTOR_RETRIEVE_FAILED": "ベクトル検索に失敗しました",
+        "VECTOR_NOT_CONFIGURED": "ベクトル検索エグゼキューターのコールバックが設定されていません",
+        "VARIABLE_NOT_FOUND": "必要な変数が見つかりません",
+        "VALIDATION_FAILED": "バリデーションに失敗しました",
+        "TIMEOUT": "実行タイムアウト",
+        "CIRCUIT_BREAKER_OPEN": "サーキットブレーカーがオープンです",
+        "NODE_TYPE_MISMATCH": "ノードタイプの不一致",
+        "UNSUPPORTED_NODE_TYPE": "サポートされていないノードタイプ",
+        "CACHE_DESERIALIZE_FAILED": "キャッシュデータの逆シリアル化に失敗しました",
+        "MODEL_NOT_CONFIGURED": "モデルが設定されていません",
+        "NODE_NOT_FOUND": "ノードが見つかりません"
+      }
     },
     "agentNode": {
       "tools": "ツール",
@@ -4008,7 +4099,11 @@
       "rhaiTemplateDesc": "Rhai スクリプト",
       "templateRhaiTools": "── テンプレート Rhai ツール ──",
       "globalTools": "── グローバルツール ──"
-    }
+    },
+    "autoLayout": "自動レイアウト",
+    "autoLayoutTooltip": "ノードを自動配置",
+    "selfLoopNotAllowed": "自己ループは許可されていません",
+    "edgeAlreadyExists": "エッジは既に存在します"
   },
   "atomicSkill": {
     "entryType": "入口类型",
@@ -4649,7 +4744,30 @@
       "source": "ソース",
       "status": "ステータス",
       "sync": "同期",
-      "type": "タイプ"
+      "type": "タイプ",
+      "errorCode": {
+        "PROVIDER_QUERY_FAILED": "LLM プロバイダーのクエリに失敗しました",
+        "NO_AVAILABLE_PROVIDER": "利用可能なLLMプロバイダーがありません",
+        "API_KEY_DECRYPT_FAILED": "APIキーの復号に失敗しました",
+        "UNSUPPORTED_PROVIDER": "サポートされていないLLMプロバイダータイプ",
+        "LLM_CALL_FAILED": "LLM呼び出しに失敗しました",
+        "AGENT_PROFILE_NOT_FOUND": "エージェントプロファイルが見つかりません",
+        "TOOL_CALL_FAILED": "ツール呼び出しに失敗しました",
+        "TOOL_NOT_CONFIGURED": "ツールエグゼキューターのコールバックが設定されていません",
+        "SUBWORKFLOW_FAILED": "サブワークフローの実行に失敗しました",
+        "SUBWORKFLOW_NOT_CONFIGURED": "サブワークフローエグゼキューターのコールバックが設定されていません",
+        "VECTOR_RETRIEVE_FAILED": "ベクトル検索に失敗しました",
+        "VECTOR_NOT_CONFIGURED": "ベクトル検索エグゼキューターのコールバックが設定されていません",
+        "VARIABLE_NOT_FOUND": "必要な変数が見つかりません",
+        "VALIDATION_FAILED": "バリデーションに失敗しました",
+        "TIMEOUT": "実行タイムアウト",
+        "CIRCUIT_BREAKER_OPEN": "サーキットブレーカーがオープンです",
+        "NODE_TYPE_MISMATCH": "ノードタイプの不一致",
+        "UNSUPPORTED_NODE_TYPE": "サポートされていないノードタイプ",
+        "CACHE_DESERIALIZE_FAILED": "キャッシュデータの逆シリアル化に失敗しました",
+        "MODEL_NOT_CONFIGURED": "モデルが設定されていません",
+        "NODE_NOT_FOUND": "ノードが見つかりません"
+      }
     },
     "pageNotFound": "页面未找到",
     "pageType": "页面类型",
@@ -6576,5 +6694,11 @@
         "generationUser": "Generate workflow based on: {0}"
       }
     }
+  },
+  "appHeader": {
+    "knowledgeContext": "ナレッジ",
+    "gatewayContext": "ゲートウェイ",
+    "filesContext": "ファイル",
+    "terminalContext": "ターミナル"
   }
 }

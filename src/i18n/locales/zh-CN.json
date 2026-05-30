@@ -875,7 +875,8 @@
         "copyFailed": "复制失败",
         "joinFailed": "加入失败",
         "maxParticipants": "最大参与者数",
-        "joinSuccess": "加入成功"
+        "joinSuccess": "加入成功",
+        "copied": "已复制"
       }
     },
     "conversationNotFound": "对话未找到",
@@ -2470,7 +2471,10 @@
       "visualEditorDesc": "使用拖拽式 DAG 编辑器创建和编辑工作流",
       "openEditor": "打开编辑器",
       "myWorkflows": "我的工作流",
-      "marketplace": "市场"
+      "marketplace": "市场",
+      "createdSuccess": "创建成功",
+      "deletedSuccess": "删除成功",
+      "sampleAdded": "示例已添加"
     },
     "tabModel": "模型与服务",
     "tabAppearance": "界面",
@@ -2771,7 +2775,9 @@
   "tray": {
     "show": "显示",
     "hide": "隐藏",
-    "quit": "退出"
+    "quit": "退出",
+    "key": "键",
+    "value": "值"
   },
   "error": {
     "network": "网络连接失败",
@@ -3730,7 +3736,8 @@
       "settings": "系统设置",
       "settingsDesc": "打开设置页面",
       "gateway": "远程网关",
-      "gatewayDesc": "管理远程连接"
+      "gatewayDesc": "管理远程连接",
+      "workflow": "工作流"
     },
     "result": {
       "noKnowledge": "未找到相关知识。",

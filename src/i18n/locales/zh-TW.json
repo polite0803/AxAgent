@@ -674,27 +674,27 @@
         "DESKTOP_NATIVE_NOTIFICATION_FAILED": "Native notification failed"
       },
       "errorCode": {
-        "PROVIDER_QUERY_FAILED": "Provider query failed",
-        "NO_AVAILABLE_PROVIDER": "No available LLM provider",
-        "API_KEY_DECRYPT_FAILED": "API key decryption failed",
-        "UNSUPPORTED_PROVIDER": "Unsupported provider type",
-        "LLM_CALL_FAILED": "LLM call failed",
-        "AGENT_PROFILE_NOT_FOUND": "Agent profile not found",
-        "TOOL_CALL_FAILED": "Tool call failed",
-        "TOOL_NOT_CONFIGURED": "Tool callback not configured",
-        "SUBWORKFLOW_FAILED": "Sub-workflow execution failed",
-        "SUBWORKFLOW_NOT_CONFIGURED": "Sub-workflow callback not configured",
-        "VECTOR_RETRIEVE_FAILED": "Vector retrieval failed",
-        "VECTOR_NOT_CONFIGURED": "Vector retrieve callback not configured",
-        "VARIABLE_NOT_FOUND": "Required variable not found",
-        "VALIDATION_FAILED": "Validation failed",
-        "TIMEOUT": "Execution timeout",
-        "CIRCUIT_BREAKER_OPEN": "Circuit breaker open",
-        "NODE_TYPE_MISMATCH": "Node type mismatch",
-        "UNSUPPORTED_NODE_TYPE": "Unsupported node type",
-        "CACHE_DESERIALIZE_FAILED": "Cache deserialization failed",
-        "MODEL_NOT_CONFIGURED": "Model not configured",
-        "NODE_NOT_FOUND": "Node not found"
+        "PROVIDER_QUERY_FAILED": "LLM 提供者查詢失敗",
+        "NO_AVAILABLE_PROVIDER": "無可用 LLM 提供者",
+        "API_KEY_DECRYPT_FAILED": "API 金鑰解密失敗",
+        "UNSUPPORTED_PROVIDER": "不支援的 LLM 提供者類型",
+        "LLM_CALL_FAILED": "LLM 呼叫失敗",
+        "AGENT_PROFILE_NOT_FOUND": "Agent 設定檔不存在",
+        "TOOL_CALL_FAILED": "工具呼叫失敗",
+        "TOOL_NOT_CONFIGURED": "工具執行器未設定回呼",
+        "SUBWORKFLOW_FAILED": "子工作流執行失敗",
+        "SUBWORKFLOW_NOT_CONFIGURED": "子工作流執行器未設定回呼",
+        "VECTOR_RETRIEVE_FAILED": "向量檢索失敗",
+        "VECTOR_NOT_CONFIGURED": "向量檢索執行器未設定回呼",
+        "VARIABLE_NOT_FOUND": "所需變數未找到",
+        "VALIDATION_FAILED": "資料驗證失敗",
+        "TIMEOUT": "執行逾時",
+        "CIRCUIT_BREAKER_OPEN": "斷路器已斷開",
+        "NODE_TYPE_MISMATCH": "節點類型不匹配",
+        "UNSUPPORTED_NODE_TYPE": "不支援的節點類型",
+        "CACHE_DESERIALIZE_FAILED": "快取資料解析失敗",
+        "MODEL_NOT_CONFIGURED": "未設定模型",
+        "NODE_NOT_FOUND": "節點未找到"
       },
       "loading": "Loading...",
       "cancelled": "Cancelled",
@@ -813,7 +813,9 @@
       "tokens": "個令牌",
       "tool": "個工具",
       "askUser": "questions",
-      "loading": "Loading..."
+      "loading": "Loading...",
+      "failed": "失敗",
+      "iteration": "輪迭代"
     },
     "benchmarks": {
       "failed": "失敗",
@@ -1610,7 +1612,10 @@
       "importPlaceholder": "貼上 JSON 設定，例如：\n{\n  \"mcpServers\": {\n    \"server-name\": {\n      \"command\": \"uvx\",\n      \"args\": [\"mcp-server-fetch\"]\n    }\n  }\n}",
       "importParseError": "JSON 格式無效",
       "importEmpty": "未找到有效的 MCP 伺服器設定",
-      "importSuccess": "成功匯入 {{count}} 個伺服器"
+      "importSuccess": "成功匯入 {{count}} 個伺服器",
+      "notConfigured": "未設定連線",
+      "builtinServer": "內建伺服器",
+      "toolCount": "{{count}} 個工具"
     },
     "knowledge": {
       "title": "知識庫",
@@ -3303,7 +3308,8 @@
       "settings": "系統設置",
       "settingsDesc": "打開設置頁面",
       "gateway": "遠程網關",
-      "gatewayDesc": "管理遠程連接"
+      "gatewayDesc": "管理遠程連接",
+      "workflow": "工作流"
     },
     "result": {
       "noKnowledge": "未找到相關知識。",
@@ -3320,7 +3326,30 @@
       "saveWiki": "存知識",
       "continueAsk": "追問",
       "error": "錯誤",
-      "noWikiSelected": "請先在知識庫中選擇一個 Wiki"
+      "noWikiSelected": "請先在知識庫中選擇一個 Wiki",
+      "errorCode": {
+        "PROVIDER_QUERY_FAILED": "LLM 提供者查詢失敗",
+        "NO_AVAILABLE_PROVIDER": "無可用 LLM 提供者",
+        "API_KEY_DECRYPT_FAILED": "API 金鑰解密失敗",
+        "UNSUPPORTED_PROVIDER": "不支援的 LLM 提供者類型",
+        "LLM_CALL_FAILED": "LLM 呼叫失敗",
+        "AGENT_PROFILE_NOT_FOUND": "Agent 設定檔不存在",
+        "TOOL_CALL_FAILED": "工具呼叫失敗",
+        "TOOL_NOT_CONFIGURED": "工具執行器未設定回呼",
+        "SUBWORKFLOW_FAILED": "子工作流執行失敗",
+        "SUBWORKFLOW_NOT_CONFIGURED": "子工作流執行器未設定回呼",
+        "VECTOR_RETRIEVE_FAILED": "向量檢索失敗",
+        "VECTOR_NOT_CONFIGURED": "向量檢索執行器未設定回呼",
+        "VARIABLE_NOT_FOUND": "所需變數未找到",
+        "VALIDATION_FAILED": "資料驗證失敗",
+        "TIMEOUT": "執行逾時",
+        "CIRCUIT_BREAKER_OPEN": "斷路器已斷開",
+        "NODE_TYPE_MISMATCH": "節點類型不匹配",
+        "UNSUPPORTED_NODE_TYPE": "不支援的節點類型",
+        "CACHE_DESERIALIZE_FAILED": "快取資料解析失敗",
+        "MODEL_NOT_CONFIGURED": "未設定模型",
+        "NODE_NOT_FOUND": "節點未找到"
+      }
     },
     "search": "搜索...",
     "noResults": "無結果"
@@ -3362,7 +3391,9 @@
       "noRecommendations": "暫無推薦",
       "aiAssistant": "AI 助手",
       "clickCanvasToAdd": "已選擇 \"{{label}}\" — 點擊畫布放置節點",
-      "explanation": "Explanation"
+      "explanation": "Explanation",
+      "replaceConfirmTitle": "確認取代",
+      "replaceConfirmContent": "目前畫布有 {{nodes}} 個節點和 {{edges}} 條連線，生成將全部取代。確定繼續？"
     },
     "previewInDevelopment": "預覽功能開發中",
     "publishInDevelopment": "發布功能開發中",
@@ -3694,7 +3725,21 @@
       "expertNotFound": "",
       "profileMatched": "",
       "profileCreated": "",
-      "profileCreateFailed": ""
+      "profileCreateFailed": "",
+      "executionMode": "執行模式",
+      "executionReact": "回應式",
+      "executionPlan": "計畫式",
+      "executionReactHint": "當上游資料變更時，節點以回應式執行",
+      "executionPlanHint": "節點按計畫的拓撲順序執行",
+      "toolName": "工具名稱",
+      "toolNamePlaceholder": "輸入工具名稱",
+      "toolNameHint": "從 LLM 呼叫此工具時使用的名稱",
+      "aggregation": "聚合",
+      "aggregationAll": "全部",
+      "aggregationFirst": "第一個",
+      "aggregationRace": "競速",
+      "aggregationMajority": "多數決",
+      "aggregationHint": "如何聚合多個平行分支的結果"
     },
     "debug": {
       "totalDuration": "總耗時",
@@ -3707,7 +3752,20 @@
       "variables": "Variables",
       "performance": "Performance",
       "slowestNode": "Slowest Node",
-      "fastestNode": "Fastest Node"
+      "fastestNode": "Fastest Node",
+      "title": "除錯面板",
+      "columnNode": "節點",
+      "columnDuration": "耗時",
+      "columnRetries": "重試",
+      "columnStatus": "狀態",
+      "executionLabel": "執行: {{id}} | 工作流: {{name}} | 觸發: {{trigger}}",
+      "variableSnapshots": "變數快照",
+      "performanceAnalysis": "效能分析",
+      "labelNode": "節點",
+      "labelType": "類型",
+      "labelError": "錯誤",
+      "labelInput": "輸入",
+      "labelOutput": "輸出"
     },
     "applySemanticCheck": "應用語義檢查",
     "applyUpgrade": "應用升級",
@@ -3863,7 +3921,17 @@
       "invalidJson": "JSON 格式無效",
       "unsupportedNodeType": "不支援的節點類型",
       "llmRouting": "LLM 動態路由",
-      "llmRoutingHint": "讓 AI 根據上下文決定走哪條分支"
+      "llmRoutingHint": "讓 AI 根據上下文決定走哪條分支",
+      "aiGenerate": "AI 生成",
+      "codeTemplates": "程式碼範本",
+      "showTools": "顯示工具",
+      "hideTools": "隱藏工具",
+      "availableTools": "可用工具",
+      "noToolsAvailable": "無可用工具",
+      "routingPrompt": "路由提示",
+      "routingPromptPlaceholder": "描述如何在分支之間路由...",
+      "routingModel": "路由模型",
+      "routingModelPlaceholder": "選擇用於路由決策的模型"
     },
     "statusBar": {
       "unsaved": "未儲存",
@@ -3877,7 +3945,30 @@
       "warning": "警告",
       "dagEditor": "DAG 編輯器",
       "fitView": "適應檢視",
-      "resetZoom": "重設縮放"
+      "resetZoom": "重設縮放",
+      "errorCode": {
+        "PROVIDER_QUERY_FAILED": "LLM 提供者查詢失敗",
+        "NO_AVAILABLE_PROVIDER": "無可用 LLM 提供者",
+        "API_KEY_DECRYPT_FAILED": "API 金鑰解密失敗",
+        "UNSUPPORTED_PROVIDER": "不支援的 LLM 提供者類型",
+        "LLM_CALL_FAILED": "LLM 呼叫失敗",
+        "AGENT_PROFILE_NOT_FOUND": "Agent 設定檔不存在",
+        "TOOL_CALL_FAILED": "工具呼叫失敗",
+        "TOOL_NOT_CONFIGURED": "工具執行器未設定回呼",
+        "SUBWORKFLOW_FAILED": "子工作流執行失敗",
+        "SUBWORKFLOW_NOT_CONFIGURED": "子工作流執行器未設定回呼",
+        "VECTOR_RETRIEVE_FAILED": "向量檢索失敗",
+        "VECTOR_NOT_CONFIGURED": "向量檢索執行器未設定回呼",
+        "VARIABLE_NOT_FOUND": "所需變數未找到",
+        "VALIDATION_FAILED": "資料驗證失敗",
+        "TIMEOUT": "執行逾時",
+        "CIRCUIT_BREAKER_OPEN": "斷路器已斷開",
+        "NODE_TYPE_MISMATCH": "節點類型不匹配",
+        "UNSUPPORTED_NODE_TYPE": "不支援的節點類型",
+        "CACHE_DESERIALIZE_FAILED": "快取資料解析失敗",
+        "MODEL_NOT_CONFIGURED": "未設定模型",
+        "NODE_NOT_FOUND": "節點未找到"
+      }
     },
     "agentNode": {
       "tools": "工具",
@@ -4008,7 +4099,11 @@
       "rhaiTemplateDesc": "Rhai 腳本",
       "templateRhaiTools": "── 模板 Rhai 工具 ──",
       "globalTools": "── 全域工具 ──"
-    }
+    },
+    "autoLayout": "自動佈局",
+    "autoLayoutTooltip": "自動排列節點",
+    "selfLoopNotAllowed": "不允許節點連線自身",
+    "edgeAlreadyExists": "該連線已存在"
   },
   "atomicSkill": {
     "entryType": "入口類型",
@@ -4649,7 +4744,30 @@
       "source": "來源",
       "status": "狀態",
       "sync": "同步",
-      "type": "類型"
+      "type": "類型",
+      "errorCode": {
+        "PROVIDER_QUERY_FAILED": "LLM 提供者查詢失敗",
+        "NO_AVAILABLE_PROVIDER": "無可用 LLM 提供者",
+        "API_KEY_DECRYPT_FAILED": "API 金鑰解密失敗",
+        "UNSUPPORTED_PROVIDER": "不支援的 LLM 提供者類型",
+        "LLM_CALL_FAILED": "LLM 呼叫失敗",
+        "AGENT_PROFILE_NOT_FOUND": "Agent 設定檔不存在",
+        "TOOL_CALL_FAILED": "工具呼叫失敗",
+        "TOOL_NOT_CONFIGURED": "工具執行器未設定回呼",
+        "SUBWORKFLOW_FAILED": "子工作流執行失敗",
+        "SUBWORKFLOW_NOT_CONFIGURED": "子工作流執行器未設定回呼",
+        "VECTOR_RETRIEVE_FAILED": "向量檢索失敗",
+        "VECTOR_NOT_CONFIGURED": "向量檢索執行器未設定回呼",
+        "VARIABLE_NOT_FOUND": "所需變數未找到",
+        "VALIDATION_FAILED": "資料驗證失敗",
+        "TIMEOUT": "執行逾時",
+        "CIRCUIT_BREAKER_OPEN": "斷路器已斷開",
+        "NODE_TYPE_MISMATCH": "節點類型不匹配",
+        "UNSUPPORTED_NODE_TYPE": "不支援的節點類型",
+        "CACHE_DESERIALIZE_FAILED": "快取資料解析失敗",
+        "MODEL_NOT_CONFIGURED": "未設定模型",
+        "NODE_NOT_FOUND": "節點未找到"
+      }
     },
     "pageNotFound": "頁面未找到",
     "pageType": "頁面類型",
@@ -4863,7 +4981,21 @@
     "scheduledWas": "Scheduled: {{time}}",
     "retry": "Retry",
     "applied": "Applied",
-    "copied": "Copied to clipboard"
+    "copied": "Copied to clipboard",
+    "insight": {
+      "title": "主動洞察",
+      "refresh": "重新整理",
+      "all": "全部",
+      "empty": "暫無洞察",
+      "evidence": "證據",
+      "suggestedAction": "建議操作",
+      "category": {
+        "pattern": "模式",
+        "preference": "偏好",
+        "improvement": "改進",
+        "warning": "警告"
+      }
+    }
   },
   "review": {
     "commentPlaceholder": "輸入評論...",
@@ -6555,5 +6687,18 @@
         "generationUser": "Generate workflow based on: {0}"
       }
     }
+  },
+  "appHeader": {
+    "knowledgeContext": "知識",
+    "gatewayContext": "閘道",
+    "filesContext": "檔案",
+    "terminalContext": "終端"
+  },
+  "errorNotification": {
+    "retry": "重試"
+  },
+  "backendStatus": {
+    "done": "完成",
+    "failed": "失敗"
   }
 }

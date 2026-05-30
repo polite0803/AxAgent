@@ -671,27 +671,27 @@
         "DESKTOP_NATIVE_NOTIFICATION_FAILED": "Native notification failed"
       },
       "errorCode": {
-        "PROVIDER_QUERY_FAILED": "Provider query failed",
-        "NO_AVAILABLE_PROVIDER": "No available LLM provider",
-        "API_KEY_DECRYPT_FAILED": "API key decryption failed",
-        "UNSUPPORTED_PROVIDER": "Unsupported provider type",
-        "LLM_CALL_FAILED": "LLM call failed",
-        "AGENT_PROFILE_NOT_FOUND": "Agent profile not found",
-        "TOOL_CALL_FAILED": "Tool call failed",
-        "TOOL_NOT_CONFIGURED": "Tool callback not configured",
-        "SUBWORKFLOW_FAILED": "Sub-workflow execution failed",
-        "SUBWORKFLOW_NOT_CONFIGURED": "Sub-workflow callback not configured",
-        "VECTOR_RETRIEVE_FAILED": "Vector retrieval failed",
-        "VECTOR_NOT_CONFIGURED": "Vector retrieve callback not configured",
-        "VARIABLE_NOT_FOUND": "Required variable not found",
-        "VALIDATION_FAILED": "Validation failed",
-        "TIMEOUT": "Execution timeout",
-        "CIRCUIT_BREAKER_OPEN": "Circuit breaker open",
-        "NODE_TYPE_MISMATCH": "Node type mismatch",
-        "UNSUPPORTED_NODE_TYPE": "Unsupported node type",
-        "CACHE_DESERIALIZE_FAILED": "Cache deserialization failed",
-        "MODEL_NOT_CONFIGURED": "Model not configured",
-        "NODE_NOT_FOUND": "Node not found"
+        "PROVIDER_QUERY_FAILED": "Échec de la requête du fournisseur LLM",
+        "NO_AVAILABLE_PROVIDER": "Aucun fournisseur LLM disponible",
+        "API_KEY_DECRYPT_FAILED": "Échec du déchiffrement de la clé API",
+        "UNSUPPORTED_PROVIDER": "Type de fournisseur LLM non pris en charge",
+        "LLM_CALL_FAILED": "Échec de l'appel LLM",
+        "AGENT_PROFILE_NOT_FOUND": "Profil d'agent introuvable",
+        "TOOL_CALL_FAILED": "Échec de l'appel d'outil",
+        "TOOL_NOT_CONFIGURED": "Rappel de l'exécuteur d'outil non configuré",
+        "SUBWORKFLOW_FAILED": "Échec de l'exécution du sous-flux de travail",
+        "SUBWORKFLOW_NOT_CONFIGURED": "Rappel de l'exécuteur de sous-flux non configuré",
+        "VECTOR_RETRIEVE_FAILED": "Échec de la recherche vectorielle",
+        "VECTOR_NOT_CONFIGURED": "Rappel de l'exécuteur de recherche vectorielle non configuré",
+        "VARIABLE_NOT_FOUND": "Variable requise introuvable",
+        "VALIDATION_FAILED": "Échec de la validation",
+        "TIMEOUT": "Délai d'exécution dépassé",
+        "CIRCUIT_BREAKER_OPEN": "Disjoncteur ouvert",
+        "NODE_TYPE_MISMATCH": "Incompatibilité de type de nœud",
+        "UNSUPPORTED_NODE_TYPE": "Type de nœud non pris en charge",
+        "CACHE_DESERIALIZE_FAILED": "Échec de la désérialisation des données en cache",
+        "MODEL_NOT_CONFIGURED": "Modèle non configuré",
+        "NODE_NOT_FOUND": "Nœud introuvable"
       },
       "loading": "Loading...",
       "cancelled": "Cancelled",
@@ -813,7 +813,9 @@
       "tokens": "tokens",
       "tool": "tools",
       "askUser": "questions",
-      "loading": "Loading..."
+      "loading": "Loading...",
+      "failed": "Échoué",
+      "iteration": "itérations"
     },
     "benchmarks": {
       "failed": "Failed",
@@ -1616,7 +1618,10 @@
       "importPlaceholder": "Coller la configuration JSON, ex. :\n{\n  \"mcpServers\": {\n    \"server-name\": {\n      \"command\": \"uvx\",\n      \"args\": [\"mcp-server-fetch\"]\n    }\n  }\n}",
       "importParseError": "Format JSON invalide",
       "importEmpty": "Aucune configuration de serveur MCP valide trouvée",
-      "importSuccess": "{{count}} serveur(s) importé(s) avec succès"
+      "importSuccess": "{{count}} serveur(s) importé(s) avec succès",
+      "notConfigured": "Aucune connexion configurée",
+      "builtinServer": "Serveur intégré",
+      "toolCount": "{{count}} outils"
     },
     "knowledge": {
       "title": "Base de connaissances",
@@ -2814,7 +2819,7 @@
     "proxyTestFailed": "Échec du test du proxy",
     "invalidFormat": "Format invalide",
     "page": "Error",
-    "message": "错误",
+    "message": "Erreur",
     "pageNotFound": "Sorry, the page you visited does not exist."
   },
   "desktop": {
@@ -3256,8 +3261,8 @@
   },
   "searchProvider": {
     "tavily": "Tavily",
-    "zhipu": "智谱",
-    "bocha": "博查"
+    "zhipu": "Zhipu",
+    "bocha": "Bocha"
   },
   "terminal": {
     "online": "En ligne",
@@ -3501,7 +3506,30 @@
       "source": "Source",
       "status": "Status",
       "sync": "Sync",
-      "type": "Type"
+      "type": "Type",
+      "errorCode": {
+        "PROVIDER_QUERY_FAILED": "Échec de la requête du fournisseur LLM",
+        "NO_AVAILABLE_PROVIDER": "Aucun fournisseur LLM disponible",
+        "API_KEY_DECRYPT_FAILED": "Échec du déchiffrement de la clé API",
+        "UNSUPPORTED_PROVIDER": "Type de fournisseur LLM non pris en charge",
+        "LLM_CALL_FAILED": "Échec de l'appel LLM",
+        "AGENT_PROFILE_NOT_FOUND": "Profil d'agent introuvable",
+        "TOOL_CALL_FAILED": "Échec de l'appel d'outil",
+        "TOOL_NOT_CONFIGURED": "Rappel de l'exécuteur d'outil non configuré",
+        "SUBWORKFLOW_FAILED": "Échec de l'exécution du sous-flux de travail",
+        "SUBWORKFLOW_NOT_CONFIGURED": "Rappel de l'exécuteur de sous-flux non configuré",
+        "VECTOR_RETRIEVE_FAILED": "Échec de la recherche vectorielle",
+        "VECTOR_NOT_CONFIGURED": "Rappel de l'exécuteur de recherche vectorielle non configuré",
+        "VARIABLE_NOT_FOUND": "Variable requise introuvable",
+        "VALIDATION_FAILED": "Échec de la validation",
+        "TIMEOUT": "Délai d'exécution dépassé",
+        "CIRCUIT_BREAKER_OPEN": "Disjoncteur ouvert",
+        "NODE_TYPE_MISMATCH": "Incompatibilité de type de nœud",
+        "UNSUPPORTED_NODE_TYPE": "Type de nœud non pris en charge",
+        "CACHE_DESERIALIZE_FAILED": "Échec de la désérialisation des données en cache",
+        "MODEL_NOT_CONFIGURED": "Modèle non configuré",
+        "NODE_NOT_FOUND": "Nœud introuvable"
+      }
     },
     "pageNotFound": "Page not found",
     "pageType": "Page Type",
@@ -3720,7 +3748,30 @@
       "saveWiki": "Enregistrer",
       "continueAsk": "Suivre",
       "error": "Erreur",
-      "noWikiSelected": "Veuillez d'abord sélectionner un Wiki dans la base de connaissances"
+      "noWikiSelected": "Veuillez d'abord sélectionner un Wiki dans la base de connaissances",
+      "errorCode": {
+        "PROVIDER_QUERY_FAILED": "Échec de la requête du fournisseur LLM",
+        "NO_AVAILABLE_PROVIDER": "Aucun fournisseur LLM disponible",
+        "API_KEY_DECRYPT_FAILED": "Échec du déchiffrement de la clé API",
+        "UNSUPPORTED_PROVIDER": "Type de fournisseur LLM non pris en charge",
+        "LLM_CALL_FAILED": "Échec de l'appel LLM",
+        "AGENT_PROFILE_NOT_FOUND": "Profil d'agent introuvable",
+        "TOOL_CALL_FAILED": "Échec de l'appel d'outil",
+        "TOOL_NOT_CONFIGURED": "Rappel de l'exécuteur d'outil non configuré",
+        "SUBWORKFLOW_FAILED": "Échec de l'exécution du sous-flux de travail",
+        "SUBWORKFLOW_NOT_CONFIGURED": "Rappel de l'exécuteur de sous-flux non configuré",
+        "VECTOR_RETRIEVE_FAILED": "Échec de la recherche vectorielle",
+        "VECTOR_NOT_CONFIGURED": "Rappel de l'exécuteur de recherche vectorielle non configuré",
+        "VARIABLE_NOT_FOUND": "Variable requise introuvable",
+        "VALIDATION_FAILED": "Échec de la validation",
+        "TIMEOUT": "Délai d'exécution dépassé",
+        "CIRCUIT_BREAKER_OPEN": "Disjoncteur ouvert",
+        "NODE_TYPE_MISMATCH": "Incompatibilité de type de nœud",
+        "UNSUPPORTED_NODE_TYPE": "Type de nœud non pris en charge",
+        "CACHE_DESERIALIZE_FAILED": "Échec de la désérialisation des données en cache",
+        "MODEL_NOT_CONFIGURED": "Modèle non configuré",
+        "NODE_NOT_FOUND": "Nœud introuvable"
+      }
     },
     "noResults": "No results",
     "search": "Search"
@@ -3762,7 +3813,9 @@
       "noRecommendations": "No recommendations yet",
       "aiAssistant": "AI Assistant",
       "clickCanvasToAdd": "Selected \"{{label}}\" — click on the canvas to place the node",
-      "explanation": "Explanation"
+      "explanation": "Explanation",
+      "replaceConfirmTitle": "Confirmer le remplacement",
+      "replaceConfirmContent": "Le canevas actuel contient {{nodes}} nœuds et {{edges}} arêtes. La génération les remplacera tous. Continuer ?"
     },
     "previewInDevelopment": "Preview feature is in development",
     "publishInDevelopment": "Publish feature is in development",
@@ -4094,7 +4147,21 @@
       "expertNotFound": "",
       "profileMatched": "",
       "profileCreated": "",
-      "profileCreateFailed": ""
+      "profileCreateFailed": "",
+      "executionMode": "Mode d'exécution",
+      "executionReact": "Réactif",
+      "executionPlan": "Planifié",
+      "executionReactHint": "Les nœuds s'exécutent de manière réactive lorsque les données amont changent",
+      "executionPlanHint": "Les nœuds s'exécutent dans un ordre topologique planifié",
+      "toolName": "Nom de l'outil",
+      "toolNamePlaceholder": "Entrez le nom de l'outil",
+      "toolNameHint": "Nom utilisé pour appeler cet outil depuis le LLM",
+      "aggregation": "Agrégation",
+      "aggregationAll": "Tous",
+      "aggregationFirst": "Premier",
+      "aggregationRace": "Course",
+      "aggregationMajority": "Majorité",
+      "aggregationHint": "Comment agréger les résultats de plusieurs branches parallèles"
     },
     "debug": {
       "totalDuration": "Total Duration",
@@ -4107,7 +4174,20 @@
       "variables": "Variables",
       "performance": "Performance",
       "slowestNode": "Slowest Node",
-      "fastestNode": "Fastest Node"
+      "fastestNode": "Fastest Node",
+      "title": "Panneau de débogage",
+      "columnNode": "Nœud",
+      "columnDuration": "Durée",
+      "columnRetries": "Tentatives",
+      "columnStatus": "Statut",
+      "executionLabel": "Exécution : {{id}} | Flux : {{name}} | Déclencheur : {{trigger}}",
+      "variableSnapshots": "Instantanés de variables",
+      "performanceAnalysis": "Analyse des performances",
+      "labelNode": "Nœud",
+      "labelType": "Type",
+      "labelError": "Erreur",
+      "labelInput": "Entrée",
+      "labelOutput": "Sortie"
     },
     "applySemanticCheck": "Apply",
     "applyUpgrade": "Apply Upgrade",
@@ -4263,7 +4343,17 @@
       "invalidJson": "Format JSON invalide",
       "unsupportedNodeType": "Editing this node type is not supported yet",
       "llmRouting": "Routage dynamique LLM",
-      "llmRoutingHint": "Laisser l'IA décider de la branche selon le contexte"
+      "llmRoutingHint": "Laisser l'IA décider de la branche selon le contexte",
+      "aiGenerate": "Génération IA",
+      "codeTemplates": "Modèles de code",
+      "showTools": "Afficher les outils",
+      "hideTools": "Masquer les outils",
+      "availableTools": "Outils disponibles",
+      "noToolsAvailable": "Aucun outil disponible",
+      "routingPrompt": "Prompt de routage",
+      "routingPromptPlaceholder": "Décrivez comment aiguiller entre les branches...",
+      "routingModel": "Modèle de routage",
+      "routingModelPlaceholder": "Sélectionnez le modèle pour les décisions de routage"
     },
     "statusBar": {
       "unsaved": "Non enregistré",
@@ -4277,7 +4367,30 @@
       "warning": "{{count}} warnings",
       "dagEditor": "DAG Editor",
       "fitView": "Fit View",
-      "resetZoom": "Reset Zoom"
+      "resetZoom": "Reset Zoom",
+      "errorCode": {
+        "PROVIDER_QUERY_FAILED": "Échec de la requête du fournisseur LLM",
+        "NO_AVAILABLE_PROVIDER": "Aucun fournisseur LLM disponible",
+        "API_KEY_DECRYPT_FAILED": "Échec du déchiffrement de la clé API",
+        "UNSUPPORTED_PROVIDER": "Type de fournisseur LLM non pris en charge",
+        "LLM_CALL_FAILED": "Échec de l'appel LLM",
+        "AGENT_PROFILE_NOT_FOUND": "Profil d'agent introuvable",
+        "TOOL_CALL_FAILED": "Échec de l'appel d'outil",
+        "TOOL_NOT_CONFIGURED": "Rappel de l'exécuteur d'outil non configuré",
+        "SUBWORKFLOW_FAILED": "Échec de l'exécution du sous-flux de travail",
+        "SUBWORKFLOW_NOT_CONFIGURED": "Rappel de l'exécuteur de sous-flux non configuré",
+        "VECTOR_RETRIEVE_FAILED": "Échec de la recherche vectorielle",
+        "VECTOR_NOT_CONFIGURED": "Rappel de l'exécuteur de recherche vectorielle non configuré",
+        "VARIABLE_NOT_FOUND": "Variable requise introuvable",
+        "VALIDATION_FAILED": "Échec de la validation",
+        "TIMEOUT": "Délai d'exécution dépassé",
+        "CIRCUIT_BREAKER_OPEN": "Disjoncteur ouvert",
+        "NODE_TYPE_MISMATCH": "Incompatibilité de type de nœud",
+        "UNSUPPORTED_NODE_TYPE": "Type de nœud non pris en charge",
+        "CACHE_DESERIALIZE_FAILED": "Échec de la désérialisation des données en cache",
+        "MODEL_NOT_CONFIGURED": "Modèle non configuré",
+        "NODE_NOT_FOUND": "Nœud introuvable"
+      }
     },
     "agentNode": {
       "tools": "Outils",
@@ -4408,7 +4521,11 @@
       "rhaiTemplateDesc": "Script Rhai",
       "templateRhaiTools": "── Modèles d'outils Rhai ──",
       "globalTools": "── Outils globaux ──"
-    }
+    },
+    "autoLayout": "Mise en page automatique",
+    "autoLayoutTooltip": "Disposer automatiquement les nœuds",
+    "selfLoopNotAllowed": "Les boucles propres ne sont pas autorisées",
+    "edgeAlreadyExists": "L'arête existe déjà"
   },
   "atomicSkill": {
     "entryType": "Entry Type",
@@ -6442,7 +6559,7 @@
   },
   "chat:workflow": {
     "templateList": {
-      "presetsImported": "导入成功"
+      "presetsImported": "Importation réussie"
     }
   },
   "report": {
@@ -6577,5 +6694,11 @@
         "generationUser": "Generate workflow based on: {0}"
       }
     }
+  },
+  "appHeader": {
+    "knowledgeContext": "Connaissances",
+    "gatewayContext": "Passerelle",
+    "filesContext": "Fichiers",
+    "terminalContext": "Terminal"
   }
 }

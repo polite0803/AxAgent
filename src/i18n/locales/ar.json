@@ -671,27 +671,27 @@
         "DESKTOP_NATIVE_NOTIFICATION_FAILED": "Native notification failed"
       },
       "errorCode": {
-        "PROVIDER_QUERY_FAILED": "Provider query failed",
-        "NO_AVAILABLE_PROVIDER": "No available LLM provider",
-        "API_KEY_DECRYPT_FAILED": "API key decryption failed",
-        "UNSUPPORTED_PROVIDER": "Unsupported provider type",
-        "LLM_CALL_FAILED": "LLM call failed",
-        "AGENT_PROFILE_NOT_FOUND": "Agent profile not found",
-        "TOOL_CALL_FAILED": "Tool call failed",
-        "TOOL_NOT_CONFIGURED": "Tool callback not configured",
-        "SUBWORKFLOW_FAILED": "Sub-workflow execution failed",
-        "SUBWORKFLOW_NOT_CONFIGURED": "Sub-workflow callback not configured",
-        "VECTOR_RETRIEVE_FAILED": "Vector retrieval failed",
-        "VECTOR_NOT_CONFIGURED": "Vector retrieve callback not configured",
-        "VARIABLE_NOT_FOUND": "Required variable not found",
-        "VALIDATION_FAILED": "Validation failed",
-        "TIMEOUT": "Execution timeout",
-        "CIRCUIT_BREAKER_OPEN": "Circuit breaker open",
-        "NODE_TYPE_MISMATCH": "Node type mismatch",
-        "UNSUPPORTED_NODE_TYPE": "Unsupported node type",
-        "CACHE_DESERIALIZE_FAILED": "Cache deserialization failed",
-        "MODEL_NOT_CONFIGURED": "Model not configured",
-        "NODE_NOT_FOUND": "Node not found"
+        "PROVIDER_QUERY_FAILED": "فشل استعلام مزود LLM",
+        "NO_AVAILABLE_PROVIDER": "لا يوجد مزود LLM متاح",
+        "API_KEY_DECRYPT_FAILED": "فشل فك تشفير مفتاح API",
+        "UNSUPPORTED_PROVIDER": "نوع مزود LLM غير مدعوم",
+        "LLM_CALL_FAILED": "فشل استدعاء LLM",
+        "AGENT_PROFILE_NOT_FOUND": "لم يتم العثور على ملف تعريف الوكيل",
+        "TOOL_CALL_FAILED": "فشل استدعاء الأداة",
+        "TOOL_NOT_CONFIGURED": "لم يتم تكوين رد نداء منفذ الأداة",
+        "SUBWORKFLOW_FAILED": "فشل تنفيذ سير العمل الفرعي",
+        "SUBWORKFLOW_NOT_CONFIGURED": "لم يتم تكوين رد نداء منفذ سير العمل الفرعي",
+        "VECTOR_RETRIEVE_FAILED": "فشل استرجاع المتجهات",
+        "VECTOR_NOT_CONFIGURED": "لم يتم تكوين رد نداء منفذ استرجاع المتجهات",
+        "VARIABLE_NOT_FOUND": "لم يتم العثور على المتغير المطلوب",
+        "VALIDATION_FAILED": "فشل التحقق من الصحة",
+        "TIMEOUT": "انتهت مهلة التنفيذ",
+        "CIRCUIT_BREAKER_OPEN": "قاطع الدائرة مفتوح",
+        "NODE_TYPE_MISMATCH": "عدم تطابق نوع العقدة",
+        "UNSUPPORTED_NODE_TYPE": "نوع عقدة غير مدعوم",
+        "CACHE_DESERIALIZE_FAILED": "فشل إلغاء تسلسل بيانات التخزين المؤقت",
+        "MODEL_NOT_CONFIGURED": "النموذج غير مكوّن",
+        "NODE_NOT_FOUND": "لم يتم العثور على العقدة"
       },
       "loading": "Loading...",
       "cancelled": "Cancelled",
@@ -813,7 +813,9 @@
       "tokens": "tokens",
       "tool": "tools",
       "askUser": "questions",
-      "loading": "Loading..."
+      "loading": "Loading...",
+      "failed": "فشل",
+      "iteration": "تكرارات"
     },
     "benchmarks": {
       "failed": "Failed",
@@ -1614,7 +1616,10 @@
       "importPlaceholder": "الصق إعداد JSON، مثال:\n{\n  \"mcpServers\": {\n    \"server-name\": {\n      \"command\": \"uvx\",\n      \"args\": [\"mcp-server-fetch\"]\n    }\n  }\n}",
       "importParseError": "تنسيق JSON غير صالح",
       "importEmpty": "لم يتم العثور على إعداد خادم MCP صالح",
-      "importSuccess": "تم استيراد {{count}} خادم بنجاح"
+      "importSuccess": "تم استيراد {{count}} خادم بنجاح",
+      "notConfigured": "لا توجد اتصالات مكوّنة",
+      "builtinServer": "خادم مدمج",
+      "toolCount": "{{count}} أدوات"
     },
     "knowledge": {
       "title": "قاعدة المعرفة",
@@ -3501,7 +3506,30 @@
       "source": "Source",
       "status": "Status",
       "sync": "Sync",
-      "type": "Type"
+      "type": "Type",
+      "errorCode": {
+        "PROVIDER_QUERY_FAILED": "فشل استعلام مزود LLM",
+        "NO_AVAILABLE_PROVIDER": "لا يوجد مزود LLM متاح",
+        "API_KEY_DECRYPT_FAILED": "فشل فك تشفير مفتاح API",
+        "UNSUPPORTED_PROVIDER": "نوع مزود LLM غير مدعوم",
+        "LLM_CALL_FAILED": "فشل استدعاء LLM",
+        "AGENT_PROFILE_NOT_FOUND": "لم يتم العثور على ملف تعريف الوكيل",
+        "TOOL_CALL_FAILED": "فشل استدعاء الأداة",
+        "TOOL_NOT_CONFIGURED": "لم يتم تكوين رد نداء منفذ الأداة",
+        "SUBWORKFLOW_FAILED": "فشل تنفيذ سير العمل الفرعي",
+        "SUBWORKFLOW_NOT_CONFIGURED": "لم يتم تكوين رد نداء منفذ سير العمل الفرعي",
+        "VECTOR_RETRIEVE_FAILED": "فشل استرجاع المتجهات",
+        "VECTOR_NOT_CONFIGURED": "لم يتم تكوين رد نداء منفذ استرجاع المتجهات",
+        "VARIABLE_NOT_FOUND": "لم يتم العثور على المتغير المطلوب",
+        "VALIDATION_FAILED": "فشل التحقق من الصحة",
+        "TIMEOUT": "انتهت مهلة التنفيذ",
+        "CIRCUIT_BREAKER_OPEN": "قاطع الدائرة مفتوح",
+        "NODE_TYPE_MISMATCH": "عدم تطابق نوع العقدة",
+        "UNSUPPORTED_NODE_TYPE": "نوع عقدة غير مدعوم",
+        "CACHE_DESERIALIZE_FAILED": "فشل إلغاء تسلسل بيانات التخزين المؤقت",
+        "MODEL_NOT_CONFIGURED": "النموذج غير مكوّن",
+        "NODE_NOT_FOUND": "لم يتم العثور على العقدة"
+      }
     },
     "pageNotFound": "Page not found",
     "pageType": "Page Type",
@@ -3720,7 +3748,30 @@
       "saveWiki": "حفظ",
       "continueAsk": "متابعة السؤال",
       "error": "خطأ",
-      "noWikiSelected": "يرجى اختيار ويكي من قاعدة المعرفة أولاً"
+      "noWikiSelected": "يرجى اختيار ويكي من قاعدة المعرفة أولاً",
+      "errorCode": {
+        "PROVIDER_QUERY_FAILED": "فشل استعلام مزود LLM",
+        "NO_AVAILABLE_PROVIDER": "لا يوجد مزود LLM متاح",
+        "API_KEY_DECRYPT_FAILED": "فشل فك تشفير مفتاح API",
+        "UNSUPPORTED_PROVIDER": "نوع مزود LLM غير مدعوم",
+        "LLM_CALL_FAILED": "فشل استدعاء LLM",
+        "AGENT_PROFILE_NOT_FOUND": "لم يتم العثور على ملف تعريف الوكيل",
+        "TOOL_CALL_FAILED": "فشل استدعاء الأداة",
+        "TOOL_NOT_CONFIGURED": "لم يتم تكوين رد نداء منفذ الأداة",
+        "SUBWORKFLOW_FAILED": "فشل تنفيذ سير العمل الفرعي",
+        "SUBWORKFLOW_NOT_CONFIGURED": "لم يتم تكوين رد نداء منفذ سير العمل الفرعي",
+        "VECTOR_RETRIEVE_FAILED": "فشل استرجاع المتجهات",
+        "VECTOR_NOT_CONFIGURED": "لم يتم تكوين رد نداء منفذ استرجاع المتجهات",
+        "VARIABLE_NOT_FOUND": "لم يتم العثور على المتغير المطلوب",
+        "VALIDATION_FAILED": "فشل التحقق من الصحة",
+        "TIMEOUT": "انتهت مهلة التنفيذ",
+        "CIRCUIT_BREAKER_OPEN": "قاطع الدائرة مفتوح",
+        "NODE_TYPE_MISMATCH": "عدم تطابق نوع العقدة",
+        "UNSUPPORTED_NODE_TYPE": "نوع عقدة غير مدعوم",
+        "CACHE_DESERIALIZE_FAILED": "فشل إلغاء تسلسل بيانات التخزين المؤقت",
+        "MODEL_NOT_CONFIGURED": "النموذج غير مكوّن",
+        "NODE_NOT_FOUND": "لم يتم العثور على العقدة"
+      }
     },
     "noResults": "No results",
     "search": "Search"
@@ -3762,7 +3813,9 @@
       "noRecommendations": "No recommendations yet",
       "aiAssistant": "AI Assistant",
       "clickCanvasToAdd": "Selected \"{{label}}\" — click on the canvas to place the node",
-      "explanation": "Explanation"
+      "explanation": "Explanation",
+      "replaceConfirmTitle": "تأكيد الاستبدال",
+      "replaceConfirmContent": "تحتوي اللوحة الحالية على {{nodes}} عقد و {{edges}} حواف. سيؤدي الإنشاء إلى استبدالها جميعًا. متابعة؟"
     },
     "previewInDevelopment": "Preview feature is in development",
     "publishInDevelopment": "Publish feature is in development",
@@ -4094,7 +4147,21 @@
       "expertNotFound": "",
       "profileMatched": "",
       "profileCreated": "",
-      "profileCreateFailed": ""
+      "profileCreateFailed": "",
+      "executionMode": "وضع التنفيذ",
+      "executionReact": "تفاعلي",
+      "executionPlan": "مخطط",
+      "executionReactHint": "تنفيذ العقد بشكل تفاعلي عند تغير البيانات الأولية",
+      "executionPlanHint": "تنفيذ العقد بترتيب طوبولوجي مخطط",
+      "toolName": "اسم الأداة",
+      "toolNamePlaceholder": "أدخل اسم الأداة",
+      "toolNameHint": "الاسم المستخدم لاستدعاء هذه الأداة من LLM",
+      "aggregation": "التجميع",
+      "aggregationAll": "الكل",
+      "aggregationFirst": "الأول",
+      "aggregationRace": "سباق",
+      "aggregationMajority": "الأغلبية",
+      "aggregationHint": "كيفية تجميع النتائج من فروع متوازية متعددة"
     },
     "debug": {
       "totalDuration": "Total Duration",
@@ -4107,7 +4174,20 @@
       "variables": "Variables",
       "performance": "Performance",
       "slowestNode": "Slowest Node",
-      "fastestNode": "Fastest Node"
+      "fastestNode": "Fastest Node",
+      "title": "لوحة التصحيح",
+      "columnNode": "عقدة",
+      "columnDuration": "المدة",
+      "columnRetries": "إعادة المحاولة",
+      "columnStatus": "الحالة",
+      "executionLabel": "التنفيذ: {{id}} | سير العمل: {{name}} | المشغل: {{trigger}}",
+      "variableSnapshots": "لقطات المتغيرات",
+      "performanceAnalysis": "تحليل الأداء",
+      "labelNode": "عقدة",
+      "labelType": "النوع",
+      "labelError": "خطأ",
+      "labelInput": "إدخال",
+      "labelOutput": "إخراج"
     },
     "applySemanticCheck": "Apply",
     "applyUpgrade": "Apply Upgrade",
@@ -4263,7 +4343,17 @@
       "invalidJson": "تنسيق JSON غير صالح",
       "unsupportedNodeType": "Editing this node type is not supported yet",
       "llmRouting": "توجيه ديناميكي LLM",
-      "llmRoutingHint": "دع الذكاء الاصطناعي يقرر أي فرع يتخذه بناءً على السياق"
+      "llmRoutingHint": "دع الذكاء الاصطناعي يقرر أي فرع يتخذه بناءً على السياق",
+      "aiGenerate": "توليد بالذكاء الاصطناعي",
+      "codeTemplates": "قوالب الكود",
+      "showTools": "إظهار الأدوات",
+      "hideTools": "إخفاء الأدوات",
+      "availableTools": "الأدوات المتاحة",
+      "noToolsAvailable": "لا توجد أدوات متاحة",
+      "routingPrompt": "موجه التوجيه",
+      "routingPromptPlaceholder": "صف كيفية التوجيه بين الفروع...",
+      "routingModel": "نموذج التوجيه",
+      "routingModelPlaceholder": "اختر النموذج لقرارات التوجيه"
     },
     "statusBar": {
       "unsaved": "غير محفوظ",
@@ -4277,7 +4367,30 @@
       "warning": "{{count}} warnings",
       "dagEditor": "DAG Editor",
       "fitView": "Fit View",
-      "resetZoom": "Reset Zoom"
+      "resetZoom": "Reset Zoom",
+      "errorCode": {
+        "PROVIDER_QUERY_FAILED": "فشل استعلام مزود LLM",
+        "NO_AVAILABLE_PROVIDER": "لا يوجد مزود LLM متاح",
+        "API_KEY_DECRYPT_FAILED": "فشل فك تشفير مفتاح API",
+        "UNSUPPORTED_PROVIDER": "نوع مزود LLM غير مدعوم",
+        "LLM_CALL_FAILED": "فشل استدعاء LLM",
+        "AGENT_PROFILE_NOT_FOUND": "لم يتم العثور على ملف تعريف الوكيل",
+        "TOOL_CALL_FAILED": "فشل استدعاء الأداة",
+        "TOOL_NOT_CONFIGURED": "لم يتم تكوين رد نداء منفذ الأداة",
+        "SUBWORKFLOW_FAILED": "فشل تنفيذ سير العمل الفرعي",
+        "SUBWORKFLOW_NOT_CONFIGURED": "لم يتم تكوين رد نداء منفذ سير العمل الفرعي",
+        "VECTOR_RETRIEVE_FAILED": "فشل استرجاع المتجهات",
+        "VECTOR_NOT_CONFIGURED": "لم يتم تكوين رد نداء منفذ استرجاع المتجهات",
+        "VARIABLE_NOT_FOUND": "لم يتم العثور على المتغير المطلوب",
+        "VALIDATION_FAILED": "فشل التحقق من الصحة",
+        "TIMEOUT": "انتهت مهلة التنفيذ",
+        "CIRCUIT_BREAKER_OPEN": "قاطع الدائرة مفتوح",
+        "NODE_TYPE_MISMATCH": "عدم تطابق نوع العقدة",
+        "UNSUPPORTED_NODE_TYPE": "نوع عقدة غير مدعوم",
+        "CACHE_DESERIALIZE_FAILED": "فشل إلغاء تسلسل بيانات التخزين المؤقت",
+        "MODEL_NOT_CONFIGURED": "النموذج غير مكوّن",
+        "NODE_NOT_FOUND": "لم يتم العثور على العقدة"
+      }
     },
     "agentNode": {
       "tools": "أدوات",
@@ -4408,7 +4521,11 @@
       "rhaiTemplateDesc": "سكريبت Rhai",
       "templateRhaiTools": "── قوالب Rhai ──",
       "globalTools": "── أدوات عامة ──"
-    }
+    },
+    "autoLayout": "تخطيط تلقائي",
+    "autoLayoutTooltip": "ترتيب العقد تلقائيًا",
+    "selfLoopNotAllowed": "الحلقة الذاتية غير مسموحة",
+    "edgeAlreadyExists": "الحافة موجودة بالفعل"
   },
   "atomicSkill": {
     "entryType": "Entry Type",
@@ -6577,5 +6694,11 @@
         "generationUser": "Generate workflow based on: {0}"
       }
     }
+  },
+  "appHeader": {
+    "knowledgeContext": "المعرفة",
+    "gatewayContext": "البوابة",
+    "filesContext": "الملفات",
+    "terminalContext": "الطرفية"
   }
 }

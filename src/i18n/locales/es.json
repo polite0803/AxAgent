@@ -672,27 +672,27 @@
         "DESKTOP_NATIVE_NOTIFICATION_FAILED": "Native notification failed"
       },
       "errorCode": {
-        "PROVIDER_QUERY_FAILED": "Provider query failed",
-        "NO_AVAILABLE_PROVIDER": "No available LLM provider",
-        "API_KEY_DECRYPT_FAILED": "API key decryption failed",
-        "UNSUPPORTED_PROVIDER": "Unsupported provider type",
-        "LLM_CALL_FAILED": "LLM call failed",
-        "AGENT_PROFILE_NOT_FOUND": "Agent profile not found",
-        "TOOL_CALL_FAILED": "Tool call failed",
-        "TOOL_NOT_CONFIGURED": "Tool callback not configured",
-        "SUBWORKFLOW_FAILED": "Sub-workflow execution failed",
-        "SUBWORKFLOW_NOT_CONFIGURED": "Sub-workflow callback not configured",
-        "VECTOR_RETRIEVE_FAILED": "Vector retrieval failed",
-        "VECTOR_NOT_CONFIGURED": "Vector retrieve callback not configured",
-        "VARIABLE_NOT_FOUND": "Required variable not found",
-        "VALIDATION_FAILED": "Validation failed",
-        "TIMEOUT": "Execution timeout",
-        "CIRCUIT_BREAKER_OPEN": "Circuit breaker open",
-        "NODE_TYPE_MISMATCH": "Node type mismatch",
-        "UNSUPPORTED_NODE_TYPE": "Unsupported node type",
-        "CACHE_DESERIALIZE_FAILED": "Cache deserialization failed",
-        "MODEL_NOT_CONFIGURED": "Model not configured",
-        "NODE_NOT_FOUND": "Node not found"
+        "PROVIDER_QUERY_FAILED": "Error en la consulta del proveedor LLM",
+        "NO_AVAILABLE_PROVIDER": "No hay proveedor LLM disponible",
+        "API_KEY_DECRYPT_FAILED": "Error al descifrar la clave API",
+        "UNSUPPORTED_PROVIDER": "Tipo de proveedor LLM no compatible",
+        "LLM_CALL_FAILED": "Error en la llamada LLM",
+        "AGENT_PROFILE_NOT_FOUND": "Perfil de agente no encontrado",
+        "TOOL_CALL_FAILED": "Error en la llamada de herramienta",
+        "TOOL_NOT_CONFIGURED": "Callback del ejecutor de herramienta no configurado",
+        "SUBWORKFLOW_FAILED": "Error en la ejecución del subflujo de trabajo",
+        "SUBWORKFLOW_NOT_CONFIGURED": "Callback del ejecutor de subflujo no configurado",
+        "VECTOR_RETRIEVE_FAILED": "Error en la recuperación vectorial",
+        "VECTOR_NOT_CONFIGURED": "Callback del ejecutor de recuperación vectorial no configurado",
+        "VARIABLE_NOT_FOUND": "Variable requerida no encontrada",
+        "VALIDATION_FAILED": "Error de validación",
+        "TIMEOUT": "Tiempo de ejecución agotado",
+        "CIRCUIT_BREAKER_OPEN": "Disyuntor abierto",
+        "NODE_TYPE_MISMATCH": "Incompatibilidad de tipo de nodo",
+        "UNSUPPORTED_NODE_TYPE": "Tipo de nodo no compatible",
+        "CACHE_DESERIALIZE_FAILED": "Error al deserializar los datos de caché",
+        "MODEL_NOT_CONFIGURED": "Modelo no configurado",
+        "NODE_NOT_FOUND": "Nodo no encontrado"
       },
       "loading": "Loading...",
       "cancelled": "Cancelled",
@@ -813,7 +813,9 @@
       "tokens": "tokens",
       "tool": "tools",
       "askUser": "questions",
-      "loading": "Loading..."
+      "loading": "Loading...",
+      "failed": "Fallido",
+      "iteration": "iteraciones"
     },
     "benchmarks": {
       "failed": "Failed",
@@ -1573,7 +1575,10 @@
       "importPlaceholder": "Pegue la configuración JSON, p. ej.:\n{\n  \"mcpServers\": {\n    \"nombre-servidor\": {\n      \"command\": \"uvx\",\n      \"args\": [\"mcp-server-fetch\"]\n    }\n  }\n}",
       "importParseError": "Formato JSON no válido",
       "importEmpty": "No se encontró ninguna configuración válida de servidor MCP",
-      "importSuccess": "Se importaron correctamente {{count}} servidor(es)"
+      "importSuccess": "Se importaron correctamente {{count}} servidor(es)",
+      "notConfigured": "Sin conexiones configuradas",
+      "builtinServer": "Servidor integrado",
+      "toolCount": "{{count}} herramientas"
     },
     "knowledge": {
       "title": "Base de conocimientos",
@@ -2814,7 +2819,7 @@
     "proxyTestFailed": "Error en la prueba del proxy",
     "invalidFormat": "Formato inválido",
     "page": "Error",
-    "message": "错误",
+    "message": "Error",
     "pageNotFound": "Sorry, the page you visited does not exist."
   },
   "desktop": {
@@ -3256,8 +3261,8 @@
   },
   "searchProvider": {
     "tavily": "Tavily",
-    "zhipu": "智谱",
-    "bocha": "博查"
+    "zhipu": "Zhipu",
+    "bocha": "Bocha"
   },
   "terminal": {
     "online": "Online",
@@ -3501,7 +3506,30 @@
       "source": "Source",
       "status": "Status",
       "sync": "Sync",
-      "type": "Type"
+      "type": "Type",
+      "errorCode": {
+        "PROVIDER_QUERY_FAILED": "Error en la consulta del proveedor LLM",
+        "NO_AVAILABLE_PROVIDER": "No hay proveedor LLM disponible",
+        "API_KEY_DECRYPT_FAILED": "Error al descifrar la clave API",
+        "UNSUPPORTED_PROVIDER": "Tipo de proveedor LLM no compatible",
+        "LLM_CALL_FAILED": "Error en la llamada LLM",
+        "AGENT_PROFILE_NOT_FOUND": "Perfil de agente no encontrado",
+        "TOOL_CALL_FAILED": "Error en la llamada de herramienta",
+        "TOOL_NOT_CONFIGURED": "Callback del ejecutor de herramienta no configurado",
+        "SUBWORKFLOW_FAILED": "Error en la ejecución del subflujo de trabajo",
+        "SUBWORKFLOW_NOT_CONFIGURED": "Callback del ejecutor de subflujo no configurado",
+        "VECTOR_RETRIEVE_FAILED": "Error en la recuperación vectorial",
+        "VECTOR_NOT_CONFIGURED": "Callback del ejecutor de recuperación vectorial no configurado",
+        "VARIABLE_NOT_FOUND": "Variable requerida no encontrada",
+        "VALIDATION_FAILED": "Error de validación",
+        "TIMEOUT": "Tiempo de ejecución agotado",
+        "CIRCUIT_BREAKER_OPEN": "Disyuntor abierto",
+        "NODE_TYPE_MISMATCH": "Incompatibilidad de tipo de nodo",
+        "UNSUPPORTED_NODE_TYPE": "Tipo de nodo no compatible",
+        "CACHE_DESERIALIZE_FAILED": "Error al deserializar los datos de caché",
+        "MODEL_NOT_CONFIGURED": "Modelo no configurado",
+        "NODE_NOT_FOUND": "Nodo no encontrado"
+      }
     },
     "pageNotFound": "Page not found",
     "pageType": "Page Type",
@@ -3720,7 +3748,30 @@
       "saveWiki": "Save",
       "continueAsk": "Follow up",
       "error": "Error",
-      "noWikiSelected": "Por favor seleccione un Wiki en la base de conocimiento primero"
+      "noWikiSelected": "Por favor seleccione un Wiki en la base de conocimiento primero",
+      "errorCode": {
+        "PROVIDER_QUERY_FAILED": "Error en la consulta del proveedor LLM",
+        "NO_AVAILABLE_PROVIDER": "No hay proveedor LLM disponible",
+        "API_KEY_DECRYPT_FAILED": "Error al descifrar la clave API",
+        "UNSUPPORTED_PROVIDER": "Tipo de proveedor LLM no compatible",
+        "LLM_CALL_FAILED": "Error en la llamada LLM",
+        "AGENT_PROFILE_NOT_FOUND": "Perfil de agente no encontrado",
+        "TOOL_CALL_FAILED": "Error en la llamada de herramienta",
+        "TOOL_NOT_CONFIGURED": "Callback del ejecutor de herramienta no configurado",
+        "SUBWORKFLOW_FAILED": "Error en la ejecución del subflujo de trabajo",
+        "SUBWORKFLOW_NOT_CONFIGURED": "Callback del ejecutor de subflujo no configurado",
+        "VECTOR_RETRIEVE_FAILED": "Error en la recuperación vectorial",
+        "VECTOR_NOT_CONFIGURED": "Callback del ejecutor de recuperación vectorial no configurado",
+        "VARIABLE_NOT_FOUND": "Variable requerida no encontrada",
+        "VALIDATION_FAILED": "Error de validación",
+        "TIMEOUT": "Tiempo de ejecución agotado",
+        "CIRCUIT_BREAKER_OPEN": "Disyuntor abierto",
+        "NODE_TYPE_MISMATCH": "Incompatibilidad de tipo de nodo",
+        "UNSUPPORTED_NODE_TYPE": "Tipo de nodo no compatible",
+        "CACHE_DESERIALIZE_FAILED": "Error al deserializar los datos de caché",
+        "MODEL_NOT_CONFIGURED": "Modelo no configurado",
+        "NODE_NOT_FOUND": "Nodo no encontrado"
+      }
     },
     "noResults": "No results",
     "search": "Search"
@@ -3762,7 +3813,9 @@
       "noRecommendations": "No recommendations yet",
       "aiAssistant": "AI Assistant",
       "clickCanvasToAdd": "Selected \"{{label}}\" — click on the canvas to place the node",
-      "explanation": "Explanation"
+      "explanation": "Explanation",
+      "replaceConfirmTitle": "Confirmar reemplazo",
+      "replaceConfirmContent": "El lienzo actual tiene {{nodes}} nodos y {{edges}} aristas. La generación reemplazará todo. ¿Continuar?"
     },
     "previewInDevelopment": "Preview feature is in development",
     "publishInDevelopment": "Publish feature is in development",
@@ -4094,7 +4147,21 @@
       "expertNotFound": "",
       "profileMatched": "",
       "profileCreated": "",
-      "profileCreateFailed": ""
+      "profileCreateFailed": "",
+      "executionMode": "Modo de ejecución",
+      "executionReact": "Reactivo",
+      "executionPlan": "Planificado",
+      "executionReactHint": "Los nodos se ejecutan de forma reactiva cuando cambian los datos ascendentes",
+      "executionPlanHint": "Los nodos se ejecutan en un orden topológico planificado",
+      "toolName": "Nombre de la herramienta",
+      "toolNamePlaceholder": "Ingrese el nombre de la herramienta",
+      "toolNameHint": "Nombre utilizado para llamar a esta herramienta desde el LLM",
+      "aggregation": "Agregación",
+      "aggregationAll": "Todos",
+      "aggregationFirst": "Primero",
+      "aggregationRace": "Carrera",
+      "aggregationMajority": "Mayoría",
+      "aggregationHint": "Cómo agregar resultados de múltiples ramas paralelas"
     },
     "debug": {
       "totalDuration": "Total Duration",
@@ -4107,7 +4174,20 @@
       "variables": "Variables",
       "performance": "Performance",
       "slowestNode": "Slowest Node",
-      "fastestNode": "Fastest Node"
+      "fastestNode": "Fastest Node",
+      "title": "Panel de depuración",
+      "columnNode": "Nodo",
+      "columnDuration": "Duración",
+      "columnRetries": "Reintentos",
+      "columnStatus": "Estado",
+      "executionLabel": "Ejecución: {{id}} | Flujo: {{name}} | Disparador: {{trigger}}",
+      "variableSnapshots": "Instantáneas de variables",
+      "performanceAnalysis": "Análisis de rendimiento",
+      "labelNode": "Nodo",
+      "labelType": "Tipo",
+      "labelError": "Error",
+      "labelInput": "Entrada",
+      "labelOutput": "Salida"
     },
     "applySemanticCheck": "Apply",
     "applyUpgrade": "Apply Upgrade",
@@ -4263,7 +4343,17 @@
       "invalidJson": "Formato JSON no válido",
       "unsupportedNodeType": "Editing this node type is not supported yet",
       "llmRouting": "Enrutamiento dinámico LLM",
-      "llmRoutingHint": "Dejar que la IA decida qué rama tomar según el contexto"
+      "llmRoutingHint": "Dejar que la IA decida qué rama tomar según el contexto",
+      "aiGenerate": "Generación IA",
+      "codeTemplates": "Plantillas de código",
+      "showTools": "Mostrar herramientas",
+      "hideTools": "Ocultar herramientas",
+      "availableTools": "Herramientas disponibles",
+      "noToolsAvailable": "Sin herramientas disponibles",
+      "routingPrompt": "Prompt de enrutamiento",
+      "routingPromptPlaceholder": "Describa cómo enrutar entre ramas...",
+      "routingModel": "Modelo de enrutamiento",
+      "routingModelPlaceholder": "Seleccione el modelo para decisiones de enrutamiento"
     },
     "statusBar": {
       "unsaved": "Sin guardar",
@@ -4277,7 +4367,30 @@
       "warning": "{{count}} warnings",
       "dagEditor": "DAG Editor",
       "fitView": "Fit View",
-      "resetZoom": "Reset Zoom"
+      "resetZoom": "Reset Zoom",
+      "errorCode": {
+        "PROVIDER_QUERY_FAILED": "Error en la consulta del proveedor LLM",
+        "NO_AVAILABLE_PROVIDER": "No hay proveedor LLM disponible",
+        "API_KEY_DECRYPT_FAILED": "Error al descifrar la clave API",
+        "UNSUPPORTED_PROVIDER": "Tipo de proveedor LLM no compatible",
+        "LLM_CALL_FAILED": "Error en la llamada LLM",
+        "AGENT_PROFILE_NOT_FOUND": "Perfil de agente no encontrado",
+        "TOOL_CALL_FAILED": "Error en la llamada de herramienta",
+        "TOOL_NOT_CONFIGURED": "Callback del ejecutor de herramienta no configurado",
+        "SUBWORKFLOW_FAILED": "Error en la ejecución del subflujo de trabajo",
+        "SUBWORKFLOW_NOT_CONFIGURED": "Callback del ejecutor de subflujo no configurado",
+        "VECTOR_RETRIEVE_FAILED": "Error en la recuperación vectorial",
+        "VECTOR_NOT_CONFIGURED": "Callback del ejecutor de recuperación vectorial no configurado",
+        "VARIABLE_NOT_FOUND": "Variable requerida no encontrada",
+        "VALIDATION_FAILED": "Error de validación",
+        "TIMEOUT": "Tiempo de ejecución agotado",
+        "CIRCUIT_BREAKER_OPEN": "Disyuntor abierto",
+        "NODE_TYPE_MISMATCH": "Incompatibilidad de tipo de nodo",
+        "UNSUPPORTED_NODE_TYPE": "Tipo de nodo no compatible",
+        "CACHE_DESERIALIZE_FAILED": "Error al deserializar los datos de caché",
+        "MODEL_NOT_CONFIGURED": "Modelo no configurado",
+        "NODE_NOT_FOUND": "Nodo no encontrado"
+      }
     },
     "agentNode": {
       "tools": "Herramientas",
@@ -4408,7 +4521,11 @@
       "rhaiTemplateDesc": "Script Rhai",
       "templateRhaiTools": "── Plantillas Rhai ──",
       "globalTools": "── Herramientas globales ──"
-    }
+    },
+    "autoLayout": "Diseño automático",
+    "autoLayoutTooltip": "Organizar nodos automáticamente",
+    "selfLoopNotAllowed": "No se permiten bucles propios",
+    "edgeAlreadyExists": "La arista ya existe"
   },
   "atomicSkill": {
     "entryType": "Entry Type",
@@ -6442,7 +6559,7 @@
   },
   "chat:workflow": {
     "templateList": {
-      "presetsImported": "导入成功"
+      "presetsImported": "Importación exitosa"
     }
   },
   "report": {
@@ -6577,5 +6694,11 @@
         "generationUser": "Generate workflow based on: {0}"
       }
     }
+  },
+  "appHeader": {
+    "knowledgeContext": "Conocimiento",
+    "gatewayContext": "Pasarela",
+    "filesContext": "Archivos",
+    "terminalContext": "Terminal"
   }
 }
