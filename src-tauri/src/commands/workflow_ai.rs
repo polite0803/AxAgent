@@ -4,7 +4,7 @@ use crate::commands::error_code::provider as provider_err;
 use axagent_core::crypto::decrypt_key;
 use axagent_core::types::{
     ChatContent, ChatMessage, ChatRequest, ChatStreamChunk, ChatStreamErrorEvent, ChatStreamEvent,
-    ProviderType, TokenUsage,
+    ProviderType,
 };
 use axagent_core::workflow_types::*;
 use axagent_providers::registry::ProviderRegistry;
@@ -1230,7 +1230,7 @@ Respond in the same language as the user's message.{}"#,
     };
 
     let cancel_flag = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
-    let cancel_flag_clone = cancel_flag.clone();
+    let _cancel_flag_clone = cancel_flag.clone();
     let session_id_clone = session_id.clone();
     let _ = app.emit(
         "workflow-ai-chat-start",
@@ -1318,8 +1318,8 @@ Respond in the same language as the user's message.{}"#,
 
 #[tauri::command]
 pub async fn workflow_ai_chat_cancel(
-    state: State<'_, AppState>,
-    session_id: String,
+    _state: State<'_, AppState>,
+    _session_id: String,
 ) -> Result<(), String> {
     Ok(())
 }

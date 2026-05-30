@@ -9,7 +9,9 @@ pub mod prompt_template;
 
 pub use cache_layer::{CacheError, CacheLayer, InMemoryCache};
 pub use dispatcher::NodeDispatcher;
-pub use engine::{RunOptions, ToolResolver, WorkEngine, WorkEngineError};
+pub use engine::{
+    ProgressCallback, RunOptions, StepProgressEvent, ToolResolver, WorkEngine, WorkEngineError,
+};
 pub use execution_state::{
     ExecutionContextCallbacks, ExecutionState, ExecutionStatus, NodeExecutionRecord,
 };
