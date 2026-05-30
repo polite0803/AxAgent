@@ -1,35 +1,47 @@
 import { useWorkflowEditorStore } from "@/stores";
+import { useWorkEngineStore } from "@/stores/feature/workEngineStore";
 import {
   BugOutlined,
+  CaretRightOutlined,
   CheckCircleOutlined,
   CloseCircleOutlined,
+  CodeOutlined,
   ExclamationCircleOutlined,
+  EyeOutlined,
+  FastForwardOutlined,
+  PauseOutlined,
   PlayCircleOutlined,
   ReloadOutlined,
+  StepForwardOutlined,
   StopOutlined,
   ThunderboltOutlined,
   WarningOutlined,
 } from "@ant-design/icons";
+import { theme } from "antd";
 import {
   Badge,
   Button,
   Card,
   Col,
   Collapse,
+  Descriptions,
+  Divider,
   Empty,
   List,
+  Modal,
   Row,
   Space,
   Statistic,
+  Switch,
   Table,
   Tag,
-  theme,
   Tooltip,
   Typography,
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import type { NodeExecutionRecord } from "../../types";
 
 const { Title, Text, Paragraph } = Typography;
 const { Panel } = Collapse;
@@ -83,7 +95,6 @@ function analyzeNodes(nodes: any[], edges: any[]): NodeDiagnostic[] {
     if (isOrphan) { issueCount++; }
     if (isDeadEnd) { issueCount++; }
 
-    // 类型特定检查
     const nt = n.type || (n.data?.type) || "";
     if (nt === "tool") {
       const tn = n.config?.tool_name || n.data?.config?.tool_name || n.data?.tool_name;
@@ -171,7 +182,6 @@ function findUnreachableNodes(nodes: any[], edges: any[]): string[] {
     adj.get(e.source)!.push(e.target);
   }
 
-  // BFS from trigger nodes
   const queue = nodes.filter((n) => {
     const t = n.type || n.data?.type || "";
     return t === "trigger";
@@ -191,21 +201,58 @@ function findUnreachableNodes(nodes: any[], edges: any[]): string[] {
   return nodes.filter((n) => !reachable.has(n.id)).map((n) => n.id);
 }
 
+function formatDuration(ms: number | null): string {
+  if (ms == null) { return "-"; }
+  if (ms < 1000) { return `${ms}ms`; }
+  return `${(ms / 1000).toFixed(2)}s`;
+}
+
+function statusColor(status: string): string {
+  switch (status) {
+    case "completed":
+      return "success";
+    case "running":
+      return "processing";
+    case "failed":
+    case "timeout":
+      return "error";
+    case "skipped":
+      return "default";
+    case "paused":
+      return "warning";
+    default:
+      return "default";
+  }
+}
+
 interface DebugPanelProps {
-  trace?: any;
   workflowId?: string;
 }
 
-export function DebugPanel({ trace, workflowId: _workflowId }: DebugPanelProps) {
+export function DebugPanel({ workflowId }: DebugPanelProps) {
   const { t } = useTranslation();
   const { token } = theme.useToken();
   const [activeTab, setActiveTab] = useState<"static" | "runtime">("static");
   const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
   const [validating, setValidating] = useState(false);
+  const [detailRecord, setDetailRecord] = useState<NodeExecutionRecord | null>(null);
 
   const nodes = useWorkflowEditorStore((s) => s.nodes);
   const edges = useWorkflowEditorStore((s) => s.edges);
   const validateTemplate = useWorkflowEditorStore((s) => s.validateTemplate);
+
+  const engine = useWorkEngineStore();
+  const {
+    executionId,
+    status,
+    nodeRecords,
+    variables,
+    breakpoints,
+    loading,
+    dryRun,
+    isDebugRunning,
+    executionHistory,
+  } = engine;
 
   const nodeIds = useMemo(() => new Set(nodes.map((n: any) => n.id)), [nodes]);
   const diagnostics = useMemo(() => analyzeNodes(nodes, edges), [nodes, edges]);
@@ -219,7 +266,14 @@ export function DebugPanel({ trace, workflowId: _workflowId }: DebugPanelProps) 
   }, [diagnostics, edgeAnalysis, cycles, unreachable]);
 
   const [subDiags, setSubDiags] = useState<
-    Record<string, { name: string; diagnostics: NodeDiagnostic[]; cycles: number; unreachable: number }>
+    Record<string, {
+      name: string;
+      diagnostics: NodeDiagnostic[];
+      cycles: number;
+      unreachable: number;
+      mappingIssues?: string[];
+      templateExists?: boolean;
+    }>
   >({});
   const [subAnalyzing, setSubAnalyzing] = useState(false);
 
@@ -235,6 +289,44 @@ export function DebugPanel({ trace, workflowId: _workflowId }: DebugPanelProps) 
       return;
     }
     const { invoke } = await import("@/lib/invoke");
+    const recursionErrors: string[] = [];
+
+    function checkRecursiveRef(
+      currentId: string,
+      path: string[],
+      pathSet: Set<string>,
+    ): void {
+      if (pathSet.has(currentId)) {
+        recursionErrors.push([...path, currentId].join(" → "));
+        return;
+      }
+      pathSet.add(currentId);
+      const subNode = subNodes.find((n: any) => {
+        const sid = n.config?.sub_workflow_id || n.data?.config?.sub_workflow_id
+          || n.data?.subWorkflowId || n.data?.sub_workflow_id;
+        return sid === currentId;
+      });
+      if (subNode) {
+        const nextId = subNode.config?.sub_workflow_id || subNode.data?.config?.sub_workflow_id
+          || subNode.data?.subWorkflowId || subNode.data?.sub_workflow_id;
+        if (nextId) {
+          checkRecursiveRef(nextId, [...path, currentId], new Set(pathSet));
+        }
+      }
+    }
+
+    for (const sn of subNodes) {
+      const s = sn as any;
+      const subId = s.config?.sub_workflow_id || s.data?.config?.sub_workflow_id
+        || s.data?.subWorkflowId || s.data?.sub_workflow_id;
+      if (!subId) { continue; }
+      if (subId === workflowId) {
+        recursionErrors.push(`${s.title || s.id} → self`);
+        continue;
+      }
+      checkRecursiveRef(subId, [workflowId || "root"], new Set([workflowId || "root"]));
+    }
+
     for (const sn of subNodes) {
       const s = sn as any;
       const subId = s.config?.sub_workflow_id || s.data?.config?.sub_workflow_id
@@ -248,14 +340,44 @@ export function DebugPanel({ trace, workflowId: _workflowId }: DebugPanelProps) 
         const diags = analyzeNodes(subN, subE);
         const cyc = findCycles(subE).length;
         const unreach = findUnreachableNodes(subN, subE).length;
-        result[s.id] = { name: tmpl.name || subId, diagnostics: diags, cycles: cyc, unreachable: unreach };
-      } catch { /* skip */ }
+
+        const inputMapping = s.config?.input_mapping || s.data?.config?.input_mapping || {};
+        const subInputSchema = tmpl.input_schema || {};
+        const mappingIssues: string[] = [];
+        if (typeof inputMapping === "object" && Object.keys(inputMapping).length > 0) {
+          const schemaProps = (subInputSchema as any)?.properties || {};
+          for (const key of Object.keys(inputMapping)) {
+            if (Object.keys(schemaProps).length > 0 && !schemaProps[key]) {
+              mappingIssues.push(`input "${key}" not in sub-workflow schema`);
+            }
+          }
+        }
+
+        result[s.id] = {
+          name: tmpl.name || subId,
+          diagnostics: diags,
+          cycles: cyc,
+          unreachable: unreach,
+          mappingIssues,
+          templateExists: true,
+        };
+      } catch {
+        result[s.id] = {
+          name: subId,
+          diagnostics: [],
+          cycles: 0,
+          unreachable: 0,
+          mappingIssues: ["Template not found or deleted"],
+          templateExists: false,
+        };
+      }
     }
+
+    (result as any)._recursionErrors = recursionErrors;
     setSubDiags(result);
     setSubAnalyzing(false);
-  }, [nodes]);
+  }, [nodes, workflowId]);
 
-  // 自动分析子工作流：节点变化时延迟执行
   useEffect(() => {
     const subNodes = (nodes as any[]).filter((n: any) => {
       const t = n.type || n.data?.type || "";
@@ -281,6 +403,56 @@ export function DebugPanel({ trace, workflowId: _workflowId }: DebugPanelProps) 
       setValidating(false);
     }
   }, [validateTemplate]);
+
+  useEffect(() => {
+    let cleanup: (() => void) | undefined;
+    engine.setupEventListeners().then((fn) => {
+      cleanup = fn;
+    });
+    return () => {
+      cleanup?.();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (!workflowId) { return; }
+    engine.loadHistory(workflowId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [workflowId]);
+
+  useEffect(() => {
+    if (!executionId || !isDebugRunning) { return; }
+    const interval = setInterval(() => {
+      engine.getStatus(executionId);
+    }, 2000);
+    return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [executionId, isDebugRunning]);
+
+  const handleDebugRun = useCallback(async () => {
+    if (!workflowId) { return; }
+    await engine.debugRun(workflowId, {
+      breakpoints: breakpoints.length > 0 ? breakpoints : undefined,
+      dryRun,
+    });
+    setActiveTab("runtime");
+  }, [workflowId, breakpoints, dryRun, engine]);
+
+  const handleCancel = useCallback(async () => {
+    await engine.cancel();
+    if (executionId) {
+      await engine.getStatus(executionId);
+    }
+  }, [engine, executionId]);
+
+  const handleResumeBreakpoint = useCallback(async () => {
+    await engine.resumeBreakpoint();
+  }, [engine]);
+
+  const handleStepBreakpoint = useCallback(async () => {
+    await engine.stepBreakpoint();
+  }, [engine]);
 
   const nodeDiagnosticColumns: ColumnsType<NodeDiagnostic> = [
     {
@@ -317,6 +489,64 @@ export function DebugPanel({ trace, workflowId: _workflowId }: DebugPanelProps) 
           {r.promptEmpty && <Tag color="warning">{t("workflow.debug.noPrompt")}</Tag>}
           {r.issueCount === 0 && <Tag color="success">OK</Tag>}
         </Space>
+      ),
+    },
+  ];
+
+  const recordColumns: ColumnsType<NodeExecutionRecord> = [
+    {
+      title: t("workflow.debug.colNode"),
+      key: "node",
+      ellipsis: true,
+      render: (_: any, r: NodeExecutionRecord) => (
+        <Space size={4}>
+          {r.status === "running" && <Badge status="processing" />}
+          {r.status === "completed" && <CheckCircleOutlined style={{ color: token.colorSuccess }} />}
+          {r.status === "failed" && <CloseCircleOutlined style={{ color: token.colorError }} />}
+          {r.status === "skipped" && <StopOutlined style={{ color: token.colorTextQuaternary }} />}
+          <Text>{r.node_name || r.node_id}</Text>
+          {r.sub_workflow_id && (
+            <Tooltip title={`Sub-Workflow: ${r.sub_workflow_id}`}>
+              <Tag color="blue" style={{ fontSize: 10 }}>sub</Tag>
+            </Tooltip>
+          )}
+        </Space>
+      ),
+    },
+    {
+      title: t("workflow.debug.colType"),
+      dataIndex: "node_type",
+      key: "node_type",
+      width: 100,
+      render: (v: string) => <Tag>{v}</Tag>,
+    },
+    {
+      title: t("workflow.debug.colStatus"),
+      dataIndex: "status",
+      key: "status",
+      width: 90,
+      render: (v: string) => <Tag color={statusColor(v)}>{v}</Tag>,
+    },
+    {
+      title: t("workflow.debug.colTime"),
+      dataIndex: "execution_time_ms",
+      key: "time",
+      width: 80,
+      render: (v: number | null) => formatDuration(v),
+    },
+    {
+      title: "",
+      key: "actions",
+      width: 40,
+      render: (_: any, r: NodeExecutionRecord) => (
+        <Tooltip title={t("workflow.debug.viewDetail")}>
+          <Button
+            type="text"
+            size="small"
+            icon={<EyeOutlined />}
+            onClick={() => setDetailRecord(r)}
+          />
+        </Tooltip>
       ),
     },
   ];
@@ -508,9 +738,21 @@ export function DebugPanel({ trace, workflowId: _workflowId }: DebugPanelProps) 
 
         {Object.keys(subDiags).length > 0 && (
           <Panel header={`Sub-Workflows (${Object.keys(subDiags).length})${subAnalyzing ? " ..." : ""}`} key="subs">
-            {Object.entries(subDiags).map(([nodeId, info]) => {
-              const totalIssues = info.diagnostics.reduce((s, d) =>
-                s + d.issueCount, 0) + info.cycles + info.unreachable;
+            {(subDiags as any)._recursionErrors?.length > 0 && (
+              <Card size="small" type="inner" className="mb-2">
+                <Text type="danger" strong>Recursive References Detected</Text>
+                {(subDiags as any)._recursionErrors.map((path: string, i: number) => (
+                  <Paragraph key={i} className="mt-1 mb-0" code type="danger">
+                    {path}
+                  </Paragraph>
+                ))}
+              </Card>
+            )}
+            {Object.entries(subDiags).filter(([k]) =>
+              k !== "_recursionErrors"
+            ).map(([nodeId, info]) => {
+              const totalIssues = info.diagnostics.reduce((s: number, d: NodeDiagnostic) => s + d.issueCount, 0)
+                + info.cycles + info.unreachable + (info.mappingIssues?.length || 0);
               return (
                 <Card key={nodeId} size="small" type="inner" className="mb-2" title={info.name}>
                   <Space size="small" className="mb-2">
@@ -520,15 +762,25 @@ export function DebugPanel({ trace, workflowId: _workflowId }: DebugPanelProps) 
                       : <Tag color="success">clean</Tag>}
                     {info.cycles > 0 && <Tag color="error">{info.cycles} cycles</Tag>}
                     {info.unreachable > 0 && <Tag color="warning">{info.unreachable} unreachable</Tag>}
+                    {info.templateExists === false && <Tag color="error">NOT FOUND</Tag>}
                   </Space>
-                  <Table
-                    columns={nodeDiagnosticColumns}
-                    dataSource={info.diagnostics}
-                    rowKey="nodeId"
-                    size="small"
-                    pagination={false}
-                    scroll={{ y: 160 }}
-                  />
+                  {(info.mappingIssues && info.mappingIssues.length > 0) && (
+                    <div className="mb-2">
+                      {info.mappingIssues.map((issue: string, i: number) => (
+                        <Tag key={i} color="warning" className="mb-1">{issue}</Tag>
+                      ))}
+                    </div>
+                  )}
+                  {info.diagnostics.length > 0 && (
+                    <Table
+                      columns={nodeDiagnosticColumns}
+                      dataSource={info.diagnostics}
+                      rowKey="nodeId"
+                      size="small"
+                      pagination={false}
+                      scroll={{ y: 160 }}
+                    />
+                  )}
                 </Card>
               );
             })}
@@ -536,7 +788,6 @@ export function DebugPanel({ trace, workflowId: _workflowId }: DebugPanelProps) 
         )}
       </Collapse>
 
-      {/* 启动校验按钮 */}
       <div className="text-center">
         <Button
           type="primary"
@@ -550,19 +801,362 @@ export function DebugPanel({ trace, workflowId: _workflowId }: DebugPanelProps) 
     </div>
   );
 
-  const runtimePanel = trace
-    ? (
-      <div className="flex-1 overflow-y-auto p-4" style={{ minHeight: 0 }}>
-        <Empty description={t("workflow.debug.executionMode")} />
-      </div>
-    )
-    : (
-      <div className="flex-1 flex items-center justify-center" style={{ minHeight: 0 }}>
-        <Empty description={t("workflow.debug.noRuntimeData")}>
-          <Text type="secondary">{t("workflow.debug.staticDebugHint")}</Text>
-        </Empty>
-      </div>
-    );
+  const runtimePanel = (
+    <div className="flex-1 overflow-y-auto p-4" style={{ minHeight: 0 }}>
+      <Card size="small" className="mb-3">
+        <Row gutter={8} align="middle">
+          <Col>
+            <Space>
+              {!isDebugRunning
+                ? (
+                  <Button
+                    type="primary"
+                    icon={<CaretRightOutlined />}
+                    loading={loading}
+                    onClick={handleDebugRun}
+                    disabled={!workflowId}
+                  >
+                    {t("workflow.debug.startDebug")}
+                  </Button>
+                )
+                : (
+                  <>
+                    <Tooltip title={t("workflow.debug.pause")}>
+                      <Button
+                        icon={<PauseOutlined />}
+                        onClick={() => engine.pause()}
+                        disabled={status?.status === "paused"}
+                      />
+                    </Tooltip>
+                    <Tooltip title={t("workflow.debug.resume")}>
+                      <Button
+                        icon={<PlayCircleOutlined />}
+                        onClick={() => engine.resume()}
+                        disabled={status?.status !== "paused"}
+                      />
+                    </Tooltip>
+                    <Tooltip title={t("workflow.debug.cancel")}>
+                      <Button
+                        icon={<StopOutlined />}
+                        danger
+                        onClick={handleCancel}
+                      />
+                    </Tooltip>
+                    <Divider type="vertical" />
+                    <Tooltip title={t("workflow.debug.resumeBreakpoint")}>
+                      <Button
+                        icon={<FastForwardOutlined />}
+                        onClick={handleResumeBreakpoint}
+                        disabled={status?.status !== "paused"}
+                      >
+                        {t("workflow.debug.continue")}
+                      </Button>
+                    </Tooltip>
+                    <Tooltip title={t("workflow.debug.stepBreakpoint")}>
+                      <Button
+                        icon={<StepForwardOutlined />}
+                        onClick={handleStepBreakpoint}
+                        disabled={status?.status !== "paused"}
+                      >
+                        {t("workflow.debug.step")}
+                      </Button>
+                    </Tooltip>
+                  </>
+                )}
+            </Space>
+          </Col>
+          <Col flex="auto" />
+          <Col>
+            <Space size="middle">
+              <Space size={4}>
+                <Text type="secondary" className="text-xs">Dry Run</Text>
+                <Switch
+                  size="small"
+                  checked={dryRun}
+                  onChange={engine.setDryRun}
+                  disabled={isDebugRunning}
+                />
+              </Space>
+              {status && (
+                <Tag color={statusColor(status.status)} style={{ fontSize: 12 }}>
+                  {status.status.toUpperCase()}
+                </Tag>
+              )}
+            </Space>
+          </Col>
+        </Row>
+      </Card>
+
+      {status && (
+        <Row gutter={12} className="mb-3">
+          <Col span={8}>
+            <Card size="small">
+              <Statistic
+                title={t("workflow.debug.execTime")}
+                value={formatDuration(status.total_time_ms)}
+                valueStyle={{ fontSize: 16 }}
+              />
+            </Card>
+          </Col>
+          <Col span={8}>
+            <Card size="small">
+              <Statistic
+                title={t("workflow.debug.nodesExecuted")}
+                value={nodeRecords.length}
+                suffix={`/ ${status.node_count || nodes.length}`}
+                valueStyle={{ fontSize: 16 }}
+              />
+            </Card>
+          </Col>
+          <Col span={8}>
+            <Card size="small">
+              <Statistic
+                title={t("workflow.debug.breakpoints")}
+                value={breakpoints.length}
+                valueStyle={{ fontSize: 16 }}
+              />
+            </Card>
+          </Col>
+        </Row>
+      )}
+
+      <Collapse
+        defaultActiveKey={["records", "variables"]}
+        className="mb-3"
+        items={[
+          {
+            key: "records",
+            label: (
+              <Space>
+                {t("workflow.debug.nodeRecords")}
+                <Tag>{nodeRecords.length}</Tag>
+                {nodeRecords.filter((r) => r.status === "failed").length > 0 && (
+                  <Tag color="error">
+                    {nodeRecords.filter((r) => r.status === "failed").length} failed
+                  </Tag>
+                )}
+              </Space>
+            ),
+            children: nodeRecords.length > 0
+              ? (
+                <Table
+                  columns={recordColumns}
+                  dataSource={nodeRecords}
+                  rowKey="node_id"
+                  size="small"
+                  pagination={false}
+                  scroll={{ y: 240 }}
+                  expandable={{
+                    expandedRowRender: (r: NodeExecutionRecord) => (
+                      <div className="p-2">
+                        <Row gutter={16}>
+                          {r.input != null && (
+                            <Col span={12}>
+                              <Text strong className="text-xs">{t("workflow.debug.input")}</Text>
+                              <Paragraph
+                                className="mt-1 mb-0"
+                                code
+                                style={{
+                                  fontSize: 11,
+                                  maxHeight: 120,
+                                  overflow: "auto",
+                                  background: token.colorBgLayout,
+                                  padding: 8,
+                                  borderRadius: 4,
+                                }}
+                              >
+                                {typeof r.input === "string" ? r.input : JSON.stringify(r.input, null, 2)}
+                              </Paragraph>
+                            </Col>
+                          )}
+                          {r.output != null && (
+                            <Col span={12}>
+                              <Text strong className="text-xs">{t("workflow.debug.output")}</Text>
+                              <Paragraph
+                                className="mt-1 mb-0"
+                                code
+                                style={{
+                                  fontSize: 11,
+                                  maxHeight: 120,
+                                  overflow: "auto",
+                                  background: token.colorBgLayout,
+                                  padding: 8,
+                                  borderRadius: 4,
+                                }}
+                              >
+                                {typeof r.output === "string" ? r.output : JSON.stringify(r.output, null, 2)}
+                              </Paragraph>
+                            </Col>
+                          )}
+                        </Row>
+                        {r.error && (
+                          <div className="mt-2">
+                            <Text type="danger" strong className="text-xs">{t("workflow.debug.error")}</Text>
+                            <Paragraph
+                              className="mt-1 mb-0"
+                              code
+                              style={{
+                                fontSize: 11,
+                                background: "rgba(255,77,79,0.06)",
+                                padding: 8,
+                                borderRadius: 4,
+                              }}
+                            >
+                              {r.error}
+                            </Paragraph>
+                          </div>
+                        )}
+                        {r.sub_workflow_id && (
+                          <div className="mt-2">
+                            <Tag color="blue">
+                              Sub-Workflow: {r.sub_workflow_id}
+                            </Tag>
+                          </div>
+                        )}
+                      </div>
+                    ),
+                  }}
+                />
+              )
+              : (
+                <Empty
+                  image={Empty.PRESENTED_IMAGE_SIMPLE}
+                  description={isDebugRunning ? t("workflow.debug.waitingForNodes") : t("workflow.debug.noRuntimeData")}
+                />
+              ),
+          },
+          {
+            key: "variables",
+            label: (
+              <Space>
+                <CodeOutlined />
+                {t("workflow.debug.variables")}
+                <Tag>{Object.keys(variables).length}</Tag>
+              </Space>
+            ),
+            children: Object.keys(variables).length > 0
+              ? (
+                <Descriptions
+                  size="small"
+                  column={1}
+                  bordered
+                  contentStyle={{ fontFamily: "monospace", fontSize: 11 }}
+                  labelStyle={{ width: 140, fontSize: 11 }}
+                >
+                  {Object.entries(variables).map(([key, val]) => (
+                    <Descriptions.Item key={key} label={key}>
+                      {typeof val === "string" ? val : JSON.stringify(val, null, 2)}
+                    </Descriptions.Item>
+                  ))}
+                </Descriptions>
+              )
+              : (
+                <Empty
+                  image={Empty.PRESENTED_IMAGE_SIMPLE}
+                  description={t("workflow.debug.noVariables")}
+                />
+              ),
+          },
+          {
+            key: "breakpoints",
+            label: (
+              <Space>
+                {t("workflow.debug.breakpointsPanel")}
+                <Tag>{breakpoints.length}</Tag>
+              </Space>
+            ),
+            children: breakpoints.length > 0
+              ? (
+                <div className="flex flex-wrap gap-1">
+                  {breakpoints.map((id) => {
+                    const node = nodes.find((n: any) => n.id === id);
+                    const name = node?.title || (node as any)?.data?.title || id;
+                    return (
+                      <Tag
+                        key={id}
+                        color="red"
+                        closable
+                        onClose={() => engine.toggleBreakpoint(id)}
+                      >
+                        {name}
+                      </Tag>
+                    );
+                  })}
+                </div>
+              )
+              : (
+                <Empty
+                  image={Empty.PRESENTED_IMAGE_SIMPLE}
+                  description={t("workflow.debug.noBreakpoints")}
+                />
+              ),
+          },
+          {
+            key: "history",
+            label: (
+              <Space>
+                {t("workflow.debug.executionHistory")}
+                <Tag>{executionHistory.length}</Tag>
+              </Space>
+            ),
+            children: executionHistory.length > 0
+              ? (
+                <List
+                  size="small"
+                  dataSource={executionHistory}
+                  renderItem={(item) => (
+                    <List.Item
+                      actions={[
+                        <Button
+                          key="view"
+                          type="link"
+                          size="small"
+                          onClick={async () => {
+                            await engine.getStatus(item.id);
+                            useWorkEngineStore.setState({ executionId: item.id });
+                          }}
+                        >
+                          {t("workflow.debug.view")}
+                        </Button>,
+                      ]}
+                    >
+                      <Space>
+                        <Tag color={statusColor(item.status)}>{item.status}</Tag>
+                        <Text type="secondary" className="text-xs">
+                          {new Date(item.created_at).toLocaleString()}
+                        </Text>
+                        {item.total_time_ms != null && (
+                          <Text type="secondary" className="text-xs">
+                            {formatDuration(item.total_time_ms)}
+                          </Text>
+                        )}
+                      </Space>
+                    </List.Item>
+                  )}
+                />
+              )
+              : (
+                <Empty
+                  image={Empty.PRESENTED_IMAGE_SIMPLE}
+                  description={t("workflow.debug.noHistory")}
+                />
+              ),
+          },
+        ]}
+      />
+
+      {!status && !isDebugRunning && (
+        <div className="text-center py-8">
+          <Empty
+            description={t("workflow.debug.noRuntimeData")}
+            image={Empty.PRESENTED_IMAGE_SIMPLE}
+          >
+            <Text type="secondary">{t("workflow.debug.staticDebugHint")}</Text>
+          </Empty>
+        </div>
+      )}
+    </div>
+  );
 
   return (
     <div
@@ -576,7 +1170,13 @@ export function DebugPanel({ trace, workflowId: _workflowId }: DebugPanelProps) 
         <Space>
           <BugOutlined />
           <Title level={5} className="m-0">{t("workflow.debug.title")}</Title>
-          {issuesWithCode > 0 && <Tag color="error">{issuesWithCode} issues</Tag>}
+          {activeTab === "static" && issuesWithCode > 0 && <Tag color="error">{issuesWithCode} issues</Tag>}
+          {activeTab === "runtime" && isDebugRunning && (
+            <Badge
+              status="processing"
+              text={t("workflow.debug.running")}
+            />
+          )}
         </Space>
         <Space>
           <Button
@@ -590,7 +1190,6 @@ export function DebugPanel({ trace, workflowId: _workflowId }: DebugPanelProps) 
             size="small"
             type={activeTab === "runtime" ? "primary" : "default"}
             onClick={() => setActiveTab("runtime")}
-            disabled={!trace}
           >
             {t("workflow.debug.runtimeTrace")}
           </Button>
@@ -598,6 +1197,102 @@ export function DebugPanel({ trace, workflowId: _workflowId }: DebugPanelProps) 
       </div>
 
       {activeTab === "static" ? staticPanel : runtimePanel}
+
+      <Modal
+        title={
+          <Space>
+            <CodeOutlined />
+            {detailRecord?.node_name || detailRecord?.node_id}
+            {detailRecord && <Tag color={statusColor(detailRecord.status)}>{detailRecord.status}</Tag>}
+          </Space>
+        }
+        open={detailRecord != null}
+        onCancel={() => setDetailRecord(null)}
+        footer={null}
+        width={640}
+      >
+        {detailRecord && (
+          <div>
+            <Descriptions size="small" column={2} bordered className="mb-3">
+              <Descriptions.Item label="Node ID">{detailRecord.node_id}</Descriptions.Item>
+              <Descriptions.Item label="Type">{detailRecord.node_type}</Descriptions.Item>
+              <Descriptions.Item label="Status">
+                <Tag color={statusColor(detailRecord.status)}>{detailRecord.status}</Tag>
+              </Descriptions.Item>
+              <Descriptions.Item label="Duration">
+                {formatDuration(detailRecord.execution_time_ms)}
+              </Descriptions.Item>
+              {detailRecord.sub_workflow_id && (
+                <Descriptions.Item label="Sub-Workflow" span={2}>
+                  <Tag color="blue">{detailRecord.sub_workflow_id}</Tag>
+                </Descriptions.Item>
+              )}
+            </Descriptions>
+
+            {detailRecord.input != null && (
+              <div className="mb-3">
+                <Text strong>{t("workflow.debug.input")}</Text>
+                <Paragraph
+                  className="mt-1 mb-0"
+                  code
+                  style={{
+                    fontSize: 11,
+                    maxHeight: 200,
+                    overflow: "auto",
+                    background: token.colorBgLayout,
+                    padding: 8,
+                    borderRadius: 4,
+                  }}
+                >
+                  {typeof detailRecord.input === "string"
+                    ? detailRecord.input
+                    : JSON.stringify(detailRecord.input, null, 2)}
+                </Paragraph>
+              </div>
+            )}
+
+            {detailRecord.output != null && (
+              <div className="mb-3">
+                <Text strong>{t("workflow.debug.output")}</Text>
+                <Paragraph
+                  className="mt-1 mb-0"
+                  code
+                  style={{
+                    fontSize: 11,
+                    maxHeight: 200,
+                    overflow: "auto",
+                    background: token.colorBgLayout,
+                    padding: 8,
+                    borderRadius: 4,
+                  }}
+                >
+                  {typeof detailRecord.output === "string"
+                    ? detailRecord.output
+                    : JSON.stringify(detailRecord.output, null, 2)}
+                </Paragraph>
+              </div>
+            )}
+
+            {detailRecord.error && (
+              <div>
+                <Text type="danger" strong>{t("workflow.debug.error")}</Text>
+                <Paragraph
+                  className="mt-1 mb-0"
+                  code
+                  style={{
+                    fontSize: 11,
+                    background: "rgba(255,77,79,0.06)",
+                    padding: 8,
+                    borderRadius: 4,
+                  }}
+                >
+                  {detailRecord.error}
+                </Paragraph>
+              </div>
+            )}
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }

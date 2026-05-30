@@ -1,3 +1,4 @@
+import { useWorkEngineStore } from "@/stores/feature/workEngineStore";
 import { theme } from "antd";
 import React, { memo } from "react";
 import { useTranslation } from "react-i18next";
@@ -13,8 +14,7 @@ export interface BaseNodeData {
   nodeType: string;
   enabled: boolean;
   validationState?: "error" | "warning";
-  /** 执行状态: running → 脉冲动画, completed → 绿色, failed → 红色 */
-  executionState?: "running" | "completed" | "failed";
+  executionState?: "running" | "completed" | "failed" | "timeout" | "skipped" | "paused";
 }
 
 const BaseNodeComponent: React.FC<NodeProps<BaseNodeData>> = ({
@@ -28,26 +28,36 @@ const BaseNodeComponent: React.FC<NodeProps<BaseNodeData>> = ({
     color: token.colorTextTertiary,
   };
 
+  const nodeStatuses = useWorkEngineStore((s) => s.nodeStatuses);
+  const breakpoints = useWorkEngineStore((s) => s.breakpoints);
+  const runtimeStatus = nodeStatuses[data.id];
+  const hasBreakpoint = breakpoints.includes(data.id);
+
+  const effectiveExecState = runtimeStatus || data.executionState;
+
   const getBorderColor = () => {
     if (data.validationState === "error") { return token.colorError; }
     if (data.validationState === "warning") { return token.colorWarning; }
-    if (data.executionState === "running") { return token.colorPrimary; }
-    if (data.executionState === "completed") { return token.colorSuccess; }
-    if (data.executionState === "failed") { return token.colorError; }
+    if (effectiveExecState === "running") { return token.colorPrimary; }
+    if (effectiveExecState === "completed") { return token.colorSuccess; }
+    if (effectiveExecState === "failed" || effectiveExecState === "timeout") { return token.colorError; }
+    if (effectiveExecState === "paused") { return token.colorWarning; }
+    if (hasBreakpoint) { return "#ff4d4f"; }
     if (selected) { return token.colorPrimary; }
     return data.color;
   };
 
   const borderColor = getBorderColor();
-  const isRunning = data.executionState === "running";
+  const isRunning = effectiveExecState === "running";
+  const isSkipped = effectiveExecState === "skipped";
 
   return (
     <div
       style={{
         minWidth: 160,
         maxWidth: 200,
-        opacity: data.enabled ? 1 : 0.5,
-        filter: data.enabled ? "none" : "grayscale(100%)",
+        opacity: data.enabled ? (isSkipped ? 0.4 : 1) : 0.5,
+        filter: data.enabled ? (isSkipped ? "grayscale(80%)" : "none") : "grayscale(100%)",
       }}
     >
       <div
@@ -59,8 +69,25 @@ const BaseNodeComponent: React.FC<NodeProps<BaseNodeData>> = ({
           boxShadow: selected ? `0 0 0 2px ${borderColor}40` : "none",
           transition: "box-shadow 0.2s, transform 0.2s",
           animation: isRunning ? "nodePulse 1.5s ease-in-out infinite" : "none",
+          position: "relative",
         }}
       >
+        {hasBreakpoint && (
+          <div
+            style={{
+              position: "absolute",
+              top: -6,
+              right: -6,
+              width: 14,
+              height: 14,
+              borderRadius: "50%",
+              background: "#ff4d4f",
+              border: "2px solid white",
+              zIndex: 10,
+            }}
+          />
+        )}
+
         <div
           style={{
             padding: "8px 12px",
@@ -81,17 +108,19 @@ const BaseNodeComponent: React.FC<NodeProps<BaseNodeData>> = ({
           >
             {typeInfo.labelKey ? t(typeInfo.labelKey) : data.nodeType}
           </span>
-          {/* Status badges */}
           <div style={{ display: "flex", gap: 2, alignItems: "center" }}>
             {(data as any).config?.tick_mode && (
               <span title={t("workflow.node.tickMode")} style={{ fontSize: 10 }}>⏱</span>
             )}
-            {((data as any)._breakpoint) && (
-              <span title={t("workflow.node.breakpoint")} style={{ fontSize: 10 }}>🔴</span>
-            )}
             {(data as any).retry?.enabled && (
               <span title={t("workflow.node.retryEnabled")} style={{ fontSize: 10 }}>🔄</span>
             )}
+            {effectiveExecState === "running" && <span style={{ fontSize: 10, color: token.colorPrimary }}>●</span>}
+            {effectiveExecState === "completed" && <span style={{ fontSize: 10, color: token.colorSuccess }}>✓</span>}
+            {(effectiveExecState === "failed" || effectiveExecState === "timeout") && (
+              <span style={{ fontSize: 10, color: token.colorError }}>✗</span>
+            )}
+            {effectiveExecState === "paused" && <span style={{ fontSize: 10, color: token.colorWarning }}>⏸</span>}
           </div>
         </div>
 

@@ -16,6 +16,7 @@ import "reactflow/dist/style.css";
 import { autoLayoutWorkflow } from "@/lib/workflowLayout";
 import { useAgentProfileStore, useWorkflowEditorStore } from "@/stores";
 import { useExpertStore } from "@/stores/feature/expertStore";
+import { useWorkEngineStore } from "@/stores/feature/workEngineStore";
 import { Button, message, Modal, Spin, theme } from "antd";
 import { useTranslation } from "react-i18next";
 import { AIPanel } from "./AIPanel/AIPanel";
@@ -133,6 +134,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
   const pendingPositionsRef = React.useRef<Map<string, { x: number; y: number }>>(new Map());
   const posRafRef = React.useRef<number | null>(null);
   const [aiPanelVisible, setAiPanelVisible] = useState(false);
+  const [aiPanelHeight, setAiPanelHeight] = useState(300);
   const [debugPanelVisible, setDebugPanelVisible] = useState(false);
   const [importExportModalVisible, setImportExportModalVisible] = useState(false);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; nodeId: string } | null>(null);
@@ -153,6 +155,13 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
     generateWorkflowFromPrompt,
     optimizeAgentPrompt,
     recommendNodes,
+    applyOptimizedPromptToNode,
+    aiChatMessages,
+    aiChatStreaming,
+    aiChatSend,
+    aiChatCancel,
+    aiChatClear,
+    applyAiChatAction,
     exportTemplate,
     importTemplate,
     loadTemplates,
@@ -1035,19 +1044,56 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
       {aiPanelVisible && (
         <div
           style={{
-            height: 300,
             background: token.colorBgElevated,
             borderTop: `1px solid ${token.colorBorderSecondary}`,
             display: "flex",
             flexDirection: "column",
+            flexShrink: 0,
           }}
         >
-          <AIPanel
-            onGenerateWorkflow={generateWorkflowFromPrompt}
-            onOptimizePrompt={optimizeAgentPrompt}
-            onRecommendNodes={recommendNodes}
-            onClose={() => setAiPanelVisible(false)}
+          <div
+            style={{
+              height: 4,
+              cursor: "ns-resize",
+              background: token.colorBorderSecondary,
+              transition: "background 0.2s",
+            }}
+            onMouseDown={(e) => {
+              e.preventDefault();
+              const startY = e.clientY;
+              const startHeight = aiPanelHeight;
+              const onMouseMove = (moveEvent: MouseEvent) => {
+                const delta = startY - moveEvent.clientY;
+                const newHeight = Math.max(200, Math.min(600, startHeight + delta));
+                setAiPanelHeight(newHeight);
+              };
+              const onMouseUp = () => {
+                document.removeEventListener("mousemove", onMouseMove);
+                document.removeEventListener("mouseup", onMouseUp);
+              };
+              document.addEventListener("mousemove", onMouseMove);
+              document.addEventListener("mouseup", onMouseUp);
+            }}
           />
+          <div style={{ height: aiPanelHeight, overflow: "auto" }}>
+            <AIPanel
+              onGenerateWorkflow={generateWorkflowFromPrompt}
+              onOptimizePrompt={optimizeAgentPrompt}
+              onRecommendNodes={recommendNodes}
+              onClose={() => setAiPanelVisible(false)}
+              selectedNodeId={selectedNodeId}
+              selectedNodePrompt={selectedNodeId
+                ? (nodes.find(n => n.id === selectedNodeId) as any)?.config?.system_prompt ?? null
+                : null}
+              onApplyPromptToNode={applyOptimizedPromptToNode}
+              chatMessages={aiChatMessages}
+              chatStreaming={aiChatStreaming}
+              onChatSend={aiChatSend}
+              onChatCancel={aiChatCancel}
+              onChatClear={aiChatClear}
+              onApplyAction={applyAiChatAction}
+            />
+          </div>
         </div>
       )}
 
@@ -1062,7 +1108,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
             overflow: "hidden",
           }}
         >
-          <DebugPanel trace={null} workflowId={templateId} />
+          <DebugPanel workflowId={templateId} />
         </div>
       )}
 
@@ -1138,11 +1184,8 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
                   deleteNode(contextMenu.nodeId);
                   setSelectedNode(null);
                 } else if (action === "toggleBreakpoint") {
-                  const n = nodes.find((nd) => nd.id === contextMenu.nodeId);
-                  if (n) {
-                    (n as any)._breakpoint = !(n as any)._breakpoint;
-                    updateNode(n.id, n as any);
-                  }
+                  const engineStore = useWorkEngineStore.getState();
+                  engineStore.toggleBreakpoint(contextMenu.nodeId);
                 }
                 setContextMenu(null);
               }}

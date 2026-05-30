@@ -28,6 +28,7 @@ impl std::fmt::Display for ExecutionStatus {
 pub struct NodeExecutionRecord {
     pub node_id: String,
     pub node_type: String,
+    pub node_name: Option<String>,
     pub status: String,
     pub input: Option<serde_json::Value>,
     pub output: Option<serde_json::Value>,
@@ -35,6 +36,8 @@ pub struct NodeExecutionRecord {
     pub error: Option<String>,
     pub started_at: i64,
     pub completed_at: Option<i64>,
+    pub parent_execution_id: Option<String>,
+    pub sub_workflow_id: Option<String>,
 }
 
 use std::collections::HashMap;

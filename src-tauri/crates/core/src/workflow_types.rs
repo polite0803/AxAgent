@@ -583,6 +583,10 @@ impl WorkflowNode {
     pub fn base_enabled(&self) -> bool {
         self.base().enabled
     }
+
+    pub fn base_title(&self) -> &str {
+        &self.base().title
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

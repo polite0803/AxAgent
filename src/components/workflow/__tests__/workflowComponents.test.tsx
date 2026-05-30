@@ -149,11 +149,26 @@ vi.mock("@/stores", () => ({
   useWorkflowEditorStore: storeMockRef,
 }));
 
+vi.mock("reactflow", () => ({
+  useReactFlow: () => ({
+    getNodes: () => [],
+    getEdges: () => [],
+  }),
+}));
+
 describe("AIPanel Component", () => {
   const mockOnGenerateWorkflow = vi.fn();
   const mockOnOptimizePrompt = vi.fn();
   const mockOnRecommendNodes = vi.fn();
   const mockOnClose = vi.fn();
+  const mockChatProps = {
+    chatMessages: [],
+    chatStreaming: false,
+    onChatSend: vi.fn(),
+    onChatCancel: vi.fn(),
+    onChatClear: vi.fn(),
+    onApplyAction: vi.fn(),
+  };
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -168,6 +183,7 @@ describe("AIPanel Component", () => {
         onOptimizePrompt={mockOnOptimizePrompt}
         onRecommendNodes={mockOnRecommendNodes}
         onClose={mockOnClose}
+        {...mockChatProps}
       />,
     );
 
@@ -186,6 +202,7 @@ describe("AIPanel Component", () => {
         onOptimizePrompt={mockOnOptimizePrompt}
         onRecommendNodes={mockOnRecommendNodes}
         onClose={mockOnClose}
+        {...mockChatProps}
       />,
     );
 
@@ -207,6 +224,7 @@ describe("AIPanel Component", () => {
         onOptimizePrompt={mockOnOptimizePrompt}
         onRecommendNodes={mockOnRecommendNodes}
         onClose={mockOnClose}
+        {...mockChatProps}
       />,
     );
 
@@ -232,6 +250,7 @@ describe("AIPanel Component", () => {
         onOptimizePrompt={mockOnOptimizePrompt}
         onRecommendNodes={mockOnRecommendNodes}
         onClose={mockOnClose}
+        {...mockChatProps}
       />,
     );
 

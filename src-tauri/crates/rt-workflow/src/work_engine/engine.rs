@@ -1116,11 +1116,19 @@ impl WorkEngine {
                         .await
                         .ok();
 
+                        let node_name = node.base_title().map(|s| s.to_string());
+                        let node_type_str = node_type_name(&node).to_string();
+                        let sub_workflow_id = if let WorkflowNode::SubWorkflow(sw) = &node {
+                            Some(sw.config.sub_workflow_id.clone())
+                        } else {
+                            None
+                        };
                         self.record_node_execution(
                             &execution_id,
                             NodeExecutionRecord {
                                 node_id: node_id.clone(),
-                                node_type: "workflow_node".to_string(),
+                                node_type: node_type_str,
+                                node_name,
                                 status: "completed".to_string(),
                                 input: None,
                                 output: Some(output.output),
@@ -1128,6 +1136,8 @@ impl WorkEngine {
                                 error: None,
                                 started_at,
                                 completed_at: Some(Utc::now().timestamp_millis()),
+                                parent_execution_id: None,
+                                sub_workflow_id,
                             },
                         )
                         .await
@@ -1194,7 +1204,8 @@ impl WorkEngine {
                             &execution_id,
                             NodeExecutionRecord {
                                 node_id: node_id.clone(),
-                                node_type: "workflow_node".to_string(),
+                                node_type: node_type_name(&node).to_string(),
+                                node_name: node.base_title().map(|s| s.to_string()),
                                 status: "failed".to_string(),
                                 input: None,
                                 output: None,
@@ -1202,6 +1213,12 @@ impl WorkEngine {
                                 error: Some(err_msg),
                                 started_at,
                                 completed_at: Some(Utc::now().timestamp_millis()),
+                                parent_execution_id: None,
+                                sub_workflow_id: if let WorkflowNode::SubWorkflow(sw) = &node {
+                                    Some(sw.config.sub_workflow_id.clone())
+                                } else {
+                                    None
+                                },
                             },
                         )
                         .await
@@ -1261,14 +1278,21 @@ impl WorkEngine {
                             &execution_id,
                             NodeExecutionRecord {
                                 node_id: node_id.clone(),
-                                node_type: "workflow_node".to_string(),
-                                status: "failed".to_string(),
+                                node_type: node_type_name(&node).to_string(),
+                                node_name: node.base_title().map(|s| s.to_string()),
+                                status: "timeout".to_string(),
                                 input: None,
                                 output: None,
                                 execution_time_ms: Some(elapsed_ms),
                                 error: Some(err_msg),
                                 started_at,
                                 completed_at: Some(Utc::now().timestamp_millis()),
+                                parent_execution_id: None,
+                                sub_workflow_id: if let WorkflowNode::SubWorkflow(sw) = &node {
+                                    Some(sw.config.sub_workflow_id.clone())
+                                } else {
+                                    None
+                                },
                             },
                         )
                         .await
@@ -1739,5 +1763,25 @@ fn mark_subtree_skipped(workflow: &mut Workflow, edges: &[WorkflowEdge], node_id
         if edge.source == node_id {
             mark_subtree_skipped(workflow, edges, &edge.target);
         }
+    }
+}
+
+fn node_type_name(node: &WorkflowNode) -> &str {
+    match node {
+        WorkflowNode::Trigger(_) => "trigger",
+        WorkflowNode::Agent(_) => "agent",
+        WorkflowNode::Llm(_) => "llm",
+        WorkflowNode::Condition(_) => "condition",
+        WorkflowNode::Parallel(_) => "parallel",
+        WorkflowNode::Loop(_) => "loop",
+        WorkflowNode::Merge(_) => "merge",
+        WorkflowNode::Delay(_) => "delay",
+        WorkflowNode::Validation(_) => "validation",
+        WorkflowNode::Tool(_) => "tool",
+        WorkflowNode::Code(_) => "code",
+        WorkflowNode::SubWorkflow(_) => "subWorkflow",
+        WorkflowNode::DocumentParser(_) => "documentParser",
+        WorkflowNode::VectorRetrieve(_) => "vectorRetrieve",
+        WorkflowNode::End(_) => "end",
     }
 }

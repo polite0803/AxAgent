@@ -1,3 +1,4 @@
+import { useWorkEngineStore } from "@/stores/feature/workEngineStore";
 import { theme } from "antd";
 import React from "react";
 import { EdgeLabelRenderer, type EdgeProps, getBezierPath } from "reactflow";
@@ -11,6 +12,8 @@ interface BaseEdgeData {
 
 const BaseEdgeComponent: React.FC<EdgeProps<BaseEdgeData>> = ({
   id,
+  source,
+  target,
   sourceX,
   sourceY,
   targetX,
@@ -22,6 +25,13 @@ const BaseEdgeComponent: React.FC<EdgeProps<BaseEdgeData>> = ({
   label,
 }) => {
   const { token } = theme.useToken();
+
+  const nodeStatuses = useWorkEngineStore((s) => s.nodeStatuses);
+  const isDebugRunning = useWorkEngineStore((s) => s.isDebugRunning);
+
+  const sourceRunning = nodeStatuses[source] === "running" || nodeStatuses[source] === "completed";
+  const targetActive = nodeStatuses[target!] === "running" || nodeStatuses[target!] === "completed";
+  const showFlowAnimation = isDebugRunning && (sourceRunning || targetActive);
 
   const [edgePath, labelX, labelY] = getBezierPath({
     sourceX,
@@ -53,14 +63,23 @@ const BaseEdgeComponent: React.FC<EdgeProps<BaseEdgeData>> = ({
     }
   };
 
+  const getEdgeStroke = () => {
+    if (showFlowAnimation) {
+      if (data?.edgeType === "conditionTrue") { return token.colorSuccess; }
+      if (data?.edgeType === "conditionFalse") { return token.colorError; }
+      return token.colorPrimary;
+    }
+    return edgeColor;
+  };
+
   return (
     <>
       <path
         id={id}
         className="react-flow__edge-path"
         d={edgePath}
-        stroke={edgeColor}
-        strokeWidth={selected ? 2 : 1.5}
+        stroke={getEdgeStroke()}
+        strokeWidth={selected || showFlowAnimation ? 2 : 1.5}
         fill="none"
         style={{
           strokeDasharray: data?.edgeType === "error" ? "5,5" : undefined,
@@ -83,6 +102,27 @@ const BaseEdgeComponent: React.FC<EdgeProps<BaseEdgeData>> = ({
             from="0"
             to="10"
             dur="0.5s"
+            repeatCount="indefinite"
+          />
+        </path>
+      )}
+      {showFlowAnimation && !isAnimated && (
+        <path
+          d={edgePath}
+          stroke={getEdgeStroke()}
+          strokeWidth={2}
+          fill="none"
+          strokeDasharray="8,4"
+          opacity={0.6}
+          style={{
+            animation: "dash 0.6s linear infinite",
+          }}
+        >
+          <animate
+            attributeName="stroke-dashoffset"
+            from="0"
+            to="12"
+            dur="0.6s"
             repeatCount="indefinite"
           />
         </path>

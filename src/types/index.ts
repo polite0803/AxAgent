@@ -1246,6 +1246,21 @@ export type ExecutionStatus =
   | "failed"
   | "cancelled";
 
+export interface NodeExecutionRecord {
+  node_id: string;
+  node_type: string;
+  node_name: string | null;
+  status: string;
+  input: unknown;
+  output: unknown;
+  execution_time_ms: number | null;
+  error: string | null;
+  started_at: number;
+  completed_at: number | null;
+  parent_execution_id: string | null;
+  sub_workflow_id: string | null;
+}
+
 export interface ExecutionStatusResponse {
   execution_id: string;
   workflow_id: string;
@@ -1253,6 +1268,8 @@ export interface ExecutionStatusResponse {
   current_node_id: string | null;
   total_time_ms: number;
   node_count: number;
+  node_records: NodeExecutionRecord[];
+  variables: Record<string, unknown>;
 }
 
 export interface ExecutionSummary {
