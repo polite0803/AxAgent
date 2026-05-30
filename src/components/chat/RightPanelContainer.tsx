@@ -119,7 +119,6 @@ export function RightPanelContainer({
 }: RightPanelContainerProps) {
   const { t } = useTranslation();
   const [inspectorTab, setInspectorTab] = useState("overview");
-  const [extrasExpanded, setExtrasExpanded] = useState(false);
 
   // 最小化 store selector 粒度，减少渲染触发
   const convMode = useConversationStore(
@@ -486,11 +485,9 @@ export function RightPanelContainer({
       panels.filter((p) => {
         // agent 面板仅在 agent 模式下可见
         if (p.category === "agent" && !isAgent) { return false; }
-        // 扩展面板仅在展开时可见
-        if (p.category === "extra" && !extrasExpanded) { return false; }
         return p.shouldRender;
       }),
-    [panels, isAgent, extrasExpanded],
+    [panels, isAgent],
   );
 
   const [activeTab, setActiveTab] = useState(() => visiblePanels[0]?.key ?? "");
@@ -549,15 +546,6 @@ export function RightPanelContainer({
           {activePanel?.render()}
         </TabErrorBoundary>
       </div>
-      {!compactMode && (
-        <button
-          className="rp-footer-btn"
-          onClick={() => setExtrasExpanded((v) => !v)}
-        >
-          {extrasExpanded ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
-          {t(extrasExpanded ? "chatRightPanel.hideExtras" : "chatRightPanel.showExtras")}
-        </button>
-      )}
     </div>
   );
 }
