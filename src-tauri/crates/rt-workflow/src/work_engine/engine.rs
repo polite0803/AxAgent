@@ -1116,7 +1116,7 @@ impl WorkEngine {
                         .await
                         .ok();
 
-                        let node_name = node.base_title().map(|s| s.to_string());
+                        let node_name = Some(node.base_title().to_string());
                         let node_type_str = node_type_name(&node).to_string();
                         let sub_workflow_id = if let WorkflowNode::SubWorkflow(sw) = &node {
                             Some(sw.config.sub_workflow_id.clone())
@@ -1205,7 +1205,7 @@ impl WorkEngine {
                             NodeExecutionRecord {
                                 node_id: node_id.clone(),
                                 node_type: node_type_name(&node).to_string(),
-                                node_name: node.base_title().map(|s| s.to_string()),
+                                node_name: Some(node.base_title().to_string()),
                                 status: "failed".to_string(),
                                 input: None,
                                 output: None,
@@ -1279,7 +1279,7 @@ impl WorkEngine {
                             NodeExecutionRecord {
                                 node_id: node_id.clone(),
                                 node_type: node_type_name(&node).to_string(),
-                                node_name: node.base_title().map(|s| s.to_string()),
+                                node_name: Some(node.base_title().to_string()),
                                 status: "timeout".to_string(),
                                 input: None,
                                 output: None,
