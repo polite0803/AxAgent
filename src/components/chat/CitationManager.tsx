@@ -2,6 +2,7 @@ import { useCitationStore } from "@/stores/feature/citationStore";
 import type { Citation, CitationStatsData } from "@/types";
 import { CheckCircleOutlined, DeleteOutlined, PlusOutlined } from "@ant-design/icons";
 import { Button, List, Space, Tag, Typography } from "antd";
+import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { CredibilityBadge } from "./CredibilityBadge";
 
@@ -223,24 +224,20 @@ export function CitationStats({
   citations: externalCitations,
 }: CitationStatsProps) {
   const { t } = useTranslation();
-  const storeStats = useCitationStore((s) => s.getStats());
-  const stats: CitationStatsData = externalCitations
-    ? (() => {
-      const total = externalCitations.length;
-      const inReport = externalCitations.filter((c) => c.inReport).length;
-      const byType = externalCitations.reduce<
-        Partial<Record<string, number>>
-      >((acc, c) => {
-        acc[c.sourceType] = (acc[c.sourceType] || 0) + 1;
-        return acc;
-      }, {});
-      const avgCredibility = total > 0
-        ? externalCitations.reduce((sum, c) => sum + c.credibility, 0)
-          / total
-        : 0;
-      return { total, inReport, byType, avgCredibility };
-    })()
-    : storeStats;
+  const storeCitations = useCitationStore((s) => s.citations);
+  const stats: CitationStatsData = useMemo(() => {
+    const src = externalCitations ?? storeCitations;
+    const total = src.length;
+    const inReport = src.filter((c) => c.inReport).length;
+    const byType = src.reduce<Partial<Record<string, number>>>((acc, c) => {
+      acc[c.sourceType] = (acc[c.sourceType] || 0) + 1;
+      return acc;
+    }, {});
+    const avgCredibility = total > 0
+      ? src.reduce((sum, c) => sum + c.credibility, 0) / total
+      : 0;
+    return { total, inReport, byType, avgCredibility };
+  }, [externalCitations, storeCitations]);
 
   return (
     <div className="citation-stats">

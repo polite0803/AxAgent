@@ -20,27 +20,31 @@ export function ChatInspector({
   const { t } = useTranslation();
   const { token } = theme.useToken();
 
-  const conversation = useConversationStore((s) => {
-    const c = s.conversations.find((c) => c.id === s.activeConversationId);
-    return c
-      ? {
-        id: c.id,
-        provider_id: c.provider_id,
-        model_id: c.model_id,
-        created_at: c.created_at,
-        message_count: c.message_count,
-      }
-      : undefined;
-  });
+  // 使用各自 primitive selector，避免每次返回新对象导致无限重渲染
+  const convId = useConversationStore(
+    (s) => s.conversations.find((c) => c.id === s.activeConversationId)?.id,
+  );
+  const convProviderId = useConversationStore(
+    (s) => s.conversations.find((c) => c.id === s.activeConversationId)?.provider_id ?? "",
+  );
+  const convModelId = useConversationStore(
+    (s) => s.conversations.find((c) => c.id === s.activeConversationId)?.model_id ?? "",
+  );
+  const convCreatedAt = useConversationStore(
+    (s) => s.conversations.find((c) => c.id === s.activeConversationId)?.created_at,
+  );
+  const convMessageCount = useConversationStore(
+    (s) => s.conversations.find((c) => c.id === s.activeConversationId)?.message_count ?? 0,
+  );
 
   const [conversationCreatedFormatted, setConversationCreatedFormatted] = useState("");
   useEffect(() => {
-    if (conversation?.created_at) {
+    if (convCreatedAt) {
       setConversationCreatedFormatted(
-        new Date(conversation.created_at).toLocaleString(),
+        new Date(convCreatedAt).toLocaleString(),
       );
     }
-  }, [conversation?.created_at]);
+  }, [convCreatedAt]);
 
   const workspaceSnapshot = useConversationStore((s) => s.workspaceSnapshot);
   const messages = useConversationStore((s) => s.messages);
@@ -176,25 +180,25 @@ export function ChatInspector({
         key: "session",
         label: t("chat.inspector.session"),
         icon: <Info size={14} />,
-        children: conversation
+        children: convId
           ? (
             <Descriptions column={1} size="small" style={{ padding: "8px 0" }}>
               <Descriptions.Item label={t("chat.inspector.session")}>
-                <Typography.Text copyable={{ text: conversation.id }}>
-                  {conversation.id.slice(0, 8)}…
+                <Typography.Text copyable={{ text: convId }}>
+                  {convId.slice(0, 8)}…
                 </Typography.Text>
               </Descriptions.Item>
               <Descriptions.Item label={t("gateway.defaultProvider")}>
-                {conversation.provider_id || "-"}
+                {convProviderId || "-"}
               </Descriptions.Item>
               <Descriptions.Item label={t("gateway.defaultModel")}>
-                {conversation.model_id || "-"}
+                {convModelId || "-"}
               </Descriptions.Item>
               <Descriptions.Item label={t("gateway.created")}>
                 {conversationCreatedFormatted}
               </Descriptions.Item>
               <Descriptions.Item label={t("chat.inspector.tools")}>
-                {conversation.message_count}
+                {convMessageCount}
               </Descriptions.Item>
             </Descriptions>
           )
@@ -233,7 +237,9 @@ export function ChatInspector({
       contextSources,
       toolCalls,
       messages,
-      conversation,
+      convId,
+      convProviderId,
+      convCreatedAt,
       conversationArtifacts,
     ],
   );
