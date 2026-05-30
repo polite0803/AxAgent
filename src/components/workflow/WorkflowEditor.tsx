@@ -1062,7 +1062,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
             overflow: "hidden",
           }}
         >
-          <DebugPanel trace={null} />
+          <DebugPanel trace={null} workflowId={templateId} />
         </div>
       )}
 
