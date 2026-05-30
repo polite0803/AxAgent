@@ -344,7 +344,9 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
   fetchSession: async (conversationId) => {
     try {
       const session = await invoke<AgentSession | null>("agent_get_session", {
-        conversationId,
+        request: {
+          conversationId,
+        },
       });
       if (session) {
         set((s) => ({
@@ -361,8 +363,10 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
   updateCwd: async (conversationId, cwd) => {
     try {
       const session = await invoke<AgentSession>("agent_update_session", {
-        conversationId,
-        cwd,
+        request: {
+          conversationId,
+          cwd,
+        },
       });
       set((s) => ({
         sessions: { ...s.sessions, [conversationId]: session },
@@ -375,8 +379,10 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
   updatePermissionMode: async (conversationId, mode) => {
     try {
       const session = await invoke<AgentSession>("agent_update_session", {
-        conversationId,
-        permissionMode: mode,
+        request: {
+          conversationId,
+          permissionMode: mode,
+        },
       });
       set((s) => ({
         sessions: { ...s.sessions, [conversationId]: session },

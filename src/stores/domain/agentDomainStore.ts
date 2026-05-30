@@ -278,8 +278,10 @@ export const useAgentDomainStore = create<AgentDomainStore>()(
       updateCwd: async (conversationId, cwd) => {
         try {
           const session = await invoke<AgentSession>("agent_update_session", {
-            conversationId,
-            cwd,
+            request: {
+              conversationId,
+              cwd,
+            },
           });
           get().updateSession(conversationId, session);
         } catch (e) {
@@ -290,8 +292,10 @@ export const useAgentDomainStore = create<AgentDomainStore>()(
       updatePermissionMode: async (conversationId, mode) => {
         try {
           const session = await invoke<AgentSession>("agent_update_session", {
-            conversationId,
-            permissionMode: mode,
+            request: {
+              conversationId,
+              permissionMode: mode,
+            },
           });
           get().updateSession(conversationId, session);
         } catch (e) {

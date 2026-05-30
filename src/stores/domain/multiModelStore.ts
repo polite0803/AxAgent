@@ -163,18 +163,20 @@ export const useMultiModelStore = create<MultiModelState>((set, get) => ({
 
       const invocations = remaining.map((model) =>
         invoke("regenerate_with_model", {
-          conversationId,
-          userMessageId: lastUserMsg.id,
-          targetProviderId: model.providerId,
-          targetModelId: model.model_id,
-          options: {
-            enabledMcpServerIds: mcpIds.length > 0 ? mcpIds : undefined,
-            thinkingBudget,
-            enabledKnowledgeBaseIds: kbIds.length > 0 ? kbIds : undefined,
-            enabledMemoryNamespaceIds: memIds.length > 0 ? memIds : undefined,
-            enabledWikiIds: wikiIds.length > 0 ? wikiIds : undefined,
+          params: {
+            conversationId,
+            userMessageId: lastUserMsg.id,
+            targetProviderId: model.providerId,
+            targetModelId: model.model_id,
+            options: {
+              enabledMcpServerIds: mcpIds.length > 0 ? mcpIds : undefined,
+              thinkingBudget,
+              enabledKnowledgeBaseIds: kbIds.length > 0 ? kbIds : undefined,
+              enabledMemoryNamespaceIds: memIds.length > 0 ? memIds : undefined,
+              enabledWikiIds: wikiIds.length > 0 ? wikiIds : undefined,
+            },
+            isCompanion: true,
           },
-          isCompanion: true,
         })
           .then(async () => {
             if (!_isMultiModelActive) {

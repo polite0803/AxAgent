@@ -1083,9 +1083,12 @@ export function QuickBarPage() {
     startStream(async () => {
       const cid = await ensureConversation();
       await invoke("send_message", {
-        conversationId: cid,
-        content: body,
-        options: {},
+        params: {
+          conversationId: cid,
+          content: body,
+          attachments: [],
+          options: {},
+        },
       });
       return cid;
     });
@@ -1267,9 +1270,12 @@ export function QuickBarPage() {
     startStream(async () => {
       const cid = await ensureConversation();
       await invoke("send_message", {
-        conversationId: cid,
-        content: `Execute the following code in a sandbox and return the result:\n\`\`\`\n${code}\n\`\`\``,
-        options: {},
+        params: {
+          conversationId: cid,
+          content: `Execute the following code in a sandbox and return the result:\n\`\`\`\n${code}\n\`\`\``,
+          attachments: [],
+          options: {},
+        },
       });
       return cid;
     });

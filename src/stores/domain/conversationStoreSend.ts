@@ -294,15 +294,17 @@ export function createSendMethods(
         memIds = activeMemNsIdForSend ? [activeMemNsIdForSend] : [];
         const wikiIdsForSend = usePreferenceStore.getState().enabledWikiIds;
         const userMessage = await invoke<Message>("send_message", {
-          conversationId,
-          content: finalContent,
-          attachments,
-          options: {
-            enabledMcpServerIds: mcpIds.length > 0 ? mcpIds : undefined,
-            thinkingBudget,
-            enabledKnowledgeBaseIds: kbIds.length > 0 ? kbIds : undefined,
-            enabledMemoryNamespaceIds: memIds.length > 0 ? memIds : undefined,
-            enabledWikiIds: wikiIdsForSend.length > 0 ? wikiIdsForSend : undefined,
+          params: {
+            conversationId,
+            content: finalContent,
+            attachments,
+            options: {
+              enabledMcpServerIds: mcpIds.length > 0 ? mcpIds : undefined,
+              thinkingBudget,
+              enabledKnowledgeBaseIds: kbIds.length > 0 ? kbIds : undefined,
+              enabledMemoryNamespaceIds: memIds.length > 0 ? memIds : undefined,
+              enabledWikiIds: wikiIdsForSend.length > 0 ? wikiIdsForSend : undefined,
+            },
           },
         });
 
@@ -400,17 +402,19 @@ export function createSendMethods(
                 }));
                 // Re-invoke send_message directly (not recursive sendMessage)
                 await invoke("send_message", {
-                  conversationId,
-                  content: finalContent,
-                  attachments,
-                  options: {
-                    enabledMcpServerIds: mcpIds.length > 0 ? mcpIds : undefined,
-                    thinkingBudget,
-                    enabledKnowledgeBaseIds: kbIds.length > 0 ? kbIds : undefined,
-                    enabledMemoryNamespaceIds: memIds.length > 0 ? memIds : undefined,
-                    enabledWikiIds: usePreferenceStore.getState().enabledWikiIds.length > 0
-                      ? usePreferenceStore.getState().enabledWikiIds
-                      : undefined,
+                  params: {
+                    conversationId,
+                    content: finalContent,
+                    attachments,
+                    options: {
+                      enabledMcpServerIds: mcpIds.length > 0 ? mcpIds : undefined,
+                      thinkingBudget,
+                      enabledKnowledgeBaseIds: kbIds.length > 0 ? kbIds : undefined,
+                      enabledMemoryNamespaceIds: memIds.length > 0 ? memIds : undefined,
+                      enabledWikiIds: usePreferenceStore.getState().enabledWikiIds.length > 0
+                        ? usePreferenceStore.getState().enabledWikiIds
+                        : undefined,
+                    },
                   },
                 });
                 // Re-start stream
@@ -1475,14 +1479,16 @@ export function createSendMethods(
         const rMemIds = rMemNsId ? [rMemNsId] : [];
         const rWikiIds = usePreferenceStore.getState().enabledWikiIds;
         await invoke("regenerate_message", {
-          conversationId,
-          userMessageId: userMsg.id,
-          options: {
-            enabledMcpServerIds: rMcpIds.length > 0 ? rMcpIds : undefined,
-            thinkingBudget: rThinkingBudget,
-            enabledKnowledgeBaseIds: rKbIds.length > 0 ? rKbIds : undefined,
-            enabledMemoryNamespaceIds: rMemIds.length > 0 ? rMemIds : undefined,
-            enabledWikiIds: rWikiIds.length > 0 ? rWikiIds : undefined,
+          params: {
+            conversationId,
+            userMessageId: userMsg.id,
+            options: {
+              enabledMcpServerIds: rMcpIds.length > 0 ? rMcpIds : undefined,
+              thinkingBudget: rThinkingBudget,
+              enabledKnowledgeBaseIds: rKbIds.length > 0 ? rKbIds : undefined,
+              enabledMemoryNamespaceIds: rMemIds.length > 0 ? rMemIds : undefined,
+              enabledWikiIds: rWikiIds.length > 0 ? rWikiIds : undefined,
+            },
           },
         });
 
@@ -1623,16 +1629,18 @@ export function createSendMethods(
         const rMemIds = rMemNsId2 ? [rMemNsId2] : [];
         const rWikiIds = usePreferenceStore.getState().enabledWikiIds;
         await invoke("regenerate_with_model", {
-          conversationId,
-          userMessageId: userMsg.id,
-          targetProviderId: providerId,
-          targetModelId: model_id,
-          options: {
-            enabledMcpServerIds: rMcpIds.length > 0 ? rMcpIds : undefined,
-            thinkingBudget: rThinkingBudget,
-            enabledKnowledgeBaseIds: rKbIds.length > 0 ? rKbIds : undefined,
-            enabledMemoryNamespaceIds: rMemIds.length > 0 ? rMemIds : undefined,
-            enabledWikiIds: rWikiIds.length > 0 ? rWikiIds : undefined,
+          params: {
+            conversationId,
+            userMessageId: userMsg.id,
+            targetProviderId: providerId,
+            targetModelId: model_id,
+            options: {
+              enabledMcpServerIds: rMcpIds.length > 0 ? rMcpIds : undefined,
+              thinkingBudget: rThinkingBudget,
+              enabledKnowledgeBaseIds: rKbIds.length > 0 ? rKbIds : undefined,
+              enabledMemoryNamespaceIds: rMemIds.length > 0 ? rMemIds : undefined,
+              enabledWikiIds: rWikiIds.length > 0 ? rWikiIds : undefined,
+            },
           },
         });
 

@@ -141,9 +141,12 @@ export const CodePropertyPanel: React.FC<CodePropertyPanelProps> = ({
         : `写一段 ${lang} 代码。可用的工具: ${toolList}。只输出代码不要解释。`;
 
       const result = await invoke<{ content: string }>("send_message", {
-        conversationId: "",
-        content: prompt,
-        options: {},
+        params: {
+          conversationId: "",
+          content: prompt,
+          attachments: [],
+          options: {},
+        },
       });
 
       if (result?.content) {

@@ -1418,15 +1418,19 @@ export function ChatSidebar({
         onClick: (menuInfo: { key: string }) => {
           if (menuInfo.key.startsWith("move-ws:")) {
             void invoke("agent_update_session", {
-              conversationId: conv.id,
-              cwd: menuInfo.key.slice("move-ws:".length),
+              request: {
+                conversationId: conv.id,
+                cwd: menuInfo.key.slice("move-ws:".length),
+              },
             });
             return;
           }
           if (menuInfo.key === "remove-ws") {
             void invoke("agent_update_session", {
-              conversationId: conv.id,
-              cwd: null,
+              request: {
+                conversationId: conv.id,
+                cwd: null,
+              },
             });
             return;
           }
@@ -1675,15 +1679,19 @@ export function ChatSidebar({
       onClick: (menuInfo: { key: string }) => {
         if (menuInfo.key.startsWith("move-ws:")) {
           void invoke("agent_update_session", {
-            conversationId: conv.id,
-            cwd: menuInfo.key.slice("move-ws:".length),
+            request: {
+              conversationId: conv.id,
+              cwd: menuInfo.key.slice("move-ws:".length),
+            },
           });
           return;
         }
         if (menuInfo.key === "remove-ws") {
           void invoke("agent_update_session", {
-            conversationId: conv.id,
-            cwd: null,
+            request: {
+              conversationId: conv.id,
+              cwd: null,
+            },
           });
           return;
         }

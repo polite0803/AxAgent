@@ -1091,7 +1091,8 @@ export async function handleCommand<T>(
       return undefined as T;
     }
     case "send_message": {
-      const { conversationId, content, attachments } = args as {
+      const raw = (args as { params?: unknown }).params ?? args;
+      const { conversationId, content, attachments } = raw as {
         conversationId: string;
         content: string;
         attachments?: unknown[];
@@ -1172,7 +1173,8 @@ export async function handleCommand<T>(
       return results as T;
     }
     case "regenerate_message": {
-      const { conversationId: regenConvId } = args as {
+      const regenRaw = (args as { params?: unknown }).params ?? args;
+      const { conversationId: regenConvId } = regenRaw as {
         conversationId?: string;
       };
       const regenMsgs = getStore<Message[]>("messages", []);
