@@ -95,10 +95,12 @@ pub fn global_plugin_agents() -> &'static PluginAgentRegistry {
     static FALLBACK: std::sync::LazyLock<PluginAgentRegistry> =
         std::sync::LazyLock::new(PluginAgentRegistry::default);
     TEST_PLUGIN_AGENTS.with(|cell| {
-        if cell.borrow().is_some() {
-            unsafe { &*(&*cell.borrow() as *const PluginAgentRegistry) }
-        } else {
-            &FALLBACK
+        let ptr = cell.as_ptr();
+        unsafe {
+            match &*ptr {
+                Some(_) => &*(*ptr).as_ref().unwrap(),
+                None => &*FALLBACK,
+            }
         }
     })
 }

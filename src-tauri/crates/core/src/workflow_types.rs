@@ -5,8 +5,6 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::constants;
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Position {
     pub x: f64,
@@ -925,49 +923,6 @@ pub struct ValidationResult {
     pub is_valid: bool,
     pub errors: Vec<ValidationError>,
     pub warnings: Vec<ValidationWarning>,
-}
-
-/// Result of migrating Tool/Code nodes to Agent nodes
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct MigrationResult {
-    pub workflow_id: String,
-    pub migrated_nodes: Vec<NodeMigrationEntry>,
-    pub unchanged: bool,
-}
-
-/// A single node migration record
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct NodeMigrationEntry {
-    pub node_id: String,
-    pub from_type: String,
-    pub to_skill_id: String,
-    pub to_skill_name: String,
-    pub status: String,
-}
-
-/// Workflow migrator that converts Tool/Code nodes to Agent nodes
-pub struct WorkflowMigrator;
-
-impl WorkflowMigrator {
-    /// Migrate a workflow Tool and Code nodes to Agent nodes.
-    /// 注意：自 ToolExecutor / CodeExecutor 实现后，此迁移已不再需要。
-    /// 保留方法以防止旧调用方报错，但不再执行任何转换。
-    pub fn migrate(nodes: &mut [WorkflowNode]) -> MigrationResult {
-        // Tool/Code 执行器已实现，不再将 Tool/Code 转换为 Agent
-        let _ = nodes;
-        MigrationResult {
-            workflow_id: String::new(),
-            migrated_nodes: vec![],
-            unchanged: true,
-        }
-    }
-
-    /// Check if a workflow contains Tool or Code nodes
-    /// 注意：Tool/Code 执行器已实现，不再视为 "legacy"
-    pub fn has_legacy_nodes(nodes: &[WorkflowNode]) -> bool {
-        let _ = nodes;
-        false
-    }
 }
 
 // ── 自定义反序列化 ──

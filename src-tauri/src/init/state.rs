@@ -149,7 +149,7 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> AppState {
     let config_home = home.join(".claw");
     let mut plugin_config = PluginManagerConfig::new(config_home.clone());
     plugin_config.external_dirs = axagent_core::skill_dirs::all_skills_dirs();
-    let plugin_manager = std::sync::Mutex::new(PluginManager::new(plugin_config));
+    let plugin_manager = std::sync::RwLock::new(PluginManager::new(plugin_config));
 
     AppState {
         sea_db: sea_db.clone(),

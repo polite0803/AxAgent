@@ -731,8 +731,6 @@ pub fn run() {
             commands::work_engine::cancel_workflow_execution,
             commands::work_engine::get_workflow_execution_status,
             commands::work_engine::list_workflow_executions,
-            commands::work_engine::migrate_workflow_nodes,
-            commands::work_engine::migrate_all_workflows,
             commands::work_engine::execute_workflow_node,
             commands::work_engine::list_node_executor_types,
             commands::work_engine::debug_run_workflow,

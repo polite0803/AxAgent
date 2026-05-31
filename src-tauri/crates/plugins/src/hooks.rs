@@ -652,7 +652,7 @@ mod tests {
     #[test]
     fn hook_timeout_kills_stuck_process() {
         #[cfg(windows)]
-        let stuck_cmd = "powershell -Command \"Start-Sleep -Seconds 60\"";
+        let stuck_cmd = "ping -n 60 127.0.0.1 >nul";
         #[cfg(not(windows))]
         let stuck_cmd = "sleep 60";
 

@@ -2222,6 +2222,7 @@ fn load_manifest_from_skill_md(
         mcp_servers: Vec::new(),
         skills: Vec::new(),
         agents: Vec::new(),
+        dashboard_panels: Vec::new(),
         dependencies: Vec::new(),
         integrity: None,
     };
@@ -3006,13 +3007,7 @@ fn discover_plugin_dirs(root: &Path) -> Result<Vec<PathBuf>, PluginError> {
 
 fn plugin_id(name: &str, marketplace: &str) -> String {
     let normalized = name.trim().to_lowercase();
-    let mut hasher = sha2::Sha256::new();
-    use sha2::Digest;
-    hasher.update(normalized.as_bytes());
-    hasher.update(marketplace.as_bytes());
-    let hash = hasher.finalize();
-    let short_hash = &format!("{:x}", hash)[..8];
-    format!("{}@{}#{}", normalized, marketplace, short_hash)
+    format!("{normalized}@{marketplace}")
 }
 
 fn sanitize_plugin_id(plugin_id: &str) -> String {
@@ -3136,16 +3131,6 @@ fn version_satisfies(installed: &str, required: &str) -> bool {
 
 fn strip_prerelease(version: &str) -> &str {
     version.split('-').next().unwrap_or(version)
-}
-
-fn sha256_hash(data: &[u8]) -> String {
-    use std::fmt::Write as _;
-    let hash = <sha2::Sha256 as sha2::Digest>::digest(data);
-    let mut result = String::with_capacity(hash.len() * 2);
-    for byte in hash {
-        write!(result, "{byte:02x}").expect("writing to String should never fail");
-    }
-    result
 }
 
 fn hash_plugin_directory(plugin_root: &Path) -> Result<String, PluginError> {

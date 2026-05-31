@@ -194,10 +194,10 @@ impl McpLauncher {
                                 plugin_id,
                                 child.id()
                             );
-                            Ok(RunningMcpProcess {
+                            return Ok(RunningMcpProcess {
                                 child,
                                 server_name: server.name.clone(),
-                            })
+                            });
                         } else {
                             warn!(
                                 "mcp: server `{}` for plugin `{}` failed health check (pid {})",
@@ -207,7 +207,7 @@ impl McpLauncher {
                             );
                             let _ = child.kill();
                             let _ = child.wait();
-                            Err(McpLaunchError::StartupTimeout(server.name.clone()))
+                            return Err(McpLaunchError::StartupTimeout(server.name.clone()));
                         }
                     }
                     std::thread::sleep(poll_interval);

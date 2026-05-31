@@ -297,7 +297,7 @@ impl SdkPluginRegistry {
         let tool_def = plugin.manifest().tools.iter().find(|t| t.name == tool_name);
         if let Some(tool) = tool_def {
             let required_perms: Vec<PluginPermission> = infer_permissions_for_tool(tool);
-            self.check_permissions(plugin_id, &required_perms)?;
+            self.check_permissions(plugin_id, &required_perms).await?;
         }
         plugin.execute_tool(tool_name, input, ctx).await
     }
@@ -361,14 +361,15 @@ thread_local! {
 
 #[cfg(test)]
 pub fn global_sdk_plugins() -> &'static SdkPluginRegistry {
-    use std::cell::RefCell;
     static FALLBACK: std::sync::LazyLock<SdkPluginRegistry> =
         std::sync::LazyLock::new(SdkPluginRegistry::default);
     TEST_SDK_PLUGINS.with(|cell| {
-        if cell.borrow().is_some() {
-            unsafe { &*(&*cell.borrow() as *const SdkPluginRegistry) }
-        } else {
-            &FALLBACK
+        let ptr = cell.as_ptr();
+        unsafe {
+            match &*ptr {
+                Some(_) => &*(*ptr).as_ref().unwrap(),
+                None => &*FALLBACK,
+            }
         }
     })
 }
