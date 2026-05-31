@@ -935,6 +935,19 @@ pub fn run() {
             commands::crash_report::get_crash_log,
             // Service health check
             commands::health::get_service_health,
+            // Personality commands
+            commands::personality::personality_list,
+            commands::personality::personality_get,
+            commands::personality::personality_switch,
+            commands::personality::personality_current,
+            commands::personality::personality_create,
+            commands::personality::personality_delete,
+            // Migration commands
+            commands::migration::migration_detect,
+            commands::migration::migration_preview,
+            commands::migration::migration_execute,
+            commands::migration::migration_list_backups,
+            commands::migration::migration_rollback,
         ])
         .setup(|app| {
             android_utils::mark_startup_phase("setup_start");

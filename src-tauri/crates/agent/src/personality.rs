@@ -130,6 +130,19 @@ impl Personality {
     }
 }
 
+fn validate_personality_name(name: &str) -> Result<(), String> {
+    if name.is_empty() {
+        return Err("Personality name cannot be empty".to_string());
+    }
+    if name.contains('/') || name.contains('\\') || name.contains("..") {
+        return Err("Personality name contains invalid characters".to_string());
+    }
+    if name.starts_with('.') {
+        return Err("Personality name cannot start with '.'".to_string());
+    }
+    Ok(())
+}
+
 pub struct PersonalityManager;
 
 impl PersonalityManager {
@@ -169,6 +182,7 @@ impl PersonalityManager {
     }
 
     pub fn load(name: &str) -> Result<Personality, String> {
+        validate_personality_name(name)?;
         let soul_path = PERSONALITIES_DIR.join(name).join("SOUL.md");
         if !soul_path.exists() {
             return Err(format!("Personality '{}' not found", name));
@@ -179,6 +193,7 @@ impl PersonalityManager {
     }
 
     pub fn save(personality: &Personality) -> Result<(), String> {
+        validate_personality_name(&personality.name)?;
         Self::ensure_dir()?;
         let dir = personality.dir_path();
         fs::create_dir_all(&dir).map_err(|e| format!("Failed to create directory: {}", e))?;
@@ -188,6 +203,7 @@ impl PersonalityManager {
     }
 
     pub fn delete(name: &str) -> Result<(), String> {
+        validate_personality_name(name)?;
         let dir = PERSONALITIES_DIR.join(name);
         if !dir.exists() {
             return Err(format!("Personality '{}' not found", name));
@@ -210,6 +226,7 @@ impl PersonalityManager {
     }
 
     pub fn set_active(name: &str) -> Result<(), String> {
+        validate_personality_name(name)?;
         Self::ensure_dir()?;
         let dir = PERSONALITIES_DIR.join(name);
         if !dir.exists() || !dir.join("SOUL.md").exists() {

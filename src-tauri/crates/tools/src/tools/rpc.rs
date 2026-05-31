@@ -15,6 +15,32 @@ static RPC_REQUEST_COUNT: AtomicU64 = AtomicU64::new(0);
 static RPC_WINDOW_START: std::sync::Mutex<Option<Instant>> = std::sync::Mutex::new(None);
 const RATE_LIMIT_PER_MINUTE: u64 = 100;
 
+#[async_trait]
+pub trait ToolExecutorAccess: Send + Sync {
+    async fn call_tool(
+        &self,
+        name: &str,
+        input: serde_json::Value,
+    ) -> Result<serde_json::Value, String>;
+}
+
+static GLOBAL_TOOL_EXECUTOR: std::sync::LazyLock<
+    parking_lot::Mutex<Option<Arc<dyn ToolExecutorAccess>>>,
+> = std::sync::LazyLock::new(|| parking_lot::Mutex::new(None));
+
+static CACHED_TOOL_LIST: std::sync::LazyLock<parking_lot::Mutex<Option<Value>>> =
+    std::sync::LazyLock::new(|| parking_lot::Mutex::new(None));
+
+static CACHED_REGISTRY: std::sync::LazyLock<
+    parking_lot::Mutex<Option<crate::registry::ToolRegistry>>,
+> = std::sync::LazyLock::new(|| parking_lot::Mutex::new(None));
+
+pub fn set_tool_executor(executor: Arc<dyn ToolExecutorAccess>) {
+    *GLOBAL_TOOL_EXECUTOR.lock() = Some(executor);
+    *CACHED_TOOL_LIST.lock() = None;
+    *CACHED_REGISTRY.lock() = None;
+}
+
 fn axagent_dir() -> PathBuf {
     dirs::home_dir()
         .unwrap_or_else(|| PathBuf::from("."))
@@ -473,6 +499,12 @@ async fn process_single_request(value: &Value) -> Value {
 async fn dispatch_rpc_method(method: &str, params: Option<&Value>) -> Result<Value, JsonRpcError> {
     match method {
         "tools.list" => {
+            {
+                let cached = CACHED_TOOL_LIST.lock();
+                if let Some(ref val) = *cached {
+                    return Ok(val.clone());
+                }
+            }
             let registry = get_global_registry();
             let tools = registry.list_all();
             let tool_names: Vec<Value> = tools
@@ -486,7 +518,9 @@ async fn dispatch_rpc_method(method: &str, params: Option<&Value>) -> Result<Val
                     })
                 })
                 .collect();
-            Ok(Value::Array(tool_names))
+            let result = Value::Array(tool_names);
+            *CACHED_TOOL_LIST.lock() = Some(result.clone());
+            Ok(result)
         },
         "tools.call" => {
             let params = params
@@ -499,31 +533,13 @@ async fn dispatch_rpc_method(method: &str, params: Option<&Value>) -> Result<Val
                 .cloned()
                 .unwrap_or(Value::Object(serde_json::Map::new()));
 
-            let registry = get_global_registry();
-            let tool = registry
-                .find(tool_name)
-                .ok_or_else(|| JsonRpcError::method_not_found(tool_name))?;
-
-            let ctx = ToolContext::new(
-                std::env::current_dir()
-                    .map(|p| p.to_string_lossy().to_string())
-                    .unwrap_or_else(|_| ".".to_string()),
-            );
-
-            let result = tool.call(tool_input, &ctx).await;
-
-            match result {
-                Ok(r) => {
-                    if r.is_error {
-                        Err(JsonRpcError::internal_error(&r.content))
-                    } else {
-                        Ok(serde_json::json!({
-                            "content": r.content,
-                            "metadata": r.metadata,
-                        }))
-                    }
+            let executor = GLOBAL_TOOL_EXECUTOR.lock().clone();
+            match executor {
+                Some(exec) => match exec.call_tool(tool_name, tool_input).await {
+                    Ok(result) => Ok(result),
+                    Err(e) => Err(JsonRpcError::internal_error(&e)),
                 },
-                Err(e) => Err(JsonRpcError::internal_error(&e.message)),
+                None => Err(JsonRpcError::internal_error("Tool executor not initialized")),
             }
         },
         "ping" => Ok(serde_json::json!({"pong": true})),
@@ -532,8 +548,15 @@ async fn dispatch_rpc_method(method: &str, params: Option<&Value>) -> Result<Val
 }
 
 fn get_global_registry() -> crate::registry::ToolRegistry {
+    {
+        let cached = CACHED_REGISTRY.lock();
+        if let Some(ref reg) = *cached {
+            return reg.clone();
+        }
+    }
     let mut reg = crate::registry::ToolRegistry::new();
     crate::tools::register_all(&mut reg);
+    *CACHED_REGISTRY.lock() = Some(reg.clone());
     reg
 }
 

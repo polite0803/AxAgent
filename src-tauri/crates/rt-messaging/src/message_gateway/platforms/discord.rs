@@ -118,6 +118,21 @@ impl PlatformAdapter for DiscordAdapter {
         }
         Ok(())
     }
+
+    async fn send_media(
+        &self,
+        _config: &PlatformConfig,
+        _chat_id: &str,
+        attachment: &crate::message_gateway::media_types::MediaAttachment,
+    ) -> anyhow::Result<()> {
+        tracing::info!(
+            "[discord] send_media: path={} type={} mode={}",
+            attachment.path,
+            attachment.media_type.as_str(),
+            attachment.delivery_mode.as_str()
+        );
+        Ok(())
+    }
 }
 
 async fn run_discord_gateway(

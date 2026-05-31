@@ -42,4 +42,20 @@ pub trait PlatformAdapter: Send + Sync {
         text: &str,
         parse_mode: Option<&str>,
     ) -> anyhow::Result<()>;
+
+    async fn send_media(
+        &self,
+        _config: &PlatformConfig,
+        _chat_id: &str,
+        _attachment: &crate::message_gateway::media_types::MediaAttachment,
+    ) -> anyhow::Result<()> {
+        tracing::info!(
+            "[{}] send_media: path={} type={} mode={} (not yet implemented)",
+            self.name(),
+            _attachment.path,
+            _attachment.media_type.as_str(),
+            _attachment.delivery_mode.as_str()
+        );
+        Ok(())
+    }
 }

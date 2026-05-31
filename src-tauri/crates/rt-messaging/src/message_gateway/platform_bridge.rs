@@ -143,7 +143,27 @@ impl PlatformMessageCallback for PlatformBridge {
             .await
         {
             Ok(reply) => {
-                // 派发 message_sent webhook 事件
+                let processed = reply.map(|r| {
+                    let (cleaned, attachments) =
+                        crate::message_gateway::media_types::process_media_attachments(&r);
+                    if !attachments.is_empty() {
+                        tracing::info!(
+                            "[PlatformBridge] detected {} media attachment(s) for {}",
+                            attachments.len(),
+                            platform
+                        );
+                        for att in &attachments {
+                            tracing::info!(
+                                "[PlatformBridge] media: {} type={} mode={}",
+                                att.path,
+                                att.media_type.as_str(),
+                                att.delivery_mode.as_str()
+                            );
+                        }
+                    }
+                    (cleaned, attachments)
+                });
+
                 if let Some(ref dispatcher) = self.webhook_dispatcher {
                     let mut data = std::collections::HashMap::new();
                     data.insert(
@@ -154,14 +174,20 @@ impl PlatformMessageCallback for PlatformBridge {
                         "user_id".to_string(),
                         serde_json::Value::String(user_id.to_string()),
                     );
-                    if let Some(ref r) = reply {
+                    if let Some((ref r, ref atts)) = processed {
                         data.insert("reply".to_string(), serde_json::Value::String(r.clone()));
+                        if !atts.is_empty() {
+                            data.insert(
+                                "media_attachments".to_string(),
+                                serde_json::to_value(atts).unwrap_or(serde_json::Value::Null),
+                            );
+                        }
                     }
                     let _ = dispatcher
                         .dispatch(crate::webhook_subscription::WebhookEvent::MessageSent, data)
                         .await;
                 }
-                reply
+                processed.map(|(r, _)| r)
             },
             Err(e) => {
                 tracing::error!("[PlatformBridge] process failed: {}", e);
@@ -191,7 +217,11 @@ impl PlatformBridge {
         text: &str,
     ) -> anyhow::Result<Option<String>> {
         use axagent_core::repo::{conversation, message, settings};
+        use axagent_core::slash_command::apply_slash_command_to_input;
         use axagent_core::types::MessageRole;
+
+        let preprocessed = apply_slash_command_to_input(text);
+        let effective_text = &preprocessed.modified_text;
 
         let app_settings = settings::get_settings(&self.db).await?;
         let provider_id = app_settings
@@ -239,7 +269,16 @@ impl PlatformBridge {
                 .await?
         };
 
-        message::create_message(&self.db, &conv.id, MessageRole::User, text, &[], None, 0).await?;
+        message::create_message(
+            &self.db,
+            &conv.id,
+            MessageRole::User,
+            effective_text,
+            &[],
+            None,
+            0,
+        )
+        .await?;
 
         conversation::increment_message_count(&self.db, &conv.id).await?;
 
@@ -249,11 +288,14 @@ impl PlatformBridge {
             .filter(|c| c.is_alphanumeric() || *c == '_' || *c == '-' || *c == '.')
             .take(32)
             .collect();
-        let system_prompt = format!(
+        let mut system_prompt = format!(
             "You are AxAgent. The user is messaging from {} (username: {}). \
              Provide helpful, concise responses.",
             platform, safe_username
         );
+        if let Some(ref personality_msg) = preprocessed.personality_prompt {
+            system_prompt.push_str(&format!("\n\n{}", personality_msg));
+        }
 
         let messages: Vec<axagent_core::types::ChatMessage> = vec![
             axagent_core::types::ChatMessage {
@@ -265,7 +307,7 @@ impl PlatformBridge {
             },
             axagent_core::types::ChatMessage {
                 role: "user".to_string(),
-                content: axagent_core::types::ChatContent::Text(text.to_string()),
+                content: axagent_core::types::ChatContent::Text(effective_text.to_string()),
                 tool_calls: None,
                 tool_call_id: None,
                 thinking: None,

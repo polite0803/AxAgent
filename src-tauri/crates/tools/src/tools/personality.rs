@@ -63,6 +63,19 @@ fn serialize_soul_md(name: &str, version: &str, description: &str, content: &str
     format!("---\n{}---\n\n{}", yaml, content)
 }
 
+fn validate_personality_name(name: &str) -> Result<(), ToolError> {
+    if name.is_empty() {
+        return Err(ToolError::invalid_input("Personality name cannot be empty"));
+    }
+    if name.contains('/') || name.contains('\\') || name.contains("..") {
+        return Err(ToolError::invalid_input("Personality name contains invalid characters"));
+    }
+    if name.starts_with('.') {
+        return Err(ToolError::invalid_input("Personality name cannot start with '.'"));
+    }
+    Ok(())
+}
+
 fn ensure_dir() -> Result<(), ToolError> {
     fs::create_dir_all(&*PERSONALITIES_DIR).map_err(|e| {
         ToolError::execution_failed(format!("Failed to create personalities directory: {}", e))
@@ -93,6 +106,7 @@ fn list_names() -> Result<Vec<String>, ToolError> {
 }
 
 fn load_personality(name: &str) -> Result<(SoulFrontmatter, String), ToolError> {
+    validate_personality_name(name)?;
     let soul_path = PERSONALITIES_DIR.join(name).join("SOUL.md");
     if !soul_path.exists() {
         return Err(ToolError::execution_failed(format!("Personality '{}' not found", name)));
@@ -109,6 +123,7 @@ fn save_personality(
     description: &str,
     content: &str,
 ) -> Result<(), ToolError> {
+    validate_personality_name(name)?;
     ensure_dir()?;
     let dir = PERSONALITIES_DIR.join(name);
     fs::create_dir_all(&dir)
@@ -119,6 +134,7 @@ fn save_personality(
 }
 
 fn delete_personality(name: &str) -> Result<(), ToolError> {
+    validate_personality_name(name)?;
     let dir = PERSONALITIES_DIR.join(name);
     if !dir.exists() {
         return Err(ToolError::execution_failed(format!("Personality '{}' not found", name)));
@@ -144,6 +160,7 @@ fn get_active_name() -> Result<Option<String>, ToolError> {
 }
 
 fn set_active(name: &str) -> Result<(), ToolError> {
+    validate_personality_name(name)?;
     ensure_dir()?;
     let dir = PERSONALITIES_DIR.join(name);
     if !dir.exists() || !dir.join("SOUL.md").exists() {

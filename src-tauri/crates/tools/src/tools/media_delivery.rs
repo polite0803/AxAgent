@@ -102,6 +102,9 @@ fn extract_absolute_paths(text: &str) -> Vec<String> {
     paths
 }
 
+const MIME_DETECT_BYTES: usize = 1024;
+const PREVIEW_READ_LIMIT: usize = 64 * 1024;
+
 fn scan_media_from_text(text: &str) -> Vec<Value> {
     let paths = extract_absolute_paths(text);
     let mut results = Vec::new();
@@ -123,8 +126,11 @@ fn scan_media_from_text(text: &str) -> Vec<Value> {
             continue;
         }
         let file_size = metadata.len();
-        let mime_type = match std::fs::read(path) {
-            Ok(data) if !data.is_empty() => detect_mime_from_bytes(&data, ext),
+        let mime_type = match std::fs::read(&path) {
+            Ok(data) if !data.is_empty() => {
+                let head = &data[..data.len().min(MIME_DETECT_BYTES)];
+                detect_mime_from_bytes(head, ext)
+            },
             _ => extension_to_mime(ext),
         };
         results.push(serde_json::json!({
@@ -377,7 +383,13 @@ impl Tool for MediaPreviewTool {
             None => return Ok(ToolResult::error(format!("无法识别的媒体类型: .{}", ext))),
         };
         let file_data = match std::fs::read(path) {
-            Ok(d) => d,
+            Ok(d) => {
+                if d.len() > PREVIEW_READ_LIMIT {
+                    d[..PREVIEW_READ_LIMIT].to_vec()
+                } else {
+                    d
+                }
+            },
             Err(e) => return Ok(ToolResult::error(format!("无法读取文件: {}", e))),
         };
         let mime_type = if !file_data.is_empty() {

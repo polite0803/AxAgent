@@ -2,6 +2,7 @@ use std::collections::HashSet;
 
 use crate::{Tool, ToolCategory, ToolContext, ToolError, ToolResult};
 use async_trait::async_trait;
+use axagent_core::secure_store::SecureStore;
 use serde_json::Value;
 use std::path::PathBuf;
 use std::sync::{LazyLock, Mutex};
@@ -1319,11 +1320,12 @@ impl Default for HubLockFile {
 }
 
 fn hub_api_url() -> String {
-    std::env::var("AGENTSILLS_API_URL").unwrap_or_else(|_| "https://api.agentskills.io".to_string())
+    std::env::var("AGENTSKILLS_API_URL")
+        .unwrap_or_else(|_| "https://api.agentskills.io".to_string())
 }
 
 fn hub_api_key() -> Option<String> {
-    std::env::var("AGENTSILLS_API_KEY").ok()
+    std::env::var("AGENTSKILLS_API_KEY").ok()
 }
 
 fn lock_json_path() -> PathBuf {
@@ -1449,6 +1451,18 @@ async fn hub_publish_skill(name: &str, version: &str, content: &str) -> Result<S
 }
 
 fn extract_zip_to_dir(data: &[u8], target_dir: &PathBuf) -> Result<(), ToolError> {
+    const MAX_ZIP_SIZE: usize = 50 * 1024 * 1024;
+    const MAX_SINGLE_FILE_SIZE: u64 = 10 * 1024 * 1024;
+    if data.len() > MAX_ZIP_SIZE {
+        return Err(ToolError::execution_failed(format!(
+            "Zip archive too large: {} bytes (max {} bytes)",
+            data.len(),
+            MAX_ZIP_SIZE
+        )));
+    }
+    let canonical_target = target_dir
+        .canonicalize()
+        .unwrap_or_else(|_| target_dir.clone());
     let reader = std::io::Cursor::new(data);
     let mut archive = zip::ZipArchive::new(reader)
         .map_err(|e| ToolError::execution_failed(format!("Failed to read zip archive: {}", e)))?;
@@ -1459,10 +1473,29 @@ fn extract_zip_to_dir(data: &[u8], target_dir: &PathBuf) -> Result<(), ToolError
         let mut file = archive
             .by_index(i)
             .map_err(|e| ToolError::execution_failed(format!("Failed to read zip entry: {}", e)))?;
+        if file.size() > MAX_SINGLE_FILE_SIZE {
+            return Err(ToolError::execution_failed(format!(
+                "File '{}' too large: {} bytes (max {} bytes)",
+                file.name(),
+                file.size(),
+                MAX_SINGLE_FILE_SIZE
+            )));
+        }
         let outpath = match file.enclosed_name() {
             Some(path) => target_dir.join(path),
             None => continue,
         };
+        let canonical_outpath = if let Ok(canon) = outpath.canonicalize() {
+            canon
+        } else {
+            outpath.clone()
+        };
+        if !canonical_outpath.starts_with(&canonical_target) {
+            return Err(ToolError::execution_failed(format!(
+                "Zip Slip: path '{}' escapes target directory",
+                outpath.display()
+            )));
+        }
         if file.is_dir() {
             std::fs::create_dir_all(&outpath).map_err(|e| {
                 ToolError::execution_failed(format!("Failed to create directory: {}", e))
@@ -2077,9 +2110,17 @@ fn write_env_file(map: &std::collections::HashMap<String, String>) -> Result<(),
 }
 
 fn set_env_var(name: &str, value: &str) -> Result<(), ToolError> {
-    let mut map = read_env_file();
-    map.insert(name.to_string(), value.to_string());
-    write_env_file(&map)
+    if axagent_core::secure_store::is_secret_key(name) {
+        let store = axagent_core::secure_store::CombinedSecureStore::with_default_paths();
+        store.store_secret(name, value).map_err(|e| {
+            ToolError::execution_failed(format!("Failed to store secret securely: {}", e))
+        })?;
+        Ok(())
+    } else {
+        let mut map = read_env_file();
+        map.insert(name.to_string(), value.to_string());
+        write_env_file(&map)
+    }
 }
 
 fn is_env_var_set(name: &str) -> bool {

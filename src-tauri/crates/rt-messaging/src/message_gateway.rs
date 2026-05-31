@@ -7,6 +7,7 @@
 //! - Connection state management
 //! - Heartbeat and keepalive
 
+pub mod media_types;
 pub mod platform_bridge;
 pub mod platform_config;
 pub mod platform_manager;
@@ -173,6 +174,14 @@ pub trait TransportHandler: Send + Sync {
         message: &AgentMessage,
     ) -> Result<(), GatewayError>;
     fn get_state(&self, endpoint_id: &str) -> ConnectionState;
+
+    async fn send_media(
+        &self,
+        _endpoint_id: &str,
+        _attachment: &media_types::MediaAttachment,
+    ) -> Result<(), GatewayError> {
+        Ok(())
+    }
 }
 
 #[derive(Debug, Clone)]

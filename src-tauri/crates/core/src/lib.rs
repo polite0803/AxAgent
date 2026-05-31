@@ -91,6 +91,7 @@ pub mod screen_vision;
 pub mod screen_vision;
 #[allow(clippy::unwrap_used)]
 pub mod search;
+pub mod secure_store;
 pub mod self_rag;
 #[allow(clippy::unwrap_used)]
 pub mod semantic_cache;
@@ -99,6 +100,7 @@ pub mod service_container;
 #[allow(clippy::unwrap_used)]
 pub mod shell_parser;
 pub mod skill_dirs;
+pub mod slash_command;
 #[allow(clippy::unwrap_used)]
 pub mod storage_inventory;
 #[allow(clippy::unwrap_used)]

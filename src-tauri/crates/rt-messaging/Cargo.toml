@@ -28,6 +28,7 @@ sha1 = "0.10"
 anyhow = { workspace = true }
 roxmltree = "0.20"
 url = "2"
+regex = "1"
 
 [lints]
 # workspace = true

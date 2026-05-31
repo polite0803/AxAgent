@@ -1,8 +1,10 @@
 pub use axagent_core::ddl::run_initialization;
 
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::{Path, PathBuf};
+
+use axagent_core::secure_store::SecureStore;
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct DetectedPlatform {
@@ -549,7 +551,36 @@ fn merge_env_file(
     }
     all_lines.extend(new_lines);
 
-    fs::write(dst, all_lines.join("\n")).map_err(|e| MigrationEntry {
+    let store = axagent_core::secure_store::CombinedSecureStore::with_default_paths();
+    let is_secret = axagent_core::secure_store::is_secret_key;
+    let mut non_secret_lines = Vec::new();
+    let mut secret_count = 0usize;
+
+    for line in all_lines {
+        let line_is_secret = if let Some(key_part) = line.split('=').next() {
+            let key_trimmed = key_part.trim();
+            !line.starts_with('#') && !key_trimmed.is_empty() && is_secret(key_trimmed)
+        } else {
+            false
+        };
+
+        if line_is_secret {
+            if let Some((key, value)) = line.split_once('=') {
+                let key = key.trim();
+                let value = value.trim();
+                if let Err(e) = store.store_secret(key, value) {
+                    tracing::warn!("Failed to store secret '{}' securely: {}", key, e);
+                    non_secret_lines.push(line);
+                } else {
+                    secret_count += 1;
+                }
+            }
+        } else {
+            non_secret_lines.push(line);
+        }
+    }
+
+    fs::write(dst, non_secret_lines.join("\n")).map_err(|e| MigrationEntry {
         source: src_str,
         destination: dst_str,
         item_type: "env".to_string(),
@@ -557,12 +588,18 @@ fn merge_env_file(
         reason: format!("写入失败: {}", e),
     })?;
 
+    let reason = if secret_count > 0 {
+        format!("已合并 ({} 个密钥已安全存储)", secret_count)
+    } else {
+        "已合并".to_string()
+    };
+
     Ok(MigrationEntry {
         source: src.display().to_string(),
         destination: dst.display().to_string(),
         item_type: "env".to_string(),
         description: format!("{} → {} (merged)", src.display(), dst.display()),
-        reason: "已合并".to_string(),
+        reason,
     })
 }
 
@@ -842,6 +879,23 @@ pub fn migrate_hermes(overwrite: bool) -> MigrationReport {
 
 pub fn rollback(backup_path: &Path) -> Result<MigrationReport, String> {
     let home = axagent_home();
+    let backup_root = home.join("migration-backup");
+
+    let canonical_backup = backup_path
+        .canonicalize()
+        .map_err(|_| format!("备份路径不存在: {}", backup_path.display()))?;
+    let canonical_root = backup_root
+        .canonicalize()
+        .map_err(|_| format!("备份根目录不存在: {}", backup_root.display()))?;
+
+    if !canonical_backup.starts_with(&canonical_root) {
+        return Err(format!(
+            "安全限制：回滚路径必须在 {} 内，实际: {}",
+            backup_root.display(),
+            backup_path.display()
+        ));
+    }
+
     let ts = timestamp_str();
     let mut migrated = Vec::new();
     let mut skipped = Vec::new();
@@ -910,4 +964,9 @@ pub fn list_backups() -> Vec<BackupInfo> {
 
     backups.sort_by(|a, b| b.timestamp.cmp(&a.timestamp));
     backups
+}
+
+pub fn migrate_secrets(secrets: HashMap<String, String>) -> Vec<(String, Result<(), String>)> {
+    let store = axagent_core::secure_store::CombinedSecureStore::with_default_paths();
+    axagent_core::secure_store::migrate_secrets(&store, secrets)
 }

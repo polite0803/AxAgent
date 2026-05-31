@@ -35,19 +35,13 @@ export function preloadCommonPages(): void {
   };
 
   const doPreload = () => {
-    Promise.all([
-      import("@/pages/KnowledgeHubPage"),
-      import("@/pages/GatewayLinkPage"),
-      import("@/pages/SettingsPage"),
-      import("@/pages/TerminalPage"),
-      import("@/pages/FilesPage"),
-      import("@/pages/WorkflowPage"),
-    ]).catch(() => {});
+    import("@/pages/KnowledgeHubPage").catch(() => {});
+    import("@/pages/GatewayLinkPage").catch(() => {});
   };
 
   if (typeof win.requestIdleCallback === "function") {
-    win.requestIdleCallback(doPreload, { timeout: 3000 });
+    win.requestIdleCallback(doPreload, { timeout: 5000 });
   } else {
-    setTimeout(doPreload, 1000);
+    setTimeout(doPreload, 2000);
   }
 }

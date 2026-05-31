@@ -48,6 +48,34 @@ const LazyQuickBarPage = lazy(() => import("@/pages/QuickBarPage").then((m) => (
 
 const { useToken } = theme;
 
+function PageTransitionWrapper({ children }: { children: React.ReactNode }) {
+  const location = useLocation();
+  const ref = useRef<HTMLDivElement>(null);
+  const prevPathname = useRef(location.pathname);
+
+  useEffect(() => {
+    if (location.pathname !== prevPathname.current) {
+      prevPathname.current = location.pathname;
+      const el = ref.current;
+      if (el) {
+        el.classList.remove("ax-page-transition");
+        void el.offsetWidth;
+        el.classList.add("ax-page-transition");
+      }
+    }
+  }, [location.pathname]);
+
+  return (
+    <div
+      ref={ref}
+      className="ax-page-transition"
+      style={{ flex: 1, display: "flex", overflow: "hidden" }}
+    >
+      {children}
+    </div>
+  );
+}
+
 function GlobalStatusBarWrapper() {
   return (
     <ModuleErrorBoundary moduleName="GlobalStatusBar">
@@ -237,12 +265,9 @@ function AppInner() {
                 <div className="content-col">
                   <GlobalTabBar />
                   <div className="page-area">
-                    <div
-                      className="ax-page-transition"
-                      style={{ flex: 1, display: "flex", overflow: "hidden" }}
-                    >
+                    <PageTransitionWrapper>
                       <ContentArea />
-                    </div>
+                    </PageTransitionWrapper>
                   </div>
                   <GlobalStatusBarWrapper />
                 </div>

@@ -68,6 +68,7 @@ serde_yaml = { workspace = true }
 axagent-core = { path = "crates/core" }
 axagent-providers = { path = "crates/providers" }
 axagent-agent = { path = "crates/agent" }
+axagent-migration = { path = "crates/migration" }
 axagent-gateway = { path = "crates/gateway" }
 axagent-runtime-core = { path = "crates/runtime-core" }
 axagent-runtime = { path = "crates/runtime" }

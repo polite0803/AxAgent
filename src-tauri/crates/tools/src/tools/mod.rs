@@ -255,9 +255,11 @@ pub fn register_all(registry: &mut crate::registry::ToolRegistry) {
     ]);
 
     let available_toolsets: HashSet<String> = registry
-        .list_tools()
+        .list_all()
         .iter()
         .map(|t| format!("{:?}", t.category).to_lowercase())
         .collect();
     skill::set_available_toolsets(available_toolsets);
+
+    rpc::set_tool_executor(std::sync::Arc::new(registry.clone()));
 }

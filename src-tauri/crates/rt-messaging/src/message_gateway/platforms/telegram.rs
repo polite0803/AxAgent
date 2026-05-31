@@ -205,6 +205,31 @@ impl PlatformAdapter for TelegramAdapter {
         }
         Ok(())
     }
+
+    async fn send_media(
+        &self,
+        _config: &PlatformConfig,
+        _chat_id: &str,
+        attachment: &crate::message_gateway::media_types::MediaAttachment,
+    ) -> anyhow::Result<()> {
+        let method = match attachment.delivery_mode {
+            crate::message_gateway::media_types::DeliveryMode::Voice => "sendVoice",
+            _ => match attachment.media_type {
+                crate::message_gateway::media_types::MediaType::Image => "sendPhoto",
+                crate::message_gateway::media_types::MediaType::Audio => "sendAudio",
+                crate::message_gateway::media_types::MediaType::Video => "sendVideo",
+                crate::message_gateway::media_types::MediaType::Document => "sendDocument",
+            },
+        };
+        tracing::info!(
+            "[telegram] send_media: api={} path={} type={} mode={}",
+            method,
+            attachment.path,
+            attachment.media_type.as_str(),
+            attachment.delivery_mode.as_str()
+        );
+        Ok(())
+    }
 }
 
 impl Default for TelegramAdapter {
