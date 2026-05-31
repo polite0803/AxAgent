@@ -593,7 +593,7 @@ function ChatViewInner({
         aria-live="polite"
         aria-atomic="false"
         aria-label={t("chat.messageArea")}
-        style={undefined}
+        style={{ display: "flex", flexDirection: "column" }}
       >
         {messages.length === 0
           ? (
@@ -613,7 +613,7 @@ function ChatViewInner({
                     (m) => m.model_id === activeConversation?.model_id,
                   );
                   return (
-                    <div style={{ padding: "0 16px" }}>
+                    <div style={{ padding: "0 16px", flexShrink: 0 }}>
                       <ContextGraphPanel
                         conversationTitle={activeConversation?.title}
                         conversationId={activeConversationId}
@@ -632,7 +632,7 @@ function ChatViewInner({
                 && msgState.hiddenEarlierCount
                   === msgState.allBubbleItems.length
                 && (
-                  <div style={{ textAlign: "center", padding: "8px 0" }}>
+                  <div style={{ textAlign: "center", padding: "8px 0", flexShrink: 0 }}>
                     <Button
                       size="small"
                       type="link"
@@ -654,7 +654,8 @@ function ChatViewInner({
                 className="msg-list-scroll-box"
                 onScroll={scroll.handleBubbleListScroll}
                 style={{
-                  height: "100%",
+                  flex: "1 1 0%",
+                  minHeight: 0,
                   padding: settings.chat_minimap_enabled
                       && settings.chat_minimap_style === "sticky"
                     ? "50px 24px 16px 24px"

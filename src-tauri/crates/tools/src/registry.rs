@@ -907,7 +907,7 @@ impl UnifiedToolRegistry {
         let success = result.is_ok();
         let output_content = result.as_ref().map(|r| &r.content).map(|c| {
             if c.len() > 200 {
-                format!("{}...", &c[..200])
+                format!("{}...", c.chars().take(200).collect::<String>())
             } else {
                 c.clone()
             }
