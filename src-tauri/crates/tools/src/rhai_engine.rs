@@ -6,6 +6,12 @@
 use rhai::{AST, Engine, Scope};
 use std::collections::HashMap;
 use std::sync::Arc;
+use std::sync::LazyLock;
+
+static SHARED_RHAI_RUNTIME: LazyLock<std::sync::Arc<tokio::runtime::Runtime>> =
+    LazyLock::new(|| {
+        std::sync::Arc::new(tokio::runtime::Runtime::new().expect("failed to create Rhai runtime"))
+    });
 
 pub type RhaiScriptCache = HashMap<String, Arc<AST>>;
 
@@ -66,7 +72,7 @@ pub fn execute_rhai_ast(
 
     // 注入 tool() 函数 —— 共享一个独立 Runtime，避免每次调用都创建线程池
     let rt = if tools.is_some() {
-        Some(Arc::new(tokio::runtime::Runtime::new().unwrap()))
+        Some(SHARED_RHAI_RUNTIME.clone())
     } else {
         None
     };

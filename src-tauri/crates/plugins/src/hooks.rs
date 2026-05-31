@@ -252,8 +252,8 @@ impl HookRunner {
         command: &str,
         event: HookEvent,
         tool_name: &str,
-        tool_input: &str,
-        tool_output: Option<&str>,
+        _tool_input: &str,
+        _tool_output: Option<&str>,
         is_error: bool,
         payload: &str,
         timeout: Duration,
@@ -264,11 +264,7 @@ impl HookRunner {
         child.stderr(std::process::Stdio::piped());
         child.env("HOOK_EVENT", event.as_str());
         child.env("HOOK_TOOL_NAME", tool_name);
-        child.env("HOOK_TOOL_INPUT", tool_input);
         child.env("HOOK_TOOL_IS_ERROR", if is_error { "1" } else { "0" });
-        if let Some(tool_output) = tool_output {
-            child.env("HOOK_TOOL_OUTPUT", tool_output);
-        }
 
         match child.spawn_with_timeout(payload.as_bytes(), timeout) {
             Ok(TimeoutOutput::Completed(output)) => {

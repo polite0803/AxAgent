@@ -192,6 +192,39 @@ pub struct SdkPluginRegistry {
     plugins: RwLock<HashMap<String, SdkPluginEntry>>,
 }
 
+fn infer_permissions_for_tool(tool: &PluginToolDef) -> Vec<PluginPermission> {
+    let schema_str = tool.input_schema.to_string().to_lowercase();
+    let mut perms = Vec::new();
+    if schema_str.contains("path")
+        || schema_str.contains("file")
+        || schema_str.contains("directory")
+    {
+        perms.push(PluginPermission::FileSystemRead);
+    }
+    if schema_str.contains("write")
+        || schema_str.contains("save")
+        || schema_str.contains("delete")
+        || schema_str.contains("create")
+    {
+        perms.push(PluginPermission::FileSystemWrite);
+    }
+    if schema_str.contains("url")
+        || schema_str.contains("fetch")
+        || schema_str.contains("request")
+        || schema_str.contains("api")
+    {
+        perms.push(PluginPermission::NetworkAccess);
+    }
+    if schema_str.contains("command")
+        || schema_str.contains("exec")
+        || schema_str.contains("shell")
+        || schema_str.contains("run")
+    {
+        perms.push(PluginPermission::SubprocessExecution);
+    }
+    perms
+}
+
 impl SdkPluginRegistry {
     pub fn new() -> Self {
         Self {
@@ -261,6 +294,11 @@ impl SdkPluginRegistry {
             return Err(format!("SDK plugin '{}' is not initialized", plugin_id));
         }
         let plugin = entry.plugin.read().await;
+        let tool_def = plugin.manifest().tools.iter().find(|t| t.name == tool_name);
+        if let Some(tool) = tool_def {
+            let required_perms: Vec<PluginPermission> = infer_permissions_for_tool(tool);
+            self.check_permissions(plugin_id, &required_perms)?;
+        }
         plugin.execute_tool(tool_name, input, ctx).await
     }
 
@@ -311,8 +349,42 @@ impl Default for SdkPluginRegistry {
 static GLOBAL_SDK_PLUGINS: std::sync::LazyLock<SdkPluginRegistry> =
     std::sync::LazyLock::new(SdkPluginRegistry::default);
 
+#[cfg(not(test))]
 pub fn global_sdk_plugins() -> &'static SdkPluginRegistry {
     &GLOBAL_SDK_PLUGINS
+}
+
+#[cfg(test)]
+thread_local! {
+    static TEST_SDK_PLUGINS: std::cell::RefCell<Option<SdkPluginRegistry>> = const { std::cell::RefCell::new(None) };
+}
+
+#[cfg(test)]
+pub fn global_sdk_plugins() -> &'static SdkPluginRegistry {
+    use std::cell::RefCell;
+    static FALLBACK: std::sync::LazyLock<SdkPluginRegistry> =
+        std::sync::LazyLock::new(SdkPluginRegistry::default);
+    TEST_SDK_PLUGINS.with(|cell| {
+        if cell.borrow().is_some() {
+            unsafe { &*(&*cell.borrow() as *const SdkPluginRegistry) }
+        } else {
+            &FALLBACK
+        }
+    })
+}
+
+#[cfg(test)]
+pub fn set_test_sdk_plugins(registry: SdkPluginRegistry) {
+    TEST_SDK_PLUGINS.with(|cell| {
+        *cell.borrow_mut() = Some(registry);
+    });
+}
+
+#[cfg(test)]
+pub fn reset_test_sdk_plugins() {
+    TEST_SDK_PLUGINS.with(|cell| {
+        *cell.borrow_mut() = None;
+    });
 }
 
 pub async fn register_sdk_plugin(plugin: Box<dyn AxAgentPlugin>) -> Result<(), String> {

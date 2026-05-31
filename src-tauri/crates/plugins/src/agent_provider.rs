@@ -80,8 +80,41 @@ impl Default for PluginAgentRegistry {
 static GLOBAL_PLUGIN_AGENTS: std::sync::LazyLock<PluginAgentRegistry> =
     std::sync::LazyLock::new(PluginAgentRegistry::default);
 
+#[cfg(not(test))]
 pub fn global_plugin_agents() -> &'static PluginAgentRegistry {
     &GLOBAL_PLUGIN_AGENTS
+}
+
+#[cfg(test)]
+thread_local! {
+    static TEST_PLUGIN_AGENTS: std::cell::RefCell<Option<PluginAgentRegistry>> = const { std::cell::RefCell::new(None) };
+}
+
+#[cfg(test)]
+pub fn global_plugin_agents() -> &'static PluginAgentRegistry {
+    static FALLBACK: std::sync::LazyLock<PluginAgentRegistry> =
+        std::sync::LazyLock::new(PluginAgentRegistry::default);
+    TEST_PLUGIN_AGENTS.with(|cell| {
+        if cell.borrow().is_some() {
+            unsafe { &*(&*cell.borrow() as *const PluginAgentRegistry) }
+        } else {
+            &FALLBACK
+        }
+    })
+}
+
+#[cfg(test)]
+pub fn set_test_plugin_agents(registry: PluginAgentRegistry) {
+    TEST_PLUGIN_AGENTS.with(|cell| {
+        *cell.borrow_mut() = Some(registry);
+    });
+}
+
+#[cfg(test)]
+pub fn reset_test_plugin_agents() {
+    TEST_PLUGIN_AGENTS.with(|cell| {
+        *cell.borrow_mut() = None;
+    });
 }
 
 pub fn register_plugin_agents(plugin_id: &str, agents: &[PluginAgentDefInternal]) {

@@ -11,7 +11,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::sync::atomic::{AtomicU64, Ordering};
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
@@ -121,6 +121,17 @@ impl PluginLifecycle {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PluginDashboardPanel {
+    pub id: String,
+    pub title: String,
+    pub component_name: String,
+    pub position: String,
+    pub size: String,
+    #[serde(default)]
+    pub props: HashMap<String, String>,
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct PluginManifest {
     pub name: String,
@@ -142,6 +153,8 @@ pub struct PluginManifest {
     pub mcp_servers: Vec<PluginMcpServer>,
     pub skills: Vec<PluginSkillEntry>,
     pub agents: Vec<PluginAgentDefInternal>,
+    #[serde(default)]
+    pub dashboard_panels: Vec<PluginDashboardPanel>,
     #[serde(default)]
     pub dependencies: Vec<PluginDependency>,
     #[serde(default)]
@@ -188,11 +201,17 @@ pub struct PluginAgentDefInternal {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
+#[serde(rename_all = "snake_case")]
 pub enum PluginPermission {
     Read,
     Write,
     Execute,
+    FileSystemRead,
+    FileSystemWrite,
+    NetworkAccess,
+    SubprocessExecution,
+    ClipboardAccess,
+    NotificationAccess,
 }
 
 impl PluginPermission {
@@ -202,6 +221,12 @@ impl PluginPermission {
             Self::Read => "read",
             Self::Write => "write",
             Self::Execute => "execute",
+            Self::FileSystemRead => "file_system_read",
+            Self::FileSystemWrite => "file_system_write",
+            Self::NetworkAccess => "network_access",
+            Self::SubprocessExecution => "subprocess_execution",
+            Self::ClipboardAccess => "clipboard_access",
+            Self::NotificationAccess => "notification_access",
         }
     }
 
@@ -210,8 +235,40 @@ impl PluginPermission {
             "read" => Some(Self::Read),
             "write" => Some(Self::Write),
             "execute" => Some(Self::Execute),
+            "file_system_read" => Some(Self::FileSystemRead),
+            "file_system_write" => Some(Self::FileSystemWrite),
+            "network_access" => Some(Self::NetworkAccess),
+            "subprocess_execution" => Some(Self::SubprocessExecution),
+            "clipboard_access" => Some(Self::ClipboardAccess),
+            "notification_access" => Some(Self::NotificationAccess),
             _ => None,
         }
+    }
+
+    #[must_use]
+    pub fn implies_read(&self) -> bool {
+        matches!(
+            self,
+            Self::Read
+                | Self::FileSystemRead
+                | Self::Write
+                | Self::FileSystemWrite
+                | Self::Execute
+                | Self::SubprocessExecution
+        )
+    }
+
+    #[must_use]
+    pub fn implies_write(&self) -> bool {
+        matches!(
+            self,
+            Self::Write | Self::FileSystemWrite | Self::Execute | Self::SubprocessExecution
+        )
+    }
+
+    #[must_use]
+    pub fn implies_execute(&self) -> bool {
+        matches!(self, Self::Execute | Self::SubprocessExecution)
     }
 }
 
@@ -336,6 +393,8 @@ pub(crate) struct RawPluginManifest {
     #[serde(default)]
     pub agents: Vec<RawPluginAgentDef>,
     #[serde(default)]
+    pub dashboard_panels: Vec<PluginDashboardPanel>,
+    #[serde(default)]
     pub dependencies: Vec<PluginDependency>,
     #[serde(default)]
     pub integrity: Option<PluginIntegrity>,
@@ -407,14 +466,23 @@ impl PluginTool {
         declared_permissions: &[PluginPermission],
     ) -> Result<(), PluginError> {
         match self.required_permission {
-            PluginToolPermission::ReadOnly => Ok(()),
+            PluginToolPermission::ReadOnly => {
+                if !declared_permissions.iter().any(|p| p.implies_read()) {
+                    return Err(PluginError::CommandFailed(format!(
+                        "plugin tool `{}` requires read permission, but plugin `{}` only declares {:?}",
+                        self.definition.name,
+                        self.plugin_id,
+                        declared_permissions
+                            .iter()
+                            .map(|p| p.as_str())
+                            .collect::<Vec<_>>()
+                    )));
+                }
+                Ok(())
+            },
             PluginToolPermission::WorkspaceWrite => {
-                if declared_permissions.contains(&PluginPermission::Write)
-                    || declared_permissions.contains(&PluginPermission::Execute)
-                {
-                    Ok(())
-                } else {
-                    Err(PluginError::CommandFailed(format!(
+                if !declared_permissions.iter().any(|p| p.implies_write()) {
+                    return Err(PluginError::CommandFailed(format!(
                         "plugin tool `{}` requires workspace-write permission, but plugin `{}` only declares {:?}",
                         self.definition.name,
                         self.plugin_id,
@@ -422,14 +490,13 @@ impl PluginTool {
                             .iter()
                             .map(|p| p.as_str())
                             .collect::<Vec<_>>()
-                    )))
+                    )));
                 }
+                Ok(())
             },
             PluginToolPermission::DangerFullAccess => {
-                if declared_permissions.contains(&PluginPermission::Execute) {
-                    Ok(())
-                } else {
-                    Err(PluginError::CommandFailed(format!(
+                if !declared_permissions.iter().any(|p| p.implies_execute()) {
+                    return Err(PluginError::CommandFailed(format!(
                         "plugin tool `{}` requires danger-full-access permission, but plugin `{}` only declares {:?} (needs 'execute')",
                         self.definition.name,
                         self.plugin_id,
@@ -437,8 +504,9 @@ impl PluginTool {
                             .iter()
                             .map(|p| p.as_str())
                             .collect::<Vec<_>>()
-                    )))
+                    )));
                 }
+                Ok(())
             },
         }
     }
@@ -451,6 +519,8 @@ impl PluginTool {
         self.check_permission(declared_permissions)?;
         self.execute(input)
     }
+
+    const DEFAULT_TOOL_TIMEOUT_SECS: u64 = 60;
 
     pub fn execute(&self, input: &Value) -> Result<String, PluginError> {
         let input_json = input.to_string();
@@ -476,22 +546,44 @@ impl PluginTool {
             stdin.write_all(input_json.as_bytes())?;
         }
 
-        let output = child.wait_with_output()?;
-        if output.status.success() {
-            Ok(String::from_utf8_lossy(&output.stdout).trim().to_string())
-        } else {
-            let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
-            Err(PluginError::CommandFailed(format!(
-                "plugin tool `{}` from `{}` failed for `{}`: {}",
-                self.definition.name,
-                self.plugin_id,
-                self.command,
-                if stderr.is_empty() {
-                    format!("exit status {}", output.status)
-                } else {
-                    stderr
-                }
-            )))
+        let timeout = Duration::from_secs(Self::DEFAULT_TOOL_TIMEOUT_SECS);
+        let start = std::time::Instant::now();
+        loop {
+            match child.try_wait() {
+                Ok(Some(status)) => {
+                    let output = child.wait_with_output()?;
+                    if status.success() {
+                        return Ok(String::from_utf8_lossy(&output.stdout).trim().to_string());
+                    } else {
+                        let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+                        return Err(PluginError::CommandFailed(format!(
+                            "plugin tool `{}` from `{}` failed for `{}`: {}",
+                            self.definition.name,
+                            self.plugin_id,
+                            self.command,
+                            if stderr.is_empty() {
+                                format!("exit status {}", status)
+                            } else {
+                                stderr
+                            }
+                        )));
+                    }
+                },
+                Ok(None) => {
+                    if start.elapsed() >= timeout {
+                        let _ = child.kill();
+                        let _ = child.wait();
+                        return Err(PluginError::CommandFailed(format!(
+                            "plugin tool `{}` from `{}` timed out after {}s",
+                            self.definition.name,
+                            self.plugin_id,
+                            timeout.as_secs()
+                        )));
+                    }
+                    std::thread::sleep(Duration::from_millis(50));
+                },
+                Err(e) => return Err(PluginError::Io(e)),
+            }
         }
     }
 }
@@ -614,6 +706,17 @@ impl Plugin for BuiltinPlugin {
     }
 
     fn validate(&self) -> Result<(), PluginError> {
+        if self.metadata.name.trim().is_empty() {
+            return Err(PluginError::InvalidManifest(
+                "builtin plugin name cannot be empty".to_string(),
+            ));
+        }
+        if self.metadata.version.trim().is_empty() {
+            return Err(PluginError::InvalidManifest(format!(
+                "builtin plugin `{}` version cannot be empty",
+                self.metadata.id
+            )));
+        }
         Ok(())
     }
 
@@ -1175,7 +1278,7 @@ impl Display for PluginManifestValidationError {
             Self::InvalidPermission { permission } => {
                 write!(
                     f,
-                    "plugin manifest permission `{permission}` must be one of read, write, or execute"
+                    "plugin manifest permission `{permission}` must be one of read, write, execute, file_system_read, file_system_write, network_access, subprocess_execution, clipboard_access, or notification_access"
                 )
             },
             Self::DuplicatePermission { permission } => {
@@ -1369,9 +1472,7 @@ impl PluginManager {
     ) -> Result<(), PluginError> {
         match integrity.algorithm.as_str() {
             "sha256" => {
-                let manifest_path = plugin_manifest_path(plugin_root)?;
-                let data = fs::read(&manifest_path).map_err(PluginError::Io)?;
-                let hash = sha256_hash(&data);
+                let hash = hash_plugin_directory(plugin_root)?;
                 if hash.eq_ignore_ascii_case(&integrity.hash) {
                     Ok(())
                 } else {
@@ -1540,6 +1641,29 @@ impl PluginManager {
         let record = registry.plugins.remove(plugin_id).ok_or_else(|| {
             PluginError::NotFound(format!("plugin `{plugin_id}` is not installed"))
         })?;
+        let remaining_plugins: Vec<&InstalledPluginRecord> = registry
+            .plugins
+            .values()
+            .filter(|r| r.id != plugin_id)
+            .collect();
+        let mut dependents = Vec::new();
+        for other in &remaining_plugins {
+            if let Ok(other_manifest) = load_plugin_from_directory(&other.install_path) {
+                for dep in &other_manifest.dependencies {
+                    if dep.plugin_name == record.name {
+                        dependents.push(other.name.clone());
+                        break;
+                    }
+                }
+            }
+        }
+        if !dependents.is_empty() {
+            registry.plugins.insert(plugin_id.to_string(), record);
+            return Err(PluginError::CommandFailed(format!(
+                "cannot uninstall plugin `{plugin_id}`: other plugins depend on it: {}",
+                dependents.join(", ")
+            )));
+        }
         if record.kind == PluginKind::Bundled {
             registry.plugins.insert(plugin_id.to_string(), record);
             return Err(PluginError::CommandFailed(format!(
@@ -1568,6 +1692,7 @@ impl PluginManager {
         let staged_source = materialize_source(&record.source, &temp_root)?;
         let cleanup_source = matches!(record.source, PluginInstallSource::GitUrl { .. });
         let manifest = load_plugin_from_directory(&staged_source)?;
+        self.validate_dependencies(&manifest)?;
 
         if record.install_path.exists() {
             fs::remove_dir_all(&record.install_path)?;
@@ -2019,73 +2144,51 @@ fn load_manifest_from_skill_md(
     let mut shutdown_commands: Vec<String> = Vec::new();
     let mut default_enabled = true;
 
-    let lines: Vec<&str> = contents.lines().collect();
-    if lines.first().map(|l| l.trim()) == Some("---") {
-        let mut in_frontmatter = false;
-        let mut current_list_key: Option<String> = None;
-        for line in &lines[1..] {
-            let trimmed = line.trim();
-            if trimmed == "---" {
-                if in_frontmatter {
-                    break;
-                }
-                in_frontmatter = true;
-                continue;
-            }
-            if !in_frontmatter {
-                in_frontmatter = true;
-            }
+    if let Some(frontmatter) = extract_yaml_frontmatter(&contents) {
+        let parsed = parse_yaml_frontmatter(&frontmatter);
 
-            if trimmed.is_empty() {
-                current_list_key = None;
-                continue;
-            }
+        if let Some(v) = parsed.get("name").and_then(|v| v.as_str()) {
+            name = v.to_string();
+        }
+        if let Some(v) = parsed.get("description").and_then(|v| v.as_str()) {
+            description = v.to_string();
+        }
+        if let Some(v) = parsed.get("version").and_then(|v| v.as_str()) {
+            version = v.to_string();
+        }
+        if let Some(v) = parsed
+            .get("default_enabled")
+            .or(parsed.get("defaultEnabled"))
+        {
+            default_enabled = v
+                .as_bool()
+                .unwrap_or(v.as_str().map_or(true, |s| s.eq_ignore_ascii_case("true")));
+        }
 
-            if let Some(list_key) = &current_list_key {
-                if let Some(stripped) = trimmed.strip_prefix("- ") {
-                    let item = stripped.trim().trim_matches('"').trim_matches('\'');
-                    match list_key.as_str() {
-                        "permissions" => permissions.push(item.to_string()),
-                        "pre_tool_use" | "PreToolUse" => pre_tool_use.push(item.to_string()),
-                        "post_tool_use" | "PostToolUse" => post_tool_use.push(item.to_string()),
-                        "post_tool_use_failure" | "PostToolUseFailure" => {
-                            post_tool_use_failure.push(item.to_string())
-                        },
-                        "init" | "Init" => init_commands.push(item.to_string()),
-                        "shutdown" | "Shutdown" => shutdown_commands.push(item.to_string()),
-                        _ => {},
+        for key in &["permissions"] {
+            if let Some(items) = parsed.get(*key).and_then(|v| v.as_array()) {
+                for item in items {
+                    if let Some(s) = item.as_str() {
+                        permissions.push(s.to_string());
                     }
-                    continue;
-                } else {
-                    current_list_key = None;
                 }
             }
+        }
 
-            if let Some((key, value)) = trimmed.split_once(':') {
-                let val = value.trim().trim_matches('"').trim_matches('\'');
-                match key.trim() {
-                    "name" => name = val.to_string(),
-                    "description" => description = val.to_string(),
-                    "version" => version = val.to_string(),
-                    "default_enabled" | "defaultEnabled" => {
-                        default_enabled = val.eq_ignore_ascii_case("true");
-                    },
-                    "permissions"
-                    | "pre_tool_use"
-                    | "PreToolUse"
-                    | "post_tool_use"
-                    | "PostToolUse"
-                    | "post_tool_use_failure"
-                    | "PostToolUseFailure"
-                    | "init"
-                    | "Init"
-                    | "shutdown"
-                    | "Shutdown"
-                        if val.is_empty() =>
-                    {
-                        current_list_key = Some(key.trim().to_string());
-                    },
-                    _ => {},
+        for (target, key_names) in [
+            (&mut pre_tool_use, vec!["pre_tool_use", "PreToolUse"]),
+            (&mut post_tool_use, vec!["post_tool_use", "PostToolUse"]),
+            (&mut post_tool_use_failure, vec!["post_tool_use_failure", "PostToolUseFailure"]),
+            (&mut init_commands, vec!["init", "Init"]),
+            (&mut shutdown_commands, vec!["shutdown", "Shutdown"]),
+        ] {
+            for key_name in key_names {
+                if let Some(items) = parsed.get(key_name).and_then(|v| v.as_array()) {
+                    for item in items {
+                        if let Some(s) = item.as_str() {
+                            target.push(s.to_string());
+                        }
+                    }
                 }
             }
         }
@@ -2123,6 +2226,115 @@ fn load_manifest_from_skill_md(
         integrity: None,
     };
     Ok(manifest)
+}
+
+fn extract_yaml_frontmatter(contents: &str) -> Option<String> {
+    let lines: Vec<&str> = contents.lines().collect();
+    if lines.first().map(|l| l.trim()) != Some("---") {
+        return None;
+    }
+    let mut end_idx = None;
+    for (i, line) in lines.iter().enumerate().skip(1) {
+        if line.trim() == "---" {
+            end_idx = Some(i);
+            break;
+        }
+    }
+    let end = end_idx?;
+    Some(lines[1..end].join("\n"))
+}
+
+#[derive(Debug, Clone)]
+enum YamlValue {
+    String(String),
+    Bool(bool),
+    Array(Vec<YamlValue>),
+}
+
+impl YamlValue {
+    fn as_str(&self) -> Option<&str> {
+        match self {
+            YamlValue::String(s) => Some(s),
+            _ => None,
+        }
+    }
+
+    fn as_bool(&self) -> Option<bool> {
+        match self {
+            YamlValue::Bool(b) => Some(*b),
+            _ => None,
+        }
+    }
+
+    fn as_array(&self) -> Option<&Vec<YamlValue>> {
+        match self {
+            YamlValue::Array(arr) => Some(arr),
+            _ => None,
+        }
+    }
+}
+
+fn parse_yaml_frontmatter(frontmatter: &str) -> std::collections::HashMap<String, YamlValue> {
+    let mut result = std::collections::HashMap::new();
+    let mut current_key: Option<String> = None;
+    let mut current_array: Vec<YamlValue> = Vec::new();
+
+    for line in frontmatter.lines() {
+        let trimmed = line.trim();
+
+        if trimmed.is_empty() {
+            if let Some(key) = current_key.take() {
+                if !current_array.is_empty() {
+                    result.insert(key, YamlValue::Array(std::mem::take(&mut current_array)));
+                }
+            }
+            continue;
+        }
+
+        if let Some(stripped) = trimmed.strip_prefix("- ") {
+            if current_key.is_some() {
+                let item = parse_yaml_scalar(stripped.trim());
+                current_array.push(item);
+            }
+            continue;
+        }
+
+        if let Some(key) = current_key.take() {
+            if !current_array.is_empty() {
+                result.insert(key, YamlValue::Array(std::mem::take(&mut current_array)));
+            }
+        }
+
+        if let Some((key, value)) = trimmed.split_once(':') {
+            let key = key.trim().to_string();
+            let value_part = value.trim();
+            if value_part.is_empty() {
+                current_key = Some(key);
+                current_array.clear();
+            } else {
+                result.insert(key, parse_yaml_scalar(value_part));
+            }
+        }
+    }
+
+    if let Some(key) = current_key.take() {
+        if !current_array.is_empty() {
+            result.insert(key, YamlValue::Array(current_array));
+        }
+    }
+
+    result
+}
+
+fn parse_yaml_scalar(value: &str) -> YamlValue {
+    let unquoted = value.trim_matches('"').trim_matches('\'');
+    if unquoted.eq_ignore_ascii_case("true") {
+        YamlValue::Bool(true)
+    } else if unquoted.eq_ignore_ascii_case("false") {
+        YamlValue::Bool(false)
+    } else {
+        YamlValue::String(unquoted.to_string())
+    }
 }
 
 fn load_manifest_from_path(
@@ -2268,6 +2480,7 @@ fn build_plugin_manifest(
                 system_prompt: r.system_prompt,
             })
             .collect(),
+        dashboard_panels: raw.dashboard_panels,
         dependencies: raw.dependencies,
         integrity: raw.integrity,
     })
@@ -2792,7 +3005,14 @@ fn discover_plugin_dirs(root: &Path) -> Result<Vec<PathBuf>, PluginError> {
 }
 
 fn plugin_id(name: &str, marketplace: &str) -> String {
-    format!("{name}@{marketplace}")
+    let normalized = name.trim().to_lowercase();
+    let mut hasher = sha2::Sha256::new();
+    use sha2::Digest;
+    hasher.update(normalized.as_bytes());
+    hasher.update(marketplace.as_bytes());
+    let hash = hasher.finalize();
+    let short_hash = &format!("{:x}", hash)[..8];
+    format!("{}@{}#{}", normalized, marketplace, short_hash)
 }
 
 fn sanitize_plugin_id(plugin_id: &str) -> String {
@@ -2880,11 +3100,17 @@ fn env_lock() -> &'static std::sync::Mutex<()> {
 }
 
 fn version_satisfies(installed: &str, required: &str) -> bool {
-    let installed_parts: Vec<u32> = installed
+    let installed_clean = strip_prerelease(installed);
+    let required_clean = strip_prerelease(required);
+
+    let installed_parts: Vec<u32> = installed_clean
         .split('.')
         .filter_map(|s| s.parse().ok())
         .collect();
-    let required_parts: Vec<u32> = required.split('.').filter_map(|s| s.parse().ok()).collect();
+    let required_parts: Vec<u32> = required_clean
+        .split('.')
+        .filter_map(|s| s.parse().ok())
+        .collect();
 
     for i in 0..required_parts.len().max(installed_parts.len()) {
         let installed_val = installed_parts.get(i).copied().unwrap_or(0);
@@ -2896,7 +3122,20 @@ fn version_satisfies(installed: &str, required: &str) -> bool {
             return false;
         }
     }
+
+    let installed_has_prerelease = installed.contains('-');
+    let required_has_prerelease = required.contains('-');
+
+    if installed_has_prerelease && !required_has_prerelease {
+        let installed_base_eq = installed_parts == required_parts;
+        return !installed_base_eq;
+    }
+
     true
+}
+
+fn strip_prerelease(version: &str) -> &str {
+    version.split('-').next().unwrap_or(version)
 }
 
 fn sha256_hash(data: &[u8]) -> String {
@@ -2907,6 +3146,49 @@ fn sha256_hash(data: &[u8]) -> String {
         write!(result, "{byte:02x}").expect("writing to String should never fail");
     }
     result
+}
+
+fn hash_plugin_directory(plugin_root: &Path) -> Result<String, PluginError> {
+    let mut hasher = sha2::Sha256::new();
+    let mut files: Vec<PathBuf> = Vec::new();
+    collect_files_recursive(plugin_root, &mut files)?;
+    files.sort();
+
+    for file_path in &files {
+        let data = fs::read(file_path).map_err(PluginError::Io)?;
+        use sha2::Digest;
+        hasher.update(
+            file_path
+                .strip_prefix(plugin_root)
+                .unwrap_or(file_path)
+                .to_string_lossy()
+                .as_bytes(),
+        );
+        hasher.update(&data);
+    }
+
+    use sha2::Digest;
+    let result = hasher.finalize();
+    let mut hash_str = String::with_capacity(result.len() * 2);
+    for byte in result {
+        use std::fmt::Write;
+        write!(hash_str, "{byte:02x}").expect("writing to String should never fail");
+    }
+    Ok(hash_str)
+}
+
+fn collect_files_recursive(dir: &Path, files: &mut Vec<PathBuf>) -> Result<(), PluginError> {
+    let entries = fs::read_dir(dir).map_err(PluginError::Io)?;
+    for entry in entries {
+        let entry = entry.map_err(PluginError::Io)?;
+        let path = entry.path();
+        if path.is_dir() {
+            collect_files_recursive(&path, files)?;
+        } else {
+            files.push(path);
+        }
+    }
+    Ok(())
 }
 
 #[cfg(test)]

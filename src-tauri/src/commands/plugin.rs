@@ -5,7 +5,7 @@ use crate::app_state::AppState;
 /// 列出已安装插件
 #[command]
 pub fn plugin_list(state: State<'_, AppState>) -> Result<Vec<PluginSummaryDto>, String> {
-    let manager = state.plugin_manager.lock().map_err(|e| e.to_string())?;
+    let manager = state.plugin_manager.read().map_err(|e| e.to_string())?;
     manager
         .list_plugins()
         .map(|plugins| {
@@ -33,7 +33,7 @@ pub fn plugin_validate_source(
     state: State<'_, AppState>,
     source: String,
 ) -> Result<PluginManifestDto, String> {
-    let manager = state.plugin_manager.lock().map_err(|e| e.to_string())?;
+    let manager = state.plugin_manager.read().map_err(|e| e.to_string())?;
     let manifest = manager
         .validate_plugin_source(&source)
         .map_err(|e| e.to_string())?;
@@ -106,7 +106,7 @@ pub fn plugin_install(
     state: State<'_, AppState>,
     source: String,
 ) -> Result<InstallOutcomeDto, String> {
-    let mut manager = state.plugin_manager.lock().map_err(|e| e.to_string())?;
+    let mut manager = state.plugin_manager.write().map_err(|e| e.to_string())?;
     let outcome = manager.install(&source).map_err(|e| e.to_string())?;
     Ok(InstallOutcomeDto {
         plugin_id: outcome.plugin_id,
@@ -118,21 +118,21 @@ pub fn plugin_install(
 /// 启用插件
 #[command]
 pub fn plugin_enable(state: State<'_, AppState>, plugin_id: String) -> Result<(), String> {
-    let mut manager = state.plugin_manager.lock().map_err(|e| e.to_string())?;
+    let mut manager = state.plugin_manager.write().map_err(|e| e.to_string())?;
     manager.enable(&plugin_id).map_err(|e| e.to_string())
 }
 
 /// 禁用插件
 #[command]
 pub fn plugin_disable(state: State<'_, AppState>, plugin_id: String) -> Result<(), String> {
-    let mut manager = state.plugin_manager.lock().map_err(|e| e.to_string())?;
+    let mut manager = state.plugin_manager.write().map_err(|e| e.to_string())?;
     manager.disable(&plugin_id).map_err(|e| e.to_string())
 }
 
 /// 卸载插件
 #[command]
 pub fn plugin_uninstall(state: State<'_, AppState>, plugin_id: String) -> Result<(), String> {
-    let mut manager = state.plugin_manager.lock().map_err(|e| e.to_string())?;
+    let mut manager = state.plugin_manager.write().map_err(|e| e.to_string())?;
     manager.uninstall(&plugin_id).map_err(|e| e.to_string())
 }
 
@@ -142,7 +142,7 @@ pub fn plugin_update(
     state: State<'_, AppState>,
     plugin_id: String,
 ) -> Result<UpdateOutcomeDto, String> {
-    let mut manager = state.plugin_manager.lock().map_err(|e| e.to_string())?;
+    let mut manager = state.plugin_manager.write().map_err(|e| e.to_string())?;
     let outcome = manager.update(&plugin_id).map_err(|e| e.to_string())?;
     Ok(UpdateOutcomeDto {
         plugin_id: outcome.plugin_id,

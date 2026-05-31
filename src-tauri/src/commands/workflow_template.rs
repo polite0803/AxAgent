@@ -79,31 +79,6 @@ pub async fn get_workflow_template(
         .await
         .map_err(|e| e.to_string())?;
 
-    // Auto-migrate legacy Tool/Code nodes to Agent nodes on load
-    if let Some(ref m) = template {
-        let mut nodes: Vec<axagent_core::workflow_types::WorkflowNode> =
-            serde_json::from_str(&m.nodes).map_err(|e| e.to_string())?;
-
-        if axagent_core::workflow_types::WorkflowMigrator::has_legacy_nodes(&nodes) {
-            axagent_core::workflow_types::WorkflowMigrator::migrate(&mut nodes);
-            let updated_nodes_str = serde_json::to_string(&nodes).map_err(|e| e.to_string())?;
-
-            // Persist the migrated nodes back
-            let active_model = axagent_core::entity::workflow_template::ActiveModel {
-                id: sea_orm::ActiveValue::Unchanged(m.id.clone()),
-                nodes: sea_orm::ActiveValue::Set(updated_nodes_str),
-                ..Default::default()
-            };
-            active_model.update(db).await.map_err(|e| e.to_string())?;
-
-            // Re-fetch to get the updated template
-            let updated = db_repo::get_workflow_template(db, &id)
-                .await
-                .map_err(|e| e.to_string())?;
-            return Ok(updated.map(WorkflowTemplateResponse::from));
-        }
-    }
-
     Ok(template.map(WorkflowTemplateResponse::from))
 }
 
@@ -1502,14 +1477,7 @@ async fn do_import_workflow(
         let template: WorkflowTemplateResponse = serde_json::from_value(raw_json)
             .map_err(|e| format!("Invalid AxAgent format: {}", e))?;
 
-        let mut nodes = template.nodes.clone();
-        let migrated_nodes: Vec<axagent_core::workflow_types::WorkflowNode> =
-            if axagent_core::workflow_types::WorkflowMigrator::has_legacy_nodes(&nodes) {
-                axagent_core::workflow_types::WorkflowMigrator::migrate(&mut nodes);
-                nodes
-            } else {
-                nodes
-            };
+        let nodes = template.nodes.clone();
 
         let now = chrono::Utc::now().timestamp_millis();
         WorkflowTemplateData {
@@ -1523,7 +1491,7 @@ async fn do_import_workflow(
             is_editable: true,
             is_public: false,
             trigger_config: template.trigger_config,
-            nodes: migrated_nodes,
+            nodes,
             edges: template.edges,
             input_schema: template.input_schema,
             output_schema: template.output_schema,

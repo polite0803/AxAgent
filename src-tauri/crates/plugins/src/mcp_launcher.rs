@@ -129,6 +129,7 @@ impl McpLauncher {
 
         let mut cmd = Command::new(&server.command);
         cmd.args(&server.args);
+        cmd.stdin(Stdio::piped());
         cmd.stdout(Stdio::piped());
         cmd.stderr(Stdio::piped());
         cmd.env("CLAWD_PLUGIN_ID", plugin_id);
@@ -160,16 +161,54 @@ impl McpLauncher {
                 },
                 Ok(None) => {
                     if start.elapsed() >= self.startup_timeout {
-                        info!(
-                            "mcp: server `{}` for plugin `{}` assumed healthy after polling (pid {})",
-                            server.name,
-                            plugin_id,
-                            child.id()
-                        );
-                        return Ok(RunningMcpProcess {
-                            child,
-                            server_name: server.name.clone(),
-                        });
+                        let stdin_pipe = child.stdin.take();
+                        let is_responsive = if let Some(mut stdin_pipe) = stdin_pipe {
+                            let init_request = serde_json::json!({
+                                "jsonrpc": "2.0",
+                                "id": 1,
+                                "method": "initialize",
+                                "params": {
+                                    "protocolVersion": "2024-11-05",
+                                    "capabilities": {},
+                                    "clientInfo": {"name": "axagent", "version": "1.0.0"}
+                                }
+                            });
+                            let request_str = format!("{}\n", init_request);
+                            use std::io::Write;
+                            match stdin_pipe.write_all(request_str.as_bytes()) {
+                                Ok(()) => {
+                                    drop(stdin_pipe);
+                                    child.stdin = None;
+                                    true
+                                },
+                                Err(_) => false,
+                            }
+                        } else {
+                            true
+                        };
+
+                        if is_responsive {
+                            info!(
+                                "mcp: server `{}` for plugin `{}` started successfully (pid {})",
+                                server.name,
+                                plugin_id,
+                                child.id()
+                            );
+                            Ok(RunningMcpProcess {
+                                child,
+                                server_name: server.name.clone(),
+                            })
+                        } else {
+                            warn!(
+                                "mcp: server `{}` for plugin `{}` failed health check (pid {})",
+                                server.name,
+                                plugin_id,
+                                child.id()
+                            );
+                            let _ = child.kill();
+                            let _ = child.wait();
+                            Err(McpLaunchError::StartupTimeout(server.name.clone()))
+                        }
                     }
                     std::thread::sleep(poll_interval);
                 },

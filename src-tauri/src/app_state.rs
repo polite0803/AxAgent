@@ -261,7 +261,7 @@ pub struct AppState {
     #[cfg(target_os = "android")]
     pub sandbox_executor: Arc<()>,
     pub sync_engine: Option<Arc<SyncEngine>>,
-    pub plugin_manager: std::sync::Mutex<PluginManager>,
+    pub plugin_manager: std::sync::RwLock<PluginManager>,
     pub file_authorizer: Arc<FileAuthorizer>,
     pub session_share_manager: SessionShareStore,
 }
