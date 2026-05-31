@@ -24,7 +24,7 @@ type RoleType = Record<
 >;
 
 interface BubbleListRef {
-  scrollBoxNativeElement: HTMLElement | null;
+  scrollBoxNativeElement?: HTMLElement | null;
 }
 
 // Local replacement for @ant-design/x Actions
@@ -61,7 +61,6 @@ function Actions({ items, onActionClick }: { items: ActionItem[]; onActionClick?
   );
 }
 import { ModelIcon } from "@lobehub/icons";
-import { useVirtualizer } from "@tanstack/react-virtual";
 import { Alert, App, Avatar, Input, Modal, Popconfirm, Spin, Tag, theme, Typography } from "antd";
 import {
   ArrowDown,
@@ -611,7 +610,7 @@ export function useChatViewMessages({
   streaming,
   compressing,
   bubbleStyle,
-  bubbleListRef,
+  bubbleListRef: _bubbleListRef,
   handleEditMessage,
 }: ChatViewMessagesProps) {
   const { t } = useTranslation();
@@ -958,32 +957,11 @@ export function useChatViewMessages({
     topicGroupsByConv,
   ]);
 
-  const ESTIMATED_BUBBLE_HEIGHT = 200;
-  const VIRTUAL_OVERSCAN = 8;
-  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
-  const virtualizer = useVirtualizer({
-    count: allBubbleItems.length,
-    getScrollElement: () => scrollContainerRef.current,
-    estimateSize: () => ESTIMATED_BUBBLE_HEIGHT,
-    overscan: VIRTUAL_OVERSCAN,
-  });
-
-  useEffect(() => {
-    const nativeEl = bubbleListRef.current?.scrollBoxNativeElement ?? bubbleListRef.current;
-    if (nativeEl && nativeEl !== scrollContainerRef.current) {
-      scrollContainerRef.current = nativeEl as HTMLDivElement;
-      virtualizer.measure();
-    }
-  });
-
   const visibleBubbleItems = useMemo(() => {
     return allBubbleItems;
   }, [allBubbleItems]);
 
-  const hiddenEarlierCount = useMemo(() => {
-    const range = virtualizer.range;
-    return range ? range.startIndex : 0;
-  }, [virtualizer.range]);
+  const hiddenEarlierCount = 0;
 
   const aiContentNodesCacheRef = useRef<
     Map<string, { content: string; nodes: ChatMarkdownNode[] }>
@@ -2096,7 +2074,6 @@ export function useChatViewMessages({
     hiddenEarlierCount,
     lastBubbleKey,
     roles,
-    virtualizer,
     bubbleItems,
     summaryModalOpen,
     setSummaryModalOpen,

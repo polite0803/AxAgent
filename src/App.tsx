@@ -240,7 +240,6 @@ function AppInner() {
                     <div
                       className="ax-page-transition"
                       style={{ flex: 1, display: "flex", overflow: "hidden" }}
-                      key={location.pathname}
                     >
                       <ContentArea />
                     </div>

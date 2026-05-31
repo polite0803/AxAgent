@@ -21,3 +21,33 @@ export function preloadChatRenderers(): Promise<void> {
 
   return preloadPromise;
 }
+
+let pagesPreloaded = false;
+
+export function preloadCommonPages(): void {
+  if (pagesPreloaded) {
+    return;
+  }
+  pagesPreloaded = true;
+
+  const win = window as Window & {
+    requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number;
+  };
+
+  const doPreload = () => {
+    Promise.all([
+      import("@/pages/KnowledgeHubPage"),
+      import("@/pages/GatewayLinkPage"),
+      import("@/pages/SettingsPage"),
+      import("@/pages/TerminalPage"),
+      import("@/pages/FilesPage"),
+      import("@/pages/WorkflowPage"),
+    ]).catch(() => {});
+  };
+
+  if (typeof win.requestIdleCallback === "function") {
+    win.requestIdleCallback(doPreload, { timeout: 3000 });
+  } else {
+    setTimeout(doPreload, 1000);
+  }
+}

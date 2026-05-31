@@ -246,11 +246,11 @@ button,
 
 /* ── Animation system ─────────────────────────────────────────────── */
 
-/* Page enter: fade + slide — 0.25s 足够感知但不造成卡滞 */
+/* Page enter: fade + slide — 0.1s 快速过渡 */
 @keyframes ax-page-enter {
   from {
     opacity: 0;
-    transform: translateY(8px);
+    transform: translateY(4px);
   }
   to {
     opacity: 1;
@@ -258,7 +258,7 @@ button,
   }
 }
 .ax-page-transition {
-  animation: ax-page-enter 0.25s ease-out;
+  animation: ax-page-enter 0.1s ease-out;
 }
 
 /* 移动端浮动导航面板弹入动画 */
@@ -1284,26 +1284,18 @@ html[data-theme="dark"] .markstream-react .table-node thead {
    ── Landscape-specific layout fixes ───────────────────────────
    ═══════════════════════════════════════════════════════════════ */
 @media (orientation: landscape) and (max-height: 600px) {
-  /* Chat bubbles: reduce vertical padding */
-  .msg-row {
-    margin-bottom: 4px !important;
-  }
-
-  .msg-content {
-    padding: 6px 10px !important;
-  }
-
-  /* Input area: compact in landscape */
-
-
-  /* Hide scrollbar in landscape for more space */
   .msg-list-scroll-box {
+    gap: 4px !important;
     scrollbar-width: none !important;
     -ms-overflow-style: none !important;
   }
 
   .msg-list-scroll-box::-webkit-scrollbar {
     display: none !important;
+  }
+
+  .msg-content {
+    padding: 6px 10px !important;
   }
 
   /* Modal: fit landscape height */
@@ -1361,7 +1353,7 @@ html[data-theme="dark"] .markstream-react .table-node thead {
 /* 移动端：动画保留但更轻更快 */
 @media (max-width: 600px) {
   .ax-page-transition {
-    animation: ax-page-enter 0.12s ease-out;
+    animation: ax-page-enter 0.08s ease-out;
   }
 
   .ax-cyber-border::before {
@@ -2021,6 +2013,7 @@ html[data-theme="dark"] .markstream-react .table-node thead {
   display: flex;
   gap: 10px;
   align-items: flex-start;
+  flex-shrink: 0;
 }
 .msg-avatar {
   width: 30px;
@@ -2052,6 +2045,8 @@ html[data-theme="dark"] .markstream-react .table-node thead {
   line-height: 1.65;
   color: var(--color-text);
   word-wrap: break-word;
+  overflow: hidden;
+  min-width: 0;
 }
 .msg-content p { margin-bottom: 6px; }
 .msg-content p:last-child { margin-bottom: 0; }
@@ -2109,10 +2104,6 @@ html[data-theme="dark"] .markstream-react .table-node thead {
 .msg-row.assistant .msg-body {
   width: 100%;
 }
-.msg-content {
-  overflow: hidden;
-  min-width: 0;
-}
 .msg-content .markstream-react {
   overflow: hidden;
   min-width: 0;
@@ -2143,8 +2134,8 @@ html[data-theme="dark"] .markstream-react .table-node thead {
   padding-inline-end: 0 !important;
   padding-inline-start: 0 !important;
 }
-.bubble-compact .msg-row {
-  margin-bottom: 4px;
+.bubble-compact .msg-list-scroll-box {
+  gap: 4px;
 }
 .bubble-compact .msg-content {
   padding: 6px 10px;

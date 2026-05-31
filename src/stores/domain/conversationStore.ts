@@ -74,6 +74,7 @@ export interface ConversationState {
   totalActiveCount: number;
   oldestLoadedMessageId: string | null;
   error: string | null;
+  _lastFetchTs?: number;
   /** Current streaming message ID (for streamStore compatibility) */
   streamingMessageId: string | null;
   /** Insert a context-clear marker into the conversation */
@@ -450,15 +451,19 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
   },
 
   fetchConversations: async () => {
+    const now = Date.now();
+    const state = get();
+    if (state._lastFetchTs && now - state._lastFetchTs < 30_000 && state.conversations.length > 0) {
+      return;
+    }
     set({ loading: true });
     try {
-      // 15s timeout — session list is a lightweight DB query, should be fast
       const conversations = await invoke<Conversation[]>(
         "list_conversations",
         undefined,
         15_000,
       );
-      set({ conversations, loading: false, error: null });
+      set({ conversations, loading: false, error: null, _lastFetchTs: now });
     } catch (e) {
       set({ error: String(e), loading: false });
     }

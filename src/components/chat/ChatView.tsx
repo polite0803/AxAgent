@@ -638,9 +638,10 @@ function ChatViewInner({
                       type="link"
                       loading={loadingOlder}
                       onClick={() => {
-                        msgState.virtualizer.scrollToIndex(0, {
-                          behavior: "smooth",
-                        });
+                        const scrollBox = scroll.scrollBoxRef.current;
+                        if (scrollBox) {
+                          scrollBox.scrollTo({ top: 0, behavior: "smooth" });
+                        }
                       }}
                     >
                       {t("chat.showAllMessages", {
@@ -664,6 +665,7 @@ function ChatViewInner({
                   overflowY: "auto",
                   display: "flex",
                   flexDirection: "column-reverse",
+                  gap: 10,
                 }}
               >
                 {msgState.visibleBubbleItems.map((item) => {
@@ -692,43 +694,43 @@ function ChatViewInner({
                     </div>
                   );
                 })}
-              </div>
-              {activeConversation?.session_type === "workflow"
-                && activeConversation?.workflow_status === "completed" && (
-                <WorkflowEndMarker
-                  workflowName={activeConversation.workflow_template_id
-                    ?? t("chat.workflowLabel")}
-                  stepCount={0}
-                  completedCount={0}
-                  durationSeconds={0}
-                  onArchive={() => {
-                    void toggleArchive(activeConversation.id);
-                  }}
-                />
-              )}
-              {workflowMatchSuggestion
-                && workflowMatchSuggestion.conversationId === activeConversation?.id
-                && activeConversation?.mode === "agent"
-                && (
-                  <WorkflowSuggestionCard
-                    match={{
-                      templateId: workflowMatchSuggestion.templateId,
-                      templateName: workflowMatchSuggestion.templateName,
-                      similarity: workflowMatchSuggestion.similarity,
-                    }}
-                    onSwitch={(templateId) => {
-                      void updateConversation(activeConversation.id, {
-                        session_type: "workflow",
-                        workflow_template_id: templateId,
-                      });
-                      fetchConversation();
-                      useAgentStore.getState().setWorkflowMatchSuggestion(null);
-                    }}
-                    onDismiss={() => {
-                      useAgentStore.getState().setWorkflowMatchSuggestion(null);
+                {activeConversation?.session_type === "workflow"
+                  && activeConversation?.workflow_status === "completed" && (
+                  <WorkflowEndMarker
+                    workflowName={activeConversation.workflow_template_id
+                      ?? t("chat.workflowLabel")}
+                    stepCount={0}
+                    completedCount={0}
+                    durationSeconds={0}
+                    onArchive={() => {
+                      void toggleArchive(activeConversation.id);
                     }}
                   />
                 )}
+                {workflowMatchSuggestion
+                  && workflowMatchSuggestion.conversationId === activeConversation?.id
+                  && activeConversation?.mode === "agent"
+                  && (
+                    <WorkflowSuggestionCard
+                      match={{
+                        templateId: workflowMatchSuggestion.templateId,
+                        templateName: workflowMatchSuggestion.templateName,
+                        similarity: workflowMatchSuggestion.similarity,
+                      }}
+                      onSwitch={(templateId) => {
+                        void updateConversation(activeConversation.id, {
+                          session_type: "workflow",
+                          workflow_template_id: templateId,
+                        });
+                        fetchConversation();
+                        useAgentStore.getState().setWorkflowMatchSuggestion(null);
+                      }}
+                      onDismiss={() => {
+                        useAgentStore.getState().setWorkflowMatchSuggestion(null);
+                      }}
+                    />
+                  )}
+              </div>
               <ChatScrollIndicator />
               <MinimapScrollProvider
                 scrollTo={scroll.minimapScrollTo}

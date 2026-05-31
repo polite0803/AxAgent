@@ -13,6 +13,7 @@ interface ProviderState {
   providers: ProviderConfig[];
   loading: boolean;
   error: string | null;
+  _lastFetchTs?: number;
   fetchProviders: () => Promise<void>;
   createProvider: (input: CreateProviderInput) => Promise<ProviderConfig>;
   updateProvider: (id: string, input: UpdateProviderInput) => Promise<void>;
@@ -39,16 +40,21 @@ interface ProviderState {
   testModel: (providerId: string, model_id: string) => Promise<number>;
 }
 
-export const useProviderStore = create<ProviderState>((set) => ({
+export const useProviderStore = create<ProviderState>((set, get) => ({
   providers: [],
   loading: false,
   error: null,
 
   fetchProviders: async () => {
+    const now = Date.now();
+    const state = get();
+    if (state._lastFetchTs && now - state._lastFetchTs < 30_000 && state.providers.length > 0) {
+      return;
+    }
     set({ loading: true });
     try {
       const providers = await invoke<ProviderConfig[]>("list_providers");
-      set({ providers, loading: false, error: null });
+      set({ providers, loading: false, error: null, _lastFetchTs: now });
     } catch (e) {
       set({ error: String(e), loading: false });
     }

@@ -30,8 +30,8 @@ export function ChatViewWelcome({
   if (activeConversationId && loading) {
     return (
       <div
-        className="flex flex-col items-center justify-center h-full"
-        style={{ gap: 12, padding: "0 24px", color: "var(--muted)" }}
+        className="flex flex-col items-center justify-center"
+        style={{ flex: "1 1 0%", minHeight: 0, gap: 12, padding: "0 24px", color: "var(--muted)" }}
       >
         <span>{t("chat.loadingConversation")}</span>
       </div>
@@ -39,7 +39,10 @@ export function ChatViewWelcome({
   }
 
   return (
-    <div className="flex flex-col items-center justify-center h-full" style={{ padding: "0 24px" }}>
+    <div
+      className="flex flex-col items-center justify-center"
+      style={{ flex: "1 1 0%", minHeight: 0, padding: "0 24px" }}
+    >
       <h2 className="ax-neon-text" style={{ marginBottom: 24, fontWeight: 500, fontSize: "1.5rem" }}>
         {greetingText}
       </h2>

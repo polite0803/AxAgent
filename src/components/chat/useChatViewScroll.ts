@@ -54,7 +54,6 @@ export function useChatViewScroll({
   const [stickToBottom, setStickToBottom] = useState(true);
 
   const scrollBoxRef = useRef<HTMLElement | null>(null);
-  const scrollContentRef = useRef<HTMLElement | null>(null);
   const pendingScrollConversationIdRef = useRef<string | null>(
     activeConversationId ?? null,
   );
@@ -79,7 +78,6 @@ export function useChatViewScroll({
   useLayoutEffect(() => {
     const el = bubbleListRef.current;
     scrollBoxRef.current = (el?.scrollBoxNativeElement as HTMLElement) ?? el ?? null;
-    scrollContentRef.current = (scrollBoxRef.current?.firstElementChild as HTMLElement | null) ?? null;
   });
 
   useEffect(() => {
@@ -252,8 +250,7 @@ export function useChatViewScroll({
 
   useEffect(() => {
     const scrollBox = scrollBoxRef.current;
-    const scrollContent = scrollContentRef.current;
-    if (!scrollBox || !scrollContent || typeof ResizeObserver === "undefined") {
+    if (!scrollBox || typeof ResizeObserver === "undefined") {
       return;
     }
 
@@ -306,7 +303,6 @@ export function useChatViewScroll({
     });
 
     observer.observe(scrollBox);
-    observer.observe(scrollContent);
 
     return () => {
       observer.disconnect();

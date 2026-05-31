@@ -1,6 +1,6 @@
 import i18n from "@/i18n";
 import { checkIpcHealth, invoke, isTauri, logIpcError } from "@/lib/invoke";
-import { preloadChatRenderers } from "@/lib/preloadChatRenderers";
+import { preloadChatRenderers, preloadCommonPages } from "@/lib/preloadChatRenderers";
 import { useConversationStore, useOnboardingStore, useSettingsStore, useSkillExtensionStore } from "@/stores";
 import { Button, Result, Spin, theme, Typography } from "antd";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -194,4 +194,5 @@ async function enableD2AndPreload() {
     enableD2(() => import("@terrastruct/d2"));
   } catch {}
   void preloadChatRenderers();
+  preloadCommonPages();
 }
