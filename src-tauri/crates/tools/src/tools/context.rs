@@ -1,12 +1,18 @@
-//! CtxInspectTool / SnipTool - 上下文管理工具
+//! CtxInspectTool / SnipTool / ContextResolveTool - 上下文管理工具
 
 use crate::{Tool, ToolCategory, ToolContext, ToolError, ToolResult};
 use async_trait::async_trait;
 use serde_json::Value;
+use std::path::Path;
 use std::process::Command;
+
+const FILE_REF_SIZE_LIMIT: usize = 100 * 1024;
+const URL_REF_SIZE_LIMIT: usize = 50 * 1024;
+const URL_REF_TIMEOUT_SECS: u64 = 30;
 
 pub struct CtxInspectTool;
 pub struct SnipTool;
+pub struct ContextResolveTool;
 
 fn git_root() -> Option<String> {
     let output = Command::new("git")
@@ -246,4 +252,181 @@ impl Tool for SnipTool {
              \n压缩操作通过 Hook 系统异步执行。后续消息将使用压缩后的上下文。"
         )))
     }
+}
+
+#[async_trait]
+impl Tool for ContextResolveTool {
+    fn name(&self) -> &str {
+        "ContextResolve"
+    }
+    fn description(&self) -> &str {
+        "解析文本中的上下文引用：@file:path 读取文件内容、@url:https://... 获取网页内容、@skill:name 加载 Skill 描述，以及处理 <!-- if:... --> 条件区块。"
+    }
+    fn input_schema(&self) -> Value {
+        serde_json::json!({
+            "type": "object",
+            "properties": {
+                "text": {
+                    "type": "string",
+                    "description": "包含引用标记的文本内容"
+                },
+                "base_dir": {
+                    "type": "string",
+                    "description": "@file: 引用的基准目录，默认为当前工作目录"
+                }
+            },
+            "required": ["text"]
+        })
+    }
+    fn category(&self) -> ToolCategory {
+        ToolCategory::System
+    }
+    fn is_concurrency_safe(&self) -> bool {
+        true
+    }
+    fn is_read_only(&self) -> bool {
+        true
+    }
+
+    async fn call(&self, input: Value, ctx: &ToolContext) -> Result<ToolResult, ToolError> {
+        let text = input["text"].as_str().unwrap_or("").to_string();
+
+        if text.is_empty() {
+            return Err(ToolError::invalid_input("text 参数不能为空"));
+        }
+
+        let base_dir = input
+            .get("base_dir")
+            .and_then(|v| v.as_str())
+            .unwrap_or(&ctx.working_dir);
+
+        let base_path = Path::new(base_dir);
+        let resolved = resolve_references_impl(&text, base_path).await;
+
+        Ok(ToolResult::success(resolved))
+    }
+}
+
+async fn resolve_references_impl(content: &str, base_dir: &Path) -> String {
+    let content = resolve_file_refs(content, base_dir);
+    let content = resolve_url_refs(&content).await;
+    let content = resolve_skill_refs(&content);
+    strip_conditional_blocks(&content)
+}
+
+fn resolve_file_refs(content: &str, base_dir: &Path) -> String {
+    let re = regex::Regex::new(r"@file:([^\s]+)").unwrap();
+    re.replace_all(content, |caps: &regex::Captures| {
+        let ref_path = &caps[1];
+        let full_path = base_dir.join(ref_path);
+        match std::fs::read_to_string(&full_path) {
+            Ok(file_content) => {
+                if file_content.len() > FILE_REF_SIZE_LIMIT {
+                    format!(
+                        "[Error: file '{}' exceeds {}KB size limit]",
+                        ref_path,
+                        FILE_REF_SIZE_LIMIT / 1024
+                    )
+                } else {
+                    file_content
+                }
+            },
+            Err(e) => format!("[Error reading file '{}': {}]", ref_path, e),
+        }
+    })
+    .to_string()
+}
+
+async fn resolve_url_refs(content: &str) -> String {
+    let re = regex::Regex::new(r"@url:(https?://[^\s]+)").unwrap();
+    let mut result = content.to_string();
+
+    let caps: Vec<_> = re.captures_iter(content).collect();
+    for cap in caps {
+        let url = &cap[1];
+        let placeholder = format!("@url:{}", url);
+        let replacement = match fetch_url_for_ref(url).await {
+            Ok(body) => body,
+            Err(e) => format!("[Error fetching URL '{}': {}]", url, e),
+        };
+        result = result.replacen(&placeholder, &replacement, 1);
+    }
+
+    result
+}
+
+async fn fetch_url_for_ref(url: &str) -> Result<String, String> {
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(URL_REF_TIMEOUT_SECS))
+        .build()
+        .map_err(|e| e.to_string())?;
+
+    let response = client.get(url).send().await.map_err(|e| e.to_string())?;
+
+    let body = response.text().await.map_err(|e| e.to_string())?;
+
+    if body.len() > URL_REF_SIZE_LIMIT {
+        Err(format!(
+            "response exceeds {}KB size limit ({} bytes)",
+            URL_REF_SIZE_LIMIT / 1024,
+            body.len()
+        ))
+    } else {
+        Ok(body)
+    }
+}
+
+fn resolve_skill_refs(content: &str) -> String {
+    let re = regex::Regex::new(r"@skill:([a-zA-Z0-9_-]+)").unwrap();
+    let dirs = axagent_core::skill_dirs::skill_dirs();
+
+    re.replace_all(content, |caps: &regex::Captures| {
+        let skill_name = &caps[1];
+        for (_kind, dir) in &dirs {
+            let skill_md = dir.join(skill_name).join("SKILL.md");
+            if skill_md.exists() {
+                if let Ok(md_content) = std::fs::read_to_string(&skill_md) {
+                    let first_line = md_content.lines().next().unwrap_or(skill_name);
+                    return first_line.to_string();
+                }
+            }
+        }
+        format!("[Skill '{}' not found]", skill_name)
+    })
+    .to_string()
+}
+
+fn strip_conditional_blocks(content: &str) -> String {
+    let re = regex::Regex::new(r"<!--\s*if:(\w+):(\w+)\s*-->([\s\S]*?)<!--\s*endif\s*-->").unwrap();
+
+    re.replace_all(content, |caps: &regex::Captures| {
+        let condition_type = &caps[1];
+        let condition_value = &caps[2];
+        let inner_content = &caps[3];
+
+        if eval_condition(condition_type, condition_value) {
+            inner_content.to_string()
+        } else {
+            String::new()
+        }
+    })
+    .to_string()
+}
+
+fn eval_condition(condition_type: &str, condition_value: &str) -> bool {
+    match condition_type {
+        "platform" => std::env::consts::OS == condition_value,
+        "toolset" => is_toolset_available(condition_value),
+        "personality" => std::env::var("AXAGENT_PERSONALITY")
+            .unwrap_or_default()
+            .eq(condition_value),
+        _ => false,
+    }
+}
+
+fn is_toolset_available(toolset: &str) -> bool {
+    matches!(
+        toolset,
+        "web" | "file" | "shell" | "git" | "network" | "system" | "browser" | "database"
+    )
 }

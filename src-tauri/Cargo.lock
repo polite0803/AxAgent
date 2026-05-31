@@ -735,7 +735,7 @@ dependencies = [
 
 [[package]]
 name = "axagent"
-version = "2.4.5"
+version = "2.4.6"
 dependencies = [
  "android_logger",
  "async-trait",
@@ -804,7 +804,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-agent"
-version = "2.4.5"
+version = "2.4.6"
 dependencies = [
  "async-trait",
  "axagent-core",
@@ -817,6 +817,7 @@ dependencies = [
  "backon",
  "base64 0.22.1",
  "chrono",
+ "dirs 5.0.1",
  "docx-rs",
  "fastrand",
  "futures",
@@ -831,6 +832,7 @@ dependencies = [
  "sea-orm",
  "serde",
  "serde_json",
+ "serde_yaml",
  "sha2",
  "tauri",
  "tempfile",
@@ -844,7 +846,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-core"
-version = "2.4.5"
+version = "2.4.6"
 dependencies = [
  "aes-gcm",
  "anyhow",
@@ -880,6 +882,7 @@ dependencies = [
  "serde_json",
  "serde_yaml",
  "sha2",
+ "shellexpand",
  "sqlite-vec",
  "sysinfo",
  "tempfile",
@@ -900,7 +903,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-gateway"
-version = "2.4.5"
+version = "2.4.6"
 dependencies = [
  "async-trait",
  "axagent-core",
@@ -925,17 +928,22 @@ dependencies = [
 
 [[package]]
 name = "axagent-migration"
-version = "2.4.5"
+version = "2.4.6"
 dependencies = [
  "axagent-core",
+ "chrono",
+ "dirs 5.0.1",
  "sea-orm",
  "sea-orm-migration",
+ "serde",
+ "serde_json",
+ "serde_yaml",
  "tokio",
 ]
 
 [[package]]
 name = "axagent-npm"
-version = "2.4.5"
+version = "2.4.6"
 dependencies = [
  "flate2",
  "reqwest 0.13.2",
@@ -950,7 +958,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-plugins"
-version = "2.4.5"
+version = "2.4.6"
 dependencies = [
  "axagent-npm",
  "axagent-runtime-core",
@@ -964,7 +972,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-prompt-guard"
-version = "2.4.5"
+version = "2.4.6"
 dependencies = [
  "regex",
  "serde",
@@ -975,7 +983,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-providers"
-version = "2.4.5"
+version = "2.4.6"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -993,7 +1001,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-rt-dashboard"
-version = "2.4.5"
+version = "2.4.6"
 dependencies = [
  "async-trait",
  "serde",
@@ -1005,7 +1013,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-rt-messaging"
-version = "2.4.5"
+version = "2.4.6"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -1034,7 +1042,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-rt-theme"
-version = "2.4.5"
+version = "2.4.6"
 dependencies = [
  "serde",
  "serde_json",
@@ -1044,7 +1052,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-rt-webhook"
-version = "2.4.5"
+version = "2.4.6"
 dependencies = [
  "async-trait",
  "axagent-rt-messaging",
@@ -1063,7 +1071,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-rt-workflow"
-version = "2.4.5"
+version = "2.4.6"
 dependencies = [
  "async-trait",
  "axagent-agent",
@@ -1086,7 +1094,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-runtime"
-version = "2.4.5"
+version = "2.4.6"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -1138,7 +1146,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-runtime-core"
-version = "2.4.5"
+version = "2.4.6"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -1158,7 +1166,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-telemetry"
-version = "2.4.5"
+version = "2.4.6"
 dependencies = [
  "axagent-core",
  "chrono",
@@ -1176,11 +1184,12 @@ dependencies = [
 
 [[package]]
 name = "axagent-tools"
-version = "2.4.5"
+version = "2.4.6"
 dependencies = [
  "anyhow",
  "async-trait",
  "axagent-core",
+ "axagent-migration",
  "axagent-plugins",
  "axagent-runtime-core",
  "base64 0.22.1",
@@ -1193,6 +1202,7 @@ dependencies = [
  "futures",
  "glob",
  "image",
+ "infer 0.16.0",
  "lazy_static",
  "lopdf",
  "parking_lot",
@@ -1207,6 +1217,7 @@ dependencies = [
  "sea-orm",
  "serde",
  "serde_json",
+ "serde_yaml",
  "sha2",
  "tempfile",
  "thiserror 2.0.18",
@@ -1222,7 +1233,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-trajectory"
-version = "2.4.5"
+version = "2.4.6"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -4778,6 +4789,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "79cf5c93f93228cf8efb3ba362535fb11199ac548a09ce117c9b1adc3030d706"
 dependencies = [
  "rustversion",
+]
+
+[[package]]
+name = "infer"
+version = "0.16.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bc150e5ce2330295b8616ce0e3f53250e53af31759a9dbedad1621ba29151847"
+dependencies = [
+ "cfb",
 ]
 
 [[package]]
@@ -9317,6 +9337,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dc6fe69c597f9c37bfeeeeeb33da3530379845f10be461a66d16d03eca2ded77"
 
 [[package]]
+name = "shellexpand"
+version = "3.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "32824fab5e16e6c4d86dc1ba84489390419a39f97699852b66480bb87d297ed8"
+dependencies = [
+ "dirs 6.0.0",
+]
+
+[[package]]
 name = "shlex"
 version = "1.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -10343,7 +10372,7 @@ dependencies = [
  "flate2",
  "futures-util",
  "http",
- "infer",
+ "infer 0.19.0",
  "log",
  "minisign-verify",
  "osakit",
@@ -10430,7 +10459,7 @@ dependencies = [
  "dunce",
  "glob",
  "http",
- "infer",
+ "infer 0.19.0",
  "json-patch",
  "log",
  "memchr",

@@ -99,9 +99,27 @@ where
             }
             sp
         } else if config.system_prompt.is_empty() {
-            Vec::new()
+            let personality_prompt = crate::personality::PersonalityManager::get_active()
+                .ok()
+                .flatten()
+                .map(|p| p.system_prompt_injection())
+                .unwrap_or_default();
+            if personality_prompt.is_empty() {
+                Vec::new()
+            } else {
+                vec![personality_prompt]
+            }
         } else {
-            vec![config.system_prompt.clone()]
+            let personality_prompt = crate::personality::PersonalityManager::get_active()
+                .ok()
+                .flatten()
+                .map(|p| p.system_prompt_injection())
+                .unwrap_or_default();
+            if personality_prompt.is_empty() {
+                vec![config.system_prompt.clone()]
+            } else {
+                vec![personality_prompt, config.system_prompt.clone()]
+            }
         };
 
         let conversation_runtime = ConversationRuntime::new(

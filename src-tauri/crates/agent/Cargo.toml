@@ -28,6 +28,8 @@ chrono = { version = "0.4", features = ["serde"] }
 regex-lite = "0.1"
 regex = "1"
 fastrand = "2.0"
+dirs = "5"
+serde_yaml = "0.9"
 urlencoding = "2.1"
 reqwest = { workspace = true }
 scraper = "0.22"

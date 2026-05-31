@@ -45,6 +45,7 @@ pub mod lint_checker;
 pub mod llm_bridge;
 pub mod metrics;
 pub mod outline_builder;
+pub mod personality;
 pub mod pre_validator;
 pub mod proactive_mode;
 pub mod project_memory;

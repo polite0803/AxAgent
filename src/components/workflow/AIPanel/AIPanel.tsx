@@ -1,6 +1,6 @@
 import { logIpcError } from "@/lib/invoke";
 import type { AiChatAction, AiChatMessage } from "@/stores/feature/workflowEditorStore";
-import { Button, Card, Empty, Input, message, Radio, Tag, theme } from "antd";
+import { App, Button, Card, Empty, Input, Radio, Tag, theme } from "antd";
 import { Lightbulb, MessageSquare, Play, Send, Sparkles, StopCircle, Trash2, Wand2 } from "lucide-react";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -48,6 +48,7 @@ export const AIPanel: React.FC<AIPanelProps> = ({
 }) => {
   const { t } = useTranslation();
   const { token } = theme.useToken();
+  const { message } = App.useApp();
   const { getNodes, getEdges } = useReactFlow();
   const nodes = getNodes() as unknown as WorkflowNode[];
   const edges = getEdges() as unknown as WorkflowEdge[];
