@@ -588,7 +588,7 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         std::fs::write(dir.path().join("ref.txt"), "resolved content").unwrap();
         let content = "Hello @file:ref.txt world";
-        let result = resolve_references(content, dir.path()).await;
+        let result = resolve_references(&content, dir.path()).await;
         assert_eq!(result, "Hello resolved content world");
     }
 
@@ -600,7 +600,7 @@ mod tests {
             "@file:data.md <!-- if:platform:{} -->platform-specific<!-- endif -->",
             std::env::consts::OS
         );
-        let result = resolve_references(content, dir.path()).await;
+        let result = resolve_references(&content, dir.path()).await;
         assert!(result.contains("data payload"));
         assert!(result.contains("platform-specific"));
     }
