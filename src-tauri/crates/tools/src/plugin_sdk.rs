@@ -346,7 +346,7 @@ impl Default for SdkPluginRegistry {
     }
 }
 
-#[allow(dead_code)]
+#[cfg(not(test))]
 static GLOBAL_SDK_PLUGINS: std::sync::LazyLock<SdkPluginRegistry> =
     std::sync::LazyLock::new(SdkPluginRegistry::default);
 
