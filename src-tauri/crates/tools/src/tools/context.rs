@@ -384,11 +384,11 @@ fn resolve_skill_refs(content: &str) -> String {
         let skill_name = &caps[1];
         for (_kind, dir) in &dirs {
             let skill_md = dir.join(skill_name).join("SKILL.md");
-            if skill_md.exists() {
-                if let Ok(md_content) = std::fs::read_to_string(&skill_md) {
-                    let first_line = md_content.lines().next().unwrap_or(skill_name);
-                    return first_line.to_string();
-                }
+            if skill_md.exists()
+                && let Ok(md_content) = std::fs::read_to_string(&skill_md)
+            {
+                let first_line = md_content.lines().next().unwrap_or(skill_name);
+                return first_line.to_string();
             }
         }
         format!("[Skill '{}' not found]", skill_name)

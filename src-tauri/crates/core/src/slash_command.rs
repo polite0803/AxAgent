@@ -98,7 +98,8 @@ pub fn process_slash_command(text: &str) -> Option<SlashCommandAction> {
     Some(SlashCommandAction::Unknown)
 }
 
-static BUNDLE_NAMES_CACHE: LazyLock<std::sync::Mutex<Option<(Vec<String>, Instant)>>> =
+type BundleCache = Option<(Vec<String>, Instant)>;
+static BUNDLE_NAMES_CACHE: LazyLock<std::sync::Mutex<BundleCache>> =
     LazyLock::new(|| std::sync::Mutex::new(None));
 
 const BUNDLE_CACHE_TTL_SECS: u64 = 60;
@@ -118,10 +119,10 @@ fn is_bundle_name(name: &str) -> bool {
 
 fn get_cached_bundle_names() -> Vec<String> {
     let mut guard = BUNDLE_NAMES_CACHE.lock().unwrap_or_else(|e| e.into_inner());
-    if let Some((ref names, built_at)) = *guard {
-        if built_at.elapsed().as_secs() < BUNDLE_CACHE_TTL_SECS {
-            return names.clone();
-        }
+    if let Some((ref names, built_at)) = *guard
+        && built_at.elapsed().as_secs() < BUNDLE_CACHE_TTL_SECS
+    {
+        return names.clone();
     }
     let names = scan_bundle_names();
     *guard = Some((names.clone(), Instant::now()));

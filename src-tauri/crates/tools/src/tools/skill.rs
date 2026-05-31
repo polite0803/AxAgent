@@ -69,7 +69,7 @@ impl SkillIndex {
     }
 
     fn ensure_built(&mut self) {
-        let needs_rebuild = self.built_at.map_or(true, |t| t.elapsed().as_secs() > 300);
+        let needs_rebuild = self.built_at.is_none_or(|t| t.elapsed().as_secs() > 300);
         if needs_rebuild {
             self.rebuild();
         }
@@ -254,25 +254,23 @@ impl SkillIndex {
                         .get("axagent")
                         .and_then(|a| a.get("requires_toolsets"))
                         .and_then(|ts| ts.as_array())
+                        && requires_toolsets.is_empty()
                     {
-                        if requires_toolsets.is_empty() {
-                            requires_toolsets = rt
-                                .iter()
-                                .filter_map(|v| v.as_str().map(String::from))
-                                .collect();
-                        }
+                        requires_toolsets = rt
+                            .iter()
+                            .filter_map(|v| v.as_str().map(String::from))
+                            .collect();
                     }
                     if let Some(ft) = meta
                         .get("axagent")
                         .and_then(|a| a.get("fallback_for_toolsets"))
                         .and_then(|ts| ts.as_array())
+                        && fallback_for_toolsets.is_empty()
                     {
-                        if fallback_for_toolsets.is_empty() {
-                            fallback_for_toolsets = ft
-                                .iter()
-                                .filter_map(|v| v.as_str().map(String::from))
-                                .collect();
-                        }
+                        fallback_for_toolsets = ft
+                            .iter()
+                            .filter_map(|v| v.as_str().map(String::from))
+                            .collect();
                     }
                     if let Some(env_vars) = meta
                         .get("axagent")
@@ -281,14 +279,13 @@ impl SkillIndex {
                     {
                         required_env_vars = Self::parse_env_vars_from_json(env_vars);
                     }
-                    if required_env_vars.is_empty() {
-                        if let Some(env_vars) = meta
+                    if required_env_vars.is_empty()
+                        && let Some(env_vars) = meta
                             .get("hermes")
                             .and_then(|h| h.get("required_environment_variables"))
                             .and_then(|v| v.as_array())
-                        {
-                            required_env_vars = Self::parse_env_vars_from_json(env_vars);
-                        }
+                    {
+                        required_env_vars = Self::parse_env_vars_from_json(env_vars);
                     }
                     if let Some(cs) = meta
                         .get("axagent")
@@ -297,23 +294,21 @@ impl SkillIndex {
                     {
                         config_settings = Self::parse_config_settings_from_json(cs);
                     }
-                    if config_settings.is_empty() {
-                        if let Some(cs) = meta
+                    if config_settings.is_empty()
+                        && let Some(cs) = meta
                             .get("hermes")
                             .and_then(|h| h.get("config"))
                             .and_then(|v| v.as_array())
-                        {
-                            config_settings = Self::parse_config_settings_from_json(cs);
-                        }
+                    {
+                        config_settings = Self::parse_config_settings_from_json(cs);
                     }
                 }
                 if let Some(env_vars) = frontmatter
                     .get("required_environment_variables")
                     .and_then(|v| v.as_array())
+                    && required_env_vars.is_empty()
                 {
-                    if required_env_vars.is_empty() {
-                        required_env_vars = Self::parse_env_vars_from_json(env_vars);
-                    }
+                    required_env_vars = Self::parse_env_vars_from_json(env_vars);
                 }
             }
             if description.is_empty() {
@@ -326,49 +321,49 @@ impl SkillIndex {
         }
 
         let manifest_path = skill_dir.join("skill-manifest.json");
-        if let Ok(manifest_str) = std::fs::read_to_string(&manifest_path) {
-            if let Ok(manifest) = serde_json::from_str::<serde_json::Value>(&manifest_str) {
-                if description.is_empty() {
-                    description = manifest["description"].as_str().unwrap_or("").to_string();
-                }
-                if let Some(p) = manifest["platforms"].as_array() {
-                    platforms = p
-                        .iter()
-                        .filter_map(|v| v.as_str().map(String::from))
-                        .collect();
-                }
-                if let Some(t) = manifest["tags"].as_array() {
-                    tags = t
-                        .iter()
-                        .filter_map(|v| v.as_str().map(String::from))
-                        .collect();
-                }
-                if let Some(rt) = manifest["requires_toolsets"].as_array() {
-                    if requires_toolsets.is_empty() {
-                        requires_toolsets = rt
-                            .iter()
-                            .filter_map(|v| v.as_str().map(String::from))
-                            .collect();
-                    }
-                }
-                if let Some(ft) = manifest["fallback_for_toolsets"].as_array() {
-                    if fallback_for_toolsets.is_empty() {
-                        fallback_for_toolsets = ft
-                            .iter()
-                            .filter_map(|v| v.as_str().map(String::from))
-                            .collect();
-                    }
-                }
-                if let Some(env_vars) = manifest["required_environment_variables"].as_array() {
-                    if required_env_vars.is_empty() {
-                        required_env_vars = Self::parse_env_vars_from_json(env_vars);
-                    }
-                }
-                if let Some(cs) = manifest["config_settings"].as_array() {
-                    if config_settings.is_empty() {
-                        config_settings = Self::parse_config_settings_from_json(cs);
-                    }
-                }
+        if let Ok(manifest_str) = std::fs::read_to_string(&manifest_path)
+            && let Ok(manifest) = serde_json::from_str::<serde_json::Value>(&manifest_str)
+        {
+            if description.is_empty() {
+                description = manifest["description"].as_str().unwrap_or("").to_string();
+            }
+            if let Some(p) = manifest["platforms"].as_array() {
+                platforms = p
+                    .iter()
+                    .filter_map(|v| v.as_str().map(String::from))
+                    .collect();
+            }
+            if let Some(t) = manifest["tags"].as_array() {
+                tags = t
+                    .iter()
+                    .filter_map(|v| v.as_str().map(String::from))
+                    .collect();
+            }
+            if let Some(rt) = manifest["requires_toolsets"].as_array()
+                && requires_toolsets.is_empty()
+            {
+                requires_toolsets = rt
+                    .iter()
+                    .filter_map(|v| v.as_str().map(String::from))
+                    .collect();
+            }
+            if let Some(ft) = manifest["fallback_for_toolsets"].as_array()
+                && fallback_for_toolsets.is_empty()
+            {
+                fallback_for_toolsets = ft
+                    .iter()
+                    .filter_map(|v| v.as_str().map(String::from))
+                    .collect();
+            }
+            if let Some(env_vars) = manifest["required_environment_variables"].as_array()
+                && required_env_vars.is_empty()
+            {
+                required_env_vars = Self::parse_env_vars_from_json(env_vars);
+            }
+            if let Some(cs) = manifest["config_settings"].as_array()
+                && config_settings.is_empty()
+            {
+                config_settings = Self::parse_config_settings_from_json(cs);
             }
         }
 
@@ -455,7 +450,7 @@ impl SkillIndex {
         self.ensure_built();
         self.entries
             .iter()
-            .filter(|e| category_filter.map_or(true, |cf| e.category == cf))
+            .filter(|e| category_filter.is_none_or(|cf| e.category == cf))
             .map(|e| SkillSummary {
                 name: e.name.clone(),
                 description: e.description.clone(),
@@ -1306,17 +1301,9 @@ struct HubLockEntry {
     source: String,
 }
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Default)]
 struct HubLockFile {
     entries: Vec<HubLockEntry>,
-}
-
-impl Default for HubLockFile {
-    fn default() -> Self {
-        Self {
-            entries: Vec::new(),
-        }
-    }
 }
 
 fn hub_api_url() -> String {
@@ -1501,15 +1488,12 @@ fn extract_zip_to_dir(data: &[u8], target_dir: &PathBuf) -> Result<(), ToolError
                 ToolError::execution_failed(format!("Failed to create directory: {}", e))
             })?;
         } else {
-            if let Some(p) = outpath.parent() {
-                if !p.exists() {
-                    std::fs::create_dir_all(p).map_err(|e| {
-                        ToolError::execution_failed(format!(
-                            "Failed to create parent directory: {}",
-                            e
-                        ))
-                    })?;
-                }
+            if let Some(p) = outpath.parent()
+                && !p.exists()
+            {
+                std::fs::create_dir_all(p).map_err(|e| {
+                    ToolError::execution_failed(format!("Failed to create parent directory: {}", e))
+                })?;
             }
             let mut outfile = std::fs::File::create(&outpath).map_err(|e| {
                 ToolError::execution_failed(format!("Failed to create file: {}", e))
@@ -1592,7 +1576,7 @@ impl Tool for SkillHubSearchTool {
             "\n共 {} 个结果（第 {}/{} 页）。使用 SkillHubInstall 安装指定技能。",
             result.total,
             result.page,
-            (result.total + page_size - 1) / page_size
+            result.total.div_ceil(page_size)
         ));
 
         Ok(ToolResult {
@@ -2037,21 +2021,21 @@ fn extract_publish_metadata(content: &str) -> (String, String) {
     let mut description = String::new();
 
     let trimmed = content.trim_start();
-    if trimmed.starts_with("---") {
-        if let Some(end) = trimmed[3..].find("---") {
-            let yaml_str = &trimmed[3..3 + end];
-            if let Ok(frontmatter) = serde_yaml::from_str::<serde_json::Value>(yaml_str) {
-                version = frontmatter
-                    .get("version")
-                    .and_then(|v| v.as_str())
-                    .unwrap_or("1.0.0")
-                    .to_string();
-                description = frontmatter
-                    .get("description")
-                    .and_then(|v| v.as_str())
-                    .unwrap_or("")
-                    .to_string();
-            }
+    if trimmed.starts_with("---")
+        && let Some(end) = trimmed[3..].find("---")
+    {
+        let yaml_str = &trimmed[3..3 + end];
+        if let Ok(frontmatter) = serde_yaml::from_str::<serde_json::Value>(yaml_str) {
+            version = frontmatter
+                .get("version")
+                .and_then(|v| v.as_str())
+                .unwrap_or("1.0.0")
+                .to_string();
+            description = frontmatter
+                .get("description")
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string();
         }
     }
 
@@ -2128,7 +2112,7 @@ fn is_env_var_set(name: &str) -> bool {
         return true;
     }
     let map = read_env_file();
-    map.contains_key(name) && !map.get(name).map_or(true, |v| v.is_empty())
+    map.contains_key(name) && !map.get(name).is_none_or(|v| v.is_empty())
 }
 
 // ── config.yaml helpers for F20 ──
@@ -2200,10 +2184,10 @@ fn get_all_skill_config_values(skill_name: &str) -> std::collections::HashMap<St
         .and_then(|c| c.as_object())
     {
         for (k, v) in config {
-            if k.starts_with(&prefix) {
-                if let Some(val) = v.as_str() {
-                    result.insert(k[prefix.len()..].to_string(), val.to_string());
-                }
+            if k.starts_with(&prefix)
+                && let Some(val) = v.as_str()
+            {
+                result.insert(k[prefix.len()..].to_string(), val.to_string());
             }
         }
     }
@@ -2509,7 +2493,7 @@ impl Tool for SkillConfigTool {
                 for setting in &entry.config_settings {
                     let current = current_values.get(&setting.key);
                     let display_value = current
-                        .map(|v| v.clone())
+                        .cloned()
                         .or(setting.default.clone())
                         .unwrap_or_else(|| "(未设置)".to_string());
 
@@ -2602,28 +2586,26 @@ impl Tool for SkillConfigTool {
                         let mut index = SKILL_INDEX.lock().map_err(|_| {
                             ToolError::execution_failed("Failed to acquire skill index lock")
                         })?;
-                        if let Some(entry) = index.find_skill_entry(skill_name) {
-                            if let Some(setting) =
+                        if let Some(entry) = index.find_skill_entry(skill_name)
+                            && let Some(setting) =
                                 entry.config_settings.iter().find(|s| s.key == key)
-                            {
-                                if let Some(default) = &setting.default {
-                                    return Ok(ToolResult {
-                                        content: format!(
-                                            "配置项 '{}.{}' 未设置，默认值为: {}",
-                                            skill_name, key, default
-                                        ),
-                                        is_error: false,
-                                        truncated: false,
-                                        metadata: Some(serde_json::json!({
-                                            "skill_name": skill_name,
-                                            "key": key,
-                                            "default": default,
-                                        })),
-                                        duration_ms: None,
-                                        progress: Vec::new(),
-                                    });
-                                }
-                            }
+                            && let Some(default) = &setting.default
+                        {
+                            return Ok(ToolResult {
+                                content: format!(
+                                    "配置项 '{}.{}' 未设置，默认值为: {}",
+                                    skill_name, key, default
+                                ),
+                                is_error: false,
+                                truncated: false,
+                                metadata: Some(serde_json::json!({
+                                    "skill_name": skill_name,
+                                    "key": key,
+                                    "default": default,
+                                })),
+                                duration_ms: None,
+                                progress: Vec::new(),
+                            });
                         }
                         Ok(ToolResult {
                             content: format!("配置项 '{}.{}' 未设置且无默认值。", skill_name, key),

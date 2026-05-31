@@ -196,19 +196,19 @@ pub fn preview_openclaw() -> Vec<MigrationItem> {
     }
 
     let skill_dir = oc.join("skills");
-    if skill_dir.exists() {
-        if let Ok(entries) = fs::read_dir(&skill_dir) {
-            for entry in entries.filter_map(|e| e.ok()) {
-                let path = entry.path();
-                if path.is_dir() {
-                    let name = entry.file_name().to_string_lossy().to_string();
-                    items.push(make_item(
-                        path,
-                        home.join("skills").join("openclaw-imports").join(&name),
-                        "skill",
-                        format!("skills/{} → skills/openclaw-imports/{}", name, name),
-                    ));
-                }
+    if skill_dir.exists()
+        && let Ok(entries) = fs::read_dir(&skill_dir)
+    {
+        for entry in entries.filter_map(|e| e.ok()) {
+            let path = entry.path();
+            if path.is_dir() {
+                let name = entry.file_name().to_string_lossy().to_string();
+                items.push(make_item(
+                    path,
+                    home.join("skills").join("openclaw-imports").join(&name),
+                    "skill",
+                    format!("skills/{} → skills/openclaw-imports/{}", name, name),
+                ));
             }
         }
     }
@@ -242,37 +242,37 @@ pub fn preview_hermes() -> Vec<MigrationItem> {
     let mut items = Vec::new();
 
     let skill_dir = hm.join("skills");
-    if skill_dir.exists() {
-        if let Ok(entries) = fs::read_dir(&skill_dir) {
-            for entry in entries.filter_map(|e| e.ok()) {
-                let path = entry.path();
-                if path.is_dir() {
-                    let name = entry.file_name().to_string_lossy().to_string();
-                    items.push(make_item(
-                        path,
-                        home.join("skills").join("hermes-imports").join(&name),
-                        "skill",
-                        format!("skills/{} → skills/hermes-imports/{}", name, name),
-                    ));
-                }
+    if skill_dir.exists()
+        && let Ok(entries) = fs::read_dir(&skill_dir)
+    {
+        for entry in entries.filter_map(|e| e.ok()) {
+            let path = entry.path();
+            if path.is_dir() {
+                let name = entry.file_name().to_string_lossy().to_string();
+                items.push(make_item(
+                    path,
+                    home.join("skills").join("hermes-imports").join(&name),
+                    "skill",
+                    format!("skills/{} → skills/hermes-imports/{}", name, name),
+                ));
             }
         }
     }
 
     let mem_dir = hm.join("memories");
-    if mem_dir.exists() {
-        if let Ok(entries) = fs::read_dir(&mem_dir) {
-            for entry in entries.filter_map(|e| e.ok()) {
-                let path = entry.path();
-                if path.is_file() && path.extension().is_some_and(|ext| ext == "md") {
-                    let name = entry.file_name().to_string_lossy().to_string();
-                    items.push(make_item(
-                        path,
-                        home.join("memories").join(&name),
-                        "memory",
-                        format!("memories/{} → memories/{}", name, name),
-                    ));
-                }
+    if mem_dir.exists()
+        && let Ok(entries) = fs::read_dir(&mem_dir)
+    {
+        for entry in entries.filter_map(|e| e.ok()) {
+            let path = entry.path();
+            if path.is_file() && path.extension().is_some_and(|ext| ext == "md") {
+                let name = entry.file_name().to_string_lossy().to_string();
+                items.push(make_item(
+                    path,
+                    home.join("memories").join(&name),
+                    "memory",
+                    format!("memories/{} → memories/{}", name, name),
+                ));
             }
         }
     }
@@ -298,19 +298,19 @@ pub fn preview_hermes() -> Vec<MigrationItem> {
     }
 
     let personalities_dir = hm.join("personalities");
-    if personalities_dir.exists() {
-        if let Ok(entries) = fs::read_dir(&personalities_dir) {
-            for entry in entries.filter_map(|e| e.ok()) {
-                let path = entry.path();
-                if path.is_dir() {
-                    let name = entry.file_name().to_string_lossy().to_string();
-                    items.push(make_item(
-                        path,
-                        home.join("personalities").join(&name),
-                        "personality",
-                        format!("personalities/{} → personalities/{}", name, name),
-                    ));
-                }
+    if personalities_dir.exists()
+        && let Ok(entries) = fs::read_dir(&personalities_dir)
+    {
+        for entry in entries.filter_map(|e| e.ok()) {
+            let path = entry.path();
+            if path.is_dir() {
+                let name = entry.file_name().to_string_lossy().to_string();
+                items.push(make_item(
+                    path,
+                    home.join("personalities").join(&name),
+                    "personality",
+                    format!("personalities/{} → personalities/{}", name, name),
+                ));
             }
         }
     }
@@ -502,10 +502,11 @@ fn merge_env_file(
         let dst_content = fs::read_to_string(dst).unwrap_or_default();
         for line in dst_content.lines() {
             existing_lines.push(line.to_string());
-            if let Some(key) = line.split('=').next() {
-                if !line.starts_with('#') && !key.trim().is_empty() {
-                    existing_keys.insert(key.trim().to_string());
-                }
+            if let Some(key) = line.split('=').next()
+                && !line.starts_with('#')
+                && !key.trim().is_empty()
+            {
+                existing_keys.insert(key.trim().to_string());
             }
         }
     }
@@ -733,18 +734,18 @@ pub fn migrate_openclaw(overwrite: bool) -> MigrationReport {
     }
 
     let skill_dir = oc.join("skills");
-    if skill_dir.exists() {
-        if let Ok(entries) = fs::read_dir(&skill_dir) {
-            for entry in entries.filter_map(|e| e.ok()) {
-                let src_path = entry.path();
-                if src_path.is_dir() {
-                    let name = entry.file_name().to_string_lossy().to_string();
-                    let dest = home.join("skills").join("openclaw-imports").join(&name);
-                    let (m, s, f) = migrate_dir(&src_path, &dest, overwrite);
-                    migrated.extend(m);
-                    skipped.extend(s);
-                    failed.extend(f);
-                }
+    if skill_dir.exists()
+        && let Ok(entries) = fs::read_dir(&skill_dir)
+    {
+        for entry in entries.filter_map(|e| e.ok()) {
+            let src_path = entry.path();
+            if src_path.is_dir() {
+                let name = entry.file_name().to_string_lossy().to_string();
+                let dest = home.join("skills").join("openclaw-imports").join(&name);
+                let (m, s, f) = migrate_dir(&src_path, &dest, overwrite);
+                migrated.extend(m);
+                skipped.extend(s);
+                failed.extend(f);
             }
         }
     }
@@ -791,37 +792,37 @@ pub fn migrate_hermes(overwrite: bool) -> MigrationReport {
     let mut failed = Vec::new();
 
     let skill_dir = hm.join("skills");
-    if skill_dir.exists() {
-        if let Ok(entries) = fs::read_dir(&skill_dir) {
-            for entry in entries.filter_map(|e| e.ok()) {
-                let src_path = entry.path();
-                if src_path.is_dir() {
-                    let name = entry.file_name().to_string_lossy().to_string();
-                    let dest = home.join("skills").join("hermes-imports").join(&name);
-                    let (m, s, f) = migrate_dir(&src_path, &dest, overwrite);
-                    migrated.extend(m);
-                    skipped.extend(s);
-                    failed.extend(f);
-                }
+    if skill_dir.exists()
+        && let Ok(entries) = fs::read_dir(&skill_dir)
+    {
+        for entry in entries.filter_map(|e| e.ok()) {
+            let src_path = entry.path();
+            if src_path.is_dir() {
+                let name = entry.file_name().to_string_lossy().to_string();
+                let dest = home.join("skills").join("hermes-imports").join(&name);
+                let (m, s, f) = migrate_dir(&src_path, &dest, overwrite);
+                migrated.extend(m);
+                skipped.extend(s);
+                failed.extend(f);
             }
         }
     }
 
     let mem_dir = hm.join("memories");
-    if mem_dir.exists() {
-        if let Ok(entries) = fs::read_dir(&mem_dir) {
-            for entry in entries.filter_map(|e| e.ok()) {
-                let src_path = entry.path();
-                if src_path.is_file() && src_path.extension().is_some_and(|ext| ext == "md") {
-                    let name = entry.file_name().to_string_lossy().to_string();
-                    let dest = home.join("memories").join(&name);
-                    match migrate_file(&src_path, &dest, overwrite) {
-                        Ok(e) => migrated.push(e),
-                        Err(e) => match classify_entry(e) {
-                            ClassifiedEntry::Skipped(e) => skipped.push(e),
-                            ClassifiedEntry::Failed(e) => failed.push(e),
-                        },
-                    }
+    if mem_dir.exists()
+        && let Ok(entries) = fs::read_dir(&mem_dir)
+    {
+        for entry in entries.filter_map(|e| e.ok()) {
+            let src_path = entry.path();
+            if src_path.is_file() && src_path.extension().is_some_and(|ext| ext == "md") {
+                let name = entry.file_name().to_string_lossy().to_string();
+                let dest = home.join("memories").join(&name);
+                match migrate_file(&src_path, &dest, overwrite) {
+                    Ok(e) => migrated.push(e),
+                    Err(e) => match classify_entry(e) {
+                        ClassifiedEntry::Skipped(e) => skipped.push(e),
+                        ClassifiedEntry::Failed(e) => failed.push(e),
+                    },
                 }
             }
         }
@@ -852,18 +853,18 @@ pub fn migrate_hermes(overwrite: bool) -> MigrationReport {
     }
 
     let personalities_dir = hm.join("personalities");
-    if personalities_dir.exists() {
-        if let Ok(entries) = fs::read_dir(&personalities_dir) {
-            for entry in entries.filter_map(|e| e.ok()) {
-                let src_path = entry.path();
-                if src_path.is_dir() {
-                    let name = entry.file_name().to_string_lossy().to_string();
-                    let dest = home.join("personalities").join(&name);
-                    let (m, s, f) = migrate_dir(&src_path, &dest, overwrite);
-                    migrated.extend(m);
-                    skipped.extend(s);
-                    failed.extend(f);
-                }
+    if personalities_dir.exists()
+        && let Ok(entries) = fs::read_dir(&personalities_dir)
+    {
+        for entry in entries.filter_map(|e| e.ok()) {
+            let src_path = entry.path();
+            if src_path.is_dir() {
+                let name = entry.file_name().to_string_lossy().to_string();
+                let dest = home.join("personalities").join(&name);
+                let (m, s, f) = migrate_dir(&src_path, &dest, overwrite);
+                migrated.extend(m);
+                skipped.extend(s);
+                failed.extend(f);
             }
         }
     }

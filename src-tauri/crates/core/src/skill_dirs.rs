@@ -10,7 +10,7 @@ const SKILL_DIR_PRIORITY: &[&str] = &[
     "agents",
 ];
 
-static EXTERNAL_DIRS: LazyLock<Vec<PathBuf>> = LazyLock::new(|| load_external_dirs_from_config());
+static EXTERNAL_DIRS: LazyLock<Vec<PathBuf>> = LazyLock::new(load_external_dirs_from_config);
 
 fn load_external_dirs_from_config() -> Vec<PathBuf> {
     let home = dirs::home_dir().unwrap_or_default();
@@ -30,15 +30,15 @@ fn load_external_dirs_from_config() -> Vec<PathBuf> {
     dirs_arr
         .iter()
         .filter_map(|v| v.as_str())
-        .map(|s| expand_path(s))
+        .map(expand_path)
         .filter(|p| p.is_dir())
         .collect()
 }
 
 fn expand_path(input: &str) -> PathBuf {
-    let tilde_expanded = if input.starts_with("~/") {
+    let tilde_expanded = if let Some(rest) = input.strip_prefix("~/") {
         if let Some(home) = dirs::home_dir() {
-            format!("{}/{}", home.to_string_lossy(), &input[2..])
+            format!("{}/{}", home.to_string_lossy(), rest)
         } else {
             input.to_string()
         }

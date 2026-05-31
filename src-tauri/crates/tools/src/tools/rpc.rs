@@ -208,6 +208,12 @@ pub struct RpcServer {
     local_addr: Arc<parking_lot::Mutex<Option<String>>>,
 }
 
+impl Default for RpcServer {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl RpcServer {
     pub fn new() -> Self {
         Self {

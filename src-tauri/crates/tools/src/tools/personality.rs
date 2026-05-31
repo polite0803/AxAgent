@@ -31,17 +31,17 @@ struct SoulFrontmatter {
 
 fn parse_soul_md(name: &str, raw: &str) -> (SoulFrontmatter, String) {
     let trimmed = raw.trim_start();
-    if trimmed.starts_with("---") {
-        if let Some(end) = trimmed[3..].find("---") {
-            let yaml_str = &trimmed[3..3 + end];
-            let fm: SoulFrontmatter = serde_yaml::from_str(yaml_str).unwrap_or(SoulFrontmatter {
-                name: name.to_string(),
-                version: "1.0.0".to_string(),
-                description: String::new(),
-            });
-            let body = trimmed[3 + end + 3..].trim_start();
-            return (fm, body.to_string());
-        }
+    if trimmed.starts_with("---")
+        && let Some(end) = trimmed[3..].find("---")
+    {
+        let yaml_str = &trimmed[3..3 + end];
+        let fm: SoulFrontmatter = serde_yaml::from_str(yaml_str).unwrap_or(SoulFrontmatter {
+            name: name.to_string(),
+            version: "1.0.0".to_string(),
+            description: String::new(),
+        });
+        let body = trimmed[3 + end + 3..].trim_start();
+        return (fm, body.to_string());
     }
     (
         SoulFrontmatter {

@@ -94,7 +94,7 @@ fn extract_absolute_paths(text: &str) -> Vec<String> {
     let mut paths = Vec::new();
     for cap in re.captures_iter(text) {
         let p = cap[0].to_string();
-        let cleaned = p.trim_end_matches(|c: char| c == '.' || c == ',' || c == ';' || c == ':');
+        let cleaned = p.trim_end_matches(['.', ',', ';', ':']);
         if seen.insert(cleaned.to_string()) {
             paths.push(cleaned.to_string());
         }
@@ -118,7 +118,7 @@ fn scan_media_from_text(text: &str) -> Vec<Value> {
             Some(mt) => mt,
             None => continue,
         };
-        let metadata = match std::fs::metadata(&path) {
+        let metadata = match std::fs::metadata(path) {
             Ok(m) => m,
             Err(_) => continue,
         };
@@ -126,7 +126,7 @@ fn scan_media_from_text(text: &str) -> Vec<Value> {
             continue;
         }
         let file_size = metadata.len();
-        let mime_type = match std::fs::read(&path) {
+        let mime_type = match std::fs::read(path) {
             Ok(data) if !data.is_empty() => {
                 let head = &data[..data.len().min(MIME_DETECT_BYTES)];
                 detect_mime_from_bytes(head, ext)
@@ -408,11 +408,10 @@ impl Tool for MediaPreviewTool {
             MediaType::Image => {
                 if let Ok(img_reader) =
                     image::ImageReader::new(std::io::Cursor::new(&file_data)).with_guessed_format()
+                    && let Ok(dims) = img_reader.into_dimensions()
                 {
-                    if let Ok(dims) = img_reader.into_dimensions() {
-                        preview["width"] = Value::Number(dims.0.into());
-                        preview["height"] = Value::Number(dims.1.into());
-                    }
+                    preview["width"] = Value::Number(dims.0.into());
+                    preview["height"] = Value::Number(dims.1.into());
                 }
             },
             MediaType::Audio => {
@@ -439,10 +438,10 @@ impl Tool for MediaPreviewTool {
             ext.to_uppercase(),
             size_str
         )];
-        if let Some(w) = preview.get("width").and_then(|v| v.as_u64()) {
-            if let Some(h) = preview.get("height").and_then(|v| v.as_u64()) {
-                content_parts.push(format!("尺寸: {}x{}", w, h));
-            }
+        if let Some(w) = preview.get("width").and_then(|v| v.as_u64())
+            && let Some(h) = preview.get("height").and_then(|v| v.as_u64())
+        {
+            content_parts.push(format!("尺寸: {}x{}", w, h));
         }
         if let Some(d) = preview.get("duration_secs").and_then(|v| v.as_f64()) {
             content_parts.push(format!("时长: {:.1}s", d));
@@ -568,7 +567,7 @@ fn estimate_docx_pages(data: &[u8]) -> Option<u64> {
         let name = file.name().to_string();
         if name.ends_with("document.xml") {
             let mut content = String::new();
-            if let Err(_) = std::io::Read::read_to_string(&mut file, &mut content) {
+            if std::io::Read::read_to_string(&mut file, &mut content).is_err() {
                 continue;
             }
             let text_re = regex::Regex::new(r"<w:t[^>]*>([^<]+)</w:t>").ok()?;
