@@ -69,8 +69,8 @@ interface NodeDiagnostic {
   nodeId: string;
   nodeName: string;
   nodeType: string;
-  hasSourceEdge: boolean;
-  hasTargetEdge: boolean;
+  hasIncoming: boolean;
+  hasOutgoing: boolean;
   isOrphan: boolean;
   isDeadEnd: boolean;
   toolMissing?: string;
@@ -84,10 +84,12 @@ function analyzeNodes(nodes: any[], edges: any[]): NodeDiagnostic[] {
   const targets = new Set(edges.map((e: any) => e.target));
 
   return nodes.map((n) => {
-    const isOrphan = !sources.has(n.id) && !targets.has(n.id);
-    const isDeadEnd = sources.has(n.id) && !targets.has(n.id);
-    const hasSourceEdge = targets.has(n.id);
-    const hasTargetEdge = sources.has(n.id);
+    const hasIncoming = targets.has(n.id);
+    const hasOutgoing = sources.has(n.id);
+    // 孤立节点：无入边无出边
+    const isOrphan = !hasOutgoing && !hasIncoming;
+    // 死胡同：有入边但无出边 → 流程到此终止不往下走
+    const isDeadEnd = hasIncoming && !hasOutgoing;
     let issueCount = 0;
     let toolMissing: string | undefined;
     let modelEmpty: boolean | undefined;
@@ -120,8 +122,8 @@ function analyzeNodes(nodes: any[], edges: any[]): NodeDiagnostic[] {
       nodeId: n.id,
       nodeName: n.title || n.data?.title || n.data?.label || n.id,
       nodeType: nt || "unknown",
-      hasSourceEdge,
-      hasTargetEdge,
+      hasIncoming,
+      hasOutgoing,
       isOrphan,
       isDeadEnd,
       toolMissing,
