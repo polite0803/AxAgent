@@ -261,11 +261,11 @@ impl WorkEngine {
             sig.notify_waiters();
         }
         let mut executions = self.executions.lock().await;
-        if let Some(state) = executions.get_mut(execution_id) {
-            if state.status == ExecutionStatus::Paused {
-                state.status = ExecutionStatus::Running;
-                state.updated_at = Utc::now().timestamp_millis();
-            }
+        if let Some(state) = executions.get_mut(execution_id)
+            && state.status == ExecutionStatus::Paused
+        {
+            state.status = ExecutionStatus::Running;
+            state.updated_at = Utc::now().timestamp_millis();
         }
     }
     /// 单步执行（仅通知一个等待者 + 恢复运行状态）
@@ -280,11 +280,11 @@ impl WorkEngine {
             sig.notify_one();
         }
         let mut executions = self.executions.lock().await;
-        if let Some(state) = executions.get_mut(execution_id) {
-            if state.status == ExecutionStatus::Paused {
-                state.status = ExecutionStatus::Running;
-                state.updated_at = Utc::now().timestamp_millis();
-            }
+        if let Some(state) = executions.get_mut(execution_id)
+            && state.status == ExecutionStatus::Paused
+        {
+            state.status = ExecutionStatus::Running;
+            state.updated_at = Utc::now().timestamp_millis();
         }
     }
 
