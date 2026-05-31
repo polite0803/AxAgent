@@ -532,7 +532,6 @@ export function RightPanelContainer({
               onClick={() => setActiveTab(p.key)}
             >
               {p.icon}
-              {!compactMode && <span>{t(p.labelKey)}</span>}
             </button>
           </Tooltip>
         ))}
