@@ -1306,6 +1306,8 @@ function createWorkflowNode(
           output_mode: "text",
           agentProfileId: undefined,
           max_tool_rounds: undefined,
+          execution_mode: undefined,
+          rag_source_ids: [],
         },
       };
     case "llm":

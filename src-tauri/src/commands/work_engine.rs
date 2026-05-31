@@ -270,8 +270,11 @@ pub async fn debug_run_workflow(
         engine.set_breakpoints(bp_set).await;
     }
 
+    engine.clear_node_breakers().await;
+
     let app_clone = app.clone();
     let wid_for_progress = workflow_id.clone();
+    let eid_for_progress = execution_id.clone();
     let progress_cb: axagent_runtime::work_engine::ProgressCallback =
         std::sync::Arc::new(move |evt| {
             let app = app_clone.clone();
@@ -280,11 +283,16 @@ pub async fn debug_run_workflow(
             let total = evt.total_nodes;
             let completed = evt.completed_nodes;
             let wf_id = wid_for_progress.clone();
+            let exec_id = evt
+                .execution_id
+                .clone()
+                .unwrap_or_else(|| eid_for_progress.clone());
             Box::pin(async move {
                 let _ = app.emit(
                     "workflow:node-status-changed",
                     serde_json::json!({
                         "workflow_id": wf_id,
+                        "execution_id": exec_id,
                         "node_id": node_id,
                         "status": status,
                         "total_nodes": total,
@@ -331,7 +339,7 @@ pub async fn debug_run_workflow(
                             _ => "unknown",
                         },
                         "total_time_ms": wf.completed_at
-                            .map(|end| end.saturating_sub(wf.created_at))
+                            .map(|end| end.saturating_sub(wf.created_at) * 1000)
                             .unwrap_or(0),
                     }),
                 );
@@ -359,21 +367,35 @@ pub async fn debug_run_workflow(
 pub async fn set_workflow_breakpoints(
     state: State<'_, AppState>,
     node_ids: Vec<String>,
+    execution_id: Option<String>,
 ) -> Result<bool, String> {
     let bp: std::collections::HashSet<String> = node_ids.into_iter().collect();
-    state.work_engine.set_breakpoints(bp).await;
+    if let Some(eid) = execution_id {
+        state
+            .work_engine
+            .set_breakpoints_for_execution(&eid, bp)
+            .await;
+    } else {
+        state.work_engine.set_breakpoints(bp).await;
+    }
     Ok(true)
 }
 
 #[tauri::command]
-pub async fn resume_workflow_breakpoint(state: State<'_, AppState>) -> Result<bool, String> {
-    state.work_engine.resume_breakpoints();
+pub async fn resume_workflow_breakpoint(
+    state: State<'_, AppState>,
+    execution_id: String,
+) -> Result<bool, String> {
+    state.work_engine.resume_breakpoints(&execution_id).await;
     Ok(true)
 }
 
 #[tauri::command]
-pub async fn step_workflow_breakpoint(state: State<'_, AppState>) -> Result<bool, String> {
-    state.work_engine.step_breakpoint();
+pub async fn step_workflow_breakpoint(
+    state: State<'_, AppState>,
+    execution_id: String,
+) -> Result<bool, String> {
+    state.work_engine.step_breakpoint(&execution_id).await;
     Ok(true)
 }
 

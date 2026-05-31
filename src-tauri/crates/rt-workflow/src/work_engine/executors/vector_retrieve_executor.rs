@@ -60,8 +60,12 @@ impl NodeExecutorTrait for VectorRetrieveExecutor {
         };
         let resolved_query = resolve_query_template(&vr.config.query, &context.variables);
 
-        let cb_guard = self.callback.lock().await;
-        let results = if let Some(ref cb) = *cb_guard {
+        let cb_from_context = context
+            .callbacks
+            .as_ref()
+            .and_then(|cbs| cbs.vector_retrieve.clone());
+
+        let results = if let Some(ref cb) = cb_from_context {
             cb(resolved_query.clone(), vr.config.top_k)
                 .await
                 .map_err(|e| {
@@ -71,9 +75,21 @@ impl NodeExecutorTrait for VectorRetrieveExecutor {
                     )
                 })?
         } else {
-            vec![
-                serde_json::json!({"status": "not_configured", "message": "Vector retrieve callback not configured"}),
-            ]
+            let cb_guard = self.callback.lock().await;
+            if let Some(ref cb) = *cb_guard {
+                cb(resolved_query.clone(), vr.config.top_k)
+                    .await
+                    .map_err(|e| {
+                        NodeError::exec_failed(
+                            error_code::VECTOR_RETRIEVE_FAILED,
+                            format!("Vector retrieval failed: {e}"),
+                        )
+                    })?
+            } else {
+                vec![
+                    serde_json::json!({"status": "not_configured", "message": "Vector retrieve callback not configured"}),
+                ]
+            }
         };
 
         Ok(NodeOutput {

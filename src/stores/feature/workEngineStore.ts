@@ -119,22 +119,32 @@ export const useWorkEngineStore = create<WorkEngineState>((set, get) => ({
   },
 
   setBreakpoints: async (nodeIds: string[]) => {
+    const { executionId } = get();
     await invoke<boolean>("set_workflow_breakpoints", {
       node_ids: nodeIds,
+      execution_id: executionId ?? null,
     });
     set({ breakpoints: nodeIds });
   },
 
   resumeBreakpoint: async () => {
-    await invoke<boolean>("resume_workflow_breakpoint");
+    const { executionId } = get();
+    if (!executionId) { return; }
+    await invoke<boolean>("resume_workflow_breakpoint", {
+      execution_id: executionId,
+    });
   },
 
   stepBreakpoint: async () => {
-    await invoke<boolean>("step_workflow_breakpoint");
+    const { executionId } = get();
+    if (!executionId) { return; }
+    await invoke<boolean>("step_workflow_breakpoint", {
+      execution_id: executionId,
+    });
   },
 
   toggleBreakpoint: async (nodeId: string) => {
-    const { breakpoints } = get();
+    const { breakpoints, executionId } = get();
     const prev = breakpoints;
     const next = breakpoints.includes(nodeId)
       ? breakpoints.filter((id) => id !== nodeId)
@@ -144,6 +154,7 @@ export const useWorkEngineStore = create<WorkEngineState>((set, get) => ({
       try {
         await invoke<boolean>("set_workflow_breakpoints", {
           node_ids: next,
+          execution_id: executionId ?? null,
         });
       } catch {
         set({ breakpoints: prev });
@@ -200,7 +211,12 @@ export const useWorkEngineStore = create<WorkEngineState>((set, get) => ({
           status: string;
           total_nodes: number;
           completed_nodes: number;
+          execution_id?: string;
         };
+        const { executionId } = get();
+        if (payload.execution_id && executionId && payload.execution_id !== executionId) {
+          return;
+        }
         set((state) => ({
           nodeStatuses: {
             ...state.nodeStatuses,
@@ -231,6 +247,7 @@ export const useWorkEngineStore = create<WorkEngineState>((set, get) => ({
           payload.status === "completed"
           || payload.status === "failed"
           || payload.status === "cancelled"
+          || payload.status === "partially_completed"
         ) {
           set({ isDebugRunning: false });
         }

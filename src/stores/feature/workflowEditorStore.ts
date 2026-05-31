@@ -603,7 +603,7 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
           warnings: string[];
           errors: string[];
         }>("import_workflow_template", {
-          jsonData,
+          json_data: jsonData,
         });
         await get().loadTemplates();
         set((state) => {

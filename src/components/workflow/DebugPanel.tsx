@@ -79,26 +79,55 @@ interface NodeDiagnostic {
   issueCount: number;
 }
 
+/// 兼容编辑器层 + DAG 原始格式推断节点真实类型
+function resolveNodeType(n: any): string {
+  // 1. 编辑器 ReactFlow 节点
+  if (n.type && n.type !== "base") { return n.type; }
+  if (n.data?.type) { return n.data.type; }
+  // 2. DAG 原始 WorkflowNode 变体：检查是否有变体特有字段
+  if (n.config?.tool_name) { return "tool"; }
+  if (n.config?.sub_workflow_id) { return "subWorkflow"; }
+  if (n.config?.system_prompt) { return "agent"; }
+  if (n.config?.prompt) { return "llm"; }
+  if (n.config?.trigger_type) { return "trigger"; }
+  if (n.config?.conditions) { return "condition"; }
+  if (n.config?.output_var && !n.config?.system_prompt && !n.config?.tool_name) { return "end"; }
+  // 3. 按 base.id 中的前缀推断（如 ToolNode::xxx）
+  const baseId = n.base?.id || n.id || "";
+  if (baseId.startsWith("tool_")) { return "tool"; }
+  if (baseId.startsWith("agent_")) { return "agent"; }
+  if (baseId.startsWith("llm_")) { return "llm"; }
+  return "unknown";
+}
+
 function analyzeNodes(nodes: any[], edges: any[]): NodeDiagnostic[] {
   const sources = new Set(edges.map((e: any) => e.source));
   const targets = new Set(edges.map((e: any) => e.target));
 
+  // 终端节点（有入无出）统计 — 1个是正常终点，>1个才可能有漏连
+  const terminalNodes = nodes.filter((n) => {
+    const id = n.id || "";
+    return targets.has(id) && !sources.has(id);
+  });
+
   return nodes.map((n) => {
+    const nt = resolveNodeType(n);
     const hasIncoming = targets.has(n.id);
     const hasOutgoing = sources.has(n.id);
-    // 孤立节点：无入边无出边
     const isOrphan = !hasOutgoing && !hasIncoming;
-    // 死胡同：有入边但无出边 → 流程到此终止不往下走
-    const isDeadEnd = hasIncoming && !hasOutgoing;
+    // 排除 trigger(只有出) 和 end(只有入) 和唯一合法终端
+    const isStart = nt === "trigger";
+    const isEnd = nt === "end";
+    const isDeadEnd = !isStart && !isEnd && hasIncoming && !hasOutgoing
+      && (terminalNodes.length > 1 || !hasIncoming);
     let issueCount = 0;
     let toolMissing: string | undefined;
     let modelEmpty: boolean | undefined;
     let promptEmpty: boolean | undefined;
 
-    if (isOrphan) { issueCount++; }
+    if (isOrphan && !isStart) { issueCount++; }
     if (isDeadEnd) { issueCount++; }
 
-    const nt = n.type || (n.data?.type) || "";
     if (nt === "tool") {
       const tn = n.config?.tool_name || n.data?.config?.tool_name || n.data?.tool_name;
       if (!tn) {
@@ -214,6 +243,8 @@ function statusColor(status: string): string {
   switch (status) {
     case "completed":
       return "success";
+    case "partially_completed":
+      return "warning";
     case "running":
       return "processing";
     case "failed":

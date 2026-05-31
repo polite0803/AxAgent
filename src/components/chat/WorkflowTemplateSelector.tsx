@@ -209,9 +209,9 @@ export const WorkflowTemplateSelector: React.FC<
 
         try {
           await invoke("workflow_execute", {
-            workflowId: result.workflowId,
-            modelId: effectiveModelId || null,
-            providerId: effectiveProviderId || null,
+            workflow_id: result.workflowId,
+            model_id: effectiveModelId || null,
+            provider_id: effectiveProviderId || null,
             variables: template.variables || null,
           });
         } catch (execErr) {

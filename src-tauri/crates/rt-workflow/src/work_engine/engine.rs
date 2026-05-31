@@ -22,8 +22,11 @@ use crate::workflow_engine::{
 use super::dispatcher::NodeDispatcher;
 use super::execution_state::{ExecutionState, ExecutionStatus, NodeExecutionRecord};
 use super::executors::{
-    AgentExecutor, ConditionExecutor, LlmExecutor, PlanCallbacks, ProfileCache, ProviderCache,
-    RagCallback, SubWorkflowCallback, ToolCallback, VectorRetrieveCallback,
+    AgentExecutor, CodeExecutor, ConditionExecutor, DelayExecutor, DocumentParserExecutor,
+    EndExecutor, FallbackExecutor, LlmExecutor, LoopExecutor, MergeExecutor, ParallelExecutor,
+    PlanCallbacks, ProfileCache, ProviderCache, RagCallback, SubWorkflowCallback,
+    SubWorkflowExecutor, ToolCallback, ToolExecutor, TriggerExecutor, ValidationExecutor,
+    VectorRetrieveCallback, VectorRetrieveExecutor,
 };
 use super::node_executor_trait::{NodeError, NodeExecutorTrait, NodeOutput, node_type_name};
 use super::prompt_template::{CompiledPrompt, compile_prompt};
@@ -74,6 +77,7 @@ pub struct StepProgressEvent {
     pub status: String,
     pub total_nodes: usize,
     pub completed_nodes: usize,
+    pub execution_id: Option<String>,
 }
 
 /// 步骤进度回调：`&self` 不可用时使用独立函数签名
@@ -222,8 +226,6 @@ pub struct WorkEngine {
     agent_profile_cache: Arc<tokio::sync::Mutex<ProfileCache>>,
     /// 断点集（节点 ID → 是否启用，外部通过 set_breakpoints / resume 控制）
     pub breakpoints: Arc<Mutex<HashSet<String>>>,
-    /// 暂停信号（resume 时通知等待中的执行）
-    pause_signal: Arc<tokio::sync::Notify>,
     /// 节点断路器状态（跨 workflow 运行持久化，防止重试风暴）
     node_breakers: Arc<Mutex<HashMap<String, NodeCircuitBreaker>>>,
 }
@@ -240,13 +242,50 @@ impl WorkEngine {
     pub async fn set_breakpoints(&self, bp: HashSet<String>) {
         *self.breakpoints.lock().await = bp;
     }
-    /// 继续执行（通知所有等待中的断点）
-    pub fn resume_breakpoints(&self) {
-        self.pause_signal.notify_waiters();
+    pub async fn set_breakpoints_for_execution(&self, execution_id: &str, bp: HashSet<String>) {
+        *self.breakpoints.lock().await = bp.clone();
+        let mut executions = self.executions.lock().await;
+        if let Some(state) = executions.get_mut(execution_id) {
+            state.breakpoints = bp;
+        }
     }
-    /// 单步执行（仅通知一个等待者）
-    pub fn step_breakpoint(&self) {
-        self.pause_signal.notify_one();
+    /// 继续执行（通知指定执行的所有等待中的断点 + 恢复运行状态）
+    pub async fn resume_breakpoints(&self, execution_id: &str) {
+        let signal = {
+            let executions = self.executions.lock().await;
+            executions
+                .get(execution_id)
+                .and_then(|s| s.pause_signal.clone())
+        };
+        if let Some(sig) = signal {
+            sig.notify_waiters();
+        }
+        let mut executions = self.executions.lock().await;
+        if let Some(state) = executions.get_mut(execution_id) {
+            if state.status == ExecutionStatus::Paused {
+                state.status = ExecutionStatus::Running;
+                state.updated_at = Utc::now().timestamp_millis();
+            }
+        }
+    }
+    /// 单步执行（仅通知一个等待者 + 恢复运行状态）
+    pub async fn step_breakpoint(&self, execution_id: &str) {
+        let signal = {
+            let executions = self.executions.lock().await;
+            executions
+                .get(execution_id)
+                .and_then(|s| s.pause_signal.clone())
+        };
+        if let Some(sig) = signal {
+            sig.notify_one();
+        }
+        let mut executions = self.executions.lock().await;
+        if let Some(state) = executions.get_mut(execution_id) {
+            if state.status == ExecutionStatus::Paused {
+                state.status = ExecutionStatus::Running;
+                state.updated_at = Utc::now().timestamp_millis();
+            }
+        }
     }
 
     /// 从模板 tool_defs 预编译 Rhai 工具（覆盖 DAG 扫描结果）
@@ -339,6 +378,19 @@ impl WorkEngine {
             agent_profile_cache.clone(),
         ));
         dispatcher.register(ConditionExecutor::new(db.clone(), master_key));
+        dispatcher.register(TriggerExecutor::new());
+        dispatcher.register(ParallelExecutor::new());
+        dispatcher.register(LoopExecutor::new());
+        dispatcher.register(MergeExecutor::new());
+        dispatcher.register(DelayExecutor::new());
+        dispatcher.register(SubWorkflowExecutor::new());
+        dispatcher.register(DocumentParserExecutor::new());
+        dispatcher.register(VectorRetrieveExecutor::new());
+        dispatcher.register(EndExecutor::new());
+        dispatcher.register(ValidationExecutor::new());
+        dispatcher.register(ToolExecutor::new());
+        dispatcher.register(CodeExecutor::new());
+        dispatcher.register(FallbackExecutor::new());
         Self {
             db,
             master_key,
@@ -356,9 +408,18 @@ impl WorkEngine {
             agent_provider_cache,
             agent_profile_cache,
             breakpoints: Arc::new(Mutex::new(HashSet::new())),
-            pause_signal: Arc::new(tokio::sync::Notify::new()),
             node_breakers: Arc::new(Mutex::new(HashMap::new())),
         }
+    }
+
+    pub async fn clear_node_breakers(&self) {
+        self.node_breakers.lock().await.clear();
+    }
+
+    /// 按 workflow_id 清除关联的断路器状态
+    pub async fn clear_node_breakers_for_workflow(&self, workflow_id: &str) {
+        let mut breakers = self.node_breakers.lock().await;
+        breakers.retain(|k, _| !k.starts_with(&format!("{}:", workflow_id)));
     }
 
     // ── DAG 管理 ──
@@ -1065,6 +1126,7 @@ impl WorkEngine {
                         status: "running".to_string(),
                         total_nodes,
                         completed_nodes: completed,
+                        execution_id: Some(execution_id.clone()),
                     })
                     .await;
                 }
@@ -1086,14 +1148,31 @@ impl WorkEngine {
                     let bp = self.breakpoints.lock().await;
                     exec_ctx.breakpoints = bp.clone();
                 }
-                exec_ctx.pause_signal = Some(self.pause_signal.clone());
 
-                // 断点检查：命中时等待 resume
+                let exec_pause_signal = {
+                    let mut executions = self.executions.lock().await;
+                    if let Some(state) = executions.get_mut(&execution_id) {
+                        if state.pause_signal.is_none() {
+                            state.pause_signal = Some(Arc::new(tokio::sync::Notify::new()));
+                        }
+                        state.pause_signal.clone().unwrap()
+                    } else {
+                        Arc::new(tokio::sync::Notify::new())
+                    }
+                };
+                exec_ctx.pause_signal = Some(exec_pause_signal.clone());
+
                 if exec_ctx.breakpoints.contains(&node_id) {
                     tracing::info!("[Breakpoint] 命中节点 {node_id}，等待 resume...");
-                    if let Some(ref sig) = exec_ctx.pause_signal {
-                        sig.notified().await;
+                    {
+                        let mut executions = self.executions.lock().await;
+                        if let Some(state) = executions.get_mut(&execution_id) {
+                            state.status = ExecutionStatus::Paused;
+                            state.current_node_id = Some(node_id.clone());
+                            state.updated_at = Utc::now().timestamp_millis();
+                        }
                     }
+                    exec_pause_signal.notified().await;
                 }
 
                 // 注入编译后的 prompt 模板
@@ -1113,6 +1192,8 @@ impl WorkEngine {
                     let sub_provider_id = options.provider_id.clone();
                     let sub_step_timeout = options.step_timeout;
                     let sub_cancel_token = cancel_token.clone();
+                    let sub_progress_cb = progress_cb.clone();
+                    let sub_dry_run = options.dry_run;
 
                     let sub_cb: SubWorkflowCallback =
                         Arc::new(
@@ -1126,6 +1207,8 @@ impl WorkEngine {
                                 let model_id = sub_model_id.clone();
                                 let provider_id = sub_provider_id.clone();
                                 let cancel_token = sub_cancel_token.clone();
+                                let progress_cb = sub_progress_cb.clone();
+                                let dry_run = sub_dry_run;
                                 let child_execution_id = uuid::Uuid::new_v4().to_string();
                                 let child_eid_for_result = child_execution_id.clone();
 
@@ -1161,10 +1244,10 @@ impl WorkEngine {
                                         let input_value = serde_json::to_value(&input_vars)
                                             .unwrap_or(serde_json::json!({}));
 
-                                        let opts = RunOptions {
+                                        let mut opts = RunOptions {
                                             execution_id: Some(child_execution_id),
                                             input: Some(input_value),
-                                            dry_run: false,
+                                            dry_run,
                                             parent_execution_id: Some(parent_execution_id),
                                             model_id,
                                             provider_id,
@@ -1172,6 +1255,9 @@ impl WorkEngine {
                                             parent_cancel_token: Some(cancel_token),
                                             ..Default::default()
                                         };
+                                        if let Some(cb) = progress_cb {
+                                            opts = opts.with_progress_callback(cb);
+                                        }
 
                                         let result = engine
                                             .run_workflow(&wid, opts)
@@ -1448,9 +1534,7 @@ impl WorkEngine {
         };
 
         if let Some(ref mut wf) = result {
-            // 提取 EndNode 的聚合输出（改进 3）
             let end_output = extract_end_output(&wf.nodes, &wf.results);
-            // 应用 output_schema 过滤（改进 2b）
             wf.output =
                 build_workflow_output(&wf.results, end_output, options.output_schema.as_ref());
 
@@ -1461,9 +1545,21 @@ impl WorkEngine {
                 .completed_at
                 .map(|end| end.saturating_sub(wf.created_at) * 1000)
                 .unwrap_or(0);
-            self.complete_execution(&execution_id, &persist_output, total_time_ms)
-                .await
-                .ok();
+            let final_exec_status = match wf.status {
+                WorkflowStatus::Completed => ExecutionStatus::Completed,
+                WorkflowStatus::PartiallyCompleted => ExecutionStatus::PartiallyCompleted,
+                WorkflowStatus::Failed => ExecutionStatus::Failed,
+                WorkflowStatus::Cancelled => ExecutionStatus::Cancelled,
+                _ => ExecutionStatus::Completed,
+            };
+            self.complete_execution(
+                &execution_id,
+                &persist_output,
+                total_time_ms,
+                final_exec_status,
+            )
+            .await
+            .ok();
 
             // 写回共享 HashMap，确保 workflow_get_status 可读到 output
             if wf.output.is_some() {
@@ -1480,6 +1576,20 @@ impl WorkEngine {
             for (k, v) in breakers {
                 shared.insert(k, v);
             }
+        }
+
+        // Clean up workflow + compiled prompts to prevent memory leak
+        {
+            let mut workflows = self.workflows.write().await;
+            workflows.remove(workflow_id);
+        }
+        {
+            let mut compiled = self.compiled_prompts.write().await;
+            compiled.remove(workflow_id);
+        }
+        {
+            let mut rhai = self.compiled_rhai_scripts.write().await;
+            rhai.remove(workflow_id);
         }
 
         Ok(result.unwrap_or_else(|| Workflow {
@@ -1551,16 +1661,22 @@ impl WorkEngine {
     }
 
     pub async fn resume(&self, execution_id: &str) -> Result<(), WorkEngineError> {
-        let mut executions = self.executions.lock().await;
-        if let Some(state) = executions.get_mut(execution_id) {
-            if state.status == ExecutionStatus::Paused {
-                state.status = ExecutionStatus::Running;
-                state.updated_at = Utc::now().timestamp_millis();
+        let signal = {
+            let mut executions = self.executions.lock().await;
+            if let Some(state) = executions.get_mut(execution_id) {
+                if state.status == ExecutionStatus::Paused {
+                    state.status = ExecutionStatus::Running;
+                    state.updated_at = Utc::now().timestamp_millis();
+                }
+                state.pause_signal.clone()
+            } else {
+                return Err(WorkEngineError::NotFound(execution_id.to_string()));
             }
-            Ok(())
-        } else {
-            Err(WorkEngineError::NotFound(execution_id.to_string()))
+        };
+        if let Some(sig) = signal {
+            sig.notify_waiters();
         }
+        Ok(())
     }
 
     pub async fn cancel(&self, execution_id: &str) -> Result<(), WorkEngineError> {
@@ -1628,19 +1744,27 @@ impl WorkEngine {
         execution_id: &str,
         output: &serde_json::Value,
         total_time_ms: u64,
+        final_status: ExecutionStatus,
     ) -> Result<(), WorkEngineError> {
         let mut executions = self.executions.lock().await;
         if let Some(state) = executions.get_mut(execution_id) {
-            state.status = ExecutionStatus::Completed;
+            state.status = final_status.clone();
             state.total_time_ms = total_time_ms;
             state.updated_at = Utc::now().timestamp_millis();
             let node_executions = serde_json::to_string(&state.node_records).ok();
             let output_result = serde_json::to_string(output).ok();
             drop(executions);
+            let db_status = match final_status {
+                ExecutionStatus::Completed => "completed",
+                ExecutionStatus::Failed => "failed",
+                ExecutionStatus::Cancelled => "cancelled",
+                ExecutionStatus::PartiallyCompleted => "partially_completed",
+                _ => "completed",
+            };
             axagent_core::repo::workflow_execution::update_workflow_execution_status(
                 &self.db,
                 execution_id,
-                "completed",
+                db_status,
                 output_result.as_deref(),
                 node_executions.as_deref(),
                 Some(total_time_ms as i32),

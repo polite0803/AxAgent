@@ -831,6 +831,38 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({
         />
       </div>
 
+      <div>
+        <label
+          style={{
+            display: "block",
+            color: token.colorTextTertiary,
+            fontSize: 12,
+            marginBottom: 4,
+          }}
+        >
+          {t("workflow.props.ragSourceIdsCount", {
+            count: config.rag_source_ids?.length || 0,
+          })}
+        </label>
+        <Select
+          mode="tags"
+          value={config.rag_source_ids || []}
+          onChange={(value) => handleConfigChange("rag_source_ids", value)}
+          size="small"
+          style={{ width: "100%" }}
+          placeholder={t("workflow.props.ragSourceIdsPlaceholder")}
+          options={knowledgeBases
+            .filter((kb) => kb.enabled)
+            .map((kb) => ({
+              value: `knowledge:${kb.id}`,
+              label: `📚 ${kb.name}`,
+            }))}
+        />
+        <div style={{ fontSize: 11, color: token.colorTextTertiary, marginTop: 2 }}>
+          {t("workflow.props.ragSourceIdsHint")}
+        </div>
+      </div>
+
       <div
         style={{ borderTop: `1px solid ${token.colorBorderSecondary}`, paddingTop: 12, marginTop: 4 }}
       >

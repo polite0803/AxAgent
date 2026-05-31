@@ -1243,6 +1243,7 @@ export type ExecutionStatus =
   | "running"
   | "paused"
   | "completed"
+  | "partially_completed"
   | "failed"
   | "cancelled";
 

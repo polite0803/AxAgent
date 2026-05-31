@@ -98,6 +98,8 @@ export interface AgentNodeConfig {
   max_tool_rounds?: number;
   /** 执行模式: "react" = 逐步思考-行动, "plan" = 先规划为工作流再执行 */
   execution_mode?: "react" | "plan";
+  /** RAG 知识源 ID 列表。格式: "knowledge:<kb_id>", "memory:<ns_id>", "wiki:<wiki_id>" */
+  rag_source_ids?: string[];
 }
 
 export interface AgentNode extends WorkflowNodeBase {

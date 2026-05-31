@@ -657,7 +657,7 @@ export const WorkflowProgressPanel: React.FC<WorkflowProgressPanelProps> = ({
 
       try {
         const data = await invoke<WorkflowData>("workflow_get_status", {
-          workflowId,
+          workflow_id: workflowId,
         });
         if (fetchIdRef.current !== requestId) {
           return;

@@ -1,17 +1,17 @@
 //! 节点调度器 —— 根据 WorkflowNode 类型路由到对应执行器。
 //!
-//! 现在注册了全部 15 种节点类型的执行器，未匹配的类型降级到 FallbackExecutor。
+//! NodeDispatcher::new() 只注册无外部依赖的执行器。
+//! 需要 db/master_key 的执行器（Llm、Agent、Condition）由 WorkEngine::new() 注册覆盖。
 
 use std::collections::HashMap;
-use std::sync::Arc;
 
 use axagent_core::workflow_types::WorkflowNode;
 
 use super::execution_state::ExecutionState;
 use super::executors::{
-    AgentExecutor, CodeExecutor, ConditionExecutor, DelayExecutor, DocumentParserExecutor,
-    EndExecutor, FallbackExecutor, LlmExecutor, LoopExecutor, MergeExecutor, ParallelExecutor,
-    SubWorkflowExecutor, ToolExecutor, TriggerExecutor, ValidationExecutor, VectorRetrieveExecutor,
+    CodeExecutor, DelayExecutor, DocumentParserExecutor, EndExecutor, FallbackExecutor,
+    LoopExecutor, MergeExecutor, ParallelExecutor, SubWorkflowExecutor, ToolExecutor,
+    TriggerExecutor, ValidationExecutor, VectorRetrieveExecutor,
 };
 use super::node_executor_trait::{NodeError, NodeExecutorTrait, NodeOutput, node_type_name};
 
@@ -30,14 +30,7 @@ impl NodeDispatcher {
         let mut dispatcher = Self {
             executors: HashMap::new(),
         };
-        // 注册全部 15 种节点类型的执行器
         dispatcher.register(TriggerExecutor::new());
-        dispatcher.register(AgentExecutor::default());
-        dispatcher.register(LlmExecutor::default());
-        dispatcher.register(ConditionExecutor::new(
-            Arc::new(sea_orm::DatabaseConnection::default()),
-            [0u8; 32],
-        ));
         dispatcher.register(ParallelExecutor::new());
         dispatcher.register(LoopExecutor::new());
         dispatcher.register(MergeExecutor::new());
@@ -58,7 +51,6 @@ impl NodeDispatcher {
             .insert(executor.node_type(), Box::new(executor));
     }
 
-    /// 分发节点到对应执行器。未匹配类型降级到 FallbackExecutor。
     pub async fn dispatch(
         &self,
         node: &WorkflowNode,
@@ -68,7 +60,7 @@ impl NodeDispatcher {
         let executor = self.executors.get(node_type).unwrap_or_else(|| {
             self.executors
                 .get("fallback")
-                .expect("FallbackExecutor 必须已注册")
+                .expect("FallbackExecutor must be registered")
         });
         executor.execute(node, context).await
     }

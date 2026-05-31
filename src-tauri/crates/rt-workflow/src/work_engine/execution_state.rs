@@ -7,6 +7,7 @@ pub enum ExecutionStatus {
     Running,
     Paused,
     Completed,
+    PartiallyCompleted,
     Failed,
     Cancelled,
 }
@@ -17,6 +18,7 @@ impl std::fmt::Display for ExecutionStatus {
             ExecutionStatus::Running => write!(f, "running"),
             ExecutionStatus::Paused => write!(f, "paused"),
             ExecutionStatus::Completed => write!(f, "completed"),
+            ExecutionStatus::PartiallyCompleted => write!(f, "partially_completed"),
             ExecutionStatus::Failed => write!(f, "failed"),
             ExecutionStatus::Cancelled => write!(f, "cancelled"),
         }
