@@ -287,6 +287,7 @@ export function DebugPanel({ workflowId }: DebugPanelProps) {
     loading,
     dryRun,
     isDebugRunning,
+    lastDebugError,
     executionHistory,
   } = engine;
 
@@ -850,15 +851,22 @@ export function DebugPanel({ workflowId }: DebugPanelProps) {
             <Space>
               {!isDebugRunning
                 ? (
-                  <Button
-                    type="primary"
-                    icon={<CaretRightOutlined />}
-                    loading={loading}
-                    onClick={handleDebugRun}
-                    disabled={!workflowId}
-                  >
-                    {t("workflow.debug.startDebug")}
-                  </Button>
+                  <>
+                    <Button
+                      type="primary"
+                      icon={<CaretRightOutlined />}
+                      loading={loading}
+                      onClick={handleDebugRun}
+                      disabled={!workflowId}
+                    >
+                      {t("workflow.debug.startDebug")}
+                    </Button>
+                    {lastDebugError && (
+                      <Text type="danger" className="text-xs" style={{ display: "block", marginTop: 4 }}>
+                        {lastDebugError}
+                      </Text>
+                    )}
+                  </>
                 )
                 : (
                   <>

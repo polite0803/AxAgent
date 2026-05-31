@@ -14,6 +14,7 @@ interface WorkEngineState {
   loading: boolean;
   dryRun: boolean;
   isDebugRunning: boolean;
+  lastDebugError: string | null;
 
   startExecution: (workflowId: string, input: unknown) => Promise<string>;
   debugRun: (
@@ -51,6 +52,7 @@ export const useWorkEngineStore = create<WorkEngineState>((set, get) => ({
   loading: false,
   dryRun: false,
   isDebugRunning: false,
+  lastDebugError: null,
 
   startExecution: async (workflowId: string, input: unknown) => {
     set({ loading: true });
@@ -76,7 +78,7 @@ export const useWorkEngineStore = create<WorkEngineState>((set, get) => ({
       providerId?: string;
     },
   ) => {
-    set({ loading: true, nodeStatuses: {}, nodeRecords: [], variables: {} });
+    set({ loading: true, nodeStatuses: {}, nodeRecords: [], variables: {}, lastDebugError: null });
     try {
       const executionId = await invoke<string>("debug_run_workflow", {
         template_id: templateId,
@@ -86,8 +88,13 @@ export const useWorkEngineStore = create<WorkEngineState>((set, get) => ({
         model_id: options?.modelId ?? null,
         provider_id: options?.providerId ?? null,
       });
-      set({ executionId, isDebugRunning: true });
+      set({ executionId, isDebugRunning: true, lastDebugError: null });
       return executionId;
+    } catch (e) {
+      const msg = String(e);
+      console.error("[debugRun] Failed to start debug:", msg);
+      set({ lastDebugError: msg });
+      throw e;
     } finally {
       set({ loading: false });
     }
@@ -199,6 +206,7 @@ export const useWorkEngineStore = create<WorkEngineState>((set, get) => ({
       nodeRecords: [],
       variables: {},
       isDebugRunning: false,
+      lastDebugError: null,
     });
   },
 

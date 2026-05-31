@@ -29,7 +29,7 @@ export function ExecutionHistoryPanel({ workflowId, onSelectExecution }: Props) 
   useEffect(() => {
     if (!workflowId) { return; }
     setLoading(true);
-    invoke<ExecutionRecord[]>("list_workflow_executions", { workflowId })
+    invoke<ExecutionRecord[]>("list_workflow_executions", { workflow_id: workflowId })
       .then(setRecords)
       .catch(() => setRecords([]))
       .finally(() => setLoading(false));
