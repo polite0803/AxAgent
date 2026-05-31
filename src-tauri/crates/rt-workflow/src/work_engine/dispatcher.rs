@@ -62,6 +62,12 @@ impl NodeDispatcher {
                 .get("fallback")
                 .expect("FallbackExecutor must be registered")
         });
+        tracing::info!(
+            node_id = %node.base_id(),
+            node_type,
+            executor_type = %executor.node_type(),
+            "dispatch"
+        );
         executor.execute(node, context).await
     }
 

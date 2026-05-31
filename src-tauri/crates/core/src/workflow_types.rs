@@ -1005,3 +1005,76 @@ where
         })
         .collect()
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn tool_node_roundtrip_preserves_type() {
+        let tool = WorkflowNode::Tool(ToolNode {
+            base: WorkflowNodeBase {
+                id: "t-test".to_string(),
+                title: "Test Tool".to_string(),
+                description: None,
+                position: Position { x: 0.0, y: 0.0 },
+                retry: RetryConfig::default(),
+                timeout: None,
+                enabled: true,
+            },
+            config: ToolNodeConfig {
+                tool_name: "Bash".to_string(),
+                input_mapping: std::collections::HashMap::new(),
+                output_var: "r_test".to_string(),
+            },
+        });
+
+        let json = serde_json::to_string(&tool).unwrap();
+        assert!(json.contains(r#""type":"tool""#), "Tool JSON should have type=tool: {json}");
+
+        let roundtrip: WorkflowNode = serde_json::from_str(&json).unwrap();
+        match &roundtrip {
+            WorkflowNode::Tool(t) => assert_eq!(t.config.tool_name, "Bash"),
+            other => panic!("Expected Tool, got {:?}", std::mem::discriminant(other)),
+        }
+    }
+
+    #[test]
+    fn agent_node_roundtrip_preserves_type() {
+        let agent = WorkflowNode::Agent(AgentNode {
+            base: WorkflowNodeBase {
+                id: "a-test".to_string(),
+                title: "Test Agent".to_string(),
+                description: None,
+                position: Position { x: 0.0, y: 0.0 },
+                retry: RetryConfig::default(),
+                timeout: None,
+                enabled: true,
+            },
+            config: AgentNodeConfig {
+                system_prompt: "test prompt".to_string(),
+                context_sources: vec![],
+                output_var: "r_test".to_string(),
+                model: None,
+                temperature: None,
+                max_tokens: None,
+                tools: vec![],
+                exposed_tools: vec![],
+                output_mode: OutputMode::Text,
+                agent_profile_id: None,
+                max_tool_rounds: None,
+                execution_mode: None,
+                rag_source_ids: vec![],
+            },
+        });
+
+        let json = serde_json::to_string(&agent).unwrap();
+        assert!(json.contains(r#""type":"agent""#), "Agent JSON should have type=agent: {json}");
+
+        let roundtrip: WorkflowNode = serde_json::from_str(&json).unwrap();
+        match &roundtrip {
+            WorkflowNode::Agent(a) => assert_eq!(a.config.system_prompt, "test prompt"),
+            other => panic!("Expected Agent, got {:?}", std::mem::discriminant(other)),
+        }
+    }
+}
