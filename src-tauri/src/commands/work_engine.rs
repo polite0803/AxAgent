@@ -231,16 +231,11 @@ pub async fn debug_run_workflow(
         .map_err(|e| e.to_string())?
         .ok_or_else(|| format!("Template {} not found", template_id))?;
 
-    let nodes_json: Vec<serde_json::Value> =
+    let nodes: Vec<axagent_core::workflow_types::WorkflowNode> =
         serde_json::from_str(&template.nodes).map_err(|e| format!("节点解析失败: {}", e))?;
-    // 逐条反序列化以排查 Vec 整体反序列化的变体混淆
-    let mut nodes: Vec<axagent_core::workflow_types::WorkflowNode> = Vec::new();
-    for (i, val) in nodes_json.iter().enumerate() {
-        let n: axagent_core::workflow_types::WorkflowNode = serde_json::from_value(val.clone())
-            .map_err(|e| format!("节点[{i}]反序列化失败: {e}"))?;
-        let typ = axagent_rt_workflow::work_engine::node_executor_trait::node_type_name(&n);
+    for (i, n) in nodes.iter().enumerate() {
+        let typ = axagent_rt_workflow::work_engine::node_executor_trait::node_type_name(n);
         tracing::info!(i, node_id = %n.base_id(), node_type = typ, "deserialized node");
-        nodes.push(n);
     }
     let edges: Vec<axagent_core::workflow_types::WorkflowEdge> =
         serde_json::from_str(&template.edges).map_err(|e| format!("边解析失败: {}", e))?;

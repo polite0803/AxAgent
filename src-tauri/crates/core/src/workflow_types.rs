@@ -508,7 +508,7 @@ pub struct EndNode {
     pub config: EndNodeConfig,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize)]
 #[serde(tag = "type", rename_all = "camelCase")]
 pub enum WorkflowNode {
     Trigger(TriggerNode),
@@ -528,6 +528,65 @@ pub enum WorkflowNode {
     Tool(ToolNode),
     #[serde(rename = "code")]
     Code(CodeNode),
+}
+
+impl<'de> serde::Deserialize<'de> for WorkflowNode {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let value = serde_json::Value::deserialize(deserializer)?;
+        let type_str = value
+            .get("type")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| serde::de::Error::missing_field("type"))?;
+
+        macro_rules! try_from_value {
+            ($variant:ident, $inner:ty) => {
+                WorkflowNode::$variant(
+                    serde_json::from_value::<$inner>(value).map_err(serde::de::Error::custom)?,
+                )
+            };
+        }
+
+        match type_str {
+            "trigger" => Ok(try_from_value!(Trigger, TriggerNode)),
+            "agent" => Ok(try_from_value!(Agent, AgentNode)),
+            "llm" => Ok(try_from_value!(Llm, LLMNode)),
+            "condition" => Ok(try_from_value!(Condition, ConditionNode)),
+            "parallel" => Ok(try_from_value!(Parallel, ParallelNode)),
+            "loop" => Ok(try_from_value!(Loop, LoopNode)),
+            "merge" => Ok(try_from_value!(Merge, MergeNode)),
+            "delay" => Ok(try_from_value!(Delay, DelayNode)),
+            "validation" => Ok(try_from_value!(Validation, ValidationNode)),
+            "subWorkflow" => Ok(try_from_value!(SubWorkflow, SubWorkflowNode)),
+            "documentParser" => Ok(try_from_value!(DocumentParser, DocumentParserNode)),
+            "vectorRetrieve" => Ok(try_from_value!(VectorRetrieve, VectorRetrieveNode)),
+            "end" => Ok(try_from_value!(End, EndNode)),
+            "tool" => Ok(try_from_value!(Tool, ToolNode)),
+            "code" => Ok(try_from_value!(Code, CodeNode)),
+            other => Err(serde::de::Error::unknown_variant(
+                other,
+                &[
+                    "trigger",
+                    "agent",
+                    "llm",
+                    "condition",
+                    "parallel",
+                    "loop",
+                    "merge",
+                    "delay",
+                    "validation",
+                    "subWorkflow",
+                    "documentParser",
+                    "vectorRetrieve",
+                    "end",
+                    "tool",
+                    "code",
+                ],
+            )),
+        }
+    }
 }
 
 impl WorkflowNode {
@@ -1075,6 +1134,214 @@ mod tests {
         match &roundtrip {
             WorkflowNode::Agent(a) => assert_eq!(a.config.system_prompt, "test prompt"),
             other => panic!("Expected Agent, got {:?}", std::mem::discriminant(other)),
+        }
+    }
+
+    fn make_agent_node(id: &str, title: &str) -> WorkflowNode {
+        WorkflowNode::Agent(AgentNode {
+            base: WorkflowNodeBase {
+                id: id.to_string(),
+                title: title.to_string(),
+                description: None,
+                position: Position { x: 0.0, y: 0.0 },
+                retry: RetryConfig::default(),
+                timeout: None,
+                enabled: true,
+            },
+            config: AgentNodeConfig {
+                system_prompt: format!("prompt for {id}"),
+                context_sources: vec![],
+                output_var: format!("r_{id}"),
+                model: None,
+                temperature: None,
+                max_tokens: None,
+                tools: vec![],
+                exposed_tools: vec![],
+                output_mode: OutputMode::Text,
+                agent_profile_id: None,
+                max_tool_rounds: None,
+                execution_mode: None,
+                rag_source_ids: vec![],
+            },
+        })
+    }
+
+    fn make_tool_node(id: &str, title: &str, tool_name: &str) -> WorkflowNode {
+        WorkflowNode::Tool(ToolNode {
+            base: WorkflowNodeBase {
+                id: id.to_string(),
+                title: title.to_string(),
+                description: None,
+                position: Position { x: 100.0, y: 100.0 },
+                retry: RetryConfig::default(),
+                timeout: None,
+                enabled: true,
+            },
+            config: ToolNodeConfig {
+                tool_name: tool_name.to_string(),
+                input_mapping: std::collections::HashMap::new(),
+                output_var: format!("r_{id}"),
+            },
+        })
+    }
+
+    #[test]
+    fn vec_bulk_deserialize_preserves_tool_variant() {
+        let nodes = vec![
+            make_agent_node("a1", "Agent 1"),
+            make_tool_node("t1", "Tool 1", "Bash"),
+            make_agent_node("a2", "Agent 2"),
+            make_tool_node("t2", "Tool 2", "Search"),
+        ];
+
+        let json = serde_json::to_string(&nodes).unwrap();
+        eprintln!("Serialized Vec<WorkflowNode>:\n{json}");
+
+        let roundtrip: Vec<WorkflowNode> = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(roundtrip.len(), 4, "should have 4 nodes");
+
+        match &roundtrip[0] {
+            WorkflowNode::Agent(a) => assert_eq!(a.base.id, "a1"),
+            other => panic!("node[0] expected Agent, got {:?}", std::mem::discriminant(other)),
+        }
+
+        match &roundtrip[1] {
+            WorkflowNode::Tool(t) => {
+                assert_eq!(t.base.id, "t1");
+                assert_eq!(t.config.tool_name, "Bash");
+            },
+            other => panic!("node[1] expected Tool, got {:?}", std::mem::discriminant(other)),
+        }
+
+        match &roundtrip[2] {
+            WorkflowNode::Agent(a) => assert_eq!(a.base.id, "a2"),
+            other => panic!("node[2] expected Agent, got {:?}", std::mem::discriminant(other)),
+        }
+
+        match &roundtrip[3] {
+            WorkflowNode::Tool(t) => {
+                assert_eq!(t.base.id, "t2");
+                assert_eq!(t.config.tool_name, "Search");
+            },
+            other => panic!("node[3] expected Tool, got {:?}", std::mem::discriminant(other)),
+        }
+    }
+
+    #[test]
+    fn vec_bulk_deserialize_from_raw_json() {
+        let raw_json = r#"[
+            {"type":"agent","id":"a1","title":"Agent 1","description":null,"position":{"x":0.0,"y":0.0},"retry":{"enabled":false,"max_retries":3,"backoff_type":"Exponential","base_delay_ms":1000,"max_delay_ms":30000},"timeout":null,"enabled":true,"config":{"system_prompt":"prompt","context_sources":[],"output_var":"r_a1","model":null,"temperature":null,"max_tokens":null,"tools":[],"exposed_tools":[],"output_mode":"text","agent_profile_id":null,"max_tool_rounds":null,"execution_mode":null,"rag_source_ids":[]}},
+            {"type":"tool","id":"t1","title":"Tool 1","description":null,"position":{"x":100.0,"y":100.0},"retry":{"enabled":false,"max_retries":3,"backoff_type":"Exponential","base_delay_ms":1000,"max_delay_ms":30000},"timeout":null,"enabled":true,"config":{"tool_name":"Bash","input_mapping":{},"output_var":"r_t1"}}
+        ]"#;
+
+        let roundtrip: Vec<WorkflowNode> = serde_json::from_str(raw_json).unwrap();
+
+        assert_eq!(roundtrip.len(), 2);
+
+        match &roundtrip[0] {
+            WorkflowNode::Agent(a) => assert_eq!(a.base.id, "a1"),
+            other => panic!("node[0] expected Agent, got {:?}", std::mem::discriminant(other)),
+        }
+
+        match &roundtrip[1] {
+            WorkflowNode::Tool(t) => {
+                assert_eq!(t.base.id, "t1");
+                assert_eq!(t.config.tool_name, "Bash");
+            },
+            other => panic!("node[1] expected Tool, got {:?}", std::mem::discriminant(other)),
+        }
+    }
+
+    #[test]
+    fn vec_bulk_deserialize_frontend_style_tool_node() {
+        let raw_json = r#"[
+            {"type":"agent","id":"a1","title":"Agent 1","description":null,"position":{"x":0.0,"y":0.0},"retry":{"enabled":false,"max_retries":3,"backoff_type":"Exponential","base_delay_ms":1000,"max_delay_ms":30000},"timeout":null,"enabled":true,"config":{"system_prompt":"prompt","context_sources":[],"output_var":"r_a1","tools":[],"exposed_tools":[],"output_mode":"text","agentProfileId":null,"max_tool_rounds":null,"execution_mode":null,"rag_source_ids":[]}},
+            {"type":"tool","id":"t1","title":"Tool 1","description":null,"position":{"x":100.0,"y":100.0},"retry":{"enabled":false,"max_retries":3,"backoff_type":"Exponential","base_delay_ms":1000,"max_delay_ms":30000},"timeout":null,"enabled":true,"config":{"tool_name":"Bash","input_mapping":{},"output_var":"r_t1"}}
+        ]"#;
+
+        let result: Result<Vec<WorkflowNode>, _> = serde_json::from_str(raw_json);
+        match result {
+            Ok(nodes) => {
+                for (i, n) in nodes.iter().enumerate() {
+                    let typ = match n {
+                        WorkflowNode::Agent(_) => "Agent",
+                        WorkflowNode::Tool(_) => "Tool",
+                        _ => "Other",
+                    };
+                    eprintln!("node[{i}]: type={}", typ);
+                }
+                match &nodes[1] {
+                    WorkflowNode::Tool(t) => {
+                        assert_eq!(t.base.id, "t1");
+                        assert_eq!(t.config.tool_name, "Bash");
+                    },
+                    other => panic!(
+                        "node[1] expected Tool, got {:?} — Tool node was mis-parsed as another variant!",
+                        std::mem::discriminant(other)
+                    ),
+                }
+            },
+            Err(e) => {
+                panic!("Deserialization failed: {e}");
+            },
+        }
+    }
+
+    #[test]
+    fn tool_node_missing_config_field() {
+        let raw_json = r#"{"type":"tool","id":"t1","title":"Tool 1","description":null,"position":{"x":100.0,"y":100.0},"retry":{"enabled":false,"max_retries":3,"backoff_type":"Exponential","base_delay_ms":1000,"max_delay_ms":30000},"timeout":null,"enabled":true}"#;
+
+        let result: Result<WorkflowNode, _> = serde_json::from_str(raw_json);
+        match result {
+            Ok(node) => {
+                let typ = match &node {
+                    WorkflowNode::Agent(_) => "Agent",
+                    WorkflowNode::Tool(_) => "Tool",
+                    _ => "Other",
+                };
+                panic!(
+                    "Expected deserialization to fail for missing config, but got variant: {typ}"
+                );
+            },
+            Err(e) => {
+                eprintln!("As expected, missing config causes error: {e}");
+            },
+        }
+    }
+
+    #[test]
+    fn tool_node_config_fields_at_top_level() {
+        let raw_json = r#"{"type":"tool","id":"t1","title":"Tool 1","description":null,"position":{"x":100.0,"y":100.0},"retry":{"enabled":false,"max_retries":3,"backoff_type":"Exponential","base_delay_ms":1000,"max_delay_ms":30000},"timeout":null,"enabled":true,"tool_name":"Bash","input_mapping":{},"output_var":"r_t1"}"#;
+
+        let result: Result<WorkflowNode, _> = serde_json::from_str(raw_json);
+        match result {
+            Ok(node) => {
+                let typ = match &node {
+                    WorkflowNode::Agent(a) => {
+                        eprintln!(
+                            "Tool node was parsed as Agent! system_prompt='{}', output_var='{}'",
+                            a.config.system_prompt, a.config.output_var
+                        );
+                        "Agent"
+                    },
+                    WorkflowNode::Tool(t) => {
+                        eprintln!(
+                            "Tool node correctly parsed as Tool! tool_name='{}'",
+                            t.config.tool_name
+                        );
+                        "Tool"
+                    },
+                    other => {
+                        eprintln!("Tool node parsed as: {:?}", std::mem::discriminant(other));
+                        "Other"
+                    },
+                };
+                eprintln!("Result variant: {typ}");
+            },
+            Err(e) => {
+                eprintln!("Deserialization failed: {e}");
+            },
         }
     }
 }
