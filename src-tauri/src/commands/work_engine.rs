@@ -1,4 +1,3 @@
-use sea_orm::ActiveModelTrait;
 use serde::{Deserialize, Serialize};
 use tauri::{Emitter, State};
 

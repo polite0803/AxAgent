@@ -2162,7 +2162,7 @@ fn load_manifest_from_skill_md(
         {
             default_enabled = v
                 .as_bool()
-                .unwrap_or(v.as_str().map_or(true, |s| s.eq_ignore_ascii_case("true")));
+                .unwrap_or(v.as_str().is_none_or(|s| s.eq_ignore_ascii_case("true")));
         }
 
         for key in &["permissions"] {
@@ -2284,10 +2284,10 @@ fn parse_yaml_frontmatter(frontmatter: &str) -> std::collections::HashMap<String
         let trimmed = line.trim();
 
         if trimmed.is_empty() {
-            if let Some(key) = current_key.take() {
-                if !current_array.is_empty() {
-                    result.insert(key, YamlValue::Array(std::mem::take(&mut current_array)));
-                }
+            if let Some(key) = current_key.take()
+                && !current_array.is_empty()
+            {
+                result.insert(key, YamlValue::Array(std::mem::take(&mut current_array)));
             }
             continue;
         }

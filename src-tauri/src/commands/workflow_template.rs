@@ -4,7 +4,7 @@ use crate::commands::error_code::workflow as workflow_err;
 use axagent_core::repo::workflow_template as db_repo;
 use axagent_core::workflow_types::*;
 use axagent_runtime::work_engine::node_executor_trait::node_type_name;
-use sea_orm::{ActiveModelTrait, DatabaseConnection, EntityTrait, Set};
+use sea_orm::{DatabaseConnection, EntityTrait, Set};
 use serde::Deserialize;
 use tauri::State;
 

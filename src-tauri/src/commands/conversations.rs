@@ -5090,7 +5090,7 @@ mod tests_conversation {
             #[cfg(target_os = "android")]
             sandbox_executor: Arc::new(()),
             sync_engine: None,
-            plugin_manager: std::sync::Mutex::new(axagent_plugins::PluginManager::new(
+            plugin_manager: std::sync::RwLock::new(axagent_plugins::PluginManager::new(
                 axagent_plugins::PluginManagerConfig::new(temp_dir.clone()),
             )),
             shutdown_token: tokio_util::sync::CancellationToken::new(),
