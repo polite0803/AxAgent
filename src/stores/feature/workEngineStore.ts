@@ -81,7 +81,7 @@ export const useWorkEngineStore = create<WorkEngineState>((set, get) => ({
     set({ loading: true, nodeStatuses: {}, nodeRecords: [], variables: {}, lastDebugError: null });
     try {
       const executionId = await invoke<string>("debug_run_workflow", {
-        template_id: templateId,
+        templateId: templateId,
         input: options?.input ?? null,
         breakpoints: options?.breakpoints ?? null,
         dry_run: options?.dryRun ?? get().dryRun,
