@@ -593,12 +593,7 @@ function ChatViewInner({
         aria-live="polite"
         aria-atomic="false"
         aria-label={t("chat.messageArea")}
-        style={messages.length > 50
-          ? {
-            contentVisibility: "auto",
-            containIntrinsicSize: "auto 5000px",
-          }
-          : {}}
+        style={undefined}
       >
         {messages.length === 0
           ? (

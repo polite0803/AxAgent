@@ -2162,7 +2162,7 @@ fn load_manifest_from_skill_md(
         {
             default_enabled = v
                 .as_bool()
-                .unwrap_or(v.as_str().map_or(true, |s| s.eq_ignore_ascii_case("true")));
+                .unwrap_or(v.as_str().is_none_or(|s| s.eq_ignore_ascii_case("true")));
         }
 
         for key in &["permissions"] {
