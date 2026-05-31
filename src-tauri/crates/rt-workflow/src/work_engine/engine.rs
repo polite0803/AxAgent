@@ -1228,9 +1228,17 @@ impl WorkEngine {
                                             format!("Template {} not found", sub_workflow_id)
                                         })?;
 
-                                        let nodes: Vec<WorkflowNode> =
+                                        let nodes_json: Vec<serde_json::Value> =
                                             serde_json::from_str(&template.nodes)
                                                 .map_err(|e| format!("节点解析失败: {}", e))?;
+                                        let mut nodes: Vec<WorkflowNode> = Vec::new();
+                                        for val in &nodes_json {
+                                            let n: WorkflowNode =
+                                                serde_json::from_value(val.clone()).map_err(
+                                                    |e| format!("子工作流节点反序列化失败: {}", e),
+                                                )?;
+                                            nodes.push(n);
+                                        }
                                         let edges: Vec<WorkflowEdge> =
                                             serde_json::from_str(&template.edges)
                                                 .map_err(|e| format!("边解析失败: {}", e))?;
