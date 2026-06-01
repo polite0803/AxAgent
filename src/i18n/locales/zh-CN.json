@@ -4299,6 +4299,7 @@
     "redo": "重做",
     "autoLayout": "一键布局",
     "autoLayoutTooltip": "自动优化节点排列，使工作流结构清晰可读",
+    "autoLayoutWithSubs": "一键布局（含 {{count}} 个子工作流）",
     "debug": {
       "title": "工作流调试",
       "staticCheck": "静态检查",
