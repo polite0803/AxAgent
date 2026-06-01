@@ -545,9 +545,15 @@ pub struct HttpRequestNodeConfig {
     pub output_var: String,
 }
 
-fn default_http_method() -> String { "GET".to_string() }
-fn default_body_type() -> String { "json".to_string() }
-fn default_http_timeout() -> u64 { 30 }
+fn default_http_method() -> String {
+    "GET".to_string()
+}
+fn default_body_type() -> String {
+    "json".to_string()
+}
+fn default_http_timeout() -> u64 {
+    30
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HttpRequestNode {
@@ -1021,7 +1027,7 @@ mod tests {
                 retry: RetryConfig::default(),
                 timeout: None,
                 enabled: true,
-                    parent_id: None,
+                parent_id: None,
             },
             config: ToolNodeConfig {
                 tool_name: "Bash".to_string(),
@@ -1051,7 +1057,7 @@ mod tests {
                 retry: RetryConfig::default(),
                 timeout: None,
                 enabled: true,
-                    parent_id: None,
+                parent_id: None,
             },
             config: AgentNodeConfig {
                 system_prompt: "test prompt".to_string(),
@@ -1090,7 +1096,7 @@ mod tests {
                 retry: RetryConfig::default(),
                 timeout: None,
                 enabled: true,
-                    parent_id: None,
+                parent_id: None,
             },
             config: AgentNodeConfig {
                 system_prompt: format!("prompt for {id}"),
@@ -1120,7 +1126,7 @@ mod tests {
                 retry: RetryConfig::default(),
                 timeout: None,
                 enabled: true,
-                    parent_id: None,
+                parent_id: None,
             },
             config: ToolNodeConfig {
                 tool_name: tool_name.to_string(),

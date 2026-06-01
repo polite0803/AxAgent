@@ -23,8 +23,13 @@ export const HttpRequestPropertyPanel: React.FC<HttpRequestPropertyPanelProps> =
   const { token } = theme.useToken();
   const httpNode = node as HttpRequestNode;
   const config = httpNode.config || {
-    url: "", method: "GET", headers: {}, body: undefined,
-    body_type: "json", timeout_secs: 30, output_var: "",
+    url: "",
+    method: "GET",
+    headers: {},
+    body: undefined,
+    body_type: "json",
+    timeout_secs: 30,
+    output_var: "",
   };
 
   const handleConfigChange = (key: string, value: unknown) => {
@@ -134,13 +139,23 @@ export const HttpRequestPropertyPanel: React.FC<HttpRequestPropertyPanelProps> =
             <span style={{ color: token.colorTextTertiary }}>:</span>
             <Input
               value={value}
-              onChange={(e) => onUpdate({ config: { ...config, headers: { ...config.headers, [key]: e.target.value } } })}
+              onChange={(e) =>
+                onUpdate({ config: { ...config, headers: { ...config.headers, [key]: e.target.value } } })}
               size="small"
               style={{ flex: 1 }}
               placeholder={t("workflow.props.headerValue")}
             />
-            <Button type="text" danger size="small" icon={<Trash2 size={11} />}
-              onClick={() => { const h = { ...config.headers }; delete h[key]; onUpdate({ config: { ...config, headers: h } }); }} />
+            <Button
+              type="text"
+              danger
+              size="small"
+              icon={<Trash2 size={11} />}
+              onClick={() => {
+                const h = { ...config.headers };
+                delete h[key];
+                onUpdate({ config: { ...config, headers: h } });
+              }}
+            />
           </div>
         ))}
       </div>

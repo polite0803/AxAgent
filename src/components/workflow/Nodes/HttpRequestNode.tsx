@@ -29,12 +29,18 @@ const HttpRequestNodeComponent: React.FC<NodeProps<HttpRequestNodeData>> = ({
 
   const getMethodColor = (m: string) => {
     switch (m.toUpperCase()) {
-      case "GET": return "#52c41a";
-      case "POST": return "#1677ff";
-      case "PUT": return "#fa8c16";
-      case "PATCH": return "#722ed1";
-      case "DELETE": return "#ff4d4f";
-      default: return token.colorTextQuaternary;
+      case "GET":
+        return "#52c41a";
+      case "POST":
+        return "#1677ff";
+      case "PUT":
+        return "#fa8c16";
+      case "PATCH":
+        return "#722ed1";
+      case "DELETE":
+        return "#ff4d4f";
+      default:
+        return token.colorTextQuaternary;
     }
   };
 
@@ -120,8 +126,16 @@ const HttpRequestNodeComponent: React.FC<NodeProps<HttpRequestNodeData>> = ({
         </div>
       </div>
 
-      <Handle type="target" position={Position.Top} style={{ background: HTTP_COLOR, border: "none", width: 8, height: 8 }} />
-      <Handle type="source" position={Position.Bottom} style={{ background: HTTP_COLOR, border: "none", width: 8, height: 8 }} />
+      <Handle
+        type="target"
+        position={Position.Top}
+        style={{ background: HTTP_COLOR, border: "none", width: 8, height: 8 }}
+      />
+      <Handle
+        type="source"
+        position={Position.Bottom}
+        style={{ background: HTTP_COLOR, border: "none", width: 8, height: 8 }}
+      />
     </div>
   );
 };

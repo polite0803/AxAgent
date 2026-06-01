@@ -493,7 +493,9 @@ pub async fn validate_workflow_template(
             // 2. 检查出边类型：condition 节点的出边必须是 conditionTrue/conditionFalse
             //    不允许 direct 类型出边
             for edge in &edges {
-                if edge.source != c.base.id { continue; }
+                if edge.source != c.base.id {
+                    continue;
+                }
                 match &edge.edge_type {
                     EdgeType::ConditionTrue | EdgeType::ConditionFalse => {},
                     _ => {
@@ -505,13 +507,17 @@ pub async fn validate_workflow_template(
                                 c.base.id, edge.edge_type
                             ),
                         });
-                    }
+                    },
                 }
             }
 
             // 3. 检查是否缺少 conditionTrue 或 conditionFalse 出边
-            let has_true = edges.iter().any(|e| e.source == c.base.id && e.edge_type == EdgeType::ConditionTrue);
-            let has_false = edges.iter().any(|e| e.source == c.base.id && e.edge_type == EdgeType::ConditionFalse);
+            let has_true = edges
+                .iter()
+                .any(|e| e.source == c.base.id && e.edge_type == EdgeType::ConditionTrue);
+            let has_false = edges
+                .iter()
+                .any(|e| e.source == c.base.id && e.edge_type == EdgeType::ConditionFalse);
             if !has_true {
                 warnings.push(ValidationWarning {
                     warning_type: "missing_true_branch".to_string(),
@@ -1240,7 +1246,7 @@ async fn convert_n8n_to_axagent(
             retry: RetryConfig::default(),
             timeout: None,
             enabled: true,
-                parent_id: None,
+            parent_id: None,
         },
         config: TriggerConfig {
             trigger_type: TriggerType::Manual,
@@ -1288,7 +1294,7 @@ async fn convert_n8n_to_axagent(
             retry: RetryConfig::default(),
             timeout: None,
             enabled: true,
-                parent_id: None,
+            parent_id: None,
         };
 
         if n8n_type_lower.contains("if") || n8n_type_lower.contains("switch") {
@@ -1362,7 +1368,7 @@ async fn convert_n8n_to_axagent(
             retry: RetryConfig::default(),
             timeout: None,
             enabled: true,
-                parent_id: None,
+            parent_id: None,
         };
 
         let agent_node = WorkflowNode::Agent(AgentNode {
@@ -1407,7 +1413,7 @@ async fn convert_n8n_to_axagent(
             retry: RetryConfig::default(),
             timeout: None,
             enabled: true,
-                parent_id: None,
+            parent_id: None,
         },
         config: EndNodeConfig {
             output_var: Some("final_output".to_string()),

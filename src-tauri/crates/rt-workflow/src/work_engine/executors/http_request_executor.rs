@@ -1,6 +1,5 @@
-
 use async_trait::async_trait;
-use axagent_core::workflow_types::{WorkflowNode};
+use axagent_core::workflow_types::WorkflowNode;
 use sea_orm::DatabaseConnection;
 use std::sync::Arc;
 use std::time::Duration;
@@ -39,13 +38,18 @@ impl NodeExecutorTrait for HttpRequestExecutor {
 
         let config = &http_node.config;
         if config.url.trim().is_empty() {
-            return Err(NodeError::exec_failed("http_error", "HTTP Request URL is empty".to_string()));
+            return Err(NodeError::exec_failed(
+                "http_error",
+                "HTTP Request URL is empty".to_string(),
+            ));
         }
 
         let client = reqwest::Client::builder()
             .timeout(Duration::from_secs(config.timeout_secs.max(5).min(300)))
             .build()
-            .map_err(|e| NodeError::exec_failed("http_error", format!("Failed to create HTTP client: {e}")))?;
+            .map_err(|e| {
+                NodeError::exec_failed("http_error", format!("Failed to create HTTP client: {e}"))
+            })?;
 
         let mut req = match config.method.to_uppercase().as_str() {
             "GET" => client.get(&config.url),
@@ -53,10 +57,11 @@ impl NodeExecutorTrait for HttpRequestExecutor {
                 let mut r = client.post(&config.url);
                 if let Some(ref body) = config.body {
                     r = match config.body_type.as_str() {
-                        "json" => r.json(&serde_json::from_str::<serde_json::Value>(body)
-                            .unwrap_or(serde_json::Value::String(body.clone()))),
-                        "form" => r.form(&serde_json::from_str::<std::collections::HashMap<String, String>>(body)
-                            .unwrap_or_default()),
+                        "json" => r.json(
+                            &serde_json::from_str::<serde_json::Value>(body)
+                                .unwrap_or(serde_json::Value::String(body.clone())),
+                        ),
+                        "form" => r.header("content-type", "application/x-www-form-urlencoded").body(body.clone()),
                         _ => r.body(body.clone()),
                     };
                 }
@@ -79,9 +84,12 @@ impl NodeExecutorTrait for HttpRequestExecutor {
             "DELETE" => client.delete(&config.url),
             "HEAD" => client.head(&config.url),
             "OPTIONS" => client.request(reqwest::Method::OPTIONS, &config.url),
-            _ => return Err(NodeError::exec_failed("http_error", 
-                format!("Unsupported HTTP method: {}", config.method)
-            )),
+            _ => {
+                return Err(NodeError::exec_failed(
+                    "http_error",
+                    format!("Unsupported HTTP method: {}", config.method),
+                ));
+            },
         };
 
         // Add headers
@@ -89,12 +97,15 @@ impl NodeExecutorTrait for HttpRequestExecutor {
             req = req.header(key, value);
         }
 
-        let response = req.send().await
-            .map_err(|e| NodeError::exec_failed("http_error", format!("HTTP request failed: {e}")))?;
+        let response = req.send().await.map_err(|e| {
+            NodeError::exec_failed("http_error", format!("HTTP request failed: {e}"))
+        })?;
 
         let status = response.status().as_u16();
         let headers = response.headers().clone();
-        let body_text = response.text().await
+        let body_text = response
+            .text()
+            .await
             .unwrap_or_else(|e| format!("Failed to read response body: {e}"));
 
         let output = serde_json::json!({
@@ -107,7 +118,11 @@ impl NodeExecutorTrait for HttpRequestExecutor {
 
         Ok(NodeOutput {
             output,
-            output_var: if config.output_var.is_empty() { None } else { Some(config.output_var.clone()) },
+            output_var: if config.output_var.is_empty() {
+                None
+            } else {
+                Some(config.output_var.clone())
+            },
         })
     }
 }

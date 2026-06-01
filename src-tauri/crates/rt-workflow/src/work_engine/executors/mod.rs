@@ -5,6 +5,7 @@ mod delay_executor;
 mod document_parser_executor;
 mod end_executor;
 mod fallback_executor;
+pub mod http_request_executor;
 mod llm_executor;
 mod loop_executor;
 mod merge_executor;
@@ -14,8 +15,7 @@ mod tool_executor;
 mod trigger_executor;
 mod validation_executor;
 mod vector_retrieve_executor;
-    pub mod http_request_executor;
-    pub use http_request_executor::HttpRequestExecutor;
+pub use http_request_executor::HttpRequestExecutor;
 
 pub use agent_executor::{
     AgentExecutor, PlanApprovalCallback, PlanApprovalRequest, PlanCallbacks, PlanPhaseSummary,

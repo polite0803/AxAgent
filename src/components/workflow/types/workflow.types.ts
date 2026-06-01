@@ -313,7 +313,6 @@ export interface TriggerNode extends WorkflowNodeBase {
   config: TriggerConfig;
 }
 
-
 export interface HttpRequestNodeConfig {
   url: string;
   method: string;
