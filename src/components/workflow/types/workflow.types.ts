@@ -43,6 +43,8 @@ export interface WorkflowNodeBase {
   retry: RetryConfig;
   timeout?: number;
   enabled: boolean;
+  /** 容器父节点 ID。保存时由编辑器注入，用于 Parallel/Merge 等容器子节点的定位。 */
+  parentId?: string;
 }
 
 export type TriggerType = "manual" | "schedule" | "webhook" | "event";
@@ -311,6 +313,22 @@ export interface TriggerNode extends WorkflowNodeBase {
   config: TriggerConfig;
 }
 
+
+export interface HttpRequestNodeConfig {
+  url: string;
+  method: string;
+  headers: Record<string, string>;
+  body?: string;
+  body_type: string;
+  timeout_secs: number;
+  output_var: string;
+}
+
+export interface HttpRequestNode extends WorkflowNodeBase {
+  type: "httpRequest";
+  config: HttpRequestNodeConfig;
+}
+
 export type WorkflowNode =
   | TriggerNode
   | AgentNode
@@ -326,7 +344,8 @@ export type WorkflowNode =
   | DocumentParserNode
   | VectorRetrieveNode
   | ValidationNode
-  | EndNode;
+  | EndNode
+  | HttpRequestNode;
 
 export type EdgeType =
   | "direct"
@@ -518,6 +537,11 @@ export const NODE_TYPE_MAP: Record<
   },
   vectorRetrieve: {
     labelKey: "workflow.nodeTypes.vectorRetrieve",
+    category: "integration",
+    color: "#eb2f96",
+  },
+  httpRequest: {
+    labelKey: "workflow.nodeTypes.httpRequest",
     category: "integration",
     color: "#eb2f96",
   },

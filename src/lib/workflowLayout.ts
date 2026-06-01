@@ -25,6 +25,11 @@ const NODE_SIZE: Record<string, { width: number; height: number }> = {
 
 const DEFAULT_SIZE = { width: 200, height: 120 };
 
+/** 获取节点类型的尺寸估算（用于 hit-test / 布局） */
+export function getNodeSize(type: string): { width: number; height: number } {
+  return NODE_SIZE[type] || DEFAULT_SIZE;
+}
+
 /** 间距常量 */
 const RANK_SEP = 80; // 层间垂直间距
 const NODE_SEP = 50; // 同层节点水平间距
@@ -169,12 +174,146 @@ export function resolveOverlaps(nodes: Node[]): Node[] {
 
 /**
  * 完整的自动布局流程：Dagre 层级布局 + 重叠修正。
+ *
+ * @param parentRefs 容器子树映射（childId → parentId），用于让每个 parallel 节点
+ *  内部的子节点先单独 dagre 排布，再随父容器整体定位。不传则退化为扁平布局。
  */
 export function autoLayoutWorkflow(
   nodes: Node[],
   edges: Edge[],
+  parentRefs: Record<string, string> = {},
 ): { nodes: Node[]; edges: Edge[] } {
-  const dagreResult = autoLayout(nodes, edges);
-  const resolvedNodes = resolveOverlaps(dagreResult.nodes);
-  return { nodes: resolvedNodes, edges: dagreResult.edges };
+  const childOf = parentRefs;
+  // 仅把 parallel 视为可容纳子组的容器；merge 由其 inputs 引用挂入所属 parallel，不作父。
+  // 不支持嵌套：parent 指向 parallel 的子节点按叶子处理，parent 自身不会被纳入 containers。
+  const containers = nodes.filter((n) => n.type === "parallel" && !childOf[n.id]);
+
+  if (containers.length === 0 || Object.keys(childOf).length === 0) {
+    const dagreResult = autoLayout(nodes, edges);
+    const resolvedNodes = resolveOverlaps(dagreResult.nodes);
+    return { nodes: resolvedNodes, edges: dagreResult.edges };
+  }
+
+  // 1. 反算每个节点的当前绝对坐标（input 是 ReactFlow 坐标系，子节点为相对父）
+  const currentAbs: Record<string, { x: number; y: number }> = {};
+  for (const n of nodes) {
+    const pid = childOf[n.id];
+    if (pid && currentAbs[pid]) {
+      currentAbs[n.id] = { x: n.position.x + currentAbs[pid].x, y: n.position.y + currentAbs[pid].y };
+    } else {
+      currentAbs[n.id] = { x: n.position.x, y: n.position.y };
+    }
+  }
+
+  // 2. 对每个 parallel 容器：单独 dagre 排子节点 + 量 bbox + 归一化到原点
+  const PADDING = 40;
+  const groupNorm: Record<string, { nodes: Node[]; bboxW: number; bboxH: number }> = {};
+  const containerSizes: Record<string, { width: number; height: number }> = {};
+
+  for (const c of containers) {
+    const childIds = Object.keys(childOf).filter((cid) => childOf[cid] === c.id);
+    const childNodesAbs = childIds
+      .map((cid) => nodes.find((n) => n.id === cid))
+      .filter((n): n is Node => !!n)
+      .map((n) => ({ ...n, position: currentAbs[n.id] || n.position }));
+
+    if (childNodesAbs.length === 0) {
+      const size = getNodeSize(c.type || "");
+      groupNorm[c.id] = { nodes: [], bboxW: 0, bboxH: 0 };
+      containerSizes[c.id] = { width: size.width, height: size.height };
+      continue;
+    }
+
+    const childEdges = edges.filter((e) => childIds.includes(e.source) && childIds.includes(e.target));
+    const sub = autoLayout(childNodesAbs, childEdges);
+
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    for (const n of sub.nodes) {
+      const sz = getNodeSize((n.data?.type as string) || n.type || "");
+      minX = Math.min(minX, n.position.x);
+      minY = Math.min(minY, n.position.y);
+      maxX = Math.max(maxX, n.position.x + sz.width);
+      maxY = Math.max(maxY, n.position.y + sz.height);
+    }
+    const bboxW = maxX - minX;
+    const bboxH = maxY - minY;
+    const normalized = sub.nodes.map((n) => ({
+      ...n,
+      position: { x: n.position.x - minX, y: n.position.y - minY },
+    }));
+    groupNorm[c.id] = { nodes: normalized, bboxW, bboxH };
+    containerSizes[c.id] = { width: bboxW + PADDING * 2, height: bboxH + PADDING * 2 };
+  }
+
+  // 3. 主 dagre：只放顶层节点（parallel 容器 + 无父孤立节点）
+  const topLevelIds = new Set<string>();
+  for (const n of nodes) {
+    if (n.type === "parallel" || !childOf[n.id]) {
+      topLevelIds.add(n.id);
+    }
+  }
+  const topLevelNodes = nodes.filter((n) => topLevelIds.has(n.id));
+  const topLevelEdges = edges.filter((e) => topLevelIds.has(e.source) && topLevelIds.has(e.target));
+
+  const g = new dagre.graphlib.Graph();
+  g.setDefaultEdgeLabel(() => ({}));
+  g.setGraph({
+    rankdir: "TB",
+    ranksep: RANK_SEP,
+    nodesep: NODE_SEP,
+    marginx: MARGIN_X,
+    marginy: MARGIN_Y,
+    edgesep: 20,
+  });
+  for (const n of topLevelNodes) {
+    const t = (n.data?.type as string) || n.type || "";
+    const size = n.type === "parallel"
+      ? (containerSizes[n.id] ?? getNodeSize("parallel"))
+      : getNodeSize(t);
+    g.setNode(n.id, { width: size.width, height: size.height });
+  }
+  for (const e of topLevelEdges) {
+    g.setEdge(e.source, e.target);
+  }
+  dagre.layout(g);
+
+  // 4. 写回绝对坐标
+  const newAbs: Record<string, { x: number; y: number }> = {};
+  for (const n of topLevelNodes) {
+    const dagreNode = g.node(n.id);
+    if (!dagreNode) { continue; }
+    const t = (n.data?.type as string) || n.type || "";
+    const size = n.type === "parallel"
+      ? (containerSizes[n.id] ?? getNodeSize("parallel"))
+      : getNodeSize(t);
+    newAbs[n.id] = { x: dagreNode.x - size.width / 2, y: dagreNode.y - size.height / 2 };
+  }
+  for (const c of containers) {
+    const cAbs = newAbs[c.id];
+    if (!cAbs) { continue; }
+    const group = groupNorm[c.id];
+    for (const cn of group.nodes) {
+      newAbs[cn.id] = {
+        x: cAbs.x + PADDING + cn.position.x,
+        y: cAbs.y + PADDING + cn.position.y,
+      };
+    }
+  }
+
+  // 5. 写回 ReactFlow 坐标系（子节点减回父节点位置，转为相对坐标）
+  const result: Node[] = nodes.map((n) => {
+    const abs = newAbs[n.id];
+    if (!abs) { return n; }
+    const pid = childOf[n.id];
+    let final = abs;
+    if (pid) {
+      const parentAbs = newAbs[pid] || currentAbs[pid];
+      if (parentAbs) {
+        final = { x: abs.x - parentAbs.x, y: abs.y - parentAbs.y };
+      }
+    }
+    return { ...n, position: final };
+  });
+
+  return { nodes: result, edges };
 }

@@ -5,6 +5,7 @@ export { ConditionNode } from "./ConditionNode";
 export { DelayNode } from "./DelayNode";
 export { DocumentParserNode } from "./DocumentParserNode";
 export { EndNode } from "./EndNode";
+export { HttpRequestNode } from "./HttpRequestNode";
 export { LLMNode } from "./LLMNode";
 export { LoopNode } from "./LoopNode";
 export { MergeNode } from "./MergeNode";

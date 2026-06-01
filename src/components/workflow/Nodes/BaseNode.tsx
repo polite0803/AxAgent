@@ -61,6 +61,7 @@ const BaseNodeComponent: React.FC<NodeProps<BaseNodeData>> = ({
       }}
     >
       <div
+        className="workflow-node-card"
         style={{
           background: token.colorBgContainer,
           border: `2px solid ${borderColor}`,

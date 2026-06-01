@@ -129,7 +129,7 @@ const ConditionNodeComponent: React.FC<NodeProps<ConditionNodeData>> = ({
                       color: token.colorTextTertiary,
                     }}
                   >
-                    +{conditions.length - 3} {t("workflow.conditionNode.more")}
+                    +{conditions.length - 3} {t("workflow.conditionNode.moreConditions")}
                   </div>
                 )}
                 <div
@@ -150,7 +150,7 @@ const ConditionNodeComponent: React.FC<NodeProps<ConditionNodeData>> = ({
                   color: token.colorTextQuaternary,
                 }}
               >
-                {t("workflow.conditionNode.noConditions")}
+                {t("workflow.conditionNode.notSet")}
               </div>
             )}
         </div>
