@@ -24,13 +24,21 @@ export const SubWorkflowPropertyPanel: React.FC<
     is_async: false,
   };
 
-  const { templates, loadTemplates, currentTemplate } = useWorkflowEditorStore();
+  const { templates, loadTemplates, currentTemplate, expandedSubWorkflows } = useWorkflowEditorStore();
 
   useEffect(() => {
     if (templates.length === 0) {
       loadTemplates();
     }
   }, [templates.length, loadTemplates]);
+
+  const expandedData = expandedSubWorkflows[node.id];
+  const isExpanded = !!expandedData && !expandedData.isLoading;
+  const isLoading = !!expandedData?.isLoading;
+
+  const handleToggleExpand = () => {
+    useWorkflowEditorStore.getState().toggleExpandSubWorkflow(node.id, config.sub_workflow_id);
+  };
 
   const workflowOptions = useMemo(
     () => templates.flatMap((t) => t.id !== currentTemplate?.id ? [{ value: t.id, label: t.name }] : []),
@@ -119,6 +127,36 @@ export const SubWorkflowPropertyPanel: React.FC<
           onChange={(checked) => handleConfigChange("is_async", checked)}
         />
       </div>
+
+      {/* 展开/折叠按钮 */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+        }}
+      >
+        <label style={{ color: token.colorTextTertiary, fontSize: 12 }}>
+          {t("workflow.subWorkflowNode.expand")}
+        </label>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          {isExpanded && expandedData && (
+            <span style={{ fontSize: 11, color: token.colorTextTertiary }}>
+              {expandedData.nodes.length} nodes
+            </span>
+          )}
+          <Button
+            size="small"
+            loading={isLoading}
+            onClick={handleToggleExpand}
+            disabled={!config.sub_workflow_id}
+          >
+            {isExpanded ? t("workflow.subWorkflowNode.collapse") : t("workflow.subWorkflowNode.expand")}
+          </Button>
+        </div>
+      </div>
+
+      <Divider style={{ margin: "8px 0", borderColor: token.colorBorderSecondary }} />
 
       <div>
         <div
