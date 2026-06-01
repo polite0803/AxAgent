@@ -65,7 +65,7 @@ fn extract_absolute_paths(text: &str) -> Vec<String> {
     let mut paths = Vec::new();
     for cap in re.captures_iter(text) {
         let p = cap[0].to_string();
-        let cleaned = p.trim_end_matches(|c: char| c == '.' || c == ',' || c == ';' || c == ':');
+        let cleaned = p.trim_end_matches(['.', ',', ';', ':']);
         if seen.insert(cleaned.to_string()) {
             paths.push(cleaned.to_string());
         }
