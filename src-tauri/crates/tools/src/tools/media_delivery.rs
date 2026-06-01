@@ -8,6 +8,11 @@ use crate::{Tool, ToolCategory, ToolContext, ToolError, ToolResult};
 use async_trait::async_trait;
 use serde_json::Value;
 use std::path::Path;
+use std::sync::LazyLock;
+
+static DOCX_TEXT_RE: LazyLock<regex::Regex> = LazyLock::new(|| {
+    regex::Regex::new(r"<w:t[^>]*>([^<]+)</w:t>").expect("invalid docx text regex")
+});
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum MediaType {
@@ -570,8 +575,7 @@ fn estimate_docx_pages(data: &[u8]) -> Option<u64> {
             if std::io::Read::read_to_string(&mut file, &mut content).is_err() {
                 continue;
             }
-            let text_re = regex::Regex::new(r"<w:t[^>]*>([^<]+)</w:t>").ok()?;
-            for cap in text_re.captures_iter(&content) {
+            for cap in DOCX_TEXT_RE.captures_iter(&content) {
                 char_count += cap[1].len() as u64;
             }
             break;

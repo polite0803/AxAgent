@@ -4,7 +4,7 @@ use crate::{Tool, ToolCategory, ToolContext, ToolError, ToolResult};
 use async_trait::async_trait;
 use axagent_core::secure_store::SecureStore;
 use serde_json::Value;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::{LazyLock, Mutex};
 use std::time::Instant;
 
@@ -59,6 +59,18 @@ struct SkillIndex {
     entries: Vec<SkillIndexEntry>,
     built_at: Option<Instant>,
 }
+
+type SkillMetadata = (
+    String,
+    String,
+    String,
+    Vec<String>,
+    Vec<String>,
+    Vec<String>,
+    Vec<String>,
+    Vec<RequiredEnvVar>,
+    Vec<SkillConfigSetting>,
+);
 
 impl SkillIndex {
     fn new() -> Self {
@@ -170,19 +182,7 @@ impl SkillIndex {
         self.built_at = Some(Instant::now());
     }
 
-    fn extract_metadata(
-        skill_dir: &PathBuf,
-    ) -> (
-        String,
-        String,
-        String,
-        Vec<String>,
-        Vec<String>,
-        Vec<String>,
-        Vec<String>,
-        Vec<RequiredEnvVar>,
-        Vec<SkillConfigSetting>,
-    ) {
+    fn extract_metadata(skill_dir: &Path) -> SkillMetadata {
         let mut description = String::new();
         let mut category = "general".to_string();
         let mut version = "1.0.0".to_string();
@@ -547,8 +547,8 @@ impl Tool for SkillsListTool {
         let skills = index.list_skills(category_filter);
 
         if skills.is_empty() {
-            let msg = if category_filter.is_some() {
-                format!("类别 '{}' 下没有已安装的技能", category_filter.unwrap())
+            let msg = if let Some(cat) = category_filter {
+                format!("类别 '{}' 下没有已安装的技能", cat)
             } else {
                 "没有已安装的技能".to_string()
             };
