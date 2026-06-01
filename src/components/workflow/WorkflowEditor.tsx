@@ -879,8 +879,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
       }
       if (subCount > 0) {
         message.success(
-          t("workflow.autoLayoutWithSubs", { count: subCount })
-            || `${t("workflow.autoLayout")}（含 ${subCount} 个子工作流）`,
+          t("workflow.autoLayoutWithSubs", { count: subCount }),
         );
         return;
       }
