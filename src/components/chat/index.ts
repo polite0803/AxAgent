@@ -25,7 +25,7 @@ export { ImageGenPanel } from "./ImageGenPanel";
 export { InputArea } from "./InputArea";
 export { ModelSelector } from "./ModelSelector";
 export { PermissionModal } from "./PermissionModal";
-export { QuickCommandBar } from "./QuickCommandBar";
+// QuickCommandBar removed
 export { ReflectionPanel, useReflection } from "./ReflectionPanel";
 export { ReportViewer } from "./ReportViewer";
 export { ResearchSources, SourceDetailPanel } from "./ResearchSources";
