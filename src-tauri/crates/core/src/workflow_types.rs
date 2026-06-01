@@ -321,19 +321,14 @@ pub struct Branch {
     pub steps: Vec<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub enum MergeStrategy {
+    #[default]
     All,
     Any,
     Race,
     Majority,
-}
-
-impl Default for MergeStrategy {
-    fn default() -> Self {
-        MergeStrategy::All
-    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
