@@ -167,12 +167,14 @@ export interface Branch {
   steps: string[];
 }
 
+export type MergeStrategy = "all" | "any" | "race" | "majority";
+
 export interface ParallelNodeConfig {
   branches: Branch[];
   wait_for_all: boolean;
   timeout?: number;
-  /** 结果聚合策略: "all" | "first" | "race" | "majority" */
-  aggregation?: string;
+  aggregation?: MergeStrategy;
+  auto_input_from_parent?: boolean;
 }
 
 export interface ParallelNode extends WorkflowNodeBase {
@@ -198,8 +200,9 @@ export interface LoopNode extends WorkflowNodeBase {
 }
 
 export interface MergeNodeConfig {
-  merge_type: string;
+  merge_type: MergeStrategy;
   inputs: string[];
+  auto_inputs_from_branches?: boolean;
 }
 
 export interface MergeNode extends WorkflowNodeBase {

@@ -2,6 +2,7 @@ import { Tag, theme } from "antd";
 import React, { memo } from "react";
 import { useTranslation } from "react-i18next";
 import { Handle, type NodeProps, Position } from "reactflow";
+import type { MergeStrategy } from "../types/workflow.types";
 
 const ORANGE_BASE = "#fa8c16";
 const ORANGE_VAR = `var(--orange, ${ORANGE_BASE})`;
@@ -16,6 +17,8 @@ interface ParallelNodeData {
   enabled: boolean;
   branches?: number;
   waitStrategy?: "all" | "any" | "race";
+  aggregation?: MergeStrategy;
+  autoInputFromParent?: boolean;
 }
 
 const ParallelNodeComponent: React.FC<NodeProps<ParallelNodeData>> = ({
@@ -27,6 +30,7 @@ const ParallelNodeComponent: React.FC<NodeProps<ParallelNodeData>> = ({
   const color = ORANGE_VAR;
   const branches = data.branches || 2;
   const waitStrategy = data.waitStrategy || "all";
+  const autoInputFromParent = data.autoInputFromParent !== false;
 
   const getWaitStrategyLabel = (strategy: string): string => {
     switch (strategy) {
@@ -123,6 +127,12 @@ const ParallelNodeComponent: React.FC<NodeProps<ParallelNodeData>> = ({
               {getWaitStrategyLabel(waitStrategy)}
             </Tag>
           </div>
+
+          {autoInputFromParent && (
+            <div style={{ marginTop: 6, fontSize: 9, color: token.colorTextTertiary }}>
+              {t("workflow.parallelNode.autoInput")}
+            </div>
+          )}
         </div>
       </div>
 

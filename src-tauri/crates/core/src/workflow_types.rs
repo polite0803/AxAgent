@@ -322,13 +322,33 @@ pub struct Branch {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum MergeStrategy {
+    All,
+    Any,
+    Race,
+    Majority,
+}
+
+impl Default for MergeStrategy {
+    fn default() -> Self {
+        MergeStrategy::All
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ParallelNodeConfig {
     pub branches: Vec<Branch>,
     pub wait_for_all: bool,
     pub timeout: Option<u64>,
-    /// 结果聚合策略: "all" | "first" | "race" | "majority"（默认 all）
     #[serde(default)]
-    pub aggregation: Option<String>,
+    pub aggregation: Option<MergeStrategy>,
+    #[serde(default = "default_true")]
+    pub auto_input_from_parent: bool,
+}
+
+fn default_true() -> bool {
+    true
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -370,8 +390,11 @@ pub struct LoopNode {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MergeNodeConfig {
-    pub merge_type: String,
+    #[serde(default)]
+    pub merge_type: MergeStrategy,
     pub inputs: Vec<String>,
+    #[serde(default)]
+    pub auto_inputs_from_branches: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

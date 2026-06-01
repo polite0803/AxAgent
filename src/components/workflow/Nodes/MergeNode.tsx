@@ -2,6 +2,7 @@ import { Tag, theme } from "antd";
 import React, { memo } from "react";
 import { useTranslation } from "react-i18next";
 import { Handle, type NodeProps, Position } from "reactflow";
+import type { MergeStrategy } from "../types/workflow.types";
 
 const ORANGE_BASE = "#fa8c16";
 const ORANGE_VAR = `var(--orange, ${ORANGE_BASE})`;
@@ -14,8 +15,9 @@ interface MergeNodeData {
   color: string;
   nodeType: string;
   enabled: boolean;
-  mergeStrategy?: "all" | "any" | "first" | "last";
+  mergeStrategy?: MergeStrategy;
   inputCount?: number;
+  autoInputsFromBranches?: boolean;
 }
 
 const MergeNodeComponent: React.FC<NodeProps<MergeNodeData>> = ({
@@ -27,19 +29,20 @@ const MergeNodeComponent: React.FC<NodeProps<MergeNodeData>> = ({
   const color = ORANGE_VAR;
   const mergeStrategy = data.mergeStrategy || "all";
   const inputCount = data.inputCount || 2;
+  const autoInputsFromBranches = data.autoInputsFromBranches !== false;
 
-  const getMergeStrategyLabel = (strategy: string): string => {
+  const getMergeStrategyLabel = (strategy: MergeStrategy): string => {
     switch (strategy) {
       case "all":
         return t("workflow.mergeNode.waitAll");
       case "any":
         return t("workflow.mergeNode.waitAny");
-      case "first":
-        return t("workflow.mergeNode.first");
-      case "last":
-        return t("workflow.mergeNode.last");
+      case "race":
+        return t("workflow.mergeNode.race");
+      case "majority":
+        return t("workflow.mergeNode.majority");
       default:
-        return strategy;
+        return String(strategy);
     }
   };
 
@@ -125,6 +128,12 @@ const MergeNodeComponent: React.FC<NodeProps<MergeNodeData>> = ({
               {getMergeStrategyLabel(mergeStrategy)}
             </Tag>
           </div>
+
+          {autoInputsFromBranches && (
+            <div style={{ marginTop: 6, fontSize: 9, color: token.colorTextTertiary }}>
+              {t("workflow.mergeNode.autoInputs")}
+            </div>
+          )}
         </div>
       </div>
 

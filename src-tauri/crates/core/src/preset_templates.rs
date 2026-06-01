@@ -754,6 +754,140 @@ Use these tools to save knowledge:
                 },
             ],
         },
+        PresetTemplate {
+            id: "stock-analysis",
+            name: "Stock Analysis",
+            description: "Multi-dimensional stock analysis using 9 parallel analyst agents covering fundamental, technical, sentiment, and macro analysis",
+            icon: "TrendingUp",
+            tags: vec!["stock", "analysis", "finance", "multi-agent"],
+            system_prompt: r#"You are a comprehensive stock analyst. Analyze stocks from multiple perspectives and provide investment insights."#,
+            steps: vec![
+                PresetStep {
+                    id: "fundamental-tool",
+                    goal: "Fetch fundamental data (income, balance sheet, cash flow)",
+                    role: "researcher",
+                    needs: vec![],
+                },
+                PresetStep {
+                    id: "fundamental-analyst",
+                    goal: "Analyze company fundamentals, valuation metrics, and financial health",
+                    role: "researcher",
+                    needs: vec!["fundamental-tool"],
+                },
+                PresetStep {
+                    id: "technical-tool",
+                    goal: "Fetch price history and technical indicators",
+                    role: "researcher",
+                    needs: vec![],
+                },
+                PresetStep {
+                    id: "technical-analyst",
+                    goal: "Analyze price patterns, trends, and technical signals",
+                    role: "reviewer",
+                    needs: vec!["technical-tool"],
+                },
+                PresetStep {
+                    id: "news-tool",
+                    goal: "Fetch recent news and announcements",
+                    role: "researcher",
+                    needs: vec![],
+                },
+                PresetStep {
+                    id: "sentiment-analyst",
+                    goal: "Analyze news sentiment and market mood",
+                    role: "synthesizer",
+                    needs: vec!["news-tool"],
+                },
+                PresetStep {
+                    id: "peer-tool",
+                    goal: "Fetch peer company data and sector information",
+                    role: "researcher",
+                    needs: vec![],
+                },
+                PresetStep {
+                    id: "peer-analyst",
+                    goal: "Compare with peers and analyze competitive position",
+                    role: "planner",
+                    needs: vec!["peer-tool"],
+                },
+                PresetStep {
+                    id: "macro-tool",
+                    goal: "Fetch macro economic indicators and interest rates",
+                    role: "researcher",
+                    needs: vec![],
+                },
+                PresetStep {
+                    id: "macro-analyst",
+                    goal: "Analyze macro environment impact on the stock",
+                    role: "planner",
+                    needs: vec!["macro-tool"],
+                },
+                PresetStep {
+                    id: "risk-tool",
+                    goal: "Fetch risk metrics and volatility data",
+                    role: "researcher",
+                    needs: vec![],
+                },
+                PresetStep {
+                    id: "risk-analyst",
+                    goal: "Assess risk factors and downside scenarios",
+                    role: "reviewer",
+                    needs: vec!["risk-tool"],
+                },
+                PresetStep {
+                    id: "insider-tool",
+                    goal: "Fetch insider trading and institutional holdings",
+                    role: "researcher",
+                    needs: vec![],
+                },
+                PresetStep {
+                    id: "insider-analyst",
+                    goal: "Analyze insider sentiment and institutional behavior",
+                    role: "reviewer",
+                    needs: vec!["insider-tool"],
+                },
+                PresetStep {
+                    id: "dividend-tool",
+                    goal: "Fetch dividend history and yield data",
+                    role: "researcher",
+                    needs: vec![],
+                },
+                PresetStep {
+                    id: "dividend-analyst",
+                    goal: "Analyze dividend sustainability and yield attractiveness",
+                    role: "synthesizer",
+                    needs: vec!["dividend-tool"],
+                },
+                PresetStep {
+                    id: "forecast-tool",
+                    goal: "Fetch analyst estimates and forecast data",
+                    role: "researcher",
+                    needs: vec![],
+                },
+                PresetStep {
+                    id: "forecast-analyst",
+                    goal: "Analyze growth projections and price targets",
+                    role: "planner",
+                    needs: vec!["forecast-tool"],
+                },
+                PresetStep {
+                    id: "need-debate",
+                    goal: "Synthesize all analyst outputs and determine if debate is needed",
+                    role: "coordinator",
+                    needs: vec![
+                        "fundamental-analyst",
+                        "technical-analyst",
+                        "sentiment-analyst",
+                        "peer-analyst",
+                        "macro-analyst",
+                        "risk-analyst",
+                        "insider-analyst",
+                        "dividend-analyst",
+                        "forecast-analyst",
+                    ],
+                },
+            ],
+        },
     ]
 }
 
@@ -911,6 +1045,7 @@ fn build_workflow_nodes(steps: &[PresetStep], start_y: f64) -> Vec<WorkflowNode>
                 wait_for_all: true,
                 timeout: Some(600),
                 aggregation: None,
+                auto_input_from_parent: true,
             },
         }));
 
@@ -928,11 +1063,157 @@ fn build_workflow_nodes(steps: &[PresetStep], start_y: f64) -> Vec<WorkflowNode>
                 enabled: true,
             },
             config: MergeNodeConfig {
-                merge_type: "all".to_string(),
+                merge_type: MergeStrategy::All,
                 inputs: branch_ids.clone(),
+                auto_inputs_from_branches: true,
             },
         }));
     }
+
+    nodes
+}
+
+fn build_stock_analysis_nodes(_steps: &[PresetStep], start_y: f64) -> Vec<WorkflowNode> {
+    let mut nodes: Vec<WorkflowNode> = Vec::new();
+    let mut y = start_y;
+
+    nodes.push(WorkflowNode::Parallel(ParallelNode {
+        base: WorkflowNodeBase {
+            id: "p-analysts".to_string(),
+            title: "9 Analyst Agents".to_string(),
+            description: Some("9 parallel branches for comprehensive stock analysis".to_string()),
+            position: Position { x: 400.0, y },
+            retry: RetryConfig::default(),
+            timeout: Some(600),
+            enabled: true,
+        },
+        config: ParallelNodeConfig {
+            branches: vec![
+                Branch {
+                    id: "branch_fundamental".to_string(),
+                    title: "Fundamental".to_string(),
+                    steps: vec![
+                        "fundamental-tool".to_string(),
+                        "fundamental-analyst".to_string(),
+                    ],
+                },
+                Branch {
+                    id: "branch_technical".to_string(),
+                    title: "Technical".to_string(),
+                    steps: vec![
+                        "technical-tool".to_string(),
+                        "technical-analyst".to_string(),
+                    ],
+                },
+                Branch {
+                    id: "branch_sentiment".to_string(),
+                    title: "Sentiment".to_string(),
+                    steps: vec!["news-tool".to_string(), "sentiment-analyst".to_string()],
+                },
+                Branch {
+                    id: "branch_peer".to_string(),
+                    title: "Peer".to_string(),
+                    steps: vec!["peer-tool".to_string(), "peer-analyst".to_string()],
+                },
+                Branch {
+                    id: "branch_macro".to_string(),
+                    title: "Macro".to_string(),
+                    steps: vec!["macro-tool".to_string(), "macro-analyst".to_string()],
+                },
+                Branch {
+                    id: "branch_risk".to_string(),
+                    title: "Risk".to_string(),
+                    steps: vec!["risk-tool".to_string(), "risk-analyst".to_string()],
+                },
+                Branch {
+                    id: "branch_insider".to_string(),
+                    title: "Insider".to_string(),
+                    steps: vec!["insider-tool".to_string(), "insider-analyst".to_string()],
+                },
+                Branch {
+                    id: "branch_dividend".to_string(),
+                    title: "Dividend".to_string(),
+                    steps: vec!["dividend-tool".to_string(), "dividend-analyst".to_string()],
+                },
+                Branch {
+                    id: "branch_forecast".to_string(),
+                    title: "Forecast".to_string(),
+                    steps: vec!["forecast-tool".to_string(), "forecast-analyst".to_string()],
+                },
+            ],
+            wait_for_all: true,
+            timeout: Some(600),
+            aggregation: Some(MergeStrategy::All),
+            auto_input_from_parent: true,
+        },
+    }));
+
+    y += 250.0;
+
+    nodes.push(WorkflowNode::Merge(MergeNode {
+        base: WorkflowNodeBase {
+            id: "m-analysts".to_string(),
+            title: "Merge Analysts".to_string(),
+            description: Some("Merges outputs from all 9 analyst branches".to_string()),
+            position: Position { x: 250.0, y },
+            retry: RetryConfig::default(),
+            timeout: None,
+            enabled: true,
+        },
+        config: MergeNodeConfig {
+            merge_type: MergeStrategy::All,
+            inputs: vec![
+                "fundamental-analyst".to_string(),
+                "technical-analyst".to_string(),
+                "sentiment-analyst".to_string(),
+                "peer-analyst".to_string(),
+                "macro-analyst".to_string(),
+                "risk-analyst".to_string(),
+                "insider-analyst".to_string(),
+                "dividend-analyst".to_string(),
+                "forecast-analyst".to_string(),
+            ],
+            auto_inputs_from_branches: true,
+        },
+    }));
+
+    y += 250.0;
+
+    nodes.push(WorkflowNode::Condition(ConditionNode {
+        base: WorkflowNodeBase {
+            id: "c-need-debate".to_string(),
+            title: "Need Debate?".to_string(),
+            description: Some("Determines if further debate is needed".to_string()),
+            position: Position { x: 250.0, y },
+            retry: RetryConfig::default(),
+            timeout: Some(60),
+            enabled: true,
+        },
+        config: ConditionNodeConfig {
+            conditions: vec![],
+            logical_op: LogicalOperator::And,
+            judge_by_llm: Some(true),
+            routing_prompt: Some(
+                "Based on the analysis results, determine if there are conflicting opinions that require debate. Consider: 1) Significant disagreement between analysts, 2) High uncertainty in key metrics, 3) Material differences in risk assessment. Return true if debate is needed, false otherwise.".to_string(),
+            ),
+            routing_model: None,
+        },
+    }));
+
+    y += 250.0;
+
+    nodes.push(WorkflowNode::End(EndNode {
+        base: WorkflowNodeBase {
+            id: "end".to_string(),
+            title: "End".to_string(),
+            description: Some("Workflow completed".to_string()),
+            position: Position { x: 250.0, y },
+            retry: RetryConfig::default(),
+            timeout: None,
+            enabled: true,
+        },
+        config: EndNodeConfig { output_var: None },
+    }));
 
     nodes
 }
@@ -959,128 +1240,183 @@ pub fn convert_preset_to_workflow_template(preset: &PresetTemplate) -> WorkflowT
         },
     }));
 
-    let step_nodes = build_workflow_nodes(&preset.steps, 100.0);
-    nodes.extend(step_nodes);
+    if preset.id == "stock-analysis" {
+        let stock_nodes = build_stock_analysis_nodes(&preset.steps, 100.0);
+        nodes.extend(stock_nodes);
 
-    let end_y = 100.0 + ((preset.steps.len() + 2) as f64 * 200.0);
-    nodes.push(WorkflowNode::End(EndNode {
-        base: WorkflowNodeBase {
-            id: "end".to_string(),
-            title: "End".to_string(),
-            description: Some("Workflow completed".to_string()),
-            position: Position { x: 250.0, y: end_y },
-            retry: RetryConfig::default(),
-            timeout: None,
-            enabled: true,
-        },
-        config: EndNodeConfig { output_var: None },
-    }));
+        edges.push(WorkflowEdge {
+            id: "edge_trigger_to_p_analysts".to_string(),
+            source: "trigger".to_string(),
+            source_handle: None,
+            target: "p-analysts".to_string(),
+            target_handle: None,
+            edge_type: EdgeType::Direct,
+            label: None,
+        });
 
-    edges.extend(create_edges_for_steps(&preset.steps));
+        edges.push(WorkflowEdge {
+            id: "edge_p_analysts_to_m_analysts".to_string(),
+            source: "p-analysts".to_string(),
+            source_handle: None,
+            target: "m-analysts".to_string(),
+            target_handle: None,
+            edge_type: EdgeType::Direct,
+            label: None,
+        });
 
-    let parallel_groups = detect_parallel_groups(&preset.steps);
-    for group in &parallel_groups {
-        let parallel_id = format!("parallel_{}", group[0].id);
-        let merge_id = format!("merge_{}", group[0].id);
+        edges.push(WorkflowEdge {
+            id: "edge_m_analysts_to_c_need_debate".to_string(),
+            source: "m-analysts".to_string(),
+            source_handle: None,
+            target: "c-need-debate".to_string(),
+            target_handle: None,
+            edge_type: EdgeType::Direct,
+            label: None,
+        });
 
-        for (i, step) in group.iter().enumerate() {
-            edges.push(WorkflowEdge {
-                id: format!("edge_parallel_to_{}", step.id),
-                source: parallel_id.clone(),
-                source_handle: Some(format!("branch_{}", i)),
-                target: step.id.to_string(),
-                target_handle: None,
-                edge_type: EdgeType::Direct,
-                label: None,
-            });
+        edges.push(WorkflowEdge {
+            id: "edge_c_need_debate_true_to_end".to_string(),
+            source: "c-need-debate".to_string(),
+            source_handle: Some("true".to_string()),
+            target: "end".to_string(),
+            target_handle: None,
+            edge_type: EdgeType::ConditionTrue,
+            label: None,
+        });
 
-            edges.push(WorkflowEdge {
-                id: format!("edge_{}_to_merge", step.id),
-                source: step.id.to_string(),
-                source_handle: None,
-                target: merge_id.clone(),
-                target_handle: Some(format!("input_{}", i)),
-                edge_type: EdgeType::Direct,
-                label: None,
-            });
+        edges.push(WorkflowEdge {
+            id: "edge_c_need_debate_false_to_end".to_string(),
+            source: "c-need-debate".to_string(),
+            source_handle: Some("false".to_string()),
+            target: "end".to_string(),
+            target_handle: None,
+            edge_type: EdgeType::ConditionFalse,
+            label: None,
+        });
+    } else {
+        let step_nodes = build_workflow_nodes(&preset.steps, 100.0);
+        nodes.extend(step_nodes);
+
+        let end_y = 100.0 + ((preset.steps.len() + 2) as f64 * 200.0);
+        nodes.push(WorkflowNode::End(EndNode {
+            base: WorkflowNodeBase {
+                id: "end".to_string(),
+                title: "End".to_string(),
+                description: Some("Workflow completed".to_string()),
+                position: Position { x: 250.0, y: end_y },
+                retry: RetryConfig::default(),
+                timeout: None,
+                enabled: true,
+            },
+            config: EndNodeConfig { output_var: None },
+        }));
+
+        edges.extend(create_edges_for_steps(&preset.steps));
+
+        let parallel_groups = detect_parallel_groups(&preset.steps);
+        for group in &parallel_groups {
+            let parallel_id = format!("parallel_{}", group[0].id);
+            let merge_id = format!("merge_{}", group[0].id);
+
+            for (i, step) in group.iter().enumerate() {
+                edges.push(WorkflowEdge {
+                    id: format!("edge_parallel_to_{}", step.id),
+                    source: parallel_id.clone(),
+                    source_handle: Some(format!("branch_{}", i)),
+                    target: step.id.to_string(),
+                    target_handle: None,
+                    edge_type: EdgeType::Direct,
+                    label: None,
+                });
+
+                edges.push(WorkflowEdge {
+                    id: format!("edge_{}_to_merge", step.id),
+                    source: step.id.to_string(),
+                    source_handle: None,
+                    target: merge_id.clone(),
+                    target_handle: Some(format!("input_{}", i)),
+                    edge_type: EdgeType::Direct,
+                    label: None,
+                });
+            }
+
+            if let Some(first_need) = group[0].needs.first() {
+                edges.push(WorkflowEdge {
+                    id: format!("edge_{}_to_parallel", first_need),
+                    source: first_need.to_string(),
+                    source_handle: None,
+                    target: parallel_id.clone(),
+                    target_handle: None,
+                    edge_type: EdgeType::Direct,
+                    label: None,
+                });
+            }
         }
 
-        if let Some(first_need) = group[0].needs.first() {
-            edges.push(WorkflowEdge {
-                id: format!("edge_{}_to_parallel", first_need),
-                source: first_need.to_string(),
-                source_handle: None,
-                target: parallel_id.clone(),
-                target_handle: None,
-                edge_type: EdgeType::Direct,
-                label: None,
-            });
-        }
-    }
-
-    if let Some(first_step) = preset.steps.first() {
-        let is_in_parallel = parallel_groups
-            .iter()
-            .any(|g| g.iter().any(|s| s.id == first_step.id));
-        if !is_in_parallel {
-            edges.push(WorkflowEdge {
-                id: "edge_trigger_start".to_string(),
-                source: "trigger".to_string(),
-                source_handle: None,
-                target: first_step.id.to_string(),
-                target_handle: None,
-                edge_type: EdgeType::Direct,
-                label: None,
-            });
-        }
-    }
-
-    for group in &parallel_groups {
-        if !group[0].needs.is_empty() {
-            edges.push(WorkflowEdge {
-                id: format!("edge_trigger_to_parallel_{}", group[0].id),
-                source: "trigger".to_string(),
-                source_handle: None,
-                target: format!("parallel_{}", group[0].id),
-                target_handle: None,
-                edge_type: EdgeType::Direct,
-                label: None,
-            });
-        }
-    }
-
-    let non_parallel_last_steps: Vec<_> = preset
-        .steps
-        .iter()
-        .filter(|s| {
-            !parallel_groups
+        if let Some(first_step) = preset.steps.first() {
+            let is_in_parallel = parallel_groups
                 .iter()
-                .any(|g| g.iter().any(|gs| gs.id == s.id))
-        })
-        .collect();
+                .any(|g| g.iter().any(|s| s.id == first_step.id));
+            if !is_in_parallel {
+                edges.push(WorkflowEdge {
+                    id: "edge_trigger_start".to_string(),
+                    source: "trigger".to_string(),
+                    source_handle: None,
+                    target: first_step.id.to_string(),
+                    target_handle: None,
+                    edge_type: EdgeType::Direct,
+                    label: None,
+                });
+            }
+        }
 
-    if let Some(last_step) = non_parallel_last_steps.last() {
-        edges.push(WorkflowEdge {
-            id: "edge_last_end".to_string(),
-            source: last_step.id.to_string(),
-            source_handle: None,
-            target: "end".to_string(),
-            target_handle: None,
-            edge_type: EdgeType::Direct,
-            label: None,
-        });
-    }
+        for group in &parallel_groups {
+            if !group[0].needs.is_empty() {
+                edges.push(WorkflowEdge {
+                    id: format!("edge_trigger_to_parallel_{}", group[0].id),
+                    source: "trigger".to_string(),
+                    source_handle: None,
+                    target: format!("parallel_{}", group[0].id),
+                    target_handle: None,
+                    edge_type: EdgeType::Direct,
+                    label: None,
+                });
+            }
+        }
 
-    for group in &parallel_groups {
-        edges.push(WorkflowEdge {
-            id: format!("edge_merge_{}_to_end", group[0].id),
-            source: format!("merge_{}", group[0].id),
-            source_handle: None,
-            target: "end".to_string(),
-            target_handle: None,
-            edge_type: EdgeType::Direct,
-            label: None,
-        });
+        let non_parallel_last_steps: Vec<_> = preset
+            .steps
+            .iter()
+            .filter(|s| {
+                !parallel_groups
+                    .iter()
+                    .any(|g| g.iter().any(|gs| gs.id == s.id))
+            })
+            .collect();
+
+        if let Some(last_step) = non_parallel_last_steps.last() {
+            edges.push(WorkflowEdge {
+                id: "edge_last_end".to_string(),
+                source: last_step.id.to_string(),
+                source_handle: None,
+                target: "end".to_string(),
+                target_handle: None,
+                edge_type: EdgeType::Direct,
+                label: None,
+            });
+        }
+
+        for group in &parallel_groups {
+            edges.push(WorkflowEdge {
+                id: format!("edge_merge_{}_to_end", group[0].id),
+                source: format!("merge_{}", group[0].id),
+                source_handle: None,
+                target: "end".to_string(),
+                target_handle: None,
+                edge_type: EdgeType::Direct,
+                label: None,
+            });
+        }
     }
 
     WorkflowTemplateData {

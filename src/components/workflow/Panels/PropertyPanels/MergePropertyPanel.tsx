@@ -1,4 +1,4 @@
-import { Divider, Select, theme } from "antd";
+import { Divider, Select, Switch, theme } from "antd";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import type { MergeNode, WorkflowNode } from "../../types";
@@ -21,6 +21,7 @@ export const MergePropertyPanel: React.FC<MergePropertyPanelProps> = ({
   const config = mergeNode.config || {
     merge_type: "all",
     inputs: [],
+    auto_inputs_from_branches: true,
   };
 
   const handleConfigChange = (key: string, value: unknown) => {
@@ -29,6 +30,26 @@ export const MergePropertyPanel: React.FC<MergePropertyPanelProps> = ({
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+        }}
+      >
+        <label style={{ color: token.colorTextTertiary, fontSize: 12 }}>
+          {t("workflow.props.autoInputsFromBranches")}
+        </label>
+        <Switch
+          size="small"
+          checked={config.auto_inputs_from_branches !== false}
+          onChange={(checked) => handleConfigChange("auto_inputs_from_branches", checked)}
+        />
+      </div>
+      <div style={{ color: token.colorTextTertiary, fontSize: 12 }}>
+        {t("workflow.props.autoInputsFromBranchesHint")}
+      </div>
+
       <div>
         <label
           style={{
@@ -47,8 +68,9 @@ export const MergePropertyPanel: React.FC<MergePropertyPanelProps> = ({
           style={{ width: "100%" }}
           options={[
             { value: "all", label: t("workflow.props.mergeAll") },
-            { value: "first", label: t("workflow.props.mergeFirst") },
-            { value: "last", label: t("workflow.props.mergeLast") },
+            { value: "any", label: t("workflow.props.mergeAny") },
+            { value: "race", label: t("workflow.props.mergeRace") },
+            { value: "majority", label: t("workflow.props.mergeMajority") },
           ]}
         />
       </div>
@@ -65,7 +87,9 @@ export const MergePropertyPanel: React.FC<MergePropertyPanelProps> = ({
           {t("workflow.props.inputCount")} ({config.inputs?.length || 0})
         </label>
         <div style={{ color: token.colorTextTertiary, fontSize: 12 }}>
-          {t("workflow.props.connectInputsHint")}
+          {config.auto_inputs_from_branches !== false
+            ? t("workflow.props.connectInputsHint")
+            : t("workflow.props.connectInputsManually")}
         </div>
       </div>
 

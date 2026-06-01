@@ -4117,18 +4117,25 @@
     },
     "mergeNode": {
       "all": "All",
-      "first": "First",
-      "last": "Last",
+      "any": "Any",
+      "race": "Race",
+      "majority": "Majority",
       "title": "Merge",
-      "inputCount": "{{count}} inputs"
+      "inputs": "inputs",
+      "waitAll": "Wait all",
+      "waitAny": "Any complete",
+      "autoInputs": "Auto-receive branch outputs"
     },
     "parallelNode": {
       "title": "Parallel Branches",
       "waitForAll": "Wait for all",
       "anyComplete": "Any complete",
+      "race": "Race",
       "branch": "Branch {{index}}",
+      "branches": "branches",
       "moreBranches": "{{count}} more branches",
-      "clickToAdd": "Click to add branch"
+      "clickToAdd": "Click to add branch",
+      "autoInput": "Auto-receive parent input"
     },
     "toolNode": {
       "notSelected": "No tool selected",

@@ -24,6 +24,7 @@ export const ParallelPropertyPanel: React.FC<ParallelPropertyPanelProps> = ({
     branches: [],
     wait_for_all: true,
     aggregation: undefined,
+    auto_input_from_parent: true,
   };
 
   const { nodes } = useWorkflowEditorStore();
@@ -88,6 +89,32 @@ export const ParallelPropertyPanel: React.FC<ParallelPropertyPanelProps> = ({
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+        }}
+      >
+        <label style={{ color: token.colorTextTertiary, fontSize: 12 }}>
+          {t("workflow.props.autoInputFromParent")}
+        </label>
+        <Switch
+          size="small"
+          checked={config.auto_input_from_parent !== false}
+          onChange={(checked) =>
+            onUpdate({
+              config: {
+                ...config,
+                auto_input_from_parent: checked,
+              },
+            })}
+        />
+      </div>
+      <div style={{ color: token.colorTextTertiary, fontSize: 12 }}>
+        {t("workflow.props.autoInputFromParentHint")}
+      </div>
+
       <div
         style={{
           display: "flex",
@@ -167,7 +194,7 @@ export const ParallelPropertyPanel: React.FC<ParallelPropertyPanelProps> = ({
           style={{ width: "100%" }}
           options={[
             { value: "all", label: t("workflow.props.aggregationAll") },
-            { value: "first", label: t("workflow.props.aggregationFirst") },
+            { value: "any", label: t("workflow.props.aggregationAny") },
             { value: "race", label: t("workflow.props.aggregationRace") },
             { value: "majority", label: t("workflow.props.aggregationMajority") },
           ]}

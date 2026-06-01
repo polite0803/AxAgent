@@ -3,7 +3,7 @@
 use crate::work_engine::execution_state::ExecutionState;
 use crate::work_engine::node_executor_trait::{NodeError, NodeExecutorTrait, NodeOutput};
 use async_trait::async_trait;
-use axagent_core::workflow_types::WorkflowNode;
+use axagent_core::workflow_types::{MergeStrategy, WorkflowNode};
 
 pub struct MergeExecutor;
 impl MergeExecutor {
@@ -14,6 +14,15 @@ impl MergeExecutor {
 impl Default for MergeExecutor {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+fn merge_strategy_to_string(strategy: &MergeStrategy) -> &'static str {
+    match strategy {
+        MergeStrategy::All => "all",
+        MergeStrategy::Any => "any",
+        MergeStrategy::Race => "race",
+        MergeStrategy::Majority => "majority",
     }
 }
 
@@ -33,7 +42,6 @@ impl NodeExecutorTrait for MergeExecutor {
                 super::node_type_name(node).to_string(),
             ));
         };
-        // 从 context.variables 中收集所有输入变量
         let collected: serde_json::Value =
             mn.config
                 .inputs
@@ -47,9 +55,11 @@ impl NodeExecutorTrait for MergeExecutor {
         Ok(NodeOutput {
             output: serde_json::json!({
                 "status": "merged",
-                "merge_type": mn.config.merge_type,
+                "merge_type": merge_strategy_to_string(&mn.config.merge_type),
+                "merge_strategy": mn.config.merge_type,
                 "collected_inputs": collected,
                 "input_count": mn.config.inputs.len(),
+                "auto_inputs_from_branches": mn.config.auto_inputs_from_branches,
                 "node_id": node.base_id(),
             }),
             output_var: None,
