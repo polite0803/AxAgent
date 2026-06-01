@@ -12,6 +12,15 @@ import type {
   WorkflowTemplateInput,
   WorkflowTemplateResponse,
 } from "@/components/workflow/types";
+
+export interface ExpandedSubWorkflowData {
+  /** 子工作流内部节点（ID 已 prefixed 避免冲突） */
+  nodes: WorkflowNode[];
+  /** 子工作流内部边（ID 已 prefixed 避免冲突） */
+  edges: WorkflowEdge[];
+  /** 是否正在加载 */
+  isLoading: boolean;
+}
 import { invoke, logIpcError } from "@/lib/invoke";
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
@@ -106,6 +115,11 @@ interface WorkflowEditorState {
 
   nodes: WorkflowNode[];
   edges: WorkflowEdge[];
+  // 容器父子关系（childId → parentId），独立于 nodes 数组以避免污染 WorkflowNode 联合类型。
+  // 渲染时反查此表为 ReactFlow 节点注入 parentId，保存时摊平到 nodes.parentId 字段。
+  parentRefs: Record<string, string>;
+  setParentRef: (childId: string, parentId: string | null) => void;
+  clearParentRefs: () => void;
 
   loadTemplates: () => Promise<void>;
   loadTemplate: (id: string) => Promise<void>;
@@ -214,6 +228,8 @@ interface WorkflowEditorState {
   aiChatSessionId: string;
   aiChatStreaming: boolean;
   aiChatStreamingMessageId: string | null;
+  /** AI 聊天 listener 清理函数，由 aiChatSend 设置、aiChatCancel 调用 */
+  _aiChatCleanup: (() => void) | null;
   aiChatSend: (message: string) => Promise<void>;
   aiChatCancel: () => void;
   aiChatClear: () => void;
@@ -239,6 +255,16 @@ interface WorkflowEditorState {
   clearSemanticCheckResult: () => void;
 
   loadConversationWorkflowPreview: (conversationId: string) => Promise<void>;
+
+  /** 已展开的子工作流（keyed by 子工作流节点 ID），null = 未展开/已折叠 */
+  expandedSubWorkflows: Record<string, ExpandedSubWorkflowData | null>;
+  /** 切换子工作流节点的展开/折叠状态 */
+  toggleExpandSubWorkflow: (nodeId: string, subWorkflowId: string | undefined) => Promise<void>;
+
+  /** 已折叠的 parallel 容器 ID 集合（会话内 UI 状态，不持久化到后端） */
+  collapsedParallelContainers: Set<string>;
+  /** 切换 parallel 容器的展开/折叠状态 */
+  toggleParallelContainerCollapse: (parallelId: string) => void;
 }
 
 interface ConversationWorkflowPreviewResponse {
@@ -282,6 +308,19 @@ const buildHistoryEntry = (state: WorkflowEditorState): HistoryEntry => ({
   error_config: state.currentTemplate?.error_config,
   trigger_config: state.currentTemplate?.trigger_config,
 });
+
+// 从 nodes 中已有的 (as any).parentId 字段重建父子关系映射。
+// 后端目前不感知 parentRefs，所以老工作流的父子关系以 nodes 字段为准持久化。
+function rebuildParentRefsFromNodes(nodes: WorkflowNode[]): Record<string, string> {
+  const refs: Record<string, string> = {};
+  for (const n of nodes) {
+    const pid = (n as { parentId?: string }).parentId;
+    if (typeof pid === "string" && pid.length > 0) {
+      refs[n.id] = pid;
+    }
+  }
+  return refs;
+}
 
 function parseActionsFromContent(content: string): AiChatAction[] {
   const actions: AiChatAction[] = [];
@@ -333,10 +372,14 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
     pendingWorkflowData: null,
     nodes: [],
     edges: [],
+    parentRefs: {},
     aiChatMessages: [],
     aiChatSessionId: `ai-session-${Date.now()}`,
     aiChatStreaming: false,
     aiChatStreamingMessageId: null,
+    _aiChatCleanup: null,
+    expandedSubWorkflows: {},
+    collapsedParallelContainers: new Set<string>(),
     past: [],
     future: [],
     _lastUndoRecordTime: 0,
@@ -437,6 +480,7 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
           state.currentTemplate = template;
           state.nodes = template.nodes;
           state.edges = template.edges;
+          state.parentRefs = rebuildParentRefsFromNodes(template.nodes);
           state.isLoading = false;
           state.isDirty = false;
           state.past = [];
@@ -478,8 +522,13 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
       });
       try {
         await invoke<boolean>("update_workflow_template", { id, input });
-        // 仅刷新侧栏模板列表，不重新加载当前模板（避免覆盖本地编辑中的位置/配置）
-        await get().loadTemplates();
+        // 刷新侧栏列表，同时刷新当前模板（确保 version 等元数据同步）
+        const { currentTemplate } = get();
+        if (currentTemplate?.id === id) {
+          await get().loadTemplate(id);
+        } else {
+          await get().loadTemplates();
+        }
         set((state) => {
           state.isSaving = false;
           state.isDirty = false;
@@ -648,6 +697,7 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
             state.currentTemplate = template;
             state.nodes = template.nodes || [];
             state.edges = template.edges || [];
+            state.parentRefs = rebuildParentRefsFromNodes(state.nodes);
             state.isLoading = false;
             state.isDirty = false;
           });
@@ -698,6 +748,8 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
       });
     },
 
+    /** 从联合类型 WorkflowNode 中无损提取 config/retry 做深合并。
+     *  各变体 config 类型不同，通过 'unknown' 中转避免 'as any' 扩散。 */
     updateNode: (nodeId: string, updates: Partial<WorkflowNode>) => {
       set((state) => {
         const now = Date.now();
@@ -712,20 +764,23 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
         const index = state.nodes.findIndex((n) => n.id === nodeId);
         if (index !== -1) {
           const existing = state.nodes[index];
-          // 深合并嵌套对象（config / position / retry），避免浅合并覆盖未传入的字段
+          // 深合并嵌套对象：联合类型各变体 config/retry 类型不同，
+          // 通过 unknown 中转精确读取共有字段，避免 as any 扩散到整行
+          const ext = existing as unknown as { config: Record<string, unknown>; retry: Record<string, unknown> };
+          const upd = updates as unknown as { config?: Record<string, unknown>; retry?: Record<string, unknown> };
           const merged = {
             ...existing,
             ...updates,
             position: updates.position
               ? { ...existing.position, ...updates.position }
               : existing.position,
-            config: updates.config
-              ? { ...(existing as any).config, ...(updates as any).config }
-              : (existing as any).config,
-            retry: (updates as any).retry
-              ? { ...(existing as any).retry, ...(updates as any).retry }
-              : (existing as any).retry,
-          } as WorkflowNode;
+            config: upd.config
+              ? { ...ext.config, ...upd.config, conditions: upd.config.conditions ?? ext.config.conditions }
+              : ext.config,
+            retry: upd.retry
+              ? { ...ext.retry, ...upd.retry }
+              : ext.retry,
+          } as unknown as WorkflowNode;
           state.nodes[index] = merged;
           state.isDirty = true;
         }
@@ -740,10 +795,45 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
           state.past = state.past.slice(-50);
         }
         state._lastUndoRecordTime = Date.now();
-        state.nodes = state.nodes.filter((n) => n.id !== nodeId);
+
+        // 级联删除：若被删节点是 parallel 容器，需一并删除所有 parentRefs 登记为它的子节点
+        const toDelete = new Set<string>([nodeId]);
+        for (const [cid, pid] of Object.entries(state.parentRefs)) {
+          if (pid === nodeId) { toDelete.add(cid); }
+        }
+
+        state.nodes = state.nodes.filter((n) => !toDelete.has(n.id));
         state.edges = state.edges.filter(
-          (e) => e.source !== nodeId && e.target !== nodeId,
+          (e) => !toDelete.has(e.source) && !toDelete.has(e.target),
         );
+
+        // 清理 parentRefs 中被删节点作为子或作为父的登记项
+        const nextParentRefs: Record<string, string> = {};
+        for (const [k, v] of Object.entries(state.parentRefs)) {
+          if (!toDelete.has(k) && !toDelete.has(v)) {
+            nextParentRefs[k] = v;
+          }
+        }
+        state.parentRefs = nextParentRefs;
+
+        // 清理被删节点的折叠状态（含级联删除的子节点）
+        if (toDelete.size === 1 && toDelete.has(nodeId)) {
+          if (state.collapsedParallelContainers.has(nodeId)) {
+            const next = new Set(state.collapsedParallelContainers);
+            next.delete(nodeId);
+            state.collapsedParallelContainers = next;
+          }
+        } else if (toDelete.size > 0) {
+          const next = new Set(state.collapsedParallelContainers);
+          let changed = false;
+          for (const id of toDelete) {
+            if (next.delete(id)) { changed = true; }
+          }
+          if (changed) {
+            state.collapsedParallelContainers = next;
+          }
+        }
+
         if (state.selectedNodeId === nodeId) {
           state.selectedNodeId = null;
         }
@@ -825,6 +915,25 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
       });
     },
 
+    // 写入/清除容器父子关系。不进撤销栈（避免每次回填都被用户撤销一次）。
+    setParentRef: (childId: string, parentId: string | null) => {
+      set((state) => {
+        if (parentId === null) {
+          delete state.parentRefs[childId];
+        } else {
+          state.parentRefs[childId] = parentId;
+        }
+        state.isDirty = true;
+      });
+    },
+
+    clearParentRefs: () => {
+      set((state) => {
+        state.parentRefs = {};
+        state.isDirty = true;
+      });
+    },
+
     updateTemplateMetadata: (metadata) => {
       set((state) => {
         if (state.currentTemplate) {
@@ -885,6 +994,7 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
         } as WorkflowTemplateResponse;
         state.nodes = importedData?.nodes || [];
         state.edges = importedData?.edges || [];
+        state.parentRefs = rebuildParentRefsFromNodes(state.nodes);
         state.isDirty = !!(
           importedData?.nodes && importedData.nodes.length > 0
         );
@@ -1329,6 +1439,11 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
             cleanupListeners();
           },
         );
+        // 将 cleanup 挂到 store 上，供 aiChatCancel 调用
+        set((state) => {
+          state._aiChatCleanup = cleanupListeners;
+        });
+
         await invoke("workflow_ai_chat_stream", {
           message,
           history,
@@ -1352,9 +1467,12 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
     },
 
     aiChatCancel: () => {
-      const { aiChatSessionId, aiChatStreamingMessageId } = get();
+      const { aiChatSessionId, aiChatStreamingMessageId, _aiChatCleanup } = get();
+      // 先取消后端流，再清理 listener
       invoke("workflow_ai_chat_cancel", { session_id: aiChatSessionId }).catch(logIpcError("AI Chat Cancel"));
+      _aiChatCleanup?.();
       set((state) => {
+        state._aiChatCleanup = null;
         state.aiChatMessages = state.aiChatMessages.map((m) =>
           m.id === aiChatStreamingMessageId
             ? { ...m, isStreaming: false }
@@ -1534,6 +1652,99 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
         });
         throw error;
       }
+    },
+
+    toggleExpandSubWorkflow: async (nodeId: string, subWorkflowId: string | undefined) => {
+      const { expandedSubWorkflows } = get();
+
+      // 已展开 → 折叠
+      if (expandedSubWorkflows[nodeId]) {
+        set((state) => {
+          // 清理 parentRefs 中子工作流内部节点的引用
+          const sub = state.expandedSubWorkflows[nodeId];
+          if (sub?.nodes) {
+            for (const n of sub.nodes) {
+              delete state.parentRefs[n.id];
+            }
+            // 清理子节点与主画布的连接边
+            const subNodeIds = new Set(sub.nodes.map((n) => n.id));
+            state.edges = state.edges.filter(
+              (e) => !subNodeIds.has(e.source) && !subNodeIds.has(e.target),
+            );
+          }
+          delete state.expandedSubWorkflows[nodeId];
+        });
+        return;
+      }
+
+      // 折叠 → 展开
+      if (!subWorkflowId) { return; }
+
+      set((state) => {
+        state.expandedSubWorkflows[nodeId] = { nodes: [], edges: [], isLoading: true };
+      });
+
+      try {
+        const template = await invoke<WorkflowTemplateResponse>(
+          "get_workflow_template",
+          { id: subWorkflowId },
+        );
+        if (!template) {
+          set((state) => {
+            delete state.expandedSubWorkflows[nodeId];
+          });
+          return;
+        }
+
+        // 为内部节点 IDs 添加前缀避免与主画布冲突
+        const prefix = `sw_${nodeId}_`;
+        const idMap = new Map<string, string>();
+        const subNodes: WorkflowNode[] = (template.nodes || []).map((n: WorkflowNode) => {
+          const oldId = (n as any).id || "";
+          const newId = `${prefix}${oldId}`;
+          idMap.set(oldId, newId);
+          return { ...n, id: newId } as unknown as WorkflowNode;
+        });
+        const subEdges: WorkflowEdge[] = (template.edges || []).map((e: WorkflowEdge) => ({
+          ...e,
+          id: `${prefix}${e.id}`,
+          source: idMap.get(e.source) || e.source,
+          target: idMap.get(e.target) || e.target,
+        }));
+
+        set((state) => {
+          state.expandedSubWorkflows[nodeId] = { nodes: subNodes, edges: subEdges, isLoading: false };
+          // 将子节点注册到 parentRefs
+          for (const n of subNodes) {
+            state.parentRefs[n.id] = nodeId;
+          }
+          // 展开的子工作流内部边也加入主边列表（带 sw_ 前缀）
+          for (const e of subEdges) {
+            state.edges.push(e);
+          }
+        });
+      } catch (error) {
+        set((state) => {
+          delete state.expandedSubWorkflows[nodeId];
+        });
+      }
+    },
+
+    /**
+     * 切换 parallel 容器的折叠状态。折叠时容器内的子节点会从画布上隐藏（hidden=true），
+     * 边会随子节点隐藏。仅会话内 UI 状态，不写入后端模板，不进撤销栈。
+     * 重新生成 Set 引用以触发订阅方基于引用的依赖比较。
+     */
+    toggleParallelContainerCollapse: (parallelId: string) => {
+      set((state) => {
+        const next = new Set(state.collapsedParallelContainers);
+        if (next.has(parallelId)) {
+          next.delete(parallelId);
+        } else {
+          next.add(parallelId);
+        }
+        state.collapsedParallelContainers = next;
+      });
     },
   })),
 );

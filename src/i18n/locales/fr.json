@@ -4161,7 +4161,16 @@
       "aggregationFirst": "Premier",
       "aggregationRace": "Course",
       "aggregationMajority": "Majorité",
-      "aggregationHint": "Comment agréger les résultats de plusieurs branches parallèles"
+      "aggregationHint": "Comment agréger les résultats de plusieurs branches parallèles",
+      "url": "url",
+      "method": "method",
+      "timeout": "timeout",
+      "bodyType": "bodyType",
+      "body": "body",
+      "headers": "headers",
+      "addHeader": "addHeader",
+      "headerKey": "headerKey",
+      "headerValue": "headerValue"
     },
     "debug": {
       "totalDuration": "Durée totale",
@@ -4247,7 +4256,8 @@
       "vectorRetrieve": "Recherche vectorielle",
       "end": "Fin",
       "tool": "Outil",
-      "code": "Code"
+      "code": "Code",
+      "httpRequest": "HTTP Request"
     },
     "templateList": {
       "deleted": "Modèle supprimé",
@@ -4424,7 +4434,9 @@
     "subWorkflowNode": {
       "notSelected": "Non sélectionné",
       "title": "Sous-flux",
-      "async": "Asynchrone"
+      "async": "Asynchrone",
+      "expand": "Expand",
+      "collapse": "Collapse"
     },
     "vectorRetrieveNode": {
       "notSelected": "Non sélectionné",
@@ -4454,7 +4466,9 @@
       "anyComplete": "N'importe quel terminé",
       "branch": "Branche {{index}}",
       "moreBranches": "{{count}} branches supplémentaires",
-      "clickToAdd": "Cliquez pour ajouter une branche"
+      "clickToAdd": "Cliquez pour ajouter une branche",
+      "expand": "Déplier",
+      "collapse": "Replier"
     },
     "toolNode": {
       "notSelected": "Non sélectionné",

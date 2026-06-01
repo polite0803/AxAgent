@@ -3467,7 +3467,8 @@
       "vectorRetrieve": "Vector Retrieve",
       "end": "End",
       "tool": "Tool (Legacy)",
-      "code": "Code (Legacy)"
+      "code": "Code (Legacy)",
+      "httpRequest": "HTTP Request"
     },
     "aiPanel": {
       "enterWorkflowDesc": "Please enter a workflow description",
@@ -3968,7 +3969,16 @@
       "expertNotFound": "Expert not found",
       "profileMatched": "Matched existing profile",
       "profileCreated": "Profile created",
-      "profileCreateFailed": "Failed to create profile: {{error}}"
+      "profileCreateFailed": "Failed to create profile: {{error}}",
+      "url": "url",
+      "method": "method",
+      "timeout": "timeout",
+      "bodyType": "bodyType",
+      "body": "body",
+      "headers": "headers",
+      "addHeader": "addHeader",
+      "headerKey": "headerKey",
+      "headerValue": "headerValue"
     },
     "debug": {
       "totalDuration": "Total Duration",
@@ -4099,7 +4109,9 @@
     "subWorkflowNode": {
       "notSelected": "Not selected",
       "title": "Sub-Workflow",
-      "async": "Async"
+      "async": "Async",
+      "expand": "Expand",
+      "collapse": "Collapse"
     },
     "vectorRetrieveNode": {
       "notSelected": "Not selected",
@@ -4136,7 +4148,9 @@
       "branches": "branches",
       "moreBranches": "{{count}} more branches",
       "clickToAdd": "Click to add branch",
-      "autoInput": "Auto-receive parent input"
+      "autoInput": "Auto-receive parent input",
+      "expand": "Expand",
+      "collapse": "Collapse"
     },
     "toolNode": {
       "notSelected": "No tool selected",

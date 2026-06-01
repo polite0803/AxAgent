@@ -4161,7 +4161,16 @@
       "aggregationFirst": "पहला",
       "aggregationRace": "रेस",
       "aggregationMajority": "बहुमत",
-      "aggregationHint": "एकाधिक समानांतर शाखाओं से परिणामों को एकत्रित करने का तरीका"
+      "aggregationHint": "एकाधिक समानांतर शाखाओं से परिणामों को एकत्रित करने का तरीका",
+      "url": "url",
+      "method": "method",
+      "timeout": "timeout",
+      "bodyType": "bodyType",
+      "body": "body",
+      "headers": "headers",
+      "addHeader": "addHeader",
+      "headerKey": "headerKey",
+      "headerValue": "headerValue"
     },
     "debug": {
       "totalDuration": "कुल अवधि",
@@ -4247,7 +4256,8 @@
       "vectorRetrieve": "वेक्टर खोज",
       "end": "समाप्त",
       "tool": "उपकरण",
-      "code": "कोड"
+      "code": "कोड",
+      "httpRequest": "HTTP Request"
     },
     "templateList": {
       "deleted": "टेम्पलेट हटाया गया",
@@ -4424,7 +4434,9 @@
     "subWorkflowNode": {
       "notSelected": "चयनित नहीं",
       "title": "उप-वर्कफ़्लो",
-      "async": "अतुल्यकालिक"
+      "async": "अतुल्यकालिक",
+      "expand": "Expand",
+      "collapse": "Collapse"
     },
     "vectorRetrieveNode": {
       "notSelected": "चयनित नहीं",
@@ -4454,7 +4466,9 @@
       "anyComplete": "कोई भी पूर्ण",
       "branch": "शाखा {{index}}",
       "moreBranches": "{{count}} अतिरिक्त शाखाएँ",
-      "clickToAdd": "शाखा जोड़ने के लिए क्लिक करें"
+      "clickToAdd": "शाखा जोड़ने के लिए क्लिक करें",
+      "expand": "विस्तृत करें",
+      "collapse": "संकुचित करें"
     },
     "toolNode": {
       "notSelected": "चयनित नहीं",

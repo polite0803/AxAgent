@@ -4161,7 +4161,16 @@
       "aggregationFirst": "Primero",
       "aggregationRace": "Carrera",
       "aggregationMajority": "Mayoría",
-      "aggregationHint": "Cómo agregar resultados de múltiples ramas paralelas"
+      "aggregationHint": "Cómo agregar resultados de múltiples ramas paralelas",
+      "url": "url",
+      "method": "method",
+      "timeout": "timeout",
+      "bodyType": "bodyType",
+      "body": "body",
+      "headers": "headers",
+      "addHeader": "addHeader",
+      "headerKey": "headerKey",
+      "headerValue": "headerValue"
     },
     "debug": {
       "totalDuration": "Duración total",
@@ -4247,7 +4256,8 @@
       "vectorRetrieve": "Búsqueda vectorial",
       "end": "Fin",
       "tool": "Herramienta",
-      "code": "Código"
+      "code": "Código",
+      "httpRequest": "HTTP Request"
     },
     "templateList": {
       "deleted": "Plantilla eliminada",
@@ -4424,7 +4434,9 @@
     "subWorkflowNode": {
       "notSelected": "Sin seleccionar",
       "title": "Subflujo",
-      "async": "Asíncrono"
+      "async": "Asíncrono",
+      "expand": "Expand",
+      "collapse": "Collapse"
     },
     "vectorRetrieveNode": {
       "notSelected": "Sin seleccionar",
@@ -4454,7 +4466,9 @@
       "anyComplete": "Cualquier completado",
       "branch": "Rama {{index}}",
       "moreBranches": "{{count}} ramas más",
-      "clickToAdd": "Haga clic para añadir rama"
+      "clickToAdd": "Haga clic para añadir rama",
+      "expand": "Expandir",
+      "collapse": "Contraer"
     },
     "toolNode": {
       "notSelected": "Sin seleccionar",

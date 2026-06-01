@@ -3739,7 +3739,16 @@
       "aggregationFirst": "Первый",
       "aggregationRace": "Гонка",
       "aggregationMajority": "Большинство",
-      "aggregationHint": "Как агрегировать результаты из нескольких параллельных ветвей"
+      "aggregationHint": "Как агрегировать результаты из нескольких параллельных ветвей",
+      "url": "url",
+      "method": "method",
+      "timeout": "timeout",
+      "bodyType": "bodyType",
+      "body": "body",
+      "headers": "headers",
+      "addHeader": "addHeader",
+      "headerKey": "headerKey",
+      "headerValue": "headerValue"
     },
     "debug": {
       "totalDuration": "Общая длительность",
@@ -3825,7 +3834,8 @@
       "vectorRetrieve": "Векторный поиск",
       "end": "Конец",
       "tool": "Инструмент",
-      "code": "Код"
+      "code": "Код",
+      "httpRequest": "HTTP Request"
     },
     "templateList": {
       "deleted": "Шаблон удалён",
@@ -4002,7 +4012,9 @@
     "subWorkflowNode": {
       "notSelected": "Не выбрано",
       "title": "Подворкфлоу",
-      "async": "Асинхронный"
+      "async": "Асинхронный",
+      "expand": "Expand",
+      "collapse": "Collapse"
     },
     "vectorRetrieveNode": {
       "notSelected": "Не выбрано",
@@ -4032,7 +4044,9 @@
       "anyComplete": "Любой завершён",
       "branch": "Ветка {{index}}",
       "moreBranches": "Ещё {{count}} веток",
-      "clickToAdd": "Нажмите, чтобы добавить ветку"
+      "clickToAdd": "Нажмите, чтобы добавить ветку",
+      "expand": "Развернуть",
+      "collapse": "Свернуть"
     },
     "toolNode": {
       "notSelected": "Не выбрано",

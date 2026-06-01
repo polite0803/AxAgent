@@ -4161,7 +4161,16 @@
       "aggregationFirst": "Erster",
       "aggregationRace": "Wettlauf",
       "aggregationMajority": "Mehrheit",
-      "aggregationHint": "Wie Ergebnisse aus mehreren parallelen Zweigen aggregiert werden"
+      "aggregationHint": "Wie Ergebnisse aus mehreren parallelen Zweigen aggregiert werden",
+      "url": "url",
+      "method": "method",
+      "timeout": "timeout",
+      "bodyType": "bodyType",
+      "body": "body",
+      "headers": "headers",
+      "addHeader": "addHeader",
+      "headerKey": "headerKey",
+      "headerValue": "headerValue"
     },
     "debug": {
       "totalDuration": "Gesamtdauer",
@@ -4247,7 +4256,8 @@
       "vectorRetrieve": "Vektorabfrage",
       "end": "Ende",
       "tool": "Werkzeug",
-      "code": "Code"
+      "code": "Code",
+      "httpRequest": "HTTP Request"
     },
     "templateList": {
       "deleted": "Vorlage gelöscht",
@@ -4424,7 +4434,9 @@
     "subWorkflowNode": {
       "notSelected": "Nicht ausgewählt",
       "title": "Unterworkflow",
-      "async": "Asynchron"
+      "async": "Asynchron",
+      "expand": "Expand",
+      "collapse": "Collapse"
     },
     "vectorRetrieveNode": {
       "notSelected": "Nicht ausgewählt",
@@ -4454,7 +4466,9 @@
       "anyComplete": "Beliebig vollständig",
       "branch": "Zweig {{index}}",
       "moreBranches": "{{count}} weitere Zweige",
-      "clickToAdd": "Klicken, um Zweig hinzuzufügen"
+      "clickToAdd": "Klicken, um Zweig hinzuzufügen",
+      "expand": "Ausklappen",
+      "collapse": "Einklappen"
     },
     "toolNode": {
       "notSelected": "Nicht ausgewählt",

@@ -3739,7 +3739,16 @@
       "aggregationFirst": "第一個",
       "aggregationRace": "競速",
       "aggregationMajority": "多數決",
-      "aggregationHint": "如何聚合多個平行分支的結果"
+      "aggregationHint": "如何聚合多個平行分支的結果",
+      "url": "url",
+      "method": "method",
+      "timeout": "timeout",
+      "bodyType": "bodyType",
+      "body": "body",
+      "headers": "headers",
+      "addHeader": "addHeader",
+      "headerKey": "headerKey",
+      "headerValue": "headerValue"
     },
     "debug": {
       "totalDuration": "總耗時",
@@ -3825,7 +3834,8 @@
       "vectorRetrieve": "向量檢索",
       "end": "結束",
       "tool": "工具",
-      "code": "程式碼"
+      "code": "程式碼",
+      "httpRequest": "HTTP Request"
     },
     "templateList": {
       "deleted": "已刪除",
@@ -4002,7 +4012,9 @@
     "subWorkflowNode": {
       "notSelected": "未選擇",
       "title": "子工作流程",
-      "async": "異步"
+      "async": "異步",
+      "expand": "展开",
+      "collapse": "折叠"
     },
     "vectorRetrieveNode": {
       "notSelected": "未選擇",
@@ -4032,7 +4044,9 @@
       "anyComplete": "任一完成即可",
       "branch": "分支",
       "moreBranches": "更多分支...",
-      "clickToAdd": "點擊添加"
+      "clickToAdd": "點擊添加",
+      "expand": "展開",
+      "collapse": "摺疊"
     },
     "toolNode": {
       "notSelected": "未選擇",

@@ -94,7 +94,7 @@ function makeMockTemplate(
 /** Reset store to initial state between tests */
 async function resetStore() {
   const { useWorkflowEditorStore } = await import("@/stores/feature/workflowEditorStore");
-  useWorkflowEditorStore.setState({
+  (useWorkflowEditorStore as any).setState({
     currentTemplate: null,
     templates: [],
     selectedNodeId: null,
@@ -110,6 +110,14 @@ async function resetStore() {
     pendingDecompositionSource: null,
     nodes: [],
     edges: [],
+    parentRefs: {},
+    past: [],
+    future: [],
+    _lastUndoRecordTime: 0,
+    aiChatMessages: [],
+    aiChatStreaming: false,
+    aiChatStreamingMessageId: null,
+    collapsedParallelContainers: new Set<string>(),
   });
 }
 
@@ -123,7 +131,7 @@ describe("WorkflowEditorStore", () => {
   describe("Initial State", () => {
     it("should have correct initial state structure", async () => {
       const { useWorkflowEditorStore } = await import("@/stores/feature/workflowEditorStore");
-      const state = useWorkflowEditorStore.getState();
+      const state = useWorkflowEditorStore.getState() as any;
 
       expect(state.currentTemplate).toBeNull();
       expect(state.templates).toEqual([]);
@@ -141,19 +149,19 @@ describe("WorkflowEditorStore", () => {
   describe("Node Operations", () => {
     it("should add a node to the canvas", async () => {
       const { useWorkflowEditorStore } = await import("@/stores/feature/workflowEditorStore");
-      const store = useWorkflowEditorStore.getState();
+      const store = useWorkflowEditorStore.getState() as any;
 
       const node = makeMockWorkflowNode("node-1", "trigger");
       store.addNode(node);
 
-      const state = useWorkflowEditorStore.getState();
+      const state = useWorkflowEditorStore.getState() as any;
       expect(state.nodes).toContain(node);
       expect(state.isDirty).toBe(true);
     });
 
     it("should update an existing node", async () => {
       const { useWorkflowEditorStore } = await import("@/stores/feature/workflowEditorStore");
-      const store = useWorkflowEditorStore.getState();
+      const store = useWorkflowEditorStore.getState() as any;
 
       const node = makeMockWorkflowNode("node-1", "trigger");
       store.addNode(node);
@@ -163,7 +171,7 @@ describe("WorkflowEditorStore", () => {
         description: "Updated description",
       });
 
-      const state = useWorkflowEditorStore.getState();
+      const state = useWorkflowEditorStore.getState() as any;
       const updatedNode = state.nodes.find(
         (n: WorkflowNode) => n.id === "node-1",
       );
@@ -172,7 +180,7 @@ describe("WorkflowEditorStore", () => {
 
     it("should delete a node from the canvas", async () => {
       const { useWorkflowEditorStore } = await import("@/stores/feature/workflowEditorStore");
-      const store = useWorkflowEditorStore.getState();
+      const store = useWorkflowEditorStore.getState() as any;
 
       const node = makeMockWorkflowNode("node-1", "trigger");
       store.addNode(node);
@@ -180,7 +188,7 @@ describe("WorkflowEditorStore", () => {
 
       store.deleteNode("node-1");
 
-      const state = useWorkflowEditorStore.getState();
+      const state = useWorkflowEditorStore.getState() as any;
       expect(
         state.nodes.find((n: WorkflowNode) => n.id === "node-1"),
       ).toBeUndefined();
@@ -188,22 +196,22 @@ describe("WorkflowEditorStore", () => {
 
     it("should select a node", async () => {
       const { useWorkflowEditorStore } = await import("@/stores/feature/workflowEditorStore");
-      const store = useWorkflowEditorStore.getState();
+      const store = useWorkflowEditorStore.getState() as any;
 
       store.setSelectedNode("node-1");
 
-      const state = useWorkflowEditorStore.getState();
+      const state = useWorkflowEditorStore.getState() as any;
       expect(state.selectedNodeId).toBe("node-1");
     });
 
     it("should clear node selection when setting null", async () => {
       const { useWorkflowEditorStore } = await import("@/stores/feature/workflowEditorStore");
-      const store = useWorkflowEditorStore.getState();
+      const store = useWorkflowEditorStore.getState() as any;
 
       store.setSelectedNode("node-1");
       store.setSelectedNode(null);
 
-      const state = useWorkflowEditorStore.getState();
+      const state = useWorkflowEditorStore.getState() as any;
       expect(state.selectedNodeId).toBeNull();
     });
   });
@@ -211,26 +219,26 @@ describe("WorkflowEditorStore", () => {
   describe("Edge Operations", () => {
     it("should add an edge to the canvas", async () => {
       const { useWorkflowEditorStore } = await import("@/stores/feature/workflowEditorStore");
-      const store = useWorkflowEditorStore.getState();
+      const store = useWorkflowEditorStore.getState() as any;
 
       const edge = makeMockWorkflowEdge("edge-1", "node-1", "node-2");
       store.addEdge(edge);
 
-      const state = useWorkflowEditorStore.getState();
+      const state = useWorkflowEditorStore.getState() as any;
       expect(state.edges).toContain(edge);
       expect(state.isDirty).toBe(true);
     });
 
     it("should update an existing edge", async () => {
       const { useWorkflowEditorStore } = await import("@/stores/feature/workflowEditorStore");
-      const store = useWorkflowEditorStore.getState();
+      const store = useWorkflowEditorStore.getState() as any;
 
       const edge = makeMockWorkflowEdge("edge-1", "node-1", "node-2");
       store.addEdge(edge);
 
       store.updateEdge("edge-1", { label: "Updated Edge" });
 
-      const state = useWorkflowEditorStore.getState();
+      const state = useWorkflowEditorStore.getState() as any;
       const updatedEdge = state.edges.find(
         (e: WorkflowEdge) => e.id === "edge-1",
       );
@@ -239,7 +247,7 @@ describe("WorkflowEditorStore", () => {
 
     it("should delete an edge from the canvas", async () => {
       const { useWorkflowEditorStore } = await import("@/stores/feature/workflowEditorStore");
-      const store = useWorkflowEditorStore.getState();
+      const store = useWorkflowEditorStore.getState() as any;
 
       const edge = makeMockWorkflowEdge("edge-1", "node-1", "node-2");
       store.addEdge(edge);
@@ -247,7 +255,7 @@ describe("WorkflowEditorStore", () => {
 
       store.deleteEdge("edge-1");
 
-      const state = useWorkflowEditorStore.getState();
+      const state = useWorkflowEditorStore.getState() as any;
       expect(
         state.edges.find((e: WorkflowEdge) => e.id === "edge-1"),
       ).toBeUndefined();
@@ -255,11 +263,11 @@ describe("WorkflowEditorStore", () => {
 
     it("should select an edge", async () => {
       const { useWorkflowEditorStore } = await import("@/stores/feature/workflowEditorStore");
-      const store = useWorkflowEditorStore.getState();
+      const store = useWorkflowEditorStore.getState() as any;
 
       store.setSelectedEdge("edge-1");
 
-      const state = useWorkflowEditorStore.getState();
+      const state = useWorkflowEditorStore.getState() as any;
       expect(state.selectedEdgeId).toBe("edge-1");
     });
   });
@@ -274,14 +282,14 @@ describe("WorkflowEditorStore", () => {
       invokeMock.mockResolvedValueOnce(mockTemplates);
 
       const { useWorkflowEditorStore } = await import("@/stores/feature/workflowEditorStore");
-      const store = useWorkflowEditorStore.getState();
+      const store = useWorkflowEditorStore.getState() as any;
 
       await store.loadTemplates();
 
       expect(invokeMock).toHaveBeenCalledWith("list_workflow_templates", {
         is_preset: undefined,
       });
-      const state = useWorkflowEditorStore.getState();
+      const state = useWorkflowEditorStore.getState() as any;
       expect(state.templates).toEqual(mockTemplates);
       expect(state.isLoading).toBe(false);
     });
@@ -291,14 +299,14 @@ describe("WorkflowEditorStore", () => {
       invokeMock.mockResolvedValueOnce(mockTemplate);
 
       const { useWorkflowEditorStore } = await import("@/stores/feature/workflowEditorStore");
-      const store = useWorkflowEditorStore.getState();
+      const store = useWorkflowEditorStore.getState() as any;
 
       await store.loadTemplate("template-1");
 
       expect(invokeMock).toHaveBeenCalledWith("get_workflow_template", {
         id: "template-1",
       });
-      const state = useWorkflowEditorStore.getState();
+      const state = useWorkflowEditorStore.getState() as any;
       expect(state.currentTemplate).toEqual(mockTemplate);
       expect(state.nodes).toEqual(mockTemplate.nodes);
       expect(state.edges).toEqual(mockTemplate.edges);
@@ -310,7 +318,7 @@ describe("WorkflowEditorStore", () => {
         .mockResolvedValueOnce([]); // loadTemplates → list_workflow_templates
 
       const { useWorkflowEditorStore } = await import("@/stores/feature/workflowEditorStore");
-      const store = useWorkflowEditorStore.getState();
+      const store = useWorkflowEditorStore.getState() as any;
 
       const input = {
         name: "New Template",
@@ -344,7 +352,7 @@ describe("WorkflowEditorStore", () => {
         .mockResolvedValueOnce(updatedTemplate); // loadTemplate → get_workflow_template
 
       const { useWorkflowEditorStore } = await import("@/stores/feature/workflowEditorStore");
-      const store = useWorkflowEditorStore.getState();
+      const store = useWorkflowEditorStore.getState() as any;
 
       const input = {
         name: "Updated Template",
@@ -373,7 +381,7 @@ describe("WorkflowEditorStore", () => {
       invokeMock.mockResolvedValueOnce(true);
 
       const { useWorkflowEditorStore } = await import("@/stores/feature/workflowEditorStore");
-      const store = useWorkflowEditorStore.getState();
+      const store = useWorkflowEditorStore.getState() as any;
 
       const result = await store.deleteTemplate("template-1");
 
@@ -389,7 +397,7 @@ describe("WorkflowEditorStore", () => {
         .mockResolvedValueOnce([]); // loadTemplates → list_workflow_templates
 
       const { useWorkflowEditorStore } = await import("@/stores/feature/workflowEditorStore");
-      const store = useWorkflowEditorStore.getState();
+      const store = useWorkflowEditorStore.getState() as any;
 
       const result = await store.duplicateTemplate("template-1");
 
@@ -404,7 +412,7 @@ describe("WorkflowEditorStore", () => {
       invokeMock.mockResolvedValueOnce(mockJson);
 
       const { useWorkflowEditorStore } = await import("@/stores/feature/workflowEditorStore");
-      const store = useWorkflowEditorStore.getState();
+      const store = useWorkflowEditorStore.getState() as any;
 
       const result = await store.exportTemplate("template-1");
 
@@ -425,7 +433,7 @@ describe("WorkflowEditorStore", () => {
       const jsonData = JSON.stringify(makeMockTemplate("imported"));
 
       const { useWorkflowEditorStore } = await import("@/stores/feature/workflowEditorStore");
-      const store = useWorkflowEditorStore.getState();
+      const store = useWorkflowEditorStore.getState() as any;
 
       const result = await store.importTemplate(jsonData);
 
@@ -465,26 +473,26 @@ describe("WorkflowEditorStore", () => {
   describe("Dirty State", () => {
     it("should mark state as dirty after adding node", async () => {
       const { useWorkflowEditorStore } = await import("@/stores/feature/workflowEditorStore");
-      const store = useWorkflowEditorStore.getState();
+      const store = useWorkflowEditorStore.getState() as any;
 
       expect(store.isDirty).toBe(false);
 
       store.addNode(makeMockWorkflowNode("node-1"));
 
-      const state = useWorkflowEditorStore.getState();
+      const state = useWorkflowEditorStore.getState() as any;
       expect(state.isDirty).toBe(true);
     });
 
     it("should mark state as clean after saving", async () => {
       const { useWorkflowEditorStore } = await import("@/stores/feature/workflowEditorStore");
-      const store = useWorkflowEditorStore.getState();
+      const store = useWorkflowEditorStore.getState() as any;
 
       store.addNode(makeMockWorkflowNode("node-1"));
       expect(store.isDirty).toBe(true);
 
       store.markClean();
 
-      const state = useWorkflowEditorStore.getState();
+      const state = useWorkflowEditorStore.getState() as any;
       expect(state.isDirty).toBe(false);
     });
   });
@@ -499,7 +507,7 @@ describe("WorkflowEditorStore", () => {
       invokeMock.mockResolvedValueOnce(mockResult);
 
       const { useWorkflowEditorStore } = await import("@/stores/feature/workflowEditorStore");
-      const store = useWorkflowEditorStore.getState();
+      const store = useWorkflowEditorStore.getState() as any;
 
       const result = await store.generateWorkflowFromPrompt("Create a workflow");
 
@@ -518,7 +526,7 @@ describe("WorkflowEditorStore", () => {
       invokeMock.mockResolvedValueOnce(mockOptimized);
 
       const { useWorkflowEditorStore } = await import("@/stores/feature/workflowEditorStore");
-      const store = useWorkflowEditorStore.getState();
+      const store = useWorkflowEditorStore.getState() as any;
 
       const result = await store.optimizeAgentPrompt("Original prompt");
 
@@ -546,7 +554,7 @@ describe("WorkflowEditorStore", () => {
       invokeMock.mockResolvedValueOnce(mockRecommendations);
 
       const { useWorkflowEditorStore } = await import("@/stores/feature/workflowEditorStore");
-      const store = useWorkflowEditorStore.getState();
+      const store = useWorkflowEditorStore.getState() as any;
 
       const result = await store.recommendNodes("I need an AI workflow");
 
@@ -562,41 +570,248 @@ describe("WorkflowEditorStore", () => {
       invokeMock.mockRejectedValueOnce(new Error("API Error"));
 
       const { useWorkflowEditorStore } = await import("@/stores/feature/workflowEditorStore");
-      const store = useWorkflowEditorStore.getState();
+      const store = useWorkflowEditorStore.getState() as any;
 
       await store.loadTemplates();
 
-      const state = useWorkflowEditorStore.getState();
+      const state = useWorkflowEditorStore.getState() as any;
       expect(state.error).toBe("Error: API Error");
       expect(state.isLoading).toBe(false);
     });
 
     it("should set error manually", async () => {
       const { useWorkflowEditorStore } = await import("@/stores/feature/workflowEditorStore");
-      const store = useWorkflowEditorStore.getState();
+      const store = useWorkflowEditorStore.getState() as any;
 
       store.setError("Test error");
 
-      const state = useWorkflowEditorStore.getState();
+      const state = useWorkflowEditorStore.getState() as any;
       expect(state.error).toBe("Test error");
     });
 
     it("should clear error when setting null", async () => {
       const { useWorkflowEditorStore } = await import("@/stores/feature/workflowEditorStore");
-      const store = useWorkflowEditorStore.getState();
+      const store = useWorkflowEditorStore.getState() as any;
 
       store.setError("Test error");
       store.setError(null);
 
-      const state = useWorkflowEditorStore.getState();
+      const state = useWorkflowEditorStore.getState() as any;
       expect(state.error).toBeNull();
+    });
+  });
+
+  describe("Container Parent Refs", () => {
+    it("setParentRef registers child→parent mapping", async () => {
+      const { useWorkflowEditorStore } = await import("@/stores/feature/workflowEditorStore");
+      const store = useWorkflowEditorStore.getState() as any;
+
+      store.setParentRef("child-1", "parent-1");
+
+      const state = useWorkflowEditorStore.getState() as any;
+      expect(state.parentRefs).toEqual({ "child-1": "parent-1" });
+      expect(state.isDirty).toBe(true);
+    });
+
+    it("setParentRef with null removes existing entry", async () => {
+      const { useWorkflowEditorStore } = await import("@/stores/feature/workflowEditorStore");
+      const store = useWorkflowEditorStore.getState() as any;
+
+      store.setParentRef("child-1", "parent-1");
+      store.setParentRef("child-2", "parent-1");
+      store.setParentRef("child-1", null);
+
+      const state = useWorkflowEditorStore.getState() as any;
+      expect(state.parentRefs).toEqual({ "child-2": "parent-1" });
+    });
+
+    it("setParentRef with null is a no-op on missing key", async () => {
+      const { useWorkflowEditorStore } = await import("@/stores/feature/workflowEditorStore");
+      const store = useWorkflowEditorStore.getState() as any;
+
+      store.setParentRef("ghost-child", null);
+
+      const state = useWorkflowEditorStore.getState() as any;
+      expect(state.parentRefs).toEqual({});
+    });
+
+    it("clearParentRefs wipes all entries", async () => {
+      const { useWorkflowEditorStore } = await import("@/stores/feature/workflowEditorStore");
+      const store = useWorkflowEditorStore.getState() as any;
+
+      store.setParentRef("child-1", "parent-1");
+      store.setParentRef("child-2", "parent-1");
+      store.clearParentRefs();
+
+      const state = useWorkflowEditorStore.getState() as any;
+      expect(state.parentRefs).toEqual({});
+    });
+
+    it("deleteNode cascades to children of deleted container", async () => {
+      const { useWorkflowEditorStore } = await import("@/stores/feature/workflowEditorStore");
+      const store = useWorkflowEditorStore.getState() as any;
+
+      const container = makeMockWorkflowNode("container-1", "parallel");
+      const childA = makeMockWorkflowNode("child-a");
+      const childB = makeMockWorkflowNode("child-b");
+      const sibling = makeMockWorkflowNode("sibling-1");
+
+      store.addNode(container);
+      store.addNode(childA);
+      store.addNode(childB);
+      store.addNode(sibling);
+      store.setParentRef("child-a", "container-1");
+      store.setParentRef("child-b", "container-1");
+
+      store.deleteNode("container-1");
+
+      const state = useWorkflowEditorStore.getState() as any;
+      expect(state.nodes.map((n: any) => n.id)).toEqual(["sibling-1"]);
+      expect(state.parentRefs).toEqual({});
+    });
+
+    it("deleteNode preserves parentRefs for unrelated subtrees", async () => {
+      const { useWorkflowEditorStore } = await import("@/stores/feature/workflowEditorStore");
+      const store = useWorkflowEditorStore.getState() as any;
+
+      const containerA = makeMockWorkflowNode("container-a", "parallel");
+      const containerB = makeMockWorkflowNode("container-b", "parallel");
+      const childA = makeMockWorkflowNode("child-a");
+      const childB = makeMockWorkflowNode("child-b");
+
+      store.addNode(containerA);
+      store.addNode(containerB);
+      store.addNode(childA);
+      store.addNode(childB);
+      store.setParentRef("child-a", "container-a");
+      store.setParentRef("child-b", "container-b");
+
+      store.deleteNode("container-a");
+
+      const state = useWorkflowEditorStore.getState() as any;
+      expect(state.nodes.map((n: any) => n.id).sort()).toEqual(["child-b", "container-b"]);
+      expect(state.parentRefs).toEqual({ "child-b": "container-b" });
+    });
+
+    it("deleteNode cleans parentRefs where deleted node was the parent", async () => {
+      const { useWorkflowEditorStore } = await import("@/stores/feature/workflowEditorStore");
+      const store = useWorkflowEditorStore.getState() as any;
+
+      // 模拟"节点被删但 parentRefs 仍残留旧记录"的脏数据场景
+      store.setNodes([makeMockWorkflowNode("ghost-parent")]);
+      store.setParentRef("ghost-parent", null); // 仍可能残留，先手动写入绕过
+      // 手动注入孤儿登记
+      useWorkflowEditorStore.setState({
+        parentRefs: { "child-x": "ghost-parent", "child-y": "real-parent" },
+        nodes: [makeMockWorkflowNode("ghost-parent"), makeMockWorkflowNode("real-parent")],
+      });
+
+      store.deleteNode("ghost-parent");
+
+      const state = useWorkflowEditorStore.getState() as any;
+      expect(state.parentRefs).toEqual({ "child-y": "real-parent" });
+    });
+
+    it("loadTemplate rebuilds parentRefs from nodes[].parentId", async () => {
+      const childNode = {
+        ...makeMockWorkflowNode("child-1"),
+        parentId: "parent-1",
+      } as WorkflowNode;
+      const mockTemplate = makeMockTemplate("template-1", {
+        nodes: [makeMockWorkflowNode("parent-1", "parallel"), childNode],
+        edges: [],
+      });
+      invokeMock.mockResolvedValueOnce(mockTemplate);
+
+      const { useWorkflowEditorStore } = await import("@/stores/feature/workflowEditorStore");
+      await useWorkflowEditorStore.getState().loadTemplate("template-1");
+
+      const state = useWorkflowEditorStore.getState() as any;
+      expect(state.parentRefs).toEqual({ "child-1": "parent-1" });
+    });
+
+    it("loadTemplate with no parentId leaves parentRefs empty", async () => {
+      const mockTemplate = makeMockTemplate("template-1", {
+        nodes: [makeMockWorkflowNode("node-1")],
+        edges: [],
+      });
+      invokeMock.mockResolvedValueOnce(mockTemplate);
+
+      const { useWorkflowEditorStore } = await import("@/stores/feature/workflowEditorStore");
+      await useWorkflowEditorStore.getState().loadTemplate("template-1");
+
+      const state = useWorkflowEditorStore.getState() as any;
+      expect(state.parentRefs).toEqual({});
+    });
+  });
+
+  describe("Parallel Container Collapse", () => {
+    it("should start with an empty collapsed set", async () => {
+      const { useWorkflowEditorStore } = await import("@/stores/feature/workflowEditorStore");
+      const state = useWorkflowEditorStore.getState() as any;
+      expect(state.collapsedParallelContainers).toBeInstanceOf(Set);
+      expect(state.collapsedParallelContainers.size).toBe(0);
+    });
+
+    it("should add a parallel id when toggled on", async () => {
+      const { useWorkflowEditorStore } = await import("@/stores/feature/workflowEditorStore");
+      const store = useWorkflowEditorStore.getState() as any;
+      store.toggleParallelContainerCollapse("parallel-1");
+      const state = useWorkflowEditorStore.getState() as any;
+      expect(state.collapsedParallelContainers.has("parallel-1")).toBe(true);
+    });
+
+    it("should remove a parallel id when toggled off", async () => {
+      const { useWorkflowEditorStore } = await import("@/stores/feature/workflowEditorStore");
+      const store = useWorkflowEditorStore.getState() as any;
+      store.toggleParallelContainerCollapse("parallel-1");
+      store.toggleParallelContainerCollapse("parallel-1");
+      const state = useWorkflowEditorStore.getState() as any;
+      expect(state.collapsedParallelContainers.has("parallel-1")).toBe(false);
+      expect(state.collapsedParallelContainers.size).toBe(0);
+    });
+
+    it("should track multiple collapsed parallels independently", async () => {
+      const { useWorkflowEditorStore } = await import("@/stores/feature/workflowEditorStore");
+      const store = useWorkflowEditorStore.getState() as any;
+      store.toggleParallelContainerCollapse("parallel-1");
+      store.toggleParallelContainerCollapse("parallel-2");
+      const state = useWorkflowEditorStore.getState() as any;
+      expect(state.collapsedParallelContainers.has("parallel-1")).toBe(true);
+      expect(state.collapsedParallelContainers.has("parallel-2")).toBe(true);
+      expect(state.collapsedParallelContainers.size).toBe(2);
+    });
+
+    it("should clean up collapse state when a node is deleted", async () => {
+      const { useWorkflowEditorStore } = await import("@/stores/feature/workflowEditorStore");
+      const store = useWorkflowEditorStore.getState() as any;
+      store.toggleParallelContainerCollapse("parallel-1");
+      store.toggleParallelContainerCollapse("parallel-2");
+      expect(
+        (useWorkflowEditorStore.getState() as any).collapsedParallelContainers.size,
+      ).toBe(2);
+      // Set up a template with parallel-1 and a child, so delete cascades
+      const tpl: WorkflowTemplateResponse = makeMockTemplate("template-1", {
+        name: "t",
+        nodes: [
+          makeMockWorkflowNode("parallel-1", "parallel"),
+          makeMockWorkflowNode("child-1"),
+        ],
+        edges: [],
+      });
+      invokeMock.mockResolvedValueOnce(tpl);
+      await store.loadTemplate("template-1");
+      await store.deleteNode("parallel-1");
+      const state = useWorkflowEditorStore.getState() as any;
+      expect(state.collapsedParallelContainers.has("parallel-1")).toBe(false);
+      expect(state.collapsedParallelContainers.has("parallel-2")).toBe(true);
     });
   });
 
   describe("Batch Operations", () => {
     it("should set multiple nodes at once", async () => {
       const { useWorkflowEditorStore } = await import("@/stores/feature/workflowEditorStore");
-      const store = useWorkflowEditorStore.getState();
+      const store = useWorkflowEditorStore.getState() as any;
 
       const nodes = [
         makeMockWorkflowNode("node-1"),
@@ -604,13 +819,13 @@ describe("WorkflowEditorStore", () => {
       ];
       store.setNodes(nodes);
 
-      const state = useWorkflowEditorStore.getState();
+      const state = useWorkflowEditorStore.getState() as any;
       expect(state.nodes).toEqual(nodes);
     });
 
     it("should set multiple edges at once", async () => {
       const { useWorkflowEditorStore } = await import("@/stores/feature/workflowEditorStore");
-      const store = useWorkflowEditorStore.getState();
+      const store = useWorkflowEditorStore.getState() as any;
 
       const edges = [
         makeMockWorkflowEdge("edge-1", "node-1", "node-2"),
@@ -618,7 +833,7 @@ describe("WorkflowEditorStore", () => {
       ];
       store.setEdges(edges);
 
-      const state = useWorkflowEditorStore.getState();
+      const state = useWorkflowEditorStore.getState() as any;
       expect(state.edges).toEqual(edges);
     });
   });

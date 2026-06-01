@@ -1,5 +1,6 @@
-import { Tag, theme } from "antd";
-import React, { memo } from "react";
+import { useWorkflowEditorStore } from "@/stores";
+import { Tag, theme, Tooltip } from "antd";
+import React, { memo, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import type { NodeProps } from "reactflow";
 import type { MergeStrategy } from "../types/workflow.types";
@@ -31,6 +32,15 @@ const ParallelNodeComponent: React.FC<NodeProps<ParallelNodeData>> = ({
   const branches = data.branches || 2;
   const waitStrategy = data.waitStrategy || "all";
   const autoInputFromParent = data.autoInputFromParent !== false;
+
+  const isCollapsed = useWorkflowEditorStore((s) => s.collapsedParallelContainers.has(data.id));
+  const toggleCollapse = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      useWorkflowEditorStore.getState().toggleParallelContainerCollapse(data.id);
+    },
+    [data.id],
+  );
 
   const getWaitStrategyLabel = (strategy: string): string => {
     switch (strategy) {
@@ -113,7 +123,44 @@ const ParallelNodeComponent: React.FC<NodeProps<ParallelNodeData>> = ({
         )}
       </div>
 
-      {/* 子节点由 ReactFlow 根据 parentId 自动绘制在此容器内 */}
+      {/* 折叠/展开按钮 — 右上角 */}
+      <Tooltip
+        title={isCollapsed
+          ? t("workflow.parallelNode.expand")
+          : t("workflow.parallelNode.collapse")}
+      >
+        <span
+          onClick={toggleCollapse}
+          style={{
+            position: "absolute",
+            top: 8,
+            right: 12,
+            cursor: "pointer",
+            fontSize: 14,
+            lineHeight: 1,
+            padding: "2px 6px",
+            borderRadius: 4,
+            background: token.colorBgElevated,
+            border: `1px solid ${ORANGE_BASE}30`,
+            zIndex: 10,
+            opacity: 0.7,
+            transition: "opacity 0.2s, transform 0.2s",
+            transform: isCollapsed ? "rotate(-90deg)" : "rotate(0deg)",
+            display: "inline-block",
+            userSelect: "none",
+          }}
+          onMouseEnter={(e) => {
+            (e.currentTarget as HTMLElement).style.opacity = "1";
+          }}
+          onMouseLeave={(e) => {
+            (e.currentTarget as HTMLElement).style.opacity = "0.7";
+          }}
+        >
+          ▼
+        </span>
+      </Tooltip>
+
+      {/* 子节点由 ReactFlow 根据 parentId 自动绘制在此容器内；折叠时父节点的 style.width/height 由编辑器设为紧凑尺寸 */}
     </div>
   );
 };

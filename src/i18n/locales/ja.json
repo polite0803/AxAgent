@@ -3739,7 +3739,16 @@
       "aggregationFirst": "最初",
       "aggregationRace": "レース",
       "aggregationMajority": "マジョリティ",
-      "aggregationHint": "複数の並列ブランチの結果を集約する方法"
+      "aggregationHint": "複数の並列ブランチの結果を集約する方法",
+      "url": "url",
+      "method": "method",
+      "timeout": "timeout",
+      "bodyType": "bodyType",
+      "body": "body",
+      "headers": "headers",
+      "addHeader": "addHeader",
+      "headerKey": "headerKey",
+      "headerValue": "headerValue"
     },
     "debug": {
       "totalDuration": "总耗时",
@@ -3825,7 +3834,8 @@
       "vectorRetrieve": "ベクトル検索",
       "end": "終了",
       "tool": "ツール",
-      "code": "コード"
+      "code": "コード",
+      "httpRequest": "HTTP Request"
     },
     "templateList": {
       "deleted": "已删除",
@@ -4002,7 +4012,9 @@
     "subWorkflowNode": {
       "notSelected": "未選択",
       "title": "サブワークフロー",
-      "async": "异步"
+      "async": "异步",
+      "expand": "Expand",
+      "collapse": "Collapse"
     },
     "vectorRetrieveNode": {
       "notSelected": "未選択",
@@ -4032,7 +4044,9 @@
       "anyComplete": "任一完成即可",
       "branch": "分支",
       "moreBranches": "更多分支...",
-      "clickToAdd": "点击添加"
+      "clickToAdd": "点击添加",
+      "expand": "展開",
+      "collapse": "折りたたみ"
     },
     "toolNode": {
       "notSelected": "未選択",

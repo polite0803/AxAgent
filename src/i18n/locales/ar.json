@@ -4161,7 +4161,16 @@
       "aggregationFirst": "الأول",
       "aggregationRace": "سباق",
       "aggregationMajority": "الأغلبية",
-      "aggregationHint": "كيفية تجميع النتائج من فروع متوازية متعددة"
+      "aggregationHint": "كيفية تجميع النتائج من فروع متوازية متعددة",
+      "url": "url",
+      "method": "method",
+      "timeout": "timeout",
+      "bodyType": "bodyType",
+      "body": "body",
+      "headers": "headers",
+      "addHeader": "addHeader",
+      "headerKey": "headerKey",
+      "headerValue": "headerValue"
     },
     "debug": {
       "totalDuration": "المدة الإجمالية",
@@ -4247,7 +4256,8 @@
       "vectorRetrieve": "بحث متجهي",
       "end": "نهاية",
       "tool": "أداة",
-      "code": "كود"
+      "code": "كود",
+      "httpRequest": "HTTP Request"
     },
     "templateList": {
       "deleted": "تم حذف القالب",
@@ -4424,7 +4434,9 @@
     "subWorkflowNode": {
       "notSelected": "غير محدد",
       "title": "سير عمل فرعي",
-      "async": "غير متزامن"
+      "async": "غير متزامن",
+      "expand": "Expand",
+      "collapse": "Collapse"
     },
     "vectorRetrieveNode": {
       "notSelected": "غير محدد",
@@ -4454,7 +4466,9 @@
       "anyComplete": "أي اكتمال",
       "branch": "الفرع {{index}}",
       "moreBranches": "{{count}} فروع أخرى",
-      "clickToAdd": "انقر لإضافة فرع"
+      "clickToAdd": "انقر لإضافة فرع",
+      "expand": "توسيع",
+      "collapse": "طي"
     },
     "toolNode": {
       "notSelected": "غير محدد",

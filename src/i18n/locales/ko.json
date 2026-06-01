@@ -3739,7 +3739,16 @@
       "aggregationFirst": "첫 번째",
       "aggregationRace": "경쟁",
       "aggregationMajority": "다수결",
-      "aggregationHint": "여러 병렬 브랜치의 결과를 집계하는 방법"
+      "aggregationHint": "여러 병렬 브랜치의 결과를 집계하는 방법",
+      "url": "url",
+      "method": "method",
+      "timeout": "timeout",
+      "bodyType": "bodyType",
+      "body": "body",
+      "headers": "headers",
+      "addHeader": "addHeader",
+      "headerKey": "headerKey",
+      "headerValue": "headerValue"
     },
     "debug": {
       "totalDuration": "총 소요 시간",
@@ -3825,7 +3834,8 @@
       "vectorRetrieve": "벡터 검색",
       "end": "종료",
       "tool": "도구",
-      "code": "코드"
+      "code": "코드",
+      "httpRequest": "HTTP Request"
     },
     "templateList": {
       "deleted": "템플릿이 삭제되었습니다",
@@ -4002,7 +4012,9 @@
     "subWorkflowNode": {
       "notSelected": "선택 안 됨",
       "title": "하위 워크플로우",
-      "async": "비동기"
+      "async": "비동기",
+      "expand": "Expand",
+      "collapse": "Collapse"
     },
     "vectorRetrieveNode": {
       "notSelected": "선택 안 됨",
@@ -4032,7 +4044,9 @@
       "anyComplete": "임의 완료",
       "branch": "브랜치 {{index}}",
       "moreBranches": "{{count}}개 추가 브랜치",
-      "clickToAdd": "클릭하여 브랜치 추가"
+      "clickToAdd": "클릭하여 브랜치 추가",
+      "expand": "펼치기",
+      "collapse": "접기"
     },
     "toolNode": {
       "notSelected": "선택 안 됨",
