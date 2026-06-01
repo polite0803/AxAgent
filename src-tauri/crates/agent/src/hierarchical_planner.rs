@@ -1134,6 +1134,7 @@ pub fn compile_plan_to_dag(
             retry: RetryConfig::default(),
             timeout: None,
             enabled: true,
+                parent_id: None,
         },
         config: TriggerConfig {
             trigger_type: TriggerType::Manual,
@@ -1167,6 +1168,7 @@ pub fn compile_plan_to_dag(
                 },
                 timeout: Some(300),
                 enabled: true,
+                    parent_id: None,
             };
 
             let node = match task.action_type.as_str() {
@@ -1324,6 +1326,7 @@ pub fn compile_plan_to_dag(
             retry: RetryConfig::default(),
             timeout: None,
             enabled: true,
+                parent_id: None,
         },
         config: EndNodeConfig {
             output_var: Some("plan_result".to_string()),

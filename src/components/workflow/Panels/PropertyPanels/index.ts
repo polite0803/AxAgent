@@ -5,6 +5,7 @@ export { ConditionPropertyPanel } from "./ConditionPropertyPanel";
 export { DelayPropertyPanel } from "./DelayPropertyPanel";
 export { DocumentParserPropertyPanel } from "./DocumentParserPropertyPanel";
 export { EndPropertyPanel } from "./EndPropertyPanel";
+export { HttpRequestPropertyPanel } from "./HttpRequestPropertyPanel";
 export { LLMPropertyPanel } from "./LLMPropertyPanel";
 export { LoopPropertyPanel } from "./LoopPropertyPanel";
 export { MergePropertyPanel } from "./MergePropertyPanel";

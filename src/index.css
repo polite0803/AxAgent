@@ -3600,3 +3600,66 @@ html[data-theme="dark"] .markstream-react .table-node thead {
 
 /* 工作流边数据流动画 */
 @keyframes dash { to { stroke-dashoffset: -12; } }
+
+/* 工作流节点 hover 放大 */
+.workflow-node-card:hover {
+  transform: scale(1.03) !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* 工作流节点 disabled 时 hover 不放大 */
+.workflow-node-card[data-disabled='true']:hover {
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+/* Handle hover glow */
+.react-flow__handle:hover {
+  transform: scale(1.5);
+  filter: brightness(1.3);
+  transition: transform 0.15s ease, filter 0.15s ease;
+}
+
+/* 连接线拖拽时的样式 */
+.react-flow__connection-line {
+  stroke: var(--color-primary, #1677ff);
+  stroke-width: 2;
+  stroke-dasharray: 6 3;
+  animation: connectionPulse 0.8s ease-in-out infinite alternate;
+}
+
+@keyframes connectionPulse {
+  from { stroke-opacity: 0.6; }
+  to { stroke-opacity: 1; }
+}
+
+/* 粘贴/放置弹入动画 */
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* 选框样式 */
+.react-flow__selection {
+  background: rgba(22, 119, 255, 0.08) !important;
+  border: 1px solid rgba(22, 119, 255, 0.4) !important;
+  border-radius: 4px !important;
+}
+
+/* Minimap 自定义圆角 */
+.react-flow__minimap {
+  border-radius: 8px !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* 背景线风格 */
+.react-flow__background.lines pattern {
+  opacity: 0.3;
+}

@@ -1,9 +1,25 @@
-import { Button, Divider, Input, Select, Switch, theme } from "antd";
+import { Button, Divider, Input, InputNumber, Select, Switch, theme } from "antd";
 import { Plus, Trash2 } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import type { CompareOperator, Condition, ConditionNode, LogicalOperator, WorkflowNode } from "../../types";
 import { BasePropertyPanel } from "./BasePropertyPanel";
+
+/** 检测值的实际类型，返回序列化友好的 JS 原始值 */
+function detectTypedValue(raw: unknown): string | number | boolean | null {
+  if (raw === null || raw === undefined) { return ""; }
+  if (typeof raw === "number") { return raw; }
+  if (typeof raw === "boolean") { return raw; }
+  const str = String(raw).trim();
+  // 空字符串 → 空字符串
+  if (str === "") { return ""; }
+  // 尝试解析数字
+  if (/^-?\d+(\.\d+)?$/.test(str)) { return Number(str); }
+  // 尝试解析布尔
+  if (str === "true") { return true; }
+  if (str === "false") { return false; }
+  return str;
+}
 
 interface ConditionPropertyPanelProps {
   node: WorkflowNode;
@@ -23,6 +39,45 @@ export const ConditionPropertyPanel: React.FC<ConditionPropertyPanelProps> = ({
     conditions: [],
     logical_op: "and" as LogicalOperator,
   };
+
+  /** 根据值的实际类型渲染对应的输入组件，确保 value 以正确类型存储 */
+  const ValueInput: React.FC<{ value: unknown; onChange: (val: string | number | boolean | null) => void }> = React
+    .memo(
+      ({ value, onChange }) => {
+        const typed = detectTypedValue(value);
+        if (typeof typed === "boolean") {
+          return (
+            <Switch
+              size="small"
+              checked={typed}
+              onChange={(checked) => onChange(checked)}
+              style={{ flex: 1 }}
+            />
+          );
+        }
+        if (typeof typed === "number") {
+          return (
+            <InputNumber
+              size="small"
+              value={typed}
+              onChange={(num) => onChange(num ?? "")}
+              style={{ flex: 1, minWidth: 80 }}
+              placeholder={t("workflow.props.conditionValue")}
+            />
+          );
+        }
+        return (
+          <Input
+            id="condition-property-value-input"
+            value={String(typed ?? "")}
+            onChange={(e) => onChange(detectTypedValue(e.target.value))}
+            size="small"
+            placeholder={t("workflow.props.conditionValue")}
+            style={{ flex: 1 }}
+          />
+        );
+      },
+    );
 
   const OPERATOR_OPTIONS: { value: CompareOperator; label: string }[] = [
     { value: "eq", label: "=" },
@@ -192,7 +247,7 @@ export const ConditionPropertyPanel: React.FC<ConditionPropertyPanelProps> = ({
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {config.conditions.map((condition, index) => (
             <div
-              key={`${condition.var_path}-${condition.operator}-${String(condition.value)}-${index}`}
+              key={`cond-${index}`}
               style={{
                 padding: 8,
                 background: token.colorBgElevated,
@@ -230,13 +285,9 @@ export const ConditionPropertyPanel: React.FC<ConditionPropertyPanelProps> = ({
 
                 {condition.operator !== "isEmpty"
                   && condition.operator !== "isNotEmpty" && (
-                  <Input
-                    id="condition-property-panel-input-88"
-                    value={String(condition.value || "")}
-                    onChange={(e) => handleUpdateCondition(index, { value: e.target.value })}
-                    size="small"
-                    placeholder={t("workflow.props.conditionValue")}
-                    style={{ flex: 1 }}
+                  <ValueInput
+                    value={condition.value}
+                    onChange={(val) => handleUpdateCondition(index, { value: val })}
                   />
                 )}
 

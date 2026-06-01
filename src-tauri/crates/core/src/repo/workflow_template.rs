@@ -5,7 +5,7 @@ use crate::entity::workflow_template;
 use crate::entity::workflow_template_version;
 use crate::error::Result;
 use crate::workflow_types::{
-    ErrorConfig, JsonSchema, TriggerConfig, Variable, WorkflowEdge, WorkflowNode,
+    ErrorConfig, JsonSchema, RhaiToolDef, TriggerConfig, Variable, WorkflowEdge, WorkflowNode,
 };
 
 pub async fn list_workflow_templates(
@@ -86,6 +86,7 @@ pub async fn update_workflow_template(
     output_schema: Option<JsonSchema>,
     variables: Vec<Variable>,
     error_config: Option<ErrorConfig>,
+    tool_defs: Option<Vec<RhaiToolDef>>,
 ) -> Result<bool> {
     let template = workflow_template::Entity::find_by_id(id).one(db).await?;
 
@@ -127,6 +128,9 @@ pub async fn update_workflow_template(
             Set(output_schema.and_then(|s| serde_json::to_string(&s).ok()));
         active_model.variables = Set(Some(serde_json::to_string(&variables).unwrap_or_default()));
         active_model.error_config = Set(error_config.and_then(|e| serde_json::to_string(&e).ok()));
+        active_model.tool_defs = Set(tool_defs
+            .as_ref()
+            .map(|tds| serde_json::to_string(tds).unwrap_or_default()));
         active_model.version = Set(t.version + 1);
         active_model.updated_at = Set(chrono::Utc::now().timestamp_millis());
         active_model.update(db).await?;

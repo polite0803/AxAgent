@@ -350,7 +350,20 @@ impl ConditionExecutor {
 
         let text = response.content.trim().to_lowercase();
 
-        Ok(text.contains("true") && !text.contains("false"))
+        // 严格解析：只接受纯 true/false/yes/no
+        let trimmed = text.trim();
+        let is_true = trimmed == "true" || trimmed == "yes";
+        let is_false = trimmed == "false" || trimmed == "no";
+        if is_true {
+            Ok(true)
+        } else if is_false {
+            Ok(false)
+        } else {
+            Err(format!(
+                "LLM response did not contain a clear true/false decision. Got: {}",
+                text
+            ))
+        }
     }
 }
 
@@ -365,7 +378,8 @@ fn evaluate_llm_heuristic(
         .filter(|(k, _)| !k.starts_with("__"))
         .count();
     if meaningful_vars > 0 {
-        return true;
+        // 有变量但不足以判断，保守降级为 false（安全分支）
+        return false;
     }
     if !config.conditions.is_empty() {
         let mut results = Vec::new();

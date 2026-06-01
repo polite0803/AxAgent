@@ -14,6 +14,8 @@ mod tool_executor;
 mod trigger_executor;
 mod validation_executor;
 mod vector_retrieve_executor;
+    pub mod http_request_executor;
+    pub use http_request_executor::HttpRequestExecutor;
 
 pub use agent_executor::{
     AgentExecutor, PlanApprovalCallback, PlanApprovalRequest, PlanCallbacks, PlanPhaseSummary,

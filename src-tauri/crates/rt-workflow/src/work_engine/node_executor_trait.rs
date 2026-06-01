@@ -138,6 +138,7 @@ pub fn node_type_name(node: &WorkflowNode) -> &'static str {
         WorkflowNode::End(_) => "end",
         WorkflowNode::Tool(_) => "tool",
         WorkflowNode::Code(_) => "code",
+        WorkflowNode::HttpRequest(_) => "httpRequest",
         WorkflowNode::Validation(_) => "validation",
     }
 }

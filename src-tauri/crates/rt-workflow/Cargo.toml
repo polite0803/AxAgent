@@ -22,6 +22,8 @@ axagent-providers = { path = "../providers" }
 axagent-agent = { path = "../agent" }
 axagent-tools = { path = "../tools" }
 jsonschema = "0.46"
+regex = "1"
+reqwest = { workspace = true }
 
 [lints]
 # workspace = true

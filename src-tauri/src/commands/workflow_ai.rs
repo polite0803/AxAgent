@@ -315,6 +315,7 @@ fn parse_llm_response(
             description: llm_node.description.clone(),
             position,
             enabled: true,
+                parent_id: None,
             retry: RetryConfig::default(),
             timeout: None,
         };

@@ -89,6 +89,10 @@ pub struct WorkflowNodeBase {
     pub retry: RetryConfig,
     pub timeout: Option<u64>,
     pub enabled: bool,
+    /// 容器父节点 ID。此字段由前端在保存时注入，
+    /// 用于将子节点（如 Parallel 分支步骤）定位到父容器内。
+    #[serde(rename = "parentId", default)]
+    pub parent_id: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -524,6 +528,34 @@ pub struct EndNode {
     pub config: EndNodeConfig,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct HttpRequestNodeConfig {
+    pub url: String,
+    #[serde(default = "default_http_method")]
+    pub method: String,
+    #[serde(default)]
+    pub headers: std::collections::HashMap<String, String>,
+    #[serde(default)]
+    pub body: Option<String>,
+    #[serde(default = "default_body_type")]
+    pub body_type: String,
+    #[serde(default = "default_http_timeout")]
+    pub timeout_secs: u64,
+    #[serde(default)]
+    pub output_var: String,
+}
+
+fn default_http_method() -> String { "GET".to_string() }
+fn default_body_type() -> String { "json".to_string() }
+fn default_http_timeout() -> u64 { 30 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct HttpRequestNode {
+    #[serde(flatten)]
+    pub base: WorkflowNodeBase,
+    pub config: HttpRequestNodeConfig,
+}
+
 #[derive(Debug, Clone, Serialize)]
 #[serde(tag = "type", rename_all = "camelCase")]
 pub enum WorkflowNode {
@@ -540,6 +572,8 @@ pub enum WorkflowNode {
     DocumentParser(DocumentParserNode),
     VectorRetrieve(VectorRetrieveNode),
     End(EndNode),
+    #[serde(rename = "httpRequest")]
+    HttpRequest(HttpRequestNode),
     #[serde(rename = "tool")]
     Tool(ToolNode),
     #[serde(rename = "code")]
@@ -578,6 +612,7 @@ impl<'de> serde::Deserialize<'de> for WorkflowNode {
             "subWorkflow" => Ok(try_from_value!(SubWorkflow, SubWorkflowNode)),
             "documentParser" => Ok(try_from_value!(DocumentParser, DocumentParserNode)),
             "vectorRetrieve" => Ok(try_from_value!(VectorRetrieve, VectorRetrieveNode)),
+            "httpRequest" => Ok(try_from_value!(HttpRequest, HttpRequestNode)),
             "end" => Ok(try_from_value!(End, EndNode)),
             "tool" => Ok(try_from_value!(Tool, ToolNode)),
             "code" => Ok(try_from_value!(Code, CodeNode)),
@@ -596,6 +631,7 @@ impl<'de> serde::Deserialize<'de> for WorkflowNode {
                     "subWorkflow",
                     "documentParser",
                     "vectorRetrieve",
+                    "httpRequest",
                     "end",
                     "tool",
                     "code",
@@ -622,6 +658,7 @@ impl WorkflowNode {
             WorkflowNode::DocumentParser(n) => &n.base.id,
             WorkflowNode::VectorRetrieve(n) => &n.base.id,
             WorkflowNode::Validation(n) => &n.base.id,
+            WorkflowNode::HttpRequest(n) => &n.base.id,
             WorkflowNode::End(n) => &n.base.id,
         }
     }
@@ -643,6 +680,7 @@ impl WorkflowNode {
             WorkflowNode::DocumentParser(n) => &n.base,
             WorkflowNode::VectorRetrieve(n) => &n.base,
             WorkflowNode::Validation(n) => &n.base,
+            WorkflowNode::HttpRequest(n) => &n.base,
             WorkflowNode::End(n) => &n.base,
         }
     }
@@ -983,6 +1021,7 @@ mod tests {
                 retry: RetryConfig::default(),
                 timeout: None,
                 enabled: true,
+                    parent_id: None,
             },
             config: ToolNodeConfig {
                 tool_name: "Bash".to_string(),
@@ -1012,6 +1051,7 @@ mod tests {
                 retry: RetryConfig::default(),
                 timeout: None,
                 enabled: true,
+                    parent_id: None,
             },
             config: AgentNodeConfig {
                 system_prompt: "test prompt".to_string(),
@@ -1050,6 +1090,7 @@ mod tests {
                 retry: RetryConfig::default(),
                 timeout: None,
                 enabled: true,
+                    parent_id: None,
             },
             config: AgentNodeConfig {
                 system_prompt: format!("prompt for {id}"),
@@ -1079,6 +1120,7 @@ mod tests {
                 retry: RetryConfig::default(),
                 timeout: None,
                 enabled: true,
+                    parent_id: None,
             },
             config: ToolNodeConfig {
                 tool_name: tool_name.to_string(),

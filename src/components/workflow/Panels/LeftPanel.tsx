@@ -326,6 +326,7 @@ function getNodeIcon(type: string): string {
     tool: "🔧",
     code: "💻",
     subWorkflow: "📦",
+    httpRequest: "🌐",
     documentParser: "📄",
     vectorRetrieve: "🔍",
     end: "🏁",

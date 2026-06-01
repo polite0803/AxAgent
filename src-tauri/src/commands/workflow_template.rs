@@ -141,9 +141,12 @@ pub async fn create_workflow_template(
 pub async fn update_workflow_template(
     state: State<'_, AppState>,
     id: String,
-    input: WorkflowTemplateInput,
+    mut input: WorkflowTemplateInput,
 ) -> Result<bool, String> {
     let db = &state.sea_db;
+
+    // 保存前提取 tool_defs（确保移动后仍可引用）
+    let tool_defs = input.tool_defs.take();
 
     let updated = db_repo::update_workflow_template(
         db,
@@ -159,12 +162,13 @@ pub async fn update_workflow_template(
         input.output_schema,
         input.variables,
         input.error_config,
+        tool_defs.clone(),
     )
     .await
     .map_err(|e| e.to_string())?;
 
     // 保存后立即预编译 Rhai 工具，Agent 节点可即时引用
-    if let Some(ref tds) = input.tool_defs {
+    if let Some(ref tds) = tool_defs {
         state.work_engine.precompile_tool_defs(&id, tds).await;
     }
 
@@ -338,6 +342,7 @@ pub async fn validate_workflow_template(
             WorkflowNode::SubWorkflow(t) => Some(t.base.id.clone()),
             WorkflowNode::DocumentParser(t) => Some(t.base.id.clone()),
             WorkflowNode::VectorRetrieve(t) => Some(t.base.id.clone()),
+            WorkflowNode::HttpRequest(t) => Some(t.base.id.clone()),
             WorkflowNode::End(t) => Some(t.base.id.clone()),
         })
         .collect();
@@ -465,6 +470,69 @@ pub async fn validate_workflow_template(
                 "Remove loops in the workflow graph or use a Loop node for iteration".to_string(),
             ),
         });
+    }
+
+    // ── ConditionNode 专项校验 ──
+    for node in &nodes {
+        if let WorkflowNode::Condition(c) = node {
+            // 1. 无 conditions 且未启用 LLM 路由
+            if c.config.conditions.is_empty() && !c.config.judge_by_llm.unwrap_or(false) {
+                errors.push(ValidationError {
+                    error_type: "empty_conditions".to_string(),
+                    node_id: Some(c.base.id.clone()),
+                    message: format!(
+                        "Condition node '{}' has no conditions and LLM routing is not enabled",
+                        c.base.id
+                    ),
+                    suggestion: Some(
+                        "Add at least one condition or enable LLM routing".to_string(),
+                    ),
+                });
+            }
+
+            // 2. 检查出边类型：condition 节点的出边必须是 conditionTrue/conditionFalse
+            //    不允许 direct 类型出边
+            for edge in &edges {
+                if edge.source != c.base.id { continue; }
+                match &edge.edge_type {
+                    EdgeType::ConditionTrue | EdgeType::ConditionFalse => {},
+                    _ => {
+                        warnings.push(ValidationWarning {
+                            warning_type: "invalid_condition_edge".to_string(),
+                            node_id: Some(c.base.id.clone()),
+                            message: format!(
+                                "Condition node '{}' has an edge with type '{:?}'. Condition edges should be 'conditionTrue' (✓) or 'conditionFalse' (✗).",
+                                c.base.id, edge.edge_type
+                            ),
+                        });
+                    }
+                }
+            }
+
+            // 3. 检查是否缺少 conditionTrue 或 conditionFalse 出边
+            let has_true = edges.iter().any(|e| e.source == c.base.id && e.edge_type == EdgeType::ConditionTrue);
+            let has_false = edges.iter().any(|e| e.source == c.base.id && e.edge_type == EdgeType::ConditionFalse);
+            if !has_true {
+                warnings.push(ValidationWarning {
+                    warning_type: "missing_true_branch".to_string(),
+                    node_id: Some(c.base.id.clone()),
+                    message: format!(
+                        "Condition node '{}' is missing a 'true' branch edge (✓ handle)",
+                        c.base.id
+                    ),
+                });
+            }
+            if !has_false {
+                warnings.push(ValidationWarning {
+                    warning_type: "missing_false_branch".to_string(),
+                    node_id: Some(c.base.id.clone()),
+                    message: format!(
+                        "Condition node '{}' is missing a 'false' branch edge (✗ handle)",
+                        c.base.id
+                    ),
+                });
+            }
+        }
     }
 
     let is_valid = errors.is_empty();
@@ -1172,6 +1240,7 @@ async fn convert_n8n_to_axagent(
             retry: RetryConfig::default(),
             timeout: None,
             enabled: true,
+                parent_id: None,
         },
         config: TriggerConfig {
             trigger_type: TriggerType::Manual,
@@ -1219,6 +1288,7 @@ async fn convert_n8n_to_axagent(
             retry: RetryConfig::default(),
             timeout: None,
             enabled: true,
+                parent_id: None,
         };
 
         if n8n_type_lower.contains("if") || n8n_type_lower.contains("switch") {
@@ -1292,6 +1362,7 @@ async fn convert_n8n_to_axagent(
             retry: RetryConfig::default(),
             timeout: None,
             enabled: true,
+                parent_id: None,
         };
 
         let agent_node = WorkflowNode::Agent(AgentNode {
@@ -1336,6 +1407,7 @@ async fn convert_n8n_to_axagent(
             retry: RetryConfig::default(),
             timeout: None,
             enabled: true,
+                parent_id: None,
         },
         config: EndNodeConfig {
             output_var: Some("final_output".to_string()),
