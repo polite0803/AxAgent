@@ -391,6 +391,7 @@ fn parse_llm_response(
                         wait_for_all: true,
                         timeout: None,
                         aggregation: None,
+                        auto_input_from_parent: true,
                     });
                 WorkflowNode::Parallel(ParallelNode {
                     base,
@@ -441,8 +442,9 @@ fn parse_llm_response(
             "merge" => {
                 let merge_config: MergeNodeConfig = serde_json::from_value(llm_node.config.clone())
                     .unwrap_or(MergeNodeConfig {
-                        merge_type: "all".to_string(),
+                        merge_type: MergeStrategy::All,
                         inputs: vec![],
+                        auto_inputs_from_branches: false,
                     });
                 WorkflowNode::Merge(MergeNode {
                     base,

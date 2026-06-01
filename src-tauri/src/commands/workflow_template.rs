@@ -1240,8 +1240,9 @@ async fn convert_n8n_to_axagent(
             let merge_node = WorkflowNode::Merge(MergeNode {
                 base,
                 config: MergeNodeConfig {
-                    merge_type: "all".to_string(),
+                    merge_type: MergeStrategy::All,
                     inputs: Vec::new(),
+                    auto_inputs_from_branches: false,
                 },
             });
             ax_nodes.push(merge_node);
