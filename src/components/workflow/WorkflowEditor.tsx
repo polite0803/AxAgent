@@ -256,10 +256,14 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
           validationState = "warning";
         }
 
+        // 并行/合并容器节点：ReactFlow 需要 parentNode 不为空来判断是否为 group
+        const rtType = nodeType;
+        const isContainer = rtType === "parallel" || rtType === "merge";
         return {
           id: node.id,
-          type: nodeType,
+          type: rtType,
           position: node.position,
+          ...(isContainer ? { style: { width: 500, height: 400 } } : {}),
           data: {
             ...node,
             label: node.title,
