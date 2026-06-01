@@ -1,7 +1,7 @@
 import { Tag, theme } from "antd";
 import React, { memo } from "react";
 import { useTranslation } from "react-i18next";
-import { Handle, type NodeProps, Position } from "reactflow";
+import type { NodeProps } from "reactflow";
 import type { MergeStrategy } from "../types/workflow.types";
 
 const ORANGE_BASE = "#fa8c16";
@@ -46,118 +46,75 @@ const MergeNodeComponent: React.FC<NodeProps<MergeNodeData>> = ({
     }
   };
 
+  // 容器节点：不需要 Handle，子节点通过 parentId 挂载
   return (
     <div
       style={{
-        minWidth: 180,
-        maxWidth: 220,
+        minWidth: 220,
+        minHeight: 120,
+        background: `${ORANGE_BASE}08`,
+        border: `2px solid ${selected ? token.colorPrimary : ORANGE_BASE}40`,
+        borderRadius: 12,
+        padding: 12,
         opacity: data.enabled ? 1 : 0.5,
-        filter: data.enabled ? "none" : "grayscale(100%)",
+        position: "relative",
+        boxShadow: selected ? `0 0 0 2px ${ORANGE_VAR}40` : "none",
       }}
     >
+      {/* 标题栏 — 左上角 */}
       <div
         style={{
+          position: "absolute",
+          top: 8,
+          left: 12,
+          display: "flex",
+          alignItems: "center",
+          gap: 6,
           background: token.colorBgElevated,
-          border: `2px solid ${selected ? token.colorPrimary : color}`,
-          borderRadius: 8,
-          overflow: "hidden",
-          boxShadow: selected ? `0 0 0 2px ${color}40` : "none",
-          transition: "box-shadow 0.2s, transform 0.2s",
+          border: `1px solid ${ORANGE_BASE}30`,
+          borderRadius: 6,
+          padding: "4px 10px",
+          zIndex: 10,
         }}
       >
-        <div
-          style={{
-            padding: "8px 12px",
-            borderBottom: `1px solid ${ORANGE_BASE}30`,
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            background: `${ORANGE_BASE}15`,
-          }}
-        >
-          <span style={{ fontSize: 14 }}>🔗</span>
-          <span
+        <span style={{ fontSize: 14 }}>🔗</span>
+        <span style={{ fontSize: 12, color, fontWeight: 600 }}>
+          {data.title}
+        </span>
+        <div style={{ display: "flex", gap: 4 }}>
+          <Tag
             style={{
-              fontSize: 12,
-              color: color,
-              fontWeight: 600,
+              margin: 0,
+              fontSize: 9,
+              padding: "0 4px",
+              background: `${ORANGE_BASE}20`,
+              border: `1px solid ${ORANGE_BASE}50`,
+              color: ORANGE_VAR,
             }}
           >
-            {t("workflow.mergeNode.title")}
+            {inputCount} {t("workflow.mergeNode.inputs")}
+          </Tag>
+          <Tag
+            style={{
+              margin: 0,
+              fontSize: 9,
+              padding: "0 4px",
+              background: token.colorBgContainer,
+              border: `1px solid ${token.colorBorderSecondary}`,
+              color: token.colorTextQuaternary,
+            }}
+          >
+            {getMergeStrategyLabel(mergeStrategy)}
+          </Tag>
+        </div>
+        {autoInputsFromBranches && (
+          <span style={{ fontSize: 9, color: token.colorTextTertiary }}>
+            {t("workflow.mergeNode.autoInputs")}
           </span>
-        </div>
-
-        <div style={{ padding: "10px 12px" }}>
-          <div
-            style={{
-              fontSize: 13,
-              color: token.colorText,
-              fontWeight: 500,
-              marginBottom: 6,
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-            }}
-          >
-            {data.title}
-          </div>
-
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
-            <Tag
-              style={{
-                margin: 0,
-                fontSize: 9,
-                padding: "0 4px",
-                background: `${ORANGE_BASE}20`,
-                border: `1px solid ${ORANGE_BASE}50`,
-                color: ORANGE_VAR,
-              }}
-            >
-              {inputCount} {t("workflow.mergeNode.inputs")}
-            </Tag>
-            <Tag
-              style={{
-                margin: 0,
-                fontSize: 9,
-                padding: "0 4px",
-                background: token.colorBgContainer,
-                border: `1px solid ${token.colorBorderSecondary}`,
-                color: token.colorTextQuaternary,
-              }}
-            >
-              {getMergeStrategyLabel(mergeStrategy)}
-            </Tag>
-          </div>
-
-          {autoInputsFromBranches && (
-            <div style={{ marginTop: 6, fontSize: 9, color: token.colorTextTertiary }}>
-              {t("workflow.mergeNode.autoInputs")}
-            </div>
-          )}
-        </div>
+        )}
       </div>
 
-      <Handle
-        type="target"
-        position={Position.Top}
-        style={{
-          background: color,
-          border: "none",
-          width: 8,
-          height: 8,
-        }}
-      />
-
-      <Handle
-        type="source"
-        position={Position.Bottom}
-        style={{
-          background: color,
-          border: "none",
-          width: 8,
-          height: 8,
-        }}
-      />
+      {/* 子节点由 ReactFlow 根据 parentId 自动绘制在此容器内 */}
     </div>
   );
 };

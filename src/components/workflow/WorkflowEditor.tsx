@@ -300,6 +300,48 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
           },
         };
       });
+      // 将 ParallelNode 的 branches[].steps 和 MergeNode（auto-inputs）中的子节点挂载为容器子节点
+      for (const node of nodes) {
+        if (node.type === "parallel" && (node as any).config?.branches) {
+          const branches = (node as any).config.branches;
+          for (const branch of branches) {
+            for (const stepId of (branch.steps || []) as string[]) {
+              const childIdx = flowNodes.findIndex((fn) => fn.id === stepId);
+              if (childIdx !== -1 && !flowNodes[childIdx].parentId) {
+                flowNodes[childIdx] = {
+                  ...flowNodes[childIdx],
+                  parentId: node.id,
+                  extent: undefined,
+                };
+              }
+            }
+          }
+        }
+        // 将 MergeNode（auto-inputs）也挂入同一容器
+        if (node.type === "merge" && (node as any).config?.auto_inputs_from_branches) {
+          // 查找此 merge 节点的所有 inputs 引用
+          const inputs = (node as any).config?.inputs as string[] | undefined;
+          if (inputs) {
+            for (const inputId of inputs) {
+              const childIdx = flowNodes.findIndex((fn) => fn.id === inputId);
+              if (childIdx !== -1 && !flowNodes[childIdx].parentId) {
+                // 找到 input 节点所属的 parallel，将 merge 也挂进去
+                const inputNode = flowNodes[childIdx];
+                if (inputNode.parentId) {
+                  const mergeIdx = flowNodes.findIndex((fn) => fn.id === node.id);
+                  if (mergeIdx !== -1) {
+                    flowNodes[mergeIdx] = {
+                      ...flowNodes[mergeIdx],
+                      parentId: inputNode.parentId,
+                      extent: undefined,
+                    };
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
       setRNodes(flowNodes);
 
       const flowEdges: Edge[] = edges.map((edge: WorkflowEdge) => ({
