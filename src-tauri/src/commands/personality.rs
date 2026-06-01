@@ -22,7 +22,7 @@ pub async fn personality_list(_state: State<'_, AppState>) -> Result<Vec<Persona
         .into_iter()
         .map(|name| {
             let is_active = active.as_ref() == Some(&name);
-            let info = axagent_agent::personality::PersonalityManager::load(&name)
+            axagent_agent::personality::PersonalityManager::load(&name)
                 .ok()
                 .map(|p| PersonalityInfo {
                     name: p.name,
@@ -35,8 +35,7 @@ pub async fn personality_list(_state: State<'_, AppState>) -> Result<Vec<Persona
                     version: "?".to_string(),
                     description: String::new(),
                     is_active,
-                });
-            info
+                })
         })
         .collect())
 }
