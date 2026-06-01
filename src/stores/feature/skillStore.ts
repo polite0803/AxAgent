@@ -293,7 +293,13 @@ export const useSkillStore = create<SkillState>((set, get) => ({
 }));
 
 if (isTauri()) {
-  listen<{ skillName: string; enabled?: boolean; action?: string }>("skill-state-changed", () => {
+  listen<{ skillName: string; enabled?: boolean; action?: string }>("skill-state-changed", (event) => {
+    const skillName = event.payload?.skillName;
+    if (skillName) {
+      import("@/lib/skillLifecycle").then(({ invalidateLifecycleCache }) => {
+        invalidateLifecycleCache(skillName);
+      }).catch(() => {});
+    }
     useSkillStore.getState().loadSkills();
   }).catch(logIpcError("listen:skill-state-changed"));
 }

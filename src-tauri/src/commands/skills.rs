@@ -1505,12 +1505,22 @@ pub async fn check_skill_updates() -> Result<Vec<SkillUpdateInfo>, String> {
 /// Patch an existing skill by appending a note
 #[tauri::command]
 pub async fn skill_patch(name: String, content: String) -> Result<String, String> {
+    validate_skill_name(&name)?;
     let path = skills_dir().join(&name).join("SKILL.md");
     if !path.exists() {
         return Err(format!("Skill '{}' not found", name));
     }
 
-    let existing = std::fs::read_to_string(&path).map_err(|e| e.to_string())?;
+    let canonical_dir = skills_dir()
+        .join(&name)
+        .canonicalize()
+        .map_err(|e| e.to_string())?;
+    let canonical_path = path.canonicalize().map_err(|e| e.to_string())?;
+    if !canonical_path.starts_with(&canonical_dir) {
+        return Err("Path traversal detected".to_string());
+    }
+
+    let existing = std::fs::read_to_string(&canonical_path).map_err(|e| e.to_string())?;
     let patched = format!(
         "{}\n\n## Patch ({})\n\n{}",
         existing,
@@ -1518,19 +1528,29 @@ pub async fn skill_patch(name: String, content: String) -> Result<String, String
         content
     );
 
-    std::fs::write(&path, &patched).map_err(|e| e.to_string())?;
+    std::fs::write(&canonical_path, &patched).map_err(|e| e.to_string())?;
     Ok(format!("Skill '{}' patched", name))
 }
 
 /// Edit an existing skill by replacing the body (preserving frontmatter)
 #[tauri::command]
 pub async fn skill_edit(name: String, content: String) -> Result<String, String> {
+    validate_skill_name(&name)?;
     let path = skills_dir().join(&name).join("SKILL.md");
     if !path.exists() {
         return Err(format!("Skill '{}' not found", name));
     }
 
-    let existing = std::fs::read_to_string(&path).map_err(|e| e.to_string())?;
+    let canonical_dir = skills_dir()
+        .join(&name)
+        .canonicalize()
+        .map_err(|e| e.to_string())?;
+    let canonical_path = path.canonicalize().map_err(|e| e.to_string())?;
+    if !canonical_path.starts_with(&canonical_dir) {
+        return Err("Path traversal detected".to_string());
+    }
+
+    let existing = std::fs::read_to_string(&canonical_path).map_err(|e| e.to_string())?;
 
     // Preserve YAML frontmatter
     let edited = if let Some(fm_end) = find_frontmatter_end(&existing) {
@@ -1696,9 +1716,11 @@ pub async fn skill_create(
     } else {
         description
     };
+    let escaped_name = escape_yaml_value(&name);
+    let escaped_desc = escape_yaml_value(&desc);
     let skill_md = format!(
         "---\nname: {}\ndescription: {}\nversion: 1.0.0\nmetadata:\n  hermes:\n    tags: [auto-created]\n    related_skills: []\n---\n\n{}",
-        name, desc, content
+        escaped_name, escaped_desc, content
     );
 
     std::fs::write(dir.join("SKILL.md"), &skill_md).map_err(|e| e.to_string())?;
@@ -1709,6 +1731,32 @@ pub async fn skill_create(
         can_create: true,
         message: format!("Skill '{}' created at {}", name, dir.display()),
     })
+}
+
+fn escape_yaml_value(value: &str) -> String {
+    if value.contains(':')
+        || value.contains('#')
+        || value.contains('"')
+        || value.contains('\'')
+        || value.contains('\n')
+        || value.contains('{')
+        || value.contains('}')
+        || value.contains('[')
+        || value.contains(']')
+        || value.contains('&')
+        || value.contains('*')
+        || value.contains('!')
+        || value.contains('|')
+        || value.contains('>')
+        || value.contains('%')
+        || value.contains('@')
+        || value.contains('`')
+        || value.contains(',')
+    {
+        format!("\"{}\"", value.replace('\\', "\\\\").replace('"', "\\\""))
+    } else {
+        value.to_string()
+    }
 }
 
 #[tauri::command]
@@ -1753,9 +1801,11 @@ pub async fn skill_upgrade_or_create(
     } else {
         description
     };
+    let escaped_name = escape_yaml_value(&name);
+    let escaped_desc = escape_yaml_value(&desc);
     let skill_md = format!(
         "---\nname: {}\ndescription: {}\nversion: 1.0.0\nmetadata:\n  hermes:\n    tags: [auto-created]\n    related_skills: []\n---\n\n{}",
-        name, desc, content
+        escaped_name, escaped_desc, content
     );
 
     std::fs::write(dir.join("SKILL.md"), &skill_md).map_err(|e| e.to_string())?;

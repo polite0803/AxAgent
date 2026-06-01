@@ -629,25 +629,42 @@ impl Tool for SkillViewTool {
             return Err(ToolError::invalid_input("Skill name is required"));
         }
 
-        let mut index = SKILL_INDEX
-            .lock()
-            .map_err(|_| ToolError::execution_failed("Failed to acquire skill index lock"))?;
+        let (source_kind, skill_dir) = {
+            let mut index = SKILL_INDEX
+                .lock()
+                .map_err(|_| ToolError::execution_failed("Failed to acquire skill index lock"))?;
 
-        let Some((source_kind, skill_dir)) = index.find_skill(skill_name) else {
-            let available: Vec<String> = index
-                .list_skills(None)
-                .iter()
-                .map(|s| s.name.clone())
-                .collect();
-            return Err(ToolError::execution_failed(format!(
-                "Skill '{}' 未找到。可用的 skills: {}",
-                skill_name,
-                if available.is_empty() {
-                    "(无)".to_string()
-                } else {
-                    available.join(", ")
-                }
-            )));
+            let Some((source_kind, skill_dir)) = index.find_skill(skill_name) else {
+                let available: Vec<String> = index
+                    .list_skills(None)
+                    .iter()
+                    .map(|s| s.name.clone())
+                    .collect();
+                return Err(ToolError::execution_failed(format!(
+                    "Skill '{}' 未找到。可用的 skills: {}",
+                    skill_name,
+                    if available.is_empty() {
+                        "(无)".to_string()
+                    } else {
+                        available.join(", ")
+                    }
+                )));
+            };
+            (source_kind, skill_dir)
+        };
+
+        let refs = {
+            let mut index = SKILL_INDEX
+                .lock()
+                .map_err(|_| ToolError::execution_failed("Failed to acquire skill index lock"))?;
+            index.list_reference_files(skill_name)
+        };
+
+        let entry = {
+            let mut index = SKILL_INDEX
+                .lock()
+                .map_err(|_| ToolError::execution_failed("Failed to acquire skill index lock"))?;
+            index.find_skill_entry(skill_name).cloned()
         };
 
         let skill_md = skill_dir.join("SKILL.md");
@@ -668,10 +685,6 @@ impl Tool for SkillViewTool {
                 )));
             }
         };
-
-        let refs = index.list_reference_files(skill_name);
-
-        let entry = index.find_skill_entry(skill_name).cloned();
 
         let mut output = format!(
             "# Skill: {}\n\n以下是从 SKILL.md 加载的技能指令。请严格按照这些指令执行任务，按需使用其他工具。\n\n---\n\n{}",
@@ -1366,7 +1379,7 @@ async fn hub_search(query: &str, page: usize, page_size: usize) -> Result<HubSea
     let url = format!(
         "{}/v1/skills/search?q={}&page={}&page_size={}",
         hub_api_url(),
-        query,
+        urlencoding::encode(query),
         page,
         page_size
     );

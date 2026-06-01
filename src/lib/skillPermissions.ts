@@ -37,7 +37,7 @@ function parseStorePerm(pattern: string): {
   };
 }
 
-export function isStoreReadCovered(
+function isStorePermCovered(
   storeName: string,
   fieldPath: string | undefined,
   perms: string[],
@@ -60,27 +60,20 @@ export function isStoreReadCovered(
   });
 }
 
+export function isStoreReadCovered(
+  storeName: string,
+  fieldPath: string | undefined,
+  perms: string[],
+): boolean {
+  return isStorePermCovered(storeName, fieldPath, perms);
+}
+
 export function isStoreWriteCovered(
   storeName: string,
   fieldPath: string | undefined,
   perms: string[],
 ): boolean {
-  return perms.some((pattern) => {
-    const parsed = parseStorePerm(pattern);
-    if (parsed.storeName !== storeName) {
-      return false;
-    }
-    if (!parsed.fieldPath) {
-      return true;
-    }
-    if (!fieldPath) {
-      return false;
-    }
-    return (
-      fieldPath === parsed.fieldPath
-      || fieldPath.startsWith(parsed.fieldPath + ".")
-    );
-  });
+  return isStorePermCovered(storeName, fieldPath, perms);
 }
 
 /**

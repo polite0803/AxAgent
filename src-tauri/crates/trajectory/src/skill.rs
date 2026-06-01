@@ -318,10 +318,7 @@ impl Skill {
             SkillOutcome::Success => {
                 self.successful_usages += 1;
             },
-            SkillOutcome::Partial => {
-                self.successful_usages += 1;
-            },
-            SkillOutcome::Failure => {},
+            SkillOutcome::Partial | SkillOutcome::Failure => {},
         }
 
         let n = self.total_usages as f64;
@@ -329,7 +326,7 @@ impl Skill {
 
         let exec_time = execution.execution_time_ms as f64;
         self.avg_execution_time_ms =
-            ((self.avg_execution_time_ms as f64 * (n - 1.0)) + exec_time / n) as u64;
+            ((self.avg_execution_time_ms as f64 * (n - 1.0) + exec_time) / n) as u64;
 
         self.last_used_at = Some(execution.timestamp);
     }
@@ -548,12 +545,17 @@ impl SkillOptimizer {
         }
 
         let modification_type;
-        let new_content = skill.content.clone();
+        let new_content;
         let reason;
 
         if analysis.suggestions.iter().any(|s| s.contains("simplif")) {
             modification_type = ModificationType::ContentPatch;
             reason = "Simplify skill procedure based on failure analysis".to_string();
+            new_content = format!(
+                "{}\n\n## Optimization Note\n\nBased on failure analysis, consider simplifying the procedure:\n{}\n",
+                skill.content,
+                analysis.suggestions.join("\n")
+            );
         } else if analysis
             .suggestions
             .iter()
@@ -561,6 +563,11 @@ impl SkillOptimizer {
         {
             modification_type = ModificationType::LogicRevision;
             reason = "Add error handling guidance".to_string();
+            new_content = format!(
+                "{}\n\n## Error Handling\n\n{}\n",
+                skill.content,
+                analysis.suggestions.join("\n")
+            );
         } else if analysis
             .suggestions
             .iter()
@@ -568,9 +575,19 @@ impl SkillOptimizer {
         {
             modification_type = ModificationType::StepRefinement;
             reason = "Add verification checkpoints".to_string();
+            new_content = format!(
+                "{}\n\n## Verification Checkpoints\n\n{}\n",
+                skill.content,
+                analysis.suggestions.join("\n")
+            );
         } else {
             modification_type = ModificationType::DescriptionUpdate;
             reason = "General improvement".to_string();
+            new_content = format!(
+                "{}\n\n## Improvement Notes\n\n{}\n",
+                skill.content,
+                analysis.suggestions.join("\n")
+            );
         }
 
         Some(SkillModification {

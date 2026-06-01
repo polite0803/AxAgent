@@ -65,16 +65,16 @@ impl Personality {
 
     pub fn from_soul_md(name: &str, raw: &str) -> Self {
         let trimmed = raw.trim_start();
-        let (frontmatter, content) = if trimmed.starts_with("---") {
-            if let Some(end) = trimmed[3..].find("---") {
-                let yaml_str = &trimmed[3..3 + end];
+        let (frontmatter, content) = if let Some(after_dashes) = trimmed.strip_prefix("---") {
+            if let Some(end) = after_dashes.find("---") {
+                let yaml_str = &after_dashes[..end];
                 let fm: SoulFrontmatter =
                     serde_yaml::from_str(yaml_str).unwrap_or(SoulFrontmatter {
                         name: name.to_string(),
                         version: "1.0.0".to_string(),
                         description: String::new(),
                     });
-                let body = trimmed[3 + end + 3..].trim_start();
+                let body = after_dashes[end + 3..].trim_start();
                 (fm, body.to_string())
             } else {
                 (

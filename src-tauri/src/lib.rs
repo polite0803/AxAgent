@@ -319,6 +319,7 @@ pub fn run() {
             commands::skills::skill_read_asset,
             commands::skills_hub::skills_hub_search,
             commands::skills_hub::skills_hub_install,
+            commands::skills_hub::skills_hub_review,
             commands::skills_hub::skills_hub_export,
             commands::skills_hub::skills_hub_import,
             commands::settings::get_settings,

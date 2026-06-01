@@ -86,6 +86,7 @@ export async function triggerOnUninstall(skillName: string): Promise<void> {
 
 /** 刷新技能扩展（技能文件变更时） */
 export async function triggerSkillReload(skillName: string): Promise<void> {
+  invalidateLifecycleCache(skillName);
   const { useSkillExtensionStore } = await import("@/stores");
   useSkillExtensionStore.getState().refreshSkill(skillName);
 }

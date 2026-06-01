@@ -1,6 +1,6 @@
 import i18n from "@/i18n";
 import { invoke } from "@/lib/invoke";
-import { isStoreReadCovered, isStoreWriteCovered } from "@/lib/skillPermissions";
+import { isStoreReadCovered, isStoreWriteCovered, isWildcardMatch } from "@/lib/skillPermissions";
 import type { AgenticAction, DeclarativeActionType, SkillCommandAction, SkillPermissions } from "@/types";
 
 export interface ActionContext {
@@ -244,7 +244,7 @@ export class ActionRouter {
   }
 
   private registerBuiltinExecutors(): void {
-    this.declarativeExecutors.set("invoke", async (action) => {
+    this.declarativeExecutors.set("invoke", async (action, ctx) => {
       if (action.type !== "invoke") {
         return { success: false, error: i18n.t("actionRouter.typeMismatch") };
       }
@@ -254,21 +254,63 @@ export class ActionRouter {
           error: i18n.t("actionRouter.invokeMissingCommand"),
         };
       }
+      if (ctx.permissions) {
+        const allowed = isWildcardMatch(
+          action.command,
+          ctx.permissions.commands ?? [],
+        );
+        if (!allowed) {
+          return {
+            success: false,
+            error: i18n.t("actionRouter.commandPermissionDenied", {
+              command: action.command,
+            }),
+          };
+        }
+      }
       const result = await invoke(action.command, action.args || {});
       return { success: true, data: result };
     });
 
-    this.declarativeExecutors.set("navigate", async (action) => {
+    this.declarativeExecutors.set("navigate", async (action, ctx) => {
       if (action.type !== "navigate") {
         return { success: false, error: i18n.t("actionRouter.typeMismatch") };
+      }
+      if (ctx.permissions) {
+        const allowed = isWildcardMatch(
+          action.path,
+          ctx.permissions.navigate ?? [],
+        );
+        if (!allowed) {
+          return {
+            success: false,
+            error: i18n.t("actionRouter.navigatePermissionDenied", {
+              path: action.path,
+            }),
+          };
+        }
       }
       window.location.hash = action.path;
       return { success: true };
     });
 
-    this.declarativeExecutors.set("emit", async (action) => {
+    this.declarativeExecutors.set("emit", async (action, ctx) => {
       if (action.type !== "emit") {
         return { success: false, error: i18n.t("actionRouter.typeMismatch") };
+      }
+      if (ctx.permissions) {
+        const allowed = isWildcardMatch(
+          action.event,
+          ctx.permissions.events ?? [],
+        );
+        if (!allowed) {
+          return {
+            success: false,
+            error: i18n.t("actionRouter.emitPermissionDenied", {
+              event: action.event,
+            }),
+          };
+        }
       }
       window.dispatchEvent(
         new CustomEvent(action.event, { detail: action.payload }),
@@ -347,7 +389,7 @@ export class ActionRouter {
       return { success: true, data: result };
     });
 
-    this.declarativeExecutors.set("function", async (action) => {
+    this.declarativeExecutors.set("function", async (action, ctx) => {
       if (action.type !== "function") {
         return { success: false, error: i18n.t("actionRouter.typeMismatch") };
       }
@@ -361,7 +403,7 @@ export class ActionRouter {
           }),
         };
       }
-      await fn({ args: action.args }, "");
+      await fn({ args: action.args }, ctx.skillName);
       return { success: true };
     });
 
