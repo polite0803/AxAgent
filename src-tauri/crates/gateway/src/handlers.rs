@@ -2494,6 +2494,7 @@ mod tests {
                 total_tokens: 20,
                 cache_creation_tokens: None,
                 cache_read_tokens: None,
+                cache_miss_tokens: None,
             },
             tool_calls: None,
         });

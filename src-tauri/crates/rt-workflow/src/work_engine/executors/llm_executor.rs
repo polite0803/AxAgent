@@ -47,46 +47,33 @@ impl NodeExecutorTrait for LlmExecutor {
             ));
         };
 
-        // 解析 provider + key。
-        // 优先级：context.__workflow_provider_id__ > 系统默认
-        // 模型优先级：context.__workflow_model__ > 系统默认
-        let session_provider_id = context
-            .variables
-            .get("__workflow_provider_id__")
-            .and_then(|v| v.as_str());
-        let (prov, key, default_model) = if let Some(pid) = session_provider_id {
-            let p = axagent_core::repo::provider::get_provider(&self.db, pid)
-                .await
-                .map_err(|e| {
-                    NodeError::exec_failed(
-                        error_code::PROVIDER_QUERY_FAILED,
-                        format!("Provider query failed: {e}"),
-                    )
-                })?;
-            let model = p
-                .models
-                .iter()
-                .find(|m| m.enabled)
-                .map(|m| m.model_id.clone())
-                .unwrap_or_default();
-            let key = p.keys.iter().find(|k| k.enabled).cloned().ok_or_else(|| {
-                NodeError::exec_failed(
-                    error_code::PROVIDER_QUERY_FAILED,
-                    "指定的 provider 无可用 key".to_string(),
-                )
-            })?;
-            (p, key, model)
+        // 解析 provider + key + model。
+        // 优先级：节点 config.model > 会话 __workflow_model__/__workflow_provider_id__ > 项目默认
+        let node_model = if !llm_node.config.model.is_empty() {
+            Some(llm_node.config.model.as_str())
         } else {
-            axagent_core::repo::provider::resolve_default_provider(&self.db)
-                .await
-                .map_err(|e| NodeError::exec_failed(error_code::PROVIDER_QUERY_FAILED, e))?
+            None
         };
         let session_model = context
             .variables
             .get("__workflow_model__")
-            .and_then(|v| v.as_str())
-            .map(|s| s.to_string());
-        let model = session_model.unwrap_or(default_model);
+            .and_then(|v| v.as_str());
+        let session_provider_id = context
+            .variables
+            .get("__workflow_provider_id__")
+            .and_then(|v| v.as_str());
+        let (prov, key, model) =
+            axagent_core::repo::provider::resolve_model_for_node(
+                &self.db,
+                node_model,
+                session_model,
+                session_provider_id,
+                None,
+            )
+            .await
+            .map_err(|e| {
+                NodeError::exec_failed(error_code::PROVIDER_QUERY_FAILED, e)
+            })?;
         let api_key = axagent_core::crypto::decrypt_key(&key.key_encrypted, &self.master_key)
             .map_err(|e| {
                 NodeError::exec_failed(

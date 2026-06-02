@@ -132,6 +132,86 @@ pub async fn resolve_default_provider(
     Ok((prov, key, model))
 }
 
+/// 基于项目设置解析默认 LLM 配置。
+/// 优先使用 AppSettings 中配置的 default_provider_id + default_model_id，
+/// 若未配置则回退到 resolve_default_provider（首个启用的 provider）。
+pub async fn resolve_project_default(
+    db: &DatabaseConnection,
+) -> std::result::Result<(ProviderConfig, ProviderKey, String), String> {
+    let settings = crate::repo::settings::get_settings(db)
+        .await
+        .map_err(|e| format!("读取项目设置失败: {e}"))?;
+
+    if let (Some(ref pid), Some(ref mid)) = (settings.default_provider_id, settings.default_model_id)
+    {
+        let providers = list_providers(db).await.map_err(|e| e.to_string())?;
+        if let Some(prov) = providers.into_iter().find(|p| p.id == *pid && p.enabled) {
+            let key = prov
+                .keys
+                .iter()
+                .find(|k| k.enabled)
+                .cloned()
+                .ok_or_else(|| "项目默认 provider 无可用 API key".to_string())?;
+            let model_exists = prov.models.iter().any(|m| m.model_id == *mid && m.enabled);
+            if model_exists {
+                return Ok((prov, key, mid.clone()));
+            }
+        }
+    }
+
+    resolve_default_provider(db).await
+}
+
+/// 统一的工作流节点模型解析函数。
+///
+/// 优先级：
+/// 1. node_model — 节点配置中显式指定的模型（最高优先级）
+/// 2. session_model / session_provider_id — 会话/工作流级覆盖
+/// 3. profile_suggested_provider — Agent Profile 建议的 provider（仅 Agent）
+/// 4. 项目默认模型（AppSettings.default_model_id + default_provider_id）
+///
+/// 返回 (ProviderConfig, ProviderKey, model_id)
+pub async fn resolve_model_for_node(
+    db: &DatabaseConnection,
+    node_model: Option<&str>,
+    session_model: Option<&str>,
+    session_provider_id: Option<&str>,
+    profile_suggested_provider: Option<&str>,
+) -> std::result::Result<(ProviderConfig, ProviderKey, String), String> {
+    let effective_provider_id = session_provider_id
+        .or(profile_suggested_provider);
+
+    if let Some(pid) = effective_provider_id {
+        let providers = list_providers(db).await.map_err(|e| e.to_string())?;
+        if let Some(prov) = providers.into_iter().find(|p| p.id == pid && p.enabled) {
+            let key = prov
+                .keys
+                .iter()
+                .find(|k| k.enabled)
+                .cloned()
+                .ok_or_else(|| format!("provider '{}' 无可用 API key", pid))?;
+            let default_model = prov
+                .models
+                .iter()
+                .find(|m| m.enabled)
+                .map(|m| m.model_id.clone())
+                .unwrap_or_default();
+            let model = node_model
+                .or(session_model)
+                .unwrap_or(&default_model)
+                .to_string();
+            return Ok((prov, key, model));
+        }
+    }
+
+    let (prov, key, default_model) = resolve_project_default(db).await?;
+    let model = node_model
+        .or(session_model)
+        .unwrap_or(&default_model)
+        .to_string();
+    Ok((prov, key, model))
+}
+
 pub async fn get_provider(db: &DatabaseConnection, id: &str) -> Result<ProviderConfig> {
     let row = providers::Entity::find_by_id(id)
         .one(db)

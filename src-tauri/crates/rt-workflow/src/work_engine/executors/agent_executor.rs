@@ -234,20 +234,27 @@ impl NodeExecutorTrait for AgentExecutor {
         };
 
         // 2. 解析 provider + key + model（带缓存）
-        // 优先级：context.__workflow_provider_id__ > profile.suggested_provider_id > 系统默认
-        // 优先级：context.__workflow_model__ > profile 默认 model > 系统默认
+        // 优先级：节点 config.model > 会话 __workflow_model__/__workflow_provider_id__ > profile.suggested_provider_id > 项目默认
+        let node_model = an.config.model.as_deref().filter(|m| !m.is_empty());
         let session_model = context
             .variables
             .get("__workflow_model__")
-            .and_then(|v| v.as_str())
-            .map(|s| s.to_string());
+            .and_then(|v| v.as_str());
         let session_provider_id = context
             .variables
             .get("__workflow_provider_id__")
-            .and_then(|v| v.as_str())
-            .map(|s| s.to_string());
-        let (prov, key, default_model) = self
-            .resolve_provider(profile.as_ref(), session_provider_id.as_deref())
+            .and_then(|v| v.as_str());
+        let profile_suggested = profile
+            .as_ref()
+            .and_then(|p| p.suggested_provider_id.as_deref());
+
+        let (prov, key, model) = self
+            .resolve_provider_v2(
+                node_model,
+                session_model,
+                session_provider_id,
+                profile_suggested,
+            )
             .await?;
         let api_key = axagent_core::crypto::decrypt_key(&key.key_encrypted, &self.master_key)
             .map_err(|e| {
@@ -412,7 +419,6 @@ impl NodeExecutorTrait for AgentExecutor {
         ];
 
         let base_url = resolve_base_url_for_type(&prov.api_host, &prov.provider_type);
-        let model = session_model.unwrap_or(default_model);
 
         if an.config.execution_mode.as_deref() == Some("plan") {
             return self
