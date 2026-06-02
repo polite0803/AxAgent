@@ -1,7 +1,8 @@
-import { Button, Divider, Input, InputNumber, Select, theme } from "antd";
+import { Button, Divider, Input, InputNumber, message, Select, theme } from "antd";
 import { Plus, Trash2 } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
+import { AIAssistButton, useNodeAIAssist } from "../../Hooks";
 import type { HttpRequestNode, WorkflowNode } from "../../types";
 import { BasePropertyPanel } from "./BasePropertyPanel";
 
@@ -21,6 +22,7 @@ export const HttpRequestPropertyPanel: React.FC<HttpRequestPropertyPanelProps> =
 }) => {
   const { t } = useTranslation();
   const { token } = theme.useToken();
+  const [messageApi, messageContextHolder] = message.useMessage();
   const httpNode = node as HttpRequestNode;
   const config = httpNode.config || {
     url: "",
@@ -41,8 +43,35 @@ export const HttpRequestPropertyPanel: React.FC<HttpRequestPropertyPanelProps> =
     onUpdate({ config: { ...config, headers: { ...config.headers, [key]: "" } } });
   };
 
+  const { generate: aiGenerate, generating: aiGenerating } = useNodeAIAssist();
+  const handleAIGenerateBody = async () => {
+    const needsBody = ["POST", "PUT", "PATCH"].includes(config.method);
+    if (!needsBody) {
+      messageApi.warning(t("workflow.aiAssist.failed"));
+      return;
+    }
+    const result = await aiGenerate({
+      systemPrompt:
+        `你是一名 HTTP 请求助手。用户配置了一个 ${config.method} ${
+          config.url || "(URL 未填)"
+        } 请求，body_type=${config.body_type}。`
+        + "基于 URL 推断意图，生成符合 body_type 的请求体（json 类型则输出严格合法的 JSON 对象；form/text 则输出相应纯文本）。"
+        + "只输出 body 文本，不要任何前缀、解释或 Markdown 标记。如果已存在 body，则改写优化。",
+      userPrompt: `URL: ${config.url}\nMethod: ${config.method}\nBodyType: ${config.body_type}\n\nCurrent body:\n${
+        config.body || ""
+      }`,
+    });
+    if (!result) {
+      messageApi.error(t("workflow.aiAssist.failed"));
+      return;
+    }
+    handleConfigChange("body", result);
+    messageApi.success(t("workflow.aiAssist.applied"));
+  };
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      {messageContextHolder}
       <div>
         <label style={{ display: "block", color: token.colorTextTertiary, fontSize: 12, marginBottom: 4 }}>
           {t("workflow.props.url")}
@@ -99,9 +128,24 @@ export const HttpRequestPropertyPanel: React.FC<HttpRequestPropertyPanelProps> =
             />
           </div>
           <div>
-            <label style={{ display: "block", color: token.colorTextTertiary, fontSize: 12, marginBottom: 4 }}>
-              {t("workflow.props.body")}
-            </label>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                marginBottom: 4,
+              }}
+            >
+              <label style={{ color: token.colorTextTertiary, fontSize: 12 }}>
+                {t("workflow.props.body")}
+              </label>
+              <AIAssistButton
+                labelKey="generate"
+                loading={aiGenerating}
+                onClick={handleAIGenerateBody}
+                compact
+              />
+            </div>
             <Input.TextArea
               value={config.body ?? ""}
               onChange={(e) => handleConfigChange("body", e.target.value || undefined)}

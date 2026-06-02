@@ -328,6 +328,8 @@ pub struct Message {
     pub status: String,
     pub tokens_per_second: Option<f64>,
     pub first_token_latency_ms: Option<i64>,
+    pub cache_creation_tokens: Option<u32>,
+    pub cache_read_tokens: Option<u32>,
     /// Structured content blocks (JSON-encoded ContentBlock[]).
     pub parts: Option<String>,
     /// Parsed content blocks for frontend consumption.
@@ -364,6 +366,7 @@ pub struct ConversationStats {
     pub total_prompt_tokens: u64,
     pub total_completion_tokens: u64,
     pub total_tokens: u64,
+    pub total_cache_read_tokens: u64,
     pub avg_tokens_per_second: Option<f64>,
     pub avg_first_token_latency_ms: Option<f64>,
     pub avg_response_time_ms: Option<f64>,
@@ -1129,7 +1132,7 @@ pub struct ChatResponse {
     pub tool_calls: Option<Vec<ToolCall>>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct TokenUsage {
     pub prompt_tokens: u32,
     pub completion_tokens: u32,
@@ -1138,6 +1141,8 @@ pub struct TokenUsage {
     pub cache_creation_tokens: Option<u32>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub cache_read_tokens: Option<u32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cache_miss_tokens: Option<u32>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

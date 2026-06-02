@@ -48,7 +48,10 @@ const KEY_ENV_VARS: &[(&str, &str)] = &[
     ("ANTHROPIC_API_KEY", "anthropic"),
     ("GEMINI_API_KEY", "gemini"),
     ("DEEPSEEK_API_KEY", "deepseek"),
-    ("GROK_API_KEY", "xai"),
+    ("DASHSCOPE_API_KEY", "qwen"),
+    ("MOONSHOT_API_KEY", "kimi"),
+    ("VOLCENGINE_API_KEY", "doubao"),
+    ("SILICONFLOW_API_KEY", "siliconflow"),
 ];
 
 fn detect_single_key(env_var: &str, provider_type: &str) -> Option<DetectedApiKey> {

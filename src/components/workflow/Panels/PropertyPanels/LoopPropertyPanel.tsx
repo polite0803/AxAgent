@@ -1,8 +1,9 @@
 import { useWorkflowEditorStore } from "@/stores";
-import { Divider, Input, InputNumber, Select, Switch, Tag, theme } from "antd";
+import { Divider, Input, InputNumber, message, Select, Switch, Tag, theme } from "antd";
 import { X } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
+import { AIAssistButton, useNodeAIAssist } from "../../Hooks";
 import type { LoopNode, LoopType, WorkflowNode } from "../../types";
 import { BasePropertyPanel } from "./BasePropertyPanel";
 
@@ -30,6 +31,24 @@ export const LoopPropertyPanel: React.FC<LoopPropertyPanelProps> = ({
   };
 
   const { nodes } = useWorkflowEditorStore();
+
+  const { generate: aiGenerate, generating: aiGenerating } = useNodeAIAssist();
+  const [messageApi, contextHolder] = message.useMessage();
+
+  const handleAIGenerateContinueCondition = async () => {
+    const result = await aiGenerate({
+      systemPrompt:
+        "你是一个循环控制专家。根据用户的自然语言描述，输出一个布尔表达式字符串作为循环的 continue_condition 条件（如：'i < 10'、'${item}.status === \"active\"'）。"
+        + "只输出表达式字符串本身，不要任何解释或 Markdown 标记。",
+      userPrompt: config.continue_condition || t("workflow.aiAssist.loop.continueHint", { items: config.items_var }),
+    });
+    if (!result) {
+      messageApi.error(t("workflow.aiAssist.failed"));
+      return;
+    }
+    handleConfigChange("continue_condition", result.split("\n")[0].trim());
+    messageApi.success(t("workflow.aiAssist.applied"));
+  };
 
   const handleConfigChange = (key: string, value: unknown) => {
     onUpdate({ config: { ...config, [key]: value } });
@@ -59,6 +78,7 @@ export const LoopPropertyPanel: React.FC<LoopPropertyPanelProps> = ({
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      {contextHolder}
       <div>
         <label
           style={{
@@ -139,6 +159,12 @@ export const LoopPropertyPanel: React.FC<LoopPropertyPanelProps> = ({
           >
             {t("workflow.props.continueCondition")}
           </label>
+          <AIAssistButton
+            labelKey="generate"
+            loading={aiGenerating}
+            onClick={handleAIGenerateContinueCondition}
+            compact
+          />
           <Input.TextArea
             id="loop-property-panel-input-textarea-102"
             value={config.continue_condition || ""}

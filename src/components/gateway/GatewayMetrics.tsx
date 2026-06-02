@@ -46,6 +46,12 @@ export function GatewayMetrics() {
       key: "token_count",
       render: (value: number) => (value === 0 ? "-" : formatTokenCount(value)),
     },
+    {
+      title: t("gateway.cacheHitTokens") || "Cache Hit",
+      dataIndex: "cached_input_tokens",
+      key: "cached_input_tokens",
+      render: (value: number) => (value === 0 || value == null ? "-" : formatTokenCount(value)),
+    },
   ];
 
   const providerColumns = [
@@ -77,6 +83,12 @@ export function GatewayMetrics() {
       key: "token_count",
       render: (value: number) => (value === 0 ? "-" : formatTokenCount(value)),
     },
+    {
+      title: t("gateway.cacheHitTokens") || "Cache Hit",
+      dataIndex: "cached_input_tokens",
+      key: "cached_input_tokens",
+      render: (value: number) => (value === 0 || value == null ? "-" : formatTokenCount(value)),
+    },
   ];
 
   const keyColumns = [
@@ -103,6 +115,12 @@ export function GatewayMetrics() {
       dataIndex: "token_count",
       key: "token_count",
       render: (value: number) => (value === 0 ? "-" : formatTokenCount(value)),
+    },
+    {
+      title: t("gateway.cacheHitTokens") || "Cache Hit",
+      dataIndex: "cached_input_tokens",
+      key: "cached_input_tokens",
+      render: (value: number) => (value === 0 || value == null ? "-" : formatTokenCount(value)),
     },
   ];
 

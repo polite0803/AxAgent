@@ -1,5 +1,5 @@
 # AxAgent LLM Pricing Configuration
-# Prices are per million tokens in USD. Last updated: 2026-04-30
+# Prices are per million tokens in USD. Last updated: 2026-06-02
 #
 # This file is the source of truth for cost estimation. Update it when
 # providers change their pricing or when new models are released.
@@ -17,17 +17,25 @@ max_cost_per_session_usd = 5.0
 # ─── OpenAI ───
 [[models]]
 provider = "openai"
-model_id = "gpt-4o"
-aliases = ["gpt-4o-2024-11-20"]
+model_id = "gpt-5.5"
+input_price = 5.00
+output_price = 30.00
+tier = "premium"
+
+[[models]]
+provider = "openai"
+model_id = "gpt-5.4"
+aliases = ["gpt-5.4-2026-02-15", "gpt-5", "gpt-5.1", "gpt-5.2"]
 input_price = 2.50
-output_price = 10.00
+output_price = 15.00
 tier = "mid"
 
 [[models]]
 provider = "openai"
-model_id = "gpt-4o-mini"
-input_price = 0.15
-output_price = 0.60
+model_id = "gpt-5.4-mini"
+aliases = ["gpt-5-mini", "gpt-5-nano"]
+input_price = 0.75
+output_price = 4.50
 tier = "budget"
 
 [[models]]
@@ -52,6 +60,21 @@ model_id = "gpt-4.1-nano"
 aliases = ["gpt-4.1-nano-2025-04-14"]
 input_price = 0.10
 output_price = 0.40
+tier = "budget"
+
+[[models]]
+provider = "openai"
+model_id = "gpt-4o"
+aliases = ["gpt-4o-2024-11-20"]
+input_price = 2.50
+output_price = 10.00
+tier = "mid"
+
+[[models]]
+provider = "openai"
+model_id = "gpt-4o-mini"
+input_price = 0.15
+output_price = 0.60
 tier = "budget"
 
 [[models]]
@@ -102,9 +125,9 @@ tier = "premium"
 provider = "openai"
 model_id = "o3"
 aliases = ["o3-2025-02-12"]
-input_price = 10.00
-output_price = 40.00
-tier = "premium"
+input_price = 2.00
+output_price = 8.00
+tier = "mid"
 
 [[models]]
 provider = "openai"
@@ -125,27 +148,27 @@ tier = "mid"
 # ─── Anthropic ───
 [[models]]
 provider = "anthropic"
-model_id = "claude-sonnet-4"
-aliases = ["claude-sonnet-4-20250514", "claude-3-5-sonnet-20241022", "claude-3-5-sonnet-latest", "claude-3.5-sonnet"]
+model_id = "claude-opus-4-8"
+aliases = ["claude-opus-4-8-20260528", "claude-opus-4-7", "claude-opus-4-20250514", "claude-3-opus-20240229", "claude-3-opus-latest"]
+input_price = 5.00
+output_price = 25.00
+tier = "premium"
+
+[[models]]
+provider = "anthropic"
+model_id = "claude-sonnet-4-6"
+aliases = ["claude-sonnet-4-6-20260415", "claude-sonnet-4-20250514", "claude-3-5-sonnet-20241022", "claude-3-5-sonnet-latest", "claude-3.5-sonnet"]
 input_price = 3.00
 output_price = 15.00
 tier = "mid"
 
 [[models]]
 provider = "anthropic"
-model_id = "claude-haiku-4"
-aliases = ["claude-haiku-4-20250414", "claude-3-5-haiku-20241022", "claude-3.5-haiku"]
-input_price = 0.80
-output_price = 4.00
+model_id = "claude-haiku-4-5"
+aliases = ["claude-haiku-4-5-20251015", "claude-haiku-4-20250414", "claude-3-5-haiku-20241022", "claude-3.5-haiku"]
+input_price = 1.00
+output_price = 5.00
 tier = "budget"
-
-[[models]]
-provider = "anthropic"
-model_id = "claude-opus-4"
-aliases = ["claude-opus-4-20250514", "claude-3-opus-20240229", "claude-3-opus-latest"]
-input_price = 15.00
-output_price = 75.00
-tier = "premium"
 
 [[models]]
 provider = "anthropic"
@@ -162,6 +185,13 @@ output_price = 1.25
 tier = "budget"
 
 # ─── Google Gemini ───
+[[models]]
+provider = "google"
+model_id = "gemini-3.5-flash"
+input_price = 0.15
+output_price = 0.60
+tier = "budget"
+
 [[models]]
 provider = "google"
 model_id = "gemini-2.5-pro"
@@ -210,55 +240,174 @@ tier = "budget"
 # ─── DeepSeek ───
 [[models]]
 provider = "deepseek"
-model_id = "deepseek-chat"
-aliases = ["deepseek-v3", "deepseek-v3-0324"]
-input_price = 0.27
-output_price = 1.10
+model_id = "deepseek-v4-flash"
+aliases = ["deepseek-chat", "deepseek-v3", "deepseek-v3-0324", "deepseek-v3.2"]
+input_price = 0.14
+output_price = 0.28
 tier = "budget"
 
 [[models]]
 provider = "deepseek"
-model_id = "deepseek-reasoner"
-aliases = ["deepseek-r1", "deepseek-r1-0528"]
-input_price = 0.55
-output_price = 2.19
+model_id = "deepseek-v4-pro"
+aliases = ["deepseek-reasoner", "deepseek-r1", "deepseek-r1-0528"]
+input_price = 0.435
+output_price = 0.87
 tier = "budget"
 
-# ─── Qwen ───
+# ─── Qwen (通义千问) ───
 [[models]]
 provider = "alibaba"
-model_id = "qwen-max"
-aliases = ["qwen-max-latest"]
-input_price = 2.40
-output_price = 9.60
+model_id = "qwen3.7-max"
+aliases = ["qwen3.7-max-preview", "qwen3.7-max-2026-05-20"]
+input_price = 1.66
+output_price = 4.98
 tier = "mid"
 
 [[models]]
 provider = "alibaba"
-model_id = "qwen-plus"
-aliases = ["qwen-plus-latest"]
-input_price = 0.40
-output_price = 1.60
+model_id = "qwen3.6-plus"
+aliases = ["qwen3.6-plus-2026-04-02"]
+input_price = 0.28
+output_price = 0.83
 tier = "budget"
 
 [[models]]
 provider = "alibaba"
-model_id = "qwen-turbo"
-aliases = ["qwen-turbo-latest"]
-input_price = 0.05
-output_price = 0.20
+model_id = "qwen3.6-flash"
+aliases = ["qwen3.6-flash-2026-04-16", "qwen3.5-flash", "qwen3.5-flash-2026-02-23"]
+input_price = 0.04
+output_price = 0.08
+tier = "budget"
+
+[[models]]
+provider = "alibaba"
+model_id = "qwen3.5-plus"
+aliases = ["qwen3.5-plus-2026-02-15"]
+input_price = 0.11
+output_price = 0.28
+tier = "budget"
+
+[[models]]
+provider = "alibaba"
+model_id = "qwen3-max"
+aliases = ["qwen3-max-2026-01-23", "qwen-plus", "qwen-max"]
+input_price = 0.28
+output_price = 0.83
 tier = "budget"
 
 [[models]]
 provider = "alibaba"
 model_id = "qwen3-235b-a22b"
-input_price = 0.40
-output_price = 1.60
+input_price = 0.28
+output_price = 0.83
 tier = "budget"
 
 [[models]]
 provider = "alibaba"
-model_id = "qwen3-32b"
-input_price = 0.05
-output_price = 0.20
+model_id = "qwen-turbo"
+aliases = ["qwen-flash"]
+input_price = 0.04
+output_price = 0.08
+tier = "budget"
+
+# ─── Kimi (月之暗面) ───
+[[models]]
+provider = "moonshot"
+model_id = "kimi-k2.6"
+input_price = 0.90
+output_price = 3.73
+tier = "mid"
+
+[[models]]
+provider = "moonshot"
+model_id = "kimi-k2.5"
+input_price = 0.55
+output_price = 2.90
+tier = "mid"
+
+[[models]]
+provider = "moonshot"
+model_id = "kimi-k2"
+aliases = ["kimi-k2-0905-preview"]
+input_price = 0.55
+output_price = 2.21
+tier = "budget"
+
+[[models]]
+provider = "moonshot"
+model_id = "moonshot-v1-128k"
+aliases = ["moonshot-v1-32k", "moonshot-v1-8k"]
+input_price = 1.66
+output_price = 1.66
+tier = "budget"
+
+# ─── Doubao (豆包) ───
+[[models]]
+provider = "volcengine"
+model_id = "doubao-1.5-pro-256k"
+aliases = ["doubao-1.5-pro-128k", "doubao-1.5-pro-32k", "doubao-1.5-pro-4k", "doubao-pro-128k", "doubao-pro-32k"]
+input_price = 0.55
+output_price = 2.21
+tier = "budget"
+
+[[models]]
+provider = "volcengine"
+model_id = "doubao-1.5-lite-32k"
+aliases = ["doubao-1.5-lite-128k", "doubao-1.5-lite-4k", "doubao-lite-128k", "doubao-lite-32k"]
+input_price = 0.04
+output_price = 0.08
+tier = "budget"
+
+# ─── SiliconFlow (硅基流动) ───
+[[models]]
+provider = "siliconflow"
+model_id = "Pro/deepseek-ai/DeepSeek-R1"
+aliases = ["deepseek-ai/DeepSeek-R1", "Pro/deepseek-ai/DeepSeek-R1-0120"]
+input_price = 0.56
+output_price = 2.22
+tier = "budget"
+
+[[models]]
+provider = "siliconflow"
+model_id = "Pro/deepseek-ai/DeepSeek-V3"
+aliases = ["deepseek-ai/DeepSeek-V3", "Pro/deepseek-ai/DeepSeek-V3-1226"]
+input_price = 0.28
+output_price = 1.11
+tier = "budget"
+
+[[models]]
+provider = "siliconflow"
+model_id = "Qwen/Qwen3-235B-A22B"
+input_price = 0.35
+output_price = 1.39
+tier = "budget"
+
+[[models]]
+provider = "siliconflow"
+model_id = "Qwen/Qwen3-32B"
+input_price = 0.14
+output_price = 0.56
+tier = "budget"
+
+[[models]]
+provider = "siliconflow"
+model_id = "Qwen/Qwen3-14B"
+input_price = 0.07
+output_price = 0.28
+tier = "budget"
+
+[[models]]
+provider = "siliconflow"
+model_id = "Qwen/Qwen2.5-72B-Instruct"
+aliases = ["Qwen/Qwen2.5-72B-Instruct-128K"]
+input_price = 0.57
+output_price = 0.57
+tier = "budget"
+
+[[models]]
+provider = "siliconflow"
+model_id = "Qwen/QwQ-32B"
+aliases = ["Qwen/QwQ-32B-Preview"]
+input_price = 0.14
+output_price = 0.56
 tier = "budget"

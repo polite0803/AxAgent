@@ -9,6 +9,7 @@ import {
   Ellipsis,
   Eye,
   Keyboard,
+  ListChecks,
   PanelLeft,
   PanelRight,
   Redo2,
@@ -30,6 +31,8 @@ interface EditorHeaderProps {
   onClose?: () => void;
   onToggleAIPanel?: () => void;
   onToggleDebugPanel?: () => void;
+  onRunDiagnostic?: () => void;
+  diagnosticLoading?: boolean;
   onOpenImportExport?: () => void;
   onAutoLayout?: () => void;
   onUndo?: () => void;
@@ -42,6 +45,9 @@ interface EditorHeaderProps {
   onToggleRightPanel?: () => void;
   leftPanelCollapsed?: boolean;
   rightPanelCollapsed?: boolean;
+  selectedNodeIds?: Set<string>;
+  onBatchEdit?: () => void;
+  batchEditVisible?: boolean;
 }
 
 export const EditorHeader: React.FC<EditorHeaderProps> = ({
@@ -65,6 +71,9 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
   onToggleRightPanel,
   leftPanelCollapsed = false,
   rightPanelCollapsed = false,
+  selectedNodeIds,
+  onBatchEdit,
+  batchEditVisible = false,
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState(templateName);
@@ -232,6 +241,14 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
                       onClick: onToggleDebugPanel,
                     }]
                     : []),
+                  ...(onBatchEdit && selectedNodeIds && selectedNodeIds.size >= 2
+                    ? [{
+                      key: "batchEdit",
+                      icon: <ListChecks size={16} />,
+                      label: t("workflow.batchEditMode"),
+                      onClick: onBatchEdit,
+                    }]
+                    : []),
                   ...(onOpenImportExport
                     ? [{
                       key: "importExport",
@@ -366,6 +383,17 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
                   icon={<Bug size={18} />}
                   onClick={onToggleDebugPanel}
                   style={{ color: debugPanelVisible ? token.colorPrimary : token.colorTextSecondary }}
+                />
+              </Tooltip>
+            )}
+            {onBatchEdit && selectedNodeIds && selectedNodeIds.size >= 2 && (
+              <Tooltip title={t("workflow.batchEditMode")}>
+                <Button
+                  type="text"
+                  data-testid="workflow-batch-edit-btn"
+                  icon={<ListChecks size={18} />}
+                  onClick={onBatchEdit}
+                  style={{ color: batchEditVisible ? token.colorPrimary : token.colorTextSecondary }}
                 />
               </Tooltip>
             )}

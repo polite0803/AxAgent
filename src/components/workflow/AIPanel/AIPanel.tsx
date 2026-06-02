@@ -1,12 +1,15 @@
 import { logIpcError } from "@/lib/invoke";
-import type { AiChatAction, AiChatMessage } from "@/stores/feature/workflowEditorStore";
+import type { AiChatMessage } from "@/stores/feature/workflowEditorStore";
+import { useWorkflowEditorStore } from "@/stores/feature/workflowEditorStore";
 import { App, Button, Card, Empty, Input, Radio, Tag, theme } from "antd";
 import { Lightbulb, MessageSquare, Play, Send, Sparkles, StopCircle, Trash2, Wand2 } from "lucide-react";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useReactFlow } from "reactflow";
+import { useShallow } from "zustand/react/shallow";
 import { setDragPayload } from "../dndState";
 import type { WorkflowEdge, WorkflowNode } from "../types/workflow.types";
+import { ActionDiffPreview } from "./ActionDiffPreview";
 
 const { TextArea } = Input;
 
@@ -28,7 +31,6 @@ interface AIPanelProps {
   onChatSend: (message: string) => void;
   onChatCancel: () => void;
   onChatClear: () => void;
-  onApplyAction: (action: AiChatAction) => void;
 }
 
 export const AIPanel: React.FC<AIPanelProps> = ({
@@ -44,7 +46,6 @@ export const AIPanel: React.FC<AIPanelProps> = ({
   onChatSend,
   onChatCancel,
   onChatClear,
-  onApplyAction,
 }) => {
   const { t } = useTranslation();
   const { token } = theme.useToken();
@@ -52,6 +53,21 @@ export const AIPanel: React.FC<AIPanelProps> = ({
   const { getNodes, getEdges } = useReactFlow();
   const nodes = getNodes() as unknown as WorkflowNode[];
   const edges = getEdges() as unknown as WorkflowEdge[];
+
+  // Diff 预览状态（AI Chat action 在应用前必须经过用户确认）
+  const {
+    pendingAiChatActions,
+    applyAiChatAction,
+    setPendingAiChatActions,
+    clearPendingAiChatActions,
+  } = useWorkflowEditorStore(
+    useShallow((s) => ({
+      pendingAiChatActions: s.pendingAiChatActions,
+      applyAiChatAction: s.applyAiChatAction,
+      setPendingAiChatActions: s.setPendingAiChatActions,
+      clearPendingAiChatActions: s.clearPendingAiChatActions,
+    })),
+  );
 
   const [activeTab, setActiveTab] = useState<"chat" | "tools">("chat");
   const [chatInput, setChatInput] = useState("");
@@ -279,18 +295,29 @@ export const AIPanel: React.FC<AIPanelProps> = ({
           )}
           {msg.actions && msg.actions.length > 0 && !msg.isStreaming && (
             <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 4 }}>
-              {msg.actions.map((action, idx) => (
-                <Button
-                  key={idx}
-                  type="primary"
-                  size="small"
-                  icon={<Play size={12} />}
-                  onClick={() => onApplyAction(action)}
-                  style={{ alignSelf: "flex-start" }}
-                >
-                  {getActionLabel(action.action_type)}
-                </Button>
-              ))}
+              {msg.actions.length === 1
+                ? (
+                  <Button
+                    type="primary"
+                    size="small"
+                    icon={<Play size={12} />}
+                    onClick={() => setPendingAiChatActions(msg.id, msg.actions!)}
+                    style={{ alignSelf: "flex-start" }}
+                  >
+                    {getActionLabel(msg.actions[0].action_type)}
+                  </Button>
+                )
+                : (
+                  <Button
+                    type="primary"
+                    size="small"
+                    icon={<Play size={12} />}
+                    onClick={() => setPendingAiChatActions(msg.id, msg.actions!)}
+                    style={{ alignSelf: "flex-start" }}
+                  >
+                    {t("workflow.aiPanel.actionApplyAll", { count: msg.actions.length })}
+                  </Button>
+                )}
             </div>
           )}
         </div>
@@ -302,14 +329,23 @@ export const AIPanel: React.FC<AIPanelProps> = ({
     switch (actionType) {
       case "generate_workflow":
         return t("workflow.aiPanel.actionGenerateWorkflow");
+      case "add_node":
       case "add_nodes":
         return t("workflow.aiPanel.actionAddNodes");
+      case "update_node":
       case "modify_node":
         return t("workflow.aiPanel.actionModifyNode");
-      case "optimize_prompt":
-        return t("workflow.aiPanel.actionOptimizePrompt");
+      case "delete_node":
       case "delete_nodes":
         return t("workflow.aiPanel.actionDeleteNodes");
+      case "add_edge":
+        return t("workflow.aiPanel.actionAddEdge");
+      case "update_edge":
+        return t("workflow.aiPanel.actionUpdateEdge");
+      case "delete_edge":
+        return t("workflow.aiPanel.actionDeleteEdge");
+      case "optimize_prompt":
+        return t("workflow.aiPanel.actionOptimizePrompt");
       default:
         return t("workflow.aiPanel.actionApply");
     }
@@ -682,6 +718,20 @@ export const AIPanel: React.FC<AIPanelProps> = ({
       <div style={{ flex: 1, minHeight: 0, overflow: "hidden" }}>
         {activeTab === "chat" ? renderChatTab() : renderToolsTab()}
       </div>
+      <ActionDiffPreview
+        actions={pendingAiChatActions}
+        currentNodes={nodes}
+        currentEdges={edges}
+        onApply={applyAiChatAction}
+        onApplyAll={() => {
+          if (pendingAiChatActions) {
+            for (const a of pendingAiChatActions) {
+              applyAiChatAction(a);
+            }
+          }
+        }}
+        onCancel={clearPendingAiChatActions}
+      />
     </div>
   );
 };

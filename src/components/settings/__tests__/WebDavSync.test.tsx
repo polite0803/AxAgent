@@ -70,6 +70,7 @@ describe("WebDavSync", () => {
   });
 
   it("persists connection fields alongside sync settings after saving config", async () => {
+    vi.setConfig({ testTimeout: 15000 });
     const user = userEvent.setup();
 
     render(

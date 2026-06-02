@@ -44,6 +44,7 @@ function initCacheEventListener() {
       cacheHits: state.cacheHits + 1,
       tokensSaved: state.tokensSaved + evt.cacheReadTokens,
       cacheValid: !evt.unexpected,
+      hasPendingChanges: evt.unexpected ? true : state.hasPendingChanges,
       lastCacheEvent: evt,
     }));
   }).catch(logIpcError("listen:prompt-cache-event"));

@@ -1567,7 +1567,7 @@ mod tests {
             r#"{
               "providerFallbacks": {
                 "primary": "claude-opus-4-6",
-                "fallbacks": ["grok-3", "grok-3-mini"]
+                "fallbacks": ["deepseek-v4-flash", "gpt-5.4-mini"]
               }
             }"#,
         )
@@ -1581,7 +1581,10 @@ mod tests {
         // then
         let chain = loaded.provider_fallbacks();
         assert_eq!(chain.primary(), Some("claude-opus-4-6"));
-        assert_eq!(chain.fallbacks(), &["grok-3".to_string(), "grok-3-mini".to_string()]);
+        assert_eq!(
+            chain.fallbacks(),
+            &["deepseek-v4-flash".to_string(), "gpt-5.4-mini".to_string()]
+        );
         assert!(!chain.is_empty());
 
         fs::remove_dir_all(root).expect("cleanup temp dir");
@@ -1907,7 +1910,7 @@ mod tests {
         .expect("write user settings");
         fs::write(
             cwd.join(".claw").join("settings.local.json"),
-            r#"{"aliases":{"smart":"claude-sonnet-4-6","cheap":"grok-3-mini"}}"#,
+            r#"{"aliases":{"smart":"claude-sonnet-4-6","cheap":"deepseek-v4-flash"}}"#,
         )
         .expect("write local settings");
 
@@ -1920,7 +1923,7 @@ mod tests {
         let aliases = loaded.aliases();
         assert_eq!(aliases.get("fast").map(String::as_str), Some("claude-haiku-4-5-20251213"));
         assert_eq!(aliases.get("smart").map(String::as_str), Some("claude-sonnet-4-6"));
-        assert_eq!(aliases.get("cheap").map(String::as_str), Some("grok-3-mini"));
+        assert_eq!(aliases.get("cheap").map(String::as_str), Some("deepseek-v4-flash"));
 
         fs::remove_dir_all(root).expect("cleanup temp dir");
     }

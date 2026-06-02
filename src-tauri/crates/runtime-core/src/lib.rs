@@ -6,6 +6,7 @@
 //! axagent-runtime re-exports everything from this crate, so consumers that
 //! import from `axagent_runtime` continue to work without changes.
 
+pub mod balance;
 pub mod cache_guard;
 pub mod compact;
 pub mod compact_thresholds;
@@ -32,6 +33,8 @@ pub mod session_memory_compact;
 pub mod usage;
 
 // ── Public Re-exports ────────────────────────────────────────────────
+
+pub use balance::{Balance, BalanceError, BalanceInfo, fetch_deepseek_balance};
 
 pub use cache_guard::CacheGuard;
 

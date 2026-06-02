@@ -1,6 +1,6 @@
 //! 工作流共享类型定义。
 //!
-//! 节点类型统一为 axagent_core::workflow_types::WorkflowNode（15 种），
+//! 节点类型统一为 axagent_core::workflow_types::WorkflowNode（28 种），
 //! 执行统一由 WorkEngine + NodeDispatcher 负责。
 
 use serde::{Deserialize, Serialize};

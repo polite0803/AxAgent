@@ -1,7 +1,9 @@
 import { MinusCircleOutlined, PlusOutlined } from "@ant-design/icons";
-import { Button, Input, Select, theme } from "antd";
+import { Button, Input, message, Select, theme } from "antd";
+import { Sparkles } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
+import { useNodeAIAssist } from "../../Hooks";
 import type { ValidationNode, WorkflowNode } from "../../types";
 import { BasePropertyPanel } from "./BasePropertyPanel";
 
@@ -16,6 +18,8 @@ export const ValidationPropertyPanel: React.FC<
 > = ({ node, onUpdate, onDelete }) => {
   const { t } = useTranslation();
   const { token } = theme.useToken();
+  const [messageApi, messageContextHolder] = message.useMessage();
+  const { generate: aiGenerate, generating: aiGenerating } = useNodeAIAssist();
   const validationNode = node as ValidationNode;
   const config = validationNode.config || {
     assertions: [],
@@ -52,8 +56,45 @@ export const ValidationPropertyPanel: React.FC<
     handleConfigChange("assertions", newAssertions);
   };
 
+  const handleAIGenerateAssertions = async () => {
+    const result = await aiGenerate({
+      systemPrompt:
+        "你是一名数据校验规则生成助手。基于节点的 context（上游节点的输出变量、节点描述），生成合理的断言规则列表。"
+        + "只输出严格合法的 JSON 数组，数组中每个对象的 type ∈ {equals, contains, matches, exists, custom}。"
+        + '不要任何前缀、解释、Markdown 标记。示例：[{"type":"equals","expected":"200","actual":"${http.status}"}]',
+      userPrompt: `Node title: ${node.title || ""}\nNode description: ${
+        node.description || ""
+      }\nNode id: ${node.id}\n\nExisting assertions (可保留也可重写):\n${
+        JSON.stringify(config.assertions || [], null, 2)
+      }`,
+    });
+    if (!result) {
+      messageApi.error(t("workflow.aiAssist.failed"));
+      return;
+    }
+    let parsed: unknown;
+    try {
+      const jsonStart = result.indexOf("[");
+      const jsonEnd = result.lastIndexOf("]");
+      if (jsonStart === -1 || jsonEnd === -1) {
+        throw new Error("no json array");
+      }
+      parsed = JSON.parse(result.slice(jsonStart, jsonEnd + 1));
+    } catch {
+      messageApi.error(t("workflow.aiAssist.failed"));
+      return;
+    }
+    if (!Array.isArray(parsed)) {
+      messageApi.error(t("workflow.aiAssist.failed"));
+      return;
+    }
+    handleConfigChange("assertions", parsed);
+    messageApi.success(t("workflow.aiAssist.applied"));
+  };
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      {messageContextHolder}
       <div>
         <div
           style={{
@@ -66,15 +107,27 @@ export const ValidationPropertyPanel: React.FC<
           <label style={{ color: token.colorTextTertiary, fontSize: 12 }}>
             {t("workflow.props.assertions")}
           </label>
-          <Button
-            size="small"
-            type="dashed"
-            icon={<PlusOutlined />}
-            onClick={handleAddAssertion}
-            style={{ fontSize: 12 }}
-          >
-            {t("workflow.props.add")}
-          </Button>
+          <div style={{ display: "flex", gap: 4 }}>
+            <Button
+              size="small"
+              type="dashed"
+              icon={<Sparkles size={12} />}
+              onClick={handleAIGenerateAssertions}
+              loading={aiGenerating}
+              style={{ fontSize: 12 }}
+            >
+              {t("workflow.aiAssist.btn.generate")}
+            </Button>
+            <Button
+              size="small"
+              type="dashed"
+              icon={<PlusOutlined />}
+              onClick={handleAddAssertion}
+              style={{ fontSize: 12 }}
+            >
+              {t("workflow.props.add")}
+            </Button>
+          </div>
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>

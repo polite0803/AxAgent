@@ -1522,6 +1522,7 @@ mod tests {
                             output_tokens: 6,
                             cache_creation_input_tokens: 1,
                             cache_read_input_tokens: 2,
+                            cache_miss_input_tokens: None,
                         }),
                         AssistantEvent::MessageStop,
                     ])
@@ -1539,6 +1540,7 @@ mod tests {
                             output_tokens: 4,
                             cache_creation_input_tokens: 1,
                             cache_read_input_tokens: 3,
+                            cache_miss_input_tokens: None,
                         }),
                         AssistantEvent::PromptCache(PromptCacheEvent {
                             unexpected: true,
@@ -1989,6 +1991,7 @@ mod tests {
                     output_tokens: 7,
                     cache_creation_input_tokens: 2,
                     cache_read_input_tokens: 1,
+                    cache_miss_input_tokens: None,
                 }),
             ));
 
@@ -2145,6 +2148,7 @@ mod tests {
                         output_tokens: 4,
                         cache_creation_input_tokens: 0,
                         cache_read_input_tokens: 0,
+                        cache_miss_input_tokens: None,
                     }),
                     AssistantEvent::MessageStop,
                 ])
@@ -2217,6 +2221,7 @@ mod tests {
                         output_tokens: 4,
                         cache_creation_input_tokens: 0,
                         cache_read_input_tokens: 0,
+                        cache_miss_input_tokens: None,
                     }),
                     AssistantEvent::MessageStop,
                 ])

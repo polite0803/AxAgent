@@ -35,17 +35,25 @@ fn lookup_exact(model_id: &str) -> Option<u32> {
         | "gpt-4.5-preview"
         | "gpt-4.5" => Some(128_000),
 
-        "o1" | "o1-mini" | "o3-mini" | "o3" | "o4-mini" => Some(200_000),
+        // ── OpenAI GPT-5.x ──
+        "gpt-5.5" | "gpt-5.4" | "gpt-5.4-mini" | "gpt-5-mini" | "gpt-5-nano" | "gpt-5"
+        | "gpt-5.1" | "gpt-5.2" | "gpt-5-chat-latest" => Some(1_048_576),
 
+        // ── OpenAI GPT-4.1 (legacy) ──
         "gpt-4.1" | "gpt-4.1-mini" | "gpt-4.1-nano" => Some(1_047_576),
 
         "gpt-3.5-turbo" | "gpt-3.5-turbo-0125" | "gpt-3.5-turbo-1106" => Some(16_385),
 
+        "o1" | "o1-mini" | "o3-mini" | "o3" | "o4-mini" => Some(200_000),
+
         // ── Anthropic ──
         "claude-opus-4-20250514"
+        | "claude-opus-4-8"
         | "claude-sonnet-4-20250514"
+        | "claude-sonnet-4-6"
         | "claude-3-5-sonnet-20241022"
         | "claude-3-5-haiku-20241022"
+        | "claude-haiku-4-5"
         | "claude-3-haiku-20240307"
         | "claude-3-opus-20240229"
         | "claude-3-sonnet-20240229"
@@ -55,20 +63,64 @@ fn lookup_exact(model_id: &str) -> Option<u32> {
         | "claude-3-sonnet" | "claude-opus-4" | "claude-sonnet-4" => Some(200_000),
 
         // ── Google Gemini ──
-        "gemini-2.5-pro" | "gemini-2.5-flash" | "gemini-2.0-flash" | "gemini-1.5-pro"
-        | "gemini-1.5-flash" => Some(1_048_576),
+        "gemini-3.5-flash" | "gemini-2.5-pro" | "gemini-2.5-flash" | "gemini-2.0-flash"
+        | "gemini-1.5-pro" | "gemini-1.5-flash" => Some(1_048_576),
+
+        // ── Qwen (通义千问) ──
+        "qwen3.7-max"
+        | "qwen3.7-max-preview"
+        | "qwen3.6-plus"
+        | "qwen3.6-flash"
+        | "qwen3.6-max-preview"
+        | "qwen3.5-plus"
+        | "qwen3.5-flash"
+        | "qwen3-max"
+        | "qwen3-235b-a22b"
+        | "qwen3-coder-plus"
+        | "qwen3-coder-flash"
+        | "qwen-plus"
+        | "qwen-max"
+        | "qwen-flash"
+        | "qwen-turbo" => Some(1_048_576),
+
+        // ── Kimi (月之暗面) ──
+        "kimi-k2.6" | "kimi-k2.5" | "kimi-k2" | "moonshot-v1-128k" | "moonshot-v1-32k"
+        | "moonshot-v1-8k" => Some(262_144),
+
+        // ── Doubao (豆包) ──
+        "doubao-1.5-pro-256k"
+        | "doubao-1.5-pro-128k"
+        | "doubao-1.5-pro-32k"
+        | "doubao-1.5-pro-4k" => Some(262_144),
+        "doubao-1.5-lite-128k" | "doubao-1.5-lite-32k" | "doubao-1.5-lite-4k" => Some(131_072),
+
+        // ── SiliconFlow (硅基流动) Pro models ──
+        "Pro/deepseek-ai/DeepSeek-R1"
+        | "Pro/deepseek-ai/DeepSeek-V3"
+        | "deepseek-ai/DeepSeek-R1"
+        | "deepseek-ai/DeepSeek-V3"
+        | "deepseek-ai/DeepSeek-V2.5" => Some(65_536),
+        "Qwen/Qwen3-235B-A22B"
+        | "Qwen/Qwen3-32B"
+        | "Qwen/Qwen3-14B"
+        | "Qwen/Qwen3-8B"
+        | "Qwen/Qwen3-30B-A3B"
+        | "Qwen/Qwen2.5-72B-Instruct"
+        | "Qwen/Qwen2.5-32B-Instruct"
+        | "Qwen/Qwen2.5-14B-Instruct"
+        | "Qwen/Qwen2.5-7B-Instruct"
+        | "Qwen/QwQ-32B"
+        | "Qwen/QwQ-32B-Preview" => Some(262_144),
 
         // ── DeepSeek ──
-        "deepseek-chat" | "deepseek-reasoner" | "deepseek-r1" | "deepseek-v3" => Some(65_536),
-
-        // ── xAI ──
-        "grok-3" | "grok-3-mini" | "grok-2" => Some(131_072),
+        "deepseek-v4-flash" | "deepseek-v4-pro" | "deepseek-chat" | "deepseek-reasoner"
+        | "deepseek-r1" | "deepseek-v3" | "deepseek-v3.2" => Some(1_048_576),
 
         // ── GLM ──
-        "glm-4-plus" | "glm-4-flash" | "glm-4.7" | "glm-4" => Some(128_000),
+        "glm-5" | "glm-4-plus" | "glm-4-flash" | "glm-4.7" | "glm-4" => Some(128_000),
 
         // ── MiniMax ──
-        "minimax-m1" | "minimax-s1" | "minimaxai/minimax-m2.7" => Some(1_000_000),
+        "minimax-m3" | "minimax-m1" | "minimax-s1" | "minimaxai/minimax-m2.7" => Some(1_000_000),
 
         // ── NVIDIA / Llama ──
         "meta/llama-3.1-405b-instruct"

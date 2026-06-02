@@ -3821,7 +3821,38 @@
       "noRecommendations": "暂无推荐",
       "aiAssistant": "AI 助手",
       "clickCanvasToAdd": "已选择 \"{{label}}\" — 点击画布放置节点",
-      "explanation": "解释"
+      "explanation": "解释",
+      "actionGenerateWorkflow": "生成工作流",
+      "actionAddNodes": "添加节点",
+      "actionModifyNode": "修改节点",
+      "actionDeleteNodes": "删除节点",
+      "actionAddEdge": "添加连线",
+      "actionUpdateEdge": "修改连线",
+      "actionDeleteEdge": "删除连线",
+      "actionOptimizePrompt": "优化提示词",
+      "actionApply": "应用",
+      "actionApplyAll": "查看全部 {{count}} 项改动",
+      "diffPreview": {
+        "title": "AI 修改预览",
+        "subtitle": "请确认以下 {{count}} 项改动后再应用到工作流",
+        "before": "应用前",
+        "after": "应用后",
+        "apply": "应用此条",
+        "applyAll": "应用全部",
+        "cancel": "取消",
+        "applied": "已应用",
+        "appliedHint": "本次会话已应用 {{count}} / {{total}} 项",
+        "empty": "没有可预览的改动",
+        "promptLength": "提示词长度：{{from}} → {{to}} 字符",
+        "noBefore": "（新建项，无原始内容）",
+        "noAfter": "（删除项，无新内容）",
+        "noChanges": "无字段变化",
+        "applyFailed": "应用失败",
+        "applyAllFailed": "全部应用失败",
+        "rollbackBatch": "整批撤销",
+        "rollbackSuccess": "已撤销整批改动",
+        "rollbackTip": "一键回滚本次 AI 全部改动"
+      }
     },
     "previewInDevelopment": "预览功能开发中",
     "publishInDevelopment": "发布功能开发中",
@@ -3976,6 +4007,11 @@
       "systemPromptPlaceholder": "输入系统提示词...",
       "model": "模型",
       "selectModel": "选择模型",
+      "modelRole": "模型角色",
+      "modelRolePlaceholder": "自动（使用模型字段）",
+      "modelRoleQuickThink": "⚡ 快速思考",
+      "modelRoleDeepThink": "🧠 深度思考",
+      "modelRoleHint": "设置后优先使用预设角色对应的模型；显式 model 字段优先级更高。",
       "temperature": "温度",
       "maxTokens": "最大 Token",
       "outputMode": "输出模式",
@@ -4188,7 +4224,13 @@
       "headers": "headers",
       "addHeader": "addHeader",
       "headerKey": "headerKey",
-      "headerValue": "headerValue"
+      "headerValue": "headerValue",
+      "selectTemplate": "Select Template",
+      "searchTemplate": "Search template...",
+      "noTemplates": "No templates found",
+      "mergeFirst": "First - Use first completed input",
+      "mergeLast": "Last - Use last completed input",
+      "aggregationFirst": "First to Complete"
     },
     "debug": {
       "title": "工作流调试",
@@ -4242,7 +4284,29 @@
       "input": "输入",
       "output": "输出",
       "executionHistory": "执行历史",
-      "waitingForNodes": "等待节点数据..."
+      "waitingForNodes": "等待节点数据...",
+      "totalDuration": "Total Duration",
+      "successful": "Successful",
+      "failed": "Failed",
+      "avgNodeTime": "Avg Node Time",
+      "nodeExecutions": "Node Executions",
+      "selectedNodeDetails": "Selected Node Details",
+      "noExecutionData": "No execution data. Please run the workflow first.",
+      "performance": "Performance",
+      "slowestNode": "Slowest Node",
+      "fastestNode": "Fastest Node",
+      "columnNode": "Node",
+      "columnDuration": "Duration",
+      "columnRetries": "Retries",
+      "columnStatus": "Status",
+      "executionLabel": "Execution: {{id}} | Workflow: {{name}} | Trigger: {{trigger}}",
+      "variableSnapshots": "Variable Snapshots",
+      "performanceAnalysis": "Performance Analysis",
+      "labelNode": "Node",
+      "labelType": "Type",
+      "labelError": "Error",
+      "labelInput": "Input",
+      "labelOutput": "Output"
     },
     "applySemanticCheck": "应用语义检查",
     "applyUpgrade": "应用升级",
@@ -4303,7 +4367,17 @@
       "end": "结束",
       "tool": "工具",
       "code": "代码",
-      "httpRequest": "HTTP Request"
+      "httpRequest": "HTTP 请求",
+      "notification": "通知",
+      "approval": "审批",
+      "fileOperation": "文件操作",
+      "dataTransformer": "数据转换",
+      "webhookSend": "Webhook 发送",
+      "logging": "日志",
+      "llmClassifier": "LLM 分类器",
+      "aggregator": "聚合器",
+      "email": "邮件",
+      "debate": "辩论"
     },
     "templateList": {
       "deleted": "已删除",
@@ -4528,6 +4602,14 @@
       "expand": "展开",
       "collapse": "折叠"
     },
+    "debateNode": {
+      "debaters": "辩手",
+      "rounds": "轮",
+      "expand": "展开",
+      "collapse": "折叠",
+      "newDebater": "辩手",
+      "noDebatersHint": "在容器内添加辩手 Agent 节点"
+    },
     "toolNode": {
       "notSelected": "未选择",
       "title": "工具",
@@ -4593,6 +4675,289 @@
       "rhaiTemplateDesc": "Rhai 脚本",
       "templateRhaiTools": "── 模板 Rhai 工具 ──",
       "globalTools": "── 全局工具 ──"
+    },
+    "aiAssist": {
+      "btn": {
+        "optimize": "AI 优化",
+        "suggest": "AI 建议",
+        "generate": "AI 生成",
+        "rewrite": "AI 重写",
+        "contextComplete": "上下文补全"
+      },
+      "tooltip": "使用 AI 优化或生成内容",
+      "noProvider": "暂无可用的 AI 提供商",
+      "failed": "AI 生成失败",
+      "optimizing": "AI 正在优化...",
+      "generating": "AI 正在生成...",
+      "applied": "已应用 AI 建议",
+      "contextCompleteApplied": "上下文补全已应用",
+      "trigger": {
+        "cronHint": "例如：'每个工作日上午 9 点'"
+      },
+      "dbQuery": {
+        "sqlHint": "例如：'查询最近 10 个活跃用户'"
+      },
+      "switch": {
+        "casesHint": "当前分支：{{current}}，输入变量：{{input}}。请推荐更多分支。"
+      },
+      "parallel": {
+        "branchesHint": "当前分支：{{current}}。可用节点：{{available}}。请推荐并行分支。"
+      },
+      "loop": {
+        "continueHint": "例如：'当 index < {{items}} 长度时继续'"
+      },
+      "subWorkflow": {
+        "needPick": "请先选择一个子工作流",
+        "parseFailed": "AI 返回的 JSON 解析失败，请重试"
+      }
+    },
+    "diagnostic": {
+      "title": "工作流诊断",
+      "run": "运行诊断",
+      "tooltip": "扫描工作流结构、配置、提示词和变量引用",
+      "loading": "正在诊断...",
+      "empty": "工作流为空，添加节点后开始诊断",
+      "allGood": "工作流状态良好，未发现问题",
+      "summary": {
+        "title": "诊断概览",
+        "error": "错误",
+        "warning": "警告",
+        "info": "提示",
+        "total": "共 {{count}} 项"
+      },
+      "severity": {
+        "error": "错误",
+        "warning": "警告",
+        "info": "提示"
+      },
+      "category": {
+        "structure": "结构",
+        "configuration": "配置",
+        "prompt": "提示词",
+        "prompt_quality": "提示词质量",
+        "performance": "性能",
+        "cost": "成本",
+        "security": "安全",
+        "reference": "引用",
+        "best_practice": "最佳实践"
+      },
+      "fix": {
+        "apply": "一键修复",
+        "applied": "已修复",
+        "failed": "修复失败"
+      },
+      "jump": "定位节点",
+      "issues": {
+        "duplicate_node_id": {
+          "title": "重复的节点 ID",
+          "message": "节点 ID \"{{id}}\" 出现多次，可能导致连线错乱"
+        },
+        "orphan_node": {
+          "title": "孤立节点",
+          "message": "节点 \"{{label}}\" 既无输入边也无输出边"
+        },
+        "unreachable_from_trigger": {
+          "title": "节点无法从触发器到达",
+          "message": "节点 \"{{label}}\" 没有从任何触发器连入的路径"
+        },
+        "dangling_edge": {
+          "title": "孤立边",
+          "message": "边 \"{{id}}\" 的源或目标节点不存在"
+        },
+        "llm_prompt_empty": {
+          "title": "LLM 提示词为空",
+          "message": "节点 \"{{label}}\" 的 LLM.prompt 为空，将无法生成任何输出"
+        },
+        "llm_prompt_short": {
+          "title": "LLM 提示词过短",
+          "message": "节点 \"{{label}}\" 的 LLM.prompt 仅 {{len}} 个字符，可能无法表达清楚意图"
+        },
+        "agent_prompt_empty": {
+          "title": "Agent 系统提示词为空",
+          "message": "节点 \"{{label}}\" 的 Agent.system_prompt 为空"
+        },
+        "agent_prompt_trivial": {
+          "title": "Agent 系统提示词过于简单",
+          "message": "节点 \"{{label}}\" 的系统提示词仅 {{len}} 个字符，建议补充角色与目标"
+        },
+        "classifier_prompt_empty": {
+          "title": "分类器提示词为空",
+          "message": "节点 \"{{label}}\" 的 LlmClassifier.prompt 为空"
+        },
+        "classifier_prompt_trivial": {
+          "title": "分类器提示词过于简单",
+          "message": "节点 \"{{label}}\" 的分类器提示词仅 {{len}} 个字符"
+        },
+        "classifier_categories_empty": {
+          "title": "分类器未配置类别",
+          "message": "节点 \"{{label}}\" 的 categories 为空，无法路由任何分支"
+        },
+        "http_url_empty": {
+          "title": "HTTP 请求 URL 为空",
+          "message": "节点 \"{{label}}\" 的 HttpRequest.url 为空"
+        },
+        "webhook_url_empty": {
+          "title": "Webhook URL 为空",
+          "message": "节点 \"{{label}}\" 的 WebhookSend.url 为空"
+        },
+        "email_to_empty": {
+          "title": "邮件收件人为空",
+          "message": "节点 \"{{label}}\" 的 Email.to 为空"
+        },
+        "email_body_empty": {
+          "title": "邮件正文为空",
+          "message": "节点 \"{{label}}\" 的 Email.body 为空"
+        },
+        "validation_assertions_empty": {
+          "title": "验证节点断言为空",
+          "message": "节点 \"{{label}}\" 的 assertions 列表为空"
+        },
+        "code_body_empty": {
+          "title": "代码节点代码为空",
+          "message": "节点 \"{{label}}\" 的 Code.code 为空"
+        },
+        "code_output_var_empty": {
+          "title": "代码节点未配置输出变量",
+          "message": "节点 \"{{label}}\" 的 output_var 为空，下游将无法引用"
+        },
+        "tool_name_empty": {
+          "title": "工具节点未指定工具",
+          "message": "节点 \"{{label}}\" 的 tool_name 为空"
+        },
+        "subworkflow_id_empty": {
+          "title": "子工作流 ID 为空",
+          "message": "节点 \"{{label}}\" 的 SubWorkflow.sub_workflow_id 为空"
+        },
+        "unknown_var_reference": {
+          "title": "引用了未声明的变量",
+          "message": "在节点 \"{{label}}\" 中引用了 ${ {{var}} }，但工作流中无任何节点以该名称作为 output_var"
+        },
+        "no_timeout": {
+          "title": "节点未设置超时",
+          "message": "节点 \"{{label}}\" 的 timeout 未配置，长时间运行可能阻塞工作流"
+        },
+        "no_retry": {
+          "title": "节点未启用重试",
+          "message": "节点 \"{{label}}\" 未配置 retry，瞬时失败将直接传播"
+        },
+        "parallel_no_merge": {
+          "title": "Parallel 节点下游无 Merge",
+          "message": "Parallel 节点 \"{{label}}\" 的每个分支都需要汇入 Merge 才能形成完整流程"
+        },
+        "no_trigger": {
+          "title": "缺少触发器节点",
+          "message": "工作流没有触发器节点。请添加 Trigger 节点定义入口。"
+        },
+        "no_end": {
+          "title": "缺少结束节点",
+          "message": "工作流没有 End 节点。建议添加 End 节点标记流程完成。"
+        },
+        "agent_empty_prompt": {
+          "title": "Agent 系统提示词为空",
+          "message": "Agent 节点的 system_prompt 为空。请定义清晰的角色和指令。"
+        },
+        "agent_short_prompt": {
+          "title": "Agent 系统提示词过短",
+          "message": "Agent system_prompt 不足 30 字符。请补充角色定义和输出约束。"
+        },
+        "agent_no_max_tokens": {
+          "title": "Agent 未设置 max_tokens",
+          "message": "Agent 节点未设置 max_tokens，可能导致 token 用量不可控。"
+        },
+        "agent_no_max_tool_rounds": {
+          "title": "Agent 未设置 max_tool_rounds",
+          "message": "带工具的 Agent 节点未设置 max_tool_rounds，工具调用可能无限循环。"
+        },
+        "llm_empty_prompt": {
+          "title": "LLM 提示词为空",
+          "message": "LLM 节点的 prompt 为空。请提供明确的指令。"
+        },
+        "llm_no_max_tokens": {
+          "title": "LLM 未设置 max_tokens",
+          "message": "LLM 节点未设置 max_tokens，可能导致 token 用量不可控。"
+        },
+        "http_no_timeout": {
+          "title": "HTTP 请求未设置超时",
+          "message": "HttpRequest 节点未设置超时，长时间请求可能阻塞工作流。"
+        },
+        "http_no_retry": {
+          "title": "HTTP 请求未设置重试",
+          "message": "HttpRequest 节点未设置重试策略，瞬时故障将直接传播。"
+        },
+        "db_no_timeout": {
+          "title": "数据库查询未设置超时",
+          "message": "DatabaseQuery 节点未设置超时，慢查询可能阻塞工作流。"
+        },
+        "loop_no_max_iter": {
+          "title": "循环节点未设置最大迭代次数",
+          "message": "Loop 节点未设置 max_iterations，可能出现无限循环。"
+        },
+        "loop_no_condition": {
+          "title": "循环节点未设置终止条件",
+          "message": "Loop 节点未定义 continue_condition，循环可能无法终止。"
+        },
+        "doc_no_parser_type": {
+          "title": "文档解析器未指定类型",
+          "message": "DocumentParser 节点未指定 parser_type。"
+        },
+        "insecure_http_url": {
+          "title": "不安全的 HTTP URL",
+          "message": "URL 使用明文 HTTP 而非 HTTPS，数据可能被明文传输。"
+        },
+        "insecure_notification_url": {
+          "title": "不安全的通知 Webhook URL",
+          "message": "通知 Webhook URL 使用明文 HTTP，载荷可能被截获。"
+        },
+        "approval_no_approver": {
+          "title": "审批节点未设置审批人",
+          "message": "Approval 节点未配置审批人，工作流将在此节点停滞。"
+        },
+        "vector_no_threshold": {
+          "title": "向量检索未设置相似度阈值",
+          "message": "VectorRetrieve 节点未设置 similarity_threshold，可能返回低质量匹配。"
+        },
+        "vector_high_top_k": {
+          "title": "向量检索 top_k 过高",
+          "message": "VectorRetrieve top_k 超过 20，会增加成本并可能降低相关性。"
+        },
+        "condition_single_exit": {
+          "title": "条件节点单出口",
+          "message": "Condition 节点下游分支少于 2 个。建议同时配置真/假两条路径。"
+        },
+        "classifier_few_cases": {
+          "title": "分类器分类过少",
+          "message": "LlmClassifier 分类用例不足 2 个。"
+        },
+        "validation_no_rules": {
+          "title": "校验节点无规则",
+          "message": "Validation 节点未定义任何规则，将始终通过校验。"
+        },
+        "edge_dangling_source": {
+          "title": "悬空边源节点",
+          "message": "边引用的源节点已不存在。"
+        },
+        "edge_dangling_target": {
+          "title": "悬空边目标节点",
+          "message": "边引用的目标节点已不存在。"
+        },
+        "debate_no_debaters": {
+          "title": "辩论节点无辩手",
+          "message": "辩论节点没有辩手 Agent。至少需要 2 个辩手才能进行有意义的辩论。"
+        },
+        "debate_single_debater": {
+          "title": "辩论节点仅有一个辩手",
+          "message": "辩论节点只有 1 个辩手。辩论至少需要 2 个对立立场。"
+        },
+        "debate_dangling_step": {
+          "title": "辩论节点悬空辩手引用",
+          "message": "辩论节点引用了一个不存在的辩手步骤。请移除失效的引用。"
+        }
+      }
+    },
+    "batchEdit": {
+      "title": "Batch Edit",
+      "noChange": "No change",
+      "apply": "Apply to {count} nodes"
     }
   },
   "atomicSkill": {

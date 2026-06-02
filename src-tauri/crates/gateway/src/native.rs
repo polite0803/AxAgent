@@ -215,6 +215,7 @@ impl AnthropicMessagesStreamState {
             total_tokens: prompt_tokens + completion_tokens,
             cache_creation_tokens: None,
             cache_read_tokens: None,
+            ..Default::default()
         })
     }
 }
@@ -320,6 +321,7 @@ fn extract_openai_response_usage(value: &serde_json::Value) -> Option<TokenUsage
         total_tokens,
         cache_creation_tokens: None,
         cache_read_tokens: None,
+        ..Default::default()
     })
 }
 
@@ -334,6 +336,7 @@ fn extract_anthropic_message_usage(value: &serde_json::Value) -> Option<TokenUsa
         total_tokens: prompt_tokens + completion_tokens,
         cache_creation_tokens: None,
         cache_read_tokens: None,
+        ..Default::default()
     })
 }
 
@@ -345,6 +348,7 @@ fn extract_anthropic_count_tokens_usage(value: &serde_json::Value) -> Option<Tok
         total_tokens: prompt_tokens,
         cache_creation_tokens: None,
         cache_read_tokens: None,
+        ..Default::default()
     })
 }
 
@@ -364,6 +368,7 @@ fn extract_gemini_generate_content_usage(value: &serde_json::Value) -> Option<To
         total_tokens,
         cache_creation_tokens: None,
         cache_read_tokens: None,
+        ..Default::default()
     })
 }
 
@@ -375,6 +380,7 @@ fn extract_gemini_count_tokens_usage(value: &serde_json::Value) -> Option<TokenU
         total_tokens: prompt_tokens,
         cache_creation_tokens: None,
         cache_read_tokens: None,
+        ..Default::default()
     })
 }
 
@@ -603,6 +609,7 @@ async fn record_native_outcome(
             model_id,
             usage.prompt_tokens as u64,
             usage.completion_tokens as u64,
+            usage.cache_read_tokens.unwrap_or(0) as u64,
         )
         .await;
     }
@@ -1447,8 +1454,7 @@ mod tests {
         let (upstream_base, captures, upstream_task) =
             spawn_mock_upstream(StatusCode::OK, headers, upstream_body.clone()).await;
         let (app, handle, gateway_key, _) =
-            seed_native_router(ProviderType::Anthropic, &upstream_base, "claude-sonnet-4-20250514")
-                .await;
+            seed_native_router(ProviderType::Anthropic, &upstream_base, "claude-sonnet-4-6").await;
 
         let response = app
             .oneshot(
@@ -1459,7 +1465,7 @@ mod tests {
                     .header(header::CONTENT_TYPE, "application/json")
                     .body(Body::from(
                         json!({
-                            "model": "claude-sonnet-4-20250514",
+                            "model": "claude-sonnet-4-6",
                             "max_tokens": 32,
                             "stream": true,
                             "messages": [{ "role": "user", "content": "hi" }]

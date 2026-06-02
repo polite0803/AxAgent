@@ -224,6 +224,8 @@ pub struct AgentNodeConfig {
     /// 执行时从这些源检索与 query 相关的内容注入 system prompt。
     #[serde(default)]
     pub rag_source_ids: Vec<String>,
+    #[serde(default)]
+    pub model_role: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -529,6 +531,45 @@ pub struct EndNode {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SwitchNodeConfig {
+    pub input_var: String,
+    pub cases: Vec<SwitchCase>,
+    #[serde(default)]
+    pub default_case: Option<String>,
+    #[serde(default = "default_switch_mode")]
+    pub match_mode: String,
+    #[serde(default)]
+    pub output_var: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SwitchNode {
+    #[serde(flatten)]
+    pub base: WorkflowNodeBase,
+    pub config: SwitchNodeConfig,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DatabaseQueryNodeConfig {
+    pub query: String,
+    #[serde(default)]
+    pub params: Vec<String>,
+    #[serde(default)]
+    pub connection_name: Option<String>,
+    #[serde(default = "default_query_timeout")]
+    pub timeout_secs: u64,
+    #[serde(default)]
+    pub output_var: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DatabaseQueryNode {
+    #[serde(flatten)]
+    pub base: WorkflowNodeBase,
+    pub config: DatabaseQueryNodeConfig,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HttpRequestNodeConfig {
     pub url: String,
     #[serde(default = "default_http_method")]
@@ -543,6 +584,31 @@ pub struct HttpRequestNodeConfig {
     pub timeout_secs: u64,
     #[serde(default)]
     pub output_var: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SwitchCase {
+    pub value: String,
+    pub label: String,
+}
+
+fn default_switch_mode() -> String {
+    "exact".to_string()
+}
+fn default_query_timeout() -> u64 {
+    30
+}
+fn default_approval_timeout() -> u64 {
+    86400
+}
+fn default_timeout_action() -> String {
+    "auto_reject".to_string()
+}
+fn default_log_level() -> String {
+    "info".to_string()
+}
+fn default_agg_strategy() -> String {
+    "all".to_string()
 }
 
 fn default_http_method() -> String {
@@ -560,6 +626,204 @@ pub struct HttpRequestNode {
     #[serde(flatten)]
     pub base: WorkflowNodeBase,
     pub config: HttpRequestNodeConfig,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct NotificationNodeConfig {
+    pub channel: String,
+    pub message: String,
+    #[serde(default)]
+    pub webhook_url: Option<String>,
+    #[serde(default)]
+    pub recipients: Vec<String>,
+    #[serde(default)]
+    pub subject: Option<String>,
+    pub enabled: bool,
+    #[serde(default)]
+    pub output_var: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct NotificationNode {
+    #[serde(flatten)]
+    pub base: WorkflowNodeBase,
+    pub config: NotificationNodeConfig,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ApprovalNodeConfig {
+    pub message: String,
+    #[serde(default)]
+    pub approver: Option<String>,
+    #[serde(default = "default_approval_timeout")]
+    pub timeout_secs: u64,
+    #[serde(default = "default_timeout_action")]
+    pub timeout_action: String,
+    #[serde(default)]
+    pub output_var: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ApprovalNode {
+    #[serde(flatten)]
+    pub base: WorkflowNodeBase,
+    pub config: ApprovalNodeConfig,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FileOperationNodeConfig {
+    pub operation: String,
+    pub file_path: String,
+    #[serde(default)]
+    pub content: Option<String>,
+    #[serde(default)]
+    pub output_var: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FileOperationNode {
+    #[serde(flatten)]
+    pub base: WorkflowNodeBase,
+    pub config: FileOperationNodeConfig,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DataTransformerNodeConfig {
+    pub input_var: String,
+    pub expression: String,
+    #[serde(default)]
+    pub output_var: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DataTransformerNode {
+    #[serde(flatten)]
+    pub base: WorkflowNodeBase,
+    pub config: DataTransformerNodeConfig,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct WebhookSendNodeConfig {
+    pub url: String,
+    #[serde(default = "default_http_method")]
+    pub method: String,
+    #[serde(default)]
+    pub body: Option<String>,
+    #[serde(default)]
+    pub headers: std::collections::HashMap<String, String>,
+    #[serde(default)]
+    pub output_var: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct WebhookSendNode {
+    #[serde(flatten)]
+    pub base: WorkflowNodeBase,
+    pub config: WebhookSendNodeConfig,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LoggingNodeConfig {
+    #[serde(default = "default_log_level")]
+    pub level: String,
+    pub message: String,
+    #[serde(default)]
+    pub output_var: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LoggingNode {
+    #[serde(flatten)]
+    pub base: WorkflowNodeBase,
+    pub config: LoggingNodeConfig,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LlmClassifierNodeConfig {
+    pub categories: Vec<String>,
+    pub prompt: String,
+    #[serde(default)]
+    pub model: Option<String>,
+    pub input_var: String,
+    #[serde(default)]
+    pub output_var: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LlmClassifierNode {
+    #[serde(flatten)]
+    pub base: WorkflowNodeBase,
+    pub config: LlmClassifierNodeConfig,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AggregatorNodeConfig {
+    #[serde(default = "default_agg_strategy")]
+    pub strategy: String,
+    #[serde(default)]
+    pub input_sources: Vec<String>,
+    #[serde(default)]
+    pub output_var: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AggregatorNode {
+    #[serde(flatten)]
+    pub base: WorkflowNodeBase,
+    pub config: AggregatorNodeConfig,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EmailNodeConfig {
+    pub to: Vec<String>,
+    pub subject: String,
+    pub body: String,
+    #[serde(default)]
+    pub smtp_host: Option<String>,
+    #[serde(default)]
+    pub smtp_port: Option<u16>,
+    #[serde(default)]
+    pub smtp_user: Option<String>,
+    #[serde(default)]
+    pub smtp_pass: Option<String>,
+    #[serde(default)]
+    pub output_var: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EmailNode {
+    #[serde(flatten)]
+    pub base: WorkflowNodeBase,
+    pub config: EmailNodeConfig,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DebateNodeConfig {
+    #[serde(default)]
+    pub debater_steps: Vec<String>,
+    #[serde(default = "default_debate_rounds")]
+    pub max_rounds: u32,
+    #[serde(default)]
+    pub convergence_prompt: Option<String>,
+    #[serde(default)]
+    pub convergence_model: Option<String>,
+    #[serde(default)]
+    pub convergence_model_role: Option<String>,
+    #[serde(default)]
+    pub topic_var: String,
+    #[serde(default)]
+    pub output_var: String,
+}
+
+fn default_debate_rounds() -> u32 {
+    2
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DebateNode {
+    #[serde(flatten)]
+    pub base: WorkflowNodeBase,
+    pub config: DebateNodeConfig,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -580,6 +844,30 @@ pub enum WorkflowNode {
     End(EndNode),
     #[serde(rename = "httpRequest")]
     HttpRequest(HttpRequestNode),
+    #[serde(rename = "switch")]
+    Switch(SwitchNode),
+    #[serde(rename = "databaseQuery")]
+    DatabaseQuery(DatabaseQueryNode),
+    #[serde(rename = "notification")]
+    Notification(NotificationNode),
+    #[serde(rename = "approval")]
+    Approval(ApprovalNode),
+    #[serde(rename = "fileOperation")]
+    FileOperation(FileOperationNode),
+    #[serde(rename = "dataTransformer")]
+    DataTransformer(DataTransformerNode),
+    #[serde(rename = "webhookSend")]
+    WebhookSend(WebhookSendNode),
+    #[serde(rename = "logging")]
+    Logging(LoggingNode),
+    #[serde(rename = "llmClassifier")]
+    LlmClassifier(LlmClassifierNode),
+    #[serde(rename = "aggregator")]
+    Aggregator(AggregatorNode),
+    #[serde(rename = "email")]
+    Email(EmailNode),
+    #[serde(rename = "debate")]
+    Debate(DebateNode),
     #[serde(rename = "tool")]
     Tool(ToolNode),
     #[serde(rename = "code")]
@@ -619,6 +907,19 @@ impl<'de> serde::Deserialize<'de> for WorkflowNode {
             "documentParser" => Ok(try_from_value!(DocumentParser, DocumentParserNode)),
             "vectorRetrieve" => Ok(try_from_value!(VectorRetrieve, VectorRetrieveNode)),
             "httpRequest" => Ok(try_from_value!(HttpRequest, HttpRequestNode)),
+            "switch" => Ok(try_from_value!(Switch, SwitchNode)),
+            "databaseQuery" => Ok(try_from_value!(DatabaseQuery, DatabaseQueryNode)),
+            "notification" => Ok(try_from_value!(Notification, NotificationNode)),
+            "approval" => Ok(try_from_value!(Approval, ApprovalNode)),
+            "fileOperation" => Ok(try_from_value!(FileOperation, FileOperationNode)),
+            "dataTransformer" => Ok(try_from_value!(DataTransformer, DataTransformerNode)),
+            "webhookSend" => Ok(try_from_value!(WebhookSend, WebhookSendNode)),
+            "logging" => Ok(try_from_value!(Logging, LoggingNode)),
+            "llmClassifier" => Ok(try_from_value!(LlmClassifier, LlmClassifierNode)),
+            "aggregator" => Ok(try_from_value!(Aggregator, AggregatorNode)),
+            "email" => Ok(try_from_value!(Email, EmailNode)),
+            "debate" => Ok(try_from_value!(Debate, DebateNode)),
+
             "end" => Ok(try_from_value!(End, EndNode)),
             "tool" => Ok(try_from_value!(Tool, ToolNode)),
             "code" => Ok(try_from_value!(Code, CodeNode)),
@@ -638,6 +939,18 @@ impl<'de> serde::Deserialize<'de> for WorkflowNode {
                     "documentParser",
                     "vectorRetrieve",
                     "httpRequest",
+                    "switch",
+                    "databaseQuery",
+                    "notification",
+                    "approval",
+                    "fileOperation",
+                    "dataTransformer",
+                    "webhookSend",
+                    "logging",
+                    "llmClassifier",
+                    "aggregator",
+                    "email",
+                    "debate",
                     "end",
                     "tool",
                     "code",
@@ -665,6 +978,18 @@ impl WorkflowNode {
             WorkflowNode::VectorRetrieve(n) => &n.base.id,
             WorkflowNode::Validation(n) => &n.base.id,
             WorkflowNode::HttpRequest(n) => &n.base.id,
+            WorkflowNode::Switch(n) => &n.base.id,
+            WorkflowNode::DatabaseQuery(n) => &n.base.id,
+            WorkflowNode::Notification(n) => &n.base.id,
+            WorkflowNode::Approval(n) => &n.base.id,
+            WorkflowNode::FileOperation(n) => &n.base.id,
+            WorkflowNode::DataTransformer(n) => &n.base.id,
+            WorkflowNode::WebhookSend(n) => &n.base.id,
+            WorkflowNode::Logging(n) => &n.base.id,
+            WorkflowNode::LlmClassifier(n) => &n.base.id,
+            WorkflowNode::Aggregator(n) => &n.base.id,
+            WorkflowNode::Email(n) => &n.base.id,
+            WorkflowNode::Debate(n) => &n.base.id,
             WorkflowNode::End(n) => &n.base.id,
         }
     }
@@ -687,6 +1012,19 @@ impl WorkflowNode {
             WorkflowNode::VectorRetrieve(n) => &n.base,
             WorkflowNode::Validation(n) => &n.base,
             WorkflowNode::HttpRequest(n) => &n.base,
+            WorkflowNode::Switch(n) => &n.base,
+            WorkflowNode::DatabaseQuery(n) => &n.base,
+            WorkflowNode::Notification(n) => &n.base,
+            WorkflowNode::Approval(n) => &n.base,
+            WorkflowNode::FileOperation(n) => &n.base,
+            WorkflowNode::DataTransformer(n) => &n.base,
+            WorkflowNode::WebhookSend(n) => &n.base,
+            WorkflowNode::Logging(n) => &n.base,
+            WorkflowNode::LlmClassifier(n) => &n.base,
+            WorkflowNode::Aggregator(n) => &n.base,
+            WorkflowNode::Email(n) => &n.base,
+            WorkflowNode::Debate(n) => &n.base,
+
             WorkflowNode::End(n) => &n.base,
         }
     }
@@ -731,6 +1069,8 @@ pub enum EdgeType {
     Merge,
     #[serde(rename = "error")]
     Error,
+    #[serde(rename = "debateRound")]
+    DebateRound,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -1073,6 +1413,7 @@ mod tests {
                 max_tool_rounds: None,
                 execution_mode: None,
                 rag_source_ids: vec![],
+                model_role: None,
             },
         });
 
@@ -1112,6 +1453,7 @@ mod tests {
                 max_tool_rounds: None,
                 execution_mode: None,
                 rag_source_ids: vec![],
+                model_role: None,
             },
         })
     }

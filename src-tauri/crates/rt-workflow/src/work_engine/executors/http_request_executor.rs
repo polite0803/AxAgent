@@ -1,20 +1,15 @@
 use async_trait::async_trait;
 use axagent_core::workflow_types::WorkflowNode;
-use sea_orm::DatabaseConnection;
-use std::sync::Arc;
 use std::time::Duration;
 
 use crate::work_engine::execution_state::ExecutionState;
 use crate::work_engine::node_executor_trait::{NodeError, NodeExecutorTrait, NodeOutput};
 
-pub struct HttpRequestExecutor {
-    db: Arc<DatabaseConnection>,
-    master_key: String,
-}
+pub struct HttpRequestExecutor;
 
 impl HttpRequestExecutor {
-    pub fn new(db: Arc<DatabaseConnection>, master_key: String) -> Self {
-        Self { db, master_key }
+    pub fn new() -> Self {
+        Self
     }
 }
 
@@ -45,7 +40,7 @@ impl NodeExecutorTrait for HttpRequestExecutor {
         }
 
         let client = reqwest::Client::builder()
-            .timeout(Duration::from_secs(config.timeout_secs.max(5).min(300)))
+            .timeout(Duration::from_secs(config.timeout_secs.clamp(5, 300)))
             .build()
             .map_err(|e| {
                 NodeError::exec_failed("http_error", format!("Failed to create HTTP client: {e}"))
@@ -61,7 +56,9 @@ impl NodeExecutorTrait for HttpRequestExecutor {
                             &serde_json::from_str::<serde_json::Value>(body)
                                 .unwrap_or(serde_json::Value::String(body.clone())),
                         ),
-                        "form" => r.header("content-type", "application/x-www-form-urlencoded").body(body.clone()),
+                        "form" => r
+                            .header("content-type", "application/x-www-form-urlencoded")
+                            .body(body.clone()),
                         _ => r.body(body.clone()),
                     };
                 }
@@ -92,7 +89,6 @@ impl NodeExecutorTrait for HttpRequestExecutor {
             },
         };
 
-        // Add headers
         for (key, value) in &config.headers {
             req = req.header(key, value);
         }
@@ -110,7 +106,7 @@ impl NodeExecutorTrait for HttpRequestExecutor {
 
         let output = serde_json::json!({
             "status": status,
-            "status_text": if status >= 200 && status < 300 { "success" } else { "error" },
+            "status_text": if (200..300).contains(&status) { "success" } else { "error" },
             "headers": headers.iter().map(|(k, v)| (k.to_string(), v.to_str().unwrap_or("").to_string())).collect::<std::collections::HashMap<_, _>>(),
             "body": body_text,
             "node_id": node.base_id(),

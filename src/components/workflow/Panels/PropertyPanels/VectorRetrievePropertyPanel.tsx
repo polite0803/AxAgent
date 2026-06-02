@@ -1,7 +1,8 @@
 import { useKnowledgeStore } from "@/stores";
-import { Divider, Input, InputNumber, Select, theme } from "antd";
+import { Divider, Input, InputNumber, message, Select, theme } from "antd";
 import React, { useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
+import { AIAssistButton, useNodeAIAssist } from "../../Hooks";
 import type { VectorRetrieveNode, WorkflowNode } from "../../types";
 import { BasePropertyPanel } from "./BasePropertyPanel";
 
@@ -42,19 +43,47 @@ export const VectorRetrievePropertyPanel: React.FC<
     onUpdate({ config: { ...config, [key]: value } });
   };
 
+  const { generate: aiGenerate, generating: aiGenerating } = useNodeAIAssist();
+  const [messageApi, contextHolder] = message.useMessage();
+
+  const handleAIRewriteQuery = async () => {
+    const current = config.query || "";
+    const result = await aiGenerate({
+      systemPrompt:
+        "你是一个检索查询改写专家。优化用户提供的检索 query，使其更适合向量检索：补全关键实体、去除冗余、明确语义。"
+        + "只输出改写后的 query 文本，不要任何解释或 Markdown 标记。",
+      userPrompt: current,
+    });
+    if (!result) {
+      messageApi.error(t("workflow.aiAssist.failed"));
+      return;
+    }
+    handleConfigChange("query", result.split("\n")[0].trim());
+    messageApi.success(t("workflow.aiAssist.applied"));
+  };
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      {contextHolder}
       <div>
-        <label
+        <div
           style={{
-            display: "block",
-            color: token.colorTextTertiary,
-            fontSize: 12,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
             marginBottom: 4,
           }}
         >
-          {t("workflow.props.query")}
-        </label>
+          <label style={{ color: token.colorTextTertiary, fontSize: 12 }}>
+            {t("workflow.props.query")}
+          </label>
+          <AIAssistButton
+            labelKey="rewrite"
+            loading={aiGenerating}
+            onClick={handleAIRewriteQuery}
+            compact
+          />
+        </div>
         <Input.TextArea
           id="vector-retrieve-property-panel-input-textarea-120"
           value={config.query || ""}

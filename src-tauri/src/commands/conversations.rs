@@ -2331,6 +2331,8 @@ fn spawn_stream_task(
                         tokens_per_second: Set(None),
                         first_token_latency_ms: Set(None),
                         parts: Set(None),
+                        cache_creation_tokens: Set(None),
+                        cache_read_tokens: Set(None),
                     })
                     .insert(&db)
                     .await
@@ -4219,6 +4221,8 @@ pub async fn regenerate_with_model(
             tokens_per_second: Set(None),
             first_token_latency_ms: Set(None),
             parts: Set(None),
+            cache_creation_tokens: Set(None),
+            cache_read_tokens: Set(None),
         })
         .insert(&state.sea_db)
         .await

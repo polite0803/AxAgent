@@ -6,20 +6,33 @@ import { useTranslation } from "react-i18next";
 import { type JsonSchema, NODE_TYPE_MAP, type WorkflowEdge, type WorkflowNode } from "../types";
 import {
   AgentPropertyPanel,
+  AggregatorPropertyPanel,
+  ApprovalPropertyPanel,
   CodePropertyPanel,
   ConditionPropertyPanel,
+  DatabaseQueryPropertyPanel,
+  DataTransformerPropertyPanel,
+  DebatePropertyPanel,
   DelayPropertyPanel,
   DocumentParserPropertyPanel,
+  EmailPropertyPanel,
   EndPropertyPanel,
+  FileOperationPropertyPanel,
+  HttpRequestPropertyPanel,
+  LlmClassifierPropertyPanel,
   LLMPropertyPanel,
+  LoggingPropertyPanel,
   LoopPropertyPanel,
   MergePropertyPanel,
+  NotificationPropertyPanel,
   ParallelPropertyPanel,
   SubWorkflowPropertyPanel,
+  SwitchPropertyPanel,
   ToolPropertyPanel,
   TriggerPropertyPanel,
   ValidationPropertyPanel,
   VectorRetrievePropertyPanel,
+  WebhookSendPropertyPanel,
 } from "./PropertyPanels";
 
 interface RightPanelProps {
@@ -154,6 +167,110 @@ function NodePropertyPanel({
     case "end":
       return (
         <EndPropertyPanel
+          node={selectedNode}
+          onUpdate={onUpdate}
+          onDelete={onDelete}
+        />
+      );
+    case "debate":
+      return (
+        <DebatePropertyPanel
+          node={selectedNode}
+          onUpdate={onUpdate}
+          onDelete={onDelete}
+        />
+      );
+    case "httpRequest":
+      return (
+        <HttpRequestPropertyPanel
+          node={selectedNode}
+          onUpdate={onUpdate}
+          onDelete={onDelete}
+        />
+      );
+    case "switch":
+      return (
+        <SwitchPropertyPanel
+          node={selectedNode}
+          onUpdate={onUpdate}
+          onDelete={onDelete}
+        />
+      );
+    case "databaseQuery":
+      return (
+        <DatabaseQueryPropertyPanel
+          node={selectedNode}
+          onUpdate={onUpdate}
+          onDelete={onDelete}
+        />
+      );
+    case "notification":
+      return (
+        <NotificationPropertyPanel
+          node={selectedNode}
+          onUpdate={onUpdate}
+          onDelete={onDelete}
+        />
+      );
+    case "approval":
+      return (
+        <ApprovalPropertyPanel
+          node={selectedNode}
+          onUpdate={onUpdate}
+          onDelete={onDelete}
+        />
+      );
+    case "fileOperation":
+      return (
+        <FileOperationPropertyPanel
+          node={selectedNode}
+          onUpdate={onUpdate}
+          onDelete={onDelete}
+        />
+      );
+    case "dataTransformer":
+      return (
+        <DataTransformerPropertyPanel
+          node={selectedNode}
+          onUpdate={onUpdate}
+          onDelete={onDelete}
+        />
+      );
+    case "webhookSend":
+      return (
+        <WebhookSendPropertyPanel
+          node={selectedNode}
+          onUpdate={onUpdate}
+          onDelete={onDelete}
+        />
+      );
+    case "logging":
+      return (
+        <LoggingPropertyPanel
+          node={selectedNode}
+          onUpdate={onUpdate}
+          onDelete={onDelete}
+        />
+      );
+    case "llmClassifier":
+      return (
+        <LlmClassifierPropertyPanel
+          node={selectedNode}
+          onUpdate={onUpdate}
+          onDelete={onDelete}
+        />
+      );
+    case "aggregator":
+      return (
+        <AggregatorPropertyPanel
+          node={selectedNode}
+          onUpdate={onUpdate}
+          onDelete={onDelete}
+        />
+      );
+    case "email":
+      return (
+        <EmailPropertyPanel
           node={selectedNode}
           onUpdate={onUpdate}
           onDelete={onDelete}

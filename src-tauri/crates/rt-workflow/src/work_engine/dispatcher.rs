@@ -1,17 +1,15 @@
-//! 节点调度器 —— 根据 WorkflowNode 类型路由到对应执行器。
-//!
-//! NodeDispatcher::new() 只注册无外部依赖的执行器。
-//! 需要 db/master_key 的执行器（Llm、Agent、Condition）由 WorkEngine::new() 注册覆盖。
-
 use std::collections::HashMap;
 
 use axagent_core::workflow_types::WorkflowNode;
 
 use super::execution_state::ExecutionState;
 use super::executors::{
-    CodeExecutor, DelayExecutor, DocumentParserExecutor, EndExecutor, FallbackExecutor,
-    LoopExecutor, MergeExecutor, ParallelExecutor, SubWorkflowExecutor, ToolExecutor,
-    TriggerExecutor, ValidationExecutor, VectorRetrieveExecutor,
+    AggregatorExecutor, ApprovalExecutor, CodeExecutor, DataTransformerExecutor,
+    DatabaseQueryExecutor, DebateExecutor, DelayExecutor, DocumentParserExecutor, EmailExecutor,
+    EndExecutor, FallbackExecutor, FileOperationExecutor, HttpRequestExecutor,
+    LlmClassifierExecutor, LoggingExecutor, LoopExecutor, MergeExecutor, NotificationExecutor,
+    ParallelExecutor, SubWorkflowExecutor, SwitchExecutor, ToolExecutor, TriggerExecutor,
+    ValidationExecutor, VectorRetrieveExecutor, WebhookSendExecutor,
 };
 use super::node_executor_trait::{NodeError, NodeExecutorTrait, NodeOutput, node_type_name};
 
@@ -42,7 +40,20 @@ impl NodeDispatcher {
         dispatcher.register(ValidationExecutor::new());
         dispatcher.register(ToolExecutor::new());
         dispatcher.register(CodeExecutor::new());
+        dispatcher.register(DebateExecutor::new());
         dispatcher.register(FallbackExecutor::new());
+        dispatcher.register(HttpRequestExecutor::new());
+        dispatcher.register(SwitchExecutor::new());
+        dispatcher.register(DatabaseQueryExecutor::new());
+        dispatcher.register(NotificationExecutor::new());
+        dispatcher.register(ApprovalExecutor::new());
+        dispatcher.register(FileOperationExecutor::new());
+        dispatcher.register(DataTransformerExecutor::new());
+        dispatcher.register(WebhookSendExecutor::new());
+        dispatcher.register(LoggingExecutor::new());
+        dispatcher.register(LlmClassifierExecutor::new());
+        dispatcher.register(AggregatorExecutor::new());
+        dispatcher.register(EmailExecutor::new());
         dispatcher
     }
 

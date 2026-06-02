@@ -147,15 +147,20 @@ pub fn get_builtin_providers() -> Vec<BuiltinProvider> {
             provider_type: ProviderType::OpenAI,
             api_host: "https://api.openai.com",
             models: vec![
-                ("gpt-4o", "GPT-4o", vec![TextChat, Vision, FunctionCalling], Some(128000)),
                 (
-                    "gpt-4o-mini",
-                    "GPT-4o Mini",
-                    vec![TextChat, Vision, FunctionCalling],
-                    Some(128000),
+                    "gpt-5.5",
+                    "GPT-5.5",
+                    vec![TextChat, Vision, FunctionCalling, Reasoning],
+                    Some(1048576),
                 ),
-                ("o3-mini", "o3-mini", vec![TextChat, Reasoning, FunctionCalling], Some(200000)),
-                ("gpt-4.1", "GPT-4.1", vec![TextChat, Vision, FunctionCalling], Some(1047576)),
+                ("gpt-5.4", "GPT-5.4", vec![TextChat, Vision, FunctionCalling], Some(1048576)),
+                (
+                    "gpt-5.4-mini",
+                    "GPT-5.4 Mini",
+                    vec![TextChat, Vision, FunctionCalling],
+                    Some(1048576),
+                ),
+                ("o4-mini", "o4-mini", vec![TextChat, Reasoning, FunctionCalling], Some(200000)),
             ],
         },
         BuiltinProvider {
@@ -164,14 +169,20 @@ pub fn get_builtin_providers() -> Vec<BuiltinProvider> {
             provider_type: ProviderType::OpenAIResponses,
             api_host: "https://api.openai.com",
             models: vec![
-                ("gpt-4o", "GPT-4o", vec![TextChat, Vision, FunctionCalling], Some(128000)),
                 (
-                    "gpt-4o-mini",
-                    "GPT-4o Mini",
-                    vec![TextChat, Vision, FunctionCalling],
-                    Some(128000),
+                    "gpt-5.5",
+                    "GPT-5.5",
+                    vec![TextChat, Vision, FunctionCalling, Reasoning],
+                    Some(1048576),
                 ),
-                ("o3-mini", "o3-mini", vec![TextChat, Reasoning, FunctionCalling], Some(200000)),
+                ("gpt-5.4", "GPT-5.4", vec![TextChat, Vision, FunctionCalling], Some(1048576)),
+                (
+                    "gpt-5.4-mini",
+                    "GPT-5.4 Mini",
+                    vec![TextChat, Vision, FunctionCalling],
+                    Some(1048576),
+                ),
+                ("o4-mini", "o4-mini", vec![TextChat, Reasoning, FunctionCalling], Some(200000)),
             ],
         },
         BuiltinProvider {
@@ -180,6 +191,12 @@ pub fn get_builtin_providers() -> Vec<BuiltinProvider> {
             provider_type: ProviderType::Gemini,
             api_host: "https://generativelanguage.googleapis.com",
             models: vec![
+                (
+                    "gemini-3.5-flash",
+                    "Gemini 3.5 Flash",
+                    vec![TextChat, Vision, FunctionCalling, Reasoning],
+                    Some(1048576),
+                ),
                 (
                     "gemini-2.5-flash",
                     "Gemini 2.5 Flash",
@@ -192,12 +209,6 @@ pub fn get_builtin_providers() -> Vec<BuiltinProvider> {
                     vec![TextChat, Vision, FunctionCalling, Reasoning],
                     Some(1048576),
                 ),
-                (
-                    "gemini-2.0-flash",
-                    "Gemini 2.0 Flash",
-                    vec![TextChat, Vision, FunctionCalling],
-                    Some(1048576),
-                ),
             ],
         },
         BuiltinProvider {
@@ -207,20 +218,20 @@ pub fn get_builtin_providers() -> Vec<BuiltinProvider> {
             api_host: "https://api.anthropic.com",
             models: vec![
                 (
-                    "claude-sonnet-4-20250514",
-                    "Claude Sonnet 4",
+                    "claude-sonnet-4-6",
+                    "Claude Sonnet 4.6",
                     vec![TextChat, Vision, FunctionCalling],
                     Some(200000),
                 ),
                 (
-                    "claude-3-5-haiku-20241022",
-                    "Claude 3.5 Haiku",
+                    "claude-haiku-4-5",
+                    "Claude Haiku 4.5",
                     vec![TextChat, Vision, FunctionCalling],
                     Some(200000),
                 ),
                 (
-                    "claude-opus-4-20250514",
-                    "Claude Opus 4",
+                    "claude-opus-4-8",
+                    "Claude Opus 4.8",
                     vec![TextChat, Vision, FunctionCalling, Reasoning],
                     Some(200000),
                 ),
@@ -232,22 +243,115 @@ pub fn get_builtin_providers() -> Vec<BuiltinProvider> {
             provider_type: ProviderType::OpenAI,
             api_host: "https://api.deepseek.com",
             models: vec![
-                ("deepseek-chat", "DeepSeek Chat", vec![TextChat, FunctionCalling], Some(65536)),
-                ("deepseek-reasoner", "DeepSeek Reasoner", vec![TextChat, Reasoning], Some(65536)),
+                (
+                    "deepseek-v4-flash",
+                    "DeepSeek V4 Flash",
+                    vec![TextChat, FunctionCalling],
+                    Some(1048576),
+                ),
+                (
+                    "deepseek-v4-pro",
+                    "DeepSeek V4 Pro",
+                    vec![TextChat, Reasoning, FunctionCalling],
+                    Some(1048576),
+                ),
             ],
         },
         BuiltinProvider {
-            builtin_id: "xai",
-            name: "xAI",
+            builtin_id: "qwen",
+            name: "通义千问",
             provider_type: ProviderType::OpenAI,
-            api_host: "https://api.x.ai",
+            api_host: "https://dashscope.aliyuncs.com/compatible-mode/v1",
             models: vec![
-                ("grok-3", "Grok 3", vec![TextChat, FunctionCalling], Some(131072)),
                 (
-                    "grok-3-mini",
-                    "Grok 3 Mini",
+                    "qwen3.7-max",
+                    "Qwen3.7 Max",
+                    vec![TextChat, Vision, FunctionCalling, Reasoning],
+                    Some(1048576),
+                ),
+                (
+                    "qwen3.6-plus",
+                    "Qwen3.6 Plus",
+                    vec![TextChat, Vision, FunctionCalling, Reasoning],
+                    Some(1048576),
+                ),
+                (
+                    "qwen3.6-flash",
+                    "Qwen3.6 Flash",
+                    vec![TextChat, Vision, FunctionCalling, Reasoning],
+                    Some(1048576),
+                ),
+            ],
+        },
+        BuiltinProvider {
+            builtin_id: "kimi",
+            name: "Kimi",
+            provider_type: ProviderType::OpenAI,
+            api_host: "https://api.moonshot.cn/v1",
+            models: vec![
+                (
+                    "kimi-k2.6",
+                    "Kimi K2.6",
+                    vec![TextChat, Vision, FunctionCalling, Reasoning],
+                    Some(262144),
+                ),
+                (
+                    "kimi-k2.5",
+                    "Kimi K2.5",
+                    vec![TextChat, Vision, FunctionCalling, Reasoning],
+                    Some(262144),
+                ),
+            ],
+        },
+        BuiltinProvider {
+            builtin_id: "doubao",
+            name: "豆包",
+            provider_type: ProviderType::OpenAI,
+            api_host: "https://ark.cn-beijing.volces.com/api/v3",
+            models: vec![
+                (
+                    "doubao-1.5-pro-256k",
+                    "Doubao 1.5 Pro 256K",
+                    vec![TextChat, Vision, FunctionCalling],
+                    Some(262144),
+                ),
+                (
+                    "doubao-1.5-lite-32k",
+                    "Doubao 1.5 Lite 32K",
+                    vec![TextChat, FunctionCalling],
+                    Some(32768),
+                ),
+            ],
+        },
+        BuiltinProvider {
+            builtin_id: "siliconflow",
+            name: "硅基流动",
+            provider_type: ProviderType::OpenAI,
+            api_host: "https://api.siliconflow.cn/v1",
+            models: vec![
+                (
+                    "Pro/deepseek-ai/DeepSeek-R1",
+                    "DeepSeek R1 (Pro)",
                     vec![TextChat, Reasoning, FunctionCalling],
-                    Some(131072),
+                    Some(65536),
+                ),
+                (
+                    "Pro/deepseek-ai/DeepSeek-V3",
+                    "DeepSeek V3 (Pro)",
+                    vec![TextChat, FunctionCalling],
+                    Some(65536),
+                ),
+                (
+                    "Qwen/Qwen3-235B-A22B",
+                    "Qwen3 235B",
+                    vec![TextChat, Reasoning, FunctionCalling],
+                    Some(262144),
+                ),
+                (
+                    "Qwen/Qwen3-32B",
+                    "Qwen3 32B",
+                    vec![TextChat, Reasoning, FunctionCalling],
+                    Some(262144),
                 ),
             ],
         },
@@ -257,9 +361,9 @@ pub fn get_builtin_providers() -> Vec<BuiltinProvider> {
             provider_type: ProviderType::OpenAI,
             api_host: "https://open.bigmodel.cn/api/paas/v4",
             models: vec![
+                ("glm-5", "GLM-5", vec![TextChat, Reasoning, FunctionCalling], Some(128000)),
                 ("glm-4-plus", "GLM-4 Plus", vec![TextChat, FunctionCalling], Some(128000)),
                 ("glm-4-flash", "GLM-4 Flash", vec![TextChat, FunctionCalling], Some(128000)),
-                ("glm-4.7", "GLM-4.7", vec![TextChat, Reasoning, FunctionCalling], Some(128000)),
             ],
         },
         BuiltinProvider {
@@ -269,8 +373,8 @@ pub fn get_builtin_providers() -> Vec<BuiltinProvider> {
             api_host: "https://api.minimax.io",
             models: vec![
                 (
-                    "MiniMax-M1",
-                    "MiniMax-M1",
+                    "MiniMax-M3",
+                    "MiniMax-M3",
                     vec![TextChat, Reasoning, FunctionCalling],
                     Some(1000000),
                 ),

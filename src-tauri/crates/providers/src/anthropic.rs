@@ -459,6 +459,7 @@ impl ProviderAdapter for AnthropicAdapter {
                 total_tokens: ar.usage.input_tokens + ar.usage.output_tokens,
                 cache_creation_tokens: ar.usage.cache_creation_input_tokens,
                 cache_read_tokens: ar.usage.cache_read_input_tokens,
+                ..Default::default()
             },
             tool_calls: if tool_calls.is_empty() {
                 None
@@ -561,6 +562,8 @@ impl ProviderAdapter for AnthropicAdapter {
             let mut current_tool_use: Option<PendingToolUse> = None;
             let mut accumulated_prompt_tokens: u32 = 0;
             let mut accumulated_completion_tokens: u32 = 0;
+            let mut accumulated_cache_creation: u32 = 0;
+            let mut accumulated_cache_read: u32 = 0;
 
             while let Some(chunk) = byte_stream.next().await {
                 if let Some(ref token) = cancel_token
@@ -605,13 +608,26 @@ impl ProviderAdapter for AnthropicAdapter {
 
                             match event_type {
                                 "message_start" => {
-                                    if let Some(input) = json
-                                        .get("message")
-                                        .and_then(|m| m.get("usage"))
-                                        .and_then(|u| u.get("input_tokens"))
-                                        .and_then(|v| v.as_u64())
+                                    if let Some(usage) =
+                                        json.get("message").and_then(|m| m.get("usage"))
                                     {
-                                        accumulated_prompt_tokens = input as u32;
+                                        if let Some(v) =
+                                            usage.get("input_tokens").and_then(|v| v.as_u64())
+                                        {
+                                            accumulated_prompt_tokens = v as u32;
+                                        }
+                                        if let Some(v) = usage
+                                            .get("cache_creation_input_tokens")
+                                            .and_then(|v| v.as_u64())
+                                        {
+                                            accumulated_cache_creation = v as u32;
+                                        }
+                                        if let Some(v) = usage
+                                            .get("cache_read_input_tokens")
+                                            .and_then(|v| v.as_u64())
+                                        {
+                                            accumulated_cache_read = v as u32;
+                                        }
                                     }
                                 },
                                 "content_block_start" => {
@@ -693,6 +709,20 @@ impl ProviderAdapter for AnthropicAdapter {
                                             .unwrap_or(0)
                                             as u32;
                                         accumulated_completion_tokens = out;
+                                        if let Some(v) = u
+                                            .get("cache_creation_input_tokens")
+                                            .and_then(|v| v.as_u64())
+                                        {
+                                            accumulated_cache_creation =
+                                                accumulated_cache_creation.max(v as u32);
+                                        }
+                                        if let Some(v) = u
+                                            .get("cache_read_input_tokens")
+                                            .and_then(|v| v.as_u64())
+                                        {
+                                            accumulated_cache_read =
+                                                accumulated_cache_read.max(v as u32);
+                                        }
                                         let _ = tx.try_send(Ok(ChatStreamChunk {
                                             content: None,
                                             thinking: None,
@@ -702,8 +732,11 @@ impl ProviderAdapter for AnthropicAdapter {
                                                 prompt_tokens: accumulated_prompt_tokens,
                                                 completion_tokens: out,
                                                 total_tokens: accumulated_prompt_tokens + out,
-                                                cache_creation_tokens: None,
-                                                cache_read_tokens: None,
+                                                cache_creation_tokens: Some(
+                                                    accumulated_cache_creation,
+                                                ),
+                                                cache_read_tokens: Some(accumulated_cache_read),
+                                                ..Default::default()
                                             }),
                                             tool_calls: None,
                                         }));
@@ -736,8 +769,9 @@ impl ProviderAdapter for AnthropicAdapter {
                                             completion_tokens: accumulated_completion_tokens,
                                             total_tokens: accumulated_prompt_tokens
                                                 + accumulated_completion_tokens,
-                                            cache_creation_tokens: None,
-                                            cache_read_tokens: None,
+                                            cache_creation_tokens: Some(accumulated_cache_creation),
+                                            cache_read_tokens: Some(accumulated_cache_read),
+                                            ..Default::default()
                                         })
                                     } else {
                                         None

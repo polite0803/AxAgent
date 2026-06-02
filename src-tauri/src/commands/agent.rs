@@ -1888,6 +1888,8 @@ pub async fn agent_query(
                 &assistant_message.id,
                 Some(summary.usage.input_tokens as i64),
                 Some(summary.usage.output_tokens as i64),
+                Some(summary.usage.cache_creation_input_tokens as i64),
+                Some(summary.usage.cache_read_input_tokens as i64),
             )
             .await
             {

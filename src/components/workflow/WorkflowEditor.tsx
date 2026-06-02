@@ -23,29 +23,43 @@ import { Button, message, Modal, Spin, theme } from "antd";
 import { useTranslation } from "react-i18next";
 import { AIPanel } from "./AIPanel/AIPanel";
 import { DebugPanel } from "./DebugPanel";
+import { DiagnosticDrawer } from "./Diagnostic";
 import { clearDragPayload, getDragPayload } from "./dndState";
 import { BaseEdge } from "./Edges/BaseEdge";
 import { EditorHeader } from "./Header/EditorHeader";
 import {
   AgentNode,
+  AggregatorNode,
+  ApprovalNode,
   BaseNode,
   type BaseNodeData,
   CodeNode,
   ConditionNode,
+  DatabaseQueryNode,
+  DataTransformerNode,
+  DebateNode,
   DelayNode,
   DocumentParserNode,
+  EmailNode,
   EndNode,
+  FileOperationNode,
   HttpRequestNode,
+  LlmClassifierNode,
   LLMNode,
+  LoggingNode,
   LoopNode,
   MergeNode,
+  NotificationNode,
   ParallelNode,
   SubWorkflowNode,
+  SwitchNode,
   ToolNode,
   TriggerNode,
   ValidationNode,
   VectorRetrieveNode,
+  WebhookSendNode,
 } from "./Nodes";
+import { BatchEditPanel } from "./Panels/BatchEditPanel";
 import { LeftPanel } from "./Panels/LeftPanel";
 import { RightPanel } from "./Panels/RightPanel";
 import { SemanticCheckModal } from "./SemanticCheckModal";
@@ -71,6 +85,18 @@ const nodeTypes = {
   validation: ValidationNode,
   end: EndNode,
   httpRequest: HttpRequestNode,
+  debate: DebateNode,
+  switch: SwitchNode,
+  databaseQuery: DatabaseQueryNode,
+  notification: NotificationNode,
+  approval: ApprovalNode,
+  fileOperation: FileOperationNode,
+  dataTransformer: DataTransformerNode,
+  webhookSend: WebhookSendNode,
+  logging: LoggingNode,
+  llmClassifier: LlmClassifierNode,
+  aggregator: AggregatorNode,
+  email: EmailNode,
 };
 
 const edgeTypes = {
@@ -127,6 +153,10 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
     clearSemanticCheckResult,
     applySkillReplacement,
     collapsedParallelContainers,
+    runWorkflowDiagnose,
+    diagnoseLoading,
+    diagnoseDrawerVisible,
+    setDiagnoseDrawerVisible,
   } = useWorkflowEditorStore();
 
   const [reactFlowNodes, setRNodes, onNodesChange] = useNodesState([]);
@@ -146,6 +176,8 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
   const [importExportModalVisible, setImportExportModalVisible] = useState(false);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; nodeId: string } | null>(null);
   const [searchVisible, setSearchVisible] = useState(false);
+  const [selectedNodeIds, setSelectedNodeIds] = useState<Set<string>>(new Set());
+  const [batchEditVisible, setBatchEditVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchIdx, setSearchIdx] = useState(0);
   const [zoom, setZoom] = useState(1);
@@ -168,7 +200,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
     aiChatSend,
     aiChatCancel,
     aiChatClear,
-    applyAiChatAction,
+    // applyAiChatAction,
     exportTemplate,
     importTemplate,
     loadTemplates,
@@ -272,7 +304,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
 
         // 并行/合并容器节点：ReactFlow 需要 parentNode 不为空来判断是否为 group
         const rtType = nodeType;
-        const isContainer = rtType === "parallel" || rtType === "merge"
+        const isContainer = rtType === "parallel" || rtType === "debate"
           || (rtType === "subWorkflow" && useWorkflowEditorStore.getState().expandedSubWorkflows[node.id] != null);
         const isParallel = rtType === "parallel";
         const isParallelCollapsed = isParallel
@@ -398,6 +430,32 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
                 };
                 expectedParentByNode[node.id] = targetParent;
               }
+            }
+          }
+        }
+        // 将 DebateNode 的 debater_steps 中的子节点挂载为容器子节点
+        if (node.type === "debate" && (node as any).config?.debater_steps) {
+          const debaterSteps = (node as any).config.debater_steps as string[];
+          for (const stepId of debaterSteps) {
+            const childIdx = flowNodes.findIndex((fn) => fn.id === stepId);
+            if (childIdx === -1) { continue; }
+            const storedParent = parentRefs[stepId];
+            if (storedParent === undefined || storedParent === node.id) {
+              const parentFn = flowNodes.find((fn) => fn.id === node.id);
+              const childFn = flowNodes[childIdx];
+              const relPos = parentFn
+                ? { x: childFn.position.x - parentFn.position.x, y: childFn.position.y - parentFn.position.y }
+                : childFn.position;
+              const isCollapsedParent = collapsedParallelContainers.has(node.id);
+              if (isCollapsedParent) { hiddenChildIds.add(stepId); }
+              flowNodes[childIdx] = {
+                ...childFn,
+                position: relPos,
+                parentId: node.id,
+                extent: "parent",
+                hidden: isCollapsedParent ? true : childFn.hidden,
+              };
+              expectedParentByNode[stepId] = node.id;
             }
           }
         }
@@ -615,12 +673,11 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
           y: e.clientY,
         });
 
-        // 容器 hit-test：落点在某个 parallel 节点的 bbox 内时，自动挂入该容器。
-        // 只命中 parallel，不命中 merge——merge 通常作为合并器由其 inputs 引用来挂入所属 parallel。
+        // 容器 hit-test：落点在某个 parallel/debate 节点的 bbox 内时，自动挂入该容器。
         const existingNodes = useWorkflowEditorStore.getState().nodes;
         let hitContainerId: string | null = null;
         for (const n of existingNodes) {
-          if (n.type !== "parallel") { continue; }
+          if (n.type !== "parallel" && n.type !== "debate") { continue; }
           const size = getNodeSize(n.type);
           const nx = n.position.x;
           const ny = n.position.y;
@@ -640,10 +697,22 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
           ? payload.type
           : "base";
 
+        let relativePosition = position;
+        if (hitContainerId) {
+          const parentNode = existingNodes.find((n) => n.id === hitContainerId);
+          if (parentNode) {
+            relativePosition = {
+              x: position.x - parentNode.position.x,
+              y: position.y - parentNode.position.y,
+            };
+          }
+        }
+
         const newNode: Node = {
           id,
           type: actualNodeType,
-          position,
+          position: relativePosition,
+          ...(hitContainerId ? { parentId: hitContainerId, extent: "parent" as const } : {}),
           data: {
             id,
             type: payload.type,
@@ -667,6 +736,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
           t("workflow.newNode", {
             type: typeInfo.labelKey ? t(typeInfo.labelKey) : payload.type,
           }),
+          hitContainerId ?? undefined,
         );
         useWorkflowEditorStore.getState().addNode(workflowNode);
 
@@ -890,6 +960,16 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
     (changes: any) => {
       onNodesChange(changes);
 
+      // Track multi-selection
+      const hasSelectionChange = changes.some((c: any) => c.type === "select");
+      if (hasSelectionChange) {
+        const flowInstance = reactFlowInstance;
+        if (flowInstance) {
+          const selected = flowInstance.getNodes().filter((n: any) => n.selected);
+          setSelectedNodeIds(new Set(selected.map((n: any) => n.id)));
+        }
+      }
+
       changes.forEach((change: any) => {
         if (change.type === "position" && change.position && currentTemplate) {
           const node = currentTemplate.nodes.find((n) => n.id === change.id);
@@ -1092,6 +1172,15 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
         onClose={handleClose}
         onToggleAIPanel={() => setAiPanelVisible(!aiPanelVisible)}
         onToggleDebugPanel={() => setDebugPanelVisible(!debugPanelVisible)}
+        onRunDiagnostic={async () => {
+          try {
+            await runWorkflowDiagnose();
+            setDiagnoseDrawerVisible(true);
+          } catch (e) {
+            message.error(t("workflow.diagnostic.error"));
+          }
+        }}
+        diagnosticLoading={diagnoseLoading}
         onToggleLeftPanel={() =>
           setLeftPanelCollapsed((v) => {
             const next = !v;
@@ -1118,6 +1207,9 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
           }
         }}
         onAutoLayout={handleAutoLayout}
+        selectedNodeIds={selectedNodeIds}
+        onBatchEdit={() => setBatchEditVisible(!batchEditVisible)}
+        batchEditVisible={batchEditVisible}
         canUndo={canUndo()}
         canRedo={canRedo()}
         aiPanelVisible={aiPanelVisible}
@@ -1231,6 +1323,12 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
                     {t("workflow.dragToStart")}
                   </Panel>
                 )}
+                {selectedNodeIds.size >= 2 && batchEditVisible && (
+                  <BatchEditPanel
+                    selectedNodeIds={selectedNodeIds}
+                    onClose={() => setBatchEditVisible(false)}
+                  />
+                )}
               </ReactFlow>
             )
             : (
@@ -1304,7 +1402,6 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
               onChatSend={aiChatSend}
               onChatCancel={aiChatCancel}
               onChatClear={aiChatClear}
-              onApplyAction={applyAiChatAction}
             />
           </div>
         </div>
@@ -1359,6 +1456,15 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
           loadTemplates();
         }}
         onImportedTemplate={handleImportedTemplate}
+      />
+
+      <DiagnosticDrawer
+        open={diagnoseDrawerVisible}
+        onClose={() => setDiagnoseDrawerVisible(false)}
+        onJumpToNode={(nodeId) => {
+          setSelectedNode(nodeId);
+          setDiagnoseDrawerVisible(false);
+        }}
       />
 
       {/* Context menu */}
@@ -1482,6 +1588,7 @@ function createWorkflowNode(
   type: string,
   position: { x: number; y: number },
   title: string,
+  parentId?: string,
 ): WorkflowNode {
   const baseNode = {
     id,
@@ -1497,6 +1604,7 @@ function createWorkflowNode(
     },
     timeout: undefined,
     enabled: true,
+    parentId,
   };
 
   switch (type) {
@@ -1607,20 +1715,138 @@ function createWorkflowNode(
         type: "validation",
         config: { assertions: [], on_fail: "stop" as const, max_retries: 0 },
       };
-    default:
+    case "httpRequest":
       return {
         ...baseNode,
-        type: "agent",
+        type: "httpRequest",
         config: {
-          system_prompt: "",
-          context_sources: [],
+          url: "",
+          method: "GET",
+          headers: {},
+          body_type: "none",
+          timeout_secs: 30,
           output_var: "",
-          tools: [],
-          exposed_tools: [],
-          output_mode: "text",
-          agentProfileId: undefined,
-          max_tool_rounds: undefined,
         },
+      };
+    case "switch":
+      return {
+        ...baseNode,
+        type: "switch",
+        config: {
+          input_var: "",
+          cases: [],
+          match_mode: "exact",
+          output_var: "",
+        },
+      };
+    case "databaseQuery":
+      return {
+        ...baseNode,
+        type: "databaseQuery",
+        config: {
+          query: "",
+          params: [],
+          timeout_secs: 30,
+          output_var: "",
+        },
+      };
+    case "notification":
+      return {
+        ...baseNode,
+        type: "notification",
+        config: {
+          channel: "webhook",
+          message: "",
+          recipients: [],
+          enabled: true,
+          output_var: "",
+        },
+      };
+    case "approval":
+      return {
+        ...baseNode,
+        type: "approval",
+        config: {
+          message: "",
+          timeout_secs: 3600,
+          timeout_action: "reject",
+          output_var: "",
+        },
+      };
+    case "fileOperation":
+      return {
+        ...baseNode,
+        type: "fileOperation",
+        config: { operation: "read", file_path: "", output_var: "" },
+      };
+    case "dataTransformer":
+      return {
+        ...baseNode,
+        type: "dataTransformer",
+        config: { input_var: "", expression: "", output_var: "" },
+      };
+    case "webhookSend":
+      return {
+        ...baseNode,
+        type: "webhookSend",
+        config: {
+          url: "",
+          method: "POST",
+          headers: {},
+          output_var: "",
+        },
+      };
+    case "logging":
+      return {
+        ...baseNode,
+        type: "logging",
+        config: { level: "info", message: "", output_var: "" },
+      };
+    case "llmClassifier":
+      return {
+        ...baseNode,
+        type: "llmClassifier",
+        config: {
+          categories: [],
+          prompt: "",
+          input_var: "",
+          output_var: "",
+        },
+      };
+    case "aggregator":
+      return {
+        ...baseNode,
+        type: "aggregator",
+        config: { strategy: "concat", input_sources: [], output_var: "" },
+      };
+    case "email":
+      return {
+        ...baseNode,
+        type: "email",
+        config: {
+          to: [],
+          subject: "",
+          body: "",
+          output_var: "",
+        },
+      };
+    case "debate":
+      return {
+        ...baseNode,
+        type: "debate",
+        config: {
+          debater_steps: [],
+          max_rounds: 3,
+          topic_var: "",
+          output_var: "",
+        },
+      };
+    default:
+      console.warn(`[createWorkflowNode] Unknown node type "${type}", falling back to agent`);
+      return {
+        ...baseNode,
+        type: type as any,
+        config: {},
       };
   }
 }

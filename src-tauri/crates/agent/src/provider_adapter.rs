@@ -7,7 +7,7 @@ use axagent_core::types::{
 use axagent_providers::{ProviderAdapter, ProviderRequestContext};
 use axagent_runtime_core::{
     ApiClient, ApiRequest, AssistantEvent, ContentBlock, ConversationMessage, MessageRole,
-    RuntimeError, TokenUsage as RuntimeTokenUsage,
+    PromptCacheEvent, RuntimeError, TokenUsage as RuntimeTokenUsage,
 };
 use futures::StreamExt;
 use std::sync::Arc;
@@ -366,6 +366,7 @@ impl AxAgentApiClient {
             output_tokens: usage.completion_tokens,
             cache_creation_input_tokens: usage.cache_creation_tokens.unwrap_or(0),
             cache_read_input_tokens: usage.cache_read_tokens.unwrap_or(0),
+            cache_miss_input_tokens: usage.cache_miss_tokens,
         }
     }
 }
@@ -469,6 +470,23 @@ impl ApiClient for AxAgentApiClient {
                                 cb(&event);
                             }
                             events.push(event);
+
+                            if let Some(cache_read) = usage.cache_read_tokens {
+                                if cache_read > 0 {
+                                    let cache_event =
+                                        AssistantEvent::PromptCache(PromptCacheEvent {
+                                            unexpected: false,
+                                            reason: String::new(),
+                                            previous_cache_read_input_tokens: 0,
+                                            current_cache_read_input_tokens: cache_read,
+                                            token_drop: 0,
+                                        });
+                                    if let Some(ref cb) = on_event {
+                                        cb(&cache_event);
+                                    }
+                                    events.push(cache_event);
+                                }
+                            }
                         }
 
                         if chunk.done {

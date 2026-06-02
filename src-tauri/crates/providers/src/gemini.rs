@@ -140,6 +140,13 @@ struct GeminiUsageMetadata {
     prompt_token_count: Option<u32>,
     candidates_token_count: Option<u32>,
     total_token_count: Option<u32>,
+    /// Gemini 上下文缓存命中 token 数 (cachedContentTokenCount).
+    #[serde(default)]
+    cached_content_token_count: Option<u32>,
+    /// 推理模型思考 token 数 (thoughtsTokenCount). P2 计费用.
+    #[allow(dead_code)]
+    #[serde(default)]
+    thoughts_token_count: Option<u32>,
 }
 
 #[derive(Deserialize)]
@@ -416,7 +423,8 @@ fn usage_from_meta(meta: Option<GeminiUsageMetadata>) -> TokenUsage {
         completion_tokens: u.candidates_token_count.unwrap_or(0),
         total_tokens: u.total_token_count.unwrap_or(0),
         cache_creation_tokens: None,
-        cache_read_tokens: None,
+        cache_read_tokens: u.cached_content_token_count,
+        ..Default::default()
     })
     .unwrap_or(TokenUsage {
         prompt_tokens: 0,
@@ -424,6 +432,7 @@ fn usage_from_meta(meta: Option<GeminiUsageMetadata>) -> TokenUsage {
         total_tokens: 0,
         cache_creation_tokens: None,
         cache_read_tokens: None,
+        ..Default::default()
     })
 }
 
@@ -709,7 +718,8 @@ impl ProviderAdapter for GeminiAdapter {
                                         completion_tokens: u.candidates_token_count.unwrap_or(0),
                                         total_tokens: u.total_token_count.unwrap_or(0),
                                         cache_creation_tokens: None,
-                                        cache_read_tokens: None,
+                                        cache_read_tokens: u.cached_content_token_count,
+                                        ..Default::default()
                                     });
 
                                     let _ = tx.try_send(Ok(ChatStreamChunk {

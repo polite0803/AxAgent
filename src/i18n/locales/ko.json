@@ -3393,7 +3393,38 @@
       "clickCanvasToAdd": "\"{{label}}\" 선택됨 — 캔버스를 클릭하여 노드 배치",
       "explanation": "설명",
       "replaceConfirmTitle": "바꾸기 확인",
-      "replaceConfirmContent": "현재 캔버스에 {{nodes}}개의 노드와 {{edges}}개의 간선이 있습니다. 생성 시 모두 교체됩니다. 계속하시겠습니까?"
+      "replaceConfirmContent": "현재 캔버스에 {{nodes}}개의 노드와 {{edges}}개의 간선이 있습니다. 생성 시 모두 교체됩니다. 계속하시겠습니까?",
+      "actionGenerateWorkflow": "Generate Workflow",
+      "actionAddNodes": "Add Node(s)",
+      "actionModifyNode": "Update Node",
+      "actionDeleteNodes": "Delete Node(s)",
+      "actionAddEdge": "Add Edge",
+      "actionUpdateEdge": "Update Edge",
+      "actionDeleteEdge": "Delete Edge",
+      "actionOptimizePrompt": "Optimize Prompt",
+      "actionApply": "Apply",
+      "actionApplyAll": "Review {{count}} changes",
+      "diffPreview": {
+        "title": "AI Edit Preview",
+        "subtitle": "Please review these {{count}} changes before applying to your workflow",
+        "before": "Before",
+        "after": "After",
+        "apply": "Apply this",
+        "applyAll": "Apply All",
+        "cancel": "Cancel",
+        "applied": "Applied",
+        "appliedHint": "Applied {{count}} / {{total}} in this session",
+        "empty": "No changes to preview",
+        "promptLength": "Prompt length: {{from}} → {{to}} chars",
+        "noBefore": "(new item, no prior content)",
+        "noAfter": "(deletion, no new content)",
+        "noChanges": "No field changes",
+        "applyFailed": "Apply failed",
+        "applyAllFailed": "Apply All failed",
+        "rollbackBatch": "Rollback Batch",
+        "rollbackSuccess": "Batch rolled back",
+        "rollbackTip": "Undo the entire batch of AI changes"
+      }
     },
     "previewInDevelopment": "미리보기 기능은 개발 중입니다",
     "publishInDevelopment": "게시 기능은 개발 중입니다",
@@ -3748,7 +3779,18 @@
       "headers": "headers",
       "addHeader": "addHeader",
       "headerKey": "headerKey",
-      "headerValue": "headerValue"
+      "headerValue": "headerValue",
+      "selectTemplate": "Select Template",
+      "searchTemplate": "Search template...",
+      "noTemplates": "No templates found",
+      "ragSourceIdsCount": "RAG Sources ({{count}})",
+      "ragSourceIdsPlaceholder": "Enter or select knowledge source IDs...",
+      "ragSourceIdsHint": "Format: knowledge:<kb_id>, memory:<ns_id>, wiki:<wiki_id>",
+      "modelRole": "Model Role",
+      "modelRolePlaceholder": "Auto (use model field)",
+      "modelRoleQuickThink": "⚡ Quick Think",
+      "modelRoleDeepThink": "🧠 Deep Think",
+      "modelRoleHint": "Preset role overrides model when set; lower priority than explicit model field."
     },
     "debug": {
       "totalDuration": "총 소요 시간",
@@ -3835,7 +3877,17 @@
       "end": "종료",
       "tool": "도구",
       "code": "코드",
-      "httpRequest": "HTTP Request"
+      "httpRequest": "HTTP Request",
+      "notification": "Notification",
+      "approval": "Approval",
+      "fileOperation": "File Operation",
+      "dataTransformer": "Data Transformer",
+      "webhookSend": "Webhook Send",
+      "logging": "Logging",
+      "llmClassifier": "LLM Classifier",
+      "aggregator": "Aggregator",
+      "email": "Email",
+      "debate": "Debate"
     },
     "templateList": {
       "deleted": "템플릿이 삭제되었습니다",
@@ -4036,7 +4088,14 @@
       "first": "첫 번째",
       "last": "마지막",
       "title": "병합",
-      "inputCount": "{{count}}개 입력"
+      "inputCount": "{{count}}개 입력",
+      "any": "Any",
+      "race": "Race",
+      "majority": "Majority",
+      "inputs": "inputs",
+      "waitAll": "Wait all",
+      "waitAny": "Any complete",
+      "autoInputs": "Auto-receive branch outputs"
     },
     "parallelNode": {
       "title": "병렬",
@@ -4046,7 +4105,10 @@
       "moreBranches": "{{count}}개 추가 브랜치",
       "clickToAdd": "클릭하여 브랜치 추가",
       "expand": "펼치기",
-      "collapse": "접기"
+      "collapse": "접기",
+      "race": "Race",
+      "branches": "branches",
+      "autoInput": "Auto-receive parent input"
     },
     "toolNode": {
       "notSelected": "선택 안 됨",
@@ -4117,7 +4179,283 @@
     "autoLayout": "자동 레이아웃",
     "autoLayoutTooltip": "노드 자동 정렬",
     "selfLoopNotAllowed": "자기 루프는 허용되지 않습니다",
-    "edgeAlreadyExists": "간선이 이미 존재합니다"
+    "edgeAlreadyExists": "간선이 이미 존재합니다",
+    "aiAssist": {
+      "btn": {
+        "optimize": "AI 최적화",
+        "suggest": "AI 제안",
+        "generate": "AI 생성",
+        "rewrite": "AI 다시 쓰기",
+        "contextComplete": "Context Complete"
+      },
+      "tooltip": "AI로 최적화 또는 생성",
+      "noProvider": "사용 가능한 AI 제공자가 없음",
+      "failed": "AI 생성 실패",
+      "optimizing": "AI 최적화 중...",
+      "generating": "AI 생성 중...",
+      "applied": "AI 제안 적용됨",
+      "contextCompleteApplied": "Context completion applied"
+    },
+    "diagnostic": {
+      "title": "Workflow Diagnostic",
+      "run": "Run Diagnostic",
+      "tooltip": "Scan structure, config, prompts and variable references",
+      "loading": "Diagnosing...",
+      "empty": "Workflow is empty. Add nodes to start diagnosis.",
+      "allGood": "Workflow looks good. No issues found.",
+      "summary": {
+        "title": "Diagnostic Summary",
+        "error": "Errors",
+        "warning": "Warnings",
+        "info": "Info",
+        "total": "{{count}} issue(s)"
+      },
+      "severity": {
+        "error": "Error",
+        "warning": "Warning",
+        "info": "Info"
+      },
+      "category": {
+        "structure": "Structure",
+        "configuration": "Configuration",
+        "prompt": "Prompt",
+        "reference": "Reference",
+        "best_practice": "Best Practice",
+        "prompt_quality": "Prompt Quality",
+        "performance": "Performance",
+        "cost": "Cost",
+        "security": "Security"
+      },
+      "fix": {
+        "apply": "Auto Fix",
+        "applied": "Fixed",
+        "failed": "Fix failed"
+      },
+      "jump": "Locate Node",
+      "issues": {
+        "duplicate_node_id": {
+          "title": "Duplicate Node ID",
+          "message": "Node ID \"{{id}}\" appears multiple times, which may cause routing issues."
+        },
+        "orphan_node": {
+          "title": "Orphan Node",
+          "message": "Node \"{{label}}\" has neither incoming nor outgoing edges."
+        },
+        "unreachable_from_trigger": {
+          "title": "Node Unreachable from Trigger",
+          "message": "Node \"{{label}}\" has no path from any trigger."
+        },
+        "dangling_edge": {
+          "title": "Dangling Edge",
+          "message": "Edge \"{{id}}\" references a missing source or target node."
+        },
+        "llm_prompt_empty": {
+          "title": "Empty LLM Prompt",
+          "message": "Node \"{{label}}\" has an empty LLM.prompt."
+        },
+        "llm_prompt_short": {
+          "title": "LLM Prompt Too Short",
+          "message": "Node \"{{label}}\" LLM.prompt is only {{len}} characters long."
+        },
+        "agent_prompt_empty": {
+          "title": "Empty Agent System Prompt",
+          "message": "Node \"{{label}}\" has an empty Agent.system_prompt."
+        },
+        "agent_prompt_trivial": {
+          "title": "Agent System Prompt Too Simple",
+          "message": "Node \"{{label}}\" system_prompt is only {{len}} characters."
+        },
+        "classifier_prompt_empty": {
+          "title": "Empty Classifier Prompt",
+          "message": "Node \"{{label}}\" has an empty LlmClassifier.prompt."
+        },
+        "classifier_prompt_trivial": {
+          "title": "Classifier Prompt Too Simple",
+          "message": "Node \"{{label}}\" classifier prompt is only {{len}} characters."
+        },
+        "classifier_categories_empty": {
+          "title": "No Classifier Categories",
+          "message": "Node \"{{label}}\" categories list is empty."
+        },
+        "http_url_empty": {
+          "title": "Empty HTTP URL",
+          "message": "Node \"{{label}}\" HttpRequest.url is empty."
+        },
+        "webhook_url_empty": {
+          "title": "Empty Webhook URL",
+          "message": "Node \"{{label}}\" WebhookSend.url is empty."
+        },
+        "email_to_empty": {
+          "title": "Empty Email Recipients",
+          "message": "Node \"{{label}}\" Email.to is empty."
+        },
+        "email_body_empty": {
+          "title": "Empty Email Body",
+          "message": "Node \"{{label}}\" Email.body is empty."
+        },
+        "validation_assertions_empty": {
+          "title": "Empty Validation Assertions",
+          "message": "Node \"{{label}}\" assertions list is empty."
+        },
+        "code_body_empty": {
+          "title": "Empty Code Node Body",
+          "message": "Node \"{{label}}\" Code.code is empty."
+        },
+        "code_output_var_empty": {
+          "title": "Code Node Missing Output Variable",
+          "message": "Node \"{{label}}\" output_var is empty; downstream nodes cannot reference its result."
+        },
+        "tool_name_empty": {
+          "title": "Tool Node Missing Tool",
+          "message": "Node \"{{label}}\" tool_name is empty."
+        },
+        "subworkflow_id_empty": {
+          "title": "Empty SubWorkflow ID",
+          "message": "Node \"{{label}}\" SubWorkflow.sub_workflow_id is empty."
+        },
+        "unknown_var_reference": {
+          "title": "Undeclared Variable Reference",
+          "message": "Node \"{{label}}\" references ${ {{var}} }, but no node declares this as output_var."
+        },
+        "no_timeout": {
+          "title": "No Timeout Configured",
+          "message": "Node \"{{label}}\" has no timeout, long-running tasks may block the workflow."
+        },
+        "no_retry": {
+          "title": "No Retry Configured",
+          "message": "Node \"{{label}}\" has no retry policy; transient failures will propagate."
+        },
+        "parallel_no_merge": {
+          "title": "Parallel Without Merge",
+          "message": "Parallel node \"{{label}}\" branches should converge into a Merge node."
+        },
+        "no_trigger": {
+          "title": "No Trigger Node",
+          "message": "Workflow has no trigger node. Add a Trigger to define the entry point."
+        },
+        "no_end": {
+          "title": "No End Node",
+          "message": "Workflow has no end node. Consider adding an End node to mark completion."
+        },
+        "agent_empty_prompt": {
+          "title": "Empty Agent System Prompt",
+          "message": "Agent node has an empty system_prompt. Define a clear role and instructions."
+        },
+        "agent_short_prompt": {
+          "title": "Agent System Prompt Too Short",
+          "message": "Agent system_prompt is under 30 characters. Add role definition and output constraints."
+        },
+        "agent_no_max_tokens": {
+          "title": "Agent Missing max_tokens",
+          "message": "Agent node has no max_tokens set. This may lead to unbounded token usage."
+        },
+        "agent_no_max_tool_rounds": {
+          "title": "Agent Missing max_tool_rounds",
+          "message": "Agent with tools has no max_tool_rounds set. Tool loops may run indefinitely."
+        },
+        "llm_empty_prompt": {
+          "title": "Empty LLM Prompt",
+          "message": "LLM node has an empty prompt. Provide a clear instruction."
+        },
+        "llm_no_max_tokens": {
+          "title": "LLM Missing max_tokens",
+          "message": "LLM node has no max_tokens set. This may lead to unbounded token usage."
+        },
+        "http_no_timeout": {
+          "title": "HTTP Request No Timeout",
+          "message": "HttpRequest node has no timeout configured. Long-running requests may block the workflow."
+        },
+        "http_no_retry": {
+          "title": "HTTP Request No Retry",
+          "message": "HttpRequest node has no retry policy. Transient failures will propagate."
+        },
+        "db_no_timeout": {
+          "title": "Database Query No Timeout",
+          "message": "DatabaseQuery node has no timeout configured. Slow queries may block the workflow."
+        },
+        "loop_no_max_iter": {
+          "title": "Loop No Max Iterations",
+          "message": "Loop node has no max_iterations set. Infinite loops may occur."
+        },
+        "loop_no_condition": {
+          "title": "Loop No Continue Condition",
+          "message": "Loop node has no continue_condition defined. The loop may never terminate."
+        },
+        "doc_no_parser_type": {
+          "title": "Document Parser No Type",
+          "message": "DocumentParser node has no parser_type specified."
+        },
+        "insecure_http_url": {
+          "title": "Insecure HTTP URL",
+          "message": "URL uses plain HTTP instead of HTTPS. Data may be transmitted unencrypted."
+        },
+        "insecure_notification_url": {
+          "title": "Insecure Notification Webhook URL",
+          "message": "Notification webhook URL uses plain HTTP. Webhook payloads may be intercepted."
+        },
+        "approval_no_approver": {
+          "title": "Approval No Approver",
+          "message": "Approval node has no approver configured. The workflow will stall at this node."
+        },
+        "vector_no_threshold": {
+          "title": "Vector Retrieve No Similarity Threshold",
+          "message": "VectorRetrieve node has no similarity_threshold. Low-quality matches may be returned."
+        },
+        "vector_high_top_k": {
+          "title": "Vector Retrieve High top_k",
+          "message": "VectorRetrieve top_k exceeds 20. This increases cost and may reduce relevance."
+        },
+        "condition_single_exit": {
+          "title": "Condition Single Exit",
+          "message": "Condition node has fewer than 2 downstream branches. Consider adding both true/false paths."
+        },
+        "classifier_few_cases": {
+          "title": "Classifier Too Few Cases",
+          "message": "LlmClassifier has fewer than 2 classification cases."
+        },
+        "validation_no_rules": {
+          "title": "Validation No Rules",
+          "message": "Validation node has no rules defined. It will always pass."
+        },
+        "edge_dangling_source": {
+          "title": "Dangling Edge Source",
+          "message": "Edge references a source node that no longer exists."
+        },
+        "edge_dangling_target": {
+          "title": "Dangling Edge Target",
+          "message": "Edge references a target node that no longer exists."
+        },
+        "debate_no_debaters": {
+          "title": "Debate No Debaters",
+          "message": "Debate node has no debater agents. Add at least 2 debaters for a meaningful debate."
+        },
+        "debate_single_debater": {
+          "title": "Debate Single Debater",
+          "message": "Debate node has only 1 debater. A debate requires at least 2 opposing sides."
+        },
+        "debate_dangling_step": {
+          "title": "Debate Dangling Debater Reference",
+          "message": "Debate node references a debater step that no longer exists. Remove the stale reference."
+        }
+      }
+    },
+    "batchEdit": {
+      "title": "Batch Edit",
+      "noChange": "No change",
+      "apply": "Apply to {count} nodes"
+    },
+    "autoLayoutWithSubs": "Auto-layout (with {{count}} sub-workflows)",
+    "toggleBreakpoint": "Toggle Breakpoint",
+    "copyNode": "Copy Node",
+    "deleteNode": "Delete Node",
+    "debateNode": {
+      "debaters": "debaters",
+      "rounds": "rounds",
+      "expand": "Expand",
+      "collapse": "Collapse",
+      "newDebater": "Debater",
+      "noDebatersHint": "Add debater Agent nodes inside this container"
+    }
   },
   "atomicSkill": {
     "entryType": "항목 유형",
@@ -5792,7 +6130,9 @@
     "historyTitle": "기록",
     "noRecords": "레코드 없음",
     "success": "성공",
-    "failed": "실패"
+    "failed": "실패",
+    "viewSubExecution": "View Sub-Execution",
+    "subExecutionDetail": "Sub-Workflow Execution Detail"
   },
   "markdown": "마크다운",
   "success": "성공",

@@ -1,4 +1,5 @@
 import { Icon } from "@/components/common/Icon";
+import { DropdownMenu } from "@/components/layout/DropdownMenu";
 import { Tooltip } from "@/components/layout/Tooltip";
 import { useResolvedDarkMode } from "@/hooks/useResolvedDarkMode";
 import { useConversationStore, useRightPanelStore, useSettingsStore } from "@/stores";
@@ -30,7 +31,7 @@ import {
   X,
   Zap,
 } from "lucide-react";
-import { Component, useEffect, useMemo, useState } from "react";
+import { Component, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 // 单个 tab 面板的错误边界，防止一个 tab 崩溃导致整个右侧栏白屏
@@ -95,6 +96,10 @@ export interface RightPanelContainerProps {
   conversationId: string;
   compactMode: boolean;
   onToggleCompact: () => void;
+  /** 抽屉模式（覆盖在内容上方，而非并排） */
+  drawerOpen?: boolean;
+  /** 抽屉关闭回调 */
+  onCloseDrawer?: () => void;
 }
 
 const ICON = 14;
@@ -116,6 +121,8 @@ export function RightPanelContainer({
   conversationId,
   compactMode,
   onToggleCompact,
+  drawerOpen,
+  onCloseDrawer,
 }: RightPanelContainerProps) {
   const { t } = useTranslation();
   const [inspectorTab, setInspectorTab] = useState("overview");
@@ -485,6 +492,37 @@ export function RightPanelContainer({
     [panels, isAgent],
   );
 
+  const tabsRef = useRef<HTMLDivElement>(null);
+  const [visibleTabs, setVisibleTabs] = useState<PanelEntry[]>([]);
+  const [overflowPanels, setOverflowPanels] = useState<PanelEntry[]>([]);
+
+  // 计算可见 tab 和溢出 tab
+  useEffect(() => {
+    const container = tabsRef.current;
+    if (!container) { return; }
+    const maxWidth = container.clientWidth;
+    let usedWidth = 0;
+    const visible: PanelEntry[] = [];
+    const overflow: PanelEntry[] = [];
+    // 为每个 tab 预留约 40px 宽度（icon + padding）
+    const tabWidth = 40;
+    for (const p of visiblePanels) {
+      if (usedWidth + tabWidth + 30 <= maxWidth) { // 30px 为 ... 按钮预留
+        visible.push(p);
+        usedWidth += tabWidth;
+      } else {
+        overflow.push(p);
+      }
+    }
+    if (overflow.length === 0) {
+      setVisibleTabs(visiblePanels);
+      setOverflowPanels([]);
+    } else {
+      setVisibleTabs(visible);
+      setOverflowPanels(overflow);
+    }
+  }, [visiblePanels]);
+
   const [activeTab, setActiveTab] = useState(() => visiblePanels[0]?.key ?? "");
 
   // 仅在 isAgent 切换时验证 activeTab 有效性
@@ -496,6 +534,60 @@ export function RightPanelContainer({
   }, [isAgent]);
 
   const activePanel = visiblePanels.find((p) => p.key === activeTab);
+
+  // ── 抽屉模式渲染 ──
+  if (drawerOpen) {
+    return (
+      <>
+        <div className="rp-drawer-backdrop" onClick={onCloseDrawer} />
+        <div className="rp-drawer">
+          <div className="rp-header">
+            <span className="rp-header-title">
+              {t("chatRightPanel.title")}
+            </span>
+            <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+              <button className="titlebar-btn" onClick={onCloseDrawer} title={t("chatRightPanel.close")}>
+                <X size={14} />
+              </button>
+            </div>
+          </div>
+          <div className="rp-tabs" ref={tabsRef}>
+            {visibleTabs.map((p) => (
+              <Tooltip key={p.key} title={t(p.labelKey)} placement="bottom">
+                <button
+                  className={`rp-tab ${activeTab === p.key ? "active" : ""}`}
+                  onClick={() => setActiveTab(p.key)}
+                >
+                  {p.icon}
+                </button>
+              </Tooltip>
+            ))}
+            {overflowPanels.length > 0 && (
+              <DropdownMenu
+                items={overflowPanels.map((p) => ({
+                  key: p.key,
+                  label: t(p.labelKey),
+                  icon: p.icon,
+                  onClick: () => setActiveTab(p.key),
+                }))}
+              >
+                <button
+                  className={`rp-tabs-overflow ${overflowPanels.some((p) => p.key === activeTab) ? "active" : ""}`}
+                >
+                  <span>···</span>
+                </button>
+              </DropdownMenu>
+            )}
+          </div>
+          <div className="rp-body">
+            <TabErrorBoundary tabKey={activeTab}>
+              {activePanel?.render()}
+            </TabErrorBoundary>
+          </div>
+        </div>
+      </>
+    );
+  }
 
   return (
     <div className="right-panel open" style={{ width: "100%", minWidth: 0 }}>
@@ -524,8 +616,8 @@ export function RightPanelContainer({
           </button>
         </div>
       </div>
-      <div className="rp-tabs">
-        {visiblePanels.map((p) => (
+      <div className="rp-tabs" ref={tabsRef}>
+        {visibleTabs.map((p) => (
           <Tooltip key={p.key} title={t(p.labelKey)} placement="bottom">
             <button
               className={`rp-tab ${activeTab === p.key ? "active" : ""}`}
@@ -535,6 +627,20 @@ export function RightPanelContainer({
             </button>
           </Tooltip>
         ))}
+        {overflowPanels.length > 0 && (
+          <DropdownMenu
+            items={overflowPanels.map((p) => ({
+              key: p.key,
+              label: t(p.labelKey),
+              icon: p.icon,
+              onClick: () => setActiveTab(p.key),
+            }))}
+          >
+            <button className={`rp-tabs-overflow ${overflowPanels.some((p) => p.key === activeTab) ? "active" : ""}`}>
+              <span>···</span>
+            </button>
+          </DropdownMenu>
+        )}
       </div>
       <div className="rp-body" style={{ flex: 1, overflow: "auto", paddingBottom: 16 }}>
         <TabErrorBoundary tabKey={activeTab}>

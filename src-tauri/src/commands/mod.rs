@@ -59,6 +59,7 @@ pub mod plugin;
 pub mod proactive;
 pub mod profile;
 pub mod prompt_templates;
+pub mod provider_balance;
 pub mod providers;
 pub mod pty;
 #[cfg(not(mobile))]
@@ -91,4 +92,5 @@ pub mod webhook;
 pub mod wiki;
 pub mod work_engine;
 pub mod workflow_ai;
+pub mod workflow_ai_diagnose;
 pub mod workflow_template;

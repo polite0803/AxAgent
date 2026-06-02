@@ -86,7 +86,6 @@ import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { CommandSuggest } from "./CommandSuggest";
 import { ConversationSettingsModal } from "./ConversationSettingsModal";
-import { ModelRoutingConfigPanel } from "./ModelRoutingConfigPanel";
 import { ModelSelector } from "./ModelSelector";
 import { PlanHistoryPanel } from "./PlanHistoryPanel";
 import { PromptTemplateSelector } from "./PromptTemplateSelector";
@@ -163,6 +162,7 @@ function getFileIcon(category: FileTypeCategory) {
 
 // In-memory draft cache: persists input text per-conversation across component unmounts
 const _draftCache = new Map<string, string>();
+// Cache is module-level, conversation switch clears by key mismatch
 
 export function AgentProfileSelect({
   value,
@@ -219,7 +219,7 @@ export function InputArea() {
   const audioInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [modelRoutingOpen, setModelRoutingOpen] = useState(false);
+  // const [modelRoutingOpen, setModelRoutingOpen] = useState(false); // removed
   const [mcpPopoverOpen, setMcpPopoverOpen] = useState(false);
   const [searchDropdownOpen, setSearchDropdownOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -521,7 +521,15 @@ export function InputArea() {
   }, []);
 
   // Persist companion models per conversation in localStorage
-  const companionStorageKey = activeConversationId
+  const companionStorageKeyRef = useRef(
+    activeConversationId
+      ? `axagent:companion-models:${activeConversationId}`
+      : null,
+  );
+  companionStorageKeyRef.current = activeConversationId
+    ? `axagent:companion-models:${activeConversationId}`
+    : null;
+  const companionStorageKey = companionStorageKeyRef.current
     ? `axagent:companion-models:${activeConversationId}`
     : null;
 
@@ -1928,6 +1936,7 @@ export function InputArea() {
 
   // Drag-and-drop overlay (Tauri native)
   const [isDragging, setIsDragging] = useState(false);
+  const unlistenRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     if (!hasVision) {
@@ -1937,14 +1946,12 @@ export function InputArea() {
       return; // Skip drag-drop in browser mode
     }
 
-    let unlisten: (() => void) | undefined;
-
     (async () => {
       try {
         const { getCurrentWebview } = await import("@tauri-apps/api/webview");
         const { readFile } = await import("@tauri-apps/plugin-fs");
 
-        unlisten = await getCurrentWebview().onDragDropEvent(async (event) => {
+        const unlisten = await getCurrentWebview().onDragDropEvent(async (event) => {
           const { type } = event.payload;
           if (type === "enter") {
             setIsDragging(true);
@@ -1993,13 +2000,15 @@ export function InputArea() {
             }
           }
         });
+        unlistenRef.current = unlisten;
       } catch (error) {
         logIpcError("InputArea: setup drag-drop")(error);
       }
     })();
 
     return () => {
-      unlisten?.();
+      unlistenRef.current?.();
+      unlistenRef.current = null;
     };
   }, [hasVision, isTauri]);
 
@@ -2022,6 +2031,7 @@ export function InputArea() {
 
   // Auto-resize textarea: height = max(userMinHeight, contentHeight), capped at ABSOLUTE_MAX
   // When user has explicitly dragged to resize, lock height to userMinHeight (content scrolls)
+  /** Resize textarea to fit content. Uses refs instead of state to avoid re-render loop. */
   const autoResizeTextarea = useCallback((el: HTMLTextAreaElement) => {
     el.style.height = "auto";
     const desired = hasUserResizedRef.current
@@ -2900,7 +2910,7 @@ export function InputArea() {
                   type="text"
                   size="small"
                   icon={<Route size={14} />}
-                  onClick={() => setModelRoutingOpen(true)}
+                  onClick={undefined}
                 />
               </Tooltip>
             )}
@@ -3032,13 +3042,7 @@ export function InputArea() {
         onClose={() => setSettingsOpen(false)}
       />
 
-      {activeConversationId && (
-        <ModelRoutingConfigPanel
-          conversationId={activeConversationId}
-          open={modelRoutingOpen}
-          onClose={() => setModelRoutingOpen(false)}
-        />
-      )}
+      {/* ModelRoutingConfigPanel removed */}
 
       {hasRealtimeVoice && (
         <VoiceCall

@@ -37,11 +37,11 @@ pub struct RouteDecision {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ModelTier {
-    /// Budget models (haiku, flash, gpt-4o-mini, deepseek-chat)
+    /// Budget models (haiku, flash, gpt-5.4-mini, deepseek-v4-flash)
     Budget,
-    /// Balanced models (sonnet, gpt-4o, gemini-pro)
+    /// Balanced models (sonnet, gpt-5.4, gemini-pro)
     Balanced,
-    /// Premium models (opus, o1/o3, gpt-4)
+    /// Premium models (opus, gpt-5.5, o4-mini)
     Premium,
 }
 

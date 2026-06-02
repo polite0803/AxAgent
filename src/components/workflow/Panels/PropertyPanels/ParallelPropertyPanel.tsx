@@ -1,8 +1,9 @@
 import { useWorkflowEditorStore } from "@/stores";
-import { Button, Divider, Input, Select, Switch, Tag, theme } from "antd";
+import { Button, Divider, Input, message, Select, Switch, Tag, theme } from "antd";
 import { GripVertical, Plus, Trash2, X } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
+import { AIAssistButton, useNodeAIAssist } from "../../Hooks";
 import type { Branch, ParallelNode, WorkflowNode } from "../../types";
 import { BasePropertyPanel } from "./BasePropertyPanel";
 
@@ -28,6 +29,36 @@ export const ParallelPropertyPanel: React.FC<ParallelPropertyPanelProps> = ({
   };
 
   const { nodes } = useWorkflowEditorStore();
+
+  const { generate: aiGenerate, generating: aiGenerating } = useNodeAIAssist();
+  const [messageApi, contextHolder] = message.useMessage();
+
+  const handleAISuggestBranches = async () => {
+    const result = await aiGenerate({
+      systemPrompt:
+        '你是一个并行分支设计专家。根据用户的描述，输出 parallel 节点的 branches 数组，每项为 {"id": "string", "title": "string", "steps": ["node_id", ...]}。'
+        + "只输出 JSON 数组字符串，不要任何解释或 Markdown 标记。",
+      userPrompt: t("workflow.aiAssist.parallel.branchesHint", {
+        current: config.branches.length,
+        available: nodes
+          .filter((n) => n.type !== "trigger" && n.type !== "end")
+          .map((n) => `${n.id}(${n.title || n.type})`)
+          .join(", "),
+      }),
+    });
+    if (!result) {
+      messageApi.error(t("workflow.aiAssist.failed"));
+      return;
+    }
+    try {
+      const cleaned = result.replace(/^```\w*\s*|\s*```$/g, "").trim();
+      const parsed = JSON.parse(cleaned) as Branch[];
+      onUpdate({ config: { ...config, branches: parsed } });
+      messageApi.success(t("workflow.aiAssist.applied"));
+    } catch {
+      messageApi.error(t("workflow.aiAssist.subWorkflow.parseFailed"));
+    }
+  };
 
   const getNodeLabel = (nodeId: string) => {
     const found = nodes.find((n) => n.id === nodeId);
@@ -89,6 +120,7 @@ export const ParallelPropertyPanel: React.FC<ParallelPropertyPanelProps> = ({
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      {contextHolder}
       <div
         style={{
           display: "flex",
@@ -216,14 +248,22 @@ export const ParallelPropertyPanel: React.FC<ParallelPropertyPanelProps> = ({
           <label style={{ color: token.colorTextTertiary, fontSize: 12 }}>
             {t("workflow.props.branches")}
           </label>
-          <Button
-            type="dashed"
-            size="small"
-            icon={<Plus size={12} />}
-            onClick={handleAddBranch}
-          >
-            {t("workflow.props.addBranch")}
-          </Button>
+          <div style={{ display: "flex", gap: 4 }}>
+            <AIAssistButton
+              labelKey="suggest"
+              loading={aiGenerating}
+              onClick={handleAISuggestBranches}
+              compact
+            />
+            <Button
+              type="dashed"
+              size="small"
+              icon={<Plus size={12} />}
+              onClick={handleAddBranch}
+            >
+              {t("workflow.props.addBranch")}
+            </Button>
+          </div>
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>

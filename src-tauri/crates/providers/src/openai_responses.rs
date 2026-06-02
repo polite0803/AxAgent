@@ -104,7 +104,7 @@ struct ResponsesResponse {
     usage: Option<ResponsesUsage>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Default)]
 struct ResponsesUsage {
     #[serde(default)]
     input_tokens: u32,
@@ -112,6 +112,42 @@ struct ResponsesUsage {
     output_tokens: u32,
     #[serde(default)]
     total_tokens: u32,
+    #[serde(default)]
+    input_tokens_details: Option<ResponsesInputTokensDetails>,
+    // 预留: 推理/音频输出细节, P2 计费用
+    #[allow(dead_code)]
+    #[serde(default)]
+    output_tokens_details: Option<ResponsesOutputTokensDetails>,
+}
+
+#[derive(Deserialize, Default)]
+struct ResponsesInputTokensDetails {
+    #[serde(default)]
+    cached_tokens: Option<u32>,
+}
+
+#[derive(Deserialize, Default)]
+struct ResponsesOutputTokensDetails {
+    // 预留: 推理 token, P2 思考/输出分离计费
+    #[allow(dead_code)]
+    #[serde(default)]
+    reasoning_tokens: Option<u32>,
+}
+
+impl ResponsesUsage {
+    fn to_token_usage(&self) -> TokenUsage {
+        TokenUsage {
+            prompt_tokens: self.input_tokens,
+            completion_tokens: self.output_tokens,
+            total_tokens: self.total_tokens,
+            cache_creation_tokens: None,
+            cache_read_tokens: self
+                .input_tokens_details
+                .as_ref()
+                .and_then(|d| d.cached_tokens),
+            ..Default::default()
+        }
+    }
 }
 
 // --- Streaming event types ---
@@ -540,22 +576,14 @@ impl ProviderAdapter for OpenAIResponsesAdapter {
 
         let (content, tool_calls) = parse_response_output(&oai.output);
 
-        let usage = oai
-            .usage
-            .map(|u| TokenUsage {
-                prompt_tokens: u.input_tokens,
-                completion_tokens: u.output_tokens,
-                total_tokens: u.total_tokens,
-                cache_creation_tokens: None,
-                cache_read_tokens: None,
-            })
-            .unwrap_or(TokenUsage {
-                prompt_tokens: 0,
-                completion_tokens: 0,
-                total_tokens: 0,
-                cache_creation_tokens: None,
-                cache_read_tokens: None,
-            });
+        let usage = oai.usage.map(|u| u.to_token_usage()).unwrap_or(TokenUsage {
+            prompt_tokens: 0,
+            completion_tokens: 0,
+            total_tokens: 0,
+            cache_creation_tokens: None,
+            cache_read_tokens: None,
+            ..Default::default()
+        });
 
         Ok(ChatResponse {
             id: oai.id.unwrap_or_default(),
@@ -781,13 +809,7 @@ impl ProviderAdapter for OpenAIResponsesAdapter {
                                             .response
                                             .as_ref()
                                             .and_then(|r| r.usage.as_ref())
-                                            .map(|u| TokenUsage {
-                                                prompt_tokens: u.input_tokens,
-                                                completion_tokens: u.output_tokens,
-                                                total_tokens: u.total_tokens,
-                                                cache_creation_tokens: None,
-                                                cache_read_tokens: None,
-                                            });
+                                            .map(|u| u.to_token_usage());
                                         // Extract function_call items from response.output as fallback
                                         let fc_from_output: Vec<ToolCall> = evt
                                             .response

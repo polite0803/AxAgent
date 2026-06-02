@@ -86,6 +86,7 @@ export interface AgentNodeConfig {
   /** AgentProfile ID — 唯一标识角色/专家/模型的入口 */
   agentProfileId?: string;
   system_prompt: string;
+  promptTemplateId?: string;
   context_sources: string[];
   output_var: string;
   model?: string;
@@ -102,6 +103,7 @@ export interface AgentNodeConfig {
   execution_mode?: "react" | "plan";
   /** RAG 知识源 ID 列表。格式: "knowledge:<kb_id>", "memory:<ns_id>", "wiki:<wiki_id>" */
   rag_source_ids?: string[];
+  model_role?: "quick_think" | "deep_think";
 }
 
 export interface AgentNode extends WorkflowNodeBase {
@@ -112,6 +114,7 @@ export interface AgentNode extends WorkflowNodeBase {
 export interface LLMNodeConfig {
   model: string;
   prompt: string;
+  promptTemplateId?: string;
   messages?: unknown[];
   temperature?: number;
   max_tokens?: number;
@@ -328,6 +331,158 @@ export interface HttpRequestNode extends WorkflowNodeBase {
   config: HttpRequestNodeConfig;
 }
 
+export interface SwitchCase {
+  value: string;
+  label: string;
+}
+
+export interface SwitchNodeConfig {
+  input_var: string;
+  cases: SwitchCase[];
+  default_case?: string;
+  match_mode: string;
+  output_var: string;
+}
+
+export interface SwitchNode extends WorkflowNodeBase {
+  type: "switch";
+  config: SwitchNodeConfig;
+}
+
+export interface DatabaseQueryNodeConfig {
+  query: string;
+  params: string[];
+  connection_name?: string;
+  timeout_secs: number;
+  output_var: string;
+}
+
+export interface DatabaseQueryNode extends WorkflowNodeBase {
+  type: "databaseQuery";
+  config: DatabaseQueryNodeConfig;
+}
+
+export interface NotificationNodeConfig {
+  channel: string;
+  message: string;
+  webhook_url?: string;
+  recipients: string[];
+  subject?: string;
+  enabled: boolean;
+  output_var: string;
+}
+export interface NotificationNode extends WorkflowNodeBase {
+  type: "notification";
+  config: NotificationNodeConfig;
+}
+
+export interface ApprovalNodeConfig {
+  message: string;
+  approver?: string;
+  timeout_secs: number;
+  timeout_action: string;
+  output_var: string;
+}
+export interface ApprovalNode extends WorkflowNodeBase {
+  type: "approval";
+  config: ApprovalNodeConfig;
+}
+
+export interface FileOperationNodeConfig {
+  operation: string;
+  file_path: string;
+  content?: string;
+  output_var: string;
+}
+export interface FileOperationNode extends WorkflowNodeBase {
+  type: "fileOperation";
+  config: FileOperationNodeConfig;
+}
+
+export interface DataTransformerNodeConfig {
+  input_var: string;
+  expression: string;
+  output_var: string;
+}
+export interface DataTransformerNode extends WorkflowNodeBase {
+  type: "dataTransformer";
+  config: DataTransformerNodeConfig;
+}
+
+export interface WebhookSendNodeConfig {
+  url: string;
+  method: string;
+  body?: string;
+  headers: Record<string, string>;
+  output_var: string;
+}
+export interface WebhookSendNode extends WorkflowNodeBase {
+  type: "webhookSend";
+  config: WebhookSendNodeConfig;
+}
+
+export interface LoggingNodeConfig {
+  level: string;
+  message: string;
+  output_var: string;
+}
+export interface LoggingNode extends WorkflowNodeBase {
+  type: "logging";
+  config: LoggingNodeConfig;
+}
+
+export interface LlmClassifierNodeConfig {
+  categories: string[];
+  prompt: string;
+  model?: string;
+  input_var: string;
+  output_var: string;
+}
+export interface LlmClassifierNode extends WorkflowNodeBase {
+  type: "llmClassifier";
+  config: LlmClassifierNodeConfig;
+}
+
+export interface AggregatorNodeConfig {
+  strategy: string;
+  input_sources: string[];
+  output_var: string;
+}
+export interface AggregatorNode extends WorkflowNodeBase {
+  type: "aggregator";
+  config: AggregatorNodeConfig;
+}
+
+export interface EmailNodeConfig {
+  to: string[];
+  subject: string;
+  body: string;
+  smtp_host?: string;
+  smtp_port?: number;
+  smtp_user?: string;
+  smtp_pass?: string;
+  output_var: string;
+}
+export interface EmailNode extends WorkflowNodeBase {
+  type: "email";
+  config: EmailNodeConfig;
+}
+
+export interface DebateNodeConfig {
+  debater_steps: string[];
+  max_rounds: number;
+  convergence_prompt?: string;
+  convergence_model?: string;
+  convergence_model_role?: string;
+  topic_var: string;
+  output_var: string;
+}
+
+export interface DebateNode extends WorkflowNodeBase {
+  type: "debate";
+  config: DebateNodeConfig;
+}
+
 export type WorkflowNode =
   | TriggerNode
   | AgentNode
@@ -344,7 +499,19 @@ export type WorkflowNode =
   | VectorRetrieveNode
   | ValidationNode
   | EndNode
-  | HttpRequestNode;
+  | HttpRequestNode
+  | SwitchNode
+  | DatabaseQueryNode
+  | NotificationNode
+  | ApprovalNode
+  | FileOperationNode
+  | DataTransformerNode
+  | WebhookSendNode
+  | LoggingNode
+  | LlmClassifierNode
+  | AggregatorNode
+  | EmailNode
+  | DebateNode;
 
 export type EdgeType =
   | "direct"
@@ -353,6 +520,7 @@ export type EdgeType =
   | "loopBack"
   | "parallelBranch"
   | "merge"
+  | "debateRound"
   | "error";
 
 export interface WorkflowEdge {
@@ -458,6 +626,72 @@ export interface ValidationResult {
   warnings: ValidationWarning[];
 }
 
+export type DiagnosticSeverity = "error" | "warning" | "info";
+export type DiagnosticCategory =
+  | "structure"
+  | "configuration"
+  | "prompt"
+  | "prompt_quality"
+  | "performance"
+  | "cost"
+  | "security"
+  | "reference"
+  | "best_practice"
+  | "semantic_conflict"
+  | string;
+
+/**
+ * 自动修复动作（discriminated union，与 Rust `#[serde(tag = "action_type")]` 展平序列化对齐）
+ * - set_node_field: 覆盖节点的 config 字段
+ * - delete_node:    删除指定节点
+ * - delete_edge:    删除指定边
+ * - enable_retry:   启用节点重试
+ * - set_timeout:    设置节点超时
+ */
+export type DiagnosticFix =
+  | {
+    action_type: "set_node_field";
+    node_id: string;
+    field: string;
+    value: unknown;
+  }
+  | { action_type: "delete_node"; node_id: string }
+  | { action_type: "delete_edge"; edge_id: string }
+  | { action_type: "enable_retry"; node_id: string; max_retries: number }
+  | { action_type: "set_timeout"; node_id: string; timeout_ms: number }
+  | { action_type: "remove_debater_step"; node_id: string; step_id: string };
+
+export interface DiagnosticIssue {
+  id: string;
+  severity: DiagnosticSeverity;
+  category: DiagnosticCategory;
+  title_key: string;
+  message_key: string;
+  message_params?: Record<string, string | number>;
+  node_ids: string[];
+  edge_ids?: string[];
+  auto_fixable: boolean;
+  fix?: DiagnosticFix;
+  title_override?: string;
+  detail_override?: string;
+  suggestion_override?: string;
+}
+
+export interface DiagnosticSummary {
+  error: number;
+  warning: number;
+  info: number;
+}
+
+export interface DiagnosticReport {
+  issues: DiagnosticIssue[];
+  summary: DiagnosticSummary;
+  /** 报告生成时间（ms epoch） */
+  generated_at: number;
+  /** 规则诊断耗时（毫秒） */
+  duration_ms: number;
+}
+
 export const NODE_CATEGORIES = [
   { id: "trigger", labelKey: "workflow.categories.trigger", color: "#722ed1" },
   {
@@ -544,6 +778,11 @@ export const NODE_TYPE_MAP: Record<
     category: "integration",
     color: "#eb2f96",
   },
+  debate: {
+    labelKey: "workflow.nodeTypes.debate",
+    category: "flow",
+    color: "#1890ff",
+  },
   end: {
     labelKey: "workflow.nodeTypes.end",
     category: "flow",
@@ -558,6 +797,61 @@ export const NODE_TYPE_MAP: Record<
     labelKey: "workflow.nodeTypes.code",
     category: "execution",
     color: "#52c41a",
+  },
+  switch: {
+    labelKey: "workflow.nodeTypes.switch",
+    category: "flow",
+    color: "#fa8c16",
+  },
+  databaseQuery: {
+    labelKey: "workflow.nodeTypes.databaseQuery",
+    category: "integration",
+    color: "#eb2f96",
+  },
+  notification: {
+    labelKey: "workflow.nodeTypes.notification",
+    category: "integration",
+    color: "#eb2f96",
+  },
+  approval: {
+    labelKey: "workflow.nodeTypes.approval",
+    category: "flow",
+    color: "#722ed1",
+  },
+  fileOperation: {
+    labelKey: "workflow.nodeTypes.fileOperation",
+    category: "execution",
+    color: "#52c41a",
+  },
+  dataTransformer: {
+    labelKey: "workflow.nodeTypes.dataTransformer",
+    category: "execution",
+    color: "#52c41a",
+  },
+  webhookSend: {
+    labelKey: "workflow.nodeTypes.webhookSend",
+    category: "integration",
+    color: "#eb2f96",
+  },
+  logging: {
+    labelKey: "workflow.nodeTypes.logging",
+    category: "flow",
+    color: "#fa8c16",
+  },
+  llmClassifier: {
+    labelKey: "workflow.nodeTypes.llmClassifier",
+    category: "llm",
+    color: "#13c2c2",
+  },
+  aggregator: {
+    labelKey: "workflow.nodeTypes.aggregator",
+    category: "execution",
+    color: "#52c41a",
+  },
+  email: {
+    labelKey: "workflow.nodeTypes.email",
+    category: "integration",
+    color: "#eb2f96",
   },
 };
 
@@ -640,3 +934,24 @@ export interface ToolUpgradeRequest {
   generated_input_schema: Record<string, unknown> | null;
   generated_output_schema: Record<string, unknown> | null;
 }
+
+/**
+ * AI 聊天面板产出的工作流变更动作。
+ * 与后端 workflow_ai_chat_stream 系统 prompt 中的 :::action 块对应，
+ * 前端以 discriminated union 解析，applyAiChatAction 按 action_type 分发。
+ */
+export type AiChatAction =
+  | { action_type: "generate_workflow"; data: { nodes: WorkflowNode[]; edges: WorkflowEdge[] } }
+  | { action_type: "add_node"; data: { node: WorkflowNode; position?: { x: number; y: number } } }
+  | { action_type: "add_nodes"; data: { nodes: WorkflowNode[] } }
+  | { action_type: "update_node"; data: { node_id: string; changes: Partial<WorkflowNode> } }
+  | { action_type: "modify_node"; data: { node_id: string; changes: Record<string, unknown> } }
+  | { action_type: "delete_node"; data: { node_id: string } }
+  | { action_type: "delete_nodes"; data: { node_ids: string[] } }
+  | { action_type: "add_edge"; data: { edge: WorkflowEdge } }
+  | { action_type: "update_edge"; data: { edge_id: string; changes: Partial<WorkflowEdge> } }
+  | { action_type: "delete_edge"; data: { edge_id: string } }
+  | { action_type: "optimize_prompt"; data: { node_id: string; optimized_prompt: string } };
+
+/** AiChatAction 的 action_type 联合类型（用于 switch 穷尽性检查） */
+export type AiChatActionType = AiChatAction["action_type"];

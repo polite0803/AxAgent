@@ -63,6 +63,8 @@ fn message_from_entity(m: messages::Model) -> Result<Message> {
         status: m.status,
         tokens_per_second: m.tokens_per_second,
         first_token_latency_ms: m.first_token_latency_ms,
+        cache_creation_tokens: m.cache_creation_tokens.map(|v| v as u32),
+        cache_read_tokens: m.cache_read_tokens.map(|v| v as u32),
         parts: m.parts,
         blocks,
     })
@@ -228,6 +230,8 @@ pub async fn update_message_usage(
     id: &str,
     prompt_tokens: Option<i64>,
     completion_tokens: Option<i64>,
+    cache_creation_tokens: Option<i64>,
+    cache_read_tokens: Option<i64>,
 ) -> Result<()> {
     let row = messages::Entity::find_by_id(id)
         .one(db)
@@ -240,6 +244,12 @@ pub async fn update_message_usage(
     }
     if let Some(ct) = completion_tokens {
         am.completion_tokens = Set(Some(ct));
+    }
+    if let Some(cct) = cache_creation_tokens {
+        am.cache_creation_tokens = Set(Some(cct));
+    }
+    if let Some(crt) = cache_read_tokens {
+        am.cache_read_tokens = Set(Some(crt));
     }
     am.update(db).await?;
     Ok(())
@@ -553,6 +563,8 @@ pub async fn create_tool_result_message(
         status: Set("complete".to_string()),
         tokens_per_second: Set(None),
         first_token_latency_ms: Set(None),
+        cache_creation_tokens: Set(None),
+        cache_read_tokens: Set(None),
         parts: Set(None),
     }
     .insert(db)
@@ -595,6 +607,8 @@ pub async fn create_assistant_tool_call_message(
         status: Set("complete".to_string()),
         tokens_per_second: Set(None),
         first_token_latency_ms: Set(None),
+        cache_creation_tokens: Set(None),
+        cache_read_tokens: Set(None),
         parts: Set(None),
     }
     .insert(db)
@@ -615,6 +629,7 @@ pub async fn get_conversation_stats(
             SUM(CASE WHEN role = 'assistant' THEN 1 ELSE 0 END) AS total_assistant_messages,
             COALESCE(SUM(prompt_tokens), 0) AS total_prompt_tokens,
             COALESCE(SUM(completion_tokens), 0) AS total_completion_tokens,
+            COALESCE(SUM(cache_read_tokens), 0) AS total_cache_read_tokens,
             AVG(CASE WHEN tokens_per_second IS NOT NULL AND tokens_per_second > 0 THEN tokens_per_second ELSE NULL END) AS avg_tokens_per_second,
             AVG(CASE WHEN first_token_latency_ms IS NOT NULL THEN first_token_latency_ms ELSE NULL END) AS avg_first_token_latency_ms,
             AVG(CASE
@@ -658,6 +673,9 @@ pub async fn get_conversation_stats(
         total_prompt_tokens: total_prompt,
         total_completion_tokens: total_completion,
         total_tokens: total_prompt + total_completion,
+        total_cache_read_tokens: r
+            .and_then(|r| r.try_get::<i64>("", "total_cache_read_tokens").ok())
+            .unwrap_or(0) as u64,
         avg_tokens_per_second: r.and_then(|r| r.try_get("", "avg_tokens_per_second").ok()),
         avg_first_token_latency_ms: r
             .and_then(|r| r.try_get("", "avg_first_token_latency_ms").ok()),

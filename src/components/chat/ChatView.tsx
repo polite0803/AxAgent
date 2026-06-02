@@ -58,7 +58,6 @@ import { InputArea } from "./InputArea";
 import { PermissionModal } from "./PermissionModal";
 import { PlanCard } from "./PlanCard";
 // QuickCommandBar removed: /clear, /compact, /model are covered by bottom toolbar & header ModelSelector
-import { SteerInput } from "./SteerInput";
 import { WorkflowEndMarker } from "./WorkflowEndMarker";
 import { WorkflowProgressPanel } from "./WorkflowProgressPanel";
 import { WorkflowSuggestionCard } from "./WorkflowSuggestionCard";
@@ -765,7 +764,6 @@ function ChatViewInner({
           <AgentProgressBar conversationId={activeConversationId} />
           <WorkflowProgressPanel conversationId={activeConversationId} />
           <PlanCardWrapper conversationId={activeConversationId} />
-          {streaming && <SteerInput conversationId={activeConversationId} />}
         </div>
       )}
 

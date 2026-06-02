@@ -1,7 +1,8 @@
 import { useWorkflowEditorStore } from "@/stores";
-import { Button, Divider, Input, Select, Switch, theme } from "antd";
+import { Button, Divider, Input, message, Select, Switch, theme } from "antd";
 import React, { useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
+import { AIAssistButton, useNodeAIAssist } from "../../Hooks";
 import type { SubWorkflowNode, WorkflowNode } from "../../types";
 import { BasePropertyPanel } from "./BasePropertyPanel";
 
@@ -49,6 +50,34 @@ export const SubWorkflowPropertyPanel: React.FC<
     onUpdate({ config: { ...config, [key]: value } });
   };
 
+  const { generate: aiGenerate, generating: aiGenerating } = useNodeAIAssist();
+  const [messageApi, contextHolder] = message.useMessage();
+
+  const handleAISuggestInputMapping = async () => {
+    if (!config.sub_workflow_id) {
+      messageApi.warning(t("workflow.aiAssist.subWorkflow.needPick"));
+      return;
+    }
+    const result = await aiGenerate({
+      systemPrompt:
+        "你是一个工作流编排助手。根据当前节点的子工作流 id，输出建议的 input_mapping（一个 JSON 对象），键名为子工作流入参，值为上游变量路径（如 ${nodeId.output}）。"
+        + "只输出 JSON 字符串，不要任何解释或 Markdown 标记。",
+      userPrompt: JSON.stringify({ current_mapping: config.input_mapping, sub_workflow_id: config.sub_workflow_id }),
+    });
+    if (!result) {
+      messageApi.error(t("workflow.aiAssist.failed"));
+      return;
+    }
+    try {
+      const cleaned = result.replace(/^```\w*\s*|\s*```$/g, "").trim();
+      const parsed = JSON.parse(cleaned) as Record<string, string>;
+      onUpdate({ config: { ...config, input_mapping: { ...config.input_mapping, ...parsed } } });
+      messageApi.success(t("workflow.aiAssist.applied"));
+    } catch {
+      messageApi.error(t("workflow.aiAssist.subWorkflow.parseFailed"));
+    }
+  };
+
   const handleAddInputMapping = () => {
     onUpdate({
       config: {
@@ -86,6 +115,7 @@ export const SubWorkflowPropertyPanel: React.FC<
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      {contextHolder}
       <div>
         <label
           htmlFor="sub-workflow-select"
@@ -170,9 +200,17 @@ export const SubWorkflowPropertyPanel: React.FC<
           <label style={{ color: token.colorTextTertiary, fontSize: 12 }}>
             {t("workflow.props.inputMapping")}
           </label>
-          <Button type="link" size="small" onClick={handleAddInputMapping}>
-            {t("workflow.props.addMapping")}
-          </Button>
+          <div style={{ display: "flex", gap: 4 }}>
+            <AIAssistButton
+              labelKey="suggest"
+              loading={aiGenerating}
+              onClick={handleAISuggestInputMapping}
+              compact
+            />
+            <Button type="link" size="small" onClick={handleAddInputMapping}>
+              {t("workflow.props.addMapping")}
+            </Button>
+          </div>
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>

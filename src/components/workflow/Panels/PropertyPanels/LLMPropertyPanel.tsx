@@ -1,9 +1,10 @@
 import { ModelSelect } from "@/components/shared/ModelSelect";
-import { usePromptTemplateStore, useProviderStore } from "@/stores";
+import { usePromptTemplateStore, useProviderStore, useWorkflowEditorStore } from "@/stores";
 import type { PromptTemplate } from "@/types";
 import { Button, Input, InputNumber, message, Modal, theme } from "antd";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { AIAssistButton, useNodeAIAssist } from "../../Hooks";
 import type { LLMNode, WorkflowNode } from "../../types";
 import { BasePropertyPanel } from "./BasePropertyPanel";
 
@@ -95,6 +96,59 @@ export const LLMPropertyPanel: React.FC<LLMPropertyPanelProps> = ({
 
   const activeTemplates = templates.filter((t) => t.isActive);
 
+  const { generate: aiGenerate, generating: aiGenerating } = useNodeAIAssist();
+  const handleAIOptimizePrompt = async () => {
+    const current = config.prompt || "";
+    if (!current.trim()) {
+      messageApi.warning(t("workflow.aiPanel.enterPromptToOptimize"));
+      return;
+    }
+    const result = await aiGenerate({
+      systemPrompt: "你是一个提示词优化专家。改进用户提供的 LLM 提示词，使其更清晰、更具体、效果更好。"
+        + "保留原有结构和变量占位符（如 {varName}）。"
+        + "只输出优化后的提示词正文，不要任何解释、前缀或 Markdown 标记。",
+      userPrompt: current,
+    });
+    if (!result) {
+      messageApi.error(t("workflow.aiAssist.failed"));
+      return;
+    }
+    handleConfigChange("prompt", result);
+    messageApi.success(t("workflow.aiAssist.applied"));
+  };
+
+  const handleAIContextComplete = async () => {
+    const current = config.prompt || "";
+    const store = useWorkflowEditorStore.getState();
+    const upstreamEdgeIds = store.edges.filter((e) => e.target === node.id).map((e) => e.source);
+    const upstreamNodes = store.nodes.filter((n) => upstreamEdgeIds.includes(n.id));
+    const downstreamEdgeIds = store.edges.filter((e) => e.source === node.id).map((e) => e.target);
+    const downstreamNodes = store.nodes.filter((n) => downstreamEdgeIds.includes(n.id));
+    const contextInfo = [
+      `当前节点: "${node.title}" (类型: ${node.type})`,
+      upstreamNodes.length > 0
+        ? `上游节点: ${upstreamNodes.map((n) => `"${n.title}"(${n.type})`).join(", ")}`
+        : "无上游节点",
+      downstreamNodes.length > 0
+        ? `下游节点: ${downstreamNodes.map((n) => `"${n.title}"(${n.type})`).join(", ")}`
+        : "无下游节点",
+    ].join("\n");
+    const result = await aiGenerate({
+      systemPrompt: "你是工作流上下文补全助手。根据工作流上下文和当前提示词，生成可追加到提示词末尾的补充内容，"
+        + "帮助 LLM 理解可用的上下文信息、上游数据来源和输出目标。"
+        + "只输出纯文本补充内容，不要解释、前缀或 Markdown 标记。",
+      userPrompt: current
+        ? `工作流上下文:\n${contextInfo}\n\n当前提示词:\n${current}\n\n请根据工作流上下文，生成可以追加到提示词末尾的补充内容。`
+        : `工作流上下文:\n${contextInfo}\n\n当前没有提示词。请根据工作流上下文生成一个初始提示词。`,
+    });
+    if (!result) {
+      messageApi.error(t("workflow.aiAssist.failed"));
+      return;
+    }
+    handleConfigChange("prompt", current ? `${current}\n\n${result}` : result);
+    messageApi.success(t("workflow.aiAssist.contextCompleteApplied"));
+  };
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <div>
@@ -118,16 +172,34 @@ export const LLMPropertyPanel: React.FC<LLMPropertyPanelProps> = ({
       </div>
 
       <div>
-        <label
+        <div
           style={{
-            display: "block",
-            color: token.colorTextTertiary,
-            fontSize: 12,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
             marginBottom: 4,
           }}
         >
-          {t("workflow.props.prompt")}
-        </label>
+          <label
+            style={{ color: token.colorTextTertiary, fontSize: 12 }}
+          >
+            {t("workflow.props.prompt")}
+          </label>
+          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+            <AIAssistButton
+              labelKey="optimize"
+              loading={aiGenerating}
+              onClick={handleAIOptimizePrompt}
+              compact
+            />
+            <AIAssistButton
+              labelKey="contextComplete"
+              loading={aiGenerating}
+              onClick={handleAIContextComplete}
+              compact
+            />
+          </div>
+        </div>
         <Input.TextArea
           id="l-l-m-property-panel-input-textarea-96"
           value={config.prompt || ""}

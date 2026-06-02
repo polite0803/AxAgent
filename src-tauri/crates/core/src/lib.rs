@@ -3,6 +3,7 @@
 // builtin_tools, builtin_tools_registry 已迁移至 axagent-tools crate
 #[allow(clippy::unwrap_used)]
 pub mod ast_index;
+pub mod billing;
 #[cfg(not(target_os = "android"))]
 pub mod browser_automation;
 pub mod cache;

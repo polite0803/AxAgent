@@ -302,7 +302,7 @@ export function ChatViewToolbar({
   const fetchConversation = useConversationStore((s) => s.fetchConversations);
 
   return (
-    <div className="flex items-center gap-2 p-3 flex-nowrap overflow-hidden">
+    <div className="flex items-center gap-2 p-3 flex-wrap">
       {activeConversation
         ? (
           <>

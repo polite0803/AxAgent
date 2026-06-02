@@ -1,48 +1,26 @@
 # Changelog
 
 All notable changes to AxAgent will be documented in this file.
-## [v2.4.5] - 2026-05-31
-
-### ✨ New Features
-- 🚀 工作流编辑器一键布局支持子工作流递归
-- 🚀 重写工作流 DebugPanel：从纯运行时改为静态调试面板
-
-
-### 🎨 Styling
-- 🎨 DropdownMenu 菜单零间距紧贴触发按钮
-
+## [v2.4.6] - 2026-05-31
 
 ### 🐛 Bug Fixes
-- 🐛 setImmediate→setTimeout 后仍需 try-catch 防御 jsdom 销毁回调
-- 🐛 修复 Android 构建：String + &String/+&str 类型错误
-- 🐛 修复 citation + inspector 面板 React error #185 (无限重渲染)
-- 🐛 修复右侧面板显示逻辑：所有面板默认可见
-- 🐛 修复右侧面板 React #185：精简 useMemo 依赖 + activeTab 验证
-- 🐛 DebugPanel 新增子工作流递归分析
-- 🐛 修复状态栏节点/连线计数不显示：zh-CN 缺少 {{count}}
-- 🐛 修复状态栏节点/连线计数：zh-CN i18n 缺少 {{count}} 占位符
-- 🐛 i18n allowlist 更新：AIPanel logIpcError + WorkflowEditor fallback + 测试断言
-- 🐛 修复 base_title().map() 编译错误：&str 上无 map 方法
-- 🐛 i18n allowlist: WorkflowEditor fallback + 测试 L191
-- 🐛 修复编译错误：ProgressCallback 导出 + workflow_ai 未使用变量
-- 🐛 修复 clippy 11 项警告：dead_code/冗余闭包/auto-deref/filter_map
-- 🐛 修复 AIPanel 测试：scrollIntoView 在 jsdom 不可用
-- 🐛 i18n allowlist: AIPanel 行号漂移更新 127→129, 150→151
-- 🐛 修复 workflowComponents 测试：适配新 AIPanel 结构
-- 🐛 修复版本号：Cargo workspace + package 统一为 2.4.5 + bump 脚本去 ^ 锚点
-- Tauri IPC 参数不匹配 — 前端 invoke 调用添加 params/request 包装
-- 🐛 右侧面板 tab 从垂直堆叠改为水平折行 + 纯图标紧凑模式
-- 🐛 DebugPanel 添加 workflow.debug 中文翻译 (52 key)
-- 🐛 修复 analyzeNodes isDeadEnd 逻辑反了：trigger 被误标为死胡同
+- 🐛 修复 DebugPanel 节点类型误判 + 终端节点误标死胡同
+- 🐛 修复 DebugPanel "开始调试"无反应：添加错误捕获和错误显示
+- 🐛 修复 workflowEditorStore 测试：jsonData → json_data
+- 🐛 修复 collapsible_if clippy 警告 (engine.rs L264,L283)
+- 🐛 修复 debug_run_workflow: template_id → templateId
+- 🐛 WorkflowNode 反序列化排查：dispatcher trace + roundtrip 测试
+- 🐛 修复 Vec<WorkflowNode> 整体反序列化 Tool→Agent 变体混淆
+- 🐛 Tool→Agent 反序列化修复 + dispatcher trace + roundtrip 测试
+- 🐛 禁用 WorkflowMigrator：不再将 Tool/Code 转换为 Agent
+- 🐛 彻底禁用 WorkflowMigrator：移除 Tauri 命令注册 + 清理遗留迁移代码
+- 🐛 修复编译/测试错误：Mutex→RwLock + collapsible_if + 未使用 import
+- 🐛 修复 plugins/lib.rs collapsible_if x3
+- 🐛 跳过 CI 超时的 plugin 测试
+- 🐛 plugins/lib.rs: map_or → is_none_or
+- 🐛 修复 registry.rs UTF-8 字节切片 panic
 
 
 ### 📦 Miscellaneous
-- bump version to v2.4.5
-- i18n allowlist: AIPanel L173
-- i18n allowlist: workflowComponents test 新增 48 行
-- i18n allowlist: CodePropertyPanel + browserMock 行号更新
-
-
-### 🔧 CI / Build
-- 🔧 CI: CARGO_PROFILE_DEV_DEBUG=0 缩减 target 体积防磁盘满
+- bump version to v2.4.6
 

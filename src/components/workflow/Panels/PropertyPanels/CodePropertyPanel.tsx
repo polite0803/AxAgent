@@ -5,6 +5,7 @@ import { Button, Divider, Dropdown, Input, Select, Tag, theme, Tooltip } from "a
 import { Sparkles, Wand2, Wrench } from "lucide-react";
 import React, { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { AIAssistButton, useNodeAIAssist } from "../../Hooks";
 import type { CodeNode, WorkflowNode } from "../../types";
 import { BasePropertyPanel } from "./BasePropertyPanel";
 
@@ -103,6 +104,23 @@ export const CodePropertyPanel: React.FC<CodePropertyPanelProps> = ({
 
   const handleConfigChange = (key: string, value: unknown) => {
     onUpdate({ config: { ...config, [key]: value } });
+  };
+
+  const { generate: aiGenerate, generating: aiOptimizing } = useNodeAIAssist();
+
+  const handleAIOptimizeCode = async () => {
+    const current = config.code || "";
+    if (!current.trim()) { return; }
+    const lang = config.language || "javascript";
+    const result = await aiGenerate({
+      systemPrompt: `你是一个代码优化专家。优化用户提供的 ${lang} 代码，使其更简洁、高效、健壮。`
+        + "保留原有逻辑和变量占位符（如 ${varName}）。"
+        + "只输出优化后的代码，不要解释或 Markdown 标记。",
+      userPrompt: current,
+    });
+    if (result) {
+      handleConfigChange("code", result);
+    }
   };
 
   const insertCode = (snippet: string) => {
@@ -280,9 +298,17 @@ export const CodePropertyPanel: React.FC<CodePropertyPanelProps> = ({
 
       {/* 代码编辑区 */}
       <div>
-        <label style={{ display: "block", color: token.colorTextTertiary, fontSize: 12, marginBottom: 4 }}>
-          {t("workflow.props.code")}
-        </label>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
+          <label style={{ color: token.colorTextTertiary, fontSize: 12 }}>
+            {t("workflow.props.code")}
+          </label>
+          <AIAssistButton
+            labelKey="optimize"
+            loading={aiOptimizing}
+            onClick={handleAIOptimizeCode}
+            compact
+          />
+        </div>
         <div
           style={{
             border: `1px solid ${token.colorBorderSecondary}`,

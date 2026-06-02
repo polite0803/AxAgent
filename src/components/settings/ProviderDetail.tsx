@@ -1224,7 +1224,14 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
           <Switch
             id="provider-detail-switch-112"
             checked={provider.enabled}
-            onChange={(checked) => toggleProvider(providerId, checked)}
+            onChange={(checked) =>
+              (() => {
+                if (!checked) {
+                  toggleProvider(providerId, false);
+                  return;
+                }
+                toggleProvider(providerId, true).catch(() => message.error(t("settings.provider.noValidKey")));
+              })()}
             checkedChildren={t("common.enabled")}
             unCheckedChildren={t("common.disabled")}
           />

@@ -153,6 +153,7 @@ pub fn run() {
             commands::providers::fetch_remote_models,
             commands::providers::test_model,
             commands::providers::reorder_providers,
+            commands::provider_balance::fetch_provider_balance,
             commands::conversations::list_conversations,
             commands::conversations::create_conversation,
             commands::conversations::update_conversation,
@@ -696,6 +697,7 @@ pub fn run() {
             commands::workflow_ai::recommend_nodes,
             commands::workflow_ai::workflow_ai_chat_stream,
             commands::workflow_ai::workflow_ai_chat_cancel,
+            commands::workflow_ai_diagnose::llm_diagnose_workflow,
             // Platform integration commands
             commands::platform_integration::get_platform_config,
             commands::platform_integration::update_platform_config,

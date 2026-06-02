@@ -11,6 +11,7 @@ pub struct Model {
     pub model_id: Option<String>,
     pub request_tokens: i64,
     pub response_tokens: i64,
+    pub cached_input_tokens: Option<i64>,
     pub created_at: i64,
 }
 

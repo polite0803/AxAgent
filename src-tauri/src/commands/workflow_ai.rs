@@ -109,6 +109,363 @@ fn provider_type_to_registry_key(pt: &ProviderType) -> &'static str {
     }
 }
 
+/// 27 种节点类型的完整 JSON Schema 文档。
+/// LLM 生成工作流时，每个 `config` 对象必须遵循对应 schema 字段。
+const NODE_SCHEMAS_DOC: &str = r#"
+=== 节点 config 完整 Schema（每个 node_type 对应一组必填/可选字段）===
+
+trigger
+  config: {
+    "trigger_type": "manual" | "schedule" | "webhook" | "event",
+    "config": { ...trigger-type-specific 内层配置 }
+  }
+  - schedule: { "cron": "* * * * *", "timezone": "Asia/Shanghai", "enabled": true }
+  - webhook:  { "path": "/webhook/...", "method": "POST", "auth_type": "none" }
+  - event:    { "event_type": "...", "filter": { ... } }
+
+agent
+  config: {
+    "system_prompt": "string (必填，Agent 角色/指令)",
+    "model": "string | null",
+    "temperature": 0.0~2.0 | null,
+    "max_tokens": int | null,
+    "output_mode": "json" | "text" | "artifact",
+    "output_var": "string (Agent 产出变量名)",
+    "tools": [{ "name": "string", "description": "string", "parameters": {...JSON Schema} }],
+    "exposed_tools": ["string"],
+    "context_sources": ["string"],
+    "agent_profile_id": "string | null",
+    "max_tool_rounds": int | null,
+    "execution_mode": "react" | "plan" | null,
+    "rag_source_ids": ["knowledge:<id>", "memory:<id>", "wiki:<id>"],
+    "model_role": "quick_think | deep_think | null (映射到全局模型配置, 优先级低于 model 字段)"
+  }
+
+llm
+  config: {
+    "model": "string (必填)",
+    "prompt": "string (必填)",
+    "messages": [{ "role": "user|system|assistant", "content": "..." }] | null,
+    "temperature": 0.0~2.0 | null,
+    "max_tokens": int | null,
+    "tools": ["string"] | null,
+    "functions": [...] | null
+  }
+
+condition
+  config: {
+    "conditions": [
+      { "var_path": "string (变量路径)", "operator": "eq|ne|gt|lt|gte|lte|contains|notContains|startsWith|endsWith|regexMatch|isEmpty|isNotEmpty", "value": <any> }
+    ],
+    "logical_op": "and" | "or",
+    "judge_by_llm": bool | null,
+    "routing_prompt": "string | null (LLM 路由提示)",
+    "routing_model": "string | null"
+  }
+  输出边: conditionTrue / conditionFalse
+
+switch
+  config: {
+    "input_var": "string (输入变量名)",
+    "cases": [{ "value": "string", "label": "string" }],
+    "default_case": "string | null",
+    "match_mode": "exact" | "contains" | "regex" | "range",
+    "output_var": "string"
+  }
+
+parallel
+  config: {
+    "branches": [{ "id": "string", "title": "string", "steps": ["node_id", ...] }],
+    "wait_for_all": true | false,
+    "timeout": int (秒) | null,
+    "aggregation": "all" | "any" | "race" | "majority" | null,
+    "auto_input_from_parent": true | false
+  }
+  输出边: parallelBranch (sourceHandle 形如 "branch-0", "branch-1"...)
+
+loop
+  config: {
+    "loop_type": "forEach" | "while" | "doWhile" | "until",
+    "items_var": "string | null (被遍历的集合变量名)",
+    "iteratee_var": "string | null (单元素变量名)",
+    "max_iterations": int | null,
+    "continue_condition": "string | null (条件表达式)",
+    "continue_on_error": true | false,
+    "body_steps": ["node_id", ...]
+  }
+  输出边: loopBack (回到 loop 自身)
+
+merge
+  config: {
+    "merge_type": "all" | "any" | "race" | "majority",
+    "inputs": ["node_id", ...],
+    "auto_inputs_from_branches": true | false
+  }
+
+delay
+  config: {
+    "delay_type": "fixed" | "until",
+    "seconds": int,
+    "until": "ISO8601 timestamp | null"
+  }
+
+httpRequest
+  config: {
+    "url": "string (必填, 完整 URL)",
+    "method": "GET" | "POST" | "PUT" | "PATCH" | "DELETE" | "HEAD" | "OPTIONS",
+    "headers": { "Header-Name": "value" },
+    "body": "string | null (JSON / text / form)",
+    "body_type": "json" | "form" | "text" | "xml" | "binary",
+    "timeout_secs": int (默认 30),
+    "output_var": "string"
+  }
+
+databaseQuery
+  config: {
+    "query": "string (SQL 语句，必填)",
+    "params": ["string", ...],
+    "connection_name": "string | null (数据源名称)",
+    "timeout_secs": int (默认 30),
+    "output_var": "string"
+  }
+
+tool
+  config: {
+    "tool_name": "string (必填, 已注册的工具名。可用工具由系统工具注册表提供，包括 file_read/file_write/shell/network/system/agent/vcs/automation/communication/ai_media/integration/storage/knowledge/browser/desktop 等分类下的工具。下游可扩展注册自定义工具)",
+    "input_mapping": { "arg_name": "var_path_or_literal" },
+    "output_var": "string"
+  }
+
+code
+  config: {
+    "language": "rhai" | "javascript" | "python",
+    "code": "string (源码，必填。推荐使用 rhai — 轻量安全沙箱，支持 HTTP 调用、JSON 解析、字符串处理、数学计算等。javascript/python 需要对应运行时环境)",
+    "output_var": "string",
+    "tool_name": "string | null (rhai 模式下注册为工具名，供 agent/tools 节点引用)"
+  }
+  Rhai 示例 — HTTP GET:
+    let resp = http_get("https://api.example.com/data");
+    let data = parse_json(resp);
+    data
+  Rhai 示例 — 数据转换:
+    let items = input.items;
+    let result = items.filter(|i| i.score > 0.8);
+    result
+
+subWorkflow
+  config: {
+    "sub_workflow_id": "string (子工作流 ID，必填)",
+    "input_mapping": { "input_name": "var_path" },
+    "output_var": "string",
+    "is_async": true | false
+  }
+
+documentParser
+  config: {
+    "input_var": "string (含文档内容的变量名)",
+    "parser_type": "auto" | "pdf" | "docx" | "xlsx" | "image" | "audio" | "html",
+    "output_var": "string"
+  }
+
+vectorRetrieve
+  config: {
+    "query": "string (查询语句，必填)",
+    "knowledge_base_id": "string (知识库 ID，必填)",
+    "top_k": int (默认 5),
+    "similarity_threshold": float | null,
+    "output_var": "string"
+  }
+
+validation
+  config: {
+    "assertions": [
+      { "type": "equals" | "contains" | "matches" | "exists" | "custom", "expected": "string", "actual": "string", "expression": "string" }
+    ],
+    "on_fail": "stop" | "retry" | "continue",
+    "max_retries": int
+  }
+
+notification
+  config: {
+    "channel": "email" | "sms" | "feishu" | "slack" | "webhook" | "inapp",
+    "message": "string (必填)",
+    "webhook_url": "string | null",
+    "recipients": ["string", ...],
+    "subject": "string | null",
+    "enabled": true | false,
+    "output_var": "string"
+  }
+
+approval
+  config: {
+    "message": "string (审批内容，必填)",
+    "approver": "string | null (审批人 user/role id)",
+    "timeout_secs": int (默认 86400 = 24h),
+    "timeout_action": "auto_approve" | "auto_reject",
+    "output_var": "string"
+  }
+
+fileOperation
+  config: {
+    "operation": "read" | "write" | "append" | "delete" | "rename" | "copy" | "mkdir" | "exists",
+    "file_path": "string (必填)",
+    "content": "string | null (write/append 时必填)",
+    "output_var": "string"
+  }
+
+dataTransformer
+  config: {
+    "input_var": "string (输入变量名)",
+    "expression": "string (JMESPath / JSONPath / JS 表达式)",
+    "output_var": "string"
+  }
+
+webhookSend
+  config: {
+    "url": "string (必填)",
+    "method": "GET" | "POST" | "PUT" | "PATCH" | "DELETE",
+    "body": "string | null",
+    "headers": { "Header-Name": "value" },
+    "output_var": "string"
+  }
+
+logging
+  config: {
+    "level": "debug" | "info" | "warn" | "error",
+    "message": "string (必填，支持 {var} 占位符)",
+    "output_var": "string"
+  }
+
+llmClassifier
+  config: {
+    "categories": ["string", ...],
+    "prompt": "string (分类指令，必填)",
+    "model": "string | null",
+    "input_var": "string (被分类内容)",
+    "output_var": "string (分类结果变量)"
+  }
+
+aggregator
+  config: {
+    "strategy": "all" | "concat" | "vote" | "first" | "last" | "merge",
+    "input_sources": ["node_id", ...],
+    "output_var": "string"
+  }
+
+email
+  config: {
+    "to": ["email@x", ...],
+    "subject": "string (必填)",
+    "body": "string (必填, 支持 HTML)",
+    "smtp_host": "string | null (为空使用系统默认)",
+    "smtp_port": int | null,
+    "smtp_user": "string | null",
+    "smtp_pass": "string | null",
+    "output_var": "string"
+  }
+
+debate (容器节点 — 辩手为容器内子 Agent 节点)
+  config: {
+    "debater_steps": ["子节点ID1", "子节点2", ...] (辩手 Agent 节点 ID 列表，这些节点须设 parentId 指向本 debate 节点),
+    "max_rounds": int (默认 2, 辩论轮数),
+    "convergence_prompt": "string | null (收敛判断提示词, 为空则固定轮数)",
+    "convergence_model": "string | null",
+    "convergence_model_role": "quick_think | deep_think | null",
+    "topic_var": "string (辩论主题变量名)",
+    "output_var": "string"
+  }
+  子节点: 在 debate 容器内放置 agent 节点作为辩手，每个辩手通过 system_prompt 定义立场，通过 model_role 选择推理深度。
+  输出边: debateRound (每轮辩论输出)
+
+end
+  config: { "output_var": "string | null" }
+"#;
+
+/// Few-shot 范例（覆盖典型业务场景，提升生成质量）。
+const FEW_SHOT_EXAMPLES: &str = r#"
+=== 标准工作流示例（供你参考结构与节点选型）===
+
+【示例 1: RAG 问答】
+{
+  "nodes": [
+    { "id": "n1", "node_type": "trigger",   "title": "Webhook 触发",      "config": { "trigger_type": "webhook", "config": { "path": "/qa", "method": "POST", "auth_type": "none" } } },
+    { "id": "n2", "node_type": "vectorRetrieve", "title": "检索知识库",   "config": { "query": "${input.question}", "knowledge_base_id": "kb_main", "top_k": 5, "output_var": "ctx" } },
+    { "id": "n3", "node_type": "llm",       "title": "LLM 合成答案",      "config": { "model": "gpt-5.4-mini", "prompt": "基于以下上下文回答用户问题...\n上下文:\n${ctx}\n问题:\n${input.question}", "temperature": 0.3, "max_tokens": 1024 } },
+    { "id": "n4", "node_type": "validation","title": "校验答案非空",      "config": { "assertions": [{ "type": "isNotEmpty", "actual": "${n3.output}" }], "on_fail": "retry", "max_retries": 1 } },
+    { "id": "n5", "node_type": "end",       "title": "返回结果",          "config": { "output_var": "n3" } }
+  ],
+  "edges": [
+    { "id": "e1", "source": "n1", "target": "n2", "edge_type": "direct" },
+    { "id": "e2", "source": "n2", "target": "n3", "edge_type": "direct" },
+    { "id": "e3", "source": "n3", "target": "n4", "edge_type": "direct" },
+    { "id": "e4", "source": "n4", "target": "n5", "edge_type": "direct" }
+  ]
+}
+
+【示例 2: 多路路由审批】
+{
+  "nodes": [
+    { "id": "n1", "node_type": "trigger",   "title": "定时触发",        "config": { "trigger_type": "schedule", "config": { "cron": "0 9 * * *", "timezone": "Asia/Shanghai", "enabled": true } } },
+    { "id": "n2", "node_type": "condition", "title": "金额判定",        "config": { "conditions": [{ "var_path": "${input.amount}", "operator": "gte", "value": 10000 }], "logical_op": "and" } },
+    { "id": "n3", "node_type": "approval",  "title": "财务审批",        "config": { "message": "申请金额 ${input.amount} 元，请审批", "approver": "role:finance", "timeout_secs": 86400, "timeout_action": "auto_reject" } },
+    { "id": "n4", "node_type": "notification", "title": "通知申请人",  "config": { "channel": "email", "recipients": ["${input.applicant_email}"], "subject": "审批结果", "message": "您的申请已批准" } },
+    { "id": "n5", "node_type": "end",       "title": "结束",            "config": {} }
+  ],
+  "edges": [
+    { "id": "e1", "source": "n1", "target": "n2", "edge_type": "direct" },
+    { "id": "e2", "source": "n2", "target": "n3", "edge_type": "conditionTrue" },
+    { "id": "e3", "source": "n2", "target": "n4", "edge_type": "conditionFalse" },
+    { "id": "e4", "source": "n3", "target": "n4", "edge_type": "direct" },
+    { "id": "e5", "source": "n4", "target": "n5", "edge_type": "direct" }
+  ]
+}
+
+【示例 3: 并行抓取 + 聚合】
+{
+  "nodes": [
+    { "id": "n1", "node_type": "trigger",   "title": "手动触发",          "config": { "trigger_type": "manual", "config": {} } },
+    { "id": "n2", "node_type": "parallel",  "title": "并行抓取三个数据源", "config": { "branches": [{ "id": "b0", "title": "GitHub", "steps": ["n3"] }, { "id": "b1", "title": "Twitter", "steps": ["n4"] }, { "id": "b2", "title": "RSS", "steps": ["n5"] }], "wait_for_all": true, "auto_input_from_parent": true } },
+    { "id": "n3", "node_type": "httpRequest", "title": "GitHub API",   "config": { "url": "https://api.github.com/...", "method": "GET", "headers": {}, "timeout_secs": 15, "output_var": "gh" } },
+    { "id": "n4", "node_type": "httpRequest", "title": "Twitter API",  "config": { "url": "https://api.twitter.com/...", "method": "GET", "headers": {}, "timeout_secs": 15, "output_var": "tw" } },
+    { "id": "n5", "node_type": "httpRequest", "title": "RSS Feed",     "config": { "url": "https://example.com/feed.xml", "method": "GET", "headers": {}, "timeout_secs": 15, "output_var": "rss" } },
+    { "id": "n6", "node_type": "aggregator","title": "合并结果",          "config": { "strategy": "concat", "input_sources": ["n3","n4","n5"], "output_var": "all" } },
+    { "id": "n7", "node_type": "llm",       "title": "LLM 总结",          "config": { "model": "gpt-5.4-mini", "prompt": "总结以下多源信息:\n${all}", "max_tokens": 800 } },
+    { "id": "n8", "node_type": "end",       "title": "结束",              "config": { "output_var": "n7" } }
+  ],
+  "edges": [
+    { "id": "e1", "source": "n1", "target": "n2", "edge_type": "direct" },
+    { "id": "e2", "source": "n2", "target": "n3", "edge_type": "parallelBranch", "label": "branch-0" },
+    { "id": "e3", "source": "n2", "target": "n4", "edge_type": "parallelBranch", "label": "branch-1" },
+    { "id": "e4", "source": "n2", "target": "n5", "edge_type": "parallelBranch", "label": "branch-2" },
+    { "id": "e5", "source": "n3", "target": "n6", "edge_type": "direct" },
+    { "id": "e6", "source": "n4", "target": "n6", "edge_type": "direct" },
+    { "id": "e7", "source": "n5", "target": "n6", "edge_type": "direct" },
+    { "id": "e8", "source": "n6", "target": "n7", "edge_type": "direct" },
+    { "id": "e9", "source": "n7", "target": "n8", "edge_type": "direct" }
+  ]
+}
+
+【示例 4: 多 Agent 辩论决策（debate 为容器节点，辩手为子 Agent 节点）】
+{
+  "nodes": [
+    { "id": "n1", "node_type": "trigger",   "title": "手动触发",          "config": { "trigger_type": "manual", "config": {} } },
+    { "id": "n2", "node_type": "llm",       "title": "生成辩题",          "config": { "model": "gpt-5.4-mini", "prompt": "根据用户输入生成一个需要多方论证的议题:\n${input.topic}", "temperature": 0.7, "max_tokens": 512, "output_var": "debate_topic" } },
+    { "id": "n3", "node_type": "debate",    "title": "多角色对抗辩论",    "config": { "debater_steps": ["n3a","n3b","n3c"], "max_rounds": 3, "convergence_prompt": "综合以上辩论，给出最终结论和建议。", "convergence_model_role": "deep_think", "topic_var": "debate_topic", "output_var": "debate_result" } },
+    { "id": "n3a", "node_type": "agent",    "title": "正方辩手",         "config": { "system_prompt": "你是正方辩手，请从支持的角度论证议题，提供有力论据。", "model_role": "deep_think", "tools": [], "output_var": "proponent_output" }, "parentId": "n3" },
+    { "id": "n3b", "node_type": "agent",    "title": "反方辩手",         "config": { "system_prompt": "你是反方辩手，请从反对的角度论证议题，指出潜在风险。", "model_role": "deep_think", "tools": [], "output_var": "opponent_output" }, "parentId": "n3" },
+    { "id": "n3c", "node_type": "agent",    "title": "主持人",           "config": { "system_prompt": "你是主持人，在每轮辩论后总结双方观点并指出共识与分歧。", "model_role": "quick_think", "tools": [], "output_var": "moderator_output" }, "parentId": "n3" },
+    { "id": "n4", "node_type": "agent",     "title": "决策总结 Agent",    "config": { "system_prompt": "你是一个决策助手，根据辩论结果提炼可执行的行动方案。", "model_role": "deep_think", "tools": [], "output_var": "action_plan" } },
+    { "id": "n5", "node_type": "end",       "title": "结束",              "config": { "output_var": "action_plan" } }
+  ],
+  "edges": [
+    { "id": "e1", "source": "n1", "target": "n2", "edge_type": "direct" },
+    { "id": "e2", "source": "n2", "target": "n3", "edge_type": "direct" },
+    { "id": "e3", "source": "n3", "target": "n4", "edge_type": "direct" },
+    { "id": "e4", "source": "n4", "target": "n5", "edge_type": "direct" }
+  ]
+}
+"#;
+
 fn extract_json_from_response(content: &str) -> Option<&str> {
     let trimmed = content.trim();
     if trimmed.contains("```json") {
@@ -152,6 +509,7 @@ fn extract_json_from_response(content: &str) -> Option<&str> {
 fn layout_workflow_nodes(
     node_ids: &[String],
     edge_pairs: &[(String, String)],
+    parent_map: &std::collections::HashMap<String, String>,
 ) -> std::collections::HashMap<String, Position> {
     let mut positions = std::collections::HashMap::new();
     if node_ids.is_empty() {
@@ -169,7 +527,7 @@ fn layout_workflow_nodes(
     let roots: Vec<&str> = node_ids
         .iter()
         .map(|s| s.as_str())
-        .filter(|id| !has_parent.contains(id))
+        .filter(|id| !has_parent.contains(id) && !parent_map.contains_key(*id))
         .collect();
 
     let root = roots.first().copied().unwrap_or(node_ids[0].as_str());
@@ -235,6 +593,34 @@ fn layout_workflow_nodes(
         }
     }
 
+    let mut container_children: std::collections::HashMap<String, Vec<String>> =
+        std::collections::HashMap::new();
+    for (child_id, parent_id) in parent_map {
+        container_children
+            .entry(parent_id.clone())
+            .or_default()
+            .push(child_id.clone());
+    }
+
+    for (parent_id, child_ids) in &container_children {
+        let count = child_ids.len().max(1);
+        let start_x = 50.0;
+        let start_y = 60.0;
+        for (i, child_id) in child_ids.iter().enumerate() {
+            positions.insert(
+                child_id.clone(),
+                Position {
+                    x: start_x,
+                    y: start_y + (i as f64) * 80.0,
+                },
+            );
+        }
+        if let Some(parent_pos) = positions.get_mut(parent_id) {
+            let needed_height = (count as f64) * 80.0 + 80.0;
+            if parent_pos.y < needed_height {}
+        }
+    }
+
     positions
 }
 
@@ -252,6 +638,8 @@ fn parse_llm_response(
 
     #[derive(Deserialize)]
     struct LlmWorkflowResponse {
+        #[serde(default)]
+        intent: Option<String>,
         nodes: Vec<LlmNode>,
         edges: Vec<LlmEdge>,
         explanation: Option<String>,
@@ -264,6 +652,8 @@ fn parse_llm_response(
         title: String,
         description: Option<String>,
         config: serde_json::Value,
+        #[serde(default)]
+        parent_id: Option<String>,
     }
 
     #[derive(Deserialize)]
@@ -276,6 +666,36 @@ fn parse_llm_response(
 
     let parsed: LlmWorkflowResponse = serde_json::from_str(json_str)
         .map_err(|e| format!("Failed to parse workflow JSON: {}", e))?;
+
+    if let Some(intent) = parsed.intent.as_deref() {
+        match intent {
+            "refuse" => {
+                return Ok(WorkflowGenerationResult {
+                    nodes: vec![],
+                    edges: vec![],
+                    explanation: Some(format!(
+                        "[AI 拒绝生成] {}",
+                        parsed
+                            .explanation
+                            .unwrap_or_else(|| "请求被拒绝".to_string())
+                    )),
+                });
+            },
+            "clarify" => {
+                return Ok(WorkflowGenerationResult {
+                    nodes: vec![],
+                    edges: vec![],
+                    explanation: Some(format!(
+                        "[AI 请求澄清] {}",
+                        parsed
+                            .explanation
+                            .unwrap_or_else(|| "请补充更详细的需求".to_string())
+                    )),
+                });
+            },
+            _ => {},
+        }
+    }
 
     let node_ids: Vec<String> = parsed
         .nodes
@@ -295,7 +715,16 @@ fn parse_llm_response(
         .iter()
         .map(|e| (e.source.clone(), e.target.clone()))
         .collect();
-    let positions = layout_workflow_nodes(&node_ids, &edge_pairs);
+
+    let mut parent_map: std::collections::HashMap<String, String> =
+        std::collections::HashMap::new();
+    for llm_node in &parsed.nodes {
+        if let Some(ref pid) = llm_node.parent_id {
+            parent_map.insert(llm_node.id.clone(), pid.clone());
+        }
+    }
+
+    let positions = layout_workflow_nodes(&node_ids, &edge_pairs, &parent_map);
 
     let mut nodes = Vec::new();
     let mut id_to_node_id = std::collections::HashMap::new();
@@ -315,7 +744,7 @@ fn parse_llm_response(
             description: llm_node.description.clone(),
             position,
             enabled: true,
-            parent_id: None,
+            parent_id: llm_node.parent_id.clone(),
             retry: RetryConfig::default(),
             timeout: None,
         };
@@ -347,6 +776,7 @@ fn parse_llm_response(
                         max_tool_rounds: None,
                         execution_mode: None,
                         rag_source_ids: vec![],
+                        model_role: None,
                     });
                 WorkflowNode::Agent(AgentNode {
                     base,
@@ -531,6 +961,153 @@ fn parse_llm_response(
                     config: end_config,
                 })
             },
+            "switch" => {
+                let cfg: SwitchNodeConfig = serde_json::from_value(llm_node.config.clone())
+                    .unwrap_or(SwitchNodeConfig {
+                        input_var: "input".to_string(),
+                        cases: vec![],
+                        default_case: None,
+                        match_mode: "exact".to_string(),
+                        output_var: "switched".to_string(),
+                    });
+                WorkflowNode::Switch(SwitchNode { base, config: cfg })
+            },
+            "httpRequest" => {
+                let cfg: HttpRequestNodeConfig = serde_json::from_value(llm_node.config.clone())
+                    .unwrap_or(HttpRequestNodeConfig {
+                        url: "".to_string(),
+                        method: "GET".to_string(),
+                        headers: std::collections::HashMap::new(),
+                        body: None,
+                        body_type: "json".to_string(),
+                        timeout_secs: 30,
+                        output_var: "response".to_string(),
+                    });
+                WorkflowNode::HttpRequest(HttpRequestNode { base, config: cfg })
+            },
+            "databaseQuery" => {
+                let cfg: DatabaseQueryNodeConfig = serde_json::from_value(llm_node.config.clone())
+                    .unwrap_or(DatabaseQueryNodeConfig {
+                        query: "".to_string(),
+                        params: vec![],
+                        connection_name: None,
+                        timeout_secs: 30,
+                        output_var: "db_result".to_string(),
+                    });
+                WorkflowNode::DatabaseQuery(DatabaseQueryNode { base, config: cfg })
+            },
+            "notification" => {
+                let cfg: NotificationNodeConfig = serde_json::from_value(llm_node.config.clone())
+                    .unwrap_or(NotificationNodeConfig {
+                        channel: "inapp".to_string(),
+                        message: "".to_string(),
+                        webhook_url: None,
+                        recipients: vec![],
+                        subject: None,
+                        enabled: true,
+                        output_var: "notified".to_string(),
+                    });
+                WorkflowNode::Notification(NotificationNode { base, config: cfg })
+            },
+            "approval" => {
+                let cfg: ApprovalNodeConfig = serde_json::from_value(llm_node.config.clone())
+                    .unwrap_or(ApprovalNodeConfig {
+                        message: "".to_string(),
+                        approver: None,
+                        timeout_secs: 86400,
+                        timeout_action: "auto_reject".to_string(),
+                        output_var: "approved".to_string(),
+                    });
+                WorkflowNode::Approval(ApprovalNode { base, config: cfg })
+            },
+            "fileOperation" => {
+                let cfg: FileOperationNodeConfig = serde_json::from_value(llm_node.config.clone())
+                    .unwrap_or(FileOperationNodeConfig {
+                        operation: "read".to_string(),
+                        file_path: "".to_string(),
+                        content: None,
+                        output_var: "file_result".to_string(),
+                    });
+                WorkflowNode::FileOperation(FileOperationNode { base, config: cfg })
+            },
+            "dataTransformer" => {
+                let cfg: DataTransformerNodeConfig = serde_json::from_value(
+                    llm_node.config.clone(),
+                )
+                .unwrap_or(DataTransformerNodeConfig {
+                    input_var: "input".to_string(),
+                    expression: "".to_string(),
+                    output_var: "transformed".to_string(),
+                });
+                WorkflowNode::DataTransformer(DataTransformerNode { base, config: cfg })
+            },
+            "webhookSend" => {
+                let cfg: WebhookSendNodeConfig = serde_json::from_value(llm_node.config.clone())
+                    .unwrap_or(WebhookSendNodeConfig {
+                        url: "".to_string(),
+                        method: "POST".to_string(),
+                        body: None,
+                        headers: std::collections::HashMap::new(),
+                        output_var: "webhook_result".to_string(),
+                    });
+                WorkflowNode::WebhookSend(WebhookSendNode { base, config: cfg })
+            },
+            "logging" => {
+                let cfg: LoggingNodeConfig = serde_json::from_value(llm_node.config.clone())
+                    .unwrap_or(LoggingNodeConfig {
+                        level: "info".to_string(),
+                        message: "".to_string(),
+                        output_var: "logged".to_string(),
+                    });
+                WorkflowNode::Logging(LoggingNode { base, config: cfg })
+            },
+            "llmClassifier" => {
+                let cfg: LlmClassifierNodeConfig = serde_json::from_value(llm_node.config.clone())
+                    .unwrap_or(LlmClassifierNodeConfig {
+                        categories: vec![],
+                        prompt: "".to_string(),
+                        model: None,
+                        input_var: "input".to_string(),
+                        output_var: "category".to_string(),
+                    });
+                WorkflowNode::LlmClassifier(LlmClassifierNode { base, config: cfg })
+            },
+            "aggregator" => {
+                let cfg: AggregatorNodeConfig = serde_json::from_value(llm_node.config.clone())
+                    .unwrap_or(AggregatorNodeConfig {
+                        strategy: "all".to_string(),
+                        input_sources: vec![],
+                        output_var: "aggregated".to_string(),
+                    });
+                WorkflowNode::Aggregator(AggregatorNode { base, config: cfg })
+            },
+            "email" => {
+                let cfg: EmailNodeConfig = serde_json::from_value(llm_node.config.clone())
+                    .unwrap_or(EmailNodeConfig {
+                        to: vec![],
+                        subject: "".to_string(),
+                        body: "".to_string(),
+                        smtp_host: None,
+                        smtp_port: None,
+                        smtp_user: None,
+                        smtp_pass: None,
+                        output_var: "sent".to_string(),
+                    });
+                WorkflowNode::Email(EmailNode { base, config: cfg })
+            },
+            "debate" => {
+                let cfg: DebateNodeConfig = serde_json::from_value(llm_node.config.clone())
+                    .unwrap_or(DebateNodeConfig {
+                        debater_steps: vec![],
+                        max_rounds: 2,
+                        convergence_prompt: None,
+                        convergence_model: None,
+                        convergence_model_role: None,
+                        topic_var: "topic".to_string(),
+                        output_var: "debate_result".to_string(),
+                    });
+                WorkflowNode::Debate(DebateNode { base, config: cfg })
+            },
             _ => WorkflowNode::Agent(AgentNode {
                 base,
                 config: AgentNodeConfig {
@@ -547,6 +1124,7 @@ fn parse_llm_response(
                     max_tool_rounds: None,
                     execution_mode: None,
                     rag_source_ids: vec![],
+                    model_role: None,
                 },
             }),
         };
@@ -571,6 +1149,7 @@ fn parse_llm_response(
             Some("parallelBranch") => EdgeType::ParallelBranch,
             Some("merge") => EdgeType::Merge,
             Some("error") => EdgeType::Error,
+            Some("debateRound") => EdgeType::DebateRound,
             _ => EdgeType::Direct,
         };
 
@@ -657,41 +1236,57 @@ pub async fn generate_workflow_from_prompt(
     let system_prompt = format!(
         r#"You are a workflow design assistant. Generate a workflow based on the user's natural language description.
 
-Output a valid JSON object with this structure:
+=== 任务边界 ===
+- 仅当用户希望"创建/重写/批量修改"工作流时输出完整 JSON。
+- 若用户只是"修改某个节点"、"询问某节点配置"或"删除某节点"，应只输出单点修改（参见 chat 模式协议）。
+- 若需求模糊（如"帮我优化一下"），先简短澄清再生成。
+
+=== 完整节点类型（共 27 种，必须从下列中选）===
+trigger, agent, llm, condition, switch, parallel, loop, merge, delay,
+httpRequest, databaseQuery, tool, code, subWorkflow, documentParser,
+vectorRetrieve, validation, notification, approval, fileOperation,
+dataTransformer, webhookSend, logging, llmClassifier, aggregator, email, end
+
+{NODE_SCHEMAS_DOC}
+
+=== Few-shot 范例 ===
+{FEW_SHOT_EXAMPLES}
+
+=== 输出格式 ===
 {{
+  "intent": "generate" | "clarify" | "refuse",
   "nodes": [
     {{
-      "id": "node-1",
-      "node_type": "trigger|agent|llm|condition|parallel|loop|merge|delay|tool|code|subWorkflow|documentParser|vectorRetrieve|validation|end",
-      "title": "Node Title",
-      "description": "Optional description",
-      "config": {{}} // Node-specific configuration
+      "id": "n1",
+      "node_type": "见上方完整列表",
+      "title": "中文/英文标题",
+      "description": "可选，节点作用",
+      "config": {{ ...严格遵循上面对应 node_type 的 schema... }}
     }}
   ],
   "edges": [
     {{
-      "id": "edge-1",
-      "source": "node-1",
-      "target": "node-2",
-      "edge_type": "direct|conditionTrue|conditionFalse|loopBack|parallelBranch"
+      "id": "e1",
+      "source": "n1",
+      "target": "n2",
+      "edge_type": "direct" | "conditionTrue" | "conditionFalse" | "loopBack" | "parallelBranch" | "merge" | "error",
+      "label": "可选，parallelBranch 时填 'branch-N'"
     }}
   ],
-  "explanation": "Brief explanation of the generated workflow"
+  "explanation": "一段中文解释：为什么这样设计、关键节点的作用、潜在风险"
 }}
 
-Rules:
-1. Always start with a trigger node
-2. Always end with an end node
-3. For condition nodes, use edge_type "conditionTrue" or "conditionFalse"
-4. Use descriptive node titles in Chinese when possible
-5. Include at least one agent or llm node for processing
-6. Node IDs should be unique and match in edges
-7. Use merge nodes to combine parallel branches back together
-8. Use delay nodes when waiting is needed between steps
-9. Use subWorkflow nodes to invoke other workflows
-10. Use documentParser nodes for document extraction
-11. Use vectorRetrieve nodes for knowledge base search
-12. Use validation nodes for data quality checks{context_section}"#
+=== 强制规则 ===
+1. 总是以 trigger 节点开始、end 节点结束。
+2. 节点 ID 用 n1, n2, n3... 这种简短形式，edges 中 source/target 引用必须一致。
+3. 每个 config 字段必须遵循上方对应 node_type 的 schema —— 必填字段不能省略、可选字段可省略。
+4. condition 节点配 conditionTrue/conditionFalse 边；parallel 节点的每条分支用 parallelBranch 边，label 形如 "branch-0"、"branch-1"。
+5. 若用户描述里有"审批"→ approval；"邮件"→ email；"HTTP/接口/REST"→ httpRequest；"数据库/SQL"→ databaseQuery；"Webhook 回调"→ webhookSend；"分类/打标"→ llmClassifier；"汇总/合并"→ aggregator。
+6. 若用户描述有歧义（不知选哪个节点），intent=clarify，nodes/edges 留空数组，explanation 写明澄清问题。
+7. 若请求违反平台规则（如要求越权访问），intent=refuse，explanation 写明原因。
+8. 涉及并发/批量处理用 parallel；循环遍历用 loop；不要把循环当并发。
+9. 跨多个服务编排时优先用 subWorkflow 复用已有工作流。
+10. 知识检索/文档问答用 vectorRetrieve + documentParser；不要用 llm 凭空生成。{context_section}"#
     );
 
     let request = ChatRequest {
@@ -1179,16 +1774,38 @@ pub async fn workflow_ai_chat_stream(
     let system_prompt = format!(
         r#"You are an AI assistant for a workflow editor. You help users create, modify, and optimize workflows through conversation.
 
-You can:
-1. Generate complete workflows based on descriptions
-2. Modify existing workflows (add/remove nodes, change connections)
-3. Optimize agent prompts
-4. Recommend node types
-5. Explain workflow concepts
+=== 意图路由（务必先判断用户意图再决定输出形式）===
+- 全新生成/重写工作流 → generate_workflow action
+- 添加新节点 → add_node / add_nodes action
+- 修改节点属性 → update_node action（仅传需要改的字段）
+- 删除节点/边 → delete_node / delete_edge action
+- 修改边 → add_edge / update_edge / delete_edge
+- 优化 Agent 提示词 → optimize_prompt action
+- 解释/分析/问问题 → 纯文本回复，不输出 action 块
+- 单纯咨询（如"什么是 parallel 节点"）→ 纯文本
 
-When you want to perform an action on the workflow, include a special action block in your response using this format:
+=== 你能做的事 ===
+1. 全新生成完整工作流
+2. 修改现有工作流（add/update/delete nodes, add/update/delete edges）
+3. 优化 agent prompt
+4. 推荐节点类型
+5. 解释工作流概念
+
+=== 完整节点类型（27 种，add_node 时 node.type 必须是下列之一）===
+trigger, agent, llm, condition, switch, parallel, loop, merge, delay,
+httpRequest, databaseQuery, tool, code, subWorkflow, documentParser,
+vectorRetrieve, validation, notification, approval, fileOperation,
+dataTransformer, webhookSend, logging, llmClassifier, aggregator, email, end
+
+{NODE_SCHEMAS_DOC}
+
+=== Action 协议（必须用 :::action 包裹 JSON）===
 :::action
 {{"action_type": "generate_workflow", "data": {{"nodes": [...], "edges": [...]}}}}
+:::
+
+:::action
+{{"action_type": "add_node", "data": {{"node": {{...}}, "position": {{"x": 0, "y": 0}}}}}}
 :::
 
 :::action
@@ -1196,20 +1813,46 @@ When you want to perform an action on the workflow, include a special action blo
 :::
 
 :::action
+{{"action_type": "update_node", "data": {{"node_id": "...", "changes": {{"title": "新标题", "config": {{...}}, "position": {{...}}}}}}}}
+:::
+
+:::action
 {{"action_type": "modify_node", "data": {{"node_id": "...", "changes": {{}}}}}}
+:::
+
+:::action
+{{"action_type": "delete_node", "data": {{"node_id": "..."}}}}
+:::
+
+:::action
+{{"action_type": "delete_nodes", "data": {{"node_ids": ["...", "..."]}}}}
+:::
+
+:::action
+{{"action_type": "add_edge", "data": {{"edge": {{"id": "...", "source": "...", "target": "...", "edge_type": "direct", "label": "..."}}}}}}
+:::
+
+:::action
+{{"action_type": "update_edge", "data": {{"edge_id": "...", "changes": {{"label": "...", "edge_type": "conditionTrue"}}}}}}
+:::
+
+:::action
+{{"action_type": "delete_edge", "data": {{"edge_id": "..."}}}}
 :::
 
 :::action
 {{"action_type": "optimize_prompt", "data": {{"node_id": "...", "optimized_prompt": "..."}}}}
 :::
 
-:::action
-{{"action_type": "delete_nodes", "data": {{"node_ids": [...]}}}}
-:::
-
-You can include multiple action blocks in a single response. Always explain what you're doing before the action block.
-For generate_workflow and add_nodes, use the same node/edge JSON format as the workflow schema.
-Respond in the same language as the user's message.{}"#,
+=== 强制规则 ===
+1. 一次回复可包含多个 :::action 块（按依赖顺序排列）。
+2. add_node/add_nodes 时严格按上面对应 node_type 的 schema 写 config；缺字段的未知参数会被丢弃。
+3. update_node 是部分更新：只传需要改的字段。删除属性请传 null。
+4. 涉及并行批量 → parallel，循环遍历 → loop，不要混用。
+5. 描述里"审批"→ approval；"邮件"→ email；"HTTP/接口/REST"→ httpRequest；"数据库/SQL"→ databaseQuery；"Webhook 回调"→ webhookSend；"分类/打标"→ llmClassifier。
+6. 在 action 块之前先用一句话解释你要做什么，让用户能跟得上。
+7. 所有改动会先以 diff 形式展示给用户确认，不会自动落库。
+8. Respond in the same language as the user's message.{}"#,
         canvas_section
     );
 

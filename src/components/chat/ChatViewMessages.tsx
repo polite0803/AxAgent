@@ -185,7 +185,6 @@ function AssistantFooter({
   const currentConvTitle = useConversationStore(
     (s) => s.conversations.find((c) => c.id === conversationId)?.title ?? "",
   );
-  const messagesLength = useConversationStore((s) => s.messages.length);
   const storeMessages = useConversationStore((s) => s.messages);
 
   useEffect(() => {
@@ -202,10 +201,8 @@ function AssistantFooter({
     }
   }, [
     msg.parent_message_id,
-    msg.id,
     conversationId,
     listMessageVersions,
-    messagesLength,
   ]);
 
   const mergedVersions = useMemo(() => {
@@ -715,6 +712,13 @@ export function useChatViewMessages({
   }, [messages]);
 
   const multiModelVersionsRef = useRef<Map<string, Message[]>>(new Map());
+  const prevConvIdRef = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    if (prevConvIdRef.current !== undefined && prevConvIdRef.current !== activeConversationId) {
+      multiModelVersionsRef.current.clear();
+    }
+    prevConvIdRef.current = activeConversationId ?? undefined;
+  }, [activeConversationId]);
   const handleMultiModelDetected = useCallback(
     (parentMsgId: string, versions: Message[]) => {
       const hadCached = multiModelVersionsRef.current.has(parentMsgId);

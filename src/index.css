@@ -2229,16 +2229,68 @@ html[data-theme="dark"] .markstream-react .table-node thead {
   background: color-mix(in srgb, var(--accent-deco) 8%, transparent);
   color: var(--color-primary);
 }
+/* 右侧面板 Drawer 模式 — 参考 DeepSeek-Reasonix */
+.rp-drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 999;
+  animation: rp-fade-in 0.12s ease;
+}
+
+.rp-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 380px;
+  height: 100%;
+  background: var(--bg-primary, #1a1a2e);
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  animation: rp-drawer-in 0.14s ease;
+  box-shadow: -4px 0 16px rgba(0, 0, 0, 0.2);
+}
+
+@keyframes rp-drawer-in {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+@keyframes rp-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.rp-drawer .rp-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border-color, #333);
+  flex-shrink: 0;
+}
+
+.rp-drawer .rp-tabs {
+  flex-shrink: 0;
+}
+
+.rp-drawer .rp-body {
+  flex: 1;
+  overflow: auto;
+  padding-bottom: 16px;
+}
+
 .rp-tabs {
   display: flex;
   flex-direction: row;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   border-bottom: 1px solid var(--border-color);
   padding: 2px 4px;
   gap: 0;
   flex-shrink: 0;
-  overflow-y: auto;
-  max-height: 84px;
+  overflow: hidden;
+  position: relative;
 }
 .rp-tabs::-webkit-scrollbar { display: none; }
 
@@ -2272,6 +2324,30 @@ html[data-theme="dark"] .markstream-react .table-node thead {
   flex-shrink: 0;
   border-top: none;
   border-left: none;
+}
+
+.rp-tabs-overflow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 8px;
+  font-size: 10.5px;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.rp-tabs-overflow:hover {
+  color: var(--color-text);
+  background: var(--hover);
+}
+
+.rp-tabs-overflow.active {
+  color: var(--color-primary);
+  border-bottom-color: var(--color-primary);
+}
   border-right: none;
   background: none;
   border-radius: 0;

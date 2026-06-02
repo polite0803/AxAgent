@@ -92,6 +92,7 @@ pub async fn record_usage(
     model_id: Option<&str>,
     request_tokens: u64,
     response_tokens: u64,
+    cached_input_tokens: u64,
 ) -> Result<()> {
     gateway_usage::ActiveModel {
         key_id: Set(key_id.to_string()),
@@ -99,6 +100,7 @@ pub async fn record_usage(
         model_id: Set(model_id.map(|s| s.to_string())),
         request_tokens: Set(request_tokens as i64),
         response_tokens: Set(response_tokens as i64),
+        cached_input_tokens: Set(Some(cached_input_tokens as i64)),
         created_at: Set(now_ts()),
         ..Default::default()
     }

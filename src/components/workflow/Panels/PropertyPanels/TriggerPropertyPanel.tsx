@@ -1,6 +1,7 @@
-import { Input, Select, Switch, theme } from "antd";
+import { Input, message, Select, Switch, theme } from "antd";
 import React from "react";
 import { useTranslation } from "react-i18next";
+import { AIAssistButton, useNodeAIAssist } from "../../Hooks";
 import type { TriggerNode, TriggerType, WorkflowNode } from "../../types";
 import { BasePropertyPanel } from "./BasePropertyPanel";
 
@@ -23,22 +24,51 @@ function TriggerConfig({
 }) {
   const { t } = useTranslation();
   const { token } = theme.useToken();
+  const { generate: aiGenerate, generating: aiGenerating } = useNodeAIAssist();
+  const [messageApi, contextHolder] = message.useMessage();
+
+  const handleAISuggestCron = async () => {
+    const current = (triggerConfig.config.cron as string) || "";
+    const hint = current.trim() || t("workflow.aiAssist.trigger.cronHint");
+    const result = await aiGenerate({
+      systemPrompt:
+        "你是一个 cron 表达式专家。根据用户的自然语言描述，输出标准 5 段式 cron 表达式（minute hour day-of-month month day-of-week）。"
+        + "只输出 cron 字符串本身，不要任何解释或 Markdown 标记。",
+      userPrompt: hint,
+    });
+    if (!result) {
+      messageApi.error(t("workflow.aiAssist.failed"));
+      return;
+    }
+    const cleaned = result.split("\n")[0].trim().replace(/^```\w*\s*|\s*```$/g, "");
+    handleConfigChange("cron", cleaned);
+    messageApi.success(t("workflow.aiAssist.applied"));
+  };
 
   switch (triggerConfig.type) {
     case "schedule":
       return (
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {contextHolder}
           <div>
             <label style={{ color: token.colorTextTertiary, fontSize: 12 }}>
               {t("workflow.props.cronExpression")}
             </label>
-            <Input
-              id="trigger-property-panel-input-113"
-              value={(triggerConfig.config.cron as string) || ""}
-              onChange={(e) => handleConfigChange("cron", e.target.value)}
-              placeholder="* * * * *"
-              size="small"
-            />
+            <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+              <Input
+                id="trigger-property-panel-input-113"
+                value={(triggerConfig.config.cron as string) || ""}
+                onChange={(e) => handleConfigChange("cron", e.target.value)}
+                placeholder="* * * * *"
+                size="small"
+              />
+              <AIAssistButton
+                labelKey="suggest"
+                loading={aiGenerating}
+                onClick={handleAISuggestCron}
+                compact
+              />
+            </div>
           </div>
           <div>
             <label style={{ color: token.colorTextTertiary, fontSize: 12 }}>

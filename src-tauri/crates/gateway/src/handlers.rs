@@ -1715,6 +1715,7 @@ async fn handle_non_stream(
                 Some(model_id),
                 response.usage.prompt_tokens as u64,
                 response.usage.completion_tokens as u64,
+                response.usage.cache_read_tokens.unwrap_or(0) as u64,
             )
             .await;
 
@@ -1779,6 +1780,8 @@ async fn handle_stream(
     tokio::spawn(async move {
         let mut total_prompt = 0u32;
         let mut total_completion = 0u32;
+        let mut total_cached = 0u32;
+        let mut total_cache_creation = 0u32;
         let mut stream_error: Option<String> = None;
 
         while let Some(chunk_result) = stream.next().await {
@@ -1787,14 +1790,17 @@ async fn handle_stream(
                     if let Some(usage) = &chunk.usage {
                         total_prompt = usage.prompt_tokens;
                         total_completion = usage.completion_tokens;
+                        total_cached = usage.cache_read_tokens.unwrap_or(0);
+                        total_cache_creation = usage.cache_creation_tokens.unwrap_or(0);
                     }
 
                     if chunk.done {
-                        // Send final chunk
                         let data = build_stream_final_response_body(
                             &model_str,
                             total_prompt,
                             total_completion,
+                            total_cached,
+                            total_cache_creation,
                         );
                         let _ = tx.send(Ok(Event::default().data(data.to_string()))).await;
                         let _ = tx.send(Ok(Event::default().data("[DONE]"))).await;
@@ -1829,6 +1835,7 @@ async fn handle_stream(
             Some(&mod_id),
             total_prompt as u64,
             total_completion as u64,
+            total_cached as u64,
         )
         .await;
 
@@ -1868,6 +1875,23 @@ fn build_non_stream_response_body(response: &ChatResponse) -> serde_json::Value 
         message.insert("reasoning_content".to_string(), json!(reasoning));
     }
 
+    let mut usage = serde_json::Map::from_iter([
+        ("prompt_tokens".to_string(), json!(response.usage.prompt_tokens)),
+        ("completion_tokens".to_string(), json!(response.usage.completion_tokens)),
+        ("total_tokens".to_string(), json!(response.usage.total_tokens)),
+        (
+            "prompt_tokens_details".to_string(),
+            json!({
+                "cached_tokens": response.usage.cache_read_tokens.unwrap_or(0),
+            }),
+        ),
+    ]);
+    if let Some(cache_creation) = response.usage.cache_creation_tokens {
+        if cache_creation > 0 {
+            usage.insert("cache_creation_input_tokens".to_string(), json!(cache_creation));
+        }
+    }
+
     json!({
         "id": response.id,
         "object": "chat.completion",
@@ -1877,11 +1901,7 @@ fn build_non_stream_response_body(response: &ChatResponse) -> serde_json::Value 
             "message": message,
             "finish_reason": "stop",
         }],
-        "usage": {
-            "prompt_tokens": response.usage.prompt_tokens,
-            "completion_tokens": response.usage.completion_tokens,
-            "total_tokens": response.usage.total_tokens,
-        }
+        "usage": usage,
     })
 }
 
@@ -1918,7 +1938,24 @@ fn build_stream_final_response_body(
     model: &str,
     prompt_tokens: u32,
     completion_tokens: u32,
+    cached_tokens: u32,
+    cache_creation_tokens: u32,
 ) -> serde_json::Value {
+    let mut usage = serde_json::Map::from_iter([
+        ("prompt_tokens".to_string(), json!(prompt_tokens)),
+        ("completion_tokens".to_string(), json!(completion_tokens)),
+        ("total_tokens".to_string(), json!(prompt_tokens + completion_tokens)),
+        (
+            "prompt_tokens_details".to_string(),
+            json!({
+                "cached_tokens": cached_tokens,
+            }),
+        ),
+    ]);
+    if cache_creation_tokens > 0 {
+        usage.insert("cache_creation_input_tokens".to_string(), json!(cache_creation_tokens));
+    }
+
     json!({
         "id": "chatcmpl-gateway",
         "object": "chat.completion.chunk",
@@ -1928,11 +1965,7 @@ fn build_stream_final_response_body(
             "delta": {},
             "finish_reason": "stop",
         }],
-        "usage": {
-            "prompt_tokens": prompt_tokens,
-            "completion_tokens": completion_tokens,
-            "total_tokens": prompt_tokens + completion_tokens,
-        }
+        "usage": usage,
     })
 }
 

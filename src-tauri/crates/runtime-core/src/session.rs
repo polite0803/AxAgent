@@ -915,6 +915,10 @@ fn usage_from_json(value: &JsonValue) -> Result<TokenUsage, SessionError> {
         output_tokens: required_u32(object, "output_tokens")?,
         cache_creation_input_tokens: required_u32(object, "cache_creation_input_tokens")?,
         cache_read_input_tokens: required_u32(object, "cache_read_input_tokens")?,
+        cache_miss_input_tokens: object
+            .get("cache_miss_input_tokens")
+            .and_then(|v| v.as_i64())
+            .map(|v| v as u32),
     })
 }
 
@@ -1141,6 +1145,7 @@ mod tests {
                     output_tokens: 4,
                     cache_creation_input_tokens: 1,
                     cache_read_input_tokens: 2,
+                    cache_miss_input_tokens: None,
                 }),
             ))
             .expect("assistant message should append");

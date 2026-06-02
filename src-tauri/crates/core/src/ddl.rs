@@ -68,6 +68,18 @@ pub async fn run_initialization(db: &impl ConnectionTrait) -> Result<(), DbErr> 
             completion_tokens BIGINT, status TEXT NOT NULL DEFAULT 'complete', \
             tokens_per_second REAL, first_token_latency_ms BIGINT, \
             FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE)",
+    ] {
+        db.execute_unprepared(sql).await?;
+    }
+
+    for sql in &[
+        "ALTER TABLE messages ADD COLUMN cache_creation_tokens BIGINT",
+        "ALTER TABLE messages ADD COLUMN cache_read_tokens BIGINT",
+    ] {
+        let _ = db.execute_unprepared(sql).await;
+    }
+
+    for sql in &[
         // categories — 死表，无代码引用（现存代码使用 conversation_categories 实体）
         // apps — 死表，无代码引用
         // context_packs — 死表，无代码引用
@@ -83,6 +95,17 @@ pub async fn run_initialization(db: &impl ConnectionTrait) -> Result<(), DbErr> 
             request_tokens INTEGER NOT NULL DEFAULT 0, response_tokens INTEGER NOT NULL DEFAULT 0, \
             created_at INTEGER NOT NULL, \
             FOREIGN KEY (key_id) REFERENCES gateway_keys(id) ON DELETE CASCADE)",
+    ] {
+        db.execute_unprepared(sql).await?;
+    }
+
+    let _ = db
+        .execute_unprepared(
+            "ALTER TABLE gateway_usage ADD COLUMN cached_input_tokens BIGINT NOT NULL DEFAULT 0",
+        )
+        .await;
+
+    for sql in &[
         // settings
         "CREATE TABLE IF NOT EXISTS settings (\
             key TEXT NOT NULL PRIMARY KEY, value TEXT NOT NULL)",

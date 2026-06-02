@@ -28,7 +28,7 @@ async fn seed_gateway_usage() -> (
     .await
     .unwrap();
 
-    gateway::record_usage(db, &key.id, &provider.id, Some("deepseek-chat"), 1500, 500)
+    gateway::record_usage(db, &key.id, &provider.id, Some("deepseek-chat"), 1500, 500, 0)
         .await
         .unwrap();
 

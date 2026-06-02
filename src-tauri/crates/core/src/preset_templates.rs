@@ -922,6 +922,7 @@ fn step_to_agent_node(step: &PresetStep, index: usize) -> WorkflowNode {
             max_tool_rounds: None,
             execution_mode: None,
             rag_source_ids: vec![],
+            model_role: None,
         },
     })
 }

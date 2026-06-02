@@ -26,7 +26,7 @@ pub async fn generate_chart_config(
 ) -> Result<ChartGenResult, String> {
     let api_key = api_key.ok_or_else(|| "API key required for chart generation".to_string())?;
     let base_url = base_url.unwrap_or_else(|| "https://api.openai.com/v1".to_string());
-    let model = model.unwrap_or_else(|| "gpt-4o-mini".to_string());
+    let model = model.unwrap_or_else(|| "gpt-5.4-mini".to_string());
 
     let system_prompt = r#"You are a chart configuration generator. Given a natural language description and optional data, generate a valid ECharts option object.
 

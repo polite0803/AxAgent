@@ -343,6 +343,18 @@ pub async fn validate_workflow_template(
             WorkflowNode::DocumentParser(t) => Some(t.base.id.clone()),
             WorkflowNode::VectorRetrieve(t) => Some(t.base.id.clone()),
             WorkflowNode::HttpRequest(t) => Some(t.base.id.clone()),
+            WorkflowNode::Switch(t) => Some(t.base.id.clone()),
+            WorkflowNode::DatabaseQuery(t) => Some(t.base.id.clone()),
+            WorkflowNode::Notification(t) => Some(t.base.id.clone()),
+            WorkflowNode::Approval(t) => Some(t.base.id.clone()),
+            WorkflowNode::FileOperation(t) => Some(t.base.id.clone()),
+            WorkflowNode::DataTransformer(t) => Some(t.base.id.clone()),
+            WorkflowNode::WebhookSend(t) => Some(t.base.id.clone()),
+            WorkflowNode::Logging(t) => Some(t.base.id.clone()),
+            WorkflowNode::LlmClassifier(t) => Some(t.base.id.clone()),
+            WorkflowNode::Aggregator(t) => Some(t.base.id.clone()),
+            WorkflowNode::Email(t) => Some(t.base.id.clone()),
+            WorkflowNode::Debate(t) => Some(t.base.id.clone()),
             WorkflowNode::End(t) => Some(t.base.id.clone()),
         })
         .collect();
@@ -538,6 +550,143 @@ pub async fn validate_workflow_template(
                     ),
                 });
             }
+        }
+    }
+
+    // ── 节点配置字段校验 ──
+    for node in &nodes {
+        match node {
+            WorkflowNode::Agent(a) => {
+                if a.config.system_prompt.is_empty() {
+                    warnings.push(ValidationWarning {
+                        warning_type: "invalid_config".to_string(),
+                        node_id: Some(a.base.id.clone()),
+                        message: format!("Agent node '{}' has an empty system_prompt", a.base.id),
+                    });
+                }
+            },
+            WorkflowNode::Llm(l) => {
+                if l.config.model.is_empty() {
+                    warnings.push(ValidationWarning {
+                        warning_type: "invalid_config".to_string(),
+                        node_id: Some(l.base.id.clone()),
+                        message: format!("LLM node '{}' has an empty model field", l.base.id),
+                    });
+                }
+                if l.config.prompt.is_empty() {
+                    warnings.push(ValidationWarning {
+                        warning_type: "invalid_config".to_string(),
+                        node_id: Some(l.base.id.clone()),
+                        message: format!("LLM node '{}' has an empty prompt field", l.base.id),
+                    });
+                }
+            },
+            WorkflowNode::Switch(s) => {
+                if s.config.cases.is_empty() {
+                    warnings.push(ValidationWarning {
+                        warning_type: "invalid_config".to_string(),
+                        node_id: Some(s.base.id.clone()),
+                        message: format!("Switch node '{}' has empty cases", s.base.id),
+                    });
+                }
+            },
+            WorkflowNode::Loop(lp) => {
+                if lp.config.body_steps.is_empty() {
+                    warnings.push(ValidationWarning {
+                        warning_type: "invalid_config".to_string(),
+                        node_id: Some(lp.base.id.clone()),
+                        message: format!("Loop node '{}' has empty body_steps", lp.base.id),
+                    });
+                }
+            },
+            WorkflowNode::Parallel(p) => {
+                if p.config.branches.is_empty() {
+                    warnings.push(ValidationWarning {
+                        warning_type: "invalid_config".to_string(),
+                        node_id: Some(p.base.id.clone()),
+                        message: format!("Parallel node '{}' has empty branches", p.base.id),
+                    });
+                }
+            },
+            WorkflowNode::Condition(c) => {
+                if c.config.conditions.is_empty() && c.config.judge_by_llm.unwrap_or(false) {
+                    warnings.push(ValidationWarning {
+                        warning_type: "invalid_config".to_string(),
+                        node_id: Some(c.base.id.clone()),
+                        message: format!(
+                            "Condition node '{}' has empty conditions (LLM routing is enabled)",
+                            c.base.id
+                        ),
+                    });
+                }
+            },
+            _ => {},
+        }
+    }
+
+    // ── 边类型校验：特定边类型必须源自对应节点类型 ──
+    let node_type_map: std::collections::HashMap<String, &str> = nodes
+        .iter()
+        .map(|n| (n.base_id().to_string(), node_type_name(n)))
+        .collect();
+
+    for edge in &edges {
+        match &edge.edge_type {
+            EdgeType::ConditionTrue | EdgeType::ConditionFalse => {
+                if let Some(&ntype) = node_type_map.get(&edge.source) {
+                    if ntype != "condition" {
+                        errors.push(ValidationError {
+                            error_type: "invalid_edge".to_string(),
+                            node_id: Some(edge.id.clone()),
+                            message: format!(
+                                "{:?} edge '{}' must originate from a Condition node, but source '{}' is a '{}' node",
+                                edge.edge_type, edge.id, edge.source, ntype
+                            ),
+                            suggestion: Some(
+                                "Change the source node to a Condition node or change the edge type"
+                                    .to_string(),
+                            ),
+                        });
+                    }
+                }
+            },
+            EdgeType::DebateRound => {
+                if let Some(&ntype) = node_type_map.get(&edge.source) {
+                    if ntype != "debate" {
+                        errors.push(ValidationError {
+                            error_type: "invalid_edge".to_string(),
+                            node_id: Some(edge.id.clone()),
+                            message: format!(
+                                "debateRound edge '{}' must originate from a Debate node, but source '{}' is a '{}' node",
+                                edge.id, edge.source, ntype
+                            ),
+                            suggestion: Some(
+                                "Change the source node to a Debate node or change the edge type"
+                                    .to_string(),
+                            ),
+                        });
+                    }
+                }
+            },
+            EdgeType::ParallelBranch => {
+                if let Some(&ntype) = node_type_map.get(&edge.source) {
+                    if ntype != "parallel" {
+                        errors.push(ValidationError {
+                            error_type: "invalid_edge".to_string(),
+                            node_id: Some(edge.id.clone()),
+                            message: format!(
+                                "parallelBranch edge '{}' must originate from a Parallel node, but source '{}' is a '{}' node",
+                                edge.id, edge.source, ntype
+                            ),
+                            suggestion: Some(
+                                "Change the source node to a Parallel node or change the edge type"
+                                    .to_string(),
+                            ),
+                        });
+                    }
+                }
+            },
+            _ => {},
         }
     }
 
@@ -1208,6 +1357,7 @@ fn extract_config_from_n8n(n8n_node: &serde_json::Value, node_id: &str) -> Agent
         max_tool_rounds: None,
         execution_mode: None,
         rag_source_ids: vec![],
+        model_role: None,
     }
 }
 
@@ -1396,6 +1546,19 @@ async fn convert_n8n_to_axagent(
             WorkflowNode::SubWorkflow(t) => t.base.position.clone(),
             WorkflowNode::DocumentParser(t) => t.base.position.clone(),
             WorkflowNode::VectorRetrieve(t) => t.base.position.clone(),
+            WorkflowNode::HttpRequest(t) => t.base.position.clone(),
+            WorkflowNode::Switch(t) => t.base.position.clone(),
+            WorkflowNode::DatabaseQuery(t) => t.base.position.clone(),
+            WorkflowNode::Notification(t) => t.base.position.clone(),
+            WorkflowNode::Approval(t) => t.base.position.clone(),
+            WorkflowNode::FileOperation(t) => t.base.position.clone(),
+            WorkflowNode::DataTransformer(t) => t.base.position.clone(),
+            WorkflowNode::WebhookSend(t) => t.base.position.clone(),
+            WorkflowNode::Logging(t) => t.base.position.clone(),
+            WorkflowNode::LlmClassifier(t) => t.base.position.clone(),
+            WorkflowNode::Aggregator(t) => t.base.position.clone(),
+            WorkflowNode::Email(t) => t.base.position.clone(),
+            WorkflowNode::Debate(t) => t.base.position.clone(),
             WorkflowNode::End(t) => t.base.position.clone(),
         })
         .next_back()

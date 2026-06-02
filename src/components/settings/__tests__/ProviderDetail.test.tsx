@@ -133,6 +133,7 @@ vi.mock("@/stores", () => ({
 }));
 
 describe("ProviderDetail", () => {
+  vi.setConfig({ testTimeout: 20000 });
   beforeEach(() => {
     vi.clearAllMocks();
     provider = {

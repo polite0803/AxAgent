@@ -268,7 +268,8 @@ fn extract_gemini_compat_chunk(data: &str) -> Option<ChatStreamChunk> {
         completion_tokens: usage.candidates_token_count.unwrap_or(0),
         total_tokens: usage.total_token_count.unwrap_or(0),
         cache_creation_tokens: None,
-        cache_read_tokens: None,
+        cache_read_tokens: usage.cached_content_token_count,
+        ..Default::default()
     });
 
     if content.is_none() && usage.is_none() {
@@ -285,7 +286,7 @@ fn extract_gemini_compat_chunk(data: &str) -> Option<ChatStreamChunk> {
     })
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Default)]
 struct OpenAIUsage {
     #[serde(default)]
     prompt_tokens: u32,
@@ -293,6 +294,97 @@ struct OpenAIUsage {
     completion_tokens: u32,
     #[serde(default)]
     total_tokens: u32,
+    // DeepSeek 风格: 顶层 prompt_cache_*_tokens
+    #[serde(default)]
+    prompt_cache_hit_tokens: Option<u32>,
+    // P1/P2 使用: DeepSeek 缓存未命中计数, 用于命中率埋点
+    #[allow(dead_code)]
+    #[serde(default)]
+    prompt_cache_miss_tokens: Option<u32>,
+    // Kimi 风格: 顶层 cached_tokens (与 prompt_tokens_details.cached_tokens 不同位置)
+    #[serde(default)]
+    cached_tokens: Option<u32>,
+    // OpenAI / MiMo 风格: 嵌套 prompt_tokens_details.cached_tokens
+    #[serde(default)]
+    prompt_tokens_details: Option<PromptTokensDetails>,
+    // P2 使用: 推理 token / 音频 token 等细节
+    #[allow(dead_code)]
+    #[serde(default)]
+    completion_tokens_details: Option<CompletionTokensDetails>,
+}
+
+#[derive(Deserialize, Default)]
+#[serde(rename_all = "snake_case")]
+struct PromptTokensDetails {
+    #[serde(default)]
+    cached_tokens: Option<u32>,
+    // 预留: 音频输入 token, P2 审计使用
+    #[allow(dead_code)]
+    #[serde(default)]
+    audio_tokens: Option<u32>,
+}
+
+#[derive(Deserialize, Default)]
+#[serde(rename_all = "snake_case")]
+struct CompletionTokensDetails {
+    // 预留: 推理 token, P2 思考/输出分离计费
+    #[allow(dead_code)]
+    #[serde(default)]
+    reasoning_tokens: Option<u32>,
+    // 预留: 音频输出 token
+    #[allow(dead_code)]
+    #[serde(default)]
+    audio_tokens: Option<u32>,
+    // 预留: 投机解码接受/拒绝 token
+    #[allow(dead_code)]
+    #[serde(default)]
+    accepted_prediction_tokens: Option<u32>,
+    #[allow(dead_code)]
+    #[serde(default)]
+    rejected_prediction_tokens: Option<u32>,
+}
+
+impl OpenAIUsage {
+    /// 归一化缓存命中 token 数: 优先取 OpenAI 嵌套 cached_tokens,
+    /// 回退到 DeepSeek 顶层 prompt_cache_hit_tokens, 都没有则 None.
+    fn cache_read_tokens(&self) -> Option<u32> {
+        if let Some(cached) = self
+            .prompt_tokens_details
+            .as_ref()
+            .and_then(|d| d.cached_tokens)
+        {
+            return Some(cached);
+        }
+        if let Some(cached) = self.cached_tokens {
+            return Some(cached);
+        }
+        self.prompt_cache_hit_tokens
+    }
+
+    /// 归一化缓存未命中 token 数: 优先取 DeepSeek 顶层 miss,
+    /// 否则用 prompt_tokens - cache_read_tokens 推算 (reasonix 模式),
+    /// 都没有则 None. P2 命中率埋点会用到.
+    #[allow(dead_code)]
+    fn cache_miss_tokens(&self) -> Option<u32> {
+        if let Some(miss) = self.prompt_cache_miss_tokens {
+            return Some(miss);
+        }
+        match (self.prompt_tokens, self.cache_read_tokens()) {
+            (prompt, Some(hit)) if prompt > 0 => Some(prompt.saturating_sub(hit)),
+            _ => None,
+        }
+    }
+
+    fn to_token_usage(&self) -> TokenUsage {
+        TokenUsage {
+            prompt_tokens: self.prompt_tokens,
+            completion_tokens: self.completion_tokens,
+            total_tokens: self.total_tokens,
+            cache_creation_tokens: None,
+            cache_read_tokens: self.cache_read_tokens(),
+            cache_miss_tokens: self.prompt_cache_miss_tokens,
+        }
+    }
 }
 
 #[derive(Deserialize, Debug, Clone)]
@@ -356,6 +448,13 @@ struct GeminiCompatUsageMetadata {
     prompt_token_count: Option<u32>,
     candidates_token_count: Option<u32>,
     total_token_count: Option<u32>,
+    /// Gemini 上下文缓存命中 token 数 (cachedContentTokenCount).
+    #[serde(default)]
+    cached_content_token_count: Option<u32>,
+    /// 推理模型思考 token 数 (thoughtsTokenCount). P2 计费用.
+    #[allow(dead_code)]
+    #[serde(default)]
+    thoughts_token_count: Option<u32>,
 }
 
 // --- Embedding types ---
@@ -442,7 +541,7 @@ fn convert_messages(messages: &[ChatMessage]) -> Vec<OpenAIMessage> {
                             })).collect()
                         }),
                         tool_call_id: None,
-                        reasoning_content: reasoning,
+                        reasoning_content: if msg.thinking.is_some() { reasoning } else { None },
                     }
                 }
                 _ => {
@@ -640,22 +739,14 @@ impl ProviderAdapter for OpenAIAdapter {
             .as_ref()
             .ok_or_else(|| AxAgentError::Provider("No message in choice".into()))?;
 
-        let usage = oai
-            .usage
-            .map(|u| TokenUsage {
-                prompt_tokens: u.prompt_tokens,
-                completion_tokens: u.completion_tokens,
-                total_tokens: u.total_tokens,
-                cache_creation_tokens: None,
-                cache_read_tokens: None,
-            })
-            .unwrap_or(TokenUsage {
-                prompt_tokens: 0,
-                completion_tokens: 0,
-                total_tokens: 0,
-                cache_creation_tokens: None,
-                cache_read_tokens: None,
-            });
+        let usage = oai.usage.map(|u| u.to_token_usage()).unwrap_or(TokenUsage {
+            prompt_tokens: 0,
+            completion_tokens: 0,
+            total_tokens: 0,
+            cache_creation_tokens: None,
+            cache_read_tokens: None,
+            ..Default::default()
+        });
 
         let tool_calls = msg.tool_calls.as_ref().map(|tcs| {
             tcs.iter()
@@ -740,7 +831,7 @@ impl ProviderAdapter for OpenAIAdapter {
             let mut buf = String::new();
             let mut pending_tool_calls: Vec<(String, String, String, String)> = Vec::new();
             let mut event_data_lines: Vec<String> = Vec::new();
-            // (id, type, name, arguments) — indexed by position
+            let mut last_usage: Option<axagent_core::types::TokenUsage> = None;
 
             let mut process_event = |data: &str| -> bool {
                 if data.trim() == "[DONE]" {
@@ -766,7 +857,7 @@ impl ProviderAdapter for OpenAIAdapter {
                         thinking: None,
                         done: true,
                         is_final: None,
-                        usage: None,
+                        usage: last_usage.take(),
                         tool_calls,
                     }));
                     return true;
@@ -822,13 +913,10 @@ impl ProviderAdapter for OpenAIAdapter {
                         }
                     }
 
-                    let usage = parsed.usage.map(|u| TokenUsage {
-                        prompt_tokens: u.prompt_tokens,
-                        completion_tokens: u.completion_tokens,
-                        total_tokens: u.total_tokens,
-                        cache_creation_tokens: None,
-                        cache_read_tokens: None,
-                    });
+                    let usage = parsed.usage.map(|u| u.to_token_usage());
+                    if let Some(u) = usage.clone() {
+                        last_usage = Some(u);
+                    }
                     let content = choice
                         .delta
                         .as_ref()
@@ -858,13 +946,13 @@ impl ProviderAdapter for OpenAIAdapter {
                             })
                         });
 
-                    if content.is_some() || thinking.is_some() || usage.is_some() {
+                    if content.is_some() || thinking.is_some() {
                         let _ = tx.try_send(Ok(ChatStreamChunk {
                             content,
                             thinking,
                             done: false,
                             is_final: None,
-                            usage,
+                            usage: None,
                             tool_calls: None,
                         }));
                     }
@@ -872,20 +960,7 @@ impl ProviderAdapter for OpenAIAdapter {
                 }
 
                 if let Some(u) = parsed.usage {
-                    let _ = tx.try_send(Ok(ChatStreamChunk {
-                        content: None,
-                        thinking: None,
-                        done: false,
-                        is_final: None,
-                        usage: Some(TokenUsage {
-                            prompt_tokens: u.prompt_tokens,
-                            completion_tokens: u.completion_tokens,
-                            total_tokens: u.total_tokens,
-                            cache_creation_tokens: None,
-                            cache_read_tokens: None,
-                        }),
-                        tool_calls: None,
-                    }));
+                    last_usage = Some(u.to_token_usage());
                 }
 
                 if let Some(chunk) = extract_gemini_compat_chunk(data) {
@@ -976,6 +1051,7 @@ impl ProviderAdapter for OpenAIAdapter {
         let resp = crate::apply_request_headers(
             self.get_client(ctx)?
                 .get(&url)
+                .timeout(std::time::Duration::from_secs(5))
                 .header("Authorization", format!("Bearer {}", ctx.api_key)),
             ctx,
         )

@@ -8,11 +8,13 @@ import {
   useProviderStore,
   useWorkflowEditorStore,
 } from "@/stores";
+import { usePromptTemplateStore } from "@/stores";
 import { useExpertStore } from "@/stores/feature/expertStore";
-import type { CreateAgentProfileInput } from "@/types";
+import type { CreateAgentProfileInput, PromptTemplate } from "@/types";
 import { Button, Divider, Input, InputNumber, message, Modal, Select, Tag, theme } from "antd";
 import React, { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { AIAssistButton, useNodeAIAssist } from "../../Hooks";
 import type { AgentNode, OutputMode, ToolDef, WorkflowNode } from "../../types";
 import { BasePropertyPanel } from "./BasePropertyPanel";
 
@@ -34,6 +36,7 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({
 }) => {
   const { t } = useTranslation();
   const { token } = theme.useToken();
+  const [messageApi, messageContextHolder] = message.useMessage();
   const agentNode = node as AgentNode;
   const config = agentNode.config || {
     system_prompt: "",
@@ -61,6 +64,52 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({
 
   // 每个工具的参数编辑展开状态
   const [expandedTools, setExpandedTools] = useState<Set<string>>(new Set());
+
+  // 提示词模板选择
+  const [templateModalOpen, setTemplateModalOpen] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState<PromptTemplate | null>(null);
+  const [variableValues, setVariableValues] = useState<Record<string, string>>({});
+  const { templates, loadTemplates } = usePromptTemplateStore();
+  const incrementUsage = usePromptTemplateStore((s) => s.incrementUsage);
+  useEffect(() => {
+    loadTemplates();
+  }, []);
+
+  const parseVariables = (content: string): string[] => {
+    const matches = content.match(/\{([^}]+)\}/g) || [];
+    return [...new Set(matches.map((m) => m.slice(1, -1)))];
+  };
+
+  const activeTemplates = templates.filter((t) => t.isActive);
+
+  const handleSelectTemplate = (template: PromptTemplate) => {
+    setSelectedTemplate(template);
+    setVariableValues({});
+    setTemplateModalOpen(true);
+  };
+
+  const handleApplyTemplate = () => {
+    if (!selectedTemplate) { return; }
+    let content = selectedTemplate.content;
+    try {
+      const schema = selectedTemplate.variablesSchema
+        ? JSON.parse(selectedTemplate.variablesSchema)
+        : {};
+      for (const [varName] of Object.entries(schema)) {
+        const value = variableValues[varName] || `{${varName}}`;
+        content = content.replace(new RegExp(`\\{${varName}\\}`, "g"), value);
+      }
+    } catch {
+      content = selectedTemplate.content;
+    }
+    handleConfigChange("system_prompt", content);
+    handleConfigChange("promptTemplateId", selectedTemplate.id);
+    setTemplateModalOpen(false);
+    setSelectedTemplate(null);
+    setVariableValues({});
+    incrementUsage(selectedTemplate.id);
+    messageApi.success(t("promptTemplates.applied"));
+  };
 
   const openExpertPromptEditor = async (expertId: string, expertName: string) => {
     try {
@@ -222,6 +271,69 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({
     onUpdate({ config: { ...config, [key]: value } });
   };
 
+  const { generate: aiGenerate, generating: aiGenerating } = useNodeAIAssist();
+  const handleAIOptimizeSystemPrompt = async () => {
+    if (config.agentProfileId) {
+      messageApi.warning(t("workflow.props.expertNotFound"));
+      return;
+    }
+    const current = config.system_prompt || "";
+    if (!current.trim()) {
+      messageApi.warning(t("workflow.aiPanel.enterPromptToOptimize"));
+      return;
+    }
+    const result = await aiGenerate({
+      systemPrompt:
+        "你是一个 AI 智能体系统提示词优化专家。改进用户提供的 system_prompt，使角色定位更清晰、能力边界更明确、输出格式更可控。"
+        + "保留原有工具调用约束和变量占位符（如 {varName}）。"
+        + "只输出优化后的 system_prompt 正文，不要任何解释、前缀或 Markdown 标记。",
+      userPrompt: current,
+    });
+    if (!result) {
+      messageApi.error(t("workflow.aiAssist.failed"));
+      return;
+    }
+    handleConfigChange("system_prompt", result);
+    messageApi.success(t("workflow.aiAssist.applied"));
+  };
+
+  const handleAIContextComplete = async () => {
+    if (config.agentProfileId) {
+      messageApi.warning(t("workflow.props.expertNotFound"));
+      return;
+    }
+    const current = config.system_prompt || "";
+    // 获取工作流上下文
+    const store = useWorkflowEditorStore.getState();
+    const upstreamEdgeIds = store.edges.filter((e) => e.target === agentNode.id).map((e) => e.source);
+    const upstreamNodes = store.nodes.filter((n) => upstreamEdgeIds.includes(n.id));
+    const downstreamEdgeIds = store.edges.filter((e) => e.source === agentNode.id).map((e) => e.target);
+    const downstreamNodes = store.nodes.filter((n) => downstreamEdgeIds.includes(n.id));
+    const contextInfo = [
+      `当前节点: "${agentNode.title}" (类型: ${agentNode.type})`,
+      upstreamNodes.length > 0
+        ? `上游节点: ${upstreamNodes.map((n) => `"${n.title}"(${n.type})`).join(", ")}`
+        : "无上游节点",
+      downstreamNodes.length > 0
+        ? `下游节点: ${downstreamNodes.map((n) => `"${n.title}"(${n.type})`).join(", ")}`
+        : "无下游节点",
+    ].join("\n");
+    const result = await aiGenerate({
+      systemPrompt: "你是工作流上下文补全助手。根据工作流上下文和当前提示词，生成可追加到提示词末尾的补充内容，"
+        + "帮助智能体理解可用的上下文信息、上游数据来源和输出目标。"
+        + "只输出纯文本补充内容，不要解释、前缀或 Markdown 标记。",
+      userPrompt: current
+        ? `工作流上下文:\n${contextInfo}\n\n当前提示词:\n${current}\n\n请根据工作流上下文，生成可以追加到提示词末尾的补充内容。`
+        : `工作流上下文:\n${contextInfo}\n\n当前没有提示词。请根据工作流上下文生成一个初始提示词。`,
+    });
+    if (!result) {
+      messageApi.error(t("workflow.aiAssist.failed"));
+      return;
+    }
+    handleConfigChange("system_prompt", current ? `${current}\n\n${result}` : result);
+    messageApi.success(t("workflow.aiAssist.contextCompleteApplied"));
+  };
+
   // ── 单工具参数编辑 ──
 
   const toggleToolExpand = (name: string) => {
@@ -297,6 +409,7 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      {messageContextHolder}
       {/* 角色选择（全局 agent_roles） */}
       <div>
         <label
@@ -431,16 +544,36 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({
       />
 
       <div>
-        <label
+        <div
           style={{
-            display: "block",
-            color: token.colorTextTertiary,
-            fontSize: 12,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
             marginBottom: 4,
           }}
         >
-          {t("workflow.props.systemPrompt")}
-        </label>
+          <label
+            style={{ color: token.colorTextTertiary, fontSize: 12 }}
+          >
+            {t("workflow.props.systemPrompt")}
+          </label>
+          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+            <AIAssistButton
+              labelKey="optimize"
+              loading={aiGenerating}
+              onClick={handleAIOptimizeSystemPrompt}
+              disabled={!!config.agentProfileId}
+              compact
+            />
+            <AIAssistButton
+              labelKey="contextComplete"
+              loading={aiGenerating}
+              onClick={handleAIContextComplete}
+              disabled={!!config.agentProfileId}
+              compact
+            />
+          </div>
+        </div>
         <Input.TextArea
           id="agent-property-panel-input-textarea-76"
           value={config.system_prompt || ""}
@@ -451,6 +584,15 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({
           size="small"
           placeholder={t("workflow.props.systemPromptPlaceholder")}
         />
+        <Button
+          size="small"
+          type="link"
+          onClick={() => setTemplateModalOpen(true)}
+          style={{ padding: 0, marginTop: 4 }}
+          disabled={!!config.agentProfileId}
+        >
+          {t("promptTemplates.selectFromLibrary")}
+        </Button>
       </div>
 
       <div>
@@ -471,6 +613,34 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({
           allowClear
           style={{ width: "100%" }}
         />
+      </div>
+
+      <div>
+        <label
+          style={{
+            display: "block",
+            color: token.colorTextTertiary,
+            fontSize: 12,
+            marginBottom: 4,
+          }}
+        >
+          {t("workflow.props.modelRole")}
+        </label>
+        <Select
+          value={config.model_role || undefined}
+          onChange={(value) => handleConfigChange("model_role", value || undefined)}
+          size="small"
+          style={{ width: "100%" }}
+          allowClear
+          placeholder={t("workflow.props.modelRolePlaceholder")}
+          options={[
+            { value: "quick_think", label: t("workflow.props.modelRoleQuickThink") },
+            { value: "deep_think", label: t("workflow.props.modelRoleDeepThink") },
+          ]}
+        />
+        <div style={{ fontSize: 11, color: token.colorTextTertiary, marginTop: 2 }}>
+          {t("workflow.props.modelRoleHint")}
+        </div>
       </div>
 
       <div style={{ display: "flex", gap: 8 }}>
@@ -892,6 +1062,86 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({
           rows={12}
           style={{ fontFamily: "monospace", fontSize: 13 }}
         />
+      </Modal>
+
+      {/* 提示词模板选择 */}
+      <Modal
+        title={t("promptTemplates.selectFromLibrary")}
+        open={templateModalOpen}
+        onOk={handleApplyTemplate}
+        onCancel={() => setTemplateModalOpen(false)}
+        okText={t("common.confirm")}
+        cancelText={t("common.cancel")}
+        width={600}
+      >
+        {selectedTemplate
+          ? (
+            <div style={{ padding: "12px 0" }}>
+              <p style={{ marginBottom: 8 }}>{t("promptTemplates.fillVariables")}</p>
+              {Object.entries(
+                selectedTemplate.variablesSchema
+                  ? JSON.parse(selectedTemplate.variablesSchema)
+                  : {},
+              ).map(([varName, varType]) => (
+                <div key={varName} style={{ marginBottom: 8 }}>
+                  <label style={{ display: "block", fontSize: 12, marginBottom: 2 }}>
+                    {varName} ({String(varType)})
+                  </label>
+                  <Input
+                    placeholder={`${varName} (${String(varType)})`}
+                    value={variableValues[varName] || ""}
+                    onChange={(e) => setVariableValues((prev) => ({ ...prev, [varName]: e.target.value }))}
+                  />
+                </div>
+              ))}
+              {parseVariables(selectedTemplate.content).length > 0
+                && Object.keys(
+                    selectedTemplate.variablesSchema
+                      ? JSON.parse(selectedTemplate.variablesSchema)
+                      : {},
+                  ).length === 0
+                && (
+                  <p style={{ color: token.colorWarning, fontSize: 12 }}>
+                    {t("promptTemplates.hasVariables", {
+                      variables: parseVariables(selectedTemplate.content).join(", "),
+                    })}
+                  </p>
+                )}
+            </div>
+          )
+          : (
+            <div style={{ maxHeight: 400, overflowY: "auto" }}>
+              {activeTemplates.length === 0
+                ? (
+                  <div style={{ textAlign: "center", padding: 24, color: token.colorTextTertiary }}>
+                    {t("promptTemplates.noTemplates")}
+                  </div>
+                )
+                : (
+                  activeTemplates.map((template) => (
+                    <div
+                      key={template.id}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => handleSelectTemplate(template)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") { handleSelectTemplate(template); }
+                      }}
+                      style={{
+                        padding: "8px 12px",
+                        cursor: "pointer",
+                        borderBottom: `1px solid ${token.colorBorderSecondary}`,
+                      }}
+                    >
+                      <div style={{ fontWeight: 500 }}>{template.name}</div>
+                      <div style={{ fontSize: 12, color: token.colorTextTertiary }}>
+                        {template.description || template.content.slice(0, 60) + "..."}
+                      </div>
+                    </div>
+                  ))
+                )}
+            </div>
+          )}
       </Modal>
     </div>
   );

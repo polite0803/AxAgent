@@ -33,6 +33,7 @@ pub mod error_code {
     pub const CIRCUIT_BREAKER_OPEN: &str = "CIRCUIT_BREAKER_OPEN";
     pub const NODE_TYPE_MISMATCH: &str = "NODE_TYPE_MISMATCH";
     pub const UNSUPPORTED_NODE_TYPE: &str = "UNSUPPORTED_NODE_TYPE";
+    pub const IO_ERROR: &str = "IO_ERROR";
     pub const CACHE_DESERIALIZE_FAILED: &str = "CACHE_DESERIALIZE_FAILED";
     pub const MODEL_NOT_CONFIGURED: &str = "MODEL_NOT_CONFIGURED";
     pub const NODE_NOT_FOUND: &str = "NODE_NOT_FOUND";
@@ -96,7 +97,7 @@ impl NodeError {
             Self::InvalidNodeType { code, .. } => code,
             Self::VariableNotFound(_) => error_code::VARIABLE_NOT_FOUND,
             Self::Validation(_) => error_code::VALIDATION_FAILED,
-            Self::Io(_) => error_code::UNSUPPORTED_NODE_TYPE,
+            Self::Io(_) => error_code::IO_ERROR,
         }
     }
 }
@@ -140,5 +141,17 @@ pub fn node_type_name(node: &WorkflowNode) -> &'static str {
         WorkflowNode::Code(_) => "code",
         WorkflowNode::HttpRequest(_) => "httpRequest",
         WorkflowNode::Validation(_) => "validation",
+        WorkflowNode::Switch(_) => "switch",
+        WorkflowNode::DatabaseQuery(_) => "databaseQuery",
+        WorkflowNode::Notification(_) => "notification",
+        WorkflowNode::Approval(_) => "approval",
+        WorkflowNode::FileOperation(_) => "fileOperation",
+        WorkflowNode::DataTransformer(_) => "dataTransformer",
+        WorkflowNode::WebhookSend(_) => "webhookSend",
+        WorkflowNode::Logging(_) => "logging",
+        WorkflowNode::LlmClassifier(_) => "llmClassifier",
+        WorkflowNode::Aggregator(_) => "aggregator",
+        WorkflowNode::Email(_) => "email",
+        WorkflowNode::Debate(_) => "debate",
     }
 }

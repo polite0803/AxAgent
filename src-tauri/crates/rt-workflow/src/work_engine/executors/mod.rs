@@ -1,21 +1,44 @@
 mod agent_executor;
+pub mod aggregator_executor;
+pub mod approval_executor;
 mod code_executor;
 mod condition_executor;
+pub mod data_transformer_executor;
+pub mod database_query_executor;
+mod debate_executor;
 mod delay_executor;
 mod document_parser_executor;
+pub mod email_executor;
 mod end_executor;
 mod fallback_executor;
+pub mod file_operation_executor;
 pub mod http_request_executor;
+pub mod llm_classifier_executor;
 mod llm_executor;
+pub mod logging_executor;
 mod loop_executor;
 mod merge_executor;
+pub mod notification_executor;
 mod parallel_executor;
 mod subworkflow_executor;
+pub mod switch_executor;
 mod tool_executor;
 mod trigger_executor;
 mod validation_executor;
 mod vector_retrieve_executor;
+pub mod webhook_send_executor;
+pub use aggregator_executor::AggregatorExecutor;
+pub use approval_executor::ApprovalExecutor;
+pub use data_transformer_executor::DataTransformerExecutor;
+pub use database_query_executor::DatabaseQueryExecutor;
+pub use email_executor::EmailExecutor;
+pub use file_operation_executor::FileOperationExecutor;
 pub use http_request_executor::HttpRequestExecutor;
+pub use llm_classifier_executor::LlmClassifierExecutor;
+pub use logging_executor::LoggingExecutor;
+pub use notification_executor::NotificationExecutor;
+pub use switch_executor::SwitchExecutor;
+pub use webhook_send_executor::WebhookSendExecutor;
 
 pub use agent_executor::{
     AgentExecutor, PlanApprovalCallback, PlanApprovalRequest, PlanCallbacks, PlanPhaseSummary,
@@ -24,6 +47,7 @@ pub use agent_executor::{
 pub(crate) use agent_executor::{ProfileCache, ProviderCache};
 pub use code_executor::CodeExecutor;
 pub use condition_executor::ConditionExecutor;
+pub use debate_executor::DebateExecutor;
 pub use delay_executor::DelayExecutor;
 pub use document_parser_executor::DocumentParserExecutor;
 pub use end_executor::EndExecutor;

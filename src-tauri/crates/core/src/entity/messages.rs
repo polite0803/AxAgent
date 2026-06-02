@@ -27,6 +27,8 @@ pub struct Model {
     pub status: String,
     pub tokens_per_second: Option<f64>,
     pub first_token_latency_ms: Option<i64>,
+    pub cache_creation_tokens: Option<i64>,
+    pub cache_read_tokens: Option<i64>,
     pub parts: Option<String>,
 }
 

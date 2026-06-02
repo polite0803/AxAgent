@@ -662,7 +662,8 @@ export function ModelSelector({
   // Reset scroll to top when search changes so filtered results are visible
   useEffect(() => {
     if (search) {
-      virtualizer.scrollToIndex(0);
+      // Debounce search scroll to avoid layout flicker
+      setTimeout(() => virtualizer.scrollToIndex(0), 50);
     }
   }, [search, virtualizer]);
 

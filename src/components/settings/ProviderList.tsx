@@ -253,7 +253,17 @@ export function ProviderList() {
                       isSelected={selectedProviderId === provider.id}
                       token={token}
                       onSelect={() => setSelectedProviderId(provider.id)}
-                      onToggle={(checked) => toggleProvider(provider.id, checked)}
+                      onToggle={async (checked) => {
+                        if (!checked) {
+                          toggleProvider(provider.id, false);
+                          return;
+                        }
+                        try {
+                          await toggleProvider(provider.id, true);
+                        } catch (e) {
+                          message.error(t("settings.provider.noValidKey"));
+                        }
+                      }}
                     />
                   ))}
                 </div>
@@ -286,7 +296,17 @@ export function ProviderList() {
                       isSelected={selectedProviderId === provider.id}
                       token={token}
                       onSelect={() => setSelectedProviderId(provider.id)}
-                      onToggle={(checked) => toggleProvider(provider.id, checked)}
+                      onToggle={async (checked) => {
+                        if (!checked) {
+                          toggleProvider(provider.id, false);
+                          return;
+                        }
+                        try {
+                          await toggleProvider(provider.id, true);
+                        } catch (e) {
+                          message.error(t("settings.provider.noValidKey"));
+                        }
+                      }}
                     />
                   ))}
                 </div>

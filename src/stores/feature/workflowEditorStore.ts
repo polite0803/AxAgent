@@ -1,4 +1,8 @@
 import type {
+  AiChatAction,
+  DiagnosticFix,
+  DiagnosticIssue,
+  DiagnosticReport,
   ErrorConfig,
   JsonSchema,
   SemanticCheckResult,
@@ -33,11 +37,6 @@ export interface AiChatMessage {
   isStreaming?: boolean;
   actions?: AiChatAction[];
   rawContent?: string;
-}
-
-export interface AiChatAction {
-  action_type: string;
-  data: Record<string, unknown>;
 }
 
 export interface SimilarWorkflow {
@@ -81,6 +80,9 @@ interface WorkflowEditorState {
   isSaving: boolean;
   isDirty: boolean;
   validationResult: ValidationResult | null;
+  diagnoseReport: DiagnosticReport | null;
+  diagnoseLoading: boolean;
+  diagnoseDrawerVisible: boolean;
   filter: TemplateFilter;
   error: string | null;
   past: Array<HistoryEntry>;
@@ -201,6 +203,12 @@ interface WorkflowEditorState {
   ) => void;
   clearSimilarWorkflowsForReview: () => void;
 
+  llmDiagnoseWorkflow: (
+    nodes: WorkflowNode[],
+    workflowName: string,
+    description?: string,
+  ) => Promise<any>;
+
   generateWorkflowFromPrompt: (
     prompt: string,
     mergeMode?: boolean,
@@ -223,6 +231,23 @@ interface WorkflowEditorState {
     }> | null
   >;
   applyOptimizedPromptToNode: (nodeId: string, optimizedPrompt: string) => void;
+  /**
+   * 将 AI 生成结果应用到节点的指定字段。
+   * 用于 Phase 1 节点级 AI 辅助（如 LLM.prompt、Agent.system_prompt、HttpRequest.url、Email.body 等）。
+   * - kind = "string" 时，value 必须是字符串，写入 config[field]
+   * - kind = "object" 时，value 是任意 JSON 兼容对象，写入 config[field]
+   */
+  applyAIAssistToNodeField: (
+    nodeId: string,
+    field: string,
+    value: unknown,
+    kind?: "string" | "object",
+  ) => boolean;
+
+  runWorkflowDiagnose: () => Promise<DiagnosticReport | null>;
+  clearDiagnoseReport: () => void;
+  setDiagnoseDrawerVisible: (visible: boolean) => void;
+  applyDiagnoseFix: (issueId: string) => boolean;
 
   aiChatMessages: AiChatMessage[];
   aiChatSessionId: string;
@@ -234,6 +259,35 @@ interface WorkflowEditorState {
   aiChatCancel: () => void;
   aiChatClear: () => void;
   applyAiChatAction: (action: AiChatAction) => void;
+  /**
+   * 事务性 AI action 批处理：一组 actions 要么全部应用、要么一键回滚。
+   * - beginAiActionTransaction  拍快照（保存当前 nodes/edges 副本）
+   * - applyAiChatAction         在事务内逐个应用
+   * - commitAiActionTransaction 成功完成，丢弃快照
+   * - rollbackAiActionTransaction 回滚到事务开始前的状态
+   */
+  aiActionTransactions: Array<{
+    id: string;
+    timestamp: number;
+    appliedCount: number;
+    beforeNodes: WorkflowNode[];
+    beforeEdges: WorkflowEdge[];
+  }>;
+  beginAiActionTransaction: () => string;
+  applyAiChatActionInTransaction: (txId: string, action: AiChatAction) => void;
+  commitAiActionTransaction: (txId: string) => void;
+  rollbackAiActionTransaction: (txId: string) => void;
+  rollbackLastAiActionTransaction: () => void;
+
+  /**
+   * 待用户在 Diff 预览中确认的 AI action 队列。
+   * 为 null 表示 DiffPreview 弹窗关闭；非空时显示在 ActionDiffPreview 中。
+   * 用户确认 apply 走 applyAiChatAction；cancel 走 clearPendingAiChatActions。
+   */
+  pendingAiChatActions: AiChatAction[] | null;
+  pendingAiChatMessageId: string | null;
+  setPendingAiChatActions: (messageId: string, actions: AiChatAction[]) => void;
+  clearPendingAiChatActions: () => void;
 
   semanticCheckResult: SemanticCheckResult | null;
   pendingReplacements: Map<
@@ -329,10 +383,25 @@ function parseActionsFromContent(content: string): AiChatAction[] {
   while ((match = regex.exec(content)) !== null) {
     try {
       const parsed = JSON.parse(match[1].trim());
-      actions.push({
-        action_type: parsed.action_type || "unknown",
-        data: parsed.data || {},
-      });
+      const actionType = parsed.action_type;
+      const data = parsed.data ?? {};
+      // 只接受已知的 action_type；未知类型丢弃（避免下游 switch 出现"幽灵分支"）
+      const known: ReadonlyArray<AiChatAction["action_type"]> = [
+        "generate_workflow",
+        "add_node",
+        "add_nodes",
+        "update_node",
+        "modify_node",
+        "delete_node",
+        "delete_nodes",
+        "add_edge",
+        "update_edge",
+        "delete_edge",
+        "optimize_prompt",
+      ];
+      if (known.includes(actionType)) {
+        actions.push({ action_type: actionType, data } as AiChatAction);
+      }
     } catch {
       // skip invalid JSON
     }
@@ -353,6 +422,70 @@ function stripPartialActionBlocks(content: string): string {
   return result.trim();
 }
 
+function mergeReports(ruleReport: DiagnosticReport, llmReport: DiagnosticReport): DiagnosticReport {
+  const seen = new Set<string>();
+  const issues: DiagnosticIssue[] = [];
+  for (const iss of ruleReport.issues) {
+    const key = `${iss.id}:${iss.node_ids.join(",")}`;
+    if (!seen.has(key)) {
+      seen.add(key);
+      issues.push(iss);
+    }
+  }
+  for (const iss of llmReport.issues) {
+    const key = `${iss.id}:${iss.node_ids?.join(",") ?? ""}`;
+    if (!seen.has(key)) {
+      seen.add(key);
+      issues.push(iss);
+    }
+  }
+  const summary = { error: 0, warning: 0, info: 0 };
+  for (const iss of issues) { summary[iss.severity]++; }
+  return {
+    issues,
+    summary,
+    generated_at: Date.now(),
+    duration_ms: ruleReport.duration_ms + (llmReport.duration_ms ?? 0),
+  };
+}
+
+interface LlmDiagnoseRaw {
+  summary: string;
+  issues: Array<{
+    severity: string;
+    category: string;
+    node_id: string | null;
+    title: string;
+    detail: string;
+    suggestion: string;
+  }>;
+  suggestions: string[];
+}
+
+function transformLlmResult(raw: LlmDiagnoseRaw): DiagnosticReport {
+  const validSeverities = new Set(["error", "warning", "info"]);
+  const issues: DiagnosticIssue[] = (raw.issues ?? []).map((iss, idx) => ({
+    id: `llm_${idx}_${iss.category}`,
+    severity: (validSeverities.has(iss.severity) ? iss.severity : "info") as DiagnosticIssue["severity"],
+    category: iss.category as DiagnosticIssue["category"],
+    title_key: "",
+    message_key: "",
+    node_ids: iss.node_id ? [iss.node_id] : [],
+    auto_fixable: false,
+    title_override: iss.title,
+    detail_override: iss.detail,
+    suggestion_override: iss.suggestion,
+  }));
+  const summary = { error: 0, warning: 0, info: 0 };
+  for (const iss of issues) { summary[iss.severity]++; }
+  return {
+    issues,
+    summary,
+    generated_at: Date.now(),
+    duration_ms: 0,
+  };
+}
+
 export const useWorkflowEditorStore = create<WorkflowEditorState>()(
   immer((set, get) => ({
     currentTemplate: null,
@@ -363,6 +496,9 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
     isSaving: false,
     isDirty: false,
     validationResult: null,
+    diagnoseReport: null,
+    diagnoseLoading: false,
+    diagnoseDrawerVisible: false,
     filter: {},
     error: null,
     importedWorkflowData: null,
@@ -378,6 +514,8 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
     aiChatStreaming: false,
     aiChatStreamingMessageId: null,
     _aiChatCleanup: null,
+    pendingAiChatActions: null,
+    pendingAiChatMessageId: null,
     expandedSubWorkflows: {},
     collapsedParallelContainers: new Set<string>(),
     past: [],
@@ -1220,6 +1358,17 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
       });
     },
 
+    llmDiagnoseWorkflow: async (nodes: WorkflowNode[], workflowName: string, description?: string) => {
+      try {
+        const { invoke } = await import("@/lib/invoke");
+        return await invoke("llm_diagnose_workflow", {
+          request: { nodes, workflow_name: workflowName, workflow_description: description || null },
+        });
+      } catch (e) {
+        return null;
+      }
+    },
+
     generateWorkflowFromPrompt: async (prompt: string, mergeMode?: boolean) => {
       set((state) => {
         state.isLoading = true;
@@ -1346,6 +1495,158 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
           ...agentNode,
           config: { ...agentNode.config, system_prompt: optimizedPrompt },
         });
+      } else if (node.type === "llm") {
+        const llmNode = node as import("@/components/workflow/types").LLMNode;
+        get().updateNode(nodeId, {
+          ...llmNode,
+          config: { ...llmNode.config, prompt: optimizedPrompt },
+        });
+      } else if (node.type === "email") {
+        const emailNode = node as import("@/components/workflow/types").EmailNode;
+        get().updateNode(nodeId, {
+          ...emailNode,
+          config: { ...emailNode.config, body: optimizedPrompt },
+        });
+      }
+    },
+
+    applyAIAssistToNodeField: (
+      nodeId: string,
+      field: string,
+      value: unknown,
+      kind: "string" | "object" = "string",
+    ) => {
+      const { nodes } = get();
+      const node = nodes.find((n) => n.id === nodeId);
+      if (!node) { return false; }
+      const currentConfig = (node as unknown as { config?: Record<string, unknown> }).config ?? {};
+      const sanitized = kind === "string" && typeof value === "string"
+        ? value
+        : kind === "string"
+        ? String(value ?? "")
+        : value;
+      get().updateNode(nodeId, {
+        ...node,
+        config: { ...currentConfig, [field]: sanitized },
+      } as unknown as Partial<import("@/components/workflow/types").WorkflowNode>);
+      return true;
+    },
+
+    runWorkflowDiagnose: async () => {
+      const { nodes, edges } = get();
+      if (nodes.length === 0) {
+        set((s) => {
+          s.diagnoseReport = {
+            issues: [],
+            summary: { error: 0, warning: 0, info: 0 },
+            generated_at: Date.now(),
+            duration_ms: 0,
+          };
+          s.diagnoseLoading = false;
+        });
+        return null;
+      }
+      set((s) => {
+        s.diagnoseLoading = true;
+        s.diagnoseDrawerVisible = true;
+      });
+
+      const { runDiagnosticRules } = await import(
+        "@/components/workflow/Diagnostic/diagnosticRules"
+      );
+      const ruleReport = runDiagnosticRules(nodes, edges);
+
+      try {
+        const workflowName = get().currentTemplate?.name ?? "Untitled";
+        const llmRaw = await invoke<{
+          summary: string;
+          issues: Array<{
+            severity: string;
+            category: string;
+            node_id: string | null;
+            title: string;
+            detail: string;
+            suggestion: string;
+          }>;
+          suggestions: string[];
+        }>("llm_diagnose_workflow", {
+          request: {
+            nodes,
+            workflow_name: workflowName,
+            workflow_description: null,
+          },
+        });
+        const llmReport = transformLlmResult(llmRaw);
+        const merged = mergeReports(ruleReport, llmReport);
+        set((s) => {
+          s.diagnoseReport = merged;
+          s.diagnoseLoading = false;
+        });
+        return merged;
+      } catch (_err) {
+        set((s) => {
+          s.diagnoseReport = ruleReport;
+          s.diagnoseLoading = false;
+        });
+        return ruleReport;
+      }
+    },
+
+    clearDiagnoseReport: () => {
+      set((s) => {
+        s.diagnoseReport = null;
+        s.diagnoseDrawerVisible = false;
+      });
+    },
+
+    setDiagnoseDrawerVisible: (visible: boolean) => {
+      set((s) => {
+        s.diagnoseDrawerVisible = visible;
+      });
+    },
+
+    applyDiagnoseFix: (issueId: string) => {
+      const { diagnoseReport, nodes, edges } = get();
+      if (!diagnoseReport) { return false; }
+      const issue = diagnoseReport.issues.find((i) => i.id === issueId);
+      if (!issue || !issue.auto_fixable || !issue.fix) { return false; }
+      const fix: DiagnosticFix = issue.fix;
+      switch (fix.action_type) {
+        case "delete_node": {
+          if (!nodes.find((n) => n.id === fix.node_id)) { return false; }
+          get().deleteNode(fix.node_id);
+          return true;
+        }
+        case "delete_edge": {
+          if (!edges.find((e) => e.id === fix.edge_id)) { return false; }
+          get().deleteEdge(fix.edge_id);
+          return true;
+        }
+        case "set_node_field": {
+          return get().applyAIAssistToNodeField(fix.node_id, fix.field, fix.value, "string");
+        }
+        case "set_timeout": {
+          get().updateNode(
+            fix.node_id,
+            { timeout: fix.timeout_ms } as unknown as Partial<WorkflowNode>,
+          );
+          return true;
+        }
+        case "enable_retry": {
+          get().updateNode(
+            fix.node_id,
+            {
+              retry: {
+                max_retries: fix.max_retries,
+                backoff: "exponential",
+                initial_interval_ms: 1000,
+              },
+            } as unknown as Record<string, unknown>,
+          );
+          return true;
+        }
+        default:
+          return false;
       }
     },
 
@@ -1491,60 +1792,71 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
     },
 
     applyAiChatAction: (action: AiChatAction) => {
-      const { nodes } = get();
+      const { nodes, edges } = get();
       switch (action.action_type) {
         case "generate_workflow": {
-          const data = action.data as { nodes: WorkflowNode[]; edges: WorkflowEdge[] };
-          if (data.nodes && data.edges) {
-            set((state) => {
-              state.nodes = data.nodes;
-              state.edges = data.edges;
-            });
-          }
+          set((state) => {
+            state.nodes = action.data.nodes;
+            state.edges = action.data.edges;
+          });
+          break;
+        }
+        case "add_node": {
+          const newNode = action.data.node;
+          const existingIds = new Set(nodes.map(n => n.id));
+          const finalId = existingIds.has(newNode.id) ? `ai-${Date.now()}-${newNode.id}` : newNode.id;
+          const offset = action.data.position ?? { x: 50, y: 50 };
+          set((state) => {
+            state.nodes = [...state.nodes, {
+              ...newNode,
+              id: finalId,
+              position: { x: newNode.position.x + offset.x, y: newNode.position.y + offset.y },
+            }];
+          });
           break;
         }
         case "add_nodes": {
-          const data = action.data as { nodes: WorkflowNode[] };
-          if (data.nodes) {
-            const existingIds = new Set(nodes.map(n => n.id));
-            const newNodes = data.nodes.map(n => ({
-              ...n,
-              id: existingIds.has(n.id) ? `ai-${Date.now()}-${n.id}` : n.id,
-              position: { x: n.position.x + 50, y: n.position.y + 50 },
-            }));
-            set((state) => {
-              state.nodes = [...state.nodes, ...newNodes];
-            });
-          }
+          const existingIds = new Set(nodes.map(n => n.id));
+          const newNodes = action.data.nodes.map(n => ({
+            ...n,
+            id: existingIds.has(n.id) ? `ai-${Date.now()}-${n.id}` : n.id,
+            position: { x: n.position.x + 50, y: n.position.y + 50 },
+          }));
+          set((state) => {
+            state.nodes = [...state.nodes, ...newNodes];
+          });
           break;
         }
+        case "update_node":
         case "modify_node": {
-          const data = action.data as { node_id: string; changes: Record<string, unknown> };
-          if (data.node_id) {
+          const { node_id, changes } = action.data;
+          if (node_id) {
             set((state) => {
               state.nodes = state.nodes.map(n => {
-                if (n.id !== data.node_id) { return n; }
-                const changes = { ...data.changes };
-                if (changes.config && typeof changes.config === "object" && n.config) {
-                  changes.config = { ...n.config, ...changes.config };
+                if (n.id !== node_id) { return n; }
+                const merged: Record<string, unknown> = { ...changes };
+                if (merged.config && typeof merged.config === "object" && n.config) {
+                  merged.config = { ...n.config, ...merged.config };
                 }
-                return { ...n, ...changes };
+                return { ...n, ...merged } as WorkflowNode;
               });
             });
           }
           break;
         }
-        case "optimize_prompt": {
-          const data = action.data as { node_id: string; optimized_prompt: string };
-          if (data.node_id && data.optimized_prompt) {
-            get().applyOptimizedPromptToNode(data.node_id, data.optimized_prompt);
+        case "delete_node": {
+          const id = action.data.node_id;
+          if (id) {
+            set((state) => {
+              state.nodes = state.nodes.filter(n => n.id !== id);
+              state.edges = state.edges.filter(e => e.source !== id && e.target !== id);
+            });
           }
           break;
         }
         case "delete_nodes": {
-          const data = action.data as { node_ids: string[] };
-          if (data.node_ids) {
-            const idsToDelete = new Set(data.node_ids);
+          const idsToDelete = new Set(action.data.node_ids);
+          if (idsToDelete.size > 0) {
             set((state) => {
               state.nodes = state.nodes.filter(n => !idsToDelete.has(n.id));
               state.edges = state.edges.filter(e => !idsToDelete.has(e.source) && !idsToDelete.has(e.target));
@@ -1552,6 +1864,114 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
           }
           break;
         }
+        case "add_edge": {
+          const newEdge = action.data.edge;
+          const exists = edges.some(e => e.id === newEdge.id);
+          if (!exists) {
+            set((state) => {
+              state.edges = [...state.edges, newEdge];
+            });
+          }
+          break;
+        }
+        case "update_edge": {
+          const { edge_id, changes } = action.data;
+          if (edge_id) {
+            set((state) => {
+              state.edges = state.edges.map(e => (e.id === edge_id ? { ...e, ...changes } : e));
+            });
+          }
+          break;
+        }
+        case "delete_edge": {
+          const id = action.data.edge_id;
+          if (id) {
+            set((state) => {
+              state.edges = state.edges.filter(e => e.id !== id);
+            });
+          }
+          break;
+        }
+        case "optimize_prompt": {
+          const { node_id, optimized_prompt } = action.data;
+          if (node_id && optimized_prompt) {
+            get().applyOptimizedPromptToNode(node_id, optimized_prompt);
+          }
+          break;
+        }
+      }
+    },
+
+    setPendingAiChatActions: (messageId: string, actions: AiChatAction[]) => {
+      set((state) => {
+        state.pendingAiChatActions = actions;
+        state.pendingAiChatMessageId = messageId;
+      });
+    },
+
+    clearPendingAiChatActions: () => {
+      set((state) => {
+        state.pendingAiChatActions = null;
+        state.pendingAiChatMessageId = null;
+      });
+    },
+
+    aiActionTransactions: [],
+
+    beginAiActionTransaction: () => {
+      const { nodes, edges } = get();
+      const txId = `tx-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      set((state) => {
+        state.aiActionTransactions = [
+          ...state.aiActionTransactions,
+          {
+            id: txId,
+            timestamp: Date.now(),
+            appliedCount: 0,
+            beforeNodes: JSON.parse(JSON.stringify(nodes)) as WorkflowNode[],
+            beforeEdges: JSON.parse(JSON.stringify(edges)) as WorkflowEdge[],
+          },
+        ];
+      });
+      return txId;
+    },
+
+    applyAiChatActionInTransaction: (txId: string, action: AiChatAction) => {
+      const tx = get().aiActionTransactions.find((t) => t.id === txId);
+      if (!tx) {
+        get().applyAiChatAction(action);
+        return;
+      }
+      get().applyAiChatAction(action);
+      set((state) => {
+        state.aiActionTransactions = state.aiActionTransactions.map((t) =>
+          t.id === txId ? { ...t, appliedCount: t.appliedCount + 1 } : t
+        );
+      });
+    },
+
+    commitAiActionTransaction: (txId: string) => {
+      set((state) => {
+        state.aiActionTransactions = state.aiActionTransactions.filter((t) => t.id !== txId);
+      });
+    },
+
+    rollbackAiActionTransaction: (txId: string) => {
+      const tx = get().aiActionTransactions.find((t) => t.id === txId);
+      if (!tx) { return; }
+      const snapshotNodes = JSON.parse(JSON.stringify(tx.beforeNodes)) as WorkflowNode[];
+      const snapshotEdges = JSON.parse(JSON.stringify(tx.beforeEdges)) as WorkflowEdge[];
+      set((state) => {
+        state.nodes = snapshotNodes;
+        state.edges = snapshotEdges;
+        state.aiActionTransactions = state.aiActionTransactions.filter((t) => t.id !== txId);
+      });
+    },
+
+    rollbackLastAiActionTransaction: () => {
+      const last = get().aiActionTransactions[get().aiActionTransactions.length - 1];
+      if (last) {
+        get().rollbackAiActionTransaction(last.id);
       }
     },
 
