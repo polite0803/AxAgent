@@ -315,10 +315,10 @@ interface WorkflowEditorState {
   /** 切换子工作流节点的展开/折叠状态 */
   toggleExpandSubWorkflow: (nodeId: string, subWorkflowId: string | undefined) => Promise<void>;
 
-  /** 已折叠的 parallel 容器 ID 集合（会话内 UI 状态，不持久化到后端） */
-  collapsedParallelContainers: Set<string>;
-  /** 切换 parallel 容器的展开/折叠状态 */
-  toggleParallelContainerCollapse: (parallelId: string) => void;
+  /** 已折叠的容器 ID 集合（会话内 UI 状态，不持久化到后端） */
+  collapsedContainers: Set<string>;
+  /** 切换容器的展开/折叠状态 */
+  toggleContainerCollapse: (parallelId: string) => void;
 }
 
 interface ConversationWorkflowPreviewResponse {
@@ -517,7 +517,16 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
     pendingAiChatActions: null,
     pendingAiChatMessageId: null,
     expandedSubWorkflows: {},
-    collapsedParallelContainers: new Set<string>(),
+    collapsedContainers: new Set<string>(
+      (() => {
+        try {
+          const v = localStorage.getItem("workflow_collapsed_containers");
+          return v ? JSON.parse(v) as string[] : [];
+        } catch {
+          return [];
+        }
+      })(),
+    ),
     past: [],
     future: [],
     _lastUndoRecordTime: 0,
@@ -956,19 +965,25 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
 
         // 清理被删节点的折叠状态（含级联删除的子节点）
         if (toDelete.size === 1 && toDelete.has(nodeId)) {
-          if (state.collapsedParallelContainers.has(nodeId)) {
-            const next = new Set(state.collapsedParallelContainers);
+          if (state.collapsedContainers.has(nodeId)) {
+            const next = new Set(state.collapsedContainers);
             next.delete(nodeId);
-            state.collapsedParallelContainers = next;
+            state.collapsedContainers = next;
+            try {
+              localStorage.setItem("workflow_collapsed_containers", JSON.stringify([...next]));
+            } catch {}
           }
         } else if (toDelete.size > 0) {
-          const next = new Set(state.collapsedParallelContainers);
+          const next = new Set(state.collapsedContainers);
           let changed = false;
           for (const id of toDelete) {
             if (next.delete(id)) { changed = true; }
           }
           if (changed) {
-            state.collapsedParallelContainers = next;
+            state.collapsedContainers = next;
+            try {
+              localStorage.setItem("workflow_collapsed_containers", JSON.stringify([...next]));
+            } catch {}
           }
         }
 
@@ -2151,19 +2166,22 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
     },
 
     /**
-     * 切换 parallel 容器的折叠状态。折叠时容器内的子节点会从画布上隐藏（hidden=true），
+     * 切换容器的折叠状态。折叠时容器内的子节点会从画布上隐藏（hidden=true），
      * 边会随子节点隐藏。仅会话内 UI 状态，不写入后端模板，不进撤销栈。
      * 重新生成 Set 引用以触发订阅方基于引用的依赖比较。
      */
-    toggleParallelContainerCollapse: (parallelId: string) => {
+    toggleContainerCollapse: (containerId: string) => {
       set((state) => {
-        const next = new Set(state.collapsedParallelContainers);
-        if (next.has(parallelId)) {
-          next.delete(parallelId);
+        const next = new Set(state.collapsedContainers);
+        if (next.has(containerId)) {
+          next.delete(containerId);
         } else {
-          next.add(parallelId);
+          next.add(containerId);
         }
-        state.collapsedParallelContainers = next;
+        state.collapsedContainers = next;
+        try {
+          localStorage.setItem("workflow_collapsed_containers", JSON.stringify([...next]));
+        } catch {}
       });
     },
   })),

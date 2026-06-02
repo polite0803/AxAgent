@@ -30,11 +30,11 @@ const DebateNodeComponent: React.FC<NodeProps<DebateNodeData>> = ({
   const debaterCount = data.debaterSteps?.length || 0;
   const maxRounds = data.maxRounds || 2;
 
-  const isCollapsed = useWorkflowEditorStore((s) => s.collapsedParallelContainers.has(data.id));
+  const isCollapsed = useWorkflowEditorStore((s) => s.collapsedContainers.has(data.id));
   const toggleCollapse = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation();
-      useWorkflowEditorStore.getState().toggleParallelContainerCollapse(data.id);
+      useWorkflowEditorStore.getState().toggleContainerCollapse(data.id);
     },
     [data.id],
   );
@@ -54,6 +54,7 @@ const DebateNodeComponent: React.FC<NodeProps<DebateNodeData>> = ({
       }}
     >
       <div
+        className="workflow-container-drag-handle"
         style={{
           position: "absolute",
           top: 8,
@@ -66,6 +67,7 @@ const DebateNodeComponent: React.FC<NodeProps<DebateNodeData>> = ({
           borderRadius: 6,
           padding: "4px 10px",
           zIndex: 10,
+          cursor: "grab",
         }}
       >
         <span style={{ fontSize: 14 }}>⚖️</span>

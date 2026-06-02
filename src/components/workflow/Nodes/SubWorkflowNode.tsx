@@ -45,6 +45,129 @@ const SubWorkflowNodeComponent: React.FC<NodeProps<SubWorkflowNodeData>> = ({
   const childCount = isExpanded ? expandedData?.nodes?.length || 0 : 0;
   const childEdgeCount = isExpanded ? expandedData?.edges?.length || 0 : 0;
 
+  if (isExpanded) {
+    return (
+      <div
+        style={{
+          minWidth: 400,
+          minHeight: 200,
+          background: `${MAGENTA_BASE}08`,
+          border: `2px dashed ${selected ? token.colorPrimary : MAGENTA_BASE}40`,
+          borderRadius: 12,
+          padding: 12,
+          opacity: data.enabled ? 1 : 0.5,
+          position: "relative",
+          boxShadow: selected ? `0 0 0 2px ${MAGENTA_VAR}40` : "none",
+        }}
+      >
+        <div
+          className="workflow-container-drag-handle"
+          style={{
+            position: "absolute",
+            top: 8,
+            left: 12,
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+            background: token.colorBgElevated,
+            border: `1px solid ${MAGENTA_BASE}30`,
+            borderRadius: 6,
+            padding: "4px 10px",
+            zIndex: 10,
+            cursor: "grab",
+          }}
+        >
+          <span style={{ fontSize: 14 }}>🔄</span>
+          <span style={{ fontSize: 12, color, fontWeight: 600 }}>
+            {data.title}
+          </span>
+          {subWorkflowName && (
+            <Tag
+              style={{
+                margin: 0,
+                fontSize: 9,
+                padding: "0 4px",
+                background: `${MAGENTA_BASE}20`,
+                border: `1px solid ${MAGENTA_BASE}50`,
+                color: MAGENTA_VAR,
+              }}
+            >
+              📋 {subWorkflowName}
+            </Tag>
+          )}
+          <Tag
+            style={{
+              margin: 0,
+              fontSize: 9,
+              padding: "0 4px",
+              background: `${MAGENTA_BASE}15`,
+              border: `1px solid ${MAGENTA_BASE}40`,
+              color: MAGENTA_BASE,
+            }}
+          >
+            🔓 {childCount} nodes · {childEdgeCount} edges
+          </Tag>
+        </div>
+
+        <Tooltip title={t("workflow.subWorkflowNode.collapse")}>
+          <span
+            onClick={(e) => {
+              e.stopPropagation();
+              toggleExpand();
+            }}
+            style={{
+              position: "absolute",
+              top: 8,
+              right: 12,
+              cursor: "pointer",
+              fontSize: 14,
+              lineHeight: 1,
+              padding: "2px 6px",
+              borderRadius: 4,
+              background: token.colorBgElevated,
+              border: `1px solid ${MAGENTA_BASE}30`,
+              zIndex: 10,
+              opacity: 0.7,
+              transition: "opacity 0.2s, transform 0.2s",
+              transform: "rotate(0deg)",
+              display: "inline-block",
+              userSelect: "none",
+            }}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLElement).style.opacity = "1";
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLElement).style.opacity = "0.7";
+            }}
+          >
+            ▼
+          </span>
+        </Tooltip>
+
+        <Handle
+          type="target"
+          position={Position.Top}
+          style={{
+            background: color,
+            border: "none",
+            width: 8,
+            height: 8,
+          }}
+        />
+        <Handle
+          type="source"
+          position={Position.Bottom}
+          style={{
+            background: color,
+            border: "none",
+            width: 8,
+            height: 8,
+          }}
+        />
+      </div>
+    );
+  }
+
   return (
     <div
       style={{
@@ -61,11 +184,12 @@ const SubWorkflowNodeComponent: React.FC<NodeProps<SubWorkflowNodeData>> = ({
           border: `2px solid ${selected ? token.colorPrimary : color}`,
           borderRadius: 8,
           overflow: "hidden",
-          boxShadow: selected ? `0 0 0 2px ${color}40` : isExpanded ? `0 0 8px ${color}30` : "none",
+          boxShadow: selected ? `0 0 0 2px ${color}40` : "none",
           transition: "box-shadow 0.2s, transform 0.2s",
         }}
       >
         <div
+          className="workflow-container-drag-handle"
           style={{
             padding: "8px 12px",
             borderBottom: `1px solid ${MAGENTA_BASE}30`,
@@ -73,6 +197,7 @@ const SubWorkflowNodeComponent: React.FC<NodeProps<SubWorkflowNodeData>> = ({
             alignItems: "center",
             gap: 8,
             background: `${MAGENTA_BASE}15`,
+            cursor: "grab",
           }}
         >
           <span style={{ fontSize: 14 }}>🔄</span>
@@ -87,9 +212,8 @@ const SubWorkflowNodeComponent: React.FC<NodeProps<SubWorkflowNodeData>> = ({
             {t("workflow.subWorkflowNode.title")}
           </span>
 
-          {/* 展开/折叠按钮 */}
           {data.subWorkflowId && (
-            <Tooltip title={isExpanded ? t("workflow.subWorkflowNode.collapse") : t("workflow.subWorkflowNode.expand")}>
+            <Tooltip title={t("workflow.subWorkflowNode.expand")}>
               <span
                 onClick={(e) => {
                   e.stopPropagation();
@@ -103,7 +227,7 @@ const SubWorkflowNodeComponent: React.FC<NodeProps<SubWorkflowNodeData>> = ({
                   borderRadius: 4,
                   opacity: isLoading ? 0.5 : 0.7,
                   transition: "opacity 0.2s, transform 0.2s",
-                  transform: isExpanded ? "rotate(180deg)" : "rotate(0deg)",
+                  transform: "rotate(0deg)",
                   display: "inline-block",
                 }}
                 onMouseEnter={(e) => {
@@ -181,22 +305,6 @@ const SubWorkflowNodeComponent: React.FC<NodeProps<SubWorkflowNodeData>> = ({
                 }}
               >
                 📤 {t("workflow.subWorkflowNode.outputCount", { count: outputCount })}
-              </Tag>
-            )}
-
-            {/* 展开时显示内部节点/边计数 */}
-            {isExpanded && (
-              <Tag
-                style={{
-                  margin: 0,
-                  fontSize: 9,
-                  padding: "0 4px",
-                  background: `${MAGENTA_BASE}15`,
-                  border: `1px solid ${MAGENTA_BASE}40`,
-                  color: MAGENTA_BASE,
-                }}
-              >
-                🔓 {childCount} nodes · {childEdgeCount} edges
               </Tag>
             )}
           </div>

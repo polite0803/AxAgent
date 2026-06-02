@@ -187,5 +187,58 @@ describe("workflowLayout", () => {
       const orphan = result.nodes.find((n) => n.id === "orphan")!;
       expect(orphan.position.x !== 0 || orphan.position.y !== 0).toBe(true);
     });
+
+    it("places children of loop container relative to parent", () => {
+      const nodes = [
+        makeNode("lp", "loop", { x: 0, y: 0 }),
+        makeNode("c1", "agent", { x: 0, y: 0 }),
+        makeNode("c2", "agent", { x: 0, y: 0 }),
+      ];
+      const parentRefs = { c1: "lp", c2: "lp" };
+
+      const result = autoLayoutWorkflow(nodes, [], parentRefs);
+      const c1 = result.nodes.find((n) => n.id === "c1")!;
+      const lp = result.nodes.find((n) => n.id === "lp")!;
+
+      const PADDING = 40;
+      expect(c1.position.x).toBeGreaterThanOrEqual(PADDING);
+      expect(c1.position.y).toBeGreaterThanOrEqual(PADDING);
+      expect(lp.position).toBeDefined();
+    });
+
+    it("places children of debate container relative to parent", () => {
+      const nodes = [
+        makeNode("db", "debate", { x: 0, y: 0 }),
+        makeNode("c1", "agent", { x: 0, y: 0 }),
+        makeNode("c2", "agent", { x: 0, y: 0 }),
+      ];
+      const parentRefs = { c1: "db", c2: "db" };
+
+      const result = autoLayoutWorkflow(nodes, [], parentRefs);
+      const c1 = result.nodes.find((n) => n.id === "c1")!;
+      const db = result.nodes.find((n) => n.id === "db")!;
+
+      const PADDING = 40;
+      expect(c1.position.x).toBeGreaterThanOrEqual(PADDING);
+      expect(c1.position.y).toBeGreaterThanOrEqual(PADDING);
+      expect(db.position).toBeDefined();
+    });
+
+    it("places children of aggregator container relative to parent", () => {
+      const nodes = [
+        makeNode("agg", "aggregator", { x: 0, y: 0 }),
+        makeNode("c1", "agent", { x: 0, y: 0 }),
+      ];
+      const parentRefs = { c1: "agg" };
+
+      const result = autoLayoutWorkflow(nodes, [], parentRefs);
+      const c1 = result.nodes.find((n) => n.id === "c1")!;
+      const agg = result.nodes.find((n) => n.id === "agg")!;
+
+      const PADDING = 40;
+      expect(c1.position.x).toBeGreaterThanOrEqual(PADDING);
+      expect(c1.position.y).toBeGreaterThanOrEqual(PADDING);
+      expect(agg.position).toBeDefined();
+    });
   });
 });

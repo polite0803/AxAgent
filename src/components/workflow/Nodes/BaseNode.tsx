@@ -15,6 +15,7 @@ export interface BaseNodeData {
   enabled: boolean;
   validationState?: "error" | "warning";
   executionState?: "running" | "completed" | "failed" | "timeout" | "skipped" | "paused";
+  parentId?: string;
 }
 
 const BaseNodeComponent: React.FC<NodeProps<BaseNodeData>> = ({
@@ -71,6 +72,7 @@ const BaseNodeComponent: React.FC<NodeProps<BaseNodeData>> = ({
           transition: "box-shadow 0.2s, transform 0.2s",
           animation: isRunning ? "nodePulse 1.5s ease-in-out infinite" : "none",
           position: "relative",
+          ...(data.parentId ? { borderLeftWidth: 4, borderLeftColor: token.colorTextQuaternary } : {}),
         }}
       >
         {hasBreakpoint && (
@@ -177,7 +179,7 @@ const BaseNodeComponent: React.FC<NodeProps<BaseNodeData>> = ({
         }}
       />
 
-      {["condition", "parallel", "merge"].includes(data.nodeType) && (
+      {["condition", "merge"].includes(data.nodeType) && (
         <>
           <Handle
             type="target"

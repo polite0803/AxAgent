@@ -748,6 +748,7 @@ export const RightPanel: React.FC<RightPanelProps> = React.memo(
 
     return (
       <div
+        className="workflow-side-panel"
         style={{
           width: 320,
           background: token.colorBgContainer,
@@ -760,10 +761,7 @@ export const RightPanel: React.FC<RightPanelProps> = React.memo(
         <Tabs
           defaultActiveKey="properties"
           size="small"
-          style={{ height: "100%", display: "flex", flexDirection: "column" }}
-          styles={{
-            content: { flex: 1, minHeight: 0, overflow: "hidden" },
-          }}
+          style={{ height: "100%" }}
           items={[
             {
               key: "properties",

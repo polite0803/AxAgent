@@ -33,11 +33,11 @@ const ParallelNodeComponent: React.FC<NodeProps<ParallelNodeData>> = ({
   const waitStrategy = data.waitStrategy || "all";
   const autoInputFromParent = data.autoInputFromParent !== false;
 
-  const isCollapsed = useWorkflowEditorStore((s) => s.collapsedParallelContainers.has(data.id));
+  const isCollapsed = useWorkflowEditorStore((s) => s.collapsedContainers.has(data.id));
   const toggleCollapse = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation();
-      useWorkflowEditorStore.getState().toggleParallelContainerCollapse(data.id);
+      useWorkflowEditorStore.getState().toggleContainerCollapse(data.id);
     },
     [data.id],
   );
@@ -72,6 +72,7 @@ const ParallelNodeComponent: React.FC<NodeProps<ParallelNodeData>> = ({
     >
       {/* 标题栏 — 左上角 */}
       <div
+        className="workflow-container-drag-handle"
         style={{
           position: "absolute",
           top: 8,
@@ -84,6 +85,7 @@ const ParallelNodeComponent: React.FC<NodeProps<ParallelNodeData>> = ({
           borderRadius: 6,
           padding: "4px 10px",
           zIndex: 10,
+          cursor: "grab",
         }}
       >
         <span style={{ fontSize: 14 }}>⚡</span>

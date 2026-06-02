@@ -11,7 +11,9 @@ const NODE_SIZE: Record<string, { width: number; height: number }> = {
   llm: { width: 220, height: 180 },
   condition: { width: 200, height: 140 },
   parallel: { width: 500, height: 400 },
-  loop: { width: 220, height: 160 },
+  loop: { width: 480, height: 300 },
+  debate: { width: 480, height: 260 },
+  aggregator: { width: 320, height: 180 },
   merge: { width: 220, height: 120 },
   delay: { width: 180, height: 100 },
   tool: { width: 200, height: 140 },
@@ -184,9 +186,8 @@ export function autoLayoutWorkflow(
   parentRefs: Record<string, string> = {},
 ): { nodes: Node[]; edges: Edge[] } {
   const childOf = parentRefs;
-  // 仅把 parallel 视为可容纳子组的容器；merge 由其 inputs 引用挂入所属 parallel，不作父。
-  // 不支持嵌套：parent 指向 parallel 的子节点按叶子处理，parent 自身不会被纳入 containers。
-  const containers = nodes.filter((n) => n.type === "parallel" && !childOf[n.id]);
+  const CONTAINER_TYPES = new Set(["parallel", "debate", "loop", "aggregator"]);
+  const containers = nodes.filter((n) => CONTAINER_TYPES.has(n.type || "") && !childOf[n.id]);
 
   if (containers.length === 0 || Object.keys(childOf).length === 0) {
     const dagreResult = autoLayout(nodes, edges);
@@ -245,10 +246,10 @@ export function autoLayoutWorkflow(
     containerSizes[c.id] = { width: bboxW + PADDING * 2, height: bboxH + PADDING * 2 };
   }
 
-  // 3. 主 dagre：只放顶层节点（parallel 容器 + 无父孤立节点）
+  // 3. 主 dagre：只放顶层节点（容器节点 + 无父孤立节点）
   const topLevelIds = new Set<string>();
   for (const n of nodes) {
-    if (n.type === "parallel" || !childOf[n.id]) {
+    if (CONTAINER_TYPES.has(n.type || "") || !childOf[n.id]) {
       topLevelIds.add(n.id);
     }
   }
@@ -267,8 +268,8 @@ export function autoLayoutWorkflow(
   });
   for (const n of topLevelNodes) {
     const t = (n.data?.type as string) || n.type || "";
-    const size = n.type === "parallel"
-      ? (containerSizes[n.id] ?? getNodeSize("parallel"))
+    const size = CONTAINER_TYPES.has(n.type || "")
+      ? (containerSizes[n.id] ?? getNodeSize(t))
       : getNodeSize(t);
     g.setNode(n.id, { width: size.width, height: size.height });
   }
@@ -283,8 +284,8 @@ export function autoLayoutWorkflow(
     const dagreNode = g.node(n.id);
     if (!dagreNode) { continue; }
     const t = (n.data?.type as string) || n.type || "";
-    const size = n.type === "parallel"
-      ? (containerSizes[n.id] ?? getNodeSize("parallel"))
+    const size = CONTAINER_TYPES.has(n.type || "")
+      ? (containerSizes[n.id] ?? getNodeSize(t))
       : getNodeSize(t);
     newAbs[n.id] = { x: dagreNode.x - size.width / 2, y: dagreNode.y - size.height / 2 };
   }

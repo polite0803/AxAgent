@@ -112,6 +112,7 @@ export const LeftPanel: React.FC = () => {
 
   return (
     <div
+      className="workflow-side-panel"
       style={{
         width: 280,
         background: token.colorBgContainer,
@@ -124,10 +125,7 @@ export const LeftPanel: React.FC = () => {
       <Tabs
         defaultActiveKey="nodes"
         size="small"
-        style={{ height: "100%", display: "flex", flexDirection: "column" }}
-        styles={{
-          content: { flex: 1, minHeight: 0, overflow: "hidden" },
-        }}
+        style={{ height: "100%" }}
         items={[
           {
             key: "nodes",
@@ -233,18 +231,26 @@ export const LeftPanel: React.FC = () => {
             key: "templates",
             label: t("workflow.leftPanel.templatesTab"),
             children: (
-              <div style={{ padding: "8px" }}>
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  height: "100%",
+                  overflow: "hidden",
+                  padding: "8px",
+                }}
+              >
                 <Input
                   id="left-panel-input-75"
                   prefix={<Search size={14} style={{ color: token.colorTextTertiary }} />}
                   placeholder={t("workflow.leftPanel.searchTemplates")}
                   value={templateSearch}
                   onChange={(e) => setTemplateSearch(e.target.value)}
-                  style={{ marginBottom: 8 }}
+                  style={{ marginBottom: 8, flexShrink: 0 }}
                   size="small"
                 />
                 <div
-                  style={{ overflow: "auto", maxHeight: "calc(100vh - 200px)" }}
+                  style={{ flex: 1, overflow: "auto", minHeight: 0 }}
                 >
                   {filteredTemplates.map((template) => (
                     <div

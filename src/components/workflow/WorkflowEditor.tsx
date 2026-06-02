@@ -152,7 +152,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
     semanticCheckResult,
     clearSemanticCheckResult,
     applySkillReplacement,
-    collapsedParallelContainers,
+    collapsedContainers,
     runWorkflowDiagnose,
     diagnoseLoading,
     diagnoseDrawerVisible,
@@ -307,7 +307,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
         const isContainer = rtType === "parallel" || rtType === "debate" || rtType === "loop"
           || (rtType === "subWorkflow" && useWorkflowEditorStore.getState().expandedSubWorkflows[node.id] != null);
         const isContainerCollapsed = isContainer
-          && useWorkflowEditorStore.getState().collapsedParallelContainers.has(node.id);
+          && useWorkflowEditorStore.getState().collapsedContainers.has(node.id);
         // 折叠态：容器自身缩为紧凑尺寸
         const CHILD_ESTIMATE_W = 200;
         const CHILD_ESTIMATE_H = 80;
@@ -335,12 +335,13 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
         }
         // 折叠态下：容器内的子节点在画布上隐藏
         const childIsHidden = (node as any).parentId != null
-          && useWorkflowEditorStore.getState().collapsedParallelContainers.has((node as any).parentId as string);
+          && useWorkflowEditorStore.getState().collapsedContainers.has((node as any).parentId as string);
         return {
           id: node.id,
           type: rtType,
           position: node.position,
           ...(containerStyle ? { style: containerStyle } : {}),
+          ...(isContainer ? { dragHandle: ".workflow-container-drag-handle", zIndex: 0 } : {}),
           ...(childIsHidden ? { hidden: true } : {}),
           data: {
             ...node,
@@ -402,13 +403,14 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
                 const relPos = parentFn
                   ? { x: childFn.position.x - parentFn.position.x, y: childFn.position.y - parentFn.position.y }
                   : childFn.position;
-                const isCollapsedParent = collapsedParallelContainers.has(node.id);
+                const isCollapsedParent = collapsedContainers.has(node.id);
                 if (isCollapsedParent) { hiddenChildIds.add(stepId); }
                 flowNodes[childIdx] = {
                   ...childFn,
                   position: relPos,
                   parentId: node.id,
                   extent: "parent",
+                  expandParent: true,
                   hidden: isCollapsedParent ? true : childFn.hidden,
                 };
                 expectedParentByNode[stepId] = node.id;
@@ -437,13 +439,14 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
                 const relPos = parentFn
                   ? { x: mergeFn.position.x - parentFn.position.x, y: mergeFn.position.y - parentFn.position.y }
                   : mergeFn.position;
-                const isCollapsedParent = collapsedParallelContainers.has(targetParent);
+                const isCollapsedParent = collapsedContainers.has(targetParent);
                 if (isCollapsedParent) { hiddenChildIds.add(node.id); }
                 flowNodes[mergeIdx] = {
                   ...mergeFn,
                   position: relPos,
                   parentId: targetParent,
                   extent: "parent",
+                  expandParent: true,
                   hidden: isCollapsedParent ? true : mergeFn.hidden,
                 };
                 expectedParentByNode[node.id] = targetParent;
@@ -464,13 +467,41 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
               const relPos = parentFn
                 ? { x: childFn.position.x - parentFn.position.x, y: childFn.position.y - parentFn.position.y }
                 : childFn.position;
-              const isCollapsedParent = collapsedParallelContainers.has(node.id);
+              const isCollapsedParent = collapsedContainers.has(node.id);
               if (isCollapsedParent) { hiddenChildIds.add(stepId); }
               flowNodes[childIdx] = {
                 ...childFn,
                 position: relPos,
                 parentId: node.id,
                 extent: "parent",
+                expandParent: true,
+                hidden: isCollapsedParent ? true : childFn.hidden,
+              };
+              expectedParentByNode[stepId] = node.id;
+            }
+          }
+        }
+        // 将 LoopNode 的 body_steps 中的子节点挂载为容器子节点
+        if (node.type === "loop" && (node as any).config?.body_steps) {
+          const bodySteps = (node as any).config.body_steps as string[];
+          for (const stepId of bodySteps) {
+            const childIdx = flowNodes.findIndex((fn) => fn.id === stepId);
+            if (childIdx === -1) { continue; }
+            const storedParent = parentRefs[stepId];
+            if (storedParent === undefined || storedParent === node.id) {
+              const parentFn = flowNodes.find((fn) => fn.id === node.id);
+              const childFn = flowNodes[childIdx];
+              const relPos = parentFn
+                ? { x: childFn.position.x - parentFn.position.x, y: childFn.position.y - parentFn.position.y }
+                : childFn.position;
+              const isCollapsedParent = collapsedContainers.has(node.id);
+              if (isCollapsedParent) { hiddenChildIds.add(stepId); }
+              flowNodes[childIdx] = {
+                ...childFn,
+                position: relPos,
+                parentId: node.id,
+                extent: "parent",
+                expandParent: true,
                 hidden: isCollapsedParent ? true : childFn.hidden,
               };
               expectedParentByNode[stepId] = node.id;
@@ -506,6 +537,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
             position: relPos,
             parentId: swNodeId,
             extent: "parent" as const,
+            expandParent: true,
             data: {
               ...subNode,
               label: subNode.title,
@@ -544,25 +576,37 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
       setREdges(flowEdges);
       setIsInitialized(true);
 
-      // 首次加载时若节点全部堆叠在原点附近（未布局过），自动排列
-      if (
-        !hasAutoLaidOutRef.current
-        && nodes.length >= 2
-        && nodes.every((n) => n.position.x < 50 && n.position.y < 50)
-      ) {
-        hasAutoLaidOutRef.current = true;
-        autoLayoutTimerRef.current = setTimeout(() => {
-          const { nodes: layouted, edges: layoutedE } = autoLayoutWorkflow(
-            flowNodes,
-            flowEdges,
-            parentRefs,
-          );
-          setRNodes(layouted);
-          setREdges(layoutedE);
-          for (const ln of layouted) {
-            updateNode(ln.id, { position: ln.position } as Partial<WorkflowNode>);
+      // 首次加载时自动布局，确保节点排列合理
+      if (!hasAutoLaidOutRef.current && nodes.length >= 2) {
+        const hasReasonableLayout = nodes.some(
+          (n) => n.position.x >= 50 || n.position.y >= 50,
+        );
+        const hasOverlap = (() => {
+          const posMap = new Map<string, number>();
+          for (const n of nodes) {
+            const key = `${Math.round(n.position.x / 10)},${Math.round(n.position.y / 10)}`;
+            posMap.set(key, (posMap.get(key) || 0) + 1);
           }
-        }, 100);
+          return Array.from(posMap.values()).some((count) => count > 1);
+        })();
+
+        if (!hasReasonableLayout || hasOverlap) {
+          hasAutoLaidOutRef.current = true;
+          autoLayoutTimerRef.current = setTimeout(() => {
+            const { nodes: layouted, edges: layoutedE } = autoLayoutWorkflow(
+              flowNodes,
+              flowEdges,
+              parentRefs,
+            );
+            setRNodes(layouted);
+            setREdges(layoutedE);
+            for (const ln of layouted) {
+              updateNode(ln.id, { position: ln.position } as Partial<WorkflowNode>);
+            }
+          }, 100);
+        } else {
+          hasAutoLaidOutRef.current = true;
+        }
       }
       return () => {
         if (autoLayoutTimerRef.current) {
@@ -571,7 +615,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
         }
       };
     }
-  }, [currentTemplate, nodes, edges, validationResult, collapsedParallelContainers]);
+  }, [currentTemplate, nodes, edges, validationResult, collapsedContainers]);
 
   const onConnect = useCallback(
     (params: Connection) => {
@@ -691,11 +735,12 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
           y: e.clientY,
         });
 
-        // 容器 hit-test：落点在某个 parallel/debate 节点的 bbox 内时，自动挂入该容器。
+        // 容器 hit-test：落点在某个容器节点的 bbox 内时，自动挂入该容器。
+        const CONTAINER_TYPES = new Set(["parallel", "debate", "loop", "aggregator"]);
         const existingNodes = useWorkflowEditorStore.getState().nodes;
         let hitContainerId: string | null = null;
         for (const n of existingNodes) {
-          if (n.type !== "parallel" && n.type !== "debate") { continue; }
+          if (!CONTAINER_TYPES.has(n.type)) { continue; }
           const size = getNodeSize(n.type);
           const nx = n.position.x;
           const ny = n.position.y;
@@ -730,7 +775,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
           id,
           type: actualNodeType,
           position: relativePosition,
-          ...(hitContainerId ? { parentId: hitContainerId, extent: "parent" as const } : {}),
+          ...(hitContainerId ? { parentId: hitContainerId, extent: "parent" as const, expandParent: true } : {}),
           data: {
             id,
             type: payload.type,
@@ -1623,6 +1668,7 @@ function createWorkflowNode(
     timeout: undefined,
     enabled: true,
     parentId,
+    ...(parentId ? { extent: "parent" as const, expandParent: true } : {}),
   };
 
   switch (type) {
