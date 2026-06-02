@@ -51,7 +51,7 @@ impl NodeDispatcher {
         dispatcher.register(DataTransformerExecutor::new());
         dispatcher.register(WebhookSendExecutor::new());
         dispatcher.register(LoggingExecutor::new());
-        dispatcher.register(LlmClassifierExecutor::new());
+        dispatcher.register(LlmClassifierExecutor::default());
         dispatcher.register(AggregatorExecutor::new());
         dispatcher.register(EmailExecutor::new());
         dispatcher

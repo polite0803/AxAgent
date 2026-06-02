@@ -198,6 +198,8 @@ mod tests {
             status TEXT NOT NULL DEFAULT 'complete',
             tokens_per_second REAL,
             first_token_latency_ms INTEGER,
+            cache_creation_tokens INTEGER,
+            cache_read_tokens INTEGER,
             parts TEXT
         )";
 

@@ -24,8 +24,9 @@ use crate::workflow_engine::{
 use super::dispatcher::NodeDispatcher;
 use super::execution_state::{ExecutionState, ExecutionStatus, NodeExecutionRecord};
 use super::executors::{
-    AgentExecutor, ConditionExecutor, LlmExecutor, PlanCallbacks, ProfileCache, ProviderCache,
-    RagCallback, SubWorkflowCallback, ToolCallback, VectorRetrieveCallback,
+    AgentExecutor, ConditionExecutor, LlmClassifierExecutor, LlmExecutor, PlanCallbacks,
+    ProfileCache, ProviderCache, RagCallback, SubWorkflowCallback, ToolCallback,
+    VectorRetrieveCallback,
 };
 use super::node_executor_trait::{NodeError, NodeExecutorTrait, NodeOutput, node_type_name};
 use super::prompt_template::{CompiledPrompt, compile_prompt};
@@ -403,6 +404,7 @@ impl WorkEngine {
             agent_profile_cache.clone(),
         ));
         dispatcher.register(ConditionExecutor::new(db.clone(), master_key));
+        dispatcher.register(LlmClassifierExecutor::new(db.clone(), master_key));
         Self {
             db,
             master_key,
