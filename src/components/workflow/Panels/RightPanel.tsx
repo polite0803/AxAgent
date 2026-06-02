@@ -760,14 +760,17 @@ export const RightPanel: React.FC<RightPanelProps> = React.memo(
         <Tabs
           defaultActiveKey="properties"
           size="small"
-          style={{ height: "100%", overflow: "auto" }}
+          style={{ height: "100%", display: "flex", flexDirection: "column" }}
+          styles={{
+            content: { flex: 1, minHeight: 0, overflow: "hidden" },
+          }}
           items={[
             {
               key: "properties",
               label: t("workflow.rightPanel.properties"),
               children: (
                 <div
-                  style={{ overflow: "auto", maxHeight: "calc(100vh - 120px)" }}
+                  style={{ height: "100%", overflow: "auto" }}
                 >
                   {selectedNode
                     ? (
@@ -796,7 +799,7 @@ export const RightPanel: React.FC<RightPanelProps> = React.memo(
               label: t("workflow.rightPanel.settings"),
               children: (
                 <div
-                  style={{ overflow: "auto", maxHeight: "calc(100vh - 120px)" }}
+                  style={{ height: "100%", overflow: "auto" }}
                 >
                   <TemplateSettings currentTemplate={currentTemplate} />
                 </div>

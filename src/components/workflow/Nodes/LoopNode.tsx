@@ -1,7 +1,8 @@
-import { Tag, theme } from "antd";
-import React, { memo } from "react";
+import { useWorkflowEditorStore } from "@/stores";
+import { Tag, theme, Tooltip } from "antd";
+import React, { memo, useCallback } from "react";
 import { useTranslation } from "react-i18next";
-import { Handle, type NodeProps, Position } from "reactflow";
+import type { NodeProps } from "reactflow";
 
 const ORANGE_BASE = "#fa8c16";
 const ORANGE_VAR = `var(--orange, ${ORANGE_BASE})`;
@@ -29,6 +30,15 @@ const LoopNodeComponent: React.FC<NodeProps<LoopNodeData>> = ({
   const color = ORANGE_VAR;
   const loopType = data.loopType || "count";
 
+  const isCollapsed = useWorkflowEditorStore((s) => s.collapsedParallelContainers.has(data.id));
+  const toggleCollapse = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      useWorkflowEditorStore.getState().toggleParallelContainerCollapse(data.id);
+    },
+    [data.id],
+  );
+
   const getLoopDescription = (): string => {
     switch (loopType) {
       case "count":
@@ -46,154 +56,107 @@ const LoopNodeComponent: React.FC<NodeProps<LoopNodeData>> = ({
     }
   };
 
+  // 容器节点：不需要 Handle，ReactFlow 子节点通过 parentId 自动渲染在此区域内
   return (
     <div
       style={{
-        minWidth: 180,
-        maxWidth: 220,
+        minWidth: 400,
+        minHeight: 200,
+        background: `${ORANGE_BASE}08`,
+        border: `2px dashed ${selected ? token.colorPrimary : ORANGE_BASE}40`,
+        borderRadius: 12,
+        padding: 12,
         opacity: data.enabled ? 1 : 0.5,
-        filter: data.enabled ? "none" : "grayscale(100%)",
+        position: "relative",
+        boxShadow: selected ? `0 0 0 2px ${ORANGE_VAR}40` : "none",
       }}
     >
+      {/* 标题栏 — 左上角 */}
       <div
         style={{
+          position: "absolute",
+          top: 8,
+          left: 12,
+          display: "flex",
+          alignItems: "center",
+          gap: 6,
           background: token.colorBgElevated,
-          border: `2px solid ${selected ? token.colorPrimary : color}`,
-          borderRadius: 8,
-          overflow: "hidden",
-          boxShadow: selected ? `0 0 0 2px ${color}40` : "none",
-          transition: "box-shadow 0.2s, transform 0.2s",
+          border: `1px solid ${ORANGE_BASE}30`,
+          borderRadius: 6,
+          padding: "4px 10px",
+          zIndex: 10,
         }}
       >
-        <div
+        <span style={{ fontSize: 14 }}>🔁</span>
+        <span style={{ fontSize: 12, color, fontWeight: 600 }}>
+          {data.title}
+        </span>
+        <div style={{ display: "flex", gap: 4 }}>
+          <Tag
+            style={{
+              margin: 0,
+              fontSize: 9,
+              padding: "0 4px",
+              background: `${ORANGE_BASE}20`,
+              border: `1px solid ${ORANGE_BASE}50`,
+              color: ORANGE_VAR,
+            }}
+          >
+            {loopType.toUpperCase()}
+          </Tag>
+          <Tag
+            style={{
+              margin: 0,
+              fontSize: 9,
+              padding: "0 4px",
+              background: token.colorBgContainer,
+              border: `1px solid ${token.colorBorderSecondary}`,
+              color: token.colorTextQuaternary,
+            }}
+          >
+            {getLoopDescription()}
+          </Tag>
+        </div>
+      </div>
+
+      {/* 折叠/展开按钮 — 右上角 */}
+      <Tooltip
+        title={isCollapsed
+          ? t("workflow.parallelNode.expand")
+          : t("workflow.parallelNode.collapse")}
+      >
+        <span
+          onClick={toggleCollapse}
           style={{
-            padding: "8px 12px",
-            borderBottom: `1px solid ${ORANGE_BASE}30`,
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            background: `${ORANGE_BASE}15`,
+            position: "absolute",
+            top: 8,
+            right: 12,
+            cursor: "pointer",
+            fontSize: 14,
+            lineHeight: 1,
+            padding: "2px 6px",
+            borderRadius: 4,
+            background: token.colorBgElevated,
+            border: `1px solid ${ORANGE_BASE}30`,
+            zIndex: 10,
+            opacity: 0.7,
+            transition: "opacity 0.2s, transform 0.2s",
+            transform: isCollapsed ? "rotate(-90deg)" : "rotate(0deg)",
+            display: "inline-block",
+            userSelect: "none",
+          }}
+          onMouseEnter={(e) => {
+            (e.currentTarget as HTMLElement).style.opacity = "1";
+          }}
+          onMouseLeave={(e) => {
+            (e.currentTarget as HTMLElement).style.opacity = "0.7";
           }}
         >
-          <span style={{ fontSize: 14 }}>🔁</span>
-          <span
-            style={{
-              fontSize: 12,
-              color: color,
-              fontWeight: 600,
-            }}
-          >
-            {t("workflow.loopNode.title")}
-          </span>
-        </div>
+          ▼
+        </span>
+      </Tooltip>
 
-        <div style={{ padding: "10px 12px" }}>
-          <div
-            style={{
-              fontSize: 13,
-              color: token.colorText,
-              fontWeight: 500,
-              marginBottom: 6,
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-            }}
-          >
-            {data.title}
-          </div>
-
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
-            <Tag
-              style={{
-                margin: 0,
-                fontSize: 9,
-                padding: "0 4px",
-                background: `${ORANGE_BASE}20`,
-                border: `1px solid ${ORANGE_BASE}50`,
-                color: ORANGE_VAR,
-              }}
-            >
-              {loopType.toUpperCase()}
-            </Tag>
-            <Tag
-              style={{
-                margin: 0,
-                fontSize: 9,
-                padding: "0 4px",
-                background: token.colorBgContainer,
-                border: `1px solid ${token.colorBorderSecondary}`,
-                color: token.colorTextQuaternary,
-              }}
-            >
-              {getLoopDescription()}
-            </Tag>
-          </div>
-        </div>
-      </div>
-
-      <Handle
-        type="target"
-        position={Position.Top}
-        style={{
-          background: color,
-          border: "none",
-          width: 8,
-          height: 8,
-        }}
-      />
-
-      <Handle
-        type="source"
-        position={Position.Bottom}
-        id="loop"
-        style={{
-          background: token.colorSuccess,
-          border: "none",
-          width: 8,
-          height: 8,
-          left: "30%",
-        }}
-      />
-
-      <Handle
-        type="source"
-        position={Position.Bottom}
-        id="done"
-        style={{
-          background: token.colorTextTertiary,
-          border: "none",
-          width: 8,
-          height: 8,
-          left: "70%",
-        }}
-      />
-
-      <div
-        style={{
-          position: "absolute",
-          bottom: -18,
-          left: "25%",
-          transform: "translateX(-50%)",
-          fontSize: 9,
-          color: token.colorSuccess,
-          fontWeight: 600,
-        }}
-      >
-        ↻
-      </div>
-      <div
-        style={{
-          position: "absolute",
-          bottom: -18,
-          left: "75%",
-          transform: "translateX(-50%)",
-          fontSize: 9,
-          color: token.colorTextTertiary,
-          fontWeight: 600,
-        }}
-      >
-        →
-      </div>
+      {/* 子节点由 ReactFlow 根据 parentId 自动绘制在此容器内；折叠时父节点的 style.width/height 由编辑器设为紧凑尺寸 */}
     </div>
   );
 };

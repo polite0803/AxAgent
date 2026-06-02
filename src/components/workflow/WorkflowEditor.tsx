@@ -304,18 +304,36 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
 
         // 并行/合并容器节点：ReactFlow 需要 parentNode 不为空来判断是否为 group
         const rtType = nodeType;
-        const isContainer = rtType === "parallel" || rtType === "debate"
+        const isContainer = rtType === "parallel" || rtType === "debate" || rtType === "loop"
           || (rtType === "subWorkflow" && useWorkflowEditorStore.getState().expandedSubWorkflows[node.id] != null);
-        const isParallel = rtType === "parallel";
-        const isParallelCollapsed = isParallel
+        const isContainerCollapsed = isContainer
           && useWorkflowEditorStore.getState().collapsedParallelContainers.has(node.id);
-        // 折叠态：parallel 容器自身缩为紧凑尺寸
-        const containerStyle: React.CSSProperties | undefined = isParallelCollapsed
-          ? { width: 200, height: 60 }
-          : isContainer
-          ? { width: 500, height: 400 }
-          : undefined;
-        // 折叠态下：parallel 容器内的子节点在画布上隐藏
+        // 折叠态：容器自身缩为紧凑尺寸
+        const CHILD_ESTIMATE_W = 200;
+        const CHILD_ESTIMATE_H = 80;
+        const CONTAINER_PADDING = 40;
+        const CONTAINER_HEADER_H = 60;
+        const CONTAINER_MIN_W = 400;
+        const CONTAINER_MIN_H = 200;
+        let containerStyle: React.CSSProperties | undefined;
+        if (isContainerCollapsed) {
+          containerStyle = { width: 200, height: 60 };
+        } else if (isContainer) {
+          const children = nodes.filter((n) => n.parentId === node.id);
+          let maxX = CONTAINER_MIN_W - CONTAINER_PADDING;
+          let maxY = CONTAINER_MIN_H - CONTAINER_PADDING;
+          for (const child of children) {
+            const cx = child.position.x + CHILD_ESTIMATE_W;
+            const cy = child.position.y + CHILD_ESTIMATE_H;
+            if (cx > maxX) maxX = cx;
+            if (cy > maxY) maxY = cy;
+          }
+          containerStyle = {
+            width: Math.max(CONTAINER_MIN_W, maxX + CONTAINER_PADDING),
+            height: Math.max(CONTAINER_MIN_H, maxY + CONTAINER_PADDING + CONTAINER_HEADER_H),
+          };
+        }
+        // 折叠态下：容器内的子节点在画布上隐藏
         const childIsHidden = (node as any).parentId != null
           && useWorkflowEditorStore.getState().collapsedParallelContainers.has((node as any).parentId as string);
         return {

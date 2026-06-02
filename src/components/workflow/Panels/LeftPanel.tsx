@@ -124,7 +124,10 @@ export const LeftPanel: React.FC = () => {
       <Tabs
         defaultActiveKey="nodes"
         size="small"
-        style={{ height: "100%" }}
+        style={{ height: "100%", display: "flex", flexDirection: "column" }}
+        styles={{
+          content: { flex: 1, minHeight: 0, overflow: "hidden" },
+        }}
         items={[
           {
             key: "nodes",
@@ -135,6 +138,7 @@ export const LeftPanel: React.FC = () => {
                   display: "flex",
                   flexDirection: "column",
                   height: "100%",
+                  overflow: "hidden",
                 }}
               >
                 <Input
@@ -143,11 +147,11 @@ export const LeftPanel: React.FC = () => {
                   placeholder={t("workflow.leftPanel.searchNodes")}
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  style={{ margin: "8px", width: "auto" }}
+                  style={{ margin: "8px", width: "auto", flexShrink: 0 }}
                   size="small"
                 />
 
-                <div style={{ flex: 1, overflow: "auto", padding: "0 8px" }}>
+                <div style={{ flex: 1, overflow: "auto", padding: "0 8px", minHeight: 0 }}>
                   {groupedNodeTypes.map((category) => (
                     <div key={category.id} style={{ marginBottom: 12 }}>
                       <div
