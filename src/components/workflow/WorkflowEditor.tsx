@@ -455,16 +455,11 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
               const storedParent = parentRefs[stepId];
               // store 记录的是 source of truth：未登记或登记为当前 parallel 才挂入
               if (storedParent === undefined || storedParent === node.id) {
-                const parentFn = flowNodes.find((fn) => fn.id === node.id);
                 const childFn = flowNodes[childIdx];
-                const relPos = parentFn
-                  ? { x: childFn.position.x - parentFn.position.x, y: childFn.position.y - parentFn.position.y }
-                  : childFn.position;
                 const isCollapsedParent = collapsedContainers.has(node.id);
                 if (isCollapsedParent) { hiddenChildIds.add(stepId); }
                 flowNodes[childIdx] = {
                   ...childFn,
-                  position: relPos,
                   parentId: node.id,
                   extent: "parent",
                   expandParent: true,
@@ -491,16 +486,11 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
               if (storedMergeParent === undefined || storedMergeParent === targetParent) {
                 const mergeIdx = flowNodes.findIndex((fn) => fn.id === node.id);
                 if (mergeIdx === -1) { continue; }
-                const parentFn = flowNodes.find((fn) => fn.id === targetParent);
                 const mergeFn = flowNodes[mergeIdx];
-                const relPos = parentFn
-                  ? { x: mergeFn.position.x - parentFn.position.x, y: mergeFn.position.y - parentFn.position.y }
-                  : mergeFn.position;
                 const isCollapsedParent = collapsedContainers.has(targetParent);
                 if (isCollapsedParent) { hiddenChildIds.add(node.id); }
                 flowNodes[mergeIdx] = {
                   ...mergeFn,
-                  position: relPos,
                   parentId: targetParent,
                   extent: "parent",
                   expandParent: true,
@@ -519,22 +509,39 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
             if (childIdx === -1) { continue; }
             const storedParent = parentRefs[stepId];
             if (storedParent === undefined || storedParent === node.id) {
-              const parentFn = flowNodes.find((fn) => fn.id === node.id);
               const childFn = flowNodes[childIdx];
-              const relPos = parentFn
-                ? { x: childFn.position.x - parentFn.position.x, y: childFn.position.y - parentFn.position.y }
-                : childFn.position;
               const isCollapsedParent = collapsedContainers.has(node.id);
               if (isCollapsedParent) { hiddenChildIds.add(stepId); }
               flowNodes[childIdx] = {
                 ...childFn,
-                position: relPos,
                 parentId: node.id,
                 extent: "parent",
                 expandParent: true,
                 hidden: isCollapsedParent ? true : childFn.hidden,
               };
               expectedParentByNode[stepId] = node.id;
+            }
+          }
+        }
+        // 将 AggregatorNode 的 input_sources 中的子节点挂载为容器子节点
+        if (node.type === "aggregator" && (node as any).config?.input_sources) {
+          const inputSources = (node as any).config.input_sources as string[];
+          for (const sourceId of inputSources) {
+            const childIdx = flowNodes.findIndex((fn) => fn.id === sourceId);
+            if (childIdx === -1) { continue; }
+            const storedParent = parentRefs[sourceId];
+            if (storedParent === undefined || storedParent === node.id) {
+              const childFn = flowNodes[childIdx];
+              const isCollapsedParent = collapsedContainers.has(node.id);
+              if (isCollapsedParent) { hiddenChildIds.add(sourceId); }
+              flowNodes[childIdx] = {
+                ...childFn,
+                parentId: node.id,
+                extent: "parent",
+                expandParent: true,
+                hidden: isCollapsedParent ? true : childFn.hidden,
+              };
+              expectedParentByNode[sourceId] = node.id;
             }
           }
         }
@@ -546,16 +553,11 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
             if (childIdx === -1) { continue; }
             const storedParent = parentRefs[stepId];
             if (storedParent === undefined || storedParent === node.id) {
-              const parentFn = flowNodes.find((fn) => fn.id === node.id);
               const childFn = flowNodes[childIdx];
-              const relPos = parentFn
-                ? { x: childFn.position.x - parentFn.position.x, y: childFn.position.y - parentFn.position.y }
-                : childFn.position;
               const isCollapsedParent = collapsedContainers.has(node.id);
               if (isCollapsedParent) { hiddenChildIds.add(stepId); }
               flowNodes[childIdx] = {
                 ...childFn,
-                position: relPos,
                 parentId: node.id,
                 extent: "parent",
                 expandParent: true,
@@ -583,15 +585,11 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
         if (!parentFn) { continue; }
 
         for (const subNode of swData.nodes) {
-          // 计算相对位置：子节点坐标 - 容器坐标
-          const relPos = {
-            x: subNode.position.x,
-            y: subNode.position.y,
-          };
+          // 新约定：subNode.position 已是相对父节点的偏移，直接透传。
           flowNodes.push({
             id: subNode.id,
             type: (subNode as any).type || "agent",
-            position: relPos,
+            position: { x: subNode.position.x, y: subNode.position.y },
             parentId: swNodeId,
             extent: "parent" as const,
             expandParent: true,
@@ -1092,18 +1090,10 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
 
       changes.forEach((change: any) => {
         if (change.type === "position" && change.position && currentTemplate) {
-          const node = currentTemplate.nodes.find((n) => n.id === change.id);
-          let storePos = change.position;
-          const parentId = (node as any)?.parentId as string | undefined;
-          if (parentId) {
-            const parent = currentTemplate.nodes.find((n) => n.id === parentId);
-            if (parent) {
-              storePos = {
-                x: change.position.x + parent.position.x,
-                y: change.position.y + parent.position.y,
-              };
-            }
-          }
+          // 新约定：change.position 对父节点已是相对偏移，ReactFlow 在 extent: "parent"
+          // 模式下返回的就是相对坐标；顶层节点坐标即画布绝对坐标，与"相对画布原点"等价。
+          // 因此直接透传，无需再加父节点位置。
+          const storePos = change.position;
           // RAF 批处理：同一次拖拽中只保留最终位置
           pendingPositionsRef.current.set(change.id, storePos);
           if (posRafRef.current == null) {
