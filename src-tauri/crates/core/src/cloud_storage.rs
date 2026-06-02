@@ -445,10 +445,7 @@ impl S3Backend {
             let etag = retry_with_backoff(|| {
                 let part_data = part_data.to_vec();
                 let uid = upload_id_ref.clone();
-                async move {
-                    self.upload_part(key, &uid, part_number, &part_data)
-                        .await
-                }
+                async move { self.upload_part(key, &uid, part_number, &part_data).await }
             })
             .await?;
 
