@@ -1290,6 +1290,7 @@ mod tests {
             output_tokens: 50,
             cache_creation_input_tokens: 0,
             cache_read_input_tokens: 0,
+            cache_miss_input_tokens: 0,
         };
         let breakdown = TokenUsageBreakdown::from_turn_summary(&usage, 0);
         assert_eq!(breakdown.input_tokens, 100);
@@ -1305,6 +1306,7 @@ mod tests {
             output_tokens: 0,
             cache_creation_input_tokens: 0,
             cache_read_input_tokens: 0,
+            cache_miss_input_tokens: 0,
         };
         let breakdown = TokenUsageBreakdown::from_turn_summary(&usage, 400);
         assert_eq!(breakdown.total_tokens, 100);
@@ -1318,6 +1320,7 @@ mod tests {
             output_tokens: 50,
             cache_creation_input_tokens: 0,
             cache_read_input_tokens: 0,
+            cache_miss_input_tokens: 0,
         };
         let breakdown = TokenUsageBreakdown::from_turn_summary(&usage, 0);
         assert_eq!(breakdown.tokens_delta(), 150);
@@ -1446,6 +1449,7 @@ mod tests {
             output_tokens: 0,
             cache_creation_input_tokens: 0,
             cache_read_input_tokens: 0,
+            cache_miss_input_tokens: 0,
         };
         let breakdown = TokenUsageBreakdown::from_turn_summary(&usage, 0);
         assert_eq!(breakdown.total_tokens, 0);
@@ -1459,6 +1463,7 @@ mod tests {
             output_tokens: 25,
             cache_creation_input_tokens: 0,
             cache_read_input_tokens: 0,
+            cache_miss_input_tokens: 0,
         };
         let breakdown = TokenUsageBreakdown::from_turn_summary(&usage, 1000);
         assert_eq!(breakdown.total_tokens, 75);
@@ -1487,6 +1492,7 @@ mod tests {
             output_tokens: 50,
             cache_creation_input_tokens: 0,
             cache_read_input_tokens: 0,
+            cache_miss_input_tokens: 0,
         };
         let breakdown = TokenUsageBreakdown::from_turn_summary(&usage, 0);
         let json = serde_json::to_string(&breakdown).unwrap();
@@ -1865,6 +1871,7 @@ mod tests {
             output_tokens: 0,
             cache_creation_input_tokens: 0,
             cache_read_input_tokens: 0,
+            cache_miss_input_tokens: 0,
         };
         let breakdown = TokenUsageBreakdown::from_turn_summary(&usage, 0);
         assert_eq!(breakdown.tokens_delta(), 0);
@@ -1877,6 +1884,7 @@ mod tests {
             output_tokens: 50000,
             cache_creation_input_tokens: 0,
             cache_read_input_tokens: 0,
+            cache_miss_input_tokens: 0,
         };
         let breakdown = TokenUsageBreakdown::from_turn_summary(&usage, 0);
         assert_eq!(breakdown.total_tokens, 150000);

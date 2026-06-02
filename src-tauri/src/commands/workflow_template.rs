@@ -608,17 +608,17 @@ pub async fn validate_workflow_template(
                     });
                 }
             },
-            WorkflowNode::Condition(c) => {
-                if c.config.conditions.is_empty() && c.config.judge_by_llm.unwrap_or(false) {
-                    warnings.push(ValidationWarning {
-                        warning_type: "invalid_config".to_string(),
-                        node_id: Some(c.base.id.clone()),
-                        message: format!(
-                            "Condition node '{}' has empty conditions (LLM routing is enabled)",
-                            c.base.id
-                        ),
-                    });
-                }
+            WorkflowNode::Condition(c)
+                if c.config.conditions.is_empty() && c.config.judge_by_llm.unwrap_or(false) =>
+            {
+                warnings.push(ValidationWarning {
+                    warning_type: "invalid_config".to_string(),
+                    node_id: Some(c.base.id.clone()),
+                    message: format!(
+                        "Condition node '{}' has empty conditions (LLM routing is enabled)",
+                        c.base.id
+                    ),
+                });
             },
             _ => {},
         }

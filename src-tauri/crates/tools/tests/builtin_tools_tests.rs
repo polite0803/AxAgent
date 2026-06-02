@@ -87,6 +87,7 @@ fn test_token_usage_types() {
         total_tokens: 150,
         cache_creation_tokens: None,
         cache_read_tokens: None,
+        cache_miss_tokens: None,
     };
     assert_eq!(usage.total_tokens, 150);
     assert_eq!(usage.prompt_tokens, 100);
