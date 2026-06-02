@@ -12,6 +12,12 @@ impl WebhookSendExecutor {
     }
 }
 
+impl Default for WebhookSendExecutor {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[async_trait]
 impl NodeExecutorTrait for WebhookSendExecutor {
     fn node_type(&self) -> &'static str {

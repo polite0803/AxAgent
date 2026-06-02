@@ -12,6 +12,12 @@ impl ApprovalExecutor {
     }
 }
 
+impl Default for ApprovalExecutor {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[async_trait]
 impl NodeExecutorTrait for ApprovalExecutor {
     fn node_type(&self) -> &'static str {

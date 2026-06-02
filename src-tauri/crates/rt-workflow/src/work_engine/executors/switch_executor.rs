@@ -12,6 +12,12 @@ impl SwitchExecutor {
     }
 }
 
+impl Default for SwitchExecutor {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[async_trait]
 impl NodeExecutorTrait for SwitchExecutor {
     fn node_type(&self) -> &'static str {

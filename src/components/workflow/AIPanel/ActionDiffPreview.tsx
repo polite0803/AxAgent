@@ -284,8 +284,8 @@ function useActionVisual(
       return {
         label,
         color: NODE_OP_COLOR.generate_workflow,
-        beforeRender: <Text type="secondary">({currentNodes.length} 节点 / {currentEdges.length} 边)</Text>,
-        afterRender: <Text>({action.data.nodes.length} 节点 / {action.data.edges.length} 边)</Text>,
+        beforeRender: <Text type="secondary">{t("workflow.aiPanel.diffPreview.nodesEdgesLabel", { nodes: currentNodes.length, edges: currentEdges.length })}</Text>,
+        afterRender: <Text>{t("workflow.aiPanel.diffPreview.nodesEdgesLabel", { nodes: action.data.nodes.length, edges: action.data.edges.length })}</Text>,
       };
     }
     case "add_node": {
@@ -301,7 +301,7 @@ function useActionVisual(
         label,
         color: NODE_OP_COLOR.add_nodes,
         beforeRender: <Text type="secondary">—</Text>,
-        afterRender: <Text>{action.data.nodes.length} 个新节点</Text>,
+        afterRender: <Text>{t("workflow.aiPanel.diffPreview.newNodes", { count: action.data.nodes.length })}</Text>,
       };
     }
     case "update_node":
@@ -313,7 +313,7 @@ function useActionVisual(
         color: NODE_OP_COLOR[action.action_type],
         beforeRender: existing
           ? <Text code>{existing.title} ({existing.type})</Text>
-          : <Text type="secondary">节点不存在</Text>,
+          : <Text type="secondary">{t("workflow.aiPanel.diffPreview.nodeNotFound")}</Text>,
         afterRender: <Text code>{JSON.stringify(changes, null, 2)}</Text>,
       };
     }
@@ -324,8 +324,8 @@ function useActionVisual(
         color: NODE_OP_COLOR.delete_node,
         beforeRender: existing
           ? <Text code>{existing.title} ({existing.type})</Text>
-          : <Text type="secondary">节点不存在</Text>,
-        afterRender: <Text type="secondary">— 删除 —</Text>,
+          : <Text type="secondary">{t("workflow.aiPanel.diffPreview.nodeNotFound")}</Text>,
+        afterRender: <Text type="secondary">{t("workflow.aiPanel.diffPreview.deleted")}</Text>,
       };
     }
     case "delete_nodes": {
@@ -335,7 +335,7 @@ function useActionVisual(
         label,
         color: NODE_OP_COLOR.delete_nodes,
         beforeRender: <Text code>{existing.map(n => n.title).join(", ")}</Text>,
-        afterRender: <Text type="secondary">— 删除 {ids.length} 个 —</Text>,
+        afterRender: <Text type="secondary">{t("workflow.aiPanel.diffPreview.deletedCount", { count: ids.length })}</Text>,
       };
     }
     case "add_edge": {
@@ -354,7 +354,7 @@ function useActionVisual(
         color: EDGE_OP_COLOR.update_edge,
         beforeRender: existing
           ? <Text code>{existing.source} → {existing.target} ({existing.edge_type})</Text>
-          : <Text type="secondary">边不存在</Text>,
+          : <Text type="secondary">{t("workflow.aiPanel.diffPreview.edgeNotFound")}</Text>,
         afterRender: <Text code>{JSON.stringify(action.data.changes, null, 2)}</Text>,
       };
     }
@@ -365,8 +365,8 @@ function useActionVisual(
         color: EDGE_OP_COLOR.delete_edge,
         beforeRender: existing
           ? <Text code>{existing.source} → {existing.target}</Text>
-          : <Text type="secondary">边不存在</Text>,
-        afterRender: <Text type="secondary">— 删除 —</Text>,
+          : <Text type="secondary">{t("workflow.aiPanel.diffPreview.edgeNotFound")}</Text>,
+        afterRender: <Text type="secondary">{t("workflow.aiPanel.diffPreview.deleted")}</Text>,
       };
     }
     case "optimize_prompt": {

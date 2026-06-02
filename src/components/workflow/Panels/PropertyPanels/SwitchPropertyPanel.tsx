@@ -57,7 +57,7 @@ export const SwitchPropertyPanel: React.FC<Props> = ({ node, onUpdate, onDelete 
           value={config.input_var}
           onChange={(e) => setCfg("input_var", e.target.value)}
           size="small"
-          placeholder="node_id.output_field"
+          placeholder={t("workflow.props.switchInputVarPlaceholder")}
         />
       </div>
       <div>
@@ -114,7 +114,7 @@ export const SwitchPropertyPanel: React.FC<Props> = ({ node, onUpdate, onDelete 
                 cases[i] = { ...cases[i], label: e.target.value };
                 setCfg("cases", cases);
               }}
-              placeholder="label"
+              placeholder={t("workflow.props.switchLabelPlaceholder")}
             />
             <Input
               size="small"
@@ -125,7 +125,7 @@ export const SwitchPropertyPanel: React.FC<Props> = ({ node, onUpdate, onDelete 
                 cases[i] = { ...cases[i], value: e.target.value };
                 setCfg("cases", cases);
               }}
-              placeholder="value"
+              placeholder={t("workflow.props.switchValuePlaceholder")}
             />
             <Button
               type="text"

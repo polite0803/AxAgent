@@ -13,6 +13,12 @@ impl HttpRequestExecutor {
     }
 }
 
+impl Default for HttpRequestExecutor {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[async_trait]
 impl NodeExecutorTrait for HttpRequestExecutor {
     fn node_type(&self) -> &'static str {

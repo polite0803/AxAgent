@@ -1,5 +1,6 @@
 import { Divider, Input, theme } from "antd";
 import React from "react";
+import { useTranslation } from "react-i18next";
 import type { DataTransformerNode, WorkflowNode } from "../../types";
 import { BasePropertyPanel } from "./BasePropertyPanel";
 interface Props {
@@ -8,6 +9,7 @@ interface Props {
   onDelete: () => void;
 }
 export const DataTransformerPropertyPanel: React.FC<Props> = ({ node, onUpdate, onDelete }) => {
+  const { t } = useTranslation();
   const { token } = theme.useToken();
   const n = node as unknown as DataTransformerNode;
   const c = n.config || { input_var: "", expression: "", output_var: "" };
@@ -20,7 +22,7 @@ export const DataTransformerPropertyPanel: React.FC<Props> = ({ node, onUpdate, 
           value={c.input_var}
           onChange={(e) => sc("input_var", e.target.value)}
           size="small"
-          placeholder="node_id.field"
+          placeholder={t("workflow.props.inputVarPlaceholder")}
         />
       </div>
       <div>

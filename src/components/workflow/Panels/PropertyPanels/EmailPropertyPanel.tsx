@@ -77,7 +77,7 @@ export const EmailPropertyPanel: React.FC<Props> = ({ node, onUpdate, onDelete }
           value={c.to.join(", ")}
           onChange={(e) => sc("to", e.target.value.split(",").map((s) => s.trim()))}
           size="small"
-          placeholder="user@example.com"
+          placeholder={t("workflow.props.emailToPlaceholder")}
         />
       </div>
       <div>

@@ -80,7 +80,7 @@ export const HttpRequestPropertyPanel: React.FC<HttpRequestPropertyPanelProps> =
           value={config.url}
           onChange={(e) => handleConfigChange("url", e.target.value)}
           size="small"
-          placeholder="https://api.example.com/data"
+          placeholder={t("workflow.props.urlPlaceholder")}
         />
       </div>
 

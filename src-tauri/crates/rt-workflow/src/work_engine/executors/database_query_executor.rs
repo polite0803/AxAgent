@@ -12,6 +12,12 @@ impl DatabaseQueryExecutor {
     }
 }
 
+impl Default for DatabaseQueryExecutor {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[async_trait]
 impl NodeExecutorTrait for DatabaseQueryExecutor {
     fn node_type(&self) -> &'static str {

@@ -12,6 +12,12 @@ impl NotificationExecutor {
     }
 }
 
+impl Default for NotificationExecutor {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[async_trait]
 impl NodeExecutorTrait for NotificationExecutor {
     fn node_type(&self) -> &'static str {

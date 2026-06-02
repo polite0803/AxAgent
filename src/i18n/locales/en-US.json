@@ -3571,7 +3571,13 @@
         "applyAllFailed": "Apply All failed",
         "rollbackBatch": "Rollback Batch",
         "rollbackSuccess": "Batch rolled back",
-        "rollbackTip": "Undo the entire batch of AI changes"
+        "rollbackTip": "Undo the entire batch of AI changes",
+      "nodesEdgesLabel": "{{nodes}} nodes / {{edges}} edges",
+      "newNodes": "{{count}} new nodes",
+      "nodeNotFound": "Node not found",
+      "deleted": "— Deleted —",
+      "deletedCount": "— Deleted {{count}} —",
+      "edgeNotFound": "Edge not found"
       }
     },
     "templateList": {
@@ -3848,6 +3854,10 @@
       "outputArtifact": "🎨 Artifact",
       "outputVariable": "Output Variable",
       "outputVarDefault": "agent_output",
+      "inputVarPlaceholder": "node_id.field",
+      "queryPlaceholder": "SELECT * FROM table WHERE id = ?",
+      "emailToPlaceholder": "user@example.com",
+      "urlPlaceholder": "https://api.example.com/data",
       "toolsCount": "Tools ({{count}})",
       "selectTools": "Select tools...",
       "maxToolRounds": "Max Tool Rounds",
@@ -3859,6 +3869,9 @@
       "executionPlanHint": "LLM generates hierarchical plan first, then executes phase by phase, best for complex multi-step tasks",
       "toolName": "Tool Name (Rhai)",
       "toolNamePlaceholder": "Name for Agent exposed_tools reference...",
+      "switchInputVarPlaceholder": "node_id.output_field",
+      "switchLabelPlaceholder": "label",
+      "switchValuePlaceholder": "value",
       "toolNameHint": "Leave empty to auto-generate code_<nodeId>",
       "exposedTools": "Tools Exposed to LLM ({{count}})",
       "exposedToolsPlaceholder": "Select tools for LLM to call autonomously...",
@@ -3867,6 +3880,7 @@
       "toolDescriptionPlaceholder": "Describe the tool's function...",
       "toolParameters": "Tool Parameters (JSON Schema)",
       "toolParametersPlaceholder": "Enter JSON Schema definition...",
+      "webhookUrlPlaceholder": "https://hook.example.com/...",
       "contextSourcesCount": "Context Sources ({{count}})",
       "selectContextSources": "Select context sources...",
       "ragSourceIdsCount": "RAG Sources ({{count}})",
@@ -4230,7 +4244,12 @@
       "expand": "Expand",
       "collapse": "Collapse",
       "newDebater": "Debater",
-      "noDebatersHint": "Add debater Agent nodes inside this container"
+      "noDebatersHint": "Add debater Agent nodes inside this container",
+      "defaultRole": "— Default —",
+      "stancePro": "Pro (Support)",
+      "stanceCon": "Con (Oppose)",
+      "stanceNth": "Side {{count}}",
+      "stanceSystemPromptFallback": "You are a debater on the {{stance}} side. Argue on the topic."
     },
     "toolNode": {
       "notSelected": "No tool selected",
@@ -6619,7 +6638,9 @@
   },
   "errorBoundary": {
     "title": "Something went wrong",
-    "retryLoad": "Retry loading this module"
+    "retryLoad": "Retry loading this module",
+    "panelLoadFailed": "⚠️ Panel \"{{tabKey}}\" failed to load",
+    "unknownError": "Unknown error"
   },
   "appInit": {
     "idle": "Preparing to start...",

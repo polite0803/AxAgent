@@ -12,6 +12,12 @@ impl FileOperationExecutor {
     }
 }
 
+impl Default for FileOperationExecutor {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[async_trait]
 impl NodeExecutorTrait for FileOperationExecutor {
     fn node_type(&self) -> &'static str {

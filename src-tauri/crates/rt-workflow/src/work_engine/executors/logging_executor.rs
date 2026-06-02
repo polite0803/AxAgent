@@ -12,6 +12,12 @@ impl LoggingExecutor {
     }
 }
 
+impl Default for LoggingExecutor {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[async_trait]
 impl NodeExecutorTrait for LoggingExecutor {
     fn node_type(&self) -> &'static str {

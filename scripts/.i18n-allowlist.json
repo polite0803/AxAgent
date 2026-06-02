@@ -790,8 +790,152 @@
     },
     {
       "file": "src/components/workflow/Panels/PropertyPanels/CodePropertyPanel.tsx",
-      "lines": "173,263,326",
-      "reason": "Rhai 代码模板 + source 标识 + placeholder",
+      "lines": "41,47,53,59,173,263,326",
+      "reason": "Rhai 代码模板内容/注释，非 UI 字符串",
+      "phase": 3
+    },
+    {
+      "file": "src/components/workflow/Panels/PropertyPanels/AgentPropertyPanel.tsx",
+      "lines": "287,288,289,313,315,316,318,319,322,323,324,326,327",
+      "reason": "AI system prompt / context completion prompts，非 UI 字符串",
+      "phase": 3
+    },
+    {
+      "file": "src/components/workflow/Panels/PropertyPanels/CodePropertyPanel.tsx",
+      "lines": "117,118,119,159,160,192",
+      "reason": "AI 代码优化/生成 prompts + 默认代码模板，非 UI 字符串",
+      "phase": 3
+    },
+    {
+      "file": "src/components/workflow/Panels/PropertyPanels/ConditionPropertyPanel.tsx",
+      "lines": "150,151,152,153,154,157,193,194,197",
+      "reason": "AI 条件规则生成/路由提示词优化 prompts，非 UI 字符串",
+      "phase": 3
+    },
+    {
+      "file": "src/components/workflow/Panels/PropertyPanels/DatabaseQueryPropertyPanel.tsx",
+      "lines": "28,29",
+      "reason": "AI SQL 生成 prompts，非 UI 字符串",
+      "phase": 3
+    },
+    {
+      "file": "src/components/workflow/Panels/PropertyPanels/DebatePropertyPanel.tsx",
+      "lines": "49,50,51,67,68,69,79",
+      "reason": "AI 辩论收敛/辩手生成 prompts，非 UI 字符串",
+      "phase": 3
+    },
+    {
+      "file": "src/components/workflow/Panels/PropertyPanels/DocumentParserPropertyPanel.tsx",
+      "lines": "48,49",
+      "reason": "AI 变量命名 prompts，非 UI 字符串",
+      "phase": 3
+    },
+    {
+      "file": "src/components/workflow/Panels/PropertyPanels/EmailPropertyPanel.tsx",
+      "lines": "36,37,57,58",
+      "reason": "AI 邮件正文/主题生成 prompts，非 UI 字符串",
+      "phase": 3
+    },
+    {
+      "file": "src/components/workflow/Panels/PropertyPanels/HttpRequestPropertyPanel.tsx",
+      "lines": "55,56,57,58,59",
+      "reason": "AI HTTP 请求体生成 prompts，非 UI 字符串",
+      "phase": 3
+    },
+    {
+      "file": "src/components/workflow/Panels/PropertyPanels/LLMPropertyPanel.tsx",
+      "lines": "107,108,109,128,130,131,133,134,137,138,139,141,142",
+      "reason": "AI 提示词优化/工作流上下文补全 prompts，非 UI 字符串",
+      "phase": 3
+    },
+    {
+      "file": "src/components/workflow/Panels/PropertyPanels/LoopPropertyPanel.tsx",
+      "lines": "41,42",
+      "reason": "AI 循环控制条件 prompts，非 UI 字符串",
+      "phase": 3
+    },
+    {
+      "file": "src/components/workflow/Panels/PropertyPanels/ParallelPropertyPanel.tsx",
+      "lines": "39,40",
+      "reason": "AI 并行分支设计 prompts，非 UI 字符串",
+      "phase": 3
+    },
+    {
+      "file": "src/components/workflow/Panels/PropertyPanels/SubWorkflowPropertyPanel.tsx",
+      "lines": "63,64",
+      "reason": "AI input mapping 生成 prompts，非 UI 字符串",
+      "phase": 3
+    },
+    {
+      "file": "src/components/workflow/Panels/PropertyPanels/SwitchPropertyPanel.tsx",
+      "lines": "28,29",
+      "reason": "AI switch cases 设计 prompts，非 UI 字符串",
+      "phase": 3
+    },
+    {
+      "file": "src/components/workflow/Panels/PropertyPanels/TriggerPropertyPanel.tsx",
+      "lines": "35,36",
+      "reason": "AI cron 表达式生成 prompts，非 UI 字符串",
+      "phase": 3
+    },
+    {
+      "file": "src/components/workflow/Panels/PropertyPanels/ValidationPropertyPanel.tsx",
+      "lines": "62,63,64,67",
+      "reason": "AI 数据校验规则生成 prompts，非 UI 字符串",
+      "phase": 3
+    },
+    {
+      "file": "src/components/workflow/Panels/PropertyPanels/VectorRetrievePropertyPanel.tsx",
+      "lines": "53,54",
+      "reason": "AI 检索查询改写 prompts，非 UI 字符串",
+      "phase": 3
+    },
+    {
+      "file": "src/components/workflow/AIPanel/AIPanel.tsx",
+      "lines": "146,168,190",
+      "reason": "logIpcError 内部日志字符串，非 UI",
+      "phase": 3
+    },
+    {
+      "file": "src/components/chat/ChatView.tsx",
+      "lines": "301",
+      "reason": "内容分析关键词检测（error/报错），非 UI 字符串",
+      "phase": 3
+    },
+    {
+      "file": "src/components/settings/__tests__/ProviderDetail.test.tsx",
+      "lines": "189,198,222",
+      "reason": "测试用例硬编码字符串",
+      "phase": 3
+    },
+    {
+      "file": "src/stores/__tests__/workflowEditorStore.test.ts",
+      "lines": "543,549",
+      "reason": "测试用例硬编码字符串",
+      "phase": 3
+    },
+    {
+      "file": "src/lib/browserMock.ts",
+      "lines": "353,428,461,1181,1182,1189,1190,1197,1198,1558,1559,1564,1573,1582,1593,1594,1599,1608,1617,1628,1629,1634,2310,2321,2331,2341",
+      "reason": "Mock 数据模拟后端 API 响应，非前端 UI 标签",
+      "phase": 3
+    },
+    {
+      "file": "src/components/workflow/Panels/PropertyPanels/CodePropertyPanel.tsx",
+      "lines": "213,261,300,330",
+      "reason": "JSX 注释文本（{/* 文本 */} 格式），非 UI 渲染内容",
+      "phase": 3
+    },
+    {
+      "file": "src/components/workflow/Panels/PropertyPanels/AgentPropertyPanel.tsx",
+      "lines": "413,442,797,898,1046,1067",
+      "reason": "JSX 注释文本，非 UI 渲染内容",
+      "phase": 3
+    },
+    {
+      "file": "src/components/chat/RightPanelContainer.tsx",
+      "lines": "511",
+      "reason": "JSX 注释文本，非 UI 渲染内容",
       "phase": 3
     }
   ]

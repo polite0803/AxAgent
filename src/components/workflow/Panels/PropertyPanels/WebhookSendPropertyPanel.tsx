@@ -1,5 +1,6 @@
 import { Divider, Input, Select, theme } from "antd";
 import React from "react";
+import { useTranslation } from "react-i18next";
 import type { WebhookSendNode, WorkflowNode } from "../../types";
 import { BasePropertyPanel } from "./BasePropertyPanel";
 interface Props {
@@ -8,6 +9,7 @@ interface Props {
   onDelete: () => void;
 }
 export const WebhookSendPropertyPanel: React.FC<Props> = ({ node, onUpdate, onDelete }) => {
+  const { t } = useTranslation();
   const { token } = theme.useToken();
   const n = node as unknown as WebhookSendNode;
   const c = n.config || { url: "", method: "POST", body: "", headers: {}, output_var: "" };
@@ -20,7 +22,7 @@ export const WebhookSendPropertyPanel: React.FC<Props> = ({ node, onUpdate, onDe
           value={c.url}
           onChange={(e) => sc("url", e.target.value)}
           size="small"
-          placeholder="https:hook.example.com/..."
+          placeholder={t("workflow.props.webhookUrlPlaceholder")}
         />
       </div>
       <div>

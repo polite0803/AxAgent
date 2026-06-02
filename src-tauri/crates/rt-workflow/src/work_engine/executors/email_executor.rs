@@ -12,6 +12,12 @@ impl EmailExecutor {
     }
 }
 
+impl Default for EmailExecutor {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[async_trait]
 impl NodeExecutorTrait for EmailExecutor {
     fn node_type(&self) -> &'static str {

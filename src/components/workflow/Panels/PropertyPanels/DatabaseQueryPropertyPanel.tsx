@@ -69,7 +69,7 @@ export const DatabaseQueryPropertyPanel: React.FC<Props> = ({ node, onUpdate, on
           onChange={(e) => setCfg("query", e.target.value)}
           rows={5}
           size="small"
-          placeholder="SELECT * FROM table WHERE id = ?"
+          placeholder={t("workflow.props.queryPlaceholder")}
           style={{ fontFamily: "monospace", fontSize: 11 }}
         />
       </div>

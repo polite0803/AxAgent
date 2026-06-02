@@ -33,6 +33,7 @@ import {
 } from "lucide-react";
 import { Component, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import i18n from "@/i18n";
 
 // 单个 tab 面板的错误边界，防止一个 tab 崩溃导致整个右侧栏白屏
 class TabErrorBoundary extends Component<
@@ -50,9 +51,9 @@ class TabErrorBoundary extends Component<
     if (this.state.hasError) {
       return (
         <div style={{ padding: 16, color: "var(--muted)", fontSize: 12 }}>
-          <p>⚠️ 面板 "{this.props.tabKey}" 加载失败</p>
+          <p>{i18n.t("errorBoundary.panelLoadFailed", { tabKey: this.props.tabKey })}</p>
           <p style={{ color: "var(--danger)", fontSize: 11 }}>
-            {this.state.error?.message || "未知错误"}
+            {this.state.error?.message || i18n.t("errorBoundary.unknownError")}
           </p>
         </div>
       );

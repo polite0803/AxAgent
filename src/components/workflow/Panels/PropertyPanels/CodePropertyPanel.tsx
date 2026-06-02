@@ -5,6 +5,7 @@ import { Button, Divider, Dropdown, Input, Select, Tag, theme, Tooltip } from "a
 import { Sparkles, Wand2, Wrench } from "lucide-react";
 import React, { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import i18n from "@/i18n";
 import { AIAssistButton, useNodeAIAssist } from "../../Hooks";
 import type { CodeNode, WorkflowNode } from "../../types";
 import { BasePropertyPanel } from "./BasePropertyPanel";
@@ -19,7 +20,7 @@ const LANGUAGE_OPTIONS = [
   { value: "javascript", label: "🟨 JavaScript" },
   { value: "typescript", label: "🔷 TypeScript" },
   { value: "python", label: "🐍 Python" },
-  { value: "rhai", label: "🦀 Rhai (动态工具)" },
+  { value: "rhai", label: i18n.t("workflow.code.rhaiDynamicTool") },
   { value: "java", label: "☕ Java" },
   { value: "go", label: "🔵 Go" },
   { value: "rust", label: "🦀 Rust" },
@@ -35,25 +36,25 @@ const LANGUAGE_OPTIONS = [
 const RHAI_TEMPLATES = [
   {
     key: "filter",
-    label: "数据过滤器",
+    label: i18n.t("workflow.code.dataFilter"),
     code:
       "// 过滤数据\nfn main(data, threshold) {\n    let filtered = data.filter(|x| x.score > threshold);\n    filtered\n}",
   },
   {
     key: "transform",
-    label: "数据转换",
+    label: i18n.t("workflow.code.dataTransform"),
     code:
       "// 转换数据格式\nfn main(input) {\n    let result = #{};\n    for item in input {\n        result[item.id] = item.value;\n    }\n    result\n}",
   },
   {
     key: "aggregate",
-    label: "聚合计算",
+    label: i18n.t("workflow.code.aggregateCalc"),
     code:
       "// 聚合统计\nfn main(data) {\n    let total = 0.0;\n    let count = 0;\n    for item in data {\n        total += item.value;\n        count += 1;\n    }\n    #{ total: total, avg: total / count, count: count }\n}",
   },
   {
     key: "tool_chain",
-    label: "工具链调用",
+    label: i18n.t("workflow.code.toolChainCall"),
     code:
       '// 链式调用多个工具\nfn main(input) {\n    let data = tool("web_fetch", #{ url: input.url });\n    let result = tool("code_analyzer", #{ data: data });\n    result\n}',
   },
@@ -88,7 +89,7 @@ export const CodePropertyPanel: React.FC<CodePropertyPanelProps> = ({
         const cn = n as CodeNode;
         const toolName = cn.config.tool_name ?? `code_${n.id}`;
         if (n.id !== codeNode.id) {
-          tools.push({ name: toolName, source: "Rhai 脚本" });
+          tools.push({ name: toolName, source: i18n.t("workflow.code.rhaiTemplateDesc") });
         }
       }
     }
@@ -278,7 +279,7 @@ export const CodePropertyPanel: React.FC<CodePropertyPanelProps> = ({
                 key={tool.name}
                 style={{ cursor: "pointer", fontSize: 11 }}
                 onClick={() => insertToolCall(tool.name)}
-                color={tool.source === "Rhai 脚本" ? "purple" : "blue"}
+                color={tool.source === i18n.t("workflow.code.rhaiTemplateDesc") ? "purple" : "blue"}
               >
                 <Wrench size={10} style={{ marginRight: 3 }} />
                 {tool.name}
@@ -349,7 +350,7 @@ export const CodePropertyPanel: React.FC<CodePropertyPanelProps> = ({
               value={config.tool_name ?? ""}
               onChange={(e) => handleConfigChange("tool_name", e.target.value || undefined)}
               size="small"
-              placeholder="code_<id>"
+              placeholder={t("workflow.code.codePlaceholder")}
             />
           </div>
         )}

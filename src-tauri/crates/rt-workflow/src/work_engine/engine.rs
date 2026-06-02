@@ -599,10 +599,10 @@ impl WorkEngine {
                 let selected_case = switch_output
                     .and_then(|o| o.get("matched_label"))
                     .and_then(|v| v.as_str());
-                if let Some(ref handle) = edge.source_handle {
-                    if selected_case.is_none_or(|case| case != handle.as_str()) {
-                        continue;
-                    }
+                if let Some(ref handle) = edge.source_handle
+                    && selected_case.is_none_or(|case| case != handle.as_str())
+                {
+                    continue;
                 }
             }
         }

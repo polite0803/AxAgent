@@ -4716,6 +4716,8 @@ mod tests_conversation {
                 token_count: None,
                 prompt_tokens: None,
                 completion_tokens: None,
+                cache_creation_tokens: None,
+                cache_read_tokens: None,
                 attachments: vec![Attachment {
                     id: "att-1".into(),
                     file_type: "image/png".into(),
@@ -4774,6 +4776,8 @@ mod tests_conversation {
                 token_count: None,
                 prompt_tokens: None,
                 completion_tokens: None,
+                cache_creation_tokens: None,
+                cache_read_tokens: None,
                 attachments: vec![Attachment {
                     id: String::new(),
                     file_type: "image/png".into(),

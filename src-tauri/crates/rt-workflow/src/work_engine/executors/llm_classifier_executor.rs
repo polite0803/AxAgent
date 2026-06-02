@@ -12,6 +12,12 @@ impl LlmClassifierExecutor {
     }
 }
 
+impl Default for LlmClassifierExecutor {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[async_trait]
 impl NodeExecutorTrait for LlmClassifierExecutor {
     fn node_type(&self) -> &'static str {

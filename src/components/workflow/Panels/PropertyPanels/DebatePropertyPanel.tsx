@@ -3,6 +3,7 @@ import { Button, Divider, Input, InputNumber, Select, Tag, theme } from "antd";
 import { Plus, Trash2 } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
+import i18n from "@/i18n";
 import { AIAssistButton, useNodeAIAssist } from "../../Hooks";
 import type { DebateNode, WorkflowNode } from "../../types";
 import { BasePropertyPanel } from "./BasePropertyPanel";
@@ -14,7 +15,7 @@ interface Props {
 }
 
 const MODEL_ROLE_OPTIONS = [
-  { value: "", label: "— 默认 —" },
+  { value: "", label: i18n.t("workflow.debateNode.defaultRole") },
   { value: "quick_think", label: "Quick Think" },
   { value: "deep_think", label: "Deep Think" },
 ];
@@ -58,10 +59,10 @@ export const DebatePropertyPanel: React.FC<Props> = ({ node, onUpdate, onDelete 
     const topicDesc = c.topic_var || "general";
     const existingCount = debaterSteps.length;
     const stance = existingCount === 0
-      ? "正方（支持）"
+      ? t("workflow.debateNode.stancePro")
       : existingCount === 1
-      ? "反方（反对）"
-      : `第 ${existingCount + 1} 方`;
+      ? t("workflow.debateNode.stanceCon")
+      : t("workflow.debateNode.stanceNth", { count: existingCount + 1 });
     const result = await aiGenerate({
       systemPrompt: "你是一个辩论 Agent 设计专家。根据辩论主题，生成一个辩手的 system_prompt。"
         + "只输出 system_prompt 正文，不要解释、不要 Markdown 标记、不要前缀。",
@@ -75,7 +76,7 @@ export const DebatePropertyPanel: React.FC<Props> = ({ node, onUpdate, onDelete 
       title: `${stance} Debater`,
       position,
       config: {
-        system_prompt: result || `你是辩论的${stance}，请针对主题进行论证。`,
+        system_prompt: result || t("workflow.debateNode.stanceSystemPromptFallback", { stance })
         context_sources: [],
         output_var: `${id}_output`,
         tools: [],

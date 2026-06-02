@@ -12,6 +12,12 @@ impl AggregatorExecutor {
     }
 }
 
+impl Default for AggregatorExecutor {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[async_trait]
 impl NodeExecutorTrait for AggregatorExecutor {
     fn node_type(&self) -> &'static str {

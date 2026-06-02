@@ -3851,7 +3851,13 @@
         "applyAllFailed": "全部应用失败",
         "rollbackBatch": "整批撤销",
         "rollbackSuccess": "已撤销整批改动",
-        "rollbackTip": "一键回滚本次 AI 全部改动"
+        "rollbackTip": "一键回滚本次 AI 全部改动",
+      "nodesEdgesLabel": "{{nodes}} 个节点 / {{edges}} 条边",
+      "newNodes": "{{count}} 个新节点",
+      "nodeNotFound": "节点不存在",
+      "deleted": "— 删除 —",
+      "deletedCount": "— 删除 {{count}} 个 —",
+      "edgeNotFound": "边不存在"
       }
     },
     "previewInDevelopment": "预览功能开发中",
@@ -4029,6 +4035,9 @@
       "executionReactHint": "LLM 每步思考→行动→观察，适合探索性任务",
       "executionPlanHint": "LLM 先生成层次计划，再按 Phase/Task 顺序执行，适合复杂多步骤任务",
       "toolName": "工具名称（Rhai）",
+      "switchInputVarPlaceholder": "node_id.output_field",
+      "switchLabelPlaceholder": "标签",
+      "switchValuePlaceholder": "值",
       "toolNamePlaceholder": "Agent 通过 exposed_tools 引用的名称...",
       "toolNameHint": "不填则自动使用 code_<节点ID>",
       "exposedTools": "暴露给 LLM 的工具 ({{count}})",
@@ -4038,6 +4047,7 @@
       "toolDescriptionPlaceholder": "描述工具的功能用途...",
       "toolParameters": "工具参数 (JSON Schema)",
       "toolParametersPlaceholder": "输入 JSON Schema 定义...",
+      "webhookUrlPlaceholder": "https://hook.example.com/...",
       "contextSourcesCount": "{{count}} 个来源",
       "selectContextSources": "选择上下文来源",
       "ragSourceIdsCount": "RAG 知识源 ({{count}})",
@@ -4608,7 +4618,12 @@
       "expand": "展开",
       "collapse": "折叠",
       "newDebater": "辩手",
-      "noDebatersHint": "在容器内添加辩手 Agent 节点"
+      "noDebatersHint": "在容器内添加辩手 Agent 节点",
+      "defaultRole": "— 默认 —",
+      "stancePro": "正方（支持）",
+      "stanceCon": "反方（反对）",
+      "stanceNth": "第 {{count}} 方",
+      "stanceSystemPromptFallback": "你是辩论的{{stance}}，请针对主题进行论证。"
     },
     "toolNode": {
       "notSelected": "未选择",
@@ -6674,7 +6689,9 @@
   },
   "errorBoundary": {
     "title": "出了点问题",
-    "retryLoad": "重试加载此模块"
+    "retryLoad": "重试加载此模块",
+    "panelLoadFailed": "⚠️ 面板 \"{{tabKey}}\" 加载失败",
+    "unknownError": "未知错误"
   },
   "appInit": {
     "idle": "准备启动...",

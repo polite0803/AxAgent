@@ -12,6 +12,12 @@ impl DataTransformerExecutor {
     }
 }
 
+impl Default for DataTransformerExecutor {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[async_trait]
 impl NodeExecutorTrait for DataTransformerExecutor {
     fn node_type(&self) -> &'static str {
