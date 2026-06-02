@@ -2,7 +2,7 @@
 
 use crate::work_engine::execution_state::ExecutionState;
 use crate::work_engine::node_executor_trait::{
-    NodeError, NodeExecutorTrait, NodeOutput, error_code,
+    error_code, NodeError, NodeExecutorTrait, NodeOutput,
 };
 use async_trait::async_trait;
 use axagent_core::types::{ChatContent, ChatMessage, ChatRequest};
@@ -62,18 +62,15 @@ impl NodeExecutorTrait for LlmExecutor {
             .variables
             .get("__workflow_provider_id__")
             .and_then(|v| v.as_str());
-        let (prov, key, model) =
-            axagent_core::repo::provider::resolve_model_for_node(
-                &self.db,
-                node_model,
-                session_model,
-                session_provider_id,
-                None,
-            )
-            .await
-            .map_err(|e| {
-                NodeError::exec_failed(error_code::PROVIDER_QUERY_FAILED, e)
-            })?;
+        let (prov, key, model) = axagent_core::repo::provider::resolve_model_for_node(
+            &self.db,
+            node_model,
+            session_model,
+            session_provider_id,
+            None,
+        )
+        .await
+        .map_err(|e| NodeError::exec_failed(error_code::PROVIDER_QUERY_FAILED, e))?;
         let api_key = axagent_core::crypto::decrypt_key(&key.key_encrypted, &self.master_key)
             .map_err(|e| {
                 NodeError::exec_failed(
@@ -84,7 +81,7 @@ impl NodeExecutorTrait for LlmExecutor {
 
         // 创建 adapter
         use axagent_core::types::ProviderType;
-        use axagent_providers::{ProviderAdapter, resolve_base_url_for_type};
+        use axagent_providers::{resolve_base_url_for_type, ProviderAdapter};
         let adapter: Arc<dyn ProviderAdapter> = match prov.provider_type {
             ProviderType::OpenAI => Arc::new(axagent_providers::openai::OpenAIAdapter::new()),
             ProviderType::OpenAIResponses => {

@@ -180,28 +180,21 @@ impl ConditionExecutor {
              只回答 true 或 false，不要包含其他内容。"
         );
 
-        // 2. 解析 provider
-        let target_model = config.routing_model.clone().or_else(|| {
-            context
-                .variables
-                .get("__workflow_model__")
-                .and_then(|v| v.as_str())
-                .map(|s| s.to_string())
-        });
-
-        let target_provider_id = context
+        // 2. 解析 provider + model
+        // 优先级：节点 routing_model > 会话 __workflow_model__/__workflow_provider_id__ > 项目默认
+        let node_model = config.routing_model.as_deref().filter(|m| !m.is_empty());
+        let session_model = context
+            .variables
+            .get("__workflow_model__")
+            .and_then(|v| v.as_str());
+        let session_provider_id = context
             .variables
             .get("__workflow_provider_id__")
-            .and_then(|v| v.as_str())
-            .map(|s| s.to_string());
+            .and_then(|v| v.as_str());
 
-        let result = if let Some(provider_id) = target_provider_id {
-            self.route_with_specific_provider(&provider_id, &prompt, target_model.as_deref())
-                .await
-        } else {
-            self.route_with_default_provider(&prompt, target_model.as_deref())
-                .await
-        };
+        let result = self
+            .route_with_resolved_model(node_model, session_model, session_provider_id, &prompt)
+            .await;
 
         match result {
             Ok(branch) => Ok(NodeOutput {
@@ -233,53 +226,27 @@ impl ConditionExecutor {
     }
 
     /// 使用指定 provider 调用 LLM 路由。
-    async fn route_with_specific_provider(
+    async fn route_with_resolved_model(
         &self,
-        provider_id: &str,
+        node_model: Option<&str>,
+        session_model: Option<&str>,
+        session_provider_id: Option<&str>,
         prompt: &str,
-        model: Option<&str>,
     ) -> Result<bool, String> {
-        let all = axagent_core::repo::provider::list_providers(&self.db)
+        let (prov, key, model) =
+            axagent_core::repo::provider::resolve_model_for_node(
+                &self.db,
+                node_model,
+                session_model,
+                session_provider_id,
+                None,
+            )
             .await
-            .map_err(|e| format!("查询 provider 失败: {e}"))?;
-        let prov = all
-            .iter()
-            .find(|p| p.id == provider_id && p.enabled)
-            .ok_or_else(|| format!("Provider '{provider_id}' 不可用"))?;
-        let key = prov
-            .keys
-            .iter()
-            .find(|k| k.enabled)
-            .cloned()
-            .ok_or_else(|| "无可用 API key".to_string())?;
+            .map_err(|e| format!("模型解析失败: {e}"))?;
         let api_key = axagent_core::crypto::decrypt_key(&key.key_encrypted, &self.master_key)
             .map_err(|e| format!("解密 key 失败: {e}"))?;
-        let default_model = prov
-            .models
-            .iter()
-            .find(|m| m.enabled)
-            .map(|m| m.model_id.clone())
-            .ok_or_else(|| "无可用模型".to_string())?;
-        let model = model.unwrap_or(&default_model);
 
-        self.call_llm_and_parse(prov, &api_key, model, prompt).await
-    }
-
-    /// 使用系统默认 provider 调用 LLM 路由。
-    async fn route_with_default_provider(
-        &self,
-        prompt: &str,
-        model: Option<&str>,
-    ) -> Result<bool, String> {
-        let (prov, key, default_model) =
-            axagent_core::repo::provider::resolve_default_provider(&self.db)
-                .await
-                .map_err(|e| format!("无可用默认 provider: {e}"))?;
-        let api_key = axagent_core::crypto::decrypt_key(&key.key_encrypted, &self.master_key)
-            .map_err(|e| format!("解密 key 失败: {e}"))?;
-        let model = model.unwrap_or(&default_model);
-
-        self.call_llm_and_parse(&prov, &api_key, model, prompt)
+        self.call_llm_and_parse(&prov, &api_key, &model, prompt)
             .await
     }
 
