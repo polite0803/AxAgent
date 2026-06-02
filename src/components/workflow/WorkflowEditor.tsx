@@ -170,6 +170,8 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
   // 拖拽时的位置批处理：RAF 合并多次像素级位置变更，只写最后一次到 store
   const pendingPositionsRef = React.useRef<Map<string, { x: number; y: number }>>(new Map());
   const posRafRef = React.useRef<number | null>(null);
+  // 拖拽状态标志：拖拽期间抑制 useEffect 全量重建节点和 store 位置写入，防止崩溃
+  const isDraggingRef = React.useRef(false);
   const [aiPanelVisible, setAiPanelVisible] = useState(false);
   const [aiPanelHeight, setAiPanelHeight] = useState(300);
   const [debugPanelVisible, setDebugPanelVisible] = useState(false);
@@ -330,6 +332,8 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
   ]);
 
   useEffect(() => {
+    // 拖拽期间跳过全量重建，避免替换 ReactFlow 内部拖拽状态导致崩溃
+    if (isDraggingRef.current) { return; }
     if (currentTemplate) {
       const errorNodeIds = new Set<string>();
       const warningNodeIds = new Set<string>();
@@ -606,28 +610,62 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
 
       setRNodes(flowNodes);
 
-      // 折叠态：基于 flowNodes 的 hidden 状态计算边 hidden 标志。
-      // 边两端任一隐藏，边也隐藏（ReactFlow 渲染时不画）。
+      // 折叠态边处理：将连接到隐藏子节点的边重定向到其父容器，内部边仍隐藏。
       const nodeHiddenMap = new Map<string, boolean>();
+      // hidden child → 折叠中的父容器 ID
+      const hiddenChildToParent = new Map<string, string>();
       for (const fn of flowNodes) {
         nodeHiddenMap.set(fn.id, fn.hidden === true);
+        if (fn.hidden && fn.parentId && collapsedContainers.has(fn.parentId as string)) {
+          hiddenChildToParent.set(fn.id, fn.parentId as string);
+        }
       }
-      const flowEdges: Edge[] = edges.map((edge: WorkflowEdge) => {
-        const isHidden = nodeHiddenMap.get(edge.source) === true
-          || nodeHiddenMap.get(edge.target) === true;
-        return {
+      const seenEdgeKeys = new Set<string>();
+      const flowEdges: Edge[] = [];
+      for (const edge of edges as WorkflowEdge[]) {
+        const remappedSource = hiddenChildToParent.get(edge.source) ?? edge.source;
+        const remappedTarget = hiddenChildToParent.get(edge.target) ?? edge.target;
+        const bothHidden = nodeHiddenMap.get(edge.source) === true
+          && nodeHiddenMap.get(edge.target) === true;
+        // 两端都是隐藏子节点（容器内部边） → 直接隐藏，不做重定向
+        if (bothHidden) {
+          flowEdges.push({
+            id: edge.id,
+            source: edge.source,
+            sourceHandle: edge.sourceHandle,
+            target: edge.target,
+            targetHandle: edge.targetHandle,
+            type: "base",
+            animated: edge.edge_type === "loopBack",
+            label: edge.label,
+            data: { edgeType: edge.edge_type },
+            hidden: true,
+          });
+          continue;
+        }
+        // 发生了重定向 → 去重（多条边折叠到同一个 source→target 对时只保留一条）
+        const wasRemapped = remappedSource !== edge.source || remappedTarget !== edge.target;
+        // 任一端是隐藏节点但不是容器折叠子节点（如展开的子工作流内部节点）→ 直接隐藏边
+        const sourceIsOtherHidden = nodeHiddenMap.get(edge.source) === true && !hiddenChildToParent.has(edge.source);
+        const targetIsOtherHidden = nodeHiddenMap.get(edge.target) === true && !hiddenChildToParent.has(edge.target);
+        if (wasRemapped) {
+          const key = `${remappedSource}→${remappedTarget}`;
+          if (seenEdgeKeys.has(key)) { continue; }
+          seenEdgeKeys.add(key);
+        }
+        flowEdges.push({
           id: edge.id,
-          source: edge.source,
-          sourceHandle: edge.sourceHandle,
-          target: edge.target,
-          targetHandle: edge.targetHandle,
+          source: remappedSource,
+          sourceHandle: wasRemapped && remappedSource !== edge.source ? undefined : edge.sourceHandle,
+          target: remappedTarget,
+          targetHandle: wasRemapped && remappedTarget !== edge.target ? undefined : edge.targetHandle,
           type: "base",
           animated: edge.edge_type === "loopBack",
           label: edge.label,
           data: { edgeType: edge.edge_type },
-          ...(isHidden ? { hidden: true } : {}),
-        };
-      });
+          ...((sourceIsOtherHidden || targetIsOtherHidden) ? { hidden: true } : {}),
+        });
+      }
       setREdges(flowEdges);
       setIsInitialized(true);
 
@@ -1089,18 +1127,21 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
       }
 
       changes.forEach((change: any) => {
-        if (change.type === "position" && change.position && currentTemplate) {
+        if (change.type === "position" && change.position && currentTemplate && !isDraggingRef.current) {
           // 新约定：change.position 对父节点已是相对偏移，ReactFlow 在 extent: "parent"
           // 模式下返回的就是相对坐标；顶层节点坐标即画布绝对坐标，与"相对画布原点"等价。
           // 因此直接透传，无需再加父节点位置。
+          // 拖拽期间跳过 store 写入，避免触发 useEffect 全量重建节点导致崩溃。
           const storePos = change.position;
           // RAF 批处理：同一次拖拽中只保留最终位置
           pendingPositionsRef.current.set(change.id, storePos);
           if (posRafRef.current == null) {
             posRafRef.current = requestAnimationFrame(() => {
-              pendingPositionsRef.current.forEach((pos, nodeId) => {
-                updateNode(nodeId, { position: pos } as Partial<WorkflowNode>);
-              });
+              if (!isDraggingRef.current) {
+                pendingPositionsRef.current.forEach((pos, nodeId) => {
+                  updateNode(nodeId, { position: pos } as Partial<WorkflowNode>);
+                });
+              }
               pendingPositionsRef.current.clear();
               posRafRef.current = null;
             });
@@ -1112,6 +1153,30 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
       });
     },
     [onNodesChange, currentTemplate, updateNode, deleteNode],
+  );
+
+  const handleNodeDragStart = useCallback(() => {
+    isDraggingRef.current = true;
+  }, []);
+
+  const handleNodeDragStop = useCallback(
+    (_event: React.MouseEvent, node: Node) => {
+      isDraggingRef.current = false;
+      // 拖拽结束后将最终位置写入 store（ReactFlow 内部位置已是最终值）
+      // 多选拖拽时所有选中节点都可能移动，需要一起更新
+      if (node?.position) {
+        updateNode(node.id, { position: node.position } as Partial<WorkflowNode>);
+        const rfNodes = reactFlowInstance?.getNodes();
+        if (rfNodes) {
+          for (const n of rfNodes) {
+            if (n.selected && n.id !== node.id && n.position) {
+              updateNode(n.id, { position: n.position } as Partial<WorkflowNode>);
+            }
+          }
+        }
+      }
+    },
+    [updateNode, reactFlowInstance],
   );
 
   const handleEdgesChange = useCallback(
@@ -1403,6 +1468,8 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
                 onPaneClick={onPaneClick}
                 onNodeContextMenu={handleNodeContextMenu}
                 onMoveEnd={onMoveEnd}
+                onNodeDragStart={handleNodeDragStart}
+                onNodeDragStop={handleNodeDragStop}
                 nodeTypes={nodeTypes}
                 edgeTypes={edgeTypes}
                 defaultEdgeOptions={defaultEdgeOptions}

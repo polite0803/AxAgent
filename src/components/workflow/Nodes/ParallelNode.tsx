@@ -2,6 +2,7 @@ import { useWorkflowEditorStore } from "@/stores";
 import { Tag, theme, Tooltip } from "antd";
 import React, { memo, useCallback } from "react";
 import { useTranslation } from "react-i18next";
+import { Handle, Position } from "reactflow";
 import type { NodeProps } from "reactflow";
 import type { MergeStrategy } from "../types/workflow.types";
 
@@ -132,6 +133,7 @@ const ParallelNodeComponent: React.FC<NodeProps<ParallelNodeData>> = ({
           : t("workflow.parallelNode.collapse")}
       >
         <span
+          className="react-flow__nodrag"
           onClick={toggleCollapse}
           style={{
             position: "absolute",
@@ -162,7 +164,17 @@ const ParallelNodeComponent: React.FC<NodeProps<ParallelNodeData>> = ({
         </span>
       </Tooltip>
 
-      {/* 子节点由 ReactFlow 根据 parentId 自动绘制在此容器内；折叠时父节点的 style.width/height 由编辑器设为紧凑尺寸 */}
+      {/* 折叠态 Handle：始终挂载但视觉不可见，供边重定向到容器自身 */}
+      <Handle
+        type="target"
+        position={Position.Top}
+        style={{ background: "transparent", border: "none", width: 1, height: 1, top: 0 }}
+      />
+      <Handle
+        type="source"
+        position={Position.Bottom}
+        style={{ background: "transparent", border: "none", width: 1, height: 1, bottom: 0 }}
+      />
     </div>
   );
 };

@@ -314,12 +314,13 @@ pub async fn toggle_provider(db: &DatabaseConnection, id: &str, enabled: bool) -
         .await?
         .ok_or_else(|| AxAgentError::NotFound(format!("Provider {}", id)))?;
 
-    // 启用前检查：必须有至少一个已验证通过的 API Key
+    // 启用前检查：必须有至少一个已验证通过且无错误的 API Key
     if enabled {
         let valid_key_count = provider_keys::Entity::find()
             .filter(provider_keys::Column::ProviderId.eq(id))
             .filter(provider_keys::Column::Enabled.eq(1))
             .filter(provider_keys::Column::LastValidatedAt.is_not_null())
+            .filter(provider_keys::Column::LastError.is_null())
             .count(db)
             .await?;
         if valid_key_count == 0 {
@@ -480,14 +481,16 @@ pub async fn update_key_validation(
     valid: bool,
 ) -> Result<()> {
     if let Some(row) = provider_keys::Entity::find_by_id(key_id).one(db).await? {
-        let error = if valid {
-            None
-        } else {
-            Some("Validation failed".to_string())
-        };
         let mut am: provider_keys::ActiveModel = row.into();
-        am.last_validated_at = Set(Some(now_ts()));
-        am.last_error = Set(error);
+        if valid {
+            // 验证成功：记录时间戳，清除历史错误
+            am.last_validated_at = Set(Some(now_ts()));
+            am.last_error = Set(None);
+        } else {
+            // 验证失败：只记录错误，不设置 last_validated_at
+            // 这样 toggle_provider 的 is_not_null 检查才能正确排除无效 Key
+            am.last_error = Set(Some("Validation failed".to_string()));
+        }
         am.update(db).await?;
     }
     Ok(())

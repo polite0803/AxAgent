@@ -101,8 +101,15 @@ export function DropdownMenu(
   const updatePosition = useCallback(() => {
     if (!containerRef.current || !panelRef.current) { return; }
     const tr = containerRef.current.getBoundingClientRect();
-    const ph = panelRef.current.offsetHeight;
-    const pw = panelRef.current.offsetWidth;
+    let ph = panelRef.current.offsetHeight;
+    let pw = panelRef.current.offsetWidth;
+
+    // If dimensions not yet available, force reflow
+    if (pw === 0 || ph === 0) {
+      const rect = panelRef.current.getBoundingClientRect();
+      pw = pw || rect.width || 160;
+      ph = ph || rect.height || 40;
+    }
 
     // 紧贴触发按钮正下方，零间距
     let top = tr.bottom;
@@ -120,6 +127,9 @@ export function DropdownMenu(
 
   useLayoutEffect(() => {
     if (!open) { return; }
+    // Measure synchronously first (browser reflows when reading dimensions)
+    updatePosition();
+    // Also schedule a second measurement in case layout isn't settled
     const raf = requestAnimationFrame(updatePosition);
     window.addEventListener("resize", updatePosition);
     window.addEventListener("scroll", updatePosition, true);

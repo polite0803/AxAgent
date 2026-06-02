@@ -2287,7 +2287,7 @@ html[data-theme="dark"] .markstream-react .table-node thead {
   flex-wrap: nowrap;
   border-bottom: 1px solid var(--border-color);
   padding: 2px 4px;
-  gap: 0;
+  gap: 2px;
   flex-shrink: 0;
   overflow: hidden;
   position: relative;
@@ -2345,6 +2345,9 @@ html[data-theme="dark"] .markstream-react .table-node thead {
   border-left: none;
 }
 
+.rp-tabs .dropdown-trigger {
+  margin-left: auto;
+}
 .rp-tabs-overflow {
   display: flex;
   align-items: center;
@@ -2355,7 +2358,6 @@ html[data-theme="dark"] .markstream-react .table-node thead {
   cursor: pointer;
   border-bottom: 2px solid transparent;
   flex-shrink: 0;
-  margin-left: auto;
 }
 
 .rp-tabs-overflow:hover {

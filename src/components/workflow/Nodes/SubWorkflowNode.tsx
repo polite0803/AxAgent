@@ -111,6 +111,7 @@ const SubWorkflowNodeComponent: React.FC<NodeProps<SubWorkflowNodeData>> = ({
 
         <Tooltip title={t("workflow.subWorkflowNode.collapse")}>
           <span
+            className="react-flow__nodrag"
             onClick={(e) => {
               e.stopPropagation();
               toggleExpand();
@@ -215,6 +216,7 @@ const SubWorkflowNodeComponent: React.FC<NodeProps<SubWorkflowNodeData>> = ({
           {data.subWorkflowId && (
             <Tooltip title={t("workflow.subWorkflowNode.expand")}>
               <span
+                className="react-flow__nodrag"
                 onClick={(e) => {
                   e.stopPropagation();
                   toggleExpand();

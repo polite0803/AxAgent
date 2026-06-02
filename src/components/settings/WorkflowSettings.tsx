@@ -1,7 +1,7 @@
 import { TemplateList } from "@/components/workflow/Templates";
 import type { WorkflowTemplateResponse } from "@/components/workflow/types";
 import { WorkflowMarketplace } from "@/pages/WorkflowMarketplace";
-import { Button, Card, Tabs, theme } from "antd";
+import { Button, Tabs } from "antd";
 import { GitBranch, Plus, Store } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
@@ -15,7 +15,6 @@ export function WorkflowSettings({
   onCreateNew,
 }: WorkflowSettingsProps) {
   const { t } = useTranslation();
-  const { token } = theme.useToken();
 
   const handleSelectTemplate = (template: WorkflowTemplateResponse) => {
     if (onOpenEditor) {
@@ -60,34 +59,6 @@ export function WorkflowSettings({
           </Button>
         </div>
       </div>
-
-      <Card style={{ marginBottom: 16 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-          <div
-            className="p-3 rounded-lg"
-            style={{ backgroundColor: token.colorPrimaryBg }}
-          >
-            <GitBranch size={24} style={{ color: token.colorPrimary }} />
-          </div>
-          <div style={{ flex: 1 }}>
-            <h5 style={{ margin: "0 0 4px 0", fontWeight: 500 }}>
-              {t("settings.workflow.visualEditor")}
-            </h5>
-            <p
-              style={{
-                margin: 0,
-                color: token.colorTextSecondary,
-                fontSize: 13,
-              }}
-            >
-              {t("settings.workflow.visualEditorDesc")}
-            </p>
-          </div>
-          <Button onClick={() => onOpenEditor?.()}>
-            {t("settings.workflow.openEditor")}
-          </Button>
-        </div>
-      </Card>
 
       <TemplateList
         onSelectTemplate={handleSelectTemplate}

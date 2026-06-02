@@ -249,7 +249,7 @@ export const TemplateList: React.FC<TemplateListProps> = ({
             alignItems: "flex-start",
           }}
         >
-          <div style={{ flex: 1 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
             <div
               style={{
                 display: "flex",
@@ -264,6 +264,11 @@ export const TemplateList: React.FC<TemplateListProps> = ({
                   fontWeight: 500,
                   color: token.colorText,
                   fontSize: 14,
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                  display: "inline-block",
+                  maxWidth: "100%",
                 }}
               >
                 {(() => {
