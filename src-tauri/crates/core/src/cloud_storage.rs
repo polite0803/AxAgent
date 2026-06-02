@@ -289,10 +289,7 @@ impl S3Backend {
 
         if !resp.status().is_success() {
             let body = resp.text().await.unwrap_or_default();
-            return Err(AxAgentError::Gateway(format!(
-                "S3 initiate multipart error: {}",
-                body
-            )));
+            return Err(AxAgentError::Gateway(format!("S3 initiate multipart error: {}", body)));
         }
 
         let body = resp.text().await.unwrap_or_default();
@@ -313,8 +310,7 @@ impl S3Backend {
         query.insert("partNumber".to_string(), part_number.to_string());
         query.insert("uploadId".to_string(), upload_id.to_string());
 
-        let (headers, url) =
-            self.sign_request_with_body(Method::PUT, &path, &query, data, "")?;
+        let (headers, url) = self.sign_request_with_body(Method::PUT, &path, &query, data, "")?;
 
         let resp = self
             .client
@@ -324,10 +320,7 @@ impl S3Backend {
             .send()
             .await
             .map_err(|e| {
-                AxAgentError::Gateway(format!(
-                    "S3 upload part {} failed: {}",
-                    part_number, e
-                ))
+                AxAgentError::Gateway(format!("S3 upload part {} failed: {}", part_number, e))
             })?;
 
         if !resp.status().is_success() {
@@ -344,10 +337,7 @@ impl S3Backend {
             .and_then(|h| h.to_str().ok())
             .map(|s| s.trim_matches('"').to_string())
             .ok_or_else(|| {
-                AxAgentError::Gateway(format!(
-                    "S3 upload part {} missing ETag",
-                    part_number
-                ))
+                AxAgentError::Gateway(format!("S3 upload part {} missing ETag", part_number))
             })?;
 
         Ok(etag)
@@ -372,10 +362,7 @@ impl S3Backend {
                 part_number, etag
             ));
         }
-        let body = format!(
-            "<CompleteMultipartUpload>{}</CompleteMultipartUpload>",
-            xml_parts
-        );
+        let body = format!("<CompleteMultipartUpload>{}</CompleteMultipartUpload>", xml_parts);
         let body_bytes = body.as_bytes().to_vec();
 
         let (headers, url) = self.sign_request_with_body(
@@ -393,16 +380,11 @@ impl S3Backend {
             .body(body_bytes)
             .send()
             .await
-            .map_err(|e| {
-                AxAgentError::Gateway(format!("S3 complete multipart failed: {}", e))
-            })?;
+            .map_err(|e| AxAgentError::Gateway(format!("S3 complete multipart failed: {}", e)))?;
 
         if !resp.status().is_success() {
             let body = resp.text().await.unwrap_or_default();
-            return Err(AxAgentError::Gateway(format!(
-                "S3 complete multipart error: {}",
-                body
-            )));
+            return Err(AxAgentError::Gateway(format!("S3 complete multipart error: {}", body)));
         }
 
         let resp_body = resp.text().await.unwrap_or_default();
@@ -423,8 +405,7 @@ impl S3Backend {
         let mut query = BTreeMap::new();
         query.insert("uploadId".to_string(), upload_id.to_string());
 
-        let (headers, url) =
-            self.sign_request(Method::DELETE, &path, &query, "")?;
+        let (headers, url) = self.sign_request(Method::DELETE, &path, &query, "")?;
 
         let resp = self
             .client
@@ -432,9 +413,7 @@ impl S3Backend {
             .headers(headers)
             .send()
             .await
-            .map_err(|e| {
-                AxAgentError::Gateway(format!("S3 abort multipart failed: {}", e))
-            })?;
+            .map_err(|e| AxAgentError::Gateway(format!("S3 abort multipart failed: {}", e)))?;
 
         if !resp.status().is_success() {
             tracing::warn!(
@@ -465,7 +444,10 @@ impl S3Backend {
 
             let etag = retry_with_backoff(|| {
                 let part_data = part_data.to_vec();
-                async move { self.upload_part(key, &upload_id, part_number, &part_data).await }
+                async move {
+                    self.upload_part(key, &upload_id, part_number, &part_data)
+                        .await
+                }
             })
             .await?;
 
@@ -1284,14 +1266,12 @@ fn parse_upload_id_from_xml(xml: &str) -> Result<String> {
 }
 
 fn parse_complete_multipart_etag(xml: &str) -> Option<String> {
-    roxmltree::Document::parse(xml)
-        .ok()
-        .and_then(|doc| {
-            doc.descendants()
-                .find(|n| n.has_tag_name("ETag"))
-                .and_then(|n| n.text())
-                .map(|t| t.trim_matches('"').to_string())
-        })
+    roxmltree::Document::parse(xml).ok().and_then(|doc| {
+        doc.descendants()
+            .find(|n| n.has_tag_name("ETag"))
+            .and_then(|n| n.text())
+            .map(|t| t.trim_matches('"').to_string())
+    })
 }
 
 use std::sync::Arc;

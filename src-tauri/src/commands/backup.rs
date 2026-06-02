@@ -342,8 +342,7 @@ pub async fn download_cloud_backup(
         .unwrap_or_else(|| "cloud_backup.db".to_string());
     let local_path = backup_dir.join(&file_name);
 
-    std::fs::write(&local_path, &obj.data)
-        .map_err(|e| format!("写入备份文件失败: {}", e))?;
+    std::fs::write(&local_path, &obj.data).map_err(|e| format!("写入备份文件失败: {}", e))?;
 
     tracing::info!("云端备份已下载到: {:?}", local_path);
     Ok(local_path.to_string_lossy().to_string())
