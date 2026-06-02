@@ -23,10 +23,15 @@ export const AggregatorPropertyPanel: React.FC<Props> = ({ node, onUpdate, onDel
           onChange={(v) => sc("strategy", v)}
           size="small"
           style={{ width: "100%" }}
-          options={[{ value: "all", label: t("workflow.props.aggregationAll") }, { value: "any", label: t("workflow.props.aggregationAny") }, { value: "race", label: t("workflow.props.aggregationRace") }, {
-            value: "majority",
-            label: t("workflow.props.aggregationMajority"),
-          }]}
+          options={[
+            { value: "all", label: t("workflow.props.aggregationAll") },
+            { value: "any", label: t("workflow.props.aggregationAny") },
+            { value: "race", label: t("workflow.props.aggregationRace") },
+            {
+              value: "majority",
+              label: t("workflow.props.aggregationMajority"),
+            },
+          ]}
         />
       </div>
       <Divider style={{ margin: "8px 0" }} />

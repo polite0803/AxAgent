@@ -325,8 +325,8 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
           for (const child of children) {
             const cx = child.position.x + CHILD_ESTIMATE_W;
             const cy = child.position.y + CHILD_ESTIMATE_H;
-            if (cx > maxX) maxX = cx;
-            if (cy > maxY) maxY = cy;
+            if (cx > maxX) { maxX = cx; }
+            if (cy > maxY) { maxY = cy; }
           }
           containerStyle = {
             width: Math.max(CONTAINER_MIN_W, maxX + CONTAINER_PADDING),
