@@ -432,7 +432,7 @@ impl S3Backend {
     ) -> Result<StorageObjectMeta> {
         let upload_id = self.initiate_multipart_upload(key, content_type).await?;
 
-        let total_parts = (data.len() + PART_SIZE - 1) / PART_SIZE;
+        let total_parts = data.len().div_ceil(PART_SIZE);
         let mut completed_parts: Vec<(u32, String)> = Vec::with_capacity(total_parts);
 
         for part_idx in 0..total_parts {
@@ -1209,10 +1209,6 @@ fn current_epoch_ms() -> u64 {
         .duration_since(std::time::UNIX_EPOCH)
         .unwrap_or_default()
         .as_millis() as u64
-}
-
-fn current_rfc3339() -> String {
-    chrono::Utc::now().to_rfc3339()
 }
 
 async fn retry_with_backoff<F, Fut, T>(mut f: F) -> Result<T>

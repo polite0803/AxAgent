@@ -6,6 +6,7 @@
 //! the snapshot is deserialized and loaded back into memory, avoiding
 //! expensive cold-start cache rebuilds.
 
+use crate::sync_conflict::current_rfc3339;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -30,7 +31,7 @@ impl Default for CacheSnapshot {
     fn default() -> Self {
         Self {
             version: 1,
-            created_at: chrono::Utc::now().to_rfc3339(),
+            created_at: current_rfc3339(),
             embedding_cache: HashMap::new(),
             text_hash_cache: HashMap::new(),
             vector_search_cache: Vec::new(),

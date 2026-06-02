@@ -4,6 +4,7 @@ use sea_orm::*;
 use crate::constants;
 use crate::entity::{memory_items, memory_namespaces};
 use crate::error::{AxAgentError, Result};
+use crate::sync_conflict::current_rfc3339;
 use crate::types::{
     CreateMemoryItemInput, CreateMemoryNamespaceInput, MemoryItem, MemoryNamespace,
     UpdateMemoryItemInput, UpdateMemoryNamespaceInput,
@@ -199,7 +200,7 @@ pub async fn update_item(
         // Content changed — reset index status to pending
         am.index_status = Set(constants::status::PENDING.to_string());
     }
-    am.updated_at = Set(chrono::Utc::now().to_rfc3339());
+    am.updated_at = Set(current_rfc3339());
     am.update(db).await?;
 
     let updated = memory_items::Entity::find_by_id(id)

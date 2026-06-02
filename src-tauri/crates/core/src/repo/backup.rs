@@ -4,6 +4,7 @@ use std::path::{Path, PathBuf};
 
 use crate::entity::backup_manifests;
 use crate::error::{AxAgentError, Result};
+use crate::sync_conflict::current_rfc3339;
 use crate::types::BackupManifest;
 use crate::utils::gen_id;
 
@@ -123,7 +124,7 @@ async fn create_json_backup(db: &DatabaseConnection, dest: &Path) -> Result<()> 
 
     let data = serde_json::json!({
         "version": env!("CARGO_PKG_VERSION"),
-        "exported_at": chrono::Utc::now().to_rfc3339(),
+        "exported_at": current_rfc3339(),
         "tables": {
             "conversations": conversations,
             "messages": messages,

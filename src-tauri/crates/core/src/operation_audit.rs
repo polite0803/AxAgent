@@ -1,3 +1,4 @@
+use crate::sync_conflict::current_rfc3339;
 use serde::{Deserialize, Serialize};
 use std::sync::Mutex;
 
@@ -85,7 +86,7 @@ pub fn create_audit_entry(
 ) -> AuditEntry {
     AuditEntry {
         id: uuid::Uuid::new_v4().to_string(),
-        timestamp: chrono::Utc::now().to_rfc3339(),
+        timestamp: current_rfc3339(),
         operation: operation.to_string(),
         parameters,
         risk_level,

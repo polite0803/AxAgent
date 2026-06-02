@@ -1,3 +1,4 @@
+use crate::sync_conflict::current_rfc3339;
 use anyhow::Result;
 use image::ImageEncoder;
 use serde::{Deserialize, Serialize};
@@ -187,7 +188,7 @@ impl ScreenCapture {
                 width: region.width,
                 height: region.height,
                 monitor_index: 0,
-                captured_at: chrono::Utc::now().to_rfc3339(),
+                captured_at: current_rfc3339(),
                 scale_factor,
             })
         }
@@ -237,7 +238,7 @@ impl ScreenCapture {
             width,
             height,
             monitor_index,
-            captured_at: chrono::Utc::now().to_rfc3339(),
+            captured_at: current_rfc3339(),
             scale_factor,
         })
     }
@@ -255,7 +256,7 @@ impl ScreenCapture {
             width: region.width,
             height: region.height,
             monitor_index: 0,
-            captured_at: chrono::Utc::now().to_rfc3339(),
+            captured_at: current_rfc3339(),
             scale_factor,
         })
     }
@@ -280,7 +281,7 @@ impl ScreenCapture {
             width,
             height,
             monitor_index: 0,
-            captured_at: chrono::Utc::now().to_rfc3339(),
+            captured_at: current_rfc3339(),
             scale_factor: 1.0,
         })
     }
@@ -309,7 +310,7 @@ impl ScreenCapture {
             width,
             height,
             monitor_index: 0,
-            captured_at: chrono::Utc::now().to_rfc3339(),
+            captured_at: current_rfc3339(),
             scale_factor: 1.0,
         })
     }
@@ -338,7 +339,7 @@ impl ScreenCapture {
             width,
             height,
             monitor_index: 0,
-            captured_at: chrono::Utc::now().to_rfc3339(),
+            captured_at: current_rfc3339(),
             scale_factor: 1.0,
         })
     }

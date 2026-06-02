@@ -9,6 +9,7 @@ use std::sync::Mutex;
 use zip::write::SimpleFileOptions;
 
 use crate::error::{AxAgentError, Result};
+use crate::sync_conflict::current_rfc3339;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -531,7 +532,7 @@ pub fn create_backup_zip(
     let metadata = serde_json::json!({
         "version": 1,
         "app_version": app_version,
-        "created_at": chrono::Utc::now().to_rfc3339(),
+        "created_at": current_rfc3339(),
         "platform": std::env::consts::OS,
         "arch": std::env::consts::ARCH,
         "hostname": get_hostname(),
@@ -706,7 +707,7 @@ pub fn documents_sync_root() -> std::path::PathBuf {
 }
 
 pub fn sync_status_timestamp() -> String {
-    chrono::Utc::now().to_rfc3339()
+    current_rfc3339()
 }
 
 async fn run_after_directory_ready<T, Check, CheckFut, Action, ActionFut>(

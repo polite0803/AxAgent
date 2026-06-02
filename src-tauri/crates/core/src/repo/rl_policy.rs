@@ -2,6 +2,7 @@ use sea_orm::*;
 
 use crate::entity::rl_policies;
 use crate::error::{AxAgentError, Result};
+use crate::sync_conflict::current_rfc3339;
 use crate::utils::gen_id;
 
 // ---------------------------------------------------------------------------
@@ -108,7 +109,7 @@ pub async fn create_rl_policy(
     model_id: &str,
 ) -> Result<RlPolicyFull> {
     let id = gen_id();
-    let now = chrono::Utc::now().to_rfc3339();
+    let now = current_rfc3339();
 
     rl_policies::Entity::insert(rl_policies::ActiveModel {
         id: Set(id.clone()),
@@ -188,7 +189,7 @@ pub async fn record_rl_experience(
     } else {
         reward
     };
-    let now = chrono::Utc::now().to_rfc3339();
+    let now = current_rfc3339();
 
     rl_policies::Entity::update(rl_policies::ActiveModel {
         id: Set(policy_id.to_string()),
@@ -219,7 +220,7 @@ pub async fn update_policy_training_stats(
         None => return Err(AxAgentError::NotFound(format!("RL Policy {}", policy_id))),
     };
 
-    let now = chrono::Utc::now().to_rfc3339();
+    let now = current_rfc3339();
     rl_policies::Entity::update(rl_policies::ActiveModel {
         id: Set(policy_id.to_string()),
         name: Set(row.name),

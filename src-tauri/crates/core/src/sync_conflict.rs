@@ -269,3 +269,8 @@ pub fn epoch_ms_to_rfc3339(ms: u64) -> String {
         .unwrap_or_default()
         .to_rfc3339()
 }
+
+/// Get current time as RFC3339 string.
+pub fn current_rfc3339() -> String {
+    chrono::Utc::now().to_rfc3339()
+}
