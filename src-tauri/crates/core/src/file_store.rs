@@ -79,7 +79,7 @@ impl FileStore {
             let mime = mime_type.to_string();
             let engine = engine.clone();
             tokio::spawn(async move {
-                let _ = engine.push_file(&key, &data_vec, &mime).await;
+                let _ = engine.backend.put(&key, &data_vec, &mime).await;
             });
         }
 

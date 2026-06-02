@@ -13,7 +13,6 @@ use reqwest::{Client, Method};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
-use std::path::Path;
 
 use crate::error::{AxAgentError, Result};
 use crate::webdav::WebDavClient;
@@ -442,10 +441,12 @@ impl S3Backend {
             let part_data = &data[start..end];
             let part_number = (part_idx + 1) as u32;
 
+            let upload_id_ref = upload_id.clone();
             let etag = retry_with_backoff(|| {
                 let part_data = part_data.to_vec();
+                let uid = upload_id_ref.clone();
                 async move {
-                    self.upload_part(key, &upload_id, part_number, &part_data)
+                    self.upload_part(key, &uid, part_number, &part_data)
                         .await
                 }
             })
