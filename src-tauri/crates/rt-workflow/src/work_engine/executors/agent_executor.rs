@@ -249,7 +249,7 @@ impl NodeExecutorTrait for AgentExecutor {
             .and_then(|p| p.suggested_provider_id.as_deref());
 
         let (prov, key, model) = self
-            .resolve_provider_v2(
+            .resolve_provider(
                 node_model,
                 session_model,
                 session_provider_id,
