@@ -1,7 +1,6 @@
 use crate::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::backup as backup_err;
-use axagent_core::cloud_storage::StorageBackend;
 use axagent_core::repo::backup;
 use axagent_core::repo::settings::get_settings;
 use axagent_core::types::*;
