@@ -2348,11 +2348,6 @@ html[data-theme="dark"] .markstream-react .table-node thead {
   color: var(--color-primary);
   border-bottom-color: var(--color-primary);
 }
-  border-right: none;
-  background: none;
-  border-radius: 0;
-  min-width: 28px;
-}
 .rp-tab:hover { color: var(--color-text); background: var(--hover); }
 .rp-tab.active {
   color: var(--color-primary);

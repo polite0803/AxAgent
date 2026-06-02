@@ -1886,10 +1886,10 @@ fn build_non_stream_response_body(response: &ChatResponse) -> serde_json::Value 
             }),
         ),
     ]);
-    if let Some(cache_creation) = response.usage.cache_creation_tokens {
-        if cache_creation > 0 {
-            usage.insert("cache_creation_input_tokens".to_string(), json!(cache_creation));
-        }
+    if let Some(cache_creation) = response.usage.cache_creation_tokens
+        && cache_creation > 0
+    {
+        usage.insert("cache_creation_input_tokens".to_string(), json!(cache_creation));
     }
 
     json!({

@@ -471,21 +471,20 @@ impl ApiClient for AxAgentApiClient {
                             }
                             events.push(event);
 
-                            if let Some(cache_read) = usage.cache_read_tokens {
-                                if cache_read > 0 {
-                                    let cache_event =
-                                        AssistantEvent::PromptCache(PromptCacheEvent {
-                                            unexpected: false,
-                                            reason: String::new(),
-                                            previous_cache_read_input_tokens: 0,
-                                            current_cache_read_input_tokens: cache_read,
-                                            token_drop: 0,
-                                        });
-                                    if let Some(ref cb) = on_event {
-                                        cb(&cache_event);
-                                    }
-                                    events.push(cache_event);
+                            if let Some(cache_read) = usage.cache_read_tokens
+                                && cache_read > 0
+                            {
+                                let cache_event = AssistantEvent::PromptCache(PromptCacheEvent {
+                                    unexpected: false,
+                                    reason: String::new(),
+                                    previous_cache_read_input_tokens: 0,
+                                    current_cache_read_input_tokens: cache_read,
+                                    token_drop: 0,
+                                });
+                                if let Some(ref cb) = on_event {
+                                    cb(&cache_event);
                                 }
+                                events.push(cache_event);
                             }
                         }
 
