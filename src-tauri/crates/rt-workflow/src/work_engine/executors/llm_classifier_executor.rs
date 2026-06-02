@@ -140,10 +140,10 @@ impl NodeExecutorTrait for LlmClassifierExecutor {
             ProviderType::OpenAI => Arc::new(axagent_providers::openai::OpenAIAdapter::new()),
             ProviderType::OpenAIResponses => {
                 Arc::new(axagent_providers::openai_responses::OpenAIResponsesAdapter::new())
-            }
+            },
             ProviderType::Anthropic => {
                 Arc::new(axagent_providers::anthropic::AnthropicAdapter::new())
-            }
+            },
             ProviderType::Gemini => Arc::new(axagent_providers::gemini::GeminiAdapter::new()),
             ProviderType::Ollama => Arc::new(axagent_providers::ollama::OllamaAdapter::new()),
             _ => {
@@ -151,7 +151,7 @@ impl NodeExecutorTrait for LlmClassifierExecutor {
                     error_code::PROVIDER_QUERY_FAILED,
                     format!("Unsupported provider: {:?}", prov.provider_type),
                 ));
-            }
+            },
         };
 
         let base_url = resolve_base_url_for_type(&prov.api_host, &prov.provider_type);
