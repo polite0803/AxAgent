@@ -275,6 +275,8 @@ mod tests {
             status: Set("complete".into()),
             tokens_per_second: Set(None),
             first_token_latency_ms: Set(None),
+            cache_creation_tokens: Set(None),
+            cache_read_tokens: Set(None),
             parts: Set(None),
         };
         am.insert(db).await.unwrap();
