@@ -1,9 +1,9 @@
+import i18n from "@/i18n";
 import { useWorkflowEditorStore } from "@/stores";
 import { Button, Divider, Input, InputNumber, Select, Tag, theme } from "antd";
 import { Plus, Trash2 } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
-import i18n from "@/i18n";
 import { AIAssistButton, useNodeAIAssist } from "../../Hooks";
 import type { DebateNode, WorkflowNode } from "../../types";
 import { BasePropertyPanel } from "./BasePropertyPanel";
@@ -76,7 +76,7 @@ export const DebatePropertyPanel: React.FC<Props> = ({ node, onUpdate, onDelete 
       title: `${stance} Debater`,
       position,
       config: {
-        system_prompt: result || t("workflow.debateNode.stanceSystemPromptFallback", { stance })
+        system_prompt: result || t("workflow.debateNode.stanceSystemPromptFallback", { stance }),
         context_sources: [],
         output_var: `${id}_output`,
         tools: [],

@@ -1,11 +1,11 @@
 import { MonacoEditor } from "@/components/shared/MonacoEditor";
+import i18n from "@/i18n";
 import { invoke } from "@/lib/invoke";
 import { useLocalToolStore, useProviderStore, useWorkflowEditorStore } from "@/stores";
 import { Button, Divider, Dropdown, Input, Select, Tag, theme, Tooltip } from "antd";
 import { Sparkles, Wand2, Wrench } from "lucide-react";
 import React, { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import i18n from "@/i18n";
 import { AIAssistButton, useNodeAIAssist } from "../../Hooks";
 import type { CodeNode, WorkflowNode } from "../../types";
 import { BasePropertyPanel } from "./BasePropertyPanel";

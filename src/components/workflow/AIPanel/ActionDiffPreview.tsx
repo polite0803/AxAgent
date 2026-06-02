@@ -284,8 +284,22 @@ function useActionVisual(
       return {
         label,
         color: NODE_OP_COLOR.generate_workflow,
-        beforeRender: <Text type="secondary">{t("workflow.aiPanel.diffPreview.nodesEdgesLabel", { nodes: currentNodes.length, edges: currentEdges.length })}</Text>,
-        afterRender: <Text>{t("workflow.aiPanel.diffPreview.nodesEdgesLabel", { nodes: action.data.nodes.length, edges: action.data.edges.length })}</Text>,
+        beforeRender: (
+          <Text type="secondary">
+            {t("workflow.aiPanel.diffPreview.nodesEdgesLabel", {
+              nodes: currentNodes.length,
+              edges: currentEdges.length,
+            })}
+          </Text>
+        ),
+        afterRender: (
+          <Text>
+            {t("workflow.aiPanel.diffPreview.nodesEdgesLabel", {
+              nodes: action.data.nodes.length,
+              edges: action.data.edges.length,
+            })}
+          </Text>
+        ),
       };
     }
     case "add_node": {
@@ -335,7 +349,9 @@ function useActionVisual(
         label,
         color: NODE_OP_COLOR.delete_nodes,
         beforeRender: <Text code>{existing.map(n => n.title).join(", ")}</Text>,
-        afterRender: <Text type="secondary">{t("workflow.aiPanel.diffPreview.deletedCount", { count: ids.length })}</Text>,
+        afterRender: (
+          <Text type="secondary">{t("workflow.aiPanel.diffPreview.deletedCount", { count: ids.length })}</Text>
+        ),
       };
     }
     case "add_edge": {

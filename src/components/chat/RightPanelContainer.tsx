@@ -2,6 +2,7 @@ import { Icon } from "@/components/common/Icon";
 import { DropdownMenu } from "@/components/layout/DropdownMenu";
 import { Tooltip } from "@/components/layout/Tooltip";
 import { useResolvedDarkMode } from "@/hooks/useResolvedDarkMode";
+import i18n from "@/i18n";
 import { useConversationStore, useRightPanelStore, useSettingsStore } from "@/stores";
 import { useCacheStore } from "@/stores/feature/cacheStore";
 import {
@@ -33,7 +34,6 @@ import {
 } from "lucide-react";
 import { Component, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import i18n from "@/i18n";
 
 // 单个 tab 面板的错误边界，防止一个 tab 崩溃导致整个右侧栏白屏
 class TabErrorBoundary extends Component<

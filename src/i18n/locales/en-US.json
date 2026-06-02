@@ -3572,12 +3572,12 @@
         "rollbackBatch": "Rollback Batch",
         "rollbackSuccess": "Batch rolled back",
         "rollbackTip": "Undo the entire batch of AI changes",
-      "nodesEdgesLabel": "{{nodes}} nodes / {{edges}} edges",
-      "newNodes": "{{count}} new nodes",
-      "nodeNotFound": "Node not found",
-      "deleted": "— Deleted —",
-      "deletedCount": "— Deleted {{count}} —",
-      "edgeNotFound": "Edge not found"
+        "nodesEdgesLabel": "{{nodes}} nodes / {{edges}} edges",
+        "newNodes": "{{count}} new nodes",
+        "nodeNotFound": "Node not found",
+        "deleted": "— Deleted —",
+        "deletedCount": "— Deleted {{count}} —",
+        "edgeNotFound": "Edge not found"
       }
     },
     "templateList": {

@@ -3852,12 +3852,12 @@
         "rollbackBatch": "整批撤销",
         "rollbackSuccess": "已撤销整批改动",
         "rollbackTip": "一键回滚本次 AI 全部改动",
-      "nodesEdgesLabel": "{{nodes}} 个节点 / {{edges}} 条边",
-      "newNodes": "{{count}} 个新节点",
-      "nodeNotFound": "节点不存在",
-      "deleted": "— 删除 —",
-      "deletedCount": "— 删除 {{count}} 个 —",
-      "edgeNotFound": "边不存在"
+        "nodesEdgesLabel": "{{nodes}} 个节点 / {{edges}} 条边",
+        "newNodes": "{{count}} 个新节点",
+        "nodeNotFound": "节点不存在",
+        "deleted": "— 删除 —",
+        "deletedCount": "— 删除 {{count}} 个 —",
+        "edgeNotFound": "边不存在"
       }
     },
     "previewInDevelopment": "预览功能开发中",
