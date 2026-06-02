@@ -18,6 +18,11 @@ use std::path::Path;
 use crate::error::{AxAgentError, Result};
 use crate::webdav::WebDavClient;
 
+const MULTIPART_THRESHOLD: usize = 5 * 1024 * 1024;
+const PART_SIZE: usize = 5 * 1024 * 1024;
+const MAX_RETRIES: u32 = 3;
+const RETRY_BASE_DELAY_MS: u64 = 500;
+
 // ─── Storage Object Types ─────────────────────────────────────────────
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -84,6 +89,10 @@ pub enum S3ProviderPreset {
     TencentCos,
     HuaweiObs,
     BaiduBos,
+    QiniuKodo,
+    UpcloudUss,
+    KingsoftKs3,
+    UcloudUfile,
     Minio,
     SeaweedFs,
     Custom,
@@ -100,6 +109,10 @@ impl S3ProviderPreset {
             Self::TencentCos => "https://cos.{region}.myqcloud.com",
             Self::HuaweiObs => "https://obs.{region}.myhuaweicloud.com",
             Self::BaiduBos => "https://{region}.bos.amazonaws.com",
+            Self::QiniuKodo => "https://s3-{region}.qiniucs.com",
+            Self::UpcloudUss => "https://s3.{region}.upcloudobjects.com",
+            Self::KingsoftKs3 => "https://ks3-{region}.ksyuncs.com",
+            Self::UcloudUfile => "https://{region}.ufileos.com",
             Self::Minio => "http://localhost:9000",
             Self::SeaweedFs => "http://localhost:8333",
             Self::Custom => "",
@@ -115,6 +128,10 @@ impl S3ProviderPreset {
             Self::TencentCos => "腾讯云 COS",
             Self::HuaweiObs => "华为云 OBS",
             Self::BaiduBos => "百度云 BOS",
+            Self::QiniuKodo => "七牛云 Kodo",
+            Self::UpcloudUss => "又拍云 USS",
+            Self::KingsoftKs3 => "金山云 KS3",
+            Self::UcloudUfile => "UCloud UFile",
             Self::Minio => "MinIO (自建)",
             Self::SeaweedFs => "SeaweedFS (自建)",
             Self::Custom => "自定义",
@@ -130,6 +147,10 @@ impl S3ProviderPreset {
             Self::TencentCos => "ap-shanghai",
             Self::HuaweiObs => "cn-north-4",
             Self::BaiduBos => "bj",
+            Self::QiniuKodo => "cn-east-1",
+            Self::UpcloudUss => "cn-east-1",
+            Self::KingsoftKs3 => "cn-beijing",
+            Self::UcloudUfile => "cn-bj",
             Self::Minio => "us-east-1",
             Self::SeaweedFs => "",
             Self::Custom => "",
@@ -138,22 +159,51 @@ impl S3ProviderPreset {
 
     /// Returns true if this provider requires path-style addressing.
     pub fn default_use_path_style(&self) -> bool {
-        matches!(self, Self::Minio | Self::SeaweedFs | Self::Custom)
+        matches!(self, Self::Minio | Self::SeaweedFs | Self::UcloudUfile | Self::Custom)
     }
 
-    /// All available presets for UI dropdown.
     pub fn all_presets() -> Vec<Self> {
         vec![
             Self::AlibabaOss,
             Self::TencentCos,
             Self::HuaweiObs,
             Self::BaiduBos,
+            Self::QiniuKodo,
+            Self::UpcloudUss,
+            Self::KingsoftKs3,
+            Self::UcloudUfile,
             Self::Aws,
             Self::CloudflareR2,
             Self::Minio,
             Self::SeaweedFs,
             Self::Custom,
         ]
+    }
+
+    pub fn is_chinese_provider(&self) -> bool {
+        matches!(
+            self,
+            Self::AlibabaOss
+                | Self::TencentCos
+                | Self::HuaweiObs
+                | Self::BaiduBos
+                | Self::QiniuKodo
+                | Self::UpcloudUss
+                | Self::KingsoftKs3
+                | Self::UcloudUfile
+        )
+    }
+
+    pub fn category(&self) -> &'static str {
+        if self.is_chinese_provider() {
+            "chinese"
+        } else if matches!(self, Self::Aws | Self::CloudflareR2) {
+            "international"
+        } else if matches!(self, Self::Minio | Self::SeaweedFs) {
+            "self_hosted"
+        } else {
+            "other"
+        }
     }
 }
 
@@ -216,6 +266,221 @@ impl S3Backend {
             filename.to_string()
         } else {
             format!("{}/{}", self.config.root.trim_matches('/'), filename)
+        }
+    }
+
+    async fn initiate_multipart_upload(&self, key: &str, content_type: &str) -> Result<String> {
+        let full_key = self.object_key(key);
+        let path = format!("/{}", full_key);
+
+        let mut query = BTreeMap::new();
+        query.insert("uploads".to_string(), String::new());
+
+        let (headers, url) =
+            self.sign_request_with_body(Method::POST, &path, &query, &[], content_type)?;
+
+        let resp = self
+            .client
+            .post(&url)
+            .headers(headers)
+            .send()
+            .await
+            .map_err(|e| AxAgentError::Gateway(format!("S3 initiate multipart failed: {}", e)))?;
+
+        if !resp.status().is_success() {
+            let body = resp.text().await.unwrap_or_default();
+            return Err(AxAgentError::Gateway(format!(
+                "S3 initiate multipart error: {}",
+                body
+            )));
+        }
+
+        let body = resp.text().await.unwrap_or_default();
+        parse_upload_id_from_xml(&body)
+    }
+
+    async fn upload_part(
+        &self,
+        key: &str,
+        upload_id: &str,
+        part_number: u32,
+        data: &[u8],
+    ) -> Result<String> {
+        let full_key = self.object_key(key);
+        let path = format!("/{}", full_key);
+
+        let mut query = BTreeMap::new();
+        query.insert("partNumber".to_string(), part_number.to_string());
+        query.insert("uploadId".to_string(), upload_id.to_string());
+
+        let (headers, url) =
+            self.sign_request_with_body(Method::PUT, &path, &query, data, "")?;
+
+        let resp = self
+            .client
+            .put(&url)
+            .headers(headers)
+            .body(data.to_vec())
+            .send()
+            .await
+            .map_err(|e| {
+                AxAgentError::Gateway(format!(
+                    "S3 upload part {} failed: {}",
+                    part_number, e
+                ))
+            })?;
+
+        if !resp.status().is_success() {
+            let body = resp.text().await.unwrap_or_default();
+            return Err(AxAgentError::Gateway(format!(
+                "S3 upload part {} error: {}",
+                part_number, body
+            )));
+        }
+
+        let etag = resp
+            .headers()
+            .get("etag")
+            .and_then(|h| h.to_str().ok())
+            .map(|s| s.trim_matches('"').to_string())
+            .ok_or_else(|| {
+                AxAgentError::Gateway(format!(
+                    "S3 upload part {} missing ETag",
+                    part_number
+                ))
+            })?;
+
+        Ok(etag)
+    }
+
+    async fn complete_multipart_upload(
+        &self,
+        key: &str,
+        upload_id: &str,
+        parts: &[(u32, String)],
+    ) -> Result<StorageObjectMeta> {
+        let full_key = self.object_key(key);
+        let path = format!("/{}", full_key);
+
+        let mut query = BTreeMap::new();
+        query.insert("uploadId".to_string(), upload_id.to_string());
+
+        let mut xml_parts = String::new();
+        for (part_number, etag) in parts {
+            xml_parts.push_str(&format!(
+                "<Part><PartNumber>{}</PartNumber><ETag>{}</ETag></Part>",
+                part_number, etag
+            ));
+        }
+        let body = format!(
+            "<CompleteMultipartUpload>{}</CompleteMultipartUpload>",
+            xml_parts
+        );
+        let body_bytes = body.as_bytes().to_vec();
+
+        let (headers, url) = self.sign_request_with_body(
+            Method::POST,
+            &path,
+            &query,
+            &body_bytes,
+            "application/xml",
+        )?;
+
+        let resp = self
+            .client
+            .post(&url)
+            .headers(headers)
+            .body(body_bytes)
+            .send()
+            .await
+            .map_err(|e| {
+                AxAgentError::Gateway(format!("S3 complete multipart failed: {}", e))
+            })?;
+
+        if !resp.status().is_success() {
+            let body = resp.text().await.unwrap_or_default();
+            return Err(AxAgentError::Gateway(format!(
+                "S3 complete multipart error: {}",
+                body
+            )));
+        }
+
+        let resp_body = resp.text().await.unwrap_or_default();
+        let final_etag = parse_complete_multipart_etag(&resp_body);
+
+        Ok(StorageObjectMeta {
+            key: key.to_string(),
+            etag: final_etag,
+            last_modified: None,
+            size: 0,
+        })
+    }
+
+    async fn abort_multipart_upload(&self, key: &str, upload_id: &str) -> Result<()> {
+        let full_key = self.object_key(key);
+        let path = format!("/{}", full_key);
+
+        let mut query = BTreeMap::new();
+        query.insert("uploadId".to_string(), upload_id.to_string());
+
+        let (headers, url) =
+            self.sign_request(Method::DELETE, &path, &query, "")?;
+
+        let resp = self
+            .client
+            .delete(&url)
+            .headers(headers)
+            .send()
+            .await
+            .map_err(|e| {
+                AxAgentError::Gateway(format!("S3 abort multipart failed: {}", e))
+            })?;
+
+        if !resp.status().is_success() {
+            tracing::warn!(
+                "S3 abort multipart upload failed (uploadId={}): {}",
+                upload_id,
+                resp.status()
+            );
+        }
+        Ok(())
+    }
+
+    async fn multipart_upload(
+        &self,
+        key: &str,
+        data: &[u8],
+        content_type: &str,
+    ) -> Result<StorageObjectMeta> {
+        let upload_id = self.initiate_multipart_upload(key, content_type).await?;
+
+        let total_parts = (data.len() + PART_SIZE - 1) / PART_SIZE;
+        let mut completed_parts: Vec<(u32, String)> = Vec::with_capacity(total_parts);
+
+        for part_idx in 0..total_parts {
+            let start = part_idx * PART_SIZE;
+            let end = std::cmp::min(start + PART_SIZE, data.len());
+            let part_data = &data[start..end];
+            let part_number = (part_idx + 1) as u32;
+
+            let etag = retry_with_backoff(|| {
+                let part_data = part_data.to_vec();
+                async move { self.upload_part(key, &upload_id, part_number, &part_data).await }
+            })
+            .await?;
+
+            completed_parts.push((part_number, etag));
+        }
+
+        match self
+            .complete_multipart_upload(key, &upload_id, &completed_parts)
+            .await
+        {
+            Ok(meta) => Ok(meta),
+            Err(e) => {
+                let _ = self.abort_multipart_upload(key, &upload_id).await;
+                Err(e)
+            },
         }
     }
 
@@ -361,73 +626,110 @@ impl StorageBackend for S3Backend {
         let path = format!("/{}", full_key);
 
         let (headers, url) = self.sign_request(Method::GET, &path, &BTreeMap::new(), "")?;
-        let resp = self
-            .client
-            .get(&url)
-            .headers(headers)
-            .send()
-            .await
-            .map_err(|e| AxAgentError::Gateway(format!("S3 download failed: {}", e)))?;
+        let data = retry_with_backoff(|| {
+            let headers = headers.clone();
+            let url = url.clone();
+            async move {
+                let resp = self
+                    .client
+                    .get(&url)
+                    .headers(headers)
+                    .send()
+                    .await
+                    .map_err(|e| AxAgentError::Gateway(format!("S3 download failed: {}", e)))?;
 
-        if !resp.status().is_success() {
-            let body = resp.text().await.unwrap_or_default();
-            return Err(AxAgentError::Gateway(format!("S3 download error: {}", body)));
-        }
+                if !resp.status().is_success() {
+                    let status = resp.status();
+                    let body = resp.text().await.unwrap_or_default();
+                    if status.is_server_error() {
+                        return Err(AxAgentError::Gateway(format!(
+                            "S3 download server error ({}): {}",
+                            status, body
+                        )));
+                    }
+                    return Err(AxAgentError::Gateway(format!("S3 download error: {}", body)));
+                }
 
-        let etag = resp
-            .headers()
-            .get("etag")
-            .and_then(|h| h.to_str().ok())
-            .map(|s| s.trim_matches('"').to_string());
+                let etag = resp
+                    .headers()
+                    .get("etag")
+                    .and_then(|h| h.to_str().ok())
+                    .map(|s| s.trim_matches('"').to_string());
 
-        let data = resp
-            .bytes()
-            .await
-            .map(|b| b.to_vec())
-            .map_err(|e| AxAgentError::Gateway(format!("S3 read body error: {}", e)))?;
+                let data = resp
+                    .bytes()
+                    .await
+                    .map(|b| b.to_vec())
+                    .map_err(|e| AxAgentError::Gateway(format!("S3 read body error: {}", e)))?;
 
-        let data_len = data.len() as i64;
+                Ok((data, etag))
+            }
+        })
+        .await?;
+
+        let data_len = data.0.len() as i64;
 
         Ok(StorageObject {
             key: key.to_string(),
-            data,
+            data: data.0,
             content_type: "application/octet-stream".into(),
-            etag,
+            etag: data.1,
             last_modified: None,
             size: data_len,
         })
     }
 
     async fn put(&self, key: &str, data: &[u8], content_type: &str) -> Result<StorageObjectMeta> {
+        if data.len() >= MULTIPART_THRESHOLD {
+            return self.multipart_upload(key, data, content_type).await;
+        }
+
         let full_key = self.object_key(key);
         let path = format!("/{}", full_key);
 
         let (headers, url) =
             self.sign_request_with_body(Method::PUT, &path, &BTreeMap::new(), data, content_type)?;
 
-        let resp = self
-            .client
-            .put(&url)
-            .headers(headers)
-            .body(data.to_vec())
-            .send()
-            .await
-            .map_err(|e| AxAgentError::Gateway(format!("S3 upload failed: {}", e)))?;
+        let resp = retry_with_backoff(|| {
+            let headers = headers.clone();
+            let url = url.clone();
+            let body = data.to_vec();
+            async move {
+                let resp = self
+                    .client
+                    .put(&url)
+                    .headers(headers)
+                    .body(body)
+                    .send()
+                    .await
+                    .map_err(|e| AxAgentError::Gateway(format!("S3 upload failed: {}", e)))?;
 
-        if !resp.status().is_success() {
-            let body = resp.text().await.unwrap_or_default();
-            return Err(AxAgentError::Gateway(format!("S3 upload error: {}", body)));
-        }
+                if !resp.status().is_success() {
+                    let status = resp.status();
+                    let body = resp.text().await.unwrap_or_default();
+                    if status.is_server_error() {
+                        return Err(AxAgentError::Gateway(format!(
+                            "S3 upload server error ({}): {}",
+                            status, body
+                        )));
+                    }
+                    return Err(AxAgentError::Gateway(format!("S3 upload error: {}", body)));
+                }
 
-        let etag = resp
-            .headers()
-            .get("etag")
-            .and_then(|h| h.to_str().ok())
-            .map(|s| s.trim_matches('"').to_string());
+                let etag = resp
+                    .headers()
+                    .get("etag")
+                    .and_then(|h| h.to_str().ok())
+                    .map(|s| s.trim_matches('"').to_string());
+
+                Ok(etag)
+            }
+        })
+        .await?;
 
         Ok(StorageObjectMeta {
             key: key.to_string(),
-            etag,
+            etag: resp,
             last_modified: None,
             size: data.len() as i64,
         })
@@ -792,184 +1094,12 @@ impl SyncManifest {
 /// Orchestrates bidirectional sync between local storage and cloud backend.
 pub struct SyncEngine {
     pub backend: Arc<dyn StorageBackend>,
-    local_manifest: Arc<tokio::sync::RwLock<SyncManifest>>,
-    manifest_key: String,
-    profile_name: String,
 }
 
 impl SyncEngine {
-    pub fn new(backend: Arc<dyn StorageBackend>, profile_name: &str, device_id: &str) -> Self {
-        Self {
-            backend,
-            local_manifest: Arc::new(tokio::sync::RwLock::new(SyncManifest::new(
-                device_id.to_string(),
-            ))),
-            manifest_key: format!("profiles/{}/sync/manifest.json", profile_name),
-            profile_name: profile_name.to_string(),
-        }
+    pub fn new(backend: Arc<dyn StorageBackend>, _profile_name: &str, _device_id: &str) -> Self {
+        Self { backend }
     }
-
-    /// Full sync: pull remote manifest, compare, download new/changed files, push local changes.
-    pub async fn full_sync(&self) -> Result<SyncResult> {
-        let mut result = SyncResult::default();
-
-        // 1. Fetch remote manifest
-        let remote_manifest = match self.backend.get(&self.manifest_key).await {
-            Ok(obj) => serde_json::from_slice::<SyncManifest>(&obj.data).ok(),
-            Err(_) => None,
-        };
-
-        // 2. If no remote manifest, this is first sync — push local state
-        if remote_manifest.is_none() {
-            let mut manifest = self.local_manifest.write().await;
-            manifest.last_sync_at = Some(current_rfc3339());
-            self.push_manifest(&manifest).await?;
-            return Ok(result);
-        }
-
-        let remote_manifest = remote_manifest
-            .expect("remote_manifest is non-None: early return above handles the None case");
-
-        // 3. Build index of remote files
-        let remote_keys: std::collections::HashMap<&str, &str> = remote_manifest
-            .files
-            .iter()
-            .filter_map(|f| f.etag.as_deref().map(|e| (f.key.as_str(), e)))
-            .collect();
-
-        // 4. Determine what needs to be downloaded
-        let mut manifest = self.local_manifest.write().await;
-        for remote_file in &remote_manifest.files {
-            let local_etag = manifest.get_etag(&remote_file.key);
-            if local_etag != remote_file.etag.as_deref() {
-                result.pending_downloads.push(remote_file.key.clone());
-            }
-        }
-
-        // 5. Determine what needs to be uploaded (local files not in remote)
-        for local_file in &manifest.files {
-            if !remote_keys.contains_key(local_file.key.as_str()) {
-                result.pending_uploads.push(local_file.key.clone());
-            }
-        }
-
-        manifest.last_sync_at = Some(current_rfc3339());
-        if !result.pending_downloads.is_empty() || !result.pending_uploads.is_empty() {
-            manifest.sync_version += 1;
-        }
-        self.push_manifest(&manifest).await?;
-
-        Ok(result)
-    }
-
-    /// Incremental sync: compare local manifest with remote, pull/push only changed files.
-    pub async fn incremental_sync(&self) -> Result<SyncResult> {
-        self.full_sync().await
-    }
-
-    /// Pull database from cloud. Returns the DB bytes if available.
-    pub async fn pull_database(&self) -> Result<Option<Vec<u8>>> {
-        let db_key = format!("profiles/{}/db/axagent.db", self.profile_name);
-        match self.backend.head(&db_key).await {
-            Ok(meta) => {
-                let local_manifest = self.local_manifest.read().await;
-                let needs_pull = local_manifest.db_checksum.as_deref() != meta.etag.as_deref();
-                drop(local_manifest);
-
-                if needs_pull {
-                    let obj = self.backend.get(&db_key).await?;
-                    let mut manifest = self.local_manifest.write().await;
-                    manifest.db_checksum = meta.etag.clone();
-                    manifest.db_synced_at = Some(current_rfc3339());
-                    self.push_manifest(&manifest).await?;
-                    Ok(Some(obj.data))
-                } else {
-                    Ok(None)
-                }
-            },
-            Err(_) => Ok(None),
-        }
-    }
-
-    /// Push database to cloud.
-    pub async fn push_database(&self, data: &[u8]) -> Result<()> {
-        let db_key = format!("profiles/{}/db/axagent.db", self.profile_name);
-        let meta = self
-            .backend
-            .put(&db_key, data, "application/x-sqlite3")
-            .await?;
-
-        let mut manifest = self.local_manifest.write().await;
-        manifest.db_checksum = meta.etag.clone();
-        manifest.db_synced_at = Some(current_rfc3339());
-        manifest.sync_version += 1;
-        self.push_manifest(&manifest).await
-    }
-
-    /// Fetch a single file from cloud and save locally.
-    pub async fn fetch_file(&self, key: &str, local_path: &Path) -> Result<()> {
-        let obj = self.backend.get(key).await?;
-        if let Some(parent) = local_path.parent() {
-            std::fs::create_dir_all(parent)?;
-        }
-        std::fs::write(local_path, &obj.data)?;
-
-        // Update manifest
-        let mut manifest = self.local_manifest.write().await;
-        manifest.upsert_file(key.to_string(), obj.etag, obj.size);
-        Ok(())
-    }
-
-    /// Blocking helper for use from sync contexts.
-    pub fn blocking_fetch(&self, key: &str, local_path: &Path) -> Result<()> {
-        let rt = tokio::runtime::Handle::current();
-        rt.block_on(self.fetch_file(key, local_path))
-    }
-
-    /// Push a single file to cloud.
-    pub async fn push_file(&self, key: &str, data: &[u8], content_type: &str) -> Result<()> {
-        let meta = self.backend.put(key, data, content_type).await?;
-
-        let mut manifest = self.local_manifest.write().await;
-        manifest.upsert_file(key.to_string(), meta.etag, meta.size);
-        manifest.sync_version += 1;
-        self.push_manifest(&manifest).await
-    }
-
-    /// Load manifest from local file.
-    pub async fn load_local_manifest(&self, path: &Path) -> Result<()> {
-        if path.exists() {
-            let data = std::fs::read(path)?;
-            let manifest = serde_json::from_slice::<SyncManifest>(&data)?;
-            *self.local_manifest.write().await = manifest;
-        }
-        Ok(())
-    }
-
-    /// Save manifest to local file.
-    pub async fn save_local_manifest(&self, path: &Path) -> Result<()> {
-        let manifest = self.local_manifest.read().await;
-        let data = serde_json::to_vec_pretty(&*manifest)?;
-        if let Some(parent) = path.parent() {
-            std::fs::create_dir_all(parent)?;
-        }
-        std::fs::write(path, &data)?;
-        Ok(())
-    }
-
-    async fn push_manifest(&self, manifest: &SyncManifest) -> Result<()> {
-        let data = serde_json::to_vec_pretty(manifest)?;
-        self.backend
-            .put(&self.manifest_key, &data, "application/json")
-            .await?;
-        Ok(())
-    }
-}
-
-#[derive(Debug, Default)]
-pub struct SyncResult {
-    pub pending_downloads: Vec<String>,
-    pub pending_uploads: Vec<String>,
 }
 
 // ─── Internal Helpers ─────────────────────────────────────────────────
@@ -1103,6 +1233,65 @@ fn current_epoch_ms() -> u64 {
 
 fn current_rfc3339() -> String {
     chrono::Utc::now().to_rfc3339()
+}
+
+async fn retry_with_backoff<F, Fut, T>(mut f: F) -> Result<T>
+where
+    F: FnMut() -> Fut,
+    Fut: std::future::Future<Output = Result<T>>,
+{
+    let mut last_err = None;
+    for attempt in 0..=MAX_RETRIES {
+        match f().await {
+            Ok(val) => return Ok(val),
+            Err(e) => {
+                let err_msg = format!("{}", e);
+                let is_retryable = err_msg.contains("server error")
+                    || err_msg.contains("SlowDown")
+                    || err_msg.contains("timeout")
+                    || err_msg.contains("connection reset")
+                    || err_msg.contains("timed out");
+
+                if !is_retryable || attempt == MAX_RETRIES {
+                    return Err(e);
+                }
+
+                let delay = RETRY_BASE_DELAY_MS * 2u64.pow(attempt);
+                tracing::warn!(
+                    "S3 operation failed (attempt {}/{}), retrying in {}ms: {}",
+                    attempt + 1,
+                    MAX_RETRIES,
+                    delay,
+                    e
+                );
+                tokio::time::sleep(std::time::Duration::from_millis(delay)).await;
+                last_err = Some(e);
+            },
+        }
+    }
+    Err(last_err.unwrap())
+}
+
+fn parse_upload_id_from_xml(xml: &str) -> Result<String> {
+    let doc = roxmltree::Document::parse(xml)
+        .map_err(|e| AxAgentError::Gateway(format!("S3 XML parse error: {}", e)))?;
+
+    doc.descendants()
+        .find(|n| n.has_tag_name("UploadId"))
+        .and_then(|n| n.text())
+        .map(|t| t.to_string())
+        .ok_or_else(|| AxAgentError::Gateway("S3 initiate multipart: missing UploadId".into()))
+}
+
+fn parse_complete_multipart_etag(xml: &str) -> Option<String> {
+    roxmltree::Document::parse(xml)
+        .ok()
+        .and_then(|doc| {
+            doc.descendants()
+                .find(|n| n.has_tag_name("ETag"))
+                .and_then(|n| n.text())
+                .map(|t| t.trim_matches('"').to_string())
+        })
 }
 
 use std::sync::Arc;

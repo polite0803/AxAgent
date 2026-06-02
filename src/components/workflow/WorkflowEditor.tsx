@@ -187,6 +187,64 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
   const [rightPanelCollapsed, setRightPanelCollapsed] = useState(
     () => localStorage.getItem("workflowEditor.rightPanelCollapsed") === "true",
   );
+  const [leftPanelWidth, setLeftPanelWidth] = useState(() => {
+    const saved = localStorage.getItem("workflowEditor.leftPanelWidth");
+    return saved ? Number(saved) : 280;
+  });
+  const [rightPanelWidth, setRightPanelWidth] = useState(() => {
+    const saved = localStorage.getItem("workflowEditor.rightPanelWidth");
+    return saved ? Number(saved) : 320;
+  });
+  const [resizing, setResizing] = useState<"left" | "right" | null>(null);
+
+  // 面板拖拽调宽
+  useEffect(() => {
+    if (!resizing) { return; }
+    const handleMouseMove = (e: MouseEvent) => {
+      if (resizing === "left") {
+        setLeftPanelWidth((prev) => {
+          const next = Math.max(180, Math.min(600, prev + e.movementX));
+          localStorage.setItem("workflowEditor.leftPanelWidth", String(next));
+          return next;
+        });
+      } else {
+        setRightPanelWidth((prev) => {
+          const next = Math.max(200, Math.min(600, prev - e.movementX));
+          localStorage.setItem("workflowEditor.rightPanelWidth", String(next));
+          return next;
+        });
+      }
+    };
+    const handleMouseUp = () => setResizing(null);
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [resizing]);
+
+  // 响应式：窗口过小时自动折叠面板
+  useEffect(() => {
+    const checkWidth = () => {
+      const w = window.innerWidth;
+      if (w < 900) {
+        if (!leftPanelCollapsed) {
+          setLeftPanelCollapsed(true);
+          localStorage.setItem("workflowEditor.leftPanelCollapsed", "true");
+        }
+      }
+      if (w < 1100) {
+        if (!rightPanelCollapsed) {
+          setRightPanelCollapsed(true);
+          localStorage.setItem("workflowEditor.rightPanelCollapsed", "true");
+        }
+      }
+    };
+    checkWidth();
+    window.addEventListener("resize", checkWidth);
+    return () => window.removeEventListener("resize", checkWidth);
+  }, []);
 
   const {
     isDecompositionTemplate,
@@ -309,8 +367,6 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
         const isContainerCollapsed = isContainer
           && useWorkflowEditorStore.getState().collapsedContainers.has(node.id);
         // 折叠态：容器自身缩为紧凑尺寸
-        const CHILD_ESTIMATE_W = 200;
-        const CHILD_ESTIMATE_H = 80;
         const CONTAINER_PADDING = 40;
         const CONTAINER_HEADER_H = 60;
         const CONTAINER_MIN_W = 400;
@@ -323,8 +379,9 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
           let maxX = CONTAINER_MIN_W - CONTAINER_PADDING;
           let maxY = CONTAINER_MIN_H - CONTAINER_PADDING;
           for (const child of children) {
-            const cx = child.position.x + CHILD_ESTIMATE_W;
-            const cy = child.position.y + CHILD_ESTIMATE_H;
+            const sz = getNodeSize(child.type);
+            const cx = child.position.x + sz.width;
+            const cy = child.position.y + sz.height;
             if (cx > maxX) { maxX = cx; }
             if (cy > maxY) { maxY = cy; }
           }
@@ -1322,7 +1379,25 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
       )}
 
       <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
-        {!leftPanelCollapsed && <LeftPanel />}
+        {!leftPanelCollapsed && <LeftPanel width={leftPanelWidth} />}
+        {!leftPanelCollapsed && (
+          <div
+            onMouseDown={() => setResizing("left")}
+            style={{
+              width: 4,
+              cursor: "col-resize",
+              background: resizing === "left" ? token.colorPrimary : "transparent",
+              flexShrink: 0,
+              transition: "background 0.15s",
+            }}
+            onMouseEnter={(e) => {
+              if (resizing !== "left") { e.currentTarget.style.background = token.colorBorderSecondary; }
+            }}
+            onMouseLeave={(e) => {
+              if (resizing !== "left") { e.currentTarget.style.background = "transparent"; }
+            }}
+          />
+        )}
 
         <div style={{ flex: 1, position: "relative" }}>
           {isInitialized
@@ -1412,7 +1487,27 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
             )}
         </div>
 
-        {!rightPanelCollapsed && <RightPanel selectedNodeId={selectedNodeId} selectedEdge={selectedEdge} />}
+        {!rightPanelCollapsed && (
+          <div
+            onMouseDown={() => setResizing("right")}
+            style={{
+              width: 4,
+              cursor: "col-resize",
+              background: resizing === "right" ? token.colorPrimary : "transparent",
+              flexShrink: 0,
+              transition: "background 0.15s",
+            }}
+            onMouseEnter={(e) => {
+              if (resizing !== "right") { e.currentTarget.style.background = token.colorBorderSecondary; }
+            }}
+            onMouseLeave={(e) => {
+              if (resizing !== "right") { e.currentTarget.style.background = "transparent"; }
+            }}
+          />
+        )}
+        {!rightPanelCollapsed && (
+          <RightPanel width={rightPanelWidth} selectedNodeId={selectedNodeId} selectedEdge={selectedEdge} />
+        )}
       </div>
 
       {aiPanelVisible && (

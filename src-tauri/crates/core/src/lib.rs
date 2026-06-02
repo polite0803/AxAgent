@@ -81,8 +81,6 @@ pub mod recall_pipeline;
 pub mod repo;
 pub mod reranker;
 pub mod resource_limits;
-#[allow(clippy::unwrap_used)]
-pub mod s3_backup;
 pub mod sandbox_runner;
 pub mod schema_validator;
 pub mod screen_capture;

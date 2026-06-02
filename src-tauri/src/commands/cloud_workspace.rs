@@ -82,6 +82,7 @@ pub struct CloudProviderPresetDto {
     pub endpoint_template: String,
     pub default_region: String,
     pub use_path_style: bool,
+    pub category: String,
 }
 
 fn device_id() -> String {
@@ -94,16 +95,7 @@ fn device_id() -> String {
 /// List S3 provider presets available for configuration.
 #[tauri::command]
 pub fn list_cloud_provider_presets() -> Vec<CloudProviderPresetDto> {
-    let presets = vec![
-        S3ProviderPreset::Aws,
-        S3ProviderPreset::CloudflareR2,
-        S3ProviderPreset::AlibabaOss,
-        S3ProviderPreset::TencentCos,
-        S3ProviderPreset::HuaweiObs,
-        S3ProviderPreset::BaiduBos,
-        S3ProviderPreset::Minio,
-        S3ProviderPreset::SeaweedFs,
-    ];
+    let presets = S3ProviderPreset::all_presets();
 
     presets
         .into_iter()
@@ -113,6 +105,7 @@ pub fn list_cloud_provider_presets() -> Vec<CloudProviderPresetDto> {
             endpoint_template: p.endpoint_template().to_string(),
             default_region: p.default_region().to_string(),
             use_path_style: p.default_use_path_style(),
+            category: p.category().to_string(),
         })
         .collect()
 }

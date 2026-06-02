@@ -36,6 +36,7 @@ import {
 } from "./PropertyPanels";
 
 interface RightPanelProps {
+  width: number;
   selectedNodeId: string | null;
   selectedEdge: WorkflowEdge | null;
 }
@@ -551,7 +552,7 @@ function TemplateSettings({
 }
 
 export const RightPanel: React.FC<RightPanelProps> = React.memo(
-  ({ selectedNodeId, selectedEdge }) => {
+  ({ width, selectedNodeId, selectedEdge }) => {
     const { t } = useTranslation();
     const { token } = theme.useToken();
     const deleteNode = useWorkflowEditorStore((state) => state.deleteNode);
@@ -750,7 +751,7 @@ export const RightPanel: React.FC<RightPanelProps> = React.memo(
       <div
         className="workflow-side-panel"
         style={{
-          width: 320,
+          width,
           background: token.colorBgContainer,
           borderLeft: `1px solid ${token.colorBorderSecondary}`,
           display: "flex",

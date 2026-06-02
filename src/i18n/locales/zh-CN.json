@@ -5906,7 +5906,26 @@
     "connectionFailed": "连接失败",
     "lastSyncResult": "上次同步结果",
     "cacheDir": "缓存目录",
-    "quickActions": "快捷操作"
+    "quickActions": "快捷操作",
+    "chineseProviders": "国内服务商",
+    "internationalProviders": "国际服务商",
+    "selfHostedProviders": "自建/私有部署",
+    "selectProvider": "选择云存储服务商",
+    "selectProviderDesc": "选择您的云存储服务商，我们将自动填充推荐配置",
+    "cloudBackup": "云端备份",
+    "uploadToCloud": "上传到云端",
+    "downloadFromCloud": "从云端恢复",
+    "listCloudBackups": "查看云端备份",
+    "uploadBackupSuccess": "备份已上传到云端",
+    "uploadBackupFailed": "上传备份到云端失败：{{error}}",
+    "downloadBackupSuccess": "云端备份已下载",
+    "downloadBackupFailed": "下载云端备份失败：{{error}}",
+    "noCloudBackups": "云端暂无备份",
+    "cloudBackupSize": "大小",
+    "cloudBackupTime": "修改时间",
+    "s3UsePathStyle": "路径风格寻址",
+    "autoFillConfig": "自动填充配置",
+    "providerCategory": "服务商分类"
   },
   "buddy": {
     "rarity": {

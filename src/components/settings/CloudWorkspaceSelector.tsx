@@ -4,11 +4,14 @@ import {
   Alert,
   Button,
   Card,
+  Checkbox,
   Descriptions,
+  Divider,
   Form,
   Input,
   message,
   Modal,
+  Radio,
   Select,
   Space,
   Table,
@@ -20,16 +23,20 @@ import {
   AlertTriangle,
   CheckCircle,
   Cloud,
+  Database,
+  Download,
   FolderOpen,
   Globe,
+  HardDrive,
   Link,
   RefreshCw,
+  Server,
   Settings2,
   Upload,
   Wifi,
   WifiOff,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSettingsStore } from "../../stores";
 
@@ -82,7 +89,31 @@ interface CloudProviderPresetDto {
   endpoint_template: string;
   default_region: string;
   use_path_style: boolean;
+  category: string;
 }
+
+interface CloudBackupEntry {
+  key: string;
+  size: number;
+  last_modified: string | null;
+  etag: string | null;
+}
+
+const PROVIDER_ICON_MAP: Record<string, string> = {
+  AlibabaOss: "🟠",
+  TencentCos: "🔵",
+  HuaweiObs: "🔴",
+  BaiduBos: "🟤",
+  QiniuKodo: "🟢",
+  UpcloudUss: "🟡",
+  KingsoftKs3: "🟣",
+  UcloudUfile: "🔷",
+  Aws: "☁️",
+  CloudflareR2: "🔶",
+  Minio: "📦",
+  SeaweedFs: "🌿",
+  Custom: "⚙️",
+};
 
 export function CloudWorkspaceSelector() {
   const { t } = useTranslation();
@@ -91,6 +122,7 @@ export function CloudWorkspaceSelector() {
   const [configModalOpen, setConfigModalOpen] = useState(false);
   const [browserModalOpen, setBrowserModalOpen] = useState(false);
   const [conflictsModalOpen, setConflictsModalOpen] = useState(false);
+  const [cloudBackupModalOpen, setCloudBackupModalOpen] = useState(false);
   const [configForm] = Form.useForm();
   const [presets, setPresets] = useState<CloudProviderPresetDto[]>([]);
   const [currentPath, setCurrentPath] = useState("");
@@ -105,6 +137,10 @@ export function CloudWorkspaceSelector() {
   const [connectionStatus, setConnectionStatus] = useState<
     "unknown" | "success" | "failed"
   >("unknown");
+  const [cloudBackups, setCloudBackups] = useState<CloudBackupEntry[]>([]);
+  const [cloudBackupsLoading, setCloudBackupsLoading] = useState(false);
+  const [uploadingBackup, setUploadingBackup] = useState(false);
+  const [downloadingBackup, setDownloadingBackup] = useState(false);
 
   useEffect(() => {
     const loadPresets = async () => {
@@ -120,6 +156,19 @@ export function CloudWorkspaceSelector() {
     loadPresets();
   }, []);
 
+  const chinesePresets = useMemo(
+    () => presets.filter((p) => p.category === "chinese"),
+    [presets],
+  );
+  const internationalPresets = useMemo(
+    () => presets.filter((p) => p.category === "international"),
+    [presets],
+  );
+  const selfHostedPresets = useMemo(
+    () => presets.filter((p) => p.category === "self_hosted" || p.category === "other"),
+    [presets],
+  );
+
   const buildWorkspaceUri = (values: Record<string, unknown>) => {
     if (storageType === "webdav") {
       const host = values.webdavHost as string;
@@ -129,6 +178,19 @@ export function CloudWorkspaceSelector() {
     const bucket = values.s3Bucket as string;
     const root = (values.s3Root as string) || "/";
     return `s3://${bucket}${root}`;
+  };
+
+  const handleProviderSelect = (presetKey: string) => {
+    const preset = presets.find((p) => p.key === presetKey);
+    if (!preset) { return; }
+
+    configForm.setFieldsValue({
+      s3ProviderPreset: presetKey,
+      s3Endpoint: preset.endpoint_template || undefined,
+      s3Region: preset.default_region || undefined,
+      s3UsePathStyle: preset.use_path_style,
+    });
+    setConnectionStatus("unknown");
   };
 
   const openConfigModal = () => {
@@ -398,6 +460,54 @@ export function CloudWorkspaceSelector() {
     message.success(t("cloudWorkspace.setAsWorkspaceSuccess", { uri }));
   };
 
+  const loadCloudBackups = async () => {
+    try {
+      setCloudBackupsLoading(true);
+      const result = await invoke<CloudBackupEntry[]>("list_cloud_backups", {
+        request: {},
+      });
+      setCloudBackups(result);
+    } catch (e) {
+      message.error(t("cloudWorkspace.downloadBackupFailed", { error: String(e) }));
+    } finally {
+      setCloudBackupsLoading(false);
+    }
+  };
+
+  const handleUploadBackup = async (backupId: string) => {
+    try {
+      setUploadingBackup(true);
+      await invoke("upload_backup_to_cloud", {
+        request: { backupId },
+      });
+      message.success(t("cloudWorkspace.uploadBackupSuccess"));
+      await loadCloudBackups();
+    } catch (e) {
+      message.error(t("cloudWorkspace.uploadBackupFailed", { error: String(e) }));
+    } finally {
+      setUploadingBackup(false);
+    }
+  };
+
+  const handleDownloadCloudBackup = async (cloudKey: string) => {
+    try {
+      setDownloadingBackup(true);
+      await invoke("download_cloud_backup", {
+        request: { cloudKey },
+      });
+      message.success(t("cloudWorkspace.downloadBackupSuccess"));
+    } catch (e) {
+      message.error(t("cloudWorkspace.downloadBackupFailed", { error: String(e) }));
+    } finally {
+      setDownloadingBackup(false);
+    }
+  };
+
+  const openCloudBackupModal = async () => {
+    setCloudBackupModalOpen(true);
+    await loadCloudBackups();
+  };
+
   const conflictColumns: ColumnsType<CloudConflictDto> = [
     {
       title: t("cloudWorkspace.fileName"),
@@ -503,6 +613,77 @@ export function CloudWorkspaceSelector() {
     },
   ];
 
+  const cloudBackupColumns: ColumnsType<CloudBackupEntry> = [
+    {
+      title: t("cloudWorkspace.fileName"),
+      dataIndex: "key",
+      key: "key",
+      render: (key: string) => {
+        const fileName = key.split("/").pop() || key;
+        return <Text copyable={{ text: key }}>{fileName}</Text>;
+      },
+    },
+    {
+      title: t("cloudWorkspace.cloudBackupSize"),
+      dataIndex: "size",
+      key: "size",
+      width: 120,
+      render: (size: number) => {
+        if (size < 1024) { return `${size} B`; }
+        if (size < 1024 * 1024) { return `${(size / 1024).toFixed(1)} KB`; }
+        return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+      },
+    },
+    {
+      title: t("cloudWorkspace.cloudBackupTime"),
+      dataIndex: "last_modified",
+      key: "last_modified",
+      width: 180,
+      render: (ts: string | null) => ts || "-",
+    },
+    {
+      title: t("cloudWorkspace.actions"),
+      key: "actions",
+      width: 140,
+      render: (_, record) => (
+        <Button
+          size="small"
+          icon={<Download size={12} />}
+          loading={downloadingBackup}
+          onClick={() => handleDownloadCloudBackup(record.key)}
+        >
+          {t("cloudWorkspace.downloadFromCloud")}
+        </Button>
+      ),
+    },
+  ];
+
+  const renderProviderGrid = (
+    providerList: CloudProviderPresetDto[],
+  ) => (
+    <div className="grid grid-cols-2 gap-2">
+      {providerList.map((p) => (
+        <Card
+          key={p.key}
+          hoverable
+          size="small"
+          className="cursor-pointer transition-all hover:shadow-md"
+          onClick={() => handleProviderSelect(p.key)}
+        >
+          <div className="flex items-center gap-2">
+            <span className="text-lg">{PROVIDER_ICON_MAP[p.key] || "☁️"}</span>
+            <div>
+              <div className="font-medium text-sm">{p.display_name}</div>
+              <div className="text-xs text-zinc-400 truncate max-w-[180px]">
+                {p.endpoint_template || t("cloudWorkspace.providerPresetPlaceholder")}
+              </div>
+            </div>
+          </div>
+        </Card>
+      ))}
+    </div>
+  );
+
   const isConfigured = !!settings.workspace_uri;
   const backendLabel = settings.cloud_backend === "webdav" ? "WebDAV" : "S3";
 
@@ -535,6 +716,12 @@ export function CloudWorkspaceSelector() {
               >
                 {t("cloudWorkspace.sync")}
               </Button>
+              <Button
+                icon={<Database size={14} />}
+                onClick={openCloudBackupModal}
+              >
+                {t("cloudWorkspace.cloudBackup")}
+              </Button>
               {conflicts.length > 0 && (
                 <Button
                   icon={<AlertTriangle size={14} />}
@@ -553,28 +740,47 @@ export function CloudWorkspaceSelector() {
 
       {!isConfigured
         ? (
-          <Card>
-            <div className="text-center py-8">
-              <Cloud size={48} className="mx-auto mb-4 opacity-40" />
+          <Card className="border-dashed border-2 border-blue-200 bg-gradient-to-br from-blue-50/50 to-purple-50/50">
+            <div className="text-center py-10">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-100 mb-4">
+                <Cloud size={32} className="text-blue-500" />
+              </div>
               <Title level={5} type="secondary">
                 {t("cloudWorkspace.notConfigured")}
               </Title>
-              <Text type="secondary" className="block mb-4">
+              <Text type="secondary" className="block mb-6 max-w-md mx-auto">
                 {t("cloudWorkspace.notConfiguredDesc")}
               </Text>
-              <Button
-                type="primary"
-                icon={<Settings2 size={14} />}
-                onClick={openConfigModal}
-              >
-                {t("cloudWorkspace.configureFirst")}
-              </Button>
+              <Space>
+                <Button
+                  type="primary"
+                  size="large"
+                  icon={<Cloud size={16} />}
+                  onClick={openConfigModal}
+                >
+                  {t("cloudWorkspace.configureFirst")}
+                </Button>
+              </Space>
+              <div className="mt-6 flex justify-center gap-4">
+                {chinesePresets.slice(0, 4).map((p) => (
+                  <Tag
+                    key={p.key}
+                    className="cursor-pointer hover:bg-blue-50"
+                    onClick={openConfigModal}
+                  >
+                    {PROVIDER_ICON_MAP[p.key]} {p.display_name}
+                  </Tag>
+                ))}
+              </div>
             </div>
           </Card>
         )
         : (
           <>
-            <Card size="small">
+            <Card
+              size="small"
+              className="border-l-4 border-l-blue-500"
+            >
               <Descriptions column={2} size="small">
                 <Descriptions.Item label={t("cloudWorkspace.currentWorkspace")}>
                   <Space>
@@ -645,11 +851,12 @@ export function CloudWorkspaceSelector() {
             )}
 
             <Card size="small" title={t("cloudWorkspace.quickActions")}>
-              <Space wrap>
+              <Space wrap size="middle">
                 <Button
                   icon={<RefreshCw size={14} />}
                   loading={syncing}
                   onClick={handleSyncCloud}
+                  type="primary"
                 >
                   {t("cloudWorkspace.syncNow")}
                 </Button>
@@ -658,6 +865,12 @@ export function CloudWorkspaceSelector() {
                   onClick={openBrowserModal}
                 >
                   {t("cloudWorkspace.browse")}
+                </Button>
+                <Button
+                  icon={<Database size={14} />}
+                  onClick={openCloudBackupModal}
+                >
+                  {t("cloudWorkspace.cloudBackup")}
                 </Button>
                 <Button
                   icon={<AlertTriangle size={14} />}
@@ -682,7 +895,7 @@ export function CloudWorkspaceSelector() {
         }
         open={configModalOpen}
         onCancel={() => setConfigModalOpen(false)}
-        width={600}
+        width={680}
         footer={
           <Space
             style={{
@@ -727,33 +940,80 @@ export function CloudWorkspaceSelector() {
         )}
         <Form form={configForm} layout="vertical">
           <Form.Item label={t("cloudWorkspace.storageType")}>
-            <Select
-              id="cloud-workspace-selector-select-42"
+            <Radio.Group
               value={storageType}
-              onChange={(v) => {
-                setStorageType(v);
+              onChange={(e) => {
+                setStorageType(e.target.value);
                 setConnectionStatus("unknown");
               }}
-              options={[
-                { label: "Amazon S3 / S3-Compatible", value: "s3" },
-                { label: "WebDAV", value: "webdav" },
-              ]}
-            />
+              optionType="button"
+              buttonStyle="solid"
+            >
+              <Radio.Button value="s3">
+                <Server size={12} className="inline mr-1" />
+                S3
+              </Radio.Button>
+              <Radio.Button value="webdav">
+                <Globe size={12} className="inline mr-1" />
+                WebDAV
+              </Radio.Button>
+            </Radio.Group>
           </Form.Item>
 
           {storageType === "s3" && (
             <>
+              <div className="mb-4">
+                <Text strong className="block mb-2">
+                  {t("cloudWorkspace.selectProvider")}
+                </Text>
+                <Text type="secondary" className="block mb-3 text-xs">
+                  {t("cloudWorkspace.selectProviderDesc")}
+                </Text>
+
+                <div className="space-y-3">
+                  <div>
+                    <Text type="secondary" className="text-xs font-medium uppercase tracking-wider">
+                      🇨🇳 {t("cloudWorkspace.chineseProviders")}
+                    </Text>
+                    <div className="mt-1.5">
+                      {renderProviderGrid(chinesePresets)}
+                    </div>
+                  </div>
+
+                  <div>
+                    <Text type="secondary" className="text-xs font-medium uppercase tracking-wider">
+                      🌍 {t("cloudWorkspace.internationalProviders")}
+                    </Text>
+                    <div className="mt-1.5">
+                      {renderProviderGrid(internationalPresets)}
+                    </div>
+                  </div>
+
+                  <div>
+                    <Text type="secondary" className="text-xs font-medium uppercase tracking-wider">
+                      <HardDrive size={10} className="inline mr-1" />
+                      {t("cloudWorkspace.selfHostedProviders")}
+                    </Text>
+                    <div className="mt-1.5">
+                      {renderProviderGrid(selfHostedPresets)}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <Divider className="my-3" />
+
               <Form.Item
                 name="s3ProviderPreset"
                 label={t("cloudWorkspace.providerPreset")}
               >
                 <Select
                   options={presets.map((p) => ({
-                    label: p.display_name,
+                    label: `${PROVIDER_ICON_MAP[p.key] || "☁️"} ${p.display_name}`,
                     value: p.key,
                   }))}
                   placeholder={t("cloudWorkspace.providerPresetPlaceholder")}
-                  onChange={() => setConnectionStatus("unknown")}
+                  onChange={(val) => handleProviderSelect(val)}
                 />
               </Form.Item>
               <Form.Item
@@ -832,6 +1092,14 @@ export function CloudWorkspaceSelector() {
                   placeholder="/"
                   onChange={() => setConnectionStatus("unknown")}
                 />
+              </Form.Item>
+              <Form.Item
+                name="s3UsePathStyle"
+                valuePropName="checked"
+              >
+                <Checkbox onChange={() => setConnectionStatus("unknown")}>
+                  {t("cloudWorkspace.s3UsePathStyle")}
+                </Checkbox>
               </Form.Item>
             </>
           )}
@@ -987,6 +1255,45 @@ export function CloudWorkspaceSelector() {
           pagination={false}
           size="small"
           locale={{ emptyText: t("cloudWorkspace.noConflicts") }}
+        />
+      </Modal>
+
+      <Modal
+        title={
+          <Space>
+            <Database size={16} />
+            {t("cloudWorkspace.cloudBackup")}
+          </Space>
+        }
+        open={cloudBackupModalOpen}
+        onCancel={() => setCloudBackupModalOpen(false)}
+        footer={
+          <Space>
+            <Button
+              icon={<Upload size={14} />}
+              loading={uploadingBackup}
+              onClick={() => {
+                const backupId = prompt("Enter backup ID to upload:");
+                if (backupId) { handleUploadBackup(backupId); }
+              }}
+            >
+              {t("cloudWorkspace.uploadToCloud")}
+            </Button>
+            <Button onClick={() => setCloudBackupModalOpen(false)}>
+              {t("common.close")}
+            </Button>
+          </Space>
+        }
+        width={800}
+      >
+        <Table
+          columns={cloudBackupColumns}
+          dataSource={cloudBackups}
+          rowKey={(record) => record.key}
+          loading={cloudBackupsLoading}
+          pagination={false}
+          size="small"
+          locale={{ emptyText: t("cloudWorkspace.noCloudBackups") }}
         />
       </Modal>
     </div>

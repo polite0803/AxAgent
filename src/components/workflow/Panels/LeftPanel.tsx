@@ -6,7 +6,11 @@ import { useTranslation } from "react-i18next";
 import { type DragPayload, setDragPayload } from "../dndState";
 import { NODE_CATEGORIES, NODE_TYPE_MAP } from "../types";
 
-export const LeftPanel: React.FC = () => {
+interface LeftPanelProps {
+  width: number;
+}
+
+export const LeftPanel: React.FC<LeftPanelProps> = ({ width }) => {
   const { t } = useTranslation();
   const { token } = theme.useToken();
   const [search, setSearch] = useState("");
@@ -114,7 +118,7 @@ export const LeftPanel: React.FC = () => {
     <div
       className="workflow-side-panel"
       style={{
-        width: 280,
+        width,
         background: token.colorBgContainer,
         borderRight: `1px solid ${token.colorBorderSecondary}`,
         display: "flex",

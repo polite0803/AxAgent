@@ -1,6 +1,7 @@
 use crate::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::backup as backup_err;
+use axagent_core::cloud_storage::StorageBackend;
 use axagent_core::repo::backup;
 use axagent_core::repo::settings::get_settings;
 use axagent_core::types::*;
@@ -216,4 +217,134 @@ async fn restart_auto_backup(
     });
 
     *guard = Some(task);
+}
+
+#[derive(Debug, serde::Deserialize)]
+pub struct UploadBackupToCloudRequest {
+    pub backup_id: String,
+}
+
+#[tauri::command]
+pub async fn upload_backup_to_cloud(
+    state: State<'_, AppState>,
+    request: UploadBackupToCloudRequest,
+) -> Result<(), String> {
+    let backend = state
+        .sync_engine
+        .as_ref()
+        .ok_or("云存储未配置，请先在设置中配置 S3 或 WebDAV")?
+        .backend
+        .clone();
+
+    let manifest = backup::get_backup(&state.sea_db, &request.backup_id)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    let backup_path = manifest.file_path.ok_or("备份文件路径不可用")?;
+    let data = std::fs::read(&backup_path).map_err(|e| format!("读取备份文件失败: {}", e))?;
+
+    let cloud_key = format!(
+        "backups/{}/{}",
+        chrono::Utc::now().format("%Y%m%d"),
+        Path::new(&backup_path)
+            .file_name()
+            .map(|n| n.to_string_lossy().to_string())
+            .unwrap_or_else(|| "backup.db".to_string())
+    );
+
+    backend
+        .put(&cloud_key, &data, "application/x-sqlite3")
+        .await
+        .map_err(|e| format!("上传备份到云端失败: {}", e))?;
+
+    tracing::info!("备份已上传到云端: {}", cloud_key);
+    Ok(())
+}
+
+#[derive(Debug, serde::Deserialize)]
+pub struct ListCloudBackupsRequest {
+    pub prefix: Option<String>,
+}
+
+#[derive(Debug, serde::Serialize)]
+pub struct CloudBackupEntry {
+    pub key: String,
+    pub size: i64,
+    pub last_modified: Option<String>,
+    pub etag: Option<String>,
+}
+
+#[tauri::command]
+pub async fn list_cloud_backups(
+    state: State<'_, AppState>,
+    request: ListCloudBackupsRequest,
+) -> Result<Vec<CloudBackupEntry>, String> {
+    let backend = state
+        .sync_engine
+        .as_ref()
+        .ok_or("云存储未配置")?
+        .backend
+        .clone();
+
+    let prefix = request.prefix.unwrap_or_else(|| "backups/".to_string());
+    let result = backend
+        .list(&prefix, 100, None)
+        .await
+        .map_err(|e| format!("列出云端备份失败: {}", e))?;
+
+    let entries = result
+        .objects
+        .into_iter()
+        .filter(|o| !o.key.ends_with('/') && o.size > 0)
+        .map(|o| CloudBackupEntry {
+            key: o.key,
+            size: o.size,
+            last_modified: o.last_modified,
+            etag: o.etag,
+        })
+        .collect();
+
+    Ok(entries)
+}
+
+#[derive(Debug, serde::Deserialize)]
+pub struct DownloadCloudBackupRequest {
+    pub cloud_key: String,
+}
+
+#[tauri::command]
+pub async fn download_cloud_backup(
+    state: State<'_, AppState>,
+    request: DownloadCloudBackupRequest,
+) -> Result<String, String> {
+    let backend = state
+        .sync_engine
+        .as_ref()
+        .ok_or("云存储未配置")?
+        .backend
+        .clone();
+
+    let obj = backend
+        .get(&request.cloud_key)
+        .await
+        .map_err(|e| format!("从云端下载备份失败: {}", e))?;
+
+    let settings = get_settings(&state.sea_db)
+        .await
+        .map_err(|e| e.to_string())?;
+    let decoded_backup_dir = axagent_core::path_vars::decode_path_opt(&settings.backup_dir);
+    let backup_dir = backup::resolve_backup_dir(decoded_backup_dir.as_deref(), &state.app_data_dir);
+    std::fs::create_dir_all(&backup_dir).map_err(|e| format!("创建备份目录失败: {}", e))?;
+
+    let file_name = Path::new(&request.cloud_key)
+        .file_name()
+        .map(|n| n.to_string_lossy().to_string())
+        .unwrap_or_else(|| "cloud_backup.db".to_string());
+    let local_path = backup_dir.join(&file_name);
+
+    std::fs::write(&local_path, &obj.data)
+        .map_err(|e| format!("写入备份文件失败: {}", e))?;
+
+    tracing::info!("云端备份已下载到: {:?}", local_path);
+    Ok(local_path.to_string_lossy().to_string())
 }
