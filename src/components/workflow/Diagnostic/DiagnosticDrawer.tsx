@@ -105,7 +105,7 @@ export function DiagnosticDrawer({ open, onClose, onJumpToNode }: DiagnosticDraw
         </Space>
       }
       placement="right"
-      width={520}
+      size={520}
       open={open}
       onClose={onClose}
       destroyOnClose={false}
