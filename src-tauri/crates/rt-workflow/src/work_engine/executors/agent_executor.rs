@@ -249,12 +249,7 @@ impl NodeExecutorTrait for AgentExecutor {
             .and_then(|p| p.suggested_provider_id.as_deref());
 
         let (prov, key, model) = self
-            .resolve_provider(
-                node_model,
-                session_model,
-                session_provider_id,
-                profile_suggested,
-            )
+            .resolve_provider(node_model, session_model, session_provider_id, profile_suggested)
             .await?;
         let api_key = axagent_core::crypto::decrypt_key(&key.key_encrypted, &self.master_key)
             .map_err(|e| {
@@ -1011,9 +1006,7 @@ impl AgentExecutor {
             profile_suggested_provider,
         )
         .await
-        .map_err(|e| {
-            NodeError::exec_failed(error_code::PROVIDER_QUERY_FAILED, e)
-        })?;
+        .map_err(|e| NodeError::exec_failed(error_code::PROVIDER_QUERY_FAILED, e))?;
 
         if !has_override {
             let mut cache = self.default_provider_cache.lock().await;

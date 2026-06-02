@@ -142,7 +142,8 @@ pub async fn resolve_project_default(
         .await
         .map_err(|e| format!("读取项目设置失败: {e}"))?;
 
-    if let (Some(ref pid), Some(ref mid)) = (settings.default_provider_id, settings.default_model_id)
+    if let (Some(ref pid), Some(ref mid)) =
+        (settings.default_provider_id, settings.default_model_id)
     {
         let providers = list_providers(db).await.map_err(|e| e.to_string())?;
         if let Some(prov) = providers.into_iter().find(|p| p.id == *pid && p.enabled) {
@@ -178,8 +179,7 @@ pub async fn resolve_model_for_node(
     session_provider_id: Option<&str>,
     profile_suggested_provider: Option<&str>,
 ) -> std::result::Result<(ProviderConfig, ProviderKey, String), String> {
-    let effective_provider_id = session_provider_id
-        .or(profile_suggested_provider);
+    let effective_provider_id = session_provider_id.or(profile_suggested_provider);
 
     if let Some(pid) = effective_provider_id {
         let providers = list_providers(db).await.map_err(|e| e.to_string())?;

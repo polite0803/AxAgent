@@ -233,16 +233,15 @@ impl ConditionExecutor {
         session_provider_id: Option<&str>,
         prompt: &str,
     ) -> Result<bool, String> {
-        let (prov, key, model) =
-            axagent_core::repo::provider::resolve_model_for_node(
-                &self.db,
-                node_model,
-                session_model,
-                session_provider_id,
-                None,
-            )
-            .await
-            .map_err(|e| format!("模型解析失败: {e}"))?;
+        let (prov, key, model) = axagent_core::repo::provider::resolve_model_for_node(
+            &self.db,
+            node_model,
+            session_model,
+            session_provider_id,
+            None,
+        )
+        .await
+        .map_err(|e| format!("模型解析失败: {e}"))?;
         let api_key = axagent_core::crypto::decrypt_key(&key.key_encrypted, &self.master_key)
             .map_err(|e| format!("解密 key 失败: {e}"))?;
 

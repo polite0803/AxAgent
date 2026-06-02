@@ -2,7 +2,7 @@
 
 use crate::work_engine::execution_state::ExecutionState;
 use crate::work_engine::node_executor_trait::{
-    error_code, NodeError, NodeExecutorTrait, NodeOutput,
+    NodeError, NodeExecutorTrait, NodeOutput, error_code,
 };
 use async_trait::async_trait;
 use axagent_core::types::{ChatContent, ChatMessage, ChatRequest};
@@ -81,7 +81,7 @@ impl NodeExecutorTrait for LlmExecutor {
 
         // 创建 adapter
         use axagent_core::types::ProviderType;
-        use axagent_providers::{resolve_base_url_for_type, ProviderAdapter};
+        use axagent_providers::{ProviderAdapter, resolve_base_url_for_type};
         let adapter: Arc<dyn ProviderAdapter> = match prov.provider_type {
             ProviderType::OpenAI => Arc::new(axagent_providers::openai::OpenAIAdapter::new()),
             ProviderType::OpenAIResponses => {
