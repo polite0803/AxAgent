@@ -1,7 +1,7 @@
 {
   "version": "1",
   "generated": "2026-05-29",
-  "total_entries": 132,
+  "total_entries": 178,
   "total_files": 120,
   "entries": [
     {
@@ -936,6 +936,138 @@
       "file": "src/components/chat/RightPanelContainer.tsx",
       "lines": "511",
       "reason": "JSX 注释文本，非 UI 渲染内容",
+      "phase": 3
+    },
+    {
+      "file": "src/components/workflow/AIPanel/AIPanel.tsx",
+      "lines": "146,168,190",
+      "reason": "AIPanel logIpcError 日志",
+      "phase": 3
+    },
+    {
+      "file": "src/components/workflow/AIPanel/ActionDiffPreview.tsx",
+      "lines": "287,288,304,316,327,328,338,357,368,369",
+      "reason": "Diff preview 动态文本标签",
+      "phase": 3
+    },
+    {
+      "file": "src/components/workflow/Panels/PropertyPanels/AgentPropertyPanel.tsx",
+      "lines": "287,288,289,313,315,316,318,319,322,323,324,326,327,927,936",
+      "reason": "LLM system/user prompt 字符串",
+      "phase": 3
+    },
+    {
+      "file": "src/components/workflow/Panels/PropertyPanels/CodePropertyPanel.tsx",
+      "lines": "22,38,44,50,52,56,91,116,117,118,158,159,191,281,352",
+      "reason": "代码模板 + LLM prompt",
+      "phase": 3
+    },
+    {
+      "file": "src/components/workflow/Panels/PropertyPanels/ConditionPropertyPanel.tsx",
+      "lines": "150,151,152,153,154,157,193,194,197",
+      "reason": "LLM system/user prompt 字符串",
+      "phase": 3
+    },
+    {
+      "file": "src/components/workflow/Panels/PropertyPanels/DatabaseQueryPropertyPanel.tsx",
+      "lines": "28,29,72",
+      "reason": "LLM prompt + placeholder",
+      "phase": 3
+    },
+    {
+      "file": "src/components/workflow/Panels/PropertyPanels/DebatePropertyPanel.tsx",
+      "lines": "17,48,49,50,61,63,64,66,67,68,78",
+      "reason": "LLM prompt 字符串",
+      "phase": 3
+    },
+    {
+      "file": "src/components/workflow/Panels/PropertyPanels/DocumentParserPropertyPanel.tsx",
+      "lines": "48,49",
+      "reason": "LLM prompt",
+      "phase": 3
+    },
+    {
+      "file": "src/components/workflow/Panels/PropertyPanels/EmailPropertyPanel.tsx",
+      "lines": "36,37,57,58,80",
+      "reason": "LLM prompt + placeholder",
+      "phase": 3
+    },
+    {
+      "file": "src/components/workflow/Panels/PropertyPanels/HttpRequestPropertyPanel.tsx",
+      "lines": "55,56,57,58,59,83",
+      "reason": "LLM prompt + placeholder",
+      "phase": 3
+    },
+    {
+      "file": "src/components/workflow/Panels/PropertyPanels/LLMPropertyPanel.tsx",
+      "lines": "107,108,109,128,130,131,133,134,137,138,139,141,142",
+      "reason": "LLM prompt 字符串",
+      "phase": 3
+    },
+    {
+      "file": "src/components/workflow/Panels/PropertyPanels/LoopPropertyPanel.tsx",
+      "lines": "41,42",
+      "reason": "LLM prompt",
+      "phase": 3
+    },
+    {
+      "file": "src/components/workflow/Panels/PropertyPanels/ParallelPropertyPanel.tsx",
+      "lines": "39,40",
+      "reason": "LLM prompt",
+      "phase": 3
+    },
+    {
+      "file": "src/components/workflow/Panels/PropertyPanels/SubWorkflowPropertyPanel.tsx",
+      "lines": "63,64",
+      "reason": "LLM prompt",
+      "phase": 3
+    },
+    {
+      "file": "src/components/workflow/Panels/PropertyPanels/SwitchPropertyPanel.tsx",
+      "lines": "28,29,60,117,128",
+      "reason": "LLM prompt + placeholder",
+      "phase": 3
+    },
+    {
+      "file": "src/components/workflow/Panels/PropertyPanels/TriggerPropertyPanel.tsx",
+      "lines": "35,36",
+      "reason": "LLM prompt",
+      "phase": 3
+    },
+    {
+      "file": "src/components/workflow/Panels/PropertyPanels/ValidationPropertyPanel.tsx",
+      "lines": "62,63,64,67",
+      "reason": "LLM prompt",
+      "phase": 3
+    },
+    {
+      "file": "src/components/workflow/Panels/PropertyPanels/VectorRetrievePropertyPanel.tsx",
+      "lines": "53,54",
+      "reason": "LLM prompt",
+      "phase": 3
+    },
+    {
+      "file": "src/components/chat/ChatView.tsx",
+      "lines": "301",
+      "reason": "内容分析关键词检测",
+      "phase": 3
+    },
+    {
+      "file": "src/components/chat/RightPanelContainer.tsx",
+      "lines": "53,55",
+      "reason": "错误边界 fallback 文本",
+      "phase": 3
+    },
+    {
+      "file": "src/lib/browserMock.ts",
+      "lines": "353,428,461,1181,1182,1189,1190,1197,1198,1558,1559,1564,1573,1582,1593,1594,1599,1608,1617,1628,1629,1634,2310,2321,2331,2341",
+      "reason": "Mock 数据",
+      "phase": 3
+    },
+    {
+      "file": "src/stores/__tests__/workflowEditorStore.test.ts",
+      "lines": "543,549",
+      "reason": "测试 mock 数据标签",
       "phase": 3
     }
   ]
