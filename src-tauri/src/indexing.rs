@@ -17,9 +17,7 @@ use axagent_core::rag::{self, ChunkStrategy, KnowledgeRAG, LlmCallFn, MemoryRAG}
 use axagent_core::types::*;
 use axagent_core::vector_store::{VectorSearchResult, VectorStore};
 
-use axagent_providers::{
-    ProviderAdapter, ProviderRequestContext, registry::ProviderRegistry, resolve_base_url_for_type,
-};
+use axagent_providers::{ProviderAdapter, ProviderRequestContext, resolve_base_url_for_type};
 
 // ── AsyncEmbedFn implementation ──────────────────────────────────────────────
 
@@ -146,7 +144,14 @@ pub async fn generate_embeddings(
     let (provider_id, model_id) = parse_embedding_provider(embedding_provider)?;
     let (ctx, provider_config) = build_embed_context(db, master_key, &provider_id).await?;
 
-    let harness = axagent_runtime::harness::RuntimeHarness::new(db.clone(), *master_key);
+    let harness =
+        axagent_runtime::harness::RuntimeHarness::new(axagent_runtime::harness::HarnessDeps {
+            persistence: Arc::new(axagent_core::db::DbHandle {
+                conn: db.clone(),
+                path: String::new(),
+            }) as axagent_harness::SharedPersistence,
+            master_key: *master_key,
+        });
     let registry_key = provider_type_to_registry_key(&provider_config.provider_type);
     let adapter = harness
         .provider_registry()

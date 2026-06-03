@@ -33,14 +33,14 @@ pub fn spawn_teammate_process(
                 .stdout(Stdio::piped())
                 .stderr(Stdio::piped());
             cmd.spawn()
-        }
+        },
         BackendType::InProcess => {
             // 同进程模式由 InProcessTeammateTask 处理
             Err(std::io::Error::new(
                 std::io::ErrorKind::Other,
                 "InProcess 队友应在当前进程中创建",
             ))
-        }
+        },
         BackendType::Tmux => {
             // tmux 仅 Unix 支持
             #[cfg(unix)]
@@ -69,7 +69,7 @@ pub fn spawn_teammate_process(
                     "tmux 后端在 Windows 上不可用，请使用 SubProcess",
                 ))
             }
-        }
+        },
     }
 }
 
@@ -102,7 +102,7 @@ pub fn read_message(process: &mut Child) -> std::io::Result<Option<TeammateMessa
                 let msg: TeammateMessage = serde_json::from_str(line.trim())
                     .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))?;
                 Ok(Some(msg))
-            }
+            },
             Err(e) => Err(e),
         }
     } else {
@@ -143,15 +143,14 @@ mod tests {
             TeammateMessage::Heartbeat { from, status } => {
                 assert_eq!(from, "Alice@T");
                 assert_eq!(status, TeammateStatus::Idle);
-            }
+            },
             _ => panic!("应为 Heartbeat 消息"),
         }
     }
 
     #[test]
     fn test_task_result_deserialization() {
-        let json =
-            r#"{"type":"task_result","task_id":"t1","success":true,"content":"完成","from":"Bob@T"}"#;
+        let json = r#"{"type":"task_result","task_id":"t1","success":true,"content":"完成","from":"Bob@T"}"#;
         let msg: TeammateMessage = serde_json::from_str(json).unwrap();
         match msg {
             TeammateMessage::TaskResult {
@@ -164,7 +163,7 @@ mod tests {
                 assert!(success);
                 assert_eq!(content, "完成");
                 assert_eq!(from, "Bob@T");
-            }
+            },
             _ => panic!("应为 TaskResult 消息"),
         }
     }

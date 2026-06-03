@@ -6,7 +6,6 @@ use axagent_core::repo::provider::{self as provider_repo, get_active_key};
 use axagent_core::repo::settings::get_settings;
 use axagent_core::types::{ChatContent, ChatMessage, ChatRequest};
 use axagent_harness::resolve_base_url_for_type;
-use axagent_providers::registry::ProviderRegistry;
 use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -588,10 +587,11 @@ pub async fn extract_expert_structure(
             .with_detail(format!("无活跃密钥: {}", provider_id))
             .to_string()
     })?;
-    let api_key = axagent_core::crypto::decrypt_key(&key_row.key_encrypted, &state.master_key)
-        .map_err(|e| {
-            ErrorResponse::new(expert_err::KEY_DECRYPT_FAILED).with_detail(e.to_string())
-        })?;
+    let api_key =
+        axagent_core::crypto::decrypt_key(&key_row.key_encrypted, state.harness.master_key())
+            .map_err(|e| {
+                ErrorResponse::new(expert_err::KEY_DECRYPT_FAILED).with_detail(e.to_string())
+            })?;
 
     let registry_key = format!("{:?}", provider_config.provider_type).to_lowercase();
 

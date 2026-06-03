@@ -16,7 +16,7 @@ fn spawn_wiki_note_indexing(
     content: &str,
 ) {
     let db = state.sea_db.clone();
-    let master_key = state.master_key;
+    let master_key = state.harness.master_key_owned();
     let vector_store = state.vector_store.clone();
     let wid = wiki_id.to_string();
     let nid = note_id.to_string();
@@ -187,7 +187,7 @@ pub async fn rebuild_wiki_index(
         .map_err(|e| e.to_string())?;
 
     let db = state.sea_db.clone();
-    let master_key = state.master_key;
+    let master_key = state.harness.master_key_owned();
     let vector_store = state.vector_store.clone();
     let wid = wiki_id.clone();
 
@@ -378,7 +378,7 @@ async fn wiki_notes_search_hybrid(
     let embed_response = axagent_core::rag::AsyncEmbedFn::generate(
         &embed_fn,
         &state.sea_db,
-        &state.master_key,
+        state.harness.master_key(),
         ep,
         vec![query.to_string()],
         dimensions,
@@ -643,7 +643,7 @@ pub async fn sync_note_to_knowledge_base(
     if kb.embedding_provider.is_some() {
         let container = axagent_core::rag::KnowledgeContainer::from_knowledge_base(&kb);
         let db = state.sea_db.clone();
-        let master_key = state.master_key;
+        let master_key = state.harness.master_key_owned();
         let vector_store = state.vector_store.clone();
         let doc_id = doc.id.clone();
         let src_path = source_path.clone();

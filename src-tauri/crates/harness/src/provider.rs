@@ -298,7 +298,12 @@ pub fn resolve_chat_url(
             } else {
                 let path = path.trim_matches('/');
                 if let Some(common) = find_common_version_prefix(base, path) {
-                    format!("{}/{}", base, &path[common.len()..])
+                    let remainder = path[common.len()..].trim_start_matches('/');
+                    if remainder.is_empty() {
+                        base.to_string()
+                    } else {
+                        format!("{}/{}", base, remainder)
+                    }
                 } else {
                     format!("{}/{}", base, path)
                 }

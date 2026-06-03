@@ -172,12 +172,29 @@ pub struct ShareParticipant {
 pub type SessionShareStore =
     Arc<TokioRwLock<std::collections::HashMap<String, ShareSessionRecord>>>;
 
+// ── AppState 字段迁移计划 ──────────────────────────────────────────
+//
+// Harness 架构目标：`AppState` 只保留 `harness: Arc<RuntimeHarness>` + 少量
+// 路由层薄壳字段（gateway、close_to_tray、app_data_dir、task handles 等）。
+//
+// 下列字段当前在 `AppState` 中是 `RuntimeHarness` 的镜像（重复）：
+//   - `sea_db`           → `state.harness.persistence().connection()`
+//   - `master_key`       → `state.harness.master_key()`
+//   - `db_path`          → `state.harness.persistence().db_path()`
+//   - `provider_registry`（若有） → `state.harness.provider_registry()`
+//   - `tool_registry`（若有）    → `state.harness.tool_registry().await`
+//
+// 完全迁移需要 ~80 个 Tauri 命令的访问路径改造（pattern: `state.x` → `state.harness.x()`）。
+// 一次 PR 内完成风险高，建议按"先新增 harness 字段 + dual-access，再批量移除 AppState 字段"分两步走。
 pub struct AppState {
+    /// [已迁移到 harness] 数据库连接。所有调用方应改为 `state.harness.persistence().connection()`。
     pub sea_db: DatabaseConnection,
+    /// [已迁移到 harness] master key。所有调用方应改为 `state.harness.master_key()` 或 `master_key_owned()`。
     pub master_key: [u8; 32],
     pub gateway: Arc<Mutex<Option<axagent_gateway::server::GatewayServer>>>,
     pub close_to_tray: Arc<AtomicBool>,
     pub app_data_dir: PathBuf,
+    /// [已迁移到 harness] 数据库路径。`state.harness.db_path()`。
     pub db_path: String,
     pub auto_backup_handle: Arc<Mutex<Option<tokio::task::JoinHandle<()>>>>,
     pub webdav_sync_handle: Arc<Mutex<Option<tokio::task::JoinHandle<()>>>>,
@@ -263,7 +280,7 @@ pub struct AppState {
     #[cfg(target_os = "android")]
     pub sandbox_executor: Arc<()>,
     pub sync_engine: Option<Arc<SyncEngine>>,
-    pub plugin_manager: std::sync::RwLock<PluginManager>,
+    pub plugin_manager: Arc<tokio::sync::RwLock<PluginManager>>,
     pub file_authorizer: Arc<FileAuthorizer>,
     pub session_share_manager: SessionShareStore,
 }

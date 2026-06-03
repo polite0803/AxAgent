@@ -34,14 +34,8 @@ impl PermissionBridge {
     pub fn to_env_vars(&self) -> Vec<(String, String)> {
         vec![
             ("AXAGENT_ALLOW_WRITE".into(), self.allow_write.to_string()),
-            (
-                "AXAGENT_ALLOW_EXECUTE".into(),
-                self.allow_execute.to_string(),
-            ),
-            (
-                "AXAGENT_ALLOW_NETWORK".into(),
-                self.allow_network.to_string(),
-            ),
+            ("AXAGENT_ALLOW_EXECUTE".into(), self.allow_execute.to_string()),
+            ("AXAGENT_ALLOW_NETWORK".into(), self.allow_network.to_string()),
         ]
     }
 }

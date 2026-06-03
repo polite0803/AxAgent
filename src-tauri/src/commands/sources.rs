@@ -136,7 +136,7 @@ pub async fn search_all_sources(
     top_k: Option<usize>,
 ) -> Result<axagent_core::types::RagContextResult, String> {
     let db = &state.sea_db;
-    let master_key = &state.master_key;
+    let master_key = state.harness.master_key();
     let vector_store = &state.vector_store;
     let top_k = top_k.unwrap_or(5);
 

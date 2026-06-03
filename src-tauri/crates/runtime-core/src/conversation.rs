@@ -125,7 +125,7 @@ pub trait ApiClient {
 /// Trait implemented by tool dispatchers that execute model-requested tools.
 /// 注意：使用 `&mut self`。对于并发场景，外层通过 `Arc<Mutex<T>>` 包装。
 /// StaticToolExecutor 内部已使用 Mutex 实现内部可变性。
-pub trait ToolExecutor {
+pub trait ToolExecutor: Send {
     fn execute(&mut self, tool_name: &str, input: &str) -> Result<String, ToolError>;
 
     /// 批量执行工具调用。默认实现串行逐个执行，子类型可覆盖为并发编排。

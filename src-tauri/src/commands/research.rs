@@ -9,7 +9,6 @@ use axagent_core::repo::message as message_repo;
 use axagent_core::repo::provider::{self as provider_repo, get_active_key};
 use axagent_core::types::{ChatContent, ChatMessage, ChatRequest, MessageRole};
 use axagent_harness::resolve_base_url_for_type;
-use axagent_providers::registry::ProviderRegistry;
 use serde::{Deserialize, Serialize};
 use tauri::State;
 
@@ -177,7 +176,7 @@ pub async fn generate_research_report(
         .await
         .map_err(|e| format!("无活跃密钥: {}", e))?;
 
-    let api_key = decrypt_key(&key_row.key_encrypted, &state.master_key)
+    let api_key = decrypt_key(&key_row.key_encrypted, state.harness.master_key())
         .map_err(|e| format!("密钥解密失败: {}", e))?;
 
     // 3. 创建 ProviderAdapter

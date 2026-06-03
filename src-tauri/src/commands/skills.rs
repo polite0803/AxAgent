@@ -1894,8 +1894,8 @@ pub async fn skill_analyze_frontend(
     let key_row = axagent_core::repo::provider::get_active_key(&state.sea_db, &provider.id)
         .await
         .map_err(|e| e.to_string())?;
-    let decrypted_key =
-        decrypt_key(&key_row.key_encrypted, &state.master_key).map_err(|e| e.to_string())?;
+    let decrypted_key = decrypt_key(&key_row.key_encrypted, state.harness.master_key())
+        .map_err(|e| e.to_string())?;
 
     let registry_key = match provider.provider_type {
         ProviderType::OpenAI => "openai",

@@ -19,7 +19,10 @@ fn key_from_entity(m: provider_keys::Model) -> ProviderKey {
     }
 }
 
-pub async fn list_keys_for_provider(db: &DatabaseConnection, provider_id: &str) -> Result<Vec<ProviderKey>> {
+pub async fn list_keys_for_provider(
+    db: &DatabaseConnection,
+    provider_id: &str,
+) -> Result<Vec<ProviderKey>> {
     let rows = provider_keys::Entity::find()
         .filter(provider_keys::Column::ProviderId.eq(provider_id))
         .order_by_asc(provider_keys::Column::RotationIndex)
@@ -112,7 +115,10 @@ pub async fn update_key_validation(
     Ok(())
 }
 
-pub async fn get_enabled_keys(db: &DatabaseConnection, provider_id: &str) -> Result<Vec<ProviderKey>> {
+pub async fn get_enabled_keys(
+    db: &DatabaseConnection,
+    provider_id: &str,
+) -> Result<Vec<ProviderKey>> {
     let rows = provider_keys::Entity::find()
         .filter(provider_keys::Column::ProviderId.eq(provider_id))
         .filter(provider_keys::Column::Enabled.eq(1))
@@ -123,7 +129,11 @@ pub async fn get_enabled_keys(db: &DatabaseConnection, provider_id: &str) -> Res
     Ok(rows.into_iter().map(key_from_entity).collect())
 }
 
-pub async fn update_rotation_index(db: &DatabaseConnection, key_id: &str, index: u32) -> Result<()> {
+pub async fn update_rotation_index(
+    db: &DatabaseConnection,
+    key_id: &str,
+    index: u32,
+) -> Result<()> {
     if let Some(row) = provider_keys::Entity::find_by_id(key_id).one(db).await? {
         let mut am: provider_keys::ActiveModel = row.into();
         am.rotation_index = Set(index as i32);

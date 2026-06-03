@@ -66,15 +66,25 @@ impl AtomicSkillExecutor {
             },
             // 列表操作
             "list.length" => {
-                let len = input.get("value").and_then(|v| v.as_array()).map(|a| a.len()).unwrap_or(0);
+                let len = input
+                    .get("value")
+                    .and_then(|v| v.as_array())
+                    .map(|a| a.len())
+                    .unwrap_or(0);
                 Ok(Value::Number((len as i64).into()))
             },
             "list.filter" => {
-                let arr = input.get("value").and_then(|v| v.as_array()).cloned().unwrap_or_default();
+                let arr = input
+                    .get("value")
+                    .and_then(|v| v.as_array())
+                    .cloned()
+                    .unwrap_or_default();
                 let key = input.get("key").and_then(|v| v.as_str());
                 let val = input.get("match");
                 let filtered: Vec<Value> = if let (Some(k), Some(v)) = (key, val) {
-                    arr.into_iter().filter(|item| item.get(k) == Some(v)).collect()
+                    arr.into_iter()
+                        .filter(|item| item.get(k) == Some(v))
+                        .collect()
                 } else {
                     arr
                 };

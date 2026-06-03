@@ -127,9 +127,9 @@ pub async fn create_rl_policy(
     .exec(db)
     .await?;
 
-    get_rl_policy(db, &id)
-        .await
-        .and_then(|opt| opt.ok_or_else(|| AxAgentError::Internal("RL policy insert returned None".to_string())))
+    get_rl_policy(db, &id).await.and_then(|opt| {
+        opt.ok_or_else(|| AxAgentError::Internal("RL policy insert returned None".to_string()))
+    })
 }
 
 pub async fn delete_rl_policy(db: &DatabaseConnection, id: &str) -> Result<()> {
@@ -197,7 +197,9 @@ pub async fn record_rl_experience(
         policy_type: Set(row.policy_type),
         model_id: Set(row.model_id),
         reward_signals_json: Set(row.reward_signals_json),
-        experiences_json: Set(serde_json::to_string(&experiences).unwrap_or_else(|_| "[]".to_string())),
+        experiences_json: Set(
+            serde_json::to_string(&experiences).unwrap_or_else(|_| "[]".to_string())
+        ),
         total_experiences: Set(new_total),
         episodes_completed: Set(row.episodes_completed),
         avg_reward: Set(new_avg),

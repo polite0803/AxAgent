@@ -36,16 +36,16 @@
 //! assign_task(&mut team, task, "Alice@DreamTeam");
 //! ```
 
+pub mod backends;
 pub mod constants;
-pub mod team_helpers;
-pub mod spawn_utils;
 pub mod permission_sync;
 pub mod reconnection;
-pub mod backends;
+pub mod spawn_utils;
+pub mod team_helpers;
 
 // 重新导出最常用的类型和函数
 pub use constants::*;
 pub use team_helpers::{
-    add_teammate, assign_task, create_team, is_swarm_enabled, remove_teammate, teammate_id,
     BackendType, TaskStatus, Team, TeamTask, Teammate, TeammateMessage, TeammateStatus,
+    add_teammate, assign_task, create_team, is_swarm_enabled, remove_teammate, teammate_id,
 };

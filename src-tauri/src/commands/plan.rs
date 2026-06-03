@@ -233,7 +233,6 @@ async fn generate_plan_via_llm(
 ) -> Result<Plan, String> {
     use axagent_core::repo::provider::{self, get_active_key};
     use axagent_harness::resolve_base_url_for_type;
-    use axagent_providers::registry::ProviderRegistry;
 
     let db = &state.sea_db;
 
@@ -261,8 +260,9 @@ async fn generate_plan_via_llm(
         .await
         .map_err(|e| format!("No active provider key: {}", e))?;
 
-    let api_key = axagent_core::crypto::decrypt_key(&key_row.key_encrypted, &state.master_key)
-        .map_err(|e| format!("Failed to decrypt provider key: {}", e))?;
+    let api_key =
+        axagent_core::crypto::decrypt_key(&key_row.key_encrypted, state.harness.master_key())
+            .map_err(|e| format!("Failed to decrypt provider key: {}", e))?;
 
     // Parse proxy config from the provider
     let proxy_config = provider_config.proxy_config.clone();
@@ -492,7 +492,7 @@ async fn build_agent_context(
         .find(|k| k.enabled)
         .ok_or_else(|| "No active API key for provider".to_string())?;
 
-    let api_key = axagent_core::crypto::decrypt_key(&key.key_encrypted, &state.master_key)
+    let api_key = axagent_core::crypto::decrypt_key(&key.key_encrypted, state.harness.master_key())
         .map_err(|e| e.to_string())?;
 
     let settings = axagent_core::repo::settings::get_settings(db)

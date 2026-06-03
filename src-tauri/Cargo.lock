@@ -979,7 +979,6 @@ dependencies = [
  "async-trait",
  "axagent-core",
  "axagent-harness",
- "axagent-providers",
  "axum",
  "axum-server",
  "futures",

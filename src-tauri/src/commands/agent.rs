@@ -738,8 +738,9 @@ pub async fn agent_query(
     info!("[agent_query] Found active key");
 
     // Decrypt key
-    let api_key = axagent_core::crypto::decrypt_key(&key.key_encrypted, &app_state.master_key)
-        .map_err(|e| e.to_string())?;
+    let api_key =
+        axagent_core::crypto::decrypt_key(&key.key_encrypted, app_state.harness.master_key())
+            .map_err(|e| e.to_string())?;
     info!("[agent_query] Decrypted API key");
 
     // Get settings from database
@@ -1035,7 +1036,9 @@ pub async fn agent_query(
             .ok()
             .flatten()
             .and_then(|e| e.api_key_ref)
-            .and_then(|enc| axagent_core::crypto::decrypt_key(&enc, &app_state.master_key).ok())
+            .and_then(|enc| {
+                axagent_core::crypto::decrypt_key(&enc, app_state.harness.master_key()).ok()
+            })
             .unwrap_or_default();
         tool_registry = tool_registry
             .with_tool_extra(context_keys::SEARCH_PROVIDER_TYPE, &sp.provider_type)
@@ -1086,7 +1089,7 @@ pub async fn agent_query(
                 tool_name.clone(),
                 Box::new(move |input: &str| {
                     execute_skill_sync(&skill_id, &skill_name, &skill_content, input, &ctx)
-                        .map_err(axagent_agent::ToolError::new)
+                        .map_err(axagent_harness::ToolError::new)
                 }),
             );
         }
@@ -1388,7 +1391,7 @@ pub async fn agent_query(
     let wiki_ids = request.enabled_wiki_ids.clone().unwrap_or_default();
     let rag_result = crate::indexing::collect_rag_context(
         &app_state.sea_db,
-        &app_state.master_key,
+        app_state.harness.master_key(),
         &app_state.vector_store,
         &kb_ids,
         &mem_ids,

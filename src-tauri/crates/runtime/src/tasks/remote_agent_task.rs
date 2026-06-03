@@ -176,12 +176,11 @@ impl RemoteAgentClient {
         let url = format!("{}/api/tasks", task.url());
         let headers = task.build_headers();
 
-        let mut req = self.http_client
+        let mut req = self
+            .http_client
             .post(&url)
             .json(request)
-            .timeout(Duration::from_secs(
-                request.timeout_secs.unwrap_or(300),
-            ));
+            .timeout(Duration::from_secs(request.timeout_secs.unwrap_or(300)));
 
         for (key, value) in &headers {
             req = req.header(key.as_str(), value.as_str());
@@ -197,10 +196,7 @@ impl RemoteAgentClient {
     }
 
     /// 查询远程 agent 状态
-    pub async fn get_status(
-        &self,
-        task: &RemoteAgentTask,
-    ) -> Result<RemoteAgentStatus, String> {
+    pub async fn get_status(&self, task: &RemoteAgentTask) -> Result<RemoteAgentStatus, String> {
         let url = format!("{}/api/status", task.url());
         let headers = task.build_headers();
 
@@ -209,7 +205,10 @@ impl RemoteAgentClient {
             req = req.header(key.as_str(), value.as_str());
         }
 
-        let response = req.send().await.map_err(|e| format!("状态查询失败: {}", e))?;
+        let response = req
+            .send()
+            .await
+            .map_err(|e| format!("状态查询失败: {}", e))?;
 
         match response.status().as_u16() {
             200 => Ok(RemoteAgentStatus::Connected),

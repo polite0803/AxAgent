@@ -1037,7 +1037,12 @@ pub fn run() {
             let state = match std::thread::spawn(move || {
                 init::state::create_app_state(db_result)
             }).join() {
-                Ok(s) => s,
+                Ok(Ok(s)) => s,
+                Ok(Err(e)) => {
+                    tracing::error!("App state init returned error: {}", e);
+                    android_utils::report_fatal_error(&format!("App state init failed: {}", e));
+                    return Ok(());
+                }
                 Err(e) => {
                     tracing::error!("App state init thread panicked: {:?}", e);
                     android_utils::report_fatal_error(&format!("App state init thread panicked: {:?}", e));

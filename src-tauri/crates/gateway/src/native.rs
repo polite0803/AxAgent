@@ -836,7 +836,7 @@ async fn proxy_stream_response(
 /// 构建 HTTP 客户端（含代理配置）— 从 axagent-providers 内联
 fn build_http_client(
     proxy_config: Option<&ProviderProxyConfig>,
-) -> Result<reqwest::Client, AxAgentError> {
+) -> Result<reqwest::Client, Box<AxAgentError>> {
     #[cfg(target_os = "android")]
     let mut builder = reqwest::Client::builder().use_native_tls();
     #[cfg(not(target_os = "android"))]
@@ -855,7 +855,7 @@ fn build_http_client(
                         };
                         let proxy_url = format!("{}://{}:{}", scheme, addr, port);
                         let proxy = reqwest::Proxy::all(&proxy_url).map_err(|e| {
-                            AxAgentError::Gateway(format!("Invalid proxy URL: {}", e))
+                            Box::new(AxAgentError::Gateway(format!("Invalid proxy URL: {}", e)))
                         })?;
                         builder = builder.proxy(proxy);
                     } else {
@@ -884,7 +884,7 @@ fn build_http_client(
         .timeout(std::time::Duration::from_secs(300))
         .pool_idle_timeout(std::time::Duration::from_secs(90))
         .build()
-        .map_err(|e| AxAgentError::Gateway(format!("Failed to build HTTP client: {}", e)))
+        .map_err(|e| Box::new(AxAgentError::Gateway(format!("Failed to build HTTP client: {}", e))))
 }
 
 async fn handle_native_request(
@@ -1265,9 +1265,7 @@ mod tests {
             db: handle.conn.clone(),
             master_key,
             started_at: 0,
-            provider_registry: std::sync::Arc::new(
-                axagent_providers::registry::ProviderRegistry::create_default(),
-            ),
+            provider_registry: axagent_harness::test_support::empty_provider_registry(),
         };
         (create_router(state.clone()), handle, gateway_key.plain_key, state)
     }
@@ -1676,9 +1674,7 @@ mod tests {
             db: handle.conn.clone(),
             master_key,
             started_at: 0,
-            provider_registry: std::sync::Arc::new(
-                axagent_providers::registry::ProviderRegistry::create_default(),
-            ),
+            provider_registry: axagent_harness::test_support::empty_provider_registry(),
         });
         let response = app
             .oneshot(

@@ -1,8 +1,8 @@
 use std::path::PathBuf;
 
 use sea_orm::{
-    ActiveModelTrait, ColumnTrait, ConnectOptions, ConnectionTrait, Database, DatabaseConnection,
-    DbBackend, EntityTrait, QueryFilter, Set, Statement,
+    ActiveModelTrait, ColumnTrait, ConnectOptions, ConnectionTrait, Database, DbBackend,
+    EntityTrait, QueryFilter, Set, Statement,
 };
 use tracing::info;
 
@@ -12,8 +12,14 @@ use crate::repo::provider;
 use crate::types::*;
 use crate::utils::now_ts;
 
+// 再导出 sea-orm 的连接类型，使 axagent-harness 可以基于此定义 Persistence trait，
+// 消费者（agent/tools/runtime）只需 `use axagent_harness::DatabaseConnection`，
+// 无需在自己的 Cargo.toml 中直接依赖 sea-orm。
+pub use sea_orm::DatabaseConnection;
+
 pub struct DbHandle {
     pub conn: DatabaseConnection,
+    pub path: String,
 }
 
 pub async fn create_pool(db_path: &str) -> Result<DbHandle> {
@@ -61,7 +67,10 @@ pub async fn create_pool(db_path: &str) -> Result<DbHandle> {
     // 工作流模板按需导入，通过前端工作流管理页面的"从预设导入"按钮触发 seed_preset_templates Tauri 命令。
 
     info!("Database initialized at {}", db_path);
-    Ok(DbHandle { conn })
+    Ok(DbHandle {
+        conn,
+        path: db_path.to_string(),
+    })
 }
 
 pub fn default_db_path() -> String {
@@ -527,5 +536,8 @@ pub async fn create_test_pool() -> Result<DbHandle> {
     conn.execute_raw(Statement::from_string(DbBackend::Sqlite, "PRAGMA foreign_keys=ON;"))
         .await?;
     crate::ddl::run_initialization(&conn).await?;
-    Ok(DbHandle { conn })
+    Ok(DbHandle {
+        conn,
+        path: ":memory:".to_string(),
+    })
 }

@@ -2340,7 +2340,7 @@ pub(crate) fn error_response(status: StatusCode, message: &str) -> axum::respons
 async fn resolve_hermes_provider_context(
     db: &DatabaseConnection,
     master_key: &[u8; 32],
-    registry: &dyn axagent_harness::registry::ProviderRegistry,
+    _registry: &dyn axagent_harness::registry::ProviderRegistry,
 ) -> Result<(ProviderConfig, ProviderRequestContext), axum::response::Response> {
     let providers: Vec<ProviderConfig> = match axagent_core::repo::provider::list_providers(db)
         .await

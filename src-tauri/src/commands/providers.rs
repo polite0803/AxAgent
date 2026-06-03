@@ -70,7 +70,7 @@ pub async fn add_provider_key(
     let real_id = axagent_core::repo::provider::resolve_provider_id(&state.sea_db, &provider_id)
         .await
         .map_err(|e| e.to_string())?;
-    let encrypted = axagent_core::crypto::encrypt_key(&raw_key, &state.master_key)
+    let encrypted = axagent_core::crypto::encrypt_key(&raw_key, state.harness.master_key())
         .map_err(|e| e.to_string())?;
     let prefix = if raw_key.len() >= 8 {
         format!("{}...", &raw_key[..8])
@@ -88,7 +88,7 @@ pub async fn update_provider_key(
     key_id: String,
     raw_key: String,
 ) -> Result<ProviderKey, String> {
-    let encrypted = axagent_core::crypto::encrypt_key(&raw_key, &state.master_key)
+    let encrypted = axagent_core::crypto::encrypt_key(&raw_key, state.harness.master_key())
         .map_err(|e| e.to_string())?;
     let prefix = if raw_key.len() >= 8 {
         format!("{}...", &raw_key[..8])
@@ -126,7 +126,7 @@ pub async fn get_decrypted_provider_key(
     let key_row = axagent_core::repo::provider::get_provider_key(&state.sea_db, &key_id)
         .await
         .map_err(|e| e.to_string())?;
-    axagent_core::crypto::decrypt_key(&key_row.key_encrypted, &state.master_key)
+    axagent_core::crypto::decrypt_key(&key_row.key_encrypted, state.harness.master_key())
         .map_err(|e| e.to_string())
 }
 
@@ -138,8 +138,9 @@ pub async fn validate_provider_key(
     let key_row = axagent_core::repo::provider::get_provider_key(&state.sea_db, &key_id)
         .await
         .map_err(|e| e.to_string())?;
-    let decrypted = axagent_core::crypto::decrypt_key(&key_row.key_encrypted, &state.master_key)
-        .map_err(|e| e.to_string())?;
+    let decrypted =
+        axagent_core::crypto::decrypt_key(&key_row.key_encrypted, state.harness.master_key())
+            .map_err(|e| e.to_string())?;
     let provider = axagent_core::repo::provider::get_provider(&state.sea_db, &key_row.provider_id)
         .await
         .map_err(|e| e.to_string())?;
@@ -260,8 +261,9 @@ pub async fn fetch_remote_models(
     let key_row = axagent_core::repo::provider::get_active_key(&state.sea_db, &real_id)
         .await
         .map_err(|e| e.to_string())?;
-    let decrypted = axagent_core::crypto::decrypt_key(&key_row.key_encrypted, &state.master_key)
-        .map_err(|e| e.to_string())?;
+    let decrypted =
+        axagent_core::crypto::decrypt_key(&key_row.key_encrypted, state.harness.master_key())
+            .map_err(|e| e.to_string())?;
 
     let provider_type_str = match provider.provider_type {
         ProviderType::OpenAI => "openai",
@@ -350,8 +352,9 @@ pub async fn test_model(
     let key_row = axagent_core::repo::provider::get_active_key(&state.sea_db, &real_id)
         .await
         .map_err(|e| e.to_string())?;
-    let decrypted = axagent_core::crypto::decrypt_key(&key_row.key_encrypted, &state.master_key)
-        .map_err(|e| e.to_string())?;
+    let decrypted =
+        axagent_core::crypto::decrypt_key(&key_row.key_encrypted, state.harness.master_key())
+            .map_err(|e| e.to_string())?;
 
     let provider_type_str = match provider.provider_type {
         ProviderType::OpenAI => "openai",

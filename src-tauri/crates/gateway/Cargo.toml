@@ -4,9 +4,6 @@ version.workspace = true
 edition.workspace = true
 publish = false
 
-[dev-dependencies]
-axagent-providers = { path = "../providers" }
-
 [dependencies]
 axagent-core = { path = "../core" }
 axagent-harness = { path = "../harness" }

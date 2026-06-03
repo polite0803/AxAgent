@@ -42,10 +42,7 @@ impl ProcessBackend {
         if let Some(ref mut child) = self.child {
             super::super::spawn_utils::send_message(child, message)
         } else {
-            Err(std::io::Error::new(
-                std::io::ErrorKind::NotConnected,
-                "队友进程未启动",
-            ))
+            Err(std::io::Error::new(std::io::ErrorKind::NotConnected, "队友进程未启动"))
         }
     }
 
@@ -65,7 +62,7 @@ impl ProcessBackend {
     pub fn is_alive(&mut self) -> bool {
         match self.child.as_mut() {
             Some(child) => match child.try_wait() {
-                Ok(None) => true,  // 仍在运行
+                Ok(None) => true,     // 仍在运行
                 Ok(Some(_)) => false, // 已退出
                 Err(_) => false,
             },

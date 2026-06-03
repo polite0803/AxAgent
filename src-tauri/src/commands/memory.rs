@@ -1,9 +1,7 @@
 use crate::AppState;
 use axagent_core::prompts::PromptLang;
 use axagent_core::types::*;
-use axagent_providers::{
-    ProviderRequestContext, registry::ProviderRegistry, resolve_base_url_for_type,
-};
+use axagent_providers::{ProviderRequestContext, resolve_base_url_for_type};
 use sea_orm::ActiveModelTrait;
 use tauri::{AppHandle, Emitter, State};
 
@@ -107,7 +105,7 @@ pub async fn add_memory_item(
         .await;
 
         let db = state.sea_db.clone();
-        let master_key = state.master_key;
+        let master_key = state.harness.master_key_owned();
         let vector_store = state.vector_store.clone();
         let item_id = item.id.clone();
         let content = item.content.clone();
@@ -220,7 +218,7 @@ pub async fn update_memory_item(
             .await;
 
             let db = state.sea_db.clone();
-            let master_key = state.master_key;
+            let master_key = state.harness.master_key_owned();
             let vector_store = state.vector_store.clone();
             let item_id = item.id.clone();
             let content = item.content.clone();
@@ -303,7 +301,7 @@ pub async fn search_memory(
     let _ = ns; // Namespace exists, proceed
     crate::indexing::search_memory(
         &state.sea_db,
-        &state.master_key,
+        state.harness.master_key(),
         &state.vector_store,
         &namespace_id,
         &query,
@@ -348,7 +346,7 @@ pub async fn rebuild_memory_index(
     }
 
     let db = state.sea_db.clone();
-    let master_key = state.master_key;
+    let master_key = state.harness.master_key_owned();
     let vector_store = state.vector_store.clone();
 
     tokio::spawn(async move {
@@ -515,8 +513,9 @@ pub async fn auto_extract_incremental_memories(
         (provider, key_row, model_id.to_string(), settings)
     };
 
-    let api_key = axagent_core::crypto::decrypt_key(&key_row.key_encrypted, &state.master_key)
-        .map_err(|e| e.to_string())?;
+    let api_key =
+        axagent_core::crypto::decrypt_key(&key_row.key_encrypted, state.harness.master_key())
+            .map_err(|e| e.to_string())?;
 
     let proxy = ProviderProxyConfig::resolve(&provider.proxy_config, &settings);
     let ctx = ProviderRequestContext {
@@ -617,7 +616,7 @@ pub async fn auto_extract_incremental_memories(
                     .await;
 
                     let db = state.sea_db.clone();
-                    let master_key = state.master_key;
+                    let master_key = state.harness.master_key_owned();
                     let vector_store = state.vector_store.clone();
                     let item_id = mem_item.id.clone();
                     let content = mem_item.content.clone();
@@ -763,7 +762,7 @@ pub async fn reindex_memory_item(
     .await;
 
     let db = state.sea_db.clone();
-    let master_key = state.master_key;
+    let master_key = state.harness.master_key_owned();
     let vector_store = state.vector_store.clone();
     let iid = item_id.clone();
     let content = item.content.clone();
@@ -856,7 +855,7 @@ pub async fn sync_working_memory_to_namespace(
                         .await;
 
                         let db = state.sea_db.clone();
-                        let master_key = state.master_key;
+                        let master_key = state.harness.master_key_owned();
                         let vector_store = state.vector_store.clone();
                         let item_id = mem_item.id.clone();
                         let item_content = mem_item.content.clone();
@@ -1042,8 +1041,9 @@ pub async fn extract_conversation_entities(
         (provider, key_row, model_id.to_string(), settings)
     };
 
-    let api_key = axagent_core::crypto::decrypt_key(&key_row.key_encrypted, &state.master_key)
-        .map_err(|e| e.to_string())?;
+    let api_key =
+        axagent_core::crypto::decrypt_key(&key_row.key_encrypted, state.harness.master_key())
+            .map_err(|e| e.to_string())?;
 
     let proxy = ProviderProxyConfig::resolve(&provider.proxy_config, &settings);
     let ctx = ProviderRequestContext {
@@ -1335,8 +1335,9 @@ pub async fn consolidate_memory_cluster(
         (provider, key_row, model_id.to_string(), settings)
     };
 
-    let api_key = axagent_core::crypto::decrypt_key(&key_row.key_encrypted, &state.master_key)
-        .map_err(|e| e.to_string())?;
+    let api_key =
+        axagent_core::crypto::decrypt_key(&key_row.key_encrypted, state.harness.master_key())
+            .map_err(|e| e.to_string())?;
 
     let proxy = ProviderProxyConfig::resolve(&provider.proxy_config, &settings);
     let ctx = ProviderRequestContext {
@@ -1424,7 +1425,7 @@ async fn check_semantic_duplicate(
 
     let embed_result = crate::indexing::generate_embeddings(
         &state.sea_db,
-        &state.master_key,
+        state.harness.master_key(),
         embedding_provider,
         vec![content.to_string()],
         dimensions,
@@ -1484,8 +1485,9 @@ pub async fn extract_conversation_memories(
         (provider, key_row, model_id.to_string(), settings)
     };
 
-    let api_key = axagent_core::crypto::decrypt_key(&key_row.key_encrypted, &state.master_key)
-        .map_err(|e| e.to_string())?;
+    let api_key =
+        axagent_core::crypto::decrypt_key(&key_row.key_encrypted, state.harness.master_key())
+            .map_err(|e| e.to_string())?;
 
     let proxy = ProviderProxyConfig::resolve(&provider.proxy_config, &settings);
     let ctx = ProviderRequestContext {
@@ -1584,7 +1586,7 @@ pub async fn extract_conversation_memories(
                         .await;
 
                         let db = state.sea_db.clone();
-                        let master_key = state.master_key;
+                        let master_key = state.harness.master_key_owned();
                         let vector_store = state.vector_store.clone();
                         let item_id = mem_item.id.clone();
                         let content = mem_item.content.clone();

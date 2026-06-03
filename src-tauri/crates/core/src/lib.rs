@@ -66,6 +66,7 @@ pub mod operation_audit;
 pub mod output_processor;
 #[allow(clippy::unwrap_used)]
 pub mod path_vars;
+pub mod persistence;
 pub mod platform_config;
 pub mod preset_templates;
 #[allow(clippy::unwrap_used)]

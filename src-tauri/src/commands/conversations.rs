@@ -9,8 +9,7 @@ use crate::commands::error_code::title as title_err;
 use crate::commands::proactive::ProactiveService;
 use axagent_core::types::*;
 use axagent_providers::{
-    ProviderRequestContext, extract_reasoning_from_text, registry::ProviderRegistry,
-    resolve_base_url_for_type,
+    ProviderRequestContext, extract_reasoning_from_text, resolve_base_url_for_type,
 };
 #[cfg(test)]
 use axagent_runtime_core::prompt_cache::PromptCache;
@@ -712,7 +711,7 @@ pub async fn archive_conversation_to_knowledge_base(
     if kb.embedding_provider.is_some() {
         let container = axagent_core::rag::KnowledgeContainer::from_knowledge_base(&kb);
         let db = state.sea_db.clone();
-        let master_key = state.master_key;
+        let master_key = state.harness.master_key_owned();
         let vector_store = state.vector_store.clone();
         let doc_id = doc.id.clone();
         let src_path = doc.source_path.clone();
@@ -1637,7 +1636,14 @@ pub async fn generate_ai_title(
     settings: &AppSettings,
     master_key: &[u8; 32],
 ) -> Result<String, String> {
-    let harness = axagent_runtime::harness::RuntimeHarness::new(db.clone(), *master_key);
+    let harness =
+        axagent_runtime::harness::RuntimeHarness::new(axagent_runtime::harness::HarnessDeps {
+            persistence: Arc::new(axagent_core::db::DbHandle {
+                conn: db.clone(),
+                path: String::new(),
+            }) as Arc<dyn axagent_harness::Persistence>,
+            master_key: *master_key,
+        });
     let TitleFallbackModel {
         provider: fallback_provider,
         ctx: fallback_ctx,
@@ -1866,7 +1872,7 @@ pub async fn regenerate_conversation_title(
     conversation_id: String,
 ) -> Result<(), String> {
     let db = state.sea_db.clone();
-    let master_key = state.master_key;
+    let master_key = state.harness.master_key_owned();
 
     // Load conversation
     let conversation = axagent_core::repo::conversation::get_conversation(&db, &conversation_id)
@@ -2902,7 +2908,7 @@ pub async fn send_message(
             .await
             .map_err(|e| e.to_string())?;
     let decrypted_key =
-        axagent_core::crypto::decrypt_key(&key_row.key_encrypted, &state.master_key)
+        axagent_core::crypto::decrypt_key(&key_row.key_encrypted, state.harness.master_key())
             .map_err(|e| e.to_string())?;
 
     // Get model info for param overrides and token budget
@@ -3054,7 +3060,7 @@ pub async fn send_message(
     .await;
     let mut rag_result = crate::indexing::collect_rag_context(
         &state.sea_db,
-        &state.master_key,
+        state.harness.master_key(),
         &state.vector_store,
         &kb_ids,
         &mem_ids,
@@ -3190,7 +3196,7 @@ pub async fn send_message(
                 history_messages: &history_messages,
                 existing_summary: existing_summary.as_ref().map(|s| s.summary_text.as_str()),
                 settings: &global_settings,
-                master_key: &state.master_key,
+                master_key: state.harness.master_key(),
             },
             CompressProviderInfo {
                 provider: &provider,
@@ -3426,7 +3432,7 @@ pub async fn send_message(
             thinking_param_style,
             request_delay_ms,
             settings: global_settings,
-            master_key: state.master_key,
+            master_key: state.harness.master_key_owned(),
             cancel_flag,
             cancel_flags: state.stream_cancel_flags.clone(),
             content_prefix: memory_tag,
@@ -3531,7 +3537,7 @@ pub async fn regenerate_message(
             .await
             .map_err(|e| e.to_string())?;
     let decrypted_key =
-        axagent_core::crypto::decrypt_key(&key_row.key_encrypted, &state.master_key)
+        axagent_core::crypto::decrypt_key(&key_row.key_encrypted, state.harness.master_key())
             .map_err(|e| e.to_string())?;
 
     // 6. Rebuild chat messages (active messages only — old inactive versions excluded)
@@ -3568,7 +3574,7 @@ pub async fn regenerate_message(
         .await;
         let mut rag_result = crate::indexing::collect_rag_context(
             &state.sea_db,
-            &state.master_key,
+            state.harness.master_key(),
             &state.vector_store,
             &kb_ids,
             &mem_ids,
@@ -3838,7 +3844,7 @@ pub async fn regenerate_message(
             thinking_param_style,
             request_delay_ms: regen_request_delay_ms,
             settings: global_settings,
-            master_key: state.master_key,
+            master_key: state.harness.master_key_owned(),
             cancel_flag,
             cancel_flags: state.stream_cancel_flags.clone(),
             content_prefix: memory_tag,
@@ -3923,7 +3929,7 @@ pub async fn regenerate_with_model(
         .await
         .map_err(|e| e.to_string())?;
     let decrypted_key =
-        axagent_core::crypto::decrypt_key(&key_row.key_encrypted, &state.master_key)
+        axagent_core::crypto::decrypt_key(&key_row.key_encrypted, state.harness.master_key())
             .map_err(|e| e.to_string())?;
 
     // Build context messages (same logic as regenerate_message)
@@ -3971,7 +3977,7 @@ pub async fn regenerate_with_model(
         .await;
         let mut rag_result = crate::indexing::collect_rag_context(
             &state.sea_db,
-            &state.master_key,
+            state.harness.master_key(),
             &state.vector_store,
             &kb_ids,
             &mem_ids,
@@ -4273,7 +4279,7 @@ pub async fn regenerate_with_model(
             thinking_param_style,
             request_delay_ms: rwm_request_delay_ms,
             settings: global_settings,
-            master_key: state.master_key,
+            master_key: state.harness.master_key_owned(),
             cancel_flag,
             cancel_flags: state.stream_cancel_flags.clone(),
             content_prefix: memory_tag,
@@ -4521,7 +4527,7 @@ pub async fn compress_context(
         .first()
         .ok_or_else(|| "No API key configured".to_string())?;
     let decrypted_key =
-        axagent_core::crypto::decrypt_key(&key_row.key_encrypted, &state.master_key)
+        axagent_core::crypto::decrypt_key(&key_row.key_encrypted, state.harness.master_key())
             .map_err(|e| e.to_string())?;
 
     let global_settings = axagent_core::repo::settings::get_settings(&state.sea_db)
@@ -4603,7 +4609,7 @@ pub async fn compress_context(
             history_messages: &history_messages,
             existing_summary: existing_summary.as_ref().map(|s| s.summary_text.as_str()),
             settings: &global_settings,
-            master_key: &state.master_key,
+            master_key: state.harness.master_key(),
         },
         CompressProviderInfo {
             provider: &provider,

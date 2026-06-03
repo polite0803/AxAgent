@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
-use tokio::sync::{RwLock, OwnedSemaphorePermit, Semaphore};
+use tokio::sync::{OwnedSemaphorePermit, RwLock, Semaphore};
 use tokio::time::timeout;
 
 type ConnectionFactory<C> = Arc<Box<dyn Fn() -> C + Send + 'static>>;
@@ -112,7 +112,9 @@ impl<C: Send + 'static> ConnectionPool<C> {
             connections: Arc::new(RwLock::new(Vec::new())),
             total_count: Arc::new(RwLock::new(0)),
             semaphore,
-            factory: Arc::new(Box::new(|| panic!("No factory configured")) as Box<dyn Fn() -> C + Send + 'static>),
+            factory: Arc::new(
+                Box::new(|| panic!("No factory configured")) as Box<dyn Fn() -> C + Send + 'static>
+            ),
         }
     }
 
@@ -158,7 +160,11 @@ impl<C: Send + 'static> ConnectionPool<C> {
         if !conn.is_valid {
             let mut count = self.total_count.write().await;
             *count = count.saturating_sub(1);
-            let permit = self.semaphore.clone().acquire_owned().await
+            let permit = self
+                .semaphore
+                .clone()
+                .acquire_owned()
+                .await
                 .map_err(|_| PoolError::SemaphoreClosed)?;
             drop(permit);
             return;
@@ -176,7 +182,11 @@ impl<C: Send + 'static> ConnectionPool<C> {
             *count = count.saturating_sub(1);
         }
 
-        let permit = self.semaphore.clone().acquire_owned().await
+        let permit = self
+            .semaphore
+            .clone()
+            .acquire_owned()
+            .await
             .map_err(|_| PoolError::SemaphoreClosed)?;
         drop(permit);
     }
@@ -241,7 +251,8 @@ where
             connections: self.pool.connections.clone(),
             total_count: self.pool.total_count.clone(),
             semaphore: self.pool.semaphore.clone(),
-            factory: Arc::new(Box::new(self.maker.take().expect("Builder already used")) as Box<dyn Fn() -> C + Send + 'static>),
+            factory: Arc::new(Box::new(self.maker.take().expect("Builder already used"))
+                as Box<dyn Fn() -> C + Send + 'static>),
         })
     }
 }

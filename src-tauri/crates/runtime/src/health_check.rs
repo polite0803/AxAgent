@@ -110,7 +110,9 @@ impl HealthCheckRegistry {
 
             if result.status == HealthState::Unhealthy {
                 overall_state = HealthState::Unhealthy;
-            } else if result.status == HealthState::Degraded && overall_state == HealthState::Healthy {
+            } else if result.status == HealthState::Degraded
+                && overall_state == HealthState::Healthy
+            {
                 overall_state = HealthState::Degraded;
             }
         }
@@ -269,25 +271,36 @@ impl HealthCheckServer {
     }
 
     pub async fn start(self) -> Result<(), std::io::Error> {
-        use axum::{routing::get, Router};
+        use axum::{Router, routing::get};
         use tower_http::cors::{Any, CorsLayer};
 
         let registry = self.registry.clone();
 
         let app = Router::new()
-            .route("/health", get(move || async move {
-                let status = registry.get_status().await;
-                let json = serde_json::to_string(&status).unwrap_or_else(|_| r#"{"error":"serialization failed"}"#.to_string());
-                axum::response::Json(serde_json::from_str(&json).unwrap())
-            }))
-            .route("/health/live", get(move || async move {
-                axum::response::Json(serde_json::json!({ "status": "alive" }))
-            }))
-            .route("/health/ready", get(move || async move {
-                let status = registry.get_status().await;
-                let ready = status.status == HealthState::Healthy || status.status == HealthState::Degraded;
-                axum::response::Json(serde_json::json!({ "ready": ready }))
-            }))
+            .route(
+                "/health",
+                get(move || async move {
+                    let status = registry.get_status().await;
+                    let json = serde_json::to_string(&status)
+                        .unwrap_or_else(|_| r#"{"error":"serialization failed"}"#.to_string());
+                    axum::response::Json(serde_json::from_str(&json).unwrap())
+                }),
+            )
+            .route(
+                "/health/live",
+                get(move || async move {
+                    axum::response::Json(serde_json::json!({ "status": "alive" }))
+                }),
+            )
+            .route(
+                "/health/ready",
+                get(move || async move {
+                    let status = registry.get_status().await;
+                    let ready = status.status == HealthState::Healthy
+                        || status.status == HealthState::Degraded;
+                    axum::response::Json(serde_json::json!({ "ready": ready }))
+                }),
+            )
             .layer(CorsLayer::new().allow_origin(Any));
 
         let addr = format!("{}:{}", self.bind_addr, self.bind_port);
@@ -327,13 +340,13 @@ impl HealthMonitor {
                 match status.status {
                     HealthState::Healthy => {
                         tracing::debug!("Health check: all systems healthy");
-                    }
+                    },
                     HealthState::Degraded => {
                         tracing::warn!("Health check: system degraded - {:?}", status.checks);
-                    }
+                    },
                     HealthState::Unhealthy => {
                         tracing::error!("Health check: system unhealthy - {:?}", status.checks);
-                    }
+                    },
                 }
             }
         });

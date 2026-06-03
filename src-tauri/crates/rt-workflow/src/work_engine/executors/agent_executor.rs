@@ -276,7 +276,6 @@ impl NodeExecutorTrait for AgentExecutor {
             })?;
 
         // 3. 创建 adapter
-        use axagent_core::types::ProviderType;
         use axagent_harness::{ProviderAdapter, resolve_base_url_for_type};
         let registry_key = provider_type_to_registry_key(&prov.provider_type);
         let adapter: Arc<dyn ProviderAdapter> = self

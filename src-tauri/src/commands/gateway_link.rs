@@ -11,7 +11,7 @@ async fn resolve_link_api_key(
     if let Some(ref key_id) = link.api_key_id {
         let plain_key = axagent_core::repo::gateway_key::get_plain_key(
             &state.sea_db,
-            &state.master_key,
+            state.harness.master_key(),
             key_id,
         )
         .await
@@ -40,7 +40,7 @@ pub async fn create_gateway_link(
         let result = axagent_core::repo::gateway_key::create_gateway_key(
             &state.sea_db,
             &key_name,
-            Some(&state.master_key),
+            Some(state.harness.master_key()),
         )
         .await
         .map_err(|e| e.to_string())?;

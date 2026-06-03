@@ -205,7 +205,7 @@ pub async fn llm_wiki_ingest(
         if wiki.embedding_provider.is_some() {
             let container = axagent_core::rag::KnowledgeContainer::from_wiki(&wiki);
             let db = state.sea_db.clone();
-            let master_key = state.master_key;
+            let master_key = state.harness.master_key_owned();
             let vector_store = state.vector_store.clone();
             let wiki_id = input.wiki_id.clone();
             let note_ids = result.generated_note_ids.clone();
@@ -356,7 +356,7 @@ pub async fn llm_wiki_compile(
     })?;
 
     let (adapter, ctx, model) =
-        build_llm_adapter(&state.sea_db, &state.master_key, &embedding_provider).await?;
+        build_llm_adapter(&state.sea_db, state.harness.master_key(), &embedding_provider).await?;
 
     let compiler =
         wiki_compiler::WikiCompiler::new(Arc::new(state.sea_db.clone()), adapter, ctx, model);
@@ -378,7 +378,7 @@ pub async fn llm_wiki_compile(
         if wiki.embedding_provider.is_some() {
             let container = axagent_core::rag::KnowledgeContainer::from_wiki(&wiki);
             let db = state.sea_db.clone();
-            let master_key = state.master_key;
+            let master_key = state.harness.master_key_owned();
             let vector_store = state.vector_store.clone();
             let wiki_id = input.wiki_id.clone();
 
@@ -546,7 +546,7 @@ async fn generate_query_embedding(
     let embed_response = axagent_core::rag::AsyncEmbedFn::generate(
         &embed_fn,
         &state.sea_db,
-        &state.master_key,
+        state.harness.master_key(),
         embedding_provider,
         vec![query.to_string()],
         dims,
@@ -737,7 +737,7 @@ pub async fn llm_wiki_ask(
         .ok_or_else(|| "Wiki has no embedding_provider configured".to_string())?;
 
     let (adapter, ctx, model) =
-        build_llm_adapter(&state.sea_db, &state.master_key, &embedding_provider).await?;
+        build_llm_adapter(&state.sea_db, state.harness.master_key(), &embedding_provider).await?;
 
     let engine = query_engine::QueryEngine::new(Arc::new(state.sea_db.clone()))
         .with_llm(adapter, ctx, model);
@@ -830,7 +830,7 @@ pub async fn wiki_sync_process_pending(
 
         match process_sync_event(
             &state.sea_db,
-            &state.master_key,
+            state.harness.master_key(),
             state.vector_store.as_ref(),
             &item_clone,
         )
@@ -925,7 +925,7 @@ pub async fn wiki_sync_process(state: State<'_, AppState>, queue_id: i64) -> Res
 
     let result = process_sync_event(
         &state.sea_db,
-        &state.master_key,
+        state.harness.master_key(),
         state.vector_store.as_ref(),
         &model_clone,
     )

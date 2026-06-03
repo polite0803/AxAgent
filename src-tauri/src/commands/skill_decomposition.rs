@@ -592,7 +592,7 @@ pub async fn upgrade_tool_with_llm(
         .map_err(|e| e.to_string())?;
 
     let decrypted_key =
-        axagent_core::crypto::decrypt_key(&key_row.key_encrypted, &state.master_key)
+        axagent_core::crypto::decrypt_key(&key_row.key_encrypted, state.harness.master_key())
             .map_err(|e| e.to_string())?;
 
     let registry_key = match provider.provider_type {

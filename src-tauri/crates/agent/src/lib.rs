@@ -151,12 +151,8 @@ pub use hierarchical_planner::{
 };
 pub use insight_generator::{Insight, InsightCategory, InsightGenerator, InsightStats};
 pub use recovery_strategies::{ClassifiedError, ErrorClassifier, ErrorType};
-// 工具相关类型来自 axagent-harness 契约层
-pub use axagent_harness::{
-    PermissionResult, Tool, ToolCategory, ToolContext, ToolError, ToolInfo, ToolRegistry,
-    ToolResult,
-};
-// UnifiedToolRegistry/McpServerConfig/McpToolConfig/ToolExecutionRecorder 由运行时注入，不再从 agent 重导出
+// 工具相关类型来自 axagent-harness 契约层，消费方请直接 `use axagent_harness::Tool` 等。
+// 历史上本模块曾 `pub use axagent_harness::{...}`，已删除以避免双导出导致 crate 边界模糊。
 
 // LocalToolRegistry / LocalToolDef / LocalToolGroup 已删除 — 直接使用 axagent_tools::registry::UnifiedToolRegistry
 // McpRegistry 已删除 — 直接使用 axagent_tools::registry::UnifiedToolRegistry

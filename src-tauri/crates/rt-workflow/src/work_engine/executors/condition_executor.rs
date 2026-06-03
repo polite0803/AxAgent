@@ -273,7 +273,7 @@ impl ConditionExecutor {
         model: &str,
         prompt: &str,
     ) -> Result<bool, String> {
-        use axagent_core::types::{ChatContent, ChatMessage, ChatRequest, ProviderType};
+        use axagent_core::types::{ChatContent, ChatMessage, ChatRequest};
         use axagent_harness::{ProviderAdapter, resolve_base_url_for_type};
 
         let registry_key = provider_type_to_registry_key(&prov.provider_type);

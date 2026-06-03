@@ -46,10 +46,7 @@ pub enum TeammateMessage {
     /// 关闭
     Shutdown,
     /// 自定义消息
-    Custom {
-        from: String,
-        content: String,
-    },
+    Custom { from: String, content: String },
 }
 
 /// 同进程队友任务
@@ -115,20 +112,23 @@ impl InProcessTeammateTask {
     }
 
     /// 接收队友的消息
-    pub async fn recv_from_teammate(
-        &mut self,
-    ) -> Option<TeammateMessage> {
+    pub async fn recv_from_teammate(&mut self) -> Option<TeammateMessage> {
         self.incoming_rx.recv().await
     }
 
     /// 分配任务给队友
-    pub async fn assign_task(&mut self, task_id: &str, description: &str) -> Result<(), mpsc::error::SendError<TeammateMessage>> {
+    pub async fn assign_task(
+        &mut self,
+        task_id: &str,
+        description: &str,
+    ) -> Result<(), mpsc::error::SendError<TeammateMessage>> {
         self.current_task = Some(task_id.to_string());
         self.status = TeammateTaskStatus::Running;
         self.send_to_teammate(TeammateMessage::TaskAssign {
             task_id: task_id.to_string(),
             description: description.to_string(),
-        }).await
+        })
+        .await
     }
 
     /// 标记任务完成

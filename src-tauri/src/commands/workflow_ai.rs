@@ -7,7 +7,6 @@ use axagent_core::types::{
     ProviderType,
 };
 use axagent_core::workflow_types::*;
-use axagent_providers::registry::ProviderRegistry;
 use axagent_providers::{ProviderRequestContext, resolve_base_url_for_type};
 use futures::StreamExt;
 use serde::{Deserialize, Serialize};
@@ -64,7 +63,7 @@ async fn resolve_ai_provider(state: &AppState) -> Result<ResolvedProvider, Strin
         .await
         .map_err(|e| format!("Failed to get provider key: {}", e))?;
 
-    let decrypted_key = decrypt_key(&provider_key.key_encrypted, &state.master_key)
+    let decrypted_key = decrypt_key(&provider_key.key_encrypted, state.harness.master_key())
         .map_err(|e| format!("Failed to decrypt API key: {}", e))?;
 
     let base_url = resolve_base_url_for_type(&provider.api_host, &provider.provider_type);

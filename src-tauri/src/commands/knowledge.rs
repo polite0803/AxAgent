@@ -92,7 +92,7 @@ pub async fn add_knowledge_document(
     if kb.embedding_provider.is_some() {
         let container = axagent_core::rag::KnowledgeContainer::from_knowledge_base(&kb);
         let db = state.sea_db.clone();
-        let master_key = state.master_key;
+        let master_key = state.harness.master_key_owned();
         let vector_store = state.vector_store.clone();
         let doc_id = doc.id.clone();
         let src_path = source_path.clone();
@@ -167,7 +167,7 @@ pub async fn search_knowledge_base(
 ) -> Result<Vec<axagent_core::vector_store::VectorSearchResult>, String> {
     let mut results = crate::indexing::search_knowledge(
         &state.sea_db,
-        &state.master_key,
+        state.harness.master_key(),
         &state.vector_store,
         &base_id,
         &query,
@@ -232,7 +232,7 @@ pub async fn rebuild_knowledge_index(
     let _ = state.vector_store.clear_embeddings(&collection_id).await;
 
     let db = state.sea_db.clone();
-    let master_key = state.master_key;
+    let master_key = state.harness.master_key_owned();
     let vector_store = state.vector_store.clone();
     let ep = embedding_provider.clone();
 
@@ -567,7 +567,7 @@ pub async fn update_knowledge_chunk(
 
     if let Some(embedding_provider) = kb.embedding_provider {
         let db = state.sea_db.clone();
-        let master_key = state.master_key;
+        let master_key = state.harness.master_key_owned();
         let vector_store = state.vector_store.clone();
         let cid = chunk_id.clone();
         let chunk_content = content.clone();
@@ -628,7 +628,7 @@ pub async fn add_knowledge_chunk(
 
     let collection_id = format!("kb_{}", base_id);
     let db = state.sea_db.clone();
-    let master_key = state.master_key;
+    let master_key = state.harness.master_key_owned();
     let vector_store = state.vector_store.clone();
     let doc_id = document_id.clone();
     let chunk_content = content.clone();
@@ -709,7 +709,7 @@ pub async fn reindex_knowledge_chunk(
 
     // Embed the single chunk
     let db = state.sea_db.clone();
-    let master_key = state.master_key;
+    let master_key = state.harness.master_key_owned();
     let vector_store = state.vector_store.clone();
     let cid = chunk_id.clone();
 
@@ -787,7 +787,7 @@ pub async fn rebuild_knowledge_document(
     .await;
 
     let db = state.sea_db.clone();
-    let master_key = state.master_key;
+    let master_key = state.harness.master_key_owned();
     let vector_store = state.vector_store.clone();
     let ep = embedding_provider.clone();
     let doc_id = document_id.clone();

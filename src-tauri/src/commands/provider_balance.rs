@@ -60,7 +60,7 @@ pub async fn fetch_provider_balance(
         .map_err(|e| format!("Database error: {e}"))?
         .ok_or_else(|| "No enabled API key found for the provider.".to_string())?;
 
-    let api_key = decrypt_key(&key.key_encrypted, &state.master_key)
+    let api_key = decrypt_key(&key.key_encrypted, state.harness.master_key())
         .map_err(|e| format!("Failed to decrypt API key: {e}"))?;
 
     let balance = fetch_deepseek_balance(&api_key)

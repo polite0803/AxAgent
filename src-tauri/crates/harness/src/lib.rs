@@ -11,9 +11,14 @@
 //! - 无运行时行为：所有实现都在下游 crate（`axagent-providers`、`axagent-tools` 等）。
 
 pub mod error;
+pub mod persistence;
 pub mod provider;
 pub mod registry;
+pub mod test_support;
 pub mod tool;
+
+// ── Persistence 契约重导出 ──
+pub use persistence::{DatabaseConnection, Persistence, SharedPersistence};
 
 // ── Provider 契约重导出 ──
 pub use provider::{

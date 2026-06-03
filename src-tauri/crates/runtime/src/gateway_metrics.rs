@@ -101,7 +101,12 @@ impl MetricsCollector {
         }
     }
 
-    pub async fn increment_counter(&self, name: &str, value: u64, labels: Option<HashMap<String, String>>) {
+    pub async fn increment_counter(
+        &self,
+        name: &str,
+        value: u64,
+        labels: Option<HashMap<String, String>>,
+    ) {
         let mut counters = self.counters.write().await;
         let counter = counters.entry(name.to_string()).or_insert_with(|| Counter {
             value: 0,
@@ -119,23 +124,37 @@ impl MetricsCollector {
         gauge.value = value;
     }
 
-    pub async fn record_histogram(&self, name: &str, value: f64, labels: Option<HashMap<String, String>>) {
+    pub async fn record_histogram(
+        &self,
+        name: &str,
+        value: f64,
+        labels: Option<HashMap<String, String>>,
+    ) {
         let mut histograms = self.histograms.write().await;
-        let hist = histograms.entry(name.to_string()).or_insert_with(|| Histogram {
-            values: Vec::new(),
-            buckets: HashMap::new(),
-            labels: labels.clone().unwrap_or_default(),
-        });
+        let hist = histograms
+            .entry(name.to_string())
+            .or_insert_with(|| Histogram {
+                values: Vec::new(),
+                buckets: HashMap::new(),
+                labels: labels.clone().unwrap_or_default(),
+            });
         hist.values.push(value);
     }
 
-    pub async fn record_summary(&self, name: &str, value: f64, labels: Option<HashMap<String, String>>) {
+    pub async fn record_summary(
+        &self,
+        name: &str,
+        value: f64,
+        labels: Option<HashMap<String, String>>,
+    ) {
         let mut summaries = self.summaries.write().await;
-        let summary = summaries.entry(name.to_string()).or_insert_with(|| Summary {
-            values: Vec::new(),
-            labels: labels.clone().unwrap_or_default(),
-            quantiles: vec![0.5, 0.9, 0.99],
-        });
+        let summary = summaries
+            .entry(name.to_string())
+            .or_insert_with(|| Summary {
+                values: Vec::new(),
+                labels: labels.clone().unwrap_or_default(),
+                quantiles: vec![0.5, 0.9, 0.99],
+            });
         summary.values.push(value);
     }
 
@@ -234,8 +253,12 @@ impl GatewayMetrics {
             l
         };
 
-        self.collector.increment_counter("gateway_connections_total", 1, Some(labels.clone())).await;
-        self.collector.record_histogram("gateway_connection_latency_ms", latency_ms as f64, Some(labels)).await;
+        self.collector
+            .increment_counter("gateway_connections_total", 1, Some(labels.clone()))
+            .await;
+        self.collector
+            .record_histogram("gateway_connection_latency_ms", latency_ms as f64, Some(labels))
+            .await;
     }
 
     pub async fn record_message(&self, from: &str, to: &str, size_bytes: u64, latency_ms: u64) {
@@ -243,9 +266,15 @@ impl GatewayMetrics {
         labels.insert("from".to_string(), from.to_string());
         labels.insert("to".to_string(), to.to_string());
 
-        self.collector.increment_counter("gateway_messages_total", 1, Some(labels.clone())).await;
-        self.collector.record_histogram("gateway_message_size_bytes", size_bytes as f64, Some(labels.clone())).await;
-        self.collector.record_histogram("gateway_message_latency_ms", latency_ms as f64, Some(labels)).await;
+        self.collector
+            .increment_counter("gateway_messages_total", 1, Some(labels.clone()))
+            .await;
+        self.collector
+            .record_histogram("gateway_message_size_bytes", size_bytes as f64, Some(labels.clone()))
+            .await;
+        self.collector
+            .record_histogram("gateway_message_latency_ms", latency_ms as f64, Some(labels))
+            .await;
     }
 
     pub async fn record_request(&self, endpoint: &str, method: &str, status: u16, latency_ms: u64) {
@@ -254,8 +283,12 @@ impl GatewayMetrics {
         labels.insert("method".to_string(), method.to_string());
         labels.insert("status".to_string(), status.to_string());
 
-        self.collector.increment_counter("gateway_requests_total", 1, Some(labels.clone())).await;
-        self.collector.record_histogram("gateway_request_latency_ms", latency_ms as f64, Some(labels)).await;
+        self.collector
+            .increment_counter("gateway_requests_total", 1, Some(labels.clone()))
+            .await;
+        self.collector
+            .record_histogram("gateway_request_latency_ms", latency_ms as f64, Some(labels))
+            .await;
     }
 
     pub async fn record_error(&self, error_type: &str, agent_id: Option<&str>) {
@@ -264,17 +297,23 @@ impl GatewayMetrics {
         if let Some(id) = agent_id {
             labels.insert("agent_id".to_string(), id.to_string());
         }
-        self.collector.increment_counter("gateway_errors_total", 1, Some(labels)).await;
+        self.collector
+            .increment_counter("gateway_errors_total", 1, Some(labels))
+            .await;
     }
 
     pub async fn update_active_connections(&self, count: usize) {
-        self.collector.set_gauge("gateway_active_connections", count as f64, None).await;
+        self.collector
+            .set_gauge("gateway_active_connections", count as f64, None)
+            .await;
     }
 
     pub async fn update_queue_depth(&self, agent_id: &str, depth: usize) {
         let mut labels = HashMap::new();
         labels.insert("agent_id".to_string(), agent_id.to_string());
-        self.collector.set_gauge("gateway_queue_depth", depth as f64, Some(labels)).await;
+        self.collector
+            .set_gauge("gateway_queue_depth", depth as f64, Some(labels))
+            .await;
     }
 
     pub async fn get_all_metrics(&self) -> Vec<MetricValue> {
@@ -356,7 +395,12 @@ impl TracingMiddleware {
         Self { metrics }
     }
 
-    pub async fn trace_request<R>(&self, request_id: &str, endpoint: &str, f: impl FnOnce() -> R) -> R
+    pub async fn trace_request<R>(
+        &self,
+        request_id: &str,
+        endpoint: &str,
+        f: impl FnOnce() -> R,
+    ) -> R
     where
         R: std::future::Future<Output = ()>,
     {
@@ -364,7 +408,9 @@ impl TracingMiddleware {
         let result = f().await;
         let elapsed = start.elapsed().as_millis() as u64;
 
-        self.metrics.record_request(endpoint, "POST", 200, elapsed).await;
+        self.metrics
+            .record_request(endpoint, "POST", 200, elapsed)
+            .await;
 
         tracing::info!(
             request_id = %request_id,

@@ -36,7 +36,7 @@ pub async fn create_search_provider(
     if let Some(ref key) = input.api_key {
         if !key.is_empty() {
             input.api_key = Some(
-                axagent_core::crypto::encrypt_key(key, &state.master_key)
+                axagent_core::crypto::encrypt_key(key, state.harness.master_key())
                     .map_err(|e| e.to_string())?,
             );
         }
@@ -56,7 +56,7 @@ pub async fn update_search_provider(
     if let Some(ref key) = input.api_key {
         if !key.is_empty() {
             input.api_key = Some(
-                axagent_core::crypto::encrypt_key(key, &state.master_key)
+                axagent_core::crypto::encrypt_key(key, state.harness.master_key())
                     .map_err(|e| e.to_string())?,
             );
         }
@@ -170,7 +170,7 @@ pub async fn execute_search(
 
     // 提供商无 API Key 或 endpoint → 走 DDG 免费搜索
     let api_key: Option<String> =
-        match get_search_api_key(&state.sea_db, &provider_id, &state.master_key).await {
+        match get_search_api_key(&state.sea_db, &provider_id, state.harness.master_key()).await {
             Ok(Some(k)) if !k.is_empty() => Some(k),
             _ => None,
         };
