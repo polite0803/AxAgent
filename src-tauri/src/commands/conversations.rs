@@ -5077,7 +5077,10 @@ mod tests_conversation {
             prompt_cache: Arc::new(PromptCache::new()),
             harness: axagent_runtime::harness::RuntimeHarness::new(
                 axagent_runtime::harness::HarnessDeps {
-                    persistence: Arc::new(db.clone()) as Arc<dyn axagent_harness::Persistence>,
+                    persistence: Arc::new(axagent_core::db::DbHandle {
+                        conn: db.clone(),
+                        path: ":memory:".into(),
+                    }) as Arc<dyn axagent_harness::Persistence>,
                     master_key: [0; 32],
                 },
             ),

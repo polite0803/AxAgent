@@ -166,12 +166,9 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState, Strin
 
     Ok(AppState {
         harness,
-        sea_db: sea_db.clone(),
-        master_key,
         gateway: Arc::new(Mutex::new(None)),
         close_to_tray: Arc::new(AtomicBool::new(false)),
         app_data_dir: app_dir.clone(),
-        db_path,
         auto_backup_handle: Arc::new(Mutex::new(None)),
         webdav_sync_handle: Arc::new(Mutex::new(None)),
         api_server_handle: Arc::new(Mutex::new(None)),
