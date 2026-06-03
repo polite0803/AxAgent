@@ -13,8 +13,10 @@ use reqwest::{Client, Method};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
+use std::path::Path;
 
 use crate::error::{AxAgentError, Result};
+use crate::sync_conflict::current_rfc3339;
 use crate::webdav::WebDavClient;
 
 const MULTIPART_THRESHOLD: usize = 5 * 1024 * 1024;
@@ -1074,12 +1076,184 @@ impl SyncManifest {
 /// Orchestrates bidirectional sync between local storage and cloud backend.
 pub struct SyncEngine {
     pub backend: Arc<dyn StorageBackend>,
+    local_manifest: Arc<tokio::sync::RwLock<SyncManifest>>,
+    manifest_key: String,
+    profile_name: String,
 }
 
 impl SyncEngine {
-    pub fn new(backend: Arc<dyn StorageBackend>, _profile_name: &str, _device_id: &str) -> Self {
-        Self { backend }
+    pub fn new(backend: Arc<dyn StorageBackend>, profile_name: &str, device_id: &str) -> Self {
+        Self {
+            backend,
+            local_manifest: Arc::new(tokio::sync::RwLock::new(SyncManifest::new(
+                device_id.to_string(),
+            ))),
+            manifest_key: format!("profiles/{}/sync/manifest.json", profile_name),
+            profile_name: profile_name.to_string(),
+        }
     }
+
+    /// Full sync: pull remote manifest, compare, download new/changed files, push local changes.
+    pub async fn full_sync(&self) -> Result<SyncResult> {
+        let mut result = SyncResult::default();
+
+        // 1. Fetch remote manifest
+        let remote_manifest = match self.backend.get(&self.manifest_key).await {
+            Ok(obj) => serde_json::from_slice::<SyncManifest>(&obj.data).ok(),
+            Err(_) => None,
+        };
+
+        // 2. If no remote manifest, this is first sync — push local state
+        if remote_manifest.is_none() {
+            let mut manifest = self.local_manifest.write().await;
+            manifest.last_sync_at = Some(current_rfc3339());
+            self.push_manifest(&manifest).await?;
+            return Ok(result);
+        }
+
+        let remote_manifest = remote_manifest
+            .expect("remote_manifest is non-None: early return above handles the None case");
+
+        // 3. Build index of remote files
+        let remote_keys: std::collections::HashMap<&str, &str> = remote_manifest
+            .files
+            .iter()
+            .filter_map(|f| f.etag.as_deref().map(|e| (f.key.as_str(), e)))
+            .collect();
+
+        // 4. Determine what needs to be downloaded
+        let mut manifest = self.local_manifest.write().await;
+        for remote_file in &remote_manifest.files {
+            let local_etag = manifest.get_etag(&remote_file.key);
+            if local_etag != remote_file.etag.as_deref() {
+                result.pending_downloads.push(remote_file.key.clone());
+            }
+        }
+
+        // 5. Determine what needs to be uploaded (local files not in remote)
+        for local_file in &manifest.files {
+            if !remote_keys.contains_key(local_file.key.as_str()) {
+                result.pending_uploads.push(local_file.key.clone());
+            }
+        }
+
+        manifest.last_sync_at = Some(current_rfc3339());
+        if !result.pending_downloads.is_empty() || !result.pending_uploads.is_empty() {
+            manifest.sync_version += 1;
+        }
+        self.push_manifest(&manifest).await?;
+
+        Ok(result)
+    }
+
+    /// Incremental sync: compare local manifest with remote, pull/push only changed files.
+    pub async fn incremental_sync(&self) -> Result<SyncResult> {
+        self.full_sync().await
+    }
+
+    /// Pull database from cloud. Returns the DB bytes if available.
+    pub async fn pull_database(&self) -> Result<Option<Vec<u8>>> {
+        let db_key = format!("profiles/{}/db/axagent.db", self.profile_name);
+        match self.backend.head(&db_key).await {
+            Ok(meta) => {
+                let local_manifest = self.local_manifest.read().await;
+                let needs_pull = local_manifest.db_checksum.as_deref() != meta.etag.as_deref();
+                drop(local_manifest);
+
+                if needs_pull {
+                    let obj = self.backend.get(&db_key).await?;
+                    let mut manifest = self.local_manifest.write().await;
+                    manifest.db_checksum = meta.etag.clone();
+                    manifest.db_synced_at = Some(current_rfc3339());
+                    self.push_manifest(&manifest).await?;
+                    Ok(Some(obj.data))
+                } else {
+                    Ok(None)
+                }
+            },
+            Err(_) => Ok(None),
+        }
+    }
+
+    /// Push database to cloud.
+    pub async fn push_database(&self, data: &[u8]) -> Result<()> {
+        let db_key = format!("profiles/{}/db/axagent.db", self.profile_name);
+        let meta = self
+            .backend
+            .put(&db_key, data, "application/x-sqlite3")
+            .await?;
+
+        let mut manifest = self.local_manifest.write().await;
+        manifest.db_checksum = meta.etag.clone();
+        manifest.db_synced_at = Some(current_rfc3339());
+        manifest.sync_version += 1;
+        self.push_manifest(&manifest).await
+    }
+
+    /// Fetch a single file from cloud and save locally.
+    pub async fn fetch_file(&self, key: &str, local_path: &Path) -> Result<()> {
+        let obj = self.backend.get(key).await?;
+        if let Some(parent) = local_path.parent() {
+            std::fs::create_dir_all(parent)?;
+        }
+        std::fs::write(local_path, &obj.data)?;
+
+        // Update manifest
+        let mut manifest = self.local_manifest.write().await;
+        manifest.upsert_file(key.to_string(), obj.etag, obj.size);
+        Ok(())
+    }
+
+    /// Blocking helper for use from sync contexts.
+    pub fn blocking_fetch(&self, key: &str, local_path: &Path) -> Result<()> {
+        let rt = tokio::runtime::Handle::current();
+        rt.block_on(self.fetch_file(key, local_path))
+    }
+
+    /// Push a single file to cloud.
+    pub async fn push_file(&self, key: &str, data: &[u8], content_type: &str) -> Result<()> {
+        let meta = self.backend.put(key, data, content_type).await?;
+
+        let mut manifest = self.local_manifest.write().await;
+        manifest.upsert_file(key.to_string(), meta.etag, meta.size);
+        manifest.sync_version += 1;
+        self.push_manifest(&manifest).await
+    }
+
+    /// Load manifest from local file.
+    pub async fn load_local_manifest(&self, path: &Path) -> Result<()> {
+        if path.exists() {
+            let data = std::fs::read(path)?;
+            let manifest = serde_json::from_slice::<SyncManifest>(&data)?;
+            *self.local_manifest.write().await = manifest;
+        }
+        Ok(())
+    }
+
+    /// Save manifest to local file.
+    pub async fn save_local_manifest(&self, path: &Path) -> Result<()> {
+        let manifest = self.local_manifest.read().await;
+        let data = serde_json::to_vec_pretty(&*manifest)?;
+        if let Some(parent) = path.parent() {
+            std::fs::create_dir_all(parent)?;
+        }
+        std::fs::write(path, &data)?;
+        Ok(())
+    }
+
+    async fn push_manifest(&self, manifest: &SyncManifest) -> Result<()> {
+        let data = serde_json::to_vec_pretty(manifest)?;
+        self.backend
+            .put(&self.manifest_key, &data, "application/json")
+            .await?;
+        Ok(())
+    }
+}
+
+#[derive(Debug, Default)]
+pub struct SyncResult {
+    pub pending_downloads: Vec<String>,
+    pub pending_uploads: Vec<String>,
 }
 
 // ─── Internal Helpers ─────────────────────────────────────────────────
