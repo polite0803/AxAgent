@@ -31,7 +31,7 @@ pub async fn upload_file(
 
     let id = axagent_core::utils::gen_id();
     let stored = axagent_core::repo::stored_file::create_stored_file(
-        &state.sea_db,
+        state.harness.db(),
         &id,
         &saved.hash,
         &file_name,
@@ -49,7 +49,7 @@ pub async fn upload_file(
 #[tauri::command]
 pub async fn download_file(state: State<'_, AppState>, file_id: String) -> Result<String, String> {
     use base64::Engine;
-    let file = axagent_core::repo::stored_file::get_stored_file(&state.sea_db, &file_id)
+    let file = axagent_core::repo::stored_file::get_stored_file(state.harness.db(), &file_id)
         .await
         .map_err(|e| e.to_string())?;
 
@@ -68,7 +68,7 @@ pub async fn list_files(
     conversation_id: String,
 ) -> Result<Vec<StoredFile>, String> {
     axagent_core::repo::stored_file::list_stored_files_by_conversation(
-        &state.sea_db,
+        state.harness.db(),
         &conversation_id,
     )
     .await
@@ -78,7 +78,8 @@ pub async fn list_files(
 #[tauri::command]
 pub async fn delete_file(state: State<'_, AppState>, file_id: String) -> Result<(), String> {
     let file_store = axagent_core::file_store::FileStore::new();
-    super::file_cleanup::delete_attachment_reference(&state.sea_db, &file_store, &file_id).await
+    super::file_cleanup::delete_attachment_reference(state.harness.db(), &file_store, &file_id)
+        .await
 }
 
 /// 文件访问授权

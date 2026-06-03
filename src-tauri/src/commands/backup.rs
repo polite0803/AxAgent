@@ -12,7 +12,7 @@ use tokio::sync::Mutex;
 
 #[tauri::command]
 pub async fn list_backups(state: State<'_, AppState>) -> Result<Vec<BackupManifest>, String> {
-    backup::list_backups(&state.sea_db)
+    backup::list_backups(state.harness.db())
         .await
         .map_err(|e| e.to_string())
 }
@@ -22,12 +22,12 @@ pub async fn create_backup(
     state: State<'_, AppState>,
     format: String,
 ) -> Result<BackupManifest, String> {
-    let settings = get_settings(&state.sea_db)
+    let settings = get_settings(state.harness.db())
         .await
         .map_err(|e| e.to_string())?;
     let decoded_backup_dir = axagent_core::path_vars::decode_path_opt(&settings.backup_dir);
     let backup_dir = backup::resolve_backup_dir(decoded_backup_dir.as_deref(), &state.app_data_dir);
-    backup::create_backup(&state.sea_db, &format, &backup_dir)
+    backup::create_backup(state.harness.db(), &format, &backup_dir)
         .await
         .map_err(|e| e.to_string())
 }
@@ -39,7 +39,7 @@ pub async fn restore_backup(
     backup_id: String,
     strategy: Option<String>,
 ) -> Result<serde_json::Value, String> {
-    let manifest = backup::get_backup(&state.sea_db, &backup_id)
+    let manifest = backup::get_backup(state.harness.db(), &backup_id)
         .await
         .map_err(|e| e.to_string())?;
 
@@ -50,7 +50,7 @@ pub async fn restore_backup(
             let db_path = state
                 .db_path
                 .strip_prefix("sqlite:")
-                .unwrap_or(&state.db_path);
+                .unwrap_or(state.harness.db_path());
             backup::restore_sqlite_backup(&backup_path, db_path)
                 .await
                 .map_err(|e| e.to_string())?;
@@ -68,7 +68,7 @@ pub async fn restore_backup(
                 _ => axagent_core::types::RestoreStrategy::Overwrite,
             };
 
-            let report = backup::restore_json_backup(&state.sea_db, &backup_path, &strategy)
+            let report = backup::restore_json_backup(state.harness.db(), &backup_path, &strategy)
                 .await
                 .map_err(|e| e.to_string())?;
 
@@ -82,7 +82,7 @@ pub async fn restore_backup(
 
 #[tauri::command]
 pub async fn delete_backup(state: State<'_, AppState>, backup_id: String) -> Result<(), String> {
-    backup::delete_backup(&state.sea_db, &backup_id)
+    backup::delete_backup(state.harness.db(), &backup_id)
         .await
         .map_err(|e| e.to_string())
 }
@@ -92,14 +92,14 @@ pub async fn batch_delete_backups(
     state: State<'_, AppState>,
     backup_ids: Vec<String>,
 ) -> Result<(), String> {
-    backup::batch_delete_backups(&state.sea_db, &backup_ids)
+    backup::batch_delete_backups(state.harness.db(), &backup_ids)
         .await
         .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
 pub async fn get_backup_settings(state: State<'_, AppState>) -> Result<AutoBackupSettings, String> {
-    let settings = get_settings(&state.sea_db)
+    let settings = get_settings(state.harness.db())
         .await
         .map_err(|e| e.to_string())?;
     let decoded_backup_dir = axagent_core::path_vars::decode_path_opt(&settings.backup_dir);
@@ -119,7 +119,7 @@ pub async fn update_backup_settings(
     state: State<'_, AppState>,
     backup_settings: AutoBackupSettings,
 ) -> Result<(), String> {
-    let mut settings = get_settings(&state.sea_db)
+    let mut settings = get_settings(state.harness.db())
         .await
         .map_err(|e| e.to_string())?;
     settings.auto_backup_enabled = backup_settings.enabled;
@@ -127,14 +127,14 @@ pub async fn update_backup_settings(
     settings.auto_backup_max_count = backup_settings.max_count;
     settings.backup_dir = axagent_core::path_vars::encode_path_opt(&backup_settings.backup_dir);
 
-    axagent_core::repo::settings::save_settings(&state.sea_db, &settings)
+    axagent_core::repo::settings::save_settings(state.harness.db(), &settings)
         .await
         .map_err(|e| e.to_string())?;
 
     // Restart scheduler with new settings
     restart_auto_backup(
         &state.auto_backup_handle,
-        &state.sea_db,
+        state.harness.db(),
         &state.app_data_dir,
         &backup_settings,
     )
@@ -235,7 +235,7 @@ pub async fn upload_backup_to_cloud(
         .backend
         .clone();
 
-    let manifest = backup::get_backup(&state.sea_db, &request.backup_id)
+    let manifest = backup::get_backup(state.harness.db(), &request.backup_id)
         .await
         .map_err(|e| e.to_string())?;
 
@@ -328,7 +328,7 @@ pub async fn download_cloud_backup(
         .await
         .map_err(|e| format!("从云端下载备份失败: {}", e))?;
 
-    let settings = get_settings(&state.sea_db)
+    let settings = get_settings(state.harness.db())
         .await
         .map_err(|e| e.to_string())?;
     let decoded_backup_dir = axagent_core::path_vars::decode_path_opt(&settings.backup_dir);

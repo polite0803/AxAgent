@@ -7,7 +7,7 @@ use tauri::{AppHandle, Emitter, State};
 pub async fn list_knowledge_bases(
     state: State<'_, AppState>,
 ) -> Result<Vec<KnowledgeBase>, String> {
-    axagent_core::repo::knowledge::list_knowledge_bases(&state.sea_db)
+    axagent_core::repo::knowledge::list_knowledge_bases(state.harness.db())
         .await
         .map_err(|e| e.to_string())
 }
@@ -17,7 +17,7 @@ pub async fn create_knowledge_base(
     state: State<'_, AppState>,
     input: CreateKnowledgeBaseInput,
 ) -> Result<KnowledgeBase, String> {
-    axagent_core::repo::knowledge::create_knowledge_base(&state.sea_db, input)
+    axagent_core::repo::knowledge::create_knowledge_base(state.harness.db(), input)
         .await
         .map_err(|e| e.to_string())
 }
@@ -28,7 +28,7 @@ pub async fn update_knowledge_base(
     id: String,
     input: UpdateKnowledgeBaseInput,
 ) -> Result<KnowledgeBase, String> {
-    axagent_core::repo::knowledge::update_knowledge_base(&state.sea_db, &id, input)
+    axagent_core::repo::knowledge::update_knowledge_base(state.harness.db(), &id, input)
         .await
         .map_err(|e| e.to_string())
 }
@@ -39,7 +39,7 @@ pub async fn delete_knowledge_base(state: State<'_, AppState>, id: String) -> Re
     let collection_id = format!("kb_{}", id);
     let _ = state.vector_store.delete_collection(&collection_id).await;
 
-    axagent_core::repo::knowledge::delete_knowledge_base(&state.sea_db, &id)
+    axagent_core::repo::knowledge::delete_knowledge_base(state.harness.db(), &id)
         .await
         .map_err(|e| e.to_string())
 }
@@ -49,7 +49,7 @@ pub async fn reorder_knowledge_bases(
     state: State<'_, AppState>,
     base_ids: Vec<String>,
 ) -> Result<(), String> {
-    axagent_core::repo::knowledge::reorder_knowledge_bases(&state.sea_db, &base_ids)
+    axagent_core::repo::knowledge::reorder_knowledge_bases(state.harness.db(), &base_ids)
         .await
         .map_err(|e| e.to_string())
 }
@@ -59,7 +59,7 @@ pub async fn list_knowledge_documents(
     state: State<'_, AppState>,
     base_id: String,
 ) -> Result<Vec<KnowledgeDocument>, String> {
-    axagent_core::repo::knowledge::list_documents(&state.sea_db, &base_id)
+    axagent_core::repo::knowledge::list_documents(state.harness.db(), &base_id)
         .await
         .map_err(|e| e.to_string())
 }
@@ -74,7 +74,7 @@ pub async fn add_knowledge_document(
     mime_type: String,
 ) -> Result<KnowledgeDocument, String> {
     let doc = axagent_core::repo::knowledge::add_document(
-        &state.sea_db,
+        state.harness.db(),
         &base_id,
         &title,
         &source_path,
@@ -85,13 +85,13 @@ pub async fn add_knowledge_document(
     .map_err(|e| e.to_string())?;
 
     // Spawn async indexing task
-    let kb = axagent_core::repo::knowledge::get_knowledge_base(&state.sea_db, &base_id)
+    let kb = axagent_core::repo::knowledge::get_knowledge_base(state.harness.db(), &base_id)
         .await
         .map_err(|e| e.to_string())?;
 
     if kb.embedding_provider.is_some() {
         let container = axagent_core::rag::KnowledgeContainer::from_knowledge_base(&kb);
-        let db = state.sea_db.clone();
+        let db = state.harness.db().clone();
         let master_key = state.harness.master_key_owned();
         let vector_store = state.vector_store.clone();
         let doc_id = doc.id.clone();
@@ -153,7 +153,7 @@ pub async fn delete_knowledge_document(
         .delete_document_embeddings(&collection_id, &id)
         .await;
 
-    axagent_core::repo::knowledge::delete_document(&state.sea_db, &id)
+    axagent_core::repo::knowledge::delete_document(state.harness.db(), &id)
         .await
         .map_err(|e| e.to_string())
 }
@@ -166,7 +166,7 @@ pub async fn search_knowledge_base(
     top_k: Option<usize>,
 ) -> Result<Vec<axagent_core::vector_store::VectorSearchResult>, String> {
     let mut results = crate::indexing::search_knowledge(
-        &state.sea_db,
+        state.harness.db(),
         state.harness.master_key(),
         &state.vector_store,
         &base_id,
@@ -177,7 +177,7 @@ pub async fn search_knowledge_base(
     .map_err(|e| e.to_string())?;
 
     // Apply distance threshold filter consistent with collect_rag_context
-    let kb = axagent_core::repo::knowledge::get_knowledge_base(&state.sea_db, &base_id)
+    let kb = axagent_core::repo::knowledge::get_knowledge_base(state.harness.db(), &base_id)
         .await
         .map_err(|e| e.to_string())?;
     let default_max_distance = 2.0_f32;
@@ -198,7 +198,7 @@ pub async fn rebuild_knowledge_index(
     state: State<'_, AppState>,
     base_id: String,
 ) -> Result<(), String> {
-    let kb = axagent_core::repo::knowledge::get_knowledge_base(&state.sea_db, &base_id)
+    let kb = axagent_core::repo::knowledge::get_knowledge_base(state.harness.db(), &base_id)
         .await
         .map_err(|e| e.to_string())?;
 
@@ -209,7 +209,7 @@ pub async fn rebuild_knowledge_index(
     let collection_id = format!("kb_{}", base_id);
 
     // Get all documents
-    let docs = axagent_core::repo::knowledge::list_documents(&state.sea_db, &base_id)
+    let docs = axagent_core::repo::knowledge::list_documents(state.harness.db(), &base_id)
         .await
         .map_err(|e| e.to_string())?;
 
@@ -221,7 +221,7 @@ pub async fn rebuild_knowledge_index(
     // Reset all document statuses to "indexing"
     for doc in &docs {
         let _ = axagent_core::repo::knowledge::update_document_status(
-            &state.sea_db,
+            state.harness.db(),
             &doc.id,
             "indexing",
         )
@@ -231,7 +231,7 @@ pub async fn rebuild_knowledge_index(
     // Clear only embeddings (vec0), keep _meta intact
     let _ = state.vector_store.clear_embeddings(&collection_id).await;
 
-    let db = state.sea_db.clone();
+    let db = state.harness.db().clone();
     let master_key = state.harness.master_key_owned();
     let vector_store = state.vector_store.clone();
     let ep = embedding_provider.clone();
@@ -361,21 +361,21 @@ pub async fn list_knowledge_containers(
 ) -> Result<Vec<KnowledgeContainer>, String> {
     let mut containers = Vec::new();
 
-    let kbs = axagent_core::repo::knowledge::list_knowledge_bases(&state.sea_db)
+    let kbs = axagent_core::repo::knowledge::list_knowledge_bases(state.harness.db())
         .await
         .map_err(|e| e.to_string())?;
     for kb in kbs {
         containers.push(KnowledgeContainer::from_knowledge_base(&kb));
     }
 
-    let namespaces = axagent_core::repo::memory::list_namespaces(&state.sea_db)
+    let namespaces = axagent_core::repo::memory::list_namespaces(state.harness.db())
         .await
         .map_err(|e| e.to_string())?;
     for ns in namespaces {
         containers.push(KnowledgeContainer::from_memory_ns(&ns));
     }
 
-    let wikis = axagent_core::repo::wiki::list_wikis(&state.sea_db)
+    let wikis = axagent_core::repo::wiki::list_wikis(state.harness.db())
         .await
         .map_err(|e| e.to_string())?;
     for wiki in wikis {
@@ -392,7 +392,7 @@ pub async fn list_knowledge_entities(
     state: State<'_, AppState>,
     base_id: String,
 ) -> Result<Vec<axagent_core::types::KnowledgeEntity>, String> {
-    axagent_core::repo::knowledge_graph::list_knowledge_entities(&state.sea_db, &base_id)
+    axagent_core::repo::knowledge_graph::list_knowledge_entities(state.harness.db(), &base_id)
         .await
         .map_err(|e| e.to_string())
 }
@@ -402,7 +402,7 @@ pub async fn create_knowledge_entity(
     state: State<'_, AppState>,
     input: axagent_core::types::CreateKnowledgeEntityInput,
 ) -> Result<axagent_core::types::KnowledgeEntity, String> {
-    axagent_core::repo::knowledge_graph::create_knowledge_entity(&state.sea_db, input)
+    axagent_core::repo::knowledge_graph::create_knowledge_entity(state.harness.db(), input)
         .await
         .map_err(|e| e.to_string())
 }
@@ -412,7 +412,7 @@ pub async fn list_knowledge_attributes(
     state: State<'_, AppState>,
     entity_id: String,
 ) -> Result<Vec<axagent_core::types::KnowledgeAttribute>, String> {
-    axagent_core::repo::knowledge_graph::list_knowledge_attributes(&state.sea_db, &entity_id)
+    axagent_core::repo::knowledge_graph::list_knowledge_attributes(state.harness.db(), &entity_id)
         .await
         .map_err(|e| e.to_string())
 }
@@ -422,7 +422,7 @@ pub async fn create_knowledge_attribute(
     state: State<'_, AppState>,
     input: axagent_core::types::CreateKnowledgeAttributeInput,
 ) -> Result<axagent_core::types::KnowledgeAttribute, String> {
-    axagent_core::repo::knowledge_graph::create_knowledge_attribute(&state.sea_db, input)
+    axagent_core::repo::knowledge_graph::create_knowledge_attribute(state.harness.db(), input)
         .await
         .map_err(|e| e.to_string())
 }
@@ -432,7 +432,7 @@ pub async fn list_knowledge_relations(
     state: State<'_, AppState>,
     base_id: String,
 ) -> Result<Vec<axagent_core::types::KnowledgeRelation>, String> {
-    axagent_core::repo::knowledge_graph::list_knowledge_relations(&state.sea_db, &base_id)
+    axagent_core::repo::knowledge_graph::list_knowledge_relations(state.harness.db(), &base_id)
         .await
         .map_err(|e| e.to_string())
 }
@@ -442,7 +442,7 @@ pub async fn create_knowledge_relation(
     state: State<'_, AppState>,
     input: axagent_core::types::CreateKnowledgeRelationInput,
 ) -> Result<axagent_core::types::KnowledgeRelation, String> {
-    axagent_core::repo::knowledge_graph::create_knowledge_relation(&state.sea_db, input)
+    axagent_core::repo::knowledge_graph::create_knowledge_relation(state.harness.db(), input)
         .await
         .map_err(|e| e.to_string())
 }
@@ -452,7 +452,7 @@ pub async fn list_knowledge_flows(
     state: State<'_, AppState>,
     base_id: String,
 ) -> Result<Vec<axagent_core::types::KnowledgeFlow>, String> {
-    axagent_core::repo::knowledge_graph::list_knowledge_flows(&state.sea_db, &base_id)
+    axagent_core::repo::knowledge_graph::list_knowledge_flows(state.harness.db(), &base_id)
         .await
         .map_err(|e| e.to_string())
 }
@@ -462,7 +462,7 @@ pub async fn create_knowledge_flow(
     state: State<'_, AppState>,
     input: axagent_core::types::CreateKnowledgeFlowInput,
 ) -> Result<axagent_core::types::KnowledgeFlow, String> {
-    axagent_core::repo::knowledge_graph::create_knowledge_flow(&state.sea_db, input)
+    axagent_core::repo::knowledge_graph::create_knowledge_flow(state.harness.db(), input)
         .await
         .map_err(|e| e.to_string())
 }
@@ -472,7 +472,7 @@ pub async fn list_knowledge_interfaces(
     state: State<'_, AppState>,
     base_id: String,
 ) -> Result<Vec<axagent_core::types::KnowledgeInterface>, String> {
-    axagent_core::repo::knowledge_graph::list_knowledge_interfaces(&state.sea_db, &base_id)
+    axagent_core::repo::knowledge_graph::list_knowledge_interfaces(state.harness.db(), &base_id)
         .await
         .map_err(|e| e.to_string())
 }
@@ -482,7 +482,7 @@ pub async fn create_knowledge_interface(
     state: State<'_, AppState>,
     input: axagent_core::types::CreateKnowledgeInterfaceInput,
 ) -> Result<axagent_core::types::KnowledgeInterface, String> {
-    axagent_core::repo::knowledge_graph::create_knowledge_interface(&state.sea_db, input)
+    axagent_core::repo::knowledge_graph::create_knowledge_interface(state.harness.db(), input)
         .await
         .map_err(|e| e.to_string())
 }
@@ -501,13 +501,13 @@ pub async fn clear_knowledge_index(
         .map_err(|e| e.to_string())?;
 
     // Reset all documents to "pending"
-    let docs = axagent_core::repo::knowledge::list_documents(&state.sea_db, &base_id)
+    let docs = axagent_core::repo::knowledge::list_documents(state.harness.db(), &base_id)
         .await
         .map_err(|e| e.to_string())?;
 
     for doc in docs {
         let _ = axagent_core::repo::knowledge::update_document_status(
-            &state.sea_db,
+            state.harness.db(),
             &doc.id,
             "pending",
         )
@@ -561,12 +561,12 @@ pub async fn update_knowledge_chunk(
         .map_err(|e| e.to_string())?;
 
     // Auto-reindex: re-embed the chunk with the updated content
-    let kb = axagent_core::repo::knowledge::get_knowledge_base(&state.sea_db, &base_id)
+    let kb = axagent_core::repo::knowledge::get_knowledge_base(state.harness.db(), &base_id)
         .await
         .map_err(|e| e.to_string())?;
 
     if let Some(embedding_provider) = kb.embedding_provider {
-        let db = state.sea_db.clone();
+        let db = state.harness.db().clone();
         let master_key = state.harness.master_key_owned();
         let vector_store = state.vector_store.clone();
         let cid = chunk_id.clone();
@@ -618,7 +618,7 @@ pub async fn add_knowledge_chunk(
     document_id: String,
     content: String,
 ) -> Result<String, String> {
-    let kb = axagent_core::repo::knowledge::get_knowledge_base(&state.sea_db, &base_id)
+    let kb = axagent_core::repo::knowledge::get_knowledge_base(state.harness.db(), &base_id)
         .await
         .map_err(|e| e.to_string())?;
 
@@ -627,7 +627,7 @@ pub async fn add_knowledge_chunk(
         .ok_or_else(|| "No embedding provider configured".to_string())?;
 
     let collection_id = format!("kb_{}", base_id);
-    let db = state.sea_db.clone();
+    let db = state.harness.db().clone();
     let master_key = state.harness.master_key_owned();
     let vector_store = state.vector_store.clone();
     let doc_id = document_id.clone();
@@ -680,7 +680,7 @@ pub async fn reindex_knowledge_chunk(
     base_id: String,
     chunk_id: String,
 ) -> Result<(), String> {
-    let kb = axagent_core::repo::knowledge::get_knowledge_base(&state.sea_db, &base_id)
+    let kb = axagent_core::repo::knowledge::get_knowledge_base(state.harness.db(), &base_id)
         .await
         .map_err(|e| e.to_string())?;
 
@@ -708,7 +708,7 @@ pub async fn reindex_knowledge_chunk(
     };
 
     // Embed the single chunk
-    let db = state.sea_db.clone();
+    let db = state.harness.db().clone();
     let master_key = state.harness.master_key_owned();
     let vector_store = state.vector_store.clone();
     let cid = chunk_id.clone();
@@ -754,7 +754,7 @@ pub async fn rebuild_knowledge_document(
     base_id: String,
     document_id: String,
 ) -> Result<(), String> {
-    let kb = axagent_core::repo::knowledge::get_knowledge_base(&state.sea_db, &base_id)
+    let kb = axagent_core::repo::knowledge::get_knowledge_base(state.harness.db(), &base_id)
         .await
         .map_err(|e| e.to_string())?;
 
@@ -780,13 +780,13 @@ pub async fn rebuild_knowledge_document(
 
     // Set document status to "indexing"
     let _ = axagent_core::repo::knowledge::update_document_status(
-        &state.sea_db,
+        state.harness.db(),
         &document_id,
         "indexing",
     )
     .await;
 
-    let db = state.sea_db.clone();
+    let db = state.harness.db().clone();
     let master_key = state.harness.master_key_owned();
     let vector_store = state.vector_store.clone();
     let ep = embedding_provider.clone();

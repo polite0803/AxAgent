@@ -7,7 +7,7 @@ pub async fn list_branches(
     state: State<'_, AppState>,
     conversation_id: String,
 ) -> Result<Vec<ConversationBranch>, String> {
-    axagent_core::repo::conversation_branch::list_branches(&state.sea_db, &conversation_id)
+    axagent_core::repo::conversation_branch::list_branches(state.harness.db(), &conversation_id)
         .await
         .map_err(|e| e.to_string())
 }
@@ -19,7 +19,7 @@ pub async fn fork_conversation(
     message_id: String,
 ) -> Result<ConversationBranch, String> {
     axagent_core::repo::conversation_branch::create_branch(
-        &state.sea_db,
+        state.harness.db(),
         &conversation_id,
         &message_id,
         "Branch",

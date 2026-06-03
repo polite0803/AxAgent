@@ -82,7 +82,7 @@ pub async fn get_context_breakdown(
     state: State<'_, AppState>,
     conversation_id: String,
 ) -> Result<Vec<ContextCategoryBreakdown>, String> {
-    let db = &state.sea_db;
+    let db = state.harness.db();
 
     // ── 1) 获取对话配置 ──
     let conv = axagent_core::repo::conversation::get_conversation(db, &conversation_id)

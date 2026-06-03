@@ -17,7 +17,7 @@ pub async fn list_agent_profiles(
     app_state: State<'_, AppState>,
     source: Option<String>,
 ) -> Result<Vec<AgentProfile>, String> {
-    let db = &app_state.sea_db;
+    let db = app_state.harness.db();
     agent_profile::list_agent_profiles(db, source.as_deref())
         .await
         .map_err(|e| e.to_string())
@@ -29,7 +29,7 @@ pub async fn get_agent_profile(
     app_state: State<'_, AppState>,
     id: String,
 ) -> Result<AgentProfile, String> {
-    let db = &app_state.sea_db;
+    let db = app_state.harness.db();
     agent_profile::get_agent_profile(db, &id)
         .await
         .map_err(|e| e.to_string())
@@ -41,7 +41,7 @@ pub async fn create_agent_profile(
     app_state: State<'_, AppState>,
     input: CreateAgentProfileInput,
 ) -> Result<AgentProfile, String> {
-    let db = &app_state.sea_db;
+    let db = app_state.harness.db();
     let id = format!("custom-{}", axagent_core::utils::now_ts());
 
     let tags = input.tags.unwrap_or_default();
@@ -77,7 +77,7 @@ pub async fn update_agent_profile(
     id: String,
     input: UpdateAgentProfileInput,
 ) -> Result<AgentProfile, String> {
-    let db = &app_state.sea_db;
+    let db = app_state.harness.db();
     agent_profile::update_agent_profile(
         db,
         &id,
@@ -99,7 +99,7 @@ pub async fn delete_agent_profile(
     app_state: State<'_, AppState>,
     id: String,
 ) -> Result<(), String> {
-    let db = &app_state.sea_db;
+    let db = app_state.harness.db();
     agent_profile::delete_agent_profile(db, &id)
         .await
         .map_err(|e| e.to_string())
@@ -110,7 +110,7 @@ pub async fn delete_agent_profile(
 pub async fn import_agent_profiles_from_agency(
     app_state: State<'_, AppState>,
 ) -> Result<ImportAgentProfilesResult, String> {
-    let db = &app_state.sea_db;
+    let db = app_state.harness.db();
     let mut count = 0u32;
     let mut errors = Vec::new();
 
@@ -175,7 +175,7 @@ pub async fn ensure_agent_profile(
     expert_id: Option<String>,
     agent_role: Option<String>,
 ) -> Result<String, String> {
-    let db = &app_state.sea_db;
+    let db = app_state.harness.db();
 
     // 已存在则直接返回
     if axagent_core::repo::agent_profile::get_agent_profile(db, &id)

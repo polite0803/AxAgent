@@ -147,7 +147,7 @@ pub async fn apply_quick_start_preset(
     app_state: State<'_, AppState>,
     preset: String,
 ) -> Result<PresetResult, ErrorResponse> {
-    let db = &app_state.sea_db;
+    let db = app_state.harness.db();
 
     match preset.as_str() {
         "ollama" => {

@@ -19,7 +19,7 @@ pub async fn list_continuable_messages(
     app_state: State<'_, AppState>,
     conversation_id: String,
 ) -> Result<Vec<serde_json::Value>, String> {
-    let db = &app_state.sea_db;
+    let db = app_state.harness.db();
 
     let msgs = messages::Entity::find()
         .filter(messages::Column::ConversationId.eq(&conversation_id))
@@ -53,7 +53,7 @@ pub async fn continue_message(
     message_id: String,
     branch: Option<bool>,
 ) -> Result<ContinueResult, String> {
-    let db = &app_state.sea_db;
+    let db = app_state.harness.db();
 
     let msg = messages::Entity::find_by_id(&message_id)
         .one(db)

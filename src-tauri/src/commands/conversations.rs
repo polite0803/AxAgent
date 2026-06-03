@@ -217,7 +217,7 @@ pub async fn persist_attachments(
         let saved = file_store.save_file(&data, &attachment.file_name, &attachment.file_type)?;
         let stored_file_id = axagent_core::utils::gen_id();
         axagent_core::repo::stored_file::create_stored_file(
-            &state.sea_db,
+            state.harness.db(),
             &stored_file_id,
             &saved.hash,
             &attachment.file_name,
@@ -520,7 +520,7 @@ fn chat_message_from_message(
 
 #[tauri::command]
 pub async fn list_conversations(state: State<'_, AppState>) -> Result<Vec<Conversation>, String> {
-    axagent_core::repo::conversation::list_conversations(&state.sea_db)
+    axagent_core::repo::conversation::list_conversations(state.harness.db())
         .await
         .map_err(|e| e.to_string())
 }
@@ -534,7 +534,7 @@ pub async fn create_conversation(
     system_prompt: Option<String>,
 ) -> Result<Conversation, String> {
     axagent_core::repo::conversation::create_conversation(
-        &state.sea_db,
+        state.harness.db(),
         &title,
         &model_id,
         &provider_id,
@@ -554,12 +554,13 @@ pub async fn update_conversation(
         || input.enabled_memory_namespace_ids.is_some()
         || input.enabled_wiki_ids.is_some();
 
-    let updated = axagent_core::repo::conversation::update_conversation(&state.sea_db, &id, input)
-        .await
-        .map_err(|e| e.to_string())?;
+    let updated =
+        axagent_core::repo::conversation::update_conversation(state.harness.db(), &id, input)
+            .await
+            .map_err(|e| e.to_string())?;
 
     if needs_sync {
-        if let Err(e) = sync_context_sources(&state.sea_db, &id, &updated).await {
+        if let Err(e) = sync_context_sources(state.harness.db(), &id, &updated).await {
             tracing::warn!("Failed to sync context_sources for conversation {}: {}", id, e);
         }
     }
@@ -569,7 +570,7 @@ pub async fn update_conversation(
 
 #[tauri::command]
 pub async fn delete_conversation(state: State<'_, AppState>, id: String) -> Result<(), String> {
-    delete_conversation_with_attachments(&state.sea_db, &id).await
+    delete_conversation_with_attachments(state.harness.db(), &id).await
 }
 
 #[tauri::command]
@@ -577,7 +578,7 @@ pub async fn batch_delete_conversations(
     state: State<'_, AppState>,
     ids: Vec<String>,
 ) -> Result<usize, String> {
-    let db = state.sea_db.clone();
+    let db = state.harness.db().clone();
     let tasks: Vec<_> = ids
         .iter()
         .map(|id| {
@@ -610,7 +611,7 @@ pub async fn branch_conversation(
     title: Option<String>,
 ) -> Result<Conversation, String> {
     axagent_core::repo::conversation::branch_conversation(
-        &state.sea_db,
+        state.harness.db(),
         &conversation_id,
         &until_message_id,
         as_child,
@@ -663,7 +664,7 @@ pub async fn search_conversations(
     state: State<'_, AppState>,
     query: String,
 ) -> Result<Vec<ConversationSearchResult>, String> {
-    axagent_core::repo::conversation::search_conversations(&state.sea_db, &query)
+    axagent_core::repo::conversation::search_conversations(state.harness.db(), &query)
         .await
         .map_err(|e| e.to_string())
 }
@@ -673,7 +674,7 @@ pub async fn toggle_pin_conversation(
     state: State<'_, AppState>,
     id: String,
 ) -> Result<Conversation, String> {
-    axagent_core::repo::conversation::toggle_pin(&state.sea_db, &id)
+    axagent_core::repo::conversation::toggle_pin(state.harness.db(), &id)
         .await
         .map_err(|e| e.to_string())
 }
@@ -683,7 +684,7 @@ pub async fn toggle_archive_conversation(
     state: State<'_, AppState>,
     id: String,
 ) -> Result<Conversation, String> {
-    axagent_core::repo::conversation::toggle_archive(&state.sea_db, &id)
+    axagent_core::repo::conversation::toggle_archive(state.harness.db(), &id)
         .await
         .map_err(|e| e.to_string())
 }
@@ -696,7 +697,7 @@ pub async fn archive_conversation_to_knowledge_base(
     knowledge_base_id: String,
 ) -> Result<Conversation, String> {
     let (updated_conv, doc) = axagent_core::repo::conversation::archive_to_knowledge_base(
-        &state.sea_db,
+        state.harness.db(),
         &id,
         &knowledge_base_id,
     )
@@ -704,13 +705,14 @@ pub async fn archive_conversation_to_knowledge_base(
     .map_err(|e| e.to_string())?;
 
     // Trigger async indexing for the newly created document
-    let kb = axagent_core::repo::knowledge::get_knowledge_base(&state.sea_db, &knowledge_base_id)
-        .await
-        .map_err(|e| e.to_string())?;
+    let kb =
+        axagent_core::repo::knowledge::get_knowledge_base(state.harness.db(), &knowledge_base_id)
+            .await
+            .map_err(|e| e.to_string())?;
 
     if kb.embedding_provider.is_some() {
         let container = axagent_core::rag::KnowledgeContainer::from_knowledge_base(&kb);
-        let db = state.sea_db.clone();
+        let db = state.harness.db().clone();
         let master_key = state.harness.master_key_owned();
         let vector_store = state.vector_store.clone();
         let doc_id = doc.id.clone();
@@ -766,7 +768,7 @@ pub async fn archive_conversation_to_knowledge_base(
 pub async fn list_archived_conversations(
     state: State<'_, AppState>,
 ) -> Result<Vec<Conversation>, String> {
-    axagent_core::repo::conversation::list_archived_conversations(&state.sea_db)
+    axagent_core::repo::conversation::list_archived_conversations(state.harness.db())
         .await
         .map_err(|e| e.to_string())
 }
@@ -781,7 +783,7 @@ pub async fn archive_workflow_session(
     use axagent_core::entity::{conversations, workflow_template};
     use sea_orm::{ActiveModelTrait, EntityTrait, Set};
 
-    let db = &state.sea_db;
+    let db = state.harness.db();
 
     let conv = conversations::Entity::find_by_id(&conversation_id)
         .one(db)
@@ -1871,7 +1873,7 @@ pub async fn regenerate_conversation_title(
     state: State<'_, AppState>,
     conversation_id: String,
 ) -> Result<(), String> {
-    let db = state.sea_db.clone();
+    let db = state.harness.db().clone();
     let master_key = state.harness.master_key_owned();
 
     // Load conversation
@@ -2873,7 +2875,7 @@ pub async fn send_message(
 
     // 1. Save user message to DB
     let user_message = axagent_core::repo::message::create_message(
-        &state.sea_db,
+        state.harness.db(),
         &conversation_id,
         MessageRole::User,
         &content,
@@ -2885,13 +2887,13 @@ pub async fn send_message(
     .map_err(|e| e.to_string())?;
 
     // Increment the persisted message count
-    axagent_core::repo::conversation::increment_message_count(&state.sea_db, &conversation_id)
+    axagent_core::repo::conversation::increment_message_count(state.harness.db(), &conversation_id)
         .await
         .map_err(|e| e.to_string())?;
 
     // 2. Get conversation details (provider_id, model_id)
     let conversation =
-        axagent_core::repo::conversation::get_conversation(&state.sea_db, &conversation_id)
+        axagent_core::repo::conversation::get_conversation(state.harness.db(), &conversation_id)
             .await
             .map_err(|e| e.to_string())?;
 
@@ -2900,11 +2902,11 @@ pub async fn send_message(
 
     // 3. Get provider config + decrypt key
     let provider =
-        axagent_core::repo::provider::get_provider(&state.sea_db, &conversation.provider_id)
+        axagent_core::repo::provider::get_provider(state.harness.db(), &conversation.provider_id)
             .await
             .map_err(|e| e.to_string())?;
     let key_row =
-        axagent_core::repo::provider::get_active_key(&state.sea_db, &conversation.provider_id)
+        axagent_core::repo::provider::get_active_key(state.harness.db(), &conversation.provider_id)
             .await
             .map_err(|e| e.to_string())?;
     let decrypted_key =
@@ -2913,7 +2915,7 @@ pub async fn send_message(
 
     // Get model info for param overrides and token budget
     let resolved_model = axagent_core::repo::provider::get_model(
-        &state.sea_db,
+        state.harness.db(),
         &conversation.provider_id,
         &conversation.model_id,
     )
@@ -2940,9 +2942,10 @@ pub async fn send_message(
         .and_then(|p| p.request_delay_ms);
 
     // 4. Build ChatRequest from conversation messages
-    let db_messages = axagent_core::repo::message::list_messages(&state.sea_db, &conversation_id)
-        .await
-        .map_err(|e| e.to_string())?;
+    let db_messages =
+        axagent_core::repo::message::list_messages(state.harness.db(), &conversation_id)
+            .await
+            .map_err(|e| e.to_string())?;
     let file_store = axagent_core::file_store::FileStore::new();
 
     let mut chat_messages: Vec<ChatMessage> = Vec::new();
@@ -2951,7 +2954,7 @@ pub async fn send_message(
     if let Some(ref pid) = conversation.agent_profile_id {
         if let Ok(Some(profile)) =
             axagent_core::entity::agent_profiles::Entity::find_by_id(pid.as_str())
-                .one(&state.sea_db)
+                .one(state.harness.db())
                 .await
         {
             if profile.agent_role.is_some()
@@ -2979,7 +2982,7 @@ pub async fn send_message(
     }
 
     // Resolve effective system prompt: conversation → category → global default
-    let effective_system_prompt = resolve_system_prompt(&state.sea_db, &conversation).await;
+    let effective_system_prompt = resolve_system_prompt(state.harness.db(), &conversation).await;
 
     // Prepend system prompt if present
     if let Some(ref sys) = effective_system_prompt {
@@ -3025,7 +3028,7 @@ pub async fn send_message(
     }
 
     // Inject output language directive from app settings
-    if let Ok(settings) = axagent_core::repo::settings::get_settings(&state.sea_db).await {
+    if let Ok(settings) = axagent_core::repo::settings::get_settings(state.harness.db()).await {
         if !settings.language.is_empty() {
             let already_present = chat_messages.iter().any(|m| match &m.content {
                 ChatContent::Text(t) => axagent_core::utils::has_output_language_directive(t),
@@ -3051,7 +3054,7 @@ pub async fn send_message(
 
     // RAG retrieval: resolve from context_sources when explicit IDs are not provided
     let (kb_ids, mem_ids, wiki_ids) = resolve_rag_ids(
-        &state.sea_db,
+        state.harness.db(),
         &conversation_id,
         enabled_knowledge_base_ids,
         enabled_memory_namespace_ids,
@@ -3059,7 +3062,7 @@ pub async fn send_message(
     )
     .await;
     let mut rag_result = crate::indexing::collect_rag_context(
-        &state.sea_db,
+        state.harness.db(),
         state.harness.master_key(),
         &state.vector_store,
         &kb_ids,
@@ -3101,7 +3104,7 @@ pub async fn send_message(
             .collect();
         if !hits.is_empty() {
             let _ = axagent_core::repo::retrieval_hit::record_hits(
-                &state.sea_db,
+                state.harness.db(),
                 &conversation_id,
                 &user_message.id,
                 &hits,
@@ -3163,7 +3166,7 @@ pub async fn send_message(
     }
 
     // Resolve proxy config early (needed for both summary generation and main request)
-    let global_settings = axagent_core::repo::settings::get_settings(&state.sea_db)
+    let global_settings = axagent_core::repo::settings::get_settings(state.harness.db())
         .await
         .unwrap_or_default();
     let resolved_proxy = ProviderProxyConfig::resolve(&provider.proxy_config, &global_settings);
@@ -3174,7 +3177,7 @@ pub async fn send_message(
 
     // Load existing summary for this conversation
     let existing_summary =
-        axagent_core::repo::conversation::get_summary(&state.sea_db, &conversation_id)
+        axagent_core::repo::conversation::get_summary(state.harness.db(), &conversation_id)
             .await
             .ok()
             .flatten();
@@ -3190,7 +3193,7 @@ pub async fn send_message(
     {
         // Perform synchronous compression before sending
         if let Ok(summary_text) = do_compress(
-            &state.sea_db,
+            state.harness.db(),
             CompressContext {
                 conversation_id: &conversation_id,
                 history_messages: &history_messages,
@@ -3212,7 +3215,7 @@ pub async fn send_message(
         {
             // Insert compression marker
             let _ = axagent_core::repo::message::create_message(
-                &state.sea_db,
+                state.harness.db(),
                 &conversation_id,
                 MessageRole::System,
                 crate::context_manager::COMPRESSION_MARKER,
@@ -3282,7 +3285,7 @@ pub async fn send_message(
         .collect();
     // Check if any search provider is configured — auto-include web_search if so
     let has_search_provider =
-        axagent_core::repo::search_provider::list_search_providers(&state.sea_db)
+        axagent_core::repo::search_provider::list_search_providers(state.harness.db())
             .await
             .map(|providers| {
                 let enabled = providers.iter().any(|p| p.enabled);
@@ -3361,7 +3364,7 @@ pub async fn send_message(
         }
         for server_id in &mcp_ids {
             if let Ok(descriptors) =
-                axagent_core::repo::mcp_server::list_tools_for_server(&state.sea_db, server_id)
+                axagent_core::repo::mcp_server::list_tools_for_server(state.harness.db(), server_id)
                     .await
             {
                 for td in descriptors {
@@ -3410,7 +3413,7 @@ pub async fn send_message(
     }
     spawn_stream_task(
         app,
-        state.sea_db.clone(),
+        state.harness.db().clone(),
         state.harness.clone(),
         StreamTaskParams {
             conversation_id: conversation_id.clone(),
@@ -3464,7 +3467,7 @@ pub async fn regenerate_message(
         enabled_wiki_ids,
     } = options;
     // 1. Get all active messages for the conversation
-    let messages = axagent_core::repo::message::list_messages(&state.sea_db, &conversation_id)
+    let messages = axagent_core::repo::message::list_messages(state.harness.db(), &conversation_id)
         .await
         .map_err(|e| e.to_string())?;
 
@@ -3486,7 +3489,7 @@ pub async fn regenerate_message(
 
     // 2. Count existing AI reply versions for this user message
     let existing_versions = axagent_core::repo::message::list_message_versions(
-        &state.sea_db,
+        state.harness.db(),
         &conversation_id,
         &last_user_msg.id,
     )
@@ -3509,13 +3512,13 @@ pub async fn regenerate_message(
         .filter(msg_entity::Column::ConversationId.eq(&conversation_id))
         .filter(msg_entity::Column::ParentMessageId.eq(&last_user_msg.id))
         .col_expr(msg_entity::Column::IsActive, Expr::value(0))
-        .exec(&state.sea_db)
+        .exec(state.harness.db())
         .await
         .map_err(|e| e.to_string())?;
 
     // 4. Get conversation details
     let mut conversation =
-        axagent_core::repo::conversation::get_conversation(&state.sea_db, &conversation_id)
+        axagent_core::repo::conversation::get_conversation(state.harness.db(), &conversation_id)
             .await
             .map_err(|e| e.to_string())?;
 
@@ -3529,11 +3532,11 @@ pub async fn regenerate_message(
 
     // 5. Get provider config + decrypt key
     let provider =
-        axagent_core::repo::provider::get_provider(&state.sea_db, &conversation.provider_id)
+        axagent_core::repo::provider::get_provider(state.harness.db(), &conversation.provider_id)
             .await
             .map_err(|e| e.to_string())?;
     let key_row =
-        axagent_core::repo::provider::get_active_key(&state.sea_db, &conversation.provider_id)
+        axagent_core::repo::provider::get_active_key(state.harness.db(), &conversation.provider_id)
             .await
             .map_err(|e| e.to_string())?;
     let decrypted_key =
@@ -3542,7 +3545,7 @@ pub async fn regenerate_message(
 
     // 6. Rebuild chat messages (active messages only — old inactive versions excluded)
     let remaining_messages =
-        axagent_core::repo::message::list_messages(&state.sea_db, &conversation_id)
+        axagent_core::repo::message::list_messages(state.harness.db(), &conversation_id)
             .await
             .map_err(|e| e.to_string())?;
     let file_store = axagent_core::file_store::FileStore::new();
@@ -3550,7 +3553,7 @@ pub async fn regenerate_message(
     let mut chat_messages: Vec<ChatMessage> = Vec::new();
 
     // Resolve effective system prompt: conversation → category → global default
-    let effective_system_prompt = resolve_system_prompt(&state.sea_db, &conversation).await;
+    let effective_system_prompt = resolve_system_prompt(state.harness.db(), &conversation).await;
 
     if let Some(ref sys) = effective_system_prompt {
         chat_messages.push(ChatMessage {
@@ -3565,7 +3568,7 @@ pub async fn regenerate_message(
     // RAG retrieval for regeneration: resolve from context_sources when explicit IDs are not provided
     let memory_tag = {
         let (kb_ids, mem_ids, wiki_ids) = resolve_rag_ids(
-            &state.sea_db,
+            state.harness.db(),
             &conversation_id,
             enabled_knowledge_base_ids,
             enabled_memory_namespace_ids,
@@ -3573,7 +3576,7 @@ pub async fn regenerate_message(
         )
         .await;
         let mut rag_result = crate::indexing::collect_rag_context(
-            &state.sea_db,
+            state.harness.db(),
             state.harness.master_key(),
             &state.vector_store,
             &kb_ids,
@@ -3655,7 +3658,7 @@ pub async fn regenerate_message(
     // 7. Spawn streaming with new version
     let assistant_message_id = axagent_core::utils::gen_id();
 
-    let global_settings = axagent_core::repo::settings::get_settings(&state.sea_db)
+    let global_settings = axagent_core::repo::settings::get_settings(state.harness.db())
         .await
         .unwrap_or_default();
     let resolved_proxy = ProviderProxyConfig::resolve(&provider.proxy_config, &global_settings);
@@ -3686,7 +3689,7 @@ pub async fn regenerate_message(
         .collect();
     // Check if any search provider is configured — auto-include web_search
     let has_search_provider =
-        axagent_core::repo::search_provider::list_search_providers(&state.sea_db)
+        axagent_core::repo::search_provider::list_search_providers(state.harness.db())
             .await
             .map(|providers| providers.iter().any(|p| p.enabled))
             .unwrap_or(false);
@@ -3750,7 +3753,7 @@ pub async fn regenerate_message(
         }
         for server_id in &mcp_ids {
             if let Ok(descriptors) =
-                axagent_core::repo::mcp_server::list_tools_for_server(&state.sea_db, server_id)
+                axagent_core::repo::mcp_server::list_tools_for_server(state.harness.db(), server_id)
                     .await
             {
                 for td in descriptors {
@@ -3779,7 +3782,7 @@ pub async fn regenerate_message(
     };
 
     let regen_model_overrides = axagent_core::repo::provider::get_model(
-        &state.sea_db,
+        state.harness.db(),
         &conversation.provider_id,
         &conversation.model_id,
     )
@@ -3822,7 +3825,7 @@ pub async fn regenerate_message(
     }
     spawn_stream_task(
         app,
-        state.sea_db.clone(),
+        state.harness.db().clone(),
         state.harness.clone(),
         StreamTaskParams {
             conversation_id,
@@ -3877,7 +3880,7 @@ pub async fn regenerate_with_model(
         enabled_memory_namespace_ids,
         enabled_wiki_ids,
     } = options;
-    let messages = axagent_core::repo::message::list_messages(&state.sea_db, &conversation_id)
+    let messages = axagent_core::repo::message::list_messages(state.harness.db(), &conversation_id)
         .await
         .map_err(|e| e.to_string())?;
 
@@ -3889,7 +3892,7 @@ pub async fn regenerate_with_model(
 
     // Count existing versions and preserve original created_at
     let existing_versions = axagent_core::repo::message::list_message_versions(
-        &state.sea_db,
+        state.harness.db(),
         &conversation_id,
         &user_msg.id,
     )
@@ -3908,40 +3911,42 @@ pub async fn regenerate_with_model(
             .filter(msg_entity::Column::ConversationId.eq(&conversation_id))
             .filter(msg_entity::Column::ParentMessageId.eq(&user_msg.id))
             .col_expr(msg_entity::Column::IsActive, Expr::value(0))
-            .exec(&state.sea_db)
+            .exec(state.harness.db())
             .await
             .map_err(|e| e.to_string())?;
     }
 
     // Get conversation, but override model_id and provider_id to target values
     let mut conversation =
-        axagent_core::repo::conversation::get_conversation(&state.sea_db, &conversation_id)
+        axagent_core::repo::conversation::get_conversation(state.harness.db(), &conversation_id)
             .await
             .map_err(|e| e.to_string())?;
     conversation.model_id = target_model_id;
     conversation.provider_id = target_provider_id.clone();
 
     // Use target provider instead of conversation's default
-    let provider = axagent_core::repo::provider::get_provider(&state.sea_db, &target_provider_id)
-        .await
-        .map_err(|e| e.to_string())?;
-    let key_row = axagent_core::repo::provider::get_active_key(&state.sea_db, &target_provider_id)
-        .await
-        .map_err(|e| e.to_string())?;
+    let provider =
+        axagent_core::repo::provider::get_provider(state.harness.db(), &target_provider_id)
+            .await
+            .map_err(|e| e.to_string())?;
+    let key_row =
+        axagent_core::repo::provider::get_active_key(state.harness.db(), &target_provider_id)
+            .await
+            .map_err(|e| e.to_string())?;
     let decrypted_key =
         axagent_core::crypto::decrypt_key(&key_row.key_encrypted, state.harness.master_key())
             .map_err(|e| e.to_string())?;
 
     // Build context messages (same logic as regenerate_message)
     let remaining_messages =
-        axagent_core::repo::message::list_messages(&state.sea_db, &conversation_id)
+        axagent_core::repo::message::list_messages(state.harness.db(), &conversation_id)
             .await
             .map_err(|e| e.to_string())?;
     let file_store = axagent_core::file_store::FileStore::new();
     let mut chat_messages: Vec<ChatMessage> = Vec::new();
 
     // Resolve effective system prompt: conversation → category → global default
-    let effective_system_prompt = resolve_system_prompt(&state.sea_db, &conversation).await;
+    let effective_system_prompt = resolve_system_prompt(state.harness.db(), &conversation).await;
 
     if let Some(ref sys) = effective_system_prompt {
         tracing::info!(
@@ -3968,7 +3973,7 @@ pub async fn regenerate_with_model(
     // RAG retrieval: resolve from context_sources when explicit IDs are not provided
     let memory_tag = {
         let (kb_ids, mem_ids, wiki_ids) = resolve_rag_ids(
-            &state.sea_db,
+            state.harness.db(),
             &conversation_id,
             enabled_knowledge_base_ids,
             enabled_memory_namespace_ids,
@@ -3976,7 +3981,7 @@ pub async fn regenerate_with_model(
         )
         .await;
         let mut rag_result = crate::indexing::collect_rag_context(
-            &state.sea_db,
+            state.harness.db(),
             state.harness.master_key(),
             &state.vector_store,
             &kb_ids,
@@ -4051,7 +4056,7 @@ pub async fn regenerate_with_model(
     }
 
     let assistant_message_id = axagent_core::utils::gen_id();
-    let global_settings = axagent_core::repo::settings::get_settings(&state.sea_db)
+    let global_settings = axagent_core::repo::settings::get_settings(state.harness.db())
         .await
         .unwrap_or_default();
     let resolved_proxy = ProviderProxyConfig::resolve(&provider.proxy_config, &global_settings);
@@ -4080,7 +4085,7 @@ pub async fn regenerate_with_model(
         .into_iter()
         .collect();
     let has_search_provider =
-        axagent_core::repo::search_provider::list_search_providers(&state.sea_db)
+        axagent_core::repo::search_provider::list_search_providers(state.harness.db())
             .await
             .map(|providers| providers.iter().any(|p| p.enabled))
             .unwrap_or(false);
@@ -4144,7 +4149,7 @@ pub async fn regenerate_with_model(
         }
         for server_id in &mcp_ids {
             if let Ok(descriptors) =
-                axagent_core::repo::mcp_server::list_tools_for_server(&state.sea_db, server_id)
+                axagent_core::repo::mcp_server::list_tools_for_server(state.harness.db(), server_id)
                     .await
             {
                 for td in descriptors {
@@ -4173,7 +4178,7 @@ pub async fn regenerate_with_model(
     };
 
     let rwm_overrides = axagent_core::repo::provider::get_model(
-        &state.sea_db,
+        state.harness.db(),
         &conversation.provider_id,
         &conversation.model_id,
     )
@@ -4239,7 +4244,7 @@ pub async fn regenerate_with_model(
             cache_creation_tokens: Set(None),
             cache_read_tokens: Set(None),
         })
-        .insert(&state.sea_db)
+        .insert(state.harness.db())
         .await
         {
             tracing::error!("Failed to pre-create placeholder message: {}", e);
@@ -4257,7 +4262,7 @@ pub async fn regenerate_with_model(
     );
     spawn_stream_task(
         app,
-        state.sea_db.clone(),
+        state.harness.db().clone(),
         state.harness.clone(),
         StreamTaskParams {
             conversation_id,
@@ -4297,7 +4302,7 @@ pub async fn list_message_versions(
     parent_message_id: String,
 ) -> Result<Vec<Message>, String> {
     axagent_core::repo::message::list_message_versions(
-        &state.sea_db,
+        state.harness.db(),
         &conversation_id,
         &parent_message_id,
     )
@@ -4313,7 +4318,7 @@ pub async fn switch_message_version(
     message_id: String,
 ) -> Result<(), String> {
     axagent_core::repo::message::set_active_version(
-        &state.sea_db,
+        state.harness.db(),
         &conversation_id,
         &parent_message_id,
         &message_id,
@@ -4329,14 +4334,17 @@ pub async fn delete_message_group(
     user_message_id: String,
 ) -> Result<(), String> {
     let deleted =
-        axagent_core::repo::message::delete_message_group(&state.sea_db, &user_message_id)
+        axagent_core::repo::message::delete_message_group(state.harness.db(), &user_message_id)
             .await
             .map_err(|e| e.to_string())?;
     // Decrement message count by deleted count
     for _ in 0..deleted {
-        axagent_core::repo::conversation::decrement_message_count(&state.sea_db, &conversation_id)
-            .await
-            .map_err(|e| e.to_string())?;
+        axagent_core::repo::conversation::decrement_message_count(
+            state.harness.db(),
+            &conversation_id,
+        )
+        .await
+        .map_err(|e| e.to_string())?;
     }
     Ok(())
 }
@@ -4513,13 +4521,13 @@ pub async fn compress_context(
     conversation_id: String,
 ) -> Result<ConversationSummary, String> {
     let conversation =
-        axagent_core::repo::conversation::get_conversation(&state.sea_db, &conversation_id)
+        axagent_core::repo::conversation::get_conversation(state.harness.db(), &conversation_id)
             .await
             .map_err(|e| e.to_string())?;
 
     // Get provider + key
     let provider =
-        axagent_core::repo::provider::get_provider(&state.sea_db, &conversation.provider_id)
+        axagent_core::repo::provider::get_provider(state.harness.db(), &conversation.provider_id)
             .await
             .map_err(|e| e.to_string())?;
     let key_row = provider
@@ -4530,15 +4538,16 @@ pub async fn compress_context(
         axagent_core::crypto::decrypt_key(&key_row.key_encrypted, state.harness.master_key())
             .map_err(|e| e.to_string())?;
 
-    let global_settings = axagent_core::repo::settings::get_settings(&state.sea_db)
+    let global_settings = axagent_core::repo::settings::get_settings(state.harness.db())
         .await
         .unwrap_or_default();
     let resolved_proxy = ProviderProxyConfig::resolve(&provider.proxy_config, &global_settings);
 
     // Load messages after last marker
-    let db_messages = axagent_core::repo::message::list_messages(&state.sea_db, &conversation_id)
-        .await
-        .map_err(|e| e.to_string())?;
+    let db_messages =
+        axagent_core::repo::message::list_messages(state.harness.db(), &conversation_id)
+            .await
+            .map_err(|e| e.to_string())?;
 
     let file_store = axagent_core::file_store::FileStore::new();
 
@@ -4586,14 +4595,14 @@ pub async fn compress_context(
 
     // Load existing summary
     let existing_summary =
-        axagent_core::repo::conversation::get_summary(&state.sea_db, &conversation_id)
+        axagent_core::repo::conversation::get_summary(state.harness.db(), &conversation_id)
             .await
             .ok()
             .flatten();
 
     // Compress
     let use_max_completion_tokens = axagent_core::repo::provider::get_model(
-        &state.sea_db,
+        state.harness.db(),
         &conversation.provider_id,
         &conversation.model_id,
     )
@@ -4603,7 +4612,7 @@ pub async fn compress_context(
     .and_then(|p| p.use_max_completion_tokens);
 
     do_compress(
-        &state.sea_db,
+        state.harness.db(),
         CompressContext {
             conversation_id: &conversation_id,
             history_messages: &history_messages,
@@ -4625,7 +4634,7 @@ pub async fn compress_context(
 
     // Insert compression marker message
     let marker_msg = axagent_core::repo::message::create_message(
-        &state.sea_db,
+        state.harness.db(),
         &conversation_id,
         MessageRole::System,
         crate::context_manager::COMPRESSION_MARKER,
@@ -4640,10 +4649,11 @@ pub async fn compress_context(
     let _ = app.emit(&format!("conversation:compressed:{}", conversation_id), &marker_msg);
 
     // Return the updated summary
-    let summary = axagent_core::repo::conversation::get_summary(&state.sea_db, &conversation_id)
-        .await
-        .map_err(|e| e.to_string())?
-        .ok_or_else(|| "Summary not found after compression".to_string())?;
+    let summary =
+        axagent_core::repo::conversation::get_summary(state.harness.db(), &conversation_id)
+            .await
+            .map_err(|e| e.to_string())?
+            .ok_or_else(|| "Summary not found after compression".to_string())?;
 
     Ok(summary)
 }
@@ -4654,7 +4664,7 @@ pub async fn get_compression_summary(
     state: State<'_, AppState>,
     conversation_id: String,
 ) -> Result<Option<ConversationSummary>, String> {
-    axagent_core::repo::conversation::get_summary(&state.sea_db, &conversation_id)
+    axagent_core::repo::conversation::get_summary(state.harness.db(), &conversation_id)
         .await
         .map_err(|e| e.to_string())
 }
@@ -4666,7 +4676,7 @@ pub async fn delete_compression(
     conversation_id: String,
 ) -> Result<(), String> {
     // Delete the summary
-    axagent_core::repo::conversation::delete_summary(&state.sea_db, &conversation_id)
+    axagent_core::repo::conversation::delete_summary(state.harness.db(), &conversation_id)
         .await
         .map_err(|e| e.to_string())?;
 
@@ -4677,7 +4687,7 @@ pub async fn delete_compression(
             axagent_core::entity::messages::Column::Content
                 .eq(crate::context_manager::COMPRESSION_MARKER),
         )
-        .exec(&state.sea_db)
+        .exec(state.harness.db())
         .await
         .map_err(|e| e.to_string())?;
 
@@ -4691,7 +4701,7 @@ pub async fn send_system_message(
     content: String,
 ) -> Result<Message, String> {
     let msg = axagent_core::repo::message::create_message(
-        &state.sea_db,
+        state.harness.db(),
         &conversation_id,
         MessageRole::System,
         &content,
@@ -5065,7 +5075,12 @@ mod tests_conversation {
             webhook_subscription_manager: None,
             semantic_cache,
             prompt_cache: Arc::new(PromptCache::new()),
-            harness: axagent_runtime::harness::RuntimeHarness::new(db.clone(), [0; 32]),
+            harness: axagent_runtime::harness::RuntimeHarness::new(
+                axagent_runtime::harness::HarnessDeps {
+                    persistence: Arc::new(db.clone()) as Arc<dyn axagent_harness::Persistence>,
+                    master_key: [0; 32],
+                },
+            ),
             tot_sessions: Arc::new(tokio::sync::Mutex::new(HashMap::new())),
             planner_sessions: Arc::new(tokio::sync::Mutex::new(HashMap::new())),
             #[cfg(not(target_os = "android"))]

@@ -41,7 +41,7 @@ impl Drop for RestoreCleanup {
 /// Get WebDAV configuration (password decrypted).
 #[tauri::command]
 pub async fn get_webdav_config(state: State<'_, AppState>) -> Result<WebDavConfig, String> {
-    get_webdav_config_from_db(&state.sea_db, state.harness.master_key()).await
+    get_webdav_config_from_db(state.harness.db(), state.harness.master_key()).await
 }
 
 /// Save WebDAV configuration (password encrypted).
@@ -50,7 +50,7 @@ pub async fn save_webdav_config(
     state: State<'_, AppState>,
     config: WebDavConfig,
 ) -> Result<(), String> {
-    let mut settings = settings_repo::get_settings(&state.sea_db)
+    let mut settings = settings_repo::get_settings(state.harness.db())
         .await
         .map_err(|e| e.to_string())?;
 
@@ -59,7 +59,7 @@ pub async fn save_webdav_config(
     settings.webdav_path = Some(config.path);
     settings.webdav_accept_invalid_certs = config.accept_invalid_certs;
 
-    settings_repo::save_settings(&state.sea_db, &settings)
+    settings_repo::save_settings(state.harness.db(), &settings)
         .await
         .map_err(|e| e.to_string())?;
 
@@ -67,11 +67,11 @@ pub async fn save_webdav_config(
     if !config.password.is_empty() {
         let encrypted =
             encrypt_key(&config.password, state.harness.master_key()).map_err(|e| e.to_string())?;
-        settings_repo::set_setting(&state.sea_db, "webdav_password_encrypted", &encrypted)
+        settings_repo::set_setting(state.harness.db(), "webdav_password_encrypted", &encrypted)
             .await
             .map_err(|e| e.to_string())?;
     } else {
-        settings_repo::set_setting(&state.sea_db, "webdav_password_encrypted", "")
+        settings_repo::set_setting(state.harness.db(), "webdav_password_encrypted", "")
             .await
             .map_err(|e| e.to_string())?;
     }
@@ -89,7 +89,7 @@ pub async fn webdav_check_connection(config: WebDavConfig) -> Result<bool, Strin
 /// Create a backup and upload it to WebDAV.
 #[tauri::command]
 pub async fn webdav_backup(state: State<'_, AppState>) -> Result<String, String> {
-    do_webdav_backup_impl(&state.sea_db, state.harness.master_key(), &state.app_data_dir).await
+    do_webdav_backup_impl(state.harness.db(), state.harness.master_key(), &state.app_data_dir).await
 }
 
 /// List remote backups on WebDAV server.
@@ -97,7 +97,7 @@ pub async fn webdav_backup(state: State<'_, AppState>) -> Result<String, String>
 pub async fn webdav_list_backups(
     state: State<'_, AppState>,
 ) -> Result<Vec<WebDavFileInfo>, String> {
-    let config = get_webdav_config_from_db(&state.sea_db, state.harness.master_key()).await?;
+    let config = get_webdav_config_from_db(state.harness.db(), state.harness.master_key()).await?;
     if config.host.is_empty() {
         return Ok(vec![]);
     }
@@ -115,8 +115,8 @@ pub async fn webdav_restore(
     if file_name.contains('/') || file_name.contains('\\') || file_name.contains("..") {
         return Err("Backup file name must not contain path separators or traversal".to_string());
     }
-    let config = get_webdav_config_from_db(&state.sea_db, state.harness.master_key()).await?;
-    let settings = settings_repo::get_settings(&state.sea_db)
+    let config = get_webdav_config_from_db(state.harness.db(), state.harness.master_key()).await?;
+    let settings = settings_repo::get_settings(state.harness.db())
         .await
         .map_err(|e| e.to_string())?;
 
@@ -160,7 +160,7 @@ pub async fn webdav_restore(
     let db_path = state
         .db_path
         .strip_prefix("sqlite:")
-        .unwrap_or(&state.db_path);
+        .unwrap_or(state.harness.db_path());
     let safety_backup = backup_dir.join("_pre_webdav_restore_safety.db");
     let _ = std::fs::copy(db_path, &safety_backup);
     let master_key_dest = state.app_data_dir.join("master.key");
@@ -222,7 +222,7 @@ pub async fn webdav_delete_backup(
     state: State<'_, AppState>,
     file_name: String,
 ) -> Result<(), String> {
-    let config = get_webdav_config_from_db(&state.sea_db, state.harness.master_key()).await?;
+    let config = get_webdav_config_from_db(state.harness.db(), state.harness.master_key()).await?;
     let client = WebDavClient::new(config).map_err(|e| e.to_string())?;
     client
         .delete_file(&file_name)
@@ -235,10 +235,10 @@ pub async fn webdav_delete_backup(
 pub async fn get_webdav_sync_status(
     state: State<'_, AppState>,
 ) -> Result<serde_json::Value, String> {
-    let last_time = settings_repo::get_setting(&state.sea_db, "webdav_last_sync_time")
+    let last_time = settings_repo::get_setting(state.harness.db(), "webdav_last_sync_time")
         .await
         .map_err(|e| e.to_string())?;
-    let last_status = settings_repo::get_setting(&state.sea_db, "webdav_last_sync_status")
+    let last_status = settings_repo::get_setting(state.harness.db(), "webdav_last_sync_status")
         .await
         .map_err(|e| e.to_string())?;
 
@@ -251,7 +251,7 @@ pub async fn get_webdav_sync_status(
 /// Restart the WebDAV auto-sync scheduler based on current settings.
 #[tauri::command]
 pub async fn restart_webdav_sync(state: State<'_, AppState>) -> Result<(), String> {
-    let settings = settings_repo::get_settings(&state.sea_db)
+    let settings = settings_repo::get_settings(state.harness.db())
         .await
         .map_err(|e| e.to_string())?;
 
@@ -267,7 +267,7 @@ pub async fn restart_webdav_sync(state: State<'_, AppState>) -> Result<(), Strin
         return Ok(());
     }
 
-    let db = state.sea_db.clone();
+    let db = state.harness.db().clone();
     let master_key = state.harness.master_key_owned();
     let app_data_dir = state.app_data_dir.clone();
     let interval_minutes = settings.webdav_sync_interval_minutes;

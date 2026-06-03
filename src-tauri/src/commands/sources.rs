@@ -97,7 +97,7 @@ pub async fn list_all_sources(
     state: State<'_, AppState>,
     container_types: Option<Vec<String>>,
 ) -> Result<Vec<UnifiedSource>, String> {
-    Ok(fetch_all_sources(&state.sea_db, container_types.as_ref()).await)
+    Ok(fetch_all_sources(state.harness.db(), container_types.as_ref()).await)
 }
 
 #[tauri::command]
@@ -106,7 +106,7 @@ pub async fn get_source_config(
     container_type: String,
     container_id: String,
 ) -> Result<axagent_core::types::SourceConfig, String> {
-    let db = &state.sea_db;
+    let db = state.harness.db();
 
     let config = match container_type.as_str() {
         "knowledge" => axagent_core::repo::knowledge::get_knowledge_base(db, &container_id)
@@ -135,7 +135,7 @@ pub async fn search_all_sources(
     query: String,
     top_k: Option<usize>,
 ) -> Result<axagent_core::types::RagContextResult, String> {
-    let db = &state.sea_db;
+    let db = state.harness.db();
     let master_key = state.harness.master_key();
     let vector_store = &state.vector_store;
     let top_k = top_k.unwrap_or(5);

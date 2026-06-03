@@ -124,7 +124,7 @@ pub async fn spawn_background_task(
     prompt: Option<String>,
     description: Option<String>,
 ) -> Result<String, String> {
-    let db = state.sea_db.clone();
+    let db = state.harness.db().clone();
     let id = uuid::Uuid::new_v4().to_string();
     let now = Utc::now().timestamp_millis();
 
@@ -264,7 +264,7 @@ pub async fn list_background_tasks(
 ) -> Result<Vec<BackgroundTaskInfo>, String> {
     let tasks = background_tasks::Entity::find()
         .order_by_desc(background_tasks::Column::CreatedAt)
-        .all(&state.sea_db)
+        .all(state.harness.db())
         .await
         .map_err(|e| e.to_string())?;
     Ok(tasks.into_iter().map(Into::into).collect())
@@ -276,7 +276,7 @@ pub async fn get_background_task_output(
     task_id: String,
 ) -> Result<BackgroundTaskInfo, String> {
     let task = background_tasks::Entity::find_by_id(&task_id)
-        .one(&state.sea_db)
+        .one(state.harness.db())
         .await
         .map_err(|e| e.to_string())?
         .ok_or_else(|| {
@@ -292,7 +292,7 @@ pub async fn stop_background_task(
     task_id: String,
 ) -> Result<(), String> {
     let task = background_tasks::Entity::find_by_id(&task_id)
-        .one(&state.sea_db)
+        .one(state.harness.db())
         .await
         .map_err(|e| e.to_string())?
         .ok_or_else(|| {
@@ -300,7 +300,7 @@ pub async fn stop_background_task(
                 .unwrap_or_else(|e| format!("{{\"error\":\"serialization failed: {}\"}}", e))
         })?;
     if task.status == "running" || task.status == "pending" {
-        update_status(&state.sea_db, &task_id, "stopped", None).await?;
+        update_status(state.harness.db(), &task_id, "stopped", None).await?;
     }
     Ok(())
 }

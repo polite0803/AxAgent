@@ -88,7 +88,7 @@ fn to_local_group(
 #[tauri::command]
 pub async fn get_tool_count(state: State<'_, AppState>) -> Result<u32, String> {
     let mut registry = state.local_tool_registry.lock().await;
-    registry.load_enabled_state(&state.sea_db).await;
+    registry.load_enabled_state(state.harness.db()).await;
     Ok(registry.count_enabled_tools())
 }
 
@@ -99,7 +99,7 @@ pub async fn list_local_tools(
     state: State<'_, AppState>,
 ) -> Result<Vec<LocalToolGroupInfo>, String> {
     let mut registry = state.local_tool_registry.lock().await;
-    registry.load_enabled_state(&state.sea_db).await;
+    registry.load_enabled_state(state.harness.db()).await;
     let disabled = registry.disabled_tools.clone();
     Ok(registry
         .get_tool_groups()
@@ -116,9 +116,9 @@ pub async fn toggle_local_tool_group(
     group_id: String,
 ) -> Result<LocalToolGroupInfo, String> {
     let mut registry = state.local_tool_registry.lock().await;
-    registry.load_enabled_state(&state.sea_db).await;
+    registry.load_enabled_state(state.harness.db()).await;
     registry
-        .toggle_group(&state.sea_db, &group_id)
+        .toggle_group(state.harness.db(), &group_id)
         .await
         .map_err(|e| e.to_string())?;
 
@@ -139,9 +139,9 @@ pub async fn toggle_single_tool(
     tool_name: String,
 ) -> Result<Vec<LocalToolGroupInfo>, String> {
     let mut registry = state.local_tool_registry.lock().await;
-    registry.load_enabled_state(&state.sea_db).await;
+    registry.load_enabled_state(state.harness.db()).await;
     registry
-        .toggle_tool(&state.sea_db, &tool_name)
+        .toggle_tool(state.harness.db(), &tool_name)
         .await
         .map_err(|e| e.to_string())?;
 

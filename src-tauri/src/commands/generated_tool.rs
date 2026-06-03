@@ -22,7 +22,7 @@ pub struct GeneratedToolInfo {
 pub async fn list_generated_tools(
     state: State<'_, AppState>,
 ) -> Result<Vec<GeneratedToolInfo>, String> {
-    let db: &DatabaseConnection = &state.sea_db;
+    let db: &DatabaseConnection = state.harness.db();
     let tools = axagent_core::repo::generated_tool::list_generated_tools(db)
         .await
         .map_err(|e| e.to_string())?;
@@ -41,7 +41,7 @@ pub async fn list_generated_tools(
 
 #[tauri::command]
 pub async fn delete_generated_tool(state: State<'_, AppState>, id: String) -> Result<bool, String> {
-    let db: &DatabaseConnection = &state.sea_db;
+    let db: &DatabaseConnection = state.harness.db();
     axagent_core::repo::generated_tool::delete_generated_tool(db, &id)
         .await
         .map_err(|e| e.to_string())

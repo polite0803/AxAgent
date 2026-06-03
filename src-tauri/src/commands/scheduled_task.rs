@@ -270,7 +270,10 @@ pub async fn get_scheduled_task_templates(
     ];
 
     // 查询所有已持久化的工作流模板
-    if let Ok(wf_templates) = workflow_template::Entity::find().all(&state.sea_db).await {
+    if let Ok(wf_templates) = workflow_template::Entity::find()
+        .all(state.harness.db())
+        .await
+    {
         for wt in wf_templates {
             templates.push(serde_json::json!({
                 "templateType": wt.id,

@@ -7,7 +7,7 @@ use tauri::State;
 
 #[tauri::command]
 pub async fn list_providers(state: State<'_, AppState>) -> Result<Vec<ProviderConfig>, String> {
-    axagent_core::repo::provider::list_providers_merged(&state.sea_db)
+    axagent_core::repo::provider::list_providers_merged(state.harness.db())
         .await
         .map_err(|e| e.to_string())
 }
@@ -17,7 +17,7 @@ pub async fn create_provider(
     state: State<'_, AppState>,
     input: CreateProviderInput,
 ) -> Result<ProviderConfig, String> {
-    axagent_core::repo::provider::create_provider(&state.sea_db, input)
+    axagent_core::repo::provider::create_provider(state.harness.db(), input)
         .await
         .map_err(|e| e.to_string())
 }
@@ -28,10 +28,10 @@ pub async fn update_provider(
     id: String,
     input: UpdateProviderInput,
 ) -> Result<ProviderConfig, String> {
-    let real_id = axagent_core::repo::provider::resolve_provider_id(&state.sea_db, &id)
+    let real_id = axagent_core::repo::provider::resolve_provider_id(state.harness.db(), &id)
         .await
         .map_err(|e| e.to_string())?;
-    axagent_core::repo::provider::update_provider(&state.sea_db, &real_id, input)
+    axagent_core::repo::provider::update_provider(state.harness.db(), &real_id, input)
         .await
         .map_err(|e| e.to_string())
 }
@@ -42,7 +42,7 @@ pub async fn delete_provider(state: State<'_, AppState>, id: String) -> Result<(
     if id.starts_with("builtin_") {
         return Ok(());
     }
-    axagent_core::repo::provider::delete_provider(&state.sea_db, &id)
+    axagent_core::repo::provider::delete_provider(state.harness.db(), &id)
         .await
         .map_err(|e| e.to_string())
 }
@@ -53,10 +53,10 @@ pub async fn toggle_provider(
     id: String,
     enabled: bool,
 ) -> Result<(), String> {
-    let real_id = axagent_core::repo::provider::resolve_provider_id(&state.sea_db, &id)
+    let real_id = axagent_core::repo::provider::resolve_provider_id(state.harness.db(), &id)
         .await
         .map_err(|e| e.to_string())?;
-    axagent_core::repo::provider::toggle_provider(&state.sea_db, &real_id, enabled)
+    axagent_core::repo::provider::toggle_provider(state.harness.db(), &real_id, enabled)
         .await
         .map_err(|e| e.to_string())
 }
@@ -67,9 +67,10 @@ pub async fn add_provider_key(
     provider_id: String,
     raw_key: String,
 ) -> Result<ProviderKey, String> {
-    let real_id = axagent_core::repo::provider::resolve_provider_id(&state.sea_db, &provider_id)
-        .await
-        .map_err(|e| e.to_string())?;
+    let real_id =
+        axagent_core::repo::provider::resolve_provider_id(state.harness.db(), &provider_id)
+            .await
+            .map_err(|e| e.to_string())?;
     let encrypted = axagent_core::crypto::encrypt_key(&raw_key, state.harness.master_key())
         .map_err(|e| e.to_string())?;
     let prefix = if raw_key.len() >= 8 {
@@ -77,9 +78,14 @@ pub async fn add_provider_key(
     } else {
         raw_key.clone()
     };
-    axagent_core::repo::provider::add_provider_key(&state.sea_db, &real_id, &encrypted, &prefix)
-        .await
-        .map_err(|e| e.to_string())
+    axagent_core::repo::provider::add_provider_key(
+        state.harness.db(),
+        &real_id,
+        &encrypted,
+        &prefix,
+    )
+    .await
+    .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -95,14 +101,19 @@ pub async fn update_provider_key(
     } else {
         raw_key.clone()
     };
-    axagent_core::repo::provider::update_provider_key(&state.sea_db, &key_id, &encrypted, &prefix)
-        .await
-        .map_err(|e| e.to_string())
+    axagent_core::repo::provider::update_provider_key(
+        state.harness.db(),
+        &key_id,
+        &encrypted,
+        &prefix,
+    )
+    .await
+    .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
 pub async fn delete_provider_key(state: State<'_, AppState>, key_id: String) -> Result<(), String> {
-    axagent_core::repo::provider::delete_provider_key(&state.sea_db, &key_id)
+    axagent_core::repo::provider::delete_provider_key(state.harness.db(), &key_id)
         .await
         .map_err(|e| e.to_string())
 }
@@ -113,7 +124,7 @@ pub async fn toggle_provider_key(
     key_id: String,
     enabled: bool,
 ) -> Result<(), String> {
-    axagent_core::repo::provider::toggle_provider_key(&state.sea_db, &key_id, enabled)
+    axagent_core::repo::provider::toggle_provider_key(state.harness.db(), &key_id, enabled)
         .await
         .map_err(|e| e.to_string())
 }
@@ -123,7 +134,7 @@ pub async fn get_decrypted_provider_key(
     state: State<'_, AppState>,
     key_id: String,
 ) -> Result<String, String> {
-    let key_row = axagent_core::repo::provider::get_provider_key(&state.sea_db, &key_id)
+    let key_row = axagent_core::repo::provider::get_provider_key(state.harness.db(), &key_id)
         .await
         .map_err(|e| e.to_string())?;
     axagent_core::crypto::decrypt_key(&key_row.key_encrypted, state.harness.master_key())
@@ -135,15 +146,16 @@ pub async fn validate_provider_key(
     state: State<'_, AppState>,
     key_id: String,
 ) -> Result<bool, String> {
-    let key_row = axagent_core::repo::provider::get_provider_key(&state.sea_db, &key_id)
+    let key_row = axagent_core::repo::provider::get_provider_key(state.harness.db(), &key_id)
         .await
         .map_err(|e| e.to_string())?;
     let decrypted =
         axagent_core::crypto::decrypt_key(&key_row.key_encrypted, state.harness.master_key())
             .map_err(|e| e.to_string())?;
-    let provider = axagent_core::repo::provider::get_provider(&state.sea_db, &key_row.provider_id)
-        .await
-        .map_err(|e| e.to_string())?;
+    let provider =
+        axagent_core::repo::provider::get_provider(state.harness.db(), &key_row.provider_id)
+            .await
+            .map_err(|e| e.to_string())?;
     // Use the registry to validate by listing models
 
     let provider_type_str = match provider.provider_type {
@@ -160,7 +172,7 @@ pub async fn validate_provider_key(
         .provider_registry()
         .get(provider_type_str)
         .ok_or_else(|| format!("No adapter for provider type: {}", provider_type_str))?;
-    let global_settings = axagent_core::repo::settings::get_settings(&state.sea_db)
+    let global_settings = axagent_core::repo::settings::get_settings(state.harness.db())
         .await
         .unwrap_or_default();
     let resolved_proxy =
@@ -189,14 +201,17 @@ pub async fn validate_provider_key(
         Err(e) => {
             tracing::warn!("Key validation failed for key {}: {}", key_id, e);
             // Update as invalid, then return the error
-            let _ =
-                axagent_core::repo::provider::update_key_validation(&state.sea_db, &key_id, false)
-                    .await;
+            let _ = axagent_core::repo::provider::update_key_validation(
+                state.harness.db(),
+                &key_id,
+                false,
+            )
+            .await;
             return Err(e.to_string());
         },
     };
     // Update validation timestamp
-    axagent_core::repo::provider::update_key_validation(&state.sea_db, &key_id, valid)
+    axagent_core::repo::provider::update_key_validation(state.harness.db(), &key_id, valid)
         .await
         .map_err(|e| e.to_string())?;
     Ok(valid)
@@ -208,10 +223,11 @@ pub async fn save_models(
     provider_id: String,
     models: Vec<Model>,
 ) -> Result<(), String> {
-    let real_id = axagent_core::repo::provider::resolve_provider_id(&state.sea_db, &provider_id)
-        .await
-        .map_err(|e| e.to_string())?;
-    axagent_core::repo::provider::save_models(&state.sea_db, &real_id, &models)
+    let real_id =
+        axagent_core::repo::provider::resolve_provider_id(state.harness.db(), &provider_id)
+            .await
+            .map_err(|e| e.to_string())?;
+    axagent_core::repo::provider::save_models(state.harness.db(), &real_id, &models)
         .await
         .map_err(|e| e.to_string())
 }
@@ -223,10 +239,11 @@ pub async fn toggle_model(
     model_id: String,
     enabled: bool,
 ) -> Result<Model, String> {
-    let real_id = axagent_core::repo::provider::resolve_provider_id(&state.sea_db, &provider_id)
-        .await
-        .map_err(|e| e.to_string())?;
-    axagent_core::repo::provider::toggle_model(&state.sea_db, &real_id, &model_id, enabled)
+    let real_id =
+        axagent_core::repo::provider::resolve_provider_id(state.harness.db(), &provider_id)
+            .await
+            .map_err(|e| e.to_string())?;
+    axagent_core::repo::provider::toggle_model(state.harness.db(), &real_id, &model_id, enabled)
         .await
         .map_err(|e| e.to_string())
 }
@@ -238,12 +255,18 @@ pub async fn update_model_params(
     model_id: String,
     overrides: ModelParamOverrides,
 ) -> Result<Model, String> {
-    let real_id = axagent_core::repo::provider::resolve_provider_id(&state.sea_db, &provider_id)
-        .await
-        .map_err(|e| e.to_string())?;
-    axagent_core::repo::provider::update_model_params(&state.sea_db, &real_id, &model_id, overrides)
-        .await
-        .map_err(|e| e.to_string())
+    let real_id =
+        axagent_core::repo::provider::resolve_provider_id(state.harness.db(), &provider_id)
+            .await
+            .map_err(|e| e.to_string())?;
+    axagent_core::repo::provider::update_model_params(
+        state.harness.db(),
+        &real_id,
+        &model_id,
+        overrides,
+    )
+    .await
+    .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -251,14 +274,15 @@ pub async fn fetch_remote_models(
     state: State<'_, AppState>,
     provider_id: String,
 ) -> Result<Vec<Model>, String> {
-    let real_id = axagent_core::repo::provider::resolve_provider_id(&state.sea_db, &provider_id)
-        .await
-        .map_err(|e| e.to_string())?;
-    let provider = axagent_core::repo::provider::get_provider(&state.sea_db, &real_id)
+    let real_id =
+        axagent_core::repo::provider::resolve_provider_id(state.harness.db(), &provider_id)
+            .await
+            .map_err(|e| e.to_string())?;
+    let provider = axagent_core::repo::provider::get_provider(state.harness.db(), &real_id)
         .await
         .map_err(|e| e.to_string())?;
     // Get an enabled key for the provider
-    let key_row = axagent_core::repo::provider::get_active_key(&state.sea_db, &real_id)
+    let key_row = axagent_core::repo::provider::get_active_key(state.harness.db(), &real_id)
         .await
         .map_err(|e| e.to_string())?;
     let decrypted =
@@ -279,7 +303,7 @@ pub async fn fetch_remote_models(
         .provider_registry()
         .get(provider_type_str)
         .ok_or_else(|| format!("No adapter for provider type: {}", provider_type_str))?;
-    let global_settings = axagent_core::repo::settings::get_settings(&state.sea_db)
+    let global_settings = axagent_core::repo::settings::get_settings(state.harness.db())
         .await
         .unwrap_or_default();
     let resolved_proxy =
@@ -343,13 +367,14 @@ pub async fn test_model(
     provider_id: String,
     model_id: String,
 ) -> Result<u64, String> {
-    let real_id = axagent_core::repo::provider::resolve_provider_id(&state.sea_db, &provider_id)
+    let real_id =
+        axagent_core::repo::provider::resolve_provider_id(state.harness.db(), &provider_id)
+            .await
+            .map_err(|e| e.to_string())?;
+    let provider = axagent_core::repo::provider::get_provider(state.harness.db(), &real_id)
         .await
         .map_err(|e| e.to_string())?;
-    let provider = axagent_core::repo::provider::get_provider(&state.sea_db, &real_id)
-        .await
-        .map_err(|e| e.to_string())?;
-    let key_row = axagent_core::repo::provider::get_active_key(&state.sea_db, &real_id)
+    let key_row = axagent_core::repo::provider::get_active_key(state.harness.db(), &real_id)
         .await
         .map_err(|e| e.to_string())?;
     let decrypted =
@@ -370,7 +395,7 @@ pub async fn test_model(
         .provider_registry()
         .get(provider_type_str)
         .ok_or_else(|| format!("No adapter for provider type: {}", provider_type_str))?;
-    let global_settings = axagent_core::repo::settings::get_settings(&state.sea_db)
+    let global_settings = axagent_core::repo::settings::get_settings(state.harness.db())
         .await
         .unwrap_or_default();
     let resolved_proxy =
@@ -433,12 +458,12 @@ pub async fn reorder_providers(
     // Materialize any virtual built-in providers so sort_order can be persisted
     let mut real_ids = Vec::with_capacity(provider_ids.len());
     for id in &provider_ids {
-        let real_id = axagent_core::repo::provider::resolve_provider_id(&state.sea_db, id)
+        let real_id = axagent_core::repo::provider::resolve_provider_id(state.harness.db(), id)
             .await
             .map_err(|e| e.to_string())?;
         real_ids.push(real_id);
     }
-    axagent_core::repo::provider::reorder_providers(&state.sea_db, &real_ids)
+    axagent_core::repo::provider::reorder_providers(state.harness.db(), &real_ids)
         .await
         .map_err(|e| e.to_string())
 }

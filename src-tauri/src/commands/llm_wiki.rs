@@ -80,7 +80,7 @@ impl From<axagent_core::entity::wiki_operations::Model> for WikiOperationOutput 
 pub async fn llm_wiki_list(state: State<'_, AppState>) -> Result<Vec<WikiOutput>, String> {
     let wikis = axagent_core::entity::wikis::Entity::find()
         .order_by(axagent_core::entity::wikis::Column::CreatedAt, sea_orm::Order::Desc)
-        .all(&state.sea_db)
+        .all(state.harness.db())
         .await
         .map_err(|e| e.to_string())?;
 
@@ -108,7 +108,7 @@ pub async fn llm_wiki_create(
         embedding_provider: input.embedding_provider,
     };
 
-    let model = wiki::create_wiki(&state.sea_db, wiki_input)
+    let model = wiki::create_wiki(state.harness.db(), wiki_input)
         .await
         .map_err(|e| e.to_string())?;
 
@@ -130,7 +130,7 @@ pub async fn llm_wiki_delete(state: State<'_, AppState>, wiki_id: String) -> Res
     let collection_id = format!("wiki_{}", wiki_id);
     let _ = state.vector_store.delete_collection(&collection_id).await;
 
-    wiki::delete_wiki(&state.sea_db, &wiki_id)
+    wiki::delete_wiki(state.harness.db(), &wiki_id)
         .await
         .map_err(|e| e.to_string())
 }
@@ -144,7 +144,7 @@ pub async fn llm_wiki_operations_list(
         .filter(axagent_core::entity::wiki_operations::Column::WikiId.eq(&wiki_id))
         .order_by(axagent_core::entity::wiki_operations::Column::CreatedAt, sea_orm::Order::Desc)
         .limit(100)
-        .all(&state.sea_db)
+        .all(state.harness.db())
         .await
         .map_err(|e| e.to_string())?;
 
@@ -176,7 +176,7 @@ pub async fn llm_wiki_ingest(
     state: State<'_, AppState>,
     input: IngestSourceInput,
 ) -> Result<IngestResultOutput, String> {
-    let pipeline = ingest_pipeline::IngestPipeline::new(Arc::new(state.sea_db.clone()));
+    let pipeline = ingest_pipeline::IngestPipeline::new(Arc::new(state.harness.db().clone()));
 
     let source = ingest_pipeline::IngestSource {
         source_type: match input.source_type.as_str() {
@@ -198,13 +198,13 @@ pub async fn llm_wiki_ingest(
     let result = pipeline.ingest(&input.wiki_id, source).await?;
 
     if !result.generated_note_ids.is_empty() {
-        let wiki = axagent_core::repo::wiki::get_wiki(&state.sea_db, &input.wiki_id)
+        let wiki = axagent_core::repo::wiki::get_wiki(state.harness.db(), &input.wiki_id)
             .await
             .map_err(|e| e.to_string())?;
 
         if wiki.embedding_provider.is_some() {
             let container = axagent_core::rag::KnowledgeContainer::from_wiki(&wiki);
-            let db = state.sea_db.clone();
+            let db = state.harness.db().clone();
             let master_key = state.harness.master_key_owned();
             let vector_store = state.vector_store.clone();
             let wiki_id = input.wiki_id.clone();
@@ -347,7 +347,7 @@ pub async fn llm_wiki_compile(
     state: State<'_, AppState>,
     input: CompileInput,
 ) -> Result<CompileResultOutput, String> {
-    let wiki_model = axagent_core::repo::wiki::get_wiki_model(&state.sea_db, &input.wiki_id)
+    let wiki_model = axagent_core::repo::wiki::get_wiki_model(state.harness.db(), &input.wiki_id)
         .await
         .map_err(|e| e.to_string())?;
 
@@ -356,10 +356,11 @@ pub async fn llm_wiki_compile(
     })?;
 
     let (adapter, ctx, model) =
-        build_llm_adapter(&state.sea_db, state.harness.master_key(), &embedding_provider).await?;
+        build_llm_adapter(state.harness.db(), state.harness.master_key(), &embedding_provider)
+            .await?;
 
     let compiler =
-        wiki_compiler::WikiCompiler::new(Arc::new(state.sea_db.clone()), adapter, ctx, model);
+        wiki_compiler::WikiCompiler::new(Arc::new(state.harness.db().clone()), adapter, ctx, model);
 
     let result = compiler.compile(&input.wiki_id, input.source_ids).await?;
 
@@ -371,13 +372,13 @@ pub async fn llm_wiki_compile(
         .collect();
 
     if !pages_to_index.is_empty() {
-        let wiki = axagent_core::repo::wiki::get_wiki(&state.sea_db, &input.wiki_id)
+        let wiki = axagent_core::repo::wiki::get_wiki(state.harness.db(), &input.wiki_id)
             .await
             .map_err(|e| e.to_string())?;
 
         if wiki.embedding_provider.is_some() {
             let container = axagent_core::rag::KnowledgeContainer::from_wiki(&wiki);
-            let db = state.sea_db.clone();
+            let db = state.harness.db().clone();
             let master_key = state.harness.master_key_owned();
             let vector_store = state.vector_store.clone();
             let wiki_id = input.wiki_id.clone();
@@ -476,7 +477,7 @@ pub async fn llm_wiki_query(
     state: State<'_, AppState>,
     input: QueryInput,
 ) -> Result<QueryResultOutput, String> {
-    let wiki = axagent_core::repo::wiki::get_wiki(&state.sea_db, &input.wiki_id)
+    let wiki = axagent_core::repo::wiki::get_wiki(state.harness.db(), &input.wiki_id)
         .await
         .map_err(|e| e.to_string())?;
 
@@ -487,7 +488,7 @@ pub async fn llm_wiki_query(
         offset: input.offset.unwrap_or(0),
     };
 
-    let engine = query_engine::QueryEngine::new(Arc::new(state.sea_db.clone()));
+    let engine = query_engine::QueryEngine::new(Arc::new(state.harness.db().clone()));
 
     let result = if let Some(ref ep) = wiki.embedding_provider {
         match generate_query_embedding(&state, ep, &input.query, wiki.embedding_dimensions).await {
@@ -545,7 +546,7 @@ async fn generate_query_embedding(
     let dims = dimensions.map(|d| d as usize);
     let embed_response = axagent_core::rag::AsyncEmbedFn::generate(
         &embed_fn,
-        &state.sea_db,
+        state.harness.db(),
         state.harness.master_key(),
         embedding_provider,
         vec![query.to_string()],
@@ -592,7 +593,7 @@ pub async fn llm_wiki_lint(
     state: State<'_, AppState>,
     note_id: String,
 ) -> Result<lint_checker::LintResult, String> {
-    let checker = lint_checker::LintChecker::new(Arc::new(state.sea_db.clone()));
+    let checker = lint_checker::LintChecker::new(Arc::new(state.harness.db().clone()));
     checker.lint_note(&note_id).await
 }
 
@@ -601,7 +602,7 @@ pub async fn llm_wiki_lint_update_score(
     state: State<'_, AppState>,
     note_id: String,
 ) -> Result<f64, String> {
-    let checker = lint_checker::LintChecker::new(Arc::new(state.sea_db.clone()));
+    let checker = lint_checker::LintChecker::new(Arc::new(state.harness.db().clone()));
     checker.update_quality_score(&note_id).await
 }
 
@@ -610,7 +611,7 @@ pub async fn llm_wiki_get_schema(
     state: State<'_, AppState>,
     wiki_id: String,
 ) -> Result<String, String> {
-    let manager = schema_manager::SchemaManager::new(Arc::new(state.sea_db.clone()));
+    let manager = schema_manager::SchemaManager::new(Arc::new(state.harness.db().clone()));
     manager
         .get_current_schema(&wiki_id)
         .await
@@ -629,7 +630,7 @@ pub async fn llm_wiki_validate_frontmatter(
     state: State<'_, AppState>,
     input: ValidateFrontmatterInput,
 ) -> Result<Vec<String>, String> {
-    let manager = schema_manager::SchemaManager::new(Arc::new(state.sea_db.clone()));
+    let manager = schema_manager::SchemaManager::new(Arc::new(state.harness.db().clone()));
     manager
         .validate_frontmatter(&input.wiki_id, &input.frontmatter)
         .await
@@ -643,7 +644,7 @@ pub async fn llm_wiki_create_schema_version(
     version: String,
     description: Option<String>,
 ) -> Result<schema_manager::SchemaVersion, String> {
-    let manager = schema_manager::SchemaManager::new(Arc::new(state.sea_db.clone()));
+    let manager = schema_manager::SchemaManager::new(Arc::new(state.harness.db().clone()));
     manager
         .create_schema_version(&wiki_id, &version, description)
         .await
@@ -662,7 +663,7 @@ pub async fn llm_wiki_update_schema(
     state: State<'_, AppState>,
     input: UpdateSchemaInput,
 ) -> Result<(), String> {
-    let wiki = axagent_core::repo::wiki::get_wiki_model(&state.sea_db, &input.wiki_id)
+    let wiki = axagent_core::repo::wiki::get_wiki_model(state.harness.db(), &input.wiki_id)
         .await
         .map_err(|e| e.to_string())?;
 
@@ -678,7 +679,9 @@ pub async fn llm_wiki_update_schema(
 
     let mut am = wiki.into_active_model();
     am.updated_at = Set(chrono::Utc::now().timestamp());
-    am.update(&state.sea_db).await.map_err(|e| e.to_string())?;
+    am.update(state.harness.db())
+        .await
+        .map_err(|e| e.to_string())?;
 
     Ok(())
 }
@@ -688,7 +691,7 @@ pub async fn llm_wiki_delete_schema(
     state: State<'_, AppState>,
     wiki_id: String,
 ) -> Result<(), String> {
-    let wiki = axagent_core::repo::wiki::get_wiki_model(&state.sea_db, &wiki_id)
+    let wiki = axagent_core::repo::wiki::get_wiki_model(state.harness.db(), &wiki_id)
         .await
         .map_err(|e| e.to_string())?;
 
@@ -707,7 +710,7 @@ pub async fn llm_wiki_lint_vault(
     state: State<'_, AppState>,
     wiki_id: String,
 ) -> Result<Vec<lint_checker::LintResult>, String> {
-    let checker = lint_checker::LintChecker::new(Arc::new(state.sea_db.clone()));
+    let checker = lint_checker::LintChecker::new(Arc::new(state.harness.db().clone()));
     checker.lint_vault(&wiki_id).await
 }
 
@@ -717,7 +720,7 @@ pub async fn llm_wiki_auto_fix(
     wiki_id: String,
     note_id: Option<String>,
 ) -> Result<Vec<String>, String> {
-    let checker = lint_checker::LintChecker::new(Arc::new(state.sea_db.clone()));
+    let checker = lint_checker::LintChecker::new(Arc::new(state.harness.db().clone()));
     checker.auto_fix(&wiki_id, note_id.as_deref()).await
 }
 
@@ -727,7 +730,7 @@ pub async fn llm_wiki_ask(
     wiki_id: String,
     question: String,
 ) -> Result<String, String> {
-    let wiki_model = axagent_core::repo::wiki::get_wiki_model(&state.sea_db, &wiki_id)
+    let wiki_model = axagent_core::repo::wiki::get_wiki_model(state.harness.db(), &wiki_id)
         .await
         .map_err(|e| e.to_string())?;
 
@@ -737,9 +740,10 @@ pub async fn llm_wiki_ask(
         .ok_or_else(|| "Wiki has no embedding_provider configured".to_string())?;
 
     let (adapter, ctx, model) =
-        build_llm_adapter(&state.sea_db, state.harness.master_key(), &embedding_provider).await?;
+        build_llm_adapter(state.harness.db(), state.harness.master_key(), &embedding_provider)
+            .await?;
 
-    let engine = query_engine::QueryEngine::new(Arc::new(state.sea_db.clone()))
+    let engine = query_engine::QueryEngine::new(Arc::new(state.harness.db().clone()))
         .with_llm(adapter, ctx, model);
 
     engine.ask(&wiki_id, &question).await
@@ -759,7 +763,7 @@ pub async fn write_base64_to_file(
     state: State<'_, AppState>,
     input: WriteBase64Input,
 ) -> Result<String, String> {
-    let wiki = axagent_core::repo::wiki::get_wiki_model(&state.sea_db, &input.wiki_id)
+    let wiki = axagent_core::repo::wiki::get_wiki_model(state.harness.db(), &input.wiki_id)
         .await
         .map_err(|e| e.to_string())?;
 
@@ -778,7 +782,7 @@ pub async fn write_base64_to_file(
     let _source_content =
         String::from_utf8(bytes).unwrap_or_else(|_| "[Binary content]".to_string());
 
-    let pipeline = ingest_pipeline::IngestPipeline::new(Arc::new(state.sea_db.clone()));
+    let pipeline = ingest_pipeline::IngestPipeline::new(Arc::new(state.harness.db().clone()));
     let source = ingest_pipeline::IngestSource {
         source_type: match input.source_type.as_str() {
             "web" => ingest_pipeline::IngestSourceType::WebArticle,
@@ -813,7 +817,7 @@ pub async fn wiki_sync_process_pending(
     let pending = wiki_sync_queue::Entity::find()
         .filter(wiki_sync_queue::Column::WikiId.eq(&wiki_id))
         .filter(wiki_sync_queue::Column::Status.eq("pending"))
-        .all(&state.sea_db)
+        .all(state.harness.db())
         .await
         .map_err(|e| e.to_string())?;
 
@@ -826,10 +830,12 @@ pub async fn wiki_sync_process_pending(
         let item_clone = item.clone();
         let mut am = item.into_active_model();
         am.status = Set("processing".to_string());
-        am.update(&state.sea_db).await.map_err(|e| e.to_string())?;
+        am.update(state.harness.db())
+            .await
+            .map_err(|e| e.to_string())?;
 
         match process_sync_event(
-            &state.sea_db,
+            state.harness.db(),
             state.harness.master_key(),
             state.vector_store.as_ref(),
             &item_clone,
@@ -840,7 +846,9 @@ pub async fn wiki_sync_process_pending(
                 let mut am = item_clone.clone().into_active_model();
                 am.status = Set("completed".to_string());
                 am.processed_at = Set(Some(chrono::Utc::now().timestamp()));
-                am.update(&state.sea_db).await.map_err(|e| e.to_string())?;
+                am.update(state.harness.db())
+                    .await
+                    .map_err(|e| e.to_string())?;
                 processed += 1;
             },
             Err(e) => {
@@ -848,7 +856,9 @@ pub async fn wiki_sync_process_pending(
                 am.status = Set("failed".to_string());
                 am.error_message = Set(Some(e.to_string()));
                 am.retry_count = Set(item_clone.retry_count + 1);
-                am.update(&state.sea_db).await.map_err(|e| e.to_string())?;
+                am.update(state.harness.db())
+                    .await
+                    .map_err(|e| e.to_string())?;
             },
         }
     }
@@ -882,7 +892,7 @@ pub async fn wiki_sync_enqueue(
     };
 
     let result = wiki_sync_queue::Entity::insert(model)
-        .exec(&state.sea_db)
+        .exec(state.harness.db())
         .await
         .map_err(|e| e.to_string())?;
 
@@ -905,7 +915,7 @@ pub async fn wiki_sync_get_queue(
     query
         .order_by(wiki_sync_queue::Column::CreatedAt, sea_orm::Order::Desc)
         .limit(100)
-        .all(&state.sea_db)
+        .all(state.harness.db())
         .await
         .map_err(|e| e.to_string())
 }
@@ -913,7 +923,7 @@ pub async fn wiki_sync_get_queue(
 #[tauri::command]
 pub async fn wiki_sync_process(state: State<'_, AppState>, queue_id: i64) -> Result<(), String> {
     let model = wiki_sync_queue::Entity::find_by_id(queue_id)
-        .one(&state.sea_db)
+        .one(state.harness.db())
         .await
         .map_err(|e| e.to_string())?
         .ok_or_else(|| "Queue item not found".to_string())?;
@@ -921,10 +931,12 @@ pub async fn wiki_sync_process(state: State<'_, AppState>, queue_id: i64) -> Res
     let model_clone = model.clone();
     let mut am = model.into_active_model();
     am.status = Set("processing".to_string());
-    am.update(&state.sea_db).await.map_err(|e| e.to_string())?;
+    am.update(state.harness.db())
+        .await
+        .map_err(|e| e.to_string())?;
 
     let result = process_sync_event(
-        &state.sea_db,
+        state.harness.db(),
         state.harness.master_key(),
         state.vector_store.as_ref(),
         &model_clone,
@@ -936,7 +948,9 @@ pub async fn wiki_sync_process(state: State<'_, AppState>, queue_id: i64) -> Res
             let mut am = model_clone.clone().into_active_model();
             am.status = Set("completed".to_string());
             am.processed_at = Set(Some(chrono::Utc::now().timestamp()));
-            am.update(&state.sea_db).await.map_err(|e| e.to_string())?;
+            am.update(state.harness.db())
+                .await
+                .map_err(|e| e.to_string())?;
             Ok(())
         },
         Err(e) => {
@@ -944,7 +958,9 @@ pub async fn wiki_sync_process(state: State<'_, AppState>, queue_id: i64) -> Res
             am.status = Set("failed".to_string());
             am.error_message = Set(Some(e.to_string()));
             am.retry_count = Set(model_clone.retry_count + 1);
-            am.update(&state.sea_db).await.map_err(|e| e.to_string())?;
+            am.update(state.harness.db())
+                .await
+                .map_err(|e| e.to_string())?;
             Err(e.to_string())
         },
     }
@@ -1031,7 +1047,7 @@ pub async fn wiki_check_capacity(
     state: State<'_, AppState>,
     wiki_id: String,
 ) -> Result<axagent_core::rag::CapacityCheckResult, String> {
-    axagent_core::rag::check_vault_rag_capacity(&state.sea_db, &wiki_id)
+    axagent_core::rag::check_vault_rag_capacity(state.harness.db(), &wiki_id)
         .await
         .map_err(|e| e.to_string())
 }
@@ -1041,7 +1057,7 @@ pub async fn wiki_get_capacity_info(
     state: State<'_, AppState>,
     wiki_id: String,
 ) -> Result<axagent_core::rag::VaultCapacityInfo, String> {
-    axagent_core::rag::get_vault_capacity_info(&state.sea_db, &wiki_id)
+    axagent_core::rag::get_vault_capacity_info(state.harness.db(), &wiki_id)
         .await
         .map_err(|e| e.to_string())
 }
@@ -1051,7 +1067,7 @@ pub async fn llm_wiki_get_purpose(
     state: State<'_, AppState>,
     wiki_id: String,
 ) -> Result<String, String> {
-    purpose_manager::PurposeManager::load(&state.sea_db, &wiki_id).await
+    purpose_manager::PurposeManager::load(state.harness.db(), &wiki_id).await
 }
 
 #[tauri::command]
@@ -1060,5 +1076,5 @@ pub async fn llm_wiki_update_purpose(
     wiki_id: String,
     content: String,
 ) -> Result<(), String> {
-    purpose_manager::PurposeManager::save(&state.sea_db, &wiki_id, &content).await
+    purpose_manager::PurposeManager::save(state.harness.db(), &wiki_id, &content).await
 }

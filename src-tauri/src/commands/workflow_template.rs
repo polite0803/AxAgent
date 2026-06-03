@@ -58,7 +58,7 @@ pub async fn list_workflow_templates(
     state: State<'_, AppState>,
     is_preset: Option<bool>,
 ) -> Result<Vec<WorkflowTemplateResponse>, String> {
-    let db = &state.sea_db;
+    let db = state.harness.db();
     let templates = db_repo::list_workflow_templates(db, is_preset)
         .await
         .map_err(|e| e.to_string())?;
@@ -74,7 +74,7 @@ pub async fn get_workflow_template(
     state: State<'_, AppState>,
     id: String,
 ) -> Result<Option<WorkflowTemplateResponse>, String> {
-    let db = &state.sea_db;
+    let db = state.harness.db();
     let template = db_repo::get_workflow_template(db, &id)
         .await
         .map_err(|e| e.to_string())?;
@@ -87,7 +87,7 @@ pub async fn create_workflow_template(
     state: State<'_, AppState>,
     input: WorkflowTemplateInput,
 ) -> Result<String, String> {
-    let db = &state.sea_db;
+    let db = state.harness.db();
 
     // 节点组成相似性检查
     let similar = find_similar_workflows(db, &input.nodes).await?;
@@ -143,7 +143,7 @@ pub async fn update_workflow_template(
     id: String,
     mut input: WorkflowTemplateInput,
 ) -> Result<bool, String> {
-    let db = &state.sea_db;
+    let db = state.harness.db();
 
     // 保存前提取 tool_defs（确保移动后仍可引用）
     let tool_defs = input.tool_defs.take();
@@ -180,7 +180,7 @@ pub async fn delete_workflow_template(
     state: State<'_, AppState>,
     id: String,
 ) -> Result<bool, String> {
-    let db = &state.sea_db;
+    let db = state.harness.db();
     let deleted = db_repo::delete_workflow_template(db, &id)
         .await
         .map_err(|e| e.to_string())?;
@@ -192,7 +192,7 @@ pub async fn duplicate_workflow_template(
     state: State<'_, AppState>,
     id: String,
 ) -> Result<String, String> {
-    let db = &state.sea_db;
+    let db = state.harness.db();
 
     let template = db_repo::get_workflow_template(db, &id)
         .await
@@ -240,7 +240,7 @@ pub async fn seed_preset_templates(state: State<'_, AppState>) -> Result<usize, 
         convert_preset_to_workflow_template, get_preset_templates,
     };
 
-    let db = &state.sea_db;
+    let db = state.harness.db();
     let presets = get_preset_templates();
 
     let mut count = 0;
@@ -289,7 +289,7 @@ pub async fn get_template_versions(
     state: State<'_, AppState>,
     id: String,
 ) -> Result<Vec<i32>, String> {
-    let db = &state.sea_db;
+    let db = state.harness.db();
     let versions = db_repo::get_template_versions(db, &id)
         .await
         .map_err(|e| e.to_string())?;
@@ -302,7 +302,7 @@ pub async fn get_template_by_version(
     id: String,
     version: i32,
 ) -> Result<Option<WorkflowTemplateResponse>, String> {
-    let db = &state.sea_db;
+    let db = state.harness.db();
     let template = db_repo::get_template_by_version(db, &id, version)
         .await
         .map_err(|e| e.to_string())?;
@@ -704,7 +704,7 @@ pub async fn export_workflow_template(
     state: State<'_, AppState>,
     id: String,
 ) -> Result<String, String> {
-    let db = &state.sea_db;
+    let db = state.harness.db();
     let template = db_repo::get_workflow_template(db, &id)
         .await
         .map_err(|e| e.to_string())?;
@@ -1829,7 +1829,7 @@ pub async fn import_workflow_template(
     state: State<'_, AppState>,
     json_data: String,
 ) -> Result<serde_json::Value, String> {
-    do_import_workflow(&state.sea_db, json_data).await
+    do_import_workflow(state.harness.db(), json_data).await
 }
 
 /// 批量导入 n8n 目录中的所有工作流 JSON 文件
@@ -1854,7 +1854,7 @@ pub async fn import_n8n_directory(
     use std::fs;
     use std::path::Path;
 
-    let db = &state.sea_db;
+    let db = state.harness.db();
     let dir = Path::new(&path);
     if !dir.is_dir() {
         return Err(ErrorResponse::new(workflow_err::NOT_FOUND)
@@ -1932,7 +1932,7 @@ pub async fn import_workflow_directory(
     use std::fs;
     use std::path::Path;
 
-    let db = &state.sea_db;
+    let db = state.harness.db();
     let dir = Path::new(&path);
     if !dir.is_dir() {
         return Err(ErrorResponse::new(workflow_err::NOT_FOUND)

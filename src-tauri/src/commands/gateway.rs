@@ -51,7 +51,7 @@ struct CliToolConnectionState {
 }
 
 async fn load_gateway_runtime_settings(state: &AppState) -> Result<GatewayRuntimeSettings, String> {
-    let settings = axagent_core::repo::settings::get_settings(&state.sea_db)
+    let settings = axagent_core::repo::settings::get_settings(state.harness.db())
         .await
         .map_err(|e| e.to_string())?;
 
@@ -382,7 +382,7 @@ pub async fn connect_cli_tool(
 
     // Get plain key via decryption
     let plain_key = axagent_core::repo::gateway_key::get_plain_key(
-        &state.sea_db,
+        state.harness.db(),
         state.harness.master_key(),
         &key_id,
     )
@@ -413,7 +413,7 @@ pub async fn disconnect_cli_tool(
 
 #[tauri::command]
 pub async fn list_gateway_keys(state: State<'_, AppState>) -> Result<Vec<GatewayKey>, String> {
-    axagent_core::repo::gateway::list_gateway_keys(&state.sea_db)
+    axagent_core::repo::gateway::list_gateway_keys(state.harness.db())
         .await
         .map_err(|e| e.to_string())
 }
@@ -424,7 +424,7 @@ pub async fn create_gateway_key(
     name: String,
 ) -> Result<CreateGatewayKeyResult, String> {
     axagent_core::repo::gateway_key::create_gateway_key(
-        &state.sea_db,
+        state.harness.db(),
         &name,
         Some(state.harness.master_key()),
     )
@@ -434,7 +434,7 @@ pub async fn create_gateway_key(
 
 #[tauri::command]
 pub async fn delete_gateway_key(state: State<'_, AppState>, id: String) -> Result<(), String> {
-    axagent_core::repo::gateway::delete_gateway_key(&state.sea_db, &id)
+    axagent_core::repo::gateway::delete_gateway_key(state.harness.db(), &id)
         .await
         .map_err(|e| e.to_string())
 }
@@ -445,21 +445,25 @@ pub async fn toggle_gateway_key(
     id: String,
     enabled: bool,
 ) -> Result<(), String> {
-    axagent_core::repo::gateway::toggle_gateway_key(&state.sea_db, &id, enabled)
+    axagent_core::repo::gateway::toggle_gateway_key(state.harness.db(), &id, enabled)
         .await
         .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
 pub async fn decrypt_gateway_key(state: State<'_, AppState>, id: String) -> Result<String, String> {
-    axagent_core::repo::gateway_key::get_plain_key(&state.sea_db, state.harness.master_key(), &id)
-        .await
-        .map_err(|e| e.to_string())
+    axagent_core::repo::gateway_key::get_plain_key(
+        state.harness.db(),
+        state.harness.master_key(),
+        &id,
+    )
+    .await
+    .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
 pub async fn get_gateway_metrics(state: State<'_, AppState>) -> Result<GatewayMetrics, String> {
-    axagent_core::repo::gateway::get_gateway_metrics(&state.sea_db)
+    axagent_core::repo::gateway::get_gateway_metrics(state.harness.db())
         .await
         .map_err(|e| e.to_string())
 }
@@ -506,7 +510,7 @@ pub async fn start_gateway(state: State<'_, AppState>) -> Result<(), String> {
     };
 
     let server = axagent_gateway::server::GatewayServer::start_with_registry(
-        state.sea_db.clone(),
+        state.harness.db().clone(),
         state.master_key,
         start_config,
         state.harness.provider_registry().clone(),
@@ -583,7 +587,7 @@ pub async fn get_gateway_status(state: State<'_, AppState>) -> Result<GatewaySta
 pub async fn get_gateway_usage_by_key(
     state: State<'_, AppState>,
 ) -> Result<Vec<UsageByKey>, String> {
-    axagent_core::repo::gateway::get_usage_by_key(&state.sea_db)
+    axagent_core::repo::gateway::get_usage_by_key(state.harness.db())
         .await
         .map_err(|e| e.to_string())
 }
@@ -592,7 +596,7 @@ pub async fn get_gateway_usage_by_key(
 pub async fn get_gateway_usage_by_provider(
     state: State<'_, AppState>,
 ) -> Result<Vec<UsageByProvider>, String> {
-    axagent_core::repo::gateway::get_usage_by_provider(&state.sea_db)
+    axagent_core::repo::gateway::get_usage_by_provider(state.harness.db())
         .await
         .map_err(|e| e.to_string())
 }
@@ -602,7 +606,7 @@ pub async fn get_gateway_usage_by_day(
     state: State<'_, AppState>,
     days: Option<u32>,
 ) -> Result<Vec<UsageByDay>, String> {
-    axagent_core::repo::gateway::get_usage_by_day(&state.sea_db, days.unwrap_or(30))
+    axagent_core::repo::gateway::get_usage_by_day(state.harness.db(), days.unwrap_or(30))
         .await
         .map_err(|e| e.to_string())
 }
@@ -611,7 +615,7 @@ pub async fn get_gateway_usage_by_day(
 pub async fn get_connected_programs(
     state: State<'_, AppState>,
 ) -> Result<Vec<ConnectedProgram>, String> {
-    axagent_core::repo::gateway::get_connected_programs(&state.sea_db)
+    axagent_core::repo::gateway::get_connected_programs(state.harness.db())
         .await
         .map_err(|e| e.to_string())
 }
@@ -620,7 +624,7 @@ pub async fn get_connected_programs(
 pub async fn get_gateway_diagnostics(
     state: State<'_, AppState>,
 ) -> Result<Vec<GatewayDiagnostic>, String> {
-    axagent_core::repo::gateway_diagnostic::get_diagnostics(&state.sea_db)
+    axagent_core::repo::gateway_diagnostic::get_diagnostics(state.harness.db())
         .await
         .map_err(|e| e.to_string())
 }
@@ -629,7 +633,7 @@ pub async fn get_gateway_diagnostics(
 pub async fn get_program_policies(
     state: State<'_, AppState>,
 ) -> Result<Vec<ProgramPolicy>, String> {
-    axagent_core::repo::program_policy::list_program_policies(&state.sea_db)
+    axagent_core::repo::program_policy::list_program_policies(state.harness.db())
         .await
         .map_err(|e| e.to_string())
 }
@@ -639,14 +643,14 @@ pub async fn save_program_policy(
     state: State<'_, AppState>,
     input: SaveProgramPolicyInput,
 ) -> Result<ProgramPolicy, String> {
-    axagent_core::repo::program_policy::save_program_policy(&state.sea_db, &input)
+    axagent_core::repo::program_policy::save_program_policy(state.harness.db(), &input)
         .await
         .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
 pub async fn delete_program_policy(state: State<'_, AppState>, id: String) -> Result<(), String> {
-    axagent_core::repo::program_policy::delete_program_policy(&state.sea_db, &id)
+    axagent_core::repo::program_policy::delete_program_policy(state.harness.db(), &id)
         .await
         .map_err(|e| e.to_string())
 }
@@ -725,7 +729,7 @@ pub async fn list_gateway_request_logs(
     offset: Option<u64>,
 ) -> Result<Vec<GatewayRequestLog>, String> {
     axagent_core::repo::gateway_request_log::list_request_logs(
-        &state.sea_db,
+        state.harness.db(),
         limit.unwrap_or(100),
         offset.unwrap_or(0),
     )
@@ -735,7 +739,7 @@ pub async fn list_gateway_request_logs(
 
 #[tauri::command]
 pub async fn clear_gateway_request_logs(state: State<'_, AppState>) -> Result<u64, String> {
-    axagent_core::repo::gateway_request_log::clear_request_logs(&state.sea_db)
+    axagent_core::repo::gateway_request_log::clear_request_logs(state.harness.db())
         .await
         .map_err(|e| e.to_string())
 }
@@ -831,7 +835,7 @@ pub async fn get_active_gateway_platform(state: State<'_, AppState>) -> Result<S
     }
 
     // 回退：检查 gateway_link 表中是否有激活的平台链接
-    let links = axagent_core::repo::gateway_link::list_gateway_links(&state.sea_db)
+    let links = axagent_core::repo::gateway_link::list_gateway_links(state.harness.db())
         .await
         .map_err(|e| e.to_string())?;
 

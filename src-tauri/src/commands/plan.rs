@@ -234,7 +234,7 @@ async fn generate_plan_via_llm(
     use axagent_core::repo::provider::{self, get_active_key};
     use axagent_harness::resolve_base_url_for_type;
 
-    let db = &state.sea_db;
+    let db = state.harness.db();
 
     // Load provider config
     let provider_config = provider::get_provider(db, provider_id)
@@ -480,7 +480,7 @@ async fn build_agent_context(
 ) -> Result<AgentContext, String> {
     use axagent_providers::{ProviderAdapter, resolve_base_url_for_type};
 
-    let db = &state.sea_db;
+    let db = state.harness.db();
 
     let prov = axagent_core::repo::provider::get_provider(db, provider_id)
         .await
@@ -679,7 +679,7 @@ async fn execute_step_with_agent(
     );
 
     // Build fresh api_client + tool_registry for this step
-    let (api_client, tool_registry) = build_step_tools(agent_ctx, &state.sea_db).await;
+    let (api_client, tool_registry) = build_step_tools(agent_ctx, state.harness.db()).await;
 
     let result = session_manager
         .run_turn_with_tools(
@@ -768,7 +768,7 @@ pub async fn plan_generate(
     app: tauri::AppHandle,
     request: PlanGenerateRequest,
 ) -> Result<Plan, String> {
-    let db = &state.sea_db;
+    let db = state.harness.db();
 
     // Load conversation to get provider/model info
     let conversation =
@@ -855,7 +855,7 @@ pub async fn plan_execute(
     app: tauri::AppHandle,
     request: PlanExecuteRequest,
 ) -> Result<(), String> {
-    let db = &state.sea_db;
+    let db = state.harness.db();
 
     // Load plan from database
     let plan_row = axagent_core::entity::plans::Entity::find_by_id(&request.plan_id)
@@ -1201,7 +1201,7 @@ pub async fn plan_cancel(
     app: tauri::AppHandle,
     request: PlanCancelRequest,
 ) -> Result<(), String> {
-    let db = &state.sea_db;
+    let db = state.harness.db();
 
     // 尝试取消正在运行的 DAG 工作流
     if let Some(wf_id) = RUNNING_PLAN_WORKFLOWS.lock().await.remove(&request.plan_id) {
@@ -1244,7 +1244,7 @@ pub async fn plan_activate(
     state: tauri::State<'_, AppState>,
     request: PlanActivateRequest,
 ) -> Result<Plan, String> {
-    let db = &state.sea_db;
+    let db = state.harness.db();
 
     // Deactivate all other active plans for this conversation
     let existing = axagent_core::entity::plans::Entity::find()
@@ -1303,7 +1303,7 @@ pub async fn plan_get(
     state: tauri::State<'_, AppState>,
     request: PlanGetRequest,
 ) -> Result<Option<Plan>, String> {
-    let db = &state.sea_db;
+    let db = state.harness.db();
 
     let row = axagent_core::entity::plans::Entity::find_by_id(&request.plan_id)
         .one(db)
@@ -1346,7 +1346,7 @@ pub async fn plan_list(
     state: tauri::State<'_, AppState>,
     request: PlanListRequest,
 ) -> Result<Vec<Plan>, String> {
-    let db = &state.sea_db;
+    let db = state.harness.db();
 
     let mut query = axagent_core::entity::plans::Entity::find()
         .filter(axagent_core::entity::plans::Column::ConversationId.eq(&request.conversation_id));
@@ -1399,7 +1399,7 @@ pub async fn plan_modify_step(
     state: tauri::State<'_, AppState>,
     request: PlanModifyStepRequest,
 ) -> Result<Option<Plan>, String> {
-    let db = &state.sea_db;
+    let db = state.harness.db();
 
     let row = axagent_core::entity::plans::Entity::find_by_id(&request.plan_id)
         .one(db)

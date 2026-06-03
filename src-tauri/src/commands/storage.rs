@@ -183,7 +183,7 @@ pub async fn change_documents_root(
     }
 
     // Persist the setting
-    let db = &state.sea_db;
+    let db = state.harness.db();
     let mut settings = axagent_core::repo::settings::get_settings(db)
         .await
         .map_err(|e| e.to_string())?;
@@ -201,7 +201,7 @@ pub async fn change_documents_root(
 /// Reset documents root back to the platform default.
 #[tauri::command]
 pub async fn reset_documents_root(state: State<'_, AppState>) -> Result<(), String> {
-    let db = &state.sea_db;
+    let db = state.harness.db();
     let mut settings = axagent_core::repo::settings::get_settings(db)
         .await
         .map_err(|e| e.to_string())?;

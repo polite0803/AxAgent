@@ -354,7 +354,9 @@ pub async fn preview_decomposition(
         if let Some(cached) = cache.get(&content_hash) {
             let dep_results = ToolResolver::check_tool_dependencies(
                 &cached.result.tool_dependencies,
-                &get_mcp_tool_names(&state.sea_db).await.unwrap_or_default(),
+                &get_mcp_tool_names(state.harness.db())
+                    .await
+                    .unwrap_or_default(),
                 &get_local_tool_names(&state).await,
                 &get_plugin_tool_names().unwrap_or_default(),
             );
@@ -395,7 +397,9 @@ pub async fn preview_decomposition(
 
     let result = axagent_trajectory::SkillDecomposer::decompose(&parsed).map_err(|e| e.message)?;
 
-    let mcp_tools = get_mcp_tool_names(&state.sea_db).await.unwrap_or_default();
+    let mcp_tools = get_mcp_tool_names(state.harness.db())
+        .await
+        .unwrap_or_default();
     let local_tools = get_local_tool_names(&state).await;
     let plugin_tools = get_plugin_tool_names().unwrap_or_default();
 
@@ -487,7 +491,7 @@ pub async fn confirm_decomposition(
         updated_at: Set(now),
     };
 
-    axagent_core::repo::workflow_template::insert_workflow_template(&state.sea_db, template)
+    axagent_core::repo::workflow_template::insert_workflow_template(state.harness.db(), template)
         .await
         .map_err(|e| e.to_string())?;
 
@@ -519,7 +523,7 @@ pub async fn generate_missing_tool(
             .map_err(|e| e.to_string())?;
 
     // Persist to database
-    axagent_runtime::tool_generator::persist_to_db(&tool, &state.sea_db)
+    axagent_runtime::tool_generator::persist_to_db(&tool, state.harness.db())
         .await
         .map_err(|e| e.to_string())?;
 
@@ -570,7 +574,7 @@ pub async fn upgrade_tool_with_llm(
     state: State<'_, AppState>,
     request: ToolUpgradeRequest,
 ) -> Result<ToolUpgradeResponse, String> {
-    let settings = axagent_core::repo::settings::get_settings(&state.sea_db)
+    let settings = axagent_core::repo::settings::get_settings(state.harness.db())
         .await
         .map_err(|e| e.to_string())?;
 
@@ -583,11 +587,11 @@ pub async fn upgrade_tool_with_llm(
         .as_ref()
         .ok_or_else(|| "No default model configured".to_string())?;
 
-    let provider = axagent_core::repo::provider::get_provider(&state.sea_db, provider_id)
+    let provider = axagent_core::repo::provider::get_provider(state.harness.db(), provider_id)
         .await
         .map_err(|e| e.to_string())?;
 
-    let key_row = axagent_core::repo::provider::get_active_key(&state.sea_db, &provider.id)
+    let key_row = axagent_core::repo::provider::get_active_key(state.harness.db(), &provider.id)
         .await
         .map_err(|e| e.to_string())?;
 

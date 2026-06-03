@@ -15,7 +15,7 @@ fn spawn_wiki_note_indexing(
     note_id: &str,
     content: &str,
 ) {
-    let db = state.sea_db.clone();
+    let db = state.harness.db().clone();
     let master_key = state.harness.master_key_owned();
     let vector_store = state.vector_store.clone();
     let wid = wiki_id.to_string();
@@ -69,14 +69,14 @@ pub async fn wiki_notes_list(
     state: State<'_, AppState>,
     vault_id: String,
 ) -> Result<Vec<Note>, String> {
-    axagent_core::repo::note::list_notes(&state.sea_db, &vault_id)
+    axagent_core::repo::note::list_notes(state.harness.db(), &vault_id)
         .await
         .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
 pub async fn wiki_notes_get(state: State<'_, AppState>, id: String) -> Result<Note, String> {
-    axagent_core::repo::note::get_note(&state.sea_db, &id)
+    axagent_core::repo::note::get_note(state.harness.db(), &id)
         .await
         .map_err(|e| e.to_string())
 }
@@ -87,7 +87,7 @@ pub async fn wiki_notes_get_by_path(
     vault_id: String,
     file_path: String,
 ) -> Result<Note, String> {
-    axagent_core::repo::note::get_note_by_path(&state.sea_db, &vault_id, &file_path)
+    axagent_core::repo::note::get_note_by_path(state.harness.db(), &vault_id, &file_path)
         .await
         .map_err(|e| e.to_string())
 }
@@ -97,7 +97,7 @@ pub async fn wiki_notes_create(
     state: State<'_, AppState>,
     input: CreateNoteInput,
 ) -> Result<Note, String> {
-    let note = axagent_core::repo::note::create_note(&state.sea_db, input)
+    let note = axagent_core::repo::note::create_note(state.harness.db(), input)
         .await
         .map_err(|e| e.to_string())?;
 
@@ -113,9 +113,9 @@ pub async fn wiki_notes_update(
     input: UpdateNoteInput,
 ) -> Result<Note, String> {
     if input.content.is_some() || input.title.is_some() {
-        if let Ok(existing) = axagent_core::repo::note::get_note(&state.sea_db, &id).await {
+        if let Ok(existing) = axagent_core::repo::note::get_note(state.harness.db(), &id).await {
             let _ = wiki::create_version(
-                &state.sea_db,
+                state.harness.db(),
                 &existing.vault_id,
                 &existing.id,
                 &existing.title,
@@ -126,11 +126,11 @@ pub async fn wiki_notes_update(
         }
     }
 
-    let updated = axagent_core::repo::note::update_note(&state.sea_db, &id, input)
+    let updated = axagent_core::repo::note::update_note(state.harness.db(), &id, input)
         .await
         .map_err(|e| e.to_string())?;
 
-    let _ = wiki::delete_old_versions(&state.sea_db, &id, 20).await;
+    let _ = wiki::delete_old_versions(state.harness.db(), &id, 20).await;
 
     spawn_wiki_note_indexing(&state, &updated.vault_id, &updated.id, &updated.content);
 
@@ -139,7 +139,7 @@ pub async fn wiki_notes_update(
 
 #[tauri::command]
 pub async fn wiki_notes_delete(state: State<'_, AppState>, id: String) -> Result<(), String> {
-    if let Ok(existing) = axagent_core::repo::note::get_note(&state.sea_db, &id).await {
+    if let Ok(existing) = axagent_core::repo::note::get_note(state.harness.db(), &id).await {
         let collection_id = format!("wiki_{}", existing.vault_id);
         let _ = state
             .vector_store
@@ -147,7 +147,7 @@ pub async fn wiki_notes_delete(state: State<'_, AppState>, id: String) -> Result
             .await;
 
         let _ = wiki::create_version(
-            &state.sea_db,
+            state.harness.db(),
             &existing.vault_id,
             &existing.id,
             &existing.title,
@@ -157,7 +157,7 @@ pub async fn wiki_notes_delete(state: State<'_, AppState>, id: String) -> Result
         .await;
     }
 
-    axagent_core::repo::note::delete_note(&state.sea_db, &id)
+    axagent_core::repo::note::delete_note(state.harness.db(), &id)
         .await
         .map_err(|e| e.to_string())
 }
@@ -168,7 +168,7 @@ pub async fn rebuild_wiki_index(
     state: State<'_, AppState>,
     wiki_id: String,
 ) -> Result<(), String> {
-    let wiki = axagent_core::repo::wiki::get_wiki(&state.sea_db, &wiki_id)
+    let wiki = axagent_core::repo::wiki::get_wiki(state.harness.db(), &wiki_id)
         .await
         .map_err(|e| e.to_string())?;
 
@@ -182,11 +182,11 @@ pub async fn rebuild_wiki_index(
     let collection_id = format!("wiki_{}", wiki_id);
     let _ = state.vector_store.delete_collection(&collection_id).await;
 
-    let notes = axagent_core::repo::note::list_notes(&state.sea_db, &wiki_id)
+    let notes = axagent_core::repo::note::list_notes(state.harness.db(), &wiki_id)
         .await
         .map_err(|e| e.to_string())?;
 
-    let db = state.sea_db.clone();
+    let db = state.harness.db().clone();
     let master_key = state.harness.master_key_owned();
     let vector_store = state.vector_store.clone();
     let wid = wiki_id.clone();
@@ -231,7 +231,7 @@ pub async fn wiki_notes_get_links(
     state: State<'_, AppState>,
     note_id: String,
 ) -> Result<Vec<NoteLink>, String> {
-    axagent_core::repo::note::get_note_links(&state.sea_db, &note_id)
+    axagent_core::repo::note::get_note_links(state.harness.db(), &note_id)
         .await
         .map_err(|e| e.to_string())
 }
@@ -241,11 +241,11 @@ pub async fn wiki_notes_get_backlinks(
     state: State<'_, AppState>,
     note_id: String,
 ) -> Result<Vec<BacklinkInfo>, String> {
-    let links = axagent_core::repo::note::get_note_backlinks(&state.sea_db, &note_id)
+    let links = axagent_core::repo::note::get_note_backlinks(state.harness.db(), &note_id)
         .await
         .map_err(|e| e.to_string())?;
 
-    let target_note = axagent_core::repo::note::get_note(&state.sea_db, &note_id)
+    let target_note = axagent_core::repo::note::get_note(state.harness.db(), &note_id)
         .await
         .ok();
     let target_title = target_note.as_ref().map(|n| n.title.as_str()).unwrap_or("");
@@ -253,11 +253,15 @@ pub async fn wiki_notes_get_backlinks(
     let mut map: std::collections::HashMap<String, BacklinkInfo> = std::collections::HashMap::new();
 
     for link in &links {
-        let source_note =
-            match axagent_core::repo::note::get_note(&state.sea_db, &link.source_note_id).await {
-                Ok(n) => n,
-                Err(_) => continue,
-            };
+        let source_note = match axagent_core::repo::note::get_note(
+            state.harness.db(),
+            &link.source_note_id,
+        )
+        .await
+        {
+            Ok(n) => n,
+            Err(_) => continue,
+        };
 
         let snippets = extract_link_context_snippets(&source_note.content, target_title, 80);
 
@@ -324,7 +328,7 @@ pub async fn wiki_notes_sync_links(
     source_note_id: String,
     links: Vec<(String, String, String)>,
 ) -> Result<(), String> {
-    axagent_core::repo::note::sync_note_links(&state.sea_db, &vault_id, &source_note_id, links)
+    axagent_core::repo::note::sync_note_links(state.harness.db(), &vault_id, &source_note_id, links)
         .await
         .map_err(|e| e.to_string())
 }
@@ -338,7 +342,7 @@ pub async fn wiki_notes_search(
 ) -> Result<Vec<NoteSearchResult>, String> {
     let top_k = top_k.unwrap_or(10);
 
-    let wiki = axagent_core::repo::wiki::get_wiki(&state.sea_db, &vault_id)
+    let wiki = axagent_core::repo::wiki::get_wiki(state.harness.db(), &vault_id)
         .await
         .map_err(|e| e.to_string())?;
 
@@ -364,7 +368,7 @@ async fn wiki_notes_search_hybrid(
     query: &str,
     top_k: usize,
 ) -> Result<Vec<NoteSearchResult>, String> {
-    let wiki = axagent_core::repo::wiki::get_wiki(&state.sea_db, vault_id)
+    let wiki = axagent_core::repo::wiki::get_wiki(state.harness.db(), vault_id)
         .await
         .map_err(|e| e.to_string())?;
 
@@ -377,7 +381,7 @@ async fn wiki_notes_search_hybrid(
     let embed_fn = crate::indexing::ProviderEmbedFn;
     let embed_response = axagent_core::rag::AsyncEmbedFn::generate(
         &embed_fn,
-        &state.sea_db,
+        state.harness.db(),
         state.harness.master_key(),
         ep,
         vec![query.to_string()],
@@ -393,7 +397,7 @@ async fn wiki_notes_search_hybrid(
         .ok_or_else(|| "No query embedding returned".to_string())?;
 
     let collection_id = collection_id(WikiVaultRAG.collection_prefix(), vault_id);
-    let searcher = HybridSearcher::new(state.sea_db.clone());
+    let searcher = HybridSearcher::new(state.harness.db().clone());
 
     let options = HybridSearchOptions {
         vector_weight: 0.7,
@@ -409,13 +413,15 @@ async fn wiki_notes_search_hybrid(
 
     let mut results = Vec::new();
     for hybrid_result in &hybrid_results {
-        let note =
-            match axagent_core::repo::note::get_note(&state.sea_db, &hybrid_result.document_id)
-                .await
-            {
-                Ok(n) => n,
-                Err(_) => continue,
-            };
+        let note = match axagent_core::repo::note::get_note(
+            state.harness.db(),
+            &hybrid_result.document_id,
+        )
+        .await
+        {
+            Ok(n) => n,
+            Err(_) => continue,
+        };
 
         let snippet = extract_highlight_snippet(&note.content, query, 50, 150);
         let score = hybrid_result.combined_score as f64;
@@ -436,7 +442,7 @@ async fn wiki_notes_search_keyword(
     query: &str,
     top_k: usize,
 ) -> Result<Vec<NoteSearchResult>, String> {
-    let notes = axagent_core::repo::note::list_notes(&state.sea_db, vault_id)
+    let notes = axagent_core::repo::note::list_notes(state.harness.db(), vault_id)
         .await
         .map_err(|e| e.to_string())?;
 
@@ -586,7 +592,7 @@ pub async fn get_wiki_graph(
     state: State<'_, AppState>,
     wiki_id: String,
 ) -> Result<GraphData, String> {
-    axagent_core::repo::note::get_vault_graph(&state.sea_db, &wiki_id)
+    axagent_core::repo::note::get_vault_graph(state.harness.db(), &wiki_id)
         .await
         .map_err(|e| e.to_string())
 }
@@ -596,7 +602,7 @@ pub async fn wiki_graph_communities(
     state: State<'_, AppState>,
     wiki_id: String,
 ) -> Result<LouvainResult, String> {
-    let graph_data = axagent_core::repo::note::get_vault_graph(&state.sea_db, &wiki_id)
+    let graph_data = axagent_core::repo::note::get_vault_graph(state.harness.db(), &wiki_id)
         .await
         .map_err(|e| e.to_string())?;
 
@@ -612,7 +618,7 @@ pub async fn sync_note_to_knowledge_base(
     note_id: String,
     knowledge_base_id: String,
 ) -> Result<(), String> {
-    let note = axagent_core::repo::note::get_note(&state.sea_db, &note_id)
+    let note = axagent_core::repo::note::get_note(state.harness.db(), &note_id)
         .await
         .map_err(|e| e.to_string())?;
 
@@ -626,7 +632,7 @@ pub async fn sync_note_to_knowledge_base(
     let source_path = full_path.to_string_lossy().to_string();
 
     let doc = axagent_core::repo::knowledge::add_document(
-        &state.sea_db,
+        state.harness.db(),
         &knowledge_base_id,
         &note.title,
         &source_path,
@@ -636,13 +642,14 @@ pub async fn sync_note_to_knowledge_base(
     .await
     .map_err(|e| e.to_string())?;
 
-    let kb = axagent_core::repo::knowledge::get_knowledge_base(&state.sea_db, &knowledge_base_id)
-        .await
-        .map_err(|e| e.to_string())?;
+    let kb =
+        axagent_core::repo::knowledge::get_knowledge_base(state.harness.db(), &knowledge_base_id)
+            .await
+            .map_err(|e| e.to_string())?;
 
     if kb.embedding_provider.is_some() {
         let container = axagent_core::rag::KnowledgeContainer::from_knowledge_base(&kb);
-        let db = state.sea_db.clone();
+        let db = state.harness.db().clone();
         let master_key = state.harness.master_key_owned();
         let vector_store = state.vector_store.clone();
         let doc_id = doc.id.clone();
@@ -696,7 +703,7 @@ pub async fn sync_knowledge_document_to_wiki(
     document_id: String,
     vault_id: String,
 ) -> Result<(), String> {
-    let doc = axagent_core::repo::knowledge::get_document(&state.sea_db, &document_id)
+    let doc = axagent_core::repo::knowledge::get_document(state.harness.db(), &document_id)
         .await
         .map_err(|e| e.to_string())?;
 
@@ -738,7 +745,7 @@ pub async fn sync_knowledge_document_to_wiki(
         source_refs: Some(vec![doc.id.clone()]),
     };
 
-    let note = axagent_core::repo::note::create_note(&state.sea_db, input)
+    let note = axagent_core::repo::note::create_note(state.harness.db(), input)
         .await
         .map_err(|e| e.to_string())?;
 
@@ -752,7 +759,7 @@ pub async fn wiki_note_versions(
     state: State<'_, AppState>,
     note_id: String,
 ) -> Result<Vec<NoteVersion>, String> {
-    wiki::list_versions(&state.sea_db, &note_id)
+    wiki::list_versions(state.harness.db(), &note_id)
         .await
         .map_err(|e| e.to_string())
 }
@@ -762,7 +769,7 @@ pub async fn wiki_note_get_version(
     state: State<'_, AppState>,
     version_id: i64,
 ) -> Result<NoteVersion, String> {
-    wiki::get_version(&state.sea_db, version_id)
+    wiki::get_version(state.harness.db(), version_id)
         .await
         .map_err(|e| e.to_string())
 }
@@ -773,16 +780,16 @@ pub async fn wiki_note_restore_version(
     note_id: String,
     version_id: i64,
 ) -> Result<Note, String> {
-    let version = wiki::get_version(&state.sea_db, version_id)
+    let version = wiki::get_version(state.harness.db(), version_id)
         .await
         .map_err(|e| e.to_string())?;
 
-    let note = axagent_core::repo::note::get_note(&state.sea_db, &note_id)
+    let note = axagent_core::repo::note::get_note(state.harness.db(), &note_id)
         .await
         .map_err(|e| e.to_string())?;
 
     wiki::create_version(
-        &state.sea_db,
+        state.harness.db(),
         &note.vault_id,
         &note.id,
         &note.title,
@@ -799,11 +806,11 @@ pub async fn wiki_note_restore_version(
         related_pages: None,
     };
 
-    let updated = axagent_core::repo::note::update_note(&state.sea_db, &note_id, input)
+    let updated = axagent_core::repo::note::update_note(state.harness.db(), &note_id, input)
         .await
         .map_err(|e| e.to_string())?;
 
-    let _ = wiki::delete_old_versions(&state.sea_db, &note_id, 20).await;
+    let _ = wiki::delete_old_versions(state.harness.db(), &note_id, 20).await;
 
     spawn_wiki_note_indexing(&state, &updated.vault_id, &updated.id, &updated.content);
 
@@ -815,7 +822,7 @@ pub async fn wiki_template_list(
     state: State<'_, AppState>,
     wiki_id: String,
 ) -> Result<Vec<WikiTemplate>, String> {
-    wiki::list_wiki_templates(&state.sea_db, &wiki_id)
+    wiki::list_wiki_templates(state.harness.db(), &wiki_id)
         .await
         .map_err(|e| e.to_string())
 }
@@ -825,14 +832,14 @@ pub async fn wiki_template_create(
     state: State<'_, AppState>,
     input: CreateWikiTemplateInput,
 ) -> Result<WikiTemplate, String> {
-    wiki::create_wiki_template(&state.sea_db, input)
+    wiki::create_wiki_template(state.harness.db(), input)
         .await
         .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
 pub async fn wiki_template_delete(state: State<'_, AppState>, id: String) -> Result<(), String> {
-    wiki::delete_wiki_template(&state.sea_db, &id)
+    wiki::delete_wiki_template(state.harness.db(), &id)
         .await
         .map_err(|e| e.to_string())
 }
@@ -844,11 +851,11 @@ pub async fn wiki_note_create_from_template(
     template_id: String,
     title: Option<String>,
 ) -> Result<Note, String> {
-    let template = wiki::get_wiki_template(&state.sea_db, &template_id)
+    let template = wiki::get_wiki_template(state.harness.db(), &template_id)
         .await
         .map_err(|e| e.to_string())?;
 
-    let wiki_obj = wiki::get_wiki(&state.sea_db, &vault_id)
+    let wiki_obj = wiki::get_wiki(state.harness.db(), &vault_id)
         .await
         .map_err(|e| e.to_string())?;
 
@@ -869,7 +876,7 @@ pub async fn wiki_note_create_from_template(
         source_refs: None,
     };
 
-    let note = axagent_core::repo::note::create_note(&state.sea_db, input)
+    let note = axagent_core::repo::note::create_note(state.harness.db(), input)
         .await
         .map_err(|e| e.to_string())?;
 
@@ -886,7 +893,9 @@ pub async fn wiki_create_daily_note(
     let today = chrono::Utc::now().format("%Y-%m-%d").to_string();
     let file_path = format!("daily/{}.md", today);
 
-    match axagent_core::repo::note::get_note_by_path(&state.sea_db, &vault_id, &file_path).await {
+    match axagent_core::repo::note::get_note_by_path(state.harness.db(), &vault_id, &file_path)
+        .await
+    {
         Ok(note) => Ok(note),
         Err(_) => {
             let content = format!("# {}\n\n## Tasks\n\n## Notes\n\n## Ideas\n", today);
@@ -901,7 +910,7 @@ pub async fn wiki_create_daily_note(
                 source_refs: None,
             };
 
-            let note = axagent_core::repo::note::create_note(&state.sea_db, input)
+            let note = axagent_core::repo::note::create_note(state.harness.db(), input)
                 .await
                 .map_err(|e| e.to_string())?;
 
@@ -938,7 +947,7 @@ pub async fn wiki_import_obsidian_vault(
         return Err(format!("Path is not a directory: {}", vault_path));
     }
 
-    let existing = axagent_core::repo::note::list_notes(&state.sea_db, &wiki_id)
+    let existing = axagent_core::repo::note::list_notes(state.harness.db(), &wiki_id)
         .await
         .map_err(|e| e.to_string())?;
     let existing_titles: std::collections::HashSet<String> =
@@ -1020,7 +1029,7 @@ pub async fn wiki_import_obsidian_vault(
             source_refs: None,
         };
 
-        match axagent_core::repo::note::create_note(&state.sea_db, input).await {
+        match axagent_core::repo::note::create_note(state.harness.db(), input).await {
             Ok(note) => {
                 spawn_wiki_note_indexing(&state, &wiki_id, &note.id, &note.content);
                 imported += 1;
@@ -1089,7 +1098,7 @@ pub async fn wiki_export_markdown(
     wiki_id: String,
     output_path: String,
 ) -> Result<ExportStats, String> {
-    let notes = axagent_core::repo::note::list_notes(&state.sea_db, &wiki_id)
+    let notes = axagent_core::repo::note::list_notes(state.harness.db(), &wiki_id)
         .await
         .map_err(|e| e.to_string())?;
 
@@ -1154,7 +1163,7 @@ pub async fn wiki_export_html(
     wiki_id: String,
     output_path: String,
 ) -> Result<ExportStats, String> {
-    let notes = axagent_core::repo::note::list_notes(&state.sea_db, &wiki_id)
+    let notes = axagent_core::repo::note::list_notes(state.harness.db(), &wiki_id)
         .await
         .map_err(|e| e.to_string())?;
 
@@ -1262,7 +1271,7 @@ pub async fn wiki_note_export_pdf(
     note_id: String,
     output_path: String,
 ) -> Result<String, String> {
-    let note = axagent_core::repo::note::get_note(&state.sea_db, &note_id)
+    let note = axagent_core::repo::note::get_note(state.harness.db(), &note_id)
         .await
         .map_err(|e| e.to_string())?;
 

@@ -152,7 +152,7 @@ pub async fn generate_research_report(
     conversation_id: String,
     topic: Option<String>,
 ) -> Result<serde_json::Value, String> {
-    let db = &state.sea_db;
+    let db = state.harness.db();
 
     // 1. 加载对话信息和消息列表
     let conversation = conversation_repo::get_conversation(db, &conversation_id)

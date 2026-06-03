@@ -116,7 +116,7 @@ Respond ONLY with valid JSON.",
     );
 
     // 查找默认 provider 调用 LLM
-    let db = &state.sea_db;
+    let db = state.harness.db();
     let providers = provider::list_providers(db)
         .await
         .map_err(|e| e.to_string())?;

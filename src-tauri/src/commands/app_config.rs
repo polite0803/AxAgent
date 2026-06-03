@@ -9,7 +9,7 @@ use tauri::State;
 
 #[tauri::command]
 pub async fn get_app_config(state: State<'_, AppState>) -> Result<serde_json::Value, String> {
-    let db = &state.sea_db;
+    let db = state.harness.db();
     match axagent_core::repo::settings::get_setting(db, "app_config").await {
         Ok(Some(json_str)) => {
             serde_json::from_str(&json_str).map_err(|e| format!("解析配置失败: {}", e))
@@ -26,7 +26,7 @@ pub async fn save_app_config(
     state: State<'_, AppState>,
     config: serde_json::Value,
 ) -> Result<(), String> {
-    let db = &state.sea_db;
+    let db = state.harness.db();
     let json_str = serde_json::to_string(&config).map_err(|e| format!("序列化配置失败: {}", e))?;
     axagent_core::repo::settings::set_setting(db, "app_config", &json_str)
         .await

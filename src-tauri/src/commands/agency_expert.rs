@@ -286,7 +286,7 @@ pub async fn import_agency_experts(
     state: State<'_, AppState>,
     request: ImportAgencyExpertsRequest,
 ) -> Result<ImportResult, String> {
-    let db = &state.sea_db;
+    let db = state.harness.db();
     let path = Path::new(&request.path);
 
     if !path.exists() || !path.is_dir() {
@@ -463,7 +463,7 @@ pub async fn import_agency_experts(
 pub async fn list_agency_experts(
     state: State<'_, AppState>,
 ) -> Result<Vec<AgencyExpertRow>, String> {
-    let db = &state.sea_db;
+    let db = state.harness.db();
     let models = agency_experts::Entity::find()
         .filter(agency_experts::Column::IsEnabled.eq(1))
         .all(db)
@@ -549,7 +549,7 @@ pub async fn extract_expert_structure(
     state: State<'_, AppState>,
     request: ExtractExpertStructureRequest,
 ) -> Result<ExtractExpertStructureResult, String> {
-    let db = &state.sea_db;
+    let db = state.harness.db();
 
     // Load the expert
     let expert = agency_experts::Entity::find_by_id(&request.expert_id)
@@ -719,7 +719,7 @@ pub async fn extract_expert_structure(
 
 #[tauri::command]
 pub async fn clear_agency_experts(state: State<'_, AppState>) -> Result<ImportResult, String> {
-    let db = &state.sea_db;
+    let db = state.harness.db();
     let result = agency_experts::Entity::delete_many()
         .exec(db)
         .await
@@ -750,7 +750,7 @@ pub async fn update_agency_expert(
     state: State<'_, AppState>,
     request: UpdateExpertRequest,
 ) -> Result<(), String> {
-    let db = &state.sea_db;
+    let db = state.harness.db();
 
     let expert = agency_experts::Entity::find_by_id(&request.id)
         .one(db)
@@ -794,7 +794,7 @@ pub async fn delete_agency_expert(
     state: State<'_, AppState>,
     request: DeleteExpertRequest,
 ) -> Result<(), String> {
-    let db = &state.sea_db;
+    let db = state.harness.db();
     agency_experts::Entity::delete_by_id(&request.id)
         .exec(db)
         .await
@@ -806,7 +806,7 @@ pub async fn delete_agency_expert(
 
 #[tauri::command]
 pub async fn export_agency_experts(state: State<'_, AppState>) -> Result<String, String> {
-    let db = &state.sea_db;
+    let db = state.harness.db();
     let models = agency_experts::Entity::find()
         .filter(agency_experts::Column::IsEnabled.eq(1))
         .all(db)

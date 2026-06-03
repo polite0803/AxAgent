@@ -1055,7 +1055,7 @@ pub fn run() {
             app.manage(state);
 
             let state = app.state::<AppState>();
-            let sea_db = state.sea_db.clone();
+            let sea_db = state.harness.db().clone();
 
             let sea_db2 = sea_db.clone();
             std::thread::spawn(move || {
@@ -1228,7 +1228,7 @@ pub fn run() {
             let state = app.state::<AppState>();
             #[cfg(not(mobile))]
             let tray_language = {
-                let db = state.sea_db.clone();
+                let db = state.harness.db().clone();
                 std::thread::spawn(move || {
                     let rt = tokio::runtime::Runtime::new().unwrap_or_else(|e| {
                                 android_utils::report_fatal_error(&format!("Failed to create tokio runtime: {}", e));

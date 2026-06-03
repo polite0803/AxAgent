@@ -89,7 +89,7 @@ pub async fn get_service_health(
 
 async fn check_database(state: &AppState) -> ServiceHealthCheck {
     let start = std::time::Instant::now();
-    let result = state.sea_db.execute_unprepared("SELECT 1").await;
+    let result = state.harness.db().execute_unprepared("SELECT 1").await;
 
     let latency = start.elapsed().as_millis() as u64;
 

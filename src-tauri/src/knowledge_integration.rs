@@ -129,21 +129,21 @@ pub async fn analyze_knowledge_integration(
 ) -> Result<Vec<IntegrationInsight>, String> {
     let mut containers = Vec::new();
 
-    let kbs = axagent_core::repo::knowledge::list_knowledge_bases(&state.sea_db)
+    let kbs = axagent_core::repo::knowledge::list_knowledge_bases(state.harness.db())
         .await
         .map_err(|e| e.to_string())?;
     for kb in &kbs {
         containers.push(KnowledgeContainer::from_knowledge_base(kb));
     }
 
-    let namespaces = axagent_core::repo::memory::list_namespaces(&state.sea_db)
+    let namespaces = axagent_core::repo::memory::list_namespaces(state.harness.db())
         .await
         .map_err(|e| e.to_string())?;
     for ns in &namespaces {
         containers.push(KnowledgeContainer::from_memory_ns(ns));
     }
 
-    let wikis = axagent_core::repo::wiki::list_wikis(&state.sea_db)
+    let wikis = axagent_core::repo::wiki::list_wikis(state.harness.db())
         .await
         .map_err(|e| e.to_string())?;
     for wiki in &wikis {
@@ -166,7 +166,7 @@ pub async fn analyze_knowledge_integration(
 
         let entries = if let Some(ep) = embedding_provider {
             let embed_result = crate::indexing::generate_embeddings(
-                &state.sea_db,
+                state.harness.db(),
                 &state.master_key,
                 &ep,
                 vec![query.clone()],

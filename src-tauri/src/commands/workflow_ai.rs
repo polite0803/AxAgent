@@ -51,7 +51,7 @@ struct ResolvedProvider {
 }
 
 async fn resolve_ai_provider(state: &AppState) -> Result<ResolvedProvider, String> {
-    let providers = axagent_core::repo::provider::list_providers(&state.sea_db)
+    let providers = axagent_core::repo::provider::list_providers(state.harness.db())
         .await
         .map_err(|e| format!("Failed to list providers: {}", e))?;
 
@@ -59,9 +59,10 @@ async fn resolve_ai_provider(state: &AppState) -> Result<ResolvedProvider, Strin
         "No enabled provider found. Please configure a provider in settings.".to_string()
     })?;
 
-    let provider_key = axagent_core::repo::provider::get_active_key(&state.sea_db, &provider.id)
-        .await
-        .map_err(|e| format!("Failed to get provider key: {}", e))?;
+    let provider_key =
+        axagent_core::repo::provider::get_active_key(state.harness.db(), &provider.id)
+            .await
+            .map_err(|e| format!("Failed to get provider key: {}", e))?;
 
     let decrypted_key = decrypt_key(&provider_key.key_encrypted, state.harness.master_key())
         .map_err(|e| format!("Failed to decrypt API key: {}", e))?;

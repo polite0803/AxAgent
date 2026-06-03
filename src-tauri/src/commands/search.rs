@@ -9,7 +9,7 @@ use tauri::command;
 pub async fn list_search_providers(
     state: tauri::State<'_, AppState>,
 ) -> Result<Vec<SearchProvider>, String> {
-    axagent_core::repo::search_provider::list_search_providers(&state.sea_db)
+    axagent_core::repo::search_provider::list_search_providers(state.harness.db())
         .await
         .map_err(|e| e.to_string())
 }
@@ -20,7 +20,7 @@ pub async fn get_search_provider(
     state: tauri::State<'_, AppState>,
     id: String,
 ) -> Result<SearchProvider, String> {
-    axagent_core::repo::search_provider::get_search_provider(&state.sea_db, &id)
+    axagent_core::repo::search_provider::get_search_provider(state.harness.db(), &id)
         .await
         .map_err(|e| e.to_string())
 }
@@ -41,7 +41,7 @@ pub async fn create_search_provider(
             );
         }
     }
-    axagent_core::repo::search_provider::create_search_provider(&state.sea_db, input)
+    axagent_core::repo::search_provider::create_search_provider(state.harness.db(), input)
         .await
         .map_err(|e| e.to_string())
 }
@@ -61,7 +61,7 @@ pub async fn update_search_provider(
             );
         }
     }
-    axagent_core::repo::search_provider::update_search_provider(&state.sea_db, &id, input)
+    axagent_core::repo::search_provider::update_search_provider(state.harness.db(), &id, input)
         .await
         .map_err(|e| e.to_string())
 }
@@ -72,7 +72,7 @@ pub async fn delete_search_provider(
     state: tauri::State<'_, AppState>,
     id: String,
 ) -> Result<(), String> {
-    axagent_core::repo::search_provider::delete_search_provider(&state.sea_db, &id)
+    axagent_core::repo::search_provider::delete_search_provider(state.harness.db(), &id)
         .await
         .map_err(|e| e.to_string())
 }
@@ -110,9 +110,10 @@ pub async fn test_search_provider(
 ) -> Result<serde_json::Value, String> {
     use std::time::Instant;
 
-    let provider = axagent_core::repo::search_provider::get_search_provider(&state.sea_db, &id)
-        .await
-        .map_err(|e| e.to_string())?;
+    let provider =
+        axagent_core::repo::search_provider::get_search_provider(state.harness.db(), &id)
+            .await
+            .map_err(|e| e.to_string())?;
 
     let Some(endpoint) = &provider.endpoint else {
         return Ok(
@@ -157,23 +158,30 @@ pub async fn execute_search(
     query: String,
 ) -> Result<serde_json::Value, String> {
     // 尝试从 DB 获取提供商配置，失败则走 DDG 免费搜索
-    let provider =
-        match axagent_core::repo::search_provider::get_search_provider(&state.sea_db, &provider_id)
-            .await
-        {
-            Ok(p) => p,
-            Err(_) => {
-                // 无匹配提供商 — 直接走 DuckDuckGo 免费搜索
-                return search_via_ddg(&query).await;
-            },
-        };
+    let provider = match axagent_core::repo::search_provider::get_search_provider(
+        state.harness.db(),
+        &provider_id,
+    )
+    .await
+    {
+        Ok(p) => p,
+        Err(_) => {
+            // 无匹配提供商 — 直接走 DuckDuckGo 免费搜索
+            return search_via_ddg(&query).await;
+        },
+    };
 
     // 提供商无 API Key 或 endpoint → 走 DDG 免费搜索
-    let api_key: Option<String> =
-        match get_search_api_key(&state.sea_db, &provider_id, state.harness.master_key()).await {
-            Ok(Some(k)) if !k.is_empty() => Some(k),
-            _ => None,
-        };
+    let api_key: Option<String> = match get_search_api_key(
+        state.harness.db(),
+        &provider_id,
+        state.harness.master_key(),
+    )
+    .await
+    {
+        Ok(Some(k)) if !k.is_empty() => Some(k),
+        _ => None,
+    };
 
     let Some(endpoint) = &provider.endpoint else {
         return search_via_ddg(&query).await;

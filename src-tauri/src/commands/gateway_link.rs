@@ -10,7 +10,7 @@ async fn resolve_link_api_key(
 ) -> Result<Option<String>, String> {
     if let Some(ref key_id) = link.api_key_id {
         let plain_key = axagent_core::repo::gateway_key::get_plain_key(
-            &state.sea_db,
+            state.harness.db(),
             state.harness.master_key(),
             key_id,
         )
@@ -24,7 +24,7 @@ async fn resolve_link_api_key(
 
 #[tauri::command]
 pub async fn list_gateway_links(state: State<'_, AppState>) -> Result<Vec<GatewayLink>, String> {
-    axagent_core::repo::gateway_link::list_gateway_links(&state.sea_db)
+    axagent_core::repo::gateway_link::list_gateway_links(state.harness.db())
         .await
         .map_err(|e| e.to_string())
 }
@@ -38,7 +38,7 @@ pub async fn create_gateway_link(
     let resolved_input = if input.api_key_id.is_none() && input.api_key.is_some() {
         let key_name = format!("link:{}", input.name);
         let result = axagent_core::repo::gateway_key::create_gateway_key(
-            &state.sea_db,
+            state.harness.db(),
             &key_name,
             Some(state.harness.master_key()),
         )
@@ -58,14 +58,14 @@ pub async fn create_gateway_link(
         input
     };
 
-    axagent_core::repo::gateway_link::create_gateway_link(&state.sea_db, &resolved_input)
+    axagent_core::repo::gateway_link::create_gateway_link(state.harness.db(), &resolved_input)
         .await
         .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
 pub async fn delete_gateway_link(state: State<'_, AppState>, id: String) -> Result<(), String> {
-    axagent_core::repo::gateway_link::delete_gateway_link(&state.sea_db, &id)
+    axagent_core::repo::gateway_link::delete_gateway_link(state.harness.db(), &id)
         .await
         .map_err(|e| e.to_string())
 }
@@ -76,7 +76,7 @@ pub async fn toggle_gateway_link(
     id: String,
     enabled: bool,
 ) -> Result<(), String> {
-    axagent_core::repo::gateway_link::toggle_gateway_link(&state.sea_db, &id, enabled)
+    axagent_core::repo::gateway_link::toggle_gateway_link(state.harness.db(), &id, enabled)
         .await
         .map_err(|e| e.to_string())
 }
@@ -86,16 +86,20 @@ pub async fn connect_gateway_link(
     state: State<'_, AppState>,
     id: String,
 ) -> Result<GatewayLink, String> {
-    let link = axagent_core::repo::gateway_link::get_gateway_link(&state.sea_db, &id)
+    let link = axagent_core::repo::gateway_link::get_gateway_link(state.harness.db(), &id)
         .await
         .map_err(|e| e.to_string())?
         .ok_or_else(|| "Gateway link not found".to_string())?;
 
     let api_key = resolve_link_api_key(&state, &link).await?;
 
-    axagent_core::repo::gateway_link::connect_gateway_link(&state.sea_db, &id, api_key.as_deref())
-        .await
-        .map_err(|e| e.to_string())
+    axagent_core::repo::gateway_link::connect_gateway_link(
+        state.harness.db(),
+        &id,
+        api_key.as_deref(),
+    )
+    .await
+    .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -103,7 +107,7 @@ pub async fn disconnect_gateway_link(
     state: State<'_, AppState>,
     id: String,
 ) -> Result<GatewayLink, String> {
-    axagent_core::repo::gateway_link::disconnect_gateway_link(&state.sea_db, &id)
+    axagent_core::repo::gateway_link::disconnect_gateway_link(state.harness.db(), &id)
         .await
         .map_err(|e| e.to_string())
 }
@@ -118,7 +122,7 @@ pub async fn update_gateway_link_status(
     version: Option<String>,
 ) -> Result<GatewayLink, String> {
     axagent_core::repo::gateway_link::update_gateway_link_status(
-        &state.sea_db,
+        state.harness.db(),
         &id,
         &status,
         error_message.as_deref(),
@@ -137,7 +141,7 @@ pub async fn update_gateway_link_sync_settings(
     auto_sync_skills: bool,
 ) -> Result<GatewayLink, String> {
     axagent_core::repo::gateway_link::update_gateway_link_sync_settings(
-        &state.sea_db,
+        state.harness.db(),
         &id,
         auto_sync_models,
         auto_sync_skills,
@@ -151,7 +155,7 @@ pub async fn get_gateway_link_model_syncs(
     state: State<'_, AppState>,
     link_id: String,
 ) -> Result<Vec<GatewayLinkModelSync>, String> {
-    axagent_core::repo::gateway_link::get_gateway_link_model_syncs(&state.sea_db, &link_id)
+    axagent_core::repo::gateway_link::get_gateway_link_model_syncs(state.harness.db(), &link_id)
         .await
         .map_err(|e| e.to_string())
 }
@@ -162,7 +166,7 @@ pub async fn push_gateway_link_models(
     link_id: String,
     model_ids: Vec<String>,
 ) -> Result<(), String> {
-    let link = axagent_core::repo::gateway_link::get_gateway_link(&state.sea_db, &link_id)
+    let link = axagent_core::repo::gateway_link::get_gateway_link(state.harness.db(), &link_id)
         .await
         .map_err(|e| e.to_string())?
         .ok_or_else(|| "Gateway link not found".to_string())?;
@@ -170,7 +174,7 @@ pub async fn push_gateway_link_models(
     let api_key = resolve_link_api_key(&state, &link).await?;
 
     axagent_core::repo::gateway_link::push_gateway_link_models(
-        &state.sea_db,
+        state.harness.db(),
         &link_id,
         &model_ids,
         api_key.as_deref(),
@@ -184,7 +188,7 @@ pub async fn sync_all_gateway_link_models(
     state: State<'_, AppState>,
     link_id: String,
 ) -> Result<(), String> {
-    let link = axagent_core::repo::gateway_link::get_gateway_link(&state.sea_db, &link_id)
+    let link = axagent_core::repo::gateway_link::get_gateway_link(state.harness.db(), &link_id)
         .await
         .map_err(|e| e.to_string())?
         .ok_or_else(|| "Gateway link not found".to_string())?;
@@ -192,7 +196,7 @@ pub async fn sync_all_gateway_link_models(
     let api_key = resolve_link_api_key(&state, &link).await?;
 
     axagent_core::repo::gateway_link::sync_all_gateway_link_models(
-        &state.sea_db,
+        state.harness.db(),
         &link_id,
         api_key.as_deref(),
     )
@@ -205,7 +209,7 @@ pub async fn get_gateway_link_skill_syncs(
     state: State<'_, AppState>,
     link_id: String,
 ) -> Result<Vec<GatewayLinkSkillSync>, String> {
-    let link = axagent_core::repo::gateway_link::get_gateway_link(&state.sea_db, &link_id)
+    let link = axagent_core::repo::gateway_link::get_gateway_link(state.harness.db(), &link_id)
         .await
         .map_err(|e| e.to_string())?
         .ok_or_else(|| "Gateway link not found".to_string())?;
@@ -213,7 +217,7 @@ pub async fn get_gateway_link_skill_syncs(
     let api_key = resolve_link_api_key(&state, &link).await?;
 
     axagent_core::repo::gateway_link::get_gateway_link_skill_syncs(
-        &state.sea_db,
+        state.harness.db(),
         &link_id,
         api_key.as_deref(),
     )
@@ -227,7 +231,7 @@ pub async fn push_gateway_link_skills(
     link_id: String,
     skill_names: Vec<String>,
 ) -> Result<(), String> {
-    let link = axagent_core::repo::gateway_link::get_gateway_link(&state.sea_db, &link_id)
+    let link = axagent_core::repo::gateway_link::get_gateway_link(state.harness.db(), &link_id)
         .await
         .map_err(|e| e.to_string())?
         .ok_or_else(|| "Gateway link not found".to_string())?;
@@ -235,7 +239,7 @@ pub async fn push_gateway_link_skills(
     let api_key = resolve_link_api_key(&state, &link).await?;
 
     axagent_core::repo::gateway_link::push_gateway_link_skills(
-        &state.sea_db,
+        state.harness.db(),
         &link_id,
         &skill_names,
         api_key.as_deref(),
@@ -249,7 +253,7 @@ pub async fn sync_all_gateway_link_skills(
     state: State<'_, AppState>,
     link_id: String,
 ) -> Result<(), String> {
-    let link = axagent_core::repo::gateway_link::get_gateway_link(&state.sea_db, &link_id)
+    let link = axagent_core::repo::gateway_link::get_gateway_link(state.harness.db(), &link_id)
         .await
         .map_err(|e| e.to_string())?
         .ok_or_else(|| "Gateway link not found".to_string())?;
@@ -257,7 +261,7 @@ pub async fn sync_all_gateway_link_skills(
     let api_key = resolve_link_api_key(&state, &link).await?;
 
     axagent_core::repo::gateway_link::sync_all_gateway_link_skills(
-        &state.sea_db,
+        state.harness.db(),
         &link_id,
         api_key.as_deref(),
     )
@@ -270,7 +274,7 @@ pub async fn get_gateway_link_policy(
     state: State<'_, AppState>,
     link_id: String,
 ) -> Result<Option<GatewayLinkPolicy>, String> {
-    axagent_core::repo::gateway_link::get_gateway_link_policy(&state.sea_db, &link_id)
+    axagent_core::repo::gateway_link::get_gateway_link_policy(state.harness.db(), &link_id)
         .await
         .map_err(|e| e.to_string())
 }
@@ -281,7 +285,7 @@ pub async fn save_gateway_link_policy(
     link_id: String,
     input: SaveGatewayLinkPolicyInput,
 ) -> Result<GatewayLinkPolicy, String> {
-    axagent_core::repo::gateway_link::save_gateway_link_policy(&state.sea_db, &link_id, &input)
+    axagent_core::repo::gateway_link::save_gateway_link_policy(state.harness.db(), &link_id, &input)
         .await
         .map_err(|e| e.to_string())
 }
@@ -291,7 +295,7 @@ pub async fn get_gateway_link_activities(
     state: State<'_, AppState>,
     link_id: String,
 ) -> Result<Vec<GatewayLinkActivity>, String> {
-    axagent_core::repo::gateway_link::get_gateway_link_activities(&state.sea_db, &link_id)
+    axagent_core::repo::gateway_link::get_gateway_link_activities(state.harness.db(), &link_id)
         .await
         .map_err(|e| e.to_string())
 }
@@ -301,7 +305,7 @@ pub async fn create_gateway_conversation(
     state: State<'_, AppState>,
     link_id: String,
 ) -> Result<String, String> {
-    let link = axagent_core::repo::gateway_link::get_gateway_link(&state.sea_db, &link_id)
+    let link = axagent_core::repo::gateway_link::get_gateway_link(state.harness.db(), &link_id)
         .await
         .map_err(|e| e.to_string())?
         .ok_or_else(|| "Gateway link not found".to_string())?;
@@ -311,7 +315,7 @@ pub async fn create_gateway_conversation(
     }
 
     let conversation = axagent_core::repo::conversation::create_conversation(
-        &state.sea_db,
+        state.harness.db(),
         &format!("Gateway: {}", link.name),
         &link.endpoint,
         &link_id,

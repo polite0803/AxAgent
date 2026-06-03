@@ -224,7 +224,7 @@ pub async fn debug_run_workflow(
 ) -> Result<String, String> {
     use axagent_core::repo::workflow_template;
 
-    let db = &state.sea_db;
+    let db = state.harness.db();
     let template = workflow_template::get_workflow_template(db, &template_id)
         .await
         .map_err(|e| e.to_string())?

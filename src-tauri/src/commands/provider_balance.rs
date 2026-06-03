@@ -26,7 +26,7 @@ pub async fn fetch_provider_balance(
     state: State<'_, AppState>,
     provider_id: Option<String>,
 ) -> Result<ProviderBalanceResponse, String> {
-    let db = &state.sea_db;
+    let db = state.harness.db();
     let providers = provider::list_providers(db)
         .await
         .map_err(|e| format!("Failed to list providers: {e}"))?;

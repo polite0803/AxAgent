@@ -19,7 +19,7 @@ pub async fn list_agent_roles(
     app_state: State<'_, AppState>,
     source: Option<String>,
 ) -> Result<Vec<AgentRoleDef>, String> {
-    agent_role::list_agent_roles(&app_state.sea_db, source.as_deref())
+    agent_role::list_agent_roles(app_state.harness.db(), source.as_deref())
         .await
         .map_err(|e| e.to_string())
 }
@@ -30,7 +30,7 @@ pub async fn import_agent_roles(
     app_state: State<'_, AppState>,
     path: String,
 ) -> Result<ImportAgentRolesResult, String> {
-    let db = &app_state.sea_db;
+    let db = app_state.harness.db();
     let dir = Path::new(&path);
     if !dir.is_dir() {
         return Err(format!("路径不存在或不是目录: {}", path));
@@ -99,14 +99,14 @@ pub async fn update_agent_role(
 ) -> Result<(), String> {
     use sea_orm::{ActiveModelTrait, EntityTrait, Set};
     let row = axagent_core::entity::agent_roles::Entity::find_by_id(&id)
-        .one(&app_state.sea_db)
+        .one(app_state.harness.db())
         .await
         .map_err(|e| e.to_string())?
         .ok_or_else(|| format!("Role {} not found", id))?;
     let mut am: axagent_core::entity::agent_roles::ActiveModel = row.into();
     am.system_prompt = Set(system_prompt);
     am.updated_at = Set(axagent_core::utils::now_ts());
-    am.update(&app_state.sea_db)
+    am.update(app_state.harness.db())
         .await
         .map_err(|e| e.to_string())?;
     Ok(())
@@ -115,7 +115,7 @@ pub async fn update_agent_role(
 /// 删除导入的 AgentRole（builtin 不可删除）
 #[tauri::command]
 pub async fn delete_agent_role(app_state: State<'_, AppState>, id: String) -> Result<(), String> {
-    let role = agent_role::get_agent_role(&app_state.sea_db, &id)
+    let role = agent_role::get_agent_role(app_state.harness.db(), &id)
         .await
         .map_err(|e| e.to_string())?
         .ok_or_else(|| format!("Role {} not found", id))?;
@@ -124,7 +124,7 @@ pub async fn delete_agent_role(app_state: State<'_, AppState>, id: String) -> Re
         return Err("内置角色不可删除".to_string());
     }
 
-    agent_role::delete_agent_role(&app_state.sea_db, &id)
+    agent_role::delete_agent_role(app_state.harness.db(), &id)
         .await
         .map_err(|e| e.to_string())
 }

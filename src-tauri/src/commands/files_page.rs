@@ -309,9 +309,10 @@ pub async fn list_files_page_entries(
 ) -> Result<Vec<FilesPageEntry>, String> {
     let entries = match category.as_str() {
         "images" | "files" => {
-            let all_files = axagent_core::repo::stored_file::list_all_stored_files(&state.sea_db)
-                .await
-                .map_err(|e| e.to_string())?;
+            let all_files =
+                axagent_core::repo::stored_file::list_all_stored_files(state.harness.db())
+                    .await
+                    .map_err(|e| e.to_string())?;
             if category == "images" {
                 build_image_entries(&all_files)
             } else {
@@ -319,7 +320,7 @@ pub async fn list_files_page_entries(
             }
         },
         "backups" => {
-            let manifests = axagent_core::repo::backup::list_backups(&state.sea_db)
+            let manifests = axagent_core::repo::backup::list_backups(state.harness.db())
                 .await
                 .map_err(|e| e.to_string())?;
             build_backup_entries(&manifests)
@@ -359,12 +360,18 @@ pub async fn cleanup_missing_files_page_entry(
     match source_kind {
         "attachment" => {
             let file_store = axagent_core::file_store::FileStore::new();
-            super::file_cleanup::delete_attachment_reference(&state.sea_db, &file_store, record_id)
-                .await
-        },
-        "backup_manifest" => axagent_core::repo::backup::delete_backup(&state.sea_db, record_id)
+            super::file_cleanup::delete_attachment_reference(
+                state.harness.db(),
+                &file_store,
+                record_id,
+            )
             .await
-            .map_err(|e| e.to_string()),
+        },
+        "backup_manifest" => {
+            axagent_core::repo::backup::delete_backup(state.harness.db(), record_id)
+                .await
+                .map_err(|e| e.to_string())
+        },
         _ => Err(format!("Unknown source_kind: {}", source_kind)),
     }
 }

@@ -145,7 +145,7 @@ pub async fn analyze_screen(
 ) -> Result<ScreenAnalysisResult, String> {
     let screenshot = capture_screenshot(monitor_index).await?;
     let VisionContext { adapter, ctx } =
-        build_vision_context(&state.sea_db, state.harness.master_key(), &provider_id).await?;
+        build_vision_context(state.harness.db(), state.harness.master_key(), &provider_id).await?;
 
     let analysis = axagent_providers::screen_vision::analyze_screen(
         adapter.as_ref(),
@@ -191,7 +191,7 @@ pub async fn analyze_image(
     };
 
     let VisionContext { adapter, ctx } =
-        build_vision_context(&state.sea_db, state.harness.master_key(), &provider_id).await?;
+        build_vision_context(state.harness.db(), state.harness.master_key(), &provider_id).await?;
 
     let pipeline = axagent_agent::VisionPipeline::new(adapter, ctx, model_id);
 
@@ -211,7 +211,7 @@ pub async fn find_element_on_screen(
 ) -> Result<Option<UIElementInfo>, String> {
     let screenshot = capture_screenshot(monitor_index).await?;
     let VisionContext { adapter, ctx } =
-        build_vision_context(&state.sea_db, state.harness.master_key(), &provider_id).await?;
+        build_vision_context(state.harness.db(), state.harness.master_key(), &provider_id).await?;
 
     axagent_providers::screen_vision::find_element(
         adapter.as_ref(),
@@ -234,7 +234,7 @@ pub async fn suggest_screen_action(
 ) -> Result<Vec<SuggestedActionInfo>, String> {
     let screenshot = capture_screenshot(monitor_index).await?;
     let VisionContext { adapter, ctx } =
-        build_vision_context(&state.sea_db, state.harness.master_key(), &provider_id).await?;
+        build_vision_context(state.harness.db(), state.harness.master_key(), &provider_id).await?;
 
     let actions = axagent_providers::screen_vision::suggest_next_action(
         adapter.as_ref(),
