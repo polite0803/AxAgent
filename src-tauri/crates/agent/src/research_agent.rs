@@ -600,8 +600,8 @@ impl Default for ResearchAgent {
 }
 
 pub struct DefaultLlmContentGenerator {
-    llm_adapter: Option<Arc<dyn axagent_providers::ProviderAdapter>>,
-    ctx: Option<axagent_providers::ProviderRequestContext>,
+    llm_adapter: Option<Arc<dyn axagent_harness::ProviderAdapter>>,
+    ctx: Option<axagent_harness::ProviderRequestContext>,
 }
 
 impl Default for DefaultLlmContentGenerator {
@@ -620,8 +620,8 @@ impl DefaultLlmContentGenerator {
 
     pub fn with_llm(
         mut self,
-        adapter: Arc<dyn axagent_providers::ProviderAdapter>,
-        ctx: axagent_providers::ProviderRequestContext,
+        adapter: Arc<dyn axagent_harness::ProviderAdapter>,
+        ctx: axagent_harness::ProviderRequestContext,
     ) -> Self {
         self.llm_adapter = Some(adapter);
         self.ctx = Some(ctx);

@@ -129,10 +129,14 @@ mod tests {
     use tower::ServiceExt;
 
     fn test_state(db: sea_orm::DatabaseConnection) -> GatewayAppState {
+        use std::sync::Arc;
         GatewayAppState {
             db,
             master_key: [7u8; 32],
             started_at: 0,
+            provider_registry: Arc::new(
+                axagent_providers::registry::ProviderRegistry::create_default(),
+            ),
         }
     }
 

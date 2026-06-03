@@ -64,3 +64,18 @@ pub use vector_retrieve_executor::{VectorRetrieveCallback, VectorRetrieveExecuto
 
 /// 获取节点类型名称（从 node_executor_trait 导入，供执行器使用）。
 pub use crate::work_engine::node_executor_trait::node_type_name;
+
+/// 将 ProviderType 转为 ProviderRegistry 的 key 字符串
+pub(crate) fn provider_type_to_registry_key(
+    pt: &axagent_core::types::ProviderType,
+) -> &'static str {
+    match pt {
+        axagent_core::types::ProviderType::OpenAI => "openai",
+        axagent_core::types::ProviderType::OpenAIResponses => "openai_responses",
+        axagent_core::types::ProviderType::Anthropic => "anthropic",
+        axagent_core::types::ProviderType::Gemini => "gemini",
+        axagent_core::types::ProviderType::OpenClaw => "openclaw",
+        axagent_core::types::ProviderType::Hermes => "hermes",
+        axagent_core::types::ProviderType::Ollama => "ollama",
+    }
+}

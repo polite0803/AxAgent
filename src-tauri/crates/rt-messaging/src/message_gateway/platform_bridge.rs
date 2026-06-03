@@ -3,8 +3,7 @@ use std::sync::Arc;
 use sea_orm::DatabaseConnection;
 
 use crate::message_gateway::platform_manager::{PlatformManager, PlatformMessageCallback};
-use axagent_providers::registry::ProviderRegistry;
-use axagent_providers::{ProviderRequestContext, resolve_base_url_for_type};
+use axagent_harness::{ProviderRequestContext, resolve_base_url_for_type};
 
 async fn persist_session_route(
     db: &DatabaseConnection,
@@ -26,6 +25,8 @@ pub struct PlatformBridge {
     master_key: [u8; 32],
     platform_manager: Arc<PlatformManager>,
     webhook_dispatcher: Option<Arc<dyn crate::webhook_subscription::WebhookDispatch>>,
+    /// 由 Harness 注入的 Provider 注册表（不为空时跳过本地 create_default）
+    provider_registry: Option<Arc<dyn axagent_harness::registry::ProviderRegistry>>,
 }
 
 impl PlatformBridge {
@@ -39,7 +40,17 @@ impl PlatformBridge {
             master_key,
             platform_manager,
             webhook_dispatcher: None,
+            provider_registry: None,
         }
+    }
+
+    /// 注入 ProviderRegistry（由 Harness 在创建时调用）
+    pub fn with_provider_registry(
+        mut self,
+        registry: Arc<dyn axagent_harness::registry::ProviderRegistry>,
+    ) -> Self {
+        self.provider_registry = Some(registry);
+        self
     }
 
     /// 设置 Webhook 派发器，用于在收到平台消息时触发 webhook 事件
@@ -61,7 +72,11 @@ impl PlatformBridge {
         let provider_config = provider::get_provider(&self.db, provider_id).await?;
 
         let registry_key = format!("{:?}", provider_config.provider_type).to_lowercase();
-        let registry = ProviderRegistry::create_default();
+        let registry = self.provider_registry.as_ref().ok_or_else(|| {
+            anyhow::anyhow!(
+                "PlatformBridge 未注入 ProviderRegistry（请使用 with_provider_registry）"
+            )
+        })?;
         let adapter = registry
             .get(&registry_key)
             .ok_or_else(|| anyhow::anyhow!("Provider adapter not found: {}", registry_key))?;

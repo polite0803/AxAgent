@@ -595,7 +595,6 @@ pub async fn upgrade_tool_with_llm(
         axagent_core::crypto::decrypt_key(&key_row.key_encrypted, &state.master_key)
             .map_err(|e| e.to_string())?;
 
-    let registry = axagent_providers::registry::ProviderRegistry::create_default();
     let registry_key = match provider.provider_type {
         axagent_core::types::ProviderType::OpenAI => "openai",
         axagent_core::types::ProviderType::OpenAIResponses => "openai_responses",
@@ -606,7 +605,9 @@ pub async fn upgrade_tool_with_llm(
         axagent_core::types::ProviderType::Ollama => "ollama",
     };
 
-    let adapter = registry
+    let adapter = state
+        .harness
+        .provider_registry()
         .get(registry_key)
         .ok_or_else(|| format!("Provider adapter not found for {}", registry_key))?;
 
@@ -687,8 +688,8 @@ Only output the JSON, no other text."#,
     );
 
     let base_url =
-        axagent_providers::resolve_base_url_for_type(&provider.api_host, &provider.provider_type);
-    let ctx = axagent_providers::ProviderRequestContext {
+        axagent_harness::resolve_base_url_for_type(&provider.api_host, &provider.provider_type);
+    let ctx = axagent_harness::ProviderRequestContext {
         api_key: decrypted_key,
         key_id: key_row.id,
         provider_id: provider.id.clone(),

@@ -5,8 +5,8 @@ use axagent_core::entity::agency_experts;
 use axagent_core::repo::provider::{self as provider_repo, get_active_key};
 use axagent_core::repo::settings::get_settings;
 use axagent_core::types::{ChatContent, ChatMessage, ChatRequest};
+use axagent_harness::resolve_base_url_for_type;
 use axagent_providers::registry::ProviderRegistry;
-use axagent_providers::resolve_base_url_for_type;
 use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -594,11 +594,15 @@ pub async fn extract_expert_structure(
         })?;
 
     let registry_key = format!("{:?}", provider_config.provider_type).to_lowercase();
-    let registry = ProviderRegistry::create_default();
-    let adapter = registry.get(&registry_key).ok_or_else(|| {
-        ErrorResponse::new(expert_err::VENDOR_NOT_FOUND)
-            .with_detail(format!("未找到供应商适配器: {}", registry_key))
-    })?;
+
+    let adapter = state
+        .harness
+        .provider_registry()
+        .get(&registry_key)
+        .ok_or_else(|| {
+            ErrorResponse::new(expert_err::VENDOR_NOT_FOUND)
+                .with_detail(format!("未找到供应商适配器: {}", registry_key))
+        })?;
 
     let ctx = axagent_providers::ProviderRequestContext {
         api_key,

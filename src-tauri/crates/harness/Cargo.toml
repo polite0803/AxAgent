@@ -1,0 +1,15 @@
+[package]
+name = "axagent-harness"
+version.workspace = true
+edition.workspace = true
+publish = false
+description = "Harness contract layer — trait interfaces for dependency inversion"
+
+[dependencies]
+axagent-core = { path = "../core" }
+async-trait = "0.1"
+serde = { workspace = true }
+serde_json = { workspace = true }
+tokio = { workspace = true, features = ["sync"] }
+futures = "0.3"
+thiserror = { workspace = true }

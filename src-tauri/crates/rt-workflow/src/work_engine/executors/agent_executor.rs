@@ -4,6 +4,7 @@
 //!   1. 加载时：compile_prompt() 提取 {{path}} 占位符
 //!   2. 执行时：render_prompt() 用 ExecutionState.variables 填充模板
 
+use super::provider_type_to_registry_key;
 use std::collections::HashMap;
 use std::future::Future;
 use std::pin::Pin;
@@ -112,6 +113,8 @@ pub struct AgentExecutor {
     default_provider_cache: Arc<Mutex<ProviderCache>>,
     /// Agent profile 缓存（同一工作流内多个节点共用同 profile 时复用）
     profile_cache: Arc<Mutex<ProfileCache>>,
+    /// 由 Harness 注入的 ProviderRegistry
+    provider_registry: Option<Arc<dyn axagent_harness::registry::ProviderRegistry>>,
 }
 
 impl AgentExecutor {
@@ -123,7 +126,17 @@ impl AgentExecutor {
             engine: None,
             default_provider_cache: Arc::new(Mutex::new(None)),
             profile_cache: Arc::new(Mutex::new(HashMap::new())),
+            provider_registry: None,
         }
+    }
+
+    /// 注入 ProviderRegistry（由 Harness 在创建 executor 时调用）
+    pub fn with_provider_registry(
+        mut self,
+        registry: Arc<dyn axagent_harness::registry::ProviderRegistry>,
+    ) -> Self {
+        self.provider_registry = Some(registry);
+        self
     }
 
     pub fn with_engine(mut self, engine: Arc<WorkEngine>) -> Self {
@@ -150,6 +163,7 @@ impl AgentExecutor {
             engine: None,
             default_provider_cache,
             profile_cache,
+            provider_registry: None,
         }
     }
 
@@ -167,6 +181,7 @@ impl AgentExecutor {
             engine: None,
             default_provider_cache,
             profile_cache,
+            provider_registry: None,
         }
     }
 }
@@ -180,6 +195,7 @@ impl Default for AgentExecutor {
             engine: None,
             default_provider_cache: Arc::new(Mutex::new(None)),
             profile_cache: Arc::new(Mutex::new(HashMap::new())),
+            provider_registry: None,
         }
     }
 }
@@ -218,7 +234,7 @@ impl NodeExecutorTrait for AgentExecutor {
                         .await
                         .map_err(|e| {
                             NodeError::exec_failed(
-                                error_code::AGENT_PROFILE_NOT_FOUND,
+                                error_code::UNSUPPORTED_PROVIDER,
                                 format!("Agent profile query failed: {e}"),
                             )
                         })?;
@@ -254,31 +270,25 @@ impl NodeExecutorTrait for AgentExecutor {
         let api_key = axagent_core::crypto::decrypt_key(&key.key_encrypted, &self.master_key)
             .map_err(|e| {
                 NodeError::exec_failed(
-                    error_code::AGENT_PROFILE_NOT_FOUND,
+                    error_code::UNSUPPORTED_PROVIDER,
                     format!("API key decryption failed: {e}"),
                 )
             })?;
 
         // 3. 创建 adapter
         use axagent_core::types::ProviderType;
-        use axagent_providers::{ProviderAdapter, resolve_base_url_for_type};
-        let adapter: Arc<dyn ProviderAdapter> = match prov.provider_type {
-            ProviderType::OpenAI => Arc::new(axagent_providers::openai::OpenAIAdapter::new()),
-            ProviderType::OpenAIResponses => {
-                Arc::new(axagent_providers::openai_responses::OpenAIResponsesAdapter::new())
-            },
-            ProviderType::Anthropic => {
-                Arc::new(axagent_providers::anthropic::AnthropicAdapter::new())
-            },
-            ProviderType::Gemini => Arc::new(axagent_providers::gemini::GeminiAdapter::new()),
-            ProviderType::Ollama => Arc::new(axagent_providers::ollama::OllamaAdapter::new()),
-            _ => {
-                return Err(NodeError::exec_failed(
-                    error_code::AGENT_PROFILE_NOT_FOUND,
-                    format!("Unsupported provider: {:?}", prov.provider_type),
-                ));
-            },
-        };
+        use axagent_harness::{ProviderAdapter, resolve_base_url_for_type};
+        let registry_key = provider_type_to_registry_key(&prov.provider_type);
+        let adapter: Arc<dyn ProviderAdapter> = self
+            .provider_registry
+            .as_ref()
+            .and_then(|reg| reg.get(registry_key))
+            .ok_or_else(|| {
+                NodeError::exec_failed(
+                    error_code::UNSUPPORTED_PROVIDER,
+                    format!("AgentExecutor 未找到 ProviderAdapter for type: {}", registry_key),
+                )
+            })?;
 
         // 4. 构建 prompt：Role + Expert + 行内追加（运行时拼接，不预缓存）
         let role_desc = resolve_role(&an.config, profile.as_ref());
@@ -421,7 +431,7 @@ impl NodeExecutorTrait for AgentExecutor {
                 .await;
         }
 
-        let req_ctx = axagent_providers::ProviderRequestContext {
+        let req_ctx = axagent_harness::ProviderRequestContext {
             provider_id: prov.id.clone(),
             api_key,
             key_id: key.id.clone(),
@@ -533,7 +543,7 @@ impl NodeExecutorTrait for AgentExecutor {
             while let Some(chunk) = stream.next().await {
                 let chunk = chunk.map_err(|e| {
                     NodeError::exec_failed(
-                        error_code::AGENT_PROFILE_NOT_FOUND,
+                        error_code::UNSUPPORTED_PROVIDER,
                         format!("Agent LLM stream error: {e}"),
                     )
                 })?;
@@ -645,7 +655,7 @@ impl AgentExecutor {
         prov: &axagent_core::types::ProviderConfig,
         api_key: &str,
         model: &str,
-        adapter: &std::sync::Arc<dyn axagent_providers::ProviderAdapter>,
+        adapter: &std::sync::Arc<dyn axagent_harness::ProviderAdapter>,
         node: &WorkflowNode,
     ) -> Result<NodeOutput, NodeError> {
         use axagent_agent::hierarchical_planner::{
@@ -653,14 +663,14 @@ impl AgentExecutor {
         };
         let role_desc = resolve_role(&an.config, None);
         let base_url =
-            axagent_providers::resolve_base_url_for_type(&prov.api_host, &prov.provider_type);
+            axagent_harness::resolve_base_url_for_type(&prov.api_host, &prov.provider_type);
         let tool_names: Vec<String> = an.config.tools.iter().map(|t| t.name.clone()).collect();
         let replan_max_retries = an.config.max_tool_rounds.unwrap_or(2);
 
         // 1. 调用 LLM 生成 Plan
         let plan_prompt =
             build_plan_extraction_prompt(&an.config.system_prompt, &role_desc, &tool_names);
-        let plan_ctx = axagent_providers::ProviderRequestContext {
+        let plan_ctx = axagent_harness::ProviderRequestContext {
             provider_id: prov.id.clone(),
             api_key: api_key.to_string(),
             key_id: String::new(),
@@ -702,10 +712,7 @@ impl AgentExecutor {
             )
             .await
             .map_err(|e| {
-                NodeError::exec_failed(
-                    error_code::AGENT_PROFILE_NOT_FOUND,
-                    format!("Plan LLM: {e}"),
-                )
+                NodeError::exec_failed(error_code::UNSUPPORTED_PROVIDER, format!("Plan LLM: {e}"))
             })?;
 
         let text = resp.content.trim();
@@ -741,13 +748,13 @@ impl AgentExecutor {
             .await
             .map_err(|e| {
                 NodeError::exec_failed(
-                    error_code::AGENT_PROFILE_NOT_FOUND,
+                    error_code::UNSUPPORTED_PROVIDER,
                     format!("Plan 审批回调失败: {e}"),
                 )
             })?;
             if !approved {
                 return Err(NodeError::exec_failed(
-                    error_code::AGENT_PROFILE_NOT_FOUND,
+                    error_code::UNSUPPORTED_PROVIDER,
                     "用户拒绝执行此 Plan".to_string(),
                 ));
             }
@@ -759,7 +766,7 @@ impl AgentExecutor {
 
         if let Err(e) = planner.start_execution() {
             return Err(NodeError::exec_failed(
-                error_code::AGENT_PROFILE_NOT_FOUND,
+                error_code::UNSUPPORTED_PROVIDER,
                 format!("Plan validation: {e}"),
             ));
         }
@@ -1006,7 +1013,7 @@ impl AgentExecutor {
             profile_suggested_provider,
         )
         .await
-        .map_err(|e| NodeError::exec_failed(error_code::PROVIDER_QUERY_FAILED, e))?;
+        .map_err(|e| NodeError::exec_failed(error_code::UNSUPPORTED_PROVIDER, e))?;
 
         if !has_override {
             let mut cache = self.default_provider_cache.lock().await;

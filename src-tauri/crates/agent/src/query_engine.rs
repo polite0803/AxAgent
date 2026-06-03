@@ -3,7 +3,7 @@ use std::sync::Arc;
 
 use axagent_core::entity::{note_backlinks, note_links, notes, wikis};
 use axagent_core::types::{ChatContent, ChatMessage, ChatRequest};
-use axagent_providers::{ProviderAdapter, ProviderRequestContext};
+use axagent_harness::{ProviderAdapter, ProviderRequestContext};
 use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter};
 use serde::{Deserialize, Serialize};
 

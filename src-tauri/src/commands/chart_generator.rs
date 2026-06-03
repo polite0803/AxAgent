@@ -1,6 +1,6 @@
 use axagent_core::types::{ChatContent, ChatMessage, ChatRequest, ChatResponse};
+use axagent_harness::{ProviderAdapter, ProviderRequestContext};
 use axagent_providers::openai::OpenAIAdapter;
-use axagent_providers::{ProviderAdapter, ProviderRequestContext};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::sync::Arc;

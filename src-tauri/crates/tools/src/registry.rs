@@ -175,6 +175,43 @@ impl Default for ToolRegistry {
     }
 }
 
+// ============================================================
+// Harness ToolRegistry trait 实现
+// ============================================================
+
+impl axagent_harness::ToolRegistry for ToolRegistry {
+    fn get(&self, name: &str) -> Option<Arc<dyn Tool>> {
+        self.tools.get(name).cloned()
+    }
+
+    fn find(&self, name: &str) -> Option<Arc<dyn Tool>> {
+        // 先按主名查找
+        if let Some(tool) = self.tools.get(name) {
+            return Some(tool.clone());
+        }
+        // 再按别名查找
+        if let Some(primary) = self.aliases.get(name) {
+            return self.tools.get(primary).cloned();
+        }
+        None
+    }
+
+    fn list(&self) -> Vec<ToolInfo> {
+        self.list_all()
+    }
+
+    fn list_by_category(&self, category: ToolCategory) -> Vec<ToolInfo> {
+        self.by_category(category)
+            .into_iter()
+            .map(|t| ToolInfo::from_tool(t.as_ref()))
+            .collect()
+    }
+
+    fn is_disabled(&self, name: &str) -> bool {
+        self.disabled.contains(name)
+    }
+}
+
 /// 工具注册表构建器，方便链式注册
 pub struct ToolRegistryBuilder {
     registry: ToolRegistry,
@@ -530,31 +567,22 @@ impl UnifiedToolRegistry {
 
     /// 从 DB 加载工具组启用状态及单工具禁用列表
     pub async fn load_enabled_state(&mut self, db: &sea_orm::DatabaseConnection) {
-        use axagent_core::entity::settings;
-        use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
-
         // 加载分类启用状态
         let key = "tool_groups_enabled";
-        let result = settings::Entity::find()
-            .filter(settings::Column::Key.eq(key))
-            .one(db)
-            .await;
+        let result = axagent_core::repo::settings::get_setting(db, key).await;
 
-        if let Ok(Some(record)) = result
-            && let Ok(map) = serde_json::from_str::<HashMap<String, bool>>(&record.value)
+        if let Ok(Some(value)) = result
+            && let Ok(map) = serde_json::from_str::<HashMap<String, bool>>(&value)
         {
             self.group_enabled = map;
         }
 
         // 加载单工具禁用列表
         let dt_key = "disabled_tools";
-        let dt_result = settings::Entity::find()
-            .filter(settings::Column::Key.eq(dt_key))
-            .one(db)
-            .await;
+        let dt_result = axagent_core::repo::settings::get_setting(db, dt_key).await;
 
-        if let Ok(Some(record)) = dt_result
-            && let Ok(list) = serde_json::from_str::<Vec<String>>(&record.value)
+        if let Ok(Some(value)) = dt_result
+            && let Ok(list) = serde_json::from_str::<Vec<String>>(&value)
         {
             self.disabled_tools = list.into_iter().collect();
         }
@@ -635,36 +663,15 @@ impl UnifiedToolRegistry {
         db: &sea_orm::DatabaseConnection,
         gid: &str,
     ) -> Result<bool, String> {
-        use axagent_core::entity::settings;
-        use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set};
-
         let current = self.group_enabled.get(gid).copied().unwrap_or(true);
         let new_state = !current;
         self.group_enabled.insert(gid.to_string(), new_state);
 
         let key = "tool_groups_enabled";
-        let existing = settings::Entity::find()
-            .filter(settings::Column::Key.eq(key))
-            .one(db)
+        let serialized = serde_json::to_string(&self.group_enabled).map_err(|e| e.to_string())?;
+        axagent_core::repo::settings::set_setting(db, key, &serialized)
             .await
             .map_err(|e| e.to_string())?;
-
-        let serialized = serde_json::to_string(&self.group_enabled).map_err(|e| e.to_string())?;
-
-        match existing {
-            Some(record) => {
-                let mut active: settings::ActiveModel = record.into();
-                active.value = Set(serialized);
-                active.update(db).await.map_err(|e| e.to_string())?;
-            },
-            None => {
-                let active = settings::ActiveModel {
-                    key: Set(key.to_string()),
-                    value: Set(serialized),
-                };
-                active.insert(db).await.map_err(|e| e.to_string())?;
-            },
-        }
 
         Ok(new_state)
     }
@@ -675,9 +682,6 @@ impl UnifiedToolRegistry {
         db: &sea_orm::DatabaseConnection,
         tool_name: &str,
     ) -> Result<bool, String> {
-        use axagent_core::entity::settings;
-        use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set};
-
         let currently_disabled = self.disabled_tools.contains(tool_name);
         if currently_disabled {
             self.disabled_tools.remove(tool_name);
@@ -686,29 +690,11 @@ impl UnifiedToolRegistry {
         }
 
         let key = "disabled_tools";
-        let existing = settings::Entity::find()
-            .filter(settings::Column::Key.eq(key))
-            .one(db)
-            .await
-            .map_err(|e| e.to_string())?;
-
         let serialized = serde_json::to_string(&self.disabled_tools.iter().collect::<Vec<_>>())
             .map_err(|e| e.to_string())?;
-
-        match existing {
-            Some(record) => {
-                let mut active: settings::ActiveModel = record.into();
-                active.value = Set(serialized);
-                active.update(db).await.map_err(|e| e.to_string())?;
-            },
-            None => {
-                let active = settings::ActiveModel {
-                    key: Set(key.to_string()),
-                    value: Set(serialized),
-                };
-                active.insert(db).await.map_err(|e| e.to_string())?;
-            },
-        }
+        axagent_core::repo::settings::set_setting(db, key, &serialized)
+            .await
+            .map_err(|e| e.to_string())?;
 
         Ok(!currently_disabled)
     }
@@ -1138,6 +1124,61 @@ impl RuntimeToolExecutor for UnifiedToolRegistry {
                 (r.id, r.name, output)
             })
             .collect()
+    }
+}
+
+// ============================================================
+// Harness ToolRegistry trait 实现（含 MCP + 禁用状态）
+// ============================================================
+
+impl axagent_harness::ToolRegistry for UnifiedToolRegistry {
+    fn get(&self, name: &str) -> Option<Arc<dyn Tool>> {
+        self.tools.get(name)
+    }
+
+    fn find(&self, name: &str) -> Option<Arc<dyn Tool>> {
+        // 先从本地工具查找
+        if let Some(tool) = self.tools.find(name) {
+            return Some(tool.clone());
+        }
+        // MCP 工具由执行时动态解析（无本地 Tool 实例），
+        // 此处通过 mcp_tools 确认存在性后返回 None，
+        // 实际执行走 UnifiedToolRegistry::execute 的 MCP 分支
+        if self.mcp_tools.contains_key(name) {
+            return None; // MCP 工具无本地 Tool 实例，由 execute() 直接处理
+        }
+        None
+    }
+
+    fn list(&self) -> Vec<ToolInfo> {
+        let mut infos = self.tools.list_all();
+        // 添加 MCP 工具信息
+        for mcp in self.mcp_tools.values() {
+            infos.push(ToolInfo {
+                name: format!("{}/{}", mcp.server_name, mcp.tool_name),
+                description: mcp.description.clone().unwrap_or_default(),
+                input_schema: mcp.input_schema.clone().unwrap_or(serde_json::json!({})),
+                aliases: vec![],
+                category: ToolCategory::FileRead, // MCP 工具默认归为 FileRead
+                is_concurrency_safe: true,
+                is_read_only: false,
+                is_destructive: false,
+            });
+        }
+        infos
+    }
+
+    fn list_by_category(&self, category: ToolCategory) -> Vec<ToolInfo> {
+        // 仅筛选本地工具，MCP 工具不在分类中
+        self.tools
+            .by_category(category)
+            .into_iter()
+            .map(|t| ToolInfo::from_tool(t.as_ref()))
+            .collect()
+    }
+
+    fn is_disabled(&self, name: &str) -> bool {
+        self.disabled_tools.contains(name) || self.tools.is_disabled(name)
     }
 }
 

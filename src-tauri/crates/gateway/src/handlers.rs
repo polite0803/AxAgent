@@ -16,7 +16,7 @@ use tokio_stream::wrappers::ReceiverStream;
 
 use axagent_core::crypto::decrypt_key;
 use axagent_core::types::*;
-use axagent_providers::{ProviderAdapter, ProviderRequestContext, resolve_base_url_for_type};
+use axagent_harness::{ProviderAdapter, ProviderRequestContext, resolve_base_url_for_type};
 
 use crate::auth::AuthenticatedKey;
 use crate::server::GatewayAppState;
@@ -160,8 +160,7 @@ pub async fn get_response(
         store_response: None,
     };
 
-    let registry = axagent_providers::registry::ProviderRegistry::create_default();
-    let adapter = match registry.get("openai_responses") {
+    let adapter = match state.provider_registry.get("openai_responses") {
         Some(a) => a,
         None => {
             return error_response(StatusCode::BAD_GATEWAY, "No Responses API adapter available");
@@ -287,8 +286,7 @@ pub async fn delete_response(
         store_response: None,
     };
 
-    let registry = axagent_providers::registry::ProviderRegistry::create_default();
-    let adapter = match registry.get("openai_responses") {
+    let adapter = match state.provider_registry.get("openai_responses") {
         Some(a) => a,
         None => {
             return error_response(StatusCode::BAD_GATEWAY, "No Responses API adapter available");
@@ -343,12 +341,20 @@ pub async fn list_jobs(
     let AuthenticatedKey(gateway_key) = auth;
     let start_time = Instant::now();
 
-    let (provider, ctx, registry) =
-        match resolve_hermes_provider_context(&state.db, &state.master_key).await {
-            Ok(r) => r,
-            Err(resp) => return resp,
-        };
-    let adapter = match registry.get(provider_type_to_str(&provider.provider_type)) {
+    let (provider, ctx) = match resolve_hermes_provider_context(
+        &state.db,
+        &state.master_key,
+        &*state.provider_registry,
+    )
+    .await
+    {
+        Ok(r) => r,
+        Err(resp) => return resp,
+    };
+    let adapter = match state
+        .provider_registry
+        .get(provider_type_to_str(&provider.provider_type))
+    {
         Some(a) => a,
         None => {
             return error_response(StatusCode::BAD_GATEWAY, "No adapter available");
@@ -410,12 +416,20 @@ pub async fn create_job(
     let AuthenticatedKey(gateway_key) = auth;
     let start_time = Instant::now();
 
-    let (provider, ctx, registry) =
-        match resolve_hermes_provider_context(&state.db, &state.master_key).await {
-            Ok(r) => r,
-            Err(resp) => return resp,
-        };
-    let adapter = match registry.get(provider_type_to_str(&provider.provider_type)) {
+    let (provider, ctx) = match resolve_hermes_provider_context(
+        &state.db,
+        &state.master_key,
+        &*state.provider_registry,
+    )
+    .await
+    {
+        Ok(r) => r,
+        Err(resp) => return resp,
+    };
+    let adapter = match state
+        .provider_registry
+        .get(provider_type_to_str(&provider.provider_type))
+    {
         Some(a) => a,
         None => {
             return error_response(StatusCode::BAD_GATEWAY, "No adapter available");
@@ -480,12 +494,20 @@ pub async fn get_job(
     let AuthenticatedKey(gateway_key) = auth;
     let start_time = Instant::now();
 
-    let (provider, ctx, registry) =
-        match resolve_hermes_provider_context(&state.db, &state.master_key).await {
-            Ok(r) => r,
-            Err(resp) => return resp,
-        };
-    let adapter = match registry.get(provider_type_to_str(&provider.provider_type)) {
+    let (provider, ctx) = match resolve_hermes_provider_context(
+        &state.db,
+        &state.master_key,
+        &*state.provider_registry,
+    )
+    .await
+    {
+        Ok(r) => r,
+        Err(resp) => return resp,
+    };
+    let adapter = match state
+        .provider_registry
+        .get(provider_type_to_str(&provider.provider_type))
+    {
         Some(a) => a,
         None => {
             return error_response(StatusCode::BAD_GATEWAY, "No adapter available");
@@ -548,12 +570,20 @@ pub async fn update_job(
     let AuthenticatedKey(gateway_key) = auth;
     let start_time = Instant::now();
 
-    let (provider, ctx, registry) =
-        match resolve_hermes_provider_context(&state.db, &state.master_key).await {
-            Ok(r) => r,
-            Err(resp) => return resp,
-        };
-    let adapter = match registry.get(provider_type_to_str(&provider.provider_type)) {
+    let (provider, ctx) = match resolve_hermes_provider_context(
+        &state.db,
+        &state.master_key,
+        &*state.provider_registry,
+    )
+    .await
+    {
+        Ok(r) => r,
+        Err(resp) => return resp,
+    };
+    let adapter = match state
+        .provider_registry
+        .get(provider_type_to_str(&provider.provider_type))
+    {
         Some(a) => a,
         None => {
             return error_response(StatusCode::BAD_GATEWAY, "No adapter available");
@@ -618,12 +648,20 @@ pub async fn delete_job(
     let AuthenticatedKey(gateway_key) = auth;
     let start_time = Instant::now();
 
-    let (provider, ctx, registry) =
-        match resolve_hermes_provider_context(&state.db, &state.master_key).await {
-            Ok(r) => r,
-            Err(resp) => return resp,
-        };
-    let adapter = match registry.get(provider_type_to_str(&provider.provider_type)) {
+    let (provider, ctx) = match resolve_hermes_provider_context(
+        &state.db,
+        &state.master_key,
+        &*state.provider_registry,
+    )
+    .await
+    {
+        Ok(r) => r,
+        Err(resp) => return resp,
+    };
+    let adapter = match state
+        .provider_registry
+        .get(provider_type_to_str(&provider.provider_type))
+    {
         Some(a) => a,
         None => {
             return error_response(StatusCode::BAD_GATEWAY, "No adapter available");
@@ -679,12 +717,20 @@ pub async fn pause_job(
     let AuthenticatedKey(gateway_key) = auth;
     let start_time = Instant::now();
 
-    let (provider, ctx, registry) =
-        match resolve_hermes_provider_context(&state.db, &state.master_key).await {
-            Ok(r) => r,
-            Err(resp) => return resp,
-        };
-    let adapter = match registry.get(provider_type_to_str(&provider.provider_type)) {
+    let (provider, ctx) = match resolve_hermes_provider_context(
+        &state.db,
+        &state.master_key,
+        &*state.provider_registry,
+    )
+    .await
+    {
+        Ok(r) => r,
+        Err(resp) => return resp,
+    };
+    let adapter = match state
+        .provider_registry
+        .get(provider_type_to_str(&provider.provider_type))
+    {
         Some(a) => a,
         None => {
             return error_response(StatusCode::BAD_GATEWAY, "No adapter available");
@@ -740,12 +786,20 @@ pub async fn resume_job(
     let AuthenticatedKey(gateway_key) = auth;
     let start_time = Instant::now();
 
-    let (provider, ctx, registry) =
-        match resolve_hermes_provider_context(&state.db, &state.master_key).await {
-            Ok(r) => r,
-            Err(resp) => return resp,
-        };
-    let adapter = match registry.get(provider_type_to_str(&provider.provider_type)) {
+    let (provider, ctx) = match resolve_hermes_provider_context(
+        &state.db,
+        &state.master_key,
+        &*state.provider_registry,
+    )
+    .await
+    {
+        Ok(r) => r,
+        Err(resp) => return resp,
+    };
+    let adapter = match state
+        .provider_registry
+        .get(provider_type_to_str(&provider.provider_type))
+    {
         Some(a) => a,
         None => {
             return error_response(StatusCode::BAD_GATEWAY, "No adapter available");
@@ -801,12 +855,20 @@ pub async fn trigger_job(
     let AuthenticatedKey(gateway_key) = auth;
     let start_time = Instant::now();
 
-    let (provider, ctx, registry) =
-        match resolve_hermes_provider_context(&state.db, &state.master_key).await {
-            Ok(r) => r,
-            Err(resp) => return resp,
-        };
-    let adapter = match registry.get(provider_type_to_str(&provider.provider_type)) {
+    let (provider, ctx) = match resolve_hermes_provider_context(
+        &state.db,
+        &state.master_key,
+        &*state.provider_registry,
+    )
+    .await
+    {
+        Ok(r) => r,
+        Err(resp) => return resp,
+    };
+    let adapter = match state
+        .provider_registry
+        .get(provider_type_to_str(&provider.provider_type))
+    {
         Some(a) => a,
         None => {
             return error_response(StatusCode::BAD_GATEWAY, "No adapter available");
@@ -862,12 +924,20 @@ pub async fn list_runs(
     let AuthenticatedKey(gateway_key) = auth;
     let start_time = Instant::now();
 
-    let (provider, ctx, registry) =
-        match resolve_hermes_provider_context(&state.db, &state.master_key).await {
-            Ok(r) => r,
-            Err(resp) => return resp,
-        };
-    let adapter = match registry.get(provider_type_to_str(&provider.provider_type)) {
+    let (provider, ctx) = match resolve_hermes_provider_context(
+        &state.db,
+        &state.master_key,
+        &*state.provider_registry,
+    )
+    .await
+    {
+        Ok(r) => r,
+        Err(resp) => return resp,
+    };
+    let adapter = match state
+        .provider_registry
+        .get(provider_type_to_str(&provider.provider_type))
+    {
         Some(a) => a,
         None => {
             return error_response(StatusCode::BAD_GATEWAY, "No adapter available");
@@ -929,12 +999,20 @@ pub async fn trigger_run(
     let AuthenticatedKey(gateway_key) = auth;
     let start_time = Instant::now();
 
-    let (provider, ctx, registry) =
-        match resolve_hermes_provider_context(&state.db, &state.master_key).await {
-            Ok(r) => r,
-            Err(resp) => return resp,
-        };
-    let adapter = match registry.get(provider_type_to_str(&provider.provider_type)) {
+    let (provider, ctx) = match resolve_hermes_provider_context(
+        &state.db,
+        &state.master_key,
+        &*state.provider_registry,
+    )
+    .await
+    {
+        Ok(r) => r,
+        Err(resp) => return resp,
+    };
+    let adapter = match state
+        .provider_registry
+        .get(provider_type_to_str(&provider.provider_type))
+    {
         Some(a) => a,
         None => {
             return error_response(StatusCode::BAD_GATEWAY, "No adapter available");
@@ -998,12 +1076,20 @@ pub async fn get_run(
     let AuthenticatedKey(gateway_key) = auth;
     let start_time = Instant::now();
 
-    let (provider, ctx, registry) =
-        match resolve_hermes_provider_context(&state.db, &state.master_key).await {
-            Ok(r) => r,
-            Err(resp) => return resp,
-        };
-    let adapter = match registry.get(provider_type_to_str(&provider.provider_type)) {
+    let (provider, ctx) = match resolve_hermes_provider_context(
+        &state.db,
+        &state.master_key,
+        &*state.provider_registry,
+    )
+    .await
+    {
+        Ok(r) => r,
+        Err(resp) => return resp,
+    };
+    let adapter = match state
+        .provider_registry
+        .get(provider_type_to_str(&provider.provider_type))
+    {
         Some(a) => a,
         None => {
             return error_response(StatusCode::BAD_GATEWAY, "No adapter available");
@@ -1064,12 +1150,20 @@ pub async fn cancel_run(
     let AuthenticatedKey(gateway_key) = auth;
     let start_time = Instant::now();
 
-    let (provider, ctx, registry) =
-        match resolve_hermes_provider_context(&state.db, &state.master_key).await {
-            Ok(r) => r,
-            Err(resp) => return resp,
-        };
-    let adapter = match registry.get(provider_type_to_str(&provider.provider_type)) {
+    let (provider, ctx) = match resolve_hermes_provider_context(
+        &state.db,
+        &state.master_key,
+        &*state.provider_registry,
+    )
+    .await
+    {
+        Ok(r) => r,
+        Err(resp) => return resp,
+    };
+    let adapter = match state
+        .provider_registry
+        .get(provider_type_to_str(&provider.provider_type))
+    {
         Some(a) => a,
         None => {
             return error_response(StatusCode::BAD_GATEWAY, "No adapter available");
@@ -1123,12 +1217,20 @@ pub async fn get_run_logs(
     let AuthenticatedKey(gateway_key) = auth;
     let start_time = Instant::now();
 
-    let (provider, ctx, registry) =
-        match resolve_hermes_provider_context(&state.db, &state.master_key).await {
-            Ok(r) => r,
-            Err(resp) => return resp,
-        };
-    let adapter = match registry.get(provider_type_to_str(&provider.provider_type)) {
+    let (provider, ctx) = match resolve_hermes_provider_context(
+        &state.db,
+        &state.master_key,
+        &*state.provider_registry,
+    )
+    .await
+    {
+        Ok(r) => r,
+        Err(resp) => return resp,
+    };
+    let adapter = match state
+        .provider_registry
+        .get(provider_type_to_str(&provider.provider_type))
+    {
         Some(a) => a,
         None => {
             return error_response(StatusCode::BAD_GATEWAY, "No adapter available");
@@ -1189,12 +1291,20 @@ pub async fn retry_run(
     let AuthenticatedKey(gateway_key) = auth;
     let start_time = Instant::now();
 
-    let (provider, ctx, registry) =
-        match resolve_hermes_provider_context(&state.db, &state.master_key).await {
-            Ok(r) => r,
-            Err(resp) => return resp,
-        };
-    let adapter = match registry.get(provider_type_to_str(&provider.provider_type)) {
+    let (provider, ctx) = match resolve_hermes_provider_context(
+        &state.db,
+        &state.master_key,
+        &*state.provider_registry,
+    )
+    .await
+    {
+        Ok(r) => r,
+        Err(resp) => return resp,
+    };
+    let adapter = match state
+        .provider_registry
+        .get(provider_type_to_str(&provider.provider_type))
+    {
         Some(a) => a,
         None => {
             return error_response(StatusCode::BAD_GATEWAY, "No adapter available");
@@ -1255,12 +1365,20 @@ pub async fn get_job_schedule(
     let AuthenticatedKey(gateway_key) = auth;
     let start_time = Instant::now();
 
-    let (provider, ctx, registry) =
-        match resolve_hermes_provider_context(&state.db, &state.master_key).await {
-            Ok(r) => r,
-            Err(resp) => return resp,
-        };
-    let adapter = match registry.get(provider_type_to_str(&provider.provider_type)) {
+    let (provider, ctx) = match resolve_hermes_provider_context(
+        &state.db,
+        &state.master_key,
+        &*state.provider_registry,
+    )
+    .await
+    {
+        Ok(r) => r,
+        Err(resp) => return resp,
+    };
+    let adapter = match state
+        .provider_registry
+        .get(provider_type_to_str(&provider.provider_type))
+    {
         Some(a) => a,
         None => {
             return error_response(StatusCode::BAD_GATEWAY, "No adapter available");
@@ -1322,12 +1440,20 @@ pub async fn update_job_schedule(
     let AuthenticatedKey(gateway_key) = auth;
     let start_time = Instant::now();
 
-    let (provider, ctx, registry) =
-        match resolve_hermes_provider_context(&state.db, &state.master_key).await {
-            Ok(r) => r,
-            Err(resp) => return resp,
-        };
-    let adapter = match registry.get(provider_type_to_str(&provider.provider_type)) {
+    let (provider, ctx) = match resolve_hermes_provider_context(
+        &state.db,
+        &state.master_key,
+        &*state.provider_registry,
+    )
+    .await
+    {
+        Ok(r) => r,
+        Err(resp) => return resp,
+    };
+    let adapter = match state
+        .provider_registry
+        .get(provider_type_to_str(&provider.provider_type))
+    {
         Some(a) => a,
         None => {
             return error_response(StatusCode::BAD_GATEWAY, "No adapter available");
@@ -1397,12 +1523,20 @@ pub async fn enable_job(
     let AuthenticatedKey(gateway_key) = auth;
     let start_time = Instant::now();
 
-    let (provider, ctx, registry) =
-        match resolve_hermes_provider_context(&state.db, &state.master_key).await {
-            Ok(r) => r,
-            Err(resp) => return resp,
-        };
-    let adapter = match registry.get(provider_type_to_str(&provider.provider_type)) {
+    let (provider, ctx) = match resolve_hermes_provider_context(
+        &state.db,
+        &state.master_key,
+        &*state.provider_registry,
+    )
+    .await
+    {
+        Ok(r) => r,
+        Err(resp) => return resp,
+    };
+    let adapter = match state
+        .provider_registry
+        .get(provider_type_to_str(&provider.provider_type))
+    {
         Some(a) => a,
         None => {
             return error_response(StatusCode::BAD_GATEWAY, "No adapter available");
@@ -1456,12 +1590,20 @@ pub async fn disable_job(
     let AuthenticatedKey(gateway_key) = auth;
     let start_time = Instant::now();
 
-    let (provider, ctx, registry) =
-        match resolve_hermes_provider_context(&state.db, &state.master_key).await {
-            Ok(r) => r,
-            Err(resp) => return resp,
-        };
-    let adapter = match registry.get(provider_type_to_str(&provider.provider_type)) {
+    let (provider, ctx) = match resolve_hermes_provider_context(
+        &state.db,
+        &state.master_key,
+        &*state.provider_registry,
+    )
+    .await
+    {
+        Ok(r) => r,
+        Err(resp) => return resp,
+    };
+    let adapter = match state
+        .provider_registry
+        .get(provider_type_to_str(&provider.provider_type))
+    {
         Some(a) => a,
         None => {
             return error_response(StatusCode::BAD_GATEWAY, "No adapter available");
@@ -1650,12 +1792,11 @@ pub async fn chat_completions(
         store_response: request.store,
     };
 
-    let registry = axagent_providers::registry::ProviderRegistry::create_default();
-    let adapter = match registry.get(provider_type_str) {
+    let adapter = match state.provider_registry.get(provider_type_str) {
         Some(a) => a,
         None => {
             // Fallback to openai-compatible for custom providers
-            match registry.get("openai") {
+            match state.provider_registry.get("openai") {
                 Some(a) => a,
                 None => {
                     return error_response(
@@ -1667,9 +1808,10 @@ pub async fn chat_completions(
         },
     };
 
+    let adapter_ref: &dyn axagent_harness::ProviderAdapter = &*adapter;
     if request.stream {
         handle_stream(
-            adapter,
+            adapter_ref,
             &ctx,
             request,
             &state,
@@ -1681,7 +1823,7 @@ pub async fn chat_completions(
         .await
     } else {
         handle_non_stream(
-            adapter,
+            adapter_ref,
             &ctx,
             request,
             &state,
@@ -2198,14 +2340,8 @@ pub(crate) fn error_response(status: StatusCode, message: &str) -> axum::respons
 async fn resolve_hermes_provider_context(
     db: &DatabaseConnection,
     master_key: &[u8; 32],
-) -> Result<
-    (
-        ProviderConfig,
-        ProviderRequestContext,
-        axagent_providers::registry::ProviderRegistry,
-    ),
-    axum::response::Response,
-> {
+    registry: &dyn axagent_harness::registry::ProviderRegistry,
+) -> Result<(ProviderConfig, ProviderRequestContext), axum::response::Response> {
     let providers: Vec<ProviderConfig> = match axagent_core::repo::provider::list_providers(db)
         .await
     {
@@ -2265,9 +2401,7 @@ async fn resolve_hermes_provider_context(
         store_response: None,
     };
 
-    let registry = axagent_providers::registry::ProviderRegistry::create_default();
-
-    Ok((provider, ctx, registry))
+    Ok((provider, ctx))
 }
 
 // ── Unit tests ────────────────────────────────────────────────────────────────

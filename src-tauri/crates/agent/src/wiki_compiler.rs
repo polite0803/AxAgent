@@ -7,7 +7,7 @@ use axagent_core::entity::{notes, wiki_operations, wiki_pages, wiki_sources, wik
 use axagent_core::repo::note::{CreateNoteInput, Note, UpdateNoteInput, calculate_content_hash};
 use axagent_core::types::{ChatContent, ChatMessage, ChatRequest};
 use axagent_core::utils::gen_id;
-use axagent_providers::{ProviderAdapter, ProviderRequestContext};
+use axagent_harness::{ProviderAdapter, ProviderRequestContext};
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, IntoActiveModel, QueryFilter,
     Set,
@@ -1336,7 +1336,7 @@ mod tests {
     use axagent_core::types::{
         ChatResponse, ChatStreamChunk, EmbedRequest, EmbedResponse, Model, TokenUsage,
     };
-    use axagent_providers::ProviderAdapter;
+    use axagent_harness::ProviderAdapter;
     use futures::Stream;
     use std::pin::Pin;
 

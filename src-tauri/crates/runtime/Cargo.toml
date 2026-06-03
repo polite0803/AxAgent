@@ -31,6 +31,7 @@ tokio-util = { version = "0.7", features = ["rt"] }
 sea-orm = { workspace = true }
 axagent-agent = { path = "../agent" }
 axagent-core = { path = "../core" }
+axagent-harness = { path = "../harness" }
 axagent-runtime-core = { path = "../runtime-core" }
 axagent-prompt-guard = { path = "../prompt-guard" }
 axagent-rt-workflow = { path = "../rt-workflow" }

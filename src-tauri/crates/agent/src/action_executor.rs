@@ -10,8 +10,7 @@ pub struct ActionExecutor {
     _private: (),
     pre_validator: Option<PreExecutionValidator>,
     /// 外部传入的工具注册表（避免每次新建）
-    external_registry:
-        Option<Arc<tokio::sync::Mutex<axagent_tools::registry::UnifiedToolRegistry>>>,
+    external_registry: Option<Arc<tokio::sync::Mutex<Box<dyn axagent_runtime_core::ToolExecutor>>>>,
 }
 
 impl Default for ActionExecutor {
@@ -36,7 +35,7 @@ impl ActionExecutor {
 
     pub fn with_registry(
         mut self,
-        registry: Arc<tokio::sync::Mutex<axagent_tools::registry::UnifiedToolRegistry>>,
+        registry: Arc<tokio::sync::Mutex<Box<dyn axagent_runtime_core::ToolExecutor>>>,
     ) -> Self {
         self.external_registry = Some(registry);
         self
@@ -115,55 +114,40 @@ impl ActionExecutor {
 
         let input_str = serde_json::to_string(&args).unwrap_or_default();
 
-        // 优先使用外部传入的 registry（保留其权限配置），否则新建
+        // 优先使用外部传入的 registry（由 Harness 在运行时注入）
+        // 无 registry 时返回错误（不应发生——ActionExecutor 应始终由运行时配置）
         if let Some(ref ext_reg) = self.external_registry {
             let mut reg = ext_reg.lock().await;
-            match reg.execute(local_name, &input_str).await {
-                Ok(r) => Ok(ActionResult::ToolSuccess(r.content, tool_name.to_string())),
+            match reg.execute(local_name, &input_str) {
+                Ok(r) => Ok(ActionResult::ToolSuccess(r, tool_name.to_string())),
                 Err(e) => Err(ActionError::ToolExecution(e.to_string())),
             }
         } else {
-            let mut reg = axagent_tools::registry::UnifiedToolRegistry::new();
-            match reg.execute(local_name, &input_str).await {
-                Ok(r) => Ok(ActionResult::ToolSuccess(r.content, tool_name.to_string())),
-                Err(e) => Err(ActionError::ToolExecution(e.to_string())),
-            }
+            Err(ActionError::InvalidAction(
+                "未配置工具注册表（Harness 未注入 registry）".to_string(),
+            ))
         }
     }
 
     fn sandbox_check(tool_name: &str, input: &Value) -> Result<(), String> {
-        let sandbox = axagent_tools::sandbox::SecuritySandbox::with_default_config();
+        // 基本路径安全检查——完整沙箱由运行时层的 ToolExecutor 执行
         if let Some(path_str) = input.get("path").and_then(|v| v.as_str()) {
-            let result = sandbox.check_path_access(std::path::Path::new(path_str));
-            if !result.allowed {
-                let violations: String = result
-                    .violations
-                    .iter()
-                    .map(|v| v.message.as_str())
-                    .collect::<Vec<_>>()
-                    .join(", ");
-                return Err(format!("工具 '{tool_name}' 路径访问被拒绝: {violations}"));
+            let path = std::path::Path::new(path_str);
+            if path.is_absolute() {
+                return Err(format!("工具 '{tool_name}' 不允许访问绝对路径: {path_str}"));
             }
-        }
-        if (tool_name == "Bash" || tool_name == "bash")
-            && let Some(cmd) = input.get("command").and_then(|v| v.as_str())
-        {
-            let result = sandbox.check_command(cmd);
-            if !result.allowed {
-                let violations: String = result
-                    .violations
-                    .iter()
-                    .map(|v| v.message.as_str())
-                    .collect::<Vec<_>>()
-                    .join(", ");
-                return Err(format!("Bash 命令被拒绝: {violations}"));
+            if path
+                .components()
+                .any(|c| c == std::path::Component::ParentDir)
+            {
+                return Err(format!("工具 '{tool_name}' 不允许路径回溯: {path_str}"));
             }
         }
         Ok(())
     }
 }
 
-use axagent_tools::mcp::parse_tool_name as parse_full_tool_name;
+use axagent_harness::parse_tool_name as parse_full_tool_name;
 
 #[derive(Debug, Clone)]
 pub enum ActionResult {

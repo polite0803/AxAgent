@@ -7,7 +7,7 @@ use axagent_core::{
     repo::wiki,
     types::{ProviderProxyConfig, ProviderType},
 };
-use axagent_providers::{ProviderAdapter, ProviderRequestContext, resolve_base_url_for_type};
+use axagent_harness::{ProviderAdapter, ProviderRequestContext, resolve_base_url_for_type};
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, EntityTrait, IntoActiveModel, QueryFilter, QueryOrder,
     QuerySelect, Set,

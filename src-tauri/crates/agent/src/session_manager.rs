@@ -1,6 +1,5 @@
 //! Session Manager for AxAgent Agent
 
-use crate::ToolRegistry;
 use crate::event_bus::AgentPermissionPayload;
 use crate::provider_adapter::AxAgentApiClient;
 use crate::shared_blackboard::SharedBlackboard;
@@ -10,7 +9,7 @@ use axagent_runtime_core::{
     AgentExecutionProgress, CompactionConfig, ContentBlock, ConversationMessage,
     ConversationRuntime, HookEvent, HookProgressEvent, HookProgressReporter, MessageRole,
     PermissionMode, PermissionPolicy, PermissionPromptDecision, PermissionPrompter,
-    PermissionRequest, RuntimeError, Session, compact_session, should_compact,
+    PermissionRequest, RuntimeError, Session, ToolExecutor, compact_session, should_compact,
 };
 use sea_orm::DatabaseConnection;
 use serde::{Deserialize, Serialize};
@@ -489,12 +488,12 @@ impl SessionManager {
     /// - Persisting user/assistant messages to the DB
     /// - Emitting Tauri events
     #[allow(clippy::too_many_arguments)]
-    pub async fn run_turn_with_tools(
+    pub async fn run_turn_with_tools<T: ToolExecutor + Send + 'static>(
         &self,
         session_id: &str,
         user_input: String,
         api_client: AxAgentApiClient,
-        tool_registry: ToolRegistry,
+        tool_executor: T,
         system_prompt: Vec<String>,
         conversation_id: String,
         permission_mode: PermissionMode,
@@ -642,7 +641,7 @@ impl SessionManager {
         let mut runtime = ConversationRuntime::new(
             session.session().clone(),
             api_client,
-            tool_registry,
+            tool_executor,
             permission_policy,
             system_prompt,
         )

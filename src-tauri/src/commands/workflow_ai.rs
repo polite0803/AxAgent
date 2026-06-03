@@ -1185,14 +1185,18 @@ pub async fn generate_workflow_from_prompt(
     current_edges: Option<Vec<serde_json::Value>>,
 ) -> Result<WorkflowGenerationResult, String> {
     let resolved = resolve_ai_provider(&state).await?;
-    let registry = ProviderRegistry::create_default();
+
     let registry_key = provider_type_to_registry_key(&resolved.provider_type);
-    let adapter = registry.get(registry_key).ok_or_else(|| {
-        ErrorResponse::err_with_detail(
-            provider_err::ADAPTER_NOT_FOUND,
-            format!("Provider adapter not found for type: {}", registry_key),
-        )
-    })?;
+    let adapter = state
+        .harness
+        .provider_registry()
+        .get(registry_key)
+        .ok_or_else(|| {
+            ErrorResponse::err_with_detail(
+                provider_err::ADAPTER_NOT_FOUND,
+                format!("Provider adapter not found for type: {}", registry_key),
+            )
+        })?;
 
     let mut context_section = String::new();
     if let Some(nodes) = &current_nodes {
@@ -1336,14 +1340,18 @@ pub async fn optimize_agent_prompt(
     prompt: String,
 ) -> Result<String, String> {
     let resolved = resolve_ai_provider(&state).await?;
-    let registry = ProviderRegistry::create_default();
+
     let registry_key = provider_type_to_registry_key(&resolved.provider_type);
-    let adapter = registry.get(registry_key).ok_or_else(|| {
-        ErrorResponse::err_with_detail(
-            provider_err::ADAPTER_NOT_FOUND,
-            format!("Provider adapter not found for type: {}", registry_key),
-        )
-    })?;
+    let adapter = state
+        .harness
+        .provider_registry()
+        .get(registry_key)
+        .ok_or_else(|| {
+            ErrorResponse::err_with_detail(
+                provider_err::ADAPTER_NOT_FOUND,
+                format!("Provider adapter not found for type: {}", registry_key),
+            )
+        })?;
 
     let system_prompt = r#"You are an expert prompt engineer. Your task is to optimize the given agent prompt to make it more effective, clear, and structured.
 
@@ -1415,14 +1423,18 @@ pub async fn recommend_nodes(
     current_node_types: Option<Vec<String>>,
 ) -> Result<Vec<NodeRecommendation>, String> {
     let resolved = resolve_ai_provider(&state).await?;
-    let registry = ProviderRegistry::create_default();
+
     let registry_key = provider_type_to_registry_key(&resolved.provider_type);
-    let adapter = registry.get(registry_key).ok_or_else(|| {
-        ErrorResponse::err_with_detail(
-            provider_err::ADAPTER_NOT_FOUND,
-            format!("Provider adapter not found for type: {}", registry_key),
-        )
-    })?;
+    let adapter = state
+        .harness
+        .provider_registry()
+        .get(registry_key)
+        .ok_or_else(|| {
+            ErrorResponse::err_with_detail(
+                provider_err::ADAPTER_NOT_FOUND,
+                format!("Provider adapter not found for type: {}", registry_key),
+            )
+        })?;
 
     let system_prompt = r#"You are a workflow design assistant. Based on the user's description of their workflow needs, recommend the most suitable node types.
 
@@ -1741,14 +1753,18 @@ pub async fn workflow_ai_chat_stream(
     session_id: String,
 ) -> Result<(), String> {
     let resolved = resolve_ai_provider(&state).await?;
-    let registry = ProviderRegistry::create_default();
+
     let registry_key = provider_type_to_registry_key(&resolved.provider_type);
-    let adapter = registry.get(registry_key).ok_or_else(|| {
-        ErrorResponse::err_with_detail(
-            provider_err::ADAPTER_NOT_FOUND,
-            format!("Provider adapter not found for type: {}", registry_key),
-        )
-    })?;
+    let adapter = state
+        .harness
+        .provider_registry()
+        .get(registry_key)
+        .ok_or_else(|| {
+            ErrorResponse::err_with_detail(
+                provider_err::ADAPTER_NOT_FOUND,
+                format!("Provider adapter not found for type: {}", registry_key),
+            )
+        })?;
 
     let mut canvas_section = String::new();
     if let Some(nodes) = &current_nodes {

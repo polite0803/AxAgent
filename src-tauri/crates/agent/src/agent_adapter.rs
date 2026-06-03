@@ -9,6 +9,9 @@ pub struct AgentImplAdapter {
     status: RwLock<AgentStatus>,
     config: RwLock<Option<AgentConfig>>,
     event_bus: Arc<AgentEventBus>,
+    /// 可选的工具执行器 — 由 Harness 在运行时注入
+    tool_executor:
+        Option<Arc<tokio::sync::Mutex<Box<dyn axagent_runtime_core::ToolExecutor + Send>>>>,
 }
 
 impl AgentImplAdapter {
@@ -17,7 +20,17 @@ impl AgentImplAdapter {
             status: RwLock::new(AgentStatus::Idle),
             config: RwLock::new(None),
             event_bus: event_bus.unwrap_or_else(|| Arc::new(AgentEventBus::new("adapter"))),
+            tool_executor: None,
         }
+    }
+
+    /// 设置工具执行器（由 Harness 在注入具体实现时调用）
+    pub fn with_tool_executor(
+        mut self,
+        executor: Arc<tokio::sync::Mutex<Box<dyn axagent_runtime_core::ToolExecutor + Send>>>,
+    ) -> Self {
+        self.tool_executor = Some(executor);
+        self
     }
 
     pub async fn set_status(&self, status: AgentStatus) {
@@ -96,16 +109,21 @@ impl AgentImpl for AgentImplAdapter {
                 serde_json::json!({ "input": tool_input })
             };
 
-            {
+            // 优先使用注入的工具执行器，否则返回错误
+            if let Some(ref executor) = self.tool_executor {
                 let input_str = serde_json::to_string(&args).unwrap_or_default();
-                let mut reg = axagent_tools::registry::UnifiedToolRegistry::new();
-                match reg.execute(local_name, &input_str).await {
-                    Ok(r) => Ok(CoordinatorOutput::success(r.content, 1)),
+                let mut exec = executor.lock().await;
+                match exec.execute(local_name, &input_str) {
+                    Ok(result) => Ok(CoordinatorOutput::success(result, 1)),
                     Err(e) => Err(AgentError::ExecutionFailed(format!(
                         "Tool '{}' failed: {}",
                         tool_name, e
                     ))),
                 }
+            } else {
+                Err(AgentError::ExecutionFailed(
+                    "AgentImplAdapter 未配置工具执行器（Harness 未注入 executor）".to_string(),
+                ))
             }
         } else {
             Ok(CoordinatorOutput::success(input.content, 1))
@@ -182,7 +200,7 @@ impl std::fmt::Debug for AgentImplAdapter {
     }
 }
 
-use axagent_tools::mcp::parse_tool_name as parse_adapter_tool_name;
+use axagent_harness::parse_tool_name as parse_adapter_tool_name;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AgentRuntimeBindingMode {

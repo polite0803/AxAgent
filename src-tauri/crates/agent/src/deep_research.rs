@@ -2,7 +2,7 @@ use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
 use axagent_core::types::{ChatContent, ChatMessage, ChatRequest};
-use axagent_providers::{ProviderAdapter, ProviderRequestContext};
+use axagent_harness::{ProviderAdapter, ProviderRequestContext};
 use serde::{Deserialize, Serialize};
 
 use crate::ingest_pipeline::{IngestPipeline, IngestSourceType};

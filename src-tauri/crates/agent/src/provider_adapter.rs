@@ -4,7 +4,7 @@ use axagent_core::types::{
     ChatContent, ChatMessage, ChatRequest, ChatTool, ContentPart, ImageUrl,
     TokenUsage as AxAgentTokenUsage, ToolCall, ToolCallFunction,
 };
-use axagent_providers::{ProviderAdapter, ProviderRequestContext};
+use axagent_harness::{ProviderAdapter, ProviderRequestContext};
 use axagent_runtime_core::{
     ApiClient, ApiRequest, AssistantEvent, ContentBlock, ConversationMessage, MessageRole,
     PromptCacheEvent, RuntimeError, TokenUsage as RuntimeTokenUsage,

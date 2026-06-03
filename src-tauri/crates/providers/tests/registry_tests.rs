@@ -1,4 +1,5 @@
 use axagent_providers::registry::ProviderRegistry;
+use std::sync::Arc;
 
 #[test]
 fn test_registry_new_is_empty() {
@@ -30,18 +31,18 @@ fn test_registry_register_and_get() {
     let mut registry = ProviderRegistry::new();
     assert!(registry.get("openai").is_none());
 
-    registry.register("openai", Box::new(axagent_providers::openai::OpenAIAdapter::new()));
+    registry.register("openai", Arc::new(axagent_providers::openai::OpenAIAdapter::new()));
     assert!(registry.get("openai").is_some());
 }
 
 #[test]
 fn test_registry_register_overwrites_existing() {
     let mut registry = ProviderRegistry::new();
-    registry.register("test", Box::new(axagent_providers::openai::OpenAIAdapter::new()));
+    registry.register("test", Arc::new(axagent_providers::openai::OpenAIAdapter::new()));
     assert!(registry.get("test").is_some());
 
     // Register another adapter under the same key — should be fine
-    registry.register("test", Box::new(axagent_providers::anthropic::AnthropicAdapter::new()));
+    registry.register("test", Arc::new(axagent_providers::anthropic::AnthropicAdapter::new()));
     assert!(registry.get("test").is_some());
 }
 

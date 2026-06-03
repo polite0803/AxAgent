@@ -439,28 +439,19 @@ impl TaskExecutorImpl for DefaultTaskExecutorImpl {
                     ));
                 }
 
-                let (_server_name, local_name) = parse_tool_name(tool_name);
-                let args = if let Some(obj) = tool_input.as_object() {
+                let (_server_name, _local_name) = parse_tool_name(tool_name);
+                let _args = if let Some(obj) = tool_input.as_object() {
                     serde_json::to_value(obj.clone()).unwrap_or(tool_input.clone())
                 } else {
                     serde_json::json!({ "input": tool_input })
                 };
 
-                {
-                    let input_str = serde_json::to_string(&args).unwrap_or_default();
-                    let mut reg = axagent_tools::registry::UnifiedToolRegistry::new();
-                    match reg.execute(local_name, &input_str).await {
-                        Ok(result) => Ok(serde_json::json!({
-                            "output": result.content,
-                            "task_id": context.task_id,
-                            "tool_name": tool_name,
-                        })),
-                        Err(e) => Err(TaskExecutorError::ExecutionFailed(format!(
-                            "Tool '{}' execution failed: {}",
-                            tool_name, e
-                        ))),
-                    }
-                }
+                // DefaultTaskExecutorImpl 是轻量默认实现，不持有工具注册表。
+                // 在完整 Harness 运行中，实际工具执行由运行时层的 ToolExecutor 处理。
+                Err(TaskExecutorError::ExecutionFailed(format!(
+                    "Tool '{}' execution requires runtime-injected ToolExecutor",
+                    tool_name
+                )))
             },
             crate::task::TaskType::Reasoning => {
                 let prompt = context
@@ -518,7 +509,7 @@ impl TaskExecutorImpl for DefaultTaskExecutorImpl {
     }
 }
 
-use axagent_tools::mcp::parse_tool_name;
+use axagent_harness::parse_tool_name;
 
 #[derive(Debug, thiserror::Error)]
 pub enum ExecutionError {

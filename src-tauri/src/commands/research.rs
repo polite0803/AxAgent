@@ -8,8 +8,8 @@ use axagent_core::repo::conversation as conversation_repo;
 use axagent_core::repo::message as message_repo;
 use axagent_core::repo::provider::{self as provider_repo, get_active_key};
 use axagent_core::types::{ChatContent, ChatMessage, ChatRequest, MessageRole};
+use axagent_harness::resolve_base_url_for_type;
 use axagent_providers::registry::ProviderRegistry;
-use axagent_providers::resolve_base_url_for_type;
 use serde::{Deserialize, Serialize};
 use tauri::State;
 
@@ -182,8 +182,10 @@ pub async fn generate_research_report(
 
     // 3. 创建 ProviderAdapter
     let registry_key = format!("{:?}", provider_config.provider_type).to_lowercase();
-    let registry = ProviderRegistry::create_default();
-    let adapter = registry
+
+    let adapter = state
+        .harness
+        .provider_registry()
         .get(&registry_key)
         .ok_or_else(|| format!("未找到供应商适配器: {}", registry_key))?;
 

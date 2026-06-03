@@ -1,8 +1,10 @@
 use axagent_core::{
     crypto::decrypt_key,
+    error::AxAgentError,
     types::{GatewayKey, ProviderConfig, ProviderProxyConfig, ProviderType, TokenUsage},
 };
-use axagent_providers::{ProviderRequestContext, build_http_client, resolve_base_url_for_type};
+use axagent_harness::{ProviderRequestContext, resolve_base_url_for_type};
+
 use axum::{
     body::{Body, Bytes, to_bytes},
     extract::{Extension, Path, Request, State},
@@ -831,6 +833,60 @@ async fn proxy_stream_response(
     build_passthrough_response(status, &headers, Body::from_stream(ReceiverStream::new(rx)))
 }
 
+/// 构建 HTTP 客户端（含代理配置）— 从 axagent-providers 内联
+fn build_http_client(
+    proxy_config: Option<&ProviderProxyConfig>,
+) -> Result<reqwest::Client, AxAgentError> {
+    #[cfg(target_os = "android")]
+    let mut builder = reqwest::Client::builder().use_native_tls();
+    #[cfg(not(target_os = "android"))]
+    let mut builder = reqwest::Client::builder().use_rustls_tls();
+
+    if let Some(config) = proxy_config {
+        match config.proxy_type.as_deref() {
+            Some("system") => {},
+            Some(proxy_type) if proxy_type != "none" => {
+                if let (Some(addr), Some(port)) = (&config.proxy_address, &config.proxy_port) {
+                    if !addr.is_empty() {
+                        let scheme = if proxy_type == "socks5" {
+                            "socks5"
+                        } else {
+                            "http"
+                        };
+                        let proxy_url = format!("{}://{}:{}", scheme, addr, port);
+                        let proxy = reqwest::Proxy::all(&proxy_url).map_err(|e| {
+                            AxAgentError::Gateway(format!("Invalid proxy URL: {}", e))
+                        })?;
+                        builder = builder.proxy(proxy);
+                    } else {
+                        builder = builder.no_proxy();
+                    }
+                } else {
+                    builder = builder.no_proxy();
+                }
+            },
+            _ => {
+                builder = builder.no_proxy();
+            },
+        }
+    } else {
+        builder = builder.no_proxy();
+    }
+
+    let connect_timeout = if cfg!(target_os = "android") {
+        15u64
+    } else {
+        30u64
+    };
+    builder
+        .tcp_nodelay(true)
+        .connect_timeout(std::time::Duration::from_secs(connect_timeout))
+        .timeout(std::time::Duration::from_secs(300))
+        .pool_idle_timeout(std::time::Duration::from_secs(90))
+        .build()
+        .map_err(|e| AxAgentError::Gateway(format!("Failed to build HTTP client: {}", e)))
+}
+
 async fn handle_native_request(
     protocol: NativeProtocol,
     state: GatewayAppState,
@@ -1209,6 +1265,9 @@ mod tests {
             db: handle.conn.clone(),
             master_key,
             started_at: 0,
+            provider_registry: std::sync::Arc::new(
+                axagent_providers::registry::ProviderRegistry::create_default(),
+            ),
         };
         (create_router(state.clone()), handle, gateway_key.plain_key, state)
     }
@@ -1617,6 +1676,9 @@ mod tests {
             db: handle.conn.clone(),
             master_key,
             started_at: 0,
+            provider_registry: std::sync::Arc::new(
+                axagent_providers::registry::ProviderRegistry::create_default(),
+            ),
         });
         let response = app
             .oneshot(

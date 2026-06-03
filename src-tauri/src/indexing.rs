@@ -46,7 +46,7 @@ impl rag::AsyncEmbedFn for ProviderEmbedFn {
 /// Build a `LlmCallFn` from the first enabled provider in the DB.
 /// Used by the RAG pipeline for query enhancement LLM calls.
 pub async fn build_rag_llm_fn(db: &DatabaseConnection, master_key: &[u8; 32]) -> Option<LlmCallFn> {
-    let bridge = axagent_agent::llm_bridge::build_llm_bridge_from_db(db, master_key).await?;
+    let bridge = axagent_runtime::llm_bridge::build_llm_bridge_from_db(db, master_key).await?;
 
     Some(Arc::new(move |prompt: String| {
         let bridge = bridge.clone();
@@ -146,11 +146,14 @@ pub async fn generate_embeddings(
     let (provider_id, model_id) = parse_embedding_provider(embedding_provider)?;
     let (ctx, provider_config) = build_embed_context(db, master_key, &provider_id).await?;
 
-    let registry = ProviderRegistry::create_default();
+    let harness = axagent_runtime::harness::RuntimeHarness::new(db.clone(), *master_key);
     let registry_key = provider_type_to_registry_key(&provider_config.provider_type);
-    let adapter: &dyn ProviderAdapter = registry.get(registry_key).ok_or_else(|| {
-        AxAgentError::Provider(format!("Unsupported provider type: {}", registry_key))
-    })?;
+    let adapter = harness
+        .provider_registry()
+        .get(registry_key)
+        .ok_or_else(|| {
+            AxAgentError::Provider(format!("Unsupported provider type: {}", registry_key))
+        })?;
 
     // If texts fit in a single batch, use the simple path
     if texts.len() <= EMBED_BATCH_SIZE {
@@ -159,7 +162,7 @@ pub async fn generate_embeddings(
             input: texts,
             dimensions,
         };
-        return embed_with_retry(adapter, &ctx, request).await;
+        return embed_with_retry(&*adapter, &ctx, request).await;
     }
 
     // Batch path: split texts into chunks and embed each batch
@@ -172,7 +175,7 @@ pub async fn generate_embeddings(
             input: batch.to_vec(),
             dimensions,
         };
-        let response = embed_with_retry(adapter, &ctx, request).await?;
+        let response = embed_with_retry(&*adapter, &ctx, request).await?;
 
         if first_dimensions.is_none() {
             first_dimensions = Some(response.dimensions);

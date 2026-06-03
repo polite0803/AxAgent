@@ -249,6 +249,8 @@ pub struct WorkEngine {
     rag_callback: Arc<Mutex<Option<RagCallback>>>,
     /// Agent executor 共享缓存（跨节点复用，每次 run_workflow 开始时清空）
     agent_provider_cache: Arc<tokio::sync::Mutex<ProviderCache>>,
+    /// 由 Harness 注入的 ProviderRegistry（用于创建 executor 时注入）
+    provider_registry: Option<Arc<dyn axagent_harness::registry::ProviderRegistry>>,
     agent_profile_cache: Arc<tokio::sync::Mutex<ProfileCache>>,
     /// 断点集（节点 ID → 是否启用，外部通过 set_breakpoints / resume 控制）
     pub breakpoints: Arc<Mutex<HashSet<String>>>,
@@ -343,13 +345,16 @@ impl WorkEngine {
 
     /// Plan 模式专用：AgentExecutor 注入自身引用，使其能创建/执行临时工作流
     pub async fn inject_into_agent_executor(self: &Arc<Self>, engine: Arc<WorkEngine>) {
-        let agent = AgentExecutor::with_shared_caches(
+        let mut agent = AgentExecutor::with_shared_caches(
             self.db.clone(),
             self.master_key,
             self.agent_provider_cache.clone(),
             self.agent_profile_cache.clone(),
         )
         .with_engine(engine);
+        if let Some(ref reg) = self.provider_registry {
+            agent = agent.with_provider_registry(reg.clone());
+        }
         self.register_executor(agent).await;
     }
 
@@ -391,20 +396,37 @@ impl WorkEngine {
 }
 
 impl WorkEngine {
-    pub fn new(db: Arc<DatabaseConnection>, master_key: [u8; 32]) -> Self {
+    pub fn new(
+        db: Arc<DatabaseConnection>,
+        master_key: [u8; 32],
+        provider_registry: Option<Arc<dyn axagent_harness::registry::ProviderRegistry>>,
+    ) -> Self {
         let agent_provider_cache = Arc::new(tokio::sync::Mutex::new(None));
         let agent_profile_cache = Arc::new(tokio::sync::Mutex::new(HashMap::new()));
 
         let mut dispatcher = NodeDispatcher::new();
-        dispatcher.register(LlmExecutor::new(db.clone(), master_key));
-        dispatcher.register(AgentExecutor::with_shared_caches(
+
+        let mut llm_exec = LlmExecutor::new(db.clone(), master_key);
+        let mut agent_exec = AgentExecutor::with_shared_caches(
             db.clone(),
             master_key,
             agent_provider_cache.clone(),
             agent_profile_cache.clone(),
-        ));
-        dispatcher.register(ConditionExecutor::new(db.clone(), master_key));
-        dispatcher.register(LlmClassifierExecutor::new(db.clone(), master_key));
+        );
+        let mut cond_exec = ConditionExecutor::new(db.clone(), master_key);
+        let mut classifier_exec = LlmClassifierExecutor::new(db.clone(), master_key);
+
+        if let Some(ref reg) = provider_registry {
+            llm_exec = llm_exec.with_provider_registry(reg.clone());
+            agent_exec = agent_exec.with_provider_registry(reg.clone());
+            cond_exec = cond_exec.with_provider_registry(reg.clone());
+            classifier_exec = classifier_exec.with_provider_registry(reg.clone());
+        }
+
+        dispatcher.register(llm_exec);
+        dispatcher.register(agent_exec);
+        dispatcher.register(cond_exec);
+        dispatcher.register(classifier_exec);
         Self {
             db,
             master_key,
@@ -421,6 +443,7 @@ impl WorkEngine {
             rag_callback: Arc::new(Mutex::new(None)),
             agent_provider_cache,
             agent_profile_cache,
+            provider_registry,
             breakpoints: Arc::new(Mutex::new(HashSet::new())),
             node_breakers: Arc::new(Mutex::new(HashMap::new())),
         }

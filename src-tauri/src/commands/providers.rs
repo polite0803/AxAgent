@@ -144,7 +144,7 @@ pub async fn validate_provider_key(
         .await
         .map_err(|e| e.to_string())?;
     // Use the registry to validate by listing models
-    let registry = axagent_providers::registry::ProviderRegistry::create_default();
+
     let provider_type_str = match provider.provider_type {
         ProviderType::OpenAI => "openai",
         ProviderType::OpenAIResponses => "openai_responses",
@@ -154,7 +154,9 @@ pub async fn validate_provider_key(
         ProviderType::Hermes => "hermes",
         ProviderType::Ollama => "ollama",
     };
-    let adapter = registry
+    let adapter = state
+        .harness
+        .provider_registry()
         .get(provider_type_str)
         .ok_or_else(|| format!("No adapter for provider type: {}", provider_type_str))?;
     let global_settings = axagent_core::repo::settings::get_settings(&state.sea_db)
@@ -162,11 +164,11 @@ pub async fn validate_provider_key(
         .unwrap_or_default();
     let resolved_proxy =
         axagent_core::types::ProviderProxyConfig::resolve(&provider.proxy_config, &global_settings);
-    let ctx = axagent_providers::ProviderRequestContext {
+    let ctx = axagent_harness::ProviderRequestContext {
         api_key: decrypted,
         key_id: key_id.clone(),
         provider_id: provider.id.clone(),
-        base_url: Some(axagent_providers::resolve_base_url_for_type(
+        base_url: Some(axagent_harness::resolve_base_url_for_type(
             &provider.api_host,
             &provider.provider_type,
         )),
@@ -260,7 +262,7 @@ pub async fn fetch_remote_models(
         .map_err(|e| e.to_string())?;
     let decrypted = axagent_core::crypto::decrypt_key(&key_row.key_encrypted, &state.master_key)
         .map_err(|e| e.to_string())?;
-    let registry = axagent_providers::registry::ProviderRegistry::create_default();
+
     let provider_type_str = match provider.provider_type {
         ProviderType::OpenAI => "openai",
         ProviderType::OpenAIResponses => "openai_responses",
@@ -270,7 +272,9 @@ pub async fn fetch_remote_models(
         ProviderType::Hermes => "hermes",
         ProviderType::Ollama => "ollama",
     };
-    let adapter = registry
+    let adapter = state
+        .harness
+        .provider_registry()
         .get(provider_type_str)
         .ok_or_else(|| format!("No adapter for provider type: {}", provider_type_str))?;
     let global_settings = axagent_core::repo::settings::get_settings(&state.sea_db)
@@ -278,11 +282,11 @@ pub async fn fetch_remote_models(
         .unwrap_or_default();
     let resolved_proxy =
         axagent_core::types::ProviderProxyConfig::resolve(&provider.proxy_config, &global_settings);
-    let ctx = axagent_providers::ProviderRequestContext {
+    let ctx = axagent_harness::ProviderRequestContext {
         api_key: decrypted,
         key_id: key_row.id.clone(),
         provider_id: provider.id.clone(),
-        base_url: Some(axagent_providers::resolve_base_url_for_type(
+        base_url: Some(axagent_harness::resolve_base_url_for_type(
             &provider.api_host,
             &provider.provider_type,
         )),
@@ -348,7 +352,7 @@ pub async fn test_model(
         .map_err(|e| e.to_string())?;
     let decrypted = axagent_core::crypto::decrypt_key(&key_row.key_encrypted, &state.master_key)
         .map_err(|e| e.to_string())?;
-    let registry = axagent_providers::registry::ProviderRegistry::create_default();
+
     let provider_type_str = match provider.provider_type {
         ProviderType::OpenAI => "openai",
         ProviderType::OpenAIResponses => "openai_responses",
@@ -358,7 +362,9 @@ pub async fn test_model(
         ProviderType::Hermes => "hermes",
         ProviderType::Ollama => "ollama",
     };
-    let adapter = registry
+    let adapter = state
+        .harness
+        .provider_registry()
         .get(provider_type_str)
         .ok_or_else(|| format!("No adapter for provider type: {}", provider_type_str))?;
     let global_settings = axagent_core::repo::settings::get_settings(&state.sea_db)
@@ -366,11 +372,11 @@ pub async fn test_model(
         .unwrap_or_default();
     let resolved_proxy =
         axagent_core::types::ProviderProxyConfig::resolve(&provider.proxy_config, &global_settings);
-    let ctx = axagent_providers::ProviderRequestContext {
+    let ctx = axagent_harness::ProviderRequestContext {
         api_key: decrypted,
         key_id: key_row.id.clone(),
         provider_id: provider.id.clone(),
-        base_url: Some(axagent_providers::resolve_base_url_for_type(
+        base_url: Some(axagent_harness::resolve_base_url_for_type(
             &provider.api_host,
             &provider.provider_type,
         )),

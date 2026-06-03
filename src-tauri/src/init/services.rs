@@ -415,7 +415,9 @@ fn start_rl_reward_computation(state: &AppState) {
     let db = state.sea_db.clone();
     let master_key = state.master_key;
     tauri::async_runtime::spawn(async move {
-        if let Some(bridge) = axagent_agent::build_llm_bridge_from_db(&db, &master_key).await {
+        if let Some(bridge) =
+            axagent_runtime::llm_bridge::build_llm_bridge_from_db(&db, &master_key).await
+        {
             {
                 let mut rl = rl_engine.write().await;
                 rl.set_llm_judge(Box::new(bridge.clone()));
@@ -634,7 +636,9 @@ fn start_skill_evolution(state: &AppState) {
     let db = state.sea_db.clone();
     let master_key = state.master_key;
     tauri::async_runtime::spawn(async move {
-        if let Some(bridge) = axagent_agent::build_llm_bridge_from_db(&db, &master_key).await {
+        if let Some(bridge) =
+            axagent_runtime::llm_bridge::build_llm_bridge_from_db(&db, &master_key).await
+        {
             let mut engine = skill_evolution_engine.lock().await;
             engine.set_llm_provider(std::sync::Arc::new(bridge));
             drop(engine);
@@ -905,7 +909,9 @@ fn start_auto_tool_observation(state: &AppState) {
     let db = state.sea_db.clone();
     let master_key = state.master_key;
     tauri::async_runtime::spawn(async move {
-        if let Some(bridge) = axagent_agent::build_llm_bridge_from_db(&db, &master_key).await {
+        if let Some(bridge) =
+            axagent_runtime::llm_bridge::build_llm_bridge_from_db(&db, &master_key).await
+        {
             let mut atc = auto_tool_creator.lock().await;
             atc.set_llm_provider(Box::new(bridge));
             drop(atc);
@@ -979,7 +985,9 @@ fn start_text_grad_analysis(state: &AppState) {
     let db = state.sea_db.clone();
     let master_key = state.master_key;
     tauri::async_runtime::spawn(async move {
-        if let Some(bridge) = axagent_agent::build_llm_bridge_from_db(&db, &master_key).await {
+        if let Some(bridge) =
+            axagent_runtime::llm_bridge::build_llm_bridge_from_db(&db, &master_key).await
+        {
             let mut engine = text_grad_engine.lock().await;
             engine.set_provider(bridge);
             drop(engine);

@@ -2,7 +2,7 @@ use crate::reasoning_state::ActionType;
 use crate::thought_chain::ThoughtStep;
 use async_trait::async_trait;
 use axagent_core::types::{ChatContent, ChatMessage, ChatRequest};
-use axagent_providers::{ProviderAdapter, ProviderRequestContext};
+use axagent_harness::{ProviderAdapter, ProviderRequestContext};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;

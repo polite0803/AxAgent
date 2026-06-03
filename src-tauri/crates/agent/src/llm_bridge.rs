@@ -1,5 +1,5 @@
 use axagent_core::types::{ChatContent, ChatMessage, ChatRequest};
-use axagent_providers::{ProviderAdapter, ProviderRequestContext};
+use axagent_harness::{ProviderAdapter, ProviderRequestContext};
 #[cfg(test)]
 use axagent_trajectory::ProcedureStep;
 use axagent_trajectory::{
@@ -425,91 +425,6 @@ impl PrmLlmProvider for ProviderLlmBridge {
             }
         })
     }
-}
-
-pub async fn build_llm_bridge_from_db(
-    db: &sea_orm::DatabaseConnection,
-    master_key: &[u8; 32],
-) -> Option<ProviderLlmBridge> {
-    build_llm_bridge_from_db_with(db, master_key, None, None).await
-}
-
-pub async fn build_llm_bridge_from_db_with(
-    db: &sea_orm::DatabaseConnection,
-    master_key: &[u8; 32],
-    preferred_provider_id: Option<&str>,
-    preferred_model_id: Option<&str>,
-) -> Option<ProviderLlmBridge> {
-    use axagent_core::repo::provider;
-    use axagent_providers::resolve_base_url_for_type;
-
-    let providers = provider::list_providers(db).await.ok()?;
-
-    let prov = if let Some(pid) = preferred_provider_id {
-        providers
-            .into_iter()
-            .find(|p| p.id == pid && p.enabled && p.keys.iter().any(|k| k.enabled))?
-    } else {
-        providers
-            .into_iter()
-            .find(|p| p.enabled && p.keys.iter().any(|k| k.enabled))?
-    };
-
-    let key = prov.keys.iter().find(|k| k.enabled)?;
-    let api_key = axagent_core::crypto::decrypt_key(&key.key_encrypted, master_key).ok()?;
-
-    let adapter: Arc<dyn ProviderAdapter> = match prov.provider_type {
-        axagent_core::types::ProviderType::OpenAI => {
-            Arc::new(axagent_providers::openai::OpenAIAdapter::new())
-        },
-        axagent_core::types::ProviderType::OpenAIResponses => {
-            Arc::new(axagent_providers::openai_responses::OpenAIResponsesAdapter::new())
-        },
-        axagent_core::types::ProviderType::Anthropic => {
-            Arc::new(axagent_providers::anthropic::AnthropicAdapter::new())
-        },
-        axagent_core::types::ProviderType::Gemini => {
-            Arc::new(axagent_providers::gemini::GeminiAdapter::new())
-        },
-        axagent_core::types::ProviderType::OpenClaw => {
-            Arc::new(axagent_providers::openclaw::OpenClawAdapter::new())
-        },
-        axagent_core::types::ProviderType::Hermes => {
-            Arc::new(axagent_providers::hermes::HermesAdapter::new())
-        },
-        axagent_core::types::ProviderType::Ollama => {
-            Arc::new(axagent_providers::ollama::OllamaAdapter::new())
-        },
-    };
-
-    let base_url = Some(resolve_base_url_for_type(&prov.api_host, &prov.provider_type));
-    let ctx = ProviderRequestContext {
-        api_key,
-        key_id: key.id.clone(),
-        provider_id: prov.id.clone(),
-        base_url,
-        api_path: prov.api_path.clone(),
-        proxy_config: prov.proxy_config,
-        custom_headers: prov
-            .custom_headers
-            .as_ref()
-            .and_then(|s| serde_json::from_str(s).ok()),
-        api_mode: None,
-        conversation: None,
-        previous_response_id: None,
-        store_response: None,
-    };
-
-    let model = if let Some(mid) = preferred_model_id {
-        mid.to_string()
-    } else {
-        prov.models
-            .first()
-            .map(|m| m.model_id.clone())
-            .unwrap_or_else(|| "default".to_string())
-    };
-
-    Some(ProviderLlmBridge::new(adapter, ctx, model))
 }
 
 #[cfg(test)]

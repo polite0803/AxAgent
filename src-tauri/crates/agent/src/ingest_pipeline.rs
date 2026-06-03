@@ -8,7 +8,7 @@ use tokio::fs;
 use axagent_core::entity::wiki_sources;
 use axagent_core::types::{ChatContent, ChatMessage, ChatRequest};
 use axagent_core::utils::gen_id;
-use axagent_providers::{ProviderAdapter, ProviderRequestContext};
+use axagent_harness::{ProviderAdapter, ProviderRequestContext};
 use sea_orm::{ActiveModelTrait, DatabaseConnection, EntityTrait, Set};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]

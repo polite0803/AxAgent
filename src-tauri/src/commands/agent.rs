@@ -3,9 +3,7 @@ use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::agent as agent_err;
 use crate::commands::error_code::agent_status as agent_status_err;
 use crate::commands::error_code::steer as steer_err;
-use axagent_agent::{
-    AgentExecutionProgressSnapshot, AxAgentApiClient, McpServerConfig, ToolRegistry,
-};
+use axagent_agent::{AgentExecutionProgressSnapshot, AxAgentApiClient};
 use axagent_core::cloud_workspace::CloudWorkspace;
 use axagent_core::repo::{conversation, message, provider, search_provider};
 use axagent_core::types::{
@@ -13,8 +11,9 @@ use axagent_core::types::{
     ProviderProxyConfig,
 };
 use axagent_core::workspace_uri::WorkspaceUri;
-use axagent_providers::{ProviderAdapter, ProviderRequestContext, resolve_base_url_for_type};
+use axagent_harness::{ProviderAdapter, ProviderRequestContext, resolve_base_url_for_type};
 use axagent_tools::context_keys;
+use axagent_tools::registry::{McpServerConfig, UnifiedToolRegistry};
 use base64::Engine;
 use sea_orm::{DatabaseConnection, EntityTrait};
 use serde::{Deserialize, Serialize};
@@ -835,7 +834,7 @@ pub async fn agent_query(
 
     // Load MCP tools for enabled servers (same logic as Q&A mode)
     let mcp_ids = request.enabled_mcp_server_ids.clone().unwrap_or_default();
-    let mut tool_registry = ToolRegistry::new();
+    let mut tool_registry = UnifiedToolRegistry::new();
     let mut chat_tools: Vec<ChatTool> = Vec::new();
 
     // Load enabled state for the unified tool registry
@@ -1012,7 +1011,7 @@ pub async fn agent_query(
 
     // Configure tool execution recorder and context
     let mut tool_registry = tool_registry
-        .with_recorder(axagent_agent::ToolExecutionRecorder::new(Arc::new(
+        .with_recorder(axagent_tools::ToolExecutionRecorder::new(Arc::new(
             app_state.sea_db.clone(),
         )))
         .with_execution_context(conversation_id.clone(), None);

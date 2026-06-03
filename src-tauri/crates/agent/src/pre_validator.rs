@@ -1,4 +1,4 @@
-use axagent_tools::registry::ToolRegistry;
+use axagent_harness::ToolRegistry;
 use std::sync::Arc;
 
 use crate::action_executor::ActionError;
@@ -26,11 +26,11 @@ pub enum PreValidationError {
 /// 2. 参数是否符合工具的 JSON Schema
 /// 3. 破坏性操作是否需要确认
 pub struct PreExecutionValidator {
-    tool_registry: Arc<ToolRegistry>,
+    tool_registry: Arc<dyn ToolRegistry>,
 }
 
 impl PreExecutionValidator {
-    pub fn new(tool_registry: Arc<ToolRegistry>) -> Self {
+    pub fn new(tool_registry: Arc<dyn ToolRegistry>) -> Self {
         Self { tool_registry }
     }
 
@@ -103,10 +103,11 @@ impl From<PreValidationError> for ActionError {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use axagent_tools::registry::ToolRegistry as ConcreteToolRegistry;
 
     #[test]
     fn test_missing_tool_name() {
-        let registry = Arc::new(ToolRegistry::new());
+        let registry = Arc::new(ConcreteToolRegistry::new()) as Arc<dyn ToolRegistry>;
         let validator = PreExecutionValidator::new(registry);
 
         let action = Action {
@@ -123,7 +124,7 @@ mod tests {
 
     #[test]
     fn test_tool_not_found() {
-        let registry = Arc::new(ToolRegistry::new());
+        let registry = Arc::new(ConcreteToolRegistry::new()) as Arc<dyn ToolRegistry>;
         let validator = PreExecutionValidator::new(registry);
 
         let action = Action {
@@ -140,7 +141,7 @@ mod tests {
 
     #[test]
     fn test_non_tool_actions_pass_through() {
-        let registry = Arc::new(ToolRegistry::new());
+        let registry = Arc::new(ConcreteToolRegistry::new()) as Arc<dyn ToolRegistry>;
         let validator = PreExecutionValidator::new(registry);
 
         let action = Action::llm_call("test prompt");

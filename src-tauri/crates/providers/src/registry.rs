@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::sync::Arc;
 
 use crate::ProviderAdapter;
 use crate::anthropic::AnthropicAdapter;
@@ -10,7 +11,7 @@ use crate::openai_responses::OpenAIResponsesAdapter;
 use crate::openclaw::OpenClawAdapter;
 
 pub struct ProviderRegistry {
-    adapters: HashMap<String, Box<dyn ProviderAdapter>>,
+    adapters: HashMap<String, Arc<dyn ProviderAdapter>>,
 }
 
 impl ProviderRegistry {
@@ -20,24 +21,26 @@ impl ProviderRegistry {
         }
     }
 
-    pub fn register(&mut self, provider_type: &str, adapter: Box<dyn ProviderAdapter>) {
+    /// Register a provider adapter (takes `Arc` to support the harness `ProviderRegistry` trait)
+    pub fn register(&mut self, provider_type: &str, adapter: Arc<dyn ProviderAdapter>) {
         self.adapters.insert(provider_type.to_string(), adapter);
     }
 
-    pub fn get(&self, provider_type: &str) -> Option<&dyn ProviderAdapter> {
-        self.adapters.get(provider_type).map(|a| a.as_ref())
+    /// Get a registered adapter by provider type name
+    pub fn get(&self, provider_type: &str) -> Option<&Arc<dyn ProviderAdapter>> {
+        self.adapters.get(provider_type)
     }
 
     /// Creates a registry pre-populated with OpenAI, Anthropic, Gemini, OpenClaw, and Hermes adapters.
     pub fn create_default() -> Self {
         let mut registry = Self::new();
-        registry.register("openai", Box::new(OpenAIAdapter::new()));
-        registry.register("openai_responses", Box::new(OpenAIResponsesAdapter::new()));
-        registry.register("anthropic", Box::new(AnthropicAdapter::new()));
-        registry.register("gemini", Box::new(GeminiAdapter::new()));
-        registry.register("openclaw", Box::new(OpenClawAdapter::new()));
-        registry.register("hermes", Box::new(HermesAdapter::new()));
-        registry.register("ollama", Box::new(OllamaAdapter::new()));
+        registry.register("openai", Arc::new(OpenAIAdapter::new()));
+        registry.register("openai_responses", Arc::new(OpenAIResponsesAdapter::new()));
+        registry.register("anthropic", Arc::new(AnthropicAdapter::new()));
+        registry.register("gemini", Arc::new(GeminiAdapter::new()));
+        registry.register("openclaw", Arc::new(OpenClawAdapter::new()));
+        registry.register("hermes", Arc::new(HermesAdapter::new()));
+        registry.register("ollama", Arc::new(OllamaAdapter::new()));
         registry
     }
 }
@@ -45,5 +48,15 @@ impl ProviderRegistry {
 impl Default for ProviderRegistry {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+// ============================================================
+// Harness ProviderRegistry trait 实现
+// ============================================================
+
+impl axagent_harness::registry::ProviderRegistry for ProviderRegistry {
+    fn get(&self, provider_type: &str) -> Option<Arc<dyn ProviderAdapter>> {
+        self.adapters.get(provider_type).cloned()
     }
 }

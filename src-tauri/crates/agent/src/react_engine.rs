@@ -6,7 +6,7 @@ use crate::thought_chain::{Action, ChainSummary, ThoughtChain, ThoughtEvent, Tho
 use axagent_core::token_budget::{TokenBudgetDecision, TokenBudgetTracker};
 use axagent_core::token_counter::estimate_tokens;
 use axagent_core::types::{ChatContent, ChatMessage, ChatRequest};
-use axagent_providers::{ProviderAdapter, ProviderRequestContext};
+use axagent_harness::{ProviderAdapter, ProviderRequestContext};
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::broadcast;

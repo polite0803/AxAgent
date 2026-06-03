@@ -536,17 +536,17 @@ pub async fn auto_extract_incremental_memories(
         store_response: None,
     };
 
-    let registry = ProviderRegistry::create_default();
     let registry_key = provider_type_to_registry_key(&provider.provider_type);
-    let adapter = match registry.get(registry_key) {
-        Some(a) => a,
-        None => return Err(format!("Unsupported provider type: {}", registry_key)),
-    };
+    let adapter = state
+        .harness
+        .provider_registry()
+        .get(registry_key)
+        .ok_or_else(|| format!("Unsupported provider type: {}", registry_key))?;
 
     let result = crate::memory_extract::extract_incremental_memories(
         &new_messages,
         &conversation_id,
-        adapter,
+        adapter.as_ref(),
         &ctx,
         &model_id,
         PromptLang::ZhCN,
@@ -1063,16 +1063,16 @@ pub async fn extract_conversation_entities(
         store_response: None,
     };
 
-    let registry = ProviderRegistry::create_default();
     let registry_key = provider_type_to_registry_key(&provider.provider_type);
-    let adapter = match registry.get(registry_key) {
-        Some(a) => a,
-        None => return Err(format!("Unsupported provider type: {}", registry_key)),
-    };
+    let adapter = state
+        .harness
+        .provider_registry()
+        .get(registry_key)
+        .ok_or_else(|| format!("Unsupported provider type: {}", registry_key))?;
 
     let result = crate::memory_extract::extract_entities_from_messages(
         &messages,
-        adapter,
+        adapter.as_ref(),
         &ctx,
         &model_id,
         PromptLang::ZhCN,
@@ -1356,16 +1356,16 @@ pub async fn consolidate_memory_cluster(
         store_response: None,
     };
 
-    let registry = ProviderRegistry::create_default();
     let registry_key = provider_type_to_registry_key(&provider.provider_type);
-    let adapter = match registry.get(registry_key) {
-        Some(a) => a,
-        None => return Err(format!("Unsupported provider type: {}", registry_key)),
-    };
+    let adapter = state
+        .harness
+        .provider_registry()
+        .get(registry_key)
+        .ok_or_else(|| format!("Unsupported provider type: {}", registry_key))?;
 
     let consolidated = crate::memory_extract::consolidate_memories(
         &contents,
-        adapter,
+        adapter.as_ref(),
         &ctx,
         &model_id,
         PromptLang::ZhCN,
@@ -1505,17 +1505,17 @@ pub async fn extract_conversation_memories(
         store_response: None,
     };
 
-    let registry = ProviderRegistry::create_default();
     let registry_key = provider_type_to_registry_key(&provider.provider_type);
-    let adapter = match registry.get(registry_key) {
-        Some(a) => a,
-        None => return Err(format!("Unsupported provider type: {}", registry_key)),
-    };
+    let adapter = state
+        .harness
+        .provider_registry()
+        .get(registry_key)
+        .ok_or_else(|| format!("Unsupported provider type: {}", registry_key))?;
 
     let result = crate::memory_extract::extract_memories_from_messages(
         &messages,
         &conversation_id,
-        adapter,
+        adapter.as_ref(),
         &ctx,
         &model_id,
         PromptLang::ZhCN,

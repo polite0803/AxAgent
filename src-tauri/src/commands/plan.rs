@@ -232,8 +232,8 @@ async fn generate_plan_via_llm(
     user_message_id: &str,
 ) -> Result<Plan, String> {
     use axagent_core::repo::provider::{self, get_active_key};
+    use axagent_harness::resolve_base_url_for_type;
     use axagent_providers::registry::ProviderRegistry;
-    use axagent_providers::resolve_base_url_for_type;
 
     let db = &state.sea_db;
 
@@ -244,13 +244,17 @@ async fn generate_plan_via_llm(
 
     // Resolve provider adapter
     let registry_key = format!("{:?}", provider_config.provider_type).to_lowercase();
-    let registry = ProviderRegistry::create_default();
-    let adapter = registry.get(&registry_key).ok_or_else(|| {
-        ErrorResponse::err_with_detail(
-            provider_err::ADAPTER_NOT_FOUND,
-            format!("Provider adapter not found for: {}", registry_key),
-        )
-    })?;
+
+    let adapter = state
+        .harness
+        .provider_registry()
+        .get(&registry_key)
+        .ok_or_else(|| {
+            ErrorResponse::err_with_detail(
+                provider_err::ADAPTER_NOT_FOUND,
+                format!("Provider adapter not found for: {}", registry_key),
+            )
+        })?;
 
     // Get active key and decrypt
     let key_row = get_active_key(db, provider_id)
@@ -263,7 +267,7 @@ async fn generate_plan_via_llm(
     // Parse proxy config from the provider
     let proxy_config = provider_config.proxy_config.clone();
 
-    let ctx = axagent_providers::ProviderRequestContext {
+    let ctx = axagent_harness::ProviderRequestContext {
         api_key,
         key_id: key_row.id.clone(),
         provider_id: provider_id.to_string(),
@@ -460,8 +464,8 @@ fn find_matching_brace(s: &str) -> Result<usize, String> {
 /// Holds the reusable parts of agent context (adapter + credentials).
 /// The `api_client` and `tool_registry` are rebuilt per-step.
 struct AgentContext {
-    adapter: Arc<dyn axagent_providers::ProviderAdapter>,
-    ctx: axagent_providers::ProviderRequestContext,
+    adapter: Arc<dyn axagent_harness::ProviderAdapter>,
+    ctx: axagent_harness::ProviderRequestContext,
     provider_id: String,
     model_id: String,
     enabled_mcp_server_ids: Vec<String>,
@@ -495,7 +499,7 @@ async fn build_agent_context(
         .await
         .unwrap_or_default();
 
-    let ctx = axagent_providers::ProviderRequestContext {
+    let ctx = axagent_harness::ProviderRequestContext {
         api_key,
         key_id: key.id.clone(),
         provider_id: prov.id.clone(),
@@ -553,8 +557,8 @@ async fn build_agent_context(
 async fn build_step_tools(
     agent_ctx: &AgentContext,
     db: &sea_orm::DatabaseConnection,
-) -> (axagent_agent::AxAgentApiClient, axagent_agent::ToolRegistry) {
-    let mut tool_registry = axagent_agent::ToolRegistry::new();
+) -> (axagent_agent::AxAgentApiClient, axagent_tools::registry::UnifiedToolRegistry) {
+    let mut tool_registry = axagent_tools::registry::UnifiedToolRegistry::new();
     let mut chat_tools: Vec<ChatTool> = Vec::new();
 
     for server_id in &agent_ctx.enabled_mcp_server_ids {
@@ -587,7 +591,7 @@ async fn build_step_tools(
                     td.name,
                     td.description,
                     parameters,
-                    axagent_agent::McpServerConfig {
+                    axagent_tools::registry::McpServerConfig {
                         server_id: server.id.clone(),
                         server_name: server.name.clone(),
                         transport: server.transport.clone(),
@@ -618,7 +622,7 @@ async fn build_step_tools(
     }
 
     tool_registry = tool_registry
-        .with_recorder(axagent_agent::ToolExecutionRecorder::new(Arc::new(db.clone())));
+        .with_recorder(axagent_tools::ToolExecutionRecorder::new(Arc::new(db.clone())));
 
     let api_client = if chat_tools.is_empty() {
         axagent_agent::AxAgentApiClient::new(agent_ctx.adapter.clone(), agent_ctx.ctx.clone())

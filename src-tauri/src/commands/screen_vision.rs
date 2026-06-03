@@ -1,6 +1,6 @@
 use axagent_core::screen_vision::UIElementInfo;
 use axagent_core::types::ProviderType;
-use axagent_providers::{ProviderAdapter, ProviderRequestContext};
+use axagent_harness::{ProviderAdapter, ProviderRequestContext};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tauri::State;

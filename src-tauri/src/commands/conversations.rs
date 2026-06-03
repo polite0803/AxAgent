@@ -1637,6 +1637,7 @@ pub async fn generate_ai_title(
     settings: &AppSettings,
     master_key: &[u8; 32],
 ) -> Result<String, String> {
+    let harness = axagent_runtime::harness::RuntimeHarness::new(db.clone(), *master_key);
     let TitleFallbackModel {
         provider: fallback_provider,
         ctx: fallback_ctx,
@@ -1673,6 +1674,7 @@ pub async fn generate_ai_title(
                     conversation_messages,
                     settings,
                     umc,
+                    &harness,
                 )
                 .await;
             },
@@ -1689,6 +1691,7 @@ pub async fn generate_ai_title(
                     conversation_messages,
                     settings,
                     umc,
+                    &harness,
                 )
                 .await;
             },
@@ -1705,6 +1708,7 @@ pub async fn generate_ai_title(
                     conversation_messages,
                     settings,
                     umc,
+                    &harness,
                 )
                 .await;
             },
@@ -1727,7 +1731,8 @@ pub async fn generate_ai_title(
             store_response: None,
         };
         let umc = lookup_umc(pid, mid, db).await;
-        generate_ai_title_with(&provider, &ctx, mid, conversation_messages, settings, umc).await
+        generate_ai_title_with(&provider, &ctx, mid, conversation_messages, settings, umc, &harness)
+            .await
     } else {
         // No title summary provider configured, use conversation model
         let umc = lookup_umc(&fallback_ctx.provider_id, fallback_model_id, db).await;
@@ -1738,6 +1743,7 @@ pub async fn generate_ai_title(
             conversation_messages,
             settings,
             umc,
+            &harness,
         )
         .await
     }
@@ -1750,6 +1756,7 @@ async fn generate_ai_title_with(
     conversation_messages: &[(MessageRole, String)],
     settings: &AppSettings,
     use_max_completion_tokens: Option<bool>,
+    harness: &axagent_runtime::harness::RuntimeHarness,
 ) -> Result<String, String> {
     let prompt = settings
         .title_summary_prompt
@@ -1796,16 +1803,15 @@ async fn generate_ai_title_with(
         store: None,
     };
 
-    let registry = ProviderRegistry::create_default();
     let registry_key = provider_type_to_registry_key(&provider.provider_type);
-    let adapter = match registry.get(registry_key) {
-        Some(a) => a,
-        None => {
+    let adapter = harness
+        .provider_registry()
+        .get(registry_key)
+        .ok_or_else(|| {
             let err = format!("Adapter not found for provider type: {}", registry_key);
             tracing::error!("[title-gen] {}", err);
-            return Err(err);
-        },
-    };
+            err
+        })?;
 
     let response = adapter.chat(ctx, request).await.map_err(|e| {
         let err = format!("Chat API error: {}", e);
@@ -2218,6 +2224,7 @@ fn apply_rag_token_budget(context_parts: &[String], budget: usize) -> Vec<String
 fn spawn_stream_task(
     app: tauri::AppHandle,
     db: sea_orm::DatabaseConnection,
+    harness: axagent_runtime::harness::RuntimeHarness,
     params: StreamTaskParams,
 ) {
     let StreamTaskParams {
@@ -2248,6 +2255,7 @@ fn spawn_stream_task(
         skip_placeholder_create,
     } = params;
     let model_id = conversation.model_id.clone();
+    let harness = harness.clone();
 
     tokio::spawn(async move {
         // 确保 panic 后 cancel_flag 一定被清理
@@ -2271,10 +2279,8 @@ fn spawn_stream_task(
 
         let future = std::panic::AssertUnwindSafe(async {
             // --- 原始 stream task 主体 ---
-            let registry = ProviderRegistry::create_default();
             let registry_key = provider_type_to_registry_key(&provider.provider_type);
-            let adapter: &dyn axagent_providers::ProviderAdapter = match registry.get(registry_key)
-            {
+            let adapter = match harness.provider_registry().get(registry_key) {
                 Some(a) => a,
                 None => {
                     let _ = app.emit(
@@ -3194,6 +3200,7 @@ pub async fn send_message(
                 model_id: &conversation.model_id,
                 use_max_completion_tokens,
             },
+            &state.harness,
         )
         .await
         {
@@ -3398,6 +3405,7 @@ pub async fn send_message(
     spawn_stream_task(
         app,
         state.sea_db.clone(),
+        state.harness.clone(),
         StreamTaskParams {
             conversation_id: conversation_id.clone(),
             assistant_message_id,
@@ -3809,6 +3817,7 @@ pub async fn regenerate_message(
     spawn_stream_task(
         app,
         state.sea_db.clone(),
+        state.harness.clone(),
         StreamTaskParams {
             conversation_id,
             assistant_message_id,
@@ -4243,6 +4252,7 @@ pub async fn regenerate_with_model(
     spawn_stream_task(
         app,
         state.sea_db.clone(),
+        state.harness.clone(),
         StreamTaskParams {
             conversation_id,
             assistant_message_id,
@@ -4330,6 +4340,7 @@ async fn do_compress(
     db: &sea_orm::DatabaseConnection,
     ctx: CompressContext<'_>,
     provider_info: CompressProviderInfo<'_>,
+    harness: &axagent_runtime::harness::RuntimeHarness,
 ) -> Result<String, String> {
     let CompressContext {
         conversation_id,
@@ -4459,9 +4470,9 @@ async fn do_compress(
         store_response: None,
     };
 
-    let registry = ProviderRegistry::create_default();
     let registry_key = provider_type_to_registry_key(&comp_provider.provider_type);
-    let adapter = registry
+    let adapter = harness
+        .provider_registry()
         .get(registry_key)
         .ok_or_else(|| "Provider adapter not found".to_string())?;
 
@@ -4602,6 +4613,7 @@ pub async fn compress_context(
             model_id: &conversation.model_id,
             use_max_completion_tokens,
         },
+        &state.harness,
     )
     .await?;
 
@@ -5037,6 +5049,7 @@ mod tests_conversation {
             work_engine: Arc::new(axagent_runtime::work_engine::WorkEngine::new(
                 Arc::new(db.clone()),
                 [0; 32],
+                None,
             )),
             skill_decomposer: Arc::new(tokio::sync::RwLock::new(
                 axagent_trajectory::SkillDecomposer::new(),
@@ -5046,6 +5059,7 @@ mod tests_conversation {
             webhook_subscription_manager: None,
             semantic_cache,
             prompt_cache: Arc::new(PromptCache::new()),
+            harness: axagent_runtime::harness::RuntimeHarness::new(db.clone(), [0; 32]),
             tot_sessions: Arc::new(tokio::sync::Mutex::new(HashMap::new())),
             planner_sessions: Arc::new(tokio::sync::Mutex::new(HashMap::new())),
             #[cfg(not(target_os = "android"))]

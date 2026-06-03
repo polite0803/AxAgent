@@ -1,0 +1,92 @@
+warning: unused variable: `registry`
+    --> crates\gateway\src\handlers.rs:2199:5
+     |
+2199 |     registry: &dyn axagent_harness::registry::ProviderRegistry,
+     |     ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_registry`
+     |
+     = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: `axagent-gateway` (lib) generated 1 warning (run `cargo fix --lib -p axagent-gateway` to apply 1 suggestion)
+    Checking axagent v2.5.0 (D:\OneManager\AxAgent\src-tauri)
+error[E0308]: mismatched types
+   --> src\commands\memory.rs:544:9
+    |
+541 |     let result = crate::memory_extract::extract_incremental_memories(
+    |                  --------------------------------------------------- arguments to this function are incorrect
+...
+544 |         adapter,
+    |         ^^^^^^^ expected `&dyn ProviderAdapter`, found `Arc<dyn ProviderAdapter>`
+    |
+    = note: expected reference `&dyn ProviderAdapter`
+                  found struct `Arc<dyn ProviderAdapter>`
+note: function defined here
+   --> src\memory_extract.rs:412:14
+    |
+412 | pub async fn extract_incremental_memories(
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+415 |     adapter: &dyn ProviderAdapter,
+    |     -----------------------------
+
+error[E0308]: mismatched types
+    --> src\commands\memory.rs:1067:9
+     |
+1065 |     let result = crate::memory_extract::extract_entities_from_messages(
+     |                  ----------------------------------------------------- arguments to this function are incorrect
+1066 |         &messages,
+1067 |         adapter,
+     |         ^^^^^^^ expected `&dyn ProviderAdapter`, found `Arc<dyn ProviderAdapter>`
+     |
+     = note: expected reference `&dyn ProviderAdapter`
+                   found struct `Arc<dyn ProviderAdapter>`
+note: function defined here
+    --> src\memory_extract.rs:311:14
+     |
+ 311 | pub async fn extract_entities_from_messages(
+     |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ 312 |     messages: &[Message],
+ 313 |     adapter: &dyn ProviderAdapter,
+     |     -----------------------------
+
+error[E0308]: mismatched types
+    --> src\commands\memory.rs:1357:9
+     |
+1355 |     let consolidated = crate::memory_extract::consolidate_memories(
+     |                        ------------------------------------------- arguments to this function are incorrect
+1356 |         &contents,
+1357 |         adapter,
+     |         ^^^^^^^ expected `&dyn ProviderAdapter`, found `Arc<dyn ProviderAdapter>`
+     |
+     = note: expected reference `&dyn ProviderAdapter`
+                   found struct `Arc<dyn ProviderAdapter>`
+note: function defined here
+    --> src\memory_extract.rs:191:14
+     |
+ 191 | pub async fn consolidate_memories(
+     |              ^^^^^^^^^^^^^^^^^^^^
+ 192 |     contents: &[String],
+ 193 |     adapter: &dyn ProviderAdapter,
+     |     -----------------------------
+
+error[E0308]: mismatched types
+    --> src\commands\memory.rs:1504:9
+     |
+1501 |     let result = crate::memory_extract::extract_memories_from_messages(
+     |                  ----------------------------------------------------- arguments to this function are incorrect
+...
+1504 |         adapter,
+     |         ^^^^^^^ expected `&dyn ProviderAdapter`, found `Arc<dyn ProviderAdapter>`
+     |
+     = note: expected reference `&dyn ProviderAdapter`
+                   found struct `Arc<dyn ProviderAdapter>`
+note: function defined here
+    --> src\memory_extract.rs:77:14
+     |
+  77 | pub async fn extract_memories_from_messages(
+     |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+  80 |     adapter: &dyn ProviderAdapter,
+     |     -----------------------------
+
+For more information about this error, try `rustc --explain E0308`.
+error: could not compile `axagent` (lib) due to 4 previous errors

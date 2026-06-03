@@ -6,9 +6,8 @@ publish = false
 
 [dependencies]
 axagent-core = { path = "../core" }
-axagent-providers = { path = "../providers" }
+axagent-harness = { path = "../harness" }
 axagent-runtime-core = { path = "../runtime-core" }
-axagent-tools = { path = "../tools" }
 axagent-prompt-guard = { path = "../prompt-guard" }
 axagent-trajectory = { path = "../trajectory" }
 sea-orm = { workspace = true }
@@ -44,6 +43,7 @@ backon = "1.6"
 tempfile = "3"
 tauri = { version = "2", features = ["test"] }
 axagent-migration = { path = "../migration" }
+axagent-tools = { path = "../tools" }
 
 [[test]]
 name = "agent_integration_tests"

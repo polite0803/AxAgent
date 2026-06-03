@@ -4,9 +4,12 @@ version.workspace = true
 edition.workspace = true
 publish = false
 
+[dev-dependencies]
+axagent-providers = { path = "../providers" }
+
 [dependencies]
 axagent-core = { path = "../core" }
-axagent-providers = { path = "../providers" }
+axagent-harness = { path = "../harness" }
 serde = { workspace = true }
 serde_json = { workspace = true }
 tokio = { workspace = true }

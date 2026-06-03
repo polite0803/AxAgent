@@ -38,6 +38,7 @@ infer = "0.16"
 sha2 = { workspace = true }
 lazy_static = { workspace = true }
 axagent-core = { path = "../core" }
+axagent-harness = { path = "../harness" }
 axagent-runtime-core = { path = "../runtime-core" }
 axagent-plugins = { path = "../plugins" }
 axagent-migration = { path = "../migration" }

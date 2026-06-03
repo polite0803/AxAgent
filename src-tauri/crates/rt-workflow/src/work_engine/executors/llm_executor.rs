@@ -13,11 +13,25 @@ use std::sync::Arc;
 pub struct LlmExecutor {
     db: Arc<DatabaseConnection>,
     master_key: [u8; 32],
+    /// 由 Harness 注入的 ProviderRegistry（运行时按 provider 类型查找 adapter）
+    provider_registry: Option<Arc<dyn axagent_harness::registry::ProviderRegistry>>,
 }
 
 impl LlmExecutor {
     pub fn new(db: Arc<DatabaseConnection>, master_key: [u8; 32]) -> Self {
-        Self { db, master_key }
+        Self {
+            db,
+            master_key,
+            provider_registry: None,
+        }
+    }
+
+    pub fn with_provider_registry(
+        mut self,
+        registry: Arc<dyn axagent_harness::registry::ProviderRegistry>,
+    ) -> Self {
+        self.provider_registry = Some(registry);
+        self
     }
 }
 impl Default for LlmExecutor {
@@ -25,6 +39,7 @@ impl Default for LlmExecutor {
         Self {
             db: Arc::new(DatabaseConnection::default()),
             master_key: [0u8; 32],
+            provider_registry: None,
         }
     }
 }
@@ -70,35 +85,29 @@ impl NodeExecutorTrait for LlmExecutor {
             None,
         )
         .await
-        .map_err(|e| NodeError::exec_failed(error_code::PROVIDER_QUERY_FAILED, e))?;
+        .map_err(|e| NodeError::exec_failed(error_code::UNSUPPORTED_PROVIDER, e))?;
         let api_key = axagent_core::crypto::decrypt_key(&key.key_encrypted, &self.master_key)
             .map_err(|e| {
                 NodeError::exec_failed(
-                    error_code::API_KEY_DECRYPT_FAILED,
+                    error_code::UNSUPPORTED_PROVIDER,
                     format!("API key decryption failed: {e}"),
                 )
             })?;
 
-        // 创建 adapter
-        use axagent_core::types::ProviderType;
-        use axagent_providers::{ProviderAdapter, resolve_base_url_for_type};
-        let adapter: Arc<dyn ProviderAdapter> = match prov.provider_type {
-            ProviderType::OpenAI => Arc::new(axagent_providers::openai::OpenAIAdapter::new()),
-            ProviderType::OpenAIResponses => {
-                Arc::new(axagent_providers::openai_responses::OpenAIResponsesAdapter::new())
-            },
-            ProviderType::Anthropic => {
-                Arc::new(axagent_providers::anthropic::AnthropicAdapter::new())
-            },
-            ProviderType::Gemini => Arc::new(axagent_providers::gemini::GeminiAdapter::new()),
-            ProviderType::Ollama => Arc::new(axagent_providers::ollama::OllamaAdapter::new()),
-            _ => {
-                return Err(NodeError::exec_failed(
-                    error_code::API_KEY_DECRYPT_FAILED,
-                    format!("Unsupported provider: {:?}", prov.provider_type),
-                ));
-            },
-        };
+        // 创建 adapter（从注入的 ProviderRegistry 中按 provider 类型查找）
+        use axagent_harness::{ProviderAdapter, resolve_base_url_for_type};
+        let registry_key =
+            crate::work_engine::executors::provider_type_to_registry_key(&prov.provider_type);
+        let adapter: Arc<dyn ProviderAdapter> = self
+            .provider_registry
+            .as_ref()
+            .and_then(|reg| reg.get(registry_key))
+            .ok_or_else(|| {
+                NodeError::exec_failed(
+                    error_code::UNSUPPORTED_PROVIDER,
+                    format!("LlmExecutor 未找到 ProviderAdapter for type: {}", registry_key),
+                )
+            })?;
 
         // 构建 messages
         let mut messages: Vec<ChatMessage> = llm_node
@@ -135,7 +144,7 @@ impl NodeExecutorTrait for LlmExecutor {
         }
 
         let base_url = resolve_base_url_for_type(&prov.api_host, &prov.provider_type);
-        let req_ctx = axagent_providers::ProviderRequestContext {
+        let req_ctx = axagent_harness::ProviderRequestContext {
             provider_id: prov.id.clone(),
             api_key,
             key_id: key.id.clone(),
@@ -181,7 +190,7 @@ impl NodeExecutorTrait for LlmExecutor {
 
         let response = adapter.chat(&req_ctx, request).await.map_err(|e| {
             NodeError::exec_failed(
-                error_code::API_KEY_DECRYPT_FAILED,
+                error_code::UNSUPPORTED_PROVIDER,
                 format!("LLM call failed: {e}"),
             )
         })?;

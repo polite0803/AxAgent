@@ -1,5 +1,6 @@
 use crate::task::{TaskGraph, TaskNode, TaskType};
 use async_trait::async_trait;
+use axagent_harness::ToolRegistry;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
@@ -30,7 +31,7 @@ pub trait DecomposerLlmClient: Send + Sync {
 pub struct TaskDecomposer {
     max_depth: usize,
     llm_client: Option<Arc<dyn DecomposerLlmClient>>,
-    tool_registry: Option<Arc<axagent_tools::registry::ToolRegistry>>,
+    tool_registry: Option<Arc<dyn ToolRegistry>>,
 }
 
 impl TaskDecomposer {
@@ -52,10 +53,7 @@ impl TaskDecomposer {
         self
     }
 
-    pub fn with_tool_registry(
-        mut self,
-        registry: Arc<axagent_tools::registry::ToolRegistry>,
-    ) -> Self {
+    pub fn with_tool_registry(mut self, registry: Arc<dyn ToolRegistry>) -> Self {
         self.tool_registry = Some(registry);
         self
     }
@@ -74,7 +72,7 @@ impl TaskDecomposer {
             .tool_registry
             .as_ref()
             .map(|reg| {
-                let tools = reg.list_all();
+                let tools = reg.list();
                 let names: Vec<String> = tools.iter().map(|t| t.name.clone()).collect();
                 format!("\n\n可用工具（仅这些工具名有效）: {}", names.join(", "))
             })
@@ -274,7 +272,7 @@ impl TaskDecomposer {
 
         // 工具可行性预检
         if let Some(ref registry) = self.tool_registry {
-            let errors = self.validate_task_feasibility(&result.tasks, registry);
+            let errors = self.validate_task_feasibility(&result.tasks, &**registry);
             if !errors.is_empty() {
                 let msg = errors
                     .iter()
@@ -306,7 +304,7 @@ impl TaskDecomposer {
     fn validate_task_feasibility(
         &self,
         tasks: &[TaskNode],
-        registry: &axagent_tools::registry::ToolRegistry,
+        registry: &dyn ToolRegistry,
     ) -> Vec<(String, String)> {
         let mut errors = Vec::new();
 
@@ -316,7 +314,7 @@ impl TaskDecomposer {
             }
 
             let desc_lower = task.description.to_lowercase();
-            let tools = registry.list_all();
+            let tools = registry.list();
             let tool_names: Vec<&str> = tools.iter().map(|t| t.name.as_str()).collect();
 
             // 从描述中尝试提取工具名

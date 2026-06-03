@@ -1,0 +1,369 @@
+$ findstr /sn "pub struct ProviderRequestContext" src-tauri\crates\core\src\*.rs
+[exit 0]
+src-tauri\crates\core\src\ast_index.rs:1://! AST-based structured code index for semantic code search.
+src-tauri\crates\core\src\ast_index.rs:14:pub struct FunctionDef {
+src-tauri\crates\core\src\ast_index.rs:15:    pub id: String,
+src-tauri\crates\core\src\ast_index.rs:16:    pub file_path: String,
+src-tauri\crates\core\src\ast_index.rs:17:    pub name: String,
+src-tauri\crates\core\src\ast_index.rs:18:    pub signature: String,
+src-tauri\crates\core\src\ast_index.rs:19:    pub line_start: usize,
+src-tauri\crates\core\src\ast_index.rs:20:    pub line_end: usize,
+src-tauri\crates\core\src\ast_index.rs:21:    pub visibility: String,
+src-tauri\crates\core\src\ast_index.rs:22:    pub language: String,
+src-tauri\crates\core\src\ast_index.rs:26:pub struct ClassDef {
+src-tauri\crates\core\src\ast_index.rs:27:    pub id: String,
+src-tauri\crates\core\src\ast_index.rs:28:    pub file_path: String,
+src-tauri\crates\core\src\ast_index.rs:29:    pub name: String,
+src-tauri\crates\core\src\ast_index.rs:30:    pub line_start: usize,
+src-tauri\crates\core\src\ast_index.rs:31:    pub line_end: usize,
+src-tauri\crates\core\src\ast_index.rs:32:    pub language: String,
+src-tauri\crates\core\src\ast_index.rs:33:    pub parent_class: Option<String>,
+src-tauri\crates\core\src\ast_index.rs:37:pub struct InterfaceDef {
+src-tauri\crates\core\src\ast_index.rs:38:    pub id: String,
+src-tauri\crates\core\src\ast_index.rs:39:    pub file_path: String,
+src-tauri\crates\core\src\ast_index.rs:40:    pub name: String,
+src-tauri\crates\core\src\ast_index.rs:41:    pub line_start: usize,
+src-tauri\crates\core\src\ast_index.rs:42:    pub language: String,
+src-tauri\crates\core\src\ast_index.rs:46:pub struct VariableDecl {
+src-tauri\crates\core\src\ast_index.rs:47:    pub id: String,
+src-tauri\crates\core\src\ast_index.rs:48:    pub file_path: String,
+src-tauri\crates\core\src\ast_index.rs:49:    pub name: String,
+src-tauri\crates\core\src\ast_index.rs:50:    pub type_annotation: Option<String>,
+src-tauri\crates\core\src\ast_index.rs:51:    pub line: usize,
+src-tauri\crates\core\src\ast_index.rs:52:    pub language: String,
+src-tauri\crates\core\src\ast_index.rs:56:pub struct CallEdge {
+src-tauri\crates\core\src\ast_index.rs:57:    pub caller_file: String,
+src-tauri\crates\core\src\ast_index.rs:58:    pub caller_function: String,
+src-tauri\crates\core\src\ast_index.rs:59:    pub callee_name: String,
+src-tauri\crates\core\src\ast_index.rs:60:    pub line: usize,
+src-tauri\crates\core\src\ast_index.rs:63:pub struct AstIndex {
+src-tauri\crates\core\src\ast_index.rs:64:    pub(crate) conn: Connection,
+src-tauri\crates\core\src\ast_index.rs:69:        f.debug_struct("AstIndex").finish_non_exhaustive()
+src-tauri\crates\core\src\ast_index.rs:74:    pub fn new(conn: Connection) -> Result<Self, String> {
+src-tauri\crates\core\src\ast_index.rs:137:    pub fn index_file(&self, file_path: &str, content: &str) -> Result<usize, String> {
+src-tauri\crates\core\src\ast_index.rs:204:    pub fn remove_file(&self, file_path: &str) -> Result<(), String> {
+src-tauri\crates\core\src\ast_index.rs:219:    pub fn search_functions(&self, query: &str, limit: usize) -> Result<Vec<FunctionDef>, String> {
+src-tauri\crates\core\src\ast_index.rs:247:    pub fn search_classes(&self, query: &str, limit: usize) -> Result<Vec<ClassDef>, String> {
+src-tauri\crates\core\src\ast_index.rs:274:    pub fn find_callers(&self, function_name: &str) -> Result<Vec<CallEdge>, String> {
+src-tauri\crates\core\src\ast_index.rs:300:    pub fn search_all(&self, query: &str, limit: usize) -> Result<Vec<String>, String> {
+src-tauri\crates\core\src\ast_index.rs:329:    pub fn total_definitions(&self) -> Result<usize, String> {
+src-tauri\crates\core\src\ast_index.rs:410:            "rust" => extract_rust_struct_enum_name(trimmed),
+src-tauri\crates\core\src\ast_index.rs:500:    if line.starts_with("pub ") || line.starts_with("pub(") {
+src-tauri\crates\core\src\ast_index.rs:501:        "public"
+src-tauri\crates\core\src\ast_index.rs:502:    } else if line.starts_with("pub(crate) ") {
+src-tauri\crates\core\src\ast_index.rs:512:        && !line.starts_with("pub fn ")
+src-tauri\crates\core\src\ast_index.rs:513:        && !line.starts_with("pub(crate) fn ")
+src-tauri\crates\core\src\ast_index.rs:515:        && !line.starts_with("pub async fn ")
+src-tauri\crates\core\src\ast_index.rs:528:fn extract_rust_struct_enum_name(line: &str) -> Option<String> {
+src-tauri\crates\core\src\ast_index.rs:530:    if line.starts_with("struct ") || line.starts_with("pub struct ") {
+src-tauri\crates\core\src\ast_index.rs:531:        let after = line.split("struct ").nth(1)?;
+src-tauri\crates\core\src\ast_index.rs:538:    } else if line.starts_with("enum ") || line.starts_with("pub enum ") {
+src-tauri\crates\core\src\ast_index.rs:546:    } else if line.starts_with("trait ") || line.starts_with("pub trait ") {
+src-tauri\crates\core\src\ast_index.rs:786:            | "pub"
+src-tauri\crates\core\src\ast_index.rs:804:            | "struct"
+src-tauri\crates\core\src\ast_index.rs:812:            | "public"
+src-tauri\crates\core\src\ast_index.rs:861:        let code = "fn main() {\n    println!(\"hello\");\n}\n\npub fn add(a: i32, b: i32) -> i32 {\n    a + b\n}\n";
+src-tauri\crates\core\src\ast_index.rs:867:        assert!(results[0].signature.contains("pub fn add"));
+src-tauri\crates\core\src\ast_index.rs:871:    fn test_extract_rust_structs() {
+src-tauri\crates\core\src\ast_index.rs:872:        let code = "pub struct User {\n    name: String,\n}\n\nenum Color { Red, Blue }\n";
+src-tauri\crates\core\src\ast_index.rs:885:        let code = "fn calculate() -> u32 { 42 }\nfn render() {}\nstruct Widget {}\n";
+src-tauri\crates\core\src\billing.rs:5:pub struct DeepSeekBalance {
+src-tauri\crates\core\src\billing.rs:7:    pub is_available: bool,
+src-tauri\crates\core\src\billing.rs:9:    pub balance_infos: Vec<BalanceInfo>,
+src-tauri\crates\core\src\billing.rs:13:pub struct BalanceInfo {
+src-tauri\crates\core\src\billing.rs:15:    pub currency: String,
+src-tauri\crates\core\src\billing.rs:17:    pub total_balance: String,
+src-tauri\crates\core\src\billing.rs:19:    pub granted_balance: String,
+src-tauri\crates\core\src\billing.rs:21:    pub topped_up_balance: String,
+src-tauri\crates\core\src\billing.rs:25:pub async fn fetch_deepseek_balance(api_key: &str) -> Result<DeepSeekBalance, String> {
+src-tauri\crates\core\src\browser_automation.rs:21:struct BrowserRequest {
+src-tauri\crates\core\src\browser_automation.rs:29:struct BrowserResponse {
+src-tauri\crates\core\src\browser_automation.rs:36:pub struct PlaywrightClient {
+src-tauri\crates\core\src\browser_automation.rs:45:    pub async fn launch() -> Result<Self> {
+src-tauri\crates\core\src\browser_automation.rs:114:    pub async fn navigate(&mut self, url: &str) -> Result<NavigateResult> {
+src-tauri\crates\core\src\browser_automation.rs:121:    pub async fn screenshot(&mut self, full_page: bool) -> Result<ScreenshotResult> {
+src-tauri\crates\core\src\browser_automation.rs:128:    pub async fn click(&mut self, selector: &str) -> Result<()> {
+src-tauri\crates\core\src\browser_automation.rs:134:    pub async fn fill(&mut self, selector: &str, value: &str) -> Result<()> {
+src-tauri\crates\core\src\browser_automation.rs:140:    pub async fn type_text(&mut self, selector: &str, text: &str) -> Result<()> {
+src-tauri\crates\core\src\browser_automation.rs:146:    pub async fn extract_text(&mut self, selector: &str) -> Result<String> {
+src-tauri\crates\core\src\browser_automation.rs:156:    pub async fn extract_all(&mut self, selector: &str) -> Result<Vec<ExtractedElement>> {
+src-tauri\crates\core\src\browser_automation.rs:169:    pub async fn get_content(&mut self) -> Result<String> {
+src-tauri\crates\core\src\browser_automation.rs:177:    pub async fn wait_for(&mut self, selector: &str, timeout: Option<u32>) -> Result<()> {
+src-tauri\crates\core\src\browser_automation.rs:189:    pub async fn select_option(&mut self, selector: &str, value: &str) -> Result<()> {
+src-tauri\crates\core\src\browser_automation.rs:195:    pub async fn close(&mut self) -> Result<()> {
+src-tauri\crates\core\src\browser_automation.rs:212:pub fn shared_browser_pool() -> &'static Arc<Mutex<Option<PlaywrightClient>>> {
+src-tauri\crates\core\src\browser_automation.rs:218:pub struct NavigateResult {
+src-tauri\crates\core\src\browser_automation.rs:219:    pub url: String,
+src-tauri\crates\core\src\browser_automation.rs:220:    pub title: String,
+src-tauri\crates\core\src\browser_automation.rs:225:pub struct ScreenshotResult {
+src-tauri\crates\core\src\browser_automation.rs:226:    pub image_base64: String,
+src-tauri\crates\core\src\browser_automation.rs:231:pub struct ExtractedElement {
+src-tauri\crates\core\src\browser_automation.rs:232:    pub tag: String,
+src-tauri\crates\core\src\browser_automation.rs:233:    pub text: Option<String>,
+src-tauri\crates\core\src\browser_automation.rs:234:    pub href: Option<String>,
+src-tauri\crates\core\src\browser_automation.rs:236:    pub input_type: Option<String>,
+src-tauri\crates\core\src\browser_automation.rs:237:    pub placeholder: Option<String>,
+src-tauri\crates\core\src\browser_automation.rs:241:pub struct PlaywrightClient;
+src-tauri\crates\core\src\browser_automation.rs:245:    pub async fn launch() -> anyhow::Result<Self> {
+src-tauri\crates\core\src\browser_automation.rs:251:pub fn shared_browser_pool() -> Option<&'static PlaywrightClient> {
+src-tauri\crates\core\src\cache.rs:39:pub struct EmbeddingCache {
+src-tauri\crates\core\src\cache.rs:50:    pub fn new(max_entries: usize, _ttl: Duration) -> Self {
+src-tauri\crates\core\src\cache.rs:65:    pub fn get(&self, key: &str) -> Option<Vec<f32>> {
+src-tauri\crates\core\src\cache.rs:75:    pub fn insert(&self, key: String, value: Vec<f32>) {
+src-tauri\crates\core\src\cache.rs:84:    pub fn remove(&self, key: &str) {
+src-tauri\crates\core\src\cache.rs:89:    pub fn clear(&self) {
+src-tauri\crates\core\src\cache.rs:96:    pub fn import_entries(&self, entries: Vec<(String, Vec<f32>)>) {
+src-tauri\crates\core\src\cache.rs:127:pub struct TextHashCache {
+src-tauri\crates\core\src\cache.rs:138:    pub fn new(max_entries: usize, _ttl: Duration) -> Self {
+src-tauri\crates\core\src\cache.rs:153:    pub fn get(&self, key: &str) -> Option<String> {
+src-tauri\crates\core\src\cache.rs:163:    pub fn insert(&self, key: String, value: String) {
+src-tauri\crates\core\src\cache.rs:168:    pub fn clear(&self) {
+src-tauri\crates\core\src\cache.rs:173:    pub fn import_entries(&self, entries: Vec<(String, String)>) {
+src-tauri\crates\core\src\cache_persister.rs:12:pub struct CachePersister {
+src-tauri\crates\core\src\cache_persister.rs:19:    pub fn new() -> Self {
+src-tauri\crates\core\src\cache_persister.rs:26:    pub fn with_dir(dir: PathBuf) -> Self {
+src-tauri\crates\core\src\cache_persister.rs:43:    pub fn load(&self) -> Option<CacheSnapshot> {
+src-tauri\crates\core\src\cache_persister.rs:89:    pub fn save(&self, snapshot: &CacheSnapshot) -> Result<(), String> {
+src-tauri\crates\core\src\cache_persister.rs:109:    pub fn clear(&self) {
+src-tauri\crates\core\src\cache_persister.rs:122:    pub fn snapshot_exists(&self) -> bool {
+src-tauri\crates\core\src\cache_persister.rs:179:        // Just verify construction doesn't panic — actual path may not exist
+src-tauri\crates\core\src\cache_snapshot.rs:17:pub struct CacheSnapshot {
+src-tauri\crates\core\src\cache_snapshot.rs:19:    pub version: u32,
+src-tauri\crates\core\src\cache_snapshot.rs:21:    pub created_at: String,
+src-tauri\crates\core\src\cache_snapshot.rs:23:    pub embedding_cache: HashMap<String, Vec<f32>>,
+src-tauri\crates\core\src\cache_snapshot.rs:25:    pub text_hash_cache: HashMap<String, String>,
+src-tauri\crates\core\src\cache_snapshot.rs:27:    pub vector_search_cache: Vec<CacheEntrySnapshot>,
+src-tauri\crates\core\src\cloud_storage.rs:28:pub struct StorageObject {
+src-tauri\crates\core\src\cloud_storage.rs:29:    pub key: String,
+src-tauri\crates\core\src\cloud_storage.rs:30:    pub data: Vec<u8>,
+src-tauri\crates\core\src\cloud_storage.rs:31:    pub content_type: String,
+src-tauri\crates\core\src\cloud_storage.rs:32:    pub etag: Option<String>,
+src-tauri\crates\core\src\cloud_storage.rs:33:    pub last_modified: Option<String>,
+src-tauri\crates\core\src\cloud_storage.rs:34:    pub size: i64,
+src-tauri\crates\core\src\cloud_storage.rs:38:pub struct StorageObjectMeta {
+src-tauri\crates\core\src\cloud_storage.rs:39:    pub key: String,
+src-tauri\crates\core\src\cloud_storage.rs:40:    pub etag: Option<String>,
+src-tauri\crates\core\src\cloud_storage.rs:41:    pub last_modified: Option<String>,
+src-tauri\crates\core\src\cloud_storage.rs:42:    pub size: i64,
+src-tauri\crates\core\src\cloud_storage.rs:46:pub struct ListResult {
+src-tauri\crates\core\src\cloud_storage.rs:47:    pub objects: Vec<StorageObjectMeta>,
+src-tauri\crates\core\src\cloud_storage.rs:48:    pub is_truncated: bool,
+src-tauri\crates\core\src\cloud_storage.rs:49:    pub continuation_token: Option<String>,
+src-tauri\crates\core\src\cloud_storage.rs:55:pub trait StorageBackend: Send + Sync {
+src-tauri\crates\core\src\cloud_storage.rs:84:pub enum S3ProviderPreset {
+src-tauri\crates\core\src\cloud_storage.rs:103:    pub fn endpoint_template(&self) -> &'static str {
+src-tauri\crates\core\src\cloud_storage.rs:122:    pub fn display_name(&self) -> &'static str {
+src-tauri\crates\core\src\cloud_storage.rs:141:    pub fn default_region(&self) -> &'static str {
+src-tauri\crates\core\src\cloud_storage.rs:160:    pub fn default_use_path_style(&self) -> bool {
+src-tauri\crates\core\src\cloud_storage.rs:164:    pub fn all_presets() -> Vec<Self> {
+src-tauri\crates\core\src\cloud_storage.rs:182:    pub fn is_chinese_provider(&self) -> bool {
+src-tauri\crates\core\src\cloud_storage.rs:196:    pub fn category(&self) -> &'static str {
+src-tauri\crates\core\src\cloud_storage.rs:214:pub struct S3Config {
+src-tauri\crates\core\src\cloud_storage.rs:215:    pub endpoint: String,
+src-tauri\crates\core\src\cloud_storage.rs:216:    pub region: String,
+src-tauri\crates\core\src\cloud_storage.rs:217:    pub bucket: String,
+src-tauri\crates\core\src\cloud_storage.rs:218:    pub access_key_id: String,
+src-tauri\crates\core\src\cloud_storage.rs:219:    pub secret_access_key: String,
+src-tauri\crates\core\src\cloud_storage.rs:221:    pub root: String,
+src-tauri\crates\core\src\cloud_storage.rs:223:    pub use_path_style: bool,
+src-tauri\crates\core\src\cloud_storage.rs:226:pub struct S3Backend {
+src-tauri\crates\core\src\cloud_storage.rs:232:    pub fn new(config: S3Config) -> Result<Self> {
+src-tauri\crates\core\src\cloud_storage.rs:835:pub use crate::webdav::WebDavConfig;
+src-tauri\crates\core\src\cloud_storage.rs:837:pub struct WebDavBackend {
+src-tauri\crates\core\src\cloud_storage.rs:842:    pub fn new(config: WebDavConfig) -> Result<Self> {
+src-tauri\crates\core\src\cloud_storage.rs:923:pub struct CloudStorageConfig {
+src-tauri\crates\core\src\cloud_storage.rs:925:    pub provider_preset: S3ProviderPreset,
+src-tauri\crates\core\src\cloud_storage.rs:927:    pub backend_type: BackendType,
+src-tauri\crates\core\src\cloud_storage.rs:929:    pub sync_enabled: bool,
+src-tauri\crates\core\src\cloud_storage.rs:931:    pub sync_mode: SyncMode,
+src-tauri\crates\core\src\cloud_storage.rs:933:    pub profile_name: String,
+src-tauri\crates\core\src\cloud_storage.rs:935:    pub webdav: Option<WebDavConfig>,
+src-tauri\crates\core\src\cloud_storage.rs:937:    pub s3: Option<S3Config>,
+src-tauri\crates\core\src\cloud_storage.rs:956:pub enum BackendType {
+src-tauri\crates\core\src\cloud_storage.rs:964:pub enum SyncMode {
+src-tauri\crates\core\src\cloud_storage.rs:973:    pub fn create_backend(&self) -> Result<Arc<dyn StorageBackend>> {
+src-tauri\crates\core\src\cloud_storage.rs:1000:pub struct SyncManifest {
+src-tauri\crates\core\src\cloud_storage.rs:1002:    pub version: u32,
+src-tauri\crates\core\src\cloud_storage.rs:1004:    pub last_sync_at: Option<String>,
+src-tauri\crates\core\src\cloud_storage.rs:1006:    pub sync_version: u64,
+src-tauri\crates\core\src\cloud_storage.rs:1008:    pub device_id: String,
+src-tauri\crates\core\src\cloud_storage.rs:1010:    pub files: Vec<SyncFileEntry>,
+src-tauri\crates\core\src\cloud_storage.rs:1012:    pub db_checksum: Option<String>,
+src-tauri\crates\core\src\cloud_storage.rs:1014:    pub db_synced_at: Option<String>,
+src-tauri\crates\core\src\cloud_storage.rs:1019:pub struct SyncFileEntry {
+src-tauri\crates\core\src\cloud_storage.rs:1021:    pub key: String,
+src-tauri\crates\core\src\cloud_storage.rs:1023:    pub etag: Option<String>,
+src-tauri\crates\core\src\cloud_storage.rs:1025:    pub size: i64,
+src-tauri\crates\core\src\cloud_storage.rs:1027:    pub local_modified_at: u64,
+src-tauri\crates\core\src\cloud_storage.rs:1031:    pub fn new(device_id: String) -> Self {
+src-tauri\crates\core\src\cloud_storage.rs:1044:    pub fn get_etag(&self, key: &str) -> Option<&str> {
+src-tauri\crates\core\src\cloud_storage.rs:1052:    pub fn upsert_file(&mut self, key: String, etag: Option<String>, size: i64) {
+src-tauri\crates\core\src\cloud_storage.rs:1067:    pub fn remove_file(&mut self, key: &str) {
+src-tauri\crates\core\src\cloud_storage.rs:1075:pub struct SyncEngine {
+src-tauri\crates\core\src\cloud_storage.rs:1076:    pub backend: Arc<dyn StorageBackend>,
+src-tauri\crates\core\src\cloud_storage.rs:1080:    pub fn new(backend: Arc<dyn StorageBackend>, _profile_name: &str, _device_id: &str) -> Self {
+src-tauri\crates\core\src\cloud_workspace.rs:30:struct LocalFileInfo {
+src-tauri\crates\core\src\cloud_workspace.rs:40:struct RemoteFileInfo {
+src-tauri\crates\core\src\cloud_workspace.rs:55:pub struct CloudWorkspace {
+src-tauri\crates\core\src\cloud_workspace.rs:64:pub struct CloudDirEntry {
+src-tauri\crates\core\src\cloud_workspace.rs:65:    pub name: String,
+src-tauri\crates\core\src\cloud_workspace.rs:66:    pub path: String,
+src-tauri\crates\core\src\cloud_workspace.rs:67:    pub is_dir: bool,
+src-tauri\crates\core\src\cloud_workspace.rs:68:    pub size: i64,
+src-tauri\crates\core\src\cloud_workspace.rs:69:    pub etag: Option<String>,
+src-tauri\crates\core\src\cloud_workspace.rs:70:    pub conflict: bool,
+src-tauri\crates\core\src\cloud_workspace.rs:74:pub struct SyncResult {
+src-tauri\crates\core\src\cloud_workspace.rs:75:    pub downloaded: usize,
+src-tauri\crates\core\src\cloud_workspace.rs:76:    pub uploaded: usize,
+src-tauri\crates\core\src\cloud_workspace.rs:77:    pub local_deletions_synced: usize,
+src-tauri\crates\core\src\cloud_workspace.rs:78:    pub remote_deletions_synced: usize,
+src-tauri\crates\core\src\cloud_workspace.rs:79:    pub conflicts_detected: usize,
+src-tauri\crates\core\src\cloud_workspace.rs:80:    pub conflicts_resolved: usize,
+src-tauri\crates\core\src\cloud_workspace.rs:81:    pub pending_conflicts: usize,
+src-tauri\crates\core\src\cloud_workspace.rs:82:    pub cached_dir: PathBuf,
+src-tauri\crates\core\src\cloud_workspace.rs:83:    pub report: SyncReport,
+src-tauri\crates\core\src\cloud_workspace.rs:87:    pub fn new(
+src-tauri\crates\core\src\cloud_workspace.rs:140:    pub async fn sync(&mut self) -> Result<SyncResult, AxAgentError> {
+src-tauri\crates\core\src\cloud_workspace.rs:849:    pub async fn list_directory(&self, dir_path: &str) -> Result<Vec<CloudDirEntry>, AxAgentError> {
+src-tauri\crates\core\src\cloud_workspace.rs:902:    pub fn cache_dir(&self) -> &Path {
+src-tauri\crates\core\src\cloud_workspace.rs:907:    pub fn sync_state(&self) -> &SyncState {
+src-tauri\crates\core\src\cloud_workspace.rs:912:    pub fn set_conflict_strategy(&mut self, strategy: ConflictStrategy) {
+src-tauri\crates\core\src\cloud_workspace.rs:917:    pub fn resolve_conflict(
+src-tauri\crates\core\src\cloud_workspace.rs:933:    pub fn get_pending_conflicts(&self) -> Vec<(&str, &ConflictInfo)> {
+src-tauri\crates\core\src\cloud_workspace.rs:953:struct SyncDiff {
+src-tauri\crates\core\src\cloud_workspace.rs:962:struct ConflictEntry {
+src-tauri\crates\core\src\command_validator.rs:2:pub struct CommandValidationResult {
+src-tauri\crates\core\src\command_validator.rs:3:    pub is_safe: bool,
+src-tauri\crates\core\src\command_validator.rs:4:    pub sanitized: Option<String>,
+src-tauri\crates\core\src\command_validator.rs:5:    pub warnings: Vec<String>,
+src-tauri\crates\core\src\command_validator.rs:6:    pub dangerous_patterns: Vec<String>,
+src-tauri\crates\core\src\command_validator.rs:9:pub struct CommandValidator {
+src-tauri\crates\core\src\command_validator.rs:21:    pub fn new() -> Self {
+src-tauri\crates\core\src\command_validator.rs:36:    pub fn with_custom_patterns(mut self, patterns: Vec<String>) -> Self {
+src-tauri\crates\core\src\command_validator.rs:41:    pub fn with_max_length(mut self, max: usize) -> Self {
+src-tauri\crates\core\src\command_validator.rs:46:    pub fn validate(&self, command: &str) -> CommandValidationResult {
+src-tauri\crates\core\src\command_validator.rs:114:    pub fn sanitize(&self, command: &str) -> String {
+src-tauri\crates\core\src\command_validator.rs:126:pub fn get_platform_blocked_commands() -> Vec<&'static str> {
+src-tauri\crates\core\src\command_validator.rs:154:pub fn is_command_allowed(command: &str) -> bool {
+src-tauri\crates\core\src\command_validator.rs:166:pub fn validate_command(command: &str) -> Result<(), String> {
+src-tauri\crates\core\src\computer_control.rs:12:pub async fn screen_capture(
+src-tauri\crates\core\src\computer_control.rs:27:pub async fn find_ui_elements(
+src-tauri\crates\core\src\computer_control.rs:34:pub async fn mouse_click(x: f64, y: f64, button: Option<String>) -> Result<()> {
+src-tauri\crates\core\src\computer_control.rs:44:pub async fn type_text(text: String, x: Option<f64>, y: Option<f64>) -> Result<()> {
+src-tauri\crates\core\src\computer_control.rs:49:pub async fn press_key(key: String, modifiers: Vec<String>) -> Result<()> {
+src-tauri\crates\core\src\computer_control.rs:64:pub async fn mouse_scroll(x: f64, y: f64, delta: i32) -> Result<()> {
+src-tauri\crates\core\src\computer_control.rs:69:pub async fn mouse_move(x: f64, y: f64) -> Result<()> {
+src-tauri\crates\core\src\computer_control.rs:74:pub async fn screen_capture(
+src-tauri\crates\core\src\computer_control.rs:83:pub async fn find_ui_elements(
+src-tauri\crates\core\src\computer_control.rs:90:pub async fn mouse_click(_x: f64, _y: f64, _button: Option<String>) -> anyhow::Result<()> {
+src-tauri\crates\core\src\computer_control.rs:95:pub async fn type_text(_text: String, _x: Option<f64>, _y: Option<f64>) -> anyhow::Result<()> {
+src-tauri\crates\core\src\computer_control.rs:100:pub async fn press_key(_key: String, _modifiers: Vec<String>) -> anyhow::Result<()> {
+src-tauri\crates\core\src\computer_control.rs:105:pub async fn mouse_scroll(_x: f64, _y: f64, _delta: i32) -> anyhow::Result<()> {
+src-tauri\crates\core\src\computer_control.rs:110:pub async fn mouse_move(_x: f64, _y: f64) -> anyhow::Result<()> {
+src-tauri\crates\core\src\constants.rs:7:pub mod role {
+src-tauri\crates\core\src\constants.rs:8:    pub const USER: &str = "user";
+src-tauri\crates\core\src\constants.rs:9:    pub const SYSTEM: &str = "system";
+src-tauri\crates\core\src\constants.rs:10:    pub const ASSISTANT: &str = "assistant";
+src-tauri\crates\core\src\constants.rs:11:    pub const TOOL: &str = "tool";
+src-tauri\crates\core\src\constants.rs:15:pub mod status {
+src-tauri\crates\core\src\constants.rs:16:    pub const RUNNING: &str = "running";
+src-tauri\crates\core\src\constants.rs:17:    pub const COMPLETED: &str = "completed";
+src-tauri\crates\core\src\constants.rs:18:    pub const FAILED: &str = "failed";
+src-tauri\crates\core\src\constants.rs:19:    pub const PENDING: &str = "pending";
+src-tauri\crates\core\src\constants.rs:20:    pub const PROCESSING: &str = "processing";
+src-tauri\crates\core\src\constants.rs:21:    pub const SKIPPED: &str = "skipped";
+src-tauri\crates\core\src\constants.rs:22:    pub const ARCHIVED: &str = "archived";
+src-tauri\crates\core\src\constants.rs:23:    pub const PAUSED: &str = "paused";
+src-tauri\crates\core\src\constants.rs:24:    pub const CANCELLED: &str = "cancelled";
+src-tauri\crates\core\src\constants.rs:25:    pub const PARTIAL: &str = "partial";
+src-tauri\crates\core\src\constants.rs:26:    pub const ERROR: &str = "error";
+src-tauri\crates\core\src\constants.rs:27:    pub const READY: &str = "ready";
+src-tauri\crates\core\src\constants.rs:28:    pub const INDEXING: &str = "indexing";
+src-tauri\crates\core\src\constants.rs:32:pub mod api_field {
+src-tauri\crates\core\src\constants.rs:33:    pub const CONVERSATION_ID: &str = "conversationId";
+src-tauri\crates\core\src\constants.rs:34:    pub const MESSAGE_ID: &str = "messageId";
+src-tauri\crates\core\src\constants.rs:35:    pub const STREAMING_MESSAGE_ID: &str = "streamingMessageId";
+src-tauri\crates\core\src\constants.rs:36:    pub const ASSISTANT_MESSAGE_ID: &str = "assistantMessageId";
+src-tauri\crates\core\src\constants.rs:37:    pub const TEMPLATE_ID: &str = "templateId";
+src-tauri\crates\core\src\constants.rs:38:    pub const TEMPLATE_NAME: &str = "templateName";
+src-tauri\crates\core\src\constants.rs:39:    pub const SERVER_ID: &str = "serverId";
+src-tauri\crates\core\src\constants.rs:40:    pub const PROVIDER_ID: &str = "providerId";
+src-tauri\crates\core\src\constants.rs:41:    pub const SKILL_ID: &str = "skill_id";
+src-tauri\crates\core\src\constants.rs:42:    pub const ERROR: &str = "error";
+src-tauri\crates\core\src\constants.rs:43:    pub const CODE: &str = "code";
+src-tauri\crates\core\src\constants.rs:44:    pub const MESSAGE: &str = "message";
+src-tauri\crates\core\src\constants.rs:45:    pub const TYPE: &str = "type";
+src-tauri\crates\core\src\constants.rs:46:    pub const NAME: &str = "name";
+src-tauri\crates\core\src\constants.rs:47:    pub const ID: &str = "id";
+src-tauri\crates\core\src\constants.rs:48:    pub const INPUT: &str = "input";
+src-tauri\crates\core\src\constants.rs:49:    pub const OUTPUT: &str = "output";
+src-tauri\crates\core\src\constants.rs:50:    pub const CONTENT: &str = "content";
+src-tauri\crates\core\src\constants.rs:51:    pub const TEXT: &str = "text";
+src-tauri\crates\core\src\constants.rs:52:    pub const REASON: &str = "reason";
+src-tauri\crates\core\src\constants.rs:53:    pub const SUCCESS: &str = "success";
+src-tauri\crates\core\src\constants.rs:54:    pub const HIT: &str = "hit";
+src-tauri\crates\core\src\constants.rs:55:    pub const RESULT: &str = "result";
+src-tauri\crates\core\src\constants.rs:56:    pub const SOURCE: &str = "source";
+src-tauri\crates\core\src\constants.rs:57:    pub const TARGET: &str = "target";
+src-tauri\crates\core\src\constants.rs:58:    pub const POSITION: &str = "position";
+src-tauri\crates\core\src\constants.rs:59:    pub const TOOL_USE: &str = "tool_use";
+src-tauri\crates\core\src\constants.rs:60:    pub const TOOL_RESULT: &str = "tool_result";
+src-tauri\crates\core\src\constants.rs:61:    pub const TOOL_USE_ID: &str = "tool_use_id";
+src-tauri\crates\core\src\constants.rs:62:    pub const TOOL_NAME: &str = "tool_name";
+src-tauri\crates\core\src\constants.rs:63:    pub const IS_ERROR: &str = "is_error";
+src-tauri\crates\core\src\constants.rs:64:    pub const IMAGE_URL: &str = "image_url";
+src-tauri\crates\core\src\constants.rs:65:    pub const FUNCTION: &str = "function";
+src-tauri\crates\core\src\constants.rs:66:    pub const WEB_SEARCH: &str = "web_search";
+src-tauri\crates\core\src\constants.rs:67:    pub const DOCUMENT_ID: &str = "documentId";
+src-tauri\crates\core\src\constants.rs:68:    pub const CONVERSATION_ID_SHORT: &str = "conversation_id";
+src-tauri\crates\core\src\constants.rs:69:    pub const MESSAGE_COUNT: &str = "message_count";
+src-tauri\crates\core\src\constants.rs:70:    pub const RESPONSE_STYLE: &str = "response_style";
+src-tauri\crates\core\src\constants.rs:71:    pub const CONTENT_ADJUSTMENTS: &str = "content_adjustments";
+src-tauri\crates\core\src\constants.rs:72:    pub const SKILL_SUGGESTIONS: &str = "skill_suggestions";
+src-tauri\crates\core\src\constants.rs:73:    pub const IMPROVED: &str = "improved";
+src-tauri\crates\core\src\constants.rs:74:    pub const IS_RUNNING: &str = "is_running";
+src-tauri\crates\core\src\constants.rs:75:    pub const STATS: &str = "stats";
+src-tauri\crates\core\src\constants.rs:76:    pub const ENABLED: &str = "enabled";
+src-tauri\crates\core\src\constants.rs:77:    pub const SKIPPED: &str = "skipped";
+src-tauri\crates\core\src\constants.rs:81:pub mod event_name {
+src-tauri\crates\core\src\constants.rs:82:    pub const AGENT_ERROR: &str = "agent-error";
+src-tauri\crates\core\src\constants.rs:83:    pub const AGENT_MESSAGE_ID: &str = "agent-message-id";
+src-tauri\crates\core\src\constants.rs:84:    pub const AGENT_MCP_LOAD_FAILED: &str = "agent-mcp-load-failed";
+src-tauri\crates\core\src\constants.rs:85:    pub const AGENT_STREAM: &str = "agent-stream";
+src-tauri\crates\core\src\constants.rs:86:    pub const AGENT_STATUS: &str = "agent-status";
+src-tauri\crates\core\src\constants.rs:87:    pub const CHAT_STREAM_ERROR: &str = "chat-stream-error";
+src-tauri\crates\core\src\constants.rs:88:    pub const SKILL_FILE_CHANGED: &str = "skill:file-changed";
+src-tauri\crates\core\src\constants.rs:92:pub mod transport {
+src-tauri\crates\core\src\constants.rs:93:    pub const STREAMABLE_HTTP: &str = "streamableHttp";
+src-tauri\crates\core\src\constants.rs:94:    pub const STDIO: &str = "stdio";
+src-tauri\crates\core\src\constants.rs:95:    pub const SSE: &str = "sse";
+src-tauri\crates\core\src\constants.rs:96:    pub const BUILTIN: &str = "builtin";
+src-tauri\crates\core\src\constants.rs:97:    pub const HTTP: &str = "http";
+src-tauri\crates\core\src\constants.rs:101:pub mod file_name {
+src-tauri\crates\core\src\constants.rs:102:    pub const SKILL_MD: &str = "SKILL.md";
+src-tauri\crates\core\src\constants.rs:103:    pub const MANIFEST_JSON: &str = "manifest.json";
+src-tauri\crates\core\src\constants.rs:104:    pub const SKILL_MANIFEST_JSON: &str = "skill-manifest.json";
+src-tauri\crates\core\src\constants.rs:105:    pub const FRONTEND_JSON: &str = "frontend.json";
+src-tauri\crates\core\src\constants.rs:106:    pub const MASTER_KEY: &str = "master.key";
+src-tauri\crates\core\src\constants.rs:107:    pub const AXAGENT_DB: &str = "axagent.db";
+src-tauri\crates\core\src\constants.rs:108:    pub const SETTINGS_JSON: &str = "settings.json";
+src-tauri\crates\core\src\constants.rs:109:    pub const INSTALLED_JSON: &str = "installed.json";
+src-tauri\crates\core\src\constants.rs:110:    pub const PLUGIN_JSON: &str = "plugin.json";
+src-tauri\crates\core\src\constants.rs:111:    pub const CLAUDE_PLUGIN_JSON: &str = ".claude-plugin/plugin.json";
+src-tauri\crates\core\src\constants.rs:112:    pub const WINDOW_STATE_JSON: &str = "window-state.json";
+src-tauri\crates\core\src\constants.rs:113:    pub const USER_MD: &str = "USER.md";
+src-tauri\crates\core\src\constants.rs:114:    pub const AGENTS_MD: &str = "AGENTS.md";
+src-tauri\crates\core\src\constants.rs:115:    pub const CLAUDE_MD: &str = "CLAUDE.md";
+src-tauri\crates\core\src\constants.rs:116:    pub const MEMORY_MD: &str = ".axagent/memory.md";
+src-tauri\crates\core\src\constants.rs:117:    pub const CRASH_LOG: &str = "axagent-crash.log";
+src-tauri\crates\core\src\constants.rs:118:    pub const STARTUP_PHASE: &str = ".startup_phase";
+src-tauri\crates\core\src\constants.rs:119:    pub const PRICING_TOML: &str = "pricing.toml";
+src-tauri\crates\core\src\constants.rs:120:    pub const SCREEN_PNG: &str = "screen.png";
+src-tauri\crates\core\src\constants.rs:124:pub mod dir_name {
+src-tauri\crates\core\src\constants.rs:125:    pub const AXAGENT: &str = ".axagent";
+src-tauri\crates\core\src\constants.rs:126:    pub const CLAUDE: &str = ".claude";
+src-tauri\crates\core\src\constants.rs:127:    pub const SKILLS: &str = "skills";
+src-tauri\crates\core\src\constants.rs:131:pub mod provider {
+src-tauri\crates\core\src\constants.rs:132:    pub const OP
+
+[… truncated 223998 chars …]

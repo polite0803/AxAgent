@@ -1897,7 +1897,6 @@ pub async fn skill_analyze_frontend(
     let decrypted_key =
         decrypt_key(&key_row.key_encrypted, &state.master_key).map_err(|e| e.to_string())?;
 
-    let registry = axagent_providers::registry::ProviderRegistry::create_default();
     let registry_key = match provider.provider_type {
         ProviderType::OpenAI => "openai",
         ProviderType::OpenAIResponses => "openai_responses",
@@ -1907,7 +1906,9 @@ pub async fn skill_analyze_frontend(
         ProviderType::Hermes => "hermes",
         ProviderType::Ollama => "ollama",
     };
-    let adapter = registry
+    let adapter = state
+        .harness
+        .provider_registry()
         .get(registry_key)
         .ok_or_else(|| format!("未找到 Provider adapter: {}", registry_key))?;
 
@@ -2005,8 +2006,8 @@ componentType 可选: "Sandbox" (沙箱页面) 或 "Markdown" (纯文档)。
     );
 
     let base_url =
-        axagent_providers::resolve_base_url_for_type(&provider.api_host, &provider.provider_type);
-    let ctx = axagent_providers::ProviderRequestContext {
+        axagent_harness::resolve_base_url_for_type(&provider.api_host, &provider.provider_type);
+    let ctx = axagent_harness::ProviderRequestContext {
         api_key: decrypted_key,
         key_id: key_row.id,
         provider_id: provider.id.clone(),

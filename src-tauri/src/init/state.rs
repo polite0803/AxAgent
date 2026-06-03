@@ -131,15 +131,14 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> AppState {
         Arc::new(TokioRwLock::new(ms))
     };
 
+    // ── 初始化 Harness 容器（统一管理核心基础设施注入） ──
+    let harness = axagent_runtime::harness::RuntimeHarness::new(sea_db.clone(), master_key);
+    let harness_registry = harness.provider_registry().clone();
+
     let platform_manager =
         Arc::new(axagent_runtime::message_gateway::platform_manager::PlatformManager::new());
 
-    let platform_bridge =
-        Arc::new(axagent_runtime::message_gateway::platform_bridge::PlatformBridge::new(
-            sea_db.clone(),
-            master_key,
-            platform_manager.clone(),
-        ));
+    let platform_bridge = harness.build_platform_bridge(platform_manager.clone());
 
     rt.block_on(platform_manager.set_message_callback(platform_bridge.clone()));
 
@@ -152,6 +151,7 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> AppState {
     let plugin_manager = std::sync::RwLock::new(PluginManager::new(plugin_config));
 
     AppState {
+        harness,
         sea_db: sea_db.clone(),
         master_key,
         gateway: Arc::new(Mutex::new(None)),
@@ -283,6 +283,7 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> AppState {
             let engine = Arc::new(axagent_runtime::work_engine::WorkEngine::new(
                 Arc::new(sea_db.clone()),
                 master_key,
+                Some(harness_registry.clone()),
             ));
             // Plan 模式：AgentExecutor 注入 engine 引用以创建/执行临时工作流
             rt.block_on(engine.inject_into_agent_executor(engine.clone()));

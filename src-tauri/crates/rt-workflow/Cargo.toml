@@ -18,9 +18,10 @@ sea-orm = { workspace = true }
 itertools = "0.14"
 futures = "0.3"
 axagent-core = { path = "../core" }
-axagent-providers = { path = "../providers" }
-axagent-agent = { path = "../agent" }
-axagent-tools = { path = "../tools" }
+axagent-harness = { path = "../harness" }
+axagent-tools = { path = "../tools" }   # rhai_engine
+axagent-agent = { path = "../agent" }   # hierarchical_planner
+
 jsonschema = "0.46"
 regex = "1"
 reqwest = { workspace = true }

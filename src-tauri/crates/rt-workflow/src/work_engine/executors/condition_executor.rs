@@ -4,6 +4,7 @@
 //!   1. 静态条件评估：按 conditions + logical_op 逐条比较
 //!   2. LLM 动态路由：调用 LLM 根据上下文判断走 true/false 分支
 
+use super::provider_type_to_registry_key;
 use async_trait::async_trait;
 use axagent_core::workflow_types::{CompareOperator, LogicalOperator, WorkflowNode};
 use sea_orm::DatabaseConnection;
@@ -15,11 +16,25 @@ use crate::work_engine::node_executor_trait::{NodeError, NodeExecutorTrait, Node
 pub struct ConditionExecutor {
     db: Arc<DatabaseConnection>,
     master_key: [u8; 32],
+    /// 由 Harness 注入的 ProviderRegistry（运行时按 provider 类型查找 adapter）
+    provider_registry: Option<Arc<dyn axagent_harness::registry::ProviderRegistry>>,
 }
 
 impl ConditionExecutor {
     pub fn new(db: Arc<DatabaseConnection>, master_key: [u8; 32]) -> Self {
-        Self { db, master_key }
+        Self {
+            db,
+            master_key,
+            provider_registry: None,
+        }
+    }
+
+    pub fn with_provider_registry(
+        mut self,
+        registry: Arc<dyn axagent_harness::registry::ProviderRegistry>,
+    ) -> Self {
+        self.provider_registry = Some(registry);
+        self
     }
 }
 
@@ -28,6 +43,7 @@ impl Default for ConditionExecutor {
         Self {
             db: Arc::new(DatabaseConnection::default()),
             master_key: [0u8; 32],
+            provider_registry: None,
         }
     }
 }
@@ -258,20 +274,22 @@ impl ConditionExecutor {
         prompt: &str,
     ) -> Result<bool, String> {
         use axagent_core::types::{ChatContent, ChatMessage, ChatRequest, ProviderType};
-        use axagent_providers::{ProviderAdapter, resolve_base_url_for_type};
+        use axagent_harness::{ProviderAdapter, resolve_base_url_for_type};
 
-        let adapter: Arc<dyn ProviderAdapter> = match prov.provider_type {
-            ProviderType::OpenAI => Arc::new(axagent_providers::openai::OpenAIAdapter::new()),
-            ProviderType::Anthropic => {
-                Arc::new(axagent_providers::anthropic::AnthropicAdapter::new())
-            },
-            ProviderType::Gemini => Arc::new(axagent_providers::gemini::GeminiAdapter::new()),
-            ProviderType::Ollama => Arc::new(axagent_providers::ollama::OllamaAdapter::new()),
-            _ => return Err(format!("不支持的 provider 类型: {:?}", prov.provider_type)),
-        };
+        let registry_key = provider_type_to_registry_key(&prov.provider_type);
+        let adapter: Arc<dyn ProviderAdapter> = self
+            .provider_registry
+            .as_ref()
+            .and_then(|reg| reg.get(registry_key))
+            .ok_or_else(|| {
+                format!(
+                    "[UNSUPPORTED_PROVIDER] ConditionExecutor 未找到 ProviderAdapter for type: {}",
+                    registry_key
+                )
+            })?;
 
         let base_url = resolve_base_url_for_type(&prov.api_host, &prov.provider_type);
-        let req_ctx = axagent_providers::ProviderRequestContext {
+        let req_ctx = axagent_harness::ProviderRequestContext {
             provider_id: prov.id.clone(),
             api_key: api_key.to_string(),
             key_id: String::new(),

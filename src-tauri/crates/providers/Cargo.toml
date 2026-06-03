@@ -6,6 +6,7 @@ publish = false
 
 [dependencies]
 axagent-core = { path = "../core" }
+axagent-harness = { path = "../harness" }
 serde = { workspace = true }
 serde_json = { workspace = true }
 tokio = { workspace = true }

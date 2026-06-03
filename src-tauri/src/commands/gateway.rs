@@ -502,10 +502,11 @@ pub async fn start_gateway(state: State<'_, AppState>) -> Result<(), String> {
         force_ssl: settings.force_ssl,
     };
 
-    let server = axagent_gateway::server::GatewayServer::start(
+    let server = axagent_gateway::server::GatewayServer::start_with_registry(
         state.sea_db.clone(),
         state.master_key,
         start_config,
+        state.harness.provider_registry().clone(),
     )
     .await
     .map_err(|e| e.to_string())?;
