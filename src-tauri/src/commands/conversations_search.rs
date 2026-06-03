@@ -20,7 +20,8 @@ pub async fn session_search(
     let max = limit.unwrap_or(10);
 
     let rows = state
-        .sea_db
+        .harness
+        .db()
         .query_all_raw(sea_orm::Statement::from_sql_and_values(
             sea_orm::DatabaseBackend::Sqlite,
             "SELECT \

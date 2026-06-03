@@ -694,7 +694,8 @@ pub async fn reindex_knowledge_chunk(
         use sea_orm::{ConnectionTrait, DbBackend, Statement};
         let name = format!("vec_kb_{}", base_id.replace('-', "_"));
         let row = state
-            .sea_db
+            .harness
+            .db()
             .query_one_raw(Statement::from_sql_and_values(
                 DbBackend::Sqlite,
                 format!("SELECT content FROM {name}_meta WHERE id = $1"),

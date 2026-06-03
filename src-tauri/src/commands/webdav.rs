@@ -158,7 +158,8 @@ pub async fn webdav_restore(
 
     // 4. Create a safety backup of current database and master.key
     let db_path = state
-        .db_path
+        .harness
+        .db_path()
         .strip_prefix("sqlite:")
         .unwrap_or(state.harness.db_path());
     let safety_backup = backup_dir.join("_pre_webdav_restore_safety.db");

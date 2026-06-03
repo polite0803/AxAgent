@@ -4961,12 +4961,9 @@ mod tests_conversation {
             similarity_threshold: 0.85,
         }));
         let state = crate::AppState {
-            sea_db: db.clone(),
-            master_key: [0; 32],
             gateway: Arc::new(Mutex::new(None)),
             close_to_tray: Arc::new(AtomicBool::new(false)),
             app_data_dir: temp_dir.clone(),
-            db_path: "sqlite::memory:".to_string(),
             auto_backup_handle: Arc::new(Mutex::new(None)),
             webdav_sync_handle: Arc::new(Mutex::new(None)),
             api_server_handle: Arc::new(Mutex::new(None)),

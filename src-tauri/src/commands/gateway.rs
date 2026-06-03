@@ -511,7 +511,7 @@ pub async fn start_gateway(state: State<'_, AppState>) -> Result<(), String> {
 
     let server = axagent_gateway::server::GatewayServer::start_with_registry(
         state.harness.db().clone(),
-        state.master_key,
+        state.harness.master_key_owned(),
         start_config,
         state.harness.provider_registry().clone(),
     )

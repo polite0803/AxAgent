@@ -174,7 +174,7 @@ fn start_platform_adapters(state: &AppState) {
 
 fn start_webdav_sync(_app: &tauri::AppHandle, state: &AppState, app_dir: std::path::PathBuf) {
     let db = state.harness.db().clone();
-    let master_key = state.master_key;
+    let master_key = state.harness.master_key_owned();
     let app_data_dir = app_dir.clone();
     let handle = state.webdav_sync_handle.clone();
     let shutdown_token = state.shutdown_token.clone();
@@ -413,7 +413,7 @@ fn start_rl_reward_computation(state: &AppState) {
     let insight_system = state.insight_system.clone();
     let process_reward_model = state.process_reward_model.clone();
     let db = state.harness.db().clone();
-    let master_key = state.master_key;
+    let master_key = state.harness.master_key_owned();
     tauri::async_runtime::spawn(async move {
         if let Some(bridge) =
             axagent_runtime::llm_bridge::build_llm_bridge_from_db(&db, &master_key).await
@@ -634,7 +634,7 @@ fn start_skill_evolution(state: &AppState) {
     let intrinsic_motivation = state.intrinsic_motivation.clone();
     let coevolution_env = state.coevolution_env.clone();
     let db = state.harness.db().clone();
-    let master_key = state.master_key;
+    let master_key = state.harness.master_key_owned();
     tauri::async_runtime::spawn(async move {
         if let Some(bridge) =
             axagent_runtime::llm_bridge::build_llm_bridge_from_db(&db, &master_key).await
@@ -907,7 +907,7 @@ fn start_auto_tool_observation(state: &AppState) {
     let trajectory_storage = state.trajectory_storage.clone();
     let auto_tool_creator = state.auto_tool_creator.clone();
     let db = state.harness.db().clone();
-    let master_key = state.master_key;
+    let master_key = state.harness.master_key_owned();
     tauri::async_runtime::spawn(async move {
         if let Some(bridge) =
             axagent_runtime::llm_bridge::build_llm_bridge_from_db(&db, &master_key).await
@@ -983,7 +983,7 @@ fn start_text_grad_analysis(state: &AppState) {
     let trajectory_storage = state.trajectory_storage.clone();
     let text_grad_engine = state.text_grad_engine.clone();
     let db = state.harness.db().clone();
-    let master_key = state.master_key;
+    let master_key = state.harness.master_key_owned();
     tauri::async_runtime::spawn(async move {
         if let Some(bridge) =
             axagent_runtime::llm_bridge::build_llm_bridge_from_db(&db, &master_key).await
@@ -1149,7 +1149,7 @@ fn start_cron_scheduler(state: &AppState) {
     // 设置 RAG 知识源检索回调（供工作流 Agent 节点从知识库/记忆/Wiki 检索上下文）
     {
         let db = state.harness.db().clone();
-        let master_key = state.master_key;
+        let master_key = state.harness.master_key_owned();
         let vector_store = state.vector_store.clone();
         let rag_callback: axagent_rt_workflow::work_engine::RagCallback = std::sync::Arc::new(
             move |kb_ids: Vec<String>,

@@ -48,7 +48,8 @@ pub async fn restore_backup(
     match manifest.version.as_str() {
         "sqlite" => {
             let db_path = state
-                .db_path
+                .harness
+                .db_path()
                 .strip_prefix("sqlite:")
                 .unwrap_or(state.harness.db_path());
             backup::restore_sqlite_backup(&backup_path, db_path)
