@@ -987,8 +987,25 @@ export function QuickBarPage() {
     if (convId) {
       return convId;
     }
+    const settings = useSettingsStore.getState().settings;
+    const providers = useProviderStore.getState().providers;
+    let provider = settings.default_provider_id
+      ? providers.find((p) => p.id === settings.default_provider_id && p.enabled)
+      : undefined;
+    let model = provider?.models.find(
+      (m) => m.model_id === settings.default_model_id && m.enabled,
+    );
+    if (!provider || !model) {
+      provider = providers.find((p) => p.enabled && p.models.some((m) => m.enabled));
+      model = provider?.models.find((m) => m.enabled);
+    }
+    if (!provider || !model) {
+      throw new Error("No available provider/model");
+    }
     const conversation = await invoke<{ id: string }>("create_conversation", {
       title: "QuickBar",
+      modelId: model.model_id,
+      providerId: provider.id,
     });
     setConvId(conversation.id);
     localStorage.setItem(QUICKBAR_CONV_KEY, conversation.id);
@@ -1292,8 +1309,22 @@ export function QuickBarPage() {
   const runNewConversation = useCallback(async () => {
     setLoading(true);
     try {
+      const settings = useSettingsStore.getState().settings;
+      const providers = useProviderStore.getState().providers;
+      let provider = settings.default_provider_id
+        ? providers.find((p) => p.id === settings.default_provider_id && p.enabled)
+        : undefined;
+      let model = provider?.models.find(
+        (m) => m.model_id === settings.default_model_id && m.enabled,
+      );
+      if (!provider || !model) {
+        provider = providers.find((p) => p.enabled && p.models.some((m) => m.enabled));
+        model = provider?.models.find((m) => m.enabled);
+      }
       const conversation = await invoke<{ id: string }>("create_conversation", {
         title: "QuickBar",
+        modelId: model?.model_id ?? "",
+        providerId: provider?.id ?? "",
       });
       setConvId(conversation.id);
       localStorage.setItem(QUICKBAR_CONV_KEY, conversation.id);

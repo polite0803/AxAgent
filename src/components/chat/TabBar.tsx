@@ -6,6 +6,7 @@ import {
   useConversationStore,
   useHelpStore,
   useProviderStore,
+  useSettingsStore,
   useStreamStore,
   useTabStore,
 } from "@/stores";
@@ -155,18 +156,27 @@ export function TabBar() {
   const createConversation = useConversationStore((s) => s.createConversation);
   const activeStreams = useStreamStore((s) => s.activeStreams);
   const providers = useProviderStore((s) => s.providers);
+  const settings = useSettingsStore((s) => s.settings);
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const handleNewConversation = useCallback(async () => {
-    const provider = providers.find(
-      (p) => p.enabled && p.models.some((m) => m.enabled),
+    let provider = settings.default_provider_id
+      ? providers.find((p) => p.id === settings.default_provider_id && p.enabled)
+      : undefined;
+    let model = provider?.models.find(
+      (m) => m.model_id === settings.default_model_id && m.enabled,
     );
-    const model = provider?.models.find((m) => m.enabled);
+    if (!provider || !model) {
+      provider = providers.find(
+        (p) => p.enabled && p.models.some((m) => m.enabled),
+      );
+      model = provider?.models.find((m) => m.enabled);
+    }
     if (!provider || !model) { return; }
     const conv = await createConversation("", model.model_id, provider.id);
     openTab(conv.id, conv.title);
-  }, [providers, createConversation, openTab]);
+  }, [providers, settings, createConversation, openTab]);
 
   const handleSelect = useCallback(
     (tabId: string) => {

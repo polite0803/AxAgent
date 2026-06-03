@@ -214,15 +214,24 @@ export class ActionRouter {
         error: i18n.t("actionRouter.agenticMissingPrompt"),
       };
     }
-    const { useConversationStore, useProviderStore } = await import("@/stores");
+    const { useConversationStore, useProviderStore, useSettingsStore } = await import("@/stores");
     const convStore = useConversationStore.getState();
     const providerStore = useProviderStore.getState();
+    const settingsStore = useSettingsStore.getState().settings;
 
     const providers = providerStore.providers;
-    const provider = providers.find(
-      (p) => p.enabled && p.models.some((m) => m.enabled),
+    let provider = settingsStore.default_provider_id
+      ? providers.find((p) => p.id === settingsStore.default_provider_id && p.enabled)
+      : undefined;
+    let model = provider?.models.find(
+      (m) => m.model_id === settingsStore.default_model_id && m.enabled,
     );
-    const model = provider?.models.find((m) => m.enabled);
+    if (!provider || !model) {
+      provider = providers.find(
+        (p) => p.enabled && p.models.some((m) => m.enabled),
+      );
+      model = provider?.models.find((m) => m.enabled);
+    }
 
     if (!provider || !model) {
       return { success: false, error: i18n.t("actionRouter.noLlmAvailable") };
