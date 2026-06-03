@@ -5133,8 +5133,10 @@ mod tests_conversation {
             #[cfg(target_os = "android")]
             sandbox_executor: Arc::new(()),
             sync_engine: None,
-            plugin_manager: std::sync::RwLock::new(axagent_plugins::PluginManager::new(
-                axagent_plugins::PluginManagerConfig::new(temp_dir.clone()),
+            plugin_manager: Arc::new(tokio::sync::RwLock::new(
+                axagent_plugins::PluginManager::new(axagent_plugins::PluginManagerConfig::new(
+                    temp_dir.clone(),
+                )),
             )),
             shutdown_token: tokio_util::sync::CancellationToken::new(),
             file_authorizer: Arc::new(axagent_core::file_authorizer::FileAuthorizer::new()),

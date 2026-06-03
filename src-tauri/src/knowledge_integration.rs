@@ -167,7 +167,7 @@ pub async fn analyze_knowledge_integration(
         let entries = if let Some(ep) = embedding_provider {
             let embed_result = crate::indexing::generate_embeddings(
                 state.harness.db(),
-                &state.master_key,
+                state.harness.master_key(),
                 &ep,
                 vec![query.clone()],
                 dimensions,
