@@ -909,9 +909,9 @@ impl WorkEngine {
         }
 
         // ── 回滚补偿：节点标记为 Failed 时，根据补偿策略执行操作 ──
-        if status == NodeStatus::Failed {
-            if let Some(node) = workflow.nodes.iter().find(|n| n.base_id() == node_id) {
-                if let Some(ref comp) = node.base().compensation {
+        if status == NodeStatus::Failed
+            && let Some(node) = workflow.nodes.iter().find(|n| n.base_id() == node_id)
+                && let Some(ref comp) = node.base().compensation {
                     match comp.strategy {
                         CompensationStrategy::SkipWithWarning => {
                             // 删除该节点输出
@@ -932,14 +932,13 @@ impl WorkEngine {
                                 .map(|e| e.target.clone())
                                 .collect();
                             for dep_id in &downstream_ids {
-                                if let Some(dep_state) = workflow.node_states.get_mut(dep_id) {
-                                    if matches!(
+                                if let Some(dep_state) = workflow.node_states.get_mut(dep_id)
+                                    && matches!(
                                         dep_state.status,
                                         NodeStatus::Pending | NodeStatus::Ready
                                     ) {
                                         dep_state.status = NodeStatus::Skipped;
                                     }
-                                }
                                 // 同时清理下游结果
                                 workflow.results.remove(dep_id.as_str());
                             }
@@ -954,8 +953,6 @@ impl WorkEngine {
                         },
                     }
                 }
-            }
-        }
 
         // 判定工作流终端状态
         let all_done = workflow.node_states.values().all(|s| {
@@ -1940,17 +1937,15 @@ impl WorkEngine {
                 build_workflow_output(&wf.results, end_output, options.output_schema.as_ref());
 
             // 若配置了 output_schema，校验输出并记录警告
-            if let Some(ref schema) = options.output_schema {
-                if let Some(ref output) = wf.output {
-                    if let Err(errors) = validate_input(output, schema) {
+            if let Some(ref schema) = options.output_schema
+                && let Some(ref output) = wf.output
+                    && let Err(errors) = validate_input(output, schema) {
                         tracing::warn!(
                             workflow_id = %workflow_id,
                             "Output schema validation failed: {:?}",
                             errors
                         );
                     }
-                }
-            }
 
             let persist_output = wf.output.clone().unwrap_or_else(|| {
                 serde_json::to_value(&wf.results).unwrap_or(serde_json::json!(null))
@@ -2168,6 +2163,7 @@ impl WorkEngine {
     }
 
     /// 记录审计日志（若已注入 AuditRecorder）
+    #[allow(clippy::too_many_arguments)]
     fn record_audit(
         &self,
         node_id: &str,

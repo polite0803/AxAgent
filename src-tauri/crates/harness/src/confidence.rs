@@ -33,8 +33,32 @@ impl ConfidenceOutput {
     /// 2. 含 JSON 块的文本: 从文本中提取第一个 JSON 对象
     pub fn try_parse(response: &str) -> Option<Self> {
         // 先尝试直接解析为 JSON
-        if let Ok(value) = serde_json::from_str::<serde_json::Value>(response.trim()) {
-            if let Some(result) = value.get("result") {
+        if let Ok(value) = serde_json::from_str::<serde_json::Value>(response.trim())
+            && let Some(result) = value.get("result")
+        {
+            let confidence = value
+                .get("confidence")
+                .and_then(|c| c.as_f64())
+                .unwrap_or(1.0);
+            let reasoning = value
+                .get("reasoning")
+                .and_then(|r| r.as_str())
+                .map(|s| s.to_string());
+            return Some(Self {
+                result: result.clone(),
+                confidence,
+                reasoning,
+            });
+        }
+
+        // 尝试从文本中提取 JSON 块
+        if let Some(start) = response.find('{')
+            && let Some(end) = response.rfind('}')
+        {
+            let json_str = &response[start..=end];
+            if let Ok(value) = serde_json::from_str::<serde_json::Value>(json_str)
+                && let Some(result) = value.get("result")
+            {
                 let confidence = value
                     .get("confidence")
                     .and_then(|c| c.as_f64())
@@ -48,30 +72,6 @@ impl ConfidenceOutput {
                     confidence,
                     reasoning,
                 });
-            }
-        }
-
-        // 尝试从文本中提取 JSON 块
-        if let Some(start) = response.find('{') {
-            if let Some(end) = response.rfind('}') {
-                let json_str = &response[start..=end];
-                if let Ok(value) = serde_json::from_str::<serde_json::Value>(json_str) {
-                    if let Some(result) = value.get("result") {
-                        let confidence = value
-                            .get("confidence")
-                            .and_then(|c| c.as_f64())
-                            .unwrap_or(1.0);
-                        let reasoning = value
-                            .get("reasoning")
-                            .and_then(|r| r.as_str())
-                            .map(|s| s.to_string());
-                        return Some(Self {
-                            result: result.clone(),
-                            confidence,
-                            reasoning,
-                        });
-                    }
-                }
             }
         }
 

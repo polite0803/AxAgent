@@ -195,8 +195,8 @@ impl NodeExecutorTrait for LlmClassifierExecutor {
         })?;
 
         // ── 结果一致性检查 ──
-        if let Some(ref cc_config) = c.consistency_check {
-            if cc_config.enabled {
+        if let Some(ref cc_config) = c.consistency_check
+            && cc_config.enabled {
                 let secondary_request = if matches!(
                     cc_config.mode,
                     axagent_harness::ConsistencyMode::CrossModelCompare
@@ -231,7 +231,6 @@ impl NodeExecutorTrait for LlmClassifierExecutor {
                     }
                 }
             }
-        }
 
         // ── 置信度检查 ──
         let raw_category = if let Some(threshold) = c.confidence_threshold {

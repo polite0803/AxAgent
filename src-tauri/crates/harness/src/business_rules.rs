@@ -33,6 +33,7 @@ pub enum RuleAction {
 }
 
 /// 一条业务规则
+#[allow(clippy::type_complexity)]
 pub struct BusinessRule {
     pub name: String,
     pub description: String,

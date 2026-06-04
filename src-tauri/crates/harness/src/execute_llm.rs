@@ -289,27 +289,26 @@ pub async fn execute_llm(
     } else {
         None
     };
-    if let Some(ref cache) = config.cache {
-        if let Some(ref key) = cache_key {
-            if let Some(cached) = cache.get(key).await {
-                tracing::info!("[execute_llm] 缓存命中: model={}", request.model);
-                let cached_response: ChatResponse =
-                    serde_json::from_value(cached.clone()).unwrap_or_default();
-                let duration_ms = start.elapsed().as_millis() as u64;
-                return Ok(LlmCallResult {
-                    response: cached_response,
-                    usage: LlmUsage::default(),
-                    duration_ms,
-                    cached: true,
-                });
-            }
-        }
+    if let Some(ref cache) = config.cache
+        && let Some(ref key) = cache_key
+        && let Some(cached) = cache.get(key).await
+    {
+        tracing::info!("[execute_llm] 缓存命中: model={}", request.model);
+        let cached_response: ChatResponse =
+            serde_json::from_value(cached.clone()).unwrap_or_default();
+        let duration_ms = start.elapsed().as_millis() as u64;
+        return Ok(LlmCallResult {
+            response: cached_response,
+            usage: LlmUsage::default(),
+            duration_ms,
+            cached: true,
+        });
     }
 
     // ── 4. 实际调用（带可选的重试策略包装） ──
     let response = if let Some(ref policy) = config.retry_policy {
         let cloned_request = request.clone();
-        let policy_result = policy
+        policy
             .execute_with_retry(|| async {
                 adapter
                     .chat(ctx, cloned_request.clone())
@@ -330,8 +329,7 @@ pub async fn execute_llm(
                     });
                 }
                 err
-            })?;
-        policy_result
+            })?
     } else {
         adapter.chat(ctx, request.clone()).await.map_err(|e| {
             let err = format!("LLM 调用失败: {e}");
@@ -354,12 +352,11 @@ pub async fn execute_llm(
     let result = LlmCallResult::from_raw(response, duration_ms, false);
 
     // ── 写入缓存（调用成功后） ──
-    if let Some(ref cache) = config.cache {
-        if let Some(ref key) = cache_key {
-            if let Ok(val) = serde_json::to_value(&result.response) {
-                cache.set(key.clone(), val, config.cache_ttl_secs).await;
-            }
-        }
+    if let Some(ref cache) = config.cache
+        && let Some(ref key) = cache_key
+        && let Ok(val) = serde_json::to_value(&result.response)
+    {
+        cache.set(key.clone(), val, config.cache_ttl_secs).await;
     }
 
     // ── 5. 后置：置信度检查（如果配置了阈值） ──

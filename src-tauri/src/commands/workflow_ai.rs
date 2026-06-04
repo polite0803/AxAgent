@@ -727,6 +727,7 @@ fn parse_llm_response(
         });
 
         let base = WorkflowNodeBase {
+            compensation: None,
             id: node_id.clone(),
             title: llm_node.title.clone(),
             description: llm_node.description.clone(),
@@ -765,6 +766,8 @@ fn parse_llm_response(
                         execution_mode: None,
                         rag_source_ids: vec![],
                         model_role: None,
+                        consistency_check: None,
+                        hallucination_guard: None,
                     });
                 WorkflowNode::Agent(AgentNode {
                     base,
@@ -781,6 +784,9 @@ fn parse_llm_response(
                         tools: None,
                         functions: None,
                         messages: None,
+                        consistency_check: None,
+                        max_context_tokens: None,
+                        reserved_output_tokens: None,
                     });
                 WorkflowNode::Llm(LLMNode {
                     base,
@@ -797,6 +803,7 @@ fn parse_llm_response(
                     judge_by_llm: None,
                     routing_prompt: None,
                     routing_model: None,
+                    confidence_threshold: None,
                 });
                 WorkflowNode::Condition(ConditionNode {
                     base,
@@ -1057,6 +1064,9 @@ fn parse_llm_response(
                         model: None,
                         input_var: "input".to_string(),
                         output_var: "category".to_string(),
+                        confidence_threshold: None,
+                        fallback_label: None,
+                        consistency_check: None,
                     });
                 WorkflowNode::LlmClassifier(LlmClassifierNode { base, config: cfg })
             },
@@ -1113,6 +1123,8 @@ fn parse_llm_response(
                     execution_mode: None,
                     rag_source_ids: vec![],
                     model_role: None,
+                    consistency_check: None,
+                    hallucination_guard: None,
                 },
             }),
         };

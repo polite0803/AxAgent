@@ -135,9 +135,9 @@ impl NodeExecutorTrait for LlmExecutor {
                 .as_ref()
                 .map(|p| p.strict_mode)
                 .unwrap_or(false);
-            if strict_mode {
-                if let Some(system_msg) = messages.iter_mut().find(|m| m.role == "system") {
-                    if let ChatContent::Text(ref mut text) = system_msg.content {
+            if strict_mode
+                && let Some(system_msg) = messages.iter_mut().find(|m| m.role == "system")
+                    && let ChatContent::Text(ref mut text) = system_msg.content {
                         text.push_str(
                             "\n\n## 严格模式约束\n\n\
                              你当前处于严格执行模式，必须遵守以下规则：\n\n\
@@ -149,8 +149,6 @@ impl NodeExecutorTrait for LlmExecutor {
                         );
                         tracing::warn!("[LlmExecutor] node {} strict_mode enabled", node.base_id());
                     }
-                }
-            }
         }
 
         // ── 上下文窗口管理 ──
@@ -211,8 +209,8 @@ impl NodeExecutorTrait for LlmExecutor {
         let response = result.response;
 
         // ── 结果一致性检查（仍走中心化路径） ──
-        if let Some(ref cc_config) = llm_node.config.consistency_check {
-            if cc_config.enabled {
+        if let Some(ref cc_config) = llm_node.config.consistency_check
+            && cc_config.enabled {
                 let secondary_request = if matches!(
                     cc_config.mode,
                     axagent_harness::ConsistencyMode::CrossModelCompare
@@ -250,7 +248,6 @@ impl NodeExecutorTrait for LlmExecutor {
                     }
                 }
             }
-        }
 
         Ok(NodeOutput {
             output: serde_json::json!({

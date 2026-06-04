@@ -92,8 +92,8 @@ impl NodeDispatcher {
 
         // ── 业务规则引擎检查（硬约束） ──
         // 在执行之前先检查业务规则。仅对可执行节点类型进行检查。
-        if let Some(ref br_engine) = context.business_rule_engine {
-            if is_business_rule_applicable(node_type) {
+        if let Some(ref br_engine) = context.business_rule_engine
+            && is_business_rule_applicable(node_type) {
                 let node_input = build_node_input_snapshot(node, context);
                 let outcome = br_engine.evaluate(node_type, &node_input);
                 use axagent_harness::business_rules::RuleEvaluationOutcome;
@@ -153,7 +153,6 @@ impl NodeDispatcher {
                     RuleEvaluationOutcome::Pass => {},
                 }
             }
-        }
 
         let executor = self.executors.get(node_type).unwrap_or_else(|| {
             self.executors
@@ -208,13 +207,12 @@ fn build_node_input_snapshot(node: &WorkflowNode, context: &ExecutionState) -> s
     map.insert("node_title".to_string(), serde_json::json!(node.base_title()));
 
     // 从 context.variables 提取工具调用相关的"input"字段
-    if let Some(input_val) = context.variables.get("input") {
-        if let Some(obj) = input_val.as_object() {
+    if let Some(input_val) = context.variables.get("input")
+        && let Some(obj) = input_val.as_object() {
             for (k, v) in obj {
                 map.insert(k.clone(), v.clone());
             }
         }
-    }
 
     // 根据节点类型提取特定字段
     match node {

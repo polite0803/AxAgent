@@ -72,7 +72,7 @@ impl ToolCategory {
 }
 
 /// 权限范围定义
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct ToolPermissions {
     /// 允许调用的工具名白名单（空 = 允许全部）
     pub allowed_tools: Option<Vec<String>>,
@@ -84,18 +84,6 @@ pub struct ToolPermissions {
     pub max_calls_per_session: Option<u32>,
     /// 是否启用严格模式（禁止 LLM 发散）
     pub strict_mode: bool,
-}
-
-impl Default for ToolPermissions {
-    fn default() -> Self {
-        Self {
-            allowed_tools: None,
-            forbidden_tools: Vec::new(),
-            allowed_categories: None,
-            max_calls_per_session: None,
-            strict_mode: false,
-        }
-    }
 }
 
 impl ToolPermissions {
@@ -122,32 +110,32 @@ impl ToolPermissions {
         }
 
         // 2. 检查白名单
-        if let Some(ref allowed) = self.allowed_tools {
-            if !allowed.iter().any(|t| t == tool_name) {
-                let reason =
-                    format!("工具 '{tool_name}' 不在允许调用列表中（允许: {:?}）", allowed);
-                warn!("权限拒绝: {reason}");
-                return PermissionResult::Deny(reason);
-            }
+        if let Some(ref allowed) = self.allowed_tools
+            && !allowed.iter().any(|t| t == tool_name)
+        {
+            let reason =
+                format!("工具 '{tool_name}' 不在允许调用列表中（允许: {:?}）", allowed);
+            warn!("权限拒绝: {reason}");
+            return PermissionResult::Deny(reason);
         }
 
         // 3. 检查类别白名单
-        if let Some(ref allowed_cats) = self.allowed_categories {
-            if !allowed_cats.contains(&category) {
-                let reason =
-                    format!("工具类别 '{:?}' 不在允许类别中（允许: {:?}）", category, allowed_cats);
-                warn!("权限拒绝: {reason}");
-                return PermissionResult::Deny(reason);
-            }
+        if let Some(ref allowed_cats) = self.allowed_categories
+            && !allowed_cats.contains(&category)
+        {
+            let reason =
+                format!("工具类别 '{:?}' 不在允许类别中（允许: {:?}）", category, allowed_cats);
+            warn!("权限拒绝: {reason}");
+            return PermissionResult::Deny(reason);
         }
 
         // 4. 检查会话级调用次数限制
-        if let Some(max_calls) = self.max_calls_per_session {
-            if session_total_calls >= max_calls {
-                let reason = format!("工具调用次数已达上限（{max_calls}/{max_calls}）");
-                warn!("权限拒绝: {reason}");
-                return PermissionResult::Deny(reason);
-            }
+        if let Some(max_calls) = self.max_calls_per_session
+            && session_total_calls >= max_calls
+        {
+            let reason = format!("工具调用次数已达上限（{max_calls}/{max_calls}）");
+            warn!("权限拒绝: {reason}");
+            return PermissionResult::Deny(reason);
         }
 
         PermissionResult::Allow
@@ -429,53 +417,49 @@ pub trait Tool: Send + Sync {
                 }
 
                 // 枚举值校验
-                if let Some(enum_vals) = prop_schema.get("enum").and_then(|e| e.as_array()) {
-                    if !enum_vals.contains(val) {
-                        return Err(ToolError::invalid_input(format!(
-                            "参数 '{prop_name}' 值不在允许范围内: {:?}",
-                            enum_vals
-                        )));
-                    }
+                if let Some(enum_vals) = prop_schema.get("enum").and_then(|e| e.as_array())
+                    && !enum_vals.contains(val)
+                {
+                    return Err(ToolError::invalid_input(format!(
+                        "参数 '{prop_name}' 值不在允许范围内: {:?}",
+                        enum_vals
+                    )));
                 }
 
                 // 最小值/最大值校验（数值）
-                if let Some(min) = prop_schema.get("minimum").and_then(|m| m.as_f64()) {
-                    if let Some(n) = val.as_f64() {
-                        if n < min {
-                            return Err(ToolError::invalid_input(format!(
-                                "参数 '{prop_name}' 不能小于 {min}"
-                            )));
-                        }
-                    }
+                if let Some(min) = prop_schema.get("minimum").and_then(|m| m.as_f64())
+                    && let Some(n) = val.as_f64()
+                    && n < min
+                {
+                    return Err(ToolError::invalid_input(format!(
+                        "参数 '{prop_name}' 不能小于 {min}"
+                    )));
                 }
-                if let Some(max) = prop_schema.get("maximum").and_then(|m| m.as_f64()) {
-                    if let Some(n) = val.as_f64() {
-                        if n > max {
-                            return Err(ToolError::invalid_input(format!(
-                                "参数 '{prop_name}' 不能大于 {max}"
-                            )));
-                        }
-                    }
+                if let Some(max) = prop_schema.get("maximum").and_then(|m| m.as_f64())
+                    && let Some(n) = val.as_f64()
+                    && n > max
+                {
+                    return Err(ToolError::invalid_input(format!(
+                        "参数 '{prop_name}' 不能大于 {max}"
+                    )));
                 }
 
                 // 最小长度/最大长度校验（字符串）
-                if let Some(min_len) = prop_schema.get("minLength").and_then(|m| m.as_u64()) {
-                    if let Some(s) = val.as_str() {
-                        if (s.len() as u64) < min_len {
-                            return Err(ToolError::invalid_input(format!(
-                                "参数 '{prop_name}' 长度不能少于 {min_len}"
-                            )));
-                        }
-                    }
+                if let Some(min_len) = prop_schema.get("minLength").and_then(|m| m.as_u64())
+                    && let Some(s) = val.as_str()
+                    && (s.len() as u64) < min_len
+                {
+                    return Err(ToolError::invalid_input(format!(
+                        "参数 '{prop_name}' 长度不能少于 {min_len}"
+                    )));
                 }
-                if let Some(max_len) = prop_schema.get("maxLength").and_then(|m| m.as_u64()) {
-                    if let Some(s) = val.as_str() {
-                        if (s.len() as u64) > max_len {
-                            return Err(ToolError::invalid_input(format!(
-                                "参数 '{prop_name}' 长度不能超过 {max_len}"
-                            )));
-                        }
-                    }
+                if let Some(max_len) = prop_schema.get("maxLength").and_then(|m| m.as_u64())
+                    && let Some(s) = val.as_str()
+                    && (s.len() as u64) > max_len
+                {
+                    return Err(ToolError::invalid_input(format!(
+                        "参数 '{prop_name}' 长度不能超过 {max_len}"
+                    )));
                 }
             }
         }

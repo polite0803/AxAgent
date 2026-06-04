@@ -118,6 +118,5 @@ fn text_distance(a: &str, b: &str) -> usize {
         .zip(sb.chars().rev())
         .take_while(|(x, y)| x == y)
         .count();
-    let diff = sa.len().max(sb.len()) - common_prefix.min(sa.len()) - common_suffix.min(sa.len());
-    diff
+    sa.len().max(sb.len()) - common_prefix.min(sa.len()) - common_suffix.min(sa.len())
 }

@@ -49,18 +49,15 @@ fn validate_value(path: &str, val: &Value, schema: &Value, errors: &mut Vec<Stri
                     }
                 }
                 // additionalProperties 检查
-                if let Some(additional) = schema.get("additionalProperties") {
-                    if additional.as_bool() == Some(false) {
-                        if let Some(obj) = val.as_object() {
-                            if let Some(properties) =
-                                schema.get("properties").and_then(|p| p.as_object())
-                            {
-                                for key in obj.keys() {
-                                    if !properties.contains_key(key) {
-                                        errors.push(format!("{path}.{key}: 未定义的字段"));
-                                    }
-                                }
-                            }
+                if let Some(additional) = schema.get("additionalProperties")
+                    && additional.as_bool() == Some(false)
+                    && let Some(obj) = val.as_object()
+                    && let Some(properties) =
+                        schema.get("properties").and_then(|p| p.as_object())
+                {
+                    for key in obj.keys() {
+                        if !properties.contains_key(key) {
+                            errors.push(format!("{path}.{key}: 未定义的字段"));
                         }
                     }
                 }
@@ -70,28 +67,28 @@ fn validate_value(path: &str, val: &Value, schema: &Value, errors: &mut Vec<Stri
                     errors.push(format!("{path}: 期望 array，实际 {}", type_name(val)));
                     return;
                 }
-                if let Some(items_schema) = schema.get("items") {
-                    if let Some(arr) = val.as_array() {
-                        for (i, item) in arr.iter().enumerate() {
-                            validate_value(&format!("{path}[{i}]"), item, items_schema, errors);
-                        }
+                if let Some(items_schema) = schema.get("items")
+                    && let Some(arr) = val.as_array()
+                {
+                    for (i, item) in arr.iter().enumerate() {
+                        validate_value(&format!("{path}[{i}]"), item, items_schema, errors);
                     }
                 }
             },
-            "string" => {
-                if !val.is_string() {
-                    errors.push(format!("{path}: 期望 string"));
-                }
+            "string"
+                if !val.is_string() =>
+            {
+                errors.push(format!("{path}: 期望 string"));
             },
-            "number" | "integer" => {
-                if !val.is_number() {
-                    errors.push(format!("{path}: 期望 number"));
-                }
+            "number" | "integer"
+                if !val.is_number() =>
+            {
+                errors.push(format!("{path}: 期望 number"));
             },
-            "boolean" => {
-                if !matches!(val, Value::Bool(_)) {
-                    errors.push(format!("{path}: 期望 boolean"));
-                }
+            "boolean"
+                if !matches!(val, Value::Bool(_)) =>
+            {
+                errors.push(format!("{path}: 期望 boolean"));
             },
             _ => {},
         }
@@ -111,7 +108,7 @@ fn type_name(val: &Value) -> &'static str {
 
 fn is_required(schema: &Value) -> bool {
     // 没有 default 值的字段视为必需的
-    !schema.get("default").is_some()
+    schema.get("default").is_none()
 }
 
 #[cfg(test)]

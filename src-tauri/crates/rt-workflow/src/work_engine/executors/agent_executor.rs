@@ -662,8 +662,8 @@ impl NodeExecutorTrait for AgentExecutor {
         }
 
         // ── 防幻觉锚定检查 ──
-        if let Some(ref hg_config) = an.config.hallucination_guard {
-            if hg_config.enabled && !final_content.is_empty() {
+        if let Some(ref hg_config) = an.config.hallucination_guard
+            && hg_config.enabled && !final_content.is_empty() {
                 // 构建源上下文：从 context_sources 变量提取
                 let source_context: String = if an.config.context_sources.is_empty() {
                     context
@@ -698,7 +698,6 @@ impl NodeExecutorTrait for AgentExecutor {
                     }
                 }
             }
-        }
 
         Ok(NodeOutput {
             output: serde_json::json!({
@@ -1103,13 +1102,12 @@ async fn execute_tool(
             tracing::warn!("{reason}");
             return Err(reason);
         }
-        if let Some(ref allowed) = perms.allowed_tools {
-            if !allowed.iter().any(|t| t == tool_name) {
+        if let Some(ref allowed) = perms.allowed_tools
+            && !allowed.iter().any(|t| t == tool_name) {
                 let reason = format!("权限拒绝: 工具 '{tool_name}' 不在允许调用列表中");
                 tracing::warn!("{reason}");
                 return Err(reason);
             }
-        }
     }
 
     let cb = context

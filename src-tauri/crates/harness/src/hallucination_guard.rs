@@ -85,7 +85,7 @@ pub fn check_anchor(output: &str, source_context: &str, threshold: f64) -> Ancho
 }
 
 fn split_sentences(text: &str) -> Vec<String> {
-    text.split(|c: char| c == '.' || c == '!' || c == '?' || c == '\n')
+    text.split(['.', '!', '?', '\n'])
         .map(|s| s.trim().to_string())
         .filter(|s| !s.is_empty())
         .collect()
