@@ -425,9 +425,9 @@ export function InputArea() {
 
   // Unified mode: ask | plan | action
   const unifiedMode = useMemo((): "ask" | "plan" | "action" => {
-    if (currentMode === "chat") return "ask";
-    if (currentMode === "agent" && workStrategy === "plan") return "plan";
-    if (currentMode === "agent" && workStrategy === "direct") return "action";
+    if (currentMode === "chat") { return "ask"; }
+    if (currentMode === "agent" && workStrategy === "plan") { return "plan"; }
+    if (currentMode === "agent" && workStrategy === "direct") { return "action"; }
     return "ask";
   }, [currentMode, workStrategy]);
 
@@ -2895,11 +2895,11 @@ export function InputArea() {
                   type="text"
                   size="small"
                   data-tutorial="agent-mode"
-                  icon={
-                    unifiedMode === "ask" ? <MessageSquare size={14} /> :
-                    unifiedMode === "plan" ? <ClipboardList size={14} /> :
-                    <Play size={14} />
-                  }
+                  icon={unifiedMode === "ask"
+                    ? <MessageSquare size={14} />
+                    : unifiedMode === "plan"
+                    ? <ClipboardList size={14} />
+                    : <Play size={14} />}
                   style={{ display: "flex", alignItems: "center", gap: 4 }}
                 />
               </DropdownMenu>
