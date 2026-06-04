@@ -1122,6 +1122,7 @@ dependencies = [
  "enigo",
  "image",
  "keyring",
+ "libc",
  "regex",
  "reqwest 0.13.2",
  "scraper",

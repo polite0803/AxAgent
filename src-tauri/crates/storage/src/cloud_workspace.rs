@@ -1,3 +1,4 @@
+#![allow(clippy::result_large_err)]
 /// Manager for cloud workspaces with full conflict handling.
 ///
 /// Features:

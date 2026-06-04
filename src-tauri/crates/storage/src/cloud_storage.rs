@@ -1,3 +1,4 @@
+#![allow(clippy::result_large_err)]
 /// Cloud storage abstraction and sync engine.
 ///
 /// Provides a unified `StorageBackend` trait for WebDAV and S3-compatible services,
