@@ -15,8 +15,6 @@ use crate::trajectory::{
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::future::Future;
-use std::pin::Pin;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RLConfig {

@@ -4,7 +4,7 @@ members = [".", "crates/cache", "crates/core", "crates/crypto", "crates/dao", "c
 resolver = "2"
 
 [workspace.package]
-version = "2.5.1"
+version = "2.6.0"
 edition = "2024"
 license = "AGPL-3.0-only"
 

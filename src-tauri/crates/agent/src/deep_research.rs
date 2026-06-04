@@ -1,7 +1,7 @@
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
-use axagent_core::types::{ChatContent, ChatMessage, ChatRequest};
+use axagent_harness::types::{ChatContent, ChatMessage, ChatRequest};
 use axagent_harness::{ProviderAdapter, ProviderRequestContext};
 use serde::{Deserialize, Serialize};
 

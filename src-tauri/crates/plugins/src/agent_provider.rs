@@ -77,6 +77,7 @@ impl Default for PluginAgentRegistry {
     }
 }
 
+#[cfg_attr(test, allow(dead_code))]
 static GLOBAL_PLUGIN_AGENTS: std::sync::LazyLock<PluginAgentRegistry> =
     std::sync::LazyLock::new(PluginAgentRegistry::default);
 

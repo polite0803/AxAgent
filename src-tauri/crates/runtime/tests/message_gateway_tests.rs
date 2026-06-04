@@ -1,4 +1,4 @@
-use axagent_runtime::message_gateway::platform_config::PlatformConfig;
+use axagent_runtime::message_gateway::platform_config::{PlatformConfig, PlatformConfigExt};
 
 #[test]
 fn test_default_platform_config() {

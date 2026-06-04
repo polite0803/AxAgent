@@ -629,7 +629,7 @@ impl DefaultLlmContentGenerator {
     }
 
     async fn call_llm(&self, system: &str, user: &str) -> Result<String, ResearchError> {
-        use axagent_core::types::{ChatContent, ChatMessage, ChatRequest};
+        use axagent_harness::types::{ChatContent, ChatMessage, ChatRequest};
 
         match (&self.llm_adapter, &self.ctx) {
             (Some(adapter), Some(ctx)) => {

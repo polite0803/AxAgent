@@ -6,7 +6,7 @@ use crate::commands::error_code::steer as steer_err;
 use axagent_agent::{AgentExecutionProgressSnapshot, AxAgentApiClient};
 use axagent_core::cloud_workspace::CloudWorkspace;
 use axagent_core::repo::{conversation, message, provider, search_provider};
-use axagent_core::types::{
+use axagent_harness::types::{
     Attachment, AttachmentInput, ChatTool, ChatToolFunction, McpServer, MessageRole,
     ProviderProxyConfig,
 };
@@ -809,7 +809,7 @@ pub async fn agent_query(
         let _ = axagent_core::repo::conversation::update_conversation(
             app_state.harness.db(),
             &conversation_id,
-            axagent_core::types::UpdateConversationInput {
+            axagent_harness::types::UpdateConversationInput {
                 workflow_status: Some(Some("running".to_string())),
                 ..Default::default()
             },
@@ -906,25 +906,25 @@ pub async fn agent_query(
 
     // Create provider adapter instance
     let adapter: Arc<dyn ProviderAdapter> = match prov.provider_type {
-        axagent_core::types::ProviderType::OpenAI => {
+        axagent_harness::types::ProviderType::OpenAI => {
             Arc::new(axagent_providers::openai::OpenAIAdapter::new())
         },
-        axagent_core::types::ProviderType::OpenAIResponses => {
+        axagent_harness::types::ProviderType::OpenAIResponses => {
             Arc::new(axagent_providers::openai_responses::OpenAIResponsesAdapter::new())
         },
-        axagent_core::types::ProviderType::Anthropic => {
+        axagent_harness::types::ProviderType::Anthropic => {
             Arc::new(axagent_providers::anthropic::AnthropicAdapter::new())
         },
-        axagent_core::types::ProviderType::Gemini => {
+        axagent_harness::types::ProviderType::Gemini => {
             Arc::new(axagent_providers::gemini::GeminiAdapter::new())
         },
-        axagent_core::types::ProviderType::OpenClaw => {
+        axagent_harness::types::ProviderType::OpenClaw => {
             Arc::new(axagent_providers::openclaw::OpenClawAdapter::new())
         },
-        axagent_core::types::ProviderType::Hermes => {
+        axagent_harness::types::ProviderType::Hermes => {
             Arc::new(axagent_providers::hermes::HermesAdapter::new())
         },
-        axagent_core::types::ProviderType::Ollama => {
+        axagent_harness::types::ProviderType::Ollama => {
             Arc::new(axagent_providers::ollama::OllamaAdapter::new())
         },
     };
@@ -1397,7 +1397,7 @@ pub async fn agent_query(
     // Emit RAG results to frontend
     let _ = app.emit(
         "rag-context-retrieved",
-        axagent_core::types::RagContextRetrievedEvent {
+        axagent_harness::types::RagContextRetrievedEvent {
             conversation_id: conversation_id.clone(),
             sources: rag_result.source_results,
         },
@@ -2002,7 +2002,7 @@ pub async fn agent_query(
                 let _ = axagent_core::repo::conversation::update_conversation(
                     app_state.harness.db(),
                     &conversation_id,
-                    axagent_core::types::UpdateConversationInput {
+                    axagent_harness::types::UpdateConversationInput {
                         workflow_status: Some(Some("completed".to_string())),
                         ..Default::default()
                     },
@@ -2273,7 +2273,7 @@ pub async fn agent_query(
                 let _ = axagent_core::repo::conversation::update_conversation(
                     app_state.harness.db(),
                     &conversation_id,
-                    axagent_core::types::UpdateConversationInput {
+                    axagent_harness::types::UpdateConversationInput {
                         workflow_status: Some(Some("failed".to_string())),
                         ..Default::default()
                     },

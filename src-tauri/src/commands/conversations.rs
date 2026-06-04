@@ -7,7 +7,7 @@ use crate::commands::error_code::thinking as thinking_err;
 use crate::commands::error_code::title as title_err;
 #[cfg(test)]
 use crate::commands::proactive::ProactiveService;
-use axagent_core::types::*;
+use axagent_harness::types::*;
 use axagent_providers::{
     ProviderRequestContext, extract_reasoning_from_text, resolve_base_url_for_type,
 };

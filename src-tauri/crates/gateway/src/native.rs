@@ -1,8 +1,5 @@
-use axagent_core::{
-    crypto::decrypt_key,
-    error::AxAgentError,
-    types::{GatewayKey, ProviderConfig, ProviderProxyConfig, ProviderType, TokenUsage},
-};
+use axagent_core::{crypto::decrypt_key, error::AxAgentError};
+use axagent_harness::types::{GatewayKey, ProviderConfig, ProviderProxyConfig, ProviderType, TokenUsage};
 use axagent_harness::ProviderRequestContext;
 use axagent_providers::url_utils::resolve_base_url_for_type;
 
@@ -1095,9 +1092,11 @@ mod tests {
     use super::*;
     use axagent_core::{
         crypto::{encrypt_key, key_prefix},
-        db::{DbHandle, create_test_pool},
+        db::{create_test_pool, DbHandle},
         repo::{gateway, gateway_request_log, provider},
-        types::{CreateProviderInput, Model, ModelCapability, ModelType, ProviderType, TokenUsage},
+    };
+    use axagent_harness::types::{
+        CreateProviderInput, Model, ModelCapability, ModelType, ProviderType, TokenUsage,
     };
     use axum::{
         Router,
@@ -1279,7 +1278,7 @@ mod tests {
         api_host: &str,
         model_id: &str,
         with_key: bool,
-    ) -> axagent_core::types::ProviderConfig {
+    ) -> axagent_harness::types::ProviderConfig {
         let provider = provider::create_provider(
             db,
             CreateProviderInput {

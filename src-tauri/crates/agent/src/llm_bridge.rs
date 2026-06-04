@@ -1,4 +1,4 @@
-use axagent_core::types::{ChatContent, ChatMessage, ChatRequest};
+use axagent_harness::types::{ChatContent, ChatMessage, ChatRequest};
 #[cfg(test)]
 use axagent_harness::trajectory_types::ProcedureStep;
 use axagent_harness::trajectory_types::{

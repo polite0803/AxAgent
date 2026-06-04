@@ -27,7 +27,7 @@ fn test_builtin_tools_skill_metadata_deserializes() {
     assert_eq!(metadata.name, "test");
 }
 
-use axagent_core::types;
+use axagent_harness::types;
 
 #[test]
 fn test_chat_message_serialization() {
@@ -96,7 +96,7 @@ fn test_token_usage_types() {
 
 #[test]
 fn test_provider_type_enum() {
-    use axagent_core::types::ProviderType;
+    use axagent_harness::types::ProviderType;
     let types = vec![
         ProviderType::OpenAI,
         ProviderType::Anthropic,

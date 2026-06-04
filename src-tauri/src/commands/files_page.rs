@@ -1,5 +1,5 @@
 use axagent_core::repo::stored_file::StoredFile;
-use axagent_core::types::BackupManifest;
+use axagent_harness::types::BackupManifest;
 use base64::Engine;
 use serde::{Deserialize, Serialize};
 use std::path::Path;

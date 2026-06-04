@@ -1,7 +1,7 @@
 use crate::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::mcp as mcp_err;
-use axagent_core::types::*;
+use axagent_harness::types::*;
 use serde::{Deserialize, Serialize};
 use tauri::{Emitter, State};
 

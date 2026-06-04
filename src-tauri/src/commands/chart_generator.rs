@@ -1,4 +1,4 @@
-use axagent_core::types::{ChatContent, ChatMessage, ChatRequest, ChatResponse};
+use axagent_harness::types::{ChatContent, ChatMessage, ChatRequest, ChatResponse};
 use axagent_harness::{ProviderAdapter, ProviderRequestContext};
 use axagent_providers::openai::OpenAIAdapter;
 use serde::{Deserialize, Serialize};

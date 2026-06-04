@@ -52,7 +52,7 @@ pub enum ActionType {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 #[deprecated(
     since = "0.1.0",
-    note = "Use ProviderType from axagent_core::types instead. VisionProvider is no longer used by the provider-based screen_vision implementation."
+    note = "Use ProviderType from axagent_harness::types instead. VisionProvider is no longer used by the provider-based screen_vision implementation."
 )]
 #[allow(deprecated)]
 pub enum VisionProvider {

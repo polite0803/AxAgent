@@ -15,7 +15,7 @@ use std::time::Instant;
 use tokio_stream::wrappers::ReceiverStream;
 
 use axagent_core::crypto::decrypt_key;
-use axagent_core::types::*;
+use axagent_harness::types::*;
 use axagent_harness::{ProviderAdapter, ProviderRequestContext};
 use axagent_providers::url_utils::resolve_base_url_for_type;
 

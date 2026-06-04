@@ -1,5 +1,4 @@
 use serde::{Deserialize, Serialize};
-use serde_json::Value as JsonValue;
 
 type TaskCallback = Box<dyn Fn(&str, &PlannedTask) + Send + Sync>;
 

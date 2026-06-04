@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use axagent_core::constants::default_url;
 use axagent_core::error::{AxAgentError, Result};
-use axagent_core::types::*;
+use axagent_harness::types::*;
 use futures::Stream;
 use futures::StreamExt;
 use serde::{Deserialize, Serialize};
@@ -412,7 +412,7 @@ impl ProviderAdapter for AnthropicAdapter {
 
         let mut content = String::new();
         let mut thinking = None;
-        let mut tool_calls: Vec<axagent_core::types::ToolCall> = Vec::new();
+        let mut tool_calls: Vec<axagent_harness::types::ToolCall> = Vec::new();
 
         for block in &ar.content {
             match block.block_type.as_str() {
@@ -434,10 +434,10 @@ impl ProviderAdapter for AnthropicAdapter {
                             .as_ref()
                             .map(|v| serde_json::to_string(v).unwrap_or_default())
                             .unwrap_or_default();
-                        tool_calls.push(axagent_core::types::ToolCall {
+                        tool_calls.push(axagent_harness::types::ToolCall {
                             id: id.clone(),
                             call_type: "function".to_string(),
-                            function: axagent_core::types::ToolCallFunction {
+                            function: axagent_harness::types::ToolCallFunction {
                                 name: name.clone(),
                                 arguments,
                             },
@@ -749,11 +749,11 @@ impl ProviderAdapter for AnthropicAdapter {
                                         Some(
                                             pending_tool_uses
                                                 .iter()
-                                                .map(|tu| axagent_core::types::ToolCall {
+                                                .map(|tu| axagent_harness::types::ToolCall {
                                                     id: tu.id.clone(),
                                                     call_type: "function".to_string(),
                                                     function:
-                                                        axagent_core::types::ToolCallFunction {
+                                                        axagent_harness::types::ToolCallFunction {
                                                             name: tu.name.clone(),
                                                             arguments: tu.arguments.clone(),
                                                         },

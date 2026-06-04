@@ -114,7 +114,6 @@ pub use axagent_storage::storage_migration;
 pub use axagent_storage::storage_paths;
 #[allow(clippy::unwrap_used)]
 pub use axagent_storage::sync_conflict;
-pub mod types;
 #[cfg(not(target_os = "android"))]
 pub use axagent_kit::ui_automation;
 #[cfg(target_os = "android")]

@@ -56,7 +56,7 @@ impl PlatformBridge {
         &self,
         provider_id: &str,
         model_id: &str,
-        messages: Vec<axagent_core::types::ChatMessage>,
+        messages: Vec<axagent_harness::types::ChatMessage>,
     ) -> anyhow::Result<String> {
         use axagent_core::repo::provider;
 
@@ -78,7 +78,7 @@ impl PlatformBridge {
 
         let ctx = build_provider_request_context(&provider_config, &key_row, api_key);
 
-        let request = axagent_core::types::ChatRequest {
+        let request = axagent_harness::types::ChatRequest {
             model: model_id.to_string(),
             messages,
             stream: false,
@@ -215,7 +215,7 @@ impl PlatformBridge {
     ) -> anyhow::Result<Option<String>> {
         use axagent_core::repo::{conversation, message, settings};
         use axagent_core::slash_command::apply_slash_command_to_input;
-        use axagent_core::types::MessageRole;
+        use axagent_harness::types::MessageRole;
 
         let preprocessed = apply_slash_command_to_input(text);
         let effective_text = &preprocessed.modified_text;
@@ -294,17 +294,17 @@ impl PlatformBridge {
             system_prompt.push_str(&format!("\n\n{}", personality_msg));
         }
 
-        let messages: Vec<axagent_core::types::ChatMessage> = vec![
-            axagent_core::types::ChatMessage {
+        let messages: Vec<axagent_harness::types::ChatMessage> = vec![
+            axagent_harness::types::ChatMessage {
                 role: "system".to_string(),
-                content: axagent_core::types::ChatContent::Text(system_prompt),
+                content: axagent_harness::types::ChatContent::Text(system_prompt),
                 tool_calls: None,
                 tool_call_id: None,
                 thinking: None,
             },
-            axagent_core::types::ChatMessage {
+            axagent_harness::types::ChatMessage {
                 role: "user".to_string(),
-                content: axagent_core::types::ChatContent::Text(effective_text.to_string()),
+                content: axagent_harness::types::ChatContent::Text(effective_text.to_string()),
                 tool_calls: None,
                 tool_call_id: None,
                 thinking: None,

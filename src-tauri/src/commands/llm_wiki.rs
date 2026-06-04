@@ -2,11 +2,8 @@ use crate::AppState;
 use axagent_agent::{
     ingest_pipeline, lint_checker, purpose_manager, query_engine, schema_manager, wiki_compiler,
 };
-use axagent_core::{
-    entity::wiki_sync_queue,
-    repo::wiki,
-    types::{ProviderProxyConfig, ProviderType},
-};
+use axagent_core::{entity::wiki_sync_queue, repo::wiki};
+use axagent_harness::types::{ProviderProxyConfig, ProviderType};
 use axagent_harness::{ProviderAdapter, ProviderRequestContext, resolve_base_url_for_type};
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, EntityTrait, IntoActiveModel, QueryFilter, QueryOrder,

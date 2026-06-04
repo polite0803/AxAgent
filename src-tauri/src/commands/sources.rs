@@ -105,7 +105,7 @@ pub async fn get_source_config(
     state: State<'_, AppState>,
     container_type: String,
     container_id: String,
-) -> Result<axagent_core::types::SourceConfig, String> {
+) -> Result<axagent_harness::types::SourceConfig, String> {
     let db = state.harness.db();
 
     let config = match container_type.as_str() {
@@ -134,7 +134,7 @@ pub async fn search_all_sources(
     state: State<'_, AppState>,
     query: String,
     top_k: Option<usize>,
-) -> Result<axagent_core::types::RagContextResult, String> {
+) -> Result<axagent_harness::types::RagContextResult, String> {
     let db = state.harness.db();
     let master_key = state.harness.master_key();
     let vector_store = &state.vector_store;

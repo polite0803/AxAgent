@@ -1,10 +1,8 @@
 pub use axagent_harness::trajectory_types::{GeneratedTool, LlmToolProvider, ToolCreationRequest};
-use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::future::Future;
 use std::pin::Pin;
-use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ToolTestResult {

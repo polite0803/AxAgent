@@ -1,5 +1,5 @@
 use axagent_core::screen_vision::UIElementInfo;
-use axagent_core::types::ProviderType;
+use axagent_harness::types::ProviderType;
 use axagent_harness::{ProviderAdapter, ProviderRequestContext};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -78,7 +78,7 @@ async fn build_vision_context(
         .await
         .unwrap_or_default();
     let resolved_proxy =
-        axagent_core::types::ProviderProxyConfig::resolve(&provider.proxy_config, &global_settings);
+        axagent_harness::types::ProviderProxyConfig::resolve(&provider.proxy_config, &global_settings);
 
     let adapter = resolve_provider_adapter(&provider.provider_type)?;
 

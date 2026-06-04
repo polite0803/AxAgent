@@ -5,7 +5,7 @@ use crate::work_engine::node_executor_trait::{
     NodeError, NodeExecutorTrait, NodeOutput, error_code,
 };
 use async_trait::async_trait;
-use axagent_core::types::{ChatContent, ChatMessage, ChatRequest};
+use axagent_harness::types::{ChatContent, ChatMessage, ChatRequest};
 use axagent_core::workflow_types::WorkflowNode;
 use sea_orm::DatabaseConnection;
 use std::sync::Arc;

@@ -1,6 +1,6 @@
 use axagent_core::error::AxAgentError;
 use axagent_core::token_counter::estimate_tokens;
-use axagent_core::types::{ChatContent, ChatMessage, ChatRequest};
+use axagent_harness::types::{ChatContent, ChatMessage, ChatRequest};
 use axagent_harness::{ProviderAdapter, ProviderRequestContext};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;

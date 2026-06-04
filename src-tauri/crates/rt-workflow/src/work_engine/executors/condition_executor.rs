@@ -269,13 +269,13 @@ impl ConditionExecutor {
     /// 调用 LLM 并解析 true/false 响应。
     async fn call_llm_and_parse(
         &self,
-        prov: &axagent_core::types::ProviderConfig,
+        prov: &axagent_harness::types::ProviderConfig,
         api_key: &str,
         model: &str,
         adapter: &Arc<dyn axagent_harness::ProviderAdapter>,
         prompt: &str,
     ) -> Result<bool, String> {
-        use axagent_core::types::{ChatContent, ChatMessage, ChatRequest};
+        use axagent_harness::types::{ChatContent, ChatMessage, ChatRequest};
         use axagent_providers::url_utils::resolve_base_url_for_type;
 
         let base_url = resolve_base_url_for_type(&prov.api_host, &prov.provider_type);

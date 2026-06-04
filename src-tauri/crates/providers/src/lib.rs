@@ -26,7 +26,7 @@ pub use transport::{
 };
 
 use axagent_core::error::{AxAgentError, Result};
-use axagent_core::types::*;
+use axagent_harness::types::*;
 
 /// Provide a human-readable diagnostic hint for a `reqwest::Error`.
 /// Inspects the error kind to give specific, actionable guidance.

@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use axagent_core::constants::default_url;
 use axagent_core::error::{AxAgentError, Result};
-use axagent_core::types::*;
+use axagent_harness::types::*;
 use futures::Stream;
 use futures::StreamExt;
 use serde::{Deserialize, Serialize};
@@ -537,7 +537,7 @@ impl ProviderAdapter for GeminiAdapter {
 
         let mut content = String::new();
         let mut thinking = String::new();
-        let mut tool_calls: Vec<axagent_core::types::ToolCall> = Vec::new();
+        let mut tool_calls: Vec<axagent_harness::types::ToolCall> = Vec::new();
 
         if let Some(parts) = parts {
             for part in parts {
@@ -549,10 +549,10 @@ impl ProviderAdapter for GeminiAdapter {
                     }
                 }
                 if let Some(ref fc) = part.function_call {
-                    tool_calls.push(axagent_core::types::ToolCall {
+                    tool_calls.push(axagent_harness::types::ToolCall {
                         id: tool_call_id(),
                         call_type: "function".to_string(),
-                        function: axagent_core::types::ToolCallFunction {
+                        function: axagent_harness::types::ToolCallFunction {
                             name: fc.name.clone(),
                             arguments: serde_json::to_string(&fc.args).unwrap_or_default(),
                         },
@@ -676,7 +676,7 @@ impl ProviderAdapter for GeminiAdapter {
 
                                     let mut content: Option<String> = None;
                                     let mut thinking_chunk: Option<String> = None;
-                                    let mut tool_calls_vec: Vec<axagent_core::types::ToolCall> =
+                                    let mut tool_calls_vec: Vec<axagent_harness::types::ToolCall> =
                                         Vec::new();
 
                                     if let Some(parts) = parts {
@@ -690,11 +690,11 @@ impl ProviderAdapter for GeminiAdapter {
                                             }
                                             if let Some(ref fc) = part.function_call {
                                                 tool_calls_vec.push(
-                                                    axagent_core::types::ToolCall {
+                                                    axagent_harness::types::ToolCall {
                                                         id: tool_call_id(),
                                                         call_type: "function".to_string(),
                                                         function:
-                                                            axagent_core::types::ToolCallFunction {
+                                                            axagent_harness::types::ToolCallFunction {
                                                                 name: fc.name.clone(),
                                                                 arguments: serde_json::to_string(
                                                                     &fc.args,

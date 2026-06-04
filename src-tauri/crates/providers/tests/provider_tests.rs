@@ -29,7 +29,7 @@ fn test_resolve_base_url_force_mode_with_path() {
 
 #[test]
 fn test_resolve_base_url_for_type_gemini() {
-    use axagent_core::types::ProviderType;
+    use axagent_harness::types::ProviderType;
     assert_eq!(
         resolve_base_url_for_type("https://api.google.com", &ProviderType::Gemini),
         "https://api.google.com/v1beta"
@@ -38,7 +38,7 @@ fn test_resolve_base_url_for_type_gemini() {
 
 #[test]
 fn test_resolve_base_url_for_type_openai() {
-    use axagent_core::types::ProviderType;
+    use axagent_harness::types::ProviderType;
     assert_eq!(
         resolve_base_url_for_type("https://api.openai.com", &ProviderType::OpenAI),
         "https://api.openai.com/v1"

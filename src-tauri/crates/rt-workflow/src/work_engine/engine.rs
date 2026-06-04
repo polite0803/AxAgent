@@ -21,7 +21,6 @@ use rhai::AST;
 
 /// Convert Rhai dynamic map to JSON value
 fn rhai_map_to_json(map: rhai::Map) -> serde_json::Value {
-    use rhai::Dynamic;
     let mut obj = serde_json::Map::new();
     for (k, v) in map {
         let val: serde_json::Value = if v.is_int() {
@@ -1062,7 +1061,7 @@ impl WorkEngine {
                         let ast = ast.clone();
                         let tool_handlers = self.tool_handlers.clone();
                         let cb: ToolCallback =
-                            std::sync::Arc::new(move |_tn: String, args: serde_json::Value| {
+                            std::sync::Arc::new(move |_tn: String, _args: serde_json::Value| {
                                 let ast = ast.clone();
                                 let tool_handlers = tool_handlers.clone();
                                 Box::pin(async move {
@@ -1089,7 +1088,7 @@ impl WorkEngine {
                                         // Inline Rhai execution (no dependency on axagent-tools)
                                         use rhai::{Dynamic, Engine, Scope};
                                         let mut engine = Engine::new();
-                                        let mut scope = Scope::new();
+                                        let _scope = Scope::new();
                                         // Register tool functions
                                         for (name, handler) in &rhai_tools {
                                             let h = handler.clone();

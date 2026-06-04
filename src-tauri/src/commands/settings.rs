@@ -1,5 +1,5 @@
 use crate::AppState;
-use axagent_core::types::*;
+use axagent_harness::types::*;
 use tauri::AppHandle;
 use tauri::State;
 

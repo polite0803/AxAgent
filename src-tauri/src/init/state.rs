@@ -440,7 +440,7 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState, Strin
 
 fn create_sync_engine(
     _sea_db: &sea_orm::DatabaseConnection,
-    _app_settings: &axagent_core::types::AppSettings,
+    _app_settings: &axagent_harness::types::AppSettings,
     rt_handle: &tokio::runtime::Handle,
 ) -> Option<Arc<SyncEngine>> {
     let cloud_config = load_cloud_storage_config(_sea_db, _app_settings, rt_handle)?;
@@ -452,7 +452,7 @@ fn create_sync_engine(
 
 fn load_cloud_storage_config(
     sea_db: &sea_orm::DatabaseConnection,
-    _app_settings: &axagent_core::types::AppSettings,
+    _app_settings: &axagent_harness::types::AppSettings,
     rt_handle: &tokio::runtime::Handle,
 ) -> Option<CloudStorageConfig> {
     use axagent_core::cloud_storage::{BackendType, S3Config, S3ProviderPreset, SyncMode};

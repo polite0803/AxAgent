@@ -1,5 +1,5 @@
 use crate::AppState;
-use axagent_core::types::*;
+use axagent_harness::types::*;
 use tauri::State;
 
 /// Resolve the API key for a gateway link: if api_key_id is set, decrypt it;

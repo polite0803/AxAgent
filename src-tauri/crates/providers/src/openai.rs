@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use axagent_core::constants::default_url;
 use axagent_core::error::{AxAgentError, Result};
-use axagent_core::types::*;
+use axagent_harness::types::*;
 use futures::Stream;
 use futures::StreamExt;
 use serde::{Deserialize, Deserializer, Serialize};
@@ -750,10 +750,10 @@ impl ProviderAdapter for OpenAIAdapter {
 
         let tool_calls = msg.tool_calls.as_ref().map(|tcs| {
             tcs.iter()
-                .map(|tc| axagent_core::types::ToolCall {
+                .map(|tc| axagent_harness::types::ToolCall {
                     id: tc.id.clone().unwrap_or_default(),
                     call_type: tc.call_type.clone().unwrap_or_else(|| "function".into()),
-                    function: axagent_core::types::ToolCallFunction {
+                    function: axagent_harness::types::ToolCallFunction {
                         name: tc
                             .function
                             .as_ref()
@@ -831,7 +831,7 @@ impl ProviderAdapter for OpenAIAdapter {
             let mut buf = String::new();
             let mut pending_tool_calls: Vec<(String, String, String, String)> = Vec::new();
             let mut event_data_lines: Vec<String> = Vec::new();
-            let mut last_usage: Option<axagent_core::types::TokenUsage> = None;
+            let mut last_usage: Option<axagent_harness::types::TokenUsage> = None;
 
             let mut process_event = |data: &str| -> bool {
                 if data.trim() == "[DONE]" {
@@ -841,10 +841,10 @@ impl ProviderAdapter for OpenAIAdapter {
                         Some(
                             pending_tool_calls
                                 .iter()
-                                .map(|(id, ct, name, args)| axagent_core::types::ToolCall {
+                                .map(|(id, ct, name, args)| axagent_harness::types::ToolCall {
                                     id: id.clone(),
                                     call_type: ct.clone(),
-                                    function: axagent_core::types::ToolCallFunction {
+                                    function: axagent_harness::types::ToolCallFunction {
                                         name: name.clone(),
                                         arguments: args.clone(),
                                     },

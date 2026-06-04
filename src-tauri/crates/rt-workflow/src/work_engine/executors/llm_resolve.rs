@@ -2,7 +2,7 @@
 //!
 //! 集中 4 个 executor 重复的 `resolve_model_for_node → decrypt_key → registry.get` 三步。
 
-use axagent_core::types::{ProviderConfig, ProviderKey};
+use axagent_harness::types::{ProviderConfig, ProviderKey};
 use axagent_harness::{ProviderAdapter, registry::ProviderRegistry};
 use sea_orm::DatabaseConnection;
 use std::sync::Arc;

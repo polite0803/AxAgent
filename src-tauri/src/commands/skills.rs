@@ -4,7 +4,7 @@ use crate::commands::error_code::skill as skill_err;
 use crate::commands::error_code::skill_op_err;
 use crate::paths::axagent_home;
 use axagent_core::crypto::decrypt_key;
-use axagent_core::types::*;
+use axagent_harness::types::*;
 use axagent_plugins::PluginManager;
 use axagent_trajectory::{HermesMetadata, Skill, SkillMetadata};
 use std::collections::HashMap;

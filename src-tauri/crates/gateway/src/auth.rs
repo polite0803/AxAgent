@@ -9,7 +9,7 @@ use axum::{
 use sea_orm::DatabaseConnection;
 use serde_json::json;
 
-use axagent_core::types::GatewayKey;
+use axagent_harness::types::GatewayKey;
 
 /// Authenticated key injected into request extensions after auth middleware.
 #[derive(Clone, Debug)]

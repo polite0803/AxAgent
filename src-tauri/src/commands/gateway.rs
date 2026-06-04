@@ -2,7 +2,7 @@ use crate::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::gateway as gateway_err;
 use axagent_core::repo::cli_config::CliTool;
-use axagent_core::types::*;
+use axagent_harness::types::*;
 use tauri::State;
 
 struct GatewayRuntimeSettings {

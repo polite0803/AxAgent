@@ -1,6 +1,6 @@
 use crate::AppState;
 use axagent_core::repo::agent_role;
-use axagent_core::types::AgentRoleDef;
+use axagent_harness::types::AgentRoleDef;
 use serde::Serialize;
 use std::fs;
 use std::path::Path;

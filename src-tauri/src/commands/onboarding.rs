@@ -6,7 +6,7 @@ use crate::commands::error_code::onboarding as onboarding_err;
 use axagent_core::repo::provider::{
     add_provider_key, create_provider, list_providers, toggle_provider,
 };
-use axagent_core::types::{CreateProviderInput, ProviderType};
+use axagent_harness::types::{CreateProviderInput, ProviderType};
 use serde::Serialize;
 use tauri::State;
 

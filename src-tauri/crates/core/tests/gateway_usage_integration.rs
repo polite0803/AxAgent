@@ -1,11 +1,11 @@
 use axagent_core::db::create_test_pool;
 use axagent_core::repo::{gateway, provider};
-use axagent_core::types::{CreateProviderInput, ProviderType};
+use axagent_harness::types::{CreateProviderInput, ProviderType};
 
 async fn seed_gateway_usage() -> (
     axagent_core::db::DbHandle,
-    axagent_core::types::GatewayKey,
-    axagent_core::types::ProviderConfig,
+    axagent_harness::types::GatewayKey,
+    axagent_harness::types::ProviderConfig,
 ) {
     let h = create_test_pool().await.unwrap();
     let db = &h.conn;

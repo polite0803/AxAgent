@@ -46,3 +46,6 @@ notify = { version = "8", default-features = false }
 
 [target.'cfg(not(any(target_os = "linux", target_os = "macos", windows)))'.dependencies]
 notify = { version = "8", default-features = false }
+
+[dev-dependencies]
+tempfile = "3"

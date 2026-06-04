@@ -5,7 +5,7 @@ use axagent_core::repo::louvain::{self, LouvainResult};
 use axagent_core::repo::note::{CreateNoteInput, GraphData, Note, NoteLink, UpdateNoteInput};
 use axagent_core::repo::note_graph::LinkGraph;
 use axagent_core::repo::wiki::{self, CreateWikiTemplateInput, NoteVersion, WikiTemplate};
-use axagent_core::types::NoteSearchResult;
+use axagent_harness::types::NoteSearchResult;
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter, State};
 

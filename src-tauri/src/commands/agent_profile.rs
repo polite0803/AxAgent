@@ -1,6 +1,6 @@
 use crate::AppState;
 use axagent_core::repo::agent_profile;
-use axagent_core::types::{AgentProfile, CreateAgentProfileInput, UpdateAgentProfileInput};
+use axagent_harness::types::{AgentProfile, CreateAgentProfileInput, UpdateAgentProfileInput};
 use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
 use serde::Serialize;
 use tauri::State;

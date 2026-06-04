@@ -11,7 +11,7 @@ use crate::app_state::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::provider as provider_err;
 use crate::commands::error_code::workflow as workflow_err;
-use axagent_core::types::{
+use axagent_harness::types::{
     ChatContent, ChatMessage, ChatRequest, ChatTool, ChatToolFunction, MessageRole,
     ProviderProxyConfig,
 };
@@ -517,25 +517,25 @@ async fn build_agent_context(
     };
 
     let adapter: Arc<dyn ProviderAdapter> = match prov.provider_type {
-        axagent_core::types::ProviderType::OpenAI => {
+        axagent_harness::types::ProviderType::OpenAI => {
             Arc::new(axagent_providers::openai::OpenAIAdapter::new())
         },
-        axagent_core::types::ProviderType::OpenAIResponses => {
+        axagent_harness::types::ProviderType::OpenAIResponses => {
             Arc::new(axagent_providers::openai_responses::OpenAIResponsesAdapter::new())
         },
-        axagent_core::types::ProviderType::Anthropic => {
+        axagent_harness::types::ProviderType::Anthropic => {
             Arc::new(axagent_providers::anthropic::AnthropicAdapter::new())
         },
-        axagent_core::types::ProviderType::Gemini => {
+        axagent_harness::types::ProviderType::Gemini => {
             Arc::new(axagent_providers::gemini::GeminiAdapter::new())
         },
-        axagent_core::types::ProviderType::OpenClaw => {
+        axagent_harness::types::ProviderType::OpenClaw => {
             Arc::new(axagent_providers::openclaw::OpenClawAdapter::new())
         },
-        axagent_core::types::ProviderType::Hermes => {
+        axagent_harness::types::ProviderType::Hermes => {
             Arc::new(axagent_providers::hermes::HermesAdapter::new())
         },
-        axagent_core::types::ProviderType::Ollama => {
+        axagent_harness::types::ProviderType::Ollama => {
             Arc::new(axagent_providers::ollama::OllamaAdapter::new())
         },
     };

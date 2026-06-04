@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 
 use axagent_core::entity::{notes, wiki_operations, wiki_pages, wiki_sources, wikis};
 use axagent_core::repo::note::{CreateNoteInput, Note, UpdateNoteInput, calculate_content_hash};
-use axagent_core::types::{ChatContent, ChatMessage, ChatRequest};
+use axagent_harness::types::{ChatContent, ChatMessage, ChatRequest};
 use axagent_core::utils::gen_id;
 use axagent_harness::{ProviderAdapter, ProviderRequestContext};
 use sea_orm::{
@@ -1333,7 +1333,7 @@ fn infer_page_type(title: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use axagent_core::types::{
+    use axagent_harness::types::{
         ChatResponse, ChatStreamChunk, EmbedRequest, EmbedResponse, Model, TokenUsage,
     };
     use axagent_harness::ProviderAdapter;

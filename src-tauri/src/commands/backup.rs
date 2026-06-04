@@ -3,7 +3,7 @@ use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::backup as backup_err;
 use axagent_core::repo::backup;
 use axagent_core::repo::settings::get_settings;
-use axagent_core::types::*;
+use axagent_harness::types::*;
 use sea_orm::DatabaseConnection;
 use std::path::Path;
 use std::sync::Arc;
@@ -64,9 +64,9 @@ pub async fn restore_backup(
         },
         "json" => {
             let strategy = match strategy.as_deref() {
-                Some("merge") => axagent_core::types::RestoreStrategy::Merge,
-                Some("dry_run") => axagent_core::types::RestoreStrategy::DryRun,
-                _ => axagent_core::types::RestoreStrategy::Overwrite,
+                Some("merge") => axagent_harness::types::RestoreStrategy::Merge,
+                Some("dry_run") => axagent_harness::types::RestoreStrategy::DryRun,
+                _ => axagent_harness::types::RestoreStrategy::Overwrite,
             };
 
             let report = backup::restore_json_backup(state.harness.db(), &backup_path, &strategy)

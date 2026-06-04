@@ -686,8 +686,8 @@ pub async fn get_conversation_stats(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::db::create_test_pool;
     use crate::repo::conversation;
-    use axagent_dao::db::create_test_pool;
 
     #[tokio::test]
     async fn create_message_round_trips_attachment_metadata() {

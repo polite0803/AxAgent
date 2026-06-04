@@ -25,3 +25,6 @@ dirs = "5"
 walkdir = "2"
 reqwest = { workspace = true }
 toml_edit = "0.22"
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(mobile)'] }

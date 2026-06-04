@@ -10,7 +10,7 @@ use std::pin::Pin;
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use axagent_core::types::{ChatContent, ChatMessage, ChatRequest, RagContextResult};
+use axagent_harness::types::{ChatContent, ChatMessage, ChatRequest, RagContextResult};
 use axagent_core::workflow_types::WorkflowNode;
 use futures::StreamExt;
 use sea_orm::DatabaseConnection;
@@ -30,8 +30,8 @@ use crate::work_engine::prompt_template::{
 // 缓存 resolve_provider_and_adapter 的完整输出（含 adapter 和 api_key），
 // 同一次工作流执行内多 agent 节点复用，避免重复 decrypt_key + registry.get。
 pub(crate) type ProviderCache = Option<(
-    axagent_core::types::ProviderConfig,
-    axagent_core::types::ProviderKey,
+    axagent_harness::types::ProviderConfig,
+    axagent_harness::types::ProviderKey,
     String,
     Arc<dyn axagent_harness::ProviderAdapter>,
     String,
@@ -463,15 +463,15 @@ impl NodeExecutorTrait for AgentExecutor {
                     .collect()
             };
 
-        let tools: Option<Vec<axagent_core::types::ChatTool>> = if exposed_list.is_empty() {
+        let tools: Option<Vec<axagent_harness::types::ChatTool>> = if exposed_list.is_empty() {
             None
         } else {
             Some(
                 exposed_list
                     .iter()
-                    .map(|td| axagent_core::types::ChatTool {
+                    .map(|td| axagent_harness::types::ChatTool {
                         r#type: "function".to_string(),
-                        function: axagent_core::types::ChatToolFunction {
+                        function: axagent_harness::types::ChatToolFunction {
                             name: td.name.clone(),
                             description: td.description.clone(),
                             parameters: td
@@ -528,7 +528,7 @@ impl NodeExecutorTrait for AgentExecutor {
             let mut stream = adapter.chat_stream(&req_ctx, request, None);
             let mut stream_content = String::new();
             let mut stream_thinking: Option<String> = None;
-            let mut stream_tool_calls: Option<Vec<axagent_core::types::ToolCall>> = None;
+            let mut stream_tool_calls: Option<Vec<axagent_harness::types::ToolCall>> = None;
             let mut stream_usage = (0u32, 0u32);
 
             while let Some(chunk) = stream.next().await {
@@ -643,7 +643,7 @@ impl AgentExecutor {
         &self,
         an: &axagent_core::workflow_types::AgentNode,
         _context: &ExecutionState,
-        prov: &axagent_core::types::ProviderConfig,
+        prov: &axagent_harness::types::ProviderConfig,
         api_key: &str,
         model: &str,
         adapter: &std::sync::Arc<dyn axagent_harness::ProviderAdapter>,
@@ -678,11 +678,11 @@ impl AgentExecutor {
         let resp = adapter
             .chat(
                 &plan_ctx,
-                axagent_core::types::ChatRequest {
+                axagent_harness::types::ChatRequest {
                     model: model.to_string(),
-                    messages: vec![axagent_core::types::ChatMessage {
+                    messages: vec![axagent_harness::types::ChatMessage {
                         role: "user".to_string(),
-                        content: axagent_core::types::ChatContent::Text(plan_prompt),
+                        content: axagent_harness::types::ChatContent::Text(plan_prompt),
                         tool_calls: None,
                         tool_call_id: None,
                         thinking: None,
@@ -901,7 +901,7 @@ impl AgentExecutor {
                         "task_id": task_ids_to_retry[0].clone(),
                         "error": format!("{e:?}"),
                     });
-                    let actions_json: Vec<serde_json::Value> = task_ids_to_retry
+                    let _actions_json: Vec<serde_json::Value> = task_ids_to_retry
                         .iter()
                         .map(|tid| {
                             serde_json::json!({
@@ -1051,8 +1051,8 @@ impl AgentExecutor {
         profile_suggested_provider: Option<&str>,
     ) -> Result<
         (
-            axagent_core::types::ProviderConfig,
-            axagent_core::types::ProviderKey,
+            axagent_harness::types::ProviderConfig,
+            axagent_harness::types::ProviderKey,
             String,
             Arc<dyn axagent_harness::ProviderAdapter>,
             String,

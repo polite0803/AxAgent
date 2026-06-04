@@ -874,7 +874,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-agent"
-version = "2.5.1"
+version = "2.6.0"
 dependencies = [
  "async-trait",
  "axagent-core",
@@ -914,7 +914,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-cache"
-version = "2.5.1"
+version = "2.6.0"
 dependencies = [
  "axagent-harness",
  "axagent-search",
@@ -927,7 +927,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-core"
-version = "2.5.1"
+version = "2.6.0"
 dependencies = [
  "aes-gcm",
  "anyhow",
@@ -996,7 +996,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-crypto"
-version = "2.5.1"
+version = "2.6.0"
 dependencies = [
  "aes-gcm",
  "argon2",
@@ -1012,7 +1012,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-dao"
-version = "2.5.1"
+version = "2.6.0"
 dependencies = [
  "axagent-crypto",
  "axagent-entities",
@@ -1038,7 +1038,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-disk-cache"
-version = "2.5.1"
+version = "2.6.0"
 dependencies = [
  "chrono",
  "rusqlite",
@@ -1048,7 +1048,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-document-parser"
-version = "2.5.1"
+version = "2.6.0"
 dependencies = [
  "axagent-harness",
  "pdf-extract 0.7.12",
@@ -1057,7 +1057,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-entities"
-version = "2.5.1"
+version = "2.6.0"
 dependencies = [
  "axagent-harness",
  "chrono",
@@ -1068,7 +1068,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-gateway"
-version = "2.5.1"
+version = "2.6.0"
 dependencies = [
  "async-trait",
  "axagent-core",
@@ -1094,7 +1094,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-harness"
-version = "2.5.1"
+version = "2.6.0"
 dependencies = [
  "async-trait",
  "chrono",
@@ -1110,7 +1110,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-kit"
-version = "2.5.1"
+version = "2.6.0"
 dependencies = [
  "anyhow",
  "axagent-dao",
@@ -1141,7 +1141,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-mcp"
-version = "2.5.1"
+version = "2.6.0"
 dependencies = [
  "axagent-crypto",
  "axagent-harness",
@@ -1158,7 +1158,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-migration"
-version = "2.5.1"
+version = "2.6.0"
 dependencies = [
  "axagent-core",
  "chrono",
@@ -1174,7 +1174,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-npm"
-version = "2.5.1"
+version = "2.6.0"
 dependencies = [
  "async-trait",
  "axagent-harness",
@@ -1191,7 +1191,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-plugins"
-version = "2.5.1"
+version = "2.6.0"
 dependencies = [
  "axagent-harness",
  "axagent-runtime-core",
@@ -1205,7 +1205,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-prompt-guard"
-version = "2.5.1"
+version = "2.6.0"
 dependencies = [
  "axagent-harness",
  "regex",
@@ -1217,7 +1217,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-providers"
-version = "2.5.1"
+version = "2.6.0"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -1236,7 +1236,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-rt-dashboard"
-version = "2.5.1"
+version = "2.6.0"
 dependencies = [
  "async-trait",
  "serde",
@@ -1248,7 +1248,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-rt-messaging"
-version = "2.5.1"
+version = "2.6.0"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -1279,7 +1279,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-rt-theme"
-version = "2.5.1"
+version = "2.6.0"
 dependencies = [
  "serde",
  "serde_json",
@@ -1289,7 +1289,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-rt-webhook"
-version = "2.5.1"
+version = "2.6.0"
 dependencies = [
  "async-trait",
  "axagent-harness",
@@ -1309,7 +1309,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-rt-workflow"
-version = "2.5.1"
+version = "2.6.0"
 dependencies = [
  "async-trait",
  "axagent-core",
@@ -1334,7 +1334,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-runtime"
-version = "2.5.1"
+version = "2.6.0"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -1387,7 +1387,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-runtime-core"
-version = "2.5.1"
+version = "2.6.0"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -1409,7 +1409,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-search"
-version = "2.5.1"
+version = "2.6.0"
 dependencies = [
  "async-trait",
  "axagent-dao",
@@ -1433,6 +1433,7 @@ dependencies = [
  "serde_json",
  "sha2",
  "sqlite-vec",
+ "tempfile",
  "tokenizers",
  "tokio",
  "tracing",
@@ -1442,7 +1443,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-storage"
-version = "2.5.1"
+version = "2.6.0"
 dependencies = [
  "async-trait",
  "axagent-crypto",
@@ -1458,6 +1459,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2",
+ "tempfile",
  "tokio",
  "tracing",
  "uuid",
@@ -1466,7 +1468,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-telemetry"
-version = "2.5.1"
+version = "2.6.0"
 dependencies = [
  "axagent-core",
  "axagent-harness",
@@ -1485,7 +1487,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-tools"
-version = "2.5.1"
+version = "2.6.0"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -1535,7 +1537,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-trajectory"
-version = "2.5.1"
+version = "2.6.0"
 dependencies = [
  "anyhow",
  "async-trait",

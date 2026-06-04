@@ -14,7 +14,7 @@ use std::sync::Arc;
 
 use axagent_core::error::{AxAgentError, Result};
 use axagent_core::rag::{self, ChunkStrategy, KnowledgeRAG, LlmCallFn, MemoryRAG};
-use axagent_core::types::*;
+use axagent_harness::types::*;
 use axagent_core::vector_store::{VectorSearchResult, VectorStore};
 
 use axagent_providers::{ProviderAdapter, ProviderRequestContext, resolve_base_url_for_type};
@@ -707,7 +707,7 @@ pub async fn collect_rag_context(
     };
 
     // Pipeline results are not cached (involve LLM calls whose outputs vary)
-    let pipeline_cfg: axagent_core::types::RAGPipelineConfig =
+    let pipeline_cfg: axagent_harness::types::RAGPipelineConfig =
         serde_json::from_value(pipeline_config.clone()).unwrap_or_default();
     rag::collect_rag_context_with_pipeline(
         db,

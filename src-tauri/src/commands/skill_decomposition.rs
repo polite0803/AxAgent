@@ -600,13 +600,13 @@ pub async fn upgrade_tool_with_llm(
             .map_err(|e| e.to_string())?;
 
     let registry_key = match provider.provider_type {
-        axagent_core::types::ProviderType::OpenAI => "openai",
-        axagent_core::types::ProviderType::OpenAIResponses => "openai_responses",
-        axagent_core::types::ProviderType::Anthropic => "anthropic",
-        axagent_core::types::ProviderType::Gemini => "gemini",
-        axagent_core::types::ProviderType::OpenClaw => "openclaw",
-        axagent_core::types::ProviderType::Hermes => "hermes",
-        axagent_core::types::ProviderType::Ollama => "ollama",
+        axagent_harness::types::ProviderType::OpenAI => "openai",
+        axagent_harness::types::ProviderType::OpenAIResponses => "openai_responses",
+        axagent_harness::types::ProviderType::Anthropic => "anthropic",
+        axagent_harness::types::ProviderType::Gemini => "gemini",
+        axagent_harness::types::ProviderType::OpenClaw => "openclaw",
+        axagent_harness::types::ProviderType::Hermes => "hermes",
+        axagent_harness::types::ProviderType::Ollama => "ollama",
     };
 
     let adapter = state
@@ -707,7 +707,7 @@ Only output the JSON, no other text."#,
         store_response: None,
     };
 
-    use axagent_core::types::{ChatContent, ChatMessage, ChatRequest};
+    use axagent_harness::types::{ChatContent, ChatMessage, ChatRequest};
     let llm_request = ChatRequest {
         model: model_id.clone(),
         messages: vec![ChatMessage {

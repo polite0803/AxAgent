@@ -3,7 +3,7 @@
 use crate::storage::TrajectoryStorage;
 use crate::trajectory::{
     ExportFormat, RLTrainingEntry, RewardSignal, Trajectory, TrajectoryExportOptions,
-    TrajectoryOutcome, TrajectoryQuery,
+    TrajectoryOutcome,
 };
 use anyhow::Result;
 use itertools::Itertools;

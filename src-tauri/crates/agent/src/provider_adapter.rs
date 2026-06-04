@@ -1,6 +1,6 @@
 //! AxAgent Provider Adapter for ClawCode Runtime
 
-use axagent_core::types::{
+use axagent_harness::types::{
     ChatContent, ChatMessage, ChatRequest, ChatTool, ContentPart, ImageUrl,
     TokenUsage as AxAgentTokenUsage, ToolCall, ToolCallFunction,
 };

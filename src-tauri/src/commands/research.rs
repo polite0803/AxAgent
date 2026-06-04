@@ -7,7 +7,7 @@ use axagent_core::crypto::decrypt_key;
 use axagent_core::repo::conversation as conversation_repo;
 use axagent_core::repo::message as message_repo;
 use axagent_core::repo::provider::{self as provider_repo, get_active_key};
-use axagent_core::types::{ChatContent, ChatMessage, ChatRequest, MessageRole};
+use axagent_harness::types::{ChatContent, ChatMessage, ChatRequest, MessageRole};
 use axagent_harness::resolve_base_url_for_type;
 use serde::{Deserialize, Serialize};
 use tauri::State;

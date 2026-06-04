@@ -1,7 +1,7 @@
 use crate::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::provider as provider_err;
-use axagent_core::types::*;
+use axagent_harness::types::*;
 use std::time::Instant;
 use tauri::State;
 
@@ -176,7 +176,7 @@ pub async fn validate_provider_key(
         .await
         .unwrap_or_default();
     let resolved_proxy =
-        axagent_core::types::ProviderProxyConfig::resolve(&provider.proxy_config, &global_settings);
+        axagent_harness::types::ProviderProxyConfig::resolve(&provider.proxy_config, &global_settings);
     let ctx = axagent_harness::ProviderRequestContext {
         api_key: decrypted,
         key_id: key_id.clone(),
@@ -307,7 +307,7 @@ pub async fn fetch_remote_models(
         .await
         .unwrap_or_default();
     let resolved_proxy =
-        axagent_core::types::ProviderProxyConfig::resolve(&provider.proxy_config, &global_settings);
+        axagent_harness::types::ProviderProxyConfig::resolve(&provider.proxy_config, &global_settings);
     let ctx = axagent_harness::ProviderRequestContext {
         api_key: decrypted,
         key_id: key_row.id.clone(),
@@ -399,7 +399,7 @@ pub async fn test_model(
         .await
         .unwrap_or_default();
     let resolved_proxy =
-        axagent_core::types::ProviderProxyConfig::resolve(&provider.proxy_config, &global_settings);
+        axagent_harness::types::ProviderProxyConfig::resolve(&provider.proxy_config, &global_settings);
     let ctx = axagent_harness::ProviderRequestContext {
         api_key: decrypted,
         key_id: key_row.id.clone(),

@@ -1,4 +1,4 @@
-use axagent_core::types::{ChatContent, ChatMessage, ChatRequest, ContentPart, ImageUrl};
+use axagent_harness::types::{ChatContent, ChatMessage, ChatRequest, ContentPart, ImageUrl};
 use axagent_harness::{ProviderAdapter, ProviderRequestContext};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;

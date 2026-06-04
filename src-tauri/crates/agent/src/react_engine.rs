@@ -5,7 +5,7 @@ use crate::self_verifier::{SelfVerifier, VerificationResult};
 use crate::thought_chain::{Action, ChainSummary, ThoughtChain, ThoughtEvent, ThoughtStep};
 use axagent_core::token_budget::{TokenBudgetDecision, TokenBudgetTracker};
 use axagent_core::token_counter::estimate_tokens;
-use axagent_core::types::{ChatContent, ChatMessage, ChatRequest};
+use axagent_harness::types::{ChatContent, ChatMessage, ChatRequest};
 use axagent_harness::{ProviderAdapter, ProviderRequestContext};
 use std::sync::Arc;
 use std::time::Duration;

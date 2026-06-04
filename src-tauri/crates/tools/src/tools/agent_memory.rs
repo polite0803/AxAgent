@@ -154,7 +154,7 @@ impl Tool for MemoryFlushTool {
 
         let title = format!("[{}] {}", category, &content[..content.len().min(50)]);
 
-        let input = axagent_core::types::CreateMemoryItemInput {
+        let input = axagent_harness::types::CreateMemoryItemInput {
             namespace_id: namespace_id.clone(),
             title,
             content: content.to_string(),

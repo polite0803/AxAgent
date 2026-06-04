@@ -3,7 +3,7 @@
 //! Provides skill creation, improvement, and management capabilities
 
 use crate::trajectory::{Trajectory, TrajectoryOutcome};
-use axagent_core::types::{ChatTool, ChatToolFunction};
+use axagent_harness::types::{ChatTool, ChatToolFunction};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;

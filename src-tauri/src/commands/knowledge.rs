@@ -1,6 +1,6 @@
 use crate::AppState;
 use axagent_core::rag::KnowledgeContainer;
-use axagent_core::types::*;
+use axagent_harness::types::*;
 use tauri::{AppHandle, Emitter, State};
 
 #[tauri::command]
@@ -401,7 +401,7 @@ pub async fn list_knowledge_containers(
 pub async fn list_knowledge_entities(
     state: State<'_, AppState>,
     base_id: String,
-) -> Result<Vec<axagent_core::types::KnowledgeEntity>, String> {
+) -> Result<Vec<axagent_harness::types::KnowledgeEntity>, String> {
     axagent_core::repo::knowledge_graph::list_knowledge_entities(state.harness.db(), &base_id)
         .await
         .map_err(|e| e.to_string())
@@ -410,8 +410,8 @@ pub async fn list_knowledge_entities(
 #[tauri::command]
 pub async fn create_knowledge_entity(
     state: State<'_, AppState>,
-    input: axagent_core::types::CreateKnowledgeEntityInput,
-) -> Result<axagent_core::types::KnowledgeEntity, String> {
+    input: axagent_harness::types::CreateKnowledgeEntityInput,
+) -> Result<axagent_harness::types::KnowledgeEntity, String> {
     axagent_core::repo::knowledge_graph::create_knowledge_entity(state.harness.db(), input)
         .await
         .map_err(|e| e.to_string())
@@ -421,7 +421,7 @@ pub async fn create_knowledge_entity(
 pub async fn list_knowledge_attributes(
     state: State<'_, AppState>,
     entity_id: String,
-) -> Result<Vec<axagent_core::types::KnowledgeAttribute>, String> {
+) -> Result<Vec<axagent_harness::types::KnowledgeAttribute>, String> {
     axagent_core::repo::knowledge_graph::list_knowledge_attributes(state.harness.db(), &entity_id)
         .await
         .map_err(|e| e.to_string())
@@ -430,8 +430,8 @@ pub async fn list_knowledge_attributes(
 #[tauri::command]
 pub async fn create_knowledge_attribute(
     state: State<'_, AppState>,
-    input: axagent_core::types::CreateKnowledgeAttributeInput,
-) -> Result<axagent_core::types::KnowledgeAttribute, String> {
+    input: axagent_harness::types::CreateKnowledgeAttributeInput,
+) -> Result<axagent_harness::types::KnowledgeAttribute, String> {
     axagent_core::repo::knowledge_graph::create_knowledge_attribute(state.harness.db(), input)
         .await
         .map_err(|e| e.to_string())
@@ -441,7 +441,7 @@ pub async fn create_knowledge_attribute(
 pub async fn list_knowledge_relations(
     state: State<'_, AppState>,
     base_id: String,
-) -> Result<Vec<axagent_core::types::KnowledgeRelation>, String> {
+) -> Result<Vec<axagent_harness::types::KnowledgeRelation>, String> {
     axagent_core::repo::knowledge_graph::list_knowledge_relations(state.harness.db(), &base_id)
         .await
         .map_err(|e| e.to_string())
@@ -450,8 +450,8 @@ pub async fn list_knowledge_relations(
 #[tauri::command]
 pub async fn create_knowledge_relation(
     state: State<'_, AppState>,
-    input: axagent_core::types::CreateKnowledgeRelationInput,
-) -> Result<axagent_core::types::KnowledgeRelation, String> {
+    input: axagent_harness::types::CreateKnowledgeRelationInput,
+) -> Result<axagent_harness::types::KnowledgeRelation, String> {
     axagent_core::repo::knowledge_graph::create_knowledge_relation(state.harness.db(), input)
         .await
         .map_err(|e| e.to_string())
@@ -461,7 +461,7 @@ pub async fn create_knowledge_relation(
 pub async fn list_knowledge_flows(
     state: State<'_, AppState>,
     base_id: String,
-) -> Result<Vec<axagent_core::types::KnowledgeFlow>, String> {
+) -> Result<Vec<axagent_harness::types::KnowledgeFlow>, String> {
     axagent_core::repo::knowledge_graph::list_knowledge_flows(state.harness.db(), &base_id)
         .await
         .map_err(|e| e.to_string())
@@ -470,8 +470,8 @@ pub async fn list_knowledge_flows(
 #[tauri::command]
 pub async fn create_knowledge_flow(
     state: State<'_, AppState>,
-    input: axagent_core::types::CreateKnowledgeFlowInput,
-) -> Result<axagent_core::types::KnowledgeFlow, String> {
+    input: axagent_harness::types::CreateKnowledgeFlowInput,
+) -> Result<axagent_harness::types::KnowledgeFlow, String> {
     axagent_core::repo::knowledge_graph::create_knowledge_flow(state.harness.db(), input)
         .await
         .map_err(|e| e.to_string())
@@ -481,7 +481,7 @@ pub async fn create_knowledge_flow(
 pub async fn list_knowledge_interfaces(
     state: State<'_, AppState>,
     base_id: String,
-) -> Result<Vec<axagent_core::types::KnowledgeInterface>, String> {
+) -> Result<Vec<axagent_harness::types::KnowledgeInterface>, String> {
     axagent_core::repo::knowledge_graph::list_knowledge_interfaces(state.harness.db(), &base_id)
         .await
         .map_err(|e| e.to_string())
@@ -490,8 +490,8 @@ pub async fn list_knowledge_interfaces(
 #[tauri::command]
 pub async fn create_knowledge_interface(
     state: State<'_, AppState>,
-    input: axagent_core::types::CreateKnowledgeInterfaceInput,
-) -> Result<axagent_core::types::KnowledgeInterface, String> {
+    input: axagent_harness::types::CreateKnowledgeInterfaceInput,
+) -> Result<axagent_harness::types::KnowledgeInterface, String> {
     axagent_core::repo::knowledge_graph::create_knowledge_interface(state.harness.db(), input)
         .await
         .map_err(|e| e.to_string())

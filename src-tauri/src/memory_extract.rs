@@ -1,5 +1,5 @@
 use axagent_core::prompts::{PromptLang, PromptRegistry};
-use axagent_core::types::{ChatContent, ChatMessage, ChatRequest, Message, MessageRole};
+use axagent_harness::types::{ChatContent, ChatMessage, ChatRequest, Message, MessageRole};
 use axagent_harness::{ProviderAdapter, ProviderRequestContext};
 use serde::{Deserialize, Serialize};
 

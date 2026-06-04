@@ -1,7 +1,7 @@
 use crate::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::search as search_err;
-use axagent_core::types::{CreateSearchProviderInput, SearchProvider};
+use axagent_harness::types::{CreateSearchProviderInput, SearchProvider};
 use tauri::command;
 
 /// 列出所有搜索提供商

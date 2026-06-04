@@ -177,7 +177,7 @@ pub mod gateway {
 }
 
 /// 平台集成相关错误码
-pub mod platform {
+pub mod platforms {
     pub const TELEGRAM_NOT_ENABLED: &str = "PLATFORM_TELEGRAM_NOT_ENABLED";
     pub const DISCORD_NOT_ENABLED: &str = "PLATFORM_DISCORD_NOT_ENABLED";
     pub const API_SERVER_NOT_ENABLED: &str = "PLATFORM_API_SERVER_NOT_ENABLED";

@@ -11,7 +11,7 @@
 //! skills, nudges, and session history.
 
 use axagent_core::token_counter;
-use axagent_core::types::{ChatContent, ChatMessage};
+use axagent_harness::types::{ChatContent, ChatMessage};
 use axagent_trajectory::{ContextAssembler, TokenBudget};
 
 /// Fraction of context window that triggers auto-compression (70%).
