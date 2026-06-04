@@ -68,21 +68,21 @@ pub enum AxAgentError {
     #[error("Workflow error: {context}")]
     Workflow {
         #[source]
-        source: Option<Box<AxAgentError>>,
+        source: Option<Box<dyn std::error::Error + Send + Sync>>,
         context: String,
     },
 
     #[error("Agent error: {context}")]
     Agent {
         #[source]
-        source: Option<Box<AxAgentError>>,
+        source: Option<Box<dyn std::error::Error + Send + Sync>>,
         context: String,
     },
 
     #[error("Execution error: {context}")]
     Execution {
         #[source]
-        source: Option<Box<AxAgentError>>,
+        source: Option<Box<dyn std::error::Error + Send + Sync>>,
         context: String,
     },
 
@@ -119,9 +119,12 @@ impl AxAgentError {
     }
 
     /// Creates a new workflow error with an underlying source error
-    pub fn workflow_with_source<E: Into<AxAgentError>>(context: String, source: E) -> Self {
+    pub fn workflow_with_source<E: Into<Box<dyn std::error::Error + Send + Sync>>>(
+        context: String,
+        source: E,
+    ) -> Self {
         AxAgentError::Workflow {
-            source: Some(Box::new(source.into())),
+            source: Some(source.into()),
             context,
         }
     }
