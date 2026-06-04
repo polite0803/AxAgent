@@ -8,6 +8,7 @@ use crate::wrappers::XmlWrapper;
 ///
 /// 编排顺序：L1(PatternDetect) → L2(DelimiterEscape) → L3(XmlWrapper)
 /// 外部数据额外经过 L4(TrustLabeler) → L2 → L3
+#[derive(Debug)]
 pub struct PromptGuardPipeline {
     pattern_detector: PatternDetector,
     delimiter_escaper: DelimiterEscaper,

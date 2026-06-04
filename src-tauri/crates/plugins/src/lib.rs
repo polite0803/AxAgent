@@ -10,13 +10,14 @@ use std::fmt::{Display, Formatter};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
+use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 
-use axagent_npm::NpmRegistry;
+use axagent_harness::{NpmRegistryService, parse_npm_package_spec};
 
 pub use hooks::{HookEvent, HookRunResult, HookRunner};
 pub use mcp_launcher::{McpLaunchError, McpLauncher};
@@ -1197,6 +1198,7 @@ pub struct PluginManager {
     config: PluginManagerConfig,
     mcp_launcher: McpLauncher,
     skill_installer: SkillInstaller,
+    npm_registry: Option<Arc<dyn NpmRegistryService>>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -1391,7 +1393,15 @@ impl PluginManager {
             config,
             mcp_launcher: McpLauncher::new(),
             skill_installer,
+            npm_registry: None,
         }
+    }
+
+    /// 注入 NPM Registry 服务（用于下载 npm 包）
+    #[must_use]
+    pub fn with_npm_registry(mut self, registry: Arc<dyn NpmRegistryService>) -> Self {
+        self.npm_registry = Some(registry);
+        self
     }
 
     #[must_use]
@@ -1538,7 +1548,7 @@ impl PluginManager {
             PluginInstallSource::LocalPath { path } => load_plugin_from_directory(&path),
             _ => {
                 let temp_root = self.install_root().join(".tmp");
-                let staged = materialize_source(&install_source, &temp_root)?;
+                let staged = materialize_source(&install_source, &temp_root, self.npm_registry.as_ref())?;
                 let manifest = load_plugin_from_directory(&staged)?;
                 // 清理临时目录
                 if staged.starts_with(&temp_root) {
@@ -1552,7 +1562,7 @@ impl PluginManager {
     pub fn install(&mut self, source: &str) -> Result<InstallOutcome, PluginError> {
         let install_source = parse_install_source(source)?;
         let temp_root = self.install_root().join(".tmp");
-        let staged_source = materialize_source(&install_source, &temp_root)?;
+        let staged_source = materialize_source(&install_source, &temp_root, self.npm_registry.as_ref())?;
         let cleanup_source = matches!(install_source, PluginInstallSource::GitUrl { .. });
         let manifest = load_plugin_from_directory(&staged_source)?;
 
@@ -1689,7 +1699,7 @@ impl PluginManager {
         })?;
 
         let temp_root = self.install_root().join(".tmp");
-        let staged_source = materialize_source(&record.source, &temp_root)?;
+        let staged_source = materialize_source(&record.source, &temp_root, self.npm_registry.as_ref())?;
         let cleanup_source = matches!(record.source, PluginInstallSource::GitUrl { .. });
         let manifest = load_plugin_from_directory(&staged_source)?;
         self.validate_dependencies(&manifest)?;
@@ -2907,7 +2917,7 @@ fn looks_like_npm_spec(source: &str) -> bool {
 pub(crate) fn parse_install_source(source: &str) -> Result<PluginInstallSource, PluginError> {
     // npm 包检测
     if looks_like_npm_spec(source) {
-        let (name, version) = NpmRegistry::parse_package_spec(source);
+        let (name, version) = parse_npm_package_spec(source);
         return Ok(PluginInstallSource::NpmPackage {
             name: name.to_string(),
             version: version.map(|v| v.to_string()),
@@ -2933,6 +2943,7 @@ pub(crate) fn parse_install_source(source: &str) -> Result<PluginInstallSource, 
 fn materialize_source(
     source: &PluginInstallSource,
     temp_root: &Path,
+    npm_registry: Option<&Arc<dyn NpmRegistryService>>,
 ) -> Result<PathBuf, PluginError> {
     fs::create_dir_all(temp_root)?;
     match source {
@@ -2964,25 +2975,24 @@ fn materialize_source(
             let name = name.clone();
             let version = version.clone();
             let dest = temp_root.join(format!("npm-{}", sanitize_plugin_id(&name)));
-            let result = std::thread::spawn(move || {
-                let rt = tokio::runtime::Runtime::new().expect("tokio runtime");
-                rt.block_on(async {
-                    let registry = NpmRegistry::new();
-                    let info = registry
-                        .fetch_package_info(&name)
-                        .await
-                        .map_err(|e| e.to_string())?;
-                    let ver = NpmRegistry::resolve_version(&info, version.as_deref())
-                        .map_err(|e| e.to_string())?;
-                    registry
-                        .download_and_extract(&ver.dist, &dest)
-                        .await
-                        .map_err(|e| e.to_string())
-                })
-            })
-            .join()
-            .map_err(|e| PluginError::CommandFailed(format!("install thread panicked: {:?}", e)))?;
-            result.map_err(PluginError::CommandFailed)
+            let dest_clone = dest.clone();
+            let service = npm_registry.cloned();
+            let result = match service {
+                Some(registry) => {
+                    let rt = tokio::runtime::Runtime::new().expect("tokio runtime");
+                    rt.block_on(async {
+                        registry
+                            .download_package(&name, version.as_deref(), &dest)
+                            .await
+                            .map_err(|e| PluginError::CommandFailed(e))?;
+                        Ok(dest_clone)
+                    })
+                },
+                None => Err(PluginError::CommandFailed(
+                    "NPM registry service is not configured".to_string(),
+                )),
+            };
+            result
         },
     }
 }

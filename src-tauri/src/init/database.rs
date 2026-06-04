@@ -53,6 +53,15 @@ pub async fn init_database_with_dir(app_dir: PathBuf) -> Result<DatabaseInitResu
         .await
         .map_err(|e| format!("database initialization failed: {}", e))?;
 
+    // MCP 预设服务器播种（依赖 mcp_client，在 core 中）
+    if let Err(e) = axagent_core::repo::mcp_server::ensure_preset_servers(&db_handle.conn).await {
+        tracing::warn!("[DB] MCP 预设服务器迁移失败: {e}");
+    }
+
+    // 硬编码路径 → 模板变量迁移（已迁入 storage，直接调用）
+    // 注意：此函数已从 path_vars 移除，迁移逻辑由各模块自行处理
+    // axagent_core::path_vars::migrate_hardcoded_paths(&db_handle.conn).await;
+
     // 注册 SeaORM 连接
     axagent_tools::global_state::set_sea_db(std::sync::Arc::new(db_handle.conn.clone()));
 

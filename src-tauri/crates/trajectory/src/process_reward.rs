@@ -1,47 +1,12 @@
+
+
+pub use axagent_harness::trajectory_types::{PrmLlmProvider, RewardCategory, StepReward};
+
 use serde::{Deserialize, Serialize};
 use std::future::Future;
 use std::pin::Pin;
 
 use crate::trajectory::{Trajectory, TrajectoryOutcome};
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub enum RewardCategory {
-    Correctness,
-    Coherence,
-    Completeness,
-    Efficiency,
-    Safety,
-}
-
-impl RewardCategory {
-    pub fn weight(&self) -> f64 {
-        match self {
-            RewardCategory::Correctness => 0.30,
-            RewardCategory::Coherence => 0.20,
-            RewardCategory::Completeness => 0.25,
-            RewardCategory::Efficiency => 0.15,
-            RewardCategory::Safety => 0.10,
-        }
-    }
-
-    pub fn label(&self) -> &'static str {
-        match self {
-            RewardCategory::Correctness => "correctness",
-            RewardCategory::Coherence => "coherence",
-            RewardCategory::Completeness => "completeness",
-            RewardCategory::Efficiency => "efficiency",
-            RewardCategory::Safety => "safety",
-        }
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct StepReward {
-    pub step_index: usize,
-    pub reward: f64,
-    pub reasoning: String,
-    pub categories: Vec<(RewardCategory, f64)>,
-}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProcessRewardConfig {
@@ -68,15 +33,6 @@ pub struct ProcessRewardResult {
     pub aggregate_reward: f64,
     pub outcome_reward: f64,
     pub weighted_reward: f64,
-}
-
-pub trait PrmLlmProvider: Send + Sync {
-    fn evaluate_step(
-        &self,
-        step_content: &str,
-        context: &str,
-        previous_steps: &[String],
-    ) -> Pin<Box<dyn Future<Output = Result<StepReward, String>> + Send + '_>>;
 }
 
 pub struct DefaultPrmProvider {
@@ -892,8 +848,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_process_reward_model_with_custom_provider() {
-        let model = ProcessRewardModel::new(ProcessRewardConfig::default())
-            .with_provider(Box::new(MockPrmProvider { fixed_reward: 0.8 }));
+        let mut model = ProcessRewardModel::new(ProcessRewardConfig::default());
+        model.set_provider(Box::new(MockPrmProvider { fixed_reward: 0.8 }));
         let trajectory = make_test_trajectory(
             vec![("Step 1", None), ("Step 2", None), ("Step 3", None)],
             TrajectoryOutcome::Success,

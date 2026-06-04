@@ -242,7 +242,7 @@ async fn generate_plan_via_llm(
         .map_err(|e| format!("Failed to load provider: {}", e))?;
 
     // Resolve provider adapter
-    let registry_key = format!("{:?}", provider_config.provider_type).to_lowercase();
+    let registry_key = provider_config.provider_type.registry_key();
 
     let adapter = state
         .harness
@@ -621,8 +621,7 @@ async fn build_step_tools(
         }
     }
 
-    tool_registry = tool_registry
-        .with_recorder(axagent_tools::ToolExecutionRecorder::new(Arc::new(db.clone())));
+    tool_registry = tool_registry.with_recorder_from_db(&db);
 
     let api_client = if chat_tools.is_empty() {
         axagent_agent::AxAgentApiClient::new(agent_ctx.adapter.clone(), agent_ctx.ctx.clone())

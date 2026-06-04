@@ -22,8 +22,23 @@ use axagent_providers::{ProviderAdapter, ProviderRequestContext, resolve_base_ur
 // ── AsyncEmbedFn implementation ──────────────────────────────────────────────
 
 /// Concrete implementation of `AsyncEmbedFn` that uses provider adapters.
+///
+/// 通过 `DEFAULT_PROVIDER_REGISTRY`（OnceLock 缓存）共享 provider registry，
+/// 避免每次 embed 都 `RuntimeHarness::new`（之前会丢弃 adapter cache）。
 #[derive(Clone)]
 pub struct ProviderEmbedFn;
+
+static DEFAULT_PROVIDER_REGISTRY: std::sync::OnceLock<
+    std::sync::Arc<dyn axagent_harness::registry::ProviderRegistry>,
+> = std::sync::OnceLock::new();
+
+fn default_provider_registry(
+) -> &'static std::sync::Arc<dyn axagent_harness::registry::ProviderRegistry> {
+    DEFAULT_PROVIDER_REGISTRY.get_or_init(|| {
+        std::sync::Arc::new(axagent_providers::registry::ProviderRegistry::create_default())
+            as std::sync::Arc<dyn axagent_harness::registry::ProviderRegistry>
+    })
+}
 
 #[async_trait::async_trait]
 impl rag::AsyncEmbedFn for ProviderEmbedFn {
@@ -35,7 +50,15 @@ impl rag::AsyncEmbedFn for ProviderEmbedFn {
         texts: Vec<String>,
         dimensions: Option<usize>,
     ) -> Result<EmbedResponse> {
-        generate_embeddings(db, master_key, embedding_provider, texts, dimensions).await
+        generate_embeddings(
+            db,
+            master_key,
+            default_provider_registry(),
+            embedding_provider,
+            texts,
+            dimensions,
+        )
+        .await
     }
 }
 
@@ -69,19 +92,6 @@ pub fn parse_embedding_provider(embedding_provider: &str) -> Result<(String, Str
         )));
     }
     Ok((parts[0].to_string(), parts[1].to_string()))
-}
-
-/// Resolve the provider type string used for registry lookup.
-fn provider_type_to_registry_key(pt: &ProviderType) -> &'static str {
-    match pt {
-        ProviderType::OpenAI => "openai",
-        ProviderType::OpenAIResponses => "openai_responses",
-        ProviderType::Anthropic => "anthropic",
-        ProviderType::Gemini => "gemini",
-        ProviderType::OpenClaw => "openclaw",
-        ProviderType::Hermes => "hermes",
-        ProviderType::Ollama => "ollama",
-    }
 }
 
 /// Build a ProviderRequestContext for an embedding provider.
@@ -134,9 +144,13 @@ const EMBED_RETRY_BASE_DELAY_MS: u64 = 500;
 ///
 /// Texts are sent in batches of `EMBED_BATCH_SIZE` to avoid exceeding API limits.
 /// Each batch is retried up to `EMBED_MAX_RETRIES` times with exponential backoff.
+///
+/// `provider_registry` 由调用方传入（通常来自 `state.harness.provider_registry()`），
+/// 不再内部 `RuntimeHarness::new` 重复创建（之前会丢弃 adapter cache）。
 pub async fn generate_embeddings(
     db: &DatabaseConnection,
     master_key: &[u8; 32],
+    provider_registry: &std::sync::Arc<dyn axagent_harness::registry::ProviderRegistry>,
     embedding_provider: &str,
     texts: Vec<String>,
     dimensions: Option<usize>,
@@ -144,17 +158,8 @@ pub async fn generate_embeddings(
     let (provider_id, model_id) = parse_embedding_provider(embedding_provider)?;
     let (ctx, provider_config) = build_embed_context(db, master_key, &provider_id).await?;
 
-    let harness =
-        axagent_runtime::harness::RuntimeHarness::new(axagent_runtime::harness::HarnessDeps {
-            persistence: Arc::new(axagent_core::db::DbHandle {
-                conn: db.clone(),
-                path: String::new(),
-            }) as axagent_harness::SharedPersistence,
-            master_key: *master_key,
-        });
-    let registry_key = provider_type_to_registry_key(&provider_config.provider_type);
-    let adapter = harness
-        .provider_registry()
+    let registry_key = provider_config.provider_type.registry_key();
+    let adapter = provider_registry
         .get(registry_key)
         .ok_or_else(|| {
             AxAgentError::Provider(format!("Unsupported provider type: {}", registry_key))
@@ -345,7 +350,15 @@ async fn run_indexing(
 
     let chunk_texts: Vec<String> = chunks.iter().map(|(_, text, _)| text.clone()).collect();
     let embed_response =
-        generate_embeddings(db, master_key, embedding_provider, chunk_texts, dimensions).await?;
+        generate_embeddings(
+            db,
+            master_key,
+            default_provider_registry(),
+            embedding_provider,
+            chunk_texts,
+            dimensions,
+        )
+        .await?;
 
     rag::index(
         vector_store,
@@ -379,7 +392,15 @@ pub async fn index_memory_item(
 
     let chunk_texts: Vec<String> = chunks.iter().map(|(_, text, _)| text.clone()).collect();
     let embed_response =
-        generate_embeddings(db, master_key, embedding_provider, chunk_texts, dimensions).await?;
+        generate_embeddings(
+            db,
+            master_key,
+            default_provider_registry(),
+            embedding_provider,
+            chunk_texts,
+            dimensions,
+        )
+        .await?;
 
     rag::index(
         vector_store,
@@ -422,8 +443,15 @@ pub async fn index_wiki_note(
     }
 
     let chunk_texts: Vec<String> = chunks.iter().map(|(_, text, _)| text.clone()).collect();
-    let embed_response =
-        generate_embeddings(db, master_key, embedding_provider, chunk_texts, dimensions).await?;
+    let embed_response = generate_embeddings(
+        db,
+        master_key,
+        default_provider_registry(),
+        embedding_provider,
+        chunk_texts,
+        dimensions,
+    )
+    .await?;
 
     rag::index(
         vector_store,
@@ -606,9 +634,21 @@ pub async fn collect_rag_context(
         .map(|s| s.rag_pipeline_config)
         .unwrap_or_default();
 
-    let use_pipeline = pipeline_config.query_enhancement.enabled
-        || pipeline_config.rerank.enabled
-        || pipeline_config.self_rag.enabled;
+    let use_pipeline = pipeline_config
+        .get("query_enhancement")
+        .and_then(|v| v.get("enabled"))
+        .and_then(|v| v.as_bool())
+        .unwrap_or(false)
+        || pipeline_config
+            .get("rerank")
+            .and_then(|v| v.get("enabled"))
+            .and_then(|v| v.as_bool())
+            .unwrap_or(false)
+        || pipeline_config
+            .get("self_rag")
+            .and_then(|v| v.get("enabled"))
+            .and_then(|v| v.as_bool())
+            .unwrap_or(false);
 
     if !use_pipeline {
         // Fast path: no pipeline features enabled, use existing cached search
@@ -642,20 +682,25 @@ pub async fn collect_rag_context(
     }
 
     // Pipeline path: build LLM function if query enhancement is enabled
+    let qe_enabled = pipeline_config.get("query_enhancement").and_then(|v| v.get("enabled")).and_then(|v| v.as_bool()).unwrap_or(false);
+    let rerank_enabled = pipeline_config.get("rerank").and_then(|v| v.get("enabled")).and_then(|v| v.as_bool()).unwrap_or(false);
+    let sr_enabled = pipeline_config.get("self_rag").and_then(|v| v.get("enabled")).and_then(|v| v.as_bool()).unwrap_or(false);
     tracing::info!(
         "RAG pipeline active: enhancement={}, rerank={}, self_rag={}",
-        pipeline_config.query_enhancement.enabled,
-        pipeline_config.rerank.enabled,
-        pipeline_config.self_rag.enabled,
+        qe_enabled,
+        rerank_enabled,
+        sr_enabled,
     );
 
-    let llm_fn = if pipeline_config.query_enhancement.enabled {
+    let llm_fn = if qe_enabled {
         build_rag_llm_fn(db, master_key).await
     } else {
         None
     };
 
     // Pipeline results are not cached (involve LLM calls whose outputs vary)
+    let pipeline_cfg: axagent_core::types::RAGPipelineConfig =
+        serde_json::from_value(pipeline_config.clone()).unwrap_or_default();
     rag::collect_rag_context_with_pipeline(
         db,
         master_key,
@@ -666,7 +711,7 @@ pub async fn collect_rag_context(
         query,
         top_k,
         ProviderEmbedFn,
-        &pipeline_config,
+        &pipeline_cfg,
         llm_fn,
     )
     .await

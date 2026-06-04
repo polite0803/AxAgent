@@ -4,9 +4,10 @@
 //! 脚本中可通过 `tool("name", args_map)` 调用已注册的工具
 
 use rhai::{AST, Engine, Scope};
+use serde_json::Value as JsonValue;
 use std::collections::HashMap;
 use std::sync::Arc;
-use std::sync::LazyLock;
+use std::sync::{LazyLock, Mutex};
 
 static SHARED_RHAI_RUNTIME: LazyLock<std::sync::Arc<tokio::runtime::Runtime>> =
     LazyLock::new(|| {
@@ -208,5 +209,97 @@ fn dynamic_to_json(d: rhai::Dynamic) -> serde_json::Value {
         )
     } else {
         serde_json::Value::String(d.to_string())
+    }
+}
+
+// ── Harness RhaiEngineAdapter trait 实现 ──
+
+use axagent_harness::RhaiEngineAdapter as HarnessRhaiEngineAdapter;
+use axagent_harness::RhaiToolFn;
+
+/// 状态化的 Rhai 引擎适配器，内部管理脚本缓存。
+#[derive(Debug)]
+pub struct RhaiEngine {
+    cache: Mutex<RhaiScriptCache>,
+}
+
+impl RhaiEngine {
+    #[must_use]
+    pub fn new() -> Self {
+        Self {
+            cache: Mutex::new(HashMap::new()),
+        }
+    }
+}
+
+impl Default for RhaiEngine {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl HarnessRhaiEngineAdapter for RhaiEngine {
+    fn register_scripts(&self, scripts: &[JsonValue]) {
+        let engine = create_rhai_engine();
+        let mut cache = self.cache.lock().unwrap_or_else(|e| e.into_inner());
+        for script in scripts {
+            let tool_name = script
+                .get("tool_name")
+                .and_then(|v| v.as_str())
+                .unwrap_or("");
+            let code = script
+                .get("code")
+                .and_then(|v| v.as_str())
+                .unwrap_or("");
+            if code.is_empty() {
+                continue;
+            }
+            match compile_script(&engine, code) {
+                Ok(ast) => {
+                    cache.insert(tool_name.to_string(), Arc::new(ast));
+                },
+                Err(e) => {
+                    tracing::warn!("[RhaiEngineAdapter] 编译失败 {tool_name}: {e}");
+                },
+            }
+        }
+    }
+
+    fn execute_script(
+        &self,
+        script_name: &str,
+        args: JsonValue,
+        tool_fns: &HashMap<String, RhaiToolFn>,
+    ) -> Result<JsonValue, String> {
+        let ast = {
+            let cache = self.cache.lock().unwrap_or_else(|e| e.into_inner());
+            cache
+                .get(script_name)
+                .cloned()
+                .ok_or_else(|| format!("Rhai 脚本 '{script_name}' 未找到"))?
+        };
+
+        // 将 tool_fns 转换为本地 ToolFn 格式
+        let rhai_tool_fns: Option<HashMap<String, ToolFn>> = if tool_fns.is_empty() {
+            None
+        } else {
+            let mut map: HashMap<String, ToolFn> = HashMap::new();
+            for (name, handler) in tool_fns {
+                let handler = handler.clone();
+                let name = name.clone();
+                map.insert(
+                    name.clone(),
+                    Arc::new(move |tool_name: String, args: JsonValue| {
+                        let handler = handler.clone();
+                        let n = tool_name.clone();
+                        // RhaiToolFn 是同步的，用 futures::future::ready 包装为 async
+                        Box::pin(futures::future::ready(handler(n, args)))
+                    }),
+                );
+            }
+            Some(map)
+        };
+
+        execute_rhai_ast(&ast, args, rhai_tool_fns.as_ref())
     }
 }

@@ -18,11 +18,10 @@ axagent-core = { path = "../core" }
 axagent-harness = { path = "../harness" }
 reqwest = { workspace = true }
 sea-orm = { workspace = true }
-axagent-telemetry = { path = "../telemetry" }
-axagent-prompt-guard = { path = "../prompt-guard" }
 
 [dev-dependencies]
+axagent-telemetry = { path = "../telemetry" }
+axagent-prompt-guard = { path = "../prompt-guard" }
 tempfile = "3"
 
 [lints]
-# workspace = true

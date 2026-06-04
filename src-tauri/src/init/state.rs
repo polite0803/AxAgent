@@ -146,6 +146,8 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState, Strin
         axagent_runtime::harness::RuntimeHarness::new(axagent_runtime::harness::HarnessDeps {
             persistence: Arc::new(db_handle) as axagent_harness::SharedPersistence,
             master_key,
+            provider_registry: Arc::new(axagent_providers::registry::ProviderRegistry::create_default())
+                as Arc<dyn axagent_harness::registry::ProviderRegistry>,
         });
     let harness_registry = harness.provider_registry().clone();
 
@@ -221,11 +223,13 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState, Strin
             axagent_trajectory::BatchConfig::default(),
         )),
         #[cfg(not(target_os = "android"))]
-        skill_evolution_engine: Arc::new(tokio::sync::Mutex::new(
-            axagent_trajectory::SkillEvolutionEngine::new().with_sandbox(Arc::new(
+        skill_evolution_engine: Arc::new(tokio::sync::Mutex::new({
+            let mut engine = axagent_trajectory::SkillEvolutionEngine::new();
+            engine.set_sandbox(Arc::new(
                 axagent_trajectory::SkillSandboxExecutor::with_default_policy(),
-            )),
-        )),
+            ));
+            engine
+        })),
         #[cfg(target_os = "android")]
         skill_evolution_engine: Arc::new(tokio::sync::Mutex::new(
             axagent_trajectory::SkillEvolutionEngine::new(),
@@ -467,6 +471,7 @@ fn load_cloud_storage_config(
     let cloud_config = CloudStorageConfig {
         provider_preset: settings
             .s3_provider_preset
+            .and_then(|v| serde_json::from_value(v).ok())
             .unwrap_or(S3ProviderPreset::Custom),
         backend_type,
         sync_enabled: true,

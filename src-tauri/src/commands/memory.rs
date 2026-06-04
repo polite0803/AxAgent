@@ -1429,6 +1429,7 @@ async fn check_semantic_duplicate(
     let embed_result = crate::indexing::generate_embeddings(
         state.harness.db(),
         state.harness.master_key(),
+        state.harness.provider_registry(),
         embedding_provider,
         vec![content.to_string()],
         dimensions,

@@ -4,7 +4,6 @@
 //!   1. 加载时：compile_prompt() 提取 {{path}} 占位符
 //!   2. 执行时：render_prompt() 用 ExecutionState.variables 填充模板
 
-use super::provider_type_to_registry_key;
 use std::collections::HashMap;
 use std::future::Future;
 use std::pin::Pin;
@@ -28,8 +27,15 @@ use crate::work_engine::prompt_template::{
 };
 
 // 缓存类型（pub(crate) 供 WorkEngine 引用）
-pub(crate) type ProviderCache =
-    Option<(axagent_core::types::ProviderConfig, axagent_core::types::ProviderKey, String)>;
+// 缓存 resolve_provider_and_adapter 的完整输出（含 adapter 和 api_key），
+// 同一次工作流执行内多 agent 节点复用，避免重复 decrypt_key + registry.get。
+pub(crate) type ProviderCache = Option<(
+    axagent_core::types::ProviderConfig,
+    axagent_core::types::ProviderKey,
+    String,
+    Arc<dyn axagent_harness::ProviderAdapter>,
+    String,
+)>;
 pub(crate) type ProfileCache = HashMap<String, axagent_core::entity::agent_profiles::Model>;
 
 pub type RagCallback = Arc<
@@ -106,97 +112,103 @@ pub struct PlanStepEvent {
 pub struct AgentExecutor {
     db: Arc<DatabaseConnection>,
     master_key: [u8; 32],
-    rag_callback: Option<RagCallback>,
-    /// Plan 模式用：注入 WorkEngine 引用（临时工作流创建+执行）
-    engine: Option<Arc<super::super::WorkEngine>>,
+    /// RAG 知识源检索回调（由 WorkEngine.set_rag_callback 共享注入，None = 未启用）
+    rag_callback: Arc<std::sync::Mutex<Option<RagCallback>>>,
+    /// Plan 模式：注入 WorkEngine 引用（set_engine 共享槽，None = 未启用）
+    engine: Arc<std::sync::Mutex<Option<Arc<super::super::WorkEngine>>>>,
+    /// Plan 模式：注入 PlannerAdapter（set_planner 共享槽，None = 未启用 Plan 模式）
+    planner: Arc<std::sync::Mutex<Option<Arc<std::sync::Mutex<dyn axagent_harness::PlannerAdapter>>>>>,
     /// 默认 provider 缓存（同一次工作流执行内复用）
     default_provider_cache: Arc<Mutex<ProviderCache>>,
     /// Agent profile 缓存（同一工作流内多个节点共用同 profile 时复用）
     profile_cache: Arc<Mutex<ProfileCache>>,
-    /// 由 Harness 注入的 ProviderRegistry
+    /// 由 Harness 注入的 ProviderRegistry（构造时一次性注入，运行期不可变）
+    /// Option 仅用于 self::empty() 默认构造；WorkEngine::new 路径下必为 Some。
     provider_registry: Option<Arc<dyn axagent_harness::registry::ProviderRegistry>>,
 }
 
 impl AgentExecutor {
     pub fn new(db: Arc<DatabaseConnection>, master_key: [u8; 32]) -> Self {
+        Self::empty(db, master_key)
+    }
+
+    /// 内部 helper：构造不带任何注入状态的实例（所有 slot 都为 None）。
+    /// 一般不应直接调用，外部请用 `with_shared_caches` + `set_provider_registry` (via HasProviderRegistry trait)。
+    fn empty(db: Arc<DatabaseConnection>, master_key: [u8; 32]) -> Self {
         Self {
             db,
             master_key,
-            rag_callback: None,
-            engine: None,
+            rag_callback: Arc::new(std::sync::Mutex::new(None)),
+            engine: Arc::new(std::sync::Mutex::new(None)),
+            planner: Arc::new(std::sync::Mutex::new(None)),
             default_provider_cache: Arc::new(Mutex::new(None)),
             profile_cache: Arc::new(Mutex::new(HashMap::new())),
             provider_registry: None,
         }
     }
 
-    /// 注入 ProviderRegistry（由 Harness 在创建 executor 时调用）
-    pub fn with_provider_registry(
-        mut self,
-        registry: Arc<dyn axagent_harness::registry::ProviderRegistry>,
-    ) -> Self {
-        self.provider_registry = Some(registry);
+    /// 设置 Plan 模式用的 WorkEngine 引用（共享槽，热更新）
+    pub fn set_engine(&self, engine: Arc<WorkEngine>) {
+        *self.engine.lock().expect("agent_executor.engine mutex poisoned") = Some(engine);
+    }
+
+    /// Builder 形式（保留向后兼容；内部走共享槽）
+    pub fn with_engine(self, engine: Arc<WorkEngine>) -> Self {
+        self.set_engine(engine);
         self
     }
 
-    pub fn with_engine(mut self, engine: Arc<WorkEngine>) -> Self {
-        self.engine = Some(engine);
+    /// 设置 Plan 模式用的 PlannerAdapter（共享槽，热更新）
+    pub fn set_planner(&self, planner: Arc<std::sync::Mutex<dyn axagent_harness::PlannerAdapter>>) {
+        *self.planner.lock().expect("agent_executor.planner mutex poisoned") = Some(planner);
+    }
+
+    /// Builder 形式
+    pub fn with_planner(self, planner: Arc<std::sync::Mutex<dyn axagent_harness::PlannerAdapter>>) -> Self {
+        self.set_planner(planner);
         self
     }
 
-    pub fn with_rag_callback(mut self, cb: RagCallback) -> Self {
-        self.rag_callback = Some(cb);
+    /// 设置 RAG 回调（共享槽，热更新；传 None 表示清空）
+    pub fn set_rag_callback(&self, cb: Option<RagCallback>) {
+        *self.rag_callback.lock().expect("agent_executor.rag_callback mutex poisoned") = cb;
+    }
+
+    /// Builder 形式（保留向后兼容；内部走共享槽）
+    pub fn with_rag_callback(self, cb: RagCallback) -> Self {
+        self.set_rag_callback(Some(cb));
         self
     }
 
-    /// 构造使用共享缓存的 executor（供 WorkEngine 注入，用于跨执行清除）。
+    /// 构造使用共享缓存的 executor（WorkEngine 内部使用，跨执行复用缓存）。
     pub fn with_shared_caches(
         db: Arc<DatabaseConnection>,
         master_key: [u8; 32],
         default_provider_cache: Arc<Mutex<ProviderCache>>,
         profile_cache: Arc<Mutex<ProfileCache>>,
     ) -> Self {
-        Self {
-            db,
-            master_key,
-            rag_callback: None,
-            engine: None,
-            default_provider_cache,
-            profile_cache,
-            provider_registry: None,
-        }
-    }
-
-    pub fn with_shared_caches_and_rag_callback(
-        db: Arc<DatabaseConnection>,
-        master_key: [u8; 32],
-        default_provider_cache: Arc<Mutex<ProviderCache>>,
-        profile_cache: Arc<Mutex<ProfileCache>>,
-        rag_callback: RagCallback,
-    ) -> Self {
-        Self {
-            db,
-            master_key,
-            rag_callback: Some(rag_callback),
-            engine: None,
-            default_provider_cache,
-            profile_cache,
-            provider_registry: None,
-        }
+        let mut s = Self::empty(db, master_key);
+        s.default_provider_cache = default_provider_cache;
+        s.profile_cache = profile_cache;
+        s
     }
 }
 
 impl Default for AgentExecutor {
     fn default() -> Self {
-        Self {
-            db: Arc::new(DatabaseConnection::default()),
-            master_key: [0u8; 32],
-            rag_callback: None,
-            engine: None,
-            default_provider_cache: Arc::new(Mutex::new(None)),
-            profile_cache: Arc::new(Mutex::new(HashMap::new())),
-            provider_registry: None,
-        }
+        Self::empty(
+            Arc::new(DatabaseConnection::default()),
+            [0u8; 32],
+        )
+    }
+}
+
+impl axagent_harness::HasProviderRegistry for AgentExecutor {
+    fn set_provider_registry(
+        &mut self,
+        registry: Arc<dyn axagent_harness::registry::ProviderRegistry>,
+    ) {
+        self.provider_registry = Some(registry);
     }
 }
 
@@ -254,40 +266,19 @@ impl NodeExecutorTrait for AgentExecutor {
         let node_model = an.config.model.as_deref().filter(|m| !m.is_empty());
         let session_model = context
             .variables
-            .get("__workflow_model__")
+            .get(super::WORKFLOW_MODEL_VAR)
             .and_then(|v| v.as_str());
         let session_provider_id = context
             .variables
-            .get("__workflow_provider_id__")
+            .get(super::WORKFLOW_PROVIDER_ID_VAR)
             .and_then(|v| v.as_str());
         let profile_suggested = profile
             .as_ref()
             .and_then(|p| p.suggested_provider_id.as_deref());
 
-        let (prov, key, model) = self
+        let (prov, key, model, adapter, api_key) = self
             .resolve_provider(node_model, session_model, session_provider_id, profile_suggested)
             .await?;
-        let api_key = axagent_core::crypto::decrypt_key(&key.key_encrypted, &self.master_key)
-            .map_err(|e| {
-                NodeError::exec_failed(
-                    error_code::UNSUPPORTED_PROVIDER,
-                    format!("API key decryption failed: {e}"),
-                )
-            })?;
-
-        // 3. 创建 adapter
-        use axagent_harness::{ProviderAdapter, resolve_base_url_for_type};
-        let registry_key = provider_type_to_registry_key(&prov.provider_type);
-        let adapter: Arc<dyn ProviderAdapter> = self
-            .provider_registry
-            .as_ref()
-            .and_then(|reg| reg.get(registry_key))
-            .ok_or_else(|| {
-                NodeError::exec_failed(
-                    error_code::UNSUPPORTED_PROVIDER,
-                    format!("AgentExecutor 未找到 ProviderAdapter for type: {}", registry_key),
-                )
-            })?;
 
         // 4. 构建 prompt：Role + Expert + 行内追加（运行时拼接，不预缓存）
         let role_desc = resolve_role(&an.config, profile.as_ref());
@@ -343,7 +334,8 @@ impl NodeExecutorTrait for AgentExecutor {
 
         // 4e. RAG 知识源检索（从知识库/记忆/Wiki 检索相关内容注入 system prompt）
         if !an.config.rag_source_ids.is_empty() {
-            if let Some(ref rag_cb) = self.rag_callback {
+            let rag_cb = self.rag_callback.lock().expect("rag_callback mutex poisoned").clone();
+            if let Some(rag_cb) = rag_cb {
                 let rag_query = user_prompt_for_rag(&an.config, &context.variables);
                 let (kb_ids, mem_ids, wiki_ids) = parse_rag_source_ids(&an.config.rag_source_ids);
                 if !kb_ids.is_empty() || !mem_ids.is_empty() || !wiki_ids.is_empty() {
@@ -422,27 +414,13 @@ impl NodeExecutorTrait for AgentExecutor {
             },
         ];
 
-        let base_url = resolve_base_url_for_type(&prov.api_host, &prov.provider_type);
-
         if an.config.execution_mode.as_deref() == Some("plan") {
             return self
                 .execute_plan_mode(an, context, &prov, &api_key, &model, &adapter, node)
                 .await;
         }
 
-        let req_ctx = axagent_harness::ProviderRequestContext {
-            provider_id: prov.id.clone(),
-            api_key,
-            key_id: key.id.clone(),
-            base_url: Some(base_url),
-            api_path: None,
-            proxy_config: None,
-            custom_headers: None,
-            api_mode: None,
-            conversation: None,
-            previous_response_id: None,
-            store_response: None,
-        };
+        let req_ctx = axagent_harness::build_provider_request_context(&prov, &key, api_key);
         let model_for_output = model.clone();
 
         if context.dry_run {
@@ -657,12 +635,11 @@ impl AgentExecutor {
         adapter: &std::sync::Arc<dyn axagent_harness::ProviderAdapter>,
         node: &WorkflowNode,
     ) -> Result<NodeOutput, NodeError> {
-        use axagent_agent::hierarchical_planner::{
-            HierarchicalPlanner, Plan, ReplanAction, ReplanReason, TaskStatus, compile_plan_to_dag,
-        };
+        use axagent_harness::plan_types::{Plan, TaskStatus};
+        use axagent_core::plan_compiler::compile_plan_to_dag;
         let role_desc = resolve_role(&an.config, None);
         let base_url =
-            axagent_harness::resolve_base_url_for_type(&prov.api_host, &prov.provider_type);
+            axagent_providers::url_utils::resolve_base_url_for_type(&prov.api_host, &prov.provider_type);
         let tool_names: Vec<String> = an.config.tools.iter().map(|t| t.name.clone()).collect();
         let replan_max_retries = an.config.max_tool_rounds.unwrap_or(2);
 
@@ -759,20 +736,44 @@ impl AgentExecutor {
             }
         }
 
-        // 2. HierarchicalPlanner 接管：验证、执行管理、重规划
-        let mut planner = HierarchicalPlanner::new().with_max_retries(replan_max_retries);
-        planner.create_plan(&an.config.system_prompt, plan.phases.clone());
+        // 2. PlannerAdapter 接管：验证、执行管理、重规划
+        let planner_arc = {
+            let data = self.planner.lock().expect("planner mutex poisoned");
+            data.as_ref()
+                .ok_or_else(|| {
+                    NodeError::exec_failed(
+                        error_code::VALIDATION_FAILED,
+                        "Plan 模式需要 PlannerAdapter 注入，请通过 WorkEngine.with_planner() 注入"
+                            .to_string(),
+                    )
+                })?
+                .clone()
+            // data dropped here
+        };
+        let phases_json: Vec<serde_json::Value> = plan.phases.iter().map(|p| {
+            serde_json::to_value(p).unwrap_or_default()
+        }).collect();
+        planner_arc.lock().expect("inner planner poisoned")
+            .create_plan(&an.config.system_prompt, &phases_json)
+            .map_err(|e| NodeError::exec_failed(
+                error_code::VALIDATION_FAILED,
+                format!("Plan 创建失败: {e}"),
+            ))?;
 
-        if let Err(e) = planner.start_execution() {
-            return Err(NodeError::exec_failed(
+        planner_arc.lock().expect("inner planner poisoned")
+            .start_execution()
+            .map_err(|e| NodeError::exec_failed(
                 error_code::UNSUPPORTED_PROVIDER,
                 format!("Plan validation: {e}"),
-            ));
-        }
+            ))?;
 
         let phase_count = plan.phases.len();
         let task_count: u32 = plan.phases.iter().map(|p| p.tasks.len() as u32).sum();
-        let engine_available = self.engine.is_some();
+        let engine_available = self
+            .engine
+            .lock()
+            .expect("engine mutex poisoned")
+            .is_some();
 
         // 3. 编译 DAG → WorkEngine 执行，失败时重规划
         let mut current_plan = plan;
@@ -785,7 +786,19 @@ impl AgentExecutor {
                         .to_string(),
                 ));
             }
-            let engine = self.engine.as_ref().unwrap();
+            let engine = self
+                .engine
+                .lock()
+                .expect("engine mutex poisoned")
+                .as_ref()
+                .cloned()
+                .ok_or_else(|| {
+                    NodeError::exec_failed(
+                        error_code::VALIDATION_FAILED,
+                        "Plan 模式需要 WorkEngine 引用，请通过 AgentExecutor::with_engine() 注入"
+                            .to_string(),
+                    )
+                })?;
             let (wf_nodes, wf_edges) = compile_plan_to_dag(&current_plan, &tool_names);
             let wf_name = format!("plan_{}_{}", uuid::Uuid::new_v4(), attempt);
 
@@ -799,15 +812,12 @@ impl AgentExecutor {
 
             match exec_result {
                 Ok((wf_result, _wf)) => {
-                    let plan_mut = planner.get_plan_mut();
-                    if let Some(plan) = plan_mut {
-                        for (pi, phase) in plan.phases.iter_mut().enumerate() {
-                            for (ti, task) in phase.tasks.iter_mut().enumerate() {
-                                let key = format!("r_p{pi}_t{ti}_{}", task.id);
-                                if let Some(v) = wf_result.results.get(&key) {
-                                    task.status = TaskStatus::Completed;
-                                    task.result = Some(v.clone());
-                                }
+                    for (pi, phase) in current_plan.phases.iter().enumerate() {
+                        for (ti, task) in phase.tasks.iter().enumerate() {
+                            let key = format!("r_p{pi}_t{ti}_{}", task.id);
+                            if let Some(v) = wf_result.results.get(&key) {
+                                planner_arc.lock().expect("inner planner poisoned")
+                                    .mark_task_completed(pi, ti, v.clone());
                             }
                         }
                     }
@@ -816,8 +826,9 @@ impl AgentExecutor {
                         && let Some(ref on_step) = cbs.on_step_update
                     {
                         let phases_snapshot = {
-                            let plan_guard = planner.get_plan();
-                            plan_guard.cloned()
+                            planner_arc.lock().expect("inner planner poisoned")
+                                .current_plan()
+                                .and_then(|v| serde_json::from_value::<Plan>(v).ok())
                         };
                         if let Some(ref p) = phases_snapshot {
                             for (pi, phase) in p.phases.iter().enumerate() {
@@ -845,8 +856,8 @@ impl AgentExecutor {
                 Err(e) if attempt < replan_max_retries => {
                     attempt += 1;
                     // 从 planner 获取真实的失败/待处理任务 ID
-                    let failed_ids = planner.get_failed_steps();
-                    let pending_ids = planner.get_pending_steps();
+                    let failed_ids: Vec<String> = planner_arc.lock().expect("inner planner poisoned").get_failed_steps();
+                    let pending_ids: Vec<String> = planner_arc.lock().expect("inner planner poisoned").get_pending_steps();
                     let task_ids_to_retry: Vec<String> = if failed_ids.is_empty() {
                         pending_ids
                     } else {
@@ -857,26 +868,33 @@ impl AgentExecutor {
                         break serde_json::json!({"error": format!("Exec failed with no retryable tasks: {e:?}")});
                     }
 
-                    let reason = ReplanReason::StepFailed {
-                        task_id: task_ids_to_retry[0].clone(),
-                        error: format!("{e:?}"),
-                    };
-                    let actions: Vec<ReplanAction> = task_ids_to_retry
+                    let reason_json = serde_json::json!({
+                        "task_id": task_ids_to_retry[0].clone(),
+                        "error": format!("{e:?}"),
+                    });
+                    let actions_json: Vec<serde_json::Value> = task_ids_to_retry
                         .iter()
-                        .map(|tid| ReplanAction::Retry {
-                            task_id: tid.clone(),
-                            modified_parameters: None,
-                        })
+                        .map(|tid| serde_json::json!({
+                            "Retry": {
+                                "task_id": tid.clone(),
+                                "modified_parameters": None::<serde_json::Value>,
+                            }
+                        }))
                         .collect();
 
-                    if planner.replan(reason, actions).is_ok() {
-                        if let Some(p) = planner.get_plan().cloned() {
-                            current_plan = p;
-                        } else {
-                            break serde_json::json!({"error": "Replan produced no plan"});
-                        }
-                    } else {
-                        break serde_json::json!({"error": format!("Replan failed: {e:?}")});
+                    match planner_arc.lock().expect("inner planner poisoned").request_replan("StepFailed", &[reason_json]) {
+                        Ok(()) => {
+                            if let Some(p) = planner_arc.lock().expect("inner planner poisoned").current_plan()
+                                .and_then(|v| serde_json::from_value::<Plan>(v).ok())
+                            {
+                                current_plan = p;
+                            } else {
+                                break serde_json::json!({"error": "Replan produced no plan"});
+                            }
+                        },
+                        Err(_) => {
+                            break serde_json::json!({"error": format!("Replan failed: {e:?}")});
+                        },
                     }
                 },
                 Err(e) => {
@@ -981,9 +999,12 @@ async fn execute_tool(
 // ── 辅助方法 ──
 
 impl AgentExecutor {
-    /// 解析 provider + key + model，优先用缓存。
+    /// 解析 provider + key + model + adapter + api_key，优先用缓存。
     /// 注意：当 profile 指定了 suggested_provider_id 时不做缓存（专用 provider），
     /// 仅对"无 profile"或"profile 无 provider 偏好"的分辨结果做缓存。
+    ///
+    /// 内部走公共 helper `super::resolve_provider_and_adapter()` 完成三步链
+    /// （resolve_model_for_node → decrypt_key → registry.get），避免在此重复实现。
     async fn resolve_provider(
         &self,
         node_model: Option<&str>,
@@ -991,7 +1012,13 @@ impl AgentExecutor {
         session_provider_id: Option<&str>,
         profile_suggested_provider: Option<&str>,
     ) -> Result<
-        (axagent_core::types::ProviderConfig, axagent_core::types::ProviderKey, String),
+        (
+            axagent_core::types::ProviderConfig,
+            axagent_core::types::ProviderKey,
+            String,
+            Arc<dyn axagent_harness::ProviderAdapter>,
+            String,
+        ),
         NodeError,
     > {
         let has_override = session_provider_id.is_some()
@@ -1004,15 +1031,17 @@ impl AgentExecutor {
             }
         }
 
-        let result = axagent_core::repo::provider::resolve_model_for_node(
+        let result = super::resolve_provider_and_adapter(
             &self.db,
+            &self.master_key,
+            self.provider_registry.as_ref(),
             node_model,
             session_model,
             session_provider_id,
             profile_suggested_provider,
+            "AgentExecutor",
         )
-        .await
-        .map_err(|e| NodeError::exec_failed(error_code::UNSUPPORTED_PROVIDER, e))?;
+        .await?;
 
         if !has_override {
             let mut cache = self.default_provider_cache.lock().await;

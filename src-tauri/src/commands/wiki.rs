@@ -427,7 +427,7 @@ async fn wiki_notes_search_hybrid(
         let score = hybrid_result.combined_score as f64;
 
         results.push(NoteSearchResult {
-            note,
+            note: note.into(),
             snippet,
             score,
         });
@@ -479,7 +479,7 @@ async fn wiki_notes_search_keyword(
         let snippet = extract_highlight_snippet(&note.content, query, 50, 150);
 
         results.push(NoteSearchResult {
-            note,
+            note: note.into(),
             snippet,
             score,
         });

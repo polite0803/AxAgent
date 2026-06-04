@@ -44,6 +44,7 @@ fn medium_risk_patterns() -> &'static RegexSet {
 }
 
 /// L1: 模式检测器
+#[derive(Debug)]
 pub struct PatternDetector {
     config: GuardConfig,
 }

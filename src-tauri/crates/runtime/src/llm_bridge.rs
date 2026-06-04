@@ -2,32 +2,34 @@
 //!
 //! 在 Harness 架构中，这些函数负责将具体 provider 实现注入到 agent，
 //! 因此使用 `axagent-providers` 具体类型是合理的（runtime 是编排器层）。
+//!
+//! **重写注意**：原实现手写 `match prov.provider_type { ... }` 把 ProviderType 映射到
+//! 具体 Adapter 实现，与 `ProviderRegistry::get(registry_key)` 等价但绕过 registry。
+//! 现改用 registry 单源查表；本文件不再依赖具体 Adapter 类型（OpenAIAdapter / AnthropicAdapter / ...）。
 
 use axagent_agent::ProviderLlmBridge;
 use axagent_core::crypto;
 use axagent_core::repo::provider;
-use axagent_core::types::ProviderType;
+use axagent_harness::registry::ProviderRegistry;
 use axagent_harness::{ProviderAdapter, ProviderRequestContext};
-use axagent_providers::{
-    anthropic::AnthropicAdapter, gemini::GeminiAdapter, hermes::HermesAdapter,
-    ollama::OllamaAdapter, openai::OpenAIAdapter, openai_responses::OpenAIResponsesAdapter,
-    openclaw::OpenClawAdapter, resolve_base_url_for_type,
-};
+use axagent_providers::resolve_base_url_for_type;
 use sea_orm::DatabaseConnection;
 use std::sync::Arc;
 
-/// 从数据库构建 LLM Bridge（自动选择首个启用的 provider）
+/// 从数据库构建 LLM Bridge（自动选择首个启用的 provider；使用默认 registry）
 pub async fn build_llm_bridge_from_db(
     db: &DatabaseConnection,
     master_key: &[u8; 32],
 ) -> Option<ProviderLlmBridge> {
-    build_llm_bridge_from_db_with(db, master_key, None, None).await
+    let registry = default_registry();
+    build_llm_bridge_from_db_with(db, master_key, &registry, None, None).await
 }
 
-/// 从数据库构建 LLM Bridge（指定 provider 和 model）
+/// 从数据库构建 LLM Bridge（指定 provider 和 model；调用方提供 registry）
 pub async fn build_llm_bridge_from_db_with(
     db: &DatabaseConnection,
     master_key: &[u8; 32],
+    provider_registry: &Arc<dyn ProviderRegistry>,
     preferred_provider_id: Option<&str>,
     preferred_model_id: Option<&str>,
 ) -> Option<ProviderLlmBridge> {
@@ -46,22 +48,17 @@ pub async fn build_llm_bridge_from_db_with(
     let key = prov.keys.iter().find(|k| k.enabled)?;
     let api_key = crypto::decrypt_key(&key.key_encrypted, master_key).ok()?;
 
-    let adapter: Arc<dyn ProviderAdapter> = match prov.provider_type {
-        ProviderType::OpenAI => Arc::new(OpenAIAdapter::new()),
-        ProviderType::OpenAIResponses => Arc::new(OpenAIResponsesAdapter::new()),
-        ProviderType::Anthropic => Arc::new(AnthropicAdapter::new()),
-        ProviderType::Gemini => Arc::new(GeminiAdapter::new()),
-        ProviderType::OpenClaw => Arc::new(OpenClawAdapter::new()),
-        ProviderType::Hermes => Arc::new(HermesAdapter::new()),
-        ProviderType::Ollama => Arc::new(OllamaAdapter::new()),
-    };
+    // 单源查表：用 ProviderRegistry 取代手写 match
+    let registry_key = prov.provider_type.registry_key();
+    let adapter: Arc<dyn ProviderAdapter> = provider_registry
+        .get(&registry_key)
+        .map(|arc| arc.clone())?;
 
-    let base_url = Some(resolve_base_url_for_type(&prov.api_host, &prov.provider_type));
     let ctx = ProviderRequestContext {
         api_key,
         key_id: key.id.clone(),
         provider_id: prov.id.clone(),
-        base_url,
+        base_url: Some(resolve_base_url_for_type(&prov.api_host, &prov.provider_type)),
         api_path: prov.api_path.clone(),
         proxy_config: prov.proxy_config,
         custom_headers: prov
@@ -84,4 +81,17 @@ pub async fn build_llm_bridge_from_db_with(
     };
 
     Some(ProviderLlmBridge::new(adapter, ctx, model))
+}
+
+/// 默认 ProviderRegistry（懒创建单例，避免每次 build_llm_bridge_from_db 都新建一份
+/// `axagent_providers::registry::ProviderRegistry`）
+fn default_registry() -> Arc<dyn ProviderRegistry> {
+    use std::sync::OnceLock;
+    static DEFAULT: OnceLock<Arc<dyn ProviderRegistry>> = OnceLock::new();
+    DEFAULT
+        .get_or_init(|| {
+            Arc::new(axagent_providers::registry::ProviderRegistry::create_default())
+                as Arc<dyn ProviderRegistry>
+        })
+        .clone()
 }

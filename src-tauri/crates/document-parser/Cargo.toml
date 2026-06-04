@@ -1,0 +1,11 @@
+[package]
+name = "axagent-document-parser"
+version.workspace = true
+edition.workspace = true
+publish = false
+description = "Document text extraction: PDF, DOCX, XLSX, PPTX, and plain text"
+
+[dependencies]
+axagent-harness = { path = "../harness" }
+zip = "2"
+pdf-extract = "0.7"

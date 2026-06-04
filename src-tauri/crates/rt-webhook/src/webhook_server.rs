@@ -1,8 +1,6 @@
+use axagent_harness::{WebhookEvent, WebhookSubscription, WebhookSubscriptionService};
 use axagent_rt_messaging::message_gateway::platform_config::PlatformConfig;
 use axagent_rt_messaging::message_gateway::platforms::{wechat, whatsapp};
-use axagent_rt_messaging::webhook_subscription::{
-    WebhookEvent, WebhookSubscription, WebhookSubscriptionManager,
-};
 use axum::{
     Json, Router,
     extract::State,
@@ -13,7 +11,7 @@ use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct WebhookServerState {
-    pub subscription_manager: Arc<WebhookSubscriptionManager>,
+    pub subscription_manager: Arc<dyn WebhookSubscriptionService>,
     /// WhatsApp webhook 处理所需的平台配置
     pub platform_config: Option<Arc<tokio::sync::RwLock<PlatformConfig>>>,
 }
@@ -25,7 +23,7 @@ pub struct WebhookServer {
 }
 
 impl WebhookServer {
-    pub fn new(subscription_manager: Arc<WebhookSubscriptionManager>) -> Self {
+    pub fn new(subscription_manager: Arc<dyn WebhookSubscriptionService>) -> Self {
         let (shutdown_tx, shutdown_rx) = tokio::sync::oneshot::channel();
         Self {
             state: WebhookServerState {
@@ -204,7 +202,17 @@ async fn wechat_message_handler(
 async fn list_subscriptions_handler(
     State(state): State<Arc<WebhookServerState>>,
 ) -> Json<Vec<WebhookSubscription>> {
-    Json(state.subscription_manager.list_subscriptions().await)
+    let subs = state.subscription_manager.list_subscriptions().await;
+    Json(subs.into_iter().map(|s| WebhookSubscription {
+        id: s.id,
+        url: s.url,
+        events: vec![WebhookEvent::from_event_str(&s.event).unwrap_or(WebhookEvent::ToolComplete)],
+        secret: s.secret,
+        enabled: s.enabled,
+        created_at: chrono::Utc::now(),
+        last_triggered: None,
+        failure_count: 0,
+    }).collect())
 }
 
 #[derive(serde::Deserialize)]
@@ -218,20 +226,26 @@ async fn create_subscription_handler(
     State(state): State<Arc<WebhookServerState>>,
     Json(req): Json<CreateSubscriptionRequest>,
 ) -> Result<Json<WebhookSubscription>, StatusCode> {
-    let events: Vec<WebhookEvent> = req
-        .events
-        .iter()
-        .filter_map(|e| WebhookEvent::from_event_str(e))
-        .collect();
-    if events.is_empty() && !req.events.is_empty() {
+    let first_event = req.events.first().cloned().unwrap_or_default();
+    if first_event.is_empty() {
         return Err(StatusCode::BAD_REQUEST);
     }
     let subscription = state
         .subscription_manager
-        .subscribe(req.url, events, req.secret)
+        .subscribe(req.url, &first_event, req.secret)
         .await
         .map_err(|_| StatusCode::BAD_REQUEST)?;
-    Ok(Json(subscription))
+    // 返回原始响应格式（简化为单事件订阅）
+    Ok(Json(WebhookSubscription {
+        id: subscription.id.clone(),
+        url: subscription.url.clone(),
+        events: vec![WebhookEvent::from_event_str(&subscription.event).unwrap_or(WebhookEvent::ToolComplete)],
+        secret: subscription.secret.clone(),
+        enabled: subscription.enabled,
+        created_at: chrono::Utc::now(),
+        last_triggered: None,
+        failure_count: 0,
+    }))
 }
 
 async fn delete_subscription_handler(

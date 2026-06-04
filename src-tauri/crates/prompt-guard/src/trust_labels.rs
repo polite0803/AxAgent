@@ -24,6 +24,17 @@ impl SourceType {
         }
     }
 
+    /// 从 label 字符串反向解析 SourceType（用于 harness trait 的桥接）
+    pub fn from_label(label: &str) -> Self {
+        match label {
+            "rag" => Self::RagKnowledgeBase,
+            "instructions" => Self::InstructionFile,
+            "web" => Self::WebScrape,
+            "git" => Self::GitContext,
+            _ => Self::Other,
+        }
+    }
+
     pub fn risk_level(&self) -> &str {
         match self {
             Self::RagKnowledgeBase => "medium",

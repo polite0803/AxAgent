@@ -1,0 +1,25 @@
+[package]
+name = "axagent-storage"
+version.workspace = true
+edition.workspace = true
+publish = false
+
+[dependencies]
+axagent-crypto = { path = "../crypto" }
+axagent-entities = { path = "../entities" }
+axagent-harness = { path = "../harness" }
+serde = { workspace = true }
+serde_json = { workspace = true }
+sea-orm = { workspace = true }
+tracing = { workspace = true }
+tokio = { workspace = true }
+chrono = { workspace = true }
+uuid = { workspace = true }
+async-trait = "0.1"
+reqwest = { workspace = true }
+sha2 = "0.10"
+dirs = "5"
+hex = "0.4"
+md5 = "0.7"
+zip = "2"
+roxmltree = "0.20"

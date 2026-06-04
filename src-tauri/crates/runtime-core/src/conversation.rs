@@ -5,7 +5,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Condvar, Mutex};
 use std::time::Duration;
 
-use axagent_telemetry::SessionTracer;
+use axagent_harness::SessionTracer;
 use serde_json::{Map, Value};
 
 use crate::compact::{
@@ -200,7 +200,7 @@ pub struct ConversationRuntime<C, T> {
     auto_compaction_input_tokens_threshold: u32,
     hook_abort_signal: HookAbortSignal,
     hook_progress_reporter: Option<Box<dyn HookProgressReporter>>,
-    session_tracer: Option<SessionTracer>,
+    session_tracer: Option<Arc<dyn SessionTracer>>,
     cancel_token: Option<std::sync::Arc<std::sync::atomic::AtomicBool>>,
     pause_state: Option<Arc<PauseState>>,
     progress: Option<Arc<AgentExecutionProgress>>,
@@ -309,7 +309,7 @@ where
     }
 
     #[must_use]
-    pub fn with_session_tracer(mut self, session_tracer: SessionTracer) -> Self {
+    pub fn with_session_tracer(mut self, session_tracer: Arc<dyn SessionTracer>) -> Self {
         self.session_tracer = Some(session_tracer);
         self
     }
@@ -1389,7 +1389,7 @@ mod tests {
     };
     use crate::session::{ContentBlock, MessageRole, Session};
     use crate::usage::TokenUsage;
-    use axagent_telemetry::{MemoryTelemetrySink, SessionTracer, TelemetryEvent};
+    use axagent_telemetry::{MemoryTelemetrySink, TelemetryEvent};
     use std::fs;
     use std::path::PathBuf;
     use std::sync::Arc;
@@ -1512,7 +1512,8 @@ mod tests {
     #[test]
     fn records_runtime_session_trace_events() {
         let sink = Arc::new(MemoryTelemetrySink::default());
-        let tracer = SessionTracer::new("session-runtime", sink.clone());
+        let tracer: Arc<dyn axagent_harness::SessionTracer> =
+            Arc::new(axagent_telemetry::SessionTracer::new("session-runtime", sink.clone()));
         let mut runtime = ConversationRuntime::new(
             Session::new(),
             ScriptedApiClient { call_count: 0 },

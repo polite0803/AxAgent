@@ -16,6 +16,7 @@ opentelemetry = { version = "0.30", features = ["trace", "metrics"] }
 opentelemetry-otlp = { version = "0.30", features = ["trace", "metrics", "http-proto"] }
 opentelemetry_sdk = { version = "0.30", features = ["trace", "metrics", "rt-tokio"] }
 axagent-core = { path = "../core" }
+axagent-harness = { path = "../harness" }
 tracing = "0.1"
 
 [lints]

@@ -1,0 +1,14 @@
+[package]
+name = "axagent-cache"
+version.workspace = true
+edition.workspace = true
+publish = false
+
+[dependencies]
+axagent-harness = { path = "../harness" }
+axagent-search = { path = "../search" }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+quick_cache = "0.4"

@@ -7,6 +7,7 @@ description = "Prompt injection defense with 4-layer filtering pipeline"
 publish = false
 
 [dependencies]
+axagent-harness = { path = "../harness" }
 serde.workspace = true
 serde_json.workspace = true
 regex = "1"

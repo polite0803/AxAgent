@@ -1,36 +1,19 @@
-use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+//! Webhook 订阅管理 — DTO 由 `axagent-harness` 提供。
+//!
+//! 纯数据 DTO（WebhookEvent / WebhookSubscription / WebhookPayload / DispatchResult）
+//! 定义在 `axagent-harness::webhook_subscription`，此处仅做 re-export。
+//! `WebhookDispatch` trait 向下兼容，新代码请直接使用 `axagent_harness::*`。
+
+pub use axagent_harness::{
+    DispatchResult, WebhookEvent, WebhookPayload, WebhookSubscription,
+};
+
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct WebhookSubscription {
-    pub id: String,
-    pub url: String,
-    pub events: Vec<WebhookEvent>,
-    pub secret: Option<String>,
-    pub enabled: bool,
-    pub created_at: chrono::DateTime<chrono::Utc>,
-    pub last_triggered: Option<chrono::DateTime<chrono::Utc>>,
-    pub failure_count: u32,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub enum WebhookEvent {
-    ToolComplete,
-    ToolError,
-    AgentError,
-    AgentStart,
-    AgentEnd,
-    SessionStart,
-    SessionEnd,
-    MessageReceived,
-    MessageSent,
-}
-
+/// Webhook 事件派发 trait（纯数据 DTO 已迁至 harness）
 #[async_trait::async_trait]
 pub trait WebhookDispatch: Send + Sync {
-    /// Dispatch a webhook event with the given data.
     async fn dispatch(
         &self,
         event: WebhookEvent,
@@ -38,54 +21,10 @@ pub trait WebhookDispatch: Send + Sync {
     );
 }
 
-impl WebhookEvent {
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            Self::ToolComplete => "tool_complete",
-            Self::ToolError => "tool_error",
-            Self::AgentError => "agent_error",
-            Self::AgentStart => "agent_start",
-            Self::AgentEnd => "agent_end",
-            Self::SessionStart => "session_start",
-            Self::SessionEnd => "session_end",
-            Self::MessageReceived => "message_received",
-            Self::MessageSent => "message_sent",
-        }
-    }
-
-    pub fn from_event_str(s: &str) -> Option<Self> {
-        match s {
-            "tool_complete" => Some(Self::ToolComplete),
-            "tool_error" => Some(Self::ToolError),
-            "agent_error" => Some(Self::AgentError),
-            "agent_start" => Some(Self::AgentStart),
-            "agent_end" => Some(Self::AgentEnd),
-            "session_start" => Some(Self::SessionStart),
-            "session_end" => Some(Self::SessionEnd),
-            "message_received" => Some(Self::MessageReceived),
-            "message_sent" => Some(Self::MessageSent),
-            _ => None,
-        }
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct DispatchResult {
-    pub success_count: usize,
-    pub failure_count: usize,
-    pub errors: Vec<String>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct WebhookPayload {
-    pub id: String,
-    pub event: WebhookEvent,
-    pub timestamp: chrono::DateTime<chrono::Utc>,
-    pub data: HashMap<String, serde_json::Value>,
-}
-
+/// Webhook 订阅管理器 — 管理生命周期和事件派发
+#[derive(Debug)]
 pub struct WebhookSubscriptionManager {
-    subscriptions: Arc<RwLock<HashMap<String, WebhookSubscription>>>,
+    subscriptions: Arc<RwLock<std::collections::HashMap<String, WebhookSubscription>>>,
 }
 
 impl Default for WebhookSubscriptionManager {
@@ -97,7 +36,7 @@ impl Default for WebhookSubscriptionManager {
 impl WebhookSubscriptionManager {
     pub fn new() -> Self {
         Self {
-            subscriptions: Arc::new(RwLock::new(HashMap::new())),
+            subscriptions: Arc::new(RwLock::new(std::collections::HashMap::new())),
         }
     }
 
@@ -224,5 +163,74 @@ impl WebhookSubscriptionManager {
     pub async fn reload(&self) -> Result<(), String> {
         tracing::info!("Reloading webhook subscriptions");
         Ok(())
+    }
+}
+
+// ── Harness WebhookSubscriptionService trait 实现 ──
+
+#[async_trait::async_trait]
+impl axagent_harness::WebhookSubscriptionService for WebhookSubscriptionManager {
+    async fn subscribe(
+        &self,
+        url: String,
+        event: &str,
+        secret: Option<String>,
+    ) -> Result<axagent_harness::WebhookSubscriptionInfo, String> {
+        let event_enum = WebhookEvent::from_event_str(event)
+            .ok_or_else(|| format!("Unknown webhook event: {event}"))?;
+        let sub = self.subscribe(url, vec![event_enum], secret).await?;
+        Ok(axagent_harness::WebhookSubscriptionInfo {
+            id: sub.id,
+            url: sub.url,
+            secret: sub.secret,
+            event: event.to_string(),
+            enabled: sub.enabled,
+        })
+    }
+
+    async fn get_subscriptions_for_event(&self, event: &str) -> Vec<axagent_harness::WebhookSubscriptionInfo> {
+        let event_enum = WebhookEvent::from_event_str(event);
+        let Some(event_enum) = event_enum else { return Vec::new(); };
+        self.get_subscriptions_for_event(event_enum)
+            .await
+            .into_iter()
+            .map(|s| axagent_harness::WebhookSubscriptionInfo {
+                id: s.id,
+                url: s.url,
+                secret: s.secret.clone(),
+                event: event.to_string(),
+                enabled: s.enabled,
+            })
+            .collect()
+    }
+
+    async fn unsubscribe(&self, subscription_id: &str) -> Result<(), String> {
+        self.unsubscribe(subscription_id).await
+    }
+
+    async fn reset_failures(&self, subscription_id: &str) {
+        self.reset_failures(subscription_id).await;
+    }
+
+    async fn increment_failure(&self, subscription_id: &str) {
+        self.increment_failure(subscription_id).await;
+    }
+
+    async fn update_last_triggered(&self, subscription_id: &str) {
+        self.update_last_triggered(subscription_id).await;
+    }
+
+    async fn list_subscriptions(&self) -> Vec<axagent_harness::WebhookSubscriptionInfo> {
+        self.list_subscriptions()
+            .await
+            .into_iter()
+            .map(|s| axagent_harness::WebhookSubscriptionInfo {
+                id: s.id,
+                url: s.url,
+                secret: s.secret.clone(),
+                event: s.events.first().map(|e| e.as_str().to_string()).unwrap_or_default(),
+                enabled: s.enabled,
+            })
+            .collect()
     }
 }

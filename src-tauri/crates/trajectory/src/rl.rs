@@ -8,6 +8,8 @@
 
 #![allow(clippy::unwrap_used)]
 
+pub use axagent_harness::trajectory_types::{LlmJudge, LlmJudgeFuture};
+
 use crate::trajectory::{
     MessageRole, RewardSignal, RewardType, Trajectory, TrajectoryOutcome, TrajectoryStep,
 };
@@ -79,18 +81,6 @@ impl RLState {
             policy_logits: vec![0.0; steps],
         }
     }
-}
-
-pub type LlmJudgeFuture<'a> = Pin<Box<dyn Future<Output = Result<f64, String>> + Send + 'a>>;
-
-pub trait LlmJudge: Send + Sync {
-    fn evaluate_reasoning(&self, reasoning: &str, context: &str) -> LlmJudgeFuture<'_>;
-    fn evaluate_tool_efficiency(
-        &self,
-        tool_name: &str,
-        args: &str,
-        result: &str,
-    ) -> LlmJudgeFuture<'_>;
 }
 
 pub struct DefaultLlmJudge;

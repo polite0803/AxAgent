@@ -3,9 +3,11 @@ use std::fmt::{Display, Formatter};
 use std::fs::{self, OpenOptions};
 use std::io::Write;
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
 
+use axagent_harness::PromptGuard;
 use crate::json::{JsonError, JsonValue};
 use crate::usage::TokenUsage;
 
@@ -103,6 +105,8 @@ pub struct Session {
     pub last_health_check_ms: Option<u64>,
     pub model: Option<String>,
     persistence: Option<SessionPersistence>,
+    /// Prompt 注入防护（可选，由 harness 注入）
+    pub prompt_guard: Option<Arc<dyn PromptGuard>>,
 }
 
 impl PartialEq for Session {
@@ -174,6 +178,7 @@ impl Session {
             last_health_check_ms: None,
             model: None,
             persistence: None,
+            prompt_guard: None,
         }
     }
 
@@ -197,6 +202,13 @@ impl Session {
     #[must_use]
     pub fn workspace_root(&self) -> Option<&Path> {
         self.workspace_root.as_deref()
+    }
+
+    /// 注入 PromptGuard（可选，为空时不进行提示词防护）
+    #[must_use]
+    pub fn with_prompt_guard(mut self, guard: Arc<dyn PromptGuard>) -> Self {
+        self.prompt_guard = Some(guard);
+        self
     }
 
     #[must_use]
@@ -248,17 +260,16 @@ impl Session {
     pub fn push_user_text(&mut self, text: impl Into<String>) -> Result<(), SessionError> {
         let raw_text: String = text.into();
 
-        // 提示词注入防护：调用 prompt-guard pipeline
-        let processed_text = {
-            let config = axagent_prompt_guard::GuardConfig::default();
-            let pipeline = axagent_prompt_guard::PromptGuardPipeline::new(config);
-            match pipeline.process_user_input(&raw_text) {
+        // 提示词注入防护：通过注入的 PromptGuard（如未配置则跳过）
+        let processed_text = match &self.prompt_guard {
+            Some(guard) => match guard.process_user_input(&raw_text) {
                 Ok(wrapped) => wrapped,
                 Err(reason) => {
                     tracing::warn!("User input blocked by prompt-guard: {}", reason);
                     return Err(SessionError::ContentBlocked(reason));
                 },
-            }
+            },
+            None => raw_text,
         };
 
         self.push_message(ConversationMessage {
@@ -299,6 +310,7 @@ impl Session {
             last_health_check_ms: self.last_health_check_ms,
             model: self.model.clone(),
             persistence: None,
+            prompt_guard: self.prompt_guard.clone(),
         }
     }
 
@@ -417,6 +429,7 @@ impl Session {
             last_health_check_ms: None,
             model,
             persistence: None,
+            prompt_guard: None,
         })
     }
 
@@ -517,6 +530,7 @@ impl Session {
             last_health_check_ms: None,
             model,
             persistence: None,
+            prompt_guard: None,
         })
     }
 
@@ -1190,8 +1204,12 @@ mod tests {
 
     #[test]
     fn appends_messages_to_persisted_jsonl_session() {
+        use axagent_prompt_guard::{GuardConfig, PromptGuardPipeline};
+        use std::sync::Arc;
         let path = temp_session_path("append");
-        let mut session = Session::new().with_persistence_path(path.clone());
+        let mut session = Session::new()
+            .with_persistence_path(path.clone())
+            .with_prompt_guard(Arc::new(PromptGuardPipeline::new(GuardConfig::default())));
         session
             .save_to_path(&path)
             .expect("initial save should succeed");

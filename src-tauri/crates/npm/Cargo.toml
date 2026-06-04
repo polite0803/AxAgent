@@ -5,6 +5,8 @@ edition.workspace = true
 publish = false
 
 [dependencies]
+axagent-harness = { path = "../harness" }
+async-trait = "0.1"
 reqwest = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }

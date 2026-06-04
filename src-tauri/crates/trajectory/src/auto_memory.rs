@@ -329,34 +329,3 @@ impl AutoMemoryExtractor {
     }
 }
 
-impl Trajectory {
-    pub fn extract_memory_candidates(&self) -> Vec<String> {
-        let mut candidates = Vec::new();
-
-        for step in &self.steps {
-            if matches!(step.role, crate::trajectory::MessageRole::User)
-                && step.content.len() > 20
-                && step.content.len() < 500
-            {
-                candidates.push(step.content.clone());
-            }
-        }
-
-        if let Some(last) = self.steps.last()
-            && matches!(last.role, crate::trajectory::MessageRole::Assistant)
-            && let Some(ref tool_calls) = last.tool_calls
-        {
-            for tc in tool_calls {
-                if !tc.name.contains("read") && !tc.name.contains("write") {
-                    candidates.push(format!(
-                        "Tool used: {} with args: {}",
-                        tc.name,
-                        tc.arguments.chars().take(100).collect::<String>()
-                    ));
-                }
-            }
-        }
-
-        candidates
-    }
-}

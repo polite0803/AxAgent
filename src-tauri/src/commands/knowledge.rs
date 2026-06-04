@@ -235,6 +235,7 @@ pub async fn rebuild_knowledge_index(
     let master_key = state.harness.master_key_owned();
     let vector_store = state.vector_store.clone();
     let ep = embedding_provider.clone();
+    let provider_registry = state.harness.provider_registry().clone();
 
     tokio::spawn(async move {
         // Process each document individually so status updates per-doc
@@ -283,7 +284,16 @@ pub async fn rebuild_knowledge_index(
                 .collect();
             let rowids: Vec<i64> = chunks.iter().map(|(rid, _, _)| *rid).collect();
 
-            match crate::indexing::generate_embeddings(&db, &master_key, &ep, texts, None).await {
+            match crate::indexing::generate_embeddings(
+                &db,
+                &master_key,
+                &provider_registry,
+                &ep,
+                texts,
+                None,
+            )
+            .await
+            {
                 Ok(embed_response) => {
                     let entries: Vec<(i64, Vec<f32>)> =
                         rowids.into_iter().zip(embed_response.embeddings).collect();
@@ -568,6 +578,7 @@ pub async fn update_knowledge_chunk(
     if let Some(embedding_provider) = kb.embedding_provider {
         let db = state.harness.db().clone();
         let master_key = state.harness.master_key_owned();
+        let provider_registry = state.harness.provider_registry().clone();
         let vector_store = state.vector_store.clone();
         let cid = chunk_id.clone();
         let chunk_content = content.clone();
@@ -577,6 +588,7 @@ pub async fn update_knowledge_chunk(
                 let embed_response = crate::indexing::generate_embeddings(
                     &db,
                     &master_key,
+                    &provider_registry,
                     &embedding_provider,
                     vec![chunk_content],
                     None,
@@ -632,11 +644,13 @@ pub async fn add_knowledge_chunk(
     let vector_store = state.vector_store.clone();
     let doc_id = document_id.clone();
     let chunk_content = content.clone();
+    let provider_registry = state.harness.provider_registry().clone();
 
     let chunk_id_result = tokio::spawn(async move {
         let embed_response = crate::indexing::generate_embeddings(
             &db,
             &master_key,
+            &provider_registry,
             &embedding_provider,
             vec![chunk_content.clone()],
             None,
@@ -711,6 +725,7 @@ pub async fn reindex_knowledge_chunk(
     // Embed the single chunk
     let db = state.harness.db().clone();
     let master_key = state.harness.master_key_owned();
+    let provider_registry = state.harness.provider_registry().clone();
     let vector_store = state.vector_store.clone();
     let cid = chunk_id.clone();
 
@@ -719,6 +734,7 @@ pub async fn reindex_knowledge_chunk(
             let embed_response = crate::indexing::generate_embeddings(
                 &db,
                 &master_key,
+                &provider_registry,
                 &embedding_provider,
                 vec![chunk_content],
                 None,
@@ -792,6 +808,7 @@ pub async fn rebuild_knowledge_document(
     let vector_store = state.vector_store.clone();
     let ep = embedding_provider.clone();
     let doc_id = document_id.clone();
+    let provider_registry = state.harness.provider_registry().clone();
 
     tokio::spawn(async move {
         let texts: Vec<String> = chunks
@@ -800,7 +817,15 @@ pub async fn rebuild_knowledge_document(
             .collect();
         let rowids: Vec<i64> = chunks.iter().map(|(rid, _, _)| *rid).collect();
 
-        let result = crate::indexing::generate_embeddings(&db, &master_key, &ep, texts, None).await;
+        let result = crate::indexing::generate_embeddings(
+            &db,
+            &master_key,
+            &provider_registry,
+            &ep,
+            texts,
+            None,
+        )
+        .await;
 
         match result {
             Ok(embed_response) => {

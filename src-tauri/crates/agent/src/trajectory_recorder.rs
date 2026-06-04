@@ -1,4 +1,4 @@
-use axagent_trajectory::{
+use axagent_harness::trajectory_types::{
     MessageRole, ToolCall as TrajectoryToolCall, ToolResult as TrajectoryToolResult, Trajectory,
     TrajectoryOutcome, TrajectoryQuality, TrajectoryStep,
 };
@@ -710,7 +710,7 @@ impl Default for TrajectoryRecorder {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use axagent_trajectory::{
+    use axagent_harness::trajectory_types::{
         MessageRole, ToolCall as TrajectoryToolCall, ToolResult as TrajectoryToolResult,
         Trajectory, TrajectoryOutcome, TrajectoryQuality, TrajectoryStep,
     };

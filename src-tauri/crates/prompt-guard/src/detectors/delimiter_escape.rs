@@ -5,6 +5,7 @@
 /// 1. 转义 `<` 和 `>` 为 HTML 实体
 /// 2. 检测并处理 Unicode 全角同形字 (＜ ＞)
 /// 3. 检测嵌套 XML 标签尝试
+#[derive(Debug)]
 pub struct DelimiterEscaper {
     enable_unicode_homoglyph: bool,
 }

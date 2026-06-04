@@ -1,65 +1,11 @@
+
+pub use axagent_harness::trajectory_types::{GeneratedTool, LlmToolProvider, ToolCreationRequest};
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::future::Future;
 use std::pin::Pin;
 use uuid::Uuid;
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct GeneratedTool {
-    pub id: String,
-    pub name: String,
-    pub code: String,
-    pub description: String,
-    pub test_coverage: f64,
-    pub created_at: i64,
-    pub usage_count: u32,
-    pub success_rate: f64,
-}
-
-impl GeneratedTool {
-    pub fn new(name: &str, code: &str, description: &str) -> Self {
-        Self {
-            id: Uuid::new_v4().to_string(),
-            name: name.to_string(),
-            code: code.to_string(),
-            description: description.to_string(),
-            test_coverage: 0.0,
-            created_at: Utc::now().timestamp(),
-            usage_count: 0,
-            success_rate: 0.0,
-        }
-    }
-
-    pub fn record_success(&mut self) {
-        self.usage_count += 1;
-        let total = self.usage_count as f64;
-        self.success_rate = self.success_rate * ((total - 1.0) / total) + 1.0 / total;
-    }
-
-    pub fn record_failure(&mut self) {
-        self.usage_count += 1;
-        let total = self.usage_count as f64;
-        self.success_rate *= (total - 1.0) / total;
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ToolCreationRequest {
-    pub pattern_description: String,
-    pub context: String,
-    pub available_tools: Vec<String>,
-}
-
-impl ToolCreationRequest {
-    pub fn new(pattern_description: &str, context: &str, available_tools: Vec<String>) -> Self {
-        Self {
-            pattern_description: pattern_description.to_string(),
-            context: context.to_string(),
-            available_tools,
-        }
-    }
-}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ToolTestResult {
@@ -106,19 +52,6 @@ impl Default for AutoToolCreatorConfig {
             sandbox_timeout_ms: 5000,
         }
     }
-}
-
-pub trait LlmToolProvider: Send + Sync {
-    fn generate_tool_code(
-        &self,
-        request: &ToolCreationRequest,
-    ) -> Pin<Box<dyn Future<Output = Result<GeneratedTool, String>> + Send + '_>>;
-
-    fn improve_tool_code(
-        &self,
-        tool: &GeneratedTool,
-        error: &str,
-    ) -> Pin<Box<dyn Future<Output = Result<GeneratedTool, String>> + Send + '_>>;
 }
 
 pub struct DefaultLlmToolProvider {

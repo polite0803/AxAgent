@@ -3,7 +3,7 @@ use std::sync::Arc;
 use sea_orm::DatabaseConnection;
 
 use crate::message_gateway::platform_manager::{PlatformManager, PlatformMessageCallback};
-use axagent_harness::{ProviderRequestContext, resolve_base_url_for_type};
+use axagent_harness::build_provider_request_context;
 
 async fn persist_session_route(
     db: &DatabaseConnection,
@@ -44,15 +44,6 @@ impl PlatformBridge {
         }
     }
 
-    /// 注入 ProviderRegistry（由 Harness 在创建时调用）
-    pub fn with_provider_registry(
-        mut self,
-        registry: Arc<dyn axagent_harness::registry::ProviderRegistry>,
-    ) -> Self {
-        self.provider_registry = Some(registry);
-        self
-    }
-
     /// 设置 Webhook 派发器，用于在收到平台消息时触发 webhook 事件
     pub fn set_webhook_dispatcher(
         &mut self,
@@ -71,10 +62,10 @@ impl PlatformBridge {
 
         let provider_config = provider::get_provider(&self.db, provider_id).await?;
 
-        let registry_key = format!("{:?}", provider_config.provider_type).to_lowercase();
+        let registry_key = provider_config.provider_type.registry_key();
         let registry = self.provider_registry.as_ref().ok_or_else(|| {
             anyhow::anyhow!(
-                "PlatformBridge 未注入 ProviderRegistry（请使用 with_provider_registry）"
+                "PlatformBridge 未注入 ProviderRegistry（请调用 HasProviderRegistry::set_provider_registry）"
             )
         })?;
         let adapter = registry
@@ -85,25 +76,7 @@ impl PlatformBridge {
 
         let api_key = axagent_core::crypto::decrypt_key(&key_row.key_encrypted, &self.master_key)?;
 
-        let ctx = ProviderRequestContext {
-            api_key,
-            key_id: key_row.id.clone(),
-            provider_id: provider_id.to_string(),
-            base_url: Some(resolve_base_url_for_type(
-                &provider_config.api_host,
-                &provider_config.provider_type,
-            )),
-            api_path: provider_config.api_path.clone(),
-            proxy_config: provider_config.proxy_config.clone(),
-            custom_headers: provider_config
-                .custom_headers
-                .as_ref()
-                .and_then(|s| serde_json::from_str(s).ok()),
-            api_mode: None,
-            conversation: None,
-            previous_response_id: None,
-            store_response: None,
-        };
+        let ctx = build_provider_request_context(&provider_config, &key_row, api_key);
 
         let request = axagent_core::types::ChatRequest {
             model: model_id.to_string(),
@@ -125,6 +98,15 @@ impl PlatformBridge {
 
         let response = adapter.chat(&ctx, request).await?;
         Ok(response.content)
+    }
+}
+
+impl axagent_harness::HasProviderRegistry for PlatformBridge {
+    fn set_provider_registry(
+        &mut self,
+        registry: Arc<dyn axagent_harness::registry::ProviderRegistry>,
+    ) {
+        self.provider_registry = Some(registry);
     }
 }
 

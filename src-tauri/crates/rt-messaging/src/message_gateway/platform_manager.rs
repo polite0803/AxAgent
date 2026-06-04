@@ -26,7 +26,6 @@ pub struct PlatformManager {
     adapters: RwLock<HashMap<String, Arc<dyn PlatformAdapter>>>,
     session_router: RwLock<SessionRouter>,
     running_adapters: RwLock<Vec<String>>,
-    message_callback: RwLock<Option<Arc<dyn PlatformMessageCallback>>>,
 }
 
 impl Default for PlatformManager {
@@ -55,7 +54,6 @@ impl PlatformManager {
             adapters: RwLock::new(adapters),
             session_router: RwLock::new(SessionRouter::new()),
             running_adapters: RwLock::new(Vec::new()),
-            message_callback: RwLock::new(None),
         }
     }
 
@@ -127,13 +125,15 @@ impl PlatformManager {
     }
 
     pub async fn set_message_callback(&self, callback: Arc<dyn PlatformMessageCallback>) {
-        crate::message_gateway::platforms::set_message_callback(callback.clone());
-        let mut cb = self.message_callback.write().await;
-        *cb = Some(callback);
+        // 单一来源：`platforms` 模块的全局 `OnceLock<MESSAGE_CALLBACK>`。
+        // 各 platform adapter（telegram/discord/feishu/...）通过
+        // `crate::message_gateway::platforms::get_message_callback()` 读取。
+        // PlatformManager 不再持有自己的副本，避免"双写"不一致。
+        crate::message_gateway::platforms::set_message_callback(callback);
     }
 
     pub async fn get_message_callback(&self) -> Option<Arc<dyn PlatformMessageCallback>> {
-        self.message_callback.read().await.clone()
+        crate::message_gateway::platforms::get_message_callback()
     }
 
     /// 查询平台用户是否已有关联的 Agent 会话 ID

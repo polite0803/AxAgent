@@ -587,6 +587,100 @@ fn emit_status(
     );
 }
 
+/// 构建带 streaming 事件回调的 `AxAgentApiClient`。
+///
+/// `agent_query` 内的 if/else 分支（`AxAgentApiClient::new` vs `with_tools`）的 60 行
+/// 字节级重复（9 个 `.with_*` + 50 行事件回调）收敛到此处。
+/// 调用方只需关心：是否传入 tools / 几个数值参数 / 三个 streaming 捕获变量。
+#[allow(clippy::too_many_arguments)]
+fn build_streaming_api_client(
+    adapter: Arc<dyn ProviderAdapter>,
+    ctx: ProviderRequestContext,
+    chat_tools: Vec<ChatTool>,
+    model_id: &str,
+    effective_temperature: Option<f64>,
+    effective_top_p: Option<f64>,
+    effective_max_tokens: Option<u32>,
+    thinking_budget: Option<u32>,
+    use_max_completion_tokens: Option<bool>,
+    thinking_param_style: Option<String>,
+    request_delay_ms: Option<u64>,
+    stream_conv_id: String,
+    stream_msg_id: String,
+    stream_app: AppHandle,
+) -> AxAgentApiClient {
+    use axagent_runtime::AssistantEvent;
+
+    // 1. 选构造路径
+    let mut client = if chat_tools.is_empty() {
+        AxAgentApiClient::new(adapter, ctx)
+    } else {
+        AxAgentApiClient::with_tools(adapter, ctx, chat_tools)
+    };
+
+    // 2. 通用参数链（9 项）
+    client = client
+        .with_model(model_id)
+        .with_temperature(effective_temperature)
+        .with_top_p(effective_top_p)
+        .with_max_tokens(effective_max_tokens)
+        .with_thinking_budget(thinking_budget)
+        .with_use_max_completion_tokens(use_max_completion_tokens)
+        .with_thinking_param_style(thinking_param_style)
+        .with_request_delay_ms(request_delay_ms);
+
+    // 3. streaming 事件回调（4 类事件 + 兜底）
+    client.with_on_event(Box::new(move |event: &AssistantEvent| match event {
+        AssistantEvent::TextDelta(text) => {
+            let _ = stream_app.emit(
+                "agent-stream-text",
+                AgentStreamTextPayload {
+                    conversation_id: stream_conv_id.clone(),
+                    assistant_message_id: stream_msg_id.clone(),
+                    text: text.clone(),
+                },
+            );
+        }
+        AssistantEvent::ThinkingDelta(thinking) => {
+            let _ = stream_app.emit(
+                "agent-stream-thinking",
+                AgentStreamThinkingPayload {
+                    conversation_id: stream_conv_id.clone(),
+                    assistant_message_id: stream_msg_id.clone(),
+                    thinking: thinking.clone(),
+                },
+            );
+        }
+        AssistantEvent::ToolUse { id, name, input } => {
+            let _ = stream_app.emit(
+                "agent-tool-use",
+                AgentToolUsePayload {
+                    conversation_id: stream_conv_id.clone(),
+                    assistant_message_id: stream_msg_id.clone(),
+                    tool_use_id: id.clone(),
+                    tool_name: name.clone(),
+                    input: serde_json::from_str(input).unwrap_or(serde_json::Value::Null),
+                    execution_id: None,
+                },
+            );
+        }
+        AssistantEvent::PromptCache(evt) => {
+            let _ = stream_app.emit(
+                "prompt-cache-event",
+                PromptCachePayload {
+                    conversation_id: stream_conv_id.clone(),
+                    assistant_message_id: stream_msg_id.clone(),
+                    unexpected: evt.unexpected,
+                    reason: evt.reason.clone(),
+                    cache_read_input_tokens: evt.current_cache_read_input_tokens,
+                    token_drop: evt.token_drop,
+                },
+            );
+        }
+        _ => {}
+    }))
+}
+
 #[tauri::command]
 pub async fn agent_query(
     app: AppHandle,
@@ -1016,9 +1110,7 @@ pub async fn agent_query(
 
     // Configure tool execution recorder and context
     let mut tool_registry = tool_registry
-        .with_recorder(axagent_tools::ToolExecutionRecorder::new(Arc::new(
-            app_state.harness.db().clone(),
-        )))
+        .with_recorder_from_db(app_state.harness.db())
         .with_execution_context(conversation_id.clone(), None);
 
     // ── 加载搜索提供商配置，注入到 tool_extra ──
@@ -1103,128 +1195,22 @@ pub async fn agent_query(
 
     // Create API client with tool definitions, model ID and parameters
     // Also attach a streaming callback to emit text/thinking deltas in real-time
-    let stream_conv_id = conversation_id.clone();
-    let stream_msg_id = streaming_message_id.clone();
-    let stream_app = app.clone();
-    let api_client = if chat_tools.is_empty() {
-        AxAgentApiClient::new(adapter, ctx)
-            .with_model(&request.model_id)
-            .with_temperature(effective_temperature)
-            .with_top_p(effective_top_p)
-            .with_max_tokens(effective_max_tokens)
-            .with_thinking_budget(request.thinking_budget)
-            .with_use_max_completion_tokens(use_max_completion_tokens)
-            .with_thinking_param_style(thinking_param_style)
-            .with_request_delay_ms(request_delay_ms)
-            .with_on_event(Box::new(move |event: &axagent_runtime::AssistantEvent| match event {
-                axagent_runtime::AssistantEvent::TextDelta(text) => {
-                    let _ = stream_app.emit(
-                        "agent-stream-text",
-                        AgentStreamTextPayload {
-                            conversation_id: stream_conv_id.clone(),
-                            assistant_message_id: stream_msg_id.clone(),
-                            text: text.clone(),
-                        },
-                    );
-                },
-                axagent_runtime::AssistantEvent::ThinkingDelta(thinking) => {
-                    let _ = stream_app.emit(
-                        "agent-stream-thinking",
-                        AgentStreamThinkingPayload {
-                            conversation_id: stream_conv_id.clone(),
-                            assistant_message_id: stream_msg_id.clone(),
-                            thinking: thinking.clone(),
-                        },
-                    );
-                },
-                axagent_runtime::AssistantEvent::ToolUse { id, name, input } => {
-                    let _ = stream_app.emit(
-                        "agent-tool-use",
-                        AgentToolUsePayload {
-                            conversation_id: stream_conv_id.clone(),
-                            assistant_message_id: stream_msg_id.clone(),
-                            tool_use_id: id.clone(),
-                            tool_name: name.clone(),
-                            input: serde_json::from_str(input).unwrap_or(serde_json::Value::Null),
-                            execution_id: None,
-                        },
-                    );
-                },
-                axagent_runtime::AssistantEvent::PromptCache(evt) => {
-                    let _ = stream_app.emit(
-                        "prompt-cache-event",
-                        PromptCachePayload {
-                            conversation_id: stream_conv_id.clone(),
-                            assistant_message_id: stream_msg_id.clone(),
-                            unexpected: evt.unexpected,
-                            reason: evt.reason.clone(),
-                            cache_read_input_tokens: evt.current_cache_read_input_tokens,
-                            token_drop: evt.token_drop,
-                        },
-                    );
-                },
-                _ => {},
-            }))
-    } else {
-        AxAgentApiClient::with_tools(adapter, ctx, chat_tools.clone())
-            .with_model(&request.model_id)
-            .with_temperature(effective_temperature)
-            .with_top_p(effective_top_p)
-            .with_max_tokens(effective_max_tokens)
-            .with_thinking_budget(request.thinking_budget)
-            .with_use_max_completion_tokens(use_max_completion_tokens)
-            .with_thinking_param_style(thinking_param_style)
-            .with_request_delay_ms(request_delay_ms)
-            .with_on_event(Box::new(move |event: &axagent_runtime::AssistantEvent| match event {
-                axagent_runtime::AssistantEvent::TextDelta(text) => {
-                    let _ = stream_app.emit(
-                        "agent-stream-text",
-                        AgentStreamTextPayload {
-                            conversation_id: stream_conv_id.clone(),
-                            assistant_message_id: stream_msg_id.clone(),
-                            text: text.clone(),
-                        },
-                    );
-                },
-                axagent_runtime::AssistantEvent::ThinkingDelta(thinking) => {
-                    let _ = stream_app.emit(
-                        "agent-stream-thinking",
-                        AgentStreamThinkingPayload {
-                            conversation_id: stream_conv_id.clone(),
-                            assistant_message_id: stream_msg_id.clone(),
-                            thinking: thinking.clone(),
-                        },
-                    );
-                },
-                axagent_runtime::AssistantEvent::ToolUse { id, name, input } => {
-                    let _ = stream_app.emit(
-                        "agent-tool-use",
-                        AgentToolUsePayload {
-                            conversation_id: stream_conv_id.clone(),
-                            assistant_message_id: stream_msg_id.clone(),
-                            tool_use_id: id.clone(),
-                            tool_name: name.clone(),
-                            input: serde_json::from_str(input).unwrap_or(serde_json::Value::Null),
-                            execution_id: None,
-                        },
-                    );
-                },
-                axagent_runtime::AssistantEvent::PromptCache(evt) => {
-                    let _ = stream_app.emit(
-                        "prompt-cache-event",
-                        PromptCachePayload {
-                            conversation_id: stream_conv_id.clone(),
-                            assistant_message_id: stream_msg_id.clone(),
-                            unexpected: evt.unexpected,
-                            reason: evt.reason.clone(),
-                            cache_read_input_tokens: evt.current_cache_read_input_tokens,
-                            token_drop: evt.token_drop,
-                        },
-                    );
-                },
-                _ => {},
-            }))
-    };
+    let api_client = build_streaming_api_client(
+        adapter,
+        ctx,
+        chat_tools.clone(),
+        &request.model_id,
+        effective_temperature,
+        effective_top_p,
+        effective_max_tokens,
+        request.thinking_budget,
+        use_max_completion_tokens,
+        thinking_param_style,
+        request_delay_ms,
+        conversation_id.clone(),
+        streaming_message_id.clone(),
+        app.clone(),
+    );
 
     // Persist attachments (images, files) to disk and DB
     let persisted_attachments: Vec<Attachment> = if let Some(ref attachments) = request.attachments
@@ -3883,41 +3869,9 @@ pub async fn workflow_execute(
         .map_err(|e| e.to_string())?
         .ok_or_else(|| ErrorResponse::err(agent_err::WORKFLOW_NOT_FOUND))?;
 
-    // 设置工具解析器（从全局 registry 按需自动注册工作流中引用的工具）
-    {
-        let registry = app_state.local_tool_registry.clone();
-        let resolver: axagent_runtime::work_engine::ToolResolver =
-            std::sync::Arc::new(move |tool_name: String| {
-                let registry = registry.clone();
-                Box::pin(async move {
-                    let reg = registry.lock().await;
-                    let known = reg.list_all_tool_names().contains(&tool_name)
-                        || reg.mcp_tools.contains_key(&tool_name);
-                    if known {
-                        let registry = registry.clone();
-                        let cb: axagent_runtime::work_engine::ToolCallback =
-                            std::sync::Arc::new(move |tn: String, args: serde_json::Value| {
-                                let registry = registry.clone();
-                                Box::pin(async move {
-                                    let mut reg = registry.lock().await;
-                                    let input_str = serde_json::to_string(&args)
-                                        .unwrap_or_else(|_| "{}".to_string());
-                                    match reg.execute(&tn, &input_str).await {
-                                        Ok(output) => {
-                                            Ok(serde_json::json!({"content": output.content}))
-                                        },
-                                        Err(e) => Err(format!("Tool execution error: {}", e)),
-                                    }
-                                })
-                            });
-                        Some(cb)
-                    } else {
-                        None
-                    }
-                })
-            });
-        app_state.work_engine.set_tool_resolver(resolver).await;
-    }
+    // 工具解析器已由 init/services.rs 在启动期注入（含 builtin / mcp / workflow:: 三种来源），
+    // 此处不再 set_tool_resolver 覆盖——否则会静默丢弃 init 阶段注入的 workflow:: 解析。
+    let _ = app_state.local_tool_registry; // 保留依赖项以维持签名稳定
 
     let engine = app_state.work_engine.clone();
     let wid = workflow_id.clone();

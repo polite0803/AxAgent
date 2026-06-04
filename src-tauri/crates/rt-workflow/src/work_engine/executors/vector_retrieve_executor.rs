@@ -1,38 +1,19 @@
 //! 向量检索执行器 —— 通过注入的回调查询向量存储。
 //!
-//! 默认无回调时返回解析后的 query 和配置，不报错但标记为未配置。
+//! 注意：VectorRetrieveCallback 三向分裂（WorkEngine / Executor / ExecutionState）已收敛。
+//! 当前无注册入口（`set_vector_retrieve_callback` / `set_callback` 已删除），节点始终返回
+//! "not_configured"。若未来要重新启用，需在 init 阶段引入新的注入路径（推荐走 ExecutionContextCallbacks
+//! 单源传播），禁止再分裂到 WorkEngine/Executor/State 三处。
 
 use crate::work_engine::execution_state::ExecutionState;
-use crate::work_engine::node_executor_trait::{
-    NodeError, NodeExecutorTrait, NodeOutput, error_code,
-};
-use async_trait::async_trait;
+use crate::work_engine::node_executor_trait::NodeExecutorTrait;
 use axagent_core::workflow_types::WorkflowNode;
-use std::pin::Pin;
-use std::sync::Arc;
 
-pub type VectorRetrieveCallback = Arc<
-    dyn Fn(
-            String,
-            u32,
-        ) -> Pin<
-            Box<dyn std::future::Future<Output = Result<Vec<serde_json::Value>, String>> + Send>,
-        > + Send
-        + Sync,
->;
-
-pub struct VectorRetrieveExecutor {
-    callback: Arc<tokio::sync::Mutex<Option<VectorRetrieveCallback>>>,
-}
+pub struct VectorRetrieveExecutor;
 
 impl VectorRetrieveExecutor {
     pub fn new() -> Self {
-        Self {
-            callback: Arc::new(tokio::sync::Mutex::new(None)),
-        }
-    }
-    pub async fn set_callback(&self, cb: VectorRetrieveCallback) {
-        *self.callback.lock().await = Some(cb);
+        Self
     }
 }
 impl Default for VectorRetrieveExecutor {
@@ -41,7 +22,7 @@ impl Default for VectorRetrieveExecutor {
     }
 }
 
-#[async_trait]
+#[async_trait::async_trait]
 impl NodeExecutorTrait for VectorRetrieveExecutor {
     fn node_type(&self) -> &'static str {
         "vectorRetrieve"
@@ -51,51 +32,27 @@ impl NodeExecutorTrait for VectorRetrieveExecutor {
         &self,
         node: &WorkflowNode,
         context: &ExecutionState,
-    ) -> Result<NodeOutput, NodeError> {
+    ) -> Result<crate::work_engine::node_executor_trait::NodeOutput, crate::work_engine::node_executor_trait::NodeError> {
         let WorkflowNode::VectorRetrieve(vr) = node else {
-            return Err(NodeError::type_mismatch(
+            return Err(crate::work_engine::node_executor_trait::NodeError::type_mismatch(
                 "vectorRetrieve".to_string(),
                 super::node_type_name(node).to_string(),
             ));
         };
         let resolved_query = resolve_query_template(&vr.config.query, &context.variables);
 
-        let cb_from_context = context
-            .callbacks
-            .as_ref()
-            .and_then(|cbs| cbs.vector_retrieve.clone());
-
-        let results = if let Some(ref cb) = cb_from_context {
-            cb(resolved_query.clone(), vr.config.top_k)
-                .await
-                .map_err(|e| {
-                    NodeError::exec_failed(
-                        error_code::VECTOR_RETRIEVE_FAILED,
-                        format!("Vector retrieval failed: {e}"),
-                    )
-                })?
-        } else {
-            let cb_guard = self.callback.lock().await;
-            if let Some(ref cb) = *cb_guard {
-                cb(resolved_query.clone(), vr.config.top_k)
-                    .await
-                    .map_err(|e| {
-                        NodeError::exec_failed(
-                            error_code::VECTOR_RETRIEVE_FAILED,
-                            format!("Vector retrieval failed: {e}"),
-                        )
-                    })?
-            } else {
-                vec![
-                    serde_json::json!({"status": "not_configured", "message": "Vector retrieve callback not configured"}),
-                ]
-            }
-        };
-
-        Ok(NodeOutput {
+        // 当前未启用 callback 注入：始终返回 not_configured。
+        // 未来重新启用时，只在 ExecutionContextCallbacks 单源注入 callback，
+        // 不要再在 WorkEngine / Executor 上开第二/第三个入口。
+        Ok(crate::work_engine::node_executor_trait::NodeOutput {
             output: serde_json::json!({
                 "query": resolved_query, "knowledge_base_id": vr.config.knowledge_base_id,
-                "top_k": vr.config.top_k, "results": results, "node_id": node.base_id(),
+                "top_k": vr.config.top_k,
+                "results": [{
+                    "status": "not_configured",
+                    "message": "Vector retrieve callback not configured"
+                }],
+                "node_id": node.base_id(),
             }),
             output_var: Some(vr.config.output_var.clone()),
         })

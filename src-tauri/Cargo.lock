@@ -880,10 +880,8 @@ dependencies = [
  "axagent-core",
  "axagent-harness",
  "axagent-migration",
- "axagent-prompt-guard",
  "axagent-runtime-core",
  "axagent-tools",
- "axagent-trajectory",
  "backon",
  "base64 0.22.1",
  "chrono",
@@ -915,6 +913,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "axagent-cache"
+version = "2.5.1"
+dependencies = [
+ "axagent-harness",
+ "axagent-search",
+ "quick_cache",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
 name = "axagent-core"
 version = "2.5.1"
 dependencies = [
@@ -922,6 +933,17 @@ dependencies = [
  "anyhow",
  "argon2",
  "async-trait",
+ "axagent-cache",
+ "axagent-crypto",
+ "axagent-dao",
+ "axagent-disk-cache",
+ "axagent-document-parser",
+ "axagent-entities",
+ "axagent-harness",
+ "axagent-kit",
+ "axagent-mcp",
+ "axagent-search",
+ "axagent-storage",
  "base64 0.22.1",
  "candle-core",
  "candle-nn",
@@ -973,12 +995,85 @@ dependencies = [
 ]
 
 [[package]]
+name = "axagent-crypto"
+version = "2.5.1"
+dependencies = [
+ "aes-gcm",
+ "argon2",
+ "axagent-harness",
+ "base64 0.22.1",
+ "hex",
+ "rand 0.8.6",
+ "serde",
+ "sha2",
+ "tracing",
+ "uuid",
+]
+
+[[package]]
+name = "axagent-dao"
+version = "2.5.1"
+dependencies = [
+ "axagent-crypto",
+ "axagent-entities",
+ "axagent-harness",
+ "axagent-mcp",
+ "axagent-storage",
+ "chrono",
+ "dirs 5.0.1",
+ "regex",
+ "reqwest 0.13.2",
+ "sea-orm",
+ "serde",
+ "serde_json",
+ "serde_yaml",
+ "sha2",
+ "thiserror 2.0.18",
+ "tokio",
+ "toml_edit 0.22.27",
+ "tracing",
+ "uuid",
+ "walkdir",
+]
+
+[[package]]
+name = "axagent-disk-cache"
+version = "2.5.1"
+dependencies = [
+ "chrono",
+ "rusqlite",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "axagent-document-parser"
+version = "2.5.1"
+dependencies = [
+ "axagent-harness",
+ "pdf-extract 0.7.12",
+ "zip 2.4.2",
+]
+
+[[package]]
+name = "axagent-entities"
+version = "2.5.1"
+dependencies = [
+ "axagent-harness",
+ "chrono",
+ "sea-orm",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "axagent-gateway"
 version = "2.5.1"
 dependencies = [
  "async-trait",
  "axagent-core",
  "axagent-harness",
+ "axagent-providers",
  "axum",
  "axum-server",
  "futures",
@@ -1002,12 +1097,63 @@ name = "axagent-harness"
 version = "2.5.1"
 dependencies = [
  "async-trait",
- "axagent-core",
+ "chrono",
  "futures",
+ "sea-orm",
  "serde",
  "serde_json",
  "thiserror 2.0.18",
  "tokio",
+ "tracing",
+ "uuid",
+]
+
+[[package]]
+name = "axagent-kit"
+version = "2.5.1"
+dependencies = [
+ "anyhow",
+ "axagent-dao",
+ "axagent-entities",
+ "axagent-harness",
+ "base64 0.22.1",
+ "chrono",
+ "dirs 5.0.1",
+ "enigo",
+ "image",
+ "keyring",
+ "regex",
+ "reqwest 0.13.2",
+ "scraper",
+ "sea-orm",
+ "serde",
+ "serde_json",
+ "serde_yaml",
+ "shellexpand",
+ "thiserror 2.0.18",
+ "tokio",
+ "tracing",
+ "uuid",
+ "windows 0.62.2",
+ "windows-sys 0.59.0",
+ "xcap",
+]
+
+[[package]]
+name = "axagent-mcp"
+version = "2.5.1"
+dependencies = [
+ "axagent-crypto",
+ "axagent-harness",
+ "dirs 5.0.1",
+ "futures",
+ "reqwest 0.13.2",
+ "rmcp",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tracing",
+ "urlencoding",
 ]
 
 [[package]]
@@ -1030,6 +1176,8 @@ dependencies = [
 name = "axagent-npm"
 version = "2.5.1"
 dependencies = [
+ "async-trait",
+ "axagent-harness",
  "flate2",
  "reqwest 0.13.2",
  "serde",
@@ -1045,7 +1193,7 @@ dependencies = [
 name = "axagent-plugins"
 version = "2.5.1"
 dependencies = [
- "axagent-npm",
+ "axagent-harness",
  "axagent-runtime-core",
  "serde",
  "serde_json",
@@ -1059,6 +1207,7 @@ dependencies = [
 name = "axagent-prompt-guard"
 version = "2.5.1"
 dependencies = [
+ "axagent-harness",
  "regex",
  "serde",
  "serde_json",
@@ -1105,6 +1254,7 @@ dependencies = [
  "async-trait",
  "axagent-core",
  "axagent-harness",
+ "axagent-providers",
  "axum",
  "chrono",
  "flate2",
@@ -1142,6 +1292,7 @@ name = "axagent-rt-webhook"
 version = "2.5.1"
 dependencies = [
  "async-trait",
+ "axagent-harness",
  "axagent-rt-messaging",
  "axum",
  "chrono",
@@ -1161,16 +1312,16 @@ name = "axagent-rt-workflow"
 version = "2.5.1"
 dependencies = [
  "async-trait",
- "axagent-agent",
  "axagent-core",
  "axagent-harness",
- "axagent-tools",
+ "axagent-providers",
  "chrono",
  "futures",
  "itertools 0.14.0",
  "jsonschema",
  "regex",
  "reqwest 0.13.2",
+ "rhai",
  "sea-orm",
  "serde",
  "serde_json",
@@ -1257,10 +1408,68 @@ dependencies = [
 ]
 
 [[package]]
+name = "axagent-search"
+version = "2.5.1"
+dependencies = [
+ "async-trait",
+ "axagent-dao",
+ "axagent-document-parser",
+ "axagent-harness",
+ "candle-core",
+ "candle-nn",
+ "candle-transformers",
+ "chrono",
+ "dirs 5.0.1",
+ "futures",
+ "hex",
+ "libsqlite3-sys",
+ "notify",
+ "quick_cache",
+ "regex",
+ "reqwest 0.13.2",
+ "rusqlite",
+ "sea-orm",
+ "serde",
+ "serde_json",
+ "sha2",
+ "sqlite-vec",
+ "tokenizers",
+ "tokio",
+ "tracing",
+ "urlencoding",
+ "uuid",
+]
+
+[[package]]
+name = "axagent-storage"
+version = "2.5.1"
+dependencies = [
+ "async-trait",
+ "axagent-crypto",
+ "axagent-entities",
+ "axagent-harness",
+ "chrono",
+ "dirs 5.0.1",
+ "hex",
+ "md5",
+ "reqwest 0.13.2",
+ "roxmltree",
+ "sea-orm",
+ "serde",
+ "serde_json",
+ "sha2",
+ "tokio",
+ "tracing",
+ "uuid",
+ "zip 2.4.2",
+]
+
+[[package]]
 name = "axagent-telemetry"
 version = "2.5.1"
 dependencies = [
  "axagent-core",
+ "axagent-harness",
  "chrono",
  "lazy_static",
  "opentelemetry",
@@ -1331,6 +1540,7 @@ dependencies = [
  "anyhow",
  "async-trait",
  "axagent-core",
+ "axagent-harness",
  "axum",
  "chrono",
  "directories",

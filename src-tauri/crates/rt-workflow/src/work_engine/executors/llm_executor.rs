@@ -10,6 +10,8 @@ use axagent_core::workflow_types::WorkflowNode;
 use sea_orm::DatabaseConnection;
 use std::sync::Arc;
 
+use axagent_harness::build_provider_request_context;
+
 pub struct LlmExecutor {
     db: Arc<DatabaseConnection>,
     master_key: [u8; 32],
@@ -25,13 +27,14 @@ impl LlmExecutor {
             provider_registry: None,
         }
     }
+}
 
-    pub fn with_provider_registry(
-        mut self,
+impl axagent_harness::HasProviderRegistry for LlmExecutor {
+    fn set_provider_registry(
+        &mut self,
         registry: Arc<dyn axagent_harness::registry::ProviderRegistry>,
-    ) -> Self {
+    ) {
         self.provider_registry = Some(registry);
-        self
     }
 }
 impl Default for LlmExecutor {
@@ -71,43 +74,23 @@ impl NodeExecutorTrait for LlmExecutor {
         };
         let session_model = context
             .variables
-            .get("__workflow_model__")
+            .get(super::WORKFLOW_MODEL_VAR)
             .and_then(|v| v.as_str());
         let session_provider_id = context
             .variables
-            .get("__workflow_provider_id__")
+            .get(super::WORKFLOW_PROVIDER_ID_VAR)
             .and_then(|v| v.as_str());
-        let (prov, key, model) = axagent_core::repo::provider::resolve_model_for_node(
+        let (prov, key, model, adapter, api_key) = super::resolve_provider_and_adapter(
             &self.db,
+            &self.master_key,
+            self.provider_registry.as_ref(),
             node_model,
             session_model,
             session_provider_id,
             None,
+            "LlmExecutor",
         )
-        .await
-        .map_err(|e| NodeError::exec_failed(error_code::UNSUPPORTED_PROVIDER, e))?;
-        let api_key = axagent_core::crypto::decrypt_key(&key.key_encrypted, &self.master_key)
-            .map_err(|e| {
-                NodeError::exec_failed(
-                    error_code::UNSUPPORTED_PROVIDER,
-                    format!("API key decryption failed: {e}"),
-                )
-            })?;
-
-        // 创建 adapter（从注入的 ProviderRegistry 中按 provider 类型查找）
-        use axagent_harness::{ProviderAdapter, resolve_base_url_for_type};
-        let registry_key =
-            crate::work_engine::executors::provider_type_to_registry_key(&prov.provider_type);
-        let adapter: Arc<dyn ProviderAdapter> = self
-            .provider_registry
-            .as_ref()
-            .and_then(|reg| reg.get(registry_key))
-            .ok_or_else(|| {
-                NodeError::exec_failed(
-                    error_code::UNSUPPORTED_PROVIDER,
-                    format!("LlmExecutor 未找到 ProviderAdapter for type: {}", registry_key),
-                )
-            })?;
+        .await?;
 
         // 构建 messages
         let mut messages: Vec<ChatMessage> = llm_node
@@ -143,20 +126,7 @@ impl NodeExecutorTrait for LlmExecutor {
             ];
         }
 
-        let base_url = resolve_base_url_for_type(&prov.api_host, &prov.provider_type);
-        let req_ctx = axagent_harness::ProviderRequestContext {
-            provider_id: prov.id.clone(),
-            api_key,
-            key_id: key.id.clone(),
-            base_url: Some(base_url),
-            api_path: None,
-            proxy_config: None,
-            custom_headers: None,
-            api_mode: None,
-            conversation: None,
-            previous_response_id: None,
-            store_response: None,
-        };
+        let req_ctx = build_provider_request_context(&prov, &key, api_key);
         let model_for_output = model.clone();
 
         if context.dry_run {

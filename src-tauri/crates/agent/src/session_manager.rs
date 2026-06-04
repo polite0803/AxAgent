@@ -4,7 +4,7 @@ use crate::event_bus::AgentPermissionPayload;
 use crate::provider_adapter::AxAgentApiClient;
 use crate::shared_blackboard::SharedBlackboard;
 use axagent_core::repo::agent_session;
-use axagent_prompt_guard::{GuardConfig, PromptGuardPipeline};
+use axagent_harness::{TaskComplexity, TrajectoryService};
 use axagent_runtime_core::{
     AgentExecutionProgress, CompactionConfig, ContentBlock, ConversationMessage,
     ConversationRuntime, HookEvent, HookProgressEvent, HookProgressReporter, MessageRole,
@@ -103,22 +103,23 @@ fn estimate_tokens_from_content_blocks(blocks: &[axagent_runtime_core::ContentBl
 /// | Low        | 20            | Simple queries need few tool-use rounds |
 /// | Medium     | 50            | Standard tasks with moderate tool usage |
 /// | High       | 100           | Complex multi-step tasks need more iterations |
-pub fn dynamic_max_iterations(complexity: &axagent_trajectory::Complexity) -> usize {
+pub fn dynamic_max_iterations(complexity: &TaskComplexity) -> usize {
     match complexity {
-        axagent_trajectory::Complexity::Low => 20,
-        axagent_trajectory::Complexity::Medium => 50,
-        axagent_trajectory::Complexity::High => 100,
+        TaskComplexity::Low => 20,
+        TaskComplexity::Medium => 50,
+        TaskComplexity::High => 100,
     }
 }
 
 /// 处理并追加用户消息到 agent 会话（带提示词注入防护）
 ///
-/// 使用 PromptGuardPipeline 对用户输入进行多层过滤后，
+/// 使用 Session 中注入的 PromptGuard 对用户输入进行多层过滤，
 /// 直接推送已处理的消息到 Session，避免 push_user_text 的二次包装。
 pub fn append_user_message(session: &mut Session, text: &str) -> Result<(), String> {
-    let config = GuardConfig::default();
-    let pipeline = PromptGuardPipeline::new(config);
-    let processed = pipeline.process_user_input(text)?;
+    let processed = match session.prompt_guard.as_ref() {
+        Some(guard) => guard.process_user_input(text)?,
+        None => text.to_string(),
+    };
     // 直接推送已处理的消息，避免 push_user_text 的二次包装
     session
         .push_message(ConversationMessage {
@@ -140,6 +141,8 @@ pub struct AgentSession {
     axagent_session_id: Option<String>,
     /// 多 Agent 协作 Blackboard（可选）
     pub blackboard: Option<Arc<RwLock<SharedBlackboard>>>,
+    /// 轨迹学习服务（可选，用于会话压缩完整性校验）
+    pub trajectory: Option<Arc<dyn TrajectoryService>>,
 }
 
 impl AgentSession {
@@ -152,11 +155,19 @@ impl AgentSession {
             role: None,
             axagent_session_id: None,
             blackboard: None,
+            trajectory: None,
         }
     }
 
     pub fn with_team(mut self, team_id: String) -> Self {
         self.team_id = Some(team_id);
+        self
+    }
+
+    /// 注入轨迹学习服务（用于压缩完整性校验 + 复杂度评估）
+    #[must_use]
+    pub fn with_trajectory_service(mut self, svc: Arc<dyn TrajectoryService>) -> Self {
+        self.trajectory = Some(svc);
         self
     }
 
@@ -231,6 +242,8 @@ pub struct SessionManager {
     /// Per-conversation execution progress trackers for frontend panels.
     progress_trackers:
         std::sync::RwLock<std::collections::HashMap<String, Arc<AgentExecutionProgress>>>,
+    /// 轨迹学习服务（可选，用于压缩完整性校验和任务复杂度估算）
+    trajectory: Option<Arc<dyn TrajectoryService>>,
 }
 
 /// Maximum number of sessions to keep in memory (LRU eviction).
@@ -248,6 +261,7 @@ impl SessionManager {
             app_handle: std::sync::Mutex::new(None),
             default_workspace_dir: std::sync::Mutex::new(None),
             progress_trackers: std::sync::RwLock::new(std::collections::HashMap::new()),
+            trajectory: None,
         }
     }
 
@@ -516,7 +530,7 @@ impl SessionManager {
             let result = compact_session(session.session(), compaction_config);
 
             // Build MessageRecords for integrity verification
-            let original_msgs: Vec<axagent_trajectory::MessageRecord> = session
+            let original_msgs: Vec<serde_json::Value> = session
                 .session()
                 .messages
                 .iter()
@@ -543,19 +557,15 @@ impl SessionManager {
                             } => format!("[ToolResult: {} {}]", tool_name, output),
                         })
                         .collect();
-                    axagent_trajectory::MessageRecord {
-                        id: format!("orig-{}", i),
-                        role: role_str.to_string(),
-                        content,
-                        message_type: None,
-                        timestamp: i as i64,
-                        tool_calls: Some(m.blocks.iter().any(|b| {
-                            matches!(b, axagent_runtime_core::ContentBlock::ToolUse { .. })
-                        })),
-                    }
+                    serde_json::json!({
+                        "id": format!("orig-{}", i),
+                        "role": role_str.to_string(),
+                        "content": content,
+                        "timestamp": i as i64,
+                    })
                 })
                 .collect();
-            let compressed_msgs: Vec<axagent_trajectory::MessageRecord> = result
+            let compressed_msgs: Vec<serde_json::Value> = result
                 .compacted_session
                 .messages
                 .iter()
@@ -582,28 +592,24 @@ impl SessionManager {
                             } => format!("[ToolResult: {} {}]", tool_name, output),
                         })
                         .collect();
-                    axagent_trajectory::MessageRecord {
-                        id: format!("comp-{}", i),
-                        role: role_str.to_string(),
-                        content,
-                        message_type: None,
-                        timestamp: i as i64,
-                        tool_calls: Some(m.blocks.iter().any(|b| {
-                            matches!(b, axagent_runtime_core::ContentBlock::ToolUse { .. })
-                        })),
-                    }
+                    serde_json::json!({
+                        "id": format!("comp-{}", i),
+                        "role": role_str.to_string(),
+                        "content": content,
+                        "timestamp": i as i64,
+                    })
                 })
                 .collect();
 
-            // Use SessionCompactor to extract key entities for enhanced integrity verification
-            let compactor = axagent_trajectory::SessionCompactor::new();
-            let key_entities = compactor.extract_entities(&original_msgs);
-
-            let integrity = axagent_trajectory::verify_compression_integrity(
-                &original_msgs,
-                &compressed_msgs,
-                &key_entities,
-            );
+            // 通过 harness TrajectoryService 进行完整性校验
+            let key_entities = match &self.trajectory {
+                Some(svc) => svc.extract_entities(&original_msgs),
+                None => Vec::new(),
+            };
+            let integrity = match &self.trajectory {
+                Some(svc) => svc.verify_compression_integrity(&original_msgs, &compressed_msgs, &key_entities),
+                None => axagent_harness::IntegrityResult { is_valid: true, checks: Vec::new() },
+            };
             if !integrity.is_valid {
                 let failed_checks: Vec<&str> = integrity
                     .checks
@@ -646,7 +652,7 @@ impl SessionManager {
             system_prompt,
         )
         .with_max_iterations(dynamic_max_iterations(
-            &axagent_trajectory::estimate_complexity_public(&user_input),
+            &self.trajectory.as_ref().map(|s| s.estimate_complexity(&user_input)).unwrap_or(TaskComplexity::Medium),
         ))
         .with_auto_compaction_input_tokens_threshold(AUTO_COMPACTION_TOKEN_THRESHOLD as u32);
 
@@ -661,7 +667,7 @@ impl SessionManager {
         // Also shared with TauriHookProgressReporter so agent-status events
         // carry rich progress data (currentTool, iteration, toolCount, errors).
         let max_iters =
-            dynamic_max_iterations(&axagent_trajectory::estimate_complexity_public(&user_input));
+            dynamic_max_iterations(&self.trajectory.as_ref().map(|s| s.estimate_complexity(&user_input)).unwrap_or(TaskComplexity::Medium));
         let progress = Arc::new(AgentExecutionProgress::new(max_iters));
         runtime = runtime.with_progress(progress.clone());
         {
@@ -1269,17 +1275,17 @@ mod tests {
 
     #[test]
     fn test_dynamic_max_iterations_low() {
-        assert_eq!(dynamic_max_iterations(&axagent_trajectory::Complexity::Low), 20);
+        assert_eq!(dynamic_max_iterations(&TaskComplexity::Low), 20);
     }
 
     #[test]
     fn test_dynamic_max_iterations_medium() {
-        assert_eq!(dynamic_max_iterations(&axagent_trajectory::Complexity::Medium), 50);
+        assert_eq!(dynamic_max_iterations(&TaskComplexity::Medium), 50);
     }
 
     #[test]
     fn test_dynamic_max_iterations_high() {
-        assert_eq!(dynamic_max_iterations(&axagent_trajectory::Complexity::High), 100);
+        assert_eq!(dynamic_max_iterations(&TaskComplexity::High), 100);
     }
 
     #[test]
@@ -1471,9 +1477,9 @@ mod tests {
 
     #[test]
     fn test_dynamic_max_iterations_matches_complexity() {
-        assert_eq!(dynamic_max_iterations(&axagent_trajectory::Complexity::Low), 20);
-        assert_eq!(dynamic_max_iterations(&axagent_trajectory::Complexity::Medium), 50);
-        assert_eq!(dynamic_max_iterations(&axagent_trajectory::Complexity::High), 100);
+        assert_eq!(dynamic_max_iterations(&TaskComplexity::Low), 20);
+        assert_eq!(dynamic_max_iterations(&TaskComplexity::Medium), 50);
+        assert_eq!(dynamic_max_iterations(&TaskComplexity::High), 100);
     }
 
     #[test]

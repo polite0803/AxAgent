@@ -5,6 +5,17 @@ edition.workspace = true
 publish = false
 
 [dependencies]
+axagent-cache = { path = "../cache" }
+axagent-crypto = { path = "../crypto" }
+axagent-dao = { path = "../dao" }
+axagent-disk-cache = { path = "../disk-cache" }
+axagent-document-parser = { path = "../document-parser" }
+axagent-entities = { path = "../entities" }
+axagent-harness = { path = "../harness" }
+axagent-kit = { path = "../kit" }
+axagent-mcp = { path = "../mcp" }
+axagent-search = { path = "../search" }
+axagent-storage = { path = "../storage" }
 serde = { workspace = true }
 serde_json = { workspace = true }
 serde_yaml = { workspace = true }

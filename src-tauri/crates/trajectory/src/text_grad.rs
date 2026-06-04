@@ -6,6 +6,8 @@
 //! "text gradient" — a natural-language suggestion for improvement — which is
 //! then applied to modify the node's content.
 
+pub use axagent_harness::trajectory_types::LlmTextGradProvider;
+
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::future::Future;
@@ -301,14 +303,6 @@ impl Default for TextGradConfig {
     }
 }
 
-pub trait LlmTextGradProvider: Send + Sync {
-    fn compute_gradient(
-        &self,
-        node_content: &str,
-        output_feedback: &str,
-    ) -> Pin<Box<dyn Future<Output = Result<String, String>> + Send + '_>>;
-}
-
 pub struct DefaultTextGradProvider {
     max_gradient_length: usize,
 }
@@ -451,18 +445,6 @@ impl TextGradEngine {
         Self {
             graph,
             provider: Box::new(DefaultTextGradProvider::new()),
-            config,
-        }
-    }
-
-    pub fn with_provider(
-        graph: ComputationGraph,
-        config: TextGradConfig,
-        provider: Box<dyn LlmTextGradProvider>,
-    ) -> Self {
-        Self {
-            graph,
-            provider,
             config,
         }
     }

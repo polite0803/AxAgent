@@ -8,6 +8,8 @@ use crate::types::{DistInfo, NpmError, PackageInfo, VersionInfo};
 
 const DEFAULT_REGISTRY: &str = "https://registry.npmjs.org";
 
+/// npm registry 客户端 — 包查询、下载、解压
+#[derive(Debug)]
 pub struct NpmRegistry {
     registry_url: String,
     client: reqwest::Client,

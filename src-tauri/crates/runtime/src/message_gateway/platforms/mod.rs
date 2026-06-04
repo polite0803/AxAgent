@@ -1,45 +1,7 @@
-pub mod dingtalk;
-pub mod discord;
-pub mod feishu;
-pub mod qq;
-pub mod slack;
-pub mod telegram;
-pub mod wechat;
-pub mod whatsapp;
+//! Re-exported from axagent-rt-messaging。
+//!
+//! 真正的 `MESSAGE_CALLBACK` static、setter/getter、PlatformAdapter trait
+//! 都在 `axagent_rt_messaging::message_gateway::platforms`。
+//! 本模块仅作 re-export 转发，避免双 crate 复制。
 
-use std::sync::Arc;
-use std::sync::OnceLock;
-
-use axagent_rt_messaging::message_gateway::platform_config::PlatformConfig;
-use axagent_rt_messaging::message_gateway::platform_manager::PlatformMessageCallback;
-
-static MESSAGE_CALLBACK: OnceLock<Arc<dyn PlatformMessageCallback>> = OnceLock::new();
-
-pub fn set_message_callback(callback: Arc<dyn PlatformMessageCallback>) {
-    let _ = MESSAGE_CALLBACK.set(callback);
-}
-
-pub fn get_message_callback() -> Option<Arc<dyn PlatformMessageCallback>> {
-    MESSAGE_CALLBACK.get().cloned()
-}
-
-#[async_trait::async_trait]
-pub trait PlatformAdapter: Send + Sync {
-    fn name(&self) -> &'static str;
-
-    fn is_enabled(&self, config: &PlatformConfig) -> bool;
-
-    async fn start(&self, config: &PlatformConfig) -> anyhow::Result<()>;
-
-    async fn stop(&self) -> anyhow::Result<()>;
-
-    async fn is_connected(&self) -> bool;
-
-    async fn send_message(
-        &self,
-        config: &PlatformConfig,
-        chat_id: &str,
-        text: &str,
-        parse_mode: Option<&str>,
-    ) -> anyhow::Result<()>;
-}
+pub use axagent_rt_messaging::message_gateway::platforms::*;

@@ -9,6 +9,8 @@
 //! - LLM-driven semantic mutation (replaces random symbol manipulation)
 //! - Execution feedback-driven verification closed loop
 
+pub use axagent_harness::trajectory_types::{LlmEvolutionProvider, LlmMutationFuture, LlmMutationRequest, LlmMutationResponse, ProcedureStep};
+
 use crate::skill::{Skill, SkillModification, ValidationResult};
 use crate::trajectory::{Trajectory, TrajectoryOutcome};
 use rand::Rng;
@@ -55,15 +57,6 @@ pub struct SkillGenome {
     pub description: String,
     pub steps: Vec<ProcedureStep>,
     pub fitness: f64,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ProcedureStep {
-    pub order: usize,
-    pub action: String,
-    pub tool: Option<String>,
-    pub condition: Option<String>,
-    pub error_handling: Option<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -307,33 +300,6 @@ fn serialize_steps(steps: &[ProcedureStep]) -> String {
     content
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct LlmMutationRequest {
-    pub skill_name: String,
-    pub current_steps: Vec<ProcedureStep>,
-    pub failure_evidence: Vec<String>,
-    pub success_evidence: Vec<String>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct LlmMutationResponse {
-    pub revised_steps: Vec<ProcedureStep>,
-    pub reasoning: String,
-    pub confidence: f64,
-}
-
-pub type LlmMutationFuture<'a> =
-    Pin<Box<dyn Future<Output = Result<LlmMutationResponse, String>> + Send + 'a>>;
-
-pub trait LlmEvolutionProvider: Send + Sync {
-    fn generate_mutation(&self, request: &LlmMutationRequest) -> LlmMutationFuture<'_>;
-    fn evaluate_quality(
-        &self,
-        content: &str,
-        context: &str,
-    ) -> Pin<Box<dyn Future<Output = Result<f64, String>> + Send + '_>>;
-}
-
 pub struct DefaultLlmEvolutionProvider;
 
 impl LlmEvolutionProvider for DefaultLlmEvolutionProvider {
@@ -428,19 +394,8 @@ impl SkillEvolutionEngine {
         }
     }
 
-    pub fn with_llm_provider(mut self, provider: Arc<dyn LlmEvolutionProvider>) -> Self {
-        self.llm_provider = Some(provider);
-        self
-    }
-
     pub fn set_llm_provider(&mut self, provider: Arc<dyn LlmEvolutionProvider>) {
         self.llm_provider = Some(provider);
-    }
-
-    pub fn with_sandbox(mut self, executor: Arc<dyn SandboxExecutor>) -> Self {
-        self.config.use_execution_validation = true;
-        self.sandbox = Some(executor);
-        self
     }
 
     pub fn set_sandbox(&mut self, executor: Arc<dyn SandboxExecutor>) {
@@ -833,8 +788,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_engine_with_llm_provider() {
-        let engine =
-            SkillEvolutionEngine::new().with_llm_provider(Arc::new(DefaultLlmEvolutionProvider));
+        let mut engine = SkillEvolutionEngine::new();
+        engine.set_llm_provider(Arc::new(DefaultLlmEvolutionProvider));
         assert!(engine.llm_provider.is_some());
     }
 }

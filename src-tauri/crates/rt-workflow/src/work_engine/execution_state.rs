@@ -44,7 +44,7 @@ pub struct NodeExecutionRecord {
 
 use std::collections::HashMap;
 
-use super::executors::{PlanCallbacks, SubWorkflowCallback, ToolCallback, VectorRetrieveCallback};
+use super::executors::{PlanCallbacks, SubWorkflowCallback, ToolCallback};
 use super::prompt_template::CompiledPrompt;
 
 /// 运行时回调容器（非序列化，仅在内存中传递）
@@ -55,7 +55,6 @@ pub struct ExecutionContextCallbacks {
     /// 旧版全局回调（fallback，tool_handlers 未命中时使用）
     pub tool_fallback: Option<ToolCallback>,
     pub subworkflow: Option<SubWorkflowCallback>,
-    pub vector_retrieve: Option<VectorRetrieveCallback>,
 }
 
 impl std::fmt::Debug for ExecutionContextCallbacks {
@@ -64,7 +63,6 @@ impl std::fmt::Debug for ExecutionContextCallbacks {
             .field("tool_handlers", &self.tool_handlers.len())
             .field("tool_fallback", &self.tool_fallback.is_some())
             .field("subworkflow", &self.subworkflow.is_some())
-            .field("vector_retrieve", &self.vector_retrieve.is_some())
             .finish()
     }
 }

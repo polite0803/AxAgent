@@ -16,6 +16,48 @@ use axagent_core::workflow_types::{
     BackoffType, EdgeType, JsonSchema, Variable, WorkflowEdge, WorkflowNode,
 };
 
+use axagent_harness::RhaiEngineAdapter;
+use rhai::AST;
+
+/// Convert Rhai dynamic map to JSON value
+fn rhai_map_to_json(map: rhai::Map) -> serde_json::Value {
+    use rhai::Dynamic;
+    let mut obj = serde_json::Map::new();
+    for (k, v) in map {
+        let val: serde_json::Value = if v.is_int() {
+            v.as_int().map(|n| serde_json::Value::Number(n.into())).unwrap_or(serde_json::Value::Null)
+        } else if v.is_string() {
+            v.try_cast::<String>().map(serde_json::Value::String).unwrap_or(serde_json::Value::Null)
+        } else if v.is_float() {
+            match v.as_float() {
+                Ok(f) => serde_json::Number::from_f64(f).map(serde_json::Value::Number).unwrap_or(serde_json::Value::Null),
+                Err(_) => serde_json::Value::Null,
+            }
+        } else if v.is_bool() {
+            v.as_bool().map(serde_json::Value::Bool).unwrap_or(serde_json::Value::Null)
+        } else {
+            serde_json::Value::Null
+        };
+        obj.insert(k.to_string(), val);
+    }
+    serde_json::Value::Object(obj)
+}
+
+/// Rhai 脚本缓存类型：workflow_id -> (tool_name -> compiled AST)
+type RhaiScriptCache = HashMap<String, Arc<AST>>;
+
+/// Rhai 脚本工具回调类型
+type LocalRhaiToolFn = Arc<
+    dyn Fn(
+            String,
+            serde_json::Value,
+        ) -> std::pin::Pin<
+            Box<dyn futures::Future<Output = Result<serde_json::Value, String>> + Send>,
+        > + Send
+        + Sync,
+>;
+
+
 use crate::workflow_engine::{
     NodeRuntimeState, NodeStatus, Workflow, WorkflowError, WorkflowStatus, current_epoch_ms,
     current_timestamp,
@@ -26,7 +68,6 @@ use super::execution_state::{ExecutionState, ExecutionStatus, NodeExecutionRecor
 use super::executors::{
     AgentExecutor, ConditionExecutor, LlmClassifierExecutor, LlmExecutor, PlanCallbacks,
     ProfileCache, ProviderCache, RagCallback, SubWorkflowCallback, ToolCallback,
-    VectorRetrieveCallback,
 };
 use super::node_executor_trait::{NodeError, NodeExecutorTrait, NodeOutput, node_type_name};
 use super::prompt_template::{CompiledPrompt, compile_prompt};
@@ -227,16 +268,20 @@ struct NodeResult {
 // ── WorkEngine ──
 
 #[derive(Clone)]
+
 pub struct WorkEngine {
     db: Arc<DatabaseConnection>,
-    master_key: [u8; 32],
     executions: Arc<Mutex<HashMap<String, ExecutionState>>>,
     workflows: Arc<tokio::sync::RwLock<HashMap<String, Workflow>>>,
     /// 编译后的 prompt 模板：workflow_id -> (node_id -> CompiledPrompt)
     compiled_prompts: Arc<tokio::sync::RwLock<HashMap<String, HashMap<String, CompiledPrompt>>>>,
     /// 编译后的 Rhai 脚本：workflow_id -> (tool_name -> AST)
     compiled_rhai_scripts:
-        Arc<tokio::sync::RwLock<HashMap<String, axagent_tools::rhai_engine::RhaiScriptCache>>>,
+        Arc<tokio::sync::RwLock<HashMap<String, RhaiScriptCache>>>,
+    /// Rhai 引擎适配器（可选注入，优先使用；未设置时降级为 compiled_rhai_scripts）
+    rhai_engine: Option<Arc<dyn RhaiEngineAdapter>>,
+    /// Plan 模式：PlannerAdapter（由外部注入，None = 未启用 Plan 模式）
+    planner: Option<Arc<std::sync::Mutex<dyn axagent_harness::PlannerAdapter>>>,
     cancel_tokens: Arc<Mutex<HashMap<String, CancellationToken>>>,
     dispatcher: Arc<tokio::sync::RwLock<NodeDispatcher>>,
     /// 按工具名注册的 handler 映射（多路注册，优先级最高）
@@ -245,17 +290,21 @@ pub struct WorkEngine {
     tool_fallback: Arc<Mutex<Option<ToolCallback>>>,
     /// 工具解析器（按需延迟注册，从全局 tool registry 查找工具）
     tool_resolver: Arc<Mutex<Option<ToolResolver>>>,
-    vector_retrieve_callback: Arc<Mutex<Option<VectorRetrieveCallback>>>,
     rag_callback: Arc<Mutex<Option<RagCallback>>>,
     /// Agent executor 共享缓存（跨节点复用，每次 run_workflow 开始时清空）
     agent_provider_cache: Arc<tokio::sync::Mutex<ProviderCache>>,
-    /// 由 Harness 注入的 ProviderRegistry（用于创建 executor 时注入，必传，永不为 None）
-    provider_registry: Arc<dyn axagent_harness::registry::ProviderRegistry>,
     agent_profile_cache: Arc<tokio::sync::Mutex<ProfileCache>>,
     /// 断点集（节点 ID → 是否启用，外部通过 set_breakpoints / resume 控制）
     pub breakpoints: Arc<Mutex<HashSet<String>>>,
     /// 节点断路器状态（跨 workflow 运行持久化，防止重试风暴）
     node_breakers: Arc<Mutex<HashMap<String, NodeCircuitBreaker>>>,
+    /// 稳定持有的 AgentExecutor 引用（dispatcher 中的注册和这里共享同一个 Arc）。
+    /// 所有 agent executor 的可变状态（engine、rag_callback）都通过这个 Arc
+    /// 的 setter 方法共享更新；禁止再在外部通过 dispatcher.register 重新注册
+    /// agent executor，否则会丢失之前注入的 provider_registry。
+    /// master_key / provider_registry 由 AgentExecutor / LlmExecutor / ConditionExecutor /
+    /// LlmClassifierExecutor 各自持有，WorkEngine 不再冗余存储。
+    agent_executor: Arc<AgentExecutor>,
 }
 
 const _: fn() = || {
@@ -325,7 +374,38 @@ impl WorkEngine {
         if tool_defs.is_empty() {
             return;
         }
-        let cache = axagent_tools::rhai_engine::compile_from_tool_defs(tool_defs);
+        // 优先使用注入的 RhaiEngineAdapter（如果有）
+        if let Some(ref engine) = self.rhai_engine {
+            let json_defs: Vec<serde_json::Value> = tool_defs
+                .iter()
+                .map(|td| {
+                    serde_json::json!({
+                        "tool_name": td.tool_name,
+                        "code": td.code,
+                    })
+                })
+                .collect();
+            engine.register_scripts(&json_defs);
+            tracing::info!(
+                "[RhaiEngine] adapter 注册了 {} 个工具 for {workflow_id}",
+                tool_defs.len()
+            );
+            return;
+        }
+        // 降级：使用旧版编译缓存
+                let cache = {
+            use rhai::Engine;
+            let engine = Engine::new();
+            let mut c = RhaiScriptCache::new();
+            for td in tool_defs {
+                if td.code.is_empty() { continue; }
+                match engine.compile(&td.code) {
+                    Ok(ast) => { c.insert(td.tool_name.clone(), Arc::new(ast)); }
+                    Err(e) => { tracing::warn!("[RhaiEngine] 编译失败 {}: {}", td.tool_name, e); }
+                }
+            }
+            c
+        };
         if !cache.is_empty() {
             tracing::info!(
                 "[RhaiEngine] tool_defs 编译了 {} 个工具 for {workflow_id}",
@@ -338,22 +418,33 @@ impl WorkEngine {
         }
     }
 
-    /// 注册/替换节点执行器（Arc<WorkEngine> 下可安全调用）
-    pub async fn register_executor<E: NodeExecutorTrait + 'static>(&self, executor: E) {
-        self.dispatcher.write().await.register(executor);
+    /// Plan 模式专用：把 WorkEngine 自身引用注入到稳定持有的 AgentExecutor，
+    /// 使其能在 plan 流程中创建/执行临时工作流。**不再**重新注册 executor
+    /// （之前的实现每次都覆盖 dispatcher 里的实例，会丢 provider_registry）。
+    pub async fn inject_into_agent_executor(self: &Arc<Self>, engine: Arc<WorkEngine>) {
+        self.agent_executor.set_engine(engine);
+        if let Some(ref planner) = self.planner {
+            self.agent_executor.set_planner(planner.clone());
+        }
     }
 
-    /// Plan 模式专用：AgentExecutor 注入自身引用，使其能创建/执行临时工作流
-    pub async fn inject_into_agent_executor(self: &Arc<Self>, engine: Arc<WorkEngine>) {
-        let agent = AgentExecutor::with_shared_caches(
-            self.db.clone(),
-            self.master_key,
-            self.agent_provider_cache.clone(),
-            self.agent_profile_cache.clone(),
-        )
-        .with_engine(engine)
-        .with_provider_registry(self.provider_registry.clone());
-        self.register_executor(agent).await;
+    /// 注入 Rhai 脚本引擎适配器
+    #[must_use]
+    pub fn with_rhai_engine(mut self, engine: Arc<dyn RhaiEngineAdapter>) -> Self {
+        self.rhai_engine = Some(engine);
+        self
+    }
+
+    /// 注入 Plan 模式规划器适配器
+    #[must_use]
+    pub fn with_planner(
+        mut self,
+        planner: Arc<std::sync::Mutex<dyn axagent_harness::PlannerAdapter>>,
+    ) -> Self {
+        // 同时注入到 WorkEngine 自身和 AgentExecutor
+        self.planner = Some(planner.clone());
+        self.agent_executor.set_planner(planner);
+        self
     }
 
     pub async fn execute_node(
@@ -368,24 +459,18 @@ impl WorkEngine {
         self.dispatcher.read().await.registered_types()
     }
 
-    /// 按工具名注册 handler（多路注册，Arc<WorkEngine> 下可安全调用）
-    pub async fn register_tool_handler(&self, tool_name: &str, cb: ToolCallback) {
-        self.tool_handlers
-            .lock()
-            .await
-            .insert(tool_name.to_string(), cb);
-    }
-    /// 设置工具 fallback 回调（旧版兼容，tool_handlers 未命中时使用）
-    pub async fn set_tool_callback(&self, cb: ToolCallback) {
-        *self.tool_fallback.lock().await = Some(cb);
-    }
-    /// 设置工具解析器（按需延迟注册，run_workflow 时自动扫描并注册工作流中的工具）
+    /// 设置工具 resolver（按需延迟注册，run_workflow 时自动扫描并注册工作流中的工具）
+    /// 防呆：若已经注入过 resolver，新的 set 不会覆盖（避免静默丢弃之前注入的
+    /// 解析逻辑，如 init 阶段的 builtin/mcp/workflow:: 多路解析）。
     pub async fn set_tool_resolver(&self, resolver: ToolResolver) {
-        *self.tool_resolver.lock().await = Some(resolver);
-    }
-    /// 设置向量检索回调
-    pub async fn set_vector_retrieve_callback(&self, cb: VectorRetrieveCallback) {
-        *self.vector_retrieve_callback.lock().await = Some(cb);
+        let mut slot = self.tool_resolver.lock().await;
+        if slot.is_some() {
+            tracing::warn!(
+                "WorkEngine::set_tool_resolver: 已有 resolver 注入，新 resolver 被忽略。"
+            );
+            return;
+        }
+        *slot = Some(resolver);
     }
     /// 设置 RAG 知识源检索回调（供 Agent 节点从知识库/记忆/Wiki 检索上下文）
     pub async fn set_rag_callback(&self, cb: RagCallback) {
@@ -404,7 +489,12 @@ impl WorkEngine {
 
         let mut dispatcher = NodeDispatcher::new();
 
+        // 统一走 HasProviderRegistry trait，避免 5 个 executor 各自实现 with_provider_registry。
+        use axagent_harness::HasProviderRegistry;
+
         let mut llm_exec = LlmExecutor::new(db.clone(), master_key);
+        // 唯一构造路径：创建 Arc<AgentExecutor>，dispatcher 与 WorkEngine.agent_executor
+        // 共享同一个实例。运行期不再 register(E) 重新注册，避免丢失 provider_registry。
         let mut agent_exec = AgentExecutor::with_shared_caches(
             db.clone(),
             master_key,
@@ -414,34 +504,35 @@ impl WorkEngine {
         let mut cond_exec = ConditionExecutor::new(db.clone(), master_key);
         let mut classifier_exec = LlmClassifierExecutor::new(db.clone(), master_key);
 
-        llm_exec = llm_exec.with_provider_registry(provider_registry.clone());
-        agent_exec = agent_exec.with_provider_registry(provider_registry.clone());
-        cond_exec = cond_exec.with_provider_registry(provider_registry.clone());
-        classifier_exec = classifier_exec.with_provider_registry(provider_registry.clone());
+        llm_exec.set_provider_registry(provider_registry.clone());
+        agent_exec.set_provider_registry(provider_registry.clone());
+        cond_exec.set_provider_registry(provider_registry.clone());
+        classifier_exec.set_provider_registry(provider_registry.clone());
 
+        let agent_exec = Arc::new(agent_exec);
         dispatcher.register(llm_exec);
-        dispatcher.register(agent_exec);
+        dispatcher.register_arc(agent_exec.clone() as Arc<dyn NodeExecutorTrait>);
         dispatcher.register(cond_exec);
         dispatcher.register(classifier_exec);
         Self {
             db,
-            master_key,
             executions: Arc::new(Mutex::new(HashMap::new())),
             workflows: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
             compiled_prompts: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
             compiled_rhai_scripts: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
+            rhai_engine: None,
+            planner: None,
             cancel_tokens: Arc::new(Mutex::new(HashMap::new())),
             dispatcher: Arc::new(tokio::sync::RwLock::new(dispatcher)),
             tool_handlers: Arc::new(Mutex::new(HashMap::new())),
             tool_fallback: Arc::new(Mutex::new(None)),
             tool_resolver: Arc::new(Mutex::new(None)),
-            vector_retrieve_callback: Arc::new(Mutex::new(None)),
             rag_callback: Arc::new(Mutex::new(None)),
             agent_provider_cache,
             agent_profile_cache,
-            provider_registry,
             breakpoints: Arc::new(Mutex::new(HashSet::new())),
             node_breakers: Arc::new(Mutex::new(HashMap::new())),
+            agent_executor: agent_exec,
         }
     }
 
@@ -834,10 +925,11 @@ impl WorkEngine {
             .unwrap_or_else(|| serde_json::json!({}));
         // 将 model_id / provider_id 写入上下文，供执行器读取
         if let Some(ref model_id) = options.model_id {
-            input["__workflow_model__"] = serde_json::Value::String(model_id.clone());
+            input[super::executors::WORKFLOW_MODEL_VAR] = serde_json::Value::String(model_id.clone());
         }
         if let Some(ref provider_id) = options.provider_id {
-            input["__workflow_provider_id__"] = serde_json::Value::String(provider_id.clone());
+            input[super::executors::WORKFLOW_PROVIDER_ID_VAR] =
+                serde_json::Value::String(provider_id.clone());
         }
 
         // 若配置了 input_schema，校验输入参数
@@ -852,45 +944,35 @@ impl WorkEngine {
             .await
             .map_err(|e| WorkflowError::SerializationError(e.to_string()))?;
 
-        // 将调用方指定的 model_id / provider_id 写入变量区，供 Agent/LlmExecutor 读取
-        if let Some(ref model_id) = options.model_id {
+        // 一次性 lock executions 完成 5 项元信息写入（model_id / provider_id /
+        // template variables / plan_callbacks / parent_execution_id），避免
+        // 5 次独立 lock-then-release 的抖动。
+        {
             let mut executions = self.executions.lock().await;
             if let Some(state) = executions.get_mut(&execution_id) {
-                state.variables.insert(
-                    "__workflow_model__".to_string(),
-                    serde_json::Value::String(model_id.clone()),
-                );
-            }
-        }
-        if let Some(ref provider_id) = options.provider_id {
-            let mut executions = self.executions.lock().await;
-            if let Some(state) = executions.get_mut(&execution_id) {
-                state.variables.insert(
-                    "__workflow_provider_id__".to_string(),
-                    serde_json::Value::String(provider_id.clone()),
-                );
-            }
-        }
-
-        // 将模板级变量写入执行上下文，供工具节点和 Agent 节点引用
-        if let Some(ref variables) = options.variables {
-            let mut executions = self.executions.lock().await;
-            if let Some(state) = executions.get_mut(&execution_id) {
-                for var in variables {
-                    state.variables.insert(var.name.clone(), var.value.clone());
+                if let Some(ref model_id) = options.model_id {
+                    state.variables.insert(
+                        super::executors::WORKFLOW_MODEL_VAR.to_string(),
+                        serde_json::Value::String(model_id.clone()),
+                    );
                 }
-            }
-        }
-        if options.plan_callbacks.is_some() {
-            let mut executions = self.executions.lock().await;
-            if let Some(state) = executions.get_mut(&execution_id) {
-                state.plan_callbacks = options.plan_callbacks.clone();
-            }
-        }
-        if options.parent_execution_id.is_some() {
-            let mut executions = self.executions.lock().await;
-            if let Some(state) = executions.get_mut(&execution_id) {
-                state.parent_execution_id = options.parent_execution_id.clone();
+                if let Some(ref provider_id) = options.provider_id {
+                    state.variables.insert(
+                        super::executors::WORKFLOW_PROVIDER_ID_VAR.to_string(),
+                        serde_json::Value::String(provider_id.clone()),
+                    );
+                }
+                if let Some(ref variables) = options.variables {
+                    for var in variables {
+                        state.variables.insert(var.name.clone(), var.value.clone());
+                    }
+                }
+                if options.plan_callbacks.is_some() {
+                    state.plan_callbacks = options.plan_callbacks.clone();
+                }
+                if options.parent_execution_id.is_some() {
+                    state.parent_execution_id = options.parent_execution_id.clone();
+                }
             }
         }
 
@@ -914,26 +996,12 @@ impl WorkEngine {
             self.agent_profile_cache.lock().await.clear();
         }
 
-        // 重新注册 AgentExecutor（注入 RAG callback）
+        // 同步 RAG callback 到共享 AgentExecutor 槽（热更新，不再重新注册）。
+        // 缓存清空已在上面 block 完成；agent_executor 实例是稳定的，所以
+        // provider_registry 等一次性注入的字段始终保留。
         {
             let rag_cb = self.rag_callback.lock().await.clone();
-            let agent_executor = if let Some(cb) = rag_cb {
-                AgentExecutor::with_shared_caches_and_rag_callback(
-                    self.db.clone(),
-                    self.master_key,
-                    self.agent_provider_cache.clone(),
-                    self.agent_profile_cache.clone(),
-                    cb,
-                )
-            } else {
-                AgentExecutor::with_shared_caches(
-                    self.db.clone(),
-                    self.master_key,
-                    self.agent_provider_cache.clone(),
-                    self.agent_profile_cache.clone(),
-                )
-            };
-            self.dispatcher.write().await.register(agent_executor);
+            self.agent_executor.set_rag_callback(rag_cb);
         }
 
         // 自动扫描工作流节点中的工具定义，按需注册（模板级工具自动注册）
@@ -967,7 +1035,12 @@ impl WorkEngine {
         }
 
         // 注册 Rhai 脚本工具（从编译缓存）
-        {
+        // 优先使用注入的 RhaiEngineAdapter（如果注入），否则走旧版 AST 缓存路径
+        if self.rhai_engine.is_some() {
+            // adapter 已在 precompile_tool_defs 中完成编译，
+            // 执行时由 adapter 内部查找并运行脚本，无需在此注册回调。
+            tracing::debug!("[RhaiEngine] 使用 RhaiEngineAdapter，跳过旧版回调注册");
+        } else {
             let rhai_cache = self.compiled_rhai_scripts.read().await;
             if let Some(scripts) = rhai_cache.get(workflow_id) {
                 let mut handlers = self.tool_handlers.lock().await;
@@ -983,7 +1056,7 @@ impl WorkEngine {
                                     let handlers = tool_handlers.lock().await;
                                     let mut rhai_tools: std::collections::HashMap<
                                         String,
-                                        axagent_tools::rhai_engine::ToolFn,
+                                        LocalRhaiToolFn,
                                     > = std::collections::HashMap::new();
                                     for (k, v) in handlers.iter() {
                                         let k = k.clone();
@@ -999,11 +1072,36 @@ impl WorkEngine {
                                         );
                                     }
                                     drop(handlers);
-                                    axagent_tools::rhai_engine::execute_rhai_ast(
-                                        &ast,
-                                        args,
-                                        Some(&rhai_tools),
-                                    )
+                                    {
+                                        // Inline Rhai execution (no dependency on axagent-tools)
+                                        use rhai::{Dynamic, Engine, Scope};
+                                        let mut engine = Engine::new();
+                                        let mut scope = Scope::new();
+                                        // Register tool functions
+                                        for (name, handler) in &rhai_tools {
+                                            let h = handler.clone();
+                                            let n = name.clone();
+                                            engine.register_fn("tool", move |tool_name: &str, tool_args: rhai::Map| {
+                                                let h = h.clone();
+                                                let json_args = rhai_map_to_json(tool_args);
+                                                // Inline execution via tokio runtime
+                                                let rt = tokio::runtime::Runtime::new().expect("rhai runtime");
+                                                let result = rt.block_on(async {
+                                                    h(tool_name.to_string(), json_args).await
+                                                });
+                                                match result {
+                                                    Ok(val) => Dynamic::from(serde_json::to_string(&val).unwrap_or_default()),
+                                                    Err(e) => Dynamic::from(format!("tool error: {e}")),
+                                                }
+                                            });
+                                            _ = n;
+                                        }
+                                        let result = engine.eval_ast::<Dynamic>(&*ast)
+                                            .map_err(|e| format!("Rhai 执行失败: {e}"))?;
+                                        // Convert result back to json value
+                                        let text = result.to_string();
+                                        serde_json::from_str::<serde_json::Value>(&text).map_err(|e| format!("Result not json: {e}"))
+                                    }
                                     .map(|v| serde_json::json!({"content": v}))
                                 })
                             });
@@ -1239,7 +1337,6 @@ impl WorkEngine {
                 {
                     let tool_handlers = self.tool_handlers.lock().await.clone();
                     let tool_fallback = self.tool_fallback.lock().await.clone();
-                    let vr_cb = self.vector_retrieve_callback.lock().await.clone();
 
                     let engine_clone = self.clone();
                     let sub_model_id = options.model_id.clone();
@@ -1271,6 +1368,7 @@ impl WorkEngine {
                                 std::thread::spawn(move || {
                                     let result = rt.block_on(async {
                                         use axagent_core::repo::workflow_template;
+
                                         let db = &engine.db;
                                         let template = workflow_template::get_workflow_template(
                                             db,
@@ -1339,7 +1437,6 @@ impl WorkEngine {
                         tool_handlers,
                         tool_fallback,
                         subworkflow: Some(sub_cb),
-                        vector_retrieve: vr_cb,
                     });
                 }
 

@@ -1,0 +1,27 @@
+[package]
+name = "axagent-dao"
+version.workspace = true
+edition.workspace = true
+publish = false
+
+[dependencies]
+axagent-crypto = { path = "../crypto" }
+axagent-harness = { path = "../harness" }
+axagent-entities = { path = "../entities" }
+axagent-mcp = { path = "../mcp" }
+axagent-storage = { path = "../storage" }
+sea-orm = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+uuid = { workspace = true }
+chrono = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+serde_yaml = { workspace = true }
+thiserror = { workspace = true }
+regex = "1"
+sha2 = "0.10"
+dirs = "5"
+walkdir = "2"
+reqwest = { workspace = true }
+toml_edit = "0.22"

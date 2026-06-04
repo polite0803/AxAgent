@@ -1,1 +1,1 @@
-pub use axagent_core::platform_config::PlatformConfig;
+pub use axagent_core::platform_config::{PlatformConfig, PlatformConfigExt};

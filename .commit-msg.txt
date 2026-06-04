@@ -1,0 +1,19 @@
+fix(rt-workflow): WorkEngine::new 必传 ProviderRegistry 编译期强制
+
+根因：WorkEngine::new 第三参数为 Option<Arc<dyn ProviderRegistry>>，并
+在内部用 if let Some(...) 决定是否注入到 4 个 executor。AgentExecutor
+字段也是 Option 默认 None，当调用方传 None 或忘记调 inject_into_agent_
+executor 注入时，运行期 4 个 LLM/Agent/Condition/Classifier executor
+全部为 None state，工作流触发时找不到对应 adapter 即报错。
+
+修复：把 WorkEngine.provider_registry 字段从 Option 改为 Arc<dyn ...>，
+WorkEngine::new 第三参数同步改为必传，4 个 executor 在构造时直接注入，
+inject_into_agent_executor 也直接 clone。编译期强制保证 registry 永不
+为 None，从源头消除 None 状态路径。
+
+调用方：
+- init/state.rs: 去掉 Some(...) 包装
+- commands/conversations.rs 测试：用 create_default() 构造
+
+cargo check -p axagent-runtime -p axagent-rt-workflow -p axagent-providers
+通过（0 errors / 0 warnings）。

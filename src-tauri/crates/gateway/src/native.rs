@@ -3,7 +3,8 @@ use axagent_core::{
     error::AxAgentError,
     types::{GatewayKey, ProviderConfig, ProviderProxyConfig, ProviderType, TokenUsage},
 };
-use axagent_harness::{ProviderRequestContext, resolve_base_url_for_type};
+use axagent_harness::ProviderRequestContext;
+use axagent_providers::url_utils::resolve_base_url_for_type;
 
 use axum::{
     body::{Body, Bytes, to_bytes},

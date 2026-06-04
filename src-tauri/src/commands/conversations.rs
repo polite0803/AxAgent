@@ -22,18 +22,6 @@ use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 use tauri::{Emitter, State};
 
-fn provider_type_to_registry_key(pt: &ProviderType) -> &'static str {
-    match pt {
-        ProviderType::OpenAI => "openai",
-        ProviderType::OpenAIResponses => "openai_responses",
-        ProviderType::Anthropic => "anthropic",
-        ProviderType::Gemini => "gemini",
-        ProviderType::OpenClaw => "openclaw",
-        ProviderType::Hermes => "hermes",
-        ProviderType::Ollama => "ollama",
-    }
-}
-
 #[derive(Debug, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SendMessageOptions {
@@ -1631,21 +1619,16 @@ fn format_conversation_for_title(messages: &[(MessageRole, String)], max_chars: 
 
 /// Generate an AI-powered conversation title using the configured title summary model.
 /// Returns Err with the actual error message if generation fails.
+///
+/// `harness` 由调用方传入（通常 `&state.harness`），避免内部 `RuntimeHarness::new` 丢弃 adapter cache。
 pub async fn generate_ai_title(
-    db: &sea_orm::DatabaseConnection,
+    harness: &axagent_runtime::harness::RuntimeHarness,
     conversation_messages: &[(MessageRole, String)],
     fallback: TitleFallbackModel<'_>,
     settings: &AppSettings,
-    master_key: &[u8; 32],
 ) -> Result<String, String> {
-    let harness =
-        axagent_runtime::harness::RuntimeHarness::new(axagent_runtime::harness::HarnessDeps {
-            persistence: Arc::new(axagent_core::db::DbHandle {
-                conn: db.clone(),
-                path: String::new(),
-            }) as Arc<dyn axagent_harness::Persistence>,
-            master_key: *master_key,
-        });
+    let db = harness.db();
+    let master_key = harness.master_key();
     let TitleFallbackModel {
         provider: fallback_provider,
         ctx: fallback_ctx,
@@ -1811,7 +1794,7 @@ async fn generate_ai_title_with(
         store: None,
     };
 
-    let registry_key = provider_type_to_registry_key(&provider.provider_type);
+    let registry_key = provider.provider_type.registry_key();
     let adapter = harness
         .provider_registry()
         .get(registry_key)
@@ -1942,9 +1925,10 @@ pub async fn regenerate_conversation_title(
     let app_clone = app.clone();
     let conv_id = conversation_id.clone();
     let conv_model_id = conversation.model_id.clone();
+    let harness_clone = state.harness.clone();
     tokio::spawn(async move {
         let ai_title = generate_ai_title(
-            &db,
+            &harness_clone,
             &conversation_messages,
             TitleFallbackModel {
                 provider: &provider,
@@ -1952,7 +1936,6 @@ pub async fn regenerate_conversation_title(
                 model_id: &conv_model_id,
             },
             &global_settings,
-            &master_key,
         )
         .await;
 
@@ -2287,7 +2270,7 @@ fn spawn_stream_task(
 
         let future = std::panic::AssertUnwindSafe(async {
             // --- 原始 stream task 主体 ---
-            let registry_key = provider_type_to_registry_key(&provider.provider_type);
+            let registry_key = provider.provider_type.registry_key();
             let adapter = match harness.provider_registry().get(registry_key) {
                 Some(a) => a,
                 None => {
@@ -2748,7 +2731,7 @@ fn spawn_stream_task(
                     (MessageRole::Assistant, total_content.clone()),
                 ];
                 let ai_title = generate_ai_title(
-                    &db,
+                    &harness,
                     &auto_messages,
                     TitleFallbackModel {
                         provider: &provider,
@@ -2756,7 +2739,6 @@ fn spawn_stream_task(
                         model_id: &model_id,
                     },
                     &settings,
-                    &master_key,
                 )
                 .await;
 
@@ -4484,7 +4466,7 @@ async fn do_compress(
         store_response: None,
     };
 
-    let registry_key = provider_type_to_registry_key(&comp_provider.provider_type);
+    let registry_key = comp_provider.provider_type.registry_key();
     let adapter = harness
         .provider_registry()
         .get(registry_key)
@@ -5080,6 +5062,9 @@ mod tests_conversation {
                         path: ":memory:".into(),
                     }) as Arc<dyn axagent_harness::Persistence>,
                     master_key: [0; 32],
+                    provider_registry: Arc::new(
+                        axagent_providers::registry::ProviderRegistry::create_default(),
+                    ) as Arc<dyn axagent_harness::registry::ProviderRegistry>,
                 },
             ),
             tot_sessions: Arc::new(tokio::sync::Mutex::new(HashMap::new())),

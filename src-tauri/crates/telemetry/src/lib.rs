@@ -28,6 +28,17 @@ pub use storage::*;
 pub use structured_logging::{
     clear_context, generate_trace_id, get_session_id, get_trace_id, set_session_id, set_trace_id,
 };
+// ── Harness SessionTracer trait 实现 ──
+
+use axagent_harness::SessionTracer as HarnessSessionTracer;
+
+impl HarnessSessionTracer for SessionTracer {
+    fn record(&self, name: &str, attributes: Map<String, Value>) {
+        // 委托到同名的本机方法（Into<String> 自动兼容 &str）
+        self.record(name, attributes);
+    }
+}
+
 pub use tracer::*;
 
 pub const DEFAULT_ANTHROPIC_VERSION: &str = "2023-06-01";

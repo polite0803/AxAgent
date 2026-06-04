@@ -14,7 +14,6 @@ use tokio::sync::Mutex;
 
 use axagent_harness::Persistence;
 use axagent_harness::ProviderAdapter;
-use axagent_harness::ToolRegistry as ToolRegistryTrait;
 use axagent_harness::registry::ProviderRegistry as ProviderRegistryTrait;
 
 /// 统一容器：管理核心服务的创建与注入
@@ -26,54 +25,27 @@ pub struct RuntimeHarness {
     provider_registry: Arc<dyn ProviderRegistryTrait>,
     /// ProviderAdapter 缓存（按 provider 类型名）
     adapter_cache: Arc<Mutex<HashMap<String, Arc<dyn ProviderAdapter>>>>,
-    /// 工具注册表（由调用方注入；通过 `set_tool_registry` / `tool_registry` 访问）
-    tool_registry: Arc<Mutex<Option<Arc<dyn ToolRegistryTrait>>>>,
 }
 
-/// 构造 RuntimeHarness 时的依赖（持续扩展中）
+/// 构造 RuntimeHarness 时的依赖
 pub struct HarnessDeps {
     pub persistence: Arc<dyn Persistence>,
     pub master_key: [u8; 32],
+    /// Provider 注册表（由调用方创建并传入，不设默认值）
+    pub provider_registry: Arc<dyn ProviderRegistryTrait>,
 }
 
 impl RuntimeHarness {
     /// 创建 Harness 容器
     ///
-    /// 注意：内部使用默认 ProviderRegistry（来自 `axagent-providers`）。
-    /// 想要完全自定义 ProviderRegistry 的调用方请用 `RuntimeHarness::with_registry`。
+    /// 所有依赖必须由调用方注入，不再硬编码具体实现。
     pub fn new(deps: HarnessDeps) -> Self {
-        let concrete_registry =
-            Arc::new(axagent_providers::registry::ProviderRegistry::create_default());
         Self {
             persistence: deps.persistence,
             master_key: deps.master_key,
-            provider_registry: concrete_registry as Arc<dyn ProviderRegistryTrait>,
+            provider_registry: deps.provider_registry,
             adapter_cache: Arc::new(Mutex::new(HashMap::new())),
-            tool_registry: Arc::new(Mutex::new(None)),
         }
-    }
-
-    /// 创建一个可注入任意 ProviderRegistry 的 Harness（用于测试 / 嵌入）
-    pub fn with_registry(deps: HarnessDeps, registry: Arc<dyn ProviderRegistryTrait>) -> Self {
-        Self {
-            persistence: deps.persistence,
-            master_key: deps.master_key,
-            provider_registry: registry,
-            adapter_cache: Arc::new(Mutex::new(HashMap::new())),
-            tool_registry: Arc::new(Mutex::new(None)),
-        }
-    }
-
-    // ── ToolRegistry 注入点 ──────────────────────────────────
-
-    /// 注入工具注册表（运行时由 init/state.rs 调用）
-    pub async fn set_tool_registry(&self, registry: Arc<dyn ToolRegistryTrait>) {
-        *self.tool_registry.lock().await = Some(registry);
-    }
-
-    /// 拿到工具注册表（如果未注入返回 None）
-    pub async fn tool_registry(&self) -> Option<Arc<dyn ToolRegistryTrait>> {
-        self.tool_registry.lock().await.clone()
     }
 
     // ── Accessors ─────────────────────────────────────────────
@@ -131,12 +103,13 @@ impl RuntimeHarness {
             axagent_rt_messaging::message_gateway::platform_manager::PlatformManager,
         >,
     ) -> Arc<axagent_rt_messaging::message_gateway::platform_bridge::PlatformBridge> {
-        let bridge = axagent_rt_messaging::message_gateway::platform_bridge::PlatformBridge::new(
+        let mut bridge = axagent_rt_messaging::message_gateway::platform_bridge::PlatformBridge::new(
             self.persistence.connection().clone(),
             self.master_key,
             platform_manager,
-        )
-        .with_provider_registry(self.provider_registry.clone());
+        );
+        use axagent_harness::HasProviderRegistry;
+        bridge.set_provider_registry(self.provider_registry.clone());
         Arc::new(bridge)
     }
 }

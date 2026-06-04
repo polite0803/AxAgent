@@ -1,17 +1,17 @@
-use axagent_rt_messaging::webhook_subscription::{
-    WebhookEvent, WebhookPayload, WebhookSubscription, WebhookSubscriptionManager,
+use axagent_harness::{
+    DispatchResult, WebhookEvent, WebhookPayload, WebhookSubscriptionService,
 };
 use reqwest::Client;
 use std::collections::HashMap;
 use std::sync::Arc;
 
 pub struct WebhookDispatcher {
-    subscription_manager: Arc<WebhookSubscriptionManager>,
+    subscription_manager: Arc<dyn WebhookSubscriptionService>,
     client: Client,
 }
 
 impl WebhookDispatcher {
-    pub fn new(subscription_manager: Arc<WebhookSubscriptionManager>) -> Self {
+    pub fn new(subscription_manager: Arc<dyn WebhookSubscriptionService>) -> Self {
         Self {
             subscription_manager,
             client: Client::new(),
@@ -31,7 +31,7 @@ impl WebhookDispatcher {
         };
         let subscriptions = self
             .subscription_manager
-            .get_subscriptions_for_event(payload.event)
+            .get_subscriptions_for_event(payload.event.as_str())
             .await;
         if subscriptions.is_empty() {
             return DispatchResult {
@@ -71,7 +71,7 @@ impl WebhookDispatcher {
 
     async fn send_webhook(
         &self,
-        subscription: &WebhookSubscription,
+        subscription: &axagent_harness::WebhookSubscriptionInfo,
         payload: &WebhookPayload,
     ) -> Result<(), String> {
         let json = serde_json::to_string(payload).map_err(|e| e.to_string())?;
@@ -107,13 +107,6 @@ impl WebhookDispatcher {
         let result = hasher.finalize();
         format!("sha256={}", hex::encode(result))
     }
-}
-
-#[derive(Debug, Clone)]
-pub struct DispatchResult {
-    pub success_count: usize,
-    pub failure_count: usize,
-    pub errors: Vec<String>,
 }
 
 pub struct WebhookEventEmitter {

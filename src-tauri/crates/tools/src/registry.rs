@@ -455,6 +455,16 @@ impl UnifiedToolRegistry {
         self
     }
 
+    /// 便利方法：从 `&DatabaseConnection` 直接构建 `ToolExecutionRecorder`。
+    ///
+    /// 之前在 `commands/agent.rs`、`commands/plan.rs` 都有
+    /// `with_recorder(ToolExecutionRecorder::new(Arc::new(db.clone())))` 的 2 步链重复。
+    /// 收敛为单步。
+    pub fn with_recorder_from_db(mut self, db: &sea_orm::DatabaseConnection) -> Self {
+        self.recorder = Some(ToolExecutionRecorder::new(Arc::new(db.clone())));
+        self
+    }
+
     pub fn with_context(mut self, conversation_id: String, message_id: Option<String>) -> Self {
         self.conversation_id = Some(conversation_id);
         self.message_id = message_id;

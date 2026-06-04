@@ -593,7 +593,7 @@ pub async fn extract_expert_structure(
                 ErrorResponse::new(expert_err::KEY_DECRYPT_FAILED).with_detail(e.to_string())
             })?;
 
-    let registry_key = format!("{:?}", provider_config.provider_type).to_lowercase();
+    let registry_key = provider_config.provider_type.registry_key();
 
     let adapter = state
         .harness

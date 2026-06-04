@@ -23,13 +23,14 @@ impl LlmClassifierExecutor {
             provider_registry: None,
         }
     }
+}
 
-    pub fn with_provider_registry(
-        mut self,
+impl axagent_harness::HasProviderRegistry for LlmClassifierExecutor {
+    fn set_provider_registry(
+        &mut self,
         registry: Arc<dyn axagent_harness::registry::ProviderRegistry>,
-    ) -> Self {
+    ) {
         self.provider_registry = Some(registry);
-        self
     }
 }
 
@@ -107,30 +108,24 @@ impl NodeExecutorTrait for LlmClassifierExecutor {
         let node_model = c.model.as_deref().filter(|m| !m.is_empty());
         let session_model = context
             .variables
-            .get("__workflow_model__")
+            .get(super::WORKFLOW_MODEL_VAR)
             .and_then(|v| v.as_str());
         let session_provider_id = context
             .variables
-            .get("__workflow_provider_id__")
+            .get(super::WORKFLOW_PROVIDER_ID_VAR)
             .and_then(|v| v.as_str());
 
-        let (prov, key, model) = axagent_core::repo::provider::resolve_model_for_node(
+        let (prov, key, model, adapter, api_key) = super::resolve_provider_and_adapter(
             &self.db,
+            &self.master_key,
+            self.provider_registry.as_ref(),
             node_model,
             session_model,
             session_provider_id,
             None,
+            "LlmClassifierExecutor",
         )
-        .await
-        .map_err(|e| NodeError::exec_failed(error_code::UNSUPPORTED_PROVIDER, e))?;
-
-        let api_key = axagent_core::crypto::decrypt_key(&key.key_encrypted, &self.master_key)
-            .map_err(|e| {
-                NodeError::exec_failed(
-                    error_code::UNSUPPORTED_PROVIDER,
-                    format!("API key decryption failed: {e}"),
-                )
-            })?;
+        .await?;
 
         if context.dry_run {
             return Ok(NodeOutput {
@@ -149,38 +144,9 @@ impl NodeExecutorTrait for LlmClassifierExecutor {
         }
 
         use axagent_core::types::{ChatContent, ChatMessage, ChatRequest};
-        use axagent_harness::{ProviderAdapter, resolve_base_url_for_type};
+        use axagent_harness::build_provider_request_context;
 
-        let registry_key =
-            crate::work_engine::executors::provider_type_to_registry_key(&prov.provider_type);
-        let adapter: Arc<dyn ProviderAdapter> = self
-            .provider_registry
-            .as_ref()
-            .and_then(|reg| reg.get(registry_key))
-            .ok_or_else(|| {
-                NodeError::exec_failed(
-                    error_code::UNSUPPORTED_PROVIDER,
-                    format!(
-                        "LlmClassifierExecutor 未找到 ProviderAdapter for type: {}",
-                        registry_key
-                    ),
-                )
-            })?;
-
-        let base_url = resolve_base_url_for_type(&prov.api_host, &prov.provider_type);
-        let req_ctx = axagent_harness::ProviderRequestContext {
-            provider_id: prov.id.clone(),
-            api_key,
-            key_id: key.id.clone(),
-            base_url: Some(base_url),
-            api_path: None,
-            proxy_config: None,
-            custom_headers: None,
-            api_mode: None,
-            conversation: None,
-            previous_response_id: None,
-            store_response: None,
-        };
+        let req_ctx = build_provider_request_context(&prov, &key, api_key);
 
         let request = ChatRequest {
             model: model.clone(),

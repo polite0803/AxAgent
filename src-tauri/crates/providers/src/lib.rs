@@ -14,6 +14,7 @@ pub mod realtime_client;
 pub mod registry;
 pub mod screen_vision;
 pub mod transport;
+pub mod url_utils;
 
 pub use image_gen::{
     DallEProvider, FluxProvider, GeneratedImage, ImageGenModelInfo, ImageGenProvider,
@@ -201,12 +202,13 @@ pub use axagent_harness::ProviderRequestContext;
 // 完整 ProviderAdapter trait 定义在 axagent-harness 中
 
 /// Default version path for a given provider type.
-// URL 解析函数已移到 axagent-harness
-pub use axagent_harness::{
+/// 转发到 `axagent-harness::url_utils`（实际定义在 harness 契约层）。
+pub use self::url_utils::{
     default_version_for_type, resolve_base_url, resolve_base_url_for_type, resolve_chat_url,
 };
 
-// 全部 URL 解析函数已搬到 axagent-harness (resolve_base_url_for_type, resolve_base_url, resolve_chat_url 等)
+// URL 解析函数的实际定义在 axagent-harness::url_utils，
+// 本 crate 通过 url_utils 模块薄壳 re-export 保留向后兼容。
 pub fn parse_base64_data_url(url: &str) -> Option<(String, String)> {
     let rest = url.strip_prefix("data:")?;
     let (mime_type, data) = rest.split_once(";base64,")?;

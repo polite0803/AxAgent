@@ -4,7 +4,6 @@
 //!   1. 静态条件评估：按 conditions + logical_op 逐条比较
 //!   2. LLM 动态路由：调用 LLM 根据上下文判断走 true/false 分支
 
-use super::provider_type_to_registry_key;
 use async_trait::async_trait;
 use axagent_core::workflow_types::{CompareOperator, LogicalOperator, WorkflowNode};
 use sea_orm::DatabaseConnection;
@@ -28,13 +27,14 @@ impl ConditionExecutor {
             provider_registry: None,
         }
     }
+}
 
-    pub fn with_provider_registry(
-        mut self,
+impl axagent_harness::HasProviderRegistry for ConditionExecutor {
+    fn set_provider_registry(
+        &mut self,
         registry: Arc<dyn axagent_harness::registry::ProviderRegistry>,
-    ) -> Self {
+    ) {
         self.provider_registry = Some(registry);
-        self
     }
 }
 
@@ -201,11 +201,11 @@ impl ConditionExecutor {
         let node_model = config.routing_model.as_deref().filter(|m| !m.is_empty());
         let session_model = context
             .variables
-            .get("__workflow_model__")
+            .get(super::WORKFLOW_MODEL_VAR)
             .and_then(|v| v.as_str());
         let session_provider_id = context
             .variables
-            .get("__workflow_provider_id__")
+            .get(super::WORKFLOW_PROVIDER_ID_VAR)
             .and_then(|v| v.as_str());
 
         let result = self
@@ -249,19 +249,20 @@ impl ConditionExecutor {
         session_provider_id: Option<&str>,
         prompt: &str,
     ) -> Result<bool, String> {
-        let (prov, key, model) = axagent_core::repo::provider::resolve_model_for_node(
+        let (prov, _key, model, adapter, api_key) = super::resolve_provider_and_adapter(
             &self.db,
+            &self.master_key,
+            self.provider_registry.as_ref(),
             node_model,
             session_model,
             session_provider_id,
             None,
+            "ConditionExecutor",
         )
         .await
         .map_err(|e| format!("模型解析失败: {e}"))?;
-        let api_key = axagent_core::crypto::decrypt_key(&key.key_encrypted, &self.master_key)
-            .map_err(|e| format!("解密 key 失败: {e}"))?;
 
-        self.call_llm_and_parse(&prov, &api_key, &model, prompt)
+        self.call_llm_and_parse(&prov, &api_key, &model, &adapter, prompt)
             .await
     }
 
@@ -271,22 +272,11 @@ impl ConditionExecutor {
         prov: &axagent_core::types::ProviderConfig,
         api_key: &str,
         model: &str,
+        adapter: &Arc<dyn axagent_harness::ProviderAdapter>,
         prompt: &str,
     ) -> Result<bool, String> {
         use axagent_core::types::{ChatContent, ChatMessage, ChatRequest};
-        use axagent_harness::{ProviderAdapter, resolve_base_url_for_type};
-
-        let registry_key = provider_type_to_registry_key(&prov.provider_type);
-        let adapter: Arc<dyn ProviderAdapter> = self
-            .provider_registry
-            .as_ref()
-            .and_then(|reg| reg.get(registry_key))
-            .ok_or_else(|| {
-                format!(
-                    "[UNSUPPORTED_PROVIDER] ConditionExecutor 未找到 ProviderAdapter for type: {}",
-                    registry_key
-                )
-            })?;
+        use axagent_providers::url_utils::resolve_base_url_for_type;
 
         let base_url = resolve_base_url_for_type(&prov.api_host, &prov.provider_type);
         let req_ctx = axagent_harness::ProviderRequestContext {

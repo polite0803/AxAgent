@@ -22,6 +22,7 @@ sha2 = { workspace = true }
 axum = "0.8"
 axagent-core = { path = "../core" }
 axagent-harness = { path = "../harness" }
+axagent-providers = { path = "../providers" }
 sea-orm = { workspace = true }
 tokio-tungstenite = { version = "0.29", features = ["native-tls"] }
 sha1 = "0.10"

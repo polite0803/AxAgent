@@ -97,18 +97,6 @@ async fn resolve_ai_provider(state: &AppState) -> Result<ResolvedProvider, Strin
     })
 }
 
-fn provider_type_to_registry_key(pt: &ProviderType) -> &'static str {
-    match pt {
-        ProviderType::OpenAI => "openai",
-        ProviderType::OpenAIResponses => "openai_responses",
-        ProviderType::Anthropic => "anthropic",
-        ProviderType::Gemini => "gemini",
-        ProviderType::OpenClaw => "openclaw",
-        ProviderType::Hermes => "hermes",
-        ProviderType::Ollama => "ollama",
-    }
-}
-
 /// 27 种节点类型的完整 JSON Schema 文档。
 /// LLM 生成工作流时，每个 `config` 对象必须遵循对应 schema 字段。
 const NODE_SCHEMAS_DOC: &str = r#"
@@ -1186,7 +1174,7 @@ pub async fn generate_workflow_from_prompt(
 ) -> Result<WorkflowGenerationResult, String> {
     let resolved = resolve_ai_provider(&state).await?;
 
-    let registry_key = provider_type_to_registry_key(&resolved.provider_type);
+    let registry_key = resolved.provider_type.registry_key();
     let adapter = state
         .harness
         .provider_registry()
@@ -1341,7 +1329,7 @@ pub async fn optimize_agent_prompt(
 ) -> Result<String, String> {
     let resolved = resolve_ai_provider(&state).await?;
 
-    let registry_key = provider_type_to_registry_key(&resolved.provider_type);
+    let registry_key = resolved.provider_type.registry_key();
     let adapter = state
         .harness
         .provider_registry()
@@ -1424,7 +1412,7 @@ pub async fn recommend_nodes(
 ) -> Result<Vec<NodeRecommendation>, String> {
     let resolved = resolve_ai_provider(&state).await?;
 
-    let registry_key = provider_type_to_registry_key(&resolved.provider_type);
+    let registry_key = resolved.provider_type.registry_key();
     let adapter = state
         .harness
         .provider_registry()
@@ -1754,7 +1742,7 @@ pub async fn workflow_ai_chat_stream(
 ) -> Result<(), String> {
     let resolved = resolve_ai_provider(&state).await?;
 
-    let registry_key = provider_type_to_registry_key(&resolved.provider_type);
+    let registry_key = resolved.provider_type.registry_key();
     let adapter = state
         .harness
         .provider_registry()

@@ -494,8 +494,3 @@ pub struct BatchAnalysis {
     pub quality_distribution: QualityDistribution,
 }
 
-impl TrajectoryQuery {
-    pub fn execute(&self, storage: &TrajectoryStorage) -> Result<Vec<Trajectory>> {
-        storage.query_trajectories(self)
-    }
-}

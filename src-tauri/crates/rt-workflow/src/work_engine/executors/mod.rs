@@ -60,22 +60,20 @@ pub use subworkflow_executor::{SubWorkflowCallback, SubWorkflowExecutor};
 pub use tool_executor::{ToolCallback, ToolExecutor};
 pub use trigger_executor::TriggerExecutor;
 pub use validation_executor::ValidationExecutor;
-pub use vector_retrieve_executor::{VectorRetrieveCallback, VectorRetrieveExecutor};
+pub use vector_retrieve_executor::VectorRetrieveExecutor;
 
 /// 获取节点类型名称（从 node_executor_trait 导入，供执行器使用）。
 pub use crate::work_engine::node_executor_trait::node_type_name;
 
-/// 将 ProviderType 转为 ProviderRegistry 的 key 字符串
-pub(crate) fn provider_type_to_registry_key(
-    pt: &axagent_core::types::ProviderType,
-) -> &'static str {
-    match pt {
-        axagent_core::types::ProviderType::OpenAI => "openai",
-        axagent_core::types::ProviderType::OpenAIResponses => "openai_responses",
-        axagent_core::types::ProviderType::Anthropic => "anthropic",
-        axagent_core::types::ProviderType::Gemini => "gemini",
-        axagent_core::types::ProviderType::OpenClaw => "openclaw",
-        axagent_core::types::ProviderType::Hermes => "hermes",
-        axagent_core::types::ProviderType::Ollama => "ollama",
-    }
-}
+// ── Workflow 上下文变量名常量 ──
+// 这些 key 用于在 ExecutionState.variables 与 input_params 之间传递
+// LLM 选择/Provider 解析等元信息。集中定义避免散落字符串。
+pub const WORKFLOW_MODEL_VAR: &str = "__workflow_model__";
+pub const WORKFLOW_PROVIDER_ID_VAR: &str = "__workflow_provider_id__";
+
+// ── 公共 LLM 解析助手 ──
+// 4 个 executor（agent/condition/llm/llm_classifier）都重复
+// `resolve_model_for_node → decrypt_key → registry.get(registry_key)` 三步。
+// 抽成公共 helper 消除 4 处字节级同义代码。
+pub(crate) mod llm_resolve;
+pub(crate) use llm_resolve::resolve_provider_and_adapter;
