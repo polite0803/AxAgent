@@ -116,6 +116,7 @@ pub struct AgentExecutor {
     rag_callback: Arc<std::sync::Mutex<Option<RagCallback>>>,
     /// Plan 模式：注入 WorkEngine 引用（set_engine 共享槽，None = 未启用）
     engine: Arc<std::sync::Mutex<Option<Arc<super::super::WorkEngine>>>>,
+    #[allow(clippy::type_complexity)]
     /// Plan 模式：注入 PlannerAdapter（set_planner 共享槽，None = 未启用 Plan 模式）
     planner:
         Arc<std::sync::Mutex<Option<Arc<std::sync::Mutex<dyn axagent_harness::PlannerAdapter>>>>>,

@@ -18,6 +18,7 @@ use crate::work_engine::node_executor_trait::{NodeError, error_code};
 /// 3. `provider_registry.get(prov.provider_type.registry_key())` 拿 adapter
 ///
 /// 返回值 `(prov, key, model, adapter, api_key)` 供调用方继续构建 request。
+#[allow(clippy::too_many_arguments)]
 pub(crate) async fn resolve_provider_and_adapter(
     db: &DatabaseConnection,
     master_key: &[u8; 32],

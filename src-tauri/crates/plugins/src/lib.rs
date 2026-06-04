@@ -2980,22 +2980,21 @@ fn materialize_source(
             let dest = temp_root.join(format!("npm-{}", sanitize_plugin_id(&name)));
             let dest_clone = dest.clone();
             let service = npm_registry.cloned();
-            let result = match service {
+            match service {
                 Some(registry) => {
                     let rt = tokio::runtime::Runtime::new().expect("tokio runtime");
                     rt.block_on(async {
                         registry
                             .download_package(&name, version.as_deref(), &dest)
                             .await
-                            .map_err(|e| PluginError::CommandFailed(e))?;
+                            .map_err(PluginError::CommandFailed)?;
                         Ok(dest_clone)
                     })
                 },
                 None => Err(PluginError::CommandFailed(
                     "NPM registry service is not configured".to_string(),
                 )),
-            };
-            result
+            }
         },
     }
 }

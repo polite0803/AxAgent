@@ -1,6 +1,8 @@
 #![allow(clippy::result_large_err)]
 #![allow(clippy::too_many_arguments)]
 #![allow(clippy::collapsible_if)]
+#![allow(clippy::collapsible_match)]
+#![allow(clippy::needless_borrow)]
 
 mod android_utils;
 mod commands;

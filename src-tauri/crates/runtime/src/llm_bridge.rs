@@ -51,8 +51,7 @@ pub async fn build_llm_bridge_from_db_with(
     // 单源查表：用 ProviderRegistry 取代手写 match
     let registry_key = prov.provider_type.registry_key();
     let adapter: Arc<dyn ProviderAdapter> = provider_registry
-        .get(&registry_key)
-        .map(|arc| arc.clone())?;
+        .get(registry_key)?;
 
     let ctx = ProviderRequestContext {
         api_key,

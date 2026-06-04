@@ -69,7 +69,7 @@ impl PlatformBridge {
             )
         })?;
         let adapter = registry
-            .get(&registry_key)
+            .get(registry_key)
             .ok_or_else(|| anyhow::anyhow!("Provider adapter not found: {}", registry_key))?;
 
         let key_row = provider::get_active_key(&self.db, provider_id).await?;

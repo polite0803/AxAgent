@@ -76,7 +76,7 @@ use super::executors::{
     ProfileCache, ProviderCache, RagCallback, SubWorkflowCallback, ToolCallback,
 };
 use super::node_executor_trait::{NodeError, NodeExecutorTrait, NodeOutput, node_type_name};
-use super::prompt_template::{CompiledPrompt, compile_prompt};
+use super::prompt_template::{CompiledPrompt, DomainConstraintsFn, compile_prompt};
 
 /// 工具解析器：给定工具名，返回对应的 ToolCallback（若可解析）。
 /// 用于 run_workflow 启动时自动扫描工作流节点并注册工具。
@@ -296,6 +296,17 @@ pub struct WorkEngine {
     /// 工具解析器（按需延迟注册，从全局 tool registry 查找工具）
     tool_resolver: Arc<Mutex<Option<ToolResolver>>>,
     rag_callback: Arc<Mutex<Option<RagCallback>>>,
+    /// 领域约束注入回调（可选，None 时不注入任何约束，行为与现状一致）。
+    ///
+    /// 由主 binary（如 stock-analysis）在 setup 时通过 `set_domain_constraints`
+    /// 注册。回调签名：`(role_name: &str) -> ConstraintBlocks`。
+    ///
+    /// 字段类型与 `set_rag_callback` 行为完全对齐：
+    /// - `Arc<Mutex<Option<...>>>`：支持热更新与多 owner（dispatcher / 共享 Arc）
+    /// - 使用 `std::sync::Mutex`：回调在 setup 阶段同步注册，调用频率极低，
+    ///   无需 async 锁；后续 `domain_constraints()` getter 在 agent 节点执行
+    ///   时取 Arc clone，持有时间极短。
+    domain_constraints: Arc<std::sync::Mutex<Option<DomainConstraintsFn>>>,
     /// Agent executor 共享缓存（跨节点复用，每次 run_workflow 开始时清空）
     agent_provider_cache: Arc<tokio::sync::Mutex<ProviderCache>>,
     agent_profile_cache: Arc<tokio::sync::Mutex<ProfileCache>>,
@@ -487,6 +498,40 @@ impl WorkEngine {
     pub async fn set_rag_callback(&self, cb: RagCallback) {
         *self.rag_callback.lock().await = Some(cb);
     }
+
+    /// 注册领域约束注入回调。
+    ///
+    /// 回调签名：`(role_name: &str) -> ConstraintBlocks`
+    /// 由主 binary（如 stock-analysis）在 setup 时调用一次。
+    ///
+    /// 与 `set_rag_callback` 模式完全对齐：内部用 Mutex 持有 Option，
+    /// 在执行 agent 节点时由本引擎的 `domain_constraints()` getter
+    /// 转发给 `AgentExecutor`。
+    ///
+    /// 多次调用：后者覆盖前者（标准 setter 语义）。
+    pub async fn set_domain_constraints(&self, f: DomainConstraintsFn) {
+        *self
+            .domain_constraints
+            .lock()
+            .expect("domain_constraints mutex poisoned") = Some(f);
+    }
+
+    /// 取出当前注册的领域约束（用于在执行 agent 节点时转发给 `AgentExecutor`）。
+    ///
+    /// 内部 clone 出 Arc，避免锁长时间持有。仅暴露给 crate 内部消费
+    /// （当前仅 `agent_executor.rs` 会调用，stock-analysis 等领域 PR
+    /// 不应直接依赖此 getter）。
+    ///
+    /// `#[allow(dead_code)]`：本 PR 仅加桥接，不消费 getter。
+    /// stock-analysis 后续 PR 在 `AgentExecutor::execute` 中调用此方法
+    /// 取约束并注入 4a/4f 段时会用到，到时移除此标记。
+    #[allow(dead_code)]
+    pub(crate) fn domain_constraints(&self) -> Option<DomainConstraintsFn> {
+        self.domain_constraints
+            .lock()
+            .expect("domain_constraints mutex poisoned")
+            .clone()
+    }
 }
 
 impl WorkEngine {
@@ -539,6 +584,7 @@ impl WorkEngine {
             tool_fallback: Arc::new(Mutex::new(None)),
             tool_resolver: Arc::new(Mutex::new(None)),
             rag_callback: Arc::new(Mutex::new(None)),
+            domain_constraints: Arc::new(std::sync::Mutex::new(None)),
             agent_provider_cache,
             agent_profile_cache,
             breakpoints: Arc::new(Mutex::new(HashSet::new())),
@@ -1118,7 +1164,7 @@ impl WorkEngine {
                                             _ = n;
                                         }
                                         let result = engine
-                                            .eval_ast::<Dynamic>(&*ast)
+                                            .eval_ast::<Dynamic>(&ast)
                                             .map_err(|e| format!("Rhai 执行失败: {e}"))?;
                                         // Convert result back to json value
                                         let text = result.to_string();
@@ -2231,5 +2277,68 @@ fn mark_subtree_skipped(workflow: &mut Workflow, edges: &[WorkflowEdge], node_id
         if edge.source == node_id {
             mark_subtree_skipped(workflow, edges, &edge.target);
         }
+    }
+}
+
+// ── 测试 ──
+
+#[cfg(test)]
+mod tests {
+    use super::super::prompt_template::{ConstraintBlocks, DomainConstraintsFn};
+    use super::WorkEngine;
+    use axagent_harness::registry::ProviderRegistry;
+    use std::sync::Arc;
+
+    /// 最小的 ProviderRegistry 实现 —— `WorkEngine::new` 构造时需要传入，
+    /// 但本测试不消费任何 provider 能力（只测桥接 setter），所以 `get` 返回 `None` 即可。
+    struct EmptyProviderRegistry;
+
+    impl ProviderRegistry for EmptyProviderRegistry {
+        fn get(&self, _provider_type: &str) -> Option<Arc<dyn axagent_harness::ProviderAdapter>> {
+            None
+        }
+    }
+
+    /// 构造一个仅用于桥接测试的 WorkEngine。
+    /// - `DatabaseConnection::default()`：sea-orm 的零值连接，不发起实际查询
+    /// - master_key `[0u8; 32]`：占位密钥，桥接测试不涉及解密
+    /// - `EmptyProviderRegistry`：空实现，桥接测试不查 provider
+    fn make_test_engine() -> WorkEngine {
+        WorkEngine::new(
+            Arc::new(sea_orm::DatabaseConnection::default()),
+            [0u8; 32],
+            Arc::new(EmptyProviderRegistry),
+        )
+    }
+
+    #[tokio::test]
+    async fn set_domain_constraints_stores_callback() {
+        let engine = make_test_engine();
+
+        // 初始：未注册 → getter 返回 None
+        assert!(engine.domain_constraints().is_none());
+
+        // 注册
+        let cb: DomainConstraintsFn = Arc::new(|_role| ConstraintBlocks::default());
+        engine.set_domain_constraints(cb.clone()).await;
+
+        // 已注册 → getter 返回 Some
+        assert!(engine.domain_constraints().is_some());
+    }
+
+    #[tokio::test]
+    async fn set_domain_constraints_can_be_overwritten() {
+        let engine = make_test_engine();
+
+        let cb1: DomainConstraintsFn = Arc::new(|_| ConstraintBlocks::default());
+        let cb2: DomainConstraintsFn = Arc::new(|_| ConstraintBlocks::default());
+
+        engine.set_domain_constraints(cb1).await;
+        // 第二次注册覆盖第一次（标准 setter 语义）
+        engine.set_domain_constraints(cb2.clone()).await;
+
+        let stored = engine.domain_constraints().expect("应已注册");
+        // 通过指针等价性确认最新注册的是 cb2（cb1 已被覆盖）
+        assert!(Arc::ptr_eq(&stored, &cb2));
     }
 }

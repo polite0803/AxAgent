@@ -91,7 +91,7 @@ pub enum AxAgentError {
 
     #[error("Structured error: {message}")]
     StructuredError {
-        context: ErrorContext,
+        context: Box<ErrorContext>,
         source: Box<dyn std::error::Error + Send + Sync>,
         message: String,
     },
@@ -191,7 +191,7 @@ impl AxAgentError {
     pub fn with_context(self, context: ErrorContext) -> Self {
         let message = self.to_string();
         AxAgentError::StructuredError {
-            context,
+            context: Box::new(context),
             source: Box::new(self),
             message,
         }
@@ -238,10 +238,12 @@ impl AxAgentError {
                 context, message, ..
             } => (context.clone(), message.clone()),
             _ => (
-                ErrorContext::builder()
-                    .component("unknown")
-                    .operation("unknown")
-                    .build(),
+                Box::new(
+                    ErrorContext::builder()
+                        .component("unknown")
+                        .operation("unknown")
+                        .build(),
+                ),
                 self.to_string(),
             ),
         };
@@ -249,7 +251,7 @@ impl AxAgentError {
         ErrorReport {
             error_code: self.error_code(),
             message,
-            context,
+            context: *context,
             source_chain,
             timestamp: chrono::Utc::now(),
             recoverable: self.is_recoverable(),
