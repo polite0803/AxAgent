@@ -32,7 +32,7 @@ enigo = "0.6"
 
 [package]
 name = "axagent"
-version = "2.5.1"
+version = "2.6.0"
 description = "AxAgent - AI Chat Desktop App"
 authors = ["刘小平 <polite0803@outlook.com>"]
 license = "AGPL-3.0-only"

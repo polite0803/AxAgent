@@ -1,3 +1,4 @@
+#![allow(clippy::result_large_err)]
 use aes_gcm::{
     Aes256Gcm, Nonce,
     aead::{Aead, KeyInit, OsRng, rand_core::RngCore},
