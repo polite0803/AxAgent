@@ -77,8 +77,10 @@ async fn build_vision_context(
     let global_settings = axagent_core::repo::settings::get_settings(db)
         .await
         .unwrap_or_default();
-    let resolved_proxy =
-        axagent_harness::types::ProviderProxyConfig::resolve(&provider.proxy_config, &global_settings);
+    let resolved_proxy = axagent_harness::types::ProviderProxyConfig::resolve(
+        &provider.proxy_config,
+        &global_settings,
+    );
 
     let adapter = resolve_provider_adapter(&provider.provider_type)?;
 

@@ -143,8 +143,8 @@ impl NodeExecutorTrait for LlmClassifierExecutor {
             });
         }
 
-        use axagent_harness::types::{ChatContent, ChatMessage, ChatRequest};
         use axagent_harness::build_provider_request_context;
+        use axagent_harness::types::{ChatContent, ChatMessage, ChatRequest};
 
         let req_ctx = build_provider_request_context(&prov, &key, api_key);
 

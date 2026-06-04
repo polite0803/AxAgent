@@ -175,8 +175,10 @@ pub async fn validate_provider_key(
     let global_settings = axagent_core::repo::settings::get_settings(state.harness.db())
         .await
         .unwrap_or_default();
-    let resolved_proxy =
-        axagent_harness::types::ProviderProxyConfig::resolve(&provider.proxy_config, &global_settings);
+    let resolved_proxy = axagent_harness::types::ProviderProxyConfig::resolve(
+        &provider.proxy_config,
+        &global_settings,
+    );
     let ctx = axagent_harness::ProviderRequestContext {
         api_key: decrypted,
         key_id: key_id.clone(),
@@ -306,8 +308,10 @@ pub async fn fetch_remote_models(
     let global_settings = axagent_core::repo::settings::get_settings(state.harness.db())
         .await
         .unwrap_or_default();
-    let resolved_proxy =
-        axagent_harness::types::ProviderProxyConfig::resolve(&provider.proxy_config, &global_settings);
+    let resolved_proxy = axagent_harness::types::ProviderProxyConfig::resolve(
+        &provider.proxy_config,
+        &global_settings,
+    );
     let ctx = axagent_harness::ProviderRequestContext {
         api_key: decrypted,
         key_id: key_row.id.clone(),
@@ -398,8 +402,10 @@ pub async fn test_model(
     let global_settings = axagent_core::repo::settings::get_settings(state.harness.db())
         .await
         .unwrap_or_default();
-    let resolved_proxy =
-        axagent_harness::types::ProviderProxyConfig::resolve(&provider.proxy_config, &global_settings);
+    let resolved_proxy = axagent_harness::types::ProviderProxyConfig::resolve(
+        &provider.proxy_config,
+        &global_settings,
+    );
     let ctx = axagent_harness::ProviderRequestContext {
         api_key: decrypted,
         key_id: key_row.id.clone(),

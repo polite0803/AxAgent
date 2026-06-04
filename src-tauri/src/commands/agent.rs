@@ -6,11 +6,11 @@ use crate::commands::error_code::steer as steer_err;
 use axagent_agent::{AgentExecutionProgressSnapshot, AxAgentApiClient};
 use axagent_core::cloud_workspace::CloudWorkspace;
 use axagent_core::repo::{conversation, message, provider, search_provider};
+use axagent_core::workspace_uri::WorkspaceUri;
 use axagent_harness::types::{
     Attachment, AttachmentInput, ChatTool, ChatToolFunction, McpServer, MessageRole,
     ProviderProxyConfig,
 };
-use axagent_core::workspace_uri::WorkspaceUri;
 use axagent_harness::{ProviderAdapter, ProviderRequestContext, resolve_base_url_for_type};
 use axagent_tools::context_keys;
 use axagent_tools::registry::{McpServerConfig, UnifiedToolRegistry};

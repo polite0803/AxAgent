@@ -6,8 +6,8 @@ use sha2::{Digest, Sha256};
 use tokio::fs;
 
 use axagent_core::entity::wiki_sources;
-use axagent_harness::types::{ChatContent, ChatMessage, ChatRequest};
 use axagent_core::utils::gen_id;
+use axagent_harness::types::{ChatContent, ChatMessage, ChatRequest};
 use axagent_harness::{ProviderAdapter, ProviderRequestContext};
 use sea_orm::{ActiveModelTrait, DatabaseConnection, EntityTrait, Set};
 

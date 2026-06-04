@@ -1,6 +1,8 @@
 use axagent_core::{crypto::decrypt_key, error::AxAgentError};
-use axagent_harness::types::{GatewayKey, ProviderConfig, ProviderProxyConfig, ProviderType, TokenUsage};
 use axagent_harness::ProviderRequestContext;
+use axagent_harness::types::{
+    GatewayKey, ProviderConfig, ProviderProxyConfig, ProviderType, TokenUsage,
+};
 use axagent_providers::url_utils::resolve_base_url_for_type;
 
 use axum::{
@@ -1092,7 +1094,7 @@ mod tests {
     use super::*;
     use axagent_core::{
         crypto::{encrypt_key, key_prefix},
-        db::{create_test_pool, DbHandle},
+        db::{DbHandle, create_test_pool},
         repo::{gateway, gateway_request_log, provider},
     };
     use axagent_harness::types::{

@@ -93,6 +93,12 @@ pub use axagent_kit::skill_dirs;
 pub use axagent_kit::slash_command;
 pub use axagent_kit::token_budget;
 pub use axagent_kit::token_counter;
+#[cfg(not(target_os = "android"))]
+pub use axagent_kit::ui_automation;
+#[cfg(target_os = "android")]
+pub use axagent_kit::ui_automation;
+pub use axagent_kit::unified_config;
+pub use axagent_kit::utils;
 pub use axagent_search::query_enhancement;
 #[allow(clippy::unwrap_used)]
 pub use axagent_search::rag;
@@ -107,6 +113,9 @@ pub use axagent_search::self_rag;
 pub use axagent_search::semantic_cache;
 pub use axagent_search::text_chunker;
 #[allow(clippy::unwrap_used)]
+pub use axagent_search::vector_cache;
+pub use axagent_search::vector_store;
+#[allow(clippy::unwrap_used)]
 pub use axagent_storage::storage_inventory;
 #[allow(clippy::unwrap_used)]
 pub use axagent_storage::storage_migration;
@@ -114,15 +123,6 @@ pub use axagent_storage::storage_migration;
 pub use axagent_storage::storage_paths;
 #[allow(clippy::unwrap_used)]
 pub use axagent_storage::sync_conflict;
-#[cfg(not(target_os = "android"))]
-pub use axagent_kit::ui_automation;
-#[cfg(target_os = "android")]
-pub use axagent_kit::ui_automation;
-pub use axagent_kit::unified_config;
-pub use axagent_kit::utils;
-#[allow(clippy::unwrap_used)]
-pub use axagent_search::vector_cache;
-pub use axagent_search::vector_store;
 #[allow(clippy::unwrap_used)]
 pub use axagent_storage::webdav;
 pub mod workflow_types;

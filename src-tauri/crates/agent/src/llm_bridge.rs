@@ -1,4 +1,3 @@
-use axagent_harness::types::{ChatContent, ChatMessage, ChatRequest};
 #[cfg(test)]
 use axagent_harness::trajectory_types::ProcedureStep;
 use axagent_harness::trajectory_types::{
@@ -6,6 +5,7 @@ use axagent_harness::trajectory_types::{
     LlmMutationResponse, LlmTextGradProvider, LlmToolProvider, PrmLlmProvider, RewardCategory,
     StepReward, ToolCreationRequest,
 };
+use axagent_harness::types::{ChatContent, ChatMessage, ChatRequest};
 use axagent_harness::{ProviderAdapter, ProviderRequestContext};
 use std::future::Future;
 use std::pin::Pin;

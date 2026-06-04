@@ -482,7 +482,8 @@ pub async fn auto_extract_incremental_memories(
     }
 
     let last_extracted = conv.last_memory_extracted_at.as_deref();
-    let new_messages: Vec<axagent_harness::types::Message> = if let Some(_last_ts) = last_extracted {
+    let new_messages: Vec<axagent_harness::types::Message> = if let Some(_last_ts) = last_extracted
+    {
         let recent: Vec<_> = messages.into_iter().rev().take(6).collect();
         recent.into_iter().rev().collect()
     } else {

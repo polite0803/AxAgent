@@ -14,8 +14,8 @@ use std::sync::Arc;
 
 use axagent_core::error::{AxAgentError, Result};
 use axagent_core::rag::{self, ChunkStrategy, KnowledgeRAG, LlmCallFn, MemoryRAG};
-use axagent_harness::types::*;
 use axagent_core::vector_store::{VectorSearchResult, VectorStore};
+use axagent_harness::types::*;
 
 use axagent_providers::{ProviderAdapter, ProviderRequestContext, resolve_base_url_for_type};
 

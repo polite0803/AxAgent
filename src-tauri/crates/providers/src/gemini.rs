@@ -689,20 +689,19 @@ impl ProviderAdapter for GeminiAdapter {
                                                 }
                                             }
                                             if let Some(ref fc) = part.function_call {
-                                                tool_calls_vec.push(
-                                                    axagent_harness::types::ToolCall {
-                                                        id: tool_call_id(),
-                                                        call_type: "function".to_string(),
-                                                        function:
-                                                            axagent_harness::types::ToolCallFunction {
-                                                                name: fc.name.clone(),
-                                                                arguments: serde_json::to_string(
-                                                                    &fc.args,
-                                                                )
-                                                                .unwrap_or_default(),
-                                                            },
-                                                    },
-                                                );
+                                                tool_calls_vec
+                                                    .push(axagent_harness::types::ToolCall {
+                                                    id: tool_call_id(),
+                                                    call_type: "function".to_string(),
+                                                    function:
+                                                        axagent_harness::types::ToolCallFunction {
+                                                            name: fc.name.clone(),
+                                                            arguments: serde_json::to_string(
+                                                                &fc.args,
+                                                            )
+                                                            .unwrap_or_default(),
+                                                        },
+                                                });
                                             }
                                         }
                                     }
