@@ -295,6 +295,18 @@
       "modeDisabled": "Disabled",
       "modeDisabledDesc": "Disable all MCP tool calls"
     },
+    "mode": {
+      "ask": "Ask",
+      "plan": "Plan",
+      "action": "Action"
+    },
+    "connector": {
+      "title": "Connector",
+      "add": "Add Connector",
+      "custom": "Custom Connector",
+      "noServers": "Please add or enable connectors first",
+      "goConfig": "Go to Settings →"
+    },
     "contextCleared": "Context has been reset from here",
     "knowledge": {
       "title": "Knowledge Base",

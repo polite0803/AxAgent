@@ -229,6 +229,18 @@
       "modeDisabled": "禁用",
       "modeDisabledDesc": "不使用 MCP 工具"
     },
+    "mode": {
+      "ask": "Ask",
+      "plan": "Plan",
+      "action": "Action"
+    },
+    "connector": {
+      "title": "连接器",
+      "add": "新增连接器",
+      "custom": "自定义连接器",
+      "noServers": "请先添加或启用连接器",
+      "goConfig": "前往配置 →"
+    },
     "contextCleared": "上下文已从此处重置",
     "knowledge": {
       "title": "知识库",

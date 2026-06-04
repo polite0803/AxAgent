@@ -677,6 +677,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
               agent_profile_id: options?.agent_profile_id,
               workflow_template_id: options?.workflow_template_id,
               mode: options?.mode,
+              work_strategy: options?.work_strategy,
               ...getStagedPreferenceUpdate(),
             },
           },

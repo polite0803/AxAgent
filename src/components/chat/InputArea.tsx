@@ -397,6 +397,7 @@ export function InputArea() {
   // This allows handleSend to create a conversation in the correct mode
   // even when the user hasn't created one yet.
   const pendingModeRef = useRef<"chat" | "agent" | null>(null);
+  const pendingWorkStrategyRef = useRef<"direct" | "plan" | null>(null);
 
   const activeConversation = conversations.find(
     (c) => c.id === activeConversationId,
@@ -405,10 +406,11 @@ export function InputArea() {
   // correctly reflects the user's last mode dropdown choice.
   const currentMode = activeConversation?.mode || pendingModeRef.current || "chat";
 
-  // Reset pending mode ref when a conversation becomes active
+  // Reset pending mode refs when a conversation becomes active
   useEffect(() => {
     if (activeConversationId) {
       pendingModeRef.current = null;
+      pendingWorkStrategyRef.current = null;
     }
   }, [activeConversationId]);
 
@@ -420,6 +422,14 @@ export function InputArea() {
       | undefined;
     setWorkStrategy(strategy || "direct");
   }, [activeConversation?.work_strategy, activeConversation?.mode]);
+
+  // Unified mode: ask | plan | action
+  const unifiedMode = useMemo((): "ask" | "plan" | "action" => {
+    if (currentMode === "chat") return "ask";
+    if (currentMode === "agent" && workStrategy === "plan") return "plan";
+    if (currentMode === "agent" && workStrategy === "direct") return "action";
+    return "ask";
+  }, [currentMode, workStrategy]);
 
   const navigate = useNavigate();
   const setSettingsSection = useUIStore((s) => s.setSettingsSection);
@@ -619,7 +629,7 @@ export function InputArea() {
               marginBottom: 8,
             }}
           >
-            {t("chat.mcp.noServers")}
+            {t("chat.connector.noServers")}
           </div>
           <Button
             type="link"
@@ -631,7 +641,7 @@ export function InputArea() {
               navigate("/settings");
             }}
           >
-            {t("chat.mcp.goConfig")}
+            {t("chat.connector.goConfig")}
           </Button>
         </div>
       );
@@ -774,6 +784,40 @@ export function InputArea() {
         )}
         {customServers.length > 0
           && renderGroup(t("settings.mcp.custom"), customServers)}
+        <div
+          style={{
+            marginTop: 12,
+            borderTop: `1px solid ${token.colorBorderSecondary}`,
+            paddingTop: 8,
+            display: "flex",
+            gap: 8,
+          }}
+        >
+          <Button
+            type="link"
+            size="small"
+            style={{ padding: 0, fontSize: 12 }}
+            onClick={() => {
+              setMcpPopoverOpen(false);
+              setSettingsSection("mcpServers");
+              navigate("/settings");
+            }}
+          >
+            {t("chat.connector.add")}
+          </Button>
+          <Button
+            type="link"
+            size="small"
+            style={{ padding: 0, fontSize: 12 }}
+            onClick={() => {
+              setMcpPopoverOpen(false);
+              setSettingsSection("mcpServers");
+              navigate("/settings");
+            }}
+          >
+            {t("chat.connector.custom")}
+          </Button>
+        </div>
       </div>
     );
   }, [
@@ -894,47 +938,60 @@ export function InputArea() {
     return items;
   }, [expertBuiltinRoles, agencyRoles, customRoles, t]);
 
-  // Mode menu items (Q&A, Agent, Gateway options)
-  const modeMenuItems = useMemo((): DropdownItem[] => {
+  // Unified mode menu items (Ask / Plan / Action)
+  const unifiedModeMenuItems = useMemo((): DropdownItem[] => {
     const items: DropdownItem[] = [
       {
-        key: "chat",
+        key: "ask",
         icon: <MessageSquare size={14} />,
         label: (
           <span className="flex items-center gap-2">
-            {t("common.chatMode")}
-            {currentMode === "chat" && <Check size={14} style={{ color: token.colorPrimary }} />}
+            {t("chat.mode.ask")}
+            {unifiedMode === "ask" && <Check size={14} style={{ color: token.colorPrimary }} />}
           </span>
         ),
-        onClick: () => handleModeSwitch("chat"),
+        onClick: () => handleUnifiedModeChange("ask"),
       },
       {
-        key: "agent",
-        icon: <Bot size={14} />,
+        key: "plan",
+        icon: <ClipboardList size={14} />,
         label: (
           <span className="flex items-center gap-2">
-            {t("common.agentMode")}
-            {currentMode === "agent" && <Check size={14} style={{ color: token.colorPrimary }} />}
+            {t("chat.mode.plan")}
+            {unifiedMode === "plan" && <Check size={14} style={{ color: token.colorPrimary }} />}
           </span>
         ),
+        onClick: () => handleUnifiedModeChange("plan"),
+      },
+      {
+        key: "action",
+        icon: <Play size={14} />,
+        label: (
+          <span className="flex items-center gap-2">
+            {t("chat.mode.action")}
+            {unifiedMode === "action" && <Check size={14} style={{ color: token.colorPrimary }} />}
+          </span>
+        ),
+        onClick: () => handleUnifiedModeChange("action"),
       },
     ];
+    // Add Gateway options if connected
     const connectedGateways = gatewayLinks.filter(
       (l) => l.enabled && l.status === "connected",
     );
     if (connectedGateways.length > 0) {
-      items.push({ key: "div-2", divider: true });
-      connectedGateways.forEach((gateway) => {
+      items.push({ key: "div-gw", divider: true });
+      connectedGateways.forEach((gw) => {
         items.push({
-          key: `gateway:${gateway.id}`,
+          key: `gateway:${gw.id}`,
           icon: <Globe size={14} />,
-          label: gateway.name,
-          onClick: () => setSelectedGatewayId(gateway.id),
+          label: gw.name,
+          onClick: () => setSelectedGatewayId(gw.id),
         });
       });
     }
     return items;
-  }, [t, gatewayLinks, currentMode, selectedGatewayId, token.colorPrimary]);
+  }, [t, unifiedMode, gatewayLinks, selectedGatewayId, token.colorPrimary]);
 
   // Handle expert selection
   const handleExpertSelect = useCallback(
@@ -1164,7 +1221,7 @@ export function InputArea() {
               navigate("/knowledge");
             }}
           >
-            {t("chat.mcp.goConfig")}
+            {t("chat.connector.goConfig")}
           </Button>
         </div>
       );
@@ -1673,6 +1730,35 @@ export function InputArea() {
     ],
   );
 
+  // ── Unified Mode (Ask / Plan / Action) ──
+  const handleUnifiedModeChange = useCallback(
+    async (mode: "ask" | "plan" | "action") => {
+      if (mode === "ask") {
+        await handleModeSwitch("chat");
+        if (activeConversationId) {
+          try {
+            await updateConversation(activeConversationId, {
+              work_strategy: "direct" as any,
+            });
+          } catch (e) {
+            logIpcError("UnifiedMode: switch to ask")(e);
+          }
+        } else {
+          pendingModeRef.current = "chat";
+          pendingWorkStrategyRef.current = null;
+        }
+      } else {
+        await handleModeSwitch("agent");
+        const strategy = mode === "plan" ? "plan" : "direct";
+        await handleWorkStrategyChange(strategy);
+        if (!activeConversationId) {
+          pendingWorkStrategyRef.current = strategy;
+        }
+      }
+    },
+    [activeConversationId, activeConversation, handleWorkStrategyChange, updateConversation],
+  );
+
   const handleSend = useCallback(async () => {
     const trimmed = value.trim();
     if (!trimmed || streaming) {
@@ -1717,9 +1803,11 @@ export function InputArea() {
             provider.id,
             {
               mode: pendingModeRef.current ?? undefined,
+              work_strategy: pendingWorkStrategyRef.current ?? undefined,
             },
           );
           pendingModeRef.current = null;
+          pendingWorkStrategyRef.current = null;
         }
       }
 
@@ -2611,7 +2699,7 @@ export function InputArea() {
               onOpenChange={setMcpPopoverOpen}
             >
               <Tooltip
-                title={t("chat.mcp.title")}
+                title={t("chat.connector.title")}
                 open={mcpPopoverOpen ? false : undefined}
               >
                 <Badge
@@ -2801,70 +2889,22 @@ export function InputArea() {
                 onClick={() => setSettingsOpen(true)}
               />
             </Tooltip>
-            <DropdownMenu items={modeMenuItems}>
-              <Button
-                type="text"
-                size="small"
-                data-tutorial="agent-mode"
-                icon={currentMode === "agent"
-                  ? <Bot size={14} />
-                  : currentMode === "gateway"
-                  ? <Globe size={14} />
-                  : <MessageSquare size={14} />}
-                style={{ display: "flex", alignItems: "center", gap: 4 }}
-              />
-            </DropdownMenu>
-            <ContextHelp helpKey="agent" section="agent" />
-            {currentMode === "agent" && (
-              <DropdownMenu
-                items={[
-                  {
-                    key: "direct",
-                    icon: <Play size={14} />,
-                    label: (
-                      <span className="flex items-center gap-2">
-                        {t("plan.strategyDirect")}
-                        {workStrategy === "direct" && <Check size={14} style={{ color: token.colorPrimary }} />}
-                      </span>
-                    ),
-                    onClick: () => handleWorkStrategyChange("direct"),
-                  },
-                  {
-                    key: "plan",
-                    icon: <ClipboardList size={14} />,
-                    label: (
-                      <span className="flex items-center gap-2">
-                        {t("plan.strategyPlan")}{" "}
-                        <Tag
-                          color="purple"
-                          style={{
-                            fontSize: 10,
-                            lineHeight: "16px",
-                            padding: "0 3px",
-                            marginLeft: 2,
-                          }}
-                        >
-                          New
-                        </Tag>
-                      </span>
-                    ),
-                    onClick: () => handleWorkStrategyChange("plan"),
-                  },
-                ]}
-              >
+            {activeConversation?.session_type !== "workflow" && (
+              <DropdownMenu items={unifiedModeMenuItems}>
                 <Button
                   type="text"
                   size="small"
-                  icon={workStrategy === "plan" ? <ClipboardList size={14} /> : <Play size={14} />}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 4,
-                    color: workStrategy === "plan" ? "var(--purple, #722ed1)" : undefined,
-                  }}
+                  data-tutorial="agent-mode"
+                  icon={
+                    unifiedMode === "ask" ? <MessageSquare size={14} /> :
+                    unifiedMode === "plan" ? <ClipboardList size={14} /> :
+                    <Play size={14} />
+                  }
+                  style={{ display: "flex", alignItems: "center", gap: 4 }}
                 />
               </DropdownMenu>
             )}
+            <ContextHelp helpKey="agent" section="agent" />
             {currentMode === "agent" && activeConversationId && (
               <PlanHistoryPanel conversationId={activeConversationId} />
             )}
