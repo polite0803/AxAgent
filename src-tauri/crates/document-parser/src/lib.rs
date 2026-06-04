@@ -1,3 +1,4 @@
+#![allow(clippy::result_large_err)]
 //! Document text extraction — PDF, DOCX, XLSX, PPTX, and plain text.
 //!
 //! Extracted from `axagent-core` as part of harness architecture refactoring.
