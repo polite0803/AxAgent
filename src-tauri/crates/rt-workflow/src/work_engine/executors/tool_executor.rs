@@ -84,9 +84,9 @@ impl NodeExecutorTrait for ToolExecutor {
             if let Some(ref allowed) = perms.allowed_tools
                 && !allowed.iter().any(|t| t == tool_name)
             {
-                    let reason = format!("权限拒绝: 工具 '{tool_name}' 不在允许调用列表中");
-                    tracing::warn!("{reason}");
-                    return Err(NodeError::exec_failed(error_code::TOOL_CALL_FAILED, reason));
+                let reason = format!("权限拒绝: 工具 '{tool_name}' 不在允许调用列表中");
+                tracing::warn!("{reason}");
+                return Err(NodeError::exec_failed(error_code::TOOL_CALL_FAILED, reason));
             }
         }
 
