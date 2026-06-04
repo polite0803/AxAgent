@@ -209,7 +209,13 @@ impl ConditionExecutor {
             .and_then(|v| v.as_str());
 
         let result = self
-            .route_with_resolved_model(node_model, session_model, session_provider_id, &prompt)
+            .route_with_resolved_model(
+                node_model,
+                session_model,
+                session_provider_id,
+                &prompt,
+                config.confidence_threshold,
+            )
             .await;
 
         match result {
@@ -248,6 +254,7 @@ impl ConditionExecutor {
         session_model: Option<&str>,
         session_provider_id: Option<&str>,
         prompt: &str,
+        confidence_threshold: Option<f64>,
     ) -> Result<bool, String> {
         let (prov, _key, model, adapter, api_key) = super::resolve_provider_and_adapter(
             &self.db,
@@ -262,7 +269,7 @@ impl ConditionExecutor {
         .await
         .map_err(|e| format!("模型解析失败: {e}"))?;
 
-        self.call_llm_and_parse(&prov, &api_key, &model, &adapter, prompt)
+        self.call_llm_and_parse(&prov, &api_key, &model, &adapter, prompt, confidence_threshold)
             .await
     }
 
@@ -274,6 +281,7 @@ impl ConditionExecutor {
         model: &str,
         adapter: &Arc<dyn axagent_harness::ProviderAdapter>,
         prompt: &str,
+        confidence_threshold: Option<f64>,
     ) -> Result<bool, String> {
         use axagent_harness::types::{ChatContent, ChatMessage, ChatRequest};
         use axagent_providers::url_utils::resolve_base_url_for_type;
@@ -293,11 +301,22 @@ impl ConditionExecutor {
             store_response: None,
         };
 
+        let llm_prompt = if confidence_threshold.is_some() {
+            format!(
+                "{}\n\n请用 JSON 格式输出，包含 decision（true 或 false）和 confidence（0.0-1.0 的置信度）。\
+                 例如：{{\"decision\": true, \"confidence\": 0.95}}。\
+                 只输出 JSON，不要包含其他内容。",
+                prompt
+            )
+        } else {
+            prompt.to_string()
+        };
+
         let request = ChatRequest {
             model: model.to_string(),
             messages: vec![ChatMessage {
                 role: "user".to_string(),
-                content: ChatContent::Text(prompt.to_string()),
+                content: ChatContent::Text(llm_prompt),
                 tool_calls: None,
                 tool_call_id: None,
                 thinking: None,
@@ -323,6 +342,36 @@ impl ConditionExecutor {
             .map_err(|e| format!("LLM 调用失败: {e}"))?;
 
         let text = response.content.trim().to_lowercase();
+
+        // ── 置信度检查 ──
+        if let Some(threshold) = confidence_threshold {
+            let parsed: serde_json::Value =
+                serde_json::from_str(&text).map_err(|e| {
+                    format!("无法解析 LLM JSON 响应: {e}, raw: {text}")
+                })?;
+            let decision = parsed
+                .get("decision")
+                .and_then(|d| d.as_bool())
+                .ok_or_else(|| format!("LLM JSON 响应缺少 decision 字段: {text}"))?;
+            let confidence = parsed
+                .get("confidence")
+                .and_then(|c| c.as_f64())
+                .ok_or_else(|| format!("LLM JSON 响应缺少 confidence 字段: {text}"))?;
+
+            if confidence < threshold {
+                tracing::warn!(
+                    "[ConditionExecutor] LLM 路由置信度 {:.2} 低于阈值 {:.2}，降级为启发式判断",
+                    confidence,
+                    threshold
+                );
+                return Err(format!(
+                    "置信度 {:.2} 低于阈值 {:.2}",
+                    confidence, threshold
+                ));
+            }
+
+            return Ok(decision);
+        }
 
         // 严格解析：只接受纯 true/false/yes/no
         let trimmed = text.trim();

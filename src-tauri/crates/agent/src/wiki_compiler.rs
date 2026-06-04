@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 use axagent_core::entity::{notes, wiki_operations, wiki_pages, wiki_sources, wikis};
 use axagent_core::repo::note::{CreateNoteInput, Note, UpdateNoteInput, calculate_content_hash};
 use axagent_core::utils::gen_id;
+use axagent_harness::execute_llm::{execute_llm, LlmCallConfig};
 use axagent_harness::types::{ChatContent, ChatMessage, ChatRequest};
 use axagent_harness::{ProviderAdapter, ProviderRequestContext};
 use sea_orm::{
@@ -41,6 +42,8 @@ pub struct WikiCompiler {
     llm_model: String,
     quality_threshold: f64,
     use_llm_quality_eval: bool,
+    /// 中心化 LLM 调用配置（可选，设置后走 execute_llm 路径）
+    llm_call_config: Option<LlmCallConfig>,
 }
 
 impl WikiCompiler {
@@ -57,7 +60,14 @@ impl WikiCompiler {
             llm_model,
             quality_threshold: 0.5,
             use_llm_quality_eval: false,
+            llm_call_config: None,
         }
+    }
+
+    /// 注入中心化 LLM 调用配置
+    pub fn with_llm_call_config(mut self, config: LlmCallConfig) -> Self {
+        self.llm_call_config = Some(config);
+        self
     }
 
     pub fn with_llm_quality_eval(mut self, enabled: bool) -> Self {
@@ -253,11 +263,17 @@ impl WikiCompiler {
             let prompt = Self::build_compile_prompt(schema, &sources_text.join("\n\n"), language);
             let request = self.build_chat_request(prompt);
 
-            let response = self
-                .llm_adapter
-                .chat(&self.llm_ctx, request)
-                .await
-                .map_err(|e| format!("LLM call failed: {}", e))?;
+            let response = if let Some(ref config) = self.llm_call_config {
+                execute_llm(&*self.llm_adapter, &self.llm_ctx, request, config)
+                    .await
+                    .map_err(|e| format!("LLM call failed: {}", e))?
+                    .response
+            } else {
+                self.llm_adapter
+                    .chat(&self.llm_ctx, request)
+                    .await
+                    .map_err(|e| format!("LLM call failed: {}", e))?
+            };
 
             let raw_text = response.content;
             let pages = Self::parse_llm_response(&raw_text)?;
@@ -366,8 +382,21 @@ impl WikiCompiler {
             let prompt = Self::build_compile_prompt(schema, &sources_text, language);
             let request = self.build_chat_request(prompt);
 
-            match self.llm_adapter.chat(&self.llm_ctx, request).await {
-                Ok(response) => match Self::parse_llm_response(&response.content) {
+            let result = if let Some(ref config) = self.llm_call_config {
+                execute_llm(&*self.llm_adapter, &self.llm_ctx, request, config)
+                    .await
+                    .map(|r| r.response.content)
+                    .map_err(|e| format!("LLM call failed: {}", e))
+            } else {
+                self.llm_adapter
+                    .chat(&self.llm_ctx, request)
+                    .await
+                    .map(|r| r.content)
+                    .map_err(|e| format!("LLM call failed: {}", e))
+            };
+
+            match result {
+                Ok(raw) => match Self::parse_llm_response(&raw) {
                     Ok(pages) => all_pages.extend(pages),
                     Err(e) => {
                         tracing::warn!(
@@ -1213,18 +1242,28 @@ impl WikiCompiler {
             store: None,
         };
 
-        match self.llm_adapter.chat(&self.llm_ctx, request).await {
-            Ok(response) => {
-                let raw = response.content.trim();
-                raw.parse::<f64>()
-                    .ok()
-                    .map(|score| (score / 10.0).clamp(0.0, 1.0))
-            },
-            Err(e) => {
-                tracing::warn!("LLM quality evaluation failed: {}", e);
-                None
-            },
-        }
+        let content = if let Some(ref config) = self.llm_call_config {
+            match execute_llm(&*self.llm_adapter, &self.llm_ctx, request, config).await {
+                Ok(result) => result.response.content,
+                Err(e) => {
+                    tracing::warn!("LLM quality evaluation failed: {}", e);
+                    return None;
+                }
+            }
+        } else {
+            match self.llm_adapter.chat(&self.llm_ctx, request).await {
+                Ok(response) => response.content,
+                Err(e) => {
+                    tracing::warn!("LLM quality evaluation failed: {}", e);
+                    return None;
+                }
+            }
+        };
+
+        let raw = content.trim();
+        raw.parse::<f64>()
+            .ok()
+            .map(|score| (score / 10.0).clamp(0.0, 1.0))
     }
 
     pub async fn should_overwrite(&self, note: &Note) -> Result<bool, String> {

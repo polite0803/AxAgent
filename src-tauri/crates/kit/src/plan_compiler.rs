@@ -37,6 +37,7 @@ pub fn compile_plan_to_dag(
             timeout: None,
             enabled: true,
             parent_id: None,
+            compensation: None,
         },
         config: TriggerConfig {
             trigger_type: TriggerType::Manual,
@@ -71,6 +72,7 @@ pub fn compile_plan_to_dag(
                 timeout: Some(300),
                 enabled: true,
                 parent_id: None,
+                compensation: None,
             };
 
             let node = match task.action_type.as_str() {
@@ -106,6 +108,9 @@ pub fn compile_plan_to_dag(
                         max_tokens: Some(4096),
                         tools: Some(tool_names.to_vec()),
                         functions: None,
+                        consistency_check: None,
+                        max_context_tokens: None,
+                        reserved_output_tokens: None,
                     },
                 }),
                 _ => WorkflowNode::Agent(AgentNode {
@@ -132,6 +137,8 @@ pub fn compile_plan_to_dag(
                         execution_mode: None,
                         rag_source_ids: vec![],
                         model_role: None,
+                        consistency_check: None,
+                        hallucination_guard: None,
                     },
                 }),
             };
@@ -230,6 +237,7 @@ pub fn compile_plan_to_dag(
             timeout: None,
             enabled: true,
             parent_id: None,
+            compensation: None,
         },
         config: EndNodeConfig {
             output_var: Some("plan_result".to_string()),

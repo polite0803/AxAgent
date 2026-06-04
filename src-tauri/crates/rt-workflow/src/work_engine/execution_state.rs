@@ -43,6 +43,7 @@ pub struct NodeExecutionRecord {
 }
 
 use std::collections::HashMap;
+use std::sync::Arc;
 
 use super::executors::{PlanCallbacks, SubWorkflowCallback, ToolCallback};
 use super::prompt_template::CompiledPrompt;
@@ -68,7 +69,7 @@ impl std::fmt::Debug for ExecutionContextCallbacks {
 }
 
 /// Runtime execution state for a workflow
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct ExecutionState {
     #[serde(skip, default)]
     pub callbacks: Option<ExecutionContextCallbacks>,
@@ -90,6 +91,18 @@ pub struct ExecutionState {
     /// Plan 模式回调（引擎从 RunOptions 注入，executor 读取）
     #[serde(skip, default)]
     pub plan_callbacks: Option<PlanCallbacks>,
+    /// 工具级权限约束（可选，None = 不施加额外约束）。
+    /// 由调用方在创建 ExecutionState 时注入，agent/tool executor 在执行时读取。
+    #[serde(skip, default)]
+    pub tool_permissions: Option<Arc<axagent_harness::tool::ToolPermissions>>,
+    /// 业务规则引擎（可选，None = 不执行任何业务规则检查）。
+    /// 硬约束，在执行层直接拦截违规操作（LLM 无法绕过）。
+    /// 与 domain_constraints（软约束，仅作为 LLM prompt 建议）共存。
+    #[serde(skip, default)]
+    pub business_rule_engine: Option<Arc<axagent_harness::business_rules::BusinessRuleEngine>>,
+    /// 工具注册表（可选，设置后 tool_executor 优先通过 ToolRegistry.execute_tool() 执行工具）
+    #[serde(skip, default)]
+    pub tool_registry: Option<Arc<dyn axagent_harness::ToolRegistry>>,
     pub execution_id: String,
     pub workflow_id: String,
     pub status: ExecutionStatus,
@@ -122,6 +135,9 @@ impl ExecutionState {
             breakpoints: std::collections::HashSet::new(),
             pause_signal: None,
             plan_callbacks: None,
+            tool_permissions: None,
+            business_rule_engine: None,
+            tool_registry: None,
             total_time_ms: 0,
             created_at: now,
             updated_at: now,
@@ -142,5 +158,21 @@ impl ExecutionState {
     pub fn add_node_record(&mut self, record: NodeExecutionRecord) {
         self.node_records.push(record);
         self.updated_at = chrono::Utc::now().timestamp_millis();
+    }
+}
+
+impl std::fmt::Debug for ExecutionState {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ExecutionState")
+            .field("execution_id", &self.execution_id)
+            .field("workflow_id", &self.workflow_id)
+            .field("status", &self.status)
+            .field("current_node_id", &self.current_node_id)
+            .field("dry_run", &self.dry_run)
+            .field("total_time_ms", &self.total_time_ms)
+            .field("variables_count", &self.variables.len())
+            .field("node_records_count", &self.node_records.len())
+            .field("tool_registry", &self.tool_registry.as_ref().map(|_| "Some(ToolRegistry)"))
+            .finish()
     }
 }

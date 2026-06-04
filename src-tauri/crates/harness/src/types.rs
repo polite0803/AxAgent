@@ -1146,7 +1146,7 @@ pub struct ImageUrl {
     pub url: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct ChatResponse {
     pub id: String,
     pub model: String,

@@ -5,6 +5,7 @@ use crate::self_verifier::{SelfVerifier, VerificationResult};
 use crate::thought_chain::{Action, ChainSummary, ThoughtChain, ThoughtEvent, ThoughtStep};
 use axagent_core::token_budget::{TokenBudgetDecision, TokenBudgetTracker};
 use axagent_core::token_counter::estimate_tokens;
+use axagent_harness::execute_llm::{execute_llm, LlmCallConfig};
 use axagent_harness::types::{ChatContent, ChatMessage, ChatRequest};
 use axagent_harness::{ProviderAdapter, ProviderRequestContext};
 use std::sync::Arc;
@@ -254,6 +255,8 @@ pub struct LlmDrivenReasoningProvider {
     ctx: ProviderRequestContext,
     model: String,
     fallback: DefaultReasoningProvider,
+    /// 中心化 LLM 调用配置（可选，设置后走 execute_llm 路径）
+    llm_call_config: Option<LlmCallConfig>,
 }
 
 impl LlmDrivenReasoningProvider {
@@ -267,7 +270,14 @@ impl LlmDrivenReasoningProvider {
             ctx,
             model,
             fallback: DefaultReasoningProvider::new(),
+            llm_call_config: None,
         }
+    }
+
+    /// 注入中心化 LLM 调用配置
+    pub fn with_llm_call_config(mut self, config: LlmCallConfig) -> Self {
+        self.llm_call_config = Some(config);
+        self
     }
 
     async fn call_llm(&self, system_prompt: &str, user_prompt: &str) -> Result<String, ReActError> {
@@ -304,6 +314,15 @@ impl LlmDrivenReasoningProvider {
             store: None,
         };
 
+        // ── 中心化路径：如果配置了 LlmCallConfig，走 execute_llm() ──
+        if let Some(ref config) = self.llm_call_config {
+            return match execute_llm(&*self.adapter, &self.ctx, request, config).await {
+                Ok(result) => Ok(result.response.content),
+                Err(e) => Err(ReActError::LlmReasoningError(e)),
+            };
+        }
+
+        // ── 旧路径：直接 adapter.chat() ──
         const MAX_RETRIES: usize = 2;
         let mut last_error: Option<String> = None;
 

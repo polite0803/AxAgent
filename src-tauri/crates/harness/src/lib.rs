@@ -11,6 +11,14 @@
 //! - 无运行时行为：所有实现都在下游 crate
 
 // ── 共享数据类型 ──
+pub mod audit_trail;
+pub use audit_trail::{AuditEntry, AuditRecorder};
+pub mod business_rules;
+pub use business_rules::{BusinessRule, BusinessRuleEngine, RuleResult};
+pub mod cache_interceptor;
+pub use cache_interceptor::{HarnessCache, LlmCacheKey};
+pub mod confidence;
+pub use confidence::{ConfidenceAction, ConfidenceConfig, ConfidenceOutput};
 pub mod constants;
 pub mod core_error;
 pub mod error_codes;
@@ -35,6 +43,13 @@ pub use constants::*;
 
 // ── 共享错误码 ──
 pub use error_codes::*;
+
+// ── 序列化/反序列化 Schema 校验 ──
+pub mod serialization;
+
+// ── Harness 约束修复模块 ──
+pub mod consistency_check;
+pub mod hallucination_guard;
 
 // ── 原有 Harness 模块 ──
 pub mod context_builder;
@@ -93,7 +108,8 @@ pub use trajectory_service::{
 
 // ── Tool 契约重导出 ──
 pub use tool::{
-    PermissionResult, ProgressEntry, Tool, ToolCategory, ToolContext, ToolInfo, ToolResult,
+    DefaultInputSanitizer, DefaultOutputSanitizer, InputSanitizer, NoopOutputSanitizer, OutputSanitizer, PermissionResult, ProgressEntry,
+    SanitizeContext, Tool, ToolCategory, ToolContext, ToolInfo, ToolPermissions, ToolResult,
     parse_tool_name,
 };
 
@@ -103,8 +119,30 @@ pub use registry::ToolRegistry;
 // ── StorageBackend 契约 ──
 pub use storage_backend::{ListResult, StorageBackend, StorageObject, StorageObjectMeta};
 
+// ── 约束检查重导出 ──
+pub use consistency_check::{
+    check_consistency, ConsistencyCheckConfig, ConsistencyMode, ConsistencyResult,
+};
+pub use hallucination_guard::{check_anchor, AnchorResult, HallucinationGuardConfig};
+
 // ── InferenceEngine 契约 ──
 pub use inference_engine::InferenceEngine;
 
 // ── Error 重导出 ──
 pub use error::{ToolError, ToolErrorKind};
+
+// ── 统一拦截器链 ──
+pub mod interceptor;
+pub use interceptor::{
+    BusinessRuleInterceptor, ConsistencyCheckInterceptor, HarnessInterceptor, InterceptPoint,
+    InterceptorChain, InterceptorContext, InterceptorResult, OutputValidationInterceptor,
+    PromptGuardInterceptor,
+};
+
+// ── 中心化重试/降级策略 ──
+pub mod retry_policy;
+pub use retry_policy::{BackoffStrategy, FallbackStrategy, RetryPolicy};
+
+// ── ExecuteLlm 中心化调用入口 ──
+pub mod execute_llm;
+pub use execute_llm::{execute_llm, LlmCallConfig, LlmCallResult, LlmUsage};

@@ -94,6 +94,9 @@ pub enum WorkflowError {
     InputValidationFailed {
         errors: Vec<String>,
     },
+    OutputValidationFailed {
+        errors: Vec<String>,
+    },
 }
 
 impl std::fmt::Display for WorkflowError {
@@ -110,6 +113,9 @@ impl std::fmt::Display for WorkflowError {
             Self::SerializationError(msg) => write!(f, "Serialization error: {msg}"),
             Self::InputValidationFailed { errors } => {
                 write!(f, "Input validation failed: {}", errors.join("; "))
+            },
+            Self::OutputValidationFailed { errors } => {
+                write!(f, "Output validation failed: {}", errors.join("; "))
             },
         }
     }

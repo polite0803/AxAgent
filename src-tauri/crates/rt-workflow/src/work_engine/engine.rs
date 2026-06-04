@@ -13,7 +13,7 @@ use tokio::sync::Mutex;
 use tokio_util::sync::CancellationToken;
 
 use axagent_core::workflow_types::{
-    BackoffType, EdgeType, JsonSchema, Variable, WorkflowEdge, WorkflowNode,
+    BackoffType, CompensationStrategy, EdgeType, JsonSchema, Variable, WorkflowEdge, WorkflowNode,
 };
 
 use axagent_harness::RhaiEngineAdapter;
@@ -307,6 +307,10 @@ pub struct WorkEngine {
     ///   无需 async 锁；后续 `domain_constraints()` getter 在 agent 节点执行
     ///   时取 Arc clone，持有时间极短。
     domain_constraints: Arc<std::sync::Mutex<Option<DomainConstraintsFn>>>,
+    /// 业务规则引擎（可选，None = 不执行任何业务规则检查）。
+    /// 硬约束，在执行层直接拦截违规操作。
+    /// 通过 `set_business_rule_engine` 注入。
+    business_rule_engine: Arc<std::sync::Mutex<Option<Arc<axagent_harness::business_rules::BusinessRuleEngine>>>>,
     /// Agent executor 共享缓存（跨节点复用，每次 run_workflow 开始时清空）
     agent_provider_cache: Arc<tokio::sync::Mutex<ProviderCache>>,
     agent_profile_cache: Arc<tokio::sync::Mutex<ProfileCache>>,
@@ -321,6 +325,10 @@ pub struct WorkEngine {
     /// master_key / provider_registry 由 AgentExecutor / LlmExecutor / ConditionExecutor /
     /// LlmClassifierExecutor 各自持有，WorkEngine 不再冗余存储。
     agent_executor: Arc<AgentExecutor>,
+    /// 审计记录器（可选，None = 不记录审计日志）
+    pub audit_recorder: Arc<std::sync::Mutex<Option<Arc<dyn axagent_harness::AuditRecorder>>>>,
+    /// 工具注册表（可选，设置后 tool_executor 优先通过 ToolRegistry.execute_tool() 执行工具）
+    tool_registry: Arc<std::sync::Mutex<Option<Arc<dyn axagent_harness::ToolRegistry>>>>,
 }
 
 const _: fn() = || {
@@ -532,6 +540,46 @@ impl WorkEngine {
             .expect("domain_constraints mutex poisoned")
             .clone()
     }
+
+    /// 注册业务规则引擎。
+    ///
+    /// 注入后，在执行 agent / tool / httpRequest 等节点时，
+    /// 会在 dispatch 之前自动进行规则评估。
+    ///
+    /// 多次调用：后者覆盖前者（标准 setter 语义）。
+    pub async fn set_business_rule_engine(
+        &self,
+        engine: Arc<axagent_harness::business_rules::BusinessRuleEngine>,
+    ) {
+        *self
+            .business_rule_engine
+            .lock()
+            .expect("business_rule_engine mutex poisoned") = Some(engine);
+    }
+
+    /// 取出当前注册的业务规则引擎（用于在执行节点时注入到 ExecutionState）。
+    fn business_rule_engine(&self) -> Option<Arc<axagent_harness::business_rules::BusinessRuleEngine>> {
+        self.business_rule_engine
+            .lock()
+            .expect("business_rule_engine mutex poisoned")
+            .clone()
+    }
+
+    /// 注册工具注册表（可选，设置后 tool_executor 优先走 ToolRegistry 中心化路径）
+    pub async fn set_tool_registry(&self, registry: Arc<dyn axagent_harness::ToolRegistry>) {
+        *self
+            .tool_registry
+            .lock()
+            .expect("tool_registry mutex poisoned") = Some(registry);
+    }
+
+    /// 取出当前注册的工具注册表（用于在执行节点时注入到 ExecutionState）
+    fn tool_registry(&self) -> Option<Arc<dyn axagent_harness::ToolRegistry>> {
+        self.tool_registry
+            .lock()
+            .expect("tool_registry mutex poisoned")
+            .clone()
+    }
 }
 
 impl WorkEngine {
@@ -585,11 +633,14 @@ impl WorkEngine {
             tool_resolver: Arc::new(Mutex::new(None)),
             rag_callback: Arc::new(Mutex::new(None)),
             domain_constraints: Arc::new(std::sync::Mutex::new(None)),
+            business_rule_engine: Arc::new(std::sync::Mutex::new(None)),
             agent_provider_cache,
             agent_profile_cache,
             breakpoints: Arc::new(Mutex::new(HashSet::new())),
             node_breakers: Arc::new(Mutex::new(HashMap::new())),
             agent_executor: agent_exec,
+            audit_recorder: Arc::new(std::sync::Mutex::new(None)),
+            tool_registry: Arc::new(std::sync::Mutex::new(None)),
         }
     }
 
@@ -852,6 +903,58 @@ impl WorkEngine {
         if let Some(e) = error {
             state.error = Some(e);
             state.attempts += 1;
+        }
+
+        // ── 回滚补偿：节点标记为 Failed 时，根据补偿策略执行操作 ──
+        if status == NodeStatus::Failed {
+            if let Some(node) = workflow.nodes.iter().find(|n| n.base_id() == node_id) {
+                if let Some(ref comp) = node.base().compensation {
+                    match comp.strategy {
+                        CompensationStrategy::SkipWithWarning => {
+                            // 删除该节点输出
+                            workflow.results.remove(node_id);
+                            tracing::info!(
+                                "[补偿] 节点 {} (SkipWithWarning): 已移除失败输出",
+                                node_id
+                            );
+                        },
+                        CompensationStrategy::Rollback => {
+                            // 删除该节点输出
+                            workflow.results.remove(node_id);
+                            // 收集所有下游 Pending/Ready 节点并标记为 Skipped
+                            let downstream_ids: Vec<String> = workflow
+                                .edges
+                                .iter()
+                                .filter(|e| e.source == node_id)
+                                .map(|e| e.target.clone())
+                                .collect();
+                            for dep_id in &downstream_ids {
+                                if let Some(dep_state) = workflow.node_states.get_mut(dep_id) {
+                                    if matches!(
+                                        dep_state.status,
+                                        NodeStatus::Pending | NodeStatus::Ready
+                                    ) {
+                                        dep_state.status = NodeStatus::Skipped;
+                                    }
+                                }
+                                // 同时清理下游结果
+                                workflow.results.remove(dep_id.as_str());
+                            }
+                            tracing::info!(
+                                "[补偿] 节点 {} (Rollback): 已移除输出并跳过 {} 个下游节点",
+                                node_id,
+                                downstream_ids.len()
+                            );
+                        },
+                        CompensationStrategy::Escalate => {
+                            tracing::warn!(
+                                "[补偿] 节点 {} 需要人工处理 (Escalate)",
+                                node_id
+                            );
+                        },
+                    }
+                }
+            }
         }
 
         // 判定工作流终端状态
@@ -1371,6 +1474,10 @@ impl WorkEngine {
                     let bp = self.breakpoints.lock().await;
                     exec_ctx.breakpoints = bp.clone();
                 }
+                // 注入业务规则引擎（可选），在执行节点前进行硬约束检查
+                exec_ctx.business_rule_engine = self.business_rule_engine();
+                // 注入工具注册表（可选），tool_executor 优先走中心化路径
+                exec_ctx.tool_registry = self.tool_registry();
 
                 let exec_pause_signal = {
                     let mut executions = self.executions.lock().await;
@@ -1570,7 +1677,7 @@ impl WorkEngine {
                                 node_name,
                                 status: "completed".to_string(),
                                 input: Some(nr.input_snapshot.clone()),
-                                output: Some(output.output),
+                                output: Some(output.output.clone()),
                                 execution_time_ms: Some(nr.elapsed_ms),
                                 error: None,
                                 started_at: nr.started_at,
@@ -1581,6 +1688,16 @@ impl WorkEngine {
                         )
                         .await
                         .ok();
+
+                        self.record_audit(
+                            &nr.node_id,
+                            workflow_id,
+                            "completed",
+                            &nr.input_snapshot,
+                            Some(&output.output),
+                            None,
+                            nr.elapsed_ms,
+                        );
 
                         if matches!(nr.node, WorkflowNode::Condition(_)) {
                             let mut workflows = self.workflows.write().await;
@@ -1655,7 +1772,7 @@ impl WorkEngine {
                                 input: Some(nr.input_snapshot.clone()),
                                 output: None,
                                 execution_time_ms: Some(nr.elapsed_ms),
-                                error: Some(err_msg),
+                                error: Some(err_msg.clone()),
                                 started_at: nr.started_at,
                                 completed_at: Some(Utc::now().timestamp_millis()),
                                 parent_execution_id: current_parent_execution_id.clone(),
@@ -1668,6 +1785,16 @@ impl WorkEngine {
                         )
                         .await
                         .ok();
+
+                        self.record_audit(
+                            &nr.node_id,
+                            workflow_id,
+                            "failed",
+                            &nr.input_snapshot,
+                            None,
+                            Some(err_msg.clone()),
+                            nr.elapsed_ms,
+                        );
                     },
                     Err(_) => {
                         breakers
@@ -1735,7 +1862,7 @@ impl WorkEngine {
                                 input: Some(nr.input_snapshot.clone()),
                                 output: None,
                                 execution_time_ms: Some(nr.elapsed_ms),
-                                error: Some(err_msg),
+                                error: Some(err_msg.clone()),
                                 started_at: nr.started_at,
                                 completed_at: Some(Utc::now().timestamp_millis()),
                                 parent_execution_id: current_parent_execution_id.clone(),
@@ -1748,6 +1875,16 @@ impl WorkEngine {
                         )
                         .await
                         .ok();
+
+                        self.record_audit(
+                            &nr.node_id,
+                            workflow_id,
+                            "timeout",
+                            &nr.input_snapshot,
+                            None,
+                            Some(err_msg),
+                            nr.elapsed_ms,
+                        );
                     },
                 }
 
@@ -1801,6 +1938,19 @@ impl WorkEngine {
             let end_output = extract_end_output(&wf.nodes, &wf.results);
             wf.output =
                 build_workflow_output(&wf.results, end_output, options.output_schema.as_ref());
+
+            // 若配置了 output_schema，校验输出并记录警告
+            if let Some(ref schema) = options.output_schema {
+                if let Some(ref output) = wf.output {
+                    if let Err(errors) = validate_input(output, schema) {
+                        tracing::warn!(
+                            workflow_id = %workflow_id,
+                            "Output schema validation failed: {:?}",
+                            errors
+                        );
+                    }
+                }
+            }
 
             let persist_output = wf.output.clone().unwrap_or_else(|| {
                 serde_json::to_value(&wf.results).unwrap_or(serde_json::json!(null))
@@ -1907,8 +2057,10 @@ impl WorkEngine {
         preset_execution_id: Option<String>,
     ) -> Result<String, WorkEngineError> {
         let execution_id = preset_execution_id.unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
-        let state =
+        let mut state =
             ExecutionState::new(execution_id.clone(), workflow_id.to_string(), input.clone());
+        state.business_rule_engine = self.business_rule_engine();
+        state.tool_registry = self.tool_registry();
         let input_params = serde_json::to_string(&input).ok();
         axagent_core::repo::workflow_execution::create_workflow_execution(
             &self.db,
@@ -2012,6 +2164,49 @@ impl WorkEngine {
             Ok(())
         } else {
             Err(WorkEngineError::NotFound(execution_id.to_string()))
+        }
+    }
+
+    /// 记录审计日志（若已注入 AuditRecorder）
+    fn record_audit(
+        &self,
+        node_id: &str,
+        workflow_id: &str,
+        status: &str,
+        input_val: &serde_json::Value,
+        output_val: Option<&serde_json::Value>,
+        error: Option<String>,
+        duration_ms: u64,
+    ) {
+        use std::hash::{Hash, Hasher};
+        let input_str = serde_json::to_string(input_val).unwrap_or_default();
+        let output_str = output_val
+            .and_then(|o| serde_json::to_string(o).ok())
+            .unwrap_or_default();
+
+        let mut hasher = std::collections::hash_map::DefaultHasher::new();
+        input_str.hash(&mut hasher);
+        let input_hash = hasher.finish().to_string();
+
+        let mut hasher = std::collections::hash_map::DefaultHasher::new();
+        output_str.hash(&mut hasher);
+        let output_hash = hasher.finish().to_string();
+
+        if let Some(ref recorder) = *self.audit_recorder.lock().unwrap() {
+            recorder.record(axagent_harness::AuditEntry {
+                id: uuid::Uuid::new_v4().to_string(),
+                timestamp: current_timestamp(),
+                execution_type: "node".to_string(),
+                session_id: None,
+                tool_name: None,
+                node_id: Some(node_id.to_string()),
+                workflow_id: Some(workflow_id.to_string()),
+                input_hash,
+                output_hash,
+                duration_ms,
+                status: status.to_string(),
+                error,
+            });
         }
     }
 

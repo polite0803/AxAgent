@@ -5,10 +5,19 @@
 
 use serde::{Deserialize, Serialize};
 
+use crate::consistency_check::ConsistencyCheckConfig;
+use crate::hallucination_guard::HallucinationGuardConfig;
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Position {
     pub x: f64,
     pub y: f64,
+}
+
+impl Default for Position {
+    fn default() -> Self {
+        Self { x: 0.0, y: 0.0 }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -80,6 +89,26 @@ pub struct Variable {
     pub is_secret: bool,
 }
 
+/// 补偿策略：当节点失败时，如何处理其下游节点和输出
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum CompensationStrategy {
+    /// 仅删除该节点输出，不处理下游
+    SkipWithWarning,
+    /// 删除该节点输出，并标记所有下游 Pending/Ready 节点为 Skipped
+    Rollback,
+    /// 记录警告，需要人工介入处理
+    Escalate,
+}
+
+/// 补偿配置：定义节点失败时的恢复策略
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CompensationConfig {
+    pub strategy: CompensationStrategy,
+    /// 需要执行补偿的节点 ID 列表（预留扩展，当前由引擎根据 DAG 自动推导下游）
+    #[serde(default)]
+    pub compensation_nodes: Vec<String>,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WorkflowNodeBase {
     pub id: String,
@@ -93,6 +122,9 @@ pub struct WorkflowNodeBase {
     /// 用于将子节点（如 Parallel 分支步骤）定位到父容器内。
     #[serde(rename = "parentId", default)]
     pub parent_id: Option<String>,
+    /// 节点失败时的补偿/回滚策略。None = 不执行任何补偿。
+    #[serde(default)]
+    pub compensation: Option<CompensationConfig>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -226,6 +258,12 @@ pub struct AgentNodeConfig {
     pub rag_source_ids: Vec<String>,
     #[serde(default)]
     pub model_role: Option<String>,
+    /// 结果一致性检查配置（可选，不配置时零影响）
+    #[serde(default)]
+    pub consistency_check: Option<ConsistencyCheckConfig>,
+    /// 防幻觉锚定检查配置（可选，不配置时零影响）
+    #[serde(default)]
+    pub hallucination_guard: Option<HallucinationGuardConfig>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -244,6 +282,15 @@ pub struct LLMNodeConfig {
     pub max_tokens: Option<u32>,
     pub tools: Option<Vec<String>>,
     pub functions: Option<Vec<serde_json::Value>>,
+    /// 结果一致性检查配置（可选，不配置时零影响）
+    #[serde(default)]
+    pub consistency_check: Option<ConsistencyCheckConfig>,
+    /// 最大上下文 token 数（可选，默认 128000）
+    #[serde(default)]
+    pub max_context_tokens: Option<u32>,
+    /// 为输出保留的 token 数（可选，默认 4000）
+    #[serde(default)]
+    pub reserved_output_tokens: Option<u32>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -311,6 +358,11 @@ pub struct ConditionNodeConfig {
     /// LLM 路由使用模型（为空则用系统默认）
     #[serde(default)]
     pub routing_model: Option<String>,
+    /// 置信度阈值（0.0 - 1.0）。LLM 路由返回的置信度低于此值时，
+    /// 降级为启发式判断（已有的 fallback 逻辑）。
+    /// None = 不检查置信度（向后兼容）。
+    #[serde(default)]
+    pub confidence_threshold: Option<f64>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -788,6 +840,17 @@ pub struct LlmClassifierNodeConfig {
     pub input_var: String,
     #[serde(default)]
     pub output_var: String,
+    /// 置信度阈值（0.0 - 1.0）。LLM 返回的置信度低于此值时，
+    /// 使用 fallback_label（如果配置）或标记为 low_confidence 并返回错误。
+    /// None = 不检查置信度（向后兼容）。
+    #[serde(default)]
+    pub confidence_threshold: Option<f64>,
+    /// 置信度不足时的降级标签（可选）。不配置时直接标记失败。
+    #[serde(default)]
+    pub fallback_label: Option<String>,
+    /// 结果一致性检查配置（可选，不配置时零影响）
+    #[serde(default)]
+    pub consistency_check: Option<ConsistencyCheckConfig>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

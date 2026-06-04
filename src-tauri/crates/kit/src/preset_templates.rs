@@ -903,12 +903,13 @@ fn step_to_agent_node(step: &PresetStep, index: usize) -> WorkflowNode {
         retry: RetryConfig::default(),
         timeout: Some(300),
         enabled: true,
-        parent_id: None,
-    };
-
+                parent_id: None,
+                compensation: None,
+            };
+            
     WorkflowNode::Agent(AgentNode {
         base,
-        config: AgentNodeConfig {
+            config: AgentNodeConfig {
             system_prompt: format!("You are a {} agent. Your goal: {}", step.role, step.goal),
             context_sources: vec![],
             output_var: format!("{}_result", step.id),
@@ -923,6 +924,8 @@ fn step_to_agent_node(step: &PresetStep, index: usize) -> WorkflowNode {
             execution_mode: None,
             rag_source_ids: vec![],
             model_role: None,
+            consistency_check: None,
+            hallucination_guard: None,
         },
     })
 }
@@ -1034,6 +1037,7 @@ fn build_workflow_nodes(steps: &[PresetStep], start_y: f64) -> Vec<WorkflowNode>
                 timeout: Some(600),
                 enabled: true,
                 parent_id: None,
+                compensation: None,
             },
             config: ParallelNodeConfig {
                 branches: group
@@ -1065,6 +1069,7 @@ fn build_workflow_nodes(steps: &[PresetStep], start_y: f64) -> Vec<WorkflowNode>
                 timeout: None,
                 enabled: true,
                 parent_id: None,
+                compensation: None,
             },
             config: MergeNodeConfig {
                 merge_type: MergeStrategy::All,
@@ -1091,6 +1096,7 @@ fn build_stock_analysis_nodes(_steps: &[PresetStep], start_y: f64) -> Vec<Workfl
             timeout: Some(600),
             enabled: true,
             parent_id: None,
+            compensation: None,
         },
         config: ParallelNodeConfig {
             branches: vec![
@@ -1165,6 +1171,7 @@ fn build_stock_analysis_nodes(_steps: &[PresetStep], start_y: f64) -> Vec<Workfl
             timeout: None,
             enabled: true,
             parent_id: None,
+            compensation: None,
         },
         config: MergeNodeConfig {
             merge_type: MergeStrategy::All,
@@ -1195,6 +1202,7 @@ fn build_stock_analysis_nodes(_steps: &[PresetStep], start_y: f64) -> Vec<Workfl
             timeout: Some(60),
             enabled: true,
                 parent_id: None,
+                compensation: None,
         },
         config: ConditionNodeConfig {
             conditions: vec![],
@@ -1204,6 +1212,7 @@ fn build_stock_analysis_nodes(_steps: &[PresetStep], start_y: f64) -> Vec<Workfl
                 "Based on the analysis results, determine if there are conflicting opinions that require debate. Consider: 1) Significant disagreement between analysts, 2) High uncertainty in key metrics, 3) Material differences in risk assessment. Return true if debate is needed, false otherwise.".to_string(),
             ),
             routing_model: None,
+            confidence_threshold: None,
         },
     }));
 
@@ -1219,6 +1228,7 @@ fn build_stock_analysis_nodes(_steps: &[PresetStep], start_y: f64) -> Vec<Workfl
             timeout: None,
             enabled: true,
             parent_id: None,
+            compensation: None,
         },
         config: EndNodeConfig { output_var: None },
     }));
@@ -1242,6 +1252,7 @@ pub fn convert_preset_to_workflow_template(preset: &PresetTemplate) -> WorkflowT
             timeout: None,
             enabled: true,
             parent_id: None,
+            compensation: None,
         },
         config: TriggerConfig {
             trigger_type: TriggerType::Manual,
@@ -1317,6 +1328,7 @@ pub fn convert_preset_to_workflow_template(preset: &PresetTemplate) -> WorkflowT
                 timeout: None,
                 enabled: true,
                 parent_id: None,
+                compensation: None,
             },
             config: EndNodeConfig { output_var: None },
         }));

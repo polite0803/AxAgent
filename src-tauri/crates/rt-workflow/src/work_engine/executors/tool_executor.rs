@@ -1,10 +1,11 @@
-//! 工具执行器 —— 解析 ToolNodeConfig 后通过注入的回调调用 MCP 工具。
+//! 工具执行器 —— 解析 ToolNodeConfig 后通过注入的回调或 ToolRegistry 调用 MCP 工具。
 //!
 //! 默认无回调时返回清晰的"需要注入"错误，避免静默失败。
 //!
-//! 回调查找优先级：
-//!   1. `context.callbacks.tool_handlers` 按 tool_name 精确匹配（多路注册）
-//!   2. `context.callbacks.tool_fallback` 旧版全局回调（兼容）
+//! 调用优先级：
+//!   1. `context.tool_registry.execute_tool()` — 中心化路径（权限/限流/脱敏集成）
+//!   2. `context.callbacks.tool_handlers` 按 tool_name 精确匹配（多路注册）
+//!   3. `context.callbacks.tool_fallback` 旧版全局回调（兼容）
 
 use crate::work_engine::execution_state::ExecutionState;
 use crate::work_engine::node_executor_trait::{
@@ -12,8 +13,10 @@ use crate::work_engine::node_executor_trait::{
 };
 use async_trait::async_trait;
 use axagent_core::workflow_types::WorkflowNode;
+use axagent_harness::tool::ToolContext;
 use std::pin::Pin;
 use std::sync::Arc;
+use tracing;
 
 pub type ToolCallback = Arc<
     dyn Fn(
@@ -71,7 +74,64 @@ impl NodeExecutorTrait for ToolExecutor {
 
         let tool_name = &tool_node.config.tool_name;
 
-        // 查找回调：优先多路注册 → fallback → 未配置
+        // ── 权限校验（基于 ExecutionState.tool_permissions） ──
+        if let Some(ref perms) = context.tool_permissions {
+            if perms.forbidden_tools.iter().any(|t| t == tool_name) {
+                let reason = format!("权限拒绝: 工具 '{tool_name}' 在禁止调用列表中");
+                tracing::warn!("{reason}");
+                return Err(NodeError::exec_failed(
+                    error_code::TOOL_CALL_FAILED,
+                    reason,
+                ));
+            }
+            if let Some(ref allowed) = perms.allowed_tools {
+                if !allowed.iter().any(|t| t == tool_name) {
+                    let reason = format!("权限拒绝: 工具 '{tool_name}' 不在允许调用列表中");
+                    tracing::warn!("{reason}");
+                    return Err(NodeError::exec_failed(
+                        error_code::TOOL_CALL_FAILED,
+                        reason,
+                    ));
+                }
+            }
+        }
+
+        // ── 1. 优先走 ToolRegistry 中心化路径 ──
+        if let Some(ref tool_registry) = context.tool_registry {
+            tracing::warn!(
+                "[ToolExecutor] 工具 '{tool_name}' 通过 ToolRegistry 中心化路径执行"
+            );
+
+            let mut tool_ctx = ToolContext::new(".")
+                .with_conversation(context.execution_id.clone());
+            // 附加权限
+            if let Some(ref perms) = context.tool_permissions {
+                tool_ctx.permissions = Some(perms.clone());
+            }
+
+            let result = tool_registry
+                .execute_tool(tool_name, resolved_args.clone(), &tool_ctx)
+                .await
+                .map_err(|e| {
+                    NodeError::exec_failed(
+                        error_code::TOOL_CALL_FAILED,
+                        format!("ToolRegistry 调用失败: {e}"),
+                    )
+                })?;
+
+            return Ok(NodeOutput {
+                output: serde_json::json!({
+                    "tool_name": tool_name,
+                    "result": result.content,
+                    "truncated": result.truncated,
+                    "is_error": result.is_error,
+                    "node_id": node.base_id(),
+                }),
+                output_var: Some(tool_node.config.output_var.clone()),
+            });
+        }
+
+        // ── 2. 回退：查找回调（多路注册 → fallback → 未配置） ──
         let cb: Option<ToolCallback> = context
             .callbacks
             .as_ref()
@@ -84,6 +144,9 @@ impl NodeExecutorTrait for ToolExecutor {
             });
 
         let output = if let Some(ref cb) = cb {
+            tracing::warn!(
+                "[ToolExecutor] 工具 '{tool_name}' 通过回调路径执行（ToolRegistry 未配置）"
+            );
             cb(tool_name.clone(), resolved_args.clone())
                 .await
                 .map_err(|e| {
@@ -96,7 +159,7 @@ impl NodeExecutorTrait for ToolExecutor {
             return Err(NodeError::exec_failed(
                 error_code::TOOL_CALL_FAILED,
                 format!(
-                    "工具 '{}' 未注册，请通过 WorkEngine::register_tool_handler() 注册",
+                    "工具 '{}' 未注册，请通过 WorkEngine::register_tool_handler() 注册或注入 ToolRegistry",
                     tool_name
                 ),
             ));

@@ -11,6 +11,7 @@ use sea_orm::DatabaseConnection;
 use std::sync::Arc;
 
 use axagent_harness::build_provider_request_context;
+use axagent_harness::execute_llm::{execute_llm, LlmCallConfig};
 
 pub struct LlmExecutor {
     db: Arc<DatabaseConnection>,
@@ -126,6 +127,38 @@ impl NodeExecutorTrait for LlmExecutor {
             ];
         }
 
+        // ── 严格模式约束注入（当 tool_permissions.strict_mode = true 时注入 system prompt） ──
+        // 这是节点级别的 prompt 修改，execute_llm() 不处理此逻辑
+        {
+            let strict_mode = context
+                .tool_permissions
+                .as_ref()
+                .map(|p| p.strict_mode)
+                .unwrap_or(false);
+            if strict_mode {
+                if let Some(system_msg) = messages.iter_mut().find(|m| m.role == "system") {
+                    if let ChatContent::Text(ref mut text) = system_msg.content {
+                        text.push_str(
+                            "\n\n## 严格模式约束\n\n\
+                             你当前处于严格执行模式，必须遵守以下规则：\n\n\
+                             1. **仅输出符合目标 schema 的 JSON**，不添加任何解释、说明或额外文本\n\
+                             2. **不允许反问用户** — 不要询问确认意见、不要征求许可、不要请求更多信息\n\
+                             3. **不允许输出与当前步骤无关的内容** — 专注于完成指定任务\n\
+                             4. **如果无法完成任务**，输出 `{\"error\": \"详细原因\"}`，不要自由发挥、猜测或填充缺失信息\n\
+                             5. **不要做额外假设** — 只基于给定的输入数据执行操作",
+                        );
+                        tracing::warn!(
+                            "[LlmExecutor] node {} strict_mode enabled",
+                            node.base_id()
+                        );
+                    }
+                }
+            }
+        }
+
+        // ── 上下文窗口管理 ──
+        // 已迁移至 execute_llm() 中心化处理，此处在构建 LlmCallConfig 时传递参数
+
         let req_ctx = build_provider_request_context(&prov, &key, api_key);
         let model_for_output = model.clone();
 
@@ -141,7 +174,7 @@ impl NodeExecutorTrait for LlmExecutor {
         }
 
         let request = ChatRequest {
-            model,
+            model: model.clone(),
             messages,
             stream: false,
             temperature: llm_node.config.temperature.map(|t| t as f64),
@@ -158,12 +191,65 @@ impl NodeExecutorTrait for LlmExecutor {
             store: None,
         };
 
-        let response = adapter.chat(&req_ctx, request).await.map_err(|e| {
-            NodeError::exec_failed(
-                error_code::UNSUPPORTED_PROVIDER,
-                format!("LLM call failed: {e}"),
-            )
-        })?;
+        let llm_config = LlmCallConfig {
+            max_context_tokens: llm_node.config.max_context_tokens,
+            reserved_output_tokens: llm_node.config.reserved_output_tokens,
+            strict_mode: context
+                .tool_permissions
+                .as_ref()
+                .map(|p| p.strict_mode)
+                .unwrap_or(false),
+            ..Default::default()
+        };
+
+        let result = execute_llm(&*adapter, &req_ctx, request.clone(), &llm_config)
+            .await
+            .map_err(|e| {
+                NodeError::exec_failed(
+                    error_code::UNSUPPORTED_PROVIDER,
+                    format!("LLM call failed: {e}"),
+                )
+            })?;
+
+        let response = result.response;
+
+        // ── 结果一致性检查（仍走中心化路径） ──
+        if let Some(ref cc_config) = llm_node.config.consistency_check {
+            if cc_config.enabled {
+                let secondary_request = if matches!(
+                    cc_config.mode,
+                    axagent_harness::ConsistencyMode::CrossModelCompare
+                ) {
+                    let sec_model = cc_config
+                        .secondary_model
+                        .as_deref()
+                        .unwrap_or(&model_for_output);
+                    ChatRequest {
+                        model: sec_model.to_string(),
+                        ..request.clone()
+                    }
+                } else {
+                    request.clone()
+                };
+                let secondary_result = execute_llm(&*adapter, &req_ctx, secondary_request, &llm_config).await;
+                if let Ok(sec_result) = secondary_result {
+                    use axagent_harness::consistency_check::check_consistency;
+                    let primary_val = serde_json::json!(response.content);
+                    let secondary_val = serde_json::json!(sec_result.response.content);
+                    let cc_result =
+                        check_consistency(&primary_val, &secondary_val, cc_config.deviation_threshold);
+                    if !cc_result.passed {
+                        tracing::warn!(
+                            node_id = %node.base_id(),
+                            node_type = "llm",
+                            deviation = %cc_result.deviation,
+                            threshold = %cc_config.deviation_threshold,
+                            "一致性检查未通过: {}", cc_result.details
+                        );
+                    }
+                }
+            }
+        }
 
         Ok(NodeOutput {
             output: serde_json::json!({

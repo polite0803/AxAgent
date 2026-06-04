@@ -1,5 +1,6 @@
 use axagent_core::error::AxAgentError;
 use axagent_core::token_counter::estimate_tokens;
+use axagent_harness::execute_llm::{execute_llm, LlmCallConfig};
 use axagent_harness::types::{ChatContent, ChatMessage, ChatRequest};
 use axagent_harness::{ProviderAdapter, ProviderRequestContext};
 use serde::{Deserialize, Serialize};
@@ -593,6 +594,8 @@ pub struct DefaultToTReasoningProvider {
     adapter: Option<Arc<dyn ProviderAdapter>>,
     ctx: Option<ProviderRequestContext>,
     model: String,
+    /// 中心化 LLM 调用配置（可选，设置后走 execute_llm 路径）
+    llm_call_config: Option<LlmCallConfig>,
 }
 
 impl DefaultToTReasoningProvider {
@@ -601,7 +604,14 @@ impl DefaultToTReasoningProvider {
             adapter: None,
             ctx: None,
             model: "gpt-4o".to_string(),
+            llm_call_config: None,
         }
+    }
+
+    /// 注入中心化 LLM 调用配置
+    pub fn with_llm_call_config(mut self, config: LlmCallConfig) -> Self {
+        self.llm_call_config = Some(config);
+        self
     }
 
     pub fn with_llm(
@@ -613,6 +623,7 @@ impl DefaultToTReasoningProvider {
             adapter: Some(adapter),
             ctx: Some(ctx),
             model,
+            llm_call_config: None,
         }
     }
 
@@ -621,7 +632,12 @@ impl DefaultToTReasoningProvider {
         ctx: ProviderRequestContext,
         model: String,
     ) -> Self {
-        Self::with_llm(adapter, ctx, model)
+        Self {
+            adapter: Some(adapter),
+            ctx: Some(ctx),
+            model,
+            llm_call_config: None,
+        }
     }
 
     async fn call_llm(
@@ -663,6 +679,15 @@ impl DefaultToTReasoningProvider {
                 store: None,
             };
 
+            // ── 中心化路径：如果配置了 LlmCallConfig，走 execute_llm() ──
+            if let Some(ref config) = self.llm_call_config {
+                return match execute_llm(&**adapter, ctx, request, config).await {
+                    Ok(result) => Ok(result.response.content),
+                    Err(e) => Err(AxAgentError::Provider(e)),
+                };
+            }
+
+            // ── 旧路径：直接 adapter.chat() ──
             let response = adapter
                 .chat(ctx, request)
                 .await
@@ -718,6 +743,8 @@ pub struct ProviderAdapterBridge {
     adapter: Arc<dyn ProviderAdapter>,
     ctx: ProviderRequestContext,
     model: String,
+    /// 中心化 LLM 调用配置（可选，设置后走 execute_llm 路径）
+    llm_call_config: Option<LlmCallConfig>,
 }
 
 impl ProviderAdapterBridge {
@@ -730,7 +757,14 @@ impl ProviderAdapterBridge {
             adapter,
             ctx,
             model,
+            llm_call_config: None,
         }
+    }
+
+    /// 注入中心化 LLM 调用配置
+    pub fn with_llm_call_config(mut self, config: LlmCallConfig) -> Self {
+        self.llm_call_config = Some(config);
+        self
     }
 }
 
@@ -770,6 +804,15 @@ impl LlmReasoningProvider for ProviderAdapterBridge {
             store: None,
         };
 
+        // ── 中心化路径：如果配置了 LlmCallConfig，走 execute_llm() ──
+        if let Some(ref config) = self.llm_call_config {
+            return match execute_llm(&*self.adapter, &self.ctx, request, config).await {
+                Ok(result) => Ok(result.response.content),
+                Err(e) => Err(AxAgentError::Provider(e)),
+            };
+        }
+
+        // ── 旧路径 ──
         match self.adapter.chat(&self.ctx, request).await {
             Ok(response) => Ok(response.content),
             Err(e) => Err(AxAgentError::Provider(e.to_string())),
@@ -810,6 +853,15 @@ impl LlmReasoningProvider for ProviderAdapterBridge {
             store: None,
         };
 
+        // ── 中心化路径：如果配置了 LlmCallConfig，走 execute_llm() ──
+        if let Some(ref config) = self.llm_call_config {
+            return match execute_llm(&*self.adapter, &self.ctx, request, config).await {
+                Ok(result) => Ok(result.response.content),
+                Err(e) => Err(AxAgentError::Provider(e)),
+            };
+        }
+
+        // ── 旧路径 ──
         match self.adapter.chat(&self.ctx, request).await {
             Ok(response) => Ok(response.content),
             Err(e) => Err(AxAgentError::Provider(e.to_string())),

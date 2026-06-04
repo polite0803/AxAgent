@@ -12,6 +12,7 @@ use crate::permissions::{PermissionMode, PermissionPolicy};
 use crate::recorder::ToolExecutionRecorder;
 use crate::stats::ToolUsageStats;
 use crate::{Tool, ToolCategory, ToolError, ToolErrorKind, ToolInfo, ToolResult};
+use async_trait::async_trait;
 use axagent_runtime_core::ToolExecutor as RuntimeToolExecutor;
 use serde_json::Value;
 use std::collections::{BTreeMap, HashMap, HashSet};
@@ -40,6 +41,16 @@ pub struct ToolRegistry {
     aliases: HashMap<String, String>,
     /// 禁用列表
     disabled: std::collections::HashSet<String>,
+}
+
+impl std::fmt::Debug for ToolRegistry {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ToolRegistry")
+            .field("tools_count", &self.tools.len())
+            .field("aliases_count", &self.aliases.len())
+            .field("disabled_count", &self.disabled.len())
+            .finish()
+    }
 }
 
 impl ToolRegistry {
@@ -179,6 +190,7 @@ impl Default for ToolRegistry {
 // Harness ToolRegistry trait 实现
 // ============================================================
 
+#[async_trait]
 impl axagent_harness::ToolRegistry for ToolRegistry {
     fn get(&self, name: &str) -> Option<Arc<dyn Tool>> {
         self.tools.get(name).cloned()
@@ -879,7 +891,17 @@ impl UnifiedToolRegistry {
                 allow_network: true,
                 abort_signal: None,
                 extra: self.tool_extra.clone(),
+                permissions: None,
+                output_sanitizer: None,
             };
+
+            // ── 权限校验（基于 ToolPermissions） ──
+            if let Some(ref perms) = ctx.permissions {
+                let result = perms.check_tool_allowed(tool_name, tool.category(), 0);
+                if let crate::PermissionResult::Deny(reason) = result {
+                    return Err(ToolError::permission_denied(tool_name, &reason));
+                }
+            }
 
             match tool.call(input_val, &ctx).await {
                 Ok(mut r) => {
@@ -1115,6 +1137,8 @@ impl RuntimeToolExecutor for UnifiedToolRegistry {
             allow_network: true,
             abort_signal: None,
             extra: std::collections::HashMap::new(),
+            permissions: None,
+            output_sanitizer: None,
         };
 
         let orchestrator = Orchestrator::default();

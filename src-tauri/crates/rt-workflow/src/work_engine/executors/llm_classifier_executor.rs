@@ -94,16 +94,31 @@ impl NodeExecutorTrait for LlmClassifierExecutor {
             .collect::<Vec<_>>()
             .join("\n");
 
-        let prompt = format!(
-            "你是一个文本分类器。请根据以下分类规则，将输入文本归入最匹配的类别。\n\n\
-             ## 分类规则\n{prompt}\n\n\
-             ## 可选类别\n{categories_list}\n\n\
-             ## 输入文本\n{input_text}\n\n\
-             请只输出最匹配的类别名称，不要包含任何其他内容。",
-            prompt = c.prompt,
-            categories_list = categories_list,
-            input_text = input_text,
-        );
+        let prompt = if c.confidence_threshold.is_some() {
+            format!(
+                "你是一个文本分类器。请根据以下分类规则，将输入文本归入最匹配的类别。\n\n\
+                 ## 分类规则\n{prompt_rule}\n\n\
+                 ## 可选类别\n{categories_list}\n\n\
+                 ## 输入文本\n{input_text}\n\n\
+                 请用 JSON 格式输出，包含 label（类别名称）和 confidence（0.0-1.0 的置信度）。\
+                 例如：{{\"label\": \"类别名\", \"confidence\": 0.95}}。\
+                 只输出 JSON，不要包含任何其他内容。",
+                prompt_rule = c.prompt,
+                categories_list = categories_list,
+                input_text = input_text,
+            )
+        } else {
+            format!(
+                "你是一个文本分类器。请根据以下分类规则，将输入文本归入最匹配的类别。\n\n\
+                 ## 分类规则\n{prompt_rule}\n\n\
+                 ## 可选类别\n{categories_list}\n\n\
+                 ## 输入文本\n{input_text}\n\n\
+                 请只输出最匹配的类别名称，不要包含任何其他内容。",
+                prompt_rule = c.prompt,
+                categories_list = categories_list,
+                input_text = input_text,
+            )
+        };
 
         let node_model = c.model.as_deref().filter(|m| !m.is_empty());
         let session_model = context
@@ -172,14 +187,89 @@ impl NodeExecutorTrait for LlmClassifierExecutor {
             store: None,
         };
 
-        let response = adapter.chat(&req_ctx, request).await.map_err(|e| {
+        let response = adapter.chat(&req_ctx, request.clone()).await.map_err(|e| {
             NodeError::exec_failed(
                 error_code::UNSUPPORTED_PROVIDER,
                 format!("LLM classifier call failed: {e}"),
             )
         })?;
 
-        let raw_category = response.content.trim().to_string();
+        // ── 结果一致性检查 ──
+        if let Some(ref cc_config) = c.consistency_check {
+            if cc_config.enabled {
+                let secondary_request = if matches!(
+                    cc_config.mode,
+                    axagent_harness::ConsistencyMode::CrossModelCompare
+                ) {
+                    let sec_model = cc_config
+                        .secondary_model
+                        .as_deref()
+                        .unwrap_or(&model);
+                    ChatRequest {
+                        model: sec_model.to_string(),
+                        messages: request.messages.clone(),
+                        ..request.clone()
+                    }
+                } else {
+                    request.clone()
+                };
+                let secondary_response = adapter.chat(&req_ctx, secondary_request).await;
+                if let Ok(sec_resp) = secondary_response {
+                    use axagent_harness::consistency_check::check_consistency;
+                    let primary_val = serde_json::json!(response.content);
+                    let secondary_val = serde_json::json!(sec_resp.content);
+                    let cc_result =
+                        check_consistency(&primary_val, &secondary_val, cc_config.deviation_threshold);
+                    if !cc_result.passed {
+                        tracing::warn!(
+                            node_id = %node.base_id(),
+                            node_type = "llmClassifier",
+                            deviation = %cc_result.deviation,
+                            threshold = %cc_config.deviation_threshold,
+                            "一致性检查未通过: {}", cc_result.details
+                        );
+                    }
+                }
+            }
+        }
+
+        // ── 置信度检查 ──
+        let raw_category = if let Some(threshold) = c.confidence_threshold {
+            let parsed: serde_json::Value = serde_json::from_str(response.content.trim())
+                .map_err(|e| {
+                    NodeError::exec_failed(
+                        error_code::VALIDATION_FAILED,
+                        format!(
+                            "LlmClassifier: 无法解析 LLM JSON 响应: {e}, raw: {}",
+                            response.content.trim()
+                        ),
+                    )
+                })?;
+            let label = parsed
+                .get("label")
+                .and_then(|l| l.as_str())
+                .unwrap_or("")
+                .to_string();
+            let confidence = parsed
+                .get("confidence")
+                .and_then(|c| c.as_f64())
+                .unwrap_or(0.0);
+
+            if confidence < threshold {
+                let fallback = c.fallback_label.as_deref().unwrap_or("unknown");
+                tracing::warn!(
+                    "[LlmClassifier] 置信度 {:.2} 低于阈值 {:.2}，降级为 '{}'",
+                    confidence,
+                    threshold,
+                    fallback
+                );
+                fallback.to_string()
+            } else {
+                label
+            }
+        } else {
+            response.content.trim().to_string()
+        };
 
         let matched = c
             .categories
