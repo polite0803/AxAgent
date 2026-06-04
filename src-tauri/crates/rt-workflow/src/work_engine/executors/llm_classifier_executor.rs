@@ -196,11 +196,10 @@ impl NodeExecutorTrait for LlmClassifierExecutor {
 
         // ── 结果一致性检查 ──
         if let Some(ref cc_config) = c.consistency_check
-            && cc_config.enabled {
-                let secondary_request = if matches!(
-                    cc_config.mode,
-                    axagent_harness::ConsistencyMode::CrossModelCompare
-                ) {
+            && cc_config.enabled
+        {
+            let secondary_request =
+                if matches!(cc_config.mode, axagent_harness::ConsistencyMode::CrossModelCompare) {
                     let sec_model = cc_config.secondary_model.as_deref().unwrap_or(&model);
                     ChatRequest {
                         model: sec_model.to_string(),
@@ -210,27 +209,24 @@ impl NodeExecutorTrait for LlmClassifierExecutor {
                 } else {
                     request.clone()
                 };
-                let secondary_response = adapter.chat(&req_ctx, secondary_request).await;
-                if let Ok(sec_resp) = secondary_response {
-                    use axagent_harness::consistency_check::check_consistency;
-                    let primary_val = serde_json::json!(response.content);
-                    let secondary_val = serde_json::json!(sec_resp.content);
-                    let cc_result = check_consistency(
-                        &primary_val,
-                        &secondary_val,
-                        cc_config.deviation_threshold,
+            let secondary_response = adapter.chat(&req_ctx, secondary_request).await;
+            if let Ok(sec_resp) = secondary_response {
+                use axagent_harness::consistency_check::check_consistency;
+                let primary_val = serde_json::json!(response.content);
+                let secondary_val = serde_json::json!(sec_resp.content);
+                let cc_result =
+                    check_consistency(&primary_val, &secondary_val, cc_config.deviation_threshold);
+                if !cc_result.passed {
+                    tracing::warn!(
+                        node_id = %node.base_id(),
+                        node_type = "llmClassifier",
+                        deviation = %cc_result.deviation,
+                        threshold = %cc_config.deviation_threshold,
+                        "一致性检查未通过: {}", cc_result.details
                     );
-                    if !cc_result.passed {
-                        tracing::warn!(
-                            node_id = %node.base_id(),
-                            node_type = "llmClassifier",
-                            deviation = %cc_result.deviation,
-                            threshold = %cc_config.deviation_threshold,
-                            "一致性检查未通过: {}", cc_result.details
-                        );
-                    }
                 }
             }
+        }
 
         // ── 置信度检查 ──
         let raw_category = if let Some(threshold) = c.confidence_threshold {

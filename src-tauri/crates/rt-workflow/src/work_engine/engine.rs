@@ -911,48 +911,44 @@ impl WorkEngine {
         // ── 回滚补偿：节点标记为 Failed 时，根据补偿策略执行操作 ──
         if status == NodeStatus::Failed
             && let Some(node) = workflow.nodes.iter().find(|n| n.base_id() == node_id)
-                && let Some(ref comp) = node.base().compensation {
-                    match comp.strategy {
-                        CompensationStrategy::SkipWithWarning => {
-                            // 删除该节点输出
-                            workflow.results.remove(node_id);
-                            tracing::info!(
-                                "[补偿] 节点 {} (SkipWithWarning): 已移除失败输出",
-                                node_id
-                            );
-                        },
-                        CompensationStrategy::Rollback => {
-                            // 删除该节点输出
-                            workflow.results.remove(node_id);
-                            // 收集所有下游 Pending/Ready 节点并标记为 Skipped
-                            let downstream_ids: Vec<String> = workflow
-                                .edges
-                                .iter()
-                                .filter(|e| e.source == node_id)
-                                .map(|e| e.target.clone())
-                                .collect();
-                            for dep_id in &downstream_ids {
-                                if let Some(dep_state) = workflow.node_states.get_mut(dep_id)
-                                    && matches!(
-                                        dep_state.status,
-                                        NodeStatus::Pending | NodeStatus::Ready
-                                    ) {
-                                        dep_state.status = NodeStatus::Skipped;
-                                    }
-                                // 同时清理下游结果
-                                workflow.results.remove(dep_id.as_str());
-                            }
-                            tracing::info!(
-                                "[补偿] 节点 {} (Rollback): 已移除输出并跳过 {} 个下游节点",
-                                node_id,
-                                downstream_ids.len()
-                            );
-                        },
-                        CompensationStrategy::Escalate => {
-                            tracing::warn!("[补偿] 节点 {} 需要人工处理 (Escalate)", node_id);
-                        },
+            && let Some(ref comp) = node.base().compensation
+        {
+            match comp.strategy {
+                CompensationStrategy::SkipWithWarning => {
+                    // 删除该节点输出
+                    workflow.results.remove(node_id);
+                    tracing::info!("[补偿] 节点 {} (SkipWithWarning): 已移除失败输出", node_id);
+                },
+                CompensationStrategy::Rollback => {
+                    // 删除该节点输出
+                    workflow.results.remove(node_id);
+                    // 收集所有下游 Pending/Ready 节点并标记为 Skipped
+                    let downstream_ids: Vec<String> = workflow
+                        .edges
+                        .iter()
+                        .filter(|e| e.source == node_id)
+                        .map(|e| e.target.clone())
+                        .collect();
+                    for dep_id in &downstream_ids {
+                        if let Some(dep_state) = workflow.node_states.get_mut(dep_id)
+                            && matches!(dep_state.status, NodeStatus::Pending | NodeStatus::Ready)
+                        {
+                            dep_state.status = NodeStatus::Skipped;
+                        }
+                        // 同时清理下游结果
+                        workflow.results.remove(dep_id.as_str());
                     }
-                }
+                    tracing::info!(
+                        "[补偿] 节点 {} (Rollback): 已移除输出并跳过 {} 个下游节点",
+                        node_id,
+                        downstream_ids.len()
+                    );
+                },
+                CompensationStrategy::Escalate => {
+                    tracing::warn!("[补偿] 节点 {} 需要人工处理 (Escalate)", node_id);
+                },
+            }
+        }
 
         // 判定工作流终端状态
         let all_done = workflow.node_states.values().all(|s| {
@@ -1939,13 +1935,14 @@ impl WorkEngine {
             // 若配置了 output_schema，校验输出并记录警告
             if let Some(ref schema) = options.output_schema
                 && let Some(ref output) = wf.output
-                    && let Err(errors) = validate_input(output, schema) {
-                        tracing::warn!(
-                            workflow_id = %workflow_id,
-                            "Output schema validation failed: {:?}",
-                            errors
-                        );
-                    }
+                && let Err(errors) = validate_input(output, schema)
+            {
+                tracing::warn!(
+                    workflow_id = %workflow_id,
+                    "Output schema validation failed: {:?}",
+                    errors
+                );
+            }
 
             let persist_output = wf.output.clone().unwrap_or_else(|| {
                 serde_json::to_value(&wf.results).unwrap_or(serde_json::json!(null))

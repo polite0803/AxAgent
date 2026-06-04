@@ -663,41 +663,43 @@ impl NodeExecutorTrait for AgentExecutor {
 
         // ── 防幻觉锚定检查 ──
         if let Some(ref hg_config) = an.config.hallucination_guard
-            && hg_config.enabled && !final_content.is_empty() {
-                // 构建源上下文：从 context_sources 变量提取
-                let source_context: String = if an.config.context_sources.is_empty() {
-                    context
-                        .variables
-                        .iter()
-                        .filter(|(k, _)| !k.starts_with("__"))
-                        .map(|(_, v)| v.to_string())
-                        .collect::<Vec<_>>()
-                        .join("\n")
-                } else {
-                    an.config
-                        .context_sources
-                        .iter()
-                        .filter_map(|s| context.variables.get(s).map(|v| v.to_string()))
-                        .collect::<Vec<_>>()
-                        .join("\n")
-                };
+            && hg_config.enabled
+            && !final_content.is_empty()
+        {
+            // 构建源上下文：从 context_sources 变量提取
+            let source_context: String = if an.config.context_sources.is_empty() {
+                context
+                    .variables
+                    .iter()
+                    .filter(|(k, _)| !k.starts_with("__"))
+                    .map(|(_, v)| v.to_string())
+                    .collect::<Vec<_>>()
+                    .join("\n")
+            } else {
+                an.config
+                    .context_sources
+                    .iter()
+                    .filter_map(|s| context.variables.get(s).map(|v| v.to_string()))
+                    .collect::<Vec<_>>()
+                    .join("\n")
+            };
 
-                if !source_context.is_empty() {
-                    use axagent_harness::hallucination_guard::check_anchor;
-                    let anchor_result =
-                        check_anchor(&final_content, &source_context, hg_config.match_threshold);
-                    if !anchor_result.passed {
-                        tracing::warn!(
-                            node_id = %node.base_id(),
-                            node_type = "agent",
-                            score = %anchor_result.score,
-                            threshold = %hg_config.match_threshold,
-                            unverified_count = %anchor_result.unverified_claims.len(),
-                            "防幻觉锚定检查未通过: {}", anchor_result.details
-                        );
-                    }
+            if !source_context.is_empty() {
+                use axagent_harness::hallucination_guard::check_anchor;
+                let anchor_result =
+                    check_anchor(&final_content, &source_context, hg_config.match_threshold);
+                if !anchor_result.passed {
+                    tracing::warn!(
+                        node_id = %node.base_id(),
+                        node_type = "agent",
+                        score = %anchor_result.score,
+                        threshold = %hg_config.match_threshold,
+                        unverified_count = %anchor_result.unverified_claims.len(),
+                        "防幻觉锚定检查未通过: {}", anchor_result.details
+                    );
                 }
             }
+        }
 
         Ok(NodeOutput {
             output: serde_json::json!({
@@ -1103,11 +1105,12 @@ async fn execute_tool(
             return Err(reason);
         }
         if let Some(ref allowed) = perms.allowed_tools
-            && !allowed.iter().any(|t| t == tool_name) {
-                let reason = format!("权限拒绝: 工具 '{tool_name}' 不在允许调用列表中");
-                tracing::warn!("{reason}");
-                return Err(reason);
-            }
+            && !allowed.iter().any(|t| t == tool_name)
+        {
+            let reason = format!("权限拒绝: 工具 '{tool_name}' 不在允许调用列表中");
+            tracing::warn!("{reason}");
+            return Err(reason);
+        }
     }
 
     let cb = context

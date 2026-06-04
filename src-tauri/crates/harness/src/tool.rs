@@ -113,8 +113,7 @@ impl ToolPermissions {
         if let Some(ref allowed) = self.allowed_tools
             && !allowed.iter().any(|t| t == tool_name)
         {
-            let reason =
-                format!("工具 '{tool_name}' 不在允许调用列表中（允许: {:?}）", allowed);
+            let reason = format!("工具 '{tool_name}' 不在允许调用列表中（允许: {:?}）", allowed);
             warn!("权限拒绝: {reason}");
             return PermissionResult::Deny(reason);
         }

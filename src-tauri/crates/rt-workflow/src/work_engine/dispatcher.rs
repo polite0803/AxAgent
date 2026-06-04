@@ -93,66 +93,67 @@ impl NodeDispatcher {
         // ── 业务规则引擎检查（硬约束） ──
         // 在执行之前先检查业务规则。仅对可执行节点类型进行检查。
         if let Some(ref br_engine) = context.business_rule_engine
-            && is_business_rule_applicable(node_type) {
-                let node_input = build_node_input_snapshot(node, context);
-                let outcome = br_engine.evaluate(node_type, &node_input);
-                use axagent_harness::business_rules::RuleEvaluationOutcome;
-                match &outcome {
-                    RuleEvaluationOutcome::Violation {
-                        rule_name,
-                        action,
+            && is_business_rule_applicable(node_type)
+        {
+            let node_input = build_node_input_snapshot(node, context);
+            let outcome = br_engine.evaluate(node_type, &node_input);
+            use axagent_harness::business_rules::RuleEvaluationOutcome;
+            match &outcome {
+                RuleEvaluationOutcome::Violation {
+                    rule_name,
+                    action,
+                    reason,
+                    ..
+                } => {
+                    tracing::warn!(
+                        node_id = %node.base_id(),
+                        node_type,
+                        rule = rule_name,
                         reason,
-                        ..
-                    } => {
-                        tracing::warn!(
-                            node_id = %node.base_id(),
-                            node_type,
-                            rule = rule_name,
-                            reason,
-                            "业务规则违规 — 阻断执行"
-                        );
-                        match action {
-                            axagent_harness::business_rules::RuleAction::Block(msg) => {
-                                return Err(NodeError::exec_failed(
-                                    error_code::VALIDATION_FAILED,
-                                    format!("[业务规则] {msg}: {reason}"),
-                                ));
-                            },
-                            axagent_harness::business_rules::RuleAction::Warn(msg) => {
-                                tracing::warn!(
-                                    node_id = %node.base_id(),
-                                    rule = rule_name,
-                                    msg,
-                                    reason,
-                                    "业务规则警告 — 继续执行"
-                                );
-                            },
-                            axagent_harness::business_rules::RuleAction::RequireApproval(msg) => {
-                                return Err(NodeError::exec_failed(
-                                    error_code::VALIDATION_FAILED,
-                                    format!("[业务规则-需审批] {msg}: {reason}"),
-                                ));
-                            },
-                        }
-                    },
-                    RuleEvaluationOutcome::RequiresApproval {
-                        rule_name, reason, ..
-                    } => {
-                        tracing::warn!(
-                            node_id = %node.base_id(),
-                            node_type,
-                            rule = rule_name,
-                            reason,
-                            "业务规则 — 需人工审批"
-                        );
-                        return Err(NodeError::exec_failed(
-                            error_code::VALIDATION_FAILED,
-                            format!("[业务规则-需审批] 规则 '{rule_name}': {reason}"),
-                        ));
-                    },
-                    RuleEvaluationOutcome::Pass => {},
-                }
+                        "业务规则违规 — 阻断执行"
+                    );
+                    match action {
+                        axagent_harness::business_rules::RuleAction::Block(msg) => {
+                            return Err(NodeError::exec_failed(
+                                error_code::VALIDATION_FAILED,
+                                format!("[业务规则] {msg}: {reason}"),
+                            ));
+                        },
+                        axagent_harness::business_rules::RuleAction::Warn(msg) => {
+                            tracing::warn!(
+                                node_id = %node.base_id(),
+                                rule = rule_name,
+                                msg,
+                                reason,
+                                "业务规则警告 — 继续执行"
+                            );
+                        },
+                        axagent_harness::business_rules::RuleAction::RequireApproval(msg) => {
+                            return Err(NodeError::exec_failed(
+                                error_code::VALIDATION_FAILED,
+                                format!("[业务规则-需审批] {msg}: {reason}"),
+                            ));
+                        },
+                    }
+                },
+                RuleEvaluationOutcome::RequiresApproval {
+                    rule_name, reason, ..
+                } => {
+                    tracing::warn!(
+                        node_id = %node.base_id(),
+                        node_type,
+                        rule = rule_name,
+                        reason,
+                        "业务规则 — 需人工审批"
+                    );
+                    return Err(NodeError::exec_failed(
+                        error_code::VALIDATION_FAILED,
+                        format!("[业务规则-需审批] 规则 '{rule_name}': {reason}"),
+                    ));
+                },
+                RuleEvaluationOutcome::Pass => {},
             }
+        }
 
         let executor = self.executors.get(node_type).unwrap_or_else(|| {
             self.executors
@@ -208,11 +209,12 @@ fn build_node_input_snapshot(node: &WorkflowNode, context: &ExecutionState) -> s
 
     // 从 context.variables 提取工具调用相关的"input"字段
     if let Some(input_val) = context.variables.get("input")
-        && let Some(obj) = input_val.as_object() {
-            for (k, v) in obj {
-                map.insert(k.clone(), v.clone());
-            }
+        && let Some(obj) = input_val.as_object()
+    {
+        for (k, v) in obj {
+            map.insert(k.clone(), v.clone());
         }
+    }
 
     // 根据节点类型提取特定字段
     match node {
