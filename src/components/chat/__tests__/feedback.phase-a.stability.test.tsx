@@ -50,7 +50,7 @@ describe("Phase A feedback regressions", () => {
       "src/components/chat/ConversationSettingsModal.tsx",
     );
     const typeSource = readSource("src/types/index.ts");
-    const rustTypeSource = readSource("src-tauri/crates/core/src/types.rs");
+    const rustTypeSource = readSource("src-tauri/crates/harness/src/types.rs");
     const repoSource = readSource(
       "src-tauri/crates/core/src/repo/conversation.rs",
     );

@@ -9,7 +9,7 @@ function readSource(...segments: string[]) {
 describe("Phase B category template regressions", () => {
   it("extends category contracts with default model and parameter template fields", () => {
     const typeSource = readSource("src/types/index.ts");
-    const rustTypeSource = readSource("src-tauri/crates/core/src/types.rs");
+    const rustTypeSource = readSource("src-tauri/crates/harness/src/types.rs");
     const entitySource = readSource(
       "src-tauri/crates/core/src/entity/conversation_categories.rs",
     );
