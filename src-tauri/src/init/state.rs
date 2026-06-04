@@ -301,7 +301,7 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState, Strin
             let engine = Arc::new(axagent_runtime::work_engine::WorkEngine::new(
                 Arc::new(sea_db.clone()),
                 master_key,
-                Some(harness_registry.clone()),
+                harness_registry.clone(),
             ));
             // Plan 模式：AgentExecutor 注入 engine 引用以创建/执行临时工作流
             rt.block_on(engine.inject_into_agent_executor(engine.clone()));

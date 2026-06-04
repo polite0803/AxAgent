@@ -5062,7 +5062,8 @@ mod tests_conversation {
             work_engine: Arc::new(axagent_runtime::work_engine::WorkEngine::new(
                 Arc::new(db.clone()),
                 [0; 32],
-                None,
+                Arc::new(axagent_providers::registry::ProviderRegistry::create_default())
+                    as Arc<dyn axagent_harness::registry::ProviderRegistry>,
             )),
             skill_decomposer: Arc::new(tokio::sync::RwLock::new(
                 axagent_trajectory::SkillDecomposer::new(),
