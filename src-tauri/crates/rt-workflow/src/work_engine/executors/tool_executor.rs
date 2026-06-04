@@ -79,31 +79,23 @@ impl NodeExecutorTrait for ToolExecutor {
             if perms.forbidden_tools.iter().any(|t| t == tool_name) {
                 let reason = format!("权限拒绝: 工具 '{tool_name}' 在禁止调用列表中");
                 tracing::warn!("{reason}");
-                return Err(NodeError::exec_failed(
-                    error_code::TOOL_CALL_FAILED,
-                    reason,
-                ));
+                return Err(NodeError::exec_failed(error_code::TOOL_CALL_FAILED, reason));
             }
             if let Some(ref allowed) = perms.allowed_tools {
                 if !allowed.iter().any(|t| t == tool_name) {
                     let reason = format!("权限拒绝: 工具 '{tool_name}' 不在允许调用列表中");
                     tracing::warn!("{reason}");
-                    return Err(NodeError::exec_failed(
-                        error_code::TOOL_CALL_FAILED,
-                        reason,
-                    ));
+                    return Err(NodeError::exec_failed(error_code::TOOL_CALL_FAILED, reason));
                 }
             }
         }
 
         // ── 1. 优先走 ToolRegistry 中心化路径 ──
         if let Some(ref tool_registry) = context.tool_registry {
-            tracing::warn!(
-                "[ToolExecutor] 工具 '{tool_name}' 通过 ToolRegistry 中心化路径执行"
-            );
+            tracing::warn!("[ToolExecutor] 工具 '{tool_name}' 通过 ToolRegistry 中心化路径执行");
 
-            let mut tool_ctx = ToolContext::new(".")
-                .with_conversation(context.execution_id.clone());
+            let mut tool_ctx =
+                ToolContext::new(".").with_conversation(context.execution_id.clone());
             // 附加权限
             if let Some(ref perms) = context.tool_permissions {
                 tool_ctx.permissions = Some(perms.clone());

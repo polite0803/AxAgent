@@ -50,9 +50,7 @@ pub trait ToolRegistry: Send + Sync {
         input: Value,
         ctx: &ToolContext,
     ) -> Result<ToolResult, ToolError> {
-        let tool = self.find(name).ok_or_else(|| {
-            ToolError::not_found(name)
-        })?;
+        let tool = self.find(name).ok_or_else(|| ToolError::not_found(name))?;
 
         // 权限检查
         let perm = tool.check_permissions(&input, ctx);

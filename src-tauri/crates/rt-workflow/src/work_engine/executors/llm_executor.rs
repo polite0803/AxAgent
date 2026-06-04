@@ -11,7 +11,7 @@ use sea_orm::DatabaseConnection;
 use std::sync::Arc;
 
 use axagent_harness::build_provider_request_context;
-use axagent_harness::execute_llm::{execute_llm, LlmCallConfig};
+use axagent_harness::execute_llm::{LlmCallConfig, execute_llm};
 
 pub struct LlmExecutor {
     db: Arc<DatabaseConnection>,
@@ -147,10 +147,7 @@ impl NodeExecutorTrait for LlmExecutor {
                              4. **如果无法完成任务**，输出 `{\"error\": \"详细原因\"}`，不要自由发挥、猜测或填充缺失信息\n\
                              5. **不要做额外假设** — 只基于给定的输入数据执行操作",
                         );
-                        tracing::warn!(
-                            "[LlmExecutor] node {} strict_mode enabled",
-                            node.base_id()
-                        );
+                        tracing::warn!("[LlmExecutor] node {} strict_mode enabled", node.base_id());
                     }
                 }
             }
@@ -231,13 +228,17 @@ impl NodeExecutorTrait for LlmExecutor {
                 } else {
                     request.clone()
                 };
-                let secondary_result = execute_llm(&*adapter, &req_ctx, secondary_request, &llm_config).await;
+                let secondary_result =
+                    execute_llm(&*adapter, &req_ctx, secondary_request, &llm_config).await;
                 if let Ok(sec_result) = secondary_result {
                     use axagent_harness::consistency_check::check_consistency;
                     let primary_val = serde_json::json!(response.content);
                     let secondary_val = serde_json::json!(sec_result.response.content);
-                    let cc_result =
-                        check_consistency(&primary_val, &secondary_val, cc_config.deviation_threshold);
+                    let cc_result = check_consistency(
+                        &primary_val,
+                        &secondary_val,
+                        cc_config.deviation_threshold,
+                    );
                     if !cc_result.passed {
                         tracing::warn!(
                             node_id = %node.base_id(),

@@ -74,7 +74,7 @@ fn compute_deviation(a: &serde_json::Value, b: &serde_json::Value) -> f64 {
             } else {
                 1.0
             }
-        }
+        },
         // 数值结果：归一化偏差
         (serde_json::Value::Number(_), serde_json::Value::Number(_)) => {
             let fa = a.as_f64().unwrap_or(0.0);
@@ -83,7 +83,7 @@ fn compute_deviation(a: &serde_json::Value, b: &serde_json::Value) -> f64 {
             // 归一化到 [0, 1]
             let max_abs = fa.abs().max(fb.abs()).max(1.0);
             (diff / max_abs).min(1.0)
-        }
+        },
         // 其他类型：JSON 字符串编辑距离归一化
         _ => {
             let sa = a.to_string();
@@ -94,7 +94,7 @@ fn compute_deviation(a: &serde_json::Value, b: &serde_json::Value) -> f64 {
             }
             let edits = text_distance(&sa, &sb) as f64;
             edits / max_len
-        }
+        },
     }
 }
 
@@ -118,8 +118,6 @@ fn text_distance(a: &str, b: &str) -> usize {
         .zip(sb.chars().rev())
         .take_while(|(x, y)| x == y)
         .count();
-    let diff = sa.len().max(sb.len())
-        - common_prefix.min(sa.len())
-        - common_suffix.min(sa.len());
+    let diff = sa.len().max(sb.len()) - common_prefix.min(sa.len()) - common_suffix.min(sa.len());
     diff
 }

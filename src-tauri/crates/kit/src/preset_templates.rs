@@ -903,13 +903,13 @@ fn step_to_agent_node(step: &PresetStep, index: usize) -> WorkflowNode {
         retry: RetryConfig::default(),
         timeout: Some(300),
         enabled: true,
-                parent_id: None,
-                compensation: None,
-            };
-            
+        parent_id: None,
+        compensation: None,
+    };
+
     WorkflowNode::Agent(AgentNode {
         base,
-            config: AgentNodeConfig {
+        config: AgentNodeConfig {
             system_prompt: format!("You are a {} agent. Your goal: {}", step.role, step.goal),
             context_sources: vec![],
             output_var: format!("{}_result", step.id),

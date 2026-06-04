@@ -12,7 +12,9 @@ use super::executors::{
     ParallelExecutor, SubWorkflowExecutor, SwitchExecutor, ToolExecutor, TriggerExecutor,
     ValidationExecutor, VectorRetrieveExecutor, WebhookSendExecutor,
 };
-use super::node_executor_trait::{NodeError, NodeExecutorTrait, NodeOutput, node_type_name, error_code};
+use super::node_executor_trait::{
+    NodeError, NodeExecutorTrait, NodeOutput, error_code, node_type_name,
+};
 
 pub struct NodeDispatcher {
     executors: HashMap<&'static str, Arc<dyn NodeExecutorTrait>>,
@@ -96,7 +98,12 @@ impl NodeDispatcher {
                 let outcome = br_engine.evaluate(node_type, &node_input);
                 use axagent_harness::business_rules::RuleEvaluationOutcome;
                 match &outcome {
-                    RuleEvaluationOutcome::Violation { rule_name, action, reason, .. } => {
+                    RuleEvaluationOutcome::Violation {
+                        rule_name,
+                        action,
+                        reason,
+                        ..
+                    } => {
                         tracing::warn!(
                             node_id = %node.base_id(),
                             node_type,
@@ -128,7 +135,9 @@ impl NodeDispatcher {
                             },
                         }
                     },
-                    RuleEvaluationOutcome::RequiresApproval { rule_name, reason, .. } => {
+                    RuleEvaluationOutcome::RequiresApproval {
+                        rule_name, reason, ..
+                    } => {
                         tracing::warn!(
                             node_id = %node.base_id(),
                             node_type,
@@ -210,10 +219,7 @@ fn build_node_input_snapshot(node: &WorkflowNode, context: &ExecutionState) -> s
     // 根据节点类型提取特定字段
     match node {
         WorkflowNode::Tool(tn) => {
-            map.insert(
-                "tool_name".to_string(),
-                serde_json::json!(tn.config.tool_name),
-            );
+            map.insert("tool_name".to_string(), serde_json::json!(tn.config.tool_name));
             // 将 input_mapping 的值也合并进来
             for (k, v) in &tn.config.input_mapping {
                 if let Some(val) = context.variables.get(v) {
@@ -223,32 +229,20 @@ fn build_node_input_snapshot(node: &WorkflowNode, context: &ExecutionState) -> s
         },
         WorkflowNode::HttpRequest(hn) => {
             map.insert("url".to_string(), serde_json::json!(hn.config.url));
-            map.insert(
-                "method".to_string(),
-                serde_json::json!(hn.config.method),
-            );
+            map.insert("method".to_string(), serde_json::json!(hn.config.method));
             if let Some(body) = &hn.config.body {
                 map.insert("body".to_string(), serde_json::json!(body));
             }
         },
         WorkflowNode::FileOperation(fn_node) => {
-            map.insert(
-                "operation".to_string(),
-                serde_json::json!(fn_node.config.operation),
-            );
-            map.insert(
-                "file_path".to_string(),
-                serde_json::json!(fn_node.config.file_path),
-            );
+            map.insert("operation".to_string(), serde_json::json!(fn_node.config.operation));
+            map.insert("file_path".to_string(), serde_json::json!(fn_node.config.file_path));
         },
         WorkflowNode::WebhookSend(wn) => {
             map.insert("url".to_string(), serde_json::json!(wn.config.url));
         },
         WorkflowNode::DatabaseQuery(dn) => {
-            map.insert(
-                "query".to_string(),
-                serde_json::json!(dn.config.query),
-            );
+            map.insert("query".to_string(), serde_json::json!(dn.config.query));
         },
         _ => {},
     }

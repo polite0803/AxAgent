@@ -35,8 +35,14 @@ impl ConfidenceOutput {
         // 先尝试直接解析为 JSON
         if let Ok(value) = serde_json::from_str::<serde_json::Value>(response.trim()) {
             if let Some(result) = value.get("result") {
-                let confidence = value.get("confidence").and_then(|c| c.as_f64()).unwrap_or(1.0);
-                let reasoning = value.get("reasoning").and_then(|r| r.as_str()).map(|s| s.to_string());
+                let confidence = value
+                    .get("confidence")
+                    .and_then(|c| c.as_f64())
+                    .unwrap_or(1.0);
+                let reasoning = value
+                    .get("reasoning")
+                    .and_then(|r| r.as_str())
+                    .map(|s| s.to_string());
                 return Some(Self {
                     result: result.clone(),
                     confidence,
@@ -51,8 +57,14 @@ impl ConfidenceOutput {
                 let json_str = &response[start..=end];
                 if let Ok(value) = serde_json::from_str::<serde_json::Value>(json_str) {
                     if let Some(result) = value.get("result") {
-                        let confidence = value.get("confidence").and_then(|c| c.as_f64()).unwrap_or(1.0);
-                        let reasoning = value.get("reasoning").and_then(|r| r.as_str()).map(|s| s.to_string());
+                        let confidence = value
+                            .get("confidence")
+                            .and_then(|c| c.as_f64())
+                            .unwrap_or(1.0);
+                        let reasoning = value
+                            .get("reasoning")
+                            .and_then(|r| r.as_str())
+                            .map(|s| s.to_string());
                         return Some(Self {
                             result: result.clone(),
                             confidence,

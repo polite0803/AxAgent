@@ -345,10 +345,8 @@ impl ConditionExecutor {
 
         // ── 置信度检查 ──
         if let Some(threshold) = confidence_threshold {
-            let parsed: serde_json::Value =
-                serde_json::from_str(&text).map_err(|e| {
-                    format!("无法解析 LLM JSON 响应: {e}, raw: {text}")
-                })?;
+            let parsed: serde_json::Value = serde_json::from_str(&text)
+                .map_err(|e| format!("无法解析 LLM JSON 响应: {e}, raw: {text}"))?;
             let decision = parsed
                 .get("decision")
                 .and_then(|d| d.as_bool())
@@ -364,10 +362,7 @@ impl ConditionExecutor {
                     confidence,
                     threshold
                 );
-                return Err(format!(
-                    "置信度 {:.2} 低于阈值 {:.2}",
-                    confidence, threshold
-                ));
+                return Err(format!("置信度 {:.2} 低于阈值 {:.2}", confidence, threshold));
             }
 
             return Ok(decision);

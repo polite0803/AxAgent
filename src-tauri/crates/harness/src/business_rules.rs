@@ -150,9 +150,7 @@ pub fn amount_threshold_rule(threshold: f64) -> BusinessRule {
                 .and_then(|v| v.as_f64());
             match amount {
                 Some(val) if val > threshold => RuleResult::RequiresApproval {
-                    reason: format!(
-                        "金额 {val} 超过阈值 {threshold}，需人工审批确认",
-                    ),
+                    reason: format!("金额 {val} 超过阈值 {threshold}，需人工审批确认",),
                 },
                 _ => RuleResult::Pass,
             }
@@ -205,10 +203,7 @@ pub fn destructive_operation_guard() -> BusinessRule {
 pub fn network_access_guard(allowed_domains: Vec<String>) -> BusinessRule {
     BusinessRule {
         name: "NetworkAccessGuard".to_string(),
-        description: format!(
-            "网络访问需授权白名单（允许域名: {}）",
-            allowed_domains.join(", ")
-        ),
+        description: format!("网络访问需授权白名单（允许域名: {}）", allowed_domains.join(", ")),
         evaluate: Arc::new(move |node_type: &str, input: &serde_json::Value| {
             // 仅检查网络相关节点类型
             if !matches!(node_type, "httpRequest" | "webhookSend" | "tool") {
@@ -329,7 +324,8 @@ mod tests {
             destructive_operation_guard(),
         ]);
         // 金额超阈值 + 破坏性操作，应返回金额违规（第一条规则优先）
-        let outcome = engine.evaluate("tool", &json!({"amount": 50000, "tool_name": "delete_file"}));
+        let outcome =
+            engine.evaluate("tool", &json!({"amount": 50000, "tool_name": "delete_file"}));
         assert!(matches!(outcome, RuleEvaluationOutcome::RequiresApproval { .. }));
     }
 

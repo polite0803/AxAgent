@@ -22,11 +22,7 @@ pub struct LlmCallResult {
 }
 
 impl LlmCallResult {
-    pub fn from_raw(
-        response: ChatResponse,
-        duration_ms: u64,
-        cached: bool,
-    ) -> Self {
+    pub fn from_raw(response: ChatResponse, duration_ms: u64, cached: bool) -> Self {
         let usage = LlmUsage {
             prompt_tokens: response.usage.prompt_tokens,
             completion_tokens: response.usage.completion_tokens,
@@ -133,7 +129,7 @@ pub async fn execute_llm(
                     match guard.process_user_input(text) {
                         Ok(safe) => {
                             *text = safe;
-                        }
+                        },
                         Err(blocked) => {
                             let err = format!("PromptGuard 阻断: {}", blocked);
                             tracing::warn!("[execute_llm] {}", &err);
@@ -148,9 +144,9 @@ pub async fn execute_llm(
                                 });
                             }
                             return Err(err);
-                        }
+                        },
                     }
-                }
+                },
                 ChatContent::Multipart(parts) => {
                     let mut modified = false;
                     for part in parts.iter_mut() {
@@ -161,7 +157,7 @@ pub async fn execute_llm(
                                         part.text = Some(safe);
                                         modified = true;
                                     }
-                                }
+                                },
                                 Err(blocked) => {
                                     let err = format!("PromptGuard 阻断: {}", blocked);
                                     tracing::warn!("[execute_llm] {}", &err);
@@ -175,14 +171,14 @@ pub async fn execute_llm(
                                         });
                                     }
                                     return Err(err);
-                                }
+                                },
                             }
                         }
                     }
                     if modified {
                         tracing::debug!("[execute_llm] PromptGuard 已过滤部分内容");
                     }
-                }
+                },
             }
         }
     }
@@ -236,7 +232,7 @@ pub async fn execute_llm(
                                 .collect::<Vec<_>>()
                                 .join(" ");
                             if t.is_empty() { None } else { Some(t) }
-                        }
+                        },
                     };
                     if let Some(text) = text_content {
                         let old_chinese: usize =
@@ -254,8 +250,7 @@ pub async fn execute_llm(
                         let new_est = new_chinese * 2 + new_non / 4 + 10;
 
                         request.messages[pos].content = ChatContent::Text(summary);
-                        estimated_tokens =
-                            estimated_tokens.saturating_sub(old_est) + new_est;
+                        estimated_tokens = estimated_tokens.saturating_sub(old_est) + new_est;
                     } else {
                         request.messages.remove(pos);
                         // 重新估算
@@ -298,8 +293,8 @@ pub async fn execute_llm(
         if let Some(ref key) = cache_key {
             if let Some(cached) = cache.get(key).await {
                 tracing::info!("[execute_llm] 缓存命中: model={}", request.model);
-                let cached_response: ChatResponse = serde_json::from_value(cached.clone())
-                    .unwrap_or_default();
+                let cached_response: ChatResponse =
+                    serde_json::from_value(cached.clone()).unwrap_or_default();
                 let duration_ms = start.elapsed().as_millis() as u64;
                 return Ok(LlmCallResult {
                     response: cached_response,
@@ -316,7 +311,10 @@ pub async fn execute_llm(
         let cloned_request = request.clone();
         let policy_result = policy
             .execute_with_retry(|| async {
-                adapter.chat(ctx, cloned_request.clone()).await.map_err(|e| e.to_string())
+                adapter
+                    .chat(ctx, cloned_request.clone())
+                    .await
+                    .map_err(|e| e.to_string())
             })
             .await
             .map_err(|e| {
@@ -368,11 +366,15 @@ pub async fn execute_llm(
     if let Some(threshold) = config.confidence_threshold {
         let response_text = &result.response.content;
         if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(response_text) {
-            let confidence = parsed.get("confidence").and_then(|c| c.as_f64()).unwrap_or(1.0);
+            let confidence = parsed
+                .get("confidence")
+                .and_then(|c| c.as_f64())
+                .unwrap_or(1.0);
             if confidence < threshold {
                 tracing::warn!(
                     "[execute_llm] 置信度 {:.2} 低于阈值 {:.2}，触发降级",
-                    confidence, threshold
+                    confidence,
+                    threshold
                 );
                 if let Some(ref conf_cfg) = config.confidence_config {
                     match conf_cfg.on_low_confidence {

@@ -96,24 +96,15 @@ impl RetryPolicy {
                     let err_str = e.to_string();
                     // 检查是否可重试
                     if !self.is_retryable(&err_str) {
-                        return Err(format!(
-                            "[RetryPolicy] 不可重试错误: {err_str}"
-                        ));
+                        return Err(format!("[RetryPolicy] 不可重试错误: {err_str}"));
                     }
                     last_error = err_str;
-                    tracing::warn!(
-                        "[RetryPolicy] 第 {} 次失败: {}",
-                        attempt + 1,
-                        last_error
-                    );
-                }
+                    tracing::warn!("[RetryPolicy] 第 {} 次失败: {}", attempt + 1, last_error);
+                },
                 Err(_timeout_elapsed) => {
                     last_error = format!("超时 ({}ms)", self.timeout_ms);
-                    tracing::warn!(
-                        "[RetryPolicy] 第 {} 次超时",
-                        attempt + 1
-                    );
-                }
+                    tracing::warn!("[RetryPolicy] 第 {} 次超时", attempt + 1);
+                },
             }
         }
 
@@ -131,29 +122,21 @@ impl RetryPolicy {
                 );
                 tracing::error!("{err}");
                 Err(err)
-            }
+            },
             FallbackStrategy::ReturnDefault(_val) => {
-                tracing::warn!(
-                    "[RetryPolicy] 降级为默认值（原始错误: {last_error}）"
-                );
-                Err(format!(
-                    "[RetryPolicy] 降级为默认值（原始错误: {last_error}）"
-                ))
-            }
+                tracing::warn!("[RetryPolicy] 降级为默认值（原始错误: {last_error}）");
+                Err(format!("[RetryPolicy] 降级为默认值（原始错误: {last_error}）"))
+            },
             FallbackStrategy::EscalateToHuman => {
                 tracing::warn!("[RetryPolicy] 升级到人工处理: {last_error}");
-                Err(format!(
-                    "[RetryPolicy] 需人工处理: {last_error}"
-                ))
-            }
+                Err(format!("[RetryPolicy] 需人工处理: {last_error}"))
+            },
             FallbackStrategy::SwitchModel { secondary_model } => {
                 tracing::warn!(
                     "[RetryPolicy] 尝试切换模型至 '{secondary_model}'（未实现自动切换）: {last_error}"
                 );
-                Err(format!(
-                    "[RetryPolicy] 需切换至模型 '{secondary_model}': {last_error}"
-                ))
-            }
+                Err(format!("[RetryPolicy] 需切换至模型 '{secondary_model}': {last_error}"))
+            },
         }
     }
 
@@ -163,10 +146,10 @@ impl RetryPolicy {
             BackoffStrategy::Fixed => self.base_delay_ms,
             BackoffStrategy::Linear { increment_ms } => {
                 self.base_delay_ms + (attempt as u64 - 1) * increment_ms
-            }
+            },
             BackoffStrategy::Exponential { multiplier } => {
                 (self.base_delay_ms as f64 * multiplier.powi(attempt as i32 - 1)) as u64
-            }
+            },
         }
     }
 
@@ -174,7 +157,11 @@ impl RetryPolicy {
     fn is_retryable(&self, err: &str) -> bool {
         let lower = err.to_lowercase();
         // 检查状态码
-        if self.retryable_status_codes.iter().any(|code| lower.contains(&code.to_string())) {
+        if self
+            .retryable_status_codes
+            .iter()
+            .any(|code| lower.contains(&code.to_string()))
+        {
             return true;
         }
         // 检查常见重试关键词

@@ -64,7 +64,7 @@ fn validate_value(path: &str, val: &Value, schema: &Value, errors: &mut Vec<Stri
                         }
                     }
                 }
-            }
+            },
             "array" => {
                 if !val.is_array() {
                     errors.push(format!("{path}: 期望 array，实际 {}", type_name(val)));
@@ -77,23 +77,23 @@ fn validate_value(path: &str, val: &Value, schema: &Value, errors: &mut Vec<Stri
                         }
                     }
                 }
-            }
+            },
             "string" => {
                 if !val.is_string() {
                     errors.push(format!("{path}: 期望 string"));
                 }
-            }
+            },
             "number" | "integer" => {
                 if !val.is_number() {
                     errors.push(format!("{path}: 期望 number"));
                 }
-            }
+            },
             "boolean" => {
                 if !matches!(val, Value::Bool(_)) {
                     errors.push(format!("{path}: 期望 boolean"));
                 }
-            }
-            _ => {}
+            },
+            _ => {},
         }
     }
 }

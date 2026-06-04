@@ -108,9 +108,9 @@ pub use trajectory_service::{
 
 // ── Tool 契约重导出 ──
 pub use tool::{
-    DefaultInputSanitizer, DefaultOutputSanitizer, InputSanitizer, NoopOutputSanitizer, OutputSanitizer, PermissionResult, ProgressEntry,
-    SanitizeContext, Tool, ToolCategory, ToolContext, ToolInfo, ToolPermissions, ToolResult,
-    parse_tool_name,
+    DefaultInputSanitizer, DefaultOutputSanitizer, InputSanitizer, NoopOutputSanitizer,
+    OutputSanitizer, PermissionResult, ProgressEntry, SanitizeContext, Tool, ToolCategory,
+    ToolContext, ToolInfo, ToolPermissions, ToolResult, parse_tool_name,
 };
 
 // ── Registry 契约重导出 ──
@@ -121,9 +121,9 @@ pub use storage_backend::{ListResult, StorageBackend, StorageObject, StorageObje
 
 // ── 约束检查重导出 ──
 pub use consistency_check::{
-    check_consistency, ConsistencyCheckConfig, ConsistencyMode, ConsistencyResult,
+    ConsistencyCheckConfig, ConsistencyMode, ConsistencyResult, check_consistency,
 };
-pub use hallucination_guard::{check_anchor, AnchorResult, HallucinationGuardConfig};
+pub use hallucination_guard::{AnchorResult, HallucinationGuardConfig, check_anchor};
 
 // ── InferenceEngine 契约 ──
 pub use inference_engine::InferenceEngine;
@@ -145,4 +145,4 @@ pub use retry_policy::{BackoffStrategy, FallbackStrategy, RetryPolicy};
 
 // ── ExecuteLlm 中心化调用入口 ──
 pub mod execute_llm;
-pub use execute_llm::{execute_llm, LlmCallConfig, LlmCallResult, LlmUsage};
+pub use execute_llm::{LlmCallConfig, LlmCallResult, LlmUsage, execute_llm};

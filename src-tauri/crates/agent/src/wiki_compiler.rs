@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use axagent_core::entity::{notes, wiki_operations, wiki_pages, wiki_sources, wikis};
 use axagent_core::repo::note::{CreateNoteInput, Note, UpdateNoteInput, calculate_content_hash};
 use axagent_core::utils::gen_id;
-use axagent_harness::execute_llm::{execute_llm, LlmCallConfig};
+use axagent_harness::execute_llm::{LlmCallConfig, execute_llm};
 use axagent_harness::types::{ChatContent, ChatMessage, ChatRequest};
 use axagent_harness::{ProviderAdapter, ProviderRequestContext};
 use sea_orm::{
@@ -1248,7 +1248,7 @@ impl WikiCompiler {
                 Err(e) => {
                     tracing::warn!("LLM quality evaluation failed: {}", e);
                     return None;
-                }
+                },
             }
         } else {
             match self.llm_adapter.chat(&self.llm_ctx, request).await {
@@ -1256,7 +1256,7 @@ impl WikiCompiler {
                 Err(e) => {
                     tracing::warn!("LLM quality evaluation failed: {}", e);
                     return None;
-                }
+                },
             }
         };
 

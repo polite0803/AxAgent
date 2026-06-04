@@ -201,10 +201,7 @@ impl NodeExecutorTrait for LlmClassifierExecutor {
                     cc_config.mode,
                     axagent_harness::ConsistencyMode::CrossModelCompare
                 ) {
-                    let sec_model = cc_config
-                        .secondary_model
-                        .as_deref()
-                        .unwrap_or(&model);
+                    let sec_model = cc_config.secondary_model.as_deref().unwrap_or(&model);
                     ChatRequest {
                         model: sec_model.to_string(),
                         messages: request.messages.clone(),
@@ -218,8 +215,11 @@ impl NodeExecutorTrait for LlmClassifierExecutor {
                     use axagent_harness::consistency_check::check_consistency;
                     let primary_val = serde_json::json!(response.content);
                     let secondary_val = serde_json::json!(sec_resp.content);
-                    let cc_result =
-                        check_consistency(&primary_val, &secondary_val, cc_config.deviation_threshold);
+                    let cc_result = check_consistency(
+                        &primary_val,
+                        &secondary_val,
+                        cc_config.deviation_threshold,
+                    );
                     if !cc_result.passed {
                         tracing::warn!(
                             node_id = %node.base_id(),
@@ -235,8 +235,8 @@ impl NodeExecutorTrait for LlmClassifierExecutor {
 
         // ── 置信度检查 ──
         let raw_category = if let Some(threshold) = c.confidence_threshold {
-            let parsed: serde_json::Value = serde_json::from_str(response.content.trim())
-                .map_err(|e| {
+            let parsed: serde_json::Value =
+                serde_json::from_str(response.content.trim()).map_err(|e| {
                     NodeError::exec_failed(
                         error_code::VALIDATION_FAILED,
                         format!(

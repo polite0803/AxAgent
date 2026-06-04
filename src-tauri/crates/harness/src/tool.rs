@@ -124,10 +124,8 @@ impl ToolPermissions {
         // 2. 检查白名单
         if let Some(ref allowed) = self.allowed_tools {
             if !allowed.iter().any(|t| t == tool_name) {
-                let reason = format!(
-                    "工具 '{tool_name}' 不在允许调用列表中（允许: {:?}）",
-                    allowed
-                );
+                let reason =
+                    format!("工具 '{tool_name}' 不在允许调用列表中（允许: {:?}）", allowed);
                 warn!("权限拒绝: {reason}");
                 return PermissionResult::Deny(reason);
             }
@@ -136,10 +134,8 @@ impl ToolPermissions {
         // 3. 检查类别白名单
         if let Some(ref allowed_cats) = self.allowed_categories {
             if !allowed_cats.contains(&category) {
-                let reason = format!(
-                    "工具类别 '{:?}' 不在允许类别中（允许: {:?}）",
-                    category, allowed_cats
-                );
+                let reason =
+                    format!("工具类别 '{:?}' 不在允许类别中（允许: {:?}）", category, allowed_cats);
                 warn!("权限拒绝: {reason}");
                 return PermissionResult::Deny(reason);
             }
@@ -148,9 +144,7 @@ impl ToolPermissions {
         // 4. 检查会话级调用次数限制
         if let Some(max_calls) = self.max_calls_per_session {
             if session_total_calls >= max_calls {
-                let reason = format!(
-                    "工具调用次数已达上限（{max_calls}/{max_calls}）"
-                );
+                let reason = format!("工具调用次数已达上限（{max_calls}/{max_calls}）");
                 warn!("权限拒绝: {reason}");
                 return PermissionResult::Deny(reason);
             }
@@ -421,24 +415,26 @@ pub trait Tool: Send + Sync {
                         _ => true,
                     };
                     if !type_ok {
-                        return Err(ToolError::invalid_input(
-                            format!("参数 '{prop_name}' 应为 {expected_type} 类型")
-                        ));
+                        return Err(ToolError::invalid_input(format!(
+                            "参数 '{prop_name}' 应为 {expected_type} 类型"
+                        )));
                     }
                     // 对 integer 额外检查必须是整数
-                    if expected_type == "integer" && !val.as_f64().is_some_and(|f| f.fract() == 0.0) {
-                        return Err(ToolError::invalid_input(
-                            format!("参数 '{prop_name}' 应为整数")
-                        ));
+                    if expected_type == "integer" && !val.as_f64().is_some_and(|f| f.fract() == 0.0)
+                    {
+                        return Err(ToolError::invalid_input(format!(
+                            "参数 '{prop_name}' 应为整数"
+                        )));
                     }
                 }
 
                 // 枚举值校验
                 if let Some(enum_vals) = prop_schema.get("enum").and_then(|e| e.as_array()) {
                     if !enum_vals.contains(val) {
-                        return Err(ToolError::invalid_input(
-                            format!("参数 '{prop_name}' 值不在允许范围内: {:?}", enum_vals)
-                        ));
+                        return Err(ToolError::invalid_input(format!(
+                            "参数 '{prop_name}' 值不在允许范围内: {:?}",
+                            enum_vals
+                        )));
                     }
                 }
 
@@ -446,18 +442,18 @@ pub trait Tool: Send + Sync {
                 if let Some(min) = prop_schema.get("minimum").and_then(|m| m.as_f64()) {
                     if let Some(n) = val.as_f64() {
                         if n < min {
-                            return Err(ToolError::invalid_input(
-                                format!("参数 '{prop_name}' 不能小于 {min}")
-                            ));
+                            return Err(ToolError::invalid_input(format!(
+                                "参数 '{prop_name}' 不能小于 {min}"
+                            )));
                         }
                     }
                 }
                 if let Some(max) = prop_schema.get("maximum").and_then(|m| m.as_f64()) {
                     if let Some(n) = val.as_f64() {
                         if n > max {
-                            return Err(ToolError::invalid_input(
-                                format!("参数 '{prop_name}' 不能大于 {max}")
-                            ));
+                            return Err(ToolError::invalid_input(format!(
+                                "参数 '{prop_name}' 不能大于 {max}"
+                            )));
                         }
                     }
                 }
@@ -466,18 +462,18 @@ pub trait Tool: Send + Sync {
                 if let Some(min_len) = prop_schema.get("minLength").and_then(|m| m.as_u64()) {
                     if let Some(s) = val.as_str() {
                         if (s.len() as u64) < min_len {
-                            return Err(ToolError::invalid_input(
-                                format!("参数 '{prop_name}' 长度不能少于 {min_len}")
-                            ));
+                            return Err(ToolError::invalid_input(format!(
+                                "参数 '{prop_name}' 长度不能少于 {min_len}"
+                            )));
                         }
                     }
                 }
                 if let Some(max_len) = prop_schema.get("maxLength").and_then(|m| m.as_u64()) {
                     if let Some(s) = val.as_str() {
                         if (s.len() as u64) > max_len {
-                            return Err(ToolError::invalid_input(
-                                format!("参数 '{prop_name}' 长度不能超过 {max_len}")
-                            ));
+                            return Err(ToolError::invalid_input(format!(
+                                "参数 '{prop_name}' 长度不能超过 {max_len}"
+                            )));
                         }
                     }
                 }
@@ -532,11 +528,20 @@ impl DefaultOutputSanitizer {
             // 内部 IP: 192.168.x.x / 10.x.x.x
             (regex::Regex::new(r"\b192\.168\.\d{1,3}\.\d{1,3}\b").unwrap(), "192.168.*.*"),
             (regex::Regex::new(r"\b10\.\d{1,3}\.\d{1,3}\.\d{1,3}\b").unwrap(), "10.*.*.*"),
-            (regex::Regex::new(r"\b172\.(1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3}\b").unwrap(), "172.*.*.*"),
+            (
+                regex::Regex::new(r"\b172\.(1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3}\b").unwrap(),
+                "172.*.*.*",
+            ),
             // 邮箱
-            (regex::Regex::new(r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}").unwrap(), "***@***"),
+            (
+                regex::Regex::new(r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}").unwrap(),
+                "***@***",
+            ),
             // 常见 token 模式: 需要分两步避免 raw string 中引号转义问题
-            (regex::Regex::new(r"(?i)(token|secret|password)\s*[:=]\s*\S{8,}").unwrap(), "${1}=****"),
+            (
+                regex::Regex::new(r"(?i)(token|secret|password)\s*[:=]\s*\S{8,}").unwrap(),
+                "${1}=****",
+            ),
         ];
         Self { patterns }
     }
@@ -605,7 +610,9 @@ pub struct DefaultInputSanitizer {
 
 impl DefaultInputSanitizer {
     pub fn new() -> Self {
-        Self { output_sanitizer: DefaultOutputSanitizer::new() }
+        Self {
+            output_sanitizer: DefaultOutputSanitizer::new(),
+        }
     }
 }
 

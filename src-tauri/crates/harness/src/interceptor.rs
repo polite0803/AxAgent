@@ -149,7 +149,7 @@ impl InterceptorChain {
                     InterceptorResult::SkipRemaining => break,
                     InterceptorResult::Block { .. } | InterceptorResult::Degrade { .. } => {
                         return result;
-                    }
+                    },
                 }
             }
         }
@@ -197,9 +197,7 @@ impl HarnessInterceptor for BusinessRuleInterceptor {
         match self.engine.evaluate(node_type, &input) {
             RuleEvaluationOutcome::Pass => InterceptorResult::Continue,
             RuleEvaluationOutcome::Violation {
-                reason,
-                action: _,
-                ..
+                reason, action: _, ..
             } => InterceptorResult::Block {
                 reason: format!("[业务规则] {reason}"),
             },
@@ -208,7 +206,7 @@ impl HarnessInterceptor for BusinessRuleInterceptor {
                 InterceptorResult::Block {
                     reason: format!("[需审批] {reason}"),
                 }
-            }
+            },
         }
     }
 }
@@ -263,17 +261,15 @@ impl HarnessInterceptor for PromptGuardInterceptor {
                 Ok(safe) => {
                     // 更新请求中的消息内容
                     if safe != content {
-                        tracing::debug!(
-                            "[PromptGuardInterceptor] 已过滤消息内容"
-                        );
+                        tracing::debug!("[PromptGuardInterceptor] 已过滤消息内容");
                     }
-                }
+                },
                 Err(blocked) => {
                     let reason = format!("PromptGuard 阻断: {blocked}");
                     tracing::warn!("[PromptGuardInterceptor] {reason}");
                     ctx.error = Some(reason.clone());
                     return InterceptorResult::Block { reason };
-                }
+                },
             }
         }
 
@@ -322,9 +318,7 @@ impl HarnessInterceptor for OutputValidationInterceptor {
                 };
                 if response.get(field_name).is_none() {
                     return InterceptorResult::Block {
-                        reason: format!(
-                            "输出校验失败: 缺少必需字段 '{field_name}'"
-                        ),
+                        reason: format!("输出校验失败: 缺少必需字段 '{field_name}'"),
                     };
                 }
             }
@@ -372,9 +366,7 @@ impl HarnessInterceptor for ConsistencyCheckInterceptor {
 
         // 一致性检查需要第二结果做对比，这里只有单次结果就通过
         // 实际使用中需要提供 secondary 结果
-        tracing::debug!(
-            "[ConsistencyCheckInterceptor] 需要二次结果进行对比，当前单次结果跳过检查"
-        );
+        tracing::debug!("[ConsistencyCheckInterceptor] 需要二次结果进行对比，当前单次结果跳过检查");
 
         InterceptorResult::Continue
     }
@@ -423,8 +415,7 @@ mod tests {
             "test_node".into(),
             Some(serde_json::json!({"key": "value"})),
         );
-        let result =
-            block_on(interceptor.intercept(InterceptPoint::BeforeNodeExecute, &mut ctx));
+        let result = block_on(interceptor.intercept(InterceptPoint::BeforeNodeExecute, &mut ctx));
         assert!(matches!(result, InterceptorResult::Block { .. }));
     }
 
@@ -437,8 +428,7 @@ mod tests {
             "test_node".into(),
             Some(serde_json::json!({"key": "value"})),
         );
-        let result =
-            block_on(interceptor.intercept(InterceptPoint::BeforeNodeExecute, &mut ctx));
+        let result = block_on(interceptor.intercept(InterceptPoint::BeforeNodeExecute, &mut ctx));
         assert!(matches!(result, InterceptorResult::Continue));
     }
 
