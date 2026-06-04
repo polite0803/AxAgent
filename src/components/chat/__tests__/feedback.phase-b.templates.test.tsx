@@ -11,7 +11,7 @@ describe("Phase B category template regressions", () => {
     const typeSource = readSource("src/types/index.ts");
     const rustTypeSource = readSource("src-tauri/crates/harness/src/types.rs");
     const entitySource = readSource(
-      "src-tauri/crates/core/src/entity/conversation_categories.rs",
+      "src-tauri/crates/entities/src/conversation_categories.rs",
     );
 
     expect(typeSource).toMatch(/default_provider_id: string \| null;/);
