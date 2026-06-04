@@ -3,7 +3,8 @@
 //! Linux/macOS: rlimit (RLIMIT_CPU, RLIMIT_AS, RLIMIT_NPROC, RLIMIT_FSIZE)
 //! Windows: Job Objects (内存限制 + 进程数限制)
 
-/// 沙箱资源限制配置
+#[cfg(all(unix, not(target_os = "android")))]
+use libc;
 #[derive(Debug, Clone, Copy)]
 pub struct ResourceLimits {
     /// CPU 时间限制（秒），默认 60

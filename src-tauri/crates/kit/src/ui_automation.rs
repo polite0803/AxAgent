@@ -344,7 +344,11 @@ return output
     #[cfg(target_os = "linux")]
     async fn get_linux_elements(query: &UIElementQuery) -> Result<Vec<UIElement>> {
         // 尝试 wmctrl (X11 窗口管理器)
-        if which::which("wmctrl").is_ok() {
+        if std::process::Command::new("which")
+            .arg("wmctrl")
+            .output()
+            .is_ok()
+        {
             let output = tokio::process::Command::new("wmctrl")
                 .args(["-l", "-G"])
                 .output()
@@ -396,7 +400,11 @@ return output
         }
 
         // Wayland 回退: 尝试 AT-SPI2 通过 gdbus
-        if which::which("gdbus").is_ok() {
+        if std::process::Command::new("which")
+            .arg("gdbus")
+            .output()
+            .is_ok()
+        {
             let output = tokio::process::Command::new("gdbus")
                 .args([
                     "call",
