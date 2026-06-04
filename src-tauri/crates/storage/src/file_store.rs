@@ -4,8 +4,8 @@ use std::sync::Arc;
 use sha2::{Digest, Sha256};
 
 use crate::cloud_storage::SyncEngine;
-use axagent_harness::core_error::Result;
 use crate::storage_paths::validate_relative_path;
+use axagent_harness::core_error::Result;
 
 pub struct FileStore {
     base_dir: PathBuf,
@@ -50,7 +50,10 @@ impl Default for FileStore {
 impl FileStore {
     fn validate_path(&self, storage_path: &str) -> Result<()> {
         validate_relative_path(storage_path).map_err(|msg| {
-            axagent_harness::core_error::AxAgentError::Validation(format!("Invalid storage path: {}", msg))
+            axagent_harness::core_error::AxAgentError::Validation(format!(
+                "Invalid storage path: {}",
+                msg
+            ))
         })
     }
 

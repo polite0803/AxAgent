@@ -58,10 +58,7 @@ mod tests {
 
     #[test]
     fn parses_scoped_package_with_version() {
-        assert_eq!(
-            parse_npm_package_spec("@scope/pkg@1.0.0"),
-            ("@scope/pkg", Some("1.0.0"))
-        );
+        assert_eq!(parse_npm_package_spec("@scope/pkg@1.0.0"), ("@scope/pkg", Some("1.0.0")));
     }
 
     #[test]
@@ -71,10 +68,7 @@ mod tests {
 
     #[test]
     fn parses_package_with_version() {
-        assert_eq!(
-            parse_npm_package_spec("lodash@4.17.21"),
-            ("lodash", Some("4.17.21"))
-        );
+        assert_eq!(parse_npm_package_spec("lodash@4.17.21"), ("lodash", Some("4.17.21")));
     }
 
     #[test]
@@ -84,7 +78,8 @@ mod tests {
             .build()
             .unwrap();
         let service = NoopNpmRegistryService;
-        let result = rt.block_on(service.download_package("test", None, std::path::Path::new("/tmp")));
+        let result =
+            rt.block_on(service.download_package("test", None, std::path::Path::new("/tmp")));
         assert!(result.is_err());
         assert!(result.unwrap_err().contains("not configured"));
     }

@@ -32,7 +32,10 @@ impl NodeExecutorTrait for VectorRetrieveExecutor {
         &self,
         node: &WorkflowNode,
         context: &ExecutionState,
-    ) -> Result<crate::work_engine::node_executor_trait::NodeOutput, crate::work_engine::node_executor_trait::NodeError> {
+    ) -> Result<
+        crate::work_engine::node_executor_trait::NodeOutput,
+        crate::work_engine::node_executor_trait::NodeError,
+    > {
         let WorkflowNode::VectorRetrieve(vr) = node else {
             return Err(crate::work_engine::node_executor_trait::NodeError::type_mismatch(
                 "vectorRetrieve".to_string(),

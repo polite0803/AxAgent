@@ -4,9 +4,7 @@
 //! 定义在 `axagent-harness::webhook_subscription`，此处仅做 re-export。
 //! `WebhookDispatch` trait 向下兼容，新代码请直接使用 `axagent_harness::*`。
 
-pub use axagent_harness::{
-    DispatchResult, WebhookEvent, WebhookPayload, WebhookSubscription,
-};
+pub use axagent_harness::{DispatchResult, WebhookEvent, WebhookPayload, WebhookSubscription};
 
 use std::sync::Arc;
 use tokio::sync::RwLock;
@@ -188,9 +186,14 @@ impl axagent_harness::WebhookSubscriptionService for WebhookSubscriptionManager 
         })
     }
 
-    async fn get_subscriptions_for_event(&self, event: &str) -> Vec<axagent_harness::WebhookSubscriptionInfo> {
+    async fn get_subscriptions_for_event(
+        &self,
+        event: &str,
+    ) -> Vec<axagent_harness::WebhookSubscriptionInfo> {
         let event_enum = WebhookEvent::from_event_str(event);
-        let Some(event_enum) = event_enum else { return Vec::new(); };
+        let Some(event_enum) = event_enum else {
+            return Vec::new();
+        };
         self.get_subscriptions_for_event(event_enum)
             .await
             .into_iter()
@@ -228,7 +231,11 @@ impl axagent_harness::WebhookSubscriptionService for WebhookSubscriptionManager 
                 id: s.id,
                 url: s.url,
                 secret: s.secret.clone(),
-                event: s.events.first().map(|e| e.as_str().to_string()).unwrap_or_default(),
+                event: s
+                    .events
+                    .first()
+                    .map(|e| e.as_str().to_string())
+                    .unwrap_or_default(),
                 enabled: s.enabled,
             })
             .collect()

@@ -7,7 +7,7 @@ use axagent_harness::{ProviderAdapter, registry::ProviderRegistry};
 use sea_orm::DatabaseConnection;
 use std::sync::Arc;
 
-use crate::work_engine::node_executor_trait::{error_code, NodeError};
+use crate::work_engine::node_executor_trait::{NodeError, error_code};
 
 /// 解析 provider + key + model + adapter + api_key。
 ///
@@ -27,16 +27,7 @@ pub(crate) async fn resolve_provider_and_adapter(
     session_provider_id: Option<&str>,
     profile_suggested_provider: Option<&str>,
     executor_label: &str,
-) -> Result<
-    (
-        ProviderConfig,
-        ProviderKey,
-        String,
-        Arc<dyn ProviderAdapter>,
-        String,
-    ),
-    NodeError,
-> {
+) -> Result<(ProviderConfig, ProviderKey, String, Arc<dyn ProviderAdapter>, String), NodeError> {
     let (prov, key, model) = axagent_core::repo::provider::resolve_model_for_node(
         db,
         node_model,
@@ -47,8 +38,8 @@ pub(crate) async fn resolve_provider_and_adapter(
     .await
     .map_err(|e| NodeError::exec_failed(error_code::UNSUPPORTED_PROVIDER, e))?;
 
-    let api_key = axagent_core::crypto::decrypt_key(&key.key_encrypted, master_key)
-        .map_err(|e| {
+    let api_key =
+        axagent_core::crypto::decrypt_key(&key.key_encrypted, master_key).map_err(|e| {
             NodeError::exec_failed(
                 error_code::UNSUPPORTED_PROVIDER,
                 format!("API key decryption failed: {e}"),
@@ -61,9 +52,7 @@ pub(crate) async fn resolve_provider_and_adapter(
         .ok_or_else(|| {
             NodeError::exec_failed(
                 error_code::UNSUPPORTED_PROVIDER,
-                format!(
-                    "{executor_label} 未找到 ProviderAdapter for type: {registry_key}"
-                ),
+                format!("{executor_label} 未找到 ProviderAdapter for type: {registry_key}"),
             )
         })?;
 

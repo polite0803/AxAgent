@@ -73,7 +73,8 @@ impl PlannerAdapter for NoopPlannerAdapter {
         false
     }
 
-    fn mark_task_completed(&mut self, _phase_index: usize, _task_index: usize, _result: JsonValue) {}
+    fn mark_task_completed(&mut self, _phase_index: usize, _task_index: usize, _result: JsonValue) {
+    }
 
     fn mark_phase_completed(&mut self, _phase_index: usize) -> Result<(), String> {
         Err("Planner is not configured".to_string())

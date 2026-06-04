@@ -9,7 +9,9 @@
 //! - LLM-driven semantic mutation (replaces random symbol manipulation)
 //! - Execution feedback-driven verification closed loop
 
-pub use axagent_harness::trajectory_types::{LlmEvolutionProvider, LlmMutationFuture, LlmMutationRequest, LlmMutationResponse, ProcedureStep};
+pub use axagent_harness::trajectory_types::{
+    LlmEvolutionProvider, LlmMutationFuture, LlmMutationRequest, LlmMutationResponse, ProcedureStep,
+};
 
 use crate::skill::{Skill, SkillModification, ValidationResult};
 use crate::trajectory::{Trajectory, TrajectoryOutcome};

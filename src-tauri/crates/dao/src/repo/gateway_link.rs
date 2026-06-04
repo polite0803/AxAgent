@@ -1,9 +1,9 @@
 use sea_orm::*;
 
-use axagent_harness::constants;
 use axagent_entities::gateway_link_activities;
 use axagent_entities::gateway_link_policies;
 use axagent_entities::gateway_links;
+use axagent_harness::constants;
 use axagent_harness::core_error::{AxAgentError, HealthCheckError, Result};
 use axagent_harness::types::{
     CreateGatewayLinkInput, GatewayLink, GatewayLinkActivity, GatewayLinkModelSync,

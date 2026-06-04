@@ -1,8 +1,8 @@
 use sea_orm::{ConnectionTrait, DatabaseConnection, DbBackend, Statement};
 use serde::{Deserialize, Serialize};
 
-use axagent_harness::core_error::{AxAgentError, Result};
 use crate::vector_store::{VectorSearchResult, VectorStore};
+use axagent_harness::core_error::{AxAgentError, Result};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HybridSearchResult {

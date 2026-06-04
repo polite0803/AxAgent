@@ -3,8 +3,8 @@
 //! The concrete implementation lives in `axagent-core` and uses `candle`/`tokenizers`.
 //! Consumers (reranker, judge evaluator) use this trait from harness.
 
-use async_trait::async_trait;
 use crate::core_error::Result;
+use async_trait::async_trait;
 
 /// Local inference engine that runs GGUF models for reranking and judging.
 #[async_trait]

@@ -247,10 +247,7 @@ impl HarnessRhaiEngineAdapter for RhaiEngine {
                 .get("tool_name")
                 .and_then(|v| v.as_str())
                 .unwrap_or("");
-            let code = script
-                .get("code")
-                .and_then(|v| v.as_str())
-                .unwrap_or("");
+            let code = script.get("code").and_then(|v| v.as_str()).unwrap_or("");
             if code.is_empty() {
                 continue;
             }

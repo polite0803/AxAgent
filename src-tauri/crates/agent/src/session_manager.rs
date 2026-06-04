@@ -607,8 +607,15 @@ impl SessionManager {
                 None => Vec::new(),
             };
             let integrity = match &self.trajectory {
-                Some(svc) => svc.verify_compression_integrity(&original_msgs, &compressed_msgs, &key_entities),
-                None => axagent_harness::IntegrityResult { is_valid: true, checks: Vec::new() },
+                Some(svc) => svc.verify_compression_integrity(
+                    &original_msgs,
+                    &compressed_msgs,
+                    &key_entities,
+                ),
+                None => axagent_harness::IntegrityResult {
+                    is_valid: true,
+                    checks: Vec::new(),
+                },
             };
             if !integrity.is_valid {
                 let failed_checks: Vec<&str> = integrity
@@ -652,7 +659,11 @@ impl SessionManager {
             system_prompt,
         )
         .with_max_iterations(dynamic_max_iterations(
-            &self.trajectory.as_ref().map(|s| s.estimate_complexity(&user_input)).unwrap_or(TaskComplexity::Medium),
+            &self
+                .trajectory
+                .as_ref()
+                .map(|s| s.estimate_complexity(&user_input))
+                .unwrap_or(TaskComplexity::Medium),
         ))
         .with_auto_compaction_input_tokens_threshold(AUTO_COMPACTION_TOKEN_THRESHOLD as u32);
 
@@ -666,8 +677,13 @@ impl SessionManager {
         // agent_runtime_stats IPC reads it asynchronously.
         // Also shared with TauriHookProgressReporter so agent-status events
         // carry rich progress data (currentTool, iteration, toolCount, errors).
-        let max_iters =
-            dynamic_max_iterations(&self.trajectory.as_ref().map(|s| s.estimate_complexity(&user_input)).unwrap_or(TaskComplexity::Medium));
+        let max_iters = dynamic_max_iterations(
+            &self
+                .trajectory
+                .as_ref()
+                .map(|s| s.estimate_complexity(&user_input))
+                .unwrap_or(TaskComplexity::Medium),
+        );
         let progress = Arc::new(AgentExecutionProgress::new(max_iters));
         runtime = runtime.with_progress(progress.clone());
         {

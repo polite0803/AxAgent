@@ -58,15 +58,15 @@ pub mod url_utils;
 pub mod webhook_subscription;
 /// 关键 Webhook 类型重导出 — struct/enum 级
 pub use webhook_subscription::{
-    DispatchResult, WebhookEvent, WebhookPayload, WebhookSubscription,
-    WebhookSubscriptionInfo, WebhookSubscriptionService, NoopWebhookSubscriptionService,
+    DispatchResult, NoopWebhookSubscriptionService, WebhookEvent, WebhookPayload,
+    WebhookSubscription, WebhookSubscriptionInfo, WebhookSubscriptionService,
 };
 pub mod trajectory_types;
 
 // ── Provider 契约重导出 ──
-pub use provider::{ProviderAdapter, ProviderProxyConfig, ProviderRequestContext};
-pub use has_provider_registry::HasProviderRegistry;
 pub use context_builder::build_provider_request_context;
+pub use has_provider_registry::HasProviderRegistry;
+pub use provider::{ProviderAdapter, ProviderProxyConfig, ProviderRequestContext};
 pub use url_utils::{
     default_version_for_type, resolve_base_url, resolve_base_url_for_type, resolve_chat_url,
 };

@@ -25,16 +25,24 @@ fn rhai_map_to_json(map: rhai::Map) -> serde_json::Value {
     let mut obj = serde_json::Map::new();
     for (k, v) in map {
         let val: serde_json::Value = if v.is_int() {
-            v.as_int().map(|n| serde_json::Value::Number(n.into())).unwrap_or(serde_json::Value::Null)
+            v.as_int()
+                .map(|n| serde_json::Value::Number(n.into()))
+                .unwrap_or(serde_json::Value::Null)
         } else if v.is_string() {
-            v.try_cast::<String>().map(serde_json::Value::String).unwrap_or(serde_json::Value::Null)
+            v.try_cast::<String>()
+                .map(serde_json::Value::String)
+                .unwrap_or(serde_json::Value::Null)
         } else if v.is_float() {
             match v.as_float() {
-                Ok(f) => serde_json::Number::from_f64(f).map(serde_json::Value::Number).unwrap_or(serde_json::Value::Null),
+                Ok(f) => serde_json::Number::from_f64(f)
+                    .map(serde_json::Value::Number)
+                    .unwrap_or(serde_json::Value::Null),
                 Err(_) => serde_json::Value::Null,
             }
         } else if v.is_bool() {
-            v.as_bool().map(serde_json::Value::Bool).unwrap_or(serde_json::Value::Null)
+            v.as_bool()
+                .map(serde_json::Value::Bool)
+                .unwrap_or(serde_json::Value::Null)
         } else {
             serde_json::Value::Null
         };
@@ -56,7 +64,6 @@ type LocalRhaiToolFn = Arc<
         > + Send
         + Sync,
 >;
-
 
 use crate::workflow_engine::{
     NodeRuntimeState, NodeStatus, Workflow, WorkflowError, WorkflowStatus, current_epoch_ms,
@@ -276,8 +283,7 @@ pub struct WorkEngine {
     /// 编译后的 prompt 模板：workflow_id -> (node_id -> CompiledPrompt)
     compiled_prompts: Arc<tokio::sync::RwLock<HashMap<String, HashMap<String, CompiledPrompt>>>>,
     /// 编译后的 Rhai 脚本：workflow_id -> (tool_name -> AST)
-    compiled_rhai_scripts:
-        Arc<tokio::sync::RwLock<HashMap<String, RhaiScriptCache>>>,
+    compiled_rhai_scripts: Arc<tokio::sync::RwLock<HashMap<String, RhaiScriptCache>>>,
     /// Rhai 引擎适配器（可选注入，优先使用；未设置时降级为 compiled_rhai_scripts）
     rhai_engine: Option<Arc<dyn RhaiEngineAdapter>>,
     /// Plan 模式：PlannerAdapter（由外部注入，None = 未启用 Plan 模式）
@@ -393,15 +399,21 @@ impl WorkEngine {
             return;
         }
         // 降级：使用旧版编译缓存
-                let cache = {
+        let cache = {
             use rhai::Engine;
             let engine = Engine::new();
             let mut c = RhaiScriptCache::new();
             for td in tool_defs {
-                if td.code.is_empty() { continue; }
+                if td.code.is_empty() {
+                    continue;
+                }
                 match engine.compile(&td.code) {
-                    Ok(ast) => { c.insert(td.tool_name.clone(), Arc::new(ast)); }
-                    Err(e) => { tracing::warn!("[RhaiEngine] 编译失败 {}: {}", td.tool_name, e); }
+                    Ok(ast) => {
+                        c.insert(td.tool_name.clone(), Arc::new(ast));
+                    },
+                    Err(e) => {
+                        tracing::warn!("[RhaiEngine] 编译失败 {}: {}", td.tool_name, e);
+                    },
                 }
             }
             c
@@ -925,7 +937,8 @@ impl WorkEngine {
             .unwrap_or_else(|| serde_json::json!({}));
         // 将 model_id / provider_id 写入上下文，供执行器读取
         if let Some(ref model_id) = options.model_id {
-            input[super::executors::WORKFLOW_MODEL_VAR] = serde_json::Value::String(model_id.clone());
+            input[super::executors::WORKFLOW_MODEL_VAR] =
+                serde_json::Value::String(model_id.clone());
         }
         if let Some(ref provider_id) = options.provider_id {
             input[super::executors::WORKFLOW_PROVIDER_ID_VAR] =
@@ -1081,26 +1094,37 @@ impl WorkEngine {
                                         for (name, handler) in &rhai_tools {
                                             let h = handler.clone();
                                             let n = name.clone();
-                                            engine.register_fn("tool", move |tool_name: &str, tool_args: rhai::Map| {
-                                                let h = h.clone();
-                                                let json_args = rhai_map_to_json(tool_args);
-                                                // Inline execution via tokio runtime
-                                                let rt = tokio::runtime::Runtime::new().expect("rhai runtime");
-                                                let result = rt.block_on(async {
-                                                    h(tool_name.to_string(), json_args).await
-                                                });
-                                                match result {
-                                                    Ok(val) => Dynamic::from(serde_json::to_string(&val).unwrap_or_default()),
-                                                    Err(e) => Dynamic::from(format!("tool error: {e}")),
-                                                }
-                                            });
+                                            engine.register_fn(
+                                                "tool",
+                                                move |tool_name: &str, tool_args: rhai::Map| {
+                                                    let h = h.clone();
+                                                    let json_args = rhai_map_to_json(tool_args);
+                                                    // Inline execution via tokio runtime
+                                                    let rt = tokio::runtime::Runtime::new()
+                                                        .expect("rhai runtime");
+                                                    let result = rt.block_on(async {
+                                                        h(tool_name.to_string(), json_args).await
+                                                    });
+                                                    match result {
+                                                        Ok(val) => Dynamic::from(
+                                                            serde_json::to_string(&val)
+                                                                .unwrap_or_default(),
+                                                        ),
+                                                        Err(e) => Dynamic::from(format!(
+                                                            "tool error: {e}"
+                                                        )),
+                                                    }
+                                                },
+                                            );
                                             _ = n;
                                         }
-                                        let result = engine.eval_ast::<Dynamic>(&*ast)
+                                        let result = engine
+                                            .eval_ast::<Dynamic>(&*ast)
                                             .map_err(|e| format!("Rhai 执行失败: {e}"))?;
                                         // Convert result back to json value
                                         let text = result.to_string();
-                                        serde_json::from_str::<serde_json::Value>(&text).map_err(|e| format!("Result not json: {e}"))
+                                        serde_json::from_str::<serde_json::Value>(&text)
+                                            .map_err(|e| format!("Result not json: {e}"))
                                     }
                                     .map(|v| serde_json::json!({"content": v}))
                                 })

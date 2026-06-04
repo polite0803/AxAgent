@@ -1,6 +1,4 @@
-use axagent_harness::{
-    DispatchResult, WebhookEvent, WebhookPayload, WebhookSubscriptionService,
-};
+use axagent_harness::{DispatchResult, WebhookEvent, WebhookPayload, WebhookSubscriptionService};
 use reqwest::Client;
 use std::collections::HashMap;
 use std::sync::Arc;

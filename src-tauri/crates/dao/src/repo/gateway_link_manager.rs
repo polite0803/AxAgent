@@ -5,9 +5,9 @@ use std::time::{Duration, Instant};
 use tokio::sync::{RwLock, mpsc};
 use tokio::time::interval;
 
-use axagent_harness::core_error::{AxAgentError, Result};
 use crate::repo::gateway_link as link_repo;
 use crate::repo::gateway_link::ExponentialBackoff;
+use axagent_harness::core_error::{AxAgentError, Result};
 
 const DEFAULT_HEALTH_CHECK_INTERVAL: Duration = Duration::from_secs(30);
 const DEFAULT_RECONNECT_INTERVAL: Duration = Duration::from_secs(5);

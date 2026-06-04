@@ -203,16 +203,22 @@ async fn list_subscriptions_handler(
     State(state): State<Arc<WebhookServerState>>,
 ) -> Json<Vec<WebhookSubscription>> {
     let subs = state.subscription_manager.list_subscriptions().await;
-    Json(subs.into_iter().map(|s| WebhookSubscription {
-        id: s.id,
-        url: s.url,
-        events: vec![WebhookEvent::from_event_str(&s.event).unwrap_or(WebhookEvent::ToolComplete)],
-        secret: s.secret,
-        enabled: s.enabled,
-        created_at: chrono::Utc::now(),
-        last_triggered: None,
-        failure_count: 0,
-    }).collect())
+    Json(
+        subs.into_iter()
+            .map(|s| WebhookSubscription {
+                id: s.id,
+                url: s.url,
+                events: vec![
+                    WebhookEvent::from_event_str(&s.event).unwrap_or(WebhookEvent::ToolComplete),
+                ],
+                secret: s.secret,
+                enabled: s.enabled,
+                created_at: chrono::Utc::now(),
+                last_triggered: None,
+                failure_count: 0,
+            })
+            .collect(),
+    )
 }
 
 #[derive(serde::Deserialize)]
@@ -239,7 +245,9 @@ async fn create_subscription_handler(
     Ok(Json(WebhookSubscription {
         id: subscription.id.clone(),
         url: subscription.url.clone(),
-        events: vec![WebhookEvent::from_event_str(&subscription.event).unwrap_or(WebhookEvent::ToolComplete)],
+        events: vec![
+            WebhookEvent::from_event_str(&subscription.event).unwrap_or(WebhookEvent::ToolComplete),
+        ],
         secret: subscription.secret.clone(),
         enabled: subscription.enabled,
         created_at: chrono::Utc::now(),

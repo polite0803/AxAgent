@@ -26,10 +26,7 @@ pub fn default_version_for_type(provider_type: &ProviderType) -> &'static str {
 /// - Trailing `!` → force mode: strip `!`, return as-is.
 /// - Already ends with a versioned path (e.g. `/v1`, `/v1beta`) → return as-is.
 /// - Otherwise → append the default version path for this provider type.
-pub fn resolve_base_url_for_type(
-    api_host: &str,
-    provider_type: &ProviderType,
-) -> String {
+pub fn resolve_base_url_for_type(api_host: &str, provider_type: &ProviderType) -> String {
     let default_version = default_version_for_type(provider_type);
     resolve_base_url_inner(api_host, default_version)
 }
@@ -167,7 +164,11 @@ mod tests {
     #[test]
     fn test_resolve_chat_url_with_api_path() {
         assert_eq!(
-            resolve_chat_url("https://api.openai.com/v1", Some("/v1/messages"), "/chat/completions"),
+            resolve_chat_url(
+                "https://api.openai.com/v1",
+                Some("/v1/messages"),
+                "/chat/completions"
+            ),
             "https://api.openai.com/v1/messages"
         );
     }
@@ -183,7 +184,11 @@ mod tests {
     #[test]
     fn test_resolve_chat_url_auto_dedup() {
         assert_eq!(
-            resolve_chat_url("https://api.openai.com/v1", Some("/v1/messages"), "/chat/completions"),
+            resolve_chat_url(
+                "https://api.openai.com/v1",
+                Some("/v1/messages"),
+                "/chat/completions"
+            ),
             "https://api.openai.com/v1/messages"
         );
     }

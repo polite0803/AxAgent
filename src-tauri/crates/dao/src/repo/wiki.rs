@@ -1,9 +1,9 @@
 use sea_orm::*;
 use serde::{Deserialize, Serialize};
 
+use crate::repo::note::calculate_content_hash;
 use axagent_entities::{wiki_page_versions, wiki_templates, wikis};
 use axagent_harness::core_error::{AxAgentError, Result};
-use crate::repo::note::calculate_content_hash;
 use axagent_harness::util_fns::gen_id;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

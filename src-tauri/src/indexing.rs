@@ -32,8 +32,8 @@ static DEFAULT_PROVIDER_REGISTRY: std::sync::OnceLock<
     std::sync::Arc<dyn axagent_harness::registry::ProviderRegistry>,
 > = std::sync::OnceLock::new();
 
-fn default_provider_registry(
-) -> &'static std::sync::Arc<dyn axagent_harness::registry::ProviderRegistry> {
+fn default_provider_registry()
+-> &'static std::sync::Arc<dyn axagent_harness::registry::ProviderRegistry> {
     DEFAULT_PROVIDER_REGISTRY.get_or_init(|| {
         std::sync::Arc::new(axagent_providers::registry::ProviderRegistry::create_default())
             as std::sync::Arc<dyn axagent_harness::registry::ProviderRegistry>
@@ -159,11 +159,9 @@ pub async fn generate_embeddings(
     let (ctx, provider_config) = build_embed_context(db, master_key, &provider_id).await?;
 
     let registry_key = provider_config.provider_type.registry_key();
-    let adapter = provider_registry
-        .get(registry_key)
-        .ok_or_else(|| {
-            AxAgentError::Provider(format!("Unsupported provider type: {}", registry_key))
-        })?;
+    let adapter = provider_registry.get(registry_key).ok_or_else(|| {
+        AxAgentError::Provider(format!("Unsupported provider type: {}", registry_key))
+    })?;
 
     // If texts fit in a single batch, use the simple path
     if texts.len() <= EMBED_BATCH_SIZE {
@@ -349,16 +347,15 @@ async fn run_indexing(
     }
 
     let chunk_texts: Vec<String> = chunks.iter().map(|(_, text, _)| text.clone()).collect();
-    let embed_response =
-        generate_embeddings(
-            db,
-            master_key,
-            default_provider_registry(),
-            embedding_provider,
-            chunk_texts,
-            dimensions,
-        )
-        .await?;
+    let embed_response = generate_embeddings(
+        db,
+        master_key,
+        default_provider_registry(),
+        embedding_provider,
+        chunk_texts,
+        dimensions,
+    )
+    .await?;
 
     rag::index(
         vector_store,
@@ -391,16 +388,15 @@ pub async fn index_memory_item(
     }
 
     let chunk_texts: Vec<String> = chunks.iter().map(|(_, text, _)| text.clone()).collect();
-    let embed_response =
-        generate_embeddings(
-            db,
-            master_key,
-            default_provider_registry(),
-            embedding_provider,
-            chunk_texts,
-            dimensions,
-        )
-        .await?;
+    let embed_response = generate_embeddings(
+        db,
+        master_key,
+        default_provider_registry(),
+        embedding_provider,
+        chunk_texts,
+        dimensions,
+    )
+    .await?;
 
     rag::index(
         vector_store,
@@ -682,9 +678,21 @@ pub async fn collect_rag_context(
     }
 
     // Pipeline path: build LLM function if query enhancement is enabled
-    let qe_enabled = pipeline_config.get("query_enhancement").and_then(|v| v.get("enabled")).and_then(|v| v.as_bool()).unwrap_or(false);
-    let rerank_enabled = pipeline_config.get("rerank").and_then(|v| v.get("enabled")).and_then(|v| v.as_bool()).unwrap_or(false);
-    let sr_enabled = pipeline_config.get("self_rag").and_then(|v| v.get("enabled")).and_then(|v| v.as_bool()).unwrap_or(false);
+    let qe_enabled = pipeline_config
+        .get("query_enhancement")
+        .and_then(|v| v.get("enabled"))
+        .and_then(|v| v.as_bool())
+        .unwrap_or(false);
+    let rerank_enabled = pipeline_config
+        .get("rerank")
+        .and_then(|v| v.get("enabled"))
+        .and_then(|v| v.as_bool())
+        .unwrap_or(false);
+    let sr_enabled = pipeline_config
+        .get("self_rag")
+        .and_then(|v| v.get("enabled"))
+        .and_then(|v| v.as_bool())
+        .unwrap_or(false);
     tracing::info!(
         "RAG pipeline active: enhancement={}, rerank={}, self_rag={}",
         qe_enabled,

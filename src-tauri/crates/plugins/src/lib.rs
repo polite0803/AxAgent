@@ -1548,7 +1548,8 @@ impl PluginManager {
             PluginInstallSource::LocalPath { path } => load_plugin_from_directory(&path),
             _ => {
                 let temp_root = self.install_root().join(".tmp");
-                let staged = materialize_source(&install_source, &temp_root, self.npm_registry.as_ref())?;
+                let staged =
+                    materialize_source(&install_source, &temp_root, self.npm_registry.as_ref())?;
                 let manifest = load_plugin_from_directory(&staged)?;
                 // 清理临时目录
                 if staged.starts_with(&temp_root) {
@@ -1562,7 +1563,8 @@ impl PluginManager {
     pub fn install(&mut self, source: &str) -> Result<InstallOutcome, PluginError> {
         let install_source = parse_install_source(source)?;
         let temp_root = self.install_root().join(".tmp");
-        let staged_source = materialize_source(&install_source, &temp_root, self.npm_registry.as_ref())?;
+        let staged_source =
+            materialize_source(&install_source, &temp_root, self.npm_registry.as_ref())?;
         let cleanup_source = matches!(install_source, PluginInstallSource::GitUrl { .. });
         let manifest = load_plugin_from_directory(&staged_source)?;
 
@@ -1699,7 +1701,8 @@ impl PluginManager {
         })?;
 
         let temp_root = self.install_root().join(".tmp");
-        let staged_source = materialize_source(&record.source, &temp_root, self.npm_registry.as_ref())?;
+        let staged_source =
+            materialize_source(&record.source, &temp_root, self.npm_registry.as_ref())?;
         let cleanup_source = matches!(record.source, PluginInstallSource::GitUrl { .. });
         let manifest = load_plugin_from_directory(&staged_source)?;
         self.validate_dependencies(&manifest)?;

@@ -16,11 +16,7 @@ use axagent_harness::workflow_types::*;
 pub fn compile_plan_to_dag(
     plan: &Plan,
     tool_names: &[String],
-) -> (
-    Vec<WorkflowNode>,
-    Vec<WorkflowEdge>,
-) {
-
+) -> (Vec<WorkflowNode>, Vec<WorkflowEdge>) {
     let mut nodes: Vec<WorkflowNode> = Vec::new();
     let mut edges: Vec<WorkflowEdge> = Vec::new();
     let mut edge_id = 0u32;

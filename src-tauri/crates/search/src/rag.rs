@@ -8,12 +8,12 @@ use async_trait::async_trait;
 use sea_orm::{ConnectionTrait, DatabaseConnection, DbBackend, Statement};
 use serde::{Deserialize, Serialize};
 
-use axagent_harness::core_error::{AxAgentError, Result};
 use crate::self_rag::RetrievalQuality;
-use axagent_harness::types::{RagContextResult, RagRetrievedItem, RagSourceResult};
+use crate::text_chunker;
 use crate::vector_store::{EmbeddingRecord, VectorSearchResult, VectorStore};
 use axagent_document_parser as document_parser;
-use crate::text_chunker;
+use axagent_harness::core_error::{AxAgentError, Result};
+use axagent_harness::types::{RagContextResult, RagRetrievedItem, RagSourceResult};
 
 // ── Trait ────────────────────────────────────────────────────────────────────
 
@@ -446,11 +446,14 @@ pub async fn collect_knowledge_graph_context(
     let mut context_parts = Vec::new();
 
     for kb_id in kb_ids {
-        let entities =
-            match axagent_dao::repo::knowledge_graph::search_entities(db, kb_id, query, top_k).await {
-                Ok(e) => e,
-                Err(_) => continue,
-            };
+        let entities = match axagent_dao::repo::knowledge_graph::search_entities(
+            db, kb_id, query, top_k,
+        )
+        .await
+        {
+            Ok(e) => e,
+            Err(_) => continue,
+        };
 
         if entities.is_empty() {
             continue;
@@ -485,10 +488,11 @@ pub async fn collect_cross_source_graph_context(
     context_parts.extend(kg_context);
 
     for wiki_id in wiki_ids {
-        let backlinks = match axagent_dao::repo::note::get_note_backlinks_by_vault(db, wiki_id).await {
-            Ok(bl) => bl,
-            Err(_) => continue,
-        };
+        let backlinks =
+            match axagent_dao::repo::note::get_note_backlinks_by_vault(db, wiki_id).await {
+                Ok(bl) => bl,
+                Err(_) => continue,
+            };
 
         if backlinks.is_empty() {
             continue;
@@ -548,10 +552,12 @@ async fn resolve_source_config(
             .await
             .ok()
             .map(|w| w.source_config()),
-        RAGSourceType::Knowledge => axagent_dao::repo::knowledge::get_knowledge_base(db, container_id)
-            .await
-            .ok()
-            .map(|kb| kb.source_config()),
+        RAGSourceType::Knowledge => {
+            axagent_dao::repo::knowledge::get_knowledge_base(db, container_id)
+                .await
+                .ok()
+                .map(|kb| kb.source_config())
+        },
     };
 
     match config {
@@ -1165,7 +1171,10 @@ pub type LlmCallFn = std::sync::Arc<
     dyn Fn(
             String,
         ) -> std::pin::Pin<
-            Box<dyn std::future::Future<Output = axagent_harness::core_error::Result<String>> + Send>,
+            Box<
+                dyn std::future::Future<Output = axagent_harness::core_error::Result<String>>
+                    + Send,
+            >,
         > + Send
         + Sync,
 >;

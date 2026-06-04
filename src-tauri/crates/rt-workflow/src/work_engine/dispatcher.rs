@@ -71,10 +71,7 @@ impl NodeDispatcher {
     pub fn register_arc(&mut self, executor: Arc<dyn NodeExecutorTrait>) {
         let key = executor.node_type();
         if self.executors.contains_key(key)
-            && !Arc::ptr_eq(
-                self.executors.get(key).expect("checked above"),
-                &executor,
-            )
+            && !Arc::ptr_eq(self.executors.get(key).expect("checked above"), &executor)
         {
             tracing::warn!(
                 node_type = key,

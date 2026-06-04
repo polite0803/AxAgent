@@ -173,7 +173,10 @@ impl ModelDownloader {
             .timeout(std::time::Duration::from_secs(3600))
             .build()
             .map_err(|e| {
-                axagent_harness::core_error::AxAgentError::ModelDownload(format!("HTTP client error: {}", e))
+                axagent_harness::core_error::AxAgentError::ModelDownload(format!(
+                    "HTTP client error: {}",
+                    e
+                ))
             })?;
 
         let mut request = client.get(url);
@@ -189,7 +192,10 @@ impl ModelDownloader {
         }
 
         let response = request.send().await.map_err(|e| {
-            axagent_harness::core_error::AxAgentError::ModelDownload(format!("Download failed: {}", e))
+            axagent_harness::core_error::AxAgentError::ModelDownload(format!(
+                "Download failed: {}",
+                e
+            ))
         })?;
 
         let status = response.status();
@@ -243,17 +249,26 @@ impl ModelDownloader {
         let mut stream = response.bytes_stream();
         while let Some(chunk) = stream.next().await {
             let chunk = chunk.map_err(|e| {
-                axagent_harness::core_error::AxAgentError::ModelDownload(format!("Read response: {}", e))
+                axagent_harness::core_error::AxAgentError::ModelDownload(format!(
+                    "Read response: {}",
+                    e
+                ))
             })?;
             file.write_all(&chunk).await.map_err(|e| {
-                axagent_harness::core_error::AxAgentError::ModelDownload(format!("Write temp file: {}", e))
+                axagent_harness::core_error::AxAgentError::ModelDownload(format!(
+                    "Write temp file: {}",
+                    e
+                ))
             })?;
         }
 
         tokio::fs::rename(&tmp_path, &model_path)
             .await
             .map_err(|e| {
-                axagent_harness::core_error::AxAgentError::ModelDownload(format!("Rename temp file: {}", e))
+                axagent_harness::core_error::AxAgentError::ModelDownload(format!(
+                    "Rename temp file: {}",
+                    e
+                ))
             })?;
 
         // SHA256 完整性校验
@@ -336,10 +351,12 @@ impl ModelDownloader {
     /// 计算文件的 SHA256 哈希（流式读取，避免一次性加载到内存）
     pub fn sha256_file(path: &Path) -> Result<String> {
         use sha2::{Digest, Sha256};
-        let file = std::fs::File::open(path).map_err(axagent_harness::core_error::AxAgentError::Io)?;
+        let file =
+            std::fs::File::open(path).map_err(axagent_harness::core_error::AxAgentError::Io)?;
         let mut reader = std::io::BufReader::new(file);
         let mut hasher = Sha256::new();
-        std::io::copy(&mut reader, &mut hasher).map_err(axagent_harness::core_error::AxAgentError::Io)?;
+        std::io::copy(&mut reader, &mut hasher)
+            .map_err(axagent_harness::core_error::AxAgentError::Io)?;
         Ok(hex::encode(hasher.finalize()))
     }
 }

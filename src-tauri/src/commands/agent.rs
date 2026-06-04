@@ -640,7 +640,7 @@ fn build_streaming_api_client(
                     text: text.clone(),
                 },
             );
-        }
+        },
         AssistantEvent::ThinkingDelta(thinking) => {
             let _ = stream_app.emit(
                 "agent-stream-thinking",
@@ -650,7 +650,7 @@ fn build_streaming_api_client(
                     thinking: thinking.clone(),
                 },
             );
-        }
+        },
         AssistantEvent::ToolUse { id, name, input } => {
             let _ = stream_app.emit(
                 "agent-tool-use",
@@ -663,7 +663,7 @@ fn build_streaming_api_client(
                     execution_id: None,
                 },
             );
-        }
+        },
         AssistantEvent::PromptCache(evt) => {
             let _ = stream_app.emit(
                 "prompt-cache-event",
@@ -676,8 +676,8 @@ fn build_streaming_api_client(
                     token_drop: evt.token_drop,
                 },
             );
-        }
-        _ => {}
+        },
+        _ => {},
     }))
 }
 

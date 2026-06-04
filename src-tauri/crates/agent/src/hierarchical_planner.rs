@@ -5,8 +5,8 @@ type TaskCallback = Box<dyn Fn(&str, &PlannedTask) + Send + Sync>;
 
 // 纯数据 DTO 通过 axagent-harness 定义，保持类型统一
 pub use axagent_harness::plan_types::{
-    Phase, PhaseStatus, Plan, PlanStatus, PlanVersion,
-    PlannedTask, ReplanAction, ReplanReason, TaskStatus,
+    Phase, PhaseStatus, Plan, PlanStatus, PlanVersion, PlannedTask, ReplanAction, ReplanReason,
+    TaskStatus,
 };
 
 /// 计划进度（独立于 core-types，字段不同）
@@ -880,8 +880,6 @@ impl HierarchicalPlanner {
         Ok(())
     }
 }
-
-
 
 pub struct PlanBuilder {
     goal: String,

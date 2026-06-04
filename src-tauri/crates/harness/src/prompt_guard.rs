@@ -37,7 +37,12 @@ impl PromptGuard for NoopPromptGuard {
         Ok(input.to_string())
     }
 
-    fn process_external_data(&self, content: &str, _source_label: &str, _source_id: &str) -> String {
+    fn process_external_data(
+        &self,
+        content: &str,
+        _source_label: &str,
+        _source_id: &str,
+    ) -> String {
         content.to_string()
     }
 }
@@ -49,14 +54,8 @@ mod tests {
     #[test]
     fn noop_passes_through() {
         let guard = NoopPromptGuard;
-        assert_eq!(
-            guard.process_user_input("hello world").unwrap(),
-            "hello world"
-        );
-        assert_eq!(
-            guard.process_external_data("data", "rag", "kb-1"),
-            "data"
-        );
+        assert_eq!(guard.process_user_input("hello world").unwrap(), "hello world");
+        assert_eq!(guard.process_external_data("data", "rag", "kb-1"), "data");
     }
 
     #[test]

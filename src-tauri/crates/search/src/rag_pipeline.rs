@@ -1,12 +1,12 @@
 use sea_orm::DatabaseConnection;
 
-use axagent_harness::core_error::Result;
 use crate::hybrid_search::HybridSearchResult;
 use crate::rag::{self, AsyncEmbedFn};
 use crate::reranker::{self, RerankPipeline};
 use crate::self_rag::{RetrievalQuality, SelfRagGate};
-use axagent_harness::types::*;
 use crate::vector_store::VectorStore;
+use axagent_harness::core_error::Result;
+use axagent_harness::types::*;
 
 /// RAG 管线 —— 编排 检索 → 重排序 → 质检
 pub struct RAGPipeline {

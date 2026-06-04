@@ -3,9 +3,9 @@
 //! 所有 LLM 提供商适配器必须实现 `ProviderAdapter` trait。
 //! `ProviderRequestContext` 是每次调用携带的上下文。
 
-use async_trait::async_trait;
 use crate::core_error::Result;
 use crate::types::*;
+use async_trait::async_trait;
 use futures::Stream;
 use std::pin::Pin;
 use std::sync::Arc;

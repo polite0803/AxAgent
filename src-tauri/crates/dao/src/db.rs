@@ -6,11 +6,11 @@ use sea_orm::{
 };
 use tracing::info;
 
+use crate::repo::provider;
 use axagent_entities::providers;
 use axagent_harness::core_error::Result;
 use axagent_harness::types::*;
 use axagent_harness::util_fns::now_ts;
-use crate::repo::provider;
 
 // 再导出 sea-orm 的连接类型，使 axagent-harness 可以基于此定义 Persistence trait，
 // 消费者（agent/tools/runtime）只需 `use axagent_harness::DatabaseConnection`，

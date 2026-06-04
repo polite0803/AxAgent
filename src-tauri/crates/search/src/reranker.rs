@@ -2,8 +2,8 @@ use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
-use axagent_harness::InferenceEngine;
 use crate::hybrid_search::HybridSearchResult;
+use axagent_harness::InferenceEngine;
 
 // ── Config ──────────────────────────────────────────────────
 

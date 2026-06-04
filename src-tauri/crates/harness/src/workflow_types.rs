@@ -618,11 +618,12 @@ fn deserialize_tool_defs<'de, D: serde::Deserializer<'de>>(
                             description: None,
                             parameters: None,
                         });
-                    }
+                    },
                     val => {
-                        let tool: ToolDef = serde_json::from_value(val).map_err(de::Error::custom)?;
+                        let tool: ToolDef =
+                            serde_json::from_value(val).map_err(de::Error::custom)?;
                         tools.push(tool);
-                    }
+                    },
                 }
             }
             Ok(tools)
@@ -1306,4 +1307,3 @@ pub struct ValidationResult {
     pub errors: Vec<ValidationError>,
     pub warnings: Vec<ValidationWarning>,
 }
-

@@ -103,11 +103,12 @@ impl RuntimeHarness {
             axagent_rt_messaging::message_gateway::platform_manager::PlatformManager,
         >,
     ) -> Arc<axagent_rt_messaging::message_gateway::platform_bridge::PlatformBridge> {
-        let mut bridge = axagent_rt_messaging::message_gateway::platform_bridge::PlatformBridge::new(
-            self.persistence.connection().clone(),
-            self.master_key,
-            platform_manager,
-        );
+        let mut bridge =
+            axagent_rt_messaging::message_gateway::platform_bridge::PlatformBridge::new(
+                self.persistence.connection().clone(),
+                self.master_key,
+                platform_manager,
+            );
         use axagent_harness::HasProviderRegistry;
         bridge.set_provider_registry(self.provider_registry.clone());
         Arc::new(bridge)

@@ -96,7 +96,9 @@ impl InferenceEngine {
             .spawn(move || {
                 worker_main(&gguf, &tok, kind, kind_label, receiver);
             })
-            .map_err(|e| axagent_harness::core_error::AxAgentError::Inference(format!("spawn thread: {}", e)))?;
+            .map_err(|e| {
+                axagent_harness::core_error::AxAgentError::Inference(format!("spawn thread: {}", e))
+            })?;
 
         let mut workers = self.workers.write().await;
         workers.insert(filename, Arc::new(WorkerHandle { sender, kind }));
@@ -120,9 +122,12 @@ impl InferenceEngine {
                         documents: documents.to_vec(),
                         reply: tx,
                     })
-                    .map_err(|e| axagent_harness::core_error::AxAgentError::Inference(format!("send: {}", e)))?;
-                rx.await
-                    .map_err(|_| axagent_harness::core_error::AxAgentError::Inference("worker down".into()))?
+                    .map_err(|e| {
+                        axagent_harness::core_error::AxAgentError::Inference(format!("send: {}", e))
+                    })?;
+                rx.await.map_err(|_| {
+                    axagent_harness::core_error::AxAgentError::Inference("worker down".into())
+                })?
             },
             _ => Ok(heuristic_rerank(query, documents)),
         }
@@ -139,9 +144,12 @@ impl InferenceEngine {
                         chunk_content: chunk.to_string(),
                         reply: tx,
                     })
-                    .map_err(|e| axagent_harness::core_error::AxAgentError::Inference(format!("send: {}", e)))?;
-                rx.await
-                    .map_err(|_| axagent_harness::core_error::AxAgentError::Inference("worker down".into()))?
+                    .map_err(|e| {
+                        axagent_harness::core_error::AxAgentError::Inference(format!("send: {}", e))
+                    })?;
+                rx.await.map_err(|_| {
+                    axagent_harness::core_error::AxAgentError::Inference("worker down".into())
+                })?
             },
             _ => Ok(heuristic_judge(query, chunk)),
         }
@@ -310,10 +318,9 @@ fn candle_judge(m: &CandleModel, query: &str, chunk: &str) -> Result<JudgeOutput
     );
 
     let dev = Device::Cpu;
-    let enc = m
-        .tokenizer
-        .encode(prompt, true)
-        .map_err(|e| axagent_harness::core_error::AxAgentError::Inference(format!("tokenize: {}", e)))?;
+    let enc = m.tokenizer.encode(prompt, true).map_err(|e| {
+        axagent_harness::core_error::AxAgentError::Inference(format!("tokenize: {}", e))
+    })?;
     let ids = enc.get_ids();
     let mut input = c!(c!(Tensor::new(ids, &dev)).unsqueeze(0));
     let mut model = m.model.clone();
@@ -331,10 +338,9 @@ fn candle_judge(m: &CandleModel, query: &str, chunk: &str) -> Result<JudgeOutput
         input = c!(Tensor::cat(&[&input, &tok], 1));
     }
 
-    let out = m
-        .tokenizer
-        .decode(&tokens, false)
-        .map_err(|e| axagent_harness::core_error::AxAgentError::Inference(format!("decode: {}", e)))?;
+    let out = m.tokenizer.decode(&tokens, false).map_err(|e| {
+        axagent_harness::core_error::AxAgentError::Inference(format!("decode: {}", e))
+    })?;
     let is_yes = out.to_uppercase().contains("YES");
 
     Ok(JudgeOutput {

@@ -38,10 +38,10 @@ pub mod marketplace_service;
 pub mod plan_compiler;
 pub mod preset_templates;
 pub mod prompts;
+pub mod screen_vision;
 pub mod secure_store;
 pub mod skill_dirs;
 pub mod slash_command;
-pub mod screen_vision;
 
 #[cfg(not(target_os = "android"))]
 pub mod workflow_version;

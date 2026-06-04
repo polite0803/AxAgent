@@ -2344,8 +2344,6 @@ pub struct MarketplaceCategory {
     pub skill_count: i64,
 }
 
-
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PromptTemplate {

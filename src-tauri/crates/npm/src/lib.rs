@@ -18,7 +18,10 @@ impl HarnessNpmRegistryService for NpmRegistry {
         version: Option<&str>,
         dest: &Path,
     ) -> Result<(), String> {
-        let info = self.fetch_package_info(name).await.map_err(|e| e.to_string())?;
+        let info = self
+            .fetch_package_info(name)
+            .await
+            .map_err(|e| e.to_string())?;
         let ver = NpmRegistry::resolve_version(&info, version).map_err(|e| e.to_string())?;
         self.download_and_extract(&ver.dist, dest)
             .await

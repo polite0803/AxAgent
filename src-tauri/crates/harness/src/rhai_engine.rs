@@ -34,9 +34,7 @@ pub trait RhaiEngineAdapter: fmt::Debug + Send + Sync {
 /// Rhai 可调用工具函数
 ///
 /// 签名：`(工具名, JSON参数) -> Result<JSON结果, 错误信息>`
-pub type RhaiToolFn = Arc<
-    dyn Fn(String, JsonValue) -> Result<JsonValue, String> + Send + Sync,
->;
+pub type RhaiToolFn = Arc<dyn Fn(String, JsonValue) -> Result<JsonValue, String> + Send + Sync>;
 
 /// 空实现 — 总是失败（Rhai 引擎未配置）
 #[derive(Debug)]

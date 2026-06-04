@@ -328,4 +328,3 @@ impl AutoMemoryExtractor {
         Ok(applied)
     }
 }
-

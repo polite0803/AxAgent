@@ -493,4 +493,3 @@ pub struct BatchAnalysis {
     pub top_patterns: Vec<PatternStat>,
     pub quality_distribution: QualityDistribution,
 }
-

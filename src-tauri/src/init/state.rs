@@ -146,7 +146,9 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState, Strin
         axagent_runtime::harness::RuntimeHarness::new(axagent_runtime::harness::HarnessDeps {
             persistence: Arc::new(db_handle) as axagent_harness::SharedPersistence,
             master_key,
-            provider_registry: Arc::new(axagent_providers::registry::ProviderRegistry::create_default())
+            provider_registry: Arc::new(
+                axagent_providers::registry::ProviderRegistry::create_default(),
+            )
                 as Arc<dyn axagent_harness::registry::ProviderRegistry>,
         });
     let harness_registry = harness.provider_registry().clone();

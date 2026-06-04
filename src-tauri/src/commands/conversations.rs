@@ -5064,7 +5064,8 @@ mod tests_conversation {
                     master_key: [0; 32],
                     provider_registry: Arc::new(
                         axagent_providers::registry::ProviderRegistry::create_default(),
-                    ) as Arc<dyn axagent_harness::registry::ProviderRegistry>,
+                    )
+                        as Arc<dyn axagent_harness::registry::ProviderRegistry>,
                 },
             ),
             tot_sessions: Arc::new(tokio::sync::Mutex::new(HashMap::new())),

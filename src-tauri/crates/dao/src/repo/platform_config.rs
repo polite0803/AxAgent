@@ -1,7 +1,7 @@
 use sea_orm::DatabaseConnection;
 
-use axagent_harness::platform_config::PlatformConfig;
 use crate::repo::settings;
+use axagent_harness::platform_config::PlatformConfig;
 
 pub async fn get_platform_config(db: &DatabaseConnection) -> PlatformConfig {
     settings::get_setting(db, "platform_config")

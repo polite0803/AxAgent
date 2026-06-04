@@ -1,8 +1,8 @@
 use sea_orm::DatabaseConnection;
 use tracing::warn;
 
-use axagent_harness::core_error::Result;
 use crate::repo::settings;
+use axagent_harness::core_error::Result;
 
 // ── Builtin group definitions ───────────────────────────────────────────
 //

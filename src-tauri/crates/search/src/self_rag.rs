@@ -126,11 +126,17 @@ impl SelfRagGate {
             .send()
             .await
             .map_err(|e| {
-                axagent_harness::core_error::AxAgentError::Provider(format!("Ollama refine query failed: {}", e))
+                axagent_harness::core_error::AxAgentError::Provider(format!(
+                    "Ollama refine query failed: {}",
+                    e
+                ))
             })?;
 
         let data: serde_json::Value = resp.json().await.map_err(|e| {
-            axagent_harness::core_error::AxAgentError::Provider(format!("Parse refine response: {}", e))
+            axagent_harness::core_error::AxAgentError::Provider(format!(
+                "Parse refine response: {}",
+                e
+            ))
         })?;
 
         Ok(data["response"].as_str().unwrap_or(original).to_string())
@@ -161,7 +167,10 @@ async fn judge_single(
         .send()
         .await
         .map_err(|e| {
-            axagent_harness::core_error::AxAgentError::Provider(format!("Ollama judge request failed: {}", e))
+            axagent_harness::core_error::AxAgentError::Provider(format!(
+                "Ollama judge request failed: {}",
+                e
+            ))
         })?;
 
     let data: serde_json::Value = resp.json().await.map_err(|e| {
