@@ -23,7 +23,7 @@ use crate::work_engine::node_executor_trait::{
     NodeError, NodeExecutorTrait, NodeOutput, error_code,
 };
 use crate::work_engine::prompt_template::{
-    CompiledPrompt, TemplateSegment, compile_prompt, render_prompt,
+    CompiledPrompt, DomainConstraintsFn, TemplateSegment, compile_prompt, render_prompt,
 };
 
 // 缓存类型（pub(crate) 供 WorkEngine 引用）
@@ -126,6 +126,15 @@ pub struct AgentExecutor {
     /// 由 Harness 注入的 ProviderRegistry（构造时一次性注入，运行期不可变）
     /// Option 仅用于 self::empty() 默认构造；WorkEngine::new 路径下必为 Some。
     provider_registry: Option<Arc<dyn axagent_harness::registry::ProviderRegistry>>,
+    /// 领域约束注入回调（可选，None 时不注入任何约束，行为与现状完全一致）。
+    ///
+    /// 由主 binary 在 `inject_into_agent_executor` 中调用 `set_domain_constraints`
+    /// 注册。回调参数是 role name（如 "stock-analyst"），返回 head/tail 约束块。
+    ///
+    /// **当前 4a-4f 段拼装逻辑尚未消费该字段**——仅作为扩展点暴露，
+    /// 行为完全向后兼容。后续领域 PR（如 stock-analysis 迁移）可在 4a/4f 处
+    /// 通过 `self.domain_constraints.as_ref().map(|f| f(role_name))` 注入。
+    domain_constraints: Option<DomainConstraintsFn>,
 }
 
 impl AgentExecutor {
@@ -145,6 +154,7 @@ impl AgentExecutor {
             default_provider_cache: Arc::new(Mutex::new(None)),
             profile_cache: Arc::new(Mutex::new(HashMap::new())),
             provider_registry: None,
+            domain_constraints: None,
         }
     }
 
@@ -191,6 +201,19 @@ impl AgentExecutor {
     pub fn with_rag_callback(self, cb: RagCallback) -> Self {
         self.set_rag_callback(Some(cb));
         self
+    }
+
+    /// 设置领域约束注入回调。
+    ///
+    /// 行为契约：
+    /// - 默认 `None` → 不注入任何领域约束，4a-4f 段拼装结果与改造前完全一致
+    /// - 注册后 → 后续 PR 可在 4a/4f 处消费 `self.domain_constraints`
+    ///   自行决定是否调用、何时调用（primacy head 在 4a 之前、recency tail 在 4f 之后）
+    ///
+    /// 纯 API 扩展点，不修改现有 4a-4f 段拼装逻辑。stock-analysis 等领域
+    /// 后续 PR 自行迁移 STOCK_HARD_CONSTRAINTS / STOCK_COLLAB_REMINDER 常量。
+    pub fn set_domain_constraints(&mut self, f: DomainConstraintsFn) {
+        self.domain_constraints = Some(f);
     }
 
     /// 构造使用共享缓存的 executor（WorkEngine 内部使用，跨执行复用缓存）。

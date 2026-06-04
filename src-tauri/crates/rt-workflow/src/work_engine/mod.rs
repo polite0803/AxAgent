@@ -21,4 +21,8 @@ pub use executors::{
 };
 pub use node_executor::NodeExecutor;
 pub use node_executor_trait::{NodeError, NodeExecutorTrait, NodeOutput};
-pub use prompt_template::{CompiledPrompt, TemplateRenderError, compile_prompt, render_prompt};
+pub use prompt_template::{
+    CompiledPrompt, ConstraintBlocks, DomainConstraintsFn, INLINE_SCOPE_MARKER,
+    TemplateRenderError, TemplateRequest, assemble_template, compile_prompt, render_prompt,
+    wrap_with_anchors,
+};
