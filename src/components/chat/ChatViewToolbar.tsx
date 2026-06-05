@@ -28,7 +28,6 @@ import { type DropdownItem, DropdownMenu } from "@/components/layout/DropdownMen
 import { Tooltip } from "@/components/layout/Tooltip";
 import { formatDuration, formatSpeed, formatTokenCount } from "../gateway/tokenFormat";
 import { ExpertBadge } from "./ExpertBadge";
-import { GatewaySessionBadge } from "./GatewaySessionBadge";
 import { AgentProfileSelect } from "./InputArea";
 import { ModelSelector } from "./ModelSelector";
 import { WorkflowBadge } from "./WorkflowBadge";
@@ -451,15 +450,6 @@ export function ChatViewToolbar({
                 />
               </>
             )}
-            {activeConversation?.mode === "gateway" && (
-              <GatewaySessionBadge
-                platform={(() => {
-                  const m = activeConversation.title.match(/^\[(\w+)\]/);
-                  return m ? m[1] : "";
-                })()}
-              />
-            )}
-
             <div className="flex-1" />
 
             <Tooltip

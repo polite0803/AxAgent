@@ -72,7 +72,6 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { CategoryManagerModal } from "./CategoryManagerModal";
-import { GatewaySessionBadge } from "./GatewaySessionBadge";
 
 function getDateGroup(timestamp: number): string {
   const now = new Date();
@@ -740,14 +739,6 @@ export function ChatSidebar({
                 }}
               />
             )}
-            {conv.mode === "gateway" && (
-              <GatewaySessionBadge
-                platform={(() => {
-                  const m = conv.title.match(/^\[(\w+)\]/);
-                  return m ? m[1] : "";
-                })()}
-              />
-            )}
             <Pin
               size={12}
               style={{ color: token.colorTextQuaternary, flexShrink: 0 }}
@@ -766,14 +757,6 @@ export function ChatSidebar({
                   animation: "spin 1s linear infinite",
                   color: token.colorTextQuaternary,
                 }}
-              />
-            )}
-            {conv.mode === "gateway" && (
-              <GatewaySessionBadge
-                platform={(() => {
-                  const m = conv.title.match(/^\[(\w+)\]/);
-                  return m ? m[1] : "";
-                })()}
               />
             )}
           </span>

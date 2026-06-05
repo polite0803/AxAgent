@@ -9,7 +9,6 @@ import { useTranslation } from "react-i18next";
 import { ModuleErrorBoundary } from "@/components/layout/ModuleErrorBoundary";
 import { useResolvedDarkMode } from "@/hooks/useResolvedDarkMode";
 import { invoke, logIpcError } from "@/lib/invoke";
-import { estimateTokens } from "@/lib/tokenEstimator";
 import {
   setupAgentEventListeners,
   setupDreamEventListeners,
@@ -31,10 +30,8 @@ import { useTopicGroupStore } from "@/stores/feature/topicGroupStore";
 
 import { registerHighlight } from "stream-markdown";
 
-import { ContextPredictionPanel } from "../proactive/ContextPredictionPanel";
 import { PrefetchIndicator } from "../proactive/PrefetchIndicator";
 import { ProactiveSuggestionBar } from "../proactive/ProactiveSuggestionBar";
-import { ReminderList } from "../proactive/ReminderList";
 import { AgentProgressBar } from "./AgentProgressBar";
 import { AgentStatsPanel } from "./AgentStatsPanel";
 import { BreadcrumbBar } from "./BreadcrumbBar";
@@ -49,8 +46,6 @@ import { ChatMinimap, MinimapScrollProvider } from "./ChatMinimap";
 import { ChatScrollIndicator } from "./ChatScrollIndicator";
 import { CodeBlockPreviewModal } from "./CodeBlockPreviewModal";
 import { ContextBar, estimateConversationTokens } from "./ContextBar";
-import { ContextClassificationBar } from "./ContextClassificationBar";
-import type { ContextSegment } from "./ContextClassificationBar";
 import { ContextGraphPanel } from "./ContextGraphPanel";
 import { ExpertSelector } from "./ExpertSelector";
 import { ExtractMemoriesModal } from "./ExtractMemoriesModal";
@@ -455,70 +450,6 @@ function ChatViewInner({
     )
     : 0;
 
-  const [showTokenDetail, setShowTokenDetail] = useState(false);
-
-  const classificationSegments = useMemo<ContextSegment[]>(() => {
-    const segments: ContextSegment[] = [
-      {
-        key: "messages",
-        labelKey: "chat.context.messages",
-        tokens: tokenUsed,
-        color: token.colorPrimary,
-      },
-    ];
-
-    const systemPrompt = activeConversation?.system_prompt;
-    if (systemPrompt) {
-      segments.push({
-        key: "system_prompt",
-        labelKey: "chat.context.systemPrompt",
-        tokens: estimateTokens(systemPrompt),
-        color: token.colorSuccess,
-      });
-    }
-
-    const knowledgeCount = activeConversation?.enabled_knowledge_base_ids?.length ?? 0;
-    if (knowledgeCount > 0) {
-      segments.push({
-        key: "knowledge",
-        labelKey: "chat.context.knowledge",
-        tokens: knowledgeCount * 500,
-        color: "var(--orange, #fa8c16)",
-      });
-    }
-
-    const memoryCount = activeConversation?.enabled_memory_namespace_ids?.length ?? 0;
-    if (memoryCount > 0) {
-      segments.push({
-        key: "memory",
-        labelKey: "chat.context.memory",
-        tokens: memoryCount * 200,
-        color: "var(--magenta, #eb2f96)",
-      });
-    }
-
-    if (actions.toolCount > 0) {
-      segments.push({
-        key: "tools",
-        labelKey: "chat.context.tools",
-        tokens: actions.toolCount * 200,
-        color: "var(--purple, #722ed1)",
-      });
-    }
-
-    const skillCount = activeConversation?.enabled_skill_ids?.length ?? 0;
-    if (skillCount > 0) {
-      segments.push({
-        key: "skills",
-        labelKey: "chat.context.skills",
-        tokens: skillCount * 300,
-        color: "var(--cyan, #13c2c2)",
-      });
-    }
-
-    return segments;
-  }, [tokenUsed, activeConversation, actions.toolCount, token.colorPrimary, token.colorSuccess]);
-
   return (
     <div className="ax-cyber-grid flex flex-col h-full min-h-0">
       <StreamingStyles />
@@ -563,14 +494,6 @@ function ChatViewInner({
           memoryEnabled={(activeConversation?.enabled_memory_namespace_ids?.length ?? 0) > 0}
           tokenUsed={tokenUsed > 0 ? tokenUsed : undefined}
           tokenMax={contextBarModel.maxTokens}
-          onTokenClick={() => setShowTokenDetail((v) => !v)}
-        />
-      )}
-
-      {showTokenDetail && classificationSegments.length > 0 && (
-        <ContextClassificationBar
-          segments={classificationSegments}
-          maxTokens={contextBarModel?.maxTokens}
         />
       )}
 
@@ -757,7 +680,6 @@ function ChatViewInner({
         </div>
       )}
       <ProactiveSuggestionBar />
-      <ProactivePanelsSection context={buildChatContext()} />
 
       {activeConversation?.mode === "agent" && activeConversationId && (
         <div className="flex flex-col" style={{ gap: 2 }}>
@@ -984,33 +906,6 @@ function PlanCardWrapper({ conversationId }: { conversationId: string }) {
   return (
     <div style={{ padding: "8px 16px" }}>
       <PlanCard plan={plan} conversationId={conversationId} />
-    </div>
-  );
-}
-
-function ProactivePanelsSection({
-  context,
-}: {
-  context: Record<string, unknown>;
-}) {
-  const { t } = useTranslation();
-  const proactiveMode = useAppConfigStore((s) => s.features.proactiveMode);
-
-  if (!proactiveMode) {
-    return null;
-  }
-
-  return (
-    <div className="border-b border-border px-4 py-2">
-      <details className="group">
-        <summary className="cursor-pointer text-xs text-muted-foreground hover:text-foreground select-none">
-          {t("chat.proactiveInsights")}
-        </summary>
-        <div className="mt-2 space-y-2">
-          <ContextPredictionPanel context={context} />
-          <ReminderList />
-        </div>
-      </details>
     </div>
   );
 }

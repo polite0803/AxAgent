@@ -19,7 +19,7 @@ interface ProviderState {
   deleteProvider: (id: string) => Promise<void>;
   toggleProvider: (id: string, enabled: boolean) => Promise<void>;
   reorderProviders: (providerIds: string[]) => Promise<void>;
-  addProviderKey: (providerId: string, rawKey: string) => Promise<void>;
+  addProviderKey: (providerId: string, rawKey: string) => Promise<ProviderKey>;
   updateProviderKey: (keyId: string, rawKey: string) => Promise<void>;
   deleteProviderKey: (keyId: string) => Promise<void>;
   toggleProviderKey: (keyId: string, enabled: boolean) => Promise<void>;
@@ -143,6 +143,7 @@ export const useProviderStore = create<ProviderState>((set) => ({
         providers: s.providers.map((p) => p.id === providerId ? { ...p, keys: [...p.keys, key] } : p),
         error: null,
       }));
+      return key;
     } catch (e) {
       set({ error: String(e) });
       throw e;

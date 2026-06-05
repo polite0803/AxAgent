@@ -7,25 +7,19 @@ import { useConversationStore, useRightPanelStore, useSettingsStore } from "@/st
 import { useCacheStore } from "@/stores/feature/cacheStore";
 import {
   BarChart3,
-  Bug,
   Camera,
   ChevronDown,
   ChevronUp,
   Eye,
   FileSearch,
   FileText,
-  FolderGit2,
-  Gauge,
   GitBranch,
   Globe,
   Image,
   Layers,
   LayoutList,
-  ListFilter,
-  Microscope,
   Monitor,
   Search,
-  Share2,
   Sparkles,
   User,
   Users,
@@ -61,32 +55,23 @@ class TabErrorBoundary extends Component<
     return this.props.children;
   }
 }
+
 import { AgentExecutionPanel } from "./AgentExecutionPanel";
 import { AgentHierarchyTree } from "./AgentHierarchyTree";
 import { ArtifactPanel } from "./ArtifactPanel";
-import { BenchmarkPanel } from "./BenchmarkPanel";
-import { BranchComparePanel } from "./BranchComparePanel";
 import { BrowserAutomationPanel } from "./BrowserAutomationPanel";
 import { CacheIndicator } from "./CacheIndicator";
 import { ChartInterpreter } from "./ChartInterpreter";
 import { ChatInspector } from "./ChatInspector";
 import { getChatCodeThemes } from "./ChatMarkdownNodes";
 import { CitationManager, CitationStats } from "./CitationManager";
-import { CodeExecutorPanel } from "./CodeExecutorPanel";
-import { CollaborationPanel } from "./CollaborationPanel";
 import { ComputerControlPanel } from "./ComputerControlPanel";
-import { ContextClassificationBar } from "./ContextClassificationBar";
-import { ErrorRecoveryPanel } from "./ErrorRecoveryPanel";
 import { EvolutionSidebar } from "./EvolutionSidebar";
-import { GatewaySessionBadge } from "./GatewaySessionBadge";
-import { GitCommitPanel } from "./GitCommitPanel";
 import { ImageAnalysisPanel } from "./ImageAnalysisPanel";
 import { ImageGenPanel } from "./ImageGenPanel";
 import { ReflectionPanel } from "./ReflectionPanel";
 import { ReportViewer } from "./ReportViewer";
-import { ResearchPanel } from "./ResearchPanel";
 import { ResearchSources } from "./ResearchSources";
-import { SessionShareDialog } from "./SessionShareDialog";
 import { SteerInput } from "./SteerInput";
 import { TaskPanel } from "./TaskPanel";
 import { TeammatePanel } from "./TeammatePanel";
@@ -173,14 +158,6 @@ export function RightPanelContainer({
         ),
       },
       {
-        key: "code",
-        icon: <Icon icon="fluent:code-20-filled" size={ICON} />,
-        labelKey: "chatRightPanel.code",
-        category: "core",
-        shouldRender: true,
-        render: () => <CodeExecutorPanel />,
-      },
-      {
         key: "artifact",
         icon: <Icon icon="fluent:color-20-filled" size={ICON} />,
         labelKey: "chatRightPanel.artifact",
@@ -240,22 +217,6 @@ export function RightPanelContainer({
         category: "agent",
         shouldRender: isAgent,
         render: () => <AgentHierarchyTree conversationId={conversationId} />,
-      },
-      {
-        key: "research",
-        icon: <Microscope size={ICON} />,
-        labelKey: "chatRightPanel.research",
-        category: "agent",
-        shouldRender: isAgent,
-        render: () => <ResearchPanel />,
-      },
-      {
-        key: "git",
-        icon: <FolderGit2 size={ICON} />,
-        labelKey: "chatRightPanel.git",
-        category: "agent",
-        shouldRender: isAgent,
-        render: () => <GitCommitPanel />,
       },
       {
         key: "task",
@@ -321,14 +282,6 @@ export function RightPanelContainer({
         render: () => <ComputerControlPanel />,
       },
       {
-        key: "benchmark",
-        icon: <Gauge size={ICON} />,
-        labelKey: "chatRightPanel.benchmark",
-        category: "extra",
-        shouldRender: true,
-        render: () => <BenchmarkPanel />,
-      },
-      {
         key: "chart",
         icon: <BarChart3 size={ICON} />,
         labelKey: "chatRightPanel.chart",
@@ -363,22 +316,6 @@ export function RightPanelContainer({
         render: () => <UserProfilePanel />,
       },
       {
-        key: "errorRecovery",
-        icon: <Bug size={ICON} />,
-        labelKey: "chatRightPanel.errorRecovery",
-        category: "extra",
-        shouldRender: true,
-        render: () => <ErrorRecoveryPanel />,
-      },
-      {
-        key: "collaboration",
-        icon: <Share2 size={ICON} />,
-        labelKey: "chatRightPanel.collaboration",
-        category: "extra",
-        shouldRender: true,
-        render: () => <CollaborationPanel conversationId={conversationId} />,
-      },
-      {
         key: "evolution",
         icon: <Sparkles size={ICON} />,
         labelKey: "chatRightPanel.evolution",
@@ -395,22 +332,6 @@ export function RightPanelContainer({
         render: () => <SteerInput conversationId={conversationId} />,
       },
       {
-        key: "gateway",
-        icon: <Share2 size={ICON} />,
-        labelKey: "chatRightPanel.gateway",
-        category: "extra",
-        shouldRender: false,
-        render: () => <GatewaySessionBadge platform="" />,
-      },
-      {
-        key: "contextClass",
-        icon: <ListFilter size={ICON} />,
-        labelKey: "chatRightPanel.contextClass",
-        category: "extra",
-        shouldRender: false,
-        render: () => <ContextClassificationBar segments={[]} maxTokens={0} />,
-      },
-      {
         key: "reflection",
         icon: <Eye size={ICON} />,
         labelKey: "chatRightPanel.reflection",
@@ -419,48 +340,12 @@ export function RightPanelContainer({
         render: () => <ReflectionPanel />,
       },
       {
-        key: "branchCompare",
-        icon: <GitBranch size={ICON} />,
-        labelKey: "chatRightPanel.branchCompare",
-        category: "extra",
-        shouldRender: true,
-        render: () => (
-          <BranchComparePanel
-            isDarkMode={isDarkMode}
-            codeBlockDarkTheme={codeThemes.darkTheme}
-            codeBlockLightTheme={codeThemes.lightTheme}
-            codeBlockThemes={codeThemes.themes}
-          />
-        ),
-      },
-      {
         key: "researchSources",
         icon: <Search size={ICON} />,
         labelKey: "chatRightPanel.researchSources",
         category: "extra",
         shouldRender: panelResearchSources.length > 0,
         render: () => <ResearchSources sources={panelResearchSources} />,
-      },
-      {
-        key: "sessionShare",
-        icon: <Share2 size={ICON} />,
-        labelKey: "chatRightPanel.sessionShare",
-        category: "extra",
-        shouldRender: false,
-        render: () => (
-          <SessionShareDialog
-            open={false}
-            sessionId={conversationId}
-            onClose={() => {}}
-            permissions={{
-              allow_terminal_access: false,
-              allow_file_access: false,
-              allow_model_access: false,
-              require_approval_for_actions: true,
-              max_participants: 5,
-            }}
-          />
-        ),
       },
     ];
 

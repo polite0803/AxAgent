@@ -338,6 +338,35 @@ pub async fn toggle_provider(db: &DatabaseConnection, id: &str, enabled: bool) -
     Ok(())
 }
 
+/// 检查 provider 是否还有有效 key（enabled + last_validated_at 不为空 + last_error 为空），
+/// 如果没有且 provider 为启用状态，则自动禁用 provider。
+async fn auto_disable_provider_if_no_valid_keys(
+    db: &DatabaseConnection,
+    provider_id: &str,
+) -> Result<()> {
+    let valid_key_count = provider_keys::Entity::find()
+        .filter(provider_keys::Column::ProviderId.eq(provider_id))
+        .filter(provider_keys::Column::Enabled.eq(1))
+        .filter(provider_keys::Column::LastValidatedAt.is_not_null())
+        .filter(provider_keys::Column::LastError.is_null())
+        .count(db)
+        .await?;
+
+    if valid_key_count == 0 {
+        // 没有有效 key，自动禁用 provider
+        if let Some(row) = providers::Entity::find_by_id(provider_id).one(db).await? {
+            if row.enabled != 0 {
+                let mut am: providers::ActiveModel = row.into();
+                am.enabled = Set(0);
+                am.updated_at = Set(now_ts());
+                am.update(db).await?;
+            }
+        }
+    }
+
+    Ok(())
+}
+
 // --- Provider Key CRUD ---
 
 pub async fn reorder_providers(db: &DatabaseConnection, provider_ids: &[String]) -> Result<()> {
@@ -432,11 +461,21 @@ pub async fn update_provider_key(
 }
 
 pub async fn delete_provider_key(db: &DatabaseConnection, key_id: &str) -> Result<()> {
-    let result = provider_keys::Entity::delete_by_id(key_id).exec(db).await?;
+    // 先查询 key 获取所属 provider_id
+    let key = provider_keys::Entity::find_by_id(key_id)
+        .one(db)
+        .await?
+        .ok_or_else(|| AxAgentError::NotFound(format!("ProviderKey {}", key_id)))?;
+    let provider_id = key.provider_id.clone();
 
+    let result = provider_keys::Entity::delete_by_id(key_id).exec(db).await?;
     if result.rows_affected == 0 {
         return Err(AxAgentError::NotFound(format!("ProviderKey {}", key_id)));
     }
+
+    // 删除 key 后检查 provider 是否还有有效 key，没有则自动禁用
+    auto_disable_provider_if_no_valid_keys(db, &provider_id).await?;
+
     Ok(())
 }
 
@@ -450,9 +489,15 @@ pub async fn toggle_provider_key(
         .await?
         .ok_or_else(|| AxAgentError::NotFound(format!("ProviderKey {}", key_id)))?;
 
+    let provider_id = row.provider_id.clone();
     let mut am: provider_keys::ActiveModel = row.into();
     am.enabled = Set(if enabled { 1 } else { 0 });
     am.update(db).await?;
+
+    // 禁用 key 后检查 provider 是否还有有效 key，没有则自动禁用
+    if !enabled {
+        auto_disable_provider_if_no_valid_keys(db, &provider_id).await?;
+    }
 
     Ok(())
 }

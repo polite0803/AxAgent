@@ -8,17 +8,11 @@ import { Button, Space } from "antd";
 import { useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 
-interface SkillToolbarProps {
-  position: "left" | "right";
-}
-
-export function SkillToolbar({ position }: SkillToolbarProps) {
+export function SkillToolbar() {
   const toolbarButtons = useSkillExtensionStore((s) => s.toolbarButtons);
   const navigate = useNavigate();
 
-  const buttons = toolbarButtons
-    .filter((b) => b.position === position)
-    .sort((a, b) => a.priority - b.priority);
+  const buttons = [...toolbarButtons].sort((a, b) => a.priority - b.priority);
 
   if (buttons.length === 0) {
     return null;

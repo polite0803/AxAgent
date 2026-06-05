@@ -230,9 +230,10 @@
       "modeDisabledDesc": "不使用 MCP 工具"
     },
     "mode": {
-      "ask": "Ask",
-      "plan": "Plan",
-      "action": "Action"
+      "ask": "问答",
+      "plan": "计划",
+      "action": "执行",
+      "title": "切换模式"
     },
     "connector": {
       "title": "连接器",

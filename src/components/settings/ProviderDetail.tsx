@@ -481,13 +481,26 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
       return;
     }
     try {
-      await addProviderKey(providerId, keyValue);
+      const key = await addProviderKey(providerId, keyValue);
       setKeyValue("");
       setAddKeyModal(false);
+      // 添加 key 后自动验证，避免用户手动点验证才能启用 provider
+      if (key?.id) {
+        try {
+          const valid = await validateProviderKey(key.id);
+          if (valid) {
+            message.success(t("settings.keyValidSuccess"));
+          } else {
+            message.error(t("settings.keyInvalidError"));
+          }
+        } catch (e) {
+          message.error(t("error.keyValidationFailed") + ": " + String(e));
+        }
+      }
     } catch {
       message.error(t("error.saveFailed"));
     }
-  }, [keyValue, providerId, addProviderKey, message, t]);
+  }, [keyValue, providerId, addProviderKey, validateProviderKey, message, t]);
 
   const handleValidateKey = useCallback(
     async (keyId: string) => {

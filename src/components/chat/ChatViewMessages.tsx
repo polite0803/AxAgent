@@ -109,7 +109,6 @@ import { Tooltip } from "@/components/layout/Tooltip";
 import { formatDuration, formatSpeed, formatTokenCount } from "../gateway/tokenFormat";
 import { AskUserCard } from "./AskUserCard";
 import { AttachmentPreview } from "./AttachmentPreview";
-import { BranchCompareDialog } from "./BranchCompareDialog";
 import { AssistantMarkdown, getChatCodeThemes, THINKING_LOADING_MARKER } from "./ChatMarkdownNodes";
 import { getStreamingLoadingState, shouldRenderAssistantMarkdownFromContent } from "./chatStreaming";
 import { DeleteLastVersionPopover } from "./DeleteLastVersionPopover";
@@ -132,11 +131,6 @@ function AssistantFooter({
   displayMode,
   onDisplayModeChange,
   onMultiModelDetected,
-  isDarkMode,
-  codeBlockDarkTheme,
-  codeBlockLightTheme,
-  codeBlockThemes,
-  codeFontFamily,
 }: {
   msg: Message;
   conversationId: string;
@@ -179,7 +173,6 @@ function AssistantFooter({
   const branchConversation = useConversationStore((s) => s.branchConversation);
   const { copy: copyAssistant, isCopied: assistantCopied } = useCopyToClipboard();
   const [branchModalOpen, setBranchModalOpen] = useState(false);
-  const [compareOpen, setCompareOpen] = useState(false);
   const [branchAsChild] = useState(false);
   const [branchTitle, setBranchTitle] = useState("");
   const currentConvTitle = useConversationStore(
@@ -437,32 +430,6 @@ function AssistantFooter({
                   </Tooltip>
                 ),
               },
-              ...(mergedVersions.length >= 2
-                ? [
-                  {
-                    key: "compare",
-                    actionRender: () => (
-                      <Tooltip title={t("chat.branch.compare")}>
-                        <span
-                          className="axagent-action-item"
-                          role="button"
-                          tabIndex={0}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter" || e.key === " ") {
-                              e.preventDefault();
-                              setCompareOpen(true);
-                            }
-                          }}
-                          style={{ color: token.colorTextSecondary }}
-                          onClick={() => setCompareOpen(true)}
-                        >
-                          <ArrowLeftRight size={14} />
-                        </span>
-                      </Tooltip>
-                    ),
-                  },
-                ]
-                : []),
               {
                 key: "delete",
                 actionRender: () => {
@@ -571,16 +538,6 @@ function AssistantFooter({
           }}
         />
       </Modal>
-      <BranchCompareDialog
-        open={compareOpen}
-        onClose={() => setCompareOpen(false)}
-        versions={mergedVersions}
-        isDarkMode={isDarkMode}
-        codeBlockDarkTheme={codeBlockDarkTheme}
-        codeBlockLightTheme={codeBlockLightTheme}
-        codeBlockThemes={codeBlockThemes}
-        codeFontFamily={codeFontFamily}
-      />
     </div>
   );
 }

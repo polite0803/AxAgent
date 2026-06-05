@@ -6,7 +6,6 @@ import { message } from "antd";
 import { create } from "zustand";
 
 const CUSTOM_ROLES_KEY = "axagent_custom_expert_roles";
-const BUILTIN_IMPORTED_KEY = "axagent_builtin_experts_imported";
 
 /** 将内置预设中的 nameKey/descKey 解析为 name/description */
 function resolvePreset(
@@ -25,23 +24,10 @@ function resolvePreset(
   } as AgentProfile;
 }
 
-// 默认仅载入通用助手，完整的 12 个开发专家预设不强制加载。
-// 用户可通过专家管理页"导入内置专家"按钮，一次性导入全部 12 个预设。
+// 默认仅载入通用助手。
 // resolvePreset 调用 i18n.t()，必须在运行时延迟调用，不能在模块顶层执行。
 function getMinimalBuiltin(): AgentProfile[] {
   return BUILTIN_EXPERT_PRESETS.flatMap((p) => p.id === "general-assistant" ? [resolvePreset(p)] : []);
-}
-
-function loadBuiltinRoles(): AgentProfile[] {
-  try {
-    const imported = localStorage.getItem(BUILTIN_IMPORTED_KEY);
-    if (imported === "true") {
-      return BUILTIN_EXPERT_PRESETS.map(resolvePreset);
-    }
-  } catch {
-    /* ignore */
-  }
-  return getMinimalBuiltin();
 }
 
 function loadCustomRoles(): AgentProfile[] {
@@ -187,13 +173,6 @@ interface ExpertState {
   removeCustomRole: (id: string) => void;
   exportCustomRoles: () => string;
   importCustomRoles: (json: string) => { count: number; errors: string[] };
-
-  /** 是否已导入全部内置专家 */
-  hasFullBuiltinPresets: () => boolean;
-  /** 导入全部 12 个内置专家预设 */
-  importBuiltinPresets: () => void;
-  /** 移除除通用助手外的内置专家 */
-  removeBuiltinPresets: () => void;
 }
 
 export const useExpertStore = create<ExpertState>((set, get) => ({
@@ -208,7 +187,7 @@ export const useExpertStore = create<ExpertState>((set, get) => ({
   getAllRoles: () => {
     // 延迟加载：首次访问时加载内置角色（i18n 此时已就绪）
     if (!get()._builtinLoaded) {
-      set({ builtinRoles: loadBuiltinRoles(), _builtinLoaded: true });
+      set({ builtinRoles: getMinimalBuiltin(), _builtinLoaded: true });
     }
     const general = get().builtinRoles.find(
       (r) => r.id === "general-assistant",
@@ -420,23 +399,5 @@ export const useExpertStore = create<ExpertState>((set, get) => ({
         errors: [i18n.t("expertStore.jsonParseError", { error: String(e) })],
       };
     }
-  },
-
-  hasFullBuiltinPresets: () => {
-    try {
-      return localStorage.getItem(BUILTIN_IMPORTED_KEY) === "true";
-    } catch {
-      return false;
-    }
-  },
-
-  importBuiltinPresets: () => {
-    localStorage.setItem(BUILTIN_IMPORTED_KEY, "true");
-    set({ builtinRoles: BUILTIN_EXPERT_PRESETS.map(resolvePreset) });
-  },
-
-  removeBuiltinPresets: () => {
-    localStorage.removeItem(BUILTIN_IMPORTED_KEY);
-    set({ builtinRoles: getMinimalBuiltin() });
   },
 }));

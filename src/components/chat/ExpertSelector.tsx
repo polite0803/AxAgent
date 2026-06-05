@@ -35,8 +35,6 @@ export function ExpertSelector({
   const removeCustomRole = useExpertStore((s) => s.removeCustomRole);
   const updateCustomRole = useExpertStore((s) => s.updateCustomRole);
   const exportCustomRoles = useExpertStore((s) => s.exportCustomRoles);
-  const importBuiltinPresets = useExpertStore((s) => s.importBuiltinPresets);
-  const hasFullBuiltinPresets = useExpertStore((s) => s.hasFullBuiltinPresets);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [importPath, setImportPath] = useState("");
@@ -431,33 +429,6 @@ export function ExpertSelector({
           onClick={handleExportCustom}
           title={t("expertSelector.exportCustom")}
         />
-        {!hasFullBuiltinPresets()
-          ? (
-            <Button
-              size="small"
-              type="primary"
-              ghost
-              icon={<Plus size={14} />}
-              onClick={() => {
-                importBuiltinPresets();
-                app.message.success(t("expertSelector.builtinImported"));
-              }}
-              title={t("expertSelector.importBuiltin")}
-            >
-              {t("expertSelector.importBuiltinBtn")}
-            </Button>
-          )
-          : (
-            <Button
-              size="small"
-              type="text"
-              disabled
-              icon={<Check size={14} />}
-              title={t("expertSelector.builtinAlreadyImported")}
-            >
-              {t("expertSelector.builtinImportedLabel")}
-            </Button>
-          )}
       </div>
 
       {/* Import section */}
