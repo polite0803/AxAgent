@@ -30,8 +30,8 @@
     },
     {
       "file": "src/components/chat/ChatView.tsx",
-      "lines": "278,279,280,281,283,284,290,291,298,299,305,315",
-      "reason": "硬编码中文字符串",
+      "lines": "275,276,277,296",
+      "reason": "硬编码中文字符串（关键字匹配规则）",
       "phase": 3
     },
     {
@@ -1068,6 +1068,12 @@
       "file": "src/stores/__tests__/workflowEditorStore.test.ts",
       "lines": "543,549",
       "reason": "测试 mock 数据标签",
+      "phase": 3
+    },
+    {
+      "file": "src/components/chat/InputArea.tsx",
+      "lines": "3142,3162,3165,3178",
+      "reason": "MCP 连接器输入框占位文本（示例用英文）",
       "phase": 3
     }
   ]
