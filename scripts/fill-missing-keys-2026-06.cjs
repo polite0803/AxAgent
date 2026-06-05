@@ -41,11 +41,11 @@ const zhDefined = new Set(getAllKeys(zhCN));
 // Walk source files
 function walk(dir, out = []) {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-    if (entry.name === "node_modules" || entry.name === "dist" || entry.name === "build") continue;
-    if (entry.name === "i18n" && dir === SRC) continue;
+    if (entry.name === "node_modules" || entry.name === "dist" || entry.name === "build") { continue; }
+    if (entry.name === "i18n" && dir === SRC) { continue; }
     const full = path.join(dir, entry.name);
-    if (entry.isDirectory()) walk(full, out);
-    else if (/\.(tsx?|jsx?)$/.test(entry.name)) out.push(full);
+    if (entry.isDirectory()) { walk(full, out); }
+    else if (/\.(tsx?|jsx?)$/.test(entry.name)) { out.push(full); }
   }
   return out;
 }
@@ -59,8 +59,7 @@ const PATTERNS = [
   [/i18nKey\s*=\s*(['"])([^'"\n]{2,}?)\1/g, 2],
 ];
 
-const isDynamic = (key) =>
-  /\$\{/.test(key) || /\+\s*['"`]/.test(key) || /\?\s*['"`]/.test(key);
+const isDynamic = (key) => /\$\{/.test(key) || /\+\s*['"`]/.test(key) || /\?\s*['"`]/.test(key);
 
 // Multi-line t-call: t("foo", { defaultValue: "bar" })
 // Match across continuation lines is complex; we just look at the same line.
@@ -69,7 +68,7 @@ const DEFAULT_VAL_RE = /defaultValue\s*:\s*(['"])([^'"\n]+?)\1/;
 // Convert a key path to a sensible English value
 function keyToEnglish(key) {
   const last = key.split(".").pop();
-  if (!last) return key;
+  if (!last) { return key; }
   // snake_case → words
   let s = last.replace(/_/g, " ");
   // camelCase / PascalCase → words
@@ -418,14 +417,14 @@ for (const file of walk(SRC)) {
   const lines = text.split(/\r?\n/);
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
-    if (/^\s*(\/\/|\*|\/\*)/.test(line)) continue;
+    if (/^\s*(\/\/|\*|\/\*)/.test(line)) { continue; }
     for (const [re, keyIdx] of PATTERNS) {
       re.lastIndex = 0;
       let m;
       while ((m = re.exec(line)) !== null) {
         const key = m[keyIdx];
-        if (!key || isDynamic(key) || !key.includes(".")) continue;
-        if (!used.has(key)) used.set(key, null);
+        if (!key || isDynamic(key) || !key.includes(".")) { continue; }
+        if (!used.has(key)) { used.set(key, null); }
         // Try to extract defaultValue from this call
         const dv = line.match(DEFAULT_VAL_RE);
         if (dv && dv[2]) {
@@ -442,7 +441,7 @@ function setNested(obj, dottedKey, value) {
   const parts = dottedKey.split(".");
   let cur = obj;
   for (let i = 0; i < parts.length - 1; i++) {
-    if (!cur[parts[i]] || typeof cur[parts[i]] !== "object") cur[parts[i]] = {};
+    if (!cur[parts[i]] || typeof cur[parts[i]] !== "object") { cur[parts[i]] = {}; }
     cur = cur[parts[i]];
   }
   cur[parts[parts.length - 1]] = value;
@@ -479,8 +478,8 @@ function getRootFromKey(obj, key) {
   const parts = key.split(".");
   let cur = obj;
   for (const p of parts) {
-    if (cur && typeof cur === "object" && p in cur) cur = cur[p];
-    else return null;
+    if (cur && typeof cur === "object" && p in cur) { cur = cur[p]; }
+    else { return null; }
   }
   return cur;
 }
