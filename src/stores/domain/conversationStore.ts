@@ -94,6 +94,7 @@ export interface ConversationState {
       categoryId?: string | null;
       scenario?: string | null;
       mode?: string;
+      work_strategy?: string;
       agent_profile_id?: string;
       workflow_template_id?: string;
       system_prompt?: string;
