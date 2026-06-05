@@ -86,7 +86,8 @@ cargo-check-output.txt
 eslint.config.js
 .check-i18n-tmp-*
 
-# Design prototypes (local only)
+# Generated scripts
+*.mjs
 axagent-design-prototype.html
 axagent-design-prototype.html.artifact.json
 axagent-layout-v2.html
