@@ -354,13 +354,13 @@ async fn auto_disable_provider_if_no_valid_keys(
 
     if valid_key_count == 0 {
         // 没有有效 key，自动禁用 provider
-        if let Some(row) = providers::Entity::find_by_id(provider_id).one(db).await? {
-            if row.enabled != 0 {
-                let mut am: providers::ActiveModel = row.into();
-                am.enabled = Set(0);
-                am.updated_at = Set(now_ts());
-                am.update(db).await?;
-            }
+        if let Some(row) = providers::Entity::find_by_id(provider_id).one(db).await?
+            && row.enabled != 0
+        {
+            let mut am: providers::ActiveModel = row.into();
+            am.enabled = Set(0);
+            am.updated_at = Set(now_ts());
+            am.update(db).await?;
         }
     }
 
