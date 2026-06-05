@@ -23,11 +23,11 @@ const allDefined = new Set(getAllKeys(enUS));
 
 function walk(dir, out = []) {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-    if (entry.name === "node_modules" || entry.name === "dist" || entry.name === "build") continue;
-    if (entry.name === "i18n" && dir === SRC) continue;
+    if (entry.name === "node_modules" || entry.name === "dist" || entry.name === "build") { continue; }
+    if (entry.name === "i18n" && dir === SRC) { continue; }
     const full = path.join(dir, entry.name);
-    if (entry.isDirectory()) walk(full, out);
-    else if (/\.(tsx?|jsx?)$/.test(entry.name)) out.push(full);
+    if (entry.isDirectory()) { walk(full, out); }
+    else if (/\.(tsx?|jsx?)$/.test(entry.name)) { out.push(full); }
   }
   return out;
 }
@@ -49,15 +49,16 @@ const PATTERNS = [
 ];
 
 const isDynamic = (key) =>
-  /\$\{/.test(key) ||
-  /\+\s*['"`]/.test(key) ||
-  /\?\s*['"`]/.test(key);
+  /\$\{/.test(key)
+  || /\+\s*['"`]/.test(key)
+  || /\?\s*['"`]/.test(key);
 
 const used = new Map();
 function record(key, file, line) {
-  if (!key || isDynamic(key)) return;
-  if (!key.includes(".")) return; // skip bare words like t("ok")
-  if (!used.has(key)) used.set(key, []);
+  if (!key || isDynamic(key)) { return; }
+  if (!key.includes(".")) { return; // skip bare words like t("ok")
+   }
+  if (!used.has(key)) { used.set(key, []); }
   used.get(key).push({ file, line });
 }
 
@@ -67,7 +68,7 @@ for (const file of files) {
   const lines = text.split(/\r?\n/);
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
-    if (/^\s*(\/\/|\*|\/\*)/.test(line)) continue;
+    if (/^\s*(\/\/|\*|\/\*)/.test(line)) { continue; }
     for (const [re, keyIdx] of PATTERNS) {
       re.lastIndex = 0;
       let m;
@@ -80,7 +81,7 @@ for (const file of files) {
 
 const missing = [];
 for (const [key, refs] of used) {
-  if (!allDefined.has(key)) missing.push({ key, refs });
+  if (!allDefined.has(key)) { missing.push({ key, refs }); }
 }
 missing.sort((a, b) => a.key.localeCompare(b.key));
 
@@ -97,24 +98,32 @@ if (missing.length === 0) {
     for (const r of refs.slice(0, 5)) {
       console.log(`    ${r.file}:${r.line}`);
     }
-    if (refs.length > 5) console.log(`    ...and ${refs.length - 5} more`);
+    if (refs.length > 5) { console.log(`    ...and ${refs.length - 5} more`); }
     console.log("");
   }
 }
 
 // Also output JSON for machine processing (only if --json or argv[2] is given)
 const writeJson = process.argv.includes("--json") || (process.argv[2] && !process.argv[2].startsWith("--"));
-const jsonOut = (process.argv.find(a => !a.startsWith("--") && a !== process.argv[0] && a !== process.argv[1])) || "audit_result.json";
+const jsonOut = (process.argv.find(a => !a.startsWith("--") && a !== process.argv[0] && a !== process.argv[1]))
+  || "audit_result.json";
 if (writeJson) {
-  fs.writeFileSync(jsonOut, JSON.stringify({
-    usedCount: used.size,
-    definedCount: allDefined.size,
-    missingCount: missing.length,
-    missing: missing.map(({ key, refs }) => ({
-      key,
-      count: refs.length,
-      refs: refs.map(r => `${r.file}:${r.line}`),
-    })),
-  }, null, 2));
+  fs.writeFileSync(
+    jsonOut,
+    JSON.stringify(
+      {
+        usedCount: used.size,
+        definedCount: allDefined.size,
+        missingCount: missing.length,
+        missing: missing.map(({ key, refs }) => ({
+          key,
+          count: refs.length,
+          refs: refs.map(r => `${r.file}:${r.line}`),
+        })),
+      },
+      null,
+      2,
+    ),
+  );
   console.log(`\nWrote ${jsonOut}`);
 }
