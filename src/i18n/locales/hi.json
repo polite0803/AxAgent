@@ -334,7 +334,7 @@
       "dagVisualization": "DAG विज़ुअलाइज़ेशन",
       "dagHint": "DAG को विज़ुअलाइज़ करने के लिए इस Mermaid कोड को Mermaid रेंडरर में पेस्ट करें।",
       "listView": "सूची",
-      "dagView": "DAG",
+      "dagView": "DAG दृश्य",
       "viewOutput": "अंतिम आउटपुट",
       "outputCopied": "आउटपुट क्लिपबोर्ड पर कॉपी किया गया",
       "stepStatus": "स्थिति:",
@@ -697,7 +697,10 @@
       "cancelled": "रद्द किया गया",
       "cancelFailed": "रद्द करने में विफल",
       "cancel": "रद्द करें",
-      "noSteps": "कोई चरण नहीं"
+      "noSteps": "कोई चरण नहीं",
+      "chart": {
+        "renderError": "चार्ट रेंडर त्रुटि"
+      }
     },
     "modelRoutingConfig": {
       "title": "मॉडल रूटिंग कॉन्फ़िगरेशन",
@@ -868,7 +871,9 @@
         "copyFailed": "कॉपी विफल",
         "joinFailed": "शामिल होना विफल",
         "maxParticipants": "अधिकतम प्रतिभागी",
-        "joinSuccess": "सफलतापूर्वक शामिल हुए"
+        "joinSuccess": "सफलतापूर्वक शामिल हुए",
+        "createFailed": "साझा करना बनाने में विफल",
+        "updateFailed": "साझा करना अपडेट करने में विफल"
       },
       "sharedResources": "साझा संसाधन",
       "title": "सहयोग"
@@ -1107,7 +1112,22 @@
     },
     "proactiveInsights": "सक्रिय अंतर्दृष्टि और अनुस्मारक",
     "steerSent": "स्टीयरिंग निर्देश भेजा गया",
-    "steerError": "स्टीयरिंग निर्देश भेजने में विफल"
+    "steerError": "स्टीयरिंग निर्देश भेजने में विफल",
+    "connector": {
+      "add": "कनेक्टर जोड़ें",
+      "custom": "कस्टम कनेक्टर",
+      "goConfig": "सेटिंग्स पर जाएँ →",
+      "noServers": "कृपया पहले कनेक्टर जोड़ें या सक्षम करें",
+      "title": "कनेक्टर"
+    },
+    "error": "चैट त्रुटि",
+    "loadError": "लोड करने में विफल",
+    "mode": {
+      "action": "एक्शन",
+      "ask": "प्रश्न",
+      "plan": "योजना",
+      "title": "मोड बदलें"
+    }
   },
   "gateway": {
     "title": "गेटवे",
@@ -1243,7 +1263,8 @@
     "connectedTools": "जुड़े हुए उपकरण",
     "tab": {
       "monitor": "मॉनिटर"
-    }
+    },
+    "cacheHitTokens": "कैश हिट टोकन"
   },
   "settings": {
     "title": "सेटिंग्स",
@@ -2526,6 +2547,10 @@
     },
     "notificationCenter": {
       "title": "सूचनाएं"
+    },
+    "provider": {
+      "deepseekBalance": "DeepSeek शेष",
+      "noValidKey": "कोई मान्य कुंजी नहीं"
     }
   },
   "backup": {
@@ -2859,7 +2884,9 @@
     "imageUrl": "छवि URL",
     "emoji": "इमोजी",
     "urlPlaceholder": "छवि URL दर्ज करें",
-    "profileTab": "प्रोफ़ाइल"
+    "profileTab": "प्रोफ़ाइल",
+    "prefKey": "प्राथमिकता कुंजी",
+    "prefValue": "प्राथमिकता मान"
   },
   "files": {
     "images": "छवियाँ",
@@ -3129,7 +3156,7 @@
     "tokens": "टोकन",
     "pending": "लंबित",
     "tool": "tool(s)",
-    "session": "session(s)",
+    "session": "सत्र",
     "resume": "फिर से शुरू करें",
     "pause": "रोकें",
     "loading": "लोड हो रहा है...",
@@ -3274,7 +3301,7 @@
     "configureBackends": "बैकएंड कॉन्फ़िगर करें...",
     "noSessions": "कोई टर्मिनल सत्र नहीं",
     "errorsCount": "{{count}} त्रुटि(याँ)",
-    "ok": "OK",
+    "ok": "ठीक है",
     "dockerConnectPending": "Docker कनेक्ट लंबित",
     "sshConnectPending": "SSH कनेक्ट लंबित",
     "newTerminal": "नया टर्मिनल",
@@ -3496,7 +3523,7 @@
       "details": "विवरण",
       "duration": "अवधि",
       "error": "त्रुटि",
-      "id": "ID",
+      "id": "आईडी",
       "ingest": "इनजेस्ट",
       "lint": "लिंट",
       "noOperations": "कोई संक्रिया नहीं",
@@ -3555,14 +3582,7 @@
     "searchPlaceholder": "Wiki खोजें...",
     "selectWiki": "विकी चुनें",
     "selectWikiPrompt": "कृपया एक Wiki चुनें",
-    "source": {
-      "chunks": "चंक्स",
-      "deleteNotImplemented": "Delete not implemented",
-      "path": "पथ",
-      "status": "स्थिति",
-      "title": "Source",
-      "type": "प्रकार"
-    },
+    "source": "स्रोत",
     "sources": "स्रोत",
     "sync": {
       "byWiki": "Wiki अनुसार",
@@ -3679,7 +3699,23 @@
     "quickCapture": "Quick Capture",
     "refresh": "रीफ़्रेश",
     "startImport": "Start Import",
-    "vaultPath": "Vault Path"
+    "vaultPath": "Vault Path",
+    "ingestSource": {
+      "chunks": "चंक्स",
+      "deleteNotImplemented": "हटाना अभी लागू नहीं",
+      "path": "पथ",
+      "status": "स्थिति",
+      "title": "शीर्षक",
+      "type": "प्रकार"
+    },
+    "wikiForm": {
+      "description": "विवरण",
+      "name": "नाम",
+      "rootPath": "रूट पथ"
+    },
+    "wikiMeta": {
+      "rootPath": "रूट पथ"
+    }
   },
   "quickbar": {
     "title": "क्विकबार",
@@ -3816,37 +3852,57 @@
       "explanation": "व्याख्या",
       "replaceConfirmTitle": "प्रतिस्थापन की पुष्टि करें",
       "replaceConfirmContent": "वर्तमान कैनवास में {{nodes}} नोड और {{edges}} किनारे हैं। जनरेशन सभी को बदल देगा। जारी रखें?",
-      "actionGenerateWorkflow": "Generate Workflow",
-      "actionAddNodes": "Add Node(s)",
-      "actionModifyNode": "Update Node",
-      "actionDeleteNodes": "Delete Node(s)",
-      "actionAddEdge": "Add Edge",
-      "actionUpdateEdge": "Update Edge",
-      "actionDeleteEdge": "Delete Edge",
-      "actionOptimizePrompt": "Optimize Prompt",
-      "actionApply": "Apply",
-      "actionApplyAll": "Review {{count}} changes",
+      "actionGenerateWorkflow": "वर्कफ़्लो बनाएँ",
+      "actionAddNodes": "नोड्स जोड़ें",
+      "actionModifyNode": "नोड अपडेट करें",
+      "actionDeleteNodes": "नोड्स हटाएँ",
+      "actionAddEdge": "किनारा जोड़ें",
+      "actionUpdateEdge": "किनारा अपडेट करें",
+      "actionDeleteEdge": "किनारा हटाएँ",
+      "actionOptimizePrompt": "प्रॉम्प्ट अनुकूलित करें",
+      "actionApply": "लागू करें",
+      "actionApplyAll": "{{count}} परिवर्तन समीक्षा करें",
       "diffPreview": {
-        "title": "AI Edit Preview",
-        "subtitle": "Please review these {{count}} changes before applying to your workflow",
-        "before": "Before",
-        "after": "After",
-        "apply": "Apply this",
-        "applyAll": "Apply All",
-        "cancel": "Cancel",
-        "applied": "Applied",
-        "appliedHint": "Applied {{count}} / {{total}} in this session",
-        "empty": "No changes to preview",
-        "promptLength": "Prompt length: {{from}} → {{to}} chars",
-        "noBefore": "(new item, no prior content)",
-        "noAfter": "(deletion, no new content)",
-        "noChanges": "No field changes",
-        "applyFailed": "Apply failed",
-        "applyAllFailed": "Apply All failed",
-        "rollbackBatch": "Rollback Batch",
-        "rollbackSuccess": "Batch rolled back",
-        "rollbackTip": "Undo the entire batch of AI changes"
-      }
+        "title": "AI संपादन पूर्वावलोकन",
+        "subtitle": "वर्कफ़्लो पर लागू करने से पहले इन {{count}} परिवर्तनों की समीक्षा करें",
+        "before": "पहले",
+        "after": "बाद में",
+        "apply": "इसे लागू करें",
+        "applyAll": "सभी लागू करें",
+        "cancel": "रद्द करें",
+        "applied": "लागू किया गया",
+        "appliedHint": "इस सत्र में {{count}} / {{total}} लागू",
+        "empty": "पूर्वावलोकन के लिए कोई परिवर्तन नहीं",
+        "promptLength": "प्रॉम्प्ट लंबाई: {{from}} → {{to}} वर्ण",
+        "noBefore": "(नया आइटम, कोई पूर्व सामग्री नहीं)",
+        "noAfter": "(हटाया गया, कोई नई सामग्री नहीं)",
+        "noChanges": "कोई फ़ील्ड परिवर्तन नहीं",
+        "applyFailed": "लागू करने में विफल",
+        "applyAllFailed": "सभी लागू करने में विफल",
+        "rollbackBatch": "बैच रोलबैक",
+        "rollbackSuccess": "बैच रोलबैक किया गया",
+        "rollbackTip": "AI परिवर्तनों के पूरे बैच को पूर्ववत करें",
+        "deleted": "— हटाया —",
+        "deletedCount": "— {{count}} हटाए —",
+        "edgeNotFound": "किनारा नहीं मिला",
+        "newNodes": "{{count}} नए नोड",
+        "nodeNotFound": "नोड नहीं मिला",
+        "nodesEdgesLabel": "{{nodes}} नोड / {{edges}} किनारे"
+      },
+      "applyToNode": "नोड पर लागू करें",
+      "chatMode": "चैट मोड",
+      "chatPlaceholder": "संदेश दर्ज करें…",
+      "chatWelcome": "नमस्ते, मैं आपका AI सहायक हूँ।",
+      "chatWelcomeHint": "वर्कफ़्लो या नोड कॉन्फ़िग के बारे में पूछें।",
+      "dragCanvasToAdd": "कैनवास पर खींचें",
+      "dragHintUpdated": "कैनवास प्रॉम्प्ट से अपडेट हुआ",
+      "fillFromSelectedNode": "चयनित नोड से भरें",
+      "generateMergeBtn": "मर्ज जेनरेट",
+      "mergeMode": "मर्ज मोड",
+      "promptAppliedToNode": "प्रॉम्प्ट नोड पर लागू",
+      "replaceMode": "बदलें मोड",
+      "retry": "पुनः प्रयास",
+      "toolsMode": "टूल मोड"
     },
     "previewInDevelopment": "पूर्वावलोकन सुविधा विकास में है",
     "publishInDevelopment": "प्रकाशन सुविधा विकास में है",
@@ -3864,7 +3920,7 @@
       "copy": "कॉपी",
       "uploadJsonFile": "JSON फ़ाइल अपलोड करें",
       "dragOrClickUpload": "अपलोड करने के लिए क्लिक करें या फ़ाइल यहां खींचें",
-      "or": "or",
+      "or": "या",
       "pasteJsonData": "JSON डेटा पेस्ट करें",
       "pasteJsonPlaceholder": "टेम्पलेट JSON डेटा पेस्ट करें...",
       "importTemplate": "टेम्पलेट आयात",
@@ -3941,7 +3997,10 @@
       "loadThisVersion": "यह संस्करण लोड करें",
       "currentVersion": "वर्तमान संस्करण",
       "version": "संस्करण {{version}}",
-      "loading": "संस्करण लोड हो रहा है..."
+      "loading": "संस्करण लोड हो रहा है...",
+      "compare": "तुलना",
+      "compareVersions": "वर्ज़न तुलना",
+      "noChanges": "कोई परिवर्तन नहीं"
     },
     "versionHistoryLoadFailed": "संस्करण इतिहास लोड करने में विफल",
     "versionLoaded": "संस्करण{{version}} loaded",
@@ -4020,7 +4079,7 @@
       "selectContextSources": "संदर्भ स्रोत चुनें...",
       "prompt": "प्रॉम्प्ट",
       "promptPlaceholder": "अपना प्रॉम्प्ट दर्ज करें...",
-      "temperatureHint": "0: Deterministic ↑ | 2: Random ↑",
+      "temperatureHint": "0: निर्धारकता ↑ | 2: यादृच्छिकता ↑",
       "loopType": "लूप प्रकार",
       "loopForEach": "🔁 ForEach",
       "loopWhile": "⏳ While",
@@ -4170,8 +4229,8 @@
       "clickToAddMapping": "इनपुट मैपिंग बनाने के लिए \"जोड़ें\" पर क्लिक करें",
       "language": "भाषा",
       "codeInputOutputHint": "(इनपुट: input, आउटपुट: return)",
-      "defaultCodeJsComment": "// Input: input\n// Return value will be stored in output_var",
-      "defaultCodePythonComment": "# Input: input\n# Return value will be stored in output_var",
+      "defaultCodeJsComment": "// Input: input\n// रिटर्न मान output_var में सहेजा जाता है",
+      "defaultCodePythonComment": "# Input: input\n# रिटर्न मान output_var में सहेजा जाता है",
       "codeInputParams": "इनपुट पैरामीटर: input",
       "codeReturnHint": "वापसी मान output_var में संग्रहीत किया जाएगा",
       "roleCoordinator": "",
@@ -4197,26 +4256,67 @@
       "aggregationRace": "रेस",
       "aggregationMajority": "बहुमत",
       "aggregationHint": "एकाधिक समानांतर शाखाओं से परिणामों को एकत्रित करने का तरीका",
-      "url": "url",
-      "method": "method",
-      "timeout": "timeout",
-      "bodyType": "bodyType",
-      "body": "body",
-      "headers": "headers",
-      "addHeader": "addHeader",
-      "headerKey": "headerKey",
-      "headerValue": "headerValue",
-      "selectTemplate": "Select Template",
-      "searchTemplate": "Search template...",
-      "noTemplates": "No templates found",
-      "ragSourceIdsCount": "RAG Sources ({{count}})",
-      "ragSourceIdsPlaceholder": "Enter or select knowledge source IDs...",
-      "ragSourceIdsHint": "Format: knowledge:<kb_id>, memory:<ns_id>, wiki:<wiki_id>",
-      "modelRole": "Model Role",
-      "modelRolePlaceholder": "Auto (use model field)",
-      "modelRoleQuickThink": "⚡ Quick Think",
-      "modelRoleDeepThink": "🧠 Deep Think",
-      "modelRoleHint": "Preset role overrides model when set; lower priority than explicit model field."
+      "url": "URL",
+      "method": "विधि",
+      "timeout": "टाइमआउट",
+      "bodyType": "बॉडी प्रकार",
+      "body": "बॉडी",
+      "headers": "हेडर",
+      "addHeader": "हेडर जोड़ें",
+      "headerKey": "हेडर कुंजी",
+      "headerValue": "हेडर मान",
+      "selectTemplate": "टेम्पलेट चुनें",
+      "searchTemplate": "टेम्पलेट खोजें…",
+      "noTemplates": "कोई टेम्पलेट नहीं मिला",
+      "ragSourceIdsCount": "RAG स्रोत ({{count}})",
+      "ragSourceIdsPlaceholder": "ज्ञान स्रोत ID दर्ज या चुनें…",
+      "ragSourceIdsHint": "प्रारूप: knowledge:<kb_id>, memory:<ns_id>, wiki:<wiki_id>",
+      "modelRole": "मॉडल भूमिका",
+      "modelRolePlaceholder": "ऑटो (model फ़ील्ड का उपयोग करें)",
+      "modelRoleQuickThink": "⚡ त्वरित चिंतन",
+      "modelRoleDeepThink": "🧠 गहन चिंतन",
+      "modelRoleHint": "प्रीसेट भूमिका मॉडल को ओवरराइड करती है, लेकिन स्पष्ट model फ़ील्ड से कम प्राथमिकता रखती है।",
+      "addCase": "केस जोड़ें",
+      "aggregationAny": "कोई परिणाम",
+      "aiGenerate": "AI जेनरेट",
+      "autoInputFromParent": "पैरेंट से ऑटो-इनपुट",
+      "autoInputFromParentHint": "चालू होने पर, पैरेंट के आउटपुट बच्चे के इनपुट बन जाते हैं।",
+      "autoInputsFromBranches": "शाखाओं से ऑटो-इनपुट",
+      "autoInputsFromBranchesHint": "चालू होने पर, शाखाओं के आउटपुट बच्चे के इनपुट बन जाते हैं।",
+      "availableTools": "उपलब्ध टूल",
+      "cases": "केस",
+      "codeTemplates": "कोड टेम्पलेट",
+      "connectInputsManually": "इनपुट मैन्युअल जोड़ें",
+      "connection": "डेटा स्रोत",
+      "defaultConnection": "डिफ़ॉल्ट डेटा स्रोत",
+      "editExpertPrompt": "एक्सपर्ट प्रॉम्प्ट संपादित",
+      "editRolePrompt": "भूमिका प्रॉम्प्ट संपादित",
+      "emailToPlaceholder": "user@example.com",
+      "hideTools": "टूल छिपाएँ",
+      "inputVarPlaceholder": "node_id.field",
+      "llmRouting": "LLM रूटिंग",
+      "matchMode": "मैच मोड",
+      "maxDelayMs": "अधिकतम विलंब (ms)",
+      "mergeAny": "किसी को मर्ज",
+      "mergeMajority": "बहुमत मर्ज",
+      "mergeRace": "रेस मर्ज",
+      "noToolsAvailable": "कोई टूल नहीं",
+      "promptSaveFailed": "प्रॉम्प्ट सेव विफल",
+      "promptSaved": "प्रॉम्प्ट सेव हुआ",
+      "resetTimeoutHint": "टाइमआउट रीसेट",
+      "retryEnabled": "पुनः प्रयास सक्षम",
+      "routingModel": "रूटिंग मॉडल",
+      "routingModelPlaceholder": "रूटिंग मॉडल चुनें",
+      "routingPrompt": "रूटिंग प्रॉम्प्ट",
+      "routingPromptPlaceholder": "रूटिंग लॉजिक बताएँ",
+      "showTools": "टूल दिखाएँ",
+      "subject": "विषय",
+      "switchInputVarPlaceholder": "node_id.output_field",
+      "switchLabelPlaceholder": "label",
+      "switchValuePlaceholder": "value",
+      "to": "प्रति",
+      "urlPlaceholder": "https://api.example.com/data",
+      "webhookUrlPlaceholder": "https://hook.example.com/..."
     },
     "debug": {
       "totalDuration": "कुल अवधि",
@@ -4242,7 +4342,60 @@
       "labelType": "प्रकार",
       "labelError": "त्रुटि",
       "labelInput": "इनपुट",
-      "labelOutput": "आउटपुट"
+      "labelOutput": "आउटपुट",
+      "allClear": "सब ठीक",
+      "breakpoints": "ब्रेकपॉइंट",
+      "breakpointsPanel": "ब्रेकपॉइंट पैनल",
+      "cancel": "रद्द",
+      "clickToValidate": "मान्य करने के लिए क्लिक",
+      "colIssues": "समस्याएँ",
+      "colNode": "नोड",
+      "colStatus": "स्थिति",
+      "colTime": "समय",
+      "colType": "प्रकार",
+      "continue": "जारी",
+      "cyclesDetected": "चक्र मिले",
+      "deadEnd": "गतिरोध",
+      "error": "त्रुटि",
+      "errors": "त्रुटियाँ",
+      "execTime": "निष्पादन समय",
+      "executionHistory": "निष्पादन इतिहास",
+      "input": "इनपुट",
+      "issuesFound": "समस्याएँ मिलीं",
+      "noBreakpoints": "कोई ब्रेकपॉइंट नहीं",
+      "noHistory": "कोई इतिहास नहीं",
+      "noPrompt": "कोई प्रॉम्प्ट नहीं",
+      "noRuntimeData": "कोई रनटाइम डेटा नहीं",
+      "noVariables": "कोई वैरिएबल नहीं",
+      "nodeDiagnostics": "नोड डायग्नोस्टिक",
+      "nodeRecords": "नोड रिकॉर्ड",
+      "nodesExecuted": "निष्पादित नोड",
+      "orphan": "अनाथ",
+      "output": "आउटपुट",
+      "pause": "रोकें",
+      "resume": "पुनः आरंभ",
+      "resumeBreakpoint": "ब्रेकपॉइंट तक जारी",
+      "runFullCheck": "पूर्ण जाँच चलाएँ",
+      "runValidation": "मान्यता चलाएँ",
+      "running": "चल रहा",
+      "runtimeTrace": "रनटाइम ट्रेस",
+      "startDebug": "डीबग आरंभ",
+      "staticCheck": "स्थैतिक जाँच",
+      "staticDebugHint": "डीबग के लिए नोड पर क्लिक",
+      "step": "कदम",
+      "stepBreakpoint": "स्टेप ब्रेकपॉइंट",
+      "structuralValidation": "संरचनात्मक मान्यता",
+      "subExecutionDetail": "उप-निष्पादन विवरण",
+      "topoAnalysis": "टोपो विश्लेषण",
+      "topoHealthy": "टोपो ठीक",
+      "totalEdges": "कुल किनारे",
+      "totalNodes": "कुल नोड",
+      "unreachableNodesCount": "अप्राप्य नोड",
+      "view": "देखें",
+      "viewDetail": "विवरण देखें",
+      "viewSubExecution": "उप-निष्पादन देखें",
+      "waitingForNodes": "नोड की प्रतीक्षा",
+      "warnings": "चेतावनियाँ"
     },
     "applySemanticCheck": "लागू करें",
     "applyUpgrade": "अपग्रेड लागू करें",
@@ -4303,17 +4456,19 @@
       "end": "समाप्त",
       "tool": "उपकरण",
       "code": "कोड",
-      "httpRequest": "HTTP Request",
-      "notification": "Notification",
-      "approval": "Approval",
-      "fileOperation": "File Operation",
-      "dataTransformer": "Data Transformer",
-      "webhookSend": "Webhook Send",
-      "logging": "Logging",
-      "llmClassifier": "LLM Classifier",
-      "aggregator": "Aggregator",
-      "email": "Email",
-      "debate": "Debate"
+      "httpRequest": "HTTP अनुरोध",
+      "notification": "अधिसूचना",
+      "approval": "अनुमोदन",
+      "fileOperation": "फ़ाइल ऑपरेशन",
+      "dataTransformer": "डेटा रूपांतरण",
+      "webhookSend": "Webhook भेजें",
+      "logging": "लॉगिंग",
+      "llmClassifier": "LLM क्लासिफायर",
+      "aggregator": "एग्रीगेटर",
+      "email": "ईमेल",
+      "debate": "बहस",
+      "databaseQuery": "डेटाबेस क्वेरी",
+      "switch": "स्विच"
     },
     "templateList": {
       "deleted": "टेम्पलेट हटाया गया",
@@ -4385,7 +4540,7 @@
       "iconDocument": "📄 दस्तावेज़",
       "iconGitBranch": "🔀 Git शाखा",
       "iconLayers": "📚 परतें",
-      "iconZap": "⚡ Zap",
+      "iconZap": "⚡ बिजली",
       "label": "लेबल",
       "name": "नाम",
       "nodeType": "नोड प्रकार",
@@ -4491,8 +4646,10 @@
       "notSelected": "चयनित नहीं",
       "title": "उप-वर्कफ़्लो",
       "async": "अतुल्यकालिक",
-      "expand": "Expand",
-      "collapse": "Collapse"
+      "expand": "विस्तृत करें",
+      "collapse": "संकुचित करें",
+      "inputCount": "इनपुट",
+      "outputCount": "आउटपुट"
     },
     "vectorRetrieveNode": {
       "notSelected": "चयनित नहीं",
@@ -4507,7 +4664,8 @@
       "title": "लूप",
       "maxIterations": "अधिकतम पुनरावृत्ति",
       "continueOnError": "त्रुटि पर जारी रखें",
-      "steps": "{{count}} चरण"
+      "steps": "{{count}} चरण",
+      "notConfigured": "लूप नोड कॉन्फ़िगर नहीं"
     },
     "mergeNode": {
       "all": "सभी",
@@ -4515,13 +4673,13 @@
       "last": "अंतिम",
       "title": "विलय",
       "inputCount": "{{count}} इनपुट",
-      "any": "Any",
-      "race": "Race",
-      "majority": "Majority",
-      "inputs": "inputs",
-      "waitAll": "Wait all",
-      "waitAny": "Any complete",
-      "autoInputs": "Auto-receive branch outputs"
+      "any": "कोई भी",
+      "race": "रेस",
+      "majority": "बहुमत",
+      "inputs": "इनपुट संख्या",
+      "waitAll": "सभी की प्रतीक्षा",
+      "waitAny": "कोई भी पूर्ण",
+      "autoInputs": "शाखा आउटपुट ऑटो-प्राप्ति"
     },
     "parallelNode": {
       "title": "समानांतर",
@@ -4532,9 +4690,11 @@
       "clickToAdd": "शाखा जोड़ने के लिए क्लिक करें",
       "expand": "विस्तृत करें",
       "collapse": "संकुचित करें",
-      "race": "Race",
-      "branches": "branches",
-      "autoInput": "Auto-receive parent input"
+      "race": "रेस",
+      "branches": "शाखा संख्या",
+      "autoInput": "पैरेंट से ऑटो इनपुट",
+      "waitAll": "सभी की प्रतीक्षा",
+      "waitAny": "किसी एक की प्रतीक्षा"
     },
     "toolNode": {
       "notSelected": "चयनित नहीं",
@@ -4557,7 +4717,8 @@
       "second": "सेकंड",
       "minutes": "मिनट",
       "until": "तक",
-      "title": "विलंब"
+      "title": "विलंब",
+      "notConfigured": "विलंब नोड कॉन्फ़िगर नहीं"
     },
     "endNode": {
       "title": "समाप्त"
@@ -4571,7 +4732,8 @@
       "continue": "जारी रखें",
       "title": "सत्यापन",
       "assertionCount": "{{count}} अभिकथन",
-      "failStrategy": "विफलता रणनीति"
+      "failStrategy": "विफलता रणनीति",
+      "rules": "मान्यता नियम"
     },
     "shortcuts": {
       "title": "शॉर्टकट",
@@ -4612,7 +4774,7 @@
         "suggest": "AI सुझाव",
         "generate": "AI जेनरेट करें",
         "rewrite": "AI पुनः लिखें",
-        "contextComplete": "Context Complete"
+        "contextComplete": "संदर्भ पूरा करें"
       },
       "tooltip": "AI का उपयोग करें",
       "noProvider": "कोई AI प्रदाता नहीं",
@@ -4620,268 +4782,305 @@
       "optimizing": "AI अनुकूलित कर रहा है",
       "generating": "AI जेनरेट कर रहा है",
       "applied": "AI सुझाव लागू",
-      "contextCompleteApplied": "Context completion applied"
-    },
-    "diagnostic": {
-      "title": "Workflow Diagnostic",
-      "run": "Run Diagnostic",
-      "tooltip": "Scan structure, config, prompts and variable references",
-      "loading": "Diagnosing...",
-      "empty": "Workflow is empty. Add nodes to start diagnosis.",
-      "allGood": "Workflow looks good. No issues found.",
-      "summary": {
-        "title": "Diagnostic Summary",
-        "error": "Errors",
-        "warning": "Warnings",
-        "info": "Info",
-        "total": "{{count}} issue(s)"
+      "contextCompleteApplied": "संदर्भ पूर्णता लागू की गई",
+      "dbQuery": {
+        "sqlHint": "संकेत: SQL दर्ज करें, AI स्वत: पूरा करेगा।"
       },
-      "severity": {
-        "error": "Error",
-        "warning": "Warning",
-        "info": "Info"
+      "loop": {
+        "continueHint": "लूप जारी रखने की शर्त दें, जैसे `index < 10`।"
       },
-      "category": {
-        "structure": "Structure",
-        "configuration": "Configuration",
-        "prompt": "Prompt",
-        "reference": "Reference",
-        "best_practice": "Best Practice",
-        "prompt_quality": "Prompt Quality",
-        "performance": "Performance",
-        "cost": "Cost",
-        "security": "Security"
+      "parallel": {
+        "branchesHint": "समानांतर शाखाओं के इनपुट/आउटपुट बताएँ।"
       },
-      "fix": {
-        "apply": "Auto Fix",
-        "applied": "Fixed",
-        "failed": "Fix failed"
+      "subWorkflow": {
+        "needPick": "मौजूदा वर्कफ़्लो चुनें या नया वर्णन करें।",
+        "parseFailed": "पार्स विफल, विवरण जाँचें।"
       },
-      "jump": "Locate Node",
-      "issues": {
-        "duplicate_node_id": {
-          "title": "Duplicate Node ID",
-          "message": "Node ID \"{{id}}\" appears multiple times, which may cause routing issues."
-        },
-        "orphan_node": {
-          "title": "Orphan Node",
-          "message": "Node \"{{label}}\" has neither incoming nor outgoing edges."
-        },
-        "unreachable_from_trigger": {
-          "title": "Node Unreachable from Trigger",
-          "message": "Node \"{{label}}\" has no path from any trigger."
-        },
-        "dangling_edge": {
-          "title": "Dangling Edge",
-          "message": "Edge \"{{id}}\" references a missing source or target node."
-        },
-        "llm_prompt_empty": {
-          "title": "Empty LLM Prompt",
-          "message": "Node \"{{label}}\" has an empty LLM.prompt."
-        },
-        "llm_prompt_short": {
-          "title": "LLM Prompt Too Short",
-          "message": "Node \"{{label}}\" LLM.prompt is only {{len}} characters long."
-        },
-        "agent_prompt_empty": {
-          "title": "Empty Agent System Prompt",
-          "message": "Node \"{{label}}\" has an empty Agent.system_prompt."
-        },
-        "agent_prompt_trivial": {
-          "title": "Agent System Prompt Too Simple",
-          "message": "Node \"{{label}}\" system_prompt is only {{len}} characters."
-        },
-        "classifier_prompt_empty": {
-          "title": "Empty Classifier Prompt",
-          "message": "Node \"{{label}}\" has an empty LlmClassifier.prompt."
-        },
-        "classifier_prompt_trivial": {
-          "title": "Classifier Prompt Too Simple",
-          "message": "Node \"{{label}}\" classifier prompt is only {{len}} characters."
-        },
-        "classifier_categories_empty": {
-          "title": "No Classifier Categories",
-          "message": "Node \"{{label}}\" categories list is empty."
-        },
-        "http_url_empty": {
-          "title": "Empty HTTP URL",
-          "message": "Node \"{{label}}\" HttpRequest.url is empty."
-        },
-        "webhook_url_empty": {
-          "title": "Empty Webhook URL",
-          "message": "Node \"{{label}}\" WebhookSend.url is empty."
-        },
-        "email_to_empty": {
-          "title": "Empty Email Recipients",
-          "message": "Node \"{{label}}\" Email.to is empty."
-        },
-        "email_body_empty": {
-          "title": "Empty Email Body",
-          "message": "Node \"{{label}}\" Email.body is empty."
-        },
-        "validation_assertions_empty": {
-          "title": "Empty Validation Assertions",
-          "message": "Node \"{{label}}\" assertions list is empty."
-        },
-        "code_body_empty": {
-          "title": "Empty Code Node Body",
-          "message": "Node \"{{label}}\" Code.code is empty."
-        },
-        "code_output_var_empty": {
-          "title": "Code Node Missing Output Variable",
-          "message": "Node \"{{label}}\" output_var is empty; downstream nodes cannot reference its result."
-        },
-        "tool_name_empty": {
-          "title": "Tool Node Missing Tool",
-          "message": "Node \"{{label}}\" tool_name is empty."
-        },
-        "subworkflow_id_empty": {
-          "title": "Empty SubWorkflow ID",
-          "message": "Node \"{{label}}\" SubWorkflow.sub_workflow_id is empty."
-        },
-        "unknown_var_reference": {
-          "title": "Undeclared Variable Reference",
-          "message": "Node \"{{label}}\" references ${ {{var}} }, but no node declares this as output_var."
-        },
-        "no_timeout": {
-          "title": "No Timeout Configured",
-          "message": "Node \"{{label}}\" has no timeout, long-running tasks may block the workflow."
-        },
-        "no_retry": {
-          "title": "No Retry Configured",
-          "message": "Node \"{{label}}\" has no retry policy; transient failures will propagate."
-        },
-        "parallel_no_merge": {
-          "title": "Parallel Without Merge",
-          "message": "Parallel node \"{{label}}\" branches should converge into a Merge node."
-        },
-        "no_trigger": {
-          "title": "No Trigger Node",
-          "message": "Workflow has no trigger node. Add a Trigger to define the entry point."
-        },
-        "no_end": {
-          "title": "No End Node",
-          "message": "Workflow has no end node. Consider adding an End node to mark completion."
-        },
-        "agent_empty_prompt": {
-          "title": "Empty Agent System Prompt",
-          "message": "Agent node has an empty system_prompt. Define a clear role and instructions."
-        },
-        "agent_short_prompt": {
-          "title": "Agent System Prompt Too Short",
-          "message": "Agent system_prompt is under 30 characters. Add role definition and output constraints."
-        },
-        "agent_no_max_tokens": {
-          "title": "Agent Missing max_tokens",
-          "message": "Agent node has no max_tokens set. This may lead to unbounded token usage."
-        },
-        "agent_no_max_tool_rounds": {
-          "title": "Agent Missing max_tool_rounds",
-          "message": "Agent with tools has no max_tool_rounds set. Tool loops may run indefinitely."
-        },
-        "llm_empty_prompt": {
-          "title": "Empty LLM Prompt",
-          "message": "LLM node has an empty prompt. Provide a clear instruction."
-        },
-        "llm_no_max_tokens": {
-          "title": "LLM Missing max_tokens",
-          "message": "LLM node has no max_tokens set. This may lead to unbounded token usage."
-        },
-        "http_no_timeout": {
-          "title": "HTTP Request No Timeout",
-          "message": "HttpRequest node has no timeout configured. Long-running requests may block the workflow."
-        },
-        "http_no_retry": {
-          "title": "HTTP Request No Retry",
-          "message": "HttpRequest node has no retry policy. Transient failures will propagate."
-        },
-        "db_no_timeout": {
-          "title": "Database Query No Timeout",
-          "message": "DatabaseQuery node has no timeout configured. Slow queries may block the workflow."
-        },
-        "loop_no_max_iter": {
-          "title": "Loop No Max Iterations",
-          "message": "Loop node has no max_iterations set. Infinite loops may occur."
-        },
-        "loop_no_condition": {
-          "title": "Loop No Continue Condition",
-          "message": "Loop node has no continue_condition defined. The loop may never terminate."
-        },
-        "doc_no_parser_type": {
-          "title": "Document Parser No Type",
-          "message": "DocumentParser node has no parser_type specified."
-        },
-        "insecure_http_url": {
-          "title": "Insecure HTTP URL",
-          "message": "URL uses plain HTTP instead of HTTPS. Data may be transmitted unencrypted."
-        },
-        "insecure_notification_url": {
-          "title": "Insecure Notification Webhook URL",
-          "message": "Notification webhook URL uses plain HTTP. Webhook payloads may be intercepted."
-        },
-        "approval_no_approver": {
-          "title": "Approval No Approver",
-          "message": "Approval node has no approver configured. The workflow will stall at this node."
-        },
-        "vector_no_threshold": {
-          "title": "Vector Retrieve No Similarity Threshold",
-          "message": "VectorRetrieve node has no similarity_threshold. Low-quality matches may be returned."
-        },
-        "vector_high_top_k": {
-          "title": "Vector Retrieve High top_k",
-          "message": "VectorRetrieve top_k exceeds 20. This increases cost and may reduce relevance."
-        },
-        "condition_single_exit": {
-          "title": "Condition Single Exit",
-          "message": "Condition node has fewer than 2 downstream branches. Consider adding both true/false paths."
-        },
-        "classifier_few_cases": {
-          "title": "Classifier Too Few Cases",
-          "message": "LlmClassifier has fewer than 2 classification cases."
-        },
-        "validation_no_rules": {
-          "title": "Validation No Rules",
-          "message": "Validation node has no rules defined. It will always pass."
-        },
-        "edge_dangling_source": {
-          "title": "Dangling Edge Source",
-          "message": "Edge references a source node that no longer exists."
-        },
-        "edge_dangling_target": {
-          "title": "Dangling Edge Target",
-          "message": "Edge references a target node that no longer exists."
-        },
-        "debate_no_debaters": {
-          "title": "Debate No Debaters",
-          "message": "Debate node has no debater agents. Add at least 2 debaters for a meaningful debate."
-        },
-        "debate_single_debater": {
-          "title": "Debate Single Debater",
-          "message": "Debate node has only 1 debater. A debate requires at least 2 opposing sides."
-        },
-        "debate_dangling_step": {
-          "title": "Debate Dangling Debater Reference",
-          "message": "Debate node references a debater step that no longer exists. Remove the stale reference."
-        }
+      "switch": {
+        "casesHint": "सभी केस और उनकी शर्तें सूचीबद्ध करें।"
+      },
+      "trigger": {
+        "cronHint": "मानक cron अभिव्यक्ति, जैसे `0 9 * * *`।"
       }
     },
-    "batchEdit": {
-      "title": "Batch Edit",
-      "noChange": "No change",
-      "apply": "Apply to {count} nodes"
+    "diagnostic": {
+      "title": "वर्कफ़्लो निदान",
+      "run": "निदान चलाएँ",
+      "tooltip": "संरचना, कॉन्फ़िगरेशन, प्रॉम्प्ट और वेरिएबल संदर्भों की जाँच करता है",
+      "loading": "निदान हो रहा है…",
+      "empty": "वर्कफ़्लो खाली है। निदान शुरू करने के लिए नोड्स जोड़ें।",
+      "allGood": "वर्कफ़्लो ठीक है। कोई समस्या नहीं मिली।",
+      "summary": {
+        "title": "निदान सारांश",
+        "error": "त्रुटि",
+        "warning": "चेतावनी",
+        "info": "जानकारी",
+        "total": "{{count}} समस्याएँ"
+      },
+      "severity": {
+        "error": "त्रुटि",
+        "warning": "चेतावनी",
+        "info": "जानकारी"
+      },
+      "category": {
+        "structure": "संरचना",
+        "configuration": "कॉन्फ़िगरेशन",
+        "prompt": "प्रॉम्प्ट",
+        "reference": "संदर्भ",
+        "best_practice": "सर्वोत्तम अभ्यास",
+        "prompt_quality": "प्रॉम्प्ट गुणवत्ता",
+        "performance": "प्रदर्शन",
+        "cost": "लागत",
+        "security": "सुरक्षा"
+      },
+      "fix": {
+        "apply": "स्वतः ठीक करें",
+        "applied": "ठीक किया गया",
+        "failed": "मरम्मत विफल"
+      },
+      "jump": "नोड पर जाएँ",
+      "issues": {
+        "duplicate_node_id": {
+          "title": "डुप्लिकेट नोड ID",
+          "message": "नोड ID \"{{id}}\" कई बार दिखाई देता है, जिससे रूटिंग समस्याएँ हो सकती हैं।"
+        },
+        "orphan_node": {
+          "title": "अनाथ नोड",
+          "message": "नोड \"{{label}}\" का न तो कोई इनपुट और न ही कोई आउटपुट किनारा है।"
+        },
+        "unreachable_from_trigger": {
+          "title": "ट्रिगर से अप्राप्य",
+          "message": "नोड \"{{label}}\" का किसी भी ट्रिगर से कोई पथ नहीं है।"
+        },
+        "dangling_edge": {
+          "title": "लटकता किनारा",
+          "message": "किनारा \"{{id}}\" एक अनुपस्थित स्रोत या लक्ष्य नोड को संदर्भित करता है।"
+        },
+        "llm_prompt_empty": {
+          "title": "LLM प्रॉम्प्ट खाली",
+          "message": "नोड \"{{label}}\" का LLM.prompt खाली है।"
+        },
+        "llm_prompt_short": {
+          "title": "LLM प्रॉम्प्ट बहुत छोटा",
+          "message": "नोड \"{{label}}\" के LLM.prompt में केवल {{len}} वर्ण हैं।"
+        },
+        "agent_prompt_empty": {
+          "title": "खाली एजेंट सिस्टम प्रॉम्प्ट",
+          "message": "नोड \"{{label}}\" का Agent.system_prompt खाली है।"
+        },
+        "agent_prompt_trivial": {
+          "title": "एजेंट सिस्टम प्रॉम्प्ट बहुत सरल",
+          "message": "नोड \"{{label}}\" के system_prompt में केवल {{len}} वर्ण हैं।"
+        },
+        "classifier_prompt_empty": {
+          "title": "वर्गीकारक प्रॉम्प्ट खाली",
+          "message": "नोड \"{{label}}\" का LlmClassifier.prompt खाली है।"
+        },
+        "classifier_prompt_trivial": {
+          "title": "वर्गीकारक प्रॉम्प्ट बहुत सरल",
+          "message": "नोड \"{{label}}\" के वर्गीकरण प्रॉम्प्ट में केवल {{len}} वर्ण हैं।"
+        },
+        "classifier_categories_empty": {
+          "title": "वर्गीकारक की श्रेणियाँ नहीं",
+          "message": "नोड \"{{label}}\" की श्रेणी सूची खाली है।"
+        },
+        "http_url_empty": {
+          "title": "HTTP URL खाली",
+          "message": "नोड \"{{label}}\" का HttpRequest.url खाली है।"
+        },
+        "webhook_url_empty": {
+          "title": "Webhook URL खाली",
+          "message": "नोड \"{{label}}\" का WebhookSend.url खाली है।"
+        },
+        "email_to_empty": {
+          "title": "ईमेल प्राप्तकर्ता खाली",
+          "message": "नोड \"{{label}}\" का Email.to खाली है।"
+        },
+        "email_body_empty": {
+          "title": "ईमेल बॉडी खाली",
+          "message": "नोड \"{{label}}\" का Email.body खाली है।"
+        },
+        "validation_assertions_empty": {
+          "title": "सत्यापन दावे खाली",
+          "message": "नोड \"{{label}}\" की दावा सूची खाली है।"
+        },
+        "code_body_empty": {
+          "title": "खाली कोड नोड बॉडी",
+          "message": "नोड \"{{label}}\" का Code.code खाली है।"
+        },
+        "code_output_var_empty": {
+          "title": "कोड नोड में आउटपुट वैरिएबल नहीं",
+          "message": "नोड \"{{label}}\" का output_var खाली है; डाउनस्ट्रीम नोड परिणाम को संदर्भित नहीं कर पाएंगे।"
+        },
+        "tool_name_empty": {
+          "title": "टूल नोड में टूल नहीं",
+          "message": "नोड \"{{label}}\" का tool_name खाली है।"
+        },
+        "subworkflow_id_empty": {
+          "title": "सब-वर्कफ़्लो ID खाली",
+          "message": "नोड \"{{label}}\" का SubWorkflow.sub_workflow_id खाली है।"
+        },
+        "unknown_var_reference": {
+          "title": "अघोषित वैरिएबल संदर्भ",
+          "message": "नोड \"{{label}}\" ${ {{var}} } को संदर्भित करता है, लेकिन किसी भी नोड ने इसे output_var के रूप में घोषित नहीं किया।"
+        },
+        "no_timeout": {
+          "title": "टाइमआउट कॉन्फ़िगर नहीं",
+          "message": "नोड \"{{label}}\" पर टाइमआउट नहीं है; लंबे कार्य वर्कफ़्लो को ब्लॉक कर सकते हैं।"
+        },
+        "no_retry": {
+          "title": "पुनः प्रयास कॉन्फ़िगर नहीं",
+          "message": "नोड \"{{label}}\" पर पुनः प्रयास नीति नहीं है; क्षणिक त्रुटियाँ आगे प्रसारित होंगी।"
+        },
+        "parallel_no_merge": {
+          "title": "पैरालल में मर्ज नहीं",
+          "message": "पैरालल नोड \"{{label}}\" की शाखाएँ एक Merge नोड पर अभिसरित होनी चाहिए।"
+        },
+        "no_trigger": {
+          "title": "ट्रिगर नोड नहीं",
+          "message": "वर्कफ़्लो में ट्रिगर नोड नहीं है। प्रवेश बिंदु परिभाषित करने के लिए Trigger जोड़ें।"
+        },
+        "no_end": {
+          "title": "समाप्ति नोड नहीं",
+          "message": "वर्कफ़्लो में End नोड नहीं है। समाप्ति को चिह्नित करने के लिए End नोड जोड़ने पर विचार करें।"
+        },
+        "agent_empty_prompt": {
+          "title": "खाली एजेंट सिस्टम प्रॉम्प्ट",
+          "message": "एजेंट नोड का system_prompt खाली है। कृपया स्पष्ट भूमिका और निर्देश परिभाषित करें।"
+        },
+        "agent_short_prompt": {
+          "title": "एजेंट सिस्टम प्रॉम्प्ट बहुत छोटा",
+          "message": "एजेंट का system_prompt 30 वर्णों से कम है। कृपया भूमिका परिभाषा और आउटपुट प्रतिबंध जोड़ें।"
+        },
+        "agent_no_max_tokens": {
+          "title": "एजेंट में max_tokens नहीं",
+          "message": "एजेंट नोड पर max_tokens सेट नहीं है। इससे टोकन की सीमित खपत नहीं होगी।"
+        },
+        "agent_no_max_tool_rounds": {
+          "title": "एजेंट में max_tool_rounds नहीं",
+          "message": "टूल उपयोग करने वाले एजेंट पर max_tool_rounds सेट नहीं है। टूल लूप अनंत चल सकते हैं।"
+        },
+        "llm_empty_prompt": {
+          "title": "LLM प्रॉम्प्ट खाली",
+          "message": "LLM नोड का प्रॉम्प्ट खाली है। कृपया स्पष्ट निर्देश दें।"
+        },
+        "llm_no_max_tokens": {
+          "title": "LLM में max_tokens नहीं",
+          "message": "LLM नोड पर max_tokens सेट नहीं है। इससे टोकन की सीमित खपत नहीं होगी।"
+        },
+        "http_no_timeout": {
+          "title": "HTTP अनुरोध में टाइमआउट नहीं",
+          "message": "HttpRequest नोड पर टाइमआउट सेट नहीं है। लंबे अनुरोध वर्कफ़्लो को ब्लॉक कर सकते हैं।"
+        },
+        "http_no_retry": {
+          "title": "HTTP अनुरोध में पुनः प्रयास नहीं",
+          "message": "HttpRequest नोड में पुनः प्रयास नीति नहीं है। क्षणिक त्रुटियाँ आगे प्रसारित होंगी।"
+        },
+        "db_no_timeout": {
+          "title": "DB क्वेरी में टाइमआउट नहीं",
+          "message": "DatabaseQuery नोड पर टाइमआउट सेट नहीं है। धीमी क्वेरी वर्कफ़्लो को ब्लॉक कर सकती है।"
+        },
+        "loop_no_max_iter": {
+          "title": "लूप में अधिकतम पुनरावृत्ति नहीं",
+          "message": "लूप नोड पर max_iterations सेट नहीं है। अनंत लूप हो सकते हैं।"
+        },
+        "loop_no_condition": {
+          "title": "लूप में जारी रखने की शर्त नहीं",
+          "message": "लूप नोड पर continue_condition परिभाषित नहीं है। लूप कभी समाप्त नहीं हो सकता।"
+        },
+        "doc_no_parser_type": {
+          "title": "दस्तावेज़ पार्सर प्रकार निर्दिष्ट नहीं",
+          "message": "DocumentParser नोड में parser_type निर्दिष्ट नहीं है।"
+        },
+        "insecure_http_url": {
+          "title": "असुरक्षित HTTP URL",
+          "message": "URL HTTPS के बजाय सादे HTTP का उपयोग करता है। डेटा अनएन्क्रिप्टेड भेजा जा सकता है।"
+        },
+        "insecure_notification_url": {
+          "title": "असुरक्षित Webhook URL",
+          "message": "अधिसूचना Webhook URL सादे HTTP का उपयोग करता है। पेलोड इंटरसेप्ट हो सकता है।"
+        },
+        "approval_no_approver": {
+          "title": "अनुमोदन नोड में अनुमोदक नहीं",
+          "message": "अनुमोदन नोड में अनुमोदक कॉन्फ़िगर नहीं है। वर्कफ़्लो इस नोड पर रुक जाएगा।"
+        },
+        "vector_no_threshold": {
+          "title": "Vector Retrieve में समानता सीमा नहीं",
+          "message": "VectorRetrieve नोड पर similarity_threshold सेट नहीं है। निम्न-गुणवत्ता मिलान लौटाए जा सकते हैं।"
+        },
+        "vector_high_top_k": {
+          "title": "Vector Retrieve में उच्च top_k",
+          "message": "VectorRetrieve का top_k 20 से अधिक है। इससे लागत बढ़ेगी और प्रासंगिकता कम हो सकती है।"
+        },
+        "condition_single_exit": {
+          "title": "कंडीशन नोड एकल निकास",
+          "message": "कंडीशन नोड की 2 से कम डाउनस्ट्रीम शाखाएँ हैं। दोनों पथ (true/false) जोड़ने पर विचार करें।"
+        },
+        "classifier_few_cases": {
+          "title": "वर्गीकारक के मामले कम",
+          "message": "LlmClassifier में 2 से कम वर्गीकरण मामले हैं।"
+        },
+        "validation_no_rules": {
+          "title": "सत्यापन में नियम नहीं",
+          "message": "सत्यापन नोड में नियम परिभाषित नहीं हैं। यह हमेशा पास होगा।"
+        },
+        "edge_dangling_source": {
+          "title": "किनारे का स्रोत नोड अनुपस्थित",
+          "message": "किनारा एक ऐसे स्रोत नोड को संदर्भित करता है जो अब अस्तित्व में नहीं है।"
+        },
+        "edge_dangling_target": {
+          "title": "किनारे का लक्ष्य नोड अनुपस्थित",
+          "message": "किनारा एक ऐसे लक्ष्य नोड को संदर्भित करता है जो अब अस्तित्व में नहीं है।"
+        },
+        "debate_no_debaters": {
+          "title": "बहस नोड में बहसकर्ता नहीं",
+          "message": "बहस नोड में बहसकर्ता एजेंट नहीं हैं। सार्थक बहस के लिए कम से कम 2 जोड़ें।"
+        },
+        "debate_single_debater": {
+          "title": "केवल एक बहसकर्ता",
+          "message": "बहस नोड में केवल 1 बहसकर्ता है। बहस के लिए कम से कम 2 विपरीत पक्ष आवश्यक हैं।"
+        },
+        "debate_dangling_step": {
+          "title": "बहस नोड में अटका संदर्भ",
+          "message": "बहस नोड अब अस्तित्व में नहीं रहे बहसकर्ता चरण को संदर्भित करता है। पुराना संदर्भ हटाएँ।"
+        }
+      },
+      "error": "डायग्नोस्टिक त्रुटि"
     },
-    "autoLayoutWithSubs": "Auto-layout (with {{count}} sub-workflows)",
-    "toggleBreakpoint": "Toggle Breakpoint",
-    "copyNode": "Copy Node",
-    "deleteNode": "Delete Node",
+    "batchEdit": {
+      "title": "बैच संपादन",
+      "noChange": "कोई परिवर्तन नहीं",
+      "apply": "{count} नोड्स पर लागू करें"
+    },
+    "autoLayoutWithSubs": "ऑटो लेआउट ({{count}} उप-वर्कफ़्लो)",
+    "toggleBreakpoint": "ब्रेकपॉइंट टॉगल करें",
+    "copyNode": "नोड कॉपी करें",
+    "deleteNode": "नोड हटाएँ",
     "debateNode": {
-      "debaters": "debaters",
-      "rounds": "rounds",
-      "expand": "Expand",
-      "collapse": "Collapse",
-      "newDebater": "Debater",
-      "noDebatersHint": "Add debater Agent nodes inside this container"
-    }
+      "debaters": "बहस करने वाले",
+      "rounds": "राउंड",
+      "expand": "विस्तृत करें",
+      "collapse": "संकुचित करें",
+      "newDebater": "बहसकर्ता",
+      "noDebatersHint": "इस कंटेनर के अंदर एजेंट नोड्स जोड़ें",
+      "defaultRole": "— डिफ़ॉल्ट —",
+      "stanceCon": "विपक्ष (विरोध)",
+      "stanceNth": "{{count}} पक्ष",
+      "stancePro": "पक्ष (समर्थन)",
+      "stanceSystemPromptFallback": "आप {{stance}} पक्ष के वक्ता हैं। विषय पर तर्क दें।"
+    },
+    "batchEditMode": "बैच एडिट मोड",
+    "noExecutionHistory": "कोई निष्पादन इतिहास नहीं",
+    "nodeConfig": {
+      "add_debater": "वक्ता जोड़ें",
+      "convergence_model_role": "कन्वर्जेंस मॉडल भूमिका",
+      "convergence_prompt": "कन्वर्जेंस प्रॉम्प्ट",
+      "convergence_prompt_placeholder": "विवाद कब अभिसरण करता है, तय करने का प्रॉम्प्ट",
+      "debaters": "वक्ता",
+      "max_rounds": "अधिकतम राउंड",
+      "topic_var": "विषय वैरिएबल"
+    },
+    "searchNodes": "नोड खोजें"
   },
   "atomicSkill": {
     "entryType": "प्रविष्टि प्रकार",
@@ -5120,7 +5319,9 @@
     "retry": "पुनः प्रयास",
     "tags": "टैग: {{tags}}",
     "none": "कोई नहीं",
-    "response": "प्रतिक्रिया"
+    "response": "प्रतिक्रिया",
+    "report": "रिपोर्ट",
+    "tasks": "कार्य"
   },
   "traceExplorer": {
     "selectTrace": "विवरण देखने के लिए एक ट्रेस चुनें"
@@ -5289,7 +5490,8 @@
     "dismiss": "खारिज करें",
     "execute": "निष्पादित करें",
     "learningSuggestions": "सीखने के सुझाव",
-    "snooze30": "स्नूज़ (30 मिनट)"
+    "snooze30": "स्नूज़ (30 मिनट)",
+    "noSuggestions": "कोई सुझाव नहीं"
   },
   "proactive": {
     "accept": "स्वीकारें",
@@ -5440,7 +5642,10 @@
     "analyzeFrontend": "AI जनन",
     "analyzeSuccess": "AI विश्लेषण पूर्ण",
     "analyzeError": "AI विश्लेषण विफल: {{error}}",
-    "generateAgent": "एजेंट जनन"
+    "generateAgent": "एजेंट जनन",
+    "agentGenerated": "एजेंट द्वारा जेनरेट",
+    "noSkillName": "बिना नाम वाला स्किल",
+    "notFound": "स्किल नहीं मिला"
   },
   "task": {
     "title": "पृष्ठभूमि कार्य",
@@ -5810,7 +6015,26 @@
     "connectionFailed": "कनेक्शन विफल",
     "lastSyncResult": "अंतिम सिंक परिणाम",
     "cacheDir": "कैश डायरेक्टरी",
-    "quickActions": "त्वरित कार्रवाई"
+    "quickActions": "त्वरित कार्रवाई",
+    "autoFillConfig": "कॉन्फ़िग ऑटो भरें",
+    "chineseProviders": "चीनी प्रदाता",
+    "cloudBackup": "क्लाउड बैकअप",
+    "cloudBackupSize": "आकार",
+    "cloudBackupTime": "संशोधित",
+    "downloadBackupFailed": "क्लाउड से डाउनलोड विफल: {{error}}",
+    "downloadBackupSuccess": "क्लाउड बैकअप डाउनलोड हुआ",
+    "downloadFromCloud": "क्लाउड से पुनर्स्थापित",
+    "internationalProviders": "अंतर्राष्ट्रीय प्रदाता",
+    "listCloudBackups": "क्लाउड बैकअप देखें",
+    "noCloudBackups": "कोई क्लाउड बैकअप नहीं मिला",
+    "providerCategory": "प्रदाता श्रेणी",
+    "s3UsePathStyle": "Path-Style एड्रेसिंग",
+    "selectProvider": "क्लाउड प्रदाता चुनें",
+    "selectProviderDesc": "ऑटो-कॉन्फ़िग के लिए क्लाउड स्टोरेज प्रदाता चुनें",
+    "selfHostedProviders": "सेल्फ-होस्टेड",
+    "uploadBackupFailed": "क्लाउड पर अपलोड विफल: {{error}}",
+    "uploadBackupSuccess": "बैकअप क्लाउड पर अपलोड हुआ",
+    "uploadToCloud": "क्लाउड पर अपलोड"
   },
   "buddy": {
     "rarity": {
@@ -6135,8 +6359,8 @@
     "noRecords": "कोई रिकॉर्ड नहीं",
     "success": "सफलता",
     "failed": "विफल",
-    "viewSubExecution": "View Sub-Execution",
-    "subExecutionDetail": "Sub-Workflow Execution Detail"
+    "viewSubExecution": "उप-निष्पादन देखें",
+    "subExecutionDetail": "उप-वर्कफ़्लो निष्पादन विवरण"
   },
   "markdown": "मार्कडाउन",
   "success": "सफलता",
@@ -6275,7 +6499,7 @@
     "avgCredibility": "औसत विश्वसनीयता:",
     "addToReport": "रिपोर्ट में जोड़ें",
     "title": "उद्धरण प्रबंधक ({count})",
-    "addCitation": "Add Citation",
+    "addCitation": "उद्धरण जोड़ें",
     "empty": "अभी तक कोई उद्धरण नहीं, खोज परिणामों से जोड़ें",
     "inReport": "रिपोर्ट में उपयोग ({count})",
     "notInReport": "रिपोर्ट में अप्रयुक्त ({count})",
@@ -6418,7 +6642,10 @@
     "storeNotRegistered": "स्टोर {{storeName}} पंजीकृत नहीं है",
     "functionNotRegistered": "फ़ंक्शन {{name}} पंजीकृत नहीं है",
     "handlerNotFound": "हैंडलर {{name}} नहीं मिला",
-    "handlerNotDeclarative": "हैंडलर {{name}} घोषणात्मक नहीं है"
+    "handlerNotDeclarative": "हैंडलर {{name}} घोषणात्मक नहीं है",
+    "commandPermissionDenied": "कमांड अनुमति अस्वीकृत",
+    "emitPermissionDenied": "ईमिट अनुमति अस्वीकृत",
+    "navigatePermissionDenied": "नेविगेशन अनुमति अस्वीकृत"
   },
   "export": {
     "exportTime": "निर्यात समय",
@@ -6689,7 +6916,9 @@
     "startNewResearch": "नया शोध",
     "lowCredibilityWarning": "नोट: रिपोर्ट में {{count}} कम-विश्वसनीयता स्रोत हैं",
     "noReferences": "कोई संदर्भ नहीं",
-    "noSummary": "कोई सारांश नहीं"
+    "noSummary": "कोई सारांश नहीं",
+    "noOutline": "कोई रूपरेखा नहीं",
+    "noReport": "कोई रिपोर्ट नहीं"
   },
   "settingsPage": {
     "refreshPage": "पृष्ठ रीफ़्रेश करें"
@@ -6801,7 +7030,7 @@
     "running": "चल रहा है",
     "completed": "पूर्ण",
     "failed": "विफल",
-    "id": "ID",
+    "id": "आईडी",
     "status": "स्थिति",
     "baseModel": "बेस मॉडल",
     "datasetId": "डेटासेट आईडी",
@@ -6832,7 +7061,19 @@
   },
   "errorBoundary": {
     "title": "कुछ गलत हो गया",
-    "retryLoad": "इस मॉड्यूल को पुनः लोड करें"
+    "retryLoad": "इस मॉड्यूल को पुनः लोड करें",
+    "copied": "कॉपी हुआ",
+    "copyError": "त्रुटि कॉपी करें",
+    "errorDetails": "त्रुटि विवरण",
+    "moduleError": "मॉड्यूल त्रुटि",
+    "pageError": "पेज त्रुटि",
+    "panelLoadFailed": "⚠️ पैनल \"{{tabKey}}\" लोड विफल",
+    "refreshPage": "पेज रिफ्रेश करें",
+    "retry": "पुनः प्रयास",
+    "somethingWentWrong": "कुछ गलत हुआ",
+    "tryAgain": "फिर से कोशिश करें",
+    "unexpectedError": "अप्रत्याशित त्रुटि",
+    "unknownError": "अज्ञात त्रुटि"
   },
   "appInit": {
     "idle": "शुरू करने की तैयारी...",
@@ -6900,7 +7141,8 @@
     "retry": "पुनः प्रयास"
   },
   "subAgentCard": {
-    "viewConversation": "उप-वार्तालाप देखें"
+    "viewConversation": "उप-वार्तालाप देखें",
+    "fork": "फोर्क"
   },
   "modelParam": {
     "topP": "Top P"
@@ -6983,7 +7225,8 @@
     "teammate": "टीम",
     "steerInput": "चलाएं",
     "showExtras": "और",
-    "hideExtras": "छुपाएं"
+    "hideExtras": "छुपाएं",
+    "close": "बंद करें"
   },
   "knowledgeSettings": {
     "title": "ज्ञान"
@@ -7058,5 +7301,10 @@
   "backendStatus": {
     "done": "पूर्ण",
     "failed": "विफल"
+  },
+  "input": {
+    "recordAudio": "ऑडियो रिकॉर्ड करें",
+    "takePhoto": "फोटो लें",
+    "uploadFile": "फ़ाइल अपलोड"
   }
 }

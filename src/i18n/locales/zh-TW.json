@@ -240,7 +240,7 @@
     "memory": {
       "title": "記憶",
       "empty": "請先在設定中新增記憶命名空間",
-      "selectHint": "選擇一個記憶命名空间作為存储和檢索目標",
+      "selectHint": "選擇一個記憶命名空間作為存儲和檢索目標",
       "noneSelected": "未選擇"
     },
     "memoryRetrieval": {
@@ -454,28 +454,28 @@
       "switchToWorkflow": "切換到此工作流",
       "unnamed": "工作流",
       "viewDetails": "查看步驟詳情",
-      "presetsNotImported": "開發场景工作流模板（代碼審查、Bug修復、重構等）需先在專家選擇器中「導入内置專家」後解鎖。",
+      "presetsNotImported": "開發場景工作流模板（代碼審查、Bug修復、重構等）需先在專家選擇器中「導入內置專家」後解鎖。",
       "errorDetail": {
-        "PROVIDER_QUERY_FAILED": "查詢 LLM 提供商失败，请檢查提供商配置",
-        "NO_AVAILABLE_PROVIDER": "無可用 LLM 提供商，请在設置中啟用一個提供商",
-        "API_KEY_DECRYPT_FAILED": "API 密钥解密失败，请檢查密钥配置",
+        "PROVIDER_QUERY_FAILED": "查詢 LLM 提供商失敗，請檢查提供商配置",
+        "NO_AVAILABLE_PROVIDER": "無可用 LLM 提供商，請在設置中啟用一個提供商",
+        "API_KEY_DECRYPT_FAILED": "API 密鑰解密失敗，請檢查密鑰配置",
         "UNSUPPORTED_PROVIDER": "不支持的 LLM 提供商類型",
-        "LLM_CALL_FAILED": "LLM 調用失败，请檢查網络和 API 配置",
-        "AGENT_PROFILE_NOT_FOUND": "Agent 配置文件不存在，请檢查配置",
-        "TOOL_CALL_FAILED": "工具調用失败",
+        "LLM_CALL_FAILED": "LLM 調用失敗，請檢查網絡和 API 配置",
+        "AGENT_PROFILE_NOT_FOUND": "Agent 配置文件不存在，請檢查配置",
+        "TOOL_CALL_FAILED": "工具調用失敗",
         "TOOL_NOT_CONFIGURED": "工具執行器未配置回調",
-        "SUBWORKFLOW_FAILED": "子工作流執行失败",
+        "SUBWORKFLOW_FAILED": "子工作流執行失敗",
         "SUBWORKFLOW_NOT_CONFIGURED": "子工作流執行器未配置回調",
-        "VECTOR_RETRIEVE_FAILED": "向量檢索失败",
+        "VECTOR_RETRIEVE_FAILED": "向量檢索失敗",
         "VECTOR_NOT_CONFIGURED": "向量檢索執行器未配置回調",
-        "VARIABLE_NOT_FOUND": "所需變量未找到，请檢查上遊節點输出",
-        "VALIDATION_FAILED": "數據校驗失败",
-        "TIMEOUT": "執行超時，请檢查節點配置或增加超時時间",
-        "CIRCUIT_BREAKER_OPEN": "斷路器已斷開，请稍後重試",
+        "VARIABLE_NOT_FOUND": "所需變量未找到，請檢查上遊節點輸出",
+        "VALIDATION_FAILED": "數據校驗失敗",
+        "TIMEOUT": "執行超時，請檢查節點配置或增加超時時間",
+        "CIRCUIT_BREAKER_OPEN": "斷路器已斷開，請稍後重試",
         "NODE_TYPE_MISMATCH": "節點類型不匹配",
         "UNSUPPORTED_NODE_TYPE": "不支持的節點類型",
-        "CACHE_DESERIALIZE_FAILED": "缓存數據解析失败",
-        "MODEL_NOT_CONFIGURED": "未配置模型，请在節點設置中選擇模型",
+        "CACHE_DESERIALIZE_FAILED": "緩存數據解析失敗",
+        "MODEL_NOT_CONFIGURED": "未配置模型，請在節點設置中選擇模型",
         "NODE_NOT_FOUND": "節點未找到",
         "CONVERSATION_NOT_WORKFLOW": "此會話不是工作流類型，請使用普通歸檔",
         "CONVERSATION_ALREADY_ARCHIVED": "會話已歸檔，請勿重複操作",
@@ -572,94 +572,94 @@
         "GATEWAY_QUICK_CONNECT_INVALID": "快速連接協議無效",
         "GATEWAY_TEMPLATE_NOT_FOUND": "模板未找到",
         "GATEWAY_NOT_CONNECTED": "網關未連接",
-        "GATEWAY_LINK_NOT_FOUND": "链接未找到",
-        "CONVERSATION_CREATE_FAILED": "创建會话失败",
-        "CONVERSATION_UPDATE_FAILED": "更新會话失败",
-        "CONVERSATION_LIST_FAILED": "列出會话失败",
-        "CONVERSATION_COMPRESS_FAILED": "壓縮會话失败",
-        "CONVERSATION_TITLE_FAILED": "生成標題失败",
-        "CONVERSATION_LOAD_MESSAGES_FAILED": "加载消息失败",
-        "CONVERSATION_ARCHIVE_FAILED": "歸档失败",
-        "CONVERSATION_MESSAGE_CREATE_FAILED": "创建消息失败",
-        "CONVERSATION_MESSAGE_DELETE_FAILED": "删除消息失败",
+        "GATEWAY_LINK_NOT_FOUND": "連結未找到",
+        "CONVERSATION_CREATE_FAILED": "創建會話失敗",
+        "CONVERSATION_UPDATE_FAILED": "更新會話失敗",
+        "CONVERSATION_LIST_FAILED": "列出會話失敗",
+        "CONVERSATION_COMPRESS_FAILED": "壓縮會話失敗",
+        "CONVERSATION_TITLE_FAILED": "生成標題失敗",
+        "CONVERSATION_LOAD_MESSAGES_FAILED": "加載消息失敗",
+        "CONVERSATION_ARCHIVE_FAILED": "歸檔失敗",
+        "CONVERSATION_MESSAGE_CREATE_FAILED": "創建消息失敗",
+        "CONVERSATION_MESSAGE_DELETE_FAILED": "刪除消息失敗",
         "CONVERSATION_TOOL_LOOP_EXCEEDED": "工具調用循環超限",
-        "CONVERSATION_WEB_SEARCH_PARAM_MISSING": "網络搜索參數缺失",
-        "MCP_SERVER_CREATE_FAILED": "创建MCP服務器失败",
-        "MCP_SERVER_UPDATE_FAILED": "更新MCP服務器失败",
-        "MCP_SERVER_DELETE_FAILED": "删除MCP服務器失败",
-        "MCP_SERVER_LIST_FAILED": "列出MCP服務器失败",
-        "MCP_SERVER_TEST_FAILED": "MCP服務器測試失败",
-        "MCP_SERVER_CONFIG_FAILED": "MCP服務器配置讀取失败",
+        "CONVERSATION_WEB_SEARCH_PARAM_MISSING": "網絡搜索參數缺失",
+        "MCP_SERVER_CREATE_FAILED": "創建MCP服務器失敗",
+        "MCP_SERVER_UPDATE_FAILED": "更新MCP服務器失敗",
+        "MCP_SERVER_DELETE_FAILED": "刪除MCP服務器失敗",
+        "MCP_SERVER_LIST_FAILED": "列出MCP服務器失敗",
+        "MCP_SERVER_TEST_FAILED": "MCP服務器測試失敗",
+        "MCP_SERVER_CONFIG_FAILED": "MCP服務器配置讀取失敗",
         "MCP_STDIO_COMMAND_MISSING": "stdio服務器缺少command配置",
         "MCP_SERVER_ENDPOINT_MISSING": "服務器缺少endpoint配置",
         "STORAGE_FILE_TOO_LARGE": "文件過大",
         "STORAGE_AUTHORIZATION_NOT_FOUND": "授權未找到",
-        "SKILL_INSTALL_FAILED": "安裝技能失败",
-        "SKILL_UNINSTALL_FAILED": "卸载技能失败",
-        "SKILL_UPDATE_FAILED": "更新技能失败",
-        "SKILL_LOAD_FAILED": "加载技能失败",
-        "SKILL_SEARCH_FAILED": "搜索技能失败",
-        "SKILL_GIT_CLONE_FAILED": "Git克隆失败",
+        "SKILL_INSTALL_FAILED": "安裝技能失敗",
+        "SKILL_UNINSTALL_FAILED": "卸載技能失敗",
+        "SKILL_UPDATE_FAILED": "更新技能失敗",
+        "SKILL_LOAD_FAILED": "加載技能失敗",
+        "SKILL_SEARCH_FAILED": "搜索技能失敗",
+        "SKILL_GIT_CLONE_FAILED": "Git克隆失敗",
         "SKILL_ALREADY_EXISTS": "技能已存在",
         "SKILL_NOT_FOUND": "技能未找到",
         "SKILL_GROUP_NOT_FOUND": "技能組未找到",
         "SKILL_DIR_NOT_FOUND": "目錄不存在",
         "SKILL_INVALID_GITHUB_URL": "無效的GitHub URL",
-        "SKILL_SOURCE_NOT_FOUND": "源路径不存在",
-        "SKILL_SOURCE_NOT_DIR": "源路径不是目錄",
-        "SKILL_HUB_FETCH_FAILED": "技能Hub獲取失败",
-        "EXPERT_PATH_NOT_DIR": "路径不存在或不是目錄",
+        "SKILL_SOURCE_NOT_FOUND": "源路徑不存在",
+        "SKILL_SOURCE_NOT_DIR": "源路徑不是目錄",
+        "SKILL_HUB_FETCH_FAILED": "技能Hub獲取失敗",
+        "EXPERT_PATH_NOT_DIR": "路徑不存在或不是目錄",
         "EXPERT_NOT_FOUND": "專家不存在",
-        "AGENT_PROVIDER_LOAD_FAILED": "加载Provider失败",
-        "AGENT_STREAM_ERROR": "流式響應错誤",
+        "AGENT_PROVIDER_LOAD_FAILED": "加載Provider失敗",
+        "AGENT_STREAM_ERROR": "流式響應錯誤",
         "AGENT_MAX_TURNS_EXCEEDED": "超過最大輪次",
-        "AGENT_CANCEL_FAILED": "取消失败",
+        "AGENT_CANCEL_FAILED": "取消失敗",
         "AGENT_EXECUTION_ABORTED": "執行中止",
         "AGENT_INVALID_STATE": "無效狀態",
         "AGENT_SKILL_MISSING": "技能缺失",
         "AGENT_WORKSPACE_URI_INVALID": "工作區URI無效",
         "AGENT_NOT_INITIALIZED": "Agent未初始化",
-        "AGENT_FEEDBACK_TYPE_UNKNOWN": "未知反馈類型",
-        "AGENT_FEEDBACK_SOURCE_UNKNOWN": "未知反馈來源",
+        "AGENT_FEEDBACK_TYPE_UNKNOWN": "未知反饋類型",
+        "AGENT_FEEDBACK_SOURCE_UNKNOWN": "未知反饋來源",
         "AGENT_PATTERN_TYPE_UNKNOWN": "未知模式類型",
-        "PROVIDER_CREATE_FAILED": "创建提供商失败",
-        "PROVIDER_UPDATE_FAILED": "更新提供商失败",
-        "PROVIDER_DELETE_FAILED": "删除提供商失败",
-        "PROVIDER_KEY_ADD_FAILED": "添加Key失败",
-        "PROVIDER_KEY_DECRYPT_FAILED": "密钥解密失败",
-        "PROVIDER_FETCH_MODELS_FAILED": "獲取模型列表失败",
-        "PROVIDER_TEST_FAILED": "測試提供商失败",
-        "PROVIDER_NO_ACTIVE_KEY": "無活躍密钥",
-        "PROVIDER_ADAPTER_NOT_FOUND": "适配器未找到",
+        "PROVIDER_CREATE_FAILED": "創建提供商失敗",
+        "PROVIDER_UPDATE_FAILED": "更新提供商失敗",
+        "PROVIDER_DELETE_FAILED": "刪除提供商失敗",
+        "PROVIDER_KEY_ADD_FAILED": "添加Key失敗",
+        "PROVIDER_KEY_DECRYPT_FAILED": "密鑰解密失敗",
+        "PROVIDER_FETCH_MODELS_FAILED": "獲取模型列表失敗",
+        "PROVIDER_TEST_FAILED": "測試提供商失敗",
+        "PROVIDER_NO_ACTIVE_KEY": "無活躍密鑰",
+        "PROVIDER_ADAPTER_NOT_FOUND": "適配器未找到",
         "SEARCH_PROVIDER_NOT_FOUND": "搜索提供商未找到",
-        "SEARCH_FAILED": "搜索執行失败",
-        "SEARCH_HTTP_ERROR": "搜索HTTP错誤",
-        "BACKUP_CREATE_FAILED": "创建備份失败",
-        "BACKUP_RESTORE_FAILED": "恢復備份失败",
-        "BACKUP_LIST_FAILED": "列出備份失败",
-        "BACKUP_DELETE_FAILED": "删除備份失败",
-        "BACKUP_PATH_INVALID": "備份路径無效",
-        "BACKUP_AUTO_BACKUP_FAILED": "自動備份失败",
+        "SEARCH_FAILED": "搜索執行失敗",
+        "SEARCH_HTTP_ERROR": "搜索HTTP錯誤",
+        "BACKUP_CREATE_FAILED": "創建備份失敗",
+        "BACKUP_RESTORE_FAILED": "恢復備份失敗",
+        "BACKUP_LIST_FAILED": "列出備份失敗",
+        "BACKUP_DELETE_FAILED": "刪除備份失敗",
+        "BACKUP_PATH_INVALID": "備份路徑無效",
+        "BACKUP_AUTO_BACKUP_FAILED": "自動備份失敗",
         "PLATFORM_UNSUPPORTED": "不支持的平臺",
-        "PLATFORM_ADAPTER_NOT_FOUND": "平臺适配器未找到",
-        "PLATFORM_SEND_FAILED": "發送消息失败",
+        "PLATFORM_ADAPTER_NOT_FOUND": "平臺適配器未找到",
+        "PLATFORM_SEND_FAILED": "發送消息失敗",
         "PLATFORM_WEBHOOK_NOT_CONFIGURED": "Webhook未配置",
-        "TERMINAL_SESSION_NOT_FOUND": "終端會话未找到",
-        "TERMINAL_SSH_FAILED": "SSH連接失败",
-        "TERMINAL_DOCKER_FAILED": "Docker執行失败",
-        "MEMORY_CREATE_FAILED": "创建記憶失败",
-        "MEMORY_UPDATE_FAILED": "更新記憶失败",
-        "MEMORY_DELETE_FAILED": "删除記憶失败",
-        "MEMORY_LIST_FAILED": "列出記憶失败",
-        "MEMORY_EXTRACT_FAILED": "提取記憶失败",
-        "MEMORY_SEARCH_FAILED": "搜索記憶失败",
+        "TERMINAL_SESSION_NOT_FOUND": "終端會話未找到",
+        "TERMINAL_SSH_FAILED": "SSH連接失敗",
+        "TERMINAL_DOCKER_FAILED": "Docker執行失敗",
+        "MEMORY_CREATE_FAILED": "創建記憶失敗",
+        "MEMORY_UPDATE_FAILED": "更新記憶失敗",
+        "MEMORY_DELETE_FAILED": "刪除記憶失敗",
+        "MEMORY_LIST_FAILED": "列出記憶失敗",
+        "MEMORY_EXTRACT_FAILED": "提取記憶失敗",
+        "MEMORY_SEARCH_FAILED": "搜索記憶失敗",
         "MEMORY_NOT_FOUND": "記憶未找到",
-        "MEMORY_EMBED_FAILED": "嵌入失败",
-        "MEMORY_CONSOLIDATE_FAILED": "合并記憶失败",
-        "MEMORY_NO_NAMESPACE": "無記憶命名空间",
+        "MEMORY_EMBED_FAILED": "嵌入失敗",
+        "MEMORY_CONSOLIDATE_FAILED": "合併記憶失敗",
+        "MEMORY_NO_NAMESPACE": "無記憶命名空間",
         "MEMORY_NOT_ENOUGH_MESSAGES": "消息不足",
         "WIKI_NO_EMBEDDING_PROVIDER": "未配置嵌入提供商",
-        "WIKI_PATH_NOT_DIR": "路径不是目錄",
+        "WIKI_PATH_NOT_DIR": "路徑不是目錄",
         "WORKFLOW_NODE_NOT_FOUND": "節點未找到",
         "WORKFLOW_VERSION_NOT_FOUND": "版本未找到",
         "WORKFLOW_INVALID_JSON": "JSON解析無效",
@@ -667,11 +667,11 @@
         "WORKFLOW_PLAN_NOT_FOUND": "計劃未找到",
         "CLOUD_NOT_CLOUD_URI": "不是雲URI",
         "CLOUD_UNKNOWN_CONFLICT": "未知衝突解決策略",
-        "CLOUD_UNKNOWN_STRATEGY": "未知存储策略",
-        "CLOUD_UNKNOWN_STORAGE": "未知存储類型",
-        "CLOUD_SYNC_FAILED": "雲同步失败",
+        "CLOUD_UNKNOWN_STRATEGY": "未知存儲策略",
+        "CLOUD_UNKNOWN_STORAGE": "未知存儲類型",
+        "CLOUD_SYNC_FAILED": "雲同步失敗",
         "DESKTOP_CONNECTION_TIMEOUT": "連接超時",
-        "DESKTOP_NATIVE_NOTIFICATION_FAILED": "原生通知失败"
+        "DESKTOP_NATIVE_NOTIFICATION_FAILED": "原生通知失敗"
       },
       "errorCode": {
         "PROVIDER_QUERY_FAILED": "LLM 提供者查詢失敗",
@@ -696,11 +696,14 @@
         "MODEL_NOT_CONFIGURED": "未設定模型",
         "NODE_NOT_FOUND": "節點未找到"
       },
-      "loading": "加载中...",
+      "loading": "加載中...",
       "cancelled": "已取消",
-      "cancelFailed": "取消失败",
+      "cancelFailed": "取消失敗",
       "cancel": "取消",
-      "noSteps": "暂無步骤"
+      "noSteps": "暫無步驟",
+      "chart": {
+        "renderError": "圖表渲染錯誤"
+      }
     },
     "modelRoutingConfig": {
       "title": "模型路由配置",
@@ -813,7 +816,7 @@
       "tokens": "個令牌",
       "tool": "個工具",
       "askUser": "個詢問",
-      "loading": "加载中...",
+      "loading": "加載中...",
       "failed": "失敗",
       "iteration": "輪迭代"
     },
@@ -842,7 +845,7 @@
       "series": "系列",
       "summary": "摘要",
       "value": "值",
-      "renderError": "圖表生成失败: {{error}}"
+      "renderError": "圖表生成失敗: {{error}}"
     },
     "collaboration": {
       "copied": "已複製",
@@ -868,7 +871,9 @@
         "copyFailed": "複製失敗",
         "joinFailed": "加入失敗",
         "maxParticipants": "最大參與者數",
-        "joinSuccess": "加入成功"
+        "joinSuccess": "加入成功",
+        "createFailed": "建立共用失敗",
+        "updateFailed": "更新共用失敗"
       },
       "sharedResources": "共享資源",
       "title": "協作"
@@ -948,7 +953,7 @@
       },
       "analyze": "分析",
       "confidence": "置信度",
-      "uploadImage": "點擊或拖拽上传圖片",
+      "uploadImage": "點擊或拖拽上傳圖片",
       "taskLabels": {
         "ImageDescription": "圖片描述",
         "Ocr": "OCR 文字提取",
@@ -1085,20 +1090,20 @@
       "acceptAll": "全部接受",
       "lines": "行",
       "newFile": "新建",
-      "deleted": "删除",
+      "deleted": "刪除",
       "modified": "修改"
     },
-    "selfEvolution": "自我进化",
-    "tracer": "追踪器",
-    "tracerTitle": "追踪器標題",
-    "traces": "追踪",
+    "selfEvolution": "自我進化",
+    "tracer": "追蹤器",
+    "tracerTitle": "追蹤器標題",
+    "traces": "追蹤",
     "spans": "跨度",
-    "errors": "错誤",
+    "errors": "錯誤",
     "active": "活躍",
-    "noTraces": "無追踪",
+    "noTraces": "無追蹤",
     "role": {
-      "user": "用户",
-      "system": "系统",
+      "user": "用戶",
+      "system": "系統",
       "assistant": "助手"
     },
     "sidebar": {
@@ -1107,7 +1112,22 @@
     },
     "proactiveInsights": "主動洞察與提醒",
     "steerSent": "引導指令已發送",
-    "steerError": "引導指令發送失败"
+    "steerError": "引導指令發送失敗",
+    "connector": {
+      "add": "新增連接器",
+      "custom": "自訂連接器",
+      "goConfig": "前往設定 →",
+      "noServers": "請先新增或啟用連接器",
+      "title": "連接器"
+    },
+    "error": "聊天錯誤",
+    "loadError": "載入失敗",
+    "mode": {
+      "action": "執行",
+      "ask": "問答",
+      "plan": "規劃",
+      "title": "切換模式"
+    }
   },
   "gateway": {
     "title": "閘道",
@@ -1243,7 +1263,8 @@
     "connectedTools": "已接入工具",
     "tab": {
       "monitor": "監控"
-    }
+    },
+    "cacheHitTokens": "快取命中 tokens"
   },
   "settings": {
     "title": "設定",
@@ -1281,7 +1302,7 @@
       "applyStopped": "已停止: {{platforms}}",
       "applyErrors": "錯誤: {{errors}}",
       "applyFailed": "套用配置失敗",
-      "saveConfigFailed": "保存配置失败: {{error}}",
+      "saveConfigFailed": "保存配置失敗: {{error}}",
       "status": "狀態",
       "statusDisabled": "已停用",
       "statusConnected": "已連線",
@@ -1701,22 +1722,22 @@
       "wikiTab": "知識庫"
     },
     "rag": {
-      "advanced": "高级檢索設置",
+      "advanced": "高級檢索設置",
       "models": "本地模型管理",
-      "modelDownload": "下载",
-      "modelDelete": "删除",
-      "modelDownloaded": "已下载",
-      "modelNotDownloaded": "未下载",
-      "modelDownloading": "下载中...",
+      "modelDownload": "下載",
+      "modelDelete": "刪除",
+      "modelDownloaded": "已下載",
+      "modelNotDownloaded": "未下載",
+      "modelDownloading": "下載中...",
       "rerankerModel": "重排序模型",
       "judgeModel": "裁判模型",
       "rerank": {
         "title": "智能重排序",
-        "desc": "啟用跨编碼器模型對檢索結果进行語義精排",
+        "desc": "啟用跨編碼器模型對檢索結果進行語義精排",
         "backend": "重排序後端",
-        "backendRule": "規则評分",
-        "backendCross": "跨编碼器（本地 Ollama）",
-        "backendPipeline": "兩级管線（規则+跨编碼器）",
+        "backendRule": "規則評分",
+        "backendCross": "跨編碼器（本地 Ollama）",
+        "backendPipeline": "兩級管線（規則+跨編碼器）",
         "modelName": "Rerank 模型",
         "ollamaEndpoint": "Ollama 地址",
         "topN": "最終返回數",
@@ -1726,8 +1747,8 @@
         "title": "自省式質檢",
         "desc": "用本地裁判模型評估檢索結果質量，自動糾正低質量檢索",
         "judgeModel": "裁判模型",
-        "relevanceThreshold": "相關性阈值",
-        "qualityThreshold": "質量阈值",
+        "relevanceThreshold": "相關性閾值",
+        "qualityThreshold": "質量閾值",
         "maxRetries": "最大糾正輪數"
       },
       "queryEnhancement": {
@@ -1735,12 +1756,12 @@
         "desc": "自動改寫和擴展用戶查詢以提高檢索命中率",
         "strategy": "增強策略",
         "strategyNone": "不增強",
-        "strategyHyde": "HyDE（假設文档嵌入）",
+        "strategyHyde": "HyDE（假設文檔嵌入）",
         "strategyMultiQuery": "多查詢改寫",
         "strategyDecomposition": "查詢分解",
         "strategyAuto": "自動選擇",
         "maxVariants": "最大變體數",
-        "combinedCall": "合并 HyDE+MultiQuery 為一次調用"
+        "combinedCall": "合併 HyDE+MultiQuery 為一次調用"
       }
     },
     "memory": {
@@ -1849,9 +1870,9 @@
       "workingMemory": "工作記憶",
       "workingMemoryEntries": "{{count}} 條記憶",
       "promoteSuccess": "記憶已提升",
-      "demoteSuccess": "記憶已降级",
-      "feedbackSuccess": "反馈已記錄",
-      "ageJustNow": "刚刚",
+      "demoteSuccess": "記憶已降級",
+      "feedbackSuccess": "反饋已記錄",
+      "ageJustNow": "剛剛",
       "ageMinutes": "{{count}}分鐘",
       "ageHours": "{{count}}小時",
       "ageDays": "{{count}}天",
@@ -2095,7 +2116,7 @@
       "workflow_knowledge_to_codeDesc": "從知識庫生成代碼",
       "desc": "管理自動化定時任務",
       "executed": "已執行",
-      "quickCreated": "快速创建",
+      "quickCreated": "快速創建",
       "unknownTemplateType": "",
       "refreshed": "已刷新"
     },
@@ -2115,14 +2136,14 @@
       "groupFileRead": "文件讀取",
       "groupFileWrite": "文件寫入",
       "groupShell": "Shell 命令",
-      "groupNetwork": "網络",
+      "groupNetwork": "網絡",
       "groupAgent": "智能體",
       "groupVcs": "版本控制",
       "groupAutomation": "自動化",
       "groupCommunication": "通訊",
       "groupAiMedia": "AI 與媒體",
       "groupIntegration": "集成",
-      "groupBrowser": "浏览器",
+      "groupBrowser": "瀏覽器",
       "groupDesktop": "桌面",
       "empty": "無本地工具"
     },
@@ -2172,7 +2193,7 @@
       "upgradeSuccess": "工具升級建議已生成",
       "upgradeSuggestion": "升級建議",
       "reasoning": "推理過程",
-      "selectTool": "请從左側選擇一個工具以開始語義檢查"
+      "selectTool": "請從左側選擇一個工具以開始語義檢查"
     },
     "groupWorkspace": "工作區",
     "defaultWorkspaceDir": "預設工作區目錄",
@@ -2479,8 +2500,8 @@
       "typeLabel": "類型",
       "workspaceWrite": "工作區寫入",
       "features": "功能",
-      "agents": "Agents",
-      "hooks": "Hooks"
+      "agents": "智能體",
+      "hooks": "鉤子"
     },
     "activeProfile": "當前配置",
     "createProfile": "創建配置",
@@ -2502,7 +2523,7 @@
       "visualEditorDesc": "使用拖拽式 DAG 編輯器創建和編輯工作流",
       "openEditor": "打開編輯器",
       "myWorkflows": "我的工作流",
-      "marketplace": "市场"
+      "marketplace": "市場"
     },
     "tabModel": "模型與服務",
     "tabAppearance": "界面",
@@ -2516,7 +2537,7 @@
     "bocha": "博查",
     "zhipu": "智譜",
     "modelNamePlaceholder": "GPT 5.4 Think",
-    "expertPromptNote": "專家提示词備注",
+    "expertPromptNote": "專家提示詞備注",
     "modelGroupPlaceholder": "選擇模型組",
     "cloudWorkspace": {
       "title": "雲工作區"
@@ -2526,6 +2547,10 @@
     },
     "notificationCenter": {
       "title": "通知"
+    },
+    "provider": {
+      "deepseekBalance": "DeepSeek 餘額",
+      "noValidKey": "無可用金鑰"
     }
   },
   "backup": {
@@ -2732,7 +2757,7 @@
     "deleteSuccess": "刪除成功",
     "retry": "重試",
     "default": "預設",
-    "operationFailed": "操作失败",
+    "operationFailed": "操作失敗",
     "key": "",
     "value": "",
     "hide": "隱藏",
@@ -2766,8 +2791,8 @@
     "session": "個工作階段",
     "resume": "繼續",
     "pause": "暫停",
-    "loading": "加载中...",
-    "failed": "失败",
+    "loading": "加載中...",
+    "failed": "失敗",
     "iteration": "輪迭代",
     "askUser": "次提問"
   },
@@ -2818,9 +2843,9 @@
     "gatewayStartFailed": "閘道啟動失敗",
     "proxyTestFailed": "代理測試失敗",
     "invalidFormat": "格式無效",
-    "page": "出错了",
-    "message": "错误",
-    "pageNotFound": "抱歉，您访問的頁面不存在。"
+    "page": "出錯了",
+    "message": "錯誤",
+    "pageNotFound": "抱歉，您訪問的頁面不存在。"
   },
   "desktop": {
     "title": "桌面整合",
@@ -2892,7 +2917,9 @@
     "imageUrl": "圖片連結",
     "emoji": "表情符號",
     "urlPlaceholder": "輸入圖片 URL",
-    "profileTab": "個人資訊"
+    "profileTab": "個人資訊",
+    "prefKey": "偏好鍵",
+    "prefValue": "偏好值"
   },
   "files": {
     "images": "圖片",
@@ -2961,7 +2988,7 @@
       "agents": "代理",
       "builtin": "內建",
       "project": "專案",
-      "bundled": "捆绑",
+      "bundled": "捆綁",
       "codebuddy": "CodeBuddy",
       "trae": "Trae",
       "workbuddy": "WorkBuddy"
@@ -3170,9 +3197,9 @@
     },
     "documentStyle": "文檔風格",
     "description": "描述",
-    "codingStyleDesc": "编碼風格",
+    "codingStyleDesc": "編碼風格",
     "namingConventionDesc": "命名規範",
-    "indentationStyleDesc": "縮进風格",
+    "indentationStyleDesc": "縮進風格",
     "commentStyleDesc": "注釋風格",
     "communicationDesc": "溝通方式",
     "detailLevelDesc": "詳細程度",
@@ -3394,37 +3421,57 @@
       "explanation": "解釋",
       "replaceConfirmTitle": "確認取代",
       "replaceConfirmContent": "目前畫布有 {{nodes}} 個節點和 {{edges}} 條連線，生成將全部取代。確定繼續？",
-      "actionGenerateWorkflow": "Generate Workflow",
-      "actionAddNodes": "Add Node(s)",
-      "actionModifyNode": "Update Node",
-      "actionDeleteNodes": "Delete Node(s)",
-      "actionAddEdge": "Add Edge",
-      "actionUpdateEdge": "Update Edge",
-      "actionDeleteEdge": "Delete Edge",
-      "actionOptimizePrompt": "Optimize Prompt",
-      "actionApply": "Apply",
-      "actionApplyAll": "Review {{count}} changes",
+      "actionGenerateWorkflow": "產生工作流程",
+      "actionAddNodes": "新增節點",
+      "actionModifyNode": "更新節點",
+      "actionDeleteNodes": "刪除節點",
+      "actionAddEdge": "新增連線",
+      "actionUpdateEdge": "更新連線",
+      "actionDeleteEdge": "刪除連線",
+      "actionOptimizePrompt": "最佳化提示詞",
+      "actionApply": "套用",
+      "actionApplyAll": "檢視 {{count}} 項變更",
       "diffPreview": {
-        "title": "AI Edit Preview",
-        "subtitle": "Please review these {{count}} changes before applying to your workflow",
-        "before": "Before",
-        "after": "After",
-        "apply": "Apply this",
-        "applyAll": "Apply All",
-        "cancel": "Cancel",
-        "applied": "Applied",
-        "appliedHint": "Applied {{count}} / {{total}} in this session",
-        "empty": "No changes to preview",
-        "promptLength": "Prompt length: {{from}} → {{to}} chars",
-        "noBefore": "(new item, no prior content)",
-        "noAfter": "(deletion, no new content)",
-        "noChanges": "No field changes",
-        "applyFailed": "Apply failed",
-        "applyAllFailed": "Apply All failed",
-        "rollbackBatch": "Rollback Batch",
-        "rollbackSuccess": "Batch rolled back",
-        "rollbackTip": "Undo the entire batch of AI changes"
-      }
+        "title": "AI 編輯預覽",
+        "subtitle": "請檢視這 {{count}} 項變更後再套用到工作流程",
+        "before": "之前",
+        "after": "之後",
+        "apply": "套用此項",
+        "applyAll": "全部套用",
+        "cancel": "取消",
+        "applied": "已套用",
+        "appliedHint": "本次工作階段已套用 {{count}} / {{total}}",
+        "empty": "沒有可預覽的變更",
+        "promptLength": "提示詞長度：{{from}} → {{to}} 字元",
+        "noBefore": "（新增項，無原有內容）",
+        "noAfter": "（已刪除，無新內容）",
+        "noChanges": "無欄位變更",
+        "applyFailed": "套用失敗",
+        "applyAllFailed": "全部套用失敗",
+        "rollbackBatch": "回復批次",
+        "rollbackSuccess": "批次已回復",
+        "rollbackTip": "撤銷整批 AI 變更",
+        "deleted": "— 已刪除 —",
+        "deletedCount": "— 已刪除 {{count}} —",
+        "edgeNotFound": "未找到連線",
+        "newNodes": "{{count}} 個新節點",
+        "nodeNotFound": "未找到節點",
+        "nodesEdgesLabel": "{{nodes}} 個節點 / {{edges}} 條連線"
+      },
+      "applyToNode": "套用到節點",
+      "chatMode": "對話模式",
+      "chatPlaceholder": "輸入訊息…",
+      "chatWelcome": "你好，我是你的 AI 助手。",
+      "chatWelcomeHint": "向我詢問工作流程或節點設定相關問題。",
+      "dragCanvasToAdd": "拖到畫布新增",
+      "dragHintUpdated": "畫布已根據提示詞更新",
+      "fillFromSelectedNode": "從選中節點填入",
+      "generateMergeBtn": "產生合併",
+      "mergeMode": "合併模式",
+      "promptAppliedToNode": "提示詞已套用到節點",
+      "replaceMode": "取代模式",
+      "retry": "重試",
+      "toolsMode": "工具模式"
     },
     "previewInDevelopment": "預覽功能開發中",
     "publishInDevelopment": "發布功能開發中",
@@ -3475,11 +3522,11 @@
       "nodeCount": "節點數",
       "edgeCount": "邊數",
       "format": "格式",
-      "formatAxAgent": "AxAgent Format",
-      "formatN8n": "n8n Format",
-      "scanningFolder": "正在掃描文件夹...",
-      "axagentFolderHint": "選擇包含 AxAgent 格式 JSON 文件的文件夹，将自動掃描并導入所有工作流模板。",
-      "n8nFolderHint": "選擇包含 n8n 格式 JSON 文件的文件夹，将自動转換并導入所有 n8n 工作流。"
+      "formatAxAgent": "AxAgent 格式",
+      "formatN8n": "n8n 格式",
+      "scanningFolder": "正在掃描文件夾...",
+      "axagentFolderHint": "選擇包含 AxAgent 格式 JSON 文件的文件夾，將自動掃描並導入所有工作流模板。",
+      "n8nFolderHint": "選擇包含 n8n 格式 JSON 文件的文件夾，將自動轉換並導入所有 n8n 工作流。"
     },
     "preview": "預覽",
     "publish": "發布",
@@ -3519,7 +3566,10 @@
       "loadThisVersion": "載入此版本",
       "currentVersion": "目前版本",
       "version": "版本",
-      "loading": "載入中"
+      "loading": "載入中",
+      "compare": "對比",
+      "compareVersions": "對比版本",
+      "noChanges": "無變更"
     },
     "versionHistoryLoadFailed": "版本歷史載入失敗",
     "versionLoaded": "版本已載入",
@@ -3764,7 +3814,7 @@
       "executionMode": "執行模式",
       "executionReact": "回應式",
       "executionPlan": "計畫式",
-      "executionReactHint": "當上游資料變更時，節點以回應式執行",
+      "executionReactHint": "當上遊資料變更時，節點以回應式執行",
       "executionPlanHint": "節點按計畫的拓撲順序執行",
       "toolName": "工具名稱",
       "toolNamePlaceholder": "輸入工具名稱",
@@ -3775,26 +3825,67 @@
       "aggregationRace": "競速",
       "aggregationMajority": "多數決",
       "aggregationHint": "如何聚合多個平行分支的結果",
-      "url": "url",
-      "method": "method",
-      "timeout": "timeout",
-      "bodyType": "bodyType",
-      "body": "body",
-      "headers": "headers",
-      "addHeader": "addHeader",
-      "headerKey": "headerKey",
-      "headerValue": "headerValue",
-      "selectTemplate": "Select Template",
-      "searchTemplate": "Search template...",
-      "noTemplates": "No templates found",
-      "ragSourceIdsCount": "RAG Sources ({{count}})",
-      "ragSourceIdsPlaceholder": "Enter or select knowledge source IDs...",
-      "ragSourceIdsHint": "Format: knowledge:<kb_id>, memory:<ns_id>, wiki:<wiki_id>",
-      "modelRole": "Model Role",
-      "modelRolePlaceholder": "Auto (use model field)",
-      "modelRoleQuickThink": "⚡ Quick Think",
-      "modelRoleDeepThink": "🧠 Deep Think",
-      "modelRoleHint": "Preset role overrides model when set; lower priority than explicit model field."
+      "url": "URL",
+      "method": "方法",
+      "timeout": "逾時",
+      "bodyType": "請求主體類型",
+      "body": "請求主體",
+      "headers": "標頭",
+      "addHeader": "新增標頭",
+      "headerKey": "標頭鍵",
+      "headerValue": "標頭值",
+      "selectTemplate": "選擇範本",
+      "searchTemplate": "搜尋範本…",
+      "noTemplates": "未找到範本",
+      "ragSourceIdsCount": "RAG 來源 ({{count}})",
+      "ragSourceIdsPlaceholder": "輸入或選擇知識來源 ID…",
+      "ragSourceIdsHint": "格式：knowledge:<kb_id>, memory:<ns_id>, wiki:<wiki_id>",
+      "modelRole": "模型角色",
+      "modelRolePlaceholder": "自動（使用 model 欄位）",
+      "modelRoleQuickThink": "⚡ 快速思考",
+      "modelRoleDeepThink": "🧠 深度思考",
+      "modelRoleHint": "預設角色在設定時覆寫模型，優先級低於明確的 model 欄位。",
+      "addCase": "新增分支",
+      "aggregationAny": "任一結果",
+      "aiGenerate": "AI 產生",
+      "autoInputFromParent": "自動接收父節點輸入",
+      "autoInputFromParentHint": "啟用後，父節點輸出會自動作為子節點輸入。",
+      "autoInputsFromBranches": "自動接收分支輸出",
+      "autoInputsFromBranchesHint": "啟用後，分支輸出會自動作為子節點輸入。",
+      "availableTools": "可用工具",
+      "cases": "分支列表",
+      "codeTemplates": "程式碼範本",
+      "connectInputsManually": "手動連接輸入",
+      "connection": "資料來源",
+      "defaultConnection": "預設資料來源",
+      "editExpertPrompt": "編輯專家提示詞",
+      "editRolePrompt": "編輯角色提示詞",
+      "emailToPlaceholder": "user@example.com",
+      "hideTools": "隱藏工具",
+      "inputVarPlaceholder": "node_id.field",
+      "llmRouting": "LLM 路由",
+      "matchMode": "比對模式",
+      "maxDelayMs": "最大延遲 (毫秒)",
+      "mergeAny": "合併任一",
+      "mergeMajority": "合併多數",
+      "mergeRace": "合併競速",
+      "noToolsAvailable": "無可用工具",
+      "promptSaveFailed": "儲存提示詞失敗",
+      "promptSaved": "提示詞已儲存",
+      "resetTimeoutHint": "重設逾時",
+      "retryEnabled": "啟用重試",
+      "routingModel": "路由模型",
+      "routingModelPlaceholder": "選擇路由模型",
+      "routingPrompt": "路由提示詞",
+      "routingPromptPlaceholder": "描述路由決策邏輯",
+      "showTools": "顯示工具",
+      "subject": "主旨",
+      "switchInputVarPlaceholder": "node_id.output_field",
+      "switchLabelPlaceholder": "label",
+      "switchValuePlaceholder": "value",
+      "to": "收件者",
+      "urlPlaceholder": "https://api.example.com/data",
+      "webhookUrlPlaceholder": "https://hook.example.com/..."
     },
     "debug": {
       "totalDuration": "總耗時",
@@ -3803,7 +3894,7 @@
       "avgNodeTime": "平均節點耗時",
       "nodeExecutions": "節點執行",
       "selectedNodeDetails": "選中節點詳情",
-      "noExecutionData": "暂無執行數據，请先運行工作流",
+      "noExecutionData": "暫無執行數據，請先運行工作流",
       "variables": "變量",
       "performance": "性能",
       "slowestNode": "最慢節點",
@@ -3820,7 +3911,60 @@
       "labelType": "類型",
       "labelError": "錯誤",
       "labelInput": "輸入",
-      "labelOutput": "輸出"
+      "labelOutput": "輸出",
+      "allClear": "一切正常",
+      "breakpoints": "中斷點",
+      "breakpointsPanel": "中斷點面板",
+      "cancel": "取消",
+      "clickToValidate": "點擊驗證",
+      "colIssues": "問題數",
+      "colNode": "節點",
+      "colStatus": "狀態",
+      "colTime": "時間",
+      "colType": "類型",
+      "continue": "繼續",
+      "cyclesDetected": "偵測到迴圈",
+      "deadEnd": "死路",
+      "error": "錯誤",
+      "errors": "錯誤",
+      "execTime": "執行時間",
+      "executionHistory": "執行歷史",
+      "input": "輸入",
+      "issuesFound": "發現問題",
+      "noBreakpoints": "無中斷點",
+      "noHistory": "無歷史",
+      "noPrompt": "無提示詞",
+      "noRuntimeData": "無執行階段資料",
+      "noVariables": "無變數",
+      "nodeDiagnostics": "節點診斷",
+      "nodeRecords": "節點記錄",
+      "nodesExecuted": "已執行節點",
+      "orphan": "孤立節點",
+      "output": "輸出",
+      "pause": "暫停",
+      "resume": "繼續",
+      "resumeBreakpoint": "繼續到中斷點",
+      "runFullCheck": "執行完整檢查",
+      "runValidation": "執行驗證",
+      "running": "執行中",
+      "runtimeTrace": "執行階段追蹤",
+      "startDebug": "開始偵錯",
+      "staticCheck": "靜態檢查",
+      "staticDebugHint": "點擊節點進行偵錯",
+      "step": "單步",
+      "stepBreakpoint": "逐步中斷點",
+      "structuralValidation": "結構驗證",
+      "subExecutionDetail": "子執行詳情",
+      "topoAnalysis": "拓樸分析",
+      "topoHealthy": "拓樸結構正常",
+      "totalEdges": "總連線數",
+      "totalNodes": "總節點數",
+      "unreachableNodesCount": "不可達節點",
+      "view": "檢視",
+      "viewDetail": "檢視詳情",
+      "viewSubExecution": "檢視子執行",
+      "waitingForNodes": "等待節點",
+      "warnings": "警告"
     },
     "applySemanticCheck": "應用語義檢查",
     "applyUpgrade": "應用升級",
@@ -3881,17 +4025,19 @@
       "end": "結束",
       "tool": "工具",
       "code": "程式碼",
-      "httpRequest": "HTTP Request",
-      "notification": "Notification",
-      "approval": "Approval",
-      "fileOperation": "File Operation",
-      "dataTransformer": "Data Transformer",
-      "webhookSend": "Webhook Send",
-      "logging": "Logging",
-      "llmClassifier": "LLM Classifier",
-      "aggregator": "Aggregator",
-      "email": "Email",
-      "debate": "Debate"
+      "httpRequest": "HTTP 請求",
+      "notification": "通知",
+      "approval": "審批",
+      "fileOperation": "檔案操作",
+      "dataTransformer": "資料轉換",
+      "webhookSend": "Webhook 發送",
+      "logging": "日誌",
+      "llmClassifier": "LLM 分類器",
+      "aggregator": "聚合器",
+      "email": "郵件",
+      "debate": "辯論",
+      "databaseQuery": "資料庫查詢",
+      "switch": "分支"
     },
     "templateList": {
       "deleted": "已刪除",
@@ -3917,7 +4063,7 @@
       "confirmDeleteMessage": "確認刪除此範本？此操作無法復原。",
       "irreversible": "無法復原",
       "presetsImported": "已導入 {{count}} 個預設模板",
-      "presetsImportFailed": "導入失败: {{error}}",
+      "presetsImportFailed": "導入失敗: {{error}}",
       "importPresetsTitle": "導入預設模板",
       "importPresets": "導入預設"
     },
@@ -4069,8 +4215,10 @@
       "notSelected": "未選擇",
       "title": "子工作流程",
       "async": "異步",
-      "expand": "展开",
-      "collapse": "折叠"
+      "expand": "展開",
+      "collapse": "摺疊",
+      "inputCount": "輸入數",
+      "outputCount": "輸出數"
     },
     "vectorRetrieveNode": {
       "notSelected": "未選擇",
@@ -4085,7 +4233,8 @@
       "title": "迴圈",
       "maxIterations": "最大迭代次數",
       "continueOnError": "出錯時繼續",
-      "steps": "步驟"
+      "steps": "步驟",
+      "notConfigured": "迴圈節點未設定"
     },
     "mergeNode": {
       "all": "全部",
@@ -4093,13 +4242,13 @@
       "last": "最後一個",
       "title": "合併",
       "inputCount": "輸入數",
-      "any": "Any",
-      "race": "Race",
-      "majority": "Majority",
-      "inputs": "inputs",
-      "waitAll": "Wait all",
-      "waitAny": "Any complete",
-      "autoInputs": "Auto-receive branch outputs"
+      "any": "任一",
+      "race": "競速",
+      "majority": "多數",
+      "inputs": "輸入數",
+      "waitAll": "等待全部",
+      "waitAny": "任一完成",
+      "autoInputs": "自動接收分支輸出"
     },
     "parallelNode": {
       "title": "並行",
@@ -4110,9 +4259,11 @@
       "clickToAdd": "點擊添加",
       "expand": "展開",
       "collapse": "摺疊",
-      "race": "Race",
-      "branches": "branches",
-      "autoInput": "Auto-receive parent input"
+      "race": "競速",
+      "branches": "分支數",
+      "autoInput": "自動接收父節點輸入",
+      "waitAll": "等待全部",
+      "waitAny": "等待任一"
     },
     "toolNode": {
       "notSelected": "未選擇",
@@ -4135,7 +4286,8 @@
       "second": "秒",
       "minutes": "分鐘",
       "until": "直到",
-      "title": "延遲"
+      "title": "延遲",
+      "notConfigured": "延遲節點未設定"
     },
     "endNode": {
       "title": "結束"
@@ -4149,7 +4301,8 @@
       "continue": "繼續",
       "title": "驗證",
       "assertionCount": "{{count}} 個斷言",
-      "failStrategy": "失敗策略"
+      "failStrategy": "失敗策略",
+      "rules": "驗證規則"
     },
     "shortcuts": {
       "title": "快捷鍵",
@@ -4190,7 +4343,7 @@
         "suggest": "AI 建議",
         "generate": "AI 生成",
         "rewrite": "AI 改寫",
-        "contextComplete": "Context Complete"
+        "contextComplete": "上下文補完"
       },
       "tooltip": "使用 AI 最佳化或生成內容",
       "noProvider": "暫無可用的 AI 提供商",
@@ -4198,268 +4351,305 @@
       "optimizing": "AI 正在最佳化...",
       "generating": "AI 正在生成...",
       "applied": "已套用 AI 建議",
-      "contextCompleteApplied": "Context completion applied"
-    },
-    "diagnostic": {
-      "title": "Workflow Diagnostic",
-      "run": "Run Diagnostic",
-      "tooltip": "Scan structure, config, prompts and variable references",
-      "loading": "Diagnosing...",
-      "empty": "Workflow is empty. Add nodes to start diagnosis.",
-      "allGood": "Workflow looks good. No issues found.",
-      "summary": {
-        "title": "Diagnostic Summary",
-        "error": "Errors",
-        "warning": "Warnings",
-        "info": "Info",
-        "total": "{{count}} issue(s)"
+      "contextCompleteApplied": "已套用上下文補完",
+      "dbQuery": {
+        "sqlHint": "提示：輸入 SQL，AI 將協助補完。"
       },
-      "severity": {
-        "error": "Error",
-        "warning": "Warning",
-        "info": "Info"
+      "loop": {
+        "continueHint": "提供迴圈繼續條件，例如 `index < 10`。"
       },
-      "category": {
-        "structure": "Structure",
-        "configuration": "Configuration",
-        "prompt": "Prompt",
-        "reference": "Reference",
-        "best_practice": "Best Practice",
-        "prompt_quality": "Prompt Quality",
-        "performance": "Performance",
-        "cost": "Cost",
-        "security": "Security"
+      "parallel": {
+        "branchesHint": "描述平行分支輸入和目標輸出。"
       },
-      "fix": {
-        "apply": "Auto Fix",
-        "applied": "Fixed",
-        "failed": "Fix failed"
+      "subWorkflow": {
+        "needPick": "請選擇既有工作流程或描述新工作流程。",
+        "parseFailed": "解析失敗，請檢查描述。"
       },
-      "jump": "Locate Node",
-      "issues": {
-        "duplicate_node_id": {
-          "title": "Duplicate Node ID",
-          "message": "Node ID \"{{id}}\" appears multiple times, which may cause routing issues."
-        },
-        "orphan_node": {
-          "title": "Orphan Node",
-          "message": "Node \"{{label}}\" has neither incoming nor outgoing edges."
-        },
-        "unreachable_from_trigger": {
-          "title": "Node Unreachable from Trigger",
-          "message": "Node \"{{label}}\" has no path from any trigger."
-        },
-        "dangling_edge": {
-          "title": "Dangling Edge",
-          "message": "Edge \"{{id}}\" references a missing source or target node."
-        },
-        "llm_prompt_empty": {
-          "title": "Empty LLM Prompt",
-          "message": "Node \"{{label}}\" has an empty LLM.prompt."
-        },
-        "llm_prompt_short": {
-          "title": "LLM Prompt Too Short",
-          "message": "Node \"{{label}}\" LLM.prompt is only {{len}} characters long."
-        },
-        "agent_prompt_empty": {
-          "title": "Empty Agent System Prompt",
-          "message": "Node \"{{label}}\" has an empty Agent.system_prompt."
-        },
-        "agent_prompt_trivial": {
-          "title": "Agent System Prompt Too Simple",
-          "message": "Node \"{{label}}\" system_prompt is only {{len}} characters."
-        },
-        "classifier_prompt_empty": {
-          "title": "Empty Classifier Prompt",
-          "message": "Node \"{{label}}\" has an empty LlmClassifier.prompt."
-        },
-        "classifier_prompt_trivial": {
-          "title": "Classifier Prompt Too Simple",
-          "message": "Node \"{{label}}\" classifier prompt is only {{len}} characters."
-        },
-        "classifier_categories_empty": {
-          "title": "No Classifier Categories",
-          "message": "Node \"{{label}}\" categories list is empty."
-        },
-        "http_url_empty": {
-          "title": "Empty HTTP URL",
-          "message": "Node \"{{label}}\" HttpRequest.url is empty."
-        },
-        "webhook_url_empty": {
-          "title": "Empty Webhook URL",
-          "message": "Node \"{{label}}\" WebhookSend.url is empty."
-        },
-        "email_to_empty": {
-          "title": "Empty Email Recipients",
-          "message": "Node \"{{label}}\" Email.to is empty."
-        },
-        "email_body_empty": {
-          "title": "Empty Email Body",
-          "message": "Node \"{{label}}\" Email.body is empty."
-        },
-        "validation_assertions_empty": {
-          "title": "Empty Validation Assertions",
-          "message": "Node \"{{label}}\" assertions list is empty."
-        },
-        "code_body_empty": {
-          "title": "Empty Code Node Body",
-          "message": "Node \"{{label}}\" Code.code is empty."
-        },
-        "code_output_var_empty": {
-          "title": "Code Node Missing Output Variable",
-          "message": "Node \"{{label}}\" output_var is empty; downstream nodes cannot reference its result."
-        },
-        "tool_name_empty": {
-          "title": "Tool Node Missing Tool",
-          "message": "Node \"{{label}}\" tool_name is empty."
-        },
-        "subworkflow_id_empty": {
-          "title": "Empty SubWorkflow ID",
-          "message": "Node \"{{label}}\" SubWorkflow.sub_workflow_id is empty."
-        },
-        "unknown_var_reference": {
-          "title": "Undeclared Variable Reference",
-          "message": "Node \"{{label}}\" references ${ {{var}} }, but no node declares this as output_var."
-        },
-        "no_timeout": {
-          "title": "No Timeout Configured",
-          "message": "Node \"{{label}}\" has no timeout, long-running tasks may block the workflow."
-        },
-        "no_retry": {
-          "title": "No Retry Configured",
-          "message": "Node \"{{label}}\" has no retry policy; transient failures will propagate."
-        },
-        "parallel_no_merge": {
-          "title": "Parallel Without Merge",
-          "message": "Parallel node \"{{label}}\" branches should converge into a Merge node."
-        },
-        "no_trigger": {
-          "title": "No Trigger Node",
-          "message": "Workflow has no trigger node. Add a Trigger to define the entry point."
-        },
-        "no_end": {
-          "title": "No End Node",
-          "message": "Workflow has no end node. Consider adding an End node to mark completion."
-        },
-        "agent_empty_prompt": {
-          "title": "Empty Agent System Prompt",
-          "message": "Agent node has an empty system_prompt. Define a clear role and instructions."
-        },
-        "agent_short_prompt": {
-          "title": "Agent System Prompt Too Short",
-          "message": "Agent system_prompt is under 30 characters. Add role definition and output constraints."
-        },
-        "agent_no_max_tokens": {
-          "title": "Agent Missing max_tokens",
-          "message": "Agent node has no max_tokens set. This may lead to unbounded token usage."
-        },
-        "agent_no_max_tool_rounds": {
-          "title": "Agent Missing max_tool_rounds",
-          "message": "Agent with tools has no max_tool_rounds set. Tool loops may run indefinitely."
-        },
-        "llm_empty_prompt": {
-          "title": "Empty LLM Prompt",
-          "message": "LLM node has an empty prompt. Provide a clear instruction."
-        },
-        "llm_no_max_tokens": {
-          "title": "LLM Missing max_tokens",
-          "message": "LLM node has no max_tokens set. This may lead to unbounded token usage."
-        },
-        "http_no_timeout": {
-          "title": "HTTP Request No Timeout",
-          "message": "HttpRequest node has no timeout configured. Long-running requests may block the workflow."
-        },
-        "http_no_retry": {
-          "title": "HTTP Request No Retry",
-          "message": "HttpRequest node has no retry policy. Transient failures will propagate."
-        },
-        "db_no_timeout": {
-          "title": "Database Query No Timeout",
-          "message": "DatabaseQuery node has no timeout configured. Slow queries may block the workflow."
-        },
-        "loop_no_max_iter": {
-          "title": "Loop No Max Iterations",
-          "message": "Loop node has no max_iterations set. Infinite loops may occur."
-        },
-        "loop_no_condition": {
-          "title": "Loop No Continue Condition",
-          "message": "Loop node has no continue_condition defined. The loop may never terminate."
-        },
-        "doc_no_parser_type": {
-          "title": "Document Parser No Type",
-          "message": "DocumentParser node has no parser_type specified."
-        },
-        "insecure_http_url": {
-          "title": "Insecure HTTP URL",
-          "message": "URL uses plain HTTP instead of HTTPS. Data may be transmitted unencrypted."
-        },
-        "insecure_notification_url": {
-          "title": "Insecure Notification Webhook URL",
-          "message": "Notification webhook URL uses plain HTTP. Webhook payloads may be intercepted."
-        },
-        "approval_no_approver": {
-          "title": "Approval No Approver",
-          "message": "Approval node has no approver configured. The workflow will stall at this node."
-        },
-        "vector_no_threshold": {
-          "title": "Vector Retrieve No Similarity Threshold",
-          "message": "VectorRetrieve node has no similarity_threshold. Low-quality matches may be returned."
-        },
-        "vector_high_top_k": {
-          "title": "Vector Retrieve High top_k",
-          "message": "VectorRetrieve top_k exceeds 20. This increases cost and may reduce relevance."
-        },
-        "condition_single_exit": {
-          "title": "Condition Single Exit",
-          "message": "Condition node has fewer than 2 downstream branches. Consider adding both true/false paths."
-        },
-        "classifier_few_cases": {
-          "title": "Classifier Too Few Cases",
-          "message": "LlmClassifier has fewer than 2 classification cases."
-        },
-        "validation_no_rules": {
-          "title": "Validation No Rules",
-          "message": "Validation node has no rules defined. It will always pass."
-        },
-        "edge_dangling_source": {
-          "title": "Dangling Edge Source",
-          "message": "Edge references a source node that no longer exists."
-        },
-        "edge_dangling_target": {
-          "title": "Dangling Edge Target",
-          "message": "Edge references a target node that no longer exists."
-        },
-        "debate_no_debaters": {
-          "title": "Debate No Debaters",
-          "message": "Debate node has no debater agents. Add at least 2 debaters for a meaningful debate."
-        },
-        "debate_single_debater": {
-          "title": "Debate Single Debater",
-          "message": "Debate node has only 1 debater. A debate requires at least 2 opposing sides."
-        },
-        "debate_dangling_step": {
-          "title": "Debate Dangling Debater Reference",
-          "message": "Debate node references a debater step that no longer exists. Remove the stale reference."
-        }
+      "switch": {
+        "casesHint": "列出所有分支及其觸發條件。"
+      },
+      "trigger": {
+        "cronHint": "標準 cron 運算式，例如 `0 9 * * *`。"
       }
     },
-    "batchEdit": {
-      "title": "Batch Edit",
-      "noChange": "No change",
-      "apply": "Apply to {count} nodes"
+    "diagnostic": {
+      "title": "工作流程診斷",
+      "run": "執行診斷",
+      "tooltip": "掃描結構、設定、提示詞和變數引用",
+      "loading": "診斷中…",
+      "empty": "工作流程為空，請先新增節點。",
+      "allGood": "工作流程狀態良好，未發現問題。",
+      "summary": {
+        "title": "診斷摘要",
+        "error": "錯誤",
+        "warning": "警告",
+        "info": "資訊",
+        "total": "{{count}} 個問題"
+      },
+      "severity": {
+        "error": "錯誤",
+        "warning": "警告",
+        "info": "資訊"
+      },
+      "category": {
+        "structure": "結構",
+        "configuration": "設定",
+        "prompt": "提示詞",
+        "reference": "引用",
+        "best_practice": "最佳實踐",
+        "prompt_quality": "提示詞品質",
+        "performance": "效能",
+        "cost": "成本",
+        "security": "安全性"
+      },
+      "fix": {
+        "apply": "自動修復",
+        "applied": "已修復",
+        "failed": "修復失敗"
+      },
+      "jump": "定位節點",
+      "issues": {
+        "duplicate_node_id": {
+          "title": "重複的節點 ID",
+          "message": "節點 ID \"{{id}}\" 出現多次，可能導致連線錯亂。"
+        },
+        "orphan_node": {
+          "title": "孤立節點",
+          "message": "節點 \"{{label}}\" 既無輸入邊也無輸出邊。"
+        },
+        "unreachable_from_trigger": {
+          "title": "節點無法從觸發器到達",
+          "message": "節點 \"{{label}}\" 沒有從任何觸發器可達的路徑。"
+        },
+        "dangling_edge": {
+          "title": "懸空邊",
+          "message": "邊 \"{{id}}\" 參考的源節點或目標節點不存在。"
+        },
+        "llm_prompt_empty": {
+          "title": "LLM 提示詞為空",
+          "message": "節點 \"{{label}}\" 的 LLM.prompt 為空。"
+        },
+        "llm_prompt_short": {
+          "title": "LLM 提示詞過短",
+          "message": "節點 \"{{label}}\" 的 LLM.prompt 只有 {{len}} 個字元。"
+        },
+        "agent_prompt_empty": {
+          "title": "智能體系統提示詞為空",
+          "message": "節點 \"{{label}}\" 的 Agent.system_prompt 為空。"
+        },
+        "agent_prompt_trivial": {
+          "title": "智能體系統提示詞過於簡單",
+          "message": "節點 \"{{label}}\" 的 system_prompt 只有 {{len}} 個字元。"
+        },
+        "classifier_prompt_empty": {
+          "title": "分類器提示詞為空",
+          "message": "節點 \"{{label}}\" 的 LlmClassifier.prompt 為空。"
+        },
+        "classifier_prompt_trivial": {
+          "title": "分類器提示詞過於簡單",
+          "message": "節點 \"{{label}}\" 的分類提示詞只有 {{len}} 個字元。"
+        },
+        "classifier_categories_empty": {
+          "title": "分類器無類別",
+          "message": "節點 \"{{label}}\" 的類別列表為空。"
+        },
+        "http_url_empty": {
+          "title": "HTTP URL 為空",
+          "message": "節點 \"{{label}}\" 的 HttpRequest.url 為空。"
+        },
+        "webhook_url_empty": {
+          "title": "Webhook URL 為空",
+          "message": "節點 \"{{label}}\" 的 WebhookSend.url 為空。"
+        },
+        "email_to_empty": {
+          "title": "郵件收件者為空",
+          "message": "節點 \"{{label}}\" 的 Email.to 為空。"
+        },
+        "email_body_empty": {
+          "title": "郵件內文為空",
+          "message": "節點 \"{{label}}\" 的 Email.body 為空。"
+        },
+        "validation_assertions_empty": {
+          "title": "驗證斷言為空",
+          "message": "節點 \"{{label}}\" 的斷言列表為空。"
+        },
+        "code_body_empty": {
+          "title": "程式碼節點主體為空",
+          "message": "節點 \"{{label}}\" 的 Code.code 為空。"
+        },
+        "code_output_var_empty": {
+          "title": "程式碼節點缺少輸出變數",
+          "message": "節點 \"{{label}}\" 的 output_var 為空，下遊節點無法參考其結果。"
+        },
+        "tool_name_empty": {
+          "title": "工具節點缺少工具",
+          "message": "節點 \"{{label}}\" 的 tool_name 為空。"
+        },
+        "subworkflow_id_empty": {
+          "title": "子工作流 ID 為空",
+          "message": "節點 \"{{label}}\" 的 SubWorkflow.sub_workflow_id 為空。"
+        },
+        "unknown_var_reference": {
+          "title": "未宣告的變數參考",
+          "message": "節點 \"{{label}}\" 參考了 ${ {{var}} }，但沒有節點將其宣告為 output_var。"
+        },
+        "no_timeout": {
+          "title": "未設定逾時",
+          "message": "節點 \"{{label}}\" 未設定逾時，長時間任務可能阻塞工作流。"
+        },
+        "no_retry": {
+          "title": "未設定重試",
+          "message": "節點 \"{{label}}\" 未設定重試策略，臨時故障將直接傳播。"
+        },
+        "parallel_no_merge": {
+          "title": "並行缺少合併",
+          "message": "並行節點 \"{{label}}\" 的分支應匯聚到一個 Merge 節點。"
+        },
+        "no_trigger": {
+          "title": "缺少觸發器節點",
+          "message": "工作流沒有觸發器節點，請新增 Trigger 以定義入口。"
+        },
+        "no_end": {
+          "title": "缺少結束節點",
+          "message": "工作流沒有結束節點，請考慮新增 End 節點標記完成。"
+        },
+        "agent_empty_prompt": {
+          "title": "智能體系統提示詞為空",
+          "message": "智能體節點的系統提示詞為空，請定義明確的角色和指令。"
+        },
+        "agent_short_prompt": {
+          "title": "智能體系統提示詞過短",
+          "message": "智能體的 system_prompt 不到 30 個字元，請添加角色定義和輸出約束。"
+        },
+        "agent_no_max_tokens": {
+          "title": "智能體缺少 max_tokens",
+          "message": "智能體節點未設定 max_tokens，可能導致 token 用量無上限。"
+        },
+        "agent_no_max_tool_rounds": {
+          "title": "智能體缺少 max_tool_rounds",
+          "message": "使用工具的智能體未設定 max_tool_rounds，工具迴圈可能無限執行。"
+        },
+        "llm_empty_prompt": {
+          "title": "LLM 提示詞為空",
+          "message": "LLM 節點的提示詞為空，請提供清晰的指令。"
+        },
+        "llm_no_max_tokens": {
+          "title": "LLM 缺少 max_tokens",
+          "message": "LLM 節點未設定 max_tokens，可能導致 token 用量無上限。"
+        },
+        "http_no_timeout": {
+          "title": "HTTP 請求無逾時",
+          "message": "HttpRequest 節點未設定逾時，長時間執行的請求可能阻塞工作流。"
+        },
+        "http_no_retry": {
+          "title": "HTTP 請求無重試",
+          "message": "HttpRequest 節點未設定重試策略，臨時故障將直接傳播。"
+        },
+        "db_no_timeout": {
+          "title": "資料庫查詢無逾時",
+          "message": "DatabaseQuery 節點未設定逾時，慢查詢可能會阻塞工作流。"
+        },
+        "loop_no_max_iter": {
+          "title": "迴圈缺少最大迭代次數",
+          "message": "迴圈節點未設定 max_iterations，可能出現無窮迴圈。"
+        },
+        "loop_no_condition": {
+          "title": "迴圈缺少繼續條件",
+          "message": "迴圈節點未定義 continue_condition，迴圈可能永遠不會結束。"
+        },
+        "doc_no_parser_type": {
+          "title": "文件解析器未指定類型",
+          "message": "DocumentParser 節點未指定 parser_type。"
+        },
+        "insecure_http_url": {
+          "title": "不安全的 HTTP URL",
+          "message": "URL 使用明文 HTTP 而非 HTTPS，資料可能未加密傳輸。"
+        },
+        "insecure_notification_url": {
+          "title": "通知 Webhook URL 不安全",
+          "message": "通知 Webhook URL 使用明文 HTTP，負載可能被攔截。"
+        },
+        "approval_no_approver": {
+          "title": "審批節點未設定審批人",
+          "message": "審批節點未設定審批人，工作流將在此節點停滯。"
+        },
+        "vector_no_threshold": {
+          "title": "Vector Retrieve 無相似度閾值",
+          "message": "VectorRetrieve 節點未設定 similarity_threshold，可能返回低品質匹配。"
+        },
+        "vector_high_top_k": {
+          "title": "Vector Retrieve top_k 過高",
+          "message": "VectorRetrieve 的 top_k 超過 20，會增加成本並可能降低相關性。"
+        },
+        "condition_single_exit": {
+          "title": "條件節點缺少分支",
+          "message": "條件節點的下遊分支少於 2 個，請考慮添加 true/false 兩條路徑。"
+        },
+        "classifier_few_cases": {
+          "title": "分類器分支過少",
+          "message": "LlmClassifier 的分類分支少於 2 個。"
+        },
+        "validation_no_rules": {
+          "title": "驗證無規則",
+          "message": "驗證節點沒有定義規則，將始終通過。"
+        },
+        "edge_dangling_source": {
+          "title": "邊的源節點不存在",
+          "message": "邊參考的源節點已不存在。"
+        },
+        "edge_dangling_target": {
+          "title": "邊的目標節點不存在",
+          "message": "邊參考的目標節點已不存在。"
+        },
+        "debate_no_debaters": {
+          "title": "辯論節點無辯手",
+          "message": "辯論節點沒有辯手智能體，請至少新增 2 位辯手以進行有意義的辯論。"
+        },
+        "debate_single_debater": {
+          "title": "辯論節點辯手不足",
+          "message": "辯論節點只有 1 位辯手，辯論至少需要 2 個對立面。"
+        },
+        "debate_dangling_step": {
+          "title": "辯論節點存在懸空參考",
+          "message": "辯論節點參考了已不存在的辯手步驟，請刪除過期參考。"
+        }
+      },
+      "error": "診斷錯誤"
     },
-    "autoLayoutWithSubs": "Auto-layout (with {{count}} sub-workflows)",
-    "toggleBreakpoint": "Toggle Breakpoint",
-    "copyNode": "Copy Node",
-    "deleteNode": "Delete Node",
+    "batchEdit": {
+      "title": "批次編輯",
+      "noChange": "無變更",
+      "apply": "套用到 {count} 個節點"
+    },
+    "autoLayoutWithSubs": "自動佈局（含 {{count}} 個子工作流程）",
+    "toggleBreakpoint": "切換中斷點",
+    "copyNode": "複製節點",
+    "deleteNode": "刪除節點",
     "debateNode": {
-      "debaters": "debaters",
-      "rounds": "rounds",
-      "expand": "Expand",
-      "collapse": "Collapse",
-      "newDebater": "Debater",
-      "noDebatersHint": "Add debater Agent nodes inside this container"
-    }
+      "debaters": "辯手",
+      "rounds": "輪次",
+      "expand": "展開",
+      "collapse": "摺疊",
+      "newDebater": "辯手",
+      "noDebatersHint": "在此容器內新增辯手智能體節點",
+      "defaultRole": "— 預設 —",
+      "stanceCon": "反方（反對）",
+      "stanceNth": "方 {{count}}",
+      "stancePro": "正方（支持）",
+      "stanceSystemPromptFallback": "你是 {{stance}} 方的辯手，請圍繞辯題發表觀點。"
+    },
+    "batchEditMode": "批次編輯模式",
+    "noExecutionHistory": "無執行歷史",
+    "nodeConfig": {
+      "add_debater": "新增辯手",
+      "convergence_model_role": "收斂模型角色",
+      "convergence_prompt": "收斂提示詞",
+      "convergence_prompt_placeholder": "用於判斷辯論何時收斂的提示詞",
+      "debaters": "辯手",
+      "max_rounds": "最大輪次",
+      "topic_var": "辯題變數"
+    },
+    "searchNodes": "搜尋節點"
   },
   "atomicSkill": {
     "entryType": "入口類型",
@@ -4566,51 +4756,51 @@
       "taskPlaceholder": "描述你的任務（例如：'我需要搜索關於 Rust 編程的信息並寫入文件'）"
     },
     "fineTune": {
-      "addSample": "添加樣本",
-      "datasetDescPlaceholder": "輸入數據集描述",
-      "datasetName": "數據集名稱",
-      "datasetNamePlaceholder": "輸入數據集名稱",
+      "datasetName": "資料集名稱",
+      "datasetNamePlaceholder": "輸入資料集名稱",
       "description": "描述",
+      "datasetDescPlaceholder": "輸入資料集描述",
+      "addSample": "向資料集新增樣本",
       "input": "輸入",
-      "inputPlaceholder": "輸入文本",
+      "inputPlaceholder": "輸入輸入文字",
       "output": "輸出",
-      "outputPlaceholder": "輸出文本",
-      "selectBaseModel": "選擇基礎模型",
-      "selectDataset": "選擇數據集",
-      "systemPromptOptional": "系統提示詞（可選）",
-      "systemPromptPlaceholder": "輸入系統提示詞"
+      "outputPlaceholder": "輸入輸出文字",
+      "systemPromptOptional": "系統提示（可選）",
+      "systemPromptPlaceholder": "輸入系統提示",
+      "selectDataset": "選擇資料集",
+      "selectBaseModel": "選擇基礎模型"
     },
     "tracer": "追蹤器",
     "evaluator": "評估器",
     "rl": "RL 引擎",
-    "traceCount": "{{count}} 個追踪記錄",
-    "noTraces": "暂無追踪記錄",
-    "callChain": "調用链 ({{count}} spans)",
-    "errorOnly": "僅错誤",
+    "traceCount": "{{count}} 個追蹤記錄",
+    "noTraces": "暫無追蹤記錄",
+    "callChain": "調用鏈 ({{count}} spans)",
+    "errorOnly": "僅錯誤",
     "successOnly": "僅成功",
     "apply": "應用",
-    "timelineView": "時间線視圖 ({{count}} spans)",
-    "sessionId": "會话 ID",
-    "filterSession": "過濾會话",
-    "timeRange": "時间範圍",
+    "timelineView": "時間線視圖 ({{count}} spans)",
+    "sessionId": "會話 ID",
+    "filterSession": "過濾會話",
+    "timeRange": "時間範圍",
     "minDuration": "最小耗時",
     "maxDuration": "最大耗時",
-    "errorFilter": "错誤筛選",
-    "includeErrors": "是否包含错誤",
+    "errorFilter": "錯誤篩選",
+    "includeErrors": "是否包含錯誤",
     "searchTraceId": "搜索 trace ID...",
-    "deleteTrace": "删除追踪",
-    "spanId": "Span ID",
+    "deleteTrace": "刪除追蹤",
+    "spanId": "跨度 ID",
     "name": "名稱",
     "type": "類型",
     "statusLabel": "狀態",
-    "duration": "持续時间",
-    "endTime": "結束時间",
+    "duration": "持續時間",
+    "endTime": "結束時間",
     "service": "服務",
     "exportJson": "導出 JSON",
     "exportCsv": "導出 CSV",
     "model": "模型",
     "callTree": "調用樹",
-    "timeline": "時间線",
+    "timeline": "時間線",
     "costAnalysis": "成本分析",
     "durationAnalysis": "耗時分析",
     "spanDetail": "Span 詳情"
@@ -4664,17 +4854,17 @@
     "scoreDetails": "分數詳情",
     "configTitle": "Run Configuration",
     "empty": "Select a benchmark and click run...",
-    "selectFirst": "请先選擇一個基準測試",
+    "selectFirst": "請先選擇一個基準測試",
     "selectTitle": "基準測試選擇",
     "title": "基準測試運行器",
-    "maxConcurrency": "最大并發數: {{value}}",
-    "timeoutLabel": "超時時间: {{seconds}}s",
+    "maxConcurrency": "最大並發數: {{value}}",
+    "timeoutLabel": "超時時間: {{seconds}}s",
     "difficultyEasy": "簡單",
     "difficultyMedium": "中等",
     "difficultyHard": "困難",
     "difficultyExpert": "專家",
-    "includeTraces": "包含追踪記錄",
-    "reportTitle": "測試报告",
+    "includeTraces": "包含追蹤記錄",
+    "reportTitle": "測試報告",
     "exportJson": "導出 JSON",
     "exportMarkdown": "導出 Markdown",
     "passRate": "通過率",
@@ -4682,7 +4872,7 @@
     "taskCount": "{{count}} 個任務",
     "totalDuration": "總耗時",
     "waiting": "等待",
-    "noResult": "暂無結果",
+    "noResult": "暫無結果",
     "maxDifficulty": "最大難度",
     "noLimit": "不限制",
     "selectBenchmark": "選擇基準測試",
@@ -4698,7 +4888,9 @@
     "retry": "重試",
     "tags": "標籤: {{tags}}",
     "none": "無",
-    "response": "回應"
+    "response": "回應",
+    "report": "報告",
+    "tasks": "任務"
   },
   "traceExplorer": {
     "selectTrace": "選擇一個 trace 查看詳情"
@@ -4791,10 +4983,10 @@
     "unsupportedFileFormat": "不支援的文件格式",
     "useUrlImportForYaml": "YAML 文件建議通過網址導入",
     "exportSuccess": "導出成功",
-    "folderHint": "選擇包含提示词 .md 文件的本地文件夹，自動掃描并導入所有 YAML frontmatter 格式的提示词",
+    "folderHint": "選擇包含提示詞 .md 文件的本地文件夾，自動掃描並導入所有 YAML frontmatter 格式的提示詞",
     "folderSupportedFormats": "支持格式",
-    "importFromFolder": "從文件夹導入",
-    "selectFolder": "選擇文件夹",
+    "importFromFolder": "從文件夾導入",
+    "selectFolder": "選擇文件夾",
     "filterByCategory": "按分類過濾",
     "category": "分類",
     "categoryPlaceholder": "例如：AI 工作、AI 學習",
@@ -4855,7 +5047,7 @@
   },
   "searchProvider": {
     "tavily": "Tavily",
-    "zhipu": "智谱",
+    "zhipu": "智譜",
     "bocha": "博查"
   },
   "terminal": {
@@ -4864,18 +5056,18 @@
     "local": "本地",
     "docker": "Docker",
     "ssh": "SSH",
-    "sessions": "{{count}} 個會话",
+    "sessions": "{{count}} 個會話",
     "configureBackends": "配置後端...",
-    "noSessions": "暂無終端會话",
-    "errorsCount": "{{count}} 個错誤",
-    "ok": "OK",
+    "noSessions": "暫無終端會話",
+    "errorsCount": "{{count}} 個錯誤",
+    "ok": "確定",
     "dockerConnectPending": "Docker 連接功能開發中",
     "sshConnectPending": "SSH 連接功能開發中",
     "newTerminal": "新建終端",
-    "analyzeOutput": "分析输出",
+    "analyzeOutput": "分析輸出",
     "clear": "清空",
-    "killProcess": "終止进程",
-    "closeSession": "關闭會话"
+    "killProcess": "終止進程",
+    "closeSession": "關閉會話"
   },
   "search": {
     "resultPrefix": "以下是聯網搜索結果，回答問題前請參考：\n\n",
@@ -5149,14 +5341,7 @@
     "searchPlaceholder": "搜索筆記...",
     "selectWiki": "選擇 Wiki",
     "selectWikiPrompt": "請選擇一個 Wiki",
-    "source": {
-      "chunks": "分段",
-      "deleteNotImplemented": "刪除功能尚未實現",
-      "path": "路徑",
-      "status": "狀態",
-      "title": "來源",
-      "type": "類型"
-    },
+    "source": "來源",
     "sources": "來源",
     "sync": {
       "byWiki": "按 Wiki",
@@ -5191,7 +5376,7 @@
     },
     "titlePlaceholder": "筆記標題...",
     "userNote": "用戶",
-    "wiki": "知識库",
+    "wiki": "知識庫",
     "manage": "管理",
     "viewingWiki": "正在查看 Wiki: {{id}}",
     "deleted": "已刪除",
@@ -5229,8 +5414,8 @@
       "keyboard": "Esc 取消選中 · Del 刪除",
       "rightClick": "右鍵打開菜單"
     },
-    "backlinks": "反向链接",
-    "noBacklinks": "無反向链接",
+    "backlinks": "反向連結",
+    "noBacklinks": "無反向連結",
     "tags": "標簽",
     "versionRestored": "版本已恢復",
     "versionHistory": "版本歷史",
@@ -5240,40 +5425,56 @@
     "restore": "恢復",
     "diffLabel": "差異",
     "selectNote": "選擇筆記",
-    "close": "關闭",
-    "edit": "编辑",
+    "close": "關閉",
+    "edit": "編輯",
     "unsaved": "未保存",
-    "outlinks": "出站链接",
-    "noOutlinks": "無出站链接",
+    "outlinks": "出站連結",
+    "noOutlinks": "無出站連結",
     "localGraph": "本地圖譜",
     "noTags": "無標簽",
-    "viewBacklinks": "查看反向链接",
+    "viewBacklinks": "查看反向連結",
     "focusLocal": "聚焦本地",
-    "createLinkedNote": "创建關聯筆記",
-    "delete": "删除",
+    "createLinkedNote": "創建關聯筆記",
+    "delete": "刪除",
     "cancel": "取消",
-    "browse": "浏览",
+    "browse": "瀏覽",
     "dailyNote": "今日筆記",
     "edges": "關聯邊",
     "export": "導出",
     "exportHtml": "Export as HTML",
     "exportMarkdown": "Export as Markdown",
     "exportPdf": "Export as PDF",
-    "exportResult": "已導出：{{exported}}，失败：{{failed}}",
+    "exportResult": "已導出：{{exported}}，失敗：{{failed}}",
     "exportedPdf": "已導出至 {{path}}",
-    "filteredByTag": "已筛選：{{tag}}",
-    "fromTemplate": "從模板创建",
+    "filteredByTag": "已篩選：{{tag}}",
+    "fromTemplate": "從模板創建",
     "history": "歷史記錄",
     "import": "導入",
-    "importObsidian": "導入 Obsidian 库",
+    "importObsidian": "導入 Obsidian 庫",
     "importObsidianDesc": "Import markdown files from an existing Obsidian vault",
-    "importResult": "已導入：{{imported}}，已跳過：{{skipped}}，失败：{{failed}}",
+    "importResult": "已導入：{{imported}}，已跳過：{{skipped}}，失敗：{{failed}}",
     "nodes": "節點",
-    "preview": "預览",
+    "preview": "預覽",
     "quickCapture": "Quick Capture",
     "refresh": "刷新",
     "startImport": "Start Import",
-    "vaultPath": "Vault Path"
+    "vaultPath": "Vault Path",
+    "ingestSource": {
+      "chunks": "分塊數",
+      "deleteNotImplemented": "刪除功能尚未實作",
+      "path": "路徑",
+      "status": "狀態",
+      "title": "標題",
+      "type": "類型"
+    },
+    "wikiForm": {
+      "description": "描述",
+      "name": "名稱",
+      "rootPath": "根路徑"
+    },
+    "wikiMeta": {
+      "rootPath": "根路徑"
+    }
   },
   "notification": {
     "clear": "清除",
@@ -5289,7 +5490,8 @@
     "dismiss": "忽略",
     "execute": "執行",
     "learningSuggestions": "學習建議",
-    "snooze30": "稍後提醒（30分鐘）"
+    "snooze30": "稍後提醒（30分鐘）",
+    "noSuggestions": "暫無建議"
   },
   "proactive": {
     "accept": "接受",
@@ -5324,7 +5526,7 @@
     "tomorrow": "明天",
     "unknown": "未知",
     "yesterday": "昨天",
-    "deleteConfirm": "確定要删除此提醒嗎？",
+    "deleteConfirm": "確定要刪除此提醒嗎？",
     "everyInterval": "每{{interval}}{{unit}}",
     "everySingle": "每{{unit}}",
     "overdue": "已過期",
@@ -5334,7 +5536,7 @@
     "recurrenceUnitMonths": "月",
     "recurrenceUnitWeek": "週",
     "recurrenceUnitWeeks": "週",
-    "scheduledWas": "計劃時间: {{time}}",
+    "scheduledWas": "計劃時間: {{time}}",
     "retry": "重試",
     "applied": "已應用",
     "copied": "已復制到剪貼板",
@@ -5427,20 +5629,23 @@
     "uninstall": "卸載",
     "addFrontend": "Add Frontend",
     "editFrontend": "Edit Frontend",
-    "exportFailed": "導出失败",
+    "exportFailed": "導出失敗",
     "exportPublishable": "Export Publishable",
     "exported": "技能已導出",
     "hasUI": "含 UI 擴展",
-    "timeoutError": "沙箱加载超時，请重試",
+    "timeoutError": "沙箱加載超時，請重試",
     "entryFileEmpty": "入口文件 \"{{entry}}\" 為空或不存在",
-    "iframeNotReady": "iframe ref 未就绪",
+    "iframeNotReady": "iframe ref 未就緒",
     "storeNotFound": "Store \"{{name}}\" 未找到",
     "storeNotWritable": "Store \"{{name}}\" 不可寫",
-    "loadError": "加载 Skill 失败",
+    "loadError": "加載 Skill 失敗",
     "analyzeFrontend": "AI 分析生成",
     "analyzeSuccess": "智能分析完成",
-    "analyzeError": "智能分析失败: {{error}}",
-    "generateAgent": "生成智能體"
+    "analyzeError": "智能分析失敗: {{error}}",
+    "generateAgent": "生成智能體",
+    "agentGenerated": "智能體生成",
+    "noSkillName": "未命名技能",
+    "notFound": "未找到技能"
   },
   "task": {
     "title": "背景任務",
@@ -5493,15 +5698,15 @@
     "includeConv": "包含對話",
     "includeFiles": "包含檔案",
     "includeSelection": "包含選取區",
-    "saveError": "保存失败: {{error}}",
-    "jsonTab": "JSON 编辑",
-    "previewTab": "預览",
-    "manifestHint": "编辑 skill-manifest.json。capability 類型：page、panel、toolbar、chatCommand、statusBar、navigation、settings。",
+    "saveError": "保存失敗: {{error}}",
+    "jsonTab": "JSON 編輯",
+    "previewTab": "預覽",
+    "manifestHint": "編輯 skill-manifest.json。capability 類型：page、panel、toolbar、chatCommand、statusBar、navigation、settings。",
     "manifestSaved": "清單配置已保存",
-    "jsonFormatError": "JSON 格式错誤: {{error}}",
-    "editManifest": "编辑清單",
-    "editManifestTitle": "编辑 Skill 清單 — {{name}}",
-    "editManifestDesc": "编辑",
+    "jsonFormatError": "JSON 格式錯誤: {{error}}",
+    "editManifest": "編輯清單",
+    "editManifestTitle": "編輯 Skill 清單 — {{name}}",
+    "editManifestDesc": "編輯",
     "supportedCapabilities": "支持的 capability 類型"
   },
   "knowledge": {
@@ -5562,7 +5767,7 @@
     "historyTitle": "計畫歷史",
     "noPlans": "暫無計劃",
     "noPlansHint": "切換到先規劃再執行策略以創建計劃",
-    "justNow": "刚刚",
+    "justNow": "剛剛",
     "minutesAgo": "{{count}}分鐘前",
     "hoursAgo": "{{count}}小時前"
   },
@@ -5604,16 +5809,16 @@
     "scrolled": "已捲動 {{direction}}"
   },
   "commandSuggest": {
-    "searchWeb": "搜索網络",
-    "compressContext": "壓縮會话上下文",
-    "clearHistory": "清除會话歷史",
+    "searchWeb": "搜索網絡",
+    "compressContext": "壓縮會話上下文",
+    "clearHistory": "清除會話歷史",
     "listTools": "列出可用工具",
-    "showHelp": "顯示帮助和可用命令",
+    "showHelp": "顯示幫助和可用命令",
     "mcpTool": "MCP 工具",
-    "referenceFile": "引用文件或路径",
+    "referenceFile": "引用文件或路徑",
     "commands": "命令",
     "mentions": "提及",
-    "filterHint": "输入筛選，↑↓ 選擇，Enter 確認"
+    "filterHint": "輸入篩選，↑↓ 選擇，Enter 確認"
   },
   "onboarding": {
     "welcome": "歡迎使用 AxAgent",
@@ -5803,14 +6008,33 @@
     "lastSync": "上次同步",
     "syncNow": "立即同步",
     "settings": "雲工作區設置",
-    "notConfiguredDesc": "配置 S3 或 WebDAV 雲存储，将工作區同步到雲端",
+    "notConfiguredDesc": "配置 S3 或 WebDAV 雲存儲，將工作區同步到雲端",
     "configureFirst": "立即配置",
     "testConnection": "測試連接",
     "connectionSuccess": "連接成功",
-    "connectionFailed": "連接失败",
+    "connectionFailed": "連接失敗",
     "lastSyncResult": "上次同步結果",
-    "cacheDir": "缓存目錄",
-    "quickActions": "快捷操作"
+    "cacheDir": "緩存目錄",
+    "quickActions": "快捷操作",
+    "autoFillConfig": "自動填入設定",
+    "chineseProviders": "國內雲端服務商",
+    "cloudBackup": "雲端備份",
+    "cloudBackupSize": "大小",
+    "cloudBackupTime": "修改時間",
+    "downloadBackupFailed": "從雲端下載失敗：{{error}}",
+    "downloadBackupSuccess": "已從雲端下載備份",
+    "downloadFromCloud": "從雲端還原",
+    "internationalProviders": "國際雲端服務商",
+    "listCloudBackups": "檢視雲端備份",
+    "noCloudBackups": "未找到雲端備份",
+    "providerCategory": "服務商類別",
+    "s3UsePathStyle": "Path-Style 定址",
+    "selectProvider": "選擇雲端服務商",
+    "selectProviderDesc": "選擇您的雲端儲存服務商以自動設定",
+    "selfHostedProviders": "自建服務",
+    "uploadBackupFailed": "上傳到雲端失敗：{{error}}",
+    "uploadBackupSuccess": "備份已上傳到雲端",
+    "uploadToCloud": "上傳到雲端"
   },
   "buddy": {
     "rarity": {
@@ -5970,10 +6194,10 @@
     },
     "sortDir": "升序",
     "sortDirDesc": "降序",
-    "builtinAlreadyImported": "内置專家已導入",
+    "builtinAlreadyImported": "內置專家已導入",
     "builtinImported": "12 built-in experts imported",
     "builtinImportedLabel": "已導入",
-    "importBuiltin": "導入全部内置專家（代碼審查、調試、架構設計等）",
+    "importBuiltin": "導入全部內置專家（代碼審查、調試、架構設計等）",
     "importBuiltinBtn": "Import Built-in",
     "capabilityDetail": "能力詳情",
     "detail": "詳"
@@ -6083,37 +6307,37 @@
   "chatMarkdown": {
     "toggleRaw": "切換原始",
     "viewThinking": "查看思考",
-    "inputParams": "输入參數",
-    "outputResult": "输出結果"
+    "inputParams": "輸入參數",
+    "outputResult": "輸出結果"
   },
   "advanced": {
     "bashSecurity": "Bash安全",
     "dangerousCmdDetect": "危險命令檢測",
-    "networkCmdDetect": "網络命令檢測",
+    "networkCmdDetect": "網絡命令檢測",
     "cmdTimeout": "命令超時",
     "permissionStrategy": "權限策略",
     "defaultPermission": "默認權限",
     "perm": {
       "default": "默認",
-      "acceptEdits": "接受编辑",
-      "fullAccess": "完全访問"
+      "acceptEdits": "接受編輯",
+      "fullAccess": "完全訪問"
     },
     "fileWriteConfirm": "文件寫入確認",
-    "networkConfirm": "網络確認",
+    "networkConfirm": "網絡確認",
     "shellConfirm": "Shell確認"
   },
   "hookLog": {
     "column": {
-      "time": "時间",
+      "time": "時間",
       "event": "事件",
       "tool": "工具",
       "command": "命令",
       "status": "狀態",
-      "outputSummary": "输出摘要"
+      "outputSummary": "輸出摘要"
     },
     "success": "成功",
-    "failed": "失败",
-    "filterLabel": "筛選",
+    "failed": "失敗",
+    "filterLabel": "篩選",
     "allEvents": "所有事件",
     "recordCount": "{{count}}條記錄",
     "clear": "清除",
@@ -6126,7 +6350,7 @@
   },
   "scheduler": {
     "refresh": "刷新",
-    "dailyReport": "日报",
+    "dailyReport": "日報",
     "backup": "備份",
     "cleanup": "清理",
     "executeNow": "立即執行",
@@ -6134,7 +6358,7 @@
     "historyTitle": "歷史",
     "noRecords": "無記錄",
     "success": "成功",
-    "failed": "失败",
+    "failed": "失敗",
     "viewSubExecution": "View Sub-Execution",
     "subExecutionDetail": "Sub-Workflow Execution Detail"
   },
@@ -6146,9 +6370,9 @@
     "networkCmdDetect": "Enable Network Command Detection",
     "networkConfirm": "Network Requests Require Confirmation",
     "perm": {
-      "acceptEdits": "接受编辑",
+      "acceptEdits": "接受編輯",
       "default": "Default (Ask Every Time)",
-      "fullAccess": "完全访問"
+      "fullAccess": "完全訪問"
     },
     "permissionStrategy": "Permission Execution Strategy",
     "shellConfirm": "Shell Execution Requires Confirmation",
@@ -6158,43 +6382,43 @@
     "autoRetry": "自動重試",
     "maxRetries": "最大重試次數",
     "retryDelay": "重試延遲（秒）",
-    "modelFallback": "模型降级回退",
-    "memoryLimit": "内存使用上限（MB）",
-    "enableIdleDetection": "啟用空转檢測",
-    "idleTimeout": "空闲超時（秒）",
+    "modelFallback": "模型降級回退",
+    "memoryLimit": "內存使用上限（MB）",
+    "enableIdleDetection": "啟用空轉檢測",
+    "idleTimeout": "空閒超時（秒）",
     "faultRecovery": "故障恢復策略",
-    "resourceControl": "资源管控 & 環保策略",
-    "contextCompression": "上下文壓縮阈值",
-    "autoCompressThreshold": "自動壓縮阈值（token）",
-    "warningBuffer": "警告阈值缓衝（token）",
-    "maxConsecutiveFailures": "最大連续壓縮失败",
-    "enableMemoryCompression": "啟用會话記憶壓縮",
+    "resourceControl": "資源管控 & 環保策略",
+    "contextCompression": "上下文壓縮閾值",
+    "autoCompressThreshold": "自動壓縮閾值（token）",
+    "warningBuffer": "警告閾值緩衝（token）",
+    "maxConsecutiveFailures": "最大連續壓縮失敗",
+    "enableMemoryCompression": "啟用會話記憶壓縮",
     "dreamConsolidation": "Dream 後臺鞏固",
     "enableDream": "啟用 Dream 鞏固",
-    "minInterval": "最小间隔（小時）",
-    "minNewSessions": "最小新會话數",
-    "maxDuration": "最大持续時间（秒）",
+    "minInterval": "最小間隔（小時）",
+    "minNewSessions": "最小新會話數",
+    "maxDuration": "最大持續時間（秒）",
     "lspServer": "LSP 語言服務器",
     "enableLspDiagnostics": "啟用 LSP 診斷",
     "tokenBudgetLimit": "Token 預算上限",
     "cpuLimit": "CPU 使用率上限（%）",
     "mode": {
       "general": "通用模式",
-      "speed": "快速模式（轻量）",
+      "speed": "快速模式（輕量）",
       "deep": "深度模式（研究）",
       "plan": "計劃模式"
     },
-    "diagnosticLevelLabel": "診斷级別",
+    "diagnosticLevelLabel": "診斷級別",
     "diagnosticLevel": {
-      "error": "僅错誤",
-      "warning": "错誤+警告",
+      "error": "僅錯誤",
+      "warning": "錯誤+警告",
       "information": "全部"
     }
   },
   "fineTune": {
     "stats": {
       "completed": "完成",
-      "failed": "失败",
+      "failed": "失敗",
       "running": "運行中",
       "total": "總任務"
     },
@@ -6206,17 +6430,17 @@
     "title": "模型微調"
   },
   "research": {
-    "mockFinding": "模擬研究發现",
+    "mockFinding": "模擬研究發現",
     "highCredibility": "高可信度",
     "mediumCredibility": "中可信度",
     "lowCredibility": "低可信度",
     "topic": "研究主題：",
     "searchResults": "搜索結果",
-    "generatedReport": "生成的研究报告",
+    "generatedReport": "生成的研究報告",
     "startNew": "開始新研究",
     "notEvaluated": "未評估",
-    "topicPlaceholder": "输入研究主題，例如：人工智能的發展歷史和未來趨勢",
-    "noSearchResults": "暂無搜索結果",
+    "topicPlaceholder": "輸入研究主題，例如：人工智慧的發展歷史和未來趨勢",
+    "noSearchResults": "暫無搜索結果",
     "relevance": "相關度",
     "addToCitation": "添加到引用",
     "moreSources": "還有 {{count}} 個來源...",
@@ -6226,12 +6450,12 @@
     "snippet": "摘要",
     "credibilityScore": "可信度評分",
     "relevanceScore": "相關度評分",
-    "addToReportCitation": "添加到报告引用",
+    "addToReportCitation": "添加到報告引用",
     "sourceTypeWeb": "網頁",
     "sourceTypeAcademic": "學術",
     "sourceTypeWikipedia": "維基百科",
     "sourceTypeGithub": "GitHub",
-    "sourceTypeDocumentation": "文档",
+    "sourceTypeDocumentation": "文檔",
     "sourceTypeNews": "新聞",
     "sourceTypeBlog": "博客",
     "sourceTypeForum": "論壇",
@@ -6241,24 +6465,24 @@
     "phaseSearching": "搜索",
     "phaseExtracting": "提取",
     "phaseAnalyzing": "分析",
-    "phaseSynthesizing": "综合",
-    "phaseReporting": "报告",
-    "mockTitle1": "關於人工智能的最新研究",
-    "mockSnippet1": "本文探討了人工智能技術的發展现狀和未來趨勢...",
-    "mockTitle2": "深度學習研究综述",
-    "mockSnippet2": "本文综述了深度學習在各個領域的應用和研究进展...",
-    "mockSummary": "本报告基於 {{count}} 個來源，對「{{topic}}」进行了深入分析。",
-    "mockContent": "# 關於「{{topic}}」的研究报告\n\n## 摘要\n\n本报告基於對 {{count}} 個來源的研究，對「{{topic}}」进行了深入分析。\n\n## 主要發现\n\n{{findings}}\n\n## 結論\n\n通過對 {{count}} 個來源的深入研究和分析，我們對「{{topic}}」有了更全面的認識。\n\n## 參考文獻",
-    "errorOccurred": "研究過程出错",
+    "phaseSynthesizing": "綜合",
+    "phaseReporting": "報告",
+    "mockTitle1": "關於人工智慧的最新研究",
+    "mockSnippet1": "本文探討了人工智慧技術的發展現狀和未來趨勢...",
+    "mockTitle2": "深度學習研究綜述",
+    "mockSnippet2": "本文綜述了深度學習在各個領域的應用和研究進展...",
+    "mockSummary": "本報告基於 {{count}} 個來源，對「{{topic}}」進行了深入分析。",
+    "mockContent": "# 關於「{{topic}}」的研究報告\n\n## 摘要\n\n本報告基於對 {{count}} 個來源的研究，對「{{topic}}」進行了深入分析。\n\n## 主要發現\n\n{{findings}}\n\n## 結論\n\n通過對 {{count}} 個來源的深入研究和分析，我們對「{{topic}}」有了更全面的認識。\n\n## 參考文獻",
+    "errorOccurred": "研究過程出錯",
     "researchAgent": "研究型 Agent",
     "stop": "停止",
-    "inputHint": "输入研究主題，AI 将自動搜索、分析多個信息源并生成研究报告。",
+    "inputHint": "輸入研究主題，AI 將自動搜索、分析多個信息源並生成研究報告。",
     "startResearch": "開始研究",
-    "pause": "暂停",
-    "continue": "繼续",
-    "error": "错誤",
+    "pause": "暫停",
+    "continue": "繼續",
+    "error": "錯誤",
     "citations": "引用",
-    "copyReport": "復制报告",
+    "copyReport": "復制報告",
     "progress": {
       "phasePlanning": "規劃",
       "phaseSearching": "搜尋",
@@ -6271,13 +6495,13 @@
   },
   "citationManager": {
     "totalCitations": "總引用數:",
-    "usedInReport": "报告中使用:",
+    "usedInReport": "報告中使用:",
     "avgCredibility": "平均可信度:",
-    "addToReport": "添加到报告",
+    "addToReport": "添加到報告",
     "title": "引用管理 ({count})",
     "addCitation": "添加引用",
-    "empty": "暂無引用，请從搜索結果中添加",
-    "inReport": "报告中使用的引用 ({count})",
+    "empty": "暫無引用，請從搜索結果中添加",
+    "inReport": "報告中使用的引用 ({count})",
     "notInReport": "未使用的引用 ({count})",
     "sourceDistribution": "來源類型分布:",
     "sourceType": {
@@ -6285,7 +6509,7 @@
       "academic": "學術",
       "wikipedia": "維基百科",
       "github": "GitHub",
-      "documentation": "文档",
+      "documentation": "文檔",
       "news": "新聞",
       "blog": "博客",
       "forum": "論壇",
@@ -6305,29 +6529,29 @@
   },
   "decomposition": {
     "cancel": "取消",
-    "workflowSteps": "工作流步骤",
+    "workflowSteps": "工作流步驟",
     "toolDependencies": "工具依賴",
     "processing": "處理:",
     "sourceInfo": "來源信息",
     "parsing": "正在解析復合技能...",
-    "title": "復合技能分解預览",
-    "unresolvedDeps": "存在未解決的工具依賴，请處理後再確認分解",
+    "title": "復合技能分解預覽",
+    "unresolvedDeps": "存在未解決的工具依賴，請處理後再確認分解",
     "confirmDecompose": "確認分解",
     "stepParse": "解析",
-    "stepPreview": "分解預览",
+    "stepPreview": "分解預覽",
     "stepComplete": "完成",
     "colName": "名稱",
     "colDescription": "描述",
     "colEntryType": "入口類型",
-    "market": "市场",
-    "repo": "倉库",
+    "market": "市場",
+    "repo": "倉庫",
     "version": "版本",
     "promptTemplate": "Prompt 模板",
     "toolName": "工具名稱",
     "originalName": "原始名稱",
-    "implementation": "實现方式",
+    "implementation": "實現方式",
     "description": "說明",
-    "promptTemplateDesc": "将通過 Developer Agent 分析工具需求，生成 Prompt 模板作為工具實现。模板中包含 {{input}} 佔位符，運行時替換為實際输入後調用 LLM 執行。",
+    "promptTemplateDesc": "將通過 Developer Agent 分析工具需求，生成 Prompt 模板作為工具實現。模板中包含 {{input}} 佔位符，運行時替換為實際輸入後調用 LLM 執行。",
     "colType": "類型",
     "colStatus": "狀態",
     "colInstallInstructions": "安裝說明",
@@ -6340,37 +6564,37 @@
     "processLabel": "處理",
     "autoInstallDesc": "此工具可自動安裝，點擊下方按鈕開始安裝。",
     "autoInstallBtn": "自動安裝",
-    "manualInstallDesc": "此工具需要手動安裝，请按照以下說明操作：",
+    "manualInstallDesc": "此工具需要手動安裝，請按照以下說明操作：",
     "manualInstallDoneBtn": "已完成安裝",
-    "generateDesc": "此工具無法通過安裝獲取，将使用 Developer Agent 自動生成 Prompt 模板實现。",
+    "generateDesc": "此工具無法通過安裝獲取，將使用 Developer Agent 自動生成 Prompt 模板實現。",
     "generateBtn": "生成工具",
-    "readyLabel": "{{name}} 已就绪"
+    "readyLabel": "{{name}} 已就緒"
   },
   "agentMode": {
-    "requiresTauri": "Agent 模式需要 Tauri 桌面端環境，请在終端執行 npm run tauri dev 啟動",
-    "requiresTauriDetail": "Agent 模式需要 Tauri 桌面端環境才能運行。请使用 `npm run tauri dev` 啟動應用。",
+    "requiresTauri": "Agent 模式需要 Tauri 桌面端環境，請在終端執行 npm run tauri dev 啟動",
+    "requiresTauriDetail": "Agent 模式需要 Tauri 桌面端環境才能運行。請使用 `npm run tauri dev` 啟動應用。",
     "thinking": "🔄 正在思考...",
-    "timeout": "Agent 執行超時（10 分鐘無響應），请重試",
-    "timeoutShort": "Agent 執行超時，请重試",
-    "generatingPlan": "Generating plan...",
-    "planGenerated": "Plan generated. Review the steps below."
+    "timeout": "Agent 執行超時（10 分鐘無響應），請重試",
+    "timeoutShort": "Agent 執行超時，請重試",
+    "generatingPlan": "正在產生計畫…",
+    "planGenerated": "計畫已產生。請查看以下步驟。"
   },
   "agentStore": {
     "executionComplete": "Agent 執行完成 · {{turns}} 輪{{cost}}",
-    "executionFailed": "Agent 執行失败: {{errMsg}}",
+    "executionFailed": "Agent 執行失敗: {{errMsg}}",
     "executionCancelled": "Agent 已取消: {{reason}}",
     "userInterrupt": "用戶中斷",
-    "unknownError": "未知错誤"
+    "unknownError": "未知錯誤"
   },
   "expertStore": {
-    "loadFailed": "加载外部專家失败: {{error}}",
-    "clearFailed": "清除外部專家失败: {{error}}",
-    "deleteFailed": "删除外部專家失败: {{error}}",
-    "updateFailed": "更新外部專家失败: {{error}}",
-    "extractFailed": "提取專家結構失败: {{error}}",
-    "jsonFormatError": "JSON 格式错誤：期望一個數組",
+    "loadFailed": "加載外部專家失敗: {{error}}",
+    "clearFailed": "清除外部專家失敗: {{error}}",
+    "deleteFailed": "刪除外部專家失敗: {{error}}",
+    "updateFailed": "更新外部專家失敗: {{error}}",
+    "extractFailed": "提取專家結構失敗: {{error}}",
+    "jsonFormatError": "JSON 格式錯誤：期望一個數組",
     "skippedInvalidRole": "跳過無效角色: {{role}}",
-    "jsonParseError": "JSON 解析失败: {{error}}"
+    "jsonParseError": "JSON 解析失敗: {{error}}"
   },
   "expertCategory": {
     "general": "通用",
@@ -6383,68 +6607,71 @@
     "business": "商業"
   },
   "planStore": {
-    "rejectFailed": "拒絕計劃失败: {{error}}",
-    "modifyStepFailed": "修改步骤失败: {{error}}",
+    "rejectFailed": "拒絕計劃失敗: {{error}}",
+    "modifyStepFailed": "修改步驟失敗: {{error}}",
     "planRestored": "計劃已恢復，可在上方查看和審批",
-    "resumeFailed": "恢復計劃失败: {{error}}",
-    "cancelFailed": "取消計劃失败: {{error}}",
-    "loadHistoryFailed": "加载計劃歷史失败: {{error}}"
+    "resumeFailed": "恢復計劃失敗: {{error}}",
+    "cancelFailed": "取消計劃失敗: {{error}}",
+    "loadHistoryFailed": "加載計劃歷史失敗: {{error}}"
   },
   "skillExtension": {
-    "duplicateCapability": "[SkillExtension] 重復的 {{type}} ID \"{{id}}\"（命名空间: {{ns}}），技能 \"{{skillName}}\" 的 capability 已被跳過",
-    "toolbarPositionConflict": "[SkillExtension] Toolbar position \"{{position}}\" 衝突：技能 \"{{skillName}}\" 與已有技能 [{{existingSkills}}] 注册了相同 position 的按鈕",
-    "pageRouteConflict": "[SkillExtension] Page route \"{{routeId}}\" 衝突：技能 \"{{skillName}}\" 與已有技能 [{{existingSkills}}] 注册了相同 route 的頁面",
+    "duplicateCapability": "[SkillExtension] 重復的 {{type}} ID \"{{id}}\"（命名空間: {{ns}}），技能 \"{{skillName}}\" 的 capability 已被跳過",
+    "toolbarPositionConflict": "[SkillExtension] Toolbar position \"{{position}}\" 衝突：技能 \"{{skillName}}\" 與已有技能 [{{existingSkills}}] 註冊了相同 position 的按鈕",
+    "pageRouteConflict": "[SkillExtension] Page route \"{{routeId}}\" 衝突：技能 \"{{skillName}}\" 與已有技能 [{{existingSkills}}] 註冊了相同 route 的頁面",
     "permissionFailed": "[SkillExtension] Skill \"{{skillName}}\" 權限校驗未通過，跳過未授權能力:",
     "unknownCapabilityType": "[SkillExtension] 未知的 capability 類型: \"{{type}}\"",
-    "fetchFailed": "[SkillExtension] 獲取 skill 擴展失败"
+    "fetchFailed": "[SkillExtension] 獲取 skill 擴展失敗"
   },
   "executionStore": {
-    "workerCreated": "Worker created"
+    "workerCreated": "已建立 Worker"
   },
   "actionRouter": {
-    "unknownType": "未知的 action 类型: {{type}}，有效类型: {{validTypes}}",
-    "missingField": "Action {{type}} 缺少必需字段 {{field}}",
-    "fieldTypeMismatch": "Action {{type}} 字段 {{field}} 应为 {{expected}}，实际为 {{actual}}",
-    "nonStandardType": "[ActionRouter] 注册非标准 action 类型: {{type}}，建议使用 custom: 前缀",
-    "chainDepthExceeded": "Action 链超过最大递归深度 {{depth}}",
-    "unregisteredAction": "未注册的 action 类型: {{type}}",
-    "agenticMissingPrompt": "Agentic action 缺少 prompt 字段",
-    "noLlmAvailable": "没有可用的 LLM 提供商/模型",
-    "typeMismatch": "类型不匹配",
+    "unknownType": "未知的 action 類型: {{type}}，有效類型: {{validTypes}}",
+    "missingField": "Action {{type}} 缺少必需欄位 {{field}}",
+    "fieldTypeMismatch": "Action {{type}} 欄位 {{field}} 應為 {{expected}}，實際為 {{actual}}",
+    "nonStandardType": "[ActionRouter] 註冊非標準 action 類型: {{type}}，建議使用 custom: 前綴",
+    "chainDepthExceeded": "Action 鏈超過最大遞歸深度 {{depth}}",
+    "unregisteredAction": "未註冊的 action 類型: {{type}}",
+    "agenticMissingPrompt": "Agentic action 缺少 prompt 欄位",
+    "noLlmAvailable": "沒有可用的 LLM 提供商/模型",
+    "typeMismatch": "類型不匹配",
     "invokeMissingCommand": "invoke action 缺少 command",
     "unknownStoreOp": "未知的 store 操作: {{operation}}",
-    "storeReadPermissionDenied": "权限不足: 无法读取 store {{storeName}}{{field}}",
-    "storeWritePermissionDenied": "权限不足: 无法写入 store {{storeName}}{{field}}",
-    "storeNotRegistered": "Store {{storeName}} 未注册",
-    "functionNotRegistered": "函数 {{name}} 未注册",
+    "storeReadPermissionDenied": "權限不足: 無法讀取 store {{storeName}}{{field}}",
+    "storeWritePermissionDenied": "權限不足: 無法寫入 store {{storeName}}{{field}}",
+    "storeNotRegistered": "Store {{storeName}} 未註冊",
+    "functionNotRegistered": "函數 {{name}} 未註冊",
     "handlerNotFound": "Handler {{name}} 未找到",
-    "handlerNotDeclarative": "Handler {{name}} 非声明式"
+    "handlerNotDeclarative": "Handler {{name}} 非聲明式",
+    "commandPermissionDenied": "指令權限被拒絕",
+    "emitPermissionDenied": "事件發送權限被拒絕",
+    "navigatePermissionDenied": "導航權限被拒絕"
   },
   "export": {
-    "exportTime": "导出时间",
-    "messageCount": "条消息",
-    "exportedBy": "由 AxAgent 导出"
+    "exportTime": "導出時間",
+    "messageCount": "條消息",
+    "exportedBy": "由 AxAgent 導出"
   },
   "skillPermissions": {
-    "undeclaredPermissions": "Skill 未声明 permissions 字段，拒绝加载",
-    "commandNotInWhitelist": "命令 \"{{cmd}}\" 不在白名单中",
-    "writeWithoutRead": "WARN: 声明了 storeWrite 但未声明 storeRead",
-    "writeWithoutReadDetail": "WARN: 声明了 storeWrite:{{ws}} 但未声明 storeRead:{{ws}}",
-    "networkDisabled": "WARN: network 权限已声明，但沙箱环境默认禁用 fetch/XHR"
+    "undeclaredPermissions": "Skill 未聲明 permissions 欄位，拒絕加載",
+    "commandNotInWhitelist": "命令 \"{{cmd}}\" 不在白名單中",
+    "writeWithoutRead": "WARN: 聲明了 storeWrite 但未聲明 storeRead",
+    "writeWithoutReadDetail": "WARN: 聲明了 storeWrite:{{ws}} 但未聲明 storeRead:{{ws}}",
+    "networkDisabled": "WARN: network 權限已聲明，但沙箱環境默認禁用 fetch/XHR"
   },
   "memoryLabels": {
     "tier": {
-      "shortTerm": "短期记忆",
-      "working": "工作记忆",
-      "longTerm": "长期记忆",
-      "core": "核心记忆"
+      "shortTerm": "短期記憶",
+      "working": "工作記憶",
+      "longTerm": "長期記憶",
+      "core": "核心記憶"
     },
     "nature": {
-      "episodic": "情景记忆",
-      "semantic": "语义记忆"
+      "episodic": "情景記憶",
+      "semantic": "語義記憶"
     },
     "importance": {
-      "critical": "关键",
+      "critical": "關鍵",
       "important": "重要",
       "normal": "一般",
       "minor": "次要",
@@ -6453,9 +6680,9 @@
   },
   "constants": {
     "language": {
-      "zhCN": "简体中文",
+      "zhCN": "簡體中文",
       "zhTW": "繁體中文",
-      "enUS": "English",
+      "enUS": "英語",
       "ja": "日本語",
       "ko": "한국어",
       "fr": "Français",
@@ -6601,46 +6828,46 @@
   "gatewayMonitor": {
     "refresh": "刷新",
     "clear": "清空",
-    "totalRequests": "總请求",
+    "totalRequests": "總請求",
     "totalTokens": "總 Token",
     "activeConnections": "活躍連接",
     "avgLatency": "平均延遲",
-    "errorCount": "错誤數",
-    "uptime": "運行時间",
-    "requestLogs": "请求日志",
-    "clearLogsConfirm": "清空所有日志?",
-    "loadMetricsFailed": "加载網關指標失败: {{error}}",
+    "errorCount": "錯誤數",
+    "uptime": "運行時間",
+    "requestLogs": "請求日誌",
+    "clearLogsConfirm": "清空所有日誌?",
+    "loadMetricsFailed": "加載網關指標失敗: {{error}}",
     "title": "Gateway 監控",
-    "colTime": "時间",
+    "colTime": "時間",
     "colMethod": "方法",
-    "colPath": "路径",
+    "colPath": "路徑",
     "colStatus": "狀態",
     "colLatency": "延遲",
-    "noRequestLogs": "暂無请求日志"
+    "noRequestLogs": "暫無請求日誌"
   },
   "filePermission": {
-    "title": "文件访問授權",
-    "authLevel": "授權级別",
+    "title": "文件訪問授權",
+    "authLevel": "授權級別",
     "authDuration": "授權時長",
     "minutes": "分鐘",
     "deny": "拒絕",
-    "close": "關闭",
-    "purposePlaceholder": "說明访問此文件的用途...",
-    "requestReason": "请求原因",
+    "close": "關閉",
+    "purposePlaceholder": "說明訪問此文件的用途...",
+    "requestReason": "請求原因",
     "authId": "授權ID",
-    "filePath": "文件路径",
-    "authRequest": "授權请求",
+    "filePath": "文件路徑",
+    "authRequest": "授權請求",
     "authSuccess": "授權成功",
-    "authFailed": "授權失败",
+    "authFailed": "授權失敗",
     "levelRead": "只讀",
-    "levelReadDesc": "只能讀取文件内容",
+    "levelReadDesc": "只能讀取文件內容",
     "levelWrite": "只寫",
-    "levelWriteDesc": "只能寫入文件内容",
+    "levelWriteDesc": "只能寫入文件內容",
     "levelReadWrite": "讀寫",
     "levelReadWriteDesc": "可以讀取和寫入文件",
     "levelTemp": "臨時授權",
     "levelTempDesc": "臨時授權後自動回收",
-    "accessRequestDesc": "應用程序请求访問以下文件：",
+    "accessRequestDesc": "應用程序請求訪問以下文件：",
     "maxDuration": "(最大 24 小時)",
     "duration30min": "30 分鐘",
     "duration1hour": "1 小時",
@@ -6654,12 +6881,12 @@
     "title": "圖像生成",
     "inferenceSteps": "推理步數",
     "promptPlaceholder": "描述你想生成的圖片...",
-    "negativePrompt": "負面提示词（可選）",
-    "loading": "加载中...",
+    "negativePrompt": "負面提示詞（可選）",
+    "loading": "加載中...",
     "defaultProvider": "默認 Provider",
     "autoSaveArtifact": "自動保存為 Artifact",
-    "enterPrompt": "请输入提示词",
-    "configureApiKey": "请配置 API Key",
+    "enterPrompt": "請輸入提示詞",
+    "configureApiKey": "請配置 API Key",
     "generateImage": "生成圖片",
     "model": "模型",
     "elapsed": "耗時",
@@ -6667,17 +6894,17 @@
     "providerDalle": "DALL-E 3 (OpenAI)",
     "replicateApiToken": "Replicate API Token",
     "replicateApiTokenPlaceholder": "r8_...",
-    "openaiApiKeyDalle": "OpenAI API Key (DALL-E)",
+    "openaiApiKeyDalle": "OpenAI API 金鑰（DALL-E）",
     "openaiApiKeyPlaceholder": "sk-...",
-    "openaiBaseUrl": "OpenAI Base URL",
+    "openaiBaseUrl": "OpenAI 基礎 URL",
     "openaiBaseUrlPlaceholder": "https://api.openai.com/v1"
   },
   "diffViewer": {
     "newFile": "新建",
-    "deleted": "删除",
+    "deleted": "刪除",
     "modified": "修改",
     "newFileLabel": "新文件",
-    "deletedContent": "已删除内容"
+    "deletedContent": "已刪除內容"
   },
   "reportViewer": {
     "preview": "預覽",
@@ -6689,31 +6916,33 @@
     "startNewResearch": "開始新研究",
     "lowCredibilityWarning": "注意: 報告中包含 {{count}} 個低可信度來源，請謹慎使用",
     "noReferences": "暫無參考文獻",
-    "noSummary": "暫無摘要"
+    "noSummary": "暫無摘要",
+    "noOutline": "暫無大綱",
+    "noReport": "暫無報告"
   },
   "settingsPage": {
     "refreshPage": "刷新頁面"
   },
   "createTeam": {
-    "createTeam": "创建團隊",
+    "createTeam": "創建團隊",
     "cancel": "取消",
     "teamName": "團隊名稱",
     "memberList": "隊友列表",
     "teamNamePlaceholder": "例如：前端開發組、數據分析組",
     "memberNamePlaceholder": "隊友名稱",
     "backendTypePlaceholder": "後端類型",
-    "teamNameRequired": "请输入團隊名稱",
-    "memberNameRequired": "请输入隊友名稱",
-    "backendTypeRequired": "请選擇後端類型",
-    "inProcess": "进程内",
-    "subProcess": "子进程",
+    "teamNameRequired": "請輸入團隊名稱",
+    "memberNameRequired": "請輸入隊友名稱",
+    "backendTypeRequired": "請選擇後端類型",
+    "inProcess": "進程內",
+    "subProcess": "子進程",
     "addTeammate": "添加隊友"
   },
   "toolManager": {
     "destructive": "破壞性",
     "destructiveTooltip": "破壞性操作——執行後不可逆",
     "readOnly": "只讀",
-    "noTools": "暂無工具數據",
+    "noTools": "暫無工具數據",
     "clickToDisable": "點擊禁用此工具",
     "clickToEnable": "點擊啟用此工具",
     "groupDisabled": "分類已禁用，無法單獨控制",
@@ -6727,7 +6956,7 @@
     "consolidating": "Dream 鞏固中...",
     "memoriesCount": "{{count}} 條記憶",
     "patternsCount": "{{count}} 個模式",
-    "errorLabel": "错誤: {{error}}",
+    "errorLabel": "錯誤: {{error}}",
     "separator": ", ",
     "completed": "鞏固完成",
     "completedTitle": "Dream 完成 ({{secs}}s)",
@@ -6740,49 +6969,49 @@
   },
   "teammatePanel": {
     "memberCount": "{{count}} 名隊友",
-    "statusIdle": "空闲",
+    "statusIdle": "空閒",
     "statusBusy": "工作中",
     "statusOffline": "離線",
     "statusError": "異常",
     "defaultTeam": "默認團隊",
-    "idle": "空闲中",
+    "idle": "空閒中",
     "duration": "耗時 {{seconds}}s",
     "title": "Swarm 隊友",
-    "createTeam": "创建團隊",
+    "createTeam": "創建團隊",
     "newTeam": "新團隊",
     "waitingForTask": "等待分配任務",
-    "teamCreated": "團隊 \"{{name}}\" 已创建，共 {{count}} 名隊友"
+    "teamCreated": "團隊 \"{{name}}\" 已創建，共 {{count}} 名隊友"
   },
   "chatPage": {
-    "loading": "加载中…"
+    "loading": "加載中…"
   },
   "sshConfig": {
     "title": "SSH 配置",
     "connect": "連接",
-    "host": "主机",
-    "port": "端口",
+    "host": "主機",
+    "port": "埠",
     "username": "用戶名"
   },
   "dockerConfig": {
     "title": "Docker 配置",
     "connect": "連接",
-    "socketPath": "Docker Socket 路径"
+    "socketPath": "Docker Socket 路徑"
   },
   "datasetManager": {
     "title": "微調數據集管理器",
     "name": "名稱",
     "description": "描述",
     "samples": "樣本數",
-    "created": "创建時间",
+    "created": "創建時間",
     "action": "操作",
-    "deleteConfirm": "確定删除此數據集？",
+    "deleteConfirm": "確定刪除此數據集？",
     "yes": "是",
     "no": "No",
     "cancel": "取消",
     "createdSuccess": "",
     "deletedSuccess": "",
     "sampleAdded": "",
-    "createNew": "创建新數據集"
+    "createNew": "創建新數據集"
   },
   "loraConfig": {
     "trainingSetup": "訓練設置",
@@ -6800,31 +7029,31 @@
     "totalJobs": "總任務",
     "running": "運行中",
     "completed": "已完成",
-    "failed": "失败",
+    "failed": "失敗",
     "id": "ID",
     "status": "狀態",
     "baseModel": "基礎模型",
     "datasetId": "數據集 ID",
-    "progress": "进度",
+    "progress": "進度",
     "loss": "損失",
-    "loraOutput": "LoRA 输出",
+    "loraOutput": "LoRA 輸出",
     "action": "操作",
-    "ready": "就绪"
+    "ready": "就緒"
   },
   "errorRecovery": {
-    "noError": "當前無错誤需要恢復",
-    "title": "错誤恢復",
-    "attempts": "恢復尝試",
+    "noError": "當前無錯誤需要恢復",
+    "title": "錯誤恢復",
+    "attempts": "恢復嘗試",
     "status": "狀態",
-    "attemptsLabel": "尝試次數",
-    "time": "時间"
+    "attemptsLabel": "嘗試次數",
+    "time": "時間"
   },
   "cronResult": {
     "success": "成功",
     "failed": "失敗",
     "schedule": "排程",
     "scheduleDescription": "描述",
-    "platform": "平台",
+    "platform": "平臺",
     "time": "時間",
     "loading": "正在載入定時任務結果…",
     "prefix": "定時任務: {{jobName}}",
@@ -6832,46 +7061,58 @@
   },
   "errorBoundary": {
     "title": "出了點問題",
-    "retryLoad": "重試加载此模塊"
+    "retryLoad": "重試加載此模塊",
+    "copied": "已複製",
+    "copyError": "複製錯誤",
+    "errorDetails": "錯誤詳情",
+    "moduleError": "模組錯誤",
+    "pageError": "頁面錯誤",
+    "panelLoadFailed": "⚠️ 面板 \"{{tabKey}}\" 載入失敗",
+    "refreshPage": "重新整理頁面",
+    "retry": "重試",
+    "somethingWentWrong": "發生了一些問題",
+    "tryAgain": "重試",
+    "unexpectedError": "意外錯誤",
+    "unknownError": "未知錯誤"
   },
   "appInit": {
     "idle": "準備啟動...",
     "healthCheck": "正在檢查系統連接...",
-    "loadSettings": "正在加载設置...",
+    "loadSettings": "正在加載設置...",
     "applyConfig": "正在應用配置...",
     "startServices": "正在啟動服務...",
-    "ready": "就绪",
-    "failedTitle": "啟動失败",
-    "failedSubtitle": "應用初始化過程中發生错誤，请重試。",
+    "ready": "就緒",
+    "failedTitle": "啟動失敗",
+    "failedSubtitle": "應用初始化過程中發生錯誤，請重試。",
     "retry": "重新啟動"
   },
   "cacheIndicator": {
-    "notEstablished": "Prompt 缓存未建立。會话首輪。",
-    "pendingChanges": "檢測到待生效變更。變更将在下次會话生效。使用 --now 強制生效。",
+    "notEstablished": "Prompt 緩存未建立。會話首輪。",
+    "pendingChanges": "檢測到待生效變更。變更將在下次會話生效。使用 --now 強制生效。",
     "fresh": "新會話",
     "pending": "待生效",
     "cached": "已快取",
-    "active": "缓存已激活。{{hits}} 次命中，~{{tokens}} tokens 已節省。"
+    "active": "緩存已激活。{{hits}} 次命中，~{{tokens}} tokens 已節省。"
   },
   "artifactPanel": {
     "fullscreen": "全屏"
   },
   "cronManager": {
-    "deleteConfirm": "確定删除此定時任務？",
+    "deleteConfirm": "確定刪除此定時任務？",
     "title": "定時任務",
     "addJob": "添加任務",
-    "delete": "删除",
+    "delete": "刪除",
     "cancel": "取消",
     "name": "名稱",
-    "prompt": "提示词",
+    "prompt": "提示詞",
     "never": "從未"
   },
   "cacheConfig": {
-    "title": "Prompt 缓存",
-    "enableBreakpoints": "啟用缓存斷點"
+    "title": "Prompt 緩存",
+    "enableBreakpoints": "啟用緩存斷點"
   },
   "reflection": {
-    "noReflection": "暂無反思結果",
+    "noReflection": "暫無反思結果",
     "title": "反思",
     "qualityAnalysis": "質量分析",
     "efficiencyAnalysis": "效率分析",
@@ -6880,27 +7121,28 @@
     "qualityScore": "質量評分",
     "excellent": "優秀",
     "good": "良好",
-    "needsImprovement": "需要改进",
+    "needsImprovement": "需要改進",
     "startReflection": "開始反思",
     "reflecting": "反思中...",
     "analyzing": "正在分析任務執行...",
-    "errorPatterns": "错誤模式",
+    "errorPatterns": "錯誤模式",
     "reusablePatterns": "可復用模式",
     "knowledgeSuggestions": "知識建議",
-    "improvementSuggestions": "改进建議",
+    "improvementSuggestions": "改進建議",
     "summary": "摘要",
     "qualityMetrics": "質量指標",
     "taskSuccessScore": "任務成功率",
     "toolEfficiencyScore": "工具效率",
     "iterationEfficiencyScore": "迭代效率",
-    "timeEfficiencyScore": "時间效率",
-    "errorRecoveryScore": "错誤恢復",
+    "timeEfficiencyScore": "時間效率",
+    "errorRecoveryScore": "錯誤恢復",
     "goalCompletionScore": "目標完成度",
-    "reflectError": "反思失败",
+    "reflectError": "反思失敗",
     "retry": "重試"
   },
   "subAgentCard": {
-    "viewConversation": "查看子會話"
+    "viewConversation": "查看子會話",
+    "fork": "衍生"
   },
   "modelParam": {
     "topP": "Top P"
@@ -6983,7 +7225,8 @@
     "teammate": "協作",
     "steerInput": "引導",
     "showExtras": "更多面板",
-    "hideExtras": "收起"
+    "hideExtras": "收起",
+    "close": "關閉"
   },
   "knowledgeSettings": {
     "title": "知識庫"
@@ -7008,40 +7251,40 @@
   "llm": {
     "prompts": {
       "extraction": {
-        "systemPrompt": "你是一個知識提取助手。從對话转錄中提取重要、可復用的知識。",
-        "userTemplate": "從以下對话中提取可復用的知識：\n\n{0}"
+        "systemPrompt": "你是一個知識提取助手。從對話轉錄中提取重要、可復用的知識。",
+        "userTemplate": "從以下對話中提取可復用的知識：\n\n{0}"
       },
       "consolidation": {
-        "systemPrompt": "你是一個知識整合助手。将多條相似的記憶合并為一條簡潔的摘要。",
-        "userTemplate": "将以下 {0} 條相似記憶合并為一條：\n\n{1}"
+        "systemPrompt": "你是一個知識整合助手。將多條相似的記憶合併為一條簡潔的摘要。",
+        "userTemplate": "將以下 {0} 條相似記憶合併為一條：\n\n{1}"
       },
       "entityExtraction": {
-        "systemPrompt": "你是一個實體和關系提取助手。從對话转錄中提取關鍵實體及其關系。",
-        "userTemplate": "從以下對话中提取實體和關系：\n\n{0}"
+        "systemPrompt": "你是一個實體和關系提取助手。從對話轉錄中提取關鍵實體及其關系。",
+        "userTemplate": "從以下對話中提取實體和關系：\n\n{0}"
       },
       "incrementalExtract": {
-        "systemPrompt": "從最近的對话中提取新的知識。重點關注用戶的偏好、決策和項目背景。",
-        "userTemplate": "從以下最近的對话中提取新知識：\n\n{0}"
+        "systemPrompt": "從最近的對話中提取新的知識。重點關注用戶的偏好、決策和項目背景。",
+        "userTemplate": "從以下最近的對話中提取新知識：\n\n{0}"
       },
       "conversationSummary": {
-        "mergeTemplate": "你是一個對话摘要助手。请将新增對话内容合并到已有摘要中。\n\n已有摘要：\n{0}\n\n新增對话：\n{1}",
-        "compressTemplate": "你是一個對话摘要助手。请将對话歷史壓縮為簡潔摘要。\n\n對话内容：\n{0}"
+        "mergeTemplate": "你是一個對話摘要助手。請將新增對話內容合併到已有摘要中。\n\n已有摘要：\n{0}\n\n新增對話：\n{1}",
+        "compressTemplate": "你是一個對話摘要助手。請將對話歷史壓縮為簡潔摘要。\n\n對話內容：\n{0}"
       },
       "titleGeneration": {
-        "systemPrompt": "你是一個對话標題生成助手。根據對话内容生成簡潔標題（不超過50字符）。只返回標題文本。",
-        "userTemplate": "请為以下對话生成標題：\n\n{0}"
+        "systemPrompt": "你是一個對話標題生成助手。根據對話內容生成簡潔標題（不超過50字符）。只返回標題文本。",
+        "userTemplate": "請為以下對話生成標題：\n\n{0}"
       },
       "webSearch": {
         "functionName": "web_search",
-        "functionDesc": "搜索網络獲取最新信息。"
+        "functionDesc": "搜索網絡獲取最新信息。"
       },
       "compact": {
-        "continuationPreamble": "此會话從之前的對话续接而來。以下摘要覆蓋了對话的早期部分。",
+        "continuationPreamble": "此會話從之前的對話續接而來。以下摘要覆蓋了對話的早期部分。",
         "recentMessagesNote": "最近的消息被原樣保留。",
-        "resumeInstruction": "從上次中斷的地方繼续對话，不要再向用戶提問。直接繼续。"
+        "resumeInstruction": "從上次中斷的地方繼續對話，不要再向用戶提問。直接繼續。"
       },
       "workflowAi": {
-        "generationSystem": "你是一個工作流設計助手。根據用戶描述生成結構化自動化工作流。输出 JSON 格式。",
+        "generationSystem": "你是一個工作流設計助手。根據用戶描述生成結構化自動化工作流。輸出 JSON 格式。",
         "generationUser": "基於以下描述生成工作流：{0}"
       }
     }
@@ -7058,5 +7301,10 @@
   "backendStatus": {
     "done": "完成",
     "failed": "失敗"
+  },
+  "input": {
+    "recordAudio": "錄製音訊",
+    "takePhoto": "拍照",
+    "uploadFile": "上傳檔案"
   }
 }

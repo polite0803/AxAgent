@@ -334,7 +334,7 @@
       "dagVisualization": "Visualisation DAG",
       "dagHint": "Collez ce code Mermaid dans un rendeur Mermaid pour visualiser le DAG.",
       "listView": "Liste",
-      "dagView": "DAG",
+      "dagView": "Vue DAG",
       "viewOutput": "Sortie finale",
       "outputCopied": "Sortie copiée dans le presse-papier",
       "stepStatus": "Statut :",
@@ -697,7 +697,10 @@
       "cancelled": "Annulé",
       "cancelFailed": "Échec de l’annulation",
       "cancel": "Annuler",
-      "noSteps": "Aucune étape"
+      "noSteps": "Aucune étape",
+      "chart": {
+        "renderError": "Erreur de rendu du graphique"
+      }
     },
     "modelRoutingConfig": {
       "title": "Configuration du routage de modèle",
@@ -868,7 +871,9 @@
         "copyFailed": "Échec de la copie",
         "joinFailed": "Échec de l'adhésion",
         "maxParticipants": "Max participants",
-        "joinSuccess": "Rejoint avec succès"
+        "joinSuccess": "Rejoint avec succès",
+        "createFailed": "Échec de la création du partage",
+        "updateFailed": "Échec de la mise à jour du partage"
       },
       "sharedResources": "Ressources partagées",
       "title": "Collaboration"
@@ -1107,7 +1112,22 @@
     },
     "proactiveInsights": "Aperçus proactifs & rappels",
     "steerSent": "Instruction de pilotage envoyée",
-    "steerError": "Échec de l'envoi de l'instruction de pilotage"
+    "steerError": "Échec de l'envoi de l'instruction de pilotage",
+    "connector": {
+      "add": "Ajouter un connecteur",
+      "custom": "Connecteur personnalisé",
+      "goConfig": "Aller aux Paramètres →",
+      "noServers": "Veuillez d'abord ajouter ou activer des connecteurs",
+      "title": "Connecteur"
+    },
+    "error": "Erreur de chat",
+    "loadError": "Échec du chargement",
+    "mode": {
+      "action": "Action",
+      "ask": "Question",
+      "plan": "Plan",
+      "title": "Changer de mode"
+    }
   },
   "gateway": {
     "title": "Passerelle",
@@ -1243,7 +1263,8 @@
     "connectedTools": "Outils connectés",
     "tab": {
       "monitor": "Moniteur"
-    }
+    },
+    "cacheHitTokens": "Tokens en cache (succès)"
   },
   "settings": {
     "title": "Paramètres",
@@ -1306,7 +1327,7 @@
       "disabled": "Plugin désactivé",
       "unloaded": "Plugin déchargé"
     },
-    "webhooks": "Webhooks",
+    "webhooks": "Étiquette",
     "data": {
       "title": "Gestion des données"
     },
@@ -1964,7 +1985,7 @@
       "builtin": "Outils intégrés",
       "custom": "Personnalisé"
     },
-    "minutes": "minutes",
+    "minutes": "min",
     "modelGroup": "Groupe de modèles",
     "modelGroupAuto": "Laisser vide pour générer automatiquement des groupes par ID de modèle",
     "modelIdRequired": "Veuillez d'abord renseigner l'ID du modèle",
@@ -2525,7 +2546,11 @@
       "title": "Connaissance"
     },
     "notificationCenter": {
-      "title": "Notifications"
+      "title": "Centre de notifications"
+    },
+    "provider": {
+      "deepseekBalance": "Solde DeepSeek",
+      "noValidKey": "Aucune clé valide"
     }
   },
   "backup": {
@@ -2892,7 +2917,9 @@
     "imageUrl": "URL de l'image",
     "emoji": "Émoji",
     "urlPlaceholder": "Saisir l'URL de l'image",
-    "profileTab": "Profil"
+    "profileTab": "Profil",
+    "prefKey": "Clé de préférence",
+    "prefValue": "Valeur de préférence"
   },
   "files": {
     "images": "Images",
@@ -3555,14 +3582,7 @@
     "searchPlaceholder": "Rechercher dans le Wiki...",
     "selectWiki": "Sélectionner un Wiki",
     "selectWikiPrompt": "Veuillez sélectionner un Wiki",
-    "source": {
-      "chunks": "Segments",
-      "deleteNotImplemented": "Delete not implemented",
-      "path": "Chemin",
-      "status": "Statut",
-      "title": "Source",
-      "type": "Type"
-    },
+    "source": "Source",
     "sources": "Sources",
     "sync": {
       "byWiki": "Par Wiki",
@@ -3679,7 +3699,23 @@
     "quickCapture": "Quick Capture",
     "refresh": "Actualiser",
     "startImport": "Start Import",
-    "vaultPath": "Vault Path"
+    "vaultPath": "Vault Path",
+    "ingestSource": {
+      "chunks": "Morceaux",
+      "deleteNotImplemented": "La suppression n'est pas encore implémentée",
+      "path": "Chemin",
+      "status": "Statut",
+      "title": "Titre",
+      "type": "Type"
+    },
+    "wikiForm": {
+      "description": "Description",
+      "name": "Nom",
+      "rootPath": "Chemin racine"
+    },
+    "wikiMeta": {
+      "rootPath": "Chemin racine"
+    }
   },
   "quickbar": {
     "title": "Barre rapide",
@@ -3816,37 +3852,57 @@
       "explanation": "Explication",
       "replaceConfirmTitle": "Confirmer le remplacement",
       "replaceConfirmContent": "Le canevas actuel contient {{nodes}} nœuds et {{edges}} arêtes. La génération les remplacera tous. Continuer ?",
-      "actionGenerateWorkflow": "Generate Workflow",
-      "actionAddNodes": "Add Node(s)",
-      "actionModifyNode": "Update Node",
-      "actionDeleteNodes": "Delete Node(s)",
-      "actionAddEdge": "Add Edge",
-      "actionUpdateEdge": "Update Edge",
-      "actionDeleteEdge": "Delete Edge",
-      "actionOptimizePrompt": "Optimize Prompt",
-      "actionApply": "Apply",
-      "actionApplyAll": "Review {{count}} changes",
+      "actionGenerateWorkflow": "Générer le flux",
+      "actionAddNodes": "Ajouter des nœuds",
+      "actionModifyNode": "Mettre à jour le nœud",
+      "actionDeleteNodes": "Supprimer des nœuds",
+      "actionAddEdge": "Ajouter une arête",
+      "actionUpdateEdge": "Mettre à jour l'arête",
+      "actionDeleteEdge": "Supprimer l'arête",
+      "actionOptimizePrompt": "Optimiser le prompt",
+      "actionApply": "Appliquer",
+      "actionApplyAll": "Examiner {{count}} modifications",
       "diffPreview": {
-        "title": "AI Edit Preview",
-        "subtitle": "Please review these {{count}} changes before applying to your workflow",
-        "before": "Before",
-        "after": "After",
-        "apply": "Apply this",
-        "applyAll": "Apply All",
-        "cancel": "Cancel",
-        "applied": "Applied",
-        "appliedHint": "Applied {{count}} / {{total}} in this session",
-        "empty": "No changes to preview",
-        "promptLength": "Prompt length: {{from}} → {{to}} chars",
-        "noBefore": "(new item, no prior content)",
-        "noAfter": "(deletion, no new content)",
-        "noChanges": "No field changes",
-        "applyFailed": "Apply failed",
-        "applyAllFailed": "Apply All failed",
-        "rollbackBatch": "Rollback Batch",
-        "rollbackSuccess": "Batch rolled back",
-        "rollbackTip": "Undo the entire batch of AI changes"
-      }
+        "title": "Aperçu des modifications IA",
+        "subtitle": "Examinez ces {{count}} modifications avant de les appliquer",
+        "before": "Avant",
+        "after": "Après",
+        "apply": "Appliquer ceci",
+        "applyAll": "Tout appliquer",
+        "cancel": "Annuler",
+        "applied": "Appliqué",
+        "appliedHint": "{{count}} / {{total}} appliqués dans cette session",
+        "empty": "Aucun changement à prévisualiser",
+        "promptLength": "Longueur du prompt : {{from}} → {{to}} caractères",
+        "noBefore": "(nouvel élément, pas de contenu précédent)",
+        "noAfter": "(supprimé, pas de nouveau contenu)",
+        "noChanges": "Aucun changement de champ",
+        "applyFailed": "Échec de l'application",
+        "applyAllFailed": "Échec de l'application de tout",
+        "rollbackBatch": "Annuler le lot",
+        "rollbackSuccess": "Lot annulé",
+        "rollbackTip": "Annuler tout le lot de modifications IA",
+        "deleted": "— Supprimé —",
+        "deletedCount": "— {{count}} supprimés —",
+        "edgeNotFound": "Arête introuvable",
+        "newNodes": "{{count}} nouveaux nœuds",
+        "nodeNotFound": "Nœud introuvable",
+        "nodesEdgesLabel": "{{nodes}} nœuds / {{edges}} arêtes"
+      },
+      "applyToNode": "Appliquer au nœud",
+      "chatMode": "Mode chat",
+      "chatPlaceholder": "Saisissez un message…",
+      "chatWelcome": "Bonjour, je suis votre assistant IA.",
+      "chatWelcomeHint": "Posez-moi des questions sur les workflows ou la configuration des nœuds.",
+      "dragCanvasToAdd": "Glissez sur le canevas pour ajouter",
+      "dragHintUpdated": "Canevas mis à jour d'après le prompt",
+      "fillFromSelectedNode": "Remplir depuis le nœud sélectionné",
+      "generateMergeBtn": "Générer la fusion",
+      "mergeMode": "Mode fusion",
+      "promptAppliedToNode": "Prompt appliqué au nœud",
+      "replaceMode": "Mode remplacement",
+      "retry": "Réessayer",
+      "toolsMode": "Mode outils"
     },
     "previewInDevelopment": "La fonctionnalité d'aperçu est en cours de développement",
     "publishInDevelopment": "La fonctionnalité de publication est en cours de développement",
@@ -3864,7 +3920,7 @@
       "copy": "Copier",
       "uploadJsonFile": "Télécharger un fichier JSON",
       "dragOrClickUpload": "Cliquez ou glissez un fichier ici pour télécharger",
-      "or": "or",
+      "or": "ou",
       "pasteJsonData": "Coller des données JSON",
       "pasteJsonPlaceholder": "Coller les données JSON du modèle...",
       "importTemplate": "Importer le modèle",
@@ -3941,7 +3997,10 @@
       "loadThisVersion": "Charger cette version",
       "currentVersion": "Version actuelle",
       "version": "Version {{version}}",
-      "loading": "Chargement de la version..."
+      "loading": "Chargement de la version...",
+      "compare": "Comparer",
+      "compareVersions": "Comparer les versions",
+      "noChanges": "Aucun changement"
     },
     "versionHistoryLoadFailed": "Échec du chargement de l'historique des versions",
     "versionLoaded": "Version{{version}} loaded",
@@ -4018,9 +4077,9 @@
       "toolParametersPlaceholder": "Entrez la définition JSON Schema...",
       "contextSourcesCount": "Sources de contexte ({{count}})",
       "selectContextSources": "Sélectionner des sources de contexte...",
-      "prompt": "Invite",
+      "prompt": "Prompt",
       "promptPlaceholder": "Entrez votre prompt...",
-      "temperatureHint": "0: Deterministic ↑ | 2: Random ↑",
+      "temperatureHint": "0 : déterminisme ↑ | 2 : aléatoire ↑",
       "loopType": "Type de boucle",
       "loopForEach": "🔁 ForEach",
       "loopWhile": "⏳ While",
@@ -4102,7 +4161,7 @@
       "scheduleTrigger": "Planifié",
       "eventTrigger": "Événement",
       "triggerConfig": "Configuration du déclencheur",
-      "assertion": "Assertions",
+      "assertion": "Assertion",
       "equals": "Égal à",
       "contains": "Contient",
       "matches": "Correspond à",
@@ -4148,7 +4207,7 @@
       "conditions": "Conditions",
       "clickToAddCondition": "Cliquez sur « Ajouter une condition » pour créer la première condition",
       "delaySeconds": "Secondes de délai",
-      "minutes": "Minutes",
+      "minutes": "minutes",
       "seconds": "Secondes",
       "delayMinutes": "Minutes de délai",
       "delayHours": "Heures de délai",
@@ -4170,8 +4229,8 @@
       "clickToAddMapping": "Cliquez sur « Ajouter » pour créer un mappage d'entrée",
       "language": "Langue",
       "codeInputOutputHint": "(Entrée : input, Sortie : return)",
-      "defaultCodeJsComment": "// Input: input\n// Return value will be stored in output_var",
-      "defaultCodePythonComment": "# Input: input\n# Return value will be stored in output_var",
+      "defaultCodeJsComment": "// Input: input\n// La valeur de retour est stockée dans output_var",
+      "defaultCodePythonComment": "# Input: input\n# La valeur de retour est stockée dans output_var",
       "codeInputParams": "Paramètres d'entrée : input",
       "codeReturnHint": "La valeur de retour sera stockée dans output_var",
       "roleCoordinator": "",
@@ -4197,26 +4256,67 @@
       "aggregationRace": "Course",
       "aggregationMajority": "Majorité",
       "aggregationHint": "Comment agréger les résultats de plusieurs branches parallèles",
-      "url": "url",
-      "method": "method",
-      "timeout": "timeout",
-      "bodyType": "bodyType",
-      "body": "body",
-      "headers": "headers",
-      "addHeader": "addHeader",
-      "headerKey": "headerKey",
-      "headerValue": "headerValue",
-      "selectTemplate": "Select Template",
-      "searchTemplate": "Search template...",
-      "noTemplates": "No templates found",
-      "ragSourceIdsCount": "RAG Sources ({{count}})",
-      "ragSourceIdsPlaceholder": "Enter or select knowledge source IDs...",
-      "ragSourceIdsHint": "Format: knowledge:<kb_id>, memory:<ns_id>, wiki:<wiki_id>",
-      "modelRole": "Model Role",
-      "modelRolePlaceholder": "Auto (use model field)",
-      "modelRoleQuickThink": "⚡ Quick Think",
-      "modelRoleDeepThink": "🧠 Deep Think",
-      "modelRoleHint": "Preset role overrides model when set; lower priority than explicit model field."
+      "url": "URL",
+      "method": "Méthode",
+      "timeout": "Timeout",
+      "bodyType": "Type de corps",
+      "body": "Corps",
+      "headers": "En-têtes",
+      "addHeader": "Ajouter un en-tête",
+      "headerKey": "Clé d'en-tête",
+      "headerValue": "Valeur d'en-tête",
+      "selectTemplate": "Sélectionner un modèle",
+      "searchTemplate": "Rechercher un modèle…",
+      "noTemplates": "Aucun modèle trouvé",
+      "ragSourceIdsCount": "Sources RAG ({{count}})",
+      "ragSourceIdsPlaceholder": "Saisir ou sélectionner des ID de source de connaissances…",
+      "ragSourceIdsHint": "Format : knowledge:<kb_id>, memory:<ns_id>, wiki:<wiki_id>",
+      "modelRole": "Rôle du modèle",
+      "modelRolePlaceholder": "Auto (utiliser le champ model)",
+      "modelRoleQuickThink": "⚡ Réflexion rapide",
+      "modelRoleDeepThink": "🧠 Réflexion approfondie",
+      "modelRoleHint": "Le rôle prédéfini remplace le modèle, mais a une priorité inférieure au champ model explicite.",
+      "addCase": "Ajouter un cas",
+      "aggregationAny": "N'importe quel résultat",
+      "aiGenerate": "Générer par IA",
+      "autoInputFromParent": "Entrée auto depuis parent",
+      "autoInputFromParentHint": "Si activé, les sorties du parent deviennent entrées de l'enfant.",
+      "autoInputsFromBranches": "Entrées auto des branches",
+      "autoInputsFromBranchesHint": "Si activé, les sorties des branches deviennent entrées de l'enfant.",
+      "availableTools": "Outils disponibles",
+      "cases": "Cas",
+      "codeTemplates": "Modèles de code",
+      "connectInputsManually": "Connecter les entrées manuellement",
+      "connection": "Source de données",
+      "defaultConnection": "Source de données par défaut",
+      "editExpertPrompt": "Éditer le prompt expert",
+      "editRolePrompt": "Éditer le prompt de rôle",
+      "emailToPlaceholder": "user@example.com",
+      "hideTools": "Masquer les outils",
+      "inputVarPlaceholder": "node_id.field",
+      "llmRouting": "Routage LLM",
+      "matchMode": "Mode de correspondance",
+      "maxDelayMs": "Retard max. (ms)",
+      "mergeAny": "Fusionner n'importe lequel",
+      "mergeMajority": "Majorité",
+      "mergeRace": "Course",
+      "noToolsAvailable": "Aucun outil disponible",
+      "promptSaveFailed": "Échec de sauvegarde du prompt",
+      "promptSaved": "Prompt enregistré",
+      "resetTimeoutHint": "Réinitialiser le délai",
+      "retryEnabled": "Activer la reprise",
+      "routingModel": "Modèle de routage",
+      "routingModelPlaceholder": "Choisir le modèle de routage",
+      "routingPrompt": "Prompt de routage",
+      "routingPromptPlaceholder": "Décrire la logique de routage",
+      "showTools": "Afficher les outils",
+      "subject": "Sujet",
+      "switchInputVarPlaceholder": "node_id.output_field",
+      "switchLabelPlaceholder": "label",
+      "switchValuePlaceholder": "value",
+      "to": "À",
+      "urlPlaceholder": "https://api.example.com/data",
+      "webhookUrlPlaceholder": "https://hook.example.com/..."
     },
     "debug": {
       "totalDuration": "Durée totale",
@@ -4242,7 +4342,60 @@
       "labelType": "Type",
       "labelError": "Erreur",
       "labelInput": "Entrée",
-      "labelOutput": "Sortie"
+      "labelOutput": "Sortie",
+      "allClear": "Tout va bien",
+      "breakpoints": "Points d'arrêt",
+      "breakpointsPanel": "Panneau des points d'arrêt",
+      "cancel": "Annuler",
+      "clickToValidate": "Cliquer pour valider",
+      "colIssues": "Problèmes",
+      "colNode": "Nœud",
+      "colStatus": "Statut",
+      "colTime": "Temps",
+      "colType": "Type",
+      "continue": "Continuer",
+      "cyclesDetected": "Cycles détectés",
+      "deadEnd": "Impasse",
+      "error": "Erreur",
+      "errors": "Erreurs",
+      "execTime": "Temps d'exécution",
+      "executionHistory": "Historique d'exécution",
+      "input": "Entrée",
+      "issuesFound": "Problèmes trouvés",
+      "noBreakpoints": "Aucun point d'arrêt",
+      "noHistory": "Aucun historique",
+      "noPrompt": "Aucun prompt",
+      "noRuntimeData": "Aucune donnée d'exécution",
+      "noVariables": "Aucune variable",
+      "nodeDiagnostics": "Diagnostic de nœud",
+      "nodeRecords": "Enregistrements des nœuds",
+      "nodesExecuted": "Nœuds exécutés",
+      "orphan": "Orphelin",
+      "output": "Sortie",
+      "pause": "Pause",
+      "resume": "Reprendre",
+      "resumeBreakpoint": "Reprendre jusqu'au point d'arrêt",
+      "runFullCheck": "Lancer la vérification complète",
+      "runValidation": "Lancer la validation",
+      "running": "En cours",
+      "runtimeTrace": "Trace d'exécution",
+      "startDebug": "Démarrer le débogage",
+      "staticCheck": "Vérification statique",
+      "staticDebugHint": "Cliquez sur un nœud pour déboguer",
+      "step": "Pas",
+      "stepBreakpoint": "Pas vers le point d'arrêt",
+      "structuralValidation": "Validation structurelle",
+      "subExecutionDetail": "Détail de la sous-exécution",
+      "topoAnalysis": "Analyse topologique",
+      "topoHealthy": "Topologie correcte",
+      "totalEdges": "Total arêtes",
+      "totalNodes": "Total nœuds",
+      "unreachableNodesCount": "Nœuds inatteignables",
+      "view": "Voir",
+      "viewDetail": "Voir le détail",
+      "viewSubExecution": "Voir la sous-exécution",
+      "waitingForNodes": "En attente de nœuds",
+      "warnings": "Avertissements"
     },
     "applySemanticCheck": "Appliquer",
     "applyUpgrade": "Appliquer la mise à niveau",
@@ -4303,17 +4456,19 @@
       "end": "Fin",
       "tool": "Outil",
       "code": "Code",
-      "httpRequest": "HTTP Request",
+      "httpRequest": "Requête HTTP",
       "notification": "Notification",
-      "approval": "Approval",
-      "fileOperation": "File Operation",
-      "dataTransformer": "Data Transformer",
-      "webhookSend": "Webhook Send",
-      "logging": "Logging",
-      "llmClassifier": "LLM Classifier",
-      "aggregator": "Aggregator",
-      "email": "Email",
-      "debate": "Debate"
+      "approval": "Approbation",
+      "fileOperation": "Opération fichier",
+      "dataTransformer": "Transformation de données",
+      "webhookSend": "Envoi Webhook",
+      "logging": "Journalisation",
+      "llmClassifier": "Classifieur LLM",
+      "aggregator": "Agrégateur",
+      "email": "E-mail",
+      "debate": "Débat",
+      "databaseQuery": "Requête BDD",
+      "switch": "Commutateur"
     },
     "templateList": {
       "deleted": "Modèle supprimé",
@@ -4385,7 +4540,7 @@
       "iconDocument": "📄 Document",
       "iconGitBranch": "🔀 Branche Git",
       "iconLayers": "📚 Couches",
-      "iconZap": "⚡ Zap",
+      "iconZap": "⚡ Éclair",
       "label": "Étiquette",
       "name": "Nom",
       "nodeType": "Type de nœud",
@@ -4395,7 +4550,7 @@
       "selectNodeToEdit": "Sélectionnez un nœud pour modifier les propriétés",
       "settings": "Paramètres",
       "tagAgent": "Agent",
-      "tagAi": "AI",
+      "tagAi": "IA",
       "tagAutomation": "Automatisation",
       "tagChatbot": "Chatbot",
       "tagDataProcessing": "Traitement des données",
@@ -4483,7 +4638,7 @@
       "opNotContains": "ne contient pas",
       "opStartsWith": "commence par",
       "opEndsWith": "se termine par",
-      "opRegexMatch": "regex",
+      "opRegexMatch": "Regex",
       "opIsEmpty": "est vide",
       "opIsNotEmpty": "n'est pas vide"
     },
@@ -4491,8 +4646,10 @@
       "notSelected": "Non sélectionné",
       "title": "Sous-flux",
       "async": "Asynchrone",
-      "expand": "Expand",
-      "collapse": "Collapse"
+      "expand": "Développer",
+      "collapse": "Réduire",
+      "inputCount": "Entrées",
+      "outputCount": "Sorties"
     },
     "vectorRetrieveNode": {
       "notSelected": "Non sélectionné",
@@ -4507,7 +4664,8 @@
       "title": "Boucle",
       "maxIterations": "Itérations max",
       "continueOnError": "Continuer en cas d'erreur",
-      "steps": "{{count}} étapes"
+      "steps": "{{count}} étapes",
+      "notConfigured": "Nœud de boucle non configuré"
     },
     "mergeNode": {
       "all": "Tout",
@@ -4515,13 +4673,13 @@
       "last": "Dernier",
       "title": "Fusionner",
       "inputCount": "{{count}} entrées",
-      "any": "Any",
-      "race": "Race",
-      "majority": "Majority",
-      "inputs": "inputs",
-      "waitAll": "Wait all",
-      "waitAny": "Any complete",
-      "autoInputs": "Auto-receive branch outputs"
+      "any": "N'importe lequel",
+      "race": "Course",
+      "majority": "Majorité",
+      "inputs": "Nb d'entrées",
+      "waitAll": "Attendre toutes",
+      "waitAny": "N'importe laquelle terminée",
+      "autoInputs": "Réception auto des sorties de branche"
     },
     "parallelNode": {
       "title": "Parallèle",
@@ -4532,9 +4690,11 @@
       "clickToAdd": "Cliquez pour ajouter une branche",
       "expand": "Déplier",
       "collapse": "Replier",
-      "race": "Race",
-      "branches": "branches",
-      "autoInput": "Auto-receive parent input"
+      "race": "Course",
+      "branches": "Nb de branches",
+      "autoInput": "Entrée auto du parent",
+      "waitAll": "Attendre tous",
+      "waitAny": "Attendre n'importe lequel"
     },
     "toolNode": {
       "notSelected": "Non sélectionné",
@@ -4557,7 +4717,8 @@
       "second": "Sec",
       "minutes": "Min",
       "until": "Jusqu'à",
-      "title": "Délai"
+      "title": "Délai",
+      "notConfigured": "Nœud de retard non configuré"
     },
     "endNode": {
       "title": "Fin"
@@ -4571,7 +4732,8 @@
       "continue": "Continuer",
       "title": "Validation",
       "assertionCount": "{{count}} assertions",
-      "failStrategy": "Stratégie d'échec"
+      "failStrategy": "Stratégie d'échec",
+      "rules": "Règles de validation"
     },
     "shortcuts": {
       "title": "Raccourcis",
@@ -4612,7 +4774,7 @@
         "suggest": "Suggérer",
         "generate": "Générer",
         "rewrite": "Réécrire",
-        "contextComplete": "Context Complete"
+        "contextComplete": "Compléter le contexte"
       },
       "tooltip": "Optimiser avec l'IA",
       "noProvider": "Aucun fournisseur IA",
@@ -4620,268 +4782,305 @@
       "optimizing": "Optimisation IA...",
       "generating": "Génération IA...",
       "applied": "Suggestion IA appliquée",
-      "contextCompleteApplied": "Context completion applied"
+      "contextCompleteApplied": "Complétion du contexte appliquée",
+      "dbQuery": {
+        "sqlHint": "Astuce : entrez SQL, l'IA complétera."
+      },
+      "loop": {
+        "continueHint": "Indiquez la condition de continuation, ex. `index < 10`."
+      },
+      "parallel": {
+        "branchesHint": "Décrivez les entrées/sorties des branches parallèles."
+      },
+      "subWorkflow": {
+        "needPick": "Choisissez un workflow existant ou décrivez-en un nouveau.",
+        "parseFailed": "Analyse échouée, vérifiez la description."
+      },
+      "switch": {
+        "casesHint": "Listez tous les cas et leurs conditions."
+      },
+      "trigger": {
+        "cronHint": "Expression cron standard, ex. `0 9 * * *`."
+      }
     },
     "diagnostic": {
-      "title": "Workflow Diagnostic",
-      "run": "Run Diagnostic",
-      "tooltip": "Scan structure, config, prompts and variable references",
-      "loading": "Diagnosing...",
-      "empty": "Workflow is empty. Add nodes to start diagnosis.",
-      "allGood": "Workflow looks good. No issues found.",
+      "title": "Diagnostic du flux",
+      "run": "Lancer le diagnostic",
+      "tooltip": "Vérifie structure, configuration, prompts et références de variables",
+      "loading": "Diagnostic en cours…",
+      "empty": "Le flux est vide. Ajoutez des nœuds pour lancer le diagnostic.",
+      "allGood": "Le flux est correct. Aucun problème détecté.",
       "summary": {
-        "title": "Diagnostic Summary",
-        "error": "Errors",
-        "warning": "Warnings",
+        "title": "Résumé du diagnostic",
+        "error": "Erreur",
+        "warning": "Avertissement",
         "info": "Info",
-        "total": "{{count}} issue(s)"
+        "total": "{{count}} problèmes"
       },
       "severity": {
-        "error": "Error",
-        "warning": "Warning",
+        "error": "Erreur",
+        "warning": "Avertissement",
         "info": "Info"
       },
       "category": {
         "structure": "Structure",
         "configuration": "Configuration",
         "prompt": "Prompt",
-        "reference": "Reference",
-        "best_practice": "Best Practice",
-        "prompt_quality": "Prompt Quality",
+        "reference": "Référence",
+        "best_practice": "Bonnes pratiques",
+        "prompt_quality": "Qualité du prompt",
         "performance": "Performance",
-        "cost": "Cost",
-        "security": "Security"
+        "cost": "Coût",
+        "security": "Sécurité"
       },
       "fix": {
-        "apply": "Auto Fix",
-        "applied": "Fixed",
-        "failed": "Fix failed"
+        "apply": "Auto-réparer",
+        "applied": "Corrigé",
+        "failed": "Échec de la réparation"
       },
-      "jump": "Locate Node",
+      "jump": "Aller au nœud",
       "issues": {
         "duplicate_node_id": {
-          "title": "Duplicate Node ID",
-          "message": "Node ID \"{{id}}\" appears multiple times, which may cause routing issues."
+          "title": "ID de nœud en doublon",
+          "message": "L'ID de nœud \"{{id}}\" apparaît plusieurs fois, ce qui peut provoquer des problèmes de routage."
         },
         "orphan_node": {
-          "title": "Orphan Node",
-          "message": "Node \"{{label}}\" has neither incoming nor outgoing edges."
+          "title": "Nœud orphelin",
+          "message": "Le nœud \"{{label}}\" n'a ni arête entrante ni arête sortante."
         },
         "unreachable_from_trigger": {
-          "title": "Node Unreachable from Trigger",
-          "message": "Node \"{{label}}\" has no path from any trigger."
+          "title": "Nœud inatteignable depuis le déclencheur",
+          "message": "Le nœud \"{{label}}\" n'a aucun chemin depuis un déclencheur."
         },
         "dangling_edge": {
-          "title": "Dangling Edge",
-          "message": "Edge \"{{id}}\" references a missing source or target node."
+          "title": "Arête pendante",
+          "message": "L'arête \"{{id}}\" référence un nœud source ou cible manquant."
         },
         "llm_prompt_empty": {
-          "title": "Empty LLM Prompt",
-          "message": "Node \"{{label}}\" has an empty LLM.prompt."
+          "title": "Prompt LLM vide",
+          "message": "LLM.prompt du nœud \"{{label}}\" est vide."
         },
         "llm_prompt_short": {
-          "title": "LLM Prompt Too Short",
-          "message": "Node \"{{label}}\" LLM.prompt is only {{len}} characters long."
+          "title": "Prompt LLM trop court",
+          "message": "LLM.prompt du nœud \"{{label}}\" ne contient que {{len}} caractères."
         },
         "agent_prompt_empty": {
-          "title": "Empty Agent System Prompt",
-          "message": "Node \"{{label}}\" has an empty Agent.system_prompt."
+          "title": "Prompt système de l'agent vide",
+          "message": "Agent.system_prompt du nœud \"{{label}}\" est vide."
         },
         "agent_prompt_trivial": {
-          "title": "Agent System Prompt Too Simple",
-          "message": "Node \"{{label}}\" system_prompt is only {{len}} characters."
+          "title": "Prompt système de l'agent trop simple",
+          "message": "Le system_prompt du nœud \"{{label}}\" ne contient que {{len}} caractères."
         },
         "classifier_prompt_empty": {
-          "title": "Empty Classifier Prompt",
-          "message": "Node \"{{label}}\" has an empty LlmClassifier.prompt."
+          "title": "Prompt de classifieur vide",
+          "message": "LlmClassifier.prompt du nœud \"{{label}}\" est vide."
         },
         "classifier_prompt_trivial": {
-          "title": "Classifier Prompt Too Simple",
-          "message": "Node \"{{label}}\" classifier prompt is only {{len}} characters."
+          "title": "Prompt de classifieur trop simple",
+          "message": "Le prompt de classifieur du nœud \"{{label}}\" ne contient que {{len}} caractères."
         },
         "classifier_categories_empty": {
-          "title": "No Classifier Categories",
-          "message": "Node \"{{label}}\" categories list is empty."
+          "title": "Aucune catégorie de classifieur",
+          "message": "La liste des catégories du nœud \"{{label}}\" est vide."
         },
         "http_url_empty": {
-          "title": "Empty HTTP URL",
-          "message": "Node \"{{label}}\" HttpRequest.url is empty."
+          "title": "URL HTTP vide",
+          "message": "HttpRequest.url du nœud \"{{label}}\" est vide."
         },
         "webhook_url_empty": {
-          "title": "Empty Webhook URL",
-          "message": "Node \"{{label}}\" WebhookSend.url is empty."
+          "title": "URL de webhook vide",
+          "message": "WebhookSend.url du nœud \"{{label}}\" est vide."
         },
         "email_to_empty": {
-          "title": "Empty Email Recipients",
-          "message": "Node \"{{label}}\" Email.to is empty."
+          "title": "Destinataires de l'e-mail vides",
+          "message": "Email.to du nœud \"{{label}}\" est vide."
         },
         "email_body_empty": {
-          "title": "Empty Email Body",
-          "message": "Node \"{{label}}\" Email.body is empty."
+          "title": "Corps de l'e-mail vide",
+          "message": "Email.body du nœud \"{{label}}\" est vide."
         },
         "validation_assertions_empty": {
-          "title": "Empty Validation Assertions",
-          "message": "Node \"{{label}}\" assertions list is empty."
+          "title": "Assertions de validation vides",
+          "message": "La liste d'assertions du nœud \"{{label}}\" est vide."
         },
         "code_body_empty": {
-          "title": "Empty Code Node Body",
-          "message": "Node \"{{label}}\" Code.code is empty."
+          "title": "Corps de nœud de code vide",
+          "message": "Code.code du nœud \"{{label}}\" est vide."
         },
         "code_output_var_empty": {
-          "title": "Code Node Missing Output Variable",
-          "message": "Node \"{{label}}\" output_var is empty; downstream nodes cannot reference its result."
+          "title": "Nœud de code sans variable de sortie",
+          "message": "output_var du nœud \"{{label}}\" est vide ; les nœuds suivants ne pourront pas référencer le résultat."
         },
         "tool_name_empty": {
-          "title": "Tool Node Missing Tool",
-          "message": "Node \"{{label}}\" tool_name is empty."
+          "title": "Nœud d'outil sans outil",
+          "message": "tool_name du nœud \"{{label}}\" est vide."
         },
         "subworkflow_id_empty": {
-          "title": "Empty SubWorkflow ID",
-          "message": "Node \"{{label}}\" SubWorkflow.sub_workflow_id is empty."
+          "title": "ID de sous-workflow vide",
+          "message": "SubWorkflow.sub_workflow_id du nœud \"{{label}}\" est vide."
         },
         "unknown_var_reference": {
-          "title": "Undeclared Variable Reference",
-          "message": "Node \"{{label}}\" references ${ {{var}} }, but no node declares this as output_var."
+          "title": "Référence de variable non déclarée",
+          "message": "Le nœud \"{{label}}\" référence ${ {{var}} }, mais aucun nœud ne le déclare comme output_var."
         },
         "no_timeout": {
-          "title": "No Timeout Configured",
-          "message": "Node \"{{label}}\" has no timeout, long-running tasks may block the workflow."
+          "title": "Aucun timeout configuré",
+          "message": "Le nœud \"{{label}}\" n'a pas de timeout ; les tâches longues peuvent bloquer le workflow."
         },
         "no_retry": {
-          "title": "No Retry Configured",
-          "message": "Node \"{{label}}\" has no retry policy; transient failures will propagate."
+          "title": "Aucune reprise configurée",
+          "message": "Le nœud \"{{label}}\" n'a pas de politique de reprise ; les erreurs transitoires seront propagées."
         },
         "parallel_no_merge": {
-          "title": "Parallel Without Merge",
-          "message": "Parallel node \"{{label}}\" branches should converge into a Merge node."
+          "title": "Parallèle sans fusion",
+          "message": "Les branches du nœud parallèle \"{{label}}\" devraient converger vers un nœud Merge."
         },
         "no_trigger": {
-          "title": "No Trigger Node",
-          "message": "Workflow has no trigger node. Add a Trigger to define the entry point."
+          "title": "Nœud déclencheur manquant",
+          "message": "Le workflow n'a pas de nœud déclencheur. Ajoutez un Trigger pour définir le point d'entrée."
         },
         "no_end": {
-          "title": "No End Node",
-          "message": "Workflow has no end node. Consider adding an End node to mark completion."
+          "title": "Nœud de fin manquant",
+          "message": "Le workflow n'a pas de nœud End. Envisagez d'en ajouter un pour marquer la fin."
         },
         "agent_empty_prompt": {
-          "title": "Empty Agent System Prompt",
-          "message": "Agent node has an empty system_prompt. Define a clear role and instructions."
+          "title": "Prompt système de l'agent vide",
+          "message": "Le nœud agent a un system_prompt vide. Définissez un rôle et des instructions clairs."
         },
         "agent_short_prompt": {
-          "title": "Agent System Prompt Too Short",
-          "message": "Agent system_prompt is under 30 characters. Add role definition and output constraints."
+          "title": "Prompt système de l'agent trop court",
+          "message": "Le system_prompt de l'agent fait moins de 30 caractères. Ajoutez une définition de rôle et des contraintes de sortie."
         },
         "agent_no_max_tokens": {
-          "title": "Agent Missing max_tokens",
-          "message": "Agent node has no max_tokens set. This may lead to unbounded token usage."
+          "title": "Agent sans max_tokens",
+          "message": "Le nœud agent n'a pas de max_tokens. Cela peut entraîner une consommation illimitée de tokens."
         },
         "agent_no_max_tool_rounds": {
-          "title": "Agent Missing max_tool_rounds",
-          "message": "Agent with tools has no max_tool_rounds set. Tool loops may run indefinitely."
+          "title": "Agent sans max_tool_rounds",
+          "message": "L'agent utilisant des outils n'a pas de max_tool_rounds. Les boucles d'outils peuvent s'exécuter indéfiniment."
         },
         "llm_empty_prompt": {
-          "title": "Empty LLM Prompt",
-          "message": "LLM node has an empty prompt. Provide a clear instruction."
+          "title": "Prompt LLM vide",
+          "message": "Le nœud LLM a un prompt vide. Fournissez une instruction claire."
         },
         "llm_no_max_tokens": {
-          "title": "LLM Missing max_tokens",
-          "message": "LLM node has no max_tokens set. This may lead to unbounded token usage."
+          "title": "LLM sans max_tokens",
+          "message": "Le nœud LLM n'a pas de max_tokens. Cela peut entraîner une consommation illimitée de tokens."
         },
         "http_no_timeout": {
-          "title": "HTTP Request No Timeout",
-          "message": "HttpRequest node has no timeout configured. Long-running requests may block the workflow."
+          "title": "Requête HTTP sans timeout",
+          "message": "Le nœud HttpRequest n'a pas de timeout. Les requêtes longues peuvent bloquer le workflow."
         },
         "http_no_retry": {
-          "title": "HTTP Request No Retry",
-          "message": "HttpRequest node has no retry policy. Transient failures will propagate."
+          "title": "Requête HTTP sans reprise",
+          "message": "Le nœud HttpRequest n'a pas de politique de reprise. Les erreurs transitoires seront propagées."
         },
         "db_no_timeout": {
-          "title": "Database Query No Timeout",
-          "message": "DatabaseQuery node has no timeout configured. Slow queries may block the workflow."
+          "title": "Requête BDD sans timeout",
+          "message": "Le nœud DatabaseQuery n'a pas de timeout. Les requêtes lentes peuvent bloquer le workflow."
         },
         "loop_no_max_iter": {
-          "title": "Loop No Max Iterations",
-          "message": "Loop node has no max_iterations set. Infinite loops may occur."
+          "title": "Boucle sans max_iterations",
+          "message": "Le nœud boucle n'a pas de max_iterations. Des boucles infinies peuvent survenir."
         },
         "loop_no_condition": {
-          "title": "Loop No Continue Condition",
-          "message": "Loop node has no continue_condition defined. The loop may never terminate."
+          "title": "Boucle sans condition de continuation",
+          "message": "Le nœud boucle n'a pas de continue_condition. La boucle peut ne jamais se terminer."
         },
         "doc_no_parser_type": {
-          "title": "Document Parser No Type",
-          "message": "DocumentParser node has no parser_type specified."
+          "title": "Type de parser de doc non spécifié",
+          "message": "Le nœud DocumentParser n'a pas de parser_type spécifié."
         },
         "insecure_http_url": {
-          "title": "Insecure HTTP URL",
-          "message": "URL uses plain HTTP instead of HTTPS. Data may be transmitted unencrypted."
+          "title": "URL HTTP non sécurisée",
+          "message": "L'URL utilise HTTP en clair au lieu de HTTPS. Les données peuvent être transmises non chiffrées."
         },
         "insecure_notification_url": {
-          "title": "Insecure Notification Webhook URL",
-          "message": "Notification webhook URL uses plain HTTP. Webhook payloads may be intercepted."
+          "title": "URL de webhook non sécurisée",
+          "message": "L'URL de notification utilise HTTP en clair. La charge utile peut être interceptée."
         },
         "approval_no_approver": {
-          "title": "Approval No Approver",
-          "message": "Approval node has no approver configured. The workflow will stall at this node."
+          "title": "Nœud d'approbation sans approbateur",
+          "message": "Le nœud d'approbation n'a pas d'approbateur configuré. Le workflow s'arrêtera sur ce nœud."
         },
         "vector_no_threshold": {
-          "title": "Vector Retrieve No Similarity Threshold",
-          "message": "VectorRetrieve node has no similarity_threshold. Low-quality matches may be returned."
+          "title": "Vector Retrieve sans seuil de similarité",
+          "message": "Le nœud VectorRetrieve n'a pas de similarity_threshold. Des correspondances de faible qualité peuvent être renvoyées."
         },
         "vector_high_top_k": {
-          "title": "Vector Retrieve High top_k",
-          "message": "VectorRetrieve top_k exceeds 20. This increases cost and may reduce relevance."
+          "title": "top_k élevé pour Vector Retrieve",
+          "message": "Le top_k de VectorRetrieve dépasse 20. Cela augmente les coûts et peut réduire la pertinence."
         },
         "condition_single_exit": {
-          "title": "Condition Single Exit",
-          "message": "Condition node has fewer than 2 downstream branches. Consider adding both true/false paths."
+          "title": "Condition à une seule sortie",
+          "message": "Le nœud condition a moins de 2 branches suivantes. Envisagez d'ajouter les deux chemins (true/false)."
         },
         "classifier_few_cases": {
-          "title": "Classifier Too Few Cases",
-          "message": "LlmClassifier has fewer than 2 classification cases."
+          "title": "Trop peu de cas de classifieur",
+          "message": "LlmClassifier a moins de 2 cas de classification."
         },
         "validation_no_rules": {
-          "title": "Validation No Rules",
-          "message": "Validation node has no rules defined. It will always pass."
+          "title": "Validation sans règles",
+          "message": "Le nœud de validation n'a pas de règles définies. Il réussira toujours."
         },
         "edge_dangling_source": {
-          "title": "Dangling Edge Source",
-          "message": "Edge references a source node that no longer exists."
+          "title": "Nœud source de l'arête manquant",
+          "message": "L'arête référence un nœud source qui n'existe plus."
         },
         "edge_dangling_target": {
-          "title": "Dangling Edge Target",
-          "message": "Edge references a target node that no longer exists."
+          "title": "Nœud cible de l'arête manquant",
+          "message": "L'arête référence un nœud cible qui n'existe plus."
         },
         "debate_no_debaters": {
-          "title": "Debate No Debaters",
-          "message": "Debate node has no debater agents. Add at least 2 debaters for a meaningful debate."
+          "title": "Nœud de débat sans débatteurs",
+          "message": "Le nœud de débat n'a aucun agent débatteur. Ajoutez-en au moins 2 pour un débat significatif."
         },
         "debate_single_debater": {
-          "title": "Debate Single Debater",
-          "message": "Debate node has only 1 debater. A debate requires at least 2 opposing sides."
+          "title": "Un seul débatteur",
+          "message": "Le nœud de débat n'a qu'un seul débatteur. Un débat nécessite au moins 2 côtés opposés."
         },
         "debate_dangling_step": {
-          "title": "Debate Dangling Debater Reference",
-          "message": "Debate node references a debater step that no longer exists. Remove the stale reference."
+          "title": "Référence pendante dans le nœud de débat",
+          "message": "Le nœud de débat référence une étape de débatteur qui n'existe plus. Supprimez la référence obsolète."
         }
-      }
+      },
+      "error": "Erreur de diagnostic"
     },
     "batchEdit": {
-      "title": "Batch Edit",
-      "noChange": "No change",
-      "apply": "Apply to {count} nodes"
+      "title": "Édition par lot",
+      "noChange": "Aucun changement",
+      "apply": "Appliquer à {count} nœuds"
     },
-    "autoLayoutWithSubs": "Auto-layout (with {{count}} sub-workflows)",
-    "toggleBreakpoint": "Toggle Breakpoint",
-    "copyNode": "Copy Node",
-    "deleteNode": "Delete Node",
+    "autoLayoutWithSubs": "Mise en page auto ({{count}} sous-flux)",
+    "toggleBreakpoint": "Basculer le point d'arrêt",
+    "copyNode": "Copier le nœud",
+    "deleteNode": "Supprimer le nœud",
     "debateNode": {
-      "debaters": "debaters",
-      "rounds": "rounds",
-      "expand": "Expand",
-      "collapse": "Collapse",
-      "newDebater": "Debater",
-      "noDebatersHint": "Add debater Agent nodes inside this container"
-    }
+      "debaters": "Débatteurs",
+      "rounds": "Tours",
+      "expand": "Développer",
+      "collapse": "Réduire",
+      "newDebater": "Débatteur",
+      "noDebatersHint": "Ajoutez des nœuds d'agent débatteur dans ce conteneur",
+      "defaultRole": "— Par défaut —",
+      "stanceCon": "Contre (opposition)",
+      "stanceNth": "Côté {{count}}",
+      "stancePro": "Pour (soutien)",
+      "stanceSystemPromptFallback": "Vous êtes un débatteur du côté {{stance}}. Argumentez sur le sujet."
+    },
+    "batchEditMode": "Mode édition par lot",
+    "noExecutionHistory": "Aucun historique d'exécution",
+    "nodeConfig": {
+      "add_debater": "Ajouter un débatteur",
+      "convergence_model_role": "Rôle du modèle de convergence",
+      "convergence_prompt": "Prompt de convergence",
+      "convergence_prompt_placeholder": "Prompt déterminant quand le débat converge",
+      "debaters": "Débatteurs",
+      "max_rounds": "Rondes max.",
+      "topic_var": "Variable du sujet"
+    },
+    "searchNodes": "Rechercher des nœuds"
   },
   "atomicSkill": {
     "entryType": "Type d'entrée",
@@ -5120,7 +5319,9 @@
     "retry": "Réessayer",
     "tags": "Tags : {{tags}}",
     "none": "Aucun",
-    "response": "Réponse"
+    "response": "Réponse",
+    "report": "Rapport",
+    "tasks": "Tâches"
   },
   "traceExplorer": {
     "selectTrace": "Sélectionnez une trace pour voir les détails"
@@ -5289,7 +5490,8 @@
     "dismiss": "Ignorer",
     "execute": "Exécuter",
     "learningSuggestions": "Suggestions d'apprentissage",
-    "snooze30": "Reporter (30 min)"
+    "snooze30": "Reporter (30 min)",
+    "noSuggestions": "Aucune suggestion"
   },
   "proactive": {
     "accept": "Accepter",
@@ -5440,7 +5642,10 @@
     "analyzeFrontend": "Génération IA",
     "analyzeSuccess": "Analyse IA terminée",
     "analyzeError": "Analyse IA échouée : {{error}}",
-    "generateAgent": "Générer un agent"
+    "generateAgent": "Générer un agent",
+    "agentGenerated": "Généré par l'agent",
+    "noSkillName": "Compétence sans nom",
+    "notFound": "Compétence introuvable"
   },
   "task": {
     "title": "Tâches de fond",
@@ -5581,7 +5786,7 @@
     }
   },
   "computerControl": {
-    "capture": "Capture",
+    "capture": "Capture d'écran",
     "findElement": "Rechercher élément",
     "auto": "Auto",
     "manual": "Manuel",
@@ -5629,7 +5834,7 @@
     "noKeysDetected": "Aucune clé API détectée",
     "presetOllama": "Ollama Local",
     "presetOllamaDesc": "Utiliser des modèles locaux, les données restent sur l'appareil",
-    "presetOpenAI": "Cloud OpenAI",
+    "presetOpenAI": "OpenAI Cloud",
     "presetOpenAIDesc": "Utiliser les modèles de la série GPT-4o dans le cloud",
     "presetMinimal": "Configuration minimale",
     "presetMinimalDesc": "Configurer uniquement les paramètres de base, ajouter plus tard",
@@ -5810,7 +6015,26 @@
     "connectionFailed": "Échec de la connexion",
     "lastSyncResult": "Dernier résultat de synchronisation",
     "cacheDir": "Répertoire de cache",
-    "quickActions": "Actions rapides"
+    "quickActions": "Actions rapides",
+    "autoFillConfig": "Remplissage auto de la config",
+    "chineseProviders": "Fournisseurs chinois",
+    "cloudBackup": "Sauvegarde cloud",
+    "cloudBackupSize": "Taille",
+    "cloudBackupTime": "Modifié",
+    "downloadBackupFailed": "Échec du téléchargement depuis le cloud : {{error}}",
+    "downloadBackupSuccess": "Sauvegarde téléchargée du cloud",
+    "downloadFromCloud": "Restaurer depuis le cloud",
+    "internationalProviders": "Fournisseurs internationaux",
+    "listCloudBackups": "Voir les sauvegardes cloud",
+    "noCloudBackups": "Aucune sauvegarde cloud trouvée",
+    "providerCategory": "Catégorie de fournisseur",
+    "s3UsePathStyle": "Adressage Path-Style",
+    "selectProvider": "Choisir un fournisseur cloud",
+    "selectProviderDesc": "Choisissez un fournisseur de stockage cloud pour la config auto",
+    "selfHostedProviders": "Auto-hébergé",
+    "uploadBackupFailed": "Échec du téléversement vers le cloud : {{error}}",
+    "uploadBackupSuccess": "Sauvegarde téléversée vers le cloud",
+    "uploadToCloud": "Téléverser vers le cloud"
   },
   "buddy": {
     "rarity": {
@@ -6135,8 +6359,8 @@
     "noRecords": "Aucun enregistrement",
     "success": "Succès",
     "failed": "Échoué",
-    "viewSubExecution": "View Sub-Execution",
-    "subExecutionDetail": "Sub-Workflow Execution Detail"
+    "viewSubExecution": "Voir la sous-exécution",
+    "subExecutionDetail": "Détail de l'exécution du sous-flux"
   },
   "markdown": "Markdown",
   "success": "Succès",
@@ -6275,7 +6499,7 @@
     "avgCredibility": "Crédibilité moyenne :",
     "addToReport": "Ajouter au rapport",
     "title": "Gestionnaire de citations ({count})",
-    "addCitation": "Add Citation",
+    "addCitation": "Ajouter une citation",
     "empty": "Aucune citation pour l'instant, ajoutez depuis les résultats de recherche",
     "inReport": "Utilisées dans le rapport ({count})",
     "notInReport": "Non utilisées dans le rapport ({count})",
@@ -6418,7 +6642,10 @@
     "storeNotRegistered": "Le stockage {{storeName}} n'est pas enregistré",
     "functionNotRegistered": "La fonction {{name}} n'est pas enregistrée",
     "handlerNotFound": "Le gestionnaire {{name}} est introuvable",
-    "handlerNotDeclarative": "Le gestionnaire {{name}} n'est pas déclaratif"
+    "handlerNotDeclarative": "Le gestionnaire {{name}} n'est pas déclaratif",
+    "commandPermissionDenied": "Autorisation de commande refusée",
+    "emitPermissionDenied": "Autorisation d'émission refusée",
+    "navigatePermissionDenied": "Autorisation de navigation refusée"
   },
   "export": {
     "exportTime": "Heure d'exportation",
@@ -6689,7 +6916,9 @@
     "startNewResearch": "Nouvelle recherche",
     "lowCredibilityWarning": "Note: Le rapport contient {{count}} source(s) à faible crédibilité",
     "noReferences": "Aucune référence",
-    "noSummary": "Aucun résumé"
+    "noSummary": "Aucun résumé",
+    "noOutline": "Aucun plan",
+    "noReport": "Aucun rapport"
   },
   "settingsPage": {
     "refreshPage": "Actualiser la page"
@@ -6832,7 +7061,19 @@
   },
   "errorBoundary": {
     "title": "Une erreur est survenue",
-    "retryLoad": "Retenter le chargement de ce module"
+    "retryLoad": "Retenter le chargement de ce module",
+    "copied": "Copié",
+    "copyError": "Copier l'erreur",
+    "errorDetails": "Détails de l'erreur",
+    "moduleError": "Erreur de module",
+    "pageError": "Erreur de page",
+    "panelLoadFailed": "⚠️ Échec du chargement du panneau \"{{tabKey}}\"",
+    "refreshPage": "Rafraîchir la page",
+    "retry": "Réessayer",
+    "somethingWentWrong": "Quelque chose s'est mal passé",
+    "tryAgain": "Réessayer",
+    "unexpectedError": "Erreur inattendue",
+    "unknownError": "Erreur inconnue"
   },
   "appInit": {
     "idle": "Préparation au démarrage...",
@@ -6907,7 +7148,8 @@
     "retry": "Réessayer"
   },
   "subAgentCard": {
-    "viewConversation": "Voir la sous-conversation"
+    "viewConversation": "Voir la sous-conversation",
+    "fork": "Forker"
   },
   "modelParam": {
     "topP": "Top P"
@@ -6990,7 +7232,8 @@
     "teammate": "Équipe",
     "steerInput": "Guider",
     "showExtras": "Plus",
-    "hideExtras": "Moins"
+    "hideExtras": "Moins",
+    "close": "Fermer"
   },
   "knowledgeSettings": {
     "title": "Connaissance"
@@ -7058,5 +7301,10 @@
     "gatewayContext": "Passerelle",
     "filesContext": "Fichiers",
     "terminalContext": "Terminal"
+  },
+  "input": {
+    "recordAudio": "Enregistrer l'audio",
+    "takePhoto": "Prendre une photo",
+    "uploadFile": "Téléverser un fichier"
   }
 }

@@ -718,7 +718,7 @@
         "DESKTOP_NATIVE_NOTIFICATION_FAILED": "原生通知失败"
       },
       "chart": {
-        "renderError": "Chart render error"
+        "renderError": "图表渲染错误"
       }
     },
     "modelRoutingConfig": {
@@ -893,8 +893,8 @@
         "maxParticipants": "最大参与者数",
         "joinSuccess": "加入成功",
         "copied": "已复制",
-        "createFailed": "Failed to create share",
-        "updateFailed": "Failed to update share"
+        "createFailed": "创建分享失败",
+        "updateFailed": "更新分享失败"
       }
     },
     "conversationNotFound": "对话未找到",
@@ -1132,8 +1132,8 @@
       "searchPastSessions": "搜索历史会话"
     },
     "proactiveInsights": "主动洞察与提醒",
-    "error": "Chat error",
-    "loadError": "Failed to load"
+    "error": "聊天错误",
+    "loadError": "加载失败"
   },
   "gateway": {
     "title": "网关",
@@ -1270,7 +1270,7 @@
     "tab": {
       "monitor": "监控"
     },
-    "cacheHitTokens": "Cache hit tokens"
+    "cacheHitTokens": "缓存命中 Token"
   },
   "settings": {
     "title": "设置",
@@ -2472,8 +2472,8 @@
       "typeLabel": "类型",
       "workspaceWrite": "工作区写入",
       "features": "功能",
-      "agents": "Agents",
-      "hooks": "Hooks"
+      "agents": "智能体",
+      "hooks": "钩子"
     },
     "activeProfile": "当前配置",
     "createProfile": "创建配置",
@@ -2555,8 +2555,8 @@
       "title": "通知"
     },
     "provider": {
-      "deepseekBalance": "DeepSeek balance",
-      "noValidKey": "No valid key"
+      "deepseekBalance": "DeepSeek 余额",
+      "noValidKey": "无有效密钥"
     }
   },
   "backup": {
@@ -2891,8 +2891,8 @@
     "emoji": "表情符号",
     "urlPlaceholder": "输入图片 URL",
     "profileTab": "个人信息",
-    "prefKey": "Preference Key",
-    "prefValue": "Preference Value"
+    "prefKey": "偏好键",
+    "prefValue": "偏好值"
   },
   "files": {
     "images": "图片",
@@ -3588,7 +3588,7 @@
     "searchPlaceholder": "搜索笔记...",
     "selectWiki": "选择 Wiki",
     "selectWikiPrompt": "请选择一个 Wiki",
-    "source": "Source",
+    "source": "来源",
     "sources": "来源",
     "sync": {
       "byWiki": "按 Wiki",
@@ -3720,7 +3720,7 @@
     "startImport": "开始导入",
     "vaultPath": "库路径",
     "wikiMeta": {
-      "rootPath": "Root Path"
+      "rootPath": "根路径"
     }
   },
   "quickbar": {
@@ -3895,20 +3895,20 @@
         "deletedCount": "— 删除 {{count}} 个 —",
         "edgeNotFound": "边不存在"
       },
-      "applyToNode": "Apply to node",
-      "chatMode": "Chat mode",
-      "chatPlaceholder": "Type a message…",
-      "chatWelcome": "Hi, I'm your AI assistant.",
-      "chatWelcomeHint": "Ask me about workflow or node configuration.",
-      "dragCanvasToAdd": "Drag to canvas to add",
-      "dragHintUpdated": "Canvas updated from prompt",
-      "fillFromSelectedNode": "Fill from selected node",
-      "generateMergeBtn": "Generate merge",
-      "mergeMode": "Merge mode",
-      "promptAppliedToNode": "Prompt applied to node",
-      "replaceMode": "Replace mode",
-      "retry": "Retry",
-      "toolsMode": "Tools mode"
+      "applyToNode": "应用到节点",
+      "chatMode": "对话模式",
+      "chatPlaceholder": "输入消息…",
+      "chatWelcome": "你好，我是你的 AI 助手。",
+      "chatWelcomeHint": "向我询问工作流或节点配置相关问题。",
+      "dragCanvasToAdd": "拖到画布添加",
+      "dragHintUpdated": "画布已根据提示词更新",
+      "fillFromSelectedNode": "从选中节点填充",
+      "generateMergeBtn": "生成合并",
+      "mergeMode": "合并模式",
+      "promptAppliedToNode": "提示词已应用到节点",
+      "replaceMode": "替换模式",
+      "retry": "重试",
+      "toolsMode": "工具模式"
     },
     "previewInDevelopment": "预览功能开发中",
     "publishInDevelopment": "发布功能开发中",
@@ -4004,9 +4004,9 @@
       "currentVersion": "当前版本",
       "version": "版本",
       "loading": "加载中",
-      "compare": "Compare",
-      "compareVersions": "Compare versions",
-      "noChanges": "No changes"
+      "compare": "对比",
+      "compareVersions": "对比版本",
+      "noChanges": "无变更"
     },
     "versionHistoryLoadFailed": "版本历史加载失败",
     "versionLoaded": "版本已加载",
@@ -4222,8 +4222,8 @@
       "query": "查询",
       "queryPlaceholder": "输入查询...",
       "knowledgeBase": "知识库",
-      "mergeType": "合并策略",
-      "mergeAll": "等待全部",
+      "mergeType": "合并类型",
+      "mergeAll": "合并全部",
       "mergeAny": "任一完成",
       "mergeRace": "竞速模式",
       "mergeMajority": "过半完成",
@@ -4283,46 +4283,49 @@
       "profileMatched": "已匹配到已有配置",
       "profileCreated": "配置已创建",
       "profileCreateFailed": "配置创建失败: {{error}}",
-      "url": "url",
-      "method": "method",
-      "timeout": "timeout",
-      "bodyType": "bodyType",
-      "body": "body",
-      "headers": "headers",
-      "addHeader": "addHeader",
-      "headerKey": "headerKey",
-      "headerValue": "headerValue",
-      "selectTemplate": "Select Template",
-      "searchTemplate": "Search template...",
-      "noTemplates": "No templates found",
-      "mergeFirst": "First - Use first completed input",
-      "mergeLast": "Last - Use last completed input",
-      "aggregationFirst": "First to Complete",
-      "addCase": "Add case",
-      "aiGenerate": "AI Generate",
-      "availableTools": "Available tools",
-      "cases": "Cases",
-      "codeTemplates": "Code templates",
-      "connection": "Data source",
-      "defaultConnection": "Default data source",
-      "editExpertPrompt": "Edit expert prompt",
-      "editRolePrompt": "Edit role prompt",
-      "hideTools": "Hide tools",
-      "llmRouting": "LLM Routing",
-      "matchMode": "Match mode",
-      "maxDelayMs": "Max delay (ms)",
-      "noToolsAvailable": "No tools available",
-      "promptSaveFailed": "Failed to save prompt",
-      "promptSaved": "Prompt saved",
-      "resetTimeoutHint": "Reset timeout",
-      "retryEnabled": "Enable retry",
-      "routingModel": "Routing model",
-      "routingModelPlaceholder": "Select routing model",
-      "routingPrompt": "Routing prompt",
-      "routingPromptPlaceholder": "Describe the routing decision logic",
-      "showTools": "Show tools",
-      "subject": "Subject",
-      "to": "To"
+      "url": "URL",
+      "method": "方法",
+      "timeout": "超时",
+      "bodyType": "请求体类型",
+      "body": "请求体",
+      "headers": "请求头",
+      "addHeader": "添加请求头",
+      "headerKey": "请求头键",
+      "headerValue": "请求头值",
+      "selectTemplate": "选择模板",
+      "searchTemplate": "搜索模板…",
+      "noTemplates": "未找到模板",
+      "mergeFirst": "取第一个",
+      "mergeLast": "取最后一个",
+      "aggregationFirst": "先完成者",
+      "addCase": "添加分支",
+      "aiGenerate": "AI 生成",
+      "availableTools": "可用工具",
+      "cases": "分支",
+      "codeTemplates": "代码模板",
+      "connection": "数据源",
+      "defaultConnection": "默认数据源",
+      "editExpertPrompt": "编辑专家提示词",
+      "editRolePrompt": "编辑角色提示词",
+      "hideTools": "隐藏工具",
+      "llmRouting": "LLM 路由",
+      "matchMode": "匹配模式",
+      "maxDelayMs": "最大延迟 (毫秒)",
+      "noToolsAvailable": "无可用工具",
+      "promptSaveFailed": "保存提示词失败",
+      "promptSaved": "提示词已保存",
+      "resetTimeoutHint": "重置超时",
+      "retryEnabled": "启用重试",
+      "routingModel": "路由模型",
+      "routingModelPlaceholder": "选择路由模型",
+      "routingPrompt": "路由提示词",
+      "routingPromptPlaceholder": "描述路由决策逻辑",
+      "showTools": "显示工具",
+      "subject": "主题",
+      "to": "收件人",
+      "emailToPlaceholder": "user@example.com",
+      "inputVarPlaceholder": "node_id.field",
+      "urlPlaceholder": "https://api.example.com/data"
     },
     "debug": {
       "title": "工作流调试",
@@ -4377,31 +4380,31 @@
       "output": "输出",
       "executionHistory": "执行历史",
       "waitingForNodes": "等待节点数据...",
-      "totalDuration": "Total Duration",
-      "successful": "Successful",
-      "failed": "Failed",
-      "avgNodeTime": "Avg Node Time",
-      "nodeExecutions": "Node Executions",
-      "selectedNodeDetails": "Selected Node Details",
-      "noExecutionData": "No execution data. Please run the workflow first.",
-      "performance": "Performance",
-      "slowestNode": "Slowest Node",
-      "fastestNode": "Fastest Node",
-      "columnNode": "Node",
-      "columnDuration": "Duration",
-      "columnRetries": "Retries",
-      "columnStatus": "Status",
-      "executionLabel": "Execution: {{id}} | Workflow: {{name}} | Trigger: {{trigger}}",
-      "variableSnapshots": "Variable Snapshots",
-      "performanceAnalysis": "Performance Analysis",
-      "labelNode": "Node",
-      "labelType": "Type",
-      "labelError": "Error",
-      "labelInput": "Input",
-      "labelOutput": "Output",
-      "errors": "Errors",
-      "unreachableNodesCount": "Unreachable nodes",
-      "warnings": "Warnings"
+      "totalDuration": "总耗时",
+      "successful": "成功",
+      "failed": "失败",
+      "avgNodeTime": "平均节点耗时",
+      "nodeExecutions": "节点执行",
+      "selectedNodeDetails": "选中节点详情",
+      "noExecutionData": "暂无执行数据，请先运行工作流。",
+      "performance": "性能",
+      "slowestNode": "最慢节点",
+      "fastestNode": "最快节点",
+      "columnNode": "节点",
+      "columnDuration": "耗时",
+      "columnRetries": "重试次数",
+      "columnStatus": "状态",
+      "executionLabel": "执行：{{id}} | 工作流：{{name}} | 触发器：{{trigger}}",
+      "variableSnapshots": "变量快照",
+      "performanceAnalysis": "性能分析",
+      "labelNode": "节点",
+      "labelType": "类型",
+      "labelError": "错误",
+      "labelInput": "输入",
+      "labelOutput": "输出",
+      "errors": "错误",
+      "unreachableNodesCount": "不可达节点",
+      "warnings": "警告"
     },
     "applySemanticCheck": "应用语义检查",
     "applyUpgrade": "应用升级",
@@ -4473,8 +4476,8 @@
       "aggregator": "聚合器",
       "email": "邮件",
       "debate": "辩论",
-      "databaseQuery": "Database Query",
-      "switch": "Switch"
+      "databaseQuery": "数据库查询",
+      "switch": "分支"
     },
     "templateList": {
       "deleted": "已删除",
@@ -4590,8 +4593,8 @@
     "statusBar": {
       "unsaved": "未保存",
       "saved": "已保存",
-      "nodes": "节点: {{count}}",
-      "edges": "连线: {{count}}",
+      "nodes": "节点",
+      "edges": "连线",
       "errors": "错误",
       "warnings": "警告",
       "valid": "有效",
@@ -4634,7 +4637,7 @@
       "roleReviewer": "审查者",
       "roleSynthesizer": "综合者",
       "roleExecutor": "执行者",
-      "agent": "Agent",
+      "agent": "智能体",
       "roleCoordinator": "协调者",
       "roleBrowser": "浏览器"
     },
@@ -4659,8 +4662,8 @@
       "async": "异步",
       "expand": "展开",
       "collapse": "折叠",
-      "inputCount": "Input count",
-      "outputCount": "Output count"
+      "inputCount": "输入数",
+      "outputCount": "输出数"
     },
     "vectorRetrieveNode": {
       "notSelected": "未选择",
@@ -4676,7 +4679,7 @@
       "maxIterations": "最大迭代次数",
       "continueOnError": "出错时继续",
       "steps": "步骤",
-      "notConfigured": "Loop node not configured"
+      "notConfigured": "循环节点未配置"
     },
     "mergeNode": {
       "all": "全部",
@@ -4687,7 +4690,10 @@
       "inputs": "输入",
       "waitAll": "等待全部",
       "waitAny": "任一完成",
-      "autoInputs": "自动接收分支输出"
+      "autoInputs": "自动接收分支输出",
+      "first": "第一个",
+      "last": "最后一个",
+      "inputCount": "输入数"
     },
     "parallelNode": {
       "title": "并行",
@@ -4701,8 +4707,8 @@
       "autoInput": "自动接收父节点输入",
       "expand": "展开",
       "collapse": "折叠",
-      "waitAll": "Wait for all",
-      "waitAny": "Wait for any"
+      "waitAll": "等待全部",
+      "waitAny": "等待任一"
     },
     "debateNode": {
       "debaters": "辩手",
@@ -4739,7 +4745,7 @@
       "minutes": "分钟",
       "until": "直到",
       "title": "延迟",
-      "notConfigured": "Delay node not configured"
+      "notConfigured": "延迟节点未配置"
     },
     "endNode": {
       "title": "结束"
@@ -4754,7 +4760,7 @@
       "title": "验证",
       "assertionCount": "{{count}} 个断言",
       "failStrategy": "失败策略",
-      "rules": "Validation rules"
+      "rules": "验证规则"
     },
     "shortcuts": {
       "title": "快捷键",
@@ -5062,25 +5068,25 @@
           "message": "辩论节点引用了一个不存在的辩手步骤。请移除失效的引用。"
         }
       },
-      "error": "Diagnostic error"
+      "error": "诊断错误"
     },
     "batchEdit": {
-      "title": "Batch Edit",
-      "noChange": "No change",
-      "apply": "Apply to {count} nodes"
+      "title": "批量编辑",
+      "noChange": "无变更",
+      "apply": "应用到 {count} 个节点"
     },
-    "batchEditMode": "Batch edit mode",
-    "noExecutionHistory": "No execution history",
+    "batchEditMode": "批量编辑模式",
+    "noExecutionHistory": "无执行历史",
     "nodeConfig": {
-      "add_debater": "Add debater",
-      "convergence_model_role": "Convergence model role",
-      "convergence_prompt": "Convergence prompt",
-      "convergence_prompt_placeholder": "Prompt used to decide when the debate has converged",
-      "debaters": "Debaters",
-      "max_rounds": "Max rounds",
-      "topic_var": "Topic variable"
+      "add_debater": "添加辩手",
+      "convergence_model_role": "收敛模型角色",
+      "convergence_prompt": "收敛提示词",
+      "convergence_prompt_placeholder": "用于判断辩论何时收敛的提示词",
+      "debaters": "辩手",
+      "max_rounds": "最大轮次",
+      "topic_var": "辩题变量"
     },
-    "searchNodes": "Search nodes"
+    "searchNodes": "搜索节点"
   },
   "atomicSkill": {
     "entryType": "入口类型",
@@ -5191,13 +5197,13 @@
       "datasetNamePlaceholder": "输入数据集名称",
       "description": "描述",
       "datasetDescPlaceholder": "输入数据集描述",
-      "addSample": "添加样本",
+      "addSample": "向数据集添加样本",
       "input": "输入",
-      "inputPlaceholder": "输入文本",
+      "inputPlaceholder": "输入输入文本",
       "output": "输出",
-      "outputPlaceholder": "输出文本",
-      "systemPromptOptional": "系统提示词（可选）",
-      "systemPromptPlaceholder": "输入系统提示词",
+      "outputPlaceholder": "输入输出文本",
+      "systemPromptOptional": "系统提示（可选）",
+      "systemPromptPlaceholder": "输入系统提示",
       "selectDataset": "选择数据集",
       "selectBaseModel": "选择基础模型"
     },
@@ -5213,7 +5219,7 @@
     "includeErrors": "是否包含错误",
     "searchTraceId": "搜索 trace ID...",
     "deleteTrace": "删除追踪",
-    "spanId": "Span ID",
+    "spanId": "跨度 ID",
     "name": "名称",
     "type": "类型",
     "statusLabel": "状态",
@@ -5320,8 +5326,8 @@
     "tags": "标签: {{tags}}",
     "none": "无",
     "response": "响应",
-    "report": "Report",
-    "tasks": "Tasks"
+    "report": "报告",
+    "tasks": "任务"
   },
   "traceExplorer": {
     "selectTrace": "选择一个 trace 查看详情"
@@ -5491,7 +5497,7 @@
     "execute": "执行",
     "learningSuggestions": "学习建议",
     "snooze30": "稍后提醒（30分钟）",
-    "noSuggestions": "No suggestions"
+    "noSuggestions": "无建议"
   },
   "proactive": {
     "accept": "接受",
@@ -5643,9 +5649,9 @@
     "analyzeSuccess": "智能分析完成",
     "analyzeError": "智能分析失败: {{error}}",
     "generateAgent": "生成智能体",
-    "agentGenerated": "Agent Generated",
-    "noSkillName": "Unnamed skill",
-    "notFound": "Skill not found"
+    "agentGenerated": "智能体生成",
+    "noSkillName": "未命名技能",
+    "notFound": "未找到技能"
   },
   "task": {
     "title": "后台任务",
@@ -6284,12 +6290,12 @@
       "all": "全部",
       "knowledge": "RAG 知识库",
       "memory": "记忆",
-      "wiki": "Wiki 知识库"
+      "wiki": "知识库"
     },
     "type": {
       "knowledge": "RAG 知识库",
       "memory": "记忆",
-      "wiki": "Wiki 知识库"
+      "wiki": "知识库"
     },
     "typeDesc": {
       "knowledge": "RAG 向量知识库，支持文档导入与语义检索",
@@ -6484,9 +6490,9 @@
     "providerDalle": "DALL-E 3 (OpenAI)",
     "replicateApiToken": "Replicate API Token",
     "replicateApiTokenPlaceholder": "r8_...",
-    "openaiApiKeyDalle": "OpenAI API Key (DALL-E)",
+    "openaiApiKeyDalle": "OpenAI API 密钥（DALL-E）",
     "openaiApiKeyPlaceholder": "sk-...",
-    "openaiBaseUrl": "OpenAI Base URL",
+    "openaiBaseUrl": "OpenAI 基础 URL",
     "openaiBaseUrlPlaceholder": "https://api.openai.com/v1"
   },
   "diffViewer": {
@@ -6571,8 +6577,8 @@
     "lowCredibilityWarning": "注意: 报告中包含 {{count}} 个低可信度来源，请谨慎使用",
     "noReferences": "暂无参考文献",
     "noSummary": "暂无摘要",
-    "noOutline": "No outline",
-    "noReport": "No report"
+    "noOutline": "无大纲",
+    "noReport": "无报告"
   },
   "citationManager": {
     "totalCitations": "总引用数:",
@@ -6826,16 +6832,16 @@
     "retryLoad": "重试加载此模块",
     "panelLoadFailed": "⚠️ 面板 \"{{tabKey}}\" 加载失败",
     "unknownError": "未知错误",
-    "copied": "Copied",
-    "copyError": "Copy Error",
-    "errorDetails": "Error Details",
-    "moduleError": "Module Error",
-    "pageError": "Page Error",
-    "refreshPage": "Refresh Page",
-    "retry": "Retry",
-    "somethingWentWrong": "Something Went Wrong",
-    "tryAgain": "Try Again",
-    "unexpectedError": "Unexpected Error"
+    "copied": "已复制",
+    "copyError": "复制错误",
+    "errorDetails": "错误详情",
+    "moduleError": "模块错误",
+    "pageError": "页面错误",
+    "refreshPage": "刷新页面",
+    "retry": "重试",
+    "somethingWentWrong": "出错了",
+    "tryAgain": "再试一次",
+    "unexpectedError": "意外错误"
   },
   "appInit": {
     "idle": "准备启动...",
@@ -6911,7 +6917,7 @@
   },
   "subAgentCard": {
     "viewConversation": "查看子会话",
-    "fork": "Fork"
+    "fork": "分叉"
   },
   "modelParam": {
     "topP": "Top P"
@@ -6931,7 +6937,8 @@
       "loraConfig": "LoRA 配置",
       "training": "训练任务"
     },
-    "title": "模型微调"
+    "title": "模型微调",
+    "rank": "排序"
   },
   "agentMode": {
     "requiresTauri": "Agent 模式需要 Tauri 桌面端环境，请在终端执行 npm run tauri dev 启动",
@@ -6939,8 +6946,8 @@
     "thinking": "🔄 正在思考...",
     "timeout": "Agent 执行超时（10 分钟无响应），请重试",
     "timeoutShort": "Agent 执行超时，请重试",
-    "generatingPlan": "Generating plan...",
-    "planGenerated": "Plan generated. Review the steps below."
+    "generatingPlan": "正在生成计划…",
+    "planGenerated": "计划已生成。请查看以下步骤。"
   },
   "agentStore": {
     "executionComplete": "Agent 执行完成 · {{turns}} 轮{{cost}}",
@@ -7050,7 +7057,7 @@
     "fetchFailed": "[SkillExtension] 获取 skill 扩展失败"
   },
   "executionStore": {
-    "workerCreated": "Worker created"
+    "workerCreated": "已创建 Worker"
   },
   "actionRouter": {
     "unknownType": "未知的 action 类型: {{type}}，有效类型: {{validTypes}}",
@@ -7070,9 +7077,9 @@
     "functionNotRegistered": "函数 {{name}} 未注册",
     "handlerNotFound": "Handler {{name}} 未找到",
     "handlerNotDeclarative": "Handler {{name}} 非声明式",
-    "commandPermissionDenied": "Command Permission Denied",
-    "emitPermissionDenied": "Emit Permission Denied",
-    "navigatePermissionDenied": "Navigate Permission Denied"
+    "commandPermissionDenied": "命令权限被拒绝",
+    "emitPermissionDenied": "发出权限被拒绝",
+    "navigatePermissionDenied": "导航权限被拒绝"
   },
   "export": {
     "exportTime": "导出时间",
@@ -7133,7 +7140,7 @@
     "language": {
       "zhCN": "简体中文",
       "zhTW": "繁體中文",
-      "enUS": "English",
+      "enUS": "英语",
       "ja": "日本語",
       "ko": "한국어",
       "fr": "Français",
@@ -7229,7 +7236,7 @@
     "steerInput": "引导",
     "showExtras": "更多面板",
     "hideExtras": "收起",
-    "close": "Close"
+    "close": "关闭"
   },
   "knowledgeSettings": {
     "title": "知识库"
@@ -7293,8 +7300,8 @@
     }
   },
   "input": {
-    "recordAudio": "Record audio",
-    "takePhoto": "Take photo",
-    "uploadFile": "Upload file"
+    "recordAudio": "录制音频",
+    "takePhoto": "拍照",
+    "uploadFile": "上传文件"
   }
 }

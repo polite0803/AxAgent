@@ -2850,7 +2850,7 @@
     "copiedToClipboard": "Copied o lipboard",
     "confirmDelete": "Confirm elete",
     "version": "Version",
-    "versionPlaceholder": "Version laceholder",
+    "versionPlaceholder": "Version placeholder",
     "category": "Category",
     "type": "Type",
     "tag": "Tag",
@@ -2863,7 +2863,7 @@
     "view": "View",
     "import": "Import",
     "port": "Port",
-    "portPlaceholder": "Port laceholder",
+    "portPlaceholder": "Port placeholder",
     "duration": "Duration",
     "startTime": "Start ime",
     "endTime": "End ime",
@@ -2884,7 +2884,7 @@
     "affectedPaths": "Affected aths",
     "clear": "Clear",
     "confirmExecute": "Confirm xecute",
-    "dangerousOperationWarning": "Dangerous peration arning",
+    "dangerousOperationWarning": "Dangerous operation warning",
     "download": "Download",
     "executionWarning": "Execution arning",
     "learnAboutPermissions": "Learn bout ermissions",
@@ -3021,7 +3021,7 @@
     "proxyTestFailed": "Proxy test failed",
     "invalidFormat": "Invalid format",
     "page": "Error",
-    "message": "错误",
+    "message": "Error",
     "pageNotFound": "Sorry, the page you visited does not exist."
   },
   "desktop": {
@@ -5132,8 +5132,8 @@
   },
   "searchProvider": {
     "tavily": "Tavily",
-    "zhipu": "智谱",
-    "bocha": "博查"
+    "zhipu": "Zhipu",
+    "bocha": "Bocha"
   },
   "terminal": {
     "online": "Online",
@@ -7162,7 +7162,7 @@
   },
   "chat:workflow": {
     "templateList": {
-      "presetsImported": "导入成功"
+      "presetsImported": "Imported successfully"
     }
   },
   "report": {

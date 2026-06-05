@@ -334,7 +334,7 @@
       "dagVisualization": "تصور DAG",
       "dagHint": "الصق كود Mermaid هذا في عارض Mermaid لتصور DAG.",
       "listView": "قائمة",
-      "dagView": "DAG",
+      "dagView": "عرض DAG",
       "viewOutput": "الإخراج النهائي",
       "outputCopied": "تم نسخ الإخراج إلى الحافظة",
       "stepStatus": "الحالة:",
@@ -697,7 +697,10 @@
       "cancelled": "ملغى",
       "cancelFailed": "فشل الإلغاء",
       "cancel": "إلغاء",
-      "noSteps": "لا توجد خطوات"
+      "noSteps": "لا توجد خطوات",
+      "chart": {
+        "renderError": "خطأ في عرض المخطط"
+      }
     },
     "modelRoutingConfig": {
       "title": "تكوين توجيه النموذج",
@@ -868,7 +871,9 @@
         "copyFailed": "فشل النسخ",
         "joinFailed": "فشل الانضمام",
         "maxParticipants": "الحد الأقصى للمشاركين",
-        "joinSuccess": "تم الانضمام بنجاح"
+        "joinSuccess": "تم الانضمام بنجاح",
+        "createFailed": "فشل إنشاء المشاركة",
+        "updateFailed": "فشل تحديث المشاركة"
       },
       "sharedResources": "الموارد المشتركة",
       "title": "التعاون"
@@ -1107,7 +1112,22 @@
     },
     "proactiveInsights": "رؤى استباقية وتذكيرات",
     "steerSent": "تم إرسال تعليمات التوجيه",
-    "steerError": "فشل إرسال تعليمات التوجيه"
+    "steerError": "فشل إرسال تعليمات التوجيه",
+    "connector": {
+      "add": "إضافة موصل",
+      "custom": "موصل مخصص",
+      "goConfig": "الانتقال إلى الإعدادات →",
+      "noServers": "الرجاء إضافة أو تفعيل الموصلات أولاً",
+      "title": "الموصل"
+    },
+    "error": "خطأ في الدردشة",
+    "loadError": "فشل التحميل",
+    "mode": {
+      "action": "إجراء",
+      "ask": "سؤال",
+      "plan": "خطة",
+      "title": "تبديل الوضع"
+    }
   },
   "gateway": {
     "title": "البوابة",
@@ -1243,7 +1263,8 @@
     "connectedTools": "الأدوات المتصلة",
     "tab": {
       "monitor": "مراقب"
-    }
+    },
+    "cacheHitTokens": "رموز إصابة ذاكرة التخزين المؤقت"
   },
   "settings": {
     "title": "الإعدادات",
@@ -2526,6 +2547,10 @@
     },
     "notificationCenter": {
       "title": "الإشعارات"
+    },
+    "provider": {
+      "deepseekBalance": "رصيد DeepSeek",
+      "noValidKey": "لا مفتاح صالح"
     }
   },
   "backup": {
@@ -2859,7 +2884,9 @@
     "imageUrl": "رابط الصورة",
     "emoji": "رمز تعبيري",
     "urlPlaceholder": "أدخل رابط الصورة",
-    "profileTab": "الملف الشخصي"
+    "profileTab": "الملف الشخصي",
+    "prefKey": "مفتاح التفضيل",
+    "prefValue": "قيمة التفضيل"
   },
   "files": {
     "images": "صور",
@@ -3274,7 +3301,7 @@
     "configureBackends": "تكوين الخلفيات...",
     "noSessions": "لا جلسات طرفية",
     "errorsCount": "{{count}} خطأ(أخطاء)",
-    "ok": "OK",
+    "ok": "موافق",
     "dockerConnectPending": "اتصال Docker قيد الانتظار",
     "sshConnectPending": "اتصال SSH قيد الانتظار",
     "newTerminal": "طرفية جديدة",
@@ -3496,7 +3523,7 @@
       "details": "التفاصيل",
       "duration": "المدة",
       "error": "خطأ",
-      "id": "ID",
+      "id": "المعرف",
       "ingest": "استيعاب",
       "lint": "فحص",
       "noOperations": "لا توجد عمليات",
@@ -3555,14 +3582,7 @@
     "searchPlaceholder": "البحث في الويكي...",
     "selectWiki": "اختيار ويكي",
     "selectWikiPrompt": "يرجى تحديد ويكي",
-    "source": {
-      "chunks": "أجزاء",
-      "deleteNotImplemented": "Delete not implemented",
-      "path": "المسار",
-      "status": "الحالة",
-      "title": "Source",
-      "type": "النوع"
-    },
+    "source": "المصدر",
     "sources": "المصادر",
     "sync": {
       "byWiki": "حسب الويكي",
@@ -3679,7 +3699,23 @@
     "quickCapture": "Quick Capture",
     "refresh": "تحديث",
     "startImport": "Start Import",
-    "vaultPath": "Vault Path"
+    "vaultPath": "Vault Path",
+    "ingestSource": {
+      "chunks": "القطع",
+      "deleteNotImplemented": "الحذف غير مطبق بعد",
+      "path": "المسار",
+      "status": "الحالة",
+      "title": "العنوان",
+      "type": "النوع"
+    },
+    "wikiForm": {
+      "description": "الوصف",
+      "name": "الاسم",
+      "rootPath": "المسار الجذر"
+    },
+    "wikiMeta": {
+      "rootPath": "المسار الجذر"
+    }
   },
   "quickbar": {
     "title": "الشريط السريع",
@@ -3816,37 +3852,57 @@
       "explanation": "شرح",
       "replaceConfirmTitle": "تأكيد الاستبدال",
       "replaceConfirmContent": "تحتوي اللوحة الحالية على {{nodes}} عقد و {{edges}} حواف. سيؤدي الإنشاء إلى استبدالها جميعًا. متابعة؟",
-      "actionGenerateWorkflow": "Generate Workflow",
-      "actionAddNodes": "Add Node(s)",
-      "actionModifyNode": "Update Node",
-      "actionDeleteNodes": "Delete Node(s)",
-      "actionAddEdge": "Add Edge",
-      "actionUpdateEdge": "Update Edge",
-      "actionDeleteEdge": "Delete Edge",
-      "actionOptimizePrompt": "Optimize Prompt",
-      "actionApply": "Apply",
-      "actionApplyAll": "Review {{count}} changes",
+      "actionGenerateWorkflow": "إنشاء سير العمل",
+      "actionAddNodes": "إضافة عقد",
+      "actionModifyNode": "تحديث العقدة",
+      "actionDeleteNodes": "حذف عقد",
+      "actionAddEdge": "إضافة حافة",
+      "actionUpdateEdge": "تحديث الحافة",
+      "actionDeleteEdge": "حذف حافة",
+      "actionOptimizePrompt": "تحسين الموجّه",
+      "actionApply": "تطبيق",
+      "actionApplyAll": "مراجعة {{count}} تغييرات",
       "diffPreview": {
-        "title": "AI Edit Preview",
-        "subtitle": "Please review these {{count}} changes before applying to your workflow",
-        "before": "Before",
-        "after": "After",
-        "apply": "Apply this",
-        "applyAll": "Apply All",
-        "cancel": "Cancel",
-        "applied": "Applied",
-        "appliedHint": "Applied {{count}} / {{total}} in this session",
-        "empty": "No changes to preview",
-        "promptLength": "Prompt length: {{from}} → {{to}} chars",
-        "noBefore": "(new item, no prior content)",
-        "noAfter": "(deletion, no new content)",
-        "noChanges": "No field changes",
-        "applyFailed": "Apply failed",
-        "applyAllFailed": "Apply All failed",
-        "rollbackBatch": "Rollback Batch",
-        "rollbackSuccess": "Batch rolled back",
-        "rollbackTip": "Undo the entire batch of AI changes"
-      }
+        "title": "معاينة تعديل الذكاء",
+        "subtitle": "يرجى مراجعة هذه التغييرات البالغ عددها {{count}} قبل تطبيقها",
+        "before": "قبل",
+        "after": "بعد",
+        "apply": "تطبيق هذا",
+        "applyAll": "تطبيق الكل",
+        "cancel": "إلغاء",
+        "applied": "تم التطبيق",
+        "appliedHint": "تم تطبيق {{count}} / {{total}} في هذه الجلسة",
+        "empty": "لا تغييرات للمعاينة",
+        "promptLength": "طول الموجّه: {{from}} → {{to}} حرف",
+        "noBefore": "(عنصر جديد، لا يوجد محتوى سابق)",
+        "noAfter": "(محذوف، لا يوجد محتوى جديد)",
+        "noChanges": "لا تغييرات في الحقول",
+        "applyFailed": "فشل التطبيق",
+        "applyAllFailed": "فشل تطبيق الكل",
+        "rollbackBatch": "التراجع عن الدفعة",
+        "rollbackSuccess": "تم التراجع عن الدفعة",
+        "rollbackTip": "التراجع عن كامل دفعة تغييرات الذكاء الاصطناعي",
+        "deleted": "— محذوف —",
+        "deletedCount": "— حُذف {{count}} —",
+        "edgeNotFound": "الحافة غير موجودة",
+        "newNodes": "{{count}} عقد جديدة",
+        "nodeNotFound": "العقدة غير موجودة",
+        "nodesEdgesLabel": "{{nodes}} عقدة / {{edges}} حافة"
+      },
+      "applyToNode": "تطبيق على العقدة",
+      "chatMode": "وضع الدردشة",
+      "chatPlaceholder": "اكتب رسالة…",
+      "chatWelcome": "مرحباً، أنا مساعدك الذكي.",
+      "chatWelcomeHint": "اسألني عن سير العمل أو إعدادات العقد.",
+      "dragCanvasToAdd": "اسحب إلى اللوحة للإضافة",
+      "dragHintUpdated": "تم تحديث اللوحة من الموجِّه",
+      "fillFromSelectedNode": "تعبئة من العقدة المحددة",
+      "generateMergeBtn": "إنشاء الدمج",
+      "mergeMode": "وضع الدمج",
+      "promptAppliedToNode": "طُبِّق الموجِّه على العقدة",
+      "replaceMode": "وضع الاستبدال",
+      "retry": "إعادة",
+      "toolsMode": "وضع الأدوات"
     },
     "previewInDevelopment": "ميزة المعاينة قيد التطوير",
     "publishInDevelopment": "ميزة النشر قيد التطوير",
@@ -3864,7 +3920,7 @@
       "copy": "نسخ",
       "uploadJsonFile": "رفع ملف JSON",
       "dragOrClickUpload": "انقر أو اسحب ملفًا هنا للتحميل",
-      "or": "or",
+      "or": "أو",
       "pasteJsonData": "لصق بيانات JSON",
       "pasteJsonPlaceholder": "لصق بيانات JSON للقالب...",
       "importTemplate": "استيراد القالب",
@@ -3941,7 +3997,10 @@
       "loadThisVersion": "تحميل هذا الإصدار",
       "currentVersion": "الإصدار الحالي",
       "version": "الإصدار {{version}}",
-      "loading": "جاري تحميل الإصدار..."
+      "loading": "جاري تحميل الإصدار...",
+      "compare": "مقارنة",
+      "compareVersions": "مقارنة الإصدارات",
+      "noChanges": "لا تغييرات"
     },
     "versionHistoryLoadFailed": "فشل تحميل سجل الإصدارات",
     "versionLoaded": "الإصدار{{version}} loaded",
@@ -4020,7 +4079,7 @@
       "selectContextSources": "تحديد مصادر السياق...",
       "prompt": "موجه",
       "promptPlaceholder": "أدخل مطالبتك...",
-      "temperatureHint": "0: Deterministic ↑ | 2: Random ↑",
+      "temperatureHint": "0: حتمية ↑ | 2: عشوائية ↑",
       "loopType": "نوع الحلقة",
       "loopForEach": "🔁 ForEach",
       "loopWhile": "⏳ While",
@@ -4170,8 +4229,8 @@
       "clickToAddMapping": "انقر على \"إضافة\" لإنشاء تعيين الإدخال",
       "language": "اللغة",
       "codeInputOutputHint": "(الإدخال: input، الإخراج: return)",
-      "defaultCodeJsComment": "// Input: input\n// Return value will be stored in output_var",
-      "defaultCodePythonComment": "# Input: input\n# Return value will be stored in output_var",
+      "defaultCodeJsComment": "// Input: input\n// يتم تخزين القيمة المُعادة في output_var",
+      "defaultCodePythonComment": "# Input: input\n# يتم تخزين القيمة المُعادة في output_var",
       "codeInputParams": "معلمات الإدخال: input",
       "codeReturnHint": "سيتم تخزين القيمة المرجعة في output_var",
       "roleCoordinator": "",
@@ -4197,26 +4256,67 @@
       "aggregationRace": "سباق",
       "aggregationMajority": "الأغلبية",
       "aggregationHint": "كيفية تجميع النتائج من فروع متوازية متعددة",
-      "url": "url",
-      "method": "method",
-      "timeout": "timeout",
-      "bodyType": "bodyType",
-      "body": "body",
-      "headers": "headers",
-      "addHeader": "addHeader",
-      "headerKey": "headerKey",
-      "headerValue": "headerValue",
-      "selectTemplate": "Select Template",
-      "searchTemplate": "Search template...",
-      "noTemplates": "No templates found",
-      "ragSourceIdsCount": "RAG Sources ({{count}})",
-      "ragSourceIdsPlaceholder": "Enter or select knowledge source IDs...",
-      "ragSourceIdsHint": "Format: knowledge:<kb_id>, memory:<ns_id>, wiki:<wiki_id>",
-      "modelRole": "Model Role",
-      "modelRolePlaceholder": "Auto (use model field)",
-      "modelRoleQuickThink": "⚡ Quick Think",
-      "modelRoleDeepThink": "🧠 Deep Think",
-      "modelRoleHint": "Preset role overrides model when set; lower priority than explicit model field."
+      "url": "URL",
+      "method": "الطريقة",
+      "timeout": "المهلة",
+      "bodyType": "نوع الجسم",
+      "body": "الجسم",
+      "headers": "الترويسات",
+      "addHeader": "إضافة ترويسة",
+      "headerKey": "مفتاح الترويسة",
+      "headerValue": "قيمة الترويسة",
+      "selectTemplate": "اختر قالبًا",
+      "searchTemplate": "البحث عن قالب…",
+      "noTemplates": "لا توجد قوالب",
+      "ragSourceIdsCount": "مصادر RAG ({{count}})",
+      "ragSourceIdsPlaceholder": "أدخل أو اختر معرفات مصادر المعرفة…",
+      "ragSourceIdsHint": "الصيغة: knowledge:<kb_id>, memory:<ns_id>, wiki:<wiki_id>",
+      "modelRole": "دور النموذج",
+      "modelRolePlaceholder": "تلقائي (استخدم حقل model)",
+      "modelRoleQuickThink": "⚡ تفكير سريع",
+      "modelRoleDeepThink": "🧠 تفكير عميق",
+      "modelRoleHint": "الدور المحدد مسبقًا يتجاوز النموذج، لكن أولويته أقل من حقل model الصريح.",
+      "addCase": "إضافة حالة",
+      "aggregationAny": "أي نتيجة",
+      "aiGenerate": "توليد بالذكاء",
+      "autoInputFromParent": "إدخال تلقائي من الأصل",
+      "autoInputFromParentHint": "عند التفعيل، تُمرَّر مخرجات الأصل تلقائياً كمدخلات للفرع.",
+      "autoInputsFromBranches": "مدخلات تلقائية من الفروع",
+      "autoInputsFromBranchesHint": "عند التفعيل، تُمرَّر مخرجات الفروع تلقائياً كمدخلات للفرع.",
+      "availableTools": "الأدوات المتاحة",
+      "cases": "الحالات",
+      "codeTemplates": "قوالب الكود",
+      "connectInputsManually": "ربط المدخلات يدوياً",
+      "connection": "مصدر البيانات",
+      "defaultConnection": "مصدر البيانات الافتراضي",
+      "editExpertPrompt": "تحرير موجِّه الخبير",
+      "editRolePrompt": "تحرير موجِّه الدور",
+      "emailToPlaceholder": "user@example.com",
+      "hideTools": "إخفاء الأدوات",
+      "inputVarPlaceholder": "node_id.field",
+      "llmRouting": "توجيه LLM",
+      "matchMode": "وضع المطابقة",
+      "maxDelayMs": "أقصى تأخير (مللي)",
+      "mergeAny": "دمج أيٍّ",
+      "mergeMajority": "دمج بالأغلبية",
+      "mergeRace": "دمج سريع",
+      "noToolsAvailable": "لا أدوات متاحة",
+      "promptSaveFailed": "فشل حفظ الموجِّه",
+      "promptSaved": "تم حفظ الموجِّه",
+      "resetTimeoutHint": "إعادة ضبط المهلة",
+      "retryEnabled": "تفعيل إعادة المحاولة",
+      "routingModel": "نموذج التوجيه",
+      "routingModelPlaceholder": "اختر نموذج التوجيه",
+      "routingPrompt": "موجِّه التوجيه",
+      "routingPromptPlaceholder": "صف منطق التوجيه",
+      "showTools": "إظهار الأدوات",
+      "subject": "الموضوع",
+      "switchInputVarPlaceholder": "node_id.output_field",
+      "switchLabelPlaceholder": "label",
+      "switchValuePlaceholder": "value",
+      "to": "إلى",
+      "urlPlaceholder": "https://api.example.com/data",
+      "webhookUrlPlaceholder": "https://hook.example.com/..."
     },
     "debug": {
       "totalDuration": "المدة الإجمالية",
@@ -4242,7 +4342,60 @@
       "labelType": "النوع",
       "labelError": "خطأ",
       "labelInput": "إدخال",
-      "labelOutput": "إخراج"
+      "labelOutput": "إخراج",
+      "allClear": "كل شيء سليم",
+      "breakpoints": "نقاط التوقف",
+      "breakpointsPanel": "لوحة نقاط التوقف",
+      "cancel": "إلغاء",
+      "clickToValidate": "انقر للتحقق",
+      "colIssues": "المشكلات",
+      "colNode": "العقدة",
+      "colStatus": "الحالة",
+      "colTime": "الوقت",
+      "colType": "النوع",
+      "continue": "متابعة",
+      "cyclesDetected": "تم اكتشاف دورات",
+      "deadEnd": "نهاية مسدودة",
+      "error": "خطأ",
+      "errors": "أخطاء",
+      "execTime": "وقت التنفيذ",
+      "executionHistory": "سجل التنفيذ",
+      "input": "الإدخال",
+      "issuesFound": "تم العثور على مشكلات",
+      "noBreakpoints": "لا نقاط توقف",
+      "noHistory": "لا سجل",
+      "noPrompt": "لا موجِّه",
+      "noRuntimeData": "لا بيانات تشغيل",
+      "noVariables": "لا متغيرات",
+      "nodeDiagnostics": "تشخيص العقدة",
+      "nodeRecords": "سجلات العقد",
+      "nodesExecuted": "العقد المنفَّذة",
+      "orphan": "يتيم",
+      "output": "الإخراج",
+      "pause": "إيقاف مؤقت",
+      "resume": "استئناف",
+      "resumeBreakpoint": "استئناف حتى نقطة التوقف",
+      "runFullCheck": "تشغيل الفحص الكامل",
+      "runValidation": "تشغيل التحقق",
+      "running": "قيد التشغيل",
+      "runtimeTrace": "تتبع التشغيل",
+      "startDebug": "بدء التصحيح",
+      "staticCheck": "فحص ثابت",
+      "staticDebugHint": "انقر على عقدة للتصحيح",
+      "step": "خطوة",
+      "stepBreakpoint": "خطوة عند نقطة التوقف",
+      "structuralValidation": "التحقق البنيوي",
+      "subExecutionDetail": "تفاصيل التنفيذ الفرعي",
+      "topoAnalysis": "تحليل البنية",
+      "topoHealthy": "البنية سليمة",
+      "totalEdges": "مجموع الحواف",
+      "totalNodes": "مجموع العقد",
+      "unreachableNodesCount": "عقد غير قابلة للوصول",
+      "view": "عرض",
+      "viewDetail": "عرض التفاصيل",
+      "viewSubExecution": "عرض التنفيذ الفرعي",
+      "waitingForNodes": "بانتظار العقد",
+      "warnings": "تحذيرات"
     },
     "applySemanticCheck": "تطبيق",
     "applyUpgrade": "تطبيق الترقية",
@@ -4303,17 +4456,19 @@
       "end": "نهاية",
       "tool": "أداة",
       "code": "كود",
-      "httpRequest": "HTTP Request",
-      "notification": "Notification",
-      "approval": "Approval",
-      "fileOperation": "File Operation",
-      "dataTransformer": "Data Transformer",
-      "webhookSend": "Webhook Send",
-      "logging": "Logging",
-      "llmClassifier": "LLM Classifier",
-      "aggregator": "Aggregator",
-      "email": "Email",
-      "debate": "Debate"
+      "httpRequest": "طلب HTTP",
+      "notification": "إشعار",
+      "approval": "موافقة",
+      "fileOperation": "عملية ملف",
+      "dataTransformer": "تحويل البيانات",
+      "webhookSend": "إرسال Webhook",
+      "logging": "سجل",
+      "llmClassifier": "مصنّف LLM",
+      "aggregator": "مجمّع",
+      "email": "بريد إلكتروني",
+      "debate": "نقاش",
+      "databaseQuery": "استعلام قاعدة بيانات",
+      "switch": "محوّل"
     },
     "templateList": {
       "deleted": "تم حذف القالب",
@@ -4385,7 +4540,7 @@
       "iconDocument": "📄 مستند",
       "iconGitBranch": "🔀 فرع Git",
       "iconLayers": "📚 طبقات",
-      "iconZap": "⚡ Zap",
+      "iconZap": "⚡ برق",
       "label": "التسمية",
       "name": "الاسم",
       "nodeType": "نوع العقدة",
@@ -4395,7 +4550,7 @@
       "selectNodeToEdit": "اختر عقدة لتحرير الخصائص",
       "settings": "الإعدادات",
       "tagAgent": "وكيل",
-      "tagAi": "AI",
+      "tagAi": "ذكاء اصطناعي",
       "tagAutomation": "أتمتة",
       "tagChatbot": "روبوت محادثة",
       "tagDataProcessing": "معالجة البيانات",
@@ -4491,8 +4646,10 @@
       "notSelected": "غير محدد",
       "title": "سير عمل فرعي",
       "async": "غير متزامن",
-      "expand": "Expand",
-      "collapse": "Collapse"
+      "expand": "توسيع",
+      "collapse": "طي",
+      "inputCount": "المدخلات",
+      "outputCount": "المخرجات"
     },
     "vectorRetrieveNode": {
       "notSelected": "غير محدد",
@@ -4507,7 +4664,8 @@
       "title": "حلقة",
       "maxIterations": "الحد الأقصى للتكرار",
       "continueOnError": "المتابعة عند الخطأ",
-      "steps": "{{count}} خطوات"
+      "steps": "{{count}} خطوات",
+      "notConfigured": "عقدة الحلقة غير مكوَّنة"
     },
     "mergeNode": {
       "all": "الكل",
@@ -4515,13 +4673,13 @@
       "last": "الأخير",
       "title": "دمج",
       "inputCount": "{{count}} مدخلات",
-      "any": "Any",
-      "race": "Race",
-      "majority": "Majority",
-      "inputs": "inputs",
-      "waitAll": "Wait all",
-      "waitAny": "Any complete",
-      "autoInputs": "Auto-receive branch outputs"
+      "any": "أي",
+      "race": "سباق",
+      "majority": "الأغلبية",
+      "inputs": "عدد المدخلات",
+      "waitAll": "انتظار الكل",
+      "waitAny": "أي منتهي",
+      "autoInputs": "استلام تلقائي لمخرجات الفروع"
     },
     "parallelNode": {
       "title": "متوازي",
@@ -4532,9 +4690,11 @@
       "clickToAdd": "انقر لإضافة فرع",
       "expand": "توسيع",
       "collapse": "طي",
-      "race": "Race",
-      "branches": "branches",
-      "autoInput": "Auto-receive parent input"
+      "race": "سباق",
+      "branches": "عدد الفروع",
+      "autoInput": "مدخل تلقائي من الأصل",
+      "waitAll": "انتظار الكل",
+      "waitAny": "انتظار أيٍّ"
     },
     "toolNode": {
       "notSelected": "غير محدد",
@@ -4557,7 +4717,8 @@
       "second": "ثانية",
       "minutes": "دقائق",
       "until": "حتى",
-      "title": "تأخير"
+      "title": "تأخير",
+      "notConfigured": "عقدة التأخير غير مكوَّنة"
     },
     "endNode": {
       "title": "نهاية"
@@ -4571,7 +4732,8 @@
       "continue": "متابعة",
       "title": "تحقق",
       "assertionCount": "{{count}} تأكيدات",
-      "failStrategy": "استراتيجية الفشل"
+      "failStrategy": "استراتيجية الفشل",
+      "rules": "قواعد التحقق"
     },
     "shortcuts": {
       "title": "اختصارات",
@@ -4612,7 +4774,7 @@
         "suggest": "اقتراح",
         "generate": "توليد",
         "rewrite": "إعادة كتابة",
-        "contextComplete": "Context Complete"
+        "contextComplete": "إكمال السياق"
       },
       "tooltip": "تحسين بالذكاء الاصطناعي",
       "noProvider": "لا مزود ذكاء اصطناعي",
@@ -4620,268 +4782,305 @@
       "optimizing": "جارٍ التحسين",
       "generating": "جارٍ التوليد",
       "applied": "تم تطبيق الاقتراح",
-      "contextCompleteApplied": "Context completion applied"
-    },
-    "diagnostic": {
-      "title": "Workflow Diagnostic",
-      "run": "Run Diagnostic",
-      "tooltip": "Scan structure, config, prompts and variable references",
-      "loading": "Diagnosing...",
-      "empty": "Workflow is empty. Add nodes to start diagnosis.",
-      "allGood": "Workflow looks good. No issues found.",
-      "summary": {
-        "title": "Diagnostic Summary",
-        "error": "Errors",
-        "warning": "Warnings",
-        "info": "Info",
-        "total": "{{count}} issue(s)"
+      "contextCompleteApplied": "تم تطبيق إكمال السياق",
+      "dbQuery": {
+        "sqlHint": "تلميح: أدخل SQL وسيقوم الذكاء الاصطناعي بالإكمال."
       },
-      "severity": {
-        "error": "Error",
-        "warning": "Warning",
-        "info": "Info"
+      "loop": {
+        "continueHint": "حدد شرط استمرار الحلقة، مثال: `index < 10`."
       },
-      "category": {
-        "structure": "Structure",
-        "configuration": "Configuration",
-        "prompt": "Prompt",
-        "reference": "Reference",
-        "best_practice": "Best Practice",
-        "prompt_quality": "Prompt Quality",
-        "performance": "Performance",
-        "cost": "Cost",
-        "security": "Security"
+      "parallel": {
+        "branchesHint": "صف مدخلات ومخرجات الفروع المتوازية."
       },
-      "fix": {
-        "apply": "Auto Fix",
-        "applied": "Fixed",
-        "failed": "Fix failed"
+      "subWorkflow": {
+        "needPick": "اختر سير عمل موجوداً أو صف واحداً جديداً.",
+        "parseFailed": "فشل التحليل، تحقق من الوصف."
       },
-      "jump": "Locate Node",
-      "issues": {
-        "duplicate_node_id": {
-          "title": "Duplicate Node ID",
-          "message": "Node ID \"{{id}}\" appears multiple times, which may cause routing issues."
-        },
-        "orphan_node": {
-          "title": "Orphan Node",
-          "message": "Node \"{{label}}\" has neither incoming nor outgoing edges."
-        },
-        "unreachable_from_trigger": {
-          "title": "Node Unreachable from Trigger",
-          "message": "Node \"{{label}}\" has no path from any trigger."
-        },
-        "dangling_edge": {
-          "title": "Dangling Edge",
-          "message": "Edge \"{{id}}\" references a missing source or target node."
-        },
-        "llm_prompt_empty": {
-          "title": "Empty LLM Prompt",
-          "message": "Node \"{{label}}\" has an empty LLM.prompt."
-        },
-        "llm_prompt_short": {
-          "title": "LLM Prompt Too Short",
-          "message": "Node \"{{label}}\" LLM.prompt is only {{len}} characters long."
-        },
-        "agent_prompt_empty": {
-          "title": "Empty Agent System Prompt",
-          "message": "Node \"{{label}}\" has an empty Agent.system_prompt."
-        },
-        "agent_prompt_trivial": {
-          "title": "Agent System Prompt Too Simple",
-          "message": "Node \"{{label}}\" system_prompt is only {{len}} characters."
-        },
-        "classifier_prompt_empty": {
-          "title": "Empty Classifier Prompt",
-          "message": "Node \"{{label}}\" has an empty LlmClassifier.prompt."
-        },
-        "classifier_prompt_trivial": {
-          "title": "Classifier Prompt Too Simple",
-          "message": "Node \"{{label}}\" classifier prompt is only {{len}} characters."
-        },
-        "classifier_categories_empty": {
-          "title": "No Classifier Categories",
-          "message": "Node \"{{label}}\" categories list is empty."
-        },
-        "http_url_empty": {
-          "title": "Empty HTTP URL",
-          "message": "Node \"{{label}}\" HttpRequest.url is empty."
-        },
-        "webhook_url_empty": {
-          "title": "Empty Webhook URL",
-          "message": "Node \"{{label}}\" WebhookSend.url is empty."
-        },
-        "email_to_empty": {
-          "title": "Empty Email Recipients",
-          "message": "Node \"{{label}}\" Email.to is empty."
-        },
-        "email_body_empty": {
-          "title": "Empty Email Body",
-          "message": "Node \"{{label}}\" Email.body is empty."
-        },
-        "validation_assertions_empty": {
-          "title": "Empty Validation Assertions",
-          "message": "Node \"{{label}}\" assertions list is empty."
-        },
-        "code_body_empty": {
-          "title": "Empty Code Node Body",
-          "message": "Node \"{{label}}\" Code.code is empty."
-        },
-        "code_output_var_empty": {
-          "title": "Code Node Missing Output Variable",
-          "message": "Node \"{{label}}\" output_var is empty; downstream nodes cannot reference its result."
-        },
-        "tool_name_empty": {
-          "title": "Tool Node Missing Tool",
-          "message": "Node \"{{label}}\" tool_name is empty."
-        },
-        "subworkflow_id_empty": {
-          "title": "Empty SubWorkflow ID",
-          "message": "Node \"{{label}}\" SubWorkflow.sub_workflow_id is empty."
-        },
-        "unknown_var_reference": {
-          "title": "Undeclared Variable Reference",
-          "message": "Node \"{{label}}\" references ${ {{var}} }, but no node declares this as output_var."
-        },
-        "no_timeout": {
-          "title": "No Timeout Configured",
-          "message": "Node \"{{label}}\" has no timeout, long-running tasks may block the workflow."
-        },
-        "no_retry": {
-          "title": "No Retry Configured",
-          "message": "Node \"{{label}}\" has no retry policy; transient failures will propagate."
-        },
-        "parallel_no_merge": {
-          "title": "Parallel Without Merge",
-          "message": "Parallel node \"{{label}}\" branches should converge into a Merge node."
-        },
-        "no_trigger": {
-          "title": "No Trigger Node",
-          "message": "Workflow has no trigger node. Add a Trigger to define the entry point."
-        },
-        "no_end": {
-          "title": "No End Node",
-          "message": "Workflow has no end node. Consider adding an End node to mark completion."
-        },
-        "agent_empty_prompt": {
-          "title": "Empty Agent System Prompt",
-          "message": "Agent node has an empty system_prompt. Define a clear role and instructions."
-        },
-        "agent_short_prompt": {
-          "title": "Agent System Prompt Too Short",
-          "message": "Agent system_prompt is under 30 characters. Add role definition and output constraints."
-        },
-        "agent_no_max_tokens": {
-          "title": "Agent Missing max_tokens",
-          "message": "Agent node has no max_tokens set. This may lead to unbounded token usage."
-        },
-        "agent_no_max_tool_rounds": {
-          "title": "Agent Missing max_tool_rounds",
-          "message": "Agent with tools has no max_tool_rounds set. Tool loops may run indefinitely."
-        },
-        "llm_empty_prompt": {
-          "title": "Empty LLM Prompt",
-          "message": "LLM node has an empty prompt. Provide a clear instruction."
-        },
-        "llm_no_max_tokens": {
-          "title": "LLM Missing max_tokens",
-          "message": "LLM node has no max_tokens set. This may lead to unbounded token usage."
-        },
-        "http_no_timeout": {
-          "title": "HTTP Request No Timeout",
-          "message": "HttpRequest node has no timeout configured. Long-running requests may block the workflow."
-        },
-        "http_no_retry": {
-          "title": "HTTP Request No Retry",
-          "message": "HttpRequest node has no retry policy. Transient failures will propagate."
-        },
-        "db_no_timeout": {
-          "title": "Database Query No Timeout",
-          "message": "DatabaseQuery node has no timeout configured. Slow queries may block the workflow."
-        },
-        "loop_no_max_iter": {
-          "title": "Loop No Max Iterations",
-          "message": "Loop node has no max_iterations set. Infinite loops may occur."
-        },
-        "loop_no_condition": {
-          "title": "Loop No Continue Condition",
-          "message": "Loop node has no continue_condition defined. The loop may never terminate."
-        },
-        "doc_no_parser_type": {
-          "title": "Document Parser No Type",
-          "message": "DocumentParser node has no parser_type specified."
-        },
-        "insecure_http_url": {
-          "title": "Insecure HTTP URL",
-          "message": "URL uses plain HTTP instead of HTTPS. Data may be transmitted unencrypted."
-        },
-        "insecure_notification_url": {
-          "title": "Insecure Notification Webhook URL",
-          "message": "Notification webhook URL uses plain HTTP. Webhook payloads may be intercepted."
-        },
-        "approval_no_approver": {
-          "title": "Approval No Approver",
-          "message": "Approval node has no approver configured. The workflow will stall at this node."
-        },
-        "vector_no_threshold": {
-          "title": "Vector Retrieve No Similarity Threshold",
-          "message": "VectorRetrieve node has no similarity_threshold. Low-quality matches may be returned."
-        },
-        "vector_high_top_k": {
-          "title": "Vector Retrieve High top_k",
-          "message": "VectorRetrieve top_k exceeds 20. This increases cost and may reduce relevance."
-        },
-        "condition_single_exit": {
-          "title": "Condition Single Exit",
-          "message": "Condition node has fewer than 2 downstream branches. Consider adding both true/false paths."
-        },
-        "classifier_few_cases": {
-          "title": "Classifier Too Few Cases",
-          "message": "LlmClassifier has fewer than 2 classification cases."
-        },
-        "validation_no_rules": {
-          "title": "Validation No Rules",
-          "message": "Validation node has no rules defined. It will always pass."
-        },
-        "edge_dangling_source": {
-          "title": "Dangling Edge Source",
-          "message": "Edge references a source node that no longer exists."
-        },
-        "edge_dangling_target": {
-          "title": "Dangling Edge Target",
-          "message": "Edge references a target node that no longer exists."
-        },
-        "debate_no_debaters": {
-          "title": "Debate No Debaters",
-          "message": "Debate node has no debater agents. Add at least 2 debaters for a meaningful debate."
-        },
-        "debate_single_debater": {
-          "title": "Debate Single Debater",
-          "message": "Debate node has only 1 debater. A debate requires at least 2 opposing sides."
-        },
-        "debate_dangling_step": {
-          "title": "Debate Dangling Debater Reference",
-          "message": "Debate node references a debater step that no longer exists. Remove the stale reference."
-        }
+      "switch": {
+        "casesHint": "اذكر كل الحالات وشروط تشغيلها."
+      },
+      "trigger": {
+        "cronHint": "تعبير cron قياسي، مثال: `0 9 * * *`."
       }
     },
-    "batchEdit": {
-      "title": "Batch Edit",
-      "noChange": "No change",
-      "apply": "Apply to {count} nodes"
+    "diagnostic": {
+      "title": "تشخيص سير العمل",
+      "run": "تشغيل التشخيص",
+      "tooltip": "يفحص البنية والإعداد والموجّهات ومراجع المتغيرات",
+      "loading": "جارٍ التشخيص…",
+      "empty": "سير العمل فارغ. أضف عقدًا لبدء التشخيص.",
+      "allGood": "سير العمل سليم. لم يتم العثور على مشاكل.",
+      "summary": {
+        "title": "ملخص التشخيص",
+        "error": "خطأ",
+        "warning": "تحذير",
+        "info": "معلومات",
+        "total": "{{count}} مشاكل"
+      },
+      "severity": {
+        "error": "خطأ",
+        "warning": "تحذير",
+        "info": "معلومات"
+      },
+      "category": {
+        "structure": "البنية",
+        "configuration": "الإعداد",
+        "prompt": "موجّه",
+        "reference": "مرجع",
+        "best_practice": "أفضل الممارسات",
+        "prompt_quality": "جودة الموجّه",
+        "performance": "الأداء",
+        "cost": "التكلفة",
+        "security": "الأمان"
+      },
+      "fix": {
+        "apply": "إصلاح تلقائي",
+        "applied": "تم الإصلاح",
+        "failed": "فشل الإصلاح"
+      },
+      "jump": "الانتقال إلى العقدة",
+      "issues": {
+        "duplicate_node_id": {
+          "title": "معرّف عقدة مكرر",
+          "message": "معرّف العقدة \"{{id}}\" يظهر عدة مرات، مما قد يسبب مشاكل في التوجيه."
+        },
+        "orphan_node": {
+          "title": "عقدة يتيمة",
+          "message": "العقدة \"{{label}}\" ليس لها حواف واردة أو صادرة."
+        },
+        "unreachable_from_trigger": {
+          "title": "عقدة غير قابلة للوصول من المُحفِّز",
+          "message": "العقدة \"{{label}}\" ليس لها مسار من أي مُحفِّز."
+        },
+        "dangling_edge": {
+          "title": "حافة معلَّقة",
+          "message": "الحافة \"{{id}}\" تشير إلى عقدة مصدر أو هدف غير موجودة."
+        },
+        "llm_prompt_empty": {
+          "title": "موجِّه LLM فارغ",
+          "message": "LLM.prompt للعقدة \"{{label}}\" فارغ."
+        },
+        "llm_prompt_short": {
+          "title": "موجِّه LLM قصير جداً",
+          "message": "LLM.prompt للعقدة \"{{label}}\" يحتوي على {{len}} حرفاً فقط."
+        },
+        "agent_prompt_empty": {
+          "title": "موجِّه نظام الوكيل فارغ",
+          "message": "Agent.system_prompt للعقدة \"{{label}}\" فارغ."
+        },
+        "agent_prompt_trivial": {
+          "title": "موجِّه نظام الوكيل بسيط جداً",
+          "message": "system_prompt للعقدة \"{{label}}\" يحتوي على {{len}} حرفاً فقط."
+        },
+        "classifier_prompt_empty": {
+          "title": "موجِّه المُصنِّف فارغ",
+          "message": "LlmClassifier.prompt للعقدة \"{{label}}\" فارغ."
+        },
+        "classifier_prompt_trivial": {
+          "title": "موجِّه المُصنِّف بسيط جداً",
+          "message": "موجِّه التصنيف للعقدة \"{{label}}\" يحتوي على {{len}} حرفاً فقط."
+        },
+        "classifier_categories_empty": {
+          "title": "لا توجد فئات للمُصنِّف",
+          "message": "قائمة فئات العقدة \"{{label}}\" فارغة."
+        },
+        "http_url_empty": {
+          "title": "URL HTTP فارغ",
+          "message": "HttpRequest.url للعقدة \"{{label}}\" فارغ."
+        },
+        "webhook_url_empty": {
+          "title": "URL Webhook فارغ",
+          "message": "WebhookSend.url للعقدة \"{{label}}\" فارغ."
+        },
+        "email_to_empty": {
+          "title": "مستلمو البريد الإلكتروني فارغون",
+          "message": "Email.to للعقدة \"{{label}}\" فارغ."
+        },
+        "email_body_empty": {
+          "title": "نص البريد الإلكتروني فارغ",
+          "message": "Email.body للعقدة \"{{label}}\" فارغ."
+        },
+        "validation_assertions_empty": {
+          "title": "تأكيدات التحقق فارغة",
+          "message": "قائمة التأكيدات للعقدة \"{{label}}\" فارغة."
+        },
+        "code_body_empty": {
+          "title": "هيكل عقدة الكود فارغ",
+          "message": "Code.code للعقدة \"{{label}}\" فارغ."
+        },
+        "code_output_var_empty": {
+          "title": "عقدة كود بدون متغير إخراج",
+          "message": "output_var للعقدة \"{{label}}\" فارغ؛ لن تتمكن العقد اللاحقة من الإشارة إلى النتيجة."
+        },
+        "tool_name_empty": {
+          "title": "عقدة أداة بدون أداة",
+          "message": "tool_name للعقدة \"{{label}}\" فارغ."
+        },
+        "subworkflow_id_empty": {
+          "title": "معرّف سير العمل الفرعي فارغ",
+          "message": "SubWorkflow.sub_workflow_id للعقدة \"{{label}}\" فارغ."
+        },
+        "unknown_var_reference": {
+          "title": "مرجع متغير غير مُعلن",
+          "message": "تشير العقدة \"{{label}}\" إلى ${ {{var}} }، ولكن لا توجد عقدة تُعلنه كـ output_var."
+        },
+        "no_timeout": {
+          "title": "لم يتم تكوين المهلة",
+          "message": "العقدة \"{{label}}\" ليس لديها مهلة؛ قد تحجب المهام الطويلة سير العمل."
+        },
+        "no_retry": {
+          "title": "لم يتم تكوين إعادة المحاولة",
+          "message": "العقدة \"{{label}}\" ليس لديها سياسة إعادة محاولة؛ ستنتقل الأخطاء العابرة مباشرةً."
+        },
+        "parallel_no_merge": {
+          "title": "متوازي بدون دمج",
+          "message": "يجب أن تتقارب فروع العقدة المتوازية \"{{label}}\" في عقدة Merge."
+        },
+        "no_trigger": {
+          "title": "لا توجد عقدة مُحفِّزة",
+          "message": "لا يحتوي سير العمل على عقدة مُحفِّزة. أضف Trigger لتحديد نقطة الدخول."
+        },
+        "no_end": {
+          "title": "لا توجد عقدة نهاية",
+          "message": "لا يحتوي سير العمل على عقدة End. فكر في إضافة عقدة End للإشارة إلى الاكتمال."
+        },
+        "agent_empty_prompt": {
+          "title": "موجِّه نظام الوكيل فارغ",
+          "message": "موجِّه نظام عقدة الوكيل فارغ. حدد دوراً وتعليمات واضحة."
+        },
+        "agent_short_prompt": {
+          "title": "موجِّه نظام الوكيل قصير جداً",
+          "message": "موجِّه نظام الوكيل أقل من 30 حرفاً. أضف تعريف الدور وقيود الإخراج."
+        },
+        "agent_no_max_tokens": {
+          "title": "الوكيل بدون max_tokens",
+          "message": "لم يتم تعيين max_tokens لعقدة الوكيل. قد يؤدي ذلك إلى استهلاك غير محدود من الرموز."
+        },
+        "agent_no_max_tool_rounds": {
+          "title": "الوكيل بدون max_tool_rounds",
+          "message": "لم يتم تعيين max_tool_rounds للوكيل الذي يستخدم الأدوات. قد تستمر حلقات الأدوات إلى ما لا نهاية."
+        },
+        "llm_empty_prompt": {
+          "title": "موجِّه LLM فارغ",
+          "message": "موجِّه عقدة LLM فارغ. وفِّر تعليمة واضحة."
+        },
+        "llm_no_max_tokens": {
+          "title": "LLM بدون max_tokens",
+          "message": "لم يتم تعيين max_tokens لعقدة LLM. قد يؤدي ذلك إلى استهلاك غير محدود من الرموز."
+        },
+        "http_no_timeout": {
+          "title": "طلب HTTP بدون مهلة",
+          "message": "لم يتم تعيين مهلة لعقدة HttpRequest. قد تحجب الطلبات الطويلة سير العمل."
+        },
+        "http_no_retry": {
+          "title": "طلب HTTP بدون إعادة محاولة",
+          "message": "لا توجد سياسة إعادة محاولة لعقدة HttpRequest. ستنتقل الأخطاء العابرة مباشرةً."
+        },
+        "db_no_timeout": {
+          "title": "استعلام قاعدة بيانات بدون مهلة",
+          "message": "لم يتم تعيين مهلة لعقدة DatabaseQuery. قد تحجب الاستعلامات البطيئة سير العمل."
+        },
+        "loop_no_max_iter": {
+          "title": "حلقة بدون max_iterations",
+          "message": "لم يتم تعيين max_iterations لعقدة الحلقة. قد تحدث حلقات لا نهائية."
+        },
+        "loop_no_condition": {
+          "title": "حلقة بدون شرط متابعة",
+          "message": "لم يتم تعريف continue_condition لعقدة الحلقة. قد لا تنتهي الحلقة أبداً."
+        },
+        "doc_no_parser_type": {
+          "title": "نوع محلل المستندات غير محدد",
+          "message": "لم يتم تحديد parser_type لعقدة DocumentParser."
+        },
+        "insecure_http_url": {
+          "title": "URL HTTP غير آمن",
+          "message": "يستخدم URL HTTP بنص صريح بدلاً من HTTPS. قد تُنقل البيانات دون تشفير."
+        },
+        "insecure_notification_url": {
+          "title": "URL Webhook غير آمن",
+          "message": "يستخدم URL Webhook للإشعارات HTTP بنص صريح. قد يتم اعتراض الحمولة."
+        },
+        "approval_no_approver": {
+          "title": "عقدة الموافقة بدون مُوافق",
+          "message": "لم يتم تهيئة مُوافق لعقدة الموافقة. سيتوقف سير العمل عند هذه العقدة."
+        },
+        "vector_no_threshold": {
+          "title": "Vector Retrieve بدون عتبة تشابه",
+          "message": "لم يتم تعيين similarity_threshold لعقدة VectorRetrieve. قد تُرجع تطابقات منخفضة الجودة."
+        },
+        "vector_high_top_k": {
+          "title": "top_k مرتفع في Vector Retrieve",
+          "message": "top_k لـ VectorRetrieve يتجاوز 20. هذا يزيد التكلفة وقد يقلل الصلة."
+        },
+        "condition_single_exit": {
+          "title": "شرط بمخرج واحد",
+          "message": "تحتوي عقدة الشرط على أقل من فرعين لاحقين. فكر في إضافة كلا المسارين (true/false)."
+        },
+        "classifier_few_cases": {
+          "title": "حالات المُصنِّف قليلة جداً",
+          "message": "LlmClassifier لديه أقل من حالتي تصنيف."
+        },
+        "validation_no_rules": {
+          "title": "تحقق بدون قواعد",
+          "message": "لم يتم تحديد قواعد لعقدة التحقق. ستمر دائماً."
+        },
+        "edge_dangling_source": {
+          "title": "عقدة مصدر الحافة مفقودة",
+          "message": "تشير الحافة إلى عقدة مصدر لم تعد موجودة."
+        },
+        "edge_dangling_target": {
+          "title": "عقدة هدف الحافة مفقودة",
+          "message": "تشير الحافة إلى عقدة هدف لم تعد موجودة."
+        },
+        "debate_no_debaters": {
+          "title": "عقدة المناظرة بدون مناقشين",
+          "message": "لا توجد وكلاء مناقشون في عقدة المناظرة. أضف اثنين على الأقل لمناظرة ذات معنى."
+        },
+        "debate_single_debater": {
+          "title": "مناقش واحد فقط",
+          "message": "تحتوي عقدة المناظرة على مناقش واحد فقط. تحتاج المناظرة إلى جانبين متعارضين على الأقل."
+        },
+        "debate_dangling_step": {
+          "title": "مرجع معلَّق في عقدة المناظرة",
+          "message": "تشير عقدة المناظرة إلى خطوة مناقش لم تعد موجودة. أزل المرجع القديم."
+        }
+      },
+      "error": "خطأ تشخيصي"
     },
-    "autoLayoutWithSubs": "Auto-layout (with {{count}} sub-workflows)",
-    "toggleBreakpoint": "Toggle Breakpoint",
-    "copyNode": "Copy Node",
-    "deleteNode": "Delete Node",
+    "batchEdit": {
+      "title": "تحرير دفعة",
+      "noChange": "لا تغيير",
+      "apply": "تطبيق على {count} عقد"
+    },
+    "autoLayoutWithSubs": "تخطيط تلقائي ({{count}} سير عمل فرعي)",
+    "toggleBreakpoint": "تبديل نقطة التوقف",
+    "copyNode": "نسخ العقدة",
+    "deleteNode": "حذف العقدة",
     "debateNode": {
-      "debaters": "debaters",
-      "rounds": "rounds",
-      "expand": "Expand",
-      "collapse": "Collapse",
-      "newDebater": "Debater",
-      "noDebatersHint": "Add debater Agent nodes inside this container"
-    }
+      "debaters": "المتناظرون",
+      "rounds": "جولات",
+      "expand": "توسيع",
+      "collapse": "طي",
+      "newDebater": "متناظر",
+      "noDebatersHint": "أضف عقد وكلاء متناظرين داخل هذه الحاوية",
+      "defaultRole": "— افتراضي —",
+      "stanceCon": "معارض",
+      "stanceNth": "الجانب {{count}}",
+      "stancePro": "مؤيد",
+      "stanceSystemPromptFallback": "أنت مناقش في جانب {{stance}}. علِّل حول الموضوع."
+    },
+    "batchEditMode": "وضع التحرير المجمَّع",
+    "noExecutionHistory": "لا سجل تنفيذ",
+    "nodeConfig": {
+      "add_debater": "إضافة مناقش",
+      "convergence_model_role": "دور نموذج التقارب",
+      "convergence_prompt": "موجِّه التقارب",
+      "convergence_prompt_placeholder": "موجِّه يحدد متى تتقارب المناظرة",
+      "debaters": "المناقشون",
+      "max_rounds": "الحد الأقصى للجولات",
+      "topic_var": "متغير الموضوع"
+    },
+    "searchNodes": "بحث عن العقد"
   },
   "atomicSkill": {
     "entryType": "نوع الإدخال",
@@ -5120,7 +5319,9 @@
     "retry": "إعادة المحاولة",
     "tags": "العلامات: {{tags}}",
     "none": "لا شيء",
-    "response": "استجابة"
+    "response": "استجابة",
+    "report": "التقرير",
+    "tasks": "المهام"
   },
   "traceExplorer": {
     "selectTrace": "حدد تتبعًا لعرض التفاصيل"
@@ -5289,7 +5490,8 @@
     "dismiss": "إغلاق",
     "execute": "تنفيذ",
     "learningSuggestions": "اقتراحات التعلم",
-    "snooze30": "تأجيل (30 دقيقة)"
+    "snooze30": "تأجيل (30 دقيقة)",
+    "noSuggestions": "لا اقتراحات"
   },
   "proactive": {
     "accept": "قبول",
@@ -5440,7 +5642,10 @@
     "analyzeFrontend": "توليد بالذكاء الاصطناعي",
     "analyzeSuccess": "اكتمل تحليل الذكاء الاصطناعي",
     "analyzeError": "فشل تحليل الذكاء الاصطناعي: {{error}}",
-    "generateAgent": "توليد وكيل"
+    "generateAgent": "توليد وكيل",
+    "agentGenerated": "أنشأه الوكيل",
+    "noSkillName": "مهارة بلا اسم",
+    "notFound": "المهارة غير موجودة"
   },
   "task": {
     "title": "مهام الخلفية",
@@ -5629,7 +5834,7 @@
     "noKeysDetected": "لم يتم اكتشاف مفتاح API",
     "presetOllama": "Ollama محلي",
     "presetOllamaDesc": "استخدام النماذج المحلية، تبقى البيانات على الجهاز",
-    "presetOpenAI": "OpenAI سحابي",
+    "presetOpenAI": "OpenAI السحابة",
     "presetOpenAIDesc": "استخدام نماذج سلسلة GPT-4o السحابية",
     "presetMinimal": "إعداد أدنى",
     "presetMinimalDesc": "تكوين الإعدادات الأساسية فقط، إضافة المزيد لاحقًا",
@@ -5810,7 +6015,26 @@
     "connectionFailed": "فشل الاتصال",
     "lastSyncResult": "نتيجة المزامنة الأخيرة",
     "cacheDir": "مجلد التخزين المؤقت",
-    "quickActions": "إجراءات سريعة"
+    "quickActions": "إجراءات سريعة",
+    "autoFillConfig": "تعبئة التكوين تلقائياً",
+    "chineseProviders": "الموفرون الصينيون",
+    "cloudBackup": "نسخة احتياطية سحابية",
+    "cloudBackupSize": "الحجم",
+    "cloudBackupTime": "مُعدَّل",
+    "downloadBackupFailed": "فشل التنزيل من السحابة: {{error}}",
+    "downloadBackupSuccess": "تم تنزيل النسخة الاحتياطية من السحابة",
+    "downloadFromCloud": "استعادة من السحابة",
+    "internationalProviders": "الموفرون الدوليون",
+    "listCloudBackups": "عرض النسخ السحابية",
+    "noCloudBackups": "لا توجد نسخ سحابية",
+    "providerCategory": "فئة الموفر",
+    "s3UsePathStyle": "عناوين Path-Style",
+    "selectProvider": "اختر موفر سحابة",
+    "selectProviderDesc": "اختر موفر تخزين سحابي للتكوين التلقائي",
+    "selfHostedProviders": "استضافة ذاتية",
+    "uploadBackupFailed": "فشل الرفع إلى السحابة: {{error}}",
+    "uploadBackupSuccess": "تم رفع النسخة الاحتياطية إلى السحابة",
+    "uploadToCloud": "رفع إلى السحابة"
   },
   "buddy": {
     "rarity": {
@@ -6135,8 +6359,8 @@
     "noRecords": "لا سجلات",
     "success": "نجاح",
     "failed": "فشل",
-    "viewSubExecution": "View Sub-Execution",
-    "subExecutionDetail": "Sub-Workflow Execution Detail"
+    "viewSubExecution": "عرض التنفيذ الفرعي",
+    "subExecutionDetail": "تفاصيل تنفيذ سير العمل الفرعي"
   },
   "markdown": "ماركداون",
   "success": "نجاح",
@@ -6275,7 +6499,7 @@
     "avgCredibility": "متوسط الموثوقية:",
     "addToReport": "إضافة إلى التقرير",
     "title": "مدير الاقتباسات ({count})",
-    "addCitation": "Add Citation",
+    "addCitation": "إضافة اقتباس",
     "empty": "لا توجد اقتباسات بعد، أضف من نتائج البحث",
     "inReport": "المستخدمة في التقرير ({count})",
     "notInReport": "غير المستخدمة في التقرير ({count})",
@@ -6418,7 +6642,10 @@
     "storeNotRegistered": "المخزن {{storeName}} غير مسجل",
     "functionNotRegistered": "الدالة {{name}} غير مسجلة",
     "handlerNotFound": "المعالج {{name}} غير موجود",
-    "handlerNotDeclarative": "المعالج {{name}} غير تصريحي"
+    "handlerNotDeclarative": "المعالج {{name}} غير تصريحي",
+    "commandPermissionDenied": "تم رفض إذن الأمر",
+    "emitPermissionDenied": "تم رفض إذن الإرسال",
+    "navigatePermissionDenied": "تم رفض إذن التنقل"
   },
   "export": {
     "exportTime": "وقت التصدير",
@@ -6689,7 +6916,9 @@
     "startNewResearch": "بحث جديد",
     "lowCredibilityWarning": "ملاحظة: التقرير يحتوي على {{count}} مصدر منخفض المصداقية",
     "noReferences": "لا توجد مراجع",
-    "noSummary": "لا يوجد ملخص"
+    "noSummary": "لا يوجد ملخص",
+    "noOutline": "لا مخطط",
+    "noReport": "لا تقرير"
   },
   "settingsPage": {
     "refreshPage": "تحديث الصفحة"
@@ -6801,7 +7030,7 @@
     "running": "قيد التشغيل",
     "completed": "مكتمل",
     "failed": "فشل",
-    "id": "ID",
+    "id": "المعرف",
     "status": "الحالة",
     "baseModel": "النموذج الأساسي",
     "datasetId": "معرّف مجموعة البيانات",
@@ -6832,7 +7061,19 @@
   },
   "errorBoundary": {
     "title": "حدث خطأ ما",
-    "retryLoad": "إعادة محاولة تحميل هذه الوحدة"
+    "retryLoad": "إعادة محاولة تحميل هذه الوحدة",
+    "copied": "تم النسخ",
+    "copyError": "نسخ الخطأ",
+    "errorDetails": "تفاصيل الخطأ",
+    "moduleError": "خطأ في الوحدة",
+    "pageError": "خطأ في الصفحة",
+    "panelLoadFailed": "⚠️ فشل تحميل اللوحة \"{{tabKey}}\"",
+    "refreshPage": "تحديث الصفحة",
+    "retry": "إعادة المحاولة",
+    "somethingWentWrong": "حدث خطأ ما",
+    "tryAgain": "حاول مجدداً",
+    "unexpectedError": "خطأ غير متوقع",
+    "unknownError": "خطأ غير معروف"
   },
   "appInit": {
     "idle": "جارٍ التحضير للبدء...",
@@ -6907,7 +7148,8 @@
     "retry": "إعادة المحاولة"
   },
   "subAgentCard": {
-    "viewConversation": "عرض المحادثة الفرعية"
+    "viewConversation": "عرض المحادثة الفرعية",
+    "fork": "تفريع"
   },
   "modelParam": {
     "topP": "Top P"
@@ -6990,7 +7232,8 @@
     "teammate": "فريق",
     "steerInput": "قيادة",
     "showExtras": "المزيد",
-    "hideExtras": "إخفاء"
+    "hideExtras": "إخفاء",
+    "close": "إغلاق"
   },
   "knowledgeSettings": {
     "title": "المعرفة"
@@ -7058,5 +7301,10 @@
     "gatewayContext": "البوابة",
     "filesContext": "الملفات",
     "terminalContext": "الطرفية"
+  },
+  "input": {
+    "recordAudio": "تسجيل الصوت",
+    "takePhoto": "التقاط صورة",
+    "uploadFile": "رفع ملف"
   }
 }

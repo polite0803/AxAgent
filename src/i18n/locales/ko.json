@@ -334,7 +334,7 @@
       "dagVisualization": "DAG 시각화",
       "dagHint": "이 Mermaid 코드를 Mermaid 렌더러에 붙여넣어 DAG를 시각화하세요.",
       "listView": "목록",
-      "dagView": "DAG",
+      "dagView": "DAG 뷰",
       "viewOutput": "최종 출력",
       "outputCopied": "출력이 클립보드에 복사됨",
       "stepStatus": "상태:",
@@ -697,7 +697,10 @@
       "cancelled": "취소됨",
       "cancelFailed": "취소 실패",
       "cancel": "취소",
-      "noSteps": "단계 없음"
+      "noSteps": "단계 없음",
+      "chart": {
+        "renderError": "차트 렌더링 오류"
+      }
     },
     "modelRoutingConfig": {
       "title": "모델 라우팅 설정",
@@ -868,7 +871,9 @@
         "copyFailed": "복사 실패",
         "joinFailed": "참가 실패",
         "maxParticipants": "최대 참가자 수",
-        "joinSuccess": "참여 성공"
+        "joinSuccess": "참여 성공",
+        "createFailed": "공유 생성 실패",
+        "updateFailed": "공유 업데이트 실패"
       },
       "sharedResources": "공유 리소스",
       "title": "협업"
@@ -1107,7 +1112,22 @@
     },
     "proactiveInsights": "사전 예측 인사이트 및 알림",
     "steerSent": "조정 명령이 전송되었습니다",
-    "steerError": "조정 명령 전송에 실패했습니다"
+    "steerError": "조정 명령 전송에 실패했습니다",
+    "connector": {
+      "add": "커넥터 추가",
+      "custom": "사용자 정의 커넥터",
+      "goConfig": "설정으로 이동 →",
+      "noServers": "먼저 커넥터를 추가하거나 활성화하세요",
+      "title": "커넥터"
+    },
+    "error": "채팅 오류",
+    "loadError": "불러오기 실패",
+    "mode": {
+      "action": "실행",
+      "ask": "질문",
+      "plan": "계획",
+      "title": "모드 전환"
+    }
   },
   "gateway": {
     "title": "게이트웨이",
@@ -1243,7 +1263,8 @@
     "connectedTools": "연결된 도구",
     "tab": {
       "monitor": "모니터"
-    }
+    },
+    "cacheHitTokens": "캐시 적중 토큰"
   },
   "settings": {
     "title": "설정",
@@ -2526,6 +2547,10 @@
     },
     "notificationCenter": {
       "title": "알림"
+    },
+    "provider": {
+      "deepseekBalance": "DeepSeek 잔액",
+      "noValidKey": "유효한 키 없음"
     }
   },
   "backup": {
@@ -2892,7 +2917,9 @@
     "imageUrl": "이미지 URL",
     "emoji": "이모지",
     "urlPlaceholder": "이미지 URL 입력",
-    "profileTab": "프로필"
+    "profileTab": "프로필",
+    "prefKey": "환경설정 키",
+    "prefValue": "환경설정 값"
   },
   "files": {
     "images": "이미지",
@@ -3394,37 +3421,57 @@
       "explanation": "설명",
       "replaceConfirmTitle": "바꾸기 확인",
       "replaceConfirmContent": "현재 캔버스에 {{nodes}}개의 노드와 {{edges}}개의 간선이 있습니다. 생성 시 모두 교체됩니다. 계속하시겠습니까?",
-      "actionGenerateWorkflow": "Generate Workflow",
-      "actionAddNodes": "Add Node(s)",
-      "actionModifyNode": "Update Node",
-      "actionDeleteNodes": "Delete Node(s)",
-      "actionAddEdge": "Add Edge",
-      "actionUpdateEdge": "Update Edge",
-      "actionDeleteEdge": "Delete Edge",
-      "actionOptimizePrompt": "Optimize Prompt",
-      "actionApply": "Apply",
-      "actionApplyAll": "Review {{count}} changes",
+      "actionGenerateWorkflow": "워크플로우 생성",
+      "actionAddNodes": "노드 추가",
+      "actionModifyNode": "노드 업데이트",
+      "actionDeleteNodes": "노드 삭제",
+      "actionAddEdge": "엣지 추가",
+      "actionUpdateEdge": "엣지 업데이트",
+      "actionDeleteEdge": "엣지 삭제",
+      "actionOptimizePrompt": "프롬프트 최적화",
+      "actionApply": "적용",
+      "actionApplyAll": "{{count}}개 변경 검토",
       "diffPreview": {
-        "title": "AI Edit Preview",
-        "subtitle": "Please review these {{count}} changes before applying to your workflow",
-        "before": "Before",
-        "after": "After",
-        "apply": "Apply this",
-        "applyAll": "Apply All",
-        "cancel": "Cancel",
-        "applied": "Applied",
-        "appliedHint": "Applied {{count}} / {{total}} in this session",
-        "empty": "No changes to preview",
-        "promptLength": "Prompt length: {{from}} → {{to}} chars",
-        "noBefore": "(new item, no prior content)",
-        "noAfter": "(deletion, no new content)",
-        "noChanges": "No field changes",
-        "applyFailed": "Apply failed",
-        "applyAllFailed": "Apply All failed",
-        "rollbackBatch": "Rollback Batch",
-        "rollbackSuccess": "Batch rolled back",
-        "rollbackTip": "Undo the entire batch of AI changes"
-      }
+        "title": "AI 편집 미리보기",
+        "subtitle": "워크플로우에 적용하기 전 {{count}}개 변경을 검토하세요",
+        "before": "이전",
+        "after": "이후",
+        "apply": "이 항목 적용",
+        "applyAll": "모두 적용",
+        "cancel": "취소",
+        "applied": "적용됨",
+        "appliedHint": "이 세션에서 {{count}} / {{total}} 적용됨",
+        "empty": "미리볼 변경 없음",
+        "promptLength": "프롬프트 길이: {{from}} → {{to}} 자",
+        "noBefore": "(새 항목, 이전 내용 없음)",
+        "noAfter": "(삭제됨, 새 내용 없음)",
+        "noChanges": "필드 변경 없음",
+        "applyFailed": "적용 실패",
+        "applyAllFailed": "모두 적용 실패",
+        "rollbackBatch": "배치 롤백",
+        "rollbackSuccess": "배치 롤백됨",
+        "rollbackTip": "AI 변경 배치 전체를 실행 취소",
+        "deleted": "— 삭제됨 —",
+        "deletedCount": "— {{count}}개 삭제 —",
+        "edgeNotFound": "엣지를 찾을 수 없음",
+        "newNodes": "새 노드 {{count}}개",
+        "nodeNotFound": "노드를 찾을 수 없음",
+        "nodesEdgesLabel": "노드 {{nodes}}개 / 엣지 {{edges}}개"
+      },
+      "applyToNode": "노드에 적용",
+      "chatMode": "채팅 모드",
+      "chatPlaceholder": "메시지 입력…",
+      "chatWelcome": "안녕하세요, AI 어시스턴트입니다.",
+      "chatWelcomeHint": "워크플로우나 노드 설정에 관해 물어보세요.",
+      "dragCanvasToAdd": "캔버스로 드래그하여 추가",
+      "dragHintUpdated": "프롬프트로 캔버스를 업데이트했습니다",
+      "fillFromSelectedNode": "선택한 노드에서 채우기",
+      "generateMergeBtn": "병합 생성",
+      "mergeMode": "병합 모드",
+      "promptAppliedToNode": "프롬프트가 노드에 적용되었습니다",
+      "replaceMode": "대체 모드",
+      "retry": "재시도",
+      "toolsMode": "도구 모드"
     },
     "previewInDevelopment": "미리보기 기능은 개발 중입니다",
     "publishInDevelopment": "게시 기능은 개발 중입니다",
@@ -3442,7 +3489,7 @@
       "copy": "복사",
       "uploadJsonFile": "JSON 파일 업로드",
       "dragOrClickUpload": "클릭하거나 파일을 여기로 드래그하여 업로드",
-      "or": "or",
+      "or": "또는",
       "pasteJsonData": "JSON 데이터 붙여넣기",
       "pasteJsonPlaceholder": "템플릿 JSON 데이터 붙여넣기...",
       "importTemplate": "템플릿 가져오기",
@@ -3519,7 +3566,10 @@
       "loadThisVersion": "이 버전 로드",
       "currentVersion": "현재 버전",
       "version": "버전 {{version}}",
-      "loading": "버전 불러오는 중..."
+      "loading": "버전 불러오는 중...",
+      "compare": "비교",
+      "compareVersions": "버전 비교",
+      "noChanges": "변경 사항 없음"
     },
     "versionHistoryLoadFailed": "버전 기록을 불러오지 못했습니다",
     "versionLoaded": "버전{{version}} loaded",
@@ -3598,7 +3648,7 @@
       "selectContextSources": "컨텍스트 소스 선택...",
       "prompt": "프롬프트",
       "promptPlaceholder": "프롬프트를 입력하세요...",
-      "temperatureHint": "0: Deterministic ↑ | 2: Random ↑",
+      "temperatureHint": "0: 결정적 ↑ | 2: 랜덤 ↑",
       "loopType": "루프 유형",
       "loopForEach": "🔁 ForEach",
       "loopWhile": "⏳ While",
@@ -3748,8 +3798,8 @@
       "clickToAddMapping": "\"추가\"를 클릭하여 입력 매핑을 생성하세요",
       "language": "언어",
       "codeInputOutputHint": "(입력: input, 출력: return)",
-      "defaultCodeJsComment": "// Input: input\n// Return value will be stored in output_var",
-      "defaultCodePythonComment": "# Input: input\n# Return value will be stored in output_var",
+      "defaultCodeJsComment": "// Input: input\n// 반환 값은 output_var에 저장됩니다",
+      "defaultCodePythonComment": "# Input: input\n# 반환 값은 output_var에 저장됩니다",
       "codeInputParams": "입력 매개변수: input",
       "codeReturnHint": "반환값은 output_var에 저장됩니다",
       "roleCoordinator": "",
@@ -3775,26 +3825,67 @@
       "aggregationRace": "경쟁",
       "aggregationMajority": "다수결",
       "aggregationHint": "여러 병렬 브랜치의 결과를 집계하는 방법",
-      "url": "url",
-      "method": "method",
-      "timeout": "timeout",
-      "bodyType": "bodyType",
-      "body": "body",
-      "headers": "headers",
-      "addHeader": "addHeader",
-      "headerKey": "headerKey",
-      "headerValue": "headerValue",
-      "selectTemplate": "Select Template",
-      "searchTemplate": "Search template...",
-      "noTemplates": "No templates found",
-      "ragSourceIdsCount": "RAG Sources ({{count}})",
-      "ragSourceIdsPlaceholder": "Enter or select knowledge source IDs...",
-      "ragSourceIdsHint": "Format: knowledge:<kb_id>, memory:<ns_id>, wiki:<wiki_id>",
-      "modelRole": "Model Role",
-      "modelRolePlaceholder": "Auto (use model field)",
-      "modelRoleQuickThink": "⚡ Quick Think",
-      "modelRoleDeepThink": "🧠 Deep Think",
-      "modelRoleHint": "Preset role overrides model when set; lower priority than explicit model field."
+      "url": "URL",
+      "method": "메서드",
+      "timeout": "타임아웃",
+      "bodyType": "본문 유형",
+      "body": "본문",
+      "headers": "헤더",
+      "addHeader": "헤더 추가",
+      "headerKey": "헤더 키",
+      "headerValue": "헤더 값",
+      "selectTemplate": "템플릿 선택",
+      "searchTemplate": "템플릿 검색…",
+      "noTemplates": "템플릿 없음",
+      "ragSourceIdsCount": "RAG 소스 ({{count}})",
+      "ragSourceIdsPlaceholder": "지식 소스 ID 입력 또는 선택…",
+      "ragSourceIdsHint": "형식: knowledge:<kb_id>, memory:<ns_id>, wiki:<wiki_id>",
+      "modelRole": "모델 역할",
+      "modelRolePlaceholder": "자동 (model 필드 사용)",
+      "modelRoleQuickThink": "⚡ 빠른 사고",
+      "modelRoleDeepThink": "🧠 깊은 사고",
+      "modelRoleHint": "사전 설정된 역할이 설정되면 모델을 덮어씁니다. 명시적 model 필드보다 우선순위가 낮습니다.",
+      "addCase": "케이스 추가",
+      "aggregationAny": "임의 결과",
+      "aiGenerate": "AI 생성",
+      "autoInputFromParent": "부모에서 자동 입력",
+      "autoInputFromParentHint": "활성화하면 부모 출력이 자동으로 자식 입력으로 주입됩니다.",
+      "autoInputsFromBranches": "분기에서 자동 입력",
+      "autoInputsFromBranchesHint": "활성화하면 분기 출력이 자동으로 자식 입력으로 주입됩니다.",
+      "availableTools": "사용 가능한 도구",
+      "cases": "케이스",
+      "codeTemplates": "코드 템플릿",
+      "connectInputsManually": "수동으로 입력 연결",
+      "connection": "데이터 소스",
+      "defaultConnection": "기본 데이터 소스",
+      "editExpertPrompt": "전문가 프롬프트 편집",
+      "editRolePrompt": "역할 프롬프트 편집",
+      "emailToPlaceholder": "user@example.com",
+      "hideTools": "도구 숨기기",
+      "inputVarPlaceholder": "node_id.field",
+      "llmRouting": "LLM 라우팅",
+      "matchMode": "일치 모드",
+      "maxDelayMs": "최대 지연 (ms)",
+      "mergeAny": "임의 병합",
+      "mergeMajority": "다수결 병합",
+      "mergeRace": "선착순 병합",
+      "noToolsAvailable": "사용 가능한 도구 없음",
+      "promptSaveFailed": "프롬프트 저장 실패",
+      "promptSaved": "프롬프트 저장됨",
+      "resetTimeoutHint": "시간 초과 재설정",
+      "retryEnabled": "재시도 활성화",
+      "routingModel": "라우팅 모델",
+      "routingModelPlaceholder": "라우팅 모델 선택",
+      "routingPrompt": "라우팅 프롬프트",
+      "routingPromptPlaceholder": "라우팅 결정 로직 설명",
+      "showTools": "도구 표시",
+      "subject": "제목",
+      "switchInputVarPlaceholder": "node_id.output_field",
+      "switchLabelPlaceholder": "label",
+      "switchValuePlaceholder": "value",
+      "to": "수신자",
+      "urlPlaceholder": "https://api.example.com/data",
+      "webhookUrlPlaceholder": "https://hook.example.com/..."
     },
     "debug": {
       "totalDuration": "총 소요 시간",
@@ -3820,7 +3911,60 @@
       "labelType": "유형",
       "labelError": "오류",
       "labelInput": "입력",
-      "labelOutput": "출력"
+      "labelOutput": "출력",
+      "allClear": "모두 정상",
+      "breakpoints": "중단점",
+      "breakpointsPanel": "중단점 패널",
+      "cancel": "취소",
+      "clickToValidate": "클릭하여 검증",
+      "colIssues": "문제 수",
+      "colNode": "노드",
+      "colStatus": "상태",
+      "colTime": "시간",
+      "colType": "유형",
+      "continue": "계속",
+      "cyclesDetected": "순환 감지됨",
+      "deadEnd": "막다른 길",
+      "error": "오류",
+      "errors": "오류",
+      "execTime": "실행 시간",
+      "executionHistory": "실행 기록",
+      "input": "입력",
+      "issuesFound": "문제 발견",
+      "noBreakpoints": "중단점 없음",
+      "noHistory": "기록 없음",
+      "noPrompt": "프롬프트 없음",
+      "noRuntimeData": "런타임 데이터 없음",
+      "noVariables": "변수 없음",
+      "nodeDiagnostics": "노드 진단",
+      "nodeRecords": "노드 기록",
+      "nodesExecuted": "실행된 노드",
+      "orphan": "고립 노드",
+      "output": "출력",
+      "pause": "일시 정지",
+      "resume": "계속",
+      "resumeBreakpoint": "중단점까지 재개",
+      "runFullCheck": "전체 검사 실행",
+      "runValidation": "검증 실행",
+      "running": "실행 중",
+      "runtimeTrace": "런타임 추적",
+      "startDebug": "디버그 시작",
+      "staticCheck": "정적 검사",
+      "staticDebugHint": "노드를 클릭하여 디버그",
+      "step": "단계",
+      "stepBreakpoint": "단계 중단점",
+      "structuralValidation": "구조 검증",
+      "subExecutionDetail": "하위 실행 상세",
+      "topoAnalysis": "토폴로지 분석",
+      "topoHealthy": "토폴로지 정상",
+      "totalEdges": "총 엣지",
+      "totalNodes": "총 노드",
+      "unreachableNodesCount": "도달 불가 노드",
+      "view": "보기",
+      "viewDetail": "상세 보기",
+      "viewSubExecution": "하위 실행 보기",
+      "waitingForNodes": "노드 대기 중",
+      "warnings": "경고"
     },
     "applySemanticCheck": "적용",
     "applyUpgrade": "업그레이드 적용",
@@ -3881,17 +4025,19 @@
       "end": "종료",
       "tool": "도구",
       "code": "코드",
-      "httpRequest": "HTTP Request",
-      "notification": "Notification",
-      "approval": "Approval",
-      "fileOperation": "File Operation",
-      "dataTransformer": "Data Transformer",
-      "webhookSend": "Webhook Send",
-      "logging": "Logging",
-      "llmClassifier": "LLM Classifier",
-      "aggregator": "Aggregator",
-      "email": "Email",
-      "debate": "Debate"
+      "httpRequest": "HTTP 요청",
+      "notification": "알림",
+      "approval": "승인",
+      "fileOperation": "파일 작업",
+      "dataTransformer": "데이터 변환",
+      "webhookSend": "Webhook 전송",
+      "logging": "로깅",
+      "llmClassifier": "LLM 분류기",
+      "aggregator": "애그리게이터",
+      "email": "이메일",
+      "debate": "토론",
+      "databaseQuery": "데이터베이스 쿼리",
+      "switch": "스위치"
     },
     "templateList": {
       "deleted": "템플릿이 삭제되었습니다",
@@ -3963,7 +4109,7 @@
       "iconDocument": "📄 문서",
       "iconGitBranch": "🔀 Git 브랜치",
       "iconLayers": "📚 레이어",
-      "iconZap": "⚡ Zap",
+      "iconZap": "⚡ 번개",
       "label": "라벨",
       "name": "이름",
       "nodeType": "노드 유형",
@@ -4069,8 +4215,10 @@
       "notSelected": "선택 안 됨",
       "title": "하위 워크플로우",
       "async": "비동기",
-      "expand": "Expand",
-      "collapse": "Collapse"
+      "expand": "펼치기",
+      "collapse": "접기",
+      "inputCount": "입력 수",
+      "outputCount": "출력 수"
     },
     "vectorRetrieveNode": {
       "notSelected": "선택 안 됨",
@@ -4085,7 +4233,8 @@
       "title": "루프",
       "maxIterations": "최대 반복 횟수",
       "continueOnError": "오류 시 계속",
-      "steps": "{{count}}단계"
+      "steps": "{{count}}단계",
+      "notConfigured": "루프 노드 미설정"
     },
     "mergeNode": {
       "all": "모두",
@@ -4093,13 +4242,13 @@
       "last": "마지막",
       "title": "병합",
       "inputCount": "{{count}}개 입력",
-      "any": "Any",
-      "race": "Race",
-      "majority": "Majority",
-      "inputs": "inputs",
-      "waitAll": "Wait all",
-      "waitAny": "Any complete",
-      "autoInputs": "Auto-receive branch outputs"
+      "any": "任意",
+      "race": "경합",
+      "majority": "다수",
+      "inputs": "입력 수",
+      "waitAll": "모두 대기",
+      "waitAny": "하나만 완료",
+      "autoInputs": "분기 출력 자동 수신"
     },
     "parallelNode": {
       "title": "병렬",
@@ -4110,9 +4259,11 @@
       "clickToAdd": "클릭하여 브랜치 추가",
       "expand": "펼치기",
       "collapse": "접기",
-      "race": "Race",
-      "branches": "branches",
-      "autoInput": "Auto-receive parent input"
+      "race": "경합",
+      "branches": "분기 수",
+      "autoInput": "부모에서 자동 입력",
+      "waitAll": "모두 대기",
+      "waitAny": "하나만 대기"
     },
     "toolNode": {
       "notSelected": "선택 안 됨",
@@ -4135,7 +4286,8 @@
       "second": "초",
       "minutes": "분",
       "until": "종료 조건",
-      "title": "지연"
+      "title": "지연",
+      "notConfigured": "지연 노드 미설정"
     },
     "endNode": {
       "title": "종료"
@@ -4149,7 +4301,8 @@
       "continue": "계속",
       "title": "검증",
       "assertionCount": "{{count}}개 어서션",
-      "failStrategy": "실패 전략"
+      "failStrategy": "실패 전략",
+      "rules": "검증 규칙"
     },
     "shortcuts": {
       "title": "단축키",
@@ -4190,7 +4343,7 @@
         "suggest": "AI 제안",
         "generate": "AI 생성",
         "rewrite": "AI 다시 쓰기",
-        "contextComplete": "Context Complete"
+        "contextComplete": "컨텍스트 완성"
       },
       "tooltip": "AI로 최적화 또는 생성",
       "noProvider": "사용 가능한 AI 제공자가 없음",
@@ -4198,268 +4351,305 @@
       "optimizing": "AI 최적화 중...",
       "generating": "AI 생성 중...",
       "applied": "AI 제안 적용됨",
-      "contextCompleteApplied": "Context completion applied"
-    },
-    "diagnostic": {
-      "title": "Workflow Diagnostic",
-      "run": "Run Diagnostic",
-      "tooltip": "Scan structure, config, prompts and variable references",
-      "loading": "Diagnosing...",
-      "empty": "Workflow is empty. Add nodes to start diagnosis.",
-      "allGood": "Workflow looks good. No issues found.",
-      "summary": {
-        "title": "Diagnostic Summary",
-        "error": "Errors",
-        "warning": "Warnings",
-        "info": "Info",
-        "total": "{{count}} issue(s)"
+      "contextCompleteApplied": "컨텍스트 완성 적용됨",
+      "dbQuery": {
+        "sqlHint": "팁: SQL을 입력하면 AI가 자동 완성합니다."
       },
-      "severity": {
-        "error": "Error",
-        "warning": "Warning",
-        "info": "Info"
+      "loop": {
+        "continueHint": "루프 계속 조건을 제공하세요 (예: `index < 10`)."
       },
-      "category": {
-        "structure": "Structure",
-        "configuration": "Configuration",
-        "prompt": "Prompt",
-        "reference": "Reference",
-        "best_practice": "Best Practice",
-        "prompt_quality": "Prompt Quality",
-        "performance": "Performance",
-        "cost": "Cost",
-        "security": "Security"
+      "parallel": {
+        "branchesHint": "병렬 분기 입력과 목표 출력을 설명하세요."
       },
-      "fix": {
-        "apply": "Auto Fix",
-        "applied": "Fixed",
-        "failed": "Fix failed"
+      "subWorkflow": {
+        "needPick": "기존 워크플로우를 선택하거나 새 워크플로우를 설명하세요.",
+        "parseFailed": "파싱 실패, 설명을 확인하세요."
       },
-      "jump": "Locate Node",
-      "issues": {
-        "duplicate_node_id": {
-          "title": "Duplicate Node ID",
-          "message": "Node ID \"{{id}}\" appears multiple times, which may cause routing issues."
-        },
-        "orphan_node": {
-          "title": "Orphan Node",
-          "message": "Node \"{{label}}\" has neither incoming nor outgoing edges."
-        },
-        "unreachable_from_trigger": {
-          "title": "Node Unreachable from Trigger",
-          "message": "Node \"{{label}}\" has no path from any trigger."
-        },
-        "dangling_edge": {
-          "title": "Dangling Edge",
-          "message": "Edge \"{{id}}\" references a missing source or target node."
-        },
-        "llm_prompt_empty": {
-          "title": "Empty LLM Prompt",
-          "message": "Node \"{{label}}\" has an empty LLM.prompt."
-        },
-        "llm_prompt_short": {
-          "title": "LLM Prompt Too Short",
-          "message": "Node \"{{label}}\" LLM.prompt is only {{len}} characters long."
-        },
-        "agent_prompt_empty": {
-          "title": "Empty Agent System Prompt",
-          "message": "Node \"{{label}}\" has an empty Agent.system_prompt."
-        },
-        "agent_prompt_trivial": {
-          "title": "Agent System Prompt Too Simple",
-          "message": "Node \"{{label}}\" system_prompt is only {{len}} characters."
-        },
-        "classifier_prompt_empty": {
-          "title": "Empty Classifier Prompt",
-          "message": "Node \"{{label}}\" has an empty LlmClassifier.prompt."
-        },
-        "classifier_prompt_trivial": {
-          "title": "Classifier Prompt Too Simple",
-          "message": "Node \"{{label}}\" classifier prompt is only {{len}} characters."
-        },
-        "classifier_categories_empty": {
-          "title": "No Classifier Categories",
-          "message": "Node \"{{label}}\" categories list is empty."
-        },
-        "http_url_empty": {
-          "title": "Empty HTTP URL",
-          "message": "Node \"{{label}}\" HttpRequest.url is empty."
-        },
-        "webhook_url_empty": {
-          "title": "Empty Webhook URL",
-          "message": "Node \"{{label}}\" WebhookSend.url is empty."
-        },
-        "email_to_empty": {
-          "title": "Empty Email Recipients",
-          "message": "Node \"{{label}}\" Email.to is empty."
-        },
-        "email_body_empty": {
-          "title": "Empty Email Body",
-          "message": "Node \"{{label}}\" Email.body is empty."
-        },
-        "validation_assertions_empty": {
-          "title": "Empty Validation Assertions",
-          "message": "Node \"{{label}}\" assertions list is empty."
-        },
-        "code_body_empty": {
-          "title": "Empty Code Node Body",
-          "message": "Node \"{{label}}\" Code.code is empty."
-        },
-        "code_output_var_empty": {
-          "title": "Code Node Missing Output Variable",
-          "message": "Node \"{{label}}\" output_var is empty; downstream nodes cannot reference its result."
-        },
-        "tool_name_empty": {
-          "title": "Tool Node Missing Tool",
-          "message": "Node \"{{label}}\" tool_name is empty."
-        },
-        "subworkflow_id_empty": {
-          "title": "Empty SubWorkflow ID",
-          "message": "Node \"{{label}}\" SubWorkflow.sub_workflow_id is empty."
-        },
-        "unknown_var_reference": {
-          "title": "Undeclared Variable Reference",
-          "message": "Node \"{{label}}\" references ${ {{var}} }, but no node declares this as output_var."
-        },
-        "no_timeout": {
-          "title": "No Timeout Configured",
-          "message": "Node \"{{label}}\" has no timeout, long-running tasks may block the workflow."
-        },
-        "no_retry": {
-          "title": "No Retry Configured",
-          "message": "Node \"{{label}}\" has no retry policy; transient failures will propagate."
-        },
-        "parallel_no_merge": {
-          "title": "Parallel Without Merge",
-          "message": "Parallel node \"{{label}}\" branches should converge into a Merge node."
-        },
-        "no_trigger": {
-          "title": "No Trigger Node",
-          "message": "Workflow has no trigger node. Add a Trigger to define the entry point."
-        },
-        "no_end": {
-          "title": "No End Node",
-          "message": "Workflow has no end node. Consider adding an End node to mark completion."
-        },
-        "agent_empty_prompt": {
-          "title": "Empty Agent System Prompt",
-          "message": "Agent node has an empty system_prompt. Define a clear role and instructions."
-        },
-        "agent_short_prompt": {
-          "title": "Agent System Prompt Too Short",
-          "message": "Agent system_prompt is under 30 characters. Add role definition and output constraints."
-        },
-        "agent_no_max_tokens": {
-          "title": "Agent Missing max_tokens",
-          "message": "Agent node has no max_tokens set. This may lead to unbounded token usage."
-        },
-        "agent_no_max_tool_rounds": {
-          "title": "Agent Missing max_tool_rounds",
-          "message": "Agent with tools has no max_tool_rounds set. Tool loops may run indefinitely."
-        },
-        "llm_empty_prompt": {
-          "title": "Empty LLM Prompt",
-          "message": "LLM node has an empty prompt. Provide a clear instruction."
-        },
-        "llm_no_max_tokens": {
-          "title": "LLM Missing max_tokens",
-          "message": "LLM node has no max_tokens set. This may lead to unbounded token usage."
-        },
-        "http_no_timeout": {
-          "title": "HTTP Request No Timeout",
-          "message": "HttpRequest node has no timeout configured. Long-running requests may block the workflow."
-        },
-        "http_no_retry": {
-          "title": "HTTP Request No Retry",
-          "message": "HttpRequest node has no retry policy. Transient failures will propagate."
-        },
-        "db_no_timeout": {
-          "title": "Database Query No Timeout",
-          "message": "DatabaseQuery node has no timeout configured. Slow queries may block the workflow."
-        },
-        "loop_no_max_iter": {
-          "title": "Loop No Max Iterations",
-          "message": "Loop node has no max_iterations set. Infinite loops may occur."
-        },
-        "loop_no_condition": {
-          "title": "Loop No Continue Condition",
-          "message": "Loop node has no continue_condition defined. The loop may never terminate."
-        },
-        "doc_no_parser_type": {
-          "title": "Document Parser No Type",
-          "message": "DocumentParser node has no parser_type specified."
-        },
-        "insecure_http_url": {
-          "title": "Insecure HTTP URL",
-          "message": "URL uses plain HTTP instead of HTTPS. Data may be transmitted unencrypted."
-        },
-        "insecure_notification_url": {
-          "title": "Insecure Notification Webhook URL",
-          "message": "Notification webhook URL uses plain HTTP. Webhook payloads may be intercepted."
-        },
-        "approval_no_approver": {
-          "title": "Approval No Approver",
-          "message": "Approval node has no approver configured. The workflow will stall at this node."
-        },
-        "vector_no_threshold": {
-          "title": "Vector Retrieve No Similarity Threshold",
-          "message": "VectorRetrieve node has no similarity_threshold. Low-quality matches may be returned."
-        },
-        "vector_high_top_k": {
-          "title": "Vector Retrieve High top_k",
-          "message": "VectorRetrieve top_k exceeds 20. This increases cost and may reduce relevance."
-        },
-        "condition_single_exit": {
-          "title": "Condition Single Exit",
-          "message": "Condition node has fewer than 2 downstream branches. Consider adding both true/false paths."
-        },
-        "classifier_few_cases": {
-          "title": "Classifier Too Few Cases",
-          "message": "LlmClassifier has fewer than 2 classification cases."
-        },
-        "validation_no_rules": {
-          "title": "Validation No Rules",
-          "message": "Validation node has no rules defined. It will always pass."
-        },
-        "edge_dangling_source": {
-          "title": "Dangling Edge Source",
-          "message": "Edge references a source node that no longer exists."
-        },
-        "edge_dangling_target": {
-          "title": "Dangling Edge Target",
-          "message": "Edge references a target node that no longer exists."
-        },
-        "debate_no_debaters": {
-          "title": "Debate No Debaters",
-          "message": "Debate node has no debater agents. Add at least 2 debaters for a meaningful debate."
-        },
-        "debate_single_debater": {
-          "title": "Debate Single Debater",
-          "message": "Debate node has only 1 debater. A debate requires at least 2 opposing sides."
-        },
-        "debate_dangling_step": {
-          "title": "Debate Dangling Debater Reference",
-          "message": "Debate node references a debater step that no longer exists. Remove the stale reference."
-        }
+      "switch": {
+        "casesHint": "모든 분기와 트리거 조건을 나열하세요."
+      },
+      "trigger": {
+        "cronHint": "표준 cron 표현식 (예: `0 9 * * *`)."
       }
     },
-    "batchEdit": {
-      "title": "Batch Edit",
-      "noChange": "No change",
-      "apply": "Apply to {count} nodes"
+    "diagnostic": {
+      "title": "워크플로우 진단",
+      "run": "진단 실행",
+      "tooltip": "구조, 설정, 프롬프트, 변수 참조 검사",
+      "loading": "진단 중…",
+      "empty": "워크플로우가 비어 있습니다. 노드를 추가해 진단을 시작하세요.",
+      "allGood": "워크플로우가 양호합니다. 문제가 발견되지 않았습니다.",
+      "summary": {
+        "title": "진단 요약",
+        "error": "오류",
+        "warning": "경고",
+        "info": "정보",
+        "total": "{{count}}개 문제"
+      },
+      "severity": {
+        "error": "오류",
+        "warning": "경고",
+        "info": "정보"
+      },
+      "category": {
+        "structure": "구조",
+        "configuration": "설정",
+        "prompt": "프롬프트",
+        "reference": "참조",
+        "best_practice": "모범 사례",
+        "prompt_quality": "프롬프트 품질",
+        "performance": "성능",
+        "cost": "비용",
+        "security": "보안"
+      },
+      "fix": {
+        "apply": "자동 수정",
+        "applied": "수정됨",
+        "failed": "수정 실패"
+      },
+      "jump": "노드 위치로",
+      "issues": {
+        "duplicate_node_id": {
+          "title": "중복된 노드 ID",
+          "message": "노드 ID \"{{id}}\"이(가) 여러 번 나타나 라우팅 문제가 발생할 수 있습니다."
+        },
+        "orphan_node": {
+          "title": "고립 노드",
+          "message": "노드 \"{{label}}\"은(는) 입력 엣지도 출력 엣지도 없습니다."
+        },
+        "unreachable_from_trigger": {
+          "title": "트리거에서 도달 불가",
+          "message": "노드 \"{{label}}\"은(는) 어떤 트리거에서도 도달 가능한 경로가 없습니다."
+        },
+        "dangling_edge": {
+          "title": "끊어진 엣지",
+          "message": "엣지 \"{{id}}\"가 존재하지 않는 소스 또는 타깃 노드를 참조합니다."
+        },
+        "llm_prompt_empty": {
+          "title": "LLM 프롬프트 비어 있음",
+          "message": "노드 \"{{label}}\"의 LLM.prompt가 비어 있습니다."
+        },
+        "llm_prompt_short": {
+          "title": "LLM 프롬프트 너무 짧음",
+          "message": "노드 \"{{label}}\"의 LLM.prompt가 {{len}}자에 불과합니다."
+        },
+        "agent_prompt_empty": {
+          "title": "에이전트 시스템 프롬프트가 비어 있음",
+          "message": "노드 \"{{label}}\"의 Agent.system_prompt가 비어 있습니다."
+        },
+        "agent_prompt_trivial": {
+          "title": "에이전트 시스템 프롬프트가 너무 단순함",
+          "message": "노드 \"{{label}}\"의 system_prompt가 {{len}}자에 불과합니다."
+        },
+        "classifier_prompt_empty": {
+          "title": "분류기 프롬프트가 비어 있음",
+          "message": "노드 \"{{label}}\"의 LlmClassifier.prompt가 비어 있습니다."
+        },
+        "classifier_prompt_trivial": {
+          "title": "분류기 프롬프트가 너무 단순함",
+          "message": "노드 \"{{label}}\"의 분류 프롬프트가 {{len}}자에 불과합니다."
+        },
+        "classifier_categories_empty": {
+          "title": "분류기 카테고리 없음",
+          "message": "노드 \"{{label}}\"의 카테고리 목록이 비어 있습니다."
+        },
+        "http_url_empty": {
+          "title": "HTTP URL 비어 있음",
+          "message": "노드 \"{{label}}\"의 HttpRequest.url이 비어 있습니다."
+        },
+        "webhook_url_empty": {
+          "title": "Webhook URL 비어 있음",
+          "message": "노드 \"{{label}}\"의 WebhookSend.url이 비어 있습니다."
+        },
+        "email_to_empty": {
+          "title": "이메일 수신자 비어 있음",
+          "message": "노드 \"{{label}}\"의 Email.to가 비어 있습니다."
+        },
+        "email_body_empty": {
+          "title": "이메일 본문 비어 있음",
+          "message": "노드 \"{{label}}\"의 Email.body가 비어 있습니다."
+        },
+        "validation_assertions_empty": {
+          "title": "검증 어설션 비어 있음",
+          "message": "노드 \"{{label}}\"의 어설션 목록이 비어 있습니다."
+        },
+        "code_body_empty": {
+          "title": "코드 노드 본문이 비어 있음",
+          "message": "노드 \"{{label}}\"의 Code.code가 비어 있습니다."
+        },
+        "code_output_var_empty": {
+          "title": "코드 노드에 출력 변수 없음",
+          "message": "노드 \"{{label}}\"의 output_var가 비어 있어 다운스트림 노드가 결과를 참조할 수 없습니다."
+        },
+        "tool_name_empty": {
+          "title": "도구 노드에 도구 없음",
+          "message": "노드 \"{{label}}\"의 tool_name이 비어 있습니다."
+        },
+        "subworkflow_id_empty": {
+          "title": "하위 워크플로우 ID 비어 있음",
+          "message": "노드 \"{{label}}\"의 SubWorkflow.sub_workflow_id가 비어 있습니다."
+        },
+        "unknown_var_reference": {
+          "title": "선언되지 않은 변수 참조",
+          "message": "노드 \"{{label}}\"이(가) ${ {{var}} }을(를) 참조하지만 이를 output_var로 선언한 노드가 없습니다."
+        },
+        "no_timeout": {
+          "title": "타임아웃 미설정",
+          "message": "노드 \"{{label}}\"에 타임아웃이 없어 장기 실행 작업이 워크플로우를 차단할 수 있습니다."
+        },
+        "no_retry": {
+          "title": "재시도 미설정",
+          "message": "노드 \"{{label}}\"에 재시도 정책이 없어 일시적 오류가 그대로 전파됩니다."
+        },
+        "parallel_no_merge": {
+          "title": "병렬에 병합 없음",
+          "message": "병렬 노드 \"{{label}}\"의 분기는 Merge 노드로 수렴해야 합니다."
+        },
+        "no_trigger": {
+          "title": "트리거 노드 없음",
+          "message": "워크플로우에 트리거 노드가 없습니다. 진입점을 정의하는 Trigger를 추가하세요."
+        },
+        "no_end": {
+          "title": "종료 노드 없음",
+          "message": "워크플로우에 End 노드가 없습니다. 완료를 표시할 End 노드 추가를 고려하세요."
+        },
+        "agent_empty_prompt": {
+          "title": "에이전트 시스템 프롬프트가 비어 있음",
+          "message": "에이전트 노드의 system_prompt가 비어 있습니다. 명확한 역할과 지침을 정의하세요."
+        },
+        "agent_short_prompt": {
+          "title": "에이전트 시스템 프롬프트가 너무 짧음",
+          "message": "에이전트 system_prompt가 30자 미만입니다. 역할 정의와 출력 제약을 추가하세요."
+        },
+        "agent_no_max_tokens": {
+          "title": "에이전트에 max_tokens 없음",
+          "message": "에이전트 노드에 max_tokens가 설정되지 않았습니다. 토큰 사용량이 무제한이 될 수 있습니다."
+        },
+        "agent_no_max_tool_rounds": {
+          "title": "에이전트에 max_tool_rounds 없음",
+          "message": "도구 사용 에이전트에 max_tool_rounds가 설정되지 않았습니다. 도구 루프가 무한히 실행될 수 있습니다."
+        },
+        "llm_empty_prompt": {
+          "title": "LLM 프롬프트 비어 있음",
+          "message": "LLM 노드의 프롬프트가 비어 있습니다. 명확한 지침을 제공하세요."
+        },
+        "llm_no_max_tokens": {
+          "title": "LLM에 max_tokens 없음",
+          "message": "LLM 노드에 max_tokens가 설정되지 않았습니다. 토큰 사용량이 무제한이 될 수 있습니다."
+        },
+        "http_no_timeout": {
+          "title": "HTTP 요청 타임아웃 없음",
+          "message": "HttpRequest 노드에 타임아웃이 설정되지 않았습니다. 장기 실행 요청이 워크플로우를 차단할 수 있습니다."
+        },
+        "http_no_retry": {
+          "title": "HTTP 요청 재시도 없음",
+          "message": "HttpRequest 노드에 재시도 정책이 없습니다. 일시적 오류가 그대로 전파됩니다."
+        },
+        "db_no_timeout": {
+          "title": "DB 쿼리에 타임아웃 없음",
+          "message": "DatabaseQuery 노드에 타임아웃이 설정되지 않았습니다. 느린 쿼리가 워크플로우를 차단할 수 있습니다."
+        },
+        "loop_no_max_iter": {
+          "title": "루프 최대 반복 없음",
+          "message": "루프 노드에 max_iterations가 설정되지 않았습니다. 무한 루프가 발생할 수 있습니다."
+        },
+        "loop_no_condition": {
+          "title": "루프 계속 조건 없음",
+          "message": "루프 노드에 continue_condition이 정의되지 않았습니다. 루프가 종료되지 않을 수 있습니다."
+        },
+        "doc_no_parser_type": {
+          "title": "문서 파서 유형 미지정",
+          "message": "DocumentParser 노드에 parser_type이 지정되지 않았습니다."
+        },
+        "insecure_http_url": {
+          "title": "안전하지 않은 HTTP URL",
+          "message": "URL이 HTTPS 대신 평문 HTTP를 사용합니다. 데이터가 암호화되지 않고 전송될 수 있습니다."
+        },
+        "insecure_notification_url": {
+          "title": "안전하지 않은 알림 Webhook URL",
+          "message": "알림 Webhook URL이 평문 HTTP를 사용하므로 페이로드가 가로채질 수 있습니다."
+        },
+        "approval_no_approver": {
+          "title": "승인 노드에 승인자 없음",
+          "message": "승인 노드에 승인자가 설정되지 않았습니다. 워크플로우가 이 노드에서 멈춥니다."
+        },
+        "vector_no_threshold": {
+          "title": "Vector Retrieve 유사도 임계값 없음",
+          "message": "VectorRetrieve 노드에 similarity_threshold가 설정되지 않아 저품질 매칭이 반환될 수 있습니다."
+        },
+        "vector_high_top_k": {
+          "title": "Vector Retrieve top_k 너무 큼",
+          "message": "VectorRetrieve의 top_k가 20을 초과합니다. 비용이 증가하고 관련성이 떨어질 수 있습니다."
+        },
+        "condition_single_exit": {
+          "title": "조건 노드 분기 단일",
+          "message": "조건 노드의 다운스트림 분기가 2개 미만입니다. true/false 경로 모두 추가하는 것을 고려하세요."
+        },
+        "classifier_few_cases": {
+          "title": "분류기 케이스 부족",
+          "message": "LlmClassifier의 분류 케이스가 2개 미만입니다."
+        },
+        "validation_no_rules": {
+          "title": "검증 규칙 없음",
+          "message": "검증 노드에 규칙이 정의되지 않아 항상 통과합니다."
+        },
+        "edge_dangling_source": {
+          "title": "엣지 소스 노드 없음",
+          "message": "엣지가 참조하는 소스 노드가 더 이상 존재하지 않습니다."
+        },
+        "edge_dangling_target": {
+          "title": "엣지 타깃 노드 없음",
+          "message": "엣지가 참조하는 타깃 노드가 더 이상 존재하지 않습니다."
+        },
+        "debate_no_debaters": {
+          "title": "토론 노드에 토론자 없음",
+          "message": "토론 노드에 토론자 에이전트가 없습니다. 의미 있는 토론을 위해 최소 2명을 추가하세요."
+        },
+        "debate_single_debater": {
+          "title": "토론자 1명만 있음",
+          "message": "토론 노드에 토론자가 1명뿐입니다. 최소 2개의 반대 측이 필요합니다."
+        },
+        "debate_dangling_step": {
+          "title": "토론 노드 끊어진 참조",
+          "message": "토론 노드가 더 이상 존재하지 않는 토론자 단계를 참조합니다. 오래된 참조를 제거하세요."
+        }
+      },
+      "error": "진단 오류"
     },
-    "autoLayoutWithSubs": "Auto-layout (with {{count}} sub-workflows)",
-    "toggleBreakpoint": "Toggle Breakpoint",
-    "copyNode": "Copy Node",
-    "deleteNode": "Delete Node",
+    "batchEdit": {
+      "title": "일괄 편집",
+      "noChange": "변경 없음",
+      "apply": "{count}개 노드에 적용"
+    },
+    "autoLayoutWithSubs": "자동 레이아웃 (하위 워크플로우 {{count}}개)",
+    "toggleBreakpoint": "중단점 토글",
+    "copyNode": "노드 복사",
+    "deleteNode": "노드 삭제",
     "debateNode": {
-      "debaters": "debaters",
-      "rounds": "rounds",
-      "expand": "Expand",
-      "collapse": "Collapse",
-      "newDebater": "Debater",
-      "noDebatersHint": "Add debater Agent nodes inside this container"
-    }
+      "debaters": "토론자",
+      "rounds": "라운드",
+      "expand": "펼치기",
+      "collapse": "접기",
+      "newDebater": "토론자",
+      "noDebatersHint": "이 컨테이너 안에 토론자 에이전트 노드를 추가하세요",
+      "defaultRole": "— 기본값 —",
+      "stanceCon": "반대 (부정)",
+      "stanceNth": "{{count}}번 측",
+      "stancePro": "찬성 (긍정)",
+      "stanceSystemPromptFallback": "당신은 {{stance}} 측 토론자입니다. 주제에 대해 토론하세요."
+    },
+    "batchEditMode": "일괄 편집 모드",
+    "noExecutionHistory": "실행 기록 없음",
+    "nodeConfig": {
+      "add_debater": "토론자 추가",
+      "convergence_model_role": "수렴 모델 역할",
+      "convergence_prompt": "수렴 프롬프트",
+      "convergence_prompt_placeholder": "토론이 수렴되는 시점을 결정하는 데 사용되는 프롬프트",
+      "debaters": "토론자",
+      "max_rounds": "최대 라운드",
+      "topic_var": "주제 변수"
+    },
+    "searchNodes": "노드 검색"
   },
   "atomicSkill": {
     "entryType": "항목 유형",
@@ -4698,7 +4888,9 @@
     "retry": "재시도",
     "tags": "태그: {{tags}}",
     "none": "없음",
-    "response": "응답"
+    "response": "응답",
+    "report": "리포트",
+    "tasks": "작업"
   },
   "traceExplorer": {
     "selectTrace": "트레이스를 선택하여 상세 보기"
@@ -4868,7 +5060,7 @@
     "configureBackends": "백엔드 구성...",
     "noSessions": "터미널 세션 없음",
     "errorsCount": "{{count}}개 오류",
-    "ok": "OK",
+    "ok": "확인",
     "dockerConnectPending": "Docker 연결 대기 중",
     "sshConnectPending": "SSH 연결 대기 중",
     "newTerminal": "새 터미널",
@@ -5149,14 +5341,7 @@
     "searchPlaceholder": "Wiki 검색...",
     "selectWiki": "위키 선택",
     "selectWikiPrompt": "Wiki를 선택하세요",
-    "source": {
-      "chunks": "청크",
-      "deleteNotImplemented": "Delete not implemented",
-      "path": "경로",
-      "status": "상태",
-      "title": "Source",
-      "type": "유형"
-    },
+    "source": "출처",
     "sources": "소스",
     "sync": {
       "byWiki": "Wiki별",
@@ -5273,7 +5458,23 @@
     "quickCapture": "Quick Capture",
     "refresh": "새로고침",
     "startImport": "Start Import",
-    "vaultPath": "Vault Path"
+    "vaultPath": "Vault Path",
+    "ingestSource": {
+      "chunks": "청크 수",
+      "deleteNotImplemented": "삭제 기능은 아직 구현되지 않았습니다",
+      "path": "경로",
+      "status": "상태",
+      "title": "제목",
+      "type": "유형"
+    },
+    "wikiForm": {
+      "description": "설명",
+      "name": "이름",
+      "rootPath": "루트 경로"
+    },
+    "wikiMeta": {
+      "rootPath": "루트 경로"
+    }
   },
   "notification": {
     "clear": "지우기",
@@ -5289,7 +5490,8 @@
     "dismiss": "닫기",
     "execute": "실행",
     "learningSuggestions": "학습 제안",
-    "snooze30": "미루기 (30분)"
+    "snooze30": "미루기 (30분)",
+    "noSuggestions": "제안 없음"
   },
   "proactive": {
     "accept": "수락",
@@ -5440,7 +5642,10 @@
     "analyzeFrontend": "AI 생성",
     "analyzeSuccess": "AI 분석 완료",
     "analyzeError": "AI 분석 실패: {{error}}",
-    "generateAgent": "에이전트 생성"
+    "generateAgent": "에이전트 생성",
+    "agentGenerated": "에이전트 생성",
+    "noSkillName": "이름 없는 스킬",
+    "notFound": "스킬을 찾을 수 없음"
   },
   "task": {
     "title": "백그라운드 작업",
@@ -5810,7 +6015,26 @@
     "connectionFailed": "연결 실패",
     "lastSyncResult": "마지막 동기화 결과",
     "cacheDir": "캐시 디렉토리",
-    "quickActions": "빠른 작업"
+    "quickActions": "빠른 작업",
+    "autoFillConfig": "설정 자동 채우기",
+    "chineseProviders": "중국 클라우드 공급자",
+    "cloudBackup": "클라우드 백업",
+    "cloudBackupSize": "크기",
+    "cloudBackupTime": "수정 시간",
+    "downloadBackupFailed": "클라우드에서 다운로드 실패: {{error}}",
+    "downloadBackupSuccess": "클라우드 백업을 다운로드했습니다",
+    "downloadFromCloud": "클라우드에서 복원",
+    "internationalProviders": "해외 클라우드 공급자",
+    "listCloudBackups": "클라우드 백업 보기",
+    "noCloudBackups": "클라우드 백업이 없습니다",
+    "providerCategory": "공급자 분류",
+    "s3UsePathStyle": "Path-Style 주소 지정",
+    "selectProvider": "클라우드 공급자 선택",
+    "selectProviderDesc": "자동 설정을 위해 클라우드 저장소 공급자를 선택하세요",
+    "selfHostedProviders": "자체 호스팅",
+    "uploadBackupFailed": "클라우드 업로드 실패: {{error}}",
+    "uploadBackupSuccess": "백업을 클라우드에 업로드했습니다",
+    "uploadToCloud": "클라우드에 업로드"
   },
   "buddy": {
     "rarity": {
@@ -6135,8 +6359,8 @@
     "noRecords": "레코드 없음",
     "success": "성공",
     "failed": "실패",
-    "viewSubExecution": "View Sub-Execution",
-    "subExecutionDetail": "Sub-Workflow Execution Detail"
+    "viewSubExecution": "하위 실행 보기",
+    "subExecutionDetail": "하위 워크플로 실행 세부 정보"
   },
   "markdown": "마크다운",
   "success": "성공",
@@ -6275,7 +6499,7 @@
     "avgCredibility": "평균 신뢰도:",
     "addToReport": "보고서에 추가",
     "title": "인용 관리자 ({count})",
-    "addCitation": "Add Citation",
+    "addCitation": "인용 추가",
     "empty": "인용이 아직 없습니다. 검색 결과에서 추가하세요",
     "inReport": "보고서에서 사용 ({count})",
     "notInReport": "보고서에서 미사용 ({count})",
@@ -6418,7 +6642,10 @@
     "storeNotRegistered": "저장소 {{storeName}}이(가) 등록되지 않았습니다",
     "functionNotRegistered": "함수 {{name}}이(가) 등록되지 않았습니다",
     "handlerNotFound": "핸들러 {{name}}을(를) 찾을 수 없습니다",
-    "handlerNotDeclarative": "핸들러 {{name}}이(가) 선언형이 아닙니다"
+    "handlerNotDeclarative": "핸들러 {{name}}이(가) 선언형이 아닙니다",
+    "commandPermissionDenied": "명령 권한이 거부됨",
+    "emitPermissionDenied": "이벤트 발생 권한이 거부됨",
+    "navigatePermissionDenied": "탐색 권한이 거부됨"
   },
   "export": {
     "exportTime": "내보내기 시간",
@@ -6689,7 +6916,9 @@
     "startNewResearch": "새 연구",
     "lowCredibilityWarning": "주의: 보고서에 {{count}}개의 낮은 신뢰도 출처가 포함되어 있습니다",
     "noReferences": "참고문헌 없음",
-    "noSummary": "요약 없음"
+    "noSummary": "요약 없음",
+    "noOutline": "개요 없음",
+    "noReport": "리포트 없음"
   },
   "settingsPage": {
     "refreshPage": "페이지 새로고침"
@@ -6832,7 +7061,19 @@
   },
   "errorBoundary": {
     "title": "문제가 발생했습니다",
-    "retryLoad": "이 모듈 다시 로드"
+    "retryLoad": "이 모듈 다시 로드",
+    "copied": "복사됨",
+    "copyError": "오류 복사",
+    "errorDetails": "오류 상세",
+    "moduleError": "모듈 오류",
+    "pageError": "페이지 오류",
+    "panelLoadFailed": "⚠️ 패널 \"{{tabKey}}\" 불러오기 실패",
+    "refreshPage": "페이지 새로 고침",
+    "retry": "재시도",
+    "somethingWentWrong": "문제가 발생했습니다",
+    "tryAgain": "다시 시도",
+    "unexpectedError": "예상치 못한 오류",
+    "unknownError": "알 수 없는 오류"
   },
   "appInit": {
     "idle": "시작 준비 중...",
@@ -6907,7 +7148,8 @@
     "retry": "재시도"
   },
   "subAgentCard": {
-    "viewConversation": "하위 대화 보기"
+    "viewConversation": "하위 대화 보기",
+    "fork": "포크"
   },
   "modelParam": {
     "topP": "Top P"
@@ -6990,7 +7232,8 @@
     "teammate": "팀",
     "steerInput": "조종",
     "showExtras": "더보기",
-    "hideExtras": "숨기기"
+    "hideExtras": "숨기기",
+    "close": "닫기"
   },
   "knowledgeSettings": {
     "title": "지식"
@@ -7058,5 +7301,10 @@
     "gatewayContext": "게이트웨이",
     "filesContext": "파일",
     "terminalContext": "터미널"
+  },
+  "input": {
+    "recordAudio": "오디오 녹음",
+    "takePhoto": "사진 촬영",
+    "uploadFile": "파일 업로드"
   }
 }

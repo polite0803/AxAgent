@@ -334,7 +334,7 @@
       "dagVisualization": "Визуализация DAG",
       "dagHint": "Вставьте этот код Mermaid в рендерер Mermaid для визуализации DAG.",
       "listView": "Список",
-      "dagView": "DAG",
+      "dagView": "DAG-представление",
       "viewOutput": "Итоговый вывод",
       "outputCopied": "Вывод скопирован в буфер обмена",
       "stepStatus": "Статус:",
@@ -697,7 +697,10 @@
       "cancelled": "Отменено",
       "cancelFailed": "Не удалось отменить",
       "cancel": "Отмена",
-      "noSteps": "Нет шагов"
+      "noSteps": "Нет шагов",
+      "chart": {
+        "renderError": "Ошибка отрисовки диаграммы"
+      }
     },
     "modelRoutingConfig": {
       "title": "Конфигурация маршрутизации моделей",
@@ -868,7 +871,9 @@
         "copyFailed": "Ошибка копирования",
         "joinFailed": "Ошибка присоединения",
         "maxParticipants": "Макс. участников",
-        "joinSuccess": "Успешное присоединение"
+        "joinSuccess": "Успешное присоединение",
+        "createFailed": "Не удалось создать общий доступ",
+        "updateFailed": "Не удалось обновить общий доступ"
       },
       "sharedResources": "Общие ресурсы",
       "title": "Сотрудничество"
@@ -1107,7 +1112,22 @@
     },
     "proactiveInsights": "Проактивные идеи и напоминания",
     "steerSent": "Инструкция управления отправлена",
-    "steerError": "Не удалось отправить инструкцию управления"
+    "steerError": "Не удалось отправить инструкцию управления",
+    "connector": {
+      "add": "Добавить коннектор",
+      "custom": "Пользовательский коннектор",
+      "goConfig": "Перейти в настройки →",
+      "noServers": "Сначала добавьте или включите коннекторы",
+      "title": "Коннектор"
+    },
+    "error": "Ошибка чата",
+    "loadError": "Не удалось загрузить",
+    "mode": {
+      "action": "Действие",
+      "ask": "Вопрос",
+      "plan": "План",
+      "title": "Переключить режим"
+    }
   },
   "gateway": {
     "title": "Шлюз",
@@ -1243,7 +1263,8 @@
     "connectedTools": "Подключённые инструменты",
     "tab": {
       "monitor": "Монитор"
-    }
+    },
+    "cacheHitTokens": "Токены попадания в кэш"
   },
   "settings": {
     "title": "Настройки",
@@ -2526,6 +2547,10 @@
     },
     "notificationCenter": {
       "title": "Уведомления"
+    },
+    "provider": {
+      "deepseekBalance": "Баланс DeepSeek",
+      "noValidKey": "Нет действительного ключа"
     }
   },
   "backup": {
@@ -2859,7 +2884,9 @@
     "imageUrl": "URL изображения",
     "emoji": "Эмодзи",
     "urlPlaceholder": "Введите URL изображения",
-    "profileTab": "Профиль"
+    "profileTab": "Профиль",
+    "prefKey": "Ключ предпочтения",
+    "prefValue": "Значение предпочтения"
   },
   "files": {
     "images": "Изображения",
@@ -3394,37 +3421,57 @@
       "explanation": "Объяснение",
       "replaceConfirmTitle": "Подтвердить замену",
       "replaceConfirmContent": "На текущем холсте {{nodes}} узлов и {{edges}} рёбер. Генерация заменит их все. Продолжить?",
-      "actionGenerateWorkflow": "Generate Workflow",
-      "actionAddNodes": "Add Node(s)",
-      "actionModifyNode": "Update Node",
-      "actionDeleteNodes": "Delete Node(s)",
-      "actionAddEdge": "Add Edge",
-      "actionUpdateEdge": "Update Edge",
-      "actionDeleteEdge": "Delete Edge",
-      "actionOptimizePrompt": "Optimize Prompt",
-      "actionApply": "Apply",
-      "actionApplyAll": "Review {{count}} changes",
+      "actionGenerateWorkflow": "Сгенерировать воркфлоу",
+      "actionAddNodes": "Добавить узлы",
+      "actionModifyNode": "Обновить узел",
+      "actionDeleteNodes": "Удалить узлы",
+      "actionAddEdge": "Добавить связь",
+      "actionUpdateEdge": "Обновить связь",
+      "actionDeleteEdge": "Удалить связь",
+      "actionOptimizePrompt": "Оптимизировать промпт",
+      "actionApply": "Применить",
+      "actionApplyAll": "Проверить изменения: {{count}}",
       "diffPreview": {
-        "title": "AI Edit Preview",
-        "subtitle": "Please review these {{count}} changes before applying to your workflow",
-        "before": "Before",
-        "after": "After",
-        "apply": "Apply this",
-        "applyAll": "Apply All",
-        "cancel": "Cancel",
-        "applied": "Applied",
-        "appliedHint": "Applied {{count}} / {{total}} in this session",
-        "empty": "No changes to preview",
-        "promptLength": "Prompt length: {{from}} → {{to}} chars",
-        "noBefore": "(new item, no prior content)",
-        "noAfter": "(deletion, no new content)",
-        "noChanges": "No field changes",
-        "applyFailed": "Apply failed",
-        "applyAllFailed": "Apply All failed",
-        "rollbackBatch": "Rollback Batch",
-        "rollbackSuccess": "Batch rolled back",
-        "rollbackTip": "Undo the entire batch of AI changes"
-      }
+        "title": "Предпросмотр правок ИИ",
+        "subtitle": "Проверьте {{count}} изменений перед применением к воркфлоу",
+        "before": "До",
+        "after": "После",
+        "apply": "Применить",
+        "applyAll": "Применить все",
+        "cancel": "Отмена",
+        "applied": "Применено",
+        "appliedHint": "Применено {{count}} / {{total}} в этой сессии",
+        "empty": "Нет изменений для предпросмотра",
+        "promptLength": "Длина промпта: {{from}} → {{to}} символов",
+        "noBefore": "(новый элемент, прежнего содержимого нет)",
+        "noAfter": "(удалено, нового содержимого нет)",
+        "noChanges": "Изменений полей нет",
+        "applyFailed": "Не удалось применить",
+        "applyAllFailed": "Не удалось применить все",
+        "rollbackBatch": "Откатить пакет",
+        "rollbackSuccess": "Пакет откачен",
+        "rollbackTip": "Отменить весь пакет изменений ИИ",
+        "deleted": "— Удалено —",
+        "deletedCount": "— Удалено {{count}} —",
+        "edgeNotFound": "Связь не найдена",
+        "newNodes": "Новых узлов: {{count}}",
+        "nodeNotFound": "Узел не найден",
+        "nodesEdgesLabel": "{{nodes}} узлов / {{edges}} связей"
+      },
+      "applyToNode": "Применить к узлу",
+      "chatMode": "Режим чата",
+      "chatPlaceholder": "Введите сообщение…",
+      "chatWelcome": "Привет, я ваш AI-ассистент.",
+      "chatWelcomeHint": "Спросите меня о воркфлоу или конфигурации узлов.",
+      "dragCanvasToAdd": "Перетащите на холст для добавления",
+      "dragHintUpdated": "Холст обновлён по промпту",
+      "fillFromSelectedNode": "Заполнить из выбранного узла",
+      "generateMergeBtn": "Сгенерировать слияние",
+      "mergeMode": "Режим слияния",
+      "promptAppliedToNode": "Промпт применён к узлу",
+      "replaceMode": "Режим замены",
+      "retry": "Повторить",
+      "toolsMode": "Режим инструментов"
     },
     "previewInDevelopment": "Функция предпросмотра в разработке",
     "publishInDevelopment": "Функция публикации в разработке",
@@ -3442,7 +3489,7 @@
       "copy": "Копировать",
       "uploadJsonFile": "Загрузить JSON-файл",
       "dragOrClickUpload": "Нажмите или перетащите файл сюда для загрузки",
-      "or": "or",
+      "or": "или",
       "pasteJsonData": "Вставить JSON-данные",
       "pasteJsonPlaceholder": "Вставить JSON-данные шаблона...",
       "importTemplate": "Импортировать шаблон",
@@ -3519,7 +3566,10 @@
       "loadThisVersion": "Загрузить эту версию",
       "currentVersion": "Текущая версия",
       "version": "Версия {{version}}",
-      "loading": "Загрузка версии..."
+      "loading": "Загрузка версии...",
+      "compare": "Сравнить",
+      "compareVersions": "Сравнить версии",
+      "noChanges": "Без изменений"
     },
     "versionHistoryLoadFailed": "Не удалось загрузить историю версий",
     "versionLoaded": "Версия{{version}} loaded",
@@ -3598,7 +3648,7 @@
       "selectContextSources": "Выбрать источники контекста...",
       "prompt": "Промпт",
       "promptPlaceholder": "Введите ваш промпт...",
-      "temperatureHint": "0: Deterministic ↑ | 2: Random ↑",
+      "temperatureHint": "0: детерминированность ↑ | 2: случайность ↑",
       "loopType": "Тип цикла",
       "loopForEach": "🔁 ForEach",
       "loopWhile": "⏳ While",
@@ -3748,8 +3798,8 @@
       "clickToAddMapping": "Нажмите «Добавить», чтобы создать сопоставление входов",
       "language": "Язык",
       "codeInputOutputHint": "(Вход: input, Выход: return)",
-      "defaultCodeJsComment": "// Input: input\n// Return value will be stored in output_var",
-      "defaultCodePythonComment": "# Input: input\n# Return value will be stored in output_var",
+      "defaultCodeJsComment": "// Input: input\n// Возвращаемое значение сохраняется в output_var",
+      "defaultCodePythonComment": "# Input: input\n# Возвращаемое значение сохраняется в output_var",
       "codeInputParams": "Входные параметры: input",
       "codeReturnHint": "Возвращаемое значение будет сохранено в output_var",
       "roleCoordinator": "",
@@ -3775,26 +3825,67 @@
       "aggregationRace": "Гонка",
       "aggregationMajority": "Большинство",
       "aggregationHint": "Как агрегировать результаты из нескольких параллельных ветвей",
-      "url": "url",
-      "method": "method",
-      "timeout": "timeout",
-      "bodyType": "bodyType",
-      "body": "body",
-      "headers": "headers",
-      "addHeader": "addHeader",
-      "headerKey": "headerKey",
-      "headerValue": "headerValue",
-      "selectTemplate": "Select Template",
-      "searchTemplate": "Search template...",
-      "noTemplates": "No templates found",
-      "ragSourceIdsCount": "RAG Sources ({{count}})",
-      "ragSourceIdsPlaceholder": "Enter or select knowledge source IDs...",
-      "ragSourceIdsHint": "Format: knowledge:<kb_id>, memory:<ns_id>, wiki:<wiki_id>",
-      "modelRole": "Model Role",
-      "modelRolePlaceholder": "Auto (use model field)",
-      "modelRoleQuickThink": "⚡ Quick Think",
-      "modelRoleDeepThink": "🧠 Deep Think",
-      "modelRoleHint": "Preset role overrides model when set; lower priority than explicit model field."
+      "url": "URL",
+      "method": "Метод",
+      "timeout": "Таймаут",
+      "bodyType": "Тип тела",
+      "body": "Тело",
+      "headers": "Заголовки",
+      "addHeader": "Добавить заголовок",
+      "headerKey": "Ключ заголовка",
+      "headerValue": "Значение заголовка",
+      "selectTemplate": "Выбрать шаблон",
+      "searchTemplate": "Поиск шаблона…",
+      "noTemplates": "Шаблоны не найдены",
+      "ragSourceIdsCount": "Источники RAG ({{count}})",
+      "ragSourceIdsPlaceholder": "Введите или выберите ID источников знаний…",
+      "ragSourceIdsHint": "Формат: knowledge:<kb_id>, memory:<ns_id>, wiki:<wiki_id>",
+      "modelRole": "Роль модели",
+      "modelRolePlaceholder": "Авто (использовать поле model)",
+      "modelRoleQuickThink": "⚡ Быстрое мышление",
+      "modelRoleDeepThink": "🧠 Глубокое мышление",
+      "modelRoleHint": "Предустановленная роль переопределяет модель, но имеет более низкий приоритет, чем явное поле model.",
+      "addCase": "Добавить вариант",
+      "aggregationAny": "Любой результат",
+      "aiGenerate": "Сгенерировать AI",
+      "autoInputFromParent": "Авто-вход от родителя",
+      "autoInputFromParentHint": "Если включено, выходы родителя автоматически становятся входами ребёнка.",
+      "autoInputsFromBranches": "Авто-входы от ветвей",
+      "autoInputsFromBranchesHint": "Если включено, выходы ветвей автоматически становятся входами ребёнка.",
+      "availableTools": "Доступные инструменты",
+      "cases": "Варианты",
+      "codeTemplates": "Шаблоны кода",
+      "connectInputsManually": "Подключить входы вручную",
+      "connection": "Источник данных",
+      "defaultConnection": "Источник данных по умолчанию",
+      "editExpertPrompt": "Изменить промпт эксперта",
+      "editRolePrompt": "Изменить промпт роли",
+      "emailToPlaceholder": "user@example.com",
+      "hideTools": "Скрыть инструменты",
+      "inputVarPlaceholder": "node_id.field",
+      "llmRouting": "LLM-маршрутизация",
+      "matchMode": "Режим сопоставления",
+      "maxDelayMs": "Макс. задержка (мс)",
+      "mergeAny": "Объединить любой",
+      "mergeMajority": "Объединить большинство",
+      "mergeRace": "Объединить гонку",
+      "noToolsAvailable": "Нет доступных инструментов",
+      "promptSaveFailed": "Не удалось сохранить промпт",
+      "promptSaved": "Промпт сохранён",
+      "resetTimeoutHint": "Сбросить таймаут",
+      "retryEnabled": "Включить повтор",
+      "routingModel": "Модель маршрутизации",
+      "routingModelPlaceholder": "Выберите модель маршрутизации",
+      "routingPrompt": "Промпт маршрутизации",
+      "routingPromptPlaceholder": "Опишите логику маршрутизации",
+      "showTools": "Показать инструменты",
+      "subject": "Тема",
+      "switchInputVarPlaceholder": "node_id.output_field",
+      "switchLabelPlaceholder": "label",
+      "switchValuePlaceholder": "value",
+      "to": "Кому",
+      "urlPlaceholder": "https://api.example.com/data",
+      "webhookUrlPlaceholder": "https://hook.example.com/..."
     },
     "debug": {
       "totalDuration": "Общая длительность",
@@ -3820,7 +3911,60 @@
       "labelType": "Тип",
       "labelError": "Ошибка",
       "labelInput": "Ввод",
-      "labelOutput": "Вывод"
+      "labelOutput": "Вывод",
+      "allClear": "Всё в порядке",
+      "breakpoints": "Точки останова",
+      "breakpointsPanel": "Панель точек останова",
+      "cancel": "Отмена",
+      "clickToValidate": "Нажмите для проверки",
+      "colIssues": "Проблемы",
+      "colNode": "Узел",
+      "colStatus": "Статус",
+      "colTime": "Время",
+      "colType": "Тип",
+      "continue": "Продолжить",
+      "cyclesDetected": "Обнаружены циклы",
+      "deadEnd": "Тупик",
+      "error": "Ошибка",
+      "errors": "Ошибки",
+      "execTime": "Время выполнения",
+      "executionHistory": "История выполнений",
+      "input": "Вход",
+      "issuesFound": "Найдены проблемы",
+      "noBreakpoints": "Нет точек останова",
+      "noHistory": "Нет истории",
+      "noPrompt": "Нет промпта",
+      "noRuntimeData": "Нет данных выполнения",
+      "noVariables": "Нет переменных",
+      "nodeDiagnostics": "Диагностика узла",
+      "nodeRecords": "Записи узлов",
+      "nodesExecuted": "Выполнено узлов",
+      "orphan": "Изолированный",
+      "output": "Выход",
+      "pause": "Пауза",
+      "resume": "Продолжить",
+      "resumeBreakpoint": "До точки останова",
+      "runFullCheck": "Запустить полную проверку",
+      "runValidation": "Запустить проверку",
+      "running": "Выполняется",
+      "runtimeTrace": "Трассировка выполнения",
+      "startDebug": "Начать отладку",
+      "staticCheck": "Статическая проверка",
+      "staticDebugHint": "Нажмите на узел для отладки",
+      "step": "Шаг",
+      "stepBreakpoint": "Шаг до точки останова",
+      "structuralValidation": "Структурная проверка",
+      "subExecutionDetail": "Детали под-выполнения",
+      "topoAnalysis": "Анализ топологии",
+      "topoHealthy": "Топология в порядке",
+      "totalEdges": "Всего связей",
+      "totalNodes": "Всего узлов",
+      "unreachableNodesCount": "Недостижимые узлы",
+      "view": "Просмотр",
+      "viewDetail": "Просмотр деталей",
+      "viewSubExecution": "Просмотр под-выполнения",
+      "waitingForNodes": "Ожидание узлов",
+      "warnings": "Предупреждения"
     },
     "applySemanticCheck": "Применить",
     "applyUpgrade": "Применить обновление",
@@ -3881,17 +4025,19 @@
       "end": "Конец",
       "tool": "Инструмент",
       "code": "Код",
-      "httpRequest": "HTTP Request",
-      "notification": "Notification",
-      "approval": "Approval",
-      "fileOperation": "File Operation",
-      "dataTransformer": "Data Transformer",
-      "webhookSend": "Webhook Send",
-      "logging": "Logging",
-      "llmClassifier": "LLM Classifier",
-      "aggregator": "Aggregator",
+      "httpRequest": "HTTP-запрос",
+      "notification": "Уведомление",
+      "approval": "Утверждение",
+      "fileOperation": "Файловые операции",
+      "dataTransformer": "Преобразование данных",
+      "webhookSend": "Отправка Webhook",
+      "logging": "Логирование",
+      "llmClassifier": "LLM-классификатор",
+      "aggregator": "Агрегатор",
       "email": "Email",
-      "debate": "Debate"
+      "debate": "Дебаты",
+      "databaseQuery": "Запрос к БД",
+      "switch": "Переключатель"
     },
     "templateList": {
       "deleted": "Шаблон удалён",
@@ -3963,7 +4109,7 @@
       "iconDocument": "📄 Документ",
       "iconGitBranch": "🔀 Ветка Git",
       "iconLayers": "📚 Слои",
-      "iconZap": "⚡ Zap",
+      "iconZap": "⚡ Молния",
       "label": "Метка",
       "name": "Имя",
       "nodeType": "Тип узла",
@@ -3973,7 +4119,7 @@
       "selectNodeToEdit": "Выберите узел для редактирования свойств",
       "settings": "Настройки",
       "tagAgent": "Агент",
-      "tagAi": "AI",
+      "tagAi": "ИИ",
       "tagAutomation": "Автоматизация",
       "tagChatbot": "Чат-бот",
       "tagDataProcessing": "Обработка данных",
@@ -4069,8 +4215,10 @@
       "notSelected": "Не выбрано",
       "title": "Подворкфлоу",
       "async": "Асинхронный",
-      "expand": "Expand",
-      "collapse": "Collapse"
+      "expand": "Развернуть",
+      "collapse": "Свернуть",
+      "inputCount": "Кол-во входов",
+      "outputCount": "Кол-во выходов"
     },
     "vectorRetrieveNode": {
       "notSelected": "Не выбрано",
@@ -4085,7 +4233,8 @@
       "title": "Цикл",
       "maxIterations": "Макс. итераций",
       "continueOnError": "Продолжить при ошибке",
-      "steps": "{{count}} шагов"
+      "steps": "{{count}} шагов",
+      "notConfigured": "Узел цикла не настроен"
     },
     "mergeNode": {
       "all": "Все",
@@ -4093,13 +4242,13 @@
       "last": "Последний",
       "title": "Слияние",
       "inputCount": "{{count}} входов",
-      "any": "Any",
-      "race": "Race",
-      "majority": "Majority",
-      "inputs": "inputs",
-      "waitAll": "Wait all",
-      "waitAny": "Any complete",
-      "autoInputs": "Auto-receive branch outputs"
+      "any": "Любой",
+      "race": "Гонка",
+      "majority": "Большинство",
+      "inputs": "Кол-во входов",
+      "waitAll": "Ждать все",
+      "waitAny": "Любой завершённый",
+      "autoInputs": "Авто-приём выходов ветвей"
     },
     "parallelNode": {
       "title": "Параллельно",
@@ -4110,9 +4259,11 @@
       "clickToAdd": "Нажмите, чтобы добавить ветку",
       "expand": "Развернуть",
       "collapse": "Свернуть",
-      "race": "Race",
-      "branches": "branches",
-      "autoInput": "Auto-receive parent input"
+      "race": "Гонка",
+      "branches": "Кол-во ветвей",
+      "autoInput": "Авто-вход от родителя",
+      "waitAll": "Ждать всех",
+      "waitAny": "Ждать любого"
     },
     "toolNode": {
       "notSelected": "Не выбрано",
@@ -4135,7 +4286,8 @@
       "second": "Сек",
       "minutes": "Мин",
       "until": "До",
-      "title": "Задержка"
+      "title": "Задержка",
+      "notConfigured": "Узел задержки не настроен"
     },
     "endNode": {
       "title": "Конец"
@@ -4149,7 +4301,8 @@
       "continue": "Продолжить",
       "title": "Валидация",
       "assertionCount": "{{count}} утверждений",
-      "failStrategy": "Стратегия ошибки"
+      "failStrategy": "Стратегия ошибки",
+      "rules": "Правила проверки"
     },
     "shortcuts": {
       "title": "Ярлыки",
@@ -4190,7 +4343,7 @@
         "suggest": "Предложить AI",
         "generate": "Создать AI",
         "rewrite": "Переписать",
-        "contextComplete": "Context Complete"
+        "contextComplete": "Дополнить контекст"
       },
       "tooltip": "С помощью ИИ",
       "noProvider": "Нет доступного провайдера",
@@ -4198,268 +4351,305 @@
       "optimizing": "ИИ оптимизирует...",
       "generating": "ИИ генерирует...",
       "applied": "Предложение применено",
-      "contextCompleteApplied": "Context completion applied"
-    },
-    "diagnostic": {
-      "title": "Workflow Diagnostic",
-      "run": "Run Diagnostic",
-      "tooltip": "Scan structure, config, prompts and variable references",
-      "loading": "Diagnosing...",
-      "empty": "Workflow is empty. Add nodes to start diagnosis.",
-      "allGood": "Workflow looks good. No issues found.",
-      "summary": {
-        "title": "Diagnostic Summary",
-        "error": "Errors",
-        "warning": "Warnings",
-        "info": "Info",
-        "total": "{{count}} issue(s)"
+      "contextCompleteApplied": "Дополнение контекста применено",
+      "dbQuery": {
+        "sqlHint": "Подсказка: введите SQL, и AI поможет с автодополнением."
       },
-      "severity": {
-        "error": "Error",
-        "warning": "Warning",
-        "info": "Info"
+      "loop": {
+        "continueHint": "Укажите условие продолжения цикла, напр. `index < 10`."
       },
-      "category": {
-        "structure": "Structure",
-        "configuration": "Configuration",
-        "prompt": "Prompt",
-        "reference": "Reference",
-        "best_practice": "Best Practice",
-        "prompt_quality": "Prompt Quality",
-        "performance": "Performance",
-        "cost": "Cost",
-        "security": "Security"
+      "parallel": {
+        "branchesHint": "Опишите входы параллельных ветвей и желаемый результат."
       },
-      "fix": {
-        "apply": "Auto Fix",
-        "applied": "Fixed",
-        "failed": "Fix failed"
+      "subWorkflow": {
+        "needPick": "Выберите существующий воркфлоу или опишите новый.",
+        "parseFailed": "Не удалось разобрать; проверьте описание."
       },
-      "jump": "Locate Node",
-      "issues": {
-        "duplicate_node_id": {
-          "title": "Duplicate Node ID",
-          "message": "Node ID \"{{id}}\" appears multiple times, which may cause routing issues."
-        },
-        "orphan_node": {
-          "title": "Orphan Node",
-          "message": "Node \"{{label}}\" has neither incoming nor outgoing edges."
-        },
-        "unreachable_from_trigger": {
-          "title": "Node Unreachable from Trigger",
-          "message": "Node \"{{label}}\" has no path from any trigger."
-        },
-        "dangling_edge": {
-          "title": "Dangling Edge",
-          "message": "Edge \"{{id}}\" references a missing source or target node."
-        },
-        "llm_prompt_empty": {
-          "title": "Empty LLM Prompt",
-          "message": "Node \"{{label}}\" has an empty LLM.prompt."
-        },
-        "llm_prompt_short": {
-          "title": "LLM Prompt Too Short",
-          "message": "Node \"{{label}}\" LLM.prompt is only {{len}} characters long."
-        },
-        "agent_prompt_empty": {
-          "title": "Empty Agent System Prompt",
-          "message": "Node \"{{label}}\" has an empty Agent.system_prompt."
-        },
-        "agent_prompt_trivial": {
-          "title": "Agent System Prompt Too Simple",
-          "message": "Node \"{{label}}\" system_prompt is only {{len}} characters."
-        },
-        "classifier_prompt_empty": {
-          "title": "Empty Classifier Prompt",
-          "message": "Node \"{{label}}\" has an empty LlmClassifier.prompt."
-        },
-        "classifier_prompt_trivial": {
-          "title": "Classifier Prompt Too Simple",
-          "message": "Node \"{{label}}\" classifier prompt is only {{len}} characters."
-        },
-        "classifier_categories_empty": {
-          "title": "No Classifier Categories",
-          "message": "Node \"{{label}}\" categories list is empty."
-        },
-        "http_url_empty": {
-          "title": "Empty HTTP URL",
-          "message": "Node \"{{label}}\" HttpRequest.url is empty."
-        },
-        "webhook_url_empty": {
-          "title": "Empty Webhook URL",
-          "message": "Node \"{{label}}\" WebhookSend.url is empty."
-        },
-        "email_to_empty": {
-          "title": "Empty Email Recipients",
-          "message": "Node \"{{label}}\" Email.to is empty."
-        },
-        "email_body_empty": {
-          "title": "Empty Email Body",
-          "message": "Node \"{{label}}\" Email.body is empty."
-        },
-        "validation_assertions_empty": {
-          "title": "Empty Validation Assertions",
-          "message": "Node \"{{label}}\" assertions list is empty."
-        },
-        "code_body_empty": {
-          "title": "Empty Code Node Body",
-          "message": "Node \"{{label}}\" Code.code is empty."
-        },
-        "code_output_var_empty": {
-          "title": "Code Node Missing Output Variable",
-          "message": "Node \"{{label}}\" output_var is empty; downstream nodes cannot reference its result."
-        },
-        "tool_name_empty": {
-          "title": "Tool Node Missing Tool",
-          "message": "Node \"{{label}}\" tool_name is empty."
-        },
-        "subworkflow_id_empty": {
-          "title": "Empty SubWorkflow ID",
-          "message": "Node \"{{label}}\" SubWorkflow.sub_workflow_id is empty."
-        },
-        "unknown_var_reference": {
-          "title": "Undeclared Variable Reference",
-          "message": "Node \"{{label}}\" references ${ {{var}} }, but no node declares this as output_var."
-        },
-        "no_timeout": {
-          "title": "No Timeout Configured",
-          "message": "Node \"{{label}}\" has no timeout, long-running tasks may block the workflow."
-        },
-        "no_retry": {
-          "title": "No Retry Configured",
-          "message": "Node \"{{label}}\" has no retry policy; transient failures will propagate."
-        },
-        "parallel_no_merge": {
-          "title": "Parallel Without Merge",
-          "message": "Parallel node \"{{label}}\" branches should converge into a Merge node."
-        },
-        "no_trigger": {
-          "title": "No Trigger Node",
-          "message": "Workflow has no trigger node. Add a Trigger to define the entry point."
-        },
-        "no_end": {
-          "title": "No End Node",
-          "message": "Workflow has no end node. Consider adding an End node to mark completion."
-        },
-        "agent_empty_prompt": {
-          "title": "Empty Agent System Prompt",
-          "message": "Agent node has an empty system_prompt. Define a clear role and instructions."
-        },
-        "agent_short_prompt": {
-          "title": "Agent System Prompt Too Short",
-          "message": "Agent system_prompt is under 30 characters. Add role definition and output constraints."
-        },
-        "agent_no_max_tokens": {
-          "title": "Agent Missing max_tokens",
-          "message": "Agent node has no max_tokens set. This may lead to unbounded token usage."
-        },
-        "agent_no_max_tool_rounds": {
-          "title": "Agent Missing max_tool_rounds",
-          "message": "Agent with tools has no max_tool_rounds set. Tool loops may run indefinitely."
-        },
-        "llm_empty_prompt": {
-          "title": "Empty LLM Prompt",
-          "message": "LLM node has an empty prompt. Provide a clear instruction."
-        },
-        "llm_no_max_tokens": {
-          "title": "LLM Missing max_tokens",
-          "message": "LLM node has no max_tokens set. This may lead to unbounded token usage."
-        },
-        "http_no_timeout": {
-          "title": "HTTP Request No Timeout",
-          "message": "HttpRequest node has no timeout configured. Long-running requests may block the workflow."
-        },
-        "http_no_retry": {
-          "title": "HTTP Request No Retry",
-          "message": "HttpRequest node has no retry policy. Transient failures will propagate."
-        },
-        "db_no_timeout": {
-          "title": "Database Query No Timeout",
-          "message": "DatabaseQuery node has no timeout configured. Slow queries may block the workflow."
-        },
-        "loop_no_max_iter": {
-          "title": "Loop No Max Iterations",
-          "message": "Loop node has no max_iterations set. Infinite loops may occur."
-        },
-        "loop_no_condition": {
-          "title": "Loop No Continue Condition",
-          "message": "Loop node has no continue_condition defined. The loop may never terminate."
-        },
-        "doc_no_parser_type": {
-          "title": "Document Parser No Type",
-          "message": "DocumentParser node has no parser_type specified."
-        },
-        "insecure_http_url": {
-          "title": "Insecure HTTP URL",
-          "message": "URL uses plain HTTP instead of HTTPS. Data may be transmitted unencrypted."
-        },
-        "insecure_notification_url": {
-          "title": "Insecure Notification Webhook URL",
-          "message": "Notification webhook URL uses plain HTTP. Webhook payloads may be intercepted."
-        },
-        "approval_no_approver": {
-          "title": "Approval No Approver",
-          "message": "Approval node has no approver configured. The workflow will stall at this node."
-        },
-        "vector_no_threshold": {
-          "title": "Vector Retrieve No Similarity Threshold",
-          "message": "VectorRetrieve node has no similarity_threshold. Low-quality matches may be returned."
-        },
-        "vector_high_top_k": {
-          "title": "Vector Retrieve High top_k",
-          "message": "VectorRetrieve top_k exceeds 20. This increases cost and may reduce relevance."
-        },
-        "condition_single_exit": {
-          "title": "Condition Single Exit",
-          "message": "Condition node has fewer than 2 downstream branches. Consider adding both true/false paths."
-        },
-        "classifier_few_cases": {
-          "title": "Classifier Too Few Cases",
-          "message": "LlmClassifier has fewer than 2 classification cases."
-        },
-        "validation_no_rules": {
-          "title": "Validation No Rules",
-          "message": "Validation node has no rules defined. It will always pass."
-        },
-        "edge_dangling_source": {
-          "title": "Dangling Edge Source",
-          "message": "Edge references a source node that no longer exists."
-        },
-        "edge_dangling_target": {
-          "title": "Dangling Edge Target",
-          "message": "Edge references a target node that no longer exists."
-        },
-        "debate_no_debaters": {
-          "title": "Debate No Debaters",
-          "message": "Debate node has no debater agents. Add at least 2 debaters for a meaningful debate."
-        },
-        "debate_single_debater": {
-          "title": "Debate Single Debater",
-          "message": "Debate node has only 1 debater. A debate requires at least 2 opposing sides."
-        },
-        "debate_dangling_step": {
-          "title": "Debate Dangling Debater Reference",
-          "message": "Debate node references a debater step that no longer exists. Remove the stale reference."
-        }
+      "switch": {
+        "casesHint": "Перечислите все варианты и условия их срабатывания."
+      },
+      "trigger": {
+        "cronHint": "Стандартное cron-выражение, напр. `0 9 * * *`."
       }
     },
-    "batchEdit": {
-      "title": "Batch Edit",
-      "noChange": "No change",
-      "apply": "Apply to {count} nodes"
+    "diagnostic": {
+      "title": "Диагностика воркфлоу",
+      "run": "Запустить диагностику",
+      "tooltip": "Проверка структуры, конфигурации, промптов и ссылок на переменные",
+      "loading": "Диагностика…",
+      "empty": "Воркфлоу пуст. Добавьте узлы, чтобы начать диагностику.",
+      "allGood": "Воркфлоу в порядке. Проблем не найдено.",
+      "summary": {
+        "title": "Сводка диагностики",
+        "error": "Ошибка",
+        "warning": "Предупреждение",
+        "info": "Информация",
+        "total": "{{count}} проблем"
+      },
+      "severity": {
+        "error": "Ошибка",
+        "warning": "Предупреждение",
+        "info": "Информация"
+      },
+      "category": {
+        "structure": "Структура",
+        "configuration": "Конфигурация",
+        "prompt": "Промпт",
+        "reference": "Ссылка",
+        "best_practice": "Лучшие практики",
+        "prompt_quality": "Качество промпта",
+        "performance": "Производительность",
+        "cost": "Стоимость",
+        "security": "Безопасность"
+      },
+      "fix": {
+        "apply": "Авто-исправление",
+        "applied": "Исправлено",
+        "failed": "Не удалось исправить"
+      },
+      "jump": "Перейти к узлу",
+      "issues": {
+        "duplicate_node_id": {
+          "title": "Дублирующийся ID узла",
+          "message": "ID узла \"{{id}}\" встречается несколько раз, что может вызвать проблемы с маршрутизацией."
+        },
+        "orphan_node": {
+          "title": "Изолированный узел",
+          "message": "У узла \"{{label}}\" нет ни входящих, ни исходящих рёбер."
+        },
+        "unreachable_from_trigger": {
+          "title": "Узел недостижим из триггера",
+          "message": "У узла \"{{label}}\" нет пути ни от одного триггера."
+        },
+        "dangling_edge": {
+          "title": "Висячее ребро",
+          "message": "Ребро \"{{id}}\" ссылается на отсутствующий исходный или целевой узел."
+        },
+        "llm_prompt_empty": {
+          "title": "Пустой промпт LLM",
+          "message": "LLM.prompt узла \"{{label}}\" пуст."
+        },
+        "llm_prompt_short": {
+          "title": "Слишком короткий промпт LLM",
+          "message": "LLM.prompt узла \"{{label}}\" содержит всего {{len}} символов."
+        },
+        "agent_prompt_empty": {
+          "title": "Пустой системный промпт агента",
+          "message": "У узла \"{{label}}\" пустой Agent.system_prompt."
+        },
+        "agent_prompt_trivial": {
+          "title": "Слишком простой системный промпт агента",
+          "message": "system_prompt узла \"{{label}}\" содержит всего {{len}} символов."
+        },
+        "classifier_prompt_empty": {
+          "title": "Пустой промпт классификатора",
+          "message": "У узла \"{{label}}\" пустой LlmClassifier.prompt."
+        },
+        "classifier_prompt_trivial": {
+          "title": "Слишком простой промпт классификатора",
+          "message": "Промпт классификатора узла \"{{label}}\" содержит всего {{len}} символов."
+        },
+        "classifier_categories_empty": {
+          "title": "Нет категорий классификатора",
+          "message": "Список категорий узла \"{{label}}\" пуст."
+        },
+        "http_url_empty": {
+          "title": "Пустой HTTP URL",
+          "message": "HttpRequest.url узла \"{{label}}\" пуст."
+        },
+        "webhook_url_empty": {
+          "title": "Пустой URL Webhook",
+          "message": "WebhookSend.url узла \"{{label}}\" пуст."
+        },
+        "email_to_empty": {
+          "title": "Пустые получатели письма",
+          "message": "Email.to узла \"{{label}}\" пуст."
+        },
+        "email_body_empty": {
+          "title": "Пустое тело письма",
+          "message": "Email.body узла \"{{label}}\" пуст."
+        },
+        "validation_assertions_empty": {
+          "title": "Пустые утверждения проверки",
+          "message": "Список утверждений узла \"{{label}}\" пуст."
+        },
+        "code_body_empty": {
+          "title": "Пустое тело узла-кода",
+          "message": "Code.code узла \"{{label}}\" пуст."
+        },
+        "code_output_var_empty": {
+          "title": "У узла кода нет выходной переменной",
+          "message": "output_var узла \"{{label}}\" пуст; последующие узлы не смогут сослаться на результат."
+        },
+        "tool_name_empty": {
+          "title": "У узла-инструмента нет инструмента",
+          "message": "tool_name узла \"{{label}}\" пуст."
+        },
+        "subworkflow_id_empty": {
+          "title": "Пустой ID подворкфлоу",
+          "message": "SubWorkflow.sub_workflow_id узла \"{{label}}\" пуст."
+        },
+        "unknown_var_reference": {
+          "title": "Необъявленная ссылка на переменную",
+          "message": "Узел \"{{label}}\" ссылается на ${ {{var}} }, но ни один узел не объявляет её как output_var."
+        },
+        "no_timeout": {
+          "title": "Не настроен таймаут",
+          "message": "У узла \"{{label}}\" нет таймаута; долгие задачи могут блокировать воркфлоу."
+        },
+        "no_retry": {
+          "title": "Не настроены повторы",
+          "message": "У узла \"{{label}}\" нет политики повторов; временные сбои будут передаваться дальше."
+        },
+        "parallel_no_merge": {
+          "title": "У параллели нет слияния",
+          "message": "Ветви параллельного узла \"{{label}}\" должны сходиться в узел Merge."
+        },
+        "no_trigger": {
+          "title": "Нет узла-триггера",
+          "message": "У воркфлоу нет узла-триггера. Добавьте Trigger, чтобы задать точку входа."
+        },
+        "no_end": {
+          "title": "Нет узла завершения",
+          "message": "У воркфлоу нет узла End. Добавьте узел End для отметки завершения."
+        },
+        "agent_empty_prompt": {
+          "title": "Пустой системный промпт агента",
+          "message": "У узла-агента пустой system_prompt. Определите ясную роль и инструкции."
+        },
+        "agent_short_prompt": {
+          "title": "Слишком короткий системный промпт агента",
+          "message": "system_prompt агента короче 30 символов. Добавьте описание роли и ограничения вывода."
+        },
+        "agent_no_max_tokens": {
+          "title": "У агента не задан max_tokens",
+          "message": "У узла-агента не задан max_tokens. Это может привести к неограниченному расходу токенов."
+        },
+        "agent_no_max_tool_rounds": {
+          "title": "У агента не задан max_tool_rounds",
+          "message": "У агента с инструментами не задан max_tool_rounds. Циклы инструментов могут выполняться бесконечно."
+        },
+        "llm_empty_prompt": {
+          "title": "Пустой промпт LLM",
+          "message": "У узла LLM пустой промпт. Укажите ясную инструкцию."
+        },
+        "llm_no_max_tokens": {
+          "title": "У LLM не задан max_tokens",
+          "message": "У узла LLM не задан max_tokens. Это может привести к неограниченному расходу токенов."
+        },
+        "http_no_timeout": {
+          "title": "У HTTP-запроса нет таймаута",
+          "message": "У узла HttpRequest не задан таймаут. Долгие запросы могут блокировать воркфлоу."
+        },
+        "http_no_retry": {
+          "title": "У HTTP-запроса нет повторов",
+          "message": "У узла HttpRequest нет политики повторов. Временные сбои будут передаваться дальше."
+        },
+        "db_no_timeout": {
+          "title": "У запроса к БД нет таймаута",
+          "message": "У узла DatabaseQuery не задан таймаут. Медленные запросы могут заблокировать воркфлоу."
+        },
+        "loop_no_max_iter": {
+          "title": "У цикла нет max_iterations",
+          "message": "У узла цикла не задано max_iterations. Возможны бесконечные циклы."
+        },
+        "loop_no_condition": {
+          "title": "У цикла нет условия продолжения",
+          "message": "У узла цикла не задано continue_condition. Цикл может никогда не завершиться."
+        },
+        "doc_no_parser_type": {
+          "title": "Не указан тип парсера документов",
+          "message": "У узла DocumentParser не задан parser_type."
+        },
+        "insecure_http_url": {
+          "title": "Небезопасный HTTP URL",
+          "message": "URL использует обычный HTTP вместо HTTPS. Данные могут передаваться без шифрования."
+        },
+        "insecure_notification_url": {
+          "title": "Небезопасный URL уведомления",
+          "message": "URL уведомления Webhook использует обычный HTTP. Полезная нагрузка может быть перехвачена."
+        },
+        "approval_no_approver": {
+          "title": "У узла одобрения нет утверждающего",
+          "message": "У узла одобрения не настроен утверждающий. Воркфлоу остановится на этом узле."
+        },
+        "vector_no_threshold": {
+          "title": "У Vector Retrieve нет порога схожести",
+          "message": "У узла VectorRetrieve не задан similarity_threshold. Могут возвращаться низкокачественные совпадения."
+        },
+        "vector_high_top_k": {
+          "title": "Высокий top_k в Vector Retrieve",
+          "message": "top_k VectorRetrieve превышает 20. Это увеличивает стоимость и может снизить релевантность."
+        },
+        "condition_single_exit": {
+          "title": "Условие с одним выходом",
+          "message": "У узла-условия меньше 2 исходящих ветвей. Рассмотрите добавление обоих путей: true/false."
+        },
+        "classifier_few_cases": {
+          "title": "Слишком мало вариантов классификатора",
+          "message": "У LlmClassifier меньше 2 вариантов классификации."
+        },
+        "validation_no_rules": {
+          "title": "У проверки нет правил",
+          "message": "У узла проверки не заданы правила. Он будет всегда проходить."
+        },
+        "edge_dangling_source": {
+          "title": "Исходный узел ребра отсутствует",
+          "message": "Ребро ссылается на исходный узел, которого больше нет."
+        },
+        "edge_dangling_target": {
+          "title": "Целевой узел ребра отсутствует",
+          "message": "Ребро ссылается на целевой узел, которого больше нет."
+        },
+        "debate_no_debaters": {
+          "title": "У узла дебатов нет участников",
+          "message": "У узла дебатов нет агентов-участников. Добавьте минимум 2 для осмысленных дебатов."
+        },
+        "debate_single_debater": {
+          "title": "Только один участник дебатов",
+          "message": "В узле дебатов только 1 участник. Для дебатов нужно минимум 2 противоположные стороны."
+        },
+        "debate_dangling_step": {
+          "title": "Висячая ссылка в узле дебатов",
+          "message": "Узел дебатов ссылается на несуществующий шаг участника. Удалите устаревшую ссылку."
+        }
+      },
+      "error": "Ошибка диагностики"
     },
-    "autoLayoutWithSubs": "Auto-layout (with {{count}} sub-workflows)",
-    "toggleBreakpoint": "Toggle Breakpoint",
-    "copyNode": "Copy Node",
-    "deleteNode": "Delete Node",
+    "batchEdit": {
+      "title": "Пакетное редактирование",
+      "noChange": "Без изменений",
+      "apply": "Применить к {count} узлам"
+    },
+    "autoLayoutWithSubs": "Авто-раскладка ({{count}} подворкфлоу)",
+    "toggleBreakpoint": "Переключить точку останова",
+    "copyNode": "Копировать узел",
+    "deleteNode": "Удалить узел",
     "debateNode": {
-      "debaters": "debaters",
-      "rounds": "rounds",
-      "expand": "Expand",
-      "collapse": "Collapse",
-      "newDebater": "Debater",
-      "noDebatersHint": "Add debater Agent nodes inside this container"
-    }
+      "debaters": "Участники дебатов",
+      "rounds": "Раунды",
+      "expand": "Развернуть",
+      "collapse": "Свернуть",
+      "newDebater": "Участник",
+      "noDebatersHint": "Добавьте узлы-агенты участников внутрь этого контейнера",
+      "defaultRole": "— По умолчанию —",
+      "stanceCon": "Против (оппозиция)",
+      "stanceNth": "Сторона {{count}}",
+      "stancePro": "За (поддержка)",
+      "stanceSystemPromptFallback": "Вы — участник дебатов на стороне {{stance}}. Аргументируйте по теме."
+    },
+    "batchEditMode": "Режим пакетного редактирования",
+    "noExecutionHistory": "Нет истории выполнений",
+    "nodeConfig": {
+      "add_debater": "Добавить участника",
+      "convergence_model_role": "Роль модели сходимости",
+      "convergence_prompt": "Промпт сходимости",
+      "convergence_prompt_placeholder": "Промпт для определения момента сходимости дебатов",
+      "debaters": "Участники дебатов",
+      "max_rounds": "Макс. раундов",
+      "topic_var": "Переменная темы"
+    },
+    "searchNodes": "Поиск узлов"
   },
   "atomicSkill": {
     "entryType": "Тип записи",
@@ -4698,7 +4888,9 @@
     "retry": "Повторить",
     "tags": "Метки: {{tags}}",
     "none": "Нет",
-    "response": "Ответ"
+    "response": "Ответ",
+    "report": "Отчёт",
+    "tasks": "Задачи"
   },
   "traceExplorer": {
     "selectTrace": "Выберите трассировку для просмотра деталей"
@@ -4868,7 +5060,7 @@
     "configureBackends": "Настроить бэкенды...",
     "noSessions": "Нет терминальных сессий",
     "errorsCount": "{{count}} ошибок",
-    "ok": "OK",
+    "ok": "ОК",
     "dockerConnectPending": "Подключение Docker ожидается",
     "sshConnectPending": "Подключение SSH ожидается",
     "newTerminal": "Новый терминал",
@@ -5149,14 +5341,7 @@
     "searchPlaceholder": "Искать в вики...",
     "selectWiki": "Выбрать Wiki",
     "selectWikiPrompt": "Выберите вики",
-    "source": {
-      "chunks": "Фрагменты",
-      "deleteNotImplemented": "Delete not implemented",
-      "path": "Путь",
-      "status": "Статус",
-      "title": "Source",
-      "type": "Тип"
-    },
+    "source": "Источник",
     "sources": "Источники",
     "sync": {
       "byWiki": "По вики",
@@ -5273,7 +5458,23 @@
     "quickCapture": "Quick Capture",
     "refresh": "Обновить",
     "startImport": "Start Import",
-    "vaultPath": "Vault Path"
+    "vaultPath": "Vault Path",
+    "ingestSource": {
+      "chunks": "Чанки",
+      "deleteNotImplemented": "Удаление ещё не реализовано",
+      "path": "Путь",
+      "status": "Статус",
+      "title": "Заголовок",
+      "type": "Тип"
+    },
+    "wikiForm": {
+      "description": "Описание",
+      "name": "Имя",
+      "rootPath": "Корневой путь"
+    },
+    "wikiMeta": {
+      "rootPath": "Корневой путь"
+    }
   },
   "notification": {
     "clear": "Очистить",
@@ -5289,7 +5490,8 @@
     "dismiss": "Закрыть",
     "execute": "Выполнить",
     "learningSuggestions": "Предложения по обучению",
-    "snooze30": "Отложить (30 мин)"
+    "snooze30": "Отложить (30 мин)",
+    "noSuggestions": "Нет предложений"
   },
   "proactive": {
     "accept": "Принять",
@@ -5440,7 +5642,10 @@
     "analyzeFrontend": "Генерация ИИ",
     "analyzeSuccess": "Анализ ИИ завершён",
     "analyzeError": "Ошибка анализа ИИ: {{error}}",
-    "generateAgent": "Сгенерировать агента"
+    "generateAgent": "Сгенерировать агента",
+    "agentGenerated": "Сгенерировано агентом",
+    "noSkillName": "Безымянный навык",
+    "notFound": "Навык не найден"
   },
   "task": {
     "title": "Фоновые задачи",
@@ -5629,7 +5834,7 @@
     "noKeysDetected": "API-ключи не обнаружены",
     "presetOllama": "Ollama локально",
     "presetOllamaDesc": "Использовать локальные модели, данные остаются на устройстве",
-    "presetOpenAI": "OpenAI облако",
+    "presetOpenAI": "OpenAI Облако",
     "presetOpenAIDesc": "Использовать облачные модели серии GPT-4o",
     "presetMinimal": "Минимальная настройка",
     "presetMinimalDesc": "Настроить только основные параметры, добавить позже",
@@ -5810,7 +6015,26 @@
     "connectionFailed": "Сбой подключения",
     "lastSyncResult": "Последний результат синхронизации",
     "cacheDir": "Каталог кэша",
-    "quickActions": "Быстрые действия"
+    "quickActions": "Быстрые действия",
+    "autoFillConfig": "Автозаполнение конфигурации",
+    "chineseProviders": "Китайские провайдеры",
+    "cloudBackup": "Облачная резервная копия",
+    "cloudBackupSize": "Размер",
+    "cloudBackupTime": "Изменено",
+    "downloadBackupFailed": "Не удалось скачать из облака: {{error}}",
+    "downloadBackupSuccess": "Резервная копия загружена из облака",
+    "downloadFromCloud": "Восстановить из облака",
+    "internationalProviders": "Международные провайдеры",
+    "listCloudBackups": "Просмотр облачных резервных копий",
+    "noCloudBackups": "Облачные резервные копии не найдены",
+    "providerCategory": "Категория провайдера",
+    "s3UsePathStyle": "Path-Style адресация",
+    "selectProvider": "Выберите облачного провайдера",
+    "selectProviderDesc": "Выберите облачного провайдера хранилища для автонастройки",
+    "selfHostedProviders": "Самостоятельное размещение",
+    "uploadBackupFailed": "Не удалось загрузить в облако: {{error}}",
+    "uploadBackupSuccess": "Резервная копия загружена в облако",
+    "uploadToCloud": "Загрузить в облако"
   },
   "buddy": {
     "rarity": {
@@ -6135,8 +6359,8 @@
     "noRecords": "Нет записей",
     "success": "Успех",
     "failed": "Не удалось",
-    "viewSubExecution": "View Sub-Execution",
-    "subExecutionDetail": "Sub-Workflow Execution Detail"
+    "viewSubExecution": "Просмотр под-выполнения",
+    "subExecutionDetail": "Детали выполнения под-рабочего процесса"
   },
   "markdown": "Markdown",
   "success": "Успех",
@@ -6275,7 +6499,7 @@
     "avgCredibility": "Средняя достоверность:",
     "addToReport": "Добавить в отчёт",
     "title": "Менеджер цитирования ({count})",
-    "addCitation": "Add Citation",
+    "addCitation": "Добавить цитату",
     "empty": "Пока нет цитирований, добавьте из результатов поиска",
     "inReport": "Использовано в отчёте ({count})",
     "notInReport": "Не использовано в отчёте ({count})",
@@ -6418,7 +6642,10 @@
     "storeNotRegistered": "Хранилище {{storeName}} не зарегистрировано",
     "functionNotRegistered": "Функция {{name}} не зарегистрирована",
     "handlerNotFound": "Обработчик {{name}} не найден",
-    "handlerNotDeclarative": "Обработчик {{name}} не является декларативным"
+    "handlerNotDeclarative": "Обработчик {{name}} не является декларативным",
+    "commandPermissionDenied": "Отказано в разрешении команды",
+    "emitPermissionDenied": "Отказано в разрешении отправки",
+    "navigatePermissionDenied": "Отказано в разрешении навигации"
   },
   "export": {
     "exportTime": "Время экспорта",
@@ -6689,7 +6916,9 @@
     "startNewResearch": "Новое исслед.",
     "lowCredibilityWarning": "Внимание: отчёт содержит {{count}} источник(ов) с низкой достоверностью",
     "noReferences": "Нет источников",
-    "noSummary": "Нет резюме"
+    "noSummary": "Нет резюме",
+    "noOutline": "Нет плана",
+    "noReport": "Нет отчёта"
   },
   "settingsPage": {
     "refreshPage": "Обновить страницу"
@@ -6832,7 +7061,19 @@
   },
   "errorBoundary": {
     "title": "Что-то пошло не так",
-    "retryLoad": "Повторить загрузку модуля"
+    "retryLoad": "Повторить загрузку модуля",
+    "copied": "Скопировано",
+    "copyError": "Копировать ошибку",
+    "errorDetails": "Детали ошибки",
+    "moduleError": "Ошибка модуля",
+    "pageError": "Ошибка страницы",
+    "panelLoadFailed": "⚠️ Не удалось загрузить панель \"{{tabKey}}\"",
+    "refreshPage": "Обновить страницу",
+    "retry": "Повторить",
+    "somethingWentWrong": "Что-то пошло не так",
+    "tryAgain": "Попробовать снова",
+    "unexpectedError": "Неожиданная ошибка",
+    "unknownError": "Неизвестная ошибка"
   },
   "appInit": {
     "idle": "Подготовка к запуску...",
@@ -6907,7 +7148,8 @@
     "retry": "Повторить"
   },
   "subAgentCard": {
-    "viewConversation": "См. под-диалог"
+    "viewConversation": "См. под-диалог",
+    "fork": "Форкнуть"
   },
   "modelParam": {
     "topP": "Top P"
@@ -6990,7 +7232,8 @@
     "teammate": "Команда",
     "steerInput": "Руль",
     "showExtras": "Ещё",
-    "hideExtras": "Скрыть"
+    "hideExtras": "Скрыть",
+    "close": "Закрыть"
   },
   "knowledgeSettings": {
     "title": "Знания"
@@ -7058,5 +7301,10 @@
     "gatewayContext": "Шлюз",
     "filesContext": "Файлы",
     "terminalContext": "Терминал"
+  },
+  "input": {
+    "recordAudio": "Записать аудио",
+    "takePhoto": "Сделать фото",
+    "uploadFile": "Загрузить файл"
   }
 }

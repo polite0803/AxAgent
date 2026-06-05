@@ -334,7 +334,7 @@
       "dagVisualization": "DAG-Visualisierung",
       "dagHint": "Diesen Mermaid-Code in einen Mermaid-Renderer einfügen, um den DAG zu visualisieren.",
       "listView": "Liste",
-      "dagView": "DAG",
+      "dagView": "DAG-Ansicht",
       "viewOutput": "Endausgabe",
       "outputCopied": "Ausgabe in Zwischenablage kopiert",
       "stepStatus": "Status:",
@@ -697,7 +697,10 @@
       "cancelled": "Abgebrochen",
       "cancelFailed": "Abbrechen fehlgeschlagen",
       "cancel": "Abbrechen",
-      "noSteps": "Keine Schritte"
+      "noSteps": "Keine Schritte",
+      "chart": {
+        "renderError": "Diagramm-Renderfehler"
+      }
     },
     "modelRoutingConfig": {
       "title": "Modell-Routing-Konfiguration",
@@ -868,7 +871,9 @@
         "copyFailed": "Kopieren fehlgeschlagen",
         "joinFailed": "Beitreten fehlgeschlagen",
         "maxParticipants": "Max. Teilnehmer",
-        "joinSuccess": "Erfolgreich beigetreten"
+        "joinSuccess": "Erfolgreich beigetreten",
+        "createFailed": "Freigabe fehlgeschlagen",
+        "updateFailed": "Freigabe-Aktualisierung fehlgeschlagen"
       },
       "sharedResources": "Geteilte Ressourcen",
       "title": "Zusammenarbeit"
@@ -1107,7 +1112,22 @@
     },
     "proactiveInsights": "Proaktive Einblicke & Erinnerungen",
     "steerSent": "Steuerungsanweisung gesendet",
-    "steerError": "Steuerungsanweisung konnte nicht gesendet werden"
+    "steerError": "Steuerungsanweisung konnte nicht gesendet werden",
+    "connector": {
+      "add": "Connector hinzufügen",
+      "custom": "Benutzerdefinierter Connector",
+      "goConfig": "Zu Einstellungen →",
+      "noServers": "Bitte zuerst Connectoren hinzufügen oder aktivieren",
+      "title": "Connector"
+    },
+    "error": "Chat-Fehler",
+    "loadError": "Laden fehlgeschlagen",
+    "mode": {
+      "action": "Aktion",
+      "ask": "Frage",
+      "plan": "Plan",
+      "title": "Modus wechseln"
+    }
   },
   "gateway": {
     "title": "Gateway",
@@ -1243,7 +1263,8 @@
     "connectedTools": "Verbundene Werkzeuge",
     "tab": {
       "monitor": "Monitor"
-    }
+    },
+    "cacheHitTokens": "Cache-Treffer-Tokens"
   },
   "settings": {
     "title": "Einstellungen",
@@ -1263,7 +1284,7 @@
       "resetAll": "Alle zurücksetzen",
       "saved": "Gespeichert"
     },
-    "webhooks": "Webhooks",
+    "webhooks": "Tag",
     "data": {
       "title": "Datenverwaltung"
     },
@@ -2526,6 +2547,10 @@
     },
     "notificationCenter": {
       "title": "Benachrichtigungen"
+    },
+    "provider": {
+      "deepseekBalance": "DeepSeek-Guthaben",
+      "noValidKey": "Kein gültiger Schlüssel"
     }
   },
   "backup": {
@@ -2723,7 +2748,7 @@
     "executionWarning": "Execution Warning",
     "learnAboutPermissions": "Learn about permissions",
     "postedOn": "Posted on",
-    "tags": "Schlagwörter",
+    "tags": "Tags",
     "text": "Text",
     "viewDetails": "View details",
     "waitingForApproval": "Waiting for approval",
@@ -2892,7 +2917,9 @@
     "imageUrl": "Bild-URL",
     "emoji": "Emoji",
     "urlPlaceholder": "Bild-URL eingeben",
-    "profileTab": "Profil"
+    "profileTab": "Profil",
+    "prefKey": "Präferenz-Schlüssel",
+    "prefValue": "Präferenz-Wert"
   },
   "files": {
     "images": "Bilder",
@@ -3364,7 +3391,7 @@
         "source": "Quelle"
       },
       "edgeType": {
-        "backlink": "Backlink",
+        "backlink": "Rückverweis",
         "contradicts": "Widerspricht",
         "derived": "Abgeleitet",
         "link": "Link",
@@ -3555,14 +3582,7 @@
     "searchPlaceholder": "Wiki durchsuchen...",
     "selectWiki": "Wiki auswählen",
     "selectWikiPrompt": "Bitte ein Wiki auswählen",
-    "source": {
-      "chunks": "Blöcke",
-      "deleteNotImplemented": "Delete not implemented",
-      "path": "Pfad",
-      "status": "Status",
-      "title": "Source",
-      "type": "Typ"
-    },
+    "source": "Quelle",
     "sources": "Quellen",
     "sync": {
       "byWiki": "Nach Wiki",
@@ -3679,7 +3699,23 @@
     "quickCapture": "Quick Capture",
     "refresh": "Aktualisieren",
     "startImport": "Start Import",
-    "vaultPath": "Vault Path"
+    "vaultPath": "Vault Path",
+    "ingestSource": {
+      "chunks": "Chunks",
+      "deleteNotImplemented": "Löschfunktion noch nicht implementiert",
+      "path": "Pfad",
+      "status": "Status",
+      "title": "Titel",
+      "type": "Typ"
+    },
+    "wikiForm": {
+      "description": "Beschreibung",
+      "name": "Name",
+      "rootPath": "Wurzelpfad"
+    },
+    "wikiMeta": {
+      "rootPath": "Wurzelpfad"
+    }
   },
   "quickbar": {
     "title": "Schnellleiste",
@@ -3816,37 +3852,57 @@
       "explanation": "Erklärung",
       "replaceConfirmTitle": "Ersetzen bestätigen",
       "replaceConfirmContent": "Die aktuelle Leinwand hat {{nodes}} Knoten und {{edges}} Kanten. Die Generierung wird alle ersetzen. Fortfahren?",
-      "actionGenerateWorkflow": "Generate Workflow",
-      "actionAddNodes": "Add Node(s)",
-      "actionModifyNode": "Update Node",
-      "actionDeleteNodes": "Delete Node(s)",
-      "actionAddEdge": "Add Edge",
-      "actionUpdateEdge": "Update Edge",
-      "actionDeleteEdge": "Delete Edge",
-      "actionOptimizePrompt": "Optimize Prompt",
-      "actionApply": "Apply",
-      "actionApplyAll": "Review {{count}} changes",
+      "actionGenerateWorkflow": "Workflow generieren",
+      "actionAddNodes": "Knoten hinzufügen",
+      "actionModifyNode": "Knoten aktualisieren",
+      "actionDeleteNodes": "Knoten löschen",
+      "actionAddEdge": "Kante hinzufügen",
+      "actionUpdateEdge": "Kante aktualisieren",
+      "actionDeleteEdge": "Kante löschen",
+      "actionOptimizePrompt": "Prompt optimieren",
+      "actionApply": "Anwenden",
+      "actionApplyAll": "{{count}} Änderungen prüfen",
       "diffPreview": {
-        "title": "AI Edit Preview",
-        "subtitle": "Please review these {{count}} changes before applying to your workflow",
-        "before": "Before",
-        "after": "After",
-        "apply": "Apply this",
-        "applyAll": "Apply All",
-        "cancel": "Cancel",
-        "applied": "Applied",
-        "appliedHint": "Applied {{count}} / {{total}} in this session",
-        "empty": "No changes to preview",
-        "promptLength": "Prompt length: {{from}} → {{to}} chars",
-        "noBefore": "(new item, no prior content)",
-        "noAfter": "(deletion, no new content)",
-        "noChanges": "No field changes",
-        "applyFailed": "Apply failed",
-        "applyAllFailed": "Apply All failed",
-        "rollbackBatch": "Rollback Batch",
-        "rollbackSuccess": "Batch rolled back",
-        "rollbackTip": "Undo the entire batch of AI changes"
-      }
+        "title": "KI-Bearbeitungsvorschau",
+        "subtitle": "Bitte prüfe diese {{count}} Änderungen, bevor du sie anwendest",
+        "before": "Vorher",
+        "after": "Nachher",
+        "apply": "Dieses anwenden",
+        "applyAll": "Alle anwenden",
+        "cancel": "Abbrechen",
+        "applied": "Angewendet",
+        "appliedHint": "{{count}} / {{total}} in dieser Sitzung angewendet",
+        "empty": "Keine Änderungen zur Vorschau",
+        "promptLength": "Promptlänge: {{from}} → {{to}} Zeichen",
+        "noBefore": "(neues Element, kein Vorinhalt)",
+        "noAfter": "(gelöscht, kein neuer Inhalt)",
+        "noChanges": "Keine Feldänderungen",
+        "applyFailed": "Anwendung fehlgeschlagen",
+        "applyAllFailed": "Alle anwenden fehlgeschlagen",
+        "rollbackBatch": "Stapel zurücksetzen",
+        "rollbackSuccess": "Stapel zurückgesetzt",
+        "rollbackTip": "Den gesamten KI-Änderungsstapel rückgängig machen",
+        "deleted": "— Gelöscht —",
+        "deletedCount": "— {{count}} gelöscht —",
+        "edgeNotFound": "Kante nicht gefunden",
+        "newNodes": "{{count}} neue Knoten",
+        "nodeNotFound": "Knoten nicht gefunden",
+        "nodesEdgesLabel": "{{nodes}} Knoten / {{edges}} Kanten"
+      },
+      "applyToNode": "Auf Knoten anwenden",
+      "chatMode": "Chat-Modus",
+      "chatPlaceholder": "Nachricht eingeben…",
+      "chatWelcome": "Hallo, ich bin Ihr KI-Assistent.",
+      "chatWelcomeHint": "Fragen Sie mich zu Workflows oder Knotenkonfigurationen.",
+      "dragCanvasToAdd": "Auf Leinwand ziehen",
+      "dragHintUpdated": "Leinwand per Prompt aktualisiert",
+      "fillFromSelectedNode": "Ausgewählten Knoten übernehmen",
+      "generateMergeBtn": "Zusammenführung erzeugen",
+      "mergeMode": "Zusammenführungsmodus",
+      "promptAppliedToNode": "Prompt auf Knoten angewendet",
+      "replaceMode": "Ersetzungsmodus",
+      "retry": "Wiederholen",
+      "toolsMode": "Werkzeugmodus"
     },
     "previewInDevelopment": "Die Vorschaufunktion befindet sich in der Entwicklung",
     "publishInDevelopment": "Die Veröffentlichungsfunktion befindet sich in der Entwicklung",
@@ -3864,7 +3920,7 @@
       "copy": "Kopieren",
       "uploadJsonFile": "JSON-Datei hochladen",
       "dragOrClickUpload": "Klicken oder ziehen Sie eine Datei hierher zum Hochladen",
-      "or": "or",
+      "or": "oder",
       "pasteJsonData": "JSON-Daten einfügen",
       "pasteJsonPlaceholder": "Vorlagen-JSON-Daten einfügen...",
       "importTemplate": "Vorlage importieren",
@@ -3910,7 +3966,7 @@
     "leftPanel": {
       "nodesTab": "Knoten",
       "searchNodes": "Knoten suchen...",
-      "legacySuffix": "(Legacy)",
+      "legacySuffix": "(veraltet)",
       "templatesTab": "Vorlagen",
       "searchTemplates": "Vorlagen suchen..."
     },
@@ -3941,7 +3997,10 @@
       "loadThisVersion": "Diese Version laden",
       "currentVersion": "Aktuelle Version",
       "version": "Version {{version}}",
-      "loading": "Version wird geladen..."
+      "loading": "Version wird geladen...",
+      "compare": "Vergleichen",
+      "compareVersions": "Versionen vergleichen",
+      "noChanges": "Keine Änderungen"
     },
     "versionHistoryLoadFailed": "Versionsverlauf konnte nicht geladen werden",
     "versionLoaded": "Version{{version}} loaded",
@@ -4020,7 +4079,7 @@
       "selectContextSources": "Kontextquellen auswählen...",
       "prompt": "Prompt",
       "promptPlaceholder": "Geben Sie Ihren Prompt ein...",
-      "temperatureHint": "0: Deterministic ↑ | 2: Random ↑",
+      "temperatureHint": "0: deterministisch ↑ | 2: zufällig ↑",
       "loopType": "Schleifentyp",
       "loopForEach": "🔁 ForEach",
       "loopWhile": "⏳ While",
@@ -4170,8 +4229,8 @@
       "clickToAddMapping": "Klicken Sie auf „Hinzufügen\", um eine Eingabezuordnung zu erstellen",
       "language": "Sprache",
       "codeInputOutputHint": "(Eingabe: input, Ausgabe: return)",
-      "defaultCodeJsComment": "// Input: input\n// Return value will be stored in output_var",
-      "defaultCodePythonComment": "# Input: input\n# Return value will be stored in output_var",
+      "defaultCodeJsComment": "// Input: input\n// Rückgabewert wird in output_var gespeichert",
+      "defaultCodePythonComment": "# Input: input\n# Rückgabewert wird in output_var gespeichert",
       "codeInputParams": "Eingabeparameter: input",
       "codeReturnHint": "Der Rückgabewert wird in output_var gespeichert",
       "roleCoordinator": "",
@@ -4197,26 +4256,67 @@
       "aggregationRace": "Wettlauf",
       "aggregationMajority": "Mehrheit",
       "aggregationHint": "Wie Ergebnisse aus mehreren parallelen Zweigen aggregiert werden",
-      "url": "url",
-      "method": "method",
-      "timeout": "timeout",
-      "bodyType": "bodyType",
-      "body": "body",
-      "headers": "headers",
-      "addHeader": "addHeader",
-      "headerKey": "headerKey",
-      "headerValue": "headerValue",
-      "selectTemplate": "Select Template",
-      "searchTemplate": "Search template...",
-      "noTemplates": "No templates found",
-      "ragSourceIdsCount": "RAG Sources ({{count}})",
-      "ragSourceIdsPlaceholder": "Enter or select knowledge source IDs...",
+      "url": "URL",
+      "method": "Methode",
+      "timeout": "Timeout",
+      "bodyType": "Body-Typ",
+      "body": "Body",
+      "headers": "Header",
+      "addHeader": "Header hinzufügen",
+      "headerKey": "Header-Schlüssel",
+      "headerValue": "Header-Wert",
+      "selectTemplate": "Vorlage wählen",
+      "searchTemplate": "Vorlage suchen…",
+      "noTemplates": "Keine Vorlagen gefunden",
+      "ragSourceIdsCount": "RAG-Quellen ({{count}})",
+      "ragSourceIdsPlaceholder": "Wissensquellen-IDs eingeben oder auswählen…",
       "ragSourceIdsHint": "Format: knowledge:<kb_id>, memory:<ns_id>, wiki:<wiki_id>",
-      "modelRole": "Model Role",
-      "modelRolePlaceholder": "Auto (use model field)",
-      "modelRoleQuickThink": "⚡ Quick Think",
-      "modelRoleDeepThink": "🧠 Deep Think",
-      "modelRoleHint": "Preset role overrides model when set; lower priority than explicit model field."
+      "modelRole": "Modellrolle",
+      "modelRolePlaceholder": "Auto (model-Feld verwenden)",
+      "modelRoleQuickThink": "⚡ Schnelles Denken",
+      "modelRoleDeepThink": "🧠 Tiefes Denken",
+      "modelRoleHint": "Voreingestellte Rolle überschreibt das Modell, hat aber niedrigere Priorität als das explizite model-Feld.",
+      "addCase": "Fall hinzufügen",
+      "aggregationAny": "Beliebiges Ergebnis",
+      "aiGenerate": "KI-generiert",
+      "autoInputFromParent": "Auto-Eingabe vom Elternknoten",
+      "autoInputFromParentHint": "Wenn aktiviert, werden Ausgaben des Elternknotens automatisch zu Eingaben des Kindes.",
+      "autoInputsFromBranches": "Auto-Eingaben von Zweigen",
+      "autoInputsFromBranchesHint": "Wenn aktiviert, werden Ausgaben der Zweige automatisch zu Eingaben des Kindes.",
+      "availableTools": "Verfügbare Werkzeuge",
+      "cases": "Fälle",
+      "codeTemplates": "Code-Vorlagen",
+      "connectInputsManually": "Eingänge manuell verbinden",
+      "connection": "Datenquelle",
+      "defaultConnection": "Standard-Datenquelle",
+      "editExpertPrompt": "Experten-Prompt bearbeiten",
+      "editRolePrompt": "Rollen-Prompt bearbeiten",
+      "emailToPlaceholder": "user@example.com",
+      "hideTools": "Werkzeuge verbergen",
+      "inputVarPlaceholder": "node_id.field",
+      "llmRouting": "LLM-Routing",
+      "matchMode": "Abgleichmodus",
+      "maxDelayMs": "Max. Verzögerung (ms)",
+      "mergeAny": "Beliebiges zusammenführen",
+      "mergeMajority": "Mehrheitsentscheid",
+      "mergeRace": "Erster gewinnt",
+      "noToolsAvailable": "Keine Werkzeuge verfügbar",
+      "promptSaveFailed": "Prompt konnte nicht gespeichert werden",
+      "promptSaved": "Prompt gespeichert",
+      "resetTimeoutHint": "Timeout zurücksetzen",
+      "retryEnabled": "Wiederholung aktivieren",
+      "routingModel": "Routing-Modell",
+      "routingModelPlaceholder": "Routing-Modell wählen",
+      "routingPrompt": "Routing-Prompt",
+      "routingPromptPlaceholder": "Routing-Logik beschreiben",
+      "showTools": "Werkzeuge anzeigen",
+      "subject": "Betreff",
+      "switchInputVarPlaceholder": "node_id.output_field",
+      "switchLabelPlaceholder": "label",
+      "switchValuePlaceholder": "value",
+      "to": "An",
+      "urlPlaceholder": "https://api.example.com/data",
+      "webhookUrlPlaceholder": "https://hook.example.com/..."
     },
     "debug": {
       "totalDuration": "Gesamtdauer",
@@ -4242,7 +4342,60 @@
       "labelType": "Typ",
       "labelError": "Fehler",
       "labelInput": "Eingabe",
-      "labelOutput": "Ausgabe"
+      "labelOutput": "Ausgabe",
+      "allClear": "Alles in Ordnung",
+      "breakpoints": "Haltepunkte",
+      "breakpointsPanel": "Haltepunkt-Panel",
+      "cancel": "Abbrechen",
+      "clickToValidate": "Zum Validieren klicken",
+      "colIssues": "Probleme",
+      "colNode": "Knoten",
+      "colStatus": "Status",
+      "colTime": "Zeit",
+      "colType": "Typ",
+      "continue": "Weiter",
+      "cyclesDetected": "Zyklen erkannt",
+      "deadEnd": "Sackgasse",
+      "error": "Fehler",
+      "errors": "Fehler",
+      "execTime": "Ausführungszeit",
+      "executionHistory": "Ausführungsverlauf",
+      "input": "Eingabe",
+      "issuesFound": "Probleme gefunden",
+      "noBreakpoints": "Keine Haltepunkte",
+      "noHistory": "Kein Verlauf",
+      "noPrompt": "Kein Prompt",
+      "noRuntimeData": "Keine Laufzeitdaten",
+      "noVariables": "Keine Variablen",
+      "nodeDiagnostics": "Knoten-Diagnose",
+      "nodeRecords": "Knoten-Aufzeichnungen",
+      "nodesExecuted": "Ausgeführte Knoten",
+      "orphan": "Verwaist",
+      "output": "Ausgabe",
+      "pause": "Pause",
+      "resume": "Fortsetzen",
+      "resumeBreakpoint": "Bis Haltepunkt fortsetzen",
+      "runFullCheck": "Vollständige Prüfung ausführen",
+      "runValidation": "Validierung ausführen",
+      "running": "Läuft",
+      "runtimeTrace": "Laufzeit-Trace",
+      "startDebug": "Debugging starten",
+      "staticCheck": "Statische Prüfung",
+      "staticDebugHint": "Knoten anklicken zum Debuggen",
+      "step": "Schritt",
+      "stepBreakpoint": "Schritt-Haltepunkt",
+      "structuralValidation": "Strukturvalidierung",
+      "subExecutionDetail": "Sub-Ausführungsdetails",
+      "topoAnalysis": "Topologie-Analyse",
+      "topoHealthy": "Topologie in Ordnung",
+      "totalEdges": "Kanten gesamt",
+      "totalNodes": "Knoten gesamt",
+      "unreachableNodesCount": "Unerreichbare Knoten",
+      "view": "Ansehen",
+      "viewDetail": "Details ansehen",
+      "viewSubExecution": "Sub-Ausführung ansehen",
+      "waitingForNodes": "Wartet auf Knoten",
+      "warnings": "Warnungen"
     },
     "applySemanticCheck": "Anwenden",
     "applyUpgrade": "Upgrade anwenden",
@@ -4303,17 +4456,19 @@
       "end": "Ende",
       "tool": "Werkzeug",
       "code": "Code",
-      "httpRequest": "HTTP Request",
-      "notification": "Notification",
-      "approval": "Approval",
-      "fileOperation": "File Operation",
-      "dataTransformer": "Data Transformer",
-      "webhookSend": "Webhook Send",
-      "logging": "Logging",
-      "llmClassifier": "LLM Classifier",
+      "httpRequest": "HTTP-Anfrage",
+      "notification": "Benachrichtigung",
+      "approval": "Genehmigung",
+      "fileOperation": "Dateioperation",
+      "dataTransformer": "Datentransformation",
+      "webhookSend": "Webhook senden",
+      "logging": "Protokollierung",
+      "llmClassifier": "LLM-Klassifikator",
       "aggregator": "Aggregator",
-      "email": "Email",
-      "debate": "Debate"
+      "email": "E-Mail",
+      "debate": "Debatte",
+      "databaseQuery": "Datenbankabfrage",
+      "switch": "Weiche"
     },
     "templateList": {
       "deleted": "Vorlage gelöscht",
@@ -4379,13 +4534,13 @@
       "edgeTypeLoopBack": "Rückschleife",
       "edgeTypeMerge": "Zusammenführung",
       "edgeTypeParallelBranch": "Paralleler Zweig",
-      "icon": "Symbol",
+      "icon": "Icon",
       "iconBot": "🤖 Bot",
       "iconCode": "💻 Code",
       "iconDocument": "📄 Dokument",
       "iconGitBranch": "🔀 Git-Zweig",
       "iconLayers": "📚 Schichten",
-      "iconZap": "⚡ Zap",
+      "iconZap": "⚡ Blitz",
       "label": "Bezeichnung",
       "name": "Name",
       "nodeType": "Knotentyp",
@@ -4395,12 +4550,12 @@
       "selectNodeToEdit": "Wählen Sie einen Knoten zum Bearbeiten der Eigenschaften",
       "settings": "Einstellungen",
       "tagAgent": "Agent",
-      "tagAi": "AI",
+      "tagAi": "KI",
       "tagAutomation": "Automatisierung",
       "tagChatbot": "Chatbot",
       "tagDataProcessing": "Datenverarbeitung",
       "tagWorkflow": "Workflow",
-      "tags": "Schlagwörter",
+      "tags": "Tags",
       "inputSchema": "Eingabe-Schema",
       "outputSchema": "Ausgabe-Schema",
       "editSchema": "JSON Schema bearbeiten (Abbrechen zum Behalten)",
@@ -4491,8 +4646,10 @@
       "notSelected": "Nicht ausgewählt",
       "title": "Unterworkflow",
       "async": "Asynchron",
-      "expand": "Expand",
-      "collapse": "Collapse"
+      "expand": "Ausklappen",
+      "collapse": "Einklappen",
+      "inputCount": "Eingänge",
+      "outputCount": "Ausgänge"
     },
     "vectorRetrieveNode": {
       "notSelected": "Nicht ausgewählt",
@@ -4507,7 +4664,8 @@
       "title": "Schleife",
       "maxIterations": "Max. Iterationen",
       "continueOnError": "Bei Fehler fortfahren",
-      "steps": "{{count}} Schritte"
+      "steps": "{{count}} Schritte",
+      "notConfigured": "Schleifen-Knoten nicht konfiguriert"
     },
     "mergeNode": {
       "all": "Alle",
@@ -4515,13 +4673,13 @@
       "last": "Letzte",
       "title": "Zusammenführen",
       "inputCount": "{{count}} Eingaben",
-      "any": "Any",
+      "any": "Beliebig",
       "race": "Race",
-      "majority": "Majority",
-      "inputs": "inputs",
-      "waitAll": "Wait all",
-      "waitAny": "Any complete",
-      "autoInputs": "Auto-receive branch outputs"
+      "majority": "Mehrheit",
+      "inputs": "Anzahl Eingaben",
+      "waitAll": "Alle abwarten",
+      "waitAny": "Beliebiger Abschluss",
+      "autoInputs": "Auto-Empfang von Zweigausgaben"
     },
     "parallelNode": {
       "title": "Parallel",
@@ -4533,8 +4691,10 @@
       "expand": "Ausklappen",
       "collapse": "Einklappen",
       "race": "Race",
-      "branches": "branches",
-      "autoInput": "Auto-receive parent input"
+      "branches": "Anzahl Zweige",
+      "autoInput": "Auto-Eingabe vom Elternknoten",
+      "waitAll": "Auf alle warten",
+      "waitAny": "Auf einen warten"
     },
     "toolNode": {
       "notSelected": "Nicht ausgewählt",
@@ -4557,7 +4717,8 @@
       "second": "Sek",
       "minutes": "Min",
       "until": "Bis",
-      "title": "Verzögerung"
+      "title": "Verzögerung",
+      "notConfigured": "Verzögerungs-Knoten nicht konfiguriert"
     },
     "endNode": {
       "title": "Ende"
@@ -4571,7 +4732,8 @@
       "continue": "Fortsetzen",
       "title": "Validierung",
       "assertionCount": "{{count}} Assertionen",
-      "failStrategy": "Fehlerstrategie"
+      "failStrategy": "Fehlerstrategie",
+      "rules": "Validierungsregeln"
     },
     "shortcuts": {
       "title": "Tastenkürzel",
@@ -4612,7 +4774,7 @@
         "suggest": "KI-Vorschlag",
         "generate": "AI generieren",
         "rewrite": "KI umschreiben",
-        "contextComplete": "Context Complete"
+        "contextComplete": "Kontext vervollständigen"
       },
       "tooltip": "KI-gestützte Optimierung",
       "noProvider": "Kein KI-Anbieter verfügbar",
@@ -4620,268 +4782,305 @@
       "optimizing": "KI optimiert...",
       "generating": "Generierung läuft...",
       "applied": "Vorschlag angewendet",
-      "contextCompleteApplied": "Context completion applied"
+      "contextCompleteApplied": "Kontextvervollständigung angewendet",
+      "dbQuery": {
+        "sqlHint": "Tipp: SQL eingeben, KI ergänzt automatisch."
+      },
+      "loop": {
+        "continueHint": "Schleifen-Fortsetzungsbedingung angeben, z. B. `index < 10`."
+      },
+      "parallel": {
+        "branchesHint": "Eingaben und gewünschte Ausgaben paralleler Zweige beschreiben."
+      },
+      "subWorkflow": {
+        "needPick": "Wählen Sie einen vorhandenen Workflow oder beschreiben Sie einen neuen.",
+        "parseFailed": "Parsing fehlgeschlagen, Beschreibung prüfen."
+      },
+      "switch": {
+        "casesHint": "Alle Zweige und Auslöser auflisten."
+      },
+      "trigger": {
+        "cronHint": "Standard-Cron-Ausdruck, z. B. `0 9 * * *`."
+      }
     },
     "diagnostic": {
-      "title": "Workflow Diagnostic",
-      "run": "Run Diagnostic",
-      "tooltip": "Scan structure, config, prompts and variable references",
-      "loading": "Diagnosing...",
-      "empty": "Workflow is empty. Add nodes to start diagnosis.",
-      "allGood": "Workflow looks good. No issues found.",
+      "title": "Workflow-Diagnose",
+      "run": "Diagnose ausführen",
+      "tooltip": "Prüft Struktur, Konfiguration, Prompts und Variablenreferenzen",
+      "loading": "Diagnose läuft…",
+      "empty": "Workflow ist leer. Füge Knoten hinzu, um die Diagnose zu starten.",
+      "allGood": "Workflow in Ordnung. Keine Probleme gefunden.",
       "summary": {
-        "title": "Diagnostic Summary",
-        "error": "Errors",
-        "warning": "Warnings",
+        "title": "Diagnose-Zusammenfassung",
+        "error": "Fehler",
+        "warning": "Warnung",
         "info": "Info",
-        "total": "{{count}} issue(s)"
+        "total": "{{count}} Probleme"
       },
       "severity": {
-        "error": "Error",
-        "warning": "Warning",
+        "error": "Fehler",
+        "warning": "Warnung",
         "info": "Info"
       },
       "category": {
-        "structure": "Structure",
-        "configuration": "Configuration",
+        "structure": "Struktur",
+        "configuration": "Konfiguration",
         "prompt": "Prompt",
-        "reference": "Reference",
-        "best_practice": "Best Practice",
-        "prompt_quality": "Prompt Quality",
-        "performance": "Performance",
-        "cost": "Cost",
-        "security": "Security"
+        "reference": "Referenz",
+        "best_practice": "Best Practices",
+        "prompt_quality": "Prompt-Qualität",
+        "performance": "Leistung",
+        "cost": "Kosten",
+        "security": "Sicherheit"
       },
       "fix": {
-        "apply": "Auto Fix",
-        "applied": "Fixed",
-        "failed": "Fix failed"
+        "apply": "Auto-Reparatur",
+        "applied": "Behoben",
+        "failed": "Reparatur fehlgeschlagen"
       },
-      "jump": "Locate Node",
+      "jump": "Zum Knoten springen",
       "issues": {
         "duplicate_node_id": {
-          "title": "Duplicate Node ID",
-          "message": "Node ID \"{{id}}\" appears multiple times, which may cause routing issues."
+          "title": "Doppelte Knoten-ID",
+          "message": "Knoten-ID \"{{id}}\" erscheint mehrfach und kann Routing-Probleme verursachen."
         },
         "orphan_node": {
-          "title": "Orphan Node",
-          "message": "Node \"{{label}}\" has neither incoming nor outgoing edges."
+          "title": "Verwaister Knoten",
+          "message": "Knoten \"{{label}}\" hat weder eingehende noch ausgehende Kanten."
         },
         "unreachable_from_trigger": {
-          "title": "Node Unreachable from Trigger",
-          "message": "Node \"{{label}}\" has no path from any trigger."
+          "title": "Knoten vom Trigger nicht erreichbar",
+          "message": "Knoten \"{{label}}\" hat keinen Pfad von einem Trigger."
         },
         "dangling_edge": {
-          "title": "Dangling Edge",
-          "message": "Edge \"{{id}}\" references a missing source or target node."
+          "title": "Verwaiste Kante",
+          "message": "Kante \"{{id}}\" verweist auf einen fehlenden Quell- oder Zielknoten."
         },
         "llm_prompt_empty": {
-          "title": "Empty LLM Prompt",
-          "message": "Node \"{{label}}\" has an empty LLM.prompt."
+          "title": "LLM-Prompt leer",
+          "message": "LLM.prompt von Knoten \"{{label}}\" ist leer."
         },
         "llm_prompt_short": {
-          "title": "LLM Prompt Too Short",
-          "message": "Node \"{{label}}\" LLM.prompt is only {{len}} characters long."
+          "title": "LLM-Prompt zu kurz",
+          "message": "LLM.prompt von Knoten \"{{label}}\" hat nur {{len}} Zeichen."
         },
         "agent_prompt_empty": {
-          "title": "Empty Agent System Prompt",
-          "message": "Node \"{{label}}\" has an empty Agent.system_prompt."
+          "title": "Leerer Agent-System-Prompt",
+          "message": "Agent.system_prompt von Knoten \"{{label}}\" ist leer."
         },
         "agent_prompt_trivial": {
-          "title": "Agent System Prompt Too Simple",
-          "message": "Node \"{{label}}\" system_prompt is only {{len}} characters."
+          "title": "Agent-System-Prompt zu einfach",
+          "message": "system_prompt von Knoten \"{{label}}\" hat nur {{len}} Zeichen."
         },
         "classifier_prompt_empty": {
-          "title": "Empty Classifier Prompt",
-          "message": "Node \"{{label}}\" has an empty LlmClassifier.prompt."
+          "title": "Leerer Klassifikator-Prompt",
+          "message": "LlmClassifier.prompt von Knoten \"{{label}}\" ist leer."
         },
         "classifier_prompt_trivial": {
-          "title": "Classifier Prompt Too Simple",
-          "message": "Node \"{{label}}\" classifier prompt is only {{len}} characters."
+          "title": "Klassifikator-Prompt zu einfach",
+          "message": "Der Klassifikator-Prompt von Knoten \"{{label}}\" hat nur {{len}} Zeichen."
         },
         "classifier_categories_empty": {
-          "title": "No Classifier Categories",
-          "message": "Node \"{{label}}\" categories list is empty."
+          "title": "Keine Klassifikator-Kategorien",
+          "message": "Die Kategorienliste von Knoten \"{{label}}\" ist leer."
         },
         "http_url_empty": {
-          "title": "Empty HTTP URL",
-          "message": "Node \"{{label}}\" HttpRequest.url is empty."
+          "title": "HTTP-URL leer",
+          "message": "HttpRequest.url von Knoten \"{{label}}\" ist leer."
         },
         "webhook_url_empty": {
-          "title": "Empty Webhook URL",
-          "message": "Node \"{{label}}\" WebhookSend.url is empty."
+          "title": "Webhook-URL leer",
+          "message": "WebhookSend.url von Knoten \"{{label}}\" ist leer."
         },
         "email_to_empty": {
-          "title": "Empty Email Recipients",
-          "message": "Node \"{{label}}\" Email.to is empty."
+          "title": "E-Mail-Empfänger leer",
+          "message": "Email.to von Knoten \"{{label}}\" ist leer."
         },
         "email_body_empty": {
-          "title": "Empty Email Body",
-          "message": "Node \"{{label}}\" Email.body is empty."
+          "title": "E-Mail-Text leer",
+          "message": "Email.body von Knoten \"{{label}}\" ist leer."
         },
         "validation_assertions_empty": {
-          "title": "Empty Validation Assertions",
-          "message": "Node \"{{label}}\" assertions list is empty."
+          "title": "Validierungs-Assertionen leer",
+          "message": "Die Assertion-Liste von Knoten \"{{label}}\" ist leer."
         },
         "code_body_empty": {
-          "title": "Empty Code Node Body",
-          "message": "Node \"{{label}}\" Code.code is empty."
+          "title": "Leerer Code-Knoten-Body",
+          "message": "Code.code von Knoten \"{{label}}\" ist leer."
         },
         "code_output_var_empty": {
-          "title": "Code Node Missing Output Variable",
-          "message": "Node \"{{label}}\" output_var is empty; downstream nodes cannot reference its result."
+          "title": "Code-Knoten ohne Ausgabevariable",
+          "message": "output_var von Knoten \"{{label}}\" ist leer; nachgelagerte Knoten können das Ergebnis nicht referenzieren."
         },
         "tool_name_empty": {
-          "title": "Tool Node Missing Tool",
-          "message": "Node \"{{label}}\" tool_name is empty."
+          "title": "Tool-Knoten ohne Tool",
+          "message": "tool_name von Knoten \"{{label}}\" ist leer."
         },
         "subworkflow_id_empty": {
-          "title": "Empty SubWorkflow ID",
-          "message": "Node \"{{label}}\" SubWorkflow.sub_workflow_id is empty."
+          "title": "Sub-Workflow-ID leer",
+          "message": "SubWorkflow.sub_workflow_id von Knoten \"{{label}}\" ist leer."
         },
         "unknown_var_reference": {
-          "title": "Undeclared Variable Reference",
-          "message": "Node \"{{label}}\" references ${ {{var}} }, but no node declares this as output_var."
+          "title": "Nicht deklarierte Variablenreferenz",
+          "message": "Knoten \"{{label}}\" referenziert ${ {{var}} }, aber kein Knoten deklariert dies als output_var."
         },
         "no_timeout": {
-          "title": "No Timeout Configured",
-          "message": "Node \"{{label}}\" has no timeout, long-running tasks may block the workflow."
+          "title": "Kein Timeout konfiguriert",
+          "message": "Knoten \"{{label}}\" hat kein Timeout; lange laufende Aufgaben können den Workflow blockieren."
         },
         "no_retry": {
-          "title": "No Retry Configured",
-          "message": "Node \"{{label}}\" has no retry policy; transient failures will propagate."
+          "title": "Keine Wiederholung konfiguriert",
+          "message": "Knoten \"{{label}}\" hat keine Wiederholungsrichtlinie; transiente Fehler werden weitergereicht."
         },
         "parallel_no_merge": {
-          "title": "Parallel Without Merge",
-          "message": "Parallel node \"{{label}}\" branches should converge into a Merge node."
+          "title": "Parallel ohne Merge",
+          "message": "Die Zweige des Parallel-Knotens \"{{label}}\" sollten in einem Merge-Knoten zusammenlaufen."
         },
         "no_trigger": {
-          "title": "No Trigger Node",
-          "message": "Workflow has no trigger node. Add a Trigger to define the entry point."
+          "title": "Kein Trigger-Knoten",
+          "message": "Der Workflow hat keinen Trigger-Knoten. Fügen Sie einen Trigger hinzu, um den Einstiegspunkt zu definieren."
         },
         "no_end": {
-          "title": "No End Node",
-          "message": "Workflow has no end node. Consider adding an End node to mark completion."
+          "title": "Kein End-Knoten",
+          "message": "Der Workflow hat keinen End-Knoten. Erwägen Sie das Hinzufügen eines End-Knotens."
         },
         "agent_empty_prompt": {
-          "title": "Empty Agent System Prompt",
-          "message": "Agent node has an empty system_prompt. Define a clear role and instructions."
+          "title": "Leerer Agent-System-Prompt",
+          "message": "Der Agent-Knoten hat einen leeren system_prompt. Definieren Sie eine klare Rolle und Anweisungen."
         },
         "agent_short_prompt": {
-          "title": "Agent System Prompt Too Short",
-          "message": "Agent system_prompt is under 30 characters. Add role definition and output constraints."
+          "title": "Agent-System-Prompt zu kurz",
+          "message": "Der Agent-system_prompt ist kürzer als 30 Zeichen. Fügen Sie Rollendefinition und Ausgabebedingungen hinzu."
         },
         "agent_no_max_tokens": {
-          "title": "Agent Missing max_tokens",
-          "message": "Agent node has no max_tokens set. This may lead to unbounded token usage."
+          "title": "Agent ohne max_tokens",
+          "message": "Beim Agent-Knoten ist max_tokens nicht gesetzt. Dies kann zu unbeschränktem Token-Verbrauch führen."
         },
         "agent_no_max_tool_rounds": {
-          "title": "Agent Missing max_tool_rounds",
-          "message": "Agent with tools has no max_tool_rounds set. Tool loops may run indefinitely."
+          "title": "Agent ohne max_tool_rounds",
+          "message": "Beim Agent mit Tools ist max_tool_rounds nicht gesetzt. Tool-Schleifen könnten endlos laufen."
         },
         "llm_empty_prompt": {
-          "title": "Empty LLM Prompt",
-          "message": "LLM node has an empty prompt. Provide a clear instruction."
+          "title": "LLM-Prompt leer",
+          "message": "Der LLM-Knoten hat einen leeren Prompt. Geben Sie eine klare Anweisung."
         },
         "llm_no_max_tokens": {
-          "title": "LLM Missing max_tokens",
-          "message": "LLM node has no max_tokens set. This may lead to unbounded token usage."
+          "title": "LLM ohne max_tokens",
+          "message": "Beim LLM-Knoten ist max_tokens nicht gesetzt. Dies kann zu unbeschränktem Token-Verbrauch führen."
         },
         "http_no_timeout": {
-          "title": "HTTP Request No Timeout",
-          "message": "HttpRequest node has no timeout configured. Long-running requests may block the workflow."
+          "title": "HTTP-Anfrage ohne Timeout",
+          "message": "HttpRequest-Knoten hat kein Timeout. Lange laufende Anfragen können den Workflow blockieren."
         },
         "http_no_retry": {
-          "title": "HTTP Request No Retry",
-          "message": "HttpRequest node has no retry policy. Transient failures will propagate."
+          "title": "HTTP-Anfrage ohne Wiederholung",
+          "message": "HttpRequest-Knoten hat keine Wiederholungsrichtlinie. Transiente Fehler werden weitergereicht."
         },
         "db_no_timeout": {
-          "title": "Database Query No Timeout",
-          "message": "DatabaseQuery node has no timeout configured. Slow queries may block the workflow."
+          "title": "DB-Abfrage ohne Timeout",
+          "message": "DatabaseQuery-Knoten hat kein Timeout. Langsame Abfragen können den Workflow blockieren."
         },
         "loop_no_max_iter": {
-          "title": "Loop No Max Iterations",
-          "message": "Loop node has no max_iterations set. Infinite loops may occur."
+          "title": "Schleife ohne max_iterations",
+          "message": "Beim Schleifen-Knoten ist max_iterations nicht gesetzt. Endlosschleifen sind möglich."
         },
         "loop_no_condition": {
-          "title": "Loop No Continue Condition",
-          "message": "Loop node has no continue_condition defined. The loop may never terminate."
+          "title": "Schleife ohne Fortsetzungsbedingung",
+          "message": "Beim Schleifen-Knoten ist continue_condition nicht definiert. Die Schleife endet möglicherweise nie."
         },
         "doc_no_parser_type": {
-          "title": "Document Parser No Type",
-          "message": "DocumentParser node has no parser_type specified."
+          "title": "Dokumentparser-Typ nicht angegeben",
+          "message": "Beim DocumentParser-Knoten ist parser_type nicht angegeben."
         },
         "insecure_http_url": {
-          "title": "Insecure HTTP URL",
-          "message": "URL uses plain HTTP instead of HTTPS. Data may be transmitted unencrypted."
+          "title": "Unsichere HTTP-URL",
+          "message": "Die URL verwendet HTTP statt HTTPS. Daten werden möglicherweise unverschlüsselt übertragen."
         },
         "insecure_notification_url": {
-          "title": "Insecure Notification Webhook URL",
-          "message": "Notification webhook URL uses plain HTTP. Webhook payloads may be intercepted."
+          "title": "Unsichere Webhook-URL",
+          "message": "Die Webhook-URL für Benachrichtigungen verwendet HTTP. Die Nutzdaten könnten abgefangen werden."
         },
         "approval_no_approver": {
-          "title": "Approval No Approver",
-          "message": "Approval node has no approver configured. The workflow will stall at this node."
+          "title": "Genehmigungsknoten ohne Genehmiger",
+          "message": "Beim Genehmigungsknoten ist kein Genehmiger konfiguriert. Der Workflow stoppt an diesem Knoten."
         },
         "vector_no_threshold": {
-          "title": "Vector Retrieve No Similarity Threshold",
-          "message": "VectorRetrieve node has no similarity_threshold. Low-quality matches may be returned."
+          "title": "Vector Retrieve ohne Ähnlichkeitsschwelle",
+          "message": "VectorRetrieve-Knoten hat keine similarity_threshold. Es können qualitativ schlechte Treffer zurückgegeben werden."
         },
         "vector_high_top_k": {
-          "title": "Vector Retrieve High top_k",
-          "message": "VectorRetrieve top_k exceeds 20. This increases cost and may reduce relevance."
+          "title": "Vector Retrieve mit hohem top_k",
+          "message": "top_k von VectorRetrieve überschreitet 20. Das erhöht Kosten und kann die Relevanz verringern."
         },
         "condition_single_exit": {
-          "title": "Condition Single Exit",
-          "message": "Condition node has fewer than 2 downstream branches. Consider adding both true/false paths."
+          "title": "Bedingung mit nur einem Ausgang",
+          "message": "Der Bedingungsknoten hat weniger als 2 abgehende Zweige. Erwägen Sie das Hinzufügen beider Pfade (true/false)."
         },
         "classifier_few_cases": {
-          "title": "Classifier Too Few Cases",
-          "message": "LlmClassifier has fewer than 2 classification cases."
+          "title": "Zu wenige Klassifikator-Fälle",
+          "message": "LlmClassifier hat weniger als 2 Klassifikationsfälle."
         },
         "validation_no_rules": {
-          "title": "Validation No Rules",
-          "message": "Validation node has no rules defined. It will always pass."
+          "title": "Validierung ohne Regeln",
+          "message": "Der Validierungs-Knoten hat keine Regeln. Er wird immer bestehen."
         },
         "edge_dangling_source": {
-          "title": "Dangling Edge Source",
-          "message": "Edge references a source node that no longer exists."
+          "title": "Quellknoten der Kante fehlt",
+          "message": "Die Kante verweist auf einen Quellknoten, der nicht mehr existiert."
         },
         "edge_dangling_target": {
-          "title": "Dangling Edge Target",
-          "message": "Edge references a target node that no longer exists."
+          "title": "Zielknoten der Kante fehlt",
+          "message": "Die Kante verweist auf einen Zielknoten, der nicht mehr existiert."
         },
         "debate_no_debaters": {
-          "title": "Debate No Debaters",
-          "message": "Debate node has no debater agents. Add at least 2 debaters for a meaningful debate."
+          "title": "Debatten-Knoten ohne Debattierer",
+          "message": "Der Debatten-Knoten hat keine Debattierer-Agenten. Fügen Sie mindestens 2 für eine sinnvolle Debatte hinzu."
         },
         "debate_single_debater": {
-          "title": "Debate Single Debater",
-          "message": "Debate node has only 1 debater. A debate requires at least 2 opposing sides."
+          "title": "Nur ein Debattierer",
+          "message": "Der Debatten-Knoten hat nur 1 Debattierer. Eine Debatte braucht mindestens 2 gegnerische Seiten."
         },
         "debate_dangling_step": {
-          "title": "Debate Dangling Debater Reference",
-          "message": "Debate node references a debater step that no longer exists. Remove the stale reference."
+          "title": "Verwaister Verweis im Debatten-Knoten",
+          "message": "Der Debatten-Knoten verweist auf einen nicht mehr existierenden Debattierer-Schritt. Entfernen Sie den veralteten Verweis."
         }
-      }
+      },
+      "error": "Diagnosefehler"
     },
     "batchEdit": {
-      "title": "Batch Edit",
-      "noChange": "No change",
-      "apply": "Apply to {count} nodes"
+      "title": "Stapelbearbeitung",
+      "noChange": "Keine Änderung",
+      "apply": "Auf {count} Knoten anwenden"
     },
-    "autoLayoutWithSubs": "Auto-layout (with {{count}} sub-workflows)",
-    "toggleBreakpoint": "Toggle Breakpoint",
-    "copyNode": "Copy Node",
-    "deleteNode": "Delete Node",
+    "autoLayoutWithSubs": "Auto-Layout ({{count}} Unter-Workflows)",
+    "toggleBreakpoint": "Haltepunkt umschalten",
+    "copyNode": "Knoten kopieren",
+    "deleteNode": "Knoten löschen",
     "debateNode": {
-      "debaters": "debaters",
-      "rounds": "rounds",
-      "expand": "Expand",
-      "collapse": "Collapse",
-      "newDebater": "Debater",
-      "noDebatersHint": "Add debater Agent nodes inside this container"
-    }
+      "debaters": "Debattierende",
+      "rounds": "Runden",
+      "expand": "Ausklappen",
+      "collapse": "Einklappen",
+      "newDebater": "Debattierender",
+      "noDebatersHint": "Füge Agent-Knoten der Debattierenden in diesen Container ein",
+      "defaultRole": "— Standard —",
+      "stanceCon": "Contra (dagegen)",
+      "stanceNth": "Seite {{count}}",
+      "stancePro": "Pro (dafür)",
+      "stanceSystemPromptFallback": "Sie sind Diskutant auf der {{stance}}-Seite. Argumentieren Sie zum Thema."
+    },
+    "batchEditMode": "Sammelbearbeitungsmodus",
+    "noExecutionHistory": "Kein Ausführungsverlauf",
+    "nodeConfig": {
+      "add_debater": "Diskutant hinzufügen",
+      "convergence_model_role": "Konvergenz-Modellrolle",
+      "convergence_prompt": "Konvergenz-Prompt",
+      "convergence_prompt_placeholder": "Prompt, der bestimmt, wann die Debatte konvergiert",
+      "debaters": "Diskutanten",
+      "max_rounds": "Max. Runden",
+      "topic_var": "Themenvariable"
+    },
+    "searchNodes": "Knoten suchen"
   },
   "atomicSkill": {
     "entryType": "Eintragstyp",
@@ -5120,7 +5319,9 @@
     "retry": "Erneut versuchen",
     "tags": "Tags: {{tags}}",
     "none": "Keine",
-    "response": "Antwort"
+    "response": "Antwort",
+    "report": "Bericht",
+    "tasks": "Aufgaben"
   },
   "traceExplorer": {
     "selectTrace": "Wählen Sie einen Trace, um Details anzuzeigen"
@@ -5289,7 +5490,8 @@
     "dismiss": "Schließen",
     "execute": "Ausführen",
     "learningSuggestions": "Lernvorschläge",
-    "snooze30": "Schlummern (30 Min.)"
+    "snooze30": "Schlummern (30 Min.)",
+    "noSuggestions": "Keine Vorschläge"
   },
   "proactive": {
     "accept": "Akzeptieren",
@@ -5440,7 +5642,10 @@
     "analyzeFrontend": "KI-Generierung",
     "analyzeSuccess": "KI-Analyse abgeschlossen",
     "analyzeError": "KI-Analyse fehlgeschlagen: {{error}}",
-    "generateAgent": "Agent generieren"
+    "generateAgent": "Agent generieren",
+    "agentGenerated": "Agent-generiert",
+    "noSkillName": "Unbenannter Skill",
+    "notFound": "Skill nicht gefunden"
   },
   "task": {
     "title": "Hintergrundaufgaben",
@@ -5810,7 +6015,26 @@
     "connectionFailed": "Verbindung fehlgeschlagen",
     "lastSyncResult": "Letztes Sync-Ergebnis",
     "cacheDir": "Cache-Verzeichnis",
-    "quickActions": "Schnellaktionen"
+    "quickActions": "Schnellaktionen",
+    "autoFillConfig": "Konfiguration automatisch ausfüllen",
+    "chineseProviders": "Chinesische Anbieter",
+    "cloudBackup": "Cloud-Backup",
+    "cloudBackupSize": "Größe",
+    "cloudBackupTime": "Geändert",
+    "downloadBackupFailed": "Cloud-Download fehlgeschlagen: {{error}}",
+    "downloadBackupSuccess": "Cloud-Backup heruntergeladen",
+    "downloadFromCloud": "Aus Cloud wiederherstellen",
+    "internationalProviders": "Internationale Anbieter",
+    "listCloudBackups": "Cloud-Backups anzeigen",
+    "noCloudBackups": "Keine Cloud-Backups gefunden",
+    "providerCategory": "Anbieterkategorie",
+    "s3UsePathStyle": "Path-Style-Adressierung",
+    "selectProvider": "Cloud-Anbieter auswählen",
+    "selectProviderDesc": "Wählen Sie einen Cloud-Speicheranbieter für die Autokonfiguration",
+    "selfHostedProviders": "Selbst gehostet",
+    "uploadBackupFailed": "Cloud-Upload fehlgeschlagen: {{error}}",
+    "uploadBackupSuccess": "Backup in die Cloud hochgeladen",
+    "uploadToCloud": "In Cloud hochladen"
   },
   "buddy": {
     "rarity": {
@@ -6135,8 +6359,8 @@
     "noRecords": "Keine Datensätze",
     "success": "Erfolg",
     "failed": "Fehlgeschlagen",
-    "viewSubExecution": "View Sub-Execution",
-    "subExecutionDetail": "Sub-Workflow Execution Detail"
+    "viewSubExecution": "Unterausführung anzeigen",
+    "subExecutionDetail": "Detail der Unter-Workflow-Ausführung"
   },
   "markdown": "Markdown",
   "success": "Erfolg",
@@ -6275,7 +6499,7 @@
     "avgCredibility": "Durchschnittliche Glaubwürdigkeit:",
     "addToReport": "Zum Bericht hinzufügen",
     "title": "Zitatenverwaltung ({count})",
-    "addCitation": "Add Citation",
+    "addCitation": "Zitat hinzufügen",
     "empty": "Noch keine Zitationen, fügen Sie aus Suchergebnissen hinzu",
     "inReport": "Im Bericht verwendet ({count})",
     "notInReport": "Nicht im Bericht verwendet ({count})",
@@ -6418,7 +6642,10 @@
     "storeNotRegistered": "Speicher {{storeName}} nicht registriert",
     "functionNotRegistered": "Funktion {{name}} nicht registriert",
     "handlerNotFound": "Handler {{name}} nicht gefunden",
-    "handlerNotDeclarative": "Handler {{name}} ist nicht deklarativ"
+    "handlerNotDeclarative": "Handler {{name}} ist nicht deklarativ",
+    "commandPermissionDenied": "Befehlsberechtigung verweigert",
+    "emitPermissionDenied": "Berechtigung zum Senden verweigert",
+    "navigatePermissionDenied": "Navigationsberechtigung verweigert"
   },
   "export": {
     "exportTime": "Exportzeit",
@@ -6689,7 +6916,9 @@
     "startNewResearch": "Neue Recherche",
     "lowCredibilityWarning": "Hinweis: Bericht enthält {{count}} Quellen mit geringer Glaubwürdigkeit",
     "noReferences": "Keine Referenzen",
-    "noSummary": "Keine Zusammenfassung"
+    "noSummary": "Keine Zusammenfassung",
+    "noOutline": "Keine Gliederung",
+    "noReport": "Kein Bericht"
   },
   "settingsPage": {
     "refreshPage": "Seite aktualisieren"
@@ -6832,7 +7061,19 @@
   },
   "errorBoundary": {
     "title": "Etwas ist schiefgelaufen",
-    "retryLoad": "Laden dieses Moduls erneut versuchen"
+    "retryLoad": "Laden dieses Moduls erneut versuchen",
+    "copied": "Kopiert",
+    "copyError": "Fehler kopieren",
+    "errorDetails": "Fehlerdetails",
+    "moduleError": "Modulfehler",
+    "pageError": "Seitenfehler",
+    "panelLoadFailed": "⚠️ Panel \"{{tabKey}}\" konnte nicht geladen werden",
+    "refreshPage": "Seite neu laden",
+    "retry": "Wiederholen",
+    "somethingWentWrong": "Etwas ist schiefgelaufen",
+    "tryAgain": "Erneut versuchen",
+    "unexpectedError": "Unerwarteter Fehler",
+    "unknownError": "Unbekannter Fehler"
   },
   "appInit": {
     "idle": "Startvorbereitung...",
@@ -6907,7 +7148,8 @@
     "retry": "Erneut versuchen"
   },
   "subAgentCard": {
-    "viewConversation": "Unterhaltung anzeigen"
+    "viewConversation": "Unterhaltung anzeigen",
+    "fork": "Forken"
   },
   "modelParam": {
     "topP": "Top P"
@@ -6990,7 +7232,8 @@
     "teammate": "Team",
     "steerInput": "Steuern",
     "showExtras": "Mehr",
-    "hideExtras": "Weniger"
+    "hideExtras": "Weniger",
+    "close": "Schließen"
   },
   "knowledgeSettings": {
     "title": "Wissen"
@@ -7058,5 +7301,10 @@
     "gatewayContext": "Gateway",
     "filesContext": "Dateien",
     "terminalContext": "Terminal"
+  },
+  "input": {
+    "recordAudio": "Audio aufnehmen",
+    "takePhoto": "Foto aufnehmen",
+    "uploadFile": "Datei hochladen"
   }
 }
