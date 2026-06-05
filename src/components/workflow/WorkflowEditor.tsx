@@ -888,7 +888,10 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
         const workflowNode = createWorkflowNode(
           id,
           payload.type,
-          position,
+          // 新约定：子节点 position 须为相对父节点偏移（与 ReactFlow extent:"parent" 模式一致）。
+          // 此处必须使用 relativePosition，否则 store 内绝对坐标会被 useEffect 透传为子节点坐标，
+          // 触发 autoLayoutWorkflow 把绝对值误当相对值反算，导致子节点被推到画布远端并触发 page error。
+          relativePosition,
           t("workflow.newNode", {
             type: typeInfo.labelKey ? t(typeInfo.labelKey) : payload.type,
           }),

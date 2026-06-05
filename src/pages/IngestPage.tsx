@@ -84,30 +84,30 @@ export function IngestPage() {
 
   const columns = [
     {
-      title: t("wiki.source.title"),
+      title: t("wiki.ingestSource.title"),
       dataIndex: "title",
       key: "title",
     },
     {
-      title: t("wiki.source.type"),
+      title: t("wiki.ingestSource.type"),
       dataIndex: "sourceType",
       key: "sourceType",
       render: (type: string) => <Tag icon={getSourceTypeIcon(type)}>{type.toUpperCase()}</Tag>,
     },
     {
-      title: t("wiki.source.status"),
+      title: t("wiki.ingestSource.status"),
       dataIndex: "status",
       key: "status",
       render: (status: string) => <Tag color={getStatusColor(status)}>{status.toUpperCase()}</Tag>,
     },
     {
-      title: t("wiki.source.chunks"),
+      title: t("wiki.ingestSource.chunks"),
       dataIndex: "chunkCount",
       key: "chunkCount",
       render: (count: number) => count || 0,
     },
     {
-      title: t("wiki.source.path"),
+      title: t("wiki.ingestSource.path"),
       dataIndex: "sourcePath",
       key: "sourcePath",
       ellipsis: true,
@@ -122,7 +122,7 @@ export function IngestPage() {
             danger
             icon={<DeleteOutlined />}
             onClick={() => {
-              message.info(t("wiki.source.deleteNotImplemented"));
+              message.info(t("wiki.ingestSource.deleteNotImplemented"));
             }}
           />
         </Space>

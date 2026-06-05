@@ -337,19 +337,19 @@ function CreateWikiModal({
       <Form form={form} layout="vertical">
         <Form.Item
           name="name"
-          label={t("wiki.wiki.name")}
+          label={t("wiki.wikiForm.name")}
           rules={[{ required: true, message: t("wiki.llm.nameRequired") }]}
         >
           <Input name="name" placeholder={t("wiki.llm.namePlaceholder")} />
         </Form.Item>
         <Form.Item
           name="rootPath"
-          label={t("wiki.wiki.rootPath")}
+          label={t("wiki.wikiForm.rootPath")}
           rules={[{ required: true, message: t("wiki.llm.pathRequired") }]}
         >
           <Input name="rootPath" placeholder={t("wiki.llm.pathPlaceholder")} />
         </Form.Item>
-        <Form.Item name="description" label={t("wiki.wiki.description")}>
+        <Form.Item name="description" label={t("wiki.wikiForm.description")}>
           <Input.TextArea
             name="description"
             placeholder={t("wiki.llm.descriptionPlaceholder")}

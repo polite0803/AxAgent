@@ -75,12 +75,15 @@ impl ToolCategory {
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct ToolPermissions {
     /// 允许调用的工具名白名单（空 = 允许全部）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub allowed_tools: Option<Vec<String>>,
     /// 明确禁止的工具名
     pub forbidden_tools: Vec<String>,
     /// 允许的 ToolCategory 白名单（空 = 允许全部）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub allowed_categories: Option<Vec<ToolCategory>>,
     /// 最大调用次数（会话级），None = 不限
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub max_calls_per_session: Option<u32>,
     /// 是否启用严格模式（禁止 LLM 发散）
     pub strict_mode: bool,

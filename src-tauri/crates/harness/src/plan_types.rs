@@ -92,6 +92,7 @@ pub enum ReplanReason {
 pub enum ReplanAction {
     Retry {
         task_id: String,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
         modified_parameters: Option<serde_json::Value>,
     },
     Skip {

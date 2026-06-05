@@ -52,9 +52,13 @@ pub enum BackoffType {
 pub struct JsonSchema {
     #[serde(rename = "type")]
     pub schema_type: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub properties: Option<std::collections::HashMap<String, JsonSchemaProperty>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub required: Option<Vec<String>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub items: Option<Box<JsonSchema>>,
 }
 
@@ -74,9 +78,13 @@ pub struct ToolDef {
 pub struct JsonSchemaProperty {
     #[serde(rename = "type")]
     pub schema_type: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub default: Option<serde_json::Value>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub enum_values: Option<Vec<serde_json::Value>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub format: Option<String>,
 }
 
@@ -166,6 +174,7 @@ pub struct WebhookTriggerConfig {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EventTriggerConfig {
     pub event_type: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub filter: Option<serde_json::Value>,
 }
 
@@ -233,8 +242,11 @@ pub struct AgentNodeConfig {
     pub system_prompt: String,
     pub context_sources: Vec<String>,
     pub output_var: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub model: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub temperature: Option<f32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub max_tokens: Option<u32>,
     /// 工具列表，支持向后兼容旧格式 `["name1", "name2"]`
     #[serde(deserialize_with = "deserialize_tool_defs")]
@@ -245,24 +257,25 @@ pub struct AgentNodeConfig {
     pub exposed_tools: Vec<String>,
     pub output_mode: OutputMode,
     /// AgentProfile ID — 唯一标识角色的方式，不再使用旧 role/agent_role_override
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub agent_profile_id: Option<String>,
     /// Agent 多轮工具调用最大轮数，默认 1（不配置则仅单轮）
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub max_tool_rounds: Option<u32>,
     /// 执行模式: "react" = 逐步思考-行动（默认）, "plan" = 先规划为工作流再执行
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub execution_mode: Option<String>,
     /// RAG 知识源 ID 列表。格式: "knowledge:<kb_id>", "memory:<ns_id>", "wiki:<wiki_id>"。
     /// 执行时从这些源检索与 query 相关的内容注入 system prompt。
     #[serde(default)]
     pub rag_source_ids: Vec<String>,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub model_role: Option<String>,
     /// 结果一致性检查配置（可选，不配置时零影响）
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub consistency_check: Option<ConsistencyCheckConfig>,
     /// 防幻觉锚定检查配置（可选，不配置时零影响）
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub hallucination_guard: Option<HallucinationGuardConfig>,
 }
 
@@ -350,18 +363,18 @@ pub struct ConditionNodeConfig {
     pub conditions: Vec<Condition>,
     pub logical_op: LogicalOperator,
     /// 启用 LLM 动态路由：由 AI 判断走哪条分支（忽略 conditions 静态规则）
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub judge_by_llm: Option<bool>,
     /// LLM 路由时的提示词（描述路由判断逻辑）
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub routing_prompt: Option<String>,
     /// LLM 路由使用模型（为空则用系统默认）
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub routing_model: Option<String>,
     /// 置信度阈值（0.0 - 1.0）。LLM 路由返回的置信度低于此值时，
     /// 降级为启发式判断（已有的 fallback 逻辑）。
     /// None = 不检查置信度（向后兼容）。
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub confidence_threshold: Option<f64>,
 }
 
@@ -393,8 +406,9 @@ pub enum MergeStrategy {
 pub struct ParallelNodeConfig {
     pub branches: Vec<Branch>,
     pub wait_for_all: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub timeout: Option<u64>,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub aggregation: Option<MergeStrategy>,
     #[serde(default = "default_true")]
     pub auto_input_from_parent: bool,
@@ -426,9 +440,13 @@ pub enum LoopType {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LoopNodeConfig {
     pub loop_type: LoopType,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub items_var: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub iteratee_var: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub max_iterations: Option<u32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub continue_condition: Option<String>,
     pub continue_on_error: bool,
     pub body_steps: Vec<String>,
@@ -558,8 +576,11 @@ pub struct ValidationNodeConfig {
 pub struct ValidationAssertion {
     #[serde(rename = "type")]
     pub assertion_type: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub expected: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub actual: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub expression: Option<String>,
 }
 
@@ -586,7 +607,7 @@ pub struct EndNode {
 pub struct SwitchNodeConfig {
     pub input_var: String,
     pub cases: Vec<SwitchCase>,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub default_case: Option<String>,
     #[serde(default = "default_switch_mode")]
     pub match_mode: String,
@@ -628,7 +649,7 @@ pub struct HttpRequestNodeConfig {
     pub method: String,
     #[serde(default)]
     pub headers: std::collections::HashMap<String, String>,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub body: Option<String>,
     #[serde(default = "default_body_type")]
     pub body_type: String,
@@ -746,7 +767,7 @@ pub struct NotificationNode {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ApprovalNodeConfig {
     pub message: String,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub approver: Option<String>,
     #[serde(default = "default_approval_timeout")]
     pub timeout_secs: u64,
@@ -835,7 +856,7 @@ pub struct LoggingNode {
 pub struct LlmClassifierNodeConfig {
     pub categories: Vec<String>,
     pub prompt: String,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub model: Option<String>,
     pub input_var: String,
     #[serde(default)]
@@ -843,13 +864,13 @@ pub struct LlmClassifierNodeConfig {
     /// 置信度阈值（0.0 - 1.0）。LLM 返回的置信度低于此值时，
     /// 使用 fallback_label（如果配置）或标记为 low_confidence 并返回错误。
     /// None = 不检查置信度（向后兼容）。
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub confidence_threshold: Option<f64>,
     /// 置信度不足时的降级标签（可选）。不配置时直接标记失败。
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub fallback_label: Option<String>,
     /// 结果一致性检查配置（可选，不配置时零影响）
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub consistency_check: Option<ConsistencyCheckConfig>,
 }
 
@@ -907,11 +928,11 @@ pub struct DebateNodeConfig {
     pub debater_steps: Vec<String>,
     #[serde(default = "default_debate_rounds")]
     pub max_rounds: u32,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub convergence_prompt: Option<String>,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub convergence_model: Option<String>,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub convergence_model_role: Option<String>,
     #[serde(default)]
     pub topic_var: String,

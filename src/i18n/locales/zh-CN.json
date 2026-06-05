@@ -715,6 +715,9 @@
         "CLOUD_SYNC_FAILED": "云同步失败",
         "DESKTOP_CONNECTION_TIMEOUT": "连接超时",
         "DESKTOP_NATIVE_NOTIFICATION_FAILED": "原生通知失败"
+      },
+      "chart": {
+        "renderError": "Chart render error"
       }
     },
     "modelRoutingConfig": {
@@ -888,7 +891,9 @@
         "joinFailed": "加入失败",
         "maxParticipants": "最大参与者数",
         "joinSuccess": "加入成功",
-        "copied": "已复制"
+        "copied": "已复制",
+        "createFailed": "Failed to create share",
+        "updateFailed": "Failed to update share"
       }
     },
     "conversationNotFound": "对话未找到",
@@ -1125,7 +1130,9 @@
       "fallbackTitle": "对话",
       "searchPastSessions": "搜索历史会话"
     },
-    "proactiveInsights": "主动洞察与提醒"
+    "proactiveInsights": "主动洞察与提醒",
+    "error": "Chat error",
+    "loadError": "Failed to load"
   },
   "gateway": {
     "title": "网关",
@@ -1261,7 +1268,8 @@
     "connectedTools": "已接入工具",
     "tab": {
       "monitor": "监控"
-    }
+    },
+    "cacheHitTokens": "Cache hit tokens"
   },
   "settings": {
     "title": "设置",
@@ -2544,6 +2552,10 @@
     },
     "notificationCenter": {
       "title": "通知"
+    },
+    "provider": {
+      "deepseekBalance": "DeepSeek balance",
+      "noValidKey": "No valid key"
     }
   },
   "backup": {
@@ -2877,7 +2889,9 @@
     "imageUrl": "图片链接",
     "emoji": "表情符号",
     "urlPlaceholder": "输入图片 URL",
-    "profileTab": "个人信息"
+    "profileTab": "个人信息",
+    "prefKey": "Preference Key",
+    "prefValue": "Preference Value"
   },
   "files": {
     "images": "图片",
@@ -3573,14 +3587,7 @@
     "searchPlaceholder": "搜索笔记...",
     "selectWiki": "选择 Wiki",
     "selectWikiPrompt": "请选择一个 Wiki",
-    "source": {
-      "title": "标题",
-      "type": "类型",
-      "status": "状态",
-      "chunks": "分块",
-      "path": "路径",
-      "deleteNotImplemented": "删除功能尚未实现"
-    },
+    "source": "Source",
     "sources": "来源",
     "sync": {
       "byWiki": "按 Wiki",
@@ -3616,6 +3623,19 @@
     "titlePlaceholder": "笔记标题...",
     "userNote": "用户",
     "wiki": "知识库",
+    "wikiForm": {
+      "description": "描述",
+      "name": "名称",
+      "rootPath": "根路径"
+    },
+    "ingestSource": {
+      "title": "标题",
+      "type": "类型",
+      "status": "状态",
+      "chunks": "切片数",
+      "path": "路径",
+      "deleteNotImplemented": "删除功能尚未实现"
+    },
     "manage": "管理",
     "viewingWiki": "正在查看 Wiki: {{id}}",
     "deleted": "已删除",
@@ -3697,7 +3717,10 @@
     "quickCapture": "快速捕获",
     "refresh": "刷新",
     "startImport": "开始导入",
-    "vaultPath": "库路径"
+    "vaultPath": "库路径",
+    "wikiMeta": {
+      "rootPath": "Root Path"
+    }
   },
   "quickbar": {
     "title": "快速操作",
@@ -3870,7 +3893,21 @@
         "deleted": "— 删除 —",
         "deletedCount": "— 删除 {{count}} 个 —",
         "edgeNotFound": "边不存在"
-      }
+      },
+      "applyToNode": "Apply to node",
+      "chatMode": "Chat mode",
+      "chatPlaceholder": "Type a message…",
+      "chatWelcome": "Hi, I'm your AI assistant.",
+      "chatWelcomeHint": "Ask me about workflow or node configuration.",
+      "dragCanvasToAdd": "Drag to canvas to add",
+      "dragHintUpdated": "Canvas updated from prompt",
+      "fillFromSelectedNode": "Fill from selected node",
+      "generateMergeBtn": "Generate merge",
+      "mergeMode": "Merge mode",
+      "promptAppliedToNode": "Prompt applied to node",
+      "replaceMode": "Replace mode",
+      "retry": "Retry",
+      "toolsMode": "Tools mode"
     },
     "previewInDevelopment": "预览功能开发中",
     "publishInDevelopment": "发布功能开发中",
@@ -3965,7 +4002,10 @@
       "loadThisVersion": "加载此版本",
       "currentVersion": "当前版本",
       "version": "版本",
-      "loading": "加载中"
+      "loading": "加载中",
+      "compare": "Compare",
+      "compareVersions": "Compare versions",
+      "noChanges": "No changes"
     },
     "versionHistoryLoadFailed": "版本历史加载失败",
     "versionLoaded": "版本已加载",
@@ -4256,7 +4296,32 @@
       "noTemplates": "No templates found",
       "mergeFirst": "First - Use first completed input",
       "mergeLast": "Last - Use last completed input",
-      "aggregationFirst": "First to Complete"
+      "aggregationFirst": "First to Complete",
+      "addCase": "Add case",
+      "aiGenerate": "AI Generate",
+      "availableTools": "Available tools",
+      "cases": "Cases",
+      "codeTemplates": "Code templates",
+      "connection": "Data source",
+      "defaultConnection": "Default data source",
+      "editExpertPrompt": "Edit expert prompt",
+      "editRolePrompt": "Edit role prompt",
+      "hideTools": "Hide tools",
+      "llmRouting": "LLM Routing",
+      "matchMode": "Match mode",
+      "maxDelayMs": "Max delay (ms)",
+      "noToolsAvailable": "No tools available",
+      "promptSaveFailed": "Failed to save prompt",
+      "promptSaved": "Prompt saved",
+      "resetTimeoutHint": "Reset timeout",
+      "retryEnabled": "Enable retry",
+      "routingModel": "Routing model",
+      "routingModelPlaceholder": "Select routing model",
+      "routingPrompt": "Routing prompt",
+      "routingPromptPlaceholder": "Describe the routing decision logic",
+      "showTools": "Show tools",
+      "subject": "Subject",
+      "to": "To"
     },
     "debug": {
       "title": "工作流调试",
@@ -4332,7 +4397,10 @@
       "labelType": "Type",
       "labelError": "Error",
       "labelInput": "Input",
-      "labelOutput": "Output"
+      "labelOutput": "Output",
+      "errors": "Errors",
+      "unreachableNodesCount": "Unreachable nodes",
+      "warnings": "Warnings"
     },
     "applySemanticCheck": "应用语义检查",
     "applyUpgrade": "应用升级",
@@ -4403,7 +4471,9 @@
       "llmClassifier": "LLM 分类器",
       "aggregator": "聚合器",
       "email": "邮件",
-      "debate": "辩论"
+      "debate": "辩论",
+      "databaseQuery": "Database Query",
+      "switch": "Switch"
     },
     "templateList": {
       "deleted": "已删除",
@@ -4587,7 +4657,9 @@
       "title": "子工作流",
       "async": "异步",
       "expand": "展开",
-      "collapse": "折叠"
+      "collapse": "折叠",
+      "inputCount": "Input count",
+      "outputCount": "Output count"
     },
     "vectorRetrieveNode": {
       "notSelected": "未选择",
@@ -4602,7 +4674,8 @@
       "title": "循环",
       "maxIterations": "最大迭代次数",
       "continueOnError": "出错时继续",
-      "steps": "步骤"
+      "steps": "步骤",
+      "notConfigured": "Loop node not configured"
     },
     "mergeNode": {
       "all": "全部",
@@ -4626,7 +4699,9 @@
       "clickToAdd": "点击添加",
       "autoInput": "自动接收父节点输入",
       "expand": "展开",
-      "collapse": "折叠"
+      "collapse": "折叠",
+      "waitAll": "Wait for all",
+      "waitAny": "Wait for any"
     },
     "debateNode": {
       "debaters": "辩手",
@@ -4662,7 +4737,8 @@
       "second": "秒",
       "minutes": "分钟",
       "until": "直到",
-      "title": "延迟"
+      "title": "延迟",
+      "notConfigured": "Delay node not configured"
     },
     "endNode": {
       "title": "结束"
@@ -4676,7 +4752,8 @@
       "continue": "继续",
       "title": "验证",
       "assertionCount": "{{count}} 个断言",
-      "failStrategy": "失败策略"
+      "failStrategy": "失败策略",
+      "rules": "Validation rules"
     },
     "shortcuts": {
       "title": "快捷键",
@@ -4983,13 +5060,26 @@
           "title": "辩论节点悬空辩手引用",
           "message": "辩论节点引用了一个不存在的辩手步骤。请移除失效的引用。"
         }
-      }
+      },
+      "error": "Diagnostic error"
     },
     "batchEdit": {
       "title": "Batch Edit",
       "noChange": "No change",
       "apply": "Apply to {count} nodes"
-    }
+    },
+    "batchEditMode": "Batch edit mode",
+    "noExecutionHistory": "No execution history",
+    "nodeConfig": {
+      "add_debater": "Add debater",
+      "convergence_model_role": "Convergence model role",
+      "convergence_prompt": "Convergence prompt",
+      "convergence_prompt_placeholder": "Prompt used to decide when the debate has converged",
+      "debaters": "Debaters",
+      "max_rounds": "Max rounds",
+      "topic_var": "Topic variable"
+    },
+    "searchNodes": "Search nodes"
   },
   "atomicSkill": {
     "entryType": "入口类型",
@@ -5228,7 +5318,9 @@
     "includeTraces": "包含追踪记录",
     "tags": "标签: {{tags}}",
     "none": "无",
-    "response": "响应"
+    "response": "响应",
+    "report": "Report",
+    "tasks": "Tasks"
   },
   "traceExplorer": {
     "selectTrace": "选择一个 trace 查看详情"
@@ -5397,7 +5489,8 @@
     "dismiss": "忽略",
     "execute": "执行",
     "learningSuggestions": "学习建议",
-    "snooze30": "稍后提醒（30分钟）"
+    "snooze30": "稍后提醒（30分钟）",
+    "noSuggestions": "No suggestions"
   },
   "proactive": {
     "accept": "接受",
@@ -5548,7 +5641,10 @@
     "analyzeFrontend": "AI 分析生成",
     "analyzeSuccess": "智能分析完成",
     "analyzeError": "智能分析失败: {{error}}",
-    "generateAgent": "生成智能体"
+    "generateAgent": "生成智能体",
+    "agentGenerated": "Agent Generated",
+    "noSkillName": "Unnamed skill",
+    "notFound": "Skill not found"
   },
   "task": {
     "title": "后台任务",
@@ -6473,7 +6569,9 @@
     "startNewResearch": "开始新研究",
     "lowCredibilityWarning": "注意: 报告中包含 {{count}} 个低可信度来源，请谨慎使用",
     "noReferences": "暂无参考文献",
-    "noSummary": "暂无摘要"
+    "noSummary": "暂无摘要",
+    "noOutline": "No outline",
+    "noReport": "No report"
   },
   "citationManager": {
     "totalCitations": "总引用数:",
@@ -6726,7 +6824,17 @@
     "title": "出了点问题",
     "retryLoad": "重试加载此模块",
     "panelLoadFailed": "⚠️ 面板 \"{{tabKey}}\" 加载失败",
-    "unknownError": "未知错误"
+    "unknownError": "未知错误",
+    "copied": "Copied",
+    "copyError": "Copy Error",
+    "errorDetails": "Error Details",
+    "moduleError": "Module Error",
+    "pageError": "Page Error",
+    "refreshPage": "Refresh Page",
+    "retry": "Retry",
+    "somethingWentWrong": "Something Went Wrong",
+    "tryAgain": "Try Again",
+    "unexpectedError": "Unexpected Error"
   },
   "appInit": {
     "idle": "准备启动...",
@@ -6801,7 +6909,8 @@
     "retry": "重试"
   },
   "subAgentCard": {
-    "viewConversation": "查看子会话"
+    "viewConversation": "查看子会话",
+    "fork": "Fork"
   },
   "modelParam": {
     "topP": "Top P"
@@ -6959,7 +7068,10 @@
     "storeNotRegistered": "Store {{storeName}} 未注册",
     "functionNotRegistered": "函数 {{name}} 未注册",
     "handlerNotFound": "Handler {{name}} 未找到",
-    "handlerNotDeclarative": "Handler {{name}} 非声明式"
+    "handlerNotDeclarative": "Handler {{name}} 非声明式",
+    "commandPermissionDenied": "Command Permission Denied",
+    "emitPermissionDenied": "Emit Permission Denied",
+    "navigatePermissionDenied": "Navigate Permission Denied"
   },
   "export": {
     "exportTime": "导出时间",
@@ -7115,7 +7227,8 @@
     "teammate": "协作",
     "steerInput": "引导",
     "showExtras": "更多面板",
-    "hideExtras": "收起"
+    "hideExtras": "收起",
+    "close": "Close"
   },
   "knowledgeSettings": {
     "title": "知识库"
@@ -7177,5 +7290,10 @@
         "generationUser": "基于以下描述生成工作流：{0}"
       }
     }
+  },
+  "input": {
+    "recordAudio": "Record audio",
+    "takePhoto": "Take photo",
+    "uploadFile": "Upload file"
   }
 }

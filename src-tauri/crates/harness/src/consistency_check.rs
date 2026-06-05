@@ -8,6 +8,7 @@ pub struct ConsistencyCheckConfig {
     /// 检查模式：相同模型重复执行 / 不同模型交叉验证
     pub mode: ConsistencyMode,
     /// 可选：用于交叉验证的备用模型名
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub secondary_model: Option<String>,
     /// 结果偏差阈值（0.0-1.0），超过则告警
     pub deviation_threshold: f64,

@@ -763,6 +763,9 @@
         "CLOUD_SYNC_FAILED": "Cloud sync failed",
         "DESKTOP_CONNECTION_TIMEOUT": "Connection timed out",
         "DESKTOP_NATIVE_NOTIFICATION_FAILED": "Native notification failed"
+      },
+      "chart": {
+        "renderError": "Chart render error"
       }
     },
     "agentTaskList": {
@@ -964,7 +967,9 @@
         "joinFailed": "Join failed",
         "maxParticipants": "Max Participants",
         "joinSuccess": "Joined successfully",
-        "copied": "Copied"
+        "copied": "Copied",
+        "createFailed": "Failed to create share",
+        "updateFailed": "Failed to update share"
       }
     },
     "conversationNotFound": "Conversation not found",
@@ -1151,7 +1156,9 @@
       "fallbackTitle": "Chat",
       "searchPastSessions": "Search past sessions"
     },
-    "proactiveInsights": "Proactive Insights & Reminders"
+    "proactiveInsights": "Proactive Insights & Reminders",
+    "error": "Chat error",
+    "loadError": "Failed to load"
   },
   "gateway": {
     "title": "Gateway",
@@ -1287,7 +1294,8 @@
     "connectedTools": "Connected Tools",
     "tab": {
       "monitor": "Monitor"
-    }
+    },
+    "cacheHitTokens": "Cache hit tokens"
   },
   "gatewayMonitor": {
     "refresh": "Refresh",
@@ -2679,6 +2687,10 @@
     },
     "notificationCenter": {
       "title": "Notifications"
+    },
+    "provider": {
+      "deepseekBalance": "DeepSeek balance",
+      "noValidKey": "No valid key"
     }
   },
   "backup": {
@@ -3176,7 +3188,9 @@
     "imageUrl": "Image URL",
     "emoji": "Emoji",
     "urlPlaceholder": "Enter image URL",
-    "profileTab": "Profile"
+    "profileTab": "Profile",
+    "prefKey": "Preference Key",
+    "prefValue": "Preference Value"
   },
   "files": {
     "images": "Images",
@@ -3490,29 +3504,43 @@
       "llmClassifier": "LLM Classifier",
       "aggregator": "Aggregator",
       "email": "Email",
-      "debate": "Debate"
+      "debate": "Debate",
+      "databaseQuery": "Database Query",
+      "switch": "Switch"
     },
     "aiAssist": {
+      "btn": {
+        "optimize": "AI Optimize",
+        "suggest": "AI Suggest",
+        "generate": "AI Generate",
+        "rewrite": "AI Rewrite",
+        "contextComplete": "Context Complete"
+      },
+      "tooltip": "Use AI to optimize or generate content",
+      "noProvider": "No AI provider available",
       "failed": "AI generation failed",
-      "applied": "AI result applied",
-      "trigger": {
-        "cronHint": "e.g. 'Every weekday morning at 9am'"
-      },
+      "optimizing": "AI optimizing...",
+      "generating": "AI generating...",
+      "applied": "AI suggestion applied",
+      "contextCompleteApplied": "Context completion applied",
       "dbQuery": {
-        "sqlHint": "e.g. 'Get the latest 10 active users'"
-      },
-      "switch": {
-        "casesHint": "Current cases: {{current}}, input var: {{input}}. Please suggest more cases."
-      },
-      "parallel": {
-        "branchesHint": "Current branches: {{current}}. Available nodes: {{available}}. Please suggest parallel branches."
+        "sqlHint": "Tip: type SQL and AI will help complete it."
       },
       "loop": {
-        "continueHint": "e.g. 'loop while index < length of {{items}}'"
+        "continueHint": "Provide a loop continue condition, e.g. `index < 10`."
+      },
+      "parallel": {
+        "branchesHint": "Describe parallel branch inputs and the target output."
       },
       "subWorkflow": {
-        "needPick": "Please pick a sub workflow first",
-        "parseFailed": "AI returned invalid JSON, please retry"
+        "needPick": "Please pick an existing workflow or describe a new one.",
+        "parseFailed": "Failed to parse; please check the description."
+      },
+      "switch": {
+        "casesHint": "List all cases and their trigger conditions."
+      },
+      "trigger": {
+        "cronHint": "Standard cron expression, e.g. `0 9 * * *`."
       }
     },
     "aiPanel": {
@@ -3590,7 +3618,21 @@
         "deleted": "— Deleted —",
         "deletedCount": "— Deleted {{count}} —",
         "edgeNotFound": "Edge not found"
-      }
+      },
+      "applyToNode": "Apply to node",
+      "chatMode": "Chat mode",
+      "chatPlaceholder": "Type a message…",
+      "chatWelcome": "Hi, I'm your AI assistant.",
+      "chatWelcomeHint": "Ask me about workflow or node configuration.",
+      "dragCanvasToAdd": "Drag to canvas to add",
+      "dragHintUpdated": "Canvas updated from prompt",
+      "fillFromSelectedNode": "Fill from selected node",
+      "generateMergeBtn": "Generate merge",
+      "mergeMode": "Merge mode",
+      "promptAppliedToNode": "Prompt applied to node",
+      "replaceMode": "Replace mode",
+      "retry": "Retry",
+      "toolsMode": "Tools mode"
     },
     "templateList": {
       "deleted": "Template deleted",
@@ -3794,7 +3836,10 @@
       "loadThisVersion": "Load this version",
       "currentVersion": "Current version",
       "version": "Version {{version}}",
-      "loading": "Loading version..."
+      "loading": "Loading version...",
+      "compare": "Compare",
+      "compareVersions": "Compare versions",
+      "noChanges": "No changes"
     },
     "versionHistoryLoadFailed": "Failed to load version history",
     "versionLoaded": "Version {{version}} loaded",
@@ -3867,7 +3912,7 @@
       "outputVariable": "Output Variable",
       "outputVarDefault": "agent_output",
       "inputVarPlaceholder": "node_id.field",
-      "queryPlaceholder": "SELECT * FROM table WHERE id = ?",
+      "queryPlaceholder": "Enter search query...",
       "emailToPlaceholder": "user@example.com",
       "urlPlaceholder": "https://api.example.com/data",
       "toolsCount": "Tools ({{count}})",
@@ -4007,7 +4052,6 @@
       "tool": "Tool",
       "selectTool": "Select tool...",
       "query": "Query",
-      "queryPlaceholder": "Enter search query...",
       "knowledgeBase": "Knowledge Base",
       "mergeType": "Merge Type",
       "mergeAll": "All - Wait for all inputs",
@@ -4080,7 +4124,41 @@
       "headerValue": "headerValue",
       "selectTemplate": "Select Template",
       "searchTemplate": "Search template...",
-      "noTemplates": "No templates found"
+      "noTemplates": "No templates found",
+      "addCase": "Add case",
+      "aggregationAny": "Any result",
+      "aiGenerate": "AI Generate",
+      "autoInputFromParent": "Auto input from parent",
+      "autoInputFromParentHint": "When enabled, parent outputs are auto-injected as child inputs.",
+      "autoInputsFromBranches": "Auto inputs from branches",
+      "autoInputsFromBranchesHint": "When enabled, branch outputs are auto-injected as child inputs.",
+      "availableTools": "Available tools",
+      "cases": "Cases",
+      "codeTemplates": "Code templates",
+      "connectInputsManually": "Connect inputs manually",
+      "connection": "Data source",
+      "defaultConnection": "Default data source",
+      "editExpertPrompt": "Edit expert prompt",
+      "editRolePrompt": "Edit role prompt",
+      "hideTools": "Hide tools",
+      "llmRouting": "LLM Routing",
+      "matchMode": "Match mode",
+      "maxDelayMs": "Max delay (ms)",
+      "mergeAny": "Merge any",
+      "mergeMajority": "Merge majority",
+      "mergeRace": "Merge race",
+      "noToolsAvailable": "No tools available",
+      "promptSaveFailed": "Failed to save prompt",
+      "promptSaved": "Prompt saved",
+      "resetTimeoutHint": "Reset timeout",
+      "retryEnabled": "Enable retry",
+      "routingModel": "Routing model",
+      "routingModelPlaceholder": "Select routing model",
+      "routingPrompt": "Routing prompt",
+      "routingPromptPlaceholder": "Describe the routing decision logic",
+      "showTools": "Show tools",
+      "subject": "Subject",
+      "to": "To"
     },
     "debug": {
       "totalDuration": "Total Duration",
@@ -4106,7 +4184,60 @@
       "labelType": "Type",
       "labelError": "Error",
       "labelInput": "Input",
-      "labelOutput": "Output"
+      "labelOutput": "Output",
+      "allClear": "All clear",
+      "breakpoints": "Breakpoints",
+      "breakpointsPanel": "Breakpoints panel",
+      "cancel": "Cancel",
+      "clickToValidate": "Click to validate",
+      "colIssues": "Issues",
+      "colNode": "Node",
+      "colStatus": "Status",
+      "colTime": "Time",
+      "colType": "Type",
+      "continue": "Continue",
+      "cyclesDetected": "Cycles detected",
+      "deadEnd": "Dead end",
+      "error": "Error",
+      "errors": "Errors",
+      "execTime": "Execution time",
+      "executionHistory": "Execution history",
+      "input": "Input",
+      "issuesFound": "Issues found",
+      "noBreakpoints": "No breakpoints",
+      "noHistory": "No history",
+      "noPrompt": "No prompt",
+      "noRuntimeData": "No runtime data",
+      "noVariables": "No variables",
+      "nodeDiagnostics": "Node diagnostics",
+      "nodeRecords": "Node records",
+      "nodesExecuted": "Nodes executed",
+      "orphan": "Orphan",
+      "output": "Output",
+      "pause": "Pause",
+      "resume": "Resume",
+      "resumeBreakpoint": "Resume breakpoint",
+      "runFullCheck": "Run full check",
+      "runValidation": "Run validation",
+      "running": "Running",
+      "runtimeTrace": "Runtime trace",
+      "startDebug": "Start debug",
+      "staticCheck": "Static check",
+      "staticDebugHint": "Click a node to debug",
+      "step": "Step",
+      "stepBreakpoint": "Step breakpoint",
+      "structuralValidation": "Structural validation",
+      "subExecutionDetail": "Sub-execution detail",
+      "topoAnalysis": "Topo analysis",
+      "topoHealthy": "Topology healthy",
+      "totalEdges": "Total edges",
+      "totalNodes": "Total nodes",
+      "unreachableNodesCount": "Unreachable nodes",
+      "view": "View",
+      "viewDetail": "View detail",
+      "viewSubExecution": "View sub-execution",
+      "waitingForNodes": "Waiting for nodes",
+      "warnings": "Warnings"
     },
     "applySemanticCheck": "Apply",
     "applyUpgrade": "Apply Upgrade",
@@ -4213,7 +4344,9 @@
       "title": "Sub-Workflow",
       "async": "Async",
       "expand": "Expand",
-      "collapse": "Collapse"
+      "collapse": "Collapse",
+      "inputCount": "Input count",
+      "outputCount": "Output count"
     },
     "vectorRetrieveNode": {
       "notSelected": "Not selected",
@@ -4228,7 +4361,8 @@
       "title": "Loop",
       "maxIterations": "Max {{count}} iterations",
       "continueOnError": "Continue on error",
-      "steps": "{{count}} steps"
+      "steps": "{{count}} steps",
+      "notConfigured": "Loop node not configured"
     },
     "mergeNode": {
       "all": "All",
@@ -4252,7 +4386,9 @@
       "clickToAdd": "Click to add branch",
       "autoInput": "Auto-receive parent input",
       "expand": "Expand",
-      "collapse": "Collapse"
+      "collapse": "Collapse",
+      "waitAll": "Wait for all",
+      "waitAny": "Wait for any"
     },
     "debateNode": {
       "debaters": "debaters",
@@ -4288,7 +4424,8 @@
       "second": "sec",
       "minutes": "minutes",
       "until": "Until",
-      "title": "Delay"
+      "title": "Delay",
+      "notConfigured": "Delay node not configured"
     },
     "endNode": {
       "title": "End"
@@ -4302,7 +4439,8 @@
       "continue": "Continue",
       "title": "Validation",
       "assertionCount": "{{count}} assertions",
-      "failStrategy": "Fail strategy:"
+      "failStrategy": "Fail strategy:",
+      "rules": "Validation rules"
     },
     "shortcuts": {
       "title": "Shortcuts",
@@ -4335,22 +4473,6 @@
     },
     "selfLoopNotAllowed": "Self-loop is not allowed",
     "edgeAlreadyExists": "Edge already exists",
-    "aiAssist": {
-      "btn": {
-        "optimize": "AI Optimize",
-        "suggest": "AI Suggest",
-        "generate": "AI Generate",
-        "rewrite": "AI Rewrite",
-        "contextComplete": "Context Complete"
-      },
-      "tooltip": "Use AI to optimize or generate content",
-      "noProvider": "No AI provider available",
-      "failed": "AI generation failed",
-      "optimizing": "AI optimizing...",
-      "generating": "AI generating...",
-      "applied": "AI suggestion applied",
-      "contextCompleteApplied": "Context completion applied"
-    },
     "diagnostic": {
       "title": "Workflow Diagnostic",
       "run": "Run Diagnostic",
@@ -4592,13 +4714,26 @@
           "title": "Debate Dangling Debater Reference",
           "message": "Debate node references a debater step that no longer exists. Remove the stale reference."
         }
-      }
+      },
+      "error": "Diagnostic error"
     },
     "batchEdit": {
       "title": "Batch Edit",
       "noChange": "No change",
       "apply": "Apply to {count} nodes"
-    }
+    },
+    "batchEditMode": "Batch edit mode",
+    "noExecutionHistory": "No execution history",
+    "nodeConfig": {
+      "add_debater": "Add debater",
+      "convergence_model_role": "Convergence model role",
+      "convergence_prompt": "Convergence prompt",
+      "convergence_prompt_placeholder": "Prompt used to decide when the debate has converged",
+      "debaters": "Debaters",
+      "max_rounds": "Max rounds",
+      "topic_var": "Topic variable"
+    },
+    "searchNodes": "Search nodes"
   },
   "atomicSkill": {
     "entryType": "Entry Type",
@@ -4837,7 +4972,9 @@
     "includeTraces": "Include Traces",
     "tags": "Tags: {{tags}}",
     "none": "None",
-    "response": "Response"
+    "response": "Response",
+    "report": "Report",
+    "tasks": "Tasks"
   },
   "traceExplorer": {
     "selectTrace": "Select a trace to view details"
@@ -5133,6 +5270,19 @@
     "showPanel": "Show Panel",
     "selected": "Selected",
     "wiki": "Wiki",
+    "wikiForm": {
+      "description": "Description",
+      "name": "Name",
+      "rootPath": "Root path"
+    },
+    "ingestSource": {
+      "title": "Title",
+      "type": "Type",
+      "status": "Status",
+      "chunks": "Chunks",
+      "path": "Path",
+      "deleteNotImplemented": "Delete not implemented yet"
+    },
     "tips": {
       "doubleClick": "Double-click node to edit",
       "dragPanel": "Drag panels to resize",
@@ -5318,14 +5468,7 @@
     "searchPlaceholder": "Search Wiki...",
     "selectWiki": "Select Wiki",
     "selectWikiPrompt": "Please select a Wiki",
-    "source": {
-      "title": "Title",
-      "type": "Type",
-      "status": "Status",
-      "chunks": "Chunks",
-      "path": "Path",
-      "deleteNotImplemented": "Delete not implemented yet"
-    },
+    "source": "Source",
     "sources": "Sources",
     "sync": {
       "byWiki": "By Wiki",
@@ -5412,7 +5555,10 @@
     "quickCapture": "Quick capture...",
     "refresh": "Refresh",
     "startImport": "Import",
-    "vaultPath": "Vault path..."
+    "vaultPath": "Vault path...",
+    "wikiMeta": {
+      "rootPath": "Root Path"
+    }
   },
   "notification": {
     "clear": "Clear",
@@ -5428,7 +5574,8 @@
     "dismiss": "Dismiss",
     "execute": "Execute",
     "learningSuggestions": "Learning Suggestions",
-    "snooze30": "Snooze (30 min)"
+    "snooze30": "Snooze (30 min)",
+    "noSuggestions": "No suggestions"
   },
   "proactive": {
     "accept": "Accept",
@@ -5579,7 +5726,10 @@
     "analyzeFrontend": "AI Generate",
     "analyzeSuccess": "AI analysis complete",
     "analyzeError": "AI analysis failed: {{error}}",
-    "generateAgent": "Generate Agent"
+    "generateAgent": "Generate Agent",
+    "agentGenerated": "Agent Generated",
+    "noSkillName": "Unnamed skill",
+    "notFound": "Skill not found"
   },
   "tool": {
     "common": {
@@ -6422,7 +6572,9 @@
     "startNewResearch": "New Research",
     "lowCredibilityWarning": "Note: Report contains {{count}} low-credibility source(s), use with caution",
     "noReferences": "No references",
-    "noSummary": "No summary"
+    "noSummary": "No summary",
+    "noOutline": "No outline",
+    "noReport": "No report"
   },
   "citationManager": {
     "totalCitations": "Total Citations:",
@@ -6675,7 +6827,17 @@
     "title": "Something went wrong",
     "retryLoad": "Retry loading this module",
     "panelLoadFailed": "⚠️ Panel \"{{tabKey}}\" failed to load",
-    "unknownError": "Unknown error"
+    "unknownError": "Unknown error",
+    "copied": "Copied",
+    "copyError": "Copy Error",
+    "errorDetails": "Error Details",
+    "moduleError": "Module Error",
+    "pageError": "Page Error",
+    "refreshPage": "Refresh Page",
+    "retry": "Retry",
+    "somethingWentWrong": "Something Went Wrong",
+    "tryAgain": "Try Again",
+    "unexpectedError": "Unexpected Error"
   },
   "appInit": {
     "idle": "Preparing to start...",
@@ -6750,7 +6912,8 @@
     "retry": "Retry"
   },
   "subAgentCard": {
-    "viewConversation": "View Sub-Conversation"
+    "viewConversation": "View Sub-Conversation",
+    "fork": "Fork"
   },
   "modelParam": {
     "topP": "Top P"
@@ -6908,7 +7071,10 @@
     "storeNotRegistered": "Store {{storeName}} not registered",
     "functionNotRegistered": "Function {{name}} not registered",
     "handlerNotFound": "Handler {{name}} not found",
-    "handlerNotDeclarative": "Handler {{name}} not declarative"
+    "handlerNotDeclarative": "Handler {{name}} not declarative",
+    "commandPermissionDenied": "Command Permission Denied",
+    "emitPermissionDenied": "Emit Permission Denied",
+    "navigatePermissionDenied": "Navigate Permission Denied"
   },
   "export": {
     "exportTime": "Export time",
@@ -7068,7 +7234,8 @@
     "teammate": "Team",
     "steerInput": "SteerInput",
     "showExtras": "More",
-    "hideExtras": "Hide"
+    "hideExtras": "Hide",
+    "close": "Close"
   },
   "knowledgeSettings": {
     "title": "Knowledge"
@@ -7130,5 +7297,10 @@
         "generationUser": "Generate workflow based on: {0}"
       }
     }
+  },
+  "input": {
+    "recordAudio": "Record audio",
+    "takePhoto": "Take photo",
+    "uploadFile": "Upload file"
   }
 }
