@@ -30,7 +30,7 @@
     },
     {
       "file": "src/components/chat/ChatView.tsx",
-      "lines": "275,276,277,296",
+      "lines": "275,276,277,278,296",
       "reason": "硬编码中文字符串（关键字匹配规则）",
       "phase": 3
     },
