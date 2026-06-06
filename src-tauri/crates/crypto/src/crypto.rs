@@ -109,12 +109,12 @@ pub fn hmac_sha256(key: &[u8], msg: &str) -> String {
         i_pad[i] ^= k[i];
     }
     let mut inner = Sha256::new();
-    inner.update(&i_pad);
+    inner.update(i_pad);
     inner.update(msg.as_bytes());
     let inner_d = inner.finalize();
     let mut outer = Sha256::new();
-    outer.update(&o_pad);
-    outer.update(&inner_d);
+    outer.update(o_pad);
+    outer.update(inner_d);
     format!("{:x}", outer.finalize())
 }
 
