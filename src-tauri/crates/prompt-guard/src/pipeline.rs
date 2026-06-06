@@ -96,14 +96,13 @@ fn unicode_normalize(s: &str) -> String {
         .collect();
     // 2) NFKC 归一化（如果 unicode-normalization 可用）
     //    这里手写最常见的几条：全角 → 半角、连字、组合字符
-    let nfkc = stripped
+    stripped
         .replace('\u{FF01}', "!")
         .replace('\u{FF1F}', "?")
         .replace('\u{FF0C}', ",")
         .replace('\u{FF1A}', ":")
         .replace('\u{FF1B}', ";")
-        .replace('\u{3002}', ".");
-    nfkc
+        .replace('\u{3002}', ".")
 }
 
 #[cfg(test)]
