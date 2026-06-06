@@ -33,11 +33,7 @@ fn state_has_operator(_state: &State<'_, AppState>) -> bool {
 fn validate_cron_expression(cron: &str) -> Result<(), String> {
     let parts: Vec<&str> = cron.split_whitespace().collect();
     if parts.len() != 5 {
-        return Err(format!(
-            "Cron must have exactly 5 fields, got {}: '{}'",
-            parts.len(),
-            cron
-        ));
+        return Err(format!("Cron must have exactly 5 fields, got {}: '{}'", parts.len(), cron));
     }
     // 第二字段（hour）和第三字段（dom）必须不是 `*` 才能限制频率。
     // 简单规则：四字段全 `*` 会被认为"每分钟"，直接拒绝。

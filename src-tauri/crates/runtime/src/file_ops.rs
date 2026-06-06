@@ -665,7 +665,8 @@ mod tests {
 
     use super::{
         GrepSearchInput, MAX_WRITE_SIZE, edit_file, expand_braces, glob_search, grep_search,
-        is_symlink_escape, read_file, read_file_in_workspace, write_file,
+        is_symlink_escape, read_file, read_file_in_workspace, validate_workspace_boundary,
+        write_file,
     };
 
     fn temp_path(name: &str) -> std::path::PathBuf {
