@@ -650,7 +650,7 @@ pub fn extract_backup_zip(zip_path: &Path, dest_dir: &Path) -> Result<BackupZipC
             )));
         }
         // 压缩比检查
-        let compressed = entry.compressed_size() as u64;
+        let compressed = entry.compressed_size();
         if compressed > 0 && size / compressed > MAX_RATIO {
             return Err(AxAgentError::Gateway(format!(
                 "ZIP entry '{}' suspicious compression ratio: {}:1 (max {}:1)",
