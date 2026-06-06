@@ -128,34 +128,37 @@ impl PriorityScheduler {
         while let Some(t) = self.waiting_queue.peek() {
             let task = t.clone();
 
-            if self.running_tasks.len() >= self.config.max_concurrent_tasks {
-                break;
-            }
-            if self.total_allocated + task.resource_weight > self.config.total_resource_capacity {
-                if self.config.preempt_enabled
-                    && let Some(preempted) = self.try_preempt(&task)
-                {
-                    self.running_tasks
-                        .retain(|(t, _)| !preempted.preempted_task_ids.contains(&t.id));
-                    self.total_allocated = self.running_tasks.iter().map(|(_, w)| *w).sum();
-                    // 修复 1.3：被抢占的任务必须重新放回等待队列，保留原 priority/enqueue_seq，
-                    // 避免被 retain 直接丢弃造成任务消失。
-                    for preempted_task in preempted.preempted_tasks {
-                        self.waiting_queue.push(preempted_task);
-                    }
-                    continue;
-                }
-                break;
+            let has_slot = self.running_tasks.len() < self.config.max_concurrent_tasks;
+            let has_capacity =
+                self.total_allocated + task.resource_weight <= self.config.total_resource_capacity;
+
+            if has_slot && has_capacity {
+                let task = self
+                    .waiting_queue
+                    .pop()
+                    .expect("peek guaranteed the queue is non-empty");
+                self.total_allocated += task.resource_weight;
+                self.running_tasks
+                    .push((task.clone(), task.resource_weight));
+                scheduled.push(task);
+                continue;
             }
 
-            let task = self
-                .waiting_queue
-                .pop()
-                .expect("peek guaranteed the queue is non-empty");
-            self.total_allocated += task.resource_weight;
-            self.running_tasks
-                .push((task.clone(), task.resource_weight));
-            scheduled.push(task);
+            // 资源或槽位不足时尝试抢占
+            if self.config.preempt_enabled
+                && let Some(preempted) = self.try_preempt(&task)
+            {
+                self.running_tasks
+                    .retain(|(t, _)| !preempted.preempted_task_ids.contains(&t.id));
+                self.total_allocated = self.running_tasks.iter().map(|(_, w)| *w).sum();
+                // 修复 1.3：被抢占的任务必须重新放回等待队列
+                for preempted_task in preempted.preempted_tasks {
+                    self.waiting_queue.push(preempted_task);
+                }
+                continue;
+            }
+
+            break;
         }
 
         self.apply_anti_starvation();
