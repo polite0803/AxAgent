@@ -412,6 +412,34 @@ impl NodeExecutorTrait for AgentExecutor {
             tracing::warn!("Agent node {} strict_mode enabled", an.base.id);
         }
 
+        // 4g. input_mapping 变量自动注入：将声明的输入变量值注入 system_prompt 尾部
+        if !an.config.input_mapping.is_empty() {
+            let mut injected_lines = String::new();
+            // 排序确保稳定输出顺序
+            let mut pairs: Vec<(&String, &String)> = an.config.input_mapping.iter().collect();
+            pairs.sort_by(|a, b| a.0.cmp(b.0));
+            for (target_key, source_key) in &pairs {
+                if let Some(value) = context.variables.get(source_key.as_str()) {
+                    let formatted = match value {
+                        Value::String(s) => s.clone(),
+                        other => other.to_string(),
+                    };
+                    injected_lines.push_str(&format!("【{target_key}】:{formatted}\n"));
+                } else {
+                    tracing::debug!(
+                        "Agent node {} input_mapping: source '{}' not found in variables",
+                        an.base.id,
+                        source_key
+                    );
+                }
+            }
+            if !injected_lines.is_empty() {
+                all_segments.push(TemplateSegment::Static(format!(
+                    "\n\n--- 输入上下文 ---\n{injected_lines}"
+                )));
+            }
+        }
+
         let compiled = CompiledPrompt {
             segments: all_segments,
             variable_refs: Vec::new(),

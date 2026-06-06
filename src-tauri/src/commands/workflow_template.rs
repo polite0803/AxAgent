@@ -1360,6 +1360,7 @@ fn extract_config_from_n8n(n8n_node: &serde_json::Value, node_id: &str) -> Agent
         model_role: None,
         consistency_check: None,
         hallucination_guard: None,
+        input_mapping: std::collections::HashMap::new(),
     }
 }
 

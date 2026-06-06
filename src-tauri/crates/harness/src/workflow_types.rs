@@ -241,6 +241,12 @@ pub enum OutputMode {
 pub struct AgentNodeConfig {
     pub system_prompt: String,
     pub context_sources: Vec<String>,
+    /// 输入变量映射：将工作流变量（如 trigger 输出）注入到 Agent 的 system_prompt 中。
+    /// key = 注入到 prompt 的变量名，value = ExecutionState.variables 中的键。
+    /// 运行时自动解析并追加 `【key】:value` 格式到 system_prompt 尾部。
+    /// 示例: `{"stock_code": "trigger", "stock_name": "trigger"}` → 注入 "【stock_code】:600036\n【stock_name】:招商银行"
+    #[serde(default)]
+    pub input_mapping: std::collections::HashMap<String, String>,
     pub output_var: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub model: Option<String>,

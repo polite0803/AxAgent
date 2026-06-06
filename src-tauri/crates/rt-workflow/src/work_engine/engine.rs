@@ -1226,6 +1226,56 @@ impl WorkEngine {
             }
         }
 
+        // 自动注册 ToolRegistry 中的工具（tool_resolver 未命中时的补充路径）
+        {
+            let reg_opt = self.tool_registry();
+            if let Some(ref registry) = reg_opt {
+                let workflows = self.workflows.read().await;
+                if let Some(wf) = workflows.get(workflow_id) {
+                    let tool_names = collect_workflow_tool_names(&wf.nodes);
+                    let mut handlers = self.tool_handlers.lock().await;
+                    for name in tool_names {
+                        if !handlers.contains_key(&name) {
+                            if let Some(_tool) = registry.find(&name) {
+                                let reg_clone = registry.clone();
+                                let tn = name.clone();
+                                let cb: ToolCallback = std::sync::Arc::new(
+                                    move |_tn: String, args: serde_json::Value| {
+                                        let reg = reg_clone.clone();
+                                        let tool_name = tn.clone();
+                                        Box::pin(async move {
+                                            let ctx = axagent_harness::tool::ToolContext::new(".");
+                                            match reg.execute_tool(&tool_name, args, &ctx).await {
+                                                Ok(result) => Ok(serde_json::json!({
+                                                    "tool_name": tool_name,
+                                                    "result": result.content,
+                                                    "truncated": result.truncated,
+                                                    "is_error": result.is_error,
+                                                })),
+                                                Err(e) => {
+                                                    Err(format!("ToolRegistry 调用失败: {e}"))
+                                                },
+                                            }
+                                        })
+                                    },
+                                );
+                                tracing::info!(
+                                    "[WorkEngine] 通过 ToolRegistry 自动注册工具: {}",
+                                    name
+                                );
+                                handlers.insert(name.clone(), cb);
+                            } else {
+                                tracing::debug!(
+                                    "[WorkEngine] 工具 '{}' 在 ToolRegistry 中也未找到",
+                                    name
+                                );
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         // 注册 Rhai 脚本工具（从编译缓存）
         // 优先使用注入的 RhaiEngineAdapter（如果注入），否则走旧版 AST 缓存路径
         if self.rhai_engine.is_some() {
@@ -2465,10 +2515,18 @@ fn validate_input(input: &serde_json::Value, schema: &JsonSchema) -> Result<(), 
 fn collect_workflow_tool_names(nodes: &[WorkflowNode]) -> Vec<String> {
     let mut names = std::collections::HashSet::new();
     for node in nodes {
-        if let WorkflowNode::Agent(an) = node {
-            for tool in &an.config.tools {
-                names.insert(tool.name.clone());
-            }
+        match node {
+            WorkflowNode::Agent(an) => {
+                for tool in &an.config.tools {
+                    names.insert(tool.name.clone());
+                }
+            },
+            WorkflowNode::Tool(tn) => {
+                if !tn.config.tool_name.is_empty() {
+                    names.insert(tn.config.tool_name.clone());
+                }
+            },
+            _ => {},
         }
     }
     names.into_iter().collect()

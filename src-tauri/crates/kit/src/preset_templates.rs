@@ -926,6 +926,7 @@ fn step_to_agent_node(step: &PresetStep, index: usize) -> WorkflowNode {
             model_role: None,
             consistency_check: None,
             hallucination_guard: None,
+            input_mapping: std::collections::HashMap::new(),
         },
     })
 }
