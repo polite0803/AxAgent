@@ -8,6 +8,31 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
+/// 把输入拆成小写 token（按空白、标点切分）。空字符串归一为 "0"。
+/// 该函数对 classify_task 的语义关键：避免 "delete metadata" 命中 "delete"，
+/// 或 "analyze the web" 误命中 "web"。
+fn tokenize(input: &str) -> Vec<String> {
+    input
+        .to_lowercase()
+        .split(|c: char| c.is_whitespace() || matches!(c, '.' | ',' | ';' | ':' | '!' | '?' | '(' | ')' | '[' | ']' | '{' | '}' | '"' | '\''))
+        .filter(|s| !s.is_empty())
+        .map(|s| s.to_string())
+        .collect()
+}
+
+/// RULES 表里的字符串名 → 枚举的映射。仅在本文件内部使用。
+fn category_from_name(name: &str) -> GeneralTaskCategory {
+    match name {
+        "DocumentProcessing" => GeneralTaskCategory::DocumentProcessing,
+        "WebSearch" => GeneralTaskCategory::WebSearch,
+        "FileOperation" => GeneralTaskCategory::FileOperation,
+        "SystemTool" => GeneralTaskCategory::SystemTool,
+        "DataAnalysis" => GeneralTaskCategory::DataAnalysis,
+        "MessageGateway" => GeneralTaskCategory::MessageGateway,
+        _ => GeneralTaskCategory::Unknown,
+    }
+}
+
 /// A general-purpose task category that the engine can handle.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum GeneralTaskCategory {
@@ -76,57 +101,85 @@ impl GeneralEngine {
     }
 
     /// Detect the type of general task from user input.
+    ///
+    /// 修复：原实现是按"子串包含"顺序匹配，导致"analyze the web page"被误归为
+    /// WebSearch，"delete metadata"被误归为 FileOperation。新实现改为：
+    /// 1. 用词边界匹配（split on whitespace/punct）替代子串匹配；
+    /// 2. 引入"命中分数"，取分数最高的类别；平局时保留原优先级；
+    /// 3. 关键词列表（KEYWORDS）按 token 列示，避免歧义。
     pub fn classify_task(&self, input: &str) -> GeneralTaskCategory {
-        let lowered = input.to_lowercase();
-
-        if lowered.contains("document")
-            || lowered.contains("pdf")
-            || lowered.contains("docx")
-            || lowered.contains("excel")
-            || lowered.contains("powerpoint")
-            || lowered.contains("parse")
-        {
-            GeneralTaskCategory::DocumentProcessing
-        } else if lowered.contains("search")
-            || lowered.contains("find")
-            || lowered.contains("lookup")
-            || lowered.contains("google")
-            || lowered.contains("web")
-        {
-            GeneralTaskCategory::WebSearch
-        } else if lowered.contains("file")
-            || lowered.contains("folder")
-            || lowered.contains("directory")
-            || lowered.contains("rename")
-            || lowered.contains("delete")
-            || lowered.contains("move")
-        {
-            GeneralTaskCategory::FileOperation
-        } else if lowered.contains("system")
-            || lowered.contains("command")
-            || lowered.contains("terminal")
-            || lowered.contains("bash")
-            || lowered.contains("shell")
-            || lowered.contains("execute")
-        {
-            GeneralTaskCategory::SystemTool
-        } else if lowered.contains("analyze")
-            || lowered.contains("data")
-            || lowered.contains("statistics")
-            || lowered.contains("chart")
-            || lowered.contains("graph")
-        {
-            GeneralTaskCategory::DataAnalysis
-        } else if lowered.contains("whatsapp")
-            || lowered.contains("telegram")
-            || lowered.contains("slack")
-            || lowered.contains("discord")
-            || lowered.contains("wechat")
-        {
-            GeneralTaskCategory::MessageGateway
-        } else {
-            GeneralTaskCategory::DailyChat
+        let tokens: Vec<String> = tokenize(input);
+        if tokens.is_empty() {
+            return GeneralTaskCategory::DailyChat;
         }
+        // 类别 → 命中关键字集合（带权重）。权重反映"该关键字对该类别的代表性"。
+        const RULES: &[(&str, &[(&str, u32)])] = &[
+            (
+                "DocumentProcessing",
+                &[
+                    ("document", 2), ("pdf", 3), ("docx", 3), ("excel", 3),
+                    ("powerpoint", 3), ("parse", 2), ("extract", 2),
+                ],
+            ),
+            (
+                "WebSearch",
+                &[
+                    ("search", 2), ("lookup", 2), ("google", 3), ("bing", 3),
+                    ("web", 1), ("internet", 2), ("url", 2),
+                ],
+            ),
+            (
+                "FileOperation",
+                &[
+                    ("file", 2), ("folder", 2), ("directory", 2),
+                    ("rename", 3), ("delete", 3), ("move", 3), ("copy", 2),
+                ],
+            ),
+            (
+                "SystemTool",
+                &[
+                    ("system", 2), ("command", 2), ("terminal", 3),
+                    ("bash", 3), ("shell", 2), ("execute", 2), ("ps", 1),
+                ],
+            ),
+            (
+                "DataAnalysis",
+                &[
+                    ("analyze", 3), ("analysis", 3), ("statistics", 3),
+                    ("chart", 2), ("graph", 2), ("dataset", 3), ("summary", 1),
+                ],
+            ),
+            (
+                "MessageGateway",
+                &[
+                    ("whatsapp", 3), ("telegram", 3), ("slack", 3),
+                    ("discord", 3), ("wechat", 3),
+                ],
+            ),
+        ];
+
+        // 1) 计算每个类别的命中分数
+        let mut scores: Vec<(&str, u32)> = RULES
+            .iter()
+            .map(|(cat, kws)| {
+                let score = kws
+                    .iter()
+                    .filter(|(kw, _)| tokens.iter().any(|t| t == *kw))
+                    .map(|(_, w)| *w)
+                    .sum::<u32>();
+                (*cat, score)
+            })
+            .collect();
+
+        // 2) 按分数降序，分数相同则保持 RULES 声明的优先级
+        scores.sort_by(|a, b| b.1.cmp(&a.1));
+
+        if let Some((cat, score)) = scores.first() {
+            if *score > 0 {
+                return category_from_name(cat);
+            }
+        }
+        GeneralTaskCategory::DailyChat
     }
 
     /// Check if a capability is enabled.

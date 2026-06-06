@@ -137,13 +137,17 @@ fn evaluate_single(
             .zip(expected.as_str())
             .is_some_and(|(a, e)| a.ends_with(e)),
         CompareOperator::RegexMatch => {
+            // 修复：原本降级为 contains。regex crate 已在 Cargo.toml 中可用，
+            // 这里使用真正的正则匹配。编译失败时返回 false（不 panic 阻断流程）。
             actual
                 .as_str()
                 .zip(expected.as_str())
-                .is_some_and(|(a, pat)| {
-                    // 简单子串匹配作为 regex 的降级实现。
-                    // 完整正则支持需要引入 regex crate。
-                    a.contains(pat)
+                .is_some_and(|(a, pat)| match regex::Regex::new(pat) {
+                    Ok(re) => re.is_match(a),
+                    Err(e) => {
+                        tracing::warn!("[condition] RegexMatch 模式 '{pat}' 编译失败: {e}");
+                        false
+                    },
                 })
         },
         CompareOperator::IsEmpty => {
@@ -415,6 +419,10 @@ fn evaluate_llm_heuristic(
 
 /// 从 ExecutionState 变量中解析点分隔路径。
 fn resolve_var_path(path: &str, context: &ExecutionState) -> Option<serde_json::Value> {
+    // 修复：空路径直接返回 None，不再走 parts[0] 触发 panic
+    if path.is_empty() {
+        return None;
+    }
     let parts: Vec<&str> = path.split('.').collect();
     // 尝试按节点输出路径解析：root 为节点 ID，后续为嵌套字段
     if let Some(root) = context.variables.get(parts[0]) {

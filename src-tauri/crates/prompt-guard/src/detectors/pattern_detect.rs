@@ -9,22 +9,33 @@ use std::sync::OnceLock;
 use crate::config::{DetectionResult, GuardConfig, GuardMode};
 
 /// 高风险注入模式（RegexSet 批量匹配）
+/// SECURITY (M8): 增加 NFKC 归一化前的多语种 / Unicode 注入模式。
 fn high_risk_patterns() -> &'static RegexSet {
     static PATTERNS: OnceLock<RegexSet> = OnceLock::new();
     PATTERNS.get_or_init(|| {
         RegexSet::new([
-            r"(?i)ignore\s+(all\s+)?previous\s+(instructions|directives|constraints)",
-            r"(?i)you\s+are\s+now\s+(a\s+|an\s+|the\s+)?(different|new)",
+            r"(?i)ignore\s+(all\s+)?previous\s+(instructions|directives|constraints|orders|prompts)",
+            r"(?i)you\s+are\s+now\s+(a\s+|an\s+|the\s+)?(different|new|free|unrestricted|unshackled|an?\s+evil)",
             r"(?i)pretend\s+you\s+are",
-            r"(?i)act\s+as\s+(if\s+you\s+are|a\s+different)",
-            r"(?i)(forget|disregard|override)\s+(all\s+)?(previous|above|system)",
+            r"(?i)act\s+as\s+(if\s+you\s+are|a\s+different|an?\s+evil|a\s+new)",
+            r"(?i)(forget|disregard|override|disobey|drop|remove)\s+(all\s+)?(previous|above|system|rules|guardrails)",
             r"(?i)</?system>",
             r"(?i)^system\s*:",
-            r"(?i)\bDAN\b.*\b(jailbreak|mode|prompt)\b",
+            r"(?i)\bDAN\b.*\b(jailbreak|mode|prompt|unrestricted)\b",
             r"(?i)you\s+are\s+now\s+(free|unshackled|unrestricted)",
             r"(?i)---\s*END\s+OF\s+SYSTEM\s*---",
             r"(?i)<\|im_start\|>",
             r"(?i)<\|im_end\|>",
+            // 新增：常见中文 / 多语种 + Unicode 注入
+            r"(?i)忽略.{0,8}(之前|以上|先前的?)\s*(指示|指令|规则|约束|命令)",
+            r"(?i)从现在起.{0,12}你(是|变[成至为]?)",
+            r"(?i)重新\s*(定义|设置|覆盖)\s*(你的)?\s*(身份|角色|人设|规则)",
+            r"(?i)把(你|模型)\s*(的)?\s*(规则|限制|约束)\s*(都|全部)\s*(去掉|删掉|清空|忽略)",
+            r"\u{200B}|\u{FEFF}",  // 零宽 / BOM
+            r"\u{202E}",            // RTL override
+            r"(?i)reveal\s+(the\s+)?(system|hidden|secret)\s+prompt",
+            r"(?i)print\s+(the\s+)?(system|initial)\s+(message|prompt|instructions)",
+            r"(?i)do\s+anything\s+now",
         ])
         .expect("high risk regex patterns must compile")
     })

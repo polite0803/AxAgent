@@ -36,7 +36,12 @@ pub async fn create_gateway_key(
     let id = gen_id();
     let now = now_ts();
     let plain_key = crypto::generate_gateway_key();
-    let key_hash = crypto::sha256_hash(&plain_key);
+    // SECURITY (H6): 当 master_key 提供时使用 HMAC 而非裸 SHA-256；
+    // 没有 master_key 时回退到 SHA-256（兼容旧调用方，但生产环境应传 master_key）。
+    let key_hash = match master_key {
+        Some(mk) => crypto::hmac_sha256(mk, &plain_key),
+        None => crypto::sha256_hash(&plain_key),
+    };
     let key_prefix = crypto::key_prefix(&plain_key);
 
     let encrypted_key = master_key

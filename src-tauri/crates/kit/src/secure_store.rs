@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
-use tracing::warn;
 
 const SERVICE_NAME: &str = "axagent";
 
@@ -155,7 +154,29 @@ impl SecureStore for CombinedSecureStore {
                 Ok(())
             },
             Err(e) => {
-                warn!("Keyring unavailable for key '{}': {}, falling back to file storage", key, e);
+                // SECURITY (C8): 降级到明文文件必须显式可观测，且对真正敏感的 key 默认拒绝。
+                tracing::error!(
+                    target: "axagent.security",
+                    "Keyring unavailable for key '{}', falling back to plaintext file at {}: {}",
+                    key, self.fallback.env_path.display(), e
+                );
+                if is_secret_key(key) {
+                    // 关键 key：必须显式 opt-in 才能降级
+                    let allow = std::env::var("AXAGENT_ALLOW_PLAINTEXT_SECRETS")
+                        .map(|v| matches!(v.trim().to_ascii_lowercase().as_str(), "1" | "true" | "yes" | "on"))
+                        .unwrap_or(false);
+                    if !allow {
+                        return Err(format!(
+                            "refusing to store secret key '{}' in plaintext (set AXAGENT_ALLOW_PLAINTEXT_SECRETS=1 to override)",
+                            key
+                        ));
+                    }
+                    tracing::error!(
+                        target: "axagent.security",
+                        "AXAGENT_ALLOW_PLAINTEXT_SECRETS=1 — secret '{}' written to plaintext file",
+                        key
+                    );
+                }
                 self.fallback.store_secret(key, value)
             },
         }
@@ -165,7 +186,14 @@ impl SecureStore for CombinedSecureStore {
         match self.keyring.get_secret(key) {
             Ok(Some(v)) => Ok(Some(v)),
             Ok(None) => self.fallback.get_secret(key),
-            Err(_) => self.fallback.get_secret(key),
+            Err(e) => {
+                tracing::warn!(
+                    target: "axagent.security",
+                    "Keyring get failed for '{}', using fallback: {}",
+                    key, e
+                );
+                self.fallback.get_secret(key)
+            },
         }
     }
 

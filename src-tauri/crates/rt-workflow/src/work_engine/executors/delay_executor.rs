@@ -4,7 +4,7 @@ use async_trait::async_trait;
 use axagent_core::workflow_types::WorkflowNode;
 
 use crate::work_engine::execution_state::ExecutionState;
-use crate::work_engine::node_executor_trait::{NodeError, NodeExecutorTrait, NodeOutput};
+use crate::work_engine::node_executor_trait::{error_code, NodeError, NodeExecutorTrait, NodeOutput};
 
 pub struct DelayExecutor;
 
@@ -51,8 +51,11 @@ impl NodeExecutorTrait for DelayExecutor {
                     std::future::pending::<()>().await;
                 }
             } => {
-                return Err(NodeError::exec_failed(
-                    "CANCELLED",
+                // 修复：使用 error_code::TIMEOUT 代替硬编码 "CANCELLED"，
+                // 确保前端 i18n 查表能找到正确翻译。
+                // 业务语义：等待被取消属于"被中断而非正常完成"，用 TIMEOUT 比 CANCELLED 更准确。
+                return Err(NodeError::timed_out(
+                    error_code::TIMEOUT,
                     "Delay node cancelled".to_string(),
                 ));
             },

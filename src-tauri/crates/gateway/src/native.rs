@@ -1216,7 +1216,8 @@ mod tests {
     ) -> (Router, DbHandle, String, GatewayAppState) {
         let handle = create_test_pool().await.unwrap();
         let db = &handle.conn;
-        let gateway_key = gateway::create_gateway_key(db, "Native Test Key", None)
+        let master_key = [9u8; 32];
+        let gateway_key = gateway::create_gateway_key(db, "Native Test Key", Some(&master_key))
             .await
             .unwrap();
         let provider = provider::create_provider(
@@ -1253,7 +1254,6 @@ mod tests {
         .await
         .unwrap();
 
-        let master_key = [9u8; 32];
         provider::add_provider_key(
             db,
             &provider.id,
@@ -1646,10 +1646,10 @@ mod tests {
 
         let handle = create_test_pool().await.unwrap();
         let db = &handle.conn;
-        let gateway_key = gateway::create_gateway_key(db, "Native Test Key", None)
+        let master_key = [9u8; 32];
+        let gateway_key = gateway::create_gateway_key(db, "Native Test Key", Some(&master_key))
             .await
             .unwrap();
-        let master_key = [9u8; 32];
 
         insert_provider_with_optional_key(
             db,

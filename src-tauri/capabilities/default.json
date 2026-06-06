@@ -1,7 +1,7 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Capability for the main window",
+  "description": "Capability for the main window — minimized to least privilege (D1/D4).",
   "windows": ["main", "quickbar"],
   "permissions": [
     "core:default",
@@ -20,8 +20,6 @@
     "core:window:allow-set-resizable",
     "opener:default",
     "dialog:default",
-    "fs:default",
-    "process:default",
     "global-shortcut:allow-register",
     "global-shortcut:allow-unregister",
     "global-shortcut:allow-unregister-all",
@@ -29,15 +27,27 @@
     "autostart:default",
     {
       "identifier": "fs:allow-write-text-file",
-      "allow": [{ "path": "$APPDATA/**" }, { "path": "$HOME/.axagent/**" }]
+      "allow": [
+        { "path": "$APPDATA/**" },
+        { "path": "$HOME/.axagent/**" },
+        { "path": "$APPLOCALDATA/**" }
+      ]
     },
     {
       "identifier": "fs:allow-write-file",
-      "allow": [{ "path": "$APPDATA/**" }, { "path": "$HOME/.axagent/**" }]
+      "allow": [
+        { "path": "$APPDATA/**" },
+        { "path": "$HOME/.axagent/**" },
+        { "path": "$APPLOCALDATA/**" }
+      ]
     },
     {
       "identifier": "fs:allow-read-file",
-      "allow": [{ "path": "$APPDATA/**" }, { "path": "$HOME/.axagent/**" }]
+      "allow": [
+        { "path": "$APPDATA/**" },
+        { "path": "$HOME/.axagent/**" },
+        { "path": "$APPLOCALDATA/**" }
+      ]
     },
     "updater:default",
     "clipboard-manager:allow-write-text",

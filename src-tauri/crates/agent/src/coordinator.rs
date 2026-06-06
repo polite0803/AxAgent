@@ -5,6 +5,7 @@ use async_trait::async_trait;
 use axagent_runtime_core::{CacheGuard, HookChain, prompt_cache::PromptCache};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicU8, Ordering};
 use thiserror::Error;
 use tokio::sync::RwLock;
 
@@ -66,6 +67,9 @@ impl WorkerDefinition {
     pub fn validate(&self) -> Result<(), String> {
         if self.agent_type.is_empty() {
             return Err("agent_type 不能为空".to_string());
+        }
+        if self.when_to_use.is_empty() {
+            return Err("when_to_use 不能为空".to_string());
         }
         if self.tools.is_empty() {
             return Err("tools 不能为空".to_string());
@@ -313,6 +317,60 @@ impl std::fmt::Display for AgentStatus {
     }
 }
 
+// ---------------------------------------------------------------------------
+// 状态机判别值（用于 lock-free 原子状态机）
+// ---------------------------------------------------------------------------
+//
+// 真实状态机由 `AtomicU8` 驱动；`Arc<RwLock<AgentStatus>>` 仍保留以返回
+// `Failed(String)` 等携带详情的状态给调用方。状态判别值映射：
+//
+// 0 = Idle
+// 1 = Initializing
+// 2 = Running
+// 3 = WaitingForConfirmation
+// 4 = Paused
+// 5 = Completed
+// 6 = Failed
+//
+// 所有比较/转换统一通过 `compare_exchange(SeqCst)` 完成，避免
+// `RwLock` 写锁释放后并发 cancel/get_status 读到错乱中间态。
+
+const STATE_IDLE: u8 = 0;
+const STATE_INITIALIZING: u8 = 1;
+const STATE_RUNNING: u8 = 2;
+const STATE_WAITING_FOR_CONFIRMATION: u8 = 3;
+const STATE_PAUSED: u8 = 4;
+const STATE_COMPLETED: u8 = 5;
+const STATE_FAILED: u8 = 6;
+
+/// 将 `AgentStatus` 映射到原子判别值（`Failed(_)` 一律映射到 `STATE_FAILED`，详情保留在 RwLock 中）。
+fn state_discriminant(status: &AgentStatus) -> u8 {
+    match status {
+        AgentStatus::Idle => STATE_IDLE,
+        AgentStatus::Initializing => STATE_INITIALIZING,
+        AgentStatus::Running => STATE_RUNNING,
+        AgentStatus::WaitingForConfirmation => STATE_WAITING_FOR_CONFIRMATION,
+        AgentStatus::Paused => STATE_PAUSED,
+        AgentStatus::Completed => STATE_COMPLETED,
+        AgentStatus::Failed(_) => STATE_FAILED,
+    }
+}
+
+/// 由原子判别值构造无详情 `AgentStatus`（`Failed` 分支 detail 为空字符串，真实 detail 由 RwLock 提供）。
+fn state_from_discriminant(value: u8) -> AgentStatus {
+    match value {
+        STATE_IDLE => AgentStatus::Idle,
+        STATE_INITIALIZING => AgentStatus::Initializing,
+        STATE_RUNNING => AgentStatus::Running,
+        STATE_WAITING_FOR_CONFIRMATION => AgentStatus::WaitingForConfirmation,
+        STATE_PAUSED => AgentStatus::Paused,
+        STATE_COMPLETED => AgentStatus::Completed,
+        STATE_FAILED => AgentStatus::Failed(String::new()),
+        // 未知判别值兜底为 Idle，避免污染状态机
+        _ => AgentStatus::Idle,
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AgentConfig {
     pub max_iterations: usize,
@@ -392,6 +450,11 @@ pub trait AgentImpl: Send + Sync {
 }
 
 pub struct AgentCoordinator<T: AgentImpl> {
+    /// 状态机判别值（lock-free 状态机；具体含义见 `STATE_*` 常量注释）。
+    /// 状态转换通过 `compare_exchange(SeqCst)` 完成，避免 `RwLock` 写锁
+    /// 释放后并发 cancel/get_status 读到错乱中间态。
+    state: Arc<AtomicU8>,
+    /// 完整 `AgentStatus`（含 `Failed(String)` 详情），由 atomic 状态机驱动刷新。
     status: Arc<RwLock<AgentStatus>>,
     config: Arc<RwLock<AgentConfig>>,
     implementation: Arc<tokio::sync::Mutex<T>>,
@@ -414,6 +477,7 @@ impl<T: AgentImpl> AgentCoordinator<T> {
         let prompt_cache = Arc::new(PromptCache::new());
 
         Self {
+            state: Arc::new(AtomicU8::new(STATE_IDLE)),
             status: Arc::new(RwLock::new(AgentStatus::Idle)),
             config: Arc::new(RwLock::new(AgentConfig::default())),
             implementation,
@@ -470,24 +534,39 @@ impl<T: AgentImpl> AgentCoordinator<T> {
     }
 
     pub async fn initialize(&self, config: AgentConfig) -> Result<(), AgentError> {
-        let mut status = self.status.write().await;
-        if *status != AgentStatus::Idle {
+        // 1. 原子守卫：仅允许从 Idle 进入 Initializing；并发进入返回 InvalidState
+        if !self.try_transition(&[STATE_IDLE], STATE_INITIALIZING) {
+            let current = self.current_state();
             return Err(AgentError::InvalidState(format!(
-                "Cannot initialize from status {}",
-                status
+                "Cannot initialize from state {}",
+                state_from_discriminant(current)
             )));
         }
-
-        *status = AgentStatus::Initializing;
-        drop(status);
-
         {
-            let mut impl_guard = self.implementation.lock().await;
-            impl_guard.initialize(config.clone()).await?;
+            let mut status = self.status.write().await;
+            *status = AgentStatus::Initializing;
         }
 
-        let mut status = self.status.write().await;
-        *status = AgentStatus::Idle;
+        // 2. 调用实现；失败时复位状态为 Idle，再传播错误（避免卡在 Initializing）
+        let init_result = {
+            let mut impl_guard = self.implementation.lock().await;
+            impl_guard.initialize(config.clone()).await
+        };
+        if let Err(err) = init_result {
+            self.set_state(STATE_IDLE);
+            {
+                let mut status = self.status.write().await;
+                *status = AgentStatus::Idle;
+            }
+            return Err(err);
+        }
+
+        // 3. 成功：原子置 Idle，刷新 config，发出 StateChanged 事件
+        self.set_state(STATE_IDLE);
+        {
+            let mut status = self.status.write().await;
+            *status = AgentStatus::Idle;
+        }
         let mut cfg = self.config.write().await;
         *cfg = config;
 
@@ -504,22 +583,26 @@ impl<T: AgentImpl> AgentCoordinator<T> {
     }
 
     pub async fn execute(&self, input: AgentInput) -> Result<CoordinatorOutput, AgentError> {
-        let mut status = self.status.write().await;
-        let current_status = status.clone();
-
-        if matches!(current_status, AgentStatus::Running) {
-            return Err(AgentError::AlreadyRunning);
-        }
-
-        if !matches!(current_status, AgentStatus::Idle | AgentStatus::Paused) {
+        // 1. 原子守卫：仅允许从 Idle|Paused 进入 Running；并发进入时
+        //    - 当前已是 Running → AlreadyRunning
+        //    - 其余状态 → InvalidState
+        // 通过 `compare_exchange` 实现 lock-free 状态获取，状态在
+        // 整个 impl.execute() 期间持久可见，避免 `RwLock` 写锁释放
+        // 后并发 cancel/get_status 读到错乱中间态。
+        if !self.try_transition(&[STATE_IDLE, STATE_PAUSED], STATE_RUNNING) {
+            let current = self.current_state();
+            if current == STATE_RUNNING {
+                return Err(AgentError::AlreadyRunning);
+            }
             return Err(AgentError::InvalidState(format!(
-                "Cannot execute from status {}",
-                current_status
+                "Cannot execute from state {}",
+                state_from_discriminant(current)
             )));
         }
-
-        *status = AgentStatus::Running;
-        drop(status);
+        {
+            let mut status = self.status.write().await;
+            *status = AgentStatus::Running;
+        }
 
         let mut input = input;
         if self.steer_manager.has_pending().await
@@ -557,10 +640,14 @@ impl<T: AgentImpl> AgentCoordinator<T> {
             impl_guard.execute(input).await
         };
 
-        let mut status = self.status.write().await;
+        // 4. 写回终态：以 atomic 为准，detail 走 RwLock
         match &result {
             Ok(output) => {
-                *status = output.status.clone();
+                self.set_state(state_discriminant(&output.status));
+                {
+                    let mut status = self.status.write().await;
+                    *status = output.status.clone();
+                }
                 self.emit_event(
                     AgentEventType::TurnCompleted,
                     serde_json::json!({
@@ -573,7 +660,11 @@ impl<T: AgentImpl> AgentCoordinator<T> {
                 .await;
             },
             Err(e) => {
-                *status = AgentStatus::Failed(e.to_string());
+                self.set_state(STATE_FAILED);
+                {
+                    let mut status = self.status.write().await;
+                    *status = AgentStatus::Failed(e.to_string());
+                }
                 self.emit_event(
                     AgentEventType::Error,
                     serde_json::json!({
@@ -602,19 +693,27 @@ impl<T: AgentImpl> AgentCoordinator<T> {
     }
 
     pub async fn pause(&self) -> Result<(), AgentError> {
-        let status = self.status.read().await;
-        if !matches!(*status, AgentStatus::Running) {
-            return Err(AgentError::InvalidState(format!("Cannot pause from status {}", status)));
+        // 1. 原子检查：仅当状态为 Running 时才进入（不预占状态，避免失败后回滚）
+        let current = self.current_state();
+        if current != STATE_RUNNING {
+            return Err(AgentError::InvalidState(format!(
+                "Cannot pause from state {}",
+                state_from_discriminant(current)
+            )));
         }
-        drop(status);
 
+        // 2. 调用实现，失败时原状态（Running）保持不变
         {
             let mut impl_guard = self.implementation.lock().await;
             impl_guard.pause().await?;
         }
 
-        let mut status = self.status.write().await;
-        *status = AgentStatus::Paused;
+        // 3. 成功：原子置 Paused，刷新 detail
+        self.set_state(STATE_PAUSED);
+        {
+            let mut status = self.status.write().await;
+            *status = AgentStatus::Paused;
+        }
 
         self.emit_event(
             AgentEventType::StateChanged,
@@ -629,19 +728,27 @@ impl<T: AgentImpl> AgentCoordinator<T> {
     }
 
     pub async fn resume(&self) -> Result<(), AgentError> {
-        let status = self.status.read().await;
-        if !matches!(*status, AgentStatus::Paused) {
-            return Err(AgentError::InvalidState(format!("Cannot resume from status {}", status)));
+        // 1. 原子检查：仅当状态为 Paused 时才进入
+        let current = self.current_state();
+        if current != STATE_PAUSED {
+            return Err(AgentError::InvalidState(format!(
+                "Cannot resume from state {}",
+                state_from_discriminant(current)
+            )));
         }
-        drop(status);
 
+        // 2. 调用实现，失败时原状态（Paused）保持不变
         {
             let mut impl_guard = self.implementation.lock().await;
             impl_guard.resume().await?;
         }
 
-        let mut status = self.status.write().await;
-        *status = AgentStatus::Running;
+        // 3. 成功：原子置 Running，刷新 detail
+        self.set_state(STATE_RUNNING);
+        {
+            let mut status = self.status.write().await;
+            *status = AgentStatus::Running;
+        }
 
         self.emit_event(
             AgentEventType::StateChanged,
@@ -656,13 +763,18 @@ impl<T: AgentImpl> AgentCoordinator<T> {
     }
 
     pub async fn cancel(&self) -> Result<(), AgentError> {
+        // 1. 调用实现；失败时原状态保持不变，错误直接传播（避免掩盖实现层错误）
         {
             let mut impl_guard = self.implementation.lock().await;
             impl_guard.cancel().await?;
         }
 
-        let mut status = self.status.write().await;
-        *status = AgentStatus::Idle;
+        // 2. 成功：原子置 Idle，刷新 detail
+        self.set_state(STATE_IDLE);
+        {
+            let mut status = self.status.write().await;
+            *status = AgentStatus::Idle;
+        }
 
         self.emit_event(
             AgentEventType::StateChanged,
@@ -686,6 +798,36 @@ impl<T: AgentImpl> AgentCoordinator<T> {
     fn next_correlation_id(&self) -> u64 {
         self.correlation_counter
             .fetch_add(1, std::sync::atomic::Ordering::SeqCst)
+    }
+
+    /// 读取当前状态判别值（SeqCst load）。
+    fn current_state(&self) -> u8 {
+        self.state.load(Ordering::SeqCst)
+    }
+
+    /// 原子地、无锁地将状态从 `from` 中的任一判别值转换为 `to`。
+    ///
+    /// 使用 `compare_exchange` 循环避免 ABA；当前判别值不在
+    /// `from` 中或被并发修改时返回 `false`，由调用方决定如何响应。
+    fn try_transition(&self, from: &[u8], to: u8) -> bool {
+        let mut current = self.current_state();
+        loop {
+            if !from.contains(&current) {
+                return false;
+            }
+            match self
+                .state
+                .compare_exchange(current, to, Ordering::SeqCst, Ordering::SeqCst)
+            {
+                Ok(_) => return true,
+                Err(actual) => current = actual,
+            }
+        }
+    }
+
+    /// 无条件原子地写入状态判别值（仅在锁/事件已正确同步时使用）。
+    fn set_state(&self, to: u8) {
+        self.state.store(to, Ordering::SeqCst);
     }
 
     async fn emit_event(&self, event_type: AgentEventType, payload: serde_json::Value) {

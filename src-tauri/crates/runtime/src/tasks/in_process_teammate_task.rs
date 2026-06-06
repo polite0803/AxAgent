@@ -7,7 +7,6 @@
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use std::sync::Arc;
 use tokio::sync::mpsc;
 
 /// 队友任务状态
@@ -50,6 +49,10 @@ pub enum TeammateMessage {
 }
 
 /// 同进程队友任务
+///
+/// 通道方向（以队友自身视角命名）：
+/// - `cmd_rx`：从 leader 接收命令（leader → teammate）
+/// - `evt_tx`：向 leader 发送事件（teammate → leader）
 pub struct InProcessTeammateTask {
     pub task_id: String,
     pub agent_id: String,
@@ -57,10 +60,10 @@ pub struct InProcessTeammateTask {
     pub team_name: String,
     pub status: TeammateTaskStatus,
     pub created_at: DateTime<Utc>,
-    /// 消息发送通道（队友 → leader）
-    pub outgoing_tx: mpsc::Sender<TeammateMessage>,
-    /// 消息接收通道（leader → 队友）
-    pub incoming_rx: mpsc::Receiver<TeammateMessage>,
+    /// 命令接收通道（leader → 队友）
+    pub cmd_rx: mpsc::Receiver<TeammateMessage>,
+    /// 事件发送通道（队友 → leader）
+    pub evt_tx: mpsc::Sender<TeammateMessage>,
     /// 当前执行的任务
     pub current_task: Option<String>,
     /// 已完成的任务计数
@@ -71,16 +74,20 @@ pub struct InProcessTeammateTask {
 
 impl InProcessTeammateTask {
     /// 创建队友
+    ///
+    /// 返回三元组：
+    /// - `task`：队友自身，持有 `cmd_rx`（收命令）和 `evt_tx`（发事件）
+    /// - `cmd_tx`：返回给 leader，用于向队友发送命令
+    /// - `evt_rx`：返回给 leader，用于接收队友的事件
     pub fn new(
         agent_name: &str,
         team_name: &str,
     ) -> (Self, mpsc::Sender<TeammateMessage>, mpsc::Receiver<TeammateMessage>) {
-        let (outgoing_tx, outgoing_rx) = mpsc::channel(64);
-        let (incoming_tx, incoming_rx) = mpsc::channel(64);
+        // 通道 1：命令通道，leader → teammate
+        let (cmd_tx, cmd_rx) = mpsc::channel(64);
+        // 通道 2：事件通道，teammate → leader
+        let (evt_tx, evt_rx) = mpsc::channel(64);
 
-        // 注意：这里 outgoing 和 incoming 的视角是相对于 leader
-        // leader 通过 outgoing_tx 发送消息给队友
-        // leader 通过 incoming_rx 接收队友的消息
         let task = Self {
             task_id: uuid::Uuid::new_v4().to_string(),
             agent_id: super::super::swarm::team_helpers::teammate_id(agent_name, team_name),
@@ -88,32 +95,32 @@ impl InProcessTeammateTask {
             team_name: team_name.to_string(),
             status: TeammateTaskStatus::Created,
             created_at: Utc::now(),
-            outgoing_tx: incoming_tx, // 队友的发送通道 = leader 的接收通道
-            incoming_rx: outgoing_rx, // 队友的接收通道 = leader 的发送通道
+            cmd_rx, // 队友从 leader 收命令
+            evt_tx, // 队友向 leader 发事件
             current_task: None,
             completed_tasks: 0,
             failed_tasks: 0,
         };
 
-        (task, outgoing_tx, incoming_rx)
+        (task, cmd_tx, evt_rx)
     }
 
-    /// 获取队友的确定性 ID
+    /// 获取队友的确定性 ID（直接复用已存的 agent_id，避免重复格式化）
     pub fn teammate_id(&self) -> String {
-        format!("{}@{}", self.agent_name, self.team_name)
+        self.agent_id.clone()
     }
 
-    /// 发送消息给队友
-    pub async fn send_to_teammate(
-        &mut self,
+    /// 向 leader 发送事件
+    pub async fn send_event(
+        &self,
         message: TeammateMessage,
     ) -> Result<(), mpsc::error::SendError<TeammateMessage>> {
-        self.outgoing_tx.send(message).await
+        self.evt_tx.send(message).await
     }
 
-    /// 接收队友的消息
-    pub async fn recv_from_teammate(&mut self) -> Option<TeammateMessage> {
-        self.incoming_rx.recv().await
+    /// 接收 leader 的命令
+    pub async fn recv_command(&mut self) -> Option<TeammateMessage> {
+        self.cmd_rx.recv().await
     }
 
     /// 分配任务给队友
@@ -124,7 +131,7 @@ impl InProcessTeammateTask {
     ) -> Result<(), mpsc::error::SendError<TeammateMessage>> {
         self.current_task = Some(task_id.to_string());
         self.status = TeammateTaskStatus::Running;
-        self.send_to_teammate(TeammateMessage::TaskAssign {
+        self.send_event(TeammateMessage::TaskAssign {
             task_id: task_id.to_string(),
             description: description.to_string(),
         })
@@ -144,7 +151,7 @@ impl InProcessTeammateTask {
 
     /// 关闭队友
     pub async fn shutdown(&mut self) {
-        let _ = self.send_to_teammate(TeammateMessage::Shutdown).await;
+        let _ = self.send_event(TeammateMessage::Shutdown).await;
         self.status = TeammateTaskStatus::Completed;
     }
 }

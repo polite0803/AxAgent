@@ -47,6 +47,15 @@ pub struct WebDavClient {
 
 impl WebDavClient {
     pub fn new(config: WebDavConfig) -> Result<Self> {
+        if config.accept_invalid_certs {
+            // SECURITY (H8): 用户显式选择跳过 TLS 校验会大幅降低 WebDAV 同步链路的安全性。
+            // 必须写告警日志 + 返回带可观测标记的 client。
+            tracing::warn!(
+                target: "axagent.security",
+                "WebDAV configured with accept_invalid_certs=true — \
+                 TLS verification disabled; backups and credentials are exposed to MITM"
+            );
+        }
         let client = Client::builder()
             .danger_accept_invalid_certs(config.accept_invalid_certs)
             .timeout(std::time::Duration::from_secs(300))
@@ -589,6 +598,25 @@ pub fn extract_backup_zip(zip_path: &Path, dest_dir: &Path) -> Result<BackupZipC
     std::fs::create_dir_all(dest_dir)
         .map_err(|e| AxAgentError::Gateway(format!("Failed to create temp dir: {}", e)))?;
 
+    // SECURITY (C7): Zip-bomb 防护。
+    // - 单个文件大小上限 200 MB
+    // - 解压总大小上限 2 GB
+    // - 整体条目数上限 50,000
+    // - 整体压缩比上限 100:1（防御高压缩比炸弹）
+    const MAX_FILE_BYTES: u64 = 200 * 1024 * 1024;
+    const MAX_TOTAL_BYTES: u64 = 2 * 1024 * 1024 * 1024;
+    const MAX_ENTRIES: usize = 50_000;
+    const MAX_RATIO: u64 = 100;
+
+    let entry_count = archive.len();
+    if entry_count > MAX_ENTRIES {
+        return Err(AxAgentError::Gateway(format!(
+            "ZIP has too many entries ({} > {})",
+            entry_count, MAX_ENTRIES
+        )));
+    }
+
+    let mut total_uncompressed: u64 = 0;
     let mut db_path = None;
     let mut metadata = None;
     let mut has_documents = false;
@@ -600,9 +628,36 @@ pub fn extract_backup_zip(zip_path: &Path, dest_dir: &Path) -> Result<BackupZipC
             .by_index(i)
             .map_err(|e| AxAgentError::Gateway(format!("ZIP read error: {}", e)))?;
         let name = entry.name().to_string();
+        let size = entry.size();
 
         if name.contains("..") || name.starts_with('/') || name.starts_with('\\') {
             continue;
+        }
+
+        // 单文件大小
+        if size > MAX_FILE_BYTES {
+            return Err(AxAgentError::Gateway(format!(
+                "ZIP entry '{}' too large ({} > {} bytes)",
+                name, size, MAX_FILE_BYTES
+            )));
+        }
+        // 累加总大小
+        total_uncompressed = total_uncompressed.saturating_add(size);
+        if total_uncompressed > MAX_TOTAL_BYTES {
+            return Err(AxAgentError::Gateway(format!(
+                "ZIP total uncompressed size exceeds limit ({} > {})",
+                total_uncompressed, MAX_TOTAL_BYTES
+            )));
+        }
+        // 压缩比检查
+        let compressed = entry.compressed_size() as u64;
+        if compressed > 0 && size / compressed > MAX_RATIO {
+            return Err(AxAgentError::Gateway(format!(
+                "ZIP entry '{}' suspicious compression ratio: {}:1 (max {}:1)",
+                name,
+                size / compressed,
+                MAX_RATIO
+            )));
         }
 
         if name == "axagent.db" {

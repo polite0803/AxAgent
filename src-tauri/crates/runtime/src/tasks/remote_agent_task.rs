@@ -131,11 +131,16 @@ impl RemoteAgentTask {
     }
 
     /// 检查心跳是否超时
+    ///
+    /// 防御性处理：`heartbeat_interval` 为 0 时退化为 1 秒，
+    /// 避免 `*2` 仍为 0 导致 `is_heartbeat_stale` 立即返回 true。
     pub fn is_heartbeat_stale(&self) -> bool {
+        // 防止零间隔误判：最小心跳间隔为 1 秒
+        let safe_interval = self.heartbeat_interval.max(Duration::from_secs(1));
         match self.last_heartbeat {
             Some(last) => {
                 let elapsed = Utc::now() - last;
-                chrono::Duration::from_std(self.heartbeat_interval * 2)
+                chrono::Duration::from_std(safe_interval * 2)
                     .map(|d| elapsed > d)
                     .unwrap_or(true)
             },
@@ -151,10 +156,19 @@ pub struct RemoteAgentClient {
 
 impl RemoteAgentClient {
     /// 创建新的 HTTP 客户端
+    ///
+    /// 默认设置 10 秒连接超时，避免网络长挂起时上层无感知。
+    /// 请求级超时仍由 `send_task` 内的 `.timeout()` 控制。
     pub fn new() -> Self {
-        Self {
-            http_client: reqwest::Client::new(),
-        }
+        let http_client = reqwest::Client::builder()
+            .connect_timeout(Duration::from_secs(10))
+            .build()
+            .unwrap_or_else(|_| {
+                // 构建失败时回退到默认客户端，记录告警后继续
+                tracing::warn!("reqwest 客户端构建失败，使用默认配置（无连接超时）");
+                reqwest::Client::new()
+            });
+        Self { http_client }
     }
 
     /// 向远程 agent 发送任务

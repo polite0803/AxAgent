@@ -142,16 +142,21 @@ impl EngineBridge {
     /// channel, or `EngineNotFound`/`ChannelClosed` errors.
     pub async fn route_message(&self, msg: EngineMessage) -> Result<(), EngineBridgeError> {
         let from = msg.from;
+        let to = msg.to;
         let senders = self.senders.read().await;
         let sender = senders
-            .get(&msg.to)
-            .ok_or(EngineBridgeError::EngineNotFound(msg.to))?;
+            .get(&to)
+            .ok_or(EngineBridgeError::EngineNotFound(to))?;
 
-        sender
-            .try_send(msg)
-            .map_err(|e| EngineBridgeError::ChannelClosed(format!("{e}")))?;
+        sender.try_send(msg).map_err(|e| match e {
+            tokio::sync::mpsc::error::TrySendError::Full(_) => EngineBridgeError::ChannelFull(to),
+            tokio::sync::mpsc::error::TrySendError::Closed(_) => {
+                EngineBridgeError::ChannelClosed(to)
+            },
+        })?;
 
-        // Update health
+        // Update health: messages_processed counts "messages this engine sent (routed)".
+        // 接收端的处理量通过 update_health 的 active_tasks 维度间接体现。
         drop(senders);
         let mut health = self.health.write().await;
         if let Some(h) = health.get_mut(&from) {
@@ -215,14 +220,22 @@ impl Default for EngineBridge {
 #[derive(Debug, Clone)]
 pub enum EngineBridgeError {
     EngineNotFound(EngineId),
-    ChannelClosed(String),
+    /// 目标 channel 已关闭（接收端 drop）。消息无法送达，调用方应停止重试。
+    ChannelClosed(EngineId),
+    /// 目标 channel 容量已满（背压）。消息原样返回，调用方应 backoff 后重试或丢弃。
+    ChannelFull(EngineId),
 }
 
 impl std::fmt::Display for EngineBridgeError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            EngineBridgeError::EngineNotFound(id) => write!(f, "Engine {:?} not found", id),
-            EngineBridgeError::ChannelClosed(msg) => write!(f, "Channel closed: {msg}"),
+            EngineBridgeError::EngineNotFound(id) => write!(f, "Engine {id:?} not found"),
+            EngineBridgeError::ChannelClosed(id) => {
+                write!(f, "Channel for engine {id:?} is closed")
+            },
+            EngineBridgeError::ChannelFull(id) => {
+                write!(f, "Channel for engine {id:?} is full (backpressure)")
+            },
         }
     }
 }

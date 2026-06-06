@@ -17,6 +17,16 @@ impl InterruptLevel {
             Self::Graceful => "graceful",
         }
     }
+
+    /// 严重度排序：Hard(3) > Graceful(2) > Soft(1)
+    /// 数值越大代表中断意图越强，越不应被后续请求覆盖
+    fn severity(self) -> u8 {
+        match self {
+            Self::Soft => 1,
+            Self::Graceful => 2,
+            Self::Hard => 3,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -38,6 +48,8 @@ pub enum InterruptState {
 pub struct InterruptManager {
     state: Arc<RwLock<InterruptState>>,
     pending: Arc<RwLock<Option<InterruptRequest>>>,
+    /// 当前中断周期内的最高严重度级别；用于防止后续低级别请求将状态机降级
+    max_level: Arc<RwLock<Option<InterruptLevel>>>,
     notify: Arc<Notify>,
     auto_recovery: bool,
 }
@@ -47,12 +59,37 @@ impl InterruptManager {
         Self {
             state: Arc::new(RwLock::new(InterruptState::None)),
             pending: Arc::new(RwLock::new(None)),
+            max_level: Arc::new(RwLock::new(None)),
             notify: Arc::new(Notify::new()),
             auto_recovery,
         }
     }
 
+    /// 提交一次中断请求
+    ///
+    /// 严重度规则：仅当新请求的级别严格高于当前周期内已记录的最高级别时才覆盖状态；
+    /// 否则忽略低优先级请求，避免高级别中断意图被"降级"。
+    /// 历史最高级别保留在 `max_level` 中，便于 audit。
     pub async fn request(&self, level: InterruptLevel, reason: Option<String>) {
+        // 读取当前周期内已记录的最高级别（短锁后立即释放）
+        let current_max = *self.max_level.read().await;
+        let should_override = match current_max {
+            Some(existing) => level.severity() > existing.severity(),
+            None => true,
+        };
+
+        if !should_override {
+            // 此时 current_max 必然是 Some(existing)
+            let existing = current_max.expect("max_level should be Some when not overriding");
+            // 低级别请求被忽略，但保留历史最高级别，便于 audit
+            tracing::warn!(
+                "忽略较低级别的中断请求：requested={}, current_max={}",
+                level.as_str(),
+                existing.as_str()
+            );
+            return;
+        }
+
         let request = InterruptRequest {
             level,
             reason,
@@ -60,6 +97,7 @@ impl InterruptManager {
         };
         *self.pending.write().await = Some(request);
         *self.state.write().await = InterruptState::Pending(level);
+        *self.max_level.write().await = Some(level);
         self.notify.notify_one();
         tracing::info!("Interrupt requested: level={}", level.as_str());
     }
@@ -98,11 +136,14 @@ impl InterruptManager {
             *self.state.write().await = InterruptState::Completed;
         }
         *self.pending.write().await = None;
+        // 周期结束，重置最高级别记录
+        *self.max_level.write().await = None;
     }
 
     pub async fn recover(&self) {
         *self.state.write().await = InterruptState::None;
         *self.pending.write().await = None;
+        *self.max_level.write().await = None;
         tracing::info!("Interrupt recovery completed");
     }
 
@@ -277,5 +318,56 @@ mod tests {
         let req = manager.check().await.unwrap();
         assert_eq!(req.level, InterruptLevel::Soft);
         assert!(req.reason.is_some());
+    }
+
+    /// 验证严重度防降级：高级别中断请求不可被后续低级别请求覆盖
+    /// 修复缺陷 2.9：多次中断级别降级
+    #[tokio::test]
+    async fn test_higher_level_overrides_lower() {
+        // 场景 1: Hard 在前，Soft 后续请求被忽略（防降级）
+        let manager = InterruptManager::new(false);
+        manager.hard_stop().await;
+        manager.soft_stop().await;
+        assert_eq!(manager.state().await, InterruptState::Pending(InterruptLevel::Hard));
+        let req = manager.check().await.unwrap();
+        assert_eq!(req.level, InterruptLevel::Hard);
+        // Hard 不保留会话语义在防降级后仍生效
+        assert!(!manager.should_preserve_session().await);
+        // 任意级别 Pending 时均应停止当前 turn
+        assert!(manager.should_stop_current_turn().await);
+
+        // 场景 2: Graceful 在前，Soft 后续请求被忽略
+        let manager2 = InterruptManager::new(false);
+        manager2.graceful_stop().await;
+        manager2.soft_stop().await;
+        assert_eq!(manager2.state().await, InterruptState::Pending(InterruptLevel::Graceful));
+
+        // 场景 3: Soft 在前，Hard 后续请求可升级
+        let manager3 = InterruptManager::new(false);
+        manager3.soft_stop().await;
+        manager3.hard_stop().await;
+        assert_eq!(manager3.state().await, InterruptState::Pending(InterruptLevel::Hard));
+
+        // 场景 4: Graceful 在前，Hard 后续请求可升级
+        let manager4 = InterruptManager::new(false);
+        manager4.graceful_stop().await;
+        manager4.hard_stop().await;
+        assert_eq!(manager4.state().await, InterruptState::Pending(InterruptLevel::Hard));
+
+        // 场景 5: 同级别（Hard -> Hard）不被覆盖为更低，且状态保持 Hard
+        let manager5 = InterruptManager::new(false);
+        manager5.hard_stop().await;
+        manager5.soft_stop().await;
+        manager5.graceful_stop().await;
+        assert_eq!(manager5.state().await, InterruptState::Pending(InterruptLevel::Hard));
+
+        // 场景 6: 周期结束后（complete）新周期从空开始，max_level 被重置
+        let manager6 = InterruptManager::new(false);
+        manager6.hard_stop().await;
+        manager6.begin_processing().await;
+        manager6.complete().await;
+        // 周期结束后新请求应能正常进入新周期
+        manager6.soft_stop().await;
+        assert_eq!(manager6.state().await, InterruptState::Pending(InterruptLevel::Soft));
     }
 }

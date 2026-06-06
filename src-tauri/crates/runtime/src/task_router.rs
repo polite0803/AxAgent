@@ -43,16 +43,22 @@ pub struct TaskContext {
 }
 
 impl TaskContext {
-    /// Apply a routing decision to update consecutive turn counters.
+    /// 应用一次路由决策，更新连续轮次计数器。
+    ///
+    /// 修复缺陷 2.8（黏性反转）：原实现把反方计数器直接归零，导致 1 次
+    /// General 切换立刻清掉所有"代码黏性"。改为在切换时让反方计数器按 1
+    /// 衰减（`saturating_sub(1)`），需要连续多次对方才能完全清除当前
+    /// 引擎的黏性（代码侧默认 `sticky_code_turns = 3`，需 3 次连续
+    /// General 才会清零）。
     pub fn record_decision(&mut self, decision: RouteDecision) {
         match decision {
             RouteDecision::Code => {
-                self.consecutive_code_turns += 1;
-                self.consecutive_general_turns = 0;
+                self.consecutive_code_turns = self.consecutive_code_turns.saturating_add(1);
+                self.consecutive_general_turns = self.consecutive_general_turns.saturating_sub(1);
             },
             RouteDecision::General => {
-                self.consecutive_general_turns += 1;
-                self.consecutive_code_turns = 0;
+                self.consecutive_general_turns = self.consecutive_general_turns.saturating_add(1);
+                self.consecutive_code_turns = self.consecutive_code_turns.saturating_sub(1);
             },
         }
     }
@@ -352,5 +358,48 @@ mod tests {
         // With accumulated code context, a neutral message routes to code
         let decision = router.infer("what does this function do");
         assert_eq!(decision, RouteDecision::Code);
+    }
+
+    /// 验证缺陷 2.8 修复：单次 General 切换不能立即清空代码黏性。
+    ///
+    /// 先累积 5 轮 Code（`consecutive_code_turns = 5`），然后连续切到
+    /// General 5 次：每次反方递增、同方按 1 衰减。
+    /// 期望：经过 5 次 General 后，代码计数器才被完全清零（5 - 5 = 0）。
+    #[test]
+    fn test_sticky_decay_not_immediate_clear() {
+        let mut router = TaskRouter::default();
+        // 累积 5 轮 Code
+        for _ in 0..5 {
+            router.infer(
+                "Fix the bug in main.rs fn calculate and trait Calculator and struct Config",
+            );
+        }
+        assert_eq!(router.context().consecutive_code_turns, 5);
+        assert_eq!(router.context().consecutive_general_turns, 0);
+
+        // 第 1 次 General：反方递增，同方按 1 衰减
+        router.infer("Hello, how are you today?");
+        assert_eq!(router.context().consecutive_code_turns, 4);
+        assert_eq!(router.context().consecutive_general_turns, 1);
+
+        // 第 2 次 General
+        router.infer("What is the weather like?");
+        assert_eq!(router.context().consecutive_code_turns, 3);
+        assert_eq!(router.context().consecutive_general_turns, 2);
+
+        // 第 3 次 General
+        router.infer("Tell me a joke please");
+        assert_eq!(router.context().consecutive_code_turns, 2);
+        assert_eq!(router.context().consecutive_general_turns, 3);
+
+        // 第 4 次 General
+        router.infer("Good morning");
+        assert_eq!(router.context().consecutive_code_turns, 1);
+        assert_eq!(router.context().consecutive_general_turns, 4);
+
+        // 第 5 次 General：代码计数器刚好清零
+        router.infer("Thank you very much");
+        assert_eq!(router.context().consecutive_code_turns, 0);
+        assert_eq!(router.context().consecutive_general_turns, 5);
     }
 }

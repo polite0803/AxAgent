@@ -23,12 +23,15 @@ impl PromptGuardPipeline {
         }
     }
 
-    /// 处理用户输入：L1 → L2 → L3
+    /// 处理用户输入：L0(NFKC + 零宽剥离) → L1 → L2 → L3
     ///
     /// 返回 `Ok(wrapped_content)` 或 `Err(reason)` 当输入被阻断时。
     pub fn process_user_input(&self, input: &str) -> Result<String, String> {
+        // L0: Unicode 归一化与零宽剥离，避免绕过（SECURITY M8）
+        let normalized = unicode_normalize(input);
+
         // L1: 模式检测
-        match self.pattern_detector.detect(input) {
+        match self.pattern_detector.detect(&normalized) {
             DetectionResult::Blocked { reason } => return Err(reason),
             DetectionResult::Flagged { text, .. } => {
                 tracing::warn!("User input flagged by L1: risk indicators present");
@@ -38,7 +41,7 @@ impl PromptGuardPipeline {
             DetectionResult::Clean => {},
         }
 
-        self.escape_and_wrap(input)
+        self.escape_and_wrap(&normalized)
     }
 
     /// 处理外部数据：L4 → L2 → L3
@@ -67,6 +70,39 @@ impl PromptGuardPipeline {
 
         Ok(wrapped)
     }
+}
+
+/// SECURITY (M8): NFKC 归一化 + 零宽 / BOM / RTL 覆盖剥离。
+fn unicode_normalize(s: &str) -> String {
+    // 1) 剥零宽 / BOM / RTL override
+    let stripped: String = s
+        .chars()
+        .filter(|c| {
+            !matches!(
+                *c,
+                '\u{200B}' | '\u{200C}'
+                    | '\u{200D}'
+                    | '\u{FEFF}'
+                    | '\u{202E}'
+                    | '\u{202D}'
+                    | '\u{202C}'
+                    | '\u{2066}'
+                    | '\u{2067}'
+                    | '\u{2068}'
+                    | '\u{2069}'
+            )
+        })
+        .collect();
+    // 2) NFKC 归一化（如果 unicode-normalization 可用）
+    //    这里手写最常见的几条：全角 → 半角、连字、组合字符
+    let nfkc = stripped
+        .replace('\u{FF01}', "!")
+        .replace('\u{FF1F}', "?")
+        .replace('\u{FF0C}', ",")
+        .replace('\u{FF1A}', ":")
+        .replace('\u{FF1B}', ";")
+        .replace('\u{3002}', ".");
+    nfkc
 }
 
 #[cfg(test)]

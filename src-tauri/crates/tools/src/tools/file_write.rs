@@ -5,6 +5,40 @@ use std::path::Path;
 
 const MAX_FILE_SIZE: u64 = 10 * 1024 * 1024;
 
+/// SECURITY (C5): 绝对禁止的写入路径前缀 — 命中后一律 Block（不询问）。
+const FORBIDDEN_PREFIXES: &[&str] = &[
+    "/etc",
+    "/boot",
+    "/sys",
+    "/proc",
+    "/dev",
+    "/var/lib",
+    "/var/run",
+    "/var/log",
+    "/root/.ssh",
+    "/root/.gnupg",
+    "/home/*/.ssh",
+    "/home/*/.gnupg",
+    "/Users/*/.ssh",
+    "C:\\Windows",
+    "C:\\Program Files",
+    "C:\\Program Files (x86)",
+    "C:\\ProgramData",
+];
+
+/// 询问级：写入需要用户确认的路径。
+const ASK_PREFIXES: &[&str] = &[
+    "/usr",
+    "/opt",
+    "/bin",
+    "/sbin",
+    "/lib",
+    "/lib64",
+    "/etc",
+    "C:\\Users\\*\\AppData\\Roaming\\Microsoft",
+    "C:\\Users\\*\\NTUSER",
+];
+
 pub struct FileWriteTool;
 
 #[async_trait]
@@ -51,12 +85,23 @@ impl Tool for FileWriteTool {
         if !Path::new(path).is_absolute() {
             return Err(ToolError::invalid_input_for("FileWrite", "file_path 必须是绝对路径"));
         }
-
+        if path.contains('\0') {
+            return Err(ToolError::invalid_input_for("FileWrite", "file_path 含 NUL"));
+        }
         if path.contains("..") || path.starts_with('~') {
             return Err(ToolError::invalid_input_for(
                 "FileWrite",
                 "file_path 包含禁止的路径遍历模式 (.. 或 ~)",
             ));
+        }
+        // 阻断硬禁区
+        for bad in FORBIDDEN_PREFIXES {
+            if matches_glob(bad, path) {
+                return Err(ToolError::permission_denied(
+                    "FileWrite",
+                    &format!("禁止写入路径: {} 命中硬禁前缀 {}", path, bad),
+                ));
+            }
         }
 
         let content = input["content"]
@@ -78,28 +123,65 @@ impl Tool for FileWriteTool {
         Ok(())
     }
 
-    fn check_permissions(&self, input: &Value, _ctx: &ToolContext) -> PermissionResult {
+    fn check_permissions(&self, input: &Value, ctx: &ToolContext) -> PermissionResult {
         let path = input["file_path"].as_str().unwrap_or("");
+        let working_dir = std::path::Path::new(&ctx.working_dir);
 
-        let dangerous_prefixes = [
-            "/etc",
-            "/boot",
-            "/sys",
-            "/proc",
-            "/dev",
-            "C:\\Windows",
-            "C:\\Program Files",
-        ];
-        for prefix in &dangerous_prefixes {
-            if path.starts_with(prefix) {
-                return PermissionResult::Ask(format!("写入系统路径 '{}'，确认？", path));
+        // 阻断硬禁
+        for bad in FORBIDDEN_PREFIXES {
+            if matches_glob(bad, path) {
+                return PermissionResult::Deny(format!("路径命中硬禁: {}", bad));
             }
+        }
+        // 询问级
+        for ask in ASK_PREFIXES {
+            if matches_glob(ask, path) {
+                return PermissionResult::Ask(format!(
+                    "写入系统/共享路径 '{}'，确认？",
+                    path
+                ));
+            }
+        }
+
+        // 解析符号链接后再次确认
+        if let Ok(canonical) = std::fs::canonicalize(path) {
+            for bad in FORBIDDEN_PREFIXES {
+                if matches_glob(bad, &canonical.to_string_lossy()) {
+                    return PermissionResult::Deny(format!(
+                        "符号链接解析后命中硬禁: {}",
+                        canonical.display()
+                    ));
+                }
+            }
+        }
+
+        // 工作区外 → 询问
+        if !is_within_workspace(Path::new(path), working_dir) {
+            return PermissionResult::Ask(format!(
+                "目标 {} 不在工作区 {} 内，确认写入？",
+                path,
+                working_dir.display()
+            ));
         }
 
         PermissionResult::Allow
     }
 
-    async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
+    async fn call(&self, input: Value, ctx: &ToolContext) -> Result<ToolResult, ToolError> {
+        // SECURITY: 二次强制检查
+        match self.check_permissions(&input, &ctx) {
+            PermissionResult::Allow => {},
+            PermissionResult::Deny(reason) => {
+                return Err(ToolError::permission_denied("FileWrite", &reason));
+            },
+            PermissionResult::Ask(_) => {
+                return Err(ToolError::permission_denied(
+                    "FileWrite",
+                    "需要用户确认 (未配置自动批准)",
+                ));
+            },
+        }
+
         let file_path = input["file_path"].as_str().unwrap_or("");
         if file_path.is_empty() {
             return Err(ToolError::invalid_input_for("FileWrite", "缺少 file_path 参数"));
@@ -151,5 +233,71 @@ impl Tool for FileWriteTool {
         output.push_str(&format!("\n{} 行, {} 字节", lines, content.len()));
 
         Ok(ToolResult::success(output))
+    }
+}
+
+/// 简易 glob 匹配：仅支持 `*`（匹配单个路径段）。
+/// 模式与文本按 `/` 或 `\` 切段比较：每个段必须相等或为 `*`；
+/// 模式可作为前缀匹配更深的路径（但不能跨段匹配，如 `/etc` 不应匹配 `/etcfoo`）。
+fn matches_glob(pattern: &str, text: &str) -> bool {
+    use std::path::Path;
+    let pattern_trim = pattern.trim_end_matches(|c| c == '/' || c == '\\');
+    let p_path = Path::new(pattern_trim);
+    let t_path = Path::new(text);
+
+    let p_segs: Vec<String> = p_path
+        .components()
+        .map(|c| c.as_os_str().to_string_lossy().to_string())
+        .collect();
+    let t_segs: Vec<String> = t_path
+        .components()
+        .map(|c| c.as_os_str().to_string_lossy().to_string())
+        .collect();
+
+    if p_segs.len() > t_segs.len() {
+        return false;
+    }
+    for (i, p_seg) in p_segs.iter().enumerate() {
+        if p_seg == "*" {
+            continue;
+        }
+        if p_seg != &t_segs[i] {
+            return false;
+        }
+    }
+    true
+}
+
+fn is_within_workspace(path: &Path, workspace: &Path) -> bool {
+    let p = std::fs::canonicalize(path).unwrap_or_else(|_| path.to_path_buf());
+    let w = std::fs::canonicalize(workspace).unwrap_or_else(|_| workspace.to_path_buf());
+    let p_comp: Vec<std::path::Component> = p.components().collect();
+    let w_comp: Vec<std::path::Component> = w.components().collect();
+    if p_comp.len() < w_comp.len() {
+        return false;
+    }
+    p_comp.iter().take(w_comp.len()).eq(w_comp.iter())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::path::PathBuf;
+
+    #[test]
+    fn blocks_system_paths() {
+        assert!(matches_glob("/etc", "/etc/passwd"));
+        // SECURITY: 路径段必须严格匹配，/etc 不应误判 /etcfoo/*
+        assert!(!matches_glob("/etc", "/etcfoo/x"));
+        assert!(!matches_glob("/etc", "/etcfoo"));
+    }
+
+    #[test]
+    fn workspace_components_strict() {
+        let p = PathBuf::from("/workspace/inside.txt");
+        let w = PathBuf::from("/workspace");
+        assert!(is_within_workspace(&p, &w));
+        let p2 = PathBuf::from("/workspace_evil/x");
+        assert!(!is_within_workspace(&p2, &w));
     }
 }

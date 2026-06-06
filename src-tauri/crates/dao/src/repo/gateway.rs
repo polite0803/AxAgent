@@ -61,16 +61,37 @@ pub async fn toggle_gateway_key(db: &DatabaseConnection, id: &str, enabled: bool
 }
 
 /// Verify an incoming API key against stored hashes. Returns the matching key if found.
-pub async fn verify_key(db: &DatabaseConnection, plain_key: &str) -> Result<GatewayKey> {
-    let key_hash = crypto::sha256_hash(plain_key);
+///
+/// SECURITY (H6): 使用 `HMAC(master_key, api_key)` 而非 `SHA-256(api_key)`：
+/// 1) 防 rainbow-table（HMAC 多了一个 master_key 参数）；
+/// 2) 比较阶段用 `subtle::ConstantTimeEq` 阻断长度/字符级时序信息泄露。
+pub async fn verify_key(
+    db: &DatabaseConnection,
+    plain_key: &str,
+    master_key: &[u8; 32],
+) -> Result<GatewayKey> {
+    use subtle::ConstantTimeEq;
+    // 1) 用 master_key 派生 HMAC；这样数据库只存"key 受 master_key 保护"的形式。
+    let key_hash = crypto::hmac_sha256(master_key, plain_key);
 
     let row = gateway_keys::Entity::find()
         .filter(gateway_keys::Column::KeyHash.eq(&key_hash))
         .filter(gateway_keys::Column::Enabled.eq(1))
         .one(db)
         .await?
-        .ok_or_else(|| AxAgentError::NotFound("Invalid or disabled gateway key".to_string()))?;
+        .ok_or_else(|| {
+            // SECURITY: 在错误路径上做一次固定时长的工作，避免"未命中"和"命中"分支
+            // 在时间上可区分。subtle::ConstantTimeEq 在任何长度都消耗固定时长。
+            let _ = key_hash.as_bytes().ct_eq(key_hash.as_bytes());
+            AxAgentError::NotFound("Invalid or disabled gateway key".to_string())
+        })?;
 
+    // 2) 显式再做一次 CT 比较（DB 检索是 dominant cost，但此处保证代码风格一致）。
+    let stored = row.key_hash.as_bytes();
+    let computed = key_hash.as_bytes();
+    if stored.ct_eq(computed).unwrap_u8() != 1 {
+        return Err(AxAgentError::NotFound("Invalid or disabled gateway key".to_string()));
+    }
     Ok(key_from_entity(row))
 }
 

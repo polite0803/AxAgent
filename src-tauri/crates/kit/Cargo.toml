@@ -28,6 +28,8 @@ shellexpand = "3"
 reqwest = { workspace = true }
 image = { workspace = true }
 base64 = "0.22"
+sha2 = { workspace = true }
+subtle = "2"
 
 [target.'cfg(windows)'.dependencies]
 windows-sys = { version = "0.59", features = ["Win32_System_JobObjects", "Win32_System_Threading", "Win32_Foundation", "Win32_Security"] }

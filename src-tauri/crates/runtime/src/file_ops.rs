@@ -28,8 +28,38 @@ fn is_binary_file(path: &Path) -> io::Result<bool> {
 /// Validate that a resolved path stays within the given workspace root.
 /// Returns the canonical path on success, or an error if the path escapes
 /// the workspace boundary (e.g. via `../` traversal or symlink).
+///
+/// SECURITY (C6): 必须先把双方路径都 canonicalize 之后再按"路径组件"比较。
+/// 之前用 `Path::starts_with` 存在前缀绕过（`/workspace_evil`、`/workspace/..`）
+/// 以及 Windows 大小写问题。
 pub fn validate_workspace_boundary(resolved: &Path, workspace_root: &Path) -> io::Result<()> {
-    if !resolved.starts_with(workspace_root) {
+    // 双方都做 canonicalize；任何一方失败直接拒绝
+    let resolved_canon = std::fs::canonicalize(resolved).map_err(|e| {
+        io::Error::new(
+            io::ErrorKind::PermissionDenied,
+            format!("failed to canonicalize resolved path {}: {}", resolved.display(), e),
+        )
+    })?;
+    let root_canon = std::fs::canonicalize(workspace_root).map_err(|e| {
+        io::Error::new(
+            io::ErrorKind::PermissionDenied,
+            format!("failed to canonicalize workspace root {}: {}", workspace_root.display(), e),
+        )
+    })?;
+
+    let rc: Vec<std::path::Component> = resolved_canon.components().collect();
+    let wc: Vec<std::path::Component> = root_canon.components().collect();
+    if rc.len() < wc.len() {
+        return Err(io::Error::new(
+            io::ErrorKind::PermissionDenied,
+            format!(
+                "path {} escapes workspace boundary {} (shorter than root)",
+                resolved.display(),
+                workspace_root.display()
+            ),
+        ));
+    }
+    if !rc.iter().take(wc.len()).eq(wc.iter()) {
         return Err(io::Error::new(
             io::ErrorKind::PermissionDenied,
             format!(
@@ -789,6 +819,31 @@ mod tests {
     #[test]
     fn expand_braces_unmatched() {
         assert_eq!(expand_braces("foo.{bar"), vec!["foo.{bar"]);
+    }
+
+    #[test]
+    fn validate_workspace_boundary_rejects_prefix_lookalike() {
+        // SECURITY (C6): 之前 starts_with 的 bypass。
+        // workspace=/workspace，path=/workspace_evil/x → 必须拒绝。
+        let workspace = std::env::temp_dir().join("clawd-test-prefix-lookalike");
+        let _ = std::fs::create_dir_all(&workspace);
+        let lookalike = workspace
+            .parent()
+            .unwrap()
+            .join("clawd-test-prefix-lookalike_evil");
+        let _ = std::fs::create_dir_all(&lookalike);
+        let f = lookalike.join("file.txt");
+        let _ = std::fs::write(&f, "x");
+
+        // canonicalize 之后前缀相似的目录应被拒绝
+        let canonical_root = workspace.canonicalize().unwrap();
+        let canonical_f = f.canonicalize().unwrap();
+        assert!(
+            validate_workspace_boundary(&canonical_f, &canonical_root).is_err(),
+            "path under a directory whose name is a prefix of workspace must be rejected"
+        );
+        let _ = std::fs::remove_dir_all(&workspace);
+        let _ = std::fs::remove_dir_all(&lookalike);
     }
 
     #[test]

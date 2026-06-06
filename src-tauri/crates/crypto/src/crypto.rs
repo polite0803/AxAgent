@@ -65,8 +65,50 @@ pub fn sha256_hash(input: &str) -> String {
     format!("{:x}", hasher.finalize())
 }
 
-pub fn key_prefix(_key: &str) -> String {
-    "****".to_string()
+/// SECURITY (H7): 真正从 key 中提取可识别前缀。
+/// 取前 4 + 末 4 字符；长度不足时返回全 `*`。
+/// 仅用于 UI 展示，不参与任何权限判定。
+pub fn key_prefix(key: &str) -> String {
+    let chars: Vec<char> = key.chars().collect();
+    if chars.len() < 8 {
+        return "*".repeat(chars.len());
+    }
+    let head: String = chars.iter().take(4).collect();
+    let tail: String = chars.iter().rev().take(4).collect::<Vec<_>>().into_iter().rev().collect();
+    format!("{head}…{tail}")
+}
+
+/// SECURITY (H6): HMAC-SHA256(master_key, api_key) 用于服务器端校验。
+/// 与简单 SHA-256 不同：即便数据库泄漏，攻击者也无法用 rainbow table 还原
+/// 高熵随机 key；对于低熵 key（如人类口令前缀），HMAC 增加了 master_key 这一
+/// 必要参数。`master_key` 必须从进程环境提供，不能硬编码。
+pub fn hmac_sha256(key: &[u8], msg: &str) -> String {
+    use sha2::Sha256;
+    // 简化 HMAC：RFC 2104 标准
+    const BLOCK: usize = 64;
+    let mut k = [0u8; BLOCK];
+    if key.len() > BLOCK {
+        let mut h = Sha256::new();
+        h.update(key);
+        let d = h.finalize();
+        k[..d.len()].copy_from_slice(&d);
+    } else {
+        k[..key.len()].copy_from_slice(key);
+    }
+    let mut o_pad = [0x5c_u8; BLOCK];
+    let mut i_pad = [0x36_u8; BLOCK];
+    for i in 0..BLOCK {
+        o_pad[i] ^= k[i];
+        i_pad[i] ^= k[i];
+    }
+    let mut inner = Sha256::new();
+    inner.update(&i_pad);
+    inner.update(msg.as_bytes());
+    let inner_d = inner.finalize();
+    let mut outer = Sha256::new();
+    outer.update(&o_pad);
+    outer.update(&inner_d);
+    format!("{:x}", outer.finalize())
 }
 
 const BACKUP_VERSION_BYTE: u8 = 0x02;

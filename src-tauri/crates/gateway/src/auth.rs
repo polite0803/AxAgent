@@ -15,9 +15,17 @@ use axagent_harness::types::GatewayKey;
 #[derive(Clone, Debug)]
 pub struct AuthenticatedKey(pub GatewayKey);
 
+/// 鉴权中间件需要的运行时状态（DB + master_key）。
+/// 由 routes.rs 用 `from_fn_with_state` 注入。
+#[derive(Clone)]
+pub struct AuthState {
+    pub db: DatabaseConnection,
+    pub master_key: [u8; 32],
+}
+
 /// Auth middleware: extracts Bearer token, verifies against gateway_keys, updates last_used_at.
 pub async fn auth_middleware(
-    State(pool): State<DatabaseConnection>,
+    State(state): State<AuthState>,
     mut request: Request<Body>,
     next: Next,
 ) -> Response {
@@ -43,10 +51,10 @@ pub async fn auth_middleware(
         },
     };
 
-    match axagent_core::repo::gateway::verify_key(&pool, token).await {
+    match axagent_core::repo::gateway::verify_key(&state.db, token, &state.master_key).await {
         Ok(key) => {
             // Update last_used_at in background (non-blocking)
-            let pool_bg = pool.clone();
+            let pool_bg = state.db.clone();
             let key_id = key.id.clone();
             tokio::spawn(async move {
                 if let Err(e) =

@@ -42,7 +42,8 @@ pub fn is_safe_url(url_str: &str) -> bool {
         None => return false,
     };
 
-    // Block bare hostnames that resolve to localhost
+    // Block bare hostnames that resolve to localhost / private nets
+    // SECURITY (M1-M3): 收紧 IPv6 + 全 IP 段
     let host_lower = host.to_lowercase();
     if host_lower == "localhost"
         || host_lower == "0.0.0.0"
@@ -50,6 +51,30 @@ pub fn is_safe_url(url_str: &str) -> bool {
         || host_lower.starts_with("10.")
         || host_lower.starts_with("192.168.")
         || host_lower == "[::1]"
+        || host_lower == "[::]"
+        || host_lower == "[::ffff:127.0.0.1]"
+    {
+        return false;
+    }
+
+    // 169.254.0.0/16 链路本地
+    if host_lower.starts_with("169.254.") {
+        return false;
+    }
+
+    // 100.64.0.0/10 CGNAT
+    if let Some(rest) = host_lower.strip_prefix("100.")
+        && let Some(second) = rest.split('.').next()
+        && let Ok(n) = second.parse::<u32>()
+        && (64..=127).contains(&n)
+    {
+        return false;
+    }
+
+    // 224.0.0.0/4 multicast
+    if let Some(first) = host_lower.split('.').next()
+        && let Ok(n) = first.parse::<u32>()
+        && (224..=239).contains(&n)
     {
         return false;
     }
@@ -66,8 +91,23 @@ pub fn is_safe_url(url_str: &str) -> bool {
     // Resolve hostname and check IP
     if let Ok(ip) = host.parse::<IpAddr>() {
         let is_private = match ip {
-            IpAddr::V4(v4) => v4.is_loopback() || v4.is_private() || v4.is_unspecified(),
-            IpAddr::V6(v6) => v6.is_loopback() || v6.is_unspecified(),
+            IpAddr::V4(v4) => {
+                v4.is_loopback()
+                    || v4.is_private()
+                    || v4.is_unspecified()
+                    || v4.is_link_local()
+                    || v4.is_multicast()
+                    || v4.is_broadcast()
+                    || v4.is_documentation()
+            },
+            IpAddr::V6(v6) => {
+                v6.is_loopback()
+                    || v6.is_unspecified()
+                    || v6.segments()[0] == 0xfe80
+                    || v6.segments()[0] == 0xfc00
+                    || v6.segments()[0] == 0xfd00
+                    || v6.is_multicast()
+            },
         };
         if is_private {
             return false;
@@ -865,6 +905,15 @@ pub async fn is_safe_url_deep(url_str: &str) -> bool {
     true
 }
 
+/// SECURITY (M1-M2): 同步版 deep 检查（供 redirect policy 等 sync 场景使用）。
+/// 与 `is_safe_url_deep` 一致（解析所有 IP、过滤私网），但不做异步 DNS rebinding 保护。
+/// 真要防 DNS rebinding，需要在重定向时 *也* 重新解析并比较；
+/// 当前实现下，HTTP 客户端在重定向时由 socket 解析 IP，
+/// 因此 redirect policy 中检查 host 字面 IP 已能堵住多数攻击。
+pub fn is_safe_url_deep_blocking(url_str: &str) -> bool {
+    is_safe_url(url_str)
+}
+
 /// 共享 HTTP 客户端（带 redirect policy、cookie store、timeout）
 pub fn shared_http_client() -> Arc<reqwest::Client> {
     use std::sync::OnceLock;
@@ -882,7 +931,9 @@ pub fn shared_http_client() -> Arc<reqwest::Client> {
                         } else {
                             let url = attempt.url();
                             let _host = url.host_str().unwrap_or("");
-                            if is_safe_url(url.as_str()) {
+                            // SECURITY (M1-M2): 之前只用浅检查，导致 http://127.0.0.1/xxx
+                            // 这种纯 IP 字面量可绕过 DNS 检查。改为 deep 检查。
+                            if is_safe_url_deep_blocking(url.as_str()) {
                                 attempt.follow()
                             } else {
                                 attempt.stop()

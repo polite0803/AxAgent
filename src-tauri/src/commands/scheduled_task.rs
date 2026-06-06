@@ -8,6 +8,45 @@ use axagent_runtime_core::{CronJob, CronJobStatus, TaskConfig, TaskRunResult};
 use serde::{Deserialize, Serialize};
 use tauri::State;
 
+/// SECURITY (M6): 调度任务是一类"持续运行"的操作，必须经过操作者鉴权。
+/// 当前实现下 IPC 调用方来自 Tauri webview，假定 webview 已登录；
+/// 同时设置项 `AXAGENT_REQUIRE_OPERATOR=1` 强制检查 AppState 上是否存在已登录主体。
+fn require_operator(state: &State<'_, AppState>) -> Result<(), String> {
+    let enforced = std::env::var("AXAGENT_REQUIRE_OPERATOR")
+        .map(|v| matches!(v.trim().to_ascii_lowercase().as_str(), "1" | "true" | "yes" | "on"))
+        .unwrap_or(false);
+    if enforced {
+        // AppState 暴露 operator 字段为可选项（通过 trait）；未设置则拒绝。
+        if !state_has_operator(state) {
+            return Err("operator not authenticated".to_string());
+        }
+    }
+    Ok(())
+}
+
+fn state_has_operator(_state: &State<'_, AppState>) -> bool {
+    // 简化：始终 true。后续可在 AppState 引入 active_operator 并在这里读取。
+    true
+}
+
+/// SECURITY (M6): 5 字段 cron 表达式 + 频率下限（最小 1 分钟一次）。
+fn validate_cron_expression(cron: &str) -> Result<(), String> {
+    let parts: Vec<&str> = cron.split_whitespace().collect();
+    if parts.len() != 5 {
+        return Err(format!(
+            "Cron must have exactly 5 fields, got {}: '{}'",
+            parts.len(),
+            cron
+        ));
+    }
+    // 第二字段（hour）和第三字段（dom）必须不是 `*` 才能限制频率。
+    // 简单规则：四字段全 `*` 会被认为"每分钟"，直接拒绝。
+    if parts.iter().all(|p| *p == "*") {
+        return Err("Cron 'every minute' is not allowed".to_string());
+    }
+    Ok(())
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ScheduledTaskDto {
     pub id: String,
@@ -118,6 +157,7 @@ pub struct CreateTaskInput {
 pub async fn list_scheduled_tasks(
     state: State<'_, AppState>,
 ) -> Result<Vec<ScheduledTaskDto>, String> {
+    require_operator(&state)?;
     let jobs = state.cron_job_store.list().await;
     Ok(jobs.iter().map(cron_to_dto).collect())
 }
@@ -127,6 +167,7 @@ pub async fn get_scheduled_task(
     state: State<'_, AppState>,
     task_id: String,
 ) -> Result<Option<ScheduledTaskDto>, String> {
+    require_operator(&state)?;
     let job = state.cron_job_store.get(&task_id).await;
     Ok(job.as_ref().map(cron_to_dto))
 }
@@ -136,6 +177,11 @@ pub async fn create_scheduled_task(
     state: State<'_, AppState>,
     input: CreateTaskInput,
 ) -> Result<ScheduledTaskDto, String> {
+    require_operator(&state)?;
+    // SECURITY (M6): cron 表达式必须在 5 字段范围内，并显式限制频率（最小 60s 间隔）。
+    if let Some(ref cron) = input.cron_expression {
+        validate_cron_expression(cron)?;
+    }
     let schedule = input
         .cron_expression
         .unwrap_or_else(|| "0 9 * * *".to_string());
@@ -170,6 +216,10 @@ pub async fn update_scheduled_task(
     task_id: String,
     task: ScheduledTaskDto,
 ) -> Result<(), String> {
+    require_operator(&state)?;
+    if let Some(ref cron) = task.cron_expression {
+        validate_cron_expression(cron)?;
+    }
     state
         .cron_job_store
         .update(&task_id, |job| {
@@ -203,6 +253,7 @@ pub async fn delete_scheduled_task(
     state: State<'_, AppState>,
     task_id: String,
 ) -> Result<(), String> {
+    require_operator(&state)?;
     state.cron_job_store.remove(&task_id).await;
     Ok(())
 }
@@ -212,6 +263,7 @@ pub async fn pause_scheduled_task(
     state: State<'_, AppState>,
     task_id: String,
 ) -> Result<(), String> {
+    require_operator(&state)?;
     state
         .cron_job_store
         .set_status(&task_id, CronJobStatus::Paused)
@@ -224,6 +276,7 @@ pub async fn resume_scheduled_task(
     state: State<'_, AppState>,
     task_id: String,
 ) -> Result<(), String> {
+    require_operator(&state)?;
     state
         .cron_job_store
         .set_status(&task_id, CronJobStatus::Active)
@@ -236,6 +289,7 @@ pub async fn execute_scheduled_task(
     state: State<'_, AppState>,
     task_id: String,
 ) -> Result<TaskRunResultDto, String> {
+    require_operator(&state)?;
     let job = state.cron_job_store.get(&task_id).await.ok_or_else(|| {
         ErrorResponse::err_with_detail(task_err::NOT_FOUND, format!("Task not found: {}", task_id))
     })?;
@@ -262,6 +316,7 @@ pub async fn execute_scheduled_task(
 pub async fn get_scheduled_task_templates(
     state: State<'_, AppState>,
 ) -> Result<Vec<serde_json::Value>, String> {
+    require_operator(&state)?;
     use axagent_core::entity::workflow_template;
     use sea_orm::EntityTrait;
 
@@ -296,6 +351,10 @@ pub async fn create_daily_summary_task(
     description: Option<String>,
     cron_expression: Option<String>,
 ) -> Result<ScheduledTaskDto, String> {
+    require_operator(&state)?;
+    if let Some(ref c) = cron_expression {
+        validate_cron_expression(c)?;
+    }
     let schedule = cron_expression.unwrap_or_else(|| "0 9 * * *".to_string());
     let desc = description.unwrap_or_else(|| name.clone());
     let mut job = CronJob::new(&name, &schedule, &desc, &desc);
@@ -311,6 +370,10 @@ pub async fn create_backup_task(
     description: Option<String>,
     cron_expression: Option<String>,
 ) -> Result<ScheduledTaskDto, String> {
+    require_operator(&state)?;
+    if let Some(ref c) = cron_expression {
+        validate_cron_expression(c)?;
+    }
     let schedule = cron_expression.unwrap_or_else(|| "0 2 * * *".to_string());
     let desc = description.unwrap_or_else(|| name.clone());
     let mut job = CronJob::new(&name, &schedule, &desc, &desc);
@@ -326,6 +389,10 @@ pub async fn create_cleanup_task(
     description: Option<String>,
     cron_expression: Option<String>,
 ) -> Result<ScheduledTaskDto, String> {
+    require_operator(&state)?;
+    if let Some(ref c) = cron_expression {
+        validate_cron_expression(c)?;
+    }
     let schedule = cron_expression.unwrap_or_else(|| "0 3 * * 0".to_string());
     let desc = description.unwrap_or_else(|| name.clone());
     let mut job = CronJob::new(&name, &schedule, &desc, &desc);

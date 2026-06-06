@@ -17,7 +17,7 @@ use axagent_core::workflow_types::{
 };
 
 use axagent_harness::RhaiEngineAdapter;
-use rhai::AST;
+use rhai::{AST, EvalAltResult, Position};
 
 /// Convert Rhai dynamic map to JSON value
 fn rhai_map_to_json(map: rhai::Map) -> serde_json::Value {
@@ -894,6 +894,24 @@ impl WorkEngine {
             .ok_or(WorkflowError::NodeNotFound)?;
 
         state.status = status;
+        // ── 时间戳维护：保证 started_at/completed_at 在 status 变化时正确更新 ──
+        // 修复前：这些字段从未被写入，导致所有节点 completed_at 为 None，
+        // 前端无法显示节点耗时、审计也无法用 started_at/completed_at 排序。
+        let now_ms: i64 = current_epoch_ms() as i64;
+        if status == NodeStatus::Running && state.started_at.is_none() {
+            state.started_at = Some(now_ms);
+        }
+        if matches!(
+            status,
+            NodeStatus::Completed | NodeStatus::Failed | NodeStatus::Skipped
+        ) {
+            if state.started_at.is_none() {
+                state.started_at = Some(now_ms);
+            }
+            if state.completed_at.is_none() {
+                state.completed_at = Some(now_ms);
+            }
+        }
         if status == NodeStatus::Completed {
             state.attempts = 0;
         }
@@ -1086,17 +1104,39 @@ impl WorkEngine {
                 serde_json::Value::String(provider_id.clone());
         }
 
+        // 先创建 execution 记录，再校验 input_schema。
+        // 这样校验失败也能在 DB 里留下审计记录（status=Failed，error=validation message），
+        // 前端可以在工作流历史里看到这次"参数不合法"的尝试。
+        let execution_id = self
+            .start_workflow(workflow_id, input.clone(), options.execution_id.clone())
+            .await
+            .map_err(|e| WorkflowError::SerializationError(e.to_string()))?;
+
         // 若配置了 input_schema，校验输入参数
         if let Some(ref schema) = options.input_schema
             && let Err(errors) = validate_input(&input, schema)
         {
+            let detail = format!("input_schema 校验失败：{}", errors.join("; "));
+            tracing::warn!("[rt-workflow] execution {} {}", execution_id, detail);
+            // 持久化失败状态（status="failed"），便于审计与前端展示。
+            // 注意：workflow_executions 表当前没有 error_message 字段，错误细节
+            // 仅记入日志；后续若加字段再透传。
+            if let Err(e) = axagent_core::repo::workflow_execution::update_workflow_execution_status(
+                &self.db,
+                &execution_id,
+                "failed",
+                None,
+                None,
+                None,
+            )
+            .await
+            {
+                tracing::error!(
+                    "[rt-workflow] 持久化校验失败状态失败: {e} (execution_id={execution_id})"
+                );
+            }
             return Err(WorkflowError::InputValidationFailed { errors });
         }
-
-        let execution_id = self
-            .start_workflow(workflow_id, input, options.execution_id.clone())
-            .await
-            .map_err(|e| WorkflowError::SerializationError(e.to_string()))?;
 
         // 一次性 lock executions 完成 5 项元信息写入（model_id / provider_id /
         // template variables / plan_callbacks / parent_execution_id），避免
@@ -1237,22 +1277,50 @@ impl WorkEngine {
                                             let n = name.clone();
                                             engine.register_fn(
                                                 "tool",
-                                                move |tool_name: &str, tool_args: rhai::Map| {
+                                                move |tool_name: &str,
+                                                      tool_args: rhai::Map|
+                                                      -> Result<Dynamic, Box<EvalAltResult>> {
                                                     let h = h.clone();
                                                     let json_args = rhai_map_to_json(tool_args);
-                                                    // Inline execution via tokio runtime
-                                                    let rt = tokio::runtime::Runtime::new()
-                                                        .expect("rhai runtime");
-                                                    let result = rt.block_on(async {
-                                                        h(tool_name.to_string(), json_args).await
-                                                    });
+                                                    // 关键修复：避免在 Rhai 调用栈内
+                                                    // `Runtime::new() + block_on` 的嵌套
+                                                    // runtime 反模式。spawn_blocking 线程
+                                                    // 仍处于当前 tokio runtime，因此用
+                                                    // `Handle::current().block_on()` +
+                                                    // `block_in_place` 是 tokio 官方推荐
+                                                    // 的安全模式。
+                                                    let result = match tokio::runtime::Handle::try_current() {
+                                                        Ok(handle) => {
+                                                            tokio::task::block_in_place(|| {
+                                                                handle.block_on(async move {
+                                                                    h(
+                                                                        tool_name.to_string(),
+                                                                        json_args,
+                                                                    )
+                                                                    .await
+                                                                })
+                                                            })
+                                                        },
+                                                        Err(_) => {
+                                                            return Err(Box::new(
+                                                                EvalAltResult::ErrorRuntime(
+                                                                    "no tokio runtime available"
+                                                                        .into(),
+                                                                    Position::NONE,
+                                                                ),
+                                                            ));
+                                                        },
+                                                    };
                                                     match result {
-                                                        Ok(val) => Dynamic::from(
+                                                        Ok(val) => Ok(Dynamic::from(
                                                             serde_json::to_string(&val)
                                                                 .unwrap_or_default(),
-                                                        ),
-                                                        Err(e) => Dynamic::from(format!(
-                                                            "tool error: {e}"
+                                                        )),
+                                                        Err(e) => Err(Box::new(
+                                                            EvalAltResult::ErrorRuntime(
+                                                                format!("tool error: {e}").into(),
+                                                                Position::NONE,
+                                                            ),
                                                         )),
                                                     }
                                                 },

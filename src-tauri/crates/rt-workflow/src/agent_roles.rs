@@ -67,7 +67,9 @@ impl AgentRole {
     }
 
     pub fn default_tools(&self) -> Vec<&'static str> {
-        match self {
+        // 防御性去重：未来若不小心在 vec! 里写入重复项，这里会静默消除，
+        // 避免前端 UI 出现重复工具条目或后端做集合运算时出现 "hash of duplicated" 的歧义。
+        let raw: Vec<&'static str> = match self {
             AgentRole::Coordinator => vec![
                 "WebSearch",
                 "FileRead",
@@ -84,7 +86,6 @@ impl AgentRole {
             AgentRole::Researcher => vec![
                 "WebSearch",
                 "WebFetch",
-                "WebFetch",
                 "FileRead",
                 "ListDirectory",
                 "Glob",
@@ -97,7 +98,6 @@ impl AgentRole {
             ],
             AgentRole::Developer => vec![
                 "FileWrite",
-                "FileEdit",
                 "FileEdit",
                 "FileRead",
                 "ListDirectory",
@@ -138,7 +138,7 @@ impl AgentRole {
                 "GitLog",
                 "GitReview",
             ],
-            AgentRole::Browser => vec!["WebFetch", "WebFetch", "WebSearch"],
+            AgentRole::Browser => vec!["WebFetch", "WebSearch"],
             AgentRole::Synthesizer => {
                 vec!["FileWrite", "FileRead", "ListDirectory", "Glob", "Grep"]
             },
@@ -172,7 +172,17 @@ impl AgentRole {
                 "DownloadStorageFile",
                 "DeleteStorageFile",
             ],
+        };
+        // 稳定去重（保留首次出现顺序）：遍历一次，用小型 Set 记录已见名
+        let mut seen: std::collections::HashSet<&'static str> =
+            std::collections::HashSet::with_capacity(raw.len());
+        let mut deduped: Vec<&'static str> = Vec::with_capacity(raw.len());
+        for tool in raw {
+            if seen.insert(tool) {
+                deduped.push(tool);
+            }
         }
+        deduped
     }
 
     pub fn max_concurrent(&self) -> usize {

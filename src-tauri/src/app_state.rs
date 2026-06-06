@@ -149,12 +149,14 @@ pub struct SharePermissions {
 
 impl Default for SharePermissions {
     fn default() -> Self {
+        // SECURITY (M9): 共享会话默认拒绝 terminal / file 访问。
+        // 加入会话 ≠ 拥有主用户的 shell 与文件系统。
         Self {
-            allow_terminal_access: true,
-            allow_file_access: true,
+            allow_terminal_access: false,
+            allow_file_access: false,
             allow_model_access: false,
             require_approval_for_actions: true,
-            max_participants: 10,
+            max_participants: 5,
         }
     }
 }

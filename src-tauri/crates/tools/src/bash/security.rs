@@ -155,7 +155,9 @@ impl SecurityAnalyzer {
         }
 
         // 2. 检测危险模式
-        let full_cmd = cmd.argv.join(" ").to_lowercase();
+        // SECURITY (H9): 用 normalize 后再匹配，阻断多空格 / NBSP / $IFS 等绕过。
+        let raw = cmd.argv.join(" ");
+        let full_cmd = normalize_for_match(&raw);
         let dangerous_patterns = [
             ("rm -rf /", "删除根目录"),
             ("rm -rf /*", "删除根目录内容"),
@@ -232,6 +234,69 @@ impl SecurityAnalyzer {
 impl Default for SecurityAnalyzer {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+/// SECURITY (H9): 归一化命令以减少多空格 / NBSP / $IFS / 转义绕过。
+fn normalize_for_match(s: &str) -> String {
+    let mut s1 = String::with_capacity(s.len());
+    for c in s.chars() {
+        if c.is_whitespace() {
+            s1.push(' ');
+        } else if c == '\u{00A0}' || c == '\u{200B}' || c == '\u{200C}' || c == '\u{200D}' {
+            s1.push(' ');
+        } else {
+            s1.push(c);
+        }
+    }
+    let s2 = s1.replace("${IFS}", " ").replace("$IFS", " ");
+    // 压缩连续空白
+    let mut out = String::with_capacity(s2.len());
+    let mut last_space = false;
+    for c in s2.chars() {
+        if c == ' ' {
+            if !last_space {
+                out.push(' ');
+            }
+            last_space = true;
+        } else {
+            out.push(c);
+            last_space = false;
+        }
+    }
+    out.to_lowercase()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn normalize_collapses_whitespace() {
+        let n = normalize_for_match("rm   -rf   /");
+        assert_eq!(n, "rm -rf /");
+    }
+
+    #[test]
+    fn normalize_handles_ifs() {
+        let n = normalize_for_match("rm${IFS}-rf${IFS}/");
+        assert_eq!(n, "rm -rf /");
+    }
+
+    #[test]
+    fn analyze_blocks_obfuscated_rm_rf_root() {
+        use std::collections::HashMap;
+        let analyzer = SecurityAnalyzer::new();
+        let cmd = ParsedCommand {
+            argv: vec!["rm".into(), "-rf".into(), "/".into()],
+            redirects: vec![],
+            env_vars: HashMap::new(),
+            background: false,
+            next_pipe: None,
+            next_conditional: None,
+        };
+        let r = analyzer.analyze(&cmd);
+        assert!(r.is_blocked(), "rm -rf / must be blocked");
     }
 }
 

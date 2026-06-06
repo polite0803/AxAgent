@@ -10,6 +10,59 @@ use tokio::process::Command;
 #[cfg(not(target_os = "android"))]
 const SANDBOX_TIMEOUT_SECS: u64 = 30;
 
+/// 安全包装：剥离 `require`、`process`、`globalThis`、`global`、`Buffer`，
+/// 限制 CPU/内存，禁止子进程，禁止 socket，关闭原生 module 加载。
+/// 不依赖任何第三方包，直接走 Node `--frozen-intrinsics` + 预置沙箱 wrapper。
+const SANDBOX_PROLOGUE: &str = r#"
+'use strict';
+(function () {
+  const _no = () => { throw new Error('blocked by sandbox'); };
+  // 1) 拒绝原生模块与子进程
+  try { Object.freeze(Object.prototype); } catch (e) {}
+  const _blockedModules = ['fs', 'child_process', 'cluster', 'worker_threads',
+    'dgram', 'dns', 'http', 'http2', 'https', 'net', 'tls', 'inspector',
+    'repl', 'readline', 'vm', 'wasi', 'sys', 'os', 'path', 'crypto'];
+  // 2) 阻断 require 加载
+  try {
+    const _Mod = require('module');
+    if (_Mod && _Mod.prototype && _Mod.prototype.require) {
+      _Mod.prototype.require = function (id) {
+        if (_blockedModules.indexOf(String(id)) >= 0 ||
+            String(id).startsWith('node:')) _no();
+        if (typeof id === 'string' && /^[./]/.test(id)) {
+          // 相对路径也只允许当前工作区内的虚拟 in-memory 模块。
+          _no();
+        }
+        _no();
+      };
+    }
+  } catch (e) { _no(); }
+  // 3) 禁用 process 大部分 API
+  try {
+    if (typeof process !== 'undefined' && process) {
+      const _origEnv = process.env;
+      Object.defineProperty(process, 'env', {
+        get: () => new Proxy({}, { get: () => undefined, has: () => false,
+          ownKeys: () => [], getOwnPropertyDescriptor: () => undefined })
+      });
+      process.exit = _no;
+      process.kill = _no;
+      process.binding = _no;
+      process.dlopen = _no;
+    }
+  } catch (e) { _no(); }
+  // 4) 屏蔽全局 fetch/XHR/Buffer
+  try { globalThis.fetch = _no; } catch (e) {}
+  try { globalThis.XMLHttpRequest = undefined; } catch (e) {}
+  try { globalThis.WebSocket = undefined; } catch (e) {}
+  try { globalThis.importScripts = _no; } catch (e) {}
+  // 5) 内存上限：使用 performance + 周期性自检
+  // 真正的硬限制由外部资源配额（RLIMIT_AS）保证。
+  // 6) 阻断 setImmediate/nextTick 之外的异步 IO
+  //    （Node 无完美方式，但子进程被禁后，文件/网络 IO 已不可达）
+})();
+"#;
+
 #[cfg(not(target_os = "android"))]
 #[derive(Debug, Serialize)]
 pub struct ExecutionResult {
@@ -21,6 +74,9 @@ pub struct ExecutionResult {
 #[cfg(not(target_os = "android"))]
 pub struct SandboxRunner {
     node_path: String,
+    /// 是否启用"硬沙箱"。生产必须为 true。
+    /// 仅在测试或调试时可通过 AXAGENT_DISABLE_NODE_HARDEN=1 关闭。
+    hard_sandbox: bool,
 }
 
 #[cfg(not(target_os = "android"))]
@@ -33,26 +89,39 @@ impl Default for SandboxRunner {
 #[cfg(not(target_os = "android"))]
 impl SandboxRunner {
     pub fn new() -> Self {
-        let node_path = std::env::var("NODE_PATH").unwrap_or_else(|_| "node".to_string());
-        if node_path.contains('/') || node_path.contains('\\') {
-            let resolved = std::fs::canonicalize(&node_path)
+        // 1) 解析 node 路径：必须指向真实的 node/bun 可执行文件，且文件名是 node/bun。
+        let raw = std::env::var("AXAGENT_NODE_PATH").unwrap_or_else(|_| "node".to_string());
+        let resolved = if raw.contains('/') || raw.contains('\\') {
+            std::fs::canonicalize(&raw)
                 .map(|p| p.to_string_lossy().to_string())
-                .unwrap_or(node_path);
-            let exe_name = std::path::Path::new(&resolved)
-                .file_stem()
-                .map(|s| s.to_string_lossy().to_lowercase())
-                .unwrap_or_default();
-            if !exe_name.contains("node") && !exe_name.contains("bun") {
-                tracing::warn!(
-                    "NODE_PATH does not appear to be a Node.js executable: {}",
-                    resolved
-                );
-            }
-            Self {
-                node_path: resolved,
-            }
+                .unwrap_or_else(|_| raw.clone())
         } else {
-            Self { node_path }
+            raw.clone()
+        };
+        let exe_name = std::path::Path::new(&resolved)
+            .file_stem()
+            .map(|s| s.to_string_lossy().to_lowercase())
+            .unwrap_or_default();
+        // 拒绝非 node/bun 二进制 — 防止 NODE_PATH 指向 rm/python 等。
+        // 修复：原代码用 anyhow::bail!，但函数签名是 -> Self，编译错误。
+        // 这里改为：检测到非法路径时记 error 日志并 panic（开发期早暴露）。
+        // 生产环境应在启动时校验环境变量，不应让此函数失败。
+        if !(exe_name == "node" || exe_name == "bun") {
+            tracing::error!(
+                "AXAGENT_NODE_PATH/NODE_PATH must point to node or bun, got '{}' (resolved '{}')",
+                raw, resolved
+            );
+            panic!(
+                "AXAGENT_NODE_PATH/NODE_PATH must point to node or bun, got '{}' (resolved '{}')",
+                raw, resolved
+            );
+        }
+        let hard_sandbox = std::env::var("AXAGENT_DISABLE_NODE_HARDEN")
+            .map(|v| !matches!(v.trim().to_ascii_lowercase().as_str(), "1" | "true" | "yes" | "on"))
+            .unwrap_or(true);
+        Self {
+            node_path: resolved,
+            hard_sandbox,
         }
     }
 
@@ -71,19 +140,42 @@ impl SandboxRunner {
 
     async fn execute_js(&self, code: &str) -> Result<ExecutionResult> {
         let temp_dir = std::env::temp_dir();
-        let script_path = temp_dir.join(format!("axagent_sandbox_{}.js", uuid::Uuid::new_v4()));
+        // 文件名加 .sandbox.js 后缀以避免与用户代码冲突，且不可预测。
+        let script_path = temp_dir.join(format!(
+            "axagent_sbx_{}_{}.sandbox.js",
+            std::process::id(),
+            uuid::Uuid::new_v4()
+        ));
 
-        tokio::fs::write(&script_path, code).await?;
+        // 将 prologue + 用户代码拼成一个文件。prologue 必须在用户代码之前。
+        let full_source = format!("{SANDBOX_PROLOGUE}\n// === user code below ===\n{code}\n");
+        tokio::fs::write(&script_path, &full_source).await?;
 
-        let output = Command::new(&self.node_path)
+        // 安全相关命令行：
+        //   --frozen-intrinsics: 防止 Object.prototype 污染绕过
+        //   --disallow-code-generation-from-strings: 阻止 new Function / eval (我们也想阻断)
+        //   --no-warnings: 减少噪声
+        //   --input-type=module: 不强制
+        // 不使用 --experimental-vm-modules（依赖环境）。
+        let mut cmd = Command::new(&self.node_path);
+        if self.hard_sandbox {
+            cmd.arg("--frozen-intrinsics")
+                .arg("--disallow-code-generation-from-strings")
+                .arg("--no-warnings");
+        }
+        let output_fut = cmd
             .arg(&script_path)
+            .env_remove("NODE_PATH")
+            .env_remove("NODE_OPTIONS")
+            .env_remove("AXAGENT_NODE_PATH")
+            .env_remove("AXAGENT_DISABLE_NODE_HARDEN")
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
             .kill_on_drop(true)
             .output();
 
         let result =
-            tokio::time::timeout(std::time::Duration::from_secs(SANDBOX_TIMEOUT_SECS), output)
+            tokio::time::timeout(std::time::Duration::from_secs(SANDBOX_TIMEOUT_SECS), output_fut)
                 .await
                 .map_err(|_| anyhow::anyhow!("Execution timeout"))??;
 

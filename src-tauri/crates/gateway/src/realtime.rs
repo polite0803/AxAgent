@@ -68,7 +68,7 @@ pub async fn realtime_handler(
     };
 
     // Verify key before upgrading
-    match axagent_core::repo::gateway::verify_key(&state.db, &api_key).await {
+    match axagent_core::repo::gateway::verify_key(&state.db, &api_key, &state.master_key).await {
         Ok(key) => {
             // Update last_used_at in background
             let pool_bg = state.db.clone();

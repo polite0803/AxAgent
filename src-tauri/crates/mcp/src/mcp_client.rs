@@ -262,6 +262,9 @@ fn build_stdio_command(
     args: &[String],
     env: &HashMap<String, String>,
 ) -> tokio::process::Command {
+    // SECURITY (M7): command 与 args 必须经过白名单校验。
+    // 阻断路径遍历与形如 `--script /etc/passwd` 的危险 flag。
+    validate_mcp_command(command, args).expect("MCP command validation failed");
     let mut cmd = tokio::process::Command::new(command);
     cmd.args(args);
     configure_stdio_env(&mut cmd, env);
@@ -274,10 +277,50 @@ fn build_stdio_command(
     args: &[String],
     env: &HashMap<String, String>,
 ) -> tokio::process::Command {
+    validate_mcp_command(command, args).expect("MCP command validation failed");
     let mut cmd = tokio::process::Command::new(command);
     cmd.args(args);
     configure_stdio_env(&mut cmd, env);
     cmd
+}
+
+/// SECURITY (M7): 校验 MCP server 启动命令。
+/// - 阻断可执行路径中的 `..` / NUL
+/// - 阻断已知的危险 flag（`--script`、`--eval`、`-e`、`-c`）
+/// - args 中路径不能含 NUL
+fn validate_mcp_command(command: &str, args: &[String]) -> Result<()> {
+    if command.is_empty() || command.contains('\0') || command.contains("..") {
+        return Err(AxAgentError::Gateway(format!(
+            "MCP command path invalid: '{}'",
+            command
+        )));
+    }
+
+    // 阻断会让任意代码被加载的 flag
+    const DANGEROUS_FLAGS: &[&str] = &[
+        "--script",
+        "--eval",
+        "-e",
+        "-c",
+        "-rf", // rm -rf 类组合通过 args 也无法触达
+        "--allow-run",
+        "--danger",
+    ];
+    for a in args {
+        if a.contains('\0') {
+            return Err(AxAgentError::Gateway("MCP arg contains NUL".to_string()));
+        }
+        // 形如 `-c` / `-e` 单独出现或与 value 一起
+        for df in DANGEROUS_FLAGS {
+            if a == *df || a.starts_with(&format!("{df}=")) {
+                return Err(AxAgentError::Gateway(format!(
+                    "MCP arg '{}' uses disallowed flag '{}'",
+                    a, df
+                )));
+            }
+        }
+    }
+    Ok(())
 }
 
 /// Convert rmcp Tool to our DiscoveredTool.

@@ -47,6 +47,8 @@ impl TaskManager {
                 let handle = rt.spawn(future);
                 let mut handles = self.handles.lock().unwrap_or_else(|e| e.into_inner());
                 if let Some(old) = handles.insert(name.to_string(), handle) {
+                    // 重复 name：记录后中止旧任务，行为保持向后兼容
+                    tracing::warn!("[TaskManager] 重复 name '{}'，中止旧任务", name);
                     old.abort();
                 }
             },
