@@ -85,11 +85,10 @@ impl CommandValidator {
             {
                 if let (Some(p1), Some(p2)) =
                     (locate_first_token(command, chain.0), locate_first_token(command, chain.1))
+                    && p1 < p2
                 {
-                    if p1 < p2 {
-                        dangerous_patterns
-                            .push(format!("pipe-to-interpreter: {} -> {}", chain.0, chain.1));
-                    }
+                    dangerous_patterns
+                        .push(format!("pipe-to-interpreter: {} -> {}", chain.0, chain.1));
                 }
                 let _ = pos; // silence unused
             }
