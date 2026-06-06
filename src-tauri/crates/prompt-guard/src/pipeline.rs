@@ -80,7 +80,8 @@ fn unicode_normalize(s: &str) -> String {
         .filter(|c| {
             !matches!(
                 *c,
-                '\u{200B}' | '\u{200C}'
+                '\u{200B}'
+                    | '\u{200C}'
                     | '\u{200D}'
                     | '\u{FEFF}'
                     | '\u{202E}'

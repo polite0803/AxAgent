@@ -2,7 +2,9 @@ use async_trait::async_trait;
 use axagent_core::workflow_types::WorkflowNode;
 
 use crate::work_engine::execution_state::ExecutionState;
-use crate::work_engine::node_executor_trait::{error_code, NodeError, NodeExecutorTrait, NodeOutput};
+use crate::work_engine::node_executor_trait::{
+    NodeError, NodeExecutorTrait, NodeOutput, error_code,
+};
 
 pub struct AggregatorExecutor;
 
@@ -30,7 +32,10 @@ fn collect_sources(
             if name.is_empty() {
                 return None;
             }
-            context.variables.get(name).map(|v| (name.clone(), v.clone()))
+            context
+                .variables
+                .get(name)
+                .map(|v| (name.clone(), v.clone()))
         })
         .collect()
 }
@@ -41,10 +46,7 @@ fn collect_sources(
 /// - "sum"    : 累加数值，非数值忽略
 /// - "merge" : 浅合并对象（后者覆盖前者）
 /// - "count" : 返回数组长度
-fn apply_strategy(
-    strategy: &str,
-    pairs: &[(String, serde_json::Value)],
-) -> serde_json::Value {
+fn apply_strategy(strategy: &str, pairs: &[(String, serde_json::Value)]) -> serde_json::Value {
     let values: Vec<&serde_json::Value> = pairs.iter().map(|(_, v)| v).collect();
     match strategy {
         "concat" => {
@@ -58,10 +60,7 @@ fn apply_strategy(
             serde_json::Value::String(parts.join(""))
         },
         "sum" => {
-            let sum: f64 = values
-                .iter()
-                .filter_map(|v| v.as_f64())
-                .sum();
+            let sum: f64 = values.iter().filter_map(|v| v.as_f64()).sum();
             serde_json::json!(sum)
         },
         "merge" => {

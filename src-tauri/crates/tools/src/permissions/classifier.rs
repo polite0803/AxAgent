@@ -137,7 +137,9 @@ impl HeuristicClassifier {
         }
 
         // 阻断 -c/-e 形式调用解释器
-        for blocked_interp in &["python", "python3", "bash", "sh", "zsh", "node", "ruby", "perl"] {
+        for blocked_interp in &[
+            "python", "python3", "bash", "sh", "zsh", "node", "ruby", "perl",
+        ] {
             if let Some(pos) = locate_token(&lower, blocked_interp) {
                 let after = lower[pos + blocked_interp.len()..].trim_start();
                 if after.starts_with("-c ") || after.starts_with("-e ") {
@@ -179,9 +181,9 @@ impl HeuristicClassifier {
         // SECURITY: 之前用 contains，导致 "git status && rm -rf" 误判为 Safe。
         // 改用 first-token 命中 + 关键 high 模式在前已经兜底。
         let safe_first_tokens = [
-            "ls", "cat", "head", "tail", "wc", "echo", "printf", "pwd", "env", "printenv",
-            "date", "whoami", "id", "uname", "hostname", "stat", "file", "which", "whereis",
-            "tree", "du", "df", "ps", "top", "pgrep", "test", "[", "true", "false", "test",
+            "ls", "cat", "head", "tail", "wc", "echo", "printf", "pwd", "env", "printenv", "date",
+            "whoami", "id", "uname", "hostname", "stat", "file", "which", "whereis", "tree", "du",
+            "df", "ps", "top", "pgrep", "test", "[", "true", "false", "test",
         ];
         let first = first_token(&lower);
         if safe_first_tokens.contains(&first.as_str()) {
@@ -198,9 +200,25 @@ impl HeuristicClassifier {
             let parts: Vec<&str> = lower.split_whitespace().collect();
             let sub = parts.get(1).copied().unwrap_or("");
             const GIT_READ: &[&str] = &[
-                "status", "log", "diff", "show", "branch", "tag", "stash", "remote", "fetch",
-                "ls-files", "ls-tree", "cat-file", "rev-parse", "describe", "shortlog", "blame",
-                "reflog", "rev-list", "grep",
+                "status",
+                "log",
+                "diff",
+                "show",
+                "branch",
+                "tag",
+                "stash",
+                "remote",
+                "fetch",
+                "ls-files",
+                "ls-tree",
+                "cat-file",
+                "rev-parse",
+                "describe",
+                "shortlog",
+                "blame",
+                "reflog",
+                "rev-list",
+                "grep",
             ];
             if GIT_READ.contains(&sub) {
                 return ClassifierResult {
@@ -334,7 +352,26 @@ fn normalize_bash(s: &str) -> String {
         if c == '\\' {
             if let Some(&next) = chars.peek() {
                 // 保留可转义：\n \t \r \' \" \\
-                if matches!(next, 'n' | 't' | 'r' | '\'' | '"' | '\\' | '$' | ' ' | '|' | ';' | '&' | '>' | '<' | '(' | ')' | '`' | '~' | '#') {
+                if matches!(
+                    next,
+                    'n' | 't'
+                        | 'r'
+                        | '\''
+                        | '"'
+                        | '\\'
+                        | '$'
+                        | ' '
+                        | '|'
+                        | ';'
+                        | '&'
+                        | '>'
+                        | '<'
+                        | '('
+                        | ')'
+                        | '`'
+                        | '~'
+                        | '#'
+                ) {
                     s2.push('\\');
                     s2.push(next);
                     chars.next();
@@ -377,19 +414,17 @@ fn decode_c_escapes(s: &str) -> String {
         if b == b'\\' && i + 1 < bytes.len() {
             let nx = bytes[i + 1];
             if nx == b'x' && i + 3 < bytes.len() {
-                if let Ok(c) = u8::from_str_radix(
-                    std::str::from_utf8(&bytes[i + 2..i + 4]).unwrap_or(""),
-                    16,
-                ) {
+                if let Ok(c) =
+                    u8::from_str_radix(std::str::from_utf8(&bytes[i + 2..i + 4]).unwrap_or(""), 16)
+                {
                     out.push(c as char);
                     i += 4;
                     continue;
                 }
             } else if nx == b'u' && i + 5 < bytes.len() {
-                if let Ok(code) = u32::from_str_radix(
-                    std::str::from_utf8(&bytes[i + 2..i + 6]).unwrap_or(""),
-                    16,
-                ) {
+                if let Ok(code) =
+                    u32::from_str_radix(std::str::from_utf8(&bytes[i + 2..i + 6]).unwrap_or(""), 16)
+                {
                     if let Some(c) = char::from_u32(code) {
                         out.push(c);
                         i += 6;

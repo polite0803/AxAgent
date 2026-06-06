@@ -163,7 +163,12 @@ impl SecureStore for CombinedSecureStore {
                 if is_secret_key(key) {
                     // 关键 key：必须显式 opt-in 才能降级
                     let allow = std::env::var("AXAGENT_ALLOW_PLAINTEXT_SECRETS")
-                        .map(|v| matches!(v.trim().to_ascii_lowercase().as_str(), "1" | "true" | "yes" | "on"))
+                        .map(|v| {
+                            matches!(
+                                v.trim().to_ascii_lowercase().as_str(),
+                                "1" | "true" | "yes" | "on"
+                            )
+                        })
                         .unwrap_or(false);
                     if !allow {
                         return Err(format!(

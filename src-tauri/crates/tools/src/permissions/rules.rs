@@ -44,10 +44,7 @@ fn extract_primary_input(tool_name: &str, input: &str) -> String {
         return input.to_string();
     };
     let lower = tool_name.to_ascii_lowercase();
-    if lower.starts_with("bash")
-        || lower.starts_with("shell")
-        || lower.contains("execute")
-    {
+    if lower.starts_with("bash") || lower.starts_with("shell") || lower.contains("execute") {
         if let Some(s) = v.get("command").and_then(|x| x.as_str()) {
             return s.to_string();
         }
@@ -61,10 +58,7 @@ fn extract_primary_input(tool_name: &str, input: &str) -> String {
             return s.to_string();
         }
     }
-    if lower.starts_with("webfetch")
-        || lower.starts_with("http")
-        || lower.contains("fetch")
-    {
+    if lower.starts_with("webfetch") || lower.starts_with("http") || lower.contains("fetch") {
         if let Some(s) = v.get("url").and_then(|x| x.as_str()) {
             return s.to_string();
         }
@@ -82,12 +76,7 @@ fn extract_primary_input(tool_name: &str, input: &str) -> String {
 }
 
 /// 匹配单个规则模式
-fn match_pattern(
-    pattern: &RulePattern,
-    tool_name: &str,
-    primary: &str,
-    _full_input: &str,
-) -> bool {
+fn match_pattern(pattern: &RulePattern, tool_name: &str, primary: &str, _full_input: &str) -> bool {
     let p = &pattern.pattern;
 
     // 内容匹配: "ToolName(content_pattern)"
@@ -202,18 +191,8 @@ mod tests {
     #[test]
     fn test_content_match() {
         let rules = vec![PermissionRule::allow("Bash(git *)", "允许 git 命令")];
-        assert!(match_rules(
-            "Bash",
-            r#"{"command": "git log"}"#,
-            &rules
-        )
-        .is_some());
-        assert!(match_rules(
-            "Bash",
-            r#"{"command": "rm -rf"}"#,
-            &rules
-        )
-        .is_none());
+        assert!(match_rules("Bash", r#"{"command": "git log"}"#, &rules).is_some());
+        assert!(match_rules("Bash", r#"{"command": "rm -rf"}"#, &rules).is_none());
     }
 
     #[test]

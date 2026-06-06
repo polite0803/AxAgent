@@ -118,7 +118,10 @@ impl FileAuthorizer {
         let path_str = req.path.clone();
         let level = req.level.clone();
         {
-            let mut pending = self.pending_requests.lock().unwrap_or_else(|e| e.into_inner());
+            let mut pending = self
+                .pending_requests
+                .lock()
+                .unwrap_or_else(|e| e.into_inner());
             pending.push(req);
         }
         self.audit(
@@ -143,7 +146,10 @@ impl FileAuthorizer {
 
     /// SECURITY (C10): 显式用户/UI 批准流程。
     pub fn approve_request(&self, request_id: &str, approver: &str) -> AuthorizationResponse {
-        let mut pending = self.pending_requests.lock().unwrap_or_else(|e| e.into_inner());
+        let mut pending = self
+            .pending_requests
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
         let pos = pending.iter().position(|r| r.id == request_id);
         let req = match pos {
             Some(i) => pending.remove(i),
@@ -211,10 +217,7 @@ impl FileAuthorizer {
             &req.path,
             Some(req.level.clone()),
             true,
-            &format!(
-                "approved, expires {}",
-                expires_at.to_rfc3339()
-            ),
+            &format!("approved, expires {}", expires_at.to_rfc3339()),
         );
 
         AuthorizationResponse {
@@ -229,7 +232,10 @@ impl FileAuthorizer {
     }
 
     pub fn deny_request(&self, request_id: &str, approver: &str) -> bool {
-        let mut pending = self.pending_requests.lock().unwrap_or_else(|e| e.into_inner());
+        let mut pending = self
+            .pending_requests
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
         if let Some(pos) = pending.iter().position(|r| r.id == request_id) {
             let req = pending.remove(pos);
             self.audit(

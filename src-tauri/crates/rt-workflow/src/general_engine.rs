@@ -14,7 +14,25 @@ use std::collections::HashMap;
 fn tokenize(input: &str) -> Vec<String> {
     input
         .to_lowercase()
-        .split(|c: char| c.is_whitespace() || matches!(c, '.' | ',' | ';' | ':' | '!' | '?' | '(' | ')' | '[' | ']' | '{' | '}' | '"' | '\''))
+        .split(|c: char| {
+            c.is_whitespace()
+                || matches!(
+                    c,
+                    '.' | ','
+                        | ';'
+                        | ':'
+                        | '!'
+                        | '?'
+                        | '('
+                        | ')'
+                        | '['
+                        | ']'
+                        | '{'
+                        | '}'
+                        | '"'
+                        | '\''
+                )
+        })
         .filter(|s| !s.is_empty())
         .map(|s| s.to_string())
         .collect()
@@ -117,43 +135,71 @@ impl GeneralEngine {
             (
                 "DocumentProcessing",
                 &[
-                    ("document", 2), ("pdf", 3), ("docx", 3), ("excel", 3),
-                    ("powerpoint", 3), ("parse", 2), ("extract", 2),
+                    ("document", 2),
+                    ("pdf", 3),
+                    ("docx", 3),
+                    ("excel", 3),
+                    ("powerpoint", 3),
+                    ("parse", 2),
+                    ("extract", 2),
                 ],
             ),
             (
                 "WebSearch",
                 &[
-                    ("search", 2), ("lookup", 2), ("google", 3), ("bing", 3),
-                    ("web", 1), ("internet", 2), ("url", 2),
+                    ("search", 2),
+                    ("lookup", 2),
+                    ("google", 3),
+                    ("bing", 3),
+                    ("web", 1),
+                    ("internet", 2),
+                    ("url", 2),
                 ],
             ),
             (
                 "FileOperation",
                 &[
-                    ("file", 2), ("folder", 2), ("directory", 2),
-                    ("rename", 3), ("delete", 3), ("move", 3), ("copy", 2),
+                    ("file", 2),
+                    ("folder", 2),
+                    ("directory", 2),
+                    ("rename", 3),
+                    ("delete", 3),
+                    ("move", 3),
+                    ("copy", 2),
                 ],
             ),
             (
                 "SystemTool",
                 &[
-                    ("system", 2), ("command", 2), ("terminal", 3),
-                    ("bash", 3), ("shell", 2), ("execute", 2), ("ps", 1),
+                    ("system", 2),
+                    ("command", 2),
+                    ("terminal", 3),
+                    ("bash", 3),
+                    ("shell", 2),
+                    ("execute", 2),
+                    ("ps", 1),
                 ],
             ),
             (
                 "DataAnalysis",
                 &[
-                    ("analyze", 3), ("analysis", 3), ("statistics", 3),
-                    ("chart", 2), ("graph", 2), ("dataset", 3), ("summary", 1),
+                    ("analyze", 3),
+                    ("analysis", 3),
+                    ("statistics", 3),
+                    ("chart", 2),
+                    ("graph", 2),
+                    ("dataset", 3),
+                    ("summary", 1),
                 ],
             ),
             (
                 "MessageGateway",
                 &[
-                    ("whatsapp", 3), ("telegram", 3), ("slack", 3),
-                    ("discord", 3), ("wechat", 3),
+                    ("whatsapp", 3),
+                    ("telegram", 3),
+                    ("slack", 3),
+                    ("discord", 3),
+                    ("wechat", 3),
                 ],
             ),
         ];

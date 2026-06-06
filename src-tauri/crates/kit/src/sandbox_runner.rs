@@ -109,7 +109,8 @@ impl SandboxRunner {
         if !(exe_name == "node" || exe_name == "bun") {
             tracing::error!(
                 "AXAGENT_NODE_PATH/NODE_PATH must point to node or bun, got '{}' (resolved '{}')",
-                raw, resolved
+                raw,
+                resolved
             );
             panic!(
                 "AXAGENT_NODE_PATH/NODE_PATH must point to node or bun, got '{}' (resolved '{}')",

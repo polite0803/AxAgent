@@ -2,7 +2,9 @@ use async_trait::async_trait;
 use axagent_core::workflow_types::{MergeStrategy, WorkflowNode};
 
 use crate::work_engine::execution_state::ExecutionState;
-use crate::work_engine::node_executor_trait::{error_code, NodeError, NodeExecutorTrait, NodeOutput};
+use crate::work_engine::node_executor_trait::{
+    NodeError, NodeExecutorTrait, NodeOutput, error_code,
+};
 
 pub struct MergeExecutor;
 
@@ -109,9 +111,8 @@ impl NodeExecutorTrait for MergeExecutor {
             ));
         }
 
-        let merged = apply_merge(c.merge_type.clone(), &values).map_err(|e| {
-            NodeError::exec_failed(error_code::VALIDATION_FAILED, e)
-        })?;
+        let merged = apply_merge(c.merge_type.clone(), &values)
+            .map_err(|e| NodeError::exec_failed(error_code::VALIDATION_FAILED, e))?;
 
         Ok(NodeOutput {
             output: serde_json::json!({

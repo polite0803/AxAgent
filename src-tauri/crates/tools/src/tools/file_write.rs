@@ -136,10 +136,7 @@ impl Tool for FileWriteTool {
         // 询问级
         for ask in ASK_PREFIXES {
             if matches_glob(ask, path) {
-                return PermissionResult::Ask(format!(
-                    "写入系统/共享路径 '{}'，确认？",
-                    path
-                ));
+                return PermissionResult::Ask(format!("写入系统/共享路径 '{}'，确认？", path));
             }
         }
 
