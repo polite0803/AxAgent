@@ -108,7 +108,7 @@ export function DiagnosticDrawer({ open, onClose, onJumpToNode }: DiagnosticDraw
       size={520}
       open={open}
       onClose={onClose}
-      destroyOnClose={false}
+      destroyOnHidden={false}
     >
       {loading
         ? (

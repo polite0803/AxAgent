@@ -129,7 +129,7 @@ export const ActionDiffPreview: React.FC<ActionDiffPreviewProps> = ({
         </Button>,
       ]}
       onCancel={onCancel}
-      destroyOnClose
+      destroyOnHidden
     >
       {actions && actions.length > 0
         ? (
