@@ -324,7 +324,7 @@ impl TaskGraph {
         };
         task.dependencies.iter().all(|dep_id| {
             self.get_task(dep_id)
-                .map_or(false, |dep| match self.dependency_policy {
+                .is_some_and(|dep| match self.dependency_policy {
                     DependencyPolicy::Complete => dep.is_completed(),
                     DependencyPolicy::CompleteOrSkipped => {
                         matches!(dep.status, TaskStatus::Completed | TaskStatus::Skipped)
@@ -451,11 +451,10 @@ fn find_cycle_nodes_via_tarjan(
             }
         } else if scc.len() == 1 {
             let n = &scc[0];
-            if let Some(deps) = dependencies.get(n) {
-                if deps.iter().any(|d| d == n) {
-                    // 单元 SCC + 自环
-                    cycle_nodes.insert(n.clone());
-                }
+            if let Some(deps) = dependencies.get(n)
+                && deps.iter().any(|d| d == n)
+            {
+                cycle_nodes.insert(n.clone());
             }
         }
     }

@@ -72,10 +72,10 @@ impl CacheLayer for InMemoryCache {
         let mut store = self.store.write().await;
         // 二次校验：拿到写锁后 expiry 仍需满足已过期，防止 read 锁与 write 锁之间
         // 有并发的 set 写入最新值。
-        if let Some((_, expiry)) = store.get(key) {
-            if Instant::now() >= *expiry {
-                store.remove(key);
-            }
+        if let Some((_, expiry)) = store.get(key)
+            && Instant::now() >= *expiry
+        {
+            store.remove(key);
         }
         None
     }

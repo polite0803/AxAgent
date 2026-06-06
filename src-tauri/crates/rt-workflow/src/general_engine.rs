@@ -218,12 +218,12 @@ impl GeneralEngine {
             .collect();
 
         // 2) 按分数降序，分数相同则保持 RULES 声明的优先级
-        scores.sort_by(|a, b| b.1.cmp(&a.1));
+        scores.sort_by_key(|b| std::cmp::Reverse(b.1));
 
-        if let Some((cat, score)) = scores.first() {
-            if *score > 0 {
-                return category_from_name(cat);
-            }
+        if let Some((cat, score)) = scores.first()
+            && *score > 0
+        {
+            return category_from_name(cat);
         }
         GeneralTaskCategory::DailyChat
     }

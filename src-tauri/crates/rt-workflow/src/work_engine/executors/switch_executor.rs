@@ -48,12 +48,12 @@ impl NodeExecutorTrait for SwitchExecutor {
 
         // 1. 取 input_var 的实际值
         let actual = resolve_var_path(&c.input_var, context);
-        let actual_str = actual.as_ref().and_then(|v| match v {
-            serde_json::Value::String(s) => Some(s.clone()),
-            serde_json::Value::Number(n) => Some(n.to_string()),
-            serde_json::Value::Bool(b) => Some(b.to_string()),
-            serde_json::Value::Null => Some(String::new()),
-            other => Some(other.to_string()),
+        let actual_str = actual.as_ref().map(|v| match v {
+            serde_json::Value::String(s) => s.clone(),
+            serde_json::Value::Number(n) => n.to_string(),
+            serde_json::Value::Bool(b) => b.to_string(),
+            serde_json::Value::Null => String::new(),
+            other => other.to_string(),
         });
 
         // 2. 按 match_mode 匹配 case.value，确定 matched_label

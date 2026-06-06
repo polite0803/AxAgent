@@ -229,7 +229,7 @@ fn sandbox_status_for_input(input: &BashCommandInput, cwd: &std::path::Path) -> 
             "Ignored LLM-supplied dangerouslyDisableSandbox=true (set AXAGENT_ALLOW_UNSANDBOXED=1 to honor)"
         );
     }
-    let sandbox_enabled = env_bypass;
+    let sandbox_enabled = !env_bypass;
     let request = config.resolve_request(
         Some(sandbox_enabled),
         input.namespace_restrictions,
