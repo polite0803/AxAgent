@@ -1527,7 +1527,30 @@ impl WorkEngine {
                     workflow_id.to_string(),
                     serde_json::json!({}),
                 );
-                exec_ctx.variables = deps_results;
+                // 关键修复：合并工作流全局变量与上游节点结果。历史 bug：
+                // 直接 `exec_ctx.variables = deps_results` 会丢失 stock_code 等
+                // 全局变量 → tool 节点 input_mapping 解析 stock_code 返回 None
+                // → "stock_code不能为空"。
+                // 合并策略（按优先级，覆盖优先于 fallback）：
+                //   1) deps_results        — 上游节点输出
+                //   2) state.variables     — options.variables 注入的 stock_code 等
+                //   3) state.input_params  — start_workflow(input) 透传
+                let mut merged_vars: HashMap<String, serde_json::Value> = deps_results;
+                {
+                    let executions = self.executions.lock().await;
+                    if let Some(state) = executions.get(&execution_id) {
+                        for (k, v) in &state.variables {
+                            merged_vars.entry(k.clone()).or_insert_with(|| v.clone());
+                        }
+                        // input_params 兜底：兼容只设置 options.input 的调用方
+                        if let serde_json::Value::Object(map) = &state.input_params {
+                            for (k, v) in map {
+                                merged_vars.entry(k.clone()).or_insert_with(|| v.clone());
+                            }
+                        }
+                    }
+                }
+                exec_ctx.variables = merged_vars;
                 exec_ctx.cancel_token = Some(cancel_token.clone());
                 exec_ctx.dry_run = options.dry_run;
                 {
