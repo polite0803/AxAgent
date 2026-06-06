@@ -4,14 +4,7 @@ import { ChatView } from "@/components/chat/ChatView";
 import { RightPanelContainer } from "@/components/chat/RightPanelContainer";
 import { ScrollToMessageProvider } from "@/components/chat/ScrollToMessageContext";
 import { useSkillChatCommands } from "@/components/skill/SkillChatCommands";
-import {
-  useConversationStore,
-  useProviderStore,
-  useRightPanelStore,
-  useSettingsStore,
-  useTabStore,
-  useUIStore,
-} from "@/stores";
+import { useConversationStore, useProviderStore, useSettingsStore, useTabStore, useUIStore } from "@/stores";
 import { theme } from "antd";
 import { ChevronLeft, ChevronRight, PanelRight } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -199,23 +192,9 @@ export function ChatPage() {
   }, [activeConversationId]);
 
   // 是否显示右侧面板（仅 agent 模式 + 设置启用）
-  const setPredictionContext = useRightPanelStore((s) => s.setPredictionContext);
   const showRightPanel = agentPanelEnabled
     && activeConversation?.mode === "agent"
     && activeConversationId != null;
-
-  // 推送实时上下文给 ContextPredictionPanel
-  useEffect(() => {
-    if (activeConversationId) {
-      setPredictionContext({
-        conversationId: activeConversationId,
-        mode: activeConversation?.mode ?? "chat",
-        title: activeConversation?.title ?? "",
-      });
-    } else {
-      setPredictionContext({});
-    }
-  }, [activeConversationId, activeConversation?.mode, activeConversation?.title, setPredictionContext]);
 
   // 右侧面板内容（在 ScrollToMessageProvider 内部）
   const rightPanelContent = showRightPanel && scrollApi && activeConversationId

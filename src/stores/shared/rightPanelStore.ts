@@ -33,9 +33,6 @@ interface RightPanelState {
   researchSources: ResearchSourceItem[];
   setResearchSources: (sources: ResearchSourceItem[]) => void;
 
-  predictionContext: Record<string, unknown>;
-  setPredictionContext: (ctx: Record<string, unknown>) => void;
-
   report: any | null;
   setReport: (report: any | null) => void;
 }
@@ -51,9 +48,6 @@ export const useRightPanelStore = create<RightPanelState>((set) => ({
 
   researchSources: [],
   setResearchSources: (researchSources) => set({ researchSources }),
-
-  predictionContext: {},
-  setPredictionContext: (predictionContext) => set({ predictionContext }),
 
   report: null,
   setReport: (report) => set({ report }),
