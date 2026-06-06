@@ -6,8 +6,8 @@
 //! - 0x20 之类的八进制转义
 //! - 多空格/制表符/换行拆分 token
 //! - `bash` 调用前先 `tr` 字符
-//! 新的实现先做"输入归一化"再做模式匹配；并在 high 列表中加入管道到解释器
-//! 的真白名单反例。
+//!   新的实现先做"输入归一化"再做模式匹配；并在 high 列表中加入管道到解释器
+//!   的真白名单反例。
 
 /// 分类结果
 #[derive(Debug, Clone)]
@@ -124,15 +124,15 @@ impl HeuristicClassifier {
             ("fetch", "sh"),
             ("fetch", "bash"),
         ] {
-            if let (Some(p1), Some(p2)) = (locate_token(&lower, a), locate_token(&lower, b)) {
-                if p1 < p2 {
-                    return ClassifierResult {
-                        risk_level: RiskLevel::Critical,
-                        reason: format!("检测到下载即执行: {} -> {}", a, b),
-                        suggest_allow: false,
-                        suggest_deny: true,
-                    };
-                }
+            if let (Some(p1), Some(p2)) = (locate_token(&lower, a), locate_token(&lower, b))
+                && p1 < p2
+            {
+                return ClassifierResult {
+                    risk_level: RiskLevel::Critical,
+                    reason: format!("检测到下载即执行: {} -> {}", a, b),
+                    suggest_allow: false,
+                    suggest_deny: true,
+                };
             }
         }
 
@@ -272,15 +272,15 @@ impl HeuristicClassifier {
         }
 
         // SEC: 阻断符号链接
-        if let Ok(meta) = std::fs::symlink_metadata(path) {
-            if meta.file_type().is_symlink() {
-                return ClassifierResult {
-                    risk_level: RiskLevel::High,
-                    reason: "路径是符号链接".into(),
-                    suggest_allow: false,
-                    suggest_deny: false,
-                };
-            }
+        if let Ok(meta) = std::fs::symlink_metadata(path)
+            && meta.file_type().is_symlink()
+        {
+            return ClassifierResult {
+                risk_level: RiskLevel::High,
+                reason: "路径是符号链接".into(),
+                suggest_allow: false,
+                suggest_deny: false,
+            };
         }
 
         ClassifierResult {
@@ -297,7 +297,7 @@ impl HeuristicClassifier {
 /// 模式可作为前缀匹配更深的路径（但不能跨段匹配，如 `/etc` 不应匹配 `/etcfoo`）。
 fn matches_glob(pattern: &str, text: &str) -> bool {
     use std::path::Path;
-    let pattern_trim = pattern.trim_end_matches(|c| c == '/' || c == '\\');
+    let pattern_trim = pattern.trim_end_matches(['/', '\\']);
     let p_path = Path::new(pattern_trim);
     let t_path = Path::new(text);
 
@@ -335,9 +335,12 @@ fn normalize_bash(s: &str) -> String {
     // 1) 把 unicode 空白 + 零宽替换为空格
     let mut s1 = String::with_capacity(s.len());
     for c in s.chars() {
-        if c.is_whitespace() {
-            s1.push(' ');
-        } else if c == '\u{00A0}' || c == '\u{200B}' || c == '\u{200C}' || c == '\u{200D}' {
+        if c.is_whitespace()
+            || c == '\u{00A0}'
+            || c == '\u{200B}'
+            || c == '\u{200C}'
+            || c == '\u{200D}'
+        {
             s1.push(' ');
         } else {
             s1.push(c);
@@ -349,39 +352,39 @@ fn normalize_bash(s: &str) -> String {
     let mut s2 = String::with_capacity(decoded.len());
     let mut chars = decoded.chars().peekable();
     while let Some(c) = chars.next() {
-        if c == '\\' {
-            if let Some(&next) = chars.peek() {
-                // 保留可转义：\n \t \r \' \" \\
-                if matches!(
-                    next,
-                    'n' | 't'
-                        | 'r'
-                        | '\''
-                        | '"'
-                        | '\\'
-                        | '$'
-                        | ' '
-                        | '|'
-                        | ';'
-                        | '&'
-                        | '>'
-                        | '<'
-                        | '('
-                        | ')'
-                        | '`'
-                        | '~'
-                        | '#'
-                ) {
-                    s2.push('\\');
-                    s2.push(next);
-                    chars.next();
-                    continue;
-                }
-                // 否则吃掉反斜杠
+        if c == '\\'
+            && let Some(&next) = chars.peek()
+        {
+            // 保留可转义：\n \t \r \' \" \\
+            if matches!(
+                next,
+                'n' | 't'
+                    | 'r'
+                    | '\''
+                    | '"'
+                    | '\\'
+                    | '$'
+                    | ' '
+                    | '|'
+                    | ';'
+                    | '&'
+                    | '>'
+                    | '<'
+                    | '('
+                    | ')'
+                    | '`'
+                    | '~'
+                    | '#'
+            ) {
+                s2.push('\\');
                 s2.push(next);
                 chars.next();
                 continue;
             }
+            // 否则吃掉反斜杠
+            s2.push(next);
+            chars.next();
+            continue;
         }
         s2.push(c);
     }
@@ -424,12 +427,11 @@ fn decode_c_escapes(s: &str) -> String {
             } else if nx == b'u' && i + 5 < bytes.len() {
                 if let Ok(code) =
                     u32::from_str_radix(std::str::from_utf8(&bytes[i + 2..i + 6]).unwrap_or(""), 16)
+                    && let Some(c) = char::from_u32(code)
                 {
-                    if let Some(c) = char::from_u32(code) {
-                        out.push(c);
-                        i += 6;
-                        continue;
-                    }
+                    out.push(c);
+                    i += 6;
+                    continue;
                 }
             } else if nx.is_ascii_digit() {
                 // 最多 3 位八进制

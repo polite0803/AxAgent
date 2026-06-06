@@ -241,9 +241,12 @@ impl Default for SecurityAnalyzer {
 fn normalize_for_match(s: &str) -> String {
     let mut s1 = String::with_capacity(s.len());
     for c in s.chars() {
-        if c.is_whitespace() {
-            s1.push(' ');
-        } else if c == '\u{00A0}' || c == '\u{200B}' || c == '\u{200C}' || c == '\u{200D}' {
+        if c.is_whitespace()
+            || c == '\u{00A0}'
+            || c == '\u{200B}'
+            || c == '\u{200C}'
+            || c == '\u{200D}'
+        {
             s1.push(' ');
         } else {
             s1.push(c);

@@ -166,7 +166,7 @@ impl Tool for FileWriteTool {
 
     async fn call(&self, input: Value, ctx: &ToolContext) -> Result<ToolResult, ToolError> {
         // SECURITY: 二次强制检查
-        match self.check_permissions(&input, &ctx) {
+        match self.check_permissions(&input, ctx) {
             PermissionResult::Allow => {},
             PermissionResult::Deny(reason) => {
                 return Err(ToolError::permission_denied("FileWrite", &reason));
@@ -238,7 +238,7 @@ impl Tool for FileWriteTool {
 /// 模式可作为前缀匹配更深的路径（但不能跨段匹配，如 `/etc` 不应匹配 `/etcfoo`）。
 fn matches_glob(pattern: &str, text: &str) -> bool {
     use std::path::Path;
-    let pattern_trim = pattern.trim_end_matches(|c| c == '/' || c == '\\');
+    let pattern_trim = pattern.trim_end_matches(['/', '\\']);
     let p_path = Path::new(pattern_trim);
     let t_path = Path::new(text);
 

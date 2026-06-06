@@ -132,14 +132,14 @@ impl Tool for FileReadTool {
         }
 
         // 解析符号链接后再次确认仍在工作区
-        if let Ok(canonical) = std::fs::canonicalize(path) {
-            if !is_within_workspace(&canonical, working_dir) {
-                return PermissionResult::Deny(format!(
-                    "符号链接 {} 指向工作区外 {}",
-                    path,
-                    canonical.display()
-                ));
-            }
+        if let Ok(canonical) = std::fs::canonicalize(path)
+            && !is_within_workspace(&canonical, working_dir)
+        {
+            return PermissionResult::Deny(format!(
+                "符号链接 {} 指向工作区外 {}",
+                path,
+                canonical.display()
+            ));
         }
 
         PermissionResult::Allow
@@ -147,7 +147,7 @@ impl Tool for FileReadTool {
 
     async fn call(&self, input: Value, ctx: &ToolContext) -> Result<ToolResult, ToolError> {
         // SECURITY: 二次强制检查，避免 check_permissions 被旁路
-        match self.check_permissions(&input, &ctx) {
+        match self.check_permissions(&input, ctx) {
             PermissionResult::Allow => {},
             PermissionResult::Deny(reason) => {
                 return Err(ToolError::permission_denied("FileRead", &reason));
@@ -208,7 +208,7 @@ impl Tool for FileReadTool {
 fn matches_glob(pattern: &str, text: &str) -> bool {
     use std::path::Path;
     // 去掉模式末尾的分隔符
-    let pattern_trim = pattern.trim_end_matches(|c| c == '/' || c == '\\');
+    let pattern_trim = pattern.trim_end_matches(['/', '\\']);
     let p_path = Path::new(pattern_trim);
     let t_path = Path::new(text);
 

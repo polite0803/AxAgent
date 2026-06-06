@@ -44,24 +44,23 @@ fn extract_primary_input(tool_name: &str, input: &str) -> String {
         return input.to_string();
     };
     let lower = tool_name.to_ascii_lowercase();
-    if lower.starts_with("bash") || lower.starts_with("shell") || lower.contains("execute") {
-        if let Some(s) = v.get("command").and_then(|x| x.as_str()) {
-            return s.to_string();
-        }
+    if (lower.starts_with("bash") || lower.starts_with("shell") || lower.contains("execute"))
+        && let Some(s) = v.get("command").and_then(|x| x.as_str())
+    {
+        return s.to_string();
     }
-    if lower.starts_with("fileread")
+    if (lower.starts_with("fileread")
         || lower.starts_with("filewrite")
         || lower.starts_with("fileedit")
-        || lower.contains("file_")
+        || lower.contains("file_"))
+        && let Some(s) = v.get("file_path").and_then(|x| x.as_str())
     {
-        if let Some(s) = v.get("file_path").and_then(|x| x.as_str()) {
-            return s.to_string();
-        }
+        return s.to_string();
     }
-    if lower.starts_with("webfetch") || lower.starts_with("http") || lower.contains("fetch") {
-        if let Some(s) = v.get("url").and_then(|x| x.as_str()) {
-            return s.to_string();
-        }
+    if (lower.starts_with("webfetch") || lower.starts_with("http") || lower.contains("fetch"))
+        && let Some(s) = v.get("url").and_then(|x| x.as_str())
+    {
+        return s.to_string();
     }
     if lower.starts_with("mcp") {
         if let Some(s) = v.get("tool").and_then(|x| x.as_str()) {
@@ -138,9 +137,12 @@ fn normalize_whitespace(s: &str) -> String {
     // 1) 把 NBSP/零宽等替换为普通空格
     let mut buf = String::with_capacity(s.len());
     for c in s.chars() {
-        if c.is_whitespace() {
-            buf.push(' ');
-        } else if c == '\u{00A0}' || c == '\u{200B}' || c == '\u{200C}' || c == '\u{200D}' {
+        if c.is_whitespace()
+            || c == '\u{00A0}'
+            || c == '\u{200B}'
+            || c == '\u{200C}'
+            || c == '\u{200D}'
+        {
             buf.push(' ');
         } else {
             buf.push(c);
