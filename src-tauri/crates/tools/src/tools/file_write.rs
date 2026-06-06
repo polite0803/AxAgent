@@ -237,28 +237,25 @@ impl Tool for FileWriteTool {
 /// 模式与文本按 `/` 或 `\` 切段比较：每个段必须相等或为 `*`；
 /// 模式可作为前缀匹配更深的路径（但不能跨段匹配，如 `/etc` 不应匹配 `/etcfoo`）。
 fn matches_glob(pattern: &str, text: &str) -> bool {
-    use std::path::Path;
     let pattern_trim = pattern.trim_end_matches(['/', '\\']);
-    let p_path = Path::new(pattern_trim);
-    let t_path = Path::new(text);
 
-    let p_segs: Vec<String> = p_path
-        .components()
-        .map(|c| c.as_os_str().to_string_lossy().to_string())
+    let p_segs: Vec<&str> = pattern_trim
+        .split(|c: char| c == '/' || c == '\\')
+        .filter(|s| !s.is_empty())
         .collect();
-    let t_segs: Vec<String> = t_path
-        .components()
-        .map(|c| c.as_os_str().to_string_lossy().to_string())
+    let t_segs: Vec<&str> = text
+        .split(|c: char| c == '/' || c == '\\')
+        .filter(|s| !s.is_empty())
         .collect();
 
     if p_segs.len() > t_segs.len() {
         return false;
     }
     for (i, p_seg) in p_segs.iter().enumerate() {
-        if p_seg == "*" {
+        if *p_seg == "*" {
             continue;
         }
-        if p_seg != &t_segs[i] {
+        if *p_seg != t_segs[i] {
             return false;
         }
     }
