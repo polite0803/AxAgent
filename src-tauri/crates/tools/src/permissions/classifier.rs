@@ -300,13 +300,10 @@ fn matches_glob(pattern: &str, text: &str) -> bool {
     let pattern_trim = pattern.trim_end_matches(['/', '\\']);
 
     let p_segs: Vec<&str> = pattern_trim
-        .split(|c: char| c == '/' || c == '\\')
+        .split(['/', '\\'])
         .filter(|s| !s.is_empty())
         .collect();
-    let t_segs: Vec<&str> = text
-        .split(|c: char| c == '/' || c == '\\')
-        .filter(|s| !s.is_empty())
-        .collect();
+    let t_segs: Vec<&str> = text.split(['/', '\\']).filter(|s| !s.is_empty()).collect();
 
     if p_segs.len() > t_segs.len() {
         return false;
