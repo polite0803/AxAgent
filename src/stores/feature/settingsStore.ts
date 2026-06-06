@@ -206,6 +206,12 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
 
   saveSettings: async (partial) => {
     if (!get()._loaded) {
+      // Settings haven't been hydrated from the DB yet; dropping silently would
+      // make the change look "persisted" in the UI but vanish on next launch.
+      console.warn(
+        "[settingsStore] saveSettings called before fetchSettings finished — skipping",
+        { keys: Object.keys(partial) },
+      );
       return;
     }
     set((s) => ({ settings: { ...s.settings, ...partial }, error: null }));

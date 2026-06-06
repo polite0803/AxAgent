@@ -778,6 +778,10 @@ pub struct GatewayLinkActivity {
 pub struct AppSettings {
     pub language: String,
     pub theme_mode: String,
+    /// Visual theme preset key (e.g. "deep-dusk", "oceanic-dark"). Persisted in
+    /// the JS store and must round-trip through the DB, so it lives on the
+    /// Rust struct as well — otherwise serde silently drops it on save.
+    pub theme_preset: String,
     pub primary_color: String,
     pub border_radius: u8,
     pub auto_start: bool,
@@ -920,6 +924,18 @@ pub struct AppSettings {
     /// RAG 高级管线配置（查询增强、重排序、自省式质检）
     #[serde(default)]
     pub rag_pipeline_config: serde_json::Value,
+    /// Show the right-side agent execution panel by default.
+    pub agent_panel_enabled: bool,
+    /// Use the compact (simplified) agent panel view by default.
+    pub agent_panel_compact: bool,
+    /// Onboarding — welcome wizard completed.
+    pub onboarding_completed: bool,
+    /// Onboarding — wizard dismissed by the user.
+    pub onboarding_wizard_dismissed: bool,
+    /// Onboarding — interactive tutorial completed.
+    pub onboarding_tutorial_completed: bool,
+    /// Onboarding — quick-start preset selected during the wizard.
+    pub onboarding_selected_preset: Option<String>,
 }
 
 impl Default for AppSettings {
@@ -927,6 +943,7 @@ impl Default for AppSettings {
         Self {
             language: "zh-CN".to_string(),
             theme_mode: constants::role::SYSTEM.to_string(),
+            theme_preset: "deep-dusk".to_string(),
             primary_color: "#17A93D".to_string(),
             border_radius: 8,
             auto_start: false,
@@ -1045,6 +1062,12 @@ impl Default for AppSettings {
             error_recovery_enabled: true,
             workspace_uri: None,
             rag_pipeline_config: serde_json::Value::Null,
+            agent_panel_enabled: true,
+            agent_panel_compact: false,
+            onboarding_completed: false,
+            onboarding_wizard_dismissed: false,
+            onboarding_tutorial_completed: false,
+            onboarding_selected_preset: None,
         }
     }
 }
