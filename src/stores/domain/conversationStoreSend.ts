@@ -525,11 +525,37 @@ export function createSendMethods(
         throw new Error("No active conversation");
       }
 
-      const conversation = get().conversations.find(
+      let conversation = get().conversations.find(
         (c) => c.id === conversationId,
       );
       if (!conversation) {
         throw new Error("Conversation not found");
+      }
+
+      // 自动重置已完成的工作流会话，以支持重新执行
+      // 根因：session_type === "workflow" 且 workflow_status === "completed" 时，
+      // 后端不会重新发射工作流流式步骤事件，导致前端消息区域空白
+      if (
+        conversation.session_type === "workflow"
+        && conversation.workflow_status === "completed"
+      ) {
+        try {
+          await get().updateConversation(conversationId, {
+            session_type: "conversation",
+            workflow_template_id: null,
+            workflow_status: null,
+          });
+          // 刷新本地会话列表，确保 ChatViewToolbar 拿到最新 session_type
+          await get().fetchConversations();
+          const refreshed = get().conversations.find(
+            (c) => c.id === conversationId,
+          );
+          if (refreshed) {
+            conversation = refreshed;
+          }
+        } catch (e) {
+          logIpcError("Failed to reset workflow session")(e);
+        }
       }
 
       // Guard: prevent duplicate sends while a stream is already active for this conversation
