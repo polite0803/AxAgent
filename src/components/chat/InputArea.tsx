@@ -3137,7 +3137,7 @@ export function InputArea() {
             label={t("common.name")}
             rules={[{ required: true }]}
           >
-            <Input placeholder="e.g. my-connector" />
+            <Input placeholder={t("chat.connector.placeholderName")} />
           </Form.Item>
           <Form.Item
             name="transport"
@@ -3154,13 +3154,13 @@ export function InputArea() {
           </Form.Item>
           <Form.Item
             name="command"
-            label="Command"
+            label={t("chat.connector.command")}
             rules={[{ required: true }]}
           >
-            <Input placeholder="e.g. npx @modelcontextprotocol/server-filesystem" />
+            <Input placeholder={t("chat.connector.placeholderCommand")} />
           </Form.Item>
-          <Form.Item name="args" label="Args">
-            <Input placeholder="e.g. /path/to/dir (space-separated)" />
+          <Form.Item name="args" label={t("chat.connector.args")}>
+            <Input placeholder={t("chat.connector.placeholderArgs")} />
           </Form.Item>
           <Form.Item
             noStyle
@@ -3170,10 +3170,10 @@ export function InputArea() {
               getFieldValue("transport") !== "stdio" && (
                 <Form.Item
                   name="endpoint"
-                  label="Endpoint"
+                  label={t("chat.connector.endpoint")}
                   rules={[{ required: true }]}
                 >
-                  <Input placeholder="e.g. http://localhost:3000/sse" />
+                  <Input placeholder={t("chat.connector.placeholderEndpoint")} />
                 </Form.Item>
               )}
           </Form.Item>

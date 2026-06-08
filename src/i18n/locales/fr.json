@@ -1118,7 +1118,14 @@
       "custom": "Connecteur personnalisé",
       "goConfig": "Aller aux Paramètres →",
       "noServers": "Veuillez d'abord ajouter ou activer des connecteurs",
-      "title": "Connecteur"
+      "title": "Connecteur",
+      "command": "Commande",
+      "args": "Arguments",
+      "endpoint": "Point de terminaison",
+      "placeholderName": "ex: my-connector",
+      "placeholderCommand": "ex: npx @modelcontextprotocol/server-filesystem",
+      "placeholderArgs": "ex: /path/to/dir (séparé par des espaces)",
+      "placeholderEndpoint": "ex: http://localhost:3000/sse"
     },
     "error": "Erreur de chat",
     "loadError": "Échec du chargement",

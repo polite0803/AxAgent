@@ -1118,7 +1118,14 @@
       "custom": "Benutzerdefinierter Connector",
       "goConfig": "Zu Einstellungen →",
       "noServers": "Bitte zuerst Connectoren hinzufügen oder aktivieren",
-      "title": "Connector"
+      "title": "Connector",
+      "command": "Befehl",
+      "args": "Argumente",
+      "endpoint": "Endpunkt",
+      "placeholderName": "z.B. my-connector",
+      "placeholderCommand": "z.B. npx @modelcontextprotocol/server-filesystem",
+      "placeholderArgs": "z.B. /path/to/dir (leerzeichengetrennt)",
+      "placeholderEndpoint": "z.B. http://localhost:3000/sse"
     },
     "error": "Chat-Fehler",
     "loadError": "Laden fehlgeschlagen",

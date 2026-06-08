@@ -1118,7 +1118,14 @@
       "custom": "Conector personalizado",
       "goConfig": "Ir a Configuración →",
       "noServers": "Primero añada o habilite conectores",
-      "title": "Conector"
+      "title": "Conector",
+      "command": "Comando",
+      "args": "Argumentos",
+      "endpoint": "Endpoint",
+      "placeholderName": "ej. my-connector",
+      "placeholderCommand": "ej. npx @modelcontextprotocol/server-filesystem",
+      "placeholderArgs": "ej. /path/to/dir (separado por espacios)",
+      "placeholderEndpoint": "ej. http://localhost:3000/sse"
     },
     "error": "Error de chat",
     "loadError": "Error al cargar",

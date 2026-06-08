@@ -1118,7 +1118,14 @@
       "custom": "Пользовательский коннектор",
       "goConfig": "Перейти в настройки →",
       "noServers": "Сначала добавьте или включите коннекторы",
-      "title": "Коннектор"
+      "title": "Коннектор",
+      "command": "Команда",
+      "args": "Аргументы",
+      "endpoint": "Конечная точка",
+      "placeholderName": "например: my-connector",
+      "placeholderCommand": "например: npx @modelcontextprotocol/server-filesystem",
+      "placeholderArgs": "например: /path/to/dir (через пробел)",
+      "placeholderEndpoint": "например: http://localhost:3000/sse"
     },
     "error": "Ошибка чата",
     "loadError": "Не удалось загрузить",

@@ -1,8 +1,8 @@
 {
   "version": "1",
-  "generated": "2026-05-29",
+  "generated": "2026-06-08",
   "total_entries": 178,
-  "total_files": 120,
+  "total_files": 134,
   "entries": [
     {
       "file": "src/App.tsx",
@@ -1068,12 +1068,6 @@
       "file": "src/stores/__tests__/workflowEditorStore.test.ts",
       "lines": "543,549",
       "reason": "测试 mock 数据标签",
-      "phase": 3
-    },
-    {
-      "file": "src/components/chat/InputArea.tsx",
-      "lines": "3142,3162,3165,3178",
-      "reason": "MCP 连接器输入框占位文本（示例用英文）",
       "phase": 3
     }
   ]

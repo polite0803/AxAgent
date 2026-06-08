@@ -1258,7 +1258,14 @@
       "custom": "カスタムコネクタ",
       "goConfig": "設定へ →",
       "noServers": "まずコネクタを追加または有効化してください",
-      "title": "コネクタ"
+      "title": "コネクタ",
+      "command": "コマンド",
+      "args": "引数",
+      "endpoint": "エンドポイント",
+      "placeholderName": "例: my-connector",
+      "placeholderCommand": "例: npx @modelcontextprotocol/server-filesystem",
+      "placeholderArgs": "例: /path/to/dir (スペース区切り)",
+      "placeholderEndpoint": "例: http://localhost:3000/sse"
     },
     "error": "チャットエラー",
     "loadError": "読み込みに失敗しました",

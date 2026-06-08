@@ -1118,7 +1118,14 @@
       "custom": "कस्टम कनेक्टर",
       "goConfig": "सेटिंग्स पर जाएँ →",
       "noServers": "कृपया पहले कनेक्टर जोड़ें या सक्षम करें",
-      "title": "कनेक्टर"
+      "title": "कनेक्टर",
+      "command": "कमांड",
+      "args": "तर्क",
+      "endpoint": "एंडपॉइंट",
+      "placeholderName": "उदा: my-connector",
+      "placeholderCommand": "उदा: npx @modelcontextprotocol/server-filesystem",
+      "placeholderArgs": "उदा: /path/to/dir (स्पेस से अलग किया गया)",
+      "placeholderEndpoint": "उदा: http://localhost:3000/sse"
     },
     "error": "चैट त्रुटि",
     "loadError": "लोड करने में विफल",

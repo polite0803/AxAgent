@@ -1118,7 +1118,14 @@
       "custom": "موصل مخصص",
       "goConfig": "الانتقال إلى الإعدادات →",
       "noServers": "الرجاء إضافة أو تفعيل الموصلات أولاً",
-      "title": "الموصل"
+      "title": "الموصل",
+      "command": "الأمر",
+      "args": "الوسائط",
+      "endpoint": "نقطة النهاية",
+      "placeholderName": "مثال: my-connector",
+      "placeholderCommand": "مثال: npx @modelcontextprotocol/server-filesystem",
+      "placeholderArgs": "مثال: /path/to/dir (مفصول بمسافات)",
+      "placeholderEndpoint": "مثال: http://localhost:3000/sse"
     },
     "error": "خطأ في الدردشة",
     "loadError": "فشل التحميل",

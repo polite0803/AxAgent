@@ -1118,7 +1118,14 @@
       "custom": "自訂連接器",
       "goConfig": "前往設定 →",
       "noServers": "請先新增或啟用連接器",
-      "title": "連接器"
+      "title": "連接器",
+      "command": "命令",
+      "args": "參數",
+      "endpoint": "端點地址",
+      "placeholderName": "例如: my-connector",
+      "placeholderCommand": "例如: npx @modelcontextprotocol/server-filesystem",
+      "placeholderArgs": "例如: /path/to/dir (空格分隔)",
+      "placeholderEndpoint": "例如: http://localhost:3000/sse"
     },
     "error": "聊天錯誤",
     "loadError": "載入失敗",

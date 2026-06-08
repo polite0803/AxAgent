@@ -1118,7 +1118,14 @@
       "custom": "사용자 정의 커넥터",
       "goConfig": "설정으로 이동 →",
       "noServers": "먼저 커넥터를 추가하거나 활성화하세요",
-      "title": "커넥터"
+      "title": "커넥터",
+      "command": "명령어",
+      "args": "인수",
+      "endpoint": "엔드포인트",
+      "placeholderName": "예: my-connector",
+      "placeholderCommand": "예: npx @modelcontextprotocol/server-filesystem",
+      "placeholderArgs": "예: /path/to/dir (공백으로 구분)",
+      "placeholderEndpoint": "예: http://localhost:3000/sse"
     },
     "error": "채팅 오류",
     "loadError": "불러오기 실패",

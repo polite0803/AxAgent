@@ -306,7 +306,14 @@
       "add": "Add Connector",
       "custom": "Custom Connector",
       "noServers": "Please add or enable connectors first",
-      "goConfig": "Go to Settings →"
+      "goConfig": "Go to Settings →",
+      "command": "Command",
+      "args": "Args",
+      "endpoint": "Endpoint",
+      "placeholderName": "e.g. my-connector",
+      "placeholderCommand": "e.g. npx @modelcontextprotocol/server-filesystem",
+      "placeholderArgs": "e.g. /path/to/dir (space-separated)",
+      "placeholderEndpoint": "e.g. http://localhost:3000/sse"
     },
     "contextCleared": "Context has been reset from here",
     "knowledge": {
