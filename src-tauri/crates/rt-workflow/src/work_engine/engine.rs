@@ -2521,10 +2521,8 @@ fn collect_workflow_tool_names(nodes: &[WorkflowNode]) -> Vec<String> {
                     names.insert(tool.name.clone());
                 }
             },
-            WorkflowNode::Tool(tn) => {
-                if !tn.config.tool_name.is_empty() {
-                    names.insert(tn.config.tool_name.clone());
-                }
+            WorkflowNode::Tool(tn) if !tn.config.tool_name.is_empty() => {
+                names.insert(tn.config.tool_name.clone());
             },
             _ => {},
         }
