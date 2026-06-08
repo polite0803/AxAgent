@@ -1953,19 +1953,20 @@ html[data-theme="dark"] .markstream-react .table-node thead {
   width: 100%;
 }
 .chat-input-area {
-  padding: 10px var(--content-px) 14px;
+  padding: 6px var(--content-px) 8px;
   border-top: 1px solid var(--border-color);
   background: var(--color-bg, var(--color-bg-container));
   width: 100%;
+  flex-shrink: 0;
 }
 .chat-input-box {
   display: flex;
   align-items: flex-end;
-  gap: 8px;
+  gap: 6px;
   background: var(--color-surface, var(--color-bg-elevated));
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
-  padding: 8px 12px;
+  padding: 6px 10px;
   transition: border-color 0.15s;
 }
 .chat-input-box:focus-within {
@@ -2182,9 +2183,10 @@ html[data-theme="dark"] .markstream-react .table-node thead {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 4px 8px;
+  padding: 2px 4px;
   gap: 2px;
   flex-wrap: wrap;
+  min-height: 32px;
 }
 
 /* ── 右面板 (详情/Agent 面板) ── */

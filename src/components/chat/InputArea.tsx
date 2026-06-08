@@ -1,4 +1,3 @@
-import { ContextHelp } from "@/components/help/ContextHelp";
 import { DropdownMenu } from "@/components/layout/DropdownMenu";
 import type { DropdownItem } from "@/components/layout/DropdownMenu";
 import { Tooltip } from "@/components/layout/Tooltip";
@@ -2928,7 +2927,6 @@ export function InputArea() {
                 </Tooltip>
               </DropdownMenu>
             )}
-            <ContextHelp helpKey="agent" section="agent" />
             {currentMode === "agent" && activeConversationId && (
               <PlanHistoryPanel conversationId={activeConversationId} />
             )}
@@ -2966,6 +2964,24 @@ export function InputArea() {
                 </Button>
               </Tooltip>
             )}
+            {currentMode === "agent" && agentCwd && (
+              <Tooltip title={t("common.openDirectory")}>
+                <Button
+                  type="text"
+                  size="small"
+                  icon={<ExternalLink size={14} />}
+                  onClick={async () => {
+                    try {
+                      const { revealItemInDir } = await import("@tauri-apps/plugin-opener");
+                      await revealItemInDir(agentCwd);
+                    } catch (e) {
+                      logIpcError("open directory")(e);
+                    }
+                  }}
+                  style={{ fontSize: 12, minWidth: "auto", padding: "0 4px" }}
+                />
+              </Tooltip>
+            )}
             {hasRealtimeVoice && (
               <Tooltip
                 title={t("voice.startCall") + " - " + t("common.comingSoon")}
@@ -2979,113 +2995,95 @@ export function InputArea() {
               </Tooltip>
             )}
           </div>
-        </div>
-      </div>
-
-      {/* Mode controls bar — below input container */}
-      <div className="flex items-center justify-between px-1 pt-1">
-        <div className="flex items-center gap-1">
-          {currentMode === "agent" && agentCwd && (
-            <Tooltip title={t("common.openDirectory")}>
-              <Button
-                type="text"
-                size="small"
-                icon={<ExternalLink size={14} />}
-                onClick={async () => {
-                  try {
-                    const { revealItemInDir } = await import("@tauri-apps/plugin-opener");
-                    await revealItemInDir(agentCwd);
-                  } catch (e) {
-                    logIpcError("open directory")(e);
-                  }
-                }}
-                style={{ fontSize: 12, minWidth: "auto", padding: "0 4px" }}
-              />
-            </Tooltip>
-          )}
-        </div>
-        <div className="flex items-center gap-2 ml-auto">
-          {currentMode === "agent" && (
-            <DropdownMenu items={permissionModeItems}>
-              <Button
-                type="text"
-                size="small"
-                icon={permissionModeIcon}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 4,
-                  fontSize: 12,
-                  ...(agentPermissionMode === "full_access"
-                    ? { color: token.colorError }
-                    : {}),
-                }}
-              >
-                {permissionModeLabel}
-              </Button>
-            </DropdownMenu>
-          )}
-          {contextCount > 0 && (
-            <span style={{ fontSize: 12, color: token.colorTextSecondary }}>
-              {contextCount} {t("chat.contextMessages")}
-            </span>
-          )}
-          {contextTokenUsage
-            && (() => {
-              const r = 8,
-                stroke = 2.5,
-                size = (r + stroke) * 2;
-              const circ = 2 * Math.PI * r;
-              const offset = circ * (1 - contextTokenUsage.percent / 100);
-              const color = contextTokenUsage.percent > 80
-                ? token.colorError
-                : contextTokenUsage.percent > 60
-                ? token.colorWarning
-                : token.colorPrimary;
-              return (
-                <Popover
-                  content={
-                    <span style={{ fontSize: 12 }}>
-                      {contextTokenUsage.isEstimate && "~"}
-                      {contextTokenUsage.usedTokens.toLocaleString()} / {contextTokenUsage.maxTokens.toLocaleString()}
-                      {" "}
-                      tokens (
-                      {contextTokenUsage.percent}%)
-                    </span>
-                  }
+          <div className="flex items-center gap-2 ml-auto">
+            {currentMode === "agent" && (
+              <DropdownMenu items={permissionModeItems}>
+                <Button
+                  type="text"
+                  size="small"
+                  icon={permissionModeIcon}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 4,
+                    fontSize: 12,
+                    ...(agentPermissionMode === "full_access"
+                      ? { color: token.colorError }
+                      : {}),
+                  }}
                 >
-                  <svg
-                    width={size}
-                    height={size}
-                    style={{ display: "block", cursor: "pointer" }}
+                  {permissionModeLabel}
+                </Button>
+              </DropdownMenu>
+            )}
+            {contextTokenUsage
+              ? (() => {
+                const r = 8,
+                  stroke = 2.5,
+                  size = (r + stroke) * 2;
+                const circ = 2 * Math.PI * r;
+                const offset = circ * (1 - contextTokenUsage.percent / 100);
+                const color = contextTokenUsage.percent > 80
+                  ? token.colorError
+                  : contextTokenUsage.percent > 60
+                  ? token.colorWarning
+                  : token.colorPrimary;
+                return (
+                  <Popover
+                    content={
+                      <span style={{ fontSize: 12 }}>
+                        {contextTokenUsage.isEstimate && "~"}
+                        {contextTokenUsage.usedTokens.toLocaleString()} / {contextTokenUsage.maxTokens.toLocaleString()}
+                        {" "}
+                        tokens ({contextTokenUsage.percent}%)
+                        {contextCount > 0 && (
+                          <>
+                            {" · "}
+                            {contextCount} {t("chat.contextMessages")}
+                          </>
+                        )}
+                      </span>
+                    }
                   >
-                    <circle
-                      cx={r + stroke}
-                      cy={r + stroke}
-                      r={r}
-                      fill="none"
-                      stroke={token.colorBorderSecondary}
-                      strokeWidth={stroke}
-                    />
-                    <circle
-                      cx={r + stroke}
-                      cy={r + stroke}
-                      r={r}
-                      fill="none"
-                      stroke={color}
-                      strokeWidth={stroke}
-                      strokeDasharray={circ}
-                      strokeDashoffset={offset}
-                      strokeLinecap="round"
-                      transform={`rotate(-90 ${r + stroke} ${r + stroke})`}
-                    />
-                  </svg>
-                </Popover>
-              );
-            })()}
+                    <svg
+                      width={size}
+                      height={size}
+                      style={{ display: "block", cursor: "pointer" }}
+                    >
+                      <circle
+                        cx={r + stroke}
+                        cy={r + stroke}
+                        r={r}
+                        fill="none"
+                        stroke={token.colorBorderSecondary}
+                        strokeWidth={stroke}
+                      />
+                      <circle
+                        cx={r + stroke}
+                        cy={r + stroke}
+                        r={r}
+                        fill="none"
+                        stroke={color}
+                        strokeWidth={stroke}
+                        strokeDasharray={circ}
+                        strokeDashoffset={offset}
+                        strokeLinecap="round"
+                        transform={`rotate(-90 ${r + stroke} ${r + stroke})`}
+                      />
+                    </svg>
+                  </Popover>
+                );
+              })()
+              : contextCount > 0
+              ? (
+                <span style={{ fontSize: 12, color: token.colorTextSecondary }}>
+                  {contextCount} {t("chat.contextMessages")}
+                </span>
+              )
+              : null}
+          </div>
         </div>
       </div>
-
       <ConversationSettingsModal
         open={settingsOpen}
         onClose={() => setSettingsOpen(false)}
