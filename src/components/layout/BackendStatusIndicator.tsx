@@ -1,4 +1,4 @@
-import { useBackendStatusStore } from "@/stores/shared/backendStatusStore";
+import { initBackendStatusListeners, useBackendStatusStore } from "@/stores/shared/backendStatusStore";
 import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -7,9 +7,6 @@ export function BackendStatusIndicator() {
   const { tasks, clearCompleted } = useBackendStatusStore();
 
   useEffect(() => {
-    const { initBackendStatusListeners } = require(
-      "@/stores/shared/backendStatusStore",
-    ) as typeof import("@/stores/shared/backendStatusStore");
     initBackendStatusListeners();
   }, []);
 
