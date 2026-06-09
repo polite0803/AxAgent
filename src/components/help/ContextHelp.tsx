@@ -19,7 +19,7 @@ export function ContextHelp({
   const { t } = useTranslation();
   const openSection = useHelpStore((s) => s.openSection);
 
-  const summary = t(`help.${helpKey}.summary`, "");
+  const summary = t(`help.${helpKey}Summary`, "");
   if (!summary) {
     return null;
   }
