@@ -984,44 +984,134 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
   ]);
 
   const handleSaveAsImage = useCallback(async () => {
+    if (!reactFlowInstance) { return; }
+
+    let container: HTMLDivElement | null = null;
+
     try {
-      // Fit view first so everything is visible
-      reactFlowInstance.fitView({ padding: 0.2, duration: 0 });
-
-      // Wait for React Flow to re-render after fitView
-      await new Promise((resolve) => setTimeout(resolve, 300));
-
-      const element = canvasContainerRef.current;
-      if (!element) {
-        message.error(t("workflow.exportNotFoundOrFailed"));
-        return;
-      }
-
-      // Load dom-to-image-more from public/ (bypass Vite module resolution)
-      const defaultName = `${currentTemplate?.name || "workflow"}.png`;
-
+      // 1. 确保 dom-to-image-more 已加载
       await new Promise<void>((resolve, reject) => {
+        if ((window as any).domtoimage) {
+          resolve();
+          return;
+        }
         const s = document.createElement("script");
         s.src = "/dom-to-image-more.js";
         s.onload = () => resolve();
         s.onerror = () => reject(new Error("failed to load dom-to-image-more"));
         document.head.appendChild(s);
       });
-
       const dti = (window as any).domtoimage;
 
+      // 2. 注入隐藏 UI 元素的 CSS（仅注入一次）
+      const STYLE_ID = "workflow-export-hide-styles";
+      if (!document.getElementById(STYLE_ID)) {
+        const style = document.createElement("style");
+        style.id = STYLE_ID;
+        style.textContent = `
+          .workflow-exporting .react-flow__controls,
+          .workflow-exporting .react-flow__minimap,
+          .workflow-exporting .react-flow__panel,
+          .workflow-exporting .react-flow__background {
+            display: none !important;
+          }
+        `;
+        document.head.appendChild(style);
+      }
+
+      // 3. 手动计算所有节点的包围盒
+      const nodes = reactFlowInstance.getNodes();
+      if (nodes.length === 0) {
+        message.info(t("workflow.exportEmpty") || "暂无节点可导出");
+        return;
+      }
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+      nodes.forEach((node: any) => {
+        const w = node.width || 200;
+        const h = node.height || 100;
+        minX = Math.min(minX, node.position.x);
+        minY = Math.min(minY, node.position.y);
+        maxX = Math.max(maxX, node.position.x + w);
+        maxY = Math.max(maxY, node.position.y + h);
+      });
+      const padding = 80;
+
+      // 4. 创建离屏容器
+      container = document.createElement("div");
+      container.style.position = "fixed";
+      container.style.left = "-99999px";
+      container.style.top = "0";
+      container.style.background = "#1a1a2e";
+      container.style.overflow = "visible";
+
+      const totalW = Math.max(320, Math.ceil(maxX - minX) + padding * 2);
+      const totalH = Math.max(240, Math.ceil(maxY - minY) + padding * 2);
+      container.style.width = totalW + "px";
+      container.style.height = totalH + "px";
+
+      // 5. 克隆 .react-flow 到离屏容器
+      const element = canvasContainerRef.current;
+      if (!element) {
+        message.error(t("workflow.exportNotFoundOrFailed"));
+        return;
+      }
+
+      const flowEl = element.querySelector(".react-flow") as HTMLElement | null;
+      if (!flowEl) { throw new Error("React Flow element not found"); }
+
+      const flowClone = flowEl.cloneNode(true) as HTMLElement;
+      flowClone.classList.add("workflow-exporting");
+      flowClone.style.position = "relative";
+      flowClone.style.transform = "none";
+      flowClone.style.overflow = "visible";
+      flowClone.style.width = totalW + "px";
+      flowClone.style.height = totalH + "px";
+
+      // 6. 重置克隆体中的 viewport transform，以 zoom=1 显示全部节点
+      const viewportClone = flowClone.querySelector(".react-flow__viewport") as HTMLElement | null;
+      if (viewportClone) {
+        viewportClone.style.transform = `translate(${padding - minX}px, ${padding - minY}px) scale(1)`;
+        viewportClone.style.transformOrigin = "0 0";
+      }
+
+      // 7. 保险：把克隆体内所有 SVG edge 的描边转成具体颜色
+      try {
+        const edgePaths = flowClone.querySelectorAll<SVGPathElement>(".react-flow__edge-path");
+        edgePaths.forEach((path) => {
+          const computed = window.getComputedStyle(path).stroke;
+          if (computed && computed !== "none" && !computed.startsWith("var(")) {
+            path.style.stroke = computed;
+          } else {
+            const edgeEl = path.closest(".react-flow__edge");
+            const isSelected = edgeEl?.classList.contains("selected");
+            path.style.stroke = isSelected ? "#888" : "#b1b1b7";
+            path.style.strokeWidth = isSelected ? "2" : "1";
+          }
+        });
+      } catch (_) { /* ignore */ }
+
+      container.appendChild(flowClone);
+      document.body.appendChild(container);
+
+      // 8. 等一帧确保 DOM 渲染完成
+      await new Promise<void>((resolve) => {
+        requestAnimationFrame(() => {
+          resolve();
+        });
+      });
+
+      // 9. 导出：scale=2 超采样保证高清
+      const defaultName = `${currentTemplate?.name || "workflow"}.png`;
+
       if (isTauri()) {
-        const blob = await dti.toBlob(element, {
+        const blob = await dti.toBlob(container, {
           bgColor: "#1a1a2e",
           scale: 2,
-          width: element.scrollWidth,
-          height: element.scrollHeight,
         });
         if (!blob) {
           message.error(t("workflow.exportFailed"));
           return;
         }
-
         const { save } = await import("@tauri-apps/plugin-dialog");
         const { writeFile } = await import("@tauri-apps/plugin-fs");
         const filePath = await save({
@@ -1031,11 +1121,9 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
         if (!filePath) { return; }
         await writeFile(filePath, new Uint8Array(await blob.arrayBuffer()));
       } else {
-        const dataUrl = await dti.toPng(element, {
+        const dataUrl = await dti.toPng(container, {
           bgColor: "#1a1a2e",
           scale: 2,
-          width: element.scrollWidth,
-          height: element.scrollHeight,
         });
         const link = document.createElement("a");
         link.download = defaultName;
@@ -1047,6 +1135,11 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
     } catch (error) {
       console.error("[saveAsImage]", error);
       message.error(`${t("workflow.exportFailed")}: ${error instanceof Error ? error.message : String(error)}`);
+    } finally {
+      // 10. 清理离屏容器
+      if (container && container.parentNode) {
+        container.parentNode.removeChild(container);
+      }
     }
   }, [reactFlowInstance, currentTemplate, t]);
 

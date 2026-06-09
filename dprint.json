@@ -7,7 +7,8 @@
   "excludes": [
     "node_modules/**/*",
     "dist/**/*",
-    "target/**/*"
+    "target/**/*",
+    "public/**/*"
   ],
   "typescript": {
     "quoteStyle": "preferDouble",
