@@ -15,7 +15,6 @@ import {
   useReactFlow,
 } from "reactflow";
 import "reactflow/dist/style.css";
-import domtoimage from "@/lib/dom-to-image-more.js";
 import { isTauri } from "@/lib/invoke";
 import { autoLayoutWorkflow, getNodeSize } from "@/lib/workflowLayout";
 import { useAgentProfileStore, useWorkflowEditorStore } from "@/stores";
@@ -998,21 +997,27 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
         return;
       }
 
-      // Use dom-to-image-more (copied to src/lib/ to avoid Vite CJS issues)
+      // Load dom-to-image-more from public/ (bypass Vite module resolution)
       const defaultName = `${currentTemplate?.name || "workflow"}.png`;
-      const opts = {
-        bgColor: "#1a1a2e" as const,
-        scale: 2 as const,
-        width: element.scrollWidth,
-        height: element.scrollHeight,
-      };
+
+      await new Promise<void>((resolve, reject) => {
+        const s = document.createElement("script");
+        s.src = "/dom-to-image-more.js";
+        s.onload = () => resolve();
+        s.onerror = () => reject(new Error("failed to load dom-to-image-more"));
+        document.head.appendChild(s);
+      });
+
+      const dti = (window as any).domtoimage;
 
       if (isTauri()) {
-        const blob = await domtoimage.toBlob(element, opts);
-        if (!blob) {
-          message.error(t("workflow.exportFailed"));
-          return;
-        }
+        const blob = await dti.toBlob(element, {
+          bgColor: "#1a1a2e",
+          scale: 2,
+          width: element.scrollWidth,
+          height: element.scrollHeight,
+        });
+        if (!blob) { message.error(t("workflow.exportFailed")); return; }
 
         const { save } = await import("@tauri-apps/plugin-dialog");
         const { writeFile } = await import("@tauri-apps/plugin-fs");
@@ -1023,7 +1028,12 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
         if (!filePath) { return; }
         await writeFile(filePath, new Uint8Array(await blob.arrayBuffer()));
       } else {
-        const dataUrl = await domtoimage.toPng(element, opts);
+        const dataUrl = await dti.toPng(element, {
+          bgColor: "#1a1a2e",
+          scale: 2,
+          width: element.scrollWidth,
+          height: element.scrollHeight,
+        });
         const link = document.createElement("a");
         link.download = defaultName;
         link.href = dataUrl;
