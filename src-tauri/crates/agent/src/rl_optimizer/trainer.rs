@@ -379,7 +379,20 @@ mod tests {
 
     #[test]
     fn test_rl_trainer_update_tool_selection_policy() {
-        let optimizer = RLOptimizer::new("opt1".to_string(), "Optimizer".to_string());
+        let mut optimizer = RLOptimizer::new("opt1".to_string(), "Optimizer".to_string());
+        optimizer.add_policy(crate::rl_optimizer::Policy {
+            id: "p1".to_string(),
+            name: "Tool Selection".to_string(),
+            policy_type: PolicyType::ToolSelection,
+            model_id: "rl-v1".to_string(),
+            reward_signals: vec![],
+            training_stats: TrainingStats {
+                total_experiences: 0,
+                episodes_completed: 0,
+                avg_reward: 0.0,
+                last_update: chrono::Utc::now(),
+            },
+        });
         let mut trainer = RLtrainer::new(optimizer);
         let exp = Experience {
             id: "exp_1".to_string(),
@@ -397,7 +410,7 @@ mod tests {
     #[test]
     fn test_rl_trainer_evaluate_policy_with_reward_signals() {
         let mut optimizer = RLOptimizer::new("opt1".to_string(), "Optimizer".to_string());
-        let mut policy = crate::rl_optimizer::Policy {
+        let policy = crate::rl_optimizer::Policy {
             id: "p1".to_string(),
             name: "Test Policy".to_string(),
             policy_type: PolicyType::ToolSelection,
