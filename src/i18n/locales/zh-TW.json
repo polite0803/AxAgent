@@ -3533,7 +3533,9 @@
       "formatN8n": "n8n 格式",
       "scanningFolder": "正在掃描文件夾...",
       "axagentFolderHint": "選擇包含 AxAgent 格式 JSON 文件的文件夾，將自動掃描並導入所有工作流模板。",
-      "n8nFolderHint": "選擇包含 n8n 格式 JSON 文件的文件夾，將自動轉換並導入所有 n8n 工作流。"
+      "n8nFolderHint": "選擇包含 n8n 格式 JSON 文件的文件夾，將自動轉換並導入所有 n8n 工作流。",
+      "importStructuralErrors": "匯入的工作流存在 {{count}} 個結構錯誤：\n{{details}}",
+      "importValidationWarnings": "匯入的工作流存在 {{count}} 個警告：\n{{details}}"
     },
     "preview": "預覽",
     "publish": "發布",
@@ -3576,7 +3578,16 @@
       "loading": "載入中",
       "compare": "對比",
       "compareVersions": "對比版本",
-      "noChanges": "無變更"
+      "noChanges": "無變更",
+      "compareFailed": "對比失敗",
+      "cannotLoadOldVersion": "無法載入舊版本資料",
+      "rollbackFailed": "回滾失敗: {{error}}",
+      "diffNodeAdded": "新增節點",
+      "diffNodeRemoved": "刪除節點",
+      "diffNodeTypeChanged": "節點類型變更",
+      "diffNodeConfigChanged": "節點配置變更",
+      "diffEdgeAdded": "新增邊 ({{type}})",
+      "diffEdgeRemoved": "刪除邊 ({{type}})"
     },
     "versionHistoryLoadFailed": "版本歷史載入失敗",
     "versionLoaded": "版本已載入",
@@ -4656,7 +4667,8 @@
       "max_rounds": "最大輪次",
       "topic_var": "辯題變數"
     },
-    "searchNodes": "搜尋節點"
+    "searchNodes": "搜尋節點",
+    "validationWarnings": "工作流存在 {{count}} 個警告：\n{{details}}"
   },
   "atomicSkill": {
     "entryType": "入口類型",

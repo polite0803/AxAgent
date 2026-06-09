@@ -3964,7 +3964,9 @@
       "formatN8n": "Format n8n",
       "scanningFolder": "Analyse du dossier...",
       "axagentFolderHint": "Sélectionnez un dossier contenant des fichiers JSON au format AxAgent. Tous les modèles de flux de travail seront automatiquement analysés et importés.",
-      "n8nFolderHint": "Sélectionnez un dossier contenant des fichiers JSON au format n8n. Tous les flux de travail n8n seront automatiquement convertis et importés."
+      "n8nFolderHint": "Sélectionnez un dossier contenant des fichiers JSON au format n8n. Tous les flux de travail n8n seront automatiquement convertis et importés.",
+      "importStructuralErrors": "Imported workflow has {{count}} structural error(s):\n{{details}}",
+      "importValidationWarnings": "Imported workflow has {{count}} warning(s):\n{{details}}"
     },
     "preview": "Aperçu",
     "publish": "Publier",
@@ -4007,7 +4009,16 @@
       "loading": "Chargement de la version...",
       "compare": "Comparer",
       "compareVersions": "Comparer les versions",
-      "noChanges": "Aucun changement"
+      "noChanges": "Aucun changement",
+      "compareFailed": "Comparison failed",
+      "cannotLoadOldVersion": "Cannot load old version data",
+      "rollbackFailed": "Rollback failed: {{error}}",
+      "diffNodeAdded": "Node added",
+      "diffNodeRemoved": "Node removed",
+      "diffNodeTypeChanged": "Node type changed",
+      "diffNodeConfigChanged": "Node config changed",
+      "diffEdgeAdded": "Edge added ({{type}})",
+      "diffEdgeRemoved": "Edge removed ({{type}})"
     },
     "versionHistoryLoadFailed": "Échec du chargement de l'historique des versions",
     "versionLoaded": "Version{{version}} loaded",
@@ -5087,7 +5098,8 @@
       "max_rounds": "Rondes max.",
       "topic_var": "Variable du sujet"
     },
-    "searchNodes": "Rechercher des nœuds"
+    "searchNodes": "Rechercher des nœuds",
+    "validationWarnings": "Workflow has {{count}} warning(s):\n{{details}}"
   },
   "atomicSkill": {
     "entryType": "Type d'entrée",

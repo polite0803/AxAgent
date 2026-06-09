@@ -3964,7 +3964,9 @@
       "formatN8n": "n8n प्रारूप",
       "scanningFolder": "फ़ोल्डर स्कैन हो रहा है...",
       "axagentFolderHint": "AxAgent प्रारूप JSON फ़ाइलों वाला फ़ोल्डर चुनें। सभी वर्कफ़्लो टेम्प्लेट स्वचालित रूप से स्कैन और आयात किए जाएंगे।",
-      "n8nFolderHint": "n8n प्रारूप JSON फ़ाइलों वाला फ़ोल्डर चुनें। सभी n8n वर्कफ़्लो स्वचालित रूप से परिवर्तित और आयात किए जाएंगे।"
+      "n8nFolderHint": "n8n प्रारूप JSON फ़ाइलों वाला फ़ोल्डर चुनें। सभी n8n वर्कफ़्लो स्वचालित रूप से परिवर्तित और आयात किए जाएंगे।",
+      "importStructuralErrors": "Imported workflow has {{count}} structural error(s):\n{{details}}",
+      "importValidationWarnings": "Imported workflow has {{count}} warning(s):\n{{details}}"
     },
     "preview": "पूर्वावलोकन",
     "publish": "प्रकाशित करें",
@@ -4007,7 +4009,16 @@
       "loading": "संस्करण लोड हो रहा है...",
       "compare": "तुलना",
       "compareVersions": "वर्ज़न तुलना",
-      "noChanges": "कोई परिवर्तन नहीं"
+      "noChanges": "कोई परिवर्तन नहीं",
+      "compareFailed": "Comparison failed",
+      "cannotLoadOldVersion": "Cannot load old version data",
+      "rollbackFailed": "Rollback failed: {{error}}",
+      "diffNodeAdded": "Node added",
+      "diffNodeRemoved": "Node removed",
+      "diffNodeTypeChanged": "Node type changed",
+      "diffNodeConfigChanged": "Node config changed",
+      "diffEdgeAdded": "Edge added ({{type}})",
+      "diffEdgeRemoved": "Edge removed ({{type}})"
     },
     "versionHistoryLoadFailed": "संस्करण इतिहास लोड करने में विफल",
     "versionLoaded": "संस्करण{{version}} loaded",
@@ -5087,7 +5098,8 @@
       "max_rounds": "अधिकतम राउंड",
       "topic_var": "विषय वैरिएबल"
     },
-    "searchNodes": "नोड खोजें"
+    "searchNodes": "नोड खोजें",
+    "validationWarnings": "Workflow has {{count}} warning(s):\n{{details}}"
   },
   "atomicSkill": {
     "entryType": "प्रविष्टि प्रकार",

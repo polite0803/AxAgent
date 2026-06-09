@@ -3964,7 +3964,9 @@
       "formatN8n": "تنسيق n8n",
       "scanningFolder": "جاري فحص المجلد...",
       "axagentFolderHint": "حدد مجلداً يحتوي على ملفات JSON بتنسيق AxAgent. سيتم فحص جميع قوالب سير العمل واستيرادها تلقائياً.",
-      "n8nFolderHint": "حدد مجلداً يحتوي على ملفات JSON بتنسيق n8n. سيتم تحويل جميع مهام n8n واستيرادها تلقائياً."
+      "n8nFolderHint": "حدد مجلداً يحتوي على ملفات JSON بتنسيق n8n. سيتم تحويل جميع مهام n8n واستيرادها تلقائياً.",
+      "importStructuralErrors": "Imported workflow has {{count}} structural error(s):\n{{details}}",
+      "importValidationWarnings": "Imported workflow has {{count}} warning(s):\n{{details}}"
     },
     "preview": "معاينة",
     "publish": "نشر",
@@ -4007,7 +4009,16 @@
       "loading": "جاري تحميل الإصدار...",
       "compare": "مقارنة",
       "compareVersions": "مقارنة الإصدارات",
-      "noChanges": "لا تغييرات"
+      "noChanges": "لا تغييرات",
+      "compareFailed": "Comparison failed",
+      "cannotLoadOldVersion": "Cannot load old version data",
+      "rollbackFailed": "Rollback failed: {{error}}",
+      "diffNodeAdded": "Node added",
+      "diffNodeRemoved": "Node removed",
+      "diffNodeTypeChanged": "Node type changed",
+      "diffNodeConfigChanged": "Node config changed",
+      "diffEdgeAdded": "Edge added ({{type}})",
+      "diffEdgeRemoved": "Edge removed ({{type}})"
     },
     "versionHistoryLoadFailed": "فشل تحميل سجل الإصدارات",
     "versionLoaded": "الإصدار{{version}} loaded",
@@ -5087,7 +5098,8 @@
       "max_rounds": "الحد الأقصى للجولات",
       "topic_var": "متغير الموضوع"
     },
-    "searchNodes": "بحث عن العقد"
+    "searchNodes": "بحث عن العقد",
+    "validationWarnings": "Workflow has {{count}} warning(s):\n{{details}}"
   },
   "atomicSkill": {
     "entryType": "نوع الإدخال",

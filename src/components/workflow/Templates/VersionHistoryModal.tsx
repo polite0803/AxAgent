@@ -22,6 +22,7 @@ interface DiffEntry {
 
 /** 对两个版本的节点/边进行差异分析 */
 function computeDiff(
+  t: (key: string, options?: Record<string, unknown>) => string,
   nodesA: WorkflowNode[],
   edgesA: WorkflowEdge[],
   nodesB: WorkflowNode[],
@@ -38,7 +39,7 @@ function computeDiff(
       results.push({
         type: "added",
         label: `${nb.type}(${nb.title})`,
-        detail: "新增节点",
+        detail: t("workflow.versionHistory.diffNodeAdded"),
       });
     }
   }
@@ -49,7 +50,7 @@ function computeDiff(
       results.push({
         type: "removed",
         label: `${na.type}(${na.title})`,
-        detail: "删除节点",
+        detail: t("workflow.versionHistory.diffNodeRemoved"),
       });
     }
   }
@@ -62,13 +63,13 @@ function computeDiff(
       results.push({
         type: "modified",
         label: `${nb.id}: ${na.type} → ${nb.type}`,
-        detail: "节点类型变更",
+        detail: t("workflow.versionHistory.diffNodeTypeChanged"),
       });
     } else if (JSON.stringify(na.config) !== JSON.stringify(nb.config)) {
       results.push({
         type: "modified",
         label: `${nb.type}(${nb.title})`,
-        detail: "节点配置变更",
+        detail: t("workflow.versionHistory.diffNodeConfigChanged"),
       });
     }
   }
@@ -83,7 +84,7 @@ function computeDiff(
       results.push({
         type: "added",
         label: `${eb.source} → ${eb.target}`,
-        detail: `新增边 (${eb.edge_type})`,
+        detail: t("workflow.versionHistory.diffEdgeAdded", { type: eb.edge_type }),
       });
     }
   }
@@ -92,7 +93,7 @@ function computeDiff(
       results.push({
         type: "removed",
         label: `${ea.source} → ${ea.target}`,
-        detail: `删除边 (${ea.edge_type})`,
+        detail: t("workflow.versionHistory.diffEdgeRemoved", { type: ea.edge_type }),
       });
     }
   }
@@ -174,12 +175,12 @@ export const VersionHistoryModal: React.FC<VersionHistoryModalProps> = ({
       // （不恢复的话，store 会保留 diffB 的数据）
       await store.loadTemplateByVersion(template.id, template.version);
 
-      setDiffEntries(computeDiff(nodesA, edgesA, nodesB, edgesB));
+      setDiffEntries(computeDiff(t, nodesA, edgesA, nodesB, edgesB));
     } catch {
       setDiffEntries([]);
-      message.error("对比失败");
+      message.error(t("workflow.versionHistory.compareFailed"));
     }
-  }, [template, diffVerA, diffVerB]);
+  }, [template, diffVerA, diffVerB, t]);
 
   /** 回滚到指定版本：用旧版本数据创建新版本 */
   const handleRollback = useCallback(async () => {
@@ -191,7 +192,7 @@ export const VersionHistoryModal: React.FC<VersionHistoryModalProps> = ({
       await store.loadTemplateByVersion(template.id, rollbackVersion);
       const oldData = store.currentTemplate;
       if (!oldData) {
-        message.error("无法加载旧版本数据");
+        message.error(t("workflow.versionHistory.cannotLoadOldVersion"));
         setRollingBack(false);
         return;
       }
@@ -219,7 +220,7 @@ export const VersionHistoryModal: React.FC<VersionHistoryModalProps> = ({
       // 刷新版本列表
       loadVersions();
     } catch (err) {
-      message.error(`回滚失败: ${err}`);
+      message.error(t("workflow.versionHistory.rollbackFailed", { error: String(err) }));
     } finally {
       setRollingBack(false);
     }

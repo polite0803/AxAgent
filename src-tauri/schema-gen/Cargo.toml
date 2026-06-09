@@ -5,6 +5,6 @@ edition.workspace = true
 publish = false
 
 [dependencies]
-axagent-harness = { path = "D:/OneManager/AxAgent/src-tauri/crates/harness" }
+axagent-harness = { path = "../crates/harness" }
 schemars = "0.8"
 serde_json = "1"

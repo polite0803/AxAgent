@@ -4748,7 +4748,9 @@
       "formatN8n": "n8n形式",
       "scanningFolder": "フォルダをスキャン中...",
       "axagentFolderHint": "AxAgent形式のJSONファイルを含むフォルダを選択してください。すべてのワークフローテンプレートが自動的にスキャンされインポートされます。",
-      "n8nFolderHint": "n8n形式のJSONファイルを含むフォルダを選択してください。すべてのn8nワークフローが自動的に変換されインポートされます。"
+      "n8nFolderHint": "n8n形式のJSONファイルを含むフォルダを選択してください。すべてのn8nワークフローが自動的に変換されインポートされます。",
+      "importStructuralErrors": "Imported workflow has {{count}} structural error(s):\n{{details}}",
+      "importValidationWarnings": "Imported workflow has {{count}} warning(s):\n{{details}}"
     },
     "preview": "プレビュー",
     "publish": "公開",
@@ -4791,7 +4793,16 @@
       "loading": "読み込み中",
       "compare": "比較",
       "compareVersions": "バージョン比較",
-      "noChanges": "変更なし"
+      "noChanges": "変更なし",
+      "compareFailed": "Comparison failed",
+      "cannotLoadOldVersion": "Cannot load old version data",
+      "rollbackFailed": "Rollback failed: {{error}}",
+      "diffNodeAdded": "Node added",
+      "diffNodeRemoved": "Node removed",
+      "diffNodeTypeChanged": "Node type changed",
+      "diffNodeConfigChanged": "Node config changed",
+      "diffEdgeAdded": "Edge added ({{type}})",
+      "diffEdgeRemoved": "Edge removed ({{type}})"
     },
     "versionHistoryLoadFailed": "バージョン履歴の読み込みに失敗",
     "versionLoaded": "バージョン読み込み済み",
@@ -5871,7 +5882,8 @@
       "max_rounds": "最大ラウンド数",
       "topic_var": "トピック変数"
     },
-    "searchNodes": "ノードを検索"
+    "searchNodes": "ノードを検索",
+    "validationWarnings": "Workflow has {{count}} warning(s):\n{{details}}"
   },
   "atomicSkill": {
     "entryType": "エントリータイプ",

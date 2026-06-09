@@ -400,16 +400,20 @@ export const ImportExportModal: React.FC<ImportExportModalProps> = ({
           const feWarnings = feResult.issues.filter((i) => i.severity === "warning");
           if (feErrors.length > 0) {
             message.error(
-              "导入的工作流存在 " + feErrors.length + " 个结构错误：\n"
-                + feErrors.map((i) => i.message).join("\n"),
+              t("workflow.importExport.importStructuralErrors", {
+                count: feErrors.length,
+                details: feErrors.map((i) => i.message).join("\n"),
+              }),
             );
             setIsImporting(false);
             return;
           }
           if (feWarnings.length > 0) {
             message.warning(
-              "导入的工作流存在 " + feWarnings.length + " 个警告：\n"
-                + feWarnings.map((i) => i.message).join("\n"),
+              t("workflow.importExport.importValidationWarnings", {
+                count: feWarnings.length,
+                details: feWarnings.map((i) => i.message).join("\n"),
+              }),
             );
           }
         }

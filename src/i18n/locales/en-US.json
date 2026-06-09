@@ -3731,7 +3731,9 @@
       "edgeCount": "Edge Count",
       "format": "Format",
       "formatAxAgent": "AxAgent Format",
-      "formatN8n": "n8n Format"
+      "formatN8n": "n8n Format",
+      "importStructuralErrors": "Imported workflow has {{count}} structural error(s):\n{{details}}",
+      "importValidationWarnings": "Imported workflow has {{count}} warning(s):\n{{details}}"
     },
     "preview": "Preview",
     "publish": "Publish",
@@ -3849,7 +3851,16 @@
       "loading": "Loading version...",
       "compare": "Compare",
       "compareVersions": "Compare versions",
-      "noChanges": "No changes"
+      "noChanges": "No changes",
+      "compareFailed": "Comparison failed",
+      "cannotLoadOldVersion": "Cannot load old version data",
+      "rollbackFailed": "Rollback failed: {{error}}",
+      "diffNodeAdded": "Node added",
+      "diffNodeRemoved": "Node removed",
+      "diffNodeTypeChanged": "Node type changed",
+      "diffNodeConfigChanged": "Node config changed",
+      "diffEdgeAdded": "Edge added ({{type}})",
+      "diffEdgeRemoved": "Edge removed ({{type}})"
     },
     "versionHistoryLoadFailed": "Failed to load version history",
     "versionLoaded": "Version {{version}} loaded",
@@ -4743,7 +4754,8 @@
       "max_rounds": "Max rounds",
       "topic_var": "Topic variable"
     },
-    "searchNodes": "Search nodes"
+    "searchNodes": "Search nodes",
+    "validationWarnings": "Workflow has {{count}} warning(s):\n{{details}}"
   },
   "atomicSkill": {
     "entryType": "Entry Type",

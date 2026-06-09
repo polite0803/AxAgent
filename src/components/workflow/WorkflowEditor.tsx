@@ -1016,7 +1016,10 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
     }
     if (frontendWarnings.length > 0) {
       message.warning(
-        "工作流存在 " + frontendWarnings.length + " 个警告：\n" + frontendWarnings.map((i) => i.message).join("\n"),
+        t("workflow.validationWarnings", {
+          count: frontendWarnings.length,
+          details: frontendWarnings.map((i) => i.message).join("\n"),
+        }),
       );
       // warning 不阻塞保存
     }

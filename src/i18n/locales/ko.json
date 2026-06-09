@@ -3533,7 +3533,9 @@
       "formatN8n": "n8n 형식",
       "scanningFolder": "폴더 스캔 중...",
       "axagentFolderHint": "AxAgent 형식 JSON 파일이 포함된 폴더를 선택하세요. 모든 워크플로 템플릿이 자동으로 스캔되어 가져와집니다.",
-      "n8nFolderHint": "n8n 형식 JSON 파일이 포함된 폴더를 선택하세요. 모든 n8n 워크플로가 자동으로 변환되어 가져와집니다."
+      "n8nFolderHint": "n8n 형식 JSON 파일이 포함된 폴더를 선택하세요. 모든 n8n 워크플로가 자동으로 변환되어 가져와집니다.",
+      "importStructuralErrors": "Imported workflow has {{count}} structural error(s):\n{{details}}",
+      "importValidationWarnings": "Imported workflow has {{count}} warning(s):\n{{details}}"
     },
     "preview": "미리보기",
     "publish": "게시",
@@ -3576,7 +3578,16 @@
       "loading": "버전 불러오는 중...",
       "compare": "비교",
       "compareVersions": "버전 비교",
-      "noChanges": "변경 사항 없음"
+      "noChanges": "변경 사항 없음",
+      "compareFailed": "Comparison failed",
+      "cannotLoadOldVersion": "Cannot load old version data",
+      "rollbackFailed": "Rollback failed: {{error}}",
+      "diffNodeAdded": "Node added",
+      "diffNodeRemoved": "Node removed",
+      "diffNodeTypeChanged": "Node type changed",
+      "diffNodeConfigChanged": "Node config changed",
+      "diffEdgeAdded": "Edge added ({{type}})",
+      "diffEdgeRemoved": "Edge removed ({{type}})"
     },
     "versionHistoryLoadFailed": "버전 기록을 불러오지 못했습니다",
     "versionLoaded": "버전{{version}} loaded",
@@ -4656,7 +4667,8 @@
       "max_rounds": "최대 라운드",
       "topic_var": "주제 변수"
     },
-    "searchNodes": "노드 검색"
+    "searchNodes": "노드 검색",
+    "validationWarnings": "Workflow has {{count}} warning(s):\n{{details}}"
   },
   "atomicSkill": {
     "entryType": "항목 유형",

@@ -3970,7 +3970,9 @@
       "formatN8n": "n8n",
       "scanningFolder": "正在扫描文件夹...",
       "axagentFolderHint": "选择包含 AxAgent 格式 JSON 文件的文件夹，将自动扫描并导入所有工作流模板。",
-      "n8nFolderHint": "选择包含 n8n 格式 JSON 文件的文件夹，将自动转换并导入所有 n8n 工作流。"
+      "n8nFolderHint": "选择包含 n8n 格式 JSON 文件的文件夹，将自动转换并导入所有 n8n 工作流。",
+      "importStructuralErrors": "导入的工作流存在 {{count}} 个结构错误：\n{{details}}",
+      "importValidationWarnings": "导入的工作流存在 {{count}} 个警告：\n{{details}}"
     },
     "preview": "预览",
     "publish": "发布",
@@ -4015,7 +4017,16 @@
       "loading": "加载中",
       "compare": "对比",
       "compareVersions": "对比版本",
-      "noChanges": "无变更"
+      "noChanges": "无变更",
+      "compareFailed": "对比失败",
+      "cannotLoadOldVersion": "无法加载旧版本数据",
+      "rollbackFailed": "回滚失败: {{error}}",
+      "diffNodeAdded": "新增节点",
+      "diffNodeRemoved": "删除节点",
+      "diffNodeTypeChanged": "节点类型变更",
+      "diffNodeConfigChanged": "节点配置变更",
+      "diffEdgeAdded": "新增边 ({{type}})",
+      "diffEdgeRemoved": "删除边 ({{type}})"
     },
     "versionHistoryLoadFailed": "版本历史加载失败",
     "versionLoaded": "版本已加载",
@@ -5095,7 +5106,8 @@
       "max_rounds": "最大轮次",
       "topic_var": "辩题变量"
     },
-    "searchNodes": "搜索节点"
+    "searchNodes": "搜索节点",
+    "validationWarnings": "工作流存在 {{count}} 个警告：\n{{details}}"
   },
   "atomicSkill": {
     "entryType": "入口类型",
