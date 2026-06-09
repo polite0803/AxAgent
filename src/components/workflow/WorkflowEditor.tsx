@@ -1022,7 +1022,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
       // 3. 手动计算所有节点的包围盒
       const nodes = reactFlowInstance.getNodes();
       if (nodes.length === 0) {
-        message.info(t("workflow.exportEmpty") || "暂无节点可导出");
+        message.info(t("workflow.exportEmpty"));
         return;
       }
       let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
