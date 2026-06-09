@@ -3976,6 +3976,7 @@
     "publish": "发布",
     "saving": "保存中",
     "save": "保存",
+    "saveAsImage": "导出为图片",
     "leftPanel": {
       "nodesTab": "节点",
       "searchNodes": "搜索节点",

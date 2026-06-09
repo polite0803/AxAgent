@@ -8,6 +8,7 @@ import {
   Download,
   Ellipsis,
   Eye,
+  Image as ImageIcon,
   Keyboard,
   ListChecks,
   PanelLeft,
@@ -27,6 +28,7 @@ interface EditorHeaderProps {
   isDirty: boolean;
   isSaving: boolean;
   onSave: () => void;
+  onSaveAsImage?: () => void;
   onNameChange?: (name: string) => void;
   onClose?: () => void;
   onToggleAIPanel?: () => void;
@@ -55,6 +57,7 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
   isDirty,
   isSaving,
   onSave,
+  onSaveAsImage,
   onNameChange,
   onClose,
   onToggleAIPanel,
@@ -257,6 +260,14 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
                       onClick: onOpenImportExport,
                     }]
                     : []),
+                  ...(onSaveAsImage
+                    ? [{
+                      key: "saveAsImage",
+                      icon: <ImageIcon size={16} />,
+                      label: t("workflow.saveAsImage"),
+                      onClick: onSaveAsImage,
+                    }]
+                    : []),
                 ],
               }}
             >
@@ -404,6 +415,16 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
                   data-testid="workflow-import-export-btn"
                   icon={<Download size={18} />}
                   onClick={onOpenImportExport}
+                  style={{ color: token.colorTextSecondary }}
+                />
+              </Tooltip>
+            )}
+            {onSaveAsImage && (
+              <Tooltip title={t("workflow.saveAsImage")}>
+                <Button
+                  type="text"
+                  icon={<ImageIcon size={18} />}
+                  onClick={onSaveAsImage}
                   style={{ color: token.colorTextSecondary }}
                 />
               </Tooltip>

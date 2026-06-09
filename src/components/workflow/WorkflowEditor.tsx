@@ -164,6 +164,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
   const [isInitialized, setIsInitialized] = React.useState(false);
   const hasAutoLaidOutRef = React.useRef(false);
   const autoLayoutTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const canvasContainerRef = React.useRef<HTMLDivElement>(null);
   const clipboardRef = React.useRef<WorkflowNode[]>([]);
   const edgesRef = React.useRef(edges);
   edgesRef.current = edges;
@@ -981,6 +982,39 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
     isSaving,
   ]);
 
+  const handleSaveAsImage = useCallback(async () => {
+    try {
+      // Fit view first so everything is visible
+      reactFlowInstance.fitView({ padding: 0.2, duration: 0 });
+
+      // Wait a tick for React Flow to re-render after fitView
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      const element = canvasContainerRef.current;
+      if (!element) {
+        message.error(t("workflow.exportNotFoundOrFailed"));
+        return;
+      }
+
+      const { default: html2canvas } = await import("html2canvas");
+      const canvas = await html2canvas(element, {
+        useCORS: true,
+        scale: 2,
+        backgroundColor: "#1a1a2e",
+      });
+
+      // Download the image
+      const link = document.createElement("a");
+      link.download = `${currentTemplate?.name || "workflow"}.png`;
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+
+      message.success(t("workflow.exportSuccess"));
+    } catch (error) {
+      message.error(t("workflow.exportFailed"));
+    }
+  }, [reactFlowInstance, currentTemplate, t]);
+
   // 用 ref 保存频繁变化的值，避免键盘事件监听器每次渲染重建
   const keyRef = React.useRef({
     undo,
@@ -1392,6 +1426,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
         canRedo={canRedo()}
         aiPanelVisible={aiPanelVisible}
         debugPanelVisible={debugPanelVisible}
+        onSaveAsImage={handleSaveAsImage}
       />
 
       {searchVisible && (
@@ -1457,7 +1492,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
           />
         )}
 
-        <div style={{ flex: 1, position: "relative" }}>
+        <div ref={canvasContainerRef} style={{ flex: 1, position: "relative" }}>
           {isInitialized
             ? (
               <ReactFlow

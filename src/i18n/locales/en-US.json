@@ -3737,6 +3737,7 @@
     "publish": "Publish",
     "saving": "Saving...",
     "save": "Save",
+    "saveAsImage": "Save as Image",
     "leftPanel": {
       "nodesTab": "Nodes",
       "searchNodes": "Search nodes...",
