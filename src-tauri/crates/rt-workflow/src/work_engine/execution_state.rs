@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::work_engine::node_executor_trait::{NodeError, NodeOutput};
+use crate::work_engine::node_executor_trait::NodeOutput;
 
 /// Overall execution status of a workflow
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -127,41 +127,36 @@ pub type LoopBodyDispatchFn = Arc<
 /// 引擎在主循环入口把 `axagent_dao::repo::loop_checkpoint::*` 包装成这个结构
 /// 注入到 `ExecutionState.callbacks.loop_checkpoint`，LoopExecutor 通过它读写
 /// `loop_checkpoints` 表。回调形式避免在 executor 静态结构里持有 db 句柄。
+type LoopCheckpointSaveFn = dyn Fn(
+        axagent_core::workflow_types::LoopCheckpoint,
+    ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<(), String>> + Send>>
+    + Send
+    + Sync;
+
+type LoopCheckpointLoadFn = dyn Fn(
+        String,
+        String,
+    ) -> std::pin::Pin<
+        Box<
+            dyn std::future::Future<
+                    Output = Result<Option<axagent_core::workflow_types::LoopCheckpoint>, String>,
+                > + Send,
+        >,
+    > + Send
+    + Sync;
+
+type LoopCheckpointDeleteFn = dyn Fn(
+        String,
+        String,
+    ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<(), String>> + Send>>
+    + Send
+    + Sync;
+
 #[derive(Clone)]
 pub struct LoopCheckpointOps {
-    pub save: Arc<
-        dyn Fn(
-                axagent_core::workflow_types::LoopCheckpoint,
-            )
-                -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<(), String>> + Send>>
-            + Send
-            + Sync,
-    >,
-    pub load: Arc<
-        dyn Fn(
-                String,
-                String,
-            ) -> std::pin::Pin<
-                Box<
-                    dyn std::future::Future<
-                            Output = Result<
-                                Option<axagent_core::workflow_types::LoopCheckpoint>,
-                                String,
-                            >,
-                        > + Send,
-                >,
-            > + Send
-            + Sync,
-    >,
-    pub delete: Arc<
-        dyn Fn(
-                String,
-                String,
-            )
-                -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<(), String>> + Send>>
-            + Send
-            + Sync,
-    >,
+    pub save: Arc<LoopCheckpointSaveFn>,
+    pub load: Arc<LoopCheckpointLoadFn>,
+    pub delete: Arc<LoopCheckpointDeleteFn>,
 }
 
 impl std::fmt::Debug for LoopCheckpointOps {

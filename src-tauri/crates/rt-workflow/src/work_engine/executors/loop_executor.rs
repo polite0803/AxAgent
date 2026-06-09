@@ -297,15 +297,14 @@ impl NodeExecutorTrait for LoopExecutor {
                     .callbacks
                     .as_ref()
                     .and_then(|cb| cb.loop_checkpoint.clone())
+                    && let Err(e) = (checkpoint_ops.save)(cp).await
                 {
-                    if let Err(e) = (checkpoint_ops.save)(cp).await {
-                        tracing::error!(
-                            execution_id = %exec_id,
-                            node_id = %node_id,
-                            error = %e,
-                            "[Loop] 保存 interrupt 检查点失败"
-                        );
-                    }
+                    tracing::error!(
+                        execution_id = %exec_id,
+                        node_id = %node_id,
+                        error = %e,
+                        "[Loop] 保存 interrupt 检查点失败"
+                    );
                 }
 
                 // 广播 partial_result（phase=interrupt），供前端 UI 立即显示
@@ -345,13 +344,11 @@ impl NodeExecutorTrait for LoopExecutor {
                     .callbacks
                     .as_ref()
                     .and_then(|cb| cb.loop_checkpoint.clone())
-                {
-                    if let Ok(Some(updated_cp)) =
+                    && let Ok(Some(updated_cp)) =
                         (checkpoint_ops.load)(exec_id.clone(), node_id.clone()).await
-                    {
-                        cursor = updated_cp.cursor;
-                        partial = updated_cp.partial_results;
-                    }
+                {
+                    cursor = updated_cp.cursor;
+                    partial = updated_cp.partial_results;
                 }
                 iter_index = cursor;
                 continue;
@@ -411,13 +408,11 @@ impl NodeExecutorTrait for LoopExecutor {
                     .callbacks
                     .as_ref()
                     .and_then(|cb| cb.loop_checkpoint.clone())
-                {
-                    if let Ok(Some(updated_cp)) =
+                    && let Ok(Some(updated_cp)) =
                         (checkpoint_ops.load)(exec_id.clone(), node_id.clone()).await
-                    {
-                        cursor = updated_cp.cursor;
-                        partial = updated_cp.partial_results;
-                    }
+                {
+                    cursor = updated_cp.cursor;
+                    partial = updated_cp.partial_results;
                 }
                 iter_index = cursor;
                 continue;

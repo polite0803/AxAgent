@@ -2530,23 +2530,23 @@ impl WorkEngine {
         // 写入可选的 iteratee 修改（如果 Loop 关心）
         if let Some(ref new_item) = decision.modified_iteratee {
             let mut executions = self.executions.lock().await;
-            if let Some(state) = executions.get_mut(execution_id) {
-                if let Some(ref iteratee_var) = decision.iteratee_var {
-                    state
-                        .variables
-                        .insert(iteratee_var.clone(), new_item.clone());
-                }
+            if let Some(state) = executions.get_mut(execution_id)
+                && let Some(ref iteratee_var) = decision.iteratee_var
+            {
+                state
+                    .variables
+                    .insert(iteratee_var.clone(), new_item.clone());
             }
         }
         // 唤醒 LoopExecutor
         sig.notify_waiters();
         // 恢复执行状态
         let mut executions = self.executions.lock().await;
-        if let Some(state) = executions.get_mut(execution_id) {
-            if state.status == ExecutionStatus::Paused {
-                state.status = ExecutionStatus::Running;
-                state.updated_at = Utc::now().timestamp_millis();
-            }
+        if let Some(state) = executions.get_mut(execution_id)
+            && state.status == ExecutionStatus::Paused
+        {
+            state.status = ExecutionStatus::Running;
+            state.updated_at = Utc::now().timestamp_millis();
         }
         drop(executions);
         // 同时通知 pause_signal（处理 engine 主循环里同样的 is_paused 路径）
