@@ -1,6 +1,6 @@
 [workspace]
 members = [".", "crates/cache", "crates/core", "crates/crypto", "crates/dao", "crates/entities", "crates/harness", "crates/kit", "crates/mcp", "crates/providers", "crates/gateway", "crates/migration", "crates/agent", "crates/runtime-core", "crates/runtime", "crates/search", "crates/storage", "crates/trajectory", "crates/telemetry", "crates/plugins", "crates/tools", "crates/prompt-guard", "crates/rt-workflow", "crates/rt-messaging", "crates/rt-webhook", "crates/rt-dashboard", "crates/rt-theme", "crates/npm",
-    "crates/document-parser", "crates/disk-cache"]
+    "crates/document-parser", "crates/disk-cache", "schema-gen"]
 resolver = "2"
 
 [workspace.package]

@@ -19,6 +19,7 @@ import {
   Shuffle,
   Sparkles,
   Undo2,
+  History,
 } from "lucide-react";
 import React, { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -36,6 +37,7 @@ interface EditorHeaderProps {
   onRunDiagnostic?: () => void;
   diagnosticLoading?: boolean;
   onOpenImportExport?: () => void;
+  onOpenVersionHistory?: () => void;
   onAutoLayout?: () => void;
   onUndo?: () => void;
   onRedo?: () => void;
@@ -63,6 +65,7 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
   onToggleAIPanel,
   onToggleDebugPanel,
   onOpenImportExport,
+  onOpenVersionHistory,
   onAutoLayout,
   onUndo,
   onRedo,
@@ -260,6 +263,14 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
                       onClick: onOpenImportExport,
                     }]
                     : []),
+                  ...(onOpenVersionHistory
+                    ? [{
+                      key: "versionHistory",
+                      icon: <History size={16} />,
+                      label: t("workflow.versionHistory.title"),
+                      onClick: onOpenVersionHistory,
+                    }]
+                    : []),
                   ...(onSaveAsImage
                     ? [{
                       key: "saveAsImage",
@@ -415,6 +426,17 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
                   data-testid="workflow-import-export-btn"
                   icon={<Download size={18} />}
                   onClick={onOpenImportExport}
+                  style={{ color: token.colorTextSecondary }}
+                />
+              </Tooltip>
+            )}
+            {onOpenVersionHistory && (
+              <Tooltip title={t("workflow.versionHistory.title")}>
+                <Button
+                  type="text"
+                  data-testid="workflow-version-history-btn"
+                  icon={<History size={18} />}
+                  onClick={onOpenVersionHistory}
                   style={{ color: token.colorTextSecondary }}
                 />
               </Tooltip>

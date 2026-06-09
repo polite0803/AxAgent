@@ -1102,6 +1102,7 @@ dependencies = [
  "futures",
  "hex",
  "regex",
+ "schemars 0.8.22",
  "sea-orm",
  "serde",
  "serde_json",
@@ -9159,6 +9160,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "91c1b7e4904c873ef0710c1f407dde2e6287de2bebc1bbbf7d430bb7cbffd939"
 dependencies = [
  "windows-sys 0.61.2",
+]
+
+[[package]]
+name = "schema-gen"
+version = "2.6.0"
+dependencies = [
+ "axagent-harness",
+ "schemars 0.8.22",
+ "serde_json",
 ]
 
 [[package]]

@@ -9,6 +9,7 @@ description = "Harness contract layer — trait interfaces for dependency invers
 async-trait = "0.1"
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
+schemars = "0.8"
 thiserror = { workspace = true }
 chrono = { workspace = true, features = ["serde"] }
 uuid = { workspace = true, features = ["v4", "serde"] }

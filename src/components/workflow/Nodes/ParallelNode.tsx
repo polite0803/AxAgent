@@ -21,6 +21,7 @@ interface ParallelNodeData {
   waitStrategy?: "all" | "any" | "race";
   aggregation?: MergeStrategy;
   autoInputFromParent?: boolean;
+  kind?: "decorative" | "executable";
 }
 
 const ParallelNodeComponent: React.FC<NodeProps<ParallelNodeData>> = ({
@@ -30,6 +31,7 @@ const ParallelNodeComponent: React.FC<NodeProps<ParallelNodeData>> = ({
   const { t } = useTranslation();
   const { token } = theme.useToken();
   const color = ORANGE_VAR;
+  const isDecorative = data.kind === "decorative";
   const branches = data.branches || 2;
   const waitStrategy = data.waitStrategy || "all";
   const autoInputFromParent = data.autoInputFromParent !== false;
@@ -56,19 +58,19 @@ const ParallelNodeComponent: React.FC<NodeProps<ParallelNodeData>> = ({
     }
   };
 
-  // 容器节点：不需要 Handle，ReactFlow 子节点通过 parentId 自动渲染在此区域内
   return (
     <div
       style={{
         minWidth: 400,
         minHeight: 200,
-        background: `${ORANGE_BASE}08`,
-        border: `2px dashed ${selected ? token.colorPrimary : ORANGE_BASE}40`,
+        background: isDecorative ? `${ORANGE_BASE}04` : `${ORANGE_BASE}08`,
+        border: `2px dashed ${selected ? token.colorPrimary : isDecorative ? `${ORANGE_BASE}20` : `${ORANGE_BASE}40`}`,
         borderRadius: 12,
         padding: 12,
-        opacity: data.enabled ? 1 : 0.5,
+        opacity: data.enabled ? (isDecorative ? 0.65 : 1) : 0.5,
         position: "relative",
         boxShadow: selected ? `0 0 0 2px ${ORANGE_VAR}40` : "none",
+        transition: "opacity 0.2s, border-color 0.2s",
       }}
     >
       {/* 标题栏 — 左上角 */}
@@ -81,45 +83,63 @@ const ParallelNodeComponent: React.FC<NodeProps<ParallelNodeData>> = ({
           display: "flex",
           alignItems: "center",
           gap: 6,
-          background: token.colorBgElevated,
-          border: `1px solid ${ORANGE_BASE}30`,
+          background: isDecorative ? `transparent` : token.colorBgElevated,
+          border: `1px solid ${isDecorative ? "transparent" : `${ORANGE_BASE}30`}`,
           borderRadius: 6,
           padding: "4px 10px",
           zIndex: 10,
           cursor: "grab",
         }}
       >
-        <span style={{ fontSize: 14 }}>⚡</span>
+        <span style={{ fontSize: 14 }}>{isDecorative ? "📦" : "⚡"}</span>
         <span style={{ fontSize: 12, color, fontWeight: 600 }}>
           {data.title}
         </span>
-        <div style={{ display: "flex", gap: 4 }}>
+
+        {isDecorative ? (
           <Tag
             style={{
               margin: 0,
               fontSize: 9,
               padding: "0 4px",
-              background: `${ORANGE_BASE}20`,
-              border: `1px solid ${ORANGE_BASE}50`,
+              background: "transparent",
+              border: `1px dashed ${ORANGE_BASE}50`,
               color: ORANGE_VAR,
+              opacity: 0.7,
             }}
           >
-            {branches} {t("workflow.parallelNode.branches")}
+            {t("workflow.parallelNode.decorative")}
           </Tag>
-          <Tag
-            style={{
-              margin: 0,
-              fontSize: 9,
-              padding: "0 4px",
-              background: token.colorBgContainer,
-              border: `1px solid ${token.colorBorderSecondary}`,
-              color: token.colorTextTertiary,
-            }}
-          >
-            {getWaitStrategyLabel(waitStrategy)}
-          </Tag>
-        </div>
-        {autoInputFromParent && (
+        ) : (
+          <div style={{ display: "flex", gap: 4 }}>
+            <Tag
+              style={{
+                margin: 0,
+                fontSize: 9,
+                padding: "0 4px",
+                background: `${ORANGE_BASE}20`,
+                border: `1px solid ${ORANGE_BASE}50`,
+                color: ORANGE_VAR,
+              }}
+            >
+              {branches} {t("workflow.parallelNode.branches")}
+            </Tag>
+            <Tag
+              style={{
+                margin: 0,
+                fontSize: 9,
+                padding: "0 4px",
+                background: token.colorBgContainer,
+                border: `1px solid ${token.colorBorderSecondary}`,
+                color: token.colorTextTertiary,
+              }}
+            >
+              {getWaitStrategyLabel(waitStrategy)}
+            </Tag>
+          </div>
+        )}
+
+        {autoInputFromParent && !isDecorative && (
           <span style={{ fontSize: 9, color: token.colorTextTertiary }}>
             {t("workflow.parallelNode.autoInput")}
           </span>
@@ -164,17 +184,21 @@ const ParallelNodeComponent: React.FC<NodeProps<ParallelNodeData>> = ({
         </span>
       </Tooltip>
 
-      {/* 折叠态 Handle：始终挂载但视觉不可见，供边重定向到容器自身 */}
-      <Handle
-        type="target"
-        position={Position.Top}
-        style={{ background: "transparent", border: "none", width: 1, height: 1, top: 0 }}
-      />
-      <Handle
-        type="source"
-        position={Position.Bottom}
-        style={{ background: "transparent", border: "none", width: 1, height: 1, bottom: 0 }}
-      />
+      {/* 装饰容器：不渲染任何 Handle，阻止边连接 */}
+      {!isDecorative && (
+        <>
+          <Handle
+            type="target"
+            position={Position.Top}
+            style={{ background: "transparent", border: "none", width: 1, height: 1, top: 0 }}
+          />
+          <Handle
+            type="source"
+            position={Position.Bottom}
+            style={{ background: "transparent", border: "none", width: 1, height: 1, bottom: 0 }}
+          />
+        </>
+      )}
     </div>
   );
 };

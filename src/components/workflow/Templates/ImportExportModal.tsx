@@ -18,6 +18,7 @@ import { Check, Copy, Download, FolderOpen, Upload as UploadIcon } from "lucide-
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { WorkflowTemplateResponse } from "../types";
+import { validate_workflow } from "@/lib/workflowLayout";
 
 interface N8nConnectionGroup {
   node: string;
@@ -388,6 +389,33 @@ export const ImportExportModal: React.FC<ImportExportModalProps> = ({
     }
     setIsImporting(true);
     try {
+      // 前端合规校验：解析 import 数据中的 nodes/edges
+      try {
+        const parsed = JSON.parse(importData.trim());
+        const importNodes = parsed.nodes || parsed.workflow?.nodes || [];
+        const importEdges = parsed.edges || parsed.workflow?.edges || [];
+        if (importNodes.length > 0) {
+          const feResult = validate_workflow(importNodes, importEdges);
+          const feErrors = feResult.issues.filter((i) => i.severity === "error");
+          const feWarnings = feResult.issues.filter((i) => i.severity === "warning");
+          if (feErrors.length > 0) {
+            message.error(
+              "导入的工作流存在 " + feErrors.length + " 个结构错误：\n"
+              + feErrors.map((i) => i.message).join("\n"),
+            );
+            setIsImporting(false);
+            return;
+          }
+          if (feWarnings.length > 0) {
+            message.warning(
+              "导入的工作流存在 " + feWarnings.length + " 个警告：\n"
+              + feWarnings.map((i) => i.message).join("\n"),
+            );
+          }
+        }
+      } catch {
+        // 解析失败不影响后端导入（可能是 n8n 或其他格式）
+      }
       const result = await onImport(importData.trim());
       if (result) {
         message.success(t("workflow.importExport.templateImportSuccess"));

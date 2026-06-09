@@ -14,6 +14,7 @@ export interface BaseNodeData {
   nodeType: string;
   enabled: boolean;
   validationState?: "error" | "warning";
+  validationMessage?: string;
   executionState?: "running" | "completed" | "failed" | "timeout" | "skipped" | "paused";
   parentId?: string;
 }
@@ -91,6 +92,32 @@ const BaseNodeComponent: React.FC<NodeProps<BaseNodeData>> = ({
           />
         )}
 
+        {data.validationState && data.validationMessage && (
+          <div
+            title={data.validationMessage}
+            style={{
+              position: "absolute",
+              top: -6,
+              left: -6,
+              width: 14,
+              height: 14,
+              borderRadius: "50%",
+              background: data.validationState === "error" ? token.colorError : token.colorWarning,
+              border: "2px solid white",
+              zIndex: 10,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: 10,
+              fontWeight: 700,
+              color: "#fff",
+              cursor: "pointer",
+            }}
+          >
+            !
+          </div>
+        )}
+
         <div
           style={{
             padding: "8px 12px",
@@ -113,17 +140,17 @@ const BaseNodeComponent: React.FC<NodeProps<BaseNodeData>> = ({
           </span>
           <div style={{ display: "flex", gap: 2, alignItems: "center" }}>
             {(data as any).config?.tick_mode && (
-              <span title={t("workflow.node.tickMode")} style={{ fontSize: 10 }}>⏱</span>
+              <span title={t("workflow.node.tickMode")} style={{ fontSize: 10 }}>�?</span>
             )}
             {(data as any).retry?.enabled && (
               <span title={t("workflow.node.retryEnabled")} style={{ fontSize: 10 }}>🔄</span>
             )}
-            {effectiveExecState === "running" && <span style={{ fontSize: 10, color: token.colorPrimary }}>●</span>}
-            {effectiveExecState === "completed" && <span style={{ fontSize: 10, color: token.colorSuccess }}>✓</span>}
+            {effectiveExecState === "running" && <span style={{ fontSize: 10, color: token.colorPrimary }}>�?</span>}
+            {effectiveExecState === "completed" && <span style={{ fontSize: 10, color: token.colorSuccess }}>�?</span>}
             {(effectiveExecState === "failed" || effectiveExecState === "timeout") && (
-              <span style={{ fontSize: 10, color: token.colorError }}>✗</span>
+              <span style={{ fontSize: 10, color: token.colorError }}>�?</span>
             )}
-            {effectiveExecState === "paused" && <span style={{ fontSize: 10, color: token.colorWarning }}>⏸</span>}
+            {effectiveExecState === "paused" && <span style={{ fontSize: 10, color: token.colorWarning }}>�?</span>}
           </div>
         </div>
 
@@ -179,6 +206,51 @@ const BaseNodeComponent: React.FC<NodeProps<BaseNodeData>> = ({
         }}
       />
 
+      {/* 容器内子节点：3 端口出口（左/中/右），减少边交叉 */}
+      {data.parentId && (
+        <>
+          <Handle
+            type="source"
+            position={Position.Bottom}
+            id="port-0"
+            style={{
+              background: data.color,
+              border: "1px solid transparent",
+              width: 6,
+              height: 6,
+              left: "25%",
+              opacity: 0.5,
+            }}
+          />
+          <Handle
+            type="source"
+            position={Position.Bottom}
+            id="port-1"
+            style={{
+              background: data.color,
+              border: "1px solid transparent",
+              width: 6,
+              height: 6,
+              left: "50%",
+              opacity: 0.5,
+            }}
+          />
+          <Handle
+            type="source"
+            position={Position.Bottom}
+            id="port-2"
+            style={{
+              background: data.color,
+              border: "1px solid transparent",
+              width: 6,
+              height: 6,
+              left: "75%",
+              opacity: 0.5,
+            }}
+          />
+        </>
+      )}
+
       {["condition", "merge"].includes(data.nodeType) && (
         <>
           <Handle
@@ -213,17 +285,18 @@ const BaseNodeComponent: React.FC<NodeProps<BaseNodeData>> = ({
 
 function getNodeIcon(type: string): string {
   const icons: Record<string, string> = {
-    trigger: "⚡",
+    trigger: "�?",
     agent: "🤖",
     llm: "🧠",
-    condition: "❓",
-    parallel: "⏩",
+    condition: "�?",
+    parallel: "�?",
     loop: "🔄",
     merge: "🔗",
-    delay: "⏱",
+    delay: "�?",
     tool: "🔧",
     code: "💻",
     subWorkflow: "📦",
+    workflowRef: "🔗",
     documentParser: "📄",
     vectorRetrieve: "🔍",
     end: "🏁",

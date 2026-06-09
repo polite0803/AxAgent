@@ -16,7 +16,7 @@ import {
 } from "reactflow";
 import "reactflow/dist/style.css";
 import { isTauri } from "@/lib/invoke";
-import { autoLayoutWorkflow, getNodeSize } from "@/lib/workflowLayout";
+import { auto_layout, autoLayoutWorkflow, find_safe_position, getNodeSize, type ValidateIssue, validate_workflow } from "@/lib/workflowLayout";
 import { useAgentProfileStore, useWorkflowEditorStore } from "@/stores";
 import { useExpertStore } from "@/stores/feature/expertStore";
 import { useWorkEngineStore } from "@/stores/feature/workEngineStore";
@@ -66,6 +66,7 @@ import { RightPanel } from "./Panels/RightPanel";
 import { SemanticCheckModal } from "./SemanticCheckModal";
 import { StatusBar } from "./StatusBar/EditorStatusBar";
 import { ImportExportModal } from "./Templates/ImportExportModal";
+import { VersionHistoryModal } from "./Templates/VersionHistoryModal";
 import { type AgentNode as AgentNodeType, NODE_TYPE_MAP, type WorkflowEdge, type WorkflowNode } from "./types";
 
 const nodeTypes = {
@@ -81,6 +82,7 @@ const nodeTypes = {
   tool: ToolNode,
   code: CodeNode,
   subWorkflow: SubWorkflowNode,
+  workflowRef: BaseNode,
   documentParser: DocumentParserNode,
   vectorRetrieve: VectorRetrieveNode,
   validation: ValidationNode,
@@ -178,6 +180,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
   const [aiPanelHeight, setAiPanelHeight] = useState(300);
   const [debugPanelVisible, setDebugPanelVisible] = useState(false);
   const [importExportModalVisible, setImportExportModalVisible] = useState(false);
+  const [versionHistoryVisible, setVersionHistoryVisible] = useState(false);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; nodeId: string } | null>(null);
   const [searchVisible, setSearchVisible] = useState(false);
   const [selectedNodeIds, setSelectedNodeIds] = useState<Set<string>>(new Set());
@@ -195,6 +198,8 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
     const saved = localStorage.getItem("workflowEditor.leftPanelWidth");
     return saved ? Number(saved) : 280;
   });
+  const [frontendValidation, setFrontendValidation] = useState<ValidateIssue[]>([]);
+  const [validationMsgMap, setValidationMsgMap] = useState<Map<string, string>>(new Map());
   const [rightPanelWidth, setRightPanelWidth] = useState(() => {
     const saved = localStorage.getItem("workflowEditor.rightPanelWidth");
     return saved ? Number(saved) : 320;
@@ -249,6 +254,20 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
     window.addEventListener("resize", checkWidth);
     return () => window.removeEventListener("resize", checkWidth);
   }, []);
+
+  // 前端校验：nodes / edges 变更时自动重新运行 validate_workflow
+  useEffect(() => {
+    const issues = validate_workflow(nodes, edges);
+    setFrontendValidation(issues.issues);
+    const msgMap = new Map<string, string>();
+    for (const iss of issues.issues) {
+      for (const nid of iss.nodeIds) {
+        const prev = msgMap.get(nid);
+        msgMap.set(nid, prev ? `${prev}; ${iss.message}` : iss.message);
+      }
+    }
+    setValidationMsgMap(msgMap);
+  }, [nodes, edges]);
 
   const {
     isDecompositionTemplate,
@@ -351,6 +370,16 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
           }
         });
       }
+      // 合并前端校验结果
+      for (const iss of frontendValidation) {
+        for (const nid of iss.nodeIds) {
+          if (iss.severity === "error") {
+            errorNodeIds.add(nid);
+          } else {
+            warningNodeIds.add(nid);
+          }
+        }
+      }
 
       const flowNodes: Node[] = nodes.map((node: WorkflowNode) => {
         const typeInfo = NODE_TYPE_MAP[node.type] || {
@@ -411,7 +440,9 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
             label: node.title,
             color: typeInfo.color,
             nodeType: node.type,
+            ...((node as any).config?.kind ? { kind: (node as any).config.kind } : {}),
             ...(validationState ? { validationState } : {}),
+            ...(validationState ? { validationMessage: validationMsgMap.get(node.id) || "" } : {}),
             ...(node.type === "agent" && (node as AgentNodeType).config
               ? {
                 agentProfileId: (node as AgentNodeType).config.agentProfileId,
@@ -623,6 +654,24 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
         }
       }
       const seenEdgeKeys = new Set<string>();
+
+      // 构建 parallel 子节点 → 端口号映射（用于边出口分散，减少交叉）
+      const childPortMap = new Map<string, string>();
+      for (const node of nodes) {
+        if (node.type !== "parallel") continue;
+        const cfg = (node as any).config as { branches?: Array<{ steps: string[] }> } | undefined;
+        if (!cfg?.branches) continue;
+        for (let bi = 0; bi < cfg.branches.length; bi++) {
+          const portId = bi === 0 ? "port-0" : bi === 1 ? "port-1" : "port-2";
+          for (const stepId of cfg.branches[bi].steps || []) {
+            // 只登记确认属于该容器的子节点
+            if (parentRefs[stepId] === node.id) {
+              childPortMap.set(stepId, portId);
+            }
+          }
+        }
+      }
+
       const flowEdges: Edge[] = [];
       for (const edge of edges as WorkflowEdge[]) {
         const remappedSource = hiddenChildToParent.get(edge.source) ?? edge.source;
@@ -658,7 +707,8 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
         flowEdges.push({
           id: edge.id,
           source: remappedSource,
-          sourceHandle: wasRemapped && remappedSource !== edge.source ? undefined : edge.sourceHandle,
+          sourceHandle: wasRemapped && remappedSource !== edge.source ? undefined
+            : (childPortMap.get(edge.source) ?? edge.sourceHandle),
           target: remappedTarget,
           targetHandle: wasRemapped && remappedTarget !== edge.target ? undefined : edge.targetHandle,
           type: "base",
@@ -710,7 +760,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
         }
       };
     }
-  }, [currentTemplate, nodes, edges, validationResult, collapsedContainers]);
+  }, [currentTemplate, nodes, edges, validationResult, collapsedContainers, frontendValidation]);
 
   const onConnect = useCallback(
     (params: Connection) => {
@@ -718,6 +768,17 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
       // 禁止自循环
       if (params.source === params.target) {
         message.warning(t("workflow.selfLoopNotAllowed"));
+        return;
+      }
+      // 禁止连接到装饰容器或从装饰容器出发
+      const srcNode = nodes.find((n) => n.id === params.source);
+      const tgtNode = nodes.find((n) => n.id === params.target);
+      if ((srcNode?.config as any)?.kind === "decorative") {
+        message.warning(t("workflow.decorativeContainerNoEdges"));
+        return;
+      }
+      if ((tgtNode?.config as any)?.kind === "decorative") {
+        message.warning(t("workflow.decorativeContainerNoEdges"));
         return;
       }
       // 禁止重复边（通过 ref 读取避免 onConnect 依赖 edges 频繁重建）
@@ -932,6 +993,24 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
         message.error(String(e));
       }
       return;
+    }
+
+    // 前端结构校验：error 级别阻塞保存，warning 级别仅提示
+    const frontendIssues = validate_workflow(nodes, edges);
+    const frontendErrors = frontendIssues.issues.filter((i) => i.severity === "error");
+    const frontendWarnings = frontendIssues.issues.filter((i) => i.severity === "warning");
+    if (frontendErrors.length > 0) {
+      message.error(
+        t("workflow.validationFailed", { count: frontendErrors.length })
+        + "\n" + frontendErrors.map((i) => i.message).join("\n"),
+      );
+      return;
+    }
+    if (frontendWarnings.length > 0) {
+      message.warning(
+        "工作流存在 " + frontendWarnings.length + " 个警告：\n" + frontendWarnings.map((i) => i.message).join("\n"),
+      );
+      // warning 不阻塞保存
     }
 
     const validation = await validateTemplate();
@@ -1324,21 +1403,54 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
     isDraggingRef.current = true;
   }, []);
 
+  /** 拖拽过程中实时吸附到 grid（ReactFlow 内置 snapToGrid 已处理视觉吸附） */
+  const handleNodeDrag = useCallback(
+    (_event: React.MouseEvent, _node: Node) => {
+      // ReactFlow 的 snapToGrid 已在渲染层面完成网格吸附；
+      // onNodeDrag 在此预留，可用于未来添加 ghost position overlay
+    },
+    [],
+  );
+
   const handleNodeDragStop = useCallback(
     (_event: React.MouseEvent, node: Node) => {
       isDraggingRef.current = false;
-      // 拖拽结束后将最终位置写入 store（ReactFlow 内部位置已是最终值）
-      // 多选拖拽时所有选中节点都可能移动，需要一起更新
+
       if (node?.position) {
-        updateNode(node.id, { position: node.position } as Partial<WorkflowNode>);
-        const rfNodes = reactFlowInstance?.getNodes();
-        if (rfNodes) {
-          for (const n of rfNodes) {
-            if (n.selected && n.id !== node.id && n.position) {
-              updateNode(n.id, { position: n.position } as Partial<WorkflowNode>);
-            }
+        // 碰撞避免：对 drag 主节点计算安全位置
+        const rfNodes = reactFlowInstance?.getNodes() || [];
+        const selectedIds = new Set(
+          rfNodes.filter((n) => n.selected).map((n) => n.id),
+        );
+        // siblings = 所有非选中节点（同组拖拽节点整体移动，不互相排斥）
+        const siblings = rfNodes
+          .filter((n) => n.id !== node.id && !selectedIds.has(n.id))
+          .map((n) => ({
+            id: n.id,
+            x: n.position.x,
+            y: n.position.y,
+            type: (n.data?.type as string) || n.type || "",
+          }));
+        const nodeType = (node.data?.type as string) || node.type || "";
+        const safePos = find_safe_position(
+          { x: node.position.x, y: node.position.y },
+          nodeType,
+          siblings,
+          10,
+        );
+
+        // 同步更新 store + ReactFlow 内部位置
+        updateNode(node.id, { position: safePos } as Partial<WorkflowNode>);
+        const updatedNodes = rfNodes.map((n) => {
+          if (n.id === node.id) {
+            return { ...n, position: safePos };
           }
-        }
+          if (n.selected && n.id !== node.id && n.position) {
+            updateNode(n.id, { position: n.position } as Partial<WorkflowNode>);
+          }
+          return n;
+        });
+        reactFlowInstance?.setNodes(updatedNodes);
       }
     },
     [updateNode, reactFlowInstance],
@@ -1372,13 +1484,18 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
   );
 
   const handleAutoLayout = useCallback(async () => {
-    const { nodes: layoutedNodes, edges: layoutedEdges } = autoLayoutWorkflow(
-      reactFlowNodes,
-      reactFlowEdges,
+    // 过滤分组边：不参与自动布局
+    const layoutEdges = reactFlowEdges.filter(
+      (e) => (e.data as any)?.edgeType !== "grouping",
+    );
+    // 使用新的 auto_layout（按 type 分层 + Barycenter 启发式）
+    const layoutedNodes = auto_layout(
+      reactFlowNodes as any,
+      layoutEdges,
       parentRefs,
     );
+    // 保留 edges 不变
     setRNodes(layoutedNodes);
-    setREdges(layoutedEdges);
 
     // 将布局后的位置回写到 store
     for (const ln of layoutedNodes) {
@@ -1400,7 +1517,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
           if (!tmpl?.nodes || !Array.isArray(tmpl.nodes)) { continue; }
           const subNodes = tmpl.nodes;
           const subEdges = tmpl.edges || [];
-          // 转换为 ReactFlow 格式
+          // 转换为兼容格式
           const rfSubNodes = subNodes.map((n: any) => ({
             id: n.id || n.base?.id || "",
             type: (n.type || n.base?.type || "agent") as string,
@@ -1414,18 +1531,17 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
             sourceHandle: e.source_handle || e.sourceHandle,
             targetHandle: e.target_handle || e.targetHandle,
           }));
-          const { nodes: subLayouted } = autoLayoutWorkflow(rfSubNodes, rfSubEdges);
+          const subLayouted = auto_layout(rfSubNodes, rfSubEdges);
           // 回写位置
           const updatedSubNodes = subNodes.map((n: any) => {
             const nodeId = n.id || n.base?.id || "";
-            const laid = subLayouted.find((ln) => ln.id === nodeId);
+            const laid = subLayouted.find((ln: any) => ln.id === nodeId);
             if (!laid) { return n; }
             if (n.base) {
               return { ...n, base: { ...n.base, position: laid.position } };
             }
             return { ...n, position: laid.position };
           });
-          // 用完整模板数据调用 update
           const input = {
             name: tmpl.name || "",
             icon: tmpl.icon || "",
@@ -1454,7 +1570,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
     }
 
     message.success(t("workflow.autoLayout"));
-  }, [reactFlowNodes, reactFlowEdges, parentRefs, setRNodes, setREdges, updateNode, t]);
+  }, [reactFlowNodes, reactFlowEdges, parentRefs, setRNodes, updateNode, t]);
 
   const handleClose = useCallback(() => {
     if (isDirty) {
@@ -1536,6 +1652,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
         leftPanelCollapsed={leftPanelCollapsed}
         rightPanelCollapsed={rightPanelCollapsed}
         onOpenImportExport={() => setImportExportModalVisible(true)}
+        onOpenVersionHistory={() => setVersionHistoryVisible(true)}
         onUndo={() => {
           if (canUndo()) {
             undo();
@@ -1635,13 +1752,14 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
                 onNodeContextMenu={handleNodeContextMenu}
                 onMoveEnd={onMoveEnd}
                 onNodeDragStart={handleNodeDragStart}
+                onNodeDrag={handleNodeDrag}
                 onNodeDragStop={handleNodeDragStop}
                 nodeTypes={nodeTypes}
                 edgeTypes={edgeTypes}
                 defaultEdgeOptions={defaultEdgeOptions}
                 fitView
                 snapToGrid
-                snapGrid={[16, 16]}
+                snapGrid={[20, 20]}
                 selectionOnDrag
                 connectionLineStyle={{
                   stroke: token.colorPrimary,
@@ -1839,6 +1957,16 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
         onImportedTemplate={handleImportedTemplate}
       />
 
+      <VersionHistoryModal
+        visible={versionHistoryVisible}
+        template={currentTemplate}
+        onClose={() => setVersionHistoryVisible(false)}
+        onLoadVersion={(tmpl) => {
+          setVersionHistoryVisible(false);
+          loadTemplate(tmpl.id);
+        }}
+      />
+
       <DiagnosticDrawer
         open={diagnoseDrawerVisible}
         onClose={() => setDiagnoseDrawerVisible(false)}
@@ -1928,7 +2056,7 @@ function getDefaultNodeConfig(nodeType: string): Record<string, unknown> {
     case "condition":
       return { conditions: [], logical_op: "and" };
     case "parallel":
-      return { branches: [], wait_for_all: true, aggregation: undefined };
+      return { branches: [], wait_for_all: true, aggregation: undefined, kind: "executable" };
     case "loop":
       return {
         loop_type: "forEach",
@@ -1950,6 +2078,13 @@ function getDefaultNodeConfig(nodeType: string): Record<string, unknown> {
         input_mapping: {},
         output_var: "",
         is_async: false,
+      };
+    case "workflowRef":
+      return {
+        target_workflow_id: "",
+        input_mapping: {},
+        output_var: "",
+        context_mode: "inherit",
       };
     case "documentParser":
       return { input_var: "", parser_type: "", output_var: "" };
@@ -2029,7 +2164,7 @@ function createWorkflowNode(
       return {
         ...baseNode,
         type: "parallel",
-        config: { branches: [], wait_for_all: true, aggregation: undefined },
+        config: { branches: [], wait_for_all: true, aggregation: undefined, kind: "executable" },
       };
     case "loop":
       return {
@@ -2075,6 +2210,17 @@ function createWorkflowNode(
           input_mapping: {},
           output_var: "",
           is_async: false,
+        },
+      };
+    case "workflowRef":
+      return {
+        ...baseNode,
+        type: "workflowRef",
+        config: {
+          target_workflow_id: "",
+          input_mapping: {},
+          output_var: "",
+          context_mode: "inherit",
         },
       };
     case "documentParser":

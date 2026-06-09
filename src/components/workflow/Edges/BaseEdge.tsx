@@ -1,13 +1,29 @@
 import { useWorkEngineStore } from "@/stores/feature/workEngineStore";
 import { theme } from "antd";
 import React from "react";
-import { EdgeLabelRenderer, type EdgeProps, getBezierPath } from "reactflow";
+import { EdgeLabelRenderer, type EdgeProps, getSmoothStepPath } from "reactflow";
 
 const ORANGE_BASE = "#fa8c16";
 const PURPLE_BASE = "#722ed1";
 
 interface BaseEdgeData {
   edgeType: string;
+}
+
+/**
+ * 解析 sourceHandle 中的 port 信息，返回水平偏移量。
+ * 格式：`"port-0"`（左）、`"port-1"`（中）、`"port-2"`（右）。
+ * 用于 parallel 子节点出口区分，减少边交叉。
+ */
+function sourceOffsetFromHandle(sourceHandle?: string | null, sourceNodeW?: number): number {
+  if (!sourceHandle || !sourceHandle.startsWith("port-")) return 0;
+  const idx = parseInt(sourceHandle.replace("port-", ""), 10);
+  if (isNaN(idx)) return 0;
+  const w = sourceNodeW || 200;
+  // -1/3w, 0, +1/3w
+  if (idx === 0) return -w / 3;
+  if (idx === 2) return w / 3;
+  return 0;
 }
 
 const BaseEdgeComponent: React.FC<EdgeProps<BaseEdgeData>> = ({
@@ -23,6 +39,7 @@ const BaseEdgeComponent: React.FC<EdgeProps<BaseEdgeData>> = ({
   data,
   selected,
   label,
+  sourceHandleId,
 }) => {
   const { token } = theme.useToken();
 
@@ -33,17 +50,22 @@ const BaseEdgeComponent: React.FC<EdgeProps<BaseEdgeData>> = ({
   const targetActive = nodeStatuses[target!] === "running" || nodeStatuses[target!] === "completed";
   const showFlowAnimation = isDebugRunning && (sourceRunning || targetActive);
 
-  const [edgePath, labelX, labelY] = getBezierPath({
-    sourceX,
+  // 正交路由：使用 SmoothStep 替代 Bezier
+  // 对 parallel 子节点做 port 偏移，使边出口分散
+  const offsetX = sourceOffsetFromHandle(sourceHandleId);
+  const [edgePath, labelX, labelY] = getSmoothStepPath({
+    sourceX: sourceX + offsetX,
     sourceY,
     sourcePosition,
     targetX,
     targetY,
     targetPosition,
+    borderRadius: 8,
   });
 
   const edgeColor = selected ? token.colorPrimary : token.colorBorderSecondary;
   const isAnimated = data?.edgeType === "loopBack";
+  const isGrouping = data?.edgeType === "grouping";
 
   const getMarkerColor = (edgeType?: string): string => {
     switch (edgeType) {
@@ -58,12 +80,15 @@ const BaseEdgeComponent: React.FC<EdgeProps<BaseEdgeData>> = ({
         return `var(--purple, ${PURPLE_BASE})`;
       case "merge":
         return token.colorPrimary;
+      case "grouping":
+        return "none";
       default:
         return edgeColor;
     }
   };
 
   const getEdgeStroke = () => {
+    if (isGrouping) return token.colorTextQuaternary;
     if (showFlowAnimation) {
       if (data?.edgeType === "conditionTrue") { return token.colorSuccess; }
       if (data?.edgeType === "conditionFalse") { return token.colorError; }
@@ -79,14 +104,12 @@ const BaseEdgeComponent: React.FC<EdgeProps<BaseEdgeData>> = ({
         className="react-flow__edge-path"
         d={edgePath}
         stroke={getEdgeStroke()}
-        strokeWidth={selected || showFlowAnimation ? 2 : 1.5}
+        strokeWidth={selected ? 2 : (isGrouping ? 1 : 1.5)}
         fill="none"
-        style={{
-          strokeDasharray: data?.edgeType === "error" ? "5,5" : undefined,
-        }}
-        markerEnd={`url(#arrow-${data?.edgeType || "default"})`}
+        strokeDasharray={isGrouping ? "4,4" : data?.edgeType === "error" ? "5,5" : undefined}
+        markerEnd={isGrouping ? undefined : `url(#arrow-${data?.edgeType || "default"})`}
       />
-      {isAnimated && (
+      {!isGrouping && isAnimated && (
         <path
           d={edgePath}
           stroke={edgeColor}
@@ -98,7 +121,7 @@ const BaseEdgeComponent: React.FC<EdgeProps<BaseEdgeData>> = ({
           }}
         />
       )}
-      {showFlowAnimation && !isAnimated && (
+      {!isGrouping && showFlowAnimation && !isAnimated && (
         <path
           d={edgePath}
           stroke={getEdgeStroke()}

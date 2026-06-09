@@ -8,10 +8,15 @@ use serde::{Deserialize, Serialize};
 use crate::consistency_check::ConsistencyCheckConfig;
 use crate::hallucination_guard::HallucinationGuardConfig;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct Position {
     pub x: f64,
     pub y: f64,
+}
+
+#[allow(dead_code)]
+fn default_parallel_kind() -> String {
+    "executable".to_string()
 }
 
 impl Default for Position {
@@ -20,7 +25,7 @@ impl Default for Position {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct RetryConfig {
     pub enabled: bool,
     pub max_retries: u32,
@@ -41,14 +46,14 @@ impl Default for RetryConfig {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub enum BackoffType {
     Linear,
     Exponential,
     Fixed,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct JsonSchema {
     #[serde(rename = "type")]
     pub schema_type: String,
@@ -65,7 +70,7 @@ pub struct JsonSchema {
 /// 工具定义 —— 包含名称、描述和参数 JSON Schema。
 ///
 /// 反序列化支持向后兼容：旧格式的纯字符串自动转为 ToolDef { name, ..Default::default() }。
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct ToolDef {
     pub name: String,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -74,7 +79,7 @@ pub struct ToolDef {
     pub parameters: Option<JsonSchema>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct JsonSchemaProperty {
     #[serde(rename = "type")]
     pub schema_type: String,
@@ -88,7 +93,7 @@ pub struct JsonSchemaProperty {
     pub format: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct Variable {
     pub name: String,
     pub var_type: String,
@@ -98,7 +103,7 @@ pub struct Variable {
 }
 
 /// 补偿策略：当节点失败时，如何处理其下游节点和输出
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub enum CompensationStrategy {
     /// 仅删除该节点输出，不处理下游
     SkipWithWarning,
@@ -109,7 +114,7 @@ pub enum CompensationStrategy {
 }
 
 /// 补偿配置：定义节点失败时的恢复策略
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct CompensationConfig {
     pub strategy: CompensationStrategy,
     /// 需要执行补偿的节点 ID 列表（预留扩展，当前由引擎根据 DAG 自动推导下游）
@@ -117,7 +122,7 @@ pub struct CompensationConfig {
     pub compensation_nodes: Vec<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct WorkflowNodeBase {
     pub id: String,
     pub title: String,
@@ -135,7 +140,7 @@ pub struct WorkflowNodeBase {
     pub compensation: Option<CompensationConfig>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub enum TriggerType {
     #[serde(rename = "manual")]
     Manual,
@@ -147,38 +152,38 @@ pub enum TriggerType {
     Event,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct TriggerConfig {
     #[serde(rename = "type")]
     pub trigger_type: TriggerType,
     pub config: serde_json::Value,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct ManualTriggerConfig {}
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct ScheduleTriggerConfig {
     pub cron: String,
     pub timezone: String,
     pub enabled: bool,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct WebhookTriggerConfig {
     pub path: String,
     pub method: String,
     pub auth_type: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct EventTriggerConfig {
     pub event_type: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub filter: Option<serde_json::Value>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub enum AgentRole {
     #[serde(rename = "researcher")]
     Researcher,
@@ -227,7 +232,7 @@ impl AgentRole {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub enum OutputMode {
     #[serde(rename = "json")]
     Json,
@@ -237,7 +242,7 @@ pub enum OutputMode {
     Artifact,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct AgentNodeConfig {
     pub system_prompt: String,
     pub context_sources: Vec<String>,
@@ -285,14 +290,14 @@ pub struct AgentNodeConfig {
     pub hallucination_guard: Option<HallucinationGuardConfig>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct AgentNode {
     #[serde(flatten)]
     pub base: WorkflowNodeBase,
     pub config: AgentNodeConfig,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct LLMNodeConfig {
     pub model: String,
     pub prompt: String,
@@ -312,14 +317,14 @@ pub struct LLMNodeConfig {
     pub reserved_output_tokens: Option<u32>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct LLMNode {
     #[serde(flatten)]
     pub base: WorkflowNodeBase,
     pub config: LLMNodeConfig,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub enum CompareOperator {
     #[serde(rename = "eq")]
     Eq,
@@ -349,7 +354,7 @@ pub enum CompareOperator {
     IsNotEmpty,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub enum LogicalOperator {
     #[serde(rename = "and")]
     And,
@@ -357,14 +362,14 @@ pub enum LogicalOperator {
     Or,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct Condition {
     pub var_path: String,
     pub operator: CompareOperator,
     pub value: serde_json::Value,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct ConditionNodeConfig {
     pub conditions: Vec<Condition>,
     pub logical_op: LogicalOperator,
@@ -384,21 +389,21 @@ pub struct ConditionNodeConfig {
     pub confidence_threshold: Option<f64>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct ConditionNode {
     #[serde(flatten)]
     pub base: WorkflowNodeBase,
     pub config: ConditionNodeConfig,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct Branch {
     pub id: String,
     pub title: String,
     pub steps: Vec<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default, schemars::JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub enum MergeStrategy {
     #[default]
@@ -408,7 +413,7 @@ pub enum MergeStrategy {
     Majority,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct ParallelNodeConfig {
     pub branches: Vec<Branch>,
     pub wait_for_all: bool,
@@ -424,14 +429,14 @@ fn default_true() -> bool {
     true
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct ParallelNode {
     #[serde(flatten)]
     pub base: WorkflowNodeBase,
     pub config: ParallelNodeConfig,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub enum LoopType {
     #[serde(rename = "forEach")]
     ForEach,
@@ -443,7 +448,7 @@ pub enum LoopType {
     Until,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct LoopNodeConfig {
     pub loop_type: LoopType,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -458,14 +463,14 @@ pub struct LoopNodeConfig {
     pub body_steps: Vec<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct LoopNode {
     #[serde(flatten)]
     pub base: WorkflowNodeBase,
     pub config: LoopNodeConfig,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct MergeNodeConfig {
     #[serde(default)]
     pub merge_type: MergeStrategy,
@@ -474,42 +479,42 @@ pub struct MergeNodeConfig {
     pub auto_inputs_from_branches: bool,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct MergeNode {
     #[serde(flatten)]
     pub base: WorkflowNodeBase,
     pub config: MergeNodeConfig,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct DelayNodeConfig {
     pub delay_type: String,
     pub seconds: u64,
     pub until: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct DelayNode {
     #[serde(flatten)]
     pub base: WorkflowNodeBase,
     pub config: DelayNodeConfig,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct ToolNodeConfig {
     pub tool_name: String,
     pub input_mapping: std::collections::HashMap<String, String>,
     pub output_var: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct ToolNode {
     #[serde(flatten)]
     pub base: WorkflowNodeBase,
     pub config: ToolNodeConfig,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct CodeNodeConfig {
     pub language: String,
     pub code: String,
@@ -519,14 +524,14 @@ pub struct CodeNodeConfig {
     pub tool_name: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct CodeNode {
     #[serde(flatten)]
     pub base: WorkflowNodeBase,
     pub config: CodeNodeConfig,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct SubWorkflowNodeConfig {
     pub sub_workflow_id: String,
     pub input_mapping: std::collections::HashMap<String, String>,
@@ -534,28 +539,51 @@ pub struct SubWorkflowNodeConfig {
     pub is_async: bool,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct SubWorkflowNode {
     #[serde(flatten)]
     pub base: WorkflowNodeBase,
     pub config: SubWorkflowNodeConfig,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
+pub struct WorkflowRefNodeConfig {
+    pub target_workflow_id: String,
+    #[serde(default)]
+    pub input_mapping: std::collections::HashMap<String, String>,
+    #[serde(default)]
+    pub output_var: String,
+    pub timeout: Option<i64>,
+    #[serde(default = "default_context_mode")]
+    pub context_mode: String,
+}
+
+fn default_context_mode() -> String {
+    "inherit".to_string()
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
+pub struct WorkflowRefNode {
+    #[serde(flatten)]
+    pub base: WorkflowNodeBase,
+    pub config: WorkflowRefNodeConfig,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct DocumentParserNodeConfig {
     pub input_var: String,
     pub parser_type: String,
     pub output_var: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct DocumentParserNode {
     #[serde(flatten)]
     pub base: WorkflowNodeBase,
     pub config: DocumentParserNodeConfig,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct VectorRetrieveNodeConfig {
     pub query: String,
     pub knowledge_base_id: String,
@@ -564,21 +592,21 @@ pub struct VectorRetrieveNodeConfig {
     pub output_var: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct VectorRetrieveNode {
     #[serde(flatten)]
     pub base: WorkflowNodeBase,
     pub config: VectorRetrieveNodeConfig,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct ValidationNodeConfig {
     pub assertions: Vec<ValidationAssertion>,
     pub on_fail: String,
     pub max_retries: u32,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct ValidationAssertion {
     #[serde(rename = "type")]
     pub assertion_type: String,
@@ -590,26 +618,26 @@ pub struct ValidationAssertion {
     pub expression: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct ValidationNode {
     #[serde(flatten)]
     pub base: WorkflowNodeBase,
     pub config: ValidationNodeConfig,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct EndNodeConfig {
     pub output_var: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct EndNode {
     #[serde(flatten)]
     pub base: WorkflowNodeBase,
     pub config: EndNodeConfig,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct SwitchNodeConfig {
     pub input_var: String,
     pub cases: Vec<SwitchCase>,
@@ -621,14 +649,14 @@ pub struct SwitchNodeConfig {
     pub output_var: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct SwitchNode {
     #[serde(flatten)]
     pub base: WorkflowNodeBase,
     pub config: SwitchNodeConfig,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct DatabaseQueryNodeConfig {
     pub query: String,
     #[serde(default)]
@@ -641,14 +669,14 @@ pub struct DatabaseQueryNodeConfig {
     pub output_var: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct DatabaseQueryNode {
     #[serde(flatten)]
     pub base: WorkflowNodeBase,
     pub config: DatabaseQueryNodeConfig,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct HttpRequestNodeConfig {
     pub url: String,
     #[serde(default = "default_http_method")]
@@ -665,7 +693,7 @@ pub struct HttpRequestNodeConfig {
     pub output_var: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct SwitchCase {
     pub value: String,
     pub label: String,
@@ -741,14 +769,14 @@ fn default_http_timeout() -> u64 {
     30
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct HttpRequestNode {
     #[serde(flatten)]
     pub base: WorkflowNodeBase,
     pub config: HttpRequestNodeConfig,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct NotificationNodeConfig {
     pub channel: String,
     pub message: String,
@@ -763,14 +791,14 @@ pub struct NotificationNodeConfig {
     pub output_var: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct NotificationNode {
     #[serde(flatten)]
     pub base: WorkflowNodeBase,
     pub config: NotificationNodeConfig,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct ApprovalNodeConfig {
     pub message: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -783,14 +811,14 @@ pub struct ApprovalNodeConfig {
     pub output_var: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct ApprovalNode {
     #[serde(flatten)]
     pub base: WorkflowNodeBase,
     pub config: ApprovalNodeConfig,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct FileOperationNodeConfig {
     pub operation: String,
     pub file_path: String,
@@ -800,14 +828,14 @@ pub struct FileOperationNodeConfig {
     pub output_var: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct FileOperationNode {
     #[serde(flatten)]
     pub base: WorkflowNodeBase,
     pub config: FileOperationNodeConfig,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct DataTransformerNodeConfig {
     pub input_var: String,
     pub expression: String,
@@ -815,14 +843,14 @@ pub struct DataTransformerNodeConfig {
     pub output_var: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct DataTransformerNode {
     #[serde(flatten)]
     pub base: WorkflowNodeBase,
     pub config: DataTransformerNodeConfig,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct WebhookSendNodeConfig {
     pub url: String,
     #[serde(default = "default_http_method")]
@@ -835,14 +863,14 @@ pub struct WebhookSendNodeConfig {
     pub output_var: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct WebhookSendNode {
     #[serde(flatten)]
     pub base: WorkflowNodeBase,
     pub config: WebhookSendNodeConfig,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct LoggingNodeConfig {
     #[serde(default = "default_log_level")]
     pub level: String,
@@ -851,14 +879,14 @@ pub struct LoggingNodeConfig {
     pub output_var: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct LoggingNode {
     #[serde(flatten)]
     pub base: WorkflowNodeBase,
     pub config: LoggingNodeConfig,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct LlmClassifierNodeConfig {
     pub categories: Vec<String>,
     pub prompt: String,
@@ -880,14 +908,14 @@ pub struct LlmClassifierNodeConfig {
     pub consistency_check: Option<ConsistencyCheckConfig>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct LlmClassifierNode {
     #[serde(flatten)]
     pub base: WorkflowNodeBase,
     pub config: LlmClassifierNodeConfig,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct AggregatorNodeConfig {
     #[serde(default = "default_agg_strategy")]
     pub strategy: String,
@@ -897,14 +925,14 @@ pub struct AggregatorNodeConfig {
     pub output_var: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct AggregatorNode {
     #[serde(flatten)]
     pub base: WorkflowNodeBase,
     pub config: AggregatorNodeConfig,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct EmailNodeConfig {
     pub to: Vec<String>,
     pub subject: String,
@@ -921,14 +949,14 @@ pub struct EmailNodeConfig {
     pub output_var: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct EmailNode {
     #[serde(flatten)]
     pub base: WorkflowNodeBase,
     pub config: EmailNodeConfig,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct DebateNodeConfig {
     #[serde(default)]
     pub debater_steps: Vec<String>,
@@ -950,15 +978,16 @@ fn default_debate_rounds() -> u32 {
     2
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct DebateNode {
     #[serde(flatten)]
     pub base: WorkflowNodeBase,
     pub config: DebateNodeConfig,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, schemars::JsonSchema)]
 #[serde(tag = "type", rename_all = "camelCase")]
+#[schemars(tag = "type", rename_all = "camelCase")]
 pub enum WorkflowNode {
     Trigger(TriggerNode),
     Agent(AgentNode),
@@ -970,6 +999,8 @@ pub enum WorkflowNode {
     Delay(DelayNode),
     Validation(ValidationNode),
     SubWorkflow(SubWorkflowNode),
+    #[serde(rename = "workflowRef")]
+    WorkflowRef(WorkflowRefNode),
     DocumentParser(DocumentParserNode),
     VectorRetrieve(VectorRetrieveNode),
     End(EndNode),
@@ -1050,6 +1081,7 @@ impl<'de> serde::Deserialize<'de> for WorkflowNode {
             "aggregator" => Ok(try_from_value!(Aggregator, AggregatorNode)),
             "email" => Ok(try_from_value!(Email, EmailNode)),
             "debate" => Ok(try_from_value!(Debate, DebateNode)),
+            "workflowRef" => Ok(try_from_value!(WorkflowRef, WorkflowRefNode)),
 
             "end" => Ok(try_from_value!(End, EndNode)),
             "tool" => Ok(try_from_value!(Tool, ToolNode)),
@@ -1082,6 +1114,7 @@ impl<'de> serde::Deserialize<'de> for WorkflowNode {
                     "aggregator",
                     "email",
                     "debate",
+                    "workflowRef",
                     "end",
                     "tool",
                     "code",
@@ -1121,6 +1154,7 @@ impl WorkflowNode {
             WorkflowNode::Aggregator(n) => &n.base.id,
             WorkflowNode::Email(n) => &n.base.id,
             WorkflowNode::Debate(n) => &n.base.id,
+            WorkflowNode::WorkflowRef(n) => &n.base.id,
             WorkflowNode::End(n) => &n.base.id,
         }
     }
@@ -1156,6 +1190,7 @@ impl WorkflowNode {
             WorkflowNode::Email(n) => &n.base,
             WorkflowNode::Debate(n) => &n.base,
 
+            WorkflowNode::WorkflowRef(n) => &n.base,
             WorkflowNode::End(n) => &n.base,
         }
     }
@@ -1177,14 +1212,14 @@ impl WorkflowNode {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct TriggerNode {
     #[serde(flatten)]
     pub base: WorkflowNodeBase,
     pub config: TriggerConfig,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, schemars::JsonSchema)]
 pub enum EdgeType {
     #[serde(rename = "direct")]
     Direct,
@@ -1200,11 +1235,13 @@ pub enum EdgeType {
     Merge,
     #[serde(rename = "error")]
     Error,
+    #[serde(rename = "grouping")]
+    Grouping,
     #[serde(rename = "debateRound")]
     DebateRound,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct WorkflowEdge {
     pub id: String,
     pub source: String,
@@ -1215,7 +1252,7 @@ pub struct WorkflowEdge {
     pub label: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub enum OnFailureAction {
     #[serde(rename = "abort")]
     Abort,
@@ -1227,21 +1264,21 @@ pub enum OnFailureAction {
     ContinueWithDefault,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct RetryPolicy {
     pub max_retries: u32,
     pub base_delay_ms: u64,
     pub max_delay_ms: u64,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct CompensationStep {
     pub step_id: String,
     pub compensate_type: String,
     pub target_step: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct ErrorConfig {
     pub retry_policy: Option<RetryPolicy>,
     pub on_failure: OnFailureAction,
@@ -1250,7 +1287,7 @@ pub struct ErrorConfig {
 }
 
 /// Rhai 脚本工具定义（不属于 DAG 节点，仅作为工具注册）
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct RhaiToolDef {
     /// 注册为工具名（Agent exposed_tools 引用此名）
     pub tool_name: String,
@@ -1302,7 +1339,7 @@ impl WorkflowTemplateData {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct WorkflowTemplateInput {
     pub name: String,
     pub description: Option<String>,
@@ -1318,7 +1355,7 @@ pub struct WorkflowTemplateInput {
     pub tool_defs: Option<Vec<RhaiToolDef>>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct WorkflowTemplateResponse {
     pub id: String,
     pub name: String,
@@ -1369,14 +1406,14 @@ impl From<WorkflowTemplateData> for WorkflowTemplateResponse {
 
 // ── 模板筛选、校验结果 ──────────────────────────
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct TemplateFilter {
     pub is_preset: Option<bool>,
     pub tags: Option<Vec<String>>,
     pub search: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct ValidationError {
     pub error_type: String,
     pub node_id: Option<String>,
@@ -1384,14 +1421,14 @@ pub struct ValidationError {
     pub suggestion: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct ValidationWarning {
     pub warning_type: String,
     pub node_id: Option<String>,
     pub message: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct ValidationResult {
     pub is_valid: bool,
     pub errors: Vec<ValidationError>,

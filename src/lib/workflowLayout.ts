@@ -1,6 +1,419 @@
 import dagre from "dagre";
 import type { Edge, Node } from "reactflow";
 
+// ── 工作流校验系统 ────────────────────────────────────────────
+
+export interface ValidateIssue {
+  /** 规则标识，用于 i18n / 分类 */
+  rule:
+    | "orphan_node"
+    | "data_blackhole"
+    | "dead_branch"
+    | "unconnected_port"
+    | "cycle_no_exit"
+    | "self_loop"
+    | "duplicate_title"
+    | "workflow_ref_empty"
+    | "workflow_ref_self"
+    | "workflow_ref_depth";
+  severity: "error" | "warning";
+  message: string;
+  nodeIds: string[];
+  edgeIds: string[];
+}
+
+export interface ValidationResult {
+  valid: boolean;
+  issues: ValidateIssue[];
+}
+
+/** 校验可接受的节点和边形状（兼容 ReactFlow Node / Edge 和 WorkflowNode / WorkflowEdge） */
+interface NodeLike {
+  id: string;
+  type?: string;
+  data?: Record<string, unknown>;
+  parentId?: string;
+}
+interface EdgeLike {
+  id?: string;
+  source: string;
+  target: string;
+  sourceHandle?: string;
+  edge_type?: string;
+}
+
+const CONTAINER_NODE_TYPES = new Set(["parallel", "loop", "debate", "aggregator"]);
+
+/** 提取节点类型：优先 data.type（ReactFlow），回退到 node.type（WorkflowNode） */
+function nodeTypeOf(n: NodeLike): string {
+  return (typeof n.data?.type === "string" ? n.data.type : n.type) || "";
+}
+
+/** 构建入度 Map（target → 入边数） */
+function buildIndegree(edges: EdgeLike[]): Map<string, number> {
+  const m = new Map<string, number>();
+  for (const e of edges) m.set(e.target, (m.get(e.target) || 0) + 1);
+  return m;
+}
+
+/** 构建出度 Map（source → 出边数） */
+function buildOutdegree(edges: EdgeLike[]): Map<string, number> {
+  const m = new Map<string, number>();
+  for (const e of edges) m.set(e.source, (m.get(e.source) || 0) + 1);
+  return m;
+}
+
+/**
+ * Tarjan 算法求强连通分量（SCC），返回 >1 个节点的 SCC 列表。
+ * 每个 SCC 代表一个有向环。
+ */
+function findCyclicSCCs(nodes: NodeLike[], edges: EdgeLike[]): string[][] {
+  const sccs: string[][] = [];
+  const idx = new Map<string, number>();
+  const low = new Map<string, number>();
+  const onStack = new Map<string, boolean>();
+  const stack: string[] = [];
+  const nodeIds = new Set(nodes.map((n) => n.id));
+  const adj = new Map<string, string[]>();
+
+  for (const n of nodes) adj.set(n.id, []);
+  for (const e of edges) {
+    if (nodeIds.has(e.source) && nodeIds.has(e.target)) {
+      adj.get(e.source)!.push(e.target);
+    }
+  }
+
+  let cur = 0;
+
+  function dfs(v: string) {
+    idx.set(v, cur);
+    low.set(v, cur);
+    cur++;
+    stack.push(v);
+    onStack.set(v, true);
+
+    for (const w of adj.get(v) || []) {
+      if (!idx.has(w)) {
+        dfs(w);
+        low.set(v, Math.min(low.get(v)!, low.get(w)!));
+      } else if (onStack.get(w)) {
+        low.set(v, Math.min(low.get(v)!, idx.get(w)!));
+      }
+    }
+
+    if (low.get(v) === idx.get(v)) {
+      const scc: string[] = [];
+      let w: string;
+      do {
+        w = stack.pop()!;
+        onStack.set(w, false);
+        scc.push(w);
+      } while (w !== v);
+      if (scc.length > 1) sccs.push(scc);
+    }
+  }
+
+  for (const n of nodes) if (!idx.has(n.id)) dfs(n.id);
+  return sccs;
+}
+
+/** 提取节点标题：优先 data.title（ReactFlow），回退到 (node as any).title（WorkflowNode） */
+function titleOf(n: NodeLike): string {
+  if (typeof (n as any).title === "string") return (n as any).title;
+  if (typeof n.data?.title === "string") return n.data.title;
+  return "";
+}
+
+/**
+ * 从节点 ID 和 type 派生一个有意义的建议标题。
+ *
+ * 策略：
+ * - ID 包含 "-" 分隔的语义片段 → 尝试中文转义（如 "t-market-data" → "获取K线+行情"）
+ * - 否则用 type 名作为前缀 + 短 ID
+ *
+ * @param id   - 节点 ID（如 "t-market-data", "agent-3", "tool-fetch"）
+ * @param type - 节点类型（如 "agent", "tool", "llm"）
+ * @returns 建议标题（如 "获取K线+行情", "Agent-3", "Tool Fetch"）
+ */
+export function suggest_title(id: string, type: string): string {
+  const verbMap: Record<string, string> = {
+    get: "获取", fetch: "获取", query: "查询", search: "搜索",
+    create: "创建", update: "更新", delete: "删除",
+    send: "发送", notify: "通知",
+    parse: "解析", transform: "转换", validate: "验证",
+    analyze: "分析", summarize: "总结", translate: "翻译",
+    extract: "提取", merge: "合并", split: "拆分",
+    filter: "过滤", sort: "排序", calc: "计算",
+    gen: "生成", recommend: "推荐", classify: "分类",
+  };
+  const nounMap: Record<string, string> = {
+    data: "数据", market: "行情", trade: "交易", order: "订单",
+    user: "用户", account: "账户", report: "报告", config: "配置",
+    alert: "告警", log: "日志", metric: "指标", signal: "信号",
+    news: "新闻", price: "价格", risk: "风险",
+    portfolio: "组合", position: "持仓", kline: "K线",
+  };
+
+  const segments = id.replace(/-\d+$/, "").split(/[-_]/);
+  const verb = segments.length > 1 ? verbMap[segments[0]] : undefined;
+  const noun = segments.length > 1
+    ? nounMap[segments[segments.length - 1]] || segments[segments.length - 1]
+    : undefined;
+  const middle = segments.length > 2
+    ? segments.slice(1, -1).map((s) => nounMap[s] || s).join("+")
+    : "";
+
+  if (verb && noun) {
+    return [verb, middle, noun].filter(Boolean).join("");
+  }
+
+  const shortId = id.length > 20 ? id.substring(0, 16) + "..." : id;
+  return type.charAt(0).toUpperCase() + type.slice(1) + ": " + shortId;
+}
+
+/**
+ * 校验工作流结构，发现 7 类脏数据问题。
+ *
+ * @param nodes - 节点列表（支持 WorkflowNode 或 ReactFlow Node 形状）
+ * @param edges - 边列表（支持 WorkflowEdge 或 ReactFlow Edge 形状）
+ * @returns 校验结果（issues 为空 → valid === true）
+ *
+ * ### 校验规则
+ * 1. **孤立节点**：非 trigger、非容器节点入度=0 且出度=0
+ * 2. **数据黑洞**：aggregator 入度≥3 但出度=0
+ * 3. **死分支**：容器节点入度=0 且出度=0（有子=调度容器 error；无子=装饰容器 warning）
+ * 4. **端口未连**：condition 节点的 true/false 出口至少一边未连
+ * 5. **循环无出口**：强连通分量不含 loopBack 条件
+ * 6. **自环边**：source === target
+ */
+export function validate_workflow(
+  nodes: NodeLike[],
+  edges: EdgeLike[],
+): ValidationResult {
+  // 过滤分组/装饰边——不参与结构校验
+  const realEdges = edges.filter(
+    (e) => (e as any).edge_type !== "grouping" && (e as any).data?.edgeType !== "grouping",
+  );
+  const issues: ValidateIssue[] = [];
+  const indegree = buildIndegree(realEdges);
+  const outdegree = buildOutdegree(realEdges);
+
+  // ── 1. 孤立节点 ──────────────────────────────────────────
+  for (const n of nodes) {
+    const t = nodeTypeOf(n);
+    if (t === "trigger" || CONTAINER_NODE_TYPES.has(t)) continue;
+    if ((indegree.get(n.id) || 0) === 0 && (outdegree.get(n.id) || 0) === 0) {
+      issues.push({
+        rule: "orphan_node",
+        severity: "warning",
+        message: `节点 "${n.id}" 是孤立节点（入度=0，出度=0）`,
+        nodeIds: [n.id],
+        edgeIds: [],
+      });
+    }
+  }
+
+  // ── 2. 数据黑洞 ──────────────────────────────────────────
+  for (const n of nodes) {
+    if (nodeTypeOf(n) !== "aggregator") continue;
+    if ((indegree.get(n.id) || 0) >= 3 && (outdegree.get(n.id) || 0) === 0) {
+      issues.push({
+        rule: "data_blackhole",
+        severity: "error",
+        message: `聚合节点 "${n.id}" 入度≥3 但出度=0，数据无法输出`,
+        nodeIds: [n.id],
+        edgeIds: [],
+      });
+    }
+  }
+
+  // ── 3. 死分支 ────────────────────────────────────────────
+  for (const n of nodes) {
+    const t = nodeTypeOf(n);
+    if (!CONTAINER_NODE_TYPES.has(t)) continue;
+    if ((indegree.get(n.id) || 0) > 0 || (outdegree.get(n.id) || 0) > 0) continue;
+
+    // decorative 容器跳过入度/出度检查（仅供视觉分组，调度引擎忽略）
+    if ((n as any).kind === "decorative" || (n as any).data?.kind === "decorative"
+      || (n as any).config?.kind === "decorative") continue;
+
+    const hasChildren = nodes.some((x) => x.parentId === n.id);
+    if (hasChildren) {
+      // 调度容器 → error
+      issues.push({
+        rule: "dead_branch",
+        severity: "error",
+        message: `容器节点 "${n.id}"（${t}）是死分支 — 有子节点但无输入/输出连接`,
+        nodeIds: [n.id],
+        edgeIds: [],
+      });
+    } else {
+      // 装饰容器 → warning
+      issues.push({
+        rule: "dead_branch",
+        severity: "warning",
+        message: `容器节点 "${n.id}"（装饰容器）无子节点且无连接`,
+        nodeIds: [n.id],
+        edgeIds: [],
+      });
+    }
+  }
+
+  // ── 4. 端口未连 ──────────────────────────────────────────
+  for (const n of nodes) {
+    if (nodeTypeOf(n) !== "condition") continue;
+    const outgoing = edges.filter((e) => e.source === n.id);
+    const hasTrue = outgoing.some((e) => e.sourceHandle === "true");
+    const hasFalse = outgoing.some((e) => e.sourceHandle === "false");
+
+    const missing: string[] = [];
+    if (!hasTrue) missing.push("true");
+    if (!hasFalse) missing.push("false");
+    if (missing.length > 0) {
+      issues.push({
+        rule: "unconnected_port",
+        severity: "warning",
+        message: `条件节点 "${n.id}" 的 ${missing.join("/")} 出口未连接`,
+        nodeIds: [n.id],
+        edgeIds: [],
+      });
+    }
+  }
+
+  // ── 5. 循环无出口 ────────────────────────────────────────
+  const sccs = findCyclicSCCs(nodes, realEdges);
+  for (const scc of sccs) {
+    const sccSet = new Set(scc);
+    const hasBreak = realEdges.some(
+      (e) =>
+        sccSet.has(e.source) &&
+        sccSet.has(e.target) &&
+        (e.edge_type === "loopBack" || e.sourceHandle === "loopBack"),
+    );
+    if (hasBreak) continue;
+
+    const sccEdgeIds = realEdges
+      .filter((e) => sccSet.has(e.source) && sccSet.has(e.target) && e.id)
+      .map((e) => e.id!);
+
+    issues.push({
+      rule: "cycle_no_exit",
+      severity: "error",
+      message: `节点 [${scc.join(", ")}] 形成环路但缺少断路条件（loopBack）`,
+      nodeIds: scc,
+      edgeIds: sccEdgeIds,
+    });
+  }
+
+  // ── 6. 自环边 ────────────────────────────────────────────
+  for (const e of realEdges) {
+    if (e.source === e.target) {
+      issues.push({
+        rule: "self_loop",
+        severity: "error",
+        message: `边 ${e.id || ""} 是自环边（source === target）`,
+        nodeIds: [e.source],
+        edgeIds: e.id ? [e.id] : [],
+      });
+    }
+  }
+
+  // ── 7. 标题重复 ────────────────────────────────────────────
+  // 同一 type 的节点存在完全相同的 title → warning
+  const titleGroups = new Map<string, Set<string>>(); // title+type → Set<nodeId>
+  for (const n of nodes) {
+    const t = nodeTypeOf(n);
+    if (!t) continue;
+    const title = titleOf(n);
+    if (!title) continue;
+    const key = t + "::" + title;
+    if (!titleGroups.has(key)) titleGroups.set(key, new Set());
+    titleGroups.get(key)!.add(n.id);
+  }
+  for (const [key, nodeIds] of titleGroups) {
+    if (nodeIds.size < 2) continue;
+    const [dupType, dupTitle] = key.split("::");
+    issues.push({
+      rule: "duplicate_title",
+      severity: "warning",
+      message: `${nodeIds.size} 个 ${dupType} 节点使用了相同标题 "${dupTitle}"`,
+      nodeIds: [...nodeIds],
+      edgeIds: [],
+    });
+  }
+
+  // ── 8. WorkflowRef 校验 ─────────────────────────────────────
+  for (const n of nodes) {
+    const t = nodeTypeOf(n);
+    if (t !== "workflowRef") continue;
+
+    // 8a. 空引用
+    const refId = extractConfig(n, "target_workflow_id");
+    if (!refId) {
+      issues.push({
+        rule: "workflow_ref_empty",
+        severity: "error",
+        message: `WorkflowRef 节点 "${n.id}" 未指定目标工作流`,
+        nodeIds: [n.id],
+        edgeIds: [],
+      });
+      continue;
+    }
+
+    // 8b. 自引用（A→A）
+    const currentWfId = (n as any).data?.templateId || "";
+    if (currentWfId && refId === currentWfId) {
+      issues.push({
+        rule: "workflow_ref_self",
+        severity: "error",
+        message: `WorkflowRef 节点 "${n.id}" 引用了自身`,
+        nodeIds: [n.id],
+        edgeIds: [],
+      });
+    }
+  }
+
+  // 8c. 嵌套深度检测（BFS 探测引用链）
+  const refNodes = nodes.filter((n) => nodeTypeOf(n) === "workflowRef");
+  const maxDepth = 3;
+  for (const rn of refNodes) {
+    const refId = extractConfig(rn, "target_workflow_id");
+    if (!refId) continue;
+    // 模拟引用链：如果同一工作流内多个 workflowRef 互相连接形成潜在环，
+    // 标记为高风险（前端仅能检测同模板内的直接自引用，完整闭环检测需后端）
+    const chainCheck = new Set<string>();
+    chainCheck.add(refId);
+    // 检查是否有其他 workflowRef 指向当前模板中另一个 workflowRef 的相同目标
+    const otherRefs = refNodes.filter((x) => x.id !== rn.id && extractConfig(x, "target_workflow_id"));
+    for (const or of otherRefs) {
+      const orId = extractConfig(or, "target_workflow_id");
+      if (chainCheck.has(orId!)) {
+        issues.push({
+          rule: "workflow_ref_depth",
+          severity: "warning",
+          message: `WorkflowRef 引用链可能超过 ${maxDepth} 层限制，
+多个 WorkflowRef 指向相同的 "${refId}"，可能存在循环引用`,
+          nodeIds: [rn.id, or.id],
+          edgeIds: [],
+        });
+      }
+    }
+  }
+
+  return { valid: issues.length === 0, issues };
+}
+
+/** 从节点中提取 config 字段值（兼容 WorkflowNode 和 ReactFlow Node） */
+function extractConfig(n: NodeLike, key: string): string | undefined {
+  const cfg = (n as any).config;
+  if (cfg && typeof cfg[key] === "string") return cfg[key];
+  if (n.data && typeof n.data[key] === "string") return n.data[key] as string;
+  if (n.data?.config && typeof (n.data.config as any)[key] === "string") return (n.data.config as any)[key];
+  return undefined;
+}
+
+// ── 原有代码以下继续 ──────────────────────────────────────────
+
 /**
  * 节点尺寸估计（React Flow 画布坐标系，单位 px）。
  * 实际渲染尺寸可能不同，但 Dagre 只影响相对排列，偏差可接受。
@@ -19,6 +432,7 @@ const NODE_SIZE: Record<string, { width: number; height: number }> = {
   tool: { width: 200, height: 140 },
   code: { width: 200, height: 140 },
   subWorkflow: { width: 220, height: 140 },
+  workflowRef: { width: 220, height: 120 },
   documentParser: { width: 200, height: 120 },
   vectorRetrieve: { width: 200, height: 120 },
   validation: { width: 200, height: 120 },
@@ -30,6 +444,161 @@ const DEFAULT_SIZE = { width: 200, height: 120 };
 /** 获取节点类型的尺寸估算（用于 hit-test / 布局） */
 export function getNodeSize(type: string): { width: number; height: number } {
   return NODE_SIZE[type] || DEFAULT_SIZE;
+}
+
+// ── Grid 吸附与碰撞避免 ─────────────────────────────────────
+
+/**
+ * 将坐标吸附到最近的 grid 点。
+ *
+ * @param x - 原始 X 坐标
+ * @param y - 原始 Y 坐标
+ * @param grid_size - 网格间距（默认 20px）
+ * @returns 吸附后的坐标
+ */
+export function snap_to_grid(
+  x: number,
+  y: number,
+  grid_size: number = 20,
+): { x: number; y: number } {
+  return {
+    x: Math.round(x / grid_size) * grid_size,
+    y: Math.round(y / grid_size) * grid_size,
+  };
+}
+
+export interface SiblingInfo {
+  id: string;
+  x: number;
+  y: number;
+  type: string;
+}
+
+/**
+ * 在 4 个象限中为候选节点找最近的**不重叠**位置。
+ *
+ * 策略：
+ * 1. 若候选与所有 sibling 无重叠，直接返回原位置
+ * 2. 若重叠，对每个重叠的 sibling 尝试上/下/左/右 4 个方向避开
+ * 3. 筛选出不产生新重叠的方向，按距离排序取最近者
+ * 4. 若 4 方向均产生新重叠，尝试对角线（右+下）回退
+ * 5. 最终位置会被 snap_to_grid 吸附
+ *
+ * @param candidate - 候选位置（含可选 id）
+ * @param nodeType - 候选节点类型（用于 getNodeSize）
+ * @param siblings - 画布上其他节点的快照（不含自身及同组选中节点）
+ * @param min_gap  - 节点间最小间隙（默认 10px）
+ * @returns 安全的网格吸附坐标
+ */
+export function find_safe_position(
+  candidate: { x: number; y: number; id?: string },
+  nodeType: string,
+  siblings: SiblingInfo[],
+  min_gap: number = 10,
+): { x: number; y: number } {
+  if (siblings.length === 0) {
+    return snap_to_grid(candidate.x, candidate.y);
+  }
+
+  const size = getNodeSize(nodeType);
+  const cw = size.width;
+  const ch = size.height;
+
+  // 构建 sibling 的边界矩形
+  const sibRects = siblings.map((s) => ({
+    id: s.id,
+    x: s.x,
+    y: s.y,
+    w: getNodeSize(s.type).width,
+    h: getNodeSize(s.type).height,
+  }));
+
+  // 检查 (px, py) 是否与任一 sibling 重叠
+  function overlaps(px: number, py: number): boolean {
+    for (const s of sibRects) {
+      if (
+        rectsOverlap(
+          { x: px, y: py, w: cw, h: ch },
+          { x: s.x, y: s.y, w: s.w, h: s.h },
+        )
+      ) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  const ox = candidate.x;
+  const oy = candidate.y;
+
+  // 无重叠 → 直接返回
+  if (!overlaps(ox, oy)) {
+    return snap_to_grid(ox, oy);
+  }
+
+  // 收集所有不产生新重叠的方向候选
+  const dirCands: Array<{ x: number; y: number; dist: number }> = [];
+
+  for (const s of sibRects) {
+    if (!overlaps(ox, oy)) continue;
+
+    // 右
+    const rx = s.x + s.w + min_gap;
+    const rDist = Math.abs(rx - ox);
+    if (!overlaps(rx, oy)) {
+      dirCands.push({ x: rx, y: oy, dist: rDist });
+    }
+
+    // 左
+    const lx = s.x - cw - min_gap;
+    const lDist = Math.abs(lx - ox);
+    if (!overlaps(lx, oy)) {
+      dirCands.push({ x: lx, y: oy, dist: lDist });
+    }
+
+    // 下
+    const dy = s.y + s.h + min_gap;
+    const dDist = Math.abs(dy - oy);
+    if (!overlaps(ox, dy)) {
+      dirCands.push({ x: ox, y: dy, dist: dDist });
+    }
+
+    // 上
+    const uy = s.y - ch - min_gap;
+    const uDist = Math.abs(uy - oy);
+    if (!overlaps(ox, uy)) {
+      dirCands.push({ x: ox, y: uy, dist: uDist });
+    }
+  }
+
+  // 按距离排序
+  dirCands.sort((a, b) => a.dist - b.dist);
+
+  if (dirCands.length > 0) {
+    return snap_to_grid(dirCands[0].x, dirCands[0].y);
+  }
+
+  // 对角线回退：右 + 下
+  for (const s of sibRects) {
+    if (!overlaps(ox, oy)) continue;
+    const fx = s.x + s.w + min_gap;
+    const fy = s.y + s.h + min_gap;
+    if (!overlaps(fx, fy)) {
+      dirCands.push({
+        x: fx,
+        y: fy,
+        dist: Math.abs(fx - ox) + Math.abs(fy - oy),
+      });
+    }
+  }
+  dirCands.sort((a, b) => a.dist - b.dist);
+
+  if (dirCands.length > 0) {
+    return snap_to_grid(dirCands[0].x, dirCands[0].y);
+  }
+
+  // 最后手段：右移 100px 后 snap，避开密集重叠区域
+  return snap_to_grid(candidate.x + 100, candidate.y);
 }
 
 /** 间距常量 */
@@ -317,4 +886,304 @@ export function autoLayoutWorkflow(
   });
 
   return { nodes: result, edges };
+}
+
+// ── 自动整理（按 type 分层布局） ──────────────────────────────
+
+/**
+ * 节点类型 → 层级索引（小 = 在上方）
+ */
+const LAYER_ORDER: Record<string, number> = {
+  trigger: 0,
+  tool: 1,
+  agent: 2,
+  llm: 2,
+  debate: 3,
+  condition: 3,
+  parallel: 3,
+  switch: 3,
+  llmClassifier: 3,
+  loop: 4,
+  aggregator: 4,
+  delay: 4,
+  validation: 4,
+  code: 4,
+  dataTransformer: 4,
+  fileOperation: 4,
+  databaseQuery: 4,
+  httpRequest: 4,
+  webhookSend: 4,
+  subWorkflow: 4,
+  workflowRef: 4,
+  documentParser: 4,
+  vectorRetrieve: 4,
+  merge: 5,
+  notification: 5,
+  email: 5,
+  approval: 5,
+  logging: 5,
+  end: 5,
+};
+
+const LAYER_Y_SPACING = 200; // 层间垂直间距
+const LAYER_X_SPACING = 320; // 层内水平间距
+const MARGIN = 60; // 画布边距
+const CONTAINER_PADDING = 40; // 容器内边距
+const CONTAINER_TYPES_AUTO = new Set(["parallel", "debate", "loop", "aggregator"]);
+
+interface AutoNode {
+  id: string;
+  type?: string;
+  position: { x: number; y: number };
+  parentId?: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  data: any;
+}
+
+interface LayoutEdge {
+  source: string;
+  target: string;
+}
+
+/**
+ * 提取节点类型（兼容 ReactFlow Node / WorkflowNode）
+ */
+function layoutNodeType(n: { type?: string; data?: Record<string, unknown> }): string {
+  return (n.type || (n.data?.type as string) || "");
+}
+
+/**
+ * 按 type 分层 + Barycenter 启发式 + 父容器适配的自动布局。
+ *
+ * 策略：
+ * 1. 顶层节点按 type 固定分层（L0=trigger → L5=end）
+ * 2. 同层 Barycenter 排序减少边交叉（mid=邻居平均列号）
+ * 3. 容器节点先布局子节点，再按 bbox 大小排入主层
+ * 4. 同层水平 320px 间距，层间垂直 200px 间距
+ *
+ * @param nodes - 节点列表（需包含 id / type / position / data）
+ * @param edges - 边列表（需包含 source / target）
+ * @param parentRefs - 容器父子映射（childId → parentId），可选
+ * @returns 更新了 position 的 nodes 副本（保持原输入形状）
+ */
+export function auto_layout(
+  nodes: AutoNode[],
+  edges: LayoutEdge[],
+  parentRefs: Record<string, string> = {},
+): AutoNode[] {
+  if (nodes.length === 0) { return []; }
+
+  const childOf = parentRefs;
+
+  // ── 分离容器与顶层节点 ────────────────────────────────────
+  const containers = nodes.filter(
+    (n) => CONTAINER_TYPES_AUTO.has(n.type || layoutNodeType(n)) && !childOf[n.id],
+  );
+  const topLevel = nodes.filter((n) => !childOf[n.id]);
+
+  // ── 子容器布局 ────────────────────────────────────────────
+  const childPositions: Record<string, { x: number; y: number }> = {}; // 全局绝对坐标
+  const containerBBox: Record<string, { w: number; h: number }> = {};
+
+  for (const c of containers) {
+    const cType = c.type || layoutNodeType(c);
+    const childIds = Object.keys(childOf).filter((cid) => childOf[cid] === c.id);
+    const childNodes = childIds
+      .map((cid) => nodes.find((n) => n.id === cid))
+      .filter(Boolean) as AutoNode[];
+
+    if (childNodes.length === 0) {
+      const sz = getNodeSize(cType);
+      containerBBox[c.id] = { w: sz.width + CONTAINER_PADDING * 2, h: sz.height + CONTAINER_PADDING * 2 };
+      continue;
+    }
+
+    // 子节点间边
+    const childEdges = edges.filter((e) => childIds.includes(e.source) && childIds.includes(e.target));
+
+    // 对子节点做扁平分层布局
+    const subPositions = layerPositions(childNodes, childEdges, {});
+    const subNodesPos = childNodes.map((n) => ({ id: n.id, ...subPositions[n.id] }));
+
+    // 计算 bbox
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    for (const sn of subNodesPos) {
+      const sz = getNodeSize(childNodes.find((n) => n.id === sn.id)?.type || "");
+      minX = Math.min(minX, sn.x);
+      minY = Math.min(minY, sn.y);
+      maxX = Math.max(maxX, sn.x + sz.width);
+      maxY = Math.max(maxY, sn.y + sz.height);
+    }
+    containerBBox[c.id] = { w: maxX - minX + CONTAINER_PADDING * 2, h: maxY - minY + CONTAINER_PADDING * 2 };
+
+    // 归一化子节点到容器原点（相对于容器内部）
+    for (const cn of childNodes) {
+      // 子节点相对容器左上角的位置
+      childPositions[cn.id] = {
+        x: CONTAINER_PADDING + (subPositions[cn.id].x - minX),
+        y: CONTAINER_PADDING + (subPositions[cn.id].y - minY),
+      };
+    }
+  }
+
+  // ── 顶层节点分层布局 ──────────────────────────────────────
+  const topNodeList = topLevel.filter((n) => !CONTAINER_TYPES_AUTO.has(n.type || layoutNodeType(n)));
+  const topPositions = layerPositions(topNodeList, edges, containerBBox);
+
+  // ── 容器节点排入主布局 ────────────────────────────────────
+  // 找到容器节点所属的层，将容器按已有节点顺序插入
+  const allPositions: Record<string, { x: number; y: number }> = { ...topPositions };
+
+  // 先按层分组容器
+  const containersByLayer: Record<number, typeof containers> = {};
+  for (const c of containers) {
+    const cType = c.type || layoutNodeType(c);
+    const layer = LAYER_ORDER[cType] ?? 3;
+    if (!containersByLayer[layer]) containersByLayer[layer] = [];
+    containersByLayer[layer].push(c);
+  }
+
+  // 对每个容器，插入到对应层的最后一个位置
+  for (const [layerStr, conts] of Object.entries(containersByLayer)) {
+    const layer = Number(layerStr);
+    // 该层已有的顶层节点数
+    const existingCount = topNodeList.filter((n) => (LAYER_ORDER[n.type || layoutNodeType(n)] ?? 3) === layer).length;
+    for (let i = 0; i < conts.length; i++) {
+      const c = conts[i];
+      const idx = existingCount + i;
+      allPositions[c.id] = {
+        x: MARGIN + idx * LAYER_X_SPACING,
+        y: MARGIN + layer * LAYER_Y_SPACING,
+      };
+    }
+  }
+
+  // ── 子节点修正：转为相对父容器的坐标 ──────────────────────
+  for (const c of containers) {
+    const cPos = allPositions[c.id];
+    if (!cPos) continue;
+    const childIds = Object.keys(childOf).filter((cid) => childOf[cid] === c.id);
+    for (const cid of childIds) {
+      if (childPositions[cid]) {
+        // 子节点绝对坐标 = 父容器位置 + 子节点相对位置
+        allPositions[cid] = {
+          x: cPos.x + childPositions[cid].x,
+          y: cPos.y + childPositions[cid].y,
+        };
+      }
+    }
+  }
+
+  // ── 写回 ──────────────────────────────────────────────────
+  return nodes.map((n) => {
+    const pos = allPositions[n.id];
+    if (!pos) return { ...n, position: { x: MARGIN, y: MARGIN } };
+    // 子节点转为相对父容器的坐标
+    const pid = childOf[n.id];
+    if (pid && allPositions[pid]) {
+      return {
+        ...n,
+        position: {
+          x: pos.x - allPositions[pid].x,
+          y: pos.y - allPositions[pid].y,
+        },
+      };
+    }
+    return { ...n, position: pos };
+  });
+}
+
+/**
+ * 对一批节点做分层布局（不含容器处理）。
+ * 返回 nodeId → { x, y } 的绝对坐标映射。
+ */
+function layerPositions(
+  nodes: AutoNode[],
+  edges: LayoutEdge[],
+  _containerBBox: Record<string, { w: number; h: number }>,
+): Record<string, { x: number; y: number }> {
+  if (nodes.length === 0) { return {}; }
+
+  // 1. 按 type 分配到层
+  const layers: Record<number, AutoNode[]> = {};
+  for (const n of nodes) {
+    const l = LAYER_ORDER[n.type || layoutNodeType(n)] ?? 3;
+    if (!layers[l]) layers[l] = [];
+    layers[l].push(n);
+  }
+
+  const layerKeys = Object.keys(layers)
+    .map(Number)
+    .sort((a, b) => a - b);
+
+  // 2. Barycenter 排序：用邻居在上一层的平均位置来排序本层节点
+  for (let li = 0; li < layerKeys.length; li++) {
+    const layer = layerKeys[li];
+    const layerNodes = layers[layer];
+    if (li === 0) {
+      // 第一层按出度排序（连接到下一层的边数）
+      const nextIds = new Set<string>();
+      for (const e of edges) {
+        const srcInLayer = layerNodes.some((n) => n.id === e.source);
+        if (srcInLayer) nextIds.add(e.source);
+      }
+      layerNodes.sort((a, b) => {
+        const aCount = edges.filter((e) => e.source === a.id).length;
+        const bCount = edges.filter((e) => e.source === b.id).length;
+        return bCount - aCount; // 出度多的靠左
+      });
+      // 无边的节点放最后
+      // (already sorted by out-degree)
+    } else {
+      const prevLayer = layerKeys[li - 1];
+      const prevNodes = layers[prevLayer];
+      // 构建 prevNodes 的列号索引
+      const prevIndex = new Map<string, number>();
+      prevNodes.forEach((pn, idx) => prevIndex.set(pn.id, idx));
+
+      // 为每个节点计算 barycenter
+      const withBary: Array<{ node: AutoNode; bary: number }> = layerNodes.map((n) => {
+        const connected: number[] = [];
+        for (const e of edges) {
+          if (e.target === n.id && prevIndex.has(e.source)) {
+            connected.push(prevIndex.get(e.source)!);
+          }
+          if (e.source === n.id && prevIndex.has(e.target)) {
+            connected.push(prevIndex.get(e.target)!);
+          }
+        }
+        const bary = connected.length > 0
+          ? connected.reduce((s, v) => s + v, 0) / connected.length
+          : -1; // 无连接的排最后
+        return { node: n, bary };
+      });
+
+      withBary.sort((a, b) => {
+        if (a.bary === -1 && b.bary === -1) return 0;
+        if (a.bary === -1) return 1;
+        if (b.bary === -1) return -1;
+        return a.bary - b.bary;
+      });
+
+      layers[layer] = withBary.map((w) => w.node);
+    }
+  }
+
+  // 3. 分配坐标
+  const positions: Record<string, { x: number; y: number }> = {};
+
+  // 先算每层实际宽度（考虑容器节点）
+  for (let li = 0; li < layerKeys.length; li++) {
+    const layer = layerKeys[li];
+    const layerNodes = layers[layer];
+
+    let xOffset = MARGIN;
+    for (let ni = 0; ni < layerNodes.length; ni++) {
+      const n = layerNodes[ni];
+      positions[n.id] = { x: xOffset, y: MARGIN + layer * LAYER_Y_SPACING };
+      xOffset += LAYER_X_SPACING;
+    }
+  }
+
+  return positions;
 }

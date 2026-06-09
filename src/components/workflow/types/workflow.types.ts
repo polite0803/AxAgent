@@ -180,6 +180,15 @@ export interface ParallelNodeConfig {
   timeout?: number;
   aggregation?: MergeStrategy;
   auto_input_from_parent?: boolean;
+  /**
+   * 容器角色标记。
+   *
+   * - `"executable"`（默认）：真并行调度器。`wait_for_all` + `aggregation` 实际生效，
+   *   运行时引擎并行执行子分支。
+   * - `"decorative"`：装饰性分组。仅供前端画分组框，调度引擎忽略。
+   *   成员通过 `parentId` 引用，实际依赖通过显式的 `edge` 表达。
+   */
+  kind?: "decorative" | "executable";
 }
 
 export interface ParallelNode extends WorkflowNodeBase {
@@ -260,6 +269,25 @@ export interface SubWorkflowNodeConfig {
 export interface SubWorkflowNode extends WorkflowNodeBase {
   type: "subWorkflow";
   config: SubWorkflowNodeConfig;
+}
+
+/** 工作流引用配置：引用另一个工作流作为子流程执行 */
+export interface WorkflowRefNodeConfig {
+  /** 被引用的工作流模板 ID */
+  target_workflow_id: string;
+  /** 参数注入映射：当前上下文变量名 → 子工作流入参名 */
+  input_mapping: Record<string, string>;
+  /** 子工作流输出变量名 */
+  output_var: string;
+  /** 超时继承：不设置则使用当前工作流默认超时 */
+  timeout?: number;
+  /** 上下文传递模式 */
+  context_mode?: "inherit" | "isolated";
+}
+
+export interface WorkflowRefNode extends WorkflowNodeBase {
+  type: "workflowRef";
+  config: WorkflowRefNodeConfig;
 }
 
 export interface DocumentParserNodeConfig {
@@ -495,6 +523,7 @@ export type WorkflowNode =
   | ToolNode
   | CodeNode
   | SubWorkflowNode
+  | WorkflowRefNode
   | DocumentParserNode
   | VectorRetrieveNode
   | ValidationNode
@@ -521,7 +550,8 @@ export type EdgeType =
   | "parallelBranch"
   | "merge"
   | "debateRound"
-  | "error";
+  | "error"
+  | "grouping";
 
 export interface WorkflowEdge {
   id: string;
@@ -760,6 +790,11 @@ export const NODE_TYPE_MAP: Record<
   },
   subWorkflow: {
     labelKey: "workflow.nodeTypes.subWorkflow",
+    category: "integration",
+    color: "#eb2f96",
+  },
+  workflowRef: {
+    labelKey: "workflow.nodeTypes.workflowRef",
     category: "integration",
     color: "#eb2f96",
   },
