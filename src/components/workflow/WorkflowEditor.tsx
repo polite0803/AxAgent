@@ -1017,7 +1017,10 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
           width: element.scrollWidth,
           height: element.scrollHeight,
         });
-        if (!blob) { message.error(t("workflow.exportFailed")); return; }
+        if (!blob) {
+          message.error(t("workflow.exportFailed"));
+          return;
+        }
 
         const { save } = await import("@tauri-apps/plugin-dialog");
         const { writeFile } = await import("@tauri-apps/plugin-fs");

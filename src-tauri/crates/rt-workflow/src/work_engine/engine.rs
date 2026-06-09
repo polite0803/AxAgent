@@ -1832,6 +1832,36 @@ impl WorkEngine {
                             nr.elapsed_ms,
                         );
 
+                        if let Some(ref cb) = progress_cb {
+                            let completed = {
+                                let workflows = self.workflows.read().await;
+                                workflows
+                                    .get(workflow_id)
+                                    .map(|w| {
+                                        w.node_states
+                                            .values()
+                                            .filter(|s| {
+                                                matches!(
+                                                    s.status,
+                                                    NodeStatus::Completed
+                                                        | NodeStatus::Failed
+                                                        | NodeStatus::Skipped
+                                                )
+                                            })
+                                            .count()
+                                    })
+                                    .unwrap_or(0)
+                            };
+                            cb(StepProgressEvent {
+                                node_id: nr.node_id.clone(),
+                                status: "completed".to_string(),
+                                total_nodes,
+                                completed_nodes: completed,
+                                execution_id: Some(execution_id.clone()),
+                            })
+                            .await;
+                        }
+
                         if matches!(nr.node, WorkflowNode::Condition(_)) {
                             let mut workflows = self.workflows.write().await;
                             if let Some(wf) = workflows.get_mut(workflow_id) {
@@ -1928,6 +1958,36 @@ impl WorkEngine {
                             Some(err_msg.clone()),
                             nr.elapsed_ms,
                         );
+
+                        if let Some(ref cb) = progress_cb {
+                            let completed = {
+                                let workflows = self.workflows.read().await;
+                                workflows
+                                    .get(workflow_id)
+                                    .map(|w| {
+                                        w.node_states
+                                            .values()
+                                            .filter(|s| {
+                                                matches!(
+                                                    s.status,
+                                                    NodeStatus::Completed
+                                                        | NodeStatus::Failed
+                                                        | NodeStatus::Skipped
+                                                )
+                                            })
+                                            .count()
+                                    })
+                                    .unwrap_or(0)
+                            };
+                            cb(StepProgressEvent {
+                                node_id: nr.node_id.clone(),
+                                status: "failed".to_string(),
+                                total_nodes,
+                                completed_nodes: completed,
+                                execution_id: Some(execution_id.clone()),
+                            })
+                            .await;
+                        }
                     },
                     Err(_) => {
                         breakers
@@ -2018,6 +2078,36 @@ impl WorkEngine {
                             Some(err_msg),
                             nr.elapsed_ms,
                         );
+
+                        if let Some(ref cb) = progress_cb {
+                            let completed = {
+                                let workflows = self.workflows.read().await;
+                                workflows
+                                    .get(workflow_id)
+                                    .map(|w| {
+                                        w.node_states
+                                            .values()
+                                            .filter(|s| {
+                                                matches!(
+                                                    s.status,
+                                                    NodeStatus::Completed
+                                                        | NodeStatus::Failed
+                                                        | NodeStatus::Skipped
+                                                )
+                                            })
+                                            .count()
+                                    })
+                                    .unwrap_or(0)
+                            };
+                            cb(StepProgressEvent {
+                                node_id: nr.node_id.clone(),
+                                status: "timeout".to_string(),
+                                total_nodes,
+                                completed_nodes: completed,
+                                execution_id: Some(execution_id.clone()),
+                            })
+                            .await;
+                        }
                     },
                 }
 

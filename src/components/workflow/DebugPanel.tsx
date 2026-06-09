@@ -440,22 +440,7 @@ export function DebugPanel({ workflowId }: DebugPanelProps) {
     }
   }, [validateTemplate]);
 
-  useEffect(() => {
-    let cancelled = false;
-    let cleanup: (() => void) | undefined;
-    engine.setupEventListeners().then((fn) => {
-      if (!cancelled) {
-        cleanup = fn;
-      } else {
-        fn();
-      }
-    });
-    return () => {
-      cancelled = true;
-      cleanup?.();
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // effect 中删除了 setupEventListeners 调用, 已迁移到 WorkflowEditor
 
   useEffect(() => {
     if (!workflowId) { return; }

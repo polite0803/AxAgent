@@ -3738,6 +3738,7 @@
     "saving": "Saving...",
     "save": "Save",
     "saveAsImage": "Save as Image",
+    "exportEmpty": "No nodes to export",
     "leftPanel": {
       "nodesTab": "Nodes",
       "searchNodes": "Search nodes...",
