@@ -107,6 +107,7 @@
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "6.0.1",
+    "dom-to-image-more": "^3.7.2",
     "dprint": "^0.54.0",
     "esbuild": "^0.28.0",
     "eslint": "^10.4.0",

@@ -997,90 +997,83 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
         return;
       }
 
-      const scale = 2;
       const defaultName = `${currentTemplate?.name || "workflow"}.png`;
 
-      // ── Resolve & override all oklch() CSS vars ──
-      // html2canvas reads raw CSS variable values from getComputedStyle,
-      // which returns oklch(...). Override them on root inline style
-      // with !important so getComputedStyle returns rgb() instead.
-      // Key: CSSStyleRule.style.length does NOT include custom properties
-      // in numeric indexing, so we must parse <style> textContent with regex.
-      const resolvedRGB = new Map<string, string>();
-      const tmp = document.createElement("div");
-      document.body.appendChild(tmp);
+      // ── Render via SVG foreignObject ──
+      // Browser natively renders HTML inside SVG, resolving oklch correctly.
+      // This is the same approach dom-to-image-more uses internally.
+      const w = element.scrollWidth;
+      const h = element.scrollHeight;
+      if (w === 0 || h === 0) {
+        message.error(t("workflow.exportNotFoundOrFailed"));
+        return;
+      }
 
-      // Match CSS variable declarations: --name: oklch(...)[ ;]
-      const varDeclRe = /(--[\w-]+)\s*:\s*(oklch\([^)]*\))\s*[;!]/g;
+      // Collect ALL CSS from the document
+      const cssTexts: string[] = [];
+      for (const el of document.querySelectorAll("style")) {
+        cssTexts.push(el.textContent || "");
+      }
+      for (const el of document.querySelectorAll("link[rel=stylesheet]")) {
+        try {
+          const res = await fetch((el as HTMLLinkElement).href);
+          cssTexts.push(await res.text());
+        } catch { /* skip */ }
+      }
 
-      document.querySelectorAll("style").forEach((style) => {
-        if (!style.textContent || !style.textContent.includes("oklch")) { return; }
-        let match: RegExpExecArray | null;
-        // Reset regex lastIndex
-        varDeclRe.lastIndex = 0;
-        while ((match = varDeclRe.exec(style.textContent)) !== null) {
-          const name = match[1];
-          const oklchVal = match[2];
-          if (resolvedRGB.has(name)) { continue; }
-          tmp.style.setProperty("background-color", oklchVal, "important");
-          const rgb = getComputedStyle(tmp).backgroundColor;
-          tmp.style.removeProperty("background-color");
-          if (rgb && rgb !== "rgba(0, 0, 0, 0)") {
-            resolvedRGB.set(name, rgb);
-          }
-        }
+      // Clone the element to avoid mutating the live DOM
+      const clone = element.cloneNode(true) as HTMLElement;
+      clone.querySelectorAll(".react-flow__minimap, .react-flow__controls")?.forEach((e) => e.remove());
+
+      // Build inline SVG data URI with foreignObject
+      const svgContent = [
+        `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}">`,
+        `<foreignObject width="${w}" height="${h}">`,
+        `<div xmlns="http://www.w3.org/1999/xhtml" style="width:${w}px;height:${h}px;overflow:hidden;background:#1a1a2e">`,
+        `<style>${cssTexts.join("")}</style>`,
+        new XMLSerializer().serializeToString(clone),
+        `</div></foreignObject></svg>`,
+      ].join("");
+
+      const svg = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svgContent)}`;
+
+      const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+        const image = new Image();
+        image.onload = () => resolve(image);
+        image.onerror = () => reject(new Error("SVG render failed"));
+        image.src = svg;
       });
 
-      document.body.removeChild(tmp);
+      const canvas = document.createElement("canvas");
+      canvas.width = w * 2;
+      canvas.height = h * 2;
+      const ctx = canvas.getContext("2d")!;
+      ctx.scale(2, 2);
+      ctx.drawImage(img, 0, 0);
 
-      // Apply overrides on root element's inline style
-      const root = document.documentElement;
-      for (const [name, rgb] of resolvedRGB) {
-        root.style.setProperty(name, rgb, "important");
-      }
-
-      if (resolvedRGB.size === 0) {
-        console.warn("[saveAsImage] no oklch CSS vars found — override may be incomplete");
-      }
-
-      try {
-        const { default: html2canvas } = await import("html2canvas");
-        const canvas = await html2canvas(element, {
-          useCORS: true,
-          scale,
-          backgroundColor: "#1a1a2e",
+      if (isTauri()) {
+        const { save } = await import("@tauri-apps/plugin-dialog");
+        const { writeFile } = await import("@tauri-apps/plugin-fs");
+        const filePath = await save({
+          defaultPath: defaultName,
+          filters: [{ name: "PNG Image", extensions: ["png"] }],
         });
+        if (!filePath) { return; }
 
-        if (isTauri()) {
-          const { save } = await import("@tauri-apps/plugin-dialog");
-          const { writeFile } = await import("@tauri-apps/plugin-fs");
-
-          const filePath = await save({
-            defaultPath: defaultName,
-            filters: [{ name: "PNG Image", extensions: ["png"] }],
-          });
-          if (!filePath) { return; }
-
-          const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"));
-          if (!blob) {
-            message.error(t("workflow.exportFailed"));
-            return;
-          }
-          await writeFile(filePath, new Uint8Array(await blob.arrayBuffer()));
-        } else {
-          const link = document.createElement("a");
-          link.download = defaultName;
-          link.href = canvas.toDataURL("image/png");
-          link.click();
+        const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"));
+        if (!blob) {
+          message.error(t("workflow.exportFailed"));
+          return;
         }
-
-        message.success(t("workflow.exportSuccess"));
-      } finally {
-        // Clean up overrides
-        for (const name of resolvedRGB.keys()) {
-          root.style.removeProperty(name);
-        }
+        await writeFile(filePath, new Uint8Array(await blob.arrayBuffer()));
+      } else {
+        const link = document.createElement("a");
+        link.download = defaultName;
+        link.href = canvas.toDataURL("image/png");
+        link.click();
       }
+
+      message.success(t("workflow.exportSuccess"));
     } catch (error) {
       console.error("[saveAsImage]", error);
       message.error(`${t("workflow.exportFailed")}: ${error instanceof Error ? error.message : String(error)}`);
