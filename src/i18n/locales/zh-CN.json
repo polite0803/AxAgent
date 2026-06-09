@@ -4833,10 +4833,12 @@
         "sqlHint": "例如：'查询最近 10 个活跃用户'"
       },
       "switch": {
-        "casesHint": "当前分支：{{current}}，输入变量：{{input}}。请推荐更多分支。"
+        "casesHint": "当前分支：{{current}}，输入变量：{{input}}。请推荐更多分支。",
+        "systemPrompt": "你是一个工作流分支设计专家。根据用户的描述，输出 switch 节点的 cases 数组，每项为 {{schema}}。只输出 JSON 数组字符串，不要任何解释或 Markdown 标记。"
       },
       "parallel": {
-        "branchesHint": "当前分支：{{current}}。可用节点：{{available}}。请推荐并行分支。"
+        "branchesHint": "当前分支：{{current}}。可用节点：{{available}}。请推荐并行分支。",
+        "systemPrompt": "你是一个并行分支设计专家。根据用户的描述，输出 parallel 节点的 branches 数组，每项为 {{schema}}。只输出 JSON 数组字符串，不要任何解释或 Markdown 标记。"
       },
       "loop": {
         "continueHint": "例如：'当 index < {{items}} 长度时继续'"
@@ -4844,6 +4846,80 @@
       "subWorkflow": {
         "needPick": "请先选择一个子工作流",
         "parseFailed": "AI 返回的 JSON 解析失败，请重试"
+      }
+    },
+    "nodeKind": {
+      "input": "输入",
+      "output": "输出",
+      "tool": "工具",
+      "agent": "AI 推理",
+      "condition": "条件路由",
+      "loop": "循环",
+      "container": "容器",
+      "storage": "存储"
+    },
+    "layout": {
+      "suggestTitle": {
+        "verb": {
+          "get": "获取",
+          "fetch": "获取",
+          "query": "查询",
+          "search": "搜索",
+          "create": "创建",
+          "update": "更新",
+          "delete": "删除",
+          "send": "发送",
+          "notify": "通知",
+          "parse": "解析",
+          "transform": "转换",
+          "validate": "验证",
+          "analyze": "分析",
+          "summarize": "总结",
+          "translate": "翻译",
+          "extract": "提取",
+          "merge": "合并",
+          "split": "拆分",
+          "filter": "过滤",
+          "sort": "排序",
+          "calc": "计算",
+          "gen": "生成",
+          "recommend": "推荐",
+          "classify": "分类"
+        },
+        "noun": {
+          "data": "数据",
+          "market": "行情",
+          "trade": "交易",
+          "order": "订单",
+          "user": "用户",
+          "account": "账户",
+          "report": "报告",
+          "config": "配置",
+          "alert": "告警",
+          "log": "日志",
+          "metric": "指标",
+          "signal": "信号",
+          "news": "新闻",
+          "price": "价格",
+          "risk": "风险",
+          "portfolio": "组合",
+          "position": "持仓",
+          "kline": "K线"
+        }
+      },
+      "fallbackTypePrefix": "{{type}}: ",
+      "validate": {
+        "orphan_node": "节点 \"{{nodeId}}\" 是孤立节点（入度=0，出度=0）",
+        "data_blackhole": "聚合节点 \"{{nodeId}}\" 入度≥3 但出度=0，数据无法输出",
+        "dead_branch_scheduled": "容器节点 \"{{nodeId}}\"（{{type}}）是死分支 — 有子节点但无输入/输出连接",
+        "dead_branch_decorative": "容器节点 \"{{nodeId}}\"（装饰容器）无子节点且无连接",
+        "unconnected_port": "条件节点 \"{{nodeId}}\" 的 {{missing}} 出口未连接",
+        "cycle_no_exit": "节点 [{{nodes}}] 形成环路但缺少断路条件（loopBack）",
+        "self_loop": "边 {{edgeId}} 是自环边（source === target）",
+        "duplicate_title": "{{count}} 个 {{type}} 节点使用了相同标题 \"{{title}}\"",
+        "workflow_ref_empty": "WorkflowRef 节点 \"{{nodeId}}\" 未指定目标工作流",
+        "workflow_ref_self": "WorkflowRef 节点 \"{{nodeId}}\" 引用了自身",
+        "workflow_ref_depth": "WorkflowRef 引用链可能超过 {{maxDepth}} 层限制，多个 WorkflowRef 指向相同的 \"{{refId}}\"，可能存在循环引用"
       }
     },
     "diagnostic": {

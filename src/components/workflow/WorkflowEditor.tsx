@@ -274,7 +274,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
 
   // 前端校验：nodes / edges 变更时自动重新运行 validate_workflow
   useEffect(() => {
-    const issues = validate_workflow(nodes, edges);
+    const issues = validate_workflow(nodes, edges, t);
     setFrontendValidation(issues.issues);
     const msgMap = new Map<string, string>();
     for (const iss of issues.issues) {
@@ -284,7 +284,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
       }
     }
     setValidationMsgMap(msgMap);
-  }, [nodes, edges]);
+  }, [nodes, edges, t]);
 
   const {
     isDecompositionTemplate,
@@ -1172,7 +1172,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
     }
 
     // 前端结构校验：error 级别阻塞保存，warning 级别仅提示
-    const frontendIssues = validate_workflow(nodes, edges);
+    const frontendIssues = validate_workflow(nodes, edges, t);
     const frontendErrors = frontendIssues.issues.filter((i) => i.severity === "error");
     const frontendWarnings = frontendIssues.issues.filter((i) => i.severity === "warning");
     if (frontendErrors.length > 0) {

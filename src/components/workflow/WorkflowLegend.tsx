@@ -1,7 +1,7 @@
 import { theme } from "antd";
 import React, { memo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { NODE_KIND_LABELS, type NodeKind } from "./types";
+import { NODE_KIND_LABEL_KEYS, type NodeKind } from "./types";
 
 /**
  * 语义化颜色 — 根据 NodeKind 从主题 token 解析可适配深色/浅色的颜色值。
@@ -140,7 +140,7 @@ export const WorkflowLegend: React.FC = memo(() => {
                   }}
                 />
                 <span style={{ color: token.colorTextTertiary }}>
-                  {NODE_KIND_LABELS[kind]}
+                  {t(NODE_KIND_LABEL_KEYS[kind])}
                 </span>
               </div>
             );

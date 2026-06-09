@@ -3538,17 +3538,93 @@
         "continueHint": "Provide a loop continue condition, e.g. `index < 10`."
       },
       "parallel": {
-        "branchesHint": "Describe parallel branch inputs and the target output."
+        "branchesHint": "Describe parallel branch inputs and the target output.",
+        "systemPrompt": "You are a workflow parallel-branch design expert. Based on the user's description, output the parallel node's `branches` array, each item as {{schema}}. Output only the JSON array string — no explanations or Markdown wrappers."
       },
       "subWorkflow": {
         "needPick": "Please pick an existing workflow or describe a new one.",
         "parseFailed": "Failed to parse; please check the description."
       },
       "switch": {
-        "casesHint": "List all cases and their trigger conditions."
+        "casesHint": "List all cases and their trigger conditions.",
+        "systemPrompt": "You are a workflow branching design expert. Based on the user's description, output the switch node's `cases` array, each item as {{schema}}. Output only the JSON array string — no explanations or Markdown wrappers."
       },
       "trigger": {
         "cronHint": "Standard cron expression, e.g. `0 9 * * *`."
+      }
+    },
+    "nodeKind": {
+      "input": "Input",
+      "output": "Output",
+      "tool": "Tool",
+      "agent": "AI Agent",
+      "condition": "Routing",
+      "loop": "Loop",
+      "container": "Container",
+      "storage": "Storage"
+    },
+    "layout": {
+      "suggestTitle": {
+        "verb": {
+          "get": "Get",
+          "fetch": "Fetch",
+          "query": "Query",
+          "search": "Search",
+          "create": "Create",
+          "update": "Update",
+          "delete": "Delete",
+          "send": "Send",
+          "notify": "Notify",
+          "parse": "Parse",
+          "transform": "Transform",
+          "validate": "Validate",
+          "analyze": "Analyze",
+          "summarize": "Summarize",
+          "translate": "Translate",
+          "extract": "Extract",
+          "merge": "Merge",
+          "split": "Split",
+          "filter": "Filter",
+          "sort": "Sort",
+          "calc": "Calc",
+          "gen": "Generate",
+          "recommend": "Recommend",
+          "classify": "Classify"
+        },
+        "noun": {
+          "data": "Data",
+          "market": "Market",
+          "trade": "Trade",
+          "order": "Order",
+          "user": "User",
+          "account": "Account",
+          "report": "Report",
+          "config": "Config",
+          "alert": "Alert",
+          "log": "Log",
+          "metric": "Metric",
+          "signal": "Signal",
+          "news": "News",
+          "price": "Price",
+          "risk": "Risk",
+          "portfolio": "Portfolio",
+          "position": "Position",
+          "kline": "KLine"
+        }
+      },
+      "fallbackTypePrefix": "{{type}}: ",
+      "validate": {
+        "orphan_node": "Node \"{{nodeId}}\" is orphaned (no inbound or outbound edge)",
+        "data_blackhole": "Aggregator node \"{{nodeId}}\" has indegree≥3 but outdegree=0, data has no exit",
+        "dead_branch_scheduled": "Container node \"{{nodeId}}\" ({{type}}) is a dead branch — has children but no input/output edges",
+        "dead_branch_decorative": "Container node \"{{nodeId}}\" (decorative) has no children and no connections",
+        "unconnected_port": "Condition node \"{{nodeId}}\" has unconnected {{missing}} output",
+        "cycle_no_exit": "Nodes [{{nodes}}] form a cycle without a break condition (loopBack)",
+        "self_loop": "Edge {{edgeId}} is a self-loop (source === target)",
+        "duplicate_title": "{{count}} {{type}} nodes share the same title \"{{title}}\"",
+        "workflow_ref_empty": "WorkflowRef node \"{{nodeId}}\" has no target workflow",
+        "workflow_ref_self": "WorkflowRef node \"{{nodeId}}\" references itself",
+        "workflow_ref_depth": "WorkflowRef chain may exceed {{maxDepth}}-level limit; multiple WorkflowRefs point to the same \"{{refId}}\", possible circular reference"
       }
     },
     "aiPanel": {

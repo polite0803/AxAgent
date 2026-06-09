@@ -36,9 +36,9 @@ export const ParallelPropertyPanel: React.FC<ParallelPropertyPanelProps> = ({
 
   const handleAISuggestBranches = async () => {
     const result = await aiGenerate({
-      systemPrompt:
-        '你是一个并行分支设计专家。根据用户的描述，输出 parallel 节点的 branches 数组，每项为 {"id": "string", "title": "string", "steps": ["node_id", ...]}。'
-        + "只输出 JSON 数组字符串，不要任何解释或 Markdown 标记。",
+      systemPrompt: t("workflow.aiAssist.parallel.systemPrompt", {
+        schema: '{"id": "string", "title": "string", "steps": ["node_id", ...]}',
+      }),
       userPrompt: t("workflow.aiAssist.parallel.branchesHint", {
         current: config.branches.length,
         available: nodes

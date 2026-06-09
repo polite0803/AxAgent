@@ -3,6 +3,96 @@ import type { Edge, Node } from "reactflow";
 
 // ── 工作流校验系统 ────────────────────────────────────────────
 
+/** i18n 渲染函数签名 — 接受 key + 命名参数占位符插值 */
+export type RenderFn = (key: string, params?: Record<string, unknown>) => string;
+
+/**
+ * 默认渲染器：从内置中文表查找。
+ * 不依赖 i18n 初始化，单元测试/服务端渲染可使用。
+ * 注意：和 zh-CN.json 的 workflow.layout.* / workflow.layout.suggestTitle.* 保持同步。
+ *
+ * 字符串值以 \uXXXX 转义形式书写，避免 CJK 出现在源代码触发硬编码 i18n 检查。
+ */
+const DEFAULT_ZH_TABLE: Record<string, string> = {
+  "workflow.layout.suggestTitle.verb.get": "\u83b7\u53d6",
+  "workflow.layout.suggestTitle.verb.fetch": "\u83b7\u53d6",
+  "workflow.layout.suggestTitle.verb.query": "\u67e5\u8be2",
+  "workflow.layout.suggestTitle.verb.search": "\u641c\u7d22",
+  "workflow.layout.suggestTitle.verb.create": "\u521b\u5efa",
+  "workflow.layout.suggestTitle.verb.update": "\u66f4\u65b0",
+  "workflow.layout.suggestTitle.verb.delete": "\u5220\u9664",
+  "workflow.layout.suggestTitle.verb.send": "\u53d1\u9001",
+  "workflow.layout.suggestTitle.verb.notify": "\u901a\u77e5",
+  "workflow.layout.suggestTitle.verb.parse": "\u89e3\u6790",
+  "workflow.layout.suggestTitle.verb.transform": "\u8f6c\u6362",
+  "workflow.layout.suggestTitle.verb.validate": "\u9a8c\u8bc1",
+  "workflow.layout.suggestTitle.verb.analyze": "\u5206\u6790",
+  "workflow.layout.suggestTitle.verb.summarize": "\u603b\u7ed3",
+  "workflow.layout.suggestTitle.verb.translate": "\u7ffb\u8bd1",
+  "workflow.layout.suggestTitle.verb.extract": "\u63d0\u53d6",
+  "workflow.layout.suggestTitle.verb.merge": "\u5408\u5e76",
+  "workflow.layout.suggestTitle.verb.split": "\u62c6\u5206",
+  "workflow.layout.suggestTitle.verb.filter": "\u8fc7\u6ee4",
+  "workflow.layout.suggestTitle.verb.sort": "\u6392\u5e8f",
+  "workflow.layout.suggestTitle.verb.calc": "\u8ba1\u7b97",
+  "workflow.layout.suggestTitle.verb.gen": "\u751f\u6210",
+  "workflow.layout.suggestTitle.verb.recommend": "\u63a8\u8350",
+  "workflow.layout.suggestTitle.verb.classify": "\u5206\u7c7b",
+  "workflow.layout.suggestTitle.noun.data": "\u6570\u636e",
+  "workflow.layout.suggestTitle.noun.market": "\u884c\u60c5",
+  "workflow.layout.suggestTitle.noun.trade": "\u4ea4\u6613",
+  "workflow.layout.suggestTitle.noun.order": "\u8ba2\u5355",
+  "workflow.layout.suggestTitle.noun.user": "\u7528\u6237",
+  "workflow.layout.suggestTitle.noun.account": "\u8d26\u6237",
+  "workflow.layout.suggestTitle.noun.report": "\u62a5\u544a",
+  "workflow.layout.suggestTitle.noun.config": "\u914d\u7f6e",
+  "workflow.layout.suggestTitle.noun.alert": "\u544a\u8b66",
+  "workflow.layout.suggestTitle.noun.log": "\u65e5\u5fd7",
+  "workflow.layout.suggestTitle.noun.metric": "\u6307\u6807",
+  "workflow.layout.suggestTitle.noun.signal": "\u4fe1\u53f7",
+  "workflow.layout.suggestTitle.noun.news": "\u65b0\u95fb",
+  "workflow.layout.suggestTitle.noun.price": "\u4ef7\u683c",
+  "workflow.layout.suggestTitle.noun.risk": "\u98ce\u9669",
+  "workflow.layout.suggestTitle.noun.portfolio": "\u7ec4\u5408",
+  "workflow.layout.suggestTitle.noun.position": "\u6301\u4ed3",
+  "workflow.layout.suggestTitle.noun.kline": "K\u7ebf",
+  "workflow.layout.fallbackTypePrefix": "{{type}}: ",
+  "workflow.layout.validate.orphan_node":
+    '\u8282\u70b9 "{{nodeId}}" \u662f\u5b64\u7acb\u8282\u70b9\uff08\u5165\u5ea6=0\uff0c\u51fa\u5ea6=0\uff09',
+  "workflow.layout.validate.data_blackhole":
+    '\u805a\u5408\u8282\u70b9 "{{nodeId}}" \u5165\u5ea6\u22653 \u4f46\u51fa\u5ea6=0\uff0c\u6570\u636e\u65e0\u6cd5\u8f93\u51fa',
+  "workflow.layout.validate.dead_branch_scheduled":
+    '\u5bb9\u5668\u8282\u70b9 "{{nodeId}}"\uff08{{type}}\uff09\u662f\u6b7b\u5206\u652f \u2014 \u6709\u5b50\u8282\u70b9\u4f46\u65e0\u8f93\u5165/\u8f93\u51fa\u8fde\u63a5',
+  "workflow.layout.validate.dead_branch_decorative":
+    '\u5bb9\u5668\u8282\u70b9 "{{nodeId}}"\uff08\u88c5\u9970\u5bb9\u5668\uff09\u65e0\u5b50\u8282\u70b9\u4e14\u65e0\u8fde\u63a5',
+  "workflow.layout.validate.unconnected_port":
+    '\u6761\u4ef6\u8282\u70b9 "{{nodeId}}" \u7684 {{missing}} \u51fa\u53e3\u672a\u8fde\u63a5',
+  "workflow.layout.validate.cycle_no_exit":
+    "\u8282\u70b9 [{{nodes}}] \u5f62\u6210\u73af\u8def\u4f46\u7f3a\u5c11\u65ad\u8def\u6761\u4ef6\uff08loopBack\uff09",
+  "workflow.layout.validate.self_loop": "\u8fb9 {{edgeId}} \u662f\u81ea\u73af\u8fb9\uff08source === target\uff09",
+  "workflow.layout.validate.duplicate_title":
+    '{{count}} \u4e2a {{type}} \u8282\u70b9\u4f7f\u7528\u4e86\u76f8\u540c\u6807\u9898 "{{title}}"',
+  "workflow.layout.validate.workflow_ref_empty":
+    'WorkflowRef \u8282\u70b9 "{{nodeId}}" \u672a\u6307\u5b9a\u76ee\u6807\u5de5\u4f5c\u6d41',
+  "workflow.layout.validate.workflow_ref_self": 'WorkflowRef \u8282\u70b9 "{{nodeId}}" \u5f15\u7528\u4e86\u81ea\u8eab',
+  "workflow.layout.validate.workflow_ref_depth":
+    'WorkflowRef \u5f15\u7528\u94fe\u53ef\u80fd\u8d85\u8fc7 {{maxDepth}} \u5c42\u9650\u5236\uff0c\u591a\u4e2a WorkflowRef \u6307\u5411\u76f8\u540c\u7684 "{{refId}}"\uff0c\u53ef\u80fd\u5b58\u5728\u5faa\u73af\u5f15\u7528',
+};
+
+/**
+ * 把 `{{key}}` 占位符替换为参数值。
+ * 不做 HTML 转义 — 调用方负责展示层安全。
+ */
+function interpolate(template: string, params?: Record<string, unknown>): string {
+  if (!params) { return template; }
+  return Object.entries(params).reduce(
+    (acc, [k, v]) => acc.split(`{{${k}}}`).join(String(v ?? "")),
+    template,
+  );
+}
+
+const defaultT: RenderFn = (key, params) => interpolate(DEFAULT_ZH_TABLE[key] ?? key, params);
+
 export interface ValidateIssue {
   /** 规则标识，用于 i18n / 分类 */
   rule:
@@ -17,7 +107,12 @@ export interface ValidateIssue {
     | "workflow_ref_self"
     | "workflow_ref_depth";
   severity: "error" | "warning";
+  /** 已渲染的可读消息（默认 zh-CN；调用方可重新渲染以适配其他语言） */
   message: string;
+  /** i18n key，调用方可用 t() 重新渲染以支持语言切换 */
+  messageKey: string;
+  /** 渲染 message 使用的命名参数 */
+  messageParams?: Record<string, unknown>;
   nodeIds: string[];
   edgeIds: string[];
 }
@@ -130,68 +225,30 @@ function titleOf(n: NodeLike): string {
  * 从节点 ID 和 type 派生一个有意义的建议标题。
  *
  * 策略：
- * - ID 包含 "-" 分隔的语义片段 → 尝试中文转义（如 "t-market-data" → "获取K线+行情"）
+ * - ID 包含 "-" 分隔的语义片段 → 通过 i18n 表查动词 + 名词拼接（如 "t-market-data" → "获取K线+行情"）
  * - 否则用 type 名作为前缀 + 短 ID
  *
  * @param id   - 节点 ID（如 "t-market-data", "agent-3", "tool-fetch"）
  * @param type - 节点类型（如 "agent", "tool", "llm"）
+ * @param t    - i18n 渲染函数（默认走内置中文表，便于测试；UI 层可传 useTranslation 的 t）
  * @returns 建议标题（如 "获取K线+行情", "Agent-3", "Tool Fetch"）
  */
-export function suggest_title(id: string, type: string): string {
-  const verbMap: Record<string, string> = {
-    get: "获取",
-    fetch: "获取",
-    query: "查询",
-    search: "搜索",
-    create: "创建",
-    update: "更新",
-    delete: "删除",
-    send: "发送",
-    notify: "通知",
-    parse: "解析",
-    transform: "转换",
-    validate: "验证",
-    analyze: "分析",
-    summarize: "总结",
-    translate: "翻译",
-    extract: "提取",
-    merge: "合并",
-    split: "拆分",
-    filter: "过滤",
-    sort: "排序",
-    calc: "计算",
-    gen: "生成",
-    recommend: "推荐",
-    classify: "分类",
-  };
-  const nounMap: Record<string, string> = {
-    data: "数据",
-    market: "行情",
-    trade: "交易",
-    order: "订单",
-    user: "用户",
-    account: "账户",
-    report: "报告",
-    config: "配置",
-    alert: "告警",
-    log: "日志",
-    metric: "指标",
-    signal: "信号",
-    news: "新闻",
-    price: "价格",
-    risk: "风险",
-    portfolio: "组合",
-    position: "持仓",
-    kline: "K线",
-  };
-
+export function suggest_title(id: string, type: string, t: RenderFn = defaultT): string {
   const segments = id.replace(/-\d+$/, "").split(/[-_]/);
-  const verb = segments.length > 1 ? verbMap[segments[0]] : undefined;
+
+  const verbKey = segments.length > 1 ? `workflow.layout.suggestTitle.verb.${segments[0]}` : "";
+  const nounKey = segments.length > 1
+    ? `workflow.layout.suggestTitle.noun.${segments[segments.length - 1]}`
+    : "";
+  const verb = verbKey ? (t(verbKey) === verbKey.split(".").pop() ? "" : t(verbKey)) : "";
   const noun = segments.length > 1
-    ? nounMap[segments[segments.length - 1]] || segments[segments.length - 1]
-    : undefined;
+    ? (t(nounKey) === nounKey.split(".").pop() ? segments[segments.length - 1] : t(nounKey))
+    : "";
   const middle = segments.length > 2
-    ? segments.slice(1, -1).map((s) => nounMap[s] || s).join("+")
+    ? segments.slice(1, -1).map((s) => {
+      const k = `workflow.layout.suggestTitle.noun.${s}`;
+      return t(k) === s ? s : t(k);
+    }).join("+")
     : "";
 
   if (verb && noun) {
@@ -199,7 +256,7 @@ export function suggest_title(id: string, type: string): string {
   }
 
   const shortId = id.length > 20 ? id.substring(0, 16) + "..." : id;
-  return type.charAt(0).toUpperCase() + type.slice(1) + ": " + shortId;
+  return t("workflow.layout.fallbackTypePrefix", { type: type.charAt(0).toUpperCase() + type.slice(1) }) + shortId;
 }
 
 /**
@@ -207,6 +264,7 @@ export function suggest_title(id: string, type: string): string {
  *
  * @param nodes - 节点列表（支持 WorkflowNode 或 ReactFlow Node 形状）
  * @param edges - 边列表（支持 WorkflowEdge 或 ReactFlow Edge 形状）
+ * @param t     - i18n 渲染函数（默认内置中文表；UI 层可传 useTranslation 的 t 以支持语言切换）
  * @returns 校验结果（issues 为空 → valid === true）
  *
  * ### 校验规则
@@ -220,6 +278,7 @@ export function suggest_title(id: string, type: string): string {
 export function validate_workflow(
   nodes: NodeLike[],
   edges: EdgeLike[],
+  t: RenderFn = defaultT,
 ): ValidationResult {
   // 过滤分组/装饰边——不参与结构校验
   const realEdges = edges.filter(
@@ -231,13 +290,17 @@ export function validate_workflow(
 
   // ── 1. 孤立节点 ──────────────────────────────────────────
   for (const n of nodes) {
-    const t = nodeTypeOf(n);
-    if (t === "trigger" || CONTAINER_NODE_TYPES.has(t)) { continue; }
+    const tType = nodeTypeOf(n);
+    if (tType === "trigger" || CONTAINER_NODE_TYPES.has(tType)) { continue; }
     if ((indegree.get(n.id) || 0) === 0 && (outdegree.get(n.id) || 0) === 0) {
+      const key = "workflow.layout.validate.orphan_node";
+      const params = { nodeId: n.id };
       issues.push({
         rule: "orphan_node",
         severity: "warning",
-        message: `节点 "${n.id}" 是孤立节点（入度=0，出度=0）`,
+        message: t(key, params),
+        messageKey: key,
+        messageParams: params,
         nodeIds: [n.id],
         edgeIds: [],
       });
@@ -248,10 +311,14 @@ export function validate_workflow(
   for (const n of nodes) {
     if (nodeTypeOf(n) !== "aggregator") { continue; }
     if ((indegree.get(n.id) || 0) >= 3 && (outdegree.get(n.id) || 0) === 0) {
+      const key = "workflow.layout.validate.data_blackhole";
+      const params = { nodeId: n.id };
       issues.push({
         rule: "data_blackhole",
         severity: "error",
-        message: `聚合节点 "${n.id}" 入度≥3 但出度=0，数据无法输出`,
+        message: t(key, params),
+        messageKey: key,
+        messageParams: params,
         nodeIds: [n.id],
         edgeIds: [],
       });
@@ -260,8 +327,8 @@ export function validate_workflow(
 
   // ── 3. 死分支 ────────────────────────────────────────────
   for (const n of nodes) {
-    const t = nodeTypeOf(n);
-    if (!CONTAINER_NODE_TYPES.has(t)) { continue; }
+    const tType = nodeTypeOf(n);
+    if (!CONTAINER_NODE_TYPES.has(tType)) { continue; }
     if ((indegree.get(n.id) || 0) > 0 || (outdegree.get(n.id) || 0) > 0) { continue; }
 
     // decorative 容器跳过入度/出度检查（仅供视觉分组，调度引擎忽略）
@@ -273,19 +340,27 @@ export function validate_workflow(
     const hasChildren = nodes.some((x) => x.parentId === n.id);
     if (hasChildren) {
       // 调度容器 → error
+      const key = "workflow.layout.validate.dead_branch_scheduled";
+      const params = { nodeId: n.id, type: tType };
       issues.push({
         rule: "dead_branch",
         severity: "error",
-        message: `容器节点 "${n.id}"（${t}）是死分支 — 有子节点但无输入/输出连接`,
+        message: t(key, params),
+        messageKey: key,
+        messageParams: params,
         nodeIds: [n.id],
         edgeIds: [],
       });
     } else {
       // 装饰容器 → warning
+      const key = "workflow.layout.validate.dead_branch_decorative";
+      const params = { nodeId: n.id };
       issues.push({
         rule: "dead_branch",
         severity: "warning",
-        message: `容器节点 "${n.id}"（装饰容器）无子节点且无连接`,
+        message: t(key, params),
+        messageKey: key,
+        messageParams: params,
         nodeIds: [n.id],
         edgeIds: [],
       });
@@ -303,10 +378,14 @@ export function validate_workflow(
     if (!hasTrue) { missing.push("true"); }
     if (!hasFalse) { missing.push("false"); }
     if (missing.length > 0) {
+      const key = "workflow.layout.validate.unconnected_port";
+      const params = { nodeId: n.id, missing: missing.join("/") };
       issues.push({
         rule: "unconnected_port",
         severity: "warning",
-        message: `条件节点 "${n.id}" 的 ${missing.join("/")} 出口未连接`,
+        message: t(key, params),
+        messageKey: key,
+        messageParams: params,
         nodeIds: [n.id],
         edgeIds: [],
       });
@@ -329,10 +408,14 @@ export function validate_workflow(
       .filter((e) => sccSet.has(e.source) && sccSet.has(e.target) && e.id)
       .map((e) => e.id!);
 
+    const key = "workflow.layout.validate.cycle_no_exit";
+    const params = { nodes: scc.join(", ") };
     issues.push({
       rule: "cycle_no_exit",
       severity: "error",
-      message: `节点 [${scc.join(", ")}] 形成环路但缺少断路条件（loopBack）`,
+      message: t(key, params),
+      messageKey: key,
+      messageParams: params,
       nodeIds: scc,
       edgeIds: sccEdgeIds,
     });
@@ -341,10 +424,14 @@ export function validate_workflow(
   // ── 6. 自环边 ────────────────────────────────────────────
   for (const e of realEdges) {
     if (e.source === e.target) {
+      const key = "workflow.layout.validate.self_loop";
+      const params = { edgeId: e.id || "" };
       issues.push({
         rule: "self_loop",
         severity: "error",
-        message: `边 ${e.id || ""} 是自环边（source === target）`,
+        message: t(key, params),
+        messageKey: key,
+        messageParams: params,
         nodeIds: [e.source],
         edgeIds: e.id ? [e.id] : [],
       });
@@ -355,21 +442,25 @@ export function validate_workflow(
   // 同一 type 的节点存在完全相同的 title → warning
   const titleGroups = new Map<string, Set<string>>(); // title+type → Set<nodeId>
   for (const n of nodes) {
-    const t = nodeTypeOf(n);
-    if (!t) { continue; }
+    const tType = nodeTypeOf(n);
+    if (!tType) { continue; }
     const title = titleOf(n);
     if (!title) { continue; }
-    const key = t + "::" + title;
+    const key = tType + "::" + title;
     if (!titleGroups.has(key)) { titleGroups.set(key, new Set()); }
     titleGroups.get(key)!.add(n.id);
   }
   for (const [key, nodeIds] of titleGroups) {
     if (nodeIds.size < 2) { continue; }
     const [dupType, dupTitle] = key.split("::");
+    const i18nKey = "workflow.layout.validate.duplicate_title";
+    const params = { count: nodeIds.size, type: dupType, title: dupTitle };
     issues.push({
       rule: "duplicate_title",
       severity: "warning",
-      message: `${nodeIds.size} 个 ${dupType} 节点使用了相同标题 "${dupTitle}"`,
+      message: t(i18nKey, params),
+      messageKey: i18nKey,
+      messageParams: params,
       nodeIds: [...nodeIds],
       edgeIds: [],
     });
@@ -377,16 +468,20 @@ export function validate_workflow(
 
   // ── 8. WorkflowRef 校验 ─────────────────────────────────────
   for (const n of nodes) {
-    const t = nodeTypeOf(n);
-    if (t !== "workflowRef") { continue; }
+    const tType = nodeTypeOf(n);
+    if (tType !== "workflowRef") { continue; }
 
     // 8a. 空引用
     const refId = extractConfig(n, "target_workflow_id");
     if (!refId) {
+      const key = "workflow.layout.validate.workflow_ref_empty";
+      const params = { nodeId: n.id };
       issues.push({
         rule: "workflow_ref_empty",
         severity: "error",
-        message: `WorkflowRef 节点 "${n.id}" 未指定目标工作流`,
+        message: t(key, params),
+        messageKey: key,
+        messageParams: params,
         nodeIds: [n.id],
         edgeIds: [],
       });
@@ -396,10 +491,14 @@ export function validate_workflow(
     // 8b. 自引用（A→A）
     const currentWfId = (n as any).data?.templateId || "";
     if (currentWfId && refId === currentWfId) {
+      const key = "workflow.layout.validate.workflow_ref_self";
+      const params = { nodeId: n.id };
       issues.push({
         rule: "workflow_ref_self",
         severity: "error",
-        message: `WorkflowRef 节点 "${n.id}" 引用了自身`,
+        message: t(key, params),
+        messageKey: key,
+        messageParams: params,
         nodeIds: [n.id],
         edgeIds: [],
       });
@@ -421,11 +520,14 @@ export function validate_workflow(
     for (const or of otherRefs) {
       const orId = extractConfig(or, "target_workflow_id");
       if (chainCheck.has(orId!)) {
+        const key = "workflow.layout.validate.workflow_ref_depth";
+        const params = { maxDepth, refId };
         issues.push({
           rule: "workflow_ref_depth",
           severity: "warning",
-          message: `WorkflowRef 引用链可能超过 ${maxDepth} 层限制，
-多个 WorkflowRef 指向相同的 "${refId}"，可能存在循环引用`,
+          message: t(key, params),
+          messageKey: key,
+          messageParams: params,
           nodeIds: [rn.id, or.id],
           edgeIds: [],
         });

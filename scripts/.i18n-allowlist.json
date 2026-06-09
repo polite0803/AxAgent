@@ -1,8 +1,8 @@
 {
   "version": "1",
   "generated": "2026-06-08",
-  "total_entries": 178,
-  "total_files": 134,
+  "total_entries": 177,
+  "total_files": 133,
   "entries": [
     {
       "file": "src/App.tsx",
@@ -1068,12 +1068,6 @@
       "file": "src/stores/__tests__/workflowEditorStore.test.ts",
       "lines": "543,549",
       "reason": "测试 mock 数据标签",
-      "phase": 3
-    },
-    {
-      "file": "src/lib/workflowLayout.ts",
-      "lines": "140,141,142,143,144,145,146,147,148,149,150,151,152,153,154,155,156,157,158,159,160,161,162,163,166,167,168,169,170,171,172,173,174,175,176,177,178,179,180,181,182,183,238,252,277,286,307,333,345,370,387,400,425,426",
-      "reason": "工作流校验库函数 suggest_title 的动词/名词映射表 + validate_workflow 错误消息常量，测试用例与 UI 消费方共享同一字符串",
       "phase": 3
     },
     {

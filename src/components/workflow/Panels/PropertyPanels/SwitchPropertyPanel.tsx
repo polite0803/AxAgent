@@ -36,9 +36,9 @@ export const SwitchPropertyPanel: React.FC<Props> = ({ node, onUpdate, onDelete 
 
   const handleAISuggestCases = async () => {
     const result = await aiGenerate({
-      systemPrompt:
-        '你是一个工作流分支设计专家。根据用户的描述，输出 switch 节点的 cases 数组，每项为 {"value": "string", "label": "string"}。'
-        + "只输出 JSON 数组字符串，不要任何解释或 Markdown 标记。",
+      systemPrompt: t("workflow.aiAssist.switch.systemPrompt", {
+        schema: '{"value": "string", "label": "string"}',
+      }),
       userPrompt: t("workflow.aiAssist.switch.casesHint", {
         current: config.cases.length,
         input: config.input_var,

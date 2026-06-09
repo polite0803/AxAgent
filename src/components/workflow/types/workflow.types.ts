@@ -836,30 +836,37 @@ export const NODE_CATEGORIES = [
  *
  * 编辑器根据此分类从主题 token 读取颜色，支持深色/浅色模式自动适配。
  * 禁止在工作流设计层面随意指定节点颜色。
+ *
+ * Kind 命名遵循下表（与 `NodeKindLabel` 一一对应）：
+ *
+ * - `input`     → 输入/触发类（黄）
+ * - `output`    → 输出/结束类（红）
+ * - `tool`      → 工具/执行类（绿）
+ * - `agent`     → Agent/LLM 推理类（蓝）
+ * - `condition` → 条件分支/路由（橙）
+ * - `loop`      → 循环控制（紫）
+ * - `container` → 容器/并行/辩论（青）
+ * - `storage`   → 存储/检索（粉）
  */
-export type NodeKind =
-  | "input" // 输入/触发类（黄）
-  | "output" // 输出/结束类（红）
-  | "tool" // 工具/执行类（绿）
-  | "agent" // Agent/LLM 推理类（蓝）
-  | "condition" // 条件分支/路由（橙）
-  | "loop" // 循环控制（紫）
-  | "container" // 容器/并行/辩论（青）
-  | "storage"; // 存储/检索（粉）
+export type NodeKind = "input" | "output" | "tool" | "agent" | "condition" | "loop" | "container" | "storage";
 
 /**
- * 语义分类 → 中文标签映射。
+ * Kind → i18n key 映射表。消费方用 `useTranslation().t(getNodeKindLabelKey(kind))`
+ * 解析为本地化字符串。
  */
-export const NODE_KIND_LABELS: Record<NodeKind, string> = {
-  input: "输入",
-  output: "输出",
-  tool: "工具",
-  agent: "AI 推理",
-  condition: "条件路由",
-  loop: "循环",
-  container: "容器",
-  storage: "存储",
+export const NODE_KIND_LABEL_KEYS: Record<NodeKind, string> = {
+  input: "workflow.nodeKind.input",
+  output: "workflow.nodeKind.output",
+  tool: "workflow.nodeKind.tool",
+  agent: "workflow.nodeKind.agent",
+  condition: "workflow.nodeKind.condition",
+  loop: "workflow.nodeKind.loop",
+  container: "workflow.nodeKind.container",
+  storage: "workflow.nodeKind.storage",
 };
+
+/** 兼容性别名：旧的 `NODE_KIND_LABELS` 已被替换为 i18n 键映射，请使用 `NODE_KIND_LABEL_KEYS`。 */
+export const NODE_KIND_LABELS = NODE_KIND_LABEL_KEYS;
 
 /**
  * 每个节点类型所属的语义分类。

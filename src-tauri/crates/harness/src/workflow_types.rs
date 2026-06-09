@@ -546,15 +546,15 @@ pub struct LoopNodeConfig {
 impl LoopNodeConfig {
     /// 返回数组输入端口名（`iter_input_var` → `items_var` → 推测自 `iteratee_var`）。
     pub fn effective_input_var(&self) -> Option<&str> {
-        if let Some(ref v) = self.iter_input_var {
-            if !v.is_empty() {
-                return Some(v.as_str());
-            }
+        if let Some(ref v) = self.iter_input_var
+            && !v.is_empty()
+        {
+            return Some(v.as_str());
         }
-        if let Some(ref v) = self.items_var {
-            if !v.is_empty() {
-                return Some(v.as_str());
-            }
+        if let Some(ref v) = self.items_var
+            && !v.is_empty()
+        {
+            return Some(v.as_str());
         }
         self.iteratee_var.as_deref()
     }
@@ -1220,6 +1220,7 @@ fn default_swarm_rounds() -> u32 {
     3
 }
 
+#[allow(dead_code)] // 预留供 SwarmNodeConfig 后续使用（participants_count 等字段可复用此默认值）
 fn default_swarm_size() -> u32 {
     3
 }

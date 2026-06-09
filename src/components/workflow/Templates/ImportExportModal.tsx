@@ -395,7 +395,7 @@ export const ImportExportModal: React.FC<ImportExportModalProps> = ({
         const importNodes = parsed.nodes || parsed.workflow?.nodes || [];
         const importEdges = parsed.edges || parsed.workflow?.edges || [];
         if (importNodes.length > 0) {
-          const feResult = validate_workflow(importNodes, importEdges);
+          const feResult = validate_workflow(importNodes, importEdges, t);
           const feErrors = feResult.issues.filter((i) => i.severity === "error");
           const feWarnings = feResult.issues.filter((i) => i.severity === "warning");
           if (feErrors.length > 0) {
