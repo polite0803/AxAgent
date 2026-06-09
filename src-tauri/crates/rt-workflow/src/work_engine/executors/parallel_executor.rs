@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use axagent_core::workflow_types::{MergeStrategy, WorkflowNode};
+use axagent_core::workflow_types::{DegradeStrategy, MergeStrategy, WorkflowNode};
 
 use crate::work_engine::execution_state::ExecutionState;
 use crate::work_engine::node_executor_trait::{
@@ -22,6 +22,9 @@ impl Default for ParallelExecutor {
 
 /// 把 auto_input_from_parent + wait_for_all 翻译为 engine 调度时需要的信息，
 /// 并把当前 context 的 variables 拷贝成可被下游分支读取的"父输入"。
+///
+/// 同时输出每个分支的超时和降级策略，供 engine 的 spawner 在分支子节点超时时
+/// 根据 degrade_strategy 做降级处理。
 #[async_trait]
 impl NodeExecutorTrait for ParallelExecutor {
     fn node_type(&self) -> &'static str {
@@ -47,6 +50,7 @@ impl NodeExecutorTrait for ParallelExecutor {
         // 收集每个 branch 的入口数据：auto_input_from_parent=true 时继承 context.variables
         // 快照，否则要求显式 input_var。
         let mut branch_inputs = serde_json::Map::new();
+        let mut branch_configs = serde_json::Map::new();
         for branch in &c.branches {
             let value = if c.auto_input_from_parent {
                 serde_json::to_value(&context.variables).unwrap_or(serde_json::json!({}))
@@ -54,6 +58,15 @@ impl NodeExecutorTrait for ParallelExecutor {
                 serde_json::json!({})
             };
             branch_inputs.insert(branch.id.clone(), value);
+
+            // 输出分支级别的超时和降级配置
+            branch_configs.insert(
+                branch.id.clone(),
+                serde_json::json!({
+                    "timeout_ms": branch.branch_timeout_ms,
+                    "degrade_strategy": branch.degrade_strategy,
+                }),
+            );
         }
 
         let aggregation = c.aggregation.clone().unwrap_or_default();
@@ -72,6 +85,7 @@ impl NodeExecutorTrait for ParallelExecutor {
                 "aggregation": merge_label,
                 "auto_input_from_parent": c.auto_input_from_parent,
                 "branch_inputs": branch_inputs,
+                "branch_configs": branch_configs,
                 "node_id": node.base_id(),
             }),
             output_var: None,

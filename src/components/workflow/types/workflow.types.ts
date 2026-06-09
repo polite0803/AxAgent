@@ -166,13 +166,33 @@ export interface ConditionNode extends WorkflowNodeBase {
   config: ConditionNodeConfig;
 }
 
+/** 超时降级策略 */
+export type DegradeStrategy = "skip" | "useDefault" | "strict";
+
+/** 超时降级策略的中文/可读标签 */
+export const DEGRADE_LABELS: Record<DegradeStrategy, string> = {
+  skip: "Skip",
+  useDefault: "Use Default",
+  strict: "Strict",
+};
+
 export interface Branch {
   id: string;
   title: string;
   steps: string[];
+  /** 分支级别超时（毫秒）。留空则继承节点级别或全局超时。 */
+  branchTimeoutMs?: number;
+  /** 超时后的降级策略。默认 "skip"。 */
+  degradeStrategy?: DegradeStrategy;
 }
 
 export type MergeStrategy = "all" | "any" | "race" | "majority";
+
+/** 子图定义：嵌入在容器节点中的独立工作流 */
+export interface SubGraph {
+  nodes: WorkflowNode[];
+  edges: WorkflowEdge[];
+}
 
 export interface ParallelNodeConfig {
   branches: Branch[];
@@ -189,6 +209,8 @@ export interface ParallelNodeConfig {
    *   成员通过 `parentId` 引用，实际依赖通过显式的 `edge` 表达。
    */
   kind?: "decorative" | "executable";
+  /** 子图定义（可选）。编辑器渲染为可展开/折叠容器框体，内部渲染子节点网格。 */
+  subGraph?: SubGraph;
 }
 
 export interface ParallelNode extends WorkflowNodeBase {
@@ -206,6 +228,8 @@ export interface LoopNodeConfig {
   continue_condition?: string;
   continue_on_error: boolean;
   body_steps: string[];
+  /** 子图定义（可选）。编辑器渲染为可展开/折叠容器框体，内部渲染子节点网格。 */
+  subGraph?: SubGraph;
 }
 
 export interface LoopNode extends WorkflowNodeBase {
@@ -264,6 +288,8 @@ export interface SubWorkflowNodeConfig {
   input_mapping: Record<string, string>;
   output_var: string;
   is_async: boolean;
+  /** 子图定义（可选）。与 expandedSubWorkflows 配合，编辑器可在容器内部渲染子工作流节点。 */
+  subGraph?: SubGraph;
 }
 
 export interface SubWorkflowNode extends WorkflowNodeBase {
@@ -359,6 +385,9 @@ export interface HttpRequestNode extends WorkflowNodeBase {
   config: HttpRequestNodeConfig;
 }
 
+/** Switch 匹配模式 */
+export type SwitchMatchMode = "exact" | "regex" | "contains" | "expression";
+
 export interface SwitchCase {
   value: string;
   label: string;
@@ -368,7 +397,13 @@ export interface SwitchNodeConfig {
   input_var: string;
   cases: SwitchCase[];
   default_case?: string;
-  match_mode: string;
+  match_mode: SwitchMatchMode;
+  /** 使用 LLM 进行智能路由（替代 match_mode 的值匹配） */
+  use_llm?: boolean;
+  /** LLM 路由的自定义提示词 */
+  llm_prompt?: string;
+  /** 路由使用的模型 */
+  llm_model?: string;
   output_var: string;
 }
 
@@ -459,6 +494,26 @@ export interface LoggingNode extends WorkflowNodeBase {
   config: LoggingNodeConfig;
 }
 
+/** 存储持久化节点配置 */
+export interface StorageNodeConfig {
+  /** 存储后端："sqlite" | "vectorDb" | "fileSystem" */
+  backend: string;
+  /** 操作模式："insert" | "upsert" | "append" */
+  operation: string;
+  /** 要存储的数据的变量路径 */
+  input_var: string;
+  /** 存储目标（SQLite 表名 / VectorDB collection / 文件路径） */
+  collection: string;
+  /** upsert 时用于匹配已有记录的 key 变量路径 */
+  key_var?: string;
+  output_var: string;
+}
+
+export interface StorageNode extends WorkflowNodeBase {
+  type: "storage";
+  config: StorageNodeConfig;
+}
+
 export interface LlmClassifierNodeConfig {
   categories: string[];
   prompt: string;
@@ -474,7 +529,17 @@ export interface LlmClassifierNode extends WorkflowNodeBase {
 export interface AggregatorNodeConfig {
   strategy: string;
   input_sources: string[];
+  /** 等待策略：true=等待所有输入就绪再聚合；false=有输入即聚合 */
+  wait_for_all?: boolean;
+  /** 加权策略的权重系数（与 input_sources 一一对应） */
+  weights?: number[];
+  /** llm_summarize 策略的自定义提示词 */
+  summarize_prompt?: string;
+  /** llm_summarize 策略的模型 */
+  summarize_model?: string;
   output_var: string;
+  /** 子图定义（可选）。编辑器渲染为可展开/折叠容器框体，内部渲染子节点网格。 */
+  subGraph?: SubGraph;
 }
 export interface AggregatorNode extends WorkflowNodeBase {
   type: "aggregator";
@@ -504,11 +569,36 @@ export interface DebateNodeConfig {
   convergence_model_role?: string;
   topic_var: string;
   output_var: string;
+  /** 子图定义（可选）。编辑器渲染为可展开/折叠容器框体，内部渲染子节点网格。 */
+  subGraph?: SubGraph;
 }
 
 export interface DebateNode extends WorkflowNodeBase {
   type: "debate";
   config: DebateNodeConfig;
+}
+
+/** Swarm 节点配置：多 Agent 协作模式 */
+export interface SwarmNodeConfig {
+  /** 参与者节点 ID 列表 */
+  agent_steps: string[];
+  /** 最大协作轮数 */
+  max_rounds: number;
+  /** 收敛判断提示文本 */
+  convergence_prompt?: string;
+  /** 收敛判断模型 */
+  convergence_model?: string;
+  /** 讨论主题变量 */
+  topic_var: string;
+  /** 输出变量名 */
+  output_var: string;
+  /** 子图定义（可选） */
+  subGraph?: SubGraph;
+}
+
+export interface SwarmNode extends WorkflowNodeBase {
+  type: "swarm";
+  config: SwarmNodeConfig;
 }
 
 export type WorkflowNode =
@@ -540,7 +630,9 @@ export type WorkflowNode =
   | LlmClassifierNode
   | AggregatorNode
   | EmailNode
-  | DebateNode;
+  | DebateNode
+  | SwarmNode
+  | StorageNode;
 
 export type EdgeType =
   | "direct"
@@ -739,154 +831,290 @@ export const NODE_CATEGORIES = [
   },
 ] as const;
 
+/**
+ * 节点语义分类 — 由引擎层定义，确定节点的固定颜色。
+ *
+ * 编辑器根据此分类从主题 token 读取颜色，支持深色/浅色模式自动适配。
+ * 禁止在工作流设计层面随意指定节点颜色。
+ */
+export type NodeKind =
+  | "input" // 输入/触发类（黄）
+  | "output" // 输出/结束类（红）
+  | "tool" // 工具/执行类（绿）
+  | "agent" // Agent/LLM 推理类（蓝）
+  | "condition" // 条件分支/路由（橙）
+  | "loop" // 循环控制（紫）
+  | "container" // 容器/并行/辩论（青）
+  | "storage"; // 存储/检索（粉）
+
+/**
+ * 语义分类 → 中文标签映射。
+ */
+export const NODE_KIND_LABELS: Record<NodeKind, string> = {
+  input: "输入",
+  output: "输出",
+  tool: "工具",
+  agent: "AI 推理",
+  condition: "条件路由",
+  loop: "循环",
+  container: "容器",
+  storage: "存储",
+};
+
+/**
+ * 每个节点类型所属的语义分类。
+ * === 颜色规范（引擎定义，不可在设计层覆盖） ===
+ * Input=黄  Output=红  Tool=绿  Agent=蓝
+ * Condition=橙  Loop=紫  Container=青  Storage=粉
+ */
+export const NODE_KIND_MAP: Record<string, NodeKind> = {
+  // Input（触发/输入）
+  trigger: "input",
+  // Output（输出/结束/通知）
+  end: "output",
+  notification: "output",
+  approval: "output",
+  email: "output",
+  webhookSend: "output",
+  // Tool（工具/执行）
+  tool: "tool",
+  code: "tool",
+  delay: "tool",
+  validation: "tool",
+  documentParser: "tool",
+  httpRequest: "tool",
+  fileOperation: "tool",
+  dataTransformer: "tool",
+  logging: "tool",
+  // Agent（AI 推理）
+  agent: "agent",
+  llm: "agent",
+  llmClassifier: "agent",
+  // Condition（条件路由）
+  condition: "condition",
+  switch: "condition",
+  // Loop（循环）
+  loop: "loop",
+  // Container（容器/并行/辩论/聚合）
+  parallel: "container",
+  debate: "container",
+  swarm: "container",
+  subWorkflow: "container",
+  workflowRef: "container",
+  aggregator: "container",
+  merge: "container",
+  // Storage（存储/检索）
+  vectorRetrieve: "storage",
+  storage: "storage",
+  databaseQuery: "storage",
+};
+
 export const NODE_TYPE_MAP: Record<
   string,
-  { labelKey: string; category: string; color: string }
+  { labelKey: string; category: string; color: string; isContainer?: boolean; kind?: NodeKind }
 > = {
   trigger: {
     labelKey: "workflow.nodeTypes.trigger",
     category: "trigger",
     color: "#722ed1",
+    kind: "input",
   },
   agent: {
     labelKey: "workflow.nodeTypes.agent",
     category: "agent",
     color: "#1890ff",
+    kind: "agent",
   },
   llm: {
     labelKey: "workflow.nodeTypes.llm",
     category: "llm",
     color: "#13c2c2",
+    kind: "agent",
   },
   condition: {
     labelKey: "workflow.nodeTypes.condition",
     category: "flow",
     color: "#fa8c16",
+    kind: "condition",
   },
   parallel: {
     labelKey: "workflow.nodeTypes.parallel",
     category: "flow",
     color: "#fa8c16",
+    isContainer: true,
+    kind: "container",
   },
   loop: {
     labelKey: "workflow.nodeTypes.loop",
     category: "flow",
     color: "#fa8c16",
+    isContainer: true,
+    kind: "loop",
   },
   validation: {
     labelKey: "workflow.nodeTypes.validation",
     category: "flow",
     color: "#722ed1",
+    kind: "tool",
   },
   merge: {
     labelKey: "workflow.nodeTypes.merge",
     category: "flow",
     color: "#fa8c16",
+    kind: "container",
   },
   delay: {
     labelKey: "workflow.nodeTypes.delay",
     category: "flow",
     color: "#fa8c16",
+    kind: "tool",
   },
   subWorkflow: {
     labelKey: "workflow.nodeTypes.subWorkflow",
     category: "integration",
     color: "#eb2f96",
+    isContainer: true,
+    kind: "container",
   },
   workflowRef: {
     labelKey: "workflow.nodeTypes.workflowRef",
     category: "integration",
     color: "#eb2f96",
+    kind: "container",
   },
   documentParser: {
     labelKey: "workflow.nodeTypes.documentParser",
     category: "integration",
     color: "#eb2f96",
+    kind: "tool",
   },
   vectorRetrieve: {
     labelKey: "workflow.nodeTypes.vectorRetrieve",
     category: "integration",
     color: "#eb2f96",
+    kind: "storage",
   },
   httpRequest: {
     labelKey: "workflow.nodeTypes.httpRequest",
     category: "integration",
     color: "#eb2f96",
+    kind: "tool",
   },
   debate: {
     labelKey: "workflow.nodeTypes.debate",
     category: "flow",
     color: "#1890ff",
+    isContainer: true,
+    kind: "container",
+  },
+  swarm: {
+    labelKey: "workflow.nodeTypes.swarm",
+    category: "flow",
+    color: "#eb2f96",
+    isContainer: true,
+    kind: "container",
   },
   end: {
     labelKey: "workflow.nodeTypes.end",
     category: "flow",
     color: "#fa8c16",
+    kind: "output",
   },
   tool: {
     labelKey: "workflow.nodeTypes.tool",
     category: "execution",
     color: "#52c41a",
+    kind: "tool",
   },
   code: {
     labelKey: "workflow.nodeTypes.code",
     category: "execution",
     color: "#52c41a",
+    kind: "tool",
   },
   switch: {
     labelKey: "workflow.nodeTypes.switch",
     category: "flow",
     color: "#fa8c16",
+    kind: "condition",
   },
   databaseQuery: {
     labelKey: "workflow.nodeTypes.databaseQuery",
     category: "integration",
     color: "#eb2f96",
+    kind: "storage",
   },
   notification: {
     labelKey: "workflow.nodeTypes.notification",
     category: "integration",
     color: "#eb2f96",
+    kind: "output",
   },
   approval: {
     labelKey: "workflow.nodeTypes.approval",
     category: "flow",
     color: "#722ed1",
+    kind: "output",
   },
   fileOperation: {
     labelKey: "workflow.nodeTypes.fileOperation",
     category: "execution",
     color: "#52c41a",
+    kind: "tool",
   },
   dataTransformer: {
     labelKey: "workflow.nodeTypes.dataTransformer",
     category: "execution",
     color: "#52c41a",
+    kind: "tool",
   },
   webhookSend: {
     labelKey: "workflow.nodeTypes.webhookSend",
     category: "integration",
     color: "#eb2f96",
+    kind: "output",
   },
   logging: {
     labelKey: "workflow.nodeTypes.logging",
     category: "flow",
     color: "#fa8c16",
+    kind: "tool",
   },
   llmClassifier: {
     labelKey: "workflow.nodeTypes.llmClassifier",
     category: "llm",
     color: "#13c2c2",
+    kind: "agent",
   },
   aggregator: {
     labelKey: "workflow.nodeTypes.aggregator",
     category: "execution",
     color: "#52c41a",
+    isContainer: true,
+    kind: "container",
   },
   email: {
     labelKey: "workflow.nodeTypes.email",
     category: "integration",
     color: "#eb2f96",
+    kind: "output",
+  },
+  /** 阶段分隔线（不参与执行逻辑） */
+  _phaseSeparator: {
+    labelKey: "workflow.nodeTypes.phaseSeparator",
+    category: "flow",
+    color: "#888888",
+  },
+  storage: {
+    labelKey: "workflow.nodeTypes.storage",
+    category: "integration",
+    color: "#eb2f96",
+    kind: "storage",
+  },
+  groupFrame: {
+    labelKey: "workflow.nodeTypes.groupFrame",
+    category: "flow",
+    color: "#888888",
   },
 };
 

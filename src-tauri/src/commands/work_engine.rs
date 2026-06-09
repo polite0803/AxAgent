@@ -401,3 +401,48 @@ pub async fn step_workflow_breakpoint(
     state.work_engine.step_breakpoint(&execution_id).await;
     Ok(true)
 }
+
+// ── Loop 节点人工审查 resume ──────────────────────────────────────────
+
+/// 前端在人工审查（审批、修订 iteratee）后调用此 command 唤醒被挂起的 Loop 节点。
+///
+/// - `approved = true`  → 继续迭代，LoopExecutor 从 checkpoint.cursor 继续
+/// - `approved = false` → 取消整个 execution（复用 `cancel_workflow_execution` 路径）
+/// - `modified_iteratee` + `iteratee_var` → 可选地把当前迭代的 iteratee 改写成
+///   新值，body 节点在 resume 后看到的就是修改后的版本
+#[tauri::command]
+pub async fn resume_loop_iteration(
+    state: State<'_, AppState>,
+    execution_id: String,
+    node_id: String,
+    decision: serde_json::Value,
+) -> Result<bool, String> {
+    use axagent_runtime::work_engine::LoopResumeDecision;
+    let decision: LoopResumeDecision =
+        serde_json::from_value(decision).map_err(|e| format!("decision 解析失败: {e}"))?;
+    state
+        .work_engine
+        .resume_loop_iteration(&execution_id, &node_id, decision)
+        .await
+        .map_err(|e| e.to_string())?;
+    Ok(true)
+}
+
+/// 前端订阅某次执行的 partial_result 流式事件（每次 Loop 迭代完成一条）。
+/// 返回 broadcast::Receiver 的订阅句柄；调用方用 `invoke` 拿到的是
+/// `(Vec<PartialResultEvent>, ReceiverId)` 形式的事件流。
+#[tauri::command]
+pub async fn load_loop_checkpoint(
+    state: State<'_, AppState>,
+    execution_id: String,
+    node_id: String,
+) -> Result<Option<serde_json::Value>, String> {
+    let cp = state
+        .work_engine
+        .load_loop_checkpoint(&execution_id, &node_id)
+        .await
+        .map_err(|e| e.to_string())?;
+    cp.map(serde_json::to_value)
+        .transpose()
+        .map_err(|e| e.to_string())
+}

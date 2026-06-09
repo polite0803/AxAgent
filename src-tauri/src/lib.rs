@@ -745,6 +745,9 @@ pub fn run() {
             commands::work_engine::set_workflow_breakpoints,
             commands::work_engine::resume_workflow_breakpoint,
             commands::work_engine::step_workflow_breakpoint,
+            // Loop 节点人工审查
+            commands::work_engine::resume_loop_iteration,
+            commands::work_engine::load_loop_checkpoint,
             // User Profile & Style Migration commands
             commands::user_profile::get_user_profile,
             commands::user_profile::update_user_profile,

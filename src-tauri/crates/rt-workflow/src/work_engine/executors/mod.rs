@@ -20,6 +20,7 @@ mod loop_executor;
 mod merge_executor;
 pub mod notification_executor;
 mod parallel_executor;
+pub mod storage_executor;
 mod subworkflow_executor;
 pub mod switch_executor;
 mod tool_executor;
@@ -37,6 +38,7 @@ pub use http_request_executor::HttpRequestExecutor;
 pub use llm_classifier_executor::LlmClassifierExecutor;
 pub use logging_executor::LoggingExecutor;
 pub use notification_executor::NotificationExecutor;
+pub use storage_executor::StorageExecutor;
 pub use switch_executor::SwitchExecutor;
 pub use webhook_send_executor::WebhookSendExecutor;
 

@@ -13,7 +13,8 @@ use tokio::sync::Mutex;
 use tokio_util::sync::CancellationToken;
 
 use axagent_core::workflow_types::{
-    BackoffType, CompensationStrategy, EdgeType, JsonSchema, Variable, WorkflowEdge, WorkflowNode,
+    BackoffType, CompensationStrategy, DegradeStrategy, EdgeType, JsonSchema, Variable,
+    WorkflowEdge, WorkflowNode,
 };
 
 use axagent_harness::RhaiEngineAdapter;
@@ -330,6 +331,21 @@ pub struct WorkEngine {
     pub audit_recorder: Arc<std::sync::Mutex<Option<Arc<dyn axagent_harness::AuditRecorder>>>>,
     /// 工具注册表（可选，设置后 tool_executor 优先通过 ToolRegistry.execute_tool() 执行工具）
     tool_registry: Arc<std::sync::Mutex<Option<Arc<dyn axagent_harness::ToolRegistry>>>>,
+    /// per-execution partial_result 广播器。LoopExecutor 通过 ExecutionState.partial_result_tx
+    /// 拿到 sender，每次迭代完成时 broadcast 一个 PartialResultEvent。
+    /// 外部通过 `subscribe_partial_results(execution_id)` 拿到 Receiver 实时观察进度。
+    loop_partial_txs: Arc<
+        Mutex<
+            HashMap<
+                String,
+                tokio::sync::broadcast::Sender<super::execution_state::PartialResultEvent>,
+            >,
+        >,
+    >,
+    /// per-execution Loop interrupt 信号。LoopExecutor 检测到 interrupt 时进入
+    /// `interrupt_signal.notified().await`，调用方通过 `resume_loop_iteration`
+    /// 触发 `notify_waiters()` 唤醒。
+    loop_interrupt_signals: Arc<Mutex<HashMap<String, std::sync::Arc<tokio::sync::Notify>>>>,
 }
 
 const _: fn() = || {
@@ -644,6 +660,8 @@ impl WorkEngine {
             agent_executor: agent_exec,
             audit_recorder: Arc::new(std::sync::Mutex::new(None)),
             tool_registry: Arc::new(std::sync::Mutex::new(None)),
+            loop_partial_txs: Arc::new(Mutex::new(HashMap::new())),
+            loop_interrupt_signals: Arc::new(Mutex::new(HashMap::new())),
         }
     }
 
@@ -1431,6 +1449,26 @@ impl WorkEngine {
         let mut breakers: HashMap<String, NodeCircuitBreaker> =
             { self.node_breakers.lock().await.clone() };
 
+        // ── 构建分支降级策略映射 ──
+        // 从 Parallel 节点的 branch 配置中提取每个子节点的 degrade_strategy，
+        // 用于超时处理时判断是 skip / useDefault / strict。
+        let degrade_map: HashMap<String, DegradeStrategy> = {
+            let workflows = self.workflows.read().await;
+            let mut map = HashMap::new();
+            if let Some(wf) = workflows.get(workflow_id) {
+                for node in &wf.nodes {
+                    if let WorkflowNode::Parallel(pn) = node {
+                        for branch in &pn.config.branches {
+                            for step_id in &branch.steps {
+                                map.insert(step_id.clone(), branch.degrade_strategy.clone());
+                            }
+                        }
+                    }
+                }
+            }
+            map
+        };
+
         loop {
             if cancel_token.is_cancelled() {
                 self.finalize_cancelled_workflow(workflow_id).await;
@@ -1746,7 +1784,23 @@ impl WorkEngine {
                         tool_handlers,
                         tool_fallback,
                         subworkflow: Some(sub_cb),
+                        loop_body_dispatch: Some(build_loop_body_dispatch(self.clone())),
+                        loop_checkpoint: Some(build_loop_checkpoint_ops(self.db.clone())),
                     });
+                }
+
+                // 注入 partial_result_tx / interrupt_signal（per-execution 共享）
+                {
+                    let ptxs = self.loop_partial_txs.lock().await;
+                    if let Some(tx) = ptxs.get(&execution_id) {
+                        exec_ctx.partial_result_tx = Some(tx.clone());
+                    }
+                }
+                {
+                    let sigs = self.loop_interrupt_signals.lock().await;
+                    if let Some(sig) = sigs.get(&execution_id) {
+                        exec_ctx.interrupt_signal = Some(sig.clone());
+                    }
                 }
 
                 let dispatcher = self.dispatcher.clone();
@@ -2033,16 +2087,57 @@ impl WorkEngine {
                             .await
                             .ok();
                         } else {
-                            self.update_node_status(
-                                workflow_id,
-                                &nr.node_id,
-                                NodeStatus::Failed,
-                                None,
-                                Some(err_msg.clone()),
-                                None,
-                            )
-                            .await
-                            .ok();
+                            // 降级策略检查：超时的节点如果是并行分支的子节点，按 degrade_strategy 处理
+                            let degrade = degrade_map.get(&nr.node_id);
+                            match degrade {
+                                Some(DegradeStrategy::Skip) => {
+                                    self.update_node_status(
+                                        workflow_id,
+                                        &nr.node_id,
+                                        NodeStatus::Skipped,
+                                        None,
+                                        Some(format!("{err_msg} (degraded: skip)")),
+                                        None,
+                                    )
+                                    .await
+                                    .ok();
+                                },
+                                Some(DegradeStrategy::UseDefault) => {
+                                    // UseDefault: 注入空默认值并标记为已完成
+                                    {
+                                        let mut workflows = self.workflows.write().await;
+                                        if let Some(wf) = workflows.get_mut(workflow_id) {
+                                            wf.results.insert(
+                                                nr.node_id.clone(),
+                                                serde_json::json!(null),
+                                            );
+                                        }
+                                    }
+                                    self.update_node_status(
+                                        workflow_id,
+                                        &nr.node_id,
+                                        NodeStatus::Completed,
+                                        None,
+                                        Some(format!("{err_msg} (degraded: useDefault)")),
+                                        None,
+                                    )
+                                    .await
+                                    .ok();
+                                },
+                                // Strict 或无降级配置：标记为 Failed（原行为）
+                                Some(DegradeStrategy::Strict) | None => {
+                                    self.update_node_status(
+                                        workflow_id,
+                                        &nr.node_id,
+                                        NodeStatus::Failed,
+                                        None,
+                                        Some(err_msg.clone()),
+                                        None,
+                                    )
+                                    .await
+                                    .ok();
+                                },
+                            }
                         }
 
                         self.record_node_execution(
@@ -2292,6 +2387,22 @@ impl WorkEngine {
         )
         .await
         .map_err(|e| WorkEngineError::Db(e.to_string()))?;
+        // 为本次执行预创建 partial_result 广播器（容量 256，足够 Loop
+        // 万级迭代的扇出，前端订阅者可拿到完整历史）。
+        let (partial_tx, _) = tokio::sync::broadcast::channel(256);
+        // interrupt 信号：每次执行唯一一份 Notify，LoopExecutor 等待此信号
+        // 来挂起，外部 API 调用 notify_waiters() 唤醒。
+        let interrupt_signal = std::sync::Arc::new(tokio::sync::Notify::new());
+        state.partial_result_tx = Some(partial_tx.clone());
+        state.interrupt_signal = Some(interrupt_signal.clone());
+        self.loop_partial_txs
+            .lock()
+            .await
+            .insert(execution_id.clone(), partial_tx);
+        self.loop_interrupt_signals
+            .lock()
+            .await
+            .insert(execution_id.clone(), interrupt_signal);
         self.executions
             .lock()
             .await
@@ -2342,6 +2453,26 @@ impl WorkEngine {
                     token.cancel();
                 }
             }
+            // 取消时清理 Loop 检查点（避免脏数据遗留）
+            if let Err(e) =
+                axagent_core::repo::loop_checkpoint::delete_loop_checkpoints_for_execution(
+                    &self.db,
+                    execution_id,
+                )
+                .await
+            {
+                tracing::warn!("[Loop] 取消时清理检查点失败: {e} (execution_id={execution_id})");
+            }
+            // 唤醒可能正在等待 interrupt 的 LoopExecutor
+            if let Some(sig) = self
+                .loop_interrupt_signals
+                .lock()
+                .await
+                .remove(execution_id)
+            {
+                sig.notify_waiters();
+            }
+            self.loop_partial_txs.lock().await.remove(execution_id);
             axagent_core::repo::workflow_execution::update_workflow_execution_status(
                 &self.db,
                 execution_id,
@@ -2356,6 +2487,85 @@ impl WorkEngine {
         } else {
             Err(WorkEngineError::NotFound(execution_id.to_string()))
         }
+    }
+
+    /// 订阅某次执行的 partial_result 流式事件。
+    /// 每次 LoopExecutor 完成一轮迭代都会 broadcast 一个 PartialResultEvent。
+    /// 注意：execution_id 对应的执行必须已 start_workflow，否则返回 None。
+    pub async fn subscribe_partial_results(
+        &self,
+        execution_id: &str,
+    ) -> Option<tokio::sync::broadcast::Receiver<super::execution_state::PartialResultEvent>> {
+        self.loop_partial_txs
+            .lock()
+            .await
+            .get(execution_id)
+            .map(|tx| tx.subscribe())
+    }
+
+    /// 恢复因 interrupt 挂起的 Loop 节点。
+    ///
+    /// - `decision.approved` = true：继续下一次迭代，Loop 不会重新跑已完成的轮次
+    ///   （从 checkpoint.cursor 继续）。
+    /// - `decision.approved` = false：取消整个 execution（复用 cancel 路径）。
+    /// - `decision.modified_iteratee`：可选地修改当前迭代的 iteratee 值
+    ///   （写入下一个 body_step 的输入 context）。
+    pub async fn resume_loop_iteration(
+        &self,
+        execution_id: &str,
+        node_id: &str,
+        decision: LoopResumeDecision,
+    ) -> Result<(), WorkEngineError> {
+        if !decision.approved {
+            // 拒绝：取消整个 execution
+            return self.cancel(execution_id).await;
+        }
+        let signal = {
+            let sigs = self.loop_interrupt_signals.lock().await;
+            sigs.get(execution_id).cloned()
+        };
+        let Some(sig) = signal else {
+            return Err(WorkEngineError::NotFound(format!("execution_id={execution_id}")));
+        };
+        // 写入可选的 iteratee 修改（如果 Loop 关心）
+        if let Some(ref new_item) = decision.modified_iteratee {
+            let mut executions = self.executions.lock().await;
+            if let Some(state) = executions.get_mut(execution_id) {
+                if let Some(ref iteratee_var) = decision.iteratee_var {
+                    state
+                        .variables
+                        .insert(iteratee_var.clone(), new_item.clone());
+                }
+            }
+        }
+        // 唤醒 LoopExecutor
+        sig.notify_waiters();
+        // 恢复执行状态
+        let mut executions = self.executions.lock().await;
+        if let Some(state) = executions.get_mut(execution_id) {
+            if state.status == ExecutionStatus::Paused {
+                state.status = ExecutionStatus::Running;
+                state.updated_at = Utc::now().timestamp_millis();
+            }
+        }
+        drop(executions);
+        // 同时通知 pause_signal（处理 engine 主循环里同样的 is_paused 路径）
+        let _ = node_id; // 当前实现下 node_id 仅用于日志/审计，行为靠 execution_id
+        let _ = self.resume(execution_id).await;
+        Ok(())
+    }
+
+    /// 查询某次执行当前的 Loop 检查点（用于前端高亮 pending approval 节点）。
+    pub async fn load_loop_checkpoint(
+        &self,
+        execution_id: &str,
+        node_id: &str,
+    ) -> Result<
+        Option<axagent_harness::workflow_types::LoopCheckpoint>,
+        axagent_harness::core_error::AxAgentError,
+    > {
+        axagent_core::repo::loop_checkpoint::load_loop_checkpoint(&self.db, execution_id, node_id)
+            .await
     }
 
     pub async fn get_status(&self, execution_id: &str) -> Result<ExecutionState, WorkEngineError> {
@@ -2636,6 +2846,87 @@ impl std::fmt::Display for WorkEngineError {
             Self::Db(e) => write!(f, "数据库错误: {e}"),
             Self::Execution(e) => write!(f, "执行错误: {e}"),
         }
+    }
+}
+
+/// Loop interrupt 恢复决策。
+///
+/// 由 `WorkEngine::resume_loop_iteration` 接收，传递给 LoopExecutor 决定下一步：
+/// - `approved = true` 继续迭代；`approved = false` 取消 execution。
+/// - `modified_iteratee` 可选地把当前迭代的 iteratee 变量改成新值（仅在 Loop
+///   节点被 interrupt 之后、人为修订了 item 的场景使用）。
+#[derive(Debug, Clone, Default, serde::Deserialize)]
+pub struct LoopResumeDecision {
+    pub approved: bool,
+    /// 可选：把 iteratee 变量重写为指定值。
+    pub modified_iteratee: Option<serde_json::Value>,
+    /// 可选：iteratee 在 context.variables 中的 key。若为 None 则不写入。
+    pub iteratee_var: Option<String>,
+}
+
+// ── Loop 内部驱动回调工厂 ──
+
+/// 构造 LoopExecutor 用的 `loop_body_dispatch` 回调。
+///
+/// 闭包捕获 `WorkEngine` 的克隆（WorkEngine 自身 #[derive(Clone)]，所有内部
+/// 状态都是 Arc<...>，clone 是廉价的），按 (body_step_node_id, ctx) 在
+/// dispatcher 中查找对应 WorkflowNode 并 dispatch。`ctx` 已经由 LoopExecutor
+/// 拷贝（包含 iteratee_var 注入、当前 iteration 的 variables 快照）。
+pub fn build_loop_body_dispatch(engine: WorkEngine) -> super::execution_state::LoopBodyDispatchFn {
+    Arc::new(move |step_id: String, ctx: super::execution_state::ExecutionState| {
+        let engine = engine.clone();
+        Box::pin(async move {
+            // 从 ctx.workflow_id 找到对应 workflow，从 nodes 里找出 step_id 对应节点。
+            let workflow_id = ctx.workflow_id.clone();
+            let workflows = engine.workflows.read().await;
+            let node = workflows
+                .get(&workflow_id)
+                .and_then(|wf| wf.nodes.iter().find(|n| n.base_id() == step_id).cloned());
+            drop(workflows);
+            let Some(node) = node else {
+                return Err(super::node_executor_trait::NodeError::exec_failed(
+                    super::node_executor_trait::error_code::NODE_NOT_FOUND,
+                    format!("Loop body step '{step_id}' not found in workflow '{workflow_id}'"),
+                ));
+            };
+            engine.dispatcher.read().await.dispatch(&node, &ctx).await
+        })
+    })
+}
+
+/// 构造 LoopExecutor 用的 `loop_checkpoint` 回调（save/load/delete）。
+pub fn build_loop_checkpoint_ops(
+    db: Arc<DatabaseConnection>,
+) -> super::execution_state::LoopCheckpointOps {
+    use super::execution_state::LoopCheckpointOps;
+    let db_for_save = db.clone();
+    let db_for_load = db.clone();
+    let db_for_delete = db.clone();
+    LoopCheckpointOps {
+        save: Arc::new(move |cp: axagent_core::workflow_types::LoopCheckpoint| {
+            let db = db_for_save.clone();
+            Box::pin(async move {
+                axagent_core::repo::loop_checkpoint::save_loop_checkpoint(&db, &cp)
+                    .await
+                    .map_err(|e| format!("save_loop_checkpoint failed: {e}"))
+            })
+        }),
+        load: Arc::new(move |eid: String, nid: String| {
+            let db = db_for_load.clone();
+            Box::pin(async move {
+                axagent_core::repo::loop_checkpoint::load_loop_checkpoint(&db, &eid, &nid)
+                    .await
+                    .map_err(|e| format!("load_loop_checkpoint failed: {e}"))
+            })
+        }),
+        delete: Arc::new(move |eid: String, nid: String| {
+            let db = db_for_delete.clone();
+            Box::pin(async move {
+                axagent_core::repo::loop_checkpoint::delete_loop_checkpoint(&db, &eid, &nid)
+                    .await
+                    .map_err(|e| format!("delete_loop_checkpoint failed: {e}"))
+            })
+        }),
     }
 }
 

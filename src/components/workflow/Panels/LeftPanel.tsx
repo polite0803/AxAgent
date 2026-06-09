@@ -227,6 +227,84 @@ export const LeftPanel: React.FC<LeftPanelProps> = ({ width }) => {
                       </div>
                     </div>
                   ))}
+
+                  {/* 阶段分隔线入口 */}
+                  <div style={{ marginBottom: 12 }}>
+                    <div
+                      style={{
+                        fontSize: 12,
+                        color: token.colorTextTertiary,
+                        textTransform: "uppercase",
+                        marginBottom: 6,
+                        paddingLeft: 4,
+                      }}
+                    >
+                      {t("workflow.leftPanel.layout", { defaultValue: "Layout" })}
+                    </div>
+                    <div
+                      role="button"
+                      tabIndex={0}
+                      onMouseDown={(e) => handleMouseDown(e, "_phaseSeparator", t("workflow.nodeTypes.phaseSeparator"))}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          handleMouseDown(
+                            e as unknown as React.MouseEvent,
+                            "_phaseSeparator",
+                            t("workflow.nodeTypes.phaseSeparator"),
+                          );
+                        }
+                      }}
+                      style={{
+                        padding: "10px 8px",
+                        background: token.colorBgElevated,
+                        border: `1px dashed ${token.colorTextQuaternary}50`,
+                        borderRadius: 6,
+                        cursor: "grab",
+                        textAlign: "center",
+                        fontSize: 12,
+                        color: token.colorTextTertiary,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: 6,
+                      }}
+                    >
+                      <span style={{ fontSize: 14, opacity: 0.5 }}>━</span>
+                      <span>{t("workflow.nodeTypes.phaseSeparator")}</span>
+                    </div>
+                    <div
+                      role="button"
+                      tabIndex={0}
+                      onMouseDown={(e) => handleMouseDown(e, "groupFrame", t("workflow.nodeTypes.groupFrame"))}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          handleMouseDown(
+                            e as unknown as React.MouseEvent,
+                            "groupFrame",
+                            t("workflow.nodeTypes.groupFrame"),
+                          );
+                        }
+                      }}
+                      style={{
+                        padding: "10px 8px",
+                        background: token.colorBgElevated,
+                        border: `1px dashed ${token.colorTextQuaternary}50`,
+                        borderRadius: 6,
+                        cursor: "grab",
+                        textAlign: "center",
+                        fontSize: 12,
+                        color: token.colorTextTertiary,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: 6,
+                        marginTop: 6,
+                      }}
+                    >
+                      <span style={{ fontSize: 14, opacity: 0.5 }}>⊞</span>
+                      <span>{t("workflow.nodeTypes.groupFrame")}</span>
+                    </div>
+                  </div>
                 </div>
               </div>
             ),

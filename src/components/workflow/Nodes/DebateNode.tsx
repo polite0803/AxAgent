@@ -1,21 +1,13 @@
-import { useWorkflowEditorStore } from "@/stores";
-import { Tag, theme, Tooltip } from "antd";
-import React, { memo, useCallback } from "react";
+import { Tag } from "antd";
+import React, { memo } from "react";
 import { useTranslation } from "react-i18next";
-import { Handle, Position } from "reactflow";
 import type { NodeProps } from "reactflow";
+import type { ContainerNodeData } from "./ContainerNode";
+import { ContainerNode } from "./ContainerNode";
 
 const BLUE_BASE = "#1890ff";
-const BLUE_VAR = `var(--blue, ${BLUE_BASE})`;
 
-interface DebateNodeData {
-  id: string;
-  type: string;
-  title: string;
-  description?: string;
-  color: string;
-  nodeType: string;
-  enabled: boolean;
+interface DebateNodeData extends ContainerNodeData {
   debaterSteps?: string[];
   maxRounds?: number;
   convergencePrompt?: string;
@@ -26,56 +18,17 @@ const DebateNodeComponent: React.FC<NodeProps<DebateNodeData>> = ({
   selected,
 }) => {
   const { t } = useTranslation();
-  const { token } = theme.useToken();
-  const color = BLUE_VAR;
-  const debaterCount = data.debaterSteps?.length || 0;
+  const debaterCount = data.debaterSteps?.length || data.childCount || 0;
   const maxRounds = data.maxRounds || 2;
 
-  const isCollapsed = useWorkflowEditorStore((s) => s.collapsedContainers.has(data.id));
-  const toggleCollapse = useCallback(
-    (e: React.MouseEvent) => {
-      e.stopPropagation();
-      useWorkflowEditorStore.getState().toggleContainerCollapse(data.id);
-    },
-    [data.id],
-  );
-
   return (
-    <div
-      style={{
-        minWidth: 400,
-        minHeight: 200,
-        background: `${BLUE_BASE}08`,
-        border: `2px dashed ${selected ? token.colorPrimary : BLUE_BASE}40`,
-        borderRadius: 12,
-        padding: 12,
-        opacity: data.enabled ? 1 : 0.5,
-        position: "relative",
-        boxShadow: selected ? `0 0 0 2px ${BLUE_VAR}40` : "none",
-      }}
-    >
-      <div
-        className="workflow-container-drag-handle"
-        style={{
-          position: "absolute",
-          top: 8,
-          left: 12,
-          display: "flex",
-          alignItems: "center",
-          gap: 6,
-          background: token.colorBgElevated,
-          border: `1px solid ${BLUE_BASE}30`,
-          borderRadius: 6,
-          padding: "4px 10px",
-          zIndex: 10,
-          cursor: "grab",
-        }}
-      >
-        <span style={{ fontSize: 14 }}>⚖️</span>
-        <span style={{ fontSize: 12, color, fontWeight: 600 }}>
-          {data.title}
-        </span>
-        <div style={{ display: "flex", gap: 4 }}>
+    <ContainerNode
+      data={data}
+      selected={selected}
+      icon="⚖️"
+      childLabel={t("workflow.debateNode.debaters", { defaultValue: "Debaters" })}
+      extraTags={
+        <>
           <Tag
             style={{
               margin: 0,
@@ -83,7 +36,7 @@ const DebateNodeComponent: React.FC<NodeProps<DebateNodeData>> = ({
               padding: "0 4px",
               background: `${BLUE_BASE}20`,
               border: `1px solid ${BLUE_BASE}50`,
-              color: BLUE_VAR,
+              color: BLUE_BASE,
             }}
           >
             {debaterCount} {t("workflow.debateNode.debaters", { defaultValue: "debaters" })}
@@ -93,64 +46,16 @@ const DebateNodeComponent: React.FC<NodeProps<DebateNodeData>> = ({
               margin: 0,
               fontSize: 9,
               padding: "0 4px",
-              background: token.colorBgContainer,
-              border: `1px solid ${token.colorBorderSecondary}`,
-              color: token.colorTextTertiary,
+              background: "transparent",
+              border: `1px solid ${BLUE_BASE}50`,
+              color: BLUE_BASE,
             }}
           >
             {maxRounds} {t("workflow.debateNode.rounds", { defaultValue: "rounds" })}
           </Tag>
-        </div>
-      </div>
-
-      <Tooltip
-        title={isCollapsed
-          ? t("workflow.debateNode.expand", { defaultValue: "Expand" })
-          : t("workflow.debateNode.collapse", { defaultValue: "Collapse" })}
-      >
-        <span
-          className="react-flow__nodrag"
-          onClick={toggleCollapse}
-          style={{
-            position: "absolute",
-            top: 8,
-            right: 12,
-            cursor: "pointer",
-            fontSize: 14,
-            lineHeight: 1,
-            padding: "2px 6px",
-            borderRadius: 4,
-            background: token.colorBgElevated,
-            border: `1px solid ${BLUE_BASE}30`,
-            zIndex: 10,
-            opacity: 0.7,
-            transition: "opacity 0.2s, transform 0.2s",
-            transform: isCollapsed ? "rotate(-90deg)" : "rotate(0deg)",
-            display: "inline-block",
-            userSelect: "none",
-          }}
-          onMouseEnter={(e) => {
-            (e.currentTarget as HTMLElement).style.opacity = "1";
-          }}
-          onMouseLeave={(e) => {
-            (e.currentTarget as HTMLElement).style.opacity = "0.7";
-          }}
-        >
-          ▼
-        </span>
-      </Tooltip>
-      {/* 折叠态 Handle：始终挂载但视觉不可见，供边重定向到容器自身 */}
-      <Handle
-        type="target"
-        position={Position.Top}
-        style={{ background: "transparent", border: "none", width: 1, height: 1, top: 0 }}
-      />
-      <Handle
-        type="source"
-        position={Position.Bottom}
-        style={{ background: "transparent", border: "none", width: 1, height: 1, bottom: 0 }}
-      />
-    </div>
+        </>
+      }
+    />
   );
 };
 

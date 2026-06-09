@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
 
+use crate::work_engine::node_executor_trait::{NodeError, NodeOutput};
+
 /// Overall execution status of a workflow
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -42,6 +44,28 @@ pub struct NodeExecutionRecord {
     pub sub_workflow_id: Option<String>,
 }
 
+/// 单次 Loop 迭代产出的 partial_result 事件。
+///
+/// 每次 LoopExecutor 完成一轮迭代后通过 `partial_result_tx` 广播。
+/// 前端可订阅 `execution_id + node_id` 维度的 channel 实时刷新进度面板。
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PartialResultEvent {
+    pub execution_id: String,
+    pub node_id: String,
+    /// 0-based 迭代下标。
+    pub iter_index: u32,
+    /// 当前元素（item），与 `iter_input_var` 数组中第 `iter_index` 个元素一致。
+    pub item: serde_json::Value,
+    /// body 最后一节点的输出（聚合视角下的"本轮结果"）。
+    pub step_output: serde_json::Value,
+    /// 累计 partial_result 数组（长度 = iter_index + 1）。
+    pub cumulative_partial: Vec<serde_json::Value>,
+    /// 触发本事件的源：正常完成 / interrupt / 错误。
+    pub phase: String,
+    /// 时间戳（毫秒）。
+    pub emitted_at_ms: i64,
+}
+
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -56,6 +80,13 @@ pub struct ExecutionContextCallbacks {
     /// 旧版全局回调（fallback，tool_handlers 未命中时使用）
     pub tool_fallback: Option<ToolCallback>,
     pub subworkflow: Option<SubWorkflowCallback>,
+    /// Loop 节点内部驱动 body_steps 迭代时使用的调度回调。
+    /// 接收 (body_step_node_id, mutable_context) 返回该 step 的 NodeOutput。
+    /// 与 SubWorkflowCallback 同样的注入模式：引擎在构造 exec_ctx 时填入。
+    pub loop_body_dispatch: Option<LoopBodyDispatchFn>,
+    /// Loop 检查点持久化回调（save/load/delete）。LoopExecutor 通过它
+    /// 写 `loop_checkpoints` 表。
+    pub loop_checkpoint: Option<LoopCheckpointOps>,
 }
 
 impl std::fmt::Debug for ExecutionContextCallbacks {
@@ -64,7 +95,78 @@ impl std::fmt::Debug for ExecutionContextCallbacks {
             .field("tool_handlers", &self.tool_handlers.len())
             .field("tool_fallback", &self.tool_fallback.is_some())
             .field("subworkflow", &self.subworkflow.is_some())
+            .field("loop_body_dispatch", &self.loop_body_dispatch.is_some())
+            .field("loop_checkpoint", &self.loop_checkpoint.is_some())
             .finish()
+    }
+}
+
+/// Loop 内部驱动回调：在 LoopExecutor 内被调用，按 (body_step_node_id, ctx)
+/// 分发单个 body 节点。返回 dispatch 的 NodeOutput 供 LoopExecutor 汇总。
+///
+/// 之所以走回调而不是直接拿 dispatcher：
+///  1) executor 是 stateless trait object，不能反向拿到 dispatcher；
+///  2) 引擎希望保留对 body 节点执行的统一埋点（progress_callback / 节点状态
+///     切换 / node_records 等），回调里集中处理比 executor 自调用更合适。
+pub type LoopBodyDispatchFn = Arc<
+    dyn Fn(
+            String,
+            ExecutionState,
+        ) -> std::pin::Pin<
+            Box<
+                dyn std::future::Future<
+                        Output = Result<NodeOutput, super::node_executor_trait::NodeError>,
+                    > + Send,
+            >,
+        > + Send
+        + Sync,
+>;
+
+/// Loop 检查点持久化回调：save/load/delete 三件套。
+///
+/// 引擎在主循环入口把 `axagent_dao::repo::loop_checkpoint::*` 包装成这个结构
+/// 注入到 `ExecutionState.callbacks.loop_checkpoint`，LoopExecutor 通过它读写
+/// `loop_checkpoints` 表。回调形式避免在 executor 静态结构里持有 db 句柄。
+#[derive(Clone)]
+pub struct LoopCheckpointOps {
+    pub save: Arc<
+        dyn Fn(
+                axagent_core::workflow_types::LoopCheckpoint,
+            )
+                -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<(), String>> + Send>>
+            + Send
+            + Sync,
+    >,
+    pub load: Arc<
+        dyn Fn(
+                String,
+                String,
+            ) -> std::pin::Pin<
+                Box<
+                    dyn std::future::Future<
+                            Output = Result<
+                                Option<axagent_core::workflow_types::LoopCheckpoint>,
+                                String,
+                            >,
+                        > + Send,
+                >,
+            > + Send
+            + Sync,
+    >,
+    pub delete: Arc<
+        dyn Fn(
+                String,
+                String,
+            )
+                -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<(), String>> + Send>>
+            + Send
+            + Sync,
+    >,
+}
+
+impl std::fmt::Debug for LoopCheckpointOps {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("LoopCheckpointOps").finish()
     }
 }
 
@@ -103,6 +205,15 @@ pub struct ExecutionState {
     /// 工具注册表（可选，设置后 tool_executor 优先通过 ToolRegistry.execute_tool() 执行工具）
     #[serde(skip, default)]
     pub tool_registry: Option<Arc<dyn axagent_harness::ToolRegistry>>,
+    /// partial_result 流式事件广播通道。LoopExecutor 在每次迭代完成后 send。
+    /// 接收端由 WorkEngine.subscribe_partial_results 暴露给外部。
+    #[serde(skip, default)]
+    pub partial_result_tx: Option<tokio::sync::broadcast::Sender<PartialResultEvent>>,
+    /// Loop interrupt 等待信号。LoopExecutor 检测到 interrupt 时调用 `notified().await`，
+    /// resume API（cmd_resume_loop_iteration / engine.resume_loop_iteration）
+    /// 通过 `notify_waiters()` 唤醒。
+    #[serde(skip, default)]
+    pub interrupt_signal: Option<std::sync::Arc<tokio::sync::Notify>>,
     pub execution_id: String,
     pub workflow_id: String,
     pub status: ExecutionStatus,
@@ -138,6 +249,8 @@ impl ExecutionState {
             tool_permissions: None,
             business_rule_engine: None,
             tool_registry: None,
+            partial_result_tx: None,
+            interrupt_signal: None,
             total_time_ms: 0,
             created_at: now,
             updated_at: now,
@@ -173,6 +286,8 @@ impl std::fmt::Debug for ExecutionState {
             .field("variables_count", &self.variables.len())
             .field("node_records_count", &self.node_records.len())
             .field("tool_registry", &self.tool_registry.as_ref().map(|_| "Some(ToolRegistry)"))
+            .field("partial_result_tx", &self.partial_result_tx.as_ref().map(|_| "Some(broadcast)"))
+            .field("interrupt_signal", &self.interrupt_signal.as_ref().map(|_| "Some(Notify)"))
             .finish()
     }
 }

@@ -819,6 +819,7 @@ fn parse_llm_response(
                         timeout: None,
                         aggregation: None,
                         auto_input_from_parent: true,
+                        sub_graph: None,
                     });
                 WorkflowNode::Parallel(ParallelNode {
                     base,
@@ -834,7 +835,13 @@ fn parse_llm_response(
                         body_steps: vec![],
                         items_var: None,
                         iteratee_var: None,
+                        iter_input_var: None,
+                        iter_output_var: None,
+                        partial_result_var: None,
                         continue_condition: None,
+                        sub_graph: None,
+                        interrupt_after_each: false,
+                        interrupt_nodes: vec![],
                     });
                 WorkflowNode::Loop(LoopNode {
                     base,
@@ -913,6 +920,7 @@ fn parse_llm_response(
                     input_mapping: std::collections::HashMap::new(),
                     output_var: "result".to_string(),
                     is_async: false,
+                    sub_graph: None,
                 });
                 WorkflowNode::SubWorkflow(SubWorkflowNode {
                     base,
@@ -965,6 +973,9 @@ fn parse_llm_response(
                         default_case: None,
                         match_mode: "exact".to_string(),
                         output_var: "switched".to_string(),
+                        use_llm: None,
+                        llm_model: None,
+                        llm_prompt: None,
                     });
                 WorkflowNode::Switch(SwitchNode { base, config: cfg })
             },
@@ -1077,6 +1088,11 @@ fn parse_llm_response(
                         strategy: "all".to_string(),
                         input_sources: vec![],
                         output_var: "aggregated".to_string(),
+                        wait_for_all: true,
+                        weights: vec![],
+                        sub_graph: None,
+                        summarize_prompt: None,
+                        summarize_model: None,
                     });
                 WorkflowNode::Aggregator(AggregatorNode { base, config: cfg })
             },
@@ -1104,6 +1120,7 @@ fn parse_llm_response(
                         convergence_model_role: None,
                         topic_var: "topic".to_string(),
                         output_var: "debate_result".to_string(),
+                        sub_graph: None,
                     });
                 WorkflowNode::Debate(DebateNode { base, config: cfg })
             },

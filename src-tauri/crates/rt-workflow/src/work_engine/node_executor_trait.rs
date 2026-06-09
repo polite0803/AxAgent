@@ -153,6 +153,8 @@ pub fn node_type_name(node: &WorkflowNode) -> &'static str {
         WorkflowNode::Aggregator(_) => "aggregator",
         WorkflowNode::Email(_) => "email",
         WorkflowNode::Debate(_) => "debate",
+        WorkflowNode::Swarm(_) => "swarm",
+        WorkflowNode::Storage(_) => "storage",
         WorkflowNode::WorkflowRef(_) => "workflowRef",
     }
 }

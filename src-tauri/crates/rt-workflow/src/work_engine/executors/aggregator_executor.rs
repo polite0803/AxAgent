@@ -41,12 +41,18 @@ fn collect_sources(
 }
 
 /// 应用聚合策略：
-/// - "all"   : 收集成数组（默认）
-/// - "concat" : 把字符串拼接；其他类型 fallback 到 JSON 数组
-/// - "sum"    : 累加数值，非数值忽略
-/// - "merge" : 浅合并对象（后者覆盖前者）
-/// - "count" : 返回数组长度
-fn apply_strategy(strategy: &str, pairs: &[(String, serde_json::Value)]) -> serde_json::Value {
+/// - "all"       : 收集成数组（默认）
+/// - "concat"    : 把字符串拼接；其他类型 fallback 到 JSON 数组
+/// - "sum"       : 累加数值，非数值忽略
+/// - "merge"     : 浅合并对象（后者覆盖前者）
+/// - "count"     : 返回数组长度
+/// - "weighted"  : 加权求和（weighted sum），使用 config.weights；缺省为等权
+/// - "llm_summarize": LLM 摘要（当前作为字符串拼接兜底，LLM 集成待后续）
+fn apply_strategy(
+    strategy: &str,
+    pairs: &[(String, serde_json::Value)],
+    weights: &[f64],
+) -> serde_json::Value {
     let values: Vec<&serde_json::Value> = pairs.iter().map(|(_, v)| v).collect();
     match strategy {
         "concat" => {
@@ -58,6 +64,23 @@ fn apply_strategy(strategy: &str, pairs: &[(String, serde_json::Value)]) -> serd
                 })
                 .collect();
             serde_json::Value::String(parts.join(""))
+        },
+        "weighted" => {
+            // 加权求和：weights 与 input_sources 一一对应
+            let mut total_weight = 0.0_f64;
+            let mut weighted_sum = 0.0_f64;
+            for (i, v) in values.iter().enumerate() {
+                let w = weights.get(i).copied().unwrap_or(1.0);
+                if let Some(n) = v.as_f64() {
+                    weighted_sum += w * n;
+                    total_weight += w;
+                }
+            }
+            if total_weight > 0.0 {
+                serde_json::json!(weighted_sum)
+            } else {
+                serde_json::json!(null)
+            }
         },
         "sum" => {
             let sum: f64 = values.iter().filter_map(|v| v.as_f64()).sum();
@@ -75,6 +98,17 @@ fn apply_strategy(strategy: &str, pairs: &[(String, serde_json::Value)]) -> serd
             serde_json::Value::Object(merged)
         },
         "count" => serde_json::json!(values.len()),
+        // "llm_summarize": LLM 摘要暂不可用，fallback 到字符串拼接
+        "llm_summarize" => {
+            let parts: Vec<String> = values
+                .iter()
+                .map(|v| match v {
+                    serde_json::Value::String(s) => s.clone(),
+                    other => serde_json::to_string_pretty(other).unwrap_or_default(),
+                })
+                .collect();
+            serde_json::Value::String(parts.join("\n---\n"))
+        },
         // "all" / 默认：原样数组
         _ => serde_json::Value::Array(values.into_iter().cloned().collect()),
     }
@@ -103,12 +137,13 @@ impl NodeExecutorTrait for AggregatorExecutor {
         }
 
         let pairs = collect_sources(&c.input_sources, context);
-        let aggregated = apply_strategy(&c.strategy, &pairs);
+        let aggregated = apply_strategy(&c.strategy, &pairs, &c.weights);
 
         Ok(NodeOutput {
             output: serde_json::json!({
                 "strategy": c.strategy,
                 "source_count": pairs.len(),
+                "wait_for_all": c.wait_for_all,
                 "result": aggregated,
                 "node_id": node.base_id(),
             }),

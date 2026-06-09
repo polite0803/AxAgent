@@ -30,6 +30,7 @@ import { useWorkEngineStore } from "@/stores/feature/workEngineStore";
 import { Button, message, Modal, Spin, theme } from "antd";
 import { useTranslation } from "react-i18next";
 import { AIPanel } from "./AIPanel/AIPanel";
+import { CanvasTitleBar } from "./CanvasTitleBar";
 import { DebugPanel } from "./DebugPanel";
 import { DiagnosticDrawer } from "./Diagnostic";
 import { clearDragPayload, getDragPayload } from "./dndState";
@@ -51,6 +52,7 @@ import {
   EmailNode,
   EndNode,
   FileOperationNode,
+  GroupFrameNode,
   HttpRequestNode,
   LlmClassifierNode,
   LLMNode,
@@ -59,7 +61,10 @@ import {
   MergeNode,
   NotificationNode,
   ParallelNode,
+  PhaseSeparatorNode,
+  StorageNode,
   SubWorkflowNode,
+  SwarmNode,
   SwitchNode,
   ToolNode,
   TriggerNode,
@@ -75,6 +80,7 @@ import { StatusBar } from "./StatusBar/EditorStatusBar";
 import { ImportExportModal } from "./Templates/ImportExportModal";
 import { VersionHistoryModal } from "./Templates/VersionHistoryModal";
 import { type AgentNode as AgentNodeType, NODE_TYPE_MAP, type WorkflowEdge, type WorkflowNode } from "./types";
+import { WorkflowLegend } from "./WorkflowLegend";
 
 const nodeTypes = {
   base: BaseNode,
@@ -96,6 +102,8 @@ const nodeTypes = {
   end: EndNode,
   httpRequest: HttpRequestNode,
   debate: DebateNode,
+  swarm: SwarmNode,
+  storage: StorageNode,
   switch: SwitchNode,
   databaseQuery: DatabaseQueryNode,
   notification: NotificationNode,
@@ -107,6 +115,8 @@ const nodeTypes = {
   llmClassifier: LlmClassifierNode,
   aggregator: AggregatorNode,
   email: EmailNode,
+  _phaseSeparator: PhaseSeparatorNode,
+  groupFrame: GroupFrameNode,
 };
 
 const edgeTypes = {
@@ -404,8 +414,29 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
 
         // 并行/合并容器节点：ReactFlow 需要 parentNode 不为空来判断是否为 group
         const rtType = nodeType;
-        const isContainer = rtType === "parallel" || rtType === "debate" || rtType === "loop"
+        const typeMeta = NODE_TYPE_MAP[rtType];
+        const isContainer = typeMeta?.isContainer === true
           || (rtType === "subWorkflow" && useWorkflowEditorStore.getState().expandedSubWorkflows[node.id] != null);
+        // 子图节点计数（优先从 config.subGraph.nodes 获取，否则回退到引用的子节点 ID 计数）
+        const subGraphNodes = (node as any).config?.subGraph?.nodes;
+        let subGraphChildCount = Array.isArray(subGraphNodes) ? subGraphNodes.length : 0;
+        if (subGraphChildCount === 0) {
+          // 向后兼容：从分支/循环体/辩论者引用中统计子节点数
+          if (node.type === "parallel") {
+            const branches = (node as any).config?.branches;
+            if (branches) {
+              subGraphChildCount = branches.reduce((sum: number, b: any) => sum + (b.steps?.length ?? 0), 0);
+            }
+          } else if (node.type === "loop") {
+            subGraphChildCount = ((node as any).config?.body_steps as string[])?.length ?? 0;
+          } else if (node.type === "debate") {
+            subGraphChildCount = ((node as any).config?.debater_steps as string[])?.length ?? 0;
+          } else if (node.type === "swarm") {
+            subGraphChildCount = ((node as any).config?.agent_steps as string[])?.length ?? 0;
+          } else if (node.type === "aggregator") {
+            subGraphChildCount = ((node as any).config?.input_sources as string[])?.length ?? 0;
+          }
+        }
         const isContainerCollapsed = isContainer
           && useWorkflowEditorStore.getState().collapsedContainers.has(node.id);
         // 折叠态：容器自身缩为紧凑尺寸
@@ -418,12 +449,21 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
           containerStyle = { width: 200, height: 60 };
         } else if (isContainer) {
           const children = nodes.filter((n) => n.parentId === node.id);
+          // 同时考虑子图（subGraph）节点对容器尺寸的影响
+          const subGraphChildren = subGraphNodes ?? [];
           let maxX = CONTAINER_MIN_W - CONTAINER_PADDING;
           let maxY = CONTAINER_MIN_H - CONTAINER_PADDING;
           for (const child of children) {
             const sz = getNodeSize(child.type);
             const cx = child.position.x + sz.width;
             const cy = child.position.y + sz.height;
+            if (cx > maxX) { maxX = cx; }
+            if (cy > maxY) { maxY = cy; }
+          }
+          for (const sgChild of subGraphChildren) {
+            const sz = getNodeSize((sgChild as any).type);
+            const cx = sgChild.position.x + sz.width;
+            const cy = sgChild.position.y + sz.height;
             if (cx > maxX) { maxX = cx; }
             if (cy > maxY) { maxY = cy; }
           }
@@ -448,6 +488,43 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
             color: typeInfo.color,
             nodeType: node.type,
             ...((node as any).config?.kind ? { kind: (node as any).config.kind } : {}),
+            ...(isContainer ? { childCount: subGraphChildCount } : {}),
+            // 容器特化字段提取：从 config 提取到 data 顶层供容器组件渲染使用
+            ...(node.type === "debate"
+              ? {
+                debaterSteps: ((node as any).config?.debater_steps as string[])
+                  ?? ((node as any).config?.subGraph?.nodes ?? []).map((_: any) => _.id),
+                maxRounds: (node as any).config?.max_rounds ?? 2,
+                convergencePrompt: (node as any).config?.convergence_prompt,
+              }
+              : {}),
+            ...(node.type === "parallel"
+              ? {
+                branches: ((node as any).config?.branches as any[])?.length
+                  ?? ((node as any).config?.subGraph?.nodes ?? []).length ?? 0,
+                waitStrategy: (node as any).config?.wait_for_all === false ? "any" : undefined,
+                aggregation: (node as any).config?.aggregation,
+                autoInputFromParent: (node as any).config?.auto_input_from_parent,
+                hasBranchTimeout: ((node as any).config?.branches as any[])?.some(
+                  (b: any) => b.branchTimeoutMs != null || (b.degradeStrategy && b.degradeStrategy !== "skip"),
+                ) ?? false,
+              }
+              : {}),
+            ...(node.type === "loop"
+              ? {
+                loopType: (node as any).config?.loop_type,
+                maxIterations: (node as any).config?.max_iterations,
+                loopCondition: (node as any).config?.continue_condition,
+                collectionVar: (node as any).config?.iter_input_var ?? (node as any).config?.items_var,
+              }
+              : {}),
+            ...(node.type === "swarm"
+              ? {
+                agentSteps: ((node as any).config?.agent_steps as string[])
+                  ?? ((node as any).config?.subGraph?.nodes ?? []).map((_: any) => _.id),
+                maxRounds: (node as any).config?.max_rounds ?? 3,
+              }
+              : {}),
             ...(validationState ? { validationState } : {}),
             ...(validationState ? { validationMessage: validationMsgMap.get(node.id) || "" } : {}),
             ...(node.type === "agent" && (node as AgentNodeType).config
@@ -611,6 +688,28 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
             }
           }
         }
+        // 将 SwarmNode 的 agent_steps 中的子节点挂载为容器子节点
+        if (node.type === "swarm" && (node as any).config?.agent_steps) {
+          const agentSteps = (node as any).config.agent_steps as string[];
+          for (const stepId of agentSteps) {
+            const childIdx = flowNodes.findIndex((fn) => fn.id === stepId);
+            if (childIdx === -1) { continue; }
+            const storedParent = parentRefs[stepId];
+            if (storedParent === undefined || storedParent === node.id) {
+              const childFn = flowNodes[childIdx];
+              const isCollapsedParent = collapsedContainers.has(node.id);
+              if (isCollapsedParent) { hiddenChildIds.add(stepId); }
+              flowNodes[childIdx] = {
+                ...childFn,
+                parentId: node.id,
+                extent: "parent",
+                expandParent: true,
+                hidden: isCollapsedParent ? true : childFn.hidden,
+              };
+              expectedParentByNode[stepId] = node.id;
+            }
+          }
+        }
       }
 
       // 把回填期望值持久化到 store：扫描结束后调 setParentRef，让 autosave 能保存到后端。
@@ -619,6 +718,47 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
         if (parentRefs[childId] !== expectedParent) {
           setParentRef(childId, expectedParent);
         }
+      }
+
+      // ── 注入容器的子图（subGraph）内部节点 ──
+      // subGraph.nodes 嵌入在容器 config 中，不在主 nodes[] 数组内。
+      // 仅当容器未折叠时注入，折叠时由 ContainerNode 组件显示节点计数。
+      for (const containerNode of nodes) {
+        const typeMeta = NODE_TYPE_MAP[containerNode.type];
+        if (!typeMeta?.isContainer) { continue; }
+        const subGraph = (containerNode as any).config?.subGraph as
+          | { nodes?: WorkflowNode[]; edges?: WorkflowEdge[] }
+          | undefined;
+        if (!subGraph?.nodes?.length) { continue; }
+        const isCollapsedParent = collapsedContainers.has(containerNode.id);
+        if (isCollapsedParent) { continue; } // 折叠态：子图节点隐藏，由 ContainerNode 显示计数
+
+        for (const subNode of subGraph.nodes) {
+          // 跳过已在主 nodes[] 中被父节点引用的子节点（由上面平行/循环/辩论分支处理）
+          const existingIdx = flowNodes.findIndex((fn) => fn.id === subNode.id);
+          if (existingIdx !== -1) { continue; }
+
+          const subTypeInfo = NODE_TYPE_MAP[subNode.type] || { color: token.colorTextQuaternary };
+          flowNodes.push({
+            id: subNode.id,
+            type: subNode.type || "agent",
+            position: { x: subNode.position.x, y: subNode.position.y },
+            parentId: containerNode.id,
+            extent: "parent" as const,
+            expandParent: true,
+            data: {
+              ...subNode,
+              label: subNode.title,
+              color: subTypeInfo.color,
+              nodeType: subNode.type,
+              enabled: true,
+            },
+          });
+        }
+
+        // ── 注入子图内部边（subGraph.edges）──
+        // 这些边仅在容器展开时可见，连接子图内部的节点。
+        // 实际注入在 flowEdges 声明之后的 subGraphEdgeInjection 阶段完成。
       }
 
       // ── 注入展开的子工作流内部节点 ──
@@ -726,6 +866,35 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
           ...((sourceIsOtherHidden || targetIsOtherHidden) ? { hidden: true } : {}),
         });
       }
+
+      // ── 注入子图内部边（subGraph.edges）──
+      // 这些边仅在容器展开时可见，连接子图内部的节点。
+      for (const containerNode of nodes) {
+        const typeMeta = NODE_TYPE_MAP[containerNode.type];
+        if (!typeMeta?.isContainer) { continue; }
+        const subGraph = (containerNode as any).config?.subGraph as
+          | { nodes?: WorkflowNode[]; edges?: WorkflowEdge[] }
+          | undefined;
+        if (!subGraph?.edges?.length) { continue; }
+        const isCollapsedParent = collapsedContainers.has(containerNode.id);
+        if (isCollapsedParent) { continue; }
+        const subNodeIds = new Set((subGraph.nodes ?? []).map((n: any) => n.id));
+        for (const subEdge of subGraph.edges) {
+          if (!subNodeIds.has(subEdge.source) || !subNodeIds.has(subEdge.target)) { continue; }
+          flowEdges.push({
+            id: subEdge.id,
+            source: subEdge.source,
+            sourceHandle: subEdge.sourceHandle,
+            target: subEdge.target,
+            targetHandle: subEdge.targetHandle,
+            type: "base",
+            animated: subEdge.edge_type === "loopBack",
+            label: subEdge.label,
+            data: { edgeType: subEdge.edge_type },
+          });
+        }
+      }
+
       setREdges(flowEdges);
       setIsInitialized(true);
 
@@ -900,11 +1069,10 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
         });
 
         // 容器 hit-test：落点在某个容器节点的 bbox 内时，自动挂入该容器。
-        const CONTAINER_TYPES = new Set(["parallel", "debate", "loop", "aggregator"]);
         const existingNodes = useWorkflowEditorStore.getState().nodes;
         let hitContainerId: string | null = null;
         for (const n of existingNodes) {
-          if (!CONTAINER_TYPES.has(n.type)) { continue; }
+          if (!NODE_TYPE_MAP[n.type]?.isContainer) { continue; }
           const size = getNodeSize(n.type);
           const nx = n.position.x;
           const ny = n.position.y;
@@ -1685,6 +1853,17 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
         onSaveAsImage={handleSaveAsImage}
       />
 
+      {/* 画布顶部名称条：面包屑 + 工作流名称 + 快捷工具栏 */}
+      <CanvasTitleBar
+        workflowName={currentTemplate?.name || t("workflow.newWorkflow")}
+        isDirty={isDirty}
+        isSaving={isSaving}
+        onNameChange={handleNameChange}
+        onSave={handleSave}
+        onRun={() => setDebugPanelVisible(true)}
+        onSettings={() => setRightPanelCollapsed(false)}
+      />
+
       {searchVisible && (
         <div
           style={{
@@ -1811,6 +1990,11 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
                     }}
                   >
                     {t("workflow.dragToStart")}
+                  </Panel>
+                )}
+                {nodes.length >= 2 && (
+                  <Panel position="top-right">
+                    <WorkflowLegend />
                   </Panel>
                 )}
                 {selectedNodeIds.size >= 2 && batchEditVisible && (
@@ -2105,6 +2289,10 @@ function getDefaultNodeConfig(nodeType: string): Record<string, unknown> {
       return {};
     case "validation":
       return { assertions: [], on_fail: "stop" as const, max_retries: 0 };
+    case "_phaseSeparator":
+      return { label: "", width: 800 };
+    case "groupFrame":
+      return { borderColor: "", collapsed: false };
     default:
       return {};
   }
@@ -2377,6 +2565,19 @@ function createWorkflowNode(
           debater_steps: [],
           max_rounds: 3,
           topic_var: "",
+          output_var: "",
+        },
+      };
+    case "storage":
+      return {
+        ...baseNode,
+        type: "storage",
+        config: {
+          backend: "sqlite",
+          operation: "insert",
+          input_var: "",
+          collection: "",
+          key_var: undefined,
           output_var: "",
         },
       };

@@ -4,7 +4,8 @@ import { GripVertical, Plus, Trash2, X } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { AIAssistButton, useNodeAIAssist } from "../../Hooks";
-import type { Branch, ParallelNode, WorkflowNode } from "../../types";
+import type { Branch, DegradeStrategy, ParallelNode, WorkflowNode } from "../../types";
+import { DEGRADE_LABELS } from "../../types";
 import { BasePropertyPanel } from "./BasePropertyPanel";
 
 interface ParallelPropertyPanelProps {
@@ -350,6 +351,71 @@ export const ParallelPropertyPanel: React.FC<ParallelPropertyPanelProps> = ({
                       }))}
                     />
                   )}
+                </div>
+
+                {/* 超时和降级策略配置 */}
+                <div
+                  style={{
+                    paddingLeft: 20,
+                    marginTop: 8,
+                    display: "flex",
+                    gap: 8,
+                    alignItems: "center",
+                  }}
+                >
+                  <div style={{ flex: 1 }}>
+                    <label
+                      style={{
+                        fontSize: 11,
+                        color: token.colorTextTertiary,
+                        display: "block",
+                        marginBottom: 2,
+                      }}
+                    >
+                      {t("workflow.props.branchTimeoutMs", { defaultValue: "Timeout (ms)" })}
+                    </label>
+                    <Input
+                      type="number"
+                      size="small"
+                      value={branch.branchTimeoutMs ?? ""}
+                      onChange={(e) =>
+                        handleUpdateBranch(index, {
+                          branchTimeoutMs: e.target.value
+                            ? parseInt(e.target.value)
+                            : undefined,
+                        })}
+                      placeholder={t("workflow.props.notSet")}
+                      style={{ width: "100%" }}
+                    />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <label
+                      style={{
+                        fontSize: 11,
+                        color: token.colorTextTertiary,
+                        display: "block",
+                        marginBottom: 2,
+                      }}
+                    >
+                      {t("workflow.props.degradeOnTimeout", {
+                        defaultValue: "On timeout",
+                      })}
+                    </label>
+                    <Select
+                      value={branch.degradeStrategy ?? "skip"}
+                      size="small"
+                      style={{ width: "100%" }}
+                      onChange={(v: DegradeStrategy) =>
+                        handleUpdateBranch(index, {
+                          degradeStrategy: v === "skip" ? undefined : v,
+                        })}
+                      options={[
+                        { value: "skip", label: DEGRADE_LABELS.skip },
+                        { value: "useDefault", label: DEGRADE_LABELS.useDefault },
+                        { value: "strict", label: DEGRADE_LABELS.strict },
+                      ]}
+                    />
+                  </div>
                 </div>
               </div>
             );

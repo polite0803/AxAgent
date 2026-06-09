@@ -122,6 +122,30 @@ pub struct CompensationConfig {
     pub compensation_nodes: Vec<String>,
 }
 
+/// 节点语义分类（确定节点的固定颜色）。
+///
+/// 由引擎层定义，编辑器前端根据此分类从主题 token 映射颜色。
+/// 禁止在工作流设计层面随意指定节点颜色。
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
+pub enum NodeKind {
+    /// 输入/触发类（黄）
+    Input,
+    /// 输出/结束类（红）
+    Output,
+    /// 工具/执行类（绿）
+    Tool,
+    /// Agent/LLM 推理类（蓝）
+    Agent,
+    /// 条件分支/路由（橙）
+    Condition,
+    /// 循环控制（紫）
+    Loop,
+    /// 容器/并行/辩论（青）
+    Container,
+    /// 存储/检索（粉）
+    Storage,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct WorkflowNodeBase {
     pub id: String,
@@ -396,11 +420,30 @@ pub struct ConditionNode {
     pub config: ConditionNodeConfig,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, Default, schemars::JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub enum DegradeStrategy {
+    /// 超时后跳过该路径，继续其他分支
+    #[default]
+    Skip,
+    /// 超时后使用默认值
+    #[serde(rename = "useDefault")]
+    UseDefault,
+    /// 超时即终止整个并行执行
+    Strict,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct Branch {
     pub id: String,
     pub title: String,
     pub steps: Vec<String>,
+    /// 分支级别超时（毫秒）。留空则继承节点级别或全局超时。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub branch_timeout_ms: Option<u64>,
+    /// 超时后的降级策略。默认 Skip。
+    #[serde(default)]
+    pub degrade_strategy: DegradeStrategy,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default, schemars::JsonSchema)]
@@ -423,6 +466,11 @@ pub struct ParallelNodeConfig {
     pub aggregation: Option<MergeStrategy>,
     #[serde(default = "default_true")]
     pub auto_input_from_parent: bool,
+    /// 子图定义（可选）。编辑器根据 `isContainer: true` 渲染为可展开/折叠容器框体。
+    /// sub_graph 中的节点/边将替代 branches.steps 的扁平引用模式，
+    /// 提供更丰富的嵌套子工作流编辑体验。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sub_graph: Option<SubGraph>,
 }
 
 fn default_true() -> bool {
@@ -451,16 +499,78 @@ pub enum LoopType {
 #[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct LoopNodeConfig {
     pub loop_type: LoopType,
+    /// 数组输入端口（旧名 `items_var`，向后兼容）。
+    /// 优先读取 `iter_input_var`，未设置时回退到 `items_var`。
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub items_var: Option<String>,
+    /// 数组输入端口（新名，语义更清晰）。
+    /// 解析顺序：`iter_input_var` → `items_var` → `iteratee_var` 推断 → 空。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub iter_input_var: Option<String>,
+    /// 循环体内部把当前元素写入的变量名。
+    /// body_steps 中的下游节点可通过 `variables[<iteratee_var>]` 读取当前 item。
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub iteratee_var: Option<String>,
+    /// 循环聚合结果的输出端口变量名。
+    /// 默认 `iter_output`，留空则使用 `iter_output`。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub iter_output_var: Option<String>,
+    /// 流式中间结果变量名（在每次迭代完成后写入 context.variables）。
+    /// 前端/下游节点可以订阅这个变量来观察进度。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub partial_result_var: Option<String>,
+    /// 硬上限：实际迭代次数 = min(items.len(), max_iterations, 10_000)。
+    /// 留空则按 items.len() 决定，forEach 模式默认 10_000。
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub max_iterations: Option<u32>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub continue_condition: Option<String>,
     pub continue_on_error: bool,
     pub body_steps: Vec<String>,
+    /// 每次迭代结束后挂起，等待人工确认后再继续。
+    /// 与 `interrupt_nodes` 联合使用：留空且 `interrupt_after_each=true` 时
+    /// 每一轮迭代后都进入 Paused。
+    #[serde(default)]
+    pub interrupt_after_each: bool,
+    /// 触发 interrupt 的 body 节点 ID 集合（通常是 ApprovalNode）。
+    /// 当这些节点中任意一个输出 `status=pending` 时，Loop 立即进入 Paused
+    /// 并写检查点。
+    #[serde(default)]
+    pub interrupt_nodes: Vec<String>,
+    /// 子图定义（可选）。编辑器根据 `isContainer: true` 渲染为可展开/折叠容器框体。
+    /// sub_graph 中的节点/边将替代 body_steps 的扁平引用模式。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sub_graph: Option<SubGraph>,
+}
+
+impl LoopNodeConfig {
+    /// 返回数组输入端口名（`iter_input_var` → `items_var` → 推测自 `iteratee_var`）。
+    pub fn effective_input_var(&self) -> Option<&str> {
+        if let Some(ref v) = self.iter_input_var {
+            if !v.is_empty() {
+                return Some(v.as_str());
+            }
+        }
+        if let Some(ref v) = self.items_var {
+            if !v.is_empty() {
+                return Some(v.as_str());
+            }
+        }
+        self.iteratee_var.as_deref()
+    }
+
+    /// 返回聚合输出端口名，默认 `iter_output`。
+    pub fn effective_output_var(&self) -> &str {
+        match self.iter_output_var.as_deref() {
+            Some(v) if !v.is_empty() => v,
+            _ => "iter_output",
+        }
+    }
+
+    /// 返回 partial_result 变量名。空时表示不写入流式变量。
+    pub fn effective_partial_var(&self) -> Option<&str> {
+        self.partial_result_var.as_deref().filter(|s| !s.is_empty())
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
@@ -468,6 +578,28 @@ pub struct LoopNode {
     #[serde(flatten)]
     pub base: WorkflowNodeBase,
     pub config: LoopNodeConfig,
+}
+
+/// Loop 节点的可恢复检查点，持久化到 `loop_checkpoints` 表。
+/// 字段保持可序列化（仅 `serde_json::Value` + 基础类型），便于跨进程恢复。
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
+pub struct LoopCheckpoint {
+    pub execution_id: String,
+    pub node_id: String,
+    /// 下一个要执行的迭代下标（0-based）。恢复时从该下标继续。
+    pub cursor: u32,
+    /// 原始输入数组（解析后的 `Vec<Value>`）。恢复时无需重新解析。
+    pub input_items: Vec<serde_json::Value>,
+    /// 已完成的迭代聚合结果（Vec，按完成顺序追加）。
+    pub partial_results: Vec<serde_json::Value>,
+    /// 触发 interrupt 的 body 节点 ID（如有）。`None` 表示非 interrupt 中断。
+    pub pending_approval_node: Option<String>,
+    /// 触发 interrupt 时所在 body 节点对应的 step 输出。
+    pub pending_step_output: Option<serde_json::Value>,
+    /// 检查点写入时间戳（毫秒）。
+    pub saved_at_ms: u64,
+    /// 触发 interrupt 的循环体节点 ID（供前端高亮）。
+    pub interrupting_step_id: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
@@ -537,6 +669,9 @@ pub struct SubWorkflowNodeConfig {
     pub input_mapping: std::collections::HashMap<String, String>,
     pub output_var: String,
     pub is_async: bool,
+    /// 子图定义（可选）。与 expandedSubWorkflows 配合，编辑器可在容器内部渲染子工作流节点。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sub_graph: Option<SubGraph>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
@@ -637,6 +772,20 @@ pub struct EndNode {
     pub config: EndNodeConfig,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, Default, schemars::JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub enum SwitchMatchMode {
+    /// 精确字符串匹配（默认）
+    #[default]
+    Exact,
+    /// 正则表达式匹配
+    Regex,
+    /// 子串包含匹配
+    Contains,
+    /// Rhai 表达式匹配：`input_var` 值作为 `_value` 传入表达式，返回布尔值或字符串标签
+    Expression,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct SwitchNodeConfig {
     pub input_var: String,
@@ -645,9 +794,23 @@ pub struct SwitchNodeConfig {
     pub default_case: Option<String>,
     #[serde(default = "default_switch_mode")]
     pub match_mode: String,
+    /// 使用 LLM 进行智能路由（替代 match_mode 的值匹配）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub use_llm: Option<bool>,
+    /// LLM 路由的自定义提示词
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub llm_prompt: Option<String>,
+    /// 路由使用的模型（为空则用会话默认模型）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub llm_model: Option<String>,
     #[serde(default)]
     pub output_var: String,
 }
+
+/// SwitchCase 的 expression 模式下，`value` 字段存放 Rhai 表达式，
+/// 接收 `_value` 变量（输入值），返回布尔值决定是否匹配该 case。
+///
+/// 例如：`_value > 100`、`_value.contains("error")`
 
 #[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct SwitchNode {
@@ -886,6 +1049,51 @@ pub struct LoggingNode {
     pub config: LoggingNodeConfig,
 }
 
+/// 存储持久化节点配置：接收数据输入，存储到指定后端。
+///
+/// # 后端支持
+/// - `sqlite`：写入 SQLite 表（JSON 值存储）
+/// - `vectorDb`：写入向量数据库
+/// - `fileSystem`：写入文件系统
+///
+/// # 操作模式
+/// - `insert`：追加写入
+/// - `upsert`：根据 key 覆盖/更新
+/// - `append`：追加到已有内容（fileSystem 为追加到文件末尾）
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
+pub struct StorageNodeConfig {
+    /// 存储后端："sqlite" | "vectorDb" | "fileSystem"
+    #[serde(default = "default_storage_backend")]
+    pub backend: String,
+    /// 操作模式："insert" | "upsert" | "append"
+    #[serde(default = "default_storage_operation")]
+    pub operation: String,
+    /// 要存储的数据的变量路径
+    pub input_var: String,
+    /// 存储目标（SQLite 表名 / VectorDB collection / 文件路径）
+    pub collection: String,
+    /// upsert 时用于匹配已有记录的 key 变量路径
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub key_var: Option<String>,
+    #[serde(default)]
+    pub output_var: String,
+}
+
+fn default_storage_backend() -> String {
+    "sqlite".to_string()
+}
+
+fn default_storage_operation() -> String {
+    "insert".to_string()
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
+pub struct StorageNode {
+    #[serde(flatten)]
+    pub base: WorkflowNodeBase,
+    pub config: StorageNodeConfig,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct LlmClassifierNodeConfig {
     pub categories: Vec<String>,
@@ -921,8 +1129,27 @@ pub struct AggregatorNodeConfig {
     pub strategy: String,
     #[serde(default)]
     pub input_sources: Vec<String>,
+    /// 等待策略：true=等待所有输入就绪再聚合；false=有输入即聚合（竞速模式）
+    #[serde(default = "default_wait_all")]
+    pub wait_for_all: bool,
+    /// 加权策略的权重系数（与 input_sources 一一对应）。空数组视为等权。
+    #[serde(default)]
+    pub weights: Vec<f64>,
+    /// llm_summarize 策略的自定义提示词
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub summarize_prompt: Option<String>,
+    /// llm_summarize 策略的模型
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub summarize_model: Option<String>,
     #[serde(default)]
     pub output_var: String,
+    /// 子图定义（可选）。编辑器根据 `isContainer: true` 渲染为可展开/折叠容器框体。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sub_graph: Option<SubGraph>,
+}
+
+fn default_wait_all() -> bool {
+    true
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
@@ -972,6 +1199,10 @@ pub struct DebateNodeConfig {
     pub topic_var: String,
     #[serde(default)]
     pub output_var: String,
+    /// 子图定义（可选）。编辑器根据 `isContainer: true` 渲染为可展开/折叠容器框体。
+    /// sub_graph 中的节点/边将替代 debater_steps 的扁平引用模式。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sub_graph: Option<SubGraph>,
 }
 
 fn default_debate_rounds() -> u32 {
@@ -983,6 +1214,46 @@ pub struct DebateNode {
     #[serde(flatten)]
     pub base: WorkflowNodeBase,
     pub config: DebateNodeConfig,
+}
+
+fn default_swarm_rounds() -> u32 {
+    3
+}
+
+fn default_swarm_size() -> u32 {
+    3
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
+pub struct SwarmNodeConfig {
+    /// 参与者节点 ID 列表（LLM/Agent 节点）
+    #[serde(default)]
+    pub agent_steps: Vec<String>,
+    /// 最大协作轮数
+    #[serde(default = "default_swarm_rounds")]
+    pub max_rounds: u32,
+    /// 收敛判断提示文本
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub convergence_prompt: Option<String>,
+    /// 收敛判断模型
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub convergence_model: Option<String>,
+    /// 讨论主题变量
+    #[serde(default)]
+    pub topic_var: String,
+    /// 输出变量名
+    #[serde(default)]
+    pub output_var: String,
+    /// 子图定义（可选）。编辑器根据 `isContainer: true` 渲染为可展开/折叠容器框体。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sub_graph: Option<SubGraph>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
+pub struct SwarmNode {
+    #[serde(flatten)]
+    pub base: WorkflowNodeBase,
+    pub config: SwarmNodeConfig,
 }
 
 #[derive(Debug, Clone, Serialize, schemars::JsonSchema)]
@@ -1030,6 +1301,10 @@ pub enum WorkflowNode {
     Email(EmailNode),
     #[serde(rename = "debate")]
     Debate(DebateNode),
+    #[serde(rename = "swarm")]
+    Swarm(SwarmNode),
+    #[serde(rename = "storage")]
+    Storage(StorageNode),
     #[serde(rename = "tool")]
     Tool(ToolNode),
     #[serde(rename = "code")]
@@ -1081,6 +1356,8 @@ impl<'de> serde::Deserialize<'de> for WorkflowNode {
             "aggregator" => Ok(try_from_value!(Aggregator, AggregatorNode)),
             "email" => Ok(try_from_value!(Email, EmailNode)),
             "debate" => Ok(try_from_value!(Debate, DebateNode)),
+            "swarm" => Ok(try_from_value!(Swarm, SwarmNode)),
+            "storage" => Ok(try_from_value!(Storage, StorageNode)),
             "workflowRef" => Ok(try_from_value!(WorkflowRef, WorkflowRefNode)),
 
             "end" => Ok(try_from_value!(End, EndNode)),
@@ -1114,6 +1391,8 @@ impl<'de> serde::Deserialize<'de> for WorkflowNode {
                     "aggregator",
                     "email",
                     "debate",
+                    "swarm",
+                    "storage",
                     "workflowRef",
                     "end",
                     "tool",
@@ -1154,6 +1433,8 @@ impl WorkflowNode {
             WorkflowNode::Aggregator(n) => &n.base.id,
             WorkflowNode::Email(n) => &n.base.id,
             WorkflowNode::Debate(n) => &n.base.id,
+            WorkflowNode::Swarm(n) => &n.base.id,
+            WorkflowNode::Storage(n) => &n.base.id,
             WorkflowNode::WorkflowRef(n) => &n.base.id,
             WorkflowNode::End(n) => &n.base.id,
         }
@@ -1189,7 +1470,8 @@ impl WorkflowNode {
             WorkflowNode::Aggregator(n) => &n.base,
             WorkflowNode::Email(n) => &n.base,
             WorkflowNode::Debate(n) => &n.base,
-
+            WorkflowNode::Swarm(n) => &n.base,
+            WorkflowNode::Storage(n) => &n.base,
             WorkflowNode::WorkflowRef(n) => &n.base,
             WorkflowNode::End(n) => &n.base,
         }
@@ -1250,6 +1532,17 @@ pub struct WorkflowEdge {
     pub target_handle: Option<String>,
     pub edge_type: EdgeType,
     pub label: Option<String>,
+}
+
+/// 子图定义：嵌入在容器节点中的独立工作流（nodes + edges）。
+/// 编辑器展开容器节点时，渲染 `sub_graph.nodes` 作为内部子节点网格；
+/// 折叠时根据子节点数量显示计数。
+///
+/// 子图内的入口/出口节点自动映射为容器节点的端口（port auto-passthrough）。
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
+pub struct SubGraph {
+    pub nodes: Vec<WorkflowNode>,
+    pub edges: Vec<WorkflowEdge>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]

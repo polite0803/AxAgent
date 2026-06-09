@@ -42,7 +42,9 @@ interface EdgeLike {
   edge_type?: string;
 }
 
-const CONTAINER_NODE_TYPES = new Set(["parallel", "loop", "debate", "aggregator"]);
+// 容器节点类型（同步自 workflow.types.ts 的 NODE_TYPE_MAP isContainer 标记）
+// 布局/校验需要区分容器节点以便正确处理子节点
+const CONTAINER_NODE_TYPES = new Set(["parallel", "loop", "debate", "swarm", "aggregator", "subWorkflow"]);
 
 /** 提取节点类型：优先 data.type（ReactFlow），回退到 node.type（WorkflowNode） */
 function nodeTypeOf(n: NodeLike): string {
@@ -457,12 +459,13 @@ const NODE_SIZE: Record<string, { width: number; height: number }> = {
   parallel: { width: 500, height: 400 },
   loop: { width: 480, height: 300 },
   debate: { width: 480, height: 260 },
+  swarm: { width: 480, height: 300 },
   aggregator: { width: 320, height: 180 },
   merge: { width: 220, height: 120 },
   delay: { width: 180, height: 100 },
   tool: { width: 200, height: 140 },
   code: { width: 200, height: 140 },
-  subWorkflow: { width: 220, height: 140 },
+  subWorkflow: { width: 480, height: 300 },
   workflowRef: { width: 220, height: 120 },
   documentParser: { width: 200, height: 120 },
   vectorRetrieve: { width: 200, height: 120 },
@@ -786,7 +789,7 @@ export function autoLayoutWorkflow(
   parentRefs: Record<string, string> = {},
 ): { nodes: Node[]; edges: Edge[] } {
   const childOf = parentRefs;
-  const CONTAINER_TYPES = new Set(["parallel", "debate", "loop", "aggregator"]);
+  const CONTAINER_TYPES = new Set(["parallel", "debate", "loop", "swarm", "aggregator", "subWorkflow"]);
   const containers = nodes.filter((n) => CONTAINER_TYPES.has(n.type || "") && !childOf[n.id]);
 
   if (containers.length === 0 || Object.keys(childOf).length === 0) {
@@ -930,6 +933,7 @@ const LAYER_ORDER: Record<string, number> = {
   agent: 2,
   llm: 2,
   debate: 3,
+  swarm: 3,
   condition: 3,
   parallel: 3,
   switch: 3,
@@ -960,7 +964,7 @@ const LAYER_Y_SPACING = 200; // 层间垂直间距
 const LAYER_X_SPACING = 320; // 层内水平间距
 const MARGIN = 60; // 画布边距
 const CONTAINER_PADDING = 40; // 容器内边距
-const CONTAINER_TYPES_AUTO = new Set(["parallel", "debate", "loop", "aggregator"]);
+const CONTAINER_TYPES_AUTO = new Set(["parallel", "debate", "loop", "swarm", "aggregator", "subWorkflow"]);
 
 interface AutoNode {
   id: string;
