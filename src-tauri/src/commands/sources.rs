@@ -1,4 +1,5 @@
 use axagent_core::rag::{ContainerType, KnowledgeContainer};
+use axagent_harness::types::CreateSourceInput;
 use serde::{Deserialize, Serialize};
 use tauri::State;
 
@@ -98,6 +99,77 @@ pub async fn list_all_sources(
     container_types: Option<Vec<String>>,
 ) -> Result<Vec<UnifiedSource>, String> {
     Ok(fetch_all_sources(state.harness.db(), container_types.as_ref()).await)
+}
+
+#[tauri::command]
+pub async fn create_source(
+    state: State<'_, AppState>,
+    input: CreateSourceInput,
+) -> Result<UnifiedSource, String> {
+    let db = state.harness.db();
+
+    // 如果未提供 embedding_provider，回退到系统默认 provider
+    let embedding_provider = if input.embedding_provider.is_some() {
+        input.embedding_provider
+    } else {
+        axagent_dao::repo::settings::get_settings(db)
+            .await
+            .ok()
+            .and_then(|s| s.default_provider_id)
+    };
+
+    match input.source_type.as_str() {
+        "knowledge" => {
+            let kb = axagent_dao::repo::knowledge::create_knowledge_base(
+                db,
+                axagent_harness::types::CreateKnowledgeBaseInput {
+                    name: input.name,
+                    description: input.description,
+                    embedding_provider,
+                    enabled: Some(true),
+                },
+            )
+            .await
+            .map_err(|e| e.to_string())?;
+            Ok(UnifiedSource::from(KnowledgeContainer::from_knowledge_base(&kb)))
+        },
+        "memory" => {
+            let ns = axagent_dao::repo::memory::create_namespace(
+                db,
+                axagent_harness::types::CreateMemoryNamespaceInput {
+                    name: input.name,
+                    scope: input.scope.unwrap_or_else(|| "global".to_string()),
+                    embedding_provider,
+                    embedding_dimensions: None,
+                    retrieval_threshold: None,
+                    retrieval_top_k: None,
+                    icon_type: None,
+                    icon_value: None,
+                },
+            )
+            .await
+            .map_err(|e| e.to_string())?;
+            Ok(UnifiedSource::from(KnowledgeContainer::from_memory_ns(&ns)))
+        },
+        "wiki" => {
+            let wiki = axagent_dao::repo::wiki::create_wiki(
+                db,
+                axagent_dao::repo::wiki::CreateWikiInput {
+                    name: input.name,
+                    description: input.description,
+                    root_path: input
+                        .root_path
+                        .clone()
+                        .ok_or_else(|| "wiki requires root_path".to_string())?,
+                    embedding_provider,
+                },
+            )
+            .await
+            .map_err(|e| e.to_string())?;
+            Ok(UnifiedSource::from(KnowledgeContainer::from_wiki(&wiki)))
+        },
+        _ => Err(format!("unknown source_type: {}", input.source_type)),
+    }
 }
 
 #[tauri::command]

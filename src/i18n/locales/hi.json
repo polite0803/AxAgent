@@ -6309,7 +6309,14 @@
     "wiki": {
       "title": "विकी स्रोत",
       "wikiList": "विकी सूची"
-    }
+    },
+    "createSource": "Create Source",
+    "typeLabel": "Type",
+    "sourceName": "Name",
+    "description": "Description",
+    "rootPath": "Root Path",
+    "embeddingModel": "Embedding Model",
+    "embeddingRequired": "Please select an embedding model"
   },
   "chatMarkdown": {
     "toggleRaw": "Raw टॉगल",

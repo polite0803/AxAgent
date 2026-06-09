@@ -1,4 +1,5 @@
 import { EmbeddingModelSelect } from "@/components/shared/EmbeddingModelSelect";
+import { invoke } from "@/lib/invoke";
 import { useKnowledgeStore } from "@/stores";
 import { useSourceStore } from "@/stores";
 import { useLlmWikiStore, type Wiki } from "@/stores/feature/llmWikiStore";
@@ -17,6 +18,7 @@ import {
   Modal,
   Popconfirm,
   Row,
+  Select,
   Spin,
   Statistic,
   Tabs,
@@ -165,7 +167,7 @@ function SourceConfigModal({
   );
 }
 
-function CreateKnowledgeBaseModal({
+function CreateSourceModal({
   open,
   onClose,
 }: {
@@ -173,16 +175,27 @@ function CreateKnowledgeBaseModal({
   onClose: () => void;
 }) {
   const { t } = useTranslation();
-  const createBase = useKnowledgeStore((s) => s.createBase);
+  const { fetchSources } = useSourceStore();
   const [form] = Form.useForm();
   const [creating, setCreating] = useState(false);
+  const sourceType: string = Form.useWatch("sourceType", form) ?? "knowledge";
 
   const handleCreate = async () => {
     try {
       const values = await form.validateFields();
       setCreating(true);
-      await createBase(values);
+      await invoke("create_source", {
+        input: {
+          name: values.name,
+          sourceType: values.sourceType ?? "knowledge",
+          description: values.description ?? null,
+          embeddingProvider: values.embeddingProvider ?? null,
+          scope: values.sourceType === "memory" ? "global" : undefined,
+          rootPath: values.sourceType === "wiki" ? values.rootPath : undefined,
+        },
+      });
       form.resetFields();
+      await fetchSources();
       onClose();
     } catch {
       // validation
@@ -193,7 +206,7 @@ function CreateKnowledgeBaseModal({
 
   return (
     <Modal
-      title={t("settings.knowledge.add")}
+      title={t("sourceManager.createSource")}
       open={open}
       onOk={handleCreate}
       onCancel={() => {
@@ -201,158 +214,46 @@ function CreateKnowledgeBaseModal({
         onClose();
       }}
       confirmLoading={creating}
+      width={480}
     >
       <Form form={form} layout="vertical">
         <Form.Item
-          name="name"
-          label={t("settings.knowledge.name")}
+          name="sourceType"
+          label={t("sourceManager.typeLabel")}
           rules={[{ required: true }]}
+          initialValue="knowledge"
         >
-          <Input name="name" />
+          <Select>
+            <Select.Option value="knowledge">
+              <Database size={14} /> {t("sourceManager.type.knowledge")}
+            </Select.Option>
+            <Select.Option value="memory">
+              <Brain size={14} /> {t("sourceManager.type.memory")}
+            </Select.Option>
+            <Select.Option value="wiki">
+              <Network size={14} /> {t("sourceManager.type.wiki")}
+            </Select.Option>
+          </Select>
         </Form.Item>
+        <Form.Item name="name" label={t("sourceManager.sourceName")} rules={[{ required: true }]}>
+          <Input />
+        </Form.Item>
+        <Form.Item name="description" label={t("sourceManager.description")}>
+          <Input.TextArea rows={2} />
+        </Form.Item>
+        {sourceType === "wiki" && (
+          <Form.Item name="rootPath" label={t("sourceManager.rootPath")} rules={[{ required: true }]}>
+            <Input placeholder="/path/to/vault" />
+          </Form.Item>
+        )}
         <Form.Item
           name="embeddingProvider"
-          label={t("settings.knowledge.embeddingModel")}
-          rules={[
-            {
-              required: true,
-              message: t("settings.knowledge.embeddingModelPlaceholder"),
-            },
-          ]}
+          label={t("sourceManager.embeddingModel")}
+          rules={sourceType !== "wiki" ? [{ required: true, message: t("sourceManager.embeddingRequired") }] : []}
         >
           <EmbeddingModelSelect
             value={form.getFieldValue("embeddingProvider")}
             onChange={(val) => form.setFieldValue("embeddingProvider", val)}
-            placeholder={t("settings.knowledge.embeddingModelPlaceholder")}
-          />
-        </Form.Item>
-      </Form>
-    </Modal>
-  );
-}
-
-function CreateMemoryNamespaceModal({
-  open,
-  onClose,
-}: {
-  open: boolean;
-  onClose: () => void;
-}) {
-  const { t } = useTranslation();
-  const createNamespace = useMemoryStore((s) => s.createNamespace);
-  const [form] = Form.useForm();
-  const [creating, setCreating] = useState(false);
-
-  const handleCreate = async () => {
-    try {
-      const values = await form.validateFields();
-      setCreating(true);
-      await createNamespace(values.name, "global", values.embeddingProvider);
-      form.resetFields();
-      onClose();
-    } catch {
-      // validation
-    } finally {
-      setCreating(false);
-    }
-  };
-
-  return (
-    <Modal
-      title={t("settings.memory.addNamespace")}
-      open={open}
-      onOk={handleCreate}
-      onCancel={() => {
-        form.resetFields();
-        onClose();
-      }}
-      confirmLoading={creating}
-    >
-      <Form form={form} layout="vertical">
-        <Form.Item
-          name="name"
-          label={t("settings.memory.namespaceName")}
-          rules={[{ required: true }]}
-        >
-          <Input name="name" />
-        </Form.Item>
-        <Form.Item
-          name="embeddingProvider"
-          label={t("settings.memory.embeddingModel")}
-          rules={[
-            {
-              required: true,
-              message: t("settings.memory.embeddingModelPlaceholder"),
-            },
-          ]}
-        >
-          <EmbeddingModelSelect
-            value={form.getFieldValue("embeddingProvider")}
-            onChange={(val) => form.setFieldValue("embeddingProvider", val)}
-            placeholder={t("settings.memory.embeddingModelPlaceholder")}
-          />
-        </Form.Item>
-      </Form>
-    </Modal>
-  );
-}
-
-function CreateWikiModal({
-  open,
-  onClose,
-}: {
-  open: boolean;
-  onClose: () => void;
-}) {
-  const { t } = useTranslation();
-  const createWiki = useLlmWikiStore((s) => s.createWiki);
-  const [form] = Form.useForm();
-  const [creating, setCreating] = useState(false);
-
-  const handleCreate = async () => {
-    try {
-      const values = await form.validateFields();
-      setCreating(true);
-      await createWiki(values.name, values.rootPath, values.description);
-      form.resetFields();
-      onClose();
-    } catch {
-      // validation
-    } finally {
-      setCreating(false);
-    }
-  };
-
-  return (
-    <Modal
-      title={t("wiki.llm.createWiki")}
-      open={open}
-      onOk={handleCreate}
-      onCancel={() => {
-        form.resetFields();
-        onClose();
-      }}
-      confirmLoading={creating}
-    >
-      <Form form={form} layout="vertical">
-        <Form.Item
-          name="name"
-          label={t("wiki.wikiForm.name")}
-          rules={[{ required: true, message: t("wiki.llm.nameRequired") }]}
-        >
-          <Input name="name" placeholder={t("wiki.llm.namePlaceholder")} />
-        </Form.Item>
-        <Form.Item
-          name="rootPath"
-          label={t("wiki.wikiForm.rootPath")}
-          rules={[{ required: true, message: t("wiki.llm.pathRequired") }]}
-        >
-          <Input name="rootPath" placeholder={t("wiki.llm.pathPlaceholder")} />
-        </Form.Item>
-        <Form.Item name="description" label={t("wiki.wikiForm.description")}>
-          <Input.TextArea
-            name="description"
-            placeholder={t("wiki.llm.descriptionPlaceholder")}
           />
         </Form.Item>
       </Form>
@@ -484,7 +385,6 @@ function KnowledgeTab({
     () => allSources.filter((s) => s.containerType === "knowledge"),
     [allSources],
   );
-  const [createOpen, setCreateOpen] = useState(false);
 
   useEffect(() => {
     loadBases();
@@ -555,15 +455,7 @@ function KnowledgeTab({
               image={Empty.PRESENTED_IMAGE_SIMPLE}
               description={t("sourceManager.empty")}
               style={{ padding: 40 }}
-            >
-              <Button
-                type="primary"
-                icon={<Plus size={14} />}
-                onClick={() => setCreateOpen(true)}
-              >
-                {t("settings.knowledge.add")}
-              </Button>
-            </Empty>
+            />
           )
           : (
             <Row gutter={[12, 12]}>
@@ -638,11 +530,6 @@ function KnowledgeTab({
             </Row>
           </>
         )}
-
-        <CreateKnowledgeBaseModal
-          open={createOpen}
-          onClose={() => setCreateOpen(false)}
-        />
       </Spin>
     </div>
   );
@@ -666,7 +553,6 @@ function MemoryTab({
     () => allSources.filter((s) => s.containerType === "memory"),
     [allSources],
   );
-  const [createOpen, setCreateOpen] = useState(false);
 
   useEffect(() => {
     loadNamespaces();
@@ -737,15 +623,7 @@ function MemoryTab({
               image={Empty.PRESENTED_IMAGE_SIMPLE}
               description={t("sourceManager.empty")}
               style={{ padding: 40 }}
-            >
-              <Button
-                type="primary"
-                icon={<Plus size={14} />}
-                onClick={() => setCreateOpen(true)}
-              >
-                {t("settings.memory.addNamespace")}
-              </Button>
-            </Empty>
+            />
           )
           : (
             <Row gutter={[12, 12]}>
@@ -820,11 +698,6 @@ function MemoryTab({
             </Row>
           </>
         )}
-
-        <CreateMemoryNamespaceModal
-          open={createOpen}
-          onClose={() => setCreateOpen(false)}
-        />
       </Spin>
     </div>
   );
@@ -843,7 +716,6 @@ function WikiTab({
     () => allSources.filter((s) => s.containerType === "wiki"),
     [allSources],
   );
-  const [createOpen, setCreateOpen] = useState(false);
 
   useEffect(() => {
     loadWikis();
@@ -911,15 +783,7 @@ function WikiTab({
             image={Empty.PRESENTED_IMAGE_SIMPLE}
             description={t("sourceManager.empty")}
             style={{ padding: 40 }}
-          >
-            <Button
-              type="primary"
-              icon={<Plus size={14} />}
-              onClick={() => setCreateOpen(true)}
-            >
-              {t("wiki.llm.createWiki")}
-            </Button>
-          </Empty>
+          />
         )
         : (
           <>
@@ -962,8 +826,6 @@ function WikiTab({
             )}
           </>
         )}
-
-      <CreateWikiModal open={createOpen} onClose={() => setCreateOpen(false)} />
     </div>
   );
 }
@@ -1072,9 +934,11 @@ function WikiCard({ wiki }: { wiki: Wiki }) {
 function AllSourcesTab({
   onViewConfig,
   onNavigateToTab,
+  onCreateClick,
 }: {
   onViewConfig: (s: UnifiedSource) => void;
   onNavigateToTab: (tab: string) => void;
+  onCreateClick: () => void;
 }) {
   const { t } = useTranslation();
   const { token } = theme.useToken();
@@ -1254,6 +1118,11 @@ function AllSourcesTab({
             {t("sourceManager.search")}
           </Button>
         </Col>
+        <Col>
+          <Button icon={<Plus size={14} />} onClick={onCreateClick}>
+            {t("sourceManager.createSource")}
+          </Button>
+        </Col>
       </Row>
 
       <Spin spinning={loading}>
@@ -1284,6 +1153,7 @@ function SourceManager() {
   const { fetchSources } = useSourceStore();
   const [activeTab, setActiveTab] = useState("all");
   const [configSource, setConfigSource] = useState<UnifiedSource | null>(null);
+  const [createOpen, setCreateOpen] = useState(false);
 
   useEffect(() => {
     fetchSources();
@@ -1341,6 +1211,7 @@ function SourceManager() {
                 <AllSourcesTab
                   onViewConfig={setConfigSource}
                   onNavigateToTab={setActiveTab}
+                  onCreateClick={() => setCreateOpen(true)}
                 />
               )}
               {tab.key === "knowledge" && <KnowledgeTab onViewConfig={setConfigSource} />}
@@ -1355,6 +1226,11 @@ function SourceManager() {
         source={configSource}
         open={configSource !== null}
         onClose={() => setConfigSource(null)}
+      />
+
+      <CreateSourceModal
+        open={createOpen}
+        onClose={() => setCreateOpen(false)}
       />
     </div>
   );

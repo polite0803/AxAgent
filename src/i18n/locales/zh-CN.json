@@ -6271,7 +6271,11 @@
       "topK": "检索 Top K"
     },
     "configTitle": "数据源配置",
+    "createSource": "创建数据源",
+    "description": "描述",
     "disabled": "已禁用",
+    "embeddingModel": "向量模型",
+    "embeddingRequired": "请选择向量模型",
     "empty": "暂无数据源",
     "knowledge": {
       "recentBases": "最近知识库",
@@ -6282,8 +6286,10 @@
       "title": "记忆源"
     },
     "noConfig": "暂无配置信息",
+    "rootPath": "根路径",
     "search": "搜索",
     "searchPlaceholder": "搜索数据源...",
+    "sourceName": "名称",
     "stats": {
       "documents": "文档",
       "knowledgeBases": "知识库",
@@ -6310,6 +6316,7 @@
       "memory": "AI 长期记忆，自动存储与召回对话关键信息",
       "wiki": "结构化知识图谱，支持笔记关联与可视化"
     },
+    "typeLabel": "类型",
     "view": "进入",
     "viewAll": "查看全部",
     "viewConfig": "配置",

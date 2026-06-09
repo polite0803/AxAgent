@@ -15,11 +15,13 @@ import {
   useReactFlow,
 } from "reactflow";
 import "reactflow/dist/style.css";
+import { isTauri } from "@/lib/invoke";
 import { autoLayoutWorkflow, getNodeSize } from "@/lib/workflowLayout";
 import { useAgentProfileStore, useWorkflowEditorStore } from "@/stores";
 import { useExpertStore } from "@/stores/feature/expertStore";
 import { useWorkEngineStore } from "@/stores/feature/workEngineStore";
 import { Button, message, Modal, Spin, theme } from "antd";
+import domtoimage from "dom-to-image-more";
 import { useTranslation } from "react-i18next";
 import { AIPanel } from "./AIPanel/AIPanel";
 import { DebugPanel } from "./DebugPanel";
@@ -996,13 +998,8 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
         return;
       }
 
-      // dom-to-image-more uses SVG <foreignObject> — the browser renders
-      // HTML natively inside the SVG, so modern CSS (oklch, etc.) works.
-      const domtoimage = await import("dom-to-image-more");
-
       const defaultName = `${currentTemplate?.name || "workflow"}.png`;
 
-      const { isTauri } = await import("@/lib/invoke");
       if (isTauri()) {
         const blob = await domtoimage.toBlob(element, {
           bgColor: "#1a1a2e",

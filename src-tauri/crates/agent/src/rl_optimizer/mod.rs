@@ -167,12 +167,54 @@ impl RLOptimizer {
         self.experience_pool.add(experience);
     }
 
-    pub fn select_tool(&self, _state: &TaskState) -> Result<ToolSelection, RLError> {
+    pub fn select_tool(&self, state: &TaskState) -> Result<ToolSelection, RLError> {
+        // epsilon-greedy: 以 epsilon 概率随机探索，否则选择最佳工具
+        let epsilon = self.config.epsilon;
+        let explore = fastrand::f32() < epsilon;
+
+        // 从策略中获取工具权重
+        let policy = self.policies.get("tool_selection");
+        let mut tool_scores: Vec<(String, f32)> = state
+            .available_tools
+            .iter()
+            .map(|tool| {
+                let weight = policy
+                    .and_then(|p| p.reward_signals.iter().find(|s| s.name == *tool))
+                    .map(|s| s.weight)
+                    .unwrap_or(0.5);
+                (tool.clone(), weight)
+            })
+            .collect();
+
+        if explore || tool_scores.is_empty() {
+            // 探索：随机选择
+            if !state.available_tools.is_empty() {
+                let idx = fastrand::usize(..state.available_tools.len());
+                let tool = &state.available_tools[idx];
+                return Ok(ToolSelection {
+                    tool_id: tool.clone(),
+                    tool_name: tool.clone(),
+                    parameters: HashMap::new(),
+                    reasoning: format!("RL exploration (epsilon={:.3})", epsilon),
+                });
+            }
+            return Ok(ToolSelection {
+                tool_id: "default_tool".to_string(),
+                tool_name: "Default Tool".to_string(),
+                parameters: HashMap::new(),
+                reasoning: "RL fallback selection".to_string(),
+            });
+        }
+
+        // 利用：选择权重最高的工具
+        tool_scores.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
+        let best = &tool_scores[0];
+
         Ok(ToolSelection {
-            tool_id: "default_tool".to_string(),
-            tool_name: "Default Tool".to_string(),
+            tool_id: best.0.clone(),
+            tool_name: best.0.clone(),
             parameters: HashMap::new(),
-            reasoning: "RL policy selection".to_string(),
+            reasoning: format!("RL policy selection (weight={:.3})", best.1),
         })
     }
 

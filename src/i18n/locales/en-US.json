@@ -6312,6 +6312,13 @@
     "searchPlaceholder": "Search sources...",
     "search": "Search",
     "empty": "No sources found",
+    "createSource": "Create Source",
+    "typeLabel": "Type",
+    "sourceName": "Name",
+    "description": "Description",
+    "rootPath": "Root Path",
+    "embeddingModel": "Embedding Model",
+    "embeddingRequired": "Please select an embedding model",
     "stats": {
       "knowledgeBases": "Knowledge Bases",
       "documents": "Documents",

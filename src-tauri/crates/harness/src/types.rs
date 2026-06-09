@@ -2097,6 +2097,21 @@ pub struct CreateMemoryNamespaceInput {
     pub icon_value: Option<String>,
 }
 
+/// 统一知识源创建输入（通过 sourceType 区分 knowledge/memory/wiki）
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CreateSourceInput {
+    pub name: String,
+    /// "knowledge" | "memory" | "wiki"
+    pub source_type: String,
+    pub description: Option<String>,
+    pub embedding_provider: Option<String>,
+    /// memory 独有
+    pub scope: Option<String>,
+    /// wiki 独有
+    pub root_path: Option<String>,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct UpdateMemoryNamespaceInput {

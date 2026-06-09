@@ -883,6 +883,7 @@ pub fn run() {
             commands::sources::list_all_sources,
             commands::sources::get_source_config,
             commands::sources::search_all_sources,
+            commands::sources::create_source,
             commands::agency_expert::import_agency_experts,
             commands::agency_expert::list_agency_experts,
             commands::agency_expert::clear_agency_experts,
