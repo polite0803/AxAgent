@@ -997,8 +997,6 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
         return;
       }
 
-      // This function needs to be declared before any import
-      // since it's used by the dynamic import but only in the catch chain
       const scale = 2;
       const defaultName = `${currentTemplate?.name || "workflow"}.png`;
 
