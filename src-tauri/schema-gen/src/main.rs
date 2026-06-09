@@ -8,7 +8,12 @@ use std::path::Path;
 
 fn main() {
     // Resolve output paths relative to the project root (2 levels up from src-tauri/schema-gen)
-    let out_dir = Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap().parent().unwrap().join("docs");
+    let out_dir = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .unwrap()
+        .parent()
+        .unwrap()
+        .join("docs");
     fs::create_dir_all(&out_dir).unwrap();
 
     let schema = schema_for!(workflow_types::WorkflowTemplateInput);
