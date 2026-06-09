@@ -997,10 +997,43 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
       }
 
       const { default: html2canvas } = await import("html2canvas");
+
+      // html2canvas cannot parse CSS Color Level 4 functions like oklch().
+      // Resolve them to rgb()/rgba() using the browser's native CSS engine
+      // before capture, then inject via onclone.
+      const rootStyle = getComputedStyle(document.documentElement);
+      const resolvedVars: Record<string, string> = {};
+      const tmpEl = document.createElement("div");
+      document.body.appendChild(tmpEl);
+      for (let i = 0; i < rootStyle.length; i++) {
+        const name = rootStyle[i];
+        if (!name.startsWith("--")) { continue; }
+        const val = rootStyle.getPropertyValue(name).trim();
+        if (!val || !val.includes("oklch")) { continue; }
+        // Assign oklch to a concrete CSS property so the browser resolves it to RGB
+        tmpEl.style.setProperty("background-color", val, "important");
+        const resolved = getComputedStyle(tmpEl).backgroundColor;
+        tmpEl.style.removeProperty("background-color");
+        if (resolved && resolved !== "rgba(0, 0, 0, 0)") {
+          resolvedVars[name] = resolved;
+        }
+      }
+      document.body.removeChild(tmpEl);
+
+      const overrideEntries = Object.entries(resolvedVars)
+        .map(([k, v]) => `  ${k}: ${v};`)
+        .join("\n");
+      const overrideCss = `:root {\n${overrideEntries}\n}`;
+
       const canvas = await html2canvas(element, {
         useCORS: true,
         scale: 2,
         backgroundColor: "#1a1a2e",
+        onclone: (clonedDoc) => {
+          const style = clonedDoc.createElement("style");
+          style.textContent = overrideCss;
+          clonedDoc.head.appendChild(style);
+        },
       });
 
       const defaultName = `${currentTemplate?.name || "workflow"}.png`;
