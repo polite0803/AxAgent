@@ -21,6 +21,7 @@ import { useAgentProfileStore, useWorkflowEditorStore } from "@/stores";
 import { useExpertStore } from "@/stores/feature/expertStore";
 import { useWorkEngineStore } from "@/stores/feature/workEngineStore";
 import { Button, message, Modal, Spin, theme } from "antd";
+import domtoimage from "dom-to-image-more";
 import { useTranslation } from "react-i18next";
 import { AIPanel } from "./AIPanel/AIPanel";
 import { DebugPanel } from "./DebugPanel";
@@ -997,76 +998,41 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
         return;
       }
 
-      const { default: html2canvas } = await import("html2canvas");
+      // dom-to-image-more uses SVG foreignObject — the browser renders HTML
+      // natively inside SVG, so modern CSS (oklch, gradients, etc.) works.
+      const defaultName = `${currentTemplate?.name || "workflow"}.png`;
+      const opts = {
+        bgColor: "#1a1a2e",
+        scale: 2,
+        width: element.scrollWidth,
+        height: element.scrollHeight,
+      };
 
-      // html2canvas cannot parse CSS Color Level 4 (oklch). Override all
-      // CSS variables containing oklch on the root element via inline style
-      // (highest specificity), then capture, then restore.
-      const rootEl = document.documentElement;
-      const rootStyle = getComputedStyle(rootEl);
-      const varsToRestore: [string, string][] = [];
-      const tmpEl = document.createElement("div");
-      document.body.appendChild(tmpEl);
-      for (let i = 0; i < rootStyle.length; i++) {
-        const name = rootStyle[i];
-        if (!name.startsWith("--")) { continue; }
-        const val = rootStyle.getPropertyValue(name).trim();
-        if (!val || !val.includes("oklch")) { continue; }
-        // Resolve oklch to rgb via concrete CSS property
-        tmpEl.style.setProperty("background-color", val, "important");
-        const resolved = getComputedStyle(tmpEl).backgroundColor;
-        tmpEl.style.removeProperty("background-color");
-        if (resolved && resolved !== "rgba(0, 0, 0, 0)" && !resolved.includes("oklch")) {
-          // Save original, set override
-          varsToRestore.push([name, val]);
-          rootEl.style.setProperty(name, resolved, "important");
+      if (isTauri()) {
+        const blob = await domtoimage.toBlob(element, opts);
+        if (!blob) {
+          message.error(t("workflow.exportFailed"));
+          return;
         }
-      }
-      document.body.removeChild(tmpEl);
 
-      try {
-        const canvas = await html2canvas(element, {
-          useCORS: true,
-          scale: 2,
-          backgroundColor: "#1a1a2e",
+        const { save } = await import("@tauri-apps/plugin-dialog");
+        const { writeFile } = await import("@tauri-apps/plugin-fs");
+        const filePath = await save({
+          defaultPath: defaultName,
+          filters: [{ name: "PNG Image", extensions: ["png"] }],
         });
+        if (!filePath) { return; }
 
-        const defaultName = `${currentTemplate?.name || "workflow"}.png`;
-
-        if (isTauri()) {
-          const { save } = await import("@tauri-apps/plugin-dialog");
-          const { writeFile } = await import("@tauri-apps/plugin-fs");
-
-          const filePath = await save({
-            defaultPath: defaultName,
-            filters: [{ name: "PNG Image", extensions: ["png"] }],
-          });
-
-          if (!filePath) {
-            return; // User cancelled
-          }
-
-          const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"));
-          if (!blob) {
-            message.error(t("workflow.exportFailed"));
-            return;
-          }
-
-          await writeFile(filePath, new Uint8Array(await blob.arrayBuffer()));
-        } else {
-          const link = document.createElement("a");
-          link.download = defaultName;
-          link.href = canvas.toDataURL("image/png");
-          link.click();
-        }
-
-        message.success(t("workflow.exportSuccess"));
-      } finally {
-        // Restore original CSS variables
-        for (const [name] of varsToRestore) {
-          rootEl.style.removeProperty(name);
-        }
+        await writeFile(filePath, new Uint8Array(await blob.arrayBuffer()));
+      } else {
+        const dataUrl = await domtoimage.toPng(element, opts);
+        const link = document.createElement("a");
+        link.download = defaultName;
+        link.href = dataUrl;
+        link.click();
       }
+
+      message.success(t("workflow.exportSuccess"));
     } catch (error) {
       console.error("[saveAsImage]", error);
       message.error(`${t("workflow.exportFailed")}: ${error instanceof Error ? error.message : String(error)}`);

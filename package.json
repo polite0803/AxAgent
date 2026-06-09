@@ -74,6 +74,7 @@
     "d3-force": "^3.0.0",
     "dagre": "^0.8.5",
     "dayjs": "^1.11.13",
+    "dom-to-image-more": "^3.7.2",
     "dompurify": "^3.4.2",
     "emoji-picker-element": "^1.29.1",
     "html2canvas": "^1.4.1",
