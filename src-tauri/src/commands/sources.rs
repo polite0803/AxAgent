@@ -112,7 +112,7 @@ pub async fn create_source(
     let embedding_provider = if input.embedding_provider.is_some() {
         input.embedding_provider
     } else {
-        axagent_dao::repo::settings::get_settings(db)
+        axagent_core::repo::settings::get_settings(db)
             .await
             .ok()
             .and_then(|s| s.default_provider_id)
@@ -120,7 +120,7 @@ pub async fn create_source(
 
     match input.source_type.as_str() {
         "knowledge" => {
-            let kb = axagent_dao::repo::knowledge::create_knowledge_base(
+            let kb = axagent_core::repo::knowledge::create_knowledge_base(
                 db,
                 axagent_harness::types::CreateKnowledgeBaseInput {
                     name: input.name,
@@ -134,7 +134,7 @@ pub async fn create_source(
             Ok(UnifiedSource::from(KnowledgeContainer::from_knowledge_base(&kb)))
         },
         "memory" => {
-            let ns = axagent_dao::repo::memory::create_namespace(
+            let ns = axagent_core::repo::memory::create_namespace(
                 db,
                 axagent_harness::types::CreateMemoryNamespaceInput {
                     name: input.name,
@@ -152,9 +152,9 @@ pub async fn create_source(
             Ok(UnifiedSource::from(KnowledgeContainer::from_memory_ns(&ns)))
         },
         "wiki" => {
-            let wiki = axagent_dao::repo::wiki::create_wiki(
+            let wiki = axagent_core::repo::wiki::create_wiki(
                 db,
-                axagent_dao::repo::wiki::CreateWikiInput {
+                axagent_core::repo::wiki::CreateWikiInput {
                     name: input.name,
                     description: input.description,
                     root_path: input

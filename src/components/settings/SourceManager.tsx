@@ -373,8 +373,10 @@ function SourceCard({
 
 function KnowledgeTab({
   onViewConfig,
+  onCreate,
 }: {
   onViewConfig: (s: UnifiedSource) => void;
+  onCreate?: () => void;
 }) {
   const { t } = useTranslation();
   const { token } = theme.useToken();
@@ -441,7 +443,7 @@ function KnowledgeTab({
           <Button
             size="small"
             icon={<Plus size={14} />}
-            onClick={() => setCreateOpen(true)}
+            onClick={() => onCreate?.()}
           >
             {t("settings.knowledge.add")}
           </Button>
@@ -537,8 +539,10 @@ function KnowledgeTab({
 
 function MemoryTab({
   onViewConfig,
+  onCreate,
 }: {
   onViewConfig: (s: UnifiedSource) => void;
+  onCreate?: () => void;
 }) {
   const { t } = useTranslation();
   const { token } = theme.useToken();
@@ -609,7 +613,7 @@ function MemoryTab({
           <Button
             size="small"
             icon={<Plus size={14} />}
-            onClick={() => setCreateOpen(true)}
+            onClick={() => onCreate?.()}
           >
             {t("settings.memory.addNamespace")}
           </Button>
@@ -705,8 +709,10 @@ function MemoryTab({
 
 function WikiTab({
   onViewConfig,
+  onCreate,
 }: {
   onViewConfig: (s: UnifiedSource) => void;
+  onCreate?: () => void;
 }) {
   const { t } = useTranslation();
   const { token } = theme.useToken();
@@ -770,7 +776,7 @@ function WikiTab({
           <Button
             size="small"
             icon={<Plus size={14} />}
-            onClick={() => setCreateOpen(true)}
+            onClick={() => onCreate?.()}
           >
             {t("wiki.llm.createWiki")}
           </Button>
@@ -1214,9 +1220,19 @@ function SourceManager() {
                   onCreateClick={() => setCreateOpen(true)}
                 />
               )}
-              {tab.key === "knowledge" && <KnowledgeTab onViewConfig={setConfigSource} />}
-              {tab.key === "memory" && <MemoryTab onViewConfig={setConfigSource} />}
-              {tab.key === "wiki" && <WikiTab onViewConfig={setConfigSource} />}
+              {tab.key === "knowledge" && (
+                <KnowledgeTab
+                  onViewConfig={setConfigSource}
+                  onCreate={() => setCreateOpen(true)}
+                />
+              )}
+              {tab.key === "memory" && (
+                <MemoryTab
+                  onViewConfig={setConfigSource}
+                  onCreate={() => setCreateOpen(true)}
+                />
+              )}
+              {tab.key === "wiki" && <WikiTab onViewConfig={setConfigSource} onCreate={() => setCreateOpen(true)} />}
             </>
           ),
         }))}

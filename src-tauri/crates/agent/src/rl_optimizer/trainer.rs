@@ -151,7 +151,7 @@ impl RLtrainer {
             let success_rate = *successes as f32 / *total as f32;
             policy.reward_signals.push(RewardSignal {
                 name: tool.clone(),
-                weight: avg.max(0.0).min(1.0),
+                weight: avg.clamp(0.0, 1.0),
                 signal_type: RewardSignalType::TaskCompletion,
             });
             // 也添加成功率信号
@@ -202,14 +202,13 @@ impl RLtrainer {
         }
 
         // 如果策略中有该工具的记录，加入策略权重
-        if let Some(policy) = self.optimizer.policies.get("tool_selection") {
-            if let Some(signal) = policy
+        if let Some(policy) = self.optimizer.policies.get("tool_selection")
+            && let Some(signal) = policy
                 .reward_signals
                 .iter()
                 .find(|s| s.name == action.tool_name)
-            {
-                reward = reward * 0.6 + signal.weight * 0.4;
-            }
+        {
+            reward = reward * 0.6 + signal.weight * 0.4;
         }
 
         reward.clamp(0.0, 1.0)
