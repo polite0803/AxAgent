@@ -21,7 +21,6 @@ import { useAgentProfileStore, useWorkflowEditorStore } from "@/stores";
 import { useExpertStore } from "@/stores/feature/expertStore";
 import { useWorkEngineStore } from "@/stores/feature/workEngineStore";
 import { Button, message, Modal, Spin, theme } from "antd";
-import domtoimage from "dom-to-image-more";
 import { useTranslation } from "react-i18next";
 import { AIPanel } from "./AIPanel/AIPanel";
 import { DebugPanel } from "./DebugPanel";
@@ -998,41 +997,86 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
         return;
       }
 
-      // dom-to-image-more uses SVG foreignObject — the browser renders HTML
-      // natively inside SVG, so modern CSS (oklch, gradients, etc.) works.
+      // This function needs to be declared before any import
+      // since it's used by the dynamic import but only in the catch chain
+      const scale = 2;
       const defaultName = `${currentTemplate?.name || "workflow"}.png`;
-      const opts = {
-        bgColor: "#1a1a2e",
-        scale: 2,
-        width: element.scrollWidth,
-        height: element.scrollHeight,
-      };
 
-      if (isTauri()) {
-        const blob = await domtoimage.toBlob(element, opts);
-        if (!blob) {
-          message.error(t("workflow.exportFailed"));
-          return;
+      // ── Step 1: Resolve & override all oklch() CSS vars ──
+      // html2canvas uses getComputedStyle() to read CSS variable values,
+      // which returns the raw declared value (oklch). Override them on
+      // document.documentElement.inline style with !important so that
+      // getComputedStyle returns the rgb() equivalent.
+      const resolvedRGB = new Map<string, string>();
+      const tmp = document.createElement("div");
+      document.body.appendChild(tmp);
+      for (const sheet of document.styleSheets) {
+        try {
+          for (const rule of sheet.cssRules) {
+            if (!(rule instanceof CSSStyleRule) && !(rule instanceof CSSPageRule)) { continue; }
+            const style = rule.style;
+            for (let i = 0; i < style.length; i++) {
+              const name = style[i];
+              const val = style.getPropertyValue(name).trim();
+              if (!name.startsWith("--") || !val.includes("oklch")) { continue; }
+              tmp.style.setProperty("background-color", val, "important");
+              const rgb = getComputedStyle(tmp).backgroundColor;
+              tmp.style.removeProperty("background-color");
+              if (rgb && rgb !== "rgba(0, 0, 0, 0)") {
+                resolvedRGB.set(name, rgb);
+              }
+            }
+          }
+        } catch {
+          /* cross-origin skip */
         }
+      }
+      document.body.removeChild(tmp);
 
-        const { save } = await import("@tauri-apps/plugin-dialog");
-        const { writeFile } = await import("@tauri-apps/plugin-fs");
-        const filePath = await save({
-          defaultPath: defaultName,
-          filters: [{ name: "PNG Image", extensions: ["png"] }],
-        });
-        if (!filePath) { return; }
-
-        await writeFile(filePath, new Uint8Array(await blob.arrayBuffer()));
-      } else {
-        const dataUrl = await domtoimage.toPng(element, opts);
-        const link = document.createElement("a");
-        link.download = defaultName;
-        link.href = dataUrl;
-        link.click();
+      // Apply overrides on root element's inline style
+      const root = document.documentElement;
+      for (const [name, rgb] of resolvedRGB) {
+        root.style.setProperty(name, rgb, "important");
       }
 
-      message.success(t("workflow.exportSuccess"));
+      try {
+        const { default: html2canvas } = await import("html2canvas");
+        const canvas = await html2canvas(element, {
+          useCORS: true,
+          scale,
+          backgroundColor: "#1a1a2e",
+        });
+
+        if (isTauri()) {
+          const { save } = await import("@tauri-apps/plugin-dialog");
+          const { writeFile } = await import("@tauri-apps/plugin-fs");
+
+          const filePath = await save({
+            defaultPath: defaultName,
+            filters: [{ name: "PNG Image", extensions: ["png"] }],
+          });
+          if (!filePath) { return; }
+
+          const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"));
+          if (!blob) {
+            message.error(t("workflow.exportFailed"));
+            return;
+          }
+          await writeFile(filePath, new Uint8Array(await blob.arrayBuffer()));
+        } else {
+          const link = document.createElement("a");
+          link.download = defaultName;
+          link.href = canvas.toDataURL("image/png");
+          link.click();
+        }
+
+        message.success(t("workflow.exportSuccess"));
+      } finally {
+        // Clean up overrides
+        for (const name of resolvedRGB.keys()) {
+          root.style.removeProperty(name);
+        }
+      }
     } catch (error) {
       console.error("[saveAsImage]", error);
       message.error(`${t("workflow.exportFailed")}: ${error instanceof Error ? error.message : String(error)}`);

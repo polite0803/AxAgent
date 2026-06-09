@@ -180,9 +180,6 @@ export default defineConfig(async () => ({
     },
   },
   clearScreen: false,
-  optimizeDeps: {
-    include: ["dom-to-image-more"],
-  },
   server: {
     port: 1420,
     strictPort: true,
