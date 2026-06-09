@@ -1000,41 +1000,47 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
       const scale = 2;
       const defaultName = `${currentTemplate?.name || "workflow"}.png`;
 
-      // ── Step 1: Resolve & override all oklch() CSS vars ──
-      // html2canvas uses getComputedStyle() to read CSS variable values,
-      // which returns the raw declared value (oklch). Override them on
-      // document.documentElement.inline style with !important so that
-      // getComputedStyle returns the rgb() equivalent.
+      // ── Resolve & override all oklch() CSS vars ──
+      // html2canvas reads raw CSS variable values from getComputedStyle,
+      // which returns oklch(...). Override them on root inline style
+      // with !important so getComputedStyle returns rgb() instead.
+      // Key: CSSStyleRule.style.length does NOT include custom properties
+      // in numeric indexing, so we must parse <style> textContent with regex.
       const resolvedRGB = new Map<string, string>();
       const tmp = document.createElement("div");
       document.body.appendChild(tmp);
-      for (const sheet of document.styleSheets) {
-        try {
-          for (const rule of sheet.cssRules) {
-            if (!(rule instanceof CSSStyleRule) && !(rule instanceof CSSPageRule)) { continue; }
-            const style = rule.style;
-            for (let i = 0; i < style.length; i++) {
-              const name = style[i];
-              const val = style.getPropertyValue(name).trim();
-              if (!name.startsWith("--") || !val.includes("oklch")) { continue; }
-              tmp.style.setProperty("background-color", val, "important");
-              const rgb = getComputedStyle(tmp).backgroundColor;
-              tmp.style.removeProperty("background-color");
-              if (rgb && rgb !== "rgba(0, 0, 0, 0)") {
-                resolvedRGB.set(name, rgb);
-              }
-            }
+
+      // Match CSS variable declarations: --name: oklch(...)[ ;]
+      const varDeclRe = /(--[\w-]+)\s*:\s*(oklch\([^)]*\))\s*[;!]/g;
+
+      document.querySelectorAll("style").forEach((style) => {
+        if (!style.textContent || !style.textContent.includes("oklch")) { return; }
+        let match: RegExpExecArray | null;
+        // Reset regex lastIndex
+        varDeclRe.lastIndex = 0;
+        while ((match = varDeclRe.exec(style.textContent)) !== null) {
+          const name = match[1];
+          const oklchVal = match[2];
+          if (resolvedRGB.has(name)) { continue; }
+          tmp.style.setProperty("background-color", oklchVal, "important");
+          const rgb = getComputedStyle(tmp).backgroundColor;
+          tmp.style.removeProperty("background-color");
+          if (rgb && rgb !== "rgba(0, 0, 0, 0)") {
+            resolvedRGB.set(name, rgb);
           }
-        } catch {
-          /* cross-origin skip */
         }
-      }
+      });
+
       document.body.removeChild(tmp);
 
       // Apply overrides on root element's inline style
       const root = document.documentElement;
       for (const [name, rgb] of resolvedRGB) {
         root.style.setProperty(name, rgb, "important");
+      }
+
+      if (resolvedRGB.size === 0) {
+        console.warn("[saveAsImage] no oklch CSS vars found — override may be incomplete");
       }
 
       try {
