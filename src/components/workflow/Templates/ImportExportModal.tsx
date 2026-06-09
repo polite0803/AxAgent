@@ -1,4 +1,5 @@
 import { invoke } from "@/lib/invoke";
+import { validate_workflow } from "@/lib/workflowLayout";
 import {
   Alert,
   Button,
@@ -18,7 +19,6 @@ import { Check, Copy, Download, FolderOpen, Upload as UploadIcon } from "lucide-
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { WorkflowTemplateResponse } from "../types";
-import { validate_workflow } from "@/lib/workflowLayout";
 
 interface N8nConnectionGroup {
   node: string;
@@ -401,7 +401,7 @@ export const ImportExportModal: React.FC<ImportExportModalProps> = ({
           if (feErrors.length > 0) {
             message.error(
               "导入的工作流存在 " + feErrors.length + " 个结构错误：\n"
-              + feErrors.map((i) => i.message).join("\n"),
+                + feErrors.map((i) => i.message).join("\n"),
             );
             setIsImporting(false);
             return;
@@ -409,7 +409,7 @@ export const ImportExportModal: React.FC<ImportExportModalProps> = ({
           if (feWarnings.length > 0) {
             message.warning(
               "导入的工作流存在 " + feWarnings.length + " 个警告：\n"
-              + feWarnings.map((i) => i.message).join("\n"),
+                + feWarnings.map((i) => i.message).join("\n"),
             );
           }
         }

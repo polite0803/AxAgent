@@ -52,14 +52,14 @@ function nodeTypeOf(n: NodeLike): string {
 /** 构建入度 Map（target → 入边数） */
 function buildIndegree(edges: EdgeLike[]): Map<string, number> {
   const m = new Map<string, number>();
-  for (const e of edges) m.set(e.target, (m.get(e.target) || 0) + 1);
+  for (const e of edges) { m.set(e.target, (m.get(e.target) || 0) + 1); }
   return m;
 }
 
 /** 构建出度 Map（source → 出边数） */
 function buildOutdegree(edges: EdgeLike[]): Map<string, number> {
   const m = new Map<string, number>();
-  for (const e of edges) m.set(e.source, (m.get(e.source) || 0) + 1);
+  for (const e of edges) { m.set(e.source, (m.get(e.source) || 0) + 1); }
   return m;
 }
 
@@ -76,7 +76,7 @@ function findCyclicSCCs(nodes: NodeLike[], edges: EdgeLike[]): string[][] {
   const nodeIds = new Set(nodes.map((n) => n.id));
   const adj = new Map<string, string[]>();
 
-  for (const n of nodes) adj.set(n.id, []);
+  for (const n of nodes) { adj.set(n.id, []); }
   for (const e of edges) {
     if (nodeIds.has(e.source) && nodeIds.has(e.target)) {
       adj.get(e.source)!.push(e.target);
@@ -109,18 +109,18 @@ function findCyclicSCCs(nodes: NodeLike[], edges: EdgeLike[]): string[][] {
         onStack.set(w, false);
         scc.push(w);
       } while (w !== v);
-      if (scc.length > 1) sccs.push(scc);
+      if (scc.length > 1) { sccs.push(scc); }
     }
   }
 
-  for (const n of nodes) if (!idx.has(n.id)) dfs(n.id);
+  for (const n of nodes) { if (!idx.has(n.id)) { dfs(n.id); } }
   return sccs;
 }
 
 /** 提取节点标题：优先 data.title（ReactFlow），回退到 (node as any).title（WorkflowNode） */
 function titleOf(n: NodeLike): string {
-  if (typeof (n as any).title === "string") return (n as any).title;
-  if (typeof n.data?.title === "string") return n.data.title;
+  if (typeof (n as any).title === "string") { return (n as any).title; }
+  if (typeof n.data?.title === "string") { return n.data.title; }
   return "";
 }
 
@@ -137,21 +137,50 @@ function titleOf(n: NodeLike): string {
  */
 export function suggest_title(id: string, type: string): string {
   const verbMap: Record<string, string> = {
-    get: "获取", fetch: "获取", query: "查询", search: "搜索",
-    create: "创建", update: "更新", delete: "删除",
-    send: "发送", notify: "通知",
-    parse: "解析", transform: "转换", validate: "验证",
-    analyze: "分析", summarize: "总结", translate: "翻译",
-    extract: "提取", merge: "合并", split: "拆分",
-    filter: "过滤", sort: "排序", calc: "计算",
-    gen: "生成", recommend: "推荐", classify: "分类",
+    get: "获取",
+    fetch: "获取",
+    query: "查询",
+    search: "搜索",
+    create: "创建",
+    update: "更新",
+    delete: "删除",
+    send: "发送",
+    notify: "通知",
+    parse: "解析",
+    transform: "转换",
+    validate: "验证",
+    analyze: "分析",
+    summarize: "总结",
+    translate: "翻译",
+    extract: "提取",
+    merge: "合并",
+    split: "拆分",
+    filter: "过滤",
+    sort: "排序",
+    calc: "计算",
+    gen: "生成",
+    recommend: "推荐",
+    classify: "分类",
   };
   const nounMap: Record<string, string> = {
-    data: "数据", market: "行情", trade: "交易", order: "订单",
-    user: "用户", account: "账户", report: "报告", config: "配置",
-    alert: "告警", log: "日志", metric: "指标", signal: "信号",
-    news: "新闻", price: "价格", risk: "风险",
-    portfolio: "组合", position: "持仓", kline: "K线",
+    data: "数据",
+    market: "行情",
+    trade: "交易",
+    order: "订单",
+    user: "用户",
+    account: "账户",
+    report: "报告",
+    config: "配置",
+    alert: "告警",
+    log: "日志",
+    metric: "指标",
+    signal: "信号",
+    news: "新闻",
+    price: "价格",
+    risk: "风险",
+    portfolio: "组合",
+    position: "持仓",
+    kline: "K线",
   };
 
   const segments = id.replace(/-\d+$/, "").split(/[-_]/);
@@ -201,7 +230,7 @@ export function validate_workflow(
   // ── 1. 孤立节点 ──────────────────────────────────────────
   for (const n of nodes) {
     const t = nodeTypeOf(n);
-    if (t === "trigger" || CONTAINER_NODE_TYPES.has(t)) continue;
+    if (t === "trigger" || CONTAINER_NODE_TYPES.has(t)) { continue; }
     if ((indegree.get(n.id) || 0) === 0 && (outdegree.get(n.id) || 0) === 0) {
       issues.push({
         rule: "orphan_node",
@@ -215,7 +244,7 @@ export function validate_workflow(
 
   // ── 2. 数据黑洞 ──────────────────────────────────────────
   for (const n of nodes) {
-    if (nodeTypeOf(n) !== "aggregator") continue;
+    if (nodeTypeOf(n) !== "aggregator") { continue; }
     if ((indegree.get(n.id) || 0) >= 3 && (outdegree.get(n.id) || 0) === 0) {
       issues.push({
         rule: "data_blackhole",
@@ -230,12 +259,14 @@ export function validate_workflow(
   // ── 3. 死分支 ────────────────────────────────────────────
   for (const n of nodes) {
     const t = nodeTypeOf(n);
-    if (!CONTAINER_NODE_TYPES.has(t)) continue;
-    if ((indegree.get(n.id) || 0) > 0 || (outdegree.get(n.id) || 0) > 0) continue;
+    if (!CONTAINER_NODE_TYPES.has(t)) { continue; }
+    if ((indegree.get(n.id) || 0) > 0 || (outdegree.get(n.id) || 0) > 0) { continue; }
 
     // decorative 容器跳过入度/出度检查（仅供视觉分组，调度引擎忽略）
-    if ((n as any).kind === "decorative" || (n as any).data?.kind === "decorative"
-      || (n as any).config?.kind === "decorative") continue;
+    if (
+      (n as any).kind === "decorative" || (n as any).data?.kind === "decorative"
+      || (n as any).config?.kind === "decorative"
+    ) { continue; }
 
     const hasChildren = nodes.some((x) => x.parentId === n.id);
     if (hasChildren) {
@@ -261,14 +292,14 @@ export function validate_workflow(
 
   // ── 4. 端口未连 ──────────────────────────────────────────
   for (const n of nodes) {
-    if (nodeTypeOf(n) !== "condition") continue;
+    if (nodeTypeOf(n) !== "condition") { continue; }
     const outgoing = edges.filter((e) => e.source === n.id);
     const hasTrue = outgoing.some((e) => e.sourceHandle === "true");
     const hasFalse = outgoing.some((e) => e.sourceHandle === "false");
 
     const missing: string[] = [];
-    if (!hasTrue) missing.push("true");
-    if (!hasFalse) missing.push("false");
+    if (!hasTrue) { missing.push("true"); }
+    if (!hasFalse) { missing.push("false"); }
     if (missing.length > 0) {
       issues.push({
         rule: "unconnected_port",
@@ -286,11 +317,11 @@ export function validate_workflow(
     const sccSet = new Set(scc);
     const hasBreak = realEdges.some(
       (e) =>
-        sccSet.has(e.source) &&
-        sccSet.has(e.target) &&
-        (e.edge_type === "loopBack" || e.sourceHandle === "loopBack"),
+        sccSet.has(e.source)
+        && sccSet.has(e.target)
+        && (e.edge_type === "loopBack" || e.sourceHandle === "loopBack"),
     );
-    if (hasBreak) continue;
+    if (hasBreak) { continue; }
 
     const sccEdgeIds = realEdges
       .filter((e) => sccSet.has(e.source) && sccSet.has(e.target) && e.id)
@@ -323,15 +354,15 @@ export function validate_workflow(
   const titleGroups = new Map<string, Set<string>>(); // title+type → Set<nodeId>
   for (const n of nodes) {
     const t = nodeTypeOf(n);
-    if (!t) continue;
+    if (!t) { continue; }
     const title = titleOf(n);
-    if (!title) continue;
+    if (!title) { continue; }
     const key = t + "::" + title;
-    if (!titleGroups.has(key)) titleGroups.set(key, new Set());
+    if (!titleGroups.has(key)) { titleGroups.set(key, new Set()); }
     titleGroups.get(key)!.add(n.id);
   }
   for (const [key, nodeIds] of titleGroups) {
-    if (nodeIds.size < 2) continue;
+    if (nodeIds.size < 2) { continue; }
     const [dupType, dupTitle] = key.split("::");
     issues.push({
       rule: "duplicate_title",
@@ -345,7 +376,7 @@ export function validate_workflow(
   // ── 8. WorkflowRef 校验 ─────────────────────────────────────
   for (const n of nodes) {
     const t = nodeTypeOf(n);
-    if (t !== "workflowRef") continue;
+    if (t !== "workflowRef") { continue; }
 
     // 8a. 空引用
     const refId = extractConfig(n, "target_workflow_id");
@@ -378,7 +409,7 @@ export function validate_workflow(
   const maxDepth = 3;
   for (const rn of refNodes) {
     const refId = extractConfig(rn, "target_workflow_id");
-    if (!refId) continue;
+    if (!refId) { continue; }
     // 模拟引用链：如果同一工作流内多个 workflowRef 互相连接形成潜在环，
     // 标记为高风险（前端仅能检测同模板内的直接自引用，完整闭环检测需后端）
     const chainCheck = new Set<string>();
@@ -406,9 +437,9 @@ export function validate_workflow(
 /** 从节点中提取 config 字段值（兼容 WorkflowNode 和 ReactFlow Node） */
 function extractConfig(n: NodeLike, key: string): string | undefined {
   const cfg = (n as any).config;
-  if (cfg && typeof cfg[key] === "string") return cfg[key];
-  if (n.data && typeof n.data[key] === "string") return n.data[key] as string;
-  if (n.data?.config && typeof (n.data.config as any)[key] === "string") return (n.data.config as any)[key];
+  if (cfg && typeof cfg[key] === "string") { return cfg[key]; }
+  if (n.data && typeof n.data[key] === "string") { return n.data[key] as string; }
+  if (n.data?.config && typeof (n.data.config as any)[key] === "string") { return (n.data.config as any)[key]; }
   return undefined;
 }
 
@@ -540,7 +571,7 @@ export function find_safe_position(
   const dirCands: Array<{ x: number; y: number; dist: number }> = [];
 
   for (const s of sibRects) {
-    if (!overlaps(ox, oy)) continue;
+    if (!overlaps(ox, oy)) { continue; }
 
     // 右
     const rx = s.x + s.w + min_gap;
@@ -580,7 +611,7 @@ export function find_safe_position(
 
   // 对角线回退：右 + 下
   for (const s of sibRects) {
-    if (!overlaps(ox, oy)) continue;
+    if (!overlaps(ox, oy)) { continue; }
     const fx = s.x + s.w + min_gap;
     const fy = s.y + s.h + min_gap;
     if (!overlaps(fx, fy)) {
@@ -1039,7 +1070,7 @@ export function auto_layout(
   for (const c of containers) {
     const cType = c.type || layoutNodeType(c);
     const layer = LAYER_ORDER[cType] ?? 3;
-    if (!containersByLayer[layer]) containersByLayer[layer] = [];
+    if (!containersByLayer[layer]) { containersByLayer[layer] = []; }
     containersByLayer[layer].push(c);
   }
 
@@ -1061,7 +1092,7 @@ export function auto_layout(
   // ── 子节点修正：转为相对父容器的坐标 ──────────────────────
   for (const c of containers) {
     const cPos = allPositions[c.id];
-    if (!cPos) continue;
+    if (!cPos) { continue; }
     const childIds = Object.keys(childOf).filter((cid) => childOf[cid] === c.id);
     for (const cid of childIds) {
       if (childPositions[cid]) {
@@ -1077,7 +1108,7 @@ export function auto_layout(
   // ── 写回 ──────────────────────────────────────────────────
   return nodes.map((n) => {
     const pos = allPositions[n.id];
-    if (!pos) return { ...n, position: { x: MARGIN, y: MARGIN } };
+    if (!pos) { return { ...n, position: { x: MARGIN, y: MARGIN } }; }
     // 子节点转为相对父容器的坐标
     const pid = childOf[n.id];
     if (pid && allPositions[pid]) {
@@ -1108,7 +1139,7 @@ function layerPositions(
   const layers: Record<number, AutoNode[]> = {};
   for (const n of nodes) {
     const l = LAYER_ORDER[n.type || layoutNodeType(n)] ?? 3;
-    if (!layers[l]) layers[l] = [];
+    if (!layers[l]) { layers[l] = []; }
     layers[l].push(n);
   }
 
@@ -1125,7 +1156,7 @@ function layerPositions(
       const nextIds = new Set<string>();
       for (const e of edges) {
         const srcInLayer = layerNodes.some((n) => n.id === e.source);
-        if (srcInLayer) nextIds.add(e.source);
+        if (srcInLayer) { nextIds.add(e.source); }
       }
       layerNodes.sort((a, b) => {
         const aCount = edges.filter((e) => e.source === a.id).length;
@@ -1159,9 +1190,9 @@ function layerPositions(
       });
 
       withBary.sort((a, b) => {
-        if (a.bary === -1 && b.bary === -1) return 0;
-        if (a.bary === -1) return 1;
-        if (b.bary === -1) return -1;
+        if (a.bary === -1 && b.bary === -1) { return 0; }
+        if (a.bary === -1) { return 1; }
+        if (b.bary === -1) { return -1; }
         return a.bary - b.bary;
       });
 

@@ -16,13 +16,13 @@ interface BaseEdgeData {
  * 用于 parallel 子节点出口区分，减少边交叉。
  */
 function sourceOffsetFromHandle(sourceHandle?: string | null, sourceNodeW?: number): number {
-  if (!sourceHandle || !sourceHandle.startsWith("port-")) return 0;
+  if (!sourceHandle || !sourceHandle.startsWith("port-")) { return 0; }
   const idx = parseInt(sourceHandle.replace("port-", ""), 10);
-  if (isNaN(idx)) return 0;
+  if (isNaN(idx)) { return 0; }
   const w = sourceNodeW || 200;
   // -1/3w, 0, +1/3w
-  if (idx === 0) return -w / 3;
-  if (idx === 2) return w / 3;
+  if (idx === 0) { return -w / 3; }
+  if (idx === 2) { return w / 3; }
   return 0;
 }
 
@@ -88,7 +88,7 @@ const BaseEdgeComponent: React.FC<EdgeProps<BaseEdgeData>> = ({
   };
 
   const getEdgeStroke = () => {
-    if (isGrouping) return token.colorTextQuaternary;
+    if (isGrouping) { return token.colorTextQuaternary; }
     if (showFlowAnimation) {
       if (data?.edgeType === "conditionTrue") { return token.colorSuccess; }
       if (data?.edgeType === "conditionFalse") { return token.colorError; }

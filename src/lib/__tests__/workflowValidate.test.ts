@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 
+import type { WorkflowEdge, WorkflowNode } from "@/components/workflow/types";
 import { suggest_title, validate_workflow } from "@/lib/workflowLayout";
 import type { ValidateIssue } from "@/lib/workflowLayout";
-import type { WorkflowEdge, WorkflowNode } from "@/components/workflow/types";
 
 // ── 工厂函数 ──────────────────────────────────────────────────
 
@@ -105,8 +105,11 @@ describe("validate_workflow", () => {
 
     it("aggregator 出度>0 不报错", () => {
       const nodes = [
-        n("a", "agent"), n("b", "agent"), n("c", "agent"),
-        n("agg", "aggregator"), n("out", "agent"),
+        n("a", "agent"),
+        n("b", "agent"),
+        n("c", "agent"),
+        n("agg", "aggregator"),
+        n("out", "agent"),
       ];
       const edges = [
         e("e1", "a", "agg"),

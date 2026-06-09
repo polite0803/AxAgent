@@ -1,8 +1,8 @@
+import { useWorkflowEditorStore } from "@/stores/feature/workflowEditorStore";
 import { Button, theme, Tooltip } from "antd";
 import React, { memo, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { Handle, type NodeProps, Position } from "reactflow";
-import { useWorkflowEditorStore } from "@/stores/feature/workflowEditorStore";
 
 const PURPLE_BASE = "#722ed1";
 const PURPLE_VAR = `var(--purple, ${PURPLE_BASE})`;
@@ -30,9 +30,9 @@ interface TriggerNodeData {
 type TriggerStatus = "active" | "disabled" | "unconfigured";
 
 function getTriggerStatus(data: TriggerNodeData): TriggerStatus {
-  if (!data.enabled) return "disabled";
+  if (!data.enabled) { return "disabled"; }
   const tc = data.config || data.triggerConfig;
-  if (!tc || !tc.config) return "unconfigured";
+  if (!tc || !tc.config) { return "unconfigured"; }
   return "active";
 }
 
@@ -118,8 +118,8 @@ const TriggerNodeComponent: React.FC<NodeProps<TriggerNodeData>> = ({
   );
 
   const tooltipMsg = (() => {
-    if (status === "active") return t("workflow.triggerNode.statusActive");
-    if (status === "disabled") return t("workflow.triggerNode.statusDisabled");
+    if (status === "active") { return t("workflow.triggerNode.statusActive"); }
+    if (status === "disabled") { return t("workflow.triggerNode.statusDisabled"); }
     return t("workflow.triggerNode.statusUnconfigured");
   })();
 

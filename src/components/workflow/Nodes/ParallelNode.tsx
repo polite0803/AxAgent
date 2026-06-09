@@ -96,48 +96,50 @@ const ParallelNodeComponent: React.FC<NodeProps<ParallelNodeData>> = ({
           {data.title}
         </span>
 
-        {isDecorative ? (
-          <Tag
-            style={{
-              margin: 0,
-              fontSize: 9,
-              padding: "0 4px",
-              background: "transparent",
-              border: `1px dashed ${ORANGE_BASE}50`,
-              color: ORANGE_VAR,
-              opacity: 0.7,
-            }}
-          >
-            {t("workflow.parallelNode.decorative")}
-          </Tag>
-        ) : (
-          <div style={{ display: "flex", gap: 4 }}>
+        {isDecorative
+          ? (
             <Tag
               style={{
                 margin: 0,
                 fontSize: 9,
                 padding: "0 4px",
-                background: `${ORANGE_BASE}20`,
-                border: `1px solid ${ORANGE_BASE}50`,
+                background: "transparent",
+                border: `1px dashed ${ORANGE_BASE}50`,
                 color: ORANGE_VAR,
+                opacity: 0.7,
               }}
             >
-              {branches} {t("workflow.parallelNode.branches")}
+              {t("workflow.parallelNode.decorative")}
             </Tag>
-            <Tag
-              style={{
-                margin: 0,
-                fontSize: 9,
-                padding: "0 4px",
-                background: token.colorBgContainer,
-                border: `1px solid ${token.colorBorderSecondary}`,
-                color: token.colorTextTertiary,
-              }}
-            >
-              {getWaitStrategyLabel(waitStrategy)}
-            </Tag>
-          </div>
-        )}
+          )
+          : (
+            <div style={{ display: "flex", gap: 4 }}>
+              <Tag
+                style={{
+                  margin: 0,
+                  fontSize: 9,
+                  padding: "0 4px",
+                  background: `${ORANGE_BASE}20`,
+                  border: `1px solid ${ORANGE_BASE}50`,
+                  color: ORANGE_VAR,
+                }}
+              >
+                {branches} {t("workflow.parallelNode.branches")}
+              </Tag>
+              <Tag
+                style={{
+                  margin: 0,
+                  fontSize: 9,
+                  padding: "0 4px",
+                  background: token.colorBgContainer,
+                  border: `1px solid ${token.colorBorderSecondary}`,
+                  color: token.colorTextTertiary,
+                }}
+              >
+                {getWaitStrategyLabel(waitStrategy)}
+              </Tag>
+            </div>
+          )}
 
         {autoInputFromParent && !isDecorative && (
           <span style={{ fontSize: 9, color: token.colorTextTertiary }}>

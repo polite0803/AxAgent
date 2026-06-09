@@ -8,6 +8,7 @@ import {
   Download,
   Ellipsis,
   Eye,
+  History,
   Image as ImageIcon,
   Keyboard,
   ListChecks,
@@ -19,7 +20,6 @@ import {
   Shuffle,
   Sparkles,
   Undo2,
-  History,
 } from "lucide-react";
 import React, { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";

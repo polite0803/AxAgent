@@ -16,7 +16,14 @@ import {
 } from "reactflow";
 import "reactflow/dist/style.css";
 import { isTauri } from "@/lib/invoke";
-import { auto_layout, autoLayoutWorkflow, find_safe_position, getNodeSize, type ValidateIssue, validate_workflow } from "@/lib/workflowLayout";
+import {
+  auto_layout,
+  autoLayoutWorkflow,
+  find_safe_position,
+  getNodeSize,
+  validate_workflow,
+  type ValidateIssue,
+} from "@/lib/workflowLayout";
 import { useAgentProfileStore, useWorkflowEditorStore } from "@/stores";
 import { useExpertStore } from "@/stores/feature/expertStore";
 import { useWorkEngineStore } from "@/stores/feature/workEngineStore";
@@ -658,9 +665,9 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
       // 构建 parallel 子节点 → 端口号映射（用于边出口分散，减少交叉）
       const childPortMap = new Map<string, string>();
       for (const node of nodes) {
-        if (node.type !== "parallel") continue;
+        if (node.type !== "parallel") { continue; }
         const cfg = (node as any).config as { branches?: Array<{ steps: string[] }> } | undefined;
-        if (!cfg?.branches) continue;
+        if (!cfg?.branches) { continue; }
         for (let bi = 0; bi < cfg.branches.length; bi++) {
           const portId = bi === 0 ? "port-0" : bi === 1 ? "port-1" : "port-2";
           for (const stepId of cfg.branches[bi].steps || []) {
@@ -707,7 +714,8 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
         flowEdges.push({
           id: edge.id,
           source: remappedSource,
-          sourceHandle: wasRemapped && remappedSource !== edge.source ? undefined
+          sourceHandle: wasRemapped && remappedSource !== edge.source
+            ? undefined
             : (childPortMap.get(edge.source) ?? edge.sourceHandle),
           target: remappedTarget,
           targetHandle: wasRemapped && remappedTarget !== edge.target ? undefined : edge.targetHandle,
@@ -1002,7 +1010,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
     if (frontendErrors.length > 0) {
       message.error(
         t("workflow.validationFailed", { count: frontendErrors.length })
-        + "\n" + frontendErrors.map((i) => i.message).join("\n"),
+          + "\n" + frontendErrors.map((i) => i.message).join("\n"),
       );
       return;
     }

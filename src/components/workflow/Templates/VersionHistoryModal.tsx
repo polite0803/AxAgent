@@ -1,5 +1,5 @@
-import { useWorkflowEditorStore } from "@/stores";
 import { invoke } from "@/lib/invoke";
+import { useWorkflowEditorStore } from "@/stores";
 import { Button, List, message, Modal, Select, Spin, Tag, theme, Tooltip } from "antd";
 import { History, RotateCcw } from "lucide-react";
 import React, { useCallback, useEffect, useState } from "react";
@@ -57,7 +57,7 @@ function computeDiff(
   // 修改节点（同 id，不同 type 或 config）
   for (const nb of nodesB) {
     const na = nodesByA.get(nb.id);
-    if (!na) continue;
+    if (!na) { continue; }
     if (na.type !== nb.type) {
       results.push({
         type: "modified",
@@ -129,7 +129,7 @@ export const VersionHistoryModal: React.FC<VersionHistoryModalProps> = ({
   }, [visible, template?.id]);
 
   const loadVersions = async () => {
-    if (!template?.id) return;
+    if (!template?.id) { return; }
     setLoadingVersions(true);
     try {
       const vers = await loadTemplateVersions(template.id);
@@ -142,7 +142,7 @@ export const VersionHistoryModal: React.FC<VersionHistoryModalProps> = ({
   };
 
   const handleLoadVersion = async (version: number) => {
-    if (!template?.id) return;
+    if (!template?.id) { return; }
     setLoading(true);
     try {
       await loadTemplateByVersion(template.id, version);
@@ -160,7 +160,7 @@ export const VersionHistoryModal: React.FC<VersionHistoryModalProps> = ({
   };
 
   const handleCompare = useCallback(async () => {
-    if (!template?.id || diffVerA == null || diffVerB == null) return;
+    if (!template?.id || diffVerA == null || diffVerB == null) { return; }
     try {
       const store = useWorkflowEditorStore.getState();
       await store.loadTemplateByVersion(template.id, diffVerA);
@@ -183,7 +183,7 @@ export const VersionHistoryModal: React.FC<VersionHistoryModalProps> = ({
 
   /** 回滚到指定版本：用旧版本数据创建新版本 */
   const handleRollback = useCallback(async () => {
-    if (!template?.id || rollbackVersion == null) return;
+    if (!template?.id || rollbackVersion == null) { return; }
     setRollingBack(true);
     try {
       // 1. 加载旧版本数据
@@ -226,9 +226,11 @@ export const VersionHistoryModal: React.FC<VersionHistoryModalProps> = ({
   }, [template, rollbackVersion, t]);
 
   const diffCount = diffEntries
-    ? { added: diffEntries.filter((d) => d.type === "added").length,
-        modified: diffEntries.filter((d) => d.type === "modified").length,
-        removed: diffEntries.filter((d) => d.type === "removed").length }
+    ? {
+      added: diffEntries.filter((d) => d.type === "added").length,
+      modified: diffEntries.filter((d) => d.type === "modified").length,
+      removed: diffEntries.filter((d) => d.type === "removed").length,
+    }
     : null;
 
   const maxVersion = Math.max(...versions, template?.version || 0);
@@ -249,7 +251,11 @@ export const VersionHistoryModal: React.FC<VersionHistoryModalProps> = ({
     >
       {/* ── 版本列表 ──────────────────────────────────────── */}
       {loadingVersions
-        ? <div style={{ textAlign: "center", padding: 40 }}><Spin /></div>
+        ? (
+          <div style={{ textAlign: "center", padding: 40 }}>
+            <Spin />
+          </div>
+        )
         : (
           <List
             size="small"
@@ -307,7 +313,9 @@ export const VersionHistoryModal: React.FC<VersionHistoryModalProps> = ({
       {/* ── 版本对比（仅 ≥2 版本时展示） ──────────────────── */}
       {versions.length >= 2 && (
         <div style={{ borderTop: `1px solid ${token.colorBorderSecondary}`, paddingTop: 12, marginTop: 12 }}>
-          <div style={{ fontWeight: 500, fontSize: 12, marginBottom: 8, display: "flex", gap: 8, alignItems: "center" }}>
+          <div
+            style={{ fontWeight: 500, fontSize: 12, marginBottom: 8, display: "flex", gap: 8, alignItems: "center" }}
+          >
             <span>{t("workflow.versionHistory.compareVersions")}</span>
             <Select
               size="small"
@@ -326,15 +334,17 @@ export const VersionHistoryModal: React.FC<VersionHistoryModalProps> = ({
               onChange={setDiffVerB}
               options={versions.map((v) => ({ value: v, label: `v${v}` }))}
             />
-            <Button size="small" onClick={handleCompare} disabled={diffVerA == null || diffVerB == null || diffVerA === diffVerB}>
+            <Button
+              size="small"
+              onClick={handleCompare}
+              disabled={diffVerA == null || diffVerB == null || diffVerA === diffVerB}
+            >
               {t("workflow.versionHistory.compare")}
             </Button>
             {diffEntries && (
               <span style={{ fontSize: 11, color: token.colorTextQuaternary, marginLeft: 4 }}>
-                <span style={{ color: token.colorSuccess }}>+{diffCount?.added}</span>
-                {" "}
-                <span style={{ color: token.colorWarning }}>~{diffCount?.modified}</span>
-                {" "}
+                <span style={{ color: token.colorSuccess }}>+{diffCount?.added}</span>{" "}
+                <span style={{ color: token.colorWarning }}>~{diffCount?.modified}</span>{" "}
                 <span style={{ color: token.colorError }}>-{diffCount?.removed}</span>
               </span>
             )}
@@ -353,8 +363,10 @@ export const VersionHistoryModal: React.FC<VersionHistoryModalProps> = ({
               }}
             >
               {diffEntries.map((entry, i) => {
-                const color = entry.type === "added" ? token.colorSuccess
-                  : entry.type === "removed" ? token.colorError
+                const color = entry.type === "added"
+                  ? token.colorSuccess
+                  : entry.type === "removed"
+                  ? token.colorError
                   : token.colorWarning;
                 const prefix = entry.type === "added" ? "+" : entry.type === "removed" ? "−" : "~";
                 return (
