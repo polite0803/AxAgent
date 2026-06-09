@@ -996,82 +996,55 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
         return;
       }
 
-      const { default: html2canvas } = await import("html2canvas");
+      // dom-to-image-more uses SVG <foreignObject> — the browser renders
+      // HTML natively inside the SVG, so modern CSS (oklch, etc.) works.
+      const domtoimage = await import("dom-to-image-more");
 
-      // html2canvas cannot parse CSS Color Level 4 functions like oklch().
-      // Modify all <style> elements in the real document to replace oklch
-      // with browser-resolved rgb()/rgba(), then restore after capture.
-      const oklchCache = new Map<string, string>();
-      function resolveOklch(oklchStr: string): string {
-        const cached = oklchCache.get(oklchStr);
-        if (cached) { return cached; }
-        const el = document.createElement("div");
-        el.style.setProperty("color", oklchStr, "important");
-        document.body.appendChild(el);
-        const rgb = getComputedStyle(el).color;
-        document.body.removeChild(el);
-        oklchCache.set(oklchStr, rgb);
-        return rgb;
-      }
+      const defaultName = `${currentTemplate?.name || "workflow"}.png`;
 
-      const patchedStyles: { el: HTMLStyleElement; original: string }[] = [];
-      document.querySelectorAll("style").forEach((style) => {
-        const text = style.textContent;
-        if (!text || !text.includes("oklch")) { return; }
-        const replaced = text.replace(/oklch\([^)]*\)/g, resolveOklch);
-        if (replaced !== text) {
-          patchedStyles.push({ el: style, original: text });
-          style.textContent = replaced;
-        }
-      });
-
-      try {
-        const canvas = await html2canvas(element, {
-          useCORS: true,
+      const { isTauri } = await import("@/lib/invoke");
+      if (isTauri()) {
+        const blob = await domtoimage.toBlob(element, {
+          bgColor: "#1a1a2e",
           scale: 2,
-          backgroundColor: "#1a1a2e",
+          width: element.scrollWidth,
+          height: element.scrollHeight,
         });
 
-        // ... rest of capture logic using `canvas`
-        const defaultName = `${currentTemplate?.name || "workflow"}.png`;
-
-        // Check if running in Tauri environment
-        const { isTauri } = await import("@/lib/invoke");
-        if (isTauri()) {
-          const { save } = await import("@tauri-apps/plugin-dialog");
-          const { writeFile } = await import("@tauri-apps/plugin-fs");
-
-          const filePath = await save({
-            defaultPath: defaultName,
-            filters: [{ name: "PNG Image", extensions: ["png"] }],
-          });
-
-          if (!filePath) {
-            return; // User cancelled
-          }
-
-          const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"));
-          if (!blob) {
-            message.error(t("workflow.exportFailed"));
-            return;
-          }
-
-          await writeFile(filePath, new Uint8Array(await blob.arrayBuffer()));
-        } else {
-          // Browser fallback: direct download
-          const link = document.createElement("a");
-          link.download = defaultName;
-          link.href = canvas.toDataURL("image/png");
-          link.click();
+        if (!blob) {
+          message.error(t("workflow.exportFailed"));
+          return;
         }
 
-        message.success(t("workflow.exportSuccess"));
-      } finally {
-        // Restore original style elements
-        for (const { el, original } of patchedStyles) {
-          el.textContent = original;
+        const { save } = await import("@tauri-apps/plugin-dialog");
+        const { writeFile } = await import("@tauri-apps/plugin-fs");
+
+        const filePath = await save({
+          defaultPath: defaultName,
+          filters: [{ name: "PNG Image", extensions: ["png"] }],
+        });
+
+        if (!filePath) {
+          return; // User cancelled
         }
+
+        await writeFile(filePath, new Uint8Array(await blob.arrayBuffer()));
+      } else {
+        // Browser fallback: data URL download
+        const dataUrl = await domtoimage.toPng(element, {
+          bgColor: "#1a1a2e",
+          scale: 2,
+          width: element.scrollWidth,
+          height: element.scrollHeight,
+        });
+
+        const link = document.createElement("a");
+        link.download = defaultName;
+        link.href = dataUrl;
+        link.click();
       }
+
+      message.success(t("workflow.exportSuccess"));
     } catch (error) {
       console.error("[saveAsImage]", error);
       message.error(`${t("workflow.exportFailed")}: ${error instanceof Error ? error.message : String(error)}`);
