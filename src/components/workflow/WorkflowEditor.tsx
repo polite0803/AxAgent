@@ -999,76 +999,79 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
       const { default: html2canvas } = await import("html2canvas");
 
       // html2canvas cannot parse CSS Color Level 4 functions like oklch().
-      // Resolve them to rgb()/rgba() using the browser's native CSS engine
-      // before capture, then inject via onclone.
-      const rootStyle = getComputedStyle(document.documentElement);
-      const resolvedVars: Record<string, string> = {};
-      const tmpEl = document.createElement("div");
-      document.body.appendChild(tmpEl);
-      for (let i = 0; i < rootStyle.length; i++) {
-        const name = rootStyle[i];
-        if (!name.startsWith("--")) { continue; }
-        const val = rootStyle.getPropertyValue(name).trim();
-        if (!val || !val.includes("oklch")) { continue; }
-        // Assign oklch to a concrete CSS property so the browser resolves it to RGB
-        tmpEl.style.setProperty("background-color", val, "important");
-        const resolved = getComputedStyle(tmpEl).backgroundColor;
-        tmpEl.style.removeProperty("background-color");
-        if (resolved && resolved !== "rgba(0, 0, 0, 0)") {
-          resolvedVars[name] = resolved;
-        }
+      // Modify all <style> elements in the real document to replace oklch
+      // with browser-resolved rgb()/rgba(), then restore after capture.
+      const oklchCache = new Map<string, string>();
+      function resolveOklch(oklchStr: string): string {
+        const cached = oklchCache.get(oklchStr);
+        if (cached) { return cached; }
+        const el = document.createElement("div");
+        el.style.setProperty("color", oklchStr, "important");
+        document.body.appendChild(el);
+        const rgb = getComputedStyle(el).color;
+        document.body.removeChild(el);
+        oklchCache.set(oklchStr, rgb);
+        return rgb;
       }
-      document.body.removeChild(tmpEl);
 
-      const overrideEntries = Object.entries(resolvedVars)
-        .map(([k, v]) => `  ${k}: ${v};`)
-        .join("\n");
-      const overrideCss = `:root {\n${overrideEntries}\n}`;
-
-      const canvas = await html2canvas(element, {
-        useCORS: true,
-        scale: 2,
-        backgroundColor: "#1a1a2e",
-        onclone: (clonedDoc) => {
-          const style = clonedDoc.createElement("style");
-          style.textContent = overrideCss;
-          clonedDoc.head.appendChild(style);
-        },
+      const patchedStyles: { el: HTMLStyleElement; original: string }[] = [];
+      document.querySelectorAll("style").forEach((style) => {
+        const text = style.textContent;
+        if (!text || !text.includes("oklch")) { return; }
+        const replaced = text.replace(/oklch\([^)]*\)/g, resolveOklch);
+        if (replaced !== text) {
+          patchedStyles.push({ el: style, original: text });
+          style.textContent = replaced;
+        }
       });
 
-      const defaultName = `${currentTemplate?.name || "workflow"}.png`;
-
-      // Check if running in Tauri environment
-      const { isTauri } = await import("@/lib/invoke");
-      if (isTauri()) {
-        const { save } = await import("@tauri-apps/plugin-dialog");
-        const { writeFile } = await import("@tauri-apps/plugin-fs");
-
-        const filePath = await save({
-          defaultPath: defaultName,
-          filters: [{ name: "PNG Image", extensions: ["png"] }],
+      try {
+        const canvas = await html2canvas(element, {
+          useCORS: true,
+          scale: 2,
+          backgroundColor: "#1a1a2e",
         });
 
-        if (!filePath) {
-          return; // User cancelled
+        // ... rest of capture logic using `canvas`
+        const defaultName = `${currentTemplate?.name || "workflow"}.png`;
+
+        // Check if running in Tauri environment
+        const { isTauri } = await import("@/lib/invoke");
+        if (isTauri()) {
+          const { save } = await import("@tauri-apps/plugin-dialog");
+          const { writeFile } = await import("@tauri-apps/plugin-fs");
+
+          const filePath = await save({
+            defaultPath: defaultName,
+            filters: [{ name: "PNG Image", extensions: ["png"] }],
+          });
+
+          if (!filePath) {
+            return; // User cancelled
+          }
+
+          const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"));
+          if (!blob) {
+            message.error(t("workflow.exportFailed"));
+            return;
+          }
+
+          await writeFile(filePath, new Uint8Array(await blob.arrayBuffer()));
+        } else {
+          // Browser fallback: direct download
+          const link = document.createElement("a");
+          link.download = defaultName;
+          link.href = canvas.toDataURL("image/png");
+          link.click();
         }
 
-        const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"));
-        if (!blob) {
-          message.error(t("workflow.exportFailed"));
-          return;
+        message.success(t("workflow.exportSuccess"));
+      } finally {
+        // Restore original style elements
+        for (const { el, original } of patchedStyles) {
+          el.textContent = original;
         }
-
-        await writeFile(filePath, new Uint8Array(await blob.arrayBuffer()));
-      } else {
-        // Browser fallback: direct download
-        const link = document.createElement("a");
-        link.download = defaultName;
-        link.href = canvas.toDataURL("image/png");
-        link.click();
       }
-
-      message.success(t("workflow.exportSuccess"));
     } catch (error) {
       console.error("[saveAsImage]", error);
       message.error(`${t("workflow.exportFailed")}: ${error instanceof Error ? error.message : String(error)}`);
