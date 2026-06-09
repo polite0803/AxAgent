@@ -7,10 +7,10 @@ use super::execution_state::ExecutionState;
 use super::executors::{
     AggregatorExecutor, ApprovalExecutor, CodeExecutor, DataTransformerExecutor,
     DatabaseQueryExecutor, DebateExecutor, DelayExecutor, DocumentParserExecutor, EmailExecutor,
-    EndExecutor, FallbackExecutor, FileOperationExecutor, HttpRequestExecutor,
-    LlmClassifierExecutor, LoggingExecutor, LoopExecutor, MergeExecutor, NotificationExecutor,
-    ParallelExecutor, SubWorkflowExecutor, SwitchExecutor, ToolExecutor, TriggerExecutor,
-    ValidationExecutor, VectorRetrieveExecutor, WebhookSendExecutor,
+    EndExecutor, FallbackExecutor, FileOperationExecutor, HttpRequestExecutor, LoggingExecutor,
+    LoopExecutor, MergeExecutor, NotificationExecutor, ParallelExecutor, SubWorkflowExecutor,
+    SwitchExecutor, ToolExecutor, TriggerExecutor, ValidationExecutor, VectorRetrieveExecutor,
+    WebhookSendExecutor,
 };
 use super::node_executor_trait::{
     NodeError, NodeExecutorTrait, NodeOutput, error_code, node_type_name,
@@ -54,7 +54,7 @@ impl NodeDispatcher {
         dispatcher.register(DataTransformerExecutor::new());
         dispatcher.register(WebhookSendExecutor::new());
         dispatcher.register(LoggingExecutor::new());
-        dispatcher.register(LlmClassifierExecutor::default());
+        // LlmClassifierExecutor 由 WorkEngine::new() 配置并注册（需要 db、master_key 等依赖）
         dispatcher.register(AggregatorExecutor::new());
         dispatcher.register(EmailExecutor::new());
         dispatcher
