@@ -392,7 +392,7 @@ export function WikiDetailPanel({
                   <Button
                     size="small"
                     className="text-xs opacity-70 hover:opacity-100 transition-opacity"
-                    onClick={() => setContent((c) => c + "[[新笔记]]")}
+                    onClick={() => setContent((c) => c + `[[${t("wiki.newNote")}]]`)}
                   >
                     <LinkOutlined /> [[link]]
                   </Button>
