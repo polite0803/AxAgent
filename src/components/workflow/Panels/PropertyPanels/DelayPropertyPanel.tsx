@@ -1,7 +1,7 @@
 import { Divider, Input, InputNumber, Select, theme } from "antd";
 import React from "react";
 import { useTranslation } from "react-i18next";
-import type { DelayNode, WorkflowNode } from "../../types";
+import type { DelayNode, DelayNodeConfig, WorkflowNode } from "../../types";
 import { BasePropertyPanel } from "./BasePropertyPanel";
 
 interface DelayPropertyPanelProps {
@@ -18,8 +18,7 @@ function DelayConfig({
   config,
   handleConfigChange,
 }: {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  config: any;
+  config: DelayNodeConfig;
   handleConfigChange: (key: string, value: unknown) => void;
 }) {
   const { t } = useTranslation();
