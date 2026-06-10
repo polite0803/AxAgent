@@ -594,8 +594,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
                   ...childFn,
                   parentId: node.id,
                   extent: "parent",
-                  expandParent: true,
-                  hidden: isCollapsedParent ? true : childFn.hidden,
+                                    hidden: isCollapsedParent ? true : childFn.hidden,
                 };
                 expectedParentByNode[stepId] = node.id;
               }
@@ -625,8 +624,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
                   ...mergeFn,
                   parentId: targetParent,
                   extent: "parent",
-                  expandParent: true,
-                  hidden: isCollapsedParent ? true : mergeFn.hidden,
+                                    hidden: isCollapsedParent ? true : mergeFn.hidden,
                 };
                 expectedParentByNode[node.id] = targetParent;
               }
@@ -648,8 +646,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
                 ...childFn,
                 parentId: node.id,
                 extent: "parent",
-                expandParent: true,
-                hidden: isCollapsedParent ? true : childFn.hidden,
+                                hidden: isCollapsedParent ? true : childFn.hidden,
               };
               expectedParentByNode[stepId] = node.id;
             }
@@ -670,8 +667,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
                 ...childFn,
                 parentId: node.id,
                 extent: "parent",
-                expandParent: true,
-                hidden: isCollapsedParent ? true : childFn.hidden,
+                                hidden: isCollapsedParent ? true : childFn.hidden,
               };
               expectedParentByNode[sourceId] = node.id;
             }
@@ -692,8 +688,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
                 ...childFn,
                 parentId: node.id,
                 extent: "parent",
-                expandParent: true,
-                hidden: isCollapsedParent ? true : childFn.hidden,
+                                hidden: isCollapsedParent ? true : childFn.hidden,
               };
               expectedParentByNode[stepId] = node.id;
             }
@@ -714,8 +709,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
                 ...childFn,
                 parentId: node.id,
                 extent: "parent",
-                expandParent: true,
-                hidden: isCollapsedParent ? true : childFn.hidden,
+                                hidden: isCollapsedParent ? true : childFn.hidden,
               };
               expectedParentByNode[stepId] = node.id;
             }
@@ -768,8 +762,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
             position: relPos,
             parentId: containerNode.id,
             extent: "parent" as const,
-            expandParent: true,
-            data: subData,
+                        data: subData,
           };
 
           if (existingIdx !== -1) {
@@ -779,8 +772,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
               position: relPos,
               parentId: containerNode.id,
               extent: "parent" as const,
-              expandParent: true,
-              data: {
+                            data: {
                 ...flowNodes[existingIdx].data,
                 ...subData,
               },
@@ -812,8 +804,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
             position: { x: subNode.position.x, y: subNode.position.y },
             parentId: swNodeId,
             extent: "parent" as const,
-            expandParent: true,
-            data: {
+                        data: {
               ...subNode,
               label: subNode.title,
               color: "#eb2f96",
@@ -1167,7 +1158,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
           id,
           type: actualNodeType,
           position: relativePosition,
-          ...(hitContainerId ? { parentId: hitContainerId, extent: "parent" as const, expandParent: true } : {}),
+          ...(hitContainerId ? { parentId: hitContainerId, extent: "parent" as const } : {}),
           data: {
             id,
             type: payload.type,
@@ -2467,7 +2458,7 @@ function createWorkflowNode(
     timeout: undefined,
     enabled: true,
     parentId,
-    ...(parentId ? { extent: "parent" as const, expandParent: true } : {}),
+    ...(parentId ? { extent: "parent" as const } : {}),
   };
 
   switch (type) {

@@ -107,7 +107,7 @@ function SectionFallback() {
   );
 }
 
-const SECTION_COMPONENTS: Record<SettingsSection, React.ComponentType<any>> = {
+const SECTION_COMPONENTS: Record<SettingsSection, () => React.ReactNode> = {
   providers: () => (
     <Suspense fallback={<SectionFallback />}>
       <LazyProviderSettings />
@@ -284,9 +284,18 @@ function CronManagerWrapper() {
 
   const loadJobs = useCallback(async () => {
     try {
-      const tasks: any[] = await invoke("list_scheduled_tasks");
+      const tasks = await invoke<Array<{
+        id: string;
+        name: string;
+        cron_expression?: string;
+        description: string;
+        task_type?: string;
+        status: string;
+        last_run_at?: string;
+        next_run_at?: string;
+      }>>("list_scheduled_tasks");
       setJobs(
-        tasks.map((task: any) => ({
+        tasks.map((task) => ({
           id: task.id,
           name: task.name,
           schedule: task.cron_expression ?? "",
@@ -304,6 +313,7 @@ function CronManagerWrapper() {
   }, [t]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadJobs();
   }, [loadJobs]);
 

@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { useSkillStore } from "@/stores";
 import type { SkillProposal } from "@/types";
 import { Button, Card, Empty, message, Modal, Space, Spin, Tag, theme, Typography } from "antd";
@@ -140,6 +141,7 @@ export const SkillProposalPanel: React.FC<SkillProposalPanelProps> = ({
   const { loadSkillProposals, createSkillFromProposal } = useSkillStore();
   const [localProposals, setLocalProposals] = useState<SkillProposal[]>([]);
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (open) {
       setLoading(true);
@@ -150,6 +152,7 @@ export const SkillProposalPanel: React.FC<SkillProposalPanelProps> = ({
         .finally(() => setLoading(false));
     }
   }, [open, loadSkillProposals]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const handleCreate = async (proposal: SkillProposal) => {
     try {
@@ -162,7 +165,7 @@ export const SkillProposalPanel: React.FC<SkillProposalPanelProps> = ({
         t("skill.proposal.created") + " " + proposal.suggested_name,
       );
       setLocalProposals((prev) => prev.filter((p) => p.suggested_name !== proposal.suggested_name));
-    } catch (e) {
+    } catch {
       message.error(t("skill.proposal.error"));
     }
   };

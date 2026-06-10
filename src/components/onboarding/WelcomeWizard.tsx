@@ -47,8 +47,9 @@ export function WelcomeWizard() {
 
   // 自动检测
   useEffect(() => {
-    detectOllama();
-    detectKeys();
+    void detectOllama();
+    void detectKeys();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleApplyPreset = async (preset: string) => {

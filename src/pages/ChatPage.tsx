@@ -167,6 +167,7 @@ export function ChatPage() {
     if (activeTab && activeTab.conversationId !== activeConversationId) {
       void setActiveConversation(activeTab.conversationId);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTabId]);
 
   // 当 activeConversationId 从外部变化时（如侧边栏点击），确保有对应 tab
@@ -189,6 +190,7 @@ export function ChatPage() {
     } else if (existingTab.id !== activeTabId) {
       useTabStore.getState().setActiveTab(existingTab.id);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeConversationId]);
 
   // 是否显示右侧面板（仅 agent 模式 + 设置启用）

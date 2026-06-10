@@ -262,10 +262,12 @@ export function EvolutionSettings() {
   }, [stats, t]);
 
   const fetchStatsRef = useRef(fetchStats);
-  fetchStatsRef.current = fetchStats;
+  useEffect(() => {
+    fetchStatsRef.current = fetchStats;
+  });
 
   useEffect(() => {
-    fetchStats();
+    fetchStatsRef.current();
     const interval = setInterval(() => fetchStatsRef.current(), 30000);
     return () => clearInterval(interval);
   }, []);

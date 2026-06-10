@@ -45,6 +45,7 @@ export function FilePermissionDialog({
   const [expiresAtFormatted, setExpiresAtFormatted] = useState("");
   useEffect(() => {
     if (result?.expires_at) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setExpiresAtFormatted(new Date(result.expires_at).toLocaleString());
     }
   }, [result?.expires_at]);

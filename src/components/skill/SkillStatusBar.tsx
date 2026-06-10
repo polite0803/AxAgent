@@ -93,6 +93,7 @@ function StatusBarItem({ item }: { item: MergedStatusBarItem }) {
       }}
       onClick={handleClick}
     >
+      {/* eslint-disable-next-line react-hooks/static-components */}
       {IconComp && <IconComp size={12} />}
       {displayText}
     </Typography.Text>

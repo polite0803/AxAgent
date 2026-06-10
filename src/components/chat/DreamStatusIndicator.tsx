@@ -26,6 +26,7 @@ export function DreamStatusIndicator() {
   // 当完成时显示结果快照，3s 后隐藏
   useEffect(() => {
     if (status === "completed" && lastResult) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setShowResult(true);
       const timer = setTimeout(() => setShowResult(false), 3500);
       return () => clearTimeout(timer);

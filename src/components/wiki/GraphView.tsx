@@ -596,6 +596,7 @@ function GraphViewInner({
       }
     };
     containerRef.current?.addEventListener("keydown", handleKeyDown);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     return () => containerRef.current?.removeEventListener("keydown", handleKeyDown);
   }, [selectedNodeId, onDeleteNode, onDeselect]);
 

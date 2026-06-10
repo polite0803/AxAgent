@@ -103,7 +103,7 @@ function StatusDisplay({ state }: { state: VoiceSessionState }) {
       default:
         return null;
     }
-  }, [state, t]);
+  }, [state, t, textColor, token]);
 
   return <>{content}</>;
 }

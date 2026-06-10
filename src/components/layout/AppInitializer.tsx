@@ -126,6 +126,7 @@ export function AppInitializer({ children }: AppInitializerProps) {
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     runInit();
   }, [runInit]);
 

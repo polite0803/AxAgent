@@ -41,6 +41,7 @@ export function ReportViewer({
   const [createdAtFormatted, setCreatedAtFormatted] = useState("");
   useEffect(() => {
     if (report?.createdAt) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setCreatedAtFormatted(new Date(report.createdAt).toLocaleString());
     }
   }, [report?.createdAt]);
@@ -91,7 +92,7 @@ export function ReportViewer({
       ],
       ALLOWED_ATTR: ["href", "src", "alt", "title", "target", "rel"],
     });
-  }, [report?.content]);
+  }, [report]);
 
   if (!report) {
     return (

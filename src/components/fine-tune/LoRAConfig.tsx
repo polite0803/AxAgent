@@ -47,7 +47,7 @@ export function LoRAConfig() {
         message.success("Training job created successfully");
         form.resetFields();
       }
-    } catch (error) {
+    } catch {
       message.error("Failed to create training job");
     } finally {
       setIsSubmitting(false);

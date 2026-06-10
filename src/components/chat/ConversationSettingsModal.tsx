@@ -51,6 +51,7 @@ export function ConversationSettingsModal({
   // Initialize form when modal opens
   useEffect(() => {
     if (open && conversation) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setTitle(conversation.title);
       setSystemPrompt(conversation.system_prompt ?? "");
       setTemperature(conversation.temperature ?? null);

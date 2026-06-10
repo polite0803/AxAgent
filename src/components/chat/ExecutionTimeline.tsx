@@ -106,6 +106,7 @@ function poolItemToEvent(item: AgentPoolItem): TimelineEvent {
 
 // ── Status colors and icons ──────────────────────────────────────────────
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function getStatusConfig(token: Record<string, any>) {
   return {
     pending: { color: token.colorTextQuaternary, icon: <Clock size={12} /> },

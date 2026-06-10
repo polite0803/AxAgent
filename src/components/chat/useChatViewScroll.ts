@@ -11,6 +11,10 @@ import {
   shouldStickToBottomOnLayoutChange,
 } from "./chatScroll";
 
+interface BubbleListElement extends HTMLElement {
+  scrollBoxNativeElement?: HTMLElement;
+}
+
 export interface UseChatViewScrollParams {
   bubbleListRef: React.RefObject<HTMLElement | null>;
   activeConversationId: string | null;
@@ -77,7 +81,7 @@ export function useChatViewScroll({
 
   useLayoutEffect(() => {
     const el = bubbleListRef.current;
-    scrollBoxRef.current = (el?.scrollBoxNativeElement as HTMLElement) ?? el ?? null;
+    scrollBoxRef.current = ((el as BubbleListElement)?.scrollBoxNativeElement as HTMLElement) ?? el ?? null;
   });
 
   useEffect(() => {
@@ -121,7 +125,7 @@ export function useChatViewScroll({
   const minimapScrollTo = useCallback((messageId: string) => {
     let scrollBox = scrollBoxRef.current;
     if (!scrollBox) {
-      scrollBox = (bubbleListRef.current?.scrollBoxNativeElement as HTMLElement)
+      scrollBox = ((bubbleListRef.current as BubbleListElement)?.scrollBoxNativeElement as HTMLElement)
         ?? document.querySelector<HTMLElement>(".msg-list-scroll-box");
       if (scrollBox) {
         scrollBoxRef.current = scrollBox;
@@ -171,7 +175,7 @@ export function useChatViewScroll({
   }, []);
 
   const handleLoadOlderMessages = useCallback(async () => {
-    const scrollContainer = bubbleListRef.current?.scrollBoxNativeElement as
+    const scrollContainer = (bubbleListRef.current as BubbleListElement)?.scrollBoxNativeElement as
       | HTMLDivElement
       | null
       | undefined;

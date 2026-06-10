@@ -123,6 +123,7 @@ export function TitleBar() {
   const [pinned, setPinned] = useState(alwaysOnTop ?? false);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setPinned(alwaysOnTop ?? false);
   }, [alwaysOnTop]);
 
@@ -348,6 +349,7 @@ export function TitleBar() {
     tick();
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Live countdown in popover — tick every second only when open
@@ -375,6 +377,7 @@ export function TitleBar() {
     tick();
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [backupPopoverOpen]);
 
   const handleQuickBackup = useCallback(

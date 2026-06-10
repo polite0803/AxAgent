@@ -232,6 +232,7 @@ function ChatViewInner({
   );
   const workflowMatchSuggestion = useAgentStore((s) => s.workflowMatchSuggestion);
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const bubbleListRef = useRef<any>(null);
   const messageAreaRef = useRef<HTMLDivElement | null>(null);
 
@@ -296,6 +297,7 @@ function ChatViewInner({
       scrollTo: scroll.minimapScrollTo,
       scrollBoxRef: scroll.scrollBoxRef,
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scroll.minimapScrollTo]);
 
   const activeMessages = useMemo(

@@ -133,6 +133,7 @@ export const PermissionModal: React.FC = () => {
   // 当列表变化时重置索引
   useEffect(() => {
     if (pendingEntries.length === 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setCurrentIndex(0);
       setShowDetails(false);
     } else if (currentIndex >= pendingEntries.length) {

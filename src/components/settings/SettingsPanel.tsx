@@ -369,7 +369,6 @@ function GeneralTab() {
 
 function FeaturesTab() {
   const { t } = useTranslation();
-  const { token: _t } = theme.useToken();
   const { features, toggleFeature } = useAppConfigStore();
 
   return (
@@ -449,6 +448,7 @@ function AgentsTab() {
   }, [t]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchAgents();
   }, [fetchAgents]);
 

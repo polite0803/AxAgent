@@ -5,6 +5,7 @@ import { Select, theme } from "antd";
 import { useCallback, useMemo } from "react";
 
 /** Parse a combined `providerId::model_id` value. */
+// eslint-disable-next-line react-refresh/only-export-components
 export function parseModelValue(value: string | undefined) {
   if (!value) {
     return null;
@@ -17,6 +18,7 @@ export function parseModelValue(value: string | undefined) {
 }
 
 /** Hook: returns grouped Select options (Provider → Models) */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useGroupedModelOptions() {
   const providers = useProviderStore((s) => s.providers);
   return useMemo(() => {
@@ -57,6 +59,7 @@ export function useGroupedModelOptions() {
 }
 
 /** Hook: returns Map<providerId, providerName> */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useProviderNameMap() {
   const providers = useProviderStore((s) => s.providers);
   return useMemo(() => {

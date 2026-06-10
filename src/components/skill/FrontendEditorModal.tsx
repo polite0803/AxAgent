@@ -40,10 +40,12 @@ export function FrontendEditorModal({
 
   useEffect(() => {
     if (!open) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setAnalyzing(false);
     }
   }, [open]);
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (open) {
       const d = currentManifest
@@ -54,6 +56,7 @@ export function FrontendEditorModal({
       setEditorTab("json");
     }
   }, [open, currentManifest]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const handleAnalyze = useCallback(async () => {
     setAnalyzing(true);
@@ -68,7 +71,7 @@ export function FrontendEditorModal({
     } finally {
       setAnalyzing(false);
     }
-  }, [skillName]);
+  }, [skillName, t]);
 
   const handleJsonChange = useCallback((value: string) => {
     setJsonText(value);
@@ -96,7 +99,7 @@ export function FrontendEditorModal({
     } finally {
       setSaving(false);
     }
-  }, [jsonText, skillName, onClose, onSaved]);
+  }, [jsonText, skillName, onClose, onSaved, t]);
 
   return (
     <Modal

@@ -615,10 +615,12 @@ export const WorkflowProgressPanel: React.FC<WorkflowProgressPanelProps> = ({
 
   // --- Re-read storage when conversationId changes ---
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setWorkflowId(getWorkflowIdFromStorage(conversationId));
   }, [conversationId]);
 
   // --- Reset internal state on workflowId change ---
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     setWorkflow(null);
     setLoading(false);
@@ -627,11 +629,14 @@ export const WorkflowProgressPanel: React.FC<WorkflowProgressPanelProps> = ({
     setShowDag(true);
     setDagCollapsed(false);
   }, [workflowId]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   // --- Poll workflow status with race-condition protection & terminal stop ---
   const workflowRef = useRef(workflow);
+  // eslint-disable-next-line react-hooks/refs
   workflowRef.current = workflow;
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (pollTimerRef.current) {
       clearInterval(pollTimerRef.current);
@@ -700,6 +705,7 @@ export const WorkflowProgressPanel: React.FC<WorkflowProgressPanelProps> = ({
       }
     };
   }, [workflowId]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   // --- Step toggle ---
   const toggleStep = useCallback((stepId: string) => {

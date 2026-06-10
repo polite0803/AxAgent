@@ -45,6 +45,7 @@ function writeLogs(logs: HookExecutionRecord[]) {
 }
 
 // 添加一条日志（对外暴露，供其他模块调用）
+// eslint-disable-next-line react-refresh/only-export-components
 export function appendHookLog(record: Omit<HookExecutionRecord, "id">) {
   const logs = readLogs();
   logs.unshift({
@@ -69,6 +70,7 @@ export function HookExecutionLog({ maxItems }: HookExecutionLogProps) {
   const [filterEvent, setFilterEvent] = useState<string | undefined>(undefined);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLogs(readLogs());
   }, []);
 

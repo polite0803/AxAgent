@@ -83,6 +83,7 @@ export const DebatePropertyPanel: React.FC<Props> = ({ node, onUpdate, onDelete 
         exposed_tools: [],
         output_mode: "text",
       },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any;
     addNode(newNode);
     setParentRef(id, n.id);
@@ -105,6 +106,7 @@ export const DebatePropertyPanel: React.FC<Props> = ({ node, onUpdate, onDelete 
         exposed_tools: [],
         output_mode: "text",
       },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any;
     addNode(newNode);
     setParentRef(id, n.id);

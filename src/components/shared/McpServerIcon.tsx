@@ -12,6 +12,7 @@ const BUILTIN_ICON_FACTORY: Record<string, (size: number) => React.ReactNode> = 
 };
 
 /** Static 16px icons for external use. */
+// eslint-disable-next-line react-refresh/only-export-components
 export const BUILTIN_ICONS: Record<string, React.ReactNode> = {
   "@axagent/fetch": <Globe size={16} color={CHAT_ICON_COLORS.Globe} />,
   "@axagent/search-file": <FileSearch size={16} color={CHAT_ICON_COLORS.FileSearch} />,

@@ -123,24 +123,25 @@ export const VersionHistoryModal: React.FC<VersionHistoryModalProps> = ({
   const { t } = useTranslation();
   const { token } = theme.useToken();
 
-  useEffect(() => {
-    if (visible && template?.id) {
-      loadVersions();
-    }
-  }, [visible, template?.id]);
-
-  const loadVersions = async () => {
+  const loadVersions = useCallback(async () => {
     if (!template?.id) { return; }
     setLoadingVersions(true);
     try {
       const vers = await loadTemplateVersions(template.id);
-      setVersions(vers.sort((a, b) => b - a));
+      setVersions([...vers].sort((a, b) => b - a));
     } catch {
       message.error(t("workflow.versionHistory.loadFailed"));
     } finally {
       setLoadingVersions(false);
     }
-  };
+  }, [template, loadTemplateVersions, t]);
+
+  useEffect(() => {
+    if (visible && template?.id) {
+      const timer = setTimeout(() => loadVersions(), 0);
+      return () => clearTimeout(timer);
+    }
+  }, [visible, template?.id, loadVersions]);
 
   const handleLoadVersion = async (version: number) => {
     if (!template?.id) { return; }
@@ -224,7 +225,7 @@ export const VersionHistoryModal: React.FC<VersionHistoryModalProps> = ({
     } finally {
       setRollingBack(false);
     }
-  }, [template, rollbackVersion, t]);
+  }, [template, rollbackVersion, t, loadVersions]);
 
   const diffCount = diffEntries
     ? {

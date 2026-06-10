@@ -100,6 +100,7 @@ export const SkillEditModal: React.FC<SkillEditModalProps> = ({
   const [loading, setLoading] = useState(false);
 
   React.useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setContent(initialContent);
   }, [initialContent]);
 

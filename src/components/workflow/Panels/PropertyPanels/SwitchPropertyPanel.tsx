@@ -251,6 +251,7 @@ export const SwitchPropertyPanel: React.FC<Props> = ({ node, onUpdate, onDelete 
               onClick={() => {
                 setCfg(
                   "cases",
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
                   config.cases.filter((_: any, j: number) => j !== i),
                 );
               }}

@@ -30,6 +30,7 @@ export function SearchProviderTypeIcon({
   }
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const PROVIDER_TYPE_LABELS: Record<string, string> = {
   tavily: i18n.t("searchProvider.tavily"),
   zhipu: i18n.t("searchProvider.zhipu"),

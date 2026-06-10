@@ -290,12 +290,14 @@ export function GatewayTemplates() {
   // Auto-select first key when keys load
   useEffect(() => {
     if (!selectedKeyId && enabledKeys.length > 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSelectedKeyId(enabledKeys[0].id);
     }
   }, [enabledKeys, selectedKeyId]);
 
   useEffect(() => {
     if (!selectedProtocol || !availableProtocols.includes(selectedProtocol)) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSelectedProtocol(availableProtocols[0]);
       return;
     }

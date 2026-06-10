@@ -62,6 +62,9 @@ jobs:
       - name: Check frontend formatting (dprint)
         run: npm run format:check
 
+      - name: ESLint check
+        run: npx eslint src --max-warnings=0
+
       - name: TypeScript type check
         run: npm run typecheck
 

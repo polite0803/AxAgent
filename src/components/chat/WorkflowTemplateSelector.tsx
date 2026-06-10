@@ -80,6 +80,7 @@ interface WorkflowTemplateSelectorProps {
  * 保留向后兼容的空导出——旧代码可能引用此函数。
  * 模板数据现在统一从后端 `list_workflow_templates` 获取。
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export const getWorkflowTemplates = (): WorkflowTemplate[] => [];
 
 export const WorkflowTemplateSelector: React.FC<
@@ -121,6 +122,7 @@ export const WorkflowTemplateSelector: React.FC<
 
   useEffect(() => {
     if (open) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       loadTemplates();
     }
   }, [open, loadTemplates]);

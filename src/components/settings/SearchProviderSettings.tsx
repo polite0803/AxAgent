@@ -22,7 +22,7 @@ import {
   theme,
 } from "antd";
 import { Plus, Trash2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 function providerSelectOptions(t: (key: string, fallback?: string) => string) {
@@ -229,11 +229,6 @@ function SearchProviderDetail({
   const [apiKeyInput, setApiKeyInput] = useState("");
   const [testing, setTesting] = useState(false);
 
-  // Reset apiKey input when switching providers
-  useEffect(() => {
-    setApiKeyInput("");
-  }, [provider.id]);
-
   const rowStyle = { padding: "4px 0" };
 
   const handleFieldChange = async (field: string, value: unknown) => {
@@ -276,9 +271,9 @@ function SearchProviderDetail({
       } else {
         message.error(result.error || t("settings.searchProviders.testFailed"));
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       message.error(
-        err?.toString() || t("settings.searchProviders.testFailed"),
+        String(err) || t("settings.searchProviders.testFailed"),
       );
     } finally {
       setTesting(false);
@@ -408,6 +403,7 @@ export function SearchProviderSettings() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [form] = Form.useForm();
+  const initialSelectionDone = useRef(false);
 
   useEffect(() => {
     loadProviders();
@@ -415,10 +411,11 @@ export function SearchProviderSettings() {
 
   // Auto-select first provider
   useEffect(() => {
-    if (!selectedId && providers.length > 0) {
+    if (!initialSelectionDone.current && providers.length > 0) {
       setSelectedId(providers[0].id);
+      initialSelectionDone.current = true;
     }
-  }, [providers, selectedId]);
+  }, [providers]);
 
   const selectedProvider = providers.find((p) => p.id === selectedId) ?? null;
 

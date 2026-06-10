@@ -44,8 +44,10 @@ export function EmojiPicker({
   const isDark = useResolvedDarkMode(themeMode);
 
   const onEmojiSelectRef = useRef(onEmojiSelect);
+  // eslint-disable-next-line react-hooks/refs
   onEmojiSelectRef.current = onEmojiSelect;
   const onCloseRef = useRef(onClose);
+  // eslint-disable-next-line react-hooks/refs
   onCloseRef.current = onClose;
 
   const handleClick = useCallback((e: Event) => {

@@ -60,6 +60,7 @@ export function DiagnosticDrawer({ open, onClose, onJumpToNode }: DiagnosticDraw
     })),
   );
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const issues = report?.issues ?? [];
   const summary = report?.summary ?? { error: 0, warning: 0, info: 0 };
 

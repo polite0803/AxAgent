@@ -5,6 +5,7 @@ import { closestCenter, DndContext, type DragEndEvent, PointerSensor, useSensor,
 import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { App, Button, Divider, Form, Input, Modal, Select, Switch, theme } from "antd";
+import type { GlobalToken } from "antd";
 import { GripVertical, Plus, Search } from "lucide-react";
 import { useMemo, useState } from "react";
 import React from "react";
@@ -37,9 +38,9 @@ function SortableProviderItem({
 }: {
   provider: ProviderConfig;
   isSelected: boolean;
-  token: any;
   onSelect: () => void;
   onToggle: (checked: boolean) => void;
+  token: GlobalToken;
 }) {
   const {
     attributes,
@@ -260,7 +261,7 @@ export function ProviderList() {
                         }
                         try {
                           await toggleProvider(provider.id, true);
-                        } catch (e) {
+                        } catch {
                           message.error(t("settings.provider.noValidKey"));
                         }
                       }}
@@ -303,7 +304,7 @@ export function ProviderList() {
                         }
                         try {
                           await toggleProvider(provider.id, true);
-                        } catch (e) {
+                        } catch {
                           message.error(t("settings.provider.noValidKey"));
                         }
                       }}

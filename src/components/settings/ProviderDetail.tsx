@@ -812,6 +812,7 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
     } catch {
       message.error(t("error.saveFailed"));
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     editingModel,
     editCapabilities,

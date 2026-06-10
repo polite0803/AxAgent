@@ -231,6 +231,7 @@ export function ContextBar({
   );
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function estimateConversationTokens(
   messages: { role: string; content: string }[],
 ): number {

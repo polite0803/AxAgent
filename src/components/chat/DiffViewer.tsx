@@ -112,6 +112,7 @@ function MonacoDiffEditor({
       modifiedModel.dispose();
       diffEditor.dispose();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -525,6 +526,7 @@ export const FileChangeList = React.memo(function FileChangeList({
 
 // ── Utility: extract file changes from tool call ─────────────────────────
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function extractFileChanges(
   toolCalls: {
     toolName: string;

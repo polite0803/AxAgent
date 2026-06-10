@@ -40,6 +40,7 @@ export function GatewayOverview({ onViewMoreLogs }: GatewayOverviewProps) {
   useEffect(() => {
     fetchStatus();
     fetchMetrics();
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadRecentLogs();
   }, [fetchStatus, fetchMetrics, loadRecentLogs]);
 

@@ -211,7 +211,7 @@ export const BasePropertyPanel: React.FC<BasePropertyPanelProps> = ({
                 {t("workflow.props.failureThreshold")}
               </label>
               <InputNumber
-                value={(node as WorkflowNodeWithExtras).circuit_breaker.failure_threshold ?? 3}
+                value={(node as WorkflowNodeWithExtras).circuit_breaker?.failure_threshold ?? 3}
                 onChange={(v) =>
                   onUpdate({
                     circuit_breaker: {
@@ -231,7 +231,7 @@ export const BasePropertyPanel: React.FC<BasePropertyPanelProps> = ({
                 {t("workflow.props.resetTimeoutMs")}
               </label>
               <InputNumber
-                value={(node as WorkflowNodeWithExtras).circuit_breaker.reset_timeout_ms ?? 60000}
+                value={(node as WorkflowNodeWithExtras).circuit_breaker?.reset_timeout_ms ?? 60000}
                 onChange={(v) =>
                   onUpdate({
                     circuit_breaker: {

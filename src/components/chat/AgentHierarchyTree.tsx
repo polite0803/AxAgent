@@ -72,6 +72,7 @@ export function AgentHierarchyTree({
   const { t } = useTranslation();
   const pool = useExecutionStore((s) => s.agentPool[conversationId] || _EMPTY);
 
+  // eslint-disable-next-line react-hooks/preserve-manual-memoization
   const treeData = useMemo(() => {
     const roots = pool.filter(
       (item) => !item.dependsOn || item.dependsOn.length === 0,

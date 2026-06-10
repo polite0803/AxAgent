@@ -8,6 +8,7 @@ import { DropdownMenu } from "@/components/layout/DropdownMenu";
 import { invoke, logIpcError } from "@/lib/invoke";
 import type { Attachment } from "@/types";
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const ATTACHMENT_IMG_STYLE: React.CSSProperties = {
   maxWidth: 200,
   maxHeight: 160,
@@ -41,6 +42,7 @@ export function AttachmentPreview({
 
   useEffect(() => {
     if (!att.file_path) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setFileExists(false);
       return;
     }

@@ -48,6 +48,7 @@ export function PluginMarketplace() {
   const [confirmSource, setConfirmSource] = useState("");
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/immutability
     fetchPlugins();
   }, []);
 

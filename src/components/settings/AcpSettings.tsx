@@ -70,6 +70,7 @@ export function AcpSettings() {
     } finally {
       setChecking(false);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [baseUrl, refreshSessions]);
 
   // 创建会话

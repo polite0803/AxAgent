@@ -74,6 +74,7 @@ const NAME_TO_PROVIDER: Record<string, string> = {
  * 3) NAME_TO_PROVIDER explicit mapping → ProviderIcon
  * 4) TYPE_TO_PROVIDER fallback → ProviderIcon
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export function resolveProviderIcon(provider: ProviderConfig): IconResult {
   const providerKey = findProviderKey(provider.name);
   if (providerKey) {
@@ -103,6 +104,7 @@ export function resolveProviderIcon(provider: ProviderConfig): IconResult {
  * Legacy helper — returns a ProviderIcon-compatible string key.
  * Prefer resolveProviderIcon + SmartProviderIcon for correct two-tier rendering.
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export function getProviderIconKey(provider: ProviderConfig): string {
   const result = resolveProviderIcon(provider);
   return result.key;

@@ -19,6 +19,7 @@ interface NotificationItem {
 const globalNotifications: NotificationItem[] = [];
 let listeners: Array<() => void> = [];
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function pushNotification(
   type: NotificationItem["type"],
   message: string,

@@ -75,7 +75,6 @@ interface NodeDiagnostic {
   isOrphan: boolean;
   isDeadEnd: boolean;
   toolMissing?: string;
-  modelEmpty?: boolean;
   promptEmpty?: boolean;
   issueCount: number;
 }
@@ -161,7 +160,6 @@ function analyzeNodes(nodes: any[], edges: any[]): NodeDiagnostic[] {
       isOrphan,
       isDeadEnd,
       toolMissing,
-      modelEmpty,
       promptEmpty,
       issueCount,
     };
@@ -1295,8 +1293,8 @@ export function DebugPanel({ workflowId }: DebugPanelProps) {
               {detailRecord.sub_workflow_id && (
                 <Descriptions.Item label="Sub-Workflow" span={2}>
                   <Space>
-                    <Tag color="blue">{detailRecord.sub_workflow_id}</Tag>
-                    {detailRecord.output && typeof detailRecord.output === "object"
+                    <Tag color="blue">{String(detailRecord.sub_workflow_id ?? "")}</Tag>
+                    {!!detailRecord.output && typeof detailRecord.output === "object"
                       && "_child_execution_id" in detailRecord.output && (
                       <Button
                         type="link"

@@ -88,6 +88,7 @@ export function BenchmarkRunner() {
               key: "tasks",
               label: t("benchmark.tasks"),
               children: (
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 <TaskList tasks={(currentReport as any).tasks ?? []} results={(currentReport as any).results ?? []} />
               ),
             },

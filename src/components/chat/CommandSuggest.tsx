@@ -164,6 +164,7 @@ export const CommandSuggest: React.FC<CommandSuggestProps> = ({
 
     setSelectedIndex(0);
   }, [value, cursorPosition, visible, mcpTools]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {

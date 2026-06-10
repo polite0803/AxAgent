@@ -70,12 +70,14 @@ export function UserProfileModal({ open, onClose }: UserProfileModalProps) {
 
   useEffect(() => {
     if (open) {
+      /* eslint-disable react-hooks/set-state-in-effect */
       setName(profile.name);
       setAvatarType(profile.avatarType);
       setAvatarValue(profile.avatarValue);
       loadTrajectoryProfile();
       loadStyleProfile("default");
       getStats().then((s) => setStats(s));
+      /* eslint-enable react-hooks/set-state-in-effect */
     }
   }, [open, profile.name, profile.avatarType, profile.avatarValue, loadTrajectoryProfile, loadStyleProfile, getStats]);
 

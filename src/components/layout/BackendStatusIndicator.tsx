@@ -12,6 +12,7 @@ export function BackendStatusIndicator() {
 
   const active = tasks.filter((t) => t.status === "running");
   const recent = tasks.filter(
+    // eslint-disable-next-line react-hooks/purity
     (t) => t.status !== "running" && t.completedAt && Date.now() - t.completedAt < 10000,
   );
 

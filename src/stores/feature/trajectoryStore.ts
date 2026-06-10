@@ -76,6 +76,7 @@ export const useTrajectoryStore = create<TrajectoryStore>((set, get) => ({
 
   clearConversation: (conversationId: string) => {
     set((s) => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { [conversationId]: _, ...rest } = s.trajectoriesByConversation;
       return { trajectoriesByConversation: rest };
     });

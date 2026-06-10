@@ -296,6 +296,7 @@ export function useAxAgent(baseUrl: string) {
     }
   }, []);
 
+  /* eslint-disable react-hooks/refs */
   return {
     client: clientRef.current,
     sessions,
@@ -306,4 +307,5 @@ export function useAxAgent(baseUrl: string) {
     closeSession,
     refreshSessions,
   };
+  /* eslint-enable react-hooks/refs */
 }

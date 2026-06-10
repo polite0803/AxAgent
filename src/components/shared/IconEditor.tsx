@@ -235,6 +235,7 @@ export function IconEditor({
   return (
     <>
       <DropdownMenu
+        // eslint-disable-next-line react-hooks/refs
         items={menuItems.filter(Boolean) as DropdownItem[]}
         trigger={["click"]}
       >

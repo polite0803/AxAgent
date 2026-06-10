@@ -2101,12 +2101,14 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
         }
 
         // D7: runtime validation — verify nodes have required 'type' and 'id' fields
-        const validNodes = response.nodes.filter(
-          (n) => n?.type && n?.id,
-        ) as WorkflowNode[];
-        const validEdges = response.edges.filter(
-          (e) => e?.source && e?.target,
-        ) as WorkflowEdge[];
+        const nodes = (response.nodes ?? []) as unknown as WorkflowNode[];
+        const validNodes = nodes.filter(
+          (n: WorkflowNode) => n?.type && n?.id,
+        );
+        const edges = (response.edges ?? []) as unknown as WorkflowEdge[];
+        const validEdges = edges.filter(
+          (e: WorkflowEdge) => e?.source && e?.target,
+        );
         if (validNodes.length === 0) {
           throw new Error("Workflow preview contains no valid nodes");
         }

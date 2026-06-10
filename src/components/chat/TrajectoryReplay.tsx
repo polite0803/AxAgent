@@ -51,6 +51,7 @@ export function TrajectoryReplay({ conversationId }: TrajectoryReplayProps) {
     if (conversationId) {
       fetchList(conversationId);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [conversationId]);
 
   const handleSelectTrajectory = useCallback(
@@ -93,6 +94,7 @@ export function TrajectoryReplay({ conversationId }: TrajectoryReplayProps) {
       });
     }
     if (mountedRef.current) {
+      // eslint-disable-next-line react-hooks/immutability
       rafRef.current = requestAnimationFrame(playFrame);
     }
   }, [trajectory, speed]);

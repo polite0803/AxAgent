@@ -33,7 +33,9 @@ interface RightPanelState {
   researchSources: ResearchSourceItem[];
   setResearchSources: (sources: ResearchSourceItem[]) => void;
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   report: any | null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   setReport: (report: any | null) => void;
 }
 

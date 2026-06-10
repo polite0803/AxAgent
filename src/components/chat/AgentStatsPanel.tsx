@@ -66,6 +66,7 @@ export const AgentStatsPanel: React.FC = () => {
 
   useEffect(() => {
     if (!streaming || !activeConversationId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setStats(null);
       setElapsed(0);
       startTimeRef.current = 0;

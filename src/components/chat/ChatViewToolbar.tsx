@@ -39,7 +39,7 @@ function StatsPopoverContent({
 }: {
   stats: ConversationStats | null;
   t: (key: string) => string;
-  token: Record<string, any>;
+  token: Record<string, unknown>;
 }) {
   if (!stats) {
     return (
@@ -256,7 +256,7 @@ export interface ChatViewToolbarProps {
   setExtractMemoriesOpen: (v: boolean) => void;
   setExpertOpen: (v: boolean) => void;
   streamingMessageId: string | null;
-  token: Record<string, any>;
+  token: Record<string, unknown>;
 }
 
 /**

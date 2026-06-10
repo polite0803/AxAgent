@@ -19,7 +19,7 @@ function TriggerConfig({
   triggerConfig,
   handleConfigChange,
 }: {
-  triggerConfig: { type: string; config: any };
+  triggerConfig: { type: string; config: Record<string, unknown> };
   handleConfigChange: (key: string, value: unknown) => void;
 }) {
   const { t } = useTranslation();

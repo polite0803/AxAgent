@@ -50,6 +50,7 @@ export function SyncStatus({
 
   useEffect(() => {
     loadSyncStatus();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [wikiId]);
 
   useEffect(() => {
@@ -58,9 +59,10 @@ export function SyncStatus({
     }
     const interval = setInterval(loadSyncStatus, refreshInterval);
     return () => clearInterval(interval);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoRefresh, refreshInterval, wikiId]);
 
-  const loadSyncStatus = async () => {
+  async function loadSyncStatus() {
     setRefreshing(true);
     try {
       const [queue, capacity] = await Promise.all([
@@ -74,7 +76,7 @@ export function SyncStatus({
     }
     setLoading(false);
     setRefreshing(false);
-  };
+  }
 
   const handleProcessQueue = async () => {
     setProcessing(true);

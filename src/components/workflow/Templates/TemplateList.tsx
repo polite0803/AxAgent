@@ -128,7 +128,7 @@ export const TemplateList: React.FC<TemplateListProps> = ({
       await invoke<number>("seed_preset_templates");
       message.success(t("workflow.templateList.presetsImported"));
       await loadTemplates();
-    } catch (e) {
+    } catch {
       message.error(t("workflow.templateList.presetsImportFailed"));
     } finally {
       setImportingPresets(false);
@@ -167,7 +167,7 @@ export const TemplateList: React.FC<TemplateListProps> = ({
       message.success(t("workflow.templateList.deleted"));
       setDeleteModalVisible(false);
       setTemplateToDelete(null);
-    } catch (error) {
+    } catch {
       message.error(t("workflow.templateList.deleteFailed"));
     }
   };
@@ -176,7 +176,7 @@ export const TemplateList: React.FC<TemplateListProps> = ({
     try {
       await duplicateTemplate(template.id);
       message.success(t("workflow.templateList.copied"));
-    } catch (error) {
+    } catch {
       message.error(t("workflow.templateList.copyFailed"));
     }
   };

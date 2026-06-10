@@ -502,7 +502,7 @@ export function SkillsPage() {
         sortOrder,
       );
     }
-  }, [marketplaceSource]);
+  }, [marketplaceSource, searchMarketplace, sortOrder]);
 
   // Re-search when sort order changes
   useEffect(() => {
@@ -513,7 +513,7 @@ export function SkillsPage() {
         sortOrder,
       );
     }
-  }, [sortOrder]);
+  }, [sortOrder, searchMarketplace, marketplaceSource]);
 
   const handleTabChange = useCallback(
     (key: string) => {
@@ -603,11 +603,11 @@ export function SkillsPage() {
         a.click();
         URL.revokeObjectURL(url);
         messageApi.success(t("skill.exported"));
-      } catch (e) {
+      } catch {
         messageApi.error(t("skill.exportFailed"));
       }
     },
-    [messageApi],
+    [messageApi, t],
   );
 
   const handleMarketplaceDetail = useCallback(

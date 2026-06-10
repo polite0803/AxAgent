@@ -625,6 +625,7 @@ export function ModelSelector({
     return rows;
   }, [pinnedItems, filteredProviders, expandedGroups, hasSearchQuery]);
 
+  // eslint-disable-next-line react-hooks/incompatible-library
   const virtualizer = useVirtualizer({
     count: flatRows.length,
     getScrollElement: () => listParentRef.current,

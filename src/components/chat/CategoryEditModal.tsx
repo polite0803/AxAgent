@@ -82,6 +82,7 @@ export function CategoryEditModal({
     if (!open) {
       return;
     }
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setName(initialName);
     setIconType(initialIconType);
     setIconValue(initialIconValue);

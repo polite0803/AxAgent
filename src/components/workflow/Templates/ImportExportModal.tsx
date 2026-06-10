@@ -55,7 +55,7 @@ function getImportPreview(
 } | null {
   try {
     const json = JSON.parse(jsonStr);
-    const isN8n = json.nodes?.some?.((n: any) => n.type?.startsWith?.("n8n-nodes-base."));
+    const isN8n = json.nodes?.some?.((n: { type?: string }) => n.type?.startsWith?.("n8n-nodes-base."));
     const name = json.name || "Untitled";
     const nodeCount = json.nodes?.length || 0;
     let edgeCount = 0;
@@ -385,7 +385,7 @@ export const ImportExportModal: React.FC<ImportExportModalProps> = ({
       } else {
         message.error(t("workflow.importExport.exportNotFound"));
       }
-    } catch (error) {
+    } catch {
       message.error(t("workflow.importExport.exportFailed"));
     } finally {
       setIsExporting(false);

@@ -524,10 +524,11 @@ export function InputArea() {
       invoke("agent_get_session", {
         request: { conversationId: activeConversationId },
       })
-        .then((session: { permission_mode?: string; cwd?: string | null }) => {
-          if (session) {
-            setAgentPermissionMode(session.permission_mode || "default");
-            setAgentCwd(session.cwd || null);
+        .then((session: unknown) => {
+          const s = session as { permission_mode?: string; cwd?: string | null } | null;
+          if (s) {
+            setAgentPermissionMode(s.permission_mode || "default");
+            setAgentCwd(s.cwd || null);
           }
         })
         .catch(logIpcError("IPC: load agent session info"));

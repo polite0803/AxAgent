@@ -25,6 +25,7 @@ export function clearSemanticAction(
   const nodeActions = { ...(prev[nodeId] ?? {}) };
   delete nodeActions[skillId];
   if (Object.keys(nodeActions).length === 0) {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { [nodeId]: _removed, ...rest } = prev;
     return rest;
   }

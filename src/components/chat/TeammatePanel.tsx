@@ -134,7 +134,7 @@ export function TeammatePanel({
       teams[team].push(item);
     }
     return teams;
-  }, [pool]);
+  }, [pool, t]);
 
   const teamNames = Object.keys(grouped);
 

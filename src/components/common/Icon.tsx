@@ -31,6 +31,7 @@ export function Icon({ icon, size = 18, color, className, style, spin }: IconPro
 }
 
 /** 预定义的高质量导航图标（Material Design / Fluent 填充风格） */
+// eslint-disable-next-line react-refresh/only-export-components
 export const NAV_ICONS = {
   chat: "fluent:chat-20-filled",
   knowledge: "fluent:book-database-20-filled",

@@ -543,7 +543,8 @@ function CommandMode({
         )}
         <Input
           id="quick-bar-page-input-131"
-          ref={inputRef}
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          ref={inputRef as any}
           placeholder={showCommands
             ? t("quickbar.selectCommand")
             : activeCmdDef

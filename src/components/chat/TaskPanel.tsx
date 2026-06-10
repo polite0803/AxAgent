@@ -74,6 +74,7 @@ export function TaskPanel() {
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true);
     fetchTasks().finally(() => setLoading(false));
 

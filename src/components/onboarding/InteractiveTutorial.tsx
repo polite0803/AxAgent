@@ -3,7 +3,7 @@ import { useOnboardingStore } from "@/stores";
 import { useUIStore } from "@/stores";
 import { Button, theme } from "antd";
 import { ArrowRight, SkipForward, X } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -124,13 +124,13 @@ export function InteractiveTutorial() {
     return () => cancelAnimationFrame(rafId.current);
   }, [tutorialActive, tutorialStep, step]);
 
-  const handleNext = () => {
+  const handleNext = useCallback(() => {
     if (isLast) {
       completeTutorial();
     } else {
       nextTutorialStep();
     }
-  };
+  }, [isLast, completeTutorial, nextTutorialStep]);
 
   useEffect(() => {
     if (tutorialStep === 3) {

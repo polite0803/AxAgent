@@ -58,6 +58,7 @@ function ServiceHealthSection() {
 
   useEffect(() => {
     if (isTauri()) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       runCheck();
     }
   }, [runCheck]);

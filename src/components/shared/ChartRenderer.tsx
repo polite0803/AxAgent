@@ -28,9 +28,11 @@ export function ChartRenderer({
 
   useEffect(() => {
     if (directOption) {
+      /* eslint-disable react-hooks/set-state-in-effect */
       setOption(directOption);
       setLoading(false);
       setError(null);
+      /* eslint-enable react-hooks/set-state-in-effect */
       return;
     }
 

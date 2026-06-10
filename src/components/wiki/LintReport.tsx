@@ -30,11 +30,7 @@ export function LintReport({ wikiId }: LintReportProps) {
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [currentResult, setCurrentResult] = useState<LintResult | null>(null);
 
-  useEffect(() => {
-    loadLintResults();
-  }, [wikiId]);
-
-  const loadLintResults = async () => {
+  const loadLintResults = useCallback(async () => {
     setLoading(true);
     try {
       const results = await invoke<LintResult[]>("llm_wiki_lint_vault", {
@@ -46,7 +42,12 @@ export function LintReport({ wikiId }: LintReportProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [wikiId, t]);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    loadLintResults();
+  }, [loadLintResults]);
 
   const handleLintNote = async (noteId: string) => {
     const result = await lintNote(noteId);

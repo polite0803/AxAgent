@@ -15,6 +15,7 @@ export function useResolvedAvatarSrc(
   useEffect(() => {
     // 合并两个 undefined 分支：非 file 类型、非 Tauri 环境均走同一 setResolved 路径
     if (avatarType !== "file" || !avatarValue || !isTauri()) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setResolved(undefined);
       return;
     }

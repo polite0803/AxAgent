@@ -465,4 +465,5 @@ export const StructuredThinking = React.memo(function StructuredThinking({
   );
 });
 
+// eslint-disable-next-line react-refresh/only-export-components
 export { parseThinkingBlocks };

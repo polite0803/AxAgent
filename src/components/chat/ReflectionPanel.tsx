@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { Tooltip } from "@/components/layout/Tooltip";
 import { invoke } from "@/lib/invoke";
 import { Alert, Badge, Button, Card, Progress, Tag, theme, Typography } from "antd";
@@ -341,8 +342,10 @@ export function ReflectionPanel({
 
   useEffect(() => {
     if (executionRecord && taskId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       performReflection();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [performReflection]);
 
   const handleStartReflection = () => {

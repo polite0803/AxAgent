@@ -8,6 +8,7 @@ import {
   _isMultiModelActive,
   _listenerGen,
   _multiModelDoneResolve,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   _multiModelFirstMessageId,
   _multiModelTotalRemaining,
   _streamBuffer,

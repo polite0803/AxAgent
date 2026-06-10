@@ -13,6 +13,7 @@ export interface DropdownItem {
   type?: "group";
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function toDropdownItems<T extends { key: string }>(
   items: T[],
   onClick: (key: string) => void,

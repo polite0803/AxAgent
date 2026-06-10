@@ -1,6 +1,7 @@
 import { usePromptTemplateStore } from "@/stores/feature/promptTemplateStore";
 import { Button, Input, Modal, Tag, theme } from "antd";
 import { FileText, Search } from "lucide-react";
+import type { PromptTemplate } from "@/types";
 import React, { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -28,10 +29,10 @@ export const WorkflowPromptTemplateSelector: React.FC<Props> = ({
   const filtered = useMemo(() => {
     if (!search) { return templates; }
     const q = search.toLowerCase();
-    return templates.filter((t: any) => t.name?.toLowerCase().includes(q) || t.content?.toLowerCase().includes(q));
+    return templates.filter((t: PromptTemplate) => t.name?.toLowerCase().includes(q) || t.content?.toLowerCase().includes(q));
   }, [templates, search]);
 
-  const selectedTemplate = templates.find((t: any) => t.id === value);
+  const selectedTemplate = templates.find((t: PromptTemplate) => t.id === value);
 
   return (
     <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
@@ -61,7 +62,7 @@ export const WorkflowPromptTemplateSelector: React.FC<Props> = ({
           style={{ marginBottom: 8 }}
         />
         <div style={{ maxHeight: 300, overflow: "auto", display: "flex", flexDirection: "column", gap: 4 }}>
-          {filtered.map((t: any) => (
+          {filtered.map((t: PromptTemplate) => (
             <div
               key={t.id}
               onClick={() => {

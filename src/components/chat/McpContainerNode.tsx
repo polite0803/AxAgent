@@ -32,9 +32,10 @@ function safeGetAttr(attrs: unknown, key: string): string | undefined {
     return undefined;
   }
 
-  if (typeof attrs === "object") {
+  if (typeof attrs === "object" && attrs) {
+    const obj = attrs as Record<string, unknown>;
     for (const k of [key, `data-${key}`]) {
-      const v = attrs[k];
+      const v = obj[k];
       if (v == null) {
         continue;
       }
@@ -137,7 +138,7 @@ export function McpContainerNode(props: NodeComponentProps<any>) {
     return (
       <DefaultContainer
         node={n}
-        ctx={ctx}
+        ctx={ctx!}
         renderNode={renderNode}
         indexKey={indexKey as string | undefined}
       />

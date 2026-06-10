@@ -36,6 +36,7 @@
     "format": "dprint fmt",
     "format:check": "dprint check",
     "lint": "tsc --noEmit",
+    "lint:eslint": "eslint src --max-warnings=0",
     "check:types": "node scripts/type-consistency.mjs",
     "docs": "typedoc --out docs src",
     "docs:watch": "typedoc --out docs --watch src",

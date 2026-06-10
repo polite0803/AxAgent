@@ -73,6 +73,7 @@ export function BacklinkPanel({
   }, [noteId, getNoteBacklinks, getNote]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadBacklinks();
   }, [loadBacklinks]);
 

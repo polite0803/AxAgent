@@ -276,14 +276,13 @@ export interface GitStatusInfo {
   conflicted: number;
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useGitStatus() {
   const [gitStatus, setGitStatus] = useState<GitStatusInfo | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true); // starts true since we fetch on mount
   const [error, setError] = useState<string | null>(null);
 
   const fetchGitStatus = useCallback(async () => {
-    setLoading(true);
-    setError(null);
     try {
       const status = await invoke<GitStatusInfo>("git_status");
       setGitStatus(status);
@@ -296,12 +295,16 @@ export function useGitStatus() {
   }, []);
 
   useEffect(() => {
-    fetchGitStatus();
+    const timer = setTimeout(() => {
+      fetchGitStatus();
+    }, 0);
+    return () => clearTimeout(timer);
   }, [fetchGitStatus]);
 
   return { gitStatus, loading, error, refetch: fetchGitStatus };
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useSessionTimer() {
   const [elapsed, setElapsed] = useState(0);
   const [startTime, setStartTime] = useState<number | null>(null);

@@ -41,7 +41,6 @@ export function useVoiceChat({
   const [state, setState] = useState<VoiceSessionState>("Idle");
   const [isMuted, setIsMuted] = useState(false);
   const isMutedRef = useRef(false);
-  isMutedRef.current = isMuted;
 
   const wsRef = useRef<WebSocket | null>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
@@ -55,8 +54,16 @@ export function useVoiceChat({
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const shouldReconnectRef = useRef(false);
   const stateRef = useRef<VoiceSessionState>("Idle");
-  stateRef.current = state;
   const connectWebSocketRef = useRef<() => void>(() => {});
+
+  // Keep refs in sync with state after each render
+  useEffect(() => {
+    isMutedRef.current = isMuted;
+  }, [isMuted]);
+
+  useEffect(() => {
+    stateRef.current = state;
+  }, [state]);
 
   const cleanup = useCallback((keepReconnecting = false) => {
     if (rafRef.current !== null) {
@@ -265,7 +272,10 @@ export function useVoiceChat({
     };
   }, [host, port, config, cleanup, runVAD, message, t]);
 
-  connectWebSocketRef.current = connectWebSocket;
+  // Keep connectWebSocketRef in sync
+  useEffect(() => {
+    connectWebSocketRef.current = connectWebSocket;
+  }, [connectWebSocket]);
 
   const stop = useCallback(() => {
     if (state === "Idle" || state === "Disconnecting") {

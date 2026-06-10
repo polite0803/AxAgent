@@ -33,7 +33,7 @@ export function UserProfilePanel() {
     try {
       const p = await invoke<UserProfileData>("user_profile_get", {});
       setProfile(p);
-    } catch (e) {
+    } catch {
       /* ignore */
     }
   }, []);
@@ -42,6 +42,7 @@ export function UserProfilePanel() {
     if (!expanded) {
       return;
     }
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchProfile();
   }, [expanded, fetchProfile]);
 

@@ -1,7 +1,7 @@
 import { useWorkflowEditorStore } from "@/stores";
 import { useWorkEngineStore } from "@/stores/feature/workEngineStore";
 import { theme } from "antd";
-import React, { memo, useCallback, useEffect, useMemo, useState } from "react";
+import React, { memo, useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Handle, type NodeProps, Position } from "reactflow";
 import { NODE_TYPE_MAP } from "../types";
@@ -18,6 +18,8 @@ export interface BaseNodeData {
   validationMessage?: string;
   executionState?: "running" | "completed" | "failed" | "timeout" | "skipped" | "paused";
   parentId?: string;
+  config?: { tick_mode?: boolean };
+  retry?: { enabled?: boolean };
 }
 
 /** 端口折叠阈值：当节点有 N 条以上输入或输出边时，默认折叠端口 */
@@ -55,20 +57,16 @@ const BaseNodeComponent: React.FC<NodeProps<BaseNodeData>> = ({
   // ── 端口折叠状态 ──
   const shouldCollapseByDefault = inboundCount >= PORT_COLLAPSE_THRESHOLD
     || outboundCount >= PORT_COLLAPSE_THRESHOLD;
-  const [isPortCollapsed, setIsPortCollapsed] = useState(shouldCollapseByDefault);
+  const [userCollapsed, setUserCollapsed] = useState(shouldCollapseByDefault);
   const [isHovering, setIsHovering] = useState(false);
 
-  // 当边数降低到阈值以下时，自动恢复展开态
-  useEffect(() => {
-    if (!shouldCollapseByDefault && isPortCollapsed) {
-      setIsPortCollapsed(false);
-    }
-  }, [shouldCollapseByDefault, isPortCollapsed]);
+  // 当边数低于阈值时自动展开，达到阈值时使用用户折叠偏好
+  const isPortCollapsed = shouldCollapseByDefault ? userCollapsed : false;
 
   const togglePorts = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation();
-      setIsPortCollapsed((prev) => !prev);
+      setUserCollapsed((prev) => !prev);
     },
     [],
   );
@@ -190,10 +188,10 @@ const BaseNodeComponent: React.FC<NodeProps<BaseNodeData>> = ({
             {typeInfo.labelKey ? t(typeInfo.labelKey) : data.nodeType}
           </span>
           <div style={{ display: "flex", gap: 2, alignItems: "center" }}>
-            {(data as any).config?.tick_mode && (
+            {data.config?.tick_mode && (
               <span title={t("workflow.node.tickMode")} style={{ fontSize: 10 }}>🔄</span>
             )}
-            {(data as any).retry?.enabled && (
+            {data.retry?.enabled && (
               <span title={t("workflow.node.retryEnabled")} style={{ fontSize: 10 }}>🔄</span>
             )}
             {effectiveExecState === "running" && <span style={{ fontSize: 10, color: token.colorPrimary }}>⏳</span>}

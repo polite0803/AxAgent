@@ -9,6 +9,7 @@ export interface PathCompleterOptions {
   getSuggestions?: (input: string) => Promise<string[]>;
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function usePathCompleter(
   terminal: XTerm | null,
   options: PathCompleterOptions = {},
@@ -312,6 +313,7 @@ export function PathCompleterWidget({
   );
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useSmartPathCompletion(_terminal: XTerm | null) {
   const [isCompleting, setIsCompleting] = useState(false);
   const [completions, setCompletions] = useState<string[]>([]);

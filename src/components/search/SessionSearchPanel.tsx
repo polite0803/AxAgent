@@ -55,6 +55,7 @@ export function SessionSearchPanel({
 
   useEffect(() => {
     if (visible) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setShowFilters(false);
     }
   }, [visible]);

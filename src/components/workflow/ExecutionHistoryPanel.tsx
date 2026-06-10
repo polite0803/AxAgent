@@ -28,6 +28,7 @@ export function ExecutionHistoryPanel({ workflowId, onSelectExecution }: Props) 
 
   useEffect(() => {
     if (!workflowId) { return; }
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true);
     invoke<ExecutionRecord[]>("list_workflow_executions", { workflow_id: workflowId })
       .then(setRecords)

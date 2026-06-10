@@ -31,6 +31,7 @@ export function ExtractMemoriesModal({
 
   useEffect(() => {
     if (open) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSelectedNamespaceId(null);
       loadNamespaces();
     }
@@ -48,7 +49,7 @@ export function ExtractMemoriesModal({
       });
       messageApi.success(t("chat.extractMemoriesSuccess", { count }));
       onClose();
-    } catch (e) {
+    } catch {
       messageApi.error(t("chat.extractMemoriesError"));
     } finally {
       setExtracting(false);

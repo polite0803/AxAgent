@@ -168,6 +168,7 @@ export function SchedulerSettings() {
 
   useEffect(() => {
     if (inTauri) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       loadCustomTasks();
       loadTemplates();
     }
@@ -1269,7 +1270,7 @@ export function SchedulerSettings() {
                   <Form.List name="time_ranges">
                     {(fields, { add, remove }) => (
                       <>
-                        {fields.map(({ key, name, ...restField }, index) => (
+                        {fields.map(({ key, ...restField }, index) => (
                           <div
                             key={key}
                             style={{

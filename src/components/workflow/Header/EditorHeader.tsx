@@ -90,6 +90,7 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
 
   useEffect(() => {
     if (!isEditing) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setName(templateName);
     }
   }, [templateName, isEditing]);

@@ -47,6 +47,7 @@ export function TracerPanel() {
     if (!expanded) {
       return;
     }
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchTraces();
     const interval = setInterval(fetchTraces, 30_000);
     return () => clearInterval(interval);

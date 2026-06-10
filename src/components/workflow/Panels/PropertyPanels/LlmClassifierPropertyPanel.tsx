@@ -54,6 +54,7 @@ export const LlmClassifierPropertyPanel: React.FC<Props> = ({ node, onUpdate, on
                 size="small"
                 danger
                 icon={<Trash2 size={10} />}
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 onClick={() => sc("categories", c.categories.filter((_: any, j: number) => j !== i))}
               />
             </span>

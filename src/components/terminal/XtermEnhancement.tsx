@@ -200,7 +200,6 @@ export function useXtermEnhancement(
     fitAddon: fitAddonRef.current,
     /* eslint-enable react-hooks/refs */
     isReady,
-    isReady,
     fit,
     search,
     searchPrevious,

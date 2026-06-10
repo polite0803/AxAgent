@@ -44,11 +44,12 @@ export function TraceDetail() {
   const [startedAtFormatted, setStartedAtFormatted] = useState("");
   useEffect(() => {
     if (selectedTrace) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setStartedAtFormatted(
         new Date(selectedTrace.summary.started_at).toLocaleString(),
       );
     }
-  }, [selectedTrace?.summary.started_at]);
+  }, [selectedTrace?.summary.started_at, selectedTrace]);
 
   if (!selectedTrace) {
     return null;

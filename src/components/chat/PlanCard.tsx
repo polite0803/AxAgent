@@ -99,6 +99,7 @@ export function PlanCard({
 
   // Sync with store updates
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLocalSteps(plan.steps);
   }, [plan.steps]);
 

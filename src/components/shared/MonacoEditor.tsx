@@ -74,6 +74,7 @@ export function MonacoEditor({
     return () => {
       editor.dispose();
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {

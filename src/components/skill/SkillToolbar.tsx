@@ -75,7 +75,10 @@ function ToolbarButton({
       <Button
         type="text"
         size="small"
-        icon={<IconComp size={14} />}
+        icon={
+          // eslint-disable-next-line react-hooks/static-components
+          <IconComp size={14} />
+        }
         onClick={handleClick}
       />
     </Tooltip>

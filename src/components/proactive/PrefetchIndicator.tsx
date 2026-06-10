@@ -108,7 +108,8 @@ const PULSE_KEYFRAMES = `
 
 export function PrefetchIndicator() {
   const { t } = useTranslation();
-  const results = useProactiveStore((s) => s.prefetchResults) ?? [];
+  const rawResults = useProactiveStore((s) => s.prefetchResults);
+  const results = useMemo(() => rawResults ?? [], [rawResults]);
   const isActive = useProactiveStore((s) => s.isPrefetchActive);
   const [visible, setVisible] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -118,6 +119,7 @@ export function PrefetchIndicator() {
     [results],
   );
 
+  /* eslint-disable react-hooks/set-state-in-effect, react-hooks/exhaustive-deps */
   useEffect(() => {
     if (isActive || results.length > 0) {
       setVisible(true);
@@ -127,8 +129,8 @@ export function PrefetchIndicator() {
       const timer = setTimeout(() => setMounted(false), 300);
       return () => clearTimeout(timer);
     }
-    // Deliberately use resultsHash to react to content changes, not just length
   }, [isActive, resultsHash]);
+  /* eslint-enable react-hooks/set-state-in-effect, react-hooks/exhaustive-deps */
 
   if (!mounted) {
     return null;

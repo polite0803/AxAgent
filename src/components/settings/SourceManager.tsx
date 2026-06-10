@@ -114,6 +114,7 @@ function SourceConfigModal({
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    /* eslint-disable react-hooks/set-state-in-effect */
     if (!open || !source) {
       setConfig(null);
       return;
@@ -123,6 +124,7 @@ function SourceConfigModal({
       .then(setConfig)
       .catch(() => setConfig(null))
       .finally(() => setLoading(false));
+    /* eslint-enable react-hooks/set-state-in-effect */
   }, [open, source, getSourceConfig]);
 
   return (

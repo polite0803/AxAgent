@@ -69,7 +69,7 @@ export function ExpertSelector({
     if (!agencyLoaded) {
       loadAgencyRoles();
     }
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const allRoles = getAllRoles();
   const filteredRoles = (() => {

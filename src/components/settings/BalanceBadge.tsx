@@ -12,7 +12,7 @@ interface BalanceData {
 
 export const BalanceBadge: React.FC = () => {
   const { t } = useTranslation();
-  const fetchBalance = useProviderStore((s) => (s as any).fetchBalance);
+  const fetchBalance = useProviderStore((s) => (s as any).fetchBalance); // eslint-disable-line @typescript-eslint/no-explicit-any
   const [balance, setBalance] = useState<BalanceData | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -37,8 +37,8 @@ export const BalanceBadge: React.FC = () => {
 
   if (!balance || loading) { return null; }
 
-  const cnyInfo = balance.balance_infos.find((b: any) => b.currency === "CNY");
-  const usdInfo = balance.balance_infos.find((b: any) => b.currency === "USD");
+  const cnyInfo = balance.balance_infos.find((b: BalanceData["balance_infos"][number]) => b.currency === "CNY");
+  const usdInfo = balance.balance_infos.find((b: BalanceData["balance_infos"][number]) => b.currency === "USD");
   const total = cnyInfo?.total_balance || usdInfo?.total_balance || "";
   const currency = cnyInfo ? "CNY" : usdInfo ? "USD" : "";
   const isLow = cnyInfo

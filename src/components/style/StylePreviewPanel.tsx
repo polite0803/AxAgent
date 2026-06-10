@@ -35,6 +35,7 @@ export function StylePreviewPanel({
   }, [loadStyleProfile]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setOriginalCode(code);
   }, [code]);
 

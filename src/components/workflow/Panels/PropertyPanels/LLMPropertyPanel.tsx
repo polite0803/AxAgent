@@ -47,7 +47,7 @@ export const LLMPropertyPanel: React.FC<LLMPropertyPanelProps> = ({
 
   useEffect(() => {
     loadTemplates();
-  }, []);
+  }, [loadTemplates]);
 
   const handleConfigChange = (key: string, value: unknown) => {
     onUpdate({ config: { ...config, [key]: value } });
@@ -72,7 +72,7 @@ export const LLMPropertyPanel: React.FC<LLMPropertyPanelProps> = ({
         ? JSON.parse(selectedTemplate.variablesSchema)
         : {};
       // js-hoist-regexp: 模式依赖迭代变量 varName，无法提升
-      for (const [varName, _varType] of Object.entries(schema)) {
+      for (const [varName] of Object.entries(schema)) {
         const value = variableValues[varName] || `{${varName}}`;
         content = content.replace(new RegExp(`\\{${varName}\\}`, "g"), value);
       }

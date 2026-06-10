@@ -42,7 +42,8 @@ export function IngestPage() {
 
   useEffect(() => {
     if (wikiIdFromUrl) {
-      setSelectedWikiIdState(wikiIdFromUrl);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+    setSelectedWikiIdState(wikiIdFromUrl);
       selectWiki(wikiIdFromUrl);
     } else if (wikis.length > 0 && !selectedWikiIdState) {
       setSelectedWikiIdState(wikis[0].id);

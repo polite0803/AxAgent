@@ -10,6 +10,7 @@ import { NODE_KIND_LABEL_KEYS, type NodeKind } from "./types";
  * Input=黄  Output=红  Tool=绿  Agent=蓝
  * Condition=橙  Loop=紫  Container=青  Storage=粉
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export function getNodeKindColor(kind: NodeKind): {
   base: string;
   bg: string;

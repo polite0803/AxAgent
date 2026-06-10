@@ -300,6 +300,7 @@ function McpServerDetail({
 
   // Reset local state when switching servers
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLocalName(server.name);
     setLocalCommand(server.command ?? "");
     try {
@@ -749,6 +750,7 @@ export function McpServerSettings() {
 
   useEffect(() => {
     if (!selectedId && servers.length > 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSelectedId(servers[0].id);
     }
   }, [servers, selectedId]);

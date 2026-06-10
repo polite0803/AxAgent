@@ -30,6 +30,7 @@ export function HelpPanel() {
   // 外部打开指定 section 时自动展开
   useEffect(() => {
     if (helpActiveSection) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setActiveLocal(helpActiveSection);
     }
   }, [helpActiveSection]);
@@ -196,6 +197,7 @@ export function HelpPanel() {
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const filtered = useMemo(() => {

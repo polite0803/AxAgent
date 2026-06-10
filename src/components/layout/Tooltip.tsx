@@ -67,6 +67,7 @@ export function Tooltip(
         child as ReactElement<
           { ref?: unknown; onMouseEnter?: unknown; onMouseLeave?: unknown; onFocus?: unknown; onBlur?: unknown }
         >,
+        // eslint-disable-next-line react-hooks/refs
         {
           ref: (el: HTMLElement | null) => {
             void el;

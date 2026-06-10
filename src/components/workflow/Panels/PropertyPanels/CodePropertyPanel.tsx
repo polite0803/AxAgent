@@ -320,6 +320,7 @@ export const CodePropertyPanel: React.FC<CodePropertyPanelProps> = ({
         >
           <MonacoEditor
             value={config.code || ""}
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             language={(config.language === "rhai" ? "rust" : config.language) as any}
             onChange={(v) => handleConfigChange("code", v || "")}
             height="300px"

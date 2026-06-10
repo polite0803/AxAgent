@@ -111,6 +111,7 @@ function useActiveMessageId(entries: MinimapEntry[]): string | null {
   // Set default to last entry initially
   useEffect(() => {
     if (entries.length > 0 && !activeId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setActiveId(entries[entries.length - 1].msg.id);
     }
   }, [entries, activeId]);
@@ -210,6 +211,7 @@ function useActiveMessageId(entries: MinimapEntry[]): string | null {
       clearTimeout(retryTimer);
       scrollBox?.removeEventListener("scroll", updateActive);
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scrollBoxRef, entries]);
 
   return activeId;
@@ -454,6 +456,7 @@ function FaqItem({
             }}
             onMouseEnter={() => setHovered(true)}
             onMouseLeave={() => setHovered(false)}
+            // eslint-disable-next-line react-hooks/refs
             style={getCardStyle()}
           >
             <div

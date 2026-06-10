@@ -324,6 +324,7 @@ export function Sidebar() {
       const IconComp = resolveIconComponent(item.icon);
       pluginItems.push({
         key: `plugin:${item.id}`,
+        // eslint-disable-next-line react-hooks/static-components
         icon: <IconComp size={18} color={NAV_ICON_COLORS.Router} />,
         labelKey: item.label,
         path: `/skill/${item.skillName}/${item.pageId}`,

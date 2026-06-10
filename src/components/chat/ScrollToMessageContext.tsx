@@ -45,6 +45,7 @@ export function ScrollToMessageProvider({
   return <Context.Provider value={value}>{children}</Context.Provider>;
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useScrollToMessage(): ScrollToMessageContextValue {
   const ctx = useContext(Context);
   return (

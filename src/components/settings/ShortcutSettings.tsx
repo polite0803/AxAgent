@@ -82,7 +82,7 @@ export function ShortcutSettings() {
       }
       await saveSettings(update);
     },
-    [saveSettings, settings],
+    [saveSettings],
   );
 
   const startRecording = useCallback((action: ShortcutAction) => {
@@ -102,7 +102,7 @@ export function ShortcutSettings() {
       setRecordingAction((prev) => (prev === action ? null : prev));
       await saveSettings(update);
     },
-    [saveSettings, settings],
+    [saveSettings],
   );
 
   const onCaptureKeyDown = useCallback(
@@ -133,7 +133,7 @@ export function ShortcutSettings() {
     setDraftBindings({});
     setRecordingAction(null);
     await saveSettings(update);
-  }, [saveSettings, settings]);
+  }, [saveSettings]);
 
   return (
     <div className="p-6 pb-12">

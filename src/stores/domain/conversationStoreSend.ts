@@ -260,7 +260,7 @@ export function createSendMethods(
               // 搜索执行了但无结果 — 告知 LLM 未找到，避免幻觉
               searchResultTag = '<web-search status="empty" data-axagent="1">No results found</web-search>';
             }
-          } catch (e) {
+          } catch {
             // Search failed, continue without search results
             searchResultTag = '<web-search status="error" data-axagent="1">Search unavailable</web-search>';
           }
@@ -432,7 +432,7 @@ export function createSendMethods(
                 }));
                 fallbackSucceeded = true;
                 break;
-              } catch (_fallbackErr) {
+              } catch {
                 /* continue to next */
               }
             }
@@ -1173,7 +1173,7 @@ export function createSendMethods(
         // Safeguard: ensure listeners are always cleaned up, even if cleanup() itself throws
         try {
           cleanup();
-        } catch (_) {
+        } catch {
           /* ignore cleanup errors */
         }
         const errMsg = String(e);

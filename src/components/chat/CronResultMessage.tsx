@@ -28,6 +28,7 @@ export function CronResultMessage({
 
   const [timestampFormatted, setTimestampFormatted] = useState("");
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setTimestampFormatted(new Date(timestamp).toLocaleString(i18n.language));
   }, [timestamp, i18n.language]);
 

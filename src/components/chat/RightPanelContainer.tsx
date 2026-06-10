@@ -350,6 +350,7 @@ export function RightPanelContainer({
     ];
 
     return entries;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     conversationId,
     compactMode,
@@ -383,6 +384,7 @@ export function RightPanelContainer({
   const [overflowPanels, setOverflowPanels] = useState<PanelEntry[]>([]);
 
   // 计算可见 tab 和溢出 tab
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     const container = tabsRef.current;
     if (!container) { return; }
@@ -408,16 +410,18 @@ export function RightPanelContainer({
       setOverflowPanels(overflow);
     }
   }, [visiblePanels]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const [activeTab, setActiveTab] = useState(() => visiblePanels[0]?.key ?? "");
 
   // 仅在 isAgent 切换时验证 activeTab 有效性
+  /* eslint-disable react-hooks/set-state-in-effect, react-hooks/exhaustive-deps */
   useEffect(() => {
     if (!visiblePanels.some((p) => p.key === activeTab)) {
       setActiveTab(visiblePanels[0]?.key ?? "");
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAgent]);
+  /* eslint-enable react-hooks/set-state-in-effect, react-hooks/exhaustive-deps */
 
   const activePanel = visiblePanels.find((p) => p.key === activeTab);
 

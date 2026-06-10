@@ -7,7 +7,7 @@ import { logIpcError } from "@/lib/invoke";
 import { type PtySessionInfo, useTerminalStore } from "@/stores/feature/terminalStore";
 import { Badge, Button, Empty, Select } from "antd";
 import { AlertTriangle, CheckCircle, Maximize2, Minimize2, Plus, RefreshCw, Terminal, Trash2, X } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 interface IntegratedTerminalProps {

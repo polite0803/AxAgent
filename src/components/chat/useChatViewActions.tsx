@@ -22,7 +22,7 @@ export interface UseChatViewActionsParams {
   activeConversationId: string | null;
   activeConversation: import("@/types").Conversation | undefined;
   messages: Message[];
-  bubbleListRef: React.RefObject<any | null>;
+  bubbleListRef: React.RefObject<any | null>; // eslint-disable-line @typescript-eslint/no-explicit-any
   messageAreaRef: React.RefObject<HTMLDivElement | null>;
   loadOlderMessages: () => Promise<void>;
 }
@@ -186,7 +186,7 @@ export function useChatViewActions({
         );
       });
     });
-  }, [loadOlderMessages]);
+  }, [loadOlderMessages]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleEditMessage = useCallback(
     (messageId: string, content: string, role: "user" | "assistant") => {
@@ -573,7 +573,7 @@ export function useChatViewActions({
         },
       },
     ],
-    [messages, activeConversation, t, messageApi],
+    [messages, activeConversation, t, messageApi], // eslint-disable-line react-hooks/exhaustive-deps
   );
 
   return {

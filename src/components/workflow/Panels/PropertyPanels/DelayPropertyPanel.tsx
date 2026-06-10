@@ -18,7 +18,7 @@ function DelayConfig({
   config,
   handleConfigChange,
 }: {
-  config: Record<string, any>;
+  config: Record<string, unknown>;
   handleConfigChange: (key: string, value: unknown) => void;
 }) {
   const { t } = useTranslation();

@@ -131,6 +131,7 @@ function AppInner() {
         },
       );
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navigate]);
 
   useKeyboardShortcuts();
@@ -315,7 +316,7 @@ function AppRoot() {
     [],
   );
 
-  const staticLocaleMap = useMemo<Record<string, any>>(
+  const staticLocaleMap = useMemo<Record<string, typeof antdZhCN>>(
     () => ({
       zh_CN: antdZhCN,
       zh_TW: antdZhTW,
