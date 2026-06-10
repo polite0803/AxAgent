@@ -28,23 +28,34 @@ export function Tooltip(
 ) {
   const [internalVisible, setInternalVisible] = useState(false);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const mountedRef = useRef(true);
 
   const isControlled = controlledOpen !== undefined;
   const visible = isControlled ? controlledOpen : internalVisible;
 
   const show = useCallback(() => {
     if (isControlled) { return; }
-    timeoutRef.current = setTimeout(() => setInternalVisible(true), mouseEnterDelay * 1000);
+    timeoutRef.current = setTimeout(() => {
+      if (mountedRef.current) {
+        setInternalVisible(true);
+      }
+    }, mouseEnterDelay * 1000);
   }, [mouseEnterDelay, isControlled]);
 
   const hide = useCallback(() => {
     if (isControlled) { return; }
     if (timeoutRef.current) { clearTimeout(timeoutRef.current); }
-    setInternalVisible(false);
+    if (mountedRef.current) {
+      setInternalVisible(false);
+    }
   }, [isControlled]);
 
-  useEffect(() => () => {
-    if (timeoutRef.current) { clearTimeout(timeoutRef.current); }
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      if (timeoutRef.current) { clearTimeout(timeoutRef.current); }
+    };
   }, []);
 
   const child = isValidElement(children) ? children : null;
