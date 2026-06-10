@@ -138,6 +138,7 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
           type="text"
           icon={<ArrowLeft size={18} />}
           onClick={onClose}
+          aria-label={t("workflow.back")}
           style={{ color: token.colorTextSecondary }}
         />
       )}
@@ -182,6 +183,7 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
               icon={<Save size={16} />}
               loading={isSaving}
               onClick={handleSave}
+              aria-label={isSaving ? t("workflow.saving") : t("workflow.save")}
               size="small"
             />
             <Dropdown
@@ -295,6 +297,8 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
                   icon={<Undo2 size={18} />}
                   onClick={onUndo}
                   disabled={!canUndo}
+                  aria-label={t("workflow.undo")}
+                  aria-keyshortcuts="Control+Z"
                   style={{ color: canUndo ? token.colorTextSecondary : token.colorTextQuaternary }}
                 />
               </Tooltip>
@@ -306,6 +310,8 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
                   icon={<Redo2 size={18} />}
                   onClick={onRedo}
                   disabled={!canRedo}
+                  aria-label={t("workflow.redo")}
+                  aria-keyshortcuts="Control+Shift+Z"
                   style={{ color: canRedo ? token.colorTextSecondary : token.colorTextQuaternary }}
                 />
               </Tooltip>
@@ -316,6 +322,7 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
                   type="text"
                   icon={<Shuffle size={18} />}
                   onClick={onAutoLayout}
+                  aria-label={t("workflow.autoLayout")}
                   style={{ color: token.colorTextSecondary }}
                 >
                   {t("workflow.autoLayout")}
@@ -365,7 +372,12 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
               trigger="click"
               placement="bottomRight"
             >
-              <Button type="text" icon={<Keyboard size={18} />} style={{ color: token.colorTextSecondary }} />
+              <Button
+                type="text"
+                icon={<Keyboard size={18} />}
+                aria-label={t("workflow.shortcuts.title")}
+                style={{ color: token.colorTextSecondary }}
+              />
             </Popover>
             {onToggleLeftPanel && (
               <Tooltip title={leftPanelCollapsed ? t("workflow.expandLeftPanel") : t("workflow.collapseLeftPanel")}>
@@ -373,6 +385,8 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
                   type="text"
                   icon={<PanelLeft size={18} />}
                   onClick={onToggleLeftPanel}
+                  aria-label={leftPanelCollapsed ? t("workflow.expandLeftPanel") : t("workflow.collapseLeftPanel")}
+                  aria-expanded={!leftPanelCollapsed}
                   style={{ color: !leftPanelCollapsed ? token.colorPrimary : token.colorTextSecondary }}
                 />
               </Tooltip>
@@ -383,6 +397,8 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
                   type="text"
                   icon={<PanelRight size={18} />}
                   onClick={onToggleRightPanel}
+                  aria-label={rightPanelCollapsed ? t("workflow.expandRightPanel") : t("workflow.collapseRightPanel")}
+                  aria-expanded={!rightPanelCollapsed}
                   style={{ color: !rightPanelCollapsed ? token.colorPrimary : token.colorTextSecondary }}
                 />
               </Tooltip>
@@ -394,6 +410,8 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
                   data-testid="workflow-ai-panel-btn"
                   icon={<Sparkles size={18} />}
                   onClick={onToggleAIPanel}
+                  aria-label={t("workflow.aiAssistant")}
+                  aria-expanded={aiPanelVisible}
                   style={{ color: aiPanelVisible ? token.colorPrimary : token.colorTextSecondary }}
                 />
               </Tooltip>
@@ -404,6 +422,8 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
                   type="text"
                   icon={<Bug size={18} />}
                   onClick={onToggleDebugPanel}
+                  aria-label={t("workflow.debugPanel")}
+                  aria-expanded={debugPanelVisible}
                   style={{ color: debugPanelVisible ? token.colorPrimary : token.colorTextSecondary }}
                 />
               </Tooltip>
@@ -415,6 +435,7 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
                   data-testid="workflow-batch-edit-btn"
                   icon={<ListChecks size={18} />}
                   onClick={onBatchEdit}
+                  aria-label={t("workflow.batchEditMode")}
                   style={{ color: batchEditVisible ? token.colorPrimary : token.colorTextSecondary }}
                 />
               </Tooltip>
@@ -426,6 +447,7 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
                   data-testid="workflow-import-export-btn"
                   icon={<Download size={18} />}
                   onClick={onOpenImportExport}
+                  aria-label={t("workflow.importExport.title")}
                   style={{ color: token.colorTextSecondary }}
                 />
               </Tooltip>
@@ -437,6 +459,7 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
                   data-testid="workflow-version-history-btn"
                   icon={<History size={18} />}
                   onClick={onOpenVersionHistory}
+                  aria-label={t("workflow.versionHistory.title")}
                   style={{ color: token.colorTextSecondary }}
                 />
               </Tooltip>
@@ -447,21 +470,35 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
                   type="text"
                   icon={<ImageIcon size={18} />}
                   onClick={onSaveAsImage}
+                  aria-label={t("workflow.saveAsImage")}
                   style={{ color: token.colorTextSecondary }}
                 />
               </Tooltip>
             )}
             <Tooltip title={t("workflow.preview")}>
-              <Button type="text" icon={<Eye size={18} />} disabled style={{ color: token.colorTextSecondary }} />
+              <Button
+                type="text"
+                icon={<Eye size={18} />}
+                disabled
+                aria-label={t("workflow.preview")}
+                style={{ color: token.colorTextSecondary }}
+              />
             </Tooltip>
             <Tooltip title={t("workflow.publish")}>
-              <Button type="text" icon={<Share2 size={18} />} disabled style={{ color: token.colorTextSecondary }} />
+              <Button
+                type="text"
+                icon={<Share2 size={18} />}
+                disabled
+                aria-label={t("workflow.publish")}
+                style={{ color: token.colorTextSecondary }}
+              />
             </Tooltip>
             <Button
               type="primary"
               icon={<Save size={16} />}
               loading={isSaving}
               onClick={handleSave}
+              aria-label={isSaving ? t("workflow.saving") : t("workflow.save")}
               style={{ display: "flex", alignItems: "center", gap: 6 }}
             >
               {isSaving ? t("workflow.saving") : t("workflow.save")}

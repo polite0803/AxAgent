@@ -192,10 +192,14 @@ export const SwitchPropertyPanel: React.FC<Props> = ({ node, onUpdate, onDelete 
               size="small"
               icon={<Plus size={12} />}
               onClick={() => {
-                setCfg(
-                  "cases",
-                  [...config.cases, { value: "", label: "Case " + (config.cases.length + 1) }],
-                );
+                const newCase = {
+                  value: "",
+                  label: t("workflow.caseLabel", {
+                    n: config.cases.length + 1,
+                    defaultValue: "Case " + (config.cases.length + 1),
+                  }),
+                };
+                setCfg("cases", [...config.cases, newCase]);
               }}
             >
               {t("workflow.props.addCase")}
@@ -204,7 +208,7 @@ export const SwitchPropertyPanel: React.FC<Props> = ({ node, onUpdate, onDelete 
         </div>
         {config.cases.map((c, i) => (
           <div
-            key={i}
+            key={c.value + "|" + i}
             style={{
               display: "flex",
               gap: 4,

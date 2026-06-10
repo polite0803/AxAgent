@@ -4,6 +4,7 @@ import { X } from "lucide-react";
 import React, { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { WorkflowNode } from "../types";
+import { buildBatchUpdate } from "./batchEditUtils";
 
 interface Props {
   selectedNodeIds: Set<string>;
@@ -26,10 +27,8 @@ export const BatchEditPanel: React.FC<Props> = ({ selectedNodeIds, onClose }) =>
 
   const apply = () => {
     for (const node of selectedNodes) {
-      const updates: Partial<WorkflowNode> = {};
-      if (timeout !== null) { (updates as any).timeout = timeout; }
-      if (retryEnabled !== null) { (updates as any).retry = { ...(node as any).retry, enabled: retryEnabled }; }
-      if (enabled !== null) { updates.enabled = enabled; }
+      const updates = buildBatchUpdate(node as WorkflowNode, { timeout, retryEnabled, enabled });
+      if (Object.keys(updates).length === 0) { continue; }
       updateNode(node.id, updates);
     }
     onClose();

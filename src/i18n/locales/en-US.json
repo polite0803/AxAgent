@@ -4866,6 +4866,16 @@
       "expand": "Expand",
       "collapse": "Collapse"
     },
+    "caseLabel": "Case {{n}}",
+    "paramKey": "param_{{n}}",
+    "subWorkflowLabel": "Sub Workflow",
+    "nodesCount": "{{count}} nodes",
+    "contextMenu": {
+      "label": "Node actions"
+    },
+    "templateList": {
+      "moreActions": "More actions for {{name}}"
+    },
     "nodeConfig": {
       "add_debater": "Add debater",
       "convergence_model_role": "Convergence model role",
@@ -4876,6 +4886,12 @@
       "topic_var": "Topic variable"
     },
     "searchNodes": "Search nodes",
+    "search": {
+      "prev": "Previous match",
+      "next": "Next match",
+      "close": "Close search",
+      "placeholder": "Search nodes..."
+    },
     "validationWarnings": "Workflow has {{count}} warning(s):\n{{details}}"
   },
   "atomicSkill": {

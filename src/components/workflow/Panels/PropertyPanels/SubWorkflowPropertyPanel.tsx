@@ -79,12 +79,20 @@ export const SubWorkflowPropertyPanel: React.FC<
   };
 
   const handleAddInputMapping = () => {
+    const existingKeys = Object.keys(config.input_mapping || {});
+    let nextIndex = existingKeys.length + 1;
+    let newKey = t("workflow.paramKey", { n: nextIndex, defaultValue: `param_${nextIndex}` });
+    // 避免与既有键冲突（用户可能手动改名或删除中间键）
+    while (Object.prototype.hasOwnProperty.call(config.input_mapping || {}, newKey)) {
+      nextIndex += 1;
+      newKey = t("workflow.paramKey", { n: nextIndex, defaultValue: `param_${nextIndex}` });
+    }
     onUpdate({
       config: {
         ...config,
         input_mapping: {
           ...config.input_mapping,
-          [`param_${Object.keys(config.input_mapping).length + 1}`]: "",
+          [newKey]: "",
         },
       },
     });
@@ -126,7 +134,7 @@ export const SubWorkflowPropertyPanel: React.FC<
             marginBottom: 4,
           }}
         >
-          Sub Workflow
+          {t("workflow.subWorkflowLabel")}
         </label>
         <Select
           id="sub-workflow-select"
@@ -172,7 +180,10 @@ export const SubWorkflowPropertyPanel: React.FC<
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           {isExpanded && expandedData && (
             <span style={{ fontSize: 11, color: token.colorTextTertiary }}>
-              {expandedData.nodes.length} nodes
+              {t("workflow.nodesCount", {
+                count: expandedData.nodes.length,
+                defaultValue: `${expandedData.nodes.length} nodes`,
+              })}
             </span>
           )}
           <Button

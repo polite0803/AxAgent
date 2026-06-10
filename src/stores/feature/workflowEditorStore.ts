@@ -82,6 +82,7 @@ interface WorkflowEditorState {
   validationResult: ValidationResult | null;
   diagnoseReport: DiagnosticReport | null;
   diagnoseLoading: boolean;
+  diagnoseApplying: boolean;
   diagnoseDrawerVisible: boolean;
   filter: TemplateFilter;
   error: string | null;
@@ -498,6 +499,7 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
     validationResult: null,
     diagnoseReport: null,
     diagnoseLoading: false,
+    diagnoseApplying: false,
     diagnoseDrawerVisible: false,
     filter: {},
     error: null,
@@ -1626,43 +1628,85 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
       const issue = diagnoseReport.issues.find((i) => i.id === issueId);
       if (!issue || !issue.auto_fixable || !issue.fix) { return false; }
       const fix: DiagnosticFix = issue.fix;
-      switch (fix.action_type) {
-        case "delete_node": {
-          if (!nodes.find((n) => n.id === fix.node_id)) { return false; }
-          get().deleteNode(fix.node_id);
-          return true;
-        }
-        case "delete_edge": {
-          if (!edges.find((e) => e.id === fix.edge_id)) { return false; }
-          get().deleteEdge(fix.edge_id);
-          return true;
-        }
-        case "set_node_field": {
-          return get().applyAIAssistToNodeField(fix.node_id, fix.field, fix.value, "string");
-        }
-        case "set_timeout": {
-          get().updateNode(
-            fix.node_id,
-            { timeout: fix.timeout_ms } as unknown as Partial<WorkflowNode>,
-          );
-          return true;
-        }
-        case "enable_retry": {
-          get().updateNode(
-            fix.node_id,
-            {
-              retry: {
-                max_retries: fix.max_retries,
-                backoff: "exponential",
-                initial_interval_ms: 1000,
+      set((s) => {
+        s.diagnoseApplying = true;
+      });
+      let success = false;
+      try {
+        switch (fix.action_type) {
+          case "delete_node": {
+            if (!nodes.find((n) => n.id === fix.node_id)) { break; }
+            get().deleteNode(fix.node_id);
+            success = true;
+            break;
+          }
+          case "delete_edge": {
+            if (!edges.find((e) => e.id === fix.edge_id)) { break; }
+            get().deleteEdge(fix.edge_id);
+            success = true;
+            break;
+          }
+          case "set_node_field": {
+            success = get().applyAIAssistToNodeField(fix.node_id, fix.field, fix.value, "string");
+            break;
+          }
+          case "set_timeout": {
+            get().updateNode(
+              fix.node_id,
+              { timeout: fix.timeout_ms } as unknown as Partial<WorkflowNode>,
+            );
+            success = true;
+            break;
+          }
+          case "enable_retry": {
+            get().updateNode(
+              fix.node_id,
+              {
+                retry: {
+                  max_retries: fix.max_retries,
+                  backoff: "exponential",
+                  initial_interval_ms: 1000,
+                },
+              } as unknown as Record<string, unknown>,
+            );
+            success = true;
+            break;
+          }
+          case "remove_debater_step": {
+            const debate = nodes.find((n) => n.id === fix.node_id);
+            if (!debate || debate.type !== "debate") { break; }
+            const cfg = (debate as unknown as {
+              config: {
+                debater_steps: string[];
+                subGraph?: { nodes: Array<{ id: string }>; edges: Array<{ source: string; target: string }> };
+              };
+            }).config;
+            if (!cfg.debater_steps.includes(fix.step_id)) { break; }
+            const newSteps = cfg.debater_steps.filter((s) => s !== fix.step_id);
+            const newSubNodes = cfg.subGraph?.nodes.filter((n) => n.id !== fix.step_id) ?? [];
+            const newSubEdges = cfg.subGraph?.edges.filter(
+              (e) => e.source !== fix.step_id && e.target !== fix.step_id,
+            ) ?? [];
+            get().updateNode(fix.node_id, {
+              ...(debate as object),
+              config: {
+                ...cfg,
+                debater_steps: newSteps,
+                subGraph: { nodes: newSubNodes, edges: newSubEdges },
               },
-            } as unknown as Record<string, unknown>,
-          );
-          return true;
+            } as unknown as Partial<WorkflowNode>);
+            success = true;
+            break;
+          }
+          default:
+            break;
         }
-        default:
-          return false;
+      } finally {
+        set((s) => {
+          s.diagnoseApplying = false;
+        });
       }
+      return success;
     },
 
     aiChatSend: async (message: string) => {

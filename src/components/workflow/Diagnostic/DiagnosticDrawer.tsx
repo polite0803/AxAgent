@@ -175,7 +175,7 @@ export function DiagnosticDrawer({ open, onClose, onJumpToNode }: DiagnosticDraw
                 onChange={setCategory}
                 block
                 options={[
-                  { label: "All", value: "all" },
+                  { label: t("workflow.diagnostic.summary.title"), value: "all" },
                   { label: t("workflow.diagnostic.category.structure"), value: "structure" },
                   { label: t("workflow.diagnostic.category.configuration"), value: "configuration" },
                   { label: t("workflow.diagnostic.category.prompt"), value: "prompt" },
@@ -246,8 +246,9 @@ export function DiagnosticDrawer({ open, onClose, onJumpToNode }: DiagnosticDraw
                           <div className="mt-1 text-sm font-medium">{title}</div>
                           {msg && <div className="text-xs text-gray-500 dark:text-gray-400">{msg}</div>}
                           {iss.suggestion_override && (
-                            <div className="text-xs text-blue-500 dark:text-blue-400 mt-1">
-                              💡 {iss.suggestion_override}
+                            <div className="text-xs text-blue-500 dark:text-blue-400 mt-1 flex items-start gap-1">
+                              <Info size={12} aria-hidden="true" className="mt-0.5 shrink-0" />
+                              <span>{iss.suggestion_override}</span>
                             </div>
                           )}
                         </div>

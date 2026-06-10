@@ -1,3 +1,4 @@
+import { countTerminalNodes, isDeadEndNode } from "@/components/workflow/DebugPanel/deadEnd";
 import { invoke } from "@/lib/invoke";
 import { useWorkflowEditorStore } from "@/stores";
 import { useWorkEngineStore } from "@/stores/feature/workEngineStore";
@@ -104,22 +105,25 @@ function analyzeNodes(nodes: any[], edges: any[]): NodeDiagnostic[] {
   const sources = new Set(edges.map((e: any) => e.source));
   const targets = new Set(edges.map((e: any) => e.target));
 
-  // 终端节点（有入无出）统计 — 1个是正常终点，>1个才可能有漏连
-  const terminalNodes = nodes.filter((n) => {
-    const id = n.id || "";
-    return targets.has(id) && !sources.has(id);
-  });
+  // 一次扫描计算工作流级终端计数，避免 O(n²)
+  const summaries = nodes.map((n) => ({
+    id: n.id || "",
+    nodeType: resolveNodeType(n),
+    hasIncoming: targets.has(n.id),
+    hasOutgoing: sources.has(n.id),
+  }));
+  const totalTerminals = countTerminalNodes(summaries);
 
   return nodes.map((n) => {
     const nt = resolveNodeType(n);
     const hasIncoming = targets.has(n.id);
     const hasOutgoing = sources.has(n.id);
     const isOrphan = !hasOutgoing && !hasIncoming;
-    // 排除 trigger(只有出) 和 end(只有入) 和唯一合法终端
     const isStart = nt === "trigger";
-    const isEnd = nt === "end";
-    const isDeadEnd = !isStart && !isEnd && hasIncoming && !hasOutgoing
-      && (terminalNodes.length > 1 || !hasIncoming);
+    const isDeadEnd = isDeadEndNode(
+      { id: n.id, nodeType: nt, hasIncoming, hasOutgoing },
+      totalTerminals,
+    );
     let issueCount = 0;
     let toolMissing: string | undefined;
     let modelEmpty: boolean | undefined;
@@ -277,19 +281,28 @@ export function DebugPanel({ workflowId }: DebugPanelProps) {
   const edges = useWorkflowEditorStore((s) => s.edges);
   const validateTemplate = useWorkflowEditorStore((s) => s.validateTemplate);
 
-  const engine = useWorkEngineStore();
-  const {
-    executionId,
-    status,
-    nodeRecords,
-    variables,
-    breakpoints,
-    loading,
-    dryRun,
-    isDebugRunning,
-    lastDebugError,
-    executionHistory,
-  } = engine;
+  // 用字段级 selector 订阅，避免任何 workEngine store 字段更新都触发重渲染
+  const executionId = useWorkEngineStore((s) => s.executionId);
+  const status = useWorkEngineStore((s) => s.status);
+  const nodeRecords = useWorkEngineStore((s) => s.nodeRecords);
+  const variables = useWorkEngineStore((s) => s.variables);
+  const breakpoints = useWorkEngineStore((s) => s.breakpoints);
+  const loading = useWorkEngineStore((s) => s.loading);
+  const dryRun = useWorkEngineStore((s) => s.dryRun);
+  const isDebugRunning = useWorkEngineStore((s) => s.isDebugRunning);
+  const lastDebugError = useWorkEngineStore((s) => s.lastDebugError);
+  const executionHistory = useWorkEngineStore((s) => s.executionHistory);
+  // actions：引用稳定，订阅动作不会触发重渲染
+  const debugRun = useWorkEngineStore((s) => s.debugRun);
+  const cancelRun = useWorkEngineStore((s) => s.cancel);
+  const resumeBreakpoint = useWorkEngineStore((s) => s.resumeBreakpoint);
+  const stepBreakpoint = useWorkEngineStore((s) => s.stepBreakpoint);
+  const getStatus = useWorkEngineStore((s) => s.getStatus);
+  const loadHistory = useWorkEngineStore((s) => s.loadHistory);
+  const pauseRun = useWorkEngineStore((s) => s.pause);
+  const resumeRun = useWorkEngineStore((s) => s.resume);
+  const setDryRun = useWorkEngineStore((s) => s.setDryRun);
+  const toggleBreakpoint = useWorkEngineStore((s) => s.toggleBreakpoint);
 
   const nodeIds = useMemo(() => new Set(nodes.map((n: any) => n.id)), [nodes]);
   const diagnostics = useMemo(() => analyzeNodes(nodes, edges), [nodes, edges]);
@@ -444,14 +457,14 @@ export function DebugPanel({ workflowId }: DebugPanelProps) {
 
   useEffect(() => {
     if (!workflowId) { return; }
-    engine.loadHistory(workflowId);
+    loadHistory(workflowId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [workflowId]);
 
   useEffect(() => {
     if (!executionId || !isDebugRunning) { return; }
     const interval = setInterval(() => {
-      engine.getStatus(executionId);
+      getStatus(executionId);
     }, 2000);
     return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -459,27 +472,27 @@ export function DebugPanel({ workflowId }: DebugPanelProps) {
 
   const handleDebugRun = useCallback(async () => {
     if (!workflowId) { return; }
-    await engine.debugRun(workflowId, {
+    await debugRun(workflowId, {
       breakpoints: breakpoints.length > 0 ? breakpoints : undefined,
       dryRun,
     });
     setActiveTab("runtime");
-  }, [workflowId, breakpoints, dryRun, engine]);
+  }, [workflowId, breakpoints, dryRun, debugRun]);
 
   const handleCancel = useCallback(async () => {
-    await engine.cancel();
+    await cancelRun();
     if (executionId) {
-      await engine.getStatus(executionId);
+      await getStatus(executionId);
     }
-  }, [engine, executionId]);
+  }, [cancelRun, executionId, getStatus]);
 
   const handleResumeBreakpoint = useCallback(async () => {
-    await engine.resumeBreakpoint();
-  }, [engine]);
+    await resumeBreakpoint();
+  }, [resumeBreakpoint]);
 
   const handleStepBreakpoint = useCallback(async () => {
-    await engine.stepBreakpoint();
-  }, [engine]);
+    await stepBreakpoint();
+  }, [stepBreakpoint]);
 
   const nodeDiagnosticColumns: ColumnsType<NodeDiagnostic> = [
     {
@@ -858,14 +871,14 @@ export function DebugPanel({ workflowId }: DebugPanelProps) {
                     <Tooltip title={t("workflow.debug.pause")}>
                       <Button
                         icon={<PauseOutlined />}
-                        onClick={() => engine.pause()}
+                        onClick={() => pauseRun()}
                         disabled={status?.status === "paused"}
                       />
                     </Tooltip>
                     <Tooltip title={t("workflow.debug.resume")}>
                       <Button
                         icon={<PlayCircleOutlined />}
-                        onClick={() => engine.resume()}
+                        onClick={() => resumeRun()}
                         disabled={status?.status !== "paused"}
                       />
                     </Tooltip>
@@ -907,7 +920,7 @@ export function DebugPanel({ workflowId }: DebugPanelProps) {
                 <Switch
                   size="small"
                   checked={dryRun}
-                  onChange={engine.setDryRun}
+                  onChange={setDryRun}
                   disabled={isDebugRunning}
                 />
               </Space>
@@ -1110,7 +1123,7 @@ export function DebugPanel({ workflowId }: DebugPanelProps) {
                         key={id}
                         color="red"
                         closable
-                        onClose={() => engine.toggleBreakpoint(id)}
+                        onClose={() => toggleBreakpoint(id)}
                       >
                         {name}
                       </Tag>
@@ -1147,7 +1160,7 @@ export function DebugPanel({ workflowId }: DebugPanelProps) {
                           size="small"
                           onClick={async () => {
                             useWorkEngineStore.setState({ isDebugRunning: false });
-                            await engine.getStatus(item.id);
+                            await getStatus(item.id);
                             useWorkEngineStore.setState({ executionId: item.id });
                           }}
                         >

@@ -186,6 +186,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
   const [isInitialized, setIsInitialized] = React.useState(false);
   const hasAutoLaidOutRef = React.useRef(false);
   const autoLayoutTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const autoSaveTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const canvasContainerRef = React.useRef<HTMLDivElement>(null);
   const clipboardRef = React.useRef<WorkflowNode[]>([]);
   const edgesRef = React.useRef(edges);
@@ -1441,6 +1442,8 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
     nodes,
     addNode,
     setSelectedNode,
+    setParentRef,
+    updateNode,
     clipboardRef,
   });
   keyRef.current = {
@@ -1453,6 +1456,8 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
     nodes,
     addNode,
     setSelectedNode,
+    setParentRef,
+    updateNode,
     clipboardRef,
   };
   const handleSaveRef = React.useRef(handleSave);
@@ -1511,19 +1516,28 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
             r.setParentRef(newId, node.parentId);
             const parent = r.nodes.find((n) => n.id === node.parentId);
             if (parent) {
-              r.updateNode(parent.id, {
-                ...(parent as object),
-                config: {
-                  ...(parent as { config?: Record<string, unknown> }).config,
-                  subGraph: {
-                    nodes: [
-                      ...(((parent as { config?: { subGraph?: { nodes?: unknown[] } } }).config?.subGraph?.nodes) ?? []),
-                      { ...node, id: newId, position: { x: node.position.x + offset.x, y: node.position.y + offset.y } },
-                    ],
-                    edges: ((parent as { config?: { subGraph?: { edges?: unknown[] } } }).config?.subGraph?.edges) ?? [],
+              const parentConfig = (parent as unknown as { config?: Record<string, unknown> }).config ?? {};
+              const parentSubGraph = (parentConfig as { subGraph?: { nodes?: unknown[]; edges?: unknown[] } }).subGraph;
+              r.updateNode(
+                parent.id,
+                {
+                  ...(parent as object),
+                  config: {
+                    ...parentConfig,
+                    subGraph: {
+                      nodes: [
+                        ...(parentSubGraph?.nodes ?? []),
+                        {
+                          ...node,
+                          id: newId,
+                          position: { x: node.position.x + offset.x, y: node.position.y + offset.y },
+                        },
+                      ],
+                      edges: parentSubGraph?.edges ?? [],
+                    },
                   },
-                },
-              } as unknown as Parameters<typeof r.updateNode>[1]);
+                } as unknown as Parameters<typeof r.updateNode>[1],
+              );
             }
           }
         });
@@ -1580,7 +1594,6 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
   }, [searchResults, searchIdx, reactFlowInstance, setSelectedNode]);
 
   // 卸载时清理 auto-save timeout
-  const autoSaveTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => () => {
     if (autoSaveTimerRef.current) { clearTimeout(autoSaveTimerRef.current); }
   }, []);
@@ -1947,12 +1960,35 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
               color: token.colorText,
             }}
           />
-          <span style={{ fontSize: 11, color: token.colorTextQuaternary }}>
+          <span style={{ fontSize: 11, color: token.colorTextQuaternary }} aria-live="polite">
             {searchResults.length > 0 ? `${searchIdx + 1}/${searchResults.length}` : "0"}
           </span>
-          <Button size="small" onClick={() => navigateSearch(-1)} disabled={searchResults.length === 0}>▲</Button>
-          <Button size="small" onClick={() => navigateSearch(1)} disabled={searchResults.length === 0}>▼</Button>
-          <Button size="small" onClick={() => setSearchVisible(false)}>✕</Button>
+          <Button
+            size="small"
+            onClick={() => navigateSearch(-1)}
+            disabled={searchResults.length === 0}
+            aria-label={t("workflow.search.prev", { defaultValue: "Previous match" })}
+            aria-keyshortcuts="Shift+Enter"
+          >
+            ▲
+          </Button>
+          <Button
+            size="small"
+            onClick={() => navigateSearch(1)}
+            disabled={searchResults.length === 0}
+            aria-label={t("workflow.search.next", { defaultValue: "Next match" })}
+            aria-keyshortcuts="Enter"
+          >
+            ▼
+          </Button>
+          <Button
+            size="small"
+            onClick={() => setSearchVisible(false)}
+            aria-label={t("workflow.search.close", { defaultValue: "Close search" })}
+            aria-keyshortcuts="Escape"
+          >
+            ✕
+          </Button>
         </div>
       )}
 
@@ -2224,6 +2260,8 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
       {/* Context menu */}
       {contextMenu && (
         <div
+          role="menu"
+          aria-label={t("workflow.contextMenu.label", { defaultValue: "Node actions" })}
           style={{
             position: "fixed",
             left: contextMenu.x,
@@ -2240,15 +2278,26 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
           {["edit", "toggleBreakpoint", "copyNode", "deleteNode"].map((action) => (
             <div
               key={action}
+              role="menuitem"
+              tabIndex={0}
               style={{
                 padding: "6px 10px",
                 fontSize: 12,
                 cursor: "pointer",
                 borderRadius: 4,
                 color: action === "deleteNode" ? token.colorError : undefined,
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
               }}
               onMouseEnter={(e) => (e.currentTarget.style.background = token.colorFillQuaternary)}
               onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  e.currentTarget.click();
+                }
+              }}
               onClick={() => {
                 if (action === "edit") { setSelectedNode(contextMenu.nodeId); }
                 else if (action === "copyNode") {
@@ -2263,9 +2312,10 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
                 setContextMenu(null);
               }}
             >
-              {action === "edit" ? "✏️" : action === "toggleBreakpoint" ? "🔴" : action === "copyNode" ? "📋" : "🗑"}
-              {" "}
-              {t(`workflow.${action}`)}
+              <span aria-hidden="true" style={{ display: "inline-block", width: 14, textAlign: "center" }}>
+                {action === "edit" ? "✎" : action === "toggleBreakpoint" ? "●" : action === "copyNode" ? "⎘" : "✕"}
+              </span>
+              <span>{t(`workflow.${action}`)}</span>
             </div>
           ))}
         </div>

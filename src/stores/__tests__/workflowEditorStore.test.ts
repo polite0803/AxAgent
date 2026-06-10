@@ -118,6 +118,7 @@ async function resetStore() {
     aiChatStreaming: false,
     aiChatStreamingMessageId: null,
     collapsedContainers: new Set<string>(),
+    diagnoseApplying: false,
   });
 }
 
@@ -835,6 +836,135 @@ describe("WorkflowEditorStore", () => {
 
       const state = useWorkflowEditorStore.getState() as any;
       expect(state.edges).toEqual(edges);
+    });
+  });
+
+  describe("Diagnose Fix - #6.1 remove_debater_step", () => {
+    function makeDebateNode(id: string, stepIds: string[], subNodeIds: string[] = []) {
+      const subNodes = subNodeIds.map((sid) => ({
+        id: sid,
+        type: "agent" as const,
+        title: sid,
+        description: "",
+        position: { x: 0, y: 0 },
+        config: { agent_name: "a", system_prompt: "", output_var: "x" },
+        retry: { enabled: false, max_retries: 0, backoff_type: "Fixed" as const, base_delay_ms: 0, max_delay_ms: 0 },
+        enabled: true,
+      }));
+      return {
+        id,
+        type: "debate" as const,
+        title: "Debate",
+        description: "",
+        position: { x: 0, y: 0 },
+        config: {
+          debater_steps: stepIds,
+          max_rounds: 3,
+          topic_var: "topic",
+          output_var: "result",
+          subGraph: { nodes: subNodes, edges: [] },
+        },
+        retry: { enabled: false, max_retries: 0, backoff_type: "Fixed" as const, base_delay_ms: 0, max_delay_ms: 0 },
+        enabled: true,
+      };
+    }
+
+    async function seedReport(issueId: string, fix: any) {
+      const { useWorkflowEditorStore } = await import("@/stores/feature/workflowEditorStore");
+      useWorkflowEditorStore.setState({
+        diagnoseReport: {
+          issues: [{
+            id: issueId,
+            severity: "warning",
+            category: "structure",
+            title_key: "debate_dangling_step",
+            message_key: "debate_dangling_step",
+            title_override: "Test issue",
+            detail_override: "Test",
+            suggestion_override: "Test",
+            auto_fixable: true,
+            fix,
+            node_ids: ["d-1"],
+          }],
+          summary: { error: 0, warning: 1, info: 0 },
+          generated_at: 0,
+          duration_ms: 0,
+        },
+      });
+    }
+
+    it("removes step from debater_steps and drops subGraph node + its edges", async () => {
+      const { useWorkflowEditorStore } = await import("@/stores/feature/workflowEditorStore");
+      const store = useWorkflowEditorStore.getState() as any;
+      const debate = makeDebateNode("d-1", ["s-1", "s-2"], ["s-1", "s-2"]);
+      store.addNode(debate);
+      store.addEdge({ id: "e-1", source: "d-1.s-1", target: "d-1.s-2", edge_type: "direct" } as any);
+      store.addEdge({ id: "e-2", source: "d-1.s-1", target: "d-1.s-2", edge_type: "direct" } as any);
+
+      // 在 d-1 的 subGraph 内补一条边让 e-2 出现在 subGraph.edges
+      const state = useWorkflowEditorStore.getState() as any;
+      const updatedDebate = state.nodes.find((n: any) => n.id === "d-1");
+      updatedDebate.config.subGraph.edges = [{ id: "e-2", source: "s-1", target: "s-2", edge_type: "direct" }];
+      state.nodes = [...state.nodes];
+
+      await seedReport("issue-1", { action_type: "remove_debater_step", node_id: "d-1", step_id: "s-2" });
+
+      const result = store.applyDiagnoseFix("issue-1");
+      expect(result).toBe(true);
+
+      const after = useWorkflowEditorStore.getState() as any;
+      const node = after.nodes.find((n: any) => n.id === "d-1");
+      expect(node.config.debater_steps).toEqual(["s-1"]);
+      expect(node.config.subGraph.nodes.map((n: any) => n.id)).toEqual(["s-1"]);
+      expect(node.config.subGraph.edges).toEqual([]);
+    });
+
+    it("returns false when the debate node does not exist", async () => {
+      const { useWorkflowEditorStore } = await import("@/stores/feature/workflowEditorStore");
+      const store = useWorkflowEditorStore.getState() as any;
+      await seedReport("issue-2", { action_type: "remove_debater_step", node_id: "missing", step_id: "s-1" });
+      expect(store.applyDiagnoseFix("issue-2")).toBe(false);
+    });
+
+    it("returns false when step_id is not in debater_steps", async () => {
+      const { useWorkflowEditorStore } = await import("@/stores/feature/workflowEditorStore");
+      const store = useWorkflowEditorStore.getState() as any;
+      store.addNode(makeDebateNode("d-1", ["s-1"], []));
+      await seedReport("issue-3", { action_type: "remove_debater_step", node_id: "d-1", step_id: "s-99" });
+      expect(store.applyDiagnoseFix("issue-3")).toBe(false);
+    });
+  });
+
+  describe("Diagnose Applying state - #6.13", () => {
+    it("toggles diagnoseApplying around applyDiagnoseFix and resets on success", async () => {
+      const { useWorkflowEditorStore } = await import("@/stores/feature/workflowEditorStore");
+      const store = useWorkflowEditorStore.getState() as any;
+      store.addNode(makeMockWorkflowNode("n-1"));
+      useWorkflowEditorStore.setState({
+        diagnoseReport: {
+          issues: [{
+            id: "i-1",
+            severity: "warning",
+            category: "structure",
+            title_key: "r",
+            message_key: "r",
+            title_override: "t",
+            detail_override: "d",
+            suggestion_override: "s",
+            auto_fixable: true,
+            fix: { action_type: "delete_node", node_id: "n-1" },
+            node_ids: ["n-1"],
+          }],
+          summary: { error: 0, warning: 1, info: 0 },
+          generated_at: 0,
+          duration_ms: 0,
+        },
+      });
+
+      expect((useWorkflowEditorStore.getState() as any).diagnoseApplying).toBe(false);
+      const ok = store.applyDiagnoseFix("i-1");
+      expect(ok).toBe(true);
+      expect((useWorkflowEditorStore.getState() as any).diagnoseApplying).toBe(false);
     });
   });
 });

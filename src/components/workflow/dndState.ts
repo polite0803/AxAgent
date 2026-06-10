@@ -33,16 +33,56 @@ const DEFAULT_WINDOW_ID = "__default__";
 /** WindowId → 当前拖拽 payload；Map 保证每个窗口独立 */
 const dragStates = new Map<string, DragPayload>();
 
+/** 跨模块缓存的当前 windowId（按浏览器 session 稳定） */
+let cachedWindowId: string | null = null;
+
+/**
+ * 获取当前拖拽上下文 windowId：每个 webview/iframe 独立。
+ *
+ * 解析顺序：
+ * 1. `window.name` — Tauri 创建多 webview 时通常会注入稳定 label
+ * 2. sessionStorage 缓存 — 同一文档/会话内稳定，避免每次重新计算
+ * 3. 生成新的 UUID 并缓存 — 兜底
+ */
+export function getCurrentWindowId(): string {
+  if (typeof window === "undefined") {
+    return DEFAULT_WINDOW_ID;
+  }
+  if (cachedWindowId) {
+    return cachedWindowId;
+  }
+  const named = (typeof window.name === "string" && window.name.trim()) || "";
+  if (named) {
+    cachedWindowId = `win:${named}`;
+    return cachedWindowId;
+  }
+  try {
+    const persisted = window.sessionStorage?.getItem("__axagent_window_id__");
+    if (persisted) {
+      cachedWindowId = persisted;
+      return cachedWindowId;
+    }
+    const fresh = `win:${crypto.randomUUID()}`;
+    window.sessionStorage?.setItem("__axagent_window_id__", fresh);
+    cachedWindowId = fresh;
+    return cachedWindowId;
+  } catch {
+    // sessionStorage 在隐私模式可能被拒
+    cachedWindowId = `win:${crypto.randomUUID()}`;
+    return cachedWindowId;
+  }
+}
+
 export function setDragPayload(payload: DragPayload | null): void {
-  setDragPayloadForWindow(DEFAULT_WINDOW_ID, payload);
+  setDragPayloadForWindow(getCurrentWindowId(), payload);
 }
 
 export function getDragPayload(): DragPayload | null {
-  return getDragPayloadForWindow(DEFAULT_WINDOW_ID);
+  return getDragPayloadForWindow(getCurrentWindowId());
 }
 
 export function clearDragPayload(): void {
-  clearDragPayloadForWindow(DEFAULT_WINDOW_ID);
+  clearDragPayloadForWindow(getCurrentWindowId());
 }
 
 /** 显式指定 windowId 的版本：用于多窗口/iframe 隔离。 */

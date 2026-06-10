@@ -75,7 +75,24 @@ export const WorkflowLegend: React.FC = memo(() => {
     >
       {/* 标题栏（可点击折叠） */}
       <div
+        id="workflow-legend-header"
+        role="button"
+        tabIndex={0}
+        aria-label={t("workflow.legend.toggleLabel", {
+          action: t(collapsed ? "workflow.legend.expand" : "workflow.legend.collapse", {
+            defaultValue: collapsed ? "Expand" : "Collapse",
+          }),
+          defaultValue: collapsed ? "Expand legend" : "Collapse legend",
+        })}
+        aria-expanded={!collapsed}
+        aria-controls="workflow-legend-content"
         onClick={() => setCollapsed(!collapsed)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            setCollapsed(!collapsed);
+          }
+        }}
         style={{
           display: "flex",
           alignItems: "center",
@@ -115,7 +132,12 @@ export const WorkflowLegend: React.FC = memo(() => {
 
       {/* 图例内容 */}
       {!collapsed && (
-        <div style={{ padding: "6px 12px 8px" }}>
+        <div
+          id="workflow-legend-content"
+          role="region"
+          aria-labelledby="workflow-legend-header"
+          style={{ padding: "6px 12px 8px" }}
+        >
           {kinds.map((kind) => {
             const colors = getNodeKindColor(kind);
             return (

@@ -101,7 +101,10 @@ export function useNodeAIAssist(): NodeAIAssistResult {
       try {
         const result = await invoke<{ content: string }>("send_message", {
           params: {
-            conversationId: "",
+            // 节点级 AI 辅助是独立于主对话的请求：使用稳定的 per-call ID
+            // 避免后端在空字符串下走未定义分支（旧实现会落回 default 路径，
+            // 进而污染主对话历史或丢失 stream 事件）。
+            conversationId: `aiassist-${crypto.randomUUID()}`,
             content: enrichedUserPrompt,
             attachments: [],
             options: {

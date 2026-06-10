@@ -274,7 +274,7 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({
   const { generate: aiGenerate, generating: aiGenerating } = useNodeAIAssist();
   const handleAIOptimizeSystemPrompt = async () => {
     if (config.agentProfileId) {
-      messageApi.warning(t("workflow.props.expertNotFound"));
+      messageApi.warning(t("workflow.aiPanel.lockedByExpert"));
       return;
     }
     const current = config.system_prompt || "";
@@ -299,7 +299,7 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({
 
   const handleAIContextComplete = async () => {
     if (config.agentProfileId) {
-      messageApi.warning(t("workflow.props.expertNotFound"));
+      messageApi.warning(t("workflow.aiPanel.lockedByExpert"));
       return;
     }
     const current = config.system_prompt || "";

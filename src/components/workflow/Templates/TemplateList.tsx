@@ -258,7 +258,7 @@ export const TemplateList: React.FC<TemplateListProps> = ({
                 marginBottom: 6,
               }}
             >
-              <span style={{ fontSize: 16 }}>{template.icon || "📋"}</span>
+              <span style={{ fontSize: 16 }} aria-hidden="true">{template.icon || "▦"}</span>
               <span
                 style={{
                   fontWeight: 500,
@@ -332,6 +332,14 @@ export const TemplateList: React.FC<TemplateListProps> = ({
               data-testid="template-card-more-btn"
               icon={<MoreVertical size={14} />}
               onClick={(e) => e.stopPropagation()}
+              aria-label={t("workflow.templateList.moreActions", {
+                name: (() => {
+                  const presetI18n = PRESET_I18N_KEYS[template.id as PresetI18nKey];
+                  return presetI18n ? t(presetI18n.name) : template.name;
+                })(),
+                defaultValue: "More actions",
+              })}
+              aria-haspopup="menu"
               style={{ color: token.colorTextTertiary }}
             />
           </DropdownMenu>

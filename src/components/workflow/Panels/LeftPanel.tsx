@@ -144,7 +144,7 @@ export const LeftPanel: React.FC<LeftPanelProps> = ({ width }) => {
 
                 <div style={{ flex: 1, overflow: "auto", padding: "0 8px", minHeight: 0 }}>
                   {groupedNodeTypes.map((category) => (
-                    <div key={category.id} style={{ marginBottom: 12 }}>
+                    <div key={category.id} style={{ marginBottom: 12 }} role="group" aria-label={t(category.labelKey)}>
                       <div
                         style={{
                           fontSize: 12,
@@ -221,7 +221,11 @@ export const LeftPanel: React.FC<LeftPanelProps> = ({ width }) => {
                   ))}
 
                   {/* 阶段分隔线入口 */}
-                  <div style={{ marginBottom: 12 }}>
+                  <div
+                    style={{ marginBottom: 12 }}
+                    role="group"
+                    aria-label={t("workflow.leftPanel.layout", { defaultValue: "Layout" })}
+                  >
                     <div
                       style={{
                         fontSize: 12,
@@ -236,9 +240,12 @@ export const LeftPanel: React.FC<LeftPanelProps> = ({ width }) => {
                     <div
                       role="button"
                       tabIndex={0}
+                      aria-label={t("workflow.nodeTypes.phaseSeparator")}
+                      aria-keyshortcuts="Enter Space"
                       onMouseDown={(e) => handleMouseDown(e, "_phaseSeparator", t("workflow.nodeTypes.phaseSeparator"))}
                       onKeyDown={(e) => {
                         if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
                           handleMouseDown(
                             e as unknown as React.MouseEvent,
                             "_phaseSeparator",
@@ -267,9 +274,12 @@ export const LeftPanel: React.FC<LeftPanelProps> = ({ width }) => {
                     <div
                       role="button"
                       tabIndex={0}
+                      aria-label={t("workflow.nodeTypes.groupFrame")}
+                      aria-keyshortcuts="Enter Space"
                       onMouseDown={(e) => handleMouseDown(e, "groupFrame", t("workflow.nodeTypes.groupFrame"))}
                       onKeyDown={(e) => {
                         if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
                           handleMouseDown(
                             e as unknown as React.MouseEvent,
                             "groupFrame",
@@ -331,9 +341,12 @@ export const LeftPanel: React.FC<LeftPanelProps> = ({ width }) => {
                       key={template.id}
                       role="button"
                       tabIndex={0}
+                      aria-label={`${template.name}${template.description ? `, ${template.description}` : ""}`}
+                      aria-keyshortcuts="Enter Space"
                       onClick={() => handleTemplateClick(template.id)}
                       onKeyDown={(e) => {
                         if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
                           handleTemplateClick(template.id);
                         }
                       }}

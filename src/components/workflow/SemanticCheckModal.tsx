@@ -1,3 +1,9 @@
+import {
+  flattenSemanticActions,
+  isActionSelected,
+  type SemanticActionMap,
+  setSemanticAction,
+} from "@/components/workflow/semanticActions";
 import type { NodeSkillMatch, SkillMatchResult, SkillReplacementAction } from "@/components/workflow/types";
 import { useWorkflowEditorStore } from "@/stores";
 import { Button, Descriptions, message, Modal, Space, Tag, theme } from "antd";
@@ -24,9 +30,7 @@ export const SemanticCheckModal: React.FC<SemanticCheckModalProps> = ({
   const { t } = useTranslation();
   const { token } = theme.useToken();
   const { clearSemanticCheckResult } = useWorkflowEditorStore();
-  const [selectedActions, setSelectedActions] = useState<
-    Record<string, { skillId: string; action: SkillReplacementAction }>
-  >({});
+  const [selectedActions, setSelectedActions] = useState<SemanticActionMap>({});
 
   const handleClose = () => {
     clearSemanticCheckResult();
@@ -38,14 +42,11 @@ export const SemanticCheckModal: React.FC<SemanticCheckModalProps> = ({
     skillId: string,
     action: SkillReplacementAction,
   ) => {
-    setSelectedActions((prev) => ({
-      ...prev,
-      [nodeId]: { skillId, action },
-    }));
+    setSelectedActions((prev) => setSemanticAction(prev, nodeId, skillId, action));
   };
 
   const handleApply = () => {
-    Object.entries(selectedActions).forEach(([nodeId, { skillId, action }]) => {
+    flattenSemanticActions(selectedActions).forEach(({ nodeId, skillId, action }) => {
       onApplyReplacement(nodeId, skillId, action);
     });
     message.success(t("workflow.semanticCheckApplied"));
@@ -53,11 +54,8 @@ export const SemanticCheckModal: React.FC<SemanticCheckModalProps> = ({
   };
 
   const getActionButton = (match: SkillMatchResult, nodeId: string) => {
-    const currentSelection = selectedActions[nodeId];
-    const isReplaceSelected = currentSelection?.skillId === match.existing_skill.id
-      && currentSelection?.action === "replace";
-    const isKeepSelected = currentSelection?.skillId === match.existing_skill.id
-      && currentSelection?.action === "keep";
+    const isReplaceSelected = isActionSelected(selectedActions, nodeId, match.existing_skill.id, "replace");
+    const isKeepSelected = isActionSelected(selectedActions, nodeId, match.existing_skill.id, "keep");
 
     return (
       <Space direction="vertical" style={{ width: "100%" }}>

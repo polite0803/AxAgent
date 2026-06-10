@@ -118,9 +118,11 @@ export const StatusBar: React.FC<StatusBarProps> = ({
         <span
           role="button"
           tabIndex={0}
+          aria-label={t("workflow.statusBar.resetZoom")}
           onClick={onResetZoom}
           onKeyDown={(e) => {
             if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
               onResetZoom();
             }
           }}
@@ -137,7 +139,16 @@ export const StatusBar: React.FC<StatusBarProps> = ({
       <Tooltip title={t("workflow.statusBar.fitView")}>
         <Maximize2
           size={14}
+          role="button"
+          tabIndex={0}
+          aria-label={t("workflow.statusBar.fitView")}
           onClick={onFitView}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              onFitView();
+            }
+          }}
           style={{ cursor: "pointer", color: token.colorTextSecondary }}
         />
       </Tooltip>
