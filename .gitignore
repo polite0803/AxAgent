@@ -83,7 +83,6 @@ Docs/
 credentials.json
 service-account*.json
 cargo-check-output.txt
-eslint.config.js
 .check-i18n-tmp-*
 
 # Generated scripts
