@@ -79,7 +79,27 @@ export function WikiEditorPage({ noteId, onBack }: WikiEditorPageProps) {
     setLoading(false);
   }, [noteId, getNote]);
 
+  const handleSave = async () => {
+    if (!note || !hasChanges) {
+      return;
+    }
+    setSaving(true);
+    try {
+      const updated = await updateNote(note.id, { title, content });
+      if (updated) {
+        setNote(updated);
+        lastSavedRef.current = content;
+        setHasChanges(false);
+        message.success(t("wiki.saved"));
+      }
+    } catch (e) {
+      message.error(String(e));
+    }
+    setSaving(false);
+  };
+
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadNote();
   }, [loadNote]);
 
@@ -91,6 +111,7 @@ export function WikiEditorPage({ noteId, onBack }: WikiEditorPageProps) {
 
   useEffect(() => {
     if (note) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setHasChanges(content !== note.content || title !== note.title);
     }
   }, [content, title, note]);
@@ -121,6 +142,7 @@ export function WikiEditorPage({ noteId, onBack }: WikiEditorPageProps) {
         clearTimeout(autoSaveTimerRef.current);
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [content, title]);
 
   useEffect(() => {
@@ -171,25 +193,6 @@ export function WikiEditorPage({ noteId, onBack }: WikiEditorPageProps) {
     );
     return () => provider.dispose();
   }, [noteId]);
-
-  const handleSave = async () => {
-    if (!note || !hasChanges) {
-      return;
-    }
-    setSaving(true);
-    try {
-      const updated = await updateNote(note.id, { title, content });
-      if (updated) {
-        setNote(updated);
-        lastSavedRef.current = content;
-        setHasChanges(false);
-        message.success(t("wiki.saved"));
-      }
-    } catch (e) {
-      message.error(String(e));
-    }
-    setSaving(false);
-  };
 
   const handleBackWithConfirm = () => {
     if (hasChanges && content !== lastSavedRef.current) {

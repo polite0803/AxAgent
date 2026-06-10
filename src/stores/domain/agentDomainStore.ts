@@ -374,7 +374,8 @@ export const useAgentDomainStore = create<AgentDomainStore>()(
 
       removePermission: (requestId) => {
         set((s) => {
-          const { [requestId]: _removed, ...rest } = s.permissions;
+          const rest = { ...s.permissions };
+          delete rest[requestId];
           return { permissions: rest };
         });
       },
@@ -422,7 +423,8 @@ export const useAgentDomainStore = create<AgentDomainStore>()(
 
       removeAskUser: (askId) => {
         set((s) => {
-          const { [askId]: _removed, ...rest } = s.askUser;
+          const rest = { ...s.askUser };
+          delete rest[askId];
           return { askUser: rest };
         });
       },
@@ -741,10 +743,14 @@ export const useAgentDomainStore = create<AgentDomainStore>()(
 
       clearConversation: (conversationId) => {
         set((s) => {
-          const { [conversationId]: _session, ...agentSession } = s.agentSession;
-          const { [conversationId]: _exec, ...executionState } = s.executionState;
-          const { [conversationId]: _plan, ...planState } = s.planState;
-          const { [conversationId]: _pool, ...agentPool } = s.agentPool;
+          const agentSession = { ...s.agentSession };
+          delete agentSession[conversationId];
+          const executionState = { ...s.executionState };
+          delete executionState[conversationId];
+          const planState = { ...s.planState };
+          delete planState[conversationId];
+          const agentPool = { ...s.agentPool };
+          delete agentPool[conversationId];
 
           const permissions: Record<string, PermissionRequestEvent> = {};
           for (const [id, pr] of Object.entries(s.permissions)) {
@@ -945,7 +951,7 @@ export const useAgentDomainStore = create<AgentDomainStore>()(
           }
         }
 
-        for (const [_, tc] of Object.entries(state.toolCalls)) {
+        for (const [, tc] of Object.entries(state.toolCalls)) {
           if (
             tc.executionStatus === "running"
             || tc.executionStatus === "queued"

@@ -987,7 +987,7 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
       if (!batchSelected.has(m.model_id)) {
         return m;
       }
-      let updated = { ...m };
+      const updated = { ...m };
       if (batchModelTypeEnabled) {
         updated.model_type = batchModelType;
         updated.capabilities = sanitizeModelCapabilities(

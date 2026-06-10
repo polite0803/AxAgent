@@ -297,6 +297,18 @@ function formatBytes(bytes: number): string {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
 }
 
+const MIME_MAP: Record<string, string> = {
+  pdf: "application/pdf",
+  txt: "text/plain",
+  md: "text/markdown",
+  doc: "application/msword",
+  docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  csv: "text/csv",
+  json: "application/json",
+  html: "text/html",
+  htm: "text/html",
+};
+
 function KnowledgeBaseDetail({ base }: { base: KnowledgeBase }) {
   const { t } = useTranslation();
   const {
@@ -438,10 +450,12 @@ function KnowledgeBaseDetail({ base }: { base: KnowledgeBase }) {
   );
 
   // ── Local model management ────────────────────────────────
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [modelList, setModelList] = useState<any[]>([]);
   const [downloading, setDownloading] = useState<string | null>(null);
 
   useEffect(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     invoke<any[]>("list_local_models")
       .then(setModelList)
       .catch(logIpcError("list_local_models"));
@@ -451,10 +465,11 @@ function KnowledgeBaseDetail({ base }: { base: KnowledgeBase }) {
     setDownloading(filename);
     try {
       await invoke("download_model", { filename });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const updated = await invoke<any[]>("list_local_models");
       setModelList(updated);
       messageApi.success(t("settings.rag.modelDownloaded"));
-    } catch (e: any) {
+    } catch (e) {
       messageApi.error(String(e));
     } finally {
       setDownloading(null);
@@ -464,9 +479,10 @@ function KnowledgeBaseDetail({ base }: { base: KnowledgeBase }) {
   const handleDeleteModel = async (filename: string) => {
     try {
       await invoke("delete_model", { filename });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const updated = await invoke<any[]>("list_local_models");
       setModelList(updated);
-    } catch (e: any) {
+    } catch (e) {
       messageApi.error(String(e));
     }
   };
@@ -563,18 +579,6 @@ function KnowledgeBaseDetail({ base }: { base: KnowledgeBase }) {
       unlistenRebuild?.();
     };
   }, [base.id, loadDocuments]);
-
-  const MIME_MAP: Record<string, string> = {
-    pdf: "application/pdf",
-    txt: "text/plain",
-    md: "text/markdown",
-    doc: "application/msword",
-    docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    csv: "text/csv",
-    json: "application/json",
-    html: "text/html",
-    htm: "text/html",
-  };
 
   const handleAddDocuments = useCallback(async () => {
     try {
@@ -1493,6 +1497,7 @@ function KnowledgeBaseDetail({ base }: { base: KnowledgeBase }) {
                 locale={{
                   emptyText: <Empty description={t("settings.rag.modelNotDownloaded")} />,
                 }}
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 renderItem={(model: any) => (
                   <List.Item
                     actions={[
@@ -1950,6 +1955,7 @@ export function KnowledgeSettings() {
 
   useEffect(() => {
     if (!selectedId && bases.length > 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSelectedId(bases[0].id);
     }
   }, [bases, selectedId]);

@@ -95,14 +95,17 @@ export function GatewaySettings() {
   // Each field syncs independently so an unsaved local edit in one field is never
   // clobbered when the other field's persisted value changes.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setPortValue(settings.gateway_port ?? 8080);
   }, [settings.gateway_port]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setSslPortValue(settings.gateway_ssl_port ?? 8443);
   }, [settings.gateway_ssl_port]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setListenAddressValue(settings.gateway_listen_address ?? "127.1.0.0");
   }, [settings.gateway_listen_address]);
 
@@ -122,8 +125,10 @@ export function GatewaySettings() {
       handleSave({ gateway_ssl_port: sslPortValue });
     }
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setPortError(newPortError);
     setSslPortError(newSslPortError);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [settings.gateway_ssl_enabled, portValue, sslPortValue]);
 
   const handleSslPortChange = (val: number | null) => {

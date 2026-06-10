@@ -283,7 +283,7 @@ describe("invoke.ts", () => {
       await invoke("multi_cmd");
       try {
         await invoke("multi_cmd");
-      } catch {}
+      } catch { /* expected failure */ }
 
       const metrics = getInvokeMetrics();
       const cmdStats = metrics.byCommand.find((c) => c.command === "multi_cmd");

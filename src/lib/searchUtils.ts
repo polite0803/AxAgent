@@ -123,7 +123,9 @@ export function parseSearchContent(content: string): {
   try {
     const data = JSON.parse(jsonStr);
     sources = data.sources ?? [];
-  } catch {}
+  } catch {
+    // JSON parse may fail for non-search content
+  }
 
   const separatorIdx = content.indexOf(SEARCH_SEPARATOR);
   const userContent = separatorIdx !== -1

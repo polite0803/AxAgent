@@ -429,7 +429,7 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
         idMap[event.toolUseId] = event.executionId;
       }
       // Create optimistic sub-agent card when task tool is called
-      let cardUpdates: Record<string, SubAgentCardData> = {};
+      const cardUpdates: Record<string, SubAgentCardData> = {};
       if (event.toolName === "task" && event.conversationId) {
         const cardId = `task-${event.toolUseId}`;
         cardUpdates[cardId] = {
@@ -536,7 +536,8 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
 
   handlePermissionResolved: (toolUseId, decision) => {
     set((s) => {
-      const { [toolUseId]: _removed, ...rest } = s.pendingPermissions;
+      const rest = { ...s.pendingPermissions };
+      delete rest[toolUseId];
       const existing = s.toolCalls[toolUseId];
       const updatedToolCalls = existing
         ? {
@@ -564,7 +565,8 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
 
   handleAskUserResolved: (askId) => {
     set((s) => {
-      const { [askId]: _removed, ...rest } = s.pendingAskUser;
+      const rest = { ...s.pendingAskUser };
+      delete rest[askId];
       return { pendingAskUser: rest };
     });
   },
@@ -588,7 +590,8 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
 
   clearStatus: (conversationId) => {
     set((s) => {
-      const { [conversationId]: _removed, ...rest } = s.agentStatus;
+      const rest = { ...s.agentStatus };
+      delete rest[conversationId];
       return { agentStatus: rest };
     });
   },
@@ -673,7 +676,8 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
         ? "⚠️ Stream interrupted — partial response may be lost. "
         : "";
       useStreamStore.setState((s) => {
-        const { [event.conversationId]: _removed, ...restStreams } = s.activeStreams;
+        const restStreams = { ...s.activeStreams };
+        delete restStreams[event.conversationId];
         const restCount = Object.keys(restStreams).length;
         return {
           activeStreams: restStreams,
@@ -749,7 +753,8 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
     const clearAfter = event.retryAfterMs > 0 ? event.retryAfterMs : 5000;
     setTimeout(() => {
       set((s) => {
-        const { [event.conversationId]: _removed, ...rest } = s.rateLimitInfo;
+        const rest = { ...s.rateLimitInfo };
+        delete rest[event.conversationId];
         return { rateLimitInfo: rest };
       });
     }, clearAfter);
@@ -900,8 +905,10 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
 
   clearConversation: (conversationId) => {
     set((s) => {
-      const { [conversationId]: _session, ...sessions } = s.sessions;
-      const { [conversationId]: _status, ...agentStatus } = s.agentStatus;
+      const sessions = { ...s.sessions };
+      delete sessions[conversationId];
+      const agentStatus = { ...s.agentStatus };
+      delete agentStatus[conversationId];
 
       const pendingPermissions: Record<string, PermissionRequestEvent> = {};
       for (const [id, pr] of Object.entries(s.pendingPermissions)) {
@@ -942,15 +949,19 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
         }
       }
 
-      const { [conversationId]: _rateLimit, ...rateLimitInfo } = s.rateLimitInfo;
+      const rateLimitInfo = { ...s.rateLimitInfo };
+      delete rateLimitInfo[conversationId];
       const pausedConversations = new Set(s.pausedConversations);
       pausedConversations.delete(conversationId);
-      const { [conversationId]: _isExec, ...isExecuting } = s.isExecuting;
+      const isExecuting = { ...s.isExecuting };
+      delete isExecuting[conversationId];
       const executingConversationIds = s.executingConversationIds.filter(
         (id) => id !== conversationId,
       );
-      const { [conversationId]: _queryStats, ...queryStats } = s.queryStats;
-      const { [conversationId]: _subAgent, ...subAgentCards } = s.subAgentCards;
+      const queryStats = { ...s.queryStats };
+      delete queryStats[conversationId];
+      const subAgentCards = { ...s.subAgentCards };
+      delete subAgentCards[conversationId];
       return {
         sessions,
         agentStatus,

@@ -463,7 +463,7 @@ function CommandMode({
   activeCmdDef,
   COMMANDS,
 }: {
-  inputRef: React.Ref<any>;
+  inputRef: React.RefObject<HTMLInputElement | null>;
   setCommandMode: React.Dispatch<React.SetStateAction<boolean>>;
   setInput: React.Dispatch<React.SetStateAction<string>>;
   setActiveCommand: React.Dispatch<React.SetStateAction<CommandType | null>>;
@@ -936,7 +936,7 @@ export function QuickBarPage() {
   const [commandMode, setCommandMode] = useState(false);
   const [selectedCmd, setSelectedCmd] = useState(0);
 
-  const inputRef = useRef<any>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
   const unlistenRef = useRef<UnlistenFn[]>([]);
   const resultTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const copiedTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -976,6 +976,7 @@ export function QuickBarPage() {
 
   useEffect(() => {
     if (input.trimStart().startsWith("/") && commandMode) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setShowCommands(true);
       setSelectedCmd(0);
     } else {
@@ -1096,7 +1097,7 @@ export function QuickBarPage() {
 
   /* ── Command executors ───────────────────────────────────────────── */
 
-  const runChat = (body: string) =>
+  const runChat = useCallback((body: string) =>
     startStream(async () => {
       const cid = await ensureConversation();
       await invoke("send_message", {
@@ -1108,9 +1109,9 @@ export function QuickBarPage() {
         },
       });
       return cid;
-    });
+    }), [startStream, ensureConversation]);
 
-  const runAgent = (body: string) =>
+  const runAgent = useCallback((body: string) =>
     startStream(async () => {
       const cid = await ensureConversation();
       await invoke(
@@ -1127,9 +1128,9 @@ export function QuickBarPage() {
         0,
       );
       return cid;
-    });
+    }), [startStream, ensureConversation, activeProviderId, activeModelId]);
 
-  const runUrl = (url: string) =>
+  const runUrl = useCallback((url: string) =>
     startStream(async () => {
       const cid = await ensureConversation();
       await invoke(
@@ -1146,9 +1147,9 @@ export function QuickBarPage() {
         0,
       );
       return cid;
-    });
+    }), [startStream, ensureConversation, activeProviderId, activeModelId]);
 
-  const runSummarizeUrl = (url: string) =>
+  const runSummarizeUrl = useCallback((url: string) =>
     startStream(async () => {
       const cid = await ensureConversation();
       await invoke(
@@ -1165,9 +1166,9 @@ export function QuickBarPage() {
         0,
       );
       return cid;
-    });
+    }), [startStream, ensureConversation, activeProviderId, activeModelId]);
 
-  const runTranslate = (text: string) =>
+  const runTranslate = useCallback((text: string) =>
     startStream(async () => {
       const cid = await ensureConversation();
       await invoke(
@@ -1184,9 +1185,9 @@ export function QuickBarPage() {
         0,
       );
       return cid;
-    });
+    }), [startStream, ensureConversation, activeProviderId, activeModelId]);
 
-  const runSearch = async (body: string) => {
+  const runSearch = useCallback(async (body: string) => {
     setLoading(true);
     setResult("");
     try {
@@ -1212,9 +1213,9 @@ export function QuickBarPage() {
       setResult(`${t("quickbar.result.searchFailed")}: ${String(e)}`);
     }
     setLoading(false);
-  };
+  }, [t]);
 
-  const runMemorySearch = async (body: string) => {
+  const runMemorySearch = useCallback(async (body: string) => {
     setLoading(true);
     setResult("");
     try {
@@ -1240,9 +1241,9 @@ export function QuickBarPage() {
       setResult(`${t("quickbar.result.searchFailed")}: ${String(e)}`);
     }
     setLoading(false);
-  };
+  }, [t]);
 
-  const runWiki = async (body: string) => {
+  const runWiki = useCallback(async (body: string) => {
     if (!body.trim()) {
       return;
     }
@@ -1266,9 +1267,9 @@ export function QuickBarPage() {
       setResult(`${t("quickbar.result.saveWikiFailed")}: ${String(e)}`);
     }
     setLoading(false);
-  };
+  }, [t, selectedWikiId]);
 
-  const runCalc = async (expr: string) => {
+  const runCalc = useCallback(async (expr: string) => {
     try {
       const sanitized = expr.replace(/[^0-9+\-*/().%\s]/g, "");
       const value = Function(`"use strict"; return (${sanitized})`)();
@@ -1281,9 +1282,9 @@ export function QuickBarPage() {
     } catch {
       await runChat(`${expr} = ?`);
     }
-  };
+  }, [runChat]);
 
-  const runCode = async (code: string) =>
+  const runCode = useCallback((code: string) =>
     startStream(async () => {
       const cid = await ensureConversation();
       await invoke("send_message", {
@@ -1295,7 +1296,7 @@ export function QuickBarPage() {
         },
       });
       return cid;
-    });
+    }), [startStream, ensureConversation]);
 
   const runModelSwitch = (modelId: string) => {
     const store = useSettingsStore.getState();
@@ -1500,7 +1501,9 @@ export function QuickBarPage() {
       setCopied(true);
       clearTimeout(copiedTimerRef.current);
       copiedTimerRef.current = setTimeout(() => setCopied(false), 1500);
-    } catch {}
+    } catch {
+      // clipboard may not be available
+    }
   }, [result]);
 
   const handleContinue = useCallback(() => {

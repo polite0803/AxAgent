@@ -175,6 +175,7 @@ export function ChatSidebar({
   useEffect(() => {
     // 以下分支互斥：无搜索词直接返回 null，异步搜索后 then/catch 各自只有一次 setState
     if (!debouncedSearch) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setFts5ResultIds(null);
       return;
     }
@@ -230,8 +231,10 @@ export function ChatSidebar({
       active?.parent_conversation_id
       && !expandedParentIds.has(active.parent_conversation_id)
     ) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setExpandedParentIds((prev) => new Set(prev).add(active.parent_conversation_id!));
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeConversationId, conversations]);
 
   // Auto-select conversation: restore last selected, or fall back to first
@@ -679,6 +682,7 @@ export function ChatSidebar({
       token.colorPrimary,
       token.colorPrimaryBg,
       token.colorBgContainer,
+      t,
     ],
   );
 
@@ -887,7 +891,6 @@ export function ChatSidebar({
     buildIcon,
     toggleSelect,
     token.colorTextQuaternary,
-    t,
     titleGeneratingConversationId,
     expandedParentIds,
   ]);
@@ -920,6 +923,7 @@ export function ChatSidebar({
       }
     });
     if (wsKeys.size > 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setExpandedKeys(Array.from(wsKeys));
       wsAutoExpandDoneRef.current = true;
     }
@@ -1061,7 +1065,7 @@ export function ChatSidebar({
       }
       return groupLabels[group] ?? group;
     },
-    [groupLabels, token, abbreviateWsPath, handleNewConversation, t],
+    [groupLabels, token, abbreviateWsPath, handleNewConversation, wsCountMap, t],
   );
 
   const handleRename = useCallback(
@@ -1279,7 +1283,7 @@ export function ChatSidebar({
           ),
         });
       }
-      const wsItems: any[] = wsChildren.length > 0
+      const wsItems: MenuProps["items"] = wsChildren.length > 0
         ? [
           {
             key: "move-workspace",
@@ -1444,7 +1448,7 @@ export function ChatSidebar({
                   format as "markdown" | "text",
                 );
                 messageApi.success(t("chat.copied"));
-              } catch (_e) {
+              } catch {
                 messageApi.error(t("chat.copyFailed"));
               }
             })();
@@ -1489,7 +1493,7 @@ export function ChatSidebar({
       handleRename,
       handleDelete,
       togglePin,
-      toggleArchive,
+      handleArchiveSingle,
       buildExportChildren,
       setActiveConversation,
       messageApi,
@@ -1547,7 +1551,7 @@ export function ChatSidebar({
         ),
       });
     }
-    const wsItems: any[] = wsChildren.length > 0
+    const wsItems: MenuProps["items"] = wsChildren.length > 0
       ? [
         {
           key: "move-workspace",
@@ -1701,7 +1705,7 @@ export function ChatSidebar({
               const format = menuInfo.key === "copy-md" ? "markdown" : "text";
               await copyTranscript(msgs, title, format as "markdown" | "text");
               messageApi.success(t("chat.copied"));
-            } catch (_e) {
+            } catch {
               messageApi.error(t("chat.copyFailed"));
             }
           })();
@@ -1743,7 +1747,7 @@ export function ChatSidebar({
     forkConversation,
     updateConversation,
     togglePin,
-    toggleArchive,
+    handleArchiveSingle,
     handleRename,
     handleDelete,
     buildExportChildren,

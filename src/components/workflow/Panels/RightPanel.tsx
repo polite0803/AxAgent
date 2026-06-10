@@ -409,15 +409,15 @@ function TemplateSettings({
   const { t } = useTranslation();
   const { token } = theme.useToken();
 
-  if (!currentTemplate) {
-    return null;
-  }
-
   const [schemaModal, setSchemaModal] = React.useState<{
     open: boolean;
     kind: "input" | "output";
     initial: string;
   }>({ open: false, kind: "input", initial: "" });
+
+  if (!currentTemplate) {
+    return null;
+  }
 
   const openSchemaModal = (kind: "input" | "output") => {
     const schema = kind === "input"

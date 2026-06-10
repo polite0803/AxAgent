@@ -25,12 +25,14 @@ export interface Command {
 // ─── 动态命令注册表 ───
 const commandRegistry: Command[] = [];
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function registerCommand(cmd: Command) {
   if (!commandRegistry.find((c) => c.id === cmd.id)) {
     commandRegistry.push(cmd);
   }
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function unregisterCommand(id: string) {
   const idx = commandRegistry.findIndex((c) => c.id === id);
   if (idx !== -1) {
@@ -94,7 +96,6 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
   const [useCounts, setUseCounts] = useState<Map<string, number>>(() => loadUseCounts());
 
   const navigate = useNavigate();
-  const setSettingsSection = useUIStore((s) => s.setSettingsSection);
   const toggleSidebar = useUIStore((s) => s.toggleSidebar);
 
   // 基础命令 + 注册的动态命令
@@ -215,7 +216,7 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
     const ids = new Set(builtin.map((c) => c.id));
     const extra = commandRegistry.filter((c) => !ids.has(c.id));
     return [...builtin, ...extra];
-  }, [t, navigate, setSettingsSection, toggleSidebar, onClose]);
+  }, [t, navigate, toggleSidebar, onClose]);
 
   const filtered = useMemo(() => {
     if (!query.trim()) {
@@ -237,11 +238,13 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
   }, [commands, query, useCounts]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setActiveIndex(0);
   }, [query]);
 
   useEffect(() => {
     if (!open) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setQuery("");
       setActiveIndex(0);
     }

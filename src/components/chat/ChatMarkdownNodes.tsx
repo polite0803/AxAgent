@@ -398,6 +398,7 @@ function ThinkNode(
   useEffect(() => {
     if (isStreaming) {
       // React 18 自动批处理两个独立 setState
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setExpanded(true);
       setShowRawMarkdown(false);
     } else if (prevStreamingRef.current) {
@@ -413,6 +414,7 @@ function ThinkNode(
     : t("chat.thinkingComplete");
 
   const thinkingNodes = useMemo(() => {
+    /* eslint-disable react-hooks/refs */
     const cache = thinkingNodesCacheRef.current;
     const cached = cache.get(thinkingContent);
     if (cached) {
@@ -428,6 +430,7 @@ function ThinkNode(
       }
     }
     return parsed;
+    /* eslint-enable react-hooks/refs */
   }, [thinkingContent]);
   const { darkTheme, lightTheme, themes } = useMemo(
     () => getChatCodeThemes(selectedDarkCodeTheme, selectedLightCodeTheme),
@@ -573,6 +576,7 @@ function ChatD2BlockNode({
 
   useEffect(() => {
     if (showSource) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setCanRenderPreview(false);
       return;
     }
@@ -1250,6 +1254,7 @@ const AssistantMarkdown = React.memo(
 
     useEffect(() => {
       if (!hasDeferredHeavyNodes) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setReadyToRenderHeavyNodes(true);
         return;
       }
@@ -1416,23 +1421,30 @@ export {
   type CodeBlockPreviewPayload,
   DEFAULT_DARK_CODE_BLOCK_THEME,
   DEFAULT_LIGHT_CODE_BLOCK_THEME,
+  // eslint-disable-next-line react-refresh/only-export-components
   getChatCodeBlockProps,
+  // eslint-disable-next-line react-refresh/only-export-components
   getChatCodeThemes,
+  // eslint-disable-next-line react-refresh/only-export-components
   normalizeCodeTheme,
   THINKING_LOADING_MARKER,
 };
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function getCodeBlockPreviewHandler() {
   return _codeBlockPreviewHandler;
 }
+// eslint-disable-next-line react-refresh/only-export-components
 export function setCodeBlockPreviewHandler(
   h: ((payload: CodeBlockPreviewPayload) => void) | null,
 ) {
   _codeBlockPreviewHandler = h;
 }
+// eslint-disable-next-line react-refresh/only-export-components
 export function getMermaidOpenModalHandler() {
   return _mermaidOpenModalHandler;
 }
+// eslint-disable-next-line react-refresh/only-export-components
 export function setMermaidOpenModalHandler(
   h: ((svgString: string | null) => void) | null,
 ) {

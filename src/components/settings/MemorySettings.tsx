@@ -440,10 +440,36 @@ function MemoryItemsPanel({ namespace }: { namespace: MemoryNamespace }) {
     loadItems(namespace.id);
   }, [namespace.id, loadItems]);
 
+  const loadWorkingMemories = async () => {
+    setWorkingMemoriesLoading(true);
+    try {
+      const result = await invoke<WorkingMemoryEntry[]>(
+        "search_working_memories",
+        { query: "", limit: 50 },
+      );
+      setWorkingMemories(result);
+    } catch (e) {
+      messageApi.error(String(e));
+    } finally {
+      setWorkingMemoriesLoading(false);
+    }
+  };
+
+  const loadTierStats = async () => {
+    try {
+      const result = await invoke<TierStats>("get_memory_tier_stats");
+      setTierStats(result);
+    } catch {
+      // silently fail - stats are supplementary
+    }
+  };
+
   // Load working memories and tier stats when namespace changes
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadWorkingMemories();
     loadTierStats();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [namespace.id]);
 
   // Listen for indexing events
@@ -472,30 +498,6 @@ function MemoryItemsPanel({ namespace }: { namespace: MemoryNamespace }) {
       unlistenRebuild.then((fn) => fn());
     };
   }, [namespace.id, loadItems]);
-
-  const loadWorkingMemories = async () => {
-    setWorkingMemoriesLoading(true);
-    try {
-      const result = await invoke<WorkingMemoryEntry[]>(
-        "search_working_memories",
-        { query: "", limit: 50 },
-      );
-      setWorkingMemories(result);
-    } catch (e) {
-      messageApi.error(String(e));
-    } finally {
-      setWorkingMemoriesLoading(false);
-    }
-  };
-
-  const loadTierStats = async () => {
-    try {
-      const result = await invoke<TierStats>("get_memory_tier_stats");
-      setTierStats(result);
-    } catch {
-      // silently fail - stats are supplementary
-    }
-  };
 
   const handleAddItem = async () => {
     try {
@@ -1957,6 +1959,7 @@ export function MemorySettings() {
 
   useEffect(() => {
     if (!selectedId && namespaces.length > 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSelectedId(namespaces[0].id);
     }
   }, [namespaces, selectedId]);

@@ -85,12 +85,10 @@ export const MultiModelDisplay = React.memo(function MultiModelDisplay(
   );
 });
 
-interface MultiModelDisplayInnerProps extends
-  Omit<
-    MultiModelDisplayProps,
-    "multiModelDoneMessageIds" | "conversationId"
-  >
-{}
+type MultiModelDisplayInnerProps = Omit<
+  MultiModelDisplayProps,
+  "multiModelDoneMessageIds" | "conversationId"
+>;
 
 function MultiModelDisplayInner({
   versions,

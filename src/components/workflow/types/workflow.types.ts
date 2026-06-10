@@ -54,7 +54,7 @@ export interface TriggerConfig {
   config: unknown;
 }
 
-export interface ManualTriggerConfig {}
+export type ManualTriggerConfig = Record<string, never>;
 
 export interface ScheduleTriggerConfig {
   cron: string;

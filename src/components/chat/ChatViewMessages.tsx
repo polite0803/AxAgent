@@ -35,6 +35,7 @@ interface ActionItem {
   onItemClick?: () => void;
   actionRender?: () => ReactNode;
 }
+// eslint-disable-next-line react-refresh/only-export-components
 function Actions({ items, onActionClick }: { items: ActionItem[]; onActionClick?: (item: ActionItem) => void }) {
   return (
     <div className="msg-actions">
@@ -121,6 +122,7 @@ import { buildAssistantDisplayContent, shouldHideAssistantBubble } from "./toolC
 import { TopicGroupDivider } from "./TopicGroupDivider";
 import { VersionPagination } from "./VersionPagination";
 
+// eslint-disable-next-line react-refresh/only-export-components
 function AssistantFooter({
   msg,
   conversationId,
@@ -676,6 +678,20 @@ export function useChatViewMessages({
     }
     prevConvIdRef.current = activeConversationId ?? undefined;
   }, [activeConversationId]);
+
+  const [displayModeOverrides, setDisplayModeOverrides] = useState<
+    Map<string, MultiModelDisplayMode>
+  >(new Map());
+  const handleDisplayModeOverride = useCallback(
+    (parentMsgId: string, mode: MultiModelDisplayMode) => {
+      setDisplayModeOverrides((prev) => {
+        const next = new Map(prev);
+        next.set(parentMsgId, mode);
+        return next;
+      });
+    },
+    [setDisplayModeOverrides],
+  );
   const handleMultiModelDetected = useCallback(
     (parentMsgId: string, versions: Message[]) => {
       const hadCached = multiModelVersionsRef.current.has(parentMsgId);
@@ -693,20 +709,6 @@ export function useChatViewMessages({
       }
     },
     [multiModelResponseParents],
-  );
-
-  const [displayModeOverrides, setDisplayModeOverrides] = useState<
-    Map<string, MultiModelDisplayMode>
-  >(new Map());
-  const handleDisplayModeOverride = useCallback(
-    (parentMsgId: string, mode: MultiModelDisplayMode) => {
-      setDisplayModeOverrides((prev) => {
-        const next = new Map(prev);
-        next.set(parentMsgId, mode);
-        return next;
-      });
-    },
-    [],
   );
 
   const userSearchContentById = useMemo(() => {
@@ -737,6 +739,7 @@ export function useChatViewMessages({
 
       if (msg.role === "system" && msg.content === "<!-- context-clear -->") {
         const signature = "context-clear";
+        // eslint-disable-next-line react-hooks/refs
         const cached = cache.get(msg.id);
         const item = cached?.signature === signature
           ? cached.item
@@ -756,6 +759,7 @@ export function useChatViewMessages({
         && msg.content === "<!-- context-compressed -->"
       ) {
         const signature = "context-compressed";
+        // eslint-disable-next-line react-hooks/refs
         const cached = cache.get(msg.id);
         const item = cached?.signature === signature
           ? cached.item
@@ -773,6 +777,7 @@ export function useChatViewMessages({
       if (msg.role === "user") {
         const { userContent } = userSearchContentById.get(msg.id) ?? parseSearchContent(msg.content);
         const signature = `user:${userContent}`;
+        // eslint-disable-next-line react-hooks/refs
         const cached = cache.get(msg.id);
         const item = cached?.signature === signature
           ? cached.item
@@ -821,6 +826,7 @@ export function useChatViewMessages({
         continue;
       }
       const signature = `ai:${msg.id}:${aiContent}`;
+      // eslint-disable-next-line react-hooks/refs
       const cached = cache.get(stableKey);
       const item = cached?.signature === signature
         ? cached.item
@@ -829,6 +835,7 @@ export function useChatViewMessages({
       nextItems.push(item);
     }
 
+    // eslint-disable-next-line react-hooks/refs
     bubbleItemCacheRef.current = nextCache;
     return nextItems;
   }, [activeMessages, thinkingActiveMessageIds, userSearchContentById]);
@@ -845,13 +852,14 @@ export function useChatViewMessages({
     const role = getRoleById(sw.roleId);
     const name = role?.name ?? t("chat.generalAssistant");
     const icon = role?.icon ?? "\uD83E\uDD16";
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setExpertSwitchBubble({
       key: `__expert-switch__${sw.roleId}__${Date.now()}`,
       role: "expert-switch",
       content: JSON.stringify({ icon, name: t("chat.switchedTo", { name }) }),
       variant: "borderless" as const,
     } as BubbleItemType);
-  }, [activeConversationId, consumeSwitch, getRoleById]);
+  }, [activeConversationId, consumeSwitch, getRoleById, t]);
 
   const topicGroupEnabledByConv = useTopicGroupStore((s) =>
     activeConversationId
@@ -941,29 +949,37 @@ export function useChatViewMessages({
       }
       const shouldRenderFromContent = shouldRenderAssistantMarkdownFromContent(
         streaming && msg?.id === streamingMessageId,
+        // eslint-disable-next-line react-hooks/refs
         Boolean(msg?.id && contentRendererMessageIdsRef.current.has(msg.id)),
       );
       if (shouldRenderFromContent) {
         continue;
       }
       const messageId = String(item.key);
+      // eslint-disable-next-line react-hooks/refs
       const cached = cache.get(messageId);
       if (cached && cached.content === item.content) {
         next.set(messageId, cached.nodes);
         continue;
       }
       const nodes = parseChatMarkdown(item.content);
+      // eslint-disable-next-line react-hooks/refs
       if (cache.size >= 100) {
+        // eslint-disable-next-line react-hooks/refs
         const firstKey = cache.keys().next().value;
         if (firstKey !== undefined) {
+          // eslint-disable-next-line react-hooks/refs
           cache.delete(firstKey);
         }
       }
+      // eslint-disable-next-line react-hooks/refs
       cache.set(messageId, { content: item.content, nodes });
       next.set(messageId, nodes);
     }
+    // eslint-disable-next-line react-hooks/refs
     for (const messageId of Array.from(cache.keys())) {
       if (!next.has(messageId)) {
+        // eslint-disable-next-line react-hooks/refs
         cache.delete(messageId);
       }
     }
@@ -1230,11 +1246,13 @@ export function useChatViewMessages({
       codeBlockDarkTheme,
       codeBlockLightTheme,
       codeBlockThemes,
+      copyMessage,
       deleteMessageGroup,
       formatTime,
       getBubbleVariant,
       handleEditMessage,
       isDarkMode,
+      isUserMsgCopied,
       messageApi,
       messageById,
       profile.name,
@@ -1244,6 +1262,7 @@ export function useChatViewMessages({
       t,
       token.colorError,
       token.colorPrimary,
+      token.colorSuccess,
       userAvatar,
     ],
   );
@@ -1292,6 +1311,7 @@ export function useChatViewMessages({
   );
 
   const aiRole = useCallback(
+    // eslint-disable-next-line react-hooks/preserve-manual-memoization
     (bubbleData: BubbleItemType) => {
       const msg = assistantByParentId.get(String(bubbleData.key))
         ?? (() => {
@@ -1670,6 +1690,7 @@ export function useChatViewMessages({
       activeConversation,
       activeConversationId,
       activeMessages,
+      agentPendingAskUser,
       agentPendingPermissions,
       agentToolCalls,
       aiContentNodesById,
@@ -1698,7 +1719,7 @@ export function useChatViewMessages({
       switchMessageVersion,
       t,
       token.colorPrimary,
-      token.colorTextDescription,
+      token.colorPrimaryBg,
     ],
   );
 
@@ -1975,7 +1996,7 @@ export function useChatViewMessages({
         ),
       };
     },
-    [token.colorPrimary, token.colorPrimaryBorder],
+    [t, token.colorPrimary, token.colorPrimaryBorder],
   );
 
   const topicGroupRole = useCallback(

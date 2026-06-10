@@ -446,6 +446,7 @@ async function withTimeout<T>(
     ) {
       throw new Error(
         `Backend connection failed for "${cmdName}". The AxAgent backend may not be running or has crashed. Please restart the application using 'npm run tauri dev'.`,
+        { cause: e },
       );
     }
     throw e;

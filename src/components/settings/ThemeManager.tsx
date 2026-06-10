@@ -78,9 +78,7 @@ export function ThemeManager() {
   } = useThemeStore();
 
   const _selectedThemeRef = useRef<string | null>(null);
-  const [_editModalVisible, _setEditModalVisible] = useState(false);
   const [importModalVisible, setImportModalVisible] = useState(false);
-  const [_themeToEdit, _setThemeToEdit] = useState<Theme | null>(null);
   const [form] = Form.useForm();
 
   useEffect(() => {
@@ -136,7 +134,7 @@ colors:
         setImportModalVisible(false);
         form.resetFields();
       }
-    } catch (e) {
+    } catch {
       message.error(t("settings.theme.invalidYaml"));
     }
   };
@@ -144,6 +142,7 @@ colors:
   const yamlToTheme = (yaml: string): Theme | null => {
     try {
       const lines = yaml.split("\n");
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result: Record<string, any> = { metadata: {}, colors: {} };
 
       for (const line of lines) {

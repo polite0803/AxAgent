@@ -3075,7 +3075,6 @@ export async function handleCommand<T>(
     // ── Agent Profiles (mock) ──────────────────────────────────────
     case "list_agent_profiles":
     case "list_agent_roles":
-    case "list_agency_experts":
       return [] as T;
 
     // ── Dashboard Plugins (mock) ────────────────────────────────────

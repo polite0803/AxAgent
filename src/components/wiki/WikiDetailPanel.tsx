@@ -64,19 +64,6 @@ export function WikiDetailPanel({
   const [selectedKbId, setSelectedKbId] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
 
-  useEffect(() => {
-    if (!noteId) {
-      setNote(null);
-      setContent("");
-      setTitle("");
-      setLinks([]);
-      setBacklinks([]);
-      return;
-    }
-    loadNote();
-    loadLinks();
-  }, [noteId]);
-
   const loadNote = useCallback(async () => {
     if (!noteId) {
       return;
@@ -105,41 +92,7 @@ export function WikiDetailPanel({
     setLinksLoading(false);
   }, [noteId, getNoteLinks, getNoteBacklinks]);
 
-  useEffect(() => {
-    if (note) {
-      setHasChanges(content !== note.content || title !== note.title);
-    }
-  }, [content, title, note]);
-
-  // Ctrl+S 保存
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === "s") {
-        e.preventDefault();
-        handleSave();
-      }
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  });
-
-  // 自动保存（3 秒空闲）
-  useEffect(() => {
-    if (!hasChanges || saving) {
-      return;
-    }
-    if (autoSaveRef.current) {
-      clearTimeout(autoSaveRef.current);
-    }
-    autoSaveRef.current = setTimeout(() => handleSave(), 3000);
-    return () => {
-      if (autoSaveRef.current) {
-        clearTimeout(autoSaveRef.current);
-      }
-    };
-  }, [content, title]);
-
-  const handleSave = async () => {
+  const handleSave = useCallback(async () => {
     if (!note || !hasChanges) {
       return;
     }
@@ -155,7 +108,56 @@ export function WikiDetailPanel({
       message.error(String(e));
     }
     setSaving(false);
-  };
+  }, [note, hasChanges, updateNote, onNoteUpdated, content, title]);
+
+  useEffect(() => {
+    if (!noteId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setNote(null);
+      setContent("");
+      setTitle("");
+      setLinks([]);
+      setBacklinks([]);
+      return;
+    }
+    loadNote();
+    loadLinks();
+  }, [noteId, loadNote, loadLinks]);
+
+  useEffect(() => {
+    if (note) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setHasChanges(content !== note.content || title !== note.title);
+    }
+  }, [content, title, note]);
+
+  // Ctrl+S 保存
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "s") {
+        e.preventDefault();
+        handleSave();
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [handleSave]);
+
+  // 自动保存（3 秒空闲）
+  useEffect(() => {
+    if (!hasChanges || saving) {
+      return;
+    }
+    if (autoSaveRef.current) {
+      clearTimeout(autoSaveRef.current);
+    }
+    autoSaveRef.current = setTimeout(() => handleSave(), 3000);
+    return () => {
+      if (autoSaveRef.current) {
+        clearTimeout(autoSaveRef.current);
+      }
+    };
+  }, [content, title, hasChanges, saving, handleSave]);
 
   const handleDelete = async () => {
     if (!note) {

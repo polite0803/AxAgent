@@ -241,7 +241,8 @@ export const useExecutionStore = create<ExecutionStore>()(
       clearAgentStatus: (conversationId) => {
         set(
           (s) => {
-            const { [conversationId]: _, ...rest } = s.agentStatus;
+            const rest = { ...s.agentStatus };
+            delete rest[conversationId];
             return { agentStatus: rest };
           },
           false,
@@ -707,10 +708,14 @@ export const useExecutionStore = create<ExecutionStore>()(
       clearConversation: (conversationId) => {
         set(
           (s) => {
-            const { [conversationId]: _p, ...restPhases } = s.phases;
-            const { [conversationId]: _a, ...restStatus } = s.agentStatus;
-            const { [conversationId]: _pool, ...restPool } = s.agentPool;
-            const { [conversationId]: _traj, ...restTraj } = s.trajectoriesByConversation;
+            const restPhases = { ...s.phases };
+            delete restPhases[conversationId];
+            const restStatus = { ...s.agentStatus };
+            delete restStatus[conversationId];
+            const restPool = { ...s.agentPool };
+            delete restPool[conversationId];
+            const restTraj = { ...s.trajectoriesByConversation };
+            delete restTraj[conversationId];
             delete _latestMessageIdByConv[conversationId];
             return {
               phases: restPhases,
@@ -785,7 +790,7 @@ export function setupExecutionEventListeners(): () => void {
   );
 
   // Worker 事件
-  const workerPayload = {} as {
+  type WorkerPayload = {
     conversationId: string;
     workerId: string;
     taskId: string;
@@ -794,7 +799,7 @@ export function setupExecutionEventListeners(): () => void {
     status?: string;
   };
   unlisteners.push(
-    listen<typeof workerPayload>("worker-created", (e) =>
+    listen<WorkerPayload>("worker-created", (e) =>
       store.handleWorkerEvent({
         ...e.payload,
         messageType: "progress",
@@ -802,10 +807,10 @@ export function setupExecutionEventListeners(): () => void {
       })),
   );
   unlisteners.push(
-    listen<typeof workerPayload>("worker-progress", (e) => store.handleWorkerEvent(e.payload)),
+    listen<WorkerPayload>("worker-progress", (e) => store.handleWorkerEvent(e.payload)),
   );
   unlisteners.push(
-    listen<typeof workerPayload>("worker-completed", (e) =>
+    listen<WorkerPayload>("worker-completed", (e) =>
       store.handleWorkerEvent({
         ...e.payload,
         messageType: "completion",
@@ -813,7 +818,7 @@ export function setupExecutionEventListeners(): () => void {
       })),
   );
   unlisteners.push(
-    listen<typeof workerPayload>("worker-failed", (e) =>
+    listen<WorkerPayload>("worker-failed", (e) =>
       store.handleWorkerEvent({
         ...e.payload,
         messageType: "error",

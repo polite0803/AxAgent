@@ -208,6 +208,7 @@ interface WorkflowEditorState {
     nodes: WorkflowNode[],
     workflowName: string,
     description?: string,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   ) => Promise<any>;
 
   generateWorkflowFromPrompt: (
@@ -973,7 +974,7 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
             state.collapsedContainers = next;
             try {
               localStorage.setItem("workflow_collapsed_containers", JSON.stringify([...next]));
-            } catch {}
+            } catch { /* localStorage may be full */ }
           }
         } else if (toDelete.size > 0) {
           const next = new Set(state.collapsedContainers);
@@ -985,7 +986,7 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
             state.collapsedContainers = next;
             try {
               localStorage.setItem("workflow_collapsed_containers", JSON.stringify([...next]));
-            } catch {}
+            } catch { /* localStorage may be full */ }
           }
         }
 
@@ -1381,7 +1382,7 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
         return await invoke("llm_diagnose_workflow", {
           request: { nodes, workflow_name: workflowName, workflow_description: description || null },
         });
-      } catch (e) {
+      } catch {
         return null;
       }
     },
@@ -1600,7 +1601,7 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
           s.diagnoseLoading = false;
         });
         return merged;
-      } catch (_err) {
+      } catch {
         set((s) => {
           s.diagnoseReport = ruleReport;
           s.diagnoseLoading = false;
@@ -1744,7 +1745,7 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
       try {
         const history = aiChatMessages.map((m) => ({
           role: m.role,
-          content: (m as any).rawContent || m.content,
+          content: m.rawContent || m.content,
         }));
         const { listen } = await import("@/lib/invoke");
         let accumulatedContent = "";
@@ -2101,10 +2102,10 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
 
         // D7: runtime validation — verify nodes have required 'type' and 'id' fields
         const validNodes = response.nodes.filter(
-          (n: any) => n?.type && n?.id,
+          (n) => n?.type && n?.id,
         ) as WorkflowNode[];
         const validEdges = response.edges.filter(
-          (e: any) => e?.source && e?.target,
+          (e) => e?.source && e?.target,
         ) as WorkflowEdge[];
         if (validNodes.length === 0) {
           throw new Error("Workflow preview contains no valid nodes");
@@ -2179,7 +2180,7 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
         const prefix = `sw_${nodeId}_`;
         const idMap = new Map<string, string>();
         const subNodes: WorkflowNode[] = (template.nodes || []).map((n: WorkflowNode) => {
-          const oldId = (n as any).id || "";
+          const oldId = n.id || "";
           const newId = `${prefix}${oldId}`;
           idMap.set(oldId, newId);
           return { ...n, id: newId } as unknown as WorkflowNode;
@@ -2202,7 +2203,7 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
             state.edges.push(e);
           }
         });
-      } catch (error) {
+      } catch {
         set((state) => {
           delete state.expandedSubWorkflows[nodeId];
         });
@@ -2225,7 +2226,9 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
         state.collapsedContainers = next;
         try {
           localStorage.setItem("workflow_collapsed_containers", JSON.stringify([...next]));
-        } catch {}
+        } catch {
+          // localStorage may be full or unavailable
+        }
       });
     },
   })),

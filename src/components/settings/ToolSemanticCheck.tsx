@@ -39,12 +39,12 @@ interface ToolUpgradeRequest {
   existing_tool_name: string;
   existing_tool_description: string;
   existing_tool_type: string;
-  existing_input_schema?: any;
-  existing_output_schema?: any;
+  existing_input_schema?: Record<string, unknown>;
+  existing_output_schema?: Record<string, unknown>;
   generated_name: string;
   generated_description: string;
-  generated_input_schema?: any;
-  generated_output_schema?: any;
+  generated_input_schema?: Record<string, unknown>;
+  generated_output_schema?: Record<string, unknown>;
 }
 
 interface ToolUpgradeResponse {
@@ -130,6 +130,7 @@ export function ToolSemanticCheck() {
     if (!selectedTool) {
       return;
     }
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     checkSemanticMatches(selectedTool);
   }, [selectedTool, checkSemanticMatches]);
 

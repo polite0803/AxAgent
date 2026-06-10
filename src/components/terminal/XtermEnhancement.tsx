@@ -40,6 +40,31 @@ export interface XtermEnhancementOptions {
   onReady?: (terminal: XTerm, fitAddon: FitAddon) => void;
 }
 
+const DEFAULT_TERMINAL_THEME: ITerminalTheme = {
+  background: "#1e1e2e",
+  foreground: "#cdd6f4",
+  cursor: "#f5e0dc",
+  cursorAccent: "#1e1e2e",
+  selectionBackground: "#585b7066",
+  black: "#45475a",
+  red: "#f38ba8",
+  green: "#a6e3a1",
+  yellow: "#f9e2af",
+  blue: "#89b4fa",
+  magenta: "#f5c2e7",
+  cyan: "#94e2d5",
+  white: "#bac2de",
+  brightBlack: "#585b70",
+  brightRed: "#f38ba8",
+  brightGreen: "#a6e3a1",
+  brightYellow: "#f9e2af",
+  brightBlue: "#89b4fa",
+  brightMagenta: "#f5c2e7",
+  brightCyan: "#94e2d5",
+  brightWhite: "#a6adc8",
+};
+
+// eslint-disable-next-line react-refresh/only-export-components
 export function useXtermEnhancement(
   containerRef: React.RefObject<HTMLDivElement | null>,
   options: XtermEnhancementOptions = {},
@@ -60,30 +85,6 @@ export function useXtermEnhancement(
   const searchAddonRef = useRef<SearchAddon | null>(null);
   const [isReady, setIsReady] = useState(false);
 
-  const defaultTheme: ITerminalTheme = {
-    background: "#1e1e2e",
-    foreground: "#cdd6f4",
-    cursor: "#f5e0dc",
-    cursorAccent: "#1e1e2e",
-    selectionBackground: "#585b7066",
-    black: "#45475a",
-    red: "#f38ba8",
-    green: "#a6e3a1",
-    yellow: "#f9e2af",
-    blue: "#89b4fa",
-    magenta: "#f5c2e7",
-    cyan: "#94e2d5",
-    white: "#bac2de",
-    brightBlack: "#585b70",
-    brightRed: "#f38ba8",
-    brightGreen: "#a6e3a1",
-    brightYellow: "#f9e2af",
-    brightBlue: "#89b4fa",
-    brightMagenta: "#f5c2e7",
-    brightCyan: "#94e2d5",
-    brightWhite: "#a6adc8",
-  };
-
   const initTerminal = useCallback(async () => {
     if (!containerRef.current || terminalRef.current) {
       return;
@@ -93,7 +94,7 @@ export function useXtermEnhancement(
       cursorBlink,
       fontSize,
       fontFamily,
-      theme: theme || defaultTheme,
+      theme: theme || DEFAULT_TERMINAL_THEME,
       scrollback,
       convertEol: true,
     });
@@ -193,9 +194,12 @@ export function useXtermEnhancement(
     };
   }, [initTerminal]);
 
+  /* eslint-disable react-hooks/refs */
   return {
     terminal: terminalRef.current,
     fitAddon: fitAddonRef.current,
+    /* eslint-enable react-hooks/refs */
+    isReady,
     isReady,
     fit,
     search,
@@ -203,6 +207,7 @@ export function useXtermEnhancement(
   };
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useOscClipboard(terminal: XTerm | null) {
   const handleClipboard = useCallback(
     async (event: ClipboardEvent) => {
@@ -250,10 +255,12 @@ export function useOscClipboard(terminal: XTerm | null) {
   return { copySelection, paste };
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useVirtualScroll(
   terminal: XTerm | null,
   _bufferSize: number = 5000,
 ) {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [visibleRange, _setVisibleRange] = useState({ start: 0, end: 0 });
 
   const scrollToBottom = useCallback(() => {

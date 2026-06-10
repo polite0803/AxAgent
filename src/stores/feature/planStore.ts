@@ -179,7 +179,8 @@ export const usePlanStore = create<PlanStore>((set, get) => ({
       set((s) => {
         const plan = s.activePlans[conversationId];
         const history = s.planHistory[conversationId] || [];
-        const { [conversationId]: _removed, ...restActive } = s.activePlans;
+        const restActive = { ...s.activePlans };
+        delete restActive[conversationId];
         return {
           activePlans: restActive,
           planHistory: plan
@@ -284,7 +285,8 @@ export const usePlanStore = create<PlanStore>((set, get) => ({
       set((s) => {
         const plan = s.activePlans[conversationId];
         const history = s.planHistory[conversationId] || [];
-        const { [conversationId]: _removed, ...restActive } = s.activePlans;
+        const restActive = { ...s.activePlans };
+        delete restActive[conversationId];
         return {
           activePlans: restActive,
           planHistory: plan
@@ -341,12 +343,14 @@ export const usePlanStore = create<PlanStore>((set, get) => ({
         }));
       }
     } catch {
+      // plan list fetch failure is non-fatal
     }
   },
 
   clearActivePlan: (conversationId) => {
     set((s) => {
-      const { [conversationId]: _removed, ...rest } = s.activePlans;
+      const rest = { ...s.activePlans };
+      delete rest[conversationId];
       return { activePlans: rest };
     });
   },
@@ -426,7 +430,8 @@ export const usePlanStore = create<PlanStore>((set, get) => ({
     // Move from active to history only
     set((s) => {
       const history = s.planHistory[conversationId] || [];
-      const { [conversationId]: _removed, ...restActive } = s.activePlans;
+      const restActive = { ...s.activePlans };
+      delete restActive[conversationId];
       return {
         activePlans: restActive,
         planHistory: {

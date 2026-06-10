@@ -151,7 +151,7 @@ export function GlobalCopyMenu() {
       messageApi.success(t("common.copySuccess"));
     }
     setMenuPos(null);
-  }, [t]);
+  }, [messageApi, t]);
 
   const handleCut = useCallback(() => {
     const input = targetInputRef.current;
@@ -259,6 +259,7 @@ export function GlobalCopyMenu() {
 
   const items: MenuItem[] = [];
 
+  /* eslint-disable react-hooks/refs */
   if (isTextInput) {
     items.push(
       {
@@ -316,6 +317,7 @@ export function GlobalCopyMenu() {
       onClick: handleOpenDevtools,
     });
   }
+  /* eslint-enable react-hooks/refs */
 
   return (
     <div

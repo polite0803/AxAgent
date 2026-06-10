@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next";
 import "emoji-picker-element";
 
 declare module "react" {
+  // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace JSX {
     interface IntrinsicElements {
       "emoji-picker": React.DetailedHTMLProps<

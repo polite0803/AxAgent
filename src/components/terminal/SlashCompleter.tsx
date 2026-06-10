@@ -21,6 +21,7 @@ export interface SlashCompleterOptions {
   onSelect?: (command: string, params?: Record<string, string>) => void;
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useSlashCompleter(
   terminal: XTerm | null,
   options: SlashCompleterOptions,
@@ -35,6 +36,7 @@ export function useSlashCompleter(
   const [isActive, setIsActive] = useState(false);
   const [currentInput, setCurrentInput] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [_cursorPosition, _setCursorPosition] = useState(0);
   const inputBufferRef = useRef("");
   const cursorPosRef = useRef(0);
@@ -55,6 +57,34 @@ export function useSlashCompleter(
     },
     [commands, triggerChar, maxSuggestions],
   );
+
+  const insertCommand = useCallback(
+    (command: string) => {
+      if (!terminal) {
+        return;
+      }
+      for (let i = 0; i < inputBufferRef.current.length; i++) {
+        terminal.write("\b \b");
+      }
+      terminal.write(command + " ");
+      inputBufferRef.current = "";
+      setIsActive(false);
+      setCurrentInput("");
+    },
+    [terminal],
+  );
+
+  const clearInput = useCallback(() => {
+    if (!terminal) {
+      return;
+    }
+    for (let i = 0; i < inputBufferRef.current.length; i++) {
+      terminal.write("\b \b");
+    }
+    inputBufferRef.current = "";
+    setIsActive(false);
+    setCurrentInput("");
+  }, [terminal]);
 
   const handleKeyDown = useCallback(
     (event: KeyboardEvent) => {
@@ -137,36 +167,9 @@ export function useSlashCompleter(
       getFilteredCommands,
       triggerChar,
       onSelect,
+      insertCommand,
     ],
   );
-
-  const insertCommand = useCallback(
-    (command: string) => {
-      if (!terminal) {
-        return;
-      }
-      for (let i = 0; i < inputBufferRef.current.length; i++) {
-        terminal.write("\b \b");
-      }
-      terminal.write(command + " ");
-      inputBufferRef.current = "";
-      setIsActive(false);
-      setCurrentInput("");
-    },
-    [terminal],
-  );
-
-  const clearInput = useCallback(() => {
-    if (!terminal) {
-      return;
-    }
-    for (let i = 0; i < inputBufferRef.current.length; i++) {
-      terminal.write("\b \b");
-    }
-    inputBufferRef.current = "";
-    setIsActive(false);
-    setCurrentInput("");
-  }, [terminal]);
 
   useEffect(() => {
     if (terminal) {
@@ -207,6 +210,7 @@ export function SlashCompleterWidget({
 }: SlashCompleterWidgetProps) {
   const {
     isActive,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     currentInput: _currentInput,
     filteredCommands,
     selectedIndex,
@@ -270,6 +274,7 @@ export function SlashCompleterWidget({
   );
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const DEFAULT_COMMANDS: CommandSuggestion[] = [
   {
     command: "/help",

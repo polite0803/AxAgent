@@ -35,7 +35,9 @@ export function FilesContent({ activeCategory }: FilesContentProps) {
   useEffect(() => {
     setSearch("");
     setSortKey("createdAt");
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setSelectedRowKeys([]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -47,6 +49,7 @@ export function FilesContent({ activeCategory }: FilesContentProps) {
     void loadCategory(activeCategory);
   };
 
+  // eslint-disable-next-line react-hooks/preserve-manual-memoization
   const handleBatchDelete = useCallback(async () => {
     if (selectedRowKeys.length === 0) {
       return;
@@ -71,6 +74,7 @@ export function FilesContent({ activeCategory }: FilesContentProps) {
   ]);
 
   const handleDeleteEntry = useCallback(
+    // eslint-disable-next-line react-hooks/preserve-manual-memoization
     async (id: string) => {
       try {
         await cleanupMissingEntry(id);

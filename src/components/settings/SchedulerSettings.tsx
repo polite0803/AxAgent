@@ -381,12 +381,13 @@ export function SchedulerSettings() {
         });
       case "daily":
         return t("settings.scheduler.dailyDesc");
-      case "weekly":
+      case "weekly": {
         const dayNames = (config.weekdays || [])
           .filter((w): w is Weekday => !!w)
           .map((w) => t(`settings.scheduler.${w}`))
           .join(", ");
         return t("settings.scheduler.weeklyDesc", { days: dayNames || "-" });
+      }
       case "monthly":
         return t("settings.scheduler.monthlyDesc", {
           day: config.month_day || "-",

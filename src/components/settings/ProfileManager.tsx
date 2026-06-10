@@ -18,7 +18,9 @@ export function ProfileManager() {
     try {
       const list = await invoke<ProfileInfo[]>("profile_list");
       setProfiles(list);
-    } catch {}
+    } catch {
+      // ignore load errors
+    }
   };
 
   useEffect(() => {

@@ -104,6 +104,7 @@ export function WikiGraphPage() {
   useEffect(() => {
     setSelectedVaultId(wikiIdFromUrl);
     loadNotes(wikiIdFromUrl);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadGraphData();
   }, [wikiIdFromUrl, setSelectedVaultId, loadNotes, loadGraphData]);
 
@@ -160,6 +161,7 @@ export function WikiGraphPage() {
 
   const handleResizeStart = (side: "left" | "right") => (e: React.MouseEvent) => {
     e.preventDefault();
+    // eslint-disable-next-line react-hooks/refs
     resizingRef.current = side;
     document.body.style.cursor = "col-resize";
     document.body.style.userSelect = "none";
@@ -208,7 +210,7 @@ export function WikiGraphPage() {
       setSelectedNodeId(note.id);
       setDetailPanelOpen(true);
     }
-  }, [wikiIdFromUrl, createNote, loadNotes, loadGraphData]);
+  }, [wikiIdFromUrl, createNote, loadNotes, loadGraphData, i18n.language, t]);
 
   const handleCreateLinkedNote = useCallback(
     async (sourceNodeId: string) => {
@@ -233,7 +235,7 @@ export function WikiGraphPage() {
         setDetailPanelOpen(true);
       }
     },
-    [wikiIdFromUrl, graphData, createNote, loadNotes, loadGraphData],
+    [wikiIdFromUrl, graphData, createNote, loadNotes, loadGraphData, t],
   );
 
   const handleDeleteNote = useCallback(

@@ -72,6 +72,7 @@ export const AgentProgressBar: React.FC<AgentProgressBarProps> = ({
     return currentToolCall?.conversationId === conversationId
       ? getToolDisplayName(currentToolCall.toolName, t)
       : null;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     currentToolCall?.toolName,
     currentToolCall?.toolUseId,
@@ -88,6 +89,7 @@ export const AgentProgressBar: React.FC<AgentProgressBarProps> = ({
   }, [currentDisplayName]);
 
   // displayName 优先使用当前 currentToolCall 的名称，fallback 到持久化的名称
+  // eslint-disable-next-line react-hooks/refs
   const displayName = currentDisplayName || lastKnownToolNameRef.current;
 
   // 用于动画过渡：当工具切换时短暂闪烁
@@ -122,6 +124,7 @@ export const AgentProgressBar: React.FC<AgentProgressBarProps> = ({
   }
 
   const elapsed = ownToolActive
+    // eslint-disable-next-line react-hooks/purity
     ? Math.round((Date.now() - currentToolCall!.startedAt) / 1000)
     : 0;
 

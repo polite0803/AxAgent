@@ -1,5 +1,4 @@
 import fs from "fs";
-import path from "path";
 
 // 读取英文基准文件
 const enFilePath = "./locales/en-US.json";
@@ -124,7 +123,7 @@ function mergeObjects(target, source) {
 // 处理每个语言文件
 languages.forEach((lang) => {
   // 保持语言代码的正确大小写，特别是zh-CN和zh-TW
-  let filename = lang;
+  let filename;
   // 对于zh-CN和zh-TW，保持大写的国家代码
   if (lang === "zh-CN" || lang === "zh-TW") {
     filename = lang;

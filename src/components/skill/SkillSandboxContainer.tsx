@@ -49,117 +49,117 @@ export function SkillSandboxContainer({
   const { token: themeToken } = antdTheme.useToken();
   const currentTheme: "light" | "dark" = themeToken.colorBgBase === "#ffffff" ? "light" : "dark";
 
-  const entry = (componentConfig.entry as string) || "index.html";
-  const props = (componentConfig.props as Record<string, unknown>) || {};
-
-  const effectivePermissions: SkillPermissions = {
-    commands: permissions?.commands ?? [],
-    events: permissions?.events ?? [],
-    storeRead: permissions?.storeRead ?? [],
-    storeWrite: permissions?.storeWrite ?? [],
-    navigate: permissions?.navigate ?? [],
-    network: permissions?.network ?? [],
-    filesystem: permissions?.filesystem,
-    tools: permissions?.tools ?? [],
-  };
-
-  const hostApi: SkillHostApi = {
-    invoke: async <T = unknown>(
-      command: string,
-      args?: Record<string, unknown>,
-    ): Promise<T> => {
-      return invoke<T>(command, args || {});
-    },
-    emit: (event: string, payload?: unknown): void => {
-      window.dispatchEvent(
-        new CustomEvent(`skill:${skillName}:${event}`, { detail: payload }),
-      );
-    },
-  };
-
-  const hostUi: SkillHostUi = {
-    navigate: (path: string): void => {
-      window.location.hash = path;
-    },
-    notify: (
-      message: string,
-      type: "info" | "success" | "warning" | "error" = "info",
-    ): void => {
-      notification[type]({ message, placement: "bottomRight" });
-    },
-    getTheme: (): "light" | "dark" => {
-      try {
-        const token = antdTheme.getDesignToken?.();
-        return token?.colorBgBase === "#ffffff" ? "light" : "dark";
-      } catch {
-        return "light";
-      }
-    },
-    getLocale: (): string => {
-      return i18n.language || "zh-CN";
-    },
-  };
-
-  const hostStore: SkillHostStore = {
-    read: async <T = unknown>(
-      storeName: string,
-      selector?: string,
-    ): Promise<T> => {
-      const { getStoreRegistry, initStoreRegistry } = await import("@/lib/storeRegistry");
-      await initStoreRegistry();
-      const registry = getStoreRegistry();
-      const accessor = registry.get(storeName);
-      if (!accessor) {
-        throw new Error(i18n.t("skill.storeNotFound", { name: storeName }));
-      }
-      const state = accessor.get() as Record<string, unknown>;
-      if (selector) {
-        const parts = selector.split(".");
-        let result: unknown = state;
-        for (const part of parts) {
-          if (
-            result
-            && typeof result === "object"
-            && part in (result as Record<string, unknown>)
-          ) {
-            result = (result as Record<string, unknown>)[part];
-          } else {
-            return undefined as T;
-          }
-        }
-        return structuredClone(result) as T;
-      }
-      return structuredClone(state) as T;
-    },
-    write: async (
-      storeName: string,
-      value: unknown,
-      selector?: string,
-    ): Promise<void> => {
-      const { getStoreRegistry, initStoreRegistry } = await import("@/lib/storeRegistry");
-      await initStoreRegistry();
-      const registry = getStoreRegistry();
-      const accessor = registry.get(storeName);
-      if (!accessor) {
-        throw new Error(i18n.t("skill.storeNotWritable", { name: storeName }));
-      }
-      if (selector && typeof value === "object" && value !== null) {
-        const partial: Record<string, unknown> = {};
-        const parts = selector.split(".");
-        let current = partial;
-        for (let i = 0; i < parts.length - 1; i++) {
-          current[parts[i]] = {};
-          current = current[parts[i]] as Record<string, unknown>;
-        }
-        current[parts[parts.length - 1]] = value;
-        accessor.set(partial);
-      } else {
-        accessor.set(value);
-      }
-    },
-  };
-
   const loadSandbox = useCallback(async () => {
+    const entry = (componentConfig.entry as string) || "index.html";
+    const props = (componentConfig.props as Record<string, unknown>) || {};
+
+    const effectivePermissions: SkillPermissions = {
+      commands: permissions?.commands ?? [],
+      events: permissions?.events ?? [],
+      storeRead: permissions?.storeRead ?? [],
+      storeWrite: permissions?.storeWrite ?? [],
+      navigate: permissions?.navigate ?? [],
+      network: permissions?.network ?? [],
+      filesystem: permissions?.filesystem,
+      tools: permissions?.tools ?? [],
+    };
+
+    const hostApi: SkillHostApi = {
+      invoke: async <T = unknown>(
+        command: string,
+        args?: Record<string, unknown>,
+      ): Promise<T> => {
+        return invoke<T>(command, args || {});
+      },
+      emit: (event: string, payload?: unknown): void => {
+        window.dispatchEvent(
+          new CustomEvent(`skill:${skillName}:${event}`, { detail: payload }),
+        );
+      },
+    };
+
+    const hostUi: SkillHostUi = {
+      navigate: (path: string): void => {
+        window.location.hash = path;
+      },
+      notify: (
+        message: string,
+        type: "info" | "success" | "warning" | "error" = "info",
+      ): void => {
+        notification[type]({ message, placement: "bottomRight" });
+      },
+      getTheme: (): "light" | "dark" => {
+        try {
+          const token = antdTheme.getDesignToken?.();
+          return token?.colorBgBase === "#ffffff" ? "light" : "dark";
+        } catch {
+          return "light";
+        }
+      },
+      getLocale: (): string => {
+        return i18n.language || "zh-CN";
+      },
+    };
+
+    const hostStore: SkillHostStore = {
+      read: async <T = unknown>(
+        storeName: string,
+        selector?: string,
+      ): Promise<T> => {
+        const { getStoreRegistry, initStoreRegistry } = await import("@/lib/storeRegistry");
+        await initStoreRegistry();
+        const registry = getStoreRegistry();
+        const accessor = registry.get(storeName);
+        if (!accessor) {
+          throw new Error(i18n.t("skill.storeNotFound", { name: storeName }));
+        }
+        const state = accessor.get() as Record<string, unknown>;
+        if (selector) {
+          const parts = selector.split(".");
+          let result: unknown = state;
+          for (const part of parts) {
+            if (
+              result
+              && typeof result === "object"
+              && part in (result as Record<string, unknown>)
+            ) {
+              result = (result as Record<string, unknown>)[part];
+            } else {
+              return undefined as T;
+            }
+          }
+          return structuredClone(result) as T;
+        }
+        return structuredClone(state) as T;
+      },
+      write: async (
+        storeName: string,
+        value: unknown,
+        selector?: string,
+      ): Promise<void> => {
+        const { getStoreRegistry, initStoreRegistry } = await import("@/lib/storeRegistry");
+        await initStoreRegistry();
+        const registry = getStoreRegistry();
+        const accessor = registry.get(storeName);
+        if (!accessor) {
+          throw new Error(i18n.t("skill.storeNotWritable", { name: storeName }));
+        }
+        if (selector && typeof value === "object" && value !== null) {
+          const partial: Record<string, unknown> = {};
+          const parts = selector.split(".");
+          let current = partial;
+          for (let i = 0; i < parts.length - 1; i++) {
+            current[parts[i]] = {};
+            current = current[parts[i]] as Record<string, unknown>;
+          }
+          current[parts[parts.length - 1]] = value;
+          accessor.set(partial);
+        } else {
+          accessor.set(value);
+        }
+      },
+    };
+
     setError(null);
     setLoading(true);
 
@@ -272,15 +272,12 @@ export function SkillSandboxContainer({
   }, [
     skillName,
     componentId,
-    entry,
-    effectivePermissions,
-    props,
-    hostApi,
-    hostUi,
-    hostStore,
+    componentConfig,
+    permissions,
   ]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadSandbox();
     return () => {
       if (bridgeRef.current) {

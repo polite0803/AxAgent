@@ -43,7 +43,7 @@ window.onerror = function(msg, src, line, col, err) {
 try {
   var _code = ${JSON.stringify(code)};
   // auto-fix common mistake: const { X } from "module" → import { X } from "module"
-  _code = _code.replace(/^const\s*\{([^}]*)\}\s+from\s/gm, "import { $1 } from ");
+  _code = _code.replace(/^const\\s*\\{([^}]*)\\}\\s+from\\s/gm, "import { $1 } from ");
   _code = _code.replace(/\\bconst\\s*(\\{[^}]*\\})\\s+from\\s/g, 'import $1 from ');
   var transformed = Babel.transform(_code, {
     presets: ['react'],

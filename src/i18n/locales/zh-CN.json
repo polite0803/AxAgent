@@ -5218,6 +5218,7 @@
       "expand": "展开",
       "collapse": "收起"
     },
+    "back": "返回",
     "caseLabel": "分支 {{n}}",
     "paramKey": "参数_{{n}}",
     "subWorkflowLabel": "子工作流",

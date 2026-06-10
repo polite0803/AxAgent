@@ -86,6 +86,7 @@ export function BuddyWidget() {
   const panelCurrentDragPos = useRef<{ x: number; y: number } | null>(null);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setDragPos(savedPosition);
     currentDragPos.current = savedPosition;
   }, [savedPosition]);
@@ -225,6 +226,7 @@ export function BuddyWidget() {
     panelDragging.current = false;
   }, []);
 
+  // eslint-disable-next-line react-hooks/refs
   const panelPosition = (panelPos ?? panelDragging.current) ? panelCurrentDragPos.current : null;
   const panelPosStyle = panelPosition
     ? { left: panelPosition.x, top: panelPosition.y }
