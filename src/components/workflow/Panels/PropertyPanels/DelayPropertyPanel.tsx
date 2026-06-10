@@ -19,12 +19,12 @@ function DelayConfig({
   handleConfigChange,
 }: {
   config: DelayNodeConfig;
-  handleConfigChange: (key: string, value: unknown) => void;
+  handleConfigChange: (key: string, value: string | number | null) => void;
 }) {
   const { t } = useTranslation();
   const { token } = theme.useToken();
 
-  switch (config.delay_type as string) {
+  switch (config.delay_type) {
     case "seconds":
       return (
         <div>
@@ -40,7 +40,7 @@ function DelayConfig({
           </label>
           <InputNumber
             id="delay-property-panel-inputnumber-89"
-            value={(config.seconds as number) ?? 5}
+            value={config.seconds ?? 5}
             onChange={(value) => handleConfigChange("seconds", value)}
             min={1}
             max={31536000}
@@ -48,9 +48,9 @@ function DelayConfig({
             style={{ width: "100%" }}
           />
           <div style={{ fontSize: 12, color: token.colorTextTertiary, marginTop: 4 }}>
-            {((config.seconds as number) || 5) >= 60
-              ? `≈ ${Math.floor(((config.seconds as number) || 5) / 60)} ${t("workflow.props.minutes")}`
-              : `${(config.seconds as number) || 5} ${t("workflow.props.seconds")}`}
+            {(config.seconds || 5) >= 60
+              ? `≈ ${Math.floor((config.seconds || 5) / 60)} ${t("workflow.props.minutes")}`
+              : `${config.seconds || 5} ${t("workflow.props.seconds")}`}
           </div>
         </div>
       );
@@ -70,7 +70,7 @@ function DelayConfig({
           </label>
           <InputNumber
             id="delay-property-panel-inputnumber-90"
-            value={Math.floor(((config.seconds as number) || 5) / 60)}
+            value={Math.floor((config.seconds || 5) / 60)}
             onChange={(value) => handleConfigChange("seconds", ((value as number) || 1) * 60)}
             min={1}
             max={525600}
@@ -95,7 +95,7 @@ function DelayConfig({
           </label>
           <InputNumber
             id="delay-property-panel-inputnumber-91"
-            value={Math.floor(((config.seconds as number) || 5) / 3600)}
+            value={Math.floor((config.seconds || 5) / 3600)}
             onChange={(value) => handleConfigChange("seconds", ((value as number) || 1) * 3600)}
             min={1}
             max={8760}
@@ -149,7 +149,7 @@ export const DelayPropertyPanel: React.FC<DelayPropertyPanelProps> = ({
     seconds: 5,
   };
 
-  const handleConfigChange = (key: string, value: unknown) => {
+  const handleConfigChange = (key: string, value: string | number | null) => {
     onUpdate({ config: { ...config, [key]: value } });
   };
 
