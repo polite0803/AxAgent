@@ -349,7 +349,7 @@ export function TitleBar() {
     tick();
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Live countdown in popover — tick every second only when open
@@ -377,7 +377,7 @@ export function TitleBar() {
     tick();
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [backupPopoverOpen]);
 
   const handleQuickBackup = useCallback(

@@ -49,7 +49,7 @@ export function WelcomeWizard() {
   useEffect(() => {
     void detectOllama();
     void detectKeys();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleApplyPreset = async (preset: string) => {

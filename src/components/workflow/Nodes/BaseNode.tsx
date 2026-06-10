@@ -188,12 +188,8 @@ const BaseNodeComponent: React.FC<NodeProps<BaseNodeData>> = ({
             {typeInfo.labelKey ? t(typeInfo.labelKey) : data.nodeType}
           </span>
           <div style={{ display: "flex", gap: 2, alignItems: "center" }}>
-            {data.config?.tick_mode && (
-              <span title={t("workflow.node.tickMode")} style={{ fontSize: 10 }}>🔄</span>
-            )}
-            {data.retry?.enabled && (
-              <span title={t("workflow.node.retryEnabled")} style={{ fontSize: 10 }}>🔄</span>
-            )}
+            {data.config?.tick_mode && <span title={t("workflow.node.tickMode")} style={{ fontSize: 10 }}>🔄</span>}
+            {data.retry?.enabled && <span title={t("workflow.node.retryEnabled")} style={{ fontSize: 10 }}>🔄</span>}
             {effectiveExecState === "running" && <span style={{ fontSize: 10, color: token.colorPrimary }}>⏳</span>}
             {effectiveExecState === "completed" && <span style={{ fontSize: 10, color: token.colorSuccess }}>✓</span>}
             {(effectiveExecState === "failed" || effectiveExecState === "timeout") && (

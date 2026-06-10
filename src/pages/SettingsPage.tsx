@@ -284,16 +284,18 @@ function CronManagerWrapper() {
 
   const loadJobs = useCallback(async () => {
     try {
-      const tasks = await invoke<Array<{
-        id: string;
-        name: string;
-        cron_expression?: string;
-        description: string;
-        task_type?: string;
-        status: string;
-        last_run_at?: string;
-        next_run_at?: string;
-      }>>("list_scheduled_tasks");
+      const tasks = await invoke<
+        Array<{
+          id: string;
+          name: string;
+          cron_expression?: string;
+          description: string;
+          task_type?: string;
+          status: string;
+          last_run_at?: string;
+          next_run_at?: string;
+        }>
+      >("list_scheduled_tasks");
       setJobs(
         tasks.map((task) => ({
           id: task.id,

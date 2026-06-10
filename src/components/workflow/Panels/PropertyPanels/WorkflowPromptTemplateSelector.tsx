@@ -1,7 +1,7 @@
 import { usePromptTemplateStore } from "@/stores/feature/promptTemplateStore";
+import type { PromptTemplate } from "@/types";
 import { Button, Input, Modal, Tag, theme } from "antd";
 import { FileText, Search } from "lucide-react";
-import type { PromptTemplate } from "@/types";
 import React, { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -29,7 +29,9 @@ export const WorkflowPromptTemplateSelector: React.FC<Props> = ({
   const filtered = useMemo(() => {
     if (!search) { return templates; }
     const q = search.toLowerCase();
-    return templates.filter((t: PromptTemplate) => t.name?.toLowerCase().includes(q) || t.content?.toLowerCase().includes(q));
+    return templates.filter((t: PromptTemplate) =>
+      t.name?.toLowerCase().includes(q) || t.content?.toLowerCase().includes(q)
+    );
   }, [templates, search]);
 
   const selectedTemplate = templates.find((t: PromptTemplate) => t.id === value);

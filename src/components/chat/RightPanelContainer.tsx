@@ -350,7 +350,7 @@ export function RightPanelContainer({
     ];
 
     return entries;
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     conversationId,
     compactMode,

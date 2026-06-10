@@ -211,7 +211,7 @@ function useActiveMessageId(entries: MinimapEntry[]): string | null {
       clearTimeout(retryTimer);
       scrollBox?.removeEventListener("scroll", updateActive);
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scrollBoxRef, entries]);
 
   return activeId;
