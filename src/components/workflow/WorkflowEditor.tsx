@@ -1004,9 +1004,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
           params.target,
         )
       ) {
-        message.warning(t("workflow.loopBackCycleDetected", {
-          defaultValue: "回环边会形成闭环，请调整目标节点",
-        }));
+        message.warning(t("workflow.loopBackCycleDetected"));
         return;
       }
       // Determine edge type based on sourceHandle
@@ -1502,11 +1500,32 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
         if (r.clipboardRef.current.length === 0) { return; }
         const offset = { x: 50, y: 50 };
         r.clipboardRef.current.forEach((node) => {
+          const newId = `node-${crypto.randomUUID()}`;
           r.addNode({
             ...node,
-            id: `node-${crypto.randomUUID()}`,
+            id: newId,
             position: { x: node.position.x + offset.x, y: node.position.y + offset.y },
           });
+          // 复制容器内子节点时同步维护 parentRefs 与父容器的 subGraph
+          if (node.parentId) {
+            r.setParentRef(newId, node.parentId);
+            const parent = r.nodes.find((n) => n.id === node.parentId);
+            if (parent) {
+              r.updateNode(parent.id, {
+                ...(parent as object),
+                config: {
+                  ...(parent as { config?: Record<string, unknown> }).config,
+                  subGraph: {
+                    nodes: [
+                      ...(((parent as { config?: { subGraph?: { nodes?: unknown[] } } }).config?.subGraph?.nodes) ?? []),
+                      { ...node, id: newId, position: { x: node.position.x + offset.x, y: node.position.y + offset.y } },
+                    ],
+                    edges: ((parent as { config?: { subGraph?: { edges?: unknown[] } } }).config?.subGraph?.edges) ?? [],
+                  },
+                },
+              } as unknown as Parameters<typeof r.updateNode>[1]);
+            }
+          }
         });
         message.success(t("workflow.nodesPasted", { count: r.clipboardRef.current.length }));
         return;
@@ -1785,10 +1804,10 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
   const handleClose = useCallback(() => {
     if (isDirty) {
       Modal.confirm({
-        title: t("wiki.unsavedTitle"),
-        content: t("wiki.unsavedContent"),
-        okText: t("wiki.discard"),
-        cancelText: t("wiki.keepEditing"),
+        title: t("workflow.unsavedTitle"),
+        content: t("workflow.unsavedContent"),
+        okText: t("workflow.discard"),
+        cancelText: t("workflow.keepEditing"),
         onOk: () => {
           onClose?.();
         },

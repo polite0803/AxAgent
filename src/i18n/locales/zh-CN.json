@@ -3826,6 +3826,7 @@
     "search": "搜索..."
   },
   "workflow": {
+    "loopBackCycleDetected": "回环边会形成闭环，请调整目标节点",
     "aiPanel": {
       "enterWorkflowDesc": "请输入工作流描述",
       "workflowGenerated": "工作流已生成",
@@ -3837,6 +3838,7 @@
       "recommendationGenerated": "推荐已生成",
       "recommendationFailed": "推荐失败",
       "copiedToClipboard": "已复制到剪贴板",
+      "lockedByExpert": "系统提示词由所选专家提供，无法修改",
       "tabGenerateWorkflow": "生成工作流",
       "describeWorkflow": "描述你的工作流",
       "generatePlaceholder": "例如：创建一个代码审查工作流，探索代码库结构...",
@@ -4615,7 +4617,10 @@
       "routingPrompt": "路由提示词",
       "routingPromptPlaceholder": "描述 LLM 判断分支的依据...",
       "routingModel": "路由模型（可选）",
-      "routingModelPlaceholder": "留空使用系统默认模型"
+      "routingModelPlaceholder": "留空使用系统默认模型",
+      "deleteNode": "删除此节点",
+      "edgeTypeDebateRound": "辩论回合",
+      "edgeTypeGrouping": "分组"
     },
     "statusBar": {
       "unsaved": "未保存",
@@ -5207,6 +5212,12 @@
     },
     "batchEditMode": "批量编辑模式",
     "noExecutionHistory": "无执行历史",
+    "legend": {
+      "title": "工作流图例",
+      "toggleLabel": "{{action}}图例",
+      "expand": "展开",
+      "collapse": "收起"
+    },
     "nodeConfig": {
       "add_debater": "添加辩手",
       "convergence_model_role": "收敛模型角色",
@@ -5271,7 +5282,11 @@
     "statusFailed": "失败",
     "statusPaused": "已暂停",
     "statusPending": "待执行",
-    "statusRunning": "运行中"
+    "statusRunning": "运行中",
+    "unsavedTitle": "未保存的更改",
+    "unsavedContent": "你有未保存的更改，确定放弃吗？",
+    "discard": "放弃",
+    "keepEditing": "继续编辑"
   },
   "rl": {
     "policyDashboard": "RL 策略面板",

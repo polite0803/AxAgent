@@ -284,7 +284,7 @@ function NodePropertyPanel({
             {t("workflow.rightPanel.unsupportedNodeType")}
           </div>
           <Button type="text" danger onClick={onDelete}>
-            {t("workflow.rightPanel.deleteNode", { defaultValue: "删除此节点" })}
+            {t("workflow.rightPanel.deleteNode")}
           </Button>
         </div>
       );
@@ -374,8 +374,8 @@ const SchemaEditorModal: React.FC<{
       open={open}
       onOk={handleOk}
       onCancel={onCancel}
-      okText={t("common.confirm", { defaultValue: "确认" })}
-      cancelText={t("common.cancel", { defaultValue: "取消" })}
+      okText={t("common.confirm")}
+      cancelText={t("common.cancel")}
       width={640}
       destroyOnClose
     >
@@ -805,15 +805,11 @@ export const RightPanel: React.FC<RightPanelProps> = React.memo(
                 },
                 {
                   value: "debateRound",
-                  label: t("workflow.rightPanel.edgeTypeDebateRound", {
-                    defaultValue: "辩论回合",
-                  }),
+                  label: t("workflow.rightPanel.edgeTypeDebateRound"),
                 },
                 {
                   value: "grouping",
-                  label: t("workflow.rightPanel.edgeTypeGrouping", {
-                    defaultValue: "分组",
-                  }),
+                  label: t("workflow.rightPanel.edgeTypeGrouping"),
                 },
               ]}
             />

@@ -3477,6 +3477,7 @@
     "learnFromMessages": "Learn from messages"
   },
   "workflow": {
+    "loopBackCycleDetected": "Loop-back edge would form a cycle, please adjust the target node",
     "categories": {
       "trigger": "Trigger",
       "execution": "Execution",
@@ -3645,6 +3646,7 @@
       "recommendationGenerated": "Recommendations generated",
       "recommendationFailed": "Recommendation failed",
       "copiedToClipboard": "Copied to clipboard",
+      "lockedByExpert": "System prompt is provided by the selected expert and cannot be modified",
       "tabGenerateWorkflow": "Generate Workflow",
       "describeWorkflow": "Describe your workflow",
       "generatePlaceholder": "Example: Create a code review workflow that explores the codebase structure...",
@@ -3902,7 +3904,10 @@
       "routingPrompt": "Routing Prompt",
       "routingPromptPlaceholder": "Describe how LLM should decide...",
       "routingModel": "Routing Model (optional)",
-      "routingModelPlaceholder": "Leave empty for system default"
+      "routingModelPlaceholder": "Leave empty for system default",
+      "deleteNode": "Delete this node",
+      "edgeTypeDebateRound": "Debate Round",
+      "edgeTypeGrouping": "Grouping"
     },
     "preset": "Preset",
     "custom": "Custom",
@@ -4855,6 +4860,12 @@
     },
     "batchEditMode": "Batch edit mode",
     "noExecutionHistory": "No execution history",
+    "legend": {
+      "title": "Workflow Legend",
+      "toggleLabel": "{{action}} legend",
+      "expand": "Expand",
+      "collapse": "Collapse"
+    },
     "nodeConfig": {
       "add_debater": "Add debater",
       "convergence_model_role": "Convergence model role",
@@ -4919,7 +4930,11 @@
     "statusFailed": "Failed",
     "statusPaused": "Paused",
     "statusPending": "Pending",
-    "statusRunning": "Running"
+    "statusRunning": "Running",
+    "unsavedTitle": "Unsaved changes",
+    "unsavedContent": "You have unsaved changes. Are you sure you want to discard them?",
+    "discard": "Discard",
+    "keepEditing": "Continue editing"
   },
   "rl": {
     "policyDashboard": "RL Policy Dashboard",

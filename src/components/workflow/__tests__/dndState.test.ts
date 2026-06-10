@@ -35,24 +35,24 @@ describe("dndState", () => {
     expect(getDragPayload()).toBeNull();
   });
 
-  it("两个 setDragPayload 之间共享同一 window 的 state（latest 覆盖）", () => {
+  it("two setDragPayload calls on the same window share state (latest wins)", () => {
     setDragPayload({ type: "agent", label: "A" });
     setDragPayload({ type: "llm", label: "B" });
     expect(getDragPayload()).toEqual({ type: "llm", label: "B" });
   });
 
-  it("不同 windowId 调用 setDragPayload 互不干扰（隔离）", () => {
+  it("setDragPayload on different windowIds are isolated", () => {
     setDragPayloadForWindow("w1", { type: "agent", label: "A" });
     setDragPayloadForWindow("w2", { type: "llm", label: "B" });
     expect(getDragPayloadForWindow("w1")).toEqual({ type: "agent", label: "A" });
     expect(getDragPayloadForWindow("w2")).toEqual({ type: "llm", label: "B" });
   });
 
-  it("对未初始化的 windowId 调用 get 返回 null", () => {
+  it("get on an uninitialized windowId returns null", () => {
     expect(getDragPayloadForWindow("never-initialized")).toBeNull();
   });
 
-  it("对指定 windowId 调用 clear 不影响其他 windowId", () => {
+  it("clear on a windowId does not affect other windowIds", () => {
     setDragPayloadForWindow("w1", { type: "agent", label: "A" });
     setDragPayloadForWindow("w2", { type: "llm", label: "B" });
     clearDragPayloadForWindow("w1");

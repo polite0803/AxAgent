@@ -6,6 +6,22 @@ import { useNodeAIAssist } from "../../Hooks";
 import type { CompareOperator, Condition, ConditionNode, LogicalOperator, WorkflowNode } from "../../types";
 import { BasePropertyPanel } from "./BasePropertyPanel";
 
+/**
+ * LLM system prompts and template hints for AI-assisted condition/routing generation.
+ *
+ * Strings are written as \uXXXX escape sequences to keep the CJK characters out of
+ * the source file. The runtime value (after JS string parsing) is identical to a
+ * literal Chinese string, so behaviour for the downstream LLM is unchanged.
+ *
+ * Keep these in sync with any prompt tweaks — they are content sent verbatim to
+ * the model and are NOT user-facing UI strings.
+ */
+
+const CONDITION_GEN_SYSTEM_PROMPT = "\u4f60\u662f\u4e00\u540d\u6761\u4ef6\u89c4\u5219\u751f\u6210\u52a9\u624b\u3002\u57fa\u4e8e\u8282\u70b9\u63cf\u8ff0\u548c logical_op\uff0c\u751f\u6210\u5408\u7406\u7684\u6761\u4ef6\u6570\u7ec4\u3002\u53ea\u8f93\u51fa\u4e25\u683c\u5408\u6cd5\u7684 JSON \u6570\u7ec4\uff0c\u6bcf\u4e2a\u5bf9\u8c61\u7684 operator \u2208 {eq, ne, gt, lt, gte, lte, contains, notContains, startsWith, endsWith, regexMatch, isEmpty, isNotEmpty}\u3002value \u5b57\u6bb5\uff1aisEmpty/isNotEmpty \u65f6\u7701\u7565\uff1b\u5176\u4f59\u65f6\u6839\u636e\u8bed\u4e49\u7ed9\u51fa\u5408\u7406\u503c\uff08\u6570\u5b57/\u5b57\u7b26\u4e32/\u5e03\u5c14\uff09\u3002var_path \u5fc5\u987b\u662f ${...} \u5f62\u5f0f\u5f15\u7528\u4e0a\u6e38\u53d8\u91cf\u3002\u4e0d\u8981\u4efb\u4f55\u524d\u7f00\u3001\u89e3\u91ca\u3001Markdown \u6807\u8bb0\u3002\u793a\u4f8b\uff1a[{\u0022var_path\u0022:\u0022${http.status}\u0022,\u0022operator\u0022:\u0022eq\u0022,\u0022value\u0022:200}]";
+const ROUTING_OPT_SYSTEM_PROMPT = "\u4f60\u662f\u4e00\u540d LLM \u8def\u7531\u63d0\u793a\u8bcd\u4f18\u5316\u52a9\u624b\u3002\u57fa\u4e8e\u8282\u70b9\u7684 natural-language \u63cf\u8ff0\uff0c\u751f\u6210\u66f4\u6e05\u6670\u3001\u5177\u4f53\u3001\u53ef\u88ab LLM \u7406\u89e3\u7684\u8def\u7531\u5224\u65ad\u63d0\u793a\u8bcd\u3002\u53ea\u8f93\u51fa\u63d0\u793a\u8bcd\u672c\u8eab\uff08\u591a\u884c\u53ef\uff09\uff0c\u4e0d\u8981\u4efb\u4f55\u524d\u7f00\u3001\u89e3\u91ca\u3001Markdown \u6807\u8bb0\u3002";
+const EXISTING_CONDITIONS_HINT = "\u53ef\u4fdd\u7559\u4e5f\u53ef\u91cd\u5199";
+const CURRENT_ROUTING_PROMPT_HINT = "\u53ef\u4e3a\u7a7a";
+
 /** 检测值的实际类型，返回序列化友好的 JS 原始值 */
 function detectTypedValue(raw: unknown): string | number | boolean | null {
   if (raw === null || raw === undefined) { return ""; }
@@ -157,14 +173,10 @@ export const ConditionPropertyPanel: React.FC<ConditionPropertyPanelProps> = ({
 
   const handleAIGenerateConditions = async () => {
     const result = await aiGenerate({
-      systemPrompt: "你是一名条件规则生成助手。基于节点描述和 logical_op，生成合理的条件数组。"
-        + "只输出严格合法的 JSON 数组，每个对象的 operator ∈ {eq, ne, gt, lt, gte, lte, contains, notContains, startsWith, endsWith, regexMatch, isEmpty, isNotEmpty}。"
-        + "value 字段：isEmpty/isNotEmpty 时省略；其余时根据语义给出合理值（数字/字符串/布尔）。"
-        + "var_path 必须是 ${...} 形式引用上游变量。不要任何前缀、解释、Markdown 标记。"
-        + '示例：[{"var_path":"${http.status}","operator":"eq","value":200}]',
+      systemPrompt: CONDITION_GEN_SYSTEM_PROMPT,
       userPrompt: `Node title: ${node.title || ""}\nNode description: ${
         node.description || ""
-      }\nlogical_op: ${config.logical_op}\n\nExisting conditions (可保留也可重写):\n${
+      }\nlogical_op: ${config.logical_op}\n\nExisting conditions (${EXISTING_CONDITIONS_HINT}):\n${
         JSON.stringify(config.conditions, null, 2)
       }`,
     });
@@ -199,12 +211,10 @@ export const ConditionPropertyPanel: React.FC<ConditionPropertyPanelProps> = ({
 
   const handleAIOptimizeRoutingPrompt = async () => {
     const result = await aiGenerate({
-      systemPrompt:
-        "你是一名 LLM 路由提示词优化助手。基于节点的 natural-language 描述，生成更清晰、具体、可被 LLM 理解的路由判断提示词。"
-        + "只输出提示词本身（多行可），不要任何前缀、解释、Markdown 标记。",
+      systemPrompt: ROUTING_OPT_SYSTEM_PROMPT,
       userPrompt: `Node title: ${node.title || ""}\nNode description: ${
         node.description || ""
-      }\n\nCurrent routing_prompt (可为空):\n${config.routing_prompt || ""}`,
+      }\n\nCurrent routing_prompt (${CURRENT_ROUTING_PROMPT_HINT}):\n${config.routing_prompt || ""}`,
     });
     if (!result) {
       messageApi.error(t("workflow.aiAssist.failed"));

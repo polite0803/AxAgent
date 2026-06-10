@@ -1066,7 +1066,7 @@
     },
     {
       "file": "src/stores/__tests__/workflowEditorStore.test.ts",
-      "lines": "543,549",
+      "lines": "544,550",
       "reason": "测试 mock 数据标签",
       "phase": 3
     },

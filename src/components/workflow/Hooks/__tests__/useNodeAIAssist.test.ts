@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { createLatestWinner } from "../useNodeAIAssist";
 
 describe("createLatestWinner", () => {
-  it("第一个 begin 立刻不是 latest", () => {
+  it("first begin is immediately latest", () => {
     const lw = createLatestWinner();
     const id = lw.begin();
     expect(lw.isLatest(id)).toBe(true);
@@ -11,7 +11,7 @@ describe("createLatestWinner", () => {
     expect(lw.isLatest(id)).toBe(true);
   });
 
-  it("只有最后一个 begin 才是 latest", () => {
+  it("only the last begin is latest", () => {
     const lw = createLatestWinner();
     const a = lw.begin();
     const b = lw.begin();
@@ -21,7 +21,7 @@ describe("createLatestWinner", () => {
     expect(lw.isLatest(c)).toBe(true);
   });
 
-  it("多次并发调用：只有最后一个被采纳", async () => {
+  it("concurrent calls: only the last is adopted", async () => {
     const lw = createLatestWinner();
     const calls: string[] = [];
 
@@ -40,7 +40,7 @@ describe("createLatestWinner", () => {
     expect(calls.length).toBe(1);
   });
 
-  it("begin 编号单调递增", () => {
+  it("begin ids increase monotonically", () => {
     const lw = createLatestWinner();
     const a = lw.begin();
     const b = lw.begin();
@@ -49,13 +49,13 @@ describe("createLatestWinner", () => {
     expect(b).toBeLessThan(c);
   });
 
-  it("空 helper 的 isLatest(0) 返回 false", () => {
+  it("isLatest(0) returns false on a fresh helper", () => {
     const lw = createLatestWinner();
     // 从未 begin 过的 id 一定不是 latest
     expect(lw.isLatest(0)).toBe(false);
   });
 
-  it("可以被注入到 mock 异步场景中", async () => {
+  it("can be plugged into mocked async scenarios", async () => {
     // 真实使用：latest-wins 让陈旧 invoke 静默丢弃
     const lw = createLatestWinner();
     const onResult = vi.fn();
