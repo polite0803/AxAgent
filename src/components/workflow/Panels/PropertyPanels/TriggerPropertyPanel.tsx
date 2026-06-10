@@ -19,7 +19,7 @@ function TriggerConfig({
   triggerConfig,
   handleConfigChange,
 }: {
-  triggerConfig: { type: string; config: Record<string, unknown> };
+  triggerConfig: { type: string; config: unknown };
   handleConfigChange: (key: string, value: unknown) => void;
 }) {
   const { t } = useTranslation();
@@ -27,8 +27,9 @@ function TriggerConfig({
   const { generate: aiGenerate, generating: aiGenerating } = useNodeAIAssist();
   const [messageApi, contextHolder] = message.useMessage();
 
+  /* eslint-disable @typescript-eslint/no-explicit-any */
   const handleAISuggestCron = async () => {
-    const current = (triggerConfig.config.cron as string) || "";
+    const current = ((triggerConfig.config as any).cron as string) || "";
     const hint = current.trim() || t("workflow.aiAssist.trigger.cronHint");
     const result = await aiGenerate({
       systemPrompt:
@@ -57,7 +58,7 @@ function TriggerConfig({
             <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
               <Input
                 id="trigger-property-panel-input-113"
-                value={(triggerConfig.config.cron as string) || ""}
+                value={((triggerConfig.config as any).cron as string) || ""}
                 onChange={(e) => handleConfigChange("cron", e.target.value)}
                 placeholder="* * * * *"
                 size="small"
@@ -75,7 +76,7 @@ function TriggerConfig({
               {t("workflow.props.timezone")}
             </label>
             <Select
-              value={(triggerConfig.config.timezone as string) || "UTC"}
+              value={((triggerConfig.config as any).timezone as string) || "UTC"}
               onChange={(value) => handleConfigChange("timezone", value)}
               size="small"
               style={{ width: "100%" }}
@@ -103,7 +104,7 @@ function TriggerConfig({
             </label>
             <Switch
               size="small"
-              checked={(triggerConfig.config.enabled as boolean) ?? true}
+              checked={((triggerConfig.config as any).enabled as boolean) ?? true}
               onChange={(checked) => handleConfigChange("enabled", checked)}
             />
           </div>
@@ -119,7 +120,7 @@ function TriggerConfig({
             </label>
             <Input
               id="trigger-property-panel-input-114"
-              value={(triggerConfig.config.path as string) || ""}
+              value={((triggerConfig.config as any).path as string) || ""}
               onChange={(e) => handleConfigChange("path", e.target.value)}
               placeholder="/webhook/my-trigger"
               size="small"
@@ -130,7 +131,7 @@ function TriggerConfig({
               {t("workflow.props.httpMethod")}
             </label>
             <Select
-              value={(triggerConfig.config.method as string) || "GET"}
+              value={((triggerConfig.config as any).method as string) || "GET"}
               onChange={(value) => handleConfigChange("method", value)}
               size="small"
               style={{ width: "100%" }}
@@ -147,7 +148,7 @@ function TriggerConfig({
               {t("workflow.props.authType")}
             </label>
             <Select
-              value={(triggerConfig.config.auth_type as string) || "none"}
+              value={((triggerConfig.config as any).auth_type as string) || "none"}
               onChange={(value) => handleConfigChange("auth_type", value)}
               size="small"
               style={{ width: "100%" }}
@@ -171,7 +172,7 @@ function TriggerConfig({
             </label>
             <Input
               id="trigger-property-panel-input-115"
-              value={(triggerConfig.config.event_type as string) || ""}
+              value={((triggerConfig.config as any).event_type as string) || ""}
               onChange={(e) => handleConfigChange("event_type", e.target.value)}
               size="small"
             />
@@ -228,12 +229,13 @@ export const TriggerPropertyPanel: React.FC<TriggerPropertyPanelProps> = ({
       config: {
         ...triggerConfig,
         config: {
-          ...(triggerConfig.config as Record<string, unknown>),
+          ...(triggerConfig.config as any),
           [key]: value,
         },
       },
     });
   };
+  /* eslint-enable @typescript-eslint/no-explicit-any */
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>

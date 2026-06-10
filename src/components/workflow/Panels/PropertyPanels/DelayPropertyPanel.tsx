@@ -18,7 +18,8 @@ function DelayConfig({
   config,
   handleConfigChange,
 }: {
-  config: Record<string, unknown>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  config: any;
   handleConfigChange: (key: string, value: unknown) => void;
 }) {
   const { t } = useTranslation();

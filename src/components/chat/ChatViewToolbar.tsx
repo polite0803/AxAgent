@@ -1,6 +1,6 @@
 import { SyncOutlined } from "@ant-design/icons";
 import { Button, Input, Popover, Spin, Typography } from "antd";
-import type { InputRef } from "antd";
+import type { GlobalToken, InputRef } from "antd";
 import {
   ArrowDownRight,
   ArrowUpRight,
@@ -39,7 +39,7 @@ function StatsPopoverContent({
 }: {
   stats: ConversationStats | null;
   t: (key: string) => string;
-  token: Record<string, unknown>;
+  token: GlobalToken;
 }) {
   if (!stats) {
     return (
@@ -256,7 +256,7 @@ export interface ChatViewToolbarProps {
   setExtractMemoriesOpen: (v: boolean) => void;
   setExpertOpen: (v: boolean) => void;
   streamingMessageId: string | null;
-  token: Record<string, unknown>;
+  token: GlobalToken;
 }
 
 /**

@@ -1283,14 +1283,14 @@ export function SchedulerSettings() {
                             <TimePicker
                               format="HH:mm"
                               placeholder={t("settings.scheduler.startTime")}
-                              {...restField}
+                              {...(restField as Record<string, unknown>)}
                               style={{ flex: 1 }}
                             />
                             <span>-</span>
                             <TimePicker
                               format="HH:mm"
                               placeholder={t("settings.scheduler.endTime")}
-                              {...restField}
+                              {...(restField as Record<string, unknown>)}
                               style={{ flex: 1 }}
                             />
                             {index > 0 && (
