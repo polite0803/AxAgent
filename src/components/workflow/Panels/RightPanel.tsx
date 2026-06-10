@@ -1,5 +1,5 @@
 import { useWorkflowEditorStore } from "@/stores";
-import { Button, Divider, Input, message, Select, Tabs, theme } from "antd";
+import { Button, Divider, Input, Modal, Select, Tabs, theme } from "antd";
 import { Trash2 } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
@@ -279,12 +279,120 @@ function NodePropertyPanel({
       );
     default:
       return (
-        <div style={{ color: "inherit", textAlign: "center", padding: 20, opacity: 0.45 }}>
-          {t("workflow.rightPanel.unsupportedNodeType")}
+        <div style={{ padding: 20, textAlign: "center" }}>
+          <div style={{ opacity: 0.45, marginBottom: 12 }}>
+            {t("workflow.rightPanel.unsupportedNodeType")}
+          </div>
+          <Button type="text" danger onClick={onDelete}>
+            {t("workflow.rightPanel.deleteNode", { defaultValue: "删除此节点" })}
+          </Button>
         </div>
       );
   }
 }
+
+/** 深度限制（防止 5.2 深度嵌套 JSON 触发栈溢出 / RangeError） */
+const MAX_JSON_DEPTH = 32;
+
+/** 安全 JSON 解析：超深嵌套抛错 */
+function safeJsonParse(text: string, maxDepth = MAX_JSON_DEPTH): unknown {
+  // 先用一次正常解析拿到值，再深度检查
+  const parsed = JSON.parse(text);
+  const depth = (function getDepth(v: unknown, d: number): number {
+    if (v === null || typeof v !== "object") { return d; }
+    if (d > maxDepth) { return d; }
+    let max = d;
+    for (const k of Object.keys(v as Record<string, unknown>)) {
+      const child = (v as Record<string, unknown>)[k];
+      const cd = getDepth(child, d + 1);
+      if (cd > max) { max = cd; }
+      if (max > maxDepth) { return max; }
+    }
+    return max;
+  })(parsed, 0);
+  if (depth > maxDepth) {
+    throw new Error(`JSON depth exceeds ${maxDepth}`);
+  }
+  return parsed;
+}
+
+/** 极简 JSON Schema 形态校验：仅校验 type / properties / required 字段类型 */
+function validateJsonSchema(value: unknown): value is JsonSchema {
+  if (value === null || typeof value !== "object") { return false; }
+  const v = value as Record<string, unknown>;
+  if (v.type !== undefined && typeof v.type !== "string") { return false; }
+  if (v.properties !== undefined) {
+    if (typeof v.properties !== "object" || v.properties === null) { return false; }
+  }
+  if (v.required !== undefined && !Array.isArray(v.required)) { return false; }
+  if (v.items !== undefined && (typeof v.items !== "object" || v.items === null)) { return false; }
+  return true;
+}
+
+/**
+ * Schema 编辑弹窗：替代 window.prompt，提供深度限制 + 形状校验 + 错误提示。
+ */
+const SchemaEditorModal: React.FC<{
+  open: boolean;
+  title: string;
+  initial: string;
+  onCancel: () => void;
+  onConfirm: (parsed: JsonSchema | undefined) => void;
+}> = ({ open, title, initial, onCancel, onConfirm }) => {
+  const { t } = useTranslation();
+  const [text, setText] = React.useState(initial);
+  const [error, setError] = React.useState<string | null>(null);
+  React.useEffect(() => {
+    if (open) {
+      setText(initial);
+      setError(null);
+    }
+  }, [open, initial]);
+
+  const handleOk = () => {
+    if (text.trim() === "") {
+      onConfirm(undefined);
+      return;
+    }
+    try {
+      const parsed = safeJsonParse(text);
+      if (!validateJsonSchema(parsed)) {
+        setError(t("workflow.rightPanel.invalidSchemaShape"));
+        return;
+      }
+      onConfirm(parsed as JsonSchema);
+    } catch (e) {
+      setError(
+        t("workflow.rightPanel.invalidJson") + `: ${e instanceof Error ? e.message : String(e)}`,
+      );
+    }
+  };
+
+  return (
+    <Modal
+      title={title}
+      open={open}
+      onOk={handleOk}
+      onCancel={onCancel}
+      okText={t("common.confirm", { defaultValue: "确认" })}
+      cancelText={t("common.cancel", { defaultValue: "取消" })}
+      width={640}
+      destroyOnClose
+    >
+      <Input.TextArea
+        value={text}
+        onChange={(e) => {
+          setText(e.target.value);
+          if (error) { setError(null); }
+        }}
+        rows={16}
+        style={{ fontFamily: "monospace", fontSize: 12 }}
+        spellCheck={false}
+      />
+      {error && <div style={{ color: "#ff4d4f", fontSize: 12, marginTop: 6 }}>{error}</div>}
+    </Modal>
+  );
+};
 
 function TemplateSettings({
   currentTemplate,
@@ -304,6 +412,36 @@ function TemplateSettings({
   if (!currentTemplate) {
     return null;
   }
+
+  const [schemaModal, setSchemaModal] = React.useState<{
+    open: boolean;
+    kind: "input" | "output";
+    initial: string;
+  }>({ open: false, kind: "input", initial: "" });
+
+  const openSchemaModal = (kind: "input" | "output") => {
+    const schema = kind === "input"
+      ? currentTemplate?.inputSchema
+      : currentTemplate?.outputSchema;
+    setSchemaModal({
+      open: true,
+      kind,
+      initial: schema ? JSON.stringify(schema, null, 2) : "",
+    });
+  };
+
+  const handleSchemaConfirm = (parsed: JsonSchema | undefined) => {
+    if (schemaModal.kind === "input") {
+      useWorkflowEditorStore
+        .getState()
+        .updateTemplateMetadata({ inputSchema: parsed });
+    } else {
+      useWorkflowEditorStore
+        .getState()
+        .updateTemplateMetadata({ outputSchema: parsed });
+    }
+    setSchemaModal((s) => ({ ...s, open: false }));
+  };
 
   return (
     <div style={{ padding: 12 }}>
@@ -433,30 +571,7 @@ function TemplateSettings({
           <Button
             type="link"
             size="small"
-            onClick={() => {
-              try {
-                const schema = currentTemplate?.inputSchema
-                  ? JSON.stringify(currentTemplate.inputSchema, null, 2)
-                  : "";
-                const newSchema = window.prompt(
-                  t("workflow.rightPanel.editSchema"),
-                  schema,
-                );
-                if (newSchema !== null) {
-                  if (newSchema.trim() === "") {
-                    useWorkflowEditorStore
-                      .getState()
-                      .updateTemplateMetadata({ inputSchema: undefined });
-                  } else {
-                    useWorkflowEditorStore
-                      .getState()
-                      .updateTemplateMetadata({ inputSchema: JSON.parse(newSchema) });
-                  }
-                }
-              } catch {
-                message.error(t("workflow.rightPanel.invalidJson"));
-              }
-            }}
+            onClick={() => openSchemaModal("input")}
             style={{ fontSize: 11 }}
           >
             {currentTemplate?.inputSchema
@@ -498,30 +613,7 @@ function TemplateSettings({
           <Button
             type="link"
             size="small"
-            onClick={() => {
-              try {
-                const schema = currentTemplate?.outputSchema
-                  ? JSON.stringify(currentTemplate.outputSchema, null, 2)
-                  : "";
-                const newSchema = window.prompt(
-                  t("workflow.rightPanel.editSchema"),
-                  schema,
-                );
-                if (newSchema !== null) {
-                  if (newSchema.trim() === "") {
-                    useWorkflowEditorStore
-                      .getState()
-                      .updateTemplateMetadata({ outputSchema: undefined });
-                  } else {
-                    useWorkflowEditorStore
-                      .getState()
-                      .updateTemplateMetadata({ outputSchema: JSON.parse(newSchema) });
-                  }
-                }
-              } catch {
-                message.error(t("workflow.rightPanel.invalidJson"));
-              }
-            }}
+            onClick={() => openSchemaModal("output")}
             style={{ fontSize: 11 }}
           >
             {currentTemplate?.outputSchema
@@ -547,6 +639,16 @@ function TemplateSettings({
           </pre>
         )}
       </div>
+
+      <SchemaEditorModal
+        open={schemaModal.open}
+        title={schemaModal.kind === "input"
+          ? t("workflow.rightPanel.inputSchema")
+          : t("workflow.rightPanel.outputSchema")}
+        initial={schemaModal.initial}
+        onCancel={() => setSchemaModal((s) => ({ ...s, open: false }))}
+        onConfirm={handleSchemaConfirm}
+      />
     </div>
   );
 }
@@ -700,6 +802,18 @@ export const RightPanel: React.FC<RightPanelProps> = React.memo(
                 {
                   value: "error",
                   label: t("workflow.rightPanel.edgeTypeError"),
+                },
+                {
+                  value: "debateRound",
+                  label: t("workflow.rightPanel.edgeTypeDebateRound", {
+                    defaultValue: "辩论回合",
+                  }),
+                },
+                {
+                  value: "grouping",
+                  label: t("workflow.rightPanel.edgeTypeGrouping", {
+                    defaultValue: "分组",
+                  }),
                 },
               ]}
             />

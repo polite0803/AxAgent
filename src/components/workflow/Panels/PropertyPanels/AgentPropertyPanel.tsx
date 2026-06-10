@@ -505,11 +505,18 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({
                   size="small"
                   type="link"
                   loading={creatingProfile}
-                  onClick={() =>
-                    handleRoleExpertCombine(
-                      selectedRoleId,
-                      config.agentProfileId!,
-                    )}
+                  onClick={() => {
+                    // 注意：config.agentProfileId 是 AgentProfile 的 ID，
+                    // 而 handleRoleExpertCombine 第二个参数需要的是 Expert ID；
+                    // 若 selectedExpert 来自 AgentProfile（fallback 路径），
+                    // 通过 expertId 字段取真实 expertId 透传。
+                    const expertId = selectedExpert.expertId ?? config.agentProfileId;
+                    if (!expertId) {
+                      message.error(t("workflow.props.expertNotFound"));
+                      return;
+                    }
+                    handleRoleExpertCombine(selectedRoleId, expertId);
+                  }}
                 >
                   {t("workflow.props.bindRole")}
                 </Button>

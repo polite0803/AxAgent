@@ -48,8 +48,24 @@ test.describe("Workflow Editor E2E Tests", () => {
   });
 
   // 卡片操作（删除/复制）需要预存模板数据，浏览器 mock 模式下无持久化数据
-  test.skip("should delete a template", async () => {});
-  test.skip("should duplicate a template", async () => {});
+  // FIXME: 待 Tauri 模式下预置 fixture 后启用，或在浏览器模式注入 window.__seedTemplates
+  //        并在 setup() 中加载到 workflowEditorStore。
+  //        跟踪 issue: 待 issue #xxx 创建后回填。
+  test.fixme("should delete a template", async () => {
+    // 计划步骤：
+    // 1. 通过 store API 注入一条 mock 模板到 templates
+    // 2. 渲染 TemplateCard 找到对应项
+    // 3. 点击删除按钮
+    // 4. 断言 store.templates 长度减 1
+    throw new Error("TODO: implement after template fixture lands");
+  });
+  test.fixme("should duplicate a template", async () => {
+    // 计划步骤：
+    // 1. 注入 mock 模板
+    // 2. 点击复制按钮
+    // 3. 断言 store.templates 出现副本（id 不同，name 追加 "(Copy)"）
+    throw new Error("TODO: implement after template fixture lands");
+  });
 });
 
 test.describe("Workflow Editor Canvas", () => {

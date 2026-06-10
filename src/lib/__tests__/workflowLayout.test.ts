@@ -1,7 +1,13 @@
 import type { Edge, Node } from "reactflow";
 import { describe, expect, it } from "vitest";
 
-import { autoLayoutWorkflow, getNodeSize } from "@/lib/workflowLayout";
+import {
+  autoLayoutWorkflow,
+  clampChildrenIntoContainers,
+  find_safe_position,
+  getNodeSize,
+  would_create_cycle,
+} from "@/lib/workflowLayout";
 
 function makeNode(
   id: string,
@@ -240,5 +246,195 @@ describe("workflowLayout", () => {
       expect(c1.position.y).toBeGreaterThanOrEqual(PADDING);
       expect(agg.position).toBeDefined();
     });
+  });
+});
+
+describe("find_safe_position", () => {
+  it("returns the candidate when there is no overlap", () => {
+    const safe = find_safe_position(
+      { x: 100, y: 100 },
+      "agent",
+      [{ id: "b", x: 500, y: 500, type: "agent" }],
+      10,
+    );
+    expect(safe).toEqual({ x: 100, y: 100 });
+  });
+
+  it("avoids overlapping a sibling by escaping to a non-overlapping direction", () => {
+    // sibling occupies (0..220, 0..160), candidate (50, 50) sits inside it
+    // algorithm picks the closest escape direction (right/left/down/up),
+    // not necessarily right. We only assert the result escapes the bbox.
+    const safe = find_safe_position(
+      { x: 50, y: 50 },
+      "agent",
+      [{ id: "b", x: 0, y: 0, type: "agent" }],
+      10,
+    );
+    const escapesX = safe.x + 220 <= 0 || safe.x >= 220 + 10;
+    const escapesY = safe.y + 160 <= 0 || safe.y >= 160 + 10;
+    expect(escapesX || escapesY).toBe(true);
+  });
+
+  it("snaps to grid", () => {
+    // grid default is 20 → output should be divisible by 20 (when not overlapping)
+    const safe = find_safe_position(
+      { x: 13, y: 27 },
+      "agent",
+      [],
+      10,
+    );
+    expect(safe.x % 20).toBe(0);
+    expect(safe.y % 20).toBe(0);
+  });
+});
+
+describe("would_create_cycle", () => {
+  it("treats self-loop as a cycle", () => {
+    expect(would_create_cycle([], "a", "a")).toBe(true);
+  });
+
+  it("returns false for a simple new edge in a DAG", () => {
+    const edges = [
+      { source: "a", target: "b" },
+      { source: "b", target: "c" },
+    ];
+    expect(would_create_cycle(edges, "c", "d")).toBe(false);
+  });
+
+  it("returns true when new edge closes a cycle", () => {
+    const edges = [
+      { source: "a", target: "b" },
+      { source: "b", target: "c" },
+      { source: "c", target: "a" },
+    ];
+    // adding a -> c does not close a cycle (cycle already exists),
+    // but adding b -> a would be one direction
+    expect(would_create_cycle(edges, "b", "a")).toBe(true);
+  });
+
+  it("detects transitive cycle", () => {
+    const edges = [
+      { source: "a", target: "b" },
+      { source: "b", target: "c" },
+    ];
+    // adding c -> a would create a -> b -> c -> a
+    expect(would_create_cycle(edges, "c", "a")).toBe(true);
+  });
+});
+
+describe("clampChildrenIntoContainers", () => {
+  // 容器固定尺寸 500×400（parallel 默认），padding 默认 40
+  const containerW = 500;
+  const containerH = 400;
+  const padding = 40;
+
+  it("returns a new array without mutating input", () => {
+    const container: Node = {
+      id: "p",
+      type: "parallel",
+      position: { x: 0, y: 0 },
+      data: {},
+    };
+    const child: Node = {
+      id: "c1",
+      type: "agent",
+      // 完全合法：在容器内
+      position: { x: 100, y: 100 },
+      data: {},
+      parentNode: "p",
+    };
+    const result = clampChildrenIntoContainers(
+      [container, child],
+      { c1: "p" },
+      { p: { width: containerW, height: containerH } },
+      padding,
+    );
+    expect(result).not.toBe([container, child]);
+    expect(result.find((n) => n.id === "c1")?.position).toEqual({ x: 100, y: 100 });
+  });
+
+  it("clamps a child overflowing on the right", () => {
+    const container: Node = {
+      id: "p",
+      type: "parallel",
+      position: { x: 0, y: 0 },
+      data: {},
+    };
+    const overflow: Node = {
+      id: "c1",
+      type: "agent",
+      position: { x: containerW + 200, y: 50 },
+      data: {},
+      parentNode: "p",
+    };
+    const result = clampChildrenIntoContainers(
+      [container, overflow],
+      { c1: "p" },
+      { p: { width: containerW, height: containerH } },
+      padding,
+    );
+    const r = result.find((n) => n.id === "c1")!;
+    // 子节点被拉回到容器内的 padding 区域
+    expect(r.position.x + 220).toBeLessThanOrEqual(containerW - padding);
+    expect(r.position.y).toBe(50);
+  });
+
+  it("clamps a child overflowing on the top-left", () => {
+    const container: Node = {
+      id: "p",
+      type: "parallel",
+      position: { x: 0, y: 0 },
+      data: {},
+    };
+    const overflow: Node = {
+      id: "c1",
+      type: "agent",
+      position: { x: -500, y: -300 },
+      data: {},
+      parentNode: "p",
+    };
+    const result = clampChildrenIntoContainers(
+      [container, overflow],
+      { c1: "p" },
+      { p: { width: containerW, height: containerH } },
+      padding,
+    );
+    const r = result.find((n) => n.id === "c1")!;
+    expect(r.position.x).toBeGreaterThanOrEqual(padding);
+    expect(r.position.y).toBeGreaterThanOrEqual(padding);
+  });
+
+  it("leaves nodes without parent untouched", () => {
+    const standalone: Node = {
+      id: "x",
+      type: "agent",
+      position: { x: 9999, y: 9999 },
+      data: {},
+    };
+    const result = clampChildrenIntoContainers(
+      [standalone],
+      {},
+      {},
+      padding,
+    );
+    expect(result.find((n) => n.id === "x")?.position).toEqual({ x: 9999, y: 9999 });
+  });
+
+  it("respects a missing parent size entry (skips clamping)", () => {
+    const child: Node = {
+      id: "c1",
+      type: "agent",
+      position: { x: 9999, y: 9999 },
+      data: {},
+      parentNode: "missing",
+    };
+    const result = clampChildrenIntoContainers(
+      [child],
+      { c1: "missing" },
+      {},
+      padding,
+    );
+    // 无尺寸信息时保守不修改位置
+    expect(result.find((n) => n.id === "c1")?.position).toEqual({ x: 9999, y: 9999 });
   });
 });

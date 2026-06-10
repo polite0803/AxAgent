@@ -146,6 +146,12 @@ function nodeTypeOf(n: NodeLike): string {
   return (typeof n.data?.type === "string" ? n.data.type : n.type) || "";
 }
 
+/** 判断是否为阶段分隔线或分组框（不参与布局/校验/执行） */
+function isLayoutExcluded(n: NodeLike): boolean {
+  const t = nodeTypeOf(n);
+  return t === "_phaseSeparator" || t === "groupFrame";
+}
+
 /** 构建入度 Map（target → 入边数） */
 function buildIndegree(edges: EdgeLike[]): Map<string, number> {
   const m = new Map<string, number>();
@@ -290,6 +296,7 @@ export function validate_workflow(
 
   // ── 1. 孤立节点 ──────────────────────────────────────────
   for (const n of nodes) {
+    if (isLayoutExcluded(n)) { continue; }
     const tType = nodeTypeOf(n);
     if (tType === "trigger" || CONTAINER_NODE_TYPES.has(tType)) { continue; }
     if ((indegree.get(n.id) || 0) === 0 && (outdegree.get(n.id) || 0) === 0) {
@@ -891,13 +898,16 @@ export function autoLayoutWorkflow(
   parentRefs: Record<string, string> = {},
 ): { nodes: Node[]; edges: Edge[] } {
   const childOf = parentRefs;
-  const CONTAINER_TYPES = new Set(["parallel", "debate", "loop", "swarm", "aggregator", "subWorkflow"]);
-  const containers = nodes.filter((n) => CONTAINER_TYPES.has(n.type || "") && !childOf[n.id]);
+  // 排除阶段分隔线和分组框等不参与布局的节点
+  const layoutNodes = nodes.filter((n) => !isLayoutExcluded(n as NodeLike));
+  const containers = layoutNodes.filter((n) => CONTAINER_NODE_TYPES.has(n.type || "") && !childOf[n.id]);
 
   if (containers.length === 0 || Object.keys(childOf).length === 0) {
-    const dagreResult = autoLayout(nodes, edges);
+    const dagreResult = autoLayout(layoutNodes, edges);
     const resolvedNodes = resolveOverlaps(dagreResult.nodes);
-    return { nodes: resolvedNodes, edges: dagreResult.edges };
+    // 重新合并被排除的节点（保持其原始位置）
+    const excludedNodes = nodes.filter((n) => isLayoutExcluded(n as NodeLike));
+    return { nodes: [...resolvedNodes, ...excludedNodes], edges: dagreResult.edges };
   }
 
   // 1. 反算每个节点的当前绝对坐标（input 是 ReactFlow 坐标系，子节点为相对父）
@@ -954,7 +964,7 @@ export function autoLayoutWorkflow(
   // 3. 主 dagre：只放顶层节点（容器节点 + 无父孤立节点）
   const topLevelIds = new Set<string>();
   for (const n of nodes) {
-    if (CONTAINER_TYPES.has(n.type || "") || !childOf[n.id]) {
+    if (CONTAINER_NODE_TYPES.has(n.type || "") || !childOf[n.id]) {
       topLevelIds.add(n.id);
     }
   }
@@ -973,7 +983,7 @@ export function autoLayoutWorkflow(
   });
   for (const n of topLevelNodes) {
     const t = (n.data?.type as string) || n.type || "";
-    const size = CONTAINER_TYPES.has(n.type || "")
+    const size = CONTAINER_NODE_TYPES.has(n.type || "")
       ? (containerSizes[n.id] ?? getNodeSize(t))
       : getNodeSize(t);
     g.setNode(n.id, { width: size.width, height: size.height });
@@ -989,7 +999,7 @@ export function autoLayoutWorkflow(
     const dagreNode = g.node(n.id);
     if (!dagreNode) { continue; }
     const t = (n.data?.type as string) || n.type || "";
-    const size = CONTAINER_TYPES.has(n.type || "")
+    const size = CONTAINER_NODE_TYPES.has(n.type || "")
       ? (containerSizes[n.id] ?? getNodeSize(t))
       : getNodeSize(t);
     newAbs[n.id] = { x: dagreNode.x - size.width / 2, y: dagreNode.y - size.height / 2 };
@@ -1021,7 +1031,9 @@ export function autoLayoutWorkflow(
     return { ...n, position: final };
   });
 
-  return { nodes: result, edges };
+  // 6. 后处理：把子节点位置 clamp 到容器 bbox 内（见 §3.5 修复）
+  const clamped = clampChildrenIntoContainers(result, childOf, containerSizes, PADDING);
+  return { nodes: clamped, edges };
 }
 
 // ── 自动整理（按 type 分层布局） ──────────────────────────────
@@ -1066,7 +1078,6 @@ const LAYER_Y_SPACING = 200; // 层间垂直间距
 const LAYER_X_SPACING = 320; // 层内水平间距
 const MARGIN = 60; // 画布边距
 const CONTAINER_PADDING = 40; // 容器内边距
-const CONTAINER_TYPES_AUTO = new Set(["parallel", "debate", "loop", "swarm", "aggregator", "subWorkflow"]);
 
 interface AutoNode {
   id: string;
@@ -1114,7 +1125,7 @@ export function auto_layout(
 
   // ── 分离容器与顶层节点 ────────────────────────────────────
   const containers = nodes.filter(
-    (n) => CONTAINER_TYPES_AUTO.has(n.type || layoutNodeType(n)) && !childOf[n.id],
+    (n) => CONTAINER_NODE_TYPES.has(n.type || layoutNodeType(n)) && !childOf[n.id],
   );
   const topLevel = nodes.filter((n) => !childOf[n.id]);
 
@@ -1164,7 +1175,7 @@ export function auto_layout(
   }
 
   // ── 顶层节点分层布局 ──────────────────────────────────────
-  const topNodeList = topLevel.filter((n) => !CONTAINER_TYPES_AUTO.has(n.type || layoutNodeType(n)));
+  const topNodeList = topLevel.filter((n) => !CONTAINER_NODE_TYPES.has(n.type || layoutNodeType(n)));
   const topPositions = layerPositions(topNodeList, edges, containerBBox);
 
   // ── 容器节点排入主布局 ────────────────────────────────────
@@ -1228,6 +1239,90 @@ export function auto_layout(
     }
     return { ...n, position: pos };
   });
+}
+
+/**
+ * 把溢出容器的子节点拉回到容器 bbox 内。
+ *
+ * 解决 §3.5 缺陷：autoLayoutWorkflow 完成 dagre 主布局后，
+ * 部分子节点可能因初始位置过偏而落在容器外（特别是用户
+ * 手动拖拽到容器边角、或运行了多轮 dagre 之后）。
+ * ReactFlow 渲染时若 extent="parent" 会直接裁剪，导致
+ * 子节点看不见或被截掉一半。
+ *
+ * @param nodes 所有节点（容器 + 子节点都会被处理）
+ * @param parentRefs childId → parentId 映射
+ * @param containerSizes parentId → { width, height }（可缺省；缺省时不限制该容器）
+ * @param padding 内边距，最小可保留多少空间
+ */
+export function clampChildrenIntoContainers(
+  nodes: Node[],
+  parentRefs: Record<string, string>,
+  containerSizes: Record<string, { width: number; height: number }>,
+  padding = 40,
+): Node[] {
+  return nodes.map((n) => {
+    const parentId = parentRefs[n.id];
+    if (!parentId) { return n; }
+    const size = containerSizes[parentId];
+    if (!size) { return n; }
+    const childW = (n.width as number | undefined) ?? getNodeSize(n.type || "").width;
+    const childH = (n.height as number | undefined) ?? getNodeSize(n.type || "").height;
+    let { x, y } = n.position;
+    const minX = padding;
+    const minY = padding;
+    const maxX = size.width - padding - childW;
+    const maxY = size.height - padding - childH;
+    // 仅在子节点宽度不大于容器内可容纳宽度时才做水平 clamp，
+    // 否则保留原 x 让子节点在视觉上对齐顶部/左部。
+    if (maxX > minX) {
+      x = Math.min(Math.max(x, minX), maxX);
+    } else {
+      x = minX;
+    }
+    if (maxY > minY) {
+      y = Math.min(Math.max(y, minY), maxY);
+    } else {
+      y = minY;
+    }
+    if (x === n.position.x && y === n.position.y) { return n; }
+    return { ...n, position: { x, y } };
+  });
+}
+
+/**
+ * 检查新加边 (newSource -> newTarget) 是否会形成环。
+ * 用 DFS 在现有有向图上判断从 newTarget 出发能否再次到达 newSource。
+ *
+ * 注：自循环（newSource === newTarget）也视为环。
+ */
+export function would_create_cycle(
+  edges: Array<{ source: string; target: string }>,
+  newSource: string,
+  newTarget: string,
+): boolean {
+  if (newSource === newTarget) { return true; }
+  const adj = new Map<string, string[]>();
+  for (const e of edges) {
+    const list = adj.get(e.source) ?? [];
+    list.push(e.target);
+    adj.set(e.source, list);
+  }
+  const incoming = adj.get(newSource) ?? [];
+  incoming.push(newTarget);
+  adj.set(newSource, incoming);
+
+  const visited = new Set<string>();
+  const stack: string[] = [newTarget];
+  while (stack.length > 0) {
+    const node = stack.pop()!;
+    if (node === newSource) { return true; }
+    if (visited.has(node)) { continue; }
+    visited.add(node);
+    const next = adj.get(node);
+    if (next) { stack.push(...next); }
+  }
+  return false;
 }
 
 /**

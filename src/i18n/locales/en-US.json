@@ -3514,7 +3514,13 @@
       "email": "Email",
       "debate": "Debate",
       "databaseQuery": "Database Query",
-      "switch": "Switch"
+      "switch": "Switch",
+      "swarm": "Swarm",
+      "storage": "Storage",
+      "workflowRef": "Workflow Ref",
+      "phaseSeparator": "Phase Separator",
+      "groupFrame": "Group",
+      "toolSetSelector": "Tool Set"
     },
     "aiAssist": {
       "btn": {
@@ -3821,6 +3827,7 @@
       "nodesTab": "Nodes",
       "searchNodes": "Search nodes...",
       "legacySuffix": "(Legacy)",
+      "layout": "Layout",
       "templatesTab": "Templates",
       "searchTemplates": "Search templates..."
     },
@@ -4486,6 +4493,33 @@
       "collapse": "Collapse",
       "waitAll": "Wait for all",
       "waitAny": "Wait for any"
+    },
+    "containerNode": {
+      "nodes": "nodes",
+      "branchTimeout": "Branch timeout configured"
+    },
+    "swarmNode": {
+      "agents": "Agents",
+      "rounds": "rounds"
+    },
+    "groupNode": {
+      "untitled": "Group",
+      "folded": "folded"
+    },
+    "phaseSeparator": {
+      "defaultLabel": "Phase"
+    },
+    "canvasTitle": {
+      "clickToRename": "Click to rename"
+    },
+    "node": {
+      "inputs": "Inputs",
+      "outputs": "Outputs",
+      "type": "Type",
+      "clickToExpandPorts": "Click to expand ports",
+      "clickToCollapsePorts": "Click to collapse ports",
+      "tickMode": "Tick mode",
+      "retryEnabled": "Retry enabled"
     },
     "debateNode": {
       "debaters": "debaters",

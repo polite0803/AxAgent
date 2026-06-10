@@ -117,7 +117,17 @@ export const ConditionPropertyPanel: React.FC<ConditionPropertyPanelProps> = ({
     updates: Partial<Condition>,
   ) => {
     const newConditions = [...config.conditions];
-    newConditions[index] = { ...newConditions[index], ...updates };
+    const prev = newConditions[index];
+    const next: Condition = { ...prev, ...updates };
+    // 切到 isEmpty / isNotEmpty 时清空 value 字段，避免遗留值干扰后端 condition_executor
+    if (
+      updates.operator !== undefined
+      && (updates.operator === "isEmpty" || updates.operator === "isNotEmpty")
+      && prev.operator !== updates.operator
+    ) {
+      next.value = undefined;
+    }
+    newConditions[index] = next;
     onUpdate({
       config: {
         ...config,

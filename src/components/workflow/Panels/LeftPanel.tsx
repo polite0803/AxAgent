@@ -2,6 +2,7 @@ import { useWorkflowEditorStore } from "@/stores";
 import { Input, Tabs, Tag, theme } from "antd";
 import { FileText, Search } from "lucide-react";
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { type DragPayload, setDragPayload } from "../dndState";
 import { NODE_CATEGORIES, NODE_TYPE_MAP } from "../types";
@@ -13,18 +14,27 @@ interface LeftPanelProps {
 export const LeftPanel: React.FC<LeftPanelProps> = ({ width }) => {
   const { t } = useTranslation();
   const { token } = theme.useToken();
+  const reactId = React.useId();
+  const inputId1 = `left-panel-input-search-nodes-${reactId}`;
+  const inputId2 = `left-panel-input-search-templates-${reactId}`;
   const [search, setSearch] = useState("");
   const [templateSearch, setTemplateSearch] = useState("");
   const { templates, loadTemplate } = useWorkflowEditorStore();
   const dragRef = useRef<DragPayload | null>(null);
-  const ghostRef = useRef<HTMLDivElement | null>(null);
   const isDraggingRef = useRef(false);
 
+  const [ghost, setGhost] = useState<
+    {
+      label: string;
+      x: number;
+      y: number;
+    } | null
+  >(null);
+
   useEffect(() => () => {
-    if (ghostRef.current) {
-      ghostRef.current.remove();
-      ghostRef.current = null;
-    }
+    // 组件卸载时清空 ghost 状态；React 18 不会因 StrictMode 双调用留下残影，
+    // 因为我们改为受控 React 状态而非直接操作 document.body
+    setGhost(null);
     isDraggingRef.current = false;
     dragRef.current = null;
   }, []);
@@ -41,29 +51,10 @@ export const LeftPanel: React.FC<LeftPanelProps> = ({ width }) => {
       dragRef.current = payload;
       setDragPayload(payload);
       isDraggingRef.current = true;
-
-      const ghost = document.createElement("div");
-      ghost.textContent = nodeLabel;
-      ghost.style.position = "fixed";
-      ghost.style.pointerEvents = "none";
-      ghost.style.zIndex = "99999";
-      ghost.style.padding = "6px 12px";
-      ghost.style.background = token.colorBorderSecondary;
-      ghost.style.color = token.colorText;
-      ghost.style.borderRadius = "4px";
-      ghost.style.fontSize = "12px";
-      ghost.style.whiteSpace = "nowrap";
-      ghost.style.opacity = "0.85";
-      ghost.style.left = `${event.clientX + 12}px`;
-      ghost.style.top = `${event.clientY + 12}px`;
-      document.body.appendChild(ghost);
-      ghostRef.current = ghost;
+      setGhost({ label: nodeLabel, x: event.clientX + 12, y: event.clientY + 12 });
 
       const handleMouseMove = (e: MouseEvent) => {
-        if (ghostRef.current) {
-          ghostRef.current.style.left = `${e.clientX + 12}px`;
-          ghostRef.current.style.top = `${e.clientY + 12}px`;
-        }
+        setGhost((g) => (g ? { ...g, x: e.clientX + 12, y: e.clientY + 12 } : g));
       };
 
       const handleMouseUp = () => {
@@ -71,10 +62,7 @@ export const LeftPanel: React.FC<LeftPanelProps> = ({ width }) => {
         window.removeEventListener("mousemove", handleMouseMove);
         window.removeEventListener("mouseup", handleMouseUp);
         dragRef.current = null;
-        if (ghostRef.current) {
-          ghostRef.current.remove();
-          ghostRef.current = null;
-        }
+        setGhost(null);
       };
 
       window.addEventListener("mousemove", handleMouseMove);
@@ -87,6 +75,7 @@ export const LeftPanel: React.FC<LeftPanelProps> = ({ width }) => {
     ([type, info]) =>
       t(info.labelKey).toLowerCase().includes(search.toLowerCase())
       && !type.startsWith("_")
+      && type !== "groupFrame"
       && !t(info.labelKey).includes(t("workflow.leftPanel.legacySuffix")),
   );
 
@@ -144,7 +133,7 @@ export const LeftPanel: React.FC<LeftPanelProps> = ({ width }) => {
                 }}
               >
                 <Input
-                  id="left-panel-input-74"
+                  id={inputId1}
                   prefix={<Search size={14} style={{ color: token.colorTextTertiary }} />}
                   placeholder={t("workflow.leftPanel.searchNodes")}
                   value={search}
@@ -179,9 +168,12 @@ export const LeftPanel: React.FC<LeftPanelProps> = ({ width }) => {
                             key={type}
                             role="button"
                             tabIndex={0}
+                            aria-label={t(info.labelKey)}
+                            aria-keyshortcuts="Enter Space"
                             onMouseDown={(e) => handleMouseDown(e, type, t(info.labelKey))}
                             onKeyDown={(e) => {
                               if (e.key === "Enter" || e.key === " ") {
+                                e.preventDefault();
                                 handleMouseDown(
                                   e as unknown as React.MouseEvent,
                                   type,
@@ -323,7 +315,7 @@ export const LeftPanel: React.FC<LeftPanelProps> = ({ width }) => {
                 }}
               >
                 <Input
-                  id="left-panel-input-75"
+                  id={inputId2}
                   prefix={<Search size={14} style={{ color: token.colorTextTertiary }} />}
                   placeholder={t("workflow.leftPanel.searchTemplates")}
                   value={templateSearch}
@@ -400,6 +392,30 @@ export const LeftPanel: React.FC<LeftPanelProps> = ({ width }) => {
           },
         ]}
       />
+      {ghost
+        && typeof document !== "undefined"
+        && createPortal(
+          <div
+            data-testid="left-panel-drag-ghost"
+            style={{
+              position: "fixed",
+              pointerEvents: "none",
+              zIndex: 99999,
+              padding: "6px 12px",
+              background: token.colorBorderSecondary,
+              color: token.colorText,
+              borderRadius: 4,
+              fontSize: 12,
+              whiteSpace: "nowrap",
+              opacity: 0.85,
+              left: ghost.x,
+              top: ghost.y,
+            }}
+          >
+            {ghost.label}
+          </div>,
+          document.body,
+        )}
     </div>
   );
 };

@@ -29,6 +29,22 @@ interface N8nConnection {
   main?: N8nConnectionGroup[][];
 }
 
+/** 导入文件最大 5MB，深度最大 32 层，防止 5.2 栈溢出 / 拒绝大文件阻塞 UI */
+const MAX_IMPORT_FILE_SIZE = 5 * 1024 * 1024;
+const MAX_JSON_DEPTH = 32;
+
+function checkJsonDepth(v: unknown, d: number, max: number): number {
+  if (v === null || typeof v !== "object") { return d; }
+  if (d >= max) { return max + 1; }
+  let m = d;
+  for (const k of Object.keys(v as Record<string, unknown>)) {
+    const cd = checkJsonDepth((v as Record<string, unknown>)[k], d + 1, max);
+    if (cd > m) { m = cd; }
+    if (m > max) { return m; }
+  }
+  return m;
+}
+
 function getImportPreview(
   jsonStr: string,
 ): {
@@ -471,9 +487,33 @@ export const ImportExportModal: React.FC<ImportExportModalProps> = ({
 
   const handleFileUpload: UploadProps["customRequest"] = async (options) => {
     const { file, onSuccess, onError } = options;
+    const f = file as File;
+    if (f.size > MAX_IMPORT_FILE_SIZE) {
+      message.error(
+        t("workflow.importExport.fileTooLarge", {
+          maxMB: MAX_IMPORT_FILE_SIZE / 1024 / 1024,
+        }),
+      );
+      onError?.(new Error("File too large"));
+      return;
+    }
     const reader = new FileReader();
     reader.onload = (e) => {
       const text = e.target?.result as string;
+      try {
+        // 解析一次以校验语法；防止 5.2 中超大 / 深度嵌套的恶意文件
+        const parsed = JSON.parse(text);
+        const depth = checkJsonDepth(parsed, 0, MAX_JSON_DEPTH);
+        if (depth > MAX_JSON_DEPTH) {
+          message.error(t("workflow.importExport.jsonTooDeep"));
+          onError?.(new Error("JSON depth exceeds limit"));
+          return;
+        }
+      } catch {
+        message.error(t("workflow.importExport.invalidJsonFile"));
+        onError?.(new Error("Invalid JSON"));
+        return;
+      }
       setImportData(text);
       onSuccess?.(file);
     };
@@ -481,7 +521,7 @@ export const ImportExportModal: React.FC<ImportExportModalProps> = ({
       message.error(t("workflow.importExport.fileReadFailed"));
       onError?.(new Error("File read error"));
     };
-    reader.readAsText(file as Blob);
+    reader.readAsText(f);
   };
 
   const tabItems = [

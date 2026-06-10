@@ -1,3 +1,4 @@
+import domtoimage from "dom-to-image-more";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Background,
@@ -23,6 +24,7 @@ import {
   getNodeSize,
   validate_workflow,
   type ValidateIssue,
+  would_create_cycle,
 } from "@/lib/workflowLayout";
 import { useAgentProfileStore, useWorkflowEditorStore } from "@/stores";
 import { useExpertStore } from "@/stores/feature/expertStore";
@@ -734,26 +736,47 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
         if (isCollapsedParent) { continue; } // 折叠态：子图节点隐藏，由 ContainerNode 显示计数
 
         for (const subNode of subGraph.nodes) {
-          // 跳过已在主 nodes[] 中被父节点引用的子节点（由上面平行/循环/辩论分支处理）
-          const existingIdx = flowNodes.findIndex((fn) => fn.id === subNode.id);
-          if (existingIdx !== -1) { continue; }
+          // 子图坐标：绝对 → 相对容器坐标
+          const relPos = {
+            x: subNode.position.x - containerNode.position.x,
+            y: subNode.position.y - containerNode.position.y,
+          };
 
+          const existingIdx = flowNodes.findIndex((fn) => fn.id === subNode.id);
           const subTypeInfo = NODE_TYPE_MAP[subNode.type] || { color: token.colorTextQuaternary };
-          flowNodes.push({
+          const subData = {
+            ...subNode,
+            label: subNode.title,
+            color: subTypeInfo.color,
+            nodeType: subNode.type,
+            enabled: true,
+          };
+          const subFlowNode = {
             id: subNode.id,
             type: subNode.type || "agent",
-            position: { x: subNode.position.x, y: subNode.position.y },
+            position: relPos,
             parentId: containerNode.id,
             extent: "parent" as const,
             expandParent: true,
-            data: {
-              ...subNode,
-              label: subNode.title,
-              color: subTypeInfo.color,
-              nodeType: subNode.type,
-              enabled: true,
-            },
-          });
+            data: subData,
+          };
+
+          if (existingIdx !== -1) {
+            // 节点已存在于主列表（模板种子化时已创建），更新其父子关系和坐标
+            flowNodes[existingIdx] = {
+              ...flowNodes[existingIdx],
+              position: relPos,
+              parentId: containerNode.id,
+              extent: "parent" as const,
+              expandParent: true,
+              data: {
+                ...flowNodes[existingIdx].data,
+                ...subData,
+              },
+            };
+          } else {
+            flowNodes.push(subFlowNode);
+          }
         }
 
         // ── 注入子图内部边（subGraph.edges）──
@@ -969,9 +992,25 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
         message.warning(t("workflow.edgeAlreadyExists"));
         return;
       }
+      // 环检测：loopBack 边若会形成环则拒绝（普通直接边允许有向无环图外的边，
+      // 但 loopBack 会在 rt-workflow 引擎中触发无限循环，必须前置拦截）。
+      const sourceHandle = (params.sourceHandle ?? undefined) as
+        | string
+        | undefined;
+      if (
+        sourceHandle === "loopBack" && would_create_cycle(
+          edgesRef.current.map((e) => ({ source: e.source, target: e.target })),
+          params.source,
+          params.target,
+        )
+      ) {
+        message.warning(t("workflow.loopBackCycleDetected", {
+          defaultValue: "回环边会形成闭环，请调整目标节点",
+        }));
+        return;
+      }
       // Determine edge type based on sourceHandle
       let edgeType: WorkflowEdge["edge_type"] = "direct";
-      const sourceHandle = params.sourceHandle;
       if (sourceHandle === "true") {
         edgeType = "conditionTrue";
       } else if (sourceHandle === "false") {
@@ -1000,8 +1039,10 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
   const onNodeClick = useCallback(
     (_: React.MouseEvent, node: Node) => {
       setSelectedNode(node.id);
+      // 点击单节点时清空多选区，避免与 shift+click 多选冲突
+      setSelectedNodeIds(new Set([node.id]));
     },
-    [setSelectedNode],
+    [setSelectedNode, setSelectedNodeIds],
   );
 
   const onEdgeClick = useCallback(
@@ -1247,21 +1288,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
     let container: HTMLDivElement | null = null;
 
     try {
-      // 1. 确保 dom-to-image-more 已加载
-      await new Promise<void>((resolve, reject) => {
-        if ((window as any).domtoimage) {
-          resolve();
-          return;
-        }
-        const s = document.createElement("script");
-        s.src = "/dom-to-image-more.js";
-        s.onload = () => resolve();
-        s.onerror = () => reject(new Error("failed to load dom-to-image-more"));
-        document.head.appendChild(s);
-      });
-      const dti = (window as any).domtoimage;
-
-      // 2. 注入隐藏 UI 元素的 CSS（仅注入一次）
+      // 1. 注入隐藏 UI 元素的 CSS（仅注入一次）
       const STYLE_ID = "workflow-export-hide-styles";
       if (!document.getElementById(STYLE_ID)) {
         const style = document.createElement("style");
@@ -1277,7 +1304,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
         document.head.appendChild(style);
       }
 
-      // 3. 手动计算所有节点的包围盒
+      // 3. 手动计算所有节点的包围盒（容器节点按 NODE_TYPE_MAP 真实尺寸计算）
       const nodes = reactFlowInstance.getNodes();
       if (nodes.length === 0) {
         message.info(t("workflow.exportEmpty"));
@@ -1285,8 +1312,12 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
       }
       let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
       nodes.forEach((node: any) => {
-        const w = node.width || 200;
-        const h = node.height || 100;
+        const nodeType = (node.data?.type as string) || node.type || "";
+        const fallback = NODE_TYPE_MAP[nodeType]?.isContainer
+          ? getNodeSize(nodeType)
+          : null;
+        const w = node.width ?? fallback?.width ?? 200;
+        const h = node.height ?? fallback?.height ?? 100;
         minX = Math.min(minX, node.position.x);
         minY = Math.min(minY, node.position.y);
         maxX = Math.max(maxX, node.position.x + w);
@@ -1362,7 +1393,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
       const defaultName = `${currentTemplate?.name || "workflow"}.png`;
 
       if (isTauri()) {
-        const blob = await dti.toBlob(container, {
+        const blob = await domtoimage.toBlob(container, {
           bgColor: "#1a1a2e",
           scale: 2,
         });
@@ -1379,7 +1410,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
         if (!filePath) { return; }
         await writeFile(filePath, new Uint8Array(await blob.arrayBuffer()));
       } else {
-        const dataUrl = await dti.toPng(container, {
+        const dataUrl = await domtoimage.toPng(container, {
           bgColor: "#1a1a2e",
           scale: 2,
         });
@@ -2578,6 +2609,17 @@ function createWorkflowNode(
           input_var: "",
           collection: "",
           key_var: undefined,
+          output_var: "",
+        },
+      };
+    case "swarm":
+      return {
+        ...baseNode,
+        type: "swarm",
+        config: {
+          agent_steps: [],
+          max_rounds: 3,
+          topic_var: "",
           output_var: "",
         },
       };

@@ -3984,6 +3984,7 @@
       "nodesTab": "节点",
       "searchNodes": "搜索节点",
       "legacySuffix": " (旧版)",
+      "layout": "布局辅助",
       "templatesTab": "模板",
       "searchTemplates": "搜索模板"
     },
@@ -4497,7 +4498,13 @@
       "email": "邮件",
       "debate": "辩论",
       "databaseQuery": "数据库查询",
-      "switch": "分支"
+      "switch": "分支",
+      "swarm": "群智协作",
+      "storage": "持久化存储",
+      "workflowRef": "工作流引用",
+      "phaseSeparator": "阶段分隔线",
+      "groupFrame": "分组框",
+      "toolSetSelector": "工具集"
     },
     "templateList": {
       "deleted": "已删除",
@@ -4729,6 +4736,33 @@
       "collapse": "折叠",
       "waitAll": "等待全部",
       "waitAny": "等待任一"
+    },
+    "containerNode": {
+      "nodes": "节点",
+      "branchTimeout": "已配置分支超时"
+    },
+    "swarmNode": {
+      "agents": "智能体",
+      "rounds": "轮"
+    },
+    "groupNode": {
+      "untitled": "分组",
+      "folded": "已折叠"
+    },
+    "phaseSeparator": {
+      "defaultLabel": "阶段"
+    },
+    "canvasTitle": {
+      "clickToRename": "点击重命名"
+    },
+    "node": {
+      "inputs": "输入",
+      "outputs": "输出",
+      "type": "类型",
+      "clickToExpandPorts": "点击展开端口",
+      "clickToCollapsePorts": "点击折叠端口",
+      "tickMode": "Tick模式",
+      "retryEnabled": "重试已启用"
     },
     "debateNode": {
       "debaters": "辩手",

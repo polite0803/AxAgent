@@ -469,7 +469,7 @@ pub struct ParallelNodeConfig {
     /// 子图定义（可选）。编辑器根据 `isContainer: true` 渲染为可展开/折叠容器框体。
     /// sub_graph 中的节点/边将替代 branches.steps 的扁平引用模式，
     /// 提供更丰富的嵌套子工作流编辑体验。
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "subGraph")]
     pub sub_graph: Option<SubGraph>,
 }
 
@@ -539,7 +539,7 @@ pub struct LoopNodeConfig {
     pub interrupt_nodes: Vec<String>,
     /// 子图定义（可选）。编辑器根据 `isContainer: true` 渲染为可展开/折叠容器框体。
     /// sub_graph 中的节点/边将替代 body_steps 的扁平引用模式。
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "subGraph")]
     pub sub_graph: Option<SubGraph>,
 }
 
@@ -670,7 +670,7 @@ pub struct SubWorkflowNodeConfig {
     pub output_var: String,
     pub is_async: bool,
     /// 子图定义（可选）。与 expandedSubWorkflows 配合，编辑器可在容器内部渲染子工作流节点。
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "subGraph")]
     pub sub_graph: Option<SubGraph>,
 }
 
@@ -1144,7 +1144,7 @@ pub struct AggregatorNodeConfig {
     #[serde(default)]
     pub output_var: String,
     /// 子图定义（可选）。编辑器根据 `isContainer: true` 渲染为可展开/折叠容器框体。
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "subGraph")]
     pub sub_graph: Option<SubGraph>,
 }
 
@@ -1201,7 +1201,7 @@ pub struct DebateNodeConfig {
     pub output_var: String,
     /// 子图定义（可选）。编辑器根据 `isContainer: true` 渲染为可展开/折叠容器框体。
     /// sub_graph 中的节点/边将替代 debater_steps 的扁平引用模式。
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "subGraph")]
     pub sub_graph: Option<SubGraph>,
 }
 
@@ -1246,7 +1246,7 @@ pub struct SwarmNodeConfig {
     #[serde(default)]
     pub output_var: String,
     /// 子图定义（可选）。编辑器根据 `isContainer: true` 渲染为可展开/折叠容器框体。
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "subGraph")]
     pub sub_graph: Option<SubGraph>,
 }
 
