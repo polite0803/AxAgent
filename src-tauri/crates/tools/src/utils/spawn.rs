@@ -87,7 +87,7 @@ mod tests {
     #[test]
     fn safe_spawn_creates_new_process_group() {
         let mut cmd = Command::new("sh");
-        cmd.arg("-c").arg("echo $$; ps -o pgid=");
+        cmd.arg("-c").arg("echo $$; ps -o pgid= -p $$");
         let child = safe_spawn(&mut cmd).expect("spawn sh");
 
         let output = child.wait_with_output().expect("wait child");
