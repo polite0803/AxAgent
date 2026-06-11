@@ -46,11 +46,11 @@ export function LoRAConfig() {
       });
 
       if (job) {
-        message.success("Training job created successfully");
+        message.success(t("fineTune.trainingJobCreated"));
         form.resetFields();
       }
     } catch {
-      message.error("Failed to create training job");
+      message.error(t("fineTune.trainingJobFailed"));
     } finally {
       setIsSubmitting(false);
     }

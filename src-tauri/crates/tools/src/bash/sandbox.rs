@@ -244,7 +244,7 @@ mod tests {
     #[cfg(not(target_os = "windows"))]
     #[test]
     fn native_sandbox_does_not_leak_env() {
-        std::env::set_var("AXAGENT_TEST_LEAK", "secret123");
+        unsafe { std::env::set_var("AXAGENT_TEST_LEAK", "secret123") };
 
         // 强制 use_container=false；用本地 runner。
         let runner = SandboxRunner::new(SandboxConfig {
@@ -271,7 +271,7 @@ mod tests {
         );
 
         // 清理测试副作用
-        std::env::remove_var("AXAGENT_TEST_LEAK");
+        unsafe { std::env::remove_var("AXAGENT_TEST_LEAK") };
     }
 
     /// SECURITY (Phase 2 Task 2.2): native 路径必须注入 set -euo pipefail。

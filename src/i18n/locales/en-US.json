@@ -3727,32 +3727,7 @@
       "toolsMode": "Tools mode"
     },
     "templateList": {
-      "deleted": "Template deleted",
-      "deleteFailed": "Delete failed",
-      "copied": "Template duplicated",
-      "copyFailed": "Duplicate failed",
-      "view": "View",
-      "edit": "Edit",
-      "versionHistory": "Version History",
-      "duplicate": "Duplicate",
-      "delete": "Delete",
-      "preset": "Preset",
-      "readonly": "Read-only",
-      "noDescription": "No description",
-      "searchPlaceholder": "Search templates...",
-      "tagPlaceholder": "Tags",
-      "typePlaceholder": "Type",
-      "custom": "Custom",
-      "newTemplate": "New Template",
-      "noMatchFound": "No matching templates found",
-      "noTemplates": "No templates",
-      "confirmDelete": "Confirm Delete",
-      "confirmDeleteMessage": "Are you sure you want to delete template \"{{name}}\"?",
-      "irreversible": "This action cannot be undone",
-      "presetsImported": "{{count}} preset templates imported",
-      "presetsImportFailed": "Import failed: {{error}}",
-      "importPresetsTitle": "Import Preset Templates",
-      "importPresets": "Import Presets"
+      "moreActions": "More actions for {{name}}"
     },
     "previewInDevelopment": "Preview feature is in development",
     "publishInDevelopment": "Publish feature is in development",
@@ -4518,13 +4493,9 @@
       "clickToRename": "Click to rename"
     },
     "node": {
-      "inputs": "Inputs",
-      "outputs": "Outputs",
-      "type": "Type",
-      "clickToExpandPorts": "Click to expand ports",
-      "clickToCollapsePorts": "Click to collapse ports",
-      "tickMode": "Tick mode",
-      "retryEnabled": "Retry enabled"
+      "tickMode": "Tick Mode",
+      "breakpoint": "Breakpoint",
+      "retryEnabled": "Retry Enabled"
     },
     "debateNode": {
       "debaters": "debaters",
@@ -4591,11 +4562,6 @@
     "expandLeftPanel": "Expand Left Panel",
     "collapseRightPanel": "Collapse Right Panel",
     "expandRightPanel": "Expand Right Panel",
-    "node": {
-      "tickMode": "Tick Mode",
-      "breakpoint": "Breakpoint",
-      "retryEnabled": "Retry Enabled"
-    },
     "code": {
       "rhaiDynamicTool": "🦀 Rhai (Dynamic Tool)",
       "dataFilter": "Data Filter",
@@ -4873,9 +4839,6 @@
     "nodesCount": "{{count}} nodes",
     "contextMenu": {
       "label": "Node actions"
-    },
-    "templateList": {
-      "moreActions": "More actions for {{name}}"
     },
     "nodeConfig": {
       "add_debater": "Add debater",
@@ -7104,7 +7067,9 @@
       "loraConfig": "LoRA Config",
       "training": "Training"
     },
-    "title": "Model Fine-Tuning"
+    "title": "Model Fine-Tuning",
+    "trainingJobCreated": "Training job created successfully",
+    "trainingJobFailed": "Failed to create training job"
   },
   "agentMode": {
     "requiresTauri": "Agent mode requires Tauri desktop environment. Please run `npm run tauri dev` in terminal.",

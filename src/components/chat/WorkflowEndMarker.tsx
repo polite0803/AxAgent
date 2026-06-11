@@ -28,7 +28,9 @@ export function WorkflowEndMarker({
 
   const minutes = Math.floor(durationSeconds / 60);
   const seconds = durationSeconds % 60;
-  const durationStr = minutes > 0 ? `${minutes} 分 ${seconds} 秒` : `${seconds} 秒`;
+  const durationStr = minutes > 0
+    ? t("workflow.durationMinutes", { minutes, seconds })
+    : t("workflow.durationSeconds", { seconds });
 
   return (
     <Card

@@ -7067,7 +7067,9 @@
       "loraConfig": "LoRA 配置",
       "training": "训练任务"
     },
-    "title": "模型微调"
+    "title": "模型微调",
+    "trainingJobCreated": "训练任务创建成功",
+    "trainingJobFailed": "训练任务创建失败"
   },
   "agentMode": {
     "requiresTauri": "Agent 模式需要 Tauri 桌面端环境，请在终端执行 npm run tauri dev 启动",
