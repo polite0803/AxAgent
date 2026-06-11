@@ -91,7 +91,7 @@
     "react-i18next": "^17.0.3",
     "react-router-dom": "^7.14.2",
     "stream-markdown": "^0.0.15",
-    "stream-markdown-parser": "^0.0.91",
+    "stream-markdown-parser": "^1.0.3",
     "stream-monaco": "^0.0.40",
     "zod": "^4.4.3",
     "zustand": "^5.0.12"
