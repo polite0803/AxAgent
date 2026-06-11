@@ -1,5 +1,4 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-// @ts-nocheck
 
 import { Handle, type NodeProps, Position } from "@xyflow/react";
 import { Tag, theme } from "antd";
@@ -8,7 +7,7 @@ import { useTranslation } from "react-i18next";
 
 const PINK_BASE = "#eb2f96";
 
-interface StorageNodeData extends Record<string, unknown> {
+interface StorageNodeData {
   id: string;
   type: string;
   title: string;
@@ -22,10 +21,8 @@ interface StorageNodeData extends Record<string, unknown> {
   };
 }
 
-const StorageNodeComponent: React.FC<NodeProps> = ({
-  data,
-  selected,
-}) => {
+const StorageNodeComponent: React.FC<NodeProps> = ({ data: _data, selected }) => {
+  const data = _data as unknown as StorageNodeData;
   const { t } = useTranslation();
   const { token } = theme.useToken();
 

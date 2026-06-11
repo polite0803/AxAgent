@@ -1,12 +1,11 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-// @ts-nocheck
 
 import { Handle, type NodeProps, Position } from "@xyflow/react";
 import { Tag, theme } from "antd";
 import React, { memo } from "react";
 import { useTranslation } from "react-i18next";
 
-interface CodeNodeData extends Record<string, unknown> {
+interface CodeNodeData {
   id: string;
   type: string;
   title: string;
@@ -19,10 +18,8 @@ interface CodeNodeData extends Record<string, unknown> {
   outputVar?: string;
 }
 
-const CodeNodeComponent: React.FC<NodeProps> = ({
-  data,
-  selected,
-}) => {
+const CodeNodeComponent: React.FC<NodeProps> = ({ data: _data, selected }) => {
+  const data = _data as unknown as CodeNodeData;
   const { t } = useTranslation();
   const { token } = theme.useToken();
   const color = token.colorSuccess;

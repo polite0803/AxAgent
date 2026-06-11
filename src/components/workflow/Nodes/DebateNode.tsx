@@ -1,5 +1,4 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-// @ts-nocheck
 
 import type { NodeProps } from "@xyflow/react";
 import { Tag } from "antd";
@@ -16,10 +15,8 @@ interface DebateNodeData extends ContainerNodeData {
   convergencePrompt?: string;
 }
 
-const DebateNodeComponent: React.FC<NodeProps> = ({
-  data,
-  selected,
-}) => {
+const DebateNodeComponent: React.FC<NodeProps> = ({ data: _data, selected }) => {
+  const data = _data as unknown as DebateNodeData;
   const { t } = useTranslation();
   const debaterCount = data.debaterSteps?.length || data.childCount || 0;
   const maxRounds = data.maxRounds || 2;

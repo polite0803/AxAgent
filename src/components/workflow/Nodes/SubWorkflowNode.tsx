@@ -1,5 +1,4 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-// @ts-nocheck
 
 import { useWorkflowEditorStore } from "@/stores";
 import { Handle, type NodeProps, Position } from "@xyflow/react";
@@ -10,7 +9,7 @@ import { useTranslation } from "react-i18next";
 const MAGENTA_BASE = "#eb2f96";
 const MAGENTA_VAR = `var(--magenta, ${MAGENTA_BASE})`;
 
-interface SubWorkflowNodeData extends Record<string, unknown> {
+interface SubWorkflowNodeData {
   id: string;
   type: string;
   title: string;
@@ -24,10 +23,8 @@ interface SubWorkflowNodeData extends Record<string, unknown> {
   outputMapping?: Record<string, string>;
 }
 
-const SubWorkflowNodeComponent: React.FC<NodeProps> = ({
-  data,
-  selected,
-}) => {
+const SubWorkflowNodeComponent: React.FC<NodeProps> = ({ data: _data, selected }) => {
+  const data = _data as unknown as SubWorkflowNodeData;
   const { t } = useTranslation();
   const { token } = theme.useToken();
   const color = MAGENTA_VAR;

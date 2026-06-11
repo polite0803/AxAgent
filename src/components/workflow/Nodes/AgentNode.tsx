@@ -1,5 +1,4 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-// @ts-nocheck
 
 import type { ToolDef } from "@/components/workflow/types";
 import { AGENT_ROLE_META } from "@/types";
@@ -8,7 +7,7 @@ import { Badge, Tag, theme } from "antd";
 import React, { memo } from "react";
 import { useTranslation } from "react-i18next";
 
-interface AgentNodeData extends Record<string, unknown> {
+interface AgentNodeData {
   id: string;
   type: string;
   title: string;

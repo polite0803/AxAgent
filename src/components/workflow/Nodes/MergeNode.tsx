@@ -1,5 +1,4 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-// @ts-nocheck
 
 import type { NodeProps } from "@xyflow/react";
 import { Tag, theme } from "antd";
@@ -10,7 +9,7 @@ import type { MergeStrategy } from "../types/workflow.types";
 const ORANGE_BASE = "#fa8c16";
 const ORANGE_VAR = `var(--orange, ${ORANGE_BASE})`;
 
-interface MergeNodeData extends Record<string, unknown> {
+interface MergeNodeData {
   id: string;
   type: string;
   title: string;
@@ -23,10 +22,8 @@ interface MergeNodeData extends Record<string, unknown> {
   autoInputsFromBranches?: boolean;
 }
 
-const MergeNodeComponent: React.FC<NodeProps> = ({
-  data,
-  selected,
-}) => {
+const MergeNodeComponent: React.FC<NodeProps> = ({ data: _data, selected }) => {
+  const data = _data as unknown as MergeNodeData;
   const { t } = useTranslation();
   const { token } = theme.useToken();
   const color = ORANGE_VAR;

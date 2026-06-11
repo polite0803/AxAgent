@@ -1,5 +1,4 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-// @ts-nocheck
 
 import { Handle, type NodeProps, Position } from "@xyflow/react";
 import { theme } from "antd";
@@ -8,7 +7,7 @@ import { useTranslation } from "react-i18next";
 
 const DB_COLOR = "#13c2c2";
 
-interface DatabaseQueryNodeData extends Record<string, unknown> {
+interface DatabaseQueryNodeData {
   id: string;
   type: string;
   title: string;
@@ -18,10 +17,8 @@ interface DatabaseQueryNodeData extends Record<string, unknown> {
   query?: string;
 }
 
-const DatabaseQueryNodeComponent: React.FC<NodeProps> = ({
-  data,
-  selected,
-}) => {
+const DatabaseQueryNodeComponent: React.FC<NodeProps> = ({ data: _data, selected }) => {
+  const data = _data as unknown as DatabaseQueryNodeData;
   const { t } = useTranslation();
   const { token } = theme.useToken();
   const query = data.query || "";

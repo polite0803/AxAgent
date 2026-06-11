@@ -1,5 +1,4 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-// @ts-nocheck
 
 import { useWorkflowEditorStore } from "@/stores";
 import { useWorkEngineStore } from "@/stores/feature/workEngineStore";
@@ -9,7 +8,7 @@ import React, { memo, useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { NODE_TYPE_MAP } from "../types";
 
-export interface BaseNodeData extends Record<string, unknown> {
+export interface BaseNodeData {
   id: string;
   type: string;
   title: string;
@@ -43,7 +42,7 @@ const BaseNodeComponent: React.FC<NodeProps> = ({
   const nodeStatuses = useWorkEngineStore((s) => s.nodeStatuses);
   const breakpoints = useWorkEngineStore((s) => s.breakpoints);
   const runtimeStatus = nodeStatuses[bd.id];
-  const hasBreakpoint = breakpoints.includes(data.id);
+  const hasBreakpoint = breakpoints.includes(bd.id);
 
   const effectiveExecState = runtimeStatus || bd.executionState;
 
@@ -192,8 +191,8 @@ const BaseNodeComponent: React.FC<NodeProps> = ({
             {typeInfo.labelKey ? t(typeInfo.labelKey) : bd.nodeType}
           </span>
           <div style={{ display: "flex", gap: 2, alignItems: "center" }}>
-            {data.config?.tick_mode && <span title={t("workflow.node.tickMode")} style={{ fontSize: 10 }}>🔄</span>}
-            {data.retry?.enabled && <span title={t("workflow.node.retryEnabled")} style={{ fontSize: 10 }}>🔄</span>}
+            {bd.config?.tick_mode && <span title={t("workflow.node.tickMode")} style={{ fontSize: 10 }}>🔄</span>}
+            {bd.retry?.enabled && <span title={t("workflow.node.retryEnabled")} style={{ fontSize: 10 }}>🔄</span>}
             {effectiveExecState === "running" && <span style={{ fontSize: 10, color: token.colorPrimary }}>⏳</span>}
             {effectiveExecState === "completed" && <span style={{ fontSize: 10, color: token.colorSuccess }}>✓</span>}
             {(effectiveExecState === "failed" || effectiveExecState === "timeout") && (

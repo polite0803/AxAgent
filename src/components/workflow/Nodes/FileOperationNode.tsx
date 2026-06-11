@@ -1,5 +1,4 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-// @ts-nocheck
 
 import { Handle, type NodeProps, Position } from "@xyflow/react";
 import { theme } from "antd";
@@ -8,7 +7,7 @@ import { useTranslation } from "react-i18next";
 
 const NODE_COLOR = "#1890ff";
 
-interface FileOperationNodeData extends Record<string, unknown> {
+interface FileOperationNodeData {
   id: string;
   type: string;
   title: string;
@@ -17,7 +16,8 @@ interface FileOperationNodeData extends Record<string, unknown> {
   enabled: boolean;
 }
 
-const FileOperationNodeComponent: React.FC<NodeProps> = ({ data, selected }) => {
+const FileOperationNodeComponent: React.FC<NodeProps> = ({ data: _data, selected }) => {
+  const data = _data as unknown as FileOperationNodeData;
   const { t } = useTranslation();
   const { token } = theme.useToken();
   return (

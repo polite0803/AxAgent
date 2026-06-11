@@ -108,12 +108,11 @@ pub struct AuthState {
 pub fn extract_client_ip<B>(request: &Request<B>, fallback: Option<SocketAddr>) -> String {
     if let Some(xff) = request.headers().get("x-forwarded-for")
         && let Ok(s) = xff.to_str()
+        && let Some(first) = s.split(',').next()
     {
-        if let Some(first) = s.split(',').next() {
-            let trimmed = first.trim();
-            if !trimmed.is_empty() {
-                return trimmed.to_string();
-            }
+        let trimmed = first.trim();
+        if !trimmed.is_empty() {
+            return trimmed.to_string();
         }
     }
     if let Some(real_ip) = request.headers().get("x-real-ip")

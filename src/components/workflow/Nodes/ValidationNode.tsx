@@ -1,5 +1,4 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-// @ts-nocheck
 
 import { Handle, type NodeProps, Position } from "@xyflow/react";
 import { Tag, theme } from "antd";
@@ -9,7 +8,7 @@ import { useTranslation } from "react-i18next";
 const PURPLE_BASE = "#722ed1";
 const PURPLE_VAR = `var(--purple, ${PURPLE_BASE})`;
 
-interface ValidationNodeData extends Record<string, unknown> {
+interface ValidationNodeData {
   id: string;
   type: string;
   title: string;
@@ -26,10 +25,8 @@ interface ValidationNodeData extends Record<string, unknown> {
   failAction?: "error" | "warning" | "skip";
 }
 
-const ValidationNodeComponent: React.FC<NodeProps> = ({
-  data,
-  selected,
-}) => {
+const ValidationNodeComponent: React.FC<NodeProps> = ({ data: _data, selected }) => {
+  const data = _data as unknown as ValidationNodeData;
   const { t } = useTranslation();
   const { token } = theme.useToken();
   const color = PURPLE_VAR;

@@ -1,12 +1,11 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-// @ts-nocheck
 
 import { Handle, type NodeProps, Position } from "@xyflow/react";
 import { theme } from "antd";
 import React, { memo } from "react";
 import { useTranslation } from "react-i18next";
 
-interface EndNodeData extends Record<string, unknown> {
+interface EndNodeData {
   id: string;
   type: string;
   title: string;
@@ -17,10 +16,8 @@ interface EndNodeData extends Record<string, unknown> {
   outputVar?: string;
 }
 
-const EndNodeComponent: React.FC<NodeProps> = ({
-  data,
-  selected,
-}) => {
+const EndNodeComponent: React.FC<NodeProps> = ({ data: _data, selected }) => {
+  const data = _data as unknown as EndNodeData;
   const { t } = useTranslation();
   const { token } = theme.useToken();
   const color = token.colorError;

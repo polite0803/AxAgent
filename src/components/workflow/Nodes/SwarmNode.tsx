@@ -1,5 +1,4 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-// @ts-nocheck
 
 import type { NodeProps } from "@xyflow/react";
 import { Tag } from "antd";
@@ -15,10 +14,8 @@ interface SwarmNodeData extends ContainerNodeData {
   maxRounds?: number;
 }
 
-const SwarmNodeComponent: React.FC<NodeProps> = ({
-  data,
-  selected,
-}) => {
+const SwarmNodeComponent: React.FC<NodeProps> = ({ data: _data, selected }) => {
+  const data = _data as unknown as SwarmNodeData;
   const { t } = useTranslation();
   const agentCount = data.agentSteps?.length || data.childCount || 0;
   const maxRounds = data.maxRounds || 3;

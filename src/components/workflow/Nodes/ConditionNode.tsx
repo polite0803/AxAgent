@@ -1,5 +1,4 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-// @ts-nocheck
 
 import { Handle, type NodeProps, Position } from "@xyflow/react";
 import { Tag, theme } from "antd";
@@ -9,7 +8,7 @@ import { useTranslation } from "react-i18next";
 const ORANGE_BASE = "#fa8c16";
 const ORANGE_VAR = `var(--orange, ${ORANGE_BASE})`;
 
-interface ConditionNodeData extends Record<string, unknown> {
+interface ConditionNodeData {
   id: string;
   type: string;
   title: string;
@@ -25,10 +24,8 @@ interface ConditionNodeData extends Record<string, unknown> {
   logicOperator?: "and" | "or";
 }
 
-const ConditionNodeComponent: React.FC<NodeProps> = ({
-  data,
-  selected,
-}) => {
+const ConditionNodeComponent: React.FC<NodeProps> = ({ data: _data, selected }) => {
+  const data = _data as unknown as ConditionNodeData;
   const { t } = useTranslation();
   const { token } = theme.useToken();
   const color = ORANGE_VAR;

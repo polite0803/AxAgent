@@ -1,5 +1,4 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-// @ts-nocheck
 
 import { Handle, type NodeProps, Position } from "@xyflow/react";
 import { theme } from "antd";
@@ -9,7 +8,7 @@ import { useTranslation } from "react-i18next";
 const ORANGE_BASE = "#fa8c16";
 const ORANGE_VAR = `var(--orange, ${ORANGE_BASE})`;
 
-interface DelayNodeData extends Record<string, unknown> {
+interface DelayNodeData {
   id: string;
   type: string;
   title: string;
@@ -23,10 +22,8 @@ interface DelayNodeData extends Record<string, unknown> {
   delayMaxMs?: number;
 }
 
-const DelayNodeComponent: React.FC<NodeProps> = ({
-  data,
-  selected,
-}) => {
+const DelayNodeComponent: React.FC<NodeProps> = ({ data: _data, selected }) => {
+  const data = _data as unknown as DelayNodeData;
   const { t } = useTranslation();
   const { token } = theme.useToken();
   const color = ORANGE_VAR;
