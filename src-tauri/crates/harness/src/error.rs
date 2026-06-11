@@ -99,6 +99,15 @@ impl ToolError {
             error_code: format!("tool.{tool_name}.executionFailed"),
         }
     }
+
+    #[must_use]
+    pub fn timeout_for(tool_name: &str, message: impl Into<String>) -> Self {
+        Self {
+            message: message.into(),
+            kind: ToolErrorKind::Timeout,
+            error_code: format!("tool.{tool_name}.timeout"),
+        }
+    }
 }
 
 impl Display for ToolError {
