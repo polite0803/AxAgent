@@ -2802,7 +2802,9 @@
     "conflictApp1": "飞书/微信/企业微信/钉钉",
     "conflictApp2": "QQ/微信",
     "conflictApp3": "微信 (Windows)",
-    "conflictError": "快捷键已被其他应用程序占用，请尝试更换快捷键"
+    "conflictError": "快捷键已被其他应用程序占用，请尝试更换快捷键",
+    "invalidShortcut": "快捷键格式无效",
+    "shortcutNotSupported": "系统不支持此快捷键组合"
   },
   "tray": {
     "show": "显示",

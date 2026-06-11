@@ -198,11 +198,11 @@ export function useGlobalShortcutManager() {
                     if (reason.indexOf("HotKey already registered") !== -1) {
                       reason = i18n.t("shortcuts.conflictError");
                     } else if (reason.indexOf("Invalid shortcut") !== -1) {
-                      reason = "快捷键格式无效";
+                      reason = i18n.t("shortcuts.invalidShortcut");
                     } else if (
                       reason.indexOf(" accelerators are not supported") !== -1
                     ) {
-                      reason = "系统不支持此快捷键组合";
+                      reason = i18n.t("shortcuts.shortcutNotSupported");
                     }
                     failed.push({ shortcut: accelerator, reason });
                     pushDiagnostic({

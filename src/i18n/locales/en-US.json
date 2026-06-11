@@ -3006,7 +3006,9 @@
     "conflictApp1": "Feishu/WeChat/Enterprise WeChat/DingTalk",
     "conflictApp2": "QQ/WeChat",
     "conflictApp3": "WeChat (Windows)",
-    "conflictError": "Shortcut is already in use by another application, please try a different key combination"
+    "conflictError": "Shortcut is already in use by another application, please try a different key combination",
+    "invalidShortcut": "Invalid shortcut format",
+    "shortcutNotSupported": "System does not support this shortcut combination"
   },
   "tray": {
     "show": "Show",

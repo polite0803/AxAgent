@@ -496,7 +496,7 @@
     },
     {
       "file": "src/components/settings/PromptImportModal.tsx",
-      "lines": "66,81,86,129,131,199",
+      "lines": "66,68,81,86,129,131,199",
       "reason": "硬编码中文字符串",
       "phase": 3
     },
@@ -1288,7 +1288,7 @@
     },
     {
       "file": "src/lib/shortcuts.ts",
-      "lines": "409,413,417,429",
+      "lines": "409,411,413,415,417,419,429",
       "reason": "硬编码中文字符串",
       "phase": 3
     },
