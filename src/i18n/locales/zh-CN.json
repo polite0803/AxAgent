@@ -4509,32 +4509,7 @@
       "toolSetSelector": "工具集"
     },
     "templateList": {
-      "deleted": "已删除",
-      "deleteFailed": "删除失败",
-      "copied": "已复制",
-      "copyFailed": "复制失败",
-      "view": "查看",
-      "edit": "编辑",
-      "versionHistory": "版本历史",
-      "duplicate": "复制",
-      "delete": "删除",
-      "preset": "预设",
-      "readonly": "只读",
-      "noDescription": "无描述",
-      "searchPlaceholder": "搜索模板名称...",
-      "tagPlaceholder": "按标签筛选...",
-      "typePlaceholder": "按类型筛选...",
-      "custom": "自定义",
-      "newTemplate": "新建模板",
-      "noMatchFound": "无匹配结果",
-      "noTemplates": "暂无模板",
-      "confirmDelete": "确认删除",
-      "confirmDeleteMessage": "确认删除此模板？此操作不可撤销。",
-      "irreversible": "不可撤销",
-      "presetsImported": "已导入 {{count}} 个预设模板",
-      "presetsImportFailed": "导入失败: {{error}}",
-      "importPresetsTitle": "导入预设模板",
-      "importPresets": "导入预设"
+      "moreActions": "「{{name}}」的更多操作"
     },
     "undo": "撤销",
     "redo": "重做",
@@ -4722,10 +4697,7 @@
       "inputs": "输入",
       "waitAll": "等待全部",
       "waitAny": "任一完成",
-      "autoInputs": "自动接收分支输出",
-      "first": "第一个",
-      "last": "最后一个",
-      "inputCount": "输入数"
+      "autoInputs": "自动接收分支输出"
     },
     "parallelNode": {
       "title": "并行",
@@ -4761,12 +4733,8 @@
       "clickToRename": "点击重命名"
     },
     "node": {
-      "inputs": "输入",
-      "outputs": "输出",
-      "type": "类型",
-      "clickToExpandPorts": "点击展开端口",
-      "clickToCollapsePorts": "点击折叠端口",
-      "tickMode": "Tick模式",
+      "tickMode": "Tick 模式",
+      "breakpoint": "断点",
       "retryEnabled": "重试已启用"
     },
     "debateNode": {
@@ -4834,11 +4802,6 @@
     "expandLeftPanel": "展开左侧面板",
     "collapseRightPanel": "折叠右侧面板",
     "expandRightPanel": "展开右侧面板",
-    "node": {
-      "tickMode": "Tick 模式",
-      "breakpoint": "断点",
-      "retryEnabled": "重试已启用"
-    },
     "code": {
       "rhaiDynamicTool": "🦀 Rhai (动态工具)",
       "dataFilter": "数据过滤器",
@@ -5225,9 +5188,6 @@
     "nodesCount": "{{count}} 个节点",
     "contextMenu": {
       "label": "节点操作"
-    },
-    "templateList": {
-      "moreActions": "「{{name}}」的更多操作"
     },
     "nodeConfig": {
       "add_debater": "添加辩手",
@@ -7107,8 +7067,7 @@
       "loraConfig": "LoRA 配置",
       "training": "训练任务"
     },
-    "title": "模型微调",
-    "rank": "排序"
+    "title": "模型微调"
   },
   "agentMode": {
     "requiresTauri": "Agent 模式需要 Tauri 桌面端环境，请在终端执行 npm run tauri dev 启动",
