@@ -1649,7 +1649,7 @@ pub fn convert_preset_to_workflow_template(preset: &PresetTemplate) -> WorkflowT
             label: None,
         });
     } else {
-        let step_nodes = build_workflow_nodes(&preset.steps, 100.0, &preset.system_prompt);
+        let step_nodes = build_workflow_nodes(&preset.steps, 100.0, preset.system_prompt);
         nodes.extend(step_nodes);
 
         let end_y = 100.0 + ((preset.steps.len() + 2) as f64 * 200.0);
