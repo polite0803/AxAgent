@@ -69,7 +69,14 @@ impl Blackboard {
             author: author.to_string(),
         };
         {
-            let mut map = self.entries.write().unwrap();
+            let guard = match self.entries.write() {
+                Ok(g) => g,
+                Err(pe) => {
+                    tracing::warn!(target: "axagent.reliability", "entries write poisoned: {}", pe);
+                    pe.into_inner()
+                }
+            };
+            let mut map = guard;
             map.insert(key.to_string(), entry.clone());
         }
         let _ = self.event_sender.send(event);
@@ -77,33 +84,64 @@ impl Blackboard {
     }
 
     pub fn read(&self, key: &str) -> Option<BlackboardEntry> {
-        let map = self.entries.read().unwrap();
-        map.get(key).cloned()
+        let guard = match self.entries.read() {
+            Ok(g) => g,
+            Err(pe) => {
+                tracing::warn!(target: "axagent.reliability", "entries read poisoned: {}", pe);
+                return None;
+            }
+        };
+        guard.get(key).cloned()
     }
 
     pub fn read_all(&self) -> Vec<BlackboardEntry> {
-        let map = self.entries.read().unwrap();
-        map.values().cloned().collect()
+        let guard = match self.entries.read() {
+            Ok(g) => g,
+            Err(pe) => {
+                tracing::warn!(target: "axagent.reliability", "entries read poisoned: {}", pe);
+                return Vec::new();
+            }
+        };
+        guard.values().cloned().collect()
     }
 
     pub fn read_by_tag(&self, tag: &str) -> Vec<BlackboardEntry> {
-        let map = self.entries.read().unwrap();
-        map.values()
+        let guard = match self.entries.read() {
+            Ok(g) => g,
+            Err(pe) => {
+                tracing::warn!(target: "axagent.reliability", "entries read poisoned: {}", pe);
+                return Vec::new();
+            }
+        };
+        guard.values()
             .filter(|e| e.tags.iter().any(|t| t == tag))
             .cloned()
             .collect()
     }
 
     pub fn read_by_author(&self, author: &str) -> Vec<BlackboardEntry> {
-        let map = self.entries.read().unwrap();
-        map.values()
+        let guard = match self.entries.read() {
+            Ok(g) => g,
+            Err(pe) => {
+                tracing::warn!(target: "axagent.reliability", "entries read poisoned: {}", pe);
+                return Vec::new();
+            }
+        };
+        guard.values()
             .filter(|e| e.author == author)
             .cloned()
             .collect()
     }
 
     pub fn update(&self, key: &str, value: serde_json::Value) -> Option<BlackboardEntry> {
-        let mut map = self.entries.write().unwrap();
+        let guard = match self.entries.write() {
+            Ok(g) => g,
+            Err(pe) => {
+                tracing::warn!(target: "axagent.reliability", "entries write poisoned: {}", pe);
+                return None;
+            }
+        };
+        let mut map = guard;
         if let Some(entry) = map.get_mut(key) {
             entry.value = value;
             entry.updated_at = Utc::now();
@@ -121,7 +159,14 @@ impl Blackboard {
     }
 
     pub fn delete(&self, key: &str) -> Option<BlackboardEntry> {
-        let mut map = self.entries.write().unwrap();
+        let guard = match self.entries.write() {
+            Ok(g) => g,
+            Err(pe) => {
+                tracing::warn!(target: "axagent.reliability", "entries write poisoned: {}", pe);
+                return None;
+            }
+        };
+        let mut map = guard;
         let removed = map.remove(key);
         if removed.is_some() {
             let event = BlackboardEvent::Deleted {
@@ -138,7 +183,14 @@ impl Blackboard {
     }
 
     pub fn cleanup_expired(&self) -> usize {
-        let mut map = self.entries.write().unwrap();
+        let guard = match self.entries.write() {
+            Ok(g) => g,
+            Err(pe) => {
+                tracing::warn!(target: "axagent.reliability", "entries write poisoned: {}", pe);
+                return 0;
+            }
+        };
+        let mut map = guard;
         let now = Utc::now();
         let expired_keys: Vec<String> = map
             .iter()
@@ -179,23 +231,49 @@ impl BlackboardManager {
 
     pub fn create_blackboard(&self, name: &str) -> Arc<Blackboard> {
         let bb = Arc::new(Blackboard::new(name));
-        let mut map = self.blackboards.write().unwrap();
+        let guard = match self.blackboards.write() {
+            Ok(g) => g,
+            Err(pe) => {
+                tracing::warn!(target: "axagent.reliability", "blackboards write poisoned: {}", pe);
+                return bb;
+            }
+        };
+        let mut map = guard;
         map.insert(name.to_string(), bb.clone());
         bb
     }
 
     pub fn get_blackboard(&self, name: &str) -> Option<Arc<Blackboard>> {
-        let map = self.blackboards.read().unwrap();
-        map.get(name).cloned()
+        let guard = match self.blackboards.read() {
+            Ok(g) => g,
+            Err(pe) => {
+                tracing::warn!(target: "axagent.reliability", "blackboards read poisoned: {}", pe);
+                return None;
+            }
+        };
+        guard.get(name).cloned()
     }
 
     pub fn list_blackboards(&self) -> Vec<String> {
-        let map = self.blackboards.read().unwrap();
-        map.keys().cloned().collect()
+        let guard = match self.blackboards.read() {
+            Ok(g) => g,
+            Err(pe) => {
+                tracing::warn!(target: "axagent.reliability", "blackboards read poisoned: {}", pe);
+                return Vec::new();
+            }
+        };
+        guard.keys().cloned().collect()
     }
 
     pub fn delete_blackboard(&self, name: &str) -> bool {
-        let mut map = self.blackboards.write().unwrap();
+        let guard = match self.blackboards.write() {
+            Ok(g) => g,
+            Err(pe) => {
+                tracing::warn!(target: "axagent.reliability", "blackboards write poisoned: {}", pe);
+                return false;
+            }
+        };
+        let mut map = guard;
         map.remove(name).is_some()
     }
 }
