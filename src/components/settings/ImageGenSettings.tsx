@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { PasteButton } from "@/components/common/PasteButton";
 import { invoke, logIpcError } from "@/lib/invoke";
 import { Button, Card, Form, Input, Select, Space, Switch, Typography } from "antd";

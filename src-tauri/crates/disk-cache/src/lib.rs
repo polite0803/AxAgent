@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! L2 disk cache — persists search results, conversation summaries, and index
 //! snapshots to SQLite for cold-data storage.
 //!

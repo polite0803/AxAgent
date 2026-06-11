@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { useTracerStore } from "@/stores/devtools/tracerStore";
 import type { TraceFilter } from "@/types";
 import { Button, DatePicker, Input, Select, Space } from "antd";

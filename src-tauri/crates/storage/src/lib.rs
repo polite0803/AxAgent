@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! axagent-storage — 文件存储层
 //!
 //! 路径管理、文件授权、存储清单、存储迁移、同步冲突检测、

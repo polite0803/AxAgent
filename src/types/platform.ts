@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 export interface PlatformConfig {
   telegram_enabled: boolean;
   telegram_bot_token: string | null;

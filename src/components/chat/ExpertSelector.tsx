@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { useExpertStore } from "@/stores/feature/expertStore";
 import { EXPERT_CATEGORY_KEYS } from "@/types";
 import type { AgentProfile, ExpertCategory } from "@/types";

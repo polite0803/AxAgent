@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { CONV_ICON_KEY, type ConvIcon, getConvIcon } from "../convIcon";

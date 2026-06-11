@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! JSON Schema generation tool for workflow types.
 //! Run with: `cargo run -p schema-gen`
 
@@ -20,9 +22,6 @@ fn main() {
     let schema_str = serde_json::to_string_pretty(&schema).unwrap();
     fs::write(out_dir.join("workflow-schema.json"), &schema_str).unwrap();
     eprintln!("Generated docs/workflow-schema.json");
-
-    // Generate a Markdown summary
-    let mut md = String::new();
 
     // Generate a Markdown summary
     let mut md = String::new();
@@ -111,7 +110,7 @@ fn main() {
                     ));
                 }
             }
-            md.push_str("\n");
+            md.push('\n');
         }
     }
 

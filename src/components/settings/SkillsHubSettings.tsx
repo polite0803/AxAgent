@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { invoke } from "@/lib/invoke";
 import { Button, Card, Empty, Input, message, Select, Spin, Table, Tag, Typography } from "antd";
 import { Download, Search, Upload } from "lucide-react";

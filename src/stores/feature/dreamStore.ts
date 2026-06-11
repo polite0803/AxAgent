@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { listen, type UnlistenFn } from "@/lib/invoke";
 import { create } from "zustand";
 

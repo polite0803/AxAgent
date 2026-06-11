@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! axagent-dao — Marketplace / Review 服务
 //!
 //! 从 `axagent_kit::marketplace_service` 迁入，因为这里全部是 SeaORM

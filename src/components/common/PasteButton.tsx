@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { Button, message, theme } from "antd";
 import { ClipboardPaste } from "lucide-react";
 import React, { useCallback, useEffect } from "react";

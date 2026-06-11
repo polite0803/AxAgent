@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! ComputerUseTool - 桌面控制和浏览器自动化工具
 
 use crate::{PermissionResult, Tool, ToolCategory, ToolContext, ToolError, ToolResult};

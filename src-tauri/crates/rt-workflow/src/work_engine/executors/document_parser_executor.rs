@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! 文档解析执行器 —— 从上下文变量中提取文档内容进行解析。
 
 use crate::work_engine::execution_state::ExecutionState;

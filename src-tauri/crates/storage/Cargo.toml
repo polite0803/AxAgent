@@ -5,24 +5,24 @@ edition.workspace = true
 publish = false
 
 [dependencies]
+async-trait = "0.1"
 axagent-crypto = { path = "../crypto" }
 axagent-entities = { path = "../entities" }
 axagent-harness = { path = "../harness" }
-serde = { workspace = true }
-serde_json = { workspace = true }
-sea-orm = { workspace = true }
-tracing = { workspace = true }
-tokio = { workspace = true }
 chrono = { workspace = true }
-uuid = { workspace = true }
-async-trait = "0.1"
-reqwest = { workspace = true }
-sha2 = "0.10"
 dirs = "5"
 hex = "0.4"
 md5 = "0.7"
-zip = "2"
+reqwest = { workspace = true }
 roxmltree = "0.20"
+sea-orm = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+sha2 = "0.10"
+tokio = { workspace = true }
+tracing = { workspace = true }
+uuid = { workspace = true }
+zip = "2"
 
 [dev-dependencies]
 tempfile = "3"

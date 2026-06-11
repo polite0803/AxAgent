@@ -1,8 +1,11 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { BenchmarkConfig } from "@/components/benchmark/BenchmarkConfig";
 import { BenchmarkReportView } from "@/components/benchmark/BenchmarkReportView";
 import { BenchmarkSelector } from "@/components/benchmark/BenchmarkSelector";
 import { TaskList } from "@/components/benchmark/TaskList";
 import { useEvaluatorStore } from "@/stores/devtools/evaluatorStore";
+import type { BenchmarkTask, TaskResult } from "@/types";
 import { Button, Card, message, Spin, Tabs, theme } from "antd";
 import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
@@ -88,8 +91,10 @@ export function BenchmarkRunner() {
               key: "tasks",
               label: t("benchmark.tasks"),
               children: (
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                <TaskList tasks={(currentReport as any).tasks ?? []} results={(currentReport as any).results ?? []} />
+                <TaskList
+                  tasks={(currentReport as unknown as { tasks: BenchmarkTask[] }).tasks ?? []}
+                  results={(currentReport as unknown as { results: TaskResult[] }).results ?? []}
+                />
               ),
             },
           ]}

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { useCitationStore } from "@/stores/feature/citationStore";
 import type { Citation, CitationStatsData } from "@/types";
 import { CheckCircleOutlined, DeleteOutlined, PlusOutlined } from "@ant-design/icons";

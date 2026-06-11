@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { invoke, isTauri } from "@/lib/invoke";
 import type {
   CodeStyleTemplate,

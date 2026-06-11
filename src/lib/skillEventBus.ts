@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /** Skill 事件总线，提供 Skill → App 通信的 namespace 隔离事件系统 */
 
 type EventHandler = (payload: unknown) => void | Promise<void>;

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import i18n from "@/i18n";
 import { useWorkflowEditorStore } from "@/stores";
 import { Button, Divider, Input, InputNumber, Select, Tag, theme } from "antd";
@@ -84,7 +86,7 @@ export const DebatePropertyPanel: React.FC<Props> = ({ node, onUpdate, onDelete 
         output_mode: "text",
       },
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } as any;
+    } as unknown as WorkflowNode;
     addNode(newNode);
     setParentRef(id, n.id);
     sc("debater_steps", [...debaterSteps, id]);
@@ -107,7 +109,7 @@ export const DebatePropertyPanel: React.FC<Props> = ({ node, onUpdate, onDelete 
         output_mode: "text",
       },
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } as any;
+    } as unknown as WorkflowNode;
     addNode(newNode);
     setParentRef(id, n.id);
     sc("debater_steps", [...debaterSteps, id]);

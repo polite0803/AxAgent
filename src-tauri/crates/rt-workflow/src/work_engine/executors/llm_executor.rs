@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! LLM 执行器 —— 解析系统默认 provider 和模型后调用 `adapter.chat()`。
 
 use crate::work_engine::execution_state::ExecutionState;
@@ -11,7 +13,7 @@ use sea_orm::DatabaseConnection;
 use std::sync::Arc;
 
 use axagent_harness::build_provider_request_context;
-use axagent_harness::execute_llm::{LlmCallConfig, execute_llm};
+use axagent_runtime_core::{LlmCallConfig, execute_llm};
 
 pub struct LlmExecutor {
     db: Arc<DatabaseConnection>,

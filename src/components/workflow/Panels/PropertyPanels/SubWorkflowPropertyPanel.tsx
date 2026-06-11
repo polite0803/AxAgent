@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { useWorkflowEditorStore } from "@/stores";
 import { Button, Divider, Input, message, Select, Switch, theme } from "antd";
 import React, { useEffect, useMemo } from "react";

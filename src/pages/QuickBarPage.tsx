@@ -1,10 +1,12 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { Tooltip } from "@/components/layout/Tooltip";
 import { invoke, isTauri, listen, type UnlistenFn } from "@/lib/invoke";
 import { useProviderStore, useSettingsStore } from "@/stores";
 import { useLlmWikiStore } from "@/stores/feature/llmWikiStore";
 import type { Model } from "@/types";
 import { ModelIcon } from "@lobehub/icons";
-import { Input, theme, Typography } from "antd";
+import { Input, InputRef, theme, Typography } from "antd";
 import {
   ArrowDownCircle,
   ArrowRight,
@@ -463,7 +465,7 @@ function CommandMode({
   activeCmdDef,
   COMMANDS,
 }: {
-  inputRef: React.RefObject<HTMLInputElement | null>;
+  inputRef: React.RefObject<InputRef | null>;
   setCommandMode: React.Dispatch<React.SetStateAction<boolean>>;
   setInput: React.Dispatch<React.SetStateAction<string>>;
   setActiveCommand: React.Dispatch<React.SetStateAction<CommandType | null>>;
@@ -543,8 +545,7 @@ function CommandMode({
         )}
         <Input
           id="quick-bar-page-input-131"
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          ref={inputRef as any}
+          ref={inputRef}
           placeholder={showCommands
             ? t("quickbar.selectCommand")
             : activeCmdDef
@@ -937,7 +938,7 @@ export function QuickBarPage() {
   const [commandMode, setCommandMode] = useState(false);
   const [selectedCmd, setSelectedCmd] = useState(0);
 
-  const inputRef = useRef<HTMLInputElement | null>(null);
+  const inputRef = useRef<InputRef | null>(null);
   const unlistenRef = useRef<UnlistenFn[]>([]);
   const resultTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const copiedTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);

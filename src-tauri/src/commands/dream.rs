@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! 梦境巩固 (Dream Consolidation) 命令
 //!
 //! 提供前端触发和查询梦境巩固的 Tauri 命令。

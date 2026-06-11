@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { CheckOutlined, DownloadOutlined, ThunderboltOutlined } from "@ant-design/icons";
 import { Alert, Button, Space, Typography } from "antd";
 import React, { useState } from "react";

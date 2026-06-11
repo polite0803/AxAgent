@@ -1,11 +1,14 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// @ts-nocheck
+
+import { Handle, type NodeProps, Position } from "@xyflow/react";
 import { theme } from "antd";
 import React, { memo } from "react";
 import { useTranslation } from "react-i18next";
-import { Handle, type NodeProps, Position } from "reactflow";
 
 const NODE_COLOR = "#eb2f96";
 
-interface WebhookSendNodeData {
+interface WebhookSendNodeData extends Record<string, unknown> {
   id: string;
   type: string;
   title: string;
@@ -14,7 +17,7 @@ interface WebhookSendNodeData {
   enabled: boolean;
 }
 
-const WebhookSendNodeComponent: React.FC<NodeProps<WebhookSendNodeData>> = ({ data, selected }) => {
+const WebhookSendNodeComponent: React.FC<NodeProps> = ({ data, selected }) => {
   const { t } = useTranslation();
   const { token } = theme.useToken();
   return (

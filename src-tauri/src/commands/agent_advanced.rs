@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use crate::AppState;
 use crate::app_state::{
     InMemoryCacheEntry, PlannerAction, PlannerSession, PlannerVersion, PlannerVersionDiff, TotNode,

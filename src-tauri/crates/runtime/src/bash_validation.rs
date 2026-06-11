@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Bash command validation submodules.
 //!
 //! Ports the upstream `BashTool` validation pipeline:

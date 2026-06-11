@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { usePlatformStore } from "@/stores";
 import { ALL_PLATFORMS } from "@/types";
 import { Card, Empty, Spin, Tag, Typography } from "antd";

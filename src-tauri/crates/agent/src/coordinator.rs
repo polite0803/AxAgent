@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use crate::event_bus::{AgentEventBus, AgentEventType, UnifiedAgentEvent};
 use crate::steer_manager::SteerManager;
 use crate::tree_of_thoughts::{LlmReasoningProvider as ToTReasoningProvider, TreeOfThoughtsEngine};

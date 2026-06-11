@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { useProviderStore, useUIStore } from "@/stores";
 import { Button, Spin, theme } from "antd";
 import { ArrowLeft } from "lucide-react";

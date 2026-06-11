@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { invoke } from "@/lib/invoke";
 import { useUIStore } from "@/stores";
 import { useAgentProfileStore } from "@/stores/feature/agentProfileStore";

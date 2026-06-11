@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { CopyButton } from "@/components/common/CopyButton";
 import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 import { useGatewayStore } from "@/stores";

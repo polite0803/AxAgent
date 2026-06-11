@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! 文档格式工具
 //!
 //! ExportWord (MD→DOCX), ExportPdf (MD→PDF), ExportXlsx (MD→XLSX),

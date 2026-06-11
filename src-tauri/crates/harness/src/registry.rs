@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! ToolRegistry 抽象接口
 //!
 //! 在 Harness 架构中，`agent` crate 只通过此 trait 查询工具注册表，

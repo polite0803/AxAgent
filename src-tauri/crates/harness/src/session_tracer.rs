@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Session 级别追踪契约。
 //!
 //! 提供轻量的事件追踪接口，用于记录 LLM 会话中的关键事件

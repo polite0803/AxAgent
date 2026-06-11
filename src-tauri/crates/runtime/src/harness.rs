@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! RuntimeHarness — 中心化 Harness 容器
 //!
 //! 负责统一管理核心基础设施的生命周期和依赖注入。

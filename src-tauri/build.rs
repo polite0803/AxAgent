@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 fn main() {
     // Enable cfg(mobile) when building for Android or iOS
     let target = std::env::var("TARGET").unwrap_or_default();

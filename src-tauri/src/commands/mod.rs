@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 pub mod agency_expert;
 pub mod agent;
 pub mod agent_advanced;

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use axagent_entities::agent_sessions;
 use axagent_harness::core_error::{AxAgentError, Result};
 use axagent_harness::types::AgentSession;

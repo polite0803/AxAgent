@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { create } from "zustand";
 import { invoke } from "../../lib/invoke";
 import type { DecompositionPreview } from "../../types";

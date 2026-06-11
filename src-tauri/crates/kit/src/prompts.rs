@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! LLM 提示词多语言注册表
 //!
 //! 所有发送给 LLM 的提示模板集中管理，支持根据用户语言选择对应语言的模板。

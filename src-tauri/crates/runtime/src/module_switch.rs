@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Unified module switch framework for AxAgent feature modules.
 //!
 //! Implements the `ModuleSwitch` trait and `ModuleLifecycle` state machine

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { invoke } from "@/lib/invoke";
 import { findModelByIds, supportsReasoning } from "@/lib/modelCapabilities";
 import type { Conversation, UpdateConversationInput } from "@/types";

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { invoke, logIpcError } from "@/lib/invoke";
 import { open } from "@tauri-apps/plugin-dialog";
 import { App, Button, List, Space, Spin, Typography } from "antd";

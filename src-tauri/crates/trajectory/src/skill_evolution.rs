@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Skill Evolution System - GEPA-inspired skill improvement through genetic algorithms
 //!
 //! Features:

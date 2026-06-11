@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { MemorySettings } from "@/components/settings/MemorySettings";
 import { theme } from "antd";
 

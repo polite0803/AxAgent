@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { SourceManager } from "@/components/settings/SourceManager";
 import { useTranslation } from "react-i18next";
 

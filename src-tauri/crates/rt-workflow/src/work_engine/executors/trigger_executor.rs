@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! 触发器执行器 —— 解析触发配置（manual/schedule/webhook/event）并初始化工作流入口变量。
 
 use async_trait::async_trait;

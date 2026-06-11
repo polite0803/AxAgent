@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import type { Message } from "@/types";
 
 export const MESSAGE_PAGE_SIZE = 50;

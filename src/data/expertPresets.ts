@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 export const BUILTIN_EXPERT_PRESETS = [
   {
     id: "general-assistant",

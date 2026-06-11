@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use sea_orm::sea_query::Expr;
 use sea_orm::*;
 

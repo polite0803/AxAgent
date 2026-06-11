@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { useWikiStore } from "@/stores/feature/wikiStore";
 import type { BacklinkInfo } from "@/types";
 import { Empty, List, Spin, theme, Typography } from "antd";

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { theme } from "antd";
 import { AlertCircle, ChevronDown, ChevronRight, ExternalLink, Search } from "lucide-react";
 import type { NodeComponentProps } from "markstream-react";

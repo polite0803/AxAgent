@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { App, Button, Input, Modal, Popconfirm, Switch, Table, Tag, Typography } from "antd";
 import { Plus, Trash2 } from "lucide-react";
 import { useState } from "react";

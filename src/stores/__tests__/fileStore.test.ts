@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import type { FileRow } from "@/types";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 

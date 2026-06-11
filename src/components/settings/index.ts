@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 export { AboutPage } from "./AboutPage";
 export { AcpSettings } from "./AcpSettings";
 export { AdvancedSettings } from "./AdvancedSettings";

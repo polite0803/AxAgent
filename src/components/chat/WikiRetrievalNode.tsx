@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import type { MemoryRetrievedItem, MemorySourceResult } from "@/lib/memoryUtils";
 import { theme } from "antd";
 import { AlertCircle, ChevronDown, ChevronRight, Library } from "lucide-react";

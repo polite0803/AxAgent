@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Fork Session Bridge — 在父 agent 和 fork 子 agent 之间传递会话数据
 //!
 //! 当 fork 子 agent 创建时，父 agent 通过此模块将 system prompt 和消息历史

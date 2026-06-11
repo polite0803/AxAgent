@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { useSettingsStore } from "@/stores";
 import { Divider, InputNumber, Select, Slider, Switch } from "antd";
 import { useTranslation } from "react-i18next";

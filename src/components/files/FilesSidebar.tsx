@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { useTranslation } from "react-i18next";
 import { FILE_CATEGORIES, type FileCategory } from "./fileCategories";
 

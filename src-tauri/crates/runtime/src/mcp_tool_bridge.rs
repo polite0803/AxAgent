@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Bridge between MCP tool surface (ListMcpResources, ReadMcpResource, McpAuth, MCP)
 //! and the existing McpServerManager runtime.
 //!

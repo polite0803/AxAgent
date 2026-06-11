@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! 多 Agent 协作的全局工作记忆（Blackboard 模式）。
 //!
 //! 提供共享状态、决策记录、冲突仲裁和消息广播功能。

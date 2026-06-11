@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! 杂项工具集
 //!
 //! 远程文件管理, 缓存管理

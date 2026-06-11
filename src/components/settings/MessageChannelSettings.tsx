@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { usePlatformStore } from "@/stores";
 import { App, Button, Tabs } from "antd";
 import { useTranslation } from "react-i18next";

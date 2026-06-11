@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! 应用配置持久化命令
 //!
 //! 提供前端 appConfigStore 的后端持久化支持。

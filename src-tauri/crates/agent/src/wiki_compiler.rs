@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use std::sync::Arc;
 
 use regex::Regex;
@@ -6,9 +8,9 @@ use serde::{Deserialize, Serialize};
 use axagent_core::entity::{notes, wiki_operations, wiki_pages, wiki_sources, wikis};
 use axagent_core::repo::note::{CreateNoteInput, Note, UpdateNoteInput, calculate_content_hash};
 use axagent_core::utils::gen_id;
-use axagent_harness::execute_llm::{LlmCallConfig, execute_llm};
 use axagent_harness::types::{ChatContent, ChatMessage, ChatRequest};
 use axagent_harness::{ProviderAdapter, ProviderRequestContext};
+use axagent_runtime_core::{LlmCallConfig, execute_llm};
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, IntoActiveModel, QueryFilter,
     Set,

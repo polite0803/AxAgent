@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use axagent_runtime_core::{
     ApiClient, ConversationRuntime, PermissionMode, PermissionPolicy, Session, ToolExecutor,
 };

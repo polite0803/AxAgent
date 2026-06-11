@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use axagent_providers::registry::ProviderRegistry;
 use std::sync::Arc;
 

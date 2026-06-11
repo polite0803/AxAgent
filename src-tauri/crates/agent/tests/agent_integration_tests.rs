@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use async_trait::async_trait;
 use axagent_agent::action_executor::{ActionError, ActionResult};
 use axagent_agent::checkpoint::{Checkpoint, CheckpointBuilder, CheckpointManager};

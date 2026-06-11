@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use async_trait::async_trait;
 use axagent_core::constants::default_url;
 use axagent_core::error::{AxAgentError, Result};

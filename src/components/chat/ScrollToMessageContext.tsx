@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import React, { createContext, useCallback, useContext, useMemo, useRef } from "react";
 
 type ScrollToFn = (messageId: string) => void;

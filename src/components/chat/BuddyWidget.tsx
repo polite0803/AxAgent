@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { useUIStore } from "@/stores";
 import { type BuddyAttributes, useBuddyStore } from "@/stores/feature/buddyStore";
 import { CloseOutlined, EyeInvisibleOutlined, EyeOutlined, RobotOutlined } from "@ant-design/icons";

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { DynamicLobeIcon } from "@/components/shared/DynamicLobeIcon";
 import { toc } from "@lobehub/icons/es/toc";
 import { Input, Modal, Tabs, theme } from "antd";

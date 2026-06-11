@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { Tooltip } from "@/components/layout/Tooltip";
 import { useLocalToolStore } from "@/stores";
 import type { LocalToolGroupInfo, LocalToolInfo } from "@/types";

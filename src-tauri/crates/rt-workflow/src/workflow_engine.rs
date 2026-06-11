@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! 工作流共享类型定义。
 //!
 //! 节点类型统一为 axagent_core::workflow_types::WorkflowNode（28 种），

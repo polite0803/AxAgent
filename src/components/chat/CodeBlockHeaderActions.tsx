@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { theme } from "antd";
 import { Check, ChevronRight, Copy, Eye, Maximize2, Minimize2, Minus, Palette, Plus, RotateCcw } from "lucide-react";
 import React, { useCallback, useMemo, useState } from "react";

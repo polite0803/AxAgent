@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! 路径验证器
 //!
 //! 验证命令中所有文件系统路径的安全性：

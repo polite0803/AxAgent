@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 // 消息主题分组分隔条 — 折叠/展开，手动调整
 import { useTopicGroupStore } from "@/stores/feature/topicGroupStore";
 import type { TopicGroup } from "@/stores/feature/topicGroupStore";

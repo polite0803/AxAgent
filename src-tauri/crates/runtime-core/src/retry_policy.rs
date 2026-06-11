@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! 中心化超时/重试/降级策略
 //!
 //! 提供统一的 `RetryPolicy`，支持固定/线性/指数退避、超时控制、

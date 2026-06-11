@@ -31,16 +31,16 @@
 
 ## لقطات الشاشة
 
-| المحادثة واختيار النموذج | لوحة الوكلاء المتعددين |
-|:---:|:---:|
+|    المحادثة واختيار النموذج     |     لوحة الوكلاء المتعددين      |
+| :-----------------------------: | :-----------------------------: |
 | ![](.github/images/s1-0412.png) | ![](.github/images/s5-0412.png) |
 
-| قاعدة معرفة RAG | الذاكرة والسياق |
-|:---:|:---:|
+|         قاعدة معرفة RAG         |         الذاكرة والسياق         |
+| :-----------------------------: | :-----------------------------: |
 | ![](.github/images/s3-0412.png) | ![](.github/images/s4-0412.png) |
 
-| محرر سير العمل | بوابة API |
-|:---:|:---:|
+|         محرر سير العمل          |            بوابة API             |
+| :-----------------------------: | :------------------------------: |
 | ![](.github/images/s9-0412.png) | ![](.github/images/s10-0412.png) |
 
 ---
@@ -301,38 +301,38 @@
 
 ### حزمة التقنيات
 
-| الطبقة | التقنية |
-|--------|---------|
-| **الإطار** | Tauri 2 + React 19 + TypeScript 6 |
-| **واجهة المستخدم** | Ant Design 6 + TailwindCSS 4 |
-| **إدارة الحالة** | Zustand 5 |
-| **التوجيه** | React Router 7 |
-| **تدويل** | i18next + react-i18next |
-| **الخلفية** | Rust + SeaORM 2 + SQLite |
-| **قاعدة بيانات متجهة** | sqlite-vec |
-| **محرر الكود** | Monaco Editor |
-| **المخططات** | Mermaid + D2 + ECharts (CDN) |
-| **الطرفية** | xterm.js 6 |
-| **سير العمل** | ReactFlow 11 |
-| **الرسوم البيانية المعلوماتية** | @antv/infographic |
-| **الأيقونات** | Iconify + Lucide |
-| **السحب والإفلات** | @dnd-kit |
-| **البناء** | Vite 8 + npm |
-| **الاختبار** | Vitest + Playwright + cargo-nextest |
-| **التنسيق** | dprint (TS/JSON) + rustfmt |
-| **التحقق** | TS: eslint + oxlint / Rust: clippy + cargo-deny |
-| **الجوال** | بناء Tauri Android + iOS أصلي |
-| **سطح المكتب** | Windows (MSI) · macOS (DMG) · Linux (AppImage/deb/rpm) |
+| الطبقة                          | التقنية                                                |
+| ------------------------------- | ------------------------------------------------------ |
+| **الإطار**                      | Tauri 2 + React 19 + TypeScript 6                      |
+| **واجهة المستخدم**              | Ant Design 6 + TailwindCSS 4                           |
+| **إدارة الحالة**                | Zustand 5                                              |
+| **التوجيه**                     | React Router 7                                         |
+| **تدويل**                       | i18next + react-i18next                                |
+| **الخلفية**                     | Rust + SeaORM 2 + SQLite                               |
+| **قاعدة بيانات متجهة**          | sqlite-vec                                             |
+| **محرر الكود**                  | Monaco Editor                                          |
+| **المخططات**                    | Mermaid + D2 + ECharts (CDN)                           |
+| **الطرفية**                     | xterm.js 6                                             |
+| **سير العمل**                   | ReactFlow 11                                           |
+| **الرسوم البيانية المعلوماتية** | @antv/infographic                                      |
+| **الأيقونات**                   | Iconify + Lucide                                       |
+| **السحب والإفلات**              | @dnd-kit                                               |
+| **البناء**                      | Vite 8 + npm                                           |
+| **الاختبار**                    | Vitest + Playwright + cargo-nextest                    |
+| **التنسيق**                     | dprint (TS/JSON) + rustfmt                             |
+| **التحقق**                      | TS: eslint + oxlint / Rust: clippy + cargo-deny        |
+| **الجوال**                      | بناء Tauri Android + iOS أصلي                          |
+| **سطح المكتب**                  | Windows (MSI) · macOS (DMG) · Linux (AppImage/deb/rpm) |
 
 ### دعم المنصات
 
-| المنصة | البنية |
-|--------|--------|
-| Windows | x86_64, ARM64 |
-| macOS | Apple Silicon (arm64), Intel (x86_64) |
-| Linux | x86_64, ARM64 |
+| المنصة  | البنية                                 |
+| ------- | -------------------------------------- |
+| Windows | x86_64, ARM64                          |
+| macOS   | Apple Silicon (arm64), Intel (x86_64)  |
+| Linux   | x86_64, ARM64                          |
 | Android | arm64-v8a, armeabi-v7a, x86_64 (محاكي) |
-| iOS | arm64 |
+| iOS     | arm64                                  |
 
 ### بنية خلفية Rust
 
@@ -644,6 +644,7 @@ AxAgent/
 بما أن التطبيق غير موقع من Apple:
 
 **1. السماح بالتطبيقات من "أي مصدر"**
+
 ```bash
 sudo spctl --master-disable
 ```
@@ -651,6 +652,7 @@ sudo spctl --master-disable
 ثم اذهب إلى **إعدادات النظام → الخصوصية والأمان → الأمان** واختر **أي مصدر**.
 
 **2. إزالة سمة العزل**
+
 ```bash
 sudo xattr -dr com.apple.quarantine /Applications/AxAgent.app
 ```

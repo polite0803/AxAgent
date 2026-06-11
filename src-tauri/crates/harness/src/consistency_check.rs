@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use serde::{Deserialize, Serialize};
 
 /// 一致性检查配置

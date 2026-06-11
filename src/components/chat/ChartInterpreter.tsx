@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { ChartRenderer } from "@/components/shared/ChartRenderer";
 import { Badge, Card, Collapse, Typography } from "antd";
 import { BarChart3, CheckCircle, Loader2, TrendingUp, XCircle } from "lucide-react";

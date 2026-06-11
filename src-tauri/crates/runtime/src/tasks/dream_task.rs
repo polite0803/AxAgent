@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! DreamTask — 梦境任务（后台上下文整合与压缩）
 //! Feature flag: DREAM_TASK
 //!

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { useVoiceChat } from "@/hooks/useVoiceChat";
 import type { RealtimeConfig, VoiceSessionState } from "@/types";
 import { Button, Spin, theme, Typography } from "antd";

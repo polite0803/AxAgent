@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { useFineTuneStore } from "@/stores/devtools/fineTuneStore";
 import { DeleteOutlined, PauseCircleOutlined, PlayCircleOutlined } from "@ant-design/icons";
 import { Badge, Button, Card, Progress, Space, Table, Tag } from "antd";

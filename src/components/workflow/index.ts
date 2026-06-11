@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 export { BaseEdge } from "./Edges/BaseEdge";
 export { EditorHeader } from "./Header/EditorHeader";
 export { BaseNode } from "./Nodes/BaseNode";

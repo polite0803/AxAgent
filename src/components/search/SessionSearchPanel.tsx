@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { Tooltip } from "@/components/layout/Tooltip";
 import { SavedFilter, SearchResult, useSearchStore } from "@/stores/feature/searchStore";
 import {

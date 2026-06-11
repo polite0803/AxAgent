@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { TemplateList } from "@/components/workflow/Templates";
 import type { WorkflowTemplateResponse } from "@/components/workflow/types";
 import { WorkflowMarketplace } from "@/pages/WorkflowMarketplace";

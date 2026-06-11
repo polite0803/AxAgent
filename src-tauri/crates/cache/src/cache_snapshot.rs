@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Serializable cache snapshot used for persistence between application sessions.
 //!
 //! When the application shuts down, cached data from L1 memory caches

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import i18n from "@/i18n";
 import { CHAT_ICON_COLORS } from "@/lib/iconColors";
 import { ProviderIcon } from "@lobehub/icons";

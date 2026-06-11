@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { useDreamStore } from "@/stores";
 import { CheckCircleOutlined } from "@ant-design/icons";
 import { Brain, Moon } from "lucide-react";

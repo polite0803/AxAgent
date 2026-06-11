@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { Modal, type ModalProps, Typography } from "antd";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";

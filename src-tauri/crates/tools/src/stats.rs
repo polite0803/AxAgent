@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! ToolUsageStats - 工具使用统计
 //!
 //! 追踪每个工具的执行次数、成功率、平均耗时。

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { useAgentStore } from "@/stores/feature/agentStore";
 import { Progress, Spin, Tag, theme, Typography } from "antd";
 import { Wrench } from "lucide-react";

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 declare module "dom-to-image-more" {
   /**
    * Minimal ambient typings for `dom-to-image-more` (no first-party types shipped).

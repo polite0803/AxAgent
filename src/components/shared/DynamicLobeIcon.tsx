@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { memo, useEffect, useState } from "react";
 
 type IconModuleType = React.ComponentType<{ size?: number }> & Record<string, React.ComponentType<{ size?: number }>>;

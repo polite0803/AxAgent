@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! LLM provider + adapter 公共解析助手。
 //!
 //! 集中 4 个 executor 重复的 `resolve_model_for_node → decrypt_key → registry.get` 三步。

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Shared Memory Pool - Agent间KV存储
 //!
 //! Features:

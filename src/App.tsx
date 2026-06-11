@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { BuddyWidget } from "@/components/chat/BuddyWidget";
 import { TabBar } from "@/components/chat/TabBar";
 import { HelpPanel } from "@/components/help/HelpPanel";

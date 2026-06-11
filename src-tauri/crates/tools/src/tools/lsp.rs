@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! LSPTool - 语言服务器协议集成（9种操作）
 
 use crate::{Tool, ToolCategory, ToolContext, ToolError, ToolResult};

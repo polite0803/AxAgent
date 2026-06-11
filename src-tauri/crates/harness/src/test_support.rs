@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! 测试替身支持
 //!
 //! 提供 `axagent-harness` 自身定义的 mock / empty 实现，使测试代码

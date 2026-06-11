@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Semantic Cache — reduces duplicate LLM calls for semantically similar prompts.
 //!
 //! Uses the application's existing sea-orm database connection to store cached

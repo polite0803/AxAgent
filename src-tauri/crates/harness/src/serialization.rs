@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! 节点间数据传递的 Schema 校验工具
 //!
 //! 在工作流节点之间通过 serde JSON 传递数据时，

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! 持久化层抽象
 //!
 //! `axagent-harness` re-export 此 trait + `DatabaseConnection`，

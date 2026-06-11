@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Entity and Relationship types for Knowledge Graph
 //!
 //! These types are used by the memory service for entity extraction

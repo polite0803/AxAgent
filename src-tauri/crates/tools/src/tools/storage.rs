@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! 存储管理工具
 //!
 //! 将 builtin_handlers 中的 get_storage_info、list_storage_files、

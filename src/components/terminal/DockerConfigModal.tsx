@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { Input, Modal, Typography } from "antd";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";

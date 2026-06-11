@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { usePromptTemplateStore } from "@/stores";
 import type { PromptTemplate } from "@/types";
 import { Input, List, Modal, Spin, Tag } from "antd";

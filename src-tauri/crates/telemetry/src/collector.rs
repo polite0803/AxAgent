@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use prometheus::{Histogram, HistogramOpts, IntCounterVec, IntGauge, Opts, Registry};
 use std::sync::Arc;
 use tokio::sync::RwLock;

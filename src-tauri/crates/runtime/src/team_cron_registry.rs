@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! In-memory registry for Team lifecycle management.
 //!
 //! Provides TeamCreate/Delete runtime backing.

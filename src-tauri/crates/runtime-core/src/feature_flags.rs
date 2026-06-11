@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Feature Flag 系统 — 通过环境变量和配置文件控制功能开关
 //!
 //! 优先级：环境变量 `AXAGENT_FF_<NAME>=1` > settings.json `features` 段 > 默认值

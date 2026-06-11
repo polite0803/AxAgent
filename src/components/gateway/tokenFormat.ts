@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 function formatCompact(value: number, divisor: number, suffix: string): string {
   const compact = Math.round((value / divisor) * 10) / 10;
   const formatted = Number.isInteger(compact)

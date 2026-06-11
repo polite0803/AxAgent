@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use axagent_providers::image_gen::{
     DallEProvider, FluxProvider, ImageGenProvider, ImageGenRequest, ImageGenResponse,
 };

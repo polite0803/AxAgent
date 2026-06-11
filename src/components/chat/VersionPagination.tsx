@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { Button, theme, Typography } from "antd";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 

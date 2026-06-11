@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { useWorkflowEditorStore } from "@/stores";
 import type { App } from "antd";
 import { App as AntApp, Button, Empty, Modal, Tag, Tooltip, Typography } from "antd";

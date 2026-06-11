@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import type { PageKey, SettingsSection } from "@/types";
 import { create } from "zustand";
 

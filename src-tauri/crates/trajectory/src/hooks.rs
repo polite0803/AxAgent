@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Hooks service module
 //!
 //! Replaces TypeScript `hooksService.ts` with Rust implementation.

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Learning insight system module
 //!
 //! Replaces TypeScript `LearningInsightSystem.ts` with Rust implementation.

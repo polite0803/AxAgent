@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use async_trait::async_trait;
 use axagent_core::workflow_types::WorkflowNode;
 use std::time::Duration;

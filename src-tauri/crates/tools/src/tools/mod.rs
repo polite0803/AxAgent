@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! 内置工具实现
 
 use std::collections::HashSet;

@@ -1,4 +1,5 @@
 #![allow(clippy::unwrap_used, clippy::needless_borrows_for_generic_args)]
+// SPDX-License-Identifier: AGPL-3.0-only
 
 use axagent_core::cache::{EmbeddingCache, TextHashCache};
 use std::time::Duration;

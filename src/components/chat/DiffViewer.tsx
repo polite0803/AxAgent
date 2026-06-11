@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { Tooltip } from "@/components/layout/Tooltip";
 import { Button, Space, Tag, theme, Typography } from "antd";
 import { Check, FileCode, FileDiff, GitBranch, Minus, Plus, X } from "lucide-react";

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { IngestPanel } from "@/components/wiki/IngestPanel";
 import { useLlmWikiStore, WikiSource } from "@/stores/feature/llmWikiStore";
 import {

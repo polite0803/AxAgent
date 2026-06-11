@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use crate::pre_validator::PreExecutionValidator;
 use crate::reasoning_state::ActionType;
 use crate::thought_chain::{Action, ThoughtStep};

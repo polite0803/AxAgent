@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import ReactFlow, {
+// SPDX-License-Identifier: AGPL-3.0-only
+
+import {
   Background,
   ConnectionMode,
   Edge,
@@ -10,12 +11,14 @@ import ReactFlow, {
   Node,
   NodeTypes,
   Panel,
+  ReactFlow,
   ReactFlowProvider,
   useEdgesState,
   useNodesState,
   useReactFlow,
-} from "reactflow";
-import "reactflow/dist/style.css";
+} from "@xyflow/react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import "@xyflow/react/dist/style.css";
 import { Tooltip } from "@/components/layout/Tooltip";
 import { Card, Empty, Segmented, Select, Space, Tag, theme, Typography } from "antd";
 import {
@@ -277,7 +280,7 @@ function WikiEdgeComponent({
   targetPosition,
   data,
   selected,
-}: EdgeProps<{ edgeType: GraphEdgeType }>) {
+}: EdgeProps) {
   const { t } = useTranslation();
   const { token } = theme.useToken();
   const [edgePath, labelX, labelY] = getBezierPath({
@@ -289,9 +292,9 @@ function WikiEdgeComponent({
     targetPosition,
   });
 
-  const edgeType = data?.edgeType || "link";
+  const edgeType = (data as { edgeType?: string })?.edgeType || "link";
   const edgeTypeStyles = getEdgeTypeStylesMap(token);
-  const style = edgeTypeStyles[edgeType];
+  const style = edgeTypeStyles[edgeType as GraphEdgeType];
   const isSelected = !!selected;
 
   return (
@@ -349,7 +352,7 @@ function WikiEdgeComponent({
               fontWeight: 500,
             }}
           >
-            {t(edgeTypeLabels[edgeType])}
+            {t(edgeTypeLabels[edgeType as GraphEdgeType])}
           </div>
         </EdgeLabelRenderer>
       )}

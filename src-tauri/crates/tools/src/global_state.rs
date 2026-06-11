@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! 全局状态访问（最小化）
 //!
 //! 仅保留数据库连接访问等跨模块必需的状态。

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import {

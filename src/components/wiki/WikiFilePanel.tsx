@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import type { GraphData } from "@/components/wiki/GraphView";
 import type { Note } from "@/types";
 import { SearchOutlined } from "@ant-design/icons";

@@ -2,17 +2,25 @@
   "$schema": "https://dprint.dev/schemas/v0.json",
   "plugins": [
     "node_modules/@dprint/typescript/plugin.wasm",
-    "node_modules/@dprint/json/plugin.wasm"
+    "node_modules/@dprint/json/plugin.wasm",
+    "node_modules/@dprint/markdown/plugin.wasm",
+    "node_modules/@dprint/toml/plugin.wasm"
   ],
   "excludes": [
     "node_modules/**/*",
     "dist/**/*",
     "target/**/*",
-    "public/**/*"
+    "public/**/*",
+    "**/CHANGELOG.md",
+    "src-tauri/schema-gen/**/*"
   ],
   "typescript": {
     "quoteStyle": "preferDouble",
     "useBraces": "always"
   },
-  "json": {}
+  "json": {},
+  "markdown": {
+    "lineWidth": 120
+  },
+  "toml": {}
 }

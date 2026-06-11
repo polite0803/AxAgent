@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { SyncOutlined } from "@ant-design/icons";
 import { Button, Input, Popover, Spin, Typography } from "antd";
 import type { GlobalToken, InputRef } from "antd";

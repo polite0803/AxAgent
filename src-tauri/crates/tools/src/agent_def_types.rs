@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! 统一 Agent 定义类型
 //!
 //! 支持三种来源：

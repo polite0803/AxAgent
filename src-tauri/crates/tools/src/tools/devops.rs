@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! DevOps 工具
 //!
 //! SecurityAudit (npm/cargo audit), DeadCodeDetect, BundleAnalyze, IssueCreate, IssueList

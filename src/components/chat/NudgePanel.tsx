@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { useConversationStore, useNudgeStore } from "@/stores";
 import type { Nudge, PeriodicNudge } from "@/types";
 import { Bell, Check, Clock, Lightbulb, X } from "lucide-react";

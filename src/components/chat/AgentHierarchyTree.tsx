@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 // Agent 层级树 — 展示 fork/子 Agent 的父子关系
 
 import { useExecutionStore } from "@/stores/feature/executionStore";

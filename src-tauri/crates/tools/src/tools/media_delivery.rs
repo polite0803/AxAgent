@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Media Smart Delivery - 智能媒体文件检测与投递
 //!
 //! MediaDetectTool: 扫描文本中的绝对路径，检测媒体类型，验证文件可读性

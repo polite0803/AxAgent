@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! 系统信息工具
 //!
 //! 将 builtin_handlers 中的 get_system_info、list_processes 迁移为 Tool trait 实现。

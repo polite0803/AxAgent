@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! `axagent_harness::platform_adapter::CryptoService` trait 的默认实现。
 //!
 //! 持有 master_key，decrypt_key 转发给 crate 内的 free function。

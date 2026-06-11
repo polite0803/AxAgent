@@ -1,4 +1,5 @@
 #![allow(clippy::too_many_arguments)]
+// SPDX-License-Identifier: AGPL-3.0-only
 #![allow(clippy::result_large_err)]
 
 pub mod adapter;

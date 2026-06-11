@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! 共享类型定义
 //!
 //! 纯数据 DTO 层，无重型实现依赖。

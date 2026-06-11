@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! 主动模式 — 用户空闲时自动注入 tick 提示词
 //! Feature flag: PROACTIVE_MODE
 

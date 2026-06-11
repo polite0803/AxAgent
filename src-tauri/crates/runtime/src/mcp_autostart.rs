@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! MCP 自动发现 — 从 settings.json 扫描 mcpServers 并在启动时自动启动
 //!
 //! 扫描来源（按优先级）：

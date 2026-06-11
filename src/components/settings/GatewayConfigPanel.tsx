@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { PasteButton } from "@/components/common/PasteButton";
 import { usePlatformStore } from "@/stores";
 import { ALL_PLATFORMS, type PlatformConfig } from "@/types";

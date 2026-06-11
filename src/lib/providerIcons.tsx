@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { DynamicLobeIcon } from "@/components/shared/DynamicLobeIcon";
 import type { ProviderConfig } from "@/types";
 import { ModelIcon, modelMappings, ProviderIcon, providerMappings } from "@lobehub/icons";

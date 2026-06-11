@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! 权限规则匹配引擎
 //!
 //! SECURITY (H1): 旧实现把整个 JSON 字符串当作匹配目标。

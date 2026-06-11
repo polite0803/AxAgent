@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import type { Note } from "@/types";
 import { PlusOutlined } from "@ant-design/icons";
 import { Button, Spin, theme } from "antd";

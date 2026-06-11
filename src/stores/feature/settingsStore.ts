@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { invoke } from "@/lib/invoke";
 import { DEFAULT_SHORTCUT_BINDINGS } from "@/lib/shortcuts";
 import type { AppSettings } from "@/types";

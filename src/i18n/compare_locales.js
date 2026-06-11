@@ -11,11 +11,10 @@ import fs from "fs";
 // 用法:  node src/i18n/compare_locales.js            # 打印漂移报告（只读）
 //       (旧用法已禁用 — 写入将被拒绝)
 
-const PSEUDO_TRANSLATION_FORBIDDEN =
-  "pseudo-translation is forbidden — see src/i18n/NO_PSEUDO_TRANSLATION.md. " +
-  "Use `node scripts/i18n-check.mjs` for read-only drift detection, " +
-  "and run the real translation pipeline (en add → manual/service translate 12 langs) " +
-  "to fill missing keys.";
+const PSEUDO_TRANSLATION_FORBIDDEN = "pseudo-translation is forbidden — see src/i18n/NO_PSEUDO_TRANSLATION.md. "
+  + "Use `node scripts/i18n-check.mjs` for read-only drift detection, "
+  + "and run the real translation pipeline (en add → manual/service translate 12 langs) "
+  + "to fill missing keys.";
 
 function die(msg) {
   console.error(`[compare_locales.js] ${msg}`);

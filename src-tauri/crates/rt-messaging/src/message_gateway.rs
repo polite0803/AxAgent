@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Unified Message Gateway for cross-platform agent communication
 //!
 //! Features:

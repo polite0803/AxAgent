@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { WikiEditorPage } from "@/pages/WikiEditorPage";
 import { useNavigate, useParams } from "react-router-dom";
 

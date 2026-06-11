@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Agent 定义加载器 — 从 `.axagent/agents/` 目录加载 Markdown+YAML frontmatter 定义
 //!
 //! 格式示例：

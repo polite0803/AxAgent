@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! FTS5 Full-Text Search module for enhanced cross-session retrieval
 //!
 //! Features:

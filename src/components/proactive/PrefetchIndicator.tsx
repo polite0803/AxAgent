@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { useProactiveStore } from "@/stores/feature/proactiveStore";
 import type { PrefetchType } from "@/types";
 import { useEffect, useMemo, useState } from "react";

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use crate::config::{McpServerConfig, ScopedMcpServerConfig};
 
 const CLAUDEAI_SERVER_PREFIX: &str = "claude.ai ";

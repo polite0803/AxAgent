@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! 统一拦截器链 — 可编排的 Harness 级拦截点
 //!
 //! 将分散在各 executor 中的约束（PromptGuard、业务规则、权限校验、输出校验、

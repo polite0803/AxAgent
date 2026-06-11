@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { ContextHelp } from "@/components/help/ContextHelp";
 import { Tooltip } from "@/components/layout/Tooltip";
 import { getVisibleModelCapabilities } from "@/lib/modelCapabilities";

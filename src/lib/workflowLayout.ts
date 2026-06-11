@@ -1,5 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
+import type { Edge, Node } from "@xyflow/react";
 import dagre from "dagre";
-import type { Edge, Node } from "reactflow";
 
 // ── 工作流校验系统 ────────────────────────────────────────────
 
@@ -1086,7 +1088,7 @@ const LAYER_X_SPACING = 320; // 层内水平间距
 const MARGIN = 60; // 画布边距
 const CONTAINER_PADDING = 40; // 容器内边距
 
-interface AutoNode {
+export interface AutoNode {
   id: string;
   type?: string;
   position: { x: number; y: number };

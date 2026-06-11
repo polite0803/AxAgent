@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use crate::vector_store::VectorSearchResult;
 use std::collections::HashMap;
 use std::sync::Arc;

@@ -5,17 +5,17 @@ edition.workspace = true
 publish = false
 
 [dependencies]
+axagent-harness = { path = "../harness" }
+axum = "0.8"
+chrono = { workspace = true }
+hex = "0.4"
+reqwest = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
+sha2 = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }
-chrono = { workspace = true }
 uuid = { workspace = true }
-axum = "0.8"
-reqwest = { workspace = true }
-sha2 = { workspace = true }
-hex = "0.4"
-axagent-harness = { path = "../harness" }
 
 [lints]
 # workspace = true

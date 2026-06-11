@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Parallel Execution Module - Multi-agent parallel task execution and result aggregation
 //!
 //! This module provides infrastructure for executing multiple independent tasks in parallel:

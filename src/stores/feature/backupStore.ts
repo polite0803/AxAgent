@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { invoke } from "@/lib/invoke";
 import type { AutoBackupSettings, BackupManifest, RestoreReport, RestoreStrategy } from "@/types";
 import { create } from "zustand";

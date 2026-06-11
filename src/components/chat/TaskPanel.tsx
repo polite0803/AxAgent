@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { invoke, listen, logIpcError } from "@/lib/invoke";
 import { Badge, Button, Empty, message, Popconfirm, Spin, Tag, Typography } from "antd";
 import { Circle, LoaderCircle, StopCircle } from "lucide-react";

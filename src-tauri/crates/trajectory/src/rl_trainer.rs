@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use crate::training_env::{EvaluationResult, RewardComputation, TaskDefinition, TrainingEnv};
 use crate::trajectory::{TrainingConfig, Trajectory};
 use crate::trajectory_compressor::{CompressedTrajectory, TrajectoryCompressor};

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { Button, Spin, Tag, theme } from "antd";
 import { CheckCircle, Loader2, Workflow } from "lucide-react";
 import { useMemo, useState } from "react";

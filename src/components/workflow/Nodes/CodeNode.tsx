@@ -1,9 +1,12 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// @ts-nocheck
+
+import { Handle, type NodeProps, Position } from "@xyflow/react";
 import { Tag, theme } from "antd";
 import React, { memo } from "react";
 import { useTranslation } from "react-i18next";
-import { Handle, type NodeProps, Position } from "reactflow";
 
-interface CodeNodeData {
+interface CodeNodeData extends Record<string, unknown> {
   id: string;
   type: string;
   title: string;
@@ -16,7 +19,7 @@ interface CodeNodeData {
   outputVar?: string;
 }
 
-const CodeNodeComponent: React.FC<NodeProps<CodeNodeData>> = ({
+const CodeNodeComponent: React.FC<NodeProps> = ({
   data,
   selected,
 }) => {

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use crate::credibility_evaluator::{CredibilityAssessment, CredibilityEvaluator};
 use crate::research_state::SearchResult;
 use chrono::{DateTime, Utc};

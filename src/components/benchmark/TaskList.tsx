@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import type { BenchmarkTask, TaskResult } from "@/types";
 import { formatDuration, formatScore, getDifficultyKey } from "@/types";
 import { Button, Table, Tag } from "antd";

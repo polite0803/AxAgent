@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use serde_json::Value;
 use thiserror::Error;
 

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! REPLTool - 隔离代码执行
 
 use crate::{Tool, ToolCategory, ToolContext, ToolError, ToolResult};

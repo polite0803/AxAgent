@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /// Auto-trigger indexing pipeline after cloud workspace sync.
 ///
 /// When a cloud workspace is synced, this module automatically triggers:

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { Icon } from "@/components/common/Icon";
 import { Tooltip } from "@/components/layout/Tooltip";
 import { useResolvedAvatarSrc } from "@/hooks/useResolvedAvatarSrc";

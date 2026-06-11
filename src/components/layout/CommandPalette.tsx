@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { CHAT_ICON_COLORS } from "@/lib/iconColors";
 import { executeActionChain } from "@/lib/skillActionExecutor";
 import { resolveIconComponent } from "@/lib/skillIcons";

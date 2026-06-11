@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { memo, useEffect, useRef } from "react";
 
 interface ChartPreviewProps {

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 #[cfg(all(debug_assertions, not(target_os = "android")))]
 use tauri_plugin_mcp_bridge;
 

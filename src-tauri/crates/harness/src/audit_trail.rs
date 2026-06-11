@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! 审计日志契约 —— 记录节点执行的完整审计信息。
 //!
 //! 提供 `AuditEntry` 数据结构和 `AuditRecorder` trait，

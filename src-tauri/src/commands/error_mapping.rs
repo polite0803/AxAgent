@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! AxAgentError → ErrorResponse 桥接映射
 //!
 //! 将 crates 层的 AxAgentError 映射到命令层的 ErrorResponse，实现依赖方向正确：

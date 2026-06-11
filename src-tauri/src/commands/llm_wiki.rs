@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use crate::AppState;
 use axagent_agent::{
     ingest_pipeline, lint_checker, purpose_manager, query_engine, schema_manager, wiki_compiler,

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Android 崩溃诊断工具。
 //!
 //! Android 没有 MessageBox 等价物，因此将崩溃信息写入文件系统。

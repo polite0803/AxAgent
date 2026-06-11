@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { theme } from "antd";
 import { Pencil } from "lucide-react";
 import type { ReactNode } from "react";

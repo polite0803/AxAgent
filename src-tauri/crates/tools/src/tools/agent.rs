@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! AgentTool - 子 Agent 创建和生命周期管理
 //! 内置 6 个 Agent 类型 + 支持从 `.axagent/agents/*.md` 动态加载自定义 agent
 

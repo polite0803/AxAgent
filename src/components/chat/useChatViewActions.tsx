@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { App, type InputRef } from "antd";
 import type { MenuProps } from "antd";
 import { Copy, FileCode, FileImage, FileText, FileType, Globe } from "lucide-react";

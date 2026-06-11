@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import type { SkillCommandAction } from "@/types";
 import { getActionRouter } from "./actionRouter";
 

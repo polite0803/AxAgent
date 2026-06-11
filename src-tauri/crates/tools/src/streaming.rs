@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! 流式工具执行器 - 支持边执行边推送结果
 
 use crate::registry::ToolRegistry;

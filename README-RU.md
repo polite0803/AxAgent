@@ -31,16 +31,16 @@
 
 ## Скриншоты
 
-| Чат и выбор модели | Панель мультиагентов |
-|:---:|:---:|
+|       Чат и выбор модели        |      Панель мультиагентов       |
+| :-----------------------------: | :-----------------------------: |
 | ![](.github/images/s1-0412.png) | ![](.github/images/s5-0412.png) |
 
-| База знаний RAG | Память и контекст |
-|:---:|:---:|
+|         База знаний RAG         |        Память и контекст        |
+| :-----------------------------: | :-----------------------------: |
 | ![](.github/images/s3-0412.png) | ![](.github/images/s4-0412.png) |
 
-| Редактор рабочих процессов | API-шлюз |
-|:---:|:---:|
+|   Редактор рабочих процессов    |             API-шлюз             |
+| :-----------------------------: | :------------------------------: |
 | ![](.github/images/s9-0412.png) | ![](.github/images/s10-0412.png) |
 
 ---
@@ -301,38 +301,38 @@
 
 ### Технологический стек
 
-| Уровень | Технология |
-|---------|-----------|
-| **Фреймворк** | Tauri 2 + React 19 + TypeScript 6 |
-| **UI** | Ant Design 6 + TailwindCSS 4 |
-| **Управление состоянием** | Zustand 5 |
-| **Маршрутизация** | React Router 7 |
-| **i18n** | i18next + react-i18next |
-| **Бэкенд** | Rust + SeaORM 2 + SQLite |
-| **Векторная БД** | sqlite-vec |
-| **Редактор кода** | Monaco Editor |
-| **Диаграммы** | Mermaid + D2 + ECharts (CDN) |
-| **Терминал** | xterm.js 6 |
-| **Рабочие процессы** | ReactFlow 11 |
-| **Инфографика** | @antv/infographic |
-| **Иконки** | Iconify + Lucide |
-| **Перетаскивание** | @dnd-kit |
-| **Сборка** | Vite 8 + npm |
-| **Тестирование** | Vitest + Playwright + cargo-nextest |
-| **Форматирование** | dprint (TS/JSON) + rustfmt |
-| **Lint** | TS: eslint + oxlint / Rust: clippy + cargo-deny |
-| **Мобильные** | Нативная сборка Tauri Android + iOS |
-| **Десктоп** | Windows (MSI) · macOS (DMG) · Linux (AppImage/deb/rpm) |
+| Уровень                   | Технология                                             |
+| ------------------------- | ------------------------------------------------------ |
+| **Фреймворк**             | Tauri 2 + React 19 + TypeScript 6                      |
+| **UI**                    | Ant Design 6 + TailwindCSS 4                           |
+| **Управление состоянием** | Zustand 5                                              |
+| **Маршрутизация**         | React Router 7                                         |
+| **i18n**                  | i18next + react-i18next                                |
+| **Бэкенд**                | Rust + SeaORM 2 + SQLite                               |
+| **Векторная БД**          | sqlite-vec                                             |
+| **Редактор кода**         | Monaco Editor                                          |
+| **Диаграммы**             | Mermaid + D2 + ECharts (CDN)                           |
+| **Терминал**              | xterm.js 6                                             |
+| **Рабочие процессы**      | ReactFlow 11                                           |
+| **Инфографика**           | @antv/infographic                                      |
+| **Иконки**                | Iconify + Lucide                                       |
+| **Перетаскивание**        | @dnd-kit                                               |
+| **Сборка**                | Vite 8 + npm                                           |
+| **Тестирование**          | Vitest + Playwright + cargo-nextest                    |
+| **Форматирование**        | dprint (TS/JSON) + rustfmt                             |
+| **Lint**                  | TS: eslint + oxlint / Rust: clippy + cargo-deny        |
+| **Мобильные**             | Нативная сборка Tauri Android + iOS                    |
+| **Десктоп**               | Windows (MSI) · macOS (DMG) · Linux (AppImage/deb/rpm) |
 
 ### Поддержка платформ
 
-| Платформа | Архитектура |
-|-----------|------------|
-| Windows | x86_64, ARM64 |
-| macOS | Apple Silicon (arm64), Intel (x86_64) |
-| Linux | x86_64, ARM64 |
-| Android | arm64-v8a, armeabi-v7a, x86_64 (эмулятор) |
-| iOS | arm64 |
+| Платформа | Архитектура                               |
+| --------- | ----------------------------------------- |
+| Windows   | x86_64, ARM64                             |
+| macOS     | Apple Silicon (arm64), Intel (x86_64)     |
+| Linux     | x86_64, ARM64                             |
+| Android   | arm64-v8a, armeabi-v7a, x86_64 (эмулятор) |
+| iOS       | arm64                                     |
 
 ### Архитектура Rust-бэкенда
 
@@ -644,6 +644,7 @@ AxAgent/
 Поскольку приложение не подписано Apple:
 
 **1. Разрешить приложения из «Любого источника»**
+
 ```bash
 sudo spctl --master-disable
 ```
@@ -651,6 +652,7 @@ sudo spctl --master-disable
 Затем перейдите в **Системные настройки → Конфиденциальность и безопасность → Безопасность** и выберите **Любой источник**.
 
 **2. Удалить атрибут карантина**
+
 ```bash
 sudo xattr -dr com.apple.quarantine /Applications/AxAgent.app
 ```

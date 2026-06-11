@@ -7,5 +7,5 @@ description = "Document text extraction: PDF, DOCX, XLSX, PPTX, and plain text"
 
 [dependencies]
 axagent-harness = { path = "../harness" }
-zip = "2"
 pdf-extract = "0.7"
+zip = "2"

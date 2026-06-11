@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Batch trajectory generation and processing
 
 use crate::storage::TrajectoryStorage;

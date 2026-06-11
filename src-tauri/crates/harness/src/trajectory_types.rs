@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Trajectory + LLM bridge types — shared DTOs and traits.
 //! Zero implementation logic; all default impls stay in axagent-trajectory.
 

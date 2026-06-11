@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Inference engine trait for local ML inference.
 //!
 //! The concrete implementation lives in `axagent-core` and uses `candle`/`tokenizers`.

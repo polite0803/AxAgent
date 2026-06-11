@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 export { CostChart } from "./CostChart";
 export { DurationChart } from "./DurationChart";
 export { SpanDetail } from "./SpanDetail";

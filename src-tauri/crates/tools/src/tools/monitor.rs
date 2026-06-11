@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! MonitorTool - 长时间运行命令的流式监控
 
 use crate::{Tool, ToolCategory, ToolContext, ToolError, ToolResult};

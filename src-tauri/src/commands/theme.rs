@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::skill as skill_err;
 use axagent_runtime::theme_engine::{Theme, ThemeEngine, ThemeMetadata, XTermTheme};

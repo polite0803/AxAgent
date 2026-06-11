@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Core runtime primitives for the `claw` CLI and supporting crates.
 //!
 //! This crate owns session persistence, permission evaluation, prompt assembly,

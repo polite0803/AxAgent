@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Semantic cache layer for RAG queries to avoid redundant embedding computation and vector search.
 //!
 //! This module provides a semantic cache that uses cosine similarity to find cached results

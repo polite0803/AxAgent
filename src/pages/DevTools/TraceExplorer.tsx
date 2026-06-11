@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { TraceDetail } from "@/components/devtools/TraceDetail";
 import { TraceFilters } from "@/components/devtools/TraceFilters";
 import { TraceList } from "@/components/devtools/TraceList";

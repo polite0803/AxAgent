@@ -1,6 +1,8 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
+import { type Node, useReactFlow } from "@xyflow/react";
 import { theme } from "antd";
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { type Node, useReactFlow } from "reactflow";
 
 interface AlignmentLine {
   position: number;
@@ -50,11 +52,11 @@ export const AlignmentGuides: React.FC<AlignmentGuidesProps> = ({
 
         const nodeBounds = {
           left: node.position.x,
-          right: node.position.x + (node.width || 160),
+          right: node.position.x + (node.measured?.width ?? 160),
           top: node.position.y,
-          bottom: node.position.y + (node.height || 60),
-          centerX: node.position.x + (node.width || 160) / 2,
-          centerY: node.position.y + (node.height || 60) / 2,
+          bottom: node.position.y + (node.measured?.height ?? 60),
+          centerX: node.position.x + (node.measured?.width ?? 160) / 2,
+          centerY: node.position.y + (node.measured?.height ?? 60) / 2,
         };
 
         if (Math.abs(draggingBounds.left - nodeBounds.left) < SNAP_THRESHOLD) {

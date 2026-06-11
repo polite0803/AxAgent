@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! CronCreateTool / CronDeleteTool / CronListTool
 //! 委托到 axagent_runtime_core::CronJobStore，由 runtime/cron 调度器统一执行。
 

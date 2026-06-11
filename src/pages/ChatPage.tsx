@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { ChatSidebar } from "@/components/chat/ChatSidebar";
 import type { ChatViewScrollApi } from "@/components/chat/ChatView";
 import { ChatView } from "@/components/chat/ChatView";

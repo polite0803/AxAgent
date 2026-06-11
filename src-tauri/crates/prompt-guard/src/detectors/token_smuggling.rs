@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! 附加检测器：Token Smuggling
 //!
 //! 检测通过特殊 Unicode 字符、零宽字符、同形字等手段

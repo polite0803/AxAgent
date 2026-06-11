@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { expect, test } from "@playwright/test";
 
 test("ClawCode Agent End-to-End Test", async ({ page }) => {

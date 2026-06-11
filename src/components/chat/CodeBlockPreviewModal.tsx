@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { Modal, theme } from "antd";
 import React, { useMemo } from "react";
 import { useTranslation } from "react-i18next";

@@ -3,13 +3,13 @@ name = "axagent-prompt-guard"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-description = "Prompt injection defense with 4-layer filtering pipeline"
 publish = false
+description = "Prompt injection defense with 4-layer filtering pipeline"
 
 [dependencies]
 axagent-harness = { path = "../harness" }
-serde.workspace = true
 regex = "1"
+serde.workspace = true
 tracing.workspace = true
 
 [lints.rust]

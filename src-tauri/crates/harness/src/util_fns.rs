@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! 通用工具函数
 //!
 //! 零业务逻辑的纯工具函数，供各 crate 共享使用。

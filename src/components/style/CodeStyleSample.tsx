@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import type { CodeStyleTemplate, LearnedPattern } from "@/types";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";

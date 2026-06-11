@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! AST-based structured code index for semantic code search.
 //!
 //! Extracts function signatures, class definitions, interface declarations,

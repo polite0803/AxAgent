@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Output-side token consumption control pipeline.
 //!
 //! Implements post-processing of LLM output to reduce token waste through:

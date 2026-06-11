@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import type { ToolUpgradeSuggestion } from "@/components/workflow/types/workflow.types";
 import { invoke } from "@/lib/invoke";
 import { useUIStore } from "@/stores";

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { DockerConfigModal } from "@/components/terminal/DockerConfigModal";
 import { IntegratedTerminal } from "@/components/terminal/IntegratedTerminal";
 import { SshConfigModal } from "@/components/terminal/SshConfigModal";

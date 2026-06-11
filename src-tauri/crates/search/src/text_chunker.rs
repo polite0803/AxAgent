@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /// A chunk of text with its position index.
 #[derive(Debug, Clone)]
 pub struct TextChunk {

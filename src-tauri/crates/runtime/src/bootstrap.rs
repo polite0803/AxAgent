@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BootstrapPhase {
     CliEntry,

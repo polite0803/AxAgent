@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /* eslint-disable react-refresh/only-export-components */
 import { Tooltip } from "@/components/layout/Tooltip";
 import { invoke } from "@/lib/invoke";

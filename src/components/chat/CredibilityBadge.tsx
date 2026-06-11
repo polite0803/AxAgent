@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { Tooltip } from "@/components/layout/Tooltip";
 import { StarFilled, StarOutlined } from "@ant-design/icons";
 import { Progress, Space, Tag, Typography } from "antd";

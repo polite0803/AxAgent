@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! 延迟执行器 —— 根据 DelayNodeConfig 等待指定时长，支持取消检查。
 
 use async_trait::async_trait;

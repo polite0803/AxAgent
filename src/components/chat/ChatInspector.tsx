@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { useArtifactStore, useConversationStore } from "@/stores";
 import { Descriptions, Empty, List, Tabs, Tag, theme, Typography } from "antd";
 import { FileText, Info, Paperclip, Search, Wrench } from "lucide-react";

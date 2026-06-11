@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { SessionSearchPanel } from "@/components/search/SessionSearchPanel";
 import { useDebounce } from "@/hooks/useDebounce";
 import { getConvIcon } from "@/lib/convIcon";

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use sea_orm::DatabaseConnection;
 use serde::{Deserialize, Serialize};
 use tauri::State;

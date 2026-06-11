@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! 统一定时任务数据模型 — 合并 CronJob + ScheduledTaskService。
 //!
 //! CronJob + CronJobStore — 供 runtime/cron 调度器、tools/cron.rs 工具、

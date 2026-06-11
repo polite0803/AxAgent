@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Node executor trait and related types
 
 use async_trait::async_trait;

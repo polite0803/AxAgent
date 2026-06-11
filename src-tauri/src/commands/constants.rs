@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! 集中式常量定义
 //!
 //! 避免在代码中硬编码字符串字面量。

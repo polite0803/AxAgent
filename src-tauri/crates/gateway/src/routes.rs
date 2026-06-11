@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use axum::{
     Extension, Router, middleware,
     routing::{delete, get, patch, post, put},

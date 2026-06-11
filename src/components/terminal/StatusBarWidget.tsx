@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { invoke, logIpcError } from "@/lib/invoke";
 import { Clock, Cpu, GitBranch, Hash, MemoryStick, Wifi, WifiOff } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";

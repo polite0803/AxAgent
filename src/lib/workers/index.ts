@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 // Helper to offload heavy operations to a Web Worker.
 //
 // Usage:

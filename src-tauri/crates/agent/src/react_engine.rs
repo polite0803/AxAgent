@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use crate::action_executor::ActionExecutor;
 use crate::cycle_detector::CycleDetector;
 use crate::reasoning_state::{ActionType, ReActConfig, ReasoningContext, ReasoningState};
@@ -5,9 +7,9 @@ use crate::self_verifier::{SelfVerifier, VerificationResult};
 use crate::thought_chain::{Action, ChainSummary, ThoughtChain, ThoughtEvent, ThoughtStep};
 use axagent_core::token_budget::{TokenBudgetDecision, TokenBudgetTracker};
 use axagent_core::token_counter::estimate_tokens;
-use axagent_harness::execute_llm::{LlmCallConfig, execute_llm};
 use axagent_harness::types::{ChatContent, ChatMessage, ChatRequest};
 use axagent_harness::{ProviderAdapter, ProviderRequestContext};
+use axagent_runtime_core::{LlmCallConfig, execute_llm};
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::broadcast;

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use axagent_core::computer_control;
 use axagent_core::screen_capture::CaptureRegion;
 use axagent_core::ui_automation::UIElementQuery;

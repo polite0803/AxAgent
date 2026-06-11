@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { invoke, listen, logIpcError, type UnlistenFn } from "@/lib/invoke";
 import type {
   AgentDoneEvent,

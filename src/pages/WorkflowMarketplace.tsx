@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { ImportExportModal } from "@/components/workflow/Templates/ImportExportModal";
 import { invoke, logIpcError } from "@/lib/invoke";
 import { MarketplaceStats, reviewApi, ReviewResponse } from "@/lib/reviewApi";

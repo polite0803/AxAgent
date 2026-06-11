@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Swarm 团队核心数据结构与逻辑
 //!
 //! 包含 Team（团队）、Teammate（队友）、TeamTask（团队任务）、

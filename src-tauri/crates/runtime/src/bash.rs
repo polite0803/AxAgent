@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use std::env;
 use std::io;
 use std::process::{Command, Stdio};

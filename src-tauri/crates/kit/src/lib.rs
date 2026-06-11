@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! axagent-kit — 通用工具集
 //!
 //! 包含浏览器自动化、HTML 清洗、操作审计、提示模板等零散模块。

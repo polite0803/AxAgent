@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use axagent_harness::platform_config::PlatformConfig;
 use axagent_harness::{
     WeChatWebhookHandler, WebhookEvent, WebhookSubscription, WebhookSubscriptionService,

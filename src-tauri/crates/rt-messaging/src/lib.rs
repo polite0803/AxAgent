@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Message Gateway — cross-platform agent communication.
 
 pub mod message_batching;

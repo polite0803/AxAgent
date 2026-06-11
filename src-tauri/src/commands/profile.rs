@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use axagent_runtime::profile_manager::ProfileManager;
 use std::sync::Arc;
 use tauri::State;

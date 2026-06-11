@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! crate 层错误码定义
 //!
 //! 镜像 `commands/error_code.rs` 的错误码，使 crate 层可以使用相同错误码字符串。

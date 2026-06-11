@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Event payload types for AxAgent Agent Tauri events.
 //!
 //! This module is deprecated. All types have been moved to event_bus.rs.

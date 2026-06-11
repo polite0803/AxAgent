@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { Alert, Button, Modal, Space, Spin, Steps, Table, Tag, Typography } from "antd";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";

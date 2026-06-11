@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 // i18n-exempt: LLM prompt templates used for search result formatting. Not user-facing UI.
 import type { SearchResultItem } from "@/types";
 

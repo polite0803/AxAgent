@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! MCP 工具包装器 - 将 MCP 工具暴露为 Tool trait
 //!
 //! 持有 MCP 服务器的传输配置，通过 `core::mcp_client` 实际执行工具调用。

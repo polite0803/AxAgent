@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Bash 命令解析器
 //!
 //! 解析 shell 命令为结构化的命令序列：提取 argv、重定向、环境变量。

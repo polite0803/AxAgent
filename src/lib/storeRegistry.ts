@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /** Zustand Store 注册表，供声明式 Action 的 store 类型访问 */
 
 type StoreAccessor = {

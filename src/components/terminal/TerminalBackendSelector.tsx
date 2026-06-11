@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { type DropdownItem, DropdownMenu } from "@/components/layout/DropdownMenu";
 import { Button, Tag } from "antd";
 import type { MenuProps } from "antd";

@@ -1,11 +1,13 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { logIpcError } from "@/lib/invoke";
 import type { AiChatMessage } from "@/stores/feature/workflowEditorStore";
 import { useWorkflowEditorStore } from "@/stores/feature/workflowEditorStore";
+import { useReactFlow } from "@xyflow/react";
 import { App, Button, Card, Empty, Input, Radio, Tag, theme } from "antd";
 import { Lightbulb, MessageSquare, Play, Send, Sparkles, StopCircle, Trash2, Wand2 } from "lucide-react";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useReactFlow } from "reactflow";
 import { useShallow } from "zustand/react/shallow";
 import { setDragPayload } from "../dndState";
 import type { WorkflowEdge, WorkflowNode } from "../types/workflow.types";

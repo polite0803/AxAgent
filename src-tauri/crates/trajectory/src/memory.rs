@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Memory service module - unified wrapper around TrajectoryStorage
 //!
 //! This module provides a unified memory system that integrates:

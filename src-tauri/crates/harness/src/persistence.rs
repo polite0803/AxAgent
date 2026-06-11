@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! 持久化层契约
 //!
 //! `Persistence` trait 供 agent / tools / runtime 等组件

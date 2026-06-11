@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! 数据库管理工具
 //!
 //! DatabaseQuery / DatabaseListTables / DatabaseMigrationStatus

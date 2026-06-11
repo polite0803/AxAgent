@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { listen } from "@tauri-apps/api/event";
 import { App, Button, Input, Modal, Spin, theme } from "antd";
 import DOMPurify from "dompurify";

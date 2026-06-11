@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use crate::style_applier::{CodeStyleTemplate, DocumentStyleApplicator, StyleApplier};
 use crate::style_extractor::{DocumentStyleProfile, ExtractedCodePatterns, StyleExtractor};
 use crate::style_vectorizer::{CodeSample, MessageSample, StyleVector, StyleVectorizer};

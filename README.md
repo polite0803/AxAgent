@@ -31,16 +31,16 @@
 
 ## 截图预览
 
-| 对话与模型选择 | 多智能体仪表盘 |
-|:---:|:---:|
+|         对话与模型选择          |         多智能体仪表盘          |
+| :-----------------------------: | :-----------------------------: |
 | ![](.github/images/s1-0412.png) | ![](.github/images/s5-0412.png) |
 
-| 知识库 RAG | 记忆与上下文 |
-|:---:|:---:|
+|           知识库 RAG            |          记忆与上下文           |
+| :-----------------------------: | :-----------------------------: |
 | ![](.github/images/s3-0412.png) | ![](.github/images/s4-0412.png) |
 
-| 工作流编辑器 | API 网关 |
-|:---:|:---:|
+|          工作流编辑器           |             API 网关             |
+| :-----------------------------: | :------------------------------: |
 | ![](.github/images/s9-0412.png) | ![](.github/images/s10-0412.png) |
 
 ---
@@ -301,38 +301,38 @@
 
 ### 技术栈
 
-| 层级 | 技术 |
-|------|------|
-| **框架** | Tauri 2 + React 19 + TypeScript 6 |
-| **UI** | Ant Design 6 + TailwindCSS 4 |
-| **状态管理** | Zustand 5 |
-| **路由** | React Router 7 |
-| **国际化** | i18next + react-i18next |
-| **后端** | Rust + SeaORM 2 + SQLite |
-| **向量数据库** | sqlite-vec |
-| **代码编辑器** | Monaco Editor |
-| **图表** | Mermaid + D2 + ECharts（CDN） |
-| **终端** | xterm.js 6 |
-| **工作流** | ReactFlow 11 |
-| **图表渲染** | @antv/infographic |
-| **图标** | Iconify + Lucide |
-| **拖拽** | @dnd-kit |
-| **构建** | Vite 8 + npm |
-| **测试** | Vitest + Playwright + cargo-nextest |
-| **格式化** | dprint (TS/JSON) + rustfmt |
-| **Lint** | TS: eslint + oxlint / Rust: clippy + cargo-deny |
-| **移动端** | Tauri Android + iOS 原生构建 |
-| **桌面端** | Windows (MSI) · macOS (DMG) · Linux (AppImage/deb/rpm) |
+| 层级           | 技术                                                   |
+| -------------- | ------------------------------------------------------ |
+| **框架**       | Tauri 2 + React 19 + TypeScript 6                      |
+| **UI**         | Ant Design 6 + TailwindCSS 4                           |
+| **状态管理**   | Zustand 5                                              |
+| **路由**       | React Router 7                                         |
+| **国际化**     | i18next + react-i18next                                |
+| **后端**       | Rust + SeaORM 2 + SQLite                               |
+| **向量数据库** | sqlite-vec                                             |
+| **代码编辑器** | Monaco Editor                                          |
+| **图表**       | Mermaid + D2 + ECharts（CDN）                          |
+| **终端**       | xterm.js 6                                             |
+| **工作流**     | ReactFlow 11                                           |
+| **图表渲染**   | @antv/infographic                                      |
+| **图标**       | Iconify + Lucide                                       |
+| **拖拽**       | @dnd-kit                                               |
+| **构建**       | Vite 8 + npm                                           |
+| **测试**       | Vitest + Playwright + cargo-nextest                    |
+| **格式化**     | dprint (TS/JSON) + rustfmt                             |
+| **Lint**       | TS: eslint + oxlint / Rust: clippy + cargo-deny        |
+| **移动端**     | Tauri Android + iOS 原生构建                           |
+| **桌面端**     | Windows (MSI) · macOS (DMG) · Linux (AppImage/deb/rpm) |
 
 ### 平台支持
 
-| 平台 | 架构 |
-|------|------|
-| Windows | x86_64, ARM64 |
-| macOS | Apple Silicon (arm64), Intel (x86_64) |
-| Linux | x86_64, ARM64 |
+| 平台    | 架构                                    |
+| ------- | --------------------------------------- |
+| Windows | x86_64, ARM64                           |
+| macOS   | Apple Silicon (arm64), Intel (x86_64)   |
+| Linux   | x86_64, ARM64                           |
 | Android | arm64-v8a, armeabi-v7a, x86_64 (模拟器) |
-| iOS | arm64 |
+| iOS     | arm64                                   |
 
 ### Rust 后端架构
 
@@ -644,6 +644,7 @@ AxAgent/
 由于应用未经过 Apple 签名：
 
 **1. 允许运行「任何来源」的应用**
+
 ```bash
 sudo spctl --master-disable
 ```
@@ -651,6 +652,7 @@ sudo spctl --master-disable
 然后前往 **系统设置 → 隐私与安全性 → 安全性**，选择 **任何来源**。
 
 **2. 移除隔离属性**
+
 ```bash
 sudo xattr -dr com.apple.quarantine /Applications/AxAgent.app
 ```

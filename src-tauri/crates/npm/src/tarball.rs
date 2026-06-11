@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! npm 包 tarball (.tgz) 下载与解压
 
 use std::fs;

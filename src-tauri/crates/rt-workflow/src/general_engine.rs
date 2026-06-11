@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! General-purpose engine — lightweight runtime for non-code tasks.
 //!
 //! Handles daily chat, document processing, system operations, tool

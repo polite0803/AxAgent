@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use crate::AppState;
 use axagent_migration::{DetectedPlatform, MigrationReport};
 use serde::Deserialize;

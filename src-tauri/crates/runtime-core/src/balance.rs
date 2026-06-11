@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! 余额 fetcher：从 LLM 提供商拉取账户余额。
 //!
 //! P1.5 阶段只落地 DeepSeek（reasonix `balance.go` 移植）。

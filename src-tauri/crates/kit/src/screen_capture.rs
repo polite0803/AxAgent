@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use anyhow::Result;
 use axagent_harness::util_fns::current_rfc3339;
 use image::ImageEncoder;

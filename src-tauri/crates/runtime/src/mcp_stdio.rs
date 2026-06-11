@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! MCP stdio transport implementation.
 //!
 //! **DEPRECATED**: 请使用 `axagent_core::mcp_client` 替代。

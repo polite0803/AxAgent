@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Prompt injection defense crate.
 //!
 //! Provides a 4-layer filtering pipeline that sanitizes user input

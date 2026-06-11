@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /**
  * 共享异步状态工具，消除 Zustand store 中重复的 loading/error 模式。
  *

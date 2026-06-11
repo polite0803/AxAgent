@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { CopyButton } from "@/components/common/CopyButton";
 import { Tooltip } from "@/components/layout/Tooltip";
 import { stripAxAgentTags } from "@/lib/chatMarkdown";

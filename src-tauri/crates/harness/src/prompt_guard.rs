@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Prompt 注入防护契约。
 //!
 //! 定义 `PromptGuard` trait，对 LLM 调用前的用户输入做安全过滤。

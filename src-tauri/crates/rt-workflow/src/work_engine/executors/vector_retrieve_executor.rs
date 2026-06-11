@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! 向量检索执行器 —— 通过注入的回调查询向量存储。
 //!
 //! 注意：VectorRetrieveCallback 三向分裂（WorkEngine / Executor / ExecutionState）已收敛。

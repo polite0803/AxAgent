@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 // 新用户引导 — 智能环境检测与快速预设
 
 use crate::AppState;

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Token 预算预测 — API 调用前预估 token 消耗，主动触发压缩
 //!
 //! 策略：

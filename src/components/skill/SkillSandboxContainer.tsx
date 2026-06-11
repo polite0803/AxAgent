@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /**
  * SkillSandboxContainer — 统一的 Skill iframe 沙箱容器
  *

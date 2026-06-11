@@ -1,8 +1,10 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { WorkflowSettings } from "@/components/settings";
 import { WorkflowEditor } from "@/components/workflow";
+import { ReactFlowProvider } from "@xyflow/react";
 import { theme } from "antd";
 import { useState } from "react";
-import { ReactFlowProvider } from "reactflow";
 
 /**
  * Standalone workflow page accessible at /workflow route.

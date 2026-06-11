@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! CtxInspectTool / SnipTool / ContextResolveTool - 上下文管理工具
 
 use crate::{Tool, ToolCategory, ToolContext, ToolError, ToolResult};

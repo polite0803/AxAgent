@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { LANG_OPTIONS } from "@/lib/constants";
 import { invoke, isTauri, logIpcError } from "@/lib/invoke";
 import { useSettingsStore } from "@/stores";

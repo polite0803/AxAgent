@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use std::collections::BTreeSet;
 
 const DEFAULT_MAX_CHARS: usize = 1_200;

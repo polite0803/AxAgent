@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! 队友进程启动工具
 //!
 //! 根据 BackendType 选择合适的启动方式。

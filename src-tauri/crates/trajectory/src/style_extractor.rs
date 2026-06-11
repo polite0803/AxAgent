@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use crate::style_vectorizer::{CodeSample, MessageSample};
 use regex::Regex;
 use serde::{Deserialize, Serialize};

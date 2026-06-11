@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 // 全局帮助面板 — ? 快捷键打开，右侧 Drawer
 import { useHelpStore } from "@/stores/feature/helpStore";
 import { Bot, Globe, Keyboard, MessageSquare, Puzzle, Search, Workflow, X } from "lucide-react";

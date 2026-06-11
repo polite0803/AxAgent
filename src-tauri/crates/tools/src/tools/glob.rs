@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! GlobTool - 文件模式搜索工具
 
 use crate::{Tool, ToolCategory, ToolContext, ToolError, ToolResult};

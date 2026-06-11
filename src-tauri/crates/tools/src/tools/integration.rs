@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! 外部集成工具
 //!
 //! DifyListBases / DifySearch — Dify 知识库平台集成

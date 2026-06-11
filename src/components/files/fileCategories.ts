@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import type { FileCategory } from "@/types";
 import { FileText, Image } from "lucide-react";
 import type { LucideIcon } from "lucide-react";

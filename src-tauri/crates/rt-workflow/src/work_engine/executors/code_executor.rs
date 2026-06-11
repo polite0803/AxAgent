@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! 代码执行器 —— 执行 CodeNode 中的代码片段。
 //!
 //! 当前返回代码摘要（语言 + 行数 + 输出变量），后续可接入沙箱执行。

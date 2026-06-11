@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { App, Button, Popover, theme } from "antd";
 import { AlertCircle, Trash2 } from "lucide-react";
 import { useState } from "react";

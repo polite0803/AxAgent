@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use axagent_core::repo::stored_file::StoredFile;
 use axagent_harness::types::BackupManifest;
 use base64::Engine;

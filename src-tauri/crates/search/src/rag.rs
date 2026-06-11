@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Unified RAG (Retrieval-Augmented Generation) abstraction layer.
 //!
 //! Provides a trait-based interface for different RAG sources (knowledge bases,

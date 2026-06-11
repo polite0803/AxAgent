@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 // Test isolation utilities for plugin tests
 // ROADMAP #41: Stop ambient plugin state from skewing CLI regression checks
 

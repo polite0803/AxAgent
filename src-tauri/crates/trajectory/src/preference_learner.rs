@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use crate::behavior_tracker::BehaviorEvent;
 use crate::pattern_analyzer::PatternAnalyzer;
 use crate::user_profile::{ProfileUpdate, UpdateSource, UserProfile, calculate_confidence};

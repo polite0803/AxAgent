@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use crate::task::{TaskGraph, TaskNode, TaskType};
 use async_trait::async_trait;
 use axagent_harness::ToolRegistry;

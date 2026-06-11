@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Error types and handling utilities for AxAgent
 //!
 //! This module provides a unified error hierarchy for the entire application,

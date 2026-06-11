@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Session compaction and message importance scoring module
 //!
 //! Replaces TypeScript `SessionCompactor.ts` with Rust implementation.

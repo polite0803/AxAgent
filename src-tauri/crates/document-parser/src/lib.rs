@@ -1,4 +1,6 @@
 #![allow(clippy::result_large_err)]
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Document text extraction — PDF, DOCX, XLSX, PPTX, and plain text.
 //!
 //! Extracted from `axagent-core` as part of harness architecture refactoring.

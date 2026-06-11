@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import type { AgenticAction, DeclarativeActionType, SkillCommandAction } from "@/types";
 import { Form, Input, Radio, Select, Switch } from "antd";
 import { useTranslation } from "react-i18next";

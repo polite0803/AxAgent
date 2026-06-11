@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { invoke, logIpcError } from "@/lib/invoke";
 import type { ConversationSummary, MessagePage } from "@/types";
 import { create } from "zustand";

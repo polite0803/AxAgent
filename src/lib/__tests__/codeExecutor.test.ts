@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // 必须在导入前 mock，因为 codeExecutor.ts 顶层调用了 import

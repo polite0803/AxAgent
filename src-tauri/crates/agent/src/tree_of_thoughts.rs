@@ -1,8 +1,10 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use axagent_core::error::AxAgentError;
 use axagent_core::token_counter::estimate_tokens;
-use axagent_harness::execute_llm::{LlmCallConfig, execute_llm};
 use axagent_harness::types::{ChatContent, ChatMessage, ChatRequest};
 use axagent_harness::{ProviderAdapter, ProviderRequestContext};
+use axagent_runtime_core::{LlmCallConfig, execute_llm};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;

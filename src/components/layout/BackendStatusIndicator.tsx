@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { initBackendStatusListeners, useBackendStatusStore } from "@/stores/shared/backendStatusStore";
 import { useEffect } from "react";
 import { useTranslation } from "react-i18next";

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import "@testing-library/jest-dom";
 
 // jsdom 销毁后 react-dom scheduler 异步回调仍可能访问 window/document，

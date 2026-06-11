@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { Button, Card, theme, Typography } from "antd";
 import { ArrowRight, Lightbulb, X } from "lucide-react";
 import { useTranslation } from "react-i18next";

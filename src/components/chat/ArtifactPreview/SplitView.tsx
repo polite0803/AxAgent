@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import type { ArtifactLanguage } from "@/types";
 import { Segmented } from "antd";
 import { memo, useState } from "react";

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Rhai 脚本引擎 —— 编译、缓存、执行 Rhai 脚本作为动态工具。
 //!
 //! 编译（工作流创建时）→ 缓存 AST → 执行时注册为 tool_handler

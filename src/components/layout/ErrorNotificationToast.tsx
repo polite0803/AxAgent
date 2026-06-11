@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { useErrorNotificationStore } from "@/stores/shared/errorNotificationStore";
 import { AnimatePresence, motion } from "framer-motion";
 import { useTranslation } from "react-i18next";

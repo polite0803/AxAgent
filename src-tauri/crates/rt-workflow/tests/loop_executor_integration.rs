@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Loop 节点执行器的集成测试。
 //!
 //! 覆盖需求中的三个核心场景：

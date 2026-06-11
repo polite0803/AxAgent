@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Loop 节点执行器 —— 内部驱动 body_steps 迭代。
 //!
 //! 设计要点：

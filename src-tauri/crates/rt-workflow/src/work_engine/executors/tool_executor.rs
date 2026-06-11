@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! 工具执行器 —— 解析 ToolNodeConfig 后通过注入的回调或 ToolRegistry 调用 MCP 工具。
 //!
 //! 默认无回调时返回清晰的"需要注入"错误，避免静默失败。

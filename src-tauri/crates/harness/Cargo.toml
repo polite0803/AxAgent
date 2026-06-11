@@ -7,16 +7,16 @@ description = "Harness contract layer — trait interfaces for dependency invers
 
 [dependencies]
 async-trait = "0.1"
+chrono = { workspace = true, features = ["serde"] }
+futures = "0.3"
+hex = { workspace = true }
+regex = "1"
+schemars = "0.8"
+sea-orm = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
-schemars = "0.8"
-thiserror = { workspace = true }
-chrono = { workspace = true, features = ["serde"] }
-uuid = { workspace = true, features = ["v4", "serde"] }
-sea-orm = { workspace = true }
-tracing = { workspace = true }
-tokio = { workspace = true, features = ["sync", "time"] }
-futures = "0.3"
-regex = "1"
 sha2 = { workspace = true }
-hex = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true, features = ["sync", "time"] }
+tracing = { workspace = true }
+uuid = { workspace = true, features = ["v4", "serde"] }

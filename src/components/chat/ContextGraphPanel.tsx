@@ -1,8 +1,5 @@
-import { theme, Typography } from "antd";
-import type { GlobalToken } from "antd/es/theme/interface";
-import { BookOpen, Brain, ChevronDown, ChevronUp, GitBranch, Link2, Puzzle, Search, Wrench, Zap } from "lucide-react";
-import React, { useMemo, useState } from "react";
-import { useTranslation } from "react-i18next";
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import {
   Background,
   Controls,
@@ -19,8 +16,13 @@ import {
   useEdgesState,
   useNodesState,
   useReactFlow,
-} from "reactflow";
-import "reactflow/dist/style.css";
+} from "@xyflow/react";
+import { theme, Typography } from "antd";
+import type { GlobalToken } from "antd/es/theme/interface";
+import { BookOpen, Brain, ChevronDown, ChevronUp, GitBranch, Link2, Puzzle, Search, Wrench, Zap } from "lucide-react";
+import React, { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
+import "@xyflow/react/dist/style.css";
 import { useKnowledgeStore, useMcpStore, useMemoryStore, useSkillExtensionStore } from "@/stores";
 
 // ── Types ────────────────────────────────────────────────────────────────

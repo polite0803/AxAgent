@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Hook 执行器
 //!
 //! 实际执行 Hook 逻辑：启动子进程、发送 HTTP 请求、注入 Prompt。

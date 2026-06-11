@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { useActivePage } from "@/hooks/usePageRouting";
 import { CHAT_ICON_COLORS } from "@/lib/iconColors";
 import { GatewayPage } from "@/pages/GatewayPage";

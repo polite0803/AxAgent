@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import type { WorkflowEdge, WorkflowNode, WorkflowNodeBase } from "@/components/workflow/types/workflow.types";
 import type {
   DiagnosticCategory,

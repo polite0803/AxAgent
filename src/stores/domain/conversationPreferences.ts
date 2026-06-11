@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import type { Conversation, UpdateConversationInput } from "@/types";
 
 // Sequence counter to prevent stale preference saves

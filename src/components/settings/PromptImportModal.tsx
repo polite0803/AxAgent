@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { usePromptTemplateStore } from "@/stores/feature/promptTemplateStore";
 import type { ImportPromptResult, ImportPromptTemplateInput } from "@/types";
 import { DownloadOutlined, FolderOpenOutlined, GithubOutlined, InboxOutlined, LinkOutlined } from "@ant-design/icons";

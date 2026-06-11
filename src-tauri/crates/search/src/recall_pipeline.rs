@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Three-level recall pipeline for precision code search.
 //!
 //! Orchestrates L1 (file metadata filter) → L2 (AST semantic match) → L3 (vector

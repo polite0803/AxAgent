@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! 轨迹学习服务契约。
 //!
 //! 提供会话压缩完整性校验和复杂度评估功能。

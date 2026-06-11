@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Lightweight token estimation for context window management.
 //!
 //! Uses character-based heuristics rather than a full tokenizer to keep

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! 校验执行器 —— 根据 ValidationNodeConfig 执行断言校验。
 
 use async_trait::async_trait;

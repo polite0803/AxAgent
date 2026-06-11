@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 pub use crate::span::{SpanError, SpanEvent};
 
 #[cfg(test)]

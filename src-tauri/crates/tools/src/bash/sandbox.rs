@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! 沙箱执行器
 //!
 //! 支持 Docker/podman 容器执行和进程级隔离。

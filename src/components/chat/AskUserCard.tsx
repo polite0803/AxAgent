@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { useAgentStore } from "@/stores";
 import { Button, Card, Input, Radio, Space, theme, Typography } from "antd";
 import { CheckCircle2, Loader2, MessageCircleQuestion, Send } from "lucide-react";

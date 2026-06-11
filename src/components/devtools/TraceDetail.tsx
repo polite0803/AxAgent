@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { useTracerStore } from "@/stores/devtools/tracerStore";
 import { Button, Card, Col, Descriptions, Row, Space, Tabs, Tag, Typography } from "antd";
 import { useEffect, useState } from "react";

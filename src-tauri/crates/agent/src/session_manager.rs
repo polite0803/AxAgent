@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Session Manager for AxAgent Agent
 
 use crate::event_bus::AgentPermissionPayload;

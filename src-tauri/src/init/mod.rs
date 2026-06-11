@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 pub mod database;
 pub mod plugins;
 pub mod services;

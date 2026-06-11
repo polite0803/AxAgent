@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Windows-specific utilities: native error dialogs for fatal startup failures.
 
 use windows_sys::Win32::Foundation::HWND;

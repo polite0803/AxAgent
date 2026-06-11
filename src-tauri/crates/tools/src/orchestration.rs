@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! 工具编排器 - 并发/串行执行工具调用，包含批次分区和重试逻辑
 
 use crate::registry::ToolRegistry;

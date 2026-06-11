@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use sea_orm::{DatabaseConnection, EntityTrait};
 
 pub const DEFAULT_PURPOSE_TEMPLATE: &str = r#"# {wiki_name}

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { DatasetManager } from "@/components/fine-tune/DatasetManager";
 import { LoRAConfig } from "@/components/fine-tune/LoRAConfig";
 import { TrainingJobList } from "@/components/fine-tune/TrainingJobList";

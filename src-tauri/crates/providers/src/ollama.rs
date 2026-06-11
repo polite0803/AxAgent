@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Ollama local provider adapter.
 //!
 //! Connects to a locally running [Ollama](https://ollama.com) instance.

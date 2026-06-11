@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import type { SkillPermissions } from "@/sdk/types";
 
 import { SkillMarkdownPage } from "./SkillMarkdownPage";

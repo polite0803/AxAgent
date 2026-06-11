@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { useWorkflowEditorStore } from "@/stores";
 import { Input, Tabs, Tag, theme } from "antd";
 import { FileText, Search } from "lucide-react";

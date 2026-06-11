@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use axagent_agent::fine_tune::lora::LoRAAdapterInfo;
 use axagent_agent::fine_tune::trainer::TrainingStats;
 use axagent_agent::fine_tune::{ActiveModelConfig, BaseModelInfo, TrainingJob};

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { doneAsync, failAsync, startAsync } from "@/lib/asyncState";
 import { invoke } from "@/lib/invoke";
 import { create } from "zustand";

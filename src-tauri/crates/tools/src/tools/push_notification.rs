@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! PushNotificationTool - 系统通知
 
 use crate::{Tool, ToolCategory, ToolContext, ToolError, ToolResult};

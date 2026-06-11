@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 // 新用户欢迎向导 — 5 步引导流程
 import { useOnboardingStore } from "@/stores";
 import { Button, Card, Modal, Steps, Tag, theme, Typography } from "antd";

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { OverlayScrollbars } from "overlayscrollbars";
 import { useEffect, useRef } from "react";
 

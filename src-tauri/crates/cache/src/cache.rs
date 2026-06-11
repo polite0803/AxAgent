@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Caching utilities for AxAgent core functionality.
 //!
 //! This module provides thread-safe in-memory caches for embedding vectors

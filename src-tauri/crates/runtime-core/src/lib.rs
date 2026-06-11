@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Core runtime primitives extracted from axagent-runtime.
 //!
 //! This crate owns the foundational types that other crates (agent, tools)
@@ -23,6 +25,10 @@ pub mod hooks;
 pub mod json;
 pub mod message_importance;
 pub mod permission_enforcer;
+pub mod retry_policy;
+pub use retry_policy::{BackoffStrategy, FallbackStrategy, RetryPolicy};
+pub mod llm_executor;
+pub use llm_executor::{LlmCallConfig, execute_llm};
 pub mod permissions;
 pub mod plugin_hooks;
 pub mod prompt_cache;

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 export type McpTransport = "stdio" | "http" | "sse";
 export type McpPermissionPolicy = "ask" | "allow_safe" | "allow_all";
 export type ToolExecutionStatus =

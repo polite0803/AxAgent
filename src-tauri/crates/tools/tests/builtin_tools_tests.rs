@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 // builtin_tools 已迁移至 axagent-tools crate
 use serde::{Deserialize, Serialize};
 

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use crate::session::Session;
 
 const DEFAULT_INPUT_COST_PER_MILLION: f64 = 3.0;

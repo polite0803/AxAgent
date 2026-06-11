@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use crate::recovery_strategies::{ErrorClassifier, ErrorType};
 use backon::BackoffBuilder;
 use backon::ExponentialBuilder;

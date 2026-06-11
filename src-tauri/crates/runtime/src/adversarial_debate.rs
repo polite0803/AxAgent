@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Adversarial Debate - Dual agent iterative improvement
 //!
 //! Features:

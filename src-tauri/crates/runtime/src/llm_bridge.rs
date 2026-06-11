@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! LLM Bridge 工厂函数 — 从 DB 构建 ProviderLlmBridge
 //!
 //! 在 Harness 架构中，这些函数负责将具体 provider 实现注入到 agent，

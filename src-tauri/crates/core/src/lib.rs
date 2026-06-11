@@ -1,4 +1,5 @@
 #![allow(clippy::result_large_err)]
+// SPDX-License-Identifier: AGPL-3.0-only
 
 // builtin_tools, builtin_tools_registry 已迁移至 axagent-tools crate
 // ── Search/RAG 模块已迁至 axagent-search ──

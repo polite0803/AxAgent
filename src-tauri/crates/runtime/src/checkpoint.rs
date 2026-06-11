@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Checkpoint System - Persistent state snapshots for recovery
 //!
 //! Features:

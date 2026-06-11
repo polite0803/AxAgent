@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { useLocalToolStore } from "@/stores";
 import { Button, Divider, Input, Select, theme } from "antd";
 import React, { useEffect, useMemo } from "react";

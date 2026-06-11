@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use std::collections::{HashMap, HashSet};
 
 use axagent_core::repo::note_graph::{LinkGraph, RelevanceEdge, RelevanceSignal};

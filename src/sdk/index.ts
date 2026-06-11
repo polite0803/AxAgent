@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /**
  * AxAgent SDK — TypeScript 客户端 SDK
  *

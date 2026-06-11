@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { Tooltip } from "@/components/layout/Tooltip";
 import { Divider, InputNumber, Slider, Switch, theme } from "antd";
 import { Info } from "lucide-react";

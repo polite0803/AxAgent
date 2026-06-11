@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! 子工作流执行器 —— 通过引擎内递归执行运行嵌套工作流。
 //!
 //! 从 ExecutionState.callbacks.subworkflow 获取引擎回调，

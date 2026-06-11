@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use axagent_core::db::create_test_pool;
 use axagent_core::repo::{
     conversation, conversation_category, message, provider, settings, stored_file,

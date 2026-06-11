@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { Descriptions, Tag, Typography } from "antd";
 import React from "react";
 import { useTranslation } from "react-i18next";

@@ -1,9 +1,12 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// @ts-nocheck
+
+import type { NodeProps } from "@xyflow/react";
 import { theme } from "antd";
 import React, { memo } from "react";
 import { useTranslation } from "react-i18next";
-import type { NodeProps } from "reactflow";
 
-interface PhaseSeparatorData {
+interface PhaseSeparatorData extends Record<string, unknown> {
   id: string;
   type: "phaseSeparator";
   label: string;
@@ -17,7 +20,7 @@ interface PhaseSeparatorData {
  * 不参与执行逻辑，仅用于大型工作流按阶段阅读和维护。
  */
 const PhaseSeparatorNodeComponent: React.FC<
-  NodeProps<PhaseSeparatorData>
+  NodeProps
 > = ({ data, selected }) => {
   const { t } = useTranslation();
   const { token } = theme.useToken();

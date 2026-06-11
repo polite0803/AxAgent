@@ -1,7 +1,10 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { MonacoEditor } from "@/components/shared/MonacoEditor";
 import i18n from "@/i18n";
 import { invoke } from "@/lib/invoke";
 import { useLocalToolStore, useProviderStore, useWorkflowEditorStore } from "@/stores";
+import type { ArtifactLanguage } from "@/types";
 import { Button, Divider, Dropdown, Input, Select, Tag, theme, Tooltip } from "antd";
 import { Sparkles, Wand2, Wrench } from "lucide-react";
 import React, { useMemo, useState } from "react";
@@ -9,6 +12,15 @@ import { useTranslation } from "react-i18next";
 import { AIAssistButton, useNodeAIAssist } from "../../Hooks";
 import type { CodeNode, WorkflowNode } from "../../types";
 import { BasePropertyPanel } from "./BasePropertyPanel";
+
+/** Map rhai/rust/plaintext to a valid ArtifactFormat for Monaco */
+function toArtifactLanguage(lang: string | undefined): string {
+  if (lang === "rhai") { return "javascript"; }
+  if (lang === "plaintext" || !lang) { return "text"; }
+  // Monaco supports many languages beyond the ArtifactFormat union;
+  // cast through unknown to satisfy the strict prop type.
+  return lang;
+}
 
 interface CodePropertyPanelProps {
   node: WorkflowNode;
@@ -320,8 +332,7 @@ export const CodePropertyPanel: React.FC<CodePropertyPanelProps> = ({
         >
           <MonacoEditor
             value={config.code || ""}
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            language={(config.language === "rhai" ? "rust" : config.language) as any}
+            language={toArtifactLanguage(config.language) as ArtifactLanguage}
             onChange={(v) => handleConfigChange("code", v || "")}
             height="300px"
           />

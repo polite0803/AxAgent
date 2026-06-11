@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Dream 模式巩固增强
 //!
 //! 在会话空闲期间统一调度后台推理任务：

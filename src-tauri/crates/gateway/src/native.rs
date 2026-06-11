@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use axagent_harness::ProviderRequestContext;
 use axagent_harness::core_error::AxAgentError;
 use axagent_harness::types::{

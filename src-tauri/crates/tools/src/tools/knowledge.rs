@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! 知识库管理工具
 //!
 //! 将 builtin_handlers 中的 list_knowledge_bases、search_knowledge、

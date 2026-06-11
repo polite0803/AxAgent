@@ -1,4 +1,5 @@
 #![allow(clippy::unwrap_used)]
+// SPDX-License-Identifier: AGPL-3.0-only
 
 use axagent_core::vector_store::{EmbeddingRecord, HnswConfig, VectorSearchResult};
 

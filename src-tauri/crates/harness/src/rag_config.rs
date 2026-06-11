@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! RAG 相关配置类型
 //!
 //! 纯数据 DTO，不依赖重型实现模块。

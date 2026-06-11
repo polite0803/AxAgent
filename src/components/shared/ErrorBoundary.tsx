@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { Button, Result } from "antd";
 import i18next from "i18next";
 import React from "react";

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 // === Nudge System (P0: Self-Evolution) ===
 
 export type NudgeUrgency = "low" | "medium" | "high";

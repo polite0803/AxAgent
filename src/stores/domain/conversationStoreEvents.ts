@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { invoke, isTauri, listen, logIpcError } from "@/lib/invoke";
 import { buildKnowledgeTag, buildMemoryTag, buildWikiTag, type RagContextRetrievedEvent } from "@/lib/memoryUtils";
 import type { ChatStreamErrorEvent, ChatStreamEvent } from "@/types";

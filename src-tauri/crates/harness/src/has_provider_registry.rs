@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! `HasProviderRegistry` — 接受外部 `ProviderRegistry` 注入的组件抽象。
 //!
 //! 多个执行器（`LlmExecutor` / `AgentExecutor` / `ConditionExecutor` /

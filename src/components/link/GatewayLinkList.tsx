@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { useGatewayLinkStore } from "@/stores";
 import type { GatewayLink, GatewayLinkStatus } from "@/types";
 import { App, Button, Input, Popconfirm, Switch, theme } from "antd";

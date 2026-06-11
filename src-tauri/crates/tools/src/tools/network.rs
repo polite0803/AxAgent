@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! 网络工具集
 //!
 //! HttpRequest (通用 HTTP), Ping (网络连通), DnsLookup (DNS 查询),

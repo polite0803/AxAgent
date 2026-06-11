@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! 权限同步 — leader 权限桥接到队友
 
 /// 将 leader 的权限策略同步给队友

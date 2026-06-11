@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! 集中式错误码定义
 //!
 //! 前端根据 error code 查询 i18n 翻译

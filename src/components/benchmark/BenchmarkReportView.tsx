@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { useEvaluatorStore } from "@/stores/devtools/evaluatorStore";
 import type { BenchmarkReport, Difficulty } from "@/types";
 import { formatDuration, formatScore, getDifficultyKey } from "@/types";

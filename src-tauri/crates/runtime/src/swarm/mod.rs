@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Swarm/Teammate 跨进程多 Agent 团队协作系统
 //!
 //! ## 概述

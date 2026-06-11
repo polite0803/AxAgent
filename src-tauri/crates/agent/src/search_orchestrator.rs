@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use crate::research_state::{SearchPlan, SearchQuery, SearchResult, SourceType};
 use crate::search_provider::SearchProvider;
 use std::collections::HashMap;

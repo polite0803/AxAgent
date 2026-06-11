@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Dashboard plugin and registry system.
 
 pub mod dashboard_plugin;

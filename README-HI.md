@@ -31,16 +31,16 @@
 
 ## स्क्रीनशॉट
 
-| चैट और मॉडल चयन | मल्टी-एजेंट पैनल |
-|:---:|:---:|
+|         चैट और मॉडल चयन          |          मल्टी-एजेंट पैनल           |
+| :-----------------------------: | :-----------------------------: |
 | ![](.github/images/s1-0412.png) | ![](.github/images/s5-0412.png) |
 
-| RAG ज्ञान आधार | मेमोरी और संदर्भ |
-|:---:|:---:|
+|          RAG ज्ञान आधार          |          मेमोरी और संदर्भ          |
+| :-----------------------------: | :-----------------------------: |
 | ![](.github/images/s3-0412.png) | ![](.github/images/s4-0412.png) |
 
-| वर्कफ़्लो संपादक | API गेटवे |
-|:---:|:---:|
+|          वर्कफ़्लो संपादक           |             API गेटवे              |
+| :-----------------------------: | :------------------------------: |
 | ![](.github/images/s9-0412.png) | ![](.github/images/s10-0412.png) |
 
 ---
@@ -301,38 +301,38 @@
 
 ### तकनीकी स्टैक
 
-| परत | तकनीक |
-|-----|--------|
-| **फ़्रेमवर्क** | Tauri 2 + React 19 + TypeScript 6 |
-| **UI** | Ant Design 6 + TailwindCSS 4 |
-| **स्टेट प्रबंधन** | Zustand 5 |
-| **राउटिंग** | React Router 7 |
-| **i18n** | i18next + react-i18next |
-| **बैकएंड** | Rust + SeaORM 2 + SQLite |
-| **वेक्टर DB** | sqlite-vec |
-| **कोड संपादक** | Monaco Editor |
-| **आरेख** | Mermaid + D2 + ECharts (CDN) |
-| **टर्मिनल** | xterm.js 6 |
-| **वर्कफ़्लो** | ReactFlow 11 |
-| **इन्फोग्राफ़िक** | @antv/infographic |
-| **आइकन** | Iconify + Lucide |
-| **ड्रैग एंड ड्रॉप** | @dnd-kit |
-| **बिल्ड** | Vite 8 + npm |
-| **टेस्टिंग** | Vitest + Playwright + cargo-nextest |
-| **फ़ॉर्मेटिंग** | dprint (TS/JSON) + rustfmt |
-| **Lint** | TS: eslint + oxlint / Rust: clippy + cargo-deny |
-| **मोबाइल** | Tauri Android + iOS नेटिव बिल्ड |
-| **डेस्कटॉप** | Windows (MSI) · macOS (DMG) · Linux (AppImage/deb/rpm) |
+| परत             | तकनीक                                                  |
+| --------------- | ------------------------------------------------------ |
+| **फ़्रेमवर्क**      | Tauri 2 + React 19 + TypeScript 6                      |
+| **UI**          | Ant Design 6 + TailwindCSS 4                           |
+| **स्टेट प्रबंधन**   | Zustand 5                                              |
+| **राउटिंग**      | React Router 7                                         |
+| **i18n**        | i18next + react-i18next                                |
+| **बैकएंड**        | Rust + SeaORM 2 + SQLite                               |
+| **वेक्टर DB**     | sqlite-vec                                             |
+| **कोड संपादक**   | Monaco Editor                                          |
+| **आरेख**         | Mermaid + D2 + ECharts (CDN)                           |
+| **टर्मिनल**      | xterm.js 6                                             |
+| **वर्कफ़्लो**      | ReactFlow 11                                           |
+| **इन्फोग्राफ़िक**  | @antv/infographic                                      |
+| **आइकन**        | Iconify + Lucide                                       |
+| **ड्रैग एंड ड्रॉप** | @dnd-kit                                               |
+| **बिल्ड**        | Vite 8 + npm                                           |
+| **टेस्टिंग**       | Vitest + Playwright + cargo-nextest                    |
+| **फ़ॉर्मेटिंग**     | dprint (TS/JSON) + rustfmt                             |
+| **Lint**        | TS: eslint + oxlint / Rust: clippy + cargo-deny        |
+| **मोबाइल**      | Tauri Android + iOS नेटिव बिल्ड                          |
+| **डेस्कटॉप**      | Windows (MSI) · macOS (DMG) · Linux (AppImage/deb/rpm) |
 
 ### प्लेटफ़ॉर्म समर्थन
 
-| प्लेटफ़ॉर्म | आर्किटेक्चर |
-|-----------|-------------|
-| Windows | x86_64, ARM64 |
-| macOS | Apple Silicon (arm64), Intel (x86_64) |
-| Linux | x86_64, ARM64 |
+| प्लेटफ़ॉर्म | आर्किटेक्चर                               |
+| ------- | -------------------------------------- |
+| Windows | x86_64, ARM64                          |
+| macOS   | Apple Silicon (arm64), Intel (x86_64)  |
+| Linux   | x86_64, ARM64                          |
 | Android | arm64-v8a, armeabi-v7a, x86_64 (एमुलेटर) |
-| iOS | arm64 |
+| iOS     | arm64                                  |
 
 ### Rust बैकएंड आर्किटेक्चर
 
@@ -644,6 +644,7 @@ AxAgent/
 चूँकि ऐप़ Apple द्वारा हस्ताक्षरित नहीं है:
 
 **1. "किसी भी स्रोत" से ऐप्स की अनुमति दें**
+
 ```bash
 sudo spctl --master-disable
 ```
@@ -651,6 +652,7 @@ sudo spctl --master-disable
 फिर **सिस्टम सेटिंग्स → गोपनीयता और सुरक्षा → सुरक्षा** पर जाएँ और **किसी भी स्रोत** चुनें।
 
 **2. क्वारंटाइन विशेषता हटाएँ**
+
 ```bash
 sudo xattr -dr com.apple.quarantine /Applications/AxAgent.app
 ```

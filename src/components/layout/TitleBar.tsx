@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import appLogo from "@/assets/image/logo.png";
 import { useUpdateChecker } from "@/hooks/useUpdateChecker";
 import { TITLEBAR_ICON_COLORS } from "@/lib/iconColors";

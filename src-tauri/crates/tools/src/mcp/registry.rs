@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! MCP 官方服务器注册表
 //! 内置常用 MCP 服务器的安装信息。
 

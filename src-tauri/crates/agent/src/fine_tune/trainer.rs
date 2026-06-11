@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use crate::fine_tune::dataset::{FineTuneDataset, FineTuneError};
 use crate::fine_tune::lora::{JobStatus, LoRAConfig, TrainingJob};
 

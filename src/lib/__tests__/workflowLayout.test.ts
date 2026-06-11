@@ -1,4 +1,6 @@
-import type { Edge, Node } from "reactflow";
+// SPDX-License-Identifier: AGPL-3.0-only
+
+import type { Edge, Node } from "@xyflow/react";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -341,7 +343,7 @@ describe("clampChildrenIntoContainers", () => {
       // 完全合法：在容器内
       position: { x: 100, y: 100 },
       data: {},
-      parentNode: "p",
+      parentId: "p",
     };
     const result = clampChildrenIntoContainers(
       [container, child],
@@ -365,7 +367,7 @@ describe("clampChildrenIntoContainers", () => {
       type: "agent",
       position: { x: containerW + 200, y: 50 },
       data: {},
-      parentNode: "p",
+      parentId: "p",
     };
     const result = clampChildrenIntoContainers(
       [container, overflow],
@@ -391,7 +393,7 @@ describe("clampChildrenIntoContainers", () => {
       type: "agent",
       position: { x: -500, y: -300 },
       data: {},
-      parentNode: "p",
+      parentId: "p",
     };
     const result = clampChildrenIntoContainers(
       [container, overflow],
@@ -426,7 +428,7 @@ describe("clampChildrenIntoContainers", () => {
       type: "agent",
       position: { x: 9999, y: 9999 },
       data: {},
-      parentNode: "missing",
+      parentId: "missing",
     };
     const result = clampChildrenIntoContainers(
       [child],

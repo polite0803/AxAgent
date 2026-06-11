@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Hook 系统
 //!
 //! PreToolUse / PostToolUse / PostToolUseFailure 钩子系统。

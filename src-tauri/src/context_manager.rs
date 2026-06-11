@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Context manager for conversation history compression.
 //!
 //! Two modes:

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Re-exported from axagent-rt-messaging。
 //!
 //! 真正的 `MESSAGE_CALLBACK` static、setter/getter、PlatformAdapter trait

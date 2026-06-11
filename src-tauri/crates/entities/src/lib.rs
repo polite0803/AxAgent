@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! SeaORM entity definitions for AxAgent database tables.
 
 pub mod background_tasks;

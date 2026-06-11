@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! 兜底执行器 —— 处理尚未实现专用执行器的节点类型。
 //!
 //! 返回模拟 JSON 而非 UnsupportedNodeType 错误，确保工作流不会因不支持的节点类型而崩溃。

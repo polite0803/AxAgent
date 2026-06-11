@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 #[cfg(test)]
 use axagent_harness::trajectory_types::ProcedureStep;
 use axagent_harness::trajectory_types::{

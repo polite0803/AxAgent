@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { useRecommendationStore } from "@/stores/devtools/recommendationStore";
 import { Alert, Button, Card, Divider, Input, List, Progress, Space, Spin, Tag, Typography } from "antd";
 import { useEffect, useState } from "react";

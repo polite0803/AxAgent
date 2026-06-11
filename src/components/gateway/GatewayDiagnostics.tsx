@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { useGatewayStore } from "@/stores";
 import type { GatewayRequestLog } from "@/types";
 import { Button, Empty, Modal, Popconfirm, Table, Tag, theme } from "antd";

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { Badge, Button, Card, Descriptions, Input, message, Modal, Space, Tag, Typography } from "antd";
 import { CheckCircle, Code2, Loader2, PackageSearch, XCircle } from "lucide-react";
 import { useEffect, useState } from "react";

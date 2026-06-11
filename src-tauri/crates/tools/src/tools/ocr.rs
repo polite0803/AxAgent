@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! OCR 光学字符识别工具
 //!
 //! 将 builtin_handlers 中的 ocr_image、ocr_detect_langs 迁移为 Tool trait。

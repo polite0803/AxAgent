@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use axagent_harness::{DispatchResult, WebhookEvent, WebhookPayload, WebhookSubscriptionService};
 use reqwest::Client;
 use std::collections::HashMap;

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /**
  * SkillStatsPanel — Skill 执行统计仪表盘
  *

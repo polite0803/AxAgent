@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! 跨平台 Agent 数据迁移 DTO 集合。
 //!
 //! 定义在 harness 层（最低层），让 `MigrationRunner` trait 也能

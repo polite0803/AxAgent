@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 // AgentProfile — 融合 ExpertRole + AgentRole 的智能体能力集
 // 替代原有的分离式 ExpertRole 和 AgentRole 概念
 

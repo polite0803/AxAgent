@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! 业务规则引擎 — 强制执行业务规则，LLM 无法绕过。
 //!
 //! 与 `domain_constraints`（软约束，仅作为 LLM prompt 建议）不同，

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use axagent_core::cloud_storage::{
     BackendType, CloudStorageConfig, S3Config, S3ProviderPreset, WebDavConfig,
 };

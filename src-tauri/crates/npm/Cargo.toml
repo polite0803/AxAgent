@@ -5,11 +5,11 @@ edition.workspace = true
 publish = false
 
 [dependencies]
-axagent-harness = { path = "../harness" }
 async-trait = "0.1"
+axagent-harness = { path = "../harness" }
+flate2 = "1.0"
 reqwest = { workspace = true }
 serde = { workspace = true }
-flate2 = "1.0"
 tar = "0.4"
 thiserror = { workspace = true }
 tracing = { workspace = true }

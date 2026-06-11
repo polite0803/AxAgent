@@ -5,27 +5,27 @@ edition.workspace = true
 publish = false
 
 [dependencies]
-serde = { workspace = true }
-serde_json = { workspace = true }
-tokio = { workspace = true, features = ["io-std", "io-util", "macros", "process", "rt", "rt-multi-thread", "sync", "time"] }
+anyhow = { workspace = true }
 async-trait = "0.1"
-thiserror = { workspace = true }
-tracing = { workspace = true }
-chrono = { workspace = true }
-reqwest = { workspace = true, features = ["multipart", "cookies"] }
-uuid = { workspace = true }
-flate2 = "1"
-zstd = { version = "0.13", features = ["experimental"] }
-futures = "0.3"
 axagent-core = { path = "../core" }
 axagent-harness = { path = "../harness" }
-sea-orm = { workspace = true }
-tokio-tungstenite = { version = "0.29", features = ["native-tls"] }
-sha1 = "0.10"
-anyhow = { workspace = true }
-roxmltree = "0.20"
-url = "2"
+chrono = { workspace = true }
+flate2 = "1"
+futures = "0.3"
 regex = "1"
+reqwest = { workspace = true, features = ["multipart", "cookies"] }
+roxmltree = "0.20"
+sea-orm = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+sha1 = "0.10"
+thiserror = { workspace = true }
+tokio = { workspace = true, features = ["io-std", "io-util", "macros", "process", "rt", "rt-multi-thread", "sync", "time"] }
+tokio-tungstenite = { version = "0.29", features = ["native-tls"] }
+tracing = { workspace = true }
+url = "2"
+uuid = { workspace = true }
+zstd = { version = "0.13", features = ["experimental"] }
 
 [lints]
 # workspace = true

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! 后台任务类型模块
 
 pub mod dream_task;

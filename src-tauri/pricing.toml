@@ -149,7 +149,13 @@ tier = "mid"
 [[models]]
 provider = "anthropic"
 model_id = "claude-opus-4-8"
-aliases = ["claude-opus-4-8-20260528", "claude-opus-4-7", "claude-opus-4-20250514", "claude-3-opus-20240229", "claude-3-opus-latest"]
+aliases = [
+  "claude-opus-4-8-20260528",
+  "claude-opus-4-7",
+  "claude-opus-4-20250514",
+  "claude-3-opus-20240229",
+  "claude-3-opus-latest",
+]
 input_price = 5.00
 output_price = 25.00
 tier = "premium"
@@ -157,7 +163,13 @@ tier = "premium"
 [[models]]
 provider = "anthropic"
 model_id = "claude-sonnet-4-6"
-aliases = ["claude-sonnet-4-6-20260415", "claude-sonnet-4-20250514", "claude-3-5-sonnet-20241022", "claude-3-5-sonnet-latest", "claude-3.5-sonnet"]
+aliases = [
+  "claude-sonnet-4-6-20260415",
+  "claude-sonnet-4-20250514",
+  "claude-3-5-sonnet-20241022",
+  "claude-3-5-sonnet-latest",
+  "claude-3.5-sonnet",
+]
 input_price = 3.00
 output_price = 15.00
 tier = "mid"

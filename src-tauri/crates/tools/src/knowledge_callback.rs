@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! 知识搜索回调桥接
 //!
 //! 提供全局知识搜索回调的注册和获取，供 knowledge.rs 和 state.rs 使用。

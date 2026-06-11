@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! 工具调用审计系统
 //!
 //! 提供：

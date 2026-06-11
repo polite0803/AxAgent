@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 pub mod agent_profile;
 pub mod agent_role;
 pub mod agent_session;

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use std::io::Write;
 use std::path::PathBuf;
 use std::sync::Arc;

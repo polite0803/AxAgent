@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { ModelParamSliders } from "@/components/common/ModelParamSliders";
 import { Tooltip } from "@/components/layout/Tooltip";
 import { IconEditor } from "@/components/shared/IconEditor";

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { useGatewayStore } from "@/stores";
 import type { CliToolInfo, QuickConnectProtocol } from "@/types";
 import { ClaudeCode } from "@lobehub/icons";

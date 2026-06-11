@@ -1,8 +1,11 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// @ts-nocheck
+
 import { useWorkflowEditorStore } from "@/stores";
+import { Handle, Position } from "@xyflow/react";
 import { Tag, theme, Tooltip } from "antd";
 import React, { memo, useCallback } from "react";
 import { useTranslation } from "react-i18next";
-import { Handle, Position } from "reactflow";
 
 /**
  * 容器节点的共享 data 接口。

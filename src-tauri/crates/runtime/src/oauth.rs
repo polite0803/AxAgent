@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use std::collections::BTreeMap;
 use std::fs::{self, File};
 use std::io::{self, Read};

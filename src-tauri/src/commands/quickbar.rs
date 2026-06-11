@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use tauri::{AppHandle, Manager, WebviewUrl, WebviewWindowBuilder};
 
 const QUICKBAR_LABEL: &str = "quickbar";

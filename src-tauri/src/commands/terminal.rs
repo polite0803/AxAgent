@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::terminal as terminal_err;
 use serde::{Deserialize, Serialize};

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use sea_orm::*;
 use sha2::{Digest, Sha256};
 use std::path::{Path, PathBuf};

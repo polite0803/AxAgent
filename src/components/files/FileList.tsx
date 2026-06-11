@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /** FileList renders file rows in an antd Table with built-in multi-column sorting. */
 
 import { invoke, logIpcError } from "@/lib/invoke";

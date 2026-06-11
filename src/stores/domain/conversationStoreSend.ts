@@ -1,11 +1,13 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 // S-20: Send method factory extracted from conversationStore
 
 import i18n from "@/i18n";
 import { invoke, isTauri, listen, logIpcError, type UnlistenFn } from "@/lib/invoke";
 import { buildKnowledgeTag, buildMemoryTag, buildWikiTag } from "@/lib/memoryUtils";
 import { buildSearchTag, formatSearchContent } from "@/lib/searchUtils";
-import { useSearchStore } from "@/stores";
 import { useProviderStore } from "@/stores/feature/providerStore";
+import { useSearchStore } from "@/stores/feature/searchStore";
 import { useSettingsStore } from "@/stores/feature/settingsStore";
 import type {
   AgentDoneEvent,

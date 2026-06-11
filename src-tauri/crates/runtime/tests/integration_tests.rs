@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Integration tests for cross-module wiring.
 //!
 //! These tests verify that adjacent modules in the runtime crate actually

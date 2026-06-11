@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! AI 媒体工具
 //!
 //! GenerateImage (flux/dall-e), GenerateChartConfig (ECharts),

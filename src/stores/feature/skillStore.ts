@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { invoke, isTauri, listen, logIpcError } from "@/lib/invoke";
 import type {
   MarketplaceSkill,

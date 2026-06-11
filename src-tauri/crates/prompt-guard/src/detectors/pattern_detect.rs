@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! 基于正则模式的提示词注入检测（L1 层）。
 //!
 //! 使用 RegexSet 批量匹配高风险和中风险注入模式。

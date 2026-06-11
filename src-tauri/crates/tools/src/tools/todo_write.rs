@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! TodoWriteTool / AskUserQuestionTool / NotebookEditTool
 //! 组合几个小工具到一个文件
 

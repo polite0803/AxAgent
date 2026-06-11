@@ -1,4 +1,6 @@
 #![allow(clippy::result_large_err)]
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /// Cloud storage abstraction and sync engine.
 ///
 /// Provides a unified `StorageBackend` trait for WebDAV and S3-compatible services,

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use crate::citation_tracker::CitationTracker;
 use crate::research_state::Citation;
 use serde::{Deserialize, Serialize};

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { Button, Input, Space, theme, Tooltip } from "antd";
 import { Play, Save, Settings } from "lucide-react";
 import React, { memo, useCallback, useEffect, useState } from "react";

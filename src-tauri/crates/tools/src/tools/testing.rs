@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! 测试运行工具
 //!
 //! RunTests / RunTestCoverage / RunLinter

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { Icon as IconifyIcon } from "@iconify/react";
 import React from "react";
 

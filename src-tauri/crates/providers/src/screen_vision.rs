@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use crate::{ProviderAdapter, ProviderRequestContext};
 use axagent_core::error::{AxAgentError, Result};
 use axagent_core::screen_vision::{ScreenAnalysis, SuggestedAction, UIElementInfo};

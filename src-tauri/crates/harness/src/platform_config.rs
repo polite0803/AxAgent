@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Platform configuration types
 //!
 //! Pure DTO — validation logic lives in the implementation crate.

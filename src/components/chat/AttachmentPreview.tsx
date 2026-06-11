@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { CloseCircleFilled } from "@ant-design/icons";
 import { App, Image, Tag } from "antd";
 import { AlertCircle, FileImage, Paperclip } from "lucide-react";

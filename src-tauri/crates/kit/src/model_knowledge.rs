@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /// 返回已知模型的上下文窗口大小（最大输入 token 数）。
 /// 支持精确匹配和模糊匹配（去除 Ollama 标签后缀、版本号等）。
 pub fn get_model_context_window(model_id: &str) -> Option<u32> {

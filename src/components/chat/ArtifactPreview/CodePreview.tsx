@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { MonacoEditor } from "@/components/shared/MonacoEditor";
 import type { ArtifactLanguage } from "@/types";
 import { memo } from "react";

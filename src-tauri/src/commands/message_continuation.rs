@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 // 消息续写 — 从截断/partial 消息处继续生成
 
 use crate::AppState;

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use std::collections::HashMap;
 // SAFETY: PluginAgentRegistry methods (register, unregister, all) are all
 // synchronous. The RwLock is never held across .await points. Callers

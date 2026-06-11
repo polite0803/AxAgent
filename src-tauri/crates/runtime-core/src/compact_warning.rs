@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! 压缩警告系统
 //!
 //! 在上下文即将用尽时向用户发出渐进式警告，而非静默压缩。

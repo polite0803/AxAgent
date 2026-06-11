@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 export interface StyleDimensions {
   naming_score: number;
   density_score: number;

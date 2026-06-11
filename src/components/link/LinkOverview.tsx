@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { useGatewayLinkStore } from "@/stores";
 import type { GatewayLink } from "@/types";
 import { Button, Card, Col, Empty, Row, Statistic, Tag, theme } from "antd";

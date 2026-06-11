@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use crate::event_bus::{AgentEventBus, AgentEventType, UnifiedAgentEvent};
 use std::collections::VecDeque;
 use std::sync::Arc;

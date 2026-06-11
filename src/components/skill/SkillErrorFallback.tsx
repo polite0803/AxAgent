@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { Alert, Button, Result } from "antd";
 import { RefreshCw } from "lucide-react";
 import { Component, type ReactNode } from "react";

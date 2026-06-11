@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use crate::research_state::SourceType;
 use crate::search_provider::ExtractedContent;
 use chrono::{Duration, Utc};

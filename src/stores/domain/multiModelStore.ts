@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /**
  * multiModelStore.ts — 多模型并行（Companion Models）状态管理
  *

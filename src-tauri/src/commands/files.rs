@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use crate::AppState;
 use axagent_core::file_authorizer::{AuthorizationRequest, AuthorizationResponse, PermissionLevel};
 use axagent_core::repo::stored_file::StoredFile;

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! ToolExecutionRecorder - 工具执行记录器（数据库审计）
 //!
 //! 记录每次工具执行的开始、成功、失败状态到 SQLite。

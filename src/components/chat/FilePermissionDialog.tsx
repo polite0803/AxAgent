@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { invoke, logIpcError } from "@/lib/invoke";
 import { Alert, Button, Descriptions, Input, Modal, Radio, Space, Tag, Typography } from "antd";
 import { AlertTriangle, Clock, FileText, Shield } from "lucide-react";

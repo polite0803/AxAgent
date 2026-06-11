@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Theme engine — color scheme and terminal theme management.
 
 pub mod theme_engine;

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! `build_provider_request_context` — 公共 ProviderRequestContext 构造助手。
 //!
 //! 之前在多处（`llm_resolve.rs::resolve_provider_and_adapter`、

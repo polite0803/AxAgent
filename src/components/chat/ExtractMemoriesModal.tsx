@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { invoke } from "@/lib/invoke";
 import { useMemoryStore } from "@/stores/feature/memoryStore";
 import { App, Button, Empty, Modal, Select, Spin, theme, Typography } from "antd";

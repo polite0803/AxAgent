@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! PTY（伪终端）命令 — 后端基础设施已存在（crates/runtime/src/pty.rs），
 //! 但尚未通过 AppState 暴露。当前返回友好错误信息，待 PtyManager 集成后启用。
 

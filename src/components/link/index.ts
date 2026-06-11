@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 export { AddGatewayLinkModal } from "./AddGatewayLinkModal";
 export { GatewayLinkDetail } from "./GatewayLinkDetail";
 export { GatewayLinkList } from "./GatewayLinkList";

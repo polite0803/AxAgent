@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Bash 安全执行模块
 //!
 //! 三层安全防护：

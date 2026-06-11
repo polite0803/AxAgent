@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! 定时任务 Tauri 命令 — 基于 CronJobStore 统一调度系统。
 //! 命令名保持与旧 ScheduledTaskService 兼容，供前端 SchedulerSettings 调用。
 

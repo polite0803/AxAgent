@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! PlanMode Tools - 计划模式管理
 //!
 //! 这些工具是告知性存根（informational stubs），仅向 LLM 返回文本响应。

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use axagent_core::screen_vision::UIElementInfo;
 use axagent_harness::types::ProviderType;
 use axagent_harness::{ProviderAdapter, ProviderRequestContext};

@@ -1,6 +1,8 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 // 新用户引导状态管理
 import { invoke } from "@/lib/invoke";
-import { useSettingsStore } from "@/stores";
+import { useSettingsStore } from "@/stores/feature/settingsStore";
 import { create } from "zustand";
 
 interface DetectedKey {

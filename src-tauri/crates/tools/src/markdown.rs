@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! 统一 Markdown 解析层
 //!
 //! 基于 pulldown-cmark 提供共享的 MD→IR 解析，供所有文档导出工具复用。

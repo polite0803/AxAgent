@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use crate::error_recovery_engine::ErrorRecoveryEngine;
 use crate::research_state::{
     Citation, ResearchConfig, ResearchPhase, ResearchProgress, ResearchReport, ResearchState,

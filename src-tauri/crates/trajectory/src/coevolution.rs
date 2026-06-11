@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Environment co-evolution for dynamic benchmarking
 //!
 //! Provides adaptive difficulty adjustment and task generation that co-evolves

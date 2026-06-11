@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use crate::research_state::{SearchPlan, SearchQuery, SourceType};
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;

@@ -1,4 +1,6 @@
 #![allow(clippy::result_large_err)]
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use reqwest::{Client, Method, StatusCode};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};

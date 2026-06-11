@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Trajectory storage module using SeaORM
 
 use crate::fts5::{FTS5Config, FTS5Query, FTS5Result, FTS5Search};

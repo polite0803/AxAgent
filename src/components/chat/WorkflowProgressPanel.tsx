@@ -1,4 +1,17 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { invoke, logIpcError } from "@/lib/invoke";
+import {
+  Background,
+  type Edge,
+  Handle,
+  type Node,
+  type NodeProps,
+  Position,
+  ReactFlow,
+  ReactFlowProvider,
+  useReactFlow,
+} from "@xyflow/react";
 import { Button, message, Spin, theme } from "antd";
 import type { GlobalToken } from "antd/es/theme/interface";
 import {
@@ -15,17 +28,7 @@ import {
 } from "lucide-react";
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import ReactFlow, {
-  Background,
-  type Edge,
-  Handle,
-  type Node,
-  type NodeProps,
-  Position,
-  ReactFlowProvider,
-  useReactFlow,
-} from "reactflow";
-import "reactflow/dist/style.css";
+import "@xyflow/react/dist/style.css";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -222,7 +225,7 @@ function isDone(status: StepLike["status"]): boolean {
 // DAG Layout
 // ---------------------------------------------------------------------------
 
-interface WorkflowDagNodeData {
+interface WorkflowDagNodeData extends Record<string, unknown> {
   stepId: string;
   goal: string;
   agentRole: string;
@@ -230,7 +233,7 @@ interface WorkflowDagNodeData {
 }
 
 function computeDagLayout(steps: StepLike[], token: GlobalToken): {
-  nodes: Node<WorkflowDagNodeData>[];
+  nodes: Node[];
   edges: Edge[];
 } {
   if (steps.length === 0) {
@@ -269,7 +272,7 @@ function computeDagLayout(steps: StepLike[], token: GlobalToken): {
   }
 
   const sortedLayers = [...layerGroups.keys()].toSorted((a, b) => a - b);
-  const nodes: Node<WorkflowDagNodeData>[] = [];
+  const nodes: Node[] = [];
 
   for (const layer of sortedLayers) {
     const group = layerGroups.get(layer)!;
@@ -323,12 +326,13 @@ function computeDagLayout(steps: StepLike[], token: GlobalToken): {
 // WorkflowDagNode
 // ---------------------------------------------------------------------------
 
-const WorkflowDagNode: React.FC<NodeProps<WorkflowDagNodeData>> = memo(
+const WorkflowDagNode: React.FC<NodeProps> = memo(
   ({ data, selected }) => {
+    const dagData = data as unknown as WorkflowDagNodeData;
     const { token } = theme.useToken();
-    const color = getStatusColor(data.status, token);
-    const isRunning = data.status === "running";
-    const isFailed = data.status === "failed";
+    const color = getStatusColor(dagData.status, token);
+    const isRunning = dagData.status === "running";
+    const isFailed = dagData.status === "failed";
 
     return (
       <div
@@ -337,7 +341,7 @@ const WorkflowDagNode: React.FC<NodeProps<WorkflowDagNodeData>> = memo(
           width: NODE_WIDTH,
           borderColor: selected ? token.colorPrimary : color,
           borderWidth: selected ? 2 : 1,
-          opacity: data.status === "skipped" ? 0.65 : 1,
+          opacity: dagData.status === "skipped" ? 0.65 : 1,
         }}
       >
         <Handle
@@ -361,14 +365,14 @@ const WorkflowDagNode: React.FC<NodeProps<WorkflowDagNodeData>> = memo(
             className="text-[10px] font-mono font-medium truncate"
             style={{ color }}
           >
-            {data.stepId}
+            {dagData.stepId}
           </span>
         </div>
         <div className="text-[10px] text-zinc-500 dark:text-zinc-400 truncate mt-0.5 leading-tight">
-          {truncate(data.goal, 28)}
+          {truncate(dagData.goal, 28)}
         </div>
         <div className="text-[9px] text-zinc-400 dark:text-zinc-500 truncate">
-          {data.agentRole}
+          {dagData.agentRole}
         </div>
         <Handle
           type="source"

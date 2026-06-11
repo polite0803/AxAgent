@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Configuration types and detection result model for the prompt guard pipeline.
 
 use serde::{Deserialize, Serialize};

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! 轻量模板引擎 —— 编译时提取 {{path}} 占位符，执行时用变量表填充。
 //!
 //! 零外部依赖，纯 std 实现。两阶段：

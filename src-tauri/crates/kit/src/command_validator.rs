@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! 命令白名单 + 结构化校验。
 //!
 //! 设计目标：

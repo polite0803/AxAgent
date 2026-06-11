@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import logoUrl from "@/assets/image/logo.png";
 import { useUpdateChecker } from "@/hooks/useUpdateChecker";
 import { invoke, isTauri, logIpcError } from "@/lib/invoke";

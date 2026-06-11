@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { useExecutionStore } from "@/stores/feature/executionStore";
 import type { TrajectoryDetail, TrajectoryStep } from "@/types";
 import { theme } from "antd";

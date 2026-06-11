@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /**
  * Semantic color mapping for lucide-react icons.
  * Each key matches a lucide icon name; the value is the color applied via the `color` prop.

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! InProcessTeammate 任务 — 同进程 Swarm 队友任务载体
 //! Feature flag: SWARM_MODE
 //!

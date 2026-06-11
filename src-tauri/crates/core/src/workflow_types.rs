@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Workflow type definitions
 //!
 //! 由 `axagent-harness` 提供定义，本模块仅做 re-export。

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import type { StyleDimensionKey, StyleVector } from "@/types";
 import { useTranslation } from "react-i18next";
 

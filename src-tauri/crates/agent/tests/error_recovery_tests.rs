@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use axagent_agent::error_recovery_engine::{ErrorRecoveryEngine, RecoveryConfig, RecoveryContext};
 use axagent_agent::recovery_strategies::ErrorType;
 use axagent_agent::recovery_strategies::RecoveryStrategy;

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! 响应式压缩系统
 //!
 //! 当 API 返回上下文溢出错误（prompt_too_long / context_length_exceeded）时，

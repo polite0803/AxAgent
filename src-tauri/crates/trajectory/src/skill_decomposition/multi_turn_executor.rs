@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use super::multi_turn::DecompositionEvent;
 use super::package_parser::SkillPackageParser;
 use super::prompt_templates::PromptTemplates;

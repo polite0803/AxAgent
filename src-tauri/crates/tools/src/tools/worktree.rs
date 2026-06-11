@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Git Worktree 隔离工具
 //!
 //! EnterWorktree (创建隔离工作目录 + 分支), ExitWorktree (keep/remove)

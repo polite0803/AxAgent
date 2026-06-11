@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! AxAgent Provider Adapter for ClawCode Runtime
 
 use axagent_harness::types::{

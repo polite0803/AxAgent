@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! 条件执行器 —— 根据 ConditionNodeConfig 评估条件表达式。
 //!
 //! 支持两种评估模式：

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Smart task router — millisecond-level task classification and automatic
 //! dispatch to the appropriate engine (CodeEngine vs GeneralEngine).
 //!

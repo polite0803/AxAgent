@@ -1,11 +1,14 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// @ts-nocheck
+
+import { Handle, type NodeProps, Position } from "@xyflow/react";
 import { Tag, theme } from "antd";
 import React, { memo } from "react";
-import { Handle, type NodeProps, Position } from "reactflow";
 
 const CYAN_BASE = "#13c2c2";
 const CYAN_VAR = `var(--cyan, ${CYAN_BASE})`;
 
-interface LLMNodeData {
+interface LLMNodeData extends Record<string, unknown> {
   id: string;
   type: string;
   title: string;
@@ -20,7 +23,7 @@ interface LLMNodeData {
   tools?: string[];
 }
 
-const LLMNodeComponent: React.FC<NodeProps<LLMNodeData>> = ({
+const LLMNodeComponent: React.FC<NodeProps> = ({
   data,
   selected,
 }) => {

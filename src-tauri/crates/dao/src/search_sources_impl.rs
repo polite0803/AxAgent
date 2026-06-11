@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! `axagent_harness::search_sources::*` trait 的默认实现。
 //!
 //! 每个 struct 持有一个 `DatabaseConnection` 克隆，转发到现有

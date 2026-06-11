@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! JSON Schema 校验工具 —— 跨 crate 共享的基础校验能力
 //!
 //! 从 axagent-agent::self_verifier 提取至 core crate，供 trajectory、

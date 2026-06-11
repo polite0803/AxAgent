@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Obsidian 集成工具
 //!
 //! 将 builtin_handlers 中的 obsidian_get_vaults、obsidian_list_files、

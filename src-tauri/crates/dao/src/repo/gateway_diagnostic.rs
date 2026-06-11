@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use axagent_harness::core_error::Result;
 use axagent_harness::types::GatewayDiagnostic;
 use axagent_harness::util_fns::gen_id;

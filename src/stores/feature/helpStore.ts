@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 // 帮助面板全局状态
 import { create } from "zustand";
 

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import type { ToolCallState } from "@/types";
 import { Alert, Tag, theme, Typography } from "antd";
 import { FileEdit, Search, Terminal, Wrench } from "lucide-react";

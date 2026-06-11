@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { SyncOutlined } from "@ant-design/icons";
 import { theme } from "antd";
 import type { GlobalToken } from "antd/es/theme/interface";

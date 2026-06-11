@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! LLM Provider 适配器契约 — 从 axagent-providers 提取的接口层
 //!
 //! 所有 LLM 提供商适配器必须实现 `ProviderAdapter` trait。

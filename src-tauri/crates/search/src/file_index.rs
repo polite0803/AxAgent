@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Lightweight file directory index for pre-filtering during code search.
 //!
 //! Stores four metadata fields per file (path, extension, size, modification time)

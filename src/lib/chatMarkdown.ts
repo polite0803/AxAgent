@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { type BaseNode, getMarkdown, parseMarkdownToStructure } from "stream-markdown-parser";
 
 export type ChatMarkdownNode = BaseNode;

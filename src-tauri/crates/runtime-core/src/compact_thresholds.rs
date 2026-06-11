@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! 多层压缩阈值系统
 //!
 //! 提供四层渐进式阈值管理，替代简单的二元压缩判断：

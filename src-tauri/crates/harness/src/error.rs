@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! 工具错误类型 — 从 axagent-runtime-core 提取的契约接口
 //!
 //! `ToolError` 和 `ToolErrorKind` 是工具系统的核心错误类型，

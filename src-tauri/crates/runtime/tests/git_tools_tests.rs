@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use axagent_runtime::GitContext;
 use std::process::Command as StdCommand;
 

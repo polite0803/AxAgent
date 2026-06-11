@@ -5,26 +5,26 @@ edition.workspace = true
 publish = false
 
 [dependencies]
-axagent-harness = { path = "../harness" }
 axagent-dao = { path = "../dao" }
 axagent-entities = { path = "../entities" }
+axagent-harness = { path = "../harness" }
+axum = { version = "0.8", features = ["ws"] }
+axum-server = { version = "0.7", features = ["tls-rustls"] }
+futures = "0.3"
+governor = "0.8"
+http = "1"
+parking_lot = "0.12"
+prometheus = "0.14"
+reqwest = { workspace = true, features = ["stream"] }
+sea-orm = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 tokio = { workspace = true }
-axum = { version = "0.8", features = ["ws"] }
-axum-server = { version = "0.7", features = ["tls-rustls"] }
-uuid = { workspace = true }
-http = "1"
+tokio-stream = "0.1"
 tower = "0.5"
 tower-http = { version = "0.6", features = ["cors"] }
 tracing = { workspace = true }
-sea-orm = { workspace = true }
-futures = "0.3"
-tokio-stream = "0.1"
-reqwest = { workspace = true, features = ["stream"] }
-governor = "0.8"
-prometheus = "0.14"
-parking_lot = "0.12"
+uuid = { workspace = true }
 
 [dev-dependencies]
 axagent-crypto = { path = "../crypto" }

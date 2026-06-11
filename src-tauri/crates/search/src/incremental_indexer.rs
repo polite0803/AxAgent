@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 #[cfg(not(target_os = "android"))]
 use crate::ast_index::AstIndex;
 #[cfg(not(target_os = "android"))]

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 // 可复用的上下文帮助按钮 — 悬浮 Tooltip + 点击打开 HelpPanel
 import { Tooltip } from "@/components/layout/Tooltip";
 import { useHelpStore } from "@/stores/feature/helpStore";

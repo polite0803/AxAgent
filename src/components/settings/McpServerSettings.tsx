@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { IconEditor } from "@/components/shared/IconEditor";
 import { McpServerIcon } from "@/components/shared/McpServerIcon";
 import { DiscoveredMcpServer, useMcpStore } from "@/stores";

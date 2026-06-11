@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 // i18n-exempt: NLP intent detection patterns. Not user-facing UI.
 import { invoke } from "@/lib/invoke";
 

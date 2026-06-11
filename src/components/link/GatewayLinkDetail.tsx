@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { useGatewayLinkStore } from "@/stores";
 import { Button, Tabs, Tag, theme } from "antd";
 import { Bot, Gauge, MessageSquarePlus, Shield, Sparkles } from "lucide-react";

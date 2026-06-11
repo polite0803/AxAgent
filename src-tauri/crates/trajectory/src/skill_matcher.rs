@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Skill matching module
 //!
 //! Replaces TypeScript `skillMatcher.ts` with Rust implementation.

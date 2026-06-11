@@ -31,16 +31,16 @@
 
 ## Capturas de pantalla
 
-| Conversación y selección de modelo | Panel multi-agente |
-|:---:|:---:|
-| ![](.github/images/s1-0412.png) | ![](.github/images/s5-0412.png) |
+| Conversación y selección de modelo |       Panel multi-agente        |
+| :--------------------------------: | :-----------------------------: |
+|  ![](.github/images/s1-0412.png)   | ![](.github/images/s5-0412.png) |
 
-| Base de conocimientos RAG | Memoria y contexto |
-|:---:|:---:|
+|    Base de conocimientos RAG    |       Memoria y contexto        |
+| :-----------------------------: | :-----------------------------: |
 | ![](.github/images/s3-0412.png) | ![](.github/images/s4-0412.png) |
 
-| Editor de flujo de trabajo | Pasarela API |
-|:---:|:---:|
+|   Editor de flujo de trabajo    |           Pasarela API           |
+| :-----------------------------: | :------------------------------: |
 | ![](.github/images/s9-0412.png) | ![](.github/images/s10-0412.png) |
 
 ---
@@ -301,38 +301,38 @@ El motor de flujo de trabajo implementa un sistema de orquestación de tareas ba
 
 ### Pila de tecnología
 
-| Capa | Tecnología |
-|------|------------|
-| **Framework** | Tauri 2 + React 19 + TypeScript 6 |
-| **UI** | Ant Design 6 + TailwindCSS 4 |
-| **Gestión de estado** | Zustand 5 |
-| **Enrutamiento** | React Router 7 |
-| **i18n** | i18next + react-i18next |
-| **Backend** | Rust + SeaORM 2 + SQLite |
-| **Base de datos vectorial** | sqlite-vec |
-| **Editor de código** | Monaco Editor |
-| **Diagramas** | Mermaid + D2 + ECharts (CDN) |
-| **Terminal** | xterm.js 6 |
-| **Flujo de trabajo** | ReactFlow 11 |
-| **Infografías** | @antv/infographic |
-| **Iconos** | Iconify + Lucide |
-| **Arrastrar y soltar** | @dnd-kit |
-| **Build** | Vite 8 + npm |
-| **Testing** | Vitest + Playwright + cargo-nextest |
-| **Formateo** | dprint (TS/JSON) + rustfmt |
-| **Lint** | TS: eslint + oxlint / Rust: clippy + cargo-deny |
-| **Móvil** | Compilación nativa Tauri Android + iOS |
-| **Escritorio** | Windows (MSI) · macOS (DMG) · Linux (AppImage/deb/rpm) |
+| Capa                        | Tecnología                                             |
+| --------------------------- | ------------------------------------------------------ |
+| **Framework**               | Tauri 2 + React 19 + TypeScript 6                      |
+| **UI**                      | Ant Design 6 + TailwindCSS 4                           |
+| **Gestión de estado**       | Zustand 5                                              |
+| **Enrutamiento**            | React Router 7                                         |
+| **i18n**                    | i18next + react-i18next                                |
+| **Backend**                 | Rust + SeaORM 2 + SQLite                               |
+| **Base de datos vectorial** | sqlite-vec                                             |
+| **Editor de código**        | Monaco Editor                                          |
+| **Diagramas**               | Mermaid + D2 + ECharts (CDN)                           |
+| **Terminal**                | xterm.js 6                                             |
+| **Flujo de trabajo**        | ReactFlow 11                                           |
+| **Infografías**             | @antv/infographic                                      |
+| **Iconos**                  | Iconify + Lucide                                       |
+| **Arrastrar y soltar**      | @dnd-kit                                               |
+| **Build**                   | Vite 8 + npm                                           |
+| **Testing**                 | Vitest + Playwright + cargo-nextest                    |
+| **Formateo**                | dprint (TS/JSON) + rustfmt                             |
+| **Lint**                    | TS: eslint + oxlint / Rust: clippy + cargo-deny        |
+| **Móvil**                   | Compilación nativa Tauri Android + iOS                 |
+| **Escritorio**              | Windows (MSI) · macOS (DMG) · Linux (AppImage/deb/rpm) |
 
 ### Soporte de plataformas
 
-| Plataforma | Arquitectura |
-|------------|-------------|
-| Windows | x86_64, ARM64 |
-| macOS | Apple Silicon (arm64), Intel (x86_64) |
-| Linux | x86_64, ARM64 |
-| Android | arm64-v8a, armeabi-v7a, x86_64 (emulador) |
-| iOS | arm64 |
+| Plataforma | Arquitectura                              |
+| ---------- | ----------------------------------------- |
+| Windows    | x86_64, ARM64                             |
+| macOS      | Apple Silicon (arm64), Intel (x86_64)     |
+| Linux      | x86_64, ARM64                             |
+| Android    | arm64-v8a, armeabi-v7a, x86_64 (emulador) |
+| iOS        | arm64                                     |
 
 ### Arquitectura Backend Rust
 
@@ -644,6 +644,7 @@ AxAgent/
 Como la aplicación no está firmada por Apple:
 
 **1. Permitir apps de «Cualquier origen»**
+
 ```bash
 sudo spctl --master-disable
 ```
@@ -651,6 +652,7 @@ sudo spctl --master-disable
 Luego ve a **Configuración del sistema → Privacidad y seguridad → Seguridad** y selecciona **Cualquier origen**.
 
 **2. Eliminar el atributo de cuarentena**
+
 ```bash
 sudo xattr -dr com.apple.quarantine /Applications/AxAgent.app
 ```

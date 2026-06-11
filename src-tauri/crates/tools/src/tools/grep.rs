@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! GrepTool - 内容搜索工具
 
 use crate::{Tool, ToolCategory, ToolContext, ToolError, ToolResult};

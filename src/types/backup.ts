@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 export type BackupJobKind = "backup" | "restore" | "indexing";
 export type BackupJobStatus =
   | "pending"

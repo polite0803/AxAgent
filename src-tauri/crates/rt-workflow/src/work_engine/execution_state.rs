@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use serde::{Deserialize, Serialize};
 
 use crate::work_engine::node_executor_trait::NodeOutput;

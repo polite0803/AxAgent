@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use crate::config::{DetectionResult, GuardConfig};
 use crate::detectors::delimiter_escape::DelimiterEscaper;
 use crate::detectors::pattern_detect::PatternDetector;

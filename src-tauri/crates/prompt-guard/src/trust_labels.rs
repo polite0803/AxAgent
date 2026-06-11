@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /// 外部数据源类型
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SourceType {

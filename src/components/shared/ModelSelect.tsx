@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { SmartProviderIcon } from "@/lib/providerIcons";
 import { useProviderStore } from "@/stores";
 import { ModelIcon } from "@lobehub/icons";

@@ -1,4 +1,5 @@
 #![allow(clippy::result_large_err)]
+// SPDX-License-Identifier: AGPL-3.0-only
 #![allow(clippy::too_many_arguments)]
 #![allow(clippy::collapsible_if)]
 #![allow(clippy::collapsible_match)]

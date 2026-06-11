@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! AxAgent Agent — 公共 API 通过 `pub use` 重导出定义。
 //! `pub mod` 模块为内部实现，外部调用者应优先使用重导出路径。
 //!

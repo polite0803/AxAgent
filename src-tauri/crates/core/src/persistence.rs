@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! 持久化层抽象
 //!
 //! `Persistence` trait 定义在 `axagent-harness` 中。

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Skill Proposal Service - Analyzes trajectories and proposes skill creation/evolution
 //!
 //! This module provides the bridge between trajectory learning and skill generation.

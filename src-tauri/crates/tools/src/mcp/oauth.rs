@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! MCP OAuth 认证
 
 use serde::{Deserialize, Serialize};

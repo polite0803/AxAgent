@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! axagent-harness — Harness 契约层
 //!
 //! 自底而上：本 crate 是 AxAgent 架构中最底层的非数据层，
@@ -13,8 +15,6 @@
 // ── 共享数据类型 ──
 pub mod audit_trail;
 pub use audit_trail::{AuditEntry, AuditRecorder};
-pub mod business_rules;
-pub use business_rules::{BusinessRule, BusinessRuleEngine, RuleResult};
 pub mod cache_interceptor;
 pub use cache_interceptor::{HarnessCache, LlmCacheKey};
 pub mod confidence;
@@ -27,6 +27,7 @@ pub mod plan_types;
 pub mod platform_config;
 pub mod rag_config;
 pub mod types;
+pub mod url_utils;
 pub mod util_fns;
 pub mod workflow_types;
 
@@ -52,6 +53,8 @@ pub mod consistency_check;
 pub mod hallucination_guard;
 
 // ── 原有 Harness 模块 ──
+pub mod business_rules;
+pub use business_rules::{BusinessRule, BusinessRuleEngine, RuleResult};
 pub mod context_builder;
 pub mod error;
 pub mod has_provider_registry;
@@ -68,7 +71,6 @@ pub mod storage_backend;
 pub mod test_support;
 pub mod tool;
 pub mod trajectory_service;
-pub mod url_utils;
 // ── Webhook 契约 ──
 pub mod webhook_subscription;
 /// 关键 Webhook 类型重导出 — struct/enum 级
@@ -166,11 +168,3 @@ pub use interceptor::{
     InterceptorChain, InterceptorContext, InterceptorResult, OutputValidationInterceptor,
     PromptGuardInterceptor,
 };
-
-// ── 中心化重试/降级策略 ──
-pub mod retry_policy;
-pub use retry_policy::{BackoffStrategy, FallbackStrategy, RetryPolicy};
-
-// ── ExecuteLlm 中心化调用入口 ──
-pub mod execute_llm;
-pub use execute_llm::{LlmCallConfig, LlmCallResult, LlmUsage, execute_llm};

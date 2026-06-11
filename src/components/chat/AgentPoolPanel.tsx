@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { useExecutionStore } from "@/stores/feature/executionStore";
 import type { AgentPoolItem, AgentPoolSummary, WorkerMessage } from "@/types";
 import { CheckCircleOutlined, CloseCircleOutlined, LoadingOutlined, RightOutlined } from "@ant-design/icons";

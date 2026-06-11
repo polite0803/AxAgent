@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Shell command AST-style parser for security auditing.
 //!
 //! This module provides structured parsing of shell commands to enable

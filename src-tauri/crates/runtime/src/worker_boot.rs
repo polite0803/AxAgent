@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! In-memory worker-boot state machine and control registry.
 //!
 //! This provides a foundational control plane for reliable worker startup:

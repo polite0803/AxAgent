@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Permission enforcement layer that gates tool execution based on the
 //! active `PermissionPolicy`.
 

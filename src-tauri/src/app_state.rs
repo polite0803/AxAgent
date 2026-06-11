@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use crate::commands::proactive::ProactiveService;
 use crate::semantic_cache::SemanticCache;
 use crate::state::{AgentState, GatewayState, InfraState, MemoryState, SkillState, TaskState};

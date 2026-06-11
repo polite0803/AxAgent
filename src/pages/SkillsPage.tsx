@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import appLogo from "@/assets/image/logo.png";
 import { SkillCreateModal } from "@/components/chat/SkillCreateEditModal";
 import { SkillProposalPanel } from "@/components/chat/SkillProposalPanel";

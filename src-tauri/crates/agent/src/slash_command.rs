@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 pub use axagent_core::slash_command::{
     SlashCommandAction, SlashCommandPreprocessed, SlashCommandRouter, apply_slash_command_to_input,
     load_bundle_content, load_skill_content, process_slash_command, switch_personality,

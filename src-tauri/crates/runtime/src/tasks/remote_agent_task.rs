@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! RemoteAgent 任务 — 远程 agent 执行
 //! Feature flag: REMOTE_AGENT
 //!

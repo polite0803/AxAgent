@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use crate::profile::{self, Profile, ProfileError, ProfileInfo};
 use std::sync::Arc;
 use tokio::sync::RwLock;

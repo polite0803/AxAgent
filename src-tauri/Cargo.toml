@@ -1,6 +1,37 @@
 [workspace]
-members = [".", "crates/cache", "crates/core", "crates/crypto", "crates/dao", "crates/entities", "crates/harness", "crates/kit", "crates/mcp", "crates/providers", "crates/gateway", "crates/migration", "crates/agent", "crates/runtime-core", "crates/runtime", "crates/search", "crates/storage", "crates/trajectory", "crates/telemetry", "crates/plugins", "crates/tools", "crates/prompt-guard", "crates/rt-workflow", "crates/rt-messaging", "crates/rt-webhook", "crates/rt-dashboard", "crates/rt-theme", "crates/npm",
-    "crates/document-parser", "crates/disk-cache", "schema-gen"]
+members = [
+  ".",
+  "crates/agent",
+  "crates/cache",
+  "crates/core",
+  "crates/crypto",
+  "crates/dao",
+  "crates/disk-cache",
+  "crates/document-parser",
+  "crates/entities",
+  "crates/gateway",
+  "crates/harness",
+  "crates/kit",
+  "crates/mcp",
+  "crates/migration",
+  "crates/npm",
+  "crates/plugins",
+  "crates/prompt-guard",
+  "crates/providers",
+  "crates/rt-dashboard",
+  "crates/rt-messaging",
+  "crates/rt-theme",
+  "crates/rt-webhook",
+  "crates/rt-workflow",
+  "crates/runtime",
+  "crates/runtime-core",
+  "crates/search",
+  "crates/storage",
+  "crates/telemetry",
+  "crates/tools",
+  "crates/trajectory",
+  "schema-gen",
+]
 resolver = "2"
 
 [workspace.package]
@@ -9,36 +40,36 @@ edition = "2024"
 license = "AGPL-3.0-only"
 
 [workspace.dependencies]
+anyhow = "1"
+chrono = { version = "0.4", features = ["serde"] }
+dashmap = "6"
+enigo = "0.6"
+hex = "0.4"
+image = { version = "0.25", features = ["png"] }
+lazy_static = "1"
+libsqlite3-sys = { version = "0.30", features = ["bundled"] }
+reqwest = { version = "0.13", features = ["json"] }
+sea-orm = { version = "2.0.0-rc.38", features = ["sqlx-sqlite", "runtime-tokio-native-tls", "macros"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 serde_yaml = "0.9"
-sea-orm = { version = "2.0.0-rc.38", features = ["sqlx-sqlite", "runtime-tokio-native-tls", "macros"] }
-tokio = { version = "1", features = ["full"] }
+sha2 = "0.10"
+sqlite-vec = "0.1.8-alpha.1"
 thiserror = "2"
-uuid = { version = "1", features = ["v4"] }
-chrono = { version = "0.4", features = ["serde"] }
+tokio = { version = "1", features = ["full"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-anyhow = "1"
-dashmap = "6"
-reqwest = { version = "0.13", features = ["json"] }
-sqlite-vec = "0.1.8-alpha.1"
-libsqlite3-sys = { version = "0.30", features = ["bundled"] }
-lazy_static = "1"
-sha2 = "0.10"
-hex = "0.4"
-image = { version = "0.25", features = ["png"] }
+uuid = { version = "1", features = ["v4"] }
 xcap = "0.9.4"
-enigo = "0.6"
 
 [package]
 name = "axagent"
 version = "2.6.0"
-description = "AxAgent - AI Chat Desktop App"
 authors = ["刘小平 <polite0803@outlook.com>"]
-license = "AGPL-3.0-only"
-edition = "2024"
 default-run = "AxAgent"
+edition = "2024"
+license = "AGPL-3.0-only"
+description = "AxAgent - AI Chat Desktop App"
 
 [features]
 default = ["notification"]
@@ -49,11 +80,11 @@ notification = ["dep:tauri-plugin-notification"]
 # `Arc<axagent_xxx::Type>` in struct field types — a use site that
 # cargo-machete's text-based scan cannot detect.
 ignored = [
-    "axagent-prompt-guard",
-    "axagent-rt-dashboard",
-    "axagent-rt-messaging",
-    "axagent-rt-theme",
-    "axagent-rt-webhook",
+  "axagent-prompt-guard",
+  "axagent-rt-dashboard",
+  "axagent-rt-messaging",
+  "axagent-rt-theme",
+  "axagent-rt-webhook",
 ]
 
 [lib]
@@ -68,67 +99,67 @@ path = "src/main.rs"
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
-tauri = { version = "2.11.1", features = ["tray-icon", "image-png", "devtools"] }
-tauri-plugin-opener = "2"
-tauri-plugin-dialog = "2.7"
-tauri-plugin-fs = "2.5"
-tauri-plugin-autostart = "2"
-tauri-plugin-global-shortcut = "2"
-tauri-plugin-process = "2"
-tauri-plugin-updater = "2"
+async-trait = "0.1"
+axagent-agent = { path = "crates/agent" }
+axagent-core = { path = "crates/core" }
+axagent-crypto = { path = "crates/crypto" }
+axagent-dao = { path = "crates/dao" }
+axagent-document-parser = { path = "crates/document-parser" }
+axagent-gateway = { path = "crates/gateway" }
+axagent-harness = { path = "crates/harness" }
+axagent-migration = { path = "crates/migration" }
+axagent-plugins = { path = "crates/plugins" }
+axagent-prompt-guard = { path = "crates/prompt-guard" }
+axagent-providers = { path = "crates/providers" }
+axagent-rt-dashboard = { path = "crates/rt-dashboard" }
+axagent-rt-messaging = { path = "crates/rt-messaging" }
+axagent-rt-theme = { path = "crates/rt-theme" }
+axagent-rt-webhook = { path = "crates/rt-webhook" }
+axagent-rt-workflow = { path = "crates/rt-workflow" }
+axagent-runtime = { path = "crates/runtime" }
+axagent-runtime-core = { path = "crates/runtime-core" }
+axagent-search = { path = "crates/search" }
+axagent-telemetry = { path = "crates/telemetry" }
+axagent-tools = { path = "crates/tools" }
+axagent-trajectory = { path = "crates/trajectory" }
+base64 = "0.22"
+chrono = { workspace = true }
+dashmap = { workspace = true }
+dirs = "5"
+futures = "0.3"
+hex = { workspace = true }
+hostname = "0.3"
+lazy_static = { workspace = true }
+notify = "8"
+open = "5"
+rcgen = "0.13"
+reqwest = { workspace = true }
+rusqlite = { version = "0.32", features = ["bundled"] }
+rustls = { version = "0.23", default-features = false, features = ["aws-lc-rs", "ring"] }
+sea-orm = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 serde_yaml = { workspace = true }
-axagent-core = { path = "crates/core" }
-axagent-harness = { path = "crates/harness" }
-axagent-crypto = { path = "crates/crypto" }
-axagent-providers = { path = "crates/providers" }
-axagent-agent = { path = "crates/agent" }
-axagent-migration = { path = "crates/migration" }
-axagent-dao = { path = "crates/dao" }
-axagent-search = { path = "crates/search" }
-axagent-document-parser = { path = "crates/document-parser" }
-axagent-gateway = { path = "crates/gateway" }
-axagent-runtime-core = { path = "crates/runtime-core" }
-axagent-runtime = { path = "crates/runtime" }
-axagent-rt-workflow = { path = "crates/rt-workflow" }
-axagent-rt-messaging = { path = "crates/rt-messaging" }
-axagent-rt-webhook = { path = "crates/rt-webhook" }
-axagent-rt-dashboard = { path = "crates/rt-dashboard" }
-axagent-rt-theme = { path = "crates/rt-theme" }
-axagent-trajectory = { path = "crates/trajectory" }
-axagent-telemetry = { path = "crates/telemetry" }
-axagent-tools = { path = "crates/tools" }
-axagent-plugins = { path = "crates/plugins" }
-axagent-prompt-guard = { path = "crates/prompt-guard" }
-dashmap = { workspace = true }
+sha2 = { workspace = true }
+tauri = { version = "2.11.1", features = ["tray-icon", "image-png", "devtools"] }
+tauri-plugin-autostart = "2"
+tauri-plugin-clipboard-manager = "2"
+tauri-plugin-dialog = "2.7"
+tauri-plugin-fs = "2.5"
+tauri-plugin-global-shortcut = "2"
+tauri-plugin-notification = { version = "2", optional = true }
+tauri-plugin-opener = "2"
+tauri-plugin-process = "2"
+tauri-plugin-updater = "2"
+tempfile = "3"
 tokio = { workspace = true }
 tokio-util = { version = "0.7", features = ["rt"] }
-uuid = { workspace = true }
-sea-orm = { workspace = true }
-chrono = { workspace = true }
+toml = "0.8"
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true, features = ["env-filter"] }
-async-trait = "0.1"
-futures = "0.3"
-base64 = "0.22"
-toml = "0.8"
-rcgen = "0.13"
-rustls = { version = "0.23", default-features = false, features = ["aws-lc-rs", "ring"] }
-tauri-plugin-clipboard-manager = "2"
-tauri-plugin-notification = { version = "2", optional = true }
-reqwest = { workspace = true }
-zip = "2"
-tempfile = "3"
-open = "5"
 urlencoding = "2"
-dirs = "5"
-hostname = "0.3"
-lazy_static = { workspace = true }
-sha2 = { workspace = true }
-hex = { workspace = true }
-notify = "8"
-rusqlite = { version = "0.32", features = ["bundled"] }
+uuid = { workspace = true }
+zip = "2"
 
 [target.'cfg(not(target_os = "android"))'.dependencies]
 font-kit = "0.14"
@@ -144,10 +175,7 @@ log = { version = "0.4" }
 tracing-log = "0.2"
 
 [target.'cfg(target_os = "windows")'.dependencies]
-windows-sys = { version = "0.59", features = [
-    "Win32_UI_WindowsAndMessaging",
-    "Win32_Foundation",
-] }
+windows-sys = { version = "0.59", features = ["Win32_UI_WindowsAndMessaging", "Win32_Foundation"] }
 
 [profile.release]
 strip = true

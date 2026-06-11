@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use crate::AppState;
 use axagent_core::crypto::decrypt_key;
 use axagent_core::entity::provider_keys;

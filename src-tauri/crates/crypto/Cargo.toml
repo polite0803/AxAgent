@@ -5,10 +5,10 @@ edition.workspace = true
 publish = false
 
 [dependencies]
-axagent-harness = { path = "../harness" }
 aes-gcm = "0.10"
 argon2 = "0.5"
-sha2 = "0.10"
+axagent-harness = { path = "../harness" }
 base64 = "0.22"
-tracing = { workspace = true }
 hex = "0.4"
+sha2 = "0.10"
+tracing = { workspace = true }

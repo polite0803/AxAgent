@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use serde::{Deserialize, Serialize};
 
 type TaskCallback = Box<dyn Fn(&str, &PlannedTask) + Send + Sync>;

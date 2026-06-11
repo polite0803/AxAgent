@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Skill lifecycle management module
 //!
 //! Replaces TypeScript `SkillManager.ts` with Rust implementation.

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! In-memory task registry for sub-agent task lifecycle management.
 
 use std::collections::HashMap;

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use axagent_harness::trajectory_types::{
     MessageRole, ToolCall as TrajectoryToolCall, ToolResult as TrajectoryToolResult, Trajectory,
     TrajectoryOutcome, TrajectoryQuality, TrajectoryStep,

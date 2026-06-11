@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { ArtifactRenderer } from "@/lib/artifactRenderer";
 import type { ArtifactFormat } from "@/types";
 import { useCallback, useEffect, useRef } from "react";

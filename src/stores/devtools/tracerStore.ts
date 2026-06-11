@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { invoke } from "@/lib/invoke";
 import type { Span, SpanTreeNode, TraceDetail, TraceFilter, TraceMetrics, TraceSummary } from "@/types";
 import { create } from "zustand";

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { countTerminalNodes, isDeadEndNode } from "@/components/workflow/DebugPanel/deadEnd";
 import { describe, expect, it } from "vitest";
 

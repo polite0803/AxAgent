@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! 消息重要性评分 — 在上下文压缩时评估每条消息的保留优先级
 //!
 //! 核心思路：

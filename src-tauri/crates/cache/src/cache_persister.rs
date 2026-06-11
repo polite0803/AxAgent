@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Cache persistence manager — saves L1 memory caches to disk on shutdown
 //! and restores them on startup.
 //!

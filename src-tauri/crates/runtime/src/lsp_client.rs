@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! LSP (Language Server Protocol) client registry for tool dispatch.
 
 use std::collections::HashMap;

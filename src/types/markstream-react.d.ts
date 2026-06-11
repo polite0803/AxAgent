@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import "markstream-react";
 
 declare module "markstream-react" {

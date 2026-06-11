@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Buddy 管理器 — 选择、配置、升级陪伴角色
 //!
 //! 负责 Buddy 的召唤、经验管理、消息生成等功能

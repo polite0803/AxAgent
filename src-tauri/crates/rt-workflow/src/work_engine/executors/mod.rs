@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 mod agent_executor;
 pub mod aggregator_executor;
 pub mod approval_executor;

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { resolveIconComponent } from "@/lib/skillIcons";
 import { useSkillExtensionStore } from "@/stores";
 import type { MergedChatCommand } from "@/stores/feature/skillExtensionStore";

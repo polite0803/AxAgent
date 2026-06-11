@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { useSkillStore } from "@/stores";
 import { Form, Input, message, Modal } from "antd";
 import React, { useState } from "react";

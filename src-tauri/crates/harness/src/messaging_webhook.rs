@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! 消息平台 Webhook 契约层。
 //!
 //! 让 `rt-webhook`（HTTP 服务器层）不直接依赖 `rt-messaging::platforms::{wechat, whatsapp}`

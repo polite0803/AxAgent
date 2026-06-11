@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { executeShortcutAction } from "@/lib/shortcutActions";
 import { getShortcutBinding, matchesShortcutEvent, SHORTCUT_ACTIONS, type ShortcutAction } from "@/lib/shortcuts";
 import { useConversationStore, useSettingsStore, useTabStore } from "@/stores";

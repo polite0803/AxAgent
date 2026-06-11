@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Hook 注册表
 
 use super::{HookConfig, HookEventType};

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { useEvaluatorStore } from "@/stores/devtools/evaluatorStore";
 import { Select, Slider, Switch } from "antd";
 import { useTranslation } from "react-i18next";

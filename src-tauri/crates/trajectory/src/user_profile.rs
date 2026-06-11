@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use crate::adaptation::{ContentFormat, TechnicalLevel, Verbosity};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};

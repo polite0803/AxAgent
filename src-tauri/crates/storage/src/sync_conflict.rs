@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /// Conflict detection and resolution for cloud workspace sync.
 ///
 /// Architecture:

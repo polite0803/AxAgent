@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! 会话记忆压缩
 //!
 //! 利用轨迹系统提取的结构化记忆（而非通用 LLM 摘要）作为压缩基础。

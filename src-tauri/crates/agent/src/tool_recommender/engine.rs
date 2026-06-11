@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use crate::tool_recommender::analyzer::{EntityType, TaskContext, TaskType};
 use crate::tool_recommender::patterns::UsagePatternDB;
 use crate::tool_recommender::{Tool, ToolId, ToolIndex};

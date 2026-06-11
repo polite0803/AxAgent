@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! axagent-mcp — Model Context Protocol 客户端
 //!
 //! MCP 客户端连接池、发现工具、健康检查、OAuth 认证。

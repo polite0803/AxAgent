@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { useResolvedAvatarSrc } from "@/hooks/useResolvedAvatarSrc";
 import { CHAT_ICON_COLORS } from "@/lib/iconColors";
 import type { AvatarType } from "@/stores";

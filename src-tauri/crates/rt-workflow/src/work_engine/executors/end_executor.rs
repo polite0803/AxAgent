@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! 终止执行器 —— 标记工作流结束位置，可选提取上游节点输出作为最终结果。
 
 use async_trait::async_trait;

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Rhai 脚本引擎适配器契约。
 //!
 //! 提供 Rhai 脚本的编译和执行能力，用于工作流中的动态脚本节点。

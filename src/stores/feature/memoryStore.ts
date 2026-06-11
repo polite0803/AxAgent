@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { invoke } from "@/lib/invoke";
 import type { MemoryItem, MemoryNamespace, UpdateMemoryItemInput, UpdateMemoryNamespaceInput } from "@/types";
 import { create } from "zustand";

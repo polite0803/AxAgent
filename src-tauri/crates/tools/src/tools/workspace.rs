@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! 工作区记忆文件工具
 //!
 //! WorkspaceRead / WorkspaceWrite — 读写项目工作区记忆文件

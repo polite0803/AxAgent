@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use std::fs;
 use std::hash::{Hash, Hasher};
 use std::path::{Path, PathBuf};

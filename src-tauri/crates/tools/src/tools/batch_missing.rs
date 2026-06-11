@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! 批量缺失工具实现
 //! Sleep, ToolSearch, Brief, Config, ReviewArtifact, TerminalCapture,
 //! SendUserFile, SubscribePR, Workflow

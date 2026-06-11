@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! ToolContext.extra 标准 key 常量定义
 //!
 //! 通过 ToolContext.extra HashMap 传递配置给工具，替代硬编码和全局状态。

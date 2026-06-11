@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 export { AgentProgressBar } from "./AgentProgressBar";
 export { AgentStatsPanel } from "./AgentStatsPanel";
 export { ArtifactPanel } from "./ArtifactPanel";

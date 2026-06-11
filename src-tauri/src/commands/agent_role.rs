@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use crate::AppState;
 use axagent_core::repo::agent_role;
 use axagent_harness::types::AgentRoleDef;

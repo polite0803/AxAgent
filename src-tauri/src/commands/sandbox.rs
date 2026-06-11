@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use axagent_core::sandbox_runner::{self, ExecutionResult};
 use tauri::command;
 

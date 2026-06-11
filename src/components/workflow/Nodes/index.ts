@@ -1,7 +1,10 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 export { AgentNode } from "./AgentNode";
 export { AggregatorNode } from "./AggregatorNode";
 export { ApprovalNode } from "./ApprovalNode";
-export { BaseNode, type BaseNodeData } from "./BaseNode";
+export { BaseNode } from "./BaseNode";
+export type { BaseNodeData } from "./BaseNode";
 export { CodeNode } from "./CodeNode";
 export { ConditionNode } from "./ConditionNode";
 export { DatabaseQueryNode } from "./DatabaseQueryNode";

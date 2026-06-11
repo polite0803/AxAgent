@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { PlusOutlined } from "@ant-design/icons";
 import { Button, Card, List, Space, Tag, Typography } from "antd";
 import { useTranslation } from "react-i18next";

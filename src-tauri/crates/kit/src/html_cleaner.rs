@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! 统一 HTML 清理模块
 //!
 //! 消除项目中 3 处重复的 HTML 清理代码（tools/web_search.rs、tools/web_fetch.rs、

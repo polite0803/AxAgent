@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! 细粒度权限系统
 //!
 //! 规则匹配引擎 + AI 安全分类器 + 拒绝追踪。

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { useNudgeStore } from "@/stores";
 import { theme } from "antd";
 import { X } from "lucide-react";

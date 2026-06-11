@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { Tooltip } from "@/components/layout/Tooltip";
 import { Tag, theme } from "antd";
 import { AlertCircle, AlertTriangle, CheckCircle, Circle, Maximize2 } from "lucide-react";

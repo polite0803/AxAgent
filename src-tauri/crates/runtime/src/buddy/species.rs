@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! 物种定义 — 12 种 Buddy 物种，每种有不同的特性和初始属性
 //!
 //! 参考 claude-code-main 的 Buddy/Companion 陪伴系统设计

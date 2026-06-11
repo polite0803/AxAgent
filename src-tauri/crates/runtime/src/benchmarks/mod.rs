@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 pub mod swe_bench;
 pub mod terminal_bench;
 

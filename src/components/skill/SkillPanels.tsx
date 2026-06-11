@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { useSkillExtensionStore } from "@/stores";
 import { Button } from "antd";
 import { ChevronDown, ChevronRight } from "lucide-react";

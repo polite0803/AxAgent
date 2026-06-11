@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { BaseModal } from "@/components/shared/BaseModal";
 import { MonacoEditor } from "@/components/shared/MonacoEditor";
 import { BacklinkPanel } from "@/components/wiki/BacklinkPanel";

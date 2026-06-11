@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { listen } from "@tauri-apps/api/event";
 import { create } from "zustand";
 import { invoke } from "../../lib/invoke";

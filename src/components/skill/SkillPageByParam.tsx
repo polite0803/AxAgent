@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { useSkillExtensionStore } from "@/stores";
 import { Spin } from "antd";
 import { useEffect, useState } from "react";

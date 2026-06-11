@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { Switch, Typography } from "antd";
 import { useTranslation } from "react-i18next";
 import { SettingsGroup } from "./SettingsGroup";

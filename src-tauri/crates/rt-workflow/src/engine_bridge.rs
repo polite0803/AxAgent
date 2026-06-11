@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Engine bridge — isolation layer between the CodeEngine and GeneralEngine.
 //!
 //! Implements the three levels of isolation required by the architecture:

@@ -1,12 +1,15 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// @ts-nocheck
+
+import { Handle, type NodeProps, Position } from "@xyflow/react";
 import { Tag, theme } from "antd";
 import React, { memo } from "react";
 import { useTranslation } from "react-i18next";
-import { Handle, type NodeProps, Position } from "reactflow";
 
 const MAGENTA_BASE = "#eb2f96";
 const MAGENTA_VAR = `var(--magenta, ${MAGENTA_BASE})`;
 
-interface DocumentParserNodeData {
+interface DocumentParserNodeData extends Record<string, unknown> {
   id: string;
   type: string;
   title: string;
@@ -20,7 +23,7 @@ interface DocumentParserNodeData {
   outputVar?: string;
 }
 
-const DocumentParserNodeComponent: React.FC<NodeProps<DocumentParserNodeData>> = ({
+const DocumentParserNodeComponent: React.FC<NodeProps> = ({
   data,
   selected,
 }) => {

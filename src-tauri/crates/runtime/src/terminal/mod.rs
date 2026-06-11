@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 pub mod backend_trait;
 pub mod docker_backend;
 pub mod local_backend;

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import i18n from "@/i18n";
 import { isTauri } from "@/lib/invoke";
 import { invoke } from "@/lib/invoke";

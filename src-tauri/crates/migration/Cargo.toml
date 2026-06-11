@@ -7,7 +7,7 @@ publish = false
 [dependencies]
 axagent-core = { path = "../core" }
 axagent-harness = { path = "../harness" }
-serde_yaml = "0.9"
 chrono = { workspace = true }
 dirs = "5"
+serde_yaml = "0.9"
 tracing = { workspace = true }

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! TaskCreate / TaskGet / TaskList / TaskStop / TaskUpdate / TaskOutput
 //!
 //! 后台任务系统：基于数据库持久化，支持 bash 和 agent 两种类型。

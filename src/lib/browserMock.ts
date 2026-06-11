@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 // i18n-exempt: Mock data for browser preview mode. Not user-facing UI.
 /**
  * Browser-mode mock backend using localStorage.

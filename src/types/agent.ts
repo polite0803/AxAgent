@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 export type AgentBehaviorMode = "default" | "accept_edits" | "full_access";
 export type AgentRuntimeStatus =
   | "idle"

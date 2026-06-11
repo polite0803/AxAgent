@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! 缓存拦截器契约 — Harness 层缓存抽象
 //!
 //! 提供 `HarnessCache` trait 和 `LlmCacheKey` 数据结构，

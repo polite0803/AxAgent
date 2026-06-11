@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import type { TaskResult as TaskResultType } from "@/types";
 import { formatDuration, formatScore, getDifficultyKey } from "@/types";
 import { Badge, Card, Descriptions, Typography } from "antd";

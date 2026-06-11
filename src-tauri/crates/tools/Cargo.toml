@@ -5,41 +5,41 @@ edition.workspace = true
 publish = false
 
 [dependencies]
+async-trait = "0.1"
+axagent-core = { path = "../core" }
+axagent-harness = { path = "../harness" }
+axagent-runtime-core = { path = "../runtime-core" }
+base64 = "0.22"
+chrono = { workspace = true }
+diff = "0.1"
+dirs = "5"
+docx-rs = "0.4"
+encoding_rs = "0.8"
+futures = "0.3"
+glob = "0.3"
+image = { workspace = true }
+infer = "0.16"
+lopdf = "0.34"
+parking_lot = "0.12"
+pdf-extract = "0.8"
+pulldown-cmark = "0.13"
+regex = "1"
+reqwest = { workspace = true, features = ["multipart", "cookies"] }
+rhai = { version = "1", features = ["sync"] }
+rusqlite = { version = "0.32", features = ["bundled"] }
+rust_xlsxwriter = "0.95"
+sea-orm = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 serde_yaml = "0.9"
 tokio = { workspace = true }
-async-trait = "0.1"
 tracing = { workspace = true }
-futures = "0.3"
-chrono = { workspace = true }
-regex = "1"
-glob = "0.3"
-reqwest = { workspace = true, features = ["multipart", "cookies"] }
-encoding_rs = "0.8"
 url = "2"
 urlencoding = "2"
 uuid = { version = "1", features = ["v4"] }
-diff = "0.1"
-base64 = "0.22"
 walkdir = "2"
 which = "7"
-dirs = "5"
-rhai = { version = "1", features = ["sync"] }
-pdf-extract = "0.8"
-parking_lot = "0.12"
-sea-orm = { workspace = true }
-image = { workspace = true }
-infer = "0.16"
-axagent-core = { path = "../core" }
-axagent-harness = { path = "../harness" }
-axagent-runtime-core = { path = "../runtime-core" }
-rusqlite = { version = "0.32", features = ["bundled"] }
-docx-rs = "0.4"
-pulldown-cmark = "0.13"
-rust_xlsxwriter = "0.95"
 zip = "2"
-lopdf = "0.34"
 
 [dev-dependencies]
 tempfile = "3"

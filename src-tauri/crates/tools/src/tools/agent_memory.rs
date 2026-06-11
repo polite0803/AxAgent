@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Agent 记忆与会话管理工具
 //!
 //! SessionSearch (FTS5 全文搜索), MemoryFlush (记忆持久化),

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Webhook subscription and dispatch system.
 //!
 //! 订阅管理通过 `axagent-harness::WebhookSubscriptionService` 契约解耦，

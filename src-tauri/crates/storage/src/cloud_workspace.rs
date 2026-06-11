@@ -1,4 +1,6 @@
 #![allow(clippy::result_large_err)]
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /// Manager for cloud workspaces with full conflict handling.
 ///
 /// Features:

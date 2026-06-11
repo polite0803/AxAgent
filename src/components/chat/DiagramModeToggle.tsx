@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { Segmented, theme } from "antd";
 import { Code2, Eye } from "lucide-react";
 import React from "react";

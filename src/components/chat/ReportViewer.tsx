@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import type { Citation } from "@/types";
 import { CheckCircleOutlined, CopyOutlined, DownloadOutlined, FileTextOutlined } from "@ant-design/icons";
 import { Button, Card, Divider, Select, Space, Tabs, Tag, theme, Typography } from "antd";

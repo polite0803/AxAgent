@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! 回归测试：per-node `exec_ctx.variables` 必须包含工作流全局变量。
 //!
 //! 历史 bug（c04c59a3 / f119f053 / d5f870bb / 9060a620）：engine.rs 在 per-node

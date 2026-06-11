@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! 共享字符串常量
 //!
 //! 消除代码中的魔法字符串。按语义分组为子模块。

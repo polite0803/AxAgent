@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /// L2: XML 分隔符转义器
 ///
 /// 防止用户通过注入 XML 标记来提前闭合包装标签。

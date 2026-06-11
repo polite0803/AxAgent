@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! `tools` crate 跨层依赖下沉到 harness 层的 trait 集合。
 //!
 //! - `MigrationRunner`  — `axagent_migration` 的纯函数集合（detect/preview/migrate/backup/rollback/list）

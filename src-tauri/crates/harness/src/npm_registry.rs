@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! NPM Registry 服务契约。
 //!
 //! 提供 npm 包安装能力（下载、解压）。

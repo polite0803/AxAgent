@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /**
  * AxAgent Skill SDK — 公共类型定义
  *

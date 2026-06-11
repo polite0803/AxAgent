@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::provider as provider_err;
 use axagent_core::model_downloader::{LocalModelInfo, ModelDownloader, PresetModel};

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! 断线重连逻辑
 //! 队友断开后可自动重连
 

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! AxAgent Tool System - 统一工具接口与执行引擎
 //!
 //! 提供 Tool trait、ToolRegistry、编排器、流式执行器等核心组件。

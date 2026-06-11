@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { usePlanStore } from "@/stores";
 import type { Plan, PlanStep, PlanStepStatus } from "@/types";
 import {

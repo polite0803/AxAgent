@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /**
  * 统一智能体执行状态 Store
  * 整合：agentStore 执行态 + trajectoryStore + ExecutionPhase 状态机

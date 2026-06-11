@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 #[cfg(not(target_os = "android"))]
 use crate::screen_capture::{CaptureRegion, ScreenCapture};
 #[cfg(not(target_os = "android"))]

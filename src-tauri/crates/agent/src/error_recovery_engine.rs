@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use crate::recovery_strategies::{ClassifiedError, ErrorClassifier, ErrorType};
 use crate::recovery_strategies::{RecoveryAdjustment, RecoveryResult, RecoveryStrategy};
 use crate::retry_policy::RetryPolicy;

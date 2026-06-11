@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { isTauri, logIpcError } from "@/lib/invoke";
 import { App, Button, Progress } from "antd";
 import { useCallback } from "react";

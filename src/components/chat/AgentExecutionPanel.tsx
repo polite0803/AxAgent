@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { useExecutionStore } from "@/stores/feature/executionStore";
 import { Tabs, theme } from "antd";
 import { Bot, GitBranch, History } from "lucide-react";

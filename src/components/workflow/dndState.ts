@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /**
  * Custom drag-and-drop state for the workflow editor.
  *

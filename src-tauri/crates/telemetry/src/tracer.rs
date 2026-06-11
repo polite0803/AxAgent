@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use crate::exporter::{NoopExporter, TraceExport, TraceExporter};
 use crate::metrics::{CostMetrics, TraceMetrics};
 use crate::span::{Span, SpanError, SpanEvent, SpanStatus, SpanType, TraceMetadata};

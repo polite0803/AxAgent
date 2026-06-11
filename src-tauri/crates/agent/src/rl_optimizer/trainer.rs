@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use crate::rl_optimizer::{
     Experience, PolicyType, RLConfig, RLError, RLOptimizer, RewardSignal, RewardSignalType,
     TaskState, ToolSelection, TrainingStats,

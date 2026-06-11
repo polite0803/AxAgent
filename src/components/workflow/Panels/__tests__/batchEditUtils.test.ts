@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { buildBatchUpdate } from "@/components/workflow/Panels/batchEditUtils";
 import type { WorkflowNode } from "@/components/workflow/types";
 import { describe, expect, it } from "vitest";

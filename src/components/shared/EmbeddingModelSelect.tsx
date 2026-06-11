@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { useProviderStore } from "@/stores";
 import { ModelIcon } from "@lobehub/icons";
 import { Select, theme } from "antd";

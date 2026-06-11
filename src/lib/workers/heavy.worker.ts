@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 // Web Worker for CPU-intensive operations.
 //
 // Offloads token estimation and large text processing from the main thread

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! 导出与格式工具
 //!
 //! PdfInfo, DetectEncoding

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Swarm 配置常量
 
 /// 默认团队最大成员数

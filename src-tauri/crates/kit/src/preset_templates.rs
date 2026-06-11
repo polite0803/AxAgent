@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use axagent_harness::workflow_types::*;
 use chrono::Utc;
 use std::collections::HashMap;

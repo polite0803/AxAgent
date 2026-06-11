@@ -5,16 +5,16 @@ edition.workspace = true
 publish = false
 
 [dependencies]
+anyhow = "1"
+async-trait = "0.1"
 axagent-core = { path = "../core" }
 axagent-harness = { path = "../harness" }
+futures = "0.3"
+reqwest = { workspace = true, features = ["stream", "socks", "rustls", "native-tls-vendored"] }
 serde = { workspace = true }
 serde_json = { workspace = true }
-tokio = { workspace = true }
-reqwest = { workspace = true, features = ["stream", "socks", "rustls", "native-tls-vendored"] }
-futures = "0.3"
-async-trait = "0.1"
-tracing = { workspace = true }
-tokio-tungstenite = { version = "0.29", features = ["native-tls"] }
 thiserror = { workspace = true }
+tokio = { workspace = true }
+tokio-tungstenite = { version = "0.29", features = ["native-tls"] }
+tracing = { workspace = true }
 uuid = { workspace = true }
-anyhow = "1"

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use std::path::{Path, PathBuf};
 // SAFETY: This RwLock is only accessed from synchronous code paths (init, set,
 // clear, and read in documents_root()). None of the callers hold the lock across

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! 领域约束模板注册表 —— 按角色/任务类型返回对应的 head/tail 约束块。
 //!
 //! 这些约束会被注入到 agent 的 system prompt 的 4a（head，primacy 锚定）

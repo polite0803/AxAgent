@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { preloadExtendedLanguageIcons } from "markstream-react";
 
 let preloadPromise: Promise<void> | null = null;

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use tauri::{State, command};
 
 use crate::app_state::AppState;

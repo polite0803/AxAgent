@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use axagent_agent::recovery_strategies::ErrorType;
 use axagent_agent::recovery_strategies::RecoveryStrategy;
 use std::time::Duration;

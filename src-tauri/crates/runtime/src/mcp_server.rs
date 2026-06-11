@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Minimal Model Context Protocol (MCP) server.
 //!
 //! Implements a newline-safe, LSP-framed JSON-RPC server over stdio that

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { Divider, Input, InputNumber, Select, theme } from "antd";
 import React from "react";
 import type { ApprovalNode, WorkflowNode } from "../../types";

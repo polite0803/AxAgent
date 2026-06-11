@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! LLM Provider URL 解析工具函数。
 //!
 //! 提供 base URL / chat URL 的拼接、版本化路径追加、双重路径去重等功能。

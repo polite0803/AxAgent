@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! BashTool - Shell 命令执行工具（带安全层）
 //!
 //! 多层安全防护：

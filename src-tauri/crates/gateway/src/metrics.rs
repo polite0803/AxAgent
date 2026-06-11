@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use axum::{http::StatusCode, response::IntoResponse};
 use prometheus::Encoder;
 

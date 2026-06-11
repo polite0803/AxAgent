@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Gateway 层访问 dao + crypto 的 trait 抽象。
 //!
 //! `PlatformAdapter` 是 facade trait，把 5 个子 trait 组合起来。

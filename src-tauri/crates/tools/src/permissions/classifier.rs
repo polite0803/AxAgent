@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! AI 安全分类器
 //!
 //! SECURITY (H2): 旧实现直接做字面子串匹配，可以被以下方式绕过：

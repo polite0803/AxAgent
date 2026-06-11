@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use crate::trajectory::{Trajectory, TrajectoryOutcome};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;

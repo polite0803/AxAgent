@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Webhook 订阅管理 — DTO 由 `axagent-harness` 提供。
 //!
 //! 纯数据 DTO（WebhookEvent / WebhookSubscription / WebhookPayload / DispatchResult）

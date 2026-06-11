@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 // 通知铃铛 — 显示 Agent 生命周期通知和未读计数
 
 import { DropdownMenu } from "@/components/layout/DropdownMenu";

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! MCP 协议增强模块
 //!
 //! OAuth 认证 + MCP → Tool 包装 + 官方注册表。

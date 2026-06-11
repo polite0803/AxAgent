@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { ModelSelect } from "@/components/shared/ModelSelect";
 import { usePromptTemplateStore, useProviderStore, useWorkflowEditorStore } from "@/stores";
 import type { PromptTemplate } from "@/types";

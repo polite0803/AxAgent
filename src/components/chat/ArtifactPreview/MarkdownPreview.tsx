@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import NodeRenderer from "markstream-react";
 import { memo } from "react";
 

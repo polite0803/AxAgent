@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! `axagent_harness::platform_adapter::*` trait 的默认实现。
 //!
 //! 4 个 repo trait（ProviderRepository / SettingsRepository /

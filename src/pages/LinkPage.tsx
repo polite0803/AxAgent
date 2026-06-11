@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { AddGatewayLinkModal, GatewayLinkDetail, GatewayLinkList } from "@/components/link";
 import { useGatewayLinkStore } from "@/stores";
 import { theme } from "antd";

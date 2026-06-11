@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! CI/CD 工具
 //!
 //! CiStatus / CiTrigger / CiListWorkflows

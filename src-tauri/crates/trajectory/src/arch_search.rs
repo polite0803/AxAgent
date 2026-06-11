@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! ADAS-style architecture auto-search module
 //!
 //! Provides evolutionary search over agent architecture graphs including:

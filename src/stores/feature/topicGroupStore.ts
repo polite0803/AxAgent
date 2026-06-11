@@ -1,6 +1,8 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 // 消息主题分组 — 对话内消息按主题自动/手动分组
 import i18n from "@/i18n";
-import { useConversationStore } from "@/stores";
+import { useConversationStore } from "@/stores/domain/conversationStore";
 import { create } from "zustand";
 
 export interface TopicGroup {

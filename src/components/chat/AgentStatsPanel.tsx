@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { invoke, logIpcError } from "@/lib/invoke";
 import { useAgentStore, useConversationStore, useStreamStore } from "@/stores";
 import { Activity, AlertTriangle, Clock, HelpCircle, IterationCw, Pause, Play, Shield, Wrench } from "lucide-react";

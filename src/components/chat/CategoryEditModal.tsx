@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { ModelParamSliders, type ModelParamValues } from "@/components/common/ModelParamSliders";
 import { IconEditor } from "@/components/shared/IconEditor";
 import { ModelSelect, parseModelValue } from "@/components/shared/ModelSelect";

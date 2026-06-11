@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { theme } from "antd";
 import { memo, useCallback, useEffect, useRef } from "react";
 

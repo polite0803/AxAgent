@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { ExpertSelector } from "@/components/chat/ExpertSelector";
 import { ModelSelect } from "@/components/shared/ModelSelect";
 import { invoke } from "@/lib/invoke";
@@ -930,11 +932,11 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({
               showSearch
               options={((): { value: string; label: string }[] => {
                 const names = new Set<string>();
-                const items: { value: string; label: string }[] = [];
+                const items:
+                  ({ value: string; label: string } | { value: string; label: string; disabled: boolean })[] = [];
                 // Template tool_defs（Rhai 脚本工具）
                 if (templateToolDefs && templateToolDefs.length > 0) {
-                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  items.push({ value: "", label: t("workflow.code.templateRhaiTools"), disabled: true } as any);
+                  items.push({ value: "", label: t("workflow.code.templateRhaiTools"), disabled: true });
                   templateToolDefs.forEach((td) => {
                     if (!names.has(td.tool_name)) {
                       names.add(td.tool_name);
@@ -943,8 +945,7 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({
                   });
                 }
                 // 全局工具
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                items.push({ value: "", label: t("workflow.code.globalTools"), disabled: true } as any);
+                items.push({ value: "", label: t("workflow.code.globalTools"), disabled: true });
                 (config.tools || []).forEach((td) => {
                   const name = typeof td === "string" ? td : td.name;
                   if (!names.has(name)) {

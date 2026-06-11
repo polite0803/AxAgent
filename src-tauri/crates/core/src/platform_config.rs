@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Platform configuration types
 //!
 //! DTO 由 `axagent-harness` 提供，本模块 re-export 并附加校验逻辑。

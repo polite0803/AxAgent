@@ -1,7 +1,10 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { pushNotification } from "@/components/layout/NotificationBell";
 import i18n from "@/i18n";
 import { invoke, listen, logIpcError, type UnlistenFn } from "@/lib/invoke";
-import { useConversationStore, useStreamStore } from "@/stores";
+import { useConversationStore } from "@/stores/domain/conversationStore";
+import { useStreamStore } from "@/stores/domain/streamStore";
 import { deriveLegacyStreamFields, getStreamingMessageId } from "@/stores/domain/streamStore";
 import type {
   AgentCancelledEvent,

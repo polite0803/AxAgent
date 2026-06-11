@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { useResolvedDarkMode } from "@/hooks/useResolvedDarkMode";
 import { useSettingsStore } from "@/stores";
 import { Modal, theme } from "antd";

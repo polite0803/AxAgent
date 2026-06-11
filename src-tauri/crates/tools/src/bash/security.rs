@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Bash 安全分析器
 //!
 //! 命令白名单、危险模式检测、安全 flag 映射。

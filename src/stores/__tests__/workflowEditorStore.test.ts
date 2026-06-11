@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import type { WorkflowEdge, WorkflowNode, WorkflowTemplateResponse } from "@/components/workflow/types";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 

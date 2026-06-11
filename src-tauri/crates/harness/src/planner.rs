@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! 分层规划器适配器契约。
 //!
 //! 提供计划生成、执行管理、重规划能力，用于工作流中的 Plan 模式。

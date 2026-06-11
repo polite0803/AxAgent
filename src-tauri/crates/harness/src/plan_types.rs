@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Plan 模式的数据类型定义。
 //!
 //! 纯数据 DTO 层，无业务逻辑。供 `axagent-agent::hierarchical_planner`

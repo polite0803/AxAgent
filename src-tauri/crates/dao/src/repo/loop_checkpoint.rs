@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Loop 节点检查点持久化。
 //!
 //! 提供 save/load/delete 三个基本操作。底层表 `loop_checkpoints` 的 DDL 在

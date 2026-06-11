@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { logIpcError } from "@/lib/invoke";
 import type { RealtimeConfig, VoiceSessionState } from "@/types";
 import { App } from "antd";

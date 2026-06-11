@@ -1,14 +1,12 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { useWorkEngineStore } from "@/stores/feature/workEngineStore";
+import { EdgeLabelRenderer, type EdgeProps, getSmoothStepPath } from "@xyflow/react";
 import { theme } from "antd";
 import React from "react";
-import { EdgeLabelRenderer, type EdgeProps, getSmoothStepPath } from "reactflow";
 
 const ORANGE_BASE = "#fa8c16";
 const PURPLE_BASE = "#722ed1";
-
-interface BaseEdgeData {
-  edgeType: string;
-}
 
 /**
  * 解析 sourceHandle 中的 port 信息，返回水平偏移量。
@@ -26,7 +24,7 @@ function sourceOffsetFromHandle(sourceHandle?: string | null, sourceNodeW?: numb
   return 0;
 }
 
-const BaseEdgeComponent: React.FC<EdgeProps<BaseEdgeData>> = ({
+const BaseEdgeComponent: React.FC<EdgeProps> = ({
   id,
   source,
   target,

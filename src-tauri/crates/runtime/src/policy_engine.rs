@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use std::time::Duration;
 
 pub type GreenLevel = u8;

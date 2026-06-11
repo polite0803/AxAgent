@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! TextGrad-style text gradient backpropagation for agent self-evolution
 //!
 //! Implements a computation graph over agent components (Prompts, Tools, Memory)

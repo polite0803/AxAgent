@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { EmbeddingModelSelect } from "@/components/shared/EmbeddingModelSelect";
 import { invoke } from "@/lib/invoke";
 import { useKnowledgeStore } from "@/stores";

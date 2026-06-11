@@ -31,16 +31,16 @@
 
 ## 截圖預覽
 
-| 對話與模型選擇 | 多智能體儀表盤 |
-|:---:|:---:|
+|         對話與模型選擇          |         多智能體儀表盤          |
+| :-----------------------------: | :-----------------------------: |
 | ![](.github/images/s1-0412.png) | ![](.github/images/s5-0412.png) |
 
-| 知識庫 RAG | 記憶與上下文 |
-|:---:|:---:|
+|           知識庫 RAG            |          記憶與上下文           |
+| :-----------------------------: | :-----------------------------: |
 | ![](.github/images/s3-0412.png) | ![](.github/images/s4-0412.png) |
 
-| 工作流編輯器 | API 網關 |
-|:---:|:---:|
+|          工作流編輯器           |             API 網關             |
+| :-----------------------------: | :------------------------------: |
 | ![](.github/images/s9-0412.png) | ![](.github/images/s10-0412.png) |
 
 ---
@@ -301,38 +301,38 @@
 
 ### 技術堆疊
 
-| 層級 | 技術 |
-|------|------|
-| **框架** | Tauri 2 + React 19 + TypeScript 6 |
-| **UI** | Ant Design 6 + TailwindCSS 4 |
-| **狀態管理** | Zustand 5 |
-| **路由** | React Router 7 |
-| **國際化** | i18next + react-i18next |
-| **後端** | Rust + SeaORM 2 + SQLite |
-| **向量資料庫** | sqlite-vec |
-| **程式碼編輯器** | Monaco Editor |
-| **圖表** | Mermaid + D2 + ECharts（CDN） |
-| **終端** | xterm.js 6 |
-| **工作流** | ReactFlow 11 |
-| **圖表渲染** | @antv/infographic |
-| **圖示** | Iconify + Lucide |
-| **拖曳** | @dnd-kit |
-| **建構** | Vite 8 + npm |
-| **測試** | Vitest + Playwright + cargo-nextest |
-| **格式化** | dprint (TS/JSON) + rustfmt |
-| **Lint** | TS: eslint + oxlint / Rust: clippy + cargo-deny |
-| **行動端** | Tauri Android + iOS 原生建構 |
-| **桌面端** | Windows (MSI) · macOS (DMG) · Linux (AppImage/deb/rpm) |
+| 層級             | 技術                                                   |
+| ---------------- | ------------------------------------------------------ |
+| **框架**         | Tauri 2 + React 19 + TypeScript 6                      |
+| **UI**           | Ant Design 6 + TailwindCSS 4                           |
+| **狀態管理**     | Zustand 5                                              |
+| **路由**         | React Router 7                                         |
+| **國際化**       | i18next + react-i18next                                |
+| **後端**         | Rust + SeaORM 2 + SQLite                               |
+| **向量資料庫**   | sqlite-vec                                             |
+| **程式碼編輯器** | Monaco Editor                                          |
+| **圖表**         | Mermaid + D2 + ECharts（CDN）                          |
+| **終端**         | xterm.js 6                                             |
+| **工作流**       | ReactFlow 11                                           |
+| **圖表渲染**     | @antv/infographic                                      |
+| **圖示**         | Iconify + Lucide                                       |
+| **拖曳**         | @dnd-kit                                               |
+| **建構**         | Vite 8 + npm                                           |
+| **測試**         | Vitest + Playwright + cargo-nextest                    |
+| **格式化**       | dprint (TS/JSON) + rustfmt                             |
+| **Lint**         | TS: eslint + oxlint / Rust: clippy + cargo-deny        |
+| **行動端**       | Tauri Android + iOS 原生建構                           |
+| **桌面端**       | Windows (MSI) · macOS (DMG) · Linux (AppImage/deb/rpm) |
 
 ### 平台支援
 
-| 平台 | 架構 |
-|------|------|
-| Windows | x86_64, ARM64 |
-| macOS | Apple Silicon (arm64), Intel (x86_64) |
-| Linux | x86_64, ARM64 |
+| 平台    | 架構                                     |
+| ------- | ---------------------------------------- |
+| Windows | x86_64, ARM64                            |
+| macOS   | Apple Silicon (arm64), Intel (x86_64)    |
+| Linux   | x86_64, ARM64                            |
 | Android | arm64-v8a, armeabi-v7a, x86_64（模擬器） |
-| iOS | arm64 |
+| iOS     | arm64                                    |
 
 ### Rust 後端架構
 
@@ -644,6 +644,7 @@ AxAgent/
 由於應用未經過 Apple 簽名：
 
 **1. 允許執行「任何來源」的應用**
+
 ```bash
 sudo spctl --master-disable
 ```
@@ -651,6 +652,7 @@ sudo spctl --master-disable
 然後前往 **系統設定 → 隱私與安全性 → 安全性**，選擇 **任何來源**。
 
 **2. 移除隔離屬性**
+
 ```bash
 sudo xattr -dr com.apple.quarantine /Applications/AxAgent.app
 ```

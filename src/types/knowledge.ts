@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 export type IndexingStatus = "pending" | "indexing" | "ready" | "failed";
 export type MemoryScope = "global" | "project";
 export type MemorySource = "manual" | "auto_extract";

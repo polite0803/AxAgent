@@ -1,9 +1,12 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import type { GraphData, GraphNode } from "@/components/wiki/GraphView";
 import { invoke } from "@/lib/invoke";
 import { useKnowledgeStore } from "@/stores";
 import { useWikiStore } from "@/stores/feature/wikiStore";
 import type { BacklinkInfo, KnowledgeBase, Note, NoteLink } from "@/types";
 import { DeleteOutlined, LinkOutlined, SaveOutlined } from "@ant-design/icons";
+import { Background, Controls, Edge, MiniMap, Node, ReactFlow, useEdgesState, useNodesState } from "@xyflow/react";
 import {
   Button,
   Empty,
@@ -21,8 +24,7 @@ import {
 } from "antd";
 import { ArrowLeftRight, BookOpen, GitGraph, Network, PenLine, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import ReactFlow, { Background, Controls, Edge, MiniMap, Node, useEdgesState, useNodesState } from "reactflow";
-import "reactflow/dist/style.css";
+import "@xyflow/react/dist/style.css";
 import { useTranslation } from "react-i18next";
 
 const { Text } = Typography;

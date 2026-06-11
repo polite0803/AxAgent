@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { isTauri, logIpcError } from "@/lib/invoke";
 import { useConversationStore, useSettingsStore } from "@/stores";
 import { open, save } from "@tauri-apps/plugin-dialog";

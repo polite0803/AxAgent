@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Trajectory learning crate for claw-code
 //!
 //! Provides research-grade trajectory learning capabilities including:

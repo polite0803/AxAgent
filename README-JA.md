@@ -31,16 +31,16 @@
 
 ## スクリーンショット
 
-| チャットとモデル選択 | マルチエージェントダッシュボード |
-|:---:|:---:|
-| ![](.github/images/s1-0412.png) | ![](.github/images/s5-0412.png) |
+|      チャットとモデル選択       | マルチエージェントダッシュボード |
+| :-----------------------------: | :------------------------------: |
+| ![](.github/images/s1-0412.png) | ![](.github/images/s5-0412.png)  |
 
-| ナレッジベース RAG | メモリとコンテキスト |
-|:---:|:---:|
+|       ナレッジベース RAG        |      メモリとコンテキスト       |
+| :-----------------------------: | :-----------------------------: |
 | ![](.github/images/s3-0412.png) | ![](.github/images/s4-0412.png) |
 
-| ワークフローエディタ | API ゲートウェイ |
-|:---:|:---:|
+|      ワークフローエディタ       |         API ゲートウェイ         |
+| :-----------------------------: | :------------------------------: |
 | ![](.github/images/s9-0412.png) | ![](.github/images/s10-0412.png) |
 
 ---
@@ -301,38 +301,38 @@
 
 ### 技術スタック
 
-| レイヤー | 技術 |
-|---------|------|
-| **フレームワーク** | Tauri 2 + React 19 + TypeScript 6 |
-| **UI** | Ant Design 6 + TailwindCSS 4 |
-| **状態管理** | Zustand 5 |
-| **ルーティング** | React Router 7 |
-| **国際化** | i18next + react-i18next |
-| **バックエンド** | Rust + SeaORM 2 + SQLite |
-| **ベクトル DB** | sqlite-vec |
-| **コードエディタ** | Monaco Editor |
-| **ダイアグラム** | Mermaid + D2 + ECharts（CDN） |
-| **ターミナル** | xterm.js 6 |
-| **ワークフロー** | ReactFlow 11 |
-| **インフォグラフィック** | @antv/infographic |
-| **アイコン** | Iconify + Lucide |
-| **ドラッグ＆ドロップ** | @dnd-kit |
-| **ビルド** | Vite 8 + npm |
-| **テスト** | Vitest + Playwright + cargo-nextest |
-| **フォーマット** | dprint (TS/JSON) + rustfmt |
-| **Lint** | TS: eslint + oxlint / Rust: clippy + cargo-deny |
-| **モバイル** | Tauri Android + iOS ネイティブビルド |
-| **デスクトップ** | Windows (MSI) · macOS (DMG) · Linux (AppImage/deb/rpm) |
+| レイヤー                 | 技術                                                   |
+| ------------------------ | ------------------------------------------------------ |
+| **フレームワーク**       | Tauri 2 + React 19 + TypeScript 6                      |
+| **UI**                   | Ant Design 6 + TailwindCSS 4                           |
+| **状態管理**             | Zustand 5                                              |
+| **ルーティング**         | React Router 7                                         |
+| **国際化**               | i18next + react-i18next                                |
+| **バックエンド**         | Rust + SeaORM 2 + SQLite                               |
+| **ベクトル DB**          | sqlite-vec                                             |
+| **コードエディタ**       | Monaco Editor                                          |
+| **ダイアグラム**         | Mermaid + D2 + ECharts（CDN）                          |
+| **ターミナル**           | xterm.js 6                                             |
+| **ワークフロー**         | ReactFlow 11                                           |
+| **インフォグラフィック** | @antv/infographic                                      |
+| **アイコン**             | Iconify + Lucide                                       |
+| **ドラッグ＆ドロップ**   | @dnd-kit                                               |
+| **ビルド**               | Vite 8 + npm                                           |
+| **テスト**               | Vitest + Playwright + cargo-nextest                    |
+| **フォーマット**         | dprint (TS/JSON) + rustfmt                             |
+| **Lint**                 | TS: eslint + oxlint / Rust: clippy + cargo-deny        |
+| **モバイル**             | Tauri Android + iOS ネイティブビルド                   |
+| **デスクトップ**         | Windows (MSI) · macOS (DMG) · Linux (AppImage/deb/rpm) |
 
 ### プラットフォームサポート
 
-| プラットフォーム | アーキテクチャ |
-|----------------|---------------|
-| Windows | x86_64, ARM64 |
-| macOS | Apple Silicon (arm64), Intel (x86_64) |
-| Linux | x86_64, ARM64 (AppImage/deb/rpm) |
-| Android | arm64-v8a, armeabi-v7a, x86_64 (エミュレータ) |
-| iOS | arm64 |
+| プラットフォーム | アーキテクチャ                                |
+| ---------------- | --------------------------------------------- |
+| Windows          | x86_64, ARM64                                 |
+| macOS            | Apple Silicon (arm64), Intel (x86_64)         |
+| Linux            | x86_64, ARM64 (AppImage/deb/rpm)              |
+| Android          | arm64-v8a, armeabi-v7a, x86_64 (エミュレータ) |
+| iOS              | arm64                                         |
 
 ### Rust バックエンドアーキテクチャ
 
@@ -644,6 +644,7 @@ AxAgent/
 アプリが Apple によって署名されていないため：
 
 **1. 「すべてのソース」からのアプリを許可**
+
 ```bash
 sudo spctl --master-disable
 ```
@@ -651,6 +652,7 @@ sudo spctl --master-disable
 次に **システム設定 → プライバシーとセキュリティ → セキュリティ** に移動し、**すべてのソース** を選択します。
 
 **2. 検疫属性を削除**
+
 ```bash
 sudo xattr -dr com.apple.quarantine /Applications/AxAgent.app
 ```

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! axagent-search — 搜索与 RAG 引擎
 //!
 //! 包含向量搜索、混合搜索、文件索引、语义缓存、AST 索引、

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { useFineTuneStore } from "@/stores/devtools/fineTuneStore";
 import { DeleteOutlined, FileTextOutlined, PlusOutlined } from "@ant-design/icons";
 import { Button, Card, Form, Input, message, Modal, Popconfirm, Space, Table } from "antd";

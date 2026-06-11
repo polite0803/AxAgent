@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use crate::task::{TaskGraph, TaskNode, TaskStatus, TopologicalSortError};
 use crate::task_decomposer::{DecompositionError, TaskDecomposer};
 use serde::{Deserialize, Serialize};

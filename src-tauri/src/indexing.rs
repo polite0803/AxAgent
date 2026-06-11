@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Indexing pipeline for knowledge base documents and memory items.
 //!
 //! Provides functions to:

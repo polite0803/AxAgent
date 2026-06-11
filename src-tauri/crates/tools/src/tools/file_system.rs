@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! 文件系统操作工具
 //!
 //! 将 builtin_handlers 中的 list_directory、delete_file、create_directory、

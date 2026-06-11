@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 // 交互式教程 — 轻量步骤覆盖层
 import { useOnboardingStore } from "@/stores";
 import { useUIStore } from "@/stores";

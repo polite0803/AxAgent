@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 // === Provider System ===
 import type { RAGPipelineConfig } from "./knowledge";
 

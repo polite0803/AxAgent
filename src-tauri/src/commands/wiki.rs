@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use crate::AppState;
 use axagent_core::hybrid_search::{HybridSearchOptions, HybridSearcher};
 use axagent_core::rag::{RAGSource, WikiVaultRAG, collection_id};

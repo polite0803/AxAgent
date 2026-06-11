@@ -31,16 +31,16 @@
 
 ## 스크린샷
 
-| 채팅 및 모델 선택 | 멀티 에이전트 대시보드 |
-|:---:|:---:|
+|        채팅 및 모델 선택        |     멀티 에이전트 대시보드      |
+| :-----------------------------: | :-----------------------------: |
 | ![](.github/images/s1-0412.png) | ![](.github/images/s5-0412.png) |
 
-| 지식 베이스 RAG | 메모리 및 컨텍스트 |
-|:---:|:---:|
+|         지식 베이스 RAG         |       메모리 및 컨텍스트        |
+| :-----------------------------: | :-----------------------------: |
 | ![](.github/images/s3-0412.png) | ![](.github/images/s4-0412.png) |
 
-| 워크플로 편집기 | API 게이트웨이 |
-|:---:|:---:|
+|         워크플로 편집기         |          API 게이트웨이          |
+| :-----------------------------: | :------------------------------: |
 | ![](.github/images/s9-0412.png) | ![](.github/images/s10-0412.png) |
 
 ---
@@ -301,38 +301,38 @@
 
 ### 기술 스택
 
-| 레이어 | 기술 |
-|--------|------|
-| **프레임워크** | Tauri 2 + React 19 + TypeScript 6 |
-| **UI** | Ant Design 6 + TailwindCSS 4 |
-| **상태 관리** | Zustand 5 |
-| **라우팅** | React Router 7 |
-| **i18n** | i18next + react-i18next |
-| **백엔드** | Rust + SeaORM 2 + SQLite |
-| **벡터 DB** | sqlite-vec |
-| **코드 편집기** | Monaco Editor |
-| **다이어그램** | Mermaid + D2 + ECharts(CDN) |
-| **터미널** | xterm.js 6 |
-| **워크플로** | ReactFlow 11 |
-| **인포그래픽** | @antv/infographic |
-| **아이콘** | Iconify + Lucide |
-| **드래그 앤 드롭** | @dnd-kit |
-| **빌드** | Vite 8 + npm |
-| **테스트** | Vitest + Playwright + cargo-nextest |
-| **포맷팅** | dprint (TS/JSON) + rustfmt |
-| **Lint** | TS: eslint + oxlint / Rust: clippy + cargo-deny |
-| **모바일** | Tauri Android + iOS 네이티브 빌드 |
-| **데스크톱** | Windows (MSI) · macOS (DMG) · Linux (AppImage/deb/rpm) |
+| 레이어             | 기술                                                   |
+| ------------------ | ------------------------------------------------------ |
+| **프레임워크**     | Tauri 2 + React 19 + TypeScript 6                      |
+| **UI**             | Ant Design 6 + TailwindCSS 4                           |
+| **상태 관리**      | Zustand 5                                              |
+| **라우팅**         | React Router 7                                         |
+| **i18n**           | i18next + react-i18next                                |
+| **백엔드**         | Rust + SeaORM 2 + SQLite                               |
+| **벡터 DB**        | sqlite-vec                                             |
+| **코드 편집기**    | Monaco Editor                                          |
+| **다이어그램**     | Mermaid + D2 + ECharts(CDN)                            |
+| **터미널**         | xterm.js 6                                             |
+| **워크플로**       | ReactFlow 11                                           |
+| **인포그래픽**     | @antv/infographic                                      |
+| **아이콘**         | Iconify + Lucide                                       |
+| **드래그 앤 드롭** | @dnd-kit                                               |
+| **빌드**           | Vite 8 + npm                                           |
+| **테스트**         | Vitest + Playwright + cargo-nextest                    |
+| **포맷팅**         | dprint (TS/JSON) + rustfmt                             |
+| **Lint**           | TS: eslint + oxlint / Rust: clippy + cargo-deny        |
+| **모바일**         | Tauri Android + iOS 네이티브 빌드                      |
+| **데스크톱**       | Windows (MSI) · macOS (DMG) · Linux (AppImage/deb/rpm) |
 
 ### 플랫폼 지원
 
-| 플랫폼 | 아키텍처 |
-|--------|----------|
-| Windows | x86_64, ARM64 |
-| macOS | Apple Silicon (arm64), Intel (x86_64) |
-| Linux | x86_64, ARM64 |
+| 플랫폼  | 아키텍처                                    |
+| ------- | ------------------------------------------- |
+| Windows | x86_64, ARM64                               |
+| macOS   | Apple Silicon (arm64), Intel (x86_64)       |
+| Linux   | x86_64, ARM64                               |
 | Android | arm64-v8a, armeabi-v7a, x86_64 (에뮬레이터) |
-| iOS | arm64 |
+| iOS     | arm64                                       |
 
 ### Rust 백엔드 아키텍처
 
@@ -644,6 +644,7 @@ AxAgent/
 앱이 Apple에서 서명하지 않았기 때문에:
 
 **1. "모든 곳"의 앱 허용**
+
 ```bash
 sudo spctl --master-disable
 ```
@@ -651,6 +652,7 @@ sudo spctl --master-disable
 그런 다음 **시스템 설정 → 개인정보 보호 및 보안 → 보안**로 이동하여 **모든 곳**을 선택합니다.
 
 **2. 검역 속성 제거**
+
 ```bash
 sudo xattr -dr com.apple.quarantine /Applications/AxAgent.app
 ```

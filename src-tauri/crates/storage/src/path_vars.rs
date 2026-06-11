@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Path encoding/decoding for cross-device portability.
 //!
 //! Replaces absolute path prefixes with variables (`{{AxAgent_HOME}}`, `{{DOCUMENTS}}`,

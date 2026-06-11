@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! 上下文 token 占用分解，为前端 ContextClassificationBar 提供数据。
 
 use crate::AppState;

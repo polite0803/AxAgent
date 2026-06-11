@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { useStreamStore } from "@/stores/domain/streamStore";
 import { useAgentStore } from "@/stores/feature/agentStore";
 import { useExecutionStore } from "@/stores/feature/executionStore";

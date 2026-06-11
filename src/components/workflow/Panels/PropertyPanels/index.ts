@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 export { AgentPropertyPanel } from "./AgentPropertyPanel";
 export { AggregatorPropertyPanel } from "./AggregatorPropertyPanel";
 export { ApprovalPropertyPanel } from "./ApprovalPropertyPanel";

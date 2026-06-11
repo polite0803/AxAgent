@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! 错误恢复策略 — 分级退避重试 + 熔断器
 //!
 //! 重试策略：

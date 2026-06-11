@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Memory service - core working memory and session management
 //!
 //! Implements a tiered memory architecture with:

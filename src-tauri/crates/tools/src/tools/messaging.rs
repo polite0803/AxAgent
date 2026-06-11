@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! SendMessageTool / ListPeersTool / TeamCreateTool / TeamDeleteTool
 
 use crate::{Tool, ToolCategory, ToolContext, ToolError, ToolResult};

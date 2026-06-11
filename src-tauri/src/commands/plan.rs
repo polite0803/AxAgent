@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Plan commands — implements the "plan first, then execute" agent work strategy.
 //!
 //! ## Flow

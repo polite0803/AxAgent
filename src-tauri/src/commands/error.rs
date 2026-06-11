@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! 统一的错误响应结构
 //!
 //! 后端返回错误码，前端负责翻译

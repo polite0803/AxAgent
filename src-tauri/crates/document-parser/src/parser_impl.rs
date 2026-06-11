@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! `axagent_harness::search_sources::DocumentParser` trait 的默认实现。
 //!
 //! 把现有 `extract_text` free function 包成 struct impl，

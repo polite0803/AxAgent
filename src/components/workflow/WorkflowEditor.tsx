@@ -1,5 +1,5 @@
-import domtoimage from "dom-to-image-more";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import {
   Background,
   BackgroundVariant,
@@ -14,12 +14,15 @@ import {
   useEdgesState,
   useNodesState,
   useReactFlow,
-} from "reactflow";
-import "reactflow/dist/style.css";
+} from "@xyflow/react";
+import domtoimage from "dom-to-image-more";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import "@xyflow/react/dist/style.css";
 import { isTauri } from "@/lib/invoke";
 import {
   auto_layout,
   autoLayoutWorkflow,
+  type AutoNode,
   find_safe_position,
   getNodeSize,
   validate_workflow,
@@ -43,7 +46,6 @@ import {
   AggregatorNode,
   ApprovalNode,
   BaseNode,
-  type BaseNodeData,
   CodeNode,
   ConditionNode,
   DatabaseQueryNode,
@@ -182,8 +184,8 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
     setDiagnoseDrawerVisible,
   } = useWorkflowEditorStore();
 
-  const [reactFlowNodes, setRNodes, onNodesChange] = useNodesState([]);
-  const [reactFlowEdges, setREdges, onEdgesChange] = useEdgesState([]);
+  const [reactFlowNodes, setRNodes, onNodesChange] = useNodesState<Node>([]);
+  const [reactFlowEdges, setREdges, onEdgesChange] = useEdgesState<Edge>([]);
   const [isInitialized, setIsInitialized] = React.useState(false);
   const hasAutoLaidOutRef = React.useRef(false);
   const autoLayoutTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -445,24 +447,25 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
         const isContainer = typeMeta?.isContainer === true
           || (rtType === "subWorkflow" && useWorkflowEditorStore.getState().expandedSubWorkflows[node.id] != null);
         // 子图节点计数（优先从 config.subGraph.nodes 获取，否则回退到引用的子节点 ID 计数）
-        /* eslint-disable @typescript-eslint/no-explicit-any */
-        const subGraphNodes = (node as any).config?.subGraph?.nodes;
-        let subGraphChildCount = Array.isArray(subGraphNodes) ? subGraphNodes.length : 0;
+        const nodeConfig = (node as unknown as Record<string, unknown>).config as Record<string, unknown> | undefined;
+        const subGraph = nodeConfig?.subGraph as Record<string, unknown> | undefined;
+        const subGraphNodes = subGraph?.nodes;
+        let subGraphChildCount = Array.isArray(subGraphNodes) ? (subGraphNodes as unknown[]).length : 0;
         if (subGraphChildCount === 0) {
           // 向后兼容：从分支/循环体/辩论者引用中统计子节点数
           if (node.type === "parallel") {
-            const branches = (node as any).config?.branches;
+            const branches = nodeConfig?.branches as { steps?: unknown[] }[] | undefined;
             if (branches) {
-              subGraphChildCount = branches.reduce((sum: number, b: any) => sum + (b.steps?.length ?? 0), 0);
+              subGraphChildCount = branches.reduce((sum, b) => sum + (b.steps?.length ?? 0), 0);
             }
           } else if (node.type === "loop") {
-            subGraphChildCount = ((node as any).config?.body_steps as string[])?.length ?? 0;
+            subGraphChildCount = (nodeConfig?.body_steps as string[] | undefined)?.length ?? 0;
           } else if (node.type === "debate") {
-            subGraphChildCount = ((node as any).config?.debater_steps as string[])?.length ?? 0;
+            subGraphChildCount = (nodeConfig?.debater_steps as string[] | undefined)?.length ?? 0;
           } else if (node.type === "swarm") {
-            subGraphChildCount = ((node as any).config?.agent_steps as string[])?.length ?? 0;
+            subGraphChildCount = (nodeConfig?.agent_steps as string[] | undefined)?.length ?? 0;
           } else if (node.type === "aggregator") {
-            subGraphChildCount = ((node as any).config?.input_sources as string[])?.length ?? 0;
+            subGraphChildCount = (nodeConfig?.input_sources as string[] | undefined)?.length ?? 0;
           }
         }
         const isContainerCollapsed = isContainer
@@ -488,8 +491,8 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
             if (cx > maxX) { maxX = cx; }
             if (cy > maxY) { maxY = cy; }
           }
-          for (const sgChild of subGraphChildren) {
-            const sz = getNodeSize((sgChild as any).type);
+          for (const sgChild of subGraphChildren as { type?: string; position: { x: number; y: number } }[]) {
+            const sz = getNodeSize(sgChild.type ?? "base");
             const cx = sgChild.position.x + sz.width;
             const cy = sgChild.position.y + sz.height;
             if (cx > maxX) { maxX = cx; }
@@ -501,8 +504,9 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
           };
         }
         // 折叠态下：容器内的子节点在画布上隐藏
-        const childIsHidden = (node as any).parentId != null
-          && useWorkflowEditorStore.getState().collapsedContainers.has((node as any).parentId as string);
+        const rfNode = node as unknown as Node;
+        const childIsHidden = rfNode.parentId != null
+          && useWorkflowEditorStore.getState().collapsedContainers.has(rfNode.parentId);
         return {
           id: node.id,
           type: rtType,
@@ -515,42 +519,43 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
             label: node.title,
             color: typeInfo.color,
             nodeType: node.type,
-            ...((node as any).config?.kind ? { kind: (node as any).config.kind } : {}),
+            ...(nodeConfig?.kind ? { kind: nodeConfig.kind as string } : {}),
             ...(isContainer ? { childCount: subGraphChildCount } : {}),
             // 容器特化字段提取：从 config 提取到 data 顶层供容器组件渲染使用
             ...(node.type === "debate"
               ? {
-                debaterSteps: ((node as any).config?.debater_steps as string[])
-                  ?? ((node as any).config?.subGraph?.nodes ?? []).map((_: any) => _.id),
-                maxRounds: (node as any).config?.max_rounds ?? 2,
-                convergencePrompt: (node as any).config?.convergence_prompt,
+                debaterSteps: (nodeConfig?.debater_steps as string[])
+                  ?? (subGraph?.nodes as unknown[] | undefined)?.map((n) => (n as Record<string, string>).id) ?? [],
+                maxRounds: (nodeConfig?.max_rounds as number) ?? 2,
+                convergencePrompt: nodeConfig?.convergence_prompt as string | undefined,
               }
               : {}),
             ...(node.type === "parallel"
               ? {
-                branches: ((node as any).config?.branches as any[])?.length
-                  ?? ((node as any).config?.subGraph?.nodes ?? []).length ?? 0,
-                waitStrategy: (node as any).config?.wait_for_all === false ? "any" : undefined,
-                aggregation: (node as any).config?.aggregation,
-                autoInputFromParent: (node as any).config?.auto_input_from_parent,
-                hasBranchTimeout: ((node as any).config?.branches as any[])?.some(
-                  (b: any) => b.branchTimeoutMs != null || (b.degradeStrategy && b.degradeStrategy !== "skip"),
-                ) ?? false,
+                branches: (nodeConfig?.branches as unknown[] | undefined)?.length
+                  ?? (subGraph?.nodes as unknown[] | undefined)?.length ?? 0,
+                waitStrategy: nodeConfig?.wait_for_all === false ? "any" as const : undefined,
+                aggregation: nodeConfig?.aggregation as string | undefined,
+                autoInputFromParent: nodeConfig?.auto_input_from_parent as boolean | undefined,
+                hasBranchTimeout:
+                  (nodeConfig?.branches as { branchTimeoutMs?: number; degradeStrategy?: string }[] | undefined)?.some(
+                    (b) => b.branchTimeoutMs != null || (b.degradeStrategy && b.degradeStrategy !== "skip"),
+                  ) ?? false,
               }
               : {}),
             ...(node.type === "loop"
               ? {
-                loopType: (node as any).config?.loop_type,
-                maxIterations: (node as any).config?.max_iterations,
-                loopCondition: (node as any).config?.continue_condition,
-                collectionVar: (node as any).config?.iter_input_var ?? (node as any).config?.items_var,
+                loopType: nodeConfig?.loop_type as string | undefined,
+                maxIterations: nodeConfig?.max_iterations as number | undefined,
+                loopCondition: nodeConfig?.continue_condition as string | undefined,
+                collectionVar: (nodeConfig?.iter_input_var ?? nodeConfig?.items_var) as string | undefined,
               }
               : {}),
             ...(node.type === "swarm"
               ? {
-                agentSteps: ((node as any).config?.agent_steps as string[])
-                  ?? ((node as any).config?.subGraph?.nodes ?? []).map((_: any) => _.id),
-                maxRounds: (node as any).config?.max_rounds ?? 3,
+                agentSteps: (nodeConfig?.agent_steps as string[])
+                  ?? (subGraph?.nodes as unknown[] | undefined)?.map((n) => (n as Record<string, string>).id) ?? [],
+                maxRounds: (nodeConfig?.max_rounds as number) ?? 3,
               }
               : {}),
             ...(validationState ? { validationState } : {}),
@@ -596,9 +601,10 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
       // 折叠态：收集所有"应隐藏"的子节点 ID（含 branches.steps + merge auto_inputs）
       const hiddenChildIds = new Set<string>();
       for (const node of nodes) {
-        /* eslint-disable @typescript-eslint/no-explicit-any */
-        if (node.type === "parallel" && (node as any).config?.branches) {
-          const branches = (node as any).config.branches;
+        const scopedNode = node as unknown as Record<string, unknown>;
+        const scopedConfig = scopedNode.config as Record<string, unknown> | undefined;
+        if (node.type === "parallel" && scopedConfig?.branches) {
+          const branches = scopedConfig.branches as { steps?: string[] }[];
           for (const branch of branches) {
             for (const stepId of (branch.steps || []) as string[]) {
               const childIdx = flowNodes.findIndex((fn) => fn.id === stepId);
@@ -621,9 +627,9 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
           }
         }
         // 将 MergeNode（auto-inputs）也挂入同一容器
-        if (node.type === "merge" && (node as any).config?.auto_inputs_from_branches) {
+        if (node.type === "merge" && scopedConfig?.auto_inputs_from_branches) {
           // 查找此 merge 节点的所有 inputs 引用
-          const inputs = (node as any).config?.inputs as string[] | undefined;
+          const inputs = scopedConfig?.inputs as string[] | undefined;
           if (inputs) {
             for (const inputId of inputs) {
               const childIdx = flowNodes.findIndex((fn) => fn.id === inputId);
@@ -651,8 +657,8 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
           }
         }
         // 将 DebateNode 的 debater_steps 中的子节点挂载为容器子节点
-        if (node.type === "debate" && (node as any).config?.debater_steps) {
-          const debaterSteps = (node as any).config.debater_steps as string[];
+        if (node.type === "debate" && scopedConfig?.debater_steps) {
+          const debaterSteps = scopedConfig.debater_steps as string[];
           for (const stepId of debaterSteps) {
             const childIdx = flowNodes.findIndex((fn) => fn.id === stepId);
             if (childIdx === -1) { continue; }
@@ -672,8 +678,8 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
           }
         }
         // 将 AggregatorNode 的 input_sources 中的子节点挂载为容器子节点
-        if (node.type === "aggregator" && (node as any).config?.input_sources) {
-          const inputSources = (node as any).config.input_sources as string[];
+        if (node.type === "aggregator" && scopedConfig?.input_sources) {
+          const inputSources = scopedConfig.input_sources as string[];
           for (const sourceId of inputSources) {
             const childIdx = flowNodes.findIndex((fn) => fn.id === sourceId);
             if (childIdx === -1) { continue; }
@@ -693,8 +699,8 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
           }
         }
         // 将 LoopNode 的 body_steps 中的子节点挂载为容器子节点
-        if (node.type === "loop" && (node as any).config?.body_steps) {
-          const bodySteps = (node as any).config.body_steps as string[];
+        if (node.type === "loop" && scopedConfig?.body_steps) {
+          const bodySteps = scopedConfig.body_steps as string[];
           for (const stepId of bodySteps) {
             const childIdx = flowNodes.findIndex((fn) => fn.id === stepId);
             if (childIdx === -1) { continue; }
@@ -714,8 +720,8 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
           }
         }
         // 将 SwarmNode 的 agent_steps 中的子节点挂载为容器子节点
-        if (node.type === "swarm" && (node as any).config?.agent_steps) {
-          const agentSteps = (node as any).config.agent_steps as string[];
+        if (node.type === "swarm" && scopedConfig?.agent_steps) {
+          const agentSteps = scopedConfig.agent_steps as string[];
           for (const stepId of agentSteps) {
             const childIdx = flowNodes.findIndex((fn) => fn.id === stepId);
             if (childIdx === -1) { continue; }
@@ -751,8 +757,10 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
       for (const containerNode of nodes) {
         const typeMeta = NODE_TYPE_MAP[containerNode.type];
         if (!typeMeta?.isContainer) { continue; }
-        /* eslint-disable @typescript-eslint/no-explicit-any */
-        const subGraph = (containerNode as any).config?.subGraph as
+        const cnCfg = (containerNode as unknown as Record<string, unknown>).config as
+          | Record<string, unknown>
+          | undefined;
+        const subGraph = cnCfg?.subGraph as
           | { nodes?: WorkflowNode[]; edges?: WorkflowEdge[] }
           | undefined;
         if (!subGraph?.nodes?.length) { continue; }
@@ -818,8 +826,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
           // 新约定：subNode.position 已是相对父节点的偏移，直接透传。
           flowNodes.push({
             id: subNode.id,
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            type: (subNode as any).type || "agent",
+            type: (subNode as unknown as { type?: string }).type || "agent",
             position: { x: subNode.position.x, y: subNode.position.y },
             parentId: swNodeId,
             extent: "parent" as const,
@@ -852,8 +859,10 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
       const childPortMap = new Map<string, string>();
       for (const node of nodes) {
         if (node.type !== "parallel") { continue; }
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const cfg = (node as any).config as { branches?: Array<{ steps: string[] }> } | undefined;
+        const nodeCfg = (node as unknown as Record<string, unknown>).config as
+          | { branches?: Array<{ steps: string[] }> }
+          | undefined;
+        const cfg = nodeCfg;
         if (!cfg?.branches) { continue; }
         for (let bi = 0; bi < cfg.branches.length; bi++) {
           const portId = bi === 0 ? "port-0" : bi === 1 ? "port-1" : "port-2";
@@ -919,8 +928,10 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
       for (const containerNode of nodes) {
         const typeMeta = NODE_TYPE_MAP[containerNode.type];
         if (!typeMeta?.isContainer) { continue; }
-        /* eslint-disable @typescript-eslint/no-explicit-any */
-        const subGraph = (containerNode as any).config?.subGraph as
+        const cnCfg = (containerNode as unknown as Record<string, unknown>).config as
+          | Record<string, unknown>
+          | undefined;
+        const subGraph = cnCfg?.subGraph as
           | { nodes?: WorkflowNode[]; edges?: WorkflowEdge[] }
           | undefined;
         if (!subGraph?.edges?.length) { continue; }
@@ -1001,12 +1012,13 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
       // 禁止连接到装饰容器或从装饰容器出发
       const srcNode = nodes.find((n) => n.id === params.source);
       const tgtNode = nodes.find((n) => n.id === params.target);
-      /* eslint-disable @typescript-eslint/no-explicit-any */
-      if ((srcNode?.config as any)?.kind === "decorative") {
+      const srcCfg = (srcNode?.config ?? {}) as Record<string, unknown>;
+      const tgtCfg = (tgtNode?.config ?? {}) as Record<string, unknown>;
+      if (srcCfg?.kind === "decorative") {
         message.warning(t("workflow.decorativeContainerNoEdges"));
         return;
       }
-      if ((tgtNode?.config as any)?.kind === "decorative") {
+      if (tgtCfg?.kind === "decorative") {
         message.warning(t("workflow.decorativeContainerNoEdges"));
         return;
       }
@@ -1349,8 +1361,8 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
         const fallback = NODE_TYPE_MAP[nodeType]?.isContainer
           ? getNodeSize(nodeType)
           : null;
-        const w = node.width ?? fallback?.width ?? 200;
-        const h = node.height ?? fallback?.height ?? 100;
+        const w = node.measured?.width ?? fallback?.width ?? 200;
+        const h = node.measured?.height ?? fallback?.height ?? 100;
         minX = Math.min(minX, node.position.x);
         minY = Math.min(minY, node.position.y);
         maxX = Math.max(maxX, node.position.x + w);
@@ -1699,7 +1711,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
 
   /** 拖拽过程中实时吸附到 grid（ReactFlow 内置 snapToGrid 已处理视觉吸附） */
   const handleNodeDrag = useCallback(
-    (_event: React.MouseEvent, _node: Node) => {
+    (_event: unknown, _node: Node) => {
       // ReactFlow 的 snapToGrid 已在渲染层面完成网格吸附；
       // onNodeDrag 在此预留，可用于未来添加 ghost position overlay
     },
@@ -1707,7 +1719,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
   );
 
   const handleNodeDragStop = useCallback(
-    (_event: React.MouseEvent, node: Node) => {
+    (_event: unknown, node: Node) => {
       isDraggingRef.current = false;
 
       if (node?.position) {
@@ -1781,13 +1793,12 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
 
   const handleAutoLayout = useCallback(async () => {
     // 过滤分组边：不参与自动布局
-    /* eslint-disable @typescript-eslint/no-explicit-any */
     const layoutEdges = reactFlowEdges.filter(
-      (e) => (e.data as any)?.edgeType !== "grouping",
+      (e) => (e.data as { edgeType?: string } | undefined)?.edgeType !== "grouping",
     );
     // 使用新的 auto_layout（按 type 分层 + Barycenter 启发式）
     const layoutedNodes = auto_layout(
-      reactFlowNodes as any,
+      reactFlowNodes as unknown as AutoNode[],
       layoutEdges,
       parentRefs,
     );
@@ -2112,7 +2123,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
                 />
                 <Controls style={{ borderRadius: 8 }} />
                 <MiniMap
-                  nodeColor={(node: Node<BaseNodeData>) => node.data?.color || token.colorTextQuaternary}
+                  nodeColor={(node: Node) => (node.data as { color?: string })?.color || token.colorTextQuaternary}
                   maskColor={token.colorBgMask}
                   pannable
                   zoomable
@@ -2232,8 +2243,8 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
               onClose={() => setAiPanelVisible(false)}
               selectedNodeId={selectedNodeId}
               selectedNodePrompt={selectedNodeId
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                ? (nodes.find(n => n.id === selectedNodeId) as any)?.config?.system_prompt ?? null
+                ? (nodes.find(n => n.id === selectedNodeId) as unknown as { config?: { system_prompt?: string } })
+                  ?.config?.system_prompt ?? null
                 : null}
               onApplyPromptToNode={applyOptimizedPromptToNode}
               chatMessages={aiChatMessages}
@@ -2755,9 +2766,8 @@ function createWorkflowNode(
       console.warn(`[createWorkflowNode] Unknown node type "${type}", falling back to agent`);
       return {
         ...baseNode,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        type: type as any,
+        type: "agent" as const,
         config: {},
-      };
+      } as unknown as WorkflowNode;
   }
 }

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Git 操作工具
 //!
 //! 将 builtin_handlers 中的 git_status、git_diff、git_commit、

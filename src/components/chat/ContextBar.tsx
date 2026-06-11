@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { formatTokenCount } from "@/components/gateway/tokenFormat";
 import { Tooltip } from "@/components/layout/Tooltip";
 import { estimateMessageTokens } from "@/lib/tokenEstimator";

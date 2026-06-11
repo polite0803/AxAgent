@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import type { RetryConfig, WorkflowNode } from "@/components/workflow/types";
 
 export interface BatchEditOptions {

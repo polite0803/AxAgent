@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { useNudgeStore } from "@/stores";
 import type { InsightCategory } from "@/types";
 import { Lightbulb } from "lucide-react";

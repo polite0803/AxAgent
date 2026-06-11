@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import type { Model, ModelCapability, ModelType, ProviderConfig } from "@/types";
 
 const CHAT_MODEL_CAPABILITIES: ModelCapability[] = [

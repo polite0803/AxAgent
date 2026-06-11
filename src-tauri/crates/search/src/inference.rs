@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! 本地推理引擎
 //!
 //! 1. Rerank: 跨编码器重排序（当前启发式，candle 0.9+ 可支持 BERT GGUF）

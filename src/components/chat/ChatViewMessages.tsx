@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 // Local message types (replacing @ant-design/x Bubble)
 import { type CSSProperties, type ReactNode } from "react";
 

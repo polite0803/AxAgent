@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! 搜索层 trait 注入模块。
 //!
 //! search crate 不再直接依赖 axagent-dao / axagent-document-parser。

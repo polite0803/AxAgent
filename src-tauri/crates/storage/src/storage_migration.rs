@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! One-time migration: move files from legacy ~/.axagent/files/ to ~/Documents/axagent/
 
 use std::collections::HashMap;

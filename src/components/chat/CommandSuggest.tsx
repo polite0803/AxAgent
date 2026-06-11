@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import i18n from "@/i18n";
 import { useMcpStore } from "@/stores";
 import { BookOpen, FileText, FolderOpen, Globe, Terminal, Wrench } from "lucide-react";

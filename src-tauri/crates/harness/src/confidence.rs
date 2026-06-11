@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! 置信度输出类型 — 用于 LLM 分类/判断结果的置信度检查。
 
 use serde::{Deserialize, Serialize};

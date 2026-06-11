@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Dual-mode switching — one-click toggle between Speed Mode and General Mode.
 //!
 //! Integrates with the `ModuleSwitch` framework to provide two preset

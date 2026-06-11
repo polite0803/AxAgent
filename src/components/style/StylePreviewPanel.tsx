@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { type StyleDimensions, useStyleStore } from "@/stores/feature/styleStore";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";

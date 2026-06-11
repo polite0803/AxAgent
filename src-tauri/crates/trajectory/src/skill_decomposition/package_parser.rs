@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use super::multi_turn::{CodeBlock, FileReference, FileType, ReferenceType, SkillFile};
 use regex::Regex;
 use std::path::Path;

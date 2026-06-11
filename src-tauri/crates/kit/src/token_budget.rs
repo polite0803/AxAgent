@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! 运行时 Token 预算跟踪器
 //!
 //! 在每次 ReAct 迭代中监控 token 消耗，检测收益递减（模型在无效循环中浪费上下文窗口），

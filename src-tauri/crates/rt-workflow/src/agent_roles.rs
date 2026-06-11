@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Agent Role System - Defines agent archetypes and their capabilities
 //!
 //! DB-first lookup: checks `agent_roles` table first, falls back to built-in enum.

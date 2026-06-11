@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /** 工具类别枚举，与后端 ToolCategory 严格对应 */
 export const ToolCategory = {
   FileRead: "file_read",

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import type { TraceMetrics } from "@/types";
 import { Card, Col, Row, Statistic } from "antd";
 import { useTranslation } from "react-i18next";

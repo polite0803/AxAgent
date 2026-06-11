@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { invoke } from "@/lib/invoke";
 import { Bug, Clock, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Smart Model Router — task-aware model selection for cost-efficient LLM usage.
 //!
 //! This module implements the "宏观架构" (macro-architecture) layer of the

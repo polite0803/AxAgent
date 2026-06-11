@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { usePlanStore } from "@/stores";
 import { useExecutionStore } from "@/stores/feature/executionStore";
 import type { PlanStep } from "@/types";

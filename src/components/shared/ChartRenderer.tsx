@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { ChartPreview } from "@/components/chat/ArtifactPreview/ChartPreview";
 import { type ChartGenRequest, generateChart } from "@/lib/chartGenerator";
 import { Spin } from "antd";

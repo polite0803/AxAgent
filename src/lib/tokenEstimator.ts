@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /**
  * Lightweight token estimation mirroring the Rust token_counter.rs.
  * Uses character-based heuristics (~15% accuracy for mixed-language text).

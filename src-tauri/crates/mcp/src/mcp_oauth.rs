@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! MCP OAuth 令牌管理器
 //!
 //! 管理 MCP 服务器的 OAuth 凭据：持久化到磁盘、加载、刷新。

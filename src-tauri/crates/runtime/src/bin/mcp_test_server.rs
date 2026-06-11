@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! MCP 测试服务器 — 纯 Rust 实现
 //!
 //! 替代 Python 测试脚本，用于 MCP stdio 传输的集成测试。

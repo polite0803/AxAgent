@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use std::process::Command as StdCommand;
 
 /// 创建不弹出控制台窗口的进程命令（Windows 专用）

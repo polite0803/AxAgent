@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! 辩论容器执行器 —— 读取 debater_steps 配置，返回辩手列表供 DAG 引擎调度。
 //!
 //! 与 ParallelExecutor 类似，DebateExecutor 作为容器节点只负责返回子节点信息。

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! 工具系统契约 — 从 axagent-tools 提取的接口层
 //!
 //! 所有工具必须实现 `Tool` trait。在 Harness 架构中，

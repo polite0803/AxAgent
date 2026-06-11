@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Cloud storage trait and DTOs
 //!
 //! Defines the `StorageBackend` trait and its supporting types.

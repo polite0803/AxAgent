@@ -1,8 +1,20 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 export { useArtifactStore } from "./shared/artifactStore";
 export { useChatWorkspaceStore } from "./shared/chatWorkspaceStore";
 export { useRightPanelStore } from "./shared/rightPanelStore";
 export { type TabItem, useTabStore } from "./shared/tabStore";
 export { useUIStore } from "./shared/uiStore";
+
+export { useBackendStatusStore } from "./shared/backendStatusStore";
+export { useErrorNotificationStore } from "./shared/errorNotificationStore";
+
+export { useDecompositionStore } from "./feature/decompositionStore";
+export { useLlmWikiStore } from "./feature/llmWikiStore";
+export { useProactiveStore } from "./feature/proactiveStore";
+export { useStyleStore } from "./feature/styleStore";
+export { useThemeStore } from "./feature/themeStore";
+export { useWikiStore } from "./feature/wikiStore";
 
 export { useEvaluatorStore } from "./devtools/evaluatorStore";
 export { useFineTuneStore } from "./devtools/fineTuneStore";

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use crate::AppState;
 use crate::commands::conversations_search::{
     SessionSearchResult, session_search as inner_session_search,

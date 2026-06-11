@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Auto Memory Extractor - Extracts structured memories from agent trajectories using LLM
 //!
 //! This module analyzes completed trajectories and extracts:

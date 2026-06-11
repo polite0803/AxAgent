@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /// L3: XML 包装器
 ///
 /// 将已清理的用户输入包装为带信任标记的 XML 结构，

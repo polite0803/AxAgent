@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Message Gateway — re-exported from axagent-rt-messaging.
 
 pub mod platform_bridge;

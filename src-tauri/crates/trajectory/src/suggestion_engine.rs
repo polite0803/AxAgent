@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use crate::context_predictor::ContextFeatures;
 use crate::proactive_assistant::{
     ContextPrediction, PredictedIntent, Priority, ProactiveSuggestion, SuggestionAction,

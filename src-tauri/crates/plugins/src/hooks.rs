@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use std::ffi::OsStr;
 #[cfg(windows)]
 use std::os::windows::process::CommandExt;

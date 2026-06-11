@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { DeleteOutlined } from "@ant-design/icons";
 import { Divider, Popconfirm, theme, Typography } from "antd";
 import { Focus, GitGraph, Link2, PenLine } from "lucide-react";

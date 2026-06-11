@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import type { FileCategory } from "@/components/files/fileCategories";
 import { FilesSidebar } from "@/components/files/FilesSidebar";
 import { useState } from "react";

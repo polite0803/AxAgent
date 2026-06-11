@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! 属性系统 — Buddy 的 5 种属性，每种 1-10 级
 //!
 //! 属性包括：调试能力、耐心、混乱度、智慧、毒舌

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { DropdownMenu } from "@/components/layout/DropdownMenu";
 import type { DropdownItem } from "@/components/layout/DropdownMenu";
 import { Tooltip } from "@/components/layout/Tooltip";

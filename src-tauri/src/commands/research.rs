@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! 研究报告生成命令模块
 //!
 //! 根据对话历史调用 LLM 生成结构化研究报告，供前端 ReportViewer 组件渲染。

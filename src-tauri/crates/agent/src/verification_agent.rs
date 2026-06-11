@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! 验证 Agent — 后台异步验证代码实现与计划的一致性
 //! 只使用只读工具：FileRead, Grep, Glob, Bash(只读)
 

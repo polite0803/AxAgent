@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Webhook 订阅服务契约 + 共享 DTO。
 //!
 //! 提供 Webhook 订阅的注册、查询、事件派发能力，

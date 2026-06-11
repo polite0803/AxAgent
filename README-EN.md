@@ -31,16 +31,16 @@ AxAgent v2.0 is a comprehensive cross-platform AI desktop/mobile application tha
 
 ## Screenshots
 
-| Chat & Model Selection | Multi-Agent Dashboard |
-|:---:|:---:|
+|     Chat & Model Selection      |      Multi-Agent Dashboard      |
+| :-----------------------------: | :-----------------------------: |
 | ![](.github/images/s1-0412.png) | ![](.github/images/s5-0412.png) |
 
-| Knowledge Base RAG | Memory & Context |
-|:---:|:---:|
+|       Knowledge Base RAG        |        Memory & Context         |
+| :-----------------------------: | :-----------------------------: |
 | ![](.github/images/s3-0412.png) | ![](.github/images/s4-0412.png) |
 
-| Workflow Editor | API Gateway |
-|:---:|:---:|
+|         Workflow Editor         |           API Gateway            |
+| :-----------------------------: | :------------------------------: |
 | ![](.github/images/s9-0412.png) | ![](.github/images/s10-0412.png) |
 
 ---
@@ -301,38 +301,38 @@ The workflow engine implements a DAG-based task orchestration system:
 
 ### Tech Stack
 
-| Layer | Technology |
-|-------|------------|
-| **Framework** | Tauri 2 + React 19 + TypeScript 6 |
-| **UI** | Ant Design 6 + TailwindCSS 4 |
-| **State** | Zustand 5 |
-| **Routing** | React Router 7 |
-| **i18n** | i18next + react-i18next |
-| **Backend** | Rust + SeaORM 2 + SQLite |
-| **Vector DB** | sqlite-vec |
-| **Code Editor** | Monaco Editor |
-| **Diagrams** | Mermaid + D2 + ECharts (CDN) |
-| **Terminal** | xterm.js 6 |
-| **Workflow** | ReactFlow 11 |
-| **Build** | Vite 8 + npm |
-| **Infographic** | @antv/infographic |
-| **Icons** | Iconify + Lucide |
-| **Drag & Drop** | @dnd-kit |
-| **Testing** | Vitest + Playwright + cargo-nextest |
-| **Formatting** | dprint (TS/JSON) + rustfmt |
-| **Lint** | TS: eslint + oxlint / Rust: clippy + cargo-deny |
-| **Mobile** | Tauri Android + iOS native builds |
-| **Desktop** | Windows (MSI) · macOS (DMG) · Linux (AppImage/deb/rpm) |
+| Layer           | Technology                                             |
+| --------------- | ------------------------------------------------------ |
+| **Framework**   | Tauri 2 + React 19 + TypeScript 6                      |
+| **UI**          | Ant Design 6 + TailwindCSS 4                           |
+| **State**       | Zustand 5                                              |
+| **Routing**     | React Router 7                                         |
+| **i18n**        | i18next + react-i18next                                |
+| **Backend**     | Rust + SeaORM 2 + SQLite                               |
+| **Vector DB**   | sqlite-vec                                             |
+| **Code Editor** | Monaco Editor                                          |
+| **Diagrams**    | Mermaid + D2 + ECharts (CDN)                           |
+| **Terminal**    | xterm.js 6                                             |
+| **Workflow**    | ReactFlow 11                                           |
+| **Build**       | Vite 8 + npm                                           |
+| **Infographic** | @antv/infographic                                      |
+| **Icons**       | Iconify + Lucide                                       |
+| **Drag & Drop** | @dnd-kit                                               |
+| **Testing**     | Vitest + Playwright + cargo-nextest                    |
+| **Formatting**  | dprint (TS/JSON) + rustfmt                             |
+| **Lint**        | TS: eslint + oxlint / Rust: clippy + cargo-deny        |
+| **Mobile**      | Tauri Android + iOS native builds                      |
+| **Desktop**     | Windows (MSI) · macOS (DMG) · Linux (AppImage/deb/rpm) |
 
 ### Platform Support
 
-| Platform | Architectures |
-|----------|---------------|
-| Windows | x86_64, ARM64 |
-| macOS | Apple Silicon (arm64), Intel (x86_64) |
-| Linux | x86_64, ARM64 |
-| Android | arm64-v8a, armeabi-v7a, x86_64 (emulator) |
-| iOS | arm64 |
+| Platform | Architectures                             |
+| -------- | ----------------------------------------- |
+| Windows  | x86_64, ARM64                             |
+| macOS    | Apple Silicon (arm64), Intel (x86_64)     |
+| Linux    | x86_64, ARM64                             |
+| Android  | arm64-v8a, armeabi-v7a, x86_64 (emulator) |
+| iOS      | arm64                                     |
 
 ### Rust Backend Architecture
 
@@ -644,6 +644,7 @@ AxAgent/
 Since the application is not signed by Apple:
 
 **1. Allow apps from "Anywhere"**
+
 ```bash
 sudo spctl --master-disable
 ```
@@ -651,6 +652,7 @@ sudo spctl --master-disable
 Then go to **System Settings → Privacy & Security → Security** and select **Anywhere**.
 
 **2. Remove quarantine attribute**
+
 ```bash
 sudo xattr -dr com.apple.quarantine /Applications/AxAgent.app
 ```

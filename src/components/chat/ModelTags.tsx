@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { ModelIcon } from "@lobehub/icons";
 import { theme } from "antd";
 import { useMemo } from "react";

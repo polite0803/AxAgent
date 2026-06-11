@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! 集中式异步任务管理器
 //!
 //! 统一管理所有 `tokio::spawn` 后台任务，提供：

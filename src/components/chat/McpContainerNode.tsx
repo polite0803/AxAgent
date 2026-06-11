@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { Collapse, Tag } from "antd";
 import { CheckCircle, Loader, XCircle } from "lucide-react";
 import type { NodeComponentProps, RenderContext, RenderNodeFn } from "markstream-react";

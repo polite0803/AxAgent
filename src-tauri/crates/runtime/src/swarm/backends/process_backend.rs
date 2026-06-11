@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Windows 子进程后端实现
 //!
 //! 通过 stdin/stdout JSON 行协议与队友进程通信。

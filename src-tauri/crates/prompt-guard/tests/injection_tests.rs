@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use axagent_prompt_guard::config::{GuardConfig, GuardMode};
 use axagent_prompt_guard::pipeline::PromptGuardPipeline;
 use axagent_prompt_guard::trust_labels::SourceType;

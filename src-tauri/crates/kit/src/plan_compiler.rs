@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! 计划编译 —— 将 Plan 转换为工作流 DAG。
 //!
 //! 由 `axagent-harness::plan_types` 提供数据类型，

@@ -1,6 +1,8 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 // 消息续写状态管理
 import { invoke, logIpcError } from "@/lib/invoke";
-import { useConversationStore } from "@/stores";
+import { useConversationStore } from "@/stores/domain/conversationStore";
 import { create } from "zustand";
 
 interface ContinuationStore {

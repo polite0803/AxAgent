@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! 中心化 LLM 调用入口 — 所有约束在此生效
 //!
 //! 所有 `adapter.chat()` 调用应当经过 `execute_llm()`，
@@ -7,10 +9,10 @@
 //! 向后兼容：通过 `LlmCallConfig` 的 Option 字段控制各功能开关，
 //! 不设置时走最少开销路径。
 
-use crate::audit_trail::{AuditEntry, AuditRecorder};
-use crate::prompt_guard::PromptGuard;
-use crate::provider::{ProviderAdapter, ProviderRequestContext};
-use crate::types::{ChatContent, ChatRequest, ChatResponse};
+use axagent_harness::audit_trail::{AuditEntry, AuditRecorder};
+use axagent_harness::prompt_guard::PromptGuard;
+use axagent_harness::provider::{ProviderAdapter, ProviderRequestContext};
+use axagent_harness::types::{ChatContent, ChatRequest, ChatResponse};
 use std::sync::Arc;
 
 /// LLM 调用结果（标准化包装器）
@@ -66,13 +68,13 @@ pub struct LlmCallConfig {
     /// 重试/降级策略（可选），配置后 execute_llm 自动带重试和超时
     pub retry_policy: Option<RetryPolicy>,
     /// 输入脱敏器（可选），对 LLM 输入中的敏感信息做屏蔽
-    pub input_sanitizer: Option<Arc<dyn crate::tool::InputSanitizer>>,
+    pub input_sanitizer: Option<Arc<dyn axagent_harness::tool::InputSanitizer>>,
     /// 置信度阈值（可选），低于阈值触发降级/拦截
     pub confidence_threshold: Option<f64>,
     /// 置信度配置（可选）
-    pub confidence_config: Option<crate::confidence::ConfidenceConfig>,
+    pub confidence_config: Option<axagent_harness::confidence::ConfidenceConfig>,
     /// 缓存拦截器（可选），配置后自动做缓存命中检查和写入
-    pub cache: Option<Arc<dyn crate::cache_interceptor::HarnessCache>>,
+    pub cache: Option<Arc<dyn axagent_harness::cache_interceptor::HarnessCache>>,
     /// 缓存 TTL 秒数（默认 300）
     pub cache_ttl_secs: u64,
     /// 节点 ID（用于审计记录）
@@ -375,13 +377,13 @@ pub async fn execute_llm(
                 );
                 if let Some(ref conf_cfg) = config.confidence_config {
                     match conf_cfg.on_low_confidence {
-                        crate::confidence::ConfidenceAction::Block => {
+                        axagent_harness::confidence::ConfidenceAction::Block => {
                             return Err(format!("低置信度: {confidence:.2} < {threshold:.2}"));
                         },
-                        crate::confidence::ConfidenceAction::WarnAndContinue => {
+                        axagent_harness::confidence::ConfidenceAction::WarnAndContinue => {
                             // 只是警告，继续
                         },
-                        crate::confidence::ConfidenceAction::FallbackToDefault => {
+                        axagent_harness::confidence::ConfidenceAction::FallbackToDefault => {
                             if let Some(ref default) = conf_cfg.default_output {
                                 return Ok(LlmCallResult {
                                     response: ChatResponse {
@@ -433,13 +435,13 @@ pub async fn execute_llm(
 }
 
 /// 从 ChatRequest 构建缓存键
-fn build_cache_key(request: &ChatRequest) -> crate::cache_interceptor::LlmCacheKey {
+fn build_cache_key(request: &ChatRequest) -> axagent_harness::cache_interceptor::LlmCacheKey {
     use std::hash::{Hash, Hasher};
     let messages_json = serde_json::to_string(&request.messages).unwrap_or_default();
     let mut hasher = std::collections::hash_map::DefaultHasher::new();
     messages_json.hash(&mut hasher);
     let messages_hash = format!("{:x}", hasher.finish());
-    crate::cache_interceptor::LlmCacheKey {
+    axagent_harness::cache_interceptor::LlmCacheKey {
         model: request.model.clone(),
         messages_hash,
         temperature: request.temperature,

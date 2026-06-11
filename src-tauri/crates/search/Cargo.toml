@@ -5,28 +5,28 @@ edition.workspace = true
 publish = false
 
 [dependencies]
-axagent-harness = { path = "../harness" }
-serde = { workspace = true }
-serde_json = { workspace = true }
 async-trait = "0.1"
-tokio = { workspace = true }
-tracing = { workspace = true }
-chrono = { workspace = true }
-reqwest = { workspace = true, features = ["cookies"] }
-futures = "0.3"
-urlencoding = "2"
-rusqlite = { version = "0.32", features = ["bundled"] }
-libsqlite3-sys = { workspace = true }
-sqlite-vec = { workspace = true }
-sea-orm = { workspace = true }
-hex = "0.4"
-quick_cache = "0.4"
-regex = "1"
-sha2 = "0.10"
+axagent-harness = { path = "../harness" }
 candle-core = "0.8"
 candle-transformers = "0.8"
-tokenizers = "0.23"
+chrono = { workspace = true }
 dirs = "5"
+futures = "0.3"
+hex = "0.4"
+libsqlite3-sys = { workspace = true }
+quick_cache = "0.4"
+regex = "1"
+reqwest = { workspace = true, features = ["cookies"] }
+rusqlite = { version = "0.32", features = ["bundled"] }
+sea-orm = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+sha2 = "0.10"
+sqlite-vec = { workspace = true }
+tokenizers = "0.23"
+tokio = { workspace = true }
+tracing = { workspace = true }
+urlencoding = "2"
 
 [target.'cfg(not(target_os = "android"))'.dependencies]
 notify = { version = "8", default-features = false }

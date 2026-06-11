@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! 搜索层访问 dao + document-parser 的 trait 抽象。
 //!
 //! search crate 不再直接依赖 axagent-dao / axagent-document-parser，

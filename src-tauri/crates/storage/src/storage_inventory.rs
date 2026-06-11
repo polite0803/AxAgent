@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use crate::storage_paths;
 use serde::Serialize;
 use std::path::Path;

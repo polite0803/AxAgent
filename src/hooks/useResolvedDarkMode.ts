@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import type { ThemePreset } from "@/theme/shadcnTheme";
 import { IS_DARK_PRESET } from "@/theme/shadcnTheme";
 import { useEffect, useState } from "react";

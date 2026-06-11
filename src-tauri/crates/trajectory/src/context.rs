@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Context assembly and token budget management module
 //!
 //! Replaces TypeScript `ContextAssembler.ts` with Rust implementation.

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Resource governor — dynamic CPU/memory monitoring and adaptive throttling.
 //!
 //! Integrates with `sysinfo` to monitor system resource usage in real-time.

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Buddy/Companion 陪伴系统 — 游戏化的陪伴角色
 //!
 //! 参考 claude-code-main 的 `src/buddy/` 目录设计，提供：

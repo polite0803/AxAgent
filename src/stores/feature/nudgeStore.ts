@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { invoke, logIpcError } from "@/lib/invoke";
 import type { FeedbackSource, FeedbackType, LearningInsight, Nudge, NudgeStats, PeriodicNudge } from "@/types";
 import type { ProactiveSuggestion } from "@/types";
