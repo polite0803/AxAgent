@@ -212,8 +212,8 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState, Strin
     let task_manager = Arc::new(axagent_runtime::task_manager::TaskManager::new());
     let shutdown_token = CancellationToken::new();
     let stream_cancel_flags: Arc<
-        Mutex<std::collections::HashMap<String, Arc<AtomicBool>>>,
-    > = Arc::new(Mutex::new(std::collections::HashMap::new()));
+        DashMap<String, Arc<AtomicBool>>,
+    > = Arc::new(DashMap::new());
     let agent_permission_senders: Arc<
         Mutex<std::collections::HashMap<String, tokio::sync::oneshot::Sender<String>>>,
     > = Arc::new(Mutex::new(std::collections::HashMap::new()));
