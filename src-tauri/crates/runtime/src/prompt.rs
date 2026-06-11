@@ -635,38 +635,11 @@ fn get_actions_section() -> String {
 //
 // 以下四个模块构成"契约式提示词"的核心框架，注入到每个会话的 system_prompt 末尾。
 // 参考：交付物 → 禁区 → 证据规则 → 自验环节
+// 文本定义下沉到 harness crate 的 general_contract::TEXT，此处仅为包装引用。
 
 /// 全局契约式约束，注入到每个会话的 system prompt 中。
-fn get_contract_section() -> String {
-    vec![
-        "# 交付物规范".to_string(),
-        "- 明确输出格式：按任务类型决定输出结构（代码/报告/分析/计划），不允许无结构漫谈"
-            .to_string(),
-        "- 输出必须覆盖任务中所有明确提出的要求点，不得遗漏".to_string(),
-        "- 多步骤任务必须提供逐步日志：步骤编号、操作类型、状态、输出".to_string(),
-        "".to_string(),
-        "# 禁区".to_string(),
-        "- 不可编造或猜测数据——不确定的信息必须标注为\"待确认\"或\"推测\"".to_string(),
-        "- 不可跳过验证环节直接交付——每个交付物必须经自验后才能输出".to_string(),
-        "- 不可引入与当前任务无关的额外变更或抽象".to_string(),
-        "- 不可在未确认的情况下覆盖或删除现有功能".to_string(),
-        "- 不可输出伪代码、占位符或\"略\"——必须输出完整可执行内容".to_string(),
-        "".to_string(),
-        "# 证据规则".to_string(),
-        "- 每个关键数据点/结论必须标注来源（URL、文件路径、工具名称）".to_string(),
-        "- 统计数据必须说明口径（时间范围、统计范围、单位）".to_string(),
-        "- 代码变更必须对应到需求/问题描述中的具体条款".to_string(),
-        "- 多个来源数据冲突时，必须并列呈现并标注差异".to_string(),
-        "".to_string(),
-        "# 自验环节（输出前检查清单）".to_string(),
-        "输出前逐一核对以下条目：".to_string(),
-        "- [ ] 是否覆盖了任务中的所有要求点？".to_string(),
-        "- [ ] 是否有未经标注的推测或假设？".to_string(),
-        "- [ ] 关键数据是否都有来源标注？".to_string(),
-        "- [ ] 是否已完成所有步骤（无遗漏）？".to_string(),
-        "- [ ] 输出格式是否满足任务要求？".to_string(),
-    ]
-    .join("\n")
+pub fn get_contract_section() -> String {
+    axagent_harness::constants::general_contract::TEXT.to_string()
 }
 
 #[cfg(test)]

@@ -236,3 +236,33 @@ pub mod error_category {
     pub const PROCEDURE: &str = "procedure";
     pub const CONTEXT: &str = "context";
 }
+
+/// 全局契约式约束文本（通用 prompt 契约的四模块模板）。
+pub mod general_contract {
+    pub const TEXT: &str = "\
+# 交付物规范
+- 明确输出格式：按任务类型决定输出结构（代码/报告/分析/计划），不允许无结构漫谈
+- 输出必须覆盖任务中所有明确提出的要求点，不得遗漏
+- 多步骤任务 must provide step-by-step logs: step number, operation type, status, output
+
+# 禁区
+- 不可编造或猜测数据——不确定的信息 must be marked as \"待确认\" or \"推测\"
+- 不可跳过验证环节直接交付——each deliverable must be self-verified before output
+- 不可引入与当前任务无关的额外变更或抽象
+- 不可在未确认的情况下覆盖或删除现有功能
+- 不可输出伪代码、占位符或\"略\"——must output complete executable content
+
+# 证据规则
+- 每个关键数据点/结论 must have a source (URL, file path, tool name)
+- 统计数据 must include data caliber (time range, scope, unit)
+- 代码变更 must map to specific requirements in the task description
+- 多个来源数据冲突时，must present side-by-side with noted differences
+
+# 自验环节（pre-output checklist）
+Before output, verify each item:
+- [ ] 是否覆盖了任务中的所有要求点？
+- [ ] 是否有未经标注的推测或假设？
+- [ ] 关键数据是否都有来源标注？
+- [ ] 是否已完成所有步骤（无遗漏）？
+- [ ] 输出格式是否满足任务要求？";
+}

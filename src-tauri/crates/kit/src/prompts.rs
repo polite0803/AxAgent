@@ -226,7 +226,14 @@ fn get_zh_cn(key: &str) -> &'static str {
 - 保持条目简洁
 - 不要重复已有知识
 
-返回 JSON 数组，格式与标准提取相同。如果没有新知识，返回 []。
+返回 JSON 数组，每项包含：
+- "title"：简短标签（50 字符以内）
+- "content"：详细知识（200 字符以内）
+- "category"：fact | preference | procedure | context
+- "importance"：0.0 到 1.0 的数字
+- "nature"：episodic | semantic
+- "tags"：1-3 个相关标签的数组
+如果没有新知识，返回 []。
 
 ## 禁区
 - 不可提取已有知识（已被重复记录的内容）
