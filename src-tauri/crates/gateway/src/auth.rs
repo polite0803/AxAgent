@@ -66,7 +66,7 @@ impl KeyVerifyLimiter {
                     // 已超阈值，检查是否过冷却期
                     first_at.elapsed() >= self.cooldown
                 }
-            }
+            },
         }
     }
 
@@ -253,10 +253,7 @@ mod tests {
         limiter.record_failure("1.2.3.4");
         assert!(!limiter.check("1.2.3.4"));
         std::thread::sleep(Duration::from_millis(80));
-        assert!(
-            limiter.check("1.2.3.4"),
-            "should allow after cooldown elapses"
-        );
+        assert!(limiter.check("1.2.3.4"), "should allow after cooldown elapses");
     }
 
     #[test]
@@ -290,10 +287,8 @@ mod tests {
     #[test]
     fn extract_client_ip_prefers_xff() {
         let mut req = Request::new(Body::empty());
-        req.headers_mut().insert(
-            "x-forwarded-for",
-            "203.0.113.1, 10.0.0.1".parse().unwrap(),
-        );
+        req.headers_mut()
+            .insert("x-forwarded-for", "203.0.113.1, 10.0.0.1".parse().unwrap());
         let ip = extract_client_ip(&req, None);
         assert_eq!(ip, "203.0.113.1");
     }

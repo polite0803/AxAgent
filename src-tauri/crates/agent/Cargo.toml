@@ -38,11 +38,9 @@ uuid = { version = "1.6.1", features = ["v4"] }
 [dev-dependencies]
 axagent-migration = { path = "../migration" }
 axagent-tools = { path = "../tools" }
+proptest = "1"
 tauri = { version = "2", features = ["test"] }
 tempfile = "3"
-
-[dev-dependencies]
-proptest = "1"
 
 [[test]]
 name = "agent_integration_tests"

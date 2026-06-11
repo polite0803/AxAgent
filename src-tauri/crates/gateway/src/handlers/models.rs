@@ -129,7 +129,9 @@ pub(crate) fn build_provider_public_id_map(
 /// - If a `model_id` is **globally unique** across enabled providers → emit bare `model_id`.
 /// - If the same `model_id` appears on **multiple** enabled providers → emit
 ///   `public_provider_id/model_id` using the ID from [`build_provider_public_id_map`].
-pub(crate) fn build_model_display_map(providers: &[ProviderConfig]) -> HashMap<(String, String), String> {
+pub(crate) fn build_model_display_map(
+    providers: &[ProviderConfig],
+) -> HashMap<(String, String), String> {
     let public_id_map = build_provider_public_id_map(providers);
 
     // Count how many enabled providers expose each model_id.

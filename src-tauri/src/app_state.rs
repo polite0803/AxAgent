@@ -205,9 +205,12 @@ pub struct AppState {
     pub vector_store: Arc<axagent_core::vector_store::VectorStore>,
     pub indexing_semaphore: Arc<tokio::sync::Semaphore>,
     pub stream_cancel_flags: Arc<DashMap<String, Arc<AtomicBool>>>,
-    pub agent_permission_senders: Arc<Mutex<std::collections::HashMap<String, tokio::sync::oneshot::Sender<String>>>>,
-    pub agent_ask_senders: Arc<Mutex<std::collections::HashMap<String, tokio::sync::oneshot::Sender<String>>>>,
-    pub agent_always_allowed: Arc<Mutex<std::collections::HashMap<String, std::collections::HashSet<String>>>>,
+    pub agent_permission_senders:
+        Arc<Mutex<std::collections::HashMap<String, tokio::sync::oneshot::Sender<String>>>>,
+    pub agent_ask_senders:
+        Arc<Mutex<std::collections::HashMap<String, tokio::sync::oneshot::Sender<String>>>>,
+    pub agent_always_allowed:
+        Arc<Mutex<std::collections::HashMap<String, std::collections::HashSet<String>>>>,
     pub agent_prompters:
         Arc<Mutex<std::collections::HashMap<String, axagent_agent::ChannelPermissionPrompter>>>,
     pub agent_session_manager: Arc<axagent_agent::SessionManager>,

@@ -45,6 +45,6 @@ pub use responses::{delete_response, get_response};
 pub(crate) use error::{error_response, provider_type_to_str, resolve_hermes_provider_context};
 #[allow(unused_imports)]
 pub(crate) use models::{
-    build_model_display_map, build_provider_public_id_map, parse_model_field, provider_slug,
-    resolve_provider_for_model, ParsedModel,
+    ParsedModel, build_model_display_map, build_provider_public_id_map, parse_model_field,
+    provider_slug, resolve_provider_for_model,
 };

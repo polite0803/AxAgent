@@ -314,11 +314,7 @@ mod tests {
             .output()
             .expect("spawn native sandbox command");
         let stdout = String::from_utf8_lossy(&output.stdout);
-        assert!(
-            stdout.contains("sh"),
-            "sh should be in PATH, got: {}",
-            stdout
-        );
+        assert!(stdout.contains("sh"), "sh should be in PATH, got: {}", stdout);
     }
 
     /// SECURITY (Phase 2 Task 2.2): 验证 apply_safe_env 在所有平台上

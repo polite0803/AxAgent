@@ -93,12 +93,7 @@ mod tests {
         let output = child.wait_with_output().expect("wait child");
         let stdout = String::from_utf8_lossy(&output.stdout);
         let lines: Vec<&str> = stdout.trim().split('\n').collect();
-        assert_eq!(
-            lines.len(),
-            2,
-            "expected 2 lines (pid + pgid), got: {:?}",
-            lines
-        );
+        assert_eq!(lines.len(), 2, "expected 2 lines (pid + pgid), got: {:?}", lines);
         let pid = lines[0].trim();
         let pgid = lines[1].trim();
         assert_eq!(pid, pgid, "PID should equal PGID after setsid");

@@ -35,7 +35,7 @@ fn lock_or_recover<T>(guard: Result<T, PoisonError<T>>) -> T {
                 pe
             );
             pe.into_inner()
-        }
+        },
     }
 }
 
@@ -667,7 +667,7 @@ impl NodeExecutorTrait for AgentExecutor {
                         "has_tool_calls was true but tool_calls is None; skipping tool dispatch"
                     );
                     continue;
-                }
+                },
             };
 
             // 构建 assistant 消息（含 tool_calls）
@@ -972,8 +972,11 @@ impl AgentExecutor {
                         for (ti, task) in phase.tasks.iter().enumerate() {
                             let key = format!("r_p{pi}_t{ti}_{}", task.id);
                             if let Some(v) = wf_result.results.get(&key) {
-                                lock_or_recover(planner_arc.lock())
-                                    .mark_task_completed(pi, ti, v.clone());
+                                lock_or_recover(planner_arc.lock()).mark_task_completed(
+                                    pi,
+                                    ti,
+                                    v.clone(),
+                                );
                             }
                         }
                     }
@@ -1012,10 +1015,10 @@ impl AgentExecutor {
                 Err(e) if attempt < replan_max_retries => {
                     attempt += 1;
                     // 从 planner 获取真实的失败/待处理任务 ID
-                    let failed_ids: Vec<String> = lock_or_recover(planner_arc.lock())
-                        .get_failed_steps();
-                    let pending_ids: Vec<String> = lock_or_recover(planner_arc.lock())
-                        .get_pending_steps();
+                    let failed_ids: Vec<String> =
+                        lock_or_recover(planner_arc.lock()).get_failed_steps();
+                    let pending_ids: Vec<String> =
+                        lock_or_recover(planner_arc.lock()).get_pending_steps();
                     let task_ids_to_retry: Vec<String> = if failed_ids.is_empty() {
                         pending_ids
                     } else {

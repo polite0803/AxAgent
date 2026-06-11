@@ -76,7 +76,7 @@ impl Blackboard {
                 Err(pe) => {
                     tracing::warn!(target: "axagent.reliability", "entries write poisoned: {}", pe);
                     pe.into_inner()
-                }
+                },
             };
             let mut map = guard;
             map.insert(key.to_string(), entry.clone());
@@ -91,7 +91,7 @@ impl Blackboard {
             Err(pe) => {
                 tracing::warn!(target: "axagent.reliability", "entries read poisoned: {}", pe);
                 return None;
-            }
+            },
         };
         guard.get(key).cloned()
     }
@@ -102,7 +102,7 @@ impl Blackboard {
             Err(pe) => {
                 tracing::warn!(target: "axagent.reliability", "entries read poisoned: {}", pe);
                 return Vec::new();
-            }
+            },
         };
         guard.values().cloned().collect()
     }
@@ -113,9 +113,10 @@ impl Blackboard {
             Err(pe) => {
                 tracing::warn!(target: "axagent.reliability", "entries read poisoned: {}", pe);
                 return Vec::new();
-            }
+            },
         };
-        guard.values()
+        guard
+            .values()
             .filter(|e| e.tags.iter().any(|t| t == tag))
             .cloned()
             .collect()
@@ -127,9 +128,10 @@ impl Blackboard {
             Err(pe) => {
                 tracing::warn!(target: "axagent.reliability", "entries read poisoned: {}", pe);
                 return Vec::new();
-            }
+            },
         };
-        guard.values()
+        guard
+            .values()
             .filter(|e| e.author == author)
             .cloned()
             .collect()
@@ -141,7 +143,7 @@ impl Blackboard {
             Err(pe) => {
                 tracing::warn!(target: "axagent.reliability", "entries write poisoned: {}", pe);
                 return None;
-            }
+            },
         };
         let mut map = guard;
         if let Some(entry) = map.get_mut(key) {
@@ -166,7 +168,7 @@ impl Blackboard {
             Err(pe) => {
                 tracing::warn!(target: "axagent.reliability", "entries write poisoned: {}", pe);
                 return None;
-            }
+            },
         };
         let mut map = guard;
         let removed = map.remove(key);
@@ -190,7 +192,7 @@ impl Blackboard {
             Err(pe) => {
                 tracing::warn!(target: "axagent.reliability", "entries write poisoned: {}", pe);
                 return 0;
-            }
+            },
         };
         let mut map = guard;
         let now = Utc::now();
@@ -238,7 +240,7 @@ impl BlackboardManager {
             Err(pe) => {
                 tracing::warn!(target: "axagent.reliability", "blackboards write poisoned: {}", pe);
                 return bb;
-            }
+            },
         };
         let mut map = guard;
         map.insert(name.to_string(), bb.clone());
@@ -251,7 +253,7 @@ impl BlackboardManager {
             Err(pe) => {
                 tracing::warn!(target: "axagent.reliability", "blackboards read poisoned: {}", pe);
                 return None;
-            }
+            },
         };
         guard.get(name).cloned()
     }
@@ -262,7 +264,7 @@ impl BlackboardManager {
             Err(pe) => {
                 tracing::warn!(target: "axagent.reliability", "blackboards read poisoned: {}", pe);
                 return Vec::new();
-            }
+            },
         };
         guard.keys().cloned().collect()
     }
@@ -273,7 +275,7 @@ impl BlackboardManager {
             Err(pe) => {
                 tracing::warn!(target: "axagent.reliability", "blackboards write poisoned: {}", pe);
                 return false;
-            }
+            },
         };
         let mut map = guard;
         map.remove(name).is_some()

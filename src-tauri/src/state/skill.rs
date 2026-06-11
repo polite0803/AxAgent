@@ -12,10 +12,8 @@ use tokio::sync::RwLock as TokioRwLock;
 
 #[allow(dead_code)]
 pub struct SkillState {
-    pub skill_evolution_engine:
-        Arc<tokio::sync::Mutex<axagent_trajectory::SkillEvolutionEngine>>,
-    pub skill_proposal_service:
-        Arc<TokioRwLock<axagent_trajectory::SkillProposalService>>,
+    pub skill_evolution_engine: Arc<tokio::sync::Mutex<axagent_trajectory::SkillEvolutionEngine>>,
+    pub skill_proposal_service: Arc<TokioRwLock<axagent_trajectory::SkillProposalService>>,
     pub skill_decomposer: Arc<tokio::sync::RwLock<axagent_trajectory::SkillDecomposer>>,
     #[cfg(not(target_os = "android"))]
     pub sandbox_executor: Arc<axagent_trajectory::SkillSandboxExecutor>,
@@ -26,24 +24,23 @@ pub struct SkillState {
         Option<Arc<axagent_runtime::webhook_subscription::WebhookSubscriptionManager>>,
     pub plugin_manager: Arc<tokio::sync::RwLock<axagent_plugins::PluginManager>>,
     pub sync_engine: Option<Arc<axagent_core::cloud_storage::SyncEngine>>,
-    pub tot_sessions: Arc<tokio::sync::Mutex<std::collections::HashMap<String, crate::app_state::TotSession>>>,
-    pub planner_sessions:
-        Arc<tokio::sync::Mutex<std::collections::HashMap<String, crate::app_state::PlannerSession>>>,
-    #[cfg(not(target_os = "android"))]
-    pub browser_client: Arc<
-        tokio::sync::Mutex<Option<axagent_core::browser_automation::PlaywrightClient>>,
+    pub tot_sessions:
+        Arc<tokio::sync::Mutex<std::collections::HashMap<String, crate::app_state::TotSession>>>,
+    pub planner_sessions: Arc<
+        tokio::sync::Mutex<std::collections::HashMap<String, crate::app_state::PlannerSession>>,
     >,
+    #[cfg(not(target_os = "android"))]
+    pub browser_client:
+        Arc<tokio::sync::Mutex<Option<axagent_core::browser_automation::PlaywrightClient>>>,
     #[cfg(target_os = "android")]
     pub browser_client: Arc<tokio::sync::Mutex<Option<()>>>,
     pub text_grad_engine: Arc<tokio::sync::Mutex<axagent_trajectory::TextGradEngine>>,
     pub auto_tool_creator: Arc<tokio::sync::Mutex<axagent_trajectory::AutoToolCreator>>,
     pub intrinsic_motivation:
         Arc<tokio::sync::Mutex<axagent_trajectory::IntrinsicMotivationEngine>>,
-    pub coevolution_env:
-        Arc<tokio::sync::Mutex<axagent_trajectory::CoevolutionEnvironment>>,
+    pub coevolution_env: Arc<tokio::sync::Mutex<axagent_trajectory::CoevolutionEnvironment>>,
     pub constitution: Arc<axagent_trajectory::ImmutableConstitution>,
-    pub process_reward_model:
-        Arc<tokio::sync::Mutex<axagent_trajectory::ProcessRewardModel>>,
+    pub process_reward_model: Arc<tokio::sync::Mutex<axagent_trajectory::ProcessRewardModel>>,
     pub proactive_service: Arc<tokio::sync::RwLock<crate::commands::proactive::ProactiveService>>,
 }
 
@@ -55,23 +52,17 @@ impl SkillState {
         skill_proposal_service: Arc<TokioRwLock<axagent_trajectory::SkillProposalService>>,
         skill_decomposer: Arc<tokio::sync::RwLock<axagent_trajectory::SkillDecomposer>>,
         sandbox_executor: SandboxExecutorField,
-        dashboard_registry: Option<
-            Arc<axagent_runtime::dashboard_registry::DashboardRegistry>,
-        >,
+        dashboard_registry: Option<Arc<axagent_runtime::dashboard_registry::DashboardRegistry>>,
         webhook_subscription_manager: Option<
             Arc<axagent_runtime::webhook_subscription::WebhookSubscriptionManager>,
         >,
         plugin_manager: Arc<tokio::sync::RwLock<axagent_plugins::PluginManager>>,
         sync_engine: Option<Arc<axagent_core::cloud_storage::SyncEngine>>,
         tot_sessions: Arc<
-            tokio::sync::Mutex<
-                std::collections::HashMap<String, crate::app_state::TotSession>,
-            >,
+            tokio::sync::Mutex<std::collections::HashMap<String, crate::app_state::TotSession>>,
         >,
         planner_sessions: Arc<
-            tokio::sync::Mutex<
-                std::collections::HashMap<String, crate::app_state::PlannerSession>,
-            >,
+            tokio::sync::Mutex<std::collections::HashMap<String, crate::app_state::PlannerSession>>,
         >,
         browser_client: BrowserClientField,
         text_grad_engine: Arc<tokio::sync::Mutex<axagent_trajectory::TextGradEngine>>,
@@ -82,9 +73,7 @@ impl SkillState {
         coevolution_env: Arc<tokio::sync::Mutex<axagent_trajectory::CoevolutionEnvironment>>,
         constitution: Arc<axagent_trajectory::ImmutableConstitution>,
         process_reward_model: Arc<tokio::sync::Mutex<axagent_trajectory::ProcessRewardModel>>,
-        proactive_service: Arc<
-            tokio::sync::RwLock<crate::commands::proactive::ProactiveService>,
-        >,
+        proactive_service: Arc<tokio::sync::RwLock<crate::commands::proactive::ProactiveService>>,
     ) -> Self {
         Self {
             skill_evolution_engine,
@@ -95,14 +84,14 @@ impl SkillState {
                 SandboxExecutorField::Real(v) => v,
                 SandboxExecutorField::Dummy => {
                     panic!("SandboxExecutorField mismatch (dummy provided on non-android)")
-                }
+                },
             },
             #[cfg(target_os = "android")]
             sandbox_executor: match sandbox_executor {
                 SandboxExecutorField::Dummy => Arc::new(()),
                 SandboxExecutorField::Real(_) => {
                     panic!("SandboxExecutorField mismatch (real provided on android)")
-                }
+                },
             },
             dashboard_registry,
             webhook_subscription_manager,
@@ -115,14 +104,14 @@ impl SkillState {
                 BrowserClientField::Real(v) => v,
                 BrowserClientField::Dummy => {
                     panic!("BrowserClientField mismatch (dummy provided on non-android)")
-                }
+                },
             },
             #[cfg(target_os = "android")]
             browser_client: match browser_client {
                 BrowserClientField::Dummy => Arc::new(tokio::sync::Mutex::new(None)),
                 BrowserClientField::Real(_) => {
                     panic!("BrowserClientField mismatch (real provided on android)")
-                }
+                },
             },
             text_grad_engine,
             auto_tool_creator,

@@ -6,7 +6,6 @@
 #![allow(clippy::needless_borrow)]
 
 mod android_utils;
-mod util;
 mod commands;
 mod context_manager;
 mod indexing;
@@ -18,6 +17,7 @@ mod paths;
 mod semantic_cache;
 mod smart_router;
 pub mod state;
+mod util;
 
 #[cfg(not(mobile))]
 mod tray;

@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+use dashmap::DashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
-use dashmap::DashMap;
 use tokio::sync::Mutex;
 use tokio::sync::RwLock as TokioRwLock;
 
@@ -213,9 +213,7 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState, Strin
         Arc::new(Mutex::new(None));
     let task_manager = Arc::new(axagent_runtime::task_manager::TaskManager::new());
     let shutdown_token = CancellationToken::new();
-    let stream_cancel_flags: Arc<
-        DashMap<String, Arc<AtomicBool>>,
-    > = Arc::new(DashMap::new());
+    let stream_cancel_flags: Arc<DashMap<String, Arc<AtomicBool>>> = Arc::new(DashMap::new());
     let agent_permission_senders: Arc<
         Mutex<std::collections::HashMap<String, tokio::sync::oneshot::Sender<String>>>,
     > = Arc::new(Mutex::new(std::collections::HashMap::new()));
@@ -226,65 +224,46 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState, Strin
         Mutex<std::collections::HashMap<String, std::collections::HashSet<String>>>,
     > = Arc::new(Mutex::new(std::collections::HashMap::new()));
     let agent_prompters: Arc<
-        Mutex<
-            std::collections::HashMap<
-                String,
-                axagent_agent::ChannelPermissionPrompter,
-            >,
-        >,
+        Mutex<std::collections::HashMap<String, axagent_agent::ChannelPermissionPrompter>>,
     > = Arc::new(Mutex::new(std::collections::HashMap::new()));
-    let agent_session_manager =
-        Arc::new(axagent_agent::SessionManager::new(sea_db.clone()));
-    let agent_cancel_tokens: Arc<DashMap<String, Arc<AtomicBool>>> =
-        Arc::new(DashMap::new());
+    let agent_session_manager = Arc::new(axagent_agent::SessionManager::new(sea_db.clone()));
+    let agent_cancel_tokens: Arc<DashMap<String, Arc<AtomicBool>>> = Arc::new(DashMap::new());
     let agent_paused: Arc<Mutex<std::collections::HashSet<String>>> =
         Arc::new(Mutex::new(std::collections::HashSet::new()));
     let running_agents: Arc<tokio::sync::RwLock<std::collections::HashSet<String>>> =
         Arc::new(tokio::sync::RwLock::new(std::collections::HashSet::new()));
     let reflector = Arc::new(axagent_agent::Reflector::new());
     let shared_memory: Arc<TokioRwLock<axagent_runtime::shared_memory::SharedMemory>> =
-        Arc::new(TokioRwLock::new(
-            axagent_runtime::shared_memory::SharedMemory::new(),
-        ));
+        Arc::new(TokioRwLock::new(axagent_runtime::shared_memory::SharedMemory::new()));
     let sub_agent_registry: Arc<TokioRwLock<axagent_trajectory::SubAgentRegistry>> = Arc::new(
         TokioRwLock::new(axagent_trajectory::SubAgentRegistry::new().unwrap_or_default()),
     );
     let nudge_service: Arc<tokio::sync::Mutex<axagent_trajectory::NudgeService>> =
         Arc::new(tokio::sync::Mutex::new(axagent_trajectory::NudgeService::new()));
-    let closed_loop_service = Arc::new(axagent_trajectory::ClosedLoopService::new(
-        shared_trajectory_storage.clone(),
-    ));
+    let closed_loop_service =
+        Arc::new(axagent_trajectory::ClosedLoopService::new(shared_trajectory_storage.clone()));
     let insight_system: Arc<TokioRwLock<axagent_trajectory::LearningInsightSystem>> =
         Arc::new(TokioRwLock::new(
             axagent_trajectory::LearningInsightSystem::new().with_storage_limits(200, 30),
         ));
     let realtime_learning: Arc<tokio::sync::Mutex<axagent_trajectory::RealTimeLearning>> =
-        Arc::new(tokio::sync::Mutex::new(
-            axagent_trajectory::RealTimeLearning::new(),
-        ));
-    let pattern_learner: Arc<TokioRwLock<axagent_trajectory::PatternLearner>> = Arc::new(
-        TokioRwLock::new(axagent_trajectory::PatternLearner::new(
+        Arc::new(tokio::sync::Mutex::new(axagent_trajectory::RealTimeLearning::new()));
+    let pattern_learner: Arc<TokioRwLock<axagent_trajectory::PatternLearner>> =
+        Arc::new(TokioRwLock::new(axagent_trajectory::PatternLearner::new(
             axagent_trajectory::PatternConfig::default(),
-        )),
-    );
-    let cross_session_learner: Arc<
-        TokioRwLock<axagent_trajectory::CrossSessionLearner>,
-    > = Arc::new(TokioRwLock::new(
-        axagent_trajectory::CrossSessionLearner::new(),
-    ));
-    let rl_engine: Arc<TokioRwLock<axagent_trajectory::RLEngine>> = Arc::new(
-        TokioRwLock::new(axagent_trajectory::RLEngine::new(
+        )));
+    let cross_session_learner: Arc<TokioRwLock<axagent_trajectory::CrossSessionLearner>> =
+        Arc::new(TokioRwLock::new(axagent_trajectory::CrossSessionLearner::new()));
+    let rl_engine: Arc<TokioRwLock<axagent_trajectory::RLEngine>> =
+        Arc::new(TokioRwLock::new(axagent_trajectory::RLEngine::new(
             axagent_trajectory::RLConfig::default(),
             axagent_trajectory::RewardWeights::default(),
-        )),
-    );
+        )));
     let batch_processor = Arc::new(axagent_trajectory::BatchProcessor::new(
         shared_trajectory_storage.clone(),
         axagent_trajectory::BatchConfig::default(),
     ));
-    let skill_evolution_engine: Arc<
-        tokio::sync::Mutex<axagent_trajectory::SkillEvolutionEngine>,
-    > = {
+    let skill_evolution_engine: Arc<tokio::sync::Mutex<axagent_trajectory::SkillEvolutionEngine>> = {
         #[cfg(not(target_os = "android"))]
         {
             let mut engine = axagent_trajectory::SkillEvolutionEngine::new();
@@ -295,16 +274,13 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState, Strin
         }
         #[cfg(target_os = "android")]
         {
-            Arc::new(tokio::sync::Mutex::new(
-                axagent_trajectory::SkillEvolutionEngine::new(),
-            ))
+            Arc::new(tokio::sync::Mutex::new(axagent_trajectory::SkillEvolutionEngine::new()))
         }
     };
-    let skill_proposal_service: Arc<
-        TokioRwLock<axagent_trajectory::SkillProposalService>,
-    > = Arc::new(TokioRwLock::new(
-        axagent_trajectory::SkillProposalService::new(shared_trajectory_storage.clone()),
-    ));
+    let skill_proposal_service: Arc<TokioRwLock<axagent_trajectory::SkillProposalService>> =
+        Arc::new(TokioRwLock::new(axagent_trajectory::SkillProposalService::new(
+            shared_trajectory_storage.clone(),
+        )));
     let auto_memory_extractor: Arc<TokioRwLock<axagent_trajectory::AutoMemoryExtractor>> = {
         let auto_ms = match axagent_trajectory::MemoryService::new(
             shared_trajectory_storage.clone(),
@@ -330,8 +306,7 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState, Strin
                         match axagent_trajectory::MemoryService::new(fallback_storage) {
                             Ok(ms) => ms,
                             Err(e3) => {
-                                let msg =
-                                    format!("AutoMemory MemoryService unreachable: {}", e3,);
+                                let msg = format!("AutoMemory MemoryService unreachable: {}", e3,);
                                 crate::android_utils::report_fatal_error(&msg);
                                 return Err(msg);
                             },
@@ -344,10 +319,9 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState, Strin
             tracing::warn!("Failed to initialize MemoryService for AutoMemory: {}", e);
         }
         let auto_ms = Arc::new(tokio::sync::RwLock::new(auto_ms));
-        let auto_pl =
-            Arc::new(tokio::sync::RwLock::new(axagent_trajectory::PatternLearner::new(
-                axagent_trajectory::PatternConfig::default(),
-            )));
+        let auto_pl = Arc::new(tokio::sync::RwLock::new(axagent_trajectory::PatternLearner::new(
+            axagent_trajectory::PatternConfig::default(),
+        )));
         Arc::new(TokioRwLock::new(axagent_trajectory::AutoMemoryExtractor::new(
             shared_trajectory_storage.clone(),
             auto_ms,
@@ -356,17 +330,12 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState, Strin
     };
     let parallel_execution_service: Arc<
         tokio::sync::RwLock<axagent_trajectory::ParallelExecutionService>,
-    > = Arc::new(tokio::sync::RwLock::new(
-        axagent_trajectory::ParallelExecutionService::new(10),
-    ));
-    let cron_job_store: Arc<axagent_runtime_core::CronJobStore> = Arc::new(
-        rt.block_on(axagent_runtime_core::CronJobStore::new(Arc::new(sea_db.clone()))),
-    );
+    > = Arc::new(tokio::sync::RwLock::new(axagent_trajectory::ParallelExecutionService::new(10)));
+    let cron_job_store: Arc<axagent_runtime_core::CronJobStore> =
+        Arc::new(rt.block_on(axagent_runtime_core::CronJobStore::new(Arc::new(sea_db.clone()))));
     let user_profile: Arc<TokioRwLock<axagent_trajectory::UserProfile>> =
         Arc::new(TokioRwLock::new(axagent_trajectory::UserProfile::new()));
-    let local_tool_registry: Arc<
-        tokio::sync::Mutex<axagent_tools::registry::UnifiedToolRegistry>,
-    > = {
+    let local_tool_registry: Arc<tokio::sync::Mutex<axagent_tools::registry::UnifiedToolRegistry>> = {
         let mut registry = axagent_tools::registry::UnifiedToolRegistry::new();
         rt.block_on(registry.load_enabled_state(&sea_db));
         Arc::new(tokio::sync::Mutex::new(registry))
@@ -388,9 +357,7 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState, Strin
         engine
     };
     let skill_decomposer: Arc<tokio::sync::RwLock<axagent_trajectory::SkillDecomposer>> =
-        Arc::new(tokio::sync::RwLock::new(
-            axagent_trajectory::SkillDecomposer::new(),
-        ));
+        Arc::new(tokio::sync::RwLock::new(axagent_trajectory::SkillDecomposer::new()));
     let proactive_service: Arc<tokio::sync::RwLock<ProactiveService>> =
         Arc::new(tokio::sync::RwLock::new(ProactiveService::new()));
     let dashboard_registry: Option<Arc<axagent_runtime::dashboard_registry::DashboardRegistry>> =
@@ -410,9 +377,7 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState, Strin
         axagent_runtime::webhook_subscription::WebhookSubscriptionManager::new(),
     ));
     let semantic_cache: Arc<tokio::sync::Mutex<SemanticCacheState>> = {
-        let cache = match rt
-            .block_on(SemanticCache::new(sea_db.clone(), CacheConfig::default()))
-        {
+        let cache = match rt.block_on(SemanticCache::new(sea_db.clone(), CacheConfig::default())) {
             Ok(c) => c,
             Err(e) => {
                 tracing::error!("Semantic cache init failed: {} — retrying once", e);
@@ -438,10 +403,8 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState, Strin
                                     format!("SemanticCache in-memory fallback failed: {}", e3)
                                 })?,
                             Err(e3) => {
-                                let msg = format!(
-                                    "SemanticCache in-memory DB connect failed: {}",
-                                    e3,
-                                );
+                                let msg =
+                                    format!("SemanticCache in-memory DB connect failed: {}", e3,);
                                 crate::android_utils::report_fatal_error(&msg);
                                 return Err(msg);
                             },
@@ -467,42 +430,30 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState, Strin
     let browser_client: Arc<
         tokio::sync::Mutex<Option<axagent_core::browser_automation::PlaywrightClient>>,
     > = Arc::new(tokio::sync::Mutex::new(None));
-    let dream_consolidator = Arc::new(
-        axagent_trajectory::DreamConsolidator::new().with_data_provider(Arc::new(
-            axagent_trajectory::TrajectoryDreamDataProvider::new(
-                shared_trajectory_storage.clone(),
-            ),
-        )),
-    );
+    let dream_consolidator =
+        Arc::new(axagent_trajectory::DreamConsolidator::new().with_data_provider(Arc::new(
+            axagent_trajectory::TrajectoryDreamDataProvider::new(shared_trajectory_storage.clone()),
+        )));
     let text_grad_engine: Arc<tokio::sync::Mutex<axagent_trajectory::TextGradEngine>> =
-        Arc::new(tokio::sync::Mutex::new(
-            axagent_trajectory::TextGradEngine::new(
-                axagent_trajectory::ComputationGraph::new(),
-                axagent_trajectory::TextGradConfig::default(),
-            ),
-        ));
+        Arc::new(tokio::sync::Mutex::new(axagent_trajectory::TextGradEngine::new(
+            axagent_trajectory::ComputationGraph::new(),
+            axagent_trajectory::TextGradConfig::default(),
+        )));
     let auto_tool_creator: Arc<tokio::sync::Mutex<axagent_trajectory::AutoToolCreator>> =
-        Arc::new(tokio::sync::Mutex::new(
-            axagent_trajectory::AutoToolCreator::new(
-                axagent_trajectory::AutoToolCreatorConfig::default(),
-                Box::new(axagent_trajectory::DefaultLlmToolProvider::new()),
-                Box::new(axagent_trajectory::DefaultSandboxToolTester),
-            ),
-        ));
+        Arc::new(tokio::sync::Mutex::new(axagent_trajectory::AutoToolCreator::new(
+            axagent_trajectory::AutoToolCreatorConfig::default(),
+            Box::new(axagent_trajectory::DefaultLlmToolProvider::new()),
+            Box::new(axagent_trajectory::DefaultSandboxToolTester),
+        )));
     let intrinsic_motivation: Arc<
         tokio::sync::Mutex<axagent_trajectory::IntrinsicMotivationEngine>,
-    > = Arc::new(tokio::sync::Mutex::new(
-        axagent_trajectory::IntrinsicMotivationEngine::new(
-            axagent_trajectory::IntrinsicMotivationConfig::default(),
-        ),
-    ));
-    let coevolution_env: Arc<
-        tokio::sync::Mutex<axagent_trajectory::CoevolutionEnvironment>,
-    > = Arc::new(tokio::sync::Mutex::new(
-        axagent_trajectory::CoevolutionEnvironment::new(
+    > = Arc::new(tokio::sync::Mutex::new(axagent_trajectory::IntrinsicMotivationEngine::new(
+        axagent_trajectory::IntrinsicMotivationConfig::default(),
+    )));
+    let coevolution_env: Arc<tokio::sync::Mutex<axagent_trajectory::CoevolutionEnvironment>> =
+        Arc::new(tokio::sync::Mutex::new(axagent_trajectory::CoevolutionEnvironment::new(
             axagent_trajectory::CoevolutionConfig::default(),
-        ),
-    ));
+        )));
     let constitution = Arc::new(axagent_trajectory::ImmutableConstitution::new(
         vec![
             axagent_trajectory::ConstitutionalRule::NoSelfModificationOfReward,

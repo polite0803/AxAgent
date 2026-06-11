@@ -31,6 +31,6 @@ pub fn lock_or_recover<'a, T>(
                 "mutex poisoned; recovering with inner data (last holder panicked)"
             );
             PoisonError::into_inner(poisoned)
-        }
+        },
     }
 }

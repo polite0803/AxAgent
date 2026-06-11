@@ -16,17 +16,13 @@ pub struct MemoryState {
     pub nudge_service: Arc<tokio::sync::Mutex<axagent_trajectory::NudgeService>>,
     pub closed_loop_service: Arc<axagent_trajectory::ClosedLoopService>,
     pub trajectory_storage: Arc<axagent_trajectory::TrajectoryStorage>,
-    pub insight_system:
-        Arc<TokioRwLock<axagent_trajectory::LearningInsightSystem>>,
-    pub realtime_learning:
-        Arc<tokio::sync::Mutex<axagent_trajectory::RealTimeLearning>>,
+    pub insight_system: Arc<TokioRwLock<axagent_trajectory::LearningInsightSystem>>,
+    pub realtime_learning: Arc<tokio::sync::Mutex<axagent_trajectory::RealTimeLearning>>,
     pub pattern_learner: Arc<TokioRwLock<axagent_trajectory::PatternLearner>>,
-    pub cross_session_learner:
-        Arc<TokioRwLock<axagent_trajectory::CrossSessionLearner>>,
+    pub cross_session_learner: Arc<TokioRwLock<axagent_trajectory::CrossSessionLearner>>,
     pub rl_engine: Arc<TokioRwLock<axagent_trajectory::RLEngine>>,
     pub batch_processor: Arc<axagent_trajectory::BatchProcessor>,
-    pub auto_memory_extractor:
-        Arc<TokioRwLock<axagent_trajectory::AutoMemoryExtractor>>,
+    pub auto_memory_extractor: Arc<TokioRwLock<axagent_trajectory::AutoMemoryExtractor>>,
     pub parallel_execution_service:
         Arc<tokio::sync::RwLock<axagent_trajectory::ParallelExecutionService>>,
     pub cron_job_store: Arc<axagent_runtime_core::CronJobStore>,

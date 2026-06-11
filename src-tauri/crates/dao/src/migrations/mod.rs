@@ -41,9 +41,10 @@ pub const CURRENT_VERSION: i32 = 3;
 /// `Send` 是为了让 `run_migrations` 能在 multi-threaded runtime 中
 /// 被调用（生产环境 `tokio::main` 默认是 multi_thread）。不需要
 /// `Sync`：future 只在 await 期间被一个 task 持有，不存在共享。
-pub type MigrationFn = fn(
-    sea_orm::DatabaseConnection,
-) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<(), DbErr>> + Send>>;
+pub type MigrationFn =
+    fn(
+        sea_orm::DatabaseConnection,
+    ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<(), DbErr>> + Send>>;
 
 struct Migration {
     version: i32,
@@ -117,7 +118,7 @@ async fn read_max_version(db: &sea_orm::DatabaseConnection) -> Result<i32, DbErr
             // COALESCE 在空表返回 0，因此总能解析为 i32
             let v: i32 = r.try_get_by("v").unwrap_or(0);
             Ok(v)
-        }
+        },
     }
 }
 
@@ -153,7 +154,9 @@ mod tests {
         let db = Database::connect("sqlite::memory:")
             .await
             .expect("in-memory db");
-        run_migrations(&db).await.expect("v1-v3 should apply on fresh db");
+        run_migrations(&db)
+            .await
+            .expect("v1-v3 should apply on fresh db");
 
         // 验证关键表存在
         for table in &[

@@ -5,7 +5,9 @@ use serde_json::json;
 use std::time::Instant;
 
 use crate::auth::AuthenticatedKey;
-use crate::handlers::error::{error_response, provider_type_to_str, record_log, resolve_hermes_provider_context};
+use crate::handlers::error::{
+    error_response, provider_type_to_str, record_log, resolve_hermes_provider_context,
+};
 use crate::server::GatewayAppState;
 
 /// GET /api/jobs — list all jobs from Hermes/OpenClaw gateway

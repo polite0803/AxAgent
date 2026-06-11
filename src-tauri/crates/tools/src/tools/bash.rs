@@ -156,14 +156,14 @@ impl Tool for BashTool {
                         "Bash",
                         &format!("安全阻止: {}", reason),
                     ));
-                }
+                },
                 SecurityResult::Warning(reason) => {
                     return Err(ToolError::permission_denied(
                         "Bash",
                         &format!("需用户确认: {}", reason),
                     ));
-                }
-                SecurityResult::Safe(_) => {}
+                },
+                SecurityResult::Safe(_) => {},
             }
         }
         let timeout_secs = input
@@ -375,11 +375,7 @@ mod tests {
         });
         let ctx = ToolContext::new(".");
         let result = tool.call(input, &ctx).await;
-        assert!(
-            result.is_err(),
-            "heredoc + curl | sh must be blocked, got: {:?}",
-            result
-        );
+        assert!(result.is_err(), "heredoc + curl | sh must be blocked, got: {:?}", result);
         let err = result.unwrap_err();
         assert!(
             matches!(err.kind, ToolErrorKind::PermissionDenied),
@@ -398,11 +394,7 @@ mod tests {
         });
         let ctx = ToolContext::new(".");
         let result = tool.call(input, &ctx).await;
-        assert!(
-            result.is_err(),
-            "rm -rf via IFS must be blocked, got: {:?}",
-            result
-        );
+        assert!(result.is_err(), "rm -rf via IFS must be blocked, got: {:?}", result);
         let err = result.unwrap_err();
         assert!(
             matches!(err.kind, ToolErrorKind::PermissionDenied),
@@ -422,11 +414,7 @@ mod tests {
         });
         let ctx = ToolContext::new(".");
         let result = tool.call(input, &ctx).await;
-        assert!(
-            result.is_err(),
-            "NBSP-obfuscated rm -rf must be blocked, got: {:?}",
-            result
-        );
+        assert!(result.is_err(), "NBSP-obfuscated rm -rf must be blocked, got: {:?}", result);
         let err = result.unwrap_err();
         assert!(
             matches!(err.kind, ToolErrorKind::PermissionDenied),

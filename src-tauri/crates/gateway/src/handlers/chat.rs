@@ -1,8 +1,8 @@
 use axum::extract::{Extension, State};
 use axum::http::StatusCode;
 use axum::response::{
-    sse::{Event, KeepAlive, Sse},
     IntoResponse, Json,
+    sse::{Event, KeepAlive, Sse},
 };
 use futures::StreamExt;
 use serde_json::json;

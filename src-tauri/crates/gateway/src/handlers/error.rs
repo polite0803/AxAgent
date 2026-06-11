@@ -132,4 +132,3 @@ pub(crate) async fn resolve_hermes_provider_context(
 
     Ok((provider, ctx))
 }
-

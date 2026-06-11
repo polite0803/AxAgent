@@ -25,8 +25,10 @@ pub struct TaskState {
     pub stream_cancel_flags: Arc<Mutex<std::collections::HashMap<String, Arc<AtomicBool>>>>,
     pub agent_permission_senders:
         Arc<Mutex<std::collections::HashMap<String, tokio::sync::oneshot::Sender<String>>>>,
-    pub agent_ask_senders: Arc<Mutex<std::collections::HashMap<String, tokio::sync::oneshot::Sender<String>>>>,
-    pub agent_always_allowed: Arc<Mutex<std::collections::HashMap<String, std::collections::HashSet<String>>>>,
+    pub agent_ask_senders:
+        Arc<Mutex<std::collections::HashMap<String, tokio::sync::oneshot::Sender<String>>>>,
+    pub agent_always_allowed:
+        Arc<Mutex<std::collections::HashMap<String, std::collections::HashSet<String>>>>,
     pub agent_prompters:
         Arc<Mutex<std::collections::HashMap<String, axagent_agent::ChannelPermissionPrompter>>>,
 }
