@@ -1,5 +1,6 @@
 use crate::commands::proactive::ProactiveService;
 use crate::semantic_cache::SemanticCache;
+use crate::state::{AgentState, GatewayState, InfraState, MemoryState, SkillState, TaskState};
 use axagent_core::cloud_storage::SyncEngine;
 use axagent_core::file_authorizer::FileAuthorizer;
 use axagent_plugins::PluginManager;
@@ -275,6 +276,25 @@ pub struct AppState {
     pub plugin_manager: Arc<tokio::sync::RwLock<PluginManager>>,
     pub file_authorizer: Arc<FileAuthorizer>,
     pub session_share_manager: SessionShareStore,
+
+    // ── Phase 3 P1 Task 3.1: domain decomposition ───────────────────────────
+    // The six sub-state structs below provide a focused, composable view of
+    // `AppState`. They are constructed at start-up with `Arc`/`Mutex` clones
+    // of the corresponding top-level fields above, so the legacy call-sites
+    // (200+ `commands/*` files) keep working unchanged. New code can opt
+    // into the grouped accessors on these sub-states.  The fields are
+    // `#[allow(dead_code)]` until the migration is complete.
+    pub infra: InfraState,
+    /// Renamed from `gateway` to `gateway_state` to avoid colliding with
+    /// the existing `pub gateway: Arc<Mutex<Option<GatewayServer>>>` field
+    /// above. Existing call-sites that read the gateway server handle
+    /// continue to use the `gateway` field; new code can use
+    /// `app_state.gateway_state` for the grouped gateway view.
+    pub gateway_state: GatewayState,
+    pub task: TaskState,
+    pub agent: AgentState,
+    pub memory: MemoryState,
+    pub skill: SkillState,
 }
 
 impl Drop for AppState {

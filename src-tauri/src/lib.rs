@@ -15,6 +15,7 @@ mod memory_extract;
 mod paths;
 mod semantic_cache;
 mod smart_router;
+pub mod state;
 
 #[cfg(not(mobile))]
 mod tray;
