@@ -7,6 +7,7 @@ use axagent_plugins::PluginManager;
 use axagent_runtime::dashboard_registry::DashboardRegistry;
 use axagent_runtime::webhook_subscription::WebhookSubscriptionManager;
 use axagent_runtime_core::prompt_cache::PromptCache;
+use dashmap::DashMap;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -202,16 +203,13 @@ pub struct AppState {
     pub vector_store: Arc<axagent_core::vector_store::VectorStore>,
     pub indexing_semaphore: Arc<tokio::sync::Semaphore>,
     pub stream_cancel_flags: Arc<Mutex<std::collections::HashMap<String, Arc<AtomicBool>>>>,
-    pub agent_permission_senders:
-        Arc<Mutex<std::collections::HashMap<String, tokio::sync::oneshot::Sender<String>>>>,
-    pub agent_ask_senders:
-        Arc<Mutex<std::collections::HashMap<String, tokio::sync::oneshot::Sender<String>>>>,
-    pub agent_always_allowed:
-        Arc<Mutex<std::collections::HashMap<String, std::collections::HashSet<String>>>>,
+    pub agent_permission_senders: Arc<Mutex<std::collections::HashMap<String, tokio::sync::oneshot::Sender<String>>>>,
+    pub agent_ask_senders: Arc<Mutex<std::collections::HashMap<String, tokio::sync::oneshot::Sender<String>>>>,
+    pub agent_always_allowed: Arc<Mutex<std::collections::HashMap<String, std::collections::HashSet<String>>>>,
     pub agent_prompters:
         Arc<Mutex<std::collections::HashMap<String, axagent_agent::ChannelPermissionPrompter>>>,
     pub agent_session_manager: Arc<axagent_agent::SessionManager>,
-    pub agent_cancel_tokens: Arc<Mutex<std::collections::HashMap<String, Arc<AtomicBool>>>>,
+    pub agent_cancel_tokens: Arc<DashMap<String, Arc<AtomicBool>>>,
     pub agent_paused: Arc<Mutex<std::collections::HashSet<String>>>,
     pub running_agents: Arc<tokio::sync::RwLock<std::collections::HashSet<String>>>,
     pub reflector: Arc<axagent_agent::Reflector>,

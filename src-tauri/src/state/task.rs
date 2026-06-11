@@ -21,14 +21,11 @@ pub struct TaskState {
     pub trajectory_cleanup_handle: Arc<Mutex<Option<tokio::task::JoinHandle<()>>>>,
     pub shutdown_token: CancellationToken,
     pub close_to_tray: Arc<AtomicBool>,
-    pub stream_cancel_flags:
-        Arc<Mutex<std::collections::HashMap<String, Arc<AtomicBool>>>>,
+    pub stream_cancel_flags: Arc<Mutex<std::collections::HashMap<String, Arc<AtomicBool>>>>,
     pub agent_permission_senders:
         Arc<Mutex<std::collections::HashMap<String, tokio::sync::oneshot::Sender<String>>>>,
-    pub agent_ask_senders:
-        Arc<Mutex<std::collections::HashMap<String, tokio::sync::oneshot::Sender<String>>>>,
-    pub agent_always_allowed:
-        Arc<Mutex<std::collections::HashMap<String, std::collections::HashSet<String>>>>,
+    pub agent_ask_senders: Arc<Mutex<std::collections::HashMap<String, tokio::sync::oneshot::Sender<String>>>>,
+    pub agent_always_allowed: Arc<Mutex<std::collections::HashMap<String, std::collections::HashSet<String>>>>,
     pub agent_prompters:
         Arc<Mutex<std::collections::HashMap<String, axagent_agent::ChannelPermissionPrompter>>>,
 }
@@ -44,9 +41,7 @@ impl TaskState {
         trajectory_cleanup_handle: Arc<Mutex<Option<tokio::task::JoinHandle<()>>>>,
         shutdown_token: CancellationToken,
         close_to_tray: Arc<AtomicBool>,
-        stream_cancel_flags: Arc<
-            Mutex<std::collections::HashMap<String, Arc<AtomicBool>>>,
-        >,
+        stream_cancel_flags: Arc<Mutex<std::collections::HashMap<String, Arc<AtomicBool>>>>,
         agent_permission_senders: Arc<
             Mutex<std::collections::HashMap<String, tokio::sync::oneshot::Sender<String>>>,
         >,

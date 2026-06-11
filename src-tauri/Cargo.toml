@@ -20,6 +20,7 @@ chrono = { version = "0.4", features = ["serde"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 anyhow = "1"
+dashmap = "6"
 reqwest = { version = "0.13", features = ["json"] }
 sqlite-vec = "0.1.8-alpha.1"
 libsqlite3-sys = { version = "0.30", features = ["bundled"] }
@@ -88,6 +89,7 @@ axagent-telemetry = { path = "crates/telemetry" }
 axagent-tools = { path = "crates/tools" }
 axagent-plugins = { path = "crates/plugins" }
 axagent-prompt-guard = { path = "crates/prompt-guard" }
+dashmap = { workspace = true }
 tokio = { workspace = true }
 tokio-util = { version = "0.7", features = ["rt"] }
 uuid = { workspace = true }

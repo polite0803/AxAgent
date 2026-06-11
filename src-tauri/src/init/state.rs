@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
+use dashmap::DashMap;
 use tokio::sync::Mutex;
 use tokio::sync::RwLock as TokioRwLock;
 
@@ -232,9 +233,8 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState, Strin
     > = Arc::new(Mutex::new(std::collections::HashMap::new()));
     let agent_session_manager =
         Arc::new(axagent_agent::SessionManager::new(sea_db.clone()));
-    let agent_cancel_tokens: Arc<
-        Mutex<std::collections::HashMap<String, Arc<AtomicBool>>>,
-    > = Arc::new(Mutex::new(std::collections::HashMap::new()));
+    let agent_cancel_tokens: Arc<DashMap<String, Arc<AtomicBool>>> =
+        Arc::new(DashMap::new());
     let agent_paused: Arc<Mutex<std::collections::HashSet<String>>> =
         Arc::new(Mutex::new(std::collections::HashSet::new()));
     let running_agents: Arc<tokio::sync::RwLock<std::collections::HashSet<String>>> =

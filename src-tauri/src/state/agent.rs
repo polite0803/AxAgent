@@ -5,6 +5,7 @@
 //! and the platform manager / bridge (which fan messages out to external
 //! channels such as Telegram, Slack, etc.).
 
+use dashmap::DashMap;
 use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 use tokio::sync::{Mutex, RwLock as TokioRwLock};
@@ -12,8 +13,7 @@ use tokio::sync::{Mutex, RwLock as TokioRwLock};
 #[allow(dead_code)]
 pub struct AgentState {
     pub agent_session_manager: Arc<axagent_agent::SessionManager>,
-    pub agent_cancel_tokens:
-        Arc<Mutex<std::collections::HashMap<String, Arc<AtomicBool>>>>,
+    pub agent_cancel_tokens: Arc<DashMap<String, Arc<AtomicBool>>>,
     pub agent_paused: Arc<Mutex<std::collections::HashSet<String>>>,
     pub running_agents: Arc<tokio::sync::RwLock<std::collections::HashSet<String>>>,
     pub reflector: Arc<axagent_agent::Reflector>,
@@ -31,9 +31,7 @@ impl AgentState {
     #[allow(clippy::too_many_arguments)]
     pub fn new(
         agent_session_manager: Arc<axagent_agent::SessionManager>,
-        agent_cancel_tokens: Arc<
-            Mutex<std::collections::HashMap<String, Arc<AtomicBool>>>,
-        >,
+        agent_cancel_tokens: Arc<DashMap<String, Arc<AtomicBool>>>,
         agent_paused: Arc<Mutex<std::collections::HashSet<String>>>,
         running_agents: Arc<TokioRwLock<std::collections::HashSet<String>>>,
         reflector: Arc<axagent_agent::Reflector>,
