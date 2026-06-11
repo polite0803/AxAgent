@@ -1,0 +1,1 @@
+00a8ed7e fix: step_to_agent_node 继承模板 system_prompt + prompts.rs 6条通用 prompt 补齐契约模块
