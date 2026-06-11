@@ -10,6 +10,8 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use serde::{Deserialize, Serialize};
 
+use crate::util::lock_or_recover;
+
 fn now_secs() -> u64 {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -65,7 +67,7 @@ impl TeamRegistry {
     }
 
     pub fn create(&self, name: &str, task_ids: Vec<String>) -> Team {
-        let mut inner = self.inner.lock().expect("team registry lock poisoned");
+        let mut inner = lock_or_recover(self.inner.lock(), "team_cron_registry");
         inner.counter += 1;
         let ts = now_secs();
         let team_id = format!("team_{:08x}_{}", ts, inner.counter);
@@ -92,7 +94,7 @@ impl TeamRegistry {
     }
 
     pub fn delete(&self, team_id: &str) -> Result<Team, String> {
-        let mut inner = self.inner.lock().expect("team registry lock poisoned");
+        let mut inner = lock_or_recover(self.inner.lock(), "team_cron_registry");
         let team = inner
             .teams
             .get_mut(team_id)
@@ -103,7 +105,7 @@ impl TeamRegistry {
     }
 
     pub fn remove(&self, team_id: &str) -> Option<Team> {
-        let mut inner = self.inner.lock().expect("team registry lock poisoned");
+        let mut inner = lock_or_recover(self.inner.lock(), "team_cron_registry");
         inner.teams.remove(team_id)
     }
 
