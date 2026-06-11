@@ -2,6 +2,7 @@
 //!
 //! RunTests / RunTestCoverage / RunLinter
 
+use crate::utils::spawn::safe_spawn;
 use crate::{Tool, ToolCategory, ToolContext, ToolError, ToolResult};
 use async_trait::async_trait;
 use serde_json::Value;
@@ -10,10 +11,7 @@ use std::process::Command;
 const DEFAULT_TIMEOUT: u64 = 300;
 
 fn run_command(cmd: &str, args: &[&str], cwd: &str, _timeout_secs: u64) -> Result<String, String> {
-    let child = Command::new(cmd)
-        .args(args)
-        .current_dir(cwd)
-        .spawn()
+    let child = safe_spawn(Command::new(cmd).args(args).current_dir(cwd))
         .map_err(|e| format!("命令启动失败: {}", e))?;
 
     let output = child

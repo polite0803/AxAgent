@@ -1,11 +1,13 @@
 use crate::commands::proactive::ProactiveService;
 use crate::semantic_cache::SemanticCache;
+use crate::state::{AgentState, GatewayState, InfraState, MemoryState, SkillState, TaskState};
 use axagent_core::cloud_storage::SyncEngine;
 use axagent_core::file_authorizer::FileAuthorizer;
 use axagent_plugins::PluginManager;
 use axagent_runtime::dashboard_registry::DashboardRegistry;
 use axagent_runtime::webhook_subscription::WebhookSubscriptionManager;
 use axagent_runtime_core::prompt_cache::PromptCache;
+use dashmap::DashMap;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -200,17 +202,14 @@ pub struct AppState {
     pub shutdown_token: CancellationToken,
     pub vector_store: Arc<axagent_core::vector_store::VectorStore>,
     pub indexing_semaphore: Arc<tokio::sync::Semaphore>,
-    pub stream_cancel_flags: Arc<Mutex<std::collections::HashMap<String, Arc<AtomicBool>>>>,
-    pub agent_permission_senders:
-        Arc<Mutex<std::collections::HashMap<String, tokio::sync::oneshot::Sender<String>>>>,
-    pub agent_ask_senders:
-        Arc<Mutex<std::collections::HashMap<String, tokio::sync::oneshot::Sender<String>>>>,
-    pub agent_always_allowed:
-        Arc<Mutex<std::collections::HashMap<String, std::collections::HashSet<String>>>>,
+    pub stream_cancel_flags: Arc<DashMap<String, Arc<AtomicBool>>>,
+    pub agent_permission_senders: Arc<Mutex<std::collections::HashMap<String, tokio::sync::oneshot::Sender<String>>>>,
+    pub agent_ask_senders: Arc<Mutex<std::collections::HashMap<String, tokio::sync::oneshot::Sender<String>>>>,
+    pub agent_always_allowed: Arc<Mutex<std::collections::HashMap<String, std::collections::HashSet<String>>>>,
     pub agent_prompters:
         Arc<Mutex<std::collections::HashMap<String, axagent_agent::ChannelPermissionPrompter>>>,
     pub agent_session_manager: Arc<axagent_agent::SessionManager>,
-    pub agent_cancel_tokens: Arc<Mutex<std::collections::HashMap<String, Arc<AtomicBool>>>>,
+    pub agent_cancel_tokens: Arc<DashMap<String, Arc<AtomicBool>>>,
     pub agent_paused: Arc<Mutex<std::collections::HashSet<String>>>,
     pub running_agents: Arc<tokio::sync::RwLock<std::collections::HashSet<String>>>,
     pub reflector: Arc<axagent_agent::Reflector>,
@@ -275,6 +274,25 @@ pub struct AppState {
     pub plugin_manager: Arc<tokio::sync::RwLock<PluginManager>>,
     pub file_authorizer: Arc<FileAuthorizer>,
     pub session_share_manager: SessionShareStore,
+
+    // ── Phase 3 P1 Task 3.1: domain decomposition ───────────────────────────
+    // The six sub-state structs below provide a focused, composable view of
+    // `AppState`. They are constructed at start-up with `Arc`/`Mutex` clones
+    // of the corresponding top-level fields above, so the legacy call-sites
+    // (200+ `commands/*` files) keep working unchanged. New code can opt
+    // into the grouped accessors on these sub-states.  The fields are
+    // `#[allow(dead_code)]` until the migration is complete.
+    pub infra: InfraState,
+    /// Renamed from `gateway` to `gateway_state` to avoid colliding with
+    /// the existing `pub gateway: Arc<Mutex<Option<GatewayServer>>>` field
+    /// above. Existing call-sites that read the gateway server handle
+    /// continue to use the `gateway` field; new code can use
+    /// `app_state.gateway_state` for the grouped gateway view.
+    pub gateway_state: GatewayState,
+    pub task: TaskState,
+    pub agent: AgentState,
+    pub memory: MemoryState,
+    pub skill: SkillState,
 }
 
 impl Drop for AppState {

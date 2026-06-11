@@ -6,6 +6,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use serde::{Deserialize, Serialize};
 
+use crate::util::lock_or_recover;
 use crate::{TaskPacket, TaskPacketValidationError, validate_packet};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -93,7 +94,7 @@ impl TaskRegistry {
         description: Option<String>,
         task_packet: Option<TaskPacket>,
     ) -> Task {
-        let mut inner = self.inner.lock().expect("registry lock poisoned");
+        let mut inner = lock_or_recover(self.inner.lock(), "task_registry");
         inner.counter += 1;
         let ts = now_secs();
         let task_id = format!("task_{:08x}_{}", ts, inner.counter);
@@ -114,12 +115,12 @@ impl TaskRegistry {
     }
 
     pub fn get(&self, task_id: &str) -> Option<Task> {
-        let inner = self.inner.lock().expect("registry lock poisoned");
+        let inner = lock_or_recover(self.inner.lock(), "task_registry");
         inner.tasks.get(task_id).cloned()
     }
 
     pub fn list(&self, status_filter: Option<TaskStatus>) -> Vec<Task> {
-        let inner = self.inner.lock().expect("registry lock poisoned");
+        let inner = lock_or_recover(self.inner.lock(), "task_registry");
         inner
             .tasks
             .values()
@@ -129,7 +130,7 @@ impl TaskRegistry {
     }
 
     pub fn stop(&self, task_id: &str) -> Result<Task, String> {
-        let mut inner = self.inner.lock().expect("registry lock poisoned");
+        let mut inner = lock_or_recover(self.inner.lock(), "task_registry");
         let task = inner
             .tasks
             .get_mut(task_id)
@@ -151,7 +152,7 @@ impl TaskRegistry {
     }
 
     pub fn update(&self, task_id: &str, message: &str) -> Result<Task, String> {
-        let mut inner = self.inner.lock().expect("registry lock poisoned");
+        let mut inner = lock_or_recover(self.inner.lock(), "task_registry");
         let task = inner
             .tasks
             .get_mut(task_id)
@@ -167,7 +168,7 @@ impl TaskRegistry {
     }
 
     pub fn output(&self, task_id: &str) -> Result<String, String> {
-        let inner = self.inner.lock().expect("registry lock poisoned");
+        let inner = lock_or_recover(self.inner.lock(), "task_registry");
         let task = inner
             .tasks
             .get(task_id)
@@ -176,7 +177,7 @@ impl TaskRegistry {
     }
 
     pub fn append_output(&self, task_id: &str, output: &str) -> Result<(), String> {
-        let mut inner = self.inner.lock().expect("registry lock poisoned");
+        let mut inner = lock_or_recover(self.inner.lock(), "task_registry");
         let task = inner
             .tasks
             .get_mut(task_id)
@@ -187,7 +188,7 @@ impl TaskRegistry {
     }
 
     pub fn set_status(&self, task_id: &str, status: TaskStatus) -> Result<(), String> {
-        let mut inner = self.inner.lock().expect("registry lock poisoned");
+        let mut inner = lock_or_recover(self.inner.lock(), "task_registry");
         let task = inner
             .tasks
             .get_mut(task_id)
@@ -198,7 +199,7 @@ impl TaskRegistry {
     }
 
     pub fn assign_team(&self, task_id: &str, team_id: &str) -> Result<(), String> {
-        let mut inner = self.inner.lock().expect("registry lock poisoned");
+        let mut inner = lock_or_recover(self.inner.lock(), "task_registry");
         let task = inner
             .tasks
             .get_mut(task_id)
@@ -209,13 +210,13 @@ impl TaskRegistry {
     }
 
     pub fn remove(&self, task_id: &str) -> Option<Task> {
-        let mut inner = self.inner.lock().expect("registry lock poisoned");
+        let mut inner = lock_or_recover(self.inner.lock(), "task_registry");
         inner.tasks.remove(task_id)
     }
 
     #[must_use]
     pub fn len(&self) -> usize {
-        let inner = self.inner.lock().expect("registry lock poisoned");
+        let inner = lock_or_recover(self.inner.lock(), "task_registry");
         inner.tasks.len()
     }
 

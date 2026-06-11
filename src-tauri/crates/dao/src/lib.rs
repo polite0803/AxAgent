@@ -7,6 +7,7 @@
 pub mod db;
 pub mod ddl;
 pub mod marketplace_service;
+pub mod migrations;
 pub mod platform_adapter_impl;
 pub mod repo;
 pub mod search_sources_impl;

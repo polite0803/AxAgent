@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
+use dashmap::DashMap;
 use tokio::sync::Mutex;
 use tokio::sync::RwLock as TokioRwLock;
 
@@ -9,6 +10,7 @@ use crate::AppState;
 use crate::app_state::SemanticCacheState;
 use crate::commands::proactive::ProactiveService;
 use crate::semantic_cache::{CacheConfig, SemanticCache};
+use crate::state::{BrowserClientField, SandboxExecutorField};
 use axagent_core::cloud_storage::{CloudStorageConfig, SyncEngine};
 use axagent_plugins::{PluginManager, PluginManagerConfig};
 use axagent_runtime_core::prompt_cache::PromptCache;
@@ -193,162 +195,204 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState, Strin
     plugin_config.external_dirs = axagent_core::skill_dirs::all_skills_dirs();
     let plugin_manager = Arc::new(tokio::sync::RwLock::new(PluginManager::new(plugin_config)));
 
-    Ok(AppState {
-        harness,
-        gateway: Arc::new(Mutex::new(None)),
-        close_to_tray: Arc::new(AtomicBool::new(false)),
-        app_data_dir: app_dir.clone(),
-        auto_backup_handle: Arc::new(Mutex::new(None)),
-        webdav_sync_handle: Arc::new(Mutex::new(None)),
-        api_server_handle: Arc::new(Mutex::new(None)),
-        trajectory_cleanup_handle: Arc::new(Mutex::new(None)),
-        task_manager: Arc::new(axagent_runtime::task_manager::TaskManager::new()),
-        skill_watcher_shutdown: std::sync::OnceLock::new(),
-        shutdown_token: CancellationToken::new(),
-        vector_store: vector_store_arc,
-        indexing_semaphore: Arc::new(tokio::sync::Semaphore::new(2)),
-        stream_cancel_flags: Arc::new(Mutex::new(std::collections::HashMap::new())),
-        agent_permission_senders: Arc::new(Mutex::new(std::collections::HashMap::new())),
-        agent_ask_senders: Arc::new(Mutex::new(std::collections::HashMap::new())),
-        agent_always_allowed: Arc::new(Mutex::new(std::collections::HashMap::new())),
-        agent_prompters: Arc::new(Mutex::new(std::collections::HashMap::new())),
-        agent_session_manager: Arc::new(axagent_agent::SessionManager::new(sea_db.clone())),
-        agent_cancel_tokens: Arc::new(Mutex::new(std::collections::HashMap::new())),
-        agent_paused: Arc::new(Mutex::new(std::collections::HashSet::new())),
-        running_agents: Arc::new(tokio::sync::RwLock::new(std::collections::HashSet::new())),
-        reflector: Arc::new(axagent_agent::Reflector::new()),
-        shared_memory: Arc::new(TokioRwLock::new(
+    // ── Extract every AppState field into a local so that the same values
+    //    can be shared between the top-level `AppState` and the new domain
+    //    sub-states (`infra`, `gateway`, `task`, `agent`, `memory`, `skill`).
+    let gateway_server: Arc<Mutex<Option<axagent_gateway::server::GatewayServer>>> =
+        Arc::new(Mutex::new(None));
+    let close_to_tray: Arc<AtomicBool> = Arc::new(AtomicBool::new(false));
+    let auto_backup_handle: Arc<Mutex<Option<tokio::task::JoinHandle<()>>>> =
+        Arc::new(Mutex::new(None));
+    let webdav_sync_handle: Arc<Mutex<Option<tokio::task::JoinHandle<()>>>> =
+        Arc::new(Mutex::new(None));
+    let api_server_handle: Arc<Mutex<Option<tokio::task::JoinHandle<()>>>> =
+        Arc::new(Mutex::new(None));
+    let trajectory_cleanup_handle: Arc<Mutex<Option<tokio::task::JoinHandle<()>>>> =
+        Arc::new(Mutex::new(None));
+    let task_manager = Arc::new(axagent_runtime::task_manager::TaskManager::new());
+    let shutdown_token = CancellationToken::new();
+    let stream_cancel_flags: Arc<
+        DashMap<String, Arc<AtomicBool>>,
+    > = Arc::new(DashMap::new());
+    let agent_permission_senders: Arc<
+        Mutex<std::collections::HashMap<String, tokio::sync::oneshot::Sender<String>>>,
+    > = Arc::new(Mutex::new(std::collections::HashMap::new()));
+    let agent_ask_senders: Arc<
+        Mutex<std::collections::HashMap<String, tokio::sync::oneshot::Sender<String>>>,
+    > = Arc::new(Mutex::new(std::collections::HashMap::new()));
+    let agent_always_allowed: Arc<
+        Mutex<std::collections::HashMap<String, std::collections::HashSet<String>>>,
+    > = Arc::new(Mutex::new(std::collections::HashMap::new()));
+    let agent_prompters: Arc<
+        Mutex<
+            std::collections::HashMap<
+                String,
+                axagent_agent::ChannelPermissionPrompter,
+            >,
+        >,
+    > = Arc::new(Mutex::new(std::collections::HashMap::new()));
+    let agent_session_manager =
+        Arc::new(axagent_agent::SessionManager::new(sea_db.clone()));
+    let agent_cancel_tokens: Arc<DashMap<String, Arc<AtomicBool>>> =
+        Arc::new(DashMap::new());
+    let agent_paused: Arc<Mutex<std::collections::HashSet<String>>> =
+        Arc::new(Mutex::new(std::collections::HashSet::new()));
+    let running_agents: Arc<tokio::sync::RwLock<std::collections::HashSet<String>>> =
+        Arc::new(tokio::sync::RwLock::new(std::collections::HashSet::new()));
+    let reflector = Arc::new(axagent_agent::Reflector::new());
+    let shared_memory: Arc<TokioRwLock<axagent_runtime::shared_memory::SharedMemory>> =
+        Arc::new(TokioRwLock::new(
             axagent_runtime::shared_memory::SharedMemory::new(),
-        )),
-        sub_agent_registry: Arc::new(TokioRwLock::new(
-            axagent_trajectory::SubAgentRegistry::new().unwrap_or_default(),
-        )),
-        memory_service: memory_service.clone(),
-        nudge_service: Arc::new(tokio::sync::Mutex::new(axagent_trajectory::NudgeService::new())),
-        closed_loop_service: Arc::new(axagent_trajectory::ClosedLoopService::new(
-            shared_trajectory_storage.clone(),
-        )),
-        trajectory_storage: shared_trajectory_storage.clone(),
-        insight_system: Arc::new(TokioRwLock::new(
+        ));
+    let sub_agent_registry: Arc<TokioRwLock<axagent_trajectory::SubAgentRegistry>> = Arc::new(
+        TokioRwLock::new(axagent_trajectory::SubAgentRegistry::new().unwrap_or_default()),
+    );
+    let nudge_service: Arc<tokio::sync::Mutex<axagent_trajectory::NudgeService>> =
+        Arc::new(tokio::sync::Mutex::new(axagent_trajectory::NudgeService::new()));
+    let closed_loop_service = Arc::new(axagent_trajectory::ClosedLoopService::new(
+        shared_trajectory_storage.clone(),
+    ));
+    let insight_system: Arc<TokioRwLock<axagent_trajectory::LearningInsightSystem>> =
+        Arc::new(TokioRwLock::new(
             axagent_trajectory::LearningInsightSystem::new().with_storage_limits(200, 30),
-        )),
-        realtime_learning: Arc::new(tokio::sync::Mutex::new(
+        ));
+    let realtime_learning: Arc<tokio::sync::Mutex<axagent_trajectory::RealTimeLearning>> =
+        Arc::new(tokio::sync::Mutex::new(
             axagent_trajectory::RealTimeLearning::new(),
-        )),
-        pattern_learner: Arc::new(TokioRwLock::new(axagent_trajectory::PatternLearner::new(
+        ));
+    let pattern_learner: Arc<TokioRwLock<axagent_trajectory::PatternLearner>> = Arc::new(
+        TokioRwLock::new(axagent_trajectory::PatternLearner::new(
             axagent_trajectory::PatternConfig::default(),
-        ))),
-        cross_session_learner: Arc::new(TokioRwLock::new(
-            axagent_trajectory::CrossSessionLearner::new(),
         )),
-        rl_engine: Arc::new(TokioRwLock::new(axagent_trajectory::RLEngine::new(
+    );
+    let cross_session_learner: Arc<
+        TokioRwLock<axagent_trajectory::CrossSessionLearner>,
+    > = Arc::new(TokioRwLock::new(
+        axagent_trajectory::CrossSessionLearner::new(),
+    ));
+    let rl_engine: Arc<TokioRwLock<axagent_trajectory::RLEngine>> = Arc::new(
+        TokioRwLock::new(axagent_trajectory::RLEngine::new(
             axagent_trajectory::RLConfig::default(),
             axagent_trajectory::RewardWeights::default(),
-        ))),
-        batch_processor: Arc::new(axagent_trajectory::BatchProcessor::new(
-            shared_trajectory_storage.clone(),
-            axagent_trajectory::BatchConfig::default(),
         )),
+    );
+    let batch_processor = Arc::new(axagent_trajectory::BatchProcessor::new(
+        shared_trajectory_storage.clone(),
+        axagent_trajectory::BatchConfig::default(),
+    ));
+    let skill_evolution_engine: Arc<
+        tokio::sync::Mutex<axagent_trajectory::SkillEvolutionEngine>,
+    > = {
         #[cfg(not(target_os = "android"))]
-        skill_evolution_engine: Arc::new(tokio::sync::Mutex::new({
+        {
             let mut engine = axagent_trajectory::SkillEvolutionEngine::new();
             engine.set_sandbox(Arc::new(
                 axagent_trajectory::SkillSandboxExecutor::with_default_policy(),
             ));
-            engine
-        })),
+            Arc::new(tokio::sync::Mutex::new(engine))
+        }
         #[cfg(target_os = "android")]
-        skill_evolution_engine: Arc::new(tokio::sync::Mutex::new(
-            axagent_trajectory::SkillEvolutionEngine::new(),
-        )),
-        skill_proposal_service: Arc::new(TokioRwLock::new(
-            axagent_trajectory::SkillProposalService::new(shared_trajectory_storage.clone()),
-        )),
-        auto_memory_extractor: {
-            let auto_ms = match axagent_trajectory::MemoryService::new(
-                shared_trajectory_storage.clone(),
-            ) {
-                Ok(ms) => ms,
-                Err(e) => {
-                    tracing::warn!(
-                        "Failed to create MemoryService for AutoMemory: {} — falling back to primary memory service",
-                        e
-                    );
-                    // 回退到主 memory_service（克隆引用），避免 panic 导致 Android 静默崩溃
-                    match axagent_trajectory::MemoryService::new(shared_trajectory_storage.clone())
-                    {
-                        Ok(ms) => ms,
-                        Err(e2) => {
-                            tracing::error!(
-                                "AutoMemory MemoryService fallback also failed: {} — creating with fresh storage",
-                                e2
-                            );
-                            let fallback_storage =
-                                std::sync::Arc::new(axagent_trajectory::TrajectoryStorage::new(
-                                    std::sync::Arc::new(sea_db.clone()),
-                                ));
-                            match axagent_trajectory::MemoryService::new(fallback_storage) {
-                                Ok(ms) => ms,
-                                Err(e3) => {
-                                    let msg =
-                                        format!("AutoMemory MemoryService unreachable: {}", e3,);
-                                    crate::android_utils::report_fatal_error(&msg);
-                                    return Err(msg);
-                                },
-                            }
-                        },
-                    }
-                },
-            };
-            if let Err(e) = auto_ms.initialize() {
-                tracing::warn!("Failed to initialize MemoryService for AutoMemory: {}", e);
-            }
-            let auto_ms = Arc::new(tokio::sync::RwLock::new(auto_ms));
-            let auto_pl =
-                Arc::new(tokio::sync::RwLock::new(axagent_trajectory::PatternLearner::new(
-                    axagent_trajectory::PatternConfig::default(),
-                )));
-            Arc::new(TokioRwLock::new(axagent_trajectory::AutoMemoryExtractor::new(
-                shared_trajectory_storage.clone(),
-                auto_ms,
-                auto_pl,
-            )))
-        },
-        parallel_execution_service: Arc::new(tokio::sync::RwLock::new(
-            axagent_trajectory::ParallelExecutionService::new(10),
-        )),
-        cron_job_store: Arc::new(
-            rt.block_on(axagent_runtime_core::CronJobStore::new(Arc::new(sea_db.clone()))),
-        ),
-        platform_manager: platform_manager.clone(),
-        platform_bridge: platform_bridge.clone(),
-        user_profile: Arc::new(TokioRwLock::new(axagent_trajectory::UserProfile::new())),
-        local_tool_registry: {
-            let mut registry = axagent_tools::registry::UnifiedToolRegistry::new();
-            rt.block_on(registry.load_enabled_state(&sea_db));
-            Arc::new(tokio::sync::Mutex::new(registry))
-        },
-        work_engine: {
-            let engine = Arc::new(axagent_runtime::work_engine::WorkEngine::new(
-                Arc::new(sea_db.clone()),
-                master_key,
-                harness_registry.clone(),
-            ));
-            // Plan 模式：AgentExecutor 注入 engine 引用以创建/执行临时工作流
-            rt.block_on(engine.inject_into_agent_executor(engine.clone()));
-            // 注册默认领域约束（动态注入至 agent system prompt 的 head/tail 槽位）
-            rt.block_on(engine.set_domain_constraints(Arc::new(|role_name: &str| {
-                axagent_rt_workflow::work_engine::domain_constraints::DomainConstraints::by_role(
-                    role_name,
-                )
-            })));
-            engine
-        },
-        skill_decomposer: Arc::new(tokio::sync::RwLock::new(
+        {
+            Arc::new(tokio::sync::Mutex::new(
+                axagent_trajectory::SkillEvolutionEngine::new(),
+            ))
+        }
+    };
+    let skill_proposal_service: Arc<
+        TokioRwLock<axagent_trajectory::SkillProposalService>,
+    > = Arc::new(TokioRwLock::new(
+        axagent_trajectory::SkillProposalService::new(shared_trajectory_storage.clone()),
+    ));
+    let auto_memory_extractor: Arc<TokioRwLock<axagent_trajectory::AutoMemoryExtractor>> = {
+        let auto_ms = match axagent_trajectory::MemoryService::new(
+            shared_trajectory_storage.clone(),
+        ) {
+            Ok(ms) => ms,
+            Err(e) => {
+                tracing::warn!(
+                    "Failed to create MemoryService for AutoMemory: {} — falling back to primary memory service",
+                    e
+                );
+                // 回退到主 memory_service（克隆引用），避免 panic 导致 Android 静默崩溃
+                match axagent_trajectory::MemoryService::new(shared_trajectory_storage.clone()) {
+                    Ok(ms) => ms,
+                    Err(e2) => {
+                        tracing::error!(
+                            "AutoMemory MemoryService fallback also failed: {} — creating with fresh storage",
+                            e2
+                        );
+                        let fallback_storage =
+                            std::sync::Arc::new(axagent_trajectory::TrajectoryStorage::new(
+                                std::sync::Arc::new(sea_db.clone()),
+                            ));
+                        match axagent_trajectory::MemoryService::new(fallback_storage) {
+                            Ok(ms) => ms,
+                            Err(e3) => {
+                                let msg =
+                                    format!("AutoMemory MemoryService unreachable: {}", e3,);
+                                crate::android_utils::report_fatal_error(&msg);
+                                return Err(msg);
+                            },
+                        }
+                    },
+                }
+            },
+        };
+        if let Err(e) = auto_ms.initialize() {
+            tracing::warn!("Failed to initialize MemoryService for AutoMemory: {}", e);
+        }
+        let auto_ms = Arc::new(tokio::sync::RwLock::new(auto_ms));
+        let auto_pl =
+            Arc::new(tokio::sync::RwLock::new(axagent_trajectory::PatternLearner::new(
+                axagent_trajectory::PatternConfig::default(),
+            )));
+        Arc::new(TokioRwLock::new(axagent_trajectory::AutoMemoryExtractor::new(
+            shared_trajectory_storage.clone(),
+            auto_ms,
+            auto_pl,
+        )))
+    };
+    let parallel_execution_service: Arc<
+        tokio::sync::RwLock<axagent_trajectory::ParallelExecutionService>,
+    > = Arc::new(tokio::sync::RwLock::new(
+        axagent_trajectory::ParallelExecutionService::new(10),
+    ));
+    let cron_job_store: Arc<axagent_runtime_core::CronJobStore> = Arc::new(
+        rt.block_on(axagent_runtime_core::CronJobStore::new(Arc::new(sea_db.clone()))),
+    );
+    let user_profile: Arc<TokioRwLock<axagent_trajectory::UserProfile>> =
+        Arc::new(TokioRwLock::new(axagent_trajectory::UserProfile::new()));
+    let local_tool_registry: Arc<
+        tokio::sync::Mutex<axagent_tools::registry::UnifiedToolRegistry>,
+    > = {
+        let mut registry = axagent_tools::registry::UnifiedToolRegistry::new();
+        rt.block_on(registry.load_enabled_state(&sea_db));
+        Arc::new(tokio::sync::Mutex::new(registry))
+    };
+    let work_engine: Arc<axagent_runtime::work_engine::WorkEngine> = {
+        let engine = Arc::new(axagent_runtime::work_engine::WorkEngine::new(
+            Arc::new(sea_db.clone()),
+            master_key,
+            harness_registry.clone(),
+        ));
+        // Plan 模式：AgentExecutor 注入 engine 引用以创建/执行临时工作流
+        rt.block_on(engine.inject_into_agent_executor(engine.clone()));
+        // 注册默认领域约束（动态注入至 agent system prompt 的 head/tail 槽位）
+        rt.block_on(engine.set_domain_constraints(Arc::new(|role_name: &str| {
+            axagent_rt_workflow::work_engine::domain_constraints::DomainConstraints::by_role(
+                role_name,
+            )
+        })));
+        engine
+    };
+    let skill_decomposer: Arc<tokio::sync::RwLock<axagent_trajectory::SkillDecomposer>> =
+        Arc::new(tokio::sync::RwLock::new(
             axagent_trajectory::SkillDecomposer::new(),
-        )),
-        proactive_service: Arc::new(tokio::sync::RwLock::new(ProactiveService::new())),
-        dashboard_registry: Some(Arc::new(
+        ));
+    let proactive_service: Arc<tokio::sync::RwLock<ProactiveService>> =
+        Arc::new(tokio::sync::RwLock::new(ProactiveService::new()));
+    let dashboard_registry: Option<Arc<axagent_runtime::dashboard_registry::DashboardRegistry>> =
+        Some(Arc::new(
             axagent_runtime::dashboard_registry::DashboardRegistry::new_with_config(
                 axagent_runtime::dashboard_registry::DashboardRegistryConfig {
                     plugin_dirs: vec![
@@ -357,115 +401,316 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState, Strin
                     auto_load: true,
                 },
             ),
-        )),
-        webhook_subscription_manager: Some(Arc::new(
-            axagent_runtime::webhook_subscription::WebhookSubscriptionManager::new(),
-        )),
-        semantic_cache: {
-            let cache = match rt
-                .block_on(SemanticCache::new(sea_db.clone(), CacheConfig::default()))
-            {
-                Ok(c) => c,
-                Err(e) => {
-                    tracing::error!("Semantic cache init failed: {} — retrying once", e);
-                    match rt.block_on(SemanticCache::new(sea_db.clone(), CacheConfig::default())) {
-                        Ok(c) => c,
-                        Err(e2) => {
-                            // 数据库初始化已成功，两次失败表明 CREATE TABLE 持续出错。
-                            // 回退到内存 SQLite，应用正常运行但缓存不持久化。
-                            tracing::error!(
-                                "Semantic cache failed permanently: {} — using in-memory fallback (non-persistent cache)",
-                                e2
-                            );
-                            let fallback_db =
-                                rt.block_on(sea_orm::Database::connect("sqlite::memory:"));
-                            match fallback_db {
-                                Ok(mem_db) => rt
-                                    .block_on(SemanticCache::new(mem_db, CacheConfig::default()))
-                                    .map_err(|e3| {
-                                        crate::android_utils::report_fatal_error(&format!(
-                                            "SemanticCache in-memory fallback failed: {}",
-                                            e3,
-                                        ));
-                                        format!("SemanticCache in-memory fallback failed: {}", e3)
-                                    })?,
-                                Err(e3) => {
-                                    let msg = format!(
-                                        "SemanticCache in-memory DB connect failed: {}",
+        ));
+    let webhook_subscription_manager: Option<
+        Arc<axagent_runtime::webhook_subscription::WebhookSubscriptionManager>,
+    > = Some(Arc::new(
+        axagent_runtime::webhook_subscription::WebhookSubscriptionManager::new(),
+    ));
+    let semantic_cache: Arc<tokio::sync::Mutex<SemanticCacheState>> = {
+        let cache = match rt
+            .block_on(SemanticCache::new(sea_db.clone(), CacheConfig::default()))
+        {
+            Ok(c) => c,
+            Err(e) => {
+                tracing::error!("Semantic cache init failed: {} — retrying once", e);
+                match rt.block_on(SemanticCache::new(sea_db.clone(), CacheConfig::default())) {
+                    Ok(c) => c,
+                    Err(e2) => {
+                        // 数据库初始化已成功，两次失败表明 CREATE TABLE 持续出错。
+                        // 回退到内存 SQLite，应用正常运行但缓存不持久化。
+                        tracing::error!(
+                            "Semantic cache failed permanently: {} — using in-memory fallback (non-persistent cache)",
+                            e2
+                        );
+                        let fallback_db =
+                            rt.block_on(sea_orm::Database::connect("sqlite::memory:"));
+                        match fallback_db {
+                            Ok(mem_db) => rt
+                                .block_on(SemanticCache::new(mem_db, CacheConfig::default()))
+                                .map_err(|e3| {
+                                    crate::android_utils::report_fatal_error(&format!(
+                                        "SemanticCache in-memory fallback failed: {}",
                                         e3,
-                                    );
-                                    crate::android_utils::report_fatal_error(&msg);
-                                    return Err(msg);
-                                },
-                            }
-                        },
-                    }
-                },
-            };
-            Arc::new(tokio::sync::Mutex::new(SemanticCacheState {
-                cache,
-                enabled: true,
-                in_memory_entries: Vec::new(),
-                similarity_threshold: 0.85,
-            }))
-        },
-        prompt_cache: Arc::new(PromptCache::new()),
-        tot_sessions: Arc::new(tokio::sync::Mutex::new(std::collections::HashMap::new())),
-        planner_sessions: Arc::new(tokio::sync::Mutex::new(std::collections::HashMap::new())),
-        browser_client: Arc::new(tokio::sync::Mutex::new(None)),
-        dream_consolidator: Arc::new(
-            axagent_trajectory::DreamConsolidator::new().with_data_provider(Arc::new(
-                axagent_trajectory::TrajectoryDreamDataProvider::new(
-                    shared_trajectory_storage.clone(),
-                ),
-            )),
-        ),
-        text_grad_engine: Arc::new(tokio::sync::Mutex::new(
+                                    ));
+                                    format!("SemanticCache in-memory fallback failed: {}", e3)
+                                })?,
+                            Err(e3) => {
+                                let msg = format!(
+                                    "SemanticCache in-memory DB connect failed: {}",
+                                    e3,
+                                );
+                                crate::android_utils::report_fatal_error(&msg);
+                                return Err(msg);
+                            },
+                        }
+                    },
+                }
+            },
+        };
+        Arc::new(tokio::sync::Mutex::new(SemanticCacheState {
+            cache,
+            enabled: true,
+            in_memory_entries: Vec::new(),
+            similarity_threshold: 0.85,
+        }))
+    };
+    let prompt_cache = Arc::new(PromptCache::new());
+    let tot_sessions: Arc<
+        tokio::sync::Mutex<std::collections::HashMap<String, crate::app_state::TotSession>>,
+    > = Arc::new(tokio::sync::Mutex::new(std::collections::HashMap::new()));
+    let planner_sessions: Arc<
+        tokio::sync::Mutex<std::collections::HashMap<String, crate::app_state::PlannerSession>>,
+    > = Arc::new(tokio::sync::Mutex::new(std::collections::HashMap::new()));
+    let browser_client: Arc<
+        tokio::sync::Mutex<Option<axagent_core::browser_automation::PlaywrightClient>>,
+    > = Arc::new(tokio::sync::Mutex::new(None));
+    let dream_consolidator = Arc::new(
+        axagent_trajectory::DreamConsolidator::new().with_data_provider(Arc::new(
+            axagent_trajectory::TrajectoryDreamDataProvider::new(
+                shared_trajectory_storage.clone(),
+            ),
+        )),
+    );
+    let text_grad_engine: Arc<tokio::sync::Mutex<axagent_trajectory::TextGradEngine>> =
+        Arc::new(tokio::sync::Mutex::new(
             axagent_trajectory::TextGradEngine::new(
                 axagent_trajectory::ComputationGraph::new(),
                 axagent_trajectory::TextGradConfig::default(),
             ),
-        )),
-        auto_tool_creator: Arc::new(tokio::sync::Mutex::new(
+        ));
+    let auto_tool_creator: Arc<tokio::sync::Mutex<axagent_trajectory::AutoToolCreator>> =
+        Arc::new(tokio::sync::Mutex::new(
             axagent_trajectory::AutoToolCreator::new(
                 axagent_trajectory::AutoToolCreatorConfig::default(),
                 Box::new(axagent_trajectory::DefaultLlmToolProvider::new()),
                 Box::new(axagent_trajectory::DefaultSandboxToolTester),
             ),
-        )),
-        intrinsic_motivation: Arc::new(tokio::sync::Mutex::new(
-            axagent_trajectory::IntrinsicMotivationEngine::new(
-                axagent_trajectory::IntrinsicMotivationConfig::default(),
-            ),
-        )),
-        coevolution_env: Arc::new(tokio::sync::Mutex::new(
-            axagent_trajectory::CoevolutionEnvironment::new(
-                axagent_trajectory::CoevolutionConfig::default(),
-            ),
-        )),
-        constitution: Arc::new(axagent_trajectory::ImmutableConstitution::new(
-            vec![
-                axagent_trajectory::ConstitutionalRule::NoSelfModificationOfReward,
-                axagent_trajectory::ConstitutionalRule::NoCodeExecutionWithoutSandbox,
-                axagent_trajectory::ConstitutionalRule::PreserveUserIntent,
-                axagent_trajectory::ConstitutionalRule::MaxModificationSize(0.5),
-            ],
-            axagent_trajectory::ConstitutionConfig::default(),
-        )),
-        process_reward_model: Arc::new(tokio::sync::Mutex::new(
+        ));
+    let intrinsic_motivation: Arc<
+        tokio::sync::Mutex<axagent_trajectory::IntrinsicMotivationEngine>,
+    > = Arc::new(tokio::sync::Mutex::new(
+        axagent_trajectory::IntrinsicMotivationEngine::new(
+            axagent_trajectory::IntrinsicMotivationConfig::default(),
+        ),
+    ));
+    let coevolution_env: Arc<
+        tokio::sync::Mutex<axagent_trajectory::CoevolutionEnvironment>,
+    > = Arc::new(tokio::sync::Mutex::new(
+        axagent_trajectory::CoevolutionEnvironment::new(
+            axagent_trajectory::CoevolutionConfig::default(),
+        ),
+    ));
+    let constitution = Arc::new(axagent_trajectory::ImmutableConstitution::new(
+        vec![
+            axagent_trajectory::ConstitutionalRule::NoSelfModificationOfReward,
+            axagent_trajectory::ConstitutionalRule::NoCodeExecutionWithoutSandbox,
+            axagent_trajectory::ConstitutionalRule::PreserveUserIntent,
+            axagent_trajectory::ConstitutionalRule::MaxModificationSize(0.5),
+        ],
+        axagent_trajectory::ConstitutionConfig::default(),
+    ));
+    let process_reward_model: Arc<tokio::sync::Mutex<axagent_trajectory::ProcessRewardModel>> =
+        Arc::new(tokio::sync::Mutex::new(
             axagent_trajectory::ProcessRewardModel::default().with_default_provider("general"),
-        )),
-        dream_data_provider: Arc::new(axagent_trajectory::TrajectoryDreamDataProvider::new(
-            shared_trajectory_storage.clone(),
-        )),
+        ));
+    let dream_data_provider = Arc::new(axagent_trajectory::TrajectoryDreamDataProvider::new(
+        shared_trajectory_storage.clone(),
+    ));
+    let sandbox_executor: Arc<axagent_trajectory::SkillSandboxExecutor> = {
         #[cfg(not(target_os = "android"))]
-        sandbox_executor: Arc::new(axagent_trajectory::SkillSandboxExecutor::with_default_policy()),
+        {
+            Arc::new(axagent_trajectory::SkillSandboxExecutor::with_default_policy())
+        }
+        #[cfg(target_os = "android")]
+        {
+            // Phantom: SkillState stores `Arc<()>` on Android. Bridge via Dummy.
+            let _ = std::marker::PhantomData::<axagent_trajectory::SkillSandboxExecutor>;
+            Arc::new(axagent_trajectory::SkillSandboxExecutor::with_default_policy())
+        }
+    };
+    let file_authorizer = Arc::new(axagent_core::file_authorizer::FileAuthorizer::new());
+    let session_share_manager: crate::app_state::SessionShareStore =
+        Arc::new(TokioRwLock::new(std::collections::HashMap::new()));
+    let sandbox_executor_field: SandboxExecutorField = {
+        #[cfg(not(target_os = "android"))]
+        {
+            SandboxExecutorField::Real(sandbox_executor.clone())
+        }
+        #[cfg(target_os = "android")]
+        {
+            let _ = sandbox_executor; // silence unused
+            SandboxExecutorField::Dummy
+        }
+    };
+    let browser_client_field: BrowserClientField = {
+        #[cfg(not(target_os = "android"))]
+        {
+            BrowserClientField::Real(browser_client.clone())
+        }
+        #[cfg(target_os = "android")]
+        {
+            let _ = browser_client; // silence unused
+            BrowserClientField::Dummy
+        }
+    };
+
+    // ── Construct the 6 domain sub-states (Phase 3 P1 Task 3.1) ──
+    let infra_state = crate::state::InfraState::new(
+        harness.clone(),
+        vector_store_arc.clone(),
+        Arc::new(tokio::sync::Semaphore::new(2)),
+        file_authorizer.clone(),
+        app_dir.clone(),
+    );
+    let gateway_state = crate::state::GatewayState::new(gateway_server.clone());
+    let task_state = crate::state::TaskState::new(
+        task_manager.clone(),
+        auto_backup_handle.clone(),
+        webdav_sync_handle.clone(),
+        api_server_handle.clone(),
+        trajectory_cleanup_handle.clone(),
+        shutdown_token.clone(),
+        close_to_tray.clone(),
+        stream_cancel_flags.clone(),
+        agent_permission_senders.clone(),
+        agent_ask_senders.clone(),
+        agent_always_allowed.clone(),
+        agent_prompters.clone(),
+    );
+    let agent_state = crate::state::AgentState::new(
+        agent_session_manager.clone(),
+        agent_cancel_tokens.clone(),
+        agent_paused.clone(),
+        running_agents.clone(),
+        reflector.clone(),
+        platform_manager.clone(),
+        platform_bridge.clone(),
+        local_tool_registry.clone(),
+        work_engine.clone(),
+    );
+    let memory_state = crate::state::MemoryState::new(
+        shared_memory.clone(),
+        sub_agent_registry.clone(),
+        memory_service.clone(),
+        nudge_service.clone(),
+        closed_loop_service.clone(),
+        shared_trajectory_storage.clone(),
+        insight_system.clone(),
+        realtime_learning.clone(),
+        pattern_learner.clone(),
+        cross_session_learner.clone(),
+        rl_engine.clone(),
+        batch_processor.clone(),
+        auto_memory_extractor.clone(),
+        parallel_execution_service.clone(),
+        cron_job_store.clone(),
+        user_profile.clone(),
+        semantic_cache.clone(),
+        prompt_cache.clone(),
+        dream_consolidator.clone(),
+        dream_data_provider.clone(),
+        session_share_manager.clone(),
+    );
+    let skill_state = crate::state::SkillState::new(
+        skill_evolution_engine.clone(),
+        skill_proposal_service.clone(),
+        skill_decomposer.clone(),
+        sandbox_executor_field,
+        dashboard_registry.clone(),
+        webhook_subscription_manager.clone(),
+        plugin_manager.clone(),
+        sync_engine.clone(),
+        tot_sessions.clone(),
+        planner_sessions.clone(),
+        browser_client_field,
+        text_grad_engine.clone(),
+        auto_tool_creator.clone(),
+        intrinsic_motivation.clone(),
+        coevolution_env.clone(),
+        constitution.clone(),
+        process_reward_model.clone(),
+        proactive_service.clone(),
+    );
+
+    Ok(AppState {
+        harness,
+        gateway: gateway_server,
+        close_to_tray,
+        app_data_dir: app_dir.clone(),
+        auto_backup_handle,
+        webdav_sync_handle,
+        api_server_handle,
+        trajectory_cleanup_handle,
+        task_manager,
+        skill_watcher_shutdown: std::sync::OnceLock::new(),
+        shutdown_token,
+        vector_store: vector_store_arc,
+        indexing_semaphore: Arc::new(tokio::sync::Semaphore::new(2)),
+        stream_cancel_flags,
+        agent_permission_senders,
+        agent_ask_senders,
+        agent_always_allowed,
+        agent_prompters,
+        agent_session_manager,
+        agent_cancel_tokens,
+        agent_paused,
+        running_agents,
+        reflector,
+        shared_memory,
+        sub_agent_registry,
+        memory_service: memory_service.clone(),
+        nudge_service,
+        closed_loop_service,
+        trajectory_storage: shared_trajectory_storage,
+        insight_system,
+        realtime_learning,
+        pattern_learner,
+        cross_session_learner,
+        rl_engine,
+        batch_processor,
+        skill_evolution_engine,
+        skill_proposal_service,
+        auto_memory_extractor,
+        parallel_execution_service,
+        cron_job_store,
+        platform_manager,
+        platform_bridge,
+        user_profile,
+        local_tool_registry,
+        work_engine,
+        skill_decomposer,
+        proactive_service,
+        dashboard_registry,
+        webhook_subscription_manager,
+        semantic_cache,
+        prompt_cache,
+        tot_sessions,
+        planner_sessions,
+        browser_client,
+        dream_consolidator,
+        text_grad_engine,
+        auto_tool_creator,
+        intrinsic_motivation,
+        coevolution_env,
+        constitution,
+        process_reward_model,
+        dream_data_provider,
+        #[cfg(not(target_os = "android"))]
+        sandbox_executor,
         #[cfg(target_os = "android")]
         sandbox_executor: Arc::new(()),
         sync_engine,
         plugin_manager,
-        file_authorizer: Arc::new(axagent_core::file_authorizer::FileAuthorizer::new()),
-        session_share_manager: Arc::new(TokioRwLock::new(std::collections::HashMap::new())),
+        file_authorizer,
+        session_share_manager,
+        // Phase 3 P1 Task 3.1: domain decomposition
+        infra: infra_state,
+        gateway_state,
+        task: task_state,
+        agent: agent_state,
+        memory: memory_state,
+        skill: skill_state,
     })
 }
 

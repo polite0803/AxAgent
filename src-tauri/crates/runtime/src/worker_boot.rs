@@ -11,6 +11,8 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use serde::{Deserialize, Serialize};
 
+use crate::util::lock_or_recover;
+
 fn now_secs() -> u64 {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -174,7 +176,7 @@ impl WorkerRegistry {
         trusted_roots: &[String],
         auto_recover_prompt_misdelivery: bool,
     ) -> Worker {
-        let mut inner = self.inner.lock().expect("worker registry lock poisoned");
+        let mut inner = lock_or_recover(self.inner.lock(), "worker_boot");
         inner.counter += 1;
         let ts = now_secs();
         let worker_id = format!("worker_{:08x}_{}", ts, inner.counter);
@@ -216,7 +218,7 @@ impl WorkerRegistry {
     }
 
     pub fn observe(&self, worker_id: &str, screen_text: &str) -> Result<Worker, String> {
-        let mut inner = self.inner.lock().expect("worker registry lock poisoned");
+        let mut inner = lock_or_recover(self.inner.lock(), "worker_boot");
         let worker = inner
             .workers
             .get_mut(worker_id)
@@ -364,7 +366,7 @@ impl WorkerRegistry {
     }
 
     pub fn resolve_trust(&self, worker_id: &str) -> Result<Worker, String> {
-        let mut inner = self.inner.lock().expect("worker registry lock poisoned");
+        let mut inner = lock_or_recover(self.inner.lock(), "worker_boot");
         let worker = inner
             .workers
             .get_mut(worker_id)
@@ -399,7 +401,7 @@ impl WorkerRegistry {
         prompt: Option<&str>,
         task_receipt: Option<WorkerTaskReceipt>,
     ) -> Result<Worker, String> {
-        let mut inner = self.inner.lock().expect("worker registry lock poisoned");
+        let mut inner = lock_or_recover(self.inner.lock(), "worker_boot");
         let worker = inner
             .workers
             .get_mut(worker_id)
@@ -452,7 +454,7 @@ impl WorkerRegistry {
     }
 
     pub fn restart(&self, worker_id: &str) -> Result<Worker, String> {
-        let mut inner = self.inner.lock().expect("worker registry lock poisoned");
+        let mut inner = lock_or_recover(self.inner.lock(), "worker_boot");
         let worker = inner
             .workers
             .get_mut(worker_id)
@@ -475,7 +477,7 @@ impl WorkerRegistry {
     }
 
     pub fn terminate(&self, worker_id: &str) -> Result<Worker, String> {
-        let mut inner = self.inner.lock().expect("worker registry lock poisoned");
+        let mut inner = lock_or_recover(self.inner.lock(), "worker_boot");
         let worker = inner
             .workers
             .get_mut(worker_id)
@@ -500,7 +502,7 @@ impl WorkerRegistry {
         finish_reason: &str,
         tokens_output: u64,
     ) -> Result<Worker, String> {
-        let mut inner = self.inner.lock().expect("worker registry lock poisoned");
+        let mut inner = lock_or_recover(self.inner.lock(), "worker_boot");
         let worker = inner
             .workers
             .get_mut(worker_id)

@@ -24,6 +24,7 @@ tokio-stream = "0.1"
 reqwest = { workspace = true, features = ["stream"] }
 governor = "0.8"
 prometheus = "0.14"
+parking_lot = "0.12"
 
 [dev-dependencies]
 axagent-crypto = { path = "../crypto" }

@@ -7,7 +7,7 @@
 use std::collections::HashMap;
 use std::future::Future;
 use std::pin::Pin;
-use std::sync::Arc;
+use std::sync::{Arc, PoisonError};
 
 use async_trait::async_trait;
 use axagent_core::workflow_types::WorkflowNode;
@@ -16,6 +16,26 @@ use futures::StreamExt;
 use sea_orm::DatabaseConnection;
 use serde_json::Value;
 use tokio::sync::Mutex;
+
+// Panic-safety helper: std::sync::Mutex poisons on panics.  When a worker
+// thread panics while holding the lock, every subsequent .lock() call
+// returns PoisonError and our previous `.expect()` would take the entire
+// daemon down.  Instead we recover the inner guard and log a warning so
+// the rest of the executor keeps running.
+#[inline]
+fn lock_or_recover<T>(guard: Result<T, PoisonError<T>>) -> T {
+    match guard {
+        Ok(g) => g,
+        Err(pe) => {
+            tracing::warn!(
+                target: "axagent.reliability",
+                "agent_executor mutex poisoned, recovering: {}",
+                pe
+            );
+            pe.into_inner()
+        }
+    }
+}
 
 use crate::work_engine::WorkEngine;
 use crate::work_engine::execution_state::ExecutionState;
@@ -157,10 +177,7 @@ impl AgentExecutor {
 
     /// 设置 Plan 模式用的 WorkEngine 引用（共享槽，热更新）
     pub fn set_engine(&self, engine: Arc<WorkEngine>) {
-        *self
-            .engine
-            .lock()
-            .expect("agent_executor.engine mutex poisoned") = Some(engine);
+        *lock_or_recover(self.engine.lock()) = Some(engine);
     }
 
     /// Builder 形式（保留向后兼容；内部走共享槽）
@@ -171,10 +188,7 @@ impl AgentExecutor {
 
     /// 设置 Plan 模式用的 PlannerAdapter（共享槽，热更新）
     pub fn set_planner(&self, planner: Arc<std::sync::Mutex<dyn axagent_harness::PlannerAdapter>>) {
-        *self
-            .planner
-            .lock()
-            .expect("agent_executor.planner mutex poisoned") = Some(planner);
+        *lock_or_recover(self.planner.lock()) = Some(planner);
     }
 
     /// Builder 形式
@@ -188,10 +202,7 @@ impl AgentExecutor {
 
     /// 设置 RAG 回调（共享槽，热更新；传 None 表示清空）
     pub fn set_rag_callback(&self, cb: Option<RagCallback>) {
-        *self
-            .rag_callback
-            .lock()
-            .expect("agent_executor.rag_callback mutex poisoned") = cb;
+        *lock_or_recover(self.rag_callback.lock()) = cb;
     }
 
     /// Builder 形式（保留向后兼容；内部走共享槽）
@@ -210,18 +221,12 @@ impl AgentExecutor {
     /// 纯 API 扩展点，不修改现有 4a-4f 段拼装逻辑。stock-analysis 等领域
     /// 后续 PR 自行迁移 STOCK_HARD_CONSTRAINTS / STOCK_COLLAB_REMINDER 常量。
     pub fn set_domain_constraints(&self, f: DomainConstraintsFn) {
-        *self
-            .domain_constraints
-            .lock()
-            .expect("domain_constraints mutex poisoned") = Some(f);
+        *lock_or_recover(self.domain_constraints.lock()) = Some(f);
     }
 
     /// 由 WorkEngine 在每次 run_workflow 开始前转发 domain_constraints。
     pub fn set_domain_constraints_option(&self, f: Option<DomainConstraintsFn>) {
-        *self
-            .domain_constraints
-            .lock()
-            .expect("domain_constraints mutex poisoned") = f;
+        *lock_or_recover(self.domain_constraints.lock()) = f;
     }
 
     /// 构造使用共享缓存的 executor（WorkEngine 内部使用，跨执行复用缓存）。
@@ -331,12 +336,7 @@ impl NodeExecutorTrait for AgentExecutor {
 
         // 4a. 角色前缀 + 领域头部约束（primacy 锚定）
         all_segments.push(TemplateSegment::Static(format!("你是 {role_desc}。\n")));
-        if let Some(dc_fn) = self
-            .domain_constraints
-            .lock()
-            .expect("domain_constraints mutex poisoned")
-            .as_ref()
-        {
+        if let Some(dc_fn) = lock_or_recover(self.domain_constraints.lock()).as_ref() {
             let blocks = dc_fn(role_name);
             if let Some(ref head) = blocks.head {
                 all_segments.push(TemplateSegment::Static(format!("\n{head}\n")));
@@ -390,11 +390,7 @@ impl NodeExecutorTrait for AgentExecutor {
 
         // 4e. RAG 知识源检索（从知识库/记忆/Wiki 检索相关内容注入 system prompt）
         if !an.config.rag_source_ids.is_empty() {
-            let rag_cb = self
-                .rag_callback
-                .lock()
-                .expect("rag_callback mutex poisoned")
-                .clone();
+            let rag_cb = lock_or_recover(self.rag_callback.lock()).clone();
             if let Some(rag_cb) = rag_cb {
                 let rag_query = user_prompt_for_rag(&an.config, &context.variables);
                 let (kb_ids, mem_ids, wiki_ids) = parse_rag_source_ids(&an.config.rag_source_ids);
@@ -463,12 +459,7 @@ impl NodeExecutorTrait for AgentExecutor {
         }
 
         // 4h. 领域尾部约束（recency 锚定）
-        if let Some(dc_fn) = self
-            .domain_constraints
-            .lock()
-            .expect("domain_constraints mutex poisoned")
-            .as_ref()
-        {
+        if let Some(dc_fn) = lock_or_recover(self.domain_constraints.lock()).as_ref() {
             let blocks = dc_fn(role_name);
             if let Some(ref tail) = blocks.tail {
                 all_segments.push(TemplateSegment::Static(format!("\n\n{tail}")));
@@ -666,7 +657,16 @@ impl NodeExecutorTrait for AgentExecutor {
             }
 
             // 处理工具调用
-            let tc_list = tool_calls.as_ref().expect("has_tool_calls ensures Some");
+            let tc_list = match tool_calls.as_ref() {
+                Some(list) => list,
+                None => {
+                    tracing::warn!(
+                        target: "axagent.reliability",
+                        "has_tool_calls was true but tool_calls is None; skipping tool dispatch"
+                    );
+                    continue;
+                }
+            };
 
             // 构建 assistant 消息（含 tool_calls）
             let assistant_msg = ChatMessage {
@@ -896,7 +896,7 @@ impl AgentExecutor {
 
         // 2. PlannerAdapter 接管：验证、执行管理、重规划
         let planner_arc = {
-            let data = self.planner.lock().expect("planner mutex poisoned");
+            let data = lock_or_recover(self.planner.lock());
             data.as_ref()
                 .ok_or_else(|| {
                     NodeError::exec_failed(
@@ -913,17 +913,13 @@ impl AgentExecutor {
             .iter()
             .map(|p| serde_json::to_value(p).unwrap_or_default())
             .collect();
-        planner_arc
-            .lock()
-            .expect("inner planner poisoned")
+        lock_or_recover(planner_arc.lock())
             .create_plan(&an.config.system_prompt, &phases_json)
             .map_err(|e| {
                 NodeError::exec_failed(error_code::VALIDATION_FAILED, format!("Plan 创建失败: {e}"))
             })?;
 
-        planner_arc
-            .lock()
-            .expect("inner planner poisoned")
+        lock_or_recover(planner_arc.lock())
             .start_execution()
             .map_err(|e| {
                 NodeError::exec_failed(
@@ -934,7 +930,7 @@ impl AgentExecutor {
 
         let phase_count = plan.phases.len();
         let task_count: u32 = plan.phases.iter().map(|p| p.tasks.len() as u32).sum();
-        let engine_available = self.engine.lock().expect("engine mutex poisoned").is_some();
+        let engine_available = lock_or_recover(self.engine.lock()).is_some();
 
         // 3. 编译 DAG → WorkEngine 执行，失败时重规划
         let mut current_plan = plan;
@@ -947,10 +943,7 @@ impl AgentExecutor {
                         .to_string(),
                 ));
             }
-            let engine = self
-                .engine
-                .lock()
-                .expect("engine mutex poisoned")
+            let engine = lock_or_recover(self.engine.lock())
                 .as_ref()
                 .cloned()
                 .ok_or_else(|| {
@@ -977,9 +970,7 @@ impl AgentExecutor {
                         for (ti, task) in phase.tasks.iter().enumerate() {
                             let key = format!("r_p{pi}_t{ti}_{}", task.id);
                             if let Some(v) = wf_result.results.get(&key) {
-                                planner_arc
-                                    .lock()
-                                    .expect("inner planner poisoned")
+                                lock_or_recover(planner_arc.lock())
                                     .mark_task_completed(pi, ti, v.clone());
                             }
                         }
@@ -989,9 +980,7 @@ impl AgentExecutor {
                         && let Some(ref on_step) = cbs.on_step_update
                     {
                         let phases_snapshot = {
-                            planner_arc
-                                .lock()
-                                .expect("inner planner poisoned")
+                            lock_or_recover(planner_arc.lock())
                                 .current_plan()
                                 .and_then(|v| serde_json::from_value::<Plan>(v).ok())
                         };
@@ -1021,13 +1010,9 @@ impl AgentExecutor {
                 Err(e) if attempt < replan_max_retries => {
                     attempt += 1;
                     // 从 planner 获取真实的失败/待处理任务 ID
-                    let failed_ids: Vec<String> = planner_arc
-                        .lock()
-                        .expect("inner planner poisoned")
+                    let failed_ids: Vec<String> = lock_or_recover(planner_arc.lock())
                         .get_failed_steps();
-                    let pending_ids: Vec<String> = planner_arc
-                        .lock()
-                        .expect("inner planner poisoned")
+                    let pending_ids: Vec<String> = lock_or_recover(planner_arc.lock())
                         .get_pending_steps();
                     let task_ids_to_retry: Vec<String> = if failed_ids.is_empty() {
                         pending_ids
@@ -1055,15 +1040,11 @@ impl AgentExecutor {
                         })
                         .collect();
 
-                    match planner_arc
-                        .lock()
-                        .expect("inner planner poisoned")
+                    match lock_or_recover(planner_arc.lock())
                         .request_replan("StepFailed", &[reason_json])
                     {
                         Ok(()) => {
-                            if let Some(p) = planner_arc
-                                .lock()
-                                .expect("inner planner poisoned")
+                            if let Some(p) = lock_or_recover(planner_arc.lock())
                                 .current_plan()
                                 .and_then(|v| serde_json::from_value::<Plan>(v).ok())
                             {

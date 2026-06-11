@@ -1,5 +1,5 @@
 use axum::{
-    Router, middleware,
+    Extension, Router, middleware,
     routing::{delete, get, patch, post, put},
 };
 use http::header::{AUTHORIZATION, CONTENT_TYPE};
@@ -21,7 +21,7 @@ use crate::native::{
     anthropic_count_tokens, anthropic_messages, gemini_list_models, gemini_model_operation,
     openai_responses,
 };
-use crate::realtime::realtime_handler;
+use crate::realtime::{issue_realtime_ticket, realtime_handler};
 use crate::server::GatewayAppState;
 
 pub fn create_router(state: GatewayAppState) -> Router {
@@ -119,10 +119,15 @@ pub fn create_router(state: GatewayAppState) -> Router {
         .route("/health/detailed", get(detailed_health_check))
         // SECURITY (H3): realtime 之前是"内部鉴权"但未走 auth_middleware，改为受保护路由。
         .route("/v1/realtime", get(realtime_handler))
+        // SECURITY (P0-2.2): WS upgrade must not carry the long-lived API key.
+        // Caller presents Bearer token, gets back a single-use short-lived ticket.
+        .route("/v1/realtime-ticket", post(issue_realtime_ticket))
+        .layer(Extension(state.ticket_store.clone()))
         .layer(middleware::from_fn_with_state(
             AuthState {
                 db: state.db.clone(),
                 adapter: state.adapter.clone(),
+                key_verify_limiter: state.key_verify_limiter.clone(),
             },
             auth_middleware,
         ));
@@ -157,6 +162,13 @@ mod tests {
             started_at: 0,
             provider_registry: axagent_harness::test_support::empty_provider_registry(),
             adapter: axagent_harness::test_support::empty_platform_adapter(),
+            ticket_store: crate::realtime::default_ticket_store(),
+            // SECURITY (Phase 2 Task 2.3): 路由层测试用宽阈值 limiter，
+            // 避免和限流本身的目的混在一起。
+            key_verify_limiter: std::sync::Arc::new(crate::auth::KeyVerifyLimiter::new(
+                100,
+                std::time::Duration::from_secs(60),
+            )),
         }
     }
 

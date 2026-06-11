@@ -13,6 +13,7 @@ use axagent_providers::{
 };
 #[cfg(test)]
 use axagent_runtime_core::prompt_cache::PromptCache;
+use dashmap::DashMap;
 use base64::Engine;
 use futures::FutureExt;
 use sea_orm::*;
@@ -97,7 +98,7 @@ struct StreamTaskParams {
     pub settings: AppSettings,
     pub master_key: [u8; 32],
     pub cancel_flag: Arc<AtomicBool>,
-    pub cancel_flags: Arc<tokio::sync::Mutex<std::collections::HashMap<String, Arc<AtomicBool>>>>,
+    pub cancel_flags: Arc<DashMap<String, Arc<AtomicBool>>>,
     pub content_prefix: String,
     pub create_inactive: bool,
     pub skip_placeholder_create: bool,
@@ -1995,8 +1996,7 @@ pub async fn cancel_stream(
     state: State<'_, AppState>,
     conversation_id: String,
 ) -> Result<(), String> {
-    let flags = state.stream_cancel_flags.lock().await;
-    if let Some(flag) = flags.get(&conversation_id) {
+    if let Some(flag) = state.stream_cancel_flags.get(&conversation_id) {
         flag.store(true, std::sync::atomic::Ordering::SeqCst);
         tracing::info!("[cancel_stream] Cancel requested for conversation {}", conversation_id);
     }
@@ -2251,16 +2251,12 @@ fn spawn_stream_task(
     tokio::spawn(async move {
         // 确保 panic 后 cancel_flag 一定被清理
         struct CancelGuard {
-            flags: Arc<tokio::sync::Mutex<std::collections::HashMap<String, Arc<AtomicBool>>>>,
+            flags: Arc<DashMap<String, Arc<AtomicBool>>>,
             key: String,
         }
         impl Drop for CancelGuard {
             fn drop(&mut self) {
-                let flags = self.flags.clone();
-                let key = self.key.clone();
-                tokio::task::spawn(async move {
-                    flags.lock().await.remove(&key);
-                });
+                self.flags.remove(&self.key);
             }
         }
         let _cancel_guard = CancelGuard {
@@ -3386,13 +3382,12 @@ pub async fn send_message(
 
     let user_msg_id = user_message.id.clone();
     let cancel_flag = Arc::new(AtomicBool::new(false));
-    {
-        let mut flags = state.stream_cancel_flags.lock().await;
-        if flags.contains_key(&conversation_id) {
-            return Err("已有正在进行的请求，请等待完成后再发送".to_string());
-        }
-        flags.insert(conversation_id.clone(), cancel_flag.clone());
+    if state.stream_cancel_flags.contains_key(&conversation_id) {
+        return Err("已有正在进行的请求，请等待完成后再发送".to_string());
     }
+    state
+        .stream_cancel_flags
+        .insert(conversation_id.clone(), cancel_flag.clone());
     spawn_stream_task(
         app,
         state.harness.db().clone(),
@@ -3798,13 +3793,12 @@ pub async fn regenerate_message(
     }
 
     let cancel_flag = Arc::new(AtomicBool::new(false));
-    {
-        let mut flags = state.stream_cancel_flags.lock().await;
-        if flags.contains_key(&conversation_id) {
-            return Err("已有正在进行的请求，请等待完成后再发送".to_string());
-        }
-        flags.insert(conversation_id.clone(), cancel_flag.clone());
+    if state.stream_cancel_flags.contains_key(&conversation_id) {
+        return Err("已有正在进行的请求，请等待完成后再发送".to_string());
     }
+    state
+        .stream_cancel_flags
+        .insert(conversation_id.clone(), cancel_flag.clone());
     spawn_stream_task(
         app,
         state.harness.db().clone(),
@@ -4191,8 +4185,6 @@ pub async fn regenerate_with_model(
     let cancel_flag = Arc::new(AtomicBool::new(false));
     state
         .stream_cancel_flags
-        .lock()
-        .await
         .insert(conversation_id.clone(), cancel_flag.clone());
 
     // Pre-create the placeholder message BEFORE spawning the stream task so that
@@ -4954,7 +4946,7 @@ mod tests_conversation {
             skill_watcher_shutdown: std::sync::OnceLock::new(),
             vector_store,
             indexing_semaphore: Arc::new(tokio::sync::Semaphore::new(2)),
-            stream_cancel_flags: Arc::new(Mutex::new(std::collections::HashMap::new())),
+            stream_cancel_flags: Arc::new(DashMap::new()),
             agent_permission_senders: Arc::new(Mutex::new(std::collections::HashMap::new())),
             agent_ask_senders: Arc::new(Mutex::new(std::collections::HashMap::new())),
             agent_always_allowed: Arc::new(Mutex::new(std::collections::HashMap::new())),

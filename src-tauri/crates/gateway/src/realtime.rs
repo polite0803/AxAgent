@@ -1,14 +1,22 @@
 use axum::{
+    Json,
     extract::{
-        Query, State, WebSocketUpgrade,
+        Extension, Query, State, WebSocketUpgrade,
         ws::{Message, WebSocket},
     },
-    response::Response,
+    http::StatusCode,
+    response::{IntoResponse, Response},
 };
 use sea_orm::DatabaseConnection;
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 
+use crate::auth::AuthenticatedKey;
+use crate::realtime_ticket::TicketStore;
 use crate::server::GatewayAppState;
+
+use std::sync::Arc;
+use std::time::Duration;
 
 // --- Client → Server messages ---
 
@@ -42,54 +50,93 @@ enum RealtimeServerMessage {
 
 #[derive(Deserialize)]
 pub struct RealtimeQuery {
-    api_key: Option<String>,
+    ticket: Option<String>,
 }
 
-/// GET /v1/realtime — WebSocket upgrade with query-param auth
+/// Build a 401 JSON response.
+fn unauth(message: &str) -> Response {
+    (
+        StatusCode::UNAUTHORIZED,
+        Json(json!({
+            "error": {
+                "message": message,
+                "type": "invalid_request_error",
+                "code": "invalid_api_key"
+            }
+        })),
+    )
+        .into_response()
+}
+
+/// GET /v1/realtime — WebSocket upgrade with ticket-based auth.
+///
+/// SECURITY (P0-2.2): the long-lived API key must never appear in the upgrade
+/// URL (it would be logged by proxies / Referer / browser history). Clients
+/// exchange a Bearer token for a short-lived single-use ticket via
+/// `POST /v1/realtime-ticket` first.
 pub async fn realtime_handler(
     State(state): State<GatewayAppState>,
     Query(params): Query<RealtimeQuery>,
     ws: WebSocketUpgrade,
 ) -> Response {
-    let api_key = match params.api_key {
-        Some(k) if !k.is_empty() => k,
-        _ => {
-            return Response::builder()
-                .status(401)
-                .body(axum::body::Body::from(
-                    r#"{"error":{"message":"Missing api_key query parameter","type":"invalid_request_error","code":"invalid_api_key"}}"#,
-                ))
-                .unwrap_or_else(|_| {
-                    axum::response::Response::new(axum::body::Body::from(
-                        r#"{"error":{"message":"Missing api_key"}}"#,
-                    ))
-                });
-        },
+    let ticket_id = match params.ticket {
+        Some(t) if !t.is_empty() => t,
+        _ => return unauth("Missing or invalid ticket query parameter"),
     };
 
-    // Verify key before upgrading
-    match state.adapter.gateway_keys().verify_key(&api_key).await {
-        Ok(Some(key)) => {
-            // Update last_used_at in background
-            let adapter_bg = state.adapter.clone();
-            let key_id = key.id.clone();
-            tokio::spawn(async move {
-                let _ = adapter_bg.gateway_keys().update_last_used(&key_id).await;
-            });
+    // Consume the ticket. Single-use and TTL-bounded — replay or expiry both
+    // return None and we fall through to the 401.
+    let ticket = match state.ticket_store.consume(&ticket_id).await {
+        Some(t) => t,
+        None => return unauth("Invalid, expired, or already-used ticket"),
+    };
 
-            ws.on_upgrade(move |socket| handle_realtime_session(socket, state.db))
-        }
-        _ => Response::builder()
-            .status(401)
-            .body(axum::body::Body::from(
-                r#"{"error":{"message":"Invalid or disabled API key","type":"invalid_request_error","code":"invalid_api_key"}}"#,
-            ))
-            .unwrap_or_else(|_| {
-                axum::response::Response::new(axum::body::Body::from(
-                    r#"{"error":{"message":"Invalid or disabled API key"}}"#,
-                ))
-            }),
-    }
+    // 二次校验：ticket 已被 consume，证明它在 issue 时绑定到一个有效 key；
+    // 但 issue→consume 30s 窗口内 key 可能被禁用（revoked），所以这里仍要
+    // 重新查一次 DB 确认 key 仍然存在且 enabled。
+    let key = match state.adapter.gateway_keys().get_by_id(&ticket.key_id).await {
+        Ok(Some(k)) if k.enabled => k,
+        _ => return unauth("API key not found or disabled"),
+    };
+
+    // Update last_used_at in background
+    let adapter_bg = state.adapter.clone();
+    let key_id = key.id.clone();
+    tokio::spawn(async move {
+        let _ = adapter_bg.gateway_keys().update_last_used(&key_id).await;
+    });
+
+    ws.on_upgrade(move |socket| handle_realtime_session(socket, state.db))
+}
+
+/// POST /v1/realtime-ticket — issue a short-lived ticket for the WS upgrade.
+///
+/// Caller must already present a valid Bearer API key (auth_middleware puts
+/// the resolved key in `AuthenticatedKey`). The returned ticket can be
+/// passed to `/v1/realtime?ticket=...` once.
+pub async fn issue_realtime_ticket(
+    Extension(store): Extension<Arc<TicketStore>>,
+    Extension(auth): Extension<AuthenticatedKey>,
+) -> Response {
+    let ticket = store.issue(auth.0.id).await;
+    (
+        StatusCode::OK,
+        Json(json!({
+            "ticket": ticket.ticket_id,
+            "expires_in_secs": TICKET_TTL_SECS,
+        })),
+    )
+        .into_response()
+}
+
+/// Lifetime of issued tickets. Long enough for a client to receive the
+/// response, read the ticket, and open the WS upgrade — but short enough
+/// that a leaked ticket (logs, browser history) is hard to weaponise.
+pub const TICKET_TTL_SECS: u64 = 30;
+
+/// Convenience: build a fresh `TicketStore` with the default TTL.
+pub fn default_ticket_store() -> Arc<TicketStore> {
+    Arc::new(TicketStore::new(Duration::from_secs(TICKET_TTL_SECS)))
 }
 
 async fn handle_realtime_session(mut socket: WebSocket, _db: DatabaseConnection) {
