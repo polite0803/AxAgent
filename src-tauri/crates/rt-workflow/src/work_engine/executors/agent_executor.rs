@@ -331,7 +331,7 @@ impl NodeExecutorTrait for AgentExecutor {
 
         // 4a. 角色前缀 + 领域头部约束（primacy 锚定）
         all_segments.push(TemplateSegment::Static(format!("你是 {role_desc}。\n")));
-        if let Some(ref dc_fn) = self
+        if let Some(dc_fn) = self
             .domain_constraints
             .lock()
             .expect("domain_constraints mutex poisoned")
@@ -463,7 +463,7 @@ impl NodeExecutorTrait for AgentExecutor {
         }
 
         // 4h. 领域尾部约束（recency 锚定）
-        if let Some(ref dc_fn) = self
+        if let Some(dc_fn) = self
             .domain_constraints
             .lock()
             .expect("domain_constraints mutex poisoned")
