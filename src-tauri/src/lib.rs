@@ -5,6 +5,7 @@
 #![allow(clippy::needless_borrow)]
 
 mod android_utils;
+mod util;
 mod commands;
 mod context_manager;
 mod indexing;
