@@ -127,6 +127,7 @@ pub fn create_router(state: GatewayAppState) -> Router {
             AuthState {
                 db: state.db.clone(),
                 adapter: state.adapter.clone(),
+                key_verify_limiter: state.key_verify_limiter.clone(),
             },
             auth_middleware,
         ));
@@ -162,6 +163,12 @@ mod tests {
             provider_registry: axagent_harness::test_support::empty_provider_registry(),
             adapter: axagent_harness::test_support::empty_platform_adapter(),
             ticket_store: crate::realtime::default_ticket_store(),
+            // SECURITY (Phase 2 Task 2.3): 路由层测试用宽阈值 limiter，
+            // 避免和限流本身的目的混在一起。
+            key_verify_limiter: std::sync::Arc::new(crate::auth::KeyVerifyLimiter::new(
+                100,
+                std::time::Duration::from_secs(60),
+            )),
         }
     }
 

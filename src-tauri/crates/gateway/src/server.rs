@@ -16,6 +16,7 @@ use tokio::task::JoinHandle;
 
 use axagent_core::error::{AxAgentError, Result};
 
+use crate::auth::KeyVerifyLimiter;
 use crate::realtime_ticket::TicketStore;
 
 /// Shared state for Axum handlers (separate from Tauri AppState).
@@ -32,6 +33,9 @@ pub struct GatewayAppState {
     /// In-memory store of single-use tickets for `/v1/realtime` WS auth
     /// (SECURITY P0-2.2). One per gateway instance.
     pub ticket_store: Arc<TicketStore>,
+    /// SECURITY (Phase 2 Task 2.3): per-IP 限流器，防御 prefix 爆破。
+    /// 5 失败 → 60s 冷却（参见 spec 2.3）。
+    pub key_verify_limiter: Arc<KeyVerifyLimiter>,
 }
 
 /// TLS certificate material.
@@ -139,6 +143,8 @@ impl GatewayServer {
             provider_registry,
             adapter,
             ticket_store: crate::realtime::default_ticket_store(),
+            // SECURITY (Phase 2 Task 2.3): 5 失败 → 60s 冷却。
+            key_verify_limiter: Arc::new(KeyVerifyLimiter::new(5, Duration::from_secs(60))),
         };
         Self::start_inner(app_state, config).await
     }
@@ -234,9 +240,13 @@ impl GatewayServer {
             let peer_handle = https_handle.clone();
             tokio::spawn(async move {
                 tracing::info!("Gateway HTTP listener on http://{}", addr);
+                // SECURITY (Phase 2 Task 2.3): into_make_service_with_connect_info
+                // 把 peer SocketAddr 注入 extension，auth_middleware 用
+                // 它做 per-IP 限流。无它则所有请求都被归到 "unknown"，
+                // 限流器退化为全局 —— 不可接受。
                 let result = axum_server::from_tcp(http_listener)
                     .handle(server_handle)
-                    .serve(router.into_make_service())
+                    .serve(router.into_make_service_with_connect_info::<SocketAddr>())
                     .await;
                 if let Err(e) = result {
                     tracing::error!("Gateway HTTP server error: {}", e);
@@ -267,7 +277,7 @@ impl GatewayServer {
                     tracing::info!("Gateway HTTPS listener on https://{}", addr);
                     let result = axum_server::from_tcp_rustls(binding.listener, binding.rustls)
                         .handle(server_handle)
-                        .serve(router.into_make_service())
+                        .serve(router.into_make_service_with_connect_info::<SocketAddr>())
                         .await;
                     if let Err(e) = result {
                         tracing::error!("Gateway HTTPS server error: {}", e);
