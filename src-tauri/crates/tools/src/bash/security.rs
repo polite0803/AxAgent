@@ -88,7 +88,7 @@ impl SecurityAnalyzer {
         // 其他常用
         allowed.extend([
             "ssh", "scp", "rsync", "tar", "gzip", "gunzip", "zip", "unzip", "jq", "xargs", "tee",
-            "basename", "dirname", "realpath", "readlink", "sleep",
+            "basename", "dirname", "realpath", "readlink", "sleep", "sleep",
         ]);
 
         Self {
