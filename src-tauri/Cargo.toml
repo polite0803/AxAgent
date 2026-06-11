@@ -68,9 +68,13 @@ serde_json = { workspace = true }
 serde_yaml = { workspace = true }
 axagent-core = { path = "crates/core" }
 axagent-harness = { path = "crates/harness" }
+axagent-crypto = { path = "crates/crypto" }
 axagent-providers = { path = "crates/providers" }
 axagent-agent = { path = "crates/agent" }
 axagent-migration = { path = "crates/migration" }
+axagent-dao = { path = "crates/dao" }
+axagent-search = { path = "crates/search" }
+axagent-document-parser = { path = "crates/document-parser" }
 axagent-gateway = { path = "crates/gateway" }
 axagent-runtime-core = { path = "crates/runtime-core" }
 axagent-runtime = { path = "crates/runtime" }

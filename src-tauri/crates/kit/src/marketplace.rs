@@ -2,21 +2,18 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use axagent_entities::{workflow_template, workflow_template_version};
+use axagent_harness::workflow_types::{WorkflowTemplateData, WorkflowTemplateVersionData};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WorkflowExport {
-    pub template: workflow_template::Model,
-    pub versions: Vec<workflow_template_version::Model>,
+    pub template: WorkflowTemplateData,
+    pub versions: Vec<WorkflowTemplateVersionData>,
     pub exported_at: DateTime<Utc>,
     pub version: String,
 }
 
 impl WorkflowExport {
-    pub fn new(
-        template: workflow_template::Model,
-        versions: Vec<workflow_template_version::Model>,
-    ) -> Self {
+    pub fn new(template: WorkflowTemplateData, versions: Vec<WorkflowTemplateVersionData>) -> Self {
         Self {
             template,
             versions,
@@ -147,9 +144,7 @@ To import this workflow, use the workflow import feature in the application.
         )
     }
 
-    pub fn validate_template_for_publish(
-        template: &workflow_template::Model,
-    ) -> Result<(), String> {
+    pub fn validate_template_for_publish(template: &WorkflowTemplateData) -> Result<(), String> {
         if template.name.is_empty() {
             return Err("Template name is required".to_string());
         }
@@ -174,25 +169,24 @@ mod tests {
     #[test]
     fn test_workflow_export_serialize() {
         let export = WorkflowExport::new(
-            workflow_template::Model {
+            WorkflowTemplateData {
                 id: "test-id".to_string(),
                 name: "Test Template".to_string(),
                 description: Some("A test template".to_string()),
                 icon: "Bot".to_string(),
-                tags: None,
+                tags: vec![],
                 version: 1,
                 is_preset: false,
                 is_editable: true,
                 is_public: false,
                 trigger_config: None,
-                nodes: "{}".to_string(),
-                edges: "[]".to_string(),
+                nodes: vec![],
+                edges: vec![],
                 input_schema: None,
                 output_schema: None,
-                variables: None,
+                variables: vec![],
                 error_config: None,
-                composite_source: None,
-                tool_defs: None,
+                tool_defs: vec![],
                 created_at: 0,
                 updated_at: 0,
             },

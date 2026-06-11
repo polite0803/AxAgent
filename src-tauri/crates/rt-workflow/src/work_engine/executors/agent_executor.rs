@@ -794,7 +794,7 @@ impl AgentExecutor {
         use axagent_core::plan_compiler::compile_plan_to_dag;
         use axagent_harness::plan_types::{Plan, TaskStatus};
         let role_desc = resolve_role(&an.config, None);
-        let base_url = axagent_providers::url_utils::resolve_base_url_for_type(
+        let base_url = axagent_harness::url_utils::resolve_base_url_for_type(
             &prov.api_host,
             &prov.provider_type,
         );

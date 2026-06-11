@@ -126,11 +126,10 @@ impl CacheStats {
 }
 
 /// Serializable representation of a single vector search cache entry.
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct CacheEntrySnapshot {
-    pub key: String,
-    pub results_json: String,
-}
+///
+/// Re-exported from `axagent_harness::cache_interceptor::CacheEntrySnapshot`
+/// so downstream crates can import the canonical type from the harness layer.
+pub use axagent_harness::cache_interceptor::CacheEntrySnapshot;
 
 impl VectorSearchCache {
     /// Export all currently valid cache entries for persistence.

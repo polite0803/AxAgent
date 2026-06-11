@@ -10,7 +10,7 @@ use axagent_harness::util_fns::current_rfc3339;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-use axagent_search::vector_cache::CacheEntrySnapshot;
+use axagent_harness::cache_interceptor::CacheEntrySnapshot;
 
 /// A snapshot of in-memory cache state, serializable for disk persistence.
 #[derive(Debug, Clone, Serialize, Deserialize)]

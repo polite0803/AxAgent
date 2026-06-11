@@ -95,7 +95,7 @@ impl OtelProviders {
         }
     }
 
-    pub fn record_error_report(&self, report: &axagent_core::error::ErrorReport) {
+    pub fn record_error_report(&self, report: &axagent_harness::core_error::ErrorReport) {
         if !self.enabled {
             return;
         }

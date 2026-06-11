@@ -24,6 +24,9 @@ pub struct GatewayAppState {
     pub started_at: i64,
     /// 由 Harness 注入的 Provider 注册表（start_with_registry 使用）
     pub provider_registry: Arc<dyn axagent_harness::registry::ProviderRegistry>,
+    /// 平台层 trait 聚合（provider / settings / gateway_key / request_log / crypto）。
+    /// 由 wiring 层构造，把 gateway 与 dao + crypto 解耦。
+    pub adapter: Arc<dyn axagent_harness::PlatformAdapter>,
 }
 
 /// TLS certificate material.
@@ -121,13 +124,15 @@ impl GatewayServer {
         master_key: [u8; 32],
         config: GatewayStartConfig,
         provider_registry: Arc<dyn axagent_harness::registry::ProviderRegistry>,
+        adapter: Arc<dyn axagent_harness::PlatformAdapter>,
     ) -> Result<Self> {
-        let started_at = axagent_core::utils::now_ts();
+        let started_at = axagent_harness::util_fns::now_ts();
         let app_state = GatewayAppState {
             db: pool,
             master_key,
             started_at,
             provider_registry,
+            adapter,
         };
         Self::start_inner(app_state, config).await
     }
@@ -280,7 +285,7 @@ impl GatewayServer {
             https_addr: https_actual_addr,
             force_ssl: config.force_ssl,
             running,
-            started_at: axagent_core::utils::now_ts(),
+            started_at: axagent_harness::util_fns::now_ts(),
         })
     }
 

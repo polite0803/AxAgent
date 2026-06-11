@@ -156,125 +156,132 @@ impl PlatformAdapter for WhatsAppAdapter {
     }
 }
 
-/// 处理 WhatsApp Webhook 验证请求 (GET)
-/// 返回对应的 challenge 字符串以完成 Meta 的 webhook 验证流程
-pub fn verify_webhook_challenge(
-    config: &PlatformConfig,
-    mode: &str,
-    token: &str,
-    challenge: &str,
-) -> Result<String, String> {
-    let expected_token = config
-        .whatsapp_webhook_verify_token
-        .as_deref()
-        .unwrap_or("");
-
-    if mode != "subscribe" {
-        return Err(format!("Invalid hub.mode: {}", mode));
-    }
-
-    if token != expected_token {
-        return Err("Verify token mismatch".to_string());
-    }
-
-    Ok(challenge.to_string())
-}
-
-/// 处理 WhatsApp Webhook 通知 (POST) 中的消息事件
-/// 解析 Meta 推送的 JSON payload，提取文本消息并调用回调处理
-pub async fn handle_webhook_notification(
-    config: &PlatformConfig,
-    body: &serde_json::Value,
-) -> Result<(), String> {
-    let entries = body["entry"].as_array().ok_or("Missing entry array")?;
-
-    for entry in entries {
-        let changes = entry["changes"].as_array().ok_or("Missing changes array")?;
-        for change in changes {
-            let value = &change["value"];
-
-            let messages = value["messages"].as_array();
-            let contacts = value["contacts"].as_array();
-
-            let Some(messages) = messages else { continue };
-
-            for msg in messages {
-                let msg_type = msg["type"].as_str().unwrap_or("");
-                if msg_type != "text" {
-                    continue;
-                }
-
-                let from = msg["from"].as_str().unwrap_or("");
-                let text = msg["text"]["body"].as_str().unwrap_or("");
-
-                if from.is_empty() || text.is_empty() {
-                    continue;
-                }
-
-                let sender_name = contacts
-                    .and_then(|c| c.first())
-                    .and_then(|c| c["profile"]["name"].as_str())
-                    .map(|s| s.to_string())
-                    .unwrap_or_else(|| from.to_string());
-
-                tracing::info!("WhatsApp webhook: {} ({}) — {}", sender_name, from, text);
-
-                if let Some(cb) = crate::message_gateway::platforms::get_message_callback() {
-                    let access_token = config.whatsapp_access_token.clone().unwrap_or_default();
-                    let phone_number_id =
-                        config.whatsapp_phone_number_id.clone().unwrap_or_default();
-                    let api_version = resolve_api_version(config);
-                    let from_owned = from.to_string();
-                    let text_owned = text.to_string();
-
-                    let sender_owned = sender_name.clone();
-                    tokio::spawn(async move {
-                        let reply = cb
-                            .on_message(
-                                "whatsapp",
-                                &from_owned,
-                                Some(&sender_owned),
-                                &from_owned,
-                                &text_owned,
-                            )
-                            .await;
-
-                        if let Some(reply_text) = reply {
-                            let url = format!(
-                                "https://graph.facebook.com/{}/{}/messages",
-                                api_version, phone_number_id
-                            );
-                            let body = serde_json::json!({
-                                "messaging_product": "whatsapp",
-                                "to": from_owned,
-                                "type": "text",
-                                "text": { "preview_url": true, "body": reply_text }
-                            });
-
-                            let client = reqwest::Client::new();
-                            let _ = client
-                                .post(&url)
-                                .header("Authorization", format!("Bearer {}", access_token))
-                                .header("Content-Type", "application/json")
-                                .json(&body)
-                                .send()
-                                .await;
-                        }
-                    });
-                }
-            }
-        }
-    }
-
-    Ok(())
-}
-
 fn resolve_api_version(config: &PlatformConfig) -> String {
     config
         .whatsapp_api_version
         .clone()
-        .filter(|v| !v.is_empty())
-        .unwrap_or_else(|| "v18.0".to_string())
+        .unwrap_or_else(|| "v22.0".to_string())
+}
+
+// ── `axagent_harness::WhatsAppWebhookHandler` trait impl ──
+//
+// 把原来模块顶层的 `verify_webhook_challenge` / `handle_webhook_notification`
+// 自由函数变成 `WhatsAppAdapter` 的方法，让 `rt-webhook` 这样的 HTTP 服务器层
+// 只依赖 `axagent_harness::WhatsAppWebhookHandler` trait，不再直接
+// `use axagent_rt_messaging::message_gateway::platforms::whatsapp`。
+
+#[async_trait::async_trait]
+impl axagent_harness::WhatsAppWebhookHandler for WhatsAppAdapter {
+    fn verify_challenge(
+        &self,
+        config: &PlatformConfig,
+        mode: &str,
+        token: &str,
+        challenge: &str,
+    ) -> Result<String, String> {
+        let expected_token = config
+            .whatsapp_webhook_verify_token
+            .as_deref()
+            .unwrap_or("");
+
+        if mode != "subscribe" {
+            return Err(format!("Invalid hub.mode: {}", mode));
+        }
+
+        if token != expected_token {
+            return Err("Verify token mismatch".to_string());
+        }
+
+        Ok(challenge.to_string())
+    }
+
+    async fn handle_notification(
+        &self,
+        config: &PlatformConfig,
+        body: &serde_json::Value,
+    ) -> Result<(), String> {
+        let entries = body["entry"].as_array().ok_or("Missing entry array")?;
+
+        for entry in entries {
+            let changes = entry["changes"].as_array().ok_or("Missing changes array")?;
+            for change in changes {
+                let value = &change["value"];
+
+                let messages = value["messages"].as_array();
+                let contacts = value["contacts"].as_array();
+
+                let Some(messages) = messages else { continue };
+
+                for msg in messages {
+                    let msg_type = msg["type"].as_str().unwrap_or("");
+                    if msg_type != "text" {
+                        continue;
+                    }
+
+                    let from = msg["from"].as_str().unwrap_or("");
+                    let text = msg["text"]["body"].as_str().unwrap_or("");
+
+                    if from.is_empty() || text.is_empty() {
+                        continue;
+                    }
+
+                    let sender_name = contacts
+                        .and_then(|c| c.first())
+                        .and_then(|c| c["profile"]["name"].as_str())
+                        .map(|s| s.to_string())
+                        .unwrap_or_else(|| from.to_string());
+
+                    tracing::info!("WhatsApp webhook: {} ({}) — {}", sender_name, from, text);
+
+                    if let Some(cb) = crate::message_gateway::platforms::get_message_callback() {
+                        let access_token = config.whatsapp_access_token.clone().unwrap_or_default();
+                        let phone_number_id =
+                            config.whatsapp_phone_number_id.clone().unwrap_or_default();
+                        let api_version = resolve_api_version(config);
+                        let from_owned = from.to_string();
+                        let text_owned = text.to_string();
+                        let sender_owned = sender_name.clone();
+
+                        tokio::spawn(async move {
+                            let reply = cb
+                                .on_message(
+                                    "whatsapp",
+                                    &from_owned,
+                                    Some(&sender_owned),
+                                    &from_owned,
+                                    &text_owned,
+                                )
+                                .await;
+
+                            if let Some(reply_text) = reply {
+                                let url = format!(
+                                    "https://graph.facebook.com/{}/{}/messages",
+                                    api_version, phone_number_id
+                                );
+                                let body = serde_json::json!({
+                                    "messaging_product": "whatsapp",
+                                    "to": from_owned,
+                                    "type": "text",
+                                    "text": { "preview_url": true, "body": reply_text }
+                                });
+
+                                let client = reqwest::Client::new();
+                                let _ = client
+                                    .post(&url)
+                                    .header("Authorization", format!("Bearer {}", access_token))
+                                    .header("Content-Type", "application/json")
+                                    .json(&body)
+                                    .send()
+                                    .await;
+                            }
+                        });
+                    }
+                }
+            }
+        }
+
+        Ok(())
+    }
 }
 
 async fn verify_whatsapp(

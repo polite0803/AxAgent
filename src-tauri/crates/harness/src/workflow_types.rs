@@ -1591,6 +1591,7 @@ pub struct RhaiToolDef {
     pub code: String,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WorkflowTemplateData {
     pub id: String,
     pub name: String,
@@ -1612,6 +1613,30 @@ pub struct WorkflowTemplateData {
     pub tool_defs: Vec<RhaiToolDef>,
     pub created_at: i64,
     pub updated_at: i64,
+}
+
+/// 不可变的模板版本快照（用于历史表/版本对比/导入导出）。
+/// 区别于 `WorkflowTemplateData`：没有 `composite_source`/`tool_defs`，
+/// 但多了 `template_id` 显式外键（version 行的 `id` 是 `{template_id}_v{n}`）。
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct WorkflowTemplateVersionData {
+    pub template_id: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub icon: String,
+    pub tags: Vec<String>,
+    pub version: i32,
+    pub is_preset: bool,
+    pub is_editable: bool,
+    pub is_public: bool,
+    pub trigger_config: Option<TriggerConfig>,
+    pub nodes: Vec<WorkflowNode>,
+    pub edges: Vec<WorkflowEdge>,
+    pub input_schema: Option<JsonSchema>,
+    pub output_schema: Option<JsonSchema>,
+    pub variables: Vec<Variable>,
+    pub error_config: Option<ErrorConfig>,
+    pub created_at: i64,
 }
 
 impl WorkflowTemplateData {

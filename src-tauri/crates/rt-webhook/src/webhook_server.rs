@@ -1,6 +1,8 @@
-use axagent_harness::{WebhookEvent, WebhookSubscription, WebhookSubscriptionService};
-use axagent_rt_messaging::message_gateway::platform_config::PlatformConfig;
-use axagent_rt_messaging::message_gateway::platforms::{wechat, whatsapp};
+use axagent_harness::platform_config::PlatformConfig;
+use axagent_harness::{
+    WeChatWebhookHandler, WebhookEvent, WebhookSubscription, WebhookSubscriptionService,
+    WhatsAppWebhookHandler,
+};
 use axum::{
     Json, Router,
     extract::State,
@@ -14,6 +16,9 @@ pub struct WebhookServerState {
     pub subscription_manager: Arc<dyn WebhookSubscriptionService>,
     /// WhatsApp webhook 处理所需的平台配置
     pub platform_config: Option<Arc<tokio::sync::RwLock<PlatformConfig>>>,
+    /// 平台 webhook 处理器（通过 trait 注入，避免直接依赖 rt-messaging）
+    pub wechat_handler: Option<Arc<dyn WeChatWebhookHandler>>,
+    pub whatsapp_handler: Option<Arc<dyn WhatsAppWebhookHandler>>,
 }
 
 pub struct WebhookServer {
@@ -29,6 +34,8 @@ impl WebhookServer {
             state: WebhookServerState {
                 subscription_manager,
                 platform_config: None,
+                wechat_handler: None,
+                whatsapp_handler: None,
             },
             shutdown_tx,
             shutdown_rx: Some(shutdown_rx),
@@ -38,6 +45,16 @@ impl WebhookServer {
     /// 设置 WhatsApp webhook 所需的平台配置
     pub fn set_platform_config(&mut self, config: Arc<tokio::sync::RwLock<PlatformConfig>>) {
         self.state.platform_config = Some(config);
+    }
+
+    /// 注入平台 webhook 处理器（trait 对象，从 rt-messaging 构造）
+    pub fn set_platform_handlers(
+        &mut self,
+        wechat: Arc<dyn WeChatWebhookHandler>,
+        whatsapp: Arc<dyn WhatsAppWebhookHandler>,
+    ) {
+        self.state.wechat_handler = Some(wechat);
+        self.state.whatsapp_handler = Some(whatsapp);
     }
 
     pub async fn start(mut self, listener: tokio::net::TcpListener) -> Result<(), String> {
@@ -102,8 +119,12 @@ async fn whatsapp_verify_handler(
         .as_ref()
         .ok_or(StatusCode::SERVICE_UNAVAILABLE)?;
     let config = config_guard.read().await;
+    let handler = state
+        .whatsapp_handler
+        .as_ref()
+        .ok_or(StatusCode::SERVICE_UNAVAILABLE)?;
 
-    match whatsapp::verify_webhook_challenge(
+    match handler.verify_challenge(
         &config,
         &query.hub_mode,
         &query.hub_verify_token,
@@ -128,8 +149,12 @@ async fn whatsapp_notification_handler(
         None => return StatusCode::SERVICE_UNAVAILABLE,
     };
     let config = config_guard.read().await;
+    let handler = match state.whatsapp_handler.as_ref() {
+        Some(h) => h,
+        None => return StatusCode::SERVICE_UNAVAILABLE,
+    };
 
-    match whatsapp::handle_webhook_notification(&config, &body).await {
+    match handler.handle_notification(&config, &body).await {
         Ok(()) => StatusCode::OK,
         Err(e) => {
             tracing::error!("WhatsApp webhook notification error: {}", e);
@@ -159,8 +184,12 @@ async fn wechat_verify_handler(
     let config = config_guard.read().await;
 
     let token = config.wechat_token.as_deref().unwrap_or("");
+    let handler = state
+        .wechat_handler
+        .as_ref()
+        .ok_or(StatusCode::SERVICE_UNAVAILABLE)?;
 
-    match wechat::verify_server(
+    match handler.verify_server(
         token,
         &query.signature,
         &query.timestamp,
@@ -184,10 +213,14 @@ async fn wechat_message_handler(
         .as_ref()
         .ok_or(StatusCode::SERVICE_UNAVAILABLE)?;
     let config = config_guard.read().await;
+    let handler = state
+        .wechat_handler
+        .as_ref()
+        .ok_or(StatusCode::SERVICE_UNAVAILABLE)?;
 
     let xml_body = String::from_utf8_lossy(&body).to_string();
 
-    match wechat::handle_official_account_message(&config, &xml_body).await {
+    match handler.handle_message(&config, &xml_body).await {
         Ok(reply) => Ok(reply),
         Err(e) => {
             tracing::error!("WeChat message handling error: {}", e);

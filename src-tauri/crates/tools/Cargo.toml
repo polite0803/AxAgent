@@ -40,8 +40,6 @@ lazy_static = { workspace = true }
 axagent-core = { path = "../core" }
 axagent-harness = { path = "../harness" }
 axagent-runtime-core = { path = "../runtime-core" }
-axagent-plugins = { path = "../plugins" }
-axagent-migration = { path = "../migration" }
 rusqlite = { version = "0.32", features = ["bundled"] }
 docx-rs = "0.4"
 pulldown-cmark = "0.13"

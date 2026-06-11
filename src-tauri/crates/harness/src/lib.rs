@@ -76,6 +76,34 @@ pub use webhook_subscription::{
     DispatchResult, NoopWebhookSubscriptionService, WebhookEvent, WebhookPayload,
     WebhookSubscription, WebhookSubscriptionInfo, WebhookSubscriptionService,
 };
+
+// ── 消息平台 Webhook 契约 ──
+pub mod messaging_webhook;
+pub use messaging_webhook::{WeChatWebhookHandler, WhatsAppWebhookHandler};
+
+// ── 迁移相关 ──
+pub mod migration_types;
+pub use migration_types::{
+    BackupInfo, DetectedPlatform, MigrationEntry, MigrationItem, MigrationReport,
+};
+
+// ── 工具扩展契约 ──
+pub mod tools_ext;
+pub use tools_ext::{MigrationRunner, PluginAgentDescriptor, PluginAgentProvider};
+
+// ── 搜索层数据源 trait（让 search crate 不依赖 dao / document-parser） ──
+pub mod search_sources;
+pub use search_sources::{
+    DocumentParser, KnowledgeSource, MemorySource, SettingsSource, WikiSource,
+};
+
+// ── Gateway 平台层 trait（让 gateway crate 不依赖 dao / crypto） ──
+pub mod platform_adapter;
+pub use platform_adapter::{
+    CryptoService, GatewayKeyRepository, GatewayRequestLogRepository, PlatformAdapter,
+    ProviderRepository, SettingsRepository,
+};
+
 pub mod trajectory_types;
 
 // ── Provider 契约重导出 ──

@@ -243,45 +243,20 @@ pub async fn seed_preset_templates(state: State<'_, AppState>) -> Result<usize, 
     let db = state.harness.db();
     let presets = get_preset_templates();
 
-    let mut count = 0;
-    for preset in presets {
-        let existing = db_repo::get_workflow_template(db, preset.id)
-            .await
-            .map_err(|e| e.to_string())?;
-
-        match existing {
-            // Template doesn't exist yet → insert full data (first run)
-            None => {
-                let mut template = convert_preset_to_workflow_template(&preset);
-                template.is_preset = true;
-                template.is_editable = true;
-                template.is_public = true;
-
-                let active_model = model_to_active_model(&template);
-                db_repo::insert_workflow_template(db, active_model)
-                    .await
-                    .map_err(|e| e.to_string())?;
-                count += 1;
-            },
-            // Template exists with empty nodes (upgrade from old data) → update with full data
-            Some(ref t) if t.nodes == "[]" || t.nodes.is_empty() => {
-                let mut template = convert_preset_to_workflow_template(&preset);
-                template.is_preset = true;
-                template.is_editable = true;
-                template.is_public = true;
-
-                let active_model = model_to_active_model(&template);
-                db_repo::upsert_workflow_template(db, active_model)
-                    .await
-                    .map_err(|e| e.to_string())?;
-                count += 1;
-            },
-            // Template exists with nodes → user may have edited it, keep as-is
-            _ => {},
-        }
+    let mut items = Vec::with_capacity(presets.len());
+    for preset in &presets {
+        let mut template = convert_preset_to_workflow_template(preset);
+        template.is_preset = true;
+        template.is_editable = true;
+        template.is_public = true;
+        items.push(template);
     }
 
-    Ok(count)
+    db_repo::seed_preset_templates(db, items)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    Ok(presets.len())
 }
 
 #[tauri::command]

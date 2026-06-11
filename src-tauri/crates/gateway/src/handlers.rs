@@ -7,25 +7,23 @@ use axum::{
     },
 };
 use futures::StreamExt;
-use sea_orm::DatabaseConnection;
 use serde_json::json;
 use std::collections::{HashMap, HashSet};
 use std::convert::Infallible;
+use std::sync::Arc;
 use std::time::Instant;
 use tokio_stream::wrappers::ReceiverStream;
 
-use axagent_core::crypto::decrypt_key;
 use axagent_harness::types::*;
+use axagent_harness::url_utils::resolve_base_url_for_type;
 use axagent_harness::{ProviderAdapter, ProviderRequestContext};
-use axagent_providers::url_utils::resolve_base_url_for_type;
 
 use crate::auth::AuthenticatedKey;
 use crate::server::GatewayAppState;
 
 macro_rules! record_log {
-    ($db:expr, $key:expr, $method:expr, $path:expr, $model_id:expr, $provider_id:expr, $status:expr, $elapsed:expr, $prompt:expr, $completion:expr, $error:expr) => {
-        let _ = axagent_core::repo::gateway_request_log::record_request_log(
-            $db,
+    ($adapter:expr, $key:expr, $method:expr, $path:expr, $model_id:expr, $provider_id:expr, $status:expr, $elapsed:expr, $prompt:expr, $completion:expr, $error:expr) => {
+        let _ = $adapter.request_log().record_request_log(
             &$key.id,
             &$key.name,
             $method,
@@ -56,7 +54,7 @@ pub async fn detailed_health_check(
 ) -> axum::response::Response {
     let AuthenticatedKey(_gateway_key) = auth;
 
-    let db_status = match axagent_core::repo::provider::list_providers(&state.db).await {
+    let db_status = match state.adapter.providers().list_providers().await {
         Ok(_) => "connected",
         Err(e) => {
             tracing::warn!("Database health check failed: {}", e);
@@ -64,17 +62,17 @@ pub async fn detailed_health_check(
         },
     };
 
-    let providers_count = match axagent_core::repo::provider::list_providers(&state.db).await {
+    let providers_count = match state.adapter.providers().list_providers().await {
         Ok(p) => p.len(),
         Err(_) => 0,
     };
 
-    let active_keys_count = match axagent_core::repo::gateway::list_gateway_keys(&state.db).await {
+    let active_keys_count = match state.adapter.gateway_keys().list_gateway_keys().await {
         Ok(keys) => keys.iter().filter(|k| k.enabled).count(),
         Err(_) => 0,
     };
 
-    let uptime = axagent_core::utils::now_ts() - state.started_at;
+    let uptime = axagent_harness::util_fns::now_ts() - state.started_at;
     let uptime = if uptime > 0 { uptime as u64 } else { 0 };
 
     Json(json!({
@@ -97,24 +95,23 @@ pub async fn get_response(
     let AuthenticatedKey(gateway_key) = auth;
     let start_time = Instant::now();
 
-    let providers: Vec<ProviderConfig> =
-        match axagent_core::repo::provider::list_providers(&state.db).await {
-            Ok(p) => p
-                .into_iter()
-                .filter(|p| {
-                    matches!(
-                        p.provider_type,
-                        ProviderType::OpenAI
-                            | ProviderType::OpenClaw
-                            | ProviderType::Hermes
-                            | ProviderType::OpenAIResponses
-                    )
-                })
-                .collect(),
-            Err(e) => {
-                return error_response(StatusCode::INTERNAL_SERVER_ERROR, &e.to_string());
-            },
-        };
+    let providers: Vec<ProviderConfig> = match state.adapter.providers().list_providers().await {
+        Ok(p) => p
+            .into_iter()
+            .filter(|p| {
+                matches!(
+                    p.provider_type,
+                    ProviderType::OpenAI
+                        | ProviderType::OpenClaw
+                        | ProviderType::Hermes
+                        | ProviderType::OpenAIResponses
+                )
+            })
+            .collect(),
+        Err(e) => {
+            return error_response(StatusCode::INTERNAL_SERVER_ERROR, &e.to_string());
+        },
+    };
 
     let provider = match providers.first() {
         Some(p) => p,
@@ -123,18 +120,21 @@ pub async fn get_response(
         },
     };
 
-    let provider_key =
-        match axagent_core::repo::provider::get_active_key(&state.db, &provider.id).await {
-            Ok(k) => k,
-            Err(_) => {
-                return error_response(
-                    StatusCode::BAD_GATEWAY,
-                    &format!("No active API key for provider '{}'", provider.name),
-                );
-            },
-        };
+    let provider_key = match state.adapter.providers().get_active_key(&provider.id).await {
+        Ok(k) => k,
+        Err(_) => {
+            return error_response(
+                StatusCode::BAD_GATEWAY,
+                &format!("No active API key for provider '{}'", provider.name),
+            );
+        },
+    };
 
-    let api_key = match decrypt_key(&provider_key.key_encrypted, &state.master_key) {
+    let api_key = match state
+        .adapter
+        .crypto()
+        .decrypt_key(&provider_key.key_encrypted)
+    {
         Ok(k) => k,
         Err(e) => {
             tracing::error!("Failed to decrypt provider key: {}", e);
@@ -142,7 +142,10 @@ pub async fn get_response(
         },
     };
 
-    let global_settings = axagent_core::repo::settings::get_settings(&state.db)
+    let global_settings = state
+        .adapter
+        .settings()
+        .get_settings()
         .await
         .unwrap_or_default();
     let resolved_proxy = ProviderProxyConfig::resolve(&provider.proxy_config, &global_settings);
@@ -172,7 +175,7 @@ pub async fn get_response(
         Ok(response_body) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
             record_log!(
-                &state.db,
+                &state.adapter,
                 gateway_key,
                 "GET",
                 &format!("/v1/responses/{}", response_id),
@@ -196,7 +199,7 @@ pub async fn get_response(
         Err(e) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
             record_log!(
-                &state.db,
+                &state.adapter,
                 gateway_key,
                 "GET",
                 &format!("/v1/responses/{}", response_id),
@@ -223,24 +226,23 @@ pub async fn delete_response(
     let AuthenticatedKey(gateway_key) = auth;
     let start_time = Instant::now();
 
-    let providers: Vec<ProviderConfig> =
-        match axagent_core::repo::provider::list_providers(&state.db).await {
-            Ok(p) => p
-                .into_iter()
-                .filter(|p| {
-                    matches!(
-                        p.provider_type,
-                        ProviderType::OpenAI
-                            | ProviderType::OpenClaw
-                            | ProviderType::Hermes
-                            | ProviderType::OpenAIResponses
-                    )
-                })
-                .collect(),
-            Err(e) => {
-                return error_response(StatusCode::INTERNAL_SERVER_ERROR, &e.to_string());
-            },
-        };
+    let providers: Vec<ProviderConfig> = match state.adapter.providers().list_providers().await {
+        Ok(p) => p
+            .into_iter()
+            .filter(|p| {
+                matches!(
+                    p.provider_type,
+                    ProviderType::OpenAI
+                        | ProviderType::OpenClaw
+                        | ProviderType::Hermes
+                        | ProviderType::OpenAIResponses
+                )
+            })
+            .collect(),
+        Err(e) => {
+            return error_response(StatusCode::INTERNAL_SERVER_ERROR, &e.to_string());
+        },
+    };
 
     let provider = match providers.first() {
         Some(p) => p,
@@ -249,18 +251,21 @@ pub async fn delete_response(
         },
     };
 
-    let provider_key =
-        match axagent_core::repo::provider::get_active_key(&state.db, &provider.id).await {
-            Ok(k) => k,
-            Err(_) => {
-                return error_response(
-                    StatusCode::BAD_GATEWAY,
-                    &format!("No active API key for provider '{}'", provider.name),
-                );
-            },
-        };
+    let provider_key = match state.adapter.providers().get_active_key(&provider.id).await {
+        Ok(k) => k,
+        Err(_) => {
+            return error_response(
+                StatusCode::BAD_GATEWAY,
+                &format!("No active API key for provider '{}'", provider.name),
+            );
+        },
+    };
 
-    let api_key = match decrypt_key(&provider_key.key_encrypted, &state.master_key) {
+    let api_key = match state
+        .adapter
+        .crypto()
+        .decrypt_key(&provider_key.key_encrypted)
+    {
         Ok(k) => k,
         Err(e) => {
             tracing::error!("Failed to decrypt provider key: {}", e);
@@ -268,7 +273,10 @@ pub async fn delete_response(
         },
     };
 
-    let global_settings = axagent_core::repo::settings::get_settings(&state.db)
+    let global_settings = state
+        .adapter
+        .settings()
+        .get_settings()
         .await
         .unwrap_or_default();
     let resolved_proxy = ProviderProxyConfig::resolve(&provider.proxy_config, &global_settings);
@@ -298,7 +306,7 @@ pub async fn delete_response(
         Ok(_) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
             record_log!(
-                &state.db,
+                &state.adapter,
                 gateway_key,
                 "DELETE",
                 &format!("/v1/responses/{}", response_id),
@@ -316,7 +324,7 @@ pub async fn delete_response(
         Err(e) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
             record_log!(
-                &state.db,
+                &state.adapter,
                 gateway_key,
                 "DELETE",
                 &format!("/v1/responses/{}", response_id),
@@ -342,16 +350,11 @@ pub async fn list_jobs(
     let AuthenticatedKey(gateway_key) = auth;
     let start_time = Instant::now();
 
-    let (provider, ctx) = match resolve_hermes_provider_context(
-        &state.db,
-        &state.master_key,
-        &*state.provider_registry,
-    )
-    .await
-    {
-        Ok(r) => r,
-        Err(resp) => return resp,
-    };
+    let (provider, ctx) =
+        match resolve_hermes_provider_context(&state.adapter, &*state.provider_registry).await {
+            Ok(r) => r,
+            Err(resp) => return resp,
+        };
     let adapter = match state
         .provider_registry
         .get(provider_type_to_str(&provider.provider_type))
@@ -366,7 +369,7 @@ pub async fn list_jobs(
         Ok(response_body) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
             record_log!(
-                &state.db,
+                &state.adapter,
                 gateway_key,
                 "GET",
                 "/api/jobs",
@@ -390,7 +393,7 @@ pub async fn list_jobs(
         Err(e) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
             record_log!(
-                &state.db,
+                &state.adapter,
                 gateway_key,
                 "GET",
                 "/api/jobs",
@@ -417,16 +420,11 @@ pub async fn create_job(
     let AuthenticatedKey(gateway_key) = auth;
     let start_time = Instant::now();
 
-    let (provider, ctx) = match resolve_hermes_provider_context(
-        &state.db,
-        &state.master_key,
-        &*state.provider_registry,
-    )
-    .await
-    {
-        Ok(r) => r,
-        Err(resp) => return resp,
-    };
+    let (provider, ctx) =
+        match resolve_hermes_provider_context(&state.adapter, &*state.provider_registry).await {
+            Ok(r) => r,
+            Err(resp) => return resp,
+        };
     let adapter = match state
         .provider_registry
         .get(provider_type_to_str(&provider.provider_type))
@@ -444,7 +442,7 @@ pub async fn create_job(
         Ok(response_body) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
             record_log!(
-                &state.db,
+                &state.adapter,
                 gateway_key,
                 "POST",
                 "/api/jobs",
@@ -468,7 +466,7 @@ pub async fn create_job(
         Err(e) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
             record_log!(
-                &state.db,
+                &state.adapter,
                 gateway_key,
                 "POST",
                 "/api/jobs",
@@ -495,16 +493,11 @@ pub async fn get_job(
     let AuthenticatedKey(gateway_key) = auth;
     let start_time = Instant::now();
 
-    let (provider, ctx) = match resolve_hermes_provider_context(
-        &state.db,
-        &state.master_key,
-        &*state.provider_registry,
-    )
-    .await
-    {
-        Ok(r) => r,
-        Err(resp) => return resp,
-    };
+    let (provider, ctx) =
+        match resolve_hermes_provider_context(&state.adapter, &*state.provider_registry).await {
+            Ok(r) => r,
+            Err(resp) => return resp,
+        };
     let adapter = match state
         .provider_registry
         .get(provider_type_to_str(&provider.provider_type))
@@ -519,7 +512,7 @@ pub async fn get_job(
         Ok(response_body) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
             record_log!(
-                &state.db,
+                &state.adapter,
                 gateway_key,
                 "GET",
                 &format!("/api/jobs/{}", job_id),
@@ -543,7 +536,7 @@ pub async fn get_job(
         Err(e) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
             record_log!(
-                &state.db,
+                &state.adapter,
                 gateway_key,
                 "GET",
                 &format!("/api/jobs/{}", job_id),
@@ -571,16 +564,11 @@ pub async fn update_job(
     let AuthenticatedKey(gateway_key) = auth;
     let start_time = Instant::now();
 
-    let (provider, ctx) = match resolve_hermes_provider_context(
-        &state.db,
-        &state.master_key,
-        &*state.provider_registry,
-    )
-    .await
-    {
-        Ok(r) => r,
-        Err(resp) => return resp,
-    };
+    let (provider, ctx) =
+        match resolve_hermes_provider_context(&state.adapter, &*state.provider_registry).await {
+            Ok(r) => r,
+            Err(resp) => return resp,
+        };
     let adapter = match state
         .provider_registry
         .get(provider_type_to_str(&provider.provider_type))
@@ -598,7 +586,7 @@ pub async fn update_job(
         Ok(response_body) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
             record_log!(
-                &state.db,
+                &state.adapter,
                 gateway_key,
                 "PATCH",
                 &format!("/api/jobs/{}", job_id),
@@ -622,7 +610,7 @@ pub async fn update_job(
         Err(e) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
             record_log!(
-                &state.db,
+                &state.adapter,
                 gateway_key,
                 "PATCH",
                 &format!("/api/jobs/{}", job_id),
@@ -649,16 +637,11 @@ pub async fn delete_job(
     let AuthenticatedKey(gateway_key) = auth;
     let start_time = Instant::now();
 
-    let (provider, ctx) = match resolve_hermes_provider_context(
-        &state.db,
-        &state.master_key,
-        &*state.provider_registry,
-    )
-    .await
-    {
-        Ok(r) => r,
-        Err(resp) => return resp,
-    };
+    let (provider, ctx) =
+        match resolve_hermes_provider_context(&state.adapter, &*state.provider_registry).await {
+            Ok(r) => r,
+            Err(resp) => return resp,
+        };
     let adapter = match state
         .provider_registry
         .get(provider_type_to_str(&provider.provider_type))
@@ -673,7 +656,7 @@ pub async fn delete_job(
         Ok(_) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
             record_log!(
-                &state.db,
+                &state.adapter,
                 gateway_key,
                 "DELETE",
                 &format!("/api/jobs/{}", job_id),
@@ -691,7 +674,7 @@ pub async fn delete_job(
         Err(e) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
             record_log!(
-                &state.db,
+                &state.adapter,
                 gateway_key,
                 "DELETE",
                 &format!("/api/jobs/{}", job_id),
@@ -718,16 +701,11 @@ pub async fn pause_job(
     let AuthenticatedKey(gateway_key) = auth;
     let start_time = Instant::now();
 
-    let (provider, ctx) = match resolve_hermes_provider_context(
-        &state.db,
-        &state.master_key,
-        &*state.provider_registry,
-    )
-    .await
-    {
-        Ok(r) => r,
-        Err(resp) => return resp,
-    };
+    let (provider, ctx) =
+        match resolve_hermes_provider_context(&state.adapter, &*state.provider_registry).await {
+            Ok(r) => r,
+            Err(resp) => return resp,
+        };
     let adapter = match state
         .provider_registry
         .get(provider_type_to_str(&provider.provider_type))
@@ -742,7 +720,7 @@ pub async fn pause_job(
         Ok(_) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
             record_log!(
-                &state.db,
+                &state.adapter,
                 gateway_key,
                 "POST",
                 &format!("/api/jobs/{}/pause", job_id),
@@ -760,7 +738,7 @@ pub async fn pause_job(
         Err(e) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
             record_log!(
-                &state.db,
+                &state.adapter,
                 gateway_key,
                 "POST",
                 &format!("/api/jobs/{}/pause", job_id),
@@ -787,16 +765,11 @@ pub async fn resume_job(
     let AuthenticatedKey(gateway_key) = auth;
     let start_time = Instant::now();
 
-    let (provider, ctx) = match resolve_hermes_provider_context(
-        &state.db,
-        &state.master_key,
-        &*state.provider_registry,
-    )
-    .await
-    {
-        Ok(r) => r,
-        Err(resp) => return resp,
-    };
+    let (provider, ctx) =
+        match resolve_hermes_provider_context(&state.adapter, &*state.provider_registry).await {
+            Ok(r) => r,
+            Err(resp) => return resp,
+        };
     let adapter = match state
         .provider_registry
         .get(provider_type_to_str(&provider.provider_type))
@@ -811,7 +784,7 @@ pub async fn resume_job(
         Ok(_) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
             record_log!(
-                &state.db,
+                &state.adapter,
                 gateway_key,
                 "POST",
                 &format!("/api/jobs/{}/resume", job_id),
@@ -829,7 +802,7 @@ pub async fn resume_job(
         Err(e) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
             record_log!(
-                &state.db,
+                &state.adapter,
                 gateway_key,
                 "POST",
                 &format!("/api/jobs/{}/resume", job_id),
@@ -856,16 +829,11 @@ pub async fn trigger_job(
     let AuthenticatedKey(gateway_key) = auth;
     let start_time = Instant::now();
 
-    let (provider, ctx) = match resolve_hermes_provider_context(
-        &state.db,
-        &state.master_key,
-        &*state.provider_registry,
-    )
-    .await
-    {
-        Ok(r) => r,
-        Err(resp) => return resp,
-    };
+    let (provider, ctx) =
+        match resolve_hermes_provider_context(&state.adapter, &*state.provider_registry).await {
+            Ok(r) => r,
+            Err(resp) => return resp,
+        };
     let adapter = match state
         .provider_registry
         .get(provider_type_to_str(&provider.provider_type))
@@ -880,7 +848,7 @@ pub async fn trigger_job(
         Ok(_) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
             record_log!(
-                &state.db,
+                &state.adapter,
                 gateway_key,
                 "POST",
                 &format!("/api/jobs/{}/run", job_id),
@@ -898,7 +866,7 @@ pub async fn trigger_job(
         Err(e) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
             record_log!(
-                &state.db,
+                &state.adapter,
                 gateway_key,
                 "POST",
                 &format!("/api/jobs/{}/run", job_id),
@@ -925,16 +893,11 @@ pub async fn list_runs(
     let AuthenticatedKey(gateway_key) = auth;
     let start_time = Instant::now();
 
-    let (provider, ctx) = match resolve_hermes_provider_context(
-        &state.db,
-        &state.master_key,
-        &*state.provider_registry,
-    )
-    .await
-    {
-        Ok(r) => r,
-        Err(resp) => return resp,
-    };
+    let (provider, ctx) =
+        match resolve_hermes_provider_context(&state.adapter, &*state.provider_registry).await {
+            Ok(r) => r,
+            Err(resp) => return resp,
+        };
     let adapter = match state
         .provider_registry
         .get(provider_type_to_str(&provider.provider_type))
@@ -949,7 +912,7 @@ pub async fn list_runs(
         Ok(response_body) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
             record_log!(
-                &state.db,
+                &state.adapter,
                 gateway_key,
                 "GET",
                 &format!("/api/jobs/{}/runs", job_id),
@@ -973,7 +936,7 @@ pub async fn list_runs(
         Err(e) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
             record_log!(
-                &state.db,
+                &state.adapter,
                 gateway_key,
                 "GET",
                 &format!("/api/jobs/{}/runs", job_id),
@@ -1000,16 +963,11 @@ pub async fn trigger_run(
     let AuthenticatedKey(gateway_key) = auth;
     let start_time = Instant::now();
 
-    let (provider, ctx) = match resolve_hermes_provider_context(
-        &state.db,
-        &state.master_key,
-        &*state.provider_registry,
-    )
-    .await
-    {
-        Ok(r) => r,
-        Err(resp) => return resp,
-    };
+    let (provider, ctx) =
+        match resolve_hermes_provider_context(&state.adapter, &*state.provider_registry).await {
+            Ok(r) => r,
+            Err(resp) => return resp,
+        };
     let adapter = match state
         .provider_registry
         .get(provider_type_to_str(&provider.provider_type))
@@ -1027,7 +985,7 @@ pub async fn trigger_run(
         Ok(response_body) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
             record_log!(
-                &state.db,
+                &state.adapter,
                 gateway_key,
                 "POST",
                 &format!("/api/jobs/{}/runs", job_id),
@@ -1051,7 +1009,7 @@ pub async fn trigger_run(
         Err(e) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
             record_log!(
-                &state.db,
+                &state.adapter,
                 gateway_key,
                 "POST",
                 &format!("/api/jobs/{}/runs", job_id),
@@ -1077,16 +1035,11 @@ pub async fn get_run(
     let AuthenticatedKey(gateway_key) = auth;
     let start_time = Instant::now();
 
-    let (provider, ctx) = match resolve_hermes_provider_context(
-        &state.db,
-        &state.master_key,
-        &*state.provider_registry,
-    )
-    .await
-    {
-        Ok(r) => r,
-        Err(resp) => return resp,
-    };
+    let (provider, ctx) =
+        match resolve_hermes_provider_context(&state.adapter, &*state.provider_registry).await {
+            Ok(r) => r,
+            Err(resp) => return resp,
+        };
     let adapter = match state
         .provider_registry
         .get(provider_type_to_str(&provider.provider_type))
@@ -1101,7 +1054,7 @@ pub async fn get_run(
         Ok(response_body) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
             record_log!(
-                &state.db,
+                &state.adapter,
                 gateway_key,
                 "GET",
                 &format!("/api/jobs/{}/runs/{}", job_id, run_id),
@@ -1125,7 +1078,7 @@ pub async fn get_run(
         Err(e) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
             record_log!(
-                &state.db,
+                &state.adapter,
                 gateway_key,
                 "GET",
                 &format!("/api/jobs/{}/runs/{}", job_id, run_id),
@@ -1151,16 +1104,11 @@ pub async fn cancel_run(
     let AuthenticatedKey(gateway_key) = auth;
     let start_time = Instant::now();
 
-    let (provider, ctx) = match resolve_hermes_provider_context(
-        &state.db,
-        &state.master_key,
-        &*state.provider_registry,
-    )
-    .await
-    {
-        Ok(r) => r,
-        Err(resp) => return resp,
-    };
+    let (provider, ctx) =
+        match resolve_hermes_provider_context(&state.adapter, &*state.provider_registry).await {
+            Ok(r) => r,
+            Err(resp) => return resp,
+        };
     let adapter = match state
         .provider_registry
         .get(provider_type_to_str(&provider.provider_type))
@@ -1175,7 +1123,7 @@ pub async fn cancel_run(
         Ok(_) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
             record_log!(
-                &state.db,
+                &state.adapter,
                 gateway_key,
                 "POST",
                 &format!("/api/jobs/{}/runs/{}/cancel", job_id, run_id),
@@ -1192,7 +1140,7 @@ pub async fn cancel_run(
         Err(e) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
             record_log!(
-                &state.db,
+                &state.adapter,
                 gateway_key,
                 "POST",
                 &format!("/api/jobs/{}/runs/{}/cancel", job_id, run_id),
@@ -1218,16 +1166,11 @@ pub async fn get_run_logs(
     let AuthenticatedKey(gateway_key) = auth;
     let start_time = Instant::now();
 
-    let (provider, ctx) = match resolve_hermes_provider_context(
-        &state.db,
-        &state.master_key,
-        &*state.provider_registry,
-    )
-    .await
-    {
-        Ok(r) => r,
-        Err(resp) => return resp,
-    };
+    let (provider, ctx) =
+        match resolve_hermes_provider_context(&state.adapter, &*state.provider_registry).await {
+            Ok(r) => r,
+            Err(resp) => return resp,
+        };
     let adapter = match state
         .provider_registry
         .get(provider_type_to_str(&provider.provider_type))
@@ -1242,7 +1185,7 @@ pub async fn get_run_logs(
         Ok(response_body) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
             record_log!(
-                &state.db,
+                &state.adapter,
                 gateway_key,
                 "GET",
                 &format!("/api/jobs/{}/runs/{}/logs", job_id, run_id),
@@ -1266,7 +1209,7 @@ pub async fn get_run_logs(
         Err(e) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
             record_log!(
-                &state.db,
+                &state.adapter,
                 gateway_key,
                 "GET",
                 &format!("/api/jobs/{}/runs/{}/logs", job_id, run_id),
@@ -1292,16 +1235,11 @@ pub async fn retry_run(
     let AuthenticatedKey(gateway_key) = auth;
     let start_time = Instant::now();
 
-    let (provider, ctx) = match resolve_hermes_provider_context(
-        &state.db,
-        &state.master_key,
-        &*state.provider_registry,
-    )
-    .await
-    {
-        Ok(r) => r,
-        Err(resp) => return resp,
-    };
+    let (provider, ctx) =
+        match resolve_hermes_provider_context(&state.adapter, &*state.provider_registry).await {
+            Ok(r) => r,
+            Err(resp) => return resp,
+        };
     let adapter = match state
         .provider_registry
         .get(provider_type_to_str(&provider.provider_type))
@@ -1316,7 +1254,7 @@ pub async fn retry_run(
         Ok(response_body) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
             record_log!(
-                &state.db,
+                &state.adapter,
                 gateway_key,
                 "POST",
                 &format!("/api/jobs/{}/runs/{}/retry", job_id, run_id),
@@ -1340,7 +1278,7 @@ pub async fn retry_run(
         Err(e) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
             record_log!(
-                &state.db,
+                &state.adapter,
                 gateway_key,
                 "POST",
                 &format!("/api/jobs/{}/runs/{}/retry", job_id, run_id),
@@ -1366,16 +1304,11 @@ pub async fn get_job_schedule(
     let AuthenticatedKey(gateway_key) = auth;
     let start_time = Instant::now();
 
-    let (provider, ctx) = match resolve_hermes_provider_context(
-        &state.db,
-        &state.master_key,
-        &*state.provider_registry,
-    )
-    .await
-    {
-        Ok(r) => r,
-        Err(resp) => return resp,
-    };
+    let (provider, ctx) =
+        match resolve_hermes_provider_context(&state.adapter, &*state.provider_registry).await {
+            Ok(r) => r,
+            Err(resp) => return resp,
+        };
     let adapter = match state
         .provider_registry
         .get(provider_type_to_str(&provider.provider_type))
@@ -1390,7 +1323,7 @@ pub async fn get_job_schedule(
         Ok(response_body) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
             record_log!(
-                &state.db,
+                &state.adapter,
                 gateway_key,
                 "GET",
                 &format!("/api/jobs/{}/schedule", job_id),
@@ -1414,7 +1347,7 @@ pub async fn get_job_schedule(
         Err(e) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
             record_log!(
-                &state.db,
+                &state.adapter,
                 gateway_key,
                 "GET",
                 &format!("/api/jobs/{}/schedule", job_id),
@@ -1441,16 +1374,11 @@ pub async fn update_job_schedule(
     let AuthenticatedKey(gateway_key) = auth;
     let start_time = Instant::now();
 
-    let (provider, ctx) = match resolve_hermes_provider_context(
-        &state.db,
-        &state.master_key,
-        &*state.provider_registry,
-    )
-    .await
-    {
-        Ok(r) => r,
-        Err(resp) => return resp,
-    };
+    let (provider, ctx) =
+        match resolve_hermes_provider_context(&state.adapter, &*state.provider_registry).await {
+            Ok(r) => r,
+            Err(resp) => return resp,
+        };
     let adapter = match state
         .provider_registry
         .get(provider_type_to_str(&provider.provider_type))
@@ -1471,7 +1399,7 @@ pub async fn update_job_schedule(
         Ok(response_body) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
             record_log!(
-                &state.db,
+                &state.adapter,
                 gateway_key,
                 "PUT",
                 &format!("/api/jobs/{}/schedule", job_id),
@@ -1495,7 +1423,7 @@ pub async fn update_job_schedule(
         Err(e) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
             record_log!(
-                &state.db,
+                &state.adapter,
                 gateway_key,
                 "PUT",
                 &format!("/api/jobs/{}/schedule", job_id),
@@ -1524,16 +1452,11 @@ pub async fn enable_job(
     let AuthenticatedKey(gateway_key) = auth;
     let start_time = Instant::now();
 
-    let (provider, ctx) = match resolve_hermes_provider_context(
-        &state.db,
-        &state.master_key,
-        &*state.provider_registry,
-    )
-    .await
-    {
-        Ok(r) => r,
-        Err(resp) => return resp,
-    };
+    let (provider, ctx) =
+        match resolve_hermes_provider_context(&state.adapter, &*state.provider_registry).await {
+            Ok(r) => r,
+            Err(resp) => return resp,
+        };
     let adapter = match state
         .provider_registry
         .get(provider_type_to_str(&provider.provider_type))
@@ -1548,7 +1471,7 @@ pub async fn enable_job(
         Ok(_) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
             record_log!(
-                &state.db,
+                &state.adapter,
                 gateway_key,
                 "POST",
                 &format!("/api/jobs/{}/enable", job_id),
@@ -1565,7 +1488,7 @@ pub async fn enable_job(
         Err(e) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
             record_log!(
-                &state.db,
+                &state.adapter,
                 gateway_key,
                 "POST",
                 &format!("/api/jobs/{}/enable", job_id),
@@ -1591,16 +1514,11 @@ pub async fn disable_job(
     let AuthenticatedKey(gateway_key) = auth;
     let start_time = Instant::now();
 
-    let (provider, ctx) = match resolve_hermes_provider_context(
-        &state.db,
-        &state.master_key,
-        &*state.provider_registry,
-    )
-    .await
-    {
-        Ok(r) => r,
-        Err(resp) => return resp,
-    };
+    let (provider, ctx) =
+        match resolve_hermes_provider_context(&state.adapter, &*state.provider_registry).await {
+            Ok(r) => r,
+            Err(resp) => return resp,
+        };
     let adapter = match state
         .provider_registry
         .get(provider_type_to_str(&provider.provider_type))
@@ -1615,7 +1533,7 @@ pub async fn disable_job(
         Ok(_) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
             record_log!(
-                &state.db,
+                &state.adapter,
                 gateway_key,
                 "POST",
                 &format!("/api/jobs/{}/disable", job_id),
@@ -1632,7 +1550,7 @@ pub async fn disable_job(
         Err(e) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
             record_log!(
-                &state.db,
+                &state.adapter,
                 gateway_key,
                 "POST",
                 &format!("/api/jobs/{}/disable", job_id),
@@ -1660,7 +1578,7 @@ pub async fn disable_job(
 /// (lexicographic), secondary key is the provider name (tiebreaker for the rare
 /// case of identical display IDs across multiple providers).
 pub async fn list_models(State(state): State<GatewayAppState>) -> impl IntoResponse {
-    let providers = match axagent_core::repo::provider::list_providers(&state.db).await {
+    let providers = match state.adapter.providers().list_providers().await {
         Ok(p) => p,
         Err(e) => {
             return (
@@ -1717,24 +1635,23 @@ pub async fn chat_completions(
 
     // Fetch providers once — used for both model-field parsing and resolution.
     // Filter to only chat-completions-compatible provider types.
-    let providers: Vec<ProviderConfig> =
-        match axagent_core::repo::provider::list_providers(&state.db).await {
-            Ok(p) => p
-                .into_iter()
-                .filter(|p| {
-                    matches!(
-                        p.provider_type,
-                        ProviderType::OpenAI
-                            | ProviderType::OpenClaw
-                            | ProviderType::Hermes
-                            | ProviderType::Ollama
-                    )
-                })
-                .collect(),
-            Err(e) => {
-                return error_response(StatusCode::INTERNAL_SERVER_ERROR, &e.to_string());
-            },
-        };
+    let providers: Vec<ProviderConfig> = match state.adapter.providers().list_providers().await {
+        Ok(p) => p
+            .into_iter()
+            .filter(|p| {
+                matches!(
+                    p.provider_type,
+                    ProviderType::OpenAI
+                        | ProviderType::OpenClaw
+                        | ProviderType::Hermes
+                        | ProviderType::Ollama
+                )
+            })
+            .collect(),
+        Err(e) => {
+            return error_response(StatusCode::INTERNAL_SERVER_ERROR, &e.to_string());
+        },
+    };
     let public_id_map = build_provider_public_id_map(&providers);
     let known_public_ids: HashSet<String> = public_id_map.values().cloned().collect();
 
@@ -1750,18 +1667,21 @@ pub async fn chat_completions(
     };
 
     // Get active key and decrypt
-    let provider_key =
-        match axagent_core::repo::provider::get_active_key(&state.db, &provider.id).await {
-            Ok(k) => k,
-            Err(_) => {
-                return error_response(
-                    StatusCode::BAD_GATEWAY,
-                    &format!("No active API key for provider '{}'", provider.name),
-                );
-            },
-        };
+    let provider_key = match state.adapter.providers().get_active_key(&provider.id).await {
+        Ok(k) => k,
+        Err(_) => {
+            return error_response(
+                StatusCode::BAD_GATEWAY,
+                &format!("No active API key for provider '{}'", provider.name),
+            );
+        },
+    };
 
-    let api_key = match decrypt_key(&provider_key.key_encrypted, &state.master_key) {
+    let api_key = match state
+        .adapter
+        .crypto()
+        .decrypt_key(&provider_key.key_encrypted)
+    {
         Ok(k) => k,
         Err(e) => {
             tracing::error!("Failed to decrypt provider key: {}", e);
@@ -1771,7 +1691,10 @@ pub async fn chat_completions(
 
     let provider_type_str = provider_type_to_str(&provider.provider_type);
 
-    let global_settings = axagent_core::repo::settings::get_settings(&state.db)
+    let global_settings = state
+        .adapter
+        .settings()
+        .get_settings()
         .await
         .unwrap_or_default();
     let resolved_proxy = ProviderProxyConfig::resolve(&provider.proxy_config, &global_settings);
@@ -1851,20 +1774,22 @@ async fn handle_non_stream(
     match adapter.chat(ctx, request).await {
         Ok(response) => {
             // Record usage
-            let _ = axagent_core::repo::gateway::record_usage(
-                &state.db,
-                &gateway_key.id,
-                provider_id,
-                Some(model_id),
-                response.usage.prompt_tokens as u64,
-                response.usage.completion_tokens as u64,
-                response.usage.cache_read_tokens.unwrap_or(0) as u64,
-            )
-            .await;
+            let _ = state
+                .adapter
+                .gateway_keys()
+                .record_usage(
+                    &gateway_key.id,
+                    provider_id,
+                    Some(model_id),
+                    response.usage.prompt_tokens as u64,
+                    response.usage.completion_tokens as u64,
+                    response.usage.cache_read_tokens.unwrap_or(0) as u64,
+                )
+                .await;
 
             let elapsed = start_time.elapsed().as_millis() as i32;
             record_log!(
-                &state.db,
+                &state.adapter,
                 gateway_key,
                 "POST",
                 "/v1/chat/completions",
@@ -1882,7 +1807,7 @@ async fn handle_non_stream(
         Err(e) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
             record_log!(
-                &state.db,
+                &state.adapter,
                 gateway_key,
                 "POST",
                 "/v1/chat/completions",
@@ -1915,7 +1840,7 @@ async fn handle_stream(
     let mut stream = adapter.chat_stream(ctx, request, None);
 
     let (tx, rx) = tokio::sync::mpsc::channel::<Result<Event, Infallible>>(32);
-    let db = state.db.clone();
+    let platform_adapter = state.adapter.clone();
     let key = gateway_key.clone();
     let prov_id = provider_id.to_string();
     let mod_id = model_id.to_string();
@@ -1971,21 +1896,22 @@ async fn handle_stream(
         }
 
         // Record usage
-        let _ = axagent_core::repo::gateway::record_usage(
-            &db,
-            &key.id,
-            &prov_id,
-            Some(&mod_id),
-            total_prompt as u64,
-            total_completion as u64,
-            total_cached as u64,
-        )
-        .await;
+        let _ = platform_adapter
+            .gateway_keys()
+            .record_usage(
+                &key.id,
+                &prov_id,
+                Some(&mod_id),
+                total_prompt as u64,
+                total_completion as u64,
+                total_cached as u64,
+            )
+            .await;
 
         let elapsed = start_time.elapsed().as_millis() as i32;
         let status_code = if stream_error.is_some() { 502 } else { 200 };
         record_log!(
-            &db,
+            &platform_adapter,
             key,
             "POST",
             "/v1/chat/completions",
@@ -2339,13 +2265,10 @@ pub(crate) fn error_response(status: StatusCode, message: &str) -> axum::respons
 }
 
 async fn resolve_hermes_provider_context(
-    db: &DatabaseConnection,
-    master_key: &[u8; 32],
+    adapter: &Arc<dyn axagent_harness::PlatformAdapter>,
     _registry: &dyn axagent_harness::registry::ProviderRegistry,
 ) -> Result<(ProviderConfig, ProviderRequestContext), axum::response::Response> {
-    let providers: Vec<ProviderConfig> = match axagent_core::repo::provider::list_providers(db)
-        .await
-    {
+    let providers: Vec<ProviderConfig> = match adapter.providers().list_providers().await {
         Ok(p) => p
             .into_iter()
             .filter(|p| matches!(p.provider_type, ProviderType::OpenClaw | ProviderType::Hermes))
@@ -2365,7 +2288,7 @@ async fn resolve_hermes_provider_context(
         },
     };
 
-    let provider_key = match axagent_core::repo::provider::get_active_key(db, &provider.id).await {
+    let provider_key = match adapter.providers().get_active_key(&provider.id).await {
         Ok(k) => k,
         Err(_) => {
             return Err(error_response(
@@ -2375,7 +2298,7 @@ async fn resolve_hermes_provider_context(
         },
     };
 
-    let api_key = match decrypt_key(&provider_key.key_encrypted, master_key) {
+    let api_key = match adapter.crypto().decrypt_key(&provider_key.key_encrypted) {
         Ok(k) => k,
         Err(e) => {
             tracing::error!("Failed to decrypt provider key: {}", e);
@@ -2383,9 +2306,7 @@ async fn resolve_hermes_provider_context(
         },
     };
 
-    let global_settings = axagent_core::repo::settings::get_settings(db)
-        .await
-        .unwrap_or_default();
+    let global_settings = adapter.settings().get_settings().await.unwrap_or_default();
     let resolved_proxy = ProviderProxyConfig::resolve(&provider.proxy_config, &global_settings);
 
     let ctx = ProviderRequestContext {

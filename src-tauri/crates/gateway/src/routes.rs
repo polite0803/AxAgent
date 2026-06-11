@@ -122,7 +122,7 @@ pub fn create_router(state: GatewayAppState) -> Router {
         .layer(middleware::from_fn_with_state(
             AuthState {
                 db: state.db.clone(),
-                master_key: state.master_key,
+                adapter: state.adapter.clone(),
             },
             auth_middleware,
         ));
@@ -156,6 +156,7 @@ mod tests {
             master_key: [7u8; 32],
             started_at: 0,
             provider_registry: axagent_harness::test_support::empty_provider_registry(),
+            adapter: axagent_harness::test_support::empty_platform_adapter(),
         }
     }
 

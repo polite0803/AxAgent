@@ -17,6 +17,7 @@ pub mod reranker;
 pub mod search;
 pub mod self_rag;
 pub mod semantic_cache;
+pub mod sources;
 pub mod text_chunker;
 pub mod vector_cache;
 pub mod vector_store;

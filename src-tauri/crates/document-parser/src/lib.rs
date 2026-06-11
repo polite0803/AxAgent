@@ -302,3 +302,6 @@ fn extract_text_from_pptx_xml(xml: &str) -> String {
 
     result
 }
+
+// ── trait 默认实现 ──
+pub mod parser_impl;

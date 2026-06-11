@@ -514,6 +514,13 @@ pub async fn start_gateway(state: State<'_, AppState>) -> Result<(), String> {
         state.harness.master_key_owned(),
         start_config,
         state.harness.provider_registry().clone(),
+        axagent_dao::platform_adapter_impl::build_platform_adapter(
+            state.harness.db().clone(),
+            state.harness.master_key_owned(),
+            std::sync::Arc::new(axagent_crypto::platform_adapter_impl::DefaultCryptoService::new(
+                state.harness.master_key_owned(),
+            )),
+        ),
     )
     .await
     .map_err(|e| e.to_string())?;

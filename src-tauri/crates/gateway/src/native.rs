@@ -1,9 +1,9 @@
-use axagent_core::{crypto::decrypt_key, error::AxAgentError};
+use axagent_core::error::AxAgentError;
 use axagent_harness::ProviderRequestContext;
 use axagent_harness::types::{
     GatewayKey, ProviderConfig, ProviderProxyConfig, ProviderType, TokenUsage,
 };
-use axagent_providers::url_utils::resolve_base_url_for_type;
+use axagent_harness::url_utils::resolve_base_url_for_type;
 
 use axum::{
     body::{Body, Bytes, to_bytes},
@@ -12,6 +12,7 @@ use axum::{
     response::IntoResponse,
 };
 use futures::StreamExt;
+use std::sync::Arc;
 use std::{convert::Infallible, time::Instant};
 use tokio_stream::wrappers::ReceiverStream;
 
@@ -489,7 +490,10 @@ async fn resolve_native_context(
     protocol: NativeProtocol,
     model: Option<&str>,
 ) -> Result<ResolvedNativeContext, axum::response::Response> {
-    let providers = axagent_core::repo::provider::list_providers(&state.db)
+    let providers = state
+        .adapter
+        .providers()
+        .list_providers()
         .await
         .map_err(|e| error_response(StatusCode::INTERNAL_SERVER_ERROR, &e.to_string()))?;
     let candidates: Vec<ProviderConfig> = providers
@@ -532,7 +536,10 @@ async fn resolve_native_context(
             })?;
             let mut preferred_provider = None;
             for provider in &matching {
-                if axagent_core::repo::provider::get_active_key(&state.db, &provider.id)
+                if state
+                    .adapter
+                    .providers()
+                    .get_active_key(&provider.id)
                     .await
                     .is_ok()
                 {
@@ -546,7 +553,10 @@ async fn resolve_native_context(
         (candidates[0].clone(), None)
     };
 
-    let provider_key = axagent_core::repo::provider::get_active_key(&state.db, &provider.id)
+    let provider_key = state
+        .adapter
+        .providers()
+        .get_active_key(&provider.id)
         .await
         .map_err(|_| {
             error_response(
@@ -554,12 +564,19 @@ async fn resolve_native_context(
                 &format!("No active API key for provider '{}'", provider.name),
             )
         })?;
-    let api_key = decrypt_key(&provider_key.key_encrypted, &state.master_key).map_err(|e| {
-        tracing::error!("Failed to decrypt provider key: {}", e);
-        error_response(StatusCode::INTERNAL_SERVER_ERROR, "Internal key error")
-    })?;
+    let api_key = state
+        .adapter
+        .crypto()
+        .decrypt_key(&provider_key.key_encrypted)
+        .map_err(|e| {
+            tracing::error!("Failed to decrypt provider key: {}", e);
+            error_response(StatusCode::INTERNAL_SERVER_ERROR, "Internal key error")
+        })?;
 
-    let global_settings = axagent_core::repo::settings::get_settings(&state.db)
+    let global_settings = state
+        .adapter
+        .settings()
+        .get_settings()
         .await
         .unwrap_or_default();
     let resolved_proxy = ProviderProxyConfig::resolve(&provider.proxy_config, &global_settings);
@@ -588,7 +605,7 @@ async fn resolve_native_context(
 
 #[allow(clippy::too_many_arguments)]
 async fn record_native_outcome(
-    db: &sea_orm::DatabaseConnection,
+    adapter: &Arc<dyn axagent_harness::PlatformAdapter>,
     gateway_key: &GatewayKey,
     provider_id: &str,
     model_id: Option<&str>,
@@ -604,16 +621,17 @@ async fn record_native_outcome(
         && status_code < 400
         && let Some(usage) = usage
     {
-        let _ = axagent_core::repo::gateway::record_usage(
-            db,
-            &gateway_key.id,
-            provider_id,
-            model_id,
-            usage.prompt_tokens as u64,
-            usage.completion_tokens as u64,
-            usage.cache_read_tokens.unwrap_or(0) as u64,
-        )
-        .await;
+        let _ = adapter
+            .gateway_keys()
+            .record_usage(
+                &gateway_key.id,
+                provider_id,
+                model_id,
+                usage.prompt_tokens as u64,
+                usage.completion_tokens as u64,
+                usage.cache_read_tokens.unwrap_or(0) as u64,
+            )
+            .await;
     }
 
     let elapsed = start_time.elapsed().as_millis() as i32;
@@ -621,21 +639,22 @@ async fn record_native_outcome(
     let response_tokens = usage
         .map(|usage| usage.completion_tokens as i64)
         .unwrap_or(0);
-    let _ = axagent_core::repo::gateway_request_log::record_request_log(
-        db,
-        &gateway_key.id,
-        &gateway_key.name,
-        method.as_str(),
-        path,
-        model_id,
-        Some(provider_id),
-        status_code,
-        elapsed,
-        request_tokens,
-        response_tokens,
-        error_message,
-    )
-    .await;
+    let _ = adapter
+        .request_log()
+        .record_request_log(
+            &gateway_key.id,
+            &gateway_key.name,
+            method.as_str(),
+            path,
+            model_id,
+            Some(provider_id),
+            status_code,
+            elapsed,
+            request_tokens,
+            response_tokens,
+            error_message,
+        )
+        .await;
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -657,7 +676,7 @@ async fn proxy_buffered_response(
         Ok(bytes) => bytes,
         Err(e) => {
             record_native_outcome(
-                &state.db,
+                &state.adapter,
                 gateway_key,
                 provider_id,
                 model_id,
@@ -691,7 +710,7 @@ async fn proxy_buffered_response(
     };
 
     record_native_outcome(
-        &state.db,
+        &state.adapter,
         gateway_key,
         provider_id,
         model_id,
@@ -772,7 +791,7 @@ fn build_upstream_request(
 async fn proxy_stream_response(
     protocol: NativeProtocol,
     gateway_key: GatewayKey,
-    db: sea_orm::DatabaseConnection,
+    adapter: Arc<dyn axagent_harness::PlatformAdapter>,
     method: Method,
     path: String,
     provider_id: String,
@@ -815,7 +834,7 @@ async fn proxy_stream_response(
             status.as_u16() as i32
         };
         record_native_outcome(
-            &db,
+            &adapter,
             &gateway_key,
             &provider_id,
             model_id.as_deref(),
@@ -955,7 +974,7 @@ async fn handle_native_request(
         Ok(client) => client,
         Err(e) => {
             record_native_outcome(
-                &state.db,
+                &state.adapter,
                 &gateway_key,
                 &resolved.provider.id,
                 resolved.model_id.as_deref(),
@@ -987,7 +1006,7 @@ async fn handle_native_request(
         Ok(response) => response,
         Err(e) => {
             record_native_outcome(
-                &state.db,
+                &state.adapter,
                 &gateway_key,
                 &resolved.provider.id,
                 resolved.model_id.as_deref(),
@@ -1008,7 +1027,7 @@ async fn handle_native_request(
         proxy_stream_response(
             protocol,
             gateway_key,
-            state.db.clone(),
+            state.adapter.clone(),
             method,
             path,
             resolved.provider.id.clone(),
@@ -1268,6 +1287,13 @@ mod tests {
             master_key,
             started_at: 0,
             provider_registry: axagent_harness::test_support::empty_provider_registry(),
+            adapter: axagent_dao::platform_adapter_impl::build_platform_adapter(
+                handle.conn.clone(),
+                master_key,
+                std::sync::Arc::new(
+                    axagent_crypto::platform_adapter_impl::DefaultCryptoService::new(master_key),
+                ),
+            ),
         };
         (create_router(state.clone()), handle, gateway_key.plain_key, state)
     }
@@ -1677,6 +1703,13 @@ mod tests {
             master_key,
             started_at: 0,
             provider_registry: axagent_harness::test_support::empty_provider_registry(),
+            adapter: axagent_dao::platform_adapter_impl::build_platform_adapter(
+                handle.conn.clone(),
+                master_key,
+                std::sync::Arc::new(
+                    axagent_crypto::platform_adapter_impl::DefaultCryptoService::new(master_key),
+                ),
+            ),
         });
         let response = app
             .oneshot(

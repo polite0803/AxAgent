@@ -1,59 +1,13 @@
 pub use axagent_core::ddl::run_initialization;
+pub use axagent_harness::migration_types::{
+    BackupInfo, DetectedPlatform, MigrationEntry, MigrationItem, MigrationReport,
+};
 
 use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::{Path, PathBuf};
 
 use axagent_core::secure_store::SecureStore;
-
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct DetectedPlatform {
-    pub name: String,
-    pub base_path: PathBuf,
-    pub has_soul: bool,
-    pub has_memory: bool,
-    pub has_skills: bool,
-    pub has_config: bool,
-    pub has_env: bool,
-    pub has_cron: bool,
-    pub has_personalities: bool,
-    pub skill_count: usize,
-    pub memory_count: usize,
-}
-
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct MigrationItem {
-    pub source: PathBuf,
-    pub destination: PathBuf,
-    pub item_type: String,
-    pub description: String,
-    pub exists_at_dest: bool,
-}
-
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct MigrationReport {
-    pub platform: String,
-    pub timestamp: String,
-    pub migrated: Vec<MigrationEntry>,
-    pub skipped: Vec<MigrationEntry>,
-    pub failed: Vec<MigrationEntry>,
-}
-
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct MigrationEntry {
-    pub source: String,
-    pub destination: String,
-    pub item_type: String,
-    pub description: String,
-    pub reason: String,
-}
-
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct BackupInfo {
-    pub backup_path: PathBuf,
-    pub timestamp: String,
-    pub items_backed_up: Vec<String>,
-}
 
 fn axagent_home() -> PathBuf {
     dirs::home_dir()
@@ -970,4 +924,39 @@ pub fn list_backups() -> Vec<BackupInfo> {
 pub fn migrate_secrets(secrets: HashMap<String, String>) -> Vec<(String, Result<(), String>)> {
     let store = axagent_core::secure_store::CombinedSecureStore::with_default_paths();
     axagent_core::secure_store::migrate_secrets(&store, secrets)
+}
+
+// ── `axagent_harness::MigrationRunner` trait impl ──
+//
+// 把原来模块顶层的 8 个 free function 包成 trait impl，让 `tools` crate
+// 不用直接 import `axagent_migration`，改为持有
+// `Arc<dyn axagent_harness::MigrationRunner>`，由 wiring 层注入。
+
+pub struct DefaultMigrationRunner;
+
+impl axagent_harness::MigrationRunner for DefaultMigrationRunner {
+    fn detect_platforms(&self) -> Vec<DetectedPlatform> {
+        detect_platforms()
+    }
+    fn preview_openclaw(&self) -> Vec<MigrationItem> {
+        preview_openclaw()
+    }
+    fn preview_hermes(&self) -> Vec<MigrationItem> {
+        preview_hermes()
+    }
+    fn create_backup(&self, platform: &str) -> Result<BackupInfo, String> {
+        create_backup(platform)
+    }
+    fn migrate_openclaw(&self, overwrite: bool) -> MigrationReport {
+        migrate_openclaw(overwrite)
+    }
+    fn migrate_hermes(&self, overwrite: bool) -> MigrationReport {
+        migrate_hermes(overwrite)
+    }
+    fn rollback(&self, backup_path: &Path) -> Result<MigrationReport, String> {
+        rollback(backup_path)
+    }
+    fn list_backups(&self) -> Vec<BackupInfo> {
+        list_backups()
+    }
 }

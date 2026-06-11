@@ -187,90 +187,6 @@ async fn start_customer_service_polling(
     Ok(())
 }
 
-// ── Public webhook handlers for WeChat official_account mode ──
-
-/// 处理微信服务器验证请求 (GET)
-/// 微信在配置服务器 URL 时会发送 GET 请求验证
-pub fn verify_server(
-    token: &str,
-    signature: &str,
-    timestamp: &str,
-    nonce: &str,
-    echostr: &str,
-) -> Result<String, String> {
-    let mut items = [token.to_string(), timestamp.to_string(), nonce.to_string()];
-    items.sort();
-    let combined = items.join("");
-    use sha1::Digest;
-    let mut hasher = sha1::Sha1::new();
-    hasher.update(combined.as_bytes());
-    let digest = format!("{:x}", hasher.finalize());
-
-    if digest != signature.to_lowercase() {
-        return Err("签名验证失败".to_string());
-    }
-
-    Ok(echostr.to_string())
-}
-
-/// 处理微信服务器 POST 的消息 XML
-/// 解析 XML 并将消息通过回调转发给 Agent 处理
-pub async fn handle_official_account_message(
-    config: &PlatformConfig,
-    xml_body: &str,
-) -> Result<String, String> {
-    let doc = roxmltree::Document::parse(xml_body).map_err(|e| format!("XML 解析失败: {}", e))?;
-
-    let root = doc.root();
-    let msg_type = root
-        .children()
-        .find(|n| n.has_tag_name("MsgType"))
-        .and_then(|n| n.text())
-        .unwrap_or("");
-
-    if msg_type != "text" {
-        // 非文本消息返回空（微信会忽略空回复）
-        return Ok("success".to_string());
-    }
-
-    let from_user = root
-        .children()
-        .find(|n| n.has_tag_name("FromUserName"))
-        .and_then(|n| n.text())
-        .unwrap_or("");
-    let content = root
-        .children()
-        .find(|n| n.has_tag_name("Content"))
-        .and_then(|n| n.text())
-        .unwrap_or("");
-
-    if from_user.is_empty() || content.is_empty() {
-        return Ok("success".to_string());
-    }
-
-    tracing::info!("WeChat official account: {} — {}", from_user, content);
-
-    if let Some(cb) = crate::message_gateway::platforms::get_message_callback() {
-        let app_id = config.wechat_app_id.clone().unwrap_or_default();
-        let app_secret = config.wechat_app_secret.clone().unwrap_or_default();
-        let from = from_user.to_string();
-        let text = content.to_string();
-
-        tokio::spawn(async move {
-            let reply = cb.on_message("wechat", &from, None, &from, &text).await;
-            if let Some(reply_text) = reply {
-                let client = reqwest::Client::new();
-                if let Some(token) = fetch_wechat_token(&client, &app_id, &app_secret).await {
-                    let _ = send_wechat_custom_message(&token, &from, &reply_text).await;
-                }
-            }
-        });
-    }
-
-    // 返回 success 让微信知道已处理，实际回复通过客服消息异步发送
-    Ok("success".to_string())
-}
-
 // ── helper functions ──
 
 async fn fetch_wechat_token(
@@ -352,4 +268,93 @@ async fn send_wechat_custom_message(
         );
     }
     Ok(())
+}
+
+// ── `axagent_harness::WeChatWebhookHandler` trait impl ──
+//
+// 把原来模块顶层的 `verify_server` / `handle_official_account_message`
+// 自由函数变成 `WeChatAdapter` 的方法，让 `rt-webhook` 这样的 HTTP 服务器层
+// 只依赖 `axagent_harness::WeChatWebhookHandler` trait，不再直接
+// `use axagent_rt_messaging::message_gateway::platforms::wechat`。
+
+#[async_trait::async_trait]
+impl axagent_harness::WeChatWebhookHandler for WeChatAdapter {
+    fn verify_server(
+        &self,
+        token: &str,
+        signature: &str,
+        timestamp: &str,
+        nonce: &str,
+        echostr: &str,
+    ) -> Result<String, String> {
+        let mut items = [token.to_string(), timestamp.to_string(), nonce.to_string()];
+        items.sort();
+        let combined = items.join("");
+        use sha1::Digest;
+        let mut hasher = sha1::Sha1::new();
+        hasher.update(combined.as_bytes());
+        let digest = format!("{:x}", hasher.finalize());
+
+        if digest != signature.to_lowercase() {
+            return Err("签名验证失败".to_string());
+        }
+
+        Ok(echostr.to_string())
+    }
+
+    async fn handle_message(
+        &self,
+        config: &PlatformConfig,
+        xml_body: &str,
+    ) -> Result<String, String> {
+        let doc =
+            roxmltree::Document::parse(xml_body).map_err(|e| format!("XML 解析失败: {}", e))?;
+
+        let root = doc.root();
+        let msg_type = root
+            .children()
+            .find(|n| n.has_tag_name("MsgType"))
+            .and_then(|n| n.text())
+            .unwrap_or("");
+
+        if msg_type != "text" {
+            return Ok("success".to_string());
+        }
+
+        let from_user = root
+            .children()
+            .find(|n| n.has_tag_name("FromUserName"))
+            .and_then(|n| n.text())
+            .unwrap_or("");
+        let content = root
+            .children()
+            .find(|n| n.has_tag_name("Content"))
+            .and_then(|n| n.text())
+            .unwrap_or("");
+
+        if from_user.is_empty() || content.is_empty() {
+            return Ok("success".to_string());
+        }
+
+        tracing::info!("WeChat official account: {} — {}", from_user, content);
+
+        if let Some(cb) = crate::message_gateway::platforms::get_message_callback() {
+            let app_id = config.wechat_app_id.clone().unwrap_or_default();
+            let app_secret = config.wechat_app_secret.clone().unwrap_or_default();
+            let from = from_user.to_string();
+            let text = content.to_string();
+
+            tokio::spawn(async move {
+                let reply = cb.on_message("wechat", &from, None, &from, &text).await;
+                if let Some(reply_text) = reply {
+                    let client = reqwest::Client::new();
+                    if let Some(token) = fetch_wechat_token(&client, &app_id, &app_secret).await {
+                        let _ = send_wechat_custom_message(&token, &from, &reply_text).await;
+                    }
+                }
+            });
+        }
+
+        Ok("success".to_string())
+    }
 }

@@ -1,8 +1,23 @@
 use crate::{Tool, ToolCategory, ToolContext, ToolError, ToolResult};
 use async_trait::async_trait;
+use axagent_harness::MigrationRunner;
 use serde_json::Value;
+use std::sync::{Arc, OnceLock};
 
 pub struct MigrationTool;
+
+static RUNNER: OnceLock<Arc<dyn MigrationRunner>> = OnceLock::new();
+
+/// 注入 `MigrationRunner` trait object（由 wiring 层在初始化时调用一次）
+pub fn set_migration_runner(runner: Arc<dyn MigrationRunner>) {
+    let _ = RUNNER.set(runner);
+}
+
+fn runner() -> &'static Arc<dyn MigrationRunner> {
+    RUNNER
+        .get()
+        .expect("MigrationRunner not initialized; call set_migration_runner() at startup")
+}
 
 #[async_trait]
 impl Tool for MigrationTool {
@@ -76,7 +91,7 @@ impl Tool for MigrationTool {
 }
 
 fn action_detect() -> Result<ToolResult, ToolError> {
-    let platforms = axagent_migration::detect_platforms();
+    let platforms = runner().detect_platforms();
 
     if platforms.is_empty() {
         return Ok(ToolResult {
@@ -153,8 +168,8 @@ fn action_preview(input: &Value) -> Result<ToolResult, ToolError> {
     }
 
     let items = match platform.as_str() {
-        "openclaw" => axagent_migration::preview_openclaw(),
-        "hermes" => axagent_migration::preview_hermes(),
+        "openclaw" => runner().preview_openclaw(),
+        "hermes" => runner().preview_hermes(),
         _ => {
             return Err(ToolError::invalid_input(format!(
                 "不支持的平台: '{}'。支持: openclaw, hermes",
@@ -245,12 +260,13 @@ fn action_migrate(input: &Value) -> Result<ToolResult, ToolError> {
 
     let overwrite = input["overwrite"].as_bool().unwrap_or(false);
 
-    let backup = axagent_migration::create_backup(&platform)
+    let backup = runner()
+        .create_backup(&platform)
         .map_err(|e| ToolError::execution_failed(format!("创建备份失败: {}", e)))?;
 
     let report = match platform.as_str() {
-        "openclaw" => axagent_migration::migrate_openclaw(overwrite),
-        "hermes" => axagent_migration::migrate_hermes(overwrite),
+        "openclaw" => runner().migrate_openclaw(overwrite),
+        "hermes" => runner().migrate_hermes(overwrite),
         _ => {
             return Err(ToolError::invalid_input(format!(
                 "不支持的平台: '{}'。支持: openclaw, hermes",
@@ -326,7 +342,7 @@ fn action_rollback(input: &Value) -> Result<ToolResult, ToolError> {
     let backup_path = input["backup_path"].as_str().unwrap_or("").to_string();
 
     if backup_path.is_empty() {
-        let backups = axagent_migration::list_backups();
+        let backups = runner().list_backups();
         if backups.is_empty() {
             return Ok(ToolResult {
                 content: "## 回滚\n\n没有可用的备份。\n备份路径: ~/.axagent/migration-backup/"
@@ -376,7 +392,8 @@ fn action_rollback(input: &Value) -> Result<ToolResult, ToolError> {
     }
 
     let path = std::path::PathBuf::from(&backup_path);
-    let report = axagent_migration::rollback(&path)
+    let report = runner()
+        .rollback(&path)
         .map_err(|e| ToolError::execution_failed(format!("回滚失败: {}", e)))?;
 
     let mut out = String::from("## 回滚报告\n\n");

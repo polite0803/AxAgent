@@ -50,16 +50,9 @@ pub struct UpdateNoteInput {
     pub related_pages: Option<Vec<String>>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct NoteLink {
-    pub id: i64,
-    pub vault_id: String,
-    pub source_note_id: String,
-    pub target_note_id: String,
-    pub link_text: String,
-    pub link_type: String,
-    pub created_at: i64,
-}
+// NoteLink DTO 在 harness 里定义（提升到 harness 让 search 等下游 crate 不用反向依赖 dao），
+// 这里 re-export 保持向后兼容 — 单一类型来源。
+pub use axagent_harness::types::NoteLink;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NoteSearchResult {

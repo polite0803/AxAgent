@@ -20,3 +20,10 @@ pub trait HarnessCache: Send + Sync {
     async fn set(&self, key: LlmCacheKey, value: serde_json::Value, ttl_secs: u64);
     async fn invalidate(&self, key: &LlmCacheKey);
 }
+
+/// 可序列化的单条向量搜索缓存条目（用于持久化快照）
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CacheEntrySnapshot {
+    pub key: String,
+    pub results_json: String,
+}

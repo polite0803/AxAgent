@@ -6,22 +6,9 @@ use axagent_entities::{wiki_page_versions, wiki_templates, wikis};
 use axagent_harness::core_error::{AxAgentError, Result};
 use axagent_harness::util_fns::gen_id;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Wiki {
-    pub id: String,
-    pub name: String,
-    pub description: Option<String>,
-    pub root_path: String,
-    pub schema_version: String,
-    pub note_count: i32,
-    pub source_count: i32,
-    pub embedding_provider: Option<String>,
-    pub embedding_dimensions: Option<i32>,
-    pub retrieval_threshold: Option<f32>,
-    pub retrieval_top_k: Option<i32>,
-    pub created_at: i64,
-    pub updated_at: i64,
-}
+// Wiki DTO 在 harness 里定义（提升到 harness 让 search 等下游 crate 不用反向依赖 dao），
+// 这里 re-export 保持向后兼容。
+pub use axagent_harness::types::Wiki;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CreateWikiInput {
@@ -46,17 +33,6 @@ fn model_to_wiki(m: wikis::Model) -> Wiki {
         retrieval_top_k: m.retrieval_top_k,
         created_at: m.created_at,
         updated_at: m.updated_at,
-    }
-}
-
-impl Wiki {
-    pub fn source_config(&self) -> axagent_harness::types::SourceConfig {
-        axagent_harness::types::SourceConfig {
-            embedding_provider: self.embedding_provider.clone(),
-            embedding_dimensions: self.embedding_dimensions,
-            retrieval_threshold: self.retrieval_threshold,
-            retrieval_top_k: self.retrieval_top_k,
-        }
     }
 }
 

@@ -10,6 +10,7 @@ axagent-harness = { path = "../harness" }
 axagent-entities = { path = "../entities" }
 axagent-mcp = { path = "../mcp" }
 axagent-storage = { path = "../storage" }
+async-trait = "0.1"
 sea-orm = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }

@@ -232,3 +232,169 @@ pub async fn get_workflow_by_composite_source(
         .await?;
     Ok(template)
 }
+
+/// 把 kit 侧预生成的 `WorkflowTemplateData` 列表（来自 preset）插入数据库：
+/// - 已存在但 `nodes` 为空的行 → upsert 覆盖
+/// - 已存在且非空 → 跳过
+/// - 不存在 → insert
+/// 替代 `kit::preset_templates::seed_preset_templates` 直接构造 `ActiveModel` 的位置，
+/// 让 kit 不再依赖 `axagent_entities` 的 `ActiveModel` 类型。
+pub async fn seed_preset_templates(
+    db: &DatabaseConnection,
+    items: Vec<axagent_harness::workflow_types::WorkflowTemplateData>,
+) -> Result<()> {
+    for item in items {
+        let existing = get_workflow_template(db, &item.id).await?;
+
+        match existing {
+            None => {
+                let active_model = build_active_model_from_data(&item);
+                insert_workflow_template(db, active_model).await?;
+            },
+            Some(ref t) if t.nodes == "[]" || t.nodes.is_empty() => {
+                let active_model = build_active_model_from_data(&item);
+                upsert_workflow_template(db, active_model).await?;
+            },
+            _ => {},
+        }
+    }
+    Ok(())
+}
+
+fn build_active_model_from_data(
+    item: &axagent_harness::workflow_types::WorkflowTemplateData,
+) -> workflow_template::ActiveModel {
+    workflow_template::ActiveModel {
+        id: Set(item.id.clone()),
+        name: Set(item.name.clone()),
+        description: Set(item.description.clone()),
+        icon: Set(item.icon.clone()),
+        tags: Set(Some(serde_json::to_string(&item.tags).unwrap_or_default())),
+        version: Set(item.version),
+        is_preset: Set(item.is_preset),
+        is_editable: Set(item.is_editable),
+        is_public: Set(item.is_public),
+        trigger_config: Set(item
+            .trigger_config
+            .as_ref()
+            .and_then(|c| serde_json::to_string(c).ok())),
+        nodes: Set(serde_json::to_string(&item.nodes).unwrap_or_default()),
+        edges: Set(serde_json::to_string(&item.edges).unwrap_or_default()),
+        input_schema: Set(item
+            .input_schema
+            .as_ref()
+            .and_then(|s| serde_json::to_string(s).ok())),
+        output_schema: Set(item
+            .output_schema
+            .as_ref()
+            .and_then(|s| serde_json::to_string(s).ok())),
+        variables: Set(Some(serde_json::to_string(&item.variables).unwrap_or_default())),
+        error_config: Set(item
+            .error_config
+            .as_ref()
+            .and_then(|e| serde_json::to_string(e).ok())),
+        composite_source: Set(None),
+        tool_defs: Set(None),
+        created_at: Set(item.created_at),
+        updated_at: Set(item.updated_at),
+    }
+}
+
+/// 把 `workflow_template::Model` 转换为 `WorkflowTemplateData` DTO。
+/// 上层（kit / gateway）使用此 DTO 而不是直接拿 SeaORM Model。
+pub fn template_model_to_data(
+    model: &workflow_template::Model,
+) -> axagent_harness::workflow_types::WorkflowTemplateData {
+    use axagent_harness::workflow_types::*;
+    WorkflowTemplateData {
+        id: model.id.clone(),
+        name: model.name.clone(),
+        description: model.description.clone(),
+        icon: model.icon.clone(),
+        tags: model
+            .tags
+            .as_ref()
+            .and_then(|s| serde_json::from_str(s).ok())
+            .unwrap_or_default(),
+        version: model.version,
+        is_preset: model.is_preset,
+        is_editable: model.is_editable,
+        is_public: model.is_public,
+        trigger_config: model
+            .trigger_config
+            .as_ref()
+            .and_then(|s| serde_json::from_str(s).ok()),
+        nodes: serde_json::from_str(&model.nodes).unwrap_or_default(),
+        edges: serde_json::from_str(&model.edges).unwrap_or_default(),
+        input_schema: model
+            .input_schema
+            .as_ref()
+            .and_then(|s| serde_json::from_str(s).ok()),
+        output_schema: model
+            .output_schema
+            .as_ref()
+            .and_then(|s| serde_json::from_str(s).ok()),
+        variables: model
+            .variables
+            .as_ref()
+            .and_then(|s| serde_json::from_str(s).ok())
+            .unwrap_or_default(),
+        error_config: model
+            .error_config
+            .as_ref()
+            .and_then(|s| serde_json::from_str(s).ok()),
+        tool_defs: model
+            .tool_defs
+            .as_ref()
+            .and_then(|s| serde_json::from_str(s).ok())
+            .unwrap_or_default(),
+        created_at: model.created_at,
+        updated_at: model.updated_at,
+    }
+}
+
+/// 把 `workflow_template_version::Model` 转换为 `WorkflowTemplateVersionData` DTO。
+pub fn template_version_model_to_data(
+    model: &workflow_template_version::Model,
+) -> axagent_harness::workflow_types::WorkflowTemplateVersionData {
+    use axagent_harness::workflow_types::*;
+    WorkflowTemplateVersionData {
+        template_id: model.template_id.clone(),
+        name: model.name.clone(),
+        description: model.description.clone(),
+        icon: model.icon.clone(),
+        tags: model
+            .tags
+            .as_ref()
+            .and_then(|s| serde_json::from_str(s).ok())
+            .unwrap_or_default(),
+        version: model.version,
+        is_preset: model.is_preset,
+        is_editable: model.is_editable,
+        is_public: model.is_public,
+        trigger_config: model
+            .trigger_config
+            .as_ref()
+            .and_then(|s| serde_json::from_str(s).ok()),
+        nodes: serde_json::from_str(&model.nodes).unwrap_or_default(),
+        edges: serde_json::from_str(&model.edges).unwrap_or_default(),
+        input_schema: model
+            .input_schema
+            .as_ref()
+            .and_then(|s| serde_json::from_str(s).ok()),
+        output_schema: model
+            .output_schema
+            .as_ref()
+            .and_then(|s| serde_json::from_str(s).ok()),
+        variables: model
+            .variables
+            .as_ref()
+            .and_then(|s| serde_json::from_str(s).ok())
+            .unwrap_or_default(),
+        error_config: model
+            .error_config
+            .as_ref()
+            .and_then(|s| serde_json::from_str(s).ok()),
+        created_at: model.created_at,
+    }
+}

@@ -288,7 +288,7 @@ impl ConditionExecutor {
         confidence_threshold: Option<f64>,
     ) -> Result<bool, String> {
         use axagent_harness::types::{ChatContent, ChatMessage, ChatRequest};
-        use axagent_providers::url_utils::resolve_base_url_for_type;
+        use axagent_harness::url_utils::resolve_base_url_for_type;
 
         let base_url = resolve_base_url_for_type(&prov.api_host, &prov.provider_type);
         let req_ctx = axagent_harness::ProviderRequestContext {

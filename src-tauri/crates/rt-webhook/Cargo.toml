@@ -18,7 +18,6 @@ reqwest = { workspace = true }
 sha2 = { workspace = true }
 hex = "0.4"
 axagent-harness = { path = "../harness" }
-axagent-rt-messaging = { path = "../rt-messaging" }  # kept for PlatformConfig + platform handlers
 
 [lints]
 # workspace = true

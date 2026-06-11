@@ -1678,6 +1678,49 @@ impl MemoryNamespace {
     }
 }
 
+// Wiki（从 dao 提升到 harness，让 search crate 不用反向依赖 dao）
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Wiki {
+    pub id: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub root_path: String,
+    pub schema_version: String,
+    pub note_count: i32,
+    pub source_count: i32,
+    pub embedding_provider: Option<String>,
+    pub embedding_dimensions: Option<i32>,
+    pub retrieval_threshold: Option<f32>,
+    pub retrieval_top_k: Option<i32>,
+    pub created_at: i64,
+    pub updated_at: i64,
+}
+
+impl Wiki {
+    pub fn source_config(&self) -> SourceConfig {
+        SourceConfig {
+            embedding_provider: self.embedding_provider.clone(),
+            embedding_dimensions: self.embedding_dimensions,
+            retrieval_threshold: self.retrieval_threshold,
+            retrieval_top_k: self.retrieval_top_k,
+        }
+    }
+}
+
+// NoteLink（从 dao 提升到 harness）
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NoteLink {
+    pub id: i64,
+    pub vault_id: String,
+    pub source_note_id: String,
+    pub target_note_id: String,
+    pub link_text: String,
+    pub link_type: String,
+    pub created_at: i64,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct MemoryItem {

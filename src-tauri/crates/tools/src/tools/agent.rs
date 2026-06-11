@@ -5,9 +5,22 @@ use crate::agent_def_loader::load_all_agents;
 use crate::agent_def_types::{AgentDefSource, AgentDefinition};
 use crate::{Tool, ToolCategory, ToolContext, ToolError, ToolResult};
 use async_trait::async_trait;
-use axagent_plugins::agent_provider::global_plugin_agents;
+use axagent_harness::PluginAgentProvider;
 use serde_json::{Value, json};
-use std::sync::{LazyLock, Mutex, RwLock};
+use std::sync::{Arc, LazyLock, Mutex, OnceLock, RwLock};
+
+static PLUGIN_PROVIDER: OnceLock<Arc<dyn PluginAgentProvider>> = OnceLock::new();
+
+/// 注入 `PluginAgentProvider` trait object（由 wiring 层在初始化时调用一次）
+pub fn set_plugin_agent_provider(provider: Arc<dyn PluginAgentProvider>) {
+    let _ = PLUGIN_PROVIDER.set(provider);
+}
+
+fn plugin_provider() -> &'static Arc<dyn PluginAgentProvider> {
+    PLUGIN_PROVIDER
+        .get()
+        .expect("PluginAgentProvider not initialized; call set_plugin_agent_provider() at startup")
+}
 
 /// 待处理子 Agent 卡片: (child_conversation_id, agent_type, description)
 type PendingSubAgentCard = (String, String, String);
@@ -143,7 +156,7 @@ pub fn refresh_agent_registry(cwd: &std::path::Path) {
     }
 
     // 合并 Plugin Agent（不覆盖同名的内置或自定义 agent）
-    for plugin_def in global_plugin_agents().all() {
+    for plugin_def in plugin_provider().all() {
         if !merged.iter().any(|b| b.agent_type == plugin_def.agent_type) {
             merged.push(AgentDefinition {
                 agent_type: plugin_def.agent_type,

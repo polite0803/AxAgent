@@ -1,6 +1,7 @@
 //! 内置工具实现
 
 use std::collections::HashSet;
+use std::sync::Arc;
 
 pub mod agent;
 pub mod agent_memory;
@@ -262,4 +263,14 @@ pub fn register_all(registry: &mut crate::registry::ToolRegistry) {
     skill::set_available_toolsets(available_toolsets);
 
     rpc::set_tool_executor(std::sync::Arc::new(registry.clone()));
+}
+
+/// 注入跨层依赖的 trait object。
+/// 在 wiring 层（runtime/gateway）启动时调用一次。
+pub fn init_extensions(
+    migration_runner: Arc<dyn axagent_harness::MigrationRunner>,
+    plugin_agent_provider: Arc<dyn axagent_harness::PluginAgentProvider>,
+) {
+    migration_tool::set_migration_runner(migration_runner);
+    agent::set_plugin_agent_provider(plugin_agent_provider);
 }

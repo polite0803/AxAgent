@@ -809,6 +809,9 @@ dependencies = [
  "async-trait",
  "axagent-agent",
  "axagent-core",
+ "axagent-crypto",
+ "axagent-dao",
+ "axagent-document-parser",
  "axagent-gateway",
  "axagent-harness",
  "axagent-migration",
@@ -822,6 +825,7 @@ dependencies = [
  "axagent-rt-workflow",
  "axagent-runtime",
  "axagent-runtime-core",
+ "axagent-search",
  "axagent-telemetry",
  "axagent-tools",
  "axagent-trajectory",
@@ -1014,6 +1018,7 @@ dependencies = [
 name = "axagent-dao"
 version = "2.6.0"
 dependencies = [
+ "async-trait",
  "axagent-crypto",
  "axagent-entities",
  "axagent-harness",
@@ -1073,8 +1078,9 @@ version = "2.6.0"
 dependencies = [
  "async-trait",
  "axagent-core",
+ "axagent-crypto",
+ "axagent-dao",
  "axagent-harness",
- "axagent-providers",
  "axum",
  "axum-server",
  "futures",
@@ -1169,6 +1175,7 @@ name = "axagent-migration"
 version = "2.6.0"
 dependencies = [
  "axagent-core",
+ "axagent-harness",
  "chrono",
  "dirs 5.0.1",
  "sea-orm",
@@ -1262,7 +1269,6 @@ dependencies = [
  "async-trait",
  "axagent-core",
  "axagent-harness",
- "axagent-providers",
  "axum",
  "chrono",
  "flate2",
@@ -1301,7 +1307,6 @@ version = "2.6.0"
 dependencies = [
  "async-trait",
  "axagent-harness",
- "axagent-rt-messaging",
  "axum",
  "chrono",
  "hex",
@@ -1420,8 +1425,6 @@ name = "axagent-search"
 version = "2.6.0"
 dependencies = [
  "async-trait",
- "axagent-dao",
- "axagent-document-parser",
  "axagent-harness",
  "candle-core",
  "candle-nn",
@@ -1501,8 +1504,6 @@ dependencies = [
  "async-trait",
  "axagent-core",
  "axagent-harness",
- "axagent-migration",
- "axagent-plugins",
  "axagent-runtime-core",
  "base64 0.22.1",
  "chrono",

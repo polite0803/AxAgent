@@ -68,18 +68,18 @@ pub async fn realtime_handler(
     };
 
     // Verify key before upgrading
-    match axagent_core::repo::gateway::verify_key(&state.db, &api_key, &state.master_key).await {
-        Ok(key) => {
+    match state.adapter.gateway_keys().verify_key(&api_key).await {
+        Ok(Some(key)) => {
             // Update last_used_at in background
-            let pool_bg = state.db.clone();
+            let adapter_bg = state.adapter.clone();
             let key_id = key.id.clone();
             tokio::spawn(async move {
-                let _ = axagent_core::repo::gateway::update_last_used(&pool_bg, &key_id).await;
+                let _ = adapter_bg.gateway_keys().update_last_used(&key_id).await;
             });
 
             ws.on_upgrade(move |socket| handle_realtime_session(socket, state.db))
         }
-        Err(_) => Response::builder()
+        _ => Response::builder()
             .status(401)
             .body(axum::body::Body::from(
                 r#"{"error":{"message":"Invalid or disabled API key","type":"invalid_request_error","code":"invalid_api_key"}}"#,

@@ -9,9 +9,9 @@ use sea_orm::{ConnectionTrait, DatabaseConnection, DbBackend, Statement};
 use serde::{Deserialize, Serialize};
 
 use crate::self_rag::RetrievalQuality;
+use crate::sources;
 use crate::text_chunker;
 use crate::vector_store::{EmbeddingRecord, VectorSearchResult, VectorStore};
-use axagent_document_parser as document_parser;
 use axagent_harness::core_error::{AxAgentError, Result};
 use axagent_harness::types::{RagContextResult, RagRetrievedItem, RagSourceResult};
 
@@ -60,7 +60,9 @@ impl RAGSource for KnowledgeRAG {
         db: &DatabaseConnection,
         container_id: &str,
     ) -> Result<String> {
-        let kb = axagent_dao::repo::knowledge::get_knowledge_base(db, container_id).await?;
+        let kb = sources::knowledge()
+            .get_knowledge_base(container_id)
+            .await?;
         if let Some(provider) = kb.embedding_provider {
             return Ok(provider);
         }
@@ -86,7 +88,7 @@ impl RAGSource for MemoryRAG {
         db: &DatabaseConnection,
         container_id: &str,
     ) -> Result<String> {
-        let ns = axagent_dao::repo::memory::get_namespace(db, container_id).await?;
+        let ns = sources::memory().get_namespace(container_id).await?;
         if let Some(provider) = ns.embedding_provider {
             return Ok(provider);
         }
@@ -112,7 +114,7 @@ impl RAGSource for WikiVaultRAG {
         db: &DatabaseConnection,
         container_id: &str,
     ) -> Result<String> {
-        let wiki = axagent_dao::repo::wiki::get_wiki(db, container_id).await?;
+        let wiki = sources::wiki().get_wiki(container_id).await?;
         if let Some(provider) = wiki.embedding_provider {
             return Ok(provider);
         }
@@ -121,8 +123,9 @@ impl RAGSource for WikiVaultRAG {
 }
 
 /// 当容器未显式配置 embedding_provider 时，回退到系统默认 provider。
-async fn resolve_default_embedding_provider(db: &DatabaseConnection) -> Result<String> {
-    let settings = axagent_dao::repo::settings::get_settings(db)
+async fn resolve_default_embedding_provider(_db: &DatabaseConnection) -> Result<String> {
+    let settings = sources::settings()
+        .get_settings()
         .await
         .map_err(|e| AxAgentError::Provider(format!("Failed to load settings: {}", e)))?;
     settings.default_provider_id.ok_or_else(|| {
@@ -205,7 +208,7 @@ impl KnowledgeContainer {
     }
 
     /// 从 wiki 转换
-    pub fn from_wiki(w: &axagent_dao::repo::wiki::Wiki) -> Self {
+    pub fn from_wiki(w: &axagent_harness::types::Wiki) -> Self {
         Self {
             id: w.id.clone(),
             name: w.name.clone(),
@@ -377,7 +380,7 @@ pub fn prepare_chunks(
             separator,
         } => {
             let path = std::path::Path::new(source_path);
-            let text = document_parser::extract_text(path, mime_type)?;
+            let text = sources::parser().extract_text(path, mime_type)?;
 
             if text.trim().is_empty() {
                 return Ok(vec![]);
@@ -438,7 +441,7 @@ pub fn prepare_direct_chunk(item_id: &str, content: &str) -> Vec<(String, String
 }
 
 pub async fn collect_knowledge_graph_context(
-    db: &DatabaseConnection,
+    _db: &DatabaseConnection,
     kb_ids: &[String],
     query: &str,
     top_k: usize,
@@ -446,10 +449,9 @@ pub async fn collect_knowledge_graph_context(
     let mut context_parts = Vec::new();
 
     for kb_id in kb_ids {
-        let entities = match axagent_dao::repo::knowledge_graph::search_entities(
-            db, kb_id, query, top_k,
-        )
-        .await
+        let entities = match sources::knowledge()
+            .search_entities(kb_id, query, top_k)
+            .await
         {
             Ok(e) => e,
             Err(_) => continue,
@@ -488,11 +490,10 @@ pub async fn collect_cross_source_graph_context(
     context_parts.extend(kg_context);
 
     for wiki_id in wiki_ids {
-        let backlinks =
-            match axagent_dao::repo::note::get_note_backlinks_by_vault(db, wiki_id).await {
-                Ok(bl) => bl,
-                Err(_) => continue,
-            };
+        let backlinks = match sources::wiki().get_note_backlinks_by_vault(wiki_id).await {
+            Ok(bl) => bl,
+            Err(_) => continue,
+        };
 
         if backlinks.is_empty() {
             continue;
@@ -539,25 +540,26 @@ impl RAGSourceRef {
 }
 
 async fn resolve_source_config(
-    db: &DatabaseConnection,
+    _db: &DatabaseConnection,
     source_type: &RAGSourceType,
     container_id: &str,
 ) -> (usize, f32, Option<usize>) {
     let config = match source_type {
-        RAGSourceType::Memory => axagent_dao::repo::memory::get_namespace(db, container_id)
+        RAGSourceType::Memory => sources::memory()
+            .get_namespace(container_id)
             .await
             .ok()
             .map(|ns| ns.source_config()),
-        RAGSourceType::Wiki => axagent_dao::repo::wiki::get_wiki(db, container_id)
+        RAGSourceType::Wiki => sources::wiki()
+            .get_wiki(container_id)
             .await
             .ok()
             .map(|w| w.source_config()),
-        RAGSourceType::Knowledge => {
-            axagent_dao::repo::knowledge::get_knowledge_base(db, container_id)
-                .await
-                .ok()
-                .map(|kb| kb.source_config())
-        },
+        RAGSourceType::Knowledge => sources::knowledge()
+            .get_knowledge_base(container_id)
+            .await
+            .ok()
+            .map(|kb| kb.source_config()),
     };
 
     match config {
@@ -720,7 +722,7 @@ pub async fn collect_rag_context(
             .collect();
 
         if !kb_doc_ids.is_empty() {
-            match axagent_dao::repo::knowledge::get_document_titles(db, &kb_doc_ids).await {
+            match sources::knowledge().get_document_titles(&kb_doc_ids).await {
                 Ok(titles) => {
                     for src in source_results
                         .iter_mut()
@@ -925,7 +927,7 @@ impl RAGSource for WikiRAG {
         db: &DatabaseConnection,
         container_id: &str,
     ) -> Result<String> {
-        let wiki = axagent_dao::repo::wiki::get_wiki(db, container_id).await?;
+        let wiki = sources::wiki().get_wiki(container_id).await?;
         if let Some(provider) = wiki.embedding_provider {
             return Ok(provider);
         }
@@ -958,7 +960,7 @@ pub async fn check_vault_rag_capacity(
     db: &DatabaseConnection,
     vault_id: &str,
 ) -> Result<CapacityCheckResult> {
-    let wiki = axagent_dao::repo::wiki::get_wiki(db, vault_id).await?;
+    let wiki = sources::wiki().get_wiki(vault_id).await?;
 
     let collection_name = collection_id("wiki", vault_id);
     validate_collection_name(&collection_name)?;
@@ -1020,7 +1022,7 @@ pub async fn get_vault_capacity_info(
     db: &DatabaseConnection,
     vault_id: &str,
 ) -> Result<VaultCapacityInfo> {
-    let _wiki = axagent_dao::repo::wiki::get_wiki(db, vault_id).await?;
+    let _wiki = sources::wiki().get_wiki(vault_id).await?;
     let collection_name = collection_id("wiki", vault_id);
     validate_collection_name(&collection_name)?;
     let current_count = count_collection_items(db, &collection_name).await?;
@@ -1361,7 +1363,7 @@ pub async fn collect_rag_context_with_pipeline(
             .collect();
 
         if !kb_doc_ids.is_empty() {
-            match axagent_dao::repo::knowledge::get_document_titles(db, &kb_doc_ids).await {
+            match sources::knowledge().get_document_titles(&kb_doc_ids).await {
                 Ok(titles) => {
                     for src in source_results
                         .iter_mut()

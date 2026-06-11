@@ -62,6 +62,31 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState, Strin
         ));
     }
 
+    // 注入 tools 扩展层的 trait 实现（MigrationRunner + PluginAgentProvider）。
+    // 通过 OnceLock 全局注入，工具层不再依赖 axagent-migration / axagent-plugins。
+    axagent_tools::tools::init_extensions(
+        std::sync::Arc::new(axagent_migration::DefaultMigrationRunner),
+        std::sync::Arc::new(axagent_plugins::agent_provider::GlobalPluginAgentProvider),
+    );
+
+    // 注入 search 层的 5 个数据源 trait 实现。
+    // search crate 不再依赖 axagent-dao / axagent-document-parser。
+    axagent_search::sources::set_sources(
+        std::sync::Arc::new(axagent_dao::search_sources_impl::DefaultKnowledgeSource {
+            db: sea_db.clone(),
+        }),
+        std::sync::Arc::new(axagent_dao::search_sources_impl::DefaultMemorySource {
+            db: sea_db.clone(),
+        }),
+        std::sync::Arc::new(axagent_dao::search_sources_impl::DefaultWikiSource {
+            db: sea_db.clone(),
+        }),
+        std::sync::Arc::new(axagent_dao::search_sources_impl::DefaultSettingsSource {
+            db: sea_db.clone(),
+        }),
+        std::sync::Arc::new(axagent_document_parser::parser_impl::DefaultDocumentParser),
+    );
+
     let rt = tokio::runtime::Runtime::new()
         .or_else(|e| {
             tracing::warn!("Failed to create multi-threaded runtime for state init: {} — falling back to current-thread", e);

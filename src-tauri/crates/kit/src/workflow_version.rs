@@ -73,23 +73,33 @@ pub struct WorkflowVersionComparator;
 
 impl WorkflowVersionComparator {
     pub fn compare(
-        v1: &axagent_entities::workflow_template_version::Model,
-        v2: &axagent_entities::workflow_template_version::Model,
+        v1: &axagent_harness::workflow_types::WorkflowTemplateVersionData,
+        v2: &axagent_harness::workflow_types::WorkflowTemplateVersionData,
     ) -> VersionDiff {
+        // 标量字段直接比较；复杂结构体字段（nodes/edges/variables/各 *config）
+        // 走 JSON 序列化比较，语义等价于原 Model 把这些字段存为 JSON 字符串时的字符串比较。
         VersionDiff {
             name_changed: v1.name != v2.name,
             description_changed: v1.description != v2.description,
             icon_changed: v1.icon != v2.icon,
             tags_changed: v1.tags != v2.tags,
-            nodes_changed: v1.nodes != v2.nodes,
-            edges_changed: v1.edges != v2.edges,
-            variables_changed: v1.variables != v2.variables,
-            input_schema_changed: v1.input_schema != v2.input_schema,
-            output_schema_changed: v1.output_schema != v2.output_schema,
-            trigger_config_changed: v1.trigger_config != v2.trigger_config,
-            error_config_changed: v1.error_config != v2.error_config,
+            nodes_changed: json_ne(&v1.nodes, &v2.nodes),
+            edges_changed: json_ne(&v1.edges, &v2.edges),
+            variables_changed: json_ne(&v1.variables, &v2.variables),
+            input_schema_changed: json_opt_ne(&v1.input_schema, &v2.input_schema),
+            output_schema_changed: json_opt_ne(&v1.output_schema, &v2.output_schema),
+            trigger_config_changed: json_opt_ne(&v1.trigger_config, &v2.trigger_config),
+            error_config_changed: json_opt_ne(&v1.error_config, &v2.error_config),
         }
     }
+}
+
+fn json_ne<T: serde::Serialize>(a: &T, b: &T) -> bool {
+    serde_json::to_string(a).ok() != serde_json::to_string(b).ok()
+}
+
+fn json_opt_ne<T: serde::Serialize>(a: &Option<T>, b: &Option<T>) -> bool {
+    serde_json::to_string(a).ok() != serde_json::to_string(b).ok()
 }
 
 #[cfg(test)]

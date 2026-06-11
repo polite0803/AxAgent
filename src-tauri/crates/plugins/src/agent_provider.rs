@@ -148,3 +148,30 @@ pub fn unregister_plugin_agents(plugin_id: &str) {
         registry.unregister(&agent_type);
     }
 }
+
+// ── `axagent_harness::PluginAgentProvider` trait impl ──
+//
+// 把 `global_plugin_agents()` 暴露成 `axagent_harness::PluginAgentProvider`，
+// 让 `tools` crate 不用直接 import `axagent_plugins`，而是持有
+// `Arc<dyn axagent_harness::PluginAgentProvider>`，由 wiring 层注入。
+
+pub struct GlobalPluginAgentProvider;
+
+impl axagent_harness::PluginAgentProvider for GlobalPluginAgentProvider {
+    fn all(&self) -> Vec<axagent_harness::PluginAgentDescriptor> {
+        global_plugin_agents()
+            .all()
+            .into_iter()
+            .map(|a| axagent_harness::PluginAgentDescriptor {
+                agent_type: a.agent_type.clone(),
+                description: a.description.clone(),
+                tools: a.tools.clone(),
+                disallowed_tools: a.disallowed_tools.clone(),
+                model: a.model.clone(),
+                background: a.background,
+                system_prompt: a.system_prompt.clone(),
+                source: "plugin".to_string(),
+            })
+            .collect()
+    }
+}
