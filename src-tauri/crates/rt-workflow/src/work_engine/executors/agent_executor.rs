@@ -129,13 +129,9 @@ pub struct AgentExecutor {
     provider_registry: Option<Arc<dyn axagent_harness::registry::ProviderRegistry>>,
     /// 领域约束注入回调（可选，None 时不注入任何约束，行为与现状完全一致）。
     ///
-    /// 由主 binary 在 `inject_into_agent_executor` 中调用 `set_domain_constraints`
-    /// 注册。回调参数是 role name（如 "stock-analyst"），返回 head/tail 约束块。
-    ///
-    /// **当前 4a-4f 段拼装逻辑尚未消费该字段**——仅作为扩展点暴露，
-    /// 行为完全向后兼容。后续领域 PR（如 stock-analysis 迁移）可在 4a/4f 处
-    /// 通过 `self.domain_constraints.as_ref().map(|f| f(role_name))` 注入。
-    domain_constraints: Option<DomainConstraintsFn>,
+    /// 由 WorkEngine 在每次 run_workflow 开始时通过 set_rag_callback 模式
+    /// 同步转发当前注册的 DomainConstraintsFn。
+    domain_constraints: Arc<std::sync::Mutex<Option<DomainConstraintsFn>>>,
 }
 
 impl AgentExecutor {
@@ -155,7 +151,7 @@ impl AgentExecutor {
             default_provider_cache: Arc::new(Mutex::new(None)),
             profile_cache: Arc::new(Mutex::new(HashMap::new())),
             provider_registry: None,
-            domain_constraints: None,
+            domain_constraints: Arc::new(std::sync::Mutex::new(None)),
         }
     }
 
@@ -213,8 +209,19 @@ impl AgentExecutor {
     ///
     /// 纯 API 扩展点，不修改现有 4a-4f 段拼装逻辑。stock-analysis 等领域
     /// 后续 PR 自行迁移 STOCK_HARD_CONSTRAINTS / STOCK_COLLAB_REMINDER 常量。
-    pub fn set_domain_constraints(&mut self, f: DomainConstraintsFn) {
-        self.domain_constraints = Some(f);
+    pub fn set_domain_constraints(&self, f: DomainConstraintsFn) {
+        *self
+            .domain_constraints
+            .lock()
+            .expect("domain_constraints mutex poisoned") = Some(f);
+    }
+
+    /// 由 WorkEngine 在每次 run_workflow 开始前转发 domain_constraints。
+    pub fn set_domain_constraints_option(&self, f: Option<DomainConstraintsFn>) {
+        *self
+            .domain_constraints
+            .lock()
+            .expect("domain_constraints mutex poisoned") = f;
     }
 
     /// 构造使用共享缓存的 executor（WorkEngine 内部使用，跨执行复用缓存）。
@@ -316,10 +323,25 @@ impl NodeExecutorTrait for AgentExecutor {
 
         // 4. 构建 prompt：Role + Expert + 行内追加（运行时拼接，不预缓存）
         let role_desc = resolve_role(&an.config, profile.as_ref());
+        let role_name = profile
+            .as_ref()
+            .and_then(|p| p.agent_role.as_deref())
+            .unwrap_or("executor");
         let mut all_segments: Vec<TemplateSegment> = Vec::new();
 
-        // 4a. 角色前缀
+        // 4a. 角色前缀 + 领域头部约束（primacy 锚定）
         all_segments.push(TemplateSegment::Static(format!("你是 {role_desc}。\n")));
+        if let Some(ref dc_fn) = self
+            .domain_constraints
+            .lock()
+            .expect("domain_constraints mutex poisoned")
+            .as_ref()
+        {
+            let blocks = dc_fn(role_name);
+            if let Some(ref head) = blocks.head {
+                all_segments.push(TemplateSegment::Static(format!("\n{head}\n")));
+            }
+        }
 
         // 4b. AgentRole system_prompt（岗位）+ Expert system_prompt（技能）
         if let Some(ref p) = profile {
@@ -437,6 +459,19 @@ impl NodeExecutorTrait for AgentExecutor {
                 all_segments.push(TemplateSegment::Static(format!(
                     "\n\n--- 输入上下文 ---\n{injected_lines}"
                 )));
+            }
+        }
+
+        // 4h. 领域尾部约束（recency 锚定）
+        if let Some(ref dc_fn) = self
+            .domain_constraints
+            .lock()
+            .expect("domain_constraints mutex poisoned")
+            .as_ref()
+        {
+            let blocks = dc_fn(role_name);
+            if let Some(ref tail) = blocks.tail {
+                all_segments.push(TemplateSegment::Static(format!("\n\n{tail}")));
             }
         }
 

@@ -10,6 +10,7 @@ use crate::app_state::SemanticCacheState;
 use crate::commands::proactive::ProactiveService;
 use crate::semantic_cache::{CacheConfig, SemanticCache};
 use axagent_core::cloud_storage::{CloudStorageConfig, SyncEngine};
+use axagent_harness::workflow_types::ConstraintBlocks;
 use axagent_plugins::{PluginManager, PluginManagerConfig};
 use axagent_runtime_core::prompt_cache::PromptCache;
 use tokio_util::sync::CancellationToken;
@@ -311,6 +312,12 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState, Strin
             ));
             // Plan 模式：AgentExecutor 注入 engine 引用以创建/执行临时工作流
             rt.block_on(engine.inject_into_agent_executor(engine.clone()));
+            // 注册默认领域约束（动态注入至 agent system prompt 的 head/tail 槽位）
+            rt.block_on(engine.set_domain_constraints(Arc::new(
+                |role_name: &str| -> ConstraintBlocks {
+                    axagent_rt_workflow::work_engine::domain_constraints::DomainConstraints::by_role(role_name)
+                },
+            )));
             engine
         },
         skill_decomposer: Arc::new(tokio::sync::RwLock::new(

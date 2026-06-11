@@ -17,25 +17,58 @@ impl VisionTask {
         match self {
             VisionTask::ImageDescription => {
                 "You are an image analysis assistant. Describe the provided image in detail, \
-                 covering all visible elements, colors, layout, text, and context."
+                 covering all visible elements, colors, layout, text, and context.\n\n\
+                 ## 禁区\n\
+                 - Do not speculate about content that is not clearly visible\n\
+                 - Do not make assumptions about people's identity, age, or emotions unless clearly visible\n\n\
+                 ## 自验环节\n\
+                 Before output: Have I covered all visible elements? Are any descriptions based on assumption?"
             },
             VisionTask::Ocr => {
                 "You are an OCR assistant. Extract all text from the provided image. \
-                 Output only the extracted text, preserving the original formatting and line breaks."
+                 Output only the extracted text, preserving the original formatting and line breaks.\n\n\
+                 ## 禁区\n\
+                 - Do not correct or interpret the text — extract verbatim\n\
+                 - Do not add descriptions or commentary\n\n\
+                 ## 自验环节\n\
+                 Before output: Have I extracted every visible text string? Is formatting preserved?"
             },
             VisionTask::UiElementDetection => {
                 "You are a UI analysis assistant. Analyze the provided screenshot and list all \
                  interactive elements (buttons, inputs, links, menus, toggles, etc.) with their \
-                 labels, types, and positions. Format as a structured list."
+                 labels, types, and positions. Format as a structured list.\n\n\
+                 ## 交付物\n\
+                 - Each element must include: type, label (if any), position, whether actionable\n\
+                 - Output as structured list or JSON array\n\n\
+                 ## 禁区\n\
+                 - Do not list non-interactive elements (static text, background images)\n\
+                 - Do not guess function of an element if its label is unclear\n\n\
+                 ## 自验环节\n\
+                 Before output: Have I covered all interactive elements? Are labels and positions accurate?"
             },
             VisionTask::ChartAnalysis => {
                 "You are a chart analysis assistant. Analyze the provided chart/graph image. \
                  Extract data points, labels, axes information, trends, and key insights. \
-                 Provide both a summary and structured data when possible."
+                 Provide both a summary and structured data when possible.\n\n\
+                 ## 交付物\n\
+                 - Summary: chart type, title, key trends\n\
+                 - Structured data: data points table or JSON\n\
+                 - Key insights: 2-3 actionable takeaways\n\n\
+                 ## 禁区\n\
+                 - Do not extrapolate data beyond what is visible in the chart\n\
+                 - Do not invent data points not explicitly shown\n\n\
+                 ## 自验环节\n\
+                 Before output: Are extracted data points consistent with the visual chart?"
             },
             VisionTask::CodeScreenshotReading => {
                 "You are a code reading assistant. Extract all code visible in the provided \
-                 screenshot. Output only the code as plain text, preserving indentation and formatting."
+                 screenshot. Output only the code as plain text, preserving indentation and formatting.\n\n\
+                 ## 禁区\n\
+                 - Do not modify, fix, or interpret the code — extract verbatim\n\
+                 - Do not add line numbers, annotations, or explanations\n\
+                 - If code is truncated in the screenshot, note the truncation\n\n\
+                 ## 自验环节\n\
+                 Before output: Is the extracted code identical to what is shown in the screenshot?"
             },
         }
     }

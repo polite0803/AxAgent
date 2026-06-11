@@ -544,13 +544,7 @@ impl WorkEngine {
     /// 取出当前注册的领域约束（用于在执行 agent 节点时转发给 `AgentExecutor`）。
     ///
     /// 内部 clone 出 Arc，避免锁长时间持有。仅暴露给 crate 内部消费
-    /// （当前仅 `agent_executor.rs` 会调用，stock-analysis 等领域 PR
-    /// 不应直接依赖此 getter）。
-    ///
-    /// `#[allow(dead_code)]`：本 PR 仅加桥接，不消费 getter。
-    /// stock-analysis 后续 PR 在 `AgentExecutor::execute` 中调用此方法
-    /// 取约束并注入 4a/4f 段时会用到，到时移除此标记。
-    #[allow(dead_code)]
+    /// （engine.rs 的 run_workflow 中转发给 agent_executor）。
     pub(crate) fn domain_constraints(&self) -> Option<DomainConstraintsFn> {
         self.domain_constraints
             .lock()
@@ -1212,6 +1206,12 @@ impl WorkEngine {
         {
             let rag_cb = self.rag_callback.lock().await.clone();
             self.agent_executor.set_rag_callback(rag_cb);
+        }
+
+        // 同步 DomainConstraints 到共享 AgentExecutor 槽
+        {
+            let dc = self.domain_constraints();
+            self.agent_executor.set_domain_constraints_option(dc);
         }
 
         // 自动扫描工作流节点中的工具定义，按需注册（模板级工具自动注册）

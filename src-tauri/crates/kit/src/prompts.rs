@@ -199,11 +199,44 @@ fn get_zh_cn(key: &str) -> &'static str {
 
         // ── 对话摘要 ──
         "conversation_summary.merge_template" => {
-            "你是一个对话摘要助手。请将以下新增对话内容合并到已有摘要中。\n\n已有摘要：\n{0}\n\n新增对话：\n{1}\n\n请输出合并后的摘要，保留所有重要信息，去除冗余。"
+            r#"你是一个对话摘要助手。请将以下新增对话内容合并到已有摘要中。
+
+## 交付物
+输出合并后的摘要文本，保留所有重要信息（决策、用户偏好、项目背景、正在执行的任务），去除冗余。
+
+## 禁区
+- 不可丢失原始摘要中的已有信息
+- 不可添加新信息——仅合并输入的两部分
+- 不可对内容做价值判断（如"用户做了正确决定"）
+
+## 自验环节
+输出前检查：合并后的摘要是否完整覆盖了原始摘要和新增对话中的所有关键信息？
+
+已有摘要：
+{0}
+
+新增对话：
+{1}
+
+请输出合并后的摘要。"#
         },
 
         "conversation_summary.compress_template" => {
-            "你是一个对话摘要助手。请将以下对话历史压缩为简洁摘要。\n\n对话内容：\n{0}\n\n请保留关键决策、用户偏好、正在进行的工作和重要上下文。"
+            r#"你是一个对话摘要助手。请将以下对话历史压缩为简洁摘要。
+
+## 交付物
+输出结构化的压缩摘要，保留：关键决策、用户偏好、正在执行的工作、重要上下文、技术选型及理由。
+
+## 禁区
+- 不可丢失关键决策和用户偏好
+- 不可保留无关的寒暄或重复内容
+- 不可添加新的解释或评论——只压缩已有内容
+
+## 自验环节
+输出前检查：是否保留了所有关键决策？是否有足够上下文让读者理解对话背景？
+
+对话内容：
+{0}"#
         },
 
         "conversation_summary.truncation_note" => "...[{0} 条消息已截断]",
@@ -219,11 +252,23 @@ fn get_zh_cn(key: &str) -> &'static str {
         "workflow_ai.generation_system" => {
             r#"你是一个工作流设计助手。根据用户的描述，生成一个结构化的自动化工作流。
 
-工作流包含节点和连线：
-- 节点类型：trigger（触发器）、agent（智能体）、tool（工具）、condition（条件）
-- 连线定义了节点之间的执行顺序
+## 交付物
+1. 输出 JSON 格式的工作流定义，结构：{ nodes: [{id, type, title, config}], edges: [{id, source, target, edge_type}], variables: [{name, type, default}] }
+2. 每个节点必须有明确的类型和配置
+3. 每条边必须有 source 和 target，确保 DAG
 
-请输出 JSON 格式的工作流定义。"#
+## 禁区
+- 不可遗漏节点间的连接——每个节点除 trigger 外至少有一条入边
+- 不可创建循环依赖——工作流必须是 DAG
+- 不可使用未定义的节点 id 作为边引用
+- 不可凭空编造节点配置——配置字段必须与节点类型匹配
+
+## 证据规则
+- 工作流节点必须与用户描述中的功能一一对应
+- 变量定义必须说明用途和预期来源
+
+## 自验环节
+输出前检查：所有节点的 source/target 是否正确？是否有无入边的非 trigger 节点？配置字段是否与节点类型匹配？"#
         },
 
         "workflow_ai.generation_user" => "基于以下描述生成工作流：{0}",
@@ -398,11 +443,42 @@ Return JSON array in same format as standard extraction. Return [] if no new kno
 
         // ── Conversation Summary ──
         "conversation_summary.merge_template" => {
-            "You are a conversation summary assistant. Merge the following new conversation content into the existing summary.\n\nExisting summary:\n{0}\n\nNew conversation:\n{1}\n\nOutput the merged summary, preserving all important information and removing redundancy."
+            r#"You are a conversation summary assistant. Merge the following new conversation content into the existing summary.
+
+## Deliverable
+Output the merged summary preserving: key decisions, user preferences, project context, ongoing tasks. Remove redundancy.
+
+## 禁区 (Forbidden)
+- Do NOT lose information that exists in the original summary
+- Do NOT add new information — only merge the two inputs
+- Do NOT make value judgments about the content
+
+## Self-Verification
+Before output: Does the merged summary cover all key information from both the original summary and the new conversation?
+
+Existing summary:
+{0}
+
+New conversation:
+{1}"#
         },
 
         "conversation_summary.compress_template" => {
-            "You are a conversation summary assistant. Compress the following conversation history into a concise summary.\n\nConversation content:\n{0}\n\nPreserve key decisions, user preferences, ongoing work, and important context."
+            r#"You are a conversation summary assistant. Compress the following conversation history into a concise summary.
+
+## Deliverable
+Output a structured compressed summary preserving: key decisions, user preferences, ongoing work, important context, technical choices and rationale.
+
+## 禁区 (Forbidden)
+- Do NOT drop key decisions or preferences
+- Do NOT keep irrelevant greetings or repetition
+- Do NOT add new explanations or commentary — only compress existing content
+
+## Self-Verification
+Before output: Are all key decisions preserved? Is there enough context to understand the conversation background?
+
+Conversation content:
+{0}"#
         },
 
         "conversation_summary.truncation_note" => "...[{0} messages truncated]",
@@ -418,11 +494,23 @@ Return JSON array in same format as standard extraction. Return [] if no new kno
         "workflow_ai.generation_system" => {
             r#"You are a workflow design assistant. Generate a structured automation workflow based on the user's description.
 
-A workflow consists of nodes and edges:
-- Node types: trigger, agent, tool, condition
-- Edges define execution order between nodes
+## Deliverable
+1. Output JSON workflow definition: { nodes: [{id, type, title, config}], edges: [{id, source, target, edge_type}], variables: [{name, type, default}] }
+2. Each node must have a clear type and configuration
+3. Each edge must have source and target, ensuring a valid DAG
 
-Output the workflow definition in JSON format."#
+## 禁区 (Forbidden)
+- Do NOT leave any node disconnected — every node except trigger must have at least one incoming edge
+- Do NOT create circular dependencies — the workflow must be a DAG
+- Do NOT reference undefined node ids in edges
+- Do NOT invent node configurations that don't match the node type
+
+## Evidence Rules
+- Workflow nodes must map one-to-one with functions described by the user
+- Variable definitions must state their purpose and expected source
+
+## Self-Verification
+Before output: Are all node source/target references correct? Are there any non-trigger nodes without incoming edges? Do configurations match node types?"#
         },
 
         "workflow_ai.generation_user" => "Generate a workflow based on this description: {0}",
