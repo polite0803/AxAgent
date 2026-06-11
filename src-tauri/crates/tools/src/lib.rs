@@ -22,6 +22,7 @@ pub mod sandbox;
 pub mod stats;
 pub mod streaming;
 pub mod tools;
+pub mod utils;
 
 pub use global_state::{get_db_path, get_sea_db, set_db_path, set_sea_db};
 pub use plugin_sdk::{
