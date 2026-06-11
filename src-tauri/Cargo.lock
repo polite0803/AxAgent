@@ -1086,6 +1086,7 @@ dependencies = [
  "futures",
  "governor",
  "http",
+ "parking_lot",
  "prometheus",
  "reqwest 0.13.2",
  "sea-orm",

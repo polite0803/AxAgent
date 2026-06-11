@@ -91,7 +91,9 @@ pub async fn realtime_handler(
         None => return unauth("Invalid, expired, or already-used ticket"),
     };
 
-    // Look up the API key bound to the ticket.
+    // 二次校验：ticket 已被 consume，证明它在 issue 时绑定到一个有效 key；
+    // 但 issue→consume 30s 窗口内 key 可能被禁用（revoked），所以这里仍要
+    // 重新查一次 DB 确认 key 仍然存在且 enabled。
     let key = match state.adapter.gateway_keys().get_by_id(&ticket.key_id).await {
         Ok(Some(k)) if k.enabled => k,
         _ => return unauth("API key not found or disabled"),
@@ -127,7 +129,9 @@ pub async fn issue_realtime_ticket(
         .into_response()
 }
 
-/// Lifetime of issued tickets. Mirrors the 30s TTL used by the tests.
+/// Lifetime of issued tickets. Long enough for a client to receive the
+/// response, read the ticket, and open the WS upgrade — but short enough
+/// that a leaked ticket (logs, browser history) is hard to weaponise.
 pub const TICKET_TTL_SECS: u64 = 30;
 
 /// Convenience: build a fresh `TicketStore` with the default TTL.
