@@ -237,6 +237,7 @@ pub async fn get_workflow_by_composite_source(
 /// - 已存在但 `nodes` 为空的行 → upsert 覆盖
 /// - 已存在且非空 → 跳过
 /// - 不存在 → insert
+///
 /// 替代 `kit::preset_templates::seed_preset_templates` 直接构造 `ActiveModel` 的位置，
 /// 让 kit 不再依赖 `axagent_entities` 的 `ActiveModel` 类型。
 pub async fn seed_preset_templates(
