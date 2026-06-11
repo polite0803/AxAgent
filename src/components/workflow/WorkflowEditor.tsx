@@ -126,8 +126,9 @@ const edgeTypes = {
 };
 
 const defaultEdgeOptions = {
-  type: "base",
+  type: "smoothstep",
   animated: false,
+  style: { stroke: "#666", strokeWidth: 1.5, borderRadius: 4 },
 };
 
 interface WorkflowEditorProps {
