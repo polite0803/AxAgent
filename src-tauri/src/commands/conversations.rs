@@ -4946,7 +4946,7 @@ mod tests_conversation {
             trajectory_cleanup_handle: Arc::new(Mutex::new(None)),
             task_manager: Arc::new(axagent_runtime::task_manager::TaskManager::new()),
             skill_watcher_shutdown: std::sync::OnceLock::new(),
-            vector_store,
+            vector_store: vector_store.clone(),
             indexing_semaphore: Arc::new(tokio::sync::Semaphore::new(2)),
             stream_cancel_flags: Arc::new(DashMap::new()),
             agent_permission_senders: Arc::new(Mutex::new(std::collections::HashMap::new())),
@@ -5047,7 +5047,7 @@ mod tests_conversation {
             proactive_service: Arc::new(tokio::sync::RwLock::new(ProactiveService::new())),
             dashboard_registry: None,
             webhook_subscription_manager: None,
-            semantic_cache,
+            semantic_cache: semantic_cache.clone(),
             prompt_cache: Arc::new(PromptCache::new()),
             harness: axagent_runtime::harness::RuntimeHarness::new(
                 axagent_runtime::harness::HarnessDeps {
