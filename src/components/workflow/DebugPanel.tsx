@@ -412,7 +412,6 @@ export function DebugPanel({ workflowId }: DebugPanelProps) {
         const subInputSchema = tmpl.input_schema || {};
         const mappingIssues: string[] = [];
         if (typeof inputMapping === "object" && Object.keys(inputMapping).length > 0) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const schemaProps = (subInputSchema as Record<string, unknown>)?.properties as Record<string, unknown> || {};
           for (const key of Object.keys(inputMapping)) {
             if (Object.keys(schemaProps).length > 0 && !schemaProps[key]) {

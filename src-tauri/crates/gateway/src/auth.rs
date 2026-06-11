@@ -106,22 +106,21 @@ pub struct AuthState {
 /// 客户端 IP（首段）；裸 socket 时 fallback 到 ConnectInfo。三个
 /// fallback 保证任何 axum 部署都能拿到一个有意义的 key。
 pub fn extract_client_ip<B>(request: &Request<B>, fallback: Option<SocketAddr>) -> String {
-    if let Some(xff) = request.headers().get("x-forwarded-for") {
-        if let Ok(s) = xff.to_str() {
-            if let Some(first) = s.split(',').next() {
-                let trimmed = first.trim();
-                if !trimmed.is_empty() {
-                    return trimmed.to_string();
-                }
+    if let Some(xff) = request.headers().get("x-forwarded-for")
+        && let Ok(s) = xff.to_str()
+    {
+        if let Some(first) = s.split(',').next() {
+            let trimmed = first.trim();
+            if !trimmed.is_empty() {
+                return trimmed.to_string();
             }
         }
     }
-    if let Some(real_ip) = request.headers().get("x-real-ip") {
-        if let Ok(s) = real_ip.to_str() {
-            if !s.is_empty() {
-                return s.to_string();
-            }
-        }
+    if let Some(real_ip) = request.headers().get("x-real-ip")
+        && let Ok(s) = real_ip.to_str()
+        && !s.is_empty()
+    {
+        return s.to_string();
     }
     fallback
         .map(|addr| addr.ip().to_string())

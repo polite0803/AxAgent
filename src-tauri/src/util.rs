@@ -54,5 +54,3 @@ macro_rules! try_unwrap_or_log {
         }
     };
 }
-
-pub use try_unwrap_or_log;

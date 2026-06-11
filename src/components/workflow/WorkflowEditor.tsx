@@ -593,7 +593,6 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
               : {}),
           },
         };
-        /* eslint-enable @typescript-eslint/no-explicit-any */
       });
       // 将 ParallelNode 的 branches[].steps 和 MergeNode（auto-inputs）中的子节点挂载为容器子节点
       // parentId 权威来源是 store.parentRefs（持久化），其次才回退到本次回填期望值。
@@ -740,7 +739,6 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
             }
           }
         }
-        /* eslint-enable @typescript-eslint/no-explicit-any */
       }
 
       // 把回填期望值持久化到 store：扫描结束后调 setParentRef，让 autosave 能保存到后端。
@@ -812,7 +810,6 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
         // ── 注入子图内部边（subGraph.edges）──
         // 这些边仅在容器展开时可见，连接子图内部的节点。
         // 实际注入在 flowEdges 声明之后的 subGraphEdgeInjection 阶段完成。
-        /* eslint-enable @typescript-eslint/no-explicit-any */
       }
 
       // ── 注入展开的子工作流内部节点 ──
@@ -937,7 +934,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
         if (!subGraph?.edges?.length) { continue; }
         const isCollapsedParent = collapsedContainers.has(containerNode.id);
         if (isCollapsedParent) { continue; }
-        const subNodeIds = new Set((subGraph.nodes ?? []).map((n: any) => n.id));
+        const subNodeIds = new Set((subGraph.nodes ?? []).map((n: { id: string }) => n.id));
         for (const subEdge of subGraph.edges) {
           if (!subNodeIds.has(subEdge.source) || !subNodeIds.has(subEdge.target)) { continue; }
           flowEdges.push({
@@ -952,7 +949,6 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
             data: { edgeType: subEdge.edge_type },
           });
         }
-        /* eslint-enable @typescript-eslint/no-explicit-any */
       }
 
       setREdges(flowEdges);
@@ -1022,7 +1018,6 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
         message.warning(t("workflow.decorativeContainerNoEdges"));
         return;
       }
-      /* eslint-enable @typescript-eslint/no-explicit-any */
       // 禁止重复边（通过 ref 读取避免 onConnect 依赖 edges 频繁重建）
       const exists = edgesRef.current.some(
         (e) =>
@@ -1802,7 +1797,6 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
       layoutEdges,
       parentRefs,
     );
-    /* eslint-enable @typescript-eslint/no-explicit-any */
     // 保留 edges 不变
     setRNodes(layoutedNodes);
 

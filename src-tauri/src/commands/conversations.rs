@@ -4954,7 +4954,7 @@ mod tests_conversation {
             agent_always_allowed: Arc::new(Mutex::new(std::collections::HashMap::new())),
             agent_prompters: Arc::new(Mutex::new(std::collections::HashMap::new())),
             agent_session_manager: Arc::new(axagent_agent::SessionManager::new(db.clone())),
-            agent_cancel_tokens: Arc::new(Mutex::new(std::collections::HashMap::new())),
+            agent_cancel_tokens: Arc::new(DashMap::new()),
             agent_paused: Arc::new(Mutex::new(std::collections::HashSet::new())),
             running_agents: Arc::new(tokio::sync::RwLock::new(std::collections::HashSet::new())),
             reflector: Arc::new(axagent_agent::Reflector::new()),
@@ -5124,6 +5124,172 @@ mod tests_conversation {
             session_share_manager: Arc::new(tokio::sync::RwLock::new(
                 std::collections::HashMap::new(),
             )),
+            // ── Phase 3 P1 Task 3.1: domain sub-states ──
+            infra: crate::state::InfraState::new(
+                axagent_runtime::harness::RuntimeHarness::new(
+                    axagent_runtime::harness::HarnessDeps {
+                        persistence: Arc::new(axagent_core::db::DbHandle {
+                            conn: db.clone(),
+                            path: ":memory:".into(),
+                        })
+                            as Arc<dyn axagent_harness::Persistence>,
+                        master_key: [0; 32],
+                        provider_registry: Arc::new(
+                            axagent_providers::registry::ProviderRegistry::create_default(),
+                        )
+                            as Arc<dyn axagent_harness::registry::ProviderRegistry>,
+                    },
+                ),
+                vector_store.clone(),
+                Arc::new(tokio::sync::Semaphore::new(2)),
+                Arc::new(axagent_core::file_authorizer::FileAuthorizer::new()),
+                temp_dir.clone(),
+            ),
+            gateway_state: crate::state::GatewayState::new(Arc::new(Mutex::new(None))),
+            task: crate::state::TaskState::new(
+                Arc::new(axagent_runtime::task_manager::TaskManager::new()),
+                Arc::new(Mutex::new(None)),
+                Arc::new(Mutex::new(None)),
+                Arc::new(Mutex::new(None)),
+                Arc::new(Mutex::new(None)),
+                tokio_util::sync::CancellationToken::new(),
+                Arc::new(AtomicBool::new(false)),
+                Arc::new(DashMap::new()),
+                Arc::new(Mutex::new(std::collections::HashMap::new())),
+                Arc::new(Mutex::new(std::collections::HashMap::new())),
+                Arc::new(Mutex::new(std::collections::HashMap::new())),
+                Arc::new(Mutex::new(std::collections::HashMap::new())),
+            ),
+            agent: crate::state::AgentState::new(
+                Arc::new(axagent_agent::SessionManager::new(db.clone())),
+                Arc::new(DashMap::new()),
+                Arc::new(Mutex::new(std::collections::HashSet::new())),
+                Arc::new(tokio::sync::RwLock::new(std::collections::HashSet::new())),
+                Arc::new(axagent_agent::Reflector::new()),
+                Arc::new(axagent_runtime::message_gateway::platform_manager::PlatformManager::new()),
+                Arc::new(axagent_runtime::message_gateway::platform_bridge::PlatformBridge::new(
+                    db.clone(),
+                    [0; 32],
+                    Arc::new(
+                        axagent_runtime::message_gateway::platform_manager::PlatformManager::new(),
+                    ),
+                )),
+                Arc::new(tokio::sync::Mutex::new(
+                    axagent_tools::registry::UnifiedToolRegistry::new(),
+                )),
+                Arc::new(axagent_runtime::work_engine::WorkEngine::new(
+                    Arc::new(db.clone()),
+                    [0; 32],
+                    Arc::new(axagent_providers::registry::ProviderRegistry::create_default())
+                        as Arc<dyn axagent_harness::registry::ProviderRegistry>,
+                )),
+            ),
+            memory: crate::state::MemoryState::new(
+                Arc::new(tokio::sync::RwLock::new(
+                    axagent_runtime::shared_memory::SharedMemory::new(),
+                )),
+                Arc::new(tokio::sync::RwLock::new(
+                    axagent_trajectory::SubAgentRegistry::new().unwrap_or_default(),
+                )),
+                memory_service.clone(),
+                Arc::new(tokio::sync::Mutex::new(axagent_trajectory::NudgeService::new())),
+                {
+                    let storage =
+                        axagent_trajectory::TrajectoryStorage::new(std::sync::Arc::new(db.clone()));
+                    Arc::new(axagent_trajectory::ClosedLoopService::new(std::sync::Arc::new(
+                        storage,
+                    )))
+                },
+                trajectory_storage.clone(),
+                Arc::new(tokio::sync::RwLock::new(
+                    axagent_trajectory::LearningInsightSystem::new().with_storage_limits(200, 30),
+                )),
+                Arc::new(tokio::sync::Mutex::new(axagent_trajectory::RealTimeLearning::new())),
+                pattern_learner.clone(),
+                Arc::new(tokio::sync::RwLock::new(axagent_trajectory::CrossSessionLearner::new())),
+                Arc::new(tokio::sync::RwLock::new(axagent_trajectory::RLEngine::new(
+                    axagent_trajectory::RLConfig::default(),
+                    axagent_trajectory::RewardWeights::default(),
+                ))),
+                {
+                    let storage =
+                        axagent_trajectory::TrajectoryStorage::new(std::sync::Arc::new(db.clone()));
+                    Arc::new(axagent_trajectory::BatchProcessor::new(
+                        std::sync::Arc::new(storage),
+                        axagent_trajectory::BatchConfig::default(),
+                    ))
+                },
+                Arc::new(tokio::sync::RwLock::new(axagent_trajectory::AutoMemoryExtractor::new(
+                    Arc::new(axagent_trajectory::TrajectoryStorage::new(std::sync::Arc::new(
+                        db.clone(),
+                    ))),
+                    memory_service.clone(),
+                    pattern_learner.clone(),
+                ))),
+                Arc::new(tokio::sync::RwLock::new(
+                    axagent_trajectory::ParallelExecutionService::new(10),
+                )),
+                Arc::new(axagent_runtime_core::CronJobStore::new_ephemeral()),
+                Arc::new(tokio::sync::RwLock::new(axagent_trajectory::UserProfile::new())),
+                semantic_cache.clone(),
+                Arc::new(PromptCache::new()),
+                Arc::new(axagent_trajectory::DreamConsolidator::new()),
+                Arc::new(axagent_trajectory::TrajectoryDreamDataProvider::new(
+                    trajectory_storage.clone(),
+                )),
+                Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())),
+            ),
+            skill: crate::state::SkillState::new(
+                Arc::new(tokio::sync::Mutex::new(axagent_trajectory::SkillEvolutionEngine::new())),
+                Arc::new(tokio::sync::RwLock::new(axagent_trajectory::SkillProposalService::new(
+                    Arc::new(axagent_trajectory::TrajectoryStorage::new(std::sync::Arc::new(
+                        db.clone(),
+                    ))),
+                ))),
+                Arc::new(tokio::sync::RwLock::new(axagent_trajectory::SkillDecomposer::new())),
+                crate::state::SandboxExecutorField::Real(Arc::new(
+                    axagent_trajectory::SkillSandboxExecutor::with_default_policy(),
+                )),
+                None,
+                None,
+                Arc::new(tokio::sync::RwLock::new(axagent_plugins::PluginManager::new(
+                    axagent_plugins::PluginManagerConfig::new(temp_dir.clone()),
+                ))),
+                None,
+                Arc::new(tokio::sync::Mutex::new(HashMap::new())),
+                Arc::new(tokio::sync::Mutex::new(HashMap::new())),
+                crate::state::BrowserClientField::Real(Arc::new(tokio::sync::Mutex::new(None))),
+                Arc::new(tokio::sync::Mutex::new(axagent_trajectory::TextGradEngine::new(
+                    axagent_trajectory::ComputationGraph::new(),
+                    axagent_trajectory::TextGradConfig::default(),
+                ))),
+                Arc::new(tokio::sync::Mutex::new(axagent_trajectory::AutoToolCreator::new(
+                    axagent_trajectory::AutoToolCreatorConfig::default(),
+                    Box::new(axagent_trajectory::DefaultLlmToolProvider::new()),
+                    Box::new(axagent_trajectory::DefaultSandboxToolTester),
+                ))),
+                Arc::new(tokio::sync::Mutex::new(
+                    axagent_trajectory::IntrinsicMotivationEngine::new(
+                        axagent_trajectory::IntrinsicMotivationConfig::default(),
+                    ),
+                )),
+                Arc::new(tokio::sync::Mutex::new(axagent_trajectory::CoevolutionEnvironment::new(
+                    axagent_trajectory::CoevolutionConfig::default(),
+                ))),
+                Arc::new(axagent_trajectory::ImmutableConstitution::new(
+                    vec![
+                        axagent_trajectory::ConstitutionalRule::NoSelfModificationOfReward,
+                        axagent_trajectory::ConstitutionalRule::NoCodeExecutionWithoutSandbox,
+                        axagent_trajectory::ConstitutionalRule::PreserveUserIntent,
+                        axagent_trajectory::ConstitutionalRule::MaxModificationSize(0.5),
+                    ],
+                    axagent_trajectory::ConstitutionConfig::default(),
+                )),
+                Arc::new(
+                    tokio::sync::Mutex::new(axagent_trajectory::ProcessRewardModel::default()),
+                ),
+                Arc::new(tokio::sync::RwLock::new(ProactiveService::new())),
+            ),
         };
 
         let attachments = vec![AttachmentInput {
