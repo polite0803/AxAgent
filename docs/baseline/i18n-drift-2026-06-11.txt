@@ -1,0 +1,104 @@
+[ar.json] missing=105 extra=29
+  - missing: workflow.loopBackCycleDetected
+  - missing: workflow.nodeTypes.swarm
+  - missing: workflow.nodeTypes.storage
+  - missing: workflow.nodeTypes.workflowRef
+  - missing: workflow.nodeTypes.phaseSeparator
+  + extra:   workflow.templateList.deleted
+  + extra:   workflow.templateList.deleteFailed
+  + extra:   workflow.templateList.copied
+  + extra:   workflow.templateList.copyFailed
+  + extra:   workflow.templateList.view
+[de.json] missing=105 extra=29
+  - missing: workflow.loopBackCycleDetected
+  - missing: workflow.nodeTypes.swarm
+  - missing: workflow.nodeTypes.storage
+  - missing: workflow.nodeTypes.workflowRef
+  - missing: workflow.nodeTypes.phaseSeparator
+  + extra:   workflow.templateList.deleted
+  + extra:   workflow.templateList.deleteFailed
+  + extra:   workflow.templateList.copied
+  + extra:   workflow.templateList.copyFailed
+  + extra:   workflow.templateList.view
+[es.json] missing=105 extra=29
+  - missing: workflow.loopBackCycleDetected
+  - missing: workflow.nodeTypes.swarm
+  - missing: workflow.nodeTypes.storage
+  - missing: workflow.nodeTypes.workflowRef
+  - missing: workflow.nodeTypes.phaseSeparator
+  + extra:   workflow.templateList.deleted
+  + extra:   workflow.templateList.deleteFailed
+  + extra:   workflow.templateList.copied
+  + extra:   workflow.templateList.copyFailed
+  + extra:   workflow.templateList.view
+[fr.json] missing=105 extra=29
+  - missing: workflow.loopBackCycleDetected
+  - missing: workflow.nodeTypes.swarm
+  - missing: workflow.nodeTypes.storage
+  - missing: workflow.nodeTypes.workflowRef
+  - missing: workflow.nodeTypes.phaseSeparator
+  + extra:   workflow.templateList.deleted
+  + extra:   workflow.templateList.deleteFailed
+  + extra:   workflow.templateList.copied
+  + extra:   workflow.templateList.copyFailed
+  + extra:   workflow.templateList.view
+[hi.json] missing=105 extra=29
+  - missing: workflow.loopBackCycleDetected
+  - missing: workflow.nodeTypes.swarm
+  - missing: workflow.nodeTypes.storage
+  - missing: workflow.nodeTypes.workflowRef
+  - missing: workflow.nodeTypes.phaseSeparator
+  + extra:   workflow.templateList.deleted
+  + extra:   workflow.templateList.deleteFailed
+  + extra:   workflow.templateList.copied
+  + extra:   workflow.templateList.copyFailed
+  + extra:   workflow.templateList.view
+[ja.json] missing=105 extra=1387
+  - missing: workflow.loopBackCycleDetected
+  - missing: workflow.nodeTypes.swarm
+  - missing: workflow.nodeTypes.storage
+  - missing: workflow.nodeTypes.workflowRef
+  - missing: workflow.nodeTypes.phaseSeparator
+  + extra:   nav.appStore
+  + extra:   nav.workspace
+  + extra:   nav.tools
+  + extra:   nav.services
+  + extra:   nav.developer
+[ko.json] missing=105 extra=29
+  - missing: workflow.loopBackCycleDetected
+  - missing: workflow.nodeTypes.swarm
+  - missing: workflow.nodeTypes.storage
+  - missing: workflow.nodeTypes.workflowRef
+  - missing: workflow.nodeTypes.phaseSeparator
+  + extra:   workflow.templateList.deleted
+  + extra:   workflow.templateList.deleteFailed
+  + extra:   workflow.templateList.copied
+  + extra:   workflow.templateList.copyFailed
+  + extra:   workflow.templateList.view
+[ru.json] missing=105 extra=29
+  - missing: workflow.loopBackCycleDetected
+  - missing: workflow.nodeTypes.swarm
+  - missing: workflow.nodeTypes.storage
+  - missing: workflow.nodeTypes.workflowRef
+  - missing: workflow.nodeTypes.phaseSeparator
+  + extra:   workflow.templateList.deleted
+  + extra:   workflow.templateList.deleteFailed
+  + extra:   workflow.templateList.copied
+  + extra:   workflow.templateList.copyFailed
+  + extra:   workflow.templateList.view
+[zh-CN.json] missing=0 extra=4
+  + extra:   workflow.mergeNode.first
+  + extra:   workflow.mergeNode.last
+  + extra:   workflow.mergeNode.inputCount
+  + extra:   fineTune.rank
+[zh-TW.json] missing=105 extra=29
+  - missing: workflow.loopBackCycleDetected
+  - missing: workflow.nodeTypes.swarm
+  - missing: workflow.nodeTypes.storage
+  - missing: workflow.nodeTypes.workflowRef
+  - missing: workflow.nodeTypes.phaseSeparator
+  + extra:   workflow.templateList.deleted
+  + extra:   workflow.templateList.deleteFailed
+  + extra:   workflow.templateList.copied
+  + extra:   workflow.templateList.copyFailed
+  + extra:   workflow.templateList.view

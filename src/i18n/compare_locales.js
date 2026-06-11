@@ -1,5 +1,34 @@
 import fs from "fs";
 
+// i18n 漂移审计 + 关键缺失键报告
+//
+// 旧版会在检测到缺失键时**自动用英文填充**（pseudo-translation），
+// 实际并未经过翻译，污染了多语言文件并掩盖了真实漂移。
+// 现在此脚本被 `scripts/i18n-check.mjs` 替代做严格的只读校验；本文件保留
+// 仅用于**只读报告**—— 任何写入操作都直接报错，强制走真实翻译流程。
+// 详见 `src/i18n/NO_PSEUDO_TRANSLATION.md`。
+//
+// 用法:  node src/i18n/compare_locales.js            # 打印漂移报告（只读）
+//       (旧用法已禁用 — 写入将被拒绝)
+
+const PSEUDO_TRANSLATION_FORBIDDEN =
+  "pseudo-translation is forbidden — see src/i18n/NO_PSEUDO_TRANSLATION.md. " +
+  "Use `node scripts/i18n-check.mjs` for read-only drift detection, " +
+  "and run the real translation pipeline (en add → manual/service translate 12 langs) " +
+  "to fill missing keys.";
+
+function die(msg) {
+  console.error(`[compare_locales.js] ${msg}`);
+  process.exit(1);
+}
+
+// Hard guard: refuse to run the legacy auto-fill path even if some caller
+// passes a flag we don't recognize.  Anyone wanting to write locale files
+// must do so via the real translation pipeline.
+if (process.argv.includes("--write") || process.argv.includes("--fill")) {
+  die(PSEUDO_TRANSLATION_FORBIDDEN);
+}
+
 // 读取英文基准文件
 const enFilePath = "./locales/en-US.json";
 const enContent = JSON.parse(fs.readFileSync(enFilePath, "utf8"));
@@ -32,11 +61,6 @@ function getAllKeys(obj, prefix = "") {
   return keys;
 }
 
-// 获取对象中指定键的值
-function getValueByKey(obj, key) {
-  return key.split(".").reduce((acc, curr) => acc?.[curr], obj);
-}
-
 // 比较两个语言文件，找出缺失的键
 function findMissingKeys(baseObj, targetObj) {
   const baseKeys = getAllKeys(baseObj);
@@ -44,87 +68,9 @@ function findMissingKeys(baseObj, targetObj) {
   return baseKeys.filter((key) => !targetKeys.includes(key));
 }
 
-// 生成缺失的文案
-function generateMissingTranslations(baseObj, missingKeys, lang) {
-  const missing = {};
-  missingKeys.forEach((key) => {
-    const value = getValueByKey(baseObj, key);
-    // 简单的翻译逻辑，实际项目中可能需要使用专业的翻译API
-    let translatedValue = value;
-
-    // 这里可以添加针对不同语言的翻译逻辑
-    switch (lang) {
-      case "zh-CN":
-        // 这里可以添加中文翻译
-        break;
-      case "zh-TW":
-        // 这里可以添加繁体中文翻译
-        break;
-      case "de":
-        // 这里可以添加德语翻译
-        break;
-      case "es":
-        // 这里可以添加西班牙语翻译
-        break;
-      case "fr":
-        // 这里可以添加法语翻译
-        break;
-      case "hi":
-        // 这里可以添加印地语翻译
-        break;
-      case "ja":
-        // 这里可以添加日语翻译
-        break;
-      case "ko":
-        // 这里可以添加韩语翻译
-        break;
-      case "ru":
-        // 这里可以添加俄语翻译
-        break;
-      case "ar":
-        // 这里可以添加阿拉伯语翻译
-        break;
-    }
-
-    // 将键路径转换为对象结构
-    const keyParts = key.split(".");
-    let current = missing;
-    for (let i = 0; i < keyParts.length - 1; i++) {
-      const part = keyParts[i];
-      if (!current[part]) {
-        current[part] = {};
-      }
-      current = current[part];
-    }
-    current[keyParts[keyParts.length - 1]] = translatedValue;
-  });
-  return missing;
-}
-
-// 合并对象
-function mergeObjects(target, source) {
-  for (const [key, value] of Object.entries(source)) {
-    if (typeof value === "object" && value !== null && !Array.isArray(value)) {
-      if (
-        !target[key]
-        || typeof target[key] !== "object"
-        || Array.isArray(target[key])
-      ) {
-        target[key] = {};
-      }
-      mergeObjects(target[key], value);
-    } else {
-      target[key] = value;
-    }
-  }
-  return target;
-}
-
-// 处理每个语言文件
+// 处理每个语言文件（只读模式：仅打印报告，绝不写入）
 languages.forEach((lang) => {
-  // 保持语言代码的正确大小写，特别是zh-CN和zh-TW
   let filename;
-  // 对于zh-CN和zh-TW，保持大写的国家代码
   if (lang === "zh-CN" || lang === "zh-TW") {
     filename = lang;
   } else {
@@ -140,25 +86,10 @@ languages.forEach((lang) => {
     console.log(`Missing keys: ${missingKeys.length}`);
     console.log(`Missing keys: ${missingKeys.join(", ")}`);
     console.log("");
-
-    if (missingKeys.length > 0) {
-      const missingTranslations = generateMissingTranslations(
-        enContent,
-        missingKeys,
-        lang,
-      );
-      const mergedContent = mergeObjects(langContent, missingTranslations);
-
-      // 写入更新后的文件
-      fs.writeFileSync(langFilePath, JSON.stringify(mergedContent, null, 2));
-      console.log(
-        `Updated ${lang} file with ${missingKeys.length} missing translations`,
-      );
-    }
   } else {
     console.log(`Language file not found: ${langFilePath}`);
   }
   console.log("---");
 });
 
-console.log("Comparison completed!");
+console.log("Comparison completed (read-only).");
