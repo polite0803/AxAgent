@@ -16,6 +16,8 @@ use tokio::task::JoinHandle;
 
 use axagent_core::error::{AxAgentError, Result};
 
+use crate::realtime_ticket::TicketStore;
+
 /// Shared state for Axum handlers (separate from Tauri AppState).
 #[derive(Clone)]
 pub struct GatewayAppState {
@@ -27,6 +29,9 @@ pub struct GatewayAppState {
     /// 平台层 trait 聚合（provider / settings / gateway_key / request_log / crypto）。
     /// 由 wiring 层构造，把 gateway 与 dao + crypto 解耦。
     pub adapter: Arc<dyn axagent_harness::PlatformAdapter>,
+    /// In-memory store of single-use tickets for `/v1/realtime` WS auth
+    /// (SECURITY P0-2.2). One per gateway instance.
+    pub ticket_store: Arc<TicketStore>,
 }
 
 /// TLS certificate material.
@@ -133,6 +138,7 @@ impl GatewayServer {
             started_at,
             provider_registry,
             adapter,
+            ticket_store: crate::realtime::default_ticket_store(),
         };
         Self::start_inner(app_state, config).await
     }

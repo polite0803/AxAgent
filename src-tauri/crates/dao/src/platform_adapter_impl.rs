@@ -66,6 +66,13 @@ impl GatewayKeyRepository for DefaultGatewayKeyRepository {
         }
     }
 
+    async fn get_by_id(&self, key_id: &str) -> Result<Option<GatewayKey>> {
+        match repo::gateway::get_by_id(&self.db, key_id).await {
+            Ok(k) => Ok(Some(k)),
+            Err(_) => Ok(None),
+        }
+    }
+
     async fn update_last_used(&self, key_id: &str) -> Result<()> {
         repo::gateway::update_last_used(&self.db, key_id).await
     }

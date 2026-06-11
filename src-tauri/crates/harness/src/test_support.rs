@@ -62,6 +62,9 @@ impl GatewayKeyRepository for EmptyGatewayKeyRepository {
     async fn verify_key(&self, _token: &str) -> Result<Option<GatewayKey>> {
         Ok(None)
     }
+    async fn get_by_id(&self, _key_id: &str) -> Result<Option<GatewayKey>> {
+        Ok(None)
+    }
     async fn update_last_used(&self, _key_id: &str) -> Result<()> {
         Ok(())
     }

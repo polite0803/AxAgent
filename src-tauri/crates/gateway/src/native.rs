@@ -1294,6 +1294,7 @@ mod tests {
                     axagent_crypto::platform_adapter_impl::DefaultCryptoService::new(master_key),
                 ),
             ),
+            ticket_store: crate::realtime::default_ticket_store(),
         };
         (create_router(state.clone()), handle, gateway_key.plain_key, state)
     }
@@ -1710,6 +1711,7 @@ mod tests {
                     axagent_crypto::platform_adapter_impl::DefaultCryptoService::new(master_key),
                 ),
             ),
+            ticket_store: crate::realtime::default_ticket_store(),
         });
         let response = app
             .oneshot(

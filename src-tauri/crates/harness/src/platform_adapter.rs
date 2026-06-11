@@ -29,6 +29,10 @@ pub trait SettingsRepository: Send + Sync {
 pub trait GatewayKeyRepository: Send + Sync {
     async fn list_gateway_keys(&self) -> Result<Vec<GatewayKey>>;
     async fn verify_key(&self, token: &str) -> Result<Option<GatewayKey>>;
+    /// Look up a key by its stable id. Returns `None` if not found.
+    /// SECURITY: callers must not assume the key is enabled — check `key.enabled`
+    /// before granting access.
+    async fn get_by_id(&self, key_id: &str) -> Result<Option<GatewayKey>>;
     async fn update_last_used(&self, key_id: &str) -> Result<()>;
     #[allow(clippy::too_many_arguments)]
     async fn record_usage(
