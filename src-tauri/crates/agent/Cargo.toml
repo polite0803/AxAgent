@@ -17,9 +17,7 @@ tracing = { workspace = true }
 base64 = "0.22"
 tauri = "2"
 futures = "0.3"
-futures-util = "0.3.30"
 uuid = { version = "1.6.1", features = ["v4"] }
-parking_lot = "0.12"
 thiserror = { workspace = true }
 chrono = { version = "0.4", features = ["serde"] }
 regex-lite = "0.1"

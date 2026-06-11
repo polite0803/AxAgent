@@ -10,17 +10,13 @@ serde_json = { workspace = true }
 serde_yaml = "0.9"
 tokio = { workspace = true }
 async-trait = "0.1"
-thiserror = { workspace = true }
 tracing = { workspace = true }
-anyhow = { workspace = true }
 futures = "0.3"
 chrono = { workspace = true }
 regex = "1"
 glob = "0.3"
 reqwest = { workspace = true, features = ["multipart", "cookies"] }
 encoding_rs = "0.8"
-scraper = "0.22"
-ego-tree = "0.10"
 url = "2"
 urlencoding = "2"
 uuid = { version = "1", features = ["v4"] }
@@ -35,8 +31,6 @@ parking_lot = "0.12"
 sea-orm = { workspace = true }
 image = { workspace = true }
 infer = "0.16"
-sha2 = { workspace = true }
-lazy_static = { workspace = true }
 axagent-core = { path = "../core" }
 axagent-harness = { path = "../harness" }
 axagent-runtime-core = { path = "../runtime-core" }

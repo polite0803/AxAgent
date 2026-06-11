@@ -1,5 +1,5 @@
-use axagent_core::error::AxAgentError;
 use axagent_harness::ProviderRequestContext;
+use axagent_harness::core_error::AxAgentError;
 use axagent_harness::types::{
     GatewayKey, ProviderConfig, ProviderProxyConfig, ProviderType, TokenUsage,
 };
@@ -1111,11 +1111,9 @@ pub async fn gemini_model_operation(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use axagent_core::{
-        crypto::{encrypt_key, key_prefix},
-        db::{DbHandle, create_test_pool},
-        repo::{gateway, gateway_request_log, provider},
-    };
+    use axagent_crypto::crypto::{encrypt_key, key_prefix};
+    use axagent_dao::db::{DbHandle, create_test_pool};
+    use axagent_dao::repo::{gateway, gateway_request_log, provider};
     use axagent_harness::types::{
         CreateProviderInput, Model, ModelCapability, ModelType, ProviderType, TokenUsage,
     };

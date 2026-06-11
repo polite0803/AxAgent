@@ -15,11 +15,9 @@ thiserror = { workspace = true }
 tracing = { workspace = true }
 chrono = { workspace = true }
 sea-orm = { workspace = true }
-itertools = "0.14"
 futures = "0.3"
 axagent-core = { path = "../core" }
 axagent-harness = { path = "../harness" }
-axagent-providers = { path = "../providers" }  # url_utils (resolve_base_url_for_type)
 rhai = { version = "1", features = ["sync"] }
 
 jsonschema = "0.46"

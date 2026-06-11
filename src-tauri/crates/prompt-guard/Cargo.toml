@@ -9,10 +9,8 @@ publish = false
 [dependencies]
 axagent-harness = { path = "../harness" }
 serde.workspace = true
-serde_json.workspace = true
 regex = "1"
 tracing.workspace = true
-thiserror.workspace = true
 
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(mobile)'] }

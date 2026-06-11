@@ -6,10 +6,10 @@ use axum::{
 };
 use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
 
-use axagent_core::entity::workflow_marketplace_review;
-use axagent_core::marketplace_service::{
+use axagent_dao::marketplace_service::{
     CreateReviewRequest, MarketplaceService, UpdateReviewRequest,
 };
+use axagent_entities::workflow_marketplace_review;
 
 use crate::auth::AuthenticatedKey;
 use crate::server::GatewayAppState;

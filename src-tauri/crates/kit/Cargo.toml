@@ -6,7 +6,6 @@ publish = false
 
 [dependencies]
 axagent-dao = { path = "../dao" }
-axagent-entities = { path = "../entities" }
 axagent-harness = { path = "../harness" }
 libc = "0.2"
 serde = { workspace = true }
@@ -15,7 +14,6 @@ tokio = { workspace = true, features = ["process"] }
 tracing = { workspace = true }
 uuid = { workspace = true }
 chrono = { workspace = true }
-sea-orm = { workspace = true }
 scraper = "0.22"
 thiserror = { workspace = true }
 anyhow = { workspace = true }
@@ -29,7 +27,6 @@ reqwest = { workspace = true }
 image = { workspace = true }
 base64 = "0.22"
 sha2 = { workspace = true }
-subtle = "2"
 
 [target.'cfg(windows)'.dependencies]
 windows-sys = { version = "0.59", features = ["Win32_System_JobObjects", "Win32_System_Threading", "Win32_Foundation", "Win32_Security"] }

@@ -13,7 +13,6 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 serde_yaml = "0.9"
 tracing = "0.1"
-axagent-telemetry = { path = "../telemetry" }
 tokio = { version = "1", features = ["io-std", "io-util", "macros", "process", "rt", "rt-multi-thread", "sync", "time"] }
 uuid = { version = "1.6.1", features = ["v4"] }
 walkdir = "2"
@@ -23,7 +22,6 @@ async-trait = "0.1"
 thiserror = { workspace = true }
 anyhow = "1"
 futures = "0.3"
-quick_cache = "0.4"
 chrono = { workspace = true }
 dirs = "5"
 urlencoding = "2"
@@ -36,20 +34,13 @@ axagent-runtime-core = { path = "../runtime-core" }
 axagent-prompt-guard = { path = "../prompt-guard" }
 axagent-rt-workflow = { path = "../rt-workflow" }
 axagent-rt-messaging = { path = "../rt-messaging" }
-axagent-rt-webhook = { path = "../rt-webhook" }
 axagent-rt-dashboard = { path = "../rt-dashboard" }
 axagent-rt-theme = { path = "../rt-theme" }
 axagent-trajectory = { path = "../trajectory" }
 axagent-providers = { path = "../providers" }
 sysinfo = "0.38"
-itertools = "0.14"
-base64 = "0.22"
 axum = "0.8"
-hex = "0.4"
-tower = "0.5"
 tower-http = { version = "0.6", features = ["cors"] }
-roxmltree = "0.20"
-sha1 = "0.10"
 
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
 portable-pty = "0.8"

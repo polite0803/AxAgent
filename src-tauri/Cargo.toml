@@ -43,6 +43,18 @@ default-run = "AxAgent"
 default = ["notification"]
 notification = ["dep:tauri-plugin-notification"]
 
+[package.metadata.cargo-machete]
+# All declared axagent-* path deps are referenced in src/app_state.rs as
+# `Arc<axagent_xxx::Type>` in struct field types — a use site that
+# cargo-machete's text-based scan cannot detect.
+ignored = [
+    "axagent-prompt-guard",
+    "axagent-rt-dashboard",
+    "axagent-rt-messaging",
+    "axagent-rt-theme",
+    "axagent-rt-webhook",
+]
+
 [lib]
 name = "axagent_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]

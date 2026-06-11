@@ -14,7 +14,7 @@ use axum_server::{Handle, tls_rustls::RustlsConfig};
 use sea_orm::DatabaseConnection;
 use tokio::task::JoinHandle;
 
-use axagent_core::error::{AxAgentError, Result};
+use axagent_harness::core_error::{AxAgentError, Result};
 
 /// Shared state for Axum handlers (separate from Tauri AppState).
 #[derive(Clone)]

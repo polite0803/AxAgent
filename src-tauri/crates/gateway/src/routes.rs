@@ -143,7 +143,7 @@ pub fn create_router(state: GatewayAppState) -> Router {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use axagent_core::db::create_test_pool;
+    use axagent_dao::db::create_test_pool;
     use axum::{
         body::Body,
         http::{Method, Request, StatusCode},

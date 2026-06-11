@@ -4,7 +4,14 @@ version.workspace = true
 edition.workspace = true
 publish = false
 
+# Re-export shell crate.
+# All `axagent-*` deps are kept as direct deps so that `pub use axagent_x::y`
+# in `lib.rs` can forward their items. External (non-`axagent-*`) deps are
+# only kept if `src/*.rs` actually uses them; transitive deps consumed by
+# the re-exported sub-crates do not need to be declared here.
+
 [dependencies]
+# Re-export targets (referenced by `pub use` in lib.rs)
 axagent-cache = { path = "../cache" }
 axagent-crypto = { path = "../crypto" }
 axagent-dao = { path = "../dao" }
@@ -16,81 +23,18 @@ axagent-kit = { path = "../kit" }
 axagent-mcp = { path = "../mcp" }
 axagent-search = { path = "../search" }
 axagent-storage = { path = "../storage" }
-serde = { workspace = true }
-serde_json = { workspace = true }
-serde_yaml = { workspace = true }
-sea-orm = { workspace = true }
-tokio = { workspace = true }
-thiserror = { workspace = true }
-uuid = { workspace = true }
-chrono = { workspace = true }
-tracing = { workspace = true }
-anyhow = { workspace = true }
-aes-gcm = "0.10"
-async-trait = "0.1"
-sha2 = "0.10"
-argon2 = "0.5"
-base64 = "0.22"
-urlencoding = "2"
-reqwest = { workspace = true, features = ["stream", "multipart", "cookies"] }
-futures = "0.3"
-walkdir = "2"
-regex = "1"
-glob = "0.3"
-dirs = "5"
-shellexpand = "3"
-rand = "0.8"
-hex = "0.4"
-toml_edit = "0.22"
-sqlite-vec = { workspace = true }
-libsqlite3-sys = { workspace = true }
-pdf-extract = "0.7"
-zip = "2"
-rusqlite = { version = "0.32", features = ["bundled"] }
-sysinfo = "0.38"
-quick_cache = "0.4"
-image = { workspace = true }
-which = "7"
-libc = "0.2"
-docx-rs = "0.4"
-roxmltree = "0.20"
-md5 = "0.7"
-scraper = "0.22"
-keyring = "2"
 
-[target.'cfg(not(target_os = "android"))'.dependencies]
-rmcp = { version = "1.2", features = ["client", "transport-child-process", "transport-streamable-http-client-reqwest"] }
-candle-core = "0.8"
-candle-transformers = "0.8"
-candle-nn = "0.8"
-tokenizers = "0.23"
-
-enigo = { workspace = true }
-
-[target.'cfg(target_os = "android")'.dependencies]
-rmcp = { version = "1.2", features = ["client", "transport-streamable-http-client-reqwest"] }
-
-[target.'cfg(target_os = "linux")'.dependencies]
-notify = { version = "8", default-features = false }
-
-[target.'cfg(target_os = "macos")'.dependencies]
-notify = { version = "8", default-features = false, features = ["macos_kqueue"] }
-
-[target.'cfg(windows)'.dependencies]
-xcap = { workspace = true, features = ["wgc"] }
-notify = { version = "8", default-features = false }
-windows-sys = { version = "0.59", features = ["Win32_System_JobObjects", "Win32_System_Threading", "Win32_Foundation", "Win32_Security"] }
-windows = { version = "0.62", default-features = false, features = [
-    "Win32_Foundation",
-    "Win32_Graphics_Gdi",
-    "Win32_UI_WindowsAndMessaging",
-] }
-
-[target.'cfg(not(any(target_os = "linux", target_os = "macos", windows)))'.dependencies]
-notify = { version = "8", default-features = false }
+# Direct usage in src/
+anyhow = { workspace = true } # platform_config.rs (anyhow::bail!)
+serde = { workspace = true } # workflow_types.rs (derive Serialize/Deserialize)
+serde_json = { workspace = true } # workflow_types.rs (from_str)
+tokio = { workspace = true } # tests/*.rs use #[tokio::test]
+toml_edit = "0.22" # tests/cli_config_integration.rs
 
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(mobile)'] }
 
-[dev-dependencies]
-tempfile = "3"
+[package.metadata.cargo-machete]
+# All declared deps are re-export targets referenced by `pub use` in lib.rs,
+# or direct deps used in src/*.rs (anyhow/serde/serde_json).
+ignored = []

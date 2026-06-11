@@ -7,7 +7,6 @@ publish = false
 [dependencies]
 serde = { workspace = true }
 serde_json = { workspace = true }
-serde_yaml = "0.9"
 tokio = { workspace = true, features = ["io-std", "io-util", "macros", "process", "rt", "rt-multi-thread", "sync", "time"] }
 async-trait = "0.1"
 thiserror = { workspace = true }
@@ -18,8 +17,6 @@ uuid = { workspace = true }
 flate2 = "1"
 zstd = { version = "0.13", features = ["experimental"] }
 futures = "0.3"
-sha2 = { workspace = true }
-axum = "0.8"
 axagent-core = { path = "../core" }
 axagent-harness = { path = "../harness" }
 sea-orm = { workspace = true }
