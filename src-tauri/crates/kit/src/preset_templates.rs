@@ -1192,7 +1192,11 @@ Use these tools to save knowledge:
     ]
 }
 
-fn step_to_agent_node(step: &PresetStep, index: usize) -> WorkflowNode {
+fn step_to_agent_node(
+    step: &PresetStep,
+    index: usize,
+    template_system_prompt: &str,
+) -> WorkflowNode {
     let base = WorkflowNodeBase {
         id: step.id.to_string(),
         title: format!("Agent: {}", step.role),
@@ -1211,7 +1215,10 @@ fn step_to_agent_node(step: &PresetStep, index: usize) -> WorkflowNode {
     WorkflowNode::Agent(AgentNode {
         base,
         config: AgentNodeConfig {
-            system_prompt: format!("You are a {} agent. Your goal: {}", step.role, step.goal),
+            system_prompt: format!(
+                "You are a {} agent. Your goal: {}\n\n---\n\n{}",
+                step.role, step.goal, template_system_prompt
+            ),
             context_sources: vec![],
             output_var: format!("{}_result", step.id),
             model: None,
@@ -1301,7 +1308,11 @@ fn detect_parallel_groups(steps: &[PresetStep]) -> Vec<Vec<&PresetStep>> {
     groups
 }
 
-fn build_workflow_nodes(steps: &[PresetStep], start_y: f64) -> Vec<WorkflowNode> {
+fn build_workflow_nodes(
+    steps: &[PresetStep],
+    start_y: f64,
+    template_system_prompt: &str,
+) -> Vec<WorkflowNode> {
     let mut nodes: Vec<WorkflowNode> = Vec::new();
     let parallel_groups = detect_parallel_groups(steps);
 
@@ -1317,7 +1328,7 @@ fn build_workflow_nodes(steps: &[PresetStep], start_y: f64) -> Vec<WorkflowNode>
         }
 
         let y = start_y + (node_index as f64 * 200.0);
-        nodes.push(step_to_agent_node(step, i));
+        nodes.push(step_to_agent_node(step, i, template_system_prompt));
         if let Some(WorkflowNode::Agent(agent)) = nodes.last_mut() {
             agent.base.position.y = y;
         }
@@ -1638,7 +1649,7 @@ pub fn convert_preset_to_workflow_template(preset: &PresetTemplate) -> WorkflowT
             label: None,
         });
     } else {
-        let step_nodes = build_workflow_nodes(&preset.steps, 100.0);
+        let step_nodes = build_workflow_nodes(&preset.steps, 100.0, &preset.system_prompt);
         nodes.extend(step_nodes);
 
         let end_y = 100.0 + ((preset.steps.len() + 2) as f64 * 200.0);
