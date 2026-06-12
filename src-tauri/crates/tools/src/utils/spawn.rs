@@ -86,17 +86,27 @@ mod tests {
     #[cfg(unix)]
     #[test]
     fn safe_spawn_creates_new_process_group() {
+        // 让 child 睡眠 1 秒，父进程从 /proc/<pid>/stat 读取 PGID。
         let mut cmd = Command::new("sh");
-        cmd.arg("-c").arg("exec awk '{print $1; print $5}' /proc/$$/stat");
-        let child = safe_spawn(&mut cmd).expect("spawn sh");
+        cmd.arg("-c").arg("sleep 1");
+        let mut child = safe_spawn(&mut cmd).expect("spawn sh");
+        let pid = child.id();
 
-        let output = child.wait_with_output().expect("wait child");
-        let stdout = String::from_utf8_lossy(&output.stdout);
-        let lines: Vec<&str> = stdout.trim().split('\n').collect();
-        assert_eq!(lines.len(), 2, "expected 2 lines (pid + pgid), got: {:?}", lines);
-        let pid = lines[0].trim();
-        let pgid = lines[1].trim();
-        assert_eq!(pid, pgid, "PID should equal PGID after setsid");
+        // 从 /proc/<pid>/stat 读取第 5 字段（PGID）
+        let stat = std::fs::read_to_string(format!("/proc/{pid}/stat"))
+            .unwrap_or_else(|e| panic!("read /proc/{pid}/stat: {e}"));
+        // stat 格式：pid (comm) state ppid pgid ...
+        // 找到第 2 个 ) 后的空格开始分割
+        let after_comm = stat.split(')').nth(1).expect("stat format: missing )");
+        let fields: Vec<&str> = after_comm.split_whitespace().collect();
+        assert!(fields.len() >= 3, "stat fields too short: {fields:?}");
+        let pgid: u32 = fields[2].parse().expect("pgid not a number");
+
+        assert_eq!(pid, pgid, "PID {pid} should equal PGID {pgid} after setsid");
+
+        // 清理 child
+        let _ = child.kill();
+        let _ = child.wait();
     }
 
     /// 验证 safe_spawn 不会丢失普通 child 行为：能跑通、能拿到 exit code。
