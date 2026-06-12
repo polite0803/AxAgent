@@ -4884,7 +4884,9 @@
       "close": "Close search",
       "placeholder": "Search nodes..."
     },
-    "validationWarnings": "Workflow has {{count}} warning(s):\n{{details}}"
+    "validationWarnings": "Workflow has {{count}} warning(s):\n{{details}}",
+    "run": "Run",
+    "settings": "Settings"
   },
   "atomicSkill": {
     "entryType": "Entry Type",
