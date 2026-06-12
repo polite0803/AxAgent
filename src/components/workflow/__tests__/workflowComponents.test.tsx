@@ -1,7 +1,12 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { ReactFlowProvider } from "@xyflow/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+
+const AIPanelWrapper = ({ children }: { children: React.ReactNode }) => (
+  <ReactFlowProvider>{children}</ReactFlowProvider>
+);
 
 const invokeMock = vi.fn();
 
@@ -219,6 +224,7 @@ describe("AIPanel Component", () => {
         onClose={mockOnClose}
         {...mockChatProps}
       />,
+      { wrapper: AIPanelWrapper },
     );
 
     expect(screen.getByText("AI 助手")).toBeTruthy();
@@ -238,6 +244,7 @@ describe("AIPanel Component", () => {
         onClose={mockOnClose}
         {...mockChatProps}
       />,
+      { wrapper: AIPanelWrapper },
     );
 
     // 默认激活 "对话" tab，显示欢迎信息
@@ -255,6 +262,7 @@ describe("AIPanel Component", () => {
         onClose={mockOnClose}
         {...mockChatProps}
       />,
+      { wrapper: AIPanelWrapper },
     );
 
     fireEvent.click(screen.getByText("工具"));
@@ -274,6 +282,7 @@ describe("AIPanel Component", () => {
         onClose={mockOnClose}
         {...mockChatProps}
       />,
+      { wrapper: AIPanelWrapper },
     );
 
     // 切换到 "工具" tab
