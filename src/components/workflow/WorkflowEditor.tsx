@@ -964,6 +964,13 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
         const hasReasonableLayout = nodes.some(
           (n) => n.position.x >= 50 || n.position.y >= 50,
         );
+        // 如果有容器节点且子节点坐标明确，视为已有合理布局
+        const hasContainerChildren = nodes.some((n) => {
+          const pid = (n as { parentId?: string }).parentId;
+          return typeof pid === 'string' && pid.length > 0 && (n.position.x !== 0 || n.position.y !== 0);
+        });
+        const skipAutoLayout = hasContainerChildren;
+
         const hasOverlap = (() => {
           const posMap = new Map<string, number>();
           for (const n of nodes) {
@@ -973,7 +980,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
           return Array.from(posMap.values()).some((count) => count > 1);
         })();
 
-        if (!hasReasonableLayout || hasOverlap) {
+        if (!skipAutoLayout && (!hasReasonableLayout || hasOverlap)) {
           hasAutoLaidOutRef.current = true;
           autoLayoutTimerRef.current = setTimeout(() => {
             const { nodes: layouted, edges: layoutedE } = autoLayoutWorkflow(
