@@ -19,7 +19,7 @@ futures = "0.3"
 glob = "0.3"
 image = { workspace = true }
 infer = "0.16"
-lopdf = "0.34"
+lopdf = "0.41"
 parking_lot = "0.12"
 pdf-extract = "0.8"
 pulldown-cmark = "0.13"
