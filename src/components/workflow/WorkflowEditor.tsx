@@ -326,20 +326,6 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
   /* eslint-enable react-hooks/exhaustive-deps */
 
   /** 收集所有容器 subGraph 内的节点 ID，从顶层 nodes 中排除 */
-  function collectSubGraphNodeIds(nodes: WorkflowNode[]): Set<string> {
-    const ids = new Set<string>();
-    for (const node of nodes) {
-      const cfg = node.config as Record<string, unknown> | undefined;
-      const subGraph = cfg?.subGraph as { nodes?: WorkflowNode[] } | undefined;
-      if (subGraph?.nodes) {
-        for (const child of subGraph.nodes) {
-          ids.add(child.id);
-        }
-      }
-    }
-    return ids;
-  }
-
   // Auto-save: 通过 useRef 避免每次 nodes/edges 引用变化重建 timer，
   // 回调内通过 useWorkflowEditorStore.getState() 读取最新 store 数据。
   useEffect(() => {
@@ -359,16 +345,13 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
         if (pid === undefined) { return n; }
         return { ...n, parentId: pid } as WorkflowNode;
       });
-      // 排除已在容器 subGraph 中的子节点，避免保存时双重定义
-      const subGraphIds = collectSubGraphNodeIds(nodes);
-      const filteredNodes = nodesWithParent.filter((n) => !subGraphIds.has(n.id));
       const input = {
         name: currentTemplate?.name || "Unnamed Workflow",
         description: currentTemplate?.description,
         icon: currentTemplate?.icon || "Bot",
         tags: currentTemplate?.tags || [],
         trigger_config: currentTemplate?.trigger_config,
-        nodes: filteredNodes,
+        nodes: nodesWithParent,
         edges,
         input_schema: currentTemplate?.input_schema,
         output_schema: currentTemplate?.output_schema,
@@ -612,12 +595,17 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
               // store 记录的是 source of truth：未登记或登记为当前 parallel 才挂入
               if (storedParent === undefined || storedParent === node.id) {
                 const childFn = flowNodes[childIdx];
+                const parentNode = flowNodes.find(fn => fn.id === node.id);
                 const isCollapsedParent = collapsedContainers.has(node.id);
                 if (isCollapsedParent) { hiddenChildIds.add(stepId); }
                 flowNodes[childIdx] = {
                   ...childFn,
                   parentId: node.id,
                   extent: "parent",
+                  position: parentNode ? {
+                    x: childFn.position.x - parentNode.position.x,
+                    y: childFn.position.y - parentNode.position.y,
+                  } : childFn.position,
                   hidden: isCollapsedParent ? true : childFn.hidden,
                 };
                 expectedParentByNode[stepId] = node.id;
@@ -642,12 +630,17 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
                 const mergeIdx = flowNodes.findIndex((fn) => fn.id === node.id);
                 if (mergeIdx === -1) { continue; }
                 const mergeFn = flowNodes[mergeIdx];
+                const parentNode = flowNodes.find(fn => fn.id === targetParent);
                 const isCollapsedParent = collapsedContainers.has(targetParent);
                 if (isCollapsedParent) { hiddenChildIds.add(node.id); }
                 flowNodes[mergeIdx] = {
                   ...mergeFn,
                   parentId: targetParent,
                   extent: "parent",
+                  position: parentNode ? {
+                    x: mergeFn.position.x - parentNode.position.x,
+                    y: mergeFn.position.y - parentNode.position.y,
+                  } : mergeFn.position,
                   hidden: isCollapsedParent ? true : mergeFn.hidden,
                 };
                 expectedParentByNode[node.id] = targetParent;
@@ -664,12 +657,17 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
             const storedParent = parentRefs[stepId];
             if (storedParent === undefined || storedParent === node.id) {
               const childFn = flowNodes[childIdx];
+              const parentNode = flowNodes.find(fn => fn.id === node.id);
               const isCollapsedParent = collapsedContainers.has(node.id);
               if (isCollapsedParent) { hiddenChildIds.add(stepId); }
               flowNodes[childIdx] = {
                 ...childFn,
                 parentId: node.id,
                 extent: "parent",
+                position: parentNode ? {
+                  x: childFn.position.x - parentNode.position.x,
+                  y: childFn.position.y - parentNode.position.y,
+                } : childFn.position,
                 hidden: isCollapsedParent ? true : childFn.hidden,
               };
               expectedParentByNode[stepId] = node.id;
@@ -1278,15 +1276,13 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
       return;
     }
 
-    const subGraphIds = collectSubGraphNodeIds(nodes);
-    const filteredNodes = nodes.filter((n) => !subGraphIds.has(n.id));
     const input = {
       name: currentTemplate.name,
       description: currentTemplate.description,
       icon: currentTemplate.icon,
       tags: currentTemplate.tags,
       trigger_config: currentTemplate.trigger_config,
-      nodes: filteredNodes,
+      nodes,
       edges,
       input_schema: currentTemplate.input_schema,
       output_schema: currentTemplate.output_schema,
