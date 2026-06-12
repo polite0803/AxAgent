@@ -919,15 +919,10 @@ export function autoLayoutWorkflow(
     return { nodes: [...resolvedNodes, ...excludedNodes], edges: dagreResult.edges };
   }
 
-  // 1. 反算每个节点的当前绝对坐标（input 是 ReactFlow 坐标系，子节点为相对父）
+  // 1. 输入已是画布绝对坐标（直接从 store 读取，非 ReactFlow 渲染层相对坐标）
   const currentAbs: Record<string, { x: number; y: number }> = {};
   for (const n of nodes) {
-    const pid = childOf[n.id];
-    if (pid && currentAbs[pid]) {
-      currentAbs[n.id] = { x: n.position.x + currentAbs[pid].x, y: n.position.y + currentAbs[pid].y };
-    } else {
-      currentAbs[n.id] = { x: n.position.x, y: n.position.y };
-    }
+    currentAbs[n.id] = { x: n.position.x, y: n.position.y };
   }
 
   // 2. 对每个 parallel 容器：单独 dagre 排子节点 + 量 bbox + 归一化到原点
