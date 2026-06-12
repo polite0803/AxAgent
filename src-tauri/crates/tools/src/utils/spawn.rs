@@ -80,14 +80,14 @@ mod tests {
 
     /// 验证 Unix 上 safe_spawn 把 child 放到新 process group。
     ///
-    /// 方法：跑 `sh -c 'echo $$; ps -o pgid='`。`$$` 是当前 shell 的 PID；
+    /// 方法：从 `/proc/$$/stat` 读取 PID（第1字段）和 PGID（第5字段）。
     /// setsid 之后 PID == PGID（因为新 session 第一个 process 就是 group
     /// leader）。如果两行相等则 setsid 生效。
     #[cfg(unix)]
     #[test]
     fn safe_spawn_creates_new_process_group() {
         let mut cmd = Command::new("sh");
-        cmd.arg("-c").arg("echo $$; ps -o pgid= -p $$");
+        cmd.arg("-c").arg("exec awk '{print $1; print $5}' /proc/$$/stat");
         let child = safe_spawn(&mut cmd).expect("spawn sh");
 
         let output = child.wait_with_output().expect("wait child");
