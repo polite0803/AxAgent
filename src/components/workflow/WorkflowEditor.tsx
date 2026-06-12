@@ -602,10 +602,12 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
                   ...childFn,
                   parentId: node.id,
                   extent: "parent",
-                  position: parentNode ? {
-                    x: childFn.position.x - parentNode.position.x,
-                    y: childFn.position.y - parentNode.position.y,
-                  } : childFn.position,
+                  position: parentNode
+                    ? {
+                      x: childFn.position.x - parentNode.position.x,
+                      y: childFn.position.y - parentNode.position.y,
+                    }
+                    : childFn.position,
                   hidden: isCollapsedParent ? true : childFn.hidden,
                 };
                 expectedParentByNode[stepId] = node.id;
@@ -637,10 +639,12 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
                   ...mergeFn,
                   parentId: targetParent,
                   extent: "parent",
-                  position: parentNode ? {
-                    x: mergeFn.position.x - parentNode.position.x,
-                    y: mergeFn.position.y - parentNode.position.y,
-                  } : mergeFn.position,
+                  position: parentNode
+                    ? {
+                      x: mergeFn.position.x - parentNode.position.x,
+                      y: mergeFn.position.y - parentNode.position.y,
+                    }
+                    : mergeFn.position,
                   hidden: isCollapsedParent ? true : mergeFn.hidden,
                 };
                 expectedParentByNode[node.id] = targetParent;
@@ -664,10 +668,12 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
                 ...childFn,
                 parentId: node.id,
                 extent: "parent",
-                position: parentNode ? {
-                  x: childFn.position.x - parentNode.position.x,
-                  y: childFn.position.y - parentNode.position.y,
-                } : childFn.position,
+                position: parentNode
+                  ? {
+                    x: childFn.position.x - parentNode.position.x,
+                    y: childFn.position.y - parentNode.position.y,
+                  }
+                  : childFn.position,
                 hidden: isCollapsedParent ? true : childFn.hidden,
               };
               expectedParentByNode[stepId] = node.id;
