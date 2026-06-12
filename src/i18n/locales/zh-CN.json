@@ -4511,7 +4511,33 @@
       "toolSetSelector": "工具集"
     },
     "templateList": {
-      "moreActions": "「{{name}}」的更多操作"
+      "moreActions": "「{{name}}」的更多操作",
+      "searchPlaceholder": "搜索模板",
+      "tagPlaceholder": "标签筛选",
+      "typePlaceholder": "类型筛选",
+      "newTemplate": "新建模板",
+      "preset": "预设",
+      "custom": "自定义",
+      "noDescription": "暂无描述",
+      "readonly": "只读",
+      "view": "查看",
+      "edit": "编辑",
+      "versionHistory": "版本历史",
+      "duplicate": "复制",
+      "delete": "删除",
+      "confirmDelete": "确认删除",
+      "confirmDeleteMessage": "确定要删除模板 {{name}} 吗？",
+      "irreversible": "此操作不可撤销",
+      "deleted": "已删除",
+      "deleteFailed": "删除失败",
+      "copied": "已复制",
+      "copyFailed": "复制失败",
+      "presetsImported": "导入成功",
+      "presetsImportFailed": "导入失败",
+      "importPresetsTitle": "导入内置专家",
+      "importPresets": "导入",
+      "noTemplates": "暂无模板",
+      "noMatchFound": "未找到匹配的模板"
     },
     "undo": "撤销",
     "redo": "重做",
@@ -7284,7 +7310,6 @@
       "ar": "العربية"
     }
   },
-  "chat:workflow.templateList.presetsImported": "导入成功",
   "agentRole": {
     "coordinator": "协调者",
     "researcher": "研究员",
