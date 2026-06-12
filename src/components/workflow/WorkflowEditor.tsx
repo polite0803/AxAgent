@@ -967,7 +967,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
         // 如果有容器节点且子节点坐标明确，视为已有合理布局
         const hasContainerChildren = nodes.some((n) => {
           const pid = (n as { parentId?: string }).parentId;
-          return typeof pid === 'string' && pid.length > 0 && (n.position.x !== 0 || n.position.y !== 0);
+          return typeof pid === "string" && pid.length > 0 && (n.position.x !== 0 || n.position.y !== 0);
         });
         const skipAutoLayout = hasContainerChildren;
 
