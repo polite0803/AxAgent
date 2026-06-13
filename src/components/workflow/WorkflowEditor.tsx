@@ -1625,7 +1625,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
       // Ctrl+Shift+C: 全部折叠容器
       if (isCtrlOrCmd && e.shiftKey && e.key === "C" && !isEditing) {
         e.preventDefault();
-        const containers = nodes.filter((n) => NODE_TYPE_MAP[n.type]?.isContainer);
+        const containers = r.nodes.filter((n) => NODE_TYPE_MAP[n.type]?.isContainer);
         if (containers.length > 0) {
           useWorkflowEditorStore.getState().collapseAllContainers();
           message.success(t("workflow.containersCollapsed", { defaultValue: "All containers collapsed" }));
@@ -1953,7 +1953,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
     }
 
     message.success(t("workflow.autoLayout"));
-  }, [reactFlowNodes, reactFlowEdges, parentRefs, setRNodes, updateNode, t, nodes]);
+  }, [reactFlowNodes, reactFlowEdges, parentRefs, setRNodes, updateNode, t]);
 
   const handleClose = useCallback(() => {
     if (isDirty) {
