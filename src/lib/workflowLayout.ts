@@ -570,28 +570,28 @@ function extractConfig(n: NodeLike, key: string): string | undefined {
  * 实际渲染尺寸可能不同，但 Dagre 只影响相对排列，偏差可接受。
  */
 const NODE_SIZE: Record<string, { width: number; height: number }> = {
-  trigger: { width: 200, height: 120 },
-  agent: { width: 220, height: 160 },
-  llm: { width: 220, height: 180 },
-  condition: { width: 200, height: 140 },
+  trigger: { width: 200, height: 140 },
+  agent: { width: 200, height: 180 },
+  llm: { width: 200, height: 200 },
+  condition: { width: 200, height: 160 },
   parallel: { width: 500, height: 400 },
   loop: { width: 480, height: 300 },
   debate: { width: 480, height: 260 },
   swarm: { width: 480, height: 300 },
-  aggregator: { width: 320, height: 180 },
-  merge: { width: 220, height: 120 },
-  delay: { width: 180, height: 100 },
-  tool: { width: 200, height: 140 },
-  code: { width: 200, height: 140 },
+  aggregator: { width: 320, height: 200 },
+  merge: { width: 200, height: 140 },
+  delay: { width: 180, height: 120 },
+  tool: { width: 200, height: 160 },
+  code: { width: 200, height: 160 },
   subWorkflow: { width: 480, height: 300 },
-  workflowRef: { width: 220, height: 120 },
-  documentParser: { width: 200, height: 120 },
-  vectorRetrieve: { width: 200, height: 120 },
-  validation: { width: 200, height: 120 },
-  end: { width: 180, height: 80 },
+  workflowRef: { width: 200, height: 140 },
+  documentParser: { width: 200, height: 140 },
+  vectorRetrieve: { width: 200, height: 140 },
+  validation: { width: 200, height: 140 },
+  end: { width: 180, height: 100 },
 };
 
-const DEFAULT_SIZE = { width: 200, height: 120 };
+const DEFAULT_SIZE = { width: 200, height: 140 };
 
 /** 获取节点类型的尺寸估算（用于 hit-test / 布局） */
 export function getNodeSize(type: string): { width: number; height: number } {

@@ -200,6 +200,8 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
   const posRafRef = React.useRef<number | null>(null);
   // 拖拽状态标志：拖拽期间抑制 useEffect 全量重建节点和 store 位置写入，防止崩溃
   const isDraggingRef = React.useRef(false);
+  // dragStop 后短暂抑制 useEffect 全量重建，避免覆盖 reactFlowInstance.setNodes 的结果
+  const suppressRebuildRef = React.useRef(false);
   // 跳过写入标志：程序化 setRNodes（如 autoLayout）后抑制 onNodesChange 中的重复 updateNode
   const skipPositionWriteRef = React.useRef(false);
   const [aiPanelVisible, setAiPanelVisible] = useState(false);
@@ -385,8 +387,8 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
   ]);
 
   useEffect(() => {
-    // 拖拽期间跳过全量重建，避免替换 ReactFlow 内部拖拽状态导致崩溃
-    if (isDraggingRef.current) { return; }
+    // 拖拽期间或 dragStop 后短暂窗口内跳过全量重建
+    if (isDraggingRef.current || suppressRebuildRef.current) { return; }
     if (currentTemplate) {
       const errorNodeIds = new Set<string>();
       const warningNodeIds = new Set<string>();
@@ -496,8 +498,22 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
           }
           for (const sgChild of subGraphChildren as { type?: string; position: { x: number; y: number } }[]) {
             const sz = getNodeSize(sgChild.type ?? "base");
-            const relX = sgChild.position.x - node.position.x;
-            const relY = sgChild.position.y - node.position.y;
+            // subGraph 中的 position 可能是相对偏移（后端原始数据）或绝对坐标（autoLayout 写回后）
+            // 统一处理：若值 < 容器尺寸范围则视为相对偏移，否则视为绝对坐标
+            let relX: number;
+            let relY: number;
+            if (
+              sgChild.position.x >= 0 && sgChild.position.x <= CONTAINER_MIN_W * 3
+              && sgChild.position.y >= 0 && sgChild.position.y <= CONTAINER_MIN_H * 3
+              && Math.abs(sgChild.position.x) < Math.abs(node.position.x) + CONTAINER_MIN_W
+              && Math.abs(sgChild.position.y) < Math.abs(node.position.y) + CONTAINER_MIN_H
+            ) {
+              relX = sgChild.position.x;
+              relY = sgChild.position.y;
+            } else {
+              relX = sgChild.position.x - node.position.x;
+              relY = sgChild.position.y - node.position.y;
+            }
             const cx = relX + sz.width;
             const cy = relY + sz.height;
             if (cx > maxX) { maxX = cx; }
@@ -1722,13 +1738,14 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
           pendingPositionsRef.current.set(change.id, storePos);
           if (posRafRef.current == null) {
             posRafRef.current = requestAnimationFrame(() => {
-              if (!isDraggingRef.current) {
-                pendingPositionsRef.current.forEach((pos, nodeId) => {
-                  updateNode(nodeId, { position: pos } as Partial<WorkflowNode>);
-                });
-              }
-              pendingPositionsRef.current.clear();
               posRafRef.current = null;
+              if (isDraggingRef.current) {
+                return;
+              }
+              pendingPositionsRef.current.forEach((pos, nodeId) => {
+                updateNode(nodeId, { position: pos } as Partial<WorkflowNode>);
+              });
+              pendingPositionsRef.current.clear();
             });
           }
         }
@@ -1758,6 +1775,10 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
   const handleNodeDragStop = useCallback(
     (_event: unknown, node: Node) => {
       isDraggingRef.current = false;
+      suppressRebuildRef.current = true;
+      requestAnimationFrame(() => {
+        suppressRebuildRef.current = false;
+      });
 
       if (node?.position) {
         // 碰撞避免：对 drag 主节点计算安全位置
@@ -1782,8 +1803,10 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
           10,
         );
 
-        // 方案 A：绝对坐标直接写回 Store
-        const oldNode = nodes.find((n) => n.id === node.id);
+        // 从 store 实时读取最新节点状态，避免闭包中的 nodes 过时
+        const latestNodes = useWorkflowEditorStore.getState().nodes;
+        const latestParentRefs = useWorkflowEditorStore.getState().parentRefs;
+        const oldNode = latestNodes.find((n) => n.id === node.id);
         const dx = oldNode ? safePos.x - oldNode.position.x : 0;
         const dy = oldNode ? safePos.y - oldNode.position.y : 0;
         updateNode(node.id, { position: safePos } as Partial<WorkflowNode>);
@@ -1791,9 +1814,9 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
         // 被拖的是容器 → 同步位移差到所有子节点
         const isContainer = oldNode ? NODE_TYPE_MAP[oldNode.type]?.isContainer === true : false;
         if (isContainer && (dx !== 0 || dy !== 0)) {
-          for (const [childId, pid] of Object.entries(parentRefs)) {
+          for (const [childId, pid] of Object.entries(latestParentRefs)) {
             if (pid === node.id) {
-              const childNode = nodes.find((n2) => n2.id === childId);
+              const childNode = latestNodes.find((n2) => n2.id === childId);
               if (childNode) {
                 updateNode(childId, {
                   position: { x: childNode.position.x + dx, y: childNode.position.y + dy },
@@ -1815,7 +1838,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
         reactFlowInstance?.setNodes(updatedNodes);
       }
     },
-    [updateNode, reactFlowInstance, nodes, parentRefs],
+    [updateNode, reactFlowInstance],
   );
 
   const handleEdgesChange = useCallback(
