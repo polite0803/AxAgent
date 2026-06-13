@@ -55,12 +55,12 @@ function absBounds(
 describe("workflowLayout", () => {
   describe("getNodeSize", () => {
     it("returns known size for built-in types", () => {
-      expect(getNodeSize("agent")).toEqual({ width: 220, height: 160 });
+      expect(getNodeSize("agent")).toEqual({ width: 200, height: 180 });
       expect(getNodeSize("parallel")).toEqual({ width: 500, height: 400 });
     });
 
     it("returns default size for unknown type", () => {
-      expect(getNodeSize("totally-unknown")).toEqual({ width: 200, height: 120 });
+      expect(getNodeSize("totally-unknown")).toEqual({ width: 200, height: 140 });
     });
   });
 
@@ -377,7 +377,7 @@ describe("clampChildrenIntoContainers", () => {
     );
     const r = result.find((n) => n.id === "c1")!;
     // 子节点被拉回到容器内的 padding 区域
-    expect(r.position.x + 220).toBeLessThanOrEqual(containerW - padding);
+    expect(r.position.x + 200).toBeLessThanOrEqual(containerW - padding);
     expect(r.position.y).toBe(50);
   });
 
