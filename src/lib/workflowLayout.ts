@@ -927,6 +927,9 @@ export function autoLayoutWorkflow(
 
   // 2. 对每个 parallel 容器：单独 dagre 排子节点 + 量 bbox + 归一化到原点
   const PADDING = 40;
+  const HEADER_H = 60;
+  const MIN_W = 400;
+  const MIN_H = 200;
   const groupNorm: Record<string, { nodes: Node[]; bboxW: number; bboxH: number }> = {};
   const containerSizes: Record<string, { width: number; height: number }> = {};
 
@@ -962,7 +965,10 @@ export function autoLayoutWorkflow(
       position: { x: n.position.x - minX, y: n.position.y - minY },
     }));
     groupNorm[c.id] = { nodes: normalized, bboxW, bboxH };
-    containerSizes[c.id] = { width: bboxW + PADDING * 2, height: bboxH + PADDING * 2 };
+    containerSizes[c.id] = {
+      width: Math.max(MIN_W, bboxW + PADDING * 2),
+      height: Math.max(MIN_H, bboxH + PADDING * 2 + HEADER_H),
+    };
   }
 
   // 3. 主 dagre：只放顶层节点（容器节点 + 无父孤立节点）
@@ -1082,6 +1088,9 @@ const LAYER_Y_SPACING = 200; // 层间垂直间距
 const LAYER_X_SPACING = 320; // 层内水平间距
 const MARGIN = 60; // 画布边距
 const CONTAINER_PADDING = 40; // 容器内边距
+const CONTAINER_HEADER_H = 60; // 容器标题栏高度
+const CONTAINER_MIN_W = 400; // 容器最小宽度
+const CONTAINER_MIN_H = 200; // 容器最小高度
 
 export interface AutoNode {
   id: string;
@@ -1145,7 +1154,10 @@ export function auto_layout(
 
     if (childNodes.length === 0) {
       const sz = getNodeSize(cType);
-      containerBBox[c.id] = { w: sz.width + CONTAINER_PADDING * 2, h: sz.height + CONTAINER_PADDING * 2 };
+      containerBBox[c.id] = {
+        w: Math.max(CONTAINER_MIN_W, sz.width + CONTAINER_PADDING * 2),
+        h: Math.max(CONTAINER_MIN_H, sz.height + CONTAINER_PADDING * 2 + CONTAINER_HEADER_H),
+      };
       continue;
     }
 
@@ -1165,7 +1177,10 @@ export function auto_layout(
       maxX = Math.max(maxX, sn.x + sz.width);
       maxY = Math.max(maxY, sn.y + sz.height);
     }
-    containerBBox[c.id] = { w: maxX - minX + CONTAINER_PADDING * 2, h: maxY - minY + CONTAINER_PADDING * 2 };
+    containerBBox[c.id] = {
+      w: Math.max(CONTAINER_MIN_W, maxX - minX + CONTAINER_PADDING * 2),
+      h: Math.max(CONTAINER_MIN_H, maxY - minY + CONTAINER_PADDING * 2 + CONTAINER_HEADER_H),
+    };
 
     // 归一化子节点到容器原点（相对于容器内部）
     for (const cn of childNodes) {

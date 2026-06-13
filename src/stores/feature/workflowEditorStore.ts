@@ -18,6 +18,7 @@ import type {
   WorkflowTemplateInput,
   WorkflowTemplateResponse,
 } from "@/components/workflow/types";
+import { NODE_TYPE_MAP } from "@/components/workflow/types";
 
 export interface ExpandedSubWorkflowData {
   /** 子工作流内部节点（ID 已 prefixed 避免冲突） */
@@ -62,6 +63,7 @@ interface PendingWorkflowData {
 type HistoryEntry = {
   nodes: WorkflowNode[];
   edges: WorkflowEdge[];
+  parentRefs: Record<string, string>;
   name: string;
   description?: string;
   icon: string;
@@ -323,6 +325,10 @@ interface WorkflowEditorState {
   collapsedContainers: Set<string>;
   /** 切换容器的展开/折叠状态 */
   toggleContainerCollapse: (parallelId: string) => void;
+  /** 全部折叠容器 */
+  collapseAllContainers: () => void;
+  /** 全部展开容器 */
+  expandAllContainers: () => void;
 }
 
 interface ConversationWorkflowPreviewResponse {
@@ -356,6 +362,7 @@ const createEmptyTemplate = (): Omit<
 const buildHistoryEntry = (state: WorkflowEditorState): HistoryEntry => ({
   nodes: [...state.nodes],
   edges: [...state.edges],
+  parentRefs: { ...state.parentRefs },
   name: state.currentTemplate?.name || "",
   description: state.currentTemplate?.description,
   icon: state.currentTemplate?.icon || "Bot",
@@ -547,6 +554,7 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
         state.future.push(buildHistoryEntry(state));
         state.nodes = previous.nodes;
         state.edges = previous.edges;
+        state.parentRefs = { ...previous.parentRefs };
         if (state.currentTemplate) {
           state.currentTemplate.name = previous.name;
           state.currentTemplate.description = previous.description;
@@ -574,6 +582,7 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
         state.past.push(buildHistoryEntry(state));
         state.nodes = next.nodes;
         state.edges = next.edges;
+        state.parentRefs = { ...next.parentRefs };
         if (state.currentTemplate) {
           state.currentTemplate.name = next.name;
           state.currentTemplate.description = next.description;
@@ -969,16 +978,7 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
         state.parentRefs = nextParentRefs;
 
         // 清理被删节点的折叠状态（含级联删除的子节点）
-        if (toDelete.size === 1 && toDelete.has(nodeId)) {
-          if (state.collapsedContainers.has(nodeId)) {
-            const next = new Set(state.collapsedContainers);
-            next.delete(nodeId);
-            state.collapsedContainers = next;
-            try {
-              localStorage.setItem("workflow_collapsed_containers", JSON.stringify([...next]));
-            } catch { /* localStorage may be full */ }
-          }
-        } else if (toDelete.size > 0) {
+        {
           const next = new Set(state.collapsedContainers);
           let changed = false;
           for (const id of toDelete) {
@@ -989,6 +989,26 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
             try {
               localStorage.setItem("workflow_collapsed_containers", JSON.stringify([...next]));
             } catch { /* localStorage may be full */ }
+          }
+        }
+
+        // 清理被删节点关联的 expandedSubWorkflows
+        {
+          const nextExpanded: Record<string, typeof state.expandedSubWorkflows[string]> = {};
+          let esChanged = false;
+          for (const [swId, swData] of Object.entries(state.expandedSubWorkflows)) {
+            if (toDelete.has(swId)) {
+              esChanged = true;
+              continue;
+            }
+            if (swData?.nodes?.some((n) => toDelete.has(n.id))) {
+              esChanged = true;
+              continue;
+            }
+            nextExpanded[swId] = swData;
+          }
+          if (esChanged) {
+            state.expandedSubWorkflows = nextExpanded;
           }
         }
 
@@ -2232,6 +2252,34 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
           localStorage.setItem("workflow_collapsed_containers", JSON.stringify([...next]));
         } catch {
           // localStorage may be full or unavailable
+        }
+      });
+    },
+
+    collapseAllContainers: () => {
+      set((state) => {
+        const containerIds = new Set<string>();
+        for (const n of state.nodes) {
+          if (NODE_TYPE_MAP[n.type]?.isContainer) {
+            containerIds.add(n.id);
+          }
+        }
+        state.collapsedContainers = containerIds;
+        try {
+          localStorage.setItem("workflow_collapsed_containers", JSON.stringify([...containerIds]));
+        } catch {
+          // ignore
+        }
+      });
+    },
+
+    expandAllContainers: () => {
+      set((state) => {
+        state.collapsedContainers = new Set();
+        try {
+          localStorage.setItem("workflow_collapsed_containers", "[]");
+        } catch {
+          // ignore
         }
       });
     },

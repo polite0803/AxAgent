@@ -24,6 +24,10 @@ export interface ContainerNodeData {
   kind?: "decorative" | "executable";
   /** 是否存在分支级别的超时/降级配置（显示 timeout 标记） */
   hasBranchTimeout?: boolean;
+  /** 外部传入的宽度（WorkflowEditor 根据子节点 bbox 计算） */
+  nodeWidth?: number;
+  /** 外部传入的高度 */
+  nodeHeight?: number;
 }
 
 interface ContainerNodeProps {
@@ -78,8 +82,10 @@ const ContainerNodeComponent: React.FC<ContainerNodeProps> = ({
   return (
     <div
       style={{
-        minWidth: isCollapsed ? 220 : 400,
-        minHeight: isCollapsed ? 48 : 200,
+        width: isCollapsed ? 220 : (data.nodeWidth ?? undefined),
+        height: isCollapsed ? 48 : (data.nodeHeight ?? undefined),
+        minWidth: isCollapsed ? 220 : 0,
+        minHeight: isCollapsed ? 48 : 0,
         background: `${data.color}08`,
         border: `2px dashed ${selected ? token.colorPrimary : `${data.color}50`}`,
         // 双线效果：虚线边框 + 内阴影模拟第二条线
@@ -90,7 +96,7 @@ const ContainerNodeComponent: React.FC<ContainerNodeProps> = ({
         padding: isCollapsed ? "8px 12px" : 12,
         opacity: data.enabled ? (data.kind === "decorative" ? 0.65 : 1) : 0.5,
         position: "relative",
-        transition: "min-width 0.25s, min-height 0.25s, opacity 0.2s, border-color 0.2s",
+        transition: "width 0.25s, height 0.25s, opacity 0.2s, border-color 0.2s",
       }}
     >
       {/* 标题栏 — 左上角 */}
@@ -252,9 +258,10 @@ const ContainerNodeComponent: React.FC<ContainerNodeProps> = ({
             style={{
               background: "transparent",
               border: "none",
-              width: 1,
-              height: 1,
+              width: 8,
+              height: 8,
               top: 0,
+              pointerEvents: "all",
             }}
           />
           <Handle
@@ -263,9 +270,10 @@ const ContainerNodeComponent: React.FC<ContainerNodeProps> = ({
             style={{
               background: "transparent",
               border: "none",
-              width: 1,
-              height: 1,
+              width: 8,
+              height: 8,
               bottom: 0,
+              pointerEvents: "all",
             }}
           />
         </>

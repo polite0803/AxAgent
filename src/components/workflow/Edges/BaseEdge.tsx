@@ -10,18 +10,19 @@ const PURPLE_BASE = "#722ed1";
 
 /**
  * 解析 sourceHandle 中的 port 信息，返回水平偏移量。
- * 格式：`"port-0"`（左）、`"port-1"`（中）、`"port-2"`（右）。
+ * 格式：`"port-N"`（N=0~5，对应 1/7 ~ 6/7 宽度位置）。
  * 用于 parallel 子节点出口区分，减少边交叉。
+ * 偏移量从节点中心计算：centerFrac × w − w/2
  */
 function sourceOffsetFromHandle(sourceHandle?: string | null, sourceNodeW?: number): number {
   if (!sourceHandle || !sourceHandle.startsWith("port-")) { return 0; }
   const idx = parseInt(sourceHandle.replace("port-", ""), 10);
   if (isNaN(idx)) { return 0; }
   const w = sourceNodeW || 200;
-  // -1/3w, 0, +1/3w
-  if (idx === 0) { return -w / 3; }
-  if (idx === 2) { return w / 3; }
-  return 0;
+  const N = 6;
+  const clampedIdx = Math.min(Math.max(idx, 0), N - 1);
+  const centerFrac = (clampedIdx + 1) / (N + 1);
+  return centerFrac * w - w / 2;
 }
 
 const BaseEdgeComponent: React.FC<EdgeProps> = ({

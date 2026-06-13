@@ -3757,3 +3757,10 @@ html[data-theme="dark"] .markstream-react .table-node thead {
 .react-flow__background.lines pattern {
   opacity: 0.3;
 }
+
+/* DnD drop zone indicator — 拖拽节点入容器时的高亮 */
+.workflow-dnd-drop-target > div:first-child {
+  box-shadow: 0 0 0 3px rgba(22, 119, 255, 0.5), 0 0 16px rgba(22, 119, 255, 0.3) !important;
+  border-color: var(--blue-6, #1677ff) !important;
+  transition: box-shadow 0.15s ease-out, border-color 0.15s ease-out;
+}

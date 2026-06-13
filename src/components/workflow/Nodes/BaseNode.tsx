@@ -340,77 +340,28 @@ const BaseNodeComponent: React.FC<NodeProps> = ({
               }}
             />
 
-            {/* 容器内子节点：3 端口出口（左/中/右），减少边交叉 */}
+            {/* 容器内子节点：动态端口出口（最多 6 端口均匀分布），减少边交叉 */}
             {data.parentId && (
               <>
-                <Handle
-                  type="source"
-                  position={Position.Bottom}
-                  id="port-0"
-                  style={{
-                    background: bd.color,
-                    border: "1px solid transparent",
-                    width: 6,
-                    height: 6,
-                    left: "25%",
-                    opacity: 0.5,
-                  }}
-                />
-                <Handle
-                  type="source"
-                  position={Position.Bottom}
-                  id="port-1"
-                  style={{
-                    background: bd.color,
-                    border: "1px solid transparent",
-                    width: 6,
-                    height: 6,
-                    left: "50%",
-                    opacity: 0.5,
-                  }}
-                />
-                <Handle
-                  type="source"
-                  position={Position.Bottom}
-                  id="port-2"
-                  style={{
-                    background: bd.color,
-                    border: "1px solid transparent",
-                    width: 6,
-                    height: 6,
-                    left: "75%",
-                    opacity: 0.5,
-                  }}
-                />
-              </>
-            )}
-
-            {["condition", "merge"].includes(bd.nodeType) && (
-              <>
-                <Handle
-                  type="target"
-                  position={Position.Left}
-                  id="left-handle"
-                  style={{
-                    background: bd.color,
-                    border: "none",
-                    width: 6,
-                    height: 6,
-                    top: "50%",
-                  }}
-                />
-                <Handle
-                  type="source"
-                  position={Position.Right}
-                  id="right-handle"
-                  style={{
-                    background: bd.color,
-                    border: "none",
-                    width: 6,
-                    height: 6,
-                    top: "50%",
-                  }}
-                />
+                {Array.from({ length: 6 }).map((_, i) => {
+                  const leftPct = `${((i + 1) / 7) * 100}%`;
+                  return (
+                    <Handle
+                      key={`port-${i}`}
+                      type="source"
+                      position={Position.Bottom}
+                      id={`port-${i}`}
+                      style={{
+                        background: bd.color,
+                        border: "1px solid transparent",
+                        width: 6,
+                        height: 6,
+                        left: leftPct,
+                        opacity: 0.4,
+                      }}
+                    />
+                  );
+                })}
               </>
             )}
 
