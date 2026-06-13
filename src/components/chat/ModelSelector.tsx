@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import { ContextHelp } from "@/components/help/ContextHelp";
 import { Tooltip } from "@/components/layout/Tooltip";
 import { getVisibleModelCapabilities } from "@/lib/modelCapabilities";
 import { SmartProviderIcon } from "@/lib/providerIcons";
@@ -787,8 +786,6 @@ export function ModelSelector({
             </Tag>
           </Tooltip>
         )}
-      <ContextHelp helpKey="chat" section="chat" />
-
       <Modal
         open={open}
         onCancel={() => {
