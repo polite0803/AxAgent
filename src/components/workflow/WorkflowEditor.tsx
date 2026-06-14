@@ -801,6 +801,15 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
         }
       }
 
+      // ── 节点排序：确保父容器在子节点之前（ReactFlow 要求 parentId 的父节点先于子节点）──
+      flowNodes.sort((a, b) => {
+        const aIsParent = a.parentId == null && flowNodes.some((n) => n.parentId === a.id);
+        const bIsParent = b.parentId == null && flowNodes.some((n) => n.parentId === b.id);
+        if (aIsParent && !bIsParent) { return -1; }
+        if (!aIsParent && bIsParent) { return 1; }
+        return 0;
+      });
+
       setRNodes(flowNodes);
 
       // 折叠态边处理：将连接到隐藏子节点的边重定向到其父容器，内部边仍隐藏。
