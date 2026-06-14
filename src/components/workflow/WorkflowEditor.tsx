@@ -728,19 +728,15 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
             nodeType: subNode.type,
             enabled: true,
           };
-          // 方案 B：挂载为容器子节点，使用子图相对坐标 + parentId
-          // 子图 position 在种子中已转换为相对容器的偏移（adjust_positions_to_relative），
-          // ReactFlow 在 extent:"parent" 模式下将相对偏移正确渲染在容器内。
-          const subRelPos = {
-            x: subNode.position.x,
-            y: subNode.position.y,
+          // 方案 A：全顶层节点，使用绝对坐标（不设 parentId，避免 ReactFlow 父节点边渲染问题）
+          const subAbsPos = {
+            x: containerNode.position.x + subNode.position.x,
+            y: containerNode.position.y + subNode.position.y,
           };
           const subFlowNode = {
             id: subNode.id,
             type: subNode.type || "agent",
-            position: subRelPos,
-            parentId: containerNode.id,
-            extent: "parent" as const,
+            position: subAbsPos,
             data: subData,
           };
 
@@ -800,15 +796,6 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
           });
         }
       }
-
-      // ── 节点排序：确保父容器在子节点之前（ReactFlow 要求 parentId 的父节点先于子节点）──
-      flowNodes.sort((a, b) => {
-        const aIsParent = a.parentId == null && flowNodes.some((n) => n.parentId === a.id);
-        const bIsParent = b.parentId == null && flowNodes.some((n) => n.parentId === b.id);
-        if (aIsParent && !bIsParent) { return -1; }
-        if (!aIsParent && bIsParent) { return 1; }
-        return 0;
-      });
 
       setRNodes(flowNodes);
 
@@ -1734,18 +1721,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
         ) {
           // 方案 B：ReactFlow 在 extent:"parent" 模式下对子节点返回的是相对坐标，
           // 写入 store 时需要转换为画布绝对坐标；顶层节点直接透传。
-          let storePos: { x: number; y: number };
-          const rfNode = reactFlowInstance?.getNodes().find((n: any) => n.id === change.id);
-          if (rfNode?.parentId) {
-            const parent = reactFlowInstance?.getNodes().find((n: any) => n.id === rfNode.parentId);
-            if (parent) {
-              storePos = { x: change.position.x + parent.position.x, y: change.position.y + parent.position.y };
-            } else {
-              storePos = { x: change.position.x, y: change.position.y };
-            }
-          } else {
-            storePos = { x: change.position.x, y: change.position.y };
-          }
+          const storePos = { x: change.position.x, y: change.position.y };
           pendingPositionsRef.current.set(change.id, storePos);
           if (posRafRef.current == null) {
             posRafRef.current = requestAnimationFrame(() => {
