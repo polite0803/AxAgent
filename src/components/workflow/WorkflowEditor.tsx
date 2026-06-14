@@ -871,7 +871,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
           source: remappedSource,
           sourceHandle: wasRemapped && remappedSource !== edge.source
             ? undefined
-            : (childPortMap.get(edge.source) ?? edge.sourceHandle),
+            : edge.sourceHandle,
           target: remappedTarget,
           targetHandle: wasRemapped && remappedTarget !== edge.target ? undefined : edge.targetHandle,
           type: "base",
