@@ -498,22 +498,10 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
           }
           for (const sgChild of subGraphChildren as { type?: string; position: { x: number; y: number } }[]) {
             const sz = getNodeSize(sgChild.type ?? "base");
-            // subGraph 中的 position 可能是相对偏移（后端原始数据）或绝对坐标（autoLayout 写回后）
-            // 统一处理：若值 < 容器尺寸范围则视为相对偏移，否则视为绝对坐标
-            let relX: number;
-            let relY: number;
-            if (
-              sgChild.position.x >= 0 && sgChild.position.x <= CONTAINER_MIN_W * 3
-              && sgChild.position.y >= 0 && sgChild.position.y <= CONTAINER_MIN_H * 3
-              && Math.abs(sgChild.position.x) < Math.abs(node.position.x) + CONTAINER_MIN_W
-              && Math.abs(sgChild.position.y) < Math.abs(node.position.y) + CONTAINER_MIN_H
-            ) {
-              relX = sgChild.position.x;
-              relY = sgChild.position.y;
-            } else {
-              relX = sgChild.position.x - node.position.x;
-              relY = sgChild.position.y - node.position.y;
-            }
+            // subGraph 中的 position 始终是相对容器的偏移（种子数据已转换为相对坐标，
+            // 保存时也写回相对坐标），无需再减容器绝对坐标。
+            const relX = sgChild.position.x;
+            const relY = sgChild.position.y;
             const cx = relX + sz.width;
             const cy = relY + sz.height;
             if (cx > maxX) { maxX = cx; }
