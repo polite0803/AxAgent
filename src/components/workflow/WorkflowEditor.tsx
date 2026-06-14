@@ -728,22 +728,23 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
             nodeType: subNode.type,
             enabled: true,
           };
-          // 方案 A：全顶层节点，使用绝对坐标
-          const subAbsPos = {
-            x: containerNode.position.x + subNode.position.x,
-            y: containerNode.position.y + subNode.position.y,
+          // 方案 B：挂载为容器子节点，使用子图相对坐标 + parentId
+          // 子图 position 在种子中已转换为相对容器的偏移（adjust_positions_to_relative），
+          // ReactFlow 在 extent:"parent" 模式下将相对偏移正确渲染在容器内。
+          const subRelPos = {
+            x: subNode.position.x,
+            y: subNode.position.y,
           };
           const subFlowNode = {
             id: subNode.id,
             type: subNode.type || "agent",
-            position: subAbsPos,
+            position: subRelPos,
+            parentId: containerNode.id,
+            extent: "parent" as const,
             data: subData,
           };
 
           if (existingIdx !== -1) {
-            // Phase 2 已将此节点设了 parentId/extent，ReactFlow 将 position
-            // 解释为相对父容器的偏移。但 subAbsPos 是画布绝对坐标，
-            // 必须清除 parentId/extent，让 ReactFlow 按顶层节点渲染。
             flowNodes[existingIdx] = {
               ...subFlowNode,
               data: {
@@ -1722,9 +1723,20 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
           change.type === "position" && change.position && currentTemplate && !isDraggingRef.current
           && !skipPositionWriteRef.current
         ) {
-          // 方案 A：所有节点都是顶层节点，ReactFlow 返回的 position 就是画布绝对坐标
-          const storePos = { x: change.position.x, y: change.position.y };
-          // RAF 批处理：同一次拖拽中只保留最终位置（容器子节点传播由 handleNodeDragStop 接管）
+          // 方案 B：ReactFlow 在 extent:"parent" 模式下对子节点返回的是相对坐标，
+          // 写入 store 时需要转换为画布绝对坐标；顶层节点直接透传。
+          let storePos: { x: number; y: number };
+          const rfNode = reactFlowInstance?.getNodes().find((n: any) => n.id === change.id);
+          if (rfNode?.parentId) {
+            const parent = reactFlowInstance?.getNodes().find((n: any) => n.id === rfNode.parentId);
+            if (parent) {
+              storePos = { x: change.position.x + parent.position.x, y: change.position.y + parent.position.y };
+            } else {
+              storePos = { x: change.position.x, y: change.position.y };
+            }
+          } else {
+            storePos = { x: change.position.x, y: change.position.y };
+          }
           pendingPositionsRef.current.set(change.id, storePos);
           if (posRafRef.current == null) {
             posRafRef.current = requestAnimationFrame(() => {
