@@ -741,9 +741,11 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
           };
 
           if (existingIdx !== -1) {
+            // Phase 2 已将此节点设了 parentId/extent，ReactFlow 将 position
+            // 解释为相对父容器的偏移。但 subAbsPos 是画布绝对坐标，
+            // 必须清除 parentId/extent，让 ReactFlow 按顶层节点渲染。
             flowNodes[existingIdx] = {
-              ...flowNodes[existingIdx],
-              position: subAbsPos,
+              ...subFlowNode,
               data: {
                 ...flowNodes[existingIdx].data,
                 ...subData,
