@@ -476,17 +476,44 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
         const isContainerCollapsed = isContainer
           && useWorkflowEditorStore.getState().collapsedContainers.has(node.id);
         // 折叠态：容器自身缩为紧凑尺寸
+        const CONTAINER_PADDING = 20;
         const CONTAINER_MIN_W = 260;
         const CONTAINER_MIN_H = 130;
+        const CONTAINER_HEADER_H = 50;
         let containerStyle: React.CSSProperties | undefined;
         if (isContainerCollapsed) {
           containerStyle = { width: 200, height: 60 };
         } else if (isContainer) {
-          // 容器尺寸由 ReactFlow measured 自动计算（基于子节点位置 + extent:"parent"），
-          // 此处仅设 minWidth/minHeight 下限
+          // 根据子节点相对坐标计算容器尺寸，确保 extent:"parent" 不会裁剪子节点
+          const childIds = childrenOfParent[node.id] ?? [];
+          const subGraphChildren = subGraphNodes ?? [];
+          let maxX = CONTAINER_MIN_W - CONTAINER_PADDING;
+          let maxY = CONTAINER_MIN_H - CONTAINER_PADDING;
+          for (const childId of childIds) {
+            const child = nodeById[childId];
+            if (!child) { continue; }
+            const sz = getNodeSize(child.type);
+            // Store 中子节点是绝对坐标 → 转为相对容器的偏移
+            const relX = child.position.x - node.position.x;
+            const relY = child.position.y - node.position.y;
+            const cx = relX + sz.width;
+            const cy = relY + sz.height;
+            if (cx > maxX) { maxX = cx; }
+            if (cy > maxY) { maxY = cy; }
+          }
+          for (const sgChild of subGraphChildren as { type?: string; position: { x: number; y: number } }[]) {
+            const sz = getNodeSize(sgChild.type ?? "base");
+            // subGraph 中的 position 是相对容器的偏移
+            const relX = sgChild.position.x;
+            const relY = sgChild.position.y;
+            const cx = relX + sz.width;
+            const cy = relY + sz.height;
+            if (cx > maxX) { maxX = cx; }
+            if (cy > maxY) { maxY = cy; }
+          }
           containerStyle = {
-            minWidth: CONTAINER_MIN_W,
-            minHeight: CONTAINER_MIN_H,
+            width: Math.max(CONTAINER_MIN_W, maxX + CONTAINER_PADDING),
+            height: Math.max(CONTAINER_MIN_H, maxY + CONTAINER_PADDING + CONTAINER_HEADER_H),
           };
         }
         // 折叠态下：容器内的子节点在画布上隐藏
@@ -521,8 +548,13 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
             ...(pid ? { parentId: pid } : {}),
             ...(nodeConfig?.kind ? { kind: nodeConfig.kind as string } : {}),
             ...(isContainer ? { childCount: subGraphChildCount } : {}),
-            // Container size is now auto-calculated by ReactFlow based on children
-            // No need to pass fixed width/height
+            // 容器尺寸：由 useEffect 根据子节点 bbox 计算，传给 ContainerNode 设置 DOM 尺寸
+            ...((isContainer && containerStyle)
+              ? {
+                nodeWidth: (containerStyle as React.CSSProperties).width as number | undefined,
+                nodeHeight: (containerStyle as React.CSSProperties).height as number | undefined,
+              }
+              : {}),
             // 容器特化字段提取：从 config 提取到 data 顶层供容器组件渲染使用
             ...(node.type === "debate"
               ? {
