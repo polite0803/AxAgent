@@ -97,7 +97,7 @@ pub use session_manager::{
 };
 
 // reflector — 外部引用：commands/reflection, init/state
-pub use reflector::{Reflector, Reflection, TaskExecutionRecord};
+pub use reflector::{Reflection, Reflector, TaskExecutionRecord};
 
 // provider_adapter — 外部引用：commands/agent, commands/plan
 pub use provider_adapter::{AxAgentApiClient, StreamEventCallback};
@@ -113,7 +113,7 @@ pub use recovery_strategies::{
 
 // hierarchical_planner — 外部引用：commands/plan
 pub use hierarchical_planner::{
-    compile_plan_to_dag, Phase, PhaseStatus, Plan, PlanStatus, PlannedTask, TaskStatus,
+    Phase, PhaseStatus, Plan, PlanStatus, PlannedTask, TaskStatus, compile_plan_to_dag,
 };
 
 // insight_generator — 外部引用：commands/reflection
@@ -142,8 +142,7 @@ pub use evaluator::{
 
 // fine_tune — 外部引用：commands/fine_tune
 pub use fine_tune::{
-    ActiveModelConfig, BaseModelInfo, TrainingJob,
-    lora::LoRAAdapterInfo,
+    ActiveModelConfig, BaseModelInfo, TrainingJob, lora::LoRAAdapterInfo,
     trainer::TrainingStats as FineTuneTrainingStats,
 };
 

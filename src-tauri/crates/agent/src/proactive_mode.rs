@@ -66,7 +66,8 @@ impl ProactiveMode {
 
     /// 是否启用（检查 feature flag）
     pub fn is_enabled() -> bool {
-        axagent_runtime_core::feature_flags::global_feature_flags().is_enabled_sync("PROACTIVE_MODE")
+        axagent_runtime_core::feature_flags::global_feature_flags()
+            .is_enabled_sync("PROACTIVE_MODE")
     }
 
     /// 激活主动模式

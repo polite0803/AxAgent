@@ -71,8 +71,8 @@ mod user_profile;
 // ── Explicit re-exports (only types used externally) ──────────────────
 
 pub use adaptation::{
-    ContentFormat, FeedbackSignal, FeedbackSource, FeedbackType, RealTimeLearning,
-    TechnicalLevel, Verbosity,
+    ContentFormat, FeedbackSignal, FeedbackSource, FeedbackType, RealTimeLearning, TechnicalLevel,
+    Verbosity,
 };
 
 pub use auto_memory::{AutoMemoryExtractor, ExtractedMemory, MemoryType};
@@ -94,7 +94,9 @@ pub use compactor::{
     verify_compression_integrity,
 };
 
-pub use constitution::{ConstitutionConfig, ConstitutionalRule, ImmutableConstitution, ViolationSeverity};
+pub use constitution::{
+    ConstitutionConfig, ConstitutionalRule, ImmutableConstitution, ViolationSeverity,
+};
 
 pub use context::{ContextAssembler, TokenBudget};
 
@@ -123,10 +125,11 @@ pub use memory_providers::service::{
 };
 
 pub use memory_provider::{
-    MemoryEntry, MemoryProvider, MemoryProviderRegistry, MemoryQuery, MemoryQueryResult, MemoryType as MemoryProviderType,
+    MemoryEntry, MemoryProvider, MemoryProviderRegistry, MemoryQuery, MemoryQueryResult,
+    MemoryType as MemoryProviderType,
 };
 
-pub use nudge::{NudgeAction, NudgeService, NudgeCandidate, NudgeContext, NudgeEntity, Urgency};
+pub use nudge::{NudgeAction, NudgeCandidate, NudgeContext, NudgeEntity, NudgeService, Urgency};
 
 pub use parallel_execution::{
     ExecutionResult, ExecutionStrategy, ParallelExecution, ParallelExecutionService,

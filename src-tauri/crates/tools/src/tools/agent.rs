@@ -253,7 +253,9 @@ impl Tool for AgentTool {
 
         // Verification Agent 需要启用 VERIFICATION_AGENT feature flag
         if agent_type == "Verification"
-            && !axagent_runtime_core::feature_flags::global_feature_flags().verification_agent().await
+            && !axagent_runtime_core::feature_flags::global_feature_flags()
+                .verification_agent()
+                .await
         {
             return Err(ToolError::new(
                 "Verification Agent 未启用（设置 AXAGENT_FF_VERIFICATION_AGENT=1 或 features.VerificationAgent=true）",
@@ -263,7 +265,10 @@ impl Tool for AgentTool {
         // 查找 Agent 定义
         let agent_def = if agent_type.is_empty() {
             // 如启用 FORK_SUBAGENT，则隐式 fork
-            if axagent_runtime_core::feature_flags::global_feature_flags().fork_subagent().await {
+            if axagent_runtime_core::feature_flags::global_feature_flags()
+                .fork_subagent()
+                .await
+            {
                 return handle_fork_subagent(description, prompt, ctx).await;
             }
             // 默认使用 general-purpose

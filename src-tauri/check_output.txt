@@ -1,0 +1,2210 @@
+warning: unused imports: `AddMemoryRequest`, `AutoAction`, `ClosedLoopConfig`, `DisambiguationResult`, `ExplainedSearchResult`, `GraphEnhancedResult`, `MemoryActionResult`, `MemoryCluster`, `MemoryConfig`, `MemoryConsolidationTask`, `MemoryUsage`, `PeriodicNudge`, `SearchExplanation`, `SearchResult`, `SkillCreationProposal`, `SkillUpgradeProposal`, `TimeGroupedMemories`, and `WorkingMemory`
+  --> crates\trajectory\src\memory.rs:14:9
+   |
+14 |         AutoAction, ClosedLoopConfig, ClosedLoopService, MemoryConsolidationTask, PeriodicNudge,
+   |         ^^^^^^^^^^  ^^^^^^^^^^^^^^^^                     ^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^
+15 |         SkillCreationProposal, SkillUpgradeProposal,
+   |         ^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^
+...
+19 |         AddMemoryRequest, DisambiguationResult, ExplainedSearchResult, GraphEnhancedResult,
+   |         ^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^
+20 |         MemoryActionResult, MemoryCluster, MemoryConfig, MemoryEntry, MemoryNature,
+   |         ^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^  ^^^^^^^^^^^^
+21 |         MemoryProvenance, MemoryService, MemoryTier, MemoryUsage, SearchExplanation, SearchResult,
+   |                                                      ^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^
+22 |         TimeGroupedMemories, WorkingMemory,
+   |         ^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused imports: `HonchoConfig` and `HonchoProvider`
+ --> crates\trajectory\src\memory_providers\mod.rs:9:27
+  |
+9 | pub use honcho_provider::{HonchoConfig, HonchoProvider};
+  |                           ^^^^^^^^^^^^  ^^^^^^^^^^^^^^
+
+warning: unused imports: `Mem0Config` and `Mem0Provider`
+  --> crates\trajectory\src\memory_providers\mod.rs:10:25
+   |
+10 | pub use mem0_provider::{Mem0Config, Mem0Provider};
+   |                         ^^^^^^^^^^  ^^^^^^^^^^^^
+
+warning: unused imports: `ParsedComposite` and `StepMetadata`
+  --> crates\trajectory\src\skill_decomposition\mod.rs:13:46
+   |
+13 |     CompositeSkillData, DecompositionResult, ParsedComposite, SkillDecomposer, StepMetadata,
+   |                                              ^^^^^^^^^^^^^^^                   ^^^^^^^^^^^^
+
+warning: unused imports: `LlmAssistedParser`, `LlmParseContext`, `LlmParsePrompt`, `LlmParseRequest`, `LlmParseResponse`, `LlmParsedBranch`, `LlmParsedStep`, and `StepType`
+  --> crates\trajectory\src\skill_decomposition\mod.rs:16:5
+   |
+16 |     LlmAssistedParser, LlmParseContext, LlmParsePrompt, LlmParseRequest, LlmParseResponse,
+   |     ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^
+17 |     LlmParsedBranch, LlmParsedStep, StepType,
+   |     ^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^  ^^^^^^^^
+
+warning: unused imports: `CodeBlock`, `DecompositionEvent`, `DecompositionSession`, `EventType`, `FileReference`, `FileType`, `MessageStatus`, `MessageType`, `PartialResults`, `ReferenceType`, `SessionState`, `SkillFile`, `SkillPackage`, `TurnContext`, and `TurnStatus`
+  --> crates\trajectory\src\skill_decomposition\mod.rs:20:5
+   |
+20 |     CodeBlock, DecompositionEvent, DecompositionSession, EventType, FileReference, FileType,
+   |     ^^^^^^^^^  ^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^  ^^^^^^^^^^^^^  ^^^^^^^^
+21 |     MessageStatus, MessageType, PartialResults, ReferenceType, SessionState, SkillFile,
+   |     ^^^^^^^^^^^^^  ^^^^^^^^^^^  ^^^^^^^^^^^^^^  ^^^^^^^^^^^^^  ^^^^^^^^^^^^  ^^^^^^^^^
+22 |     SkillPackage, TurnContext, TurnStatus,
+   |     ^^^^^^^^^^^^  ^^^^^^^^^^^  ^^^^^^^^^^
+
+warning: unused imports: `ChatMessageInput`, `LlmClient`, and `MultiTurnDecomposer`
+  --> crates\trajectory\src\skill_decomposition\mod.rs:24:31
+   |
+24 | pub use multi_turn_executor::{ChatMessageInput, LlmClient, MultiTurnDecomposer};
+   |                               ^^^^^^^^^^^^^^^^  ^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^
+
+warning: unused imports: `ToolDependencyCheckResult`, `ToolDependencyStatus`, and `ToolDependency`
+  --> crates\trajectory\src\skill_decomposition\mod.rs:26:5
+   |
+26 |     ToolDependency, ToolDependencyCheckResult, ToolDependencyStatus, ToolResolver,
+   |     ^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^
+
+warning: unused imports: `IssueSeverity`, `ValidationIssue`, and `WorkflowValidator`
+  --> crates\trajectory\src\skill_decomposition\mod.rs:28:30
+   |
+28 | pub use workflow_validator::{IssueSeverity, ValidationIssue, WorkflowValidator};
+   |                              ^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^
+
+warning: unused imports: `CompressedTrajectory`, `ReplayContext`, and `TrajectoryBuilder`
+ --> crates\trajectory\src\trajectory.rs:7:5
+  |
+7 |     CompressedTrajectory, ExportFormat, MessageRole, RLTrainingEntry, ReplayContext, RewardSignal,
+  |     ^^^^^^^^^^^^^^^^^^^^                                              ^^^^^^^^^^^^^
+8 |     RewardType, ToolCall, ToolResult, TrainingConfig, Trajectory, TrajectoryBuilder,
+  |                                                                   ^^^^^^^^^^^^^^^^^
+
+warning: struct `AdaptationSignal` is never constructed
+  --> crates\trajectory\src\adaptation.rs:40:12
+   |
+40 | pub struct AdaptationSignal {
+   |            ^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: enum `AdaptationType` is never used
+  --> crates\trajectory\src\adaptation.rs:50:10
+   |
+50 | pub enum AdaptationType {
+   |          ^^^^^^^^^^^^^^
+
+warning: struct `RealTimeAdaptation` is never constructed
+  --> crates\trajectory\src\adaptation.rs:59:12
+   |
+59 | pub struct RealTimeAdaptation {
+   |            ^^^^^^^^^^^^^^^^^^
+
+warning: struct `ResponseStyle` is never constructed
+  --> crates\trajectory\src\adaptation.rs:67:12
+   |
+67 | pub struct ResponseStyle {
+   |            ^^^^^^^^^^^^^
+
+warning: struct `RealTimeLearning` is never constructed
+   --> crates\trajectory\src\adaptation.rs:101:12
+    |
+101 | pub struct RealTimeLearning {
+    |            ^^^^^^^^^^^^^^^^
+
+warning: multiple associated items are never used
+   --> crates\trajectory\src\adaptation.rs:117:12
+    |
+116 | impl RealTimeLearning {
+    | --------------------- associated items in this implementation
+117 |     pub fn new() -> Self {
+    |            ^^^
+...
+128 |     pub fn record_feedback(&mut self, mut signal: FeedbackSignal) -> &mut Self {
+    |            ^^^^^^^^^^^^^^^
+...
+145 |     fn process_feedback(&self, signal: &FeedbackSignal) -> Option<AdaptationSignal> {
+    |        ^^^^^^^^^^^^^^^^
+...
+161 |     pub fn generate_insights(&self) -> Vec<LearningInsight> {
+    |            ^^^^^^^^^^^^^^^^^
+...
+246 |     pub fn compute_adaptation(&mut self) -> RealTimeAdaptation {
+    |            ^^^^^^^^^^^^^^^^^^
+...
+259 |     fn calculate_adaptation(&self) -> RealTimeAdaptation {
+    |        ^^^^^^^^^^^^^^^^^^^^
+...
+305 |     pub fn get_feedback_buffer(&self) -> Vec<FeedbackSignal> {
+    |            ^^^^^^^^^^^^^^^^^^^
+...
+309 |     pub fn get_adaptation_buffer(&self) -> Vec<AdaptationSignal> {
+    |            ^^^^^^^^^^^^^^^^^^^^^
+...
+313 |     pub fn clear_buffers(&mut self) {
+    |            ^^^^^^^^^^^^^
+
+warning: enum `AgentNodeType` is never used
+  --> crates\trajectory\src\arch_search.rs:20:10
+   |
+20 | pub enum AgentNodeType {
+   |          ^^^^^^^^^^^^^
+
+warning: methods `is_control_flow` and `is_memory` are never used
+  --> crates\trajectory\src\arch_search.rs:32:12
+   |
+31 | impl AgentNodeType {
+   | ------------------ methods in this implementation
+32 |     pub fn is_control_flow(&self) -> bool {
+   |            ^^^^^^^^^^^^^^^
+...
+36 |     pub fn is_memory(&self) -> bool {
+   |            ^^^^^^^^^
+
+warning: struct `AgentNode` is never constructed
+  --> crates\trajectory\src\arch_search.rs:42:12
+   |
+42 | pub struct AgentNode {
+   |            ^^^^^^^^^
+
+warning: associated items `new`, `with_config`, and `with_prompt_template` are never used
+  --> crates\trajectory\src\arch_search.rs:50:12
+   |
+49 | impl AgentNode {
+   | -------------- associated items in this implementation
+50 |     pub fn new(node_type: AgentNodeType) -> Self {
+   |            ^^^
+...
+59 |     pub fn with_config(mut self, key: impl Into<String>, value: impl Into<String>) -> Self {
+   |            ^^^^^^^^^^^
+...
+64 |     pub fn with_prompt_template(mut self, template: impl Into<String>) -> Self {
+   |            ^^^^^^^^^^^^^^^^^^^^
+
+warning: struct `AgentEdge` is never constructed
+  --> crates\trajectory\src\arch_search.rs:71:12
+   |
+71 | pub struct AgentEdge {
+   |            ^^^^^^^^^
+
+warning: associated items `new` and `with_condition` are never used
+  --> crates\trajectory\src\arch_search.rs:78:12
+   |
+77 | impl AgentEdge {
+   | -------------- associated items in this implementation
+78 |     pub fn new(source_id: impl Into<String>, target_id: impl Into<String>) -> Self {
+   |            ^^^
+...
+86 |     pub fn with_condition(mut self, condition: impl Into<String>) -> Self {
+   |            ^^^^^^^^^^^^^^
+
+warning: struct `AgentArchitecture` is never constructed
+  --> crates\trajectory\src\arch_search.rs:93:12
+   |
+93 | pub struct AgentArchitecture {
+   |            ^^^^^^^^^^^^^^^^^
+
+warning: multiple associated items are never used
+   --> crates\trajectory\src\arch_search.rs:103:12
+    |
+102 | impl AgentArchitecture {
+    | ---------------------- associated items in this implementation
+103 |     pub fn new(name: impl Into<String>) -> Self {
+    |            ^^^
+...
+114 |     pub fn add_node(&mut self, node: AgentNode) -> String {
+    |            ^^^^^^^^
+...
+120 |     pub fn add_edge(&mut self, edge: AgentEdge) {
+    |            ^^^^^^^^
+...
+124 |     pub fn get_node(&self, id: &str) -> Option<&AgentNode> {
+    |            ^^^^^^^^
+...
+128 |     pub fn get_node_mut(&mut self, id: &str) -> Option<&mut AgentNode> {
+    |            ^^^^^^^^^^^^
+...
+132 |     pub fn node_ids(&self) -> HashSet<&str> {
+    |            ^^^^^^^^
+...
+136 |     pub fn successors(&self, node_id: &str) -> Vec<&str> {
+    |            ^^^^^^^^^^
+...
+144 |     pub fn predecessors(&self, node_id: &str) -> Vec<&str> {
+    |            ^^^^^^^^^^^^
+...
+152 |     pub fn root_nodes(&self) -> Vec<&AgentNode> {
+    |            ^^^^^^^^^^
+...
+160 |     pub fn leaf_nodes(&self) -> Vec<&AgentNode> {
+    |            ^^^^^^^^^^
+...
+168 |     pub fn connected_components(&self) -> Vec<HashSet<String>> {
+    |            ^^^^^^^^^^^^^^^^^^^^
+...
+195 |     pub fn node_type_diversity(&self) -> f64 {
+    |            ^^^^^^^^^^^^^^^^^^^
+
+warning: struct `ArchitectureSearchConfig` is never constructed
+   --> crates\trajectory\src\arch_search.rs:209:12
+    |
+209 | pub struct ArchitectureSearchConfig {
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: struct `ArchitectureSearchSpace` is never constructed
+   --> crates\trajectory\src\arch_search.rs:234:12
+    |
+234 | pub struct ArchitectureSearchSpace {
+    |            ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: associated function `default_search_space` is never used
+   --> crates\trajectory\src\arch_search.rs:241:12
+    |
+240 | impl ArchitectureSearchSpace {
+    | ---------------------------- associated function in this implementation
+241 |     pub fn default_search_space() -> Self {
+    |            ^^^^^^^^^^^^^^^^^^^^
+
+warning: trait `ArchitectureEvaluator` is never used
+   --> crates\trajectory\src\arch_search.rs:258:11
+    |
+258 | pub trait ArchitectureEvaluator: Send + Sync {
+    |           ^^^^^^^^^^^^^^^^^^^^^
+
+warning: struct `DefaultArchitectureEvaluator` is never constructed
+   --> crates\trajectory\src\arch_search.rs:265:12
+    |
+265 | pub struct DefaultArchitectureEvaluator {
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: associated items `new`, `with_optimal_range`, `compute_balance_score`, `compute_diversity_score`, `compute_connectivity_score`, and `compute_io_flow_score` are never used
+   --> crates\trajectory\src\arch_search.rs:270:12
+    |
+269 | impl DefaultArchitectureEvaluator {
+    | --------------------------------- associated items in this implementation
+270 |     pub fn new() -> Self {
+    |            ^^^
+...
+276 |     pub fn with_optimal_range(mut self, min: usize, max: usize) -> Self {
+    |            ^^^^^^^^^^^^^^^^^^
+...
+281 |     fn compute_balance_score(&self, arch: &AgentArchitecture) -> f64 {
+    |        ^^^^^^^^^^^^^^^^^^^^^
+...
+297 |     fn compute_diversity_score(&self, arch: &AgentArchitecture) -> f64 {
+    |        ^^^^^^^^^^^^^^^^^^^^^^^
+...
+301 |     fn compute_connectivity_score(&self, arch: &AgentArchitecture) -> f64 {
+    |        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+313 |     fn compute_io_flow_score(&self, arch: &AgentArchitecture) -> f64 {
+    |        ^^^^^^^^^^^^^^^^^^^^^
+
+warning: trait `MetaAgentProvider` is never used
+   --> crates\trajectory\src\arch_search.rs:364:11
+    |
+364 | pub trait MetaAgentProvider: Send + Sync {
+    |           ^^^^^^^^^^^^^^^^^
+
+warning: struct `RandomMetaAgent` is never constructed
+   --> crates\trajectory\src\arch_search.rs:372:12
+    |
+372 | pub struct RandomMetaAgent;
+    |            ^^^^^^^^^^^^^^^
+
+warning: associated functions `new` and `generate_random_architecture` are never used
+   --> crates\trajectory\src\arch_search.rs:375:12
+    |
+374 | impl RandomMetaAgent {
+    | -------------------- associated functions in this implementation
+375 |     pub fn new() -> Self {
+    |            ^^^
+...
+379 |     fn generate_random_architecture(
+    |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: struct `SearchStatistics` is never constructed
+   --> crates\trajectory\src\arch_search.rs:442:12
+    |
+442 | pub struct SearchStatistics {
+    |            ^^^^^^^^^^^^^^^^
+
+warning: struct `ArchitectureSearchEngine` is never constructed
+   --> crates\trajectory\src\arch_search.rs:450:12
+    |
+450 | pub struct ArchitectureSearchEngine<E: ArchitectureEvaluator, M: MetaAgentProvider> {
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: multiple associated items are never used
+   --> crates\trajectory\src\arch_search.rs:461:12
+    |
+460 | impl<E: ArchitectureEvaluator, M: MetaAgentProvider> ArchitectureSearchEngine<E, M> {
+    | ----------------------------------------------------------------------------------- associated items in this implementation
+461 |     pub fn new(
+    |            ^^^
+...
+478 |     pub fn initialize_population(&mut self) {
+    |            ^^^^^^^^^^^^^^^^^^^^^
+...
+488 |     pub fn mutate_architecture(&self, arch: &AgentArchitecture) -> AgentArchitecture {
+    |            ^^^^^^^^^^^^^^^^^^^
+...
+544 |     pub fn crossover_architectures(
+    |            ^^^^^^^^^^^^^^^^^^^^^^^
+...
+620 |     fn tournament_select(&self, tournament_size: usize) -> Option<&AgentArchitecture> {
+    |        ^^^^^^^^^^^^^^^^^
+...
+638 |     pub async fn evolve_generation(&mut self) -> Option<&AgentArchitecture> {
+    |                  ^^^^^^^^^^^^^^^^^
+...
+704 |     pub async fn search(&mut self, generations: u32) -> AgentArchitecture {
+    |                  ^^^^^^
+...
+731 |     pub fn get_best(&self) -> Option<&AgentArchitecture> {
+    |            ^^^^^^^^
+...
+739 |     pub fn get_statistics(&self) -> SearchStatistics {
+    |            ^^^^^^^^^^^^^^
+
+warning: struct `UserBehavior` is never constructed
+ --> crates\trajectory\src\behavior_learner.rs:8:12
+  |
+8 | pub struct UserBehavior {
+  |            ^^^^^^^^^^^^
+
+warning: struct `StyleProfile` is never constructed
+  --> crates\trajectory\src\behavior_learner.rs:17:12
+   |
+17 | pub struct StyleProfile {
+   |            ^^^^^^^^^^^^
+
+warning: struct `CodingStyle` is never constructed
+  --> crates\trajectory\src\behavior_learner.rs:29:12
+   |
+29 | pub struct CodingStyle {
+   |            ^^^^^^^^^^^
+
+warning: struct `BehaviorPattern` is never constructed
+  --> crates\trajectory\src\behavior_learner.rs:50:12
+   |
+50 | pub struct BehaviorPattern {
+   |            ^^^^^^^^^^^^^^^
+
+warning: struct `BehaviorLearner` is never constructed
+  --> crates\trajectory\src\behavior_learner.rs:58:12
+   |
+58 | pub struct BehaviorLearner {
+   |            ^^^^^^^^^^^^^^^
+
+warning: multiple associated items are never used
+   --> crates\trajectory\src\behavior_learner.rs:65:12
+    |
+ 64 | impl BehaviorLearner {
+    | -------------------- associated items in this implementation
+ 65 |     pub fn new(user_id: &str) -> Self {
+    |            ^^^
+...
+ 73 |     pub fn record_behavior(&mut self, behavior: UserBehavior) {
+    |            ^^^^^^^^^^^^^^^
+...
+ 80 |     pub fn record_batch(&mut self, behaviors: Vec<UserBehavior>) {
+    |            ^^^^^^^^^^^^
+...
+ 85 |     fn recompute_profile(&mut self) {
+    |        ^^^^^^^^^^^^^^^^^
+...
+108 |     pub fn get_style_hints(&self) -> Vec<String> {
+    |            ^^^^^^^^^^^^^^^
+...
+130 |     pub fn get_patterns(&self) -> Vec<BehaviorPattern> {
+    |            ^^^^^^^^^^^^
+...
+157 |     pub fn get_style_profile(&self) -> Option<&StyleProfile> {
+    |            ^^^^^^^^^^^^^^^^^
+...
+161 |     fn extract_patterns(behaviors: &[&UserBehavior]) -> Vec<String> {
+    |        ^^^^^^^^^^^^^^^^
+...
+172 |     fn extract_common_apis(&self, behaviors: &[&UserBehavior]) -> Vec<String> {
+    |        ^^^^^^^^^^^^^^^^^^^
+...
+184 |     fn detect_naming_convention(&self, behaviors: &[&UserBehavior]) -> String {
+    |        ^^^^^^^^^^^^^^^^^^^^^^^^
+...
+214 |     fn detect_indent_style(&self, behaviors: &[&UserBehavior]) -> String {
+    |        ^^^^^^^^^^^^^^^^^^^
+
+warning: struct `BehaviorSummary` is never constructed
+   --> crates\trajectory\src\behavior_tracker.rs:163:12
+    |
+163 | pub struct BehaviorSummary {
+    |            ^^^^^^^^^^^^^^^
+
+warning: struct `ToolUsageStats` is never constructed
+   --> crates\trajectory\src\behavior_tracker.rs:175:12
+    |
+175 | pub struct ToolUsageStats {
+    |            ^^^^^^^^^^^^^^
+
+warning: struct `CodingStats` is never constructed
+   --> crates\trajectory\src\behavior_tracker.rs:183:12
+    |
+183 | pub struct CodingStats {
+    |            ^^^^^^^^^^^
+
+warning: struct `BehaviorTracker` is never constructed
+   --> crates\trajectory\src\behavior_tracker.rs:216:12
+    |
+216 | pub struct BehaviorTracker {
+    |            ^^^^^^^^^^^^^^^
+
+warning: multiple associated items are never used
+   --> crates\trajectory\src\behavior_tracker.rs:223:12
+    |
+222 | impl BehaviorTracker {
+    | -------------------- associated items in this implementation
+223 |     pub fn new(user_id: String) -> Self {
+    |            ^^^
+...
+231 |     pub fn track_event(&mut self, event: BehaviorEvent) {
+    |            ^^^^^^^^^^^
+...
+235 |     pub fn track_code_generation(
+    |            ^^^^^^^^^^^^^^^^^^^^^
+...
+254 |     pub fn track_search_query(
+    |            ^^^^^^^^^^^^^^^^^^
+...
+271 |     pub fn track_tool_usage(&mut self, tool_name: String, success: bool, duration_ms: u64) {
+    |            ^^^^^^^^^^^^^^^^
+...
+283 |     pub fn track_feedback(&mut self, feedback_type: UserFeedbackType, rating: Option<i32>) {
+    |            ^^^^^^^^^^^^^^
+...
+294 |     pub fn track_preference_change(
+    |            ^^^^^^^^^^^^^^^^^^^^^^^
+...
+311 |     pub fn flush_events(&mut self) -> Vec<BehaviorEvent> {
+    |            ^^^^^^^^^^^^
+...
+316 |     pub fn get_buffered_count(&self) -> usize {
+    |            ^^^^^^^^^^^^^^^^^^
+...
+320 |     pub fn summarize(&self) -> BehaviorSummary {
+    |            ^^^^^^^^^
+...
+351 |     pub fn session_duration(&self) -> chrono::Duration {
+    |            ^^^^^^^^^^^^^^^^
+...
+355 |     pub fn session_start_time(&self) -> DateTime<Utc> {
+    |            ^^^^^^^^^^^^^^^^^^
+
+warning: struct `FnCustomRuleChecker` is never constructed
+   --> crates\trajectory\src\constitution.rs:147:12
+    |
+147 | pub struct FnCustomRuleChecker {
+    |            ^^^^^^^^^^^^^^^^^^^
+
+warning: associated function `new` is never used
+   --> crates\trajectory\src\constitution.rs:155:12
+    |
+153 | impl FnCustomRuleChecker {
+    | ------------------------ associated function in this implementation
+154 |     #[allow(clippy::type_complexity)]
+155 |     pub fn new(
+    |            ^^^
+
+warning: struct `TokenBudget` is never constructed
+  --> crates\trajectory\src\context.rs:11:12
+   |
+11 | pub struct TokenBudget {
+   |            ^^^^^^^^^^^
+
+warning: enum `ContextBlockType` is never used
+  --> crates\trajectory\src\context.rs:42:10
+   |
+42 | pub enum ContextBlockType {
+   |          ^^^^^^^^^^^^^^^^
+
+warning: struct `ContextBlock` is never constructed
+  --> crates\trajectory\src\context.rs:52:12
+   |
+52 | pub struct ContextBlock {
+   |            ^^^^^^^^^^^^
+
+warning: struct `AssembledContext` is never constructed
+  --> crates\trajectory\src\context.rs:60:12
+   |
+60 | pub struct AssembledContext {
+   |            ^^^^^^^^^^^^^^^^
+
+warning: struct `ContextMetadata` is never constructed
+  --> crates\trajectory\src\context.rs:68:12
+   |
+68 | pub struct ContextMetadata {
+   |            ^^^^^^^^^^^^^^^
+
+warning: function `estimate_token_count` is never used
+  --> crates\trajectory\src\context.rs:78:4
+   |
+78 | fn estimate_token_count(text: &str) -> u32 {
+   |    ^^^^^^^^^^^^^^^^^^^^
+
+warning: struct `ContextAssembler` is never constructed
+  --> crates\trajectory\src\context.rs:82:12
+   |
+82 | pub struct ContextAssembler {
+   |            ^^^^^^^^^^^^^^^^
+
+warning: multiple associated items are never used
+   --> crates\trajectory\src\context.rs:93:12
+    |
+ 92 | impl ContextAssembler {
+    | --------------------- associated items in this implementation
+ 93 |     pub fn new() -> Self {
+    |            ^^^
+...
+ 99 |     pub fn with_budget(budget: TokenBudget) -> Self {
+    |            ^^^^^^^^^^^
+...
+103 |     pub fn update_budget(&mut self, budget: TokenBudget) {
+    |            ^^^^^^^^^^^^^
+...
+107 |     pub fn get_budget(&self) -> &TokenBudget {
+    |            ^^^^^^^^^^
+...
+111 |     pub fn estimate_tokens(&self, text: &str) -> u32 {
+    |            ^^^^^^^^^^^^^^^
+...
+115 |     pub fn truncate_to_limit(&self, text: &str, limit: u32) -> String {
+    |            ^^^^^^^^^^^^^^^^^
+...
+132 |     pub fn assemble_blocks(
+    |            ^^^^^^^^^^^^^^^
+...
+238 |     pub fn calculate_efficiency(&self, context: &AssembledContext) -> f64 {
+    |            ^^^^^^^^^^^^^^^^^^^^
+...
+245 |     pub fn suggest_optimizations(&self, context: &AssembledContext) -> Vec<String> {
+    |            ^^^^^^^^^^^^^^^^^^^^^
+
+warning: struct `MemoryRegistry` is never constructed
+  --> crates\trajectory\src\memory.rs:29:12
+   |
+29 | pub struct MemoryRegistry {
+   |            ^^^^^^^^^^^^^^
+
+warning: associated items `new` and `initialize` are never used
+  --> crates\trajectory\src\memory.rs:36:12
+   |
+35 | impl MemoryRegistry {
+   | ------------------- associated items in this implementation
+36 |     pub fn new(storage: Arc<TrajectoryStorage>) -> anyhow::Result<Self> {
+   |            ^^^
+...
+48 |     pub fn initialize(&self) -> anyhow::Result<()> {
+   |            ^^^^^^^^^^
+
+warning: struct `HonchoConfig` is never constructed
+  --> crates\trajectory\src\memory_providers\honcho_provider.rs:12:12
+   |
+12 | pub struct HonchoConfig {
+   |            ^^^^^^^^^^^^
+
+warning: struct `HonchoProvider` is never constructed
+  --> crates\trajectory\src\memory_providers\honcho_provider.rs:30:12
+   |
+30 | pub struct HonchoProvider {
+   |            ^^^^^^^^^^^^^^
+
+warning: associated function `new` is never used
+  --> crates\trajectory\src\memory_providers\honcho_provider.rs:36:12
+   |
+35 | impl HonchoProvider {
+   | ------------------- associated function in this implementation
+36 |     pub fn new(config: HonchoConfig) -> Self {
+   |            ^^^
+
+warning: methods `sync_to_remote` and `search_remote` are never used
+   --> crates\trajectory\src\memory_providers\honcho_provider.rs:143:14
+    |
+142 | impl HonchoProvider {
+    | ------------------- methods in this implementation
+143 |     async fn sync_to_remote(
+    |              ^^^^^^^^^^^^^^
+...
+185 |     async fn search_remote(
+    |              ^^^^^^^^^^^^^
+
+warning: struct `Mem0Config` is never constructed
+  --> crates\trajectory\src\memory_providers\mem0_provider.rs:12:12
+   |
+12 | pub struct Mem0Config {
+   |            ^^^^^^^^^^
+
+warning: struct `Mem0Provider` is never constructed
+  --> crates\trajectory\src\memory_providers\mem0_provider.rs:32:12
+   |
+32 | pub struct Mem0Provider {
+   |            ^^^^^^^^^^^^
+
+warning: associated function `new` is never used
+  --> crates\trajectory\src\memory_providers\mem0_provider.rs:38:12
+   |
+37 | impl Mem0Provider {
+   | ----------------- associated function in this implementation
+38 |     pub fn new(config: Mem0Config) -> Self {
+   |            ^^^
+
+warning: methods `sync_to_remote` and `search_remote` are never used
+   --> crates\trajectory\src\memory_providers\mem0_provider.rs:142:14
+    |
+141 | impl Mem0Provider {
+    | ----------------- methods in this implementation
+142 |     async fn sync_to_remote(
+    |              ^^^^^^^^^^^^^^
+...
+186 |     async fn search_remote(
+    |              ^^^^^^^^^^^^^
+
+warning: struct `SearchResult` is never constructed
+   --> crates\trajectory\src\memory_providers\service.rs:233:12
+    |
+233 | pub struct SearchResult {
+    |            ^^^^^^^^^^^^
+
+warning: enum `NudgeType` is never used
+  --> crates\trajectory\src\nudge.rs:32:10
+   |
+32 | pub enum NudgeType {
+   |          ^^^^^^^^^
+
+warning: struct `NudgeMessage` is never constructed
+  --> crates\trajectory\src\nudge.rs:41:12
+   |
+41 | pub struct NudgeMessage {
+   |            ^^^^^^^^^^^^
+
+warning: struct `DetectedPattern` is never constructed
+  --> crates\trajectory\src\pattern.rs:79:12
+   |
+79 | pub struct DetectedPattern {
+   |            ^^^^^^^^^^^^^^^
+
+warning: struct `PatternStep` is never constructed
+  --> crates\trajectory\src\pattern.rs:90:12
+   |
+90 | pub struct PatternStep {
+   |            ^^^^^^^^^^^
+
+warning: associated items `from_trajectories`, `extract_common_steps`, `generate_pattern_name`, `generate_description`, and `to_trajectory_pattern` are never used
+   --> crates\trajectory\src\pattern.rs:100:12
+    |
+ 99 | impl DetectedPattern {
+    | -------------------- associated items in this implementation
+100 |     pub fn from_trajectories(
+    |            ^^^^^^^^^^^^^^^^^
+...
+133 |     fn extract_common_steps(trajectories: &[&Trajectory]) -> Option<Vec<PatternStep>> {
+    |        ^^^^^^^^^^^^^^^^^^^^
+...
+188 |     fn generate_pattern_name(steps: &[PatternStep], pattern_type: PatternType) -> String {
+    |        ^^^^^^^^^^^^^^^^^^^^^
+...
+200 |     fn generate_description(
+    |        ^^^^^^^^^^^^^^^^^^^^
+...
+218 |     pub fn to_trajectory_pattern(&self) -> TrajectoryPattern {
+    |            ^^^^^^^^^^^^^^^^^^^^^
+
+warning: field `occurrences` is never read
+  --> crates\trajectory\src\pattern_analyzer.rs:24:9
+   |
+20 | pub struct CodingPatternMatch {
+   |            ------------------ field in this struct
+...
+24 |     pub occurrences: u32,
+   |         ^^^^^^^^^^^
+   |
+   = note: `CodingPatternMatch` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: variants `ModuleStructure` and `ErrorHandling` are never constructed
+  --> crates\trajectory\src\pattern_analyzer.rs:32:5
+   |
+28 | pub enum PatternType {
+   |          ----------- variants in this enum
+...
+32 |     ModuleStructure,
+   |     ^^^^^^^^^^^^^^^
+33 |     ErrorHandling,
+   |     ^^^^^^^^^^^^^
+   |
+   = note: `PatternType` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: enum `CapabilityType` is never used
+  --> crates\trajectory\src\proactive_assistant.rs:10:10
+   |
+10 | pub enum CapabilityType {
+   |          ^^^^^^^^^^^^^^
+
+warning: struct `ProactiveCapability` is never constructed
+  --> crates\trajectory\src\proactive_assistant.rs:18:12
+   |
+18 | pub struct ProactiveCapability {
+   |            ^^^^^^^^^^^^^^^^^^^
+
+warning: struct `TriggerCondition` is never constructed
+  --> crates\trajectory\src\proactive_assistant.rs:26:12
+   |
+26 | pub struct TriggerCondition {
+   |            ^^^^^^^^^^^^^^^^
+
+warning: enum `TriggerConditionType` is never used
+  --> crates\trajectory\src\proactive_assistant.rs:34:10
+   |
+34 | pub enum TriggerConditionType {
+   |          ^^^^^^^^^^^^^^^^^^^^
+
+warning: enum `ProactiveAction` is never used
+  --> crates\trajectory\src\proactive_assistant.rs:45:10
+   |
+45 | pub enum ProactiveAction {
+   |          ^^^^^^^^^^^^^^^
+
+warning: struct `ReminderSchedule` is never constructed
+  --> crates\trajectory\src\reminder_manager.rs:11:12
+   |
+11 | pub struct ReminderSchedule {
+   |            ^^^^^^^^^^^^^^^^
+
+warning: struct `ReminderNotification` is never constructed
+  --> crates\trajectory\src\reminder_manager.rs:18:12
+   |
+18 | pub struct ReminderNotification {
+   |            ^^^^^^^^^^^^^^^^^^^^
+
+warning: struct `ReminderManagerConfig` is never constructed
+  --> crates\trajectory\src\reminder_manager.rs:26:12
+   |
+26 | pub struct ReminderManagerConfig {
+   |            ^^^^^^^^^^^^^^^^^^^^^
+
+warning: struct `ReminderManager` is never constructed
+  --> crates\trajectory\src\reminder_manager.rs:46:12
+   |
+46 | pub struct ReminderManager {
+   |            ^^^^^^^^^^^^^^^
+
+warning: multiple associated items are never used
+   --> crates\trajectory\src\reminder_manager.rs:61:12
+    |
+ 60 | impl ReminderManager {
+    | -------------------- associated items in this implementation
+ 61 |     pub fn new() -> Self {
+    |            ^^^
+...
+ 71 |     pub fn with_config(config: ReminderManagerConfig) -> Self {
+    |            ^^^^^^^^^^^
+...
+ 81 |     pub fn get_config(&self) -> &ReminderManagerConfig {
+    |            ^^^^^^^^^^
+...
+ 85 |     pub fn update_config(&mut self, config: ReminderManagerConfig) {
+    |            ^^^^^^^^^^^^^
+...
+ 89 |     pub fn is_enabled(&self) -> bool {
+    |            ^^^^^^^^^^
+...
+ 93 |     pub fn set_enabled(&mut self, enabled: bool) {
+    |            ^^^^^^^^^^^
+...
+ 97 |     pub fn add_reminder(&mut self, reminder: Reminder) -> Result<(), ReminderError> {
+    |            ^^^^^^^^^^^^
+...
+111 |     fn calculate_next_schedule(&self, reminder: &Reminder) -> ReminderSchedule {
+    |        ^^^^^^^^^^^^^^^^^^^^^^^
+...
+119 |     pub fn get_reminder(&self, id: &str) -> Option<&Reminder> {
+    |            ^^^^^^^^^^^^
+...
+123 |     pub fn get_all_reminders(&self) -> Vec<&Reminder> {
+    |            ^^^^^^^^^^^^^^^^^
+...
+127 |     pub fn get_active_reminders(&self) -> Vec<&Reminder> {
+    |            ^^^^^^^^^^^^^^^^^^^^
+...
+131 |     pub fn get_due_reminders(&self) -> Vec<&Reminder> {
+    |            ^^^^^^^^^^^^^^^^^
+...
+139 |     pub fn complete_reminder(&mut self, id: &str) -> Result<Reminder, ReminderError> {
+    |            ^^^^^^^^^^^^^^^^^
+...
+172 |     fn calculate_next_occurrence(
+    |        ^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+185 |     pub fn snooze_reminder(
+    |            ^^^^^^^^^^^^^^^
+...
+204 |     pub fn delete_reminder(&mut self, id: &str) -> Result<Reminder, ReminderError> {
+    |            ^^^^^^^^^^^^^^^
+...
+210 |     pub fn update_reminder(
+    |            ^^^^^^^^^^^^^^^
+...
+235 |     pub fn trigger_reminder(&mut self, id: &str) -> Result<ReminderNotification, ReminderError> {
+    |            ^^^^^^^^^^^^^^^^
+...
+253 |     pub fn acknowledge_notification(&mut self, notification_id: &str) -> Result<(), ReminderError> {
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^
+...
+264 |     pub fn get_pending_notifications(&self) -> Vec<&ReminderNotification> {
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+271 |     pub fn cleanup_completed(&mut self) {
+    |            ^^^^^^^^^^^^^^^^^
+...
+276 |     pub fn get_completed_history(&self) -> &[Reminder] {
+    |            ^^^^^^^^^^^^^^^^^^^^^
+...
+280 |     pub fn reschedule_all(&mut self, new_time: DateTime<Utc>) {
+    |            ^^^^^^^^^^^^^^
+...
+289 |     pub fn snooze_all(&mut self, duration_minutes: i64) {
+    |            ^^^^^^^^^^
+
+warning: enum `ReminderError` is never used
+   --> crates\trajectory\src\reminder_manager.rs:303:10
+    |
+303 | pub enum ReminderError {
+    |          ^^^^^^^^^^^^^
+
+warning: struct `RLState` is never constructed
+  --> crates\trajectory\src\rl.rs:68:12
+   |
+68 | pub struct RLState {
+   |            ^^^^^^^
+
+warning: associated function `new` is never used
+  --> crates\trajectory\src\rl.rs:76:12
+   |
+75 | impl RLState {
+   | ------------ associated function in this implementation
+76 |     pub fn new(steps: usize) -> Self {
+   |            ^^^
+
+warning: struct `DefaultLlmJudge` is never constructed
+  --> crates\trajectory\src\rl.rs:86:12
+   |
+86 | pub struct DefaultLlmJudge;
+   |            ^^^^^^^^^^^^^^^
+
+warning: struct `RewardNormalizer` is never constructed
+   --> crates\trajectory\src\rl.rs:656:12
+    |
+656 | pub struct RewardNormalizer {
+    |            ^^^^^^^^^^^^^^^^
+
+warning: associated items `new` and `normalize` are never used
+   --> crates\trajectory\src\rl.rs:664:12
+    |
+663 | impl RewardNormalizer {
+    | --------------------- associated items in this implementation
+664 |     pub fn new() -> Self {
+    |            ^^^
+...
+673 |     pub fn normalize(&mut self, rewards: &mut [RewardSignal]) {
+    |            ^^^^^^^^^
+
+warning: struct `DryRunSandboxExecutor` is never constructed
+   --> crates\trajectory\src\sandbox_executor.rs:300:12
+    |
+300 | pub struct DryRunSandboxExecutor {
+    |            ^^^^^^^^^^^^^^^^^^^^^
+
+warning: associated items `new`, `with_default_policy`, and `validate_step` are never used
+   --> crates\trajectory\src\sandbox_executor.rs:306:12
+    |
+305 | impl DryRunSandboxExecutor {
+    | -------------------------- associated items in this implementation
+306 |     pub fn new(policy: SandboxPolicy) -> Self {
+    |            ^^^
+...
+310 |     pub fn with_default_policy() -> Self {
+    |            ^^^^^^^^^^^^^^^^^^^
+...
+314 |     fn validate_step(&self, step: &ProcedureStep) -> StepValidationResult {
+    |        ^^^^^^^^^^^^^
+
+warning: struct `SkillEvolution` is never constructed
+   --> crates\trajectory\src\skill.rs:216:12
+    |
+216 | pub struct SkillEvolution {
+    |            ^^^^^^^^^^^^^^
+
+warning: enum `EvolutionOutcome` is never used
+   --> crates\trajectory\src\skill.rs:227:10
+    |
+227 | pub enum EvolutionOutcome {
+    |          ^^^^^^^^^^^^^^^^
+
+warning: struct `MetricsDelta` is never constructed
+   --> crates\trajectory\src\skill.rs:234:12
+    |
+234 | pub struct MetricsDelta {
+    |            ^^^^^^^^^^^^
+
+warning: struct `SkillOptimizer` is never constructed
+   --> crates\trajectory\src\skill.rs:475:12
+    |
+475 | pub struct SkillOptimizer {
+    |            ^^^^^^^^^^^^^^
+
+warning: associated items `new`, `analyze_skill`, `propose_improvement`, and `validate_modification` are never used
+   --> crates\trajectory\src\skill.rs:494:12
+    |
+493 | impl SkillOptimizer {
+    | ------------------- associated items in this implementation
+494 |     pub fn new() -> Self {
+    |            ^^^
+...
+498 |     pub fn analyze_skill(&self, skill: &Skill) -> Option<SkillAnalysis> {
+    |            ^^^^^^^^^^^^^
+...
+538 |     pub fn propose_improvement(
+    |            ^^^^^^^^^^^^^^^^^^^
+...
+605 |     pub fn validate_modification(
+    |            ^^^^^^^^^^^^^^^^^^^^^
+
+warning: enum `Impact` is never used
+   --> crates\trajectory\src\skill.rs:653:10
+    |
+653 | pub enum Impact {
+    |          ^^^^^^
+
+warning: method `to_confidence` is never used
+   --> crates\trajectory\src\skill.rs:660:8
+    |
+659 | impl Impact {
+    | ----------- method in this implementation
+660 |     fn to_confidence(self) -> f64 {
+    |        ^^^^^^^^^^^^^
+
+warning: struct `SkillAnalysis` is never constructed
+   --> crates\trajectory\src\skill.rs:670:12
+    |
+670 | pub struct SkillAnalysis {
+    |            ^^^^^^^^^^^^^
+
+warning: struct `SkillCreator` is never constructed
+   --> crates\trajectory\src\skill.rs:685:12
+    |
+685 | pub struct SkillCreator {
+    |            ^^^^^^^^^^^^
+
+warning: associated items `new`, `should_create_skill`, `assess_complexity`, `create_proposal`, and `generate_skill_name` are never used
+   --> crates\trajectory\src\skill.rs:700:12
+    |
+699 | impl SkillCreator {
+    | ----------------- associated items in this implementation
+700 |     pub fn new() -> Self {
+    |            ^^^
+...
+704 |     pub fn should_create_skill(&self, trajectory: &Trajectory) -> bool {
+    |            ^^^^^^^^^^^^^^^^^^^
+...
+723 |     fn assess_complexity(&self, trajectory: &Trajectory) -> TaskComplexity {
+    |        ^^^^^^^^^^^^^^^^^
+...
+752 |     pub fn create_proposal(&self, trajectory: &Trajectory) -> SkillProposal {
+    |            ^^^^^^^^^^^^^^^
+...
+775 |     fn generate_skill_name(&self, topic: &str) -> String {
+    |        ^^^^^^^^^^^^^^^^^^^
+
+warning: enum `SkillContentType` is never used
+  --> crates\trajectory\src\skill_decomposition\decomposer.rs:18:10
+   |
+18 | pub enum SkillContentType {
+   |          ^^^^^^^^^^^^^^^^
+
+warning: associated function `restore_code_blocks` is never used
+   --> crates\trajectory\src\skill_decomposition\decomposer.rs:212:12
+    |
+155 | impl ContentPreprocessor {
+    | ------------------------ associated function in this implementation
+...
+212 |     pub fn restore_code_blocks(content: &str, blocks: &[CodeBlock]) -> String {
+    |            ^^^^^^^^^^^^^^^^^^^
+
+warning: struct `LlmParsePrompt` is never constructed
+  --> crates\trajectory\src\skill_decomposition\llm_assisted.rs:70:12
+   |
+70 | pub struct LlmParsePrompt;
+   |            ^^^^^^^^^^^^^^
+
+warning: associated function `build_prompt` is never used
+  --> crates\trajectory\src\skill_decomposition\llm_assisted.rs:73:12
+   |
+72 | impl LlmParsePrompt {
+   | ------------------- associated function in this implementation
+73 |     pub fn build_prompt(request: &LlmParseRequest) -> String {
+   |            ^^^^^^^^^^^^
+
+warning: enum `MessageType` is never used
+ --> crates\trajectory\src\skill_decomposition\multi_turn.rs:8:10
+  |
+8 | pub enum MessageType {
+  |          ^^^^^^^^^^^
+
+warning: enum `TurnStatus` is never used
+  --> crates\trajectory\src\skill_decomposition\multi_turn.rs:22:10
+   |
+22 | pub enum TurnStatus {
+   |          ^^^^^^^^^^
+
+warning: struct `AgentMessage` is never constructed
+  --> crates\trajectory\src\skill_decomposition\multi_turn.rs:30:12
+   |
+30 | pub struct AgentMessage {
+   |            ^^^^^^^^^^^^
+
+warning: enum `MessageStatus` is never used
+  --> crates\trajectory\src\skill_decomposition\multi_turn.rs:43:10
+   |
+43 | pub enum MessageStatus {
+   |          ^^^^^^^^^^^^^
+
+warning: struct `MessageMetadata` is never constructed
+  --> crates\trajectory\src\skill_decomposition\multi_turn.rs:50:12
+   |
+50 | pub struct MessageMetadata {
+   |            ^^^^^^^^^^^^^^^
+
+warning: struct `TurnContext` is never constructed
+  --> crates\trajectory\src\skill_decomposition\multi_turn.rs:58:12
+   |
+58 | pub struct TurnContext {
+   |            ^^^^^^^^^^^
+
+warning: associated function `new` is never used
+  --> crates\trajectory\src\skill_decomposition\multi_turn.rs:67:12
+   |
+66 | impl TurnContext {
+   | ---------------- associated function in this implementation
+67 |     pub fn new(turn_id: u32, turn_name: &str) -> Self {
+   |            ^^^
+
+warning: struct `FileReference` is never constructed
+  --> crates\trajectory\src\skill_decomposition\multi_turn.rs:79:12
+   |
+79 | pub struct FileReference {
+   |            ^^^^^^^^^^^^^
+
+warning: enum `ReferenceType` is never used
+  --> crates\trajectory\src\skill_decomposition\multi_turn.rs:88:10
+   |
+88 | pub enum ReferenceType {
+   |          ^^^^^^^^^^^^^
+
+warning: struct `SkillFile` is never constructed
+  --> crates\trajectory\src\skill_decomposition\multi_turn.rs:96:12
+   |
+96 | pub struct SkillFile {
+   |            ^^^^^^^^^
+
+warning: enum `FileType` is never used
+   --> crates\trajectory\src\skill_decomposition\multi_turn.rs:106:10
+    |
+106 | pub enum FileType {
+    |          ^^^^^^^^
+
+warning: associated items `from_extension`, `is_code`, and `language_name` are never used
+   --> crates\trajectory\src\skill_decomposition\multi_turn.rs:127:12
+    |
+126 | impl FileType {
+    | ------------- associated items in this implementation
+127 |     pub fn from_extension(ext: &str) -> Self {
+    |            ^^^^^^^^^^^^^^
+...
+148 |     pub fn is_code(&self) -> bool {
+    |            ^^^^^^^
+...
+164 |     pub fn language_name(&self) -> &'static str {
+    |            ^^^^^^^^^^^^^
+
+warning: struct `CodeBlock` is never constructed
+   --> crates\trajectory\src\skill_decomposition\multi_turn.rs:182:12
+    |
+182 | pub struct CodeBlock {
+    |            ^^^^^^^^^
+
+warning: struct `SkillPackage` is never constructed
+   --> crates\trajectory\src\skill_decomposition\multi_turn.rs:191:12
+    |
+191 | pub struct SkillPackage {
+    |            ^^^^^^^^^^^^
+
+warning: struct `PackageMetadata` is never constructed
+   --> crates\trajectory\src\skill_decomposition\multi_turn.rs:198:12
+    |
+198 | pub struct PackageMetadata {
+    |            ^^^^^^^^^^^^^^^
+
+warning: struct `ConversationTurn` is never constructed
+   --> crates\trajectory\src\skill_decomposition\multi_turn.rs:205:12
+    |
+205 | pub struct ConversationTurn {
+    |            ^^^^^^^^^^^^^^^^
+
+warning: enum `MessageRole` is never used
+   --> crates\trajectory\src\skill_decomposition\multi_turn.rs:213:10
+    |
+213 | pub enum MessageRole {
+    |          ^^^^^^^^^^^
+
+warning: struct `DecompositionSession` is never constructed
+   --> crates\trajectory\src\skill_decomposition\multi_turn.rs:219:12
+    |
+219 | pub struct DecompositionSession {
+    |            ^^^^^^^^^^^^^^^^^^^^
+
+warning: enum `SessionState` is never used
+   --> crates\trajectory\src\skill_decomposition\multi_turn.rs:233:10
+    |
+233 | pub enum SessionState {
+    |          ^^^^^^^^^^^^
+
+warning: struct `PartialResults` is never constructed
+   --> crates\trajectory\src\skill_decomposition\multi_turn.rs:245:12
+    |
+245 | pub struct PartialResults {
+    |            ^^^^^^^^^^^^^^
+
+warning: struct `FileStructure` is never constructed
+   --> crates\trajectory\src\skill_decomposition\multi_turn.rs:253:12
+    |
+253 | pub struct FileStructure {
+    |            ^^^^^^^^^^^^^
+
+warning: struct `FileRelationship` is never constructed
+   --> crates\trajectory\src\skill_decomposition\multi_turn.rs:260:12
+    |
+260 | pub struct FileRelationship {
+    |            ^^^^^^^^^^^^^^^^
+
+warning: struct `FileClassification` is never constructed
+   --> crates\trajectory\src\skill_decomposition\multi_turn.rs:267:12
+    |
+267 | pub struct FileClassification {
+    |            ^^^^^^^^^^^^^^^^^^
+
+warning: struct `FunctionAnalysis` is never constructed
+   --> crates\trajectory\src\skill_decomposition\multi_turn.rs:274:12
+    |
+274 | pub struct FunctionAnalysis {
+    |            ^^^^^^^^^^^^^^^^
+
+warning: struct `ParamInfo` is never constructed
+   --> crates\trajectory\src\skill_decomposition\multi_turn.rs:286:12
+    |
+286 | pub struct ParamInfo {
+    |            ^^^^^^^^^
+
+warning: struct `WorkflowDesign` is never constructed
+   --> crates\trajectory\src\skill_decomposition\multi_turn.rs:292:12
+    |
+292 | pub struct WorkflowDesign {
+    |            ^^^^^^^^^^^^^^
+
+warning: struct `WorkflowNode` is never constructed
+   --> crates\trajectory\src\skill_decomposition\multi_turn.rs:300:12
+    |
+300 | pub struct WorkflowNode {
+    |            ^^^^^^^^^^^^
+
+warning: struct `WorkflowEdge` is never constructed
+   --> crates\trajectory\src\skill_decomposition\multi_turn.rs:308:12
+    |
+308 | pub struct WorkflowEdge {
+    |            ^^^^^^^^^^^^
+
+warning: associated items `new`, `init_turns`, `add_message`, `start_turn`, and `complete_turn` are never used
+   --> crates\trajectory\src\skill_decomposition\multi_turn.rs:316:12
+    |
+315 | impl DecompositionSession {
+    | ------------------------- associated items in this implementation
+316 |     pub fn new(session_id: String) -> Self {
+    |            ^^^
+...
+330 |     pub fn init_turns(&mut self) {
+    |            ^^^^^^^^^^
+...
+339 |     pub fn add_message(&mut self, message: AgentMessage) {
+    |            ^^^^^^^^^^^
+...
+348 |     pub fn start_turn(&mut self, turn_id: u32) {
+    |            ^^^^^^^^^^
+...
+356 |     pub fn complete_turn(&mut self, turn_id: u32) {
+    |            ^^^^^^^^^^^^^
+
+warning: struct `DecompositionEvent` is never constructed
+   --> crates\trajectory\src\skill_decomposition\multi_turn.rs:364:12
+    |
+364 | pub struct DecompositionEvent {
+    |            ^^^^^^^^^^^^^^^^^^
+
+warning: enum `EventType` is never used
+   --> crates\trajectory\src\skill_decomposition\multi_turn.rs:374:10
+    |
+374 | pub enum EventType {
+    |          ^^^^^^^^^
+
+warning: associated functions `turn_start`, `message_chunk`, `message_complete`, `turn_complete`, `final_result`, and `error` are never used
+   --> crates\trajectory\src\skill_decomposition\multi_turn.rs:386:12
+    |
+385 | impl DecompositionEvent {
+    | ----------------------- associated functions in this implementation
+386 |     pub fn turn_start(turn: u32, content: &str) -> Self {
+    |            ^^^^^^^^^^
+...
+396 |     pub fn message_chunk(turn: u32, msg_id: &str, content: &str) -> Self {
+    |            ^^^^^^^^^^^^^
+...
+406 |     pub fn message_complete(
+    |            ^^^^^^^^^^^^^^^^
+...
+421 |     pub fn turn_complete(turn: u32, content: &str, result: Option<serde_json::Value>) -> Self {
+    |            ^^^^^^^^^^^^^
+...
+431 |     pub fn final_result(result: serde_json::Value) -> Self {
+    |            ^^^^^^^^^^^^
+...
+441 |     pub fn error(message: &str) -> Self {
+    |            ^^^^^
+
+warning: trait `LlmClient` is never used
+  --> crates\trajectory\src\skill_decomposition\multi_turn_executor.rs:11:11
+   |
+11 | pub trait LlmClient: Send + Sync {
+   |           ^^^^^^^^^
+
+warning: struct `ChatMessageInput` is never constructed
+  --> crates\trajectory\src\skill_decomposition\multi_turn_executor.rs:19:12
+   |
+19 | pub struct ChatMessageInput {
+   |            ^^^^^^^^^^^^^^^^
+
+warning: struct `MultiTurnDecomposer` is never constructed
+  --> crates\trajectory\src\skill_decomposition\multi_turn_executor.rs:24:12
+   |
+24 | pub struct MultiTurnDecomposer<C: LlmClient> {
+   |            ^^^^^^^^^^^^^^^^^^^
+
+warning: multiple associated items are never used
+   --> crates\trajectory\src\skill_decomposition\multi_turn_executor.rs:29:12
+    |
+ 28 | impl<C: LlmClient> MultiTurnDecomposer<C> {
+    | ----------------------------------------- associated items in this implementation
+ 29 |     pub fn new(llm_client: C) -> Self {
+    |            ^^^
+...
+ 33 |     pub async fn decompose_stream(
+    |                  ^^^^^^^^^^^^^^^^
+...
+146 |     fn build_file_list(files: &[super::multi_turn::SkillFile]) -> String {
+    |        ^^^^^^^^^^^^^^^
+...
+154 |     fn build_file_summaries(files: &[super::multi_turn::SkillFile]) -> String {
+    |        ^^^^^^^^^^^^^^^^^^^^
+...
+172 |     fn build_file_contents_for_classify(files: &[super::multi_turn::SkillFile]) -> String {
+    |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+200 |     fn detect_primary_language(files: &[super::multi_turn::SkillFile]) -> String {
+    |        ^^^^^^^^^^^^^^^^^^^^^^^
+...
+218 |     fn extract_code_from_files(files: &[super::multi_turn::SkillFile]) -> String {
+    |        ^^^^^^^^^^^^^^^^^^^^^^^
+...
+227 |     fn turn_name(turn: u32) -> &'static str {
+    |        ^^^^^^^^^
+...
+238 |     fn build_final_result(results: &[String]) -> String {
+    |        ^^^^^^^^^^^^^^^^^^
+...
+242 |     fn parse_final_result(json: &serde_json::Value) -> Result<DecompositionResult, String> {
+    |        ^^^^^^^^^^^^^^^^^^
+
+warning: struct `SkillPackageParser` is never constructed
+ --> crates\trajectory\src\skill_decomposition\package_parser.rs:7:12
+  |
+7 | pub struct SkillPackageParser;
+  |            ^^^^^^^^^^^^^^^^^^
+
+warning: multiple associated functions are never used
+   --> crates\trajectory\src\skill_decomposition\package_parser.rs:10:12
+    |
+  9 | impl SkillPackageParser {
+    | ----------------------- associated functions in this implementation
+ 10 |     pub fn parse_files(files: Vec<(String, String)>) -> Vec<SkillFile> {
+    |            ^^^^^^^^^^^
+...
+ 17 |     pub fn parse_file(path: &str, content: &str) -> SkillFile {
+    |            ^^^^^^^^^^
+...
+ 31 |     fn infer_file_type(path: &str) -> FileType {
+    |        ^^^^^^^^^^^^^^^
+...
+ 40 |     pub fn extract_code_blocks(content: &str) -> Vec<CodeBlock> {
+    |            ^^^^^^^^^^^^^^^^^^^
+...
+ 84 |     pub fn extract_references(
+    |            ^^^^^^^^^^^^^^^^^^
+...
+110 |     fn extract_python_imports(file_path: &str, content: &str) -> Vec<FileReference> {
+    |        ^^^^^^^^^^^^^^^^^^^^^^
+...
+140 |     fn extract_js_imports(file_path: &str, content: &str) -> Vec<FileReference> {
+    |        ^^^^^^^^^^^^^^^^^^
+...
+174 |     fn extract_markdown_refs(file_path: &str, content: &str) -> Vec<FileReference> {
+    |        ^^^^^^^^^^^^^^^^^^^^^
+...
+219 |     fn extract_config_refs(file_path: &str, content: &str) -> Vec<FileReference> {
+    |        ^^^^^^^^^^^^^^^^^^^
+...
+238 |     pub fn build_file_graph(files: &[SkillFile]) -> FileGraph {
+    |            ^^^^^^^^^^^^^^^^
+
+warning: struct `FileGraph` is never constructed
+   --> crates\trajectory\src\skill_decomposition\package_parser.rs:266:12
+    |
+266 | pub struct FileGraph {
+    |            ^^^^^^^^^
+
+warning: struct `FileNode` is never constructed
+   --> crates\trajectory\src\skill_decomposition\package_parser.rs:272:12
+    |
+272 | pub struct FileNode {
+    |            ^^^^^^^^
+
+warning: struct `FileEdge` is never constructed
+   --> crates\trajectory\src\skill_decomposition\package_parser.rs:280:12
+    |
+280 | pub struct FileEdge {
+    |            ^^^^^^^^
+
+warning: function `infer_content_type` is never used
+   --> crates\trajectory\src\skill_decomposition\package_parser.rs:286:8
+    |
+286 | pub fn infer_content_type(language: &Option<String>) -> &'static str {
+    |        ^^^^^^^^^^^^^^^^^^
+
+warning: struct `LlmPromptTemplate` is never constructed
+ --> crates\trajectory\src\skill_decomposition\prompt_templates.rs:6:12
+  |
+6 | pub struct LlmPromptTemplate {
+  |            ^^^^^^^^^^^^^^^^^
+
+warning: struct `PromptTemplates` is never constructed
+  --> crates\trajectory\src\skill_decomposition\prompt_templates.rs:12:12
+   |
+12 | pub struct PromptTemplates;
+   |            ^^^^^^^^^^^^^^^
+
+warning: constant `ATOMIC_SKILL_SCHEMA` is never used
+  --> crates\trajectory\src\skill_decomposition\prompt_templates.rs:14:7
+   |
+14 | const ATOMIC_SKILL_SCHEMA: &str = r#"{
+   |       ^^^^^^^^^^^^^^^^^^^
+
+warning: constant `WORKFLOW_NODE_TYPES` is never used
+  --> crates\trajectory\src\skill_decomposition\prompt_templates.rs:36:7
+   |
+36 | const WORKFLOW_NODE_TYPES: &str = r#"鑺傜偣绫诲瀷 (node.type):
+   |       ^^^^^^^^^^^^^^^^^^^
+
+warning: constant `WORKFLOW_EDGE_TYPES` is never used
+  --> crates\trajectory\src\skill_decomposition\prompt_templates.rs:50:7
+   |
+50 | const WORKFLOW_EDGE_TYPES: &str = r#"杈圭被鍨?(edge.edge_type):
+   |       ^^^^^^^^^^^^^^^^^^^
+
+warning: constant `TOOL_ENTRY_TYPES` is never used
+  --> crates\trajectory\src\skill_decomposition\prompt_templates.rs:59:7
+   |
+59 | const TOOL_ENTRY_TYPES: &str = r#"宸ュ叿鍏ュ彛绫诲瀷 (entry_type):
+   |       ^^^^^^^^^^^^^^^^
+
+warning: multiple associated functions are never used
+   --> crates\trajectory\src\skill_decomposition\prompt_templates.rs:66:12
+    |
+ 65 | impl PromptTemplates {
+    | -------------------- associated functions in this implementation
+ 66 |     pub fn turn1_understand() -> LlmPromptTemplate {
+    |            ^^^^^^^^^^^^^^^^
+...
+131 |     pub fn turn2_classify() -> LlmPromptTemplate {
+    |            ^^^^^^^^^^^^^^
+...
+221 |     pub fn turn3_analyze() -> LlmPromptTemplate {
+    |            ^^^^^^^^^^^^^
+...
+326 |     pub fn turn4_design() -> LlmPromptTemplate {
+    |            ^^^^^^^^^^^^
+...
+444 |     pub fn turn5_generate() -> LlmPromptTemplate {
+    |            ^^^^^^^^^^^^^^
+...
+661 |     pub fn get_all_turns() -> Vec<LlmPromptTemplate> {
+    |            ^^^^^^^^^^^^^
+...
+671 |     pub fn format_turn1_user_content(file_list: &str, file_summaries: &str) -> String {
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+678 |     pub fn format_turn2_user_content(file_structure: &str, file_contents: &str) -> String {
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+685 |     pub fn format_turn3_user_content(context: &str, language: &str, code_content: &str) -> String {
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+693 |     pub fn format_turn4_user_content(
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+705 |     pub fn format_turn5_user_content(workflow_design: &str, function_analysis: &str) -> String {
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: constant `VALID_NODE_TYPES` is never used
+ --> crates\trajectory\src\skill_decomposition\workflow_validator.rs:5:7
+  |
+5 | const VALID_NODE_TYPES: &[&str] = &[
+  |       ^^^^^^^^^^^^^^^^
+
+warning: constant `VALID_EDGE_TYPES` is never used
+  --> crates\trajectory\src\skill_decomposition\workflow_validator.rs:20:7
+   |
+20 | const VALID_EDGE_TYPES: &[&str] = &[
+   |       ^^^^^^^^^^^^^^^^
+
+warning: constant `VALID_LOOP_TYPES` is never used
+  --> crates\trajectory\src\skill_decomposition\workflow_validator.rs:30:7
+   |
+30 | const VALID_LOOP_TYPES: &[&str] = &["forEach", "while", "doWhile", "until"];
+   |       ^^^^^^^^^^^^^^^^
+
+warning: constant `VALID_COMPARE_OPERATORS` is never used
+  --> crates\trajectory\src\skill_decomposition\workflow_validator.rs:32:7
+   |
+32 | const VALID_COMPARE_OPERATORS: &[&str] = &[
+   |       ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: constant `VALID_LOGICAL_OPERATORS` is never used
+  --> crates\trajectory\src\skill_decomposition\workflow_validator.rs:48:7
+   |
+48 | const VALID_LOGICAL_OPERATORS: &[&str] = &["and", "or"];
+   |       ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: constant `VALID_TRIGGER_TYPES` is never used
+  --> crates\trajectory\src\skill_decomposition\workflow_validator.rs:50:7
+   |
+50 | const VALID_TRIGGER_TYPES: &[&str] = &["manual", "schedule", "webhook", "event"];
+   |       ^^^^^^^^^^^^^^^^^^^
+
+warning: constant `VALID_AGENT_ROLES` is never used
+  --> crates\trajectory\src\skill_decomposition\workflow_validator.rs:52:7
+   |
+52 | const VALID_AGENT_ROLES: &[&str] = &[
+   |       ^^^^^^^^^^^^^^^^^
+
+warning: constant `VALID_OUTPUT_MODES` is never used
+  --> crates\trajectory\src\skill_decomposition\workflow_validator.rs:61:7
+   |
+61 | const VALID_OUTPUT_MODES: &[&str] = &["json", "text", "artifact"];
+   |       ^^^^^^^^^^^^^^^^^^
+
+warning: struct `ValidationIssue` is never constructed
+  --> crates\trajectory\src\skill_decomposition\workflow_validator.rs:64:12
+   |
+64 | pub struct ValidationIssue {
+   |            ^^^^^^^^^^^^^^^
+
+warning: enum `IssueSeverity` is never used
+  --> crates\trajectory\src\skill_decomposition\workflow_validator.rs:74:10
+   |
+74 | pub enum IssueSeverity {
+   |          ^^^^^^^^^^^^^
+
+warning: struct `ValidationResult` is never constructed
+  --> crates\trajectory\src\skill_decomposition\workflow_validator.rs:81:12
+   |
+81 | pub struct ValidationResult {
+   |            ^^^^^^^^^^^^^^^^
+
+warning: struct `WorkflowValidator` is never constructed
+  --> crates\trajectory\src\skill_decomposition\workflow_validator.rs:87:12
+   |
+87 | pub struct WorkflowValidator;
+   |            ^^^^^^^^^^^^^^^^^
+
+warning: associated functions `validate`, `validate_node`, `validate_node_config`, `validate_edge`, `find_closest_node_type`, and `apply_corrections` are never used
+   --> crates\trajectory\src\skill_decomposition\workflow_validator.rs:90:12
+    |
+ 89 | impl WorkflowValidator {
+    | ---------------------- associated functions in this implementation
+ 90 |     pub fn validate(workflow_json: &serde_json::Value) -> ValidationResult {
+    |            ^^^^^^^^
+...
+122 |     fn validate_node(node: &mut serde_json::Value) -> Vec<ValidationIssue> {
+    |        ^^^^^^^^^^^^^
+...
+204 |     fn validate_node_config(
+    |        ^^^^^^^^^^^^^^^^^^^^
+...
+333 |     fn validate_edge(edge: &mut serde_json::Value) -> Vec<ValidationIssue> {
+    |        ^^^^^^^^^^^^^
+...
+385 |     fn find_closest_node_type(input: &str) -> &'static str {
+    |        ^^^^^^^^^^^^^^^^^^^^^^
+...
+445 |     pub fn apply_corrections(
+    |            ^^^^^^^^^^^^^^^^^
+
+warning: struct `DefaultLlmEvolutionProvider` is never constructed
+   --> crates\trajectory\src\skill_evolution.rs:307:12
+    |
+307 | pub struct DefaultLlmEvolutionProvider;
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: static `SKILL_ID_COUNTER` is never used
+  --> crates\trajectory\src\skill_manager.rs:14:8
+   |
+14 | static SKILL_ID_COUNTER: AtomicU64 = AtomicU64::new(0);
+   |        ^^^^^^^^^^^^^^^^
+
+warning: struct `SkillSummary` is never constructed
+  --> crates\trajectory\src\skill_manager.rs:17:12
+   |
+17 | pub struct SkillSummary {
+   |            ^^^^^^^^^^^^
+
+warning: struct `SkillCreationParams` is never constructed
+  --> crates\trajectory\src\skill_manager.rs:27:12
+   |
+27 | pub struct SkillCreationParams {
+   |            ^^^^^^^^^^^^^^^^^^^
+
+warning: struct `SkillUpdateParams` is never constructed
+  --> crates\trajectory\src\skill_manager.rs:37:12
+   |
+37 | pub struct SkillUpdateParams {
+   |            ^^^^^^^^^^^^^^^^^
+
+warning: struct `SkillFilter` is never constructed
+  --> crates\trajectory\src\skill_manager.rs:47:12
+   |
+47 | pub struct SkillFilter {
+   |            ^^^^^^^^^^^
+
+warning: function `create_skill_from_params` is never used
+  --> crates\trajectory\src\skill_manager.rs:53:8
+   |
+53 | pub fn create_skill_from_params(params: SkillCreationParams) -> Skill {
+   |        ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `update_skill_from_params` is never used
+  --> crates\trajectory\src\skill_manager.rs:78:8
+   |
+78 | pub fn update_skill_from_params(skill: &mut Skill, params: SkillUpdateParams) {
+   |        ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `patch_skill_content` is never used
+   --> crates\trajectory\src\skill_manager.rs:105:8
+    |
+105 | pub fn patch_skill_content(
+    |        ^^^^^^^^^^^^^^^^^^^
+
+warning: function `skill_to_summary` is never used
+   --> crates\trajectory\src\skill_manager.rs:118:8
+    |
+118 | pub fn skill_to_summary(skill: &Skill) -> SkillSummary {
+    |        ^^^^^^^^^^^^^^^^
+
+warning: function `increment_skill_usage` is never used
+   --> crates\trajectory\src\skill_manager.rs:129:8
+    |
+129 | pub fn increment_skill_usage(skill: &mut Skill, success: bool) {
+    |        ^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `generate_skill_id` is never used
+   --> crates\trajectory\src\skill_manager.rs:138:4
+    |
+138 | fn generate_skill_id() -> String {
+    |    ^^^^^^^^^^^^^^^^^
+
+warning: function `detect_os` is never used
+   --> crates\trajectory\src\skill_manager.rs:144:4
+    |
+144 | fn detect_os() -> String {
+    |    ^^^^^^^^^
+
+warning: struct `SkillManager` is never constructed
+   --> crates\trajectory\src\skill_manager.rs:155:12
+    |
+155 | pub struct SkillManager {
+    |            ^^^^^^^^^^^^
+
+warning: multiple associated items are never used
+   --> crates\trajectory\src\skill_manager.rs:167:12
+    |
+166 | impl SkillManager {
+    | ----------------- associated items in this implementation
+167 |     pub fn new() -> Self {
+    |            ^^^
+...
+174 |     pub fn create_skill(&mut self, params: SkillCreationParams) -> Skill {
+    |            ^^^^^^^^^^^^
+...
+182 |     pub fn update_skill(&mut self, id: &str, params: SkillUpdateParams) -> Option<Skill> {
+    |            ^^^^^^^^^^^^
+...
+191 |     pub fn patch_skill_content(
+    |            ^^^^^^^^^^^^^^^^^^^
+...
+207 |     pub fn delete_skill(&mut self, id: &str) -> bool {
+    |            ^^^^^^^^^^^^
+...
+216 |     pub fn get_skill(&self, id: &str) -> Option<&Skill> {
+    |            ^^^^^^^^^
+...
+220 |     pub fn get_skill_by_name(&self, name: &str) -> Option<&Skill> {
+    |            ^^^^^^^^^^^^^^^^^
+...
+224 |     pub fn get_all_skills(&self) -> Vec<&Skill> {
+    |            ^^^^^^^^^^^^^^
+...
+228 |     pub fn get_all_skills_owned(&self) -> Vec<Skill> {
+    |            ^^^^^^^^^^^^^^^^^^^^
+...
+232 |     pub fn get_skills_by_category(&self, category: &str) -> Vec<&Skill> {
+    |            ^^^^^^^^^^^^^^^^^^^^^^
+...
+239 |     pub fn list_skills(&self, filter: Option<SkillFilter>) -> Vec<SkillSummary> {
+    |            ^^^^^^^^^^^
+...
+257 |     pub fn get_skill_content(&self, id: &str, level: u8) -> Option<SkillContentResult> {
+    |            ^^^^^^^^^^^^^^^^^
+...
+272 |     fn format_skill_content(&self, skill: &Skill) -> String {
+    |        ^^^^^^^^^^^^^^^^^^^^
+...
+286 |     pub fn record_usage(&mut self, id: &str, success: bool) -> bool {
+    |            ^^^^^^^^^^^^
+...
+295 |     pub fn get_stats(&self) -> SkillStats {
+    |            ^^^^^^^^^
+...
+318 |     pub fn import_skills(&mut self, skills: Vec<Skill>) {
+    |            ^^^^^^^^^^^^^
+...
+326 |     pub fn export_skills(&self) -> Vec<Skill> {
+    |            ^^^^^^^^^^^^^
+...
+330 |     pub fn clear(&mut self) {
+    |            ^^^^^
+...
+335 |     pub fn len(&self) -> usize {
+    |            ^^^
+...
+339 |     pub fn is_empty(&self) -> bool {
+    |            ^^^^^^^^
+
+warning: enum `SkillContentResult` is never used
+   --> crates\trajectory\src\skill_manager.rs:345:10
+    |
+345 | pub enum SkillContentResult {
+    |          ^^^^^^^^^^^^^^^^^^
+
+warning: struct `SkillStats` is never constructed
+   --> crates\trajectory\src\skill_manager.rs:352:12
+    |
+352 | pub struct SkillStats {
+    |            ^^^^^^^^^^
+
+warning: struct `SkillMatch` is never constructed
+  --> crates\trajectory\src\skill_matcher.rs:13:12
+   |
+13 | pub struct SkillMatch {
+   |            ^^^^^^^^^^
+
+warning: enum `MatchSource` is never used
+  --> crates\trajectory\src\skill_matcher.rs:33:10
+   |
+33 | pub enum MatchSource {
+   |          ^^^^^^^^^^^
+
+warning: struct `MatchingResult` is never constructed
+  --> crates\trajectory\src\skill_matcher.rs:40:12
+   |
+40 | pub struct MatchingResult {
+   |            ^^^^^^^^^^^^^^
+
+warning: enum `Complexity` is never used
+  --> crates\trajectory\src\skill_matcher.rs:52:10
+   |
+52 | pub enum Complexity {
+   |          ^^^^^^^^^^
+
+warning: struct `KeywordPatterns` is never constructed
+  --> crates\trajectory\src\skill_matcher.rs:58:8
+   |
+58 | struct KeywordPatterns;
+   |        ^^^^^^^^^^^^^^^
+
+warning: associated function `get` is never used
+  --> crates\trajectory\src\skill_matcher.rs:61:8
+   |
+60 | impl KeywordPatterns {
+   | -------------------- associated function in this implementation
+61 |     fn get() -> HashMap<&'static str, Vec<&'static str>> {
+   |        ^^^
+
+warning: associated functions `get_high` and `get_medium` are never used
+   --> crates\trajectory\src\skill_matcher.rs:114:8
+    |
+113 | impl ComplexityIndicators {
+    | ------------------------- associated functions in this implementation
+114 |     fn get_high() -> Vec<&'static str> {
+    |        ^^^^^^^^
+...
+126 |     fn get_medium() -> Vec<&'static str> {
+    |        ^^^^^^^^^^
+
+warning: function `calculate_match_score` is never used
+   --> crates\trajectory\src\skill_matcher.rs:138:4
+    |
+138 | fn calculate_match_score(
+    |    ^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `estimate_complexity` is never used
+   --> crates\trajectory\src\skill_matcher.rs:191:4
+    |
+191 | fn estimate_complexity(user_input: &str) -> Complexity {
+    |    ^^^^^^^^^^^^^^^^^^^
+
+warning: function `estimate_complexity_public` is never used
+   --> crates\trajectory\src\skill_matcher.rs:210:8
+    |
+210 | pub fn estimate_complexity_public(user_input: &str) -> Complexity {
+    |        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: struct `SkillMatcher` is never constructed
+   --> crates\trajectory\src\skill_matcher.rs:214:12
+    |
+214 | pub struct SkillMatcher {
+    |            ^^^^^^^^^^^^
+
+warning: associated items `new`, `with_threshold`, `find_matches`, `suggest_marketplace_skills`, and `get_complexity` are never used
+   --> crates\trajectory\src\skill_matcher.rs:225:12
+    |
+224 | impl SkillMatcher {
+    | ----------------- associated items in this implementation
+225 |     pub fn new() -> Self {
+    |            ^^^
+...
+231 |     pub fn with_threshold(min_score_threshold: f64) -> Self {
+    |            ^^^^^^^^^^^^^^
+...
+237 |     pub fn find_matches(&self, user_input: &str, installed_skills: &[Skill]) -> MatchingResult {
+    |            ^^^^^^^^^^^^
+...
+294 |     fn suggest_marketplace_skills(&self, user_input: &str) -> Vec<String> {
+    |        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+313 |     pub fn get_complexity(&self, user_input: &str) -> Complexity {
+    |            ^^^^^^^^^^^^^^
+
+warning: function `create_skill_from_proposal` is never used
+   --> crates\trajectory\src\skill_proposal.rs:245:8
+    |
+245 | pub fn create_skill_from_proposal(proposal: &SkillProposal) -> SkillCreationParams {
+    |        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: struct `TrajectoryQueue` is never constructed
+    --> crates\trajectory\src\storage.rs:1448:12
+     |
+1448 | pub struct TrajectoryQueue {
+     |            ^^^^^^^^^^^^^^^
+
+warning: associated items `new`, `try_enqueue`, `enqueue`, `storage`, and `shutdown` are never used
+    --> crates\trajectory\src\storage.rs:1456:12
+     |
+1455 | impl TrajectoryQueue {
+     | -------------------- associated items in this implementation
+1456 |     pub fn new(storage: Arc<TrajectoryStorage>, buffer_size: usize) -> Self {
+     |            ^^^
+...
+1479 |     pub fn try_enqueue(&self, t: Trajectory) -> bool {
+     |            ^^^^^^^^^^^
+...
+1482 |     pub async fn enqueue(
+     |                  ^^^^^^^
+...
+1491 |     pub fn storage(&self) -> &Arc<TrajectoryStorage> {
+     |            ^^^^^^^
+...
+1494 |     pub async fn shutdown(self) {
+     |                  ^^^^^^^^
+
+warning: function `flush` is never used
+    --> crates\trajectory\src\storage.rs:1502:10
+     |
+1502 | async fn flush(storage: &Arc<TrajectoryStorage>, batch: &mut VecDeque<Trajectory>) {
+     |          ^^^^^
+
+warning: static `BOLD_HEADERS_RE` is never used
+  --> crates\trajectory\src\style_applier.rs:22:8
+   |
+22 | static BOLD_HEADERS_RE: LazyLock<Regex> =
+   |        ^^^^^^^^^^^^^^^
+
+warning: struct `DocumentStyleApplicator` is never constructed
+   --> crates\trajectory\src\style_applier.rs:486:12
+    |
+486 | pub struct DocumentStyleApplicator {
+    |            ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: multiple associated items are never used
+   --> crates\trajectory\src\style_applier.rs:491:12
+    |
+490 | impl DocumentStyleApplicator {
+    | ---------------------------- associated items in this implementation
+491 |     pub fn new(profile: DocumentStyleProfile) -> Self {
+    |            ^^^
+...
+495 |     pub fn apply_to_message(&self, message: &str) -> String {
+    |            ^^^^^^^^^^^^^^^^
+...
+504 |     fn apply_formatting(&self, content: &str) -> String {
+    |        ^^^^^^^^^^^^^^^^
+...
+512 |     fn apply_markdown_formatting(&self, content: &str) -> String {
+    |        ^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+522 |     fn apply_structured_formatting(&self, content: &str) -> String {
+    |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+537 |     fn apply_structure(&self, content: &str) -> String {
+    |        ^^^^^^^^^^^^^^^
+...
+553 |     fn make_bold_headers(&self, content: &str) -> String {
+    |        ^^^^^^^^^^^^^^^^^
+
+warning: struct `UserStyleProfile` is never constructed
+  --> crates\trajectory\src\style_migrator.rs:11:12
+   |
+11 | pub struct UserStyleProfile {
+   |            ^^^^^^^^^^^^^^^^
+
+warning: struct `LearnedPattern` is never constructed
+  --> crates\trajectory\src\style_migrator.rs:25:12
+   |
+25 | pub struct LearnedPattern {
+   |            ^^^^^^^^^^^^^^
+
+warning: enum `LearnedPatternType` is never used
+  --> crates\trajectory\src\style_migrator.rs:36:10
+   |
+36 | pub enum LearnedPatternType {
+   |          ^^^^^^^^^^^^^^^^^^
+
+warning: associated items `new`, `with_defaults`, `update_timestamp`, `merge`, and `interpolate_style_vectors` are never used
+  --> crates\trajectory\src\style_migrator.rs:45:12
+   |
+44 | impl UserStyleProfile {
+   | --------------------- associated items in this implementation
+45 |     pub fn new(user_id: String) -> Self {
+   |            ^^^
+...
+67 |     pub fn with_defaults() -> Self {
+   |            ^^^^^^^^^^^^^
+...
+71 |     pub fn update_timestamp(&mut self) {
+   |            ^^^^^^^^^^^^^^^^
+...
+75 |     pub fn merge(&mut self, other: &UserStyleProfile) {
+   |            ^^^^^
+...
+83 |     fn interpolate_style_vectors(
+   |        ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: struct `StyleMigrator` is never constructed
+   --> crates\trajectory\src\style_migrator.rs:121:12
+    |
+121 | pub struct StyleMigrator {
+    |            ^^^^^^^^^^^^^
+
+warning: multiple associated items are never used
+   --> crates\trajectory\src\style_migrator.rs:130:12
+    |
+129 | impl StyleMigrator {
+    | ------------------ associated items in this implementation
+130 |     pub fn new() -> Self {
+    |            ^^^
+...
+140 |     pub fn learn_from_code_samples(
+    |            ^^^^^^^^^^^^^^^^^^^^^^^
+...
+163 |     pub fn learn_from_messages(
+    |            ^^^^^^^^^^^^^^^^^^^
+...
+181 |     fn merge_patterns(profile: &mut UserStyleProfile, patterns: &ExtractedCodePatterns) {
+    |        ^^^^^^^^^^^^^^
+...
+196 |     pub fn apply_code_style(&self, code: &str, user_id: &str) -> String {
+    |            ^^^^^^^^^^^^^^^^
+...
+202 |     pub fn apply_document_style(&self, content: &str, user_id: &str) -> String {
+    |            ^^^^^^^^^^^^^^^^^^^^
+...
+208 |     pub fn get_style_vector(&self, user_id: &str) -> StyleVector {
+    |            ^^^^^^^^^^^^^^^^
+...
+215 |     pub fn get_document_profile(&self, user_id: &str) -> DocumentStyleProfile {
+    |            ^^^^^^^^^^^^^^^^^^^^
+...
+228 |     pub fn get_user_profile(&self, user_id: &str) -> Option<&UserStyleProfile> {
+    |            ^^^^^^^^^^^^^^^^
+...
+232 |     pub fn get_all_profiles(&self) -> Vec<&UserStyleProfile> {
+    |            ^^^^^^^^^^^^^^^^
+...
+236 |     pub fn delete_profile(&mut self, user_id: &str) -> bool {
+    |            ^^^^^^^^^^^^^^
+...
+240 |     pub fn similarity(&self, user_id1: &str, user_id2: &str) -> f32 {
+    |            ^^^^^^^^^^
+...
+246 |     pub fn blend_styles(&self, user_id1: &str, user_id2: &str, factor: f32) -> StyleVector {
+    |            ^^^^^^^^^^^^
+...
+275 |     pub fn apply_blended_style(
+    |            ^^^^^^^^^^^^^^^^^^^
+...
+286 |     pub fn export_profile(&self, user_id: &str) -> Option<String> {
+    |            ^^^^^^^^^^^^^^
+...
+292 |     pub fn import_profile(&mut self, user_id: &str, json: &str) -> Result<(), String> {
+    |            ^^^^^^^^^^^^^^
+...
+298 |     pub fn clear_all_profiles(&mut self) {
+    |            ^^^^^^^^^^^^^^^^^^
+...
+302 |     pub fn get_stats(&self) -> StyleMigratorStats {
+    |            ^^^^^^^^^
+
+warning: struct `StyleMigratorStats` is never constructed
+   --> crates\trajectory\src\style_migrator.rs:323:12
+    |
+323 | pub struct StyleMigratorStats {
+    |            ^^^^^^^^^^^^^^^^^^
+
+warning: struct `StyleMigrationResult` is never constructed
+   --> crates\trajectory\src\style_migrator.rs:329:12
+    |
+329 | pub struct StyleMigrationResult {
+    |            ^^^^^^^^^^^^^^^^^^^^
+
+warning: associated items `new` and `with_patterns` are never used
+   --> crates\trajectory\src\style_migrator.rs:338:12
+    |
+337 | impl StyleMigrationResult {
+    | ------------------------- associated items in this implementation
+338 |     pub fn new(original: String, transformed: String, style_vector: StyleVector) -> Self {
+    |            ^^^
+...
+349 |     pub fn with_patterns(mut self, patterns: Vec<String>) -> Self {
+    |            ^^^^^^^^^^^^^
+
+warning: methods `is_empty` and `agent_id` are never used
+   --> crates\trajectory\src\sub_agent.rs:283:12
+    |
+217 | impl AgentMailbox {
+    | ----------------- methods in this implementation
+...
+283 |     pub fn is_empty(&self) -> bool {
+    |            ^^^^^^^^
+...
+297 |     pub fn agent_id(&self) -> &str {
+    |            ^^^^^^^^
+
+warning: associated items `new`, `unregister_task`, `len`, and `is_empty` are never used
+   --> crates\trajectory\src\sub_agent.rs:909:12
+    |
+908 | impl TaskDeduplicator {
+    | --------------------- associated items in this implementation
+909 |     pub fn new(similarity_threshold: f64) -> Self {
+    |            ^^^
+...
+966 |     pub fn unregister_task(&mut self, task: &str) {
+    |            ^^^^^^^^^^^^^^^
+...
+971 |     pub fn len(&self) -> usize {
+    |            ^^^
+...
+975 |     pub fn is_empty(&self) -> bool {
+    |            ^^^^^^^^
+
+warning: struct `UserPreferenceProfile` is never constructed
+  --> crates\trajectory\src\suggestion_engine.rs:12:12
+   |
+12 | pub struct UserPreferenceProfile {
+   |            ^^^^^^^^^^^^^^^^^^^^^
+
+warning: struct `CodingStylePreference` is never constructed
+  --> crates\trajectory\src\suggestion_engine.rs:21:12
+   |
+21 | pub struct CodingStylePreference {
+   |            ^^^^^^^^^^^^^^^^^^^^^
+
+warning: enum `DocumentationLevel` is never used
+  --> crates\trajectory\src\suggestion_engine.rs:29:10
+   |
+29 | pub enum DocumentationLevel {
+   |          ^^^^^^^^^^^^^^^^^^
+
+warning: struct `CommunicationStylePreference` is never constructed
+  --> crates\trajectory\src\suggestion_engine.rs:36:12
+   |
+36 | pub struct CommunicationStylePreference {
+   |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: enum `DetailLevel` is never used
+  --> crates\trajectory\src\suggestion_engine.rs:43:10
+   |
+43 | pub enum DetailLevel {
+   |          ^^^^^^^^^^^
+
+warning: enum `CommunicationTone` is never used
+  --> crates\trajectory\src\suggestion_engine.rs:51:10
+   |
+51 | pub enum CommunicationTone {
+   |          ^^^^^^^^^^^^^^^^^
+
+warning: struct `WorkHabitPreference` is never constructed
+  --> crates\trajectory\src\suggestion_engine.rs:58:12
+   |
+58 | pub struct WorkHabitPreference {
+   |            ^^^^^^^^^^^^^^^^^^^
+
+warning: struct `SuggestionEngine` is never constructed
+  --> crates\trajectory\src\suggestion_engine.rs:64:12
+   |
+64 | pub struct SuggestionEngine {
+   |            ^^^^^^^^^^^^^^^^
+
+warning: struct `SuggestionEngineConfig` is never constructed
+  --> crates\trajectory\src\suggestion_engine.rs:71:12
+   |
+71 | pub struct SuggestionEngineConfig {
+   |            ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: multiple associated items are never used
+   --> crates\trajectory\src\suggestion_engine.rs:108:12
+    |
+107 | impl SuggestionEngine {
+    | --------------------- associated items in this implementation
+108 |     pub fn new() -> Self {
+    |            ^^^
+...
+115 |     pub fn with_config(config: SuggestionEngineConfig) -> Self {
+    |            ^^^^^^^^^^^
+...
+122 |     fn default_templates() -> HashMap<SuggestionType, Vec<SuggestionTemplate>> {
+    |        ^^^^^^^^^^^^^^^^^
+...
+207 |     pub fn generate_suggestions(
+    |            ^^^^^^^^^^^^^^^^^^^^
+...
+231 |     fn generate_from_prediction(
+    |        ^^^^^^^^^^^^^^^^^^^^^^^^
+...
+260 |     fn create_completion_suggestion(&self, language: &str) -> Vec<ProactiveSuggestion> {
+    |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+274 |     fn create_refactor_suggestion(&self, target: &str) -> Vec<ProactiveSuggestion> {
+    |        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+287 |     fn create_documentation_suggestion(&self, topic: &str) -> Vec<ProactiveSuggestion> {
+    |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+300 |     fn create_test_suggestion(&self, target: &str) -> Vec<ProactiveSuggestion> {
+    |        ^^^^^^^^^^^^^^^^^^^^^^
+...
+313 |     fn create_debug_suggestion(&self, error: &str) -> Vec<ProactiveSuggestion> {
+    |        ^^^^^^^^^^^^^^^^^^^^^^^
+...
+326 |     fn create_search_suggestion(&self) -> Vec<ProactiveSuggestion> {
+    |        ^^^^^^^^^^^^^^^^^^^^^^^^
+...
+339 |     fn generate_habit_based_suggestions(
+    |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+378 |     pub fn get_config(&self) -> &SuggestionEngineConfig {
+    |            ^^^^^^^^^^
+...
+382 |     pub fn update_config(&mut self, config: SuggestionEngineConfig) {
+    |            ^^^^^^^^^^^^^
+...
+386 |     pub fn set_personalization(&mut self, enabled: bool) {
+    |            ^^^^^^^^^^^^^^^^^^^
+...
+390 |     pub fn set_habit_based(&mut self, enabled: bool) {
+    |            ^^^^^^^^^^^^^^^
+
+warning: method `with_max_length` is never used
+   --> crates\trajectory\src\text_grad.rs:325:12
+    |
+318 | impl DefaultTextGradProvider {
+    | ---------------------------- method in this implementation
+...
+325 |     pub fn with_max_length(mut self, max_length: usize) -> Self {
+    |            ^^^^^^^^^^^^^^^
+
+warning: field `tasks` is never read
+  --> crates\trajectory\src\training_env.rs:91:5
+   |
+90 | pub struct TrainingEnv {
+   |            ----------- field in this struct
+91 |     tasks: Vec<TaskDefinition>,
+   |     ^^^^^
+
+warning: method `tasks` is never used
+  --> crates\trajectory\src\training_env.rs:99:12
+   |
+94 | impl TrainingEnv {
+   | ---------------- method in this implementation
+...
+99 |     pub fn tasks(&self) -> &[TaskDefinition] {
+   |            ^^^^^
+
+warning: method `to_jsonl` is never used
+   --> crates\trajectory\src\trajectory_compressor.rs:110:12
+    |
+ 37 | impl TrajectoryCompressor {
+    | ------------------------- method in this implementation
+...
+110 |     pub fn to_jsonl(
+    |            ^^^^^^^^
+
+warning: `axagent-trajectory` (lib) generated 230 warnings (run `cargo fix --lib -p axagent-trajectory` to apply 10 suggestions)
+    Checking axagent-providers v2.6.0 (D:\OneManager\AxAgent\src-tauri\crates\providers)
+error[E0433]: cannot find `axagent_harness` in `crate`
+  --> crates\providers\src\anthropic.rs:14:5
+   |
+14 |     axagent_harness::url_utils::resolve_chat_url,
+   |     ^^^^^^^^^^^^^^^ could not find `axagent_harness` in the crate root
+
+For more information about this error, try `rustc --explain E0433`.
+error: could not compile `axagent-providers` (lib) due to 1 previous error

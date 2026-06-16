@@ -13,8 +13,8 @@ use axagent_agent::ProviderLlmBridge;
 use axagent_core::crypto;
 use axagent_core::repo::provider;
 use axagent_harness::registry::ProviderRegistry;
-use axagent_harness::{ProviderAdapter, ProviderRequestContext};
 use axagent_harness::url_utils::resolve_base_url_for_type;
+use axagent_harness::{ProviderAdapter, ProviderRequestContext};
 use sea_orm::DatabaseConnection;
 use std::sync::Arc;
 

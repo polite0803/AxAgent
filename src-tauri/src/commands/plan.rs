@@ -480,8 +480,8 @@ async fn build_agent_context(
     provider_id: &str,
     model_id: &str,
 ) -> Result<AgentContext, String> {
-    use axagent_providers::ProviderAdapter;
     use axagent_harness::url_utils::resolve_base_url_for_type;
+    use axagent_providers::ProviderAdapter;
 
     let db = state.harness.db();
 
