@@ -383,7 +383,7 @@ pub struct DecompositionResult {
     pub original_source: CompositeSourceInfo,
     pub original_content: String,
     pub parsed_steps_metadata: Vec<StepMetadata>,
-    pub code_blocks: Vec<CodeBlock>,
+    pub(crate) code_blocks: Vec<CodeBlock>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -414,7 +414,9 @@ impl SkillDecomposer {
         Self
     }
 
-    pub fn parse(composite: &CompositeSkillData) -> Result<ParsedComposite, DecompositionError> {
+    pub(crate) fn parse(
+        composite: &CompositeSkillData,
+    ) -> Result<ParsedComposite, DecompositionError> {
         let (clean_content, code_blocks) =
             ContentPreprocessor::extract_code_blocks(&composite.content);
         let content = &clean_content;
@@ -640,7 +642,9 @@ impl SkillDecomposer {
     }
 
     /// Decompose a parsed composite into a workflow definition with agent nodes.
-    pub fn decompose(parsed: &ParsedComposite) -> Result<DecompositionResult, DecompositionError> {
+    pub(crate) fn decompose(
+        parsed: &ParsedComposite,
+    ) -> Result<DecompositionResult, DecompositionError> {
         let mut tool_dependencies = Vec::new();
         let mut workflow_nodes = Vec::new();
         let mut workflow_edges = Vec::new();
@@ -1189,7 +1193,7 @@ impl SkillDecomposer {
         steps
     }
 
-    pub fn parse_with_fallback(
+    pub(crate) fn parse_with_fallback(
         composite: &CompositeSkillData,
         llm_parser: Option<&dyn crate::skill_decomposition::llm_assisted::LlmAssistedParser>,
         llm_request: Option<&crate::skill_decomposition::llm_assisted::LlmParseRequest>,

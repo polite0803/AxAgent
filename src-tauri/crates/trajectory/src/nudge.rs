@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+#![allow(dead_code)]
+
 //! Nudge service module
 //!
 //! Replaces TypeScript `NudgeService.ts` with Rust implementation.

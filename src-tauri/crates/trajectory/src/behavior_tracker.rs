@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+#![allow(dead_code)]
+
 use chrono::{DateTime, Datelike, Timelike, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -286,7 +288,6 @@ impl BehaviorTracker {
             BehaviorEventType::FeedbackGiven {
                 feedback_type,
                 rating,
-                timestamp: Utc::now(),
             },
         );
         self.track_event(event);

@@ -8,6 +8,8 @@
 //! - Heuristic and pluggable evaluation of architecture fitness
 //! - Meta-agent guided architecture generation
 
+#![allow(dead_code)]
+
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};

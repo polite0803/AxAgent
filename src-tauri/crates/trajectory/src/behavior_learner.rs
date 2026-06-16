@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+#![allow(dead_code)]
+
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;

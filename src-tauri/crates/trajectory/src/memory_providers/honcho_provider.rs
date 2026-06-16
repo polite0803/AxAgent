@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+#![allow(dead_code)]
+
 use crate::memory_provider::{MemoryEntry, MemoryProvider, MemoryQuery, MemoryQueryResult};
 use crate::memory_providers::service::{MemoryNature, MemoryTier};
 use async_trait::async_trait;
