@@ -55,12 +55,12 @@ function absBounds(
 describe("workflowLayout", () => {
   describe("getNodeSize", () => {
     it("returns known size for built-in types", () => {
-      expect(getNodeSize("agent")).toEqual({ width: 180, height: 130 });
-      expect(getNodeSize("parallel")).toEqual({ width: 300, height: 200 });
+      expect(getNodeSize("agent")).toEqual({ width: 140, height: 36 });
+      expect(getNodeSize("parallel")).toEqual({ width: 200, height: 80 });
     });
 
     it("returns default size for unknown type", () => {
-      expect(getNodeSize("totally-unknown")).toEqual({ width: 200, height: 140 });
+      expect(getNodeSize("totally-unknown")).toEqual({ width: 140, height: 36 });
     });
   });
 

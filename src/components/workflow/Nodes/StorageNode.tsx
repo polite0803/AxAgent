@@ -1,9 +1,8 @@
-// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-License-Identifier-Identifier: AGPL-3.0-only
 
 import { Handle, type NodeProps, Position } from "@xyflow/react";
-import { Tag, theme } from "antd";
+import { theme } from "antd";
 import React, { memo } from "react";
-import { useTranslation } from "react-i18next";
 
 const PINK_BASE = "#eb2f96";
 
@@ -23,97 +22,88 @@ interface StorageNodeData {
 
 const StorageNodeComponent: React.FC<NodeProps> = ({ data: _data, selected }) => {
   const data = _data as unknown as StorageNodeData;
-  const { t } = useTranslation();
   const { token } = theme.useToken();
 
-  const backend = data.config?.backend || "sqlite";
-  const operation = data.config?.operation || "insert";
+  const borderColor = selected ? token.colorPrimary : PINK_BASE;
 
   return (
     <div
       style={{
-        minWidth: 160,
-        maxWidth: 220,
+        minWidth: 120,
+        maxWidth: 200,
         opacity: data.enabled ? 1 : 0.5,
         filter: data.enabled ? "none" : "grayscale(100%)",
       }}
     >
       <div
+        className="workflow-node-card"
+        title={data.title}
         style={{
-          background: token.colorBgElevated,
-          border: `2px solid ${selected ? token.colorPrimary : PINK_BASE}`,
+          background: token.colorBgContainer,
+          border: `1.5px solid ${borderColor}`,
           borderRadius: 8,
-          overflow: "hidden",
-          boxShadow: selected ? `0 0 0 2px ${PINK_BASE}40` : "none",
-          transition: "box-shadow 0.2s, transform 0.2s",
+          padding: 0,
+          boxShadow: selected
+            ? `0 0 0 1.5px ${borderColor}40`
+            : "0 1px 3px rgba(0,0,0,0.08)",
+          transition: "box-shadow 0.15s",
         }}
       >
+        {/* n8n 风格：单行 — 图标色块 + 标题 */}
         <div
           style={{
-            padding: "8px 12px",
-            borderBottom: `1px solid ${PINK_BASE}30`,
+            padding: "6px 10px",
             display: "flex",
             alignItems: "center",
-            gap: 8,
-            background: `${PINK_BASE}15`,
+            gap: 6,
           }}
         >
-          <span style={{ fontSize: 14 }}>💾</span>
-          <span style={{ fontSize: 12, color: PINK_BASE, fontWeight: 600 }}>
-            {t("workflow.nodeTypes.storage")}
-          </span>
-        </div>
-        <div style={{ padding: "8px 12px" }}>
+          {/* 图标色块 */}
           <div
             style={{
-              fontSize: 13,
+              width: 22,
+              height: 22,
+              borderRadius: 4,
+              background: `${PINK_BASE}18`,
+              border: `1px solid ${PINK_BASE}30`,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: 12,
+              flexShrink: 0,
+              lineHeight: 1,
+            }}
+          >
+            💾
+          </div>
+
+          {/* 标题 */}
+          <span
+            style={{
+              fontSize: 11,
               color: token.colorText,
               fontWeight: 500,
-              marginBottom: 6,
+              flex: 1,
               overflow: "hidden",
               textOverflow: "ellipsis",
               whiteSpace: "nowrap",
+              lineHeight: "22px",
             }}
           >
             {data.title}
-          </div>
-          <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
-            <Tag
-              style={{
-                margin: 0,
-                fontSize: 9,
-                padding: "0 4px",
-                background: `${PINK_BASE}15`,
-                border: `1px solid ${PINK_BASE}40`,
-                color: PINK_BASE,
-              }}
-            >
-              {backend}
-            </Tag>
-            <Tag
-              style={{
-                margin: 0,
-                fontSize: 9,
-                padding: "0 4px",
-                background: "transparent",
-                border: `1px solid ${token.colorBorderSecondary}`,
-                color: token.colorTextTertiary,
-              }}
-            >
-              {operation}
-            </Tag>
-          </div>
+          </span>
         </div>
       </div>
+
       <Handle
         type="target"
         position={Position.Top}
-        style={{ background: PINK_BASE, border: "none", width: 8, height: 8 }}
+        style={{ background: PINK_BASE, border: "none", width: 7, height: 7 }}
       />
       <Handle
         type="source"
         position={Position.Bottom}
-        style={{ background: PINK_BASE, border: "none", width: 8, height: 8 }}
+        style={{ background: PINK_BASE, border: "none", width: 7, height: 7 }}
       />
     </div>
   );

@@ -1,237 +1,104 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { Handle, type NodeProps, Position } from "@xyflow/react";
-import { Tag, theme } from "antd";
+import { theme } from "antd";
 import React, { memo } from "react";
 
-const CYAN_BASE = "#13c2c2";
-const CYAN_VAR = `var(--cyan, ${CYAN_BASE})`;
+const NODE_COLOR = "#13c2c2";
 
 interface LLMNodeData {
   id: string;
   type: string;
   title: string;
-  description?: string;
   color: string;
   nodeType: string;
   enabled: boolean;
-  model?: string;
-  prompt?: string;
-  temperature?: number;
-  maxTokens?: number;
-  tools?: string[];
 }
 
 const LLMNodeComponent: React.FC<NodeProps> = ({ data: _data, selected }) => {
   const data = _data as unknown as LLMNodeData;
   const { token } = theme.useToken();
-  const color = CYAN_VAR;
 
-  const getModelIcon = (model: string): string => {
-    if (!model) {
-      return "🤖";
-    }
-    const lowerModel = model.toLowerCase();
-    if (lowerModel.includes("gpt") || lowerModel.includes("openai")) {
-      return "🤖";
-    }
-    if (lowerModel.includes("claude")) {
-      return "🧠";
-    }
-    if (lowerModel.includes("gemini")) {
-      return "✨";
-    }
-    if (lowerModel.includes("llama")) {
-      return "🦙";
-    }
-    if (lowerModel.includes("mistral")) {
-      return "🌬️";
-    }
-    if (lowerModel.includes("qwen")) {
-      return "🔮";
-    }
-    if (lowerModel.includes("deepseek")) {
-      return "🔍";
-    }
-    return "🤖";
-  };
-
-  const formatTemperature = (temp: number | undefined): string => {
-    if (temp === undefined) {
-      return "";
-    }
-    return temp.toFixed(1);
-  };
-
-  const formatMaxTokens = (tokens: number | undefined): string => {
-    if (!tokens) {
-      return "";
-    }
-    if (tokens >= 1000) {
-      return `${(tokens / 1000).toFixed(0)}k`;
-    }
-    return `${tokens}`;
-  };
+  const borderColor = selected ? token.colorPrimary : NODE_COLOR;
 
   return (
     <div
       style={{
-        minWidth: 200,
-        maxWidth: 240,
+        minWidth: 120,
+        maxWidth: 200,
         opacity: data.enabled ? 1 : 0.5,
         filter: data.enabled ? "none" : "grayscale(100%)",
       }}
     >
       <div
+        className="workflow-node-card"
+        title={data.title}
         style={{
-          background: token.colorBgElevated,
-          border: `2px solid ${selected ? token.colorPrimary : color}`,
+          background: token.colorBgContainer,
+          border: `1.5px solid ${borderColor}`,
           borderRadius: 8,
-          overflow: "hidden",
-          boxShadow: selected ? `0 0 0 2px ${color}40` : "none",
-          transition: "box-shadow 0.2s, transform 0.2s",
+          padding: 0,
+          boxShadow: selected
+            ? `0 0 0 1.5px ${borderColor}40`
+            : "0 1px 3px rgba(0,0,0,0.08)",
+          transition: "box-shadow 0.15s",
         }}
       >
+        {/* n8n 风格：单行 — 图标色块 + 标题 */}
         <div
           style={{
-            padding: "8px 12px",
-            borderBottom: `1px solid ${CYAN_BASE}30`,
+            padding: "6px 10px",
             display: "flex",
             alignItems: "center",
-            gap: 8,
-            background: `${CYAN_BASE}15`,
+            gap: 6,
           }}
         >
-          <span style={{ fontSize: 14 }}>{getModelIcon(data.model || "")}</span>
-          <span
-            style={{
-              fontSize: 12,
-              color: color,
-              fontWeight: 600,
-            }}
-          >
-            LLM
-          </span>
-          {data.model && (
-            <Tag
-              style={{
-                margin: 0,
-                fontSize: 9,
-                padding: "0 4px",
-                background: `${CYAN_BASE}30`,
-                border: "none",
-                color: token.colorText,
-              }}
-            >
-              {data.model.length > 15
-                ? `${data.model.slice(0, 15)}...`
-                : data.model}
-            </Tag>
-          )}
-        </div>
-
-        <div style={{ padding: "10px 12px" }}>
+          {/* 图标色块 */}
           <div
             style={{
-              fontSize: 13,
+              width: 22,
+              height: 22,
+              borderRadius: 4,
+              background: `${NODE_COLOR}18`,
+              border: `1px solid ${NODE_COLOR}30`,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: 12,
+              flexShrink: 0,
+              lineHeight: 1,
+            }}
+          >
+            🧠
+          </div>
+
+          {/* 标题 */}
+          <span
+            style={{
+              fontSize: 11,
               color: token.colorText,
               fontWeight: 500,
-              marginBottom: 6,
+              flex: 1,
               overflow: "hidden",
               textOverflow: "ellipsis",
               whiteSpace: "nowrap",
+              lineHeight: "22px",
             }}
           >
             {data.title}
-          </div>
-
-          {data.prompt && (
-            <div
-              style={{
-                fontSize: 12,
-                color: token.colorTextTertiary,
-                marginBottom: 8,
-                padding: 6,
-                background: token.colorFillQuaternary,
-                borderRadius: 4,
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
-              }}
-            >
-              💬 {data.prompt.slice(0, 50)}...
-            </div>
-          )}
-
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
-            {data.temperature !== undefined && (
-              <Tag
-                style={{
-                  margin: 0,
-                  fontSize: 9,
-                  padding: "0 4px",
-                  background: token.colorFillQuaternary,
-                  border: `1px solid ${token.colorBorderSecondary}`,
-                  color: token.colorTextQuaternary,
-                }}
-              >
-                🌡️ {formatTemperature(data.temperature)}
-              </Tag>
-            )}
-
-            {data.maxTokens !== undefined && (
-              <Tag
-                style={{
-                  margin: 0,
-                  fontSize: 9,
-                  padding: "0 4px",
-                  background: token.colorFillQuaternary,
-                  border: `1px solid ${token.colorBorderSecondary}`,
-                  color: token.colorTextQuaternary,
-                }}
-              >
-                📏 {formatMaxTokens(data.maxTokens)}
-              </Tag>
-            )}
-
-            {data.tools && data.tools.length > 0 && (
-              <Tag
-                style={{
-                  margin: 0,
-                  fontSize: 9,
-                  padding: "0 4px",
-                  background: `${token.colorSuccess}20`,
-                  border: `1px solid ${token.colorSuccess}50`,
-                  color: token.colorSuccess,
-                }}
-              >
-                🔧 {data.tools.length}
-              </Tag>
-            )}
-          </div>
+          </span>
         </div>
       </div>
 
       <Handle
         type="target"
         position={Position.Top}
-        style={{
-          background: color,
-          border: "none",
-          width: 8,
-          height: 8,
-        }}
+        style={{ background: NODE_COLOR, border: "none", width: 7, height: 7 }}
       />
-
       <Handle
         type="source"
         position={Position.Bottom}
-        style={{
-          background: color,
-          border: "none",
-          width: 8,
-          height: 8,
-        }}
+        style={{ background: NODE_COLOR, border: "none", width: 7, height: 7 }}
       />
     </div>
   );

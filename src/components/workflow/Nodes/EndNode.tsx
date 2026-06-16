@@ -3,122 +3,98 @@
 import { Handle, type NodeProps, Position } from "@xyflow/react";
 import { theme } from "antd";
 import React, { memo } from "react";
-import { useTranslation } from "react-i18next";
+
+const NODE_COLOR = "#ff4d4f";
 
 interface EndNodeData {
   id: string;
   type: string;
   title: string;
-  description?: string;
   color: string;
   nodeType: string;
   enabled: boolean;
-  outputVar?: string;
 }
 
 const EndNodeComponent: React.FC<NodeProps> = ({ data: _data, selected }) => {
   const data = _data as unknown as EndNodeData;
-  const { t } = useTranslation();
   const { token } = theme.useToken();
-  const color = token.colorError;
+
+  const borderColor = selected ? token.colorPrimary : NODE_COLOR;
 
   return (
     <div
       style={{
-        minWidth: 140,
-        maxWidth: 180,
+        minWidth: 120,
+        maxWidth: 200,
         opacity: data.enabled ? 1 : 0.5,
         filter: data.enabled ? "none" : "grayscale(100%)",
       }}
     >
       <div
+        className="workflow-node-card"
+        title={data.title}
         style={{
-          background: token.colorBgElevated,
-          border: `2px solid ${selected ? token.colorPrimary : color}`,
+          background: token.colorBgContainer,
+          border: `1.5px solid ${borderColor}`,
           borderRadius: 8,
-          overflow: "hidden",
-          boxShadow: selected ? `0 0 0 2px ${color}40` : "none",
-          transition: "box-shadow 0.2s, transform 0.2s",
+          padding: 0,
+          boxShadow: selected
+            ? `0 0 0 1.5px ${borderColor}40`
+            : "0 1px 3px rgba(0,0,0,0.08)",
+          transition: "box-shadow 0.15s",
         }}
       >
+        {/* n8n 风格：单行 — 图标色块 + 标题 */}
         <div
           style={{
-            padding: "8px 12px",
-            borderBottom: `1px solid ${color}30`,
+            padding: "6px 10px",
             display: "flex",
             alignItems: "center",
-            gap: 8,
-            background: `${color}15`,
+            gap: 6,
           }}
         >
-          <span style={{ fontSize: 14 }}>🏁</span>
-          <span
-            style={{
-              fontSize: 12,
-              color: color,
-              fontWeight: 600,
-              textTransform: "uppercase",
-              letterSpacing: "0.5px",
-            }}
-          >
-            {t("workflow.endNode.title")}
-          </span>
-        </div>
-
-        <div style={{ padding: "10px 12px" }}>
+          {/* 图标色块 */}
           <div
             style={{
-              fontSize: 13,
+              width: 22,
+              height: 22,
+              borderRadius: 4,
+              background: `${NODE_COLOR}18`,
+              border: `1px solid ${NODE_COLOR}30`,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: 12,
+              flexShrink: 0,
+              lineHeight: 1,
+            }}
+          >
+            🏁
+          </div>
+
+          {/* 标题 */}
+          <span
+            style={{
+              fontSize: 11,
               color: token.colorText,
               fontWeight: 500,
-              marginBottom: 4,
+              flex: 1,
               overflow: "hidden",
               textOverflow: "ellipsis",
               whiteSpace: "nowrap",
+              lineHeight: "22px",
             }}
           >
             {data.title}
-          </div>
-
-          {data.outputVar && (
-            <div
-              style={{
-                fontSize: 12,
-                color: token.colorTextTertiary,
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
-              }}
-            >
-              📤 {data.outputVar}
-            </div>
-          )}
+          </span>
         </div>
       </div>
 
+      {/* EndNode only has target handle (no source) */}
       <Handle
         type="target"
         position={Position.Top}
-        style={{
-          background: color,
-          border: "none",
-          width: 10,
-          height: 10,
-        }}
-      />
-
-      <div
-        style={{
-          position: "absolute",
-          bottom: -10,
-          left: "50%",
-          transform: "translateX(-50%)",
-          width: 0,
-          height: 0,
-          borderLeft: "6px solid transparent",
-          borderRight: "6px solid transparent",
-          borderTop: `8px solid ${color}`,
-        }}
+        style={{ background: NODE_COLOR, border: "none", width: 7, height: 7 }}
       />
     </div>
   );

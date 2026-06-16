@@ -1,11 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { Handle, type NodeProps, Position } from "@xyflow/react";
-import { Tag, theme } from "antd";
+import { theme } from "antd";
 import React, { memo } from "react";
-import { useTranslation } from "react-i18next";
 
-const SWITCH_COLOR = "#722ed1";
+const NODE_COLOR = "#722ed1";
 
 interface SwitchNodeData {
   id: string;
@@ -14,99 +13,93 @@ interface SwitchNodeData {
   color: string;
   nodeType: string;
   enabled: boolean;
-  cases?: Array<{ value: string; label: string }>;
-  match_mode?: string;
-  input_var?: string;
 }
 
 const SwitchNodeComponent: React.FC<NodeProps> = ({ data: _data, selected }) => {
   const data = _data as unknown as SwitchNodeData;
-  const { t } = useTranslation();
   const { token } = theme.useToken();
-  const cases = data.cases || [];
-  // const matchMode = data.match_mode || "exact";
-  const inputVar = data.input_var || "";
+
+  const borderColor = selected ? token.colorPrimary : NODE_COLOR;
 
   return (
     <div
       style={{
-        minWidth: 180,
-        maxWidth: 220,
+        minWidth: 120,
+        maxWidth: 200,
         opacity: data.enabled ? 1 : 0.5,
         filter: data.enabled ? "none" : "grayscale(100%)",
       }}
     >
       <div
+        className="workflow-node-card"
+        title={data.title}
         style={{
-          background: token.colorBgElevated,
-          border: "2px solid " + (selected ? token.colorPrimary : SWITCH_COLOR),
+          background: token.colorBgContainer,
+          border: `1.5px solid ${borderColor}`,
           borderRadius: 8,
-          overflow: "hidden",
-          boxShadow: selected ? "0 0 0 2px " + SWITCH_COLOR + "40" : "none",
-          transition: "box-shadow 0.2s, transform 0.2s",
+          padding: 0,
+          boxShadow: selected
+            ? `0 0 0 1.5px ${borderColor}40`
+            : "0 1px 3px rgba(0,0,0,0.08)",
+          transition: "box-shadow 0.15s",
         }}
       >
+        {/* n8n 风格：单行 — 图标色块 + 标题 */}
         <div
           style={{
-            padding: "8px 12px",
-            borderBottom: "1px solid " + SWITCH_COLOR + "30",
+            padding: "6px 10px",
             display: "flex",
             alignItems: "center",
-            gap: 8,
-            background: SWITCH_COLOR + "15",
+            gap: 6,
           }}
         >
-          <span style={{ fontSize: 14 }}>🔀</span>
-          <span style={{ fontSize: 12, color: SWITCH_COLOR, fontWeight: 600 }}>
-            {t("workflow.nodeTypes.switch")}
-          </span>
-          <Tag
-            style={{
-              margin: "0 0 0 auto",
-              fontSize: 9,
-              padding: "0 4px",
-              border: "none",
-              color: "#fff",
-              background: SWITCH_COLOR,
-            }}
-          >
-            {cases.length}
-          </Tag>
-        </div>
-        <div style={{ padding: "10px 12px" }}>
+          {/* 图标色块 */}
           <div
             style={{
-              fontSize: 13,
+              width: 22,
+              height: 22,
+              borderRadius: 4,
+              background: `${NODE_COLOR}18`,
+              border: `1px solid ${NODE_COLOR}30`,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: 12,
+              flexShrink: 0,
+              lineHeight: 1,
+            }}
+          >
+            🔀
+          </div>
+
+          {/* 标题 */}
+          <span
+            style={{
+              fontSize: 11,
               color: token.colorText,
               fontWeight: 500,
-              marginBottom: 6,
+              flex: 1,
               overflow: "hidden",
               textOverflow: "ellipsis",
               whiteSpace: "nowrap",
+              lineHeight: "22px",
             }}
           >
             {data.title}
-          </div>
-          {inputVar && <div style={{ fontSize: 10, color: SWITCH_COLOR, marginBottom: 4 }}>{inputVar}</div>}
-          {cases.slice(0, 3).map((c, i) => (
-            <div key={i} style={{ fontSize: 10, color: token.colorTextTertiary, padding: "1px 0" }}>
-              #{i + 1} {c.label || c.value}
-            </div>
-          ))}
-          {cases.length > 3 && (
-            <div style={{ fontSize: 10, color: token.colorTextTertiary }}>+{cases.length - 3} more</div>
-          )}
+          </span>
         </div>
       </div>
+
       <Handle
         type="target"
         position={Position.Top}
-        style={{ background: SWITCH_COLOR, border: "none", width: 8, height: 8 }}
+        style={{ background: NODE_COLOR, border: "none", width: 7, height: 7 }}
       />
       <Handle
         type="source"
         position={Position.Bottom}
-        style={{ background: SWITCH_COLOR, border: "none", width: 8, height: 8 }}
+        id="default"
+        style={{ background: NODE_COLOR, border: "none", width: 7, height: 7 }}
       />
     </div>
   );

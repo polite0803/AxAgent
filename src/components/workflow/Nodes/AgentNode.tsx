@@ -1,261 +1,104 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import type { ToolDef } from "@/components/workflow/types";
-import { AGENT_ROLE_META } from "@/types";
 import { Handle, type NodeProps, Position } from "@xyflow/react";
-import { Badge, Tag, theme } from "antd";
+import { theme } from "antd";
 import React, { memo } from "react";
-import { useTranslation } from "react-i18next";
+
+const NODE_COLOR = "#13c2c2";
 
 interface AgentNodeData {
   id: string;
   type: string;
   title: string;
-  description?: string;
   color: string;
   nodeType: string;
   enabled: boolean;
-  agentProfileId?: string;
-  agentRole?: string;
-  agentRoleIcon?: string;
-  agentRoleDisplayName?: string;
-  systemPrompt?: string;
-  tools?: (ToolDef | string)[];
-  contextSources?: string[];
-  outputMode?: string;
-  model?: string;
-  validationState?: "error" | "warning";
 }
 
-const CYAN_BASE = "#13c2c2";
-const CYAN_VAR = `var(--cyan, ${CYAN_BASE})`;
-
-const AgentNodeComponent: React.FC<NodeProps> = ({
-  data,
-  selected,
-}) => {
-  const agData = data as unknown as AgentNodeData;
-  const { t } = useTranslation();
+const AgentNodeComponent: React.FC<NodeProps> = ({ data: _data, selected }) => {
+  const data = _data as unknown as AgentNodeData;
   const { token } = theme.useToken();
-  const color = token.colorPrimary;
 
-  const getBorderColor = () => {
-    if (agData.validationState === "error") {
-      return token.colorError;
-    }
-    if (agData.validationState === "warning") {
-      return token.colorWarning;
-    }
-    if (selected) {
-      return token.colorPrimary;
-    }
-    return color;
-  };
-
-  const borderColor = getBorderColor();
-
-  const getOutputModeIcon = (mode: string): string => {
-    switch (mode) {
-      case "json":
-        return "{}";
-      case "text":
-        return "📝";
-      case "artifact":
-        return "🎨";
-      default:
-        return "📝";
-    }
-  };
-
-  const tools = agData.tools || [];
-  const contextSources = agData.contextSources || [];
-
-  const displayIcon = agData.agentRoleIcon
-    || (agData.agentRole ? AGENT_ROLE_META[agData.agentRole]?.icon : null)
-    || "🤖";
-
-  const displayName = agData.agentRoleDisplayName
-    || (agData.agentRole
-      ? t(AGENT_ROLE_META[agData.agentRole]?.labelKey ?? "", agData.agentRole)
-      : null)
-    || t("workflow.agentNode.agent");
+  const borderColor = selected ? token.colorPrimary : NODE_COLOR;
 
   return (
     <div
       style={{
-        minWidth: 200,
-        maxWidth: 240,
+        minWidth: 120,
+        maxWidth: 200,
         opacity: data.enabled ? 1 : 0.5,
         filter: data.enabled ? "none" : "grayscale(100%)",
       }}
     >
       <div
+        className="workflow-node-card"
+        title={data.title}
         style={{
-          background: token.colorBgElevated,
-          border: `2px solid ${borderColor}`,
+          background: token.colorBgContainer,
+          border: `1.5px solid ${borderColor}`,
           borderRadius: 8,
-          overflow: "hidden",
-          boxShadow: selected ? `0 0 0 2px ${borderColor}40` : "none",
-          transition: "box-shadow 0.2s, transform 0.2s",
+          padding: 0,
+          boxShadow: selected
+            ? `0 0 0 1.5px ${borderColor}40`
+            : "0 1px 3px rgba(0,0,0,0.08)",
+          transition: "box-shadow 0.15s",
         }}
       >
+        {/* n8n 风格：单行 — 图标色块 + 标题 */}
         <div
           style={{
-            padding: "8px 12px",
-            borderBottom: `1px solid ${color}30`,
+            padding: "6px 10px",
             display: "flex",
             alignItems: "center",
-            gap: 8,
-            background: `${color}15`,
+            gap: 6,
           }}
         >
-          <span style={{ fontSize: 14 }}>{displayIcon}</span>
-          <span
-            style={{
-              fontSize: 12,
-              color: color,
-              fontWeight: 600,
-            }}
-          >
-            {displayName}
-          </span>
-          {agData.model && (
-            <Tag
-              style={{
-                margin: 0,
-                fontSize: 9,
-                padding: "0 4px",
-                background: `${color}30`,
-                border: "none",
-                color: token.colorText,
-              }}
-            >
-              {agData.model.length > 12
-                ? `${agData.model.slice(0, 12)}...`
-                : agData.model}
-            </Tag>
-          )}
-        </div>
-
-        <div style={{ padding: "10px 12px" }}>
+          {/* 图标色块 */}
           <div
             style={{
-              fontSize: 13,
+              width: 22,
+              height: 22,
+              borderRadius: 4,
+              background: `${NODE_COLOR}18`,
+              border: `1px solid ${NODE_COLOR}30`,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: 12,
+              flexShrink: 0,
+              lineHeight: 1,
+            }}
+          >
+            🤖
+          </div>
+
+          {/* 标题 */}
+          <span
+            style={{
+              fontSize: 11,
               color: token.colorText,
               fontWeight: 500,
-              marginBottom: 6,
+              flex: 1,
               overflow: "hidden",
               textOverflow: "ellipsis",
               whiteSpace: "nowrap",
+              lineHeight: "22px",
             }}
           >
-            {agData.title}
-          </div>
-
-          {agData.systemPrompt && (
-            <div
-              style={{
-                fontSize: 12,
-                color: token.colorTextTertiary,
-                marginBottom: 8,
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
-              }}
-            >
-              {agData.systemPrompt.slice(0, 40)}...
-            </div>
-          )}
-
-          <div
-            style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 6 }}
-          >
-            {tools.length > 0 && (
-              <Badge
-                count={tools.length}
-                size="small"
-                style={{
-                  backgroundColor: token.colorSuccess,
-                  fontSize: 9,
-                }}
-              >
-                <Tag
-                  style={{
-                    margin: 0,
-                    fontSize: 9,
-                    padding: "0 4px",
-                    background: `${token.colorSuccess}20`,
-                    border: `1px solid ${token.colorSuccess}50`,
-                    color: token.colorSuccess,
-                  }}
-                >
-                  {t("workflow.agentNode.tools")}
-                </Tag>
-              </Badge>
-            )}
-
-            {contextSources.length > 0 && (
-              <Badge
-                count={contextSources.length}
-                size="small"
-                style={{
-                  backgroundColor: CYAN_VAR,
-                  fontSize: 9,
-                }}
-              >
-                <Tag
-                  style={{
-                    margin: 0,
-                    fontSize: 9,
-                    padding: "0 4px",
-                    background: `${CYAN_BASE}20`,
-                    border: `1px solid ${CYAN_BASE}50`,
-                    color: CYAN_VAR,
-                  }}
-                >
-                  {t("workflow.agentNode.context")}
-                </Tag>
-              </Badge>
-            )}
-
-            {agData.outputMode && (
-              <Tag
-                style={{
-                  margin: 0,
-                  fontSize: 9,
-                  padding: "0 4px",
-                  background: `${color}20`,
-                  border: `1px solid ${color}50`,
-                  color: color,
-                }}
-              >
-                {getOutputModeIcon(agData.outputMode)} {agData.outputMode}
-              </Tag>
-            )}
-          </div>
+            {data.title}
+          </span>
         </div>
       </div>
 
       <Handle
         type="target"
         position={Position.Top}
-        style={{
-          background: color,
-          border: "none",
-          width: 8,
-          height: 8,
-        }}
+        style={{ background: NODE_COLOR, border: "none", width: 7, height: 7 }}
       />
-
       <Handle
         type="source"
         position={Position.Bottom}
-        style={{
-          background: color,
-          border: "none",
-          width: 8,
-          height: 8,
-        }}
+        style={{ background: NODE_COLOR, border: "none", width: 7, height: 7 }}
       />
     </div>
   );

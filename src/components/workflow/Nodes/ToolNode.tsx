@@ -1,161 +1,104 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { Handle, type NodeProps, Position } from "@xyflow/react";
-import { Tag, theme } from "antd";
+import { theme } from "antd";
 import React, { memo } from "react";
-import { useTranslation } from "react-i18next";
+
+const NODE_COLOR = "#52c41a";
 
 interface ToolNodeData {
   id: string;
   type: string;
   title: string;
-  description?: string;
   color: string;
   nodeType: string;
   enabled: boolean;
-  toolName?: string;
-  inputMapping?: Record<string, string>;
-  outputVar?: string;
 }
 
 const ToolNodeComponent: React.FC<NodeProps> = ({ data: _data, selected }) => {
   const data = _data as unknown as ToolNodeData;
-  const { t } = useTranslation();
   const { token } = theme.useToken();
-  const color = token.colorSuccess;
-  const toolName = data.toolName || t("workflow.toolNode.notSelected");
-  const inputMapping = data.inputMapping || {};
-  const outputVar = data.outputVar;
 
-  const inputCount = Object.keys(inputMapping).length;
+  const borderColor = selected ? token.colorPrimary : NODE_COLOR;
 
   return (
     <div
       style={{
-        minWidth: 180,
-        maxWidth: 220,
+        minWidth: 120,
+        maxWidth: 200,
         opacity: data.enabled ? 1 : 0.5,
         filter: data.enabled ? "none" : "grayscale(100%)",
       }}
     >
       <div
+        className="workflow-node-card"
+        title={data.title}
         style={{
-          background: token.colorBgElevated,
-          border: `2px solid ${selected ? token.colorPrimary : color}`,
+          background: token.colorBgContainer,
+          border: `1.5px solid ${borderColor}`,
           borderRadius: 8,
-          overflow: "hidden",
-          boxShadow: selected ? `0 0 0 2px ${color}40` : "none",
-          transition: "box-shadow 0.2s, transform 0.2s",
+          padding: 0,
+          boxShadow: selected
+            ? `0 0 0 1.5px ${borderColor}40`
+            : "0 1px 3px rgba(0,0,0,0.08)",
+          transition: "box-shadow 0.15s",
         }}
       >
+        {/* n8n 风格：单行 — 图标色块 + 标题 */}
         <div
           style={{
-            padding: "8px 12px",
-            borderBottom: `1px solid ${color}30`,
+            padding: "6px 10px",
             display: "flex",
             alignItems: "center",
-            gap: 8,
-            background: `${color}15`,
+            gap: 6,
           }}
         >
-          <span style={{ fontSize: 14 }}>🔧</span>
-          <span
-            style={{
-              fontSize: 12,
-              color: color,
-              fontWeight: 600,
-            }}
-          >
-            {t("workflow.toolNode.title")}
-          </span>
-        </div>
-
-        <div style={{ padding: "10px 12px" }}>
+          {/* 图标色块 */}
           <div
             style={{
-              fontSize: 13,
+              width: 22,
+              height: 22,
+              borderRadius: 4,
+              background: `${NODE_COLOR}18`,
+              border: `1px solid ${NODE_COLOR}30`,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: 12,
+              flexShrink: 0,
+              lineHeight: 1,
+            }}
+          >
+            🔧
+          </div>
+
+          {/* 标题 */}
+          <span
+            style={{
+              fontSize: 11,
               color: token.colorText,
               fontWeight: 500,
-              marginBottom: 6,
+              flex: 1,
               overflow: "hidden",
               textOverflow: "ellipsis",
               whiteSpace: "nowrap",
+              lineHeight: "22px",
             }}
           >
             {data.title}
-          </div>
-
-          <div
-            style={{
-              fontSize: 12,
-              color: color,
-              marginBottom: 6,
-              padding: "4px 6px",
-              background: `${color}15`,
-              borderRadius: 4,
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-              fontWeight: 500,
-            }}
-          >
-            {toolName}
-          </div>
-
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
-            {inputCount > 0 && (
-              <Tag
-                style={{
-                  margin: 0,
-                  fontSize: 9,
-                  padding: "0 4px",
-                  background: token.colorBgContainer,
-                  border: `1px solid ${token.colorBorderSecondary}`,
-                  color: token.colorTextQuaternary,
-                }}
-              >
-                📥 {t("workflow.toolNode.inputCount", { count: inputCount })}
-              </Tag>
-            )}
-
-            {outputVar && (
-              <Tag
-                style={{
-                  margin: 0,
-                  fontSize: 9,
-                  padding: "0 4px",
-                  background: `${token.colorPrimary}20`,
-                  border: `1px solid ${token.colorPrimary}50`,
-                  color: token.colorPrimary,
-                }}
-              >
-                📤 {outputVar}
-              </Tag>
-            )}
-          </div>
+          </span>
         </div>
       </div>
 
       <Handle
         type="target"
         position={Position.Top}
-        style={{
-          background: color,
-          border: "none",
-          width: 8,
-          height: 8,
-        }}
+        style={{ background: NODE_COLOR, border: "none", width: 7, height: 7 }}
       />
-
       <Handle
         type="source"
         position={Position.Bottom}
-        style={{
-          background: color,
-          border: "none",
-          width: 8,
-          height: 8,
-        }}
+        style={{ background: NODE_COLOR, border: "none", width: 7, height: 7 }}
       />
     </div>
   );

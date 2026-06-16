@@ -1,140 +1,104 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { Handle, type NodeProps, Position } from "@xyflow/react";
-import { Tag, theme } from "antd";
+import { theme } from "antd";
 import React, { memo } from "react";
-import { useTranslation } from "react-i18next";
 
-const HTTP_COLOR = "#eb2f96";
+const NODE_COLOR = "#eb2f96";
 
 interface HttpRequestNodeData {
   id: string;
   type: string;
   title: string;
-  description?: string;
   color: string;
   nodeType: string;
   enabled: boolean;
-  url?: string;
-  method?: string;
 }
 
 const HttpRequestNodeComponent: React.FC<NodeProps> = ({ data: _data, selected }) => {
   const data = _data as unknown as HttpRequestNodeData;
-  const { t } = useTranslation();
   const { token } = theme.useToken();
-  const method = data.method || "GET";
-  const url = data.url || "";
-  const urlPreview = url.length > 25 ? url.slice(0, 25) + "..." : url;
 
-  const getMethodColor = (m: string) => {
-    switch (m.toUpperCase()) {
-      case "GET":
-        return "#52c41a";
-      case "POST":
-        return "#1677ff";
-      case "PUT":
-        return "#fa8c16";
-      case "PATCH":
-        return "#722ed1";
-      case "DELETE":
-        return "#ff4d4f";
-      default:
-        return token.colorTextQuaternary;
-    }
-  };
+  const borderColor = selected ? token.colorPrimary : NODE_COLOR;
 
   return (
     <div
       style={{
-        minWidth: 180,
-        maxWidth: 240,
+        minWidth: 120,
+        maxWidth: 200,
         opacity: data.enabled ? 1 : 0.5,
         filter: data.enabled ? "none" : "grayscale(100%)",
       }}
     >
       <div
+        className="workflow-node-card"
+        title={data.title}
         style={{
-          background: token.colorBgElevated,
-          border: "2px solid " + (selected ? token.colorPrimary : HTTP_COLOR),
+          background: token.colorBgContainer,
+          border: `1.5px solid ${borderColor}`,
           borderRadius: 8,
-          overflow: "hidden",
-          boxShadow: selected ? "0 0 0 2px " + HTTP_COLOR + "40" : "none",
-          transition: "box-shadow 0.2s, transform 0.2s",
+          padding: 0,
+          boxShadow: selected
+            ? `0 0 0 1.5px ${borderColor}40`
+            : "0 1px 3px rgba(0,0,0,0.08)",
+          transition: "box-shadow 0.15s",
         }}
       >
+        {/* n8n 风格：单行 — 图标色块 + 标题 */}
         <div
           style={{
-            padding: "8px 12px",
-            borderBottom: "1px solid " + HTTP_COLOR + "30",
+            padding: "6px 10px",
             display: "flex",
             alignItems: "center",
-            gap: 8,
-            background: HTTP_COLOR + "15",
+            gap: 6,
           }}
         >
-          <span style={{ fontSize: 14 }}>🌐</span>
-          <span style={{ fontSize: 12, color: HTTP_COLOR, fontWeight: 600 }}>
-            {t("workflow.nodeTypes.httpRequest")}
-          </span>
-          <Tag
-            style={{
-              margin: "0 0 0 auto",
-              fontSize: 9,
-              padding: "0 4px",
-              border: "none",
-              color: "#fff",
-              background: getMethodColor(method),
-            }}
-          >
-            {method.toUpperCase()}
-          </Tag>
-        </div>
-
-        <div style={{ padding: "10px 12px" }}>
+          {/* 图标色块 */}
           <div
             style={{
-              fontSize: 13,
+              width: 22,
+              height: 22,
+              borderRadius: 4,
+              background: `${NODE_COLOR}18`,
+              border: `1px solid ${NODE_COLOR}30`,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: 12,
+              flexShrink: 0,
+              lineHeight: 1,
+            }}
+          >
+            🌐
+          </div>
+
+          {/* 标题 */}
+          <span
+            style={{
+              fontSize: 11,
               color: token.colorText,
               fontWeight: 500,
-              marginBottom: 6,
+              flex: 1,
               overflow: "hidden",
               textOverflow: "ellipsis",
               whiteSpace: "nowrap",
+              lineHeight: "22px",
             }}
           >
             {data.title}
-          </div>
-
-          {url && (
-            <div
-              style={{
-                fontSize: 11,
-                color: getMethodColor(method),
-                padding: "4px 6px",
-                background: getMethodColor(method) + "10",
-                borderRadius: 4,
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
-                fontFamily: "monospace",
-              }}
-            >
-              {urlPreview}
-            </div>
-          )}
+          </span>
         </div>
       </div>
 
       <Handle
         type="target"
         position={Position.Top}
-        style={{ background: HTTP_COLOR, border: "none", width: 8, height: 8 }}
+        style={{ background: NODE_COLOR, border: "none", width: 7, height: 7 }}
       />
       <Handle
         type="source"
         position={Position.Bottom}
-        style={{ background: HTTP_COLOR, border: "none", width: 8, height: 8 }}
+        style={{ background: NODE_COLOR, border: "none", width: 7, height: 7 }}
       />
     </div>
   );

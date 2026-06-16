@@ -1,210 +1,104 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { Handle, type NodeProps, Position } from "@xyflow/react";
-import { Tag, theme } from "antd";
+import { theme } from "antd";
 import React, { memo } from "react";
-import { useTranslation } from "react-i18next";
+
+const NODE_COLOR = "#52c41a";
 
 interface CodeNodeData {
   id: string;
   type: string;
   title: string;
-  description?: string;
   color: string;
   nodeType: string;
   enabled: boolean;
-  language?: string;
-  code?: string;
-  outputVar?: string;
 }
 
 const CodeNodeComponent: React.FC<NodeProps> = ({ data: _data, selected }) => {
   const data = _data as unknown as CodeNodeData;
-  const { t } = useTranslation();
   const { token } = theme.useToken();
-  const color = token.colorSuccess;
-  const language = data.language || "javascript";
-  const code = data.code || "";
-  const outputVar = data.outputVar;
 
-  const getLanguageIcon = (lang: string): string => {
-    const icons: Record<string, string> = {
-      javascript: "🟨",
-      typescript: "🔷",
-      python: "🐍",
-      java: "☕",
-      go: "🔵",
-      rust: "🦀",
-      php: "🐘",
-      ruby: "💎",
-      swift: "🍎",
-      kotlin: "🟣",
-      csharp: "🟩",
-      cpp: "🔴",
-      c: "⚪",
-      html: "🌐",
-      css: "🎨",
-      sql: "🗃️",
-      bash: "📟",
-      shell: "📟",
-      powershell: "📟",
-    };
-    return icons[lang.toLowerCase()] || "📝";
-  };
-
-  const getLanguageColor = (lang: string): string => {
-    const colors: Record<string, string> = {
-      javascript: "#f7df1e",
-      typescript: "#3178c6",
-      python: "#3776ab",
-      java: "#007396",
-      go: "#00add8",
-      rust: "#ce422b",
-      php: "#777bb4",
-      ruby: "#cc342d",
-      swift: "#fa7343",
-      kotlin: "#7f52ff",
-      csharp: "#239120",
-      cpp: "#00599c",
-      c: "#a8b9cc",
-      html: "#e34f26",
-      css: "#1572b6",
-      sql: "#4479a1",
-      bash: "#4eaa25",
-      shell: "#89e051",
-      powershell: "#5391fe",
-    };
-    return colors[lang.toLowerCase()] || token.colorTextTertiary;
-  };
-
-  const lineCount = code.split("\n").length;
+  const borderColor = selected ? token.colorPrimary : NODE_COLOR;
 
   return (
     <div
       style={{
-        minWidth: 200,
-        maxWidth: 240,
+        minWidth: 120,
+        maxWidth: 200,
         opacity: data.enabled ? 1 : 0.5,
         filter: data.enabled ? "none" : "grayscale(100%)",
       }}
     >
       <div
+        className="workflow-node-card"
+        title={data.title}
         style={{
-          background: token.colorBgElevated,
-          border: `2px solid ${selected ? token.colorPrimary : color}`,
+          background: token.colorBgContainer,
+          border: `1.5px solid ${borderColor}`,
           borderRadius: 8,
-          overflow: "hidden",
-          boxShadow: selected ? `0 0 0 2px ${color}40` : "none",
-          transition: "box-shadow 0.2s, transform 0.2s",
+          padding: 0,
+          boxShadow: selected
+            ? `0 0 0 1.5px ${borderColor}40`
+            : "0 1px 3px rgba(0,0,0,0.08)",
+          transition: "box-shadow 0.15s",
         }}
       >
+        {/* n8n 风格：单行 — 图标色块 + 标题 */}
         <div
           style={{
-            padding: "8px 12px",
-            borderBottom: `1px solid ${color}30`,
+            padding: "6px 10px",
             display: "flex",
             alignItems: "center",
-            gap: 8,
-            background: `${color}15`,
+            gap: 6,
           }}
         >
-          <span style={{ fontSize: 14 }}>{getLanguageIcon(language)}</span>
-          <span
-            style={{
-              fontSize: 12,
-              color: getLanguageColor(language),
-              fontWeight: 600,
-            }}
-          >
-            {language.toUpperCase()}
-          </span>
-          {lineCount > 0 && lineCount <= 100 && (
-            <Tag
-              style={{
-                margin: 0,
-                fontSize: 9,
-                padding: "0 4px",
-                background: `${color}30`,
-                border: "none",
-                color: token.colorText,
-              }}
-            >
-              {t("workflow.codeNode.lineCount", { count: lineCount })}
-            </Tag>
-          )}
-        </div>
-
-        <div style={{ padding: "10px 12px" }}>
+          {/* 图标色块 */}
           <div
             style={{
-              fontSize: 13,
+              width: 22,
+              height: 22,
+              borderRadius: 4,
+              background: `${NODE_COLOR}18`,
+              border: `1px solid ${NODE_COLOR}30`,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: 12,
+              flexShrink: 0,
+              lineHeight: 1,
+            }}
+          >
+            💻
+          </div>
+
+          {/* 标题 */}
+          <span
+            style={{
+              fontSize: 11,
               color: token.colorText,
               fontWeight: 500,
-              marginBottom: 6,
+              flex: 1,
               overflow: "hidden",
               textOverflow: "ellipsis",
               whiteSpace: "nowrap",
+              lineHeight: "22px",
             }}
           >
             {data.title}
-          </div>
-
-          {code && (
-            <div
-              style={{
-                fontSize: 9,
-                color: token.colorTextTertiary,
-                fontFamily: "monospace",
-                marginBottom: 6,
-                padding: "4px 6px",
-                background: token.colorBgContainer,
-                borderRadius: 4,
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
-              }}
-            >
-              {code.slice(0, 60).replace(/\n/g, " ")}...
-            </div>
-          )}
-
-          {outputVar && (
-            <Tag
-              style={{
-                margin: 0,
-                fontSize: 9,
-                padding: "0 4px",
-                background: `${token.colorPrimary}20`,
-                border: `1px solid ${token.colorPrimary}50`,
-                color: token.colorPrimary,
-              }}
-            >
-              📤 {outputVar}
-            </Tag>
-          )}
+          </span>
         </div>
       </div>
 
       <Handle
         type="target"
         position={Position.Top}
-        style={{
-          background: color,
-          border: "none",
-          width: 8,
-          height: 8,
-        }}
+        style={{ background: NODE_COLOR, border: "none", width: 7, height: 7 }}
       />
-
       <Handle
         type="source"
         position={Position.Bottom}
-        style={{
-          background: color,
-          border: "none",
-          width: 8,
-          height: 8,
-        }}
+        style={{ background: NODE_COLOR, border: "none", width: 7, height: 7 }}
       />
     </div>
   );

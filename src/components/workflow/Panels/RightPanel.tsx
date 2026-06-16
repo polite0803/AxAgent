@@ -28,13 +28,16 @@ import {
   MergePropertyPanel,
   NotificationPropertyPanel,
   ParallelPropertyPanel,
+  StoragePropertyPanel,
   SubWorkflowPropertyPanel,
+  SwarmPropertyPanel,
   SwitchPropertyPanel,
   ToolPropertyPanel,
   TriggerPropertyPanel,
   ValidationPropertyPanel,
   VectorRetrievePropertyPanel,
   WebhookSendPropertyPanel,
+  WorkflowRefPropertyPanel,
 } from "./PropertyPanels";
 
 interface RightPanelProps {
@@ -207,6 +210,14 @@ function NodePropertyPanel({
           onDelete={onDelete}
         />
       );
+    case "storage":
+      return (
+        <StoragePropertyPanel
+          node={selectedNode}
+          onUpdate={onUpdate}
+          onDelete={onDelete}
+        />
+      );
     case "notification":
       return (
         <NotificationPropertyPanel
@@ -274,6 +285,22 @@ function NodePropertyPanel({
     case "email":
       return (
         <EmailPropertyPanel
+          node={selectedNode}
+          onUpdate={onUpdate}
+          onDelete={onDelete}
+        />
+      );
+    case "swarm":
+      return (
+        <SwarmPropertyPanel
+          node={selectedNode}
+          onUpdate={onUpdate}
+          onDelete={onDelete}
+        />
+      );
+    case "workflowRef":
+      return (
+        <WorkflowRefPropertyPanel
           node={selectedNode}
           onUpdate={onUpdate}
           onDelete={onDelete}
