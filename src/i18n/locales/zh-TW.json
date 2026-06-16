@@ -2829,7 +2829,9 @@
     "conflictApp1": "飛書/微信/企業微信/釘釘",
     "conflictApp2": "QQ/微信",
     "conflictApp3": "微信 (Windows)",
-    "conflictError": "快捷鍵已被其他應用程式佔用，請嘗試更換快捷鍵"
+    "conflictError": "快捷鍵已被其他應用程式佔用，請嘗試更換快捷鍵",
+    "invalidShortcut": "Invalid shortcut format",
+    "shortcutNotSupported": "System does not support this shortcut combination"
   },
   "tray": {
     "show": "顯示",
@@ -3478,7 +3480,8 @@
       "promptAppliedToNode": "提示詞已套用到節點",
       "replaceMode": "取代模式",
       "retry": "重試",
-      "toolsMode": "工具模式"
+      "toolsMode": "工具模式",
+      "lockedByExpert": "System prompt is provided by the selected expert and cannot be modified"
     },
     "previewInDevelopment": "預覽功能開發中",
     "publishInDevelopment": "發布功能開發中",
@@ -3546,7 +3549,8 @@
       "searchNodes": "搜索節點",
       "legacySuffix": " (舊版)",
       "templatesTab": "模板",
-      "searchTemplates": "搜索模板"
+      "searchTemplates": "搜索模板",
+      "layout": "Layout"
     },
     "preset": "預設",
     "custom": "自訂",
@@ -4055,7 +4059,13 @@
       "email": "郵件",
       "debate": "辯論",
       "databaseQuery": "資料庫查詢",
-      "switch": "分支"
+      "switch": "分支",
+      "swarm": "Swarm",
+      "storage": "Storage",
+      "workflowRef": "Workflow Ref",
+      "phaseSeparator": "Phase Separator",
+      "groupFrame": "Group",
+      "toolSetSelector": "Tool Set"
     },
     "undo": "復原",
     "redo": "重做",
@@ -4133,7 +4143,10 @@
       "routingPrompt": "路由提示",
       "routingPromptPlaceholder": "描述如何在分支之間路由...",
       "routingModel": "路由模型",
-      "routingModelPlaceholder": "選擇用於路由決策的模型"
+      "routingModelPlaceholder": "選擇用於路由決策的模型",
+      "deleteNode": "Delete this node",
+      "edgeTypeDebateRound": "Debate Round",
+      "edgeTypeGrouping": "Grouping"
     },
     "statusBar": {
       "unsaved": "未儲存",
@@ -4346,14 +4359,16 @@
         "continueHint": "提供迴圈繼續條件，例如 `index < 10`。"
       },
       "parallel": {
-        "branchesHint": "描述平行分支輸入和目標輸出。"
+        "branchesHint": "描述平行分支輸入和目標輸出。",
+        "systemPrompt": "You are a workflow parallel-branch design expert. Based on the user's description, output the parallel node's `branches` array, each item as {{schema}}. Output only the JSON array string — no explanations or Markdown wrappers."
       },
       "subWorkflow": {
         "needPick": "請選擇既有工作流程或描述新工作流程。",
         "parseFailed": "解析失敗，請檢查描述。"
       },
       "switch": {
-        "casesHint": "列出所有分支及其觸發條件。"
+        "casesHint": "列出所有分支及其觸發條件。",
+        "systemPrompt": "You are a workflow branching design expert. Based on the user's description, output the switch node's `cases` array, each item as {{schema}}. Output only the JSON array string — no explanations or Markdown wrappers."
       },
       "trigger": {
         "cronHint": "標準 cron 運算式，例如 `0 9 * * *`。"
@@ -4637,7 +4652,153 @@
       "topic_var": "辯題變數"
     },
     "searchNodes": "搜尋節點",
-    "validationWarnings": "工作流存在 {{count}} 個警告：\n{{details}}"
+    "validationWarnings": "工作流存在 {{count}} 個警告：\n{{details}}",
+    "loopBackCycleDetected": "Loop-back edge would form a cycle, please adjust the target node",
+    "nodeKind": {
+      "input": "Input",
+      "output": "Output",
+      "tool": "Tool",
+      "agent": "AI Agent",
+      "condition": "Routing",
+      "loop": "Loop",
+      "container": "Container",
+      "storage": "Storage"
+    },
+    "layout": {
+      "suggestTitle": {
+        "verb": {
+          "get": "Get",
+          "fetch": "Fetch",
+          "query": "Query",
+          "search": "Search",
+          "create": "Create",
+          "update": "Update",
+          "delete": "Delete",
+          "send": "Send",
+          "notify": "Notify",
+          "parse": "Parse",
+          "transform": "Transform",
+          "validate": "Validate",
+          "analyze": "Analyze",
+          "summarize": "Summarize",
+          "translate": "Translate",
+          "extract": "Extract",
+          "merge": "Merge",
+          "split": "Split",
+          "filter": "Filter",
+          "sort": "Sort",
+          "calc": "Calc",
+          "gen": "Generate",
+          "recommend": "Recommend",
+          "classify": "Classify"
+        },
+        "noun": {
+          "data": "Data",
+          "market": "Market",
+          "trade": "Trade",
+          "order": "Order",
+          "user": "User",
+          "account": "Account",
+          "report": "Report",
+          "config": "Config",
+          "alert": "Alert",
+          "log": "Log",
+          "metric": "Metric",
+          "signal": "Signal",
+          "news": "News",
+          "price": "Price",
+          "risk": "Risk",
+          "portfolio": "Portfolio",
+          "position": "Position",
+          "kline": "KLine"
+        }
+      },
+      "fallbackTypePrefix": "{{type}}: ",
+      "validate": {
+        "orphan_node": "Node \"{{nodeId}}\" is orphaned (no inbound or outbound edge)",
+        "data_blackhole": "Aggregator node \"{{nodeId}}\" has indegree≥3 but outdegree=0, data has no exit",
+        "dead_branch_scheduled": "Container node \"{{nodeId}}\" ({{type}}) is a dead branch — has children but no input/output edges",
+        "dead_branch_decorative": "Container node \"{{nodeId}}\" (decorative) has no children and no connections",
+        "unconnected_port": "Condition node \"{{nodeId}}\" has unconnected {{missing}} output",
+        "cycle_no_exit": "Nodes [{{nodes}}] form a cycle without a break condition (loopBack)",
+        "self_loop": "Edge {{edgeId}} is a self-loop (source === target)",
+        "duplicate_title": "{{count}} {{type}} nodes share the same title \"{{title}}\"",
+        "workflow_ref_empty": "WorkflowRef node \"{{nodeId}}\" has no target workflow",
+        "workflow_ref_self": "WorkflowRef node \"{{nodeId}}\" references itself",
+        "workflow_ref_depth": "WorkflowRef chain may exceed {{maxDepth}}-level limit; multiple WorkflowRefs point to the same \"{{refId}}\", possible circular reference"
+      }
+    },
+    "templateList": {
+      "moreActions": "More actions for {{name}}",
+      "searchPlaceholder": "Search templates",
+      "tagPlaceholder": "Filter by tag",
+      "typePlaceholder": "Filter by type",
+      "newTemplate": "New template",
+      "preset": "Preset",
+      "custom": "Custom",
+      "noDescription": "No description",
+      "readonly": "Read-only",
+      "view": "View",
+      "edit": "Edit",
+      "versionHistory": "Version history",
+      "duplicate": "Duplicate",
+      "delete": "Delete",
+      "confirmDelete": "Confirm delete",
+      "confirmDeleteMessage": "Are you sure to delete template {{name}}?",
+      "irreversible": "This action is irreversible",
+      "deleted": "Deleted",
+      "deleteFailed": "Delete failed",
+      "copied": "Copied",
+      "copyFailed": "Copy failed",
+      "presetsImported": "Imported",
+      "presetsImportFailed": "Import failed",
+      "importPresetsTitle": "Import built-in experts",
+      "importPresets": "Import",
+      "noTemplates": "No templates",
+      "noMatchFound": "No matching templates"
+    },
+    "saveAsImage": "Save as Image",
+    "exportEmpty": "No nodes to export",
+    "containerNode": {
+      "nodes": "nodes",
+      "branchTimeout": "Branch timeout configured"
+    },
+    "swarmNode": {
+      "agents": "Agents",
+      "rounds": "rounds"
+    },
+    "groupNode": {
+      "untitled": "Group",
+      "folded": "folded"
+    },
+    "phaseSeparator": {
+      "defaultLabel": "Phase"
+    },
+    "canvasTitle": {
+      "clickToRename": "Click to rename"
+    },
+    "legend": {
+      "title": "Workflow Legend",
+      "toggleLabel": "{{action}} legend",
+      "expand": "Expand",
+      "collapse": "Collapse"
+    },
+    "back": "Back",
+    "caseLabel": "Case {{n}}",
+    "paramKey": "param_{{n}}",
+    "subWorkflowLabel": "Sub Workflow",
+    "nodesCount": "{{count}} nodes",
+    "contextMenu": {
+      "label": "Node actions"
+    },
+    "search": {
+      "prev": "Previous match",
+      "next": "Next match",
+      "close": "Close search",
+      "placeholder": "Search nodes..."
+    },
+    "run": "Run",
+    "settings": "Settings"
   },
   "atomicSkill": {
     "entryType": "入口類型",
@@ -4691,7 +4852,11 @@
     "statusFailed": "失敗",
     "statusPaused": "已暫停",
     "statusPending": "待執行",
-    "statusRunning": "運行中"
+    "statusRunning": "運行中",
+    "unsavedTitle": "Unsaved changes",
+    "unsavedContent": "You have unsaved changes. Are you sure you want to discard them?",
+    "discard": "Discard",
+    "keepEditing": "Continue editing"
   },
   "rl": {
     "policyDashboard": "RL 策略面板",
@@ -4935,6 +5100,7 @@
     "new": "新建模板",
     "nameRequired": "請輸入名稱",
     "namePlaceholder": "模板名稱",
+    "unnamed": "未命名",
     "descPlaceholder": "模板描述",
     "contentRequired": "請輸入模板內容",
     "contentPlaceholder": "模板內容，支持 {variable} 佔位符",
@@ -6422,7 +6588,9 @@
       "loraConfig": "LoRA 配置",
       "training": "訓練任務"
     },
-    "title": "模型微調"
+    "title": "模型微調",
+    "trainingJobCreated": "Training job created successfully",
+    "trainingJobFailed": "Failed to create training job"
   },
   "research": {
     "mockFinding": "模擬研究發現",
@@ -7147,7 +7315,7 @@
   },
   "chat:workflow": {
     "templateList": {
-      "presetsImported": "導入成功"
+      "presetsImported": "已匯入"
     }
   },
   "report": {

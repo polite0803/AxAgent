@@ -2796,7 +2796,9 @@
     "conflictApp1": "Feishu/WeChat/Корпоративный WeChat/DingTalk",
     "conflictApp2": "QQ/WeChat",
     "conflictApp3": "WeChat (Windows)",
-    "conflictError": "Сочетание уже используется, попробуйте другие клавиши"
+    "conflictError": "Сочетание уже используется, попробуйте другие клавиши",
+    "invalidShortcut": "Invalid shortcut format",
+    "shortcutNotSupported": "System does not support this shortcut combination"
   },
   "tray": {
     "show": "Показать",
@@ -2818,7 +2820,7 @@
     "proxyTestFailed": "Тест прокси не удался",
     "invalidFormat": "Неверный формат",
     "page": "Ошибка",
-    "message": "错误",
+    "message": "Ошибка",
     "pageNotFound": "Извините, страница, которую вы посетили, не существует."
   },
   "desktop": {
@@ -3478,7 +3480,8 @@
       "promptAppliedToNode": "Промпт применён к узлу",
       "replaceMode": "Режим замены",
       "retry": "Повторить",
-      "toolsMode": "Режим инструментов"
+      "toolsMode": "Режим инструментов",
+      "lockedByExpert": "System prompt is provided by the selected expert and cannot be modified"
     },
     "previewInDevelopment": "Функция предпросмотра в разработке",
     "publishInDevelopment": "Функция публикации в разработке",
@@ -3546,7 +3549,8 @@
       "searchNodes": "Поиск узлов...",
       "legacySuffix": "(Устаревший)",
       "templatesTab": "Шаблоны",
-      "searchTemplates": "Поиск шаблонов..."
+      "searchTemplates": "Поиск шаблонов...",
+      "layout": "Layout"
     },
     "preset": "Предустановка",
     "custom": "Пользовательский",
@@ -4055,7 +4059,13 @@
       "email": "Email",
       "debate": "Дебаты",
       "databaseQuery": "Запрос к БД",
-      "switch": "Переключатель"
+      "switch": "Переключатель",
+      "swarm": "Swarm",
+      "storage": "Storage",
+      "workflowRef": "Workflow Ref",
+      "phaseSeparator": "Phase Separator",
+      "groupFrame": "Group",
+      "toolSetSelector": "Tool Set"
     },
     "undo": "Отменить",
     "redo": "Повторить",
@@ -4133,7 +4143,10 @@
       "routingPrompt": "Промпт маршрутизации",
       "routingPromptPlaceholder": "Опишите маршрутизацию между ветвями...",
       "routingModel": "Модель маршрутизации",
-      "routingModelPlaceholder": "Выберите модель для принятия решений о маршрутизации"
+      "routingModelPlaceholder": "Выберите модель для принятия решений о маршрутизации",
+      "deleteNode": "Delete this node",
+      "edgeTypeDebateRound": "Debate Round",
+      "edgeTypeGrouping": "Grouping"
     },
     "statusBar": {
       "unsaved": "Не сохранено",
@@ -4346,14 +4359,16 @@
         "continueHint": "Укажите условие продолжения цикла, напр. `index < 10`."
       },
       "parallel": {
-        "branchesHint": "Опишите входы параллельных ветвей и желаемый результат."
+        "branchesHint": "Опишите входы параллельных ветвей и желаемый результат.",
+        "systemPrompt": "You are a workflow parallel-branch design expert. Based on the user's description, output the parallel node's `branches` array, each item as {{schema}}. Output only the JSON array string — no explanations or Markdown wrappers."
       },
       "subWorkflow": {
         "needPick": "Выберите существующий воркфлоу или опишите новый.",
         "parseFailed": "Не удалось разобрать; проверьте описание."
       },
       "switch": {
-        "casesHint": "Перечислите все варианты и условия их срабатывания."
+        "casesHint": "Перечислите все варианты и условия их срабатывания.",
+        "systemPrompt": "You are a workflow branching design expert. Based on the user's description, output the switch node's `cases` array, each item as {{schema}}. Output only the JSON array string — no explanations or Markdown wrappers."
       },
       "trigger": {
         "cronHint": "Стандартное cron-выражение, напр. `0 9 * * *`."
@@ -4637,7 +4652,153 @@
       "topic_var": "Переменная темы"
     },
     "searchNodes": "Поиск узлов",
-    "validationWarnings": "Workflow has {{count}} warning(s):\n{{details}}"
+    "validationWarnings": "Workflow has {{count}} warning(s):\n{{details}}",
+    "loopBackCycleDetected": "Loop-back edge would form a cycle, please adjust the target node",
+    "nodeKind": {
+      "input": "Input",
+      "output": "Output",
+      "tool": "Tool",
+      "agent": "AI Agent",
+      "condition": "Routing",
+      "loop": "Loop",
+      "container": "Container",
+      "storage": "Storage"
+    },
+    "layout": {
+      "suggestTitle": {
+        "verb": {
+          "get": "Get",
+          "fetch": "Fetch",
+          "query": "Query",
+          "search": "Search",
+          "create": "Create",
+          "update": "Update",
+          "delete": "Delete",
+          "send": "Send",
+          "notify": "Notify",
+          "parse": "Parse",
+          "transform": "Transform",
+          "validate": "Validate",
+          "analyze": "Analyze",
+          "summarize": "Summarize",
+          "translate": "Translate",
+          "extract": "Extract",
+          "merge": "Merge",
+          "split": "Split",
+          "filter": "Filter",
+          "sort": "Sort",
+          "calc": "Calc",
+          "gen": "Generate",
+          "recommend": "Recommend",
+          "classify": "Classify"
+        },
+        "noun": {
+          "data": "Data",
+          "market": "Market",
+          "trade": "Trade",
+          "order": "Order",
+          "user": "User",
+          "account": "Account",
+          "report": "Report",
+          "config": "Config",
+          "alert": "Alert",
+          "log": "Log",
+          "metric": "Metric",
+          "signal": "Signal",
+          "news": "News",
+          "price": "Price",
+          "risk": "Risk",
+          "portfolio": "Portfolio",
+          "position": "Position",
+          "kline": "KLine"
+        }
+      },
+      "fallbackTypePrefix": "{{type}}: ",
+      "validate": {
+        "orphan_node": "Node \"{{nodeId}}\" is orphaned (no inbound or outbound edge)",
+        "data_blackhole": "Aggregator node \"{{nodeId}}\" has indegree≥3 but outdegree=0, data has no exit",
+        "dead_branch_scheduled": "Container node \"{{nodeId}}\" ({{type}}) is a dead branch — has children but no input/output edges",
+        "dead_branch_decorative": "Container node \"{{nodeId}}\" (decorative) has no children and no connections",
+        "unconnected_port": "Condition node \"{{nodeId}}\" has unconnected {{missing}} output",
+        "cycle_no_exit": "Nodes [{{nodes}}] form a cycle without a break condition (loopBack)",
+        "self_loop": "Edge {{edgeId}} is a self-loop (source === target)",
+        "duplicate_title": "{{count}} {{type}} nodes share the same title \"{{title}}\"",
+        "workflow_ref_empty": "WorkflowRef node \"{{nodeId}}\" has no target workflow",
+        "workflow_ref_self": "WorkflowRef node \"{{nodeId}}\" references itself",
+        "workflow_ref_depth": "WorkflowRef chain may exceed {{maxDepth}}-level limit; multiple WorkflowRefs point to the same \"{{refId}}\", possible circular reference"
+      }
+    },
+    "templateList": {
+      "moreActions": "More actions for {{name}}",
+      "searchPlaceholder": "Search templates",
+      "tagPlaceholder": "Filter by tag",
+      "typePlaceholder": "Filter by type",
+      "newTemplate": "New template",
+      "preset": "Preset",
+      "custom": "Custom",
+      "noDescription": "No description",
+      "readonly": "Read-only",
+      "view": "View",
+      "edit": "Edit",
+      "versionHistory": "Version history",
+      "duplicate": "Duplicate",
+      "delete": "Delete",
+      "confirmDelete": "Confirm delete",
+      "confirmDeleteMessage": "Are you sure to delete template {{name}}?",
+      "irreversible": "This action is irreversible",
+      "deleted": "Deleted",
+      "deleteFailed": "Delete failed",
+      "copied": "Copied",
+      "copyFailed": "Copy failed",
+      "presetsImported": "Imported",
+      "presetsImportFailed": "Import failed",
+      "importPresetsTitle": "Import built-in experts",
+      "importPresets": "Import",
+      "noTemplates": "No templates",
+      "noMatchFound": "No matching templates"
+    },
+    "saveAsImage": "Save as Image",
+    "exportEmpty": "No nodes to export",
+    "containerNode": {
+      "nodes": "nodes",
+      "branchTimeout": "Branch timeout configured"
+    },
+    "swarmNode": {
+      "agents": "Agents",
+      "rounds": "rounds"
+    },
+    "groupNode": {
+      "untitled": "Group",
+      "folded": "folded"
+    },
+    "phaseSeparator": {
+      "defaultLabel": "Phase"
+    },
+    "canvasTitle": {
+      "clickToRename": "Click to rename"
+    },
+    "legend": {
+      "title": "Workflow Legend",
+      "toggleLabel": "{{action}} legend",
+      "expand": "Expand",
+      "collapse": "Collapse"
+    },
+    "back": "Back",
+    "caseLabel": "Case {{n}}",
+    "paramKey": "param_{{n}}",
+    "subWorkflowLabel": "Sub Workflow",
+    "nodesCount": "{{count}} nodes",
+    "contextMenu": {
+      "label": "Node actions"
+    },
+    "search": {
+      "prev": "Previous match",
+      "next": "Next match",
+      "close": "Close search",
+      "placeholder": "Search nodes..."
+    },
+    "run": "Run",
+    "settings": "Settings"
   },
   "atomicSkill": {
     "entryType": "Тип записи",
@@ -4691,7 +4852,11 @@
     "statusFailed": "Не удалось",
     "statusPaused": "Приостановлено",
     "statusPending": "Ожидание",
-    "statusRunning": "Выполняется"
+    "statusRunning": "Выполняется",
+    "unsavedTitle": "Unsaved changes",
+    "unsavedContent": "You have unsaved changes. Are you sure you want to discard them?",
+    "discard": "Discard",
+    "keepEditing": "Continue editing"
   },
   "rl": {
     "policyDashboard": "Панель политик RL",
@@ -4935,6 +5100,7 @@
     "new": "Новый шаблон",
     "nameRequired": "Пожалуйста, введите название",
     "namePlaceholder": "Имя шаблона",
+    "unnamed": "Без названия",
     "descPlaceholder": "Описание шаблона",
     "contentRequired": "Пожалуйста, введите содержимое шаблона",
     "contentPlaceholder": "Содержимое шаблона с плейсхолдерами {variable}",
@@ -6422,7 +6588,9 @@
       "loraConfig": "Конфигурация LoRA",
       "training": "Обучение"
     },
-    "title": "Дообучение модели"
+    "title": "Дообучение модели",
+    "trainingJobCreated": "Training job created successfully",
+    "trainingJobFailed": "Failed to create training job"
   },
   "research": {
     "mockFinding": "Фиктивный результат исследования",
@@ -7154,7 +7322,7 @@
   },
   "chat:workflow": {
     "templateList": {
-      "presetsImported": "导入成功"
+      "presetsImported": "Успешно импортировано"
     }
   },
   "report": {

@@ -5537,6 +5537,7 @@
     "new": "新建模板",
     "nameRequired": "请输入名称",
     "namePlaceholder": "模板名称",
+    "unnamed": "未命名",
     "descPlaceholder": "模板描述",
     "contentRequired": "请输入模板内容",
     "contentPlaceholder": "模板内容，支持 {variable} 占位符",
@@ -7463,5 +7464,10 @@
     "recordAudio": "录制音频",
     "takePhoto": "拍照",
     "uploadFile": "上传文件"
+  },
+  "chat:workflow": {
+    "templateList": {
+      "presetsImported": "导入成功"
+    }
   }
 }

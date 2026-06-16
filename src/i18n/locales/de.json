@@ -2829,7 +2829,9 @@
     "conflictApp1": "Feishu/WeChat/Enterprise WeChat/DingTalk",
     "conflictApp2": "QQ/WeChat",
     "conflictApp3": "WeChat (Windows)",
-    "conflictError": "Tastenkombination wird bereits verwendet, bitte andere Tasten wählen"
+    "conflictError": "Tastenkombination wird bereits verwendet, bitte andere Tasten wählen",
+    "invalidShortcut": "Invalid shortcut format",
+    "shortcutNotSupported": "System does not support this shortcut combination"
   },
   "tray": {
     "show": "Anzeigen",
@@ -3909,7 +3911,8 @@
       "promptAppliedToNode": "Prompt auf Knoten angewendet",
       "replaceMode": "Ersetzungsmodus",
       "retry": "Wiederholen",
-      "toolsMode": "Werkzeugmodus"
+      "toolsMode": "Werkzeugmodus",
+      "lockedByExpert": "System prompt is provided by the selected expert and cannot be modified"
     },
     "previewInDevelopment": "Die Vorschaufunktion befindet sich in der Entwicklung",
     "publishInDevelopment": "Die Veröffentlichungsfunktion befindet sich in der Entwicklung",
@@ -3977,7 +3980,8 @@
       "searchNodes": "Knoten suchen...",
       "legacySuffix": "(veraltet)",
       "templatesTab": "Vorlagen",
-      "searchTemplates": "Vorlagen suchen..."
+      "searchTemplates": "Vorlagen suchen...",
+      "layout": "Layout"
     },
     "preset": "Voreinstellung",
     "custom": "Benutzerdefiniert",
@@ -4486,7 +4490,13 @@
       "email": "E-Mail",
       "debate": "Debatte",
       "databaseQuery": "Datenbankabfrage",
-      "switch": "Weiche"
+      "switch": "Weiche",
+      "swarm": "Swarm",
+      "storage": "Storage",
+      "workflowRef": "Workflow Ref",
+      "phaseSeparator": "Phase Separator",
+      "groupFrame": "Group",
+      "toolSetSelector": "Tool Set"
     },
     "undo": "Rückgängig",
     "redo": "Wiederholen",
@@ -4564,7 +4574,10 @@
       "routingPrompt": "Routing-Prompt",
       "routingPromptPlaceholder": "Beschreiben Sie das Routing zwischen Zweigen...",
       "routingModel": "Routing-Modell",
-      "routingModelPlaceholder": "Modell für Routing-Entscheidungen auswählen"
+      "routingModelPlaceholder": "Modell für Routing-Entscheidungen auswählen",
+      "deleteNode": "Delete this node",
+      "edgeTypeDebateRound": "Debate Round",
+      "edgeTypeGrouping": "Grouping"
     },
     "statusBar": {
       "unsaved": "Ungespeichert",
@@ -4777,14 +4790,16 @@
         "continueHint": "Schleifen-Fortsetzungsbedingung angeben, z. B. `index < 10`."
       },
       "parallel": {
-        "branchesHint": "Eingaben und gewünschte Ausgaben paralleler Zweige beschreiben."
+        "branchesHint": "Eingaben und gewünschte Ausgaben paralleler Zweige beschreiben.",
+        "systemPrompt": "You are a workflow parallel-branch design expert. Based on the user's description, output the parallel node's `branches` array, each item as {{schema}}. Output only the JSON array string — no explanations or Markdown wrappers."
       },
       "subWorkflow": {
         "needPick": "Wählen Sie einen vorhandenen Workflow oder beschreiben Sie einen neuen.",
         "parseFailed": "Parsing fehlgeschlagen, Beschreibung prüfen."
       },
       "switch": {
-        "casesHint": "Alle Zweige und Auslöser auflisten."
+        "casesHint": "Alle Zweige und Auslöser auflisten.",
+        "systemPrompt": "You are a workflow branching design expert. Based on the user's description, output the switch node's `cases` array, each item as {{schema}}. Output only the JSON array string — no explanations or Markdown wrappers."
       },
       "trigger": {
         "cronHint": "Standard-Cron-Ausdruck, z. B. `0 9 * * *`."
@@ -5068,7 +5083,153 @@
       "topic_var": "Themenvariable"
     },
     "searchNodes": "Knoten suchen",
-    "validationWarnings": "Workflow has {{count}} warning(s):\n{{details}}"
+    "validationWarnings": "Workflow has {{count}} warning(s):\n{{details}}",
+    "loopBackCycleDetected": "Loop-back edge would form a cycle, please adjust the target node",
+    "nodeKind": {
+      "input": "Input",
+      "output": "Output",
+      "tool": "Tool",
+      "agent": "AI Agent",
+      "condition": "Routing",
+      "loop": "Loop",
+      "container": "Container",
+      "storage": "Storage"
+    },
+    "layout": {
+      "suggestTitle": {
+        "verb": {
+          "get": "Get",
+          "fetch": "Fetch",
+          "query": "Query",
+          "search": "Search",
+          "create": "Create",
+          "update": "Update",
+          "delete": "Delete",
+          "send": "Send",
+          "notify": "Notify",
+          "parse": "Parse",
+          "transform": "Transform",
+          "validate": "Validate",
+          "analyze": "Analyze",
+          "summarize": "Summarize",
+          "translate": "Translate",
+          "extract": "Extract",
+          "merge": "Merge",
+          "split": "Split",
+          "filter": "Filter",
+          "sort": "Sort",
+          "calc": "Calc",
+          "gen": "Generate",
+          "recommend": "Recommend",
+          "classify": "Classify"
+        },
+        "noun": {
+          "data": "Data",
+          "market": "Market",
+          "trade": "Trade",
+          "order": "Order",
+          "user": "User",
+          "account": "Account",
+          "report": "Report",
+          "config": "Config",
+          "alert": "Alert",
+          "log": "Log",
+          "metric": "Metric",
+          "signal": "Signal",
+          "news": "News",
+          "price": "Price",
+          "risk": "Risk",
+          "portfolio": "Portfolio",
+          "position": "Position",
+          "kline": "KLine"
+        }
+      },
+      "fallbackTypePrefix": "{{type}}: ",
+      "validate": {
+        "orphan_node": "Node \"{{nodeId}}\" is orphaned (no inbound or outbound edge)",
+        "data_blackhole": "Aggregator node \"{{nodeId}}\" has indegree≥3 but outdegree=0, data has no exit",
+        "dead_branch_scheduled": "Container node \"{{nodeId}}\" ({{type}}) is a dead branch — has children but no input/output edges",
+        "dead_branch_decorative": "Container node \"{{nodeId}}\" (decorative) has no children and no connections",
+        "unconnected_port": "Condition node \"{{nodeId}}\" has unconnected {{missing}} output",
+        "cycle_no_exit": "Nodes [{{nodes}}] form a cycle without a break condition (loopBack)",
+        "self_loop": "Edge {{edgeId}} is a self-loop (source === target)",
+        "duplicate_title": "{{count}} {{type}} nodes share the same title \"{{title}}\"",
+        "workflow_ref_empty": "WorkflowRef node \"{{nodeId}}\" has no target workflow",
+        "workflow_ref_self": "WorkflowRef node \"{{nodeId}}\" references itself",
+        "workflow_ref_depth": "WorkflowRef chain may exceed {{maxDepth}}-level limit; multiple WorkflowRefs point to the same \"{{refId}}\", possible circular reference"
+      }
+    },
+    "templateList": {
+      "moreActions": "More actions for {{name}}",
+      "searchPlaceholder": "Search templates",
+      "tagPlaceholder": "Filter by tag",
+      "typePlaceholder": "Filter by type",
+      "newTemplate": "New template",
+      "preset": "Preset",
+      "custom": "Custom",
+      "noDescription": "No description",
+      "readonly": "Read-only",
+      "view": "View",
+      "edit": "Edit",
+      "versionHistory": "Version history",
+      "duplicate": "Duplicate",
+      "delete": "Delete",
+      "confirmDelete": "Confirm delete",
+      "confirmDeleteMessage": "Are you sure to delete template {{name}}?",
+      "irreversible": "This action is irreversible",
+      "deleted": "Deleted",
+      "deleteFailed": "Delete failed",
+      "copied": "Copied",
+      "copyFailed": "Copy failed",
+      "presetsImported": "Imported",
+      "presetsImportFailed": "Import failed",
+      "importPresetsTitle": "Import built-in experts",
+      "importPresets": "Import",
+      "noTemplates": "No templates",
+      "noMatchFound": "No matching templates"
+    },
+    "saveAsImage": "Save as Image",
+    "exportEmpty": "No nodes to export",
+    "containerNode": {
+      "nodes": "nodes",
+      "branchTimeout": "Branch timeout configured"
+    },
+    "swarmNode": {
+      "agents": "Agents",
+      "rounds": "rounds"
+    },
+    "groupNode": {
+      "untitled": "Group",
+      "folded": "folded"
+    },
+    "phaseSeparator": {
+      "defaultLabel": "Phase"
+    },
+    "canvasTitle": {
+      "clickToRename": "Click to rename"
+    },
+    "legend": {
+      "title": "Workflow Legend",
+      "toggleLabel": "{{action}} legend",
+      "expand": "Expand",
+      "collapse": "Collapse"
+    },
+    "back": "Back",
+    "caseLabel": "Case {{n}}",
+    "paramKey": "param_{{n}}",
+    "subWorkflowLabel": "Sub Workflow",
+    "nodesCount": "{{count}} nodes",
+    "contextMenu": {
+      "label": "Node actions"
+    },
+    "search": {
+      "prev": "Previous match",
+      "next": "Next match",
+      "close": "Close search",
+      "placeholder": "Search nodes..."
+    },
+    "run": "Run",
+    "settings": "Settings"
   },
   "atomicSkill": {
     "entryType": "Eintragstyp",
@@ -5122,7 +5283,11 @@
     "statusFailed": "Fehlgeschlagen",
     "statusPaused": "Pausiert",
     "statusPending": "Ausstehend",
-    "statusRunning": "Läuft"
+    "statusRunning": "Läuft",
+    "unsavedTitle": "Unsaved changes",
+    "unsavedContent": "You have unsaved changes. Are you sure you want to discard them?",
+    "discard": "Discard",
+    "keepEditing": "Continue editing"
   },
   "rl": {
     "policyDashboard": "RL-Richtlinien-Dashboard",
@@ -5366,6 +5531,7 @@
     "new": "Neue Vorlage",
     "nameRequired": "Bitte geben Sie einen Namen ein",
     "namePlaceholder": "Vorlagenname",
+    "unnamed": "Unbenannt",
     "descPlaceholder": "Vorlagenbeschreibung",
     "contentRequired": "Bitte geben Sie den Vorlageninhalt ein",
     "contentPlaceholder": "Vorlageninhalt mit {variable}-Platzhaltern",
@@ -6422,7 +6588,9 @@
       "loraConfig": "LoRA-Konfiguration",
       "training": "Training"
     },
-    "title": "Modell-Feinabstimmung"
+    "title": "Modell-Feinabstimmung",
+    "trainingJobCreated": "Training job created successfully",
+    "trainingJobFailed": "Failed to create training job"
   },
   "research": {
     "mockFinding": "Simuliertes Forschungsergebnis",
@@ -7154,7 +7322,7 @@
   },
   "chat:workflow": {
     "templateList": {
-      "presetsImported": "Import erfolgreich"
+      "presetsImported": "Importiert"
     }
   },
   "report": {

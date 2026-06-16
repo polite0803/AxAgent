@@ -5188,6 +5188,7 @@
     "new": "New Template",
     "nameRequired": "Please enter a name",
     "namePlaceholder": "Template name",
+    "unnamed": "Unnamed",
     "descPlaceholder": "Template description",
     "contentRequired": "Please enter template content",
     "contentPlaceholder": "Template content with {variable} placeholders",

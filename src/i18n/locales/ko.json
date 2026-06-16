@@ -2829,7 +2829,9 @@
     "conflictApp1": "Feishu/WeChat/Enterprise WeChat/DingTalk",
     "conflictApp2": "QQ/WeChat",
     "conflictApp3": "WeChat (Windows)",
-    "conflictError": "단축키가 다른 애플리케이션에서 사용 중입니다. 다른 키를 시도하세요"
+    "conflictError": "단축키가 다른 애플리케이션에서 사용 중입니다. 다른 키를 시도하세요",
+    "invalidShortcut": "Invalid shortcut format",
+    "shortcutNotSupported": "System does not support this shortcut combination"
   },
   "tray": {
     "show": "표시",
@@ -2851,7 +2853,7 @@
     "proxyTestFailed": "프록시 테스트에 실패했습니다",
     "invalidFormat": "잘못된 형식",
     "page": "오류",
-    "message": "错误",
+    "message": "오류",
     "pageNotFound": "죄송합니다, 방문하신 페이지가 존재하지 않습니다."
   },
   "desktop": {
@@ -3478,7 +3480,8 @@
       "promptAppliedToNode": "프롬프트가 노드에 적용되었습니다",
       "replaceMode": "대체 모드",
       "retry": "재시도",
-      "toolsMode": "도구 모드"
+      "toolsMode": "도구 모드",
+      "lockedByExpert": "System prompt is provided by the selected expert and cannot be modified"
     },
     "previewInDevelopment": "미리보기 기능은 개발 중입니다",
     "publishInDevelopment": "게시 기능은 개발 중입니다",
@@ -3546,7 +3549,8 @@
       "searchNodes": "노드 검색...",
       "legacySuffix": "(레거시)",
       "templatesTab": "템플릿",
-      "searchTemplates": "템플릿 검색..."
+      "searchTemplates": "템플릿 검색...",
+      "layout": "Layout"
     },
     "preset": "프리셋",
     "custom": "사용자 정의",
@@ -4055,7 +4059,13 @@
       "email": "이메일",
       "debate": "토론",
       "databaseQuery": "데이터베이스 쿼리",
-      "switch": "스위치"
+      "switch": "스위치",
+      "swarm": "Swarm",
+      "storage": "Storage",
+      "workflowRef": "Workflow Ref",
+      "phaseSeparator": "Phase Separator",
+      "groupFrame": "Group",
+      "toolSetSelector": "Tool Set"
     },
     "undo": "실행 취소",
     "redo": "다시 실행",
@@ -4133,7 +4143,10 @@
       "routingPrompt": "라우팅 프롬프트",
       "routingPromptPlaceholder": "브랜치 간 라우팅 방법 설명...",
       "routingModel": "라우팅 모델",
-      "routingModelPlaceholder": "라우팅 결정에 사용할 모델 선택"
+      "routingModelPlaceholder": "라우팅 결정에 사용할 모델 선택",
+      "deleteNode": "Delete this node",
+      "edgeTypeDebateRound": "Debate Round",
+      "edgeTypeGrouping": "Grouping"
     },
     "statusBar": {
       "unsaved": "저장 안 됨",
@@ -4229,7 +4242,7 @@
     "mergeNode": {
       "all": "모두",
       "title": "병합",
-      "any": "任意",
+      "any": "임의",
       "race": "경합",
       "majority": "다수",
       "inputs": "입력 수",
@@ -4346,14 +4359,16 @@
         "continueHint": "루프 계속 조건을 제공하세요 (예: `index < 10`)."
       },
       "parallel": {
-        "branchesHint": "병렬 분기 입력과 목표 출력을 설명하세요."
+        "branchesHint": "병렬 분기 입력과 목표 출력을 설명하세요.",
+        "systemPrompt": "You are a workflow parallel-branch design expert. Based on the user's description, output the parallel node's `branches` array, each item as {{schema}}. Output only the JSON array string — no explanations or Markdown wrappers."
       },
       "subWorkflow": {
         "needPick": "기존 워크플로우를 선택하거나 새 워크플로우를 설명하세요.",
         "parseFailed": "파싱 실패, 설명을 확인하세요."
       },
       "switch": {
-        "casesHint": "모든 분기와 트리거 조건을 나열하세요."
+        "casesHint": "모든 분기와 트리거 조건을 나열하세요.",
+        "systemPrompt": "You are a workflow branching design expert. Based on the user's description, output the switch node's `cases` array, each item as {{schema}}. Output only the JSON array string — no explanations or Markdown wrappers."
       },
       "trigger": {
         "cronHint": "표준 cron 표현식 (예: `0 9 * * *`)."
@@ -4637,7 +4652,153 @@
       "topic_var": "주제 변수"
     },
     "searchNodes": "노드 검색",
-    "validationWarnings": "Workflow has {{count}} warning(s):\n{{details}}"
+    "validationWarnings": "Workflow has {{count}} warning(s):\n{{details}}",
+    "loopBackCycleDetected": "Loop-back edge would form a cycle, please adjust the target node",
+    "nodeKind": {
+      "input": "Input",
+      "output": "Output",
+      "tool": "Tool",
+      "agent": "AI Agent",
+      "condition": "Routing",
+      "loop": "Loop",
+      "container": "Container",
+      "storage": "Storage"
+    },
+    "layout": {
+      "suggestTitle": {
+        "verb": {
+          "get": "Get",
+          "fetch": "Fetch",
+          "query": "Query",
+          "search": "Search",
+          "create": "Create",
+          "update": "Update",
+          "delete": "Delete",
+          "send": "Send",
+          "notify": "Notify",
+          "parse": "Parse",
+          "transform": "Transform",
+          "validate": "Validate",
+          "analyze": "Analyze",
+          "summarize": "Summarize",
+          "translate": "Translate",
+          "extract": "Extract",
+          "merge": "Merge",
+          "split": "Split",
+          "filter": "Filter",
+          "sort": "Sort",
+          "calc": "Calc",
+          "gen": "Generate",
+          "recommend": "Recommend",
+          "classify": "Classify"
+        },
+        "noun": {
+          "data": "Data",
+          "market": "Market",
+          "trade": "Trade",
+          "order": "Order",
+          "user": "User",
+          "account": "Account",
+          "report": "Report",
+          "config": "Config",
+          "alert": "Alert",
+          "log": "Log",
+          "metric": "Metric",
+          "signal": "Signal",
+          "news": "News",
+          "price": "Price",
+          "risk": "Risk",
+          "portfolio": "Portfolio",
+          "position": "Position",
+          "kline": "KLine"
+        }
+      },
+      "fallbackTypePrefix": "{{type}}: ",
+      "validate": {
+        "orphan_node": "Node \"{{nodeId}}\" is orphaned (no inbound or outbound edge)",
+        "data_blackhole": "Aggregator node \"{{nodeId}}\" has indegree≥3 but outdegree=0, data has no exit",
+        "dead_branch_scheduled": "Container node \"{{nodeId}}\" ({{type}}) is a dead branch — has children but no input/output edges",
+        "dead_branch_decorative": "Container node \"{{nodeId}}\" (decorative) has no children and no connections",
+        "unconnected_port": "Condition node \"{{nodeId}}\" has unconnected {{missing}} output",
+        "cycle_no_exit": "Nodes [{{nodes}}] form a cycle without a break condition (loopBack)",
+        "self_loop": "Edge {{edgeId}} is a self-loop (source === target)",
+        "duplicate_title": "{{count}} {{type}} nodes share the same title \"{{title}}\"",
+        "workflow_ref_empty": "WorkflowRef node \"{{nodeId}}\" has no target workflow",
+        "workflow_ref_self": "WorkflowRef node \"{{nodeId}}\" references itself",
+        "workflow_ref_depth": "WorkflowRef chain may exceed {{maxDepth}}-level limit; multiple WorkflowRefs point to the same \"{{refId}}\", possible circular reference"
+      }
+    },
+    "templateList": {
+      "moreActions": "More actions for {{name}}",
+      "searchPlaceholder": "Search templates",
+      "tagPlaceholder": "Filter by tag",
+      "typePlaceholder": "Filter by type",
+      "newTemplate": "New template",
+      "preset": "Preset",
+      "custom": "Custom",
+      "noDescription": "No description",
+      "readonly": "Read-only",
+      "view": "View",
+      "edit": "Edit",
+      "versionHistory": "Version history",
+      "duplicate": "Duplicate",
+      "delete": "Delete",
+      "confirmDelete": "Confirm delete",
+      "confirmDeleteMessage": "Are you sure to delete template {{name}}?",
+      "irreversible": "This action is irreversible",
+      "deleted": "Deleted",
+      "deleteFailed": "Delete failed",
+      "copied": "Copied",
+      "copyFailed": "Copy failed",
+      "presetsImported": "Imported",
+      "presetsImportFailed": "Import failed",
+      "importPresetsTitle": "Import built-in experts",
+      "importPresets": "Import",
+      "noTemplates": "No templates",
+      "noMatchFound": "No matching templates"
+    },
+    "saveAsImage": "Save as Image",
+    "exportEmpty": "No nodes to export",
+    "containerNode": {
+      "nodes": "nodes",
+      "branchTimeout": "Branch timeout configured"
+    },
+    "swarmNode": {
+      "agents": "Agents",
+      "rounds": "rounds"
+    },
+    "groupNode": {
+      "untitled": "Group",
+      "folded": "folded"
+    },
+    "phaseSeparator": {
+      "defaultLabel": "Phase"
+    },
+    "canvasTitle": {
+      "clickToRename": "Click to rename"
+    },
+    "legend": {
+      "title": "Workflow Legend",
+      "toggleLabel": "{{action}} legend",
+      "expand": "Expand",
+      "collapse": "Collapse"
+    },
+    "back": "Back",
+    "caseLabel": "Case {{n}}",
+    "paramKey": "param_{{n}}",
+    "subWorkflowLabel": "Sub Workflow",
+    "nodesCount": "{{count}} nodes",
+    "contextMenu": {
+      "label": "Node actions"
+    },
+    "search": {
+      "prev": "Previous match",
+      "next": "Next match",
+      "close": "Close search",
+      "placeholder": "Search nodes..."
+    },
+    "run": "Run",
+    "settings": "Settings"
   },
   "atomicSkill": {
     "entryType": "항목 유형",
@@ -4691,7 +4852,11 @@
     "statusFailed": "실패",
     "statusPaused": "일시정지",
     "statusPending": "대기 중",
-    "statusRunning": "실행 중"
+    "statusRunning": "실행 중",
+    "unsavedTitle": "Unsaved changes",
+    "unsavedContent": "You have unsaved changes. Are you sure you want to discard them?",
+    "discard": "Discard",
+    "keepEditing": "Continue editing"
   },
   "rl": {
     "policyDashboard": "RL 정책 대시보드",
@@ -4935,6 +5100,7 @@
     "new": "새 템플릿",
     "nameRequired": "이름을 입력하세요",
     "namePlaceholder": "템플릿 이름",
+    "unnamed": "이름 없음",
     "descPlaceholder": "템플릿 설명",
     "contentRequired": "템플릿 내용을 입력하세요",
     "contentPlaceholder": "{variable} 자리표시자가 있는 템플릿 내용",
@@ -6422,7 +6588,9 @@
       "loraConfig": "LoRA 설정",
       "training": "훈련"
     },
-    "title": "모델 파인튜닝"
+    "title": "모델 파인튜닝",
+    "trainingJobCreated": "Training job created successfully",
+    "trainingJobFailed": "Failed to create training job"
   },
   "research": {
     "mockFinding": "모의 연구 결과",
@@ -7154,7 +7322,7 @@
   },
   "chat:workflow": {
     "templateList": {
-      "presetsImported": "导入成功"
+      "presetsImported": "가져오기 성공"
     }
   },
   "report": {

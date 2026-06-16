@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 // 新用户引导状态管理
+import i18n from "@/i18n";
 import { invoke } from "@/lib/invoke";
 import { useSettingsStore } from "@/stores/feature/settingsStore";
 import { create } from "zustand";
@@ -88,7 +89,7 @@ export const useOnboardingStore = create<OnboardingStore>((set, get) => ({
       );
       return result.message;
     } catch (e) {
-      return `预设应用失败: ${e}`;
+      return `${i18n.t("onboarding.presetApplyFailed", "预设应用失败")}: ${e}`;
     }
   },
 

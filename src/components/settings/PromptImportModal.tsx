@@ -65,7 +65,7 @@ export function PromptImportModal({ open, onClose }: PromptImportModalProps) {
           const parsed = JSON.parse(text);
           inputs = Array.isArray(parsed)
             ? parsed.map((p: Record<string, unknown>) => ({
-              name: (p.name as string) || "未命名",
+              name: (p.name as string) || t("promptTemplate.unnamed", "未命名"),
               description: p.description as string | undefined,
               content: (p.content as string) || "",
               variablesSchema: p.variablesSchema as string | undefined,
