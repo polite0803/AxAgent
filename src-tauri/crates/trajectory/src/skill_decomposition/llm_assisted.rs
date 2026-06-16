@@ -67,10 +67,12 @@ pub trait LlmAssistedParser: Send + Sync {
     fn parse_with_llm(&self, request: &LlmParseRequest) -> LlmParseFuture<'_>;
 }
 
-pub struct LlmParsePrompt;
+#[allow(dead_code)]
+pub(crate) struct LlmParsePrompt;
 
+#[allow(dead_code)]
 impl LlmParsePrompt {
-    pub fn build_prompt(request: &LlmParseRequest) -> String {
+    pub(crate) fn build_prompt(request: &LlmParseRequest) -> String {
         let context = &request.context;
         let tools_list = context.available_tools.join(", ");
 

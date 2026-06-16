@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+use axagent_harness::{resolve_base_url, resolve_base_url_for_type, resolve_chat_url};
 use axagent_providers::*;
 
 // ── URL resolution tests ──────────────────────────────────────────

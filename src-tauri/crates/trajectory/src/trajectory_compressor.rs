@@ -107,6 +107,7 @@ impl TrajectoryCompressor {
         }
     }
 
+    #[allow(dead_code)]
     pub fn to_jsonl(
         &self,
         trajectories: &[CompressedTrajectory],

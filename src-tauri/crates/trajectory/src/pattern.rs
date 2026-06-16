@@ -76,7 +76,7 @@ impl PatternType {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct DetectedPattern {
+pub(crate) struct DetectedPattern {
     pub pattern_type: PatternType,
     pub name: String,
     pub description: String,
@@ -87,7 +87,7 @@ pub struct DetectedPattern {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct PatternStep {
+pub(crate) struct PatternStep {
     pub step_index: usize,
     pub role: String,
     pub content_preview: String,

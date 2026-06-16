@@ -1445,15 +1445,17 @@ fn model_to_msg(m: &trajectory_messages::Model) -> Message {
 use std::collections::VecDeque;
 use tokio::sync::mpsc::{self, Sender};
 
-pub struct TrajectoryQueue {
+#[allow(dead_code)]
+pub(crate) struct TrajectoryQueue {
     storage: Arc<TrajectoryStorage>,
     sender: Sender<Trajectory>,
     handle: tokio::task::JoinHandle<()>,
     shutdown_tx: Option<tokio::sync::oneshot::Sender<()>>,
 }
 
+#[allow(dead_code)]
 impl TrajectoryQueue {
-    pub fn new(storage: Arc<TrajectoryStorage>, buffer_size: usize) -> Self {
+    pub(crate) fn new(storage: Arc<TrajectoryStorage>, buffer_size: usize) -> Self {
         let (tx, mut rx) = mpsc::channel::<Trajectory>(buffer_size);
         let (shutdown_tx, mut shutdown_rx) = tokio::sync::oneshot::channel::<()>();
         let sc = storage.clone();
@@ -1476,10 +1478,10 @@ impl TrajectoryQueue {
         }
     }
 
-    pub fn try_enqueue(&self, t: Trajectory) -> bool {
+    pub(crate) fn try_enqueue(&self, t: Trajectory) -> bool {
         self.sender.try_send(t).is_ok()
     }
-    pub async fn enqueue(
+    pub(crate) async fn enqueue(
         &self,
         t: Trajectory,
     ) -> Result<(), tokio::sync::mpsc::error::TrySendError<Trajectory>> {
@@ -1488,10 +1490,10 @@ impl TrajectoryQueue {
             .await
             .map_err(|_| tokio::sync::mpsc::error::TrySendError::Closed(t))
     }
-    pub fn storage(&self) -> &Arc<TrajectoryStorage> {
+    pub(crate) fn storage(&self) -> &Arc<TrajectoryStorage> {
         &self.storage
     }
-    pub async fn shutdown(self) {
+    pub(crate) async fn shutdown(self) {
         if let Some(tx) = self.shutdown_tx {
             let _ = tx.send(());
         }
@@ -1499,6 +1501,7 @@ impl TrajectoryQueue {
     }
 }
 
+#[allow(dead_code)]
 async fn flush(storage: &Arc<TrajectoryStorage>, batch: &mut VecDeque<Trajectory>) {
     while let Some(t) = batch.pop_front() {
         if let Err(e) = storage.save_trajectory(&t) {

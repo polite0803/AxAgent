@@ -8,7 +8,8 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct UserStyleProfile {
+#[allow(dead_code)]
+pub(crate) struct UserStyleProfile {
     pub id: String,
     pub user_id: String,
     pub code_style_vector: StyleVector,
@@ -22,7 +23,8 @@ pub struct UserStyleProfile {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct LearnedPattern {
+#[allow(dead_code)]
+pub(crate) struct LearnedPattern {
     pub id: String,
     pub pattern_type: LearnedPatternType,
     pub original: String,
@@ -33,7 +35,8 @@ pub struct LearnedPattern {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub enum LearnedPatternType {
+#[allow(dead_code)]
+pub(crate) enum LearnedPatternType {
     Naming,
     Formatting,
     Comment,
@@ -41,6 +44,7 @@ pub enum LearnedPatternType {
     Document,
 }
 
+#[allow(dead_code)]
 impl UserStyleProfile {
     pub fn new(user_id: String) -> Self {
         let now = Utc::now();
@@ -118,7 +122,8 @@ impl Default for UserStyleProfile {
     }
 }
 
-pub struct StyleMigrator {
+#[allow(dead_code)]
+pub(crate) struct StyleMigrator {
     vectorizer: StyleVectorizer,
     extractor: StyleExtractor,
     applier: StyleApplier,
@@ -126,6 +131,7 @@ pub struct StyleMigrator {
     default_profile: UserStyleProfile,
 }
 
+#[allow(dead_code)]
 impl StyleMigrator {
     pub fn new() -> Self {
         Self {
@@ -320,13 +326,15 @@ impl Default for StyleMigrator {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct StyleMigratorStats {
+#[allow(dead_code)]
+pub(crate) struct StyleMigratorStats {
     pub total_profiles: usize,
     pub total_samples: u32,
     pub average_confidence: f32,
 }
 
-pub struct StyleMigrationResult {
+#[allow(dead_code)]
+pub(crate) struct StyleMigrationResult {
     pub original: String,
     pub transformed: String,
     pub style_vector: StyleVector,
@@ -334,6 +342,7 @@ pub struct StyleMigrationResult {
     pub confidence: f32,
 }
 
+#[allow(dead_code)]
 impl StyleMigrationResult {
     pub fn new(original: String, transformed: String, style_vector: StyleVector) -> Self {
         let confidence = style_vector.source_confidence;

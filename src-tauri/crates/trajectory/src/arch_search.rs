@@ -17,7 +17,7 @@ use uuid::Uuid;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
-pub enum AgentNodeType {
+pub(crate) enum AgentNodeType {
     LlmCall,
     ToolInvocation,
     Condition,
@@ -29,17 +29,17 @@ pub enum AgentNodeType {
 }
 
 impl AgentNodeType {
-    pub fn is_control_flow(&self) -> bool {
+    pub(crate) fn is_control_flow(&self) -> bool {
         matches!(self, Self::Condition | Self::Parallel | Self::Sequential)
     }
 
-    pub fn is_memory(&self) -> bool {
+    pub(crate) fn is_memory(&self) -> bool {
         matches!(self, Self::MemoryRead | Self::MemoryWrite)
     }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct AgentNode {
+pub(crate) struct AgentNode {
     pub id: String,
     pub node_type: AgentNodeType,
     pub config: HashMap<String, String>,
@@ -47,7 +47,7 @@ pub struct AgentNode {
 }
 
 impl AgentNode {
-    pub fn new(node_type: AgentNodeType) -> Self {
+    pub(crate) fn new(node_type: AgentNodeType) -> Self {
         Self {
             id: Uuid::new_v4().to_string(),
             node_type,
@@ -56,26 +56,26 @@ impl AgentNode {
         }
     }
 
-    pub fn with_config(mut self, key: impl Into<String>, value: impl Into<String>) -> Self {
+    pub(crate) fn with_config(mut self, key: impl Into<String>, value: impl Into<String>) -> Self {
         self.config.insert(key.into(), value.into());
         self
     }
 
-    pub fn with_prompt_template(mut self, template: impl Into<String>) -> Self {
+    pub(crate) fn with_prompt_template(mut self, template: impl Into<String>) -> Self {
         self.prompt_template = Some(template.into());
         self
     }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct AgentEdge {
+pub(crate) struct AgentEdge {
     pub source_id: String,
     pub target_id: String,
     pub condition: Option<String>,
 }
 
 impl AgentEdge {
-    pub fn new(source_id: impl Into<String>, target_id: impl Into<String>) -> Self {
+    pub(crate) fn new(source_id: impl Into<String>, target_id: impl Into<String>) -> Self {
         Self {
             source_id: source_id.into(),
             target_id: target_id.into(),
@@ -83,14 +83,14 @@ impl AgentEdge {
         }
     }
 
-    pub fn with_condition(mut self, condition: impl Into<String>) -> Self {
+    pub(crate) fn with_condition(mut self, condition: impl Into<String>) -> Self {
         self.condition = Some(condition.into());
         self
     }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct AgentArchitecture {
+pub(crate) struct AgentArchitecture {
     pub id: String,
     pub name: String,
     pub nodes: Vec<AgentNode>,
@@ -100,7 +100,7 @@ pub struct AgentArchitecture {
 }
 
 impl AgentArchitecture {
-    pub fn new(name: impl Into<String>) -> Self {
+    pub(crate) fn new(name: impl Into<String>) -> Self {
         Self {
             id: Uuid::new_v4().to_string(),
             name: name.into(),
@@ -111,29 +111,29 @@ impl AgentArchitecture {
         }
     }
 
-    pub fn add_node(&mut self, node: AgentNode) -> String {
+    pub(crate) fn add_node(&mut self, node: AgentNode) -> String {
         let id = node.id.clone();
         self.nodes.push(node);
         id
     }
 
-    pub fn add_edge(&mut self, edge: AgentEdge) {
+    pub(crate) fn add_edge(&mut self, edge: AgentEdge) {
         self.edges.push(edge);
     }
 
-    pub fn get_node(&self, id: &str) -> Option<&AgentNode> {
+    pub(crate) fn get_node(&self, id: &str) -> Option<&AgentNode> {
         self.nodes.iter().find(|n| n.id == id)
     }
 
-    pub fn get_node_mut(&mut self, id: &str) -> Option<&mut AgentNode> {
+    pub(crate) fn get_node_mut(&mut self, id: &str) -> Option<&mut AgentNode> {
         self.nodes.iter_mut().find(|n| n.id == id)
     }
 
-    pub fn node_ids(&self) -> HashSet<&str> {
+    pub(crate) fn node_ids(&self) -> HashSet<&str> {
         self.nodes.iter().map(|n| n.id.as_str()).collect()
     }
 
-    pub fn successors(&self, node_id: &str) -> Vec<&str> {
+    pub(crate) fn successors(&self, node_id: &str) -> Vec<&str> {
         self.edges
             .iter()
             .filter(|e| e.source_id == node_id)
@@ -141,7 +141,7 @@ impl AgentArchitecture {
             .collect()
     }
 
-    pub fn predecessors(&self, node_id: &str) -> Vec<&str> {
+    pub(crate) fn predecessors(&self, node_id: &str) -> Vec<&str> {
         self.edges
             .iter()
             .filter(|e| e.target_id == node_id)
@@ -149,7 +149,7 @@ impl AgentArchitecture {
             .collect()
     }
 
-    pub fn root_nodes(&self) -> Vec<&AgentNode> {
+    pub(crate) fn root_nodes(&self) -> Vec<&AgentNode> {
         let has_incoming: HashSet<&str> = self.edges.iter().map(|e| e.target_id.as_str()).collect();
         self.nodes
             .iter()
@@ -157,7 +157,7 @@ impl AgentArchitecture {
             .collect()
     }
 
-    pub fn leaf_nodes(&self) -> Vec<&AgentNode> {
+    pub(crate) fn leaf_nodes(&self) -> Vec<&AgentNode> {
         let has_outgoing: HashSet<&str> = self.edges.iter().map(|e| e.source_id.as_str()).collect();
         self.nodes
             .iter()
@@ -165,7 +165,7 @@ impl AgentArchitecture {
             .collect()
     }
 
-    pub fn connected_components(&self) -> Vec<HashSet<String>> {
+    pub(crate) fn connected_components(&self) -> Vec<HashSet<String>> {
         let mut parent: HashMap<&str, &str> = HashMap::new();
         for node in &self.nodes {
             parent.insert(&node.id, &node.id);
@@ -192,7 +192,7 @@ impl AgentArchitecture {
         components.into_values().collect()
     }
 
-    pub fn node_type_diversity(&self) -> f64 {
+    pub(crate) fn node_type_diversity(&self) -> f64 {
         if self.nodes.is_empty() {
             return 0.0;
         }
@@ -206,7 +206,7 @@ impl AgentArchitecture {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ArchitectureSearchConfig {
+pub(crate) struct ArchitectureSearchConfig {
     pub population_size: usize,
     pub elite_count: usize,
     pub max_generations: u32,
@@ -231,14 +231,14 @@ impl Default for ArchitectureSearchConfig {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ArchitectureSearchSpace {
+pub(crate) struct ArchitectureSearchSpace {
     pub allowed_node_types: Vec<AgentNodeType>,
     pub max_nodes: usize,
     pub available_tools: Vec<String>,
 }
 
 impl ArchitectureSearchSpace {
-    pub fn default_search_space() -> Self {
+    pub(crate) fn default_search_space() -> Self {
         Self {
             allowed_node_types: vec![
                 AgentNodeType::LlmCall,
@@ -255,30 +255,30 @@ impl ArchitectureSearchSpace {
     }
 }
 
-pub trait ArchitectureEvaluator: Send + Sync {
+pub(crate) trait ArchitectureEvaluator: Send + Sync {
     fn evaluate(
         &self,
         architecture: &AgentArchitecture,
     ) -> Pin<Box<dyn Future<Output = Result<f64, String>> + Send + '_>>;
 }
 
-pub struct DefaultArchitectureEvaluator {
+pub(crate) struct DefaultArchitectureEvaluator {
     optimal_node_range: (usize, usize),
 }
 
 impl DefaultArchitectureEvaluator {
-    pub fn new() -> Self {
+    pub(crate) fn new() -> Self {
         Self {
             optimal_node_range: (3, 8),
         }
     }
 
-    pub fn with_optimal_range(mut self, min: usize, max: usize) -> Self {
+    pub(crate) fn with_optimal_range(mut self, min: usize, max: usize) -> Self {
         self.optimal_node_range = (min, max);
         self
     }
 
-    fn compute_balance_score(&self, arch: &AgentArchitecture) -> f64 {
+    pub(crate) fn compute_balance_score(&self, arch: &AgentArchitecture) -> f64 {
         let n = arch.nodes.len();
         if n == 0 {
             return 0.0;
@@ -294,11 +294,11 @@ impl DefaultArchitectureEvaluator {
         }
     }
 
-    fn compute_diversity_score(&self, arch: &AgentArchitecture) -> f64 {
+    pub(crate) fn compute_diversity_score(&self, arch: &AgentArchitecture) -> f64 {
         arch.node_type_diversity()
     }
 
-    fn compute_connectivity_score(&self, arch: &AgentArchitecture) -> f64 {
+    pub(crate) fn compute_connectivity_score(&self, arch: &AgentArchitecture) -> f64 {
         if arch.nodes.is_empty() {
             return 0.0;
         }
@@ -310,7 +310,7 @@ impl DefaultArchitectureEvaluator {
         }
     }
 
-    fn compute_io_flow_score(&self, arch: &AgentArchitecture) -> f64 {
+    pub(crate) fn compute_io_flow_score(&self, arch: &AgentArchitecture) -> f64 {
         if arch.nodes.is_empty() {
             return 0.0;
         }
@@ -361,7 +361,7 @@ impl ArchitectureEvaluator for DefaultArchitectureEvaluator {
     }
 }
 
-pub trait MetaAgentProvider: Send + Sync {
+pub(crate) trait MetaAgentProvider: Send + Sync {
     fn generate_architecture(
         &self,
         search_space: &ArchitectureSearchSpace,
@@ -369,10 +369,10 @@ pub trait MetaAgentProvider: Send + Sync {
     ) -> Pin<Box<dyn Future<Output = Result<AgentArchitecture, String>> + Send + '_>>;
 }
 
-pub struct RandomMetaAgent;
+pub(crate) struct RandomMetaAgent;
 
 impl RandomMetaAgent {
-    pub fn new() -> Self {
+    pub(crate) fn new() -> Self {
         Self
     }
 
@@ -439,7 +439,7 @@ impl MetaAgentProvider for RandomMetaAgent {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SearchStatistics {
+pub(crate) struct SearchStatistics {
     pub generation: u32,
     pub population_size: usize,
     pub best_fitness: f64,
@@ -447,7 +447,7 @@ pub struct SearchStatistics {
     pub diversity_index: f64,
 }
 
-pub struct ArchitectureSearchEngine<E: ArchitectureEvaluator, M: MetaAgentProvider> {
+pub(crate) struct ArchitectureSearchEngine<E: ArchitectureEvaluator, M: MetaAgentProvider> {
     pub config: ArchitectureSearchConfig,
     pub search_space: ArchitectureSearchSpace,
     pub evaluator: E,
@@ -458,7 +458,7 @@ pub struct ArchitectureSearchEngine<E: ArchitectureEvaluator, M: MetaAgentProvid
 }
 
 impl<E: ArchitectureEvaluator, M: MetaAgentProvider> ArchitectureSearchEngine<E, M> {
-    pub fn new(
+    pub(crate) fn new(
         config: ArchitectureSearchConfig,
         search_space: ArchitectureSearchSpace,
         evaluator: E,
@@ -475,7 +475,7 @@ impl<E: ArchitectureEvaluator, M: MetaAgentProvider> ArchitectureSearchEngine<E,
         }
     }
 
-    pub fn initialize_population(&mut self) {
+    pub(crate) fn initialize_population(&mut self) {
         self.population.clear();
         for i in 0..self.config.population_size {
             let mut arch =
@@ -485,7 +485,7 @@ impl<E: ArchitectureEvaluator, M: MetaAgentProvider> ArchitectureSearchEngine<E,
         }
     }
 
-    pub fn mutate_architecture(&self, arch: &AgentArchitecture) -> AgentArchitecture {
+    pub(crate) fn mutate_architecture(&self, arch: &AgentArchitecture) -> AgentArchitecture {
         let mut rng = rand::thread_rng();
         let mut mutant = arch.clone();
         mutant.id = Uuid::new_v4().to_string();
@@ -541,7 +541,7 @@ impl<E: ArchitectureEvaluator, M: MetaAgentProvider> ArchitectureSearchEngine<E,
         mutant
     }
 
-    pub fn crossover_architectures(
+    pub(crate) fn crossover_architectures(
         &self,
         parent1: &AgentArchitecture,
         parent2: &AgentArchitecture,
@@ -635,7 +635,7 @@ impl<E: ArchitectureEvaluator, M: MetaAgentProvider> ArchitectureSearchEngine<E,
         best
     }
 
-    pub async fn evolve_generation(&mut self) -> Option<&AgentArchitecture> {
+    pub(crate) async fn evolve_generation(&mut self) -> Option<&AgentArchitecture> {
         self.generation += 1;
 
         let mut sorted = self.population.clone();
@@ -701,7 +701,7 @@ impl<E: ArchitectureEvaluator, M: MetaAgentProvider> ArchitectureSearchEngine<E,
         self.get_best()
     }
 
-    pub async fn search(&mut self, generations: u32) -> AgentArchitecture {
+    pub(crate) async fn search(&mut self, generations: u32) -> AgentArchitecture {
         if self.population.is_empty() {
             self.initialize_population();
             for arch in &mut self.population {
@@ -728,7 +728,7 @@ impl<E: ArchitectureEvaluator, M: MetaAgentProvider> ArchitectureSearchEngine<E,
             .unwrap_or_else(|| AgentArchitecture::new("empty"))
     }
 
-    pub fn get_best(&self) -> Option<&AgentArchitecture> {
+    pub(crate) fn get_best(&self) -> Option<&AgentArchitecture> {
         self.population.iter().max_by(|a, b| {
             a.fitness
                 .partial_cmp(&b.fitness)
@@ -736,7 +736,7 @@ impl<E: ArchitectureEvaluator, M: MetaAgentProvider> ArchitectureSearchEngine<E,
         })
     }
 
-    pub fn get_statistics(&self) -> SearchStatistics {
+    pub(crate) fn get_statistics(&self) -> SearchStatistics {
         let pop_len = self.population.len();
         let best_fitness = self
             .population

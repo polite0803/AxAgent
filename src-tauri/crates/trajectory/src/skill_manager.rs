@@ -11,10 +11,12 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicU64, Ordering};
 
+#[allow(dead_code)]
 static SKILL_ID_COUNTER: AtomicU64 = AtomicU64::new(0);
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SkillSummary {
+#[allow(dead_code)]
+pub(crate) struct SkillSummary {
     pub id: String,
     pub name: String,
     pub description: String,
@@ -24,7 +26,8 @@ pub struct SkillSummary {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SkillCreationParams {
+#[allow(dead_code)]
+pub(crate) struct SkillCreationParams {
     pub name: String,
     pub description: String,
     pub content: String,
@@ -34,7 +37,8 @@ pub struct SkillCreationParams {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SkillUpdateParams {
+#[allow(dead_code)]
+pub(crate) struct SkillUpdateParams {
     pub name: Option<String>,
     pub description: Option<String>,
     pub content: Option<String>,
@@ -44,13 +48,15 @@ pub struct SkillUpdateParams {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SkillFilter {
+#[allow(dead_code)]
+pub(crate) struct SkillFilter {
     pub category: Option<String>,
     pub tag: Option<String>,
     pub platform: Option<String>,
 }
 
-pub fn create_skill_from_params(params: SkillCreationParams) -> Skill {
+#[allow(dead_code)]
+pub(crate) fn create_skill_from_params(params: SkillCreationParams) -> Skill {
     let category = params.category.unwrap_or_else(|| "general".to_string());
     let tags = params.tags.unwrap_or_default();
     let platforms = params.platforms.unwrap_or_else(|| vec![detect_os()]);
@@ -75,7 +81,8 @@ pub fn create_skill_from_params(params: SkillCreationParams) -> Skill {
     skill
 }
 
-pub fn update_skill_from_params(skill: &mut Skill, params: SkillUpdateParams) {
+#[allow(dead_code)]
+pub(crate) fn update_skill_from_params(skill: &mut Skill, params: SkillUpdateParams) {
     let now = Utc::now();
 
     if let Some(name) = params.name {
@@ -102,7 +109,7 @@ pub fn update_skill_from_params(skill: &mut Skill, params: SkillUpdateParams) {
     skill.updated_at = now;
 }
 
-pub fn patch_skill_content(
+pub(crate) fn patch_skill_content(
     skill: &mut Skill,
     old_string: &str,
     new_string: &str,
@@ -115,7 +122,8 @@ pub fn patch_skill_content(
     Ok(())
 }
 
-pub fn skill_to_summary(skill: &Skill) -> SkillSummary {
+#[allow(dead_code)]
+pub(crate) fn skill_to_summary(skill: &Skill) -> SkillSummary {
     SkillSummary {
         id: skill.id.clone(),
         name: skill.name.clone(),
@@ -126,7 +134,8 @@ pub fn skill_to_summary(skill: &Skill) -> SkillSummary {
     }
 }
 
-pub fn increment_skill_usage(skill: &mut Skill, success: bool) {
+#[allow(dead_code)]
+pub(crate) fn increment_skill_usage(skill: &mut Skill, success: bool) {
     skill.total_usages += 1;
     if success {
         skill.successful_usages += 1;
@@ -135,12 +144,14 @@ pub fn increment_skill_usage(skill: &mut Skill, success: bool) {
     skill.last_used_at = Some(Utc::now());
 }
 
+#[allow(dead_code)]
 fn generate_skill_id() -> String {
     let timestamp = Utc::now().timestamp_millis();
     let counter = SKILL_ID_COUNTER.fetch_add(1, Ordering::Relaxed);
     format!("skill_{}_{}", timestamp, counter)
 }
 
+#[allow(dead_code)]
 fn detect_os() -> String {
     #[cfg(target_os = "windows")]
     return "windows".to_string();
@@ -152,7 +163,8 @@ fn detect_os() -> String {
     return "unknown".to_string();
 }
 
-pub struct SkillManager {
+#[allow(dead_code)]
+pub(crate) struct SkillManager {
     skills: HashMap<String, Skill>,
     name_index: HashMap<String, String>,
 }
@@ -163,15 +175,16 @@ impl Default for SkillManager {
     }
 }
 
+#[allow(dead_code)]
 impl SkillManager {
-    pub fn new() -> Self {
+    pub(crate) fn new() -> Self {
         Self {
             skills: HashMap::new(),
             name_index: HashMap::new(),
         }
     }
 
-    pub fn create_skill(&mut self, params: SkillCreationParams) -> Skill {
+    pub(crate) fn create_skill(&mut self, params: SkillCreationParams) -> Skill {
         let skill = create_skill_from_params(params);
         let id = skill.id.clone();
         self.name_index.insert(skill.name.clone(), id.clone());
@@ -179,7 +192,7 @@ impl SkillManager {
         skill
     }
 
-    pub fn update_skill(&mut self, id: &str, params: SkillUpdateParams) -> Option<Skill> {
+    pub(crate) fn update_skill(&mut self, id: &str, params: SkillUpdateParams) -> Option<Skill> {
         if let Some(skill) = self.skills.get_mut(id) {
             update_skill_from_params(skill, params);
             Some(skill.clone())
@@ -188,7 +201,8 @@ impl SkillManager {
         }
     }
 
-    pub fn patch_skill_content(
+    #[allow(dead_code)]
+    pub(crate) fn patch_skill_content(
         &mut self,
         id: &str,
         old_string: &str,
@@ -204,7 +218,7 @@ impl SkillManager {
         }
     }
 
-    pub fn delete_skill(&mut self, id: &str) -> bool {
+    pub(crate) fn delete_skill(&mut self, id: &str) -> bool {
         if let Some(skill) = self.skills.remove(id) {
             self.name_index.remove(&skill.name);
             true
@@ -213,30 +227,30 @@ impl SkillManager {
         }
     }
 
-    pub fn get_skill(&self, id: &str) -> Option<&Skill> {
+    pub(crate) fn get_skill(&self, id: &str) -> Option<&Skill> {
         self.skills.get(id)
     }
 
-    pub fn get_skill_by_name(&self, name: &str) -> Option<&Skill> {
+    pub(crate) fn get_skill_by_name(&self, name: &str) -> Option<&Skill> {
         self.name_index.get(name).and_then(|id| self.skills.get(id))
     }
 
-    pub fn get_all_skills(&self) -> Vec<&Skill> {
+    pub(crate) fn get_all_skills(&self) -> Vec<&Skill> {
         self.skills.values().collect()
     }
 
-    pub fn get_all_skills_owned(&self) -> Vec<Skill> {
+    pub(crate) fn get_all_skills_owned(&self) -> Vec<Skill> {
         self.skills.values().cloned().collect()
     }
 
-    pub fn get_skills_by_category(&self, category: &str) -> Vec<&Skill> {
+    pub(crate) fn get_skills_by_category(&self, category: &str) -> Vec<&Skill> {
         self.skills
             .values()
             .filter(|s| s.category == category)
             .collect()
     }
 
-    pub fn list_skills(&self, filter: Option<SkillFilter>) -> Vec<SkillSummary> {
+    pub(crate) fn list_skills(&self, filter: Option<SkillFilter>) -> Vec<SkillSummary> {
         let mut skills: Vec<Skill> = self.get_all_skills_owned();
 
         if let Some(ref f) = filter {
@@ -254,7 +268,7 @@ impl SkillManager {
         skills.into_iter().map(|s| skill_to_summary(&s)).collect()
     }
 
-    pub fn get_skill_content(&self, id: &str, level: u8) -> Option<SkillContentResult> {
+    pub(crate) fn get_skill_content(&self, id: &str, level: u8) -> Option<SkillContentResult> {
         match level {
             0 => Some(SkillContentResult::List(self.list_skills(None))),
             1 => {
@@ -283,7 +297,7 @@ impl SkillManager {
         )
     }
 
-    pub fn record_usage(&mut self, id: &str, success: bool) -> bool {
+    pub(crate) fn record_usage(&mut self, id: &str, success: bool) -> bool {
         if let Some(skill) = self.skills.get_mut(id) {
             increment_skill_usage(skill, success);
             true
@@ -292,7 +306,7 @@ impl SkillManager {
         }
     }
 
-    pub fn get_stats(&self) -> SkillStats {
+    pub(crate) fn get_stats(&self) -> SkillStats {
         let total = self.skills.len();
         let total_usages: u32 = self.skills.values().map(|s| s.total_usages).sum();
         let total_successful: u32 = self.skills.values().map(|s| s.successful_usages).sum();
@@ -315,7 +329,7 @@ impl SkillManager {
         }
     }
 
-    pub fn import_skills(&mut self, skills: Vec<Skill>) {
+    pub(crate) fn import_skills(&mut self, skills: Vec<Skill>) {
         for skill in skills {
             let id = skill.id.clone();
             self.name_index.insert(skill.name.clone(), id.clone());
@@ -323,33 +337,35 @@ impl SkillManager {
         }
     }
 
-    pub fn export_skills(&self) -> Vec<Skill> {
+    pub(crate) fn export_skills(&self) -> Vec<Skill> {
         self.get_all_skills_owned()
     }
 
-    pub fn clear(&mut self) {
+    pub(crate) fn clear(&mut self) {
         self.skills.clear();
         self.name_index.clear();
     }
 
-    pub fn len(&self) -> usize {
+    pub(crate) fn len(&self) -> usize {
         self.skills.len()
     }
 
-    pub fn is_empty(&self) -> bool {
+    pub(crate) fn is_empty(&self) -> bool {
         self.skills.is_empty()
     }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum SkillContentResult {
+#[allow(dead_code)]
+pub(crate) enum SkillContentResult {
     List(Vec<SkillSummary>),
     Formatted(String),
     Full(Skill),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SkillStats {
+#[allow(dead_code)]
+pub(crate) struct SkillStats {
     #[serde(rename = "totalSkills")]
     pub total_skills: usize,
     #[serde(rename = "totalUsages")]

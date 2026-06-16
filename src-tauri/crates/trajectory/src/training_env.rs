@@ -87,16 +87,18 @@ pub struct EvaluationResult {
     pub metadata: HashMap<String, serde_json::Value>,
 }
 
-pub struct TrainingEnv {
+#[allow(dead_code)]
+pub(crate) struct TrainingEnv {
     tasks: Vec<TaskDefinition>,
 }
 
+#[allow(dead_code)]
 impl TrainingEnv {
-    pub fn new(tasks: Vec<TaskDefinition>) -> Self {
+    pub(crate) fn new(tasks: Vec<TaskDefinition>) -> Self {
         Self { tasks }
     }
 
-    pub fn tasks(&self) -> &[TaskDefinition] {
+    pub(crate) fn tasks(&self) -> &[TaskDefinition] {
         &self.tasks
     }
 

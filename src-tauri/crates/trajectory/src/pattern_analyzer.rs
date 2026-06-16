@@ -9,7 +9,7 @@ use chrono::{DateTime, Utc};
 use std::collections::HashMap;
 
 #[derive(Debug, Clone)]
-pub struct ExtractedPatterns {
+pub(crate) struct ExtractedPatterns {
     pub coding_patterns: Vec<CodingPatternMatch>,
     pub temporal_patterns: Vec<TemporalPattern>,
     pub tool_preference_patterns: Vec<ToolPreferencePattern>,
@@ -17,38 +17,41 @@ pub struct ExtractedPatterns {
 }
 
 #[derive(Debug, Clone)]
-pub struct CodingPatternMatch {
+pub(crate) struct CodingPatternMatch {
     pub pattern_type: PatternType,
     pub value: String,
     pub confidence: f32,
+    #[allow(dead_code)]
     pub occurrences: u32,
 }
 
 #[derive(Debug, Clone)]
-pub enum PatternType {
+pub(crate) enum PatternType {
     Naming,
     Indentation,
     Comment,
+    #[allow(dead_code)]
     ModuleStructure,
+    #[allow(dead_code)]
     ErrorHandling,
 }
 
 #[derive(Debug, Clone)]
-pub struct TemporalPattern {
+pub(crate) struct TemporalPattern {
     pub pattern_type: TemporalPatternType,
     pub time_range: TimeRange,
     pub confidence: f32,
 }
 
 #[derive(Debug, Clone)]
-pub enum TemporalPatternType {
+pub(crate) enum TemporalPatternType {
     PeakHours,
     LowActivityHours,
     PreferredDays,
 }
 
 #[derive(Debug, Clone)]
-pub struct ToolPreferencePattern {
+pub(crate) struct ToolPreferencePattern {
     pub tool_name: String,
     pub usage_frequency: f32,
     pub avg_duration_ms: u64,
@@ -56,24 +59,24 @@ pub struct ToolPreferencePattern {
 }
 
 #[derive(Debug, Clone)]
-pub struct TopicPattern {
+pub(crate) struct TopicPattern {
     pub topic: String,
     pub frequency: u32,
     pub recency: DateTime<Utc>,
 }
 
-pub struct PatternAnalyzer {
+pub(crate) struct PatternAnalyzer {
     min_confidence_threshold: f32,
 }
 
 impl PatternAnalyzer {
-    pub fn new() -> Self {
+    pub(crate) fn new() -> Self {
         Self {
             min_confidence_threshold: 0.5,
         }
     }
 
-    pub fn analyze(&self, events: &[BehaviorEvent]) -> ExtractedPatterns {
+    pub(crate) fn analyze(&self, events: &[BehaviorEvent]) -> ExtractedPatterns {
         let coding_patterns = self.extract_coding_patterns(events);
         let temporal_patterns = self.extract_temporal_patterns(events);
         let tool_preference_patterns = self.extract_tool_preference_patterns(events);
@@ -344,7 +347,10 @@ impl PatternAnalyzer {
             .collect()
     }
 
-    pub fn infer_coding_profile(&self, patterns: &[CodingPatternMatch]) -> CodingStyleProfile {
+    pub(crate) fn infer_coding_profile(
+        &self,
+        patterns: &[CodingPatternMatch],
+    ) -> CodingStyleProfile {
         let mut profile = CodingStyleProfile::default();
 
         for pattern in patterns {
@@ -386,7 +392,10 @@ impl PatternAnalyzer {
         profile
     }
 
-    pub fn infer_communication_profile(&self, events: &[BehaviorEvent]) -> CommunicationProfile {
+    pub(crate) fn infer_communication_profile(
+        &self,
+        events: &[BehaviorEvent],
+    ) -> CommunicationProfile {
         let mut profile = CommunicationProfile::default();
 
         let mut feedback_positive = 0;
@@ -430,7 +439,7 @@ impl PatternAnalyzer {
         profile
     }
 
-    pub fn infer_work_habit_profile(
+    pub(crate) fn infer_work_habit_profile(
         &self,
         patterns: &[TemporalPattern],
         tool_patterns: &[ToolPreferencePattern],

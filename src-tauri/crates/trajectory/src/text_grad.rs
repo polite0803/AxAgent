@@ -322,6 +322,7 @@ impl DefaultTextGradProvider {
         }
     }
 
+    #[allow(dead_code)]
     pub fn with_max_length(mut self, max_length: usize) -> Self {
         self.max_gradient_length = max_length;
         self

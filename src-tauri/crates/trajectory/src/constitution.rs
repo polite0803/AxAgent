@@ -144,7 +144,7 @@ impl Default for CustomRuleRegistry {
     }
 }
 
-pub struct FnCustomRuleChecker {
+pub(crate) struct FnCustomRuleChecker {
     name: String,
     #[allow(clippy::type_complexity)]
     check_fn: Box<dyn Fn(&str, &serde_json::Value) -> Option<ConstitutionViolation> + Send + Sync>,
@@ -152,7 +152,7 @@ pub struct FnCustomRuleChecker {
 
 impl FnCustomRuleChecker {
     #[allow(clippy::type_complexity)]
-    pub fn new(
+    pub(crate) fn new(
         name: String,
         check_fn: Box<
             dyn Fn(&str, &serde_json::Value) -> Option<ConstitutionViolation> + Send + Sync,

@@ -6,7 +6,7 @@ use std::collections::HashMap;
 use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct BehaviorEvent {
+pub(crate) struct BehaviorEvent {
     pub id: String,
     pub user_id: String,
     pub event_type: BehaviorEventType,
@@ -47,7 +47,7 @@ impl BehaviorEvent {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
-pub enum BehaviorEventType {
+pub(crate) enum BehaviorEventType {
     CodeGeneration {
         language: String,
         framework: Option<String>,
@@ -98,7 +98,7 @@ pub enum BehaviorEventType {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "snake_case")]
-pub enum UserFeedbackType {
+pub(crate) enum UserFeedbackType {
     Positive,
     Negative,
     Neutral,
@@ -107,7 +107,7 @@ pub enum UserFeedbackType {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "snake_case")]
-pub enum ErrorSeverity {
+pub(crate) enum ErrorSeverity {
     Low,
     Medium,
     High,
@@ -115,7 +115,7 @@ pub enum ErrorSeverity {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct EventContext {
+pub(crate) struct EventContext {
     pub conversation_id: Option<String>,
     pub session_id: Option<String>,
     pub project_path: Option<String>,
@@ -160,7 +160,7 @@ impl EventContext {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct BehaviorSummary {
+pub(crate) struct BehaviorSummary {
     pub user_id: String,
     pub total_events: u64,
     pub events_by_type: HashMap<String, u64>,
@@ -172,7 +172,7 @@ pub struct BehaviorSummary {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ToolUsageStats {
+pub(crate) struct ToolUsageStats {
     pub tool_name: String,
     pub usage_count: u32,
     pub success_rate: f32,
@@ -180,7 +180,7 @@ pub struct ToolUsageStats {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct CodingStats {
+pub(crate) struct CodingStats {
     pub total_lines_generated: u64,
     pub languages_used: HashMap<String, u32>,
     pub frameworks_used: HashMap<String, u32>,
@@ -213,14 +213,14 @@ impl Default for CodingStats {
     }
 }
 
-pub struct BehaviorTracker {
+pub(crate) struct BehaviorTracker {
     user_id: String,
     event_buffer: Vec<BehaviorEvent>,
     session_start: DateTime<Utc>,
 }
 
 impl BehaviorTracker {
-    pub fn new(user_id: String) -> Self {
+    pub(crate) fn new(user_id: String) -> Self {
         Self {
             user_id,
             event_buffer: Vec::new(),
@@ -228,11 +228,11 @@ impl BehaviorTracker {
         }
     }
 
-    pub fn track_event(&mut self, event: BehaviorEvent) {
+    pub(crate) fn track_event(&mut self, event: BehaviorEvent) {
         self.event_buffer.push(event);
     }
 
-    pub fn track_code_generation(
+    pub(crate) fn track_code_generation(
         &mut self,
         language: String,
         framework: Option<String>,
@@ -251,7 +251,7 @@ impl BehaviorTracker {
         self.track_event(event);
     }
 
-    pub fn track_search_query(
+    pub(crate) fn track_search_query(
         &mut self,
         query_type: String,
         result_count: u32,
@@ -268,7 +268,7 @@ impl BehaviorTracker {
         self.track_event(event);
     }
 
-    pub fn track_tool_usage(&mut self, tool_name: String, success: bool, duration_ms: u64) {
+    pub(crate) fn track_tool_usage(&mut self, tool_name: String, success: bool, duration_ms: u64) {
         let event = BehaviorEvent::new(
             self.user_id.clone(),
             BehaviorEventType::ToolUsage {
@@ -280,18 +280,19 @@ impl BehaviorTracker {
         self.track_event(event);
     }
 
-    pub fn track_feedback(&mut self, feedback_type: UserFeedbackType, rating: Option<i32>) {
+    pub(crate) fn track_feedback(&mut self, feedback_type: UserFeedbackType, rating: Option<i32>) {
         let event = BehaviorEvent::new(
             self.user_id.clone(),
             BehaviorEventType::FeedbackGiven {
                 feedback_type,
                 rating,
+                timestamp: Utc::now(),
             },
         );
         self.track_event(event);
     }
 
-    pub fn track_preference_change(
+    pub(crate) fn track_preference_change(
         &mut self,
         setting_key: String,
         old_value: Option<String>,
@@ -308,16 +309,16 @@ impl BehaviorTracker {
         self.track_event(event);
     }
 
-    pub fn flush_events(&mut self) -> Vec<BehaviorEvent> {
+    pub(crate) fn flush_events(&mut self) -> Vec<BehaviorEvent> {
         let events: Vec<BehaviorEvent> = self.event_buffer.drain(..).collect();
         events
     }
 
-    pub fn get_buffered_count(&self) -> usize {
+    pub(crate) fn get_buffered_count(&self) -> usize {
         self.event_buffer.len()
     }
 
-    pub fn summarize(&self) -> BehaviorSummary {
+    pub(crate) fn summarize(&self) -> BehaviorSummary {
         let mut summary = BehaviorSummary {
             user_id: self.user_id.clone(),
             ..Default::default()
@@ -348,11 +349,11 @@ impl BehaviorTracker {
         summary
     }
 
-    pub fn session_duration(&self) -> chrono::Duration {
+    pub(crate) fn session_duration(&self) -> chrono::Duration {
         Utc::now() - self.session_start
     }
 
-    pub fn session_start_time(&self) -> DateTime<Utc> {
+    pub(crate) fn session_start_time(&self) -> DateTime<Utc> {
         self.session_start
     }
 }

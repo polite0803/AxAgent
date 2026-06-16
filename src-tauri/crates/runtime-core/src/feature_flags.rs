@@ -167,6 +167,12 @@ impl FeatureFlags {
         guard.insert(name.to_uppercase(), true);
     }
 
+    /// 同步版本：在无法使用 .await 的上下文中启用 flag（如测试中）
+    pub fn enable_sync(&self, name: &str) {
+        let mut guard = self.flags.blocking_write();
+        guard.insert(name.to_uppercase(), true);
+    }
+
     /// 运行时禁用一个 flag（仅当前会话）
     pub async fn disable(&self, name: &str) {
         let mut guard = self.flags.write().await;

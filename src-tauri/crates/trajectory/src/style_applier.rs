@@ -19,6 +19,7 @@ static MULTI_LINE_COMMENT_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"/\*[\s\S]*?\*/").expect("MULTI_LINE_COMMENT_RE is valid"));
 static HEADING_MARKUP_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"^#+\s+").expect("HEADING_MARKUP_RE is valid"));
+#[allow(dead_code)]
 static BOLD_HEADERS_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"^(#{1,6})\s+(.+)$").expect("BOLD_HEADERS_RE is valid"));
 
@@ -483,10 +484,12 @@ impl Default for StyleApplier {
     }
 }
 
-pub struct DocumentStyleApplicator {
+#[allow(dead_code)]
+pub(crate) struct DocumentStyleApplicator {
     pub profile: DocumentStyleProfile,
 }
 
+#[allow(dead_code)]
 impl DocumentStyleApplicator {
     pub fn new(profile: DocumentStyleProfile) -> Self {
         Self { profile }

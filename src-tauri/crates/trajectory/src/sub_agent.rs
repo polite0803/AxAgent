@@ -280,6 +280,7 @@ impl AgentMailbox {
             .len()
     }
 
+    #[allow(dead_code)]
     pub fn is_empty(&self) -> bool {
         self.messages
             .read()
@@ -905,8 +906,9 @@ impl Default for TaskDeduplicator {
     }
 }
 
+#[allow(dead_code)]
 impl TaskDeduplicator {
-    pub fn new(similarity_threshold: f64) -> Self {
+    pub(crate) fn new(similarity_threshold: f64) -> Self {
         Self {
             similarity_threshold,
             known_tasks: Vec::new(),
@@ -940,7 +942,7 @@ impl TaskDeduplicator {
 
     /// Check if a new task is a duplicate of any known task.
     /// Returns `Some(similarity_score)` if duplicate found, `None` if unique.
-    pub fn check_duplicate(&self, task: &str) -> Option<f64> {
+    pub(crate) fn check_duplicate(&self, task: &str) -> Option<f64> {
         let tokens = Self::tokenize(task);
         let mut best_score = 0.0_f64;
         for (_, known_tokens) in &self.known_tasks {
@@ -957,22 +959,22 @@ impl TaskDeduplicator {
     }
 
     /// Register a task as known (to check future tasks against).
-    pub fn register_task(&mut self, task: &str) {
+    pub(crate) fn register_task(&mut self, task: &str) {
         let tokens = Self::tokenize(task);
         self.known_tasks.push((task.to_string(), tokens));
     }
 
     /// Remove a task from the known set.
-    pub fn unregister_task(&mut self, task: &str) {
+    pub(crate) fn unregister_task(&mut self, task: &str) {
         self.known_tasks.retain(|(t, _)| t != task);
     }
 
     /// Number of known tasks.
-    pub fn len(&self) -> usize {
+    pub(crate) fn len(&self) -> usize {
         self.known_tasks.len()
     }
 
-    pub fn is_empty(&self) -> bool {
+    pub(crate) fn is_empty(&self) -> bool {
         self.known_tasks.is_empty()
     }
 }

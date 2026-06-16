@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct UserBehavior {
+pub(crate) struct UserBehavior {
     pub action_type: String,
     pub context: String,
     pub accepted: bool,
@@ -14,7 +14,7 @@ pub struct UserBehavior {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct StyleProfile {
+pub(crate) struct StyleProfile {
     pub user_id: String,
     pub coding_style: CodingStyle,
     pub preferred_patterns: Vec<String>,
@@ -26,7 +26,7 @@ pub struct StyleProfile {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct CodingStyle {
+pub(crate) struct CodingStyle {
     pub indent_style: String,
     pub quote_style: String,
     pub semicolons: bool,
@@ -47,7 +47,7 @@ impl Default for CodingStyle {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct BehaviorPattern {
+pub(crate) struct BehaviorPattern {
     pub pattern_type: String,
     pub pattern_value: String,
     pub frequency: u32,
@@ -55,14 +55,14 @@ pub struct BehaviorPattern {
     pub last_seen: i64,
 }
 
-pub struct BehaviorLearner {
+pub(crate) struct BehaviorLearner {
     behaviors: Vec<UserBehavior>,
     style_profile: Option<StyleProfile>,
     user_id: String,
 }
 
 impl BehaviorLearner {
-    pub fn new(user_id: &str) -> Self {
+    pub(crate) fn new(user_id: &str) -> Self {
         Self {
             behaviors: Vec::new(),
             style_profile: None,
@@ -70,14 +70,14 @@ impl BehaviorLearner {
         }
     }
 
-    pub fn record_behavior(&mut self, behavior: UserBehavior) {
+    pub(crate) fn record_behavior(&mut self, behavior: UserBehavior) {
         self.behaviors.push(behavior);
         if self.behaviors.len().is_multiple_of(50) {
             self.recompute_profile();
         }
     }
 
-    pub fn record_batch(&mut self, behaviors: Vec<UserBehavior>) {
+    pub(crate) fn record_batch(&mut self, behaviors: Vec<UserBehavior>) {
         self.behaviors.extend(behaviors);
         self.recompute_profile();
     }
@@ -105,7 +105,7 @@ impl BehaviorLearner {
         });
     }
 
-    pub fn get_style_hints(&self) -> Vec<String> {
+    pub(crate) fn get_style_hints(&self) -> Vec<String> {
         self.style_profile
             .as_ref()
             .map(|p| {
@@ -127,7 +127,7 @@ impl BehaviorLearner {
             .unwrap_or_default()
     }
 
-    pub fn get_patterns(&self) -> Vec<BehaviorPattern> {
+    pub(crate) fn get_patterns(&self) -> Vec<BehaviorPattern> {
         let mut pattern_map: HashMap<(String, String), (u32, u32)> = HashMap::new();
         for behavior in &self.behaviors {
             let key = (behavior.action_type.clone(), behavior.context.clone());
@@ -154,7 +154,7 @@ impl BehaviorLearner {
             .collect()
     }
 
-    pub fn get_style_profile(&self) -> Option<&StyleProfile> {
+    pub(crate) fn get_style_profile(&self) -> Option<&StyleProfile> {
         self.style_profile.as_ref()
     }
 

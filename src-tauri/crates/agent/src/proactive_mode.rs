@@ -209,7 +209,7 @@ mod tests {
     #[test]
     fn test_activate() {
         let mut mode = ProactiveMode::new();
-        axagent_runtime_core::feature_flags::global_feature_flags().enable("PROACTIVE_MODE");
+        axagent_runtime_core::feature_flags::global_feature_flags().enable_sync("PROACTIVE_MODE");
         mode.activate();
         assert_eq!(mode.state(), ProactiveState::Active);
         assert!(mode.is_active());
@@ -227,7 +227,7 @@ mod tests {
     #[test]
     fn test_pause_from_active() {
         let mut mode = ProactiveMode::new();
-        axagent_runtime_core::feature_flags::global_feature_flags().enable("PROACTIVE_MODE");
+        axagent_runtime_core::feature_flags::global_feature_flags().enable_sync("PROACTIVE_MODE");
         mode.activate();
         mode.pause(PauseReason::ManualPause);
         assert_eq!(
@@ -248,7 +248,7 @@ mod tests {
     #[test]
     fn test_resume_from_paused() {
         let mut mode = ProactiveMode::new();
-        axagent_runtime_core::feature_flags::global_feature_flags().enable("PROACTIVE_MODE");
+        axagent_runtime_core::feature_flags::global_feature_flags().enable_sync("PROACTIVE_MODE");
         mode.activate();
         mode.pause(PauseReason::ApiError);
         mode.resume();
@@ -265,7 +265,7 @@ mod tests {
     #[test]
     fn test_on_user_input_pauses_active() {
         let mut mode = ProactiveMode::new();
-        axagent_runtime_core::feature_flags::global_feature_flags().enable("PROACTIVE_MODE");
+        axagent_runtime_core::feature_flags::global_feature_flags().enable_sync("PROACTIVE_MODE");
         mode.activate();
         mode.on_user_input();
         assert_eq!(
@@ -286,7 +286,7 @@ mod tests {
     #[test]
     fn test_on_api_error_pauses_active() {
         let mut mode = ProactiveMode::new();
-        axagent_runtime_core::feature_flags::global_feature_flags().enable("PROACTIVE_MODE");
+        axagent_runtime_core::feature_flags::global_feature_flags().enable_sync("PROACTIVE_MODE");
         mode.activate();
         mode.on_api_error();
         assert_eq!(

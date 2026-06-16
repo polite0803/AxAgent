@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use super::tool_resolver::ToolDependency;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct CodeBlock {
+pub(crate) struct CodeBlock {
     pub id: String,
     pub language: Option<String>,
     pub content: String,
@@ -15,7 +15,8 @@ pub struct CodeBlock {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
-pub enum SkillContentType {
+#[allow(dead_code)]
+pub(crate) enum SkillContentType {
     Metadata,
     TextualInstruction,
     CodeScript,
@@ -150,7 +151,7 @@ impl CodeBlock {
     }
 }
 
-pub struct ContentPreprocessor;
+pub(crate) struct ContentPreprocessor;
 
 impl ContentPreprocessor {
     pub fn extract_code_blocks(content: &str) -> (String, Vec<CodeBlock>) {
@@ -209,6 +210,7 @@ impl ContentPreprocessor {
         (result, blocks)
     }
 
+    #[allow(dead_code)]
     pub fn restore_code_blocks(content: &str, blocks: &[CodeBlock]) -> String {
         let mut result = content.to_string();
         for (i, block) in blocks.iter().enumerate() {
@@ -232,7 +234,7 @@ pub struct CompositeSkillData {
 
 /// Parsed composite skill structure
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ParsedComposite {
+pub(crate) struct ParsedComposite {
     pub name: String,
     pub description: String,
     pub source: String,
@@ -245,7 +247,7 @@ pub struct ParsedComposite {
 
 /// A single parsed step from a composite skill
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ParsedStep {
+pub(crate) struct ParsedStep {
     pub title: String,
     pub description: String,
     pub raw_content: String,
@@ -268,7 +270,7 @@ pub struct ParsedStep {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ParallelBranch {
+pub(crate) struct ParallelBranch {
     pub name: String,
     pub steps: Vec<String>,
     pub raw_content: Option<String>,

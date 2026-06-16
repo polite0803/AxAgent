@@ -304,7 +304,8 @@ fn serialize_steps(steps: &[ProcedureStep]) -> String {
     content
 }
 
-pub struct DefaultLlmEvolutionProvider;
+#[allow(dead_code)]
+pub(crate) struct DefaultLlmEvolutionProvider;
 
 impl LlmEvolutionProvider for DefaultLlmEvolutionProvider {
     fn generate_mutation(&self, request: &LlmMutationRequest) -> LlmMutationFuture<'_> {

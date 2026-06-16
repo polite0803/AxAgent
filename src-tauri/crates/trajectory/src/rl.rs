@@ -65,7 +65,7 @@ impl Default for RewardWeights {
 }
 
 #[derive(Debug, Clone)]
-pub struct RLState {
+pub(crate) struct RLState {
     pub values: Vec<f64>,
     pub advantages: Vec<f64>,
     pub returns: Vec<f64>,
@@ -73,7 +73,7 @@ pub struct RLState {
 }
 
 impl RLState {
-    pub fn new(steps: usize) -> Self {
+    pub(crate) fn new(steps: usize) -> Self {
         Self {
             values: vec![0.0; steps],
             advantages: vec![0.0; steps],
@@ -83,7 +83,7 @@ impl RLState {
     }
 }
 
-pub struct DefaultLlmJudge;
+pub(crate) struct DefaultLlmJudge;
 
 impl LlmJudge for DefaultLlmJudge {
     fn evaluate_reasoning(&self, reasoning: &str, _context: &str) -> LlmJudgeFuture<'_> {

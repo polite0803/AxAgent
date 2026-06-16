@@ -213,25 +213,25 @@ pub struct SkillProposal {
 }
 
 #[derive(Debug, Clone)]
-pub struct SkillEvolution {
-    pub skill_id: String,
-    pub version: String,
-    pub modifications: Vec<SkillModification>,
-    pub outcome: EvolutionOutcome,
-    pub metrics_delta: MetricsDelta,
-    pub created_at: DateTime<Utc>,
+pub(crate) struct SkillEvolution {
+    pub(crate) skill_id: String,
+    pub(crate) version: String,
+    pub(crate) modifications: Vec<SkillModification>,
+    pub(crate) outcome: EvolutionOutcome,
+    pub(crate) metrics_delta: MetricsDelta,
+    pub(crate) created_at: DateTime<Utc>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
-pub enum EvolutionOutcome {
+pub(crate) enum EvolutionOutcome {
     Improved,
     Degraded,
     Unchanged,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct MetricsDelta {
+pub(crate) struct MetricsDelta {
     pub success_rate_delta: f64,
     pub avg_execution_time_delta: i64,
     pub quality_score_delta: f64,
@@ -472,7 +472,8 @@ fn slugify(text: &str) -> String {
         .join("-")
 }
 
-pub struct SkillOptimizer {
+#[allow(dead_code)]
+pub(crate) struct SkillOptimizer {
     min_usages_for_analysis: u32,
     #[allow(dead_code)]
     improvement_threshold: f64,
@@ -490,6 +491,7 @@ impl Default for SkillOptimizer {
     }
 }
 
+#[allow(dead_code)]
 impl SkillOptimizer {
     pub fn new() -> Self {
         Self::default()
@@ -650,12 +652,14 @@ impl SkillOptimizer {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, serde::Serialize, serde::Deserialize)]
-pub enum Impact {
+#[allow(dead_code)]
+pub(crate) enum Impact {
     High,
     Medium,
     Low,
 }
 
+#[allow(dead_code)]
 impl Impact {
     fn to_confidence(self) -> f64 {
         match self {
@@ -667,7 +671,8 @@ impl Impact {
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct SkillAnalysis {
+#[allow(dead_code)]
+pub(crate) struct SkillAnalysis {
     pub skill_id: String,
     pub suggestions: Vec<String>,
     pub estimated_impact: Impact,
@@ -675,14 +680,16 @@ pub struct SkillAnalysis {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SkillAnalytics {
+#[allow(dead_code)]
+pub(crate) struct SkillAnalytics {
     pub total_executions: u32,
     pub success_rate: f64,
     pub avg_execution_time_ms: f64,
     pub recent_executions: u32,
 }
 
-pub struct SkillCreator {
+#[allow(dead_code)]
+pub(crate) struct SkillCreator {
     min_tool_calls: usize,
     complexity_threshold: TaskComplexity,
 }
@@ -696,12 +703,13 @@ impl Default for SkillCreator {
     }
 }
 
+#[allow(dead_code)]
 impl SkillCreator {
-    pub fn new() -> Self {
+    pub(crate) fn new() -> Self {
         Self::default()
     }
 
-    pub fn should_create_skill(&self, trajectory: &Trajectory) -> bool {
+    pub(crate) fn should_create_skill(&self, trajectory: &Trajectory) -> bool {
         if trajectory.steps.len() < self.min_tool_calls {
             return false;
         }
@@ -720,6 +728,7 @@ impl SkillCreator {
         complexity >= self.complexity_threshold
     }
 
+    #[allow(dead_code)]
     fn assess_complexity(&self, trajectory: &Trajectory) -> TaskComplexity {
         let tool_count: usize = trajectory
             .steps
@@ -749,7 +758,7 @@ impl SkillCreator {
         }
     }
 
-    pub fn create_proposal(&self, trajectory: &Trajectory) -> SkillProposal {
+    pub(crate) fn create_proposal(&self, trajectory: &Trajectory) -> SkillProposal {
         let task_description = trajectory.topic.clone();
         let suggested_name = self.generate_skill_name(&task_description);
         let suggested_content = Skill::generate_content_from_trajectory(trajectory);
@@ -772,6 +781,7 @@ impl SkillCreator {
         }
     }
 
+    #[allow(dead_code)]
     fn generate_skill_name(&self, topic: &str) -> String {
         let words: Vec<&str> = topic.split_whitespace().take(3).collect();
         let base = words.join("-");

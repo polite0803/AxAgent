@@ -242,7 +242,8 @@ fn truncate_args(args: &str, max_len: usize) -> String {
     }
 }
 
-pub fn create_skill_from_proposal(proposal: &SkillProposal) -> SkillCreationParams {
+#[allow(dead_code)]
+pub(crate) fn create_skill_from_proposal(proposal: &SkillProposal) -> SkillCreationParams {
     SkillCreationParams {
         name: proposal.suggested_name.clone(),
         description: proposal.task_description.clone(),

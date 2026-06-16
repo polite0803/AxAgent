@@ -9,7 +9,7 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Mem0Config {
+pub(crate) struct Mem0Config {
     pub api_url: String,
     pub api_key: Option<String>,
     pub user_id: String,
@@ -29,13 +29,13 @@ impl Default for Mem0Config {
     }
 }
 
-pub struct Mem0Provider {
+pub(crate) struct Mem0Provider {
     config: Mem0Config,
     local_cache: Arc<RwLock<HashMap<String, Vec<MemoryEntry>>>>,
 }
 
 impl Mem0Provider {
-    pub fn new(config: Mem0Config) -> Self {
+    pub(crate) fn new(config: Mem0Config) -> Self {
         Self {
             config,
             local_cache: Arc::new(RwLock::new(HashMap::new())),

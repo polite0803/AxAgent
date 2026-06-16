@@ -10,7 +10,8 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SkillMatch {
+#[allow(dead_code)]
+pub(crate) struct SkillMatch {
     pub skill: MatchedSkill,
     #[serde(rename = "matchScore")]
     pub match_score: f64,
@@ -20,7 +21,8 @@ pub struct SkillMatch {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct MatchedSkill {
+#[allow(dead_code)]
+pub(crate) struct MatchedSkill {
     pub id: String,
     pub name: String,
     pub description: String,
@@ -30,14 +32,16 @@ pub struct MatchedSkill {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
-pub enum MatchSource {
+#[allow(dead_code)]
+pub(crate) enum MatchSource {
     Installed,
     Marketplace,
     Custom,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct MatchingResult {
+#[allow(dead_code)]
+pub(crate) struct MatchingResult {
     pub matches: Vec<SkillMatch>,
     #[serde(rename = "bestMatch")]
     pub best_match: Option<SkillMatch>,
@@ -55,8 +59,10 @@ pub enum Complexity {
     High,
 }
 
+#[allow(dead_code)]
 struct KeywordPatterns;
 
+#[allow(dead_code)]
 impl KeywordPatterns {
     fn get() -> HashMap<&'static str, Vec<&'static str>> {
         let mut patterns = HashMap::new();
@@ -135,6 +141,7 @@ impl ComplexityIndicators {
     }
 }
 
+#[allow(dead_code)]
 fn calculate_match_score(
     user_input: &str,
     skill_id: &str,
@@ -211,7 +218,8 @@ pub fn estimate_complexity_public(user_input: &str) -> Complexity {
     estimate_complexity(user_input)
 }
 
-pub struct SkillMatcher {
+#[allow(dead_code)]
+pub(crate) struct SkillMatcher {
     min_score_threshold: f64,
 }
 
@@ -221,20 +229,25 @@ impl Default for SkillMatcher {
     }
 }
 
+#[allow(dead_code)]
 impl SkillMatcher {
-    pub fn new() -> Self {
+    pub(crate) fn new() -> Self {
         Self {
             min_score_threshold: 0.1,
         }
     }
 
-    pub fn with_threshold(min_score_threshold: f64) -> Self {
+    pub(crate) fn with_threshold(min_score_threshold: f64) -> Self {
         Self {
             min_score_threshold,
         }
     }
 
-    pub fn find_matches(&self, user_input: &str, installed_skills: &[Skill]) -> MatchingResult {
+    pub(crate) fn find_matches(
+        &self,
+        user_input: &str,
+        installed_skills: &[Skill],
+    ) -> MatchingResult {
         let mut matches: Vec<SkillMatch> = Vec::new();
 
         for skill in installed_skills {
@@ -291,6 +304,7 @@ impl SkillMatcher {
         }
     }
 
+    #[allow(dead_code)]
     fn suggest_marketplace_skills(&self, user_input: &str) -> Vec<String> {
         let input_lower = user_input.to_lowercase();
         let mut suggestions = Vec::new();
@@ -310,13 +324,14 @@ impl SkillMatcher {
         suggestions
     }
 
-    pub fn get_complexity(&self, user_input: &str) -> Complexity {
+    pub(crate) fn get_complexity(&self, user_input: &str) -> Complexity {
         estimate_complexity(user_input)
     }
 }
 
+#[allow(dead_code)]
 impl Skill {
-    pub fn to_matched_skill(&self) -> MatchedSkill {
+    pub(crate) fn to_matched_skill(&self) -> MatchedSkill {
         MatchedSkill {
             id: self.id.clone(),
             name: self.name.clone(),

@@ -2,6 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 
+#[allow(dead_code)]
 const VALID_NODE_TYPES: &[&str] = &[
     "trigger",
     "agent",
@@ -17,6 +18,7 @@ const VALID_NODE_TYPES: &[&str] = &[
     "end",
 ];
 
+#[allow(dead_code)]
 const VALID_EDGE_TYPES: &[&str] = &[
     "direct",
     "conditionTrue",
@@ -27,8 +29,10 @@ const VALID_EDGE_TYPES: &[&str] = &[
     "error",
 ];
 
+#[allow(dead_code)]
 const VALID_LOOP_TYPES: &[&str] = &["forEach", "while", "doWhile", "until"];
 
+#[allow(dead_code)]
 const VALID_COMPARE_OPERATORS: &[&str] = &[
     "eq",
     "ne",
@@ -45,10 +49,13 @@ const VALID_COMPARE_OPERATORS: &[&str] = &[
     "isNotEmpty",
 ];
 
+#[allow(dead_code)]
 const VALID_LOGICAL_OPERATORS: &[&str] = &["and", "or"];
 
+#[allow(dead_code)]
 const VALID_TRIGGER_TYPES: &[&str] = &["manual", "schedule", "webhook", "event"];
 
+#[allow(dead_code)]
 const VALID_AGENT_ROLES: &[&str] = &[
     "researcher",
     "planner",
@@ -58,10 +65,12 @@ const VALID_AGENT_ROLES: &[&str] = &[
     "executor",
 ];
 
+#[allow(dead_code)]
 const VALID_OUTPUT_MODES: &[&str] = &["json", "text", "artifact"];
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ValidationIssue {
+#[allow(dead_code)]
+pub(crate) struct ValidationIssue {
     pub severity: IssueSeverity,
     pub node_id: Option<String>,
     pub field: Option<String>,
@@ -71,21 +80,25 @@ pub struct ValidationIssue {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub enum IssueSeverity {
+#[allow(dead_code)]
+pub(crate) enum IssueSeverity {
     Error,
     Warning,
     Info,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ValidationResult {
+#[allow(dead_code)]
+pub(crate) struct ValidationResult {
     pub is_valid: bool,
     pub issues: Vec<ValidationIssue>,
     pub corrected_workflow: Option<serde_json::Value>,
 }
 
-pub struct WorkflowValidator;
+#[allow(dead_code)]
+pub(crate) struct WorkflowValidator;
 
+#[allow(dead_code)]
 impl WorkflowValidator {
     pub fn validate(workflow_json: &serde_json::Value) -> ValidationResult {
         let mut issues = Vec::new();

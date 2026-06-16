@@ -4,8 +4,10 @@ use super::multi_turn::{CodeBlock, FileReference, FileType, ReferenceType, Skill
 use regex::Regex;
 use std::path::Path;
 
-pub struct SkillPackageParser;
+#[allow(dead_code)]
+pub(crate) struct SkillPackageParser;
 
+#[allow(dead_code)]
 impl SkillPackageParser {
     pub fn parse_files(files: Vec<(String, String)>) -> Vec<SkillFile> {
         files
@@ -263,13 +265,15 @@ impl SkillPackageParser {
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct FileGraph {
+#[allow(dead_code)]
+pub(crate) struct FileGraph {
     pub nodes: Vec<FileNode>,
     pub edges: Vec<FileEdge>,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct FileNode {
+#[allow(dead_code)]
+pub(crate) struct FileNode {
     pub path: String,
     pub file_type: FileType,
     pub code_block_count: usize,
@@ -277,13 +281,15 @@ pub struct FileNode {
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct FileEdge {
+#[allow(dead_code)]
+pub(crate) struct FileEdge {
     pub from: String,
     pub to: String,
     pub edge_type: String,
 }
 
-pub fn infer_content_type(language: &Option<String>) -> &'static str {
+#[allow(dead_code)]
+pub(crate) fn infer_content_type(language: &Option<String>) -> &'static str {
     match language.as_deref().map(|s| s.to_lowercase()).as_deref() {
         Some("python") | Some("py") => "script",
         Some("javascript") | Some("js") => "script",
