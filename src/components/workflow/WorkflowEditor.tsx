@@ -1369,6 +1369,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
     currentTemplate,
     nodes,
     edges,
+    parentRefs,
     createTemplate,
     updateTemplate,
     validateTemplate,

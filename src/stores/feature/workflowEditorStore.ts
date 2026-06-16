@@ -2140,15 +2140,6 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
           }
           break;
         }
-        case "delete_edge": {
-          const id = action.data.edge_id;
-          if (id) {
-            set((state) => {
-              state.edges = state.edges.filter(e => e.id !== id);
-            });
-          }
-          break;
-        }
         case "optimize_prompt": {
           const { node_id, optimized_prompt } = action.data;
           if (node_id && optimized_prompt) {
