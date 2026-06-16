@@ -240,7 +240,7 @@ pub struct CompositeSkillData {
 
 /// Parsed composite skill structure
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub(crate) struct ParsedComposite {
+pub struct ParsedComposite {
     pub name: String,
     pub description: String,
     pub source: String,
@@ -253,7 +253,7 @@ pub(crate) struct ParsedComposite {
 
 /// A single parsed step from a composite skill
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub(crate) struct ParsedStep {
+pub struct ParsedStep {
     pub title: String,
     pub description: String,
     pub raw_content: String,
@@ -276,7 +276,7 @@ pub(crate) struct ParsedStep {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub(crate) struct ParallelBranch {
+pub struct ParallelBranch {
     pub name: String,
     pub steps: Vec<String>,
     pub raw_content: Option<String>,
