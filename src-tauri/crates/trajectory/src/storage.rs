@@ -571,6 +571,7 @@ impl TrajectoryStorage {
         })
     }
 
+    #[allow(dead_code)]
     pub(crate) fn get_skill_analytics(&self, sid: &str) -> Result<SkillAnalytics> {
         Self::block_on(async {
             let all_execs = trajectory_skill_executions::Entity::find()

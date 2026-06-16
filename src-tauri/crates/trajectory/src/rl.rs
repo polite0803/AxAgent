@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+#![allow(dead_code)]
+
 //! RL reward signal computation module
 //!
 //! Provides research-grade reinforcement learning reward computation including:

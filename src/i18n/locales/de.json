@@ -6018,7 +6018,8 @@
     "tutorialKnowledgeDesc": "Laden Sie Dokumente hoch, um eine Wissensdatenbank aufzubauen. AI liefert kontextbezogene Antworten basierend auf Ihren Dokumenten",
     "moreModels": "+{{count}} weitere",
     "targetNotFound": "Zielelement nicht gefunden, bitte zuerst zur Chat-Seite navigieren",
-    "goToSettings": "Zu den Einstellungen gehen, um API-Key hinzuzufügen"
+    "goToSettings": "Zu den Einstellungen gehen, um API-Key hinzuzufügen",
+    "presetApplyFailed": "Voreinstellung konnte nicht angewendet werden"
   },
   "help": {
     "title": "Hilfecenter",

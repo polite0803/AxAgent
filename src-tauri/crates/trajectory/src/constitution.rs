@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+#![allow(dead_code)]
+
 //! Immutable Constitution safety mechanism
 //!
 //! Provides an immutable set of constitutional rules that govern agent behavior,

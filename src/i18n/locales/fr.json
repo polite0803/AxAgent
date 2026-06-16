@@ -6018,7 +6018,8 @@
     "tutorialKnowledgeDesc": "Téléchargez des documents pour construire une base de connaissances. L'IA fournira des réponses contextuelles basées sur vos documents",
     "moreModels": "+{{count}} de plus",
     "targetNotFound": "Élément cible introuvable, veuillez d'abord accéder à la page de chat",
-    "goToSettings": "Aller aux paramètres pour ajouter une clé API"
+    "goToSettings": "Aller aux paramètres pour ajouter une clé API",
+    "presetApplyFailed": "Échec de l'application du préréglage"
   },
   "help": {
     "title": "Centre d'aide",

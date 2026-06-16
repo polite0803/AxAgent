@@ -89,7 +89,7 @@ export const useOnboardingStore = create<OnboardingStore>((set, get) => ({
       );
       return result.message;
     } catch (e) {
-      return `${i18n.t("onboarding.presetApplyFailed", "预设应用失败")}: ${e}`;
+      return `${i18n.t("onboarding.presetApplyFailed")}: ${e}`;
     }
   },
 

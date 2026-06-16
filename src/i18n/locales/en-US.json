@@ -6044,7 +6044,8 @@
     "tutorialKnowledgeDesc": "Upload documents to build a knowledge base, AI will provide context-aware answers based on your documents",
     "moreModels": "+{{count}} more",
     "targetNotFound": "Target element not found, please navigate to the chat page first",
-    "goToSettings": "Go to Settings to add API Key"
+    "goToSettings": "Go to Settings to add API Key",
+    "presetApplyFailed": "Preset application failed"
   },
   "help": {
     "title": "Help Center",

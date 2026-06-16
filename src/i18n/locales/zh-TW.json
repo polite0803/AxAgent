@@ -6018,7 +6018,8 @@
     "tutorialKnowledgeDesc": "上傳文件建構知識庫，AI 將基於你的文件提供上下文感知回答",
     "moreModels": "+{{count}} 個",
     "targetNotFound": "目標元素未找到，請先進入聊天頁面",
-    "goToSettings": "前往設定新增 API Key"
+    "goToSettings": "前往設定新增 API Key",
+    "presetApplyFailed": "預設應用失敗"
   },
   "help": {
     "title": "說明中心",

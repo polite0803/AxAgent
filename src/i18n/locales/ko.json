@@ -6018,7 +6018,8 @@
     "tutorialKnowledgeDesc": "문서를 업로드하여 지식 베이스를 구축하세요. AI가 문서를 기반으로 문맥을 인식한 답변을 제공합니다",
     "moreModels": "+{{count}}개 더",
     "targetNotFound": "대상 요소를 찾을 수 없습니다. 먼저 채팅 페이지로 이동하세요",
-    "goToSettings": "설정으로 이동하여 API 키 추가"
+    "goToSettings": "설정으로 이동하여 API 키 추가",
+    "presetApplyFailed": "사전 설정 적용 실패"
   },
   "help": {
     "title": "도움말 센터",

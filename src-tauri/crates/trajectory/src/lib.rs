@@ -9,6 +9,7 @@
 //! - Skill optimization closed-loop
 //! - Cross-session pattern learning
 
+#![allow(dead_code)]
 #![allow(clippy::too_many_arguments)]
 #![allow(clippy::result_large_err)]
 #![allow(clippy::large_enum_variant)]

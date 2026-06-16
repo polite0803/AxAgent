@@ -706,7 +706,7 @@
     },
     {
       "file": "src/components/workflow/AIPanel/AIPanel.tsx",
-      "lines": "59,146,148,168,170,190,192",
+      "lines": "59,146,148,149,168,170,171,190,192,193",
       "reason": "logIpcError 内部日志字符串，非 UI",
       "phase": 3
     },

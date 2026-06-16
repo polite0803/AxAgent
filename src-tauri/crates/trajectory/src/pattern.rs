@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+#![allow(dead_code)]
+
 //! Pattern learning and extraction module
 
 use crate::trajectory::{Trajectory, TrajectoryOutcome, TrajectoryPattern};

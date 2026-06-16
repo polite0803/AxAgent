@@ -1,11 +1,13 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+#![allow(dead_code)]
+
 use serde::{Deserialize, Serialize};
 
 use super::tool_resolver::ToolDependency;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub(crate) struct CodeBlock {
+pub struct CodeBlock {
     pub id: String,
     pub language: Option<String>,
     pub content: String,
@@ -41,6 +43,7 @@ impl CodeBlock {
         }
     }
 
+    #[allow(dead_code)]
     pub fn infer_dependencies(&self) -> Vec<String> {
         let mut deps = Vec::new();
 
@@ -107,6 +110,7 @@ impl CodeBlock {
         deps
     }
 
+    #[allow(dead_code)]
     pub fn infer_schema(&self) -> Option<serde_json::Value> {
         match self.language.as_deref() {
             Some("json") => {
@@ -124,6 +128,7 @@ impl CodeBlock {
         None
     }
 
+    #[allow(dead_code)]
     pub fn is_script(&self) -> bool {
         matches!(
             self.language.as_deref(),
@@ -143,6 +148,7 @@ impl CodeBlock {
         )
     }
 
+    #[allow(dead_code)]
     pub fn is_config(&self) -> bool {
         matches!(
             self.language.as_deref(),
@@ -362,11 +368,13 @@ impl ParsedStep {
         self
     }
 
+    #[allow(dead_code)]
     pub fn with_code_blocks(mut self, blocks: Vec<CodeBlock>) -> Self {
         self.code_blocks = blocks;
         self
     }
 
+    #[allow(dead_code)]
     pub fn with_code_blocks_from_content(mut self, content: &str) -> Self {
         let (_, blocks) = ContentPreprocessor::extract_code_blocks(content);
         self.code_blocks = blocks;
@@ -414,9 +422,7 @@ impl SkillDecomposer {
         Self
     }
 
-    pub(crate) fn parse(
-        composite: &CompositeSkillData,
-    ) -> Result<ParsedComposite, DecompositionError> {
+    pub fn parse(composite: &CompositeSkillData) -> Result<ParsedComposite, DecompositionError> {
         let (clean_content, code_blocks) =
             ContentPreprocessor::extract_code_blocks(&composite.content);
         let content = &clean_content;
@@ -642,9 +648,7 @@ impl SkillDecomposer {
     }
 
     /// Decompose a parsed composite into a workflow definition with agent nodes.
-    pub(crate) fn decompose(
-        parsed: &ParsedComposite,
-    ) -> Result<DecompositionResult, DecompositionError> {
+    pub fn decompose(parsed: &ParsedComposite) -> Result<DecompositionResult, DecompositionError> {
         let mut tool_dependencies = Vec::new();
         let mut workflow_nodes = Vec::new();
         let mut workflow_edges = Vec::new();

@@ -42,6 +42,7 @@ impl PreferenceLearner {
         &mut self.profile
     }
 
+    #[allow(dead_code)]
     pub(crate) fn process_event(&mut self, event: BehaviorEvent) -> Vec<ProfileUpdate> {
         self.event_buffer.push(event);
         self.profile.learning_state.increment_interactions();

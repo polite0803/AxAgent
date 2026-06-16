@@ -6024,7 +6024,8 @@
     "tutorialKnowledgeDesc": "上传文档构建知识库，AI 将基于你的文档提供上下文感知回答",
     "moreModels": "+{{count}} 个",
     "targetNotFound": "目标元素未找到，请先进入聊天页面",
-    "goToSettings": "前往设置添加 API Key"
+    "goToSettings": "前往设置添加 API Key",
+    "presetApplyFailed": "预设应用失败"
   },
   "help": {
     "title": "帮助中心",

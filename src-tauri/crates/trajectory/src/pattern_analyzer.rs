@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+#![allow(dead_code)]
+
 use crate::behavior_tracker::{BehaviorEvent, BehaviorEventType};
 use crate::user_profile::{
     CodingStyleProfile, CommentStyle, CommunicationProfile, DetailLevel, IndentationStyle,

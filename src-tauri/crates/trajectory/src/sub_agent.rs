@@ -295,6 +295,8 @@ impl AgentMailbox {
             .is_empty()
     }
 
+    #[allow(dead_code)]
+    #[allow(dead_code)]
     pub fn agent_id(&self) -> &str {
         &self.agent_id
     }

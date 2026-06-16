@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+#![allow(dead_code)]
+
 use serde::{Deserialize, Serialize};
 use std::future::Future;
 use std::pin::Pin;
@@ -18,14 +20,16 @@ pub struct LlmParseContext {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct LlmParseResponse {
+#[allow(dead_code)]
+pub(crate) struct LlmParseResponse {
     pub steps: Vec<LlmParsedStep>,
     pub confidence: f32,
     pub raw_llm_output: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct LlmParsedStep {
+#[allow(dead_code)]
+pub(crate) struct LlmParsedStep {
     pub title: String,
     pub description: String,
     pub raw_content: String,
@@ -45,7 +49,8 @@ pub struct LlmParsedStep {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
-pub enum StepType {
+#[allow(dead_code)]
+pub(crate) enum StepType {
     Atomic,
     Condition,
     Loop,
@@ -54,16 +59,19 @@ pub enum StepType {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct LlmParsedBranch {
+#[allow(dead_code)]
+pub(crate) struct LlmParsedBranch {
     pub name: String,
     pub steps: Vec<String>,
     pub raw_content: Option<String>,
 }
 
-pub type LlmParseFuture<'a> =
+#[allow(dead_code)]
+pub(crate) type LlmParseFuture<'a> =
     Pin<Box<dyn Future<Output = Result<LlmParseResponse, String>> + Send + 'a>>;
 
-pub trait LlmAssistedParser: Send + Sync {
+#[allow(dead_code)]
+pub(crate) trait LlmAssistedParser: Send + Sync {
     fn parse_with_llm(&self, request: &LlmParseRequest) -> LlmParseFuture<'_>;
 }
 

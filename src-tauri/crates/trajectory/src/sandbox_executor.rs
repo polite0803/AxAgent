@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+#![allow(dead_code)]
+
 #[cfg(not(target_os = "android"))]
 use serde::{Deserialize, Serialize};
 #[cfg(not(target_os = "android"))]
@@ -71,7 +73,7 @@ impl SkillSandboxExecutor {
         Self { policy }
     }
 
-    pub(crate) fn with_default_policy() -> Self {
+    pub fn with_default_policy() -> Self {
         Self::new(SandboxPolicy::default())
     }
 
