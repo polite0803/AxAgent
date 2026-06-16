@@ -2,6 +2,7 @@
 
 import { countTerminalNodes, isDeadEndNode } from "@/components/workflow/DebugPanel/deadEnd";
 import { invoke } from "@/lib/invoke";
+import { findCyclicSCCs } from "@/lib/workflowLayout";
 import { useWorkflowEditorStore } from "@/stores";
 import { useWorkEngineStore } from "@/stores/feature/workEngineStore";
 import {
@@ -84,17 +85,23 @@ interface NodeDiagnostic {
 /// 兼容编辑器层 + DAG 原始格式推断节点真实类型
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function resolveNodeType(n: any): string {
-  // 1. 编辑器 ReactFlow 节点
+  // 1. 编辑器 ReactFlow 节点（优先走 data.type / node.type）
   if (n.type && n.type !== "base") { return n.type; }
   if (n.data?.type) { return n.data.type; }
-  // 2. DAG 原始 WorkflowNode 变体：检查是否有变体特有字段
-  if (n.config?.tool_name) { return "tool"; }
-  if (n.config?.sub_workflow_id) { return "subWorkflow"; }
-  if (n.config?.system_prompt) { return "agent"; }
-  if (n.config?.prompt) { return "llm"; }
-  if (n.config?.trigger_type) { return "trigger"; }
-  if (n.config?.conditions) { return "condition"; }
-  if (n.config?.output_var && !n.config?.system_prompt && !n.config?.tool_name) { return "end"; }
+
+  // 2. DAG 原始 WorkflowNode 变体：检查特化字段推断类型
+  const cfg = n.config || n.data?.config || {};
+  if (cfg.trigger_type) { return "trigger"; }
+  if (cfg.system_prompt) { return "agent"; }
+  if (cfg.prompt && !cfg.system_prompt) { return "llm"; }
+  if (cfg.tool_name) { return "tool"; }
+  if (cfg.sub_workflow_id) { return "subWorkflow"; }
+  if (cfg.target_workflow_id) { return "workflowRef"; }
+  if (cfg.conditions) { return "condition"; }
+  if (cfg.cases) { return "switch"; }
+  // end: output_var 但无其他 config 特化字段
+  if (cfg.output_var) { return "end"; }
+
   // 3. 按 base.id 中的前缀推断（如 ToolNode::xxx）
   const baseId = n.base?.id || n.id || "";
   if (baseId.startsWith("tool_")) { return "tool"; }
@@ -181,36 +188,14 @@ function analyzeEdges(edges: any[], nodeIds: Set<string>): { invalidSource: numb
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function findCycles(edges: any[]): string[][] {
-  const adj = new Map<string, string[]>();
+  // 复用 workflowLayout 的 Tarjan SCC 算法，避免重复实现
+  const nodeIds = new Set<string>();
   for (const e of edges) {
-    if (!adj.has(e.source)) { adj.set(e.source, []); }
-    adj.get(e.source)!.push(e.target);
+    nodeIds.add(e.source);
+    nodeIds.add(e.target);
   }
-
-  const cycles: string[][] = [];
-  const visited = new Set<string>();
-  const stack = new Set<string>();
-
-  function dfs(node: string, path: string[]) {
-    visited.add(node);
-    stack.add(node);
-    for (const next of adj.get(node) || []) {
-      if (!visited.has(next)) {
-        dfs(next, [...path, next]);
-      } else if (stack.has(next)) {
-        const cycleStart = path.indexOf(next);
-        if (cycleStart >= 0) {
-          cycles.push(path.slice(cycleStart));
-        }
-      }
-    }
-    stack.delete(node);
-  }
-
-  for (const node of adj.keys()) {
-    if (!visited.has(node)) { dfs(node, [node]); }
-  }
-  return cycles;
+  const nodes = Array.from(nodeIds).map((id) => ({ id }));
+  return findCyclicSCCs(nodes, edges);
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

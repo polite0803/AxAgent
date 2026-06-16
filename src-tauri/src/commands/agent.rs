@@ -3491,7 +3491,7 @@ pub async fn agent_runtime_stats(
     // during execution and can be read asynchronously here.
     let execution_progress = app_state
         .agent_session_manager
-        .get_progress(&conversation_id)
+        .get_progress_sync(&conversation_id)
         .map(|p| p.snapshot());
 
     Ok(AgentRuntimeStats {

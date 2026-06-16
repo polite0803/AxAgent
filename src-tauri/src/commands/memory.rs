@@ -3,7 +3,7 @@
 use crate::AppState;
 use axagent_core::prompts::PromptLang;
 use axagent_harness::types::*;
-use axagent_providers::{ProviderRequestContext, resolve_base_url_for_type};
+use axagent_harness::{ProviderRequestContext, url_utils::resolve_base_url_for_type};
 use sea_orm::ActiveModelTrait;
 use tauri::{AppHandle, Emitter, State};
 

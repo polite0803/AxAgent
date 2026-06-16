@@ -22,7 +22,7 @@ export const ReactPreview = memo(function ReactPreview({
 <html>
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'strict-dynamic' 'unsafe-eval' https://unpkg.com; style-src 'unsafe-inline';">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-eval' https://unpkg.com; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none';">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; padding: 16px; }

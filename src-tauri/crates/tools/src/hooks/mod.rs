@@ -10,13 +10,7 @@ pub mod registry;
 
 use serde::{Deserialize, Serialize};
 
-/// Hook 触发事件类型
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub enum HookEventType {
-    PreToolUse,
-    PostToolUse,
-    PostToolUseFailure,
-}
+pub use axagent_runtime_core::HookEvent as HookEventType;
 
 /// Hook 配置
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -62,7 +62,7 @@ impl OllamaAdapter {
     fn effective_chat_url(ctx: &ProviderRequestContext) -> String {
         let base = Self::base_url(ctx);
         let path = ctx.api_path.as_deref().unwrap_or(DEFAULT_OLLAMA_PATH);
-        crate::resolve_chat_url(&base, Some(path), DEFAULT_OLLAMA_PATH)
+        axagent_harness::url_utils::resolve_chat_url(&base, Some(path), DEFAULT_OLLAMA_PATH)
     }
 
     /// Build an HTTP client, respecting proxy configuration.

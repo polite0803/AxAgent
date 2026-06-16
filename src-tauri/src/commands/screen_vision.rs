@@ -90,7 +90,7 @@ async fn build_vision_context(
         api_key: decrypted_key,
         key_id: key_row.id,
         provider_id: provider.id,
-        base_url: Some(axagent_providers::resolve_base_url_for_type(
+        base_url: Some(axagent_harness::url_utils::resolve_base_url_for_type(
             &provider.api_host,
             &provider.provider_type,
         )),

@@ -47,6 +47,13 @@ export interface WorkflowNodeBase {
   enabled: boolean;
   /** 容器父节点 ID。保存时由编辑器注入，用于 Parallel/Merge 等容器子节点的定位。 */
   parentId?: string;
+  /** 熔断器配置（所有节点类型可选支持） */
+  circuit_breaker?: {
+    failure_threshold: number;
+    reset_timeout_ms: number;
+  };
+  /** 调试断点标记 */
+  _breakpoint?: boolean;
 }
 
 export type TriggerType = "manual" | "schedule" | "webhook" | "event";
@@ -916,119 +923,111 @@ export const NODE_KIND_MAP: Record<string, NodeKind> = {
   vectorRetrieve: "storage",
   storage: "storage",
   databaseQuery: "storage",
+  // Decorative / Separator（装饰/分隔，归类为 tool 沿用绿色）
+  _phaseSeparator: "tool",
+  groupFrame: "tool",
 };
 
 export const NODE_TYPE_MAP: Record<
   string,
   { labelKey: string; category: string; color: string; isContainer?: boolean; kind?: NodeKind }
 > = {
+  // ── Input 黄 (#fadb14) ─────────────────────────────────
   trigger: {
     labelKey: "workflow.nodeTypes.trigger",
     category: "trigger",
-    color: "#722ed1",
+    color: "#fadb14",
     kind: "input",
   },
+  // ── Agent 蓝 (#1677ff) ─────────────────────────────────
   agent: {
     labelKey: "workflow.nodeTypes.agent",
     category: "agent",
-    color: "#1890ff",
+    color: "#1677ff",
     kind: "agent",
   },
   llm: {
     labelKey: "workflow.nodeTypes.llm",
     category: "llm",
-    color: "#13c2c2",
+    color: "#1677ff",
     kind: "agent",
   },
+  llmClassifier: {
+    labelKey: "workflow.nodeTypes.llmClassifier",
+    category: "llm",
+    color: "#1677ff",
+    kind: "agent",
+  },
+  // ── Condition 橙 (#fa8c16) ─────────────────────────────
   condition: {
     labelKey: "workflow.nodeTypes.condition",
     category: "flow",
     color: "#fa8c16",
     kind: "condition",
   },
-  parallel: {
-    labelKey: "workflow.nodeTypes.parallel",
+  switch: {
+    labelKey: "workflow.nodeTypes.switch",
     category: "flow",
     color: "#fa8c16",
-    isContainer: true,
-    kind: "container",
+    kind: "condition",
   },
+  // ── Loop 紫 (#722ed1) ──────────────────────────────────
   loop: {
     labelKey: "workflow.nodeTypes.loop",
     category: "flow",
-    color: "#fa8c16",
+    color: "#722ed1",
     isContainer: true,
     kind: "loop",
   },
-  validation: {
-    labelKey: "workflow.nodeTypes.validation",
+  // ── Container 青 (#13c2c2) ──────────────────────────────
+  parallel: {
+    labelKey: "workflow.nodeTypes.parallel",
     category: "flow",
-    color: "#722ed1",
-    kind: "tool",
-  },
-  merge: {
-    labelKey: "workflow.nodeTypes.merge",
-    category: "flow",
-    color: "#fa8c16",
-    kind: "container",
-  },
-  delay: {
-    labelKey: "workflow.nodeTypes.delay",
-    category: "flow",
-    color: "#fa8c16",
-    kind: "tool",
-  },
-  subWorkflow: {
-    labelKey: "workflow.nodeTypes.subWorkflow",
-    category: "integration",
-    color: "#eb2f96",
+    color: "#13c2c2",
     isContainer: true,
     kind: "container",
-  },
-  workflowRef: {
-    labelKey: "workflow.nodeTypes.workflowRef",
-    category: "integration",
-    color: "#eb2f96",
-    kind: "container",
-  },
-  documentParser: {
-    labelKey: "workflow.nodeTypes.documentParser",
-    category: "integration",
-    color: "#eb2f96",
-    kind: "tool",
-  },
-  vectorRetrieve: {
-    labelKey: "workflow.nodeTypes.vectorRetrieve",
-    category: "integration",
-    color: "#eb2f96",
-    kind: "storage",
-  },
-  httpRequest: {
-    labelKey: "workflow.nodeTypes.httpRequest",
-    category: "integration",
-    color: "#eb2f96",
-    kind: "tool",
   },
   debate: {
     labelKey: "workflow.nodeTypes.debate",
     category: "flow",
-    color: "#1890ff",
+    color: "#13c2c2",
     isContainer: true,
     kind: "container",
   },
   swarm: {
     labelKey: "workflow.nodeTypes.swarm",
     category: "flow",
-    color: "#eb2f96",
+    color: "#13c2c2",
     isContainer: true,
     kind: "container",
   },
-  end: {
-    labelKey: "workflow.nodeTypes.end",
-    category: "flow",
-    color: "#fa8c16",
-    kind: "output",
+  subWorkflow: {
+    labelKey: "workflow.nodeTypes.subWorkflow",
+    category: "integration",
+    color: "#13c2c2",
+    isContainer: true,
+    kind: "container",
   },
+  workflowRef: {
+    labelKey: "workflow.nodeTypes.workflowRef",
+    category: "integration",
+    color: "#13c2c2",
+    kind: "container",
+  },
+  aggregator: {
+    labelKey: "workflow.nodeTypes.aggregator",
+    category: "execution",
+    color: "#13c2c2",
+    isContainer: true,
+    kind: "container",
+  },
+  merge: {
+    labelKey: "workflow.nodeTypes.merge",
+    category: "flow",
+    color: "#13c2c2",
+    kind: "container",
+  },
+  // ── Tool 绿 (#52c41a) ──────────────────────────────────
   tool: {
     labelKey: "workflow.nodeTypes.tool",
     category: "execution",
@@ -1041,29 +1040,29 @@ export const NODE_TYPE_MAP: Record<
     color: "#52c41a",
     kind: "tool",
   },
-  switch: {
-    labelKey: "workflow.nodeTypes.switch",
+  delay: {
+    labelKey: "workflow.nodeTypes.delay",
     category: "flow",
-    color: "#fa8c16",
-    kind: "condition",
+    color: "#52c41a",
+    kind: "tool",
   },
-  databaseQuery: {
-    labelKey: "workflow.nodeTypes.databaseQuery",
-    category: "integration",
-    color: "#eb2f96",
-    kind: "storage",
-  },
-  notification: {
-    labelKey: "workflow.nodeTypes.notification",
-    category: "integration",
-    color: "#eb2f96",
-    kind: "output",
-  },
-  approval: {
-    labelKey: "workflow.nodeTypes.approval",
+  validation: {
+    labelKey: "workflow.nodeTypes.validation",
     category: "flow",
-    color: "#722ed1",
-    kind: "output",
+    color: "#52c41a",
+    kind: "tool",
+  },
+  documentParser: {
+    labelKey: "workflow.nodeTypes.documentParser",
+    category: "integration",
+    color: "#52c41a",
+    kind: "tool",
+  },
+  httpRequest: {
+    labelKey: "workflow.nodeTypes.httpRequest",
+    category: "integration",
+    color: "#52c41a",
+    kind: "tool",
   },
   fileOperation: {
     labelKey: "workflow.nodeTypes.fileOperation",
@@ -1077,42 +1076,49 @@ export const NODE_TYPE_MAP: Record<
     color: "#52c41a",
     kind: "tool",
   },
-  webhookSend: {
-    labelKey: "workflow.nodeTypes.webhookSend",
-    category: "integration",
-    color: "#eb2f96",
-    kind: "output",
-  },
   logging: {
     labelKey: "workflow.nodeTypes.logging",
     category: "flow",
-    color: "#fa8c16",
+    color: "#52c41a",
     kind: "tool",
   },
-  llmClassifier: {
-    labelKey: "workflow.nodeTypes.llmClassifier",
-    category: "llm",
-    color: "#13c2c2",
-    kind: "agent",
+  // ── Output 红 (#f5222d) ─────────────────────────────────
+  end: {
+    labelKey: "workflow.nodeTypes.end",
+    category: "flow",
+    color: "#f5222d",
+    kind: "output",
   },
-  aggregator: {
-    labelKey: "workflow.nodeTypes.aggregator",
-    category: "execution",
-    color: "#52c41a",
-    isContainer: true,
-    kind: "container",
+  notification: {
+    labelKey: "workflow.nodeTypes.notification",
+    category: "integration",
+    color: "#f5222d",
+    kind: "output",
+  },
+  approval: {
+    labelKey: "workflow.nodeTypes.approval",
+    category: "flow",
+    color: "#f5222d",
+    kind: "output",
   },
   email: {
     labelKey: "workflow.nodeTypes.email",
     category: "integration",
-    color: "#eb2f96",
+    color: "#f5222d",
     kind: "output",
   },
-  /** 阶段分隔线（不参与执行逻辑） */
-  _phaseSeparator: {
-    labelKey: "workflow.nodeTypes.phaseSeparator",
-    category: "flow",
-    color: "#888888",
+  webhookSend: {
+    labelKey: "workflow.nodeTypes.webhookSend",
+    category: "integration",
+    color: "#f5222d",
+    kind: "output",
+  },
+  // ── Storage 粉 (#eb2f96) ────────────────────────────────
+  vectorRetrieve: {
+    labelKey: "workflow.nodeTypes.vectorRetrieve",
+    category: "integration",
+    color: "#eb2f96",
+    kind: "storage",
   },
   storage: {
     labelKey: "workflow.nodeTypes.storage",
@@ -1120,10 +1126,24 @@ export const NODE_TYPE_MAP: Record<
     color: "#eb2f96",
     kind: "storage",
   },
+  databaseQuery: {
+    labelKey: "workflow.nodeTypes.databaseQuery",
+    category: "integration",
+    color: "#eb2f96",
+    kind: "storage",
+  },
+  /** 阶段分隔线（不参与执行逻辑） */
+  _phaseSeparator: {
+    labelKey: "workflow.nodeTypes.phaseSeparator",
+    category: "flow",
+    color: "#555555",
+    kind: "tool",
+  },
   groupFrame: {
     labelKey: "workflow.nodeTypes.groupFrame",
     category: "flow",
-    color: "#888888",
+    color: "#555555",
+    kind: "tool",
   },
 };
 

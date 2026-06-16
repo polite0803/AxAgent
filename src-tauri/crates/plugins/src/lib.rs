@@ -1629,7 +1629,7 @@ impl PluginManager {
             }
             // 注册 agents
             if !manifest.agents.is_empty() {
-                crate::agent_provider::register_plugin_agents(plugin_id, &manifest.agents);
+                crate::agent_provider::register_plugin_agents_sync(plugin_id, &manifest.agents);
             }
         }
         Ok(())
@@ -1639,7 +1639,7 @@ impl PluginManager {
         // 先停 MCP
         self.mcp_launcher.stop_plugin_mcps(plugin_id);
         // 注销 agents
-        crate::agent_provider::unregister_plugin_agents(plugin_id);
+        crate::agent_provider::unregister_plugin_agents_sync(plugin_id);
         // 移除 skills
         self.skill_installer.remove_plugin_skills(plugin_id).ok();
         self.ensure_known_plugin(plugin_id)?;
@@ -1685,7 +1685,7 @@ impl PluginManager {
             )));
         }
         self.mcp_launcher.stop_plugin_mcps(plugin_id);
-        crate::agent_provider::unregister_plugin_agents(plugin_id);
+        crate::agent_provider::unregister_plugin_agents_sync(plugin_id);
         self.skill_installer.remove_plugin_skills(plugin_id).ok();
         if record.install_path.exists() {
             fs::remove_dir_all(&record.install_path)?;

@@ -120,7 +120,7 @@ impl RemoteAgentTask {
 
     /// 是否启用远程 agent（检查 feature flag）
     pub fn is_enabled() -> bool {
-        crate::feature_flags::global_feature_flags().remote_agent()
+        crate::feature_flags::global_feature_flags().remote_agent_sync()
     }
 
     /// 获取 URL（提取自 transport）

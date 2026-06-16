@@ -9,10 +9,8 @@ use futures::StreamExt;
 use serde::{Deserialize, Serialize};
 use std::pin::Pin;
 
-use crate::{
-    ProviderAdapter, ProviderRequestContext, build_http_client, parse_base64_data_url,
-    resolve_chat_url,
-};
+use crate::{ProviderAdapter, ProviderRequestContext, build_http_client, parse_base64_data_url};
+use axagent_harness::url_utils::resolve_chat_url;
 
 const DEFAULT_BASE_URL: &str = default_url::ANTHROPIC_BASE;
 const ANTHROPIC_VERSION: &str = "2023-06-01";

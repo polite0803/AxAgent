@@ -5,17 +5,6 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import type { WorkflowNode } from "../../types";
 
-interface CircuitBreakerConfig {
-  failure_threshold: number;
-  reset_timeout_ms: number;
-}
-
-/** 运行时动态注入的节点属性（不在 WorkflowNode 联合类型中定义） */
-type WorkflowNodeWithExtras = WorkflowNode & {
-  circuit_breaker?: CircuitBreakerConfig;
-  _breakpoint?: boolean;
-};
-
 interface BasePropertyPanelProps {
   node: WorkflowNode;
   onUpdate: (updates: Partial<WorkflowNode>) => void;
@@ -196,27 +185,27 @@ export const BasePropertyPanel: React.FC<BasePropertyPanelProps> = ({
           </label>
           <Switch
             size="small"
-            checked={(node as WorkflowNodeWithExtras).circuit_breaker != null}
+            checked={node.circuit_breaker != null}
             onChange={(enabled) =>
               onUpdate({
                 circuit_breaker: enabled
                   ? { failure_threshold: 3, reset_timeout_ms: 60000 }
                   : undefined,
-              } as Record<string, unknown>)}
+              } as Partial<WorkflowNode>)}
           />
         </div>
-        {(node as WorkflowNodeWithExtras).circuit_breaker && (
+        {node.circuit_breaker && (
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             <div>
               <label style={{ color: token.colorTextTertiary, fontSize: 12 }}>
                 {t("workflow.props.failureThreshold")}
               </label>
               <InputNumber
-                value={(node as WorkflowNodeWithExtras).circuit_breaker?.failure_threshold ?? 3}
+                value={node.circuit_breaker?.failure_threshold ?? 3}
                 onChange={(v) =>
                   onUpdate({
                     circuit_breaker: {
-                      ...(node as WorkflowNodeWithExtras).circuit_breaker,
+                      ...node.circuit_breaker,
                       failure_threshold: v ?? 3,
                     },
                   } as Partial<WorkflowNode>)}
@@ -231,11 +220,11 @@ export const BasePropertyPanel: React.FC<BasePropertyPanelProps> = ({
                 {t("workflow.props.resetTimeoutMs")}
               </label>
               <InputNumber
-                value={(node as WorkflowNodeWithExtras).circuit_breaker?.reset_timeout_ms ?? 60000}
+                value={node.circuit_breaker?.reset_timeout_ms ?? 60000}
                 onChange={(v) =>
                   onUpdate({
                     circuit_breaker: {
-                      ...(node as WorkflowNodeWithExtras).circuit_breaker,
+                      ...node.circuit_breaker,
                       reset_timeout_ms: v ?? 60000,
                     },
                   } as Partial<WorkflowNode>)}
@@ -285,7 +274,7 @@ export const BasePropertyPanel: React.FC<BasePropertyPanelProps> = ({
         </label>
         <Switch
           size="small"
-          checked={(node as WorkflowNodeWithExtras)._breakpoint ?? false}
+          checked={node._breakpoint ?? false}
           onChange={(checked) => onUpdate({ _breakpoint: checked || undefined } as Partial<WorkflowNode>)}
         />
       </div>

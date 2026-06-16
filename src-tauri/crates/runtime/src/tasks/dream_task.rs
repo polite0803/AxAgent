@@ -121,7 +121,7 @@ impl DreamTask {
 
     /// 是否启用梦境任务（检查 feature flag）
     pub fn is_enabled() -> bool {
-        crate::feature_flags::global_feature_flags().dream_task()
+        crate::feature_flags::global_feature_flags().dream_task_sync()
     }
 
     /// 获取人类可读的触发描述

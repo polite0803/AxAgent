@@ -30,7 +30,7 @@ impl HookRegistry {
     pub fn register(&mut self, hook: HookConfig) {
         let idx = self.hooks.len();
         self.event_index
-            .entry(hook.event.clone())
+            .entry(hook.event)
             .or_default()
             .push(idx);
         self.hooks.push(hook);
@@ -98,7 +98,7 @@ impl HookRegistry {
         self.event_index.clear();
         for (i, hook) in self.hooks.iter().enumerate() {
             self.event_index
-                .entry(hook.event.clone())
+                .entry(hook.event)
                 .or_default()
                 .push(i);
         }

@@ -87,11 +87,10 @@ const ContainerNodeComponent: React.FC<ContainerNodeProps> = ({
         minWidth: isCollapsed ? 220 : 0,
         minHeight: isCollapsed ? 48 : 0,
         background: `${data.color}08`,
-        border: `2px dashed ${selected ? token.colorPrimary : `${data.color}50`}`,
-        // 双线效果：虚线边框 + 内阴影模拟第二条线
-        boxShadow: selected
-          ? `0 0 0 2px ${data.color}40, inset 0 0 0 2px ${data.color}15`
-          : `inset 0 0 0 2px ${data.color}15`,
+        border: `2px dashed ${selected ? token.colorPrimary : `${data.color}60`}`,
+        // 双线效果：虚线边框 + outline 实现第二条实线（比 boxShadow inset 在低缩放时更稳定）
+        outline: `2px solid ${data.color}25`,
+        outlineOffset: -4,
         borderRadius: 12,
         padding: isCollapsed ? "8px 12px" : 12,
         opacity: data.enabled ? (data.kind === "decorative" ? 0.65 : 1) : 0.5,
@@ -256,11 +255,11 @@ const ContainerNodeComponent: React.FC<ContainerNodeProps> = ({
             type="target"
             position={Position.Top}
             style={{
-              background: "transparent",
-              border: "none",
-              width: 8,
-              height: 8,
-              top: 0,
+              background: `${data.color}80`,
+              border: `2px solid ${data.color}`,
+              width: 10,
+              height: 10,
+              top: -2,
               pointerEvents: "all",
             }}
           />
@@ -268,11 +267,11 @@ const ContainerNodeComponent: React.FC<ContainerNodeProps> = ({
             type="source"
             position={Position.Bottom}
             style={{
-              background: "transparent",
-              border: "none",
-              width: 8,
-              height: 8,
-              bottom: 0,
+              background: `${data.color}80`,
+              border: `2px solid ${data.color}`,
+              width: 10,
+              height: 10,
+              bottom: -2,
               pointerEvents: "all",
             }}
           />

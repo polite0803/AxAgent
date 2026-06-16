@@ -93,6 +93,8 @@ interface WorkflowEditorState {
   past: Array<HistoryEntry>;
   future: Array<HistoryEntry>;
   _lastUndoRecordTime: number;
+  _subWorkflowExpandVersion: number;
+  _loadRequestId: number;
   undo: () => void;
   redo: () => void;
   canUndo: () => boolean;
@@ -360,18 +362,28 @@ const createEmptyTemplate = (): Omit<
 });
 
 const buildHistoryEntry = (state: WorkflowEditorState): HistoryEntry => ({
-  nodes: [...state.nodes],
-  edges: [...state.edges],
-  parentRefs: { ...state.parentRefs },
+  nodes: structuredClone(state.nodes),
+  edges: structuredClone(state.edges),
+  parentRefs: structuredClone(state.parentRefs),
   name: state.currentTemplate?.name || "",
   description: state.currentTemplate?.description,
   icon: state.currentTemplate?.icon || "Bot",
-  tags: state.currentTemplate?.tags || [],
-  input_schema: state.currentTemplate?.input_schema,
-  output_schema: state.currentTemplate?.output_schema,
-  variables: state.currentTemplate?.variables,
-  error_config: state.currentTemplate?.error_config,
-  trigger_config: state.currentTemplate?.trigger_config,
+  tags: state.currentTemplate?.tags ? [...state.currentTemplate.tags] : [],
+  input_schema: state.currentTemplate?.input_schema
+    ? structuredClone(state.currentTemplate.input_schema)
+    : undefined,
+  output_schema: state.currentTemplate?.output_schema
+    ? structuredClone(state.currentTemplate.output_schema)
+    : undefined,
+  variables: state.currentTemplate?.variables
+    ? structuredClone(state.currentTemplate.variables)
+    : undefined,
+  error_config: state.currentTemplate?.error_config
+    ? structuredClone(state.currentTemplate.error_config)
+    : undefined,
+  trigger_config: state.currentTemplate?.trigger_config
+    ? structuredClone(state.currentTemplate.trigger_config)
+    : undefined,
 });
 
 // 从 nodes 中已有的 (as any).parentId 字段重建父子关系映射。
@@ -542,6 +554,8 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
     past: [],
     future: [],
     _lastUndoRecordTime: 0,
+    _subWorkflowExpandVersion: 0,
+    _loadRequestId: 0,
 
     undo: () => {
       const { past } = get();
@@ -632,11 +646,20 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
         state.isLoading = true;
         state.error = null;
       });
+      // 递增请求版本号，防止旧响应覆盖新请求的状态
+      const requestId = get()._loadRequestId + 1;
+      set((state) => {
+        state._loadRequestId = requestId;
+      });
+
       try {
         const template = await invoke<WorkflowTemplateResponse>(
           "get_workflow_template",
           { id },
         );
+        // 如果在等待期间有新的 loadTemplate 调用，放弃本次结果
+        if (get()._loadRequestId !== requestId) { return; }
+
         set((state) => {
           state.currentTemplate = template;
           state.nodes = template.nodes;
@@ -648,6 +671,7 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
           state.future = [];
         });
       } catch (error) {
+        if (get()._loadRequestId !== requestId) { return; }
         set((state) => {
           state.error = String(error);
           state.isLoading = false;
@@ -898,13 +922,18 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
 
     addNode: (node: WorkflowNode) => {
       set((state) => {
+        // ID 冲突检测：若已存在同名节点，生成新 ID 避免覆盖
+        let nodeToAdd = node;
+        if (state.nodes.some((n) => n.id === node.id)) {
+          nodeToAdd = { ...node, id: `node-${crypto.randomUUID()}` };
+        }
         state.past.push(buildHistoryEntry(state));
         state.future = [];
         if (state.past.length > 50) {
           state.past = state.past.slice(-50);
         }
         state._lastUndoRecordTime = Date.now();
-        state.nodes.push(node);
+        state.nodes.push(nodeToAdd);
         state.isDirty = true;
       });
     },
@@ -936,7 +965,7 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
               ? { ...existing.position, ...updates.position }
               : existing.position,
             config: upd.config
-              ? { ...ext.config, ...upd.config, conditions: upd.config.conditions ?? ext.config.conditions }
+              ? { ...ext.config, ...upd.config }
               : ext.config,
             retry: upd.retry
               ? { ...ext.retry, ...upd.retry }
@@ -957,7 +986,7 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
         }
         state._lastUndoRecordTime = Date.now();
 
-        // 级联删除：若被删节点是 parallel 容器，需一并删除所有 parentRefs 登记为它的子节点
+        // 级联删除：若被删节点是容器，需一并删除所有 parentRefs 登记为它的子节点
         const toDelete = new Set<string>([nodeId]);
         for (const [cid, pid] of Object.entries(state.parentRefs)) {
           if (pid === nodeId) { toDelete.add(cid); }
@@ -967,6 +996,75 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
         state.edges = state.edges.filter(
           (e) => !toDelete.has(e.source) && !toDelete.has(e.target),
         );
+
+        // 清理其他节点 config 中对被删节点的引用
+        // 1. 容器节点 branches/debater_steps/body_steps/agent_steps/input_sources 中的引用
+        // 2. 容器节点 subGraph.nodes 中的引用
+        // 3. 普通节点 config 中的引用
+        state.nodes = state.nodes.map((n) => {
+          const cfg = (n as unknown as { config?: Record<string, unknown> }).config;
+          if (!cfg) { return n; }
+
+          // 清理 subGraph.nodes 中被删节点
+          const subGraph = cfg.subGraph as
+            | { nodes?: { id: string }[]; edges?: { source: string; target: string }[] }
+            | undefined;
+          if (subGraph?.nodes) {
+            const filteredNodes = subGraph.nodes.filter((sn) => !toDelete.has(sn.id));
+            if (filteredNodes.length !== subGraph.nodes.length) {
+              const filteredEdges = (subGraph.edges ?? []).filter(
+                (e) => !toDelete.has(e.source) && !toDelete.has(e.target),
+              );
+              return {
+                ...n,
+                config: {
+                  ...cfg,
+                  subGraph: { nodes: filteredNodes, edges: filteredEdges },
+                },
+              } as unknown as WorkflowNode;
+            }
+          }
+
+          // 清理 branches/debater_steps/body_steps/agent_steps/input_sources 中的引用
+          let dirty = false;
+          const cleanCfg = { ...cfg };
+
+          const arrayFields = ["branches", "debater_steps", "body_steps", "agent_steps", "input_sources"] as const;
+          for (const field of arrayFields) {
+            const arr = cleanCfg[field];
+            if (Array.isArray(arr)) {
+              if (field === "branches") {
+                // branches 是数组对象，需要清理每个 branch 的 steps
+                const cleaned = (arr as { steps?: string[] }[]).map((b) => {
+                  if (!b.steps) { return b; }
+                  const filteredSteps = b.steps.filter((s: string) => !toDelete.has(s));
+                  return filteredSteps.length !== b.steps.length
+                    ? { ...b, steps: filteredSteps }
+                    : b;
+                });
+                const changed = (arr as { steps?: string[] }[]).some((b, i) => {
+                  const orig = arr[i] as { steps?: string[] };
+                  return (b.steps ?? []).length !== (orig.steps ?? []).length;
+                });
+                if (changed) {
+                  cleanCfg[field] = cleaned;
+                  dirty = true;
+                }
+              } else {
+                // debater_steps/body_steps/agent_steps/input_sources 是 string[]
+                const filtered = (arr as string[]).filter((id) => !toDelete.has(id));
+                if (filtered.length !== (arr as string[]).length) {
+                  cleanCfg[field] = filtered;
+                  dirty = true;
+                }
+              }
+            }
+          }
+
+          return dirty
+            ? { ...n, config: cleanCfg } as unknown as WorkflowNode
+            : n;
+        });
 
         // 清理 parentRefs 中被删节点作为子或作为父的登记项
         const nextParentRefs: Record<string, string> = {};
@@ -1069,12 +1167,15 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
 
     setNodes: (nodes: WorkflowNode[]) => {
       set((state) => {
-        state.past.push(buildHistoryEntry(state));
-        state.future = [];
-        if (state.past.length > 50) {
-          state.past = state.past.slice(-50);
+        const now = Date.now();
+        if (now - state._lastUndoRecordTime >= 1000) {
+          state.past.push(buildHistoryEntry(state));
+          state.future = [];
+          if (state.past.length > 50) {
+            state.past = state.past.slice(-50);
+          }
+          state._lastUndoRecordTime = now;
         }
-        state._lastUndoRecordTime = Date.now();
         state.nodes = nodes;
         state.isDirty = true;
       });
@@ -1082,12 +1183,15 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
 
     setEdges: (edges: WorkflowEdge[]) => {
       set((state) => {
-        state.past.push(buildHistoryEntry(state));
-        state.future = [];
-        if (state.past.length > 50) {
-          state.past = state.past.slice(-50);
+        const now = Date.now();
+        if (now - state._lastUndoRecordTime >= 1000) {
+          state.past.push(buildHistoryEntry(state));
+          state.future = [];
+          if (state.past.length > 50) {
+            state.past = state.past.slice(-50);
+          }
+          state._lastUndoRecordTime = now;
         }
-        state._lastUndoRecordTime = Date.now();
         state.edges = edges;
         state.isDirty = true;
       });
@@ -1400,7 +1504,6 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
 
     llmDiagnoseWorkflow: async (nodes: WorkflowNode[], workflowName: string, description?: string) => {
       try {
-        const { invoke } = await import("@/lib/invoke");
         return await invoke("llm_diagnose_workflow", {
           request: { nodes, workflow_name: workflowName, workflow_description: description || null },
         });
@@ -1867,9 +1970,15 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
     },
 
     aiChatClear: () => {
+      // 先清理旧的 listener，防止跨会话事件响应
+      const { _aiChatCleanup } = get();
+      _aiChatCleanup?.();
       set((state) => {
         state.aiChatMessages = [];
         state.aiChatSessionId = `ai-session-${Date.now()}`;
+        state._aiChatCleanup = null;
+        state.aiChatStreaming = false;
+        state.aiChatStreamingMessageId = null;
       });
     },
 
@@ -1878,6 +1987,12 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
       switch (action.action_type) {
         case "generate_workflow": {
           set((state) => {
+            state.past.push(buildHistoryEntry(state));
+            state.future = [];
+            if (state.past.length > 50) {
+              state.past = state.past.slice(-50);
+            }
+            state._lastUndoRecordTime = Date.now();
             state.nodes = action.data.nodes;
             state.edges = action.data.edges;
           });
@@ -1889,6 +2004,12 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
           const finalId = existingIds.has(newNode.id) ? `ai-${Date.now()}-${newNode.id}` : newNode.id;
           const offset = action.data.position ?? { x: 50, y: 50 };
           set((state) => {
+            state.past.push(buildHistoryEntry(state));
+            state.future = [];
+            if (state.past.length > 50) {
+              state.past = state.past.slice(-50);
+            }
+            state._lastUndoRecordTime = Date.now();
             state.nodes = [...state.nodes, {
               ...newNode,
               id: finalId,
@@ -1905,6 +2026,12 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
             position: { x: n.position.x + 50, y: n.position.y + 50 },
           }));
           set((state) => {
+            state.past.push(buildHistoryEntry(state));
+            state.future = [];
+            if (state.past.length > 50) {
+              state.past = state.past.slice(-50);
+            }
+            state._lastUndoRecordTime = Date.now();
             state.nodes = [...state.nodes, ...newNodes];
           });
           break;
@@ -1914,6 +2041,15 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
           const { node_id, changes } = action.data;
           if (node_id) {
             set((state) => {
+              const now = Date.now();
+              if (now - state._lastUndoRecordTime >= 1000) {
+                state.past.push(buildHistoryEntry(state));
+                state.future = [];
+                if (state.past.length > 50) {
+                  state.past = state.past.slice(-50);
+                }
+                state._lastUndoRecordTime = now;
+              }
               state.nodes = state.nodes.map(n => {
                 if (n.id !== node_id) { return n; }
                 const merged: Record<string, unknown> = { ...changes };
@@ -1930,6 +2066,12 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
           const id = action.data.node_id;
           if (id) {
             set((state) => {
+              state.past.push(buildHistoryEntry(state));
+              state.future = [];
+              if (state.past.length > 50) {
+                state.past = state.past.slice(-50);
+              }
+              state._lastUndoRecordTime = Date.now();
               state.nodes = state.nodes.filter(n => n.id !== id);
               state.edges = state.edges.filter(e => e.source !== id && e.target !== id);
             });
@@ -1940,6 +2082,12 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
           const idsToDelete = new Set(action.data.node_ids);
           if (idsToDelete.size > 0) {
             set((state) => {
+              state.past.push(buildHistoryEntry(state));
+              state.future = [];
+              if (state.past.length > 50) {
+                state.past = state.past.slice(-50);
+              }
+              state._lastUndoRecordTime = Date.now();
               state.nodes = state.nodes.filter(n => !idsToDelete.has(n.id));
               state.edges = state.edges.filter(e => !idsToDelete.has(e.source) && !idsToDelete.has(e.target));
             });
@@ -1951,6 +2099,12 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
           const exists = edges.some(e => e.id === newEdge.id);
           if (!exists) {
             set((state) => {
+              state.past.push(buildHistoryEntry(state));
+              state.future = [];
+              if (state.past.length > 50) {
+                state.past = state.past.slice(-50);
+              }
+              state._lastUndoRecordTime = Date.now();
               state.edges = [...state.edges, newEdge];
             });
           }
@@ -1960,7 +2114,28 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
           const { edge_id, changes } = action.data;
           if (edge_id) {
             set((state) => {
+              state.past.push(buildHistoryEntry(state));
+              state.future = [];
+              if (state.past.length > 50) {
+                state.past = state.past.slice(-50);
+              }
+              state._lastUndoRecordTime = Date.now();
               state.edges = state.edges.map(e => (e.id === edge_id ? { ...e, ...changes } : e));
+            });
+          }
+          break;
+        }
+        case "delete_edge": {
+          const id = action.data.edge_id;
+          if (id) {
+            set((state) => {
+              state.past.push(buildHistoryEntry(state));
+              state.future = [];
+              if (state.past.length > 50) {
+                state.past = state.past.slice(-50);
+              }
+              state._lastUndoRecordTime = Date.now();
+              state.edges = state.edges.filter(e => e.id !== id);
             });
           }
           break;
@@ -2044,9 +2219,16 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
       const snapshotNodes = JSON.parse(JSON.stringify(tx.beforeNodes)) as WorkflowNode[];
       const snapshotEdges = JSON.parse(JSON.stringify(tx.beforeEdges)) as WorkflowEdge[];
       set((state) => {
+        // 回滚前记录当前状态，使用户可以撤销回滚操作
+        state.past.push(buildHistoryEntry(state));
+        state.future = [];
+        if (state.past.length > 50) {
+          state.past = state.past.slice(-50);
+        }
         state.nodes = snapshotNodes;
         state.edges = snapshotEdges;
         state.aiActionTransactions = state.aiActionTransactions.filter((t) => t.id !== txId);
+        state.isDirty = true;
       });
     },
 
@@ -2164,6 +2346,7 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
       // 已展开 → 折叠
       if (expandedSubWorkflows[nodeId]) {
         set((state) => {
+          state._subWorkflowExpandVersion++;
           // 清理 parentRefs 中子工作流内部节点的引用
           const sub = state.expandedSubWorkflows[nodeId];
           if (sub?.nodes) {
@@ -2184,7 +2367,10 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
       // 折叠 → 展开
       if (!subWorkflowId) { return; }
 
+      // 递增版本号，异步回调检查此版本号是否仍然匹配
+      const expandVersion = get()._subWorkflowExpandVersion + 1;
       set((state) => {
+        state._subWorkflowExpandVersion = expandVersion;
         state.expandedSubWorkflows[nodeId] = { nodes: [], edges: [], isLoading: true };
       });
 
@@ -2193,6 +2379,10 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
           "get_workflow_template",
           { id: subWorkflowId },
         );
+
+        // 检查版本号：如果用户在等待期间折叠了，放弃更新
+        if (get()._subWorkflowExpandVersion !== expandVersion) { return; }
+
         if (!template) {
           set((state) => {
             delete state.expandedSubWorkflows[nodeId];
@@ -2217,6 +2407,8 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
         }));
 
         set((state) => {
+          // 再次检查版本号（以防 set 之前被折叠）
+          if (state._subWorkflowExpandVersion !== expandVersion) { return; }
           state.expandedSubWorkflows[nodeId] = { nodes: subNodes, edges: subEdges, isLoading: false };
           // 将子节点注册到 parentRefs
           for (const n of subNodes) {
@@ -2228,6 +2420,8 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
           }
         });
       } catch {
+        // 再次检查版本号
+        if (get()._subWorkflowExpandVersion !== expandVersion) { return; }
         set((state) => {
           delete state.expandedSubWorkflows[nodeId];
         });

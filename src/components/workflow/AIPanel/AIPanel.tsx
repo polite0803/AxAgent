@@ -5,6 +5,7 @@ import type { AiChatMessage } from "@/stores/feature/workflowEditorStore";
 import { useWorkflowEditorStore } from "@/stores/feature/workflowEditorStore";
 import { useReactFlow } from "@xyflow/react";
 import { App, Button, Card, Empty, Input, Radio, Tag, theme } from "antd";
+import DOMPurify from "dompurify";
 import { Lightbulb, MessageSquare, Play, Send, Sparkles, StopCircle, Trash2, Wand2 } from "lucide-react";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -257,7 +258,8 @@ export const AIPanel: React.FC<AIPanelProps> = ({
         /`([^`]+)`/g,
         "<code style='background:rgba(0,0,0,0.06);padding:1px 4px;border-radius:3px;font-size:12px'>$1</code>",
       );
-      return <div key={i} dangerouslySetInnerHTML={{ __html: codeText }} />;
+      const safeHtml = DOMPurify.sanitize(codeText, { ALLOWED_TAGS: ["b", "code"] });
+      return <div key={i} dangerouslySetInnerHTML={{ __html: safeHtml }} />;
     });
   };
 

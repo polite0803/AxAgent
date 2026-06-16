@@ -365,7 +365,7 @@ pub fn teammate_id(name: &str, team_name: &str) -> String {
 ///
 /// 通过全局 FeatureFlags 中的 SWARM_MODE 标志判断。
 pub fn is_swarm_enabled() -> bool {
-    crate::feature_flags::global_feature_flags().swarm_mode()
+    crate::feature_flags::global_feature_flags().swarm_mode_sync()
 }
 
 // ── 测试 ──

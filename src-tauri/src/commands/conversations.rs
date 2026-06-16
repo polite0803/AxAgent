@@ -10,8 +10,9 @@ use crate::commands::error_code::title as title_err;
 #[cfg(test)]
 use crate::commands::proactive::ProactiveService;
 use axagent_harness::types::*;
+use axagent_harness::url_utils::resolve_base_url_for_type;
 use axagent_providers::{
-    ProviderRequestContext, extract_reasoning_from_text, resolve_base_url_for_type,
+    ProviderRequestContext, extract_reasoning_from_text,
 };
 #[cfg(test)]
 use axagent_runtime_core::prompt_cache::PromptCache;

@@ -10,7 +10,7 @@
 
 // ── 模块声明 (internal / external as noted) ────────────────────────────
 
-pub mod ab_testing; // external
+pub mod ab_testing;
 pub mod academic_search;
 pub mod action_executor;
 pub mod agent_adapter;
@@ -89,160 +89,68 @@ pub mod web_search;
 pub mod wiki_compiler;
 
 // ── Public API re-exports ─────────────────────────────────────────────
-// 外部调用者应通过这些重导出访问类型，而非直接引用上方模块路径。
-// 未在此重导出的模块是内部实现，不保证 API 稳定性。
+// 仅重导出外部实际引用的类型（~55 个），不暴露内部实现细节。
 
-pub use ab_testing::{
-    ExperimentConfig, ExperimentGroup, ExperimentMetric, ExperimentResult, ExperimentRunner,
-    ExperimentStatus, GroupStats, MetricComparison, TrialResult,
-};
-pub use academic_search::{
-    AcademicSearchConfig, AcademicSearchProvider, AcademicSearchProviderBuilder,
-};
-pub use action_executor::{ActionError, ActionExecutor, ActionResult};
-pub use agent_adapter::{AgentImplAdapter, AgentRuntimeAdapter, AgentRuntimeManager};
-pub use agent_config::{AgentConfig, ConfigManager, ConfigSnapshot, DebugMode};
-pub use agent_runtime::{
-    AgentEvent, AgentOutput, AgentRuntime, AgentRuntimeConfig, AgentRuntimeError,
-};
-pub use blackboard::{
-    Blackboard, BlackboardEntry, BlackboardEvent, BlackboardManager, EntryPriority,
-};
-pub use checkpoint::{Checkpoint, CheckpointBuilder, CheckpointManager, ReActEngineCheckpoint};
-pub use citation_tracker::{
-    CitationContext, CitationQuerier, CitationStats, CitationTracker, CitationUsage,
-    CitationUsageCount,
-};
-pub use content_synthesizer::{ContentFormatter, ContentSynthesizer};
-pub use coordinator::{
-    AgentCoordinator, AgentError, AgentImpl, AgentInput, AgentStatus, CoordinatorOutput,
-};
-pub use credibility_evaluator::{
-    CredibilityAssessment, CredibilityEvaluator, CredibilityFactor, CredibilityRanking,
-    CredibilityScore, FactorDimension,
-};
-pub use environment_probe::{EnvironmentProbe, EnvironmentSnapshot, FileInfo, ProbeConfig};
-pub use error_recovery_engine::{
-    ErrorRecoveryEngine, RecoveryConfig, RecoveryContext, RecoveryEvent,
-};
-pub use evaluator::{
-    Benchmark, BenchmarkCategory, BenchmarkMetadata, BenchmarkReport, BenchmarkResult,
-    BenchmarkSuite, BenchmarkTask, Dataset, DatasetRegistry, Difficulty, EvaluationCriteria,
-    EvaluationMetric, EvaluationRunner, MetricsCalculator, ReportGenerator as BenchmarkReportGen,
-    RunnerConfig, TaskInput, TaskOutput, TaskResult,
-};
-pub use event_bus::{
-    AgentEventBus, AgentEventBusBuilder, AgentEventType, AgentPermissionPayload, EventSubscription,
-    UnifiedAgentEvent,
-};
-pub use fact_checker::{
-    Claim, ClaimExtractor, EvidenceType, FactCheckResult, FactCheckStatus, FactChecker,
-    SourceEvidence,
-};
-pub use frontend_adapter::{
-    FrontendEventAdapter, FrontendEventFilter, FrontendEventPayload, FrontendEventType,
-    TauriEventAdapter, TauriEventEnvelope,
-};
-pub use health_checker::{
-    HealthCheckResult, HealthCheckRunner, HealthChecker, HealthMetric, HealthStatus,
-    HealthThresholds,
-};
-pub use hierarchical_planner::{
-    HierarchicalPlanner, Phase, PhaseStatus, Plan, PlanBuilder, PlanProgress, PlanStatus,
-    PlanVersion, PlannedTask, ReplanAction, ReplanReason, ReplanRecord, TaskBuilder, TaskStatus,
-};
-pub use insight_generator::{Insight, InsightCategory, InsightGenerator, InsightStats};
-pub use recovery_strategies::{ClassifiedError, ErrorClassifier, ErrorType};
-// 工具相关类型来自 axagent-harness 契约层，消费方请直接 `use axagent_harness::Tool` 等。
-// 历史上本模块曾 `pub use axagent_harness::{...}`，已删除以避免双导出导致 crate 边界模糊。
-
-// LocalToolRegistry / LocalToolDef / LocalToolGroup 已删除 — 直接使用 axagent_tools::registry::UnifiedToolRegistry
-// McpRegistry 已删除 — 直接使用 axagent_tools::registry::UnifiedToolRegistry
-
-pub use axagent_runtime_core::AgentExecutionProgressSnapshot;
-pub use llm_bridge::ProviderLlmBridge;
-pub use metrics::{
-    MetricType, MetricValue, MetricsCollector, StructuredLogEntry, TimedGuard, TimingStats,
-    log_with_fields, record_timing_async,
-};
-pub use outline_builder::{OutlineBuilder, OutlineStyle, OutlineValidationError};
-pub use provider_adapter::{AxAgentApiClient, StreamEventCallback};
-pub use react_engine::{
-    DefaultReasoningProvider, LlmDrivenReasoningProvider, LlmReasoningProvider, ReActEngine,
-    ReActError, ReActResult,
-};
-pub use reasoning_state::{ActionType, ReActConfig, ReasoningState, ReasoningStrategy};
-pub use recovery_strategies::{
-    RecoveryAdjustment, RecoveryAttempt, RecoveryResult, RecoveryStrategy,
-};
-pub use reference_builder::{ReferenceBuilder, ReferenceFormat, ReferenceFormatter};
-pub use reflector::{QualityMetrics, Reflection, ReflectionConfig, Reflector, TaskExecutionRecord};
-pub use report_generator::{ReportError, ReportExporter, ReportGenerator, ReportStyle};
-pub use research_agent::{ResearchAgent, ResearchError, ResearchEvent};
-pub use research_state::{
-    Citation, ReportFormat, ResearchConfig, ResearchPhase, ResearchProgress, ResearchReport,
-    ResearchState, ResearchStatus, SearchPlan, SearchQuery, SearchResult, SourceType,
-};
-pub use retry_policy::{RetryError, RetryPolicy, RetryState};
-pub use search_orchestrator::{OrchestratorError, SearchOrchestrator, SearchOrchestratorBuilder};
-pub use search_planner::{ResearchDepth, SearchPlanner, SearchPlannerConfig};
-pub use search_provider::{
-    ContentMetadata, DateRange, ExtractError, ExtractedContent, RelevanceScorer, SearchError,
-    SearchProvider, SearchProviderRegistry, SearchProviderType, SearchQueryBuilder,
-    SearchResultProcessor,
-};
-pub use self_verifier::{
-    FieldChange, JsonType, JsonValidationResult, LlmSemanticValidator, OutputFormat,
-    RuleBasedValidator, SelfVerifier, SemanticValidator, StateDiff, VerificationError,
-    VerificationResult, detect_state_change, validate_json_output,
-};
+// session_manager — 外部引用：app_state, state/*, init/*, commands/*
 pub use session_manager::{
     AgentSession, ChannelPermissionPrompter, SessionManager, TauriHookProgressReporter,
 };
-pub use source_classifier::{
-    CategoryStats, SourceCategory, SourceClassification, SourceClassifier,
-};
-pub use source_validator::{
-    DomainInfo, IssueCode, IssueSeverity, SourceFilter, SourceValidationResult, ValidationIssue,
-    ValidatorConfig,
-};
-pub use task::{TaskGraph, TaskNode, TaskType};
-pub use task_decomposer::{
-    DecomposerLlmClient, DecompositionError, DecompositionResult, TaskDecomposer,
-};
-pub use task_executor::{ExecutionError, ExecutionEvent, ExecutionProgress, TaskExecutor};
-pub use thought_chain::{
-    Action, ChainSummary, ThoughtChain, ThoughtChainEmitter, ThoughtEvent, ThoughtStep,
-};
-pub use trajectory_recorder::{
-    ReplayComparison, ReplayResult, ReplayStep, TrajectoryRecorder, TrajectoryReplayer,
-    TrajectoryStore, TrajectorySummary,
-};
-pub use tree_of_thoughts::{
-    DefaultToTReasoningProvider, LlmReasoningProvider as ToTLlmReasoningProvider,
-    ProviderAdapterBridge, ThoughtNode, ThoughtStatus, ToTStateSummary, TreeOfThoughtsEngine,
-};
-pub use verification_agent::VerificationAgent;
-pub use vision_pipeline::{BoundingBox, UiElement, VisionPipeline, VisionResult, VisionTask};
-pub use web_search::{WebSearchConfig, WebSearchProvider, WebSearchProviderBuilder};
 
-pub use ingest_pipeline::{
-    Argument as IngestArgument, ConceptMention, ConnectionHint, Contradiction, EntityMention,
-    GeneratedPage, IngestPipeline, IngestResult, IngestSource, IngestSourceType, PageSuggestion,
-    ReviewItem, SourceAnalysis, SourceMetadata,
-};
-pub use ingest_queue::{FolderImportPreviewItem, IngestQueue, IngestTaskStatus, QueuedIngestTask};
-pub use purpose_manager::PurposeManager;
+// reflector — 外部引用：commands/reflection, init/state
+pub use reflector::{Reflector, Reflection, TaskExecutionRecord};
 
-pub use graph_insights::{
-    BridgeNode, GapType, GraphInsightAnalyzer, GraphInsightStats, GraphInsights, KnowledgeGap,
-    SurprisingConnection, analyze_graph,
+// provider_adapter — 外部引用：commands/agent, commands/plan
+pub use provider_adapter::{AxAgentApiClient, StreamEventCallback};
+
+// llm_bridge — 外部引用：runtime/llm_bridge
+pub use llm_bridge::ProviderLlmBridge;
+
+// recovery_strategies — 外部引用：runtime/error_recovery, commands/*
+pub use recovery_strategies::{
+    ClassifiedError, ErrorClassifier, ErrorType, RecoveryAdjustment, RecoveryAttempt,
+    RecoveryResult, RecoveryStrategy,
 };
 
-pub use deep_research::{
-    Contradiction as DeepResearchContradiction, CorroboratedFinding, DeepResearchConfig,
-    DeepResearchResult, DeepResearcher, DeepResearcherBuilder, ResearchFinding,
-    ResearchPhase as DeepResearchPhase, ResearchQuery, ResearchRound,
+// hierarchical_planner — 外部引用：commands/plan
+pub use hierarchical_planner::{
+    compile_plan_to_dag, Phase, PhaseStatus, Plan, PlanStatus, PlannedTask, TaskStatus,
 };
 
-pub use relevance::{RankedPage, RelevanceConfig, RelevanceEngine};
+// insight_generator — 外部引用：commands/reflection
+pub use insight_generator::{Insight, InsightCategory, InsightStats};
+
+// rl_optimizer — 外部引用：commands/rl
+pub use rl_optimizer::{Policy, PolicyType, TrainingStats};
+
+// vision_pipeline — 外部引用：commands/screen_vision
+pub use vision_pipeline::{VisionPipeline, VisionResult, VisionTask};
+
+// personality — 外部引用：commands/personality
+pub use personality::{Personality, PersonalityManager};
+
+// tool_recommender — 外部引用：commands/tool_recommender
+pub use tool_recommender::{
+    ContextAnalyzer, ToolRecommendation, ToolRecommender,
+    patterns::{UsagePattern, UsagePatternDB},
+};
+
+// evaluator — 外部引用：commands/evaluator
+pub use evaluator::{
+    Benchmark, BenchmarkReport, BenchmarkResult, BenchmarkSuite, Dataset, DatasetLoader,
+    DatasetMetadata, DatasetRegistry, EvaluationRunner, ReportGenerator, RunnerConfig,
+};
+
+// fine_tune — 外部引用：commands/fine_tune
+pub use fine_tune::{
+    ActiveModelConfig, BaseModelInfo, TrainingJob,
+    lora::LoRAAdapterInfo,
+    trainer::TrainingStats as FineTuneTrainingStats,
+};
+
+// agent_runtime — 内部引用：agent_adapter
+pub use agent_runtime::{AgentOutput, AgentRuntimeError};
+
+// 模块级引用 — 外部引用：commands/llm_wiki（模块已是 pub mod，无需重复 pub use）
+
+// runtime-core 类型透传 — 外部引用：commands/agent
+pub use axagent_runtime_core::AgentExecutionProgressSnapshot;

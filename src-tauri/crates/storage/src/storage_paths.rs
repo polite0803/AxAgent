@@ -1,11 +1,15 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use std::path::{Path, PathBuf};
-// SAFETY: This RwLock is only accessed from synchronous code paths (init, set,
-// clear, and read in documents_root()). None of the callers hold the lock across
-// .await points, so std::sync::RwLock is safe here.
 use std::sync::RwLock;
 
+// SAFETY: 本文件中所有 RwLock 使用都在纯同步上下文中：
+// - init_documents_root: 应用启动时调用一次
+// - set_documents_root: 用户选择新目录时调用
+// - clear_documents_root_override: 运行时清除覆盖
+// - documents_root: 读取当前值
+// 所有调用者都是同步函数，不跨越 .await 边界。
+// 使用 unwrap_or_else(|e| e.into_inner()) 处理 poisoned lock。
 static DOCUMENTS_ROOT_OVERRIDE: RwLock<Option<PathBuf>> = RwLock::new(None);
 
 /// Initialise the custom documents root from a stored setting.

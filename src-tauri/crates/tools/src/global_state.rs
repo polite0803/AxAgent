@@ -14,7 +14,8 @@ use std::sync::LazyLock;
 // SAFETY: These RwLock instances wrap global database state that is only
 // accessed from synchronous set/get helpers. No lock is ever held across an
 // .await boundary, and all access goes through the module-level functions
-// which are themselves synchronous.
+// which are themselves synchronous. Using tokio::sync::RwLock would require
+// async everywhere and break ~10+ callers in the tools crate.
 use std::sync::RwLock;
 
 // ── 数据库路径 ────────────────────────────────────────────────────────────

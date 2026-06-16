@@ -243,7 +243,7 @@ pub struct SessionManager {
     default_workspace_dir: std::sync::Mutex<Option<String>>,
     /// Per-conversation execution progress trackers for frontend panels.
     progress_trackers:
-        std::sync::RwLock<std::collections::HashMap<String, Arc<AgentExecutionProgress>>>,
+        tokio::sync::RwLock<std::collections::HashMap<String, Arc<AgentExecutionProgress>>>,
     /// 轨迹学习服务（可选，用于压缩完整性校验和任务复杂度估算）
     trajectory: Option<Arc<dyn TrajectoryService>>,
 }
@@ -262,7 +262,7 @@ impl SessionManager {
             db: Arc::new(db),
             app_handle: std::sync::Mutex::new(None),
             default_workspace_dir: std::sync::Mutex::new(None),
-            progress_trackers: std::sync::RwLock::new(std::collections::HashMap::new()),
+            progress_trackers: tokio::sync::RwLock::new(std::collections::HashMap::new()),
             trajectory: None,
         }
     }
@@ -689,9 +689,7 @@ impl SessionManager {
         let progress = Arc::new(AgentExecutionProgress::new(max_iters));
         runtime = runtime.with_progress(progress.clone());
         {
-            let mut trackers = self.progress_trackers.write().map_err(|e| {
-                RuntimeError::new(format!("Failed to write-lock progress_trackers: {}", e))
-            })?;
+            let mut trackers = self.progress_trackers.write().await;
             trackers.insert(conversation_id.clone(), progress.clone());
         }
 
@@ -761,12 +759,7 @@ impl SessionManager {
         // Clean up progress tracker — the frontend will get one final
         // snapshot via agent-done before this removal.
         {
-            let mut trackers = self.progress_trackers.write().map_err(|e| {
-                RuntimeError::new(format!(
-                    "Failed to write-lock progress_trackers for cleanup: {}",
-                    e
-                ))
-            })?;
+            let mut trackers = self.progress_trackers.write().await;
             trackers.remove(&conversation_id);
         }
 
@@ -775,11 +768,14 @@ impl SessionManager {
 
     /// Get the execution progress tracker for a given conversation.
     /// Used by `agent_runtime_stats` IPC to return real-time progress to the frontend.
-    pub fn get_progress(&self, conversation_id: &str) -> Option<Arc<AgentExecutionProgress>> {
-        let trackers = self
-            .progress_trackers
-            .read()
-            .unwrap_or_else(|e| e.into_inner());
+    pub async fn get_progress(&self, conversation_id: &str) -> Option<Arc<AgentExecutionProgress>> {
+        let trackers = self.progress_trackers.read().await;
+        trackers.get(conversation_id).cloned()
+    }
+
+    /// 同步版本：在无法使用 .await 的上下文中获取进度
+    pub fn get_progress_sync(&self, conversation_id: &str) -> Option<Arc<AgentExecutionProgress>> {
+        let trackers = self.progress_trackers.blocking_read();
         trackers.get(conversation_id).cloned()
     }
 }

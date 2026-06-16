@@ -10,6 +10,7 @@ use std::sync::{
 use std::thread;
 use std::time::Duration;
 
+use serde::{Serialize, Deserialize};
 use serde_json::{Value, json};
 
 use crate::config::{RuntimeFeatureConfig, RuntimeHookConfig};
@@ -17,7 +18,7 @@ use crate::permissions::PermissionOverride;
 
 pub type HookPermissionDecision = PermissionOverride;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum HookEvent {
     // 已有 — 工具生命周期
     PreToolUse,

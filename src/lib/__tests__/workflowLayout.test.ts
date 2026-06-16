@@ -55,8 +55,8 @@ function absBounds(
 describe("workflowLayout", () => {
   describe("getNodeSize", () => {
     it("returns known size for built-in types", () => {
-      expect(getNodeSize("agent")).toEqual({ width: 200, height: 180 });
-      expect(getNodeSize("parallel")).toEqual({ width: 500, height: 400 });
+      expect(getNodeSize("agent")).toEqual({ width: 180, height: 130 });
+      expect(getNodeSize("parallel")).toEqual({ width: 300, height: 200 });
     });
 
     it("returns default size for unknown type", () => {
@@ -263,17 +263,18 @@ describe("find_safe_position", () => {
   });
 
   it("avoids overlapping a sibling by escaping to a non-overlapping direction", () => {
-    // sibling occupies (0..220, 0..160), candidate (50, 50) sits inside it
+    // sibling occupies (0..180, 0..130), candidate (50, 50) sits inside it
     // algorithm picks the closest escape direction (right/left/down/up),
     // not necessarily right. We only assert the result escapes the bbox.
+    const agentSize = getNodeSize("agent");
     const safe = find_safe_position(
       { x: 50, y: 50 },
       "agent",
       [{ id: "b", x: 0, y: 0, type: "agent" }],
       10,
     );
-    const escapesX = safe.x + 220 <= 0 || safe.x >= 220 + 10;
-    const escapesY = safe.y + 160 <= 0 || safe.y >= 160 + 10;
+    const escapesX = safe.x + agentSize.width <= 0 || safe.x >= agentSize.width + 10;
+    const escapesY = safe.y + agentSize.height <= 0 || safe.y >= agentSize.height + 10;
     expect(escapesX || escapesY).toBe(true);
   });
 
@@ -376,8 +377,9 @@ describe("clampChildrenIntoContainers", () => {
       padding,
     );
     const r = result.find((n) => n.id === "c1")!;
+    const childW = getNodeSize("agent").width;
     // 子节点被拉回到容器内的 padding 区域
-    expect(r.position.x + 200).toBeLessThanOrEqual(containerW - padding);
+    expect(r.position.x + childW).toBeLessThanOrEqual(containerW - padding);
     expect(r.position.y).toBe(50);
   });
 

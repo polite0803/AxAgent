@@ -141,7 +141,16 @@ interface EdgeLike {
 
 // 容器节点类型（同步自 workflow.types.ts 的 NODE_TYPE_MAP isContainer 标记）
 // 布局/校验需要区分容器节点以便正确处理子节点
-const CONTAINER_NODE_TYPES = new Set(["parallel", "loop", "debate", "swarm", "aggregator", "subWorkflow"]);
+const CONTAINER_NODE_TYPES = new Set([
+  "parallel",
+  "loop",
+  "debate",
+  "swarm",
+  "aggregator",
+  "subWorkflow",
+  "workflowRef",
+  "merge",
+]);
 
 /** 提取节点类型：优先 data.type（ReactFlow），回退到 node.type（WorkflowNode） */
 function nodeTypeOf(n: NodeLike): string {
@@ -172,7 +181,7 @@ function buildOutdegree(edges: EdgeLike[]): Map<string, number> {
  * Tarjan 算法求强连通分量（SCC），返回 >1 个节点的 SCC 列表。
  * 每个 SCC 代表一个有向环。
  */
-function findCyclicSCCs(nodes: NodeLike[], edges: EdgeLike[]): string[][] {
+export function findCyclicSCCs(nodes: NodeLike[], edges: EdgeLike[]): string[][] {
   const sccs: string[][] = [];
   const idx = new Map<string, number>();
   const low = new Map<string, number>();
@@ -570,25 +579,34 @@ function extractConfig(n: NodeLike, key: string): string | undefined {
  * 实际渲染尺寸可能不同，但 Dagre 只影响相对排列，偏差可接受。
  */
 const NODE_SIZE: Record<string, { width: number; height: number }> = {
-  trigger: { width: 200, height: 140 },
-  agent: { width: 200, height: 180 },
-  llm: { width: 200, height: 200 },
-  condition: { width: 200, height: 160 },
-  parallel: { width: 500, height: 400 },
-  loop: { width: 480, height: 300 },
-  debate: { width: 480, height: 260 },
-  swarm: { width: 480, height: 300 },
-  aggregator: { width: 320, height: 200 },
-  merge: { width: 200, height: 140 },
-  delay: { width: 180, height: 120 },
-  tool: { width: 200, height: 160 },
-  code: { width: 200, height: 160 },
-  subWorkflow: { width: 480, height: 300 },
-  workflowRef: { width: 200, height: 140 },
-  documentParser: { width: 200, height: 140 },
-  vectorRetrieve: { width: 200, height: 140 },
-  validation: { width: 200, height: 140 },
-  end: { width: 180, height: 100 },
+  trigger: { width: 160, height: 100 },
+  agent: { width: 180, height: 130 },
+  llm: { width: 180, height: 130 },
+  llmClassifier: { width: 180, height: 120 },
+  condition: { width: 170, height: 120 },
+  switch: { width: 170, height: 120 },
+  parallel: { width: 300, height: 200 },
+  loop: { width: 280, height: 180 },
+  debate: { width: 280, height: 180 },
+  swarm: { width: 280, height: 180 },
+  aggregator: { width: 220, height: 140 },
+  merge: { width: 150, height: 90 },
+  delay: { width: 140, height: 90 },
+  tool: { width: 160, height: 110 },
+  code: { width: 160, height: 110 },
+  subWorkflow: { width: 280, height: 200 },
+  workflowRef: { width: 160, height: 100 },
+  documentParser: { width: 160, height: 100 },
+  vectorRetrieve: { width: 160, height: 100 },
+  httpRequest: { width: 160, height: 100 },
+  validation: { width: 160, height: 100 },
+  notification: { width: 150, height: 90 },
+  approval: { width: 150, height: 90 },
+  email: { width: 150, height: 90 },
+  webhookSend: { width: 150, height: 90 },
+  storage: { width: 160, height: 100 },
+  databaseQuery: { width: 160, height: 100 },
+  end: { width: 140, height: 80 },
 };
 
 const DEFAULT_SIZE = { width: 200, height: 140 };
@@ -919,7 +937,7 @@ export function autoLayoutWorkflow(
     return { nodes: [...resolvedNodes, ...excludedNodes], edges: dagreResult.edges };
   }
 
-  // 1. 输入已是画布绝对坐标（直接从 store 读取，非 ReactFlow 渲染层相对坐标）
+  // 1. 记录当前坐标（子节点为相对父容器的偏移，dagre 完全重算位置故不影响结果）
   const currentAbs: Record<string, { x: number; y: number }> = {};
   for (const n of nodes) {
     currentAbs[n.id] = { x: n.position.x, y: n.position.y };

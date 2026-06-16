@@ -74,10 +74,8 @@ pub mod scheduled_task;
 #[cfg(not(mobile))]
 pub mod screen_vision;
 pub mod search;
-pub mod session;
 pub mod session_share;
 pub mod settings;
-pub mod shell;
 pub mod skill_decomposition;
 pub mod skills;
 pub mod skills_hub;

@@ -9,7 +9,7 @@ use axagent_harness::types::{
     ChatContent, ChatMessage, ChatRequest, ChatStreamChunk, ChatStreamErrorEvent, ChatStreamEvent,
     ProviderType,
 };
-use axagent_providers::{ProviderRequestContext, resolve_base_url_for_type};
+use axagent_harness::{ProviderRequestContext, url_utils::resolve_base_url_for_type};
 use futures::StreamExt;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;

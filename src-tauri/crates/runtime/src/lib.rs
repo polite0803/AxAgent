@@ -134,11 +134,6 @@ pub use oauth::{
     save_oauth_credentials,
 };
 
-pub use plugin_hooks::{
-    HookContext, HookDecision, LlmCallContext, LlmCallResult, PluginHook, SharedHook,
-    ToolCallContext, ToolCallResult,
-};
-
 // ── Plugin Agent 桥接 ──（从 plugins crate 重导出）
 pub use axagent_plugins::agent_provider::{
     PluginAgentDef, PluginAgentRegistry, global_plugin_agents,
