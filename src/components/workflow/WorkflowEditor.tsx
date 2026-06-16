@@ -200,6 +200,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
   const posRafRef = React.useRef<number | null>(null);
   // 拖拽状态标志：拖拽期间抑制 useEffect 全量重建节点和 store 位置写入，防止崩溃
   const isDraggingRef = React.useRef(false);
+  const removeIdsRef = React.useRef<Set<string>>(new Set());
   // dragStop 后短暂抑制 useEffect 全量重建，避免覆盖 reactFlowInstance.setNodes 的结果
   const suppressRebuildRef = React.useRef(false);
   // 跳过写入标志：程序化 setRNodes（如 autoLayout）后抑制 onNodesChange 中的重复 updateNode
@@ -350,6 +351,8 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
       const nodesWithParent: WorkflowNode[] = nodes.map((n) => {
         const pid = parentRefs[n.id];
         if (pid === undefined) { return n; }
+        // Store 始终存绝对坐标，保存时也保持绝对坐标。
+        // 加载时 rebuildParentRefsFromNodes 恢复 parentRefs，useEffect 再将绝对坐标转为相对坐标给 ReactFlow。
         return { ...n, parentId: pid } as WorkflowNode;
       });
       const input = {
@@ -473,45 +476,17 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
         const isContainerCollapsed = isContainer
           && useWorkflowEditorStore.getState().collapsedContainers.has(node.id);
         // 折叠态：容器自身缩为紧凑尺寸
-        const CONTAINER_PADDING = 20;
-        const CONTAINER_HEADER_H = 36;
         const CONTAINER_MIN_W = 260;
         const CONTAINER_MIN_H = 130;
         let containerStyle: React.CSSProperties | undefined;
         if (isContainerCollapsed) {
           containerStyle = { width: 200, height: 60 };
         } else if (isContainer) {
-          const childIds = childrenOfParent[node.id] ?? [];
-          // 同时考虑子图（subGraph）节点对容器尺寸的影响
-          const subGraphChildren = subGraphNodes ?? [];
-          let maxX = CONTAINER_MIN_W - CONTAINER_PADDING;
-          let maxY = CONTAINER_MIN_H - CONTAINER_PADDING;
-          for (const childId of childIds) {
-            const child = nodeById[childId];
-            if (!child) { continue; }
-            const sz = getNodeSize(child.type);
-            // 子节点在 Store 中是绝对坐标 —— 转为相对容器的偏移
-            const relX = child.position.x - node.position.x;
-            const relY = child.position.y - node.position.y;
-            const cx = relX + sz.width;
-            const cy = relY + sz.height;
-            if (cx > maxX) { maxX = cx; }
-            if (cy > maxY) { maxY = cy; }
-          }
-          for (const sgChild of subGraphChildren as { type?: string; position: { x: number; y: number } }[]) {
-            const sz = getNodeSize(sgChild.type ?? "base");
-            // subGraph 中的 position 始终是相对容器的偏移（种子数据已转换为相对坐标，
-            // 保存时也写回相对坐标），无需再减容器绝对坐标。
-            const relX = sgChild.position.x;
-            const relY = sgChild.position.y;
-            const cx = relX + sz.width;
-            const cy = relY + sz.height;
-            if (cx > maxX) { maxX = cx; }
-            if (cy > maxY) { maxY = cy; }
-          }
+          // 容器尺寸由 ReactFlow measured 自动计算（基于子节点位置 + extent:"parent"），
+          // 此处仅设 minWidth/minHeight 下限
           containerStyle = {
-            width: Math.max(CONTAINER_MIN_W, maxX + CONTAINER_PADDING),
-            height: Math.max(CONTAINER_MIN_H, maxY + CONTAINER_PADDING + CONTAINER_HEADER_H),
+            minWidth: CONTAINER_MIN_W,
+            minHeight: CONTAINER_MIN_H,
           };
         }
         // 折叠态下：容器内的子节点在画布上隐藏
@@ -546,12 +521,8 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
             ...(pid ? { parentId: pid } : {}),
             ...(nodeConfig?.kind ? { kind: nodeConfig.kind as string } : {}),
             ...(isContainer ? { childCount: subGraphChildCount } : {}),
-            ...((isContainer && containerStyle)
-              ? {
-                nodeWidth: (containerStyle as React.CSSProperties).width as number | undefined,
-                nodeHeight: (containerStyle as React.CSSProperties).height as number | undefined,
-              }
-              : {}),
+            // Container size is now auto-calculated by ReactFlow based on children
+            // No need to pass fixed width/height
             // 容器特化字段提取：从 config 提取到 data 顶层供容器组件渲染使用
             ...(node.type === "debate"
               ? {
@@ -742,15 +713,17 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
             nodeType: subNode.type,
             enabled: true,
           };
-          // 方案 A：全顶层节点，使用绝对坐标（不设 parentId，避免 ReactFlow 父节点边渲染问题）
-          const subAbsPos = {
-            x: containerNode.position.x + subNode.position.x,
-            y: containerNode.position.y + subNode.position.y,
+          // subGraph children use relative coordinates + parentId, same as non-subGraph children
+          const subRelPos = {
+            x: subNode.position.x,
+            y: subNode.position.y,
           };
           const subFlowNode = {
             id: subNode.id,
             type: subNode.type || "agent",
-            position: subAbsPos,
+            position: subRelPos,
+            parentId: containerNode.id,
+            extent: "parent" as const,
             data: subData,
           };
 
@@ -799,7 +772,9 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
           flowNodes.push({
             id: subNode.id,
             type: (subNode as unknown as { type?: string }).type || "agent",
-            position: { x: parentFn.position.x + subNode.position.x, y: parentFn.position.y + subNode.position.y },
+            position: { x: subNode.position.x, y: subNode.position.y },
+            parentId: swNodeId,
+            extent: "parent" as const,
             data: {
               ...subNode,
               label: subNode.title,
@@ -937,17 +912,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
 
       // 首次加载时自动布局，确保节点排列合理
       if (!hasAutoLaidOutRef.current && nodes.length >= 2) {
-        const hasReasonableLayout = nodes.some(
-          (n) => n.position.x >= 50 || n.position.y >= 50,
-        );
-        // 如果有容器节点或子节点坐标明确，视为已有合理布局，跳过自动布局
-        const hasContainerNodes = nodes.some((n) => NODE_TYPE_MAP[n.type]?.isContainer);
-        const hasContainerChildren = nodes.some((n) => {
-          const pid = parentRefs[n.id];
-          return typeof pid === "string" && pid.length > 0 && (n.position.x !== 0 || n.position.y !== 0);
-        });
-        const skipAutoLayout = hasContainerNodes || hasContainerChildren;
-
+        // Only skip auto-layout if nodes have genuinely reasonable positions (not all at origin)
         const hasOverlap = (() => {
           const posMap = new Map<string, number>();
           for (const n of nodes) {
@@ -957,7 +922,10 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
           return Array.from(posMap.values()).some((count) => count > 1);
         })();
 
-        if (!skipAutoLayout && (!hasReasonableLayout || hasOverlap)) {
+        const hasReasonablePositions = nodes.every((n) => n.position.x >= 50 || n.position.y >= 50);
+        const skipAutoLayout = hasReasonablePositions && !hasOverlap;
+
+        if (!skipAutoLayout) {
           hasAutoLaidOutRef.current = true;
           autoLayoutTimerRef.current = setTimeout(() => {
             const { nodes: layouted, edges: layoutedE } = autoLayoutWorkflow(
@@ -1162,14 +1130,15 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
         let hitContainerId: string | null = null;
         for (const n of existingNodes) {
           if (!NODE_TYPE_MAP[n.type]?.isContainer) { continue; }
-          const size = getNodeSize(n.type);
-          const nx = n.position.x;
-          const ny = n.position.y;
+          // Use ReactFlow measured dimensions for accurate hit-test
+          const rfNode = reactFlowInstance?.getNodes().find((rfn) => rfn.id === n.id);
+          const w = rfNode?.measured?.width ?? getNodeSize(n.type).width;
+          const h = rfNode?.measured?.height ?? getNodeSize(n.type).height;
           if (
-            position.x >= nx
-            && position.x <= nx + size.width
-            && position.y >= ny
-            && position.y <= ny + size.height
+            position.x >= n.position.x
+            && position.x <= n.position.x + w
+            && position.y >= n.position.y
+            && position.y <= n.position.y + h
           ) {
             hitContainerId = n.id;
             break;
@@ -1184,10 +1153,19 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
         // 方案 A：Store 存绝对坐标，ReactFlow 输出绝对坐标
         const storePosition = position;
 
+        // If dropped into a container, use relative coordinates + parentId for ReactFlow
+        const containerNode = hitContainerId
+          ? useWorkflowEditorStore.getState().nodes.find((n) => n.id === hitContainerId)
+          : undefined;
+        const rfPosition = containerNode
+          ? { x: position.x - containerNode.position.x, y: position.y - containerNode.position.y }
+          : position;
+
         const newNode: Node = {
           id,
           type: actualNodeType,
-          position: position,
+          position: rfPosition,
+          ...(hitContainerId ? { parentId: hitContainerId, extent: "parent" as const } : {}),
           data: {
             id,
             type: payload.type,
@@ -1254,10 +1232,12 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
         let hitId: string | null = null;
         for (const n of existingNodes) {
           if (!NODE_TYPE_MAP[n.type]?.isContainer) { continue; }
-          const size = getNodeSize(n.type);
+          const rfNode = reactFlowInstance?.getNodes().find((rfn) => rfn.id === n.id);
+          const w = rfNode?.measured?.width ?? getNodeSize(n.type).width;
+          const h = rfNode?.measured?.height ?? getNodeSize(n.type).height;
           if (
-            position.x >= n.position.x && position.x <= n.position.x + size.width
-            && position.y >= n.position.y && position.y <= n.position.y + size.height
+            position.x >= n.position.x && position.x <= n.position.x + w
+            && position.y >= n.position.y && position.y <= n.position.y + h
           ) {
             hitId = n.id;
             break;
@@ -1336,6 +1316,8 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
     const nodesWithParent: WorkflowNode[] = nodes.map((n) => {
       const pid = parentRefs[n.id];
       if (pid === undefined) { return n; }
+      // Store 始终存绝对坐标，保存时也保持绝对坐标。
+      // 加载时 rebuildParentRefsFromNodes 恢复 parentRefs，useEffect 再将绝对坐标转为相对坐标给 ReactFlow。
       return { ...n, parentId: pid } as WorkflowNode;
     });
 
@@ -1410,6 +1392,19 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
         return;
       }
       let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+      // Build a map of parent positions for converting child relative coords to absolute
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const nodeMap = new Map<string, any>();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      nodes.forEach((n: any) => nodeMap.set(n.id, n));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const getAbsolutePosition = (node: any): { x: number; y: number } => {
+        if (!node.parentId) { return node.position; }
+        const parent = nodeMap.get(node.parentId);
+        if (!parent) { return node.position; }
+        const parentAbs = getAbsolutePosition(parent);
+        return { x: node.position.x + parentAbs.x, y: node.position.y + parentAbs.y };
+      };
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       nodes.forEach((node: any) => {
         const nodeType = (node.data?.type as string) || node.type || "";
@@ -1418,10 +1413,11 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
           : null;
         const w = node.measured?.width ?? fallback?.width ?? 200;
         const h = node.measured?.height ?? fallback?.height ?? 100;
-        minX = Math.min(minX, node.position.x);
-        minY = Math.min(minY, node.position.y);
-        maxX = Math.max(maxX, node.position.x + w);
-        maxY = Math.max(maxY, node.position.y + h);
+        const absPos = getAbsolutePosition(node);
+        minX = Math.min(minX, absPos.x);
+        minY = Math.min(minY, absPos.y);
+        maxX = Math.max(maxX, absPos.x + w);
+        maxY = Math.max(maxY, absPos.y + h);
       });
       const padding = 80;
 
@@ -1799,9 +1795,32 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
           }
         }
         if (change.type === "remove" && change.id) {
-          deleteNode(change.id);
+          // Collect remove IDs first, then delete only non-cascaded nodes
+          // to avoid double-pushing undo history when deleteNode cascades
+          removeIdsRef.current.add(change.id);
         }
       });
+      // Batch delete: collect all remove IDs, then delete only non-cascaded nodes
+      if (removeIdsRef.current.size > 0) {
+        const idsToDelete = [...removeIdsRef.current];
+        removeIdsRef.current.clear();
+        // Find which IDs would be cascade-deleted (children of deleted containers)
+        const cascadeIds = new Set<string>();
+        for (const id of idsToDelete) {
+          const nodeType = useWorkflowEditorStore.getState().nodes.find((n) => n.id === id)?.type;
+          if (nodeType && NODE_TYPE_MAP[nodeType]?.isContainer) {
+            for (const [cid, pid] of Object.entries(useWorkflowEditorStore.getState().parentRefs)) {
+              if (pid === id) { cascadeIds.add(cid); }
+            }
+          }
+        }
+        // Only delete nodes that aren't cascade children (they'll be deleted by the parent's deleteNode)
+        for (const id of idsToDelete) {
+          if (!cascadeIds.has(id)) {
+            deleteNode(id);
+          }
+        }
+      }
     },
     /* eslint-enable @typescript-eslint/no-explicit-any */
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1825,9 +1844,10 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
     (_event: unknown, node: Node) => {
       isDraggingRef.current = false;
       suppressRebuildRef.current = true;
-      requestAnimationFrame(() => {
+      // Keep suppress window longer to prevent useEffect from overwriting drag results
+      setTimeout(() => {
         suppressRebuildRef.current = false;
-      });
+      }, 50);
 
       if (node?.position) {
         const rfNodes = reactFlowInstance?.getNodes() || [];
@@ -1851,12 +1871,12 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
           }
           rfPos = { x: node.position.x, y: node.position.y }; // ReactFlow 保持相对坐标
         } else {
-          // 顶层节点：碰撞避免
+          // 顶层节点：碰撞避免（仅与同层级顶层节点比较，排除子节点的相对坐标）
           const selectedIds = new Set(
             rfNodes.filter((n) => n.selected).map((n) => n.id),
           );
           const siblings = rfNodes
-            .filter((n) => n.id !== node.id && !selectedIds.has(n.id))
+            .filter((n) => n.id !== node.id && !selectedIds.has(n.id) && !n.parentId)
             .map((n) => ({
               id: n.id,
               x: n.position.x,
@@ -1891,6 +1911,29 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
               }
             }
           }
+          // After updating store positions, also update ReactFlow node positions for children
+          requestAnimationFrame(() => {
+            const currentRfNodes = reactFlowInstance?.getNodes() || [];
+            const latestState = useWorkflowEditorStore.getState();
+            reactFlowInstance?.setNodes(currentRfNodes.map((n) => {
+              const childPid = latestState.parentRefs[n.id];
+              if (childPid === node.id) {
+                // Recalculate relative position from updated store absolute positions
+                const childStoreNode = latestState.nodes.find((sn) => sn.id === n.id);
+                const parentStoreNode = latestState.nodes.find((sn) => sn.id === node.id);
+                if (childStoreNode && parentStoreNode) {
+                  return {
+                    ...n,
+                    position: {
+                      x: childStoreNode.position.x - parentStoreNode.position.x,
+                      y: childStoreNode.position.y - parentStoreNode.position.y,
+                    },
+                  };
+                }
+              }
+              return n;
+            }));
+          });
         }
 
         // 更新 ReactFlow 节点：子节点保留相对坐标，顶层节点用绝对坐标
@@ -1901,7 +1944,16 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
           if (n.selected && n.id !== node.id && n.position) {
             const selectedNodeParent = latestParentRefs[n.id];
             if (selectedNodeParent) {
-              // 选中的子节点：RF 位置是相对坐标，直接透传
+              // 选中的子节点：RF 位置是相对坐标，需转为绝对坐标写入 store
+              const parentStore = latestNodes.find((pn) => pn.id === selectedNodeParent);
+              if (parentStore) {
+                updateNode(n.id, {
+                  position: {
+                    x: n.position.x + parentStore.position.x,
+                    y: n.position.y + parentStore.position.y,
+                  },
+                } as Partial<WorkflowNode>);
+              }
               return n;
             }
             // 选中的顶层节点：直接传入 RF 位置

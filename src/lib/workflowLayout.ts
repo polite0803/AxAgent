@@ -851,12 +851,15 @@ function rectsOverlap(
  * 检测并修正节点重叠问题。
  * 对重叠的节点进行温和的位移，避免堆叠。
  */
-export function resolveOverlaps(nodes: Node[]): Node[] {
+export function resolveOverlaps(nodes: Node[], parentRefs: Record<string, string> = {}): Node[] {
   if (nodes.length < 2) { return nodes; }
 
   const result = [...nodes];
   const maxIterations = 100;
   let iteration = 0;
+
+  // Group nodes by their parent (same coordinate space)
+  const groupOf = (id: string): string => parentRefs[id] ?? "__top__";
 
   while (iteration < maxIterations) {
     iteration++;
@@ -864,6 +867,8 @@ export function resolveOverlaps(nodes: Node[]): Node[] {
 
     for (let i = 0; i < result.length; i++) {
       for (let j = i + 1; j < result.length; j++) {
+        // Only resolve overlaps between nodes in the same coordinate space
+        if (groupOf(result[i].id) !== groupOf(result[j].id)) { continue; }
         const a = result[i];
         const b = result[j];
         const sizeA = NODE_SIZE[(a.data?.type as string) || ""] || DEFAULT_SIZE;
@@ -931,7 +936,7 @@ export function autoLayoutWorkflow(
 
   if (containers.length === 0 || Object.keys(childOf).length === 0) {
     const dagreResult = autoLayout(layoutNodes, edges);
-    const resolvedNodes = resolveOverlaps(dagreResult.nodes);
+    const resolvedNodes = resolveOverlaps(dagreResult.nodes, parentRefs);
     // 重新合并被排除的节点（保持其原始位置）
     const excludedNodes = nodes.filter((n) => isLayoutExcluded(n as NodeLike));
     return { nodes: [...resolvedNodes, ...excludedNodes], edges: dagreResult.edges };
@@ -1243,6 +1248,9 @@ export function auto_layout(
   }
 
   // ── 子节点修正：转为相对父容器的坐标 ──────────────────────
+  // NOTE: 嵌套容器（容器内嵌套容器）的坐标转换在此处不支持，
+  // 因为外层容器的 allPositions 可能尚未被其父容器修正。
+  // 当前实现仅支持一层容器嵌套。
   for (const c of containers) {
     const cPos = allPositions[c.id];
     if (!cPos) { continue; }
