@@ -1,12 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { Handle, type NodeProps, Position } from "@xyflow/react";
-import { Tag, theme } from "antd";
+import { theme } from "antd";
 import React, { memo } from "react";
-import { useTranslation } from "react-i18next";
 
 const ORANGE_BASE = "#fa8c16";
-const ORANGE_VAR = `var(--orange, ${ORANGE_BASE})`;
 
 interface ConditionNodeData {
   id: string;
@@ -26,133 +24,89 @@ interface ConditionNodeData {
 
 const ConditionNodeComponent: React.FC<NodeProps> = ({ data: _data, selected }) => {
   const data = _data as unknown as ConditionNodeData;
-  const { t } = useTranslation();
   const { token } = theme.useToken();
-  const color = ORANGE_VAR;
+  const color = ORANGE_BASE;
   const conditions = data.conditions || [];
-  const logicOperator = data.logicOperator || "and";
 
   return (
     <div
       style={{
-        minWidth: 200,
-        maxWidth: 260,
+        minWidth: 120,
+        maxWidth: 180,
         opacity: data.enabled ? 1 : 0.5,
         filter: data.enabled ? "none" : "grayscale(100%)",
       }}
     >
       <div
+        title={data.description || data.title}
         style={{
-          background: token.colorBgElevated,
-          border: `2px solid ${selected ? token.colorPrimary : color}`,
+          background: token.colorBgContainer,
+          border: `1.5px solid ${selected ? token.colorPrimary : color}`,
           borderRadius: 8,
           overflow: "hidden",
-          boxShadow: selected ? `0 0 0 2px ${color}40` : "none",
-          transition: "box-shadow 0.2s, transform 0.2s",
+          boxShadow: selected
+            ? `0 0 0 1.5px ${color}40`
+            : "0 1px 3px rgba(0,0,0,0.08)",
+          transition: "box-shadow 0.15s",
         }}
       >
+        {/* n8n 风格：单行 — 图标色块 + 标题 + 条件数 */}
         <div
           style={{
-            padding: "8px 12px",
-            borderBottom: `1px solid ${ORANGE_BASE}30`,
+            padding: "6px 10px",
             display: "flex",
             alignItems: "center",
-            gap: 8,
-            background: `${ORANGE_BASE}15`,
+            gap: 6,
           }}
         >
-          <span style={{ fontSize: 14 }}>🔀</span>
-          <span
-            style={{
-              fontSize: 12,
-              color: color,
-              fontWeight: 600,
-            }}
-          >
-            {t("workflow.conditionNode.title")}
-          </span>
-          {conditions.length > 0 && (
-            <Tag
-              style={{
-                margin: 0,
-                fontSize: 9,
-                padding: "0 4px",
-                background: `${ORANGE_BASE}30`,
-                border: "none",
-                color: token.colorText,
-              }}
-            >
-              {conditions.length}
-            </Tag>
-          )}
-        </div>
-
-        <div style={{ padding: "10px 12px" }}>
           <div
             style={{
-              fontSize: 13,
+              width: 22,
+              height: 22,
+              borderRadius: 4,
+              background: `${color}18`,
+              border: `1px solid ${color}30`,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: 12,
+              flexShrink: 0,
+              lineHeight: 1,
+            }}
+          >
+            🔀
+          </div>
+          <span
+            style={{
+              fontSize: 11,
               color: token.colorText,
               fontWeight: 500,
-              marginBottom: 6,
+              flex: 1,
               overflow: "hidden",
               textOverflow: "ellipsis",
               whiteSpace: "nowrap",
+              lineHeight: "22px",
             }}
           >
             {data.title}
-          </div>
-
-          {conditions.length > 0
-            ? (
-              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                {conditions.slice(0, 3).map((condition, index) => (
-                  <div
-                    key={index}
-                    style={{
-                      fontSize: 10,
-                      color: token.colorTextQuaternary,
-                      padding: "2px 4px",
-                      background: token.colorBgContainer,
-                      borderRadius: 3,
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {condition.field} {condition.operator} {condition.value}
-                  </div>
-                ))}
-                {conditions.length > 3 && (
-                  <div
-                    style={{
-                      fontSize: 10,
-                      color: token.colorTextTertiary,
-                    }}
-                  >
-                    +{conditions.length - 3} {t("workflow.conditionNode.moreConditions")}
-                  </div>
-                )}
-                <div
-                  style={{
-                    fontSize: 9,
-                    color: token.colorTextTertiary,
-                    marginTop: 2,
-                  }}
-                >
-                  {logicOperator.toUpperCase()}
-                </div>
-              </div>
-            )
-            : (
-              <div
-                style={{
-                  fontSize: 12,
-                  color: token.colorTextQuaternary,
-                }}
-              >
-                {t("workflow.conditionNode.notSet")}
-              </div>
-            )}
+          </span>
+          {conditions.length > 0 && (
+            <span
+              style={{
+                fontSize: 9,
+                lineHeight: "14px",
+                padding: "0 4px",
+                borderRadius: 3,
+                background: `${color}15`,
+                border: `1px solid ${color}30`,
+                color: color,
+                fontWeight: 600,
+                flexShrink: 0,
+              }}
+            >
+              {conditions.length}
+            </span>
+          )}
         </div>
       </div>
 
@@ -162,8 +116,8 @@ const ConditionNodeComponent: React.FC<NodeProps> = ({ data: _data, selected }) 
         style={{
           background: color,
           border: "none",
-          width: 8,
-          height: 8,
+          width: 7,
+          height: 7,
         }}
       />
 
@@ -174,8 +128,8 @@ const ConditionNodeComponent: React.FC<NodeProps> = ({ data: _data, selected }) 
         style={{
           background: token.colorSuccess,
           border: "none",
-          width: 8,
-          height: 8,
+          width: 7,
+          height: 7,
           left: "30%",
         }}
       />
@@ -187,37 +141,38 @@ const ConditionNodeComponent: React.FC<NodeProps> = ({ data: _data, selected }) 
         style={{
           background: token.colorError,
           border: "none",
-          width: 8,
-          height: 8,
+          width: 7,
+          height: 7,
           left: "70%",
         }}
       />
 
+      {/* True/False 标签 */}
       <div
         style={{
           position: "absolute",
-          bottom: -18,
+          bottom: -14,
           left: "25%",
           transform: "translateX(-50%)",
-          fontSize: 9,
+          fontSize: 8,
           color: token.colorSuccess,
           fontWeight: 600,
         }}
       >
-        ✓
+        T
       </div>
       <div
         style={{
           position: "absolute",
-          bottom: -18,
+          bottom: -14,
           left: "75%",
           transform: "translateX(-50%)",
-          fontSize: 9,
+          fontSize: 8,
           color: token.colorError,
           fontWeight: 600,
         }}
       >
-        ✗
+        F
       </div>
     </div>
   );

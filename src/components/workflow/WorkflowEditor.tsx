@@ -476,13 +476,13 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
         const isContainerCollapsed = isContainer
           && useWorkflowEditorStore.getState().collapsedContainers.has(node.id);
         // 折叠态：容器自身缩为紧凑尺寸
-        const CONTAINER_PADDING = 20;
-        const CONTAINER_MIN_W = 260;
-        const CONTAINER_MIN_H = 130;
-        const CONTAINER_HEADER_H = 50;
+        const CONTAINER_PADDING = 16;
+        const CONTAINER_MIN_W = 200;
+        const CONTAINER_MIN_H = 80;
+        const CONTAINER_HEADER_H = 34;
         let containerStyle: React.CSSProperties | undefined;
         if (isContainerCollapsed) {
-          containerStyle = { width: 200, height: 60 };
+          containerStyle = { width: 160, height: 34 };
         } else if (isContainer) {
           // 根据子节点相对坐标计算容器尺寸，确保 extent:"parent" 不会裁剪子节点
           const childIds = childrenOfParent[node.id] ?? [];

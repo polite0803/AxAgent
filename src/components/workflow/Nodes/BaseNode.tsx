@@ -6,7 +6,6 @@ import { Handle, type NodeProps, Position } from "@xyflow/react";
 import { theme } from "antd";
 import React, { memo, useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { NODE_TYPE_MAP } from "../types";
 
 export interface BaseNodeData {
   id: string;
@@ -34,10 +33,6 @@ const BaseNodeComponent: React.FC<NodeProps> = ({
   const bd = data as unknown as BaseNodeData;
   const { t } = useTranslation();
   const { token } = theme.useToken();
-  const typeInfo = NODE_TYPE_MAP[bd.nodeType] || {
-    labelKey: "",
-    color: token.colorTextTertiary,
-  };
 
   const nodeStatuses = useWorkEngineStore((s) => s.nodeStatuses);
   const breakpoints = useWorkEngineStore((s) => s.breakpoints);
@@ -93,49 +88,57 @@ const BaseNodeComponent: React.FC<NodeProps> = ({
   // 端口折叠时节点宽度缩减
   const isWide = shouldCollapseByDefault && isPortCollapsed && !isHovering;
 
+  // 状态指示色块
+  const statusDot = effectiveExecState === "running"
+    ? token.colorPrimary
+    : effectiveExecState === "completed"
+    ? token.colorSuccess
+    : effectiveExecState === "failed" || effectiveExecState === "timeout"
+    ? token.colorError
+    : effectiveExecState === "paused"
+    ? token.colorWarning
+    : null;
+
   return (
     <div
       onMouseEnter={() => setIsHovering(true)}
       onMouseLeave={() => setIsHovering(false)}
       style={{
-        minWidth: isWide ? 120 : 160,
-        maxWidth: isWide ? 150 : 200,
+        minWidth: isWide ? 100 : 120,
+        maxWidth: isWide ? 140 : 200,
         opacity: bd.enabled ? (isSkipped ? 0.4 : 1) : 0.5,
         filter: bd.enabled ? (isSkipped ? "grayscale(80%)" : "none") : "grayscale(100%)",
-        transition: "min-width 0.2s, max-width 0.2s, opacity 0.2s",
+        transition: "min-width 0.15s, max-width 0.15s, opacity 0.15s",
       }}
     >
       <div
         className="workflow-node-card"
+        title={bd.description || bd.title}
         style={{
           background: token.colorBgContainer,
-          border: `2px solid ${borderColor}`,
+          border: `1.5px solid ${borderColor}`,
           borderRadius: 8,
           padding: 0,
-          boxShadow: selected ? `0 0 0 2px ${borderColor}40` : "none",
-          transition: "box-shadow 0.2s, transform 0.2s",
+          boxShadow: selected
+            ? `0 0 0 1.5px ${borderColor}40`
+            : "0 1px 3px rgba(0,0,0,0.08)",
+          transition: "box-shadow 0.15s",
           animation: isRunning ? "nodePulse 1.5s ease-in-out infinite" : "none",
           position: "relative",
-          ...(data.parentId ? { borderLeftWidth: 4, borderLeftColor: token.colorTextQuaternary } : {}),
-        }}
-        onMouseEnter={() => {
-          setIsHovering(true);
-        }}
-        onMouseLeave={() => {
-          setIsHovering(false);
+          ...(data.parentId ? { borderLeftWidth: 3, borderLeftColor: token.colorTextQuaternary } : {}),
         }}
       >
         {hasBreakpoint && (
           <div
             style={{
               position: "absolute",
-              top: -6,
-              right: -6,
-              width: 14,
-              height: 14,
+              top: -4,
+              right: -4,
+              width: 10,
+              height: 10,
               borderRadius: "50%",
               background: "#ff4d4f",
-              border: "2px solid white",
+              border: "1.5px solid white",
               zIndex: 10,
             }}
           />
@@ -146,18 +149,18 @@ const BaseNodeComponent: React.FC<NodeProps> = ({
             title={bd.validationMessage}
             style={{
               position: "absolute",
-              top: -6,
-              left: -6,
-              width: 14,
-              height: 14,
+              top: -4,
+              left: -4,
+              width: 10,
+              height: 10,
               borderRadius: "50%",
               background: bd.validationState === "error" ? token.colorError : token.colorWarning,
-              border: "2px solid white",
+              border: "1.5px solid white",
               zIndex: 10,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              fontSize: 10,
+              fontSize: 7,
               fontWeight: 700,
               color: "#fff",
               cursor: "pointer",
@@ -167,118 +170,110 @@ const BaseNodeComponent: React.FC<NodeProps> = ({
           </div>
         )}
 
+        {/* n8n 风格：单行 — 图标色块 + 标题 + 状态 */}
         <div
           style={{
-            padding: "8px 12px",
-            borderBottom: `1px solid ${bd.color}40`,
+            padding: "6px 10px",
             display: "flex",
             alignItems: "center",
-            gap: 8,
+            gap: 6,
           }}
         >
-          <span style={{ fontSize: 16 }}>{getNodeIcon(bd.nodeType)}</span>
+          {/* 图标色块 */}
+          <div
+            style={{
+              width: 22,
+              height: 22,
+              borderRadius: 4,
+              background: `${bd.color}18`,
+              border: `1px solid ${bd.color}30`,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: 12,
+              flexShrink: 0,
+              lineHeight: 1,
+            }}
+          >
+            {getNodeIcon(bd.nodeType)}
+          </div>
+
+          {/* 标题 */}
           <span
             style={{
-              fontSize: 12,
-              color: bd.color,
+              fontSize: 11,
+              color: token.colorText,
               fontWeight: 500,
               flex: 1,
               overflow: "hidden",
               textOverflow: "ellipsis",
               whiteSpace: "nowrap",
-            }}
-          >
-            {typeInfo.labelKey ? t(typeInfo.labelKey) : bd.nodeType}
-          </span>
-          <div style={{ display: "flex", gap: 2, alignItems: "center" }}>
-            {bd.config?.tick_mode && <span title={t("workflow.node.tickMode")} style={{ fontSize: 10 }}>🔄</span>}
-            {bd.retry?.enabled && <span title={t("workflow.node.retryEnabled")} style={{ fontSize: 10 }}>🔄</span>}
-            {effectiveExecState === "running" && <span style={{ fontSize: 10, color: token.colorPrimary }}>⏳</span>}
-            {effectiveExecState === "completed" && <span style={{ fontSize: 10, color: token.colorSuccess }}>✓</span>}
-            {(effectiveExecState === "failed" || effectiveExecState === "timeout") && (
-              <span style={{ fontSize: 10, color: token.colorError }}>✗</span>
-            )}
-            {effectiveExecState === "paused" && <span style={{ fontSize: 10, color: token.colorWarning }}>⏸</span>}
-          </div>
-        </div>
-
-        <div style={{ padding: "8px 12px" }}>
-          <div
-            style={{
-              fontSize: 13,
-              color: token.colorText,
-              fontWeight: 500,
-              marginBottom: bd.description ? 4 : 0,
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
+              lineHeight: "22px",
             }}
           >
             {bd.title}
-          </div>
-          {bd.description && (
-            <div
-              style={{
-                fontSize: 12,
-                color: token.colorTextTertiary,
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
-              }}
-            >
-              {bd.description}
-            </div>
-          )}
+          </span>
 
-          {/* Hover 工具提示额外信息 */}
-          {isHovering && !data.parentId && (
+          {/* 状态指示 */}
+          {statusDot && (
             <div
               style={{
-                marginTop: 6,
-                padding: "4px 6px",
-                fontSize: 10,
-                color: token.colorTextTertiary,
-                background: token.colorBgLayout,
-                borderRadius: 4,
-                lineHeight: "16px",
+                width: 6,
+                height: 6,
+                borderRadius: "50%",
+                background: statusDot,
+                flexShrink: 0,
+                animation: effectiveExecState === "running" ? "nodePulse 1.5s ease-in-out infinite" : "none",
               }}
-            >
-              <div>
-                {t("workflow.node.inputs", { defaultValue: "Inputs" })}: {inboundCount} |{" "}
-                {t("workflow.node.outputs", { defaultValue: "Outputs" })}: {outboundCount}
-              </div>
-              {bd.nodeType && (
-                <div>
-                  {t("workflow.node.type", { defaultValue: "Type" })}: {bd.nodeType}
-                </div>
-              )}
-            </div>
+            />
+          )}
+          {bd.config?.tick_mode && (
+            <span title={t("workflow.node.tickMode")} style={{ fontSize: 8, flexShrink: 0 }}>🔄</span>
+          )}
+          {bd.retry?.enabled && (
+            <span title={t("workflow.node.retryEnabled")} style={{ fontSize: 8, flexShrink: 0 }}>🔄</span>
           )}
         </div>
+
+        {/* Hover 工具提示 */}
+        {isHovering && !data.parentId && (
+          <div
+            style={{
+              padding: "3px 8px",
+              fontSize: 9,
+              color: token.colorTextTertiary,
+              background: token.colorBgElevated,
+              border: `1px solid ${token.colorBorderSecondary}`,
+              borderRadius: 4,
+              lineHeight: "14px",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {t("workflow.node.inputs", { defaultValue: "In" })}: {inboundCount} |{" "}
+            {t("workflow.node.outputs", { defaultValue: "Out" })}: {outboundCount}
+          </div>
+        )}
       </div>
 
       {/* ── 端口渲染：折叠或展开 ── */}
       {shouldCollapseByDefault && isPortCollapsed && !isHovering
         ? (
-          // 折叠态：显示计数标签（点击可展开）
+          // 折叠态：显示计数标签
           <>
-            {/* 输入端口计数 */}
             <div
               onClick={togglePorts}
-              title={t("workflow.node.clickToExpandPorts", {
-                defaultValue: "Click to expand ports",
-              })}
+              title={t("workflow.node.clickToExpandPorts", { defaultValue: "Click to expand ports" })}
               style={{
                 position: "absolute",
-                top: -20,
+                top: -16,
                 left: "50%",
                 transform: "translateX(-50%)",
-                fontSize: 9,
-                lineHeight: "14px",
-                padding: "0 6px",
+                fontSize: 8,
+                lineHeight: "12px",
+                padding: "0 5px",
                 borderRadius: 3,
-                background: `${bd.color}20`,
-                border: `1px solid ${bd.color}50`,
+                background: `${bd.color}15`,
+                border: `1px solid ${bd.color}40`,
                 color: bd.color,
                 whiteSpace: "nowrap",
                 cursor: "pointer",
@@ -286,25 +281,22 @@ const BaseNodeComponent: React.FC<NodeProps> = ({
                 userSelect: "none",
               }}
             >
-              {inboundCount} {t("workflow.node.inputs", { defaultValue: "inputs" })}
+              {inboundCount}
             </div>
-            {/* 输出端口计数 */}
             <div
               onClick={togglePorts}
-              title={t("workflow.node.clickToExpandPorts", {
-                defaultValue: "Click to expand ports",
-              })}
+              title={t("workflow.node.clickToExpandPorts", { defaultValue: "Click to expand ports" })}
               style={{
                 position: "absolute",
-                bottom: -20,
+                bottom: -16,
                 left: "50%",
                 transform: "translateX(-50%)",
-                fontSize: 9,
-                lineHeight: "14px",
-                padding: "0 6px",
+                fontSize: 8,
+                lineHeight: "12px",
+                padding: "0 5px",
                 borderRadius: 3,
-                background: `${bd.color}20`,
-                border: `1px solid ${bd.color}50`,
+                background: `${bd.color}15`,
+                border: `1px solid ${bd.color}40`,
                 color: bd.color,
                 whiteSpace: "nowrap",
                 cursor: "pointer",
@@ -312,12 +304,12 @@ const BaseNodeComponent: React.FC<NodeProps> = ({
                 userSelect: "none",
               }}
             >
-              {outboundCount} {t("workflow.node.outputs", { defaultValue: "outputs" })}
+              {outboundCount}
             </div>
           </>
         )
         : (
-          // 展开态：渲染标准 Handle + 容器子节点 3 端口
+          // 展开态：标准 Handle
           <>
             <Handle
               type="target"
@@ -325,8 +317,8 @@ const BaseNodeComponent: React.FC<NodeProps> = ({
               style={{
                 background: bd.color,
                 border: "none",
-                width: 8,
-                height: 8,
+                width: 7,
+                height: 7,
               }}
             />
             <Handle
@@ -335,12 +327,12 @@ const BaseNodeComponent: React.FC<NodeProps> = ({
               style={{
                 background: bd.color,
                 border: "none",
-                width: 8,
-                height: 8,
+                width: 7,
+                height: 7,
               }}
             />
 
-            {/* 容器内子节点：动态端口出口（最多 6 端口均匀分布），减少边交叉 */}
+            {/* 容器内子节点：动态端口出口 */}
             {data.parentId && (
               <>
                 {Array.from({ length: 6 }).map((_, i) => {
@@ -354,10 +346,10 @@ const BaseNodeComponent: React.FC<NodeProps> = ({
                       style={{
                         background: bd.color,
                         border: "1px solid transparent",
-                        width: 6,
-                        height: 6,
+                        width: 5,
+                        height: 5,
                         left: leftPct,
-                        opacity: 0.4,
+                        opacity: 0.3,
                       }}
                     />
                   );
@@ -365,20 +357,17 @@ const BaseNodeComponent: React.FC<NodeProps> = ({
               </>
             )}
 
-            {/* 端口已展开时的提示：点击折叠（端口密集节点） */}
             {shouldCollapseByDefault && (
               <div
                 onClick={togglePorts}
-                title={t("workflow.node.clickToCollapsePorts", {
-                  defaultValue: "Click to collapse ports",
-                })}
+                title={t("workflow.node.clickToCollapsePorts", { defaultValue: "Click to collapse ports" })}
                 style={{
                   position: "absolute",
-                  bottom: -8,
-                  right: -8,
-                  fontSize: 8,
-                  lineHeight: "12px",
-                  padding: "0 4px",
+                  bottom: -6,
+                  right: -6,
+                  fontSize: 7,
+                  lineHeight: "10px",
+                  padding: "0 3px",
                   borderRadius: 2,
                   background: token.colorBgElevated,
                   border: `1px solid ${token.colorBorderSecondary}`,
@@ -386,11 +375,11 @@ const BaseNodeComponent: React.FC<NodeProps> = ({
                   cursor: "pointer",
                   zIndex: 5,
                   userSelect: "none",
-                  opacity: isHovering ? 1 : 0.5,
+                  opacity: isHovering ? 1 : 0.4,
                   transition: "opacity 0.15s",
                 }}
               >
-                📦
+                ⊟
               </div>
             )}
           </>

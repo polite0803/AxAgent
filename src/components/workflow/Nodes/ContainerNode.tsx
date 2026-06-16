@@ -47,13 +47,12 @@ interface ContainerNodeProps {
 }
 
 /**
- * 通用复合节点渲染组件。
+ * 通用复合节点渲染组件（n8n 紧凑风格）。
  *
  * 为 Parallel / Debate / Loop / SubWorkflow / Swarm 等内部含多个子节点的节点
  * 提供统一的视觉标识：
- * - 双线边框（虚线 + 内阴影）
- * - 左下角内部节点计数（⊕ N <label>）
- * - ▶/▼ 展开折叠按钮
+ * - 虚线边框 + 轻微背景色
+ * - 紧凑标题栏（图标 + 标题 + 折叠按钮一行）
  * - 折叠态仅显示标题 + 内部节点数量
  */
 const ContainerNodeComponent: React.FC<ContainerNodeProps> = ({
@@ -82,73 +81,84 @@ const ContainerNodeComponent: React.FC<ContainerNodeProps> = ({
   return (
     <div
       style={{
-        width: isCollapsed ? 220 : (data.nodeWidth ?? undefined),
-        height: isCollapsed ? 48 : (data.nodeHeight ?? undefined),
-        minWidth: isCollapsed ? 220 : 260,
-        minHeight: isCollapsed ? 48 : 130,
-        background: `${data.color}08`,
-        border: `2px dashed ${selected ? token.colorPrimary : `${data.color}60`}`,
-        // 双线效果：虚线边框 + outline 实现第二条实线（比 boxShadow inset 在低缩放时更稳定）
-        outline: `2px solid ${data.color}25`,
-        outlineOffset: -4,
-        borderRadius: 12,
-        padding: isCollapsed ? "8px 12px" : 12,
-        opacity: data.enabled ? (data.kind === "decorative" ? 0.65 : 1) : 0.5,
+        width: isCollapsed ? 160 : (data.nodeWidth ?? undefined),
+        height: isCollapsed ? 34 : (data.nodeHeight ?? undefined),
+        minWidth: isCollapsed ? 160 : 200,
+        minHeight: isCollapsed ? 34 : 80,
+        background: `${data.color}06`,
+        border: `1.5px dashed ${selected ? token.colorPrimary : `${data.color}50`}`,
+        borderRadius: 8,
+        padding: isCollapsed ? "6px 8px" : 8,
+        opacity: data.enabled ? (data.kind === "decorative" ? 0.55 : 1) : 0.5,
         position: "relative",
-        transition: "opacity 0.2s, border-color 0.2s",
+        transition: "opacity 0.15s, border-color 0.15s",
       }}
     >
-      {/* 标题栏 — 左上角 */}
+      {/* 标题栏 — 紧凑单行 */}
       <div
         className="workflow-container-drag-handle"
         style={{
           display: "flex",
           alignItems: "center",
-          gap: 6,
-          background: isCollapsed
-            ? "transparent"
-            : data.kind === "decorative"
+          gap: 5,
+          background: isCollapsed || data.kind === "decorative"
             ? "transparent"
             : token.colorBgElevated,
           border: isCollapsed || data.kind === "decorative"
             ? "none"
-            : `1px solid ${data.color}30`,
-          borderRadius: 6,
-          padding: "4px 8px",
+            : `1px solid ${data.color}20`,
+          borderRadius: 4,
+          padding: "3px 6px",
           zIndex: 10,
           cursor: "grab",
-          // 展开态固定左上角
           ...(isCollapsed ? {} : {
             position: "absolute",
-            top: 8,
-            left: 12,
+            top: 6,
+            left: 8,
           }),
         }}
       >
-        <span style={{ fontSize: 14 }}>{icon}</span>
-        <span style={{ fontSize: 12, color: data.color, fontWeight: 600 }}>
+        {/* 图标色块 */}
+        <div
+          style={{
+            width: 18,
+            height: 18,
+            borderRadius: 3,
+            background: `${data.color}18`,
+            border: `1px solid ${data.color}30`,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontSize: 10,
+            flexShrink: 0,
+            lineHeight: 1,
+          }}
+        >
+          {icon}
+        </div>
+
+        <span style={{ fontSize: 11, color: data.color, fontWeight: 600, lineHeight: "18px" }}>
           {data.title}
         </span>
 
-        {/* 额外标签（各容器节点自定义） */}
+        {/* 额外标签 */}
         {!isCollapsed && extraTags}
 
-        {/* 折叠态：显示 ⊕ N <label> */}
+        {/* 折叠态：显示 ⊕ N */}
         {isCollapsed && childCount > 0 && (
           <Tag
             style={{
               margin: 0,
-              fontSize: 10,
-              padding: "1px 6px",
-              background: `${data.color}15`,
-              border: `1px solid ${data.color}40`,
+              fontSize: 9,
+              padding: "0 4px",
+              lineHeight: "16px",
+              background: `${data.color}12`,
+              border: `1px solid ${data.color}30`,
               color: data.color,
               fontWeight: 600,
             }}
           >
-            ⊕ {childCount} {childLabel || t("workflow.containerNode.nodes", {
-              defaultValue: "nodes",
-            })}
+            ⊕{childCount}
           </Tag>
         )}
 
@@ -156,7 +166,7 @@ const ContainerNodeComponent: React.FC<ContainerNodeProps> = ({
         {isCollapsed && collapsedExtra}
       </div>
 
-      {/* 超时/降级标记 — 右上角展开态显示 */}
+      {/* 超时/降级标记 */}
       {!isCollapsed && data.hasBranchTimeout && (
         <Tooltip
           title={t("workflow.containerNode.branchTimeout", {
@@ -166,14 +176,14 @@ const ContainerNodeComponent: React.FC<ContainerNodeProps> = ({
           <span
             style={{
               position: "absolute",
-              top: 10,
-              right: 38,
-              fontSize: 9,
-              lineHeight: "14px",
-              padding: "1px 5px",
-              borderRadius: 3,
-              background: `${token.colorWarning}20`,
-              border: `1px solid ${token.colorWarning}50`,
+              top: 8,
+              right: 30,
+              fontSize: 8,
+              lineHeight: "12px",
+              padding: "1px 4px",
+              borderRadius: 2,
+              background: `${token.colorWarning}15`,
+              border: `1px solid ${token.colorWarning}40`,
               color: token.colorWarning,
               fontWeight: 600,
               zIndex: 10,
@@ -185,7 +195,7 @@ const ContainerNodeComponent: React.FC<ContainerNodeProps> = ({
         </Tooltip>
       )}
 
-      {/* 展开/折叠按钮 — ▶ / ▼ */}
+      {/* 展开/折叠按钮 */}
       <Tooltip
         title={isCollapsed
           ? t("workflow.parallelNode.expand")
@@ -196,25 +206,25 @@ const ContainerNodeComponent: React.FC<ContainerNodeProps> = ({
           onClick={toggleCollapse}
           style={{
             position: "absolute",
-            top: 8,
-            right: 12,
+            top: 6,
+            right: 8,
             cursor: "pointer",
-            fontSize: isCollapsed ? 12 : 14,
+            fontSize: 10,
             lineHeight: 1,
-            padding: "4px 8px",
-            borderRadius: 4,
+            padding: "3px 5px",
+            borderRadius: 3,
             background: isCollapsed ? "transparent" : token.colorBgElevated,
-            border: isCollapsed ? "none" : `1px solid ${data.color}30`,
+            border: isCollapsed ? "none" : `1px solid ${data.color}20`,
             zIndex: 10,
-            opacity: 0.7,
-            transition: "opacity 0.2s",
+            opacity: 0.6,
+            transition: "opacity 0.15s",
             userSelect: "none",
           }}
           onMouseEnter={(e) => {
             (e.currentTarget as HTMLElement).style.opacity = "1";
           }}
           onMouseLeave={(e) => {
-            (e.currentTarget as HTMLElement).style.opacity = "0.7";
+            (e.currentTarget as HTMLElement).style.opacity = "0.6";
           }}
         >
           {isCollapsed ? "▶" : "▼"}
@@ -226,15 +236,15 @@ const ContainerNodeComponent: React.FC<ContainerNodeProps> = ({
         <div
           style={{
             position: "absolute",
-            bottom: 8,
-            left: 12,
+            bottom: 4,
+            left: 8,
             display: "flex",
             alignItems: "center",
-            gap: 4,
-            fontSize: 10,
+            gap: 3,
+            fontSize: 9,
             color: data.color,
             fontWeight: 600,
-            opacity: 0.8,
+            opacity: 0.7,
             zIndex: 5,
             userSelect: "none",
           }}
@@ -248,7 +258,7 @@ const ContainerNodeComponent: React.FC<ContainerNodeProps> = ({
         </div>
       )}
 
-      {/* 端口透传 Handle：仅非装饰容器时渲染 */}
+      {/* Handle */}
       {!disableHandles && (
         <>
           <Handle
@@ -256,9 +266,9 @@ const ContainerNodeComponent: React.FC<ContainerNodeProps> = ({
             position={Position.Top}
             style={{
               background: `${data.color}80`,
-              border: `2px solid ${data.color}`,
-              width: 10,
-              height: 10,
+              border: `1.5px solid ${data.color}`,
+              width: 8,
+              height: 8,
               top: -2,
               pointerEvents: "all",
             }}
@@ -268,9 +278,9 @@ const ContainerNodeComponent: React.FC<ContainerNodeProps> = ({
             position={Position.Bottom}
             style={{
               background: `${data.color}80`,
-              border: `2px solid ${data.color}`,
-              width: 10,
-              height: 10,
+              border: `1.5px solid ${data.color}`,
+              width: 8,
+              height: 8,
               bottom: -2,
               pointerEvents: "all",
             }}
