@@ -50,9 +50,9 @@ function getSmoothStepPath(
 
   const isForward = sourcePosition === "bottom" && targetPosition === "top";
 
-  let cp1x = sourceX;
+  let cp1x: number;
   let cp1y = sourceY;
-  let cp2x = targetX;
+  let cp2x: number;
   let cp2y = targetY;
 
   if (isForward) {

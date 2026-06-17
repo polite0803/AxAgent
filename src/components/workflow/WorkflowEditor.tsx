@@ -430,7 +430,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
       }
       // 纳入展开的子工作流内部节点到 nodeById，确保容器尺寸计算时能找到这些节点
       const expandedSWData = useWorkflowEditorStore.getState().expandedSubWorkflows;
-      for (const [_swNodeId, swData] of Object.entries(expandedSWData)) {
+      for (const [, swData] of Object.entries(expandedSWData)) {
         if (!swData || swData.isLoading || !swData.nodes?.length) { continue; }
         for (const subNode of swData.nodes) {
           nodeById[subNode.id] = subNode;
