@@ -484,20 +484,17 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
         const isContainerCollapsed = isContainer
           && useWorkflowEditorStore.getState().collapsedContainers.has(node.id);
         // 折叠态：容器自身缩为紧凑尺寸
-        const CONTAINER_PADDING = 16;
-        const CONTAINER_MIN_W = 200;
-        const CONTAINER_MIN_H = 80;
-        const CONTAINER_HEADER_H = 34;
+        const CONTAINER_PADDING = 40;
+        const CONTAINER_MIN_W = 400;
+        const CONTAINER_MIN_H = 200;
+        const CONTAINER_HEADER_H = 60;
         let containerStyle: React.CSSProperties | undefined;
         if (isContainerCollapsed) {
           containerStyle = { width: 160, height: 34 };
         } else if (isContainer) {
-          // 根据子节点相对坐标计算容器尺寸，确保 extent:"parent" 不会裁剪子节点
           const childIds = childrenOfParent[node.id] ?? [];
           const subGraphChildren = subGraphNodes ?? [];
-          let maxX = CONTAINER_MIN_W - CONTAINER_PADDING;
-          let maxY = CONTAINER_MIN_H - CONTAINER_PADDING;
-          // 收集所有子工作流内部节点的 ID（这些节点的 position 已经是相对坐标）
+          let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
           const swInternalNodeIds = new Set<string>();
           const swData = expandedSWData[node.id];
           if (swData?.nodes) {
@@ -511,32 +508,33 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
             const sz = getNodeSize(child.type);
             let relX: number, relY: number;
             if (swInternalNodeIds.has(childId)) {
-              // 子工作流内部节点：position 已经是相对容器的偏移
               relX = child.position.x;
               relY = child.position.y;
             } else {
-              // 普通子节点：Store 中是绝对坐标 → 转为相对容器的偏移
               relX = child.position.x - node.position.x;
               relY = child.position.y - node.position.y;
             }
-            const cx = relX + sz.width;
-            const cy = relY + sz.height;
-            if (cx > maxX) { maxX = cx; }
-            if (cy > maxY) { maxY = cy; }
+            minX = Math.min(minX, relX);
+            minY = Math.min(minY, relY);
+            maxX = Math.max(maxX, relX + sz.width);
+            maxY = Math.max(maxY, relY + sz.height);
           }
           for (const sgChild of subGraphChildren as { type?: string; position: { x: number; y: number } }[]) {
             const sz = getNodeSize(sgChild.type ?? "base");
-            // subGraph 中的 position 是相对容器的偏移
-            const relX = sgChild.position.x;
-            const relY = sgChild.position.y;
-            const cx = relX + sz.width;
-            const cy = relY + sz.height;
-            if (cx > maxX) { maxX = cx; }
-            if (cy > maxY) { maxY = cy; }
+            minX = Math.min(minX, sgChild.position.x);
+            minY = Math.min(minY, sgChild.position.y);
+            maxX = Math.max(maxX, sgChild.position.x + sz.width);
+            maxY = Math.max(maxY, sgChild.position.y + sz.height);
+          }
+          if (minX === Infinity) {
+            minX = 0;
+            minY = 0;
+            maxX = CONTAINER_MIN_W - CONTAINER_PADDING * 2;
+            maxY = CONTAINER_MIN_H - CONTAINER_PADDING * 2 - CONTAINER_HEADER_H;
           }
           containerStyle = {
-            width: Math.max(CONTAINER_MIN_W, maxX + CONTAINER_PADDING),
-            height: Math.max(CONTAINER_MIN_H, maxY + CONTAINER_PADDING + CONTAINER_HEADER_H),
+            width: Math.max(CONTAINER_MIN_W, maxX - minX + CONTAINER_PADDING * 2),
+            height: Math.max(CONTAINER_MIN_H, maxY - minY + CONTAINER_PADDING * 2 + CONTAINER_HEADER_H),
           };
         }
         // 折叠态下：容器内的子节点在画布上隐藏

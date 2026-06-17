@@ -772,10 +772,10 @@ export function find_safe_position(
 }
 
 /** 间距常量 */
-const RANK_SEP = 80; // 层间垂直间距
-const NODE_SEP = 50; // 同层节点水平间距
-const MARGIN_X = 60; // 左边距
-const MARGIN_Y = 60; // 上边距
+const RANK_SEP = 150; // 层间垂直间距
+const NODE_SEP = 80; // 同层节点水平间距
+const MARGIN_X = 80; // 左边距
+const MARGIN_Y = 80; // 上边距
 
 /**
  * 使用 Dagre 对工作流节点进行自动布局。
@@ -799,25 +799,31 @@ export function autoLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; edges
     nodesep: NODE_SEP,
     marginx: MARGIN_X,
     marginy: MARGIN_Y,
-    edgesep: 20,
+    edgesep: 30,
+    ranker: "network-simplex",
   });
 
-  // 添加节点
+  const nodeTypeMap = new Map<string, string>();
   for (const node of nodes) {
     const nodeType = (node.data?.type || node.type || "") as string;
+    nodeTypeMap.set(node.id, nodeType);
     const size = NODE_SIZE[nodeType] || DEFAULT_SIZE;
     g.setNode(node.id, { width: size.width, height: size.height });
   }
 
-  // 添加边
   for (const edge of edges) {
-    g.setEdge(edge.source, edge.target);
+    const sourceType = nodeTypeMap.get(edge.source) || "";
+
+    let minLen = 1;
+    if (sourceType === "condition" || sourceType === "switch") {
+      minLen = 2;
+    }
+
+    g.setEdge(edge.source, edge.target, { minLen });
   }
 
-  // 执行布局
   dagre.layout(g);
 
-  // 应用位置
   const layoutedNodes = nodes.map((node) => {
     const dagreNode = g.node(node.id);
     if (!dagreNode) { return node; }
@@ -949,10 +955,10 @@ export function autoLayoutWorkflow(
   }
 
   // 2. 对每个 parallel 容器：单独 dagre 排子节点 + 量 bbox + 归一化到原点
-  const PADDING = 40;
-  const HEADER_H = 60;
-  const MIN_W = 400;
-  const MIN_H = 200;
+  const PADDING = CONTAINER_PADDING;
+  const HEADER_H = CONTAINER_HEADER_H;
+  const MIN_W = CONTAINER_MIN_W;
+  const MIN_H = CONTAINER_MIN_H;
   const groupNorm: Record<string, { nodes: Node[]; bboxW: number; bboxH: number }> = {};
   const containerSizes: Record<string, { width: number; height: number }> = {};
 
@@ -1012,17 +1018,34 @@ export function autoLayoutWorkflow(
     nodesep: NODE_SEP,
     marginx: MARGIN_X,
     marginy: MARGIN_Y,
-    edgesep: 20,
+    edgesep: 30,
+    ranker: "network-simplex",
   });
+
+  const nodeTypeMap = new Map<string, string>();
   for (const n of topLevelNodes) {
     const t = (n.data?.type as string) || n.type || "";
+    nodeTypeMap.set(n.id, t);
     const size = CONTAINER_NODE_TYPES.has(n.type || "")
       ? (containerSizes[n.id] ?? getNodeSize(t))
       : getNodeSize(t);
     g.setNode(n.id, { width: size.width, height: size.height });
   }
+
   for (const e of topLevelEdges) {
-    g.setEdge(e.source, e.target);
+    const sourceType = nodeTypeMap.get(e.source) || "";
+    const targetType = nodeTypeMap.get(e.target) || "";
+
+    let minLen = 1;
+    if (sourceType === "trigger") {
+      minLen = 1;
+    } else if (targetType === "end") {
+      minLen = 1;
+    } else if (sourceType === "condition" || sourceType === "switch") {
+      minLen = 2;
+    }
+
+    g.setEdge(e.source, e.target, { minLen });
   }
   dagre.layout(g);
 
@@ -1096,13 +1119,13 @@ function layoutNodeType(n: { type?: string; data?: Record<string, unknown> }): s
 }
 
 /**
- * 按 type 分层 + Barycenter 启发式 + 父容器适配的自动布局。
+ * 使用 Dagre 进行自动布局，专门优化工作流流程图的布局效果。
  *
  * 策略：
- * 1. 顶层节点按 type 固定分层（L0=trigger → L5=end）
- * 2. 同层 Barycenter 排序减少边交叉（mid=邻居平均列号）
- * 3. 容器节点先布局子节点，再按 bbox 大小排入主层
- * 4. 同层水平 320px 间距，层间垂直 200px 间距
+ * 1. 容器节点内部使用独立的 Dagre 布局
+ * 2. 顶层节点使用 Dagre 布局，使用 network-simplex ranker 提高布局质量
+ * 3. 使用更大的间距参数（ranksep=200, nodesep=100）确保节点不堆叠
+ * 4. 子节点位置转换为相对父容器的坐标
  *
  * @param nodes - 节点列表（需包含 id / type / position / data）
  * @param edges - 边列表（需包含 source / target）
@@ -1147,10 +1170,12 @@ export function auto_layout(
     subGraph.setDefaultEdgeLabel(() => ({}));
     subGraph.setGraph({
       rankdir: "TB",
-      ranksep: 80,
-      nodesep: 50,
-      marginx: 40,
-      marginy: 40,
+      ranksep: 100,
+      nodesep: 60,
+      marginx: 50,
+      marginy: 50,
+      edgesep: 30,
+      ranker: "network-simplex",
     });
 
     for (const cn of childNodes) {
@@ -1198,15 +1223,18 @@ export function auto_layout(
   g.setDefaultEdgeLabel(() => ({}));
   g.setGraph({
     rankdir: "TB",
-    ranksep: 120,
-    nodesep: 60,
-    marginx: 60,
-    marginy: 60,
-    edgesep: 20,
+    ranksep: 200,
+    nodesep: 100,
+    marginx: 80,
+    marginy: 80,
+    edgesep: 40,
+    ranker: "network-simplex",
   });
 
+  const nodeTypeMap = new Map<string, string>();
   for (const n of topLevel) {
     const t = n.type || layoutNodeType(n);
+    nodeTypeMap.set(n.id, t);
     if (CONTAINER_NODE_TYPES.has(t)) {
       const bbox = containerBBox[n.id];
       if (bbox) {
@@ -1225,7 +1253,19 @@ export function auto_layout(
     (e) => !childOf[e.source] && !childOf[e.target],
   );
   for (const e of topLevelEdges) {
-    g.setEdge(e.source, e.target);
+    const sourceType = nodeTypeMap.get(e.source) || "";
+    const targetType = nodeTypeMap.get(e.target) || "";
+
+    let minLen = 1;
+    if (sourceType === "trigger") {
+      minLen = 1;
+    } else if (targetType === "end") {
+      minLen = 1;
+    } else if (sourceType === "condition" || sourceType === "switch") {
+      minLen = 2;
+    }
+
+    g.setEdge(e.source, e.target, { minLen });
   }
 
   dagre.layout(g);
