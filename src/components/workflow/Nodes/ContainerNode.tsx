@@ -271,7 +271,11 @@ const ContainerNodeComponent: React.FC<ContainerNodeProps> = ({
               width: PORT_SIZE,
               height: PORT_SIZE,
               pointerEvents: "all",
-              ...getHandlePosition(data.nodeWidth ?? 400, data.nodeHeight ?? 200, "top"),
+              ...getHandlePosition(
+                isCollapsed ? 160 : (data.nodeWidth ?? 400),
+                isCollapsed ? 34 : (data.nodeHeight ?? 200),
+                "top",
+              ),
             }}
           />
           <Handle
@@ -283,7 +287,11 @@ const ContainerNodeComponent: React.FC<ContainerNodeProps> = ({
               width: PORT_SIZE,
               height: PORT_SIZE,
               pointerEvents: "all",
-              ...getHandlePosition(data.nodeWidth ?? 400, data.nodeHeight ?? 200, "bottom"),
+              ...getHandlePosition(
+                isCollapsed ? 160 : (data.nodeWidth ?? 400),
+                isCollapsed ? 34 : (data.nodeHeight ?? 200),
+                "bottom",
+              ),
             }}
           />
         </>

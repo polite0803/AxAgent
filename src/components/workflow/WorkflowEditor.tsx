@@ -495,25 +495,13 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
           const childIds = childrenOfParent[node.id] ?? [];
           const subGraphChildren = subGraphNodes ?? [];
           let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-          const swInternalNodeIds = new Set<string>();
-          const swData = expandedSWData[node.id];
-          if (swData?.nodes) {
-            for (const n of swData.nodes) {
-              swInternalNodeIds.add(n.id);
-            }
-          }
           for (const childId of childIds) {
             const child = nodeById[childId];
             if (!child) { continue; }
             const sz = getNodeSize(child.type);
-            let relX: number, relY: number;
-            if (swInternalNodeIds.has(childId)) {
-              relX = child.position.x;
-              relY = child.position.y;
-            } else {
-              relX = child.position.x - node.position.x;
-              relY = child.position.y - node.position.y;
-            }
+            // 所有子节点 position 都是 store 中的绝对坐标，需转为相对坐标
+            const relX = child.position.x - node.position.x;
+            const relY = child.position.y - node.position.y;
             minX = Math.min(minX, relX);
             minY = Math.min(minY, relY);
             maxX = Math.max(maxX, relX + sz.width);
@@ -521,10 +509,13 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
           }
           for (const sgChild of subGraphChildren as { type?: string; position: { x: number; y: number } }[]) {
             const sz = getNodeSize(sgChild.type ?? "base");
-            minX = Math.min(minX, sgChild.position.x);
-            minY = Math.min(minY, sgChild.position.y);
-            maxX = Math.max(maxX, sgChild.position.x + sz.width);
-            maxY = Math.max(maxY, sgChild.position.y + sz.height);
+            // subGraphChildren 的 position 也是绝对坐标
+            const relX = sgChild.position.x - node.position.x;
+            const relY = sgChild.position.y - node.position.y;
+            minX = Math.min(minX, relX);
+            minY = Math.min(minY, relY);
+            maxX = Math.max(maxX, relX + sz.width);
+            maxY = Math.max(maxY, relY + sz.height);
           }
           if (minX === Infinity) {
             minX = 0;
@@ -997,15 +988,19 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
             requestAnimationFrame(() => {
               skipPositionWriteRef.current = false;
             });
+            // autoLayoutWorkflow 返回值：
+            // - 顶层节点 position = 绝对坐标
+            // - 子节点 position = 相对父容器的偏移（ReactFlow 坐标系）
+            // store 存绝对坐标，需将子节点转回绝对坐标
             for (const ln of layouted) {
               const pid = parentRefs[ln.id];
               if (pid) {
-                const parentLayouted = layouted.find((n) => n.id === pid);
-                if (parentLayouted) {
+                const parentLn = layouted.find((n) => n.id === pid);
+                if (parentLn) {
                   updateNode(ln.id, {
                     position: {
-                      x: ln.position.x + parentLayouted.position.x,
-                      y: ln.position.y + parentLayouted.position.y,
+                      x: ln.position.x + parentLn.position.x,
+                      y: ln.position.y + parentLn.position.y,
                     },
                   } as Partial<WorkflowNode>);
                   continue;
@@ -2073,28 +2068,33 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
       layoutEdges,
       parentRefs,
     );
-    // 保留 edges 不变
+    // auto_layout 返回值：所有节点 position = 绝对坐标
+    // ReactFlow setRNodes 需要子节点为相对坐标，但 auto_layout 返回绝对坐标
+    // 所以需要将子节点转为相对坐标给 ReactFlow，同时存绝对坐标到 store
     skipPositionWriteRef.current = true;
-    setRNodes(layoutedNodes);
+    const rfNodes = layoutedNodes.map((n) => {
+      const pid = parentRefs[n.id];
+      if (pid) {
+        const parentLayouted = layoutedNodes.find((p) => p.id === pid);
+        if (parentLayouted) {
+          return {
+            ...n,
+            position: {
+              x: n.position.x - parentLayouted.position.x,
+              y: n.position.y - parentLayouted.position.y,
+            },
+          };
+        }
+      }
+      return n;
+    });
+    setRNodes(rfNodes);
     requestAnimationFrame(() => {
       skipPositionWriteRef.current = false;
     });
 
-    // auto_layout 返回值：子节点 position = 相对父容器偏移，需转回绝对坐标
+    // store 存绝对坐标
     for (const ln of layoutedNodes) {
-      const pid = parentRefs[ln.id];
-      if (pid) {
-        const parentLayouted = layoutedNodes.find((n) => n.id === pid);
-        if (parentLayouted) {
-          updateNode(ln.id, {
-            position: {
-              x: ln.position.x + parentLayouted.position.x,
-              y: ln.position.y + parentLayouted.position.y,
-            },
-          } as Partial<WorkflowNode>);
-          continue;
-        }
-      }
       updateNode(ln.id, { position: ln.position } as Partial<WorkflowNode>);
     }
 

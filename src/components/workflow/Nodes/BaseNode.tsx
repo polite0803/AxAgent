@@ -112,6 +112,7 @@ const BaseNodeComponent: React.FC<NodeProps> = ({
       style={{
         width: nodeWidth,
         height: nodeHeight,
+        overflow: "hidden",
         opacity: bd.enabled ? (isSkipped ? 0.4 : 1) : 0.5,
         filter: bd.enabled ? (isSkipped ? "grayscale(80%)" : "none") : "grayscale(100%)",
         transition: "width 0.15s, opacity 0.15s",

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import { getHandlePosition, PORT_SIZE } from "@/lib/workflowLayout";
+import { getHandlePosition, getNodeSize, PORT_SIZE } from "@/lib/workflowLayout";
 import { useWorkflowEditorStore } from "@/stores";
 import { Handle, type NodeProps, Position } from "@xyflow/react";
 import { theme, Tooltip } from "antd";
@@ -173,11 +173,12 @@ const SubWorkflowNodeComponent: React.FC<NodeProps> = ({ data: _data, selected }
   }
 
   // Collapsed: n8n compact style
+  const collapsedSize = getNodeSize("workflowRef");
   return (
     <div
       style={{
-        minWidth: 120,
-        maxWidth: 200,
+        width: collapsedSize.width,
+        height: collapsedSize.height,
         opacity: data.enabled ? 1 : 0.5,
         filter: data.enabled ? "none" : "grayscale(100%)",
       }}
@@ -281,7 +282,7 @@ const SubWorkflowNodeComponent: React.FC<NodeProps> = ({ data: _data, selected }
           border: "none",
           width: PORT_SIZE,
           height: PORT_SIZE,
-          ...getHandlePosition(160, 40, "top"),
+          ...getHandlePosition(collapsedSize.width, collapsedSize.height, "top"),
         }}
       />
       <Handle
@@ -292,7 +293,7 @@ const SubWorkflowNodeComponent: React.FC<NodeProps> = ({ data: _data, selected }
           border: "none",
           width: PORT_SIZE,
           height: PORT_SIZE,
-          ...getHandlePosition(160, 40, "bottom"),
+          ...getHandlePosition(collapsedSize.width, collapsedSize.height, "bottom"),
         }}
       />
     </div>

@@ -937,150 +937,79 @@ export function autoLayoutWorkflow(
   parentRefs: Record<string, string> = {},
 ): { nodes: Node[]; edges: Edge[] } {
   const childOf = parentRefs;
-  // 排除阶段分隔线和分组框等不参与布局的节点
   const layoutNodes = nodes.filter((n) => !isLayoutExcluded(n as NodeLike));
-  const containers = layoutNodes.filter((n) => CONTAINER_NODE_TYPES.has(n.type || "") && !childOf[n.id]);
+  const excludedNodes = nodes.filter((n) => isLayoutExcluded(n as NodeLike));
 
-  if (containers.length === 0 || Object.keys(childOf).length === 0) {
-    const dagreResult = autoLayout(layoutNodes, edges);
-    const resolvedNodes = resolveOverlaps(dagreResult.nodes, parentRefs);
-    // 重新合并被排除的节点（保持其原始位置）
-    const excludedNodes = nodes.filter((n) => isLayoutExcluded(n as NodeLike));
-    return { nodes: [...resolvedNodes, ...excludedNodes], edges: dagreResult.edges };
+  if (layoutNodes.length === 0) {
+    return { nodes: excludedNodes, edges };
   }
 
-  // 1. 记录当前坐标（子节点为相对父容器的偏移，dagre 完全重算位置故不影响结果）
-  const currentAbs: Record<string, { x: number; y: number }> = {};
-  for (const n of nodes) {
-    currentAbs[n.id] = { x: n.position.x, y: n.position.y };
+  const autoNodes: AutoNode[] = layoutNodes.map((n) => ({
+    id: n.id,
+    type: n.type || (n.data?.type as string) || "",
+    position: { x: n.position.x, y: n.position.y },
+    parentId: childOf[n.id] || undefined,
+    data: n.data || {},
+  }));
+
+  const layoutEdges: LayoutEdge[] = edges.map((e) => ({
+    source: e.source,
+    target: e.target,
+  }));
+
+  const layoutedAutoNodes = forceLayout(autoNodes, layoutEdges, childOf);
+
+  const newAbs: Record<string, { x: number; y: number }> = {};
+  for (const n of layoutedAutoNodes) {
+    newAbs[n.id] = { x: n.position.x, y: n.position.y };
   }
 
-  // 2. 对每个 parallel 容器：单独 dagre 排子节点 + 量 bbox + 归一化到原点
   const PADDING = CONTAINER_PADDING;
   const HEADER_H = CONTAINER_HEADER_H;
   const MIN_W = CONTAINER_MIN_W;
   const MIN_H = CONTAINER_MIN_H;
-  const groupNorm: Record<string, { nodes: Node[]; bboxW: number; bboxH: number }> = {};
+
   const containerSizes: Record<string, { width: number; height: number }> = {};
+  const containers = layoutNodes.filter((n) => CONTAINER_NODE_TYPES.has(n.type || "") && !childOf[n.id]);
 
   for (const c of containers) {
     const childIds = Object.keys(childOf).filter((cid) => childOf[cid] === c.id);
-    const childNodesAbs = childIds
-      .map((cid) => nodes.find((n) => n.id === cid))
-      .filter((n): n is Node => !!n)
-      .map((n) => ({ ...n, position: currentAbs[n.id] || n.position }));
-
-    if (childNodesAbs.length === 0) {
+    if (childIds.length === 0) {
       const size = getNodeSize(c.type || "");
-      groupNorm[c.id] = { nodes: [], bboxW: 0, bboxH: 0 };
       containerSizes[c.id] = { width: size.width, height: size.height };
       continue;
     }
 
-    const childEdges = edges.filter((e) => childIds.includes(e.source) && childIds.includes(e.target));
-    const sub = autoLayout(childNodesAbs, childEdges);
-
+    const cAbs = newAbs[c.id];
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-    for (const n of sub.nodes) {
-      const sz = getNodeSize((n.data?.type as string) || n.type || "");
-      minX = Math.min(minX, n.position.x);
-      minY = Math.min(minY, n.position.y);
-      maxX = Math.max(maxX, n.position.x + sz.width);
-      maxY = Math.max(maxY, n.position.y + sz.height);
+    for (const cid of childIds) {
+      const pos = newAbs[cid];
+      if (!pos || !cAbs) { continue; }
+      const child = layoutNodes.find((n) => n.id === cid);
+      if (!child) { continue; }
+      const sz = getNodeSize((child.data?.type as string) || child.type || "");
+      // 使用相对坐标计算容器内 bbox
+      const relX = pos.x - cAbs.x;
+      const relY = pos.y - cAbs.y;
+      minX = Math.min(minX, relX);
+      minY = Math.min(minY, relY);
+      maxX = Math.max(maxX, relX + sz.width);
+      maxY = Math.max(maxY, relY + sz.height);
     }
-    const bboxW = maxX - minX;
-    const bboxH = maxY - minY;
-    const normalized = sub.nodes.map((n) => ({
-      ...n,
-      position: { x: n.position.x - minX, y: n.position.y - minY },
-    }));
-    groupNorm[c.id] = { nodes: normalized, bboxW, bboxH };
+
     containerSizes[c.id] = {
-      width: Math.max(MIN_W, bboxW + PADDING * 2),
-      height: Math.max(MIN_H, bboxH + PADDING * 2 + HEADER_H),
+      width: Math.max(MIN_W, maxX - minX + PADDING * 2),
+      height: Math.max(MIN_H, maxY - minY + PADDING * 2 + HEADER_H),
     };
   }
 
-  // 3. 主 dagre：只放顶层节点（容器节点 + 无父孤立节点）
-  const topLevelIds = new Set<string>();
-  for (const n of nodes) {
-    if (CONTAINER_NODE_TYPES.has(n.type || "") || !childOf[n.id]) {
-      topLevelIds.add(n.id);
-    }
-  }
-  const topLevelNodes = nodes.filter((n) => topLevelIds.has(n.id));
-  const topLevelEdges = edges.filter((e) => topLevelIds.has(e.source) && topLevelIds.has(e.target));
-
-  const g = new dagre.graphlib.Graph();
-  g.setDefaultEdgeLabel(() => ({}));
-  g.setGraph({
-    rankdir: "TB",
-    ranksep: RANK_SEP,
-    nodesep: NODE_SEP,
-    marginx: MARGIN_X,
-    marginy: MARGIN_Y,
-    edgesep: 30,
-    ranker: "network-simplex",
-  });
-
-  const nodeTypeMap = new Map<string, string>();
-  for (const n of topLevelNodes) {
-    const t = (n.data?.type as string) || n.type || "";
-    nodeTypeMap.set(n.id, t);
-    const size = CONTAINER_NODE_TYPES.has(n.type || "")
-      ? (containerSizes[n.id] ?? getNodeSize(t))
-      : getNodeSize(t);
-    g.setNode(n.id, { width: size.width, height: size.height });
-  }
-
-  for (const e of topLevelEdges) {
-    const sourceType = nodeTypeMap.get(e.source) || "";
-    const targetType = nodeTypeMap.get(e.target) || "";
-
-    let minLen = 1;
-    if (sourceType === "trigger") {
-      minLen = 1;
-    } else if (targetType === "end") {
-      minLen = 1;
-    } else if (sourceType === "condition" || sourceType === "switch") {
-      minLen = 2;
-    }
-
-    g.setEdge(e.source, e.target, { minLen });
-  }
-  dagre.layout(g);
-
-  // 4. 写回绝对坐标
-  const newAbs: Record<string, { x: number; y: number }> = {};
-  for (const n of topLevelNodes) {
-    const dagreNode = g.node(n.id);
-    if (!dagreNode) { continue; }
-    const t = (n.data?.type as string) || n.type || "";
-    const size = CONTAINER_NODE_TYPES.has(n.type || "")
-      ? (containerSizes[n.id] ?? getNodeSize(t))
-      : getNodeSize(t);
-    newAbs[n.id] = { x: dagreNode.x - size.width / 2, y: dagreNode.y - size.height / 2 };
-  }
-  for (const c of containers) {
-    const cAbs = newAbs[c.id];
-    if (!cAbs) { continue; }
-    const group = groupNorm[c.id];
-    for (const cn of group.nodes) {
-      newAbs[cn.id] = {
-        x: cAbs.x + PADDING + cn.position.x,
-        y: cAbs.y + PADDING + cn.position.y,
-      };
-    }
-  }
-
-  // 5. 写回 ReactFlow 坐标系（子节点减回父节点位置，转为相对坐标）
   const result: Node[] = nodes.map((n) => {
     const abs = newAbs[n.id];
     if (!abs) { return n; }
     const pid = childOf[n.id];
     let final = abs;
     if (pid) {
-      const parentAbs = newAbs[pid] || currentAbs[pid];
+      const parentAbs = newAbs[pid];
       if (parentAbs) {
         final = { x: abs.x - parentAbs.x, y: abs.y - parentAbs.y };
       }
@@ -1088,9 +1017,8 @@ export function autoLayoutWorkflow(
     return { ...n, position: final };
   });
 
-  // 6. 后处理：把子节点位置 clamp 到容器 bbox 内（见 §3.5 修复）
   const clamped = clampChildrenIntoContainers(result, childOf, containerSizes, PADDING);
-  return { nodes: clamped, edges };
+  return { nodes: [...clamped, ...excludedNodes], edges };
 }
 
 const MARGIN = 60;
