@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import type { Edge, Node } from "@xyflow/react";
+import * as d3 from "d3-force";
 import dagre from "dagre";
 
 // ── 工作流校验系统 ────────────────────────────────────────────
@@ -1119,13 +1120,17 @@ function layoutNodeType(n: { type?: string; data?: Record<string, unknown> }): s
 }
 
 /**
- * 使用 Dagre 进行自动布局，专门优化工作流流程图的布局效果。
+ * 使用 d3-force 力导向布局进行自动布局，专门优化工作流流程图的布局效果。
  *
  * 策略：
- * 1. 容器节点内部使用独立的 Dagre 布局
- * 2. 顶层节点使用 Dagre 布局，使用 network-simplex ranker 提高布局质量
- * 3. 使用更大的间距参数（ranksep=200, nodesep=100）确保节点不堆叠
- * 4. 子节点位置转换为相对父容器的坐标
+ * 1. 使用 Dagre 进行初始布局，确保层级关系正确（自上而下）
+ * 2. 使用 d3-force 进行力导向优化：
+ *    - forceLink: 边的拉力，保持连接关系
+ *    - forceManyBody: 节点间斥力，避免重叠
+ *    - forceCenter: 重力，将图拉向中心
+ *    - forceCollide: 碰撞检测，防止节点重叠
+ *    - forceY: 保持 Dagre 的层级顺序
+ * 3. 容器节点内部使用独立的布局
  *
  * @param nodes - 节点列表（需包含 id / type / position / data）
  * @param edges - 边列表（需包含 source / target）
@@ -1137,185 +1142,7 @@ export function auto_layout(
   edges: LayoutEdge[],
   parentRefs: Record<string, string> = {},
 ): AutoNode[] {
-  if (nodes.length === 0) { return []; }
-
-  const childOf = parentRefs;
-
-  const containers = nodes.filter(
-    (n) => CONTAINER_NODE_TYPES.has(n.type || layoutNodeType(n)) && !childOf[n.id],
-  );
-
-  const childPositions: Record<string, { x: number; y: number }> = {};
-  const containerBBox: Record<string, { width: number; height: number }> = {};
-
-  for (const c of containers) {
-    const cType = c.type || layoutNodeType(c);
-    const childIds = Object.keys(childOf).filter((cid) => childOf[cid] === c.id);
-    const childNodes = childIds
-      .map((cid) => nodes.find((n) => n.id === cid))
-      .filter(Boolean) as AutoNode[];
-
-    if (childNodes.length === 0) {
-      const sz = getNodeSize(cType);
-      containerBBox[c.id] = {
-        width: Math.max(CONTAINER_MIN_W, sz.width + CONTAINER_PADDING * 2),
-        height: Math.max(CONTAINER_MIN_H, sz.height + CONTAINER_PADDING * 2 + CONTAINER_HEADER_H),
-      };
-      continue;
-    }
-
-    const childEdges = edges.filter((e) => childIds.includes(e.source) && childIds.includes(e.target));
-
-    const subGraph = new dagre.graphlib.Graph();
-    subGraph.setDefaultEdgeLabel(() => ({}));
-    subGraph.setGraph({
-      rankdir: "TB",
-      ranksep: 100,
-      nodesep: 60,
-      marginx: 50,
-      marginy: 50,
-      edgesep: 30,
-      ranker: "network-simplex",
-    });
-
-    for (const cn of childNodes) {
-      const t = cn.type || layoutNodeType(cn);
-      const sz = getNodeSize(t);
-      subGraph.setNode(cn.id, { width: sz.width, height: sz.height });
-    }
-
-    for (const ce of childEdges) {
-      subGraph.setEdge(ce.source, ce.target);
-    }
-
-    dagre.layout(subGraph);
-
-    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-    for (const cn of childNodes) {
-      const dagreNode = subGraph.node(cn.id);
-      if (!dagreNode) { continue; }
-      const sz = getNodeSize(cn.type || layoutNodeType(cn));
-      minX = Math.min(minX, dagreNode.x - sz.width / 2);
-      minY = Math.min(minY, dagreNode.y - sz.height / 2);
-      maxX = Math.max(maxX, dagreNode.x + sz.width / 2);
-      maxY = Math.max(maxY, dagreNode.y + sz.height / 2);
-    }
-
-    containerBBox[c.id] = {
-      width: Math.max(CONTAINER_MIN_W, maxX - minX + CONTAINER_PADDING * 2),
-      height: Math.max(CONTAINER_MIN_H, maxY - minY + CONTAINER_PADDING * 2 + CONTAINER_HEADER_H),
-    };
-
-    for (const cn of childNodes) {
-      const dagreNode = subGraph.node(cn.id);
-      if (!dagreNode) { continue; }
-      const sz = getNodeSize(cn.type || layoutNodeType(cn));
-      childPositions[cn.id] = {
-        x: CONTAINER_PADDING + (dagreNode.x - sz.width / 2 - minX),
-        y: CONTAINER_PADDING + (dagreNode.y - sz.height / 2 - minY),
-      };
-    }
-  }
-
-  const topLevel = nodes.filter((n) => !childOf[n.id]);
-
-  const g = new dagre.graphlib.Graph();
-  g.setDefaultEdgeLabel(() => ({}));
-  g.setGraph({
-    rankdir: "TB",
-    ranksep: 200,
-    nodesep: 100,
-    marginx: 80,
-    marginy: 80,
-    edgesep: 40,
-    ranker: "network-simplex",
-  });
-
-  const nodeTypeMap = new Map<string, string>();
-  for (const n of topLevel) {
-    const t = n.type || layoutNodeType(n);
-    nodeTypeMap.set(n.id, t);
-    if (CONTAINER_NODE_TYPES.has(t)) {
-      const bbox = containerBBox[n.id];
-      if (bbox) {
-        g.setNode(n.id, { width: bbox.width, height: bbox.height });
-      } else {
-        const sz = getNodeSize(t);
-        g.setNode(n.id, { width: sz.width, height: sz.height });
-      }
-    } else {
-      const sz = getNodeSize(t);
-      g.setNode(n.id, { width: sz.width, height: sz.height });
-    }
-  }
-
-  const topLevelEdges = edges.filter(
-    (e) => !childOf[e.source] && !childOf[e.target],
-  );
-  for (const e of topLevelEdges) {
-    const sourceType = nodeTypeMap.get(e.source) || "";
-    const targetType = nodeTypeMap.get(e.target) || "";
-
-    let minLen = 1;
-    if (sourceType === "trigger") {
-      minLen = 1;
-    } else if (targetType === "end") {
-      minLen = 1;
-    } else if (sourceType === "condition" || sourceType === "switch") {
-      minLen = 2;
-    }
-
-    g.setEdge(e.source, e.target, { minLen });
-  }
-
-  dagre.layout(g);
-
-  const allPositions: Record<string, { x: number; y: number }> = {};
-  for (const n of topLevel) {
-    const dagreNode = g.node(n.id);
-    if (!dagreNode) { continue; }
-    const t = n.type || layoutNodeType(n);
-    let sz: { width: number; height: number };
-    if (CONTAINER_NODE_TYPES.has(t)) {
-      sz = containerBBox[n.id] || getNodeSize(t);
-    } else {
-      sz = getNodeSize(t);
-    }
-    allPositions[n.id] = {
-      x: dagreNode.x - sz.width / 2,
-      y: dagreNode.y - sz.height / 2,
-    };
-  }
-
-  for (const c of containers) {
-    const cPos = allPositions[c.id];
-    if (!cPos) { continue; }
-    const childIds = Object.keys(childOf).filter((cid) => childOf[cid] === c.id);
-    for (const cid of childIds) {
-      if (childPositions[cid]) {
-        allPositions[cid] = {
-          x: cPos.x + childPositions[cid].x,
-          y: cPos.y + childPositions[cid].y,
-        };
-      }
-    }
-  }
-
-  return nodes.map((n) => {
-    const pos = allPositions[n.id];
-    if (!pos) { return { ...n, position: { x: MARGIN, y: MARGIN } }; }
-    const pid = childOf[n.id];
-    if (pid && allPositions[pid]) {
-      return {
-        ...n,
-        position: {
-          x: pos.x - allPositions[pid].x,
-          y: pos.y - allPositions[pid].y,
-        },
-      };
-    }
-    return { ...n, position: pos };
-  });
+  return forceLayout(nodes, edges, parentRefs);
 }
 
 /**
@@ -1452,4 +1279,232 @@ export function getHandlePosition(
     default:
       return { x: nodeWidth / 2, y: nodeHeight / 2 };
   }
+}
+
+// ── D3 Force 力导向布局 ──────────────────────────────────────────
+
+interface ForceNode {
+  id: string;
+  type?: string;
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  fx?: number;
+  fy?: number;
+  width: number;
+  height: number;
+}
+
+interface ForceLink {
+  source: string;
+  target: string;
+}
+
+/**
+ * 使用 d3-force 力导向布局对工作流节点进行优化布局。
+ *
+ * 策略：
+ * 1. 使用 Dagre 进行初始布局，确保层级关系正确
+ * 2. 使用 d3-force 进行力导向优化：
+ *    - forceManyBody: 节点间斥力，避免重叠
+ *    - forceLink: 边的拉力，保持连接关系
+ *    - forceCenter: 重力，将图拉向中心
+ *    - forceCollide: 碰撞检测，防止节点重叠
+ * 3. 保留 Dagre 的层级顺序（y坐标排序），只优化水平位置
+ *
+ * @param nodes - 节点列表
+ * @param edges - 边列表
+ * @param parentRefs - 容器父子映射
+ * @returns 更新了 position 的 nodes 副本
+ */
+export function forceLayout(
+  nodes: AutoNode[],
+  edges: LayoutEdge[],
+  parentRefs: Record<string, string> = {},
+): AutoNode[] {
+  if (nodes.length === 0) { return []; }
+
+  const childOf = parentRefs;
+
+  const containers = nodes.filter(
+    (n) => CONTAINER_NODE_TYPES.has(n.type || layoutNodeType(n)) && !childOf[n.id],
+  );
+
+  const childPositions: Record<string, { x: number; y: number }> = {};
+  const containerBBox: Record<string, { width: number; height: number }> = {};
+
+  for (const c of containers) {
+    const cType = c.type || layoutNodeType(c);
+    const childIds = Object.keys(childOf).filter((cid) => childOf[cid] === c.id);
+    const childNodes = childIds
+      .map((cid) => nodes.find((n) => n.id === cid))
+      .filter(Boolean) as AutoNode[];
+
+    if (childNodes.length === 0) {
+      const sz = getNodeSize(cType);
+      containerBBox[c.id] = {
+        width: Math.max(CONTAINER_MIN_W, sz.width + CONTAINER_PADDING * 2),
+        height: Math.max(CONTAINER_MIN_H, sz.height + CONTAINER_PADDING * 2 + CONTAINER_HEADER_H),
+      };
+      continue;
+    }
+
+    const childEdges = edges.filter((e) => childIds.includes(e.source) && childIds.includes(e.target));
+
+    const subGraph = new dagre.graphlib.Graph();
+    subGraph.setDefaultEdgeLabel(() => ({}));
+    subGraph.setGraph({
+      rankdir: "TB",
+      ranksep: 80,
+      nodesep: 50,
+      marginx: 40,
+      marginy: 40,
+      ranker: "network-simplex",
+    });
+
+    for (const cn of childNodes) {
+      const t = cn.type || layoutNodeType(cn);
+      const sz = getNodeSize(t);
+      subGraph.setNode(cn.id, { width: sz.width, height: sz.height });
+    }
+
+    for (const ce of childEdges) {
+      subGraph.setEdge(ce.source, ce.target);
+    }
+
+    dagre.layout(subGraph);
+
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    for (const cn of childNodes) {
+      const dagreNode = subGraph.node(cn.id);
+      if (!dagreNode) { continue; }
+      const sz = getNodeSize(cn.type || layoutNodeType(cn));
+      minX = Math.min(minX, dagreNode.x - sz.width / 2);
+      minY = Math.min(minY, dagreNode.y - sz.height / 2);
+      maxX = Math.max(maxX, dagreNode.x + sz.width / 2);
+      maxY = Math.max(maxY, dagreNode.y + sz.height / 2);
+    }
+
+    containerBBox[c.id] = {
+      width: Math.max(CONTAINER_MIN_W, maxX - minX + CONTAINER_PADDING * 2),
+      height: Math.max(CONTAINER_MIN_H, maxY - minY + CONTAINER_PADDING * 2 + CONTAINER_HEADER_H),
+    };
+
+    for (const cn of childNodes) {
+      const dagreNode = subGraph.node(cn.id);
+      if (!dagreNode) { continue; }
+      const sz = getNodeSize(cn.type || layoutNodeType(cn));
+      childPositions[cn.id] = {
+        x: CONTAINER_PADDING + (dagreNode.x - sz.width / 2 - minX),
+        y: CONTAINER_PADDING + (dagreNode.y - sz.height / 2 - minY),
+      };
+    }
+  }
+
+  const topLevel = nodes.filter((n) => !childOf[n.id]);
+
+  const g = new dagre.graphlib.Graph();
+  g.setDefaultEdgeLabel(() => ({}));
+  g.setGraph({
+    rankdir: "TB",
+    ranksep: 180,
+    nodesep: 80,
+    marginx: 80,
+    marginy: 80,
+    edgesep: 30,
+    ranker: "network-simplex",
+  });
+
+  const nodeTypeMap = new Map<string, string>();
+  for (const n of topLevel) {
+    const t = n.type || layoutNodeType(n);
+    nodeTypeMap.set(n.id, t);
+    if (CONTAINER_NODE_TYPES.has(t)) {
+      const bbox = containerBBox[n.id];
+      if (bbox) {
+        g.setNode(n.id, { width: bbox.width, height: bbox.height });
+      } else {
+        const sz = getNodeSize(t);
+        g.setNode(n.id, { width: sz.width, height: sz.height });
+      }
+    } else {
+      const sz = getNodeSize(t);
+      g.setNode(n.id, { width: sz.width, height: sz.height });
+    }
+  }
+
+  const topLevelEdges = edges.filter(
+    (e) => !childOf[e.source] && !childOf[e.target],
+  );
+  for (const e of topLevelEdges) {
+    g.setEdge(e.source, e.target);
+  }
+
+  dagre.layout(g);
+
+  const forceNodes: ForceNode[] = [];
+  for (const n of topLevel) {
+    const dagreNode = g.node(n.id);
+    if (!dagreNode) { continue; }
+    const t = n.type || layoutNodeType(n);
+    let sz: { width: number; height: number };
+    if (CONTAINER_NODE_TYPES.has(t)) {
+      sz = containerBBox[n.id] || getNodeSize(t);
+    } else {
+      sz = getNodeSize(t);
+    }
+    forceNodes.push({
+      id: n.id,
+      type: t,
+      x: dagreNode.x - sz.width / 2,
+      y: dagreNode.y - sz.height / 2,
+      vx: 0,
+      vy: 0,
+      width: sz.width,
+      height: sz.height,
+    });
+  }
+
+  const forceLinks: ForceLink[] = topLevelEdges.map((e) => ({
+    source: e.source,
+    target: e.target,
+  }));
+
+  const simulation = d3.forceSimulation<ForceNode, ForceLink>(forceNodes)
+    .force("link", d3.forceLink<ForceNode, ForceLink>(forceLinks).id((d) => d.id).distance(150).strength(0.8))
+    .force("charge", d3.forceManyBody().strength(-800))
+    .force("center", d3.forceCenter(800, 600))
+    .force("collide", d3.forceCollide<ForceNode>((d) => Math.max(d.width, d.height) / 2 + 20))
+    .force("y", d3.forceY<ForceNode>((d) => d.y).strength(0.5))
+    .stop();
+
+  for (let i = 0; i < 100; i++) {
+    simulation.tick();
+  }
+
+  const allPositions: Record<string, { x: number; y: number }> = {};
+  for (const fn of forceNodes) {
+    allPositions[fn.id] = { x: fn.x, y: fn.y };
+  }
+
+  for (const c of containers) {
+    const cPos = allPositions[c.id];
+    if (!cPos) { continue; }
+    const childIds = Object.keys(childOf).filter((cid) => childOf[cid] === c.id);
+    for (const cid of childIds) {
+      if (childPositions[cid]) {
+        allPositions[cid] = {
+          x: cPos.x + childPositions[cid].x,
+          y: cPos.y + childPositions[cid].y,
+        };
+      }
+    }
+  }
+
+  return nodes.map((n) => {
+    const pos = allPositions[n.id];
+    if (!pos) { return { ...n, position: { x: MARGIN, y: MARGIN } }; }
+    return { ...n, position: pos };
+  });
 }

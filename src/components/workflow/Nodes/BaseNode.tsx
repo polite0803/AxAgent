@@ -110,11 +110,11 @@ const BaseNodeComponent: React.FC<NodeProps> = ({
       onMouseEnter={() => setIsHovering(true)}
       onMouseLeave={() => setIsHovering(false)}
       style={{
-        minWidth: isWide ? 100 : 120,
-        maxWidth: isWide ? 140 : 200,
+        width: nodeWidth,
+        height: nodeHeight,
         opacity: bd.enabled ? (isSkipped ? 0.4 : 1) : 0.5,
         filter: bd.enabled ? (isSkipped ? "grayscale(80%)" : "none") : "grayscale(100%)",
-        transition: "min-width 0.15s, max-width 0.15s, opacity 0.15s",
+        transition: "width 0.15s, opacity 0.15s",
       }}
     >
       <div
