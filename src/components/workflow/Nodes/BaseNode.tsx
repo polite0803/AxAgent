@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+import { getHandlePosition, getNodeSize, PORT_SIZE } from "@/lib/workflowLayout";
 import { useWorkflowEditorStore } from "@/stores";
 import { useWorkEngineStore } from "@/stores/feature/workEngineStore";
 import { Handle, type NodeProps, Position } from "@xyflow/react";
@@ -87,6 +88,11 @@ const BaseNodeComponent: React.FC<NodeProps> = ({
 
   // 端口折叠时节点宽度缩减
   const isWide = shouldCollapseByDefault && isPortCollapsed && !isHovering;
+
+  // 节点尺寸（用于计算 Handle 位置）
+  const nodeSize = getNodeSize(bd.type);
+  const nodeWidth = isWide ? 120 : nodeSize.width;
+  const nodeHeight = nodeSize.height;
 
   // 状态指示色块
   const statusDot = effectiveExecState === "running"
@@ -309,7 +315,7 @@ const BaseNodeComponent: React.FC<NodeProps> = ({
           </>
         )
         : (
-          // 展开态：标准 Handle
+          // 展开态：标准 Handle（使用精确位置计算）
           <>
             <Handle
               type="target"
@@ -317,8 +323,9 @@ const BaseNodeComponent: React.FC<NodeProps> = ({
               style={{
                 background: bd.color,
                 border: "none",
-                width: 7,
-                height: 7,
+                width: PORT_SIZE,
+                height: PORT_SIZE,
+                ...getHandlePosition(nodeWidth, nodeHeight, "top"),
               }}
             />
             <Handle
@@ -327,8 +334,9 @@ const BaseNodeComponent: React.FC<NodeProps> = ({
               style={{
                 background: bd.color,
                 border: "none",
-                width: 7,
-                height: 7,
+                width: PORT_SIZE,
+                height: PORT_SIZE,
+                ...getHandlePosition(nodeWidth, nodeHeight, "bottom"),
               }}
             />
 

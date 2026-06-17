@@ -99,7 +99,7 @@ const nodeTypes = {
   tool: ToolNode,
   code: CodeNode,
   subWorkflow: SubWorkflowNode,
-  workflowRef: BaseNode,
+  workflowRef: SubWorkflowNode,
   documentParser: DocumentParserNode,
   vectorRetrieve: VectorRetrieveNode,
   validation: ValidationNode,
@@ -428,6 +428,14 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
       for (const n of nodes) {
         nodeById[n.id] = n;
       }
+      // 纳入展开的子工作流内部节点到 nodeById，确保容器尺寸计算时能找到这些节点
+      const expandedSWData = useWorkflowEditorStore.getState().expandedSubWorkflows;
+      for (const [_swNodeId, swData] of Object.entries(expandedSWData)) {
+        if (!swData || swData.isLoading || !swData.nodes?.length) { continue; }
+        for (const subNode of swData.nodes) {
+          nodeById[subNode.id] = subNode;
+        }
+      }
       for (const [childId, pid] of Object.entries(parentRefs)) {
         if (!childrenOfParent[pid]) { childrenOfParent[pid] = []; }
         childrenOfParent[pid].push(childId);
@@ -489,13 +497,28 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
           const subGraphChildren = subGraphNodes ?? [];
           let maxX = CONTAINER_MIN_W - CONTAINER_PADDING;
           let maxY = CONTAINER_MIN_H - CONTAINER_PADDING;
+          // 收集所有子工作流内部节点的 ID（这些节点的 position 已经是相对坐标）
+          const swInternalNodeIds = new Set<string>();
+          const swData = expandedSWData[node.id];
+          if (swData?.nodes) {
+            for (const n of swData.nodes) {
+              swInternalNodeIds.add(n.id);
+            }
+          }
           for (const childId of childIds) {
             const child = nodeById[childId];
             if (!child) { continue; }
             const sz = getNodeSize(child.type);
-            // Store 中子节点是绝对坐标 → 转为相对容器的偏移
-            const relX = child.position.x - node.position.x;
-            const relY = child.position.y - node.position.y;
+            let relX: number, relY: number;
+            if (swInternalNodeIds.has(childId)) {
+              // 子工作流内部节点：position 已经是相对容器的偏移
+              relX = child.position.x;
+              relY = child.position.y;
+            } else {
+              // 普通子节点：Store 中是绝对坐标 → 转为相对容器的偏移
+              relX = child.position.x - node.position.x;
+              relY = child.position.y - node.position.y;
+            }
             const cx = relX + sz.width;
             const cy = relY + sz.height;
             if (cx > maxX) { maxX = cx; }
@@ -590,6 +613,12 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
                 agentSteps: (nodeConfig?.agent_steps as string[])
                   ?? (subGraph?.nodes as unknown[] | undefined)?.map((n) => (n as Record<string, string>).id) ?? [],
                 maxRounds: (nodeConfig?.max_rounds as number) ?? 3,
+              }
+              : {}),
+            ...(node.type === "subWorkflow"
+              ? {
+                subWorkflowId: nodeConfig?.sub_workflow_id as string | undefined,
+                subWorkflowName: nodeConfig?.sub_workflow_name as string | undefined,
               }
               : {}),
             ...(validationState ? { validationState } : {}),
@@ -793,7 +822,6 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
       }
 
       // ── 注入展开的子工作流内部节点 ──
-      const expandedSWData = useWorkflowEditorStore.getState().expandedSubWorkflows;
       for (const [swNodeId, swData] of Object.entries(expandedSWData)) {
         if (!swData || swData.isLoading || swData.nodes.length === 0) { continue; }
         const parentFn = flowNodes.find((fn) => fn.id === swNodeId);

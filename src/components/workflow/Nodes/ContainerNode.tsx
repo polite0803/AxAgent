@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+import { getHandlePosition, PORT_SIZE } from "@/lib/workflowLayout";
 import { useWorkflowEditorStore } from "@/stores";
 import { Handle, Position } from "@xyflow/react";
 import { Tag, theme, Tooltip } from "antd";
@@ -258,7 +259,7 @@ const ContainerNodeComponent: React.FC<ContainerNodeProps> = ({
         </div>
       )}
 
-      {/* Handle */}
+      {/* Handle（使用精确位置计算） */}
       {!disableHandles && (
         <>
           <Handle
@@ -267,10 +268,10 @@ const ContainerNodeComponent: React.FC<ContainerNodeProps> = ({
             style={{
               background: `${data.color}80`,
               border: `1.5px solid ${data.color}`,
-              width: 8,
-              height: 8,
-              top: -2,
+              width: PORT_SIZE,
+              height: PORT_SIZE,
               pointerEvents: "all",
+              ...getHandlePosition(data.nodeWidth ?? 400, data.nodeHeight ?? 200, "top"),
             }}
           />
           <Handle
@@ -279,10 +280,10 @@ const ContainerNodeComponent: React.FC<ContainerNodeProps> = ({
             style={{
               background: `${data.color}80`,
               border: `1.5px solid ${data.color}`,
-              width: 8,
-              height: 8,
-              bottom: -2,
+              width: PORT_SIZE,
+              height: PORT_SIZE,
               pointerEvents: "all",
+              ...getHandlePosition(data.nodeWidth ?? 400, data.nodeHeight ?? 200, "bottom"),
             }}
           />
         </>

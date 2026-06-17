@@ -7,6 +7,7 @@ import type {
   DiagnosticReport,
   ErrorConfig,
   JsonSchema,
+  NodeSkillMatch,
   SemanticCheckResult,
   SkillReplacementAction,
   TemplateFilter,
@@ -19,6 +20,7 @@ import type {
   WorkflowTemplateResponse,
 } from "@/components/workflow/types";
 import { NODE_TYPE_MAP } from "@/components/workflow/types";
+import { auto_layout } from "@/lib/workflowLayout";
 
 export interface ExpandedSubWorkflowData {
   /** 子工作流内部节点（ID 已 prefixed 避免冲突） */
@@ -2256,7 +2258,7 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
       }
 
       const match = semanticCheckResult.matches.find(
-        (m) => m.node_id === nodeId,
+        (m: NodeSkillMatch) => m.node_id === nodeId,
       );
       if (!match || !match.matches || match.matches.length === 0) {
         return;
@@ -2265,7 +2267,7 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
       // atomicSkill removed — noop
       set((state) => {
         const remainingMatches = state.semanticCheckResult?.matches.filter(
-          (m) => m.node_id !== nodeId,
+          (m: NodeSkillMatch) => m.node_id !== nodeId,
         ) || [];
         if (remainingMatches.length === 0) {
           state.semanticCheckResult = null;
@@ -2397,12 +2399,29 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
           target: idMap.get(e.target) || e.target,
         }));
 
+        const autoNodes = subNodes.map((n) => ({
+          id: n.id,
+          type: n.type,
+          position: n.position,
+          parentId: undefined,
+          data: n as unknown as Record<string, unknown>,
+        }));
+        const layoutedAutoNodes = auto_layout(autoNodes, subEdges, {});
+
+        const OFFSET_Y = 40;
+        const offsetNodes = layoutedAutoNodes.map((n) => ({
+          ...n.data,
+          id: n.id,
+          type: n.type,
+          position: { x: n.position.x + 20, y: n.position.y + OFFSET_Y },
+        })) as unknown as WorkflowNode[];
+
         set((state) => {
           // 再次检查版本号（以防 set 之前被折叠）
           if (state._subWorkflowExpandVersion !== expandVersion) { return; }
-          state.expandedSubWorkflows[nodeId] = { nodes: subNodes, edges: subEdges, isLoading: false };
+          state.expandedSubWorkflows[nodeId] = { nodes: offsetNodes, edges: subEdges, isLoading: false };
           // 将子节点注册到 parentRefs
-          for (const n of subNodes) {
+          for (const n of offsetNodes) {
             state.parentRefs[n.id] = nodeId;
           }
           // 展开的子工作流内部边也加入主边列表（带 sw_ 前缀）

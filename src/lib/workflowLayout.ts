@@ -1069,47 +1069,7 @@ export function autoLayoutWorkflow(
   return { nodes: clamped, edges };
 }
 
-// ── 自动整理（按 type 分层布局） ──────────────────────────────
-
-/**
- * 节点类型 → 层级索引（小 = 在上方）
- */
-const LAYER_ORDER: Record<string, number> = {
-  trigger: 0,
-  tool: 1,
-  agent: 2,
-  llm: 2,
-  debate: 3,
-  swarm: 3,
-  condition: 3,
-  parallel: 3,
-  switch: 3,
-  llmClassifier: 3,
-  loop: 4,
-  aggregator: 4,
-  delay: 4,
-  validation: 4,
-  code: 4,
-  dataTransformer: 4,
-  fileOperation: 4,
-  databaseQuery: 4,
-  httpRequest: 4,
-  webhookSend: 4,
-  subWorkflow: 4,
-  workflowRef: 4,
-  documentParser: 4,
-  vectorRetrieve: 4,
-  merge: 5,
-  notification: 5,
-  email: 5,
-  approval: 5,
-  logging: 5,
-  end: 5,
-};
-
-const LAYER_Y_SPACING = 200; // 层间垂直间距
-const LAYER_X_SPACING = 320; // 层内水平间距
-const MARGIN = 60; // 画布边距
+const MARGIN = 60;
 const CONTAINER_PADDING = 40; // 容器内边距
 const CONTAINER_HEADER_H = 60; // 容器标题栏高度
 const CONTAINER_MIN_W = 400; // 容器最小宽度
@@ -1158,15 +1118,12 @@ export function auto_layout(
 
   const childOf = parentRefs;
 
-  // ── 分离容器与顶层节点 ────────────────────────────────────
   const containers = nodes.filter(
     (n) => CONTAINER_NODE_TYPES.has(n.type || layoutNodeType(n)) && !childOf[n.id],
   );
-  const topLevel = nodes.filter((n) => !childOf[n.id]);
 
-  // ── 子容器布局 ────────────────────────────────────────────
-  const childPositions: Record<string, { x: number; y: number }> = {}; // 全局绝对坐标
-  const containerBBox: Record<string, { w: number; h: number }> = {};
+  const childPositions: Record<string, { x: number; y: number }> = {};
+  const containerBBox: Record<string, { width: number; height: number }> = {};
 
   for (const c of containers) {
     const cType = c.type || layoutNodeType(c);
@@ -1178,86 +1135,124 @@ export function auto_layout(
     if (childNodes.length === 0) {
       const sz = getNodeSize(cType);
       containerBBox[c.id] = {
-        w: Math.max(CONTAINER_MIN_W, sz.width + CONTAINER_PADDING * 2),
-        h: Math.max(CONTAINER_MIN_H, sz.height + CONTAINER_PADDING * 2 + CONTAINER_HEADER_H),
+        width: Math.max(CONTAINER_MIN_W, sz.width + CONTAINER_PADDING * 2),
+        height: Math.max(CONTAINER_MIN_H, sz.height + CONTAINER_PADDING * 2 + CONTAINER_HEADER_H),
       };
       continue;
     }
 
-    // 子节点间边
     const childEdges = edges.filter((e) => childIds.includes(e.source) && childIds.includes(e.target));
 
-    // 对子节点做扁平分层布局
-    const subPositions = layerPositions(childNodes, childEdges, {});
-    const subNodesPos = childNodes.map((n) => ({ id: n.id, ...subPositions[n.id] }));
+    const subGraph = new dagre.graphlib.Graph();
+    subGraph.setDefaultEdgeLabel(() => ({}));
+    subGraph.setGraph({
+      rankdir: "TB",
+      ranksep: 80,
+      nodesep: 50,
+      marginx: 40,
+      marginy: 40,
+    });
 
-    // 计算 bbox
-    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-    for (const sn of subNodesPos) {
-      const sz = getNodeSize(childNodes.find((n) => n.id === sn.id)?.type || "");
-      minX = Math.min(minX, sn.x);
-      minY = Math.min(minY, sn.y);
-      maxX = Math.max(maxX, sn.x + sz.width);
-      maxY = Math.max(maxY, sn.y + sz.height);
+    for (const cn of childNodes) {
+      const t = cn.type || layoutNodeType(cn);
+      const sz = getNodeSize(t);
+      subGraph.setNode(cn.id, { width: sz.width, height: sz.height });
     }
+
+    for (const ce of childEdges) {
+      subGraph.setEdge(ce.source, ce.target);
+    }
+
+    dagre.layout(subGraph);
+
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    for (const cn of childNodes) {
+      const dagreNode = subGraph.node(cn.id);
+      if (!dagreNode) { continue; }
+      const sz = getNodeSize(cn.type || layoutNodeType(cn));
+      minX = Math.min(minX, dagreNode.x - sz.width / 2);
+      minY = Math.min(minY, dagreNode.y - sz.height / 2);
+      maxX = Math.max(maxX, dagreNode.x + sz.width / 2);
+      maxY = Math.max(maxY, dagreNode.y + sz.height / 2);
+    }
+
     containerBBox[c.id] = {
-      w: Math.max(CONTAINER_MIN_W, maxX - minX + CONTAINER_PADDING * 2),
-      h: Math.max(CONTAINER_MIN_H, maxY - minY + CONTAINER_PADDING * 2 + CONTAINER_HEADER_H),
+      width: Math.max(CONTAINER_MIN_W, maxX - minX + CONTAINER_PADDING * 2),
+      height: Math.max(CONTAINER_MIN_H, maxY - minY + CONTAINER_PADDING * 2 + CONTAINER_HEADER_H),
     };
 
-    // 归一化子节点到容器原点（相对于容器内部）
     for (const cn of childNodes) {
-      // 子节点相对容器左上角的位置
+      const dagreNode = subGraph.node(cn.id);
+      if (!dagreNode) { continue; }
+      const sz = getNodeSize(cn.type || layoutNodeType(cn));
       childPositions[cn.id] = {
-        x: CONTAINER_PADDING + (subPositions[cn.id].x - minX),
-        y: CONTAINER_PADDING + (subPositions[cn.id].y - minY),
+        x: CONTAINER_PADDING + (dagreNode.x - sz.width / 2 - minX),
+        y: CONTAINER_PADDING + (dagreNode.y - sz.height / 2 - minY),
       };
     }
   }
 
-  // ── 顶层节点分层布局 ──────────────────────────────────────
-  const topNodeList = topLevel.filter((n) => !CONTAINER_NODE_TYPES.has(n.type || layoutNodeType(n)));
-  const topPositions = layerPositions(topNodeList, edges, containerBBox);
+  const topLevel = nodes.filter((n) => !childOf[n.id]);
 
-  // ── 容器节点排入主布局 ────────────────────────────────────
-  // 找到容器节点所属的层，将容器按已有节点顺序插入
-  const allPositions: Record<string, { x: number; y: number }> = { ...topPositions };
+  const g = new dagre.graphlib.Graph();
+  g.setDefaultEdgeLabel(() => ({}));
+  g.setGraph({
+    rankdir: "TB",
+    ranksep: 120,
+    nodesep: 60,
+    marginx: 60,
+    marginy: 60,
+    edgesep: 20,
+  });
 
-  // 先按层分组容器
-  const containersByLayer: Record<number, typeof containers> = {};
-  for (const c of containers) {
-    const cType = c.type || layoutNodeType(c);
-    const layer = LAYER_ORDER[cType] ?? 3;
-    if (!containersByLayer[layer]) { containersByLayer[layer] = []; }
-    containersByLayer[layer].push(c);
-  }
-
-  // 对每个容器，插入到对应层的最后一个位置
-  for (const [layerStr, conts] of Object.entries(containersByLayer)) {
-    const layer = Number(layerStr);
-    // 该层已有的顶层节点数
-    const existingCount = topNodeList.filter((n) => (LAYER_ORDER[n.type || layoutNodeType(n)] ?? 3) === layer).length;
-    for (let i = 0; i < conts.length; i++) {
-      const c = conts[i];
-      const idx = existingCount + i;
-      allPositions[c.id] = {
-        x: MARGIN + idx * LAYER_X_SPACING,
-        y: MARGIN + layer * LAYER_Y_SPACING,
-      };
+  for (const n of topLevel) {
+    const t = n.type || layoutNodeType(n);
+    if (CONTAINER_NODE_TYPES.has(t)) {
+      const bbox = containerBBox[n.id];
+      if (bbox) {
+        g.setNode(n.id, { width: bbox.width, height: bbox.height });
+      } else {
+        const sz = getNodeSize(t);
+        g.setNode(n.id, { width: sz.width, height: sz.height });
+      }
+    } else {
+      const sz = getNodeSize(t);
+      g.setNode(n.id, { width: sz.width, height: sz.height });
     }
   }
 
-  // ── 子节点修正：转为相对父容器的坐标 ──────────────────────
-  // NOTE: 嵌套容器（容器内嵌套容器）的坐标转换在此处不支持，
-  // 因为外层容器的 allPositions 可能尚未被其父容器修正。
-  // 当前实现仅支持一层容器嵌套。
+  const topLevelEdges = edges.filter(
+    (e) => !childOf[e.source] && !childOf[e.target],
+  );
+  for (const e of topLevelEdges) {
+    g.setEdge(e.source, e.target);
+  }
+
+  dagre.layout(g);
+
+  const allPositions: Record<string, { x: number; y: number }> = {};
+  for (const n of topLevel) {
+    const dagreNode = g.node(n.id);
+    if (!dagreNode) { continue; }
+    const t = n.type || layoutNodeType(n);
+    let sz: { width: number; height: number };
+    if (CONTAINER_NODE_TYPES.has(t)) {
+      sz = containerBBox[n.id] || getNodeSize(t);
+    } else {
+      sz = getNodeSize(t);
+    }
+    allPositions[n.id] = {
+      x: dagreNode.x - sz.width / 2,
+      y: dagreNode.y - sz.height / 2,
+    };
+  }
+
   for (const c of containers) {
     const cPos = allPositions[c.id];
     if (!cPos) { continue; }
     const childIds = Object.keys(childOf).filter((cid) => childOf[cid] === c.id);
     for (const cid of childIds) {
       if (childPositions[cid]) {
-        // 子节点绝对坐标 = 父容器位置 + 子节点相对位置
         allPositions[cid] = {
           x: cPos.x + childPositions[cid].x,
           y: cPos.y + childPositions[cid].y,
@@ -1266,11 +1261,9 @@ export function auto_layout(
     }
   }
 
-  // ── 写回 ──────────────────────────────────────────────────
   return nodes.map((n) => {
     const pos = allPositions[n.id];
     if (!pos) { return { ...n, position: { x: MARGIN, y: MARGIN } }; }
-    // 子节点转为相对父容器的坐标
     const pid = childOf[n.id];
     if (pid && allPositions[pid]) {
       return {
@@ -1369,97 +1362,54 @@ export function would_create_cycle(
   return false;
 }
 
-/**
- * 对一批节点做分层布局（不含容器处理）。
- * 返回 nodeId → { x, y } 的绝对坐标映射。
- */
-function layerPositions(
-  nodes: AutoNode[],
-  edges: LayoutEdge[],
-  _containerBBox: Record<string, { w: number; h: number }>,
-): Record<string, { x: number; y: number }> {
-  if (nodes.length === 0) { return {}; }
+// ── 端口锚定系统 ──────────────────────────────────────────────────
 
-  // 1. 按 type 分配到层
-  const layers: Record<number, AutoNode[]> = {};
-  for (const n of nodes) {
-    const l = LAYER_ORDER[n.type || layoutNodeType(n)] ?? 3;
-    if (!layers[l]) { layers[l] = []; }
-    layers[l].push(n);
+export const PORT_SIZE = 7;
+export const PORT_OFFSET = 4;
+
+export type PortPosition = "top" | "bottom" | "left" | "right";
+
+export interface PortPoint {
+  x: number;
+  y: number;
+}
+
+export function getPortCenter(
+  nodeX: number,
+  nodeY: number,
+  nodeWidth: number,
+  nodeHeight: number,
+  position: PortPosition,
+): PortPoint {
+  switch (position) {
+    case "top":
+      return { x: nodeX + nodeWidth / 2, y: nodeY - PORT_OFFSET };
+    case "bottom":
+      return { x: nodeX + nodeWidth / 2, y: nodeY + nodeHeight + PORT_OFFSET };
+    case "left":
+      return { x: nodeX - PORT_OFFSET, y: nodeY + nodeHeight / 2 };
+    case "right":
+      return { x: nodeX + nodeWidth + PORT_OFFSET, y: nodeY + nodeHeight / 2 };
+    default:
+      return { x: nodeX + nodeWidth / 2, y: nodeY + nodeHeight / 2 };
   }
+}
 
-  const layerKeys = Object.keys(layers)
-    .map(Number)
-    .sort((a, b) => a - b);
-
-  // 2. Barycenter 排序：用邻居在上一层的平均位置来排序本层节点
-  for (let li = 0; li < layerKeys.length; li++) {
-    const layer = layerKeys[li];
-    const layerNodes = layers[layer];
-    if (li === 0) {
-      // 第一层按出度排序（连接到下一层的边数）
-      const nextIds = new Set<string>();
-      for (const e of edges) {
-        const srcInLayer = layerNodes.some((n) => n.id === e.source);
-        if (srcInLayer) { nextIds.add(e.source); }
-      }
-      layerNodes.sort((a, b) => {
-        const aCount = edges.filter((e) => e.source === a.id).length;
-        const bCount = edges.filter((e) => e.source === b.id).length;
-        return bCount - aCount; // 出度多的靠左
-      });
-      // 无边的节点放最后
-      // (already sorted by out-degree)
-    } else {
-      const prevLayer = layerKeys[li - 1];
-      const prevNodes = layers[prevLayer];
-      // 构建 prevNodes 的列号索引
-      const prevIndex = new Map<string, number>();
-      prevNodes.forEach((pn, idx) => prevIndex.set(pn.id, idx));
-
-      // 为每个节点计算 barycenter
-      const withBary: Array<{ node: AutoNode; bary: number }> = layerNodes.map((n) => {
-        const connected: number[] = [];
-        for (const e of edges) {
-          if (e.target === n.id && prevIndex.has(e.source)) {
-            connected.push(prevIndex.get(e.source)!);
-          }
-          if (e.source === n.id && prevIndex.has(e.target)) {
-            connected.push(prevIndex.get(e.target)!);
-          }
-        }
-        const bary = connected.length > 0
-          ? connected.reduce((s, v) => s + v, 0) / connected.length
-          : -1; // 无连接的排最后
-        return { node: n, bary };
-      });
-
-      withBary.sort((a, b) => {
-        if (a.bary === -1 && b.bary === -1) { return 0; }
-        if (a.bary === -1) { return 1; }
-        if (b.bary === -1) { return -1; }
-        return a.bary - b.bary;
-      });
-
-      layers[layer] = withBary.map((w) => w.node);
-    }
+export function getHandlePosition(
+  nodeWidth: number,
+  nodeHeight: number,
+  position: PortPosition,
+): { x: number; y: number } {
+  switch (position) {
+    case "top":
+      return { x: nodeWidth / 2, y: -PORT_OFFSET };
+    case "bottom":
+      return { x: nodeWidth / 2, y: nodeHeight + PORT_OFFSET };
+    case "left":
+      return { x: -PORT_OFFSET, y: nodeHeight / 2 };
+    case "right":
+      return { x: nodeWidth + PORT_OFFSET, y: nodeHeight / 2 };
+    default:
+      return { x: nodeWidth / 2, y: nodeHeight / 2 };
   }
-
-  // 3. 分配坐标
-  const positions: Record<string, { x: number; y: number }> = {};
-
-  // 先算每层实际宽度（考虑容器节点）
-  for (let li = 0; li < layerKeys.length; li++) {
-    const layer = layerKeys[li];
-    const layerNodes = layers[layer];
-
-    let xOffset = MARGIN;
-    for (let ni = 0; ni < layerNodes.length; ni++) {
-      const n = layerNodes[ni];
-      positions[n.id] = { x: xOffset, y: MARGIN + layer * LAYER_Y_SPACING };
-      xOffset += LAYER_X_SPACING;
-    }
-  }
-
-  return positions;
 }

@@ -1,12 +1,17 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { useWorkEngineStore } from "@/stores/feature/workEngineStore";
-import { EdgeLabelRenderer, type EdgeProps, getSmoothStepPath } from "@xyflow/react";
+
+import { EdgeLabelRenderer, type EdgeProps } from "@xyflow/react";
 import { theme } from "antd";
 import React from "react";
 
 const ORANGE_BASE = "#fa8c16";
 const PURPLE_BASE = "#722ed1";
+
+const MIN_CTRL = 40;
+const MAX_CTRL = 120;
+const BEND_AMOUNT = 60;
 
 /**
  * 解析 sourceHandle 中的 port 信息，返回水平偏移量。
@@ -23,6 +28,71 @@ function sourceOffsetFromHandle(sourceHandle?: string | null, sourceNodeW?: numb
   const clampedIdx = Math.min(Math.max(idx, 0), N - 1);
   const centerFrac = (clampedIdx + 1) / (N + 1);
   return centerFrac * w - w / 2;
+}
+
+function getSmoothStepPath(
+  params: {
+    sourceX: number;
+    sourceY: number;
+    sourcePosition: "top" | "bottom" | "left" | "right";
+    targetX: number;
+    targetY: number;
+    targetPosition: "top" | "bottom" | "left" | "right";
+    borderRadius?: number;
+  },
+): [string, number, number] {
+  const { sourceX, sourceY, sourcePosition, targetX, targetY, targetPosition } = params;
+
+  const dx = targetX - sourceX;
+  const dy = targetY - sourceY;
+  const absDx = Math.abs(dx);
+  const absDy = Math.abs(dy);
+
+  const isForward = sourcePosition === "bottom" && targetPosition === "top";
+
+  let cp1x = sourceX;
+  let cp1y = sourceY;
+  let cp2x = targetX;
+  let cp2y = targetY;
+
+  if (isForward) {
+    const baseCtrl = Math.max(absDx * 0.3, MIN_CTRL);
+    const ctrl = Math.min(baseCtrl, MAX_CTRL);
+
+    cp1x = sourceX + ctrl;
+    cp2x = targetX - ctrl;
+
+    if (absDy > 60) {
+      const bendFactor = Math.min(absDy / 200, 1);
+      const bend = BEND_AMOUNT * bendFactor;
+      cp1y = sourceY + bend;
+      cp2y = targetY - bend;
+    } else if (dx < 0) {
+      cp1y = sourceY + BEND_AMOUNT;
+      cp2y = targetY - BEND_AMOUNT;
+    }
+  } else {
+    const baseCtrl = Math.max(absDx * 0.3, MIN_CTRL);
+    const ctrl = Math.min(baseCtrl, MAX_CTRL);
+
+    cp1x = sourceX - ctrl;
+    cp2x = targetX + ctrl;
+
+    if (absDy > 60) {
+      const bendFactor = Math.min(absDy / 200, 1);
+      const bend = BEND_AMOUNT * bendFactor;
+      cp1y = sourceY - bend;
+      cp2y = targetY + bend;
+    } else if (dx > 0) {
+      cp1y = sourceY - BEND_AMOUNT;
+      cp2y = targetY + BEND_AMOUNT;
+    }
+  }
+
+  const midX = (sourceX + cp1x + cp2x + targetX) / 4;
+  const midY = (sourceY + cp1y + cp2y + targetY) / 4;
+
+  return [`M ${sourceX} ${sourceY} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${targetX} ${targetY}`, midX, midY];
 }
 
 const BaseEdgeComponent: React.FC<EdgeProps> = ({

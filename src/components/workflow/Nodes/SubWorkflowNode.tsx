@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+import { getHandlePosition, PORT_SIZE } from "@/lib/workflowLayout";
 import { useWorkflowEditorStore } from "@/stores";
 import { Handle, type NodeProps, Position } from "@xyflow/react";
 import { theme, Tooltip } from "antd";
@@ -16,16 +17,21 @@ interface SubWorkflowNodeData {
   enabled: boolean;
   subWorkflowId?: string;
   subWorkflowName?: string;
+  target_workflow_id?: string;
+  nodeWidth?: number;
+  nodeHeight?: number;
 }
 
 const SubWorkflowNodeComponent: React.FC<NodeProps> = ({ data: _data, selected }) => {
   const data = _data as unknown as SubWorkflowNodeData;
   const { token } = theme.useToken();
 
+  const workflowId = data.subWorkflowId || data.target_workflow_id;
+
   const expandedData = useWorkflowEditorStore((s) => s.expandedSubWorkflows[data.id]);
   const toggleExpand = useCallback(() => {
-    useWorkflowEditorStore.getState().toggleExpandSubWorkflow(data.id, data.subWorkflowId);
-  }, [data.id, data.subWorkflowId]);
+    useWorkflowEditorStore.getState().toggleExpandSubWorkflow(data.id, workflowId);
+  }, [data.id, workflowId]);
 
   const isExpanded = !!expandedData && !expandedData.isLoading;
   const isLoading = !!expandedData?.isLoading;
@@ -38,8 +44,10 @@ const SubWorkflowNodeComponent: React.FC<NodeProps> = ({ data: _data, selected }
     return (
       <div
         style={{
-          minWidth: 400,
-          minHeight: 200,
+          width: data.nodeWidth ?? 400,
+          height: data.nodeHeight ?? 200,
+          minWidth: 200,
+          minHeight: 80,
           background: `${NODE_COLOR}06`,
           border: `1.5px dashed ${borderColor}50`,
           borderRadius: 8,
@@ -141,12 +149,24 @@ const SubWorkflowNodeComponent: React.FC<NodeProps> = ({ data: _data, selected }
         <Handle
           type="target"
           position={Position.Top}
-          style={{ background: NODE_COLOR, border: "none", width: 7, height: 7 }}
+          style={{
+            background: NODE_COLOR,
+            border: "none",
+            width: PORT_SIZE,
+            height: PORT_SIZE,
+            ...getHandlePosition(data.nodeWidth ?? 400, data.nodeHeight ?? 200, "top"),
+          }}
         />
         <Handle
           type="source"
           position={Position.Bottom}
-          style={{ background: NODE_COLOR, border: "none", width: 7, height: 7 }}
+          style={{
+            background: NODE_COLOR,
+            border: "none",
+            width: PORT_SIZE,
+            height: PORT_SIZE,
+            ...getHandlePosition(data.nodeWidth ?? 400, data.nodeHeight ?? 200, "bottom"),
+          }}
         />
       </div>
     );
@@ -221,7 +241,7 @@ const SubWorkflowNodeComponent: React.FC<NodeProps> = ({ data: _data, selected }
           </span>
 
           {/* 展开按钮 */}
-          {data.subWorkflowId && (
+          {workflowId && (
             <Tooltip title="Expand">
               <span
                 className="react-flow__nodrag"
@@ -256,12 +276,24 @@ const SubWorkflowNodeComponent: React.FC<NodeProps> = ({ data: _data, selected }
       <Handle
         type="target"
         position={Position.Top}
-        style={{ background: NODE_COLOR, border: "none", width: 7, height: 7 }}
+        style={{
+          background: NODE_COLOR,
+          border: "none",
+          width: PORT_SIZE,
+          height: PORT_SIZE,
+          ...getHandlePosition(160, 40, "top"),
+        }}
       />
       <Handle
         type="source"
         position={Position.Bottom}
-        style={{ background: NODE_COLOR, border: "none", width: 7, height: 7 }}
+        style={{
+          background: NODE_COLOR,
+          border: "none",
+          width: PORT_SIZE,
+          height: PORT_SIZE,
+          ...getHandlePosition(160, 40, "bottom"),
+        }}
       />
     </div>
   );

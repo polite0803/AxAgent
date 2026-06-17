@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+import { getHandlePosition, getNodeSize, PORT_SIZE } from "@/lib/workflowLayout";
 import { Handle, type NodeProps, Position } from "@xyflow/react";
 import { theme } from "antd";
 import React, { memo } from "react";
@@ -20,6 +21,7 @@ const ToolNodeComponent: React.FC<NodeProps> = ({ data: _data, selected }) => {
   const { token } = theme.useToken();
 
   const borderColor = selected ? token.colorPrimary : NODE_COLOR;
+  const nodeSize = getNodeSize(data.type);
 
   return (
     <div
@@ -93,12 +95,24 @@ const ToolNodeComponent: React.FC<NodeProps> = ({ data: _data, selected }) => {
       <Handle
         type="target"
         position={Position.Top}
-        style={{ background: NODE_COLOR, border: "none", width: 7, height: 7 }}
+        style={{
+          background: NODE_COLOR,
+          border: "none",
+          width: PORT_SIZE,
+          height: PORT_SIZE,
+          ...getHandlePosition(nodeSize.width, nodeSize.height, "top"),
+        }}
       />
       <Handle
         type="source"
         position={Position.Bottom}
-        style={{ background: NODE_COLOR, border: "none", width: 7, height: 7 }}
+        style={{
+          background: NODE_COLOR,
+          border: "none",
+          width: PORT_SIZE,
+          height: PORT_SIZE,
+          ...getHandlePosition(nodeSize.width, nodeSize.height, "bottom"),
+        }}
       />
     </div>
   );
