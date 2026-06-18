@@ -299,7 +299,6 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
     if (validationTimerRef.current) { clearTimeout(validationTimerRef.current); }
     validationTimerRef.current = setTimeout(() => {
       const issues = validate_workflow(nodes, edges, t);
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setFrontendValidation(issues.issues);
       const msgMap = new Map<string, string>();
       for (const iss of issues.issues) {
@@ -445,7 +444,6 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
 
     setRNodes(computedFlowNodes);
     setREdges(computedFlowEdges);
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsInitialized(true);
 
     for (const [childId, expectedParent] of Object.entries(expectedParentByNode)) {
