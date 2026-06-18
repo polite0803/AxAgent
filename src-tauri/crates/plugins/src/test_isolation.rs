@@ -25,9 +25,10 @@ impl EnvLock {
         let temp_home = std::env::temp_dir().join(format!("plugin-test-{count}"));
 
         // Set up isolated environment
-        std::fs::create_dir_all(&temp_home).ok();
-        std::fs::create_dir_all(temp_home.join(".claude/plugins/installed")).ok();
-        std::fs::create_dir_all(temp_home.join(".config")).ok();
+        std::fs::create_dir_all(&temp_home).expect("failed to create temp_home");
+        std::fs::create_dir_all(temp_home.join(".claude/plugins/installed"))
+            .expect("failed to create plugins dir");
+        std::fs::create_dir_all(temp_home.join(".config")).expect("failed to create .config dir");
 
         // Redirect HOME and XDG_CONFIG_HOME to temp directory
         // SAFETY: Test-only code; EnvLock ensures exclusive access and restores
@@ -73,6 +74,6 @@ mod tests {
     fn test_env_lock_creates_plugin_directories() {
         let lock = EnvLock::lock();
         let plugins_dir = lock.temp_home().join(".claude/plugins/installed");
-        assert!(plugins_dir.exists());
+        assert!(plugins_dir.exists(), "plugins dir should exist at {:?}", plugins_dir);
     }
 }
