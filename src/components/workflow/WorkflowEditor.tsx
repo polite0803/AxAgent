@@ -227,18 +227,40 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
   const [zoom, setZoom] = useState(1);
   const [dndDropTargetId, setDndDropTargetId] = useState<string | null>(null);
   const [leftPanelCollapsed, setLeftPanelCollapsed] = useState(
-    () => { try { return localStorage.getItem("workflowEditor.leftPanelCollapsed") === "true"; } catch { return false; } },
+    () => {
+      try {
+        return localStorage.getItem("workflowEditor.leftPanelCollapsed") === "true";
+      } catch {
+        return false;
+      }
+    },
   );
   const [rightPanelCollapsed, setRightPanelCollapsed] = useState(
-    () => { try { return localStorage.getItem("workflowEditor.rightPanelCollapsed") === "true"; } catch { return false; } },
+    () => {
+      try {
+        return localStorage.getItem("workflowEditor.rightPanelCollapsed") === "true";
+      } catch {
+        return false;
+      }
+    },
   );
   const [leftPanelWidth, setLeftPanelWidth] = useState(() => {
-    try { const saved = localStorage.getItem("workflowEditor.leftPanelWidth"); return saved ? Number(saved) : 280; } catch { return 280; }
+    try {
+      const saved = localStorage.getItem("workflowEditor.leftPanelWidth");
+      return saved ? Number(saved) : 280;
+    } catch {
+      return 280;
+    }
   });
   const [frontendValidation, setFrontendValidation] = useState<ValidateIssue[]>([]);
   const [validationMsgMap, setValidationMsgMap] = useState<Map<string, string>>(new Map());
   const [rightPanelWidth, setRightPanelWidth] = useState(() => {
-    try { const saved = localStorage.getItem("workflowEditor.rightPanelWidth"); return saved ? Number(saved) : 320; } catch { return 320; }
+    try {
+      const saved = localStorage.getItem("workflowEditor.rightPanelWidth");
+      return saved ? Number(saved) : 320;
+    } catch {
+      return 320;
+    }
   });
   const [resizing, setResizing] = useState<"left" | "right" | null>(null);
 
@@ -249,13 +271,17 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
       if (resizing === "left") {
         setLeftPanelWidth((prev) => {
           const next = Math.max(180, Math.min(600, prev + e.movementX));
-          try { localStorage.setItem("workflowEditor.leftPanelWidth", String(next)); } catch { /* quota */ }
+          try {
+            localStorage.setItem("workflowEditor.leftPanelWidth", String(next));
+          } catch { /* quota */ }
           return next;
         });
       } else {
         setRightPanelWidth((prev) => {
           const next = Math.max(200, Math.min(600, prev - e.movementX));
-          try { localStorage.setItem("workflowEditor.rightPanelWidth", String(next)); } catch { /* quota */ }
+          try {
+            localStorage.setItem("workflowEditor.rightPanelWidth", String(next));
+          } catch { /* quota */ }
           return next;
         });
       }
@@ -276,13 +302,17 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
       if (w < 900) {
         if (!leftPanelCollapsed) {
           setLeftPanelCollapsed(true);
-          try { localStorage.setItem("workflowEditor.leftPanelCollapsed", "true"); } catch { /* quota */ }
+          try {
+            localStorage.setItem("workflowEditor.leftPanelCollapsed", "true");
+          } catch { /* quota */ }
         }
       }
       if (w < 1100) {
         if (!rightPanelCollapsed) {
           setRightPanelCollapsed(true);
-          try { localStorage.setItem("workflowEditor.rightPanelCollapsed", "true"); } catch { /* quota */ }
+          try {
+            localStorage.setItem("workflowEditor.rightPanelCollapsed", "true");
+          } catch { /* quota */ }
         }
       }
     };
@@ -376,7 +406,8 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
     let cleanup: (() => void) | undefined;
     let cancelled = false;
     useWorkEngineStore.getState().setupEventListeners().then((fn) => {
-      if (cancelled) { fn(); } else { cleanup = fn; }
+      if (cancelled) { fn(); }
+      else { cleanup = fn; }
     });
     return () => {
       cancelled = true;
@@ -715,7 +746,10 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
             // 计算嵌套深度：越深优先级越高
             let depth = 0;
             let p = existingParentRefs[n.id];
-            while (p) { depth++; p = existingParentRefs[p]; }
+            while (p) {
+              depth++;
+              p = existingParentRefs[p];
+            }
             if (depth > bestHitDepth) {
               bestHitDepth = depth;
               hitContainerId = n.id;
@@ -823,7 +857,10 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
           ) {
             let depth = 0;
             let p = mvParentRefs[n.id];
-            while (p) { depth++; p = mvParentRefs[p]; }
+            while (p) {
+              depth++;
+              p = mvParentRefs[p];
+            }
             if (depth > bestMvDepth) {
               bestMvDepth = depth;
               hitId = n.id;
@@ -1350,7 +1387,10 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
         ) {
           let depth = 0;
           let p = latestParentRefs[n.id];
-          while (p) { depth++; p = latestParentRefs[p]; }
+          while (p) {
+            depth++;
+            p = latestParentRefs[p];
+          }
           if (depth > bestDepth) {
             bestDepth = depth;
             hitContainerId = n.id;
@@ -1359,8 +1399,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
       }
 
       // ── 判断 parent 是否需要切换 ──────────────────────
-      const parentChanged =
-        (hitContainerId !== null && hitContainerId !== draggedNodeParentId)
+      const parentChanged = (hitContainerId !== null && hitContainerId !== draggedNodeParentId)
         || (hitContainerId === null && draggedNodeParentId != null);
 
       let newParentId: string | undefined = hitContainerId ?? undefined;
@@ -1684,13 +1723,17 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
         onToggleLeftPanel={() =>
           setLeftPanelCollapsed((v) => {
             const next = !v;
-            try { localStorage.setItem("workflowEditor.leftPanelCollapsed", String(next)); } catch { /* quota */ }
+            try {
+              localStorage.setItem("workflowEditor.leftPanelCollapsed", String(next));
+            } catch { /* quota */ }
             return next;
           })}
         onToggleRightPanel={() =>
           setRightPanelCollapsed((v) => {
             const next = !v;
-            try { localStorage.setItem("workflowEditor.rightPanelCollapsed", String(next)); } catch { /* quota */ }
+            try {
+              localStorage.setItem("workflowEditor.rightPanelCollapsed", String(next));
+            } catch { /* quota */ }
             return next;
           })}
         leftPanelCollapsed={leftPanelCollapsed}
