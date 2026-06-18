@@ -3391,6 +3391,13 @@
     "search": "検索"
   },
   "workflow": {
+    "loopBackCycleDetected": "ループバックエッジがサイクルを形成します。ターゲットノードを調整してください",
+    "cycleDetectedOnConnect": "このエッジは loopBack マーカーのないサイクルを作成します — ワークフローエンジンが拒否する可能性があります。",
+    "decorativeContainerNoEdges": "装飾コンテナには入力または出力エッジを接続できません",
+    "unsavedTitle": "未保存の変更",
+    "unsavedContent": "未保存の変更があります。破棄して閉じますか？",
+    "discard": "破棄",
+    "keepEditing": "編集を続ける",
     "aiPanel": {
       "enterWorkflowDesc": "ワークフローの説明を入力してください",
       "workflowGenerated": "ワークフローが生成されました",

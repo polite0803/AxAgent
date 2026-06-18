@@ -68,7 +68,7 @@ const ContainerNodeComponent: React.FC<ContainerNodeProps> = ({
   const { t } = useTranslation();
   const { token } = theme.useToken();
 
-  const isCollapsed = useWorkflowEditorStore((s) => data.id in s.collapsedContainers);
+  const isCollapsed = useWorkflowEditorStore((s) => s.collapsedContainers[data.id] === true);
   const toggleCollapse = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation();

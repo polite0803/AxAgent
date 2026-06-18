@@ -66,6 +66,7 @@ type HistoryEntry = {
   nodes: WorkflowNode[];
   edges: WorkflowEdge[];
   parentRefs: Record<string, string>;
+  collapsedContainers: Record<string, boolean>;
   name: string;
   description?: string;
   icon: string;
@@ -131,7 +132,7 @@ interface WorkflowEditorState {
   // 容器父子关系（childId → parentId），独立于 nodes 数组以避免污染 WorkflowNode 联合类型。
   // 渲染时反查此表为 ReactFlow 节点注入 parentId，保存时摊平到 nodes.parentId 字段。
   parentRefs: Record<string, string>;
-  setParentRef: (childId: string, parentId: string | null) => void;
+  setParentRef: (childId: string, parentId: string | null, recordHistory?: boolean) => void;
   clearParentRefs: () => void;
 
   loadTemplates: () => Promise<void>;
@@ -369,6 +370,7 @@ const buildHistoryEntry = (state: WorkflowEditorState): HistoryEntry => ({
   nodes: structuredClone(state.nodes),
   edges: structuredClone(state.edges),
   parentRefs: structuredClone(state.parentRefs),
+  collapsedContainers: { ...state.collapsedContainers },
   name: state.currentTemplate?.name || "",
   description: state.currentTemplate?.description,
   icon: state.currentTemplate?.icon || "Bot",
@@ -575,6 +577,7 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
         state.nodes = previous.nodes;
         state.edges = previous.edges;
         state.parentRefs = { ...previous.parentRefs };
+        state.collapsedContainers = { ...previous.collapsedContainers };
         if (state.currentTemplate) {
           state.currentTemplate.name = previous.name;
           state.currentTemplate.description = previous.description;
@@ -603,6 +606,7 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
         state.nodes = next.nodes;
         state.edges = next.edges;
         state.parentRefs = { ...next.parentRefs };
+        state.collapsedContainers = { ...next.collapsedContainers };
         if (state.currentTemplate) {
           state.currentTemplate.name = next.name;
           state.currentTemplate.description = next.description;
@@ -1223,9 +1227,18 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
       });
     },
 
-    // 写入/清除容器父子关系。不进撤销栈（避免每次回填都被用户撤销一次）。
-    setParentRef: (childId: string, parentId: string | null) => {
+    // 写入/清除容器父子关系。默认不进撤销栈（避免 useFlowNodes 自动回填时产生噪音历史条目）；
+    // 用户主动操作（拖拽移入移出、属性面板增删子节点）应传 recordHistory=true。
+    setParentRef: (childId: string, parentId: string | null, recordHistory?: boolean) => {
       set((state) => {
+        if (recordHistory) {
+          state.past.push(buildHistoryEntry(state));
+          state.future = [];
+          if (state.past.length > 50) {
+            state.past = state.past.slice(-50);
+          }
+          state._lastUndoRecordTime = Date.now();
+        }
         if (parentId === null) {
           delete state.parentRefs[childId];
         } else {
@@ -2236,12 +2249,8 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
       const snapshotNodes = JSON.parse(JSON.stringify(tx.beforeNodes)) as WorkflowNode[];
       const snapshotEdges = JSON.parse(JSON.stringify(tx.beforeEdges)) as WorkflowEdge[];
       set((state) => {
-        // 回滚前记录当前状态，使用户可以撤销回滚操作
-        state.past.push(buildHistoryEntry(state));
-        state.future = [];
-        if (state.past.length > 50) {
-          state.past = state.past.slice(-50);
-        }
+        // AI 事务回滚是内部操作，不进撤销栈；
+        // beginAiActionTransaction 已在事务开始前由调用方记录了历史快照
         state.nodes = snapshotNodes;
         state.edges = snapshotEdges;
         state.aiActionTransactions = state.aiActionTransactions.filter((t) => t.id !== txId);

@@ -35,10 +35,11 @@ interface WorkEngineState {
   setBreakpoints: (nodeIds: string[]) => Promise<void>;
   resumeBreakpoint: () => Promise<void>;
   stepBreakpoint: () => Promise<void>;
-  toggleBreakpoint: (nodeId: string) => void;
+  toggleBreakpoint: (nodeId: string) => Promise<void>;
   setDryRun: (val: boolean) => void;
   loadHistory: (workflowId: string) => Promise<void>;
-  getStatus: (executionId: string) => Promise<void>;
+  getStatus: (executionId: string, replaceStatuses?: boolean) => Promise<void>;
+  viewExecution: (executionId: string) => Promise<void>;
   resetDebug: () => void;
   setupEventListeners: () => Promise<() => void>;
 }
@@ -105,51 +106,82 @@ export const useWorkEngineStore = create<WorkEngineState>((set, get) => ({
   pause: async () => {
     const { executionId } = get();
     if (!executionId) { return; }
-    await invoke<boolean>("pause_workflow_execution", {
-      execution_id: executionId,
-    });
+    try {
+      await invoke<boolean>("pause_workflow_execution", {
+        execution_id: executionId,
+      });
+    } catch (e) {
+      console.error("[workEngine] pause failed:", String(e));
+      throw e;
+    }
   },
 
   resume: async () => {
     const { executionId } = get();
     if (!executionId) { return; }
-    await invoke<boolean>("resume_workflow_execution", {
-      execution_id: executionId,
-    });
+    try {
+      await invoke<boolean>("resume_workflow_execution", {
+        execution_id: executionId,
+      });
+    } catch (e) {
+      console.error("[workEngine] resume failed:", String(e));
+      throw e;
+    }
   },
 
   cancel: async () => {
     const { executionId } = get();
     if (!executionId) { return; }
-    await invoke<boolean>("cancel_workflow_execution", {
-      execution_id: executionId,
-    });
-    set({ isDebugRunning: false });
+    try {
+      await invoke<boolean>("cancel_workflow_execution", {
+        execution_id: executionId,
+      });
+      set({ isDebugRunning: false });
+    } catch (e) {
+      console.error("[workEngine] cancel failed:", String(e));
+      set({ isDebugRunning: false });
+      throw e;
+    }
   },
 
   setBreakpoints: async (nodeIds: string[]) => {
     const { executionId } = get();
-    await invoke<boolean>("set_workflow_breakpoints", {
-      node_ids: nodeIds,
-      execution_id: executionId ?? null,
-    });
-    set({ breakpoints: nodeIds });
+    try {
+      await invoke<boolean>("set_workflow_breakpoints", {
+        node_ids: nodeIds,
+        execution_id: executionId ?? null,
+      });
+      set({ breakpoints: nodeIds });
+    } catch (e) {
+      console.error("[workEngine] setBreakpoints failed:", String(e));
+      throw e;
+    }
   },
 
   resumeBreakpoint: async () => {
     const { executionId } = get();
     if (!executionId) { return; }
-    await invoke<boolean>("resume_workflow_breakpoint", {
-      execution_id: executionId,
-    });
+    try {
+      await invoke<boolean>("resume_workflow_breakpoint", {
+        execution_id: executionId,
+      });
+    } catch (e) {
+      console.error("[workEngine] resumeBreakpoint failed:", String(e));
+      throw e;
+    }
   },
 
   stepBreakpoint: async () => {
     const { executionId } = get();
     if (!executionId) { return; }
-    await invoke<boolean>("step_workflow_breakpoint", {
-      execution_id: executionId,
-    });
+    try {
+      await invoke<boolean>("step_workflow_breakpoint", {
+        execution_id: executionId,
+      });
+    } catch (e) {
+      console.error("[workEngine] stepBreakpoint failed:", String(e));
+      throw e;
+    }
   },
 
   toggleBreakpoint: async (nodeId: string) => {
@@ -165,8 +197,10 @@ export const useWorkEngineStore = create<WorkEngineState>((set, get) => ({
           node_ids: next,
           execution_id: executionId ?? null,
         });
-      } catch {
+      } catch (e) {
+        console.error("[workEngine] toggleBreakpoint remote sync failed:", String(e));
         set({ breakpoints: prev });
+        throw e;
       }
     }
   },
@@ -183,7 +217,7 @@ export const useWorkEngineStore = create<WorkEngineState>((set, get) => ({
     set({ executionHistory: history });
   },
 
-  getStatus: async (executionId: string) => {
+  getStatus: async (executionId: string, replaceStatuses?: boolean) => {
     const status = await invoke<ExecutionStatusResponse>(
       "get_workflow_execution_status",
       { execution_id: executionId },
@@ -196,8 +230,23 @@ export const useWorkEngineStore = create<WorkEngineState>((set, get) => ({
       status,
       nodeRecords: status.node_records ?? [],
       variables: status.variables ?? {},
-      nodeStatuses: { ...state.nodeStatuses, ...nodeStatusesFromRecords },
+      // replaceStatuses=true 时完全替换而非合并，用于查看历史执行时清除旧状态
+      nodeStatuses: replaceStatuses
+        ? nodeStatusesFromRecords
+        : { ...state.nodeStatuses, ...nodeStatusesFromRecords },
     }));
+  },
+
+  viewExecution: async (executionId: string) => {
+    set({ isDebugRunning: false, loading: true });
+    try {
+      await get().getStatus(executionId, true);
+      set({ executionId, loading: false });
+    } catch (e) {
+      set({ loading: false });
+      console.error("[workEngine] viewExecution failed:", String(e));
+      throw e;
+    }
   },
 
   resetDebug: () => {

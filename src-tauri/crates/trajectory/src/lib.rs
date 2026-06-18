@@ -10,6 +10,7 @@
 //! - Cross-session pattern learning
 
 #![allow(dead_code)]
+#![allow(unused_imports)]
 #![allow(clippy::too_many_arguments)]
 #![allow(clippy::result_large_err)]
 #![allow(clippy::large_enum_variant)]

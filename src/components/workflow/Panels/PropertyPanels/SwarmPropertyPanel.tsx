@@ -53,14 +53,14 @@ export const SwarmPropertyPanel: React.FC<Props> = ({ node, onUpdate, onDelete }
       },
     } as unknown as WorkflowNode;
     addNode(newNode);
-    setParentRef(id, n.id);
+    setParentRef(id, n.id, true);
     sc("agent_steps", [...agentSteps, id]);
   };
 
   const removeAgent = (stepId: string) => {
     const updated = agentSteps.filter((id) => id !== stepId);
     sc("agent_steps", updated);
-    setParentRef(stepId, null);
+    setParentRef(stepId, null, true);
   };
 
   return (

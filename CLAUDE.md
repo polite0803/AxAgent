@@ -1,9 +1,3 @@
-# OpenWolf
-
-@.wolf/OPENWOLF.md
-
-This project uses OpenWolf for context management. Read and follow .wolf/OPENWOLF.md every session. Check .wolf/cerebrum.md before generating code. Check .wolf/anatomy.md before reading files.
-
 # AxAgent — CLAUDE.md
 
 ## 核心指令
@@ -40,7 +34,7 @@ src-tauri/                   # Rust 后端 (Cargo workspace)
 │   ├── commands/            # 67 个命令模块，mod.rs 统一声明
 │   ├── init/                # 初始化（database, plugins, services, state）
 │   └── app_state.rs         # 全局 AppState
-├── crates/                  # 14 个 workspace crate
+├── crates/                  # 29 个 workspace crate
 │   ├── core/                # 数据库实体、向量存储、RAG、加密
 │   ├── agent/               # 智能体引擎（SessionManager 等）
 │   ├── providers/           # LLM 提供商抽象层

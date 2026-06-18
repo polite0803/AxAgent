@@ -3822,6 +3822,13 @@
     "search": "بحث"
   },
   "workflow": {
+    "loopBackCycleDetected": "الحافة المعاودة ستشكل دورة، يرجى تعديل العقدة الهدف",
+    "cycleDetectedOnConnect": "هذه الحافة تخلق دورة بدون علامة loopBack — قد يرفضها محرك سير العمل.",
+    "decorativeContainerNoEdges": "لا يمكن للحاويات الزخرفية أن يكون لها حواف واردة أو صادرة",
+    "unsavedTitle": "تغييرات غير محفوظة",
+    "unsavedContent": "لديك تغييرات غير محفوظة. هل تريد تجاهلها وإغلاق؟",
+    "discard": "تجاهل",
+    "keepEditing": "متابعة التحرير",
     "aiPanel": {
       "enterWorkflowDesc": "يرجى إدخال وصف سير العمل",
       "workflowGenerated": "تم إنشاء سير العمل",

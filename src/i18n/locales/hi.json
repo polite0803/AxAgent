@@ -3822,6 +3822,13 @@
     "search": "खोज"
   },
   "workflow": {
+    "loopBackCycleDetected": "लूप-बैक किनारा एक चक्र बनाएगा, कृपया लक्ष्य नोड समायोजित करें",
+    "cycleDetectedOnConnect": "यह किनारा loopBack मार्कर के बिना एक चक्र बनाता है — वर्कफ़्लो इंजन इसे अस्वीकार कर सकता है।",
+    "decorativeContainerNoEdges": "सजावटी कंटेनरों में आने या जाने वाले किनारे नहीं हो सकते",
+    "unsavedTitle": "सहेजे नहीं गए परिवर्तन",
+    "unsavedContent": "आपके पास सहेजे नहीं गए परिवर्तन हैं। छोड़कर बंद करें?",
+    "discard": "छोड़ें",
+    "keepEditing": "संपादन जारी रखें",
     "aiPanel": {
       "enterWorkflowDesc": "कृपया वर्कफ़्लो विवरण दर्ज करें",
       "workflowGenerated": "वर्कफ़्लो जनरेट किया गया",

@@ -130,7 +130,7 @@
     "vitest": "^4.1.4"
   },
   "simple-git-hooks": {
-    "pre-commit": "npx dprint check && npx tsc --noEmit",
+    "pre-commit": "npx dprint check && npx tsc --noEmit && npx eslint src --max-warnings=0",
     "pre-push": "npm run ci:check:quick"
   },
   "optionalDependencies": {

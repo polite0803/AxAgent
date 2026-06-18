@@ -29,6 +29,7 @@ export interface NodeAIAssistResult {
   lastResult: string | null;
   reset: () => void;
   rollbackLast: () => void;
+  cancel: () => void;
 }
 
 /**
@@ -69,15 +70,19 @@ export function useNodeAIAssist(): NodeAIAssistResult {
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastResult, setLastResult] = useState<string | null>(null);
-  const txIdRef = useRef<string | null>(null);
+  // 用 Set 跟踪所有 pending 事务 ID，避免并发调用时 txIdRef 被覆盖导致泄漏
+  const pendingTxIdsRef = useRef<Set<string>>(new Set());
   // latest-wins：并发的多次 generate 中只采纳最后一次的结果，
   // 避免用户快速连点 AI 按钮时旧请求覆盖新请求。
   const winnerRef = useRef(createLatestWinner());
+  // cancel 标志：用户调用 cancel 后，pending 的 generate 结果将被丢弃并回滚事务
+  const cancelledRef = useRef(false);
 
   const generate = useCallback(
     async (options: NodeAIAssistOptions): Promise<string | null> => {
       const { systemPrompt, userPrompt, silentIfNoProvider, beforeSend, context, transactional = true } = options;
       const requestId = winnerRef.current.begin();
+      cancelledRef.current = false;
 
       const provider = providers.find((p) => p.enabled && p.models.some((m) => m.enabled));
       const model = provider?.models.find((m) => m.enabled);
@@ -94,8 +99,12 @@ export function useNodeAIAssist(): NodeAIAssistResult {
       let txId: string | null = null;
       if (transactional) {
         txId = useWorkflowEditorStore.getState().beginAiActionTransaction();
-        txIdRef.current = txId;
+        pendingTxIdsRef.current.add(txId);
       }
+
+      const cleanupTx = (id: string | null) => {
+        if (id) { pendingTxIdsRef.current.delete(id); }
+      };
 
       setError(null);
       setGenerating(true);
@@ -114,11 +123,11 @@ export function useNodeAIAssist(): NodeAIAssistResult {
             },
           },
         });
-        // latest-wins：陈旧请求的回调应被静默丢弃
-        if (!winnerRef.current.isLatest(requestId)) {
+        // latest-wins 或 cancel：陈旧/取消请求的回调应被静默丢弃
+        if (!winnerRef.current.isLatest(requestId) || cancelledRef.current) {
           if (txId) {
             useWorkflowEditorStore.getState().rollbackAiActionTransaction(txId);
-            if (txIdRef.current === txId) { txIdRef.current = null; }
+            cleanupTx(txId);
           }
           return null;
         }
@@ -127,12 +136,12 @@ export function useNodeAIAssist(): NodeAIAssistResult {
           setLastResult(content);
           if (transactional && txId) {
             useWorkflowEditorStore.getState().commitAiActionTransaction(txId);
-            if (txIdRef.current === txId) { txIdRef.current = null; }
+            cleanupTx(txId);
           }
         } else {
           if (transactional && txId) {
             useWorkflowEditorStore.getState().rollbackAiActionTransaction(txId);
-            if (txIdRef.current === txId) { txIdRef.current = null; }
+            cleanupTx(txId);
           }
         }
         return content || null;
@@ -142,7 +151,7 @@ export function useNodeAIAssist(): NodeAIAssistResult {
         }
         if (transactional && txId) {
           useWorkflowEditorStore.getState().rollbackAiActionTransaction(txId);
-          if (txIdRef.current === txId) { txIdRef.current = null; }
+          cleanupTx(txId);
         }
         return null;
       } finally {
@@ -163,15 +172,27 @@ export function useNodeAIAssist(): NodeAIAssistResult {
     useWorkflowEditorStore.getState().rollbackLastAiActionTransaction();
   }, []);
 
-  // 卸载时若仍有 pending 事务，回滚避免脏数据
-  useEffect(() => () => {
-    if (txIdRef.current) {
-      useWorkflowEditorStore.getState().rollbackAiActionTransaction(txIdRef.current);
-      txIdRef.current = null;
+  const cancel = useCallback(() => {
+    cancelledRef.current = true;
+    // 开启新的一轮，使所有 pending 请求变为陈旧
+    winnerRef.current.begin();
+    setGenerating(false);
+    // 回滚所有 pending 事务
+    for (const id of pendingTxIdsRef.current) {
+      useWorkflowEditorStore.getState().rollbackAiActionTransaction(id);
     }
+    pendingTxIdsRef.current.clear();
   }, []);
 
-  return { generate, generating, error, lastResult, reset, rollbackLast };
+  // 卸载时回滚所有 pending 事务，避免脏数据
+  useEffect(() => () => {
+    for (const id of pendingTxIdsRef.current) {
+      useWorkflowEditorStore.getState().rollbackAiActionTransaction(id);
+    }
+    pendingTxIdsRef.current.clear();
+  }, []);
+
+  return { generate, generating, error, lastResult, reset, rollbackLast, cancel };
 }
 
 /**

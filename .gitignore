@@ -69,6 +69,15 @@ debug/*
 .arts/
 .claude/
 .wolf/
+.reasonix/
+reasonix.toml
+
+# IDE local settings (use .vscode/ for shared config)
+settings.json
+
+# Build / debug output
+check_output.txt
+replace_logs.py
 
 # Documentation (local)
 Docs/

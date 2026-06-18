@@ -932,7 +932,16 @@ export function resolveOverlaps(nodes: Node[], parentRefs: Record<string, string
   let iteration = 0;
 
   // Group nodes by their parent (same coordinate space)
-  const groupOf = (id: string): string => parentRefs[id] ?? "__top__";
+  // 对嵌套容器，用顶层祖先作为分组 key，使不同嵌套深度的节点也能检测重叠
+  const groupOf = (id: string): string => {
+    let current = id;
+    let parent = parentRefs[current];
+    while (parent) {
+      current = parent;
+      parent = parentRefs[current];
+    }
+    return current;
+  };
 
   while (iteration < maxIterations) {
     iteration++;
@@ -1036,7 +1045,7 @@ export function autoLayoutWorkflow(
   const MIN_H = CONTAINER_MIN_H;
 
   const containerSizes: Record<string, { width: number; height: number }> = {};
-  const containers = layoutNodes.filter((n) => CONTAINER_NODE_TYPES.has(n.type || "") && !childOf[n.id]);
+  const containers = layoutNodes.filter((n) => CONTAINER_NODE_TYPES.has(n.type || ""));
 
   for (const c of containers) {
     const childIds = Object.keys(childOf).filter((cid) => childOf[cid] === c.id);
@@ -1164,8 +1173,13 @@ export function clampChildrenIntoContainers(
     if (!parentId) { return n; }
     const size = containerSizes[parentId];
     if (!size) { return n; }
-    const childW = (n.width as number | undefined) ?? getNodeSize(n.type || "").width;
-    const childH = (n.height as number | undefined) ?? getNodeSize(n.type || "").height;
+    const measured = (n as unknown as { measured?: { width?: number; height?: number } }).measured;
+    const childW = measured?.width
+      ?? (n.width as number | undefined)
+      ?? getNodeSize(n.type || "").width;
+    const childH = measured?.height
+      ?? (n.height as number | undefined)
+      ?? getNodeSize(n.type || "").height;
     let { x, y } = n.position;
     const minX = padding;
     const minY = padding;
@@ -1322,7 +1336,7 @@ export function forceLayout(
   const childOf = parentRefs;
 
   const containers = nodes.filter(
-    (n) => CONTAINER_NODE_TYPES.has(n.type || layoutNodeType(n)) && !childOf[n.id],
+    (n) => CONTAINER_NODE_TYPES.has(n.type || layoutNodeType(n)),
   );
 
   const childPositions: Record<string, { x: number; y: number }> = {};
@@ -1465,10 +1479,14 @@ export function forceLayout(
     target: e.target,
   }));
 
-  const simulation = d3.forceSimulation<ForceNode, ForceLink>(forceNodes)
+  // 根据节点数量动态计算中心点，避免硬编码导致少节点偏右下、多节点超出视口
+  const centerX = Math.max(400, Math.sqrt(topLevel.length) * 200);
+  const centerY = Math.max(300, Math.sqrt(topLevel.length) * 150);
+
+  const simulation = d3.forceSimulation<ForceNode, ForceNode>(forceNodes)
     .force("link", d3.forceLink<ForceNode, ForceLink>(forceLinks).id((d) => d.id).distance(150).strength(0.8))
     .force("charge", d3.forceManyBody().strength(-800))
-    .force("center", d3.forceCenter(800, 600))
+    .force("center", d3.forceCenter(centerX, centerY))
     .force("collide", d3.forceCollide<ForceNode>((d) => Math.max(d.width, d.height) / 2 + 20))
     .force("y", d3.forceY<ForceNode>((d) => d.y).strength(0.5))
     .stop();

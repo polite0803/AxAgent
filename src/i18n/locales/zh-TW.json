@@ -3391,6 +3391,13 @@
     "noResults": "無結果"
   },
   "workflow": {
+    "loopBackCycleDetected": "回環邊會形成迴圈，請調整目標節點",
+    "cycleDetectedOnConnect": "此邊會形成無 loopBack 標記的環——工作流引擎可能會拒絕它。",
+    "decorativeContainerNoEdges": "裝飾性容器不能有連入或連出的邊",
+    "unsavedTitle": "未儲存的變更",
+    "unsavedContent": "您有未儲存的變更，確定要放棄並關閉嗎？",
+    "discard": "放棄",
+    "keepEditing": "繼續編輯",
     "aiPanel": {
       "enterWorkflowDesc": "請輸入工作流描述",
       "workflowGenerated": "工作流已生成",

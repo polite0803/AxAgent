@@ -227,20 +227,18 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
   const [zoom, setZoom] = useState(1);
   const [dndDropTargetId, setDndDropTargetId] = useState<string | null>(null);
   const [leftPanelCollapsed, setLeftPanelCollapsed] = useState(
-    () => localStorage.getItem("workflowEditor.leftPanelCollapsed") === "true",
+    () => { try { return localStorage.getItem("workflowEditor.leftPanelCollapsed") === "true"; } catch { return false; } },
   );
   const [rightPanelCollapsed, setRightPanelCollapsed] = useState(
-    () => localStorage.getItem("workflowEditor.rightPanelCollapsed") === "true",
+    () => { try { return localStorage.getItem("workflowEditor.rightPanelCollapsed") === "true"; } catch { return false; } },
   );
   const [leftPanelWidth, setLeftPanelWidth] = useState(() => {
-    const saved = localStorage.getItem("workflowEditor.leftPanelWidth");
-    return saved ? Number(saved) : 280;
+    try { const saved = localStorage.getItem("workflowEditor.leftPanelWidth"); return saved ? Number(saved) : 280; } catch { return 280; }
   });
   const [frontendValidation, setFrontendValidation] = useState<ValidateIssue[]>([]);
   const [validationMsgMap, setValidationMsgMap] = useState<Map<string, string>>(new Map());
   const [rightPanelWidth, setRightPanelWidth] = useState(() => {
-    const saved = localStorage.getItem("workflowEditor.rightPanelWidth");
-    return saved ? Number(saved) : 320;
+    try { const saved = localStorage.getItem("workflowEditor.rightPanelWidth"); return saved ? Number(saved) : 320; } catch { return 320; }
   });
   const [resizing, setResizing] = useState<"left" | "right" | null>(null);
 
@@ -251,13 +249,13 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
       if (resizing === "left") {
         setLeftPanelWidth((prev) => {
           const next = Math.max(180, Math.min(600, prev + e.movementX));
-          localStorage.setItem("workflowEditor.leftPanelWidth", String(next));
+          try { localStorage.setItem("workflowEditor.leftPanelWidth", String(next)); } catch { /* quota */ }
           return next;
         });
       } else {
         setRightPanelWidth((prev) => {
           const next = Math.max(200, Math.min(600, prev - e.movementX));
-          localStorage.setItem("workflowEditor.rightPanelWidth", String(next));
+          try { localStorage.setItem("workflowEditor.rightPanelWidth", String(next)); } catch { /* quota */ }
           return next;
         });
       }
@@ -278,13 +276,13 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
       if (w < 900) {
         if (!leftPanelCollapsed) {
           setLeftPanelCollapsed(true);
-          localStorage.setItem("workflowEditor.leftPanelCollapsed", "true");
+          try { localStorage.setItem("workflowEditor.leftPanelCollapsed", "true"); } catch { /* quota */ }
         }
       }
       if (w < 1100) {
         if (!rightPanelCollapsed) {
           setRightPanelCollapsed(true);
-          localStorage.setItem("workflowEditor.rightPanelCollapsed", "true");
+          try { localStorage.setItem("workflowEditor.rightPanelCollapsed", "true"); } catch { /* quota */ }
         }
       }
     };
@@ -372,6 +370,19 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
     }
   }, [templateId]);
   /* eslint-enable react-hooks/exhaustive-deps */
+
+  // 初始化 workEngine 事件监听器：实时接收 node-status-changed / execution-completed 事件
+  useEffect(() => {
+    let cleanup: (() => void) | undefined;
+    let cancelled = false;
+    useWorkEngineStore.getState().setupEventListeners().then((fn) => {
+      if (cancelled) { fn(); } else { cleanup = fn; }
+    });
+    return () => {
+      cancelled = true;
+      cleanup?.();
+    };
+  }, []);
 
   /** 收集所有容器 subGraph 内的节点 ID，从顶层 nodes 中排除 */
   const autoSaveRetryCountRef = React.useRef(0);
@@ -683,11 +694,15 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
         });
 
         // 容器 hit-test：落点在某个容器节点的 bbox 内时，自动挂入该容器。
+        // 嵌套容器场景下选最内层（嵌套深度最大的）；跳过折叠态容器。
         const existingNodes = useWorkflowEditorStore.getState().nodes;
+        const existingCollapsed = useWorkflowEditorStore.getState().collapsedContainers;
+        const existingParentRefs = useWorkflowEditorStore.getState().parentRefs;
         let hitContainerId: string | null = null;
+        let bestHitDepth = -1;
         for (const n of existingNodes) {
           if (!NODE_TYPE_MAP[n.type]?.isContainer) { continue; }
-          // Use ReactFlow measured dimensions for accurate hit-test
+          if (existingCollapsed[n.id]) { continue; } // 折叠态容器不接收拖入
           const rfNode = reactFlowInstance?.getNodes().find((rfn) => rfn.id === n.id);
           const w = rfNode?.measured?.width ?? getNodeSize(n.type).width;
           const h = rfNode?.measured?.height ?? getNodeSize(n.type).height;
@@ -697,8 +712,14 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
             && position.y >= n.position.y
             && position.y <= n.position.y + h
           ) {
-            hitContainerId = n.id;
-            break;
+            // 计算嵌套深度：越深优先级越高
+            let depth = 0;
+            let p = existingParentRefs[n.id];
+            while (p) { depth++; p = existingParentRefs[p]; }
+            if (depth > bestHitDepth) {
+              bestHitDepth = depth;
+              hitContainerId = n.id;
+            }
           }
         }
 
@@ -751,7 +772,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
         useWorkflowEditorStore.getState().addNode(workflowNode);
 
         if (hitContainerId) {
-          useWorkflowEditorStore.getState().setParentRef(id, hitContainerId);
+          useWorkflowEditorStore.getState().setParentRef(id, hitContainerId, true);
         }
       } catch (error) {
         message.error(t("workflow.nodeDropFailed", { error: String(error) }));
@@ -786,9 +807,13 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
         }
         const position = reactFlowInstance.screenToFlowPosition({ x: e.clientX, y: e.clientY });
         const existingNodes = useWorkflowEditorStore.getState().nodes;
+        const mvCollapsed = useWorkflowEditorStore.getState().collapsedContainers;
+        const mvParentRefs = useWorkflowEditorStore.getState().parentRefs;
         let hitId: string | null = null;
+        let bestMvDepth = -1;
         for (const n of existingNodes) {
           if (!NODE_TYPE_MAP[n.type]?.isContainer) { continue; }
+          if (mvCollapsed[n.id]) { continue; } // 折叠态容器不高亮
           const rfNode = reactFlowInstance?.getNodes().find((rfn) => rfn.id === n.id);
           const w = rfNode?.measured?.width ?? getNodeSize(n.type).width;
           const h = rfNode?.measured?.height ?? getNodeSize(n.type).height;
@@ -796,8 +821,13 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
             position.x >= n.position.x && position.x <= n.position.x + w
             && position.y >= n.position.y && position.y <= n.position.y + h
           ) {
-            hitId = n.id;
-            break;
+            let depth = 0;
+            let p = mvParentRefs[n.id];
+            while (p) { depth++; p = mvParentRefs[p]; }
+            if (depth > bestMvDepth) {
+              bestMvDepth = depth;
+              hitId = n.id;
+            }
           }
         }
         setDndDropTargetId(hitId);
@@ -1148,9 +1178,12 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
     reactFlowInstance?.setCenter(absPos.x + 100, absPos.y + 50, { zoom: 1.5, duration: 300 });
   }, [searchResults, searchIdx, reactFlowInstance, setSelectedNode]);
 
-  // 卸载时清理 auto-save timeout
+  // 卸载时清理所有 timer 和 RAF，防止内存泄漏与卸载后回调
   useEffect(() => () => {
     if (autoSaveTimerRef.current) { clearTimeout(autoSaveTimerRef.current); }
+    if (autoLayoutTimerRef.current) { clearTimeout(autoLayoutTimerRef.current); }
+    if (validationTimerRef.current) { clearTimeout(validationTimerRef.current); }
+    if (posRafRef.current != null) { cancelAnimationFrame(posRafRef.current); }
   }, []);
 
   const handleNodesChange = useCallback(
@@ -1269,121 +1302,176 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
         suppressRebuildRef.current = false;
       }, 50);
 
-      if (node?.position) {
-        useWorkflowEditorStore.getState().recordUndoSnapshot();
-        const rfNodes = reactFlowInstance?.getNodes() || [];
-        const latestNodes = useWorkflowEditorStore.getState().nodes;
-        const latestParentRefs = useWorkflowEditorStore.getState().parentRefs;
+      if (!node?.position) { return; }
 
-        const draggedNodeParentId = latestParentRefs[node.id];
-        let storePos: { x: number; y: number };
-        let rfPos: { x: number; y: number };
+      useWorkflowEditorStore.getState().recordUndoSnapshot();
+      const rfNodes = reactFlowInstance?.getNodes() || [];
+      const latestNodes = useWorkflowEditorStore.getState().nodes;
+      const latestParentRefs = useWorkflowEditorStore.getState().parentRefs;
+      const latestCollapsed = useWorkflowEditorStore.getState().collapsedContainers;
 
-        if (draggedNodeParentId) {
-          storePos = toAbsolutePosition(
-            node.id,
-            node.position,
-            latestParentRefs,
-            latestNodes as NodePositionLike[],
-          );
-          rfPos = { x: node.position.x, y: node.position.y };
+      const draggedNodeParentId = latestParentRefs[node.id];
+      const nodeType = (node.data?.type as string) || node.type || "";
+      const isContainerNode = NODE_TYPE_MAP[nodeType]?.isContainer === true;
+
+      // ── 计算绝对落点坐标 ──────────────────────────────
+      const absDropPos = draggedNodeParentId
+        ? toAbsolutePosition(node.id, node.position, latestParentRefs, latestNodes as NodePositionLike[])
+        : { x: node.position.x, y: node.position.y };
+
+      // ── 容器 hit-test：检测拖拽落点是否在某个容器内 ──
+      // 排除：自身、自身后代（避免环）、折叠态容器
+      const descendantsOfDragged = new Set<string>();
+      if (isContainerNode) {
+        const collectDescendants = (parentId: string) => {
+          for (const [cid, pid] of Object.entries(latestParentRefs)) {
+            if (pid === parentId && !descendantsOfDragged.has(cid)) {
+              descendantsOfDragged.add(cid);
+              collectDescendants(cid);
+            }
+          }
+        };
+        collectDescendants(node.id);
+      }
+
+      let hitContainerId: string | null = null;
+      let bestDepth = -1;
+      for (const n of latestNodes) {
+        if (!NODE_TYPE_MAP[n.type]?.isContainer) { continue; }
+        if (n.id === node.id) { continue; }
+        if (descendantsOfDragged.has(n.id)) { continue; }
+        if (latestCollapsed[n.id]) { continue; }
+        const rfNode = rfNodes.find((rfn) => rfn.id === n.id);
+        const w = rfNode?.measured?.width ?? getNodeSize(n.type).width;
+        const h = rfNode?.measured?.height ?? getNodeSize(n.type).height;
+        if (
+          absDropPos.x >= n.position.x && absDropPos.x <= n.position.x + w
+          && absDropPos.y >= n.position.y && absDropPos.y <= n.position.y + h
+        ) {
+          let depth = 0;
+          let p = latestParentRefs[n.id];
+          while (p) { depth++; p = latestParentRefs[p]; }
+          if (depth > bestDepth) {
+            bestDepth = depth;
+            hitContainerId = n.id;
+          }
+        }
+      }
+
+      // ── 判断 parent 是否需要切换 ──────────────────────
+      const parentChanged =
+        (hitContainerId !== null && hitContainerId !== draggedNodeParentId)
+        || (hitContainerId === null && draggedNodeParentId != null);
+
+      let newParentId: string | undefined = hitContainerId ?? undefined;
+      let storePos: { x: number; y: number };
+      let rfPos: { x: number; y: number };
+
+      if (parentChanged) {
+        // parent 切换：更新 parentRefs 并计算坐标
+        if (newParentId) {
+          // 移入新容器：store 存绝对坐标，ReactFlow 用相对坐标
+          storePos = absDropPos;
+          rfPos = {
+            x: absDropPos.x - latestNodes.find((n) => n.id === newParentId)!.position.x,
+            y: absDropPos.y - latestNodes.find((n) => n.id === newParentId)!.position.y,
+          };
+          useWorkflowEditorStore.getState().setParentRef(node.id, newParentId, true);
         } else {
-          // 顶层节点：碰撞避免（仅与同层级顶层节点比较，排除子节点的相对坐标）
-          const selectedIds = new Set(
-            rfNodes.filter((n) => n.selected).map((n) => n.id),
-          );
-          const siblings = rfNodes
-            .filter((n) => n.id !== node.id && !selectedIds.has(n.id) && !n.parentId)
-            .map((n) => ({
-              id: n.id,
-              x: n.position.x,
-              y: n.position.y,
-              type: (n.data?.type as string) || n.type || "",
-            }));
-          const nodeType = (node.data?.type as string) || node.type || "";
-          const safePos = find_safe_position(
-            { x: node.position.x, y: node.position.y },
-            nodeType,
-            siblings,
-          );
-          storePos = safePos;
-          rfPos = safePos;
+          // 移出容器：坐标保持绝对
+          storePos = absDropPos;
+          rfPos = absDropPos;
+          useWorkflowEditorStore.getState().setParentRef(node.id, null, true);
         }
+      } else if (draggedNodeParentId) {
+        // parent 未变，仍在原容器内：相对→绝对
+        storePos = toAbsolutePosition(node.id, node.position, latestParentRefs, latestNodes as NodePositionLike[]);
+        rfPos = { x: node.position.x, y: node.position.y };
+        newParentId = draggedNodeParentId;
+      } else {
+        // 顶层节点：碰撞避免（仅与同层级顶层节点比较）
+        const selectedIds = new Set(rfNodes.filter((n) => n.selected).map((n) => n.id));
+        const siblings = rfNodes
+          .filter((n) => n.id !== node.id && !selectedIds.has(n.id) && !n.parentId)
+          .map((n) => ({
+            id: n.id,
+            x: n.position.x,
+            y: n.position.y,
+            type: (n.data?.type as string) || n.type || "",
+          }));
+        const safePos = find_safe_position({ x: node.position.x, y: node.position.y }, nodeType, siblings);
+        storePos = safePos;
+        rfPos = safePos;
+        newParentId = undefined;
+      }
 
-        const oldNode = latestNodes.find((n) => n.id === node.id);
-        const dx = oldNode ? storePos.x - oldNode.position.x : 0;
-        const dy = oldNode ? storePos.y - oldNode.position.y : 0;
-        updateNode(node.id, { position: storePos } as Partial<WorkflowNode>);
+      const oldNode = latestNodes.find((n) => n.id === node.id);
+      const dx = oldNode ? storePos.x - oldNode.position.x : 0;
+      const dy = oldNode ? storePos.y - oldNode.position.y : 0;
+      updateNode(node.id, { position: storePos } as Partial<WorkflowNode>);
 
-        // 被拖的是容器 → 子节点在 store 中存绝对坐标，需同步偏移量
-        const isContainer = oldNode ? NODE_TYPE_MAP[oldNode.type]?.isContainer === true : false;
-        if (isContainer && (dx !== 0 || dy !== 0)) {
-          for (const [childId, pid] of Object.entries(latestParentRefs)) {
-            if (pid === node.id) {
-              const childNode = latestNodes.find((n2) => n2.id === childId);
-              if (childNode) {
-                updateNode(childId, {
-                  position: { x: childNode.position.x + dx, y: childNode.position.y + dy },
-                } as Partial<WorkflowNode>);
-              }
+      // 被拖的是容器 → 子节点在 store 中存绝对坐标，需同步偏移量
+      const isContainer = oldNode ? NODE_TYPE_MAP[oldNode.type]?.isContainer === true : false;
+      if (isContainer && (dx !== 0 || dy !== 0)) {
+        for (const [childId, pid] of Object.entries(latestParentRefs)) {
+          if (pid === node.id) {
+            const childNode = latestNodes.find((n2) => n2.id === childId);
+            if (childNode) {
+              updateNode(childId, {
+                position: { x: childNode.position.x + dx, y: childNode.position.y + dy },
+              } as Partial<WorkflowNode>);
             }
           }
-          // After updating store positions, also update ReactFlow node positions for children
-          requestAnimationFrame(() => {
-            const currentRfNodes = reactFlowInstance?.getNodes() || [];
-            const latestState = useWorkflowEditorStore.getState();
-            reactFlowInstance?.setNodes(currentRfNodes.map((n) => {
-              const childPid = latestState.parentRefs[n.id];
-              if (childPid === node.id) {
-                // Recalculate relative position from updated store absolute positions
-                const childStoreNode = latestState.nodes.find((sn) => sn.id === n.id);
-                const parentStoreNode = latestState.nodes.find((sn) => sn.id === node.id);
-                if (childStoreNode && parentStoreNode) {
-                  return {
-                    ...n,
-                    position: {
-                      x: childStoreNode.position.x - parentStoreNode.position.x,
-                      y: childStoreNode.position.y - parentStoreNode.position.y,
-                    },
-                  };
-                }
-              }
-              return n;
-            }));
-          });
         }
+      }
 
-        // 更新 ReactFlow 节点：子节点保留相对坐标，顶层节点用绝对坐标
-        const updatedNodes = rfNodes.map((n) => {
-          if (n.id === node.id) {
-            return { ...n, position: rfPos };
+      // ── 统一更新 ReactFlow 节点（消除竞态：单次 setNodes 包含所有更新）──
+      const containerStoreNode = isContainer
+        ? latestNodes.find((n) => n.id === node.id)
+        : undefined;
+      const updatedNodes = rfNodes.map((n) => {
+        if (n.id === node.id) {
+          return {
+            ...n,
+            position: rfPos,
+            ...(newParentId
+              ? { parentId: newParentId, extent: "parent" as const }
+              : { parentId: undefined, extent: undefined }),
+          };
+        }
+        // 容器子节点：同步相对坐标
+        if (isContainer && latestParentRefs[n.id] === node.id && containerStoreNode) {
+          const childStoreNode = latestNodes.find((sn) => sn.id === n.id);
+          if (childStoreNode) {
+            return {
+              ...n,
+              position: {
+                x: childStoreNode.position.x - containerStoreNode.position.x,
+                y: childStoreNode.position.y - containerStoreNode.position.y,
+              },
+            };
           }
-          if (n.selected && n.id !== node.id && n.position) {
-            const selectedNodeParent = latestParentRefs[n.id];
-            if (selectedNodeParent) {
-              const absPos = toAbsolutePosition(
-                n.id,
-                n.position,
-                latestParentRefs,
-                latestNodes as NodePositionLike[],
-              );
-              updateNode(n.id, { position: absPos } as Partial<WorkflowNode>);
-              return n;
-            }
-            // 选中的顶层节点：直接传入 RF 位置
-            updateNode(n.id, { position: n.position } as Partial<WorkflowNode>);
+        }
+        // 选中的其他节点
+        if (n.selected && n.id !== node.id && n.position) {
+          const selectedNodeParent = latestParentRefs[n.id];
+          if (selectedNodeParent) {
+            const absPos = toAbsolutePosition(n.id, n.position, latestParentRefs, latestNodes as NodePositionLike[]);
+            updateNode(n.id, { position: absPos } as Partial<WorkflowNode>);
+            return n;
           }
-          return n;
+          updateNode(n.id, { position: n.position } as Partial<WorkflowNode>);
+        }
+        return n;
+      });
+      reactFlowInstance?.setNodes(updatedNodes);
+
+      // 强制触发容器尺寸重算
+      const triggerParent = newParentId || (isContainer ? node.id : undefined);
+      if (triggerParent) {
+        requestAnimationFrame(() => {
+          setDragStopVersion((v) => v + 1);
         });
-        reactFlowInstance?.setNodes(updatedNodes);
-
-        // 强制触发容器尺寸重算：拖拽结束后确保 useEffect 重新运行
-        const triggerParent = draggedNodeParentId || (isContainer ? node.id : undefined);
-        if (triggerParent) {
-          requestAnimationFrame(() => {
-            setDragStopVersion((v) => v + 1);
-          });
-        }
       }
     },
     [updateNode, reactFlowInstance, setDragStopVersion],
@@ -1596,13 +1684,13 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
         onToggleLeftPanel={() =>
           setLeftPanelCollapsed((v) => {
             const next = !v;
-            localStorage.setItem("workflowEditor.leftPanelCollapsed", String(next));
+            try { localStorage.setItem("workflowEditor.leftPanelCollapsed", String(next)); } catch { /* quota */ }
             return next;
           })}
         onToggleRightPanel={() =>
           setRightPanelCollapsed((v) => {
             const next = !v;
-            localStorage.setItem("workflowEditor.rightPanelCollapsed", String(next));
+            try { localStorage.setItem("workflowEditor.rightPanelCollapsed", String(next)); } catch { /* quota */ }
             return next;
           })}
         leftPanelCollapsed={leftPanelCollapsed}

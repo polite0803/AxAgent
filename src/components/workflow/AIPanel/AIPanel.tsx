@@ -3,7 +3,6 @@
 import { logIpcError } from "@/lib/invoke";
 import type { AiChatMessage } from "@/stores/feature/workflowEditorStore";
 import { useWorkflowEditorStore } from "@/stores/feature/workflowEditorStore";
-import { useReactFlow } from "@xyflow/react";
 import { App, Button, Card, Empty, Input, Radio, Tag, theme } from "antd";
 import DOMPurify from "dompurify";
 import { Lightbulb, MessageSquare, Play, Send, Sparkles, StopCircle, Trash2, Wand2 } from "lucide-react";
@@ -53,9 +52,9 @@ export const AIPanel: React.FC<AIPanelProps> = ({
   const { t } = useTranslation();
   const { token } = theme.useToken();
   const { message } = App.useApp();
-  const { getNodes, getEdges } = useReactFlow();
-  const nodes = getNodes() as unknown as WorkflowNode[];
-  const edges = getEdges() as unknown as WorkflowEdge[];
+  // 用 store selector 订阅 nodes/edges 变化，确保 Diff 预览拿到最新数据
+  const nodes = useWorkflowEditorStore((s) => s.nodes) as unknown as WorkflowNode[];
+  const edges = useWorkflowEditorStore((s) => s.edges) as unknown as WorkflowEdge[];
 
   // Diff 预览状态（AI Chat action 在应用前必须经过用户确认）
   const {

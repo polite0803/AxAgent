@@ -87,7 +87,7 @@ export const DebatePropertyPanel: React.FC<Props> = ({ node, onUpdate, onDelete 
       },
     } as unknown as WorkflowNode;
     addNode(newNode);
-    setParentRef(id, n.id);
+    setParentRef(id, n.id, true);
     sc("debater_steps", [...debaterSteps, id]);
   };
 
@@ -109,14 +109,14 @@ export const DebatePropertyPanel: React.FC<Props> = ({ node, onUpdate, onDelete 
       },
     } as unknown as WorkflowNode;
     addNode(newNode);
-    setParentRef(id, n.id);
+    setParentRef(id, n.id, true);
     sc("debater_steps", [...debaterSteps, id]);
   };
 
   const removeDebater = (stepId: string) => {
     const updated = debaterSteps.filter((id) => id !== stepId);
     sc("debater_steps", updated);
-    setParentRef(stepId, null);
+    setParentRef(stepId, null, true);
   };
 
   return (

@@ -3480,6 +3480,12 @@
   },
   "workflow": {
     "loopBackCycleDetected": "Loop-back edge would form a cycle, please adjust the target node",
+    "cycleDetectedOnConnect": "This edge creates a cycle without a loopBack marker — the workflow engine may reject it.",
+    "decorativeContainerNoEdges": "Decorative containers cannot have incoming or outgoing edges",
+    "unsavedTitle": "Unsaved Changes",
+    "unsavedContent": "You have unsaved changes. Discard them and close?",
+    "discard": "Discard",
+    "keepEditing": "Keep Editing",
     "categories": {
       "trigger": "Trigger",
       "execution": "Execution",

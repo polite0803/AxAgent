@@ -3822,6 +3822,13 @@
     "search": "Rechercher"
   },
   "workflow": {
+    "loopBackCycleDetected": "Le bord de retour formerait un cycle, veuillez ajuster le nœud cible",
+    "cycleDetectedOnConnect": "Ce bord crée un cycle sans marqueur loopBack — le moteur de workflow peut le rejeter.",
+    "decorativeContainerNoEdges": "Les conteneurs décoratifs ne peuvent pas avoir de bords entrants ou sortants",
+    "unsavedTitle": "Modifications non enregistrées",
+    "unsavedContent": "Vous avez des modifications non enregistrées. Les abandonner et fermer ?",
+    "discard": "Abandonner",
+    "keepEditing": "Continuer l'édition",
     "aiPanel": {
       "enterWorkflowDesc": "Veuillez entrer une description de flux de travail",
       "workflowGenerated": "Flux de travail généré",

@@ -3822,6 +3822,13 @@
     "search": "Buscar"
   },
   "workflow": {
+    "loopBackCycleDetected": "El borde de retroalimentación formaría un ciclo, ajuste el nodo objetivo",
+    "cycleDetectedOnConnect": "Este borde crea un ciclo sin marcador loopBack — el motor del flujo de trabajo puede rechazarlo.",
+    "decorativeContainerNoEdges": "Los contenedores decorativos no pueden tener bordes entrantes o salientes",
+    "unsavedTitle": "Cambios sin guardar",
+    "unsavedContent": "Tiene cambios sin guardar. ¿Descartarlos y cerrar?",
+    "discard": "Descartar",
+    "keepEditing": "Seguir editando",
     "aiPanel": {
       "enterWorkflowDesc": "Por favor, ingrese una descripción del flujo de trabajo",
       "workflowGenerated": "Flujo de trabajo generado",

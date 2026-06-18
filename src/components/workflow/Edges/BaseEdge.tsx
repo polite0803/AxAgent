@@ -30,6 +30,21 @@ function sourceOffsetFromHandle(sourceHandle?: string | null, sourceNodeW?: numb
   return centerFrac * w - w / 2;
 }
 
+/**
+ * 解析 targetHandle 中的 port 信息，返回水平偏移量。
+ * 与 sourceOffsetFromHandle 对称，用于 parallel 子节点入口分散边交叉。
+ */
+function targetOffsetFromHandle(targetHandle?: string | null, targetNodeW?: number): number {
+  if (!targetHandle || !targetHandle.startsWith("port-")) { return 0; }
+  const idx = parseInt(targetHandle.replace("port-", ""), 10);
+  if (isNaN(idx)) { return 0; }
+  const w = targetNodeW || 200;
+  const N = 6;
+  const clampedIdx = Math.min(Math.max(idx, 0), N - 1);
+  const centerFrac = (clampedIdx + 1) / (N + 1);
+  return centerFrac * w - w / 2;
+}
+
 function getSmoothStepPath(
   params: {
     sourceX: number;
@@ -89,8 +104,9 @@ function getSmoothStepPath(
     }
   }
 
-  const midX = (sourceX + cp1x + cp2x + targetX) / 4;
-  const midY = (sourceY + cp1y + cp2y + targetY) / 4;
+  // 三次贝塞尔曲线 B(t) 在 t=0.5 的点：B(0.5) = (P0 + 3·P1 + 3·P2 + P3) / 8
+  const midX = (sourceX + 3 * cp1x + 3 * cp2x + targetX) / 8;
+  const midY = (sourceY + 3 * cp1y + 3 * cp2y + targetY) / 8;
 
   return [`M ${sourceX} ${sourceY} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${targetX} ${targetY}`, midX, midY];
 }
@@ -109,6 +125,7 @@ const BaseEdgeComponent: React.FC<EdgeProps> = ({
   selected,
   label,
   sourceHandleId,
+  targetHandleId,
 }) => {
   const { token } = theme.useToken();
 
@@ -120,13 +137,14 @@ const BaseEdgeComponent: React.FC<EdgeProps> = ({
   const showFlowAnimation = isDebugRunning && (sourceRunning || targetActive);
 
   // 正交路由：使用 SmoothStep 替代 Bezier
-  // 对 parallel 子节点做 port 偏移，使边出口分散
+  // 对 parallel 子节点做 port 偏移，使边出口/入口分散
   const offsetX = sourceOffsetFromHandle(sourceHandleId);
+  const offsetTargetX = targetOffsetFromHandle(targetHandleId);
   const [edgePath, labelX, labelY] = getSmoothStepPath({
     sourceX: sourceX + offsetX,
     sourceY,
     sourcePosition,
-    targetX,
+    targetX: targetX + offsetTargetX,
     targetY,
     targetPosition,
     borderRadius: 8,

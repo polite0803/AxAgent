@@ -3822,6 +3822,13 @@
     "search": "Suchen"
   },
   "workflow": {
+    "loopBackCycleDetected": "Rückkopplungskante würde einen Zyklus bilden, bitte Zielknoten anpassen",
+    "cycleDetectedOnConnect": "Diese Kante erzeugt einen Zyklus ohne loopBack-Markierung — die Workflow-Engine kann sie ablehnen.",
+    "decorativeContainerNoEdges": "Dekorative Container können keine ein- oder ausgehenden Kanten haben",
+    "unsavedTitle": "Ungespeicherte Änderungen",
+    "unsavedContent": "Sie haben ungespeicherte Änderungen. Verwerfen und schließen?",
+    "discard": "Verwerfen",
+    "keepEditing": "Weiter bearbeiten",
     "aiPanel": {
       "enterWorkflowDesc": "Bitte geben Sie eine Workflow-Beschreibung ein",
       "workflowGenerated": "Workflow generiert",

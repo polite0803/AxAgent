@@ -3829,6 +3829,12 @@
   },
   "workflow": {
     "loopBackCycleDetected": "回环边会形成闭环，请调整目标节点",
+    "cycleDetectedOnConnect": "此边会形成无 loopBack 标记的环——工作流引擎可能会拒绝它。",
+    "decorativeContainerNoEdges": "装饰性容器不能有连入或连出的边",
+    "unsavedTitle": "未保存的更改",
+    "unsavedContent": "您有未保存的更改，确定要放弃并关闭吗？",
+    "discard": "放弃",
+    "keepEditing": "继续编辑",
     "aiPanel": {
       "enterWorkflowDesc": "请输入工作流描述",
       "workflowGenerated": "工作流已生成",

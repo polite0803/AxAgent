@@ -301,6 +301,7 @@ export function DebugPanel({ workflowId }: DebugPanelProps) {
   const resumeBreakpoint = useWorkEngineStore((s) => s.resumeBreakpoint);
   const stepBreakpoint = useWorkEngineStore((s) => s.stepBreakpoint);
   const getStatus = useWorkEngineStore((s) => s.getStatus);
+  const viewExecution = useWorkEngineStore((s) => s.viewExecution);
   const loadHistory = useWorkEngineStore((s) => s.loadHistory);
   const pauseRun = useWorkEngineStore((s) => s.pause);
   const resumeRun = useWorkEngineStore((s) => s.resume);
@@ -458,6 +459,9 @@ export function DebugPanel({ workflowId }: DebugPanelProps) {
     setSubAnalyzing(false);
   }, [nodes, workflowId]);
 
+  // 用于取消过期的异步分析，避免并发执行时旧结果覆盖新结果
+  const analyzeVersionRef = useRef(0);
+
   useEffect(() => {
     const subNodes =
       (nodes as unknown as { type?: string; data?: Record<string, unknown>; config?: Record<string, unknown> }[])
@@ -470,8 +474,12 @@ export function DebugPanel({ workflowId }: DebugPanelProps) {
       setSubDiags({});
       return;
     }
+    const currentVersion = ++analyzeVersionRef.current;
     const timer = setTimeout(() => {
-      analyzeSubWorkflows();
+      analyzeSubWorkflows().then(() => {
+        // 如果在分析期间有新的分析被触发，丢弃当前结果
+        if (analyzeVersionRef.current !== currentVersion) { return; }
+      });
     }, 500);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -516,7 +524,7 @@ export function DebugPanel({ workflowId }: DebugPanelProps) {
   const handleCancel = useCallback(async () => {
     await cancelRun();
     if (executionId) {
-      await getStatus(executionId);
+      await getStatus(executionId, true);
     }
   }, [cancelRun, executionId, getStatus]);
 
@@ -1196,9 +1204,7 @@ export function DebugPanel({ workflowId }: DebugPanelProps) {
                           type="link"
                           size="small"
                           onClick={async () => {
-                            useWorkEngineStore.setState({ isDebugRunning: false });
-                            await getStatus(item.id);
-                            useWorkEngineStore.setState({ executionId: item.id });
+                            await viewExecution(item.id);
                           }}
                         >
                           {t("workflow.debug.view")}

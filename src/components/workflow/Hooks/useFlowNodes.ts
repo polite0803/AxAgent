@@ -70,10 +70,13 @@ export function useFlowNodes(params: UseFlowNodesParams) {
       nodeById[n.id] = n;
     }
     const expandedSWData = expandedSubWorkflows;
+    // 标记来自 expandedSubWorkflows 的子节点 ID，这些节点的 position 已是相对坐标
+    const subWorkflowChildIds = new Set<string>();
     for (const [, swData] of Object.entries(expandedSWData)) {
       if (!swData || swData.isLoading || !swData.nodes?.length) { continue; }
       for (const subNode of swData.nodes) {
         nodeById[subNode.id] = subNode;
+        subWorkflowChildIds.add(subNode.id);
       }
     }
     for (const [childId, pid] of Object.entries(parentRefs)) {
@@ -136,8 +139,11 @@ export function useFlowNodes(params: UseFlowNodesParams) {
           const child = nodeById[childId];
           if (!child) { continue; }
           const sz = getNodeSize(child.type);
-          const relX = child.position.x - node.position.x;
-          const relY = child.position.y - node.position.y;
+          // expandedSubWorkflows 的子节点 position 已是相对坐标（子工作流内部坐标）；
+          // 普通子节点 store 存绝对坐标，需减去父容器绝对坐标转为相对坐标。
+          const isSWChild = subWorkflowChildIds.has(childId);
+          const relX = isSWChild ? child.position.x : child.position.x - node.position.x;
+          const relY = isSWChild ? child.position.y : child.position.y - node.position.y;
           minX = Math.min(minX, relX);
           minY = Math.min(minY, relY);
           maxX = Math.max(maxX, relX + sz.width);
@@ -145,8 +151,9 @@ export function useFlowNodes(params: UseFlowNodesParams) {
         }
         for (const sgChild of subGraphChildren as { type?: string; position: { x: number; y: number } }[]) {
           const sz = getNodeSize(sgChild.type ?? "base");
-          const relX = sgChild.position.x - node.position.x;
-          const relY = sgChild.position.y - node.position.y;
+          // subGraph.nodes 的 position 已是相对坐标（相对于容器），直接使用
+          const relX = sgChild.position.x;
+          const relY = sgChild.position.y;
           minX = Math.min(minX, relX);
           minY = Math.min(minY, relY);
           maxX = Math.max(maxX, relX + sz.width);
