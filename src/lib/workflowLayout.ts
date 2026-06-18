@@ -1483,7 +1483,7 @@ export function forceLayout(
   const centerX = Math.max(400, Math.sqrt(topLevel.length) * 200);
   const centerY = Math.max(300, Math.sqrt(topLevel.length) * 150);
 
-  const simulation = d3.forceSimulation<ForceNode, ForceNode>(forceNodes)
+  const simulation = d3.forceSimulation<ForceNode, ForceLink>(forceNodes)
     .force("link", d3.forceLink<ForceNode, ForceLink>(forceLinks).id((d) => d.id).distance(150).strength(0.8))
     .force("charge", d3.forceManyBody().strength(-800))
     .force("center", d3.forceCenter(centerX, centerY))
