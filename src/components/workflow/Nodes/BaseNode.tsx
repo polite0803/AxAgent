@@ -5,7 +5,7 @@ import { useWorkflowEditorStore } from "@/stores";
 import { useWorkEngineStore } from "@/stores/feature/workEngineStore";
 import { Handle, type NodeProps, Position } from "@xyflow/react";
 import { theme } from "antd";
-import React, { memo, useCallback, useMemo, useState } from "react";
+import React, { memo, useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 export interface BaseNodeData {
@@ -43,14 +43,11 @@ const BaseNodeComponent: React.FC<NodeProps> = ({
   const effectiveExecState = runtimeStatus || bd.executionState;
 
   // ── 端口计数 ──
-  const edges = useWorkflowEditorStore((s) => s.edges);
-  const inboundCount = useMemo(
-    () => edges.filter((e) => e.target === data.id).length,
-    [edges, data.id],
+  const inboundCount = useWorkflowEditorStore(
+    useCallback((s) => s.edges.filter((e) => e.target === data.id).length, [data.id]),
   );
-  const outboundCount = useMemo(
-    () => edges.filter((e) => e.source === data.id).length,
-    [edges, data.id],
+  const outboundCount = useWorkflowEditorStore(
+    useCallback((s) => s.edges.filter((e) => e.source === data.id).length, [data.id]),
   );
 
   // ── 端口折叠状态 ──

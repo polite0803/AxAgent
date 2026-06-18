@@ -119,7 +119,7 @@ async function resetStore() {
     aiChatMessages: [],
     aiChatStreaming: false,
     aiChatStreamingMessageId: null,
-    collapsedContainers: new Set<string>(),
+    collapsedContainers: {},
     diagnoseApplying: false,
   });
 }
@@ -752,8 +752,7 @@ describe("WorkflowEditorStore", () => {
     it("should start with an empty collapsed set", async () => {
       const { useWorkflowEditorStore } = await import("@/stores/feature/workflowEditorStore");
       const state = useWorkflowEditorStore.getState() as any;
-      expect(state.collapsedContainers).toBeInstanceOf(Set);
-      expect(state.collapsedContainers.size).toBe(0);
+      expect(state.collapsedContainers).toEqual({});
     });
 
     it("should add a parallel id when toggled on", async () => {
@@ -761,7 +760,7 @@ describe("WorkflowEditorStore", () => {
       const store = useWorkflowEditorStore.getState() as any;
       store.toggleContainerCollapse("parallel-1");
       const state = useWorkflowEditorStore.getState() as any;
-      expect(state.collapsedContainers.has("parallel-1")).toBe(true);
+      expect("parallel-1" in state.collapsedContainers).toBe(true);
     });
 
     it("should remove a parallel id when toggled off", async () => {
@@ -770,8 +769,8 @@ describe("WorkflowEditorStore", () => {
       store.toggleContainerCollapse("parallel-1");
       store.toggleContainerCollapse("parallel-1");
       const state = useWorkflowEditorStore.getState() as any;
-      expect(state.collapsedContainers.has("parallel-1")).toBe(false);
-      expect(state.collapsedContainers.size).toBe(0);
+      expect("parallel-1" in state.collapsedContainers).toBe(false);
+      expect(Object.keys(state.collapsedContainers).length).toBe(0);
     });
 
     it("should track multiple collapsed parallels independently", async () => {
@@ -780,9 +779,9 @@ describe("WorkflowEditorStore", () => {
       store.toggleContainerCollapse("parallel-1");
       store.toggleContainerCollapse("parallel-2");
       const state = useWorkflowEditorStore.getState() as any;
-      expect(state.collapsedContainers.has("parallel-1")).toBe(true);
-      expect(state.collapsedContainers.has("parallel-2")).toBe(true);
-      expect(state.collapsedContainers.size).toBe(2);
+      expect("parallel-1" in state.collapsedContainers).toBe(true);
+      expect("parallel-2" in state.collapsedContainers).toBe(true);
+      expect(Object.keys(state.collapsedContainers).length).toBe(2);
     });
 
     it("should clean up collapse state when a node is deleted", async () => {
@@ -791,9 +790,8 @@ describe("WorkflowEditorStore", () => {
       store.toggleContainerCollapse("parallel-1");
       store.toggleContainerCollapse("parallel-2");
       expect(
-        (useWorkflowEditorStore.getState() as any).collapsedContainers.size,
+        Object.keys((useWorkflowEditorStore.getState() as any).collapsedContainers).length,
       ).toBe(2);
-      // Set up a template with parallel-1 and a child, so delete cascades
       const tpl: WorkflowTemplateResponse = makeMockTemplate("template-1", {
         name: "t",
         nodes: [
@@ -806,8 +804,8 @@ describe("WorkflowEditorStore", () => {
       await store.loadTemplate("template-1");
       await store.deleteNode("parallel-1");
       const state = useWorkflowEditorStore.getState() as any;
-      expect(state.collapsedContainers.has("parallel-1")).toBe(false);
-      expect(state.collapsedContainers.has("parallel-2")).toBe(true);
+      expect("parallel-1" in state.collapsedContainers).toBe(false);
+      expect("parallel-2" in state.collapsedContainers).toBe(true);
     });
   });
 

@@ -85,12 +85,25 @@ const RULE_NO_END_NODE: Rule = (ctx) => {
   return results;
 };
 
+// 容器节点类型：子节点通过 parentId 关联，不经过边（edge），因此孤立节点检查应跳过它们。
+// 与 workflowLayout.ts 中的 CONTAINER_NODE_TYPES 保持一致。
+const CONTAINER_NODE_TYPES = new Set([
+  "parallel",
+  "loop",
+  "debate",
+  "swarm",
+  "aggregator",
+  "subWorkflow",
+  "workflowRef",
+  "merge",
+]);
+
 const RULE_ORPHAN_NODES: Rule = (ctx) => {
   const results: DiagnosticIssue[] = [];
   for (const n of ctx.nodes) {
     const id = baseOf(n).id;
     const type = nodeType(n);
-    if (type === "trigger") { continue; }
+    if (type === "trigger" || CONTAINER_NODE_TYPES.has(type)) { continue; }
     const up = ctx.upstreamOf.get(id);
     const down = ctx.downstreamOf.get(id);
     if ((!up || up.length === 0) && (!down || down.length === 0)) {

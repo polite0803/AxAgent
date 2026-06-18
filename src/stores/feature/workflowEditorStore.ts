@@ -97,10 +97,12 @@ interface WorkflowEditorState {
   _lastUndoRecordTime: number;
   _subWorkflowExpandVersion: number;
   _loadRequestId: number;
+  _batchDeletingIds: Set<string>;
   undo: () => void;
   redo: () => void;
   canUndo: () => boolean;
   canRedo: () => boolean;
+  recordUndoSnapshot: () => void;
   importedWorkflowData: {
     nodes: WorkflowNode[];
     edges: WorkflowEdge[];
@@ -326,7 +328,7 @@ interface WorkflowEditorState {
   toggleExpandSubWorkflow: (nodeId: string, subWorkflowId: string | undefined) => Promise<void>;
 
   /** 已折叠的容器 ID 集合（会话内 UI 状态，不持久化到后端） */
-  collapsedContainers: Set<string>;
+  collapsedContainers: Record<string, boolean>;
   /** 切换容器的展开/折叠状态 */
   toggleContainerCollapse: (parallelId: string) => void;
   /** 全部折叠容器 */
@@ -543,21 +545,23 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
     pendingAiChatActions: null,
     pendingAiChatMessageId: null,
     expandedSubWorkflows: {},
-    collapsedContainers: new Set<string>(
-      (() => {
-        try {
-          const v = localStorage.getItem("workflow_collapsed_containers");
-          return v ? JSON.parse(v) as string[] : [];
-        } catch {
-          return [];
-        }
-      })(),
-    ),
+    collapsedContainers: (() => {
+      try {
+        const v = localStorage.getItem("workflow_collapsed_containers");
+        const arr: string[] = v ? JSON.parse(v) : [];
+        const rec: Record<string, boolean> = {};
+        for (const id of arr) { rec[id] = true; }
+        return rec;
+      } catch {
+        return {} as Record<string, boolean>;
+      }
+    })(),
     past: [],
     future: [],
     _lastUndoRecordTime: 0,
     _subWorkflowExpandVersion: 0,
     _loadRequestId: 0,
+    _batchDeletingIds: new Set<string>(),
 
     undo: () => {
       const { past } = get();
@@ -617,6 +621,17 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
 
     canUndo: () => get().past.length > 0,
     canRedo: () => get().future.length > 0,
+
+    recordUndoSnapshot: () => {
+      set((state) => {
+        state.past.push(buildHistoryEntry(state));
+        state.future = [];
+        if (state.past.length > 50) {
+          state.past = state.past.slice(-50);
+        }
+        state._lastUndoRecordTime = Date.now();
+      });
+    },
 
     loadTemplates: async () => {
       set((state) => {
@@ -980,6 +995,9 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
     },
 
     deleteNode: (nodeId: string) => {
+      const { _batchDeletingIds } = get();
+      if (_batchDeletingIds.has(nodeId)) { return; }
+
       set((state) => {
         state.past.push(buildHistoryEntry(state));
         state.future = [];
@@ -988,11 +1006,12 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
         }
         state._lastUndoRecordTime = Date.now();
 
-        // 级联删除：若被删节点是容器，需一并删除所有 parentRefs 登记为它的子节点
         const toDelete = new Set<string>([nodeId]);
         for (const [cid, pid] of Object.entries(state.parentRefs)) {
           if (pid === nodeId) { toDelete.add(cid); }
         }
+
+        state._batchDeletingIds = new Set(toDelete);
 
         state.nodes = state.nodes.filter((n) => !toDelete.has(n.id));
         state.edges = state.edges.filter(
@@ -1079,15 +1098,19 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
 
         // 清理被删节点的折叠状态（含级联删除的子节点）
         {
-          const next = new Set(state.collapsedContainers);
           let changed = false;
           for (const id of toDelete) {
-            if (next.delete(id)) { changed = true; }
+            if (state.collapsedContainers[id]) {
+              delete state.collapsedContainers[id];
+              changed = true;
+            }
           }
           if (changed) {
-            state.collapsedContainers = next;
             try {
-              localStorage.setItem("workflow_collapsed_containers", JSON.stringify([...next]));
+              localStorage.setItem(
+                "workflow_collapsed_containers",
+                JSON.stringify(Object.keys(state.collapsedContainers)),
+              );
             } catch { /* localStorage may be full */ }
           }
         }
@@ -1116,6 +1139,7 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
           state.selectedNodeId = null;
         }
         state.isDirty = true;
+        state._batchDeletingIds = new Set<string>();
       });
     },
 
@@ -2445,15 +2469,13 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
      */
     toggleContainerCollapse: (containerId: string) => {
       set((state) => {
-        const next = new Set(state.collapsedContainers);
-        if (next.has(containerId)) {
-          next.delete(containerId);
+        if (state.collapsedContainers[containerId]) {
+          delete state.collapsedContainers[containerId];
         } else {
-          next.add(containerId);
+          state.collapsedContainers[containerId] = true;
         }
-        state.collapsedContainers = next;
         try {
-          localStorage.setItem("workflow_collapsed_containers", JSON.stringify([...next]));
+          localStorage.setItem("workflow_collapsed_containers", JSON.stringify(Object.keys(state.collapsedContainers)));
         } catch {
           // localStorage may be full or unavailable
         }
@@ -2462,15 +2484,15 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
 
     collapseAllContainers: () => {
       set((state) => {
-        const containerIds = new Set<string>();
+        const rec: Record<string, boolean> = {};
         for (const n of state.nodes) {
           if (NODE_TYPE_MAP[n.type]?.isContainer) {
-            containerIds.add(n.id);
+            rec[n.id] = true;
           }
         }
-        state.collapsedContainers = containerIds;
+        state.collapsedContainers = rec;
         try {
-          localStorage.setItem("workflow_collapsed_containers", JSON.stringify([...containerIds]));
+          localStorage.setItem("workflow_collapsed_containers", JSON.stringify(Object.keys(rec)));
         } catch {
           // ignore
         }
@@ -2479,7 +2501,7 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
 
     expandAllContainers: () => {
       set((state) => {
-        state.collapsedContainers = new Set();
+        state.collapsedContainers = {};
         try {
           localStorage.setItem("workflow_collapsed_containers", "[]");
         } catch {

@@ -198,6 +198,17 @@ function findCycles(edges: any[]): string[][] {
   return findCyclicSCCs(nodes, edges);
 }
 
+const CONTAINER_NODE_TYPES = new Set([
+  "parallel",
+  "loop",
+  "debate",
+  "swarm",
+  "aggregator",
+  "subWorkflow",
+  "workflowRef",
+  "merge",
+]);
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function findUnreachableNodes(nodes: any[], edges: any[]): string[] {
   const reachable = new Set<string>();
@@ -223,7 +234,10 @@ function findUnreachableNodes(nodes: any[], edges: any[]): string[] {
     }
   }
 
-  return nodes.filter((n) => !reachable.has(n.id)).map((n) => n.id);
+  // 容器节点不参与边拓扑（子节点通过 parentId 关联），跳过不可达检查
+  return nodes.filter((n) => !reachable.has(n.id) && !CONTAINER_NODE_TYPES.has(n.type || n.data?.type)).map((n) =>
+    n.id
+  );
 }
 
 function formatDuration(ms: number | null): string {

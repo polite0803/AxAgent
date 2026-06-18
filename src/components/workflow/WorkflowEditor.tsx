@@ -18,19 +18,22 @@ import {
 import domtoimage from "dom-to-image-more";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import "@xyflow/react/dist/style.css";
-import { isTauri } from "@/lib/invoke";
+import { invoke, isTauri } from "@/lib/invoke";
 import {
   auto_layout,
   autoLayoutWorkflow,
   type AutoNode,
   find_safe_position,
   getNodeSize,
+  type NodePositionLike,
+  toAbsolutePosition,
+  toRelativePosition,
   validate_workflow,
   type ValidateIssue,
   would_create_cycle,
 } from "@/lib/workflowLayout";
-import { useAgentProfileStore, useWorkflowEditorStore } from "@/stores";
-import { useExpertStore } from "@/stores/feature/expertStore";
+import { useWorkflowEditorStore } from "@/stores";
+
 import { useWorkEngineStore } from "@/stores/feature/workEngineStore";
 import { Button, message, Modal, Spin, theme } from "antd";
 import { useTranslation } from "react-i18next";
@@ -41,6 +44,8 @@ import { DiagnosticDrawer } from "./Diagnostic";
 import { clearDragPayload, getDragPayload } from "./dndState";
 import { BaseEdge } from "./Edges/BaseEdge";
 import { EditorHeader } from "./Header/EditorHeader";
+import { useFlowNodes } from "./Hooks/useFlowNodes";
+import { useKeyboardShortcuts } from "./Hooks/useKeyboardShortcuts";
 import {
   AgentNode,
   AggregatorNode,
@@ -75,6 +80,7 @@ import {
   ValidationNode,
   VectorRetrieveNode,
   WebhookSendNode,
+  WorkflowRefNode,
 } from "./Nodes";
 import { BatchEditPanel } from "./Panels/BatchEditPanel";
 import { LeftPanel } from "./Panels/LeftPanel";
@@ -83,7 +89,7 @@ import { SemanticCheckModal } from "./SemanticCheckModal";
 import { StatusBar } from "./StatusBar/EditorStatusBar";
 import { ImportExportModal } from "./Templates/ImportExportModal";
 import { VersionHistoryModal } from "./Templates/VersionHistoryModal";
-import { type AgentNode as AgentNodeType, NODE_TYPE_MAP, type WorkflowEdge, type WorkflowNode } from "./types";
+import { NODE_TYPE_MAP, type WorkflowEdge, type WorkflowNode } from "./types";
 import { WorkflowLegend } from "./WorkflowLegend";
 
 const nodeTypes = {
@@ -99,7 +105,7 @@ const nodeTypes = {
   tool: ToolNode,
   code: CodeNode,
   subWorkflow: SubWorkflowNode,
-  workflowRef: SubWorkflowNode,
+  workflowRef: WorkflowRefNode,
   documentParser: DocumentParserNode,
   vectorRetrieve: VectorRetrieveNode,
   validation: ValidationNode,
@@ -206,7 +212,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
   // 跳过写入标志：程序化 setRNodes（如 autoLayout）后抑制 onNodesChange 中的重复 updateNode
   const skipPositionWriteRef = React.useRef(false);
   // 拖拽停止版本计数器：每次 dragStop 后 +1，加入 useEffect 依赖确保容器尺寸重算
-  const [dragStopVersion, setDragStopVersion] = useState(0);
+  const [, setDragStopVersion] = useState(0);
   const [aiPanelVisible, setAiPanelVisible] = useState(false);
   const [aiPanelHeight, setAiPanelHeight] = useState(300);
   const [debugPanelVisible, setDebugPanelVisible] = useState(false);
@@ -288,20 +294,55 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // 前端校验：nodes / edges 变更时自动重新运行 validate_workflow
+  const validationTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
-    const issues = validate_workflow(nodes, edges, t);
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setFrontendValidation(issues.issues);
-    const msgMap = new Map<string, string>();
-    for (const iss of issues.issues) {
-      for (const nid of iss.nodeIds) {
-        const prev = msgMap.get(nid);
-        msgMap.set(nid, prev ? `${prev}; ${iss.message}` : iss.message);
+    if (validationTimerRef.current) { clearTimeout(validationTimerRef.current); }
+    validationTimerRef.current = setTimeout(() => {
+      const issues = validate_workflow(nodes, edges, t);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setFrontendValidation(issues.issues);
+      const msgMap = new Map<string, string>();
+      for (const iss of issues.issues) {
+        for (const nid of iss.nodeIds) {
+          const prev = msgMap.get(nid);
+          msgMap.set(nid, prev ? `${prev}; ${iss.message}` : iss.message);
+        }
       }
-    }
-    setValidationMsgMap(msgMap);
+      setValidationMsgMap(msgMap);
+    }, 300);
+    return () => {
+      if (validationTimerRef.current) { clearTimeout(validationTimerRef.current); }
+    };
   }, [nodes, edges, t]);
+
+  const { flowNodes: computedFlowNodes, flowEdges: computedFlowEdges, expectedParentByNode } = useFlowNodes({
+    nodes,
+    edges,
+    parentRefs,
+    collapsedContainers,
+    validationResult,
+    frontendValidation,
+    validationMsgMap,
+    token,
+  });
+
+  const handleSaveRef = React.useRef<() => void>(() => {});
+  useKeyboardShortcuts({
+    undo,
+    redo,
+    canUndo,
+    canRedo,
+    selectedNodeId,
+    deleteNode,
+    nodes,
+    addNode,
+    setSelectedNode,
+    setParentRef,
+    updateNode,
+    clipboardRef,
+    handleSaveRef,
+    setSearchVisible,
+  });
 
   const {
     isDecompositionTemplate,
@@ -334,8 +375,8 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
   /* eslint-enable react-hooks/exhaustive-deps */
 
   /** 收集所有容器 subGraph 内的节点 ID，从顶层 nodes 中排除 */
-  // Auto-save: 通过 useRef 避免每次 nodes/edges 引用变化重建 timer，
-  // 回调内通过 useWorkflowEditorStore.getState() 读取最新 store 数据。
+  const autoSaveRetryCountRef = React.useRef(0);
+  const MAX_AUTO_SAVE_RETRIES = 3;
   useEffect(() => {
     if (!isDirty || isSaving || isDecompositionTemplate) {
       return;
@@ -351,8 +392,6 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
       const nodesWithParent: WorkflowNode[] = nodes.map((n) => {
         const pid = parentRefs[n.id];
         if (pid === undefined) { return n; }
-        // Store 始终存绝对坐标，保存时也保持绝对坐标。
-        // 加载时 rebuildParentRefsFromNodes 恢复 parentRefs，useEffect 再将绝对坐标转为相对坐标给 ReactFlow。
         return { ...n, parentId: pid } as WorkflowNode;
       });
       const input = {
@@ -369,12 +408,22 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
         error_config: currentTemplate?.error_config,
       };
 
-      if (currentTemplate?.id) {
-        await state.updateTemplate(currentTemplate.id, input);
-      } else {
-        const newId = await state.createTemplate(input);
-        if (newId) {
-          await state.loadTemplate(newId);
+      try {
+        if (currentTemplate?.id) {
+          await invoke<boolean>("update_workflow_template", { id: currentTemplate.id, input });
+          useWorkflowEditorStore.setState({ isDirty: false, isSaving: false });
+        } else {
+          const newId = await invoke<string>("create_workflow_template", { input });
+          if (newId) {
+            useWorkflowEditorStore.setState({ isDirty: false, isSaving: false });
+          }
+        }
+        autoSaveRetryCountRef.current = 0;
+      } catch {
+        autoSaveRetryCountRef.current++;
+        if (autoSaveRetryCountRef.current >= MAX_AUTO_SAVE_RETRIES) {
+          useWorkflowEditorStore.setState({ error: "Auto-save failed after 3 retries" });
+          autoSaveRetryCountRef.current = 0;
         }
       }
     }, 5000);
@@ -392,636 +441,87 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
   ]);
 
   useEffect(() => {
-    // 拖拽期间或 dragStop 后短暂窗口内跳过全量重建
     if (isDraggingRef.current || suppressRebuildRef.current) { return; }
-    if (currentTemplate) {
-      const errorNodeIds = new Set<string>();
-      const warningNodeIds = new Set<string>();
-      if (validationResult) {
-        validationResult.errors.forEach((e) => {
-          if (e.node_id) {
-            errorNodeIds.add(e.node_id);
-          }
-        });
-        validationResult.warnings.forEach((w) => {
-          if (w.node_id) {
-            warningNodeIds.add(w.node_id);
-          }
-        });
+
+    setRNodes(computedFlowNodes);
+    setREdges(computedFlowEdges);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setIsInitialized(true);
+
+    for (const [childId, expectedParent] of Object.entries(expectedParentByNode)) {
+      if (parentRefs[childId] !== expectedParent) {
+        setParentRef(childId, expectedParent);
       }
-      // 合并前端校验结果
-      for (const iss of frontendValidation) {
-        for (const nid of iss.nodeIds) {
-          if (iss.severity === "error") {
-            errorNodeIds.add(nid);
-          } else {
-            warningNodeIds.add(nid);
-          }
-        }
-      }
-
-      // 预构建两张表
-      //   childrenOfParent[pid] = [子节点 id 数组]
-      //   nodeById[id] = 原始 WorkflowNode 引用（方便容器尺寸计算时查子节点）
-      const childrenOfParent: Record<string, string[]> = {};
-      const nodeById: Record<string, WorkflowNode> = {};
-      for (const n of nodes) {
-        nodeById[n.id] = n;
-      }
-      // 纳入展开的子工作流内部节点到 nodeById，确保容器尺寸计算时能找到这些节点
-      const expandedSWData = useWorkflowEditorStore.getState().expandedSubWorkflows;
-      for (const [, swData] of Object.entries(expandedSWData)) {
-        if (!swData || swData.isLoading || !swData.nodes?.length) { continue; }
-        for (const subNode of swData.nodes) {
-          nodeById[subNode.id] = subNode;
-        }
-      }
-      for (const [childId, pid] of Object.entries(parentRefs)) {
-        if (!childrenOfParent[pid]) { childrenOfParent[pid] = []; }
-        childrenOfParent[pid].push(childId);
-      }
-
-      const flowNodes: Node[] = nodes.map((node: WorkflowNode) => {
-        const typeInfo = NODE_TYPE_MAP[node.type] || {
-          labelKey: "",
-          color: token.colorTextQuaternary,
-        };
-        const nodeType = NODE_TYPE_MAP[node.type] ? node.type : "base";
-
-        let validationState: "error" | "warning" | undefined;
-        if (errorNodeIds.has(node.id)) {
-          validationState = "error";
-        } else if (warningNodeIds.has(node.id)) {
-          validationState = "warning";
-        }
-
-        const rtType = nodeType;
-        const typeMeta = NODE_TYPE_MAP[rtType];
-        const isContainer = typeMeta?.isContainer === true
-          || (rtType === "subWorkflow" && useWorkflowEditorStore.getState().expandedSubWorkflows[node.id] != null);
-        // 子图节点计数（优先从 config.subGraph.nodes 获取，否则回退到引用的子节点 ID 计数）
-        const nodeConfig = (node as unknown as Record<string, unknown>).config as Record<string, unknown> | undefined;
-        const subGraph = nodeConfig?.subGraph as Record<string, unknown> | undefined;
-        const subGraphNodes = subGraph?.nodes;
-        let subGraphChildCount = Array.isArray(subGraphNodes) ? (subGraphNodes as unknown[]).length : 0;
-        if (subGraphChildCount === 0) {
-          // 向后兼容：从分支/循环体/辩论者引用中统计子节点数
-          if (node.type === "parallel") {
-            const branches = nodeConfig?.branches as { steps?: unknown[] }[] | undefined;
-            if (branches) {
-              subGraphChildCount = branches.reduce((sum, b) => sum + (b.steps?.length ?? 0), 0);
-            }
-          } else if (node.type === "loop") {
-            subGraphChildCount = (nodeConfig?.body_steps as string[] | undefined)?.length ?? 0;
-          } else if (node.type === "debate") {
-            subGraphChildCount = (nodeConfig?.debater_steps as string[] | undefined)?.length ?? 0;
-          } else if (node.type === "swarm") {
-            subGraphChildCount = (nodeConfig?.agent_steps as string[] | undefined)?.length ?? 0;
-          } else if (node.type === "aggregator") {
-            subGraphChildCount = (nodeConfig?.input_sources as string[] | undefined)?.length ?? 0;
-          }
-        }
-        const isContainerCollapsed = isContainer
-          && useWorkflowEditorStore.getState().collapsedContainers.has(node.id);
-        // 折叠态：容器自身缩为紧凑尺寸
-        const CONTAINER_PADDING = 40;
-        const CONTAINER_MIN_W = 400;
-        const CONTAINER_MIN_H = 200;
-        const CONTAINER_HEADER_H = 60;
-        let containerStyle: React.CSSProperties | undefined;
-        if (isContainerCollapsed) {
-          containerStyle = { width: 160, height: 34 };
-        } else if (isContainer) {
-          const childIds = childrenOfParent[node.id] ?? [];
-          const subGraphChildren = subGraphNodes ?? [];
-          let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-          for (const childId of childIds) {
-            const child = nodeById[childId];
-            if (!child) { continue; }
-            const sz = getNodeSize(child.type);
-            // 所有子节点 position 都是 store 中的绝对坐标，需转为相对坐标
-            const relX = child.position.x - node.position.x;
-            const relY = child.position.y - node.position.y;
-            minX = Math.min(minX, relX);
-            minY = Math.min(minY, relY);
-            maxX = Math.max(maxX, relX + sz.width);
-            maxY = Math.max(maxY, relY + sz.height);
-          }
-          for (const sgChild of subGraphChildren as { type?: string; position: { x: number; y: number } }[]) {
-            const sz = getNodeSize(sgChild.type ?? "base");
-            // subGraphChildren 的 position 也是绝对坐标
-            const relX = sgChild.position.x - node.position.x;
-            const relY = sgChild.position.y - node.position.y;
-            minX = Math.min(minX, relX);
-            minY = Math.min(minY, relY);
-            maxX = Math.max(maxX, relX + sz.width);
-            maxY = Math.max(maxY, relY + sz.height);
-          }
-          if (minX === Infinity) {
-            minX = 0;
-            minY = 0;
-            maxX = CONTAINER_MIN_W - CONTAINER_PADDING * 2;
-            maxY = CONTAINER_MIN_H - CONTAINER_PADDING * 2 - CONTAINER_HEADER_H;
-          }
-          containerStyle = {
-            width: Math.max(CONTAINER_MIN_W, maxX - minX + CONTAINER_PADDING * 2),
-            height: Math.max(CONTAINER_MIN_H, maxY - minY + CONTAINER_PADDING * 2 + CONTAINER_HEADER_H),
-          };
-        }
-        // 折叠态下：容器内的子节点在画布上隐藏
-        const pid = parentRefs[node.id];
-        const childIsHidden = pid != null
-          && useWorkflowEditorStore.getState().collapsedContainers.has(pid);
-
-        // 方案 B：容器子节点使用 parentId + extent:"parent"，由 ReactFlow 管理嵌套渲染。
-        // 子节点 position 转为相对容器的偏移坐标，写入 store 时再转换回绝对坐标。
-        const parentNode = pid ? nodes.find((n) => n.id === pid) : undefined;
-        const relPos = parentNode
-          ? {
-            x: node.position.x - parentNode.position.x,
-            y: node.position.y - parentNode.position.y,
-          }
-          : node.position;
-
-        return {
-          id: node.id,
-          type: rtType,
-          position: relPos,
-          ...(pid ? { parentId: pid, extent: "parent" as const } : {}),
-          ...(containerStyle ? { style: containerStyle } : {}),
-          ...(isContainer ? { dragHandle: ".workflow-container-drag-handle", zIndex: 0 } : {}),
-          ...(!isContainer ? { zIndex: 10 } : {}),
-          ...(childIsHidden ? { hidden: true } : {}),
-          data: {
-            ...node,
-            label: node.title,
-            color: typeInfo.color,
-            nodeType: node.type,
-            ...(pid ? { parentId: pid } : {}),
-            ...(nodeConfig?.kind ? { kind: nodeConfig.kind as string } : {}),
-            ...(isContainer ? { childCount: subGraphChildCount } : {}),
-            // 容器尺寸：由 useEffect 根据子节点 bbox 计算，传给 ContainerNode 设置 DOM 尺寸
-            ...((isContainer && containerStyle)
-              ? {
-                nodeWidth: (containerStyle as React.CSSProperties).width as number | undefined,
-                nodeHeight: (containerStyle as React.CSSProperties).height as number | undefined,
-              }
-              : {}),
-            // 容器特化字段提取：从 config 提取到 data 顶层供容器组件渲染使用
-            ...(node.type === "debate"
-              ? {
-                debaterSteps: (nodeConfig?.debater_steps as string[])
-                  ?? (subGraph?.nodes as unknown[] | undefined)?.map((n) => (n as Record<string, string>).id) ?? [],
-                maxRounds: (nodeConfig?.max_rounds as number) ?? 2,
-                convergencePrompt: nodeConfig?.convergence_prompt as string | undefined,
-              }
-              : {}),
-            ...(node.type === "parallel"
-              ? {
-                branches: (nodeConfig?.branches as unknown[] | undefined)?.length
-                  ?? (subGraph?.nodes as unknown[] | undefined)?.length ?? 0,
-                waitStrategy: nodeConfig?.wait_for_all === false ? "any" as const : undefined,
-                aggregation: nodeConfig?.aggregation as string | undefined,
-                autoInputFromParent: nodeConfig?.auto_input_from_parent as boolean | undefined,
-                hasBranchTimeout:
-                  (nodeConfig?.branches as { branchTimeoutMs?: number; degradeStrategy?: string }[] | undefined)?.some(
-                    (b) => b.branchTimeoutMs != null || (b.degradeStrategy && b.degradeStrategy !== "skip"),
-                  ) ?? false,
-              }
-              : {}),
-            ...(node.type === "loop"
-              ? {
-                loopType: nodeConfig?.loop_type as string | undefined,
-                maxIterations: nodeConfig?.max_iterations as number | undefined,
-                loopCondition: nodeConfig?.continue_condition as string | undefined,
-                collectionVar: (nodeConfig?.iter_input_var ?? nodeConfig?.items_var) as string | undefined,
-              }
-              : {}),
-            ...(node.type === "swarm"
-              ? {
-                agentSteps: (nodeConfig?.agent_steps as string[])
-                  ?? (subGraph?.nodes as unknown[] | undefined)?.map((n) => (n as Record<string, string>).id) ?? [],
-                maxRounds: (nodeConfig?.max_rounds as number) ?? 3,
-              }
-              : {}),
-            ...(node.type === "subWorkflow"
-              ? {
-                subWorkflowId: nodeConfig?.sub_workflow_id as string | undefined,
-                subWorkflowName: nodeConfig?.sub_workflow_name as string | undefined,
-              }
-              : {}),
-            ...(validationState ? { validationState } : {}),
-            ...(validationState ? { validationMessage: validationMsgMap.get(node.id) || "" } : {}),
-            ...(node.type === "agent" && (node as AgentNodeType).config
-              ? {
-                agentProfileId: (node as AgentNodeType).config.agentProfileId,
-                systemPrompt: (node as AgentNodeType).config.system_prompt,
-                tools: (node as AgentNodeType).config.tools,
-                contextSources: (node as AgentNodeType).config
-                  .context_sources,
-                outputMode: (node as AgentNodeType).config.output_mode,
-                model: (node as AgentNodeType).config.model,
-                ...(function() {
-                  const profileId = (node as AgentNodeType).config
-                    .agentProfileId;
-                  if (profileId) {
-                    const profile = useExpertStore
-                      .getState()
-                      .getRoleById(profileId)
-                      ?? useAgentProfileStore
-                        .getState()
-                        .getProfileById(profileId);
-                    if (profile) {
-                      return {
-                        agentRole: profile.agentRole || undefined,
-                        agentRoleIcon: profile.icon,
-                        agentRoleDisplayName: profile.name,
-                      };
-                    }
-                  }
-                  return {};
-                })(),
-              }
-              : {}),
-          },
-        };
-      });
-      // 将 ParallelNode 的 branches[].steps 和 MergeNode（auto-inputs）中的子节点挂载为容器子节点
-      // parentId 权威来源是 store.parentRefs（持久化），其次才回退到本次回填期望值。
-      const expectedParentByNode: Record<string, string> = {};
-      // 折叠态：收集所有"应隐藏"的子节点 ID（含 branches.steps + merge auto_inputs）
-      const hiddenChildIds = new Set<string>();
-      for (const node of nodes) {
-        const scopedNode = node as unknown as Record<string, unknown>;
-        const scopedConfig = scopedNode.config as Record<string, unknown> | undefined;
-        if (node.type === "parallel" && scopedConfig?.branches) {
-          const branches = scopedConfig.branches as { steps?: string[] }[];
-          for (const branch of branches) {
-            for (const stepId of (branch.steps || []) as string[]) {
-              const childIdx = flowNodes.findIndex((fn) => fn.id === stepId);
-              if (childIdx === -1) { continue; }
-              const storedParent = parentRefs[stepId];
-              if (storedParent === undefined || storedParent === node.id) {
-                const childFn = flowNodes[childIdx];
-                const isCollapsedParent = collapsedContainers.has(node.id);
-                if (isCollapsedParent) { hiddenChildIds.add(stepId); }
-                flowNodes[childIdx] = {
-                  ...childFn,
-                  hidden: isCollapsedParent ? true : childFn.hidden,
-                };
-                expectedParentByNode[stepId] = node.id;
-              }
-            }
-          }
-        }
-        // 将 MergeNode（auto-inputs）也挂入同一容器
-        if (node.type === "merge" && scopedConfig?.auto_inputs_from_branches) {
-          const inputs = scopedConfig?.inputs as string[] | undefined;
-          if (inputs) {
-            for (const inputId of inputs) {
-              const childIdx = flowNodes.findIndex((fn) => fn.id === inputId);
-              if (childIdx === -1) { continue; }
-              const targetParent = parentRefs[inputId];
-              if (!targetParent) { continue; }
-              const storedMergeParent = parentRefs[node.id];
-              if (storedMergeParent === undefined || storedMergeParent === targetParent) {
-                const mergeIdx = flowNodes.findIndex((fn) => fn.id === node.id);
-                if (mergeIdx === -1) { continue; }
-                const mergeFn = flowNodes[mergeIdx];
-                const isCollapsedParent = collapsedContainers.has(targetParent);
-                if (isCollapsedParent) { hiddenChildIds.add(node.id); }
-                flowNodes[mergeIdx] = {
-                  ...mergeFn,
-                  hidden: isCollapsedParent ? true : mergeFn.hidden,
-                };
-                expectedParentByNode[node.id] = targetParent;
-              }
-            }
-          }
-        }
-        // DebateNode / LoopNode / SwarmNode / AggregatorNode 的子节点挂载：只注册 parentRefs，不动 position
-        let stepIds: string[] | undefined;
-        if (node.type === "debate") {
-          stepIds = scopedConfig?.debater_steps as string[] | undefined;
-        } else if (node.type === "loop") {
-          stepIds = scopedConfig?.body_steps as string[] | undefined;
-        } else if (node.type === "swarm") {
-          stepIds = scopedConfig?.agent_steps as string[] | undefined;
-        } else if (node.type === "aggregator") {
-          stepIds = scopedConfig?.input_sources as string[] | undefined;
-        }
-        if (stepIds && stepIds.length > 0) {
-          for (const stepId of stepIds) {
-            const childIdx = flowNodes.findIndex((fn) => fn.id === stepId);
-            if (childIdx === -1) { continue; }
-            const storedParent = parentRefs[stepId];
-            if (storedParent === undefined || storedParent === node.id) {
-              const childFn = flowNodes[childIdx];
-              const isCollapsedParent = collapsedContainers.has(node.id);
-              if (isCollapsedParent) { hiddenChildIds.add(stepId); }
-              flowNodes[childIdx] = {
-                ...childFn,
-                hidden: isCollapsedParent ? true : childFn.hidden,
-              };
-              expectedParentByNode[stepId] = node.id;
-            }
-          }
-        }
-      }
-
-      // 把回填期望值持久化到 store：扫描结束后调 setParentRef，让 autosave 能保存到后端。
-      // 仅在"登记值与期望不一致"时写入，避免每次渲染都推撤销栈（虽然 setParentRef 本身不进栈）。
-      for (const [childId, expectedParent] of Object.entries(expectedParentByNode)) {
-        if (parentRefs[childId] !== expectedParent) {
-          setParentRef(childId, expectedParent);
-        }
-      }
-
-      // ── 注入容器的子图（subGraph）内部节点 ──
-      // subGraph.nodes 嵌入在容器 config 中，不在主 nodes[] 数组内。
-      // 仅当容器未折叠时注入，折叠时由 ContainerNode 组件显示节点计数。
-      for (const containerNode of nodes) {
-        const typeMeta = NODE_TYPE_MAP[containerNode.type];
-        if (!typeMeta?.isContainer) { continue; }
-        const cnCfg = (containerNode as unknown as Record<string, unknown>).config as
-          | Record<string, unknown>
-          | undefined;
-        const subGraph = cnCfg?.subGraph as
-          | { nodes?: WorkflowNode[]; edges?: WorkflowEdge[] }
-          | undefined;
-        if (!subGraph?.nodes?.length) { continue; }
-        const isCollapsedParent = collapsedContainers.has(containerNode.id);
-        if (isCollapsedParent) { continue; } // 折叠态：子图节点隐藏，由 ContainerNode 显示计数
-
-        for (const subNode of subGraph.nodes) {
-          const existingIdx = flowNodes.findIndex((fn) => fn.id === subNode.id);
-          const subTypeInfo = NODE_TYPE_MAP[subNode.type] || { color: token.colorTextQuaternary };
-          const subData = {
-            ...subNode,
-            label: subNode.title,
-            color: subTypeInfo.color,
-            nodeType: subNode.type,
-            enabled: true,
-          };
-          // subGraph children use relative coordinates + parentId, same as non-subGraph children
-          const subRelPos = {
-            x: subNode.position.x,
-            y: subNode.position.y,
-          };
-          const subFlowNode = {
-            id: subNode.id,
-            type: subNode.type || "agent",
-            position: subRelPos,
-            parentId: containerNode.id,
-            extent: "parent" as const,
-            data: subData,
-          };
-
-          if (existingIdx !== -1) {
-            flowNodes[existingIdx] = {
-              ...subFlowNode,
-              data: {
-                ...flowNodes[existingIdx].data,
-                ...subData,
-              },
-            };
-          } else {
-            flowNodes.push(subFlowNode);
-          }
-        }
-
-        // ── 注入子图内部边（subGraph.edges）──
-        // 这些边仅在容器展开时可见，连接子图内部的节点。
-        // 实际注入在 flowEdges 声明之后的 subGraphEdgeInjection 阶段完成。
-
-        // ── subGraph 子节点 parentRefs 持久化（确保保存时不会丢失父子关系）──
-        const cnCfg2 = (containerNode as unknown as Record<string, unknown>).config as
-          | Record<string, unknown>
-          | undefined;
-        const subGraph2 = cnCfg2?.subGraph as
-          | { nodes?: WorkflowNode[] }
-          | undefined;
-        if (subGraph2?.nodes?.length) {
-          for (const subNode of subGraph2.nodes) {
-            if (parentRefs[subNode.id] !== containerNode.id) {
-              setParentRef(subNode.id, containerNode.id);
-            }
-          }
-        }
-      }
-
-      // ── 注入展开的子工作流内部节点 ──
-      for (const [swNodeId, swData] of Object.entries(expandedSWData)) {
-        if (!swData || swData.isLoading || swData.nodes.length === 0) { continue; }
-        const parentFn = flowNodes.find((fn) => fn.id === swNodeId);
-        if (!parentFn) { continue; }
-
-        for (const subNode of swData.nodes) {
-          // subNode.position 相对父节点偏移 → 绝对坐标 = 父位置 + 相对偏移
-          flowNodes.push({
-            id: subNode.id,
-            type: (subNode as unknown as { type?: string }).type || "agent",
-            position: { x: subNode.position.x, y: subNode.position.y },
-            parentId: swNodeId,
-            extent: "parent" as const,
-            data: {
-              ...subNode,
-              label: subNode.title,
-              color: "#eb2f96",
-              nodeType: subNode.type,
-              enabled: true,
-            },
-          });
-        }
-      }
-
-      setRNodes(flowNodes);
-
-      // 折叠态边处理：将连接到隐藏子节点的边重定向到其父容器，内部边仍隐藏。
-      const nodeHiddenMap = new Map<string, boolean>();
-      // hidden child → 折叠中的父容器 ID
-      const hiddenChildToParent = new Map<string, string>();
-      for (const fn of flowNodes) {
-        nodeHiddenMap.set(fn.id, fn.hidden === true);
-        if (fn.hidden) {
-          const pid = parentRefs[fn.id];
-          if (pid && collapsedContainers.has(pid)) {
-            hiddenChildToParent.set(fn.id, pid);
-          }
-        }
-      }
-      const seenEdgeKeys = new Set<string>();
-
-      // 构建 parallel 子节点 → 端口号映射（动态分配，最多 6 端口均匀分布）
-      const childPortMap = new Map<string, string>();
-      for (const node of nodes) {
-        if (node.type !== "parallel") { continue; }
-        const nodeCfg = (node as unknown as Record<string, unknown>).config as
-          | { branches?: Array<{ steps: string[] }> }
-          | undefined;
-        const cfg = nodeCfg;
-        if (!cfg?.branches) { continue; }
-        for (let bi = 0; bi < cfg.branches.length; bi++) {
-          const portId = `port-${Math.min(bi, 5)}`;
-          for (const stepId of cfg.branches[bi].steps || []) {
-            // 只登记确认属于该容器的子节点
-            if (parentRefs[stepId] === node.id) {
-              childPortMap.set(stepId, portId);
-            }
-          }
-        }
-      }
-
-      const flowEdges: Edge[] = [];
-      for (const edge of edges as WorkflowEdge[]) {
-        const remappedSource = hiddenChildToParent.get(edge.source) ?? edge.source;
-        const remappedTarget = hiddenChildToParent.get(edge.target) ?? edge.target;
-        const bothHidden = nodeHiddenMap.get(edge.source) === true
-          && nodeHiddenMap.get(edge.target) === true;
-        // 两端都是隐藏子节点（容器内部边） → 直接隐藏，不做重定向
-        if (bothHidden) {
-          flowEdges.push({
-            id: edge.id,
-            source: edge.source,
-            sourceHandle: edge.sourceHandle,
-            target: edge.target,
-            targetHandle: edge.targetHandle,
-            type: "base",
-            animated: edge.edge_type === "loopBack",
-            label: edge.label,
-            data: { edgeType: edge.edge_type },
-            hidden: true,
-          });
-          continue;
-        }
-        // 发生了重定向 → 去重（多条边折叠到同一个 source→target 对时只保留一条）
-        const wasRemapped = remappedSource !== edge.source || remappedTarget !== edge.target;
-        // 任一端是隐藏节点但不是容器折叠子节点（如展开的子工作流内部节点）→ 直接隐藏边
-        const sourceIsOtherHidden = nodeHiddenMap.get(edge.source) === true && !hiddenChildToParent.has(edge.source);
-        const targetIsOtherHidden = nodeHiddenMap.get(edge.target) === true && !hiddenChildToParent.has(edge.target);
-        if (wasRemapped) {
-          const key = `${remappedSource}→${remappedTarget}:${edge.edge_type}`;
-          if (seenEdgeKeys.has(key)) { continue; }
-          seenEdgeKeys.add(key);
-        }
-        flowEdges.push({
-          id: edge.id,
-          source: remappedSource,
-          sourceHandle: wasRemapped && remappedSource !== edge.source
-            ? undefined
-            : edge.sourceHandle,
-          target: remappedTarget,
-          targetHandle: wasRemapped && remappedTarget !== edge.target ? undefined : edge.targetHandle,
-          type: "base",
-          animated: edge.edge_type === "loopBack",
-          label: edge.label,
-          data: { edgeType: edge.edge_type },
-          ...((sourceIsOtherHidden || targetIsOtherHidden) ? { hidden: true } : {}),
-        });
-      }
-
-      // ── 注入子图内部边（subGraph.edges）──
-      // 这些边仅在容器展开时可见，连接子图内部的节点。
-      // 注意：已存在于主 flowEdges 中的边会被去重（仅注入子图独有的边）
-      const seenSubEdgeIds = new Set(flowEdges.map((e) => e.id));
-      for (const containerNode of nodes) {
-        const typeMeta = NODE_TYPE_MAP[containerNode.type];
-        if (!typeMeta?.isContainer) { continue; }
-        const cnCfg = (containerNode as unknown as Record<string, unknown>).config as
-          | Record<string, unknown>
-          | undefined;
-        const subGraph = cnCfg?.subGraph as
-          | { nodes?: WorkflowNode[]; edges?: WorkflowEdge[] }
-          | undefined;
-        if (!subGraph?.edges?.length) { continue; }
-        const isCollapsedParent = collapsedContainers.has(containerNode.id);
-        if (isCollapsedParent) { continue; }
-        const subNodeIds = new Set((subGraph.nodes ?? []).map((n: { id: string }) => n.id));
-        for (const subEdge of subGraph.edges) {
-          if (!subNodeIds.has(subEdge.source) || !subNodeIds.has(subEdge.target)) { continue; }
-          if (seenSubEdgeIds.has(subEdge.id)) { continue; }
-          seenSubEdgeIds.add(subEdge.id);
-          flowEdges.push({
-            id: subEdge.id,
-            source: subEdge.source,
-            sourceHandle: subEdge.sourceHandle,
-            target: subEdge.target,
-            targetHandle: subEdge.targetHandle,
-            type: "base",
-            animated: subEdge.edge_type === "loopBack",
-            label: subEdge.label,
-            data: { edgeType: subEdge.edge_type },
-          });
-        }
-      }
-
-      setREdges(flowEdges);
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setIsInitialized(true);
-
-      // 首次加载时自动布局，确保节点排列合理
-      if (!hasAutoLaidOutRef.current && nodes.length >= 2) {
-        // Only skip auto-layout if nodes have genuinely reasonable positions (not all at origin)
-        const hasOverlap = (() => {
-          const posMap = new Map<string, number>();
-          for (const n of nodes) {
-            const key = `${Math.round(n.position.x / 10)},${Math.round(n.position.y / 10)}`;
-            posMap.set(key, (posMap.get(key) || 0) + 1);
-          }
-          return Array.from(posMap.values()).some((count) => count > 1);
-        })();
-
-        const hasReasonablePositions = nodes.every((n) => n.position.x >= 50 || n.position.y >= 50);
-        const skipAutoLayout = hasReasonablePositions && !hasOverlap;
-
-        if (!skipAutoLayout) {
-          hasAutoLaidOutRef.current = true;
-          autoLayoutTimerRef.current = setTimeout(() => {
-            const { nodes: layouted, edges: layoutedE } = autoLayoutWorkflow(
-              flowNodes,
-              flowEdges,
-              parentRefs,
-            );
-            skipPositionWriteRef.current = true;
-            setRNodes(layouted);
-            setREdges(layoutedE);
-            requestAnimationFrame(() => {
-              skipPositionWriteRef.current = false;
-            });
-            // autoLayoutWorkflow 返回值：
-            // - 顶层节点 position = 绝对坐标
-            // - 子节点 position = 相对父容器的偏移（ReactFlow 坐标系）
-            // store 存绝对坐标，需将子节点转回绝对坐标
-            for (const ln of layouted) {
-              const pid = parentRefs[ln.id];
-              if (pid) {
-                const parentLn = layouted.find((n) => n.id === pid);
-                if (parentLn) {
-                  updateNode(ln.id, {
-                    position: {
-                      x: ln.position.x + parentLn.position.x,
-                      y: ln.position.y + parentLn.position.y,
-                    },
-                  } as Partial<WorkflowNode>);
-                  continue;
-                }
-              }
-              updateNode(ln.id, { position: ln.position } as Partial<WorkflowNode>);
-            }
-          }, 100);
-        } else {
-          hasAutoLaidOutRef.current = true;
-        }
-      }
-      return () => {
-        if (autoLayoutTimerRef.current) {
-          clearTimeout(autoLayoutTimerRef.current);
-          autoLayoutTimerRef.current = null;
-        }
-      };
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentTemplate, nodes, edges, validationResult, collapsedContainers, frontendValidation, dragStopVersion]);
+
+    if (!hasAutoLaidOutRef.current && nodes.length >= 2) {
+      const hasOverlap = (() => {
+        const posMap = new Map<string, number>();
+        for (const n of nodes) {
+          const key = `${Math.round(n.position.x / 10)},${Math.round(n.position.y / 10)}`;
+          posMap.set(key, (posMap.get(key) || 0) + 1);
+        }
+        return Array.from(posMap.values()).some((count) => count > 1);
+      })();
+
+      const hasReasonablePositions = nodes.every((n) => n.position.x >= 50 || n.position.y >= 50);
+      const skipAutoLayout = hasReasonablePositions && !hasOverlap;
+
+      if (!skipAutoLayout) {
+        hasAutoLaidOutRef.current = true;
+        autoLayoutTimerRef.current = setTimeout(() => {
+          const { nodes: layouted, edges: layoutedE } = autoLayoutWorkflow(
+            computedFlowNodes,
+            computedFlowEdges,
+            parentRefs,
+          );
+          skipPositionWriteRef.current = true;
+          setRNodes(layouted);
+          setREdges(layoutedE);
+          requestAnimationFrame(() => {
+            skipPositionWriteRef.current = false;
+          });
+          for (const ln of layouted) {
+            const pid = parentRefs[ln.id];
+            if (pid) {
+              const parentLn = layouted.find((n) => n.id === pid);
+              if (parentLn) {
+                const absPos = toAbsolutePosition(
+                  ln.id,
+                  ln.position,
+                  parentRefs,
+                  layouted.map((n) => ({ id: n.id, position: n.position })) as NodePositionLike[],
+                );
+                updateNode(ln.id, {
+                  position: absPos,
+                } as Partial<WorkflowNode>);
+                continue;
+              }
+            }
+            updateNode(ln.id, { position: ln.position } as Partial<WorkflowNode>);
+          }
+        }, 100);
+      } else {
+        hasAutoLaidOutRef.current = true;
+      }
+    }
+    return () => {
+      if (autoLayoutTimerRef.current) {
+        clearTimeout(autoLayoutTimerRef.current);
+        autoLayoutTimerRef.current = null;
+      }
+    };
+  }, [
+    computedFlowNodes,
+    computedFlowEdges,
+    expectedParentByNode,
+    parentRefs,
+    nodes,
+    setParentRef,
+    updateNode,
+    setRNodes,
+    setREdges,
+  ]);
 
   const onConnect = useCallback(
     (params: Connection) => {
@@ -1061,8 +561,14 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
       const sourceHandle = (params.sourceHandle ?? undefined) as
         | string
         | undefined;
+      const currentEdges = edgesRef.current.map((e) => ({ source: e.source, target: e.target }));
+      currentEdges.push({ source: params.source, target: params.target });
+      const pendingEdges = useWorkflowEditorStore.getState().edges
+        .filter((e) => !edgesRef.current.some((er) => er.id === e.id))
+        .map((e) => ({ source: e.source, target: e.target }));
+      const allEdges = [...currentEdges, ...pendingEdges];
       const wouldCycle = would_create_cycle(
-        edgesRef.current.map((e) => ({ source: e.source, target: e.target })),
+        allEdges,
         params.source,
         params.target,
       );
@@ -1203,15 +709,15 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
           ? payload.type
           : "base";
 
-        // 方案 A：Store 存绝对坐标，ReactFlow 输出绝对坐标
         const storePosition = position;
 
-        // If dropped into a container, use relative coordinates + parentId for ReactFlow
-        const containerNode = hitContainerId
-          ? useWorkflowEditorStore.getState().nodes.find((n) => n.id === hitContainerId)
-          : undefined;
-        const rfPosition = containerNode
-          ? { x: position.x - containerNode.position.x, y: position.y - containerNode.position.y }
+        const rfPosition = hitContainerId
+          ? toRelativePosition(
+            id,
+            position,
+            { [id]: hitContainerId },
+            useWorkflowEditorStore.getState().nodes as NodePositionLike[],
+          )
           : position;
 
         const newNode: Node = {
@@ -1322,6 +828,11 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
       return;
     }
 
+    if (autoSaveTimerRef.current) {
+      clearTimeout(autoSaveTimerRef.current);
+      autoSaveTimerRef.current = null;
+    }
+
     if (isDecompositionTemplate) {
       try {
         await saveSkillWorkflowFromLlm(
@@ -1415,6 +926,8 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
     loadTemplate,
     isSaving,
   ]);
+  // eslint-disable-next-line react-hooks/refs
+  handleSaveRef.current = handleSave;
 
   const handleSaveAsImage = useCallback(async () => {
     if (!reactFlowInstance) { return; }
@@ -1526,6 +1039,20 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
             path.style.strokeWidth = isSelected ? "2" : "1";
           }
         });
+        const allElements = flowClone.querySelectorAll<HTMLElement>("*");
+        allElements.forEach((el) => {
+          const style = el.style;
+          for (let i = 0; i < style.length; i++) {
+            const prop = style[i];
+            const val = style.getPropertyValue(prop);
+            if (val && val.startsWith("var(")) {
+              const computed = window.getComputedStyle(el).getPropertyValue(prop);
+              if (computed && !computed.startsWith("var(")) {
+                style.setProperty(prop, computed);
+              }
+            }
+          }
+        });
       } catch {
         // ignore
       }
@@ -1583,156 +1110,6 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
     }
   }, [reactFlowInstance, currentTemplate, t]);
 
-  // 用 ref 保存频繁变化的值，避免键盘事件监听器每次渲染重建
-  const keyRef = React.useRef({
-    undo,
-    redo,
-    canUndo,
-    canRedo,
-    selectedNodeId,
-    deleteNode,
-    nodes,
-    addNode,
-    setSelectedNode,
-    setParentRef,
-    updateNode,
-    clipboardRef,
-  });
-  // eslint-disable-next-line react-hooks/refs
-  keyRef.current = {
-    undo,
-    redo,
-    canUndo,
-    canRedo,
-    selectedNodeId,
-    deleteNode,
-    nodes,
-    addNode,
-    setSelectedNode,
-    setParentRef,
-    updateNode,
-    clipboardRef,
-  };
-  const handleSaveRef = React.useRef(handleSave);
-  // eslint-disable-next-line react-hooks/refs
-  handleSaveRef.current = handleSave;
-
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      const r = keyRef.current;
-      const isCtrlOrCmd = e.ctrlKey || e.metaKey;
-      const isEditing = (e.target as HTMLElement).tagName === "INPUT"
-        || (e.target as HTMLElement).tagName === "TEXTAREA"
-        || (e.target as HTMLElement).isContentEditable;
-
-      if (isCtrlOrCmd && e.key === "s") {
-        e.preventDefault();
-        handleSaveRef.current();
-        return;
-      }
-      if (isCtrlOrCmd && e.key === "z" && !e.shiftKey) {
-        e.preventDefault();
-        if (r.canUndo()) { r.undo(); }
-        else { message.info(t("workflow.noUndoAvailable")); }
-        return;
-      }
-      if ((isCtrlOrCmd && e.key === "z" && e.shiftKey) || (isCtrlOrCmd && e.key === "y")) {
-        e.preventDefault();
-        if (r.canRedo()) { r.redo(); }
-        else { message.info(t("workflow.noRedoAvailable")); }
-        return;
-      }
-      if ((e.key === "Delete" || e.key === "Backspace") && r.selectedNodeId) {
-        if (isEditing) { return; }
-        e.preventDefault();
-        r.deleteNode(r.selectedNodeId);
-        r.setSelectedNode(null);
-        return;
-      }
-      if (isCtrlOrCmd && e.key === "c" && r.selectedNodeId) {
-        const nodeToCopy = r.nodes.find((n) => n.id === r.selectedNodeId);
-        if (nodeToCopy) {
-          r.clipboardRef.current = [nodeToCopy];
-          message.success(t("workflow.nodeCopied"));
-        }
-        return;
-      }
-      if (isCtrlOrCmd && e.key === "v" && !isEditing) {
-        if (r.clipboardRef.current.length === 0) { return; }
-        const offset = { x: 50, y: 50 };
-        r.clipboardRef.current.forEach((node) => {
-          const newId = `node-${crypto.randomUUID()}`;
-          r.addNode({
-            ...node,
-            id: newId,
-            position: { x: node.position.x + offset.x, y: node.position.y + offset.y },
-          });
-          // 复制容器内子节点时同步维护 parentRefs 与父容器的 subGraph
-          const originalParentId = useWorkflowEditorStore.getState().parentRefs[node.id];
-          if (originalParentId) {
-            r.setParentRef(newId, originalParentId);
-            const parent = r.nodes.find((n) => n.id === originalParentId);
-            if (parent) {
-              const parentConfig = (parent as unknown as { config?: Record<string, unknown> }).config ?? {};
-              const parentSubGraph = (parentConfig as { subGraph?: { nodes?: unknown[]; edges?: unknown[] } }).subGraph;
-              r.updateNode(
-                parent.id,
-                {
-                  ...(parent as object),
-                  config: {
-                    ...parentConfig,
-                    subGraph: {
-                      nodes: [
-                        ...(parentSubGraph?.nodes ?? []),
-                        {
-                          ...node,
-                          id: newId,
-                          position: { x: node.position.x + offset.x, y: node.position.y + offset.y },
-                        },
-                      ],
-                      edges: parentSubGraph?.edges ?? [],
-                    },
-                  },
-                } as unknown as Parameters<typeof r.updateNode>[1],
-              );
-            }
-          }
-        });
-        message.success(t("workflow.nodesPasted", { count: r.clipboardRef.current.length }));
-        return;
-      }
-      // Ctrl+F: 节点搜索
-      if (isCtrlOrCmd && e.key === "f" && !isEditing) {
-        e.preventDefault();
-        setSearchVisible(true);
-        return;
-      }
-      // Ctrl+Shift+C: 全部折叠容器
-      if (isCtrlOrCmd && e.shiftKey && e.key === "C" && !isEditing) {
-        e.preventDefault();
-        const containers = r.nodes.filter((n) => NODE_TYPE_MAP[n.type]?.isContainer);
-        if (containers.length > 0) {
-          useWorkflowEditorStore.getState().collapseAllContainers();
-          message.success(t("workflow.containersCollapsed", { defaultValue: "All containers collapsed" }));
-        }
-        return;
-      }
-      // Ctrl+Shift+E: 全部展开容器
-      if (isCtrlOrCmd && e.shiftKey && e.key === "E" && !isEditing) {
-        e.preventDefault();
-        useWorkflowEditorStore.getState().expandAllContainers();
-        message.success(t("workflow.containersExpanded", { defaultValue: "All containers expanded" }));
-        return;
-      }
-      // Ctrl+A: 仅拦截画布全选，输入框内放行
-      if (isCtrlOrCmd && e.key === "a" && !isEditing) {
-        e.preventDefault();
-      }
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [t]);
-
   const handleNodeContextMenu = useCallback(
     (event: React.MouseEvent, node: Node) => {
       event.preventDefault();
@@ -1764,7 +1141,13 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
     setSearchIdx(nextIdx);
     const target = searchResults[nextIdx];
     setSelectedNode(target.id);
-    reactFlowInstance?.setCenter(target.position.x + 100, target.position.y + 50, { zoom: 1.5, duration: 300 });
+    const absPos = toAbsolutePosition(
+      target.id,
+      target.position,
+      useWorkflowEditorStore.getState().parentRefs,
+      useWorkflowEditorStore.getState().nodes as NodePositionLike[],
+    );
+    reactFlowInstance?.setCenter(absPos.x + 100, absPos.y + 50, { zoom: 1.5, duration: 300 });
   }, [searchResults, searchIdx, reactFlowInstance, setSelectedNode]);
 
   // 卸载时清理 auto-save timeout
@@ -1814,25 +1197,12 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
         ) {
           // 方案 B：ReactFlow 在 extent:"parent" 模式下对子节点返回的是相对坐标，
           // 写入 store 时需要转换为画布绝对坐标；顶层节点直接透传。
-          const pId = parentRefs[change.id];
-          let storePos: { x: number; y: number };
-          if (pId) {
-            // 子节点：ReactFlow 返回相对坐标 → 读取 store 中的父节点绝对坐标做转换
-            // 不使用 RF live nodes 的父节点位置（可能在拖拽过程中已偏移）
-            const latestNodes = useWorkflowEditorStore.getState().nodes;
-            const parentStore = latestNodes.find((n) => n.id === pId);
-            if (parentStore) {
-              storePos = {
-                x: change.position.x + parentStore.position.x,
-                y: change.position.y + parentStore.position.y,
-              };
-            } else {
-              // 兜底：父节点不在 store 中（罕见），直接用 RF 相对坐标
-              storePos = { x: change.position.x, y: change.position.y };
-            }
-          } else {
-            storePos = { x: change.position.x, y: change.position.y };
-          }
+          const storePos = toAbsolutePosition(
+            change.id,
+            change.position,
+            parentRefs,
+            useWorkflowEditorStore.getState().nodes as NodePositionLike[],
+          );
           pendingPositionsRef.current.set(change.id, storePos);
           if (posRafRef.current == null) {
             posRafRef.current = requestAnimationFrame(() => {
@@ -1897,12 +1267,12 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
     (_event: unknown, node: Node) => {
       isDraggingRef.current = false;
       suppressRebuildRef.current = true;
-      // Keep suppress window longer to prevent useEffect from overwriting drag results
       setTimeout(() => {
         suppressRebuildRef.current = false;
       }, 50);
 
       if (node?.position) {
+        useWorkflowEditorStore.getState().recordUndoSnapshot();
         const rfNodes = reactFlowInstance?.getNodes() || [];
         const latestNodes = useWorkflowEditorStore.getState().nodes;
         const latestParentRefs = useWorkflowEditorStore.getState().parentRefs;
@@ -1912,17 +1282,13 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
         let rfPos: { x: number; y: number };
 
         if (draggedNodeParentId) {
-          // 子节点：ReactFlow 位置是相对坐标，store 需存绝对坐标
-          const parentStore = latestNodes.find((n) => n.id === draggedNodeParentId);
-          if (parentStore) {
-            storePos = {
-              x: node.position.x + parentStore.position.x,
-              y: node.position.y + parentStore.position.y,
-            };
-          } else {
-            storePos = { x: node.position.x, y: node.position.y };
-          }
-          rfPos = { x: node.position.x, y: node.position.y }; // ReactFlow 保持相对坐标
+          storePos = toAbsolutePosition(
+            node.id,
+            node.position,
+            latestParentRefs,
+            latestNodes as NodePositionLike[],
+          );
+          rfPos = { x: node.position.x, y: node.position.y };
         } else {
           // 顶层节点：碰撞避免（仅与同层级顶层节点比较，排除子节点的相对坐标）
           const selectedIds = new Set(
@@ -1997,16 +1363,13 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
           if (n.selected && n.id !== node.id && n.position) {
             const selectedNodeParent = latestParentRefs[n.id];
             if (selectedNodeParent) {
-              // 选中的子节点：RF 位置是相对坐标，需转为绝对坐标写入 store
-              const parentStore = latestNodes.find((pn) => pn.id === selectedNodeParent);
-              if (parentStore) {
-                updateNode(n.id, {
-                  position: {
-                    x: n.position.x + parentStore.position.x,
-                    y: n.position.y + parentStore.position.y,
-                  },
-                } as Partial<WorkflowNode>);
-              }
+              const absPos = toAbsolutePosition(
+                n.id,
+                n.position,
+                latestParentRefs,
+                latestNodes as NodePositionLike[],
+              );
+              updateNode(n.id, { position: absPos } as Partial<WorkflowNode>);
               return n;
             }
             // 选中的顶层节点：直接传入 RF 位置
@@ -2075,16 +1438,13 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
     const rfNodes = layoutedNodes.map((n) => {
       const pid = parentRefs[n.id];
       if (pid) {
-        const parentLayouted = layoutedNodes.find((p) => p.id === pid);
-        if (parentLayouted) {
-          return {
-            ...n,
-            position: {
-              x: n.position.x - parentLayouted.position.x,
-              y: n.position.y - parentLayouted.position.y,
-            },
-          };
-        }
+        const relPos = toRelativePosition(
+          n.id,
+          n.position,
+          parentRefs,
+          layoutedNodes.map((ln) => ({ id: ln.id, position: ln.position })) as NodePositionLike[],
+        );
+        return { ...n, position: relPos };
       }
       return n;
     });

@@ -34,3 +34,4 @@ export { TriggerNode } from "./TriggerNode";
 export { ValidationNode } from "./ValidationNode";
 export { VectorRetrieveNode } from "./VectorRetrieveNode";
 export { WebhookSendNode } from "./WebhookSendNode";
+export { WorkflowRefNode } from "./WorkflowRefNode";

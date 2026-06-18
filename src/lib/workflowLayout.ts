@@ -392,26 +392,44 @@ export function validate_workflow(
 
   // ── 4. 端口未连 ──────────────────────────────────────────
   for (const n of nodes) {
-    if (nodeTypeOf(n) !== "condition") { continue; }
-    const outgoing = edges.filter((e) => e.source === n.id);
-    const hasTrue = outgoing.some((e) => e.sourceHandle === "true");
-    const hasFalse = outgoing.some((e) => e.sourceHandle === "false");
+    const tType = nodeTypeOf(n);
+    if (tType === "condition") {
+      const outgoing = edges.filter((e) => e.source === n.id);
+      const hasTrue = outgoing.some((e) => e.sourceHandle === "true");
+      const hasFalse = outgoing.some((e) => e.sourceHandle === "false");
 
-    const missing: string[] = [];
-    if (!hasTrue) { missing.push("true"); }
-    if (!hasFalse) { missing.push("false"); }
-    if (missing.length > 0) {
-      const key = "workflow.layout.validate.unconnected_port";
-      const params = { nodeId: n.id, missing: missing.join("/") };
-      issues.push({
-        rule: "unconnected_port",
-        severity: "warning",
-        message: t(key, params),
-        messageKey: key,
-        messageParams: params,
-        nodeIds: [n.id],
-        edgeIds: [],
-      });
+      const missing: string[] = [];
+      if (!hasTrue) { missing.push("true"); }
+      if (!hasFalse) { missing.push("false"); }
+      if (missing.length > 0) {
+        const key = "workflow.layout.validate.unconnected_port";
+        const params = { nodeId: n.id, missing: missing.join("/") };
+        issues.push({
+          rule: "unconnected_port",
+          severity: "warning",
+          message: t(key, params),
+          messageKey: key,
+          messageParams: params,
+          nodeIds: [n.id],
+          edgeIds: [],
+        });
+      }
+    } else if (tType === "switch") {
+      const outgoing = edges.filter((e) => e.source === n.id);
+      const hasBranch = outgoing.some((e) => e.sourceHandle?.startsWith("branch-"));
+      if (!hasBranch) {
+        const key = "workflow.layout.validate.unconnected_port";
+        const params = { nodeId: n.id, missing: "branch" };
+        issues.push({
+          rule: "unconnected_port",
+          severity: "warning",
+          message: t(key, params),
+          messageKey: key,
+          messageParams: params,
+          nodeIds: [n.id],
+          edgeIds: [],
+        });
+      }
     }
   }
 
@@ -615,6 +633,54 @@ const DEFAULT_SIZE = { width: 140, height: 36 };
 /** 获取节点类型的尺寸估算（用于 hit-test / 布局） */
 export function getNodeSize(type: string): { width: number; height: number } {
   return NODE_SIZE[type] || DEFAULT_SIZE;
+}
+
+// ── 坐标转换工具 ─────────────────────────────────────────────
+
+export interface PositionLike {
+  x: number;
+  y: number;
+}
+
+export interface NodePositionLike {
+  id: string;
+  position: PositionLike;
+}
+
+/**
+ * 绝对坐标 → 相对坐标（相对于父容器）。
+ * Store 存绝对坐标，ReactFlow 子节点需要相对坐标。
+ * 若节点无父容器（pid 为空），直接返回原坐标。
+ */
+export function toRelativePosition(
+  nodeId: string,
+  absPos: PositionLike,
+  parentRefs: Record<string, string>,
+  nodes: NodePositionLike[],
+): PositionLike {
+  const pid = parentRefs[nodeId];
+  if (!pid) { return absPos; }
+  const parent = nodes.find((n) => n.id === pid);
+  if (!parent) { return absPos; }
+  return { x: absPos.x - parent.position.x, y: absPos.y - parent.position.y };
+}
+
+/**
+ * 相对坐标 → 绝对坐标（相对于画布原点）。
+ * ReactFlow 子节点返回相对坐标，Store 需要绝对坐标。
+ * 若节点无父容器（pid 为空），直接返回原坐标。
+ */
+export function toAbsolutePosition(
+  nodeId: string,
+  relPos: PositionLike,
+  parentRefs: Record<string, string>,
+  nodes: NodePositionLike[],
+): PositionLike {
+  const pid = parentRefs[nodeId];
+  if (!pid) { return relPos; }
+  const parent = nodes.find((n) => n.id === pid);
+  if (!parent) { return relPos; }
+  return { x: relPos.x + parent.position.x, y: relPos.y + parent.position.y };
 }
 
 // ── Grid 吸附与碰撞避免 ─────────────────────────────────────
