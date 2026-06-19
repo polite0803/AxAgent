@@ -49,7 +49,7 @@ jobs:
     name: Frontend Check
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: actions/setup-node@v4
         with:
@@ -80,7 +80,7 @@ jobs:
     if: needs.should-run-heavy.outputs.skip != 'true'
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
@@ -126,7 +126,7 @@ jobs:
     timeout-minutes: 120
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Add swap space
         run: |
@@ -183,7 +183,7 @@ jobs:
     if: needs.should-run-heavy.outputs.skip != 'true'
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: actions/setup-node@v4
         with:
@@ -214,7 +214,7 @@ jobs:
     if: needs.should-run-heavy.outputs.skip != 'true'
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
@@ -241,7 +241,7 @@ jobs:
     if: needs.should-run-heavy.outputs.skip != 'true'
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
