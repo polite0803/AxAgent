@@ -127,7 +127,7 @@
     "typescript-eslint": "^8.60.0",
     "vite": "^8.0.10",
     "vite-plugin-monaco-editor": "^1.1.0",
-    "vitest": "^4.1.4"
+    "vitest": "^4.1.9"
   },
   "simple-git-hooks": {
     "pre-commit": "npx dprint check && npx tsc --noEmit && npx eslint src --max-warnings=0",
