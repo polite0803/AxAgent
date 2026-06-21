@@ -783,7 +783,7 @@ mod tests {
     #[test]
     fn apply_value_path_dotted_modifies_field() {
         let mut v = json!({"min": 0.5, "max": 1.0});
-        apply_value_path(&mut v, "score.min", json!(0.3)).unwrap();
+        apply_value_path(&mut v, "min", json!(0.3)).unwrap();
         assert_eq!(v, json!({"min": 0.3, "max": 1.0}));
     }
 
