@@ -836,7 +836,7 @@ mod tests {
         let d = render_simple_diff(&before, &after);
         assert!(d.contains("+b"));
         assert!(d.contains(" a"));
-        assert!(d.contains(" c"));
+        assert!(d.contains("+c"));
     }
 
     #[test]
