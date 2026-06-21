@@ -427,9 +427,13 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState, Strin
     let planner_sessions: Arc<
         tokio::sync::Mutex<std::collections::HashMap<String, crate::app_state::PlannerSession>>,
     > = Arc::new(tokio::sync::Mutex::new(std::collections::HashMap::new()));
+    #[cfg(not(target_os = "android"))]
     let browser_client: Arc<
         tokio::sync::Mutex<Option<axagent_core::browser_automation::PlaywrightClient>>,
     > = Arc::new(tokio::sync::Mutex::new(None));
+    #[cfg(target_os = "android")]
+    let browser_client: Arc<tokio::sync::Mutex<Option<std::convert::Infallible>>> =
+        Arc::new(tokio::sync::Mutex::new(None));
     let dream_consolidator =
         Arc::new(axagent_trajectory::DreamConsolidator::new().with_data_provider(Arc::new(
             axagent_trajectory::TrajectoryDreamDataProvider::new(shared_trajectory_storage.clone()),

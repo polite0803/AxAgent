@@ -124,7 +124,7 @@ impl Tool for WebFetchTool {
             .get("render_js")
             .and_then(|v| v.as_bool())
             .unwrap_or(false);
-        let render_wait_ms = input
+        let _render_wait_ms = input
             .get("render_wait_ms")
             .and_then(|v| v.as_u64())
             .unwrap_or(DEFAULT_JS_RENDER_WAIT_MS);

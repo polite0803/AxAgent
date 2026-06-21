@@ -36,7 +36,7 @@ impl Tool for PushNotificationTool {
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
         let title = input["title"].as_str().unwrap_or("AxAgent 通知");
-        let body = input["body"].as_str().unwrap_or("");
+        let _body = input["body"].as_str().unwrap_or("");
 
         // 通过系统通知 API 发送
         #[cfg(target_os = "windows")]
