@@ -1012,6 +1012,7 @@ export const NODE_TYPE_MAP: Record<
     labelKey: "workflow.nodeTypes.workflowRef",
     category: "integration",
     color: "#13c2c2",
+    isContainer: true,
     kind: "container",
   },
   aggregator: {
@@ -1025,6 +1026,7 @@ export const NODE_TYPE_MAP: Record<
     labelKey: "workflow.nodeTypes.merge",
     category: "flow",
     color: "#13c2c2",
+    isContainer: true,
     kind: "container",
   },
   // ── Tool 绿 (#52c41a) ──────────────────────────────────

@@ -494,6 +494,20 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
       }
     }
 
+    /** ⚠️ 关键：当 expectedParentByNode 有 pending 的 parentRefs 同步时，不可在此轮
+     *  调度 autoLayout。因为 autoLayout 的回调闭包捕获了当前轮次的 computedFlowNodes，
+     *  此时子节点尚未获得 parentId（parentRefs 还没同步），autoLayout 会把容器内子节点
+     *  当作独立节点重新布局，产生错误的位置，然后通过 updateNode 写入 store 造成数据污染。
+     *
+     *  setParentRef 会触发同步状态更新 + 新一轮渲染，autoLayout 将在新一轮渲染的
+     *  useEffect 中重新评估。 */
+    const pendingParentSync = Object.keys(expectedParentByNode).length > 0
+      && Object.entries(expectedParentByNode).some(([cid, pid]) => parentRefs[cid] !== pid);
+
+    if (pendingParentSync) {
+      hasAutoLaidOutRef.current = true; // 标记为已布局，避免后续重复触发
+    }
+
     if (!hasAutoLaidOutRef.current && nodes.length >= 2) {
       const hasOverlap = (() => {
         const posMap = new Map<string, number>();

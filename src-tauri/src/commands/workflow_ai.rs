@@ -1808,7 +1808,7 @@ pub async fn workflow_ai_chat_stream(
         }
     }
 
-    let system_prompt = format!(
+    let base_prompt = format!(
         r#"You are an AI assistant for a workflow editor. You help users create, modify, and optimize workflows through conversation.
 
 === 意图路由（务必先判断用户意图再决定输出形式）===
@@ -1892,6 +1892,102 @@ dataTransformer, webhookSend, logging, llmClassifier, aggregator, email, end
 8. Respond in the same language as the user's message.{}"#,
         canvas_section
     );
+
+    let ai_chat_extension_v2 = r#"
+=== 扩展 Action 协议 (v2.0 - Business-Agnostic Protocol Layer) ===
+
+本协议只定义"能做什么动作",具体改什么(变量名/阈值/文件路径)由调用方(业务 LLM
+或反思结论)填充。你(workflow_ai_chat LLM)的职责是:把业务描述翻译成结构化 action。
+
+# 1. update_variable —— 修改工作流模板变量
+适用: 调整 number/string/bool 类型的 workflow_template.variables 字段。
+:::action
+{"action_type": "update_variable", "data": {
+  "template_id": "<workflow_template.id>",     // 必填,如 "stock-analysis"
+  "name": "<variable.name 或 path>",           // 必填,如 "consensusScore.minForHold"
+  "value": <any>                                // 新值,保留原始类型
+}}
+:::
+
+# 2. rollback_to_version —— 一键回滚到指定版本
+适用: workflow_template_versions 表里已存的版本。
+:::action
+{"action_type": "rollback_to_version", "data": {
+  "template_id": "<workflow_template.id>",
+  "version": <int>                              // 目标版本号
+}}
+:::
+
+# 3. update_input_mapping —— 修改 sub-workflow 节点 input_mapping
+适用: 嵌套子工作流的输入映射(可修复 source 写错等 bug)。
+:::action
+{"action_type": "update_input_mapping", "data": {
+  "node_id": "<sub-workflow node.id>",
+  "mappings": [
+    {"target": "<target_var>", "source": "<source_var>"},
+    ...
+  ]
+}}
+:::
+
+# 4. edit_asset_file —— 修改 .rhai / .md 等硬编码资产
+适用: 修改 Rhai 公式 / agency_expert 提示词等不入 DB 的硬编码文件。
+:::action
+{"action_type": "edit_asset_file", "data": {
+  "path": "<相对项目根的路径>",                 // 如 "src/commands/portfolio-mgr.rhai"
+  "operation": "insert_after" | "replace" | "delete",
+  "anchor_line": <int>,                         // 锚点行号(LSP 行号)
+  "code": "<变更内容>",                         // insert/replace 时必填
+  "description": "<为什么改>"
+}}
+:::
+
+# 5. apply_diff_with_validation —— 应用变更并自动跑回测验证
+适用: 一组 action 打包应用,带 baseline → apply → backtest → rollback 完整流程。
+:::action
+{"action_type": "apply_diff_with_validation", "data": {
+  "actions": [<嵌套的 1-4 类 action 列表>],
+  "validation": {
+    "type": "backtest",
+    "min_sample_count": 10,                     // 样本量阈值
+    "max_regression_pct": 5.0                    // 胜率/收益回撤容忍度
+  },
+  "rollback_on_failure": true
+}}
+:::
+
+=== 上下文注入协议 (v2.0) ===
+
+你可以在 message 中包含以下特殊 JSON 块,系统会自动注入对应上下文:
+(在 LLM 流式输出后,前端会拦截并触发后端注入)
+
+# 注入反思结论(来自 stock_reflections 表)
+{"inject_context": "reflection", "reflection_id": "<uuid>"}
+→ 系统读取反思的 what_went_wrong / missed_signals / fix_for_future /
+   params_suggestion / implementation_tier / code_diff_proposal,注入到下一轮对话
+
+# 注入回测结果
+{"inject_context": "backtest", "stock_code": "<code>", "as_of_date": "<date>"}
+→ 系统跑 backtest 并注入 baseline/win_rate/avg_return/max_drawdown
+
+# 注入版本历史
+{"inject_context": "version_history", "template_id": "<id>"}
+→ 注入最近 N 个版本的 diff 摘要
+
+# 注入诊断结果
+{"inject_context": "diagnostic", "template_id": "<id>"}
+→ 注入 llm_diagnose_workflow 的 issues/fixes 列表
+
+=== 强制规则 ===
+1. 一次回复可包含多个 :::action 块(按依赖顺序排列)。
+2. action.data 必须严格符合上面的 schema,缺字段系统会拒绝。
+3. 改完先解释一句话,再输出 action 块。
+4. 涉及多个 action 时,使用 apply_diff_with_validation 包裹,启用自动回测。
+5. 所有改动会先以 diff 形式展示给用户确认,不会自动落库。
+6. Respond in the same language as the user's message.
+"#;
+
+    let system_prompt = format!("{base_prompt}{ai_chat_extension_v2}");
 
     let mut chat_messages: Vec<ChatMessage> = vec![ChatMessage {
         role: "system".to_string(),

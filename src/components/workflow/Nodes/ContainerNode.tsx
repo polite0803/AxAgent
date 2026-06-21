@@ -82,10 +82,12 @@ const ContainerNodeComponent: React.FC<ContainerNodeProps> = ({
   return (
     <div
       style={{
-        width: isCollapsed ? 160 : (data.nodeWidth ?? undefined),
-        height: isCollapsed ? 34 : (data.nodeHeight ?? undefined),
-        minWidth: isCollapsed ? 160 : 200,
-        minHeight: isCollapsed ? 34 : 80,
+        // 展开态下，内层 div 的尺寸必须与 useFlowNodes 计算的 containerStyle 一致。
+        // useFlowNodes 最小值为 CONTAINER_MIN_W=400 / CONTAINER_MIN_H=200。
+        // 当 data.nodeWidth/nodeHeight 缺失时（兜底场景），使用与 useFlowNodes
+        // 相同的 fallback 值，否则内层 div 过小 → 子节点视觉上超出容器边界。
+        width: isCollapsed ? 160 : (data.nodeWidth ?? 400),
+        height: isCollapsed ? 34 : (data.nodeHeight ?? 200),
         background: `${data.color}06`,
         border: `1.5px dashed ${selected ? token.colorPrimary : `${data.color}50`}`,
         borderRadius: 8,
@@ -93,6 +95,9 @@ const ContainerNodeComponent: React.FC<ContainerNodeProps> = ({
         opacity: data.enabled ? (data.kind === "decorative" ? 0.55 : 1) : 0.5,
         position: "relative",
         transition: "opacity 0.15s, border-color 0.15s",
+        // 确保子节点可见（ReactFlow 通过 wrapper + extent:parent 实现约束，
+        // 内层 div 不 clip）
+        overflow: "visible",
       }}
     >
       {/* 标题栏 — 紧凑单行 */}

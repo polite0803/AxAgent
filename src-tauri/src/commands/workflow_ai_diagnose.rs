@@ -83,7 +83,7 @@ pub async fn llm_diagnose_workflow(
         node_summaries.push(summary);
     }
 
-    let prompt = format!(
+    let base_prompt = format!(
         "You are a workflow diagnostic expert. Analyze this workflow and identify issues across 5 dimensions.
 
 Workflow name: {name}
@@ -116,6 +116,71 @@ Respond ONLY with valid JSON.",
         desc = request.workflow_description.as_deref().unwrap_or(""),
         nodes = node_summaries.join(""),
     );
+
+    let upstream_extension_for_diagnose = r#"
+=== Diagnostic Output Schema (v2.0, business-agnostic) ===
+
+You diagnose workflow abstractions. You do NOT know the business
+domain. You DO know: nodes, edges, variables, files, versions.
+
+Each issue you emit MUST follow this shape:
+{
+  "severity":"critical"|"high"|"medium"|"low",
+  "category":"<see category table below>",
+  "node_id":"<id or null>",
+  "title":"<one-line>",
+  "detail":"<analysis>",
+  "suggestion":"<natural language fix>",
+  "fix":{                        // required for critical / high
+    "action_type":"<see action_type table below>",
+    "data":{ ... }               // must match the chat protocol
+  }
+}
+
+=== category table (generic, no business meaning) ===
+- prompt_quality:          prompt is ambiguous, missing variable refs, no schema
+- missing_validation:      no hard guard, no required-field check, no input validation
+- variable_misconfig:      variable type/value/required misconfigured
+- hardcoded_asset_drift:   text file out of sync with the template state
+- workflow_template_version: template behind latest saved version
+- backtest_regression:     any caller-defined metric regressed
+- tool_missing:            referenced tool not registered (or alias missing)
+- edge_misroute:           condition/parallel edge points to wrong target
+- semantic_conflict:       two nodes produce conflicting state for the same key
+
+=== action_type table (subset; the same as in workflow_ai_chat) ===
+set_node_field, delete_node, delete_edge, enable_retry, set_timeout,
+remove_debater_step,
+update_variable, update_input_mapping, edit_asset_file,
+rollback_to_version
+
+The `data` object MUST match the schema used by the corresponding
+chat action. (Same protocol — one source of truth.)
+
+=== Top-level "fixes" array ===
+In addition to per-issue `fix`, emit a top-level `"fixes":[...]` array
+deduplicating all fixes. The system uses this array to apply fixes
+in one batch (with the caller's validation hook).
+
+=== auto_apply flag ===
+"auto_apply":<bool>     // default false; true means system may apply
+                         // fixes without user confirmation (caller-gated)
+
+=== Business rules (caller-supplied, NOT in this prompt) ===
+The caller injects business-specific diagnostic rules into the user
+message, e.g.:
+  "If X is missing AND Y is missing → critical"
+  "If template is older than 2 versions → medium"
+You apply these rules; you do not invent them.
+
+=== Hard rules ===
+1. critical / high issues MUST include a `fix`. Empty fix → rejected.
+2. `fix.data` schema must match the corresponding chat action exactly.
+3. `auto_apply=true` requires the caller to have an apply-with-validation
+   hook configured; otherwise the system downgrades to false.
+"#;
+
+    let prompt = format!("{base_prompt}{upstream_extension_for_diagnose}");
 
     // 查找默认 provider 调用 LLM
     let db = state.harness.db();
