@@ -494,7 +494,30 @@ pub async fn apply_diff_with_validation(
     validation: super::workflow_ai_protocol::ValidationSpec,
     rollback_on_failure: Option<bool>,
 ) -> Result<ApplyDiffValidationResult, String> {
-    let rollback_on_failure = rollback_on_failure.unwrap_or(true);
+    do_apply_diff_with_validation(
+        state.clone(),
+        actions,
+        validation,
+        rollback_on_failure.unwrap_or(true),
+    )
+    .await
+}
+
+/// 内部调度器:`apply_diff_with_validation` Tauri command 的核心逻辑。
+///
+/// 拆出来以便 Rust 内部(例如 `apply_diagnostic_fixes`)直接复用,
+/// 避免把 Tauri command 当普通函数调用。
+///
+/// 签名跟 Tauri command 一致(接受 `State<'_, AppState>`),因为底层 helpers
+/// (`apply_single_action` / `restore_snapshot` / `run_validation_hook`)
+/// 都基于 `State` 实现,改 helper 签名影响范围过大。`state.clone()` 是 cheap
+/// 的 Arc 引用计数 clone,无运行时开销。
+pub(crate) async fn do_apply_diff_with_validation(
+    state: State<'_, AppState>,
+    actions: Vec<super::workflow_ai_protocol::ChatAction>,
+    validation: super::workflow_ai_protocol::ValidationSpec,
+    rollback_on_failure: bool,
+) -> Result<ApplyDiffValidationResult, String> {
     use super::workflow_ai_protocol::ChatAction;
 
     if actions.is_empty() {

@@ -269,6 +269,7 @@ pub struct DiagnosticReportV2 {
 /// 已知 key:`version_history` / `diagnostic`;未知 key 走 `Custom` 透传到注入处理器
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(tag = "inject_context", rename_all = "snake_case")]
+#[allow(dead_code)] // 真实消费场景在 chat 路径(解析 user message 末尾的 `[[inject:...]]` marker),待 chat 接入后移除
 pub enum InjectContextMarker {
     /// 注入最近 N 个版本的 diff 摘要
     VersionHistory {

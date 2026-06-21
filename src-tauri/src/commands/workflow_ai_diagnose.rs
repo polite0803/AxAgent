@@ -18,8 +18,7 @@ use serde::{Deserialize, Serialize};
 use tauri::State;
 
 use super::workflow_ai_protocol::{
-    ChatAction, DiagnosticFix, DiagnosticReportV2, InjectContextMarker, InputMappingEntry,
-    validate_report,
+    ChatAction, DiagnosticFix, DiagnosticReportV2, InputMappingEntry, validate_report,
 };
 
 /// V2 协议 diagnose 上游扩展 prompt,附加在 `base_prompt` 之后。
@@ -257,11 +256,6 @@ pub struct ApplyDiagnosticFixesRequest {
     /// `apply_diff_with_validation` 调度器跑校验 + 可选回滚
     #[serde(default)]
     pub auto_apply: bool,
-    /// 上下文注入 marker(透传到结果,供未来 chat 路径消费)。
-    /// 已知 key:`version_history` / `diagnostic`;未知 key 走 `Custom` 透传。
-    /// 当前 diagnose 路径不直接消费 marker 内容,仅做 round-trip 验证序列化。
-    #[serde(default)]
-    pub inject_context_marker: Option<InjectContextMarker>,
 }
 
 /// `apply_diagnostic_fixes` 命令的返回
@@ -277,9 +271,6 @@ pub struct ApplyDiagnosticFixesResult {
     pub applied: Vec<String>,
     pub rolled_back: bool,
     pub error: Option<String>,
-    /// 透传回请求中的 marker(供前端读取)
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub inject_context_marker: Option<InjectContextMarker>,
 }
 
 /// 批量应用 `DiagnosticFix` 列表
@@ -327,13 +318,12 @@ pub async fn apply_diagnostic_fixes(
             applied: Vec::new(),
             rolled_back: false,
             error: None,
-            inject_context_marker: request.inject_context_marker,
         });
     }
 
-    // 调 apply_diff_with_validation 调度器
+    // 调内部调度器(do_apply_diff_with_validation),不绕 IPC
     // 该函数已支持 5 种 ChatAction 调度,无 validation hook 时 no-op pass
-    let scheduler_result = super::workflow_ai_apply::apply_diff_with_validation(
+    let scheduler_result = super::workflow_ai_apply::do_apply_diff_with_validation(
         state.clone(),
         server_actions.clone(),
         super::workflow_ai_protocol::ValidationSpec {
@@ -343,7 +333,7 @@ pub async fn apply_diagnostic_fixes(
                 "auto_apply": request.auto_apply,
             }),
         },
-        Some(request.auto_apply),
+        request.auto_apply,
     )
     .await?;
 
@@ -354,7 +344,6 @@ pub async fn apply_diagnostic_fixes(
         applied: scheduler_result.applied,
         rolled_back: scheduler_result.rolled_back,
         error: scheduler_result.error,
-        inject_context_marker: request.inject_context_marker,
     })
 }
 
