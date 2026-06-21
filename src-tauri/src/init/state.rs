@@ -432,7 +432,7 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState, Strin
         tokio::sync::Mutex<Option<axagent_core::browser_automation::PlaywrightClient>>,
     > = Arc::new(tokio::sync::Mutex::new(None));
     #[cfg(target_os = "android")]
-    let browser_client: Arc<tokio::sync::Mutex<Option<std::convert::Infallible>>> =
+    let browser_client: Arc<tokio::sync::Mutex<Option<()>>> =
         Arc::new(tokio::sync::Mutex::new(None));
     let dream_consolidator =
         Arc::new(axagent_trajectory::DreamConsolidator::new().with_data_provider(Arc::new(
