@@ -5,6 +5,16 @@
 //! This crate owns session persistence, permission evaluation, prompt assembly,
 //! MCP plumbing, tool-facing file operations, and the core conversation loop
 //! that drives interactive and one-shot turns.
+//!
+//! ## ⚠️ 本 crate **不**做 `axagent_harness` 顶层 32 条 `pub use` 的兜底镜像
+//!
+//! 业务组件需要 harness 契约项（如 `Persistence`、`ProviderAdapter`、
+//! `Tool`、`PromptGuard`、`StorageBackend` 等）时，请**直接**
+//! `use axagent_harness::...`，不要假设 `use axagent_runtime::Persistence`
+//! 之类的路径可用——这些符号在 `axagent_harness`，不在本 crate 透传范围。
+//!
+//! 依赖方向铁律：`业务组件 → harness ← 实现`。
+//! 详见 [`axagent_harness`] crate 文档与 `harness/src/lib.rs` 顶部的架构说明。
 
 pub mod adversarial_debate;
 pub mod agent_roles;

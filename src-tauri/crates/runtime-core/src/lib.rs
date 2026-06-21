@@ -7,6 +7,22 @@
 //!
 //! axagent-runtime re-exports everything from this crate, so consumers that
 //! import from `axagent_runtime` continue to work without changes.
+//!
+//! ## ⚠️ 本 crate **不**做 `axagent_harness` 顶层 32 条 `pub use` 的镜像
+//!
+//! 业务组件需要 harness 契约项（如 `Persistence`、`ProviderAdapter`、
+//! `Tool`、`PromptGuard`、`StorageBackend` 等）时，请**直接**
+//! `use axagent_harness::...`，不要假设 `use axagent_runtime_core::Persistence`
+//! 之类的路径可用——这些符号在 `axagent_harness`，不在本 crate 透传范围。
+//!
+//! ### 例外：`MessageRole` 单向引用 `harness::types::MessageRole`
+//!
+//! 本 crate 的 `session::MessageRole` 通过
+//! `pub use axagent_harness::types::MessageRole;` 单向指向 harness 权威源，
+//! 仅用于消除与 `axagent_harness::MessageRole` 的同名异类。
+//! 这是**唯一**一条 harness 顶层项的引用，其余契约项请走 `axagent_harness::...`。
+//!
+//! 依赖方向铁律：`业务组件 → harness ← 实现`。
 
 pub mod balance;
 pub mod cache_guard;

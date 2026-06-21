@@ -20,13 +20,12 @@ static SESSION_ID_COUNTER: AtomicU64 = AtomicU64::new(0);
 static LAST_TIMESTAMP_MS: AtomicU64 = AtomicU64::new(0);
 
 /// Speaker role associated with a persisted conversation message.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-pub enum MessageRole {
-    System,
-    User,
-    Assistant,
-    Tool,
-}
+///
+/// 权威源:`axagent_harness::types::MessageRole`(lowercase serde 格式)。
+/// 业务代码请统一 `use axagent_harness::MessageRole` 访问
+/// (走契约层,符合"业务组件 → harness ← 实现"依赖方向),
+/// 避免与本 crate 的 `axagent_runtime_core::MessageRole` 产生同名异类歧义。
+pub use axagent_harness::types::MessageRole;
 
 /// Structured message content stored inside a [`Session`].
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
