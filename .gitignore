@@ -71,6 +71,8 @@ debug/*
 .wolf/
 .reasonix/
 reasonix.toml
+.codex/
+AGENTS.md
 
 # IDE local settings (use .vscode/ for shared config)
 settings.json
