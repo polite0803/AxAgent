@@ -41,6 +41,9 @@ use tauri::State;
 /// ## 错误
 /// - 变量名不存在 → `"variable 'xxx' not found"`
 /// - 路径段冲突(中间不是 object) → `"path segment 'yyy' is not an object"`
+///
+/// ## 性能
+/// `name` 拆分为 (var_name, sub_path) 只走一次 split_once,不重复扫描。
 #[tauri::command]
 pub async fn apply_update_variable(
     state: State<'_, AppState>,
@@ -51,16 +54,24 @@ pub async fn apply_update_variable(
     let db = state.harness.db();
     let mut template = load_template(&db, &template_id).await?;
 
+    // name可能是"score"(整值替换)或"score.min"(嵌套修改),拆出变量名前缀
+    let (var_name, sub_path) = name.split_once('.').unwrap_or((&name, ""));
+
     let mut found = false;
     for var in template.variables.iter_mut() {
-        if var.name == name {
-            apply_value_path(&mut var.value, &name, value.clone())?;
+        if var.name == var_name {
+            if sub_path.is_empty() {
+                // 无 dotted path → 整项替换 value
+                var.value = value.clone();
+            } else {
+                apply_value_path(&mut var.value, sub_path, value.clone())?;
+            }
             found = true;
             break;
         }
     }
     if !found {
-        return Err(format!("variable '{name}' not found in template '{template_id}'"));
+        return Err(format!("variable '{var_name}' not found in template '{template_id}'"));
     }
 
     persist_template(&db, &template_id, &template_to_input(&template)).await?;
@@ -68,14 +79,28 @@ pub async fn apply_update_variable(
 }
 
 /// 把 `value` 沿 `name` 的 dotted path 应用(原地修改 root_value)
+///
+/// ## 语义(与嵌套路径一致)
+/// - 1 段:在 `root_value` 中设置 key;若 root_value 不是 object,先转为空 object
+/// - 多段:递归下钻,中间层自动创建为 object
 fn apply_value_path(
     root_value: &mut serde_json::Value,
     name: &str,
     value: serde_json::Value,
 ) -> Result<(), String> {
     let segments: Vec<&str> = name.split('.').collect();
+    if segments.is_empty() {
+        return Err("empty dotted path".to_string());
+    }
     if segments.len() == 1 {
-        *root_value = value;
+        if root_value.is_object() {
+            root_value
+                .as_object_mut()
+                .unwrap()
+                .insert(segments[0].to_string(), value);
+        } else {
+            *root_value = serde_json::json!({segments[0].to_string(): value});
+        }
         return Ok(());
     }
     // 嵌套路径:在 root_value 内沿路径下钻
@@ -775,9 +800,9 @@ mod tests {
 
     #[test]
     fn apply_value_path_replaces_root() {
-        let mut v = json!(0.5);
+        let mut v = json!({"score": 0.5});
         apply_value_path(&mut v, "score", json!(0.8)).unwrap();
-        assert_eq!(v, json!(0.8));
+        assert_eq!(v, json!({"score": 0.8}));
     }
 
     #[test]
