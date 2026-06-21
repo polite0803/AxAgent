@@ -706,6 +706,13 @@ pub fn run() {
             commands::workflow_ai::workflow_ai_chat_stream,
             commands::workflow_ai::workflow_ai_chat_cancel,
             commands::workflow_ai_diagnose::llm_diagnose_workflow,
+            commands::workflow_ai_diagnose::apply_diagnostic_fixes,
+            // V2 协议 chat action apply 命令(P0 #1 实现:5/5)
+            commands::workflow_ai_apply::apply_update_variable,
+            commands::workflow_ai_apply::apply_rollback_to_version,
+            commands::workflow_ai_apply::apply_update_input_mapping,
+            commands::workflow_ai_apply::apply_edit_asset_file,
+            commands::workflow_ai_apply::apply_diff_with_validation,
             // Platform integration commands
             commands::platform_integration::get_platform_config,
             commands::platform_integration::update_platform_config,

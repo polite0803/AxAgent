@@ -777,8 +777,64 @@ export type DiagnosticCategory =
  * - delete_node:    删除指定节点
  * - delete_edge:    删除指定边
  * - enable_retry:   启用节点重试
- * - set_timeout:    设置节点超时
+ * - remove_debater_step: 移除辩手子节点
+ * - update_variable:     改 workflow_template.variables
+ * - update_input_mapping: 改 sub-workflow 节点 input_mapping
+ * - edit_asset_file:     LSP 风格锚点编辑任意文本文件
+ * - rollback_to_version: 回滚到指定版本
  */
+export type EditAssetOperation = "insert_after" | "replace" | "delete";
+
+/** 验证规格 — type 由调用方定义(已知 hook: "backtest") */
+export interface ValidationSpec {
+  type: string;
+  params?: Record<string, unknown>;
+}
+
+/** `apply_edit_asset_file` 命令的返回结果(后端 `EditAssetFileResult`) */
+export interface EditAssetFileResult {
+  /** 改动后的完整文件内容 */
+  new_content: string;
+  /** 简单的 unified diff(无颜色,前端可展示) */
+  diff: string;
+  /** 改动的起始行号(1-based,用于前端高亮) */
+  changed_start_line: number;
+  /** 改动的结束行号(1-based,包含) */
+  changed_end_line: number;
+}
+
+/** `apply_diff_with_validation` 命令的返回结果(后端 `ApplyDiffValidationResult`) */
+export interface ApplyDiffValidationResult {
+  /** 验证是否通过 */
+  validation_passed: boolean;
+  /** 实际应用的 action 数(部分失败时可能 < inputs) */
+  applied_count: number;
+  /** 已应用的 action 列表(action_type 字符串) */
+  applied: string[];
+  /** 验证指标(由 validation hook 填) */
+  validation_metrics: Record<string, unknown>;
+  /** 是否发生了回滚 */
+  rolled_back: boolean;
+  /** 错误信息(任一 action 失败时) */
+  error: string | null;
+}
+
+/** `apply_diagnostic_fixes` 命令的返回结果(后端 `ApplyDiagnosticFixesResult`) */
+export interface ApplyDiagnosticFixesResult {
+  /** 接收的 fix 总数(去重前) */
+  received: number;
+  /** 去重后的 fix 数(实际进入调度器的) */
+  deduped: number;
+  /** 调度器结果:validation_passed(true/false/none) */
+  validation_passed: boolean;
+  /** 已应用的 action 列表(action_type 字符串) */
+  applied: string[];
+  /** 是否发生了回滚 */
+  rolled_back: boolean;
+  /** 错误信息(任一 action 失败时) */
+  error: string | null;
+}
+
 export type DiagnosticFix =
   | {
     action_type: "set_node_field";
@@ -790,7 +846,28 @@ export type DiagnosticFix =
   | { action_type: "delete_edge"; edge_id: string }
   | { action_type: "enable_retry"; node_id: string; max_retries: number }
   | { action_type: "set_timeout"; node_id: string; timeout_ms: number }
-  | { action_type: "remove_debater_step"; node_id: string; step_id: string };
+  | { action_type: "remove_debater_step"; node_id: string; step_id: string }
+  | {
+    action_type: "update_variable";
+    template_id: string;
+    name: string;
+    value: unknown;
+  }
+  | {
+    action_type: "update_input_mapping";
+    node_id: string;
+    mappings: Array<{ target: string; source: string }>;
+  }
+  | {
+    action_type: "edit_asset_file";
+    path: string;
+    operation: EditAssetOperation;
+    anchor_line: number;
+    /** insert_after / replace 时必填;delete 时可省 */
+    code?: string;
+    description: string;
+  }
+  | { action_type: "rollback_to_version"; template_id: string; version: number };
 
 export interface DiagnosticIssue {
   id: string;
@@ -1245,7 +1322,36 @@ export type AiChatAction =
   | { action_type: "add_edge"; data: { edge: WorkflowEdge } }
   | { action_type: "update_edge"; data: { edge_id: string; changes: Partial<WorkflowEdge> } }
   | { action_type: "delete_edge"; data: { edge_id: string } }
-  | { action_type: "optimize_prompt"; data: { node_id: string; optimized_prompt: string } };
+  | { action_type: "optimize_prompt"; data: { node_id: string; optimized_prompt: string } }
+  // ── v2.0 基础设施类 action(与后端 workflow_ai_protocol::ChatAction 对齐)──
+  | { action_type: "update_variable"; data: { template_id: string; name: string; value: unknown } }
+  | { action_type: "rollback_to_version"; data: { template_id: string; version: number } }
+  | {
+    action_type: "update_input_mapping";
+    data: {
+      node_id: string;
+      mappings: Array<{ target: string; source: string }>;
+    };
+  }
+  | {
+    action_type: "edit_asset_file";
+    data: {
+      path: string;
+      operation: EditAssetOperation;
+      anchor_line: number;
+      /** insert_after / replace 时必填;delete 时可省 */
+      code?: string;
+      description: string;
+    };
+  }
+  | {
+    action_type: "apply_diff_with_validation";
+    data: {
+      actions: AiChatAction[];
+      validation: ValidationSpec;
+      rollback_on_failure?: boolean;
+    };
+  };
 
 /** AiChatAction 的 action_type 联合类型（用于 switch 穷尽性检查） */
 export type AiChatActionType = AiChatAction["action_type"];
