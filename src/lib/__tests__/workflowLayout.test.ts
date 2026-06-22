@@ -83,9 +83,9 @@ describe("workflowLayout", () => {
       // 扁平布局时所有节点都按主 dagre 输出绝对坐标
       expect(result.nodes.find((n) => n.id === "a")?.position.x).not.toBe(0);
       expect(result.nodes.find((n) => n.id === "b")?.position.y).not.toBe(0);
-      // b 在 a 之后（rank 更低）
-      expect(result.nodes.find((n) => n.id === "b")!.position.y)
-        .toBeGreaterThan(result.nodes.find((n) => n.id === "a")!.position.y);
+      // b 在 a 之后（rankdir=LR，b 的 x 大于 a）
+      expect(result.nodes.find((n) => n.id === "b")!.position.x)
+        .toBeGreaterThan(result.nodes.find((n) => n.id === "a")!.position.x);
     });
 
     it("falls back to flat layout when parentRefs is empty even with parallel nodes", () => {
