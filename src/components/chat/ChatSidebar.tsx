@@ -1493,6 +1493,7 @@ export function ChatSidebar({
       buildExportChildren,
       setActiveConversation,
       messageApi,
+      abbreviateWsPath,
     ],
   );
 
