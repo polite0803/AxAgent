@@ -102,7 +102,7 @@ export const AgentStatsPanel: React.FC = () => {
           if (activeConversationId in currentStreams) {
             if (!isTauri()) {
               console.warn(
-                "[AgentStatsPanel] 浏览器模式：流事件无法送达，自动清理卡住的流状态",
+                "[AgentStatsPanel] browser mode: stream events can't reach, auto-cleaning stuck stream state",
               );
             }
             useStreamStore.getState().cancelCurrentStream(activeConversationId);
