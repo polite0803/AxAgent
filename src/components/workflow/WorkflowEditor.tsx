@@ -505,7 +505,12 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
       && Object.entries(expectedParentByNode).some(([cid, pid]) => parentRefs[cid] !== pid);
 
     if (pendingParentSync) {
-      hasAutoLaidOutRef.current = true; // 标记为已布局，避免后续重复触发
+      // 关键：不能在这里把 hasAutoLaidOutRef 设为 true。
+      // 否则下一轮 useEffect 因为 ref 已经是 true 而跳过 autoLayout，
+      // 整个工作流就停留在初始错乱位置。
+      // 应该等下一轮 useEffect 重新评估（setParentRef 已同步 parentRefs），
+      // pendingParentSync 此时变为 false，autoLayout 才会被调用。
+      // 用 scheduleAutoLayoutNextTick 标记"等下一轮再排"
     }
 
     if (!hasAutoLaidOutRef.current && nodes.length >= 2) {
