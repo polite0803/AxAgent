@@ -83,11 +83,11 @@ const ContainerNodeComponent: React.FC<ContainerNodeProps> = ({
     <div
       style={{
         // 展开态下，内层 div 的尺寸必须与 useFlowNodes 计算的 containerStyle 一致。
-        // useFlowNodes 最小值为 CONTAINER_MIN_W=400 / CONTAINER_MIN_H=200。
+        // useFlowNodes 最小值为 CONTAINER_MIN_W=240 / CONTAINER_MIN_H=120（修复1、7）。
         // 当 data.nodeWidth/nodeHeight 缺失时（兜底场景），使用与 useFlowNodes
         // 相同的 fallback 值，否则内层 div 过小 → 子节点视觉上超出容器边界。
-        width: isCollapsed ? 160 : (data.nodeWidth ?? 400),
-        height: isCollapsed ? 34 : (data.nodeHeight ?? 200),
+        width: isCollapsed ? 160 : (data.nodeWidth ?? 240),
+        height: isCollapsed ? 34 : (data.nodeHeight ?? 120),
         background: `${data.color}06`,
         border: `1.5px dashed ${selected ? token.colorPrimary : `${data.color}50`}`,
         borderRadius: 8,
@@ -277,8 +277,8 @@ const ContainerNodeComponent: React.FC<ContainerNodeProps> = ({
               height: PORT_SIZE,
               pointerEvents: "all",
               ...getHandlePosition(
-                isCollapsed ? 160 : (data.nodeWidth ?? 400),
-                isCollapsed ? 34 : (data.nodeHeight ?? 200),
+                isCollapsed ? 160 : (data.nodeWidth ?? 240),
+                isCollapsed ? 34 : (data.nodeHeight ?? 120),
                 "top",
               ),
             }}
@@ -293,8 +293,8 @@ const ContainerNodeComponent: React.FC<ContainerNodeProps> = ({
               height: PORT_SIZE,
               pointerEvents: "all",
               ...getHandlePosition(
-                isCollapsed ? 160 : (data.nodeWidth ?? 400),
-                isCollapsed ? 34 : (data.nodeHeight ?? 200),
+                isCollapsed ? 160 : (data.nodeWidth ?? 240),
+                isCollapsed ? 34 : (data.nodeHeight ?? 120),
                 "bottom",
               ),
             }}

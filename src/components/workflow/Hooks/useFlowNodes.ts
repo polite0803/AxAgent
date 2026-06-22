@@ -124,10 +124,11 @@ export function useFlowNodes(params: UseFlowNodesParams) {
       }
       const isContainerCollapsed = isContainer
         && collapsedContainers[node.id];
-      const CONTAINER_PADDING = 40;
-      const CONTAINER_MIN_W = 400;
-      const CONTAINER_MIN_H = 200;
-      const CONTAINER_HEADER_H = 60;
+      // 修复1、2、7：与 workflowLayout.ts 保持同步的容器尺寸常量
+      const CONTAINER_PADDING = 16;
+      const CONTAINER_MIN_W = 240;
+      const CONTAINER_MIN_H = 120;
+      const CONTAINER_HEADER_H = 36;
       let containerStyle: React.CSSProperties | undefined;
       if (isContainerCollapsed) {
         containerStyle = { width: 160, height: 34 };

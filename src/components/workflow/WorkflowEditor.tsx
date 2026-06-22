@@ -1683,8 +1683,13 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
       }
     }
 
+    // 修复9：自动布局完成后调用 fitView，把整个图适配到视口
+    requestAnimationFrame(() => {
+      reactFlowInstance.fitView({ padding: 0.15, duration: 400, maxZoom: 1.2 });
+    });
+
     message.success(t("workflow.autoLayout"));
-  }, [reactFlowNodes, reactFlowEdges, parentRefs, setRNodes, updateNode, t]);
+  }, [reactFlowNodes, reactFlowEdges, parentRefs, setRNodes, updateNode, t, reactFlowInstance]);
 
   const handleClose = useCallback(() => {
     if (isDirty) {
@@ -1910,6 +1915,8 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
                 edgeTypes={edgeTypes}
                 defaultEdgeOptions={defaultEdgeOptions}
                 fitView
+                // 修复9：优化 fitView 选项——增加 padding 避免贴边；maxZoom 限制避免过大节点
+                fitViewOptions={{ padding: 0.15, includeHiddenNodes: false, maxZoom: 1.2, duration: 400 }}
                 snapToGrid
                 snapGrid={[20, 20]}
                 selectionOnDrag

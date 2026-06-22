@@ -83,9 +83,9 @@ describe("workflowLayout", () => {
       // 扁平布局时所有节点都按主 dagre 输出绝对坐标
       expect(result.nodes.find((n) => n.id === "a")?.position.x).not.toBe(0);
       expect(result.nodes.find((n) => n.id === "b")?.position.y).not.toBe(0);
-      // b 在 a 之后（rankdir=LR，b 的 x 大于 a）
-      expect(result.nodes.find((n) => n.id === "b")!.position.x)
-        .toBeGreaterThan(result.nodes.find((n) => n.id === "a")!.position.x);
+      // 修复3：方向统一为 TB，b 在 a 之下（b 的 y 大于 a）
+      expect(result.nodes.find((n) => n.id === "b")!.position.y)
+        .toBeGreaterThan(result.nodes.find((n) => n.id === "a")!.position.y);
     });
 
     it("falls back to flat layout when parentRefs is empty even with parallel nodes", () => {
@@ -112,7 +112,7 @@ describe("workflowLayout", () => {
       const p = result.nodes.find((n) => n.id === "p")!;
 
       // 子节点必须落在父容器 bbox 内：父绝对坐标 + PADDING 范围内
-      const PADDING = 40;
+      const PADDING = 16;
       const pSize = getNodeSize("parallel");
       // ReactFlow 相对坐标：c1 = abs(c1) - abs(p)
       // 由于子组归一化到原点后叠加 PADDING，c1.x 必在 [PADDING, PADDING + 子组宽] 内
@@ -174,8 +174,8 @@ describe("workflowLayout", () => {
       const outer = result.nodes.find((n) => n.id === "outer")!;
       const inner = result.nodes.find((n) => n.id === "inner")!;
       // inner 应在 outer bbox 内（相对坐标落在 PADDING 区间）
-      expect(inner.position.x).toBeGreaterThanOrEqual(40);
-      expect(inner.position.y).toBeGreaterThanOrEqual(40);
+      expect(inner.position.x).toBeGreaterThanOrEqual(16);
+      expect(inner.position.y).toBeGreaterThanOrEqual(16);
       // outer 的宽度应当至少 > inner 宽 + padding
       const outerSize = getNodeSize("parallel");
       expect(outer.position.x).toBeDefined();
@@ -208,7 +208,7 @@ describe("workflowLayout", () => {
       const c1 = result.nodes.find((n) => n.id === "c1")!;
       const lp = result.nodes.find((n) => n.id === "lp")!;
 
-      const PADDING = 40;
+      const PADDING = 16;
       expect(c1.position.x).toBeGreaterThanOrEqual(PADDING);
       expect(c1.position.y).toBeGreaterThanOrEqual(PADDING);
       expect(lp.position).toBeDefined();
@@ -226,7 +226,7 @@ describe("workflowLayout", () => {
       const c1 = result.nodes.find((n) => n.id === "c1")!;
       const db = result.nodes.find((n) => n.id === "db")!;
 
-      const PADDING = 40;
+      const PADDING = 16;
       expect(c1.position.x).toBeGreaterThanOrEqual(PADDING);
       expect(c1.position.y).toBeGreaterThanOrEqual(PADDING);
       expect(db.position).toBeDefined();
@@ -243,7 +243,7 @@ describe("workflowLayout", () => {
       const c1 = result.nodes.find((n) => n.id === "c1")!;
       const agg = result.nodes.find((n) => n.id === "agg")!;
 
-      const PADDING = 40;
+      const PADDING = 16;
       expect(c1.position.x).toBeGreaterThanOrEqual(PADDING);
       expect(c1.position.y).toBeGreaterThanOrEqual(PADDING);
       expect(agg.position).toBeDefined();
