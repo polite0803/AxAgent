@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import type { Edge, Node } from "@xyflow/react";
-import * as d3 from "d3-force";
 import dagre from "dagre";
 
 // ── 工作流校验系统 ────────────────────────────────────────────
@@ -1302,36 +1301,21 @@ export function getHandlePosition(
   }
 }
 
-// ── D3 Force 力导向布局 ──────────────────────────────────────────
-
-interface ForceNode {
-  id: string;
-  type?: string;
-  x: number;
-  y: number;
-  vx: number;
-  vy: number;
-  fx?: number;
-  fy?: number;
-  width: number;
-  height: number;
-}
-
-interface ForceLink {
-  source: string;
-  target: string;
-}
+// ── 容器尺寸布局算法 ────────────────────────────────────────────
+// 旧版 d3-force 力导向算法已弃用，被下面的"拓扑分层 + 每层水平均匀分布"取代。
 
 /**
- * 使用 d3-force 力导向布局对工作流节点进行优化布局。
+ * 工作流节点布局（拓扑分层 + 每层水平均匀分布 + 顶层 dagre）。
  *
- * 策略（修复3、4、5、6、8）：
- * 1. 修复3：统一使用 TB 方向（顶层+子图），避免 LR/TB 混用造成方向混乱
- * 2. 修复5：递归处理嵌套容器，内层容器先布局并计算 bbox，再随外层定位
- * 3. 修复6：子节点居中——容器内子节点 bbox 居中对齐到容器几何中心
- * 4. 修复4+8：d3-force 参数调整——增大 link 距离、降低 charge 强度、添加固定 y
- *    防止节点过密聚集；增加迭代次数让布局收敛
- * 5. 修复1：容器尺寸严格按子节点 bbox 计算，不加多余 padding
+ * 重写背景：旧版 d3-force 把节点推到中心后破坏了 dagre 的层级结构，
+ * 造成"半边空、半边挤"的不平衡。新算法完全弃用 d3-force。
+ *
+ * 策略（修复3、4、5、6、8 全部重写）：
+ * 1. 修复5：递归处理嵌套容器（深层优先排序）
+ * 2. 修复6：容器内子节点用"拓扑分层（BFS 按入度）+ 每层水平均匀分布"算法
+ *    —— 同一层节点水平均匀铺开，不同层垂直堆叠
+ * 3. 修复1：容器尺寸严格 = 子节点 bbox + 2 × PADDING + HEADER
+ * 4. 修复3：顶层节点用 dagre TB 布局
  *
  * @param nodes - 节点列表（需包含 id / type / position / data）
  * @param edges - 边列表（需包含 source / target）
@@ -1347,12 +1331,10 @@ export function forceLayout(
 
   const childOf = parentRefs;
 
-  // 修复5：递归收集所有容器（包括嵌套层）
+  // 修复5：递归收集所有容器，按"深层优先"排序
   const allContainers = nodes.filter(
     (n) => CONTAINER_NODE_TYPES.has(n.type || layoutNodeType(n)),
   );
-
-  // 修复5：先按"深层优先"排序布局容器——叶子容器先排，再排外层
   const sortByDepth = (a: AutoNode, b: AutoNode): number => {
     const depthOf = (id: string): number => {
       let d = 0;
@@ -1365,14 +1347,17 @@ export function forceLayout(
       }
       return d;
     };
-    return depthOf(b.id) - depthOf(a.id); // 深的在前
+    return depthOf(b.id) - depthOf(a.id);
   };
   const containers = [...allContainers].sort(sortByDepth);
 
   const childPositions: Record<string, { x: number; y: number }> = {};
   const containerBBox: Record<string, { width: number; height: number }> = {};
 
-  // 修复5：对每个容器独立排布其子节点
+  // ── 步骤 1：对每个容器用"拓扑分层 + 每层水平均匀分布"布局子节点（修复6）──
+  const RANK_GAP = 50;
+  const NODE_GAP = 30;
+
   for (const c of containers) {
     const cType = c.type || layoutNodeType(c);
     const childIds = Object.keys(childOf).filter((cid) => childOf[cid] === c.id);
@@ -1381,7 +1366,6 @@ export function forceLayout(
       .filter(Boolean) as AutoNode[];
 
     if (childNodes.length === 0) {
-      // 无子节点的容器：按节点类型最小尺寸
       const sz = getNodeSize(cType);
       containerBBox[c.id] = {
         width: Math.max(CONTAINER_MIN_W, sz.width + CONTAINER_PADDING * 2),
@@ -1390,154 +1374,135 @@ export function forceLayout(
       continue;
     }
 
-    // 修复5：分离子节点中的"嵌套子容器"和"普通子节点"
-    // 嵌套子容器已经在前面的迭代中排好位置了，要锁定它
+    // 分离嵌套子容器和叶子子节点
     const nestedContainerIds = childNodes
       .filter((cn) => CONTAINER_NODE_TYPES.has(cn.type || layoutNodeType(cn)))
       .map((cn) => cn.id);
-    const leafChildIds = childIds.filter((cid) => !nestedContainerIds.includes(cid));
-    const leafChildNodes = leafChildIds
-      .map((cid) => nodes.find((n) => n.id === cid))
-      .filter(Boolean) as AutoNode[];
 
+    // 1a. 拓扑分层（BFS 按入度）
     const childEdges = edges.filter(
       (e) => childIds.includes(e.source) && childIds.includes(e.target),
     );
+    const indegree: Record<string, number> = {};
+    for (const id of childIds) { indegree[id] = 0; }
+    for (const e of childEdges) { indegree[e.target]++; }
 
-    // ── 步骤 A：用 Dagre 排布叶子子节点（修复3：TB 方向）──
-    const leafSubGraph = new dagre.graphlib.Graph();
-    leafSubGraph.setDefaultEdgeLabel(() => ({}));
-    leafSubGraph.setGraph({
-      rankdir: "TB",
-      ranksep: 40, // 修复4：减小层间距离，避免容器过高
-      nodesep: 20, // 修复4：减小同层距离
-      marginx: 10,
-      marginy: 10,
-      ranker: "network-simplex",
+    const remaining = new Set(childIds);
+    const layers: string[][] = [];
+    let guard = childIds.length + 1;
+    while (remaining.size > 0 && guard-- > 0) {
+      const cur: string[] = [];
+      for (const id of remaining) {
+        if (indegree[id] === 0) { cur.push(id); }
+      }
+      if (cur.length === 0) {
+        cur.push(...remaining);
+        remaining.clear();
+      } else {
+        for (const id of cur) { remaining.delete(id); }
+        for (const e of childEdges) {
+          if (cur.includes(e.source)) { indegree[e.target]--; }
+        }
+      }
+      layers.push(cur);
+    }
+
+    // 嵌套子容器放到第一层
+    for (const ncId of nestedContainerIds) {
+      if (!layers[0].includes(ncId)) { layers[0].push(ncId); }
+    }
+
+    // 1b. 计算每层高度
+    const layerHeights: number[] = layers.map((layer) => {
+      let maxH = 0;
+      for (const id of layer) {
+        const cn = childNodes.find((x) => x.id === id);
+        if (!cn) { continue; }
+        const sz = containerBBox[id] || getNodeSize(cn.type || layoutNodeType(cn));
+        maxH = Math.max(maxH, sz.height);
+      }
+      return maxH;
     });
 
-    for (const cn of leafChildNodes) {
-      const t = cn.type || layoutNodeType(cn);
-      const sz = getNodeSize(t);
-      leafSubGraph.setNode(cn.id, { width: sz.width, height: sz.height });
+    // 1c. 计算每层 y 坐标
+    const layerTops: number[] = [];
+    let curY = CONTAINER_HEADER_H + CONTAINER_PADDING;
+    for (let i = 0; i < layers.length; i++) {
+      layerTops.push(curY);
+      curY += layerHeights[i] + RANK_GAP;
     }
-    for (const ce of childEdges) {
-      // 只排叶子节点间的边
-      if (leafChildIds.includes(ce.source) && leafChildIds.includes(ce.target)) {
-        leafSubGraph.setEdge(ce.source, ce.target);
+
+    // 1d. 找最宽层，决定容器宽度
+    let maxLayerWidth = 0;
+    for (const layer of layers) {
+      let w = 0;
+      for (const id of layer) {
+        const cn = childNodes.find((x) => x.id === id);
+        if (!cn) { continue; }
+        const sz = containerBBox[id] || getNodeSize(cn.type || layoutNodeType(cn));
+        w += sz.width;
+      }
+      w += Math.max(0, layer.length - 1) * NODE_GAP;
+      maxLayerWidth = Math.max(maxLayerWidth, w);
+    }
+
+    // 容器宽度 = 最宽层 + 2*PADDING
+    // 容器高度 = 所有层高 + 2*PADDING + HEADER
+    const innerW = maxLayerWidth + CONTAINER_PADDING * 2;
+    const innerH = curY - (CONTAINER_HEADER_H + CONTAINER_PADDING) + CONTAINER_PADDING;
+
+    // 1e. 放置子节点（每层居中）
+    for (let li = 0; li < layers.length; li++) {
+      const layer = layers[li];
+      let layerW = 0;
+      for (const id of layer) {
+        const cn = childNodes.find((x) => x.id === id);
+        if (!cn) { continue; }
+        const sz = containerBBox[id] || getNodeSize(cn.type || layoutNodeType(cn));
+        layerW += sz.width;
+      }
+      layerW += Math.max(0, layer.length - 1) * NODE_GAP;
+
+      // 居中：起始 x
+      let curX = (innerW - layerW) / 2;
+      for (const id of layer) {
+        const cn = childNodes.find((x) => x.id === id);
+        if (!cn) { continue; }
+        const sz = containerBBox[id] || getNodeSize(cn.type || layoutNodeType(cn));
+        childPositions[id] = {
+          x: curX,
+          y: layerTops[li],
+        };
+        curX += sz.width + NODE_GAP;
       }
     }
 
-    dagre.layout(leafSubGraph);
-
-    // 收集叶子节点位置
-    const leafPositions: Record<string, { x: number; y: number }> = {};
-    let lMinX = Infinity, lMinY = Infinity, lMaxX = -Infinity, lMaxY = -Infinity;
-    for (const cn of leafChildNodes) {
-      const dagreNode = leafSubGraph.node(cn.id);
-      if (!dagreNode) { continue; }
-      const sz = getNodeSize(cn.type || layoutNodeType(cn));
-      const px = dagreNode.x - sz.width / 2;
-      const py = dagreNode.y - sz.height / 2;
-      leafPositions[cn.id] = { x: px, y: py };
-      lMinX = Math.min(lMinX, px);
-      lMinY = Math.min(lMinY, py);
-      lMaxX = Math.max(lMaxX, px + sz.width);
-      lMaxY = Math.max(lMaxY, py + sz.height);
-    }
-
-    // 修复5：把已排好的"嵌套子容器"位置加入 bbox 计算
-    for (const ncId of nestedContainerIds) {
-      const ncPos = childPositions[ncId];
-      const ncNode = nodes.find((n) => n.id === ncId);
-      if (!ncPos || !ncNode) { continue; }
-      const sz = containerBBox[ncId] || getNodeSize(ncNode.type || layoutNodeType(ncNode));
-      lMinX = Math.min(lMinX, ncPos.x);
-      lMinY = Math.min(lMinY, ncPos.y);
-      lMaxX = Math.max(lMaxX, ncPos.x + sz.width);
-      lMaxY = Math.max(lMaxY, ncPos.y + sz.height);
-    }
-
-    // ── 步骤 B：计算容器 bbox ──
-    // 修复1：根据子节点实际 bbox 计算，不再额外加 padding（已用 CONTAINER_PADDING）
-    if (lMinX === Infinity) {
-      const sz = getNodeSize(cType);
-      containerBBox[c.id] = {
-        width: Math.max(CONTAINER_MIN_W, sz.width + CONTAINER_PADDING * 2),
-        height: Math.max(CONTAINER_MIN_H, sz.height + CONTAINER_PADDING * 2 + CONTAINER_HEADER_H),
-      };
-      continue;
-    }
-
-    // 修复1：bbox 严格基于子节点包围盒
-    const contentW = lMaxX - lMinX;
-    const contentH = lMaxY - lMinY;
     containerBBox[c.id] = {
-      width: Math.max(CONTAINER_MIN_W, contentW + CONTAINER_PADDING * 2),
-      height: Math.max(CONTAINER_MIN_H, contentH + CONTAINER_PADDING * 2 + CONTAINER_HEADER_H),
+      width: Math.max(CONTAINER_MIN_W, innerW),
+      height: Math.max(CONTAINER_MIN_H, innerH + CONTAINER_HEADER_H),
     };
-
-    // ── 步骤 C：把子节点偏移到容器内坐标（修复6：左上对齐到 padding）──
-    // 修复6：把子节点居中到容器水平方向，垂直方向贴顶（标题栏下方）
-    const offsetX = CONTAINER_PADDING - lMinX; // 让最左子节点贴 padding
-    const offsetY = CONTAINER_HEADER_H + CONTAINER_PADDING - lMinY; // 顶部留出标题栏
-
-    for (const cn of leafChildNodes) {
-      const pos = leafPositions[cn.id];
-      if (!pos) { continue; }
-      childPositions[cn.id] = {
-        x: pos.x + offsetX,
-        y: pos.y + offsetY,
-      };
-    }
-
-    // 嵌套子容器用其已计算位置 + 容器偏移
-    for (const ncId of nestedContainerIds) {
-      const ncPos = childPositions[ncId];
-      if (!ncPos) { continue; }
-      // 嵌套子容器已经在前面排好（相对于它自己的子节点），
-      // 这里是直接以它为整体平移到本容器内
-      // 它的绝对位置应该基于它当前 childPositions[ncId] 是相对其父的位置
-      // 但当父是当前 c 时，它已经是相对 c 的了
-      // 我们需要把它平移到容器内
-      const ncNode = nodes.find((n) => n.id === ncId);
-      if (!ncNode) { continue; }
-      // 获取嵌套容器相对其原始位置的偏移
-      const originalNcPos = leafPositions[ncId] || childPositions[ncId];
-      childPositions[ncId] = {
-        x: originalNcPos.x + offsetX,
-        y: originalNcPos.y + offsetY,
-      };
-    }
   }
 
+  // ── 步骤 2：顶层节点用 dagre TB 布局（修复3）──
   const topLevel = nodes.filter((n) => !childOf[n.id]);
 
-  // ── 步骤 D：顶层节点布局（修复3：统一 TB 方向）──
   const g = new dagre.graphlib.Graph();
   g.setDefaultEdgeLabel(() => ({}));
   g.setGraph({
-    rankdir: "TB", // 修复3：顶层也用 TB，与子图保持一致
-    ranksep: 80, // 修复4：适中的层间距离
-    nodesep: 40, // 修复4：适中的同层距离
+    rankdir: "TB",
+    ranksep: 80,
+    nodesep: 50, // 修复4：同层节点间留出足够距离
     marginx: 40,
     marginy: 40,
     edgesep: 20,
     ranker: "network-simplex",
   });
 
-  const nodeTypeMap = new Map<string, string>();
   for (const n of topLevel) {
     const t = n.type || layoutNodeType(n);
-    nodeTypeMap.set(n.id, t);
     if (CONTAINER_NODE_TYPES.has(t)) {
       const bbox = containerBBox[n.id];
-      if (bbox) {
-        g.setNode(n.id, { width: bbox.width, height: bbox.height });
-      } else {
-        const sz = getNodeSize(t);
-        g.setNode(n.id, { width: sz.width, height: sz.height });
-      }
+      g.setNode(n.id, { width: bbox?.width || 200, height: bbox?.height || 80 });
     } else {
       const sz = getNodeSize(t);
       g.setNode(n.id, { width: sz.width, height: sz.height });
@@ -1553,8 +1518,8 @@ export function forceLayout(
 
   dagre.layout(g);
 
-  // ── 步骤 E：d3-force 微调（修复4、8）──
-  const forceNodes: ForceNode[] = [];
+  // 收集顶层节点位置
+  const allPositions: Record<string, { x: number; y: number }> = {};
   for (const n of topLevel) {
     const dagreNode = g.node(n.id);
     if (!dagreNode) { continue; }
@@ -1565,55 +1530,13 @@ export function forceLayout(
     } else {
       sz = getNodeSize(t);
     }
-    forceNodes.push({
-      id: n.id,
-      type: t,
+    allPositions[n.id] = {
       x: dagreNode.x - sz.width / 2,
       y: dagreNode.y - sz.height / 2,
-      vx: 0,
-      vy: 0,
-      width: sz.width,
-      height: sz.height,
-    });
+    };
   }
 
-  const forceLinks: ForceLink[] = topLevelEdges.map((e) => ({
-    source: e.source,
-    target: e.target,
-  }));
-
-  // 修复4+8：调整 center 计算（按节点数和总面积）
-  const totalArea = forceNodes.reduce((s, n) => s + n.width * n.height, 0);
-  const centerX = Math.max(300, Math.sqrt(totalArea) * 0.8);
-  const centerY = Math.max(300, Math.sqrt(totalArea) * 0.6);
-
-  const simulation = d3.forceSimulation<ForceNode, ForceLink>(forceNodes)
-    .force(
-      "link",
-      // 修复4：增大 link 距离到 200，避免节点过近
-      d3.forceLink<ForceNode, ForceLink>(forceLinks).id((d) => d.id).distance(200).strength(0.5),
-    )
-    .force("charge", d3.forceManyBody().strength(-400)) // 修复4：降低斥力
-    .force("center", d3.forceCenter(centerX, centerY))
-    .force(
-      "collide",
-      // 修复4：碰撞半径加大，避免重叠
-      d3.forceCollide<ForceNode>((d) => Math.max(d.width, d.height) / 2 + 30),
-    )
-    .force("y", d3.forceY<ForceNode>((d) => d.y).strength(0.3)) // 修复4：降低 y 约束
-    .stop();
-
-  // 修复8：增加迭代次数让布局收敛
-  for (let i = 0; i < 60; i++) {
-    simulation.tick();
-  }
-
-  const allPositions: Record<string, { x: number; y: number }> = {};
-  for (const fn of forceNodes) {
-    allPositions[fn.id] = { x: fn.x, y: fn.y };
-  }
-
-  // 把容器内子节点平移到容器新位置
+  // ── 步骤 3：把容器内子节点平移到容器新位置（修复1）──
   for (const c of containers) {
     const cPos = allPositions[c.id];
     if (!cPos) { continue; }
