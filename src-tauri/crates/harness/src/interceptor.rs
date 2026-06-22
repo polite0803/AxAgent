@@ -246,13 +246,12 @@ impl HarnessInterceptor for PromptGuardInterceptor {
         };
 
         // 从序列化的请求中提取消息内容并过滤
-        let messages = request.get("messages").and_then(|v| v.as_array());
-        if messages.is_none() || messages.unwrap().is_empty() {
-            return InterceptorResult::Continue;
-        }
+        let messages = match request.get("messages").and_then(|v| v.as_array()) {
+            Some(msgs) if !msgs.is_empty() => msgs,
+            _ => return InterceptorResult::Continue,
+        };
 
         // 对每个消息的 content 做 PromptGuard 过滤
-        let messages = messages.unwrap();
         for msg in messages {
             let content = match msg.get("content") {
                 Some(serde_json::Value::String(text)) => text.clone(),

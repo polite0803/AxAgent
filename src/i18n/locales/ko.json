@@ -3391,7 +3391,7 @@
     "search": "검색"
   },
   "workflow": {
-    "loopBackCycleDetected": "루프백 엣지가 사이클을 형성합니다. 대상 노드를 조정해 주세요",
+    "loopBackCycleDetected": "Loop-back edge would form a cycle, please adjust the target node",
     "cycleDetectedOnConnect": "이 엣지는 loopBack 마커 없이 사이클을 만듭니다 — 워크플로 엔진이 거부할 수 있습니다.",
     "decorativeContainerNoEdges": "장식 컨테이너는 들어오거나 나가는 엣지를 가질 수 없습니다",
     "unsavedTitle": "저장되지 않은 변경 사항",
@@ -4660,7 +4660,6 @@
     },
     "searchNodes": "노드 검색",
     "validationWarnings": "Workflow has {{count}} warning(s):\n{{details}}",
-    "loopBackCycleDetected": "Loop-back edge would form a cycle, please adjust the target node",
     "nodeKind": {
       "input": "Input",
       "output": "Output",
@@ -7273,7 +7272,16 @@
     "active": "캐시 활성. {{hits}} 적중, ~{{tokens}} 토큰 절약."
   },
   "artifactPanel": {
-    "fullscreen": "전체 화면"
+    "fullscreen": "전체 화면",
+    "noArtifactSelected": "아티팩트가 선택되지 않았습니다",
+    "previewNotAvailable": "이 형식은 미리보기를 지원하지 않습니다",
+    "untitled": "제목 없음",
+    "copyCode": "코드 복사",
+    "download": "다운로드",
+    "segmentedCode": "코드",
+    "segmentedSplit": "분할",
+    "segmentedPreview": "미리보기",
+    "copied": "복사됨"
   },
   "cronManager": {
     "deleteConfirm": "이 Cron 작업을 삭제하시겠습니까?",

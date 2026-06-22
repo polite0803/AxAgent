@@ -61,21 +61,30 @@ export function ConversationSettingsModal({
       setMaxTokens(conversation.max_tokens ?? null);
       setFrequencyPenalty(conversation.frequency_penalty ?? null);
 
-      const stored = localStorage.getItem(CONTEXT_LIMIT_KEY(conversation.id));
-      setContextLimit(stored ? Number(stored) : 50);
+      try {
+        const stored = localStorage.getItem(CONTEXT_LIMIT_KEY(conversation.id));
+        setContextLimit(stored ? Number(stored) : 50);
+      } catch {
+        setContextLimit(50);
+      }
 
       // Load icon
-      const iconStored = localStorage.getItem(CONV_ICON_KEY(conversation.id));
-      if (iconStored) {
-        try {
-          const parsed: ConvIcon = JSON.parse(iconStored);
-          setIconType(parsed.type);
-          setIconValue(parsed.value);
-        } catch {
+      try {
+        const iconStored = localStorage.getItem(CONV_ICON_KEY(conversation.id));
+        if (iconStored) {
+          try {
+            const parsed: ConvIcon = JSON.parse(iconStored);
+            setIconType(parsed.type);
+            setIconValue(parsed.value);
+          } catch {
+            setIconType("model");
+            setIconValue("");
+          }
+        } else {
           setIconType("model");
           setIconValue("");
         }
-      } else {
+      } catch {
         setIconType("model");
         setIconValue("");
       }
@@ -104,18 +113,26 @@ export function ConversationSettingsModal({
         top_p: topP,
         frequency_penalty: frequencyPenalty,
       });
-      localStorage.setItem(
-        CONTEXT_LIMIT_KEY(conversation.id),
-        String(contextLimit),
-      );
-      // Save icon
-      if (iconType === "model") {
-        localStorage.removeItem(CONV_ICON_KEY(conversation.id));
-      } else {
+      try {
         localStorage.setItem(
-          CONV_ICON_KEY(conversation.id),
-          JSON.stringify({ type: iconType, value: iconValue }),
+          CONTEXT_LIMIT_KEY(conversation.id),
+          String(contextLimit),
         );
+      } catch {
+        // localStorage quota exceeded or unavailable
+      }
+      // Save icon
+      try {
+        if (iconType === "model") {
+          localStorage.removeItem(CONV_ICON_KEY(conversation.id));
+        } else {
+          localStorage.setItem(
+            CONV_ICON_KEY(conversation.id),
+            JSON.stringify({ type: iconType, value: iconValue }),
+          );
+        }
+      } catch {
+        // localStorage quota exceeded or unavailable
       }
       onClose();
     } finally {

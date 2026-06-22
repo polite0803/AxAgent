@@ -92,16 +92,16 @@ export function ArtifactPanel({
     return (
       <Card size="small">
         <div style={{ textAlign: "center", padding: "40px 0", color: "#999" }}>
-          No artifact selected
+          {t("artifactPanel.noArtifactSelected")}
         </div>
       </Card>
     );
   }
 
   const menuItems: DropdownItem[] = [
-    { key: "copy", label: "Copy code", onClick: handleCopy },
-    { key: "download", label: "Download", onClick: handleDownload },
-    { key: "fullscreen", label: "Fullscreen", onClick: onFullscreen },
+    { key: "copy", label: t("artifactPanel.copyCode"), onClick: handleCopy },
+    { key: "download", label: t("artifactPanel.download"), onClick: handleDownload },
+    { key: "fullscreen", label: t("artifactPanel.fullscreen"), onClick: onFullscreen },
   ];
 
   return (
@@ -109,7 +109,7 @@ export function ArtifactPanel({
       size="small"
       title={
         <Space>
-          <span>{artifact.title || "Untitled"}</span>
+          <span>{artifact.title || t("artifactPanel.untitled")}</span>
           <span style={{ fontSize: 12, color: "#999" }}>{artifact.kind}</span>
           <span style={{ fontSize: 12, color: "#999" }}>{artifact.format}</span>
         </Space>
@@ -121,12 +121,12 @@ export function ArtifactPanel({
             value={currentMode}
             onChange={(val) => handleModeChange(val as ArtifactPreviewMode)}
             options={[
-              { value: "code", icon: <CodeOutlined />, label: "Code" },
-              { value: "split", icon: <ColumnWidthOutlined />, label: "Split" },
-              { value: "preview", icon: <EyeOutlined />, label: "Preview" },
+              { value: "code", icon: <CodeOutlined />, label: t("artifactPanel.segmentedCode") },
+              { value: "split", icon: <ColumnWidthOutlined />, label: t("artifactPanel.segmentedSplit") },
+              { value: "preview", icon: <EyeOutlined />, label: t("artifactPanel.segmentedPreview") },
             ]}
           />
-          <Tooltip title={copied ? "Copied!" : "Copy code"}>
+          <Tooltip title={copied ? t("artifactPanel.copied") : t("artifactPanel.copyCode")}>
             <Button
               size="small"
               icon={copied ? <CheckOutlined /> : <CopyOutlined />}
@@ -216,7 +216,7 @@ export function ArtifactPanel({
                   <div
                     style={{ padding: 16, textAlign: "center", color: "#999" }}
                   >
-                    Preview not available for this format
+                    {t("artifactPanel.previewNotAvailable")}
                   </div>
                 )}
             </div>

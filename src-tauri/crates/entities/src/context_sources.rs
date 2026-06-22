@@ -10,7 +10,6 @@ pub struct Model {
     pub id: String,
     pub conversation_id: String,
     pub message_id: Option<String>,
-    #[sea_orm(column_name = "type")]
     pub source_type: String,
     pub ref_id: String,
     pub title: String,

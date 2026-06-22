@@ -1349,9 +1349,6 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
     (_event: unknown, node: Node) => {
       isDraggingRef.current = false;
       suppressRebuildRef.current = true;
-      setTimeout(() => {
-        suppressRebuildRef.current = false;
-      }, 50);
 
       if (!node?.position) { return; }
 
@@ -1430,11 +1427,23 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
             y: absDropPos.y - latestNodes.find((n) => n.id === newParentId)!.position.y,
           };
           useWorkflowEditorStore.getState().setParentRef(node.id, newParentId, true);
+          // 多选场景：其他选中的节点也移入同一容器
+          for (const rfNode of rfNodes) {
+            if (rfNode.selected && rfNode.id !== node.id) {
+              useWorkflowEditorStore.getState().setParentRef(rfNode.id, newParentId, true);
+            }
+          }
         } else {
           // 移出容器：坐标保持绝对
           storePos = absDropPos;
           rfPos = absDropPos;
           useWorkflowEditorStore.getState().setParentRef(node.id, null, true);
+          // 多选场景：其他选中的节点也移出容器
+          for (const rfNode of rfNodes) {
+            if (rfNode.selected && rfNode.id !== node.id) {
+              useWorkflowEditorStore.getState().setParentRef(rfNode.id, null, true);
+            }
+          }
         }
       } else if (draggedNodeParentId) {
         // parent 未变，仍在原容器内：相对→绝对
@@ -1519,12 +1528,20 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
       });
       reactFlowInstance?.setNodes(updatedNodes);
 
-      // 强制触发容器尺寸重算
+      // 强制触发容器尺寸重算 + 统一清理时序
+      // 先 RAF 确保容器重算，再解除 suppressRebuildRef 避免 useEffect 覆盖
       const triggerParent = newParentId || (isContainer ? node.id : undefined);
       if (triggerParent) {
         requestAnimationFrame(() => {
           setDragStopVersion((v) => v + 1);
+          // 下一帧再开放 useEffect 重建，确保重算已生效
+          requestAnimationFrame(() => {
+            suppressRebuildRef.current = false;
+          });
         });
+      } else {
+        // 无容器操作，直接开放
+        suppressRebuildRef.current = false;
       }
     },
     [updateNode, reactFlowInstance, setDragStopVersion],

@@ -300,7 +300,9 @@ if (isTauri()) {
     if (skillName) {
       import("@/lib/skillLifecycle").then(({ invalidateLifecycleCache }) => {
         invalidateLifecycleCache(skillName);
-      }).catch(() => {});
+      }).catch((err) => {
+        console.warn("[skillStore]", err);
+      });
     }
     useSkillStore.getState().loadSkills();
   }).catch(logIpcError("listen:skill-state-changed"));

@@ -505,10 +505,43 @@ impl UnifiedToolRegistry {
         true
     }
 
+    /// 检查工具在启用状态/禁用列表中是否应对外暴露
+    fn is_tool_group_enabled(&self, info: &ToolInfo) -> bool {
+        if self.disabled_tools.contains(&info.name) {
+            return false;
+        }
+        let gid = Self::category_to_group(info.category);
+        self.group_enabled.get(gid).copied().unwrap_or(true)
+    }
+
+    fn category_to_group(category: ToolCategory) -> &'static str {
+        match category {
+            ToolCategory::FileRead => "builtin-file-read",
+            ToolCategory::FileWrite => "builtin-file-write",
+            ToolCategory::Shell => "builtin-shell",
+            ToolCategory::Network => "builtin-network",
+            ToolCategory::System => "builtin-system-tools",
+            ToolCategory::Agent => "builtin-agent",
+            ToolCategory::Vcs => "builtin-vcs",
+            ToolCategory::Automation => "builtin-automation",
+            ToolCategory::Communication => "builtin-communication",
+            ToolCategory::AiMedia => "builtin-ai-media",
+            ToolCategory::Integration => "builtin-integration",
+            ToolCategory::Storage => "builtin-storage",
+            ToolCategory::Knowledge => "builtin-knowledge",
+            ToolCategory::Browser => "builtin-browser",
+            ToolCategory::Desktop => "builtin-desktop",
+        }
+    }
+
     /// 将所有已注册工具转为 ChatTool 格式（供 LLM 使用）
+    /// 尊重 group_enabled 和 disabled_tools 设置。
     pub fn get_chat_tools(&self) -> Vec<axagent_harness::types::ChatTool> {
         let mut out = Vec::new();
         for info in self.tools.list_all() {
+            if !self.is_tool_group_enabled(&info) {
+                continue;
+            }
             out.push(axagent_harness::types::ChatTool {
                 r#type: "function".into(),
                 function: axagent_harness::types::ChatToolFunction {
@@ -522,12 +555,16 @@ impl UnifiedToolRegistry {
     }
 
     /// 获取类别筛选后的 ChatTool 列表（用于根据 permission mode 限制工具）
+    /// 也尊重 group_enabled 和 disabled_tools 设置。
     pub fn get_chat_tools_filtered(
         &self,
         mode: &crate::permissions::PermissionMode,
     ) -> Vec<axagent_harness::types::ChatTool> {
         let mut out = Vec::new();
         for info in self.tools.list_all() {
+            if !self.is_tool_group_enabled(&info) {
+                continue;
+            }
             let allowed = match mode {
                 crate::permissions::PermissionMode::ReadOnly => info.is_read_only,
                 crate::permissions::PermissionMode::Allow => true,
@@ -1103,15 +1140,28 @@ impl RuntimeToolExecutor for UnifiedToolRegistry {
             return Err(ToolError::new(format!("Tool '{}' denied", tool_name)));
         }
 
-        let handle = tokio::runtime::Handle::current();
-        tokio::task::block_in_place(|| {
-            handle.block_on(async {
-                match self.execute(tool_name, input).await {
-                    Ok(r) => Ok(r.content),
-                    Err(e) => Err(e),
-                }
-            })
-        })
+        match tokio::runtime::Handle::try_current() {
+            Ok(handle) => {
+                tokio::task::block_in_place(|| {
+                    handle.block_on(async {
+                        match self.execute(tool_name, input).await {
+                            Ok(r) => Ok(r.content),
+                            Err(e) => Err(e),
+                        }
+                    })
+                })
+            }
+            Err(_) => {
+                let rt = tokio::runtime::Runtime::new()
+                    .map_err(|e| ToolError::new(format!("Failed to create Tokio runtime: {e}")))?;
+                rt.block_on(async {
+                    match self.execute(tool_name, input).await {
+                        Ok(r) => Ok(r.content),
+                        Err(e) => Err(e),
+                    }
+                })
+            }
+        }
     }
 
     fn execute_batch(
@@ -1120,7 +1170,6 @@ impl RuntimeToolExecutor for UnifiedToolRegistry {
     ) -> Vec<(String, String, Result<String, ToolError>)> {
         use std::sync::Arc;
 
-        let handle = tokio::runtime::Handle::current();
         let tool_requests: Vec<ToolCallRequest> = requests
             .iter()
             .map(|(id, name, input)| ToolCallRequest {
@@ -1146,9 +1195,27 @@ impl RuntimeToolExecutor for UnifiedToolRegistry {
         let orchestrator = Orchestrator::default();
         let registry = Arc::new(self.tools.clone());
 
-        let results: Vec<_> = tokio::task::block_in_place(|| {
-            handle.block_on(async { orchestrator.execute(tool_requests, registry, &ctx).await })
-        });
+        let results: Vec<_> = match tokio::runtime::Handle::try_current() {
+            Ok(handle) => {
+                tokio::task::block_in_place(|| {
+                    handle.block_on(async { orchestrator.execute(tool_requests, registry, &ctx).await })
+                })
+            }
+            Err(_) => {
+                let rt = match tokio::runtime::Runtime::new() {
+                    Ok(rt) => rt,
+                    Err(e) => {
+                        return requests
+                            .iter()
+                            .map(|(id, name, _)| {
+                                (id.clone(), name.clone(), Err(ToolError::new(format!("Failed to create Tokio runtime: {e}"))))
+                            })
+                            .collect();
+                    }
+                };
+                rt.block_on(async { orchestrator.execute(tool_requests, registry, &ctx).await })
+            }
+        };
 
         results
             .into_iter()

@@ -3391,7 +3391,7 @@
     "search": "検索"
   },
   "workflow": {
-    "loopBackCycleDetected": "ループバックエッジがサイクルを形成します。ターゲットノードを調整してください",
+    "loopBackCycleDetected": "Loop-back edge would form a cycle, please adjust the target node",
     "cycleDetectedOnConnect": "このエッジは loopBack マーカーのないサイクルを作成します — ワークフローエンジンが拒否する可能性があります。",
     "decorativeContainerNoEdges": "装飾コンテナには入力または出力エッジを接続できません",
     "unsavedTitle": "未保存の変更",
@@ -4660,7 +4660,6 @@
     },
     "searchNodes": "ノードを検索",
     "validationWarnings": "Workflow has {{count}} warning(s):\n{{details}}",
-    "loopBackCycleDetected": "Loop-back edge would form a cycle, please adjust the target node",
     "nodeKind": {
       "input": "Input",
       "output": "Output",
@@ -7273,7 +7272,16 @@
     "active": "キャッシュ有効。{{hits}}ヒット、約{{tokens}}トークン節約。"
   },
   "artifactPanel": {
-    "fullscreen": "フルスクリーン"
+    "fullscreen": "フルスクリーン",
+    "noArtifactSelected": "アーティファクトが選択されていません",
+    "previewNotAvailable": "この形式のプレビューは利用できません",
+    "untitled": "無題",
+    "copyCode": "コードをコピー",
+    "download": "ダウンロード",
+    "segmentedCode": "コード",
+    "segmentedSplit": "分割",
+    "segmentedPreview": "プレビュー",
+    "copied": "コピーしました"
   },
   "cronManager": {
     "deleteConfirm": "このCronジョブを削除しますか？",

@@ -7059,7 +7059,16 @@
     "cached": "已缓存"
   },
   "artifactPanel": {
-    "fullscreen": "全屏"
+    "fullscreen": "全屏",
+    "noArtifactSelected": "未选择制品",
+    "previewNotAvailable": "暂不支持此格式的预览",
+    "untitled": "未命名",
+    "copyCode": "复制代码",
+    "download": "下载",
+    "segmentedCode": "代码",
+    "segmentedSplit": "分屏",
+    "segmentedPreview": "预览",
+    "copied": "已复制"
   },
   "cronManager": {
     "deleteConfirm": "确定删除此定时任务？",

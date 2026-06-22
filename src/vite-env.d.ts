@@ -4,6 +4,14 @@
 /// <reference types="node" />
 /// <reference types="vitest" />
 
+interface FileSystemDirectoryHandle {
+  name: string;
+}
+
+interface Window {
+  showDirectoryPicker(): Promise<FileSystemDirectoryHandle>;
+}
+
 declare namespace JSX {
   interface IntrinsicElements {
     "emoji-picker": React.DetailedHTMLProps<

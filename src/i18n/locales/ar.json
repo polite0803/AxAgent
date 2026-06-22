@@ -3822,7 +3822,7 @@
     "search": "بحث"
   },
   "workflow": {
-    "loopBackCycleDetected": "الحافة المعاودة ستشكل دورة، يرجى تعديل العقدة الهدف",
+    "loopBackCycleDetected": "Loop-back edge would form a cycle, please adjust the target node",
     "cycleDetectedOnConnect": "هذه الحافة تخلق دورة بدون علامة loopBack — قد يرفضها محرك سير العمل.",
     "decorativeContainerNoEdges": "لا يمكن للحاويات الزخرفية أن يكون لها حواف واردة أو صادرة",
     "unsavedTitle": "تغييرات غير محفوظة",
@@ -5091,7 +5091,6 @@
     },
     "searchNodes": "بحث عن العقد",
     "validationWarnings": "Workflow has {{count}} warning(s):\n{{details}}",
-    "loopBackCycleDetected": "Loop-back edge would form a cycle, please adjust the target node",
     "nodeKind": {
       "input": "Input",
       "output": "Output",
@@ -7273,7 +7272,16 @@
     "active": "ذاكرة التخزين المؤقت نشطة. {{hits}} إصابات، ~{{tokens}} رمز محفوظ."
   },
   "artifactPanel": {
-    "fullscreen": "ملء الشاشة"
+    "fullscreen": "ملء الشاشة",
+    "noArtifactSelected": "لم يتم اختيار أي منتج",
+    "previewNotAvailable": "المعاينة غير متوفرة لهذه التنسيق",
+    "untitled": "بدون عنوان",
+    "copyCode": "نسخ الكود",
+    "download": "تحميل",
+    "segmentedCode": "الكود",
+    "segmentedSplit": "تقسيم",
+    "segmentedPreview": "معاينة",
+    "copied": "تم النسخ"
   },
   "cronManager": {
     "deleteConfirm": "حذف مهمة cron هذه؟",

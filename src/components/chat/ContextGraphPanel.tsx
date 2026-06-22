@@ -649,7 +649,7 @@ export const ContextGraphPanel = React.memo(function ContextGraphPanel({
 
       {/* Graph canvas — only when expanded */}
       {!collapsed && (
-        <div style={{ height: 280, width: "100%" }}>
+        <div style={{ height: 180, width: "100%" }}>
           {totalSources > 0
             ? (
               <GraphCanvas

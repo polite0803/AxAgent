@@ -43,7 +43,6 @@ impl CodeBlock {
         }
     }
 
-    #[allow(dead_code)]
     pub fn infer_dependencies(&self) -> Vec<String> {
         let mut deps = Vec::new();
 
@@ -110,7 +109,6 @@ impl CodeBlock {
         deps
     }
 
-    #[allow(dead_code)]
     pub fn infer_schema(&self) -> Option<serde_json::Value> {
         match self.language.as_deref() {
             Some("json") => {
@@ -128,7 +126,6 @@ impl CodeBlock {
         None
     }
 
-    #[allow(dead_code)]
     pub fn is_script(&self) -> bool {
         matches!(
             self.language.as_deref(),
@@ -148,7 +145,6 @@ impl CodeBlock {
         )
     }
 
-    #[allow(dead_code)]
     pub fn is_config(&self) -> bool {
         matches!(
             self.language.as_deref(),
@@ -216,15 +212,6 @@ impl ContentPreprocessor {
         (result, blocks)
     }
 
-    #[allow(dead_code)]
-    pub fn restore_code_blocks(content: &str, blocks: &[CodeBlock]) -> String {
-        let mut result = content.to_string();
-        for (i, block) in blocks.iter().enumerate() {
-            let placeholder = format!("__CODE_BLOCK_{}__", i);
-            result = result.replace(&placeholder, &block.content);
-        }
-        result
-    }
 }
 
 /// Raw composite skill data from marketplace
@@ -368,18 +355,7 @@ impl ParsedStep {
         self
     }
 
-    #[allow(dead_code)]
-    pub fn with_code_blocks(mut self, blocks: Vec<CodeBlock>) -> Self {
-        self.code_blocks = blocks;
-        self
-    }
 
-    #[allow(dead_code)]
-    pub fn with_code_blocks_from_content(mut self, content: &str) -> Self {
-        let (_, blocks) = ContentPreprocessor::extract_code_blocks(content);
-        self.code_blocks = blocks;
-        self
-    }
 }
 
 /// Result of decomposing a composite skill into a workflow template
@@ -1197,155 +1173,6 @@ impl SkillDecomposer {
         steps
     }
 
-    pub(crate) fn parse_with_fallback(
-        composite: &CompositeSkillData,
-        llm_parser: Option<&dyn crate::skill_decomposition::llm_assisted::LlmAssistedParser>,
-        llm_request: Option<&crate::skill_decomposition::llm_assisted::LlmParseRequest>,
-    ) -> Result<ParsedComposite, DecompositionError> {
-        let mut parsed = Self::parse(composite)?;
-
-        let steps_needing_augmentation: Vec<usize> = parsed
-            .steps
-            .iter()
-            .enumerate()
-            .filter(|(_, step)| Self::step_needs_llm_augmentation(step))
-            .map(|(i, _)| i)
-            .collect();
-
-        if steps_needing_augmentation.is_empty() {
-            return Ok(parsed);
-        }
-
-        if let (Some(parser), Some(request)) = (llm_parser, llm_request) {
-            let rt = tokio::runtime::Runtime::new().map_err(|e| DecompositionError {
-                message: e.to_string(),
-            })?;
-            let llm_response = rt
-                .block_on(parser.parse_with_llm(request))
-                .map_err(|e| DecompositionError { message: e })?;
-
-            for (llm_step, &original_idx) in llm_response
-                .steps
-                .iter()
-                .zip(steps_needing_augmentation.iter())
-                .take(
-                    llm_response
-                        .steps
-                        .len()
-                        .min(steps_needing_augmentation.len()),
-                )
-            {
-                if original_idx < parsed.steps.len() {
-                    parsed.steps[original_idx] = Self::merge_llm_step(
-                        std::mem::replace(
-                            &mut parsed.steps[original_idx],
-                            ParsedStep::new(llm_step.title.clone()),
-                        ),
-                        llm_step,
-                    );
-                }
-            }
-
-            parsed.is_fully_parsed = true;
-        }
-
-        Ok(parsed)
-    }
-
-    fn step_needs_llm_augmentation(step: &ParsedStep) -> bool {
-        if !step.description.is_empty() && step.description.len() < 20 {
-            return true;
-        }
-
-        if step.is_condition {
-            return step.condition_expression.is_none()
-                || (step.then_branch.is_none() && step.else_branch.is_none());
-        }
-
-        if step.is_loop {
-            return step.loop_items_var.is_none() && step.loop_body_raw.is_none();
-        }
-
-        if step.is_parallel && step.parallel_branches.is_empty() {
-            return true;
-        }
-
-        if step.input_schema.is_none() && step.description.len() > 50 {
-            return true;
-        }
-
-        false
-    }
-
-    fn merge_llm_step(
-        original: ParsedStep,
-        llm_step: &crate::skill_decomposition::llm_assisted::LlmParsedStep,
-    ) -> ParsedStep {
-        use crate::skill_decomposition::llm_assisted::StepType;
-
-        let mut step = ParsedStep::new(llm_step.title.clone())
-            .with_description(llm_step.description.clone())
-            .with_raw_content(llm_step.raw_content.clone());
-
-        if let Some(tool_name) = &llm_step.tool_name {
-            step = step.with_tool(tool_name.clone(), llm_step.tool_type.clone());
-        }
-
-        match llm_step.step_type {
-            StepType::Condition => {
-                let expr = llm_step.condition_expression.clone().unwrap_or_default();
-                step = step.with_condition(expr);
-                step =
-                    step.with_branches(llm_step.then_branch.clone(), llm_step.else_branch.clone());
-            },
-            StepType::Loop => {
-                step = step.with_loop(llm_step.loop_items_var.clone(), llm_step.max_iterations);
-                if let Some(body) = &llm_step.loop_body {
-                    let body_steps: Vec<ParsedStep> = body
-                        .iter()
-                        .map(|bs| {
-                            ParsedStep::new(bs.title.clone())
-                                .with_description(bs.description.clone())
-                                .with_raw_content(bs.raw_content.clone())
-                        })
-                        .collect();
-                    step = step.with_loop_body(
-                        body_steps
-                            .iter()
-                            .map(|s| s.raw_content.clone())
-                            .collect::<Vec<_>>()
-                            .join("\n"),
-                        body_steps,
-                    );
-                }
-            },
-            StepType::Parallel => {
-                if let Some(branches) = &llm_step.parallel_branches {
-                    let pb: Vec<ParallelBranch> = branches
-                        .iter()
-                        .map(|b| ParallelBranch {
-                            name: b.name.clone(),
-                            steps: b.steps.clone(),
-                            raw_content: b.raw_content.clone(),
-                        })
-                        .collect();
-                    step = step.with_parallel(pb);
-                }
-            },
-            StepType::Atomic | StepType::Generic => {},
-        }
-
-        step = step.with_schema(llm_step.input_schema.clone(), llm_step.output_schema.clone());
-
-        if original.description.is_empty() && !step.description.is_empty() {
-            step.description = original.description;
-        }
-        if original.raw_content.is_empty() && !step.raw_content.is_empty() {
-            step.raw_content = original.raw_content;
-        }
-
-        step
-    }
 }
 
 impl Default for SkillDecomposer {

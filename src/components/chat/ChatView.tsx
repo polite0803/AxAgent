@@ -357,6 +357,7 @@ function ChatViewInner({
           memoryEnabled={(activeConversation?.enabled_memory_namespace_ids?.length ?? 0) > 0}
           tokenUsed={tokenUsed > 0 ? tokenUsed : undefined}
           tokenMax={contextBarModel.maxTokens}
+          mode={activeConversation?.mode}
         />
       )}
 
@@ -368,6 +369,31 @@ function ChatViewInner({
         tokensSaved={tokensSaved}
         cacheHits={cacheHits}
       />
+
+      {activeConversationId && messages.length > 0
+        && (() => {
+          const ctxProvider = providers.find(
+            (p) => p.id === activeConversation?.provider_id,
+          );
+          const ctxModel = ctxProvider?.models.find(
+            (m) => m.model_id === activeConversation?.model_id,
+          );
+          return (
+            <div style={{ padding: "0 16px", flexShrink: 0 }}>
+              <ContextGraphPanel
+                conversationTitle={activeConversation?.title}
+                conversationId={activeConversationId}
+                modelName={ctxModel?.name ?? activeConversation?.model_id}
+                providerName={ctxProvider?.name}
+                knowledgeBaseIds={activeConversation?.enabled_knowledge_base_ids ?? []}
+                memoryNamespaceIds={activeConversation?.enabled_memory_namespace_ids ?? []}
+                mcpServerIds={activeConversation?.enabled_mcp_server_ids ?? []}
+                searchEnabled={activeConversation?.search_enabled ?? false}
+                enabledSkillIds={activeConversation?.enabled_skill_ids ?? []}
+              />
+            </div>
+          );
+        })()}
 
       <div
         ref={messageAreaRef}
@@ -389,30 +415,6 @@ function ChatViewInner({
           )
           : (
             <>
-              {activeConversationId
-                && (() => {
-                  const ctxProvider = providers.find(
-                    (p) => p.id === activeConversation?.provider_id,
-                  );
-                  const ctxModel = ctxProvider?.models.find(
-                    (m) => m.model_id === activeConversation?.model_id,
-                  );
-                  return (
-                    <div style={{ padding: "0 16px", flexShrink: 0 }}>
-                      <ContextGraphPanel
-                        conversationTitle={activeConversation?.title}
-                        conversationId={activeConversationId}
-                        modelName={ctxModel?.name ?? activeConversation?.model_id}
-                        providerName={ctxProvider?.name}
-                        knowledgeBaseIds={activeConversation?.enabled_knowledge_base_ids ?? []}
-                        memoryNamespaceIds={activeConversation?.enabled_memory_namespace_ids ?? []}
-                        mcpServerIds={activeConversation?.enabled_mcp_server_ids ?? []}
-                        searchEnabled={activeConversation?.search_enabled ?? false}
-                        enabledSkillIds={activeConversation?.enabled_skill_ids ?? []}
-                      />
-                    </div>
-                  );
-                })()}
               {msgState.hiddenEarlierCount > 0
                 && msgState.hiddenEarlierCount
                   === msgState.allBubbleItems.length
@@ -502,8 +504,8 @@ function ChatViewInner({
                         templateName: workflowMatchSuggestion.templateName,
                         similarity: workflowMatchSuggestion.similarity,
                       }}
-                      onSwitch={(templateId) => {
-                        void updateConversation(activeConversation.id, {
+                      onSwitch={async (templateId) => {
+                        await updateConversation(activeConversation.id, {
                           session_type: "workflow",
                           workflow_template_id: templateId,
                         });
@@ -591,7 +593,7 @@ function ChatViewInner({
         open={actions.expertOpen}
         onClose={() => actions.setExpertOpen(false)}
         selectedRoleId={activeConversation?.agent_profile_id ?? null}
-        onSelect={(roleId) => {
+        onSelect={async (roleId) => {
           if (!activeConversationId) {
             return;
           }
@@ -602,14 +604,14 @@ function ChatViewInner({
           }
 
           // 确保 AgentProfile 在 DB 中存在
-          invoke("ensure_agent_profile", {
+          await invoke("ensure_agent_profile", {
             id: roleId,
             name: role.name,
             expertId: role.source === "agency" ? roleId : (role.expertId ?? null),
             agentRole: role.agentRole ?? null,
-          }).catch(() => {/* profile 可能已存在，忽略错误 */});
+          });
 
-          updateConversation(activeConversationId, {
+          await updateConversation(activeConversationId, {
             agent_profile_id: roleId,
             session_type: "conversation",
             workflow_template_id: null,
@@ -617,13 +619,13 @@ function ChatViewInner({
           expertStore.recordSwitch(activeConversationId, roleId);
 
           if (role.suggestedProviderId && role.suggestedModelId) {
-            updateConversation(activeConversationId, {
+            await updateConversation(activeConversationId, {
               provider_id: role.suggestedProviderId,
               model_id: role.suggestedModelId,
             });
           }
           if (role.suggestedTemperature != null) {
-            updateConversation(activeConversationId, {
+            await updateConversation(activeConversationId, {
               temperature: role.suggestedTemperature,
             });
           }
@@ -636,6 +638,7 @@ function ChatViewInner({
             );
           }
 
+          fetchConversation();
           actions.setExpertOpen(false);
         }}
       />

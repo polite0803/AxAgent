@@ -63,7 +63,11 @@ function loadCustomRoles(): AgentProfile[] {
 }
 
 function saveCustomRoles(roles: AgentProfile[]): void {
-  localStorage.setItem(CUSTOM_ROLES_KEY, JSON.stringify(roles));
+  try {
+    localStorage.setItem(CUSTOM_ROLES_KEY, JSON.stringify(roles));
+  } catch {
+    // localStorage quota exceeded or unavailable
+  }
 }
 
 interface AgencyExpertRow {

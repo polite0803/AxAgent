@@ -20,6 +20,8 @@ interface ContextBarProps {
   /** 模型的上下文窗口大小 */
   tokenMax?: number;
   onTokenClick?: () => void;
+  /** 会话模式，chat 模式下隐藏工具数量标识 */
+  mode?: "chat" | "agent" | "gateway";
 }
 
 function getTokenUsageColor(
@@ -48,6 +50,7 @@ export function ContextBar({
   tokenUsed,
   tokenMax,
   onTokenClick,
+  mode,
 }: ContextBarProps) {
   const { t } = useTranslation();
   const { token } = theme.useToken();
@@ -92,13 +95,18 @@ export function ContextBar({
         color: (searchEnabled ? "green" : "default") as string,
         tooltip: t("chat.context.search"),
       },
-      {
-        key: "tools",
-        icon: <Wrench size={14} />,
-        label: t("chat.context.count", { count: toolCount }),
-        color: (toolCount > 0 ? "blue" : "default") as string,
-        tooltip: t("chat.context.tools"),
-      },
+      // chat 模式（问答）不调用工具，隐藏工具数量标识
+      ...(mode !== "chat"
+        ? [
+          {
+            key: "tools",
+            icon: <Wrench size={14} />,
+            label: t("chat.context.count", { count: toolCount }),
+            color: (toolCount > 0 ? "blue" : "default") as string,
+            tooltip: t("chat.context.tools"),
+          },
+        ]
+        : []),
       {
         key: "knowledge",
         icon: <BookOpen size={14} />,
@@ -116,7 +124,7 @@ export function ContextBar({
         tooltip: t("chat.context.memory"),
       },
     ],
-    [modelName, searchEnabled, toolCount, knowledgeCount, memoryEnabled, t],
+    [modelName, searchEnabled, toolCount, knowledgeCount, memoryEnabled, mode, t],
   );
 
   return (

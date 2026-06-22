@@ -3822,7 +3822,7 @@
     "search": "Buscar"
   },
   "workflow": {
-    "loopBackCycleDetected": "El borde de retroalimentación formaría un ciclo, ajuste el nodo objetivo",
+    "loopBackCycleDetected": "Loop-back edge would form a cycle, please adjust the target node",
     "cycleDetectedOnConnect": "Este borde crea un ciclo sin marcador loopBack — el motor del flujo de trabajo puede rechazarlo.",
     "decorativeContainerNoEdges": "Los contenedores decorativos no pueden tener bordes entrantes o salientes",
     "unsavedTitle": "Cambios sin guardar",
@@ -5091,7 +5091,6 @@
     },
     "searchNodes": "Buscar nodos",
     "validationWarnings": "Workflow has {{count}} warning(s):\n{{details}}",
-    "loopBackCycleDetected": "Loop-back edge would form a cycle, please adjust the target node",
     "nodeKind": {
       "input": "Input",
       "output": "Output",
@@ -7273,7 +7272,16 @@
     "active": "Caché activo. {{hits}} aciertos, ~{{tokens}} tokens ahorrados."
   },
   "artifactPanel": {
-    "fullscreen": "Pantalla completa"
+    "fullscreen": "Pantalla completa",
+    "noArtifactSelected": "Ningún artefacto seleccionado",
+    "previewNotAvailable": "Vista previa no disponible para este formato",
+    "untitled": "Sin título",
+    "copyCode": "Copiar código",
+    "download": "Descargar",
+    "segmentedCode": "Código",
+    "segmentedSplit": "Dividir",
+    "segmentedPreview": "Vista previa",
+    "copied": "Copiado"
   },
   "cronManager": {
     "deleteConfirm": "¿Eliminar esta tarea cron?",

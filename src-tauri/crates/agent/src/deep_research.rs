@@ -352,10 +352,11 @@ Output JSON array of {{"query": "...", "rationale": "..."}}:
     ) -> Vec<ResearchFinding> {
         let mut handles = Vec::new();
         let max_results = self.config.max_results_per_query;
+        let provider = Arc::clone(&self.search_provider);
 
         for q in queries.iter().take(self.config.max_queries) {
             let query = q.query.clone();
-            let provider = Arc::clone(&self.search_provider);
+            let provider = Arc::clone(&provider);
 
             let handle = tokio::spawn(async move {
                 let search_query = crate::research_state::SearchQuery::new(query.clone())

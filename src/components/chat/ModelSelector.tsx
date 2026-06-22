@@ -69,7 +69,11 @@ function loadPinnedModels(): string[] {
 }
 
 function savePinnedModels(ids: string[]) {
-  localStorage.setItem(PINNED_MODELS_KEY, JSON.stringify(ids));
+  try {
+    localStorage.setItem(PINNED_MODELS_KEY, JSON.stringify(ids));
+  } catch {
+    // localStorage quota exceeded or unavailable
+  }
 }
 
 interface ModelSelectorProps {

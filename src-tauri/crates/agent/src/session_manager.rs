@@ -773,11 +773,6 @@ impl SessionManager {
         trackers.get(conversation_id).cloned()
     }
 
-    /// 同步版本：在无法使用 .await 的上下文中获取进度
-    pub fn get_progress_sync(&self, conversation_id: &str) -> Option<Arc<AgentExecutionProgress>> {
-        let trackers = self.progress_trackers.blocking_read();
-        trackers.get(conversation_id).cloned()
-    }
 }
 
 // ---------------------------------------------------------------------------

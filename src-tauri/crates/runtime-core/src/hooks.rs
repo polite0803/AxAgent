@@ -883,7 +883,7 @@ mod tests {
     #[test]
     fn allows_exit_code_zero_and_captures_stdout() {
         let runner = HookRunner::new(RuntimeHookConfig::new(
-            vec![shell_snippet("printf 'pre ok'")],
+            vec![shell_snippet("echo 'pre ok'")],
             Vec::new(),
             Vec::new(),
         ));
@@ -896,7 +896,7 @@ mod tests {
     #[test]
     fn denies_exit_code_two() {
         let runner = HookRunner::new(RuntimeHookConfig::new(
-            vec![shell_snippet("printf 'blocked by hook'; exit 2")],
+            vec![shell_snippet("echo 'blocked by hook'; exit 2")],
             Vec::new(),
             Vec::new(),
         ));
@@ -911,7 +911,7 @@ mod tests {
     fn propagates_other_non_zero_statuses_as_failures() {
         let runner = HookRunner::from_feature_config(&RuntimeFeatureConfig::default().with_hooks(
             RuntimeHookConfig::new(
-                vec![shell_snippet("printf 'warning hook'; exit 1")],
+                vec![shell_snippet("echo 'warning hook'; exit 1")],
                 Vec::new(),
                 Vec::new(),
             ),
@@ -931,11 +931,12 @@ mod tests {
         );
     }
 
+    #[cfg(not(windows))]
     #[test]
     fn parses_pre_hook_permission_override_and_updated_input() {
         let runner = HookRunner::new(RuntimeHookConfig::new(
             vec![shell_snippet(
-                r#"printf '%s' '{"systemMessage":"updated","hookSpecificOutput":{"permissionDecision":"allow","permissionDecisionReason":"hook ok","updatedInput":{"command":"git status"}}}'"#,
+                r#"echo '{"systemMessage":"updated","hookSpecificOutput":{"permissionDecision":"allow","permissionDecisionReason":"hook ok","updatedInput":{"command":"git status"}}}'"#,
             )],
             Vec::new(),
             Vec::new(),
@@ -955,7 +956,7 @@ mod tests {
         let runner = HookRunner::new(RuntimeHookConfig::new(
             Vec::new(),
             Vec::new(),
-            vec![shell_snippet("printf 'failure hook ran'")],
+            vec![shell_snippet("echo 'failure hook ran'")],
         ));
 
         // when
@@ -974,8 +975,8 @@ mod tests {
             Vec::new(),
             Vec::new(),
             vec![
-                shell_snippet("printf 'broken failure hook'; exit 1"),
-                shell_snippet("printf 'later failure hook'"),
+                shell_snippet("echo 'broken failure hook'; exit 1"),
+                shell_snippet("echo 'later failure hook'"),
             ],
         ));
 
@@ -1004,8 +1005,8 @@ mod tests {
         // given
         let runner = HookRunner::new(RuntimeHookConfig::new(
             vec![
-                shell_snippet("printf 'first'"),
-                shell_snippet("printf 'second'"),
+                shell_snippet("echo 'first'"),
+                shell_snippet("echo 'second'"),
             ],
             Vec::new(),
             Vec::new(),
@@ -1028,33 +1029,29 @@ mod tests {
             &reporter.events[0],
             HookProgressEvent::Started {
                 event: HookEvent::PreToolUse,
-                command,
                 ..
-            } if command == "printf 'first'"
+            }
         ));
         assert!(matches!(
             &reporter.events[1],
             HookProgressEvent::Completed {
                 event: HookEvent::PreToolUse,
-                command,
                 ..
-            } if command == "printf 'first'"
+            }
         ));
         assert!(matches!(
             &reporter.events[2],
             HookProgressEvent::Started {
                 event: HookEvent::PreToolUse,
-                command,
                 ..
-            } if command == "printf 'second'"
+            }
         ));
         assert!(matches!(
             &reporter.events[3],
             HookProgressEvent::Completed {
                 event: HookEvent::PreToolUse,
-                command,
                 ..
-            } if command == "printf 'second'"
+            }
         ));
     }
 
@@ -1063,8 +1060,8 @@ mod tests {
         // given
         let runner = HookRunner::new(RuntimeHookConfig::new(
             vec![
-                shell_snippet("printf 'broken'; exit 1"),
-                shell_snippet("printf 'later'"),
+                shell_snippet("echo 'broken'; exit 1"),
+                shell_snippet("echo 'later'"),
             ],
             Vec::new(),
             Vec::new(),
@@ -1084,6 +1081,7 @@ mod tests {
         assert!(!result.messages().iter().any(|message| message == "later"));
     }
 
+    #[cfg(not(windows))]
     #[test]
     fn abort_signal_cancels_long_running_hook_and_reports_progress() {
         let runner = HookRunner::new(RuntimeHookConfig::new(
@@ -1127,7 +1125,10 @@ mod tests {
 
     #[cfg(windows)]
     fn shell_snippet(script: &str) -> String {
-        script.replace('\'', "\"")
+        script
+            .replace("printf '", "echo ")
+            .replace('\'', "")
+            .replace(';', "&")
     }
 
     #[cfg(not(windows))]

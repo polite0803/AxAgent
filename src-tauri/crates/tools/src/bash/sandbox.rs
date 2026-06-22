@@ -191,6 +191,9 @@ fn install_rlimits() {
     };
     // rlim_t 在不同 unix 上可能是 u32 / u64，做一次显式转换。
     #[allow(clippy::useless_conversion)]
+    // SAFETY: setrlimit is safe when called from a freshly forked child process (pre_exec)
+    // where only async-signal-safe functions are valid. The resource limits are
+    // constant and the target resource enum values (RLIMIT_*) are POSIX-standard.
     unsafe {
         lim_as.rlim_cur = lim_as.rlim_cur.into();
         lim_as.rlim_max = lim_as.rlim_max.into();
@@ -203,6 +206,9 @@ fn install_rlimits() {
         rlim_max: 60,
     };
     #[allow(clippy::useless_conversion)]
+    // SAFETY: setrlimit is safe when called from a freshly forked child process (pre_exec)
+    // where only async-signal-safe functions are valid. The resource limits are
+    // constant and the target resource enum values (RLIMIT_*) are POSIX-standard.
     unsafe {
         lim_cpu.rlim_cur = lim_cpu.rlim_cur.into();
         lim_cpu.rlim_max = lim_cpu.rlim_max.into();
@@ -215,6 +221,9 @@ fn install_rlimits() {
         rlim_max: 1024,
     };
     #[allow(clippy::useless_conversion)]
+    // SAFETY: setrlimit is safe when called from a freshly forked child process (pre_exec)
+    // where only async-signal-safe functions are valid. The resource limits are
+    // constant and the target resource enum values (RLIMIT_*) are POSIX-standard.
     unsafe {
         lim_nofile.rlim_cur = lim_nofile.rlim_cur.into();
         lim_nofile.rlim_max = lim_nofile.rlim_max.into();

@@ -725,7 +725,16 @@ where
                             let t_input = effective_input.clone();
                             let t_executor = self.tool_executor.clone();
                             let t_timeout = tool_timeout;
+                            // Capture the Tokio runtime handle so the spawned
+                            // thread can enter the runtime context — some tool
+                            // executors (UnifiedToolRegistry) require a Tokio
+                            // runtime to run async tool implementations.
+                            // StaticToolExecutor and other sync-only executors
+                            // work without one, so try_current() is used.
+                            let rt_handle: Option<tokio::runtime::Handle> =
+                                tokio::runtime::Handle::try_current().ok();
                             std::thread::spawn(move || {
+                                let _guard = rt_handle.as_ref().map(|h| h.enter());
                                 let result = match t_executor.lock() {
                                     Ok(mut ex) => ex.execute(&t_name, &t_input),
                                     Err(e) => Err(ToolError::new(format!("Lock error: {}", e))),
@@ -812,7 +821,10 @@ where
                                             let rt_input = effective_input.clone();
                                             let rt_executor = self.tool_executor.clone();
                                             let rt_timeout = tool_timeout;
+                                            let rt_handle: Option<tokio::runtime::Handle> =
+                                                tokio::runtime::Handle::try_current().ok();
                                             std::thread::spawn(move || {
+                                                let _guard = rt_handle.as_ref().map(|h| h.enter());
                                                 let result = match rt_executor.lock() {
                                                     Ok(mut ex) => ex.execute(&rt_name, &rt_input),
                                                     Err(e) => Err(ToolError::new(format!(

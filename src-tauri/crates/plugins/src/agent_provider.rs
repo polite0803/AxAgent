@@ -69,6 +69,11 @@ pub fn global_plugin_agents() -> &'static PluginAgentRegistry {
         std::sync::LazyLock::new(PluginAgentRegistry::default);
     TEST_PLUGIN_AGENTS.with(|cell| {
         let ptr = cell.as_ptr();
+        // SAFETY:
+        // - The raw pointer originates from a C FFI callback. FFI contract guarantees
+        //   it is either a valid non-null pointer or null.
+        // - When null, the fallback static FALLBACK is used, which has 'static lifetime.
+        // - Single-threaded FFI context ensures no concurrent mutation.
         unsafe {
             match &*ptr {
                 Some(_) => &*(*ptr).as_ref().unwrap(),

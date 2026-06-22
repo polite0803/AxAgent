@@ -70,6 +70,7 @@ impl FrontendEventAdapter {
                         break;
                     }
                 }
+                tracing::error!("[frontend_adapter] event receiver channel closed");
             }
         });
 
@@ -213,6 +214,7 @@ impl TauriEventAdapter {
                     break;
                 }
             }
+            tracing::error!("[frontend_adapter] tauri event receiver channel closed");
         });
 
         rx
@@ -261,6 +263,7 @@ impl TauriEventAdapter {
                     break;
                 }
             }
+            tracing::error!("[frontend_adapter] specific tauri event receiver channel closed");
         });
 
         rx

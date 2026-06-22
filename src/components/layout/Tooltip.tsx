@@ -2,6 +2,7 @@
 
 import {
   cloneElement,
+  forwardRef,
   isValidElement,
   type ReactElement,
   type ReactNode,
@@ -10,6 +11,47 @@ import {
   useRef,
   useState,
 } from "react";
+
+const GAP = 8;
+
+/** 根据 placement 计算 tooltip 的样式（fixed 定位 + transform） */
+function computeTooltipStyle(
+  rect: DOMRect,
+  placement: string,
+): React.CSSProperties {
+  const base: React.CSSProperties = {
+    position: "fixed",
+  };
+
+  switch (placement) {
+    case "top":
+      base.left = rect.left + rect.width / 2;
+      base.top = rect.top - GAP;
+      base.transform = "translateX(-50%)";
+      break;
+    case "bottom":
+      base.left = rect.left + rect.width / 2;
+      base.top = rect.bottom + GAP;
+      base.transform = "translateX(-50%)";
+      break;
+    case "left":
+      base.left = rect.left - GAP;
+      base.top = rect.top + rect.height / 2;
+      base.transform = "translateX(-100%) translateY(-50%)";
+      break;
+    case "right":
+      base.left = rect.right + GAP;
+      base.top = rect.top + rect.height / 2;
+      base.transform = "translateY(-50%)";
+      break;
+    default: // fallback: top
+      base.left = rect.left + rect.width / 2;
+      base.top = rect.top - GAP;
+      base.transform = "translateX(-50%)";
+  }
+
+  return base;
+}
 
 interface TooltipProps {
   title: ReactNode;
@@ -25,66 +67,85 @@ interface TooltipProps {
   onOpenChange?: (open: boolean) => void;
 }
 
-export function Tooltip(
-  { title, children, placement = "top", mouseEnterDelay = 0.3, open: controlledOpen }: TooltipProps,
-) {
-  const [internalVisible, setInternalVisible] = useState(false);
-  const timeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  const mountedRef = useRef(true);
+export const Tooltip = forwardRef<HTMLElement, TooltipProps>(
+  (
+    { title, children, placement = "top", mouseEnterDelay = 0.3, open: controlledOpen },
+    forwardedRef,
+  ) => {
+    const [internalVisible, setInternalVisible] = useState(false);
+    const [tooltipStyle, setTooltipStyle] = useState<React.CSSProperties>({});
+    const triggerRef = useRef<HTMLElement | null>(null);
+    const timeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+    const mountedRef = useRef(true);
 
-  const isControlled = controlledOpen !== undefined;
-  const visible = isControlled ? controlledOpen : internalVisible;
+    const isControlled = controlledOpen !== undefined;
+    const visible = isControlled ? controlledOpen : internalVisible;
 
-  const show = useCallback(() => {
-    if (isControlled) { return; }
-    timeoutRef.current = setTimeout(() => {
-      if (mountedRef.current) {
-        setInternalVisible(true);
-      }
-    }, mouseEnterDelay * 1000);
-  }, [mouseEnterDelay, isControlled]);
+    const show = useCallback(() => {
+      if (isControlled) { return; }
+      timeoutRef.current = setTimeout(() => {
+        if (mountedRef.current) {
+          setInternalVisible(true);
+        }
+      }, mouseEnterDelay * 1000);
+    }, [mouseEnterDelay, isControlled]);
 
-  const hide = useCallback(() => {
-    if (isControlled) { return; }
-    if (timeoutRef.current) { clearTimeout(timeoutRef.current); }
-    if (mountedRef.current) {
-      setInternalVisible(false);
-    }
-  }, [isControlled]);
-
-  useEffect(() => {
-    mountedRef.current = true;
-    return () => {
-      mountedRef.current = false;
+    const hide = useCallback(() => {
+      if (isControlled) { return; }
       if (timeoutRef.current) { clearTimeout(timeoutRef.current); }
-    };
-  }, []);
+      if (mountedRef.current) {
+        setInternalVisible(false);
+      }
+    }, [isControlled]);
 
-  const child = isValidElement(children) ? children : null;
-  if (!child) { return null; }
+    // 清理 timeout
+    useEffect(() => {
+      mountedRef.current = true;
+      return () => {
+        mountedRef.current = false;
+        if (timeoutRef.current) { clearTimeout(timeoutRef.current); }
+      };
+    }, []);
 
-  return (
-    <>
-      {cloneElement(
-        child as ReactElement<
-          { ref?: unknown; onMouseEnter?: unknown; onMouseLeave?: unknown; onFocus?: unknown; onBlur?: unknown }
-        >,
-        // eslint-disable-next-line react-hooks/refs
-        {
-          ref: (el: HTMLElement | null) => {
-            void el;
+    // 每次展示时重新计算位置
+    useEffect(() => {
+      if (visible && triggerRef.current) {
+        const rect = triggerRef.current.getBoundingClientRect();
+        setTooltipStyle(computeTooltipStyle(rect, placement));
+      }
+    }, [visible, placement]);
+
+    const child = isValidElement(children) ? children : null;
+    if (!child) { return null; }
+
+    return (
+      <>
+        {cloneElement(
+          child as ReactElement<
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            any
+          >,
+          {
+            ref: (el: HTMLElement | null) => {
+              triggerRef.current = el;
+              if (typeof forwardedRef === "function") {
+                forwardedRef(el);
+              } else if (forwardedRef && "current" in forwardedRef) {
+                (forwardedRef as React.MutableRefObject<HTMLElement | null>).current = el;
+              }
+            },
+            onMouseEnter: show,
+            onMouseLeave: hide,
+            onFocus: show,
+            onBlur: hide,
           },
-          onMouseEnter: show,
-          onMouseLeave: hide,
-          onFocus: show,
-          onBlur: hide,
-        },
-      )}
-      {visible && (
-        <div className={`tooltip-content tooltip-${typeof placement === "string" ? placement : "top"}`}>
-          {title}
-        </div>
-      )}
-    </>
-  );
-}
+        )}
+        {visible && (
+          <div className="tooltip-content" style={tooltipStyle}>
+            {title}
+          </div>
+        )}
+      </>
+    );
+  },
+);

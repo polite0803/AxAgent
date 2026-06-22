@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import { invoke, logIpcError } from "@/lib/invoke";
+import { invoke, isTauri, logIpcError } from "@/lib/invoke";
 import { useAgentStore, useConversationStore, useStreamStore } from "@/stores";
 import { Activity, AlertTriangle, Clock, HelpCircle, IterationCw, Pause, Play, Shield, Wrench } from "lucide-react";
 import React, { useEffect, useRef, useState } from "react";
@@ -94,6 +94,25 @@ export const AgentStatsPanel: React.FC = () => {
         if (cancelled) {
           return;
         }
+
+        // 自动恢复：后端无活动但前端仍认为在流式处理
+        // 说明 chat-stream-chunk done/error 事件可能丢失
+        if (!s.running && s.activeSessions === 0) {
+          const currentStreams = useStreamStore.getState().activeStreams;
+          if (activeConversationId in currentStreams) {
+            if (!isTauri()) {
+              console.warn(
+                "[AgentStatsPanel] 浏览器模式：流事件无法送达，自动清理卡住的流状态",
+              );
+            }
+            useStreamStore.getState().cancelCurrentStream(activeConversationId);
+            cancelled = true;
+            clearInterval(interval);
+            clearInterval(toolInterval);
+            return;
+          }
+        }
+
         setStats(s);
 
         if (s.paused && pauseStartRef.current === 0) {

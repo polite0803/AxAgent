@@ -1362,12 +1362,13 @@ export function forceLayout(
 
     const subGraph = new dagre.graphlib.Graph();
     subGraph.setDefaultEdgeLabel(() => ({}));
+    // 容器内部使用更紧凑的布局：TB 方向，较小间距
     subGraph.setGraph({
       rankdir: "TB",
-      ranksep: 80,
-      nodesep: 50,
-      marginx: 40,
-      marginy: 40,
+      ranksep: 50,
+      nodesep: 30,
+      marginx: 20,
+      marginy: 20,
       ranker: "network-simplex",
     });
 
@@ -1415,12 +1416,12 @@ export function forceLayout(
   const g = new dagre.graphlib.Graph();
   g.setDefaultEdgeLabel(() => ({}));
   g.setGraph({
-    rankdir: "TB",
-    ranksep: 180,
-    nodesep: 80,
-    marginx: 80,
-    marginy: 80,
-    edgesep: 30,
+    rankdir: "LR",
+    ranksep: 120,
+    nodesep: 60,
+    marginx: 60,
+    marginy: 60,
+    edgesep: 20,
     ranker: "network-simplex",
   });
 
@@ -1491,7 +1492,8 @@ export function forceLayout(
     .force("y", d3.forceY<ForceNode>((d) => d.y).strength(0.5))
     .stop();
 
-  for (let i = 0; i < 100; i++) {
+  // d3-force 仅作为微调（减少迭代次数，避免破坏 dagre 层级结构）
+  for (let i = 0; i < 20; i++) {
     simulation.tick();
   }
 

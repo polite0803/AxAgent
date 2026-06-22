@@ -27,6 +27,7 @@ import {
   _streamUiFlushTimer,
   getStreamingMessageId,
   isConversationStreaming as isConvStreaming,
+  markStreamActivity,
   setPendingUiChunk,
   setStreamPrefix,
   setStreamUiFlushTimer,
@@ -937,6 +938,7 @@ export function createSendMethods(
               if (event.payload.conversationId !== conversationId) {
                 return;
               }
+              markStreamActivity(conversationId);
               resetAgentTimeout();
               flushAgentTextChunks();
               flushAgentThinkingChunks();
@@ -966,6 +968,7 @@ export function createSendMethods(
               if (event.payload.conversationId !== conversationId) {
                 return;
               }
+              markStreamActivity(conversationId);
               resetAgentTimeout();
 
               if ("type" in event.payload) {
@@ -986,6 +989,7 @@ export function createSendMethods(
             if (event.payload.conversationId !== conversationId) {
               return;
             }
+            markStreamActivity(conversationId);
             resetAgentTimeout();
             _agentPendingThinking += event.payload.thinking;
             scheduleAgentThinkingFlush();
@@ -998,6 +1002,7 @@ export function createSendMethods(
             if (event.payload.conversationId !== conversationId) {
               return;
             }
+            markStreamActivity(conversationId);
             // Clear pending buffer (done event overwrites with final content)
             clearAgentStreamBuffer();
             // Skip if streaming was already cancelled (avoid stale fetchMessages re-render)
@@ -1136,6 +1141,7 @@ export function createSendMethods(
             if (event.payload.conversationId !== conversationId) {
               return;
             }
+            markStreamActivity(conversationId);
             resetAgentTimeout();
             set((s) => ({
               messages: s.messages.map((m) =>

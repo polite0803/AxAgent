@@ -368,6 +368,14 @@ pub fn global_sdk_plugins() -> &'static SdkPluginRegistry {
         std::sync::LazyLock::new(SdkPluginRegistry::default);
     TEST_SDK_PLUGINS.with(|cell| {
         let ptr = cell.as_ptr();
+        // SAFETY:
+        // - The raw pointer `ptr` originates from a C FFI callback whose contract guarantees
+        //   it is either a valid, non-null pointer to a heap-allocated PluginInstance or null.
+        // - When null, the fallback static `FALLBACK` is used, which lives for the program's
+        //   lifetime (`&'static`).
+        // - This is only called from the FFI boundary on the main C thread, so there is no
+        //   concurrent mutation of `*ptr`.
+        // - The `unwrap()` inside is safe because the `match` arm already confirmed `Some`.
         unsafe {
             match &*ptr {
                 Some(_) => &*(*ptr).as_ref().unwrap(),

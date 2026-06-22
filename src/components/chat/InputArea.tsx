@@ -1214,21 +1214,42 @@ export function InputArea() {
 
   // Agent CWD helpers
   const abbreviatePath = useCallback((path: string): string => {
-    const segments = path.replace(/\\/g, "/").split("/").filter(Boolean);
-    if (segments.length <= 2) {
+    const normalized = path.replace(/\\/g, "/");
+    const segments = normalized.split("/").filter(Boolean);
+    if (segments.length <= 3 || normalized.length <= 45) {
       return path;
     }
-    return "…/" + segments.slice(-2).join("/");
+    // 保留盘符（如 D:）+ 最后 3 段
+    const drive = segments[0].endsWith(":") ? segments[0] : null;
+    const tail = segments.slice(-3);
+    const abbreviated = drive
+      ? [drive, "…", ...tail].join("/")
+      : "…/" + tail.join("/");
+    return abbreviated;
   }, []);
 
   const handleSelectCwd = useCallback(async () => {
     try {
-      const selected = await open({
-        directory: true,
-        multiple: false,
-        title: t("common.selectDirectory"),
-      });
-      if (selected && typeof selected === "string") {
+      let selected: string | null = null;
+      if (isTauri()) {
+        const result = await open({
+          directory: true,
+          multiple: false,
+          title: t("common.selectDirectory"),
+        });
+        if (result && typeof result === "string") {
+          selected = result;
+        }
+      } else {
+        try {
+          const handle = await window.showDirectoryPicker();
+          selected = handle.name;
+        } catch {
+          // User cancelled or browser doesn't support showDirectoryPicker
+          return;
+        }
+      }
+      if (selected) {
         if (activeConversationId) {
           await invoke("agent_update_session", {
             request: { conversationId: activeConversationId, cwd: selected },
@@ -1576,10 +1597,14 @@ export function InputArea() {
     (models: Array<{ providerId: string; model_id: string }>) => {
       setCompanionModels(models);
       if (companionStorageKey) {
-        if (models.length > 0) {
-          localStorage.setItem(companionStorageKey, JSON.stringify(models));
-        } else {
-          localStorage.removeItem(companionStorageKey);
+        try {
+          if (models.length > 0) {
+            localStorage.setItem(companionStorageKey, JSON.stringify(models));
+          } else {
+            localStorage.removeItem(companionStorageKey);
+          }
+        } catch {
+          // localStorage quota exceeded or unavailable
         }
       }
     },
@@ -1591,10 +1616,14 @@ export function InputArea() {
       setCompanionModels((prev) => {
         const next = prev.filter((_, i) => i !== index);
         if (companionStorageKey) {
-          if (next.length > 0) {
-            localStorage.setItem(companionStorageKey, JSON.stringify(next));
-          } else {
-            localStorage.removeItem(companionStorageKey);
+          try {
+            if (next.length > 0) {
+              localStorage.setItem(companionStorageKey, JSON.stringify(next));
+            } else {
+              localStorage.removeItem(companionStorageKey);
+            }
+          } catch {
+            // localStorage quota exceeded or unavailable
           }
         }
         return next;
@@ -2975,7 +3004,7 @@ export function InputArea() {
                     display: "flex",
                     alignItems: "center",
                     gap: 4,
-                    maxWidth: 200,
+                    maxWidth: 400,
                   }}
                 >
                   <span

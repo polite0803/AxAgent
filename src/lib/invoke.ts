@@ -480,7 +480,9 @@ export function logIpcError(
           context,
           retryFn: options.retryFn,
         });
-      }).catch(() => {});
+      }).catch((err) => {
+        console.warn("[invoke]", err);
+      });
     }
   };
 }
@@ -517,7 +519,9 @@ export function logAndNotify(context: string): (err: unknown) => void {
     console.warn(`[IPC] ${context}: ${message}`);
     import("antd").then(({ message: messageApi }) => {
       messageApi.error(`${context} failed: ${message.slice(0, 100)}`);
-    }).catch(() => {});
+    }).catch((err) => {
+      console.warn("[invoke]", err);
+    });
   };
 }
 

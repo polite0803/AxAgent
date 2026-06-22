@@ -391,6 +391,7 @@ export function useFlowNodes(params: UseFlowNodesParams) {
           position: subRelPos,
           parentId: containerNode.id,
           extent: "parent" as const,
+          zIndex: 10,
           data: subData,
         };
 
@@ -421,6 +422,7 @@ export function useFlowNodes(params: UseFlowNodesParams) {
           position: { x: subNode.position.x, y: subNode.position.y },
           parentId: swNodeId,
           extent: "parent" as const,
+          zIndex: 10,
           data: {
             ...subNode,
             label: subNode.title,

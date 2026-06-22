@@ -17,15 +17,25 @@ export let _listenerGen = 0;
 // ─── 卡住的流看门狗 ───
 
 // 流超过此毫秒数无更新则视为卡住，自动取消
-const STUCK_STREAM_TIMEOUT_MS = 5 * 60 * 1000; // 5 分钟
+const STUCK_STREAM_TIMEOUT_MS = 3 * 60 * 1000; // 3 分钟（比5分钟更敏感）
 /** 看门狗检查间隔 */
 // 看门狗检查间隔: 30 秒
 const WATCHDOG_INTERVAL_MS = 30 * 1000;
 
 let _watchdogTimer: ReturnType<typeof setInterval> | null = null;
 
+// 更新某个会话的最后活跃时间，供 watchdog 判断是否卡住
+export function markStreamActivity(conversationId: string) {
+  useStreamStore.setState((s) => ({
+    streamingStartTimestamps: {
+      ...s.streamingStartTimestamps,
+      [conversationId]: Date.now(),
+    },
+  }));
+}
+
 // 启动流看门狗：定期检查 streamingStartTimestamps，
-// 超过 STUCK_STREAM_TIMEOUT_MS 未结束则自动取消并标记错误。
+// 超过 STUCK_STREAM_TIMEOUT_MS 无活跃则视为卡住，自动取消并标记错误。
 export function startStreamWatchdog() {
   if (_watchdogTimer !== null) {
     return;
@@ -37,11 +47,11 @@ export function startStreamWatchdog() {
     const stuckConversationIds: string[] = [];
 
     for (
-      const [convId, startTime] of Object.entries(
+      const [convId, lastActive] of Object.entries(
         state.streamingStartTimestamps,
       )
     ) {
-      if (now - startTime > STUCK_STREAM_TIMEOUT_MS) {
+      if (now - lastActive > STUCK_STREAM_TIMEOUT_MS) {
         stuckConversationIds.push(convId);
       }
     }
@@ -580,6 +590,9 @@ export function appendStreamChunk<T extends ConversationStoreLike>(
       buf.resolvedId = messageId;
     }
   }
+
+  // 更新活跃时间戳，防止看门狗误判卡住
+  markStreamActivity(conversationId);
 
   // Sync backward-compatible exported variables
   _streamBuffer = session.streamBuffer;

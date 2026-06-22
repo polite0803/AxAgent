@@ -7059,7 +7059,16 @@
     "cached": "Cached"
   },
   "artifactPanel": {
-    "fullscreen": "Fullscreen"
+    "fullscreen": "Fullscreen",
+    "noArtifactSelected": "No artifact selected",
+    "previewNotAvailable": "Preview not available for this format",
+    "untitled": "Untitled",
+    "copyCode": "Copy code",
+    "download": "Download",
+    "segmentedCode": "Code",
+    "segmentedSplit": "Split",
+    "segmentedPreview": "Preview",
+    "copied": "Copied!"
   },
   "cronManager": {
     "deleteConfirm": "Delete this cron job?",

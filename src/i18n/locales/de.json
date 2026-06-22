@@ -3822,7 +3822,7 @@
     "search": "Suchen"
   },
   "workflow": {
-    "loopBackCycleDetected": "Rückkopplungskante würde einen Zyklus bilden, bitte Zielknoten anpassen",
+    "loopBackCycleDetected": "Loop-back edge would form a cycle, please adjust the target node",
     "cycleDetectedOnConnect": "Diese Kante erzeugt einen Zyklus ohne loopBack-Markierung — die Workflow-Engine kann sie ablehnen.",
     "decorativeContainerNoEdges": "Dekorative Container können keine ein- oder ausgehenden Kanten haben",
     "unsavedTitle": "Ungespeicherte Änderungen",
@@ -5091,7 +5091,6 @@
     },
     "searchNodes": "Knoten suchen",
     "validationWarnings": "Workflow has {{count}} warning(s):\n{{details}}",
-    "loopBackCycleDetected": "Loop-back edge would form a cycle, please adjust the target node",
     "nodeKind": {
       "input": "Input",
       "output": "Output",
@@ -7273,7 +7272,16 @@
     "active": "Cache aktiv. {{hits}} Treffer, ~{{tokens}} Token gespart."
   },
   "artifactPanel": {
-    "fullscreen": "Vollbild"
+    "fullscreen": "Vollbild",
+    "noArtifactSelected": "Kein Artefakt ausgewählt",
+    "previewNotAvailable": "Vorschau für dieses Format nicht verfügbar",
+    "untitled": "Ohne Titel",
+    "copyCode": "Code kopieren",
+    "download": "Herunterladen",
+    "segmentedCode": "Code",
+    "segmentedSplit": "Teilen",
+    "segmentedPreview": "Vorschau",
+    "copied": "Kopiert"
   },
   "cronManager": {
     "deleteConfirm": "Diesen Cron-Job löschen?",

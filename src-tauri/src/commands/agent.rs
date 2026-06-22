@@ -3487,11 +3487,10 @@ pub async fn agent_runtime_stats(
     };
 
     // Read real-time execution progress from the SessionManager.
-    // This is updated synchronously by ConversationRuntime::run_turn()
-    // during execution and can be read asynchronously here.
     let execution_progress = app_state
         .agent_session_manager
-        .get_progress_sync(&conversation_id)
+        .get_progress(&conversation_id)
+        .await
         .map(|p| p.snapshot());
 
     Ok(AgentRuntimeStats {

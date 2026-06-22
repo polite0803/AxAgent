@@ -133,6 +133,17 @@ export function ChatSidebar({
   const titleGeneratingConversationId = useConversationStore(
     (s) => s.titleGeneratingConversationId,
   );
+
+  // 当 AI 生成标题完成后（titleGeneratingConversationId 从非 null → null），
+  // 主动刷新会话列表，确保侧栏标题实时更新
+  const prevTitleGenRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (prevTitleGenRef.current !== null && titleGeneratingConversationId === null) {
+      useConversationStore.getState().fetchConversations();
+    }
+    prevTitleGenRef.current = titleGeneratingConversationId;
+  }, [titleGeneratingConversationId]);
+
   const forkConversation = useConversationStore((s) => s.forkConversation);
   const togglePin = useConversationStore((s) => s.togglePin);
   const toggleArchive = useConversationStore((s) => s.toggleArchive);
@@ -941,29 +952,10 @@ export function ChatSidebar({
       if (segments.length <= 1) {
         return path;
       }
-      if (segments.length === 2) {
-        return segments.join("/");
-      }
-      // Show last 2 segments, but if duplicate exists among all ws dirs, extend to 3
-      const short2 = segments.slice(-2).join("/");
-      const wsPaths = Array.from(
-        new Set(
-          conversations.flatMap((c) => {
-            const dir = c.workspace_dir;
-            return dir ? [dir] : [];
-          }),
-        ),
-      );
-      const hasConflict = wsPaths.some((p) => {
-        const s = p.replace(/\\/g, "/").split("/").filter(Boolean);
-        return s.length >= 2 && s.slice(-2).join("/") === short2 && p !== path;
-      });
-      if (hasConflict && segments.length >= 3) {
-        return "…/" + segments.slice(-3).join("/");
-      }
-      return "…/" + short2;
+      // 只显示最后一段（目录名），完整路径在 Tooltip 中可查看
+      return segments[segments.length - 1];
     },
-    [conversations],
+    [],
   );
 
   // Count conversations per workspace for group badge
@@ -1264,12 +1256,14 @@ export function ChatSidebar({
             {
               key: `move-ws:${d}`,
               label: (
-                <span
-                  className="truncate"
-                  style={{ maxWidth: 180, display: "inline-block" }}
-                >
-                  {d}
-                </span>
+                <Tooltip title={d}>
+                  <span
+                    className="truncate"
+                    style={{ maxWidth: 180, display: "inline-block" }}
+                  >
+                    {abbreviateWsPath(d)}
+                  </span>
+                </Tooltip>
               ),
             },
           ]

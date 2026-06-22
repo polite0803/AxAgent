@@ -355,7 +355,7 @@ export function ChatViewToolbar({
                 sessionType={activeConversation?.session_type ?? "conversation"}
                 workflowTemplateId={activeConversation?.workflow_template_id}
                 workflowStatus={activeConversation?.workflow_status}
-                onSelectWorkflow={(templateId, workflowId) => {
+                onSelectWorkflow={async (templateId, workflowId) => {
                   if (activeConversation.id) {
                     if (workflowId) {
                       try {
@@ -393,12 +393,12 @@ export function ChatViewToolbar({
                     }
                   }
                   if (templateId === "") {
-                    void updateConversation(activeConversation.id, {
+                    await updateConversation(activeConversation.id, {
                       session_type: "conversation",
                       workflow_template_id: null,
                     });
                   } else {
-                    void updateConversation(activeConversation.id, {
+                    await updateConversation(activeConversation.id, {
                       session_type: "workflow",
                       workflow_template_id: workflowId || templateId,
                       agent_profile_id: null,
@@ -406,7 +406,7 @@ export function ChatViewToolbar({
                   }
                   fetchConversation();
                 }}
-                onRemoveWorkflow={() => {
+                onRemoveWorkflow={async () => {
                   if (activeConversation.id) {
                     try {
                       localStorage.removeItem(
@@ -424,7 +424,7 @@ export function ChatViewToolbar({
                       // Ignore storage errors
                     }
                   }
-                  void updateConversation(activeConversation.id, {
+                  await updateConversation(activeConversation.id, {
                     session_type: "conversation",
                     workflow_template_id: null,
                   });
@@ -434,24 +434,28 @@ export function ChatViewToolbar({
               />
             )}
             {activeConversation?.mode === "agent"
-              && activeConversation?.session_type !== "workflow" && (
-              <>
-                <ExpertBadge
-                  agentProfileId={activeConversation.agent_profile_id ?? null}
-                  onClick={() => setExpertOpen(true)}
-                />
-                <AgentProfileSelect
-                  value={activeConversation.agent_profile_id ?? ""}
-                  onChange={(profileId) => {
-                    updateConversation(activeConversation.id, {
-                      agent_profile_id: profileId || null,
-                      session_type: "conversation",
-                      workflow_template_id: null,
-                    });
-                  }}
-                />
-              </>
-            )}
+              && activeConversation?.session_type !== "workflow"
+              && (activeConversation?.work_strategy !== "plan"
+                || !activeConversation?.workflow_template_id)
+              && (
+                <>
+                  <ExpertBadge
+                    agentProfileId={activeConversation.agent_profile_id ?? null}
+                    onClick={() => setExpertOpen(true)}
+                  />
+                  <AgentProfileSelect
+                    value={activeConversation.agent_profile_id ?? ""}
+                    onChange={async (profileId) => {
+                      await updateConversation(activeConversation.id, {
+                        agent_profile_id: profileId || null,
+                        session_type: "conversation",
+                        workflow_template_id: null,
+                      });
+                      fetchConversation();
+                    }}
+                  />
+                </>
+              )}
             <div className="flex-1" />
 
             <Tooltip

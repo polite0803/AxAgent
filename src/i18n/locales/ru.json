@@ -3391,7 +3391,7 @@
     "search": "Поиск"
   },
   "workflow": {
-    "loopBackCycleDetected": "Обратная петля сформирует цикл, пожалуйста, скорректируйте целевой узел",
+    "loopBackCycleDetected": "Loop-back edge would form a cycle, please adjust the target node",
     "cycleDetectedOnConnect": "Это ребро создаёт цикл без маркера loopBack — движок рабочего процесса может отклонить его.",
     "decorativeContainerNoEdges": "Декоративные контейнеры не могут иметь входящие или исходящие рёбра",
     "unsavedTitle": "Несохранённые изменения",
@@ -4660,7 +4660,6 @@
     },
     "searchNodes": "Поиск узлов",
     "validationWarnings": "Workflow has {{count}} warning(s):\n{{details}}",
-    "loopBackCycleDetected": "Loop-back edge would form a cycle, please adjust the target node",
     "nodeKind": {
       "input": "Input",
       "output": "Output",
@@ -7273,7 +7272,16 @@
     "active": "Кэш активен. {{hits}} попаданий, ~{{tokens}} токенов сэкономлено."
   },
   "artifactPanel": {
-    "fullscreen": "Полный экран"
+    "fullscreen": "Полный экран",
+    "noArtifactSelected": "Артифакт не выбран",
+    "previewNotAvailable": "Просмотр для этого формата недоступен",
+    "untitled": "Без названия",
+    "copyCode": "Копировать код",
+    "download": "Скачать",
+    "segmentedCode": "Код",
+    "segmentedSplit": "Разделить",
+    "segmentedPreview": "Предпросмотр",
+    "copied": "Скопировано"
   },
   "cronManager": {
     "deleteConfirm": "Удалить эту задачу cron?",

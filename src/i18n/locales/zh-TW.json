@@ -3391,7 +3391,7 @@
     "noResults": "無結果"
   },
   "workflow": {
-    "loopBackCycleDetected": "回環邊會形成迴圈，請調整目標節點",
+    "loopBackCycleDetected": "Loop-back edge would form a cycle, please adjust the target node",
     "cycleDetectedOnConnect": "此邊會形成無 loopBack 標記的環——工作流引擎可能會拒絕它。",
     "decorativeContainerNoEdges": "裝飾性容器不能有連入或連出的邊",
     "unsavedTitle": "未儲存的變更",
@@ -4660,7 +4660,6 @@
     },
     "searchNodes": "搜尋節點",
     "validationWarnings": "工作流存在 {{count}} 個警告：\n{{details}}",
-    "loopBackCycleDetected": "Loop-back edge would form a cycle, please adjust the target node",
     "nodeKind": {
       "input": "Input",
       "output": "Output",
@@ -7266,7 +7265,16 @@
     "active": "緩存已激活。{{hits}} 次命中，~{{tokens}} tokens 已節省。"
   },
   "artifactPanel": {
-    "fullscreen": "全屏"
+    "fullscreen": "全屏",
+    "noArtifactSelected": "未選擇任何產品",
+    "previewNotAvailable": "不支援此格式的預覽",
+    "untitled": "未命名",
+    "copyCode": "複製程式碼",
+    "download": "下載",
+    "segmentedCode": "程式碼",
+    "segmentedSplit": "分割畫面",
+    "segmentedPreview": "預覽",
+    "copied": "已複製"
   },
   "cronManager": {
     "deleteConfirm": "確定刪除此定時任務？",
