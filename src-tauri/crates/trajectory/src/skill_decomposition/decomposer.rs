@@ -211,7 +211,6 @@ impl ContentPreprocessor {
 
         (result, blocks)
     }
-
 }
 
 /// Raw composite skill data from marketplace
@@ -354,8 +353,6 @@ impl ParsedStep {
         self.description = description;
         self
     }
-
-
 }
 
 /// Result of decomposing a composite skill into a workflow template
@@ -1172,7 +1169,6 @@ impl SkillDecomposer {
 
         steps
     }
-
 }
 
 impl Default for SkillDecomposer {

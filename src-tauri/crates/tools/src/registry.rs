@@ -1141,16 +1141,14 @@ impl RuntimeToolExecutor for UnifiedToolRegistry {
         }
 
         match tokio::runtime::Handle::try_current() {
-            Ok(handle) => {
-                tokio::task::block_in_place(|| {
-                    handle.block_on(async {
-                        match self.execute(tool_name, input).await {
-                            Ok(r) => Ok(r.content),
-                            Err(e) => Err(e),
-                        }
-                    })
+            Ok(handle) => tokio::task::block_in_place(|| {
+                handle.block_on(async {
+                    match self.execute(tool_name, input).await {
+                        Ok(r) => Ok(r.content),
+                        Err(e) => Err(e),
+                    }
                 })
-            }
+            }),
             Err(_) => {
                 let rt = tokio::runtime::Runtime::new()
                     .map_err(|e| ToolError::new(format!("Failed to create Tokio runtime: {e}")))?;
@@ -1160,7 +1158,7 @@ impl RuntimeToolExecutor for UnifiedToolRegistry {
                         Err(e) => Err(e),
                     }
                 })
-            }
+            },
         }
     }
 
@@ -1196,11 +1194,9 @@ impl RuntimeToolExecutor for UnifiedToolRegistry {
         let registry = Arc::new(self.tools.clone());
 
         let results: Vec<_> = match tokio::runtime::Handle::try_current() {
-            Ok(handle) => {
-                tokio::task::block_in_place(|| {
-                    handle.block_on(async { orchestrator.execute(tool_requests, registry, &ctx).await })
-                })
-            }
+            Ok(handle) => tokio::task::block_in_place(|| {
+                handle.block_on(async { orchestrator.execute(tool_requests, registry, &ctx).await })
+            }),
             Err(_) => {
                 let rt = match tokio::runtime::Runtime::new() {
                     Ok(rt) => rt,
@@ -1208,13 +1204,19 @@ impl RuntimeToolExecutor for UnifiedToolRegistry {
                         return requests
                             .iter()
                             .map(|(id, name, _)| {
-                                (id.clone(), name.clone(), Err(ToolError::new(format!("Failed to create Tokio runtime: {e}"))))
+                                (
+                                    id.clone(),
+                                    name.clone(),
+                                    Err(ToolError::new(format!(
+                                        "Failed to create Tokio runtime: {e}"
+                                    ))),
+                                )
                             })
                             .collect();
-                    }
+                    },
                 };
                 rt.block_on(async { orchestrator.execute(tool_requests, registry, &ctx).await })
-            }
+            },
         };
 
         results

@@ -772,7 +772,6 @@ impl SessionManager {
         let trackers = self.progress_trackers.read().await;
         trackers.get(conversation_id).cloned()
     }
-
 }
 
 // ---------------------------------------------------------------------------

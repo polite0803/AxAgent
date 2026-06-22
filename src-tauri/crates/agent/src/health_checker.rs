@@ -405,7 +405,10 @@ impl HealthCheckRunner {
                 tokio::spawn({
                     let result = result.clone();
                     async move {
-                        tracing::error!("[health_checker] on_unhealthy callback triggered: {}", result.message);
+                        tracing::error!(
+                            "[health_checker] on_unhealthy callback triggered: {}",
+                            result.message
+                        );
                         on_unhealthy(result);
                     }
                 });
