@@ -543,7 +543,71 @@ export function useFlowNodes(params: UseFlowNodesParams) {
       }
     }
 
-    return { flowNodes, flowEdges, expectedParentByNode };
+    // 防御性处理：剔除孤儿 parentId + 拓扑排序保证父节点在子节点前面
+    // React Flow 内部 adoptUserNodes 按数组顺序处理节点，遇到带 parentId 的子节点时
+    // 必须保证父节点已在 nodeLookup 中，否则触发 "Parent node xxx not found" 警告。
+    // 任何带 parentId 指向数组中不存在父节点的节点都视为孤儿，移除其 parentId。
+    const flowNodeIdSet = new Set(flowNodes.map((n) => n.id));
+    for (const fn of flowNodes) {
+      const pid = (fn as { parentId?: string }).parentId;
+      if (pid && !flowNodeIdSet.has(pid)) {
+        // 孤儿：父节点不在本批次 flowNodes 中，移除 parentId
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        delete (fn as any).parentId;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        delete (fn as any).extent;
+        if (fn.data) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          delete (fn.data as any).parentId;
+        }
+      }
+    }
+    // 拓扑排序：父节点排在子节点前面（Kahn 算法，保证稳定性）
+    const inDegree = new Map<string, number>();
+    const childrenOf = new Map<string, string[]>();
+    for (const fn of flowNodes) {
+      inDegree.set(fn.id, inDegree.get(fn.id) ?? 0);
+      const pid = (fn as { parentId?: string }).parentId;
+      if (pid && flowNodeIdSet.has(pid)) {
+        inDegree.set(fn.id, (inDegree.get(fn.id) ?? 0) + 1);
+        if (!childrenOf.has(pid)) { childrenOf.set(pid, []); }
+        childrenOf.get(pid)!.push(fn.id);
+      }
+    }
+    const queue: string[] = [];
+    const flowNodeById = new Map<string, typeof flowNodes[number]>();
+    for (const fn of flowNodes) { flowNodeById.set(fn.id, fn); }
+    // 记录原始 index，保证拓扑排序中无父子关系的节点保持原顺序
+    const originalIndex = new Map<string, number>();
+    for (let i = 0; i < flowNodes.length; i++) { originalIndex.set(flowNodes[i].id, i); }
+    // 入度为 0 的节点按原始 index 升序入队
+    const indegZero = flowNodes.filter((fn) => (inDegree.get(fn.id) ?? 0) === 0);
+    indegZero.sort((a, b) => (originalIndex.get(a.id) ?? 0) - (originalIndex.get(b.id) ?? 0));
+    for (const fn of indegZero) { queue.push(fn.id); }
+    const sorted: typeof flowNodes = [];
+    const visited = new Set<string>();
+    while (queue.length > 0) {
+      const id = queue.shift()!;
+      if (visited.has(id)) { continue; }
+      visited.add(id);
+      sorted.push(flowNodeById.get(id)!);
+      const kids = childrenOf.get(id) ?? [];
+      // 子节点按原始 index 升序处理
+      kids.sort((a, b) => (originalIndex.get(a) ?? 0) - (originalIndex.get(b) ?? 0));
+      for (const kid of kids) {
+        const d = (inDegree.get(kid) ?? 0) - 1;
+        inDegree.set(kid, d);
+        if (d === 0 && !visited.has(kid)) { queue.push(kid); }
+      }
+    }
+    // 处理环（理论上不应发生）或未访问的节点
+    if (sorted.length < flowNodes.length) {
+      for (const fn of flowNodes) {
+        if (!visited.has(fn.id)) { sorted.push(fn); }
+      }
+    }
+
+    return { flowNodes: sorted, flowEdges, expectedParentByNode };
   }, [
     nodes,
     edges,
