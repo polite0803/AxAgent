@@ -4804,7 +4804,10 @@
       "placeholder": "Search nodes..."
     },
     "run": "Run",
-    "settings": "Settings"
+    "settings": "Settings",
+    "aggregatorNode": {
+      "inputs": "입력"
+    }
   },
   "atomicSkill": {
     "entryType": "항목 유형",

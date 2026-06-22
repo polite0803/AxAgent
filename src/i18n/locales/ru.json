@@ -4804,7 +4804,10 @@
       "placeholder": "Search nodes..."
     },
     "run": "Run",
-    "settings": "Settings"
+    "settings": "Settings",
+    "aggregatorNode": {
+      "inputs": "Входы"
+    }
   },
   "atomicSkill": {
     "entryType": "Тип записи",

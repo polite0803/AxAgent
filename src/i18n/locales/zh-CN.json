@@ -5262,7 +5262,10 @@
     },
     "validationWarnings": "工作流存在 {{count}} 个警告：\n{{details}}",
     "run": "运行",
-    "settings": "设置"
+    "settings": "设置",
+    "aggregatorNode": {
+      "inputs": "输入"
+    }
   },
   "atomicSkill": {
     "entryType": "入口类型",

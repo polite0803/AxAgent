@@ -23,7 +23,7 @@ const AggregatorNodeComponent: React.FC<NodeProps> = ({ data: _data, selected })
       data={data}
       selected={selected}
       icon="📊"
-      childLabel={t("workflow.aggregatorNode.inputs", { defaultValue: "Inputs" })}
+      childLabel={t("workflow.aggregatorNode.inputs")}
       extraTags={
         <>
           {data.aggregationType && (

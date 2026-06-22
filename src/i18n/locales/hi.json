@@ -5235,7 +5235,10 @@
       "placeholder": "Search nodes..."
     },
     "run": "Run",
-    "settings": "Settings"
+    "settings": "Settings",
+    "aggregatorNode": {
+      "inputs": "इनपुट"
+    }
   },
   "atomicSkill": {
     "entryType": "प्रविष्टि प्रकार",

@@ -5235,7 +5235,10 @@
       "placeholder": "Search nodes..."
     },
     "run": "Run",
-    "settings": "Settings"
+    "settings": "Settings",
+    "aggregatorNode": {
+      "inputs": "Entrées"
+    }
   },
   "atomicSkill": {
     "entryType": "Type d'entrée",

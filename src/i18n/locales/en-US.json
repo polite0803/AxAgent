@@ -4913,7 +4913,10 @@
     },
     "validationWarnings": "Workflow has {{count}} warning(s):\n{{details}}",
     "run": "Run",
-    "settings": "Settings"
+    "settings": "Settings",
+    "aggregatorNode": {
+      "inputs": "Inputs"
+    }
   },
   "atomicSkill": {
     "entryType": "Entry Type",
