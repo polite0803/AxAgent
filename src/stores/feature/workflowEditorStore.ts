@@ -382,29 +382,48 @@ const createEmptyTemplate = (): Omit<
   error_config: undefined,
 });
 
+// 深克隆：优先用 JSON（避免 React Flow 节点含 React 组件引用导致 structuredClone 失败）
+// 历史栈只需要基本数据结构（id、position、type、data 简单字段），丢的 React 引用反正用不上
+const safeClone = <T>(value: T): T => {
+  try {
+    return structuredClone(value);
+  } catch (err) {
+    // structuredClone 在 React Flow Node 含组件/函数引用时失败，
+    // 退到 JSON 克隆。HistoryEntry 仅用于撤销/重做，不需要保留函数引用。
+    try {
+      return JSON.parse(JSON.stringify(value)) as T;
+    } catch (jsonErr) {
+      // 极端情况下返回空对象/空数组
+      console.warn("[workflowEditorStore] history clone failed:", err, jsonErr);
+      if (Array.isArray(value)) { return [] as unknown as T; }
+      return {} as T;
+    }
+  }
+};
+
 const buildHistoryEntry = (state: WorkflowEditorState): HistoryEntry => ({
-  nodes: structuredClone(state.nodes),
-  edges: structuredClone(state.edges),
-  parentRefs: structuredClone(state.parentRefs),
+  nodes: safeClone(state.nodes),
+  edges: safeClone(state.edges),
+  parentRefs: safeClone(state.parentRefs),
   collapsedContainers: { ...state.collapsedContainers },
   name: state.currentTemplate?.name || "",
   description: state.currentTemplate?.description,
   icon: state.currentTemplate?.icon || "Bot",
   tags: state.currentTemplate?.tags ? [...state.currentTemplate.tags] : [],
   input_schema: state.currentTemplate?.input_schema
-    ? structuredClone(state.currentTemplate.input_schema)
+    ? safeClone(state.currentTemplate.input_schema)
     : undefined,
   output_schema: state.currentTemplate?.output_schema
-    ? structuredClone(state.currentTemplate.output_schema)
+    ? safeClone(state.currentTemplate.output_schema)
     : undefined,
   variables: state.currentTemplate?.variables
-    ? structuredClone(state.currentTemplate.variables)
+    ? safeClone(state.currentTemplate.variables)
     : undefined,
   error_config: state.currentTemplate?.error_config
-    ? structuredClone(state.currentTemplate.error_config)
+    ? safeClone(state.currentTemplate.error_config)
     : undefined,
   trigger_config: state.currentTemplate?.trigger_config
-    ? structuredClone(state.currentTemplate.trigger_config)
+    ? safeClone(state.currentTemplate.trigger_config)
     : undefined,
 });
 

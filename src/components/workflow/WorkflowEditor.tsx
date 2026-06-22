@@ -534,8 +534,20 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
             computedFlowEdges,
             parentRefs,
           );
+          // 关键：React Flow 的 parent/child 模式要求父节点在 nodes 数组中
+          // 排在子节点前面，否则会警告 "Parent node xxx not found" 且
+          // 子节点会跑出容器外。这里在 setRNodes 前排序保证顺序正确。
+          const sortedLayouted = [...layouted].sort((a, b) => {
+            const aPid = parentRefs[a.id];
+            const bPid = parentRefs[b.id];
+            // a 的父是 b → a 在 b 后面
+            if (aPid === b.id) { return 1; }
+            // b 的父是 a → a 在 b 前面
+            if (bPid === a.id) { return -1; }
+            return 0;
+          });
           skipPositionWriteRef.current = true;
-          setRNodes(layouted);
+          setRNodes(sortedLayouted);
           setREdges(layoutedE);
           requestAnimationFrame(() => {
             skipPositionWriteRef.current = false;
