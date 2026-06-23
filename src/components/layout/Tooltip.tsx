@@ -157,10 +157,11 @@ export const Tooltip = forwardRef<HTMLElement, TooltipProps>(
             onBlur: hide,
             // 透传父组件注入的事件，让 Popconfirm/Popover 等
             // 通过 cloneElement 传入的 onClick 能真正触发到子元素
-            onClick,
-            onKeyDown,
-            onKeyUp,
-            onContextMenu,
+            // 注意：只传非 undefined 的值，避免覆盖子元素自身的事件处理器
+            ...(onClick ? { onClick } : {}),
+            ...(onKeyDown ? { onKeyDown } : {}),
+            ...(onKeyUp ? { onKeyUp } : {}),
+            ...(onContextMenu ? { onContextMenu } : {}),
           },
         )}
         {visible && (
