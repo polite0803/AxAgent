@@ -19,7 +19,7 @@ use serde::{Deserialize, Serialize};
 /// 会话记忆压缩配置。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SessionMemoryCompactConfig {
-    /// 压缩后保留的最小 token 数
+    /// 压缩后保留的最小 token 数（固定基础值）
     pub min_tokens: u64,
     /// 压缩后保留的包含文本块的最小消息数
     pub min_text_block_messages: usize,
@@ -27,6 +27,19 @@ pub struct SessionMemoryCompactConfig {
     pub max_tokens: u64,
     /// 是否启用会话记忆压缩
     pub enabled: bool,
+    /// 自适应压缩模式：true = 根据历史使用率动态调整阈值
+    #[serde(default)]
+    pub adaptive: bool,
+    /// 自适应因子（0.5~2.0）：越高→保留越多上下文
+    #[serde(default = "default_adaptive_factor")]
+    pub adaptive_factor: f64,
+    /// 最近 N 次估算的 token 使用率历史
+    #[serde(skip)]
+    pub usage_history: Vec<f64>,
+}
+
+fn default_adaptive_factor() -> f64 {
+    1.0
 }
 
 impl Default for SessionMemoryCompactConfig {
@@ -36,7 +49,83 @@ impl Default for SessionMemoryCompactConfig {
             min_text_block_messages: 5,
             max_tokens: 40_000,
             enabled: true,
+            adaptive: false,
+            adaptive_factor: 1.0,
+            usage_history: Vec::new(),
         }
+    }
+}
+
+impl SessionMemoryCompactConfig {
+    /// 记录一次 token 使用率观察值。
+    /// ratio = 当前会话 token 数 / 模型最大上下文窗口
+    pub fn record_usage(&mut self, current_tokens: u64, max_window: u64) {
+        if max_window == 0 {
+            return;
+        }
+        let ratio = (current_tokens as f64 / max_window as f64).clamp(0.0, 1.0);
+        self.usage_history.push(ratio);
+        // 保留最近 10 次记录
+        if self.usage_history.len() > 10 {
+            self.usage_history.remove(0);
+        }
+    }
+
+    /// 计算动态压缩阈值。
+    /// 基于历史使用率趋势：如果使用率持续升高 → 提高压缩力度（降低阈值）
+    /// 如果使用率持续偏低 → 降低压缩力度（提高阈值）
+    pub fn effective_max_tokens(&self) -> u64 {
+        if !self.adaptive || self.usage_history.len() < 3 {
+            return self.max_tokens;
+        }
+
+        let avg_usage: f64 =
+            self.usage_history.iter().copied().sum::<f64>() / self.usage_history.len() as f64;
+
+        // 趋势：最近 3 次 vs 全部历史
+        let recent: f64 = self
+            .usage_history
+            .iter()
+            .rev()
+            .take(3)
+            .copied()
+            .sum::<f64>()
+            / 3.0;
+        let trend = recent - avg_usage; // 正值 = 使用率在上升
+
+        // 基础压缩比例：基于平均使用率
+        // 使用率 20% → 保留 80%, 使用率 80% → 保留 40%
+        let base_compression = 1.0 - (avg_usage * 0.5);
+
+        // 趋势调整：上升趋势 → 额外压缩 10%, 下降趋势 → 放松 10%
+        let trend_adjust = if trend > 0.05 {
+            -0.1 // 使用率上升，需要更激进压缩
+        } else if trend < -0.05 {
+            0.1 // 使用率下降，可保留更多
+        } else {
+            0.0
+        };
+
+        let effective_ratio =
+            (base_compression + trend_adjust).clamp(0.3, 0.95) * self.adaptive_factor;
+
+        let result = (self.max_tokens as f64 * effective_ratio) as u64;
+        // 确保不低于 min_tokens 的 120%
+        let min_allowed = (self.min_tokens as f64 * 1.2) as u64;
+        result.max(min_allowed).min(self.max_tokens)
+    }
+
+    /// 获取有效 min_tokens（自适应时动态调节）
+    pub fn effective_min_tokens(&self) -> u64 {
+        if !self.adaptive || self.usage_history.is_empty() {
+            return self.min_tokens;
+        }
+        let avg_usage: f64 =
+            self.usage_history.iter().copied().sum::<f64>() / self.usage_history.len() as f64;
+        // 使用率高时提高 min_tokens（保留更多上下文），使用率低时降低
+        let adjustment = 1.0 + (avg_usage - 0.3).clamp(-0.3, 0.3);
+        let result = (self.min_tokens as f64 * adjustment) as u64;
+        result.max(self.min_tokens / 2).min(self.min_tokens * 2)
     }
 }
 
@@ -100,15 +189,19 @@ pub fn try_session_memory_compact(
         return None;
     }
 
-    // 构建结构化记忆摘要
-    let (memory_content, was_truncated) = build_session_memory_content(memories, config.max_tokens);
+    // ── 自适应阈值 ──
+    let effective_max = config.effective_max_tokens();
+    let effective_min = config.effective_min_tokens();
 
-    // 从尾部计算起始索引
+    // 构建结构化记忆摘要
+    let (memory_content, was_truncated) = build_session_memory_content(memories, effective_max);
+
+    // 从尾部计算起始索引（使用自适应阈值）
     let start_index = compute_compact_start_index(
         &session.messages,
-        config.min_tokens,
+        effective_min,
         config.min_text_block_messages,
-        config.max_tokens,
+        effective_max,
     );
 
     // 确保起始索引有效
@@ -504,6 +597,9 @@ mod tests {
             min_text_block_messages: 2,
             max_tokens: 500_000,
             enabled: true,
+            adaptive: false,
+            adaptive_factor: 1.0,
+            usage_history: Vec::new(),
         };
         let result = try_session_memory_compact(
             &session,
@@ -520,5 +616,132 @@ mod tests {
         assert!(compaction.removed_message_count > 0);
         assert!(!compaction.summary.is_empty());
         assert!(compaction.compacted_session.messages[0].role == MessageRole::System);
+    }
+
+    // ── 自适应压缩测试 ──
+
+    #[test]
+    fn test_adaptive_config_defaults() {
+        let config = SessionMemoryCompactConfig::default();
+        assert!(!config.adaptive);
+        assert!((config.adaptive_factor - 1.0).abs() < f64::EPSILON);
+        assert!(config.usage_history.is_empty());
+    }
+
+    #[test]
+    fn test_record_usage_and_effective() {
+        let mut config = SessionMemoryCompactConfig::default();
+        config.adaptive = true;
+        config.max_tokens = 100_000;
+        config.min_tokens = 10_000;
+
+        // 记录低使用率
+        config.record_usage(10_000, 128_000); // ~8%
+        assert_eq!(config.usage_history.len(), 1);
+
+        // 自适应未生效时（history < 3），effective = base
+        let eff_max = config.effective_max_tokens();
+        assert_eq!(eff_max, 100_000); // 默认值，history 不足 3
+
+        // 记录足够多的观察值
+        config.record_usage(12_000, 128_000);
+        config.record_usage(15_000, 128_000);
+        assert_eq!(config.usage_history.len(), 3);
+
+        // 低使用率 → 应该保留更多
+        let eff_max_after = config.effective_max_tokens();
+        assert!(eff_max_after <= 100_000); // 应该 <= max
+        assert!(eff_max_after >= 12_000); // 应该 >= min*1.2
+    }
+
+    #[test]
+    fn test_high_usage_causes_more_compression() {
+        let mut config = SessionMemoryCompactConfig::default();
+        config.adaptive = true;
+        config.max_tokens = 100_000;
+        config.min_tokens = 10_000;
+
+        // 模拟高使用率
+        config.record_usage(100_000, 128_000); // ~78%
+        config.record_usage(110_000, 128_000);
+        config.record_usage(120_000, 128_000);
+        config.record_usage(115_000, 128_000);
+
+        let eff_max = config.effective_max_tokens();
+        // 高使用率 → 更激进的压缩 → significantly < 100_000
+        assert!(eff_max < 80_000, "expected heavy compression, got {eff_max}");
+    }
+
+    #[test]
+    fn test_rising_trend_triggers_tighter_compression() {
+        let mut config = SessionMemoryCompactConfig::default();
+        config.adaptive = true;
+        config.max_tokens = 100_000;
+        config.min_tokens = 10_000;
+
+        // 模拟使用率快速上升趋势
+        config.record_usage(10_000, 128_000);
+        config.record_usage(50_000, 128_000);
+        config.record_usage(90_000, 128_000);
+        config.record_usage(110_000, 128_000);
+
+        let eff_max = config.effective_max_tokens();
+        // 持续上升 → 应该压缩
+        assert!(eff_max < 100_000);
+    }
+
+    #[test]
+    fn test_adaptive_disabled_uses_base_values() {
+        let mut config = SessionMemoryCompactConfig::default();
+        config.adaptive = false; // 显式禁用
+        config.max_tokens = 100_000;
+        config.min_tokens = 10_000;
+
+        // 即使有历史数据也不影响
+        config.record_usage(110_000, 128_000);
+        config.record_usage(120_000, 128_000);
+        config.record_usage(130_000, 128_000);
+
+        let eff_max = config.effective_max_tokens();
+        assert_eq!(eff_max, 100_000); // 禁用时返回 base max
+    }
+
+    #[test]
+    fn test_effective_min_tokens_scaling() {
+        let mut config = SessionMemoryCompactConfig::default();
+        config.adaptive = true;
+        config.min_tokens = 10_000;
+
+        // 高使用率 → min_tokens 上浮
+        config.record_usage(100_000, 128_000);
+        config.record_usage(110_000, 128_000);
+        config.record_usage(120_000, 128_000);
+
+        let eff_min = config.effective_min_tokens();
+        assert!(eff_min > 10_000, "expected higher min_tokens under high usage, got {eff_min}");
+
+        // 低使用率 → min_tokens 下降
+        let mut config2 = SessionMemoryCompactConfig::default();
+        config2.adaptive = true;
+        config2.min_tokens = 10_000;
+        config2.record_usage(10_000, 128_000);
+        config2.record_usage(12_000, 128_000);
+        config2.record_usage(8_000, 128_000);
+
+        let eff_min2 = config2.effective_min_tokens();
+        assert!(
+            eff_min2 <= 15_000,
+            "expected moderate min_tokens under low usage, got {eff_min2}"
+        );
+    }
+
+    #[test]
+    fn test_usage_history_trimming() {
+        let mut config = SessionMemoryCompactConfig::default();
+        for i in 1..=15 {
+            config.record_usage(i * 5_000, 128_000);
+        }
+        // 最多保留 10 条
+        assert!(config.usage_history.len() <= 10);
     }
 }

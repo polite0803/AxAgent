@@ -2,9 +2,20 @@
 
 pub mod swe_bench;
 pub mod terminal_bench;
+pub mod workflow_bench;
 
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub enum BenchCategory {
+    CodeRepair,
+    CodeGeneration,
+    TerminalOperations,
+    WebNavigation,
+    CodeReview,
+    WorkflowExecution,
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BenchmarkSuite {
@@ -20,15 +31,6 @@ pub struct Benchmark {
     pub description: String,
     pub category: BenchCategory,
     pub tasks: Vec<BenchTask>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum BenchCategory {
-    CodeRepair,
-    CodeGeneration,
-    TerminalOperations,
-    WebNavigation,
-    CodeReview,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

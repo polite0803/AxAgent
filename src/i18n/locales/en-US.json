@@ -4367,7 +4367,13 @@
       "viewDetail": "View detail",
       "viewSubExecution": "View sub-execution",
       "waitingForNodes": "Waiting for nodes",
-      "warnings": "Warnings"
+      "warnings": "Warnings",
+      "traceSnapshot": "Trace Snapshot",
+      "loadTraces": "Load Traces",
+      "noTraceData": "No trace data",
+      "showSpanTree": "Show Span Tree",
+      "hideSpanTree": "Hide Span Tree",
+      "noSpanData": "No span data resolved"
     },
     "applySemanticCheck": "Apply",
     "applyUpgrade": "Apply Upgrade",
@@ -4916,6 +4922,34 @@
     "settings": "Settings",
     "aggregatorNode": {
       "inputs": "Inputs"
+    },
+    "validation": {
+      "validation": {
+        "title": "验证规则",
+        "noRules": "暂无验证规则。点击「添加规则」开始创建。",
+        "addRule": "添加规则",
+        "rule": "规则",
+        "ruleName": "规则名称",
+        "ruleNamePlaceholder": "给自己的规则取个名字",
+        "ruleType": "规则类型",
+        "description": "描述",
+        "descriptionPlaceholder": "这条规则是做什么的",
+        "schema": "JSON Schema",
+        "sourceNode": "源节点",
+        "selectNode": "选择节点",
+        "expectedPath": "期望路径",
+        "assertionOp": "断言操作",
+        "expectedValue": "期望值",
+        "expectedValuePlaceholder": "输入期望值",
+        "metric": "指标",
+        "maxValue": "最大值",
+        "minValue": "最小值",
+        "onFailStrategy": "失败策略",
+        "warn": "仅警告",
+        "block": "阻止执行",
+        "continue": "继续执行",
+        "saved": "验证规则已保存"
+      }
     }
   },
   "atomicSkill": {

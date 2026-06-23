@@ -4424,7 +4424,13 @@
       "viewDetail": "विवरण देखें",
       "viewSubExecution": "उप-निष्पादन देखें",
       "waitingForNodes": "नोड की प्रतीक्षा",
-      "warnings": "चेतावनियाँ"
+      "warnings": "चेतावनियाँ",
+      "traceSnapshot": "Trace 快照",
+      "loadTraces": "加载 Trace",
+      "noTraceData": "暂无 Trace 数据",
+      "showSpanTree": "显示 Span 树",
+      "hideSpanTree": "隐藏 Span 树",
+      "noSpanData": "暂未解析到 Span 数据"
     },
     "applySemanticCheck": "लागू करें",
     "applyUpgrade": "अपग्रेड लागू करें",
@@ -5238,6 +5244,34 @@
     "settings": "Settings",
     "aggregatorNode": {
       "inputs": "इनपुट"
+    },
+    "validation": {
+      "validation": {
+        "title": "验证规则",
+        "noRules": "暂无验证规则。点击「添加规则」开始创建。",
+        "addRule": "添加规则",
+        "rule": "规则",
+        "ruleName": "规则名称",
+        "ruleNamePlaceholder": "给自己的规则取个名字",
+        "ruleType": "规则类型",
+        "description": "描述",
+        "descriptionPlaceholder": "这条规则是做什么的",
+        "schema": "JSON Schema",
+        "sourceNode": "源节点",
+        "selectNode": "选择节点",
+        "expectedPath": "期望路径",
+        "assertionOp": "断言操作",
+        "expectedValue": "期望值",
+        "expectedValuePlaceholder": "输入期望值",
+        "metric": "指标",
+        "maxValue": "最大值",
+        "minValue": "最小值",
+        "onFailStrategy": "失败策略",
+        "warn": "仅警告",
+        "block": "阻止执行",
+        "continue": "继续执行",
+        "saved": "验证规则已保存"
+      }
     }
   },
   "atomicSkill": {

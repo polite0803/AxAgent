@@ -4,7 +4,9 @@ import { countTerminalNodes, isDeadEndNode } from "@/components/workflow/DebugPa
 import { invoke } from "@/lib/invoke";
 import { findCyclicSCCs } from "@/lib/workflowLayout";
 import { useWorkflowEditorStore } from "@/stores";
+import { useTracerStore } from "@/stores/devtools/tracerStore";
 import { useWorkEngineStore } from "@/stores/feature/workEngineStore";
+import type { SpanTreeNode } from "@/types";
 import {
   BugOutlined,
   CaretRightOutlined,
@@ -14,6 +16,7 @@ import {
   ExclamationCircleOutlined,
   EyeOutlined,
   FastForwardOutlined,
+  NodeIndexOutlined,
   PauseOutlined,
   PlayCircleOutlined,
   ReloadOutlined,
@@ -46,7 +49,261 @@ import {
 import type { ColumnsType } from "antd/es/table";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import type { ExecutionStatusResponse, NodeExecutionRecord } from "../../types";
+import type { ExecutionStatusResponse, NodeExecutionRecord, Span } from "../../types";
+
+// ── 上下文监控类型 ──
+interface ContextUsage {
+  totalTokens: number;
+  maxTokens: number;
+  windowPercent: number;
+  systemTokens: number;
+  userTokens: number;
+  toolTokens: number;
+  assistantTokens: number;
+  compressedCount: number;
+}
+
+// ── Trace 快照视图 ──
+function formatTraceDuration(ms?: number): string {
+  if (!ms) { return "-"; }
+  if (ms < 1000) { return `${ms}ms`; }
+  if (ms < 60000) { return `${(ms / 1000).toFixed(1)}s`; }
+  return `${(ms / 60000).toFixed(1)}m`;
+}
+
+function formatTraceTokens(n: number): string {
+  if (n < 1000) { return `${n}`; }
+  if (n < 1_000_000) { return `${(n / 1000).toFixed(1)}K`; }
+  return `${(n / 1_000_000).toFixed(1)}M`;
+}
+
+interface TraceSnapshotProps {
+  traceId: string;
+  spans: Span[];
+  tree: SpanTreeNode[];
+  totalTokens: number;
+  totalCost: number;
+  spanCount: number;
+  errorCount: number;
+}
+
+function TraceSnapshot({ traceId, tree, totalTokens, spanCount, errorCount }: TraceSnapshotProps) {
+  const { t } = useTranslation();
+  const { token: themeToken } = theme.useToken();
+  const [expanded, setExpanded] = useState(false);
+
+  const spanTypeColors: Record<string, string> = {
+    agent: "#1677ff",
+    tool: "#52c41a",
+    llm_call: "#722ed1",
+    task: "#fa8c16",
+    sub_task: "#13c2c2",
+    reflection: "#eb2f96",
+    reasoning: "#faad14",
+  };
+
+  if (!traceId) {
+    return <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t("workflow.debug.noTraceData")} />;
+  }
+
+  return (
+    <div>
+      <Descriptions size="small" column={3} className="mb-2">
+        <Descriptions.Item label="Trace">{traceId.slice(0, 12)}...</Descriptions.Item>
+        <Descriptions.Item label="Spans">
+          <Tag>{spanCount}</Tag>
+          {errorCount > 0 && <Tag color="error">{errorCount} errors</Tag>}
+        </Descriptions.Item>
+        <Descriptions.Item label="Tokens">
+          <Tag>{formatTraceTokens(totalTokens)}</Tag>
+        </Descriptions.Item>
+      </Descriptions>
+
+      <Button
+        type="link"
+        size="small"
+        icon={<NodeIndexOutlined />}
+        onClick={() => setExpanded(!expanded)}
+        className="mb-2"
+      >
+        {expanded ? t("workflow.debug.hideSpanTree") : t("workflow.debug.showSpanTree")}
+      </Button>
+
+      {expanded && (
+        <div
+          style={{
+            background: themeToken.colorBgLayout,
+            borderRadius: 6,
+            maxHeight: 300,
+            overflow: "auto",
+            padding: 8,
+          }}
+        >
+          {tree.length > 0
+            ? tree.map((node) => <SpanTreeMini key={node.id} node={node} depth={0} spanTypeColors={spanTypeColors} />)
+            : <Text type="secondary">{t("workflow.debug.noSpanData")}</Text>}
+        </div>
+      )}
+    </div>
+  );
+}
+
+interface SpanTreeMiniProps {
+  node: SpanTreeNode;
+  depth: number;
+  spanTypeColors: Record<string, string>;
+}
+
+function SpanTreeMini({ node, depth, spanTypeColors }: SpanTreeMiniProps) {
+  const [expanded, setExpanded] = useState(depth < 2);
+  const hasChildren = node.children.length > 0;
+  const color = spanTypeColors[node.span_type] || "#d9d9d9";
+
+  return (
+    <div className="mb-0.5" style={{ marginLeft: depth * 16 }}>
+      <div
+        className="flex items-center gap-1 cursor-pointer py-0.5 px-1 hover:opacity-80"
+        style={{ borderRadius: 4 }}
+        onClick={() => hasChildren && setExpanded(!expanded)}
+      >
+        {hasChildren && <Text style={{ fontSize: 10, width: 12 }}>{expanded ? "▾" : "▸"}</Text>}
+        {!hasChildren && <span style={{ width: 12 }} />}
+        <span
+          style={{
+            display: "inline-block",
+            width: 8,
+            height: 8,
+            borderRadius: "50%",
+            background: color,
+            marginRight: 4,
+          }}
+        />
+        <Text style={{ fontSize: 11, flex: 1 }} ellipsis>
+          {node.name}
+        </Text>
+        <Tag style={{ fontSize: 9, lineHeight: "14px", padding: "0 4px" }}>{node.span_type}</Tag>
+        {node.errors.length > 0 && <CloseCircleOutlined style={{ color: "#ff4d4f", fontSize: 10 }} />}
+        <Text type="secondary" style={{ fontSize: 10 }}>{formatTraceDuration(node.duration_ms)}</Text>
+      </div>
+      {expanded
+        && node.children.map((child) => (
+          <SpanTreeMini key={child.id} node={child} depth={depth + 1} spanTypeColors={spanTypeColors} />
+        ))}
+    </div>
+  );
+}
+
+// ── 上下文使用率条 ──
+interface ContextGaugeProps {
+  usage: ContextUsage;
+}
+
+function ContextGauge({ usage }: ContextGaugeProps) {
+  const { token } = theme.useToken();
+
+  const gaugeColor = usage.windowPercent > 80
+    ? "#ff4d4f"
+    : usage.windowPercent > 60
+    ? "#faad14"
+    : "#52c41a";
+
+  const layers = [
+    { name: "System", tokens: usage.systemTokens, color: "#1677ff" },
+    { name: "User", tokens: usage.userTokens, color: "#52c41a" },
+    { name: "Assistant", tokens: usage.assistantTokens, color: "#722ed1" },
+    { name: "Tool", tokens: usage.toolTokens, color: "#fa8c16" },
+  ];
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-1">
+        <Text strong style={{ fontSize: 12 }}>Context Window</Text>
+        <Space size={4}>
+          <Text style={{ fontSize: 11 }}>{formatTraceTokens(usage.totalTokens)}</Text>
+          <Text type="secondary" style={{ fontSize: 11 }}>/ {formatTraceTokens(usage.maxTokens)}</Text>
+          <Tag color={gaugeColor} style={{ fontSize: 10, lineHeight: "16px" }}>
+            {usage.windowPercent.toFixed(0)}%
+          </Tag>
+        </Space>
+      </div>
+
+      {/* 总进度条 */}
+      <div
+        className="relative w-full mb-2"
+        style={{
+          height: 8,
+          background: token.colorBorderSecondary,
+          borderRadius: 4,
+          overflow: "hidden",
+        }}
+      >
+        <div
+          style={{
+            width: `${Math.min(usage.windowPercent, 100)}%`,
+            height: "100%",
+            background: gaugeColor,
+            borderRadius: 4,
+            transition: "width 0.3s ease",
+          }}
+        />
+      </div>
+
+      {/* 分层占比堆叠条 */}
+      <div
+        className="flex w-full mb-1"
+        style={{ height: 6, borderRadius: 3, overflow: "hidden" }}
+      >
+        {layers.map((layer) => {
+          const pct = usage.totalTokens > 0 ? (layer.tokens / usage.totalTokens) * 100 : 0;
+          if (pct < 1) { return null; }
+          return (
+            <div
+              key={layer.name}
+              style={{
+                width: `${pct}%`,
+                height: "100%",
+                background: layer.color,
+                opacity: 0.7,
+              }}
+              title={`${layer.name}: ${formatTraceTokens(layer.tokens)} (${pct.toFixed(0)}%)`}
+            />
+          );
+        })}
+      </div>
+
+      {/* 分层标签 */}
+      <div className="flex flex-wrap gap-x-3 gap-y-0.5">
+        {layers.map((layer) => {
+          const pct = usage.totalTokens > 0 ? (layer.tokens / usage.totalTokens) * 100 : 0;
+          return (
+            <Space key={layer.name} size={2}>
+              <span
+                style={{
+                  display: "inline-block",
+                  width: 6,
+                  height: 6,
+                  borderRadius: "50%",
+                  background: layer.color,
+                }}
+              />
+              <Text type="secondary" style={{ fontSize: 10 }}>{layer.name}</Text>
+              <Text style={{ fontSize: 10 }}>{formatTraceTokens(layer.tokens)}</Text>
+              <Text type="secondary" style={{ fontSize: 9 }}>({pct.toFixed(0)}%)</Text>
+            </Space>
+          );
+        })}
+      </div>
+
+      {usage.compressedCount > 0 && (
+        <div className="mt-1">
+          <Tag color="blue" style={{ fontSize: 10 }}>
+            {usage.compressedCount}x compressions applied
+          </Tag>
+        </div>
+      )}
+    </div>
+  );
+}
 
 const { Title, Text, Paragraph } = Typography;
 const { Panel } = Collapse;
@@ -279,6 +536,25 @@ export function DebugPanel({ workflowId }: DebugPanelProps) {
   const [detailRecord, setDetailRecord] = useState<NodeExecutionRecord | null>(null);
   const [subExecutionDetail, setSubExecutionDetail] = useState<ExecutionStatusResponse | null>(null);
   const [subExecutionLoading, setSubExecutionLoading] = useState(false);
+  // ── Trace 快照状态 ──
+  const [traceExpanded] = useState(false);
+  const recentTraces = useTracerStore((s) => s.traces);
+  const loadTraces = useTracerStore((s) => s.loadTraces);
+  const selectedTrace = useTracerStore((s) => s.selectedTrace);
+  const selectTrace = useTracerStore((s) => s.selectTrace);
+  const tree = useTracerStore((s) => s.tree);
+  const [traceLoading, setTraceLoading] = useState(false);
+  // ── 上下文监控状态 ──
+  const [contextUsage, setContextUsage] = useState<ContextUsage>({
+    totalTokens: 0,
+    maxTokens: 128_000,
+    windowPercent: 0,
+    systemTokens: 0,
+    userTokens: 0,
+    toolTokens: 0,
+    assistantTokens: 0,
+    compressedCount: 0,
+  });
 
   const nodes = useWorkflowEditorStore((s) => s.nodes);
   const edges = useWorkflowEditorStore((s) => s.edges);
@@ -503,14 +779,71 @@ export function DebugPanel({ workflowId }: DebugPanelProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [workflowId]);
 
+  // ── Trace 快照加载 ──
   useEffect(() => {
-    if (!executionId || !isDebugRunning) { return; }
-    const interval = setInterval(() => {
-      getStatus(executionId);
-    }, 2000);
-    return () => clearInterval(interval);
+    if (!traceExpanded || !executionId) { return; }
+    setTraceLoading(true);
+    loadTraces({ session_id: executionId, limit: 5 }).finally(() => setTraceLoading(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [executionId, isDebugRunning]);
+  }, [traceExpanded, executionId]);
+
+  // ── 上下文监控 —— 从节点记录估算 token 用量 ──
+  useEffect(() => {
+    if (nodeRecords.length === 0) { return; }
+    // 从 nodeRecords 推断上下文各层占比（简化估算）
+    let systemTokens = 0;
+    let userTokens = 0;
+    let toolTokens = 0;
+    let assistantTokens = 0;
+
+    for (const r of nodeRecords) {
+      const inputStr = typeof r.input === "string"
+        ? r.input
+        : r.input
+        ? JSON.stringify(r.input)
+        : "";
+      const outputStr = typeof r.output === "string"
+        ? r.output
+        : r.output
+        ? JSON.stringify(r.output)
+        : "";
+
+      // 粗略估算：每 token ~4 字符
+      const inputTokens = Math.ceil(inputStr.length / 4);
+      const outputTokens = Math.ceil(outputStr.length / 4);
+
+      if (r.node_type === "trigger" || r.node_type === "tool") {
+        toolTokens += inputTokens + outputTokens;
+      } else if (r.node_type === "agent") {
+        systemTokens += inputTokens * 0.3; // system prompt 占比
+        userTokens += inputTokens * 0.4;
+        assistantTokens += outputTokens;
+      } else if (r.node_type === "llm") {
+        userTokens += inputTokens;
+        assistantTokens += outputTokens;
+      } else {
+        userTokens += inputTokens;
+        assistantTokens += outputTokens;
+      }
+    }
+
+    const totalTokens = systemTokens + userTokens + toolTokens + assistantTokens;
+    const maxTokens = 128_000;
+    const windowPercent = Math.min((totalTokens / maxTokens) * 100, 100);
+    const compressedCount = variables?.__compacted_count__ as number | undefined || 0;
+
+    setContextUsage({
+      totalTokens,
+      maxTokens,
+      windowPercent,
+      systemTokens,
+      userTokens,
+      toolTokens,
+      assistantTokens,
+      compressedCount,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nodeRecords]);
 
   const handleDebugRun = useCallback(async () => {
     if (!workflowId) { return; }
@@ -981,7 +1314,7 @@ export function DebugPanel({ workflowId }: DebugPanelProps) {
 
       {status && (
         <Row gutter={12} className="mb-3">
-          <Col span={8}>
+          <Col span={6}>
             <Card size="small">
               <Statistic
                 title={t("workflow.debug.execTime")}
@@ -990,7 +1323,7 @@ export function DebugPanel({ workflowId }: DebugPanelProps) {
               />
             </Card>
           </Col>
-          <Col span={8}>
+          <Col span={6}>
             <Card size="small">
               <Statistic
                 title={t("workflow.debug.nodesExecuted")}
@@ -1000,13 +1333,21 @@ export function DebugPanel({ workflowId }: DebugPanelProps) {
               />
             </Card>
           </Col>
-          <Col span={8}>
+          <Col span={6}>
             <Card size="small">
               <Statistic
                 title={t("workflow.debug.breakpoints")}
                 value={breakpoints.length}
                 valueStyle={{ fontSize: 16 }}
               />
+            </Card>
+          </Col>
+          <Col span={6}>
+            <Card
+              size="small"
+              className={contextUsage.windowPercent > 80 ? "border-danger" : ""}
+            >
+              <ContextGauge usage={contextUsage} />
             </Card>
           </Col>
         </Row>
@@ -1182,6 +1523,83 @@ export function DebugPanel({ workflowId }: DebugPanelProps) {
                   description={t("workflow.debug.noBreakpoints")}
                 />
               ),
+          },
+          {
+            key: "trace",
+            label: (
+              <Space>
+                <NodeIndexOutlined />
+                {t("workflow.debug.traceSnapshot")}
+                {recentTraces.length > 0 && <Tag>{recentTraces.length}</Tag>}
+                {traceLoading && <Badge status="processing" />}
+              </Space>
+            ),
+            children: (
+              <div>
+                {/* 上下文仪表盘 */}
+                <ContextGauge usage={contextUsage} />
+                <Divider style={{ margin: "8px 0" }} />
+
+                {/* 最近 Trace 列表 */}
+                {recentTraces.length === 0
+                  ? (
+                    <Empty
+                      image={Empty.PRESENTED_IMAGE_SIMPLE}
+                      description={
+                        <Space direction="vertical" size={4}>
+                          <Text type="secondary">{t("workflow.debug.noTraceData")}</Text>
+                          <Button
+                            size="small"
+                            icon={<ReloadOutlined />}
+                            loading={traceLoading}
+                            onClick={() => {
+                              if (!executionId) { return; }
+                              setTraceLoading(true);
+                              loadTraces({ session_id: executionId, limit: 5 }).finally(() => setTraceLoading(false));
+                            }}
+                          >
+                            {t("workflow.debug.loadTraces")}
+                          </Button>
+                        </Space>
+                      }
+                    />
+                  )
+                  : (
+                    <div>
+                      <div className="flex flex-wrap gap-1 mb-2">
+                        {recentTraces.map((tr) => (
+                          <Tag
+                            key={tr.trace_id}
+                            color={selectedTrace?.trace.trace_id === tr.trace_id ? "blue" : "default"}
+                            style={{ cursor: "pointer" }}
+                            onClick={() => selectTrace(tr.trace_id)}
+                          >
+                            <Space size={2}>
+                              {tr.trace_id.slice(0, 8)}
+                              <Text type="secondary" style={{ fontSize: 9 }}>
+                                {tr.span_count} spans
+                              </Text>
+                              {tr.error_count > 0 && <CloseCircleOutlined style={{ color: "#ff4d4f", fontSize: 9 }} />}
+                            </Space>
+                          </Tag>
+                        ))}
+                      </div>
+
+                      {selectedTrace && (
+                        <TraceSnapshot
+                          traceId={selectedTrace.trace.trace_id}
+                          spans={selectedTrace.trace.spans}
+                          tree={tree}
+                          totalTokens={selectedTrace.summary.total_tokens}
+                          totalCost={selectedTrace.summary.total_cost_usd}
+                          spanCount={selectedTrace.summary.span_count}
+                          errorCount={selectedTrace.summary.error_count}
+                        />
+                      )}
+                    </div>
+                  )}
+              </div>
+            ),
           },
           {
             key: "history",

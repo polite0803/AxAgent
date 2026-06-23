@@ -280,8 +280,9 @@ pub async fn debug_run_workflow(
     let app_clone = app.clone();
     let wid_for_progress = workflow_id.clone();
     let eid_for_progress = execution_id.clone();
-    let progress_cb: axagent_runtime::work_engine::ProgressCallback =
-        std::sync::Arc::new(move |evt| {
+    let engine_for_progress = engine.clone();
+    let progress_cb: axagent_runtime::work_engine::ProgressCallback = std::sync::Arc::new(
+        move |evt| {
             let app = app_clone.clone();
             let node_id = evt.node_id.clone();
             let status = evt.status.clone();
@@ -292,7 +293,9 @@ pub async fn debug_run_workflow(
                 .execution_id
                 .clone()
                 .unwrap_or_else(|| eid_for_progress.clone());
+            let eng = engine_for_progress.clone();
             Box::pin(async move {
+                // ── 轻量级节点状态事件（实时）──
                 let _ = app.emit(
                     "workflow:node-status-changed",
                     serde_json::json!({
@@ -304,8 +307,46 @@ pub async fn debug_run_workflow(
                         "completed_nodes": completed,
                     }),
                 );
+
+                // ── 全量状态同步事件（消除 2s 轮询依赖）──
+                // 从引擎获取当前完整执行状态，序列化后发送
+                if let Ok(full_state) = eng.get_status(&exec_id).await {
+                    let node_records: Vec<serde_json::Value> = full_state
+                        .node_records
+                        .into_iter()
+                        .map(|nr| {
+                            serde_json::json!({
+                                "node_id": nr.node_id,
+                                "node_type": nr.node_type,
+                                "node_name": nr.node_name,
+                                "status": nr.status,
+                                "input": nr.input,
+                                "output": nr.output,
+                                "execution_time_ms": nr.execution_time_ms,
+                                "error": nr.error,
+                                "started_at": nr.started_at,
+                                "completed_at": nr.completed_at,
+                                "sub_workflow_id": nr.sub_workflow_id,
+                            })
+                        })
+                        .collect::<Vec<_>>();
+                    let _ = app.emit(
+                        "workflow:state-changed",
+                        serde_json::json!({
+                            "execution_id": full_state.execution_id,
+                            "workflow_id": full_state.workflow_id,
+                            "status": full_state.status.to_string(),
+                            "current_node_id": full_state.current_node_id,
+                            "total_time_ms": full_state.total_time_ms,
+                            "node_count": node_records.len(),
+                            "node_records": node_records,
+                            "variables": serde_json::to_value(&full_state.variables).unwrap_or(serde_json::json!({})),
+                        }),
+                    );
+                }
             })
-        });
+        },
+    );
 
     let wid = workflow_id.clone();
     let eid = execution_id.clone();

@@ -118,10 +118,12 @@ pub use prompt_cache::{
 };
 
 pub use sandbox::{
-    ContainerEnvironment, FilesystemIsolationMode, LinuxSandboxCommand, SandboxConfig,
-    SandboxDetectionInputs, SandboxRequest, SandboxStatus, build_linux_sandbox_command,
-    detect_container_environment, detect_container_environment_from, resolve_sandbox_status,
-    resolve_sandbox_status_for_request,
+    ContainerEnvironment, FilesystemIsolationMode, LinuxSandboxCommand, MacosSandboxCommand,
+    SandboxConfig, SandboxDetectionInputs, SandboxRequest, SandboxStatus, SeccompStatus,
+    WindowsSandboxCommand, apply_seccomp_filter, build_linux_sandbox_command,
+    build_macos_sandbox_command, build_windows_sandbox_command, detect_container_environment,
+    detect_container_environment_from, resolve_sandbox_status, resolve_sandbox_status_for_request,
+    seccomp_status_description,
 };
 
 pub use session::{

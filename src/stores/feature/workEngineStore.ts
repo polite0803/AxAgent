@@ -3,7 +3,7 @@
 import { listen } from "@tauri-apps/api/event";
 import { create } from "zustand";
 import { invoke } from "../../lib/invoke";
-import type { ExecutionStatusResponse, ExecutionSummary, NodeExecutionRecord } from "../../types";
+import type { ExecutionStatus, ExecutionStatusResponse, ExecutionSummary, NodeExecutionRecord } from "../../types";
 
 interface WorkEngineState {
   executionId: string | null;
@@ -313,9 +313,78 @@ export const useWorkEngineStore = create<WorkEngineState>((set, get) => ({
       },
     );
 
+    // ── workflow:state-changed — 全量状态同步，取代 2s 轮询 ──
+    const unlistenState = await listen(
+      "workflow:state-changed",
+      (event) => {
+        const payload = event.payload as {
+          execution_id?: string;
+          workflow_id: string;
+          status: string;
+          current_node_id?: string;
+          total_time_ms: number;
+          node_count: number;
+          node_records: Array<{
+            node_id: string;
+            node_type: string;
+            node_name?: string;
+            status: string;
+            input?: unknown;
+            output?: unknown;
+            execution_time_ms?: number;
+            error?: string;
+            started_at: number;
+            completed_at?: number;
+            parent_execution_id?: string;
+            sub_workflow_id?: string;
+          }>;
+          variables?: Record<string, unknown>;
+        };
+        const { executionId } = get();
+        if (payload.execution_id && executionId && payload.execution_id !== executionId) {
+          return;
+        }
+
+        // 从 node_records 提取 nodeStatuses
+        const nodeStatusesFromRecords: Record<string, string> = {};
+        for (const r of payload.node_records ?? []) {
+          nodeStatusesFromRecords[r.node_id] = r.status;
+        }
+
+        set({
+          status: {
+            execution_id: payload.execution_id ?? "",
+            workflow_id: payload.workflow_id,
+            status: payload.status as ExecutionStatus,
+            current_node_id: payload.current_node_id ?? null,
+            total_time_ms: payload.total_time_ms,
+            node_count: payload.node_count,
+            parent_execution_id: null,
+          } as ExecutionStatusResponse,
+          nodeRecords: payload.node_records.map((r) => ({
+            node_id: r.node_id,
+            node_type: r.node_type,
+            node_name: r.node_name ?? null,
+            status: r.status,
+            input: r.input ?? null,
+            output: r.output ?? null,
+            execution_time_ms: r.execution_time_ms ?? null,
+            error: r.error ?? null,
+            started_at: r.started_at,
+            completed_at: r.completed_at ?? null,
+            parent_execution_id: r.parent_execution_id ?? null,
+            sub_workflow_id: r.sub_workflow_id ?? null,
+          })),
+          variables: (payload.variables ?? {}) as Record<string, unknown>,
+          nodeStatuses: nodeStatusesFromRecords,
+        });
+      },
+    );
+
     return () => {
       unlistenNode();
       unlistenCompleted();
+      unlistenState();
     };
   },
 }));
