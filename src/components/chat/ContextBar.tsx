@@ -3,8 +3,8 @@
 import { formatTokenCount } from "@/components/gateway/tokenFormat";
 import { Tooltip } from "@/components/layout/Tooltip";
 import { estimateMessageTokens } from "@/lib/tokenEstimator";
+import { Book, Brain, Lightbulb, MagnifyingGlass, Robot, Wrench } from "@phosphor-icons/react";
 import { Space, Tag, theme } from "antd";
-import { BookOpen, Bot, Brain, Lightbulb, Search, Wrench } from "lucide-react";
 import { useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -79,7 +79,7 @@ export function ContextBar({
         ? [
           {
             key: "model",
-            icon: <Bot size={14} />,
+            icon: <Robot size={14} />,
             label: modelName,
             color: "purple" as const,
             tooltip: t("chat.context.model"),
@@ -88,7 +88,7 @@ export function ContextBar({
         : []),
       {
         key: "search",
-        icon: <Search size={14} />,
+        icon: <MagnifyingGlass size={14} />,
         label: searchEnabled
           ? t("chat.context.enabled")
           : t("chat.context.disabled"),
@@ -109,7 +109,7 @@ export function ContextBar({
         : []),
       {
         key: "knowledge",
-        icon: <BookOpen size={14} />,
+        icon: <Book size={14} />,
         label: t("chat.context.count", { count: knowledgeCount }),
         color: (knowledgeCount > 0 ? "blue" : "default") as string,
         tooltip: t("chat.context.knowledge"),

@@ -386,7 +386,8 @@ function AppRoot() {
   useEffect(() => {
     const root = document.documentElement;
     root.style.setProperty("--font-weight", String(fontWeight));
-    const resolvedFont = fontFamily || "'Inter Variable', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+    const resolvedFont = fontFamily
+      || "'Geist Variable', 'Inter Variable', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
     const resolvedCode = codeFontFamily || "'JetBrains Mono Variable', ui-monospace, monospace";
     root.style.setProperty("--font-family", resolvedFont);
     document.body.style.fontFamily = resolvedFont;

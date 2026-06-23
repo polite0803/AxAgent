@@ -1,25 +1,25 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { SyncOutlined } from "@ant-design/icons";
-import { Button, Input, Popover, Spin, Typography } from "antd";
-import type { GlobalToken, InputRef } from "antd";
 import {
   ArrowDownRight,
   ArrowUpRight,
-  Bot,
   Brain,
-  ChartNoAxesColumn,
+  ChartBar,
+  ChatText,
   Clock,
-  Coins,
-  ListTodo,
-  MessageSquare,
-  Pencil,
-  Share2,
-  Sparkles,
+  Coin,
+  Lightning,
+  ListChecks,
+  NotePencil,
+  Robot,
+  ShareNetwork,
+  Sparkle,
   Timer,
   User,
-  Zap,
-} from "lucide-react";
+} from "@phosphor-icons/react";
+import { Button, Input, Popover, Spin, Typography } from "antd";
+import type { GlobalToken, InputRef } from "antd";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
@@ -64,7 +64,7 @@ function StatsPopoverContent({
     sub?: Array<{ icon: React.ReactNode; label: string; value: string }>;
   }> = [
     {
-      icon: <MessageSquare size={14} />,
+      icon: <ChatText size={14} />,
       label: t("chat.stats.totalMessages"),
       value: stats.total_messages.toLocaleString(),
       sub: [
@@ -74,14 +74,14 @@ function StatsPopoverContent({
           value: stats.total_user_messages.toLocaleString(),
         },
         {
-          icon: <Bot size={12} />,
+          icon: <Robot size={12} />,
           label: t("chat.stats.assistantMessages"),
           value: stats.total_assistant_messages.toLocaleString(),
         },
       ],
     },
     {
-      icon: <Coins size={14} />,
+      icon: <Coin size={14} />,
       label: t("chat.stats.totalTokens"),
       value: formatTokenCount(stats.total_tokens),
       sub: [
@@ -100,7 +100,7 @@ function StatsPopoverContent({
     ...(stats.avg_first_token_latency_ms != null
       ? [
         {
-          icon: <Zap size={14} />,
+          icon: <Lightning size={14} />,
           label: t("chat.stats.avgFirstToken"),
           value: formatDuration(stats.avg_first_token_latency_ms),
         },
@@ -138,7 +138,7 @@ function StatsPopoverContent({
           gap: 6,
         }}
       >
-        <ChartNoAxesColumn size={14} />
+        <ChartBar size={14} />
         {t("chat.stats.title")}
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -325,7 +325,7 @@ export function ChatViewToolbar({
                     <Button
                       type="text"
                       size="small"
-                      icon={isTitleGenerating ? <SyncOutlined spin /> : <Sparkles size={14} />}
+                      icon={isTitleGenerating ? <SyncOutlined spin /> : <Sparkle size={14} />}
                       disabled={isTitleGenerating}
                       onMouseDown={(e) => e.preventDefault()}
                       onClick={(e) => {
@@ -345,7 +345,7 @@ export function ChatViewToolbar({
                     {activeConversation.title}
                     {isTitleGenerating
                       ? <SyncOutlined spin className="ml-1 text-xs opacity-50" />
-                      : <Pencil size={12} className="ml-1 text-xs opacity-50" />}
+                      : <NotePencil size={12} className="ml-1 text-xs opacity-50" />}
                   </Typography.Text>
                 </div>
               )}
@@ -467,7 +467,7 @@ export function ChatViewToolbar({
                 type="text"
                 size="small"
                 icon={
-                  <ListTodo
+                  <ListChecks
                     size={14}
                     style={{
                       color: topicGroupEnabled ? token.colorPrimary : undefined,
@@ -488,13 +488,13 @@ export function ChatViewToolbar({
               <Tooltip title={t("chat.stats.title")}>
                 <Button
                   type="text"
-                  icon={<ChartNoAxesColumn size={14} />}
+                  icon={<ChartBar size={14} />}
                   size="small"
                 />
               </Tooltip>
             </Popover>
             <DropdownMenu items={(exportMenuItems ?? []) as DropdownItem[]} trigger={["click"]}>
-              <Button type="text" icon={<Share2 size={14} />} size="small" />
+              <Button type="text" icon={<ShareNetwork size={14} />} size="small" />
             </DropdownMenu>
             <Tooltip title={t("chat.extractMemories")}>
               <Button
