@@ -386,18 +386,11 @@ function AppRoot() {
   useEffect(() => {
     const root = document.documentElement;
     root.style.setProperty("--font-weight", String(fontWeight));
-    if (fontFamily) {
-      root.style.setProperty("--font-family", fontFamily);
-      document.body.style.fontFamily = fontFamily;
-    } else {
-      root.style.removeProperty("--font-family");
-      document.body.style.removeProperty("font-family");
-    }
-    if (codeFontFamily) {
-      root.style.setProperty("--code-font-family", codeFontFamily);
-    } else {
-      root.style.removeProperty("--code-font-family");
-    }
+    const resolvedFont = fontFamily || "'Inter Variable', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+    const resolvedCode = codeFontFamily || "'JetBrains Mono Variable', ui-monospace, monospace";
+    root.style.setProperty("--font-family", resolvedFont);
+    document.body.style.fontFamily = resolvedFont;
+    root.style.setProperty("--code-font-family", resolvedCode);
   }, [fontWeight, fontFamily, codeFontFamily]);
 
   const themeConfig = useShadcnTheme(

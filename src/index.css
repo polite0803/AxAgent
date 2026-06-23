@@ -1,6 +1,8 @@
 @import "tailwindcss";
 @import "markstream-react/index.css";
 @import "overlayscrollbars/overlayscrollbars.css";
+@import "@fontsource-variable/inter";
+@import "@fontsource-variable/jetbrains-mono";
 
 /* ═══════════════════════════════════════════════════════════════
    TOKEN SYSTEM — 原型 v3 oklch 色彩体系
@@ -235,13 +237,36 @@ button,
   outline: 2px solid var(--color-primary, #a1a1aa);
   outline-offset: 2px;
 }
-.ant-btn:focus-visible,
+.ant-card:focus-visible,
 .ant-dropdown-trigger:focus-visible,
 .ant-input:focus-visible,
 .ant-select:focus-visible,
 .ant-switch:focus-visible {
   outline: 2px solid var(--color-primary, #a1a1aa);
   outline-offset: 2px;
+}
+
+/* ── Card 组件：发丝级边框，取消冗余阴影 ── */
+.ant-card {
+  box-shadow: none !important;
+}
+.ant-card-bordered {
+  border-color: var(--border-light, var(--border)) !important;
+}
+
+/* ── 按钮交互反馈 ── */
+.ant-btn {
+  transition: all 0.2s var(--ease, cubic-bezier(.25,.1,.25,1));
+}
+.ant-btn:not(.ant-btn-disabled):active {
+  transform: scale(0.97);
+}
+.ant-btn-text:not(.ant-btn-disabled):hover {
+  background: var(--accent-bg, rgba(255,255,255,0.06)) !important;
+}
+.ant-btn-default:not(.ant-btn-disabled):hover {
+  border-color: var(--accent, #0ea5e9) !important;
+  color: var(--accent, #0ea5e9) !important;
 }
 
 /* ── Animation system ─────────────────────────────────────────────── */
@@ -260,6 +285,17 @@ button,
 .ax-page-transition {
   animation: ax-page-enter 0.1s ease-out;
 }
+
+/* ── 面板/容器入场动画 ── */
+.ax-panel-enter {
+  animation: axFloatIn 0.18s ease-out;
+}
+.ax-stagger-enter {
+  animation: axFloatIn 0.25s ease-out both;
+}
+.ax-stagger-enter:nth-child(2) { animation-delay: 30ms; }
+.ax-stagger-enter:nth-child(3) { animation-delay: 60ms; }
+.ax-stagger-enter:nth-child(4) { animation-delay: 90ms; }
 
 /* 移动端浮动导航面板弹入动画 */
 @keyframes axFloatIn {

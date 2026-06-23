@@ -65,11 +65,28 @@ interface TooltipProps {
   arrow?: boolean;
   defaultOpen?: boolean;
   onOpenChange?: (open: boolean) => void;
+  // 透传给子元素的事件处理器（Popconfirm/Popover 等通过 cloneElement
+  // 把 onClick 注入到 Tooltip，但 Tooltip 不再把 onClick 转给真实 DOM，
+  // 会导致 Popconfirm/Tooltip → span 的嵌套点击没反应）
+  onClick?: React.MouseEventHandler<HTMLElement>;
+  onKeyDown?: React.KeyboardEventHandler<HTMLElement>;
+  onKeyUp?: React.KeyboardEventHandler<HTMLElement>;
+  onContextMenu?: React.MouseEventHandler<HTMLElement>;
 }
 
 export const Tooltip = forwardRef<HTMLElement, TooltipProps>(
   (
-    { title, children, placement = "top", mouseEnterDelay = 0.3, open: controlledOpen },
+    {
+      title,
+      children,
+      placement = "top",
+      mouseEnterDelay = 0.3,
+      open: controlledOpen,
+      onClick,
+      onKeyDown,
+      onKeyUp,
+      onContextMenu,
+    },
     forwardedRef,
   ) => {
     const [internalVisible, setInternalVisible] = useState(false);
@@ -138,6 +155,12 @@ export const Tooltip = forwardRef<HTMLElement, TooltipProps>(
             onMouseLeave: hide,
             onFocus: show,
             onBlur: hide,
+            // 透传父组件注入的事件，让 Popconfirm/Popover 等
+            // 通过 cloneElement 传入的 onClick 能真正触发到子元素
+            onClick,
+            onKeyDown,
+            onKeyUp,
+            onContextMenu,
           },
         )}
         {visible && (

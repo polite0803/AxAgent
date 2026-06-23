@@ -129,6 +129,7 @@ export function ContextBar({
 
   return (
     <div
+      className="ax-panel-enter"
       style={{
         display: "flex",
         alignItems: "center",

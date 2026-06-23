@@ -54,6 +54,8 @@
     "@dnd-kit/utilities": "^3.2.2",
     "@dprint/markdown": "^0.22.1",
     "@dprint/toml": "^0.7.0",
+    "@fontsource-variable/inter": "^5.2.8",
+    "@fontsource-variable/jetbrains-mono": "^5.2.8",
     "@iconify/react": "^6.0.2",
     "@lobehub/icons": "^5.4.0",
     "@tanstack/react-virtual": "^3.13.23",
