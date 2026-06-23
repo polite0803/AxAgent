@@ -47,7 +47,7 @@ import {
   Typography,
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { ExecutionStatusResponse, NodeExecutionRecord, Span } from "../../types";
 
@@ -543,18 +543,10 @@ export function DebugPanel({ workflowId }: DebugPanelProps) {
   const selectedTrace = useTracerStore((s) => s.selectedTrace);
   const selectTrace = useTracerStore((s) => s.selectTrace);
   const tree = useTracerStore((s) => s.tree);
-  const [traceLoading, setTraceLoading] = useState(false);
-  // ── 上下文监控状态 ──
-  const [contextUsage, setContextUsage] = useState<ContextUsage>({
-    totalTokens: 0,
-    maxTokens: 128_000,
-    windowPercent: 0,
-    systemTokens: 0,
-    userTokens: 0,
-    toolTokens: 0,
-    assistantTokens: 0,
-    compressedCount: 0,
-  });
+  const [traceLoading, dispatchTraceLoading] = useReducer(
+    (_state: boolean, action: "LOADING" | "LOADED") => action === "LOADING",
+    false,
+  );
 
   const nodes = useWorkflowEditorStore((s) => s.nodes);
   const edges = useWorkflowEditorStore((s) => s.edges);
@@ -565,6 +557,71 @@ export function DebugPanel({ workflowId }: DebugPanelProps) {
   const status = useWorkEngineStore((s) => s.status);
   const nodeRecords = useWorkEngineStore((s) => s.nodeRecords);
   const variables = useWorkEngineStore((s) => s.variables);
+  // ── 上下文监控状态 —— 从节点记录估算 token 用量 ──
+  const contextUsage = useMemo<ContextUsage>(() => {
+    if (nodeRecords.length === 0) {
+      return {
+        totalTokens: 0,
+        maxTokens: 128_000,
+        windowPercent: 0,
+        systemTokens: 0,
+        userTokens: 0,
+        toolTokens: 0,
+        assistantTokens: 0,
+        compressedCount: 0,
+      };
+    }
+    let systemTokens = 0;
+    let userTokens = 0;
+    let toolTokens = 0;
+    let assistantTokens = 0;
+
+    for (const r of nodeRecords) {
+      const inputStr = typeof r.input === "string"
+        ? r.input
+        : r.input
+        ? JSON.stringify(r.input)
+        : "";
+      const outputStr = typeof r.output === "string"
+        ? r.output
+        : r.output
+        ? JSON.stringify(r.output)
+        : "";
+
+      const inputTokens = Math.ceil(inputStr.length / 4);
+      const outputTokens = Math.ceil(outputStr.length / 4);
+
+      if (r.node_type === "trigger" || r.node_type === "tool") {
+        toolTokens += inputTokens + outputTokens;
+      } else if (r.node_type === "agent") {
+        systemTokens += inputTokens * 0.3;
+        userTokens += inputTokens * 0.4;
+        assistantTokens += outputTokens;
+      } else if (r.node_type === "llm") {
+        userTokens += inputTokens;
+        assistantTokens += outputTokens;
+      } else {
+        userTokens += inputTokens;
+        assistantTokens += outputTokens;
+      }
+    }
+
+    const totalTokens = systemTokens + userTokens + toolTokens + assistantTokens;
+    const maxTokens = 128_000;
+    const windowPercent = Math.min((totalTokens / maxTokens) * 100, 100);
+    const compressedCount = (variables?.__compacted_count__ as number | undefined) || 0;
+
+    return {
+      totalTokens,
+      maxTokens,
+      windowPercent,
+      systemTokens,
+      userTokens,
+      toolTokens,
+      assistantTokens,
+      compressedCount,
+    };
+  }, [nodeRecords, variables]);
   const breakpoints = useWorkEngineStore((s) => s.breakpoints);
   const loading = useWorkEngineStore((s) => s.loading);
   const dryRun = useWorkEngineStore((s) => s.dryRun);
@@ -782,68 +839,10 @@ export function DebugPanel({ workflowId }: DebugPanelProps) {
   // ── Trace 快照加载 ──
   useEffect(() => {
     if (!traceExpanded || !executionId) { return; }
-    setTraceLoading(true);
-    loadTraces({ session_id: executionId, limit: 5 }).finally(() => setTraceLoading(false));
+    dispatchTraceLoading("LOADING");
+    loadTraces({ session_id: executionId, limit: 5 }).finally(() => dispatchTraceLoading("LOADED"));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [traceExpanded, executionId]);
-
-  // ── 上下文监控 —— 从节点记录估算 token 用量 ──
-  useEffect(() => {
-    if (nodeRecords.length === 0) { return; }
-    // 从 nodeRecords 推断上下文各层占比（简化估算）
-    let systemTokens = 0;
-    let userTokens = 0;
-    let toolTokens = 0;
-    let assistantTokens = 0;
-
-    for (const r of nodeRecords) {
-      const inputStr = typeof r.input === "string"
-        ? r.input
-        : r.input
-        ? JSON.stringify(r.input)
-        : "";
-      const outputStr = typeof r.output === "string"
-        ? r.output
-        : r.output
-        ? JSON.stringify(r.output)
-        : "";
-
-      // 粗略估算：每 token ~4 字符
-      const inputTokens = Math.ceil(inputStr.length / 4);
-      const outputTokens = Math.ceil(outputStr.length / 4);
-
-      if (r.node_type === "trigger" || r.node_type === "tool") {
-        toolTokens += inputTokens + outputTokens;
-      } else if (r.node_type === "agent") {
-        systemTokens += inputTokens * 0.3; // system prompt 占比
-        userTokens += inputTokens * 0.4;
-        assistantTokens += outputTokens;
-      } else if (r.node_type === "llm") {
-        userTokens += inputTokens;
-        assistantTokens += outputTokens;
-      } else {
-        userTokens += inputTokens;
-        assistantTokens += outputTokens;
-      }
-    }
-
-    const totalTokens = systemTokens + userTokens + toolTokens + assistantTokens;
-    const maxTokens = 128_000;
-    const windowPercent = Math.min((totalTokens / maxTokens) * 100, 100);
-    const compressedCount = variables?.__compacted_count__ as number | undefined || 0;
-
-    setContextUsage({
-      totalTokens,
-      maxTokens,
-      windowPercent,
-      systemTokens,
-      userTokens,
-      toolTokens,
-      assistantTokens,
-      compressedCount,
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [nodeRecords]);
 
   const handleDebugRun = useCallback(async () => {
     if (!workflowId) { return; }
@@ -1554,8 +1553,10 @@ export function DebugPanel({ workflowId }: DebugPanelProps) {
                             loading={traceLoading}
                             onClick={() => {
                               if (!executionId) { return; }
-                              setTraceLoading(true);
-                              loadTraces({ session_id: executionId, limit: 5 }).finally(() => setTraceLoading(false));
+                              dispatchTraceLoading("LOADING");
+                              loadTraces({ session_id: executionId, limit: 5 }).finally(() =>
+                                dispatchTraceLoading("LOADED")
+                              );
                             }}
                           >
                             {t("workflow.debug.loadTraces")}
