@@ -525,6 +525,9 @@ mod tests {
             min_text_block_messages: 2,
             max_tokens: 500_000,
             enabled: true,
+            adaptive: false,
+            adaptive_factor: 1.0,
+            usage_history: Vec::new(),
         };
         let result = try_session_memory_compact(
             &session,
