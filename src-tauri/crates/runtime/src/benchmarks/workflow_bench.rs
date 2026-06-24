@@ -178,10 +178,13 @@ pub fn build_sequential_template(
 
 // ── WorkflowBenchRunner ──
 
+/// 工作流模板：节点列表 + 边列表
+type WorkflowTemplate = (Vec<WorkflowNode>, Vec<(String, String)>);
+
 /// 工作流级 Benchmark 运行器
 pub struct WorkflowBenchRunner {
     /// 已注册的模板缓存
-    templates: HashMap<String, (Vec<WorkflowNode>, Vec<(String, String)>)>,
+    templates: HashMap<String, WorkflowTemplate>,
     /// mock 数据库连接（benchmark 模式不使用实际数据库）
     #[allow(dead_code)]
     db: Option<String>,
@@ -457,7 +460,7 @@ impl BenchEvaluator for WorkflowBenchEvaluator {
 
 /// 创建内置的工作流 Benchmark Suite
 pub fn create_default_workflow_suite() -> super::BenchmarkSuite {
-    let configs = vec![
+    let configs = [
         WorkflowBenchConfig {
             template_id: "sequential-minimal".to_string(),
             node_count: 1,
