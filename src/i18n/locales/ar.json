@@ -5260,6 +5260,7 @@
         "sourceNode": "源节点",
         "selectNode": "选择节点",
         "expectedPath": "期望路径",
+        "expectedPathPlaceholder": "例如 output.status",
         "assertionOp": "断言操作",
         "expectedValue": "期望值",
         "expectedValuePlaceholder": "输入期望值",

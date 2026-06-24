@@ -305,7 +305,7 @@ export function ValidationRulesPanel({ onClose }: ValidationRulesPanelProps) {
                       size="small"
                       value={rule.expected_path}
                       onChange={(e) => updateRule(rule.id, { expected_path: e.target.value })}
-                      placeholder="e.g. output.status"
+                      placeholder={t("workflow.validation.expectedPathPlaceholder")}
                     />
                   </div>
                   <div>
