@@ -518,6 +518,7 @@ pub fn create_default_workflow_suite() -> super::BenchmarkSuite {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use axagent_rt_workflow::work_engine::executors::node_type_name;
 
     #[tokio::test]
     async fn test_build_sequential_template() {
