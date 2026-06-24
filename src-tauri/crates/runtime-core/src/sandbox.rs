@@ -551,15 +551,15 @@ fn detect_linux_seccomp_available() -> bool {
             return false;
         }
         // 通过检查 /proc/sys/kernel/seccomp 是否存在来检测
-        if Path::new("/proc/sys/kernel/seccomp").exists() {
-            if let Ok(content) = std::fs::read_to_string("/proc/sys/kernel/seccomp") {
-                // 值 >= 2 表示支持 seccomp-bpf
-                return content
-                    .trim()
-                    .parse::<u32>()
-                    .map(|v| v >= 2)
-                    .unwrap_or(false);
-            }
+        if Path::new("/proc/sys/kernel/seccomp").exists()
+            && let Ok(content) = std::fs::read_to_string("/proc/sys/kernel/seccomp")
+        {
+            // 值 >= 2 表示支持 seccomp-bpf
+            return content
+                .trim()
+                .parse::<u32>()
+                .map(|v| v >= 2)
+                .unwrap_or(false);
         }
         // 降级检测：尝试检查内核版本（>= 3.5 通常支持）
         #[cfg(target_os = "linux")]
