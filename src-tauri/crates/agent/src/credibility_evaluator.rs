@@ -662,7 +662,7 @@ mod tests {
             "Recent Paper".to_string(),
             "A recent study.".to_string(),
         )
-        .with_published_date("2026-01-01".to_string());
+        .with_published_date("2026-06-01".to_string());
         let assessment = evaluator.evaluate(&result).await;
         assert!(assessment.credibility.recency >= 0.8);
     }
