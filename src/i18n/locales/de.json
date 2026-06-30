@@ -7023,66 +7023,6 @@
     "conversation": "Konversation",
     "errorRecovery": "Fehlerbehebung"
   },
-  "expertPreset": {
-    "generalAssistant": {
-      "name": "Allgemeiner Assistent",
-      "description": "Ein vielseitiger KI-Assistent ohne spezifische Domänen-Voreingenommenheit"
-    },
-    "codeReviewer": {
-      "name": "Code-Reviewer",
-      "description": "Fokus auf Code-Qualitätsprüfung, Sicherheitslücken-Erkennung und Leistungsoptimierung"
-    },
-    "seniorDeveloper": {
-      "name": "Senior-Entwickler",
-      "description": "Beherrscht mehrere Programmiersprachen und Frameworks, erfahren im Architekturdesign"
-    },
-    "securityAuditor": {
-      "name": "Sicherheits-Auditor",
-      "description": "Fokus auf Anwendungssicherheits-Audits, Penetrationstests und Compliance-Prüfungen"
-    },
-    "dataAnalyst": {
-      "name": "Datenanalyst",
-      "description": "Spezialisiert auf Datenbereinigung, statistische Analyse, Visualisierung und Insight-Gewinnung"
-    },
-    "sqlExpert": {
-      "name": "SQL-Experte",
-      "description": "Fokus auf komplexe SQL-Abfrageoptimierung, Datenbankdesign und Leistungsoptimierung"
-    },
-    "devopsEngineer": {
-      "name": "DevOps-Ingenieur",
-      "description": "Fokus auf CI/CD, Containerisierung, Infrastructure as Code und Betriebsautomatisierung"
-    },
-    "techWriter": {
-      "name": "Technischer Redakteur",
-      "description": "Spezialisiert auf technische Dokumentation, API-Dokumentation, Benutzerhandbücher und technische Blog-Artikel"
-    },
-    "productManager": {
-      "name": "Produktmanager",
-      "description": "Fokus auf Anforderungsanalyse, Produktplanung, User Stories und Roadmap-Management"
-    },
-    "architect": {
-      "name": "Systemarchitekt",
-      "description": "Fokus auf Systemarchitektur-Design, Technologieauswahl und Architektur-Review"
-    },
-    "debugExpert": {
-      "name": "Debug-Experte",
-      "description": "Fokus auf Lokalisierung schwieriger Bugs, Leistungsengpass-Analyse und Ursachenuntersuchung"
-    },
-    "translator": {
-      "name": "Übersetzungsexperte",
-      "description": "Spezialisiert auf mehrsprachige Übersetzung, Lokalisierung und Internationalisierungsunterstützung"
-    }
-  },
-  "agentRole": {
-    "coordinator": "Coordinator",
-    "researcher": "Researcher",
-    "planner": "Planner",
-    "developer": "Developer",
-    "reviewer": "Reviewer",
-    "browser": "Browser",
-    "synthesizer": "Synthesizer",
-    "executor": "Executor"
-  },
   "stream": {
     "timeout": "⚠️ Stream-Timeout (5 Minuten keine Aktualisierung), automatisch gestoppt"
   },

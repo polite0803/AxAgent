@@ -7023,66 +7023,6 @@
     "conversation": "對話",
     "errorRecovery": "錯誤復原"
   },
-  "expertPreset": {
-    "generalAssistant": {
-      "name": "通用助手",
-      "description": "全能的 AI 助手，無特定領域偏向"
-    },
-    "codeReviewer": {
-      "name": "程式碼審查專家",
-      "description": "專注程式碼品質審查、安全漏洞偵測、效能最佳化建議"
-    },
-    "seniorDeveloper": {
-      "name": "高級開發工程師",
-      "description": "精通多種程式語言和框架，擅長架構設計與複雜功能實現"
-    },
-    "securityAuditor": {
-      "name": "安全稽核專家",
-      "description": "專注應用安全稽核、滲透測試和合規檢查"
-    },
-    "dataAnalyst": {
-      "name": "資料分析師",
-      "description": "專注資料清洗、統計分析、視覺化和洞察挖掘"
-    },
-    "sqlExpert": {
-      "name": "SQL 專家",
-      "description": "專注複雜 SQL 查詢最佳化、資料庫設計和效能調優"
-    },
-    "devopsEngineer": {
-      "name": "DevOps 工程師",
-      "description": "專注 CI/CD、容器化、基礎設施即程式碼和維運自動化"
-    },
-    "techWriter": {
-      "name": "技術文件專家",
-      "description": "專注技術文件、API 文件、使用者手冊和技術部落格寫作"
-    },
-    "productManager": {
-      "name": "產品經理",
-      "description": "專注需求分析、產品規劃、使用者故事和路線圖管理"
-    },
-    "architect": {
-      "name": "系統架構師",
-      "description": "專注系統架構設計、技術選型和架構審查"
-    },
-    "debugExpert": {
-      "name": "偵錯專家",
-      "description": "專注疑難 bug 定位、效能瓶頸分析和根本原因排查"
-    },
-    "translator": {
-      "name": "翻譯專家",
-      "description": "專注多語言翻譯、本地化和國際化支援"
-    }
-  },
-  "agentRole": {
-    "coordinator": "協調者",
-    "researcher": "研究員",
-    "planner": "規劃者",
-    "developer": "開發者",
-    "reviewer": "審查者",
-    "browser": "瀏覽器",
-    "synthesizer": "綜合者",
-    "executor": "執行者"
-  },
   "stream": {
     "timeout": "⚠️ 串流回應超時（5分鐘無更新），已自動中斷"
   },

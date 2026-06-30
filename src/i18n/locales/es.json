@@ -7023,66 +7023,6 @@
     "conversation": "Conversación",
     "errorRecovery": "Recuperación de errores"
   },
-  "expertPreset": {
-    "generalAssistant": {
-      "name": "Asistente general",
-      "description": "Un asistente de IA versátil sin sesgo de dominio específico"
-    },
-    "codeReviewer": {
-      "name": "Revisor de código",
-      "description": "Enfocado en la revisión de calidad del código, detección de vulnerabilidades de seguridad y optimización del rendimiento"
-    },
-    "seniorDeveloper": {
-      "name": "Desarrollador senior",
-      "description": "Dominio de múltiples lenguajes y frameworks de programación, hábil en diseño de arquitectura"
-    },
-    "securityAuditor": {
-      "name": "Auditor de seguridad",
-      "description": "Enfocado en auditoría de seguridad de aplicaciones, pruebas de penetración y verificaciones de cumplimiento"
-    },
-    "dataAnalyst": {
-      "name": "Analista de datos",
-      "description": "Especializado en limpieza de datos, análisis estadístico, visualización y descubrimiento de insights"
-    },
-    "sqlExpert": {
-      "name": "Experto en SQL",
-      "description": "Enfocado en optimización de consultas SQL complejas, diseño de bases de datos y ajuste de rendimiento"
-    },
-    "devopsEngineer": {
-      "name": "Ingeniero DevOps",
-      "description": "Enfocado en CI/CD, contenerización, infraestructura como código y automatización de operaciones"
-    },
-    "techWriter": {
-      "name": "Escritor técnico",
-      "description": "Especializado en documentación técnica, documentación de API, manuales de usuario y escritura de blogs técnicos"
-    },
-    "productManager": {
-      "name": "Gerente de producto",
-      "description": "Enfocado en análisis de requisitos, planificación de producto, historias de usuario y gestión de hoja de ruta"
-    },
-    "architect": {
-      "name": "Arquitecto de sistemas",
-      "description": "Enfocado en diseño de arquitectura de sistemas, selección de tecnología y revisión de arquitectura"
-    },
-    "debugExpert": {
-      "name": "Experto en depuración",
-      "description": "Enfocado en localización de bugs difíciles, análisis de cuellos de botella de rendimiento e investigación de causas raíz"
-    },
-    "translator": {
-      "name": "Experto en traducción",
-      "description": "Especializado en traducción multilingüe, localización y soporte de internacionalización"
-    }
-  },
-  "agentRole": {
-    "coordinator": "Coordinator",
-    "researcher": "Researcher",
-    "planner": "Planner",
-    "developer": "Developer",
-    "reviewer": "Reviewer",
-    "browser": "Browser",
-    "synthesizer": "Synthesizer",
-    "executor": "Executor"
-  },
   "stream": {
     "timeout": "⚠️ Tiempo de espera agotado (5 min sin actualización), detenido automáticamente"
   },

@@ -7023,66 +7023,6 @@
     "conversation": "Conversation",
     "errorRecovery": "Récupération d'erreur"
   },
-  "expertPreset": {
-    "generalAssistant": {
-      "name": "Assistant général",
-      "description": "Un assistant IA polyvalent sans biais de domaine spécifique"
-    },
-    "codeReviewer": {
-      "name": "Réviseur de code",
-      "description": "Axé sur la revue de qualité du code, la détection de vulnérabilités de sécurité et l'optimisation des performances"
-    },
-    "seniorDeveloper": {
-      "name": "Développeur senior",
-      "description": "Maîtrise de plusieurs langages et frameworks de programmation, compétent en conception d'architecture"
-    },
-    "securityAuditor": {
-      "name": "Auditeur de sécurité",
-      "description": "Axé sur l'audit de sécurité des applications, les tests de pénétration et les vérifications de conformité"
-    },
-    "dataAnalyst": {
-      "name": "Analyste de données",
-      "description": "Spécialisé dans le nettoyage des données, l'analyse statistique, la visualisation et la découverte d'insights"
-    },
-    "sqlExpert": {
-      "name": "Expert SQL",
-      "description": "Axé sur l'optimisation de requêtes SQL complexes, la conception de bases de données et le réglage des performances"
-    },
-    "devopsEngineer": {
-      "name": "Ingénieur DevOps",
-      "description": "Axé sur le CI/CD, la conteneurisation, l'infrastructure as code et l'automatisation des opérations"
-    },
-    "techWriter": {
-      "name": "Rédacteur technique",
-      "description": "Spécialisé dans la documentation technique, la documentation API, les manuels utilisateur et la rédaction de blogs techniques"
-    },
-    "productManager": {
-      "name": "Chef de produit",
-      "description": "Axé sur l'analyse des besoins, la planification produit, les user stories et la gestion de la feuille de route"
-    },
-    "architect": {
-      "name": "Architecte système",
-      "description": "Axé sur la conception d'architecture système, la sélection technologique et la revue d'architecture"
-    },
-    "debugExpert": {
-      "name": "Expert en débogage",
-      "description": "Axé sur la localisation de bugs difficiles, l'analyse des goulots d'étranglement de performance et l'investigation des causes racines"
-    },
-    "translator": {
-      "name": "Expert en traduction",
-      "description": "Spécialisé dans la traduction multilingue, la localisation et le support à l'internationalisation"
-    }
-  },
-  "agentRole": {
-    "coordinator": "Coordinator",
-    "researcher": "Researcher",
-    "planner": "Planner",
-    "developer": "Developer",
-    "reviewer": "Reviewer",
-    "browser": "Browser",
-    "synthesizer": "Synthesizer",
-    "executor": "Executor"
-  },
   "stream": {
     "timeout": "⚠️ Délai de flux dépassé (aucune mise à jour depuis 5 min), arrêté automatiquement"
   },

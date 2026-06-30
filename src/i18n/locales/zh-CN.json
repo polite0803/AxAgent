@@ -7326,66 +7326,6 @@
     "conversation": "对话",
     "errorRecovery": "错误恢复"
   },
-  "expertPreset": {
-    "generalAssistant": {
-      "name": "通用助手",
-      "description": "全能的 AI 助手，无特定领域偏向"
-    },
-    "codeReviewer": {
-      "name": "代码审查专家",
-      "description": "专注代码质量审查、安全漏洞检测、性能优化建议"
-    },
-    "seniorDeveloper": {
-      "name": "高级开发工程师",
-      "description": "精通多种编程语言和框架，擅长架构设计与复杂功能实现"
-    },
-    "securityAuditor": {
-      "name": "安全审计专家",
-      "description": "专注应用安全审计、渗透测试和合规检查"
-    },
-    "dataAnalyst": {
-      "name": "数据分析师",
-      "description": "专注数据清洗、统计分析、可视化和洞察挖掘"
-    },
-    "sqlExpert": {
-      "name": "SQL 专家",
-      "description": "专注复杂 SQL 查询优化、数据库设计和性能调优"
-    },
-    "devopsEngineer": {
-      "name": "DevOps 工程师",
-      "description": "专注 CI/CD、容器化、基础设施即代码和运维自动化"
-    },
-    "techWriter": {
-      "name": "技术文档专家",
-      "description": "专注技术文档、API 文档、用户手册和技术博客写作"
-    },
-    "productManager": {
-      "name": "产品经理",
-      "description": "专注需求分析、产品规划、用户故事和路线图管理"
-    },
-    "architect": {
-      "name": "系统架构师",
-      "description": "专注系统架构设计、技术选型和架构评审"
-    },
-    "debugExpert": {
-      "name": "调试专家",
-      "description": "专注疑难 bug 定位、性能瓶颈分析和根因排查"
-    },
-    "translator": {
-      "name": "翻译专家",
-      "description": "专注多语言翻译、本地化和国际化支持"
-    }
-  },
-  "agentRole": {
-    "coordinator": "协调者",
-    "researcher": "研究员",
-    "planner": "规划者",
-    "developer": "开发者",
-    "reviewer": "审查者",
-    "browser": "浏览器",
-    "synthesizer": "综合者",
-    "executor": "执行者"
-  },
   "stream": {
     "timeout": "⚠️ 流式响应超时（5分钟无更新），已自动中断"
   },

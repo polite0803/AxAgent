@@ -31,8 +31,6 @@ function makeId(): string {
   return `wf_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
-
-
 const mockWorkflows: WorkflowDefinition[] = [];
 
 const mockTemplates: WorkflowTemplate[] = [];

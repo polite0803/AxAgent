@@ -7023,66 +7023,6 @@
     "conversation": "محادثة",
     "errorRecovery": "استرداد الأخطاء"
   },
-  "expertPreset": {
-    "generalAssistant": {
-      "name": "مساعد عام",
-      "description": "مساعد ذكاء اصطناعي متعدد الاستخدامات بدون تحيز مجال محدد"
-    },
-    "codeReviewer": {
-      "name": "مراجع الكود",
-      "description": "مركز على مراجعة جودة الكود واكتشاف الثغرات الأمنية وتحسين الأداء"
-    },
-    "seniorDeveloper": {
-      "name": "مطور أول",
-      "description": "بارع في لغات وأطر برمجة متعددة، ماهر في تصميم البنية"
-    },
-    "securityAuditor": {
-      "name": "مدقق أمني",
-      "description": "مركز على تدقيق أمن التطبيقات واختبار الاختراق وفحوصات الامتثال"
-    },
-    "dataAnalyst": {
-      "name": "محلل بيانات",
-      "description": "متخصص في تنظيف البيانات والتحليل الإحصائي والتصور واكتشاف الرؤى"
-    },
-    "sqlExpert": {
-      "name": "خبير SQL",
-      "description": "مركز على تحسين استعلامات SQL المعقدة وتصميم قواعد البيانات وضبط الأداء"
-    },
-    "devopsEngineer": {
-      "name": "مهندس DevOps",
-      "description": "مركز على CI/CD والحاويات والبنية التحتية ككود وأتمتة العمليات"
-    },
-    "techWriter": {
-      "name": "كاتب تقني",
-      "description": "متخصص في التوثيق التقني ووثائق API وأدلة المستخدم وكتابة المدونات التقنية"
-    },
-    "productManager": {
-      "name": "مدير المنتج",
-      "description": "مركز على تحليل المتطلبات وتخطيط المنتج وقصص المستخدم وإدارة خارطة الطريق"
-    },
-    "architect": {
-      "name": "مهندس معمارية النظام",
-      "description": "مركز على تصميم بنية النظام واختيار التكنولوجيا ومراجعة البنية"
-    },
-    "debugExpert": {
-      "name": "خبير تصحيح الأخطاء",
-      "description": "مركز على تحديد موقع الأخطاء الصعبة وتحليل اختناقات الأداء والتحقيق في الأسباب الجذرية"
-    },
-    "translator": {
-      "name": "خبير ترجمة",
-      "description": "متخصص في الترجمة متعددة اللغات والتوطين ودعم التدويل"
-    }
-  },
-  "agentRole": {
-    "coordinator": "Coordinator",
-    "researcher": "Researcher",
-    "planner": "Planner",
-    "developer": "Developer",
-    "reviewer": "Reviewer",
-    "browser": "Browser",
-    "synthesizer": "Synthesizer",
-    "executor": "Executor"
-  },
   "stream": {
     "timeout": "⚠️ انتهت مهلة التدفق (لا تحديثات لمدة 5 دقائق)، تم الإيقاف تلقائيًا"
   },

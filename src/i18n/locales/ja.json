@@ -7023,66 +7023,6 @@
     "conversation": "会話",
     "errorRecovery": "エラーリカバリ"
   },
-  "expertPreset": {
-    "generalAssistant": {
-      "name": "汎用アシスタント",
-      "description": "特定のドメインバイアスのない多用途AIアシスタント"
-    },
-    "codeReviewer": {
-      "name": "コードレビューアー",
-      "description": "コード品質レビュー、セキュリティ脆弱性検出、パフォーマンス最適化に注力"
-    },
-    "seniorDeveloper": {
-      "name": "シニアデベロッパー",
-      "description": "複数のプログラミング言語とフレームワークに精通し、アーキテクチャ設計に熟練"
-    },
-    "securityAuditor": {
-      "name": "セキュリティ監査人",
-      "description": "アプリケーションセキュリティ監査、ペネトレーションテスト、コンプライアンスチェックに注力"
-    },
-    "dataAnalyst": {
-      "name": "データアナリスト",
-      "description": "データクリーニング、統計分析、可視化、インサイト発見を専門"
-    },
-    "sqlExpert": {
-      "name": "SQLエキスパート",
-      "description": "複雑なSQLクエリ最適化、データベース設計、パフォーマンスチューニングに注力"
-    },
-    "devopsEngineer": {
-      "name": "DevOpsエンジニア",
-      "description": "CI/CD、コンテナ化、Infrastructure as Code、運用自動化に注力"
-    },
-    "techWriter": {
-      "name": "テックライター",
-      "description": "技術ドキュメント、APIドキュメント、ユーザーマニュアル、技術ブログ執筆を専門"
-    },
-    "productManager": {
-      "name": "プロダクトマネージャー",
-      "description": "要件分析、プロダクト計画、ユーザーストーリー、ロードマップ管理に注力"
-    },
-    "architect": {
-      "name": "システムアーキテクト",
-      "description": "システムアーキテクチャ設計、技術選定、アーキテクチャレビューに注力"
-    },
-    "debugExpert": {
-      "name": "デバッグエキスパート",
-      "description": "困難なバグの特定、パフォーマンスボトルネック分析、根本原因調査に注力"
-    },
-    "translator": {
-      "name": "翻訳エキスパート",
-      "description": "多言語翻訳、ローカライゼーション、国際化サポートを専門"
-    }
-  },
-  "agentRole": {
-    "coordinator": "コーディネーター",
-    "researcher": "リサーチャー",
-    "planner": "プランナー",
-    "developer": "開発者",
-    "reviewer": "レビュアー",
-    "browser": "ブラウザー",
-    "synthesizer": "シンセサイザー",
-    "executor": "実行者"
-  },
   "stream": {
     "timeout": "⚠️ ストリームがタイムアウトしました（5分間更新なし）、自動的に停止"
   },

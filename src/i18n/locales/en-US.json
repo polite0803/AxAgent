@@ -7324,56 +7324,6 @@
     "conversation": "Conversation",
     "errorRecovery": "Error Recovery"
   },
-  "expertPreset": {
-    "generalAssistant": {
-      "name": "General Assistant",
-      "description": "A versatile AI assistant without specific domain bias"
-    },
-    "codeReviewer": {
-      "name": "Code Reviewer",
-      "description": "Focused on code quality review, security vulnerability detection, and performance optimization"
-    },
-    "seniorDeveloper": {
-      "name": "Senior Developer",
-      "description": "Proficient in multiple programming languages and frameworks, skilled in architecture design"
-    },
-    "securityAuditor": {
-      "name": "Security Auditor",
-      "description": "Focused on application security auditing, penetration testing, and compliance checks"
-    },
-    "dataAnalyst": {
-      "name": "Data Analyst",
-      "description": "Specialized in data cleaning, statistical analysis, visualization, and insight discovery"
-    },
-    "sqlExpert": {
-      "name": "SQL Expert",
-      "description": "Focused on complex SQL query optimization, database design, and performance tuning"
-    },
-    "devopsEngineer": {
-      "name": "DevOps Engineer",
-      "description": "Focused on CI/CD, containerization, infrastructure as code, and operations automation"
-    },
-    "techWriter": {
-      "name": "Tech Writer",
-      "description": "Specialized in technical documentation, API docs, user manuals, and technical blog writing"
-    },
-    "productManager": {
-      "name": "Product Manager",
-      "description": "Focused on requirements analysis, product planning, user stories, and roadmap management"
-    },
-    "architect": {
-      "name": "System Architect",
-      "description": "Focused on system architecture design, technology selection, and architecture review"
-    },
-    "debugExpert": {
-      "name": "Debug Expert",
-      "description": "Focused on difficult bug localization, performance bottleneck analysis, and root cause investigation"
-    },
-    "translator": {
-      "name": "Translation Expert",
-      "description": "Specialized in multilingual translation, localization, and internationalization support"
-    }
-  },
   "expertCategory": {
     "general": "General",
     "development": "Development",
@@ -7495,16 +7445,6 @@
       "hi": "Hindi",
       "ar": "Arabic"
     }
-  },
-  "agentRole": {
-    "coordinator": "Coordinator",
-    "researcher": "Researcher",
-    "planner": "Planner",
-    "developer": "Developer",
-    "reviewer": "Reviewer",
-    "browser": "Browser",
-    "synthesizer": "Synthesizer",
-    "executor": "Executor"
   },
   "stream": {
     "timeout": "⚠️ Stream timeout (no update for 5 minutes), automatically stopped"
