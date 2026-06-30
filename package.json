@@ -99,7 +99,10 @@
     "stream-markdown-parser": "^0.0.91",
     "stream-monaco": "^0.0.40",
     "zod": "^4.4.3",
-    "zustand": "^5.0.12"
+    "zustand": "^5.0.12",
+    "@monaco-editor/react": "^4.7.0",
+    "recharts": "^2.15.0",
+    "react-virtuoso": "^4.12.0"
   },
   "devDependencies": {
     "@dprint/json": "^0.19.4",
