@@ -944,7 +944,7 @@ export function useChatViewMessages({
       }
       const shouldRenderFromContent = shouldRenderAssistantMarkdownFromContent(
         streaming && msg?.id === streamingMessageId,
-          Boolean(msg?.id && contentRendererMessageIdsRef.current.has(msg.id)),
+        Boolean(msg?.id && contentRendererMessageIdsRef.current.has(msg.id)),
       );
       if (shouldRenderFromContent) {
         continue;
@@ -957,9 +957,9 @@ export function useChatViewMessages({
       }
       const nodes = parseChatMarkdown(item.content);
       if (cache.size >= 100) {
-          const firstKey = cache.keys().next().value;
+        const firstKey = cache.keys().next().value;
         if (firstKey !== undefined) {
-              cache.delete(firstKey);
+          cache.delete(firstKey);
         }
       }
       cache.set(messageId, { content: item.content, nodes });
@@ -967,7 +967,7 @@ export function useChatViewMessages({
     }
     for (const messageId of Array.from(cache.keys())) {
       if (!next.has(messageId)) {
-          cache.delete(messageId);
+        cache.delete(messageId);
       }
     }
     return next;
