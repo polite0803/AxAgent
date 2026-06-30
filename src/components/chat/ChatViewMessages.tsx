@@ -105,7 +105,6 @@ import {
   useTopicGroupStore,
   useUserProfileStore,
 } from "@/stores";
-import { useStreamStore } from "@/stores";
 import type { Message } from "@/types";
 
 import { Tooltip } from "@/components/layout/Tooltip";
