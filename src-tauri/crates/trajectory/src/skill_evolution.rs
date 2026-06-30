@@ -48,7 +48,7 @@ impl Default for EvolutionConfig {
             convergence_threshold: 0.95,
             min_fitness_improvement: 0.01,
             use_llm_mutation: true,
-            use_execution_validation: false,
+            use_execution_validation: true,
             validation_rounds: 3,
         }
     }

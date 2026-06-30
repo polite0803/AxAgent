@@ -2,6 +2,7 @@
 
 pub mod experience;
 pub mod policy;
+pub mod rl_training_loop;
 pub mod trainer;
 
 use serde::{Deserialize, Serialize};
