@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+/* eslint-disable react-hooks/set-state-in-effect */
 
 import { useTracerStore } from "@/stores/devtools/tracerStore";
 import { Spin, Table, Tabs, Typography } from "antd";

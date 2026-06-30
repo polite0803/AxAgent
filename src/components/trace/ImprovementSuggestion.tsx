@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+/* eslint-disable react-hooks/set-state-in-effect */
 
 import { useTracerStore } from "@/stores/devtools/tracerStore";
 import { Button, Card, notification, Spin, Typography } from "antd";

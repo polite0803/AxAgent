@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { invoke } from "@/lib/invoke";
-import type { Span, SpanTreeNode, TraceDetail, TraceFilter, TraceMetrics, TraceSummary } from "@/types";
+import type { Span, SpanTreeNode, TraceDetail, TraceExport, TraceFilter, TraceMetrics, TraceSummary } from "@/types";
 import { create } from "zustand";
 
 interface TracerState {
@@ -113,12 +113,41 @@ export const useTracerStore = create<TracerState>((set, get) => ({
   loadTrace: async (traceId: string) => {
     set({ isLoading: true, error: null });
     try {
-      const trace = await invoke<TraceDetail>("tracer_get_trace", { traceId });
-      const tree = buildSpanTree(trace.trace.spans);
+      const traceExport = await invoke<TraceExport>("tracer_get_trace", { traceId });
+      if (!traceExport || !traceExport.spans) {
+        set({ error: "Trace not found", isLoading: false });
+        return;
+      }
+      const tree = buildSpanTree(traceExport.spans);
+      const metrics: TraceMetrics = {
+        total_duration_ms: traceExport.metadata.total_duration_ms,
+        ttft_ms: undefined,
+        cost: {
+          total_tokens: traceExport.metadata.total_tokens,
+          input_tokens: 0,
+          output_tokens: 0,
+          cache_creation_tokens: 0,
+          cache_read_tokens: 0,
+          total_cost_usd: traceExport.metadata.total_cost_usd,
+          model: traceExport.metadata.model,
+        },
+        spans_count: traceExport.spans.length,
+        errors_count: traceExport.spans.filter((s) => s.status === "error").length,
+      };
+      const summary: TraceSummary = {
+        trace_id: traceExport.trace_id,
+        session_id: traceExport.metadata.session_id,
+        started_at: traceExport.spans[0]?.start_time || traceExport.exported_at,
+        duration_ms: traceExport.metadata.total_duration_ms,
+        span_count: traceExport.spans.length,
+        error_count: traceExport.spans.filter((s) => s.status === "error").length,
+        total_tokens: traceExport.metadata.total_tokens,
+        total_cost_usd: traceExport.metadata.total_cost_usd,
+      };
       set({
-        selectedTrace: trace,
+        selectedTrace: { trace: traceExport, summary, metrics, tree },
         tree,
-        metrics: trace.metrics,
+        metrics,
         isLoading: false,
       });
     } catch (error) {
