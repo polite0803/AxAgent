@@ -153,7 +153,7 @@ impl ScreenCapture {
         Self
     }
 
-    pub async fn capture_full(&self, monitor: Option<u32>) -> Result<ScreenCaptureResult> {
+    pub async fn capture_full(&self, _monitor: Option<u32>) -> Result<ScreenCaptureResult> {
         #[cfg(target_os = "windows")]
         {
             self.capture_windows_full(monitor.unwrap_or(0)).await

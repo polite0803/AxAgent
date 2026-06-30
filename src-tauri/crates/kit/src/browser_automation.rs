@@ -342,6 +342,7 @@ pub async fn browser_http_get_text(url: &str) -> anyhow::Result<serde_json::Valu
 }
 
 /// 获取浏览器池，通过当前页面的 fetch() 获取 JSON
+#[cfg(not(target_os = "android"))]
 pub async fn browser_http_get_json_page(url: &str) -> anyhow::Result<serde_json::Value> {
     let pool = shared_browser_pool();
     let mut guard = pool.lock().await;
