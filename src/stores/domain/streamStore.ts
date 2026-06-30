@@ -831,6 +831,7 @@ interface ConversationStoreRefState {
   multiModelParentId: string | null;
   pendingCompanionModels: Array<{ providerId: string; model_id: string }>;
   multiModelDoneMessageIds: string[];
+  regenerateMessage: (messageId: string) => Promise<void>;
 }
 
 interface ConversationStoreRef {
@@ -942,8 +943,10 @@ continuing: {},
 
     try {
       await invoke("continue_message", { conversationId, messageId, branch });
-      const convStore = _conversationStoreRef?.getState();
-      await convStore.regenerateMessage(messageId);
+      const convRef = _conversationStoreRef?.getState();
+      if (convRef) {
+        await convRef.regenerateMessage(messageId);
+      }
     } catch (e) {
       logIpcError("continuationStore: 续写失败")(e);
     } finally {
@@ -1156,8 +1159,10 @@ export const useStreamStore = create<StreamState>((set, get) => ({
 
     try {
       await invoke("continue_message", { conversationId, messageId, branch });
-      const convStore = _conversationStoreRef?.getState();
-      await convStore.regenerateMessage(messageId);
+      const convRef = _conversationStoreRef?.getState();
+      if (convRef) {
+        await convRef.regenerateMessage(messageId);
+      }
     } catch (e) {
       logIpcError("continuationStore: 续写失败")(e);
     } finally {
