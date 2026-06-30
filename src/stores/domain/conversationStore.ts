@@ -1383,7 +1383,8 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
 // Register conversationStore reference so streamStore can call back
 registerConversationStoreRef({
   getState: () => useConversationStore.getState(),
-  setState: (partial) => useConversationStore.setState(partial),
+  setState: (partial) =>
+    useConversationStore.setState(partial as unknown as Parameters<typeof useConversationStore.setState>[0]),
 });
 
 // ─── Sidebar auto-select suppression ───
