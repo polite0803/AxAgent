@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use axagent_telemetry::{
-    CostMetrics, Span, SpanError, SpanEvent, SpanStatus, SpanType,
-    TraceExport, TraceFilter, TraceMetrics, TraceSummary,
-    storage::{InMemoryTraceStorage, TraceStorage, StorageError},
+    CostMetrics, Span, SpanError, SpanEvent, SpanStatus, SpanType, TraceExport, TraceFilter,
+    TraceMetrics, TraceSummary,
+    storage::{InMemoryTraceStorage, StorageError, TraceStorage},
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -113,7 +113,9 @@ lazy_static::lazy_static! {
 #[command]
 pub fn tracer_start_span(request: StartSpanRequest) -> Result<String, String> {
     let span_id = uuid::Uuid::new_v4().to_string();
-    let trace_id = request.trace_id.unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
+    let trace_id = request
+        .trace_id
+        .unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
 
     let mut span = Span::new(
         span_id.clone(),
@@ -249,11 +251,7 @@ pub fn tracer_get_metrics(trace_id: String) -> Result<Option<TraceMetrics>, Stri
             let total_tokens: u64 = t
                 .spans
                 .iter()
-                .filter_map(|s| {
-                    s.attributes
-                        .get("total_tokens")
-                        .and_then(|v| v.as_u64())
-                })
+                .filter_map(|s| s.attributes.get("total_tokens").and_then(|v| v.as_u64()))
                 .sum();
 
             Ok(Some(TraceMetrics {
@@ -271,7 +269,7 @@ pub fn tracer_get_metrics(trace_id: String) -> Result<Option<TraceMetrics>, Stri
                 spans_count: t.spans.len(),
                 errors_count,
             }))
-        }
+        },
         None => Ok(None),
     }
 }
@@ -353,22 +351,39 @@ pub fn tracer_get_bottlenecks(trace_id: String) -> Result<BottleneckResult, Stri
         if let Some(v) = span.attributes.get("input_tokens").and_then(|v| v.as_u64()) {
             total_input += v;
         }
-        if let Some(v) = span.attributes.get("output_tokens").and_then(|v| v.as_u64()) {
+        if let Some(v) = span
+            .attributes
+            .get("output_tokens")
+            .and_then(|v| v.as_u64())
+        {
             total_output += v;
         }
-        if let Some(v) = span.attributes.get("cache_read_tokens").and_then(|v| v.as_u64()) {
+        if let Some(v) = span
+            .attributes
+            .get("cache_read_tokens")
+            .and_then(|v| v.as_u64())
+        {
             total_cache += v;
         }
     }
 
     if total_input > 0 {
-        token_items.push(TokenConsumptionItem { name: "输入 Token".to_string(), tokens: total_input as i32 });
+        token_items.push(TokenConsumptionItem {
+            name: "输入 Token".to_string(),
+            tokens: total_input as i32,
+        });
     }
     if total_output > 0 {
-        token_items.push(TokenConsumptionItem { name: "输出 Token".to_string(), tokens: total_output as i32 });
+        token_items.push(TokenConsumptionItem {
+            name: "输出 Token".to_string(),
+            tokens: total_output as i32,
+        });
     }
     if total_cache > 0 {
-        token_items.push(TokenConsumptionItem { name: "缓存 Token".to_string(), tokens: total_cache as i32 });
+        token_items.push(TokenConsumptionItem {
+            name: "缓存 Token".to_string(),
+            tokens: total_cache as i32,
+        });
     }
 
     // Failure modes
@@ -421,8 +436,9 @@ pub fn tracer_generate_suggestions(trace_id: String) -> Result<Vec<SuggestionIte
 
     if tool_spans.len() >= 2 {
         let total_tool_time: u64 = tool_spans.iter().filter_map(|s| s.duration_ms).sum();
-        let has_no_deps = tool_spans.iter().all(|s| s.parent_span_id.is_none()
-            || s.parent_span_id == tool_spans[0].parent_span_id.as_ref());
+        let has_no_deps = tool_spans.iter().all(|s| {
+            s.parent_span_id.is_none() || s.parent_span_id == tool_spans[0].parent_span_id.as_ref()
+        });
 
         if has_no_deps && total_tool_time > 500 {
             id_counter += 1;
@@ -433,8 +449,14 @@ pub fn tracer_generate_suggestions(trace_id: String) -> Result<Vec<SuggestionIte
                     tool_spans.len(),
                     total_tool_time
                 ),
-                suggestion: "将无依赖的工具调用标记为可并行，Agent 应自动识别独立操作并合并到同一批执行。".to_string(),
-                expected_improvement: format!("预计减少约 {}% 总执行时间", (total_tool_time as f64 / tool_spans.len() as f64 / total_tool_time * 50.0).round()),
+                suggestion:
+                    "将无依赖的工具调用标记为可并行，Agent 应自动识别独立操作并合并到同一批执行。"
+                        .to_string(),
+                expected_improvement: format!(
+                    "预计减少约 {}% 总执行时间",
+                    (total_tool_time as f64 / tool_spans.len() as f64 / total_tool_time * 50.0)
+                        .round()
+                ),
             });
         }
     }
@@ -447,13 +469,18 @@ pub fn tracer_generate_suggestions(trace_id: String) -> Result<Vec<SuggestionIte
         suggestions.push(SuggestionItem {
             id: format!("sug_{:03}", id_counter),
             problem: format!("执行过程中出现 {} 个错误，影响了任务完成的可靠性。", error_count),
-            suggestion: "为常见错误类型添加自动重试机制，并在技能配置中添加 fallback 路径。".to_string(),
+            suggestion: "为常见错误类型添加自动重试机制，并在技能配置中添加 fallback 路径。"
+                .to_string(),
             expected_improvement: "预计将错误率降低 40%-60%".to_string(),
         });
     }
 
     // Check for long spans
-    if let Some(longest) = trace.spans.iter().max_by_key(|s| s.duration_ms.unwrap_or(0)) {
+    if let Some(longest) = trace
+        .spans
+        .iter()
+        .max_by_key(|s| s.duration_ms.unwrap_or(0))
+    {
         if let Some(dur) = longest.duration_ms {
             let total: u64 = trace.spans.iter().filter_map(|s| s.duration_ms).sum();
             if total > 0 && dur as f64 / total as f64 > 0.5 {
@@ -466,7 +493,8 @@ pub fn tracer_generate_suggestions(trace_id: String) -> Result<Vec<SuggestionIte
                         dur,
                         (dur as f64 / total as f64) * 100.0
                     ),
-                    suggestion: "考虑为该操作添加缓存策略，或优化处理逻辑减少重复计算。".to_string(),
+                    suggestion: "考虑为该操作添加缓存策略，或优化处理逻辑减少重复计算。"
+                        .to_string(),
                     expected_improvement: "预计可减少 20%-30% 的该步骤耗时".to_string(),
                 });
             }
