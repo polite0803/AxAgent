@@ -5,7 +5,9 @@ import { invoke, isTauri, logIpcError, type UnlistenFn } from "@/lib/invoke";
 import { useExecutionStore } from "@/stores/feature/executionStore";
 import type { Citation, CitationStatsData, Conversation, Message } from "@/types";
 import { create } from "zustand";
-import { useConversationStore } from "./conversationStore";
+
+// 不直接 import useConversationStore——restore 的 circ dep 会导致 `_conversationStoreRef` 未初始化。
+// 改为通过 registerConversationStoreRef 注入的 ref 间接访问：
 
 // ─── Module-level variables (exported for use by conversationStore) ───
 // SECURITY (C12): 使用闭包 + 单例保护避免 StrictMode 双重挂载下的竞争条件。
@@ -940,7 +942,7 @@ continuing: {},
 
     try {
       await invoke("continue_message", { conversationId, messageId, branch });
-      const convStore = useConversationStore.getState();
+      const convStore = _conversationStoreRef?.getState();
       await convStore.regenerateMessage(messageId);
     } catch (e) {
       logIpcError("continuationStore: 续写失败")(e);
@@ -1154,7 +1156,7 @@ export const useStreamStore = create<StreamState>((set, get) => ({
 
     try {
       await invoke("continue_message", { conversationId, messageId, branch });
-      const convStore = useConversationStore.getState();
+      const convStore = _conversationStoreRef?.getState();
       await convStore.regenerateMessage(messageId);
     } catch (e) {
       logIpcError("continuationStore: 续写失败")(e);
