@@ -5,6 +5,7 @@ import { invoke, isTauri, logIpcError, type UnlistenFn } from "@/lib/invoke";
 import { useExecutionStore } from "@/stores/feature/executionStore";
 import type { Citation, CitationStatsData, Conversation, Message } from "@/types";
 import { create } from "zustand";
+import { useConversationStore } from "./conversationStore";
 
 // ─── Module-level variables (exported for use by conversationStore) ───
 // SECURITY (C12): 使用闭包 + 单例保护避免 StrictMode 双重挂载下的竞争条件。

@@ -1,4 +1,4 @@
-﻿// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-License-Identifier: AGPL-3.0-only
 
 /* eslint-disable react-hooks/refs, react-refresh/only-export-components */
 // 本文件大量使用 refs 做渲染时缓存，React Compiler 规则与之冲突，主动禁用。

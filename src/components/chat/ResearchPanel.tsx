@@ -440,7 +440,7 @@ export function ResearchPanel({ className }: ResearchPanelProps) {
               <List
                 size="small"
                 dataSource={state.citations}
-                renderItem={(item) => (
+                renderItem={(item: any) => (
                   <List.Item>
                     <Space>
                       <CheckCircleOutlined

@@ -129,7 +129,7 @@ function NotFoundRoute() {
 }
 
 export const ContentArea = memo(function ContentArea() {
-  const ipcHealthy = useIpcHealth();
+  const { ipcHealthy } = useIpcHealth();
   const skillPages = useSkillExtensionStore((s) => s.pages);
 
   const pluginRoutes = useMemo(() => {
