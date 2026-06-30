@@ -32,7 +32,9 @@ pub mod error_recovery_engine;
 pub mod evaluator;
 pub mod event_bus;
 pub mod event_emitter;
+pub mod experience_pipeline;
 pub mod fact_checker;
+pub mod feedback_orchestrator;
 pub mod fine_tune;
 pub mod frontend_adapter;
 pub mod goal_evaluator;
@@ -121,6 +123,14 @@ pub use insight_generator::{Insight, InsightCategory, InsightStats};
 
 // rl_optimizer — 外部引用：commands/rl
 pub use rl_optimizer::{Policy, PolicyType, TrainingStats};
+
+// experience_pipeline — 外部引用：commands/rl, init
+pub use experience_pipeline::{ExperiencePipeline, PipelineStats};
+
+// feedback_orchestrator — 外部引用：commands/rl, init
+pub use feedback_orchestrator::{
+    FeedbackOrchestrator, OrchestratorAction, OrchestratorStats, classify_feedback_rating,
+};
 
 // vision_pipeline — 外部引用：commands/screen_vision
 pub use vision_pipeline::{VisionPipeline, VisionResult, VisionTask};

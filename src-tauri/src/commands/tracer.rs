@@ -3,7 +3,7 @@
 use axagent_telemetry::{
     CostMetrics, Span, SpanError, SpanEvent, SpanStatus, SpanType, TraceExport, TraceFilter,
     TraceMetrics, TraceSummary,
-    storage::{InMemoryTraceStorage, StorageError, TraceStorage},
+    storage::{InMemoryTraceStorage, TraceStorage},
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -154,7 +154,7 @@ pub fn tracer_record_error(request: RecordErrorRequest) -> Result<(), String> {
 
 #[command]
 pub fn tracer_record_span(request: RecordSpanRequest) -> Result<(), String> {
-    let mut storage = TRACE_STORAGE
+    let storage = TRACE_STORAGE
         .lock()
         .map_err(|e| format!("Lock error: {}", e))?;
 
@@ -292,7 +292,7 @@ pub fn tracer_export_traces(trace_ids: Vec<String>, _format: String) -> Result<V
 
 #[command]
 pub fn tracer_delete_trace(trace_id: String) -> Result<(), String> {
-    let mut storage = TRACE_STORAGE
+    let storage = TRACE_STORAGE
         .lock()
         .map_err(|e| format!("Lock error: {}", e))?;
     storage.delete(&trace_id).map_err(|e| format!("{}", e))
@@ -437,7 +437,7 @@ pub fn tracer_generate_suggestions(trace_id: String) -> Result<Vec<SuggestionIte
     if tool_spans.len() >= 2 {
         let total_tool_time: u64 = tool_spans.iter().filter_map(|s| s.duration_ms).sum();
         let has_no_deps = tool_spans.iter().all(|s| {
-            s.parent_span_id.is_none() || s.parent_span_id == tool_spans[0].parent_span_id.as_ref()
+            s.parent_span_id.is_none() || s.parent_span_id == tool_spans[0].parent_span_id
         });
 
         if has_no_deps && total_tool_time > 500 {
@@ -454,7 +454,7 @@ pub fn tracer_generate_suggestions(trace_id: String) -> Result<Vec<SuggestionIte
                         .to_string(),
                 expected_improvement: format!(
                     "预计减少约 {}% 总执行时间",
-                    (total_tool_time as f64 / tool_spans.len() as f64 / total_tool_time * 50.0)
+                    (total_tool_time as f64 / tool_spans.len() as f64 / total_tool_time as f64 * 50.0)
                         .round()
                 ),
             });
