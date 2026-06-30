@@ -257,8 +257,7 @@ impl ExperiencePipeline {
             reflections_processed: self.reflections_processed,
             feedback_processed: self.feedback_processed,
             pool_size,
-            last_train_pool_size: self.last_train_pool_size,
-            auto_train_threshold: self.auto_train_threshold,
+            train_count: self.train_scheduler.train_count(),
         }
     }
 }
@@ -268,6 +267,5 @@ pub struct PipelineStats {
     pub reflections_processed: u64,
     pub feedback_processed: u64,
     pub pool_size: usize,
-    pub last_train_pool_size: usize,
-    pub auto_train_threshold: usize,
+    pub train_count: u64,
 }
