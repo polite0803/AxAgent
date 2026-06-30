@@ -76,7 +76,6 @@ pub mod summary_compression;
 pub mod task_manager;
 pub mod task_packet;
 pub mod task_registry;
-pub mod task_router;
 pub mod team_cron_registry;
 #[cfg(not(any(target_os = "android", target_os = "ios")))]
 pub mod terminal;

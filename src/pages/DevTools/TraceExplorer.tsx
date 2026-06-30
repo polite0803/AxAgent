@@ -3,10 +3,10 @@
 import { TraceDetail } from "@/components/devtools/TraceDetail";
 import { TraceFilters } from "@/components/devtools/TraceFilters";
 import { TraceList } from "@/components/devtools/TraceList";
-import BottleneckAnalyzer from "@/components/trace/BottleneckAnalyzer";
-import FeedbackCollector from "@/components/trace/FeedbackCollector";
-import ImprovementSuggestion from "@/components/trace/ImprovementSuggestion";
-import TraceTimeline from "@/components/trace/TraceTimeline";
+import { BottleneckAnalyzer } from "@/components/trace/BottleneckAnalyzer";
+import { FeedbackCollector } from "@/components/trace/FeedbackCollector";
+import { ImprovementSuggestion } from "@/components/trace/ImprovementSuggestion";
+import { TraceTimeline } from "@/components/trace/TraceTimeline";
 import { useTracerStore } from "@/stores/devtools/tracerStore";
 import { Empty, Spin, Tabs, theme } from "antd";
 import { useEffect } from "react";

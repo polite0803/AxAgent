@@ -33,7 +33,7 @@ export async function resolveDataSource(
       if (!store) {
         throw new Error(`Store "${storeName}" not registered`);
       }
-      const state = store.getState() as Record<string, unknown>;
+      const state = store.get() as Record<string, unknown>;
       if (selector) {
         return getNestedValue(state, selector);
       }
@@ -61,7 +61,7 @@ export async function resolveDataSource(
       const { generationId } = config.config as { generationId: string };
       const { useExecutionStore } = await import("@/stores");
       const executionState = useExecutionStore.getState();
-      const generation = (executionState as Record<string, unknown>)[
+      const generation = (executionState as unknown as Record<string, unknown>)[
         generationId
       ];
       if (!generation) {

@@ -39,7 +39,7 @@ function MiniLineChart({ data, color }: { data: { step: number; value: number }[
   );
 }
 
-export default function RLTrainingMonitor() {
+export function RLTrainingMonitor() {
   const { t } = useTranslation();
   const status = useRlTrainingStore((s) => s.status);
   const currentMetrics = useRlTrainingStore((s) => s.currentMetrics);

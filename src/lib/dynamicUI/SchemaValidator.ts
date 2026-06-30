@@ -2,6 +2,7 @@
 
 import {
   COMPONENT_REQUIRED_PROPS,
+  type DynamicComponentType,
   type SchemaValidationError,
   type SchemaValidationResult,
   type UISchema,
@@ -72,7 +73,7 @@ function validateNode(
   }
 
   // props 兼容性校验
-  const requiredProps = COMPONENT_REQUIRED_PROPS[type];
+  const requiredProps = COMPONENT_REQUIRED_PROPS[type as DynamicComponentType];
   if (requiredProps && requiredProps.length > 0) {
     const propsObj = (props as Record<string, unknown>) || {};
     for (const field of requiredProps) {

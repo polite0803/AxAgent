@@ -24,7 +24,7 @@ const FIELDS: ConfigField[] = [
   { key: "maxSteps", label: "最大步数", type: "number", min: 100, max: 100000, step: 100 },
 ];
 
-export default function RLTrainingConfig() {
+export function RLTrainingConfig() {
   const config = useRlTrainingStore((s) => s.config);
   const startTraining = useRlTrainingStore((s) => s.startTraining);
 

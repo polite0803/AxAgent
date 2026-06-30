@@ -113,7 +113,7 @@ export const DynamicText: React.FC<DynamicUIProps> = ({ schema }) => {
  * 分割线组件，基于 Ant Design Divider。
  */
 export const DynamicDivider: React.FC<DynamicUIProps> = ({ schema }) => {
-  const { text, orientation = "center", plain = false, dashed = false } = schema.props as {
+  const { text, orientation: titlePlacement = "center" as const, plain = false, dashed = false } = schema.props as {
     text?: string;
     orientation?: "left" | "right" | "center";
     plain?: boolean;
@@ -122,7 +122,7 @@ export const DynamicDivider: React.FC<DynamicUIProps> = ({ schema }) => {
 
   return (
     <Divider
-      orientation={orientation}
+      titlePlacement={titlePlacement}
       plain={plain}
       dashed={dashed}
       style={schema.style as React.CSSProperties}

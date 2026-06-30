@@ -8,10 +8,27 @@ const { Text } = Typography;
 
 // ── Types ──
 
-interface BottleneckData {
-  timeDistribution: { name: string; value: number; color: string }[];
-  tokenDistribution: { name: string; tokens: number }[];
-  failureModes: { reason: string; count: number; pct: number }[];
+export interface BottleneckData {
+  timeDistribution: TimeDistributionItem[];
+  tokenDistribution: TokenConsumptionItem[];
+  failureModes: FailurePatternItem[];
+}
+
+export interface TimeDistributionItem {
+  name: string;
+  value: number;
+  color: string;
+}
+
+export interface TokenConsumptionItem {
+  name: string;
+  tokens: number;
+}
+
+export interface FailurePatternItem {
+  reason: string;
+  count: number;
+  pct: number;
 }
 
 // ── Mock ──
@@ -44,7 +61,7 @@ function buildMockBottlenecks(): BottleneckData {
 
 // ── Simple chart components ──
 
-function PieChart({ data }: { data: { name: string; value: number; color: string }[] }) {
+function PieChart({ data }: { data: TimeDistributionItem[] }) {
   const total = data.reduce((s, d) => s + d.value, 0);
 
   return (
@@ -98,7 +115,7 @@ function PieChart({ data }: { data: { name: string; value: number; color: string
   );
 }
 
-function BarChart({ data }: { data: { name: string; tokens: number }[] }) {
+function BarChart({ data }: { data: TokenConsumptionItem[] }) {
   const maxVal = Math.max(...data.map((d) => d.tokens), 1);
 
   return (
@@ -132,7 +149,7 @@ interface BottleneckAnalyzerProps {
   traceId: string;
 }
 
-export default function BottleneckAnalyzer({ traceId: _traceId }: BottleneckAnalyzerProps) {
+export function BottleneckAnalyzer({ traceId: _traceId }: BottleneckAnalyzerProps) {
   const { t } = useTranslation();
   const data = useMemo(() => buildMockBottlenecks(), []);
 

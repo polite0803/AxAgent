@@ -8,7 +8,7 @@ const { Text } = Typography;
 
 // ── Types ──
 
-interface TraceStep {
+export interface TraceStep {
   id: string;
   name: string;
   type: "thinking" | "tool_call" | "permission" | "error";
@@ -128,7 +128,7 @@ function buildMockSteps(): TraceStep[] {
 
 // ── Component ──
 
-export default function TraceTimeline({ traceId: _traceId }: TraceTimelineProps) {
+export function TraceTimeline({ traceId: _traceId }: TraceTimelineProps) {
   const { t } = useTranslation();
   const steps = useMemo(() => buildMockSteps(), []);
 

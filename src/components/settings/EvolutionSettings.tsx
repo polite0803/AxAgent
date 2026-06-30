@@ -27,7 +27,7 @@ function getTopStats(engine: EngineStatus): { key: string; label: string; value:
   }));
 }
 
-export default function EvolutionSettings() {
+export function EvolutionSettings() {
   const { t } = useTranslation();
   const engines = useEvolutionStore((s) => s.engines);
   const loading = useEvolutionStore((s) => s.loading);

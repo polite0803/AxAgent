@@ -8,12 +8,15 @@ const { Text, Paragraph } = Typography;
 
 // ── Types ──
 
-interface ImprovementSuggestion {
+export interface ImprovementSuggestion {
   id: string;
   problem: string;
   suggestion: string;
   expectedImprovement: string;
 }
+
+/** @deprecated 使用 ImprovementSuggestion */
+export type ImprovementSuggestionItem = ImprovementSuggestion;
 
 // ── Mock ──
 
@@ -52,7 +55,7 @@ interface ImprovementSuggestionProps {
   traceId: string;
 }
 
-export default function ImprovementSuggestion({ traceId: _traceId }: ImprovementSuggestionProps) {
+export function ImprovementSuggestion({ traceId: _traceId }: ImprovementSuggestionProps) {
   const { t } = useTranslation();
   const suggestions = useMemo(() => buildMockSuggestions(), []);
 

@@ -933,7 +933,8 @@ export type DeclarativeActionType =
   }
   | { type: "function"; name: string; args?: unknown[] }
   | { type: "handler"; name: string; args?: Record<string, unknown> }
-  | { type: "chain"; actions: DeclarativeActionType[] };
+  | { type: "chain"; actions: DeclarativeActionType[] }
+  | { type: "update-schema"; config: Record<string, unknown> };
 
 export interface AgenticAction {
   mode: "agentic";

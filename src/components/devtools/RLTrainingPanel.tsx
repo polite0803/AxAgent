@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import RLCheckpointManager from "@/components/devtools/RLCheckpointManager";
-import RLTrainingConfig from "@/components/devtools/RLTrainingConfig";
-import RLTrainingMonitor from "@/components/devtools/RLTrainingMonitor";
+import { RLCheckpointManager } from "@/components/devtools/RLCheckpointManager";
+import { RLTrainingConfig } from "@/components/devtools/RLTrainingConfig";
+import { RLTrainingMonitor } from "@/components/devtools/RLTrainingMonitor";
 import { useRlTrainingStore } from "@/stores/feature/rlTrainingStore";
 import { Badge, Button, Space, Tabs, Typography } from "antd";
 import { useTranslation } from "react-i18next";
@@ -25,7 +25,7 @@ const STATUS_LABELS: Record<string, string> = {
   failed: "失败",
 };
 
-export default function RLTrainingPanel() {
+export function RLTrainingPanel() {
   const { t } = useTranslation();
   const status = useRlTrainingStore((s) => s.status);
   const startTraining = useRlTrainingStore((s) => s.startTraining);

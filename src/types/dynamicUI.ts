@@ -126,6 +126,8 @@ export interface DynamicUIProps {
   dataContext?: Record<string, unknown>;
   /** 动作回调 */
   onAction?: (action: DynamicAction) => void;
+  /** 子节点 */
+  children?: React.ReactNode;
 }
 
 // ── Schema 校验结果 ──

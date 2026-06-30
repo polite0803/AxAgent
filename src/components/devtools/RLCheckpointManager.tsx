@@ -8,7 +8,7 @@ import { useTranslation } from "react-i18next";
 
 const { Text } = Typography;
 
-export default function RLCheckpointManager() {
+export function RLCheckpointManager() {
   const { t } = useTranslation();
   const checkpoints = useRlTrainingStore((s) => s.checkpoints);
   const saveCheckpoint = useRlTrainingStore((s) => s.saveCheckpoint);

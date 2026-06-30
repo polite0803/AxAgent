@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import { BUILTIN_EXPERT_PRESETS } from "@/data/expertPresets";
+import { BUILTIN_EXPERT_PRESETS, type BuiltinExpertPreset } from "@/data/expertPresets";
 import i18n from "@/i18n";
 import { invoke, logIpcError } from "@/lib/invoke";
 import type { AgentBehaviorMode, AgentProfile, ExpertCategory } from "@/types";
@@ -11,7 +11,7 @@ const CUSTOM_ROLES_KEY = "axagent_custom_expert_roles";
 
 /** 将内置预设中的 nameKey/descKey 解析为 name/description */
 function resolvePreset(
-  preset: (typeof BUILTIN_EXPERT_PRESETS)[number],
+  preset: BuiltinExpertPreset,
 ): AgentProfile {
   // i18n 模块可能因打包顺序尚未初始化，安全访问 .t()
   const _i18n = i18n as { t?: (key: string) => string } | undefined;

@@ -1,21 +1,21 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-export const BUILTIN_EXPERT_PRESETS = [
-  {
-    id: "general-assistant",
-    nameKey: "expertPreset.generalAssistant.name",
-    name: "通用助手",
-    descKey: "expertPreset.generalAssistant.description",
-    description: "全能的 AI 助手，无特定领域偏向",
-    category: "general",
-    icon: "🤖",
-    systemPrompt: "",
-    source: "builtin",
-    agentRole: null,
-    tags: ["通用", "默认", "助手"],
-    sortOrder: 0,
-    isEnabled: true,
-    createdAt: 0,
-    updatedAt: 0,
-  },
-];
+export interface BuiltinExpertPreset {
+  id: string;
+  nameKey: string;
+  name: string;
+  descKey: string;
+  description: string;
+  category: string;
+  icon: string;
+  systemPrompt: string;
+  source: string;
+  agentRole: null;
+  tags: string[];
+  sortOrder: number;
+  isEnabled: boolean;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export const BUILTIN_EXPERT_PRESETS: BuiltinExpertPreset[] = [];

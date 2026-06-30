@@ -8,11 +8,19 @@ import { useTranslation } from "react-i18next";
 const { TextArea } = Input;
 const { Text } = Typography;
 
+/** 反馈记录条目 */
+export interface FeedbackEntry {
+  traceId: string;
+  rating: "like" | "dislike";
+  comment?: string;
+  createdAt: number;
+}
+
 interface FeedbackCollectorProps {
   traceId: string;
 }
 
-export default function FeedbackCollector({ traceId: _traceId }: FeedbackCollectorProps) {
+export function FeedbackCollector({ traceId: _traceId }: FeedbackCollectorProps) {
   const { t } = useTranslation();
   const [rating, setRating] = useState<"like" | "dislike" | null>(null);
   const [comment, setComment] = useState("");

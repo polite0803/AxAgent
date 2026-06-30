@@ -42,7 +42,7 @@ const LazyToolRecommender = lazy(() =>
 );
 const LazyRLTrainingPanel = lazy(() =>
   import("@/components/devtools/RLTrainingPanel").then((m) => ({
-    default: m.default,
+    default: m.RLTrainingPanel,
   }))
 );
 const LazyFineTune = lazy(() => import("@/pages/FineTunePage").then((m) => ({ default: m.FineTunePage })));

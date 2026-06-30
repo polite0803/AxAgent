@@ -86,6 +86,8 @@ export function ActionChainEditor({
         return `#${index + 1} handler: ${a.name || "(-)"}`;
       case "chain":
         return `#${index + 1} chain: ${a.actions?.length || 0}`;
+      case "update-schema":
+        return `#${index + 1} update-schema: ${(a as Record<string, unknown>).schemaId || "(-)"}`;
     }
   };
 
