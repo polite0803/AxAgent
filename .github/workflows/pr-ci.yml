@@ -202,11 +202,25 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-playwright-
 
-      - name: Install Playwright browsers
-        run: npx --yes playwright install chromium --with-deps
+      - name: Ensure system Chrome available
+        run: |
+          if [ "$RUNNER_OS" = "macOS" ]; then
+            # macOS runner 自带 Google Chrome
+            echo "Chrome path: /Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+          elif [ "$RUNNER_OS" = "Linux" ]; then
+            # Linux: Google Chrome 通常预装在 ubuntu-latest 中
+            which google-chrome || which google-chrome-stable || echo "Chrome not pre-installed"
+          fi
+
+      - name: Install Playwright (no browsers) + system deps
+        run: |
+          npm install --save-dev @playwright/test
+          npx playwright install-deps chromium
 
       - name: Run E2E tests
         run: npm run test:e2e
+        env:
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 1
 
   cargo-audit:
     name: Security Audit
