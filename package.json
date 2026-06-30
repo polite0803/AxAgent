@@ -60,6 +60,7 @@
     "@fontsource-variable/jetbrains-mono": "^5.2.8",
     "@iconify/react": "^6.0.2",
     "@lobehub/icons": "^5.4.0",
+    "@monaco-editor/react": "^4.7.0",
     "@phosphor-icons/react": "^2.1.10",
     "@tanstack/react-virtual": "^3.13.23",
     "@tauri-apps/api": "^2.11.0",
@@ -95,14 +96,13 @@
     "react-dom": "^19.2.5",
     "react-i18next": "^17.0.3",
     "react-router-dom": "^7.14.2",
+    "react-virtuoso": "^4.18.10",
+    "recharts": "^2.15.4",
     "stream-markdown": "^0.0.15",
     "stream-markdown-parser": "^0.0.91",
     "stream-monaco": "^0.0.40",
     "zod": "^4.4.3",
-    "zustand": "^5.0.12",
-    "@monaco-editor/react": "^4.7.0",
-    "recharts": "^2.15.0",
-    "react-virtuoso": "^4.12.0"
+    "zustand": "^5.0.12"
   },
   "devDependencies": {
     "@dprint/json": "^0.19.4",

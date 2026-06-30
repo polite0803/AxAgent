@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+import { useTracerStore } from "@/stores/devtools/tracerStore";
 import { DislikeOutlined, LikeOutlined } from "@ant-design/icons";
 import { Button, Input, notification, Space, Typography } from "antd";
 import { useState } from "react";
@@ -20,19 +21,33 @@ interface FeedbackCollectorProps {
   traceId: string;
 }
 
-export function FeedbackCollector({ traceId: _traceId }: FeedbackCollectorProps) {
+export function FeedbackCollector({ traceId }: FeedbackCollectorProps) {
   const { t } = useTranslation();
+  const submitFeedback = useTracerStore((s) => s.submitFeedback);
   const [rating, setRating] = useState<"like" | "dislike" | null>(null);
   const [comment, setComment] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleSubmit = () => {
-    setSubmitted(true);
-    notification.success({
-      message: t("trace.feedback.thanks", "感谢反馈"),
-      description: t("trace.feedback.received", "您的反馈已提交，将用于优化 Agent 执行策略。"),
-      placement: "bottomRight",
-    });
+  const handleSubmit = async () => {
+    setSubmitting(true);
+    try {
+      await submitFeedback(traceId, rating!, comment || undefined);
+      setSubmitted(true);
+      notification.success({
+        message: t("trace.feedback.thanks", "感谢反馈"),
+        description: t("trace.feedback.received", "您的反馈已提交，将用于优化 Agent 执行策略。"),
+        placement: "bottomRight",
+      });
+    } catch (e: unknown) {
+      notification.error({
+        message: t("trace.feedback.error", "提交失败"),
+        description: e instanceof Error ? e.message : t("trace.feedback.errorRetry", "请稍后重试"),
+        placement: "bottomRight",
+      });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   if (submitted) {
@@ -80,7 +95,7 @@ export function FeedbackCollector({ traceId: _traceId }: FeedbackCollectorProps)
 
       {rating !== null && (
         <div style={{ marginTop: 12 }}>
-          <Button type="primary" size="small" onClick={handleSubmit}>
+          <Button type="primary" size="small" loading={submitting} onClick={handleSubmit}>
             {t("trace.feedback.submit", "提交反馈")}
           </Button>
         </div>

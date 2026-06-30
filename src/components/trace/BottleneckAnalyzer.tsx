@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import { Table, Tabs, Typography } from "antd";
-import { useMemo } from "react";
+import { useTracerStore } from "@/stores/devtools/tracerStore";
+import { Spin, Table, Tabs, Typography } from "antd";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 const { Text } = Typography;
@@ -29,34 +30,6 @@ export interface FailurePatternItem {
   reason: string;
   count: number;
   pct: number;
-}
-
-// ── Mock ──
-
-function buildMockBottlenecks(): BottleneckData {
-  return {
-    timeDistribution: [
-      { name: "LLM 推理", value: 45, color: "#1890ff" },
-      { name: "工具调用", value: 25, color: "#fa8c16" },
-      { name: "等待权限", value: 15, color: "#fadb14" },
-      { name: "网络延迟", value: 10, color: "#722ed1" },
-      { name: "其他", value: 5, color: "#d9d9d9" },
-    ],
-    tokenDistribution: [
-      { name: "系统提示词", tokens: 1200 },
-      { name: "工具定义", tokens: 800 },
-      { name: "对话历史", tokens: 3200 },
-      { name: "工具结果", tokens: 1500 },
-      { name: "用户输入", tokens: 400 },
-    ],
-    failureModes: [
-      { reason: "工具执行超时", count: 12, pct: 40 },
-      { reason: "权限不足", count: 8, pct: 26.7 },
-      { reason: "参数格式错误", count: 5, pct: 16.7 },
-      { reason: "网络错误", count: 3, pct: 10 },
-      { reason: "LLM 输出解析失败", count: 2, pct: 6.6 },
-    ],
-  };
 }
 
 // ── Simple chart components ──
@@ -149,9 +122,70 @@ interface BottleneckAnalyzerProps {
   traceId: string;
 }
 
-export function BottleneckAnalyzer({ traceId: _traceId }: BottleneckAnalyzerProps) {
+export function BottleneckAnalyzer({ traceId }: BottleneckAnalyzerProps) {
   const { t } = useTranslation();
-  const data = useMemo(() => buildMockBottlenecks(), []);
+  const getBottlenecks = useTracerStore((s) => s.getBottlenecks);
+  const [data, setData] = useState<BottleneckData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+
+    getBottlenecks(traceId)
+      .then((result) => {
+        if (!cancelled) {
+          setData(result);
+          setLoading(false);
+        }
+      })
+      .catch((e: unknown) => {
+        if (!cancelled) {
+          setError(e instanceof Error ? e.message : String(e));
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [traceId, getBottlenecks]);
+
+  // ── Loading / Error / Empty states ──
+
+  if (loading) {
+    return (
+      <div style={{ textAlign: "center", padding: 32 }}>
+        <Spin />
+        <Text type="secondary" style={{ display: "block", marginTop: 8 }}>
+          {t("trace.bottleneck.loading", "加载瓶颈分析...")}
+        </Text>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div style={{ textAlign: "center", padding: 32 }}>
+        <Text type="danger">{t("trace.bottleneck.error", "分析失败")}: {error}</Text>
+      </div>
+    );
+  }
+
+  if (
+    !data
+    || (data.timeDistribution.length === 0
+      && data.tokenDistribution.length === 0
+      && data.failureModes.length === 0)
+  ) {
+    return (
+      <div style={{ textAlign: "center", padding: 32 }}>
+        <Text type="secondary">{t("trace.bottleneck.empty", "暂无瓶颈数据")}</Text>
+      </div>
+    );
+  }
 
   const failureColumns = [
     { title: "失败原因", dataIndex: "reason", key: "reason" },

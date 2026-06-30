@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import { Popover, Typography } from "antd";
-import { useMemo } from "react";
+import { useTracerStore } from "@/stores/devtools/tracerStore";
+import type { Span } from "@/types";
+import { Popover, Spin, Typography } from "antd";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 const { Text } = Typography;
@@ -38,99 +40,102 @@ const TYPE_LABELS: Record<string, string> = {
   error: "错误",
 };
 
-// ── Mock data ──
+// ── Helpers ──
 
-function buildMockSteps(): TraceStep[] {
-  const steps: TraceStep[] = [
-    {
-      id: "s1",
-      name: "理解用户意图",
-      type: "thinking",
-      description: "解析用户输入，识别意图和关键实体",
-      durationMs: 1200,
-      tokenUsage: 450,
-      startMs: 0,
-    },
-    {
-      id: "s2",
-      name: "制定执行计划",
-      type: "thinking",
-      description: "生成分步执行计划，评估工具需求",
-      durationMs: 800,
-      tokenUsage: 320,
-      startMs: 1200,
-    },
-    {
-      id: "s3",
-      name: "search_file",
-      type: "tool_call",
-      description: "搜索相关文档文件",
-      durationMs: 1500,
-      tokenUsage: 120,
-      startMs: 2000,
-    },
-    {
-      id: "s4",
-      name: "等待用户授权",
-      type: "permission",
-      description: "需要用户确认文件删除操作",
-      durationMs: 5000,
-      startMs: 3500,
-    },
-    {
-      id: "s5",
-      name: "read_file",
-      type: "tool_call",
-      description: "读取目标文件内容",
-      durationMs: 600,
-      tokenUsage: 80,
-      startMs: 8500,
-    },
-    {
-      id: "s6",
-      name: "分析文件内容",
-      type: "thinking",
-      description: "使用 LLM 分析文件并生成摘要",
-      durationMs: 2200,
-      tokenUsage: 680,
-      startMs: 9100,
-    },
-    {
-      id: "s7",
-      name: "write_file",
-      type: "tool_call",
-      description: "将分析结果写入新文件",
-      durationMs: 400,
-      tokenUsage: 50,
-      startMs: 11300,
-    },
-    {
-      id: "s8",
-      name: "write_file 失败",
-      type: "error",
-      description: "权限不足，无法写入目标路径",
-      durationMs: 200,
-      startMs: 11700,
-    },
-    {
-      id: "s9",
-      name: "重试 write_file",
-      type: "tool_call",
-      description: "切换到有权限的路径重新写入",
-      durationMs: 350,
-      tokenUsage: 45,
-      startMs: 11900,
-    },
-  ];
-  // Assign cumulative startMs for proportional display
-  return steps;
+function mapSpanTypeToStepType(spanType: string, status: string): TraceStep["type"] {
+  if (status === "error") { return "error"; }
+  switch (spanType) {
+    case "agent":
+    case "reasoning":
+    case "reflection":
+      return "thinking";
+    case "tool":
+    case "llm_call":
+    case "task":
+    case "sub_task":
+      return "tool_call";
+    default:
+      return "thinking";
+  }
+}
+
+function spansToSteps(spans: Span[]): TraceStep[] {
+  if (spans.length === 0) { return []; }
+
+  const baseTime = new Date(spans[0].start_time).getTime();
+
+  return spans.map((span) => {
+    const startMs = new Date(span.start_time).getTime() - baseTime;
+    const durationMs = span.duration_ms ?? 0;
+    const tokenUsage = (span.attributes as Record<string, unknown> | null)?.total_tokens as number | undefined;
+    const description = span.errors.length > 0
+      ? span.errors.map((e) => e.message).join("; ")
+      : undefined;
+
+    return {
+      id: span.id,
+      name: span.name,
+      type: mapSpanTypeToStepType(span.span_type, span.status),
+      description,
+      durationMs,
+      tokenUsage,
+      startMs,
+    };
+  });
 }
 
 // ── Component ──
 
-export function TraceTimeline({ traceId: _traceId }: TraceTimelineProps) {
+export function TraceTimeline({ traceId }: TraceTimelineProps) {
   const { t } = useTranslation();
-  const steps = useMemo(() => buildMockSteps(), []);
+  const loadTrace = useTracerStore((s) => s.loadTrace);
+  const selectedTrace = useTracerStore((s) => s.selectedTrace);
+  const isLoading = useTracerStore((s) => s.isLoading);
+  const error = useTracerStore((s) => s.error);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    if (traceId) {
+      setLoaded(false);
+      loadTrace(traceId).then(() => setLoaded(true));
+    }
+  }, [traceId, loadTrace]);
+
+  const steps = useMemo(() => {
+    if (!selectedTrace?.trace?.spans) { return []; }
+    return spansToSteps(selectedTrace.trace.spans);
+  }, [selectedTrace]);
+
+  // ── Loading / Error / Empty states ──
+
+  if (!loaded || isLoading) {
+    return (
+      <div style={{ textAlign: "center", padding: 32 }}>
+        <Spin />
+        <Text type="secondary" style={{ display: "block", marginTop: 8 }}>
+          {t("trace.loading", "加载执行轨迹...")}
+        </Text>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div style={{ textAlign: "center", padding: 32 }}>
+        <Text type="danger">{t("trace.error", "加载失败")}: {error}</Text>
+      </div>
+    );
+  }
+
+  if (steps.length === 0) {
+    return (
+      <div style={{ textAlign: "center", padding: 32 }}>
+        <Text type="secondary">{t("trace.empty", "未找到执行轨迹数据")}</Text>
+      </div>
+    );
+  }
+
+  // ── Calculations ──
 
   const totalDuration = steps.length > 0
     ? steps[steps.length - 1].startMs + steps[steps.length - 1].durationMs - steps[0].startMs
