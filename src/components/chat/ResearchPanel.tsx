@@ -440,7 +440,7 @@ export function ResearchPanel({ className }: ResearchPanelProps) {
               <List
                 size="small"
                 dataSource={state.citations}
-                renderItem={(item: Record<string, unknown>) => (
+                renderItem={(item: { inReport?: boolean; credibility?: number; sourceType?: string }) => (
                   <List.Item>
                     <Space>
                       <CheckCircleOutlined
