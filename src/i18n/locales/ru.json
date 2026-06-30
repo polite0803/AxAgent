@@ -5,8 +5,8 @@
     "description": "Рабочий ассистент на основе ИИ"
   },
   "artifact": {
-    "copiedToClipboard": "",
-    "copyFailed": ""
+    "copiedToClipboard": "Copied to clipboard",
+    "copyFailed": "Copy failed"
   },
   "nav": {
     "chat": "Чат",
@@ -23,15 +23,29 @@
     "link": "Связь",
     "devTools": "Инструменты разработчика",
     "wiki": "Вики",
-    "app": "AxAgent"
+    "app": "AxAgent",
+    "stockAnalysis": "Stock Analysis",
+    "watchlist": "Список наблюдения",
+    "screener": "Скринер",
+    "trade": "Trade",
+    "backtest": "Бэктест",
+    "compare": "Сравнить",
+    "recommend": "推荐",
+    "quant": "量化",
+    "replayWorkbench": "回放工作台"
   },
   "sidebar": {
     "sectionWork": "Работа",
     "sectionTools": "Инструменты",
+    "sectionInvest": "Инвестиции",
     "sectionInfrastructure": "Инфраструктура",
     "sectionPlugins": "Плагины",
     "expand": "Развернуть боковую панель",
-    "collapse": "Свернуть боковую панель"
+    "collapse": "Свернуть боковую панель",
+    "sectionInvestDiscover": "Discover",
+    "sectionInvestMonitor": "Monitor",
+    "sectionInvestExecute": "Execute",
+    "sectionInvestReview": "Review"
   },
   "chat": {
     "newConversation": "Новый чат",
@@ -541,8 +555,8 @@
         "AGENT_STATUS_INITIALIZING": "Инициализация...",
         "AGENT_STATUS_CALLING_MODEL": "Вызов модели...",
         "AGENT_STATUS_STEER_APPLIED": "Применено {count} инструкция(й) управления",
-        "THINKING_BLOCK_START": "",
-        "THINKING_BLOCK_END": "",
+        "THINKING_BLOCK_START": "Start",
+        "THINKING_BLOCK_END": "End",
         "TITLE_NO_MESSAGES": "Нет сообщений для генерации заголовка",
         "SESSION_NO_MESSAGES_TO_COMPRESS": "Нет сообщений для сжатия",
         "STEER_INSTRUCTION_TOO_LONG": "Инструкция слишком длинная (макс 10КБ)",
@@ -700,7 +714,9 @@
       "noSteps": "Нет шагов",
       "chart": {
         "renderError": "Ошибка отрисовки диаграммы"
-      }
+      },
+      "elapsedHint": "Node runtime, auto-refreshes every 1s",
+      "lastUpdatedHint": "Last workflow status fetch time"
     },
     "modelRoutingConfig": {
       "title": "Конфигурация маршрутизации моделей",
@@ -1134,6 +1150,23 @@
       "ask": "Вопрос",
       "plan": "План",
       "title": "Переключить режим"
+    },
+    "multiModelVote": {
+      "button": "Aggregate Vote",
+      "title": "Multi-Model Decision Vote",
+      "strategy": "Aggregation Strategy",
+      "strategyMajority": "Majority Vote",
+      "strategyWeighted": "Confidence-Weighted",
+      "strategyConsensus": "Unanimous Consensus",
+      "modelCount": "Models Participated",
+      "validCount": "Valid Decisions",
+      "finalAction": "Final Action",
+      "winnerModel": "Winner Model",
+      "avgConfidence": "Avg. Confidence",
+      "voteBreakdown": "Vote Breakdown",
+      "allAgree": "All models agree",
+      "disagreement": "Disagreement detected",
+      "noDecision": "No decision to aggregate"
     }
   },
   "gateway": {
@@ -2485,9 +2518,9 @@
     "workflow": {
       "title": "Настройки рабочего процесса",
       "description": "Управление шаблонами рабочих процессов и настройками редактора",
-      "createdSuccess": "",
-      "deletedSuccess": "",
-      "sampleAdded": "",
+      "createdSuccess": "Created successfully",
+      "deletedSuccess": "Deleted successfully",
+      "sampleAdded": "Sample added",
       "createNew": "Создать новый шаблон",
       "visualEditor": "Визуальный редактор",
       "visualEditorDesc": "Создание и редактирование рабочих процессов с помощью DAG-редактора",
@@ -2558,7 +2591,8 @@
     "provider": {
       "deepseekBalance": "Баланс DeepSeek",
       "noValidKey": "Нет действительного ключа"
-    }
+    },
+    "stockAnalysis": "Stock Analysis"
   },
   "backup": {
     "title": "Центр резервного копирования",
@@ -2683,6 +2717,7 @@
     "permissionAcceptEdits": "Разрешить правки",
     "permissionFullAccess": "Полный доступ",
     "selectDirectory": "Выбрать каталог",
+    "unknown": "Неизвестно",
     "workingDirectory": "Рабочий каталог",
     "permissionRequired": "Требуется разрешение",
     "toolInput": "Ввод инструмента",
@@ -2765,10 +2800,16 @@
     },
     "default": "По умолчанию",
     "operationFailed": "Операция не удалась",
-    "key": "",
-    "value": "",
+    "key": "Key",
+    "value": "Value",
     "hide": "Скрыть",
-    "searchPlaceholder": "Поиск..."
+    "searchPlaceholder": "Поиск...",
+    "exportMarkdown": "Export Markdown",
+    "saveFailed": "Save failed",
+    "saved": "Saved",
+    "unknownError": "Unknown error",
+    "deleted": "Удалено",
+    "required": "Обязательно"
   },
   "image": {
     "loadError": "Ошибка загрузки изображения",
@@ -2802,8 +2843,8 @@
   },
   "tray": {
     "show": "Показать",
-    "key": "",
-    "value": "",
+    "key": "Key",
+    "value": "Value",
     "hide": "Скрыть",
     "quit": "Выход"
   },
@@ -3028,7 +3069,8 @@
     "proposals": "Vorschläge",
     "save": "Speichern",
     "sort": "Sortieren",
-    "stats": "Статистика"
+    "stats": "Статистика",
+    "atomicSkills": "Atomic Skills"
   },
   "agent": {
     "askUserPlaceholder": "Введите ваш ответ...",
@@ -3545,7 +3587,10 @@
       "axagentFolderHint": "Выберите папку с JSON-файлами формата AxAgent. Все шаблоны рабочих процессов будут автоматически просканированы и импортированы.",
       "n8nFolderHint": "Выберите папку с JSON-файлами формата n8n. Все рабочие процессы n8n будут автоматически конвертированы и импортированы.",
       "importStructuralErrors": "Imported workflow has {{count}} structural error(s):\n{{details}}",
-      "importValidationWarnings": "Imported workflow has {{count}} warning(s):\n{{details}}"
+      "importValidationWarnings": "Imported workflow has {{count}} warning(s):\n{{details}}",
+      "fileTooLarge": "File too large",
+      "invalidJsonFile": "Invalid JSON file",
+      "jsonTooDeep": "JSON nesting too deep"
     },
     "preview": "Предпросмотр",
     "publish": "Опубликовать",
@@ -3598,7 +3643,12 @@
       "diffNodeTypeChanged": "Node type changed",
       "diffNodeConfigChanged": "Node config changed",
       "diffEdgeAdded": "Edge added ({{type}})",
-      "diffEdgeRemoved": "Edge removed ({{type}})"
+      "diffEdgeRemoved": "Edge removed ({{type}})",
+      "latest": "Latest",
+      "rollback": "Rollback to This Version",
+      "rollbackConfirm": "Confirm rollback?",
+      "rollbackTo": "Rollback to {{version}}",
+      "rolledBack": "Rolled back"
     },
     "versionHistoryLoadFailed": "Не удалось загрузить историю версий",
     "versionLoaded": "Версия{{version}} loaded",
@@ -3831,15 +3881,15 @@
       "defaultCodePythonComment": "# Input: input\n# Возвращаемое значение сохраняется в output_var",
       "codeInputParams": "Входные параметры: input",
       "codeReturnHint": "Возвращаемое значение будет сохранено в output_var",
-      "roleCoordinator": "",
-      "roleBrowser": "",
-      "selectRole": "",
-      "roleTag": "",
-      "bindRole": "",
-      "expertNotFound": "",
-      "profileMatched": "",
-      "profileCreated": "",
-      "profileCreateFailed": "",
+      "roleCoordinator": "Coordinator",
+      "roleBrowser": "Browser",
+      "selectRole": "Select role",
+      "roleTag": "Role: {{role}}",
+      "bindRole": "Bind role",
+      "expertNotFound": "Expert not found",
+      "profileMatched": "Matched to existing profile",
+      "profileCreated": "Profile created",
+      "profileCreateFailed": "Profile create failed: {{error}}",
       "executionMode": "Режим выполнения",
       "executionReact": "Реактивный",
       "executionPlan": "Плановый",
@@ -3914,7 +3964,19 @@
       "switchValuePlaceholder": "value",
       "to": "Кому",
       "urlPlaceholder": "https://api.example.com/data",
-      "webhookUrlPlaceholder": "https://hook.example.com/..."
+      "webhookUrlPlaceholder": "https://hook.example.com/...",
+      "inputVariablePlaceholder": "e.g. data.result",
+      "backend": "Storage Backend",
+      "vectorDb": "Vector Database",
+      "fileSystem": "File System",
+      "operation": "Operation",
+      "insert": "Insert",
+      "upsert": "Upsert",
+      "append": "Append",
+      "collection": "Collection/Table",
+      "collectionPlaceholder": "e.g. records",
+      "keyVariable": "Key Variable",
+      "keyVariablePlaceholder": "e.g. record.id"
     },
     "debug": {
       "totalDuration": "Общая длительность",
@@ -4000,6 +4062,35 @@
       "showSpanTree": "显示 Span 树",
       "hideSpanTree": "隐藏 Span 树",
       "noSpanData": "暂未解析到 Span 数据"
+    },
+    "validation": {
+      "validation": {
+        "title": "验证规则",
+        "noRules": "暂无验证规则。点击「添加规则」开始创建。",
+        "addRule": "添加规则",
+        "rule": "规则",
+        "ruleName": "规则名称",
+        "ruleNamePlaceholder": "给自己的规则取个名字",
+        "ruleType": "规则类型",
+        "description": "描述",
+        "descriptionPlaceholder": "这条规则是做什么的",
+        "schema": "JSON Schema",
+        "sourceNode": "源节点",
+        "selectNode": "选择节点",
+        "expectedPath": "期望路径",
+        "expectedPathPlaceholder": "例如 output.status",
+        "assertionOp": "断言操作",
+        "expectedValue": "期望值",
+        "expectedValuePlaceholder": "输入期望值",
+        "metric": "指标",
+        "maxValue": "最大值",
+        "minValue": "最小值",
+        "onFailStrategy": "失败策略",
+        "warn": "仅警告",
+        "block": "阻止执行",
+        "continue": "继续执行",
+        "saved": "验证规则已保存"
+      }
     },
     "applySemanticCheck": "Применить",
     "applyUpgrade": "Применить обновление",
@@ -4208,9 +4299,9 @@
       "roleReviewer": "Рецензент",
       "roleSynthesizer": "Синтезатор",
       "roleExecutor": "Исполнитель",
-      "agent": "",
-      "roleCoordinator": "",
-      "roleBrowser": ""
+      "agent": "Agent",
+      "roleCoordinator": "Coordinator",
+      "roleBrowser": "Browser"
     },
     "conditionNode": {
       "title": "Условие",
@@ -4287,7 +4378,12 @@
       "manual": "Ручной",
       "schedule": "Расписание",
       "event": "Событие",
-      "title": "Триггер"
+      "title": "Триггер",
+      "configure": "Configure Trigger",
+      "configureHint": "Configure trigger conditions and parameters",
+      "statusActive": "Running",
+      "statusDisabled": "Disabled",
+      "statusUnconfigured": "Unconfigured"
     },
     "documentParserNode": {
       "notSet": "Не задано",
@@ -4333,7 +4429,12 @@
     "node": {
       "tickMode": "Режим Tick",
       "breakpoint": "Точка останова",
-      "retryEnabled": "Повтор включён"
+      "retryEnabled": "Повтор включён",
+      "clickToCollapsePorts": "Click to collapse ports",
+      "clickToExpandPorts": "Click to expand ports",
+      "inputs": "Inputs",
+      "outputs": "Outputs",
+      "type": "Type"
     },
     "code": {
       "rhaiDynamicTool": "🦀 Rhai (Динамический инструмент)",
@@ -4777,7 +4878,10 @@
     },
     "swarmNode": {
       "agents": "Agents",
-      "rounds": "rounds"
+      "rounds": "rounds",
+      "newAgent": "Agent",
+      "noAgentsHint": "Add Agent nodes inside this container",
+      "addAgent": "Add Agent"
     },
     "groupNode": {
       "untitled": "Group",
@@ -4811,37 +4915,16 @@
     },
     "run": "Run",
     "settings": "Settings",
+    "workflowRef": {
+      "targetWorkflow": "Target Workflow",
+      "contextMode": "Context Mode",
+      "inherit": "Inherit",
+      "isolated": "Isolated"
+    },
+    "durationMinutes": "{{minutes}} min",
+    "durationSeconds": "{{seconds}} sec",
     "aggregatorNode": {
       "inputs": "Входы"
-    },
-    "validation": {
-      "validation": {
-        "title": "验证规则",
-        "noRules": "暂无验证规则。点击「添加规则」开始创建。",
-        "addRule": "添加规则",
-        "rule": "规则",
-        "ruleName": "规则名称",
-        "ruleNamePlaceholder": "给自己的规则取个名字",
-        "ruleType": "规则类型",
-        "description": "描述",
-        "descriptionPlaceholder": "这条规则是做什么的",
-        "schema": "JSON Schema",
-        "sourceNode": "源节点",
-        "selectNode": "选择节点",
-        "expectedPath": "期望路径",
-        "expectedPathPlaceholder": "例如 output.status",
-        "assertionOp": "断言操作",
-        "expectedValue": "期望值",
-        "expectedValuePlaceholder": "输入期望值",
-        "metric": "指标",
-        "maxValue": "最大值",
-        "minValue": "最小值",
-        "onFailStrategy": "失败策略",
-        "warn": "仅警告",
-        "block": "阻止执行",
-        "continue": "继续执行",
-        "saved": "验证规则已保存"
-      }
     }
   },
   "atomicSkill": {
@@ -6812,7 +6895,8 @@
     "devops": "DevOps",
     "design": "Дизайн",
     "writing": "Написание",
-    "business": "Бизнес"
+    "business": "Бизнес",
+    "finance": "Финансы"
   },
   "planStore": {
     "rejectFailed": "Не удалось отклонить план: {{error}}",
@@ -6990,14 +7074,14 @@
     }
   },
   "agentRole": {
-    "coordinator": "",
-    "researcher": "",
-    "planner": "",
-    "developer": "",
-    "reviewer": "",
-    "browser": "",
-    "synthesizer": "",
-    "executor": ""
+    "coordinator": "Coordinator",
+    "researcher": "Researcher",
+    "planner": "Planner",
+    "developer": "Developer",
+    "reviewer": "Reviewer",
+    "browser": "Browser",
+    "synthesizer": "Synthesizer",
+    "executor": "Executor"
   },
   "stream": {
     "timeout": "⚠️ Тайм-аут потока (нет обновлений 5 мин), автоматически остановлен"
@@ -7216,9 +7300,9 @@
     "yes": "Да",
     "no": "No",
     "cancel": "Отмена",
-    "createdSuccess": "",
-    "deletedSuccess": "",
-    "sampleAdded": "",
+    "createdSuccess": "Dataset created",
+    "deletedSuccess": "Dataset deleted",
+    "sampleAdded": "Sample added",
     "createNew": "Создать новый датасет"
   },
   "loraConfig": {
@@ -7362,7 +7446,50 @@
     "errorRecoveryScore": "Восстановление ошибок",
     "goalCompletionScore": "Достижение целей",
     "reflectError": "Рефлексия не удалась",
-    "retry": "Повторить"
+    "retry": "Повторить",
+    "autoTrigger": "Auto-Triggered",
+    "delete": {
+      "confirm": "Delete this insight?",
+      "failed": "Failed to delete insight",
+      "success": "Insight deleted"
+    },
+    "deleteInsight": "Delete Insight",
+    "feedback": {
+      "failed": "Feedback submission failed",
+      "notFound": "Insight not found",
+      "thanksNotUseful": "Thanks! Marked as not useful",
+      "thanksUseful": "Thanks! Marked as useful"
+    },
+    "notUseful": "Not Useful",
+    "settings": {
+      "cancel": "Cancel",
+      "core": "Core Settings",
+      "decayDays": "Decay Days",
+      "maxHistory": "Max History",
+      "maxInsights": "Max Insights",
+      "qualityThreshold": "Quality Threshold",
+      "reset": "Reset",
+      "save": "Save",
+      "saved": "Settings saved",
+      "title": "Reflection Settings",
+      "decayDaysHint": "Insights automatically decay in weight after N days",
+      "enabled": "Enable Auto-Reflection",
+      "enabledHint": "Auto-trigger reflection after task execution",
+      "errorSection": "Error Analysis",
+      "insightSection": "Insight Settings",
+      "maxHistoryHint": "Keep the most recent N reflection history entries",
+      "maxInsightsHint": "Keep at most N insight records",
+      "qualitySection": "Quality Threshold",
+      "qualityThresholdHint": "Insights below this threshold will be filtered out",
+      "saveFailed": "Save failed",
+      "storageSection": "Storage Settings",
+      "storeInsights": "Persist Insights",
+      "storeInsightsHint": "Insights will be saved locally and available across sessions",
+      "subtitle": "Configure auto-reflection and insight management",
+      "useErrorClassifier": "Enable Error Classifier",
+      "useErrorClassifierHint": "Auto-classify error patterns for analysis"
+    },
+    "useful": "Useful"
   },
   "subAgentCard": {
     "viewConversation": "См. под-диалог",
@@ -7450,7 +7577,9 @@
     "steerInput": "Руль",
     "showExtras": "Ещё",
     "hideExtras": "Скрыть",
-    "close": "Закрыть"
+    "close": "Закрыть",
+    "collapse": "Collapse Panel",
+    "expand": "Expand Panel"
   },
   "knowledgeSettings": {
     "title": "Знания"
@@ -7523,5 +7652,385 @@
     "recordAudio": "Записать аудио",
     "takePhoto": "Сделать фото",
     "uploadFile": "Загрузить файл"
+  },
+  "trade": {
+    "title": "Trading Log",
+    "disabledHint": "Enable to record buy/sell trades. Tracks position cost and P&L.",
+    "stockCode": "Code",
+    "stockName": "Name",
+    "buy": "Buy",
+    "sell": "Sell",
+    "price": "Price",
+    "quantity": "Qty",
+    "cost": "Cost",
+    "shares": "Position",
+    "pnl": "P&L",
+    "recorded": "Recorded",
+    "fillRequired": "Fill required fields",
+    "toggleFailed": "Toggle failed",
+    "limitsBlocked": "Position limits blocked",
+    "agentRole.coordinator": "Coordinator",
+    "agentRole.researcher": "Researcher",
+    "agentRole.planner": "Planner",
+    "agentRole.developer": "Developer",
+    "agentRole.reviewer": "Reviewer",
+    "agentRole.browser": "Browser",
+    "agentRole.synthesizer": "Synthesizer",
+    "agentRole.executor": "Executor",
+    "placeholder": "Исполнение и разбор сделок",
+    "agentRole": {
+      "browser": "Browser",
+      "coordinator": "Coordinator",
+      "developer": "Developer",
+      "executor": "Executor",
+      "planner": "Planner",
+      "researcher": "Researcher",
+      "reviewer": "Reviewer",
+      "synthesizer": "Synthesizer"
+    }
+  },
+  "watchlist": {
+    "title": "Список наблюдения",
+    "placeholder": "Управление списком и оповещениями"
+  },
+  "screener": {
+    "title": "Скринер акций",
+    "placeholder": "Найти акции по критериям",
+    "tab": {
+      "smartReco": "Умные рекомендации",
+      "myFilter": "Мой фильтр",
+      "serenity": "Bottleneck Hunt"
+    }
+  },
+  "backtest": {
+    "title": "Бэктест",
+    "placeholder": "Проверка стратегий на истории"
+  },
+  "compare": {
+    "title": "Сравнение",
+    "placeholder": "Сравнение с аналогами"
+  },
+  "dualView": {
+    "notRegistered": "Незарегистрированное dual view: {{id}}",
+    "expand": "Развернуть в {{title}}",
+    "expandToPanel": "Развернуть в панель",
+    "collapse": "Свернуть",
+    "collapseToBubble": "Свернуть в пузырь",
+    "decision": {
+      "llmUnavailableHint": "LLM analysis is temporarily unavailable. Please check your model configuration or network connection",
+      "title": "Decision: Dual-View Comparison",
+      "field": "Decision Dimension",
+      "formula": "Formula View",
+      "llm": "LLM View",
+      "action": "Trade Action",
+      "positionPct": "Position %",
+      "confidence": "Confidence",
+      "reasoning": "Reasoning",
+      "formulaReasoningOmitted": "Formula has no reasoning chain",
+      "formulaBadge": "Formula",
+      "llmBadge": "LLM",
+      "llmUnavailable": "LLM view unavailable",
+      "reviewRecommended": "Manual Review Recommended",
+      "highAgreementHint": "High agreement between views",
+      "midAgreementHint": "Partial agreement between views",
+      "lowAgreementHint": "Views diverge significantly",
+      "llmMissingHint": "Agreement score: {{score}}/100"
+    }
+  },
+  "timeTravel": {
+    "modeSwitch": {
+      "live": "В ЭФИРЕ",
+      "replay": "Повтор {{date}}",
+      "sweep": "Пакетный бэктест",
+      "tooltipLive": "Нажмите, чтобы войти в режим повтора (анализ на прошедшую дату)",
+      "tooltipReplay": "Нажмите, чтобы вернуться в режим эфира",
+      "confirmTitle": "Вернуться в режим эфира?",
+      "confirmBody": "Режим эфира использует данные в реальном времени, и ранее сделанные выводы могут быть опровергнуты новой информацией. Режим повтора закрывает мир на выбранной прошедшей дате, предотвращая предвзятость look-ahead.",
+      "confirmOk": "Перейти в эфир",
+      "confirmCancel": "Остаться в повторе",
+      "currentlyInReplay": "Идёт повтор с якорем {{date}}.",
+      "enteredReplay": "Режим повтора активирован: {{date}}",
+      "switchedToLive": "Переключено в режим эфира"
+    },
+    "datePicker": {
+      "hint": "Выберите прошлый торговый день. Сегодня и будущие даты отключены (гипотеза закрытого мира).",
+      "placeholder": "Выберите дату-якорь",
+      "ok": "Запустить повтор",
+      "cancel": "Отмена"
+    },
+    "pageAnchor": {
+      "live": "В эфире",
+      "replay": "Повтор",
+      "untilDate": "по состоянию на {{date}}"
+    },
+    "replayBadge": {
+      "label": "Повтор · {{date}}",
+      "tooltip": "Все данные, промпты и вердикты в этом представлении привязаны к {{date}}. Не используйте для реальной торговли.",
+      "replay": "Replay {{date}}",
+      "sweep": "Batch Scan"
+    },
+    "replayWatermark": {
+      "label": "по состоянию на {{date}}"
+    },
+    "tour": {
+      "title": "Режим Путешествия во времени доступен",
+      "body": "Привязывайте все анализы и рекомендации к прошлому торговому дню, чтобы безопасно бэктестить стратегии без предвзятости look-ahead. Система будет отклонять будущие даты, а нарушения временных меток будут выделены на временной шкале.",
+      "gotIt": "Понятно",
+      "stepAnchor": "Нажмите на капсулу В ЭФИРЕ в любое время, чтобы войти в режим повтора."
+    },
+    "violations": {
+      "chip": "⚠ {{n}} нарушение",
+      "chip_plural": "⚠ {{n}} нарушений",
+      "chipAria": "{{n}} нарушение(-я) ссылок на будущее в этом узле",
+      "tooltip": "Вывод этого узла упоминает даты после якоря as-of. Считайте его вывод ненадёжным.",
+      "markClass": "ax-violation-mark"
+    },
+    "recommendationBanner": "Режим повтора активен. Выбор, цены и диапазоны входа привязаны к {{date}}. Не использовать для реальной торговли.",
+    "backtestHint": "Эти статистики агрегируют все завершённые анализы (эфир + повтор) на {{date}}. Используйте Replay Workbench для фильтрации по режиму.",
+    "degradedStyles": {
+      "title": "Ухудшение источников данных из-за усечения as-of",
+      "description": "Следующие стили данных были ухудшены, так как дата as-of {{date}} обрезает историю, необходимую для полного сигнала.",
+      "reason": "Причина: {{reason}}",
+      "hint": "Ухудшенный результат — не ошибочный; он менее информативен. Относитесь к его достоверности как к более низкой, чем у не ухудшенных стилей.",
+      "vendor": "источник: {{name}}"
+    },
+    "degradedMarker": {
+      "label": "Ухудшено · Часть данных без истории",
+      "labelWithCount": "Ухудшено · {{n}} элементов",
+      "tooltip": "В режиме повтора поток средств/маржа/северные активы и т.д. не имеют исторической семантики и были пропущены."
+    }
+  },
+  "replayWorkbench": {
+    "title": "Стенд повтора",
+    "description": "Привязывайте все данные к прошлому дню. Система будет отклонять будущие даты. Безопасно бэктестите стратегии без предвзятости look-ahead.",
+    "step1": {
+      "title": "Выбрать дату-якорь",
+      "currentlyPicked": "Сейчас идёт повтор с якорем {{date}}",
+      "reselect": "Выбрать заново"
+    },
+    "step2": {
+      "title": "Запустить анализ с учётом повтора",
+      "description": "Все действия ниже внедряют as_of_date = {{date}} в бэкенд и закрывают мир в этот день.",
+      "analyze": "Анализ одной акции",
+      "backtest": "Просмотр статистики бэктеста",
+      "watchlist": "Просмотр списка наблюдения"
+    },
+    "sweep": {
+      "title": "Матрица Sweep повтора",
+      "intro": "Пакетный прогон бэктеста по акциям × as-of датам. Принудительно перевыбирает диапазон (не наследует глобальный TimeAnchor).",
+      "codesLabel": "Коды акций (по одному в строке или через запятую)",
+      "codesPlaceholder": "600519\n000001\n000333",
+      "dateRangeLabel": "Диапазон as-of дат (только рабочие дни)",
+      "holdingDaysLabel": "Дней удержания",
+      "actionLabel": "Гипотетическое решение",
+      "confidenceLabel": "Уверенность решения (0–1)",
+      "runBtn": "Запустить Sweep",
+      "running": "Sweep выполняется {{done}} / {{total}} …",
+      "summary": "Sweep завершён: из {{total}},{{valid}} валидных / {{invalid}} невалидных.",
+      "violationNotice": "Записано {{count}} нарушений as-of — см. панель Invalid.",
+      "invalidTitle": "Невалидные образцы",
+      "noInvalid": "Нет невалидных образцов.",
+      "exportCsv": "Экспорт CSV",
+      "exportJson": "Экспорт JSON"
+    },
+    "notice": "Все данные, промпты и вердикты в этом стенде привязаны к выбранной дате. Возврат в режим эфира требует явного подтверждения.",
+    "exitHint": "Вы всё ещё в режиме повтора. Любой новый анализ, запущенный в другом месте, также будет привязан к повтору.",
+    "exitBtn": "Вернуться в эфир"
+  },
+  "serenityPanel": {
+    "desc": "Метод узких мест Serenity: автоматический отбор потенциальных акций путем обнаружения узких мест в производственной цепочке из данных рынка",
+    "run": "Запустить отбор Serenity",
+    "running": "Отбор...",
+    "stage_loading": "Загрузка шаблона рабочего процесса...",
+    "stage_scanning": "Этап 0/4: Сканирование рыночных трендов",
+    "stage_decomposing": "Этап 1/4: Декомпозиция производственной цепочки",
+    "stage_identifying": "Этап 2/4: Идентификация узких мест",
+    "stage_mapping": "Этап 3/4: Сопоставление компаний-кандидатов",
+    "stage_saving": "Этап 4/4: Сохранение результатов",
+    "stage_done": "Отбор завершен",
+    "stage_error": "Ошибка отбора",
+    "analyzing": "Анализ данных производственной цепочки, вывод LLM требует 1-3 минуты...",
+    "trendTitle": "Обнаруженные тренды отрасли",
+    "bottleneckLink": "Узкое место: ",
+    "candidateTitle": "Кандидаты",
+    "directBenefit": "Прямой выгодоприобретатель",
+    "indirectBenefit": "Косвенный выгодоприобретатель",
+    "themeRelated": "Тема связана",
+    "bottleneckProduct": "Продукт узкого места: ",
+    "riskPrefix": "Риск: ",
+    "confidencePrefix": "Уверенность ",
+    "scoreSuffix": " баллов",
+    "emptyHint": "Нажмите кнопку выше, чтобы запустить отбор узких мест Serenity",
+    "noCandidateTitle": "Кандидаты не сгенерированы",
+    "errorUnknown": "Неизвестная ошибка",
+    "callFailed": "Вызов не удался",
+    "stepLogTitle": "Execution Log",
+    "nodeTitles": {
+      "trigger": "Start Screening",
+      "t-industry-rank": "Industry Ranking",
+      "t-cls-flash": "Real-time Flash",
+      "t-northbound": "Northbound Capital",
+      "t-baseline-semi": "Semi Baseline",
+      "t-baseline-battery": "Battery Baseline",
+      "t-baseline-chem": "Chem Baseline",
+      "t-baseline-med": "Medical Baseline",
+      "t-baseline-aero": "Aerospace Baseline",
+      "t-baseline-consumer-elec": "Consumer Elec Baseline",
+      "t-baseline-auto": "Auto Baseline",
+      "a-trend-scanner": "Trend Scanner",
+      "a-chain-trend1": "Chain Decomposer #1",
+      "a-chain-trend2": "Chain Decomposer #2",
+      "a-chain-trend3": "Chain Decomposer #3",
+      "a-chain-trend4": "Chain Decomposer #4",
+      "a-chain-trend5": "Chain Decomposer #5",
+      "a-chokepoint-trend1": "Chokepoint ID #1",
+      "a-chokepoint-trend2": "Chokepoint ID #2",
+      "a-chokepoint-trend3": "Chokepoint ID #3",
+      "a-chokepoint-trend4": "Bottleneck ID #4",
+      "a-chokepoint-trend5": "Bottleneck ID #5",
+      "a-candidate-mapper": "Candidate Mapper",
+      "c-bottleneck-trend1": "瓶颈指标计算 #1",
+      "c-bottleneck-trend2": "瓶颈指标计算 #2",
+      "c-bottleneck-trend3": "瓶颈指标计算 #3",
+      "c-bottleneck-trend4": "瓶颈指标计算 #4",
+      "c-bottleneck-trend5": "瓶颈指标计算 #5"
+    },
+    "catalystEarnings": "Earnings",
+    "catalystProdRamp": "Ramp Up",
+    "catalystPolicy": "Policy",
+    "catalystSupplyShock": "Supply Shock",
+    "catalystCapacityRelease": "Capacity Release",
+    "catalystContractAward": "Contract",
+    "timeframeShort": "1-3M",
+    "timeframeMid": "3-6M",
+    "timeframeLong": "6M+",
+    "exitNow": "Now",
+    "exitCaution": "Caution",
+    "exitWatch": "Watch",
+    "exitNone": "None",
+    "catalystLabelPrefix": "Catalyst: ",
+    "exitLabelPrefix": "Exit: ",
+    "attentionLabelPrefix": "Attention: ",
+    "heatLabelPrefix": "Heat: ",
+    "feedbackTitle": "Feedback ({{count}} candidates)",
+    "feedbackWinRate": "Win Rate",
+    "feedbackAvgReturn": "Avg Return",
+    "feedbackProfitable": "Profitable/Total",
+    "feedbackButton": "History Feedback",
+    "refreshExitButton": "Refresh Exit Signals",
+    "feedbackCatalyst": "Catalyst {{verified}}/{{total}}",
+    "serenityHistory": {
+      "viewHistory": "Показать историю",
+      "title": "История рекомендаций",
+      "generatedAt": "Время рекомендации",
+      "period": "Период",
+      "stockCount": "Кол-во акций",
+      "candidateCount": "Кол-во кандидатов",
+      "styles": "Стили",
+      "batchDelete": "Удалить ({{count}})",
+      "deleteConfirm": "Удалить выбранные {{count}} записей?",
+      "deleteSuccess": "Удалено {{count}} записей",
+      "selectedCount": "Выбрано {{count}}",
+      "exitSelect": "Выйти из выбора",
+      "empty": "Нет истории рекомендаций"
+    }
+  },
+  "quant": {
+    "backtest": {
+      "code": "Stock Code",
+      "codePlaceholder": "Enter stock code (e.g., 600519)",
+      "endDate": "End Date",
+      "errorRunning": "Backtest execution error",
+      "initialCash": "Initial Capital",
+      "noResult": "No backtest results",
+      "overfitWarning": "Overfitting Warning",
+      "result": "Backtest Result",
+      "run": "Run Backtest",
+      "running": "Backtesting...",
+      "selectStrategy": "Select Strategy",
+      "stabilityScore": "Stability Score",
+      "startDate": "Start Date",
+      "title": "Strategy Backtest",
+      "walkForward": "Walk-Forward",
+      "walkForwardForceOff": "Disable Walk-Forward",
+      "walkForwardTitle": "Walk-Forward Backtest"
+    },
+    "common": {
+      "empty": "No data"
+    },
+    "compare": {
+      "compare": "Start Compare",
+      "comparing": "Comparing...",
+      "selectRuns": "Select backtest runs",
+      "title": "Strategy Comparison"
+    },
+    "metrics": {
+      "annualizedReturn": "Annualized Return",
+      "bestBy": "Best Parameters",
+      "maxDrawdownPct": "Max Drawdown",
+      "sharpe": "Sharpe Ratio",
+      "totalReturn": "Total Return",
+      "totalTrades": "Total Trades",
+      "winRate": "Win Rate"
+    },
+    "rhai": {
+      "compileError": "Compile Error",
+      "hint": "Write trading strategy logic in Rhai language",
+      "name": "Script Name",
+      "save": "Save",
+      "saved": "Saved",
+      "source": "Source Code",
+      "title": "Rhai Script Editor",
+      "version": "Version"
+    },
+    "strategy": {
+      "builtin": "Built-in Strategy",
+      "description": "Strategy Description",
+      "lastUpdated": "Last Updated",
+      "name": "Strategy Name",
+      "params": "Strategy Parameters",
+      "rhai": "Rhai Script Strategy",
+      "type": "Strategy Type",
+      "version": "Version"
+    },
+    "subtitle": "Strategy Backtest · Parameter Optimization · Signal Evaluation",
+    "tabs": {
+      "backtest": "Backtest",
+      "compare": "Compare",
+      "rhai": "Rhai Script",
+      "strategies": "Strategies"
+    },
+    "title": "Quant Lab",
+    "trades": {
+      "amount": "Amount",
+      "code": "Code",
+      "empty": "No trade records",
+      "fee": "Fee",
+      "filterAll": "All",
+      "flat": "Close",
+      "flatCount": "Closed Trades",
+      "long": "Long",
+      "longCount": "Long Trades",
+      "price": "Price",
+      "quantity": "Qty",
+      "realizedPnl": "Realized P&L",
+      "reason": "Reason",
+      "searchPlaceholder": "Search trade records",
+      "short": "Short",
+      "shortCount": "Short Trades",
+      "side": "Side",
+      "time": "Time",
+      "totalAmount": "Total Amount",
+      "totalCount": "Total Trades",
+      "totalFee": "Total Fee",
+      "totalPnl": "Total P&L",
+      "totalRows": "{{count}} records"
+    }
+  },
+  "ipc": {
+    "disconnected": "Backend connection lost",
+    "disconnectedHint": "The app was idle in the background. The IPC channel may have been disconnected.",
+    "reconnecting": "Reconnecting…",
+    "retry": "Retry"
   }
 }

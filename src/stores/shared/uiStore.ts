@@ -1,7 +1,39 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import type { PageKey, SettingsSection } from "@/types";
+import type { Citation, PageKey, SettingsSection } from "@/types";
+import type { ChartData } from "@/components/chat/ChartInterpreter";
 import { create } from "zustand";
+
+/** UISnapshotViewer 元素 */
+export interface SnapshotElement {
+  element_type: string;
+  label: string | null;
+  bounding_box: { x: number; y: number; width: number; height: number } | null;
+  actionable: boolean;
+}
+
+/** ResearchSources 数据（匹配 researchUtils.ts 的 SearchResult） */
+export interface ResearchSourceItem {
+  id: string;
+  sourceType: string;
+  url: string;
+  title: string;
+  snippet: string;
+  credibilityScore: number | null;
+  relevanceScore: number;
+}
+
+/** 研究报告数据（匹配 ReportViewer 的 ResearchReport 类型） */
+export interface ResearchReport {
+  id: string;
+  topic: string;
+  content: string;
+  citations: Citation[];
+  summary: string;
+  createdAt?: string;
+}
+
+/** 右侧面板跨组件共享数据 */
 
 /** 桌面分辨率布局模式 */
 export type DeviceLayout = "mobile" | "tablet" | "desktop";
@@ -25,6 +57,29 @@ interface UIState {
   closeWorkflowEditor: () => void;
   /** 设置布局模式（启动时由 useResponsive hook 自动调用） */
   setDeviceLayout: (layout: DeviceLayout) => void;
+
+  // --- Right Panel (merged from rightPanelStore) ---
+  chartData: ChartData | null;
+  chartRawAnalysis: string;
+  setChartResult: (data: ChartData | null, rawAnalysis: string) => void;
+
+  snapshotElements: SnapshotElement[];
+  snapshotDescription: string;
+  setSnapshotResult: (elements: SnapshotElement[], description: string) => void;
+
+  researchSources: ResearchSourceItem[];
+  setResearchSources: (sources: ResearchSourceItem[]) => void;
+
+  report: ResearchReport | null;
+  setReport: (report: ResearchReport | null) => void;
+
+  // --- Chat Workspace (merged from chatWorkspaceStore) ---
+  selectedArtifactId: string | null;
+  comparedMessageIds: [string, string] | null;
+
+  selectArtifact: (id: string | null) => void;
+  startCompare: (messageIds: [string, string]) => void;
+  clearCompare: () => void;
 }
 
 /** 根据窗口宽度解析布局模式 */
@@ -42,6 +97,29 @@ export const useUIStore = create<UIState>((set, get) => ({
   selectedProviderId: null,
   workflowEditorOpen: false,
   deviceLayout: resolveDeviceLayout(window.innerWidth),
+
+  // --- Right Panel state ---
+chartData: null,
+  chartRawAnalysis: "",
+  setChartResult: (chartData, chartRawAnalysis) => set({ chartData, chartRawAnalysis }),
+
+  snapshotElements: [],
+  snapshotDescription: "",
+  setSnapshotResult: (snapshotElements, snapshotDescription) => set({ snapshotElements, snapshotDescription }),
+
+  researchSources: [],
+  setResearchSources: (researchSources) => set({ researchSources }),
+
+  report: null,
+  setReport: (report) => set({ report }),,
+
+  // --- Chat Workspace state ---
+selectedArtifactId: null,
+  comparedMessageIds: null,
+
+  selectArtifact: (id) => set({ selectedArtifactId: id }),
+  startCompare: (messageIds) => set({ comparedMessageIds: messageIds }),
+  clearCompare: () => set({ comparedMessageIds: null }),
   setActivePage: (page) => set({ activePage: page }),
   enterSettings: () => {
     const current = get().activePage;

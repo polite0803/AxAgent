@@ -87,37 +87,17 @@ pub fn key_prefix(key: &str) -> String {
     format!("{head}…{tail}")
 }
 
-/// SECURITY (H6): HMAC-SHA256(master_key, api_key) 用于服务器端校验。
-/// 与简单 SHA-256 不同：即便数据库泄漏，攻击者也无法用 rainbow table 还原
-/// 高熵随机 key；对于低熵 key（如人类口令前缀），HMAC 增加了 master_key 这一
-/// 必要参数。`master_key` 必须从进程环境提供，不能硬编码。
+/// SECURITY (C10): HMAC-SHA256 使用标准 `hmac` + `sha2` crate，替代自实现。
+/// 标准实现经过广泛审计，无时序攻击风险。
 pub fn hmac_sha256(key: &[u8], msg: &str) -> String {
+    use hmac::{Hmac, Mac};
     use sha2::Sha256;
-    // 简化 HMAC：RFC 2104 标准
-    const BLOCK: usize = 64;
-    let mut k = [0u8; BLOCK];
-    if key.len() > BLOCK {
-        let mut h = Sha256::new();
-        h.update(key);
-        let d = h.finalize();
-        k[..d.len()].copy_from_slice(&d);
-    } else {
-        k[..key.len()].copy_from_slice(key);
-    }
-    let mut o_pad = [0x5c_u8; BLOCK];
-    let mut i_pad = [0x36_u8; BLOCK];
-    for i in 0..BLOCK {
-        o_pad[i] ^= k[i];
-        i_pad[i] ^= k[i];
-    }
-    let mut inner = Sha256::new();
-    inner.update(i_pad);
-    inner.update(msg.as_bytes());
-    let inner_d = inner.finalize();
-    let mut outer = Sha256::new();
-    outer.update(o_pad);
-    outer.update(inner_d);
-    format!("{:x}", outer.finalize())
+
+    let mut mac = <Hmac<Sha256> as Mac>::new_from_slice(key)
+        .expect("HMAC-SHA256 accepts any key length");
+    mac.update(msg.as_bytes());
+    let result = mac.finalize();
+    format!("{:x}", result.into_bytes())
 }
 
 const BACKUP_VERSION_BYTE: u8 = 0x02;
@@ -214,10 +194,18 @@ pub fn decrypt_backup_key(enc_data: &[u8]) -> Result<Vec<u8>> {
 }
 
 /// Legacy decrypt for v1 backups (SHA256 KDF, fixed salt).
-/// ⚠️ 已弃用：v1 使用弱 KDF（无盐 SHA256），将在未来版本中移除。
-/// 请尽快迁移到 v2 格式（Argon2id + 随机盐 + 机器指纹）。
+/// ⚠️ **已弃用**: v1 使用弱 KDF（无盐 SHA256），存在已知安全缺陷：
+///   - 无盐哈希：同一密码总是生成相同密钥，易受彩虹表攻击
+///   - 固定字符串 KDF：密钥空间小，暴力破解成本低
+///   - 无密钥拉伸：单次 SHA256 极快，无法抵抗 GPU 暴力搜索
+/// **迁移计划**: 2026-Q3 移除 v1 支持，启动时自动检测并升级 v1 备份到 v2 (Argon2id)。
+/// 请尽快重新加密为 v2 格式。
 fn decrypt_backup_key_v1(enc_data: &[u8]) -> Result<Vec<u8>> {
-    tracing::warn!("正在使用已弃用的 v1 备份密钥解密（弱 KDF），请尽快重新加密为 v2 格式");
+    tracing::warn!(
+        "SECURITY: 正在使用已弃用的 v1 备份密钥解密（弱 KDF: 无盐 SHA256）。\
+         请尽快通过「重新加密备份」按钮升级到 v2 格式（Argon2id + 随机盐 + 机器指纹）。\
+         v1 格式将在 2026-Q3 移除。"
+    );
     let (nonce_bytes, ciphertext) = enc_data.split_at(NONCE_SIZE);
     let nonce = Nonce::from_slice(nonce_bytes);
 

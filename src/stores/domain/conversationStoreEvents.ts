@@ -8,7 +8,6 @@ import { useConversationStore } from "./conversationStore";
 import { usePreferenceStore } from "./preferenceStore";
 import {
   _isMultiModelActive,
-  _listenerGen,
   _multiModelDoneResolve,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   _multiModelFirstMessageId,
@@ -16,13 +15,14 @@ import {
   _streamBuffer,
   _streamPrefix,
   _streamUiFlushTimer,
-  _unlisten,
   addPendingConversationRefresh,
   appendStreamChunk,
   clearPendingConversationRefresh,
   decrementMultiModelTotalRemaining,
   flushPendingStreamChunk,
+  getListenerGen,
   getStreamingMessageId,
+  getUnlisten,
   incrementListenerGen,
   resetMultiModelState,
   setMultiModelDoneResolve,
@@ -54,8 +54,9 @@ export function createEventMethods(
     startStreamListening: async () => {
       // Increment generation and clean up previous listeners
       const gen = incrementListenerGen();
-      if (_unlisten) {
-        _unlisten();
+      const currentUnlisten = getUnlisten();
+      if (currentUnlisten) {
+        currentUnlisten();
         setUnlisten(null);
       }
 
@@ -563,8 +564,9 @@ export function createEventMethods(
 
     stopStreamListening: () => {
       incrementListenerGen();
-      if (_unlisten) {
-        _unlisten();
+      const currentUnlisten = getUnlisten();
+      if (currentUnlisten) {
+        currentUnlisten();
         setUnlisten(null);
       }
     },

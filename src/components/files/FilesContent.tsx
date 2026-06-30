@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import { useFileStore } from "@/stores";
+import { useKnowledgeStore } from "@/stores";
 import { Alert, App, Button, Input, Popconfirm, Space } from "antd";
 import { Search, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
@@ -30,7 +30,7 @@ export function FilesContent({ activeCategory }: FilesContentProps) {
     clearError,
     revealEntry,
     cleanupMissingEntry,
-  } = useFileStore();
+  } = useKnowledgeStore();
 
   const [selectedRowKeys, setSelectedRowKeys] = useState<string[]>([]);
 

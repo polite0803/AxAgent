@@ -3,16 +3,31 @@
 import i18n from "@/i18n";
 import { invoke, isTauri, logIpcError, type UnlistenFn } from "@/lib/invoke";
 import { useExecutionStore } from "@/stores/feature/executionStore";
-import type { Conversation, Message } from "@/types";
+import type { Citation, CitationStatsData, Conversation, Message } from "@/types";
 import { create } from "zustand";
 
 // ─── Module-level variables (exported for use by conversationStore) ───
+// SECURITY (C12): 使用闭包 + 单例保护避免 StrictMode 双重挂载下的竞争条件。
+// _listenerGen 通过 counter 包装防止重复初始化；_watchdogTimer 通过 getter/setter 保证唯一实例。
 
 /** Tauri event unlisten handle for the current stream listener set */
-export let _unlisten: UnlistenFn | null = null;
+let _unlisten: UnlistenFn | null = null;
 /** Generation counter to prevent stale listeners from processing events
  *  (fixes React StrictMode double-effect causing duplicate stream processing) */
-export let _listenerGen = 0;
+let _listenerGen = 0;
+
+export function getUnlisten(): UnlistenFn | null {
+  return _unlisten;
+}
+export function setUnlisten(ul: UnlistenFn | null) {
+  _unlisten = ul;
+}
+export function getListenerGen(): number {
+  return _listenerGen;
+}
+export function incrementListenerGen(): number {
+  return ++_listenerGen;
+}
 
 // ─── 卡住的流看门狗 ───
 
@@ -23,6 +38,20 @@ const STUCK_STREAM_TIMEOUT_MS = 3 * 60 * 1000; // 3 分钟（比5分钟更敏感
 const WATCHDOG_INTERVAL_MS = 30 * 1000;
 
 let _watchdogTimer: ReturnType<typeof setInterval> | null = null;
+
+function startWatchdog(checkFn: () => void): void {
+  if (_watchdogTimer !== null) return; // 已启动，防止 StrictMode 双重启动
+  _watchdogTimer = setInterval(checkFn, WATCHDOG_INTERVAL_MS);
+}
+function stopWatchdog(): void {
+  if (_watchdogTimer !== null) {
+    clearInterval(_watchdogTimer);
+    _watchdogTimer = null;
+  }
+}
+export function isWatchdogRunning(): boolean {
+  return _watchdogTimer !== null;
+}
 
 // 更新某个会话的最后活跃时间，供 watchdog 判断是否卡住
 export function markStreamActivity(conversationId: string) {
@@ -37,11 +66,9 @@ export function markStreamActivity(conversationId: string) {
 // 启动流看门狗：定期检查 streamingStartTimestamps，
 // 超过 STUCK_STREAM_TIMEOUT_MS 无活跃则视为卡住，自动取消并标记错误。
 export function startStreamWatchdog() {
-  if (_watchdogTimer !== null) {
-    return;
-  }
+  if (isWatchdogRunning()) return;
 
-  _watchdogTimer = setInterval(() => {
+  startWatchdog(() => {
     const state = useStreamStore.getState();
     const now = Date.now();
     const stuckConversationIds: string[] = [];
@@ -74,15 +101,12 @@ export function startStreamWatchdog() {
 
       state.cancelCurrentStream(convId);
     }
-  }, WATCHDOG_INTERVAL_MS);
+  });
 }
 
 // 停止流看门狗（应用退出时调用）
 export function stopStreamWatchdog() {
-  if (_watchdogTimer !== null) {
-    clearInterval(_watchdogTimer);
-    _watchdogTimer = null;
-  }
+  stopWatchdog();
 }
 
 // ─── Stream buffer ───
@@ -834,7 +858,100 @@ export function registerConversationStoreRef(ref: ConversationStoreRef) {
 
 /**
  * Derive legacy fields from activeStreams and return a partial state update.
- * When no conversations are streaming: { streaming: false, streamingMessageId: null, streamingConversationId: null }
+ * When no conversations are streaming: { streaming: false, streamingMessageId: null,
+
+  // --- Citation state ---
+citations: [],
+  selectedCitationId: null,
+
+  setCitations: (citations) => set({ citations }),
+
+  addCitation: (citation) =>
+    set((s) => {
+      const exists = s.citations.some((c) => c.id === citation.id);
+      if (exists) {
+        return {
+          citations: s.citations.map((c) => c.id === citation.id ? citation : c),
+        };
+      }
+      return { citations: [...s.citations, citation] };
+    }),
+
+  removeCitation: (citationId) =>
+    set((s) => ({
+      citations: s.citations.filter((c) => c.id !== citationId),
+      selectedCitationId: s.selectedCitationId === citationId ? null : s.selectedCitationId,
+    })),
+
+  toggleInReport: (citationId) =>
+    set((s) => ({
+      citations: s.citations.map((c) => c.id === citationId ? { ...c, inReport: !c.inReport } : c),
+    })),
+
+  selectCitation: (citationId) => set({ selectedCitationId: citationId }),
+
+  clearCitations: () => set({ citations: [], selectedCitationId: null }),
+
+  getStats: () => {
+    const citations = get().citations;
+    const total = citations.length;
+    const inReport = citations.filter((c) => c.inReport).length;
+    const byType = citations.reduce<Partial<Record<string, number>>>(
+      (acc, c) => {
+        acc[c.sourceType] = (acc[c.sourceType] || 0) + 1;
+        return acc;
+      },
+      {},
+    );
+    const avgCredibility = total > 0
+      ? citations.reduce((sum, c) => sum + c.credibility, 0) / total
+      : 0;
+    return { total, inReport, byType, avgCredibility };
+  },
+
+  // --- Continuation state ---
+continuing: {},
+  continuableMessages: {},
+
+  loadContinuable: async (conversationId: string) => {
+    try {
+      const result = await invoke<
+        Array<{
+          id: string;
+          parentMessageId: string;
+          status: string;
+          contentPreview: string;
+          createdAt: number;
+        }>
+      >("list_continuable_messages", { conversationId });
+      set((s) => ({
+        continuableMessages: {
+          ...s.continuableMessages,
+          [conversationId]: result,
+        },
+      }));
+    } catch (e) {
+      logIpcError("continuationStore: 加载可续写消息失败")(e);
+    }
+  },
+
+  startContinue: async (conversationId, messageId, branch) => {
+    // 临时占位消息（temp- 前缀）不存在于数据库中，无法续写
+    if (messageId.startsWith("temp-")) {
+      return;
+    }
+    set((s) => ({ continuing: { ...s.continuing, [messageId]: true } }));
+
+    try {
+      await invoke("continue_message", { conversationId, messageId, branch });
+      const convStore = useConversationStore.getState();
+      await convStore.regenerateMessage(messageId);
+    } catch (e) {
+      logIpcError("continuationStore: 续写失败")(e);
+    } finally {
+      set((s) => ({ continuing: { ...s.continuing, [messageId]: false } }));
+    }
+  }, streamingConversationId: null }
  * When one is streaming: copies that conversation's values.
  * When multiple are streaming: streamingMessageId is from the FIRST active stream.
  */
@@ -854,6 +971,99 @@ export function deriveLegacyStreamFields(
   return {
     streaming: false,
     streamingMessageId: null,
+
+  // --- Citation state ---
+citations: [],
+  selectedCitationId: null,
+
+  setCitations: (citations) => set({ citations }),
+
+  addCitation: (citation) =>
+    set((s) => {
+      const exists = s.citations.some((c) => c.id === citation.id);
+      if (exists) {
+        return {
+          citations: s.citations.map((c) => c.id === citation.id ? citation : c),
+        };
+      }
+      return { citations: [...s.citations, citation] };
+    }),
+
+  removeCitation: (citationId) =>
+    set((s) => ({
+      citations: s.citations.filter((c) => c.id !== citationId),
+      selectedCitationId: s.selectedCitationId === citationId ? null : s.selectedCitationId,
+    })),
+
+  toggleInReport: (citationId) =>
+    set((s) => ({
+      citations: s.citations.map((c) => c.id === citationId ? { ...c, inReport: !c.inReport } : c),
+    })),
+
+  selectCitation: (citationId) => set({ selectedCitationId: citationId }),
+
+  clearCitations: () => set({ citations: [], selectedCitationId: null }),
+
+  getStats: () => {
+    const citations = get().citations;
+    const total = citations.length;
+    const inReport = citations.filter((c) => c.inReport).length;
+    const byType = citations.reduce<Partial<Record<string, number>>>(
+      (acc, c) => {
+        acc[c.sourceType] = (acc[c.sourceType] || 0) + 1;
+        return acc;
+      },
+      {},
+    );
+    const avgCredibility = total > 0
+      ? citations.reduce((sum, c) => sum + c.credibility, 0) / total
+      : 0;
+    return { total, inReport, byType, avgCredibility };
+  },
+
+  // --- Continuation state ---
+continuing: {},
+  continuableMessages: {},
+
+  loadContinuable: async (conversationId: string) => {
+    try {
+      const result = await invoke<
+        Array<{
+          id: string;
+          parentMessageId: string;
+          status: string;
+          contentPreview: string;
+          createdAt: number;
+        }>
+      >("list_continuable_messages", { conversationId });
+      set((s) => ({
+        continuableMessages: {
+          ...s.continuableMessages,
+          [conversationId]: result,
+        },
+      }));
+    } catch (e) {
+      logIpcError("continuationStore: 加载可续写消息失败")(e);
+    }
+  },
+
+  startContinue: async (conversationId, messageId, branch) => {
+    // 临时占位消息（temp- 前缀）不存在于数据库中，无法续写
+    if (messageId.startsWith("temp-")) {
+      return;
+    }
+    set((s) => ({ continuing: { ...s.continuing, [messageId]: true } }));
+
+    try {
+      await invoke("continue_message", { conversationId, messageId, branch });
+      const convStore = useConversationStore.getState();
+      await convStore.regenerateMessage(messageId);
+    } catch (e) {
+      logIpcError("continuationStore: 续写失败")(e);
+    } finally {
+      set((s) => ({ continuing: { ...s.continuing, [messageId]: false } }));
+    }
+  },
     streamingConversationId: null,
   };
 }
@@ -918,12 +1128,137 @@ interface StreamState {
   stopStreamListening: () => void;
   cancelCurrentStream: (conversationId?: string) => void;
   isConversationStreaming: (conversationId: string) => boolean;
+
+  // --- Citation management (merged from citationStore) ---
+citations: Citation[];
+  selectedCitationId: string | null;
+
+  setCitations: (citations: Citation[]) => void;
+  addCitation: (citation: Citation) => void;
+  removeCitation: (citationId: string) => void;
+  toggleInReport: (citationId: string) => void;
+  selectCitation: (citationId: string | null) => void;
+  clearCitations: () => void;
+  getStats: () => CitationStatsData;
+
+  // --- Continuation (merged from continuationStore) ---
+continuing: Record<string, boolean>;
+  continuableMessages: Record<
+    string,
+    Array<{
+      id: string;
+      parentMessageId: string;
+      status: string;
+      contentPreview: string;
+      createdAt: number;
+    }>
+  >;
+
+  loadContinuable: (conversationId: string) => Promise<void>;
+  startContinue: (
+    conversationId: string,
+    messageId: string,
+    branch: boolean,
+  ) => Promise<void>;
 }
 
 export const useStreamStore = create<StreamState>((set, get) => ({
   activeStreams: {},
   streaming: false,
   streamingMessageId: null,
+
+  // --- Citation state ---
+citations: [],
+  selectedCitationId: null,
+
+  setCitations: (citations) => set({ citations }),
+
+  addCitation: (citation) =>
+    set((s) => {
+      const exists = s.citations.some((c) => c.id === citation.id);
+      if (exists) {
+        return {
+          citations: s.citations.map((c) => c.id === citation.id ? citation : c),
+        };
+      }
+      return { citations: [...s.citations, citation] };
+    }),
+
+  removeCitation: (citationId) =>
+    set((s) => ({
+      citations: s.citations.filter((c) => c.id !== citationId),
+      selectedCitationId: s.selectedCitationId === citationId ? null : s.selectedCitationId,
+    })),
+
+  toggleInReport: (citationId) =>
+    set((s) => ({
+      citations: s.citations.map((c) => c.id === citationId ? { ...c, inReport: !c.inReport } : c),
+    })),
+
+  selectCitation: (citationId) => set({ selectedCitationId: citationId }),
+
+  clearCitations: () => set({ citations: [], selectedCitationId: null }),
+
+  getStats: () => {
+    const citations = get().citations;
+    const total = citations.length;
+    const inReport = citations.filter((c) => c.inReport).length;
+    const byType = citations.reduce<Partial<Record<string, number>>>(
+      (acc, c) => {
+        acc[c.sourceType] = (acc[c.sourceType] || 0) + 1;
+        return acc;
+      },
+      {},
+    );
+    const avgCredibility = total > 0
+      ? citations.reduce((sum, c) => sum + c.credibility, 0) / total
+      : 0;
+    return { total, inReport, byType, avgCredibility };
+  },
+
+  // --- Continuation state ---
+continuing: {},
+  continuableMessages: {},
+
+  loadContinuable: async (conversationId: string) => {
+    try {
+      const result = await invoke<
+        Array<{
+          id: string;
+          parentMessageId: string;
+          status: string;
+          contentPreview: string;
+          createdAt: number;
+        }>
+      >("list_continuable_messages", { conversationId });
+      set((s) => ({
+        continuableMessages: {
+          ...s.continuableMessages,
+          [conversationId]: result,
+        },
+      }));
+    } catch (e) {
+      logIpcError("continuationStore: 加载可续写消息失败")(e);
+    }
+  },
+
+  startContinue: async (conversationId, messageId, branch) => {
+    // 临时占位消息（temp- 前缀）不存在于数据库中，无法续写
+    if (messageId.startsWith("temp-")) {
+      return;
+    }
+    set((s) => ({ continuing: { ...s.continuing, [messageId]: true } }));
+
+    try {
+      await invoke("continue_message", { conversationId, messageId, branch });
+      const convStore = useConversationStore.getState();
+      await convStore.regenerateMessage(messageId);
+    } catch (e) {
+      logIpcError("continuationStore: 续写失败")(e);
+    } finally {
+      set((s) => ({ continuing: { ...s.continuing, [messageId]: false } }));
+    }
+  },
   streamingConversationId: null,
   streamingStartTimestamps: {},
   thinkingActiveMessageIds: new Set<string>(),

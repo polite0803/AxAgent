@@ -120,7 +120,7 @@ fn load_or_create_master_key(key_path: &Path, app_dir: &Path) -> Result<[u8; 32]
 }
 
 /// Securely zero a byte buffer, inhibiting compiler optimization of the clear.
-/// Uses volatile writes to ensure the memory is actually overwritten before drop.
+/// Uses volatile writes + compiler fence to ensure the memory is actually overwritten before drop.
 #[inline(never)]
 fn secure_zero(buf: &mut [u8]) {
     for byte in buf.iter_mut() {
@@ -132,4 +132,6 @@ fn secure_zero(buf: &mut [u8]) {
             std::ptr::write_volatile(byte, 0);
         }
     }
+    // SECURITY (C8): compiler_fence 防止编译器将上述 volatile 写入视为"死存储"而优化掉。
+    std::sync::atomic::compiler_fence(std::sync::atomic::Ordering::SeqCst);
 }

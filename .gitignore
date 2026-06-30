@@ -80,6 +80,9 @@ settings.json
 # Build / debug output
 check_output.txt
 replace_logs.py
+tmp-*.txt
+v15_*.rs
+eslint-out.log
 
 # Documentation (local)
 Docs/

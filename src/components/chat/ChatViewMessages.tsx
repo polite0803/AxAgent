@@ -105,7 +105,7 @@ import {
   useTopicGroupStore,
   useUserProfileStore,
 } from "@/stores";
-import { useContinuationStore } from "@/stores/feature/continuationStore";
+import { useStreamStore } from "@/stores";
 import type { Message } from "@/types";
 
 import { Tooltip } from "@/components/layout/Tooltip";
@@ -372,7 +372,7 @@ function AssistantFooter({
                     label: t("continuation.continueFromHere"),
                     onItemClick: async () => {
                       try {
-                        await useContinuationStore
+                        await useStreamStore
                           .getState()
                           .startContinue(conversationId, msg.id, true);
                       } catch (e) {

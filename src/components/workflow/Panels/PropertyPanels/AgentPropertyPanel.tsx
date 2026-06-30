@@ -4,7 +4,7 @@ import { ExpertSelector } from "@/components/chat/ExpertSelector";
 import { ModelSelect } from "@/components/shared/ModelSelect";
 import { invoke } from "@/lib/invoke";
 import {
-  useAgentProfileStore,
+  useAgentStore,
   useKnowledgeStore,
   useLocalToolStore,
   useProviderStore,
@@ -186,10 +186,10 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({
   };
 
   const getExpert = useExpertStore((s) => s.getRoleById);
-  // useExpertStore 和 useAgentProfileStore 是两个独立数据源，需要合并查找
-  const getProfileById = useAgentProfileStore((s) => s.getProfileById);
-  const agentProfilesLoaded = useAgentProfileStore((s) => s.loaded);
-  const loadAgentProfiles = useAgentProfileStore((s) => s.loadProfiles);
+  // useExpertStore 和 useAgentStore 是两个独立数据源，需要合并查找
+  const getProfileById = useAgentStore((s) => s.getProfileById);
+  const agentProfilesLoaded = useAgentStore((s) => s.loaded);
+  const loadAgentProfiles = useAgentStore((s) => s.loadProfiles);
   const selectedExpert = config.agentProfileId
     ? (getExpert(config.agentProfileId) ?? getProfileById(config.agentProfileId))
     : null;
@@ -368,7 +368,7 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({
         return;
       }
       // 查找是否已有匹配的 profile
-      const existingProfiles = useAgentProfileStore.getState().getAllProfiles();
+      const existingProfiles = useAgentStore.getState().getAllProfiles();
       const matched = existingProfiles.find(
         (p) => p.agentRole === roleId && p.expertId === expertId,
       );
@@ -397,7 +397,7 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({
         recommendedTools: expert.recommendedTools,
         recommendedWorkflows: expert.recommendedWorkflows,
       };
-      const profile = await useAgentProfileStore
+      const profile = await useAgentStore
         .getState()
         .createCustomProfile(input);
       handleConfigChange("agentProfileId", profile.id);

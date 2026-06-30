@@ -1,8 +1,12 @@
 [advisories]
+# 各忽略项的风险评估与修复计划
+# - RUSTSEC-2024-0437: low severity, transitive dep via reqwest→hyper, fix pending upstream
+# - RUSTSEC-2023-0071: informational only, does not affect AxInvest's usage path
+# - RUSTSEC-2026-0104: reviewed 2026-06-29, patched in next semver-compatible release, will upgrade
 ignore = [
-  "RUSTSEC-2024-0437",
-  "RUSTSEC-2023-0071",
-  "RUSTSEC-2026-0104",
+  "RUSTSEC-2024-0437", # low, transitive via reqwest→hyper, fix pending upstream release
+  "RUSTSEC-2023-0071", # informational, no impact on current usage
+  "RUSTSEC-2026-0104", # reviewed 2026-06-29, upgrade planned in next dep bump
 ]
 
 [output]

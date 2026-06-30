@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use async_trait::async_trait;
-use axagent_core::workflow_types::WorkflowNode;
+use axagent_harness::workflow_types::WorkflowNode;
 
 use crate::work_engine::execution_state::ExecutionState;
 use crate::work_engine::node_executor_trait::{NodeError, NodeExecutorTrait, NodeOutput};
@@ -23,14 +23,7 @@ impl Default for SwitchExecutor {
 /// 解析点号分隔路径，从 ExecutionState.variables 提取目标值。
 /// 空路径直接返回 None；segments 中间值非对象也返回 None。
 fn resolve_var_path(path: &str, context: &ExecutionState) -> Option<serde_json::Value> {
-    if path.is_empty() {
-        return None;
-    }
-    let mut current = context.variables.get(path)?.clone();
-    for segment in path.split('.').skip(1) {
-        current = current.get(segment)?.clone();
-    }
-    Some(current)
+    super::resolve_var_path(path, &context.variables)
 }
 
 /// 将 serde_json::Value 转为 Rhai 兼容的字面量表达式。
@@ -111,7 +104,12 @@ impl NodeExecutorTrait for SwitchExecutor {
                         }
                         // 构造 Rhai 脚本：将实际值赋给 _value 变量，执行表达式
                         let script = format!("let _value = {}; {}", rhai_value, expr);
-                        match rhai::Engine::new().eval_expression::<bool>(&script) {
+                        let mut e = rhai::Engine::new();
+                        e.set_max_operations(10_000);
+                        e.set_max_call_levels(8);
+                        e.set_max_string_size(64_000);
+                        e.set_max_array_size(1_000);
+                        match e.eval::<bool>(&script) {
                             Ok(true) => {
                                 found = Some(case.label.clone());
                                 break;

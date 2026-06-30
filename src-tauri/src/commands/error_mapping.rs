@@ -14,7 +14,6 @@
 //! ```
 
 use axagent_core::error::AxAgentError;
-
 use super::error::ErrorResponse;
 use super::error_code;
 

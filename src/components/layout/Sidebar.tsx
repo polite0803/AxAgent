@@ -8,7 +8,7 @@ import { invoke } from "@/lib/invoke";
 import { formatShortcutForDisplay, getShortcutBinding } from "@/lib/shortcuts";
 import type { ShortcutAction } from "@/lib/shortcuts";
 import { resolveIconComponent } from "@/lib/skillIcons";
-import { useHelpStore, useSettingsStore, useSkillExtensionStore, useUIStore, useUserProfileStore } from "@/stores";
+import { useOnboardingStore, useSettingsStore, useSkillExtensionStore, useUIStore, useUserProfileStore } from "@/stores";
 import type { AppSettings, PageKey } from "@/types";
 import { MenuFoldOutlined, MenuUnfoldOutlined } from "@ant-design/icons";
 import { Avatar } from "antd";
@@ -318,7 +318,7 @@ export function Sidebar() {
   const skillNavItems = useSkillExtensionStore((s) => s.navItems);
   const sidebarCollapsed = useUIStore((s) => s.sidebarCollapsed);
   const toggleSidebar = useUIStore((s) => s.toggleSidebar);
-  const toggleHelp = useHelpStore((s) => s.toggle);
+  const toggleHelp = useOnboardingStore((s) => s.toggle);
 
   const sections = useMemo<SidebarSection[]>(() => {
     const pluginItems: NavItem[] = [];

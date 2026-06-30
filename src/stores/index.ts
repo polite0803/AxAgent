@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 export { useArtifactStore } from "./shared/artifactStore";
-export { useChatWorkspaceStore } from "./shared/chatWorkspaceStore";
-export { useRightPanelStore } from "./shared/rightPanelStore";
 export { type TabItem, useTabStore } from "./shared/tabStore";
 export { useUIStore } from "./shared/uiStore";
 
@@ -27,7 +25,6 @@ export { useConversationStore } from "./domain/conversationStore";
 export { useMultiModelStore } from "./domain/multiModelStore";
 export { usePreferenceStore } from "./domain/preferenceStore";
 export { useStreamStore } from "./domain/streamStore";
-export { useAgentProfileStore } from "./feature/agentProfileStore";
 export { setupAgentEventListeners, useAgentStore } from "./feature/agentStore";
 export { useAppConfigStore } from "./feature/appConfigStore";
 export type { FeatureFlags, ModelTier as AppConfigModelTier } from "./feature/appConfigStore";
@@ -36,16 +33,11 @@ export { useBuddyStore } from "./feature/buddyStore";
 export type { BuddyInfo, BuddyMessage, BuddyMood } from "./feature/buddyStore";
 export { useCacheStore } from "./feature/cacheStore";
 export { useCategoryStore } from "./feature/categoryStore";
-export { useCitationStore } from "./feature/citationStore";
-export { useContinuationStore } from "./feature/continuationStore";
 export { setupDreamEventListeners, useDreamStore } from "./feature/dreamStore";
 export { useExecutionStore } from "./feature/executionStore";
 export { useExpertStore } from "./feature/expertStore";
-export { useFileStore } from "./feature/fileStore";
 export { useGatewayLinkStore } from "./feature/gatewayLinkStore";
 export { useGatewayStore } from "./feature/gatewayStore";
-export { useGeneratedToolStore } from "./feature/generatedToolStore";
-export { useHelpStore } from "./feature/helpStore";
 export { useKnowledgeStore } from "./feature/knowledgeStore";
 export { useLocalToolStore } from "./feature/localToolStore";
 export { useMcpStore } from "./feature/mcpStore";

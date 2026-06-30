@@ -4,7 +4,7 @@ import { type NodePositionLike, toRelativePosition } from "@/lib/workflowLayout"
 import { getNodeSize } from "@/lib/workflowLayout";
 import type { ValidateIssue } from "@/lib/workflowLayout";
 import { useWorkflowEditorStore } from "@/stores";
-import { useAgentProfileStore } from "@/stores/feature/agentProfileStore";
+import { useAgentStore } from "@/stores/feature/agentStore";
 import { useExpertStore } from "@/stores/feature/expertStore";
 import { type Edge, type Node } from "@xyflow/react";
 import { useMemo } from "react";
@@ -260,7 +260,7 @@ export function useFlowNodes(params: UseFlowNodesParams) {
                   const profile = useExpertStore
                     .getState()
                     .getRoleById(profileId)
-                    ?? useAgentProfileStore
+                    ?? useAgentStore
                       .getState()
                       .getProfileById(profileId);
                   if (profile) {

@@ -2,7 +2,7 @@
 
 import { invoke } from "@/lib/invoke";
 import { useUIStore } from "@/stores";
-import { useAgentProfileStore } from "@/stores/feature/agentProfileStore";
+import { useAgentStore } from "@/stores/feature/agentStore";
 import type {
   AgentBehaviorMode,
   AgentProfile,
@@ -88,7 +88,7 @@ export function AgentProfileManager() {
     { value: string; label: string }[]
   >([]);
 
-  const store = useAgentProfileStore();
+  const store = useAgentStore();
 
   const loadRoles = async () => {
     try {

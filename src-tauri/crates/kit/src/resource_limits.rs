@@ -17,6 +17,8 @@ pub struct ResourceLimits {
     pub max_processes: u32,
     /// 最大文件写入（字节），默认 100MB
     pub max_file_size_bytes: u64,
+    /// 最大打开文件描述符数，默认 256
+    pub max_open_files: u64,
 }
 
 impl Default for ResourceLimits {
@@ -26,6 +28,7 @@ impl Default for ResourceLimits {
             max_memory_bytes: 512 * 1024 * 1024,
             max_processes: 10,
             max_file_size_bytes: 100 * 1024 * 1024,
+            max_open_files: 256,
         }
     }
 }
@@ -79,6 +82,13 @@ impl ResourceLimits {
             libc::RLIMIT_FSIZE as _,
             self.max_file_size_bytes,
             self.max_file_size_bytes,
+        )?;
+
+        // RLIMIT_NOFILE: 最大打开文件描述符数（防止 fd 耗尽）
+        self.set_rlimit(
+            libc::RLIMIT_NOFILE as _,
+            self.max_open_files,
+            self.max_open_files,
         )?;
 
         Ok(())

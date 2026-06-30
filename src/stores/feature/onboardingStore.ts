@@ -41,6 +41,13 @@ interface OnboardingStore {
   skipTutorial: () => Promise<void>;
   completeTutorial: () => Promise<void>;
   loadFromSettings: () => void;
+
+  // --- Help panel (merged from helpStore) ---
+open: boolean;
+  activeSection: string | null;
+  toggle: () => void;
+  openSection: (section: string) => void;
+  close: () => void;
 }
 
 export const useOnboardingStore = create<OnboardingStore>((set, get) => ({
@@ -53,6 +60,13 @@ export const useOnboardingStore = create<OnboardingStore>((set, get) => ({
   selectedPreset: null,
   tutorialCompleted: false,
   tutorialActive: false,
+
+  // --- Help panel state ---
+open: false,
+  activeSection: null,
+  toggle: () => set((s) => ({ open: !s.open })),
+  openSection: (section) => set({ open: true, activeSection: section }),
+  close: () => set({ open: false, activeSection: null }),
   tutorialStep: 0,
 
   detectOllama: async () => {
@@ -115,14 +129,28 @@ export const useOnboardingStore = create<OnboardingStore>((set, get) => ({
   nextTutorialStep: () => set((s) => ({ tutorialStep: s.tutorialStep + 1 })),
 
   skipTutorial: async () => {
-    set({ tutorialActive: false, tutorialCompleted: true });
+    set({ tutorialActive: false,
+
+  // --- Help panel state ---
+open: false,
+  activeSection: null,
+  toggle: () => set((s) => ({ open: !s.open })),
+  openSection: (section) => set({ open: true, activeSection: section }),
+  close: () => set({ open: false, activeSection: null }),, tutorialCompleted: true });
     await useSettingsStore
       .getState()
       .saveSettings({ onboarding_tutorial_completed: true });
   },
 
   completeTutorial: async () => {
-    set({ tutorialActive: false, tutorialCompleted: true });
+    set({ tutorialActive: false,
+
+  // --- Help panel state ---
+open: false,
+  activeSection: null,
+  toggle: () => set((s) => ({ open: !s.open })),
+  openSection: (section) => set({ open: true, activeSection: section }),
+  close: () => set({ open: false, activeSection: null }),, tutorialCompleted: true });
     await useSettingsStore
       .getState()
       .saveSettings({ onboarding_tutorial_completed: true });

@@ -10,24 +10,21 @@ use axagent_runtime_core::{CronJob, CronJobStatus, TaskConfig, TaskRunResult};
 use serde::{Deserialize, Serialize};
 use tauri::State;
 
-/// SECURITY (M6): 调度任务是一类"持续运行"的操作，必须经过操作者鉴权。
-/// 当前实现下 IPC 调用方来自 Tauri webview，假定 webview 已登录；
-/// 同时设置项 `AXAGENT_REQUIRE_OPERATOR=1` 强制检查 AppState 上是否存在已登录主体。
+/// SECURITY (C5): 调度任务必须经过操作者鉴权。
+/// 不再依赖环境变量门控——始终执行 operator 检查。
+/// active_operator 字段待 AppState 引入后此处改为真实校验。
 fn require_operator(state: &State<'_, AppState>) -> Result<(), String> {
-    let enforced = std::env::var("AXAGENT_REQUIRE_OPERATOR")
-        .map(|v| matches!(v.trim().to_ascii_lowercase().as_str(), "1" | "true" | "yes" | "on"))
-        .unwrap_or(false);
-    if enforced {
-        // AppState 暴露 operator 字段为可选项（通过 trait）；未设置则拒绝。
-        if !state_has_operator(state) {
-            return Err("operator not authenticated".to_string());
-        }
+    if !state_has_operator(state) {
+        return Err("operator not authenticated".to_string());
     }
     Ok(())
 }
 
 fn state_has_operator(_state: &State<'_, AppState>) -> bool {
-    // 简化：始终 true。后续可在 AppState 引入 active_operator 并在这里读取。
+    // TODO(C5): 待 AppState 引入 active_operator: Option<String> 字段后，
+    // 此处改为 state.active_operator.is_some()。
+    // 当前调度任务未实施操作者认证，所有请求均通过。
+    tracing::warn!("SECURITY (C5): operator authentication not yet implemented — all scheduled task requests are permitted");
     true
 }
 

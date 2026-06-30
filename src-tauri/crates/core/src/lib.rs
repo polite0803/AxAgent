@@ -10,9 +10,6 @@ pub use axagent_kit::billing;
 #[cfg(not(target_os = "android"))]
 pub use axagent_kit::browser_automation;
 pub use axagent_kit::command_validator;
-#[cfg(not(target_os = "android"))]
-pub use axagent_kit::computer_control;
-#[cfg(target_os = "android")]
 pub use axagent_kit::computer_control;
 pub use axagent_search::ast_index;
 pub use axagent_storage::cloud_storage;
@@ -26,9 +23,6 @@ pub mod document_parser;
 pub use axagent_entities as entity;
 pub mod error;
 pub mod error_codes;
-#[cfg(not(target_os = "android"))]
-pub use axagent_kit::git_tools;
-#[cfg(target_os = "android")]
 pub use axagent_kit::git_tools;
 pub use axagent_kit::html_cleaner;
 pub use axagent_kit::markdown_parser;
@@ -43,9 +37,6 @@ pub use axagent_mcp::mcp_health;
 pub use axagent_mcp::mcp_oauth;
 pub use axagent_search::file_index;
 pub use axagent_search::hybrid_search;
-#[cfg(not(target_os = "android"))]
-pub use axagent_search::incremental_indexer;
-#[cfg(target_os = "android")]
 pub use axagent_search::incremental_indexer;
 pub use axagent_search::inference;
 pub use axagent_search::model_downloader;
@@ -63,9 +54,6 @@ pub use axagent_kit::resource_limits;
 pub use axagent_kit::sandbox_runner;
 pub use axagent_kit::schema_validator;
 pub use axagent_kit::screen_capture;
-#[cfg(not(target_os = "android"))]
-pub use axagent_kit::screen_vision;
-#[cfg(target_os = "android")]
 pub use axagent_kit::screen_vision;
 pub use axagent_kit::secure_store;
 pub use axagent_kit::service_container;
@@ -74,9 +62,6 @@ pub use axagent_kit::skill_dirs;
 pub use axagent_kit::slash_command;
 pub use axagent_kit::token_budget;
 pub use axagent_kit::token_counter;
-#[cfg(not(target_os = "android"))]
-pub use axagent_kit::ui_automation;
-#[cfg(target_os = "android")]
 pub use axagent_kit::ui_automation;
 pub use axagent_kit::unified_config;
 pub use axagent_kit::utils;
@@ -97,9 +82,6 @@ pub use axagent_storage::storage_paths;
 pub use axagent_storage::sync_conflict;
 pub use axagent_storage::webdav;
 pub mod workflow_types;
-#[cfg(not(target_os = "android"))]
-pub use axagent_kit::workflow_version;
-#[cfg(target_os = "android")]
 pub use axagent_kit::workflow_version;
 pub use axagent_storage::workspace_uri;
 

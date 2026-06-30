@@ -1,8 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { AppHeader } from "@/components/layout/AppHeader";
+import { IpcReconnectBanner } from "@/components/layout/IpcReconnectBanner";
 import { PageErrorBoundary } from "@/components/shared/ErrorBoundary";
 import { SkillPageRenderer } from "@/components/skill/SkillPageRenderer";
+import { useIpcHealth } from "@/hooks/useIpcHealth";
 import { useSkillExtensionStore } from "@/stores";
 import { Button, Result, Spin } from "antd";
 import { lazy, memo, Suspense, useMemo } from "react";
@@ -45,6 +47,22 @@ const LazyWikiEditPage = lazy(() => import("@/pages/WikiEditPage").then((m) => (
 const LazyQuickBarPage = lazy(() => import("@/pages/QuickBarPage").then((m) => ({ default: m.QuickBarPage })));
 const LazyTerminalPage = lazy(() => import("@/pages/TerminalPage").then((m) => ({ default: m.TerminalPage })));
 const LazyFilesPage = lazy(() => import("@/pages/FilesPage").then((m) => ({ default: m.FilesPage })));
+const LazyStockAnalysisPage = lazy(() =>
+  import("@/pages/StockAnalysisPage").then((m) => ({ default: m.StockAnalysisPage }))
+);
+const LazyWatchlistPage = lazy(() => import("@/pages/WatchlistPage").then((m) => ({ default: m.WatchlistPage })));
+const LazyPortfolioPage = lazy(() => import("@/pages/PortfolioPage").then((m) => ({ default: m.PortfolioPage })));
+const LazyScheduledAnalysisPage = lazy(() =>
+  import("@/pages/ScheduledAnalysisPage").then((m) => ({ default: m.ScheduledAnalysisPage }))
+);
+const LazyScreenerPage = lazy(() => import("@/pages/ScreenerPage").then((m) => ({ default: m.ScreenerPage })));
+const LazyTradePage = lazy(() => import("@/pages/TradePage").then((m) => ({ default: m.TradePage })));
+const LazyBacktestPage = lazy(() => import("@/pages/BacktestPage").then((m) => ({ default: m.BacktestPage })));
+const LazyComparePage = lazy(() => import("@/pages/ComparePage").then((m) => ({ default: m.ComparePage })));
+const LazyQuantLabPage = lazy(() => import("@/pages/QuantLabPage").then((m) => ({ default: m.QuantLabPage })));
+const LazyReplayWorkbenchPage = lazy(() =>
+  import("@/pages/ReplayWorkbenchPage").then((m) => ({ default: m.ReplayWorkbenchPage }))
+);
 
 function PageLoader() {
   return (
@@ -57,8 +75,7 @@ function PageLoader() {
   );
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function SafeLazyPage({ Page }: { Page: React.LazyExoticComponent<any> }) {
+function SafeLazyPage({ Page }: { Page: React.LazyExoticComponent<React.ComponentType> }) {
   const { t } = useTranslation();
   return (
     <PageErrorBoundary title={t("error.page")}>
@@ -128,6 +145,7 @@ function NotFoundRoute() {
 }
 
 export const ContentArea = memo(function ContentArea() {
+  const ipcHealthy = useIpcHealth();
   const skillPages = useSkillExtensionStore((s) => s.pages);
 
   const pluginRoutes = useMemo(() => {
@@ -142,6 +160,7 @@ export const ContentArea = memo(function ContentArea() {
 
   return (
     <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
+      <IpcReconnectBanner healthy={ipcHealthy} />
       <AppHeader />
       <div style={{ flex: 1, overflow: "auto", display: "flex", flexDirection: "column", minWidth: 0 }}>
         <Routes>
@@ -202,6 +221,50 @@ export const ContentArea = memo(function ContentArea() {
           <Route
             path="/terminal"
             element={<SafeLazyPage Page={LazyTerminalPage} />}
+          />
+          <Route
+            path="/stock-analysis"
+            element={<SafeLazyPage Page={LazyStockAnalysisPage} />}
+          />
+          <Route
+            path="/stock-analysis/:id"
+            element={<SafeLazyPage Page={LazyStockAnalysisPage} />}
+          />
+          <Route
+            path="/watchlist"
+            element={<SafeLazyPage Page={LazyWatchlistPage} />}
+          />
+          <Route
+            path="/portfolio"
+            element={<SafeLazyPage Page={LazyPortfolioPage} />}
+          />
+          <Route
+            path="/scheduled-analysis"
+            element={<SafeLazyPage Page={LazyScheduledAnalysisPage} />}
+          />
+          <Route
+            path="/screener"
+            element={<SafeLazyPage Page={LazyScreenerPage} />}
+          />
+          <Route
+            path="/trade"
+            element={<SafeLazyPage Page={LazyTradePage} />}
+          />
+          <Route
+            path="/backtest"
+            element={<SafeLazyPage Page={LazyBacktestPage} />}
+          />
+          <Route
+            path="/compare"
+            element={<SafeLazyPage Page={LazyComparePage} />}
+          />
+          <Route
+            path="/replay-workbench"
+            element={<SafeLazyPage Page={LazyReplayWorkbenchPage} />}
+          />
+          <Route
+            path="/quant"
+            element={<SafeLazyPage Page={LazyQuantLabPage} />}
           />
           <Route
             path="/devtools/trace-explorer"

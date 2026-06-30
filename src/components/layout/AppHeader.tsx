@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { Tooltip } from "@/components/layout/Tooltip";
-import { useHelpStore } from "@/stores/feature/helpStore";
+import { ModeSwitch } from "@/components/time-travel/ModeSwitch";
+import { useOnboardingStore } from "@/stores";
 import { theme } from "antd";
 import { ArrowLeft, HelpCircle } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -55,7 +56,7 @@ export function AppHeader() {
   const { token } = theme.useToken();
   const location = useLocation();
   const navigate = useNavigate();
-  const toggleHelp = useHelpStore((s) => s.toggle);
+  const toggleHelp = useOnboardingStore((s) => s.toggle);
 
   const isChatPage = location.pathname === "/" || location.pathname === "";
   const labelKey = resolvePageLabel(location.pathname);
@@ -124,17 +125,20 @@ export function AppHeader() {
         )}
       </div>
 
-      <Tooltip title={t("help.title")}>
-        <button
-          type="button"
-          onClick={toggleHelp}
-          className="titlebar-btn"
-          aria-label={t("help.title")}
-          style={{ color: token.colorTextQuaternary, flexShrink: 0 }}
-        >
-          <HelpCircle size={16} />
-        </button>
-      </Tooltip>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+        <ModeSwitch />
+        <Tooltip title={t("help.title")}>
+          <button
+            type="button"
+            onClick={toggleHelp}
+            className="titlebar-btn"
+            aria-label={t("help.title")}
+            style={{ color: token.colorTextQuaternary, flexShrink: 0 }}
+          >
+            <HelpCircle size={16} />
+          </button>
+        </Tooltip>
+      </div>
     </div>
   );
 }

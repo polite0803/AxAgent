@@ -19,11 +19,16 @@ static SHARED_RHAI_RUNTIME: LazyLock<std::sync::Arc<tokio::runtime::Runtime>> =
 pub type RhaiScriptCache = HashMap<String, Arc<AST>>;
 
 /// 创建编译期用的 Rhai 引擎（不含工具，仅语法检查）
+/// 安全配置：默认沙箱（无文件系统/网络 API）、操作数限制、调用深度限制、
+/// 字符串/数组大小限制，防止 DoS 攻击。
 pub fn create_rhai_engine() -> Engine {
     let mut engine = Engine::new();
     engine.set_max_operations(100_000);
     engine.set_max_call_levels(16);
     engine.set_max_modules(0);
+    // DoS 防护：限制字符串和数组大小
+    engine.set_max_string_size(2_000_000);  // 2MB
+    engine.set_max_array_size(50_000);       // 5 万元素上限
     engine
 }
 

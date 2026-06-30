@@ -438,7 +438,11 @@ impl WorkEngine {
         // 降级：使用旧版编译缓存
         let cache = {
             use rhai::Engine;
-            let engine = Engine::new();
+            let mut engine = Engine::new();
+            engine.set_max_operations(50_000);
+            engine.set_max_call_levels(16);
+            engine.set_max_string_size(1_000_000);
+            engine.set_max_array_size(20_000);
             let mut c = RhaiScriptCache::new();
             for td in tool_defs {
                 if td.code.is_empty() {
@@ -1338,6 +1342,12 @@ impl WorkEngine {
                                         // Inline Rhai execution (no dependency on axagent-tools)
                                         use rhai::{Dynamic, Engine, Scope};
                                         let mut engine = Engine::new();
+                                        // SECURITY (C4): Rhai 沙箱限制
+                                        engine.set_max_operations(100_000);
+                                        engine.set_max_call_levels(24);
+                                        engine.set_max_modules(0);
+                                        engine.set_max_string_size(2_000_000);
+                                        engine.set_max_array_size(50_000);
                                         let _scope = Scope::new();
                                         // Register tool functions
                                         for (name, handler) in &rhai_tools {

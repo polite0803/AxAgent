@@ -5,7 +5,7 @@ import { DropdownMenu } from "@/components/layout/DropdownMenu";
 import { Tooltip } from "@/components/layout/Tooltip";
 import { useResolvedDarkMode } from "@/hooks/useResolvedDarkMode";
 import i18n from "@/i18n";
-import { useConversationStore, useRightPanelStore, useSettingsStore } from "@/stores";
+import { useConversationStore, useUIStore, useSettingsStore } from "@/stores";
 import { useCacheStore } from "@/stores/feature/cacheStore";
 import {
   BarChart3,
@@ -121,14 +121,14 @@ export function RightPanelContainer({
   );
   const isAgent = convMode === "agent";
   const settings = useSettingsStore((s) => s.settings);
-  const panelChartData = useRightPanelStore((s) => s.chartData);
-  const panelChartRawAnalysis = useRightPanelStore((s) => s.chartRawAnalysis);
-  const panelSnapshotElements = useRightPanelStore((s) => s.snapshotElements);
-  const panelSnapshotDescription = useRightPanelStore((s) => s.snapshotDescription);
-  const panelResearchSources = useRightPanelStore((s) => s.researchSources);
-  const panelReport = useRightPanelStore((s) => s.report);
-  const panelSetChartResult = useRightPanelStore((s) => s.setChartResult);
-  const panelSetReport = useRightPanelStore((s) => s.setReport);
+  const panelChartData = useUIStore((s) => s.chartData);
+  const panelChartRawAnalysis = useUIStore((s) => s.chartRawAnalysis);
+  const panelSnapshotElements = useUIStore((s) => s.snapshotElements);
+  const panelSnapshotDescription = useUIStore((s) => s.snapshotDescription);
+  const panelResearchSources = useUIStore((s) => s.researchSources);
+  const panelReport = useUIStore((s) => s.report);
+  const panelSetChartResult = useUIStore((s) => s.setChartResult);
+  const panelSetReport = useUIStore((s) => s.setReport);
   const isDarkMode = useResolvedDarkMode(settings.theme_mode);
 
   const cacheValid = useCacheStore((s) => s.cacheValid);

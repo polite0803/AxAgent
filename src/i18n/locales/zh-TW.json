@@ -5,8 +5,8 @@
     "description": "智能工作助手"
   },
   "artifact": {
-    "copiedToClipboard": "",
-    "copyFailed": ""
+    "copiedToClipboard": "已複製到剪貼簿",
+    "copyFailed": "複製失敗"
   },
   "nav": {
     "chat": "對話",
@@ -15,7 +15,7 @@
     "gateway": "閘道",
     "terminal": "終端",
     "files": "檔案",
-    "workflow": "工作流",
+    "workflow": "工作流程",
     "settings": "設定",
     "skills": "技能",
     "marketplace": "市場",
@@ -23,15 +23,29 @@
     "link": "連接",
     "devTools": "開發工具",
     "wiki": "知識庫",
-    "app": "AxAgent"
+    "app": "AxAgent",
+    "stockAnalysis": "股票分析",
+    "watchlist": "自選",
+    "screener": "選股",
+    "trade": "交易",
+    "backtest": "回測",
+    "compare": "對比",
+    "replayWorkbench": "回放工作台",
+    "recommend": "推薦",
+    "quant": "量化"
   },
   "sidebar": {
     "sectionWork": "工作",
     "sectionTools": "工具",
+    "sectionInvest": "投資",
     "sectionInfrastructure": "基礎設施",
-    "sectionPlugins": "插件",
+    "sectionPlugins": "外掛程式",
     "expand": "展開側邊欄",
-    "collapse": "收起側邊欄"
+    "collapse": "收起側邊欄",
+    "sectionInvestDiscover": "Discover",
+    "sectionInvestMonitor": "Monitor",
+    "sectionInvestExecute": "Execute",
+    "sectionInvestReview": "Review"
   },
   "chat": {
     "newConversation": "新建對話",
@@ -179,7 +193,7 @@
       "disabled": "已停用",
       "count": "{{count}} 個",
       "tokenMax": "Token上限",
-      "messages": "消息",
+      "messages": "訊息",
       "systemPrompt": "系統提示",
       "skills": "技能"
     },
@@ -223,7 +237,7 @@
       "modeAutoDesc": "自動選擇並調用合適的 MCP 工具",
       "modeManual": "手動",
       "modeManualDesc": "由用戶選擇要調用的 MCP 工具",
-      "modeDisabled": "禁用",
+      "modeDisabled": "停用",
       "modeDisabledDesc": "不使用 MCP 工具"
     },
     "contextCleared": "上下文已從此處重置",
@@ -417,21 +431,21 @@
       "agentProfileCustom": "自定義",
       "agentProfileData": "數據",
       "agentProfileDelete": "確定刪除此能力集？",
-      "agentProfileDesc": "描述",
+      "agentProfileDesc": "說明",
       "agentProfileDesign": "設計",
       "agentProfileDevelopment": "開發",
       "agentProfileDevops": "運維",
       "agentProfileDisallowedTools": "禁止工具",
       "agentProfileEdit": "編輯能力集",
       "agentProfileEmpty": "暫無匹配的能力集",
-      "agentProfileGeneral": "通用",
+      "agentProfileGeneral": "一般",
       "agentProfileIcon": "圖標",
       "agentProfileName": "名稱",
       "agentProfileNoDesc": "暫無描述",
       "agentProfilePermission": "權限模式",
       "agentProfileRecommendedTools": "推薦工具",
       "agentProfileRole": "Agent 角色",
-      "agentProfileSearch": "搜索...",
+      "agentProfileSearch": "搜搜尋...",
       "agentProfileSecurity": "安全",
       "agentProfileSystemPrompt": "系統提示詞",
       "agentProfileTags": "搜索標籤",
@@ -452,7 +466,7 @@
       "suggestionHint": "提示",
       "suggestionReason": "使用工作流可以獲得更結構化的多步驟執行",
       "switchToWorkflow": "切換到此工作流",
-      "unnamed": "工作流",
+      "unnamed": "工作流程",
       "viewDetails": "查看步驟詳情",
       "presetsNotImported": "開發場景工作流模板（代碼審查、Bug修復、重構等）需先在專家選擇器中「導入內置專家」後解鎖。",
       "errorDetail": {
@@ -538,14 +552,14 @@
         "ONBOARDING_API_KEY_FAILED": "添加Key失敗",
         "PROVIDER_MODEL_LIST_TIMEOUT": "獲取模型列表超時，請檢查網路連接和API位址",
         "SEARCH_ENDPOINT_NOT_CONFIGURED": "未配置端點",
-        "SEARCH_PROVIDER_NOT_CONFIGURED": "搜索提供商未配置",
+        "SEARCH_PROVIDER_NOT_CONFIGURED": "搜搜尋提供商未配置",
         "BACKUP_FORMAT_UNSUPPORTED": "不支援的備份格式，僅支援sqlite和json格式",
         "STREAM_EMPTY_RESPONSE": "提供商返回空回應",
         "AGENT_STATUS_INITIALIZING": "正在初始化...",
         "AGENT_STATUS_CALLING_MODEL": "正在調用模型...",
         "AGENT_STATUS_STEER_APPLIED": "已套用 {count} 條引導指令",
-        "THINKING_BLOCK_START": "",
-        "THINKING_BLOCK_END": "",
+        "THINKING_BLOCK_START": "開始",
+        "THINKING_BLOCK_END": "結束",
         "TITLE_NO_MESSAGES": "沒有可用於生成標題的消息",
         "SESSION_NO_MESSAGES_TO_COMPRESS": "沒有可壓縮的消息",
         "STEER_INSTRUCTION_TOO_LONG": "指令太長（最大10KB）",
@@ -631,7 +645,7 @@
         "PROVIDER_TEST_FAILED": "測試提供商失敗",
         "PROVIDER_NO_ACTIVE_KEY": "無活躍密鑰",
         "PROVIDER_ADAPTER_NOT_FOUND": "適配器未找到",
-        "SEARCH_PROVIDER_NOT_FOUND": "搜索提供商未找到",
+        "SEARCH_PROVIDER_NOT_FOUND": "搜搜尋提供商未找到",
         "SEARCH_FAILED": "搜索執行失敗",
         "SEARCH_HTTP_ERROR": "搜索HTTP錯誤",
         "BACKUP_CREATE_FAILED": "創建備份失敗",
@@ -703,7 +717,9 @@
       "noSteps": "暫無步驟",
       "chart": {
         "renderError": "圖表渲染錯誤"
-      }
+      },
+      "elapsedHint": "Node runtime, auto-refreshes every 1s",
+      "lastUpdatedHint": "Last workflow status fetch time"
     },
     "modelRoutingConfig": {
       "title": "模型路由配置",
@@ -823,7 +839,7 @@
     "benchmarks": {
       "failed": "失敗",
       "passed": "通過",
-      "refresh": "刷新",
+      "refresh": "重新整理",
       "results": "結果",
       "run": "運行",
       "tasks": "任務",
@@ -871,7 +887,7 @@
         "copyFailed": "複製失敗",
         "joinFailed": "加入失敗",
         "maxParticipants": "最大參與者數",
-        "joinSuccess": "加入成功",
+        "joinSuccess": "載入成功",
         "createFailed": "建立共用失敗",
         "updateFailed": "更新共用失敗"
       },
@@ -904,12 +920,12 @@
     },
     "plugins": {
       "marketplace": {
-        "disable": "禁用",
+        "disable": "停用",
         "enable": "啟用",
         "install": "安裝",
         "installPlaceholder": "安裝: @scope/name 或 Git URL 或本機路徑",
         "loading": "加載中...",
-        "refresh": "刷新",
+        "refresh": "重新整理",
         "title": "插件市場",
         "validateFailed": "驗證失敗: {{error}}",
         "installSuccess": "已安裝 {{id}} v{{version}}",
@@ -918,7 +934,7 @@
         "confirmInstall": "確認安裝",
         "cancel": "取消",
         "version": "版本",
-        "description": "描述",
+        "description": "說明",
         "permissions": "權限",
         "none": "無",
         "mcpServers": "MCP 服務",
@@ -933,7 +949,7 @@
     "vision": {
       "analyzedImage": "已分析圖片",
       "analyzing": "分析中...",
-      "description": "描述",
+      "description": "說明",
       "elements": "元素",
       "extractedText": "提取文本",
       "imageAnalysis": "圖片分析",
@@ -942,7 +958,7 @@
         "actionable": "可操作",
         "analyzing": "分析中...",
         "clickable": "可點擊",
-        "description": "描述",
+        "description": "說明",
         "elementList": "元素列表",
         "elements": "元素",
         "noElements": "未找到元素",
@@ -1028,7 +1044,7 @@
         "retrieves": "檢索",
         "readWrite": "讀寫",
         "calls": "調用",
-        "searches": "搜索",
+        "searches": "搜尋",
         "enables": "啟用"
       },
       "legend": {
@@ -1037,7 +1053,7 @@
         "knowledge": "知識",
         "memory": "記憶",
         "mcp": "MCP",
-        "search": "搜索",
+        "search": "搜尋",
         "skill": "技能"
       },
       "hideType": "點擊隱藏",
@@ -1052,7 +1068,7 @@
       "error": "Wiki 知識庫檢索失敗",
       "resultsCount": "Wiki 檢索到 {{count}} 條結果"
     },
-    "workflowLabel": "工作流",
+    "workflowLabel": "工作流程",
     "generalAssistant": "通用助手",
     "extractMemories": "提取記憶",
     "extractMemoriesTitle": "從對話中提取記憶",
@@ -1134,6 +1150,23 @@
       "ask": "問答",
       "plan": "規劃",
       "title": "切換模式"
+    },
+    "multiModelVote": {
+      "button": "Aggregate Vote",
+      "title": "Multi-Model Decision Vote",
+      "strategy": "Aggregation Strategy",
+      "strategyMajority": "Majority Vote",
+      "strategyWeighted": "Confidence-Weighted",
+      "strategyConsensus": "Unanimous Consensus",
+      "modelCount": "Models Participated",
+      "validCount": "Valid Decisions",
+      "finalAction": "Final Action",
+      "winnerModel": "Winner Model",
+      "avgConfidence": "Avg. Confidence",
+      "voteBreakdown": "Vote Breakdown",
+      "allAgree": "All models agree",
+      "disagreement": "Disagreement detected",
+      "noDecision": "No decision to aggregate"
     }
   },
   "gateway": {
@@ -1575,7 +1608,7 @@
     "frequencyPenaltyTooltip": "對重複 token 施加懲罰，減少重複內容的生成",
     "save": "儲存",
     "cancel": "得消",
-    "reset": "重置",
+    "reset": "重設",
     "resetDefault": "恢復預設",
     "searchProviders": {
       "title": "搜尋供應商",
@@ -1650,7 +1683,7 @@
       "add": "新增知識庫",
       "edit": "編輯知識庫",
       "name": "名稱",
-      "description": "描述",
+      "description": "說明",
       "enabled": "啟用",
       "documents": "文件",
       "addDocument": "新增文件",
@@ -1665,14 +1698,14 @@
       "embeddingModelPlaceholder": "選擇向量模型",
       "documentTypes": "文件檔案",
       "indexStatusLabel": "索引狀態",
-      "indexStatusPending": "待索引",
-      "indexStatusIndexing": "索引中",
-      "indexStatusReady": "已索引",
+      "indexStatusPending": "待搜尋引",
+      "indexStatusIndexing": "搜尋引中",
+      "indexStatusReady": "已搜尋引",
       "indexStatusFailed": "索引失敗",
-      "rebuildIndex": "重建索引",
-      "clearIndex": "清空索引",
+      "rebuildIndex": "重建搜尋引",
+      "clearIndex": "清空搜尋引",
       "clearIndexConfirm": "確定清空所有索引？此操作不可撤銷。",
-      "clearSuccess": "索引已清空",
+      "clearSuccess": "搜尋引已清空",
       "rebuildIndexConfirm": "確定重建索引？將重新生成所有分段的向量嵌入。",
       "rebuildDocConfirm": "確定重建該文件的索引？",
       "rebuildChunkConfirm": "確定重新索引該分段？",
@@ -1689,7 +1722,7 @@
       "score": "相似度",
       "size": "大小",
       "actions": "操作",
-      "rebuildDocIndex": "重建索引",
+      "rebuildDocIndex": "重建搜尋引",
       "knowledgeBaseSettings": "知識庫設定",
       "embeddingDimensions": "嵌入維度",
       "embeddingDimensionsAuto": "自動",
@@ -1795,12 +1828,12 @@
       "vectorReady": "就緒",
       "vectorNotConfigured": "未設定",
       "vectorOps": "向量操作",
-      "rebuildIndex": "重建索引",
+      "rebuildIndex": "重建搜尋引",
       "rebuildIndexConfirm": "確定重建索引？將重新生成所有記錄的向量嵌入。",
       "rebuildItemConfirm": "確定重新索引該記錄？",
-      "clearIndex": "清空索引",
+      "clearIndex": "清空搜尋引",
       "clearIndexConfirm": "確定清空所有索引？此操作不可撤銷。",
-      "clearSuccess": "索引已清空",
+      "clearSuccess": "搜尋引已清空",
       "changeEmbeddingTitle": "更換向量模型",
       "changeEmbeddingWarning": "更換向量模型後，該命名空間下所有記憶條目將自動重新進行向量索引。此操作不可撤銷，是否繼續？",
       "clearIcon": "清除圖示",
@@ -1812,7 +1845,7 @@
       "indexStatusLabel": "索引狀態",
       "namespaceSettings": "命名空間設定",
       "noResults": "無符合結果",
-      "reindexItem": "重新索引",
+      "reindexItem": "重新搜尋引",
       "retrievalThreshold": "檢索閾值",
       "retrievalTopK": "Top-K 結果",
       "search": "搜尋",
@@ -1858,7 +1891,7 @@
       "promote": "提升",
       "provenance": "來源",
       "recency": "時效性",
-      "refreshWorkingMemory": "刷新",
+      "refreshWorkingMemory": "重新整理",
       "relationType": "關係類型",
       "relationships": "關係",
       "relevance": "相關性",
@@ -1903,7 +1936,7 @@
       "fileCount": "個檔案",
       "images": "圖片",
       "files": "檔案",
-      "workflow": "工作流",
+      "workflow": "工作流程",
       "backups": "備份",
       "documentsRoot": "儲存位置",
       "changeDir": "更改目錄",
@@ -1970,9 +2003,9 @@
     "iconGroupModel": "模型",
     "iconGroupProvider": "廠商",
     "indexStatus": {
-      "pending": "待索引",
-      "indexing": "索引中",
-      "indexed": "已索引",
+      "pending": "待搜尋引",
+      "indexing": "搜尋引中",
+      "indexed": "已搜尋引",
       "failed": "索引失敗",
       "notConfigured": "未設定"
     },
@@ -2028,7 +2061,7 @@
       "addTask": "新增任務",
       "editTask": "編輯任務",
       "taskName": "任務名稱",
-      "taskDescription": "描述",
+      "taskDescription": "說明",
       "intervalHours": "間隔（小時）",
       "nextRunAt": "下次執行",
       "lastRunAt": "上次執行",
@@ -2125,13 +2158,13 @@
       "executed": "已執行",
       "quickCreated": "快速創建",
       "unknownTemplateType": "",
-      "refreshed": "已刷新"
+      "refreshed": "已重新"
     },
     "localTools": {
       "title": "本地工具",
       "description": "管理 AxAgent 內置工具的啟用和禁用。禁用的工具不會出現在 Agent 可用工具列表中。",
       "groupFetch": "網頁獲得",
-      "groupSearchFile": "文件搜索",
+      "groupSearchFile": "文件搜搜尋",
       "groupFilesystem": "文件系統",
       "groupSystem": "系統命令",
       "groupSearch": "網頁搜尋",
@@ -2163,15 +2196,15 @@
       "desc": "管理智能體可用的工具",
       "installed": "已安裝",
       "marketplace": "工具市場",
-      "search": "搜索工具...",
+      "search": "搜搜尋工具...",
       "install": "安裝",
       "uninstall": "卸載",
       "enable": "啟用",
-      "disable": "禁用"
+      "disable": "停用"
     },
     "generatedTools": {
       "title": "生成工具",
-      "description": "描述",
+      "description": "說明",
       "toolName": "工具名稱",
       "originalName": "原始名稱",
       "createdAt": "建立時間",
@@ -2269,7 +2302,7 @@
       "importSkill": "匯入"
     },
     "plugins": {
-      "title": "插件"
+      "title": "外掛程式"
     },
     "dashboardPlugins": {
       "title": "儀表盤插件",
@@ -2370,7 +2403,7 @@
       "discordWebhookUrlPlaceholder": "https://discord.com/api/webhooks/...",
       "apiServer": "API 伺服器",
       "enableApiServer": "啟用 REST API 伺服器",
-      "general": "通用",
+      "general": "一般",
       "autoSyncMessages": "自動同步消息",
       "title": "API 網關",
       "desc": "配置 OpenAI 兼容 API 網關",
@@ -2402,7 +2435,7 @@
       "debugMode": "調試模式",
       "debugLevel": "調試級別",
       "resetDefaults": "恢復默認",
-      "addShellCommand": "添加 Shell 命令",
+      "addShellCommand": "新載 Shell 命令",
       "agentConfig": "Agent 配置",
       "capabilitiesLabel": "能力",
       "commandAddedForEvent": "已為 {{event}} 添加命令",
@@ -2410,7 +2443,7 @@
       "confirmRemove": "確認移除?",
       "controlPanel": "Agent 控制面板",
       "controlPanelDesc": "模型選擇、功能開關、Agent 管理與 Hook 配置",
-      "descLabel": "描述",
+      "descLabel": "說明",
       "enabled": "開啟",
       "enterShellCommand": "請輸入 Shell 命令:",
       "eventConfig": "事件配置",
@@ -2433,7 +2466,7 @@
       },
       "fullAccess": "完全訪問",
       "fullAccessWarning": "完全訪問模式下，Agent 可以執行任意系統命令和文件操作，請謹慎使用。",
-      "general": "通用",
+      "general": "一般",
       "hookEventConfig": "Hook 事件配置",
       "hookEvents": {
         "cwdChanged": "目錄切換",
@@ -2496,7 +2529,7 @@
       "permissionControl": "權限控制",
       "permissionMode": "權限模式",
       "readOnly": "只讀",
-      "refresh": "刷新",
+      "refresh": "重新整理",
       "runtimeAgentList": "運行時 Agent 列表",
       "statusCancelled": "已取消",
       "statusCompleted": "已完成",
@@ -2518,13 +2551,13 @@
     "profileDisplayName": "配置顯示名稱",
     "profileManager": "配置管理",
     "profileName": "配置名稱",
-    "profiles": "配置",
+    "profiles": "設定",
     "workflow": {
       "title": "工作流設置",
       "description": "管理工作流模板和編輯器設置",
-      "createdSuccess": "",
-      "deletedSuccess": "",
-      "sampleAdded": "",
+      "createdSuccess": "建立成功",
+      "deletedSuccess": "刪除成功",
+      "sampleAdded": "範例已新增",
       "createNew": "創建新模板",
       "visualEditor": "可視化編輯器",
       "visualEditorDesc": "使用拖拽式 DAG 編輯器創建和編輯工作流",
@@ -2558,7 +2591,8 @@
     "provider": {
       "deepseekBalance": "DeepSeek 餘額",
       "noValidKey": "無可用金鑰"
-    }
+    },
+    "stockAnalysis": "Stock Analysis"
   },
   "backup": {
     "title": "備份中心",
@@ -2571,7 +2605,7 @@
     "running": "進行中",
     "failed": "失敗",
     "errorDetail": "錯誤詳情",
-    "description": "描述",
+    "description": "說明",
     "restoreWarning": "還原備份將覆蓋目前資料，確定繼續？",
     "deleteConfirm": "確定刪除此備份？",
     "noBackups": "暫無備份記錄",
@@ -2664,7 +2698,7 @@
     "open": "開啟",
     "preview": "預覽",
     "refresh": "重新整理",
-    "reset": "重置",
+    "reset": "重設",
     "resetZoom": "重置縮放",
     "selectEmoji": "選擇表情",
     "source": "原始碼",
@@ -2682,7 +2716,7 @@
     "rlEngine": "RL 引擎",
     "success": "成功",
     "quality": "品質",
-    "config": "配置",
+    "config": "設定",
     "gamma": "γ (折扣率)",
     "lambda": "λ (TD)",
     "rewardScale": "獎勵縮放",
@@ -2699,6 +2733,7 @@
     "permissionAcceptEdits": "允許編輯",
     "permissionFullAccess": "完全存得",
     "selectDirectory": "選擇目錄",
+    "unknown": "未知",
     "workingDirectory": "工作目錄",
     "permissionRequired": "需要權限",
     "toolInput": "工具輸入",
@@ -2710,7 +2745,7 @@
     "expired": "已過期（Agent 已斷開）",
     "modeLabel": "模式",
     "openDirectory": "開啟目錄",
-    "description": "描述",
+    "description": "說明",
     "actions": "操作",
     "select": "選擇",
     "copiedToClipboard": "已複製到剪貼板",
@@ -2742,7 +2777,7 @@
     "rating": "評分",
     "comment": "評論",
     "general": "一般",
-    "generalPlaceholder": "通用",
+    "generalPlaceholder": "一般",
     "profile": "設定檔",
     "mode": "模式",
     "style": "樣式",
@@ -2765,10 +2800,16 @@
     "retry": "重試",
     "default": "預設",
     "operationFailed": "操作失敗",
-    "key": "",
-    "value": "",
+    "key": "鍵",
+    "value": "值",
     "hide": "隱藏",
-    "searchPlaceholder": "搜索..."
+    "searchPlaceholder": "搜搜尋...",
+    "exportMarkdown": "Export Markdown",
+    "saveFailed": "Save failed",
+    "saved": "Saved",
+    "unknownError": "Unknown error",
+    "deleted": "已刪除",
+    "required": "必填項"
   },
   "multiAgent": {
     "title": "多智能體狀態",
@@ -2835,8 +2876,8 @@
   },
   "tray": {
     "show": "顯示",
-    "key": "",
-    "value": "",
+    "key": "鍵",
+    "value": "值",
     "hide": "隱藏",
     "quit": "結束"
   },
@@ -2933,7 +2974,7 @@
   "files": {
     "images": "圖片",
     "files": "檔案",
-    "workflow": "工作流",
+    "workflow": "工作流程",
     "backups": "備份",
     "columnName": "檔名",
     "columnSize": "大小",
@@ -3027,7 +3068,7 @@
     "name": "技能名稱",
     "namePlaceholder": "例如 deploy-to-aws",
     "nameRequired": "請輸入技能名稱",
-    "description": "描述",
+    "description": "說明",
     "descriptionPlaceholder": "簡要描述此技能的用途",
     "content": "技能說明（Markdown）",
     "contentPlaceholder": "# 我的技能\n\n## 概述\n描述此技能的功能...\n\n## 步驟\n1. 步驟一\n2. 步驟二\n...",
@@ -3059,9 +3100,10 @@
     "newest": "最新",
     "popular": "熱門",
     "proposals": "提案",
-    "save": "保存",
+    "save": "儲存",
     "sort": "排序",
-    "stats": "統計"
+    "stats": "統計",
+    "atomicSkills": "Atomic Skills"
   },
   "agent": {
     "askUserPlaceholder": "輸入您的回答...",
@@ -3205,7 +3247,7 @@
       "casual": "隨意"
     },
     "documentStyle": "文檔風格",
-    "description": "描述",
+    "description": "說明",
     "codingStyleDesc": "編碼風格",
     "namingConventionDesc": "命名規範",
     "indentationStyleDesc": "縮進風格",
@@ -3231,7 +3273,7 @@
     },
     "applying": "套用...",
     "applyStyle": "套用風格",
-    "reset": "重置",
+    "reset": "重設",
     "original": "原始",
     "styled": "已風格化",
     "stats": "風格統計",
@@ -3280,7 +3322,7 @@
     "showMoreTemplates": "顯示更多模板",
     "sourceStyle": "源風格",
     "targetStyle": "目標風格",
-    "templates": "模板",
+    "templates": "範本",
     "usedCount": "使用 {{count}} 次",
     "variants": "變體",
     "applied": "已應用",
@@ -3303,7 +3345,7 @@
     "inputPlaceholderCommand": "輸入 {{cmdLabel}} 的參數…",
     "selectCommand": "選擇命令...",
     "recent": "最近",
-    "clearRecent": "清空",
+    "clearRecent": "清除",
     "hintTileMode": "按 / 進入命令模式 · 點擊任意卡片快速操作",
     "category": {
       "ai": "AI 對話",
@@ -3327,7 +3369,7 @@
       "wikiDesc": "保存信息到知識庫",
       "memory": "搜索記憶",
       "memoryDesc": "檢索對話記憶",
-      "files": "搜索文件",
+      "files": "搜搜尋文件",
       "filesDesc": "在附件中查找",
       "url": "抓取網頁",
       "urlDesc": "讀取網頁內容",
@@ -3345,7 +3387,7 @@
       "settingsDesc": "打開設置頁面",
       "gateway": "遠程網關",
       "gatewayDesc": "管理遠程連接",
-      "workflow": "工作流"
+      "workflow": "工作流程"
     },
     "result": {
       "noKnowledge": "未找到相關知識。",
@@ -3387,7 +3429,7 @@
         "NODE_NOT_FOUND": "節點未找到"
       }
     },
-    "search": "搜索...",
+    "search": "搜搜尋...",
     "noResults": "無結果"
   },
   "workflow": {
@@ -3545,7 +3587,10 @@
       "axagentFolderHint": "選擇包含 AxAgent 格式 JSON 文件的文件夾，將自動掃描並導入所有工作流模板。",
       "n8nFolderHint": "選擇包含 n8n 格式 JSON 文件的文件夾，將自動轉換並導入所有 n8n 工作流。",
       "importStructuralErrors": "匯入的工作流存在 {{count}} 個結構錯誤：\n{{details}}",
-      "importValidationWarnings": "匯入的工作流存在 {{count}} 個警告：\n{{details}}"
+      "importValidationWarnings": "匯入的工作流存在 {{count}} 個警告：\n{{details}}",
+      "fileTooLarge": "File too large",
+      "invalidJsonFile": "Invalid JSON file",
+      "jsonTooDeep": "JSON nesting too deep"
     },
     "preview": "預覽",
     "publish": "發布",
@@ -3555,8 +3600,8 @@
       "nodesTab": "節點",
       "searchNodes": "搜索節點",
       "legacySuffix": " (舊版)",
-      "templatesTab": "模板",
-      "searchTemplates": "搜索模板",
+      "templatesTab": "範本",
+      "searchTemplates": "搜搜尋模板",
       "layout": "Layout"
     },
     "preset": "預設",
@@ -3598,7 +3643,12 @@
       "diffNodeTypeChanged": "節點類型變更",
       "diffNodeConfigChanged": "節點配置變更",
       "diffEdgeAdded": "新增邊 ({{type}})",
-      "diffEdgeRemoved": "刪除邊 ({{type}})"
+      "diffEdgeRemoved": "刪除邊 ({{type}})",
+      "latest": "Latest",
+      "rollback": "Rollback to This Version",
+      "rollbackConfirm": "Confirm rollback?",
+      "rollbackTo": "Rollback to {{version}}",
+      "rolledBack": "Rolled back"
     },
     "versionHistoryLoadFailed": "版本歷史載入失敗",
     "versionLoaded": "版本已載入",
@@ -3722,9 +3772,9 @@
       "outputVarTool": "工具輸出",
       "atomicSkill": "原子技能",
       "inputMapping": "輸入對應",
-      "addMapping": "添加映射",
+      "addMapping": "新載映射",
       "title": "標題",
-      "description": "描述",
+      "description": "說明",
       "retryStrategy": "重試策略",
       "maxRetries": "最大重試次數",
       "backoffStrategy": "退避策略",
@@ -3745,7 +3795,7 @@
       "anyBranchHint": "任一分支完成即繼續",
       "timeoutSecondsParallel": "超時 (秒)",
       "branches": "分支",
-      "addBranch": "添加分支",
+      "addBranch": "新載分支",
       "branchName": "分支名稱",
       "steps": "步驟",
       "noSteps": "無步驟",
@@ -3831,15 +3881,15 @@
       "defaultCodePythonComment": "# 輸入數據: input.yourVar",
       "codeInputParams": "輸入參數",
       "codeReturnHint": "返回數據將作為節點輸出傳遞",
-      "roleCoordinator": "",
-      "roleBrowser": "",
-      "selectRole": "",
-      "roleTag": "",
-      "bindRole": "",
-      "expertNotFound": "",
-      "profileMatched": "",
-      "profileCreated": "",
-      "profileCreateFailed": "",
+      "roleCoordinator": "協調者",
+      "roleBrowser": "瀏覽器",
+      "selectRole": "選擇角色",
+      "roleTag": "角色: {{role}}",
+      "bindRole": "綁定角色",
+      "expertNotFound": "專家未找到",
+      "profileMatched": "已匹配到既有設定",
+      "profileCreated": "設定已建立",
+      "profileCreateFailed": "設定建立失敗: {{error}}",
       "executionMode": "執行模式",
       "executionReact": "回應式",
       "executionPlan": "計畫式",
@@ -3914,7 +3964,19 @@
       "switchValuePlaceholder": "value",
       "to": "收件者",
       "urlPlaceholder": "https://api.example.com/data",
-      "webhookUrlPlaceholder": "https://hook.example.com/..."
+      "webhookUrlPlaceholder": "https://hook.example.com/...",
+      "inputVariablePlaceholder": "e.g. data.result",
+      "backend": "Storage Backend",
+      "vectorDb": "Vector Database",
+      "fileSystem": "File System",
+      "operation": "Operation",
+      "insert": "Insert",
+      "upsert": "Upsert",
+      "append": "Append",
+      "collection": "Collection/Table",
+      "collectionPlaceholder": "e.g. records",
+      "keyVariable": "Key Variable",
+      "keyVariablePlaceholder": "e.g. record.id"
     },
     "debug": {
       "totalDuration": "總耗時",
@@ -3925,7 +3987,7 @@
       "selectedNodeDetails": "選中節點詳情",
       "noExecutionData": "暫無執行數據，請先運行工作流",
       "variables": "變量",
-      "performance": "性能",
+      "performance": "效能",
       "slowestNode": "最慢節點",
       "fastestNode": "最快節點",
       "title": "除錯面板",
@@ -4001,11 +4063,40 @@
       "hideSpanTree": "隐藏 Span 树",
       "noSpanData": "暂未解析到 Span 数据"
     },
+    "validation": {
+      "validation": {
+        "title": "验证规则",
+        "noRules": "暂无验证规则。点击「添加规则」开始创建。",
+        "addRule": "添加规则",
+        "rule": "规则",
+        "ruleName": "规则名称",
+        "ruleNamePlaceholder": "给自己的规则取个名字",
+        "ruleType": "规则类型",
+        "description": "描述",
+        "descriptionPlaceholder": "这条规则是做什么的",
+        "schema": "JSON Schema",
+        "sourceNode": "源节点",
+        "selectNode": "选择节点",
+        "expectedPath": "期望路径",
+        "expectedPathPlaceholder": "例如 output.status",
+        "assertionOp": "断言操作",
+        "expectedValue": "期望值",
+        "expectedValuePlaceholder": "输入期望值",
+        "metric": "指标",
+        "maxValue": "最大值",
+        "minValue": "最小值",
+        "onFailStrategy": "失败策略",
+        "warn": "仅警告",
+        "block": "阻止执行",
+        "continue": "继续执行",
+        "saved": "验证规则已保存"
+      }
+    },
     "applySemanticCheck": "應用語義檢查",
     "applyUpgrade": "應用升級",
     "category": "分類",
     "decompositionSaved": "分解已保存",
-    "description": "描述",
+    "description": "說明",
     "entryType": "入口類型",
     "existingSkill": "已有技能",
     "generatedSkill": "生成的技能",
@@ -4106,7 +4197,7 @@
     "rightPanel": {
       "addTagsPlaceholder": "添加標籤...",
       "deleteEdge": "刪除連線",
-      "description": "描述",
+      "description": "說明",
       "edgeLabelPlaceholder": "連線標籤...",
       "edgeType": "連線類型",
       "edgeTypeConditionFalse": "條件假",
@@ -4136,13 +4227,13 @@
       "tagAutomation": "自動化",
       "tagChatbot": "聊天機器人",
       "tagDataProcessing": "數據處理",
-      "tagWorkflow": "工作流",
+      "tagWorkflow": "工作流程",
       "tags": "標籤",
       "inputSchema": "輸入 Schema",
       "outputSchema": "輸出 Schema",
       "editSchema": "編輯 JSON Schema (取消保留)",
       "edit": "編輯",
-      "add": "添加",
+      "add": "新增",
       "invalidJson": "JSON 格式無效",
       "unsupportedNodeType": "不支援的節點類型",
       "llmRouting": "LLM 動態路由",
@@ -4208,9 +4299,9 @@
       "roleReviewer": "審查者",
       "roleSynthesizer": "綜合者",
       "roleExecutor": "執行者",
-      "agent": "",
-      "roleCoordinator": "",
-      "roleBrowser": ""
+      "agent": "智能體",
+      "roleCoordinator": "協調者",
+      "roleBrowser": "瀏覽器"
     },
     "conditionNode": {
       "title": "條件判斷",
@@ -4287,7 +4378,12 @@
       "manual": "手動",
       "schedule": "定時",
       "event": "事件",
-      "title": "觸發器"
+      "title": "觸發器",
+      "configure": "Configure Trigger",
+      "configureHint": "Configure trigger conditions and parameters",
+      "statusActive": "Running",
+      "statusDisabled": "Disabled",
+      "statusUnconfigured": "Unconfigured"
     },
     "documentParserNode": {
       "notSet": "未設置",
@@ -4324,7 +4420,7 @@
       "copy": "複製",
       "paste": "粘貼",
       "delete": "刪除",
-      "save": "保存"
+      "save": "儲存"
     },
     "collapseLeftPanel": "折疊左側面板",
     "expandLeftPanel": "展開左側面板",
@@ -4333,7 +4429,12 @@
     "node": {
       "tickMode": "Tick 模式",
       "breakpoint": "斷點",
-      "retryEnabled": "重試已啟用"
+      "retryEnabled": "重試已啟用",
+      "clickToCollapsePorts": "Click to collapse ports",
+      "clickToExpandPorts": "Click to expand ports",
+      "inputs": "Inputs",
+      "outputs": "Outputs",
+      "type": "Type"
     },
     "code": {
       "rhaiDynamicTool": "🦀 Rhai (動態工具)",
@@ -4777,7 +4878,10 @@
     },
     "swarmNode": {
       "agents": "Agents",
-      "rounds": "rounds"
+      "rounds": "rounds",
+      "newAgent": "Agent",
+      "noAgentsHint": "Add Agent nodes inside this container",
+      "addAgent": "Add Agent"
     },
     "groupNode": {
       "untitled": "Group",
@@ -4811,37 +4915,16 @@
     },
     "run": "Run",
     "settings": "Settings",
+    "workflowRef": {
+      "targetWorkflow": "Target Workflow",
+      "contextMode": "Context Mode",
+      "inherit": "Inherit",
+      "isolated": "Isolated"
+    },
+    "durationMinutes": "{{minutes}} min",
+    "durationSeconds": "{{seconds}} sec",
     "aggregatorNode": {
       "inputs": "輸入"
-    },
-    "validation": {
-      "validation": {
-        "title": "验证规则",
-        "noRules": "暂无验证规则。点击「添加规则」开始创建。",
-        "addRule": "添加规则",
-        "rule": "规则",
-        "ruleName": "规则名称",
-        "ruleNamePlaceholder": "给自己的规则取个名字",
-        "ruleType": "规则类型",
-        "description": "描述",
-        "descriptionPlaceholder": "这条规则是做什么的",
-        "schema": "JSON Schema",
-        "sourceNode": "源节点",
-        "selectNode": "选择节点",
-        "expectedPath": "期望路径",
-        "expectedPathPlaceholder": "例如 output.status",
-        "assertionOp": "断言操作",
-        "expectedValue": "期望值",
-        "expectedValuePlaceholder": "输入期望值",
-        "metric": "指标",
-        "maxValue": "最大值",
-        "minValue": "最小值",
-        "onFailStrategy": "失败策略",
-        "warn": "仅警告",
-        "block": "阻止执行",
-        "continue": "继续执行",
-        "saved": "验证规则已保存"
-      }
     }
   },
   "atomicSkill": {
@@ -4849,7 +4932,7 @@
     "entryTypeBuiltin": "內置",
     "entryTypeMcp": "MCP",
     "entryTypeLocal": "本地",
-    "entryTypePlugin": "插件",
+    "entryTypePlugin": "外掛程式",
     "source": "來源",
     "sourceAutoGenerated": "自動生成",
     "sourceAtomic": "原子",
@@ -4955,7 +5038,7 @@
     "fineTune": {
       "datasetName": "資料集名稱",
       "datasetNamePlaceholder": "輸入資料集名稱",
-      "description": "描述",
+      "description": "說明",
       "datasetDescPlaceholder": "輸入資料集描述",
       "addSample": "向資料集新增樣本",
       "input": "輸入",
@@ -4984,7 +5067,7 @@
     "maxDuration": "最大耗時",
     "errorFilter": "錯誤篩選",
     "includeErrors": "是否包含錯誤",
-    "searchTraceId": "搜索 trace ID...",
+    "searchTraceId": "搜搜尋 trace ID...",
     "deleteTrace": "刪除追蹤",
     "spanId": "跨度 ID",
     "name": "名稱",
@@ -5134,7 +5217,7 @@
   "promptTemplates": {
     "title": "提示詞模板",
     "newTemplate": "新建模板",
-    "searchPlaceholder": "搜索模板...",
+    "searchPlaceholder": "搜搜尋模板...",
     "history": "歷史",
     "updated": "模板已更新",
     "created": "模板已創建",
@@ -5226,8 +5309,8 @@
     "submitReview": "提交評價",
     "allReviews": "所有評價",
     "noReviews": "暫無評價",
-    "searchWorkflows": "搜索工作流...",
-    "templates": "模板",
+    "searchWorkflows": "搜搜尋工作流...",
+    "templates": "範本",
     "noTemplates": "暫無模板",
     "featured": "精選",
     "author": "作者",
@@ -5263,7 +5346,7 @@
     "sshConnectPending": "SSH 連接功能開發中",
     "newTerminal": "新建終端",
     "analyzeOutput": "分析輸出",
-    "clear": "清空",
+    "clear": "清除",
     "killProcess": "終止進程",
     "closeSession": "關閉會話"
   },
@@ -5275,12 +5358,12 @@
     "filters": "篩選器",
     "limit": "限制",
     "noResults": "無結果",
-    "placeholder": "搜索...",
-    "recentSearches": "最近搜索",
+    "placeholder": "搜搜尋...",
+    "recentSearches": "最近搜搜尋",
     "saveFilter": "保存篩選器",
     "saveFilterTitle": "保存篩選器",
     "savedFilters": "已保存篩選器",
-    "title": "搜索",
+    "title": "搜尋",
     "useRegex": "使用正則表達式"
   },
   "lang": {
@@ -5317,7 +5400,7 @@
       "more": "更多",
       "noData": "暫無數據",
       "poor": "較差",
-      "refresh": "刷新",
+      "refresh": "重新整理",
       "title": "質量評估"
     },
     "common": {
@@ -5325,7 +5408,7 @@
       "back": "返回",
       "close": "關閉",
       "overview": "概覽",
-      "refresh": "刷新"
+      "refresh": "重新整理"
     },
     "contentPlaceholder": "開始寫作...",
     "emptyNotes": "暫無筆記",
@@ -5363,7 +5446,7 @@
     },
     "ingest": {
       "docx": "Word 文檔",
-      "file": "文件",
+      "file": "檔案",
       "folder": "文件夾",
       "folderPath": "文件夾路徑",
       "folderPathPlaceholder": "輸入文件夾路徑...",
@@ -5400,7 +5483,7 @@
       "issues": "問題",
       "line": "行",
       "loadError": "加載失敗",
-      "message": "消息",
+      "message": "訊息",
       "noIssues": "無問題",
       "noResults": "無結果",
       "note": "筆記",
@@ -5518,7 +5601,7 @@
     "pageNotFound": "頁面未找到",
     "pageType": "頁面類型",
     "qualityScore": "質量分數",
-    "save": "保存",
+    "save": "儲存",
     "saved": "已保存",
     "schema": {
       "create": "創建",
@@ -5526,7 +5609,7 @@
       "createdAt": "創建時間",
       "deleteConfirm": "確定刪除？",
       "deleted": "已刪除",
-      "description": "描述",
+      "description": "說明",
       "descriptionPlaceholder": "輸入描述...",
       "edit": "編輯",
       "noSchemas": "暫無 Schema",
@@ -5557,7 +5640,7 @@
       "processStarted": "處理已開始",
       "processing": "處理中...",
       "queue": "隊列",
-      "refresh": "刷新",
+      "refresh": "重新整理",
       "retryCount": "重試次數",
       "title": "同步",
       "usage": "使用量",
@@ -5654,7 +5737,7 @@
     "nodes": "節點",
     "preview": "預覽",
     "quickCapture": "Quick Capture",
-    "refresh": "刷新",
+    "refresh": "重新整理",
     "startImport": "Start Import",
     "vaultPath": "Vault Path",
     "ingestSource": {
@@ -5666,7 +5749,7 @@
       "type": "類型"
     },
     "wikiForm": {
-      "description": "描述",
+      "description": "說明",
       "name": "名稱",
       "rootPath": "根路徑"
     },
@@ -5693,14 +5776,14 @@
   },
   "proactive": {
     "accept": "接受",
-    "add": "添加",
-    "addReminder": "添加提醒",
+    "add": "新增",
+    "addReminder": "新載提醒",
     "cancel": "取消",
     "complete": "完成",
     "completed": "已完成",
     "contextPrediction": "上下文預測",
     "delete": "刪除",
-    "description": "描述",
+    "description": "說明",
     "descriptionPlaceholder": "輸入描述...",
     "dismiss": "忽略",
     "dismissAll": "全部忽略",
@@ -5768,7 +5851,7 @@
     "contentRequired": "請輸入技能內容",
     "create": "創建",
     "createTitle": "創建新技能",
-    "description": "描述",
+    "description": "說明",
     "descriptionPlaceholder": "輸入描述...",
     "edit": "編輯",
     "editPlaceholder": "編寫完整的技能內容...",
@@ -5801,7 +5884,7 @@
     "deps": {
       "allSatisfied": "所有技能依賴已滿足",
       "title": "依賴檢查",
-      "refresh": "刷新",
+      "refresh": "重新整理",
       "installed": "已安裝",
       "missing": "缺失"
     },
@@ -5822,7 +5905,7 @@
     },
     "marketplace": "技能市場",
     "installed": "已安裝",
-    "search": "搜索技能...",
+    "search": "搜搜尋技能...",
     "install": "安裝",
     "uninstall": "卸載",
     "addFrontend": "Add Frontend",
@@ -5980,7 +6063,7 @@
     },
     "tray": {
       "show": "顯示主窗口",
-      "quit": "退出"
+      "quit": "登出"
     }
   },
   "computerControl": {
@@ -6178,7 +6261,7 @@
     "passwordRequired": "請輸入密碼",
     "webdavPath": "WebDAV 路徑",
     "autoSync": "自動同步",
-    "configure": "配置",
+    "configure": "設定",
     "currentWorkspace": "當前工作區",
     "viewConflicts": "查看衝突 ({{count}})",
     "configSaved": "雲端存儲配置已保存",
@@ -6301,8 +6384,8 @@
       "fileRead": "讀取文件",
       "fileWrite": "寫入文件",
       "fileEdit": "編輯文件",
-      "search": "搜索",
-      "grep": "文本搜索",
+      "search": "搜尋",
+      "grep": "文本搜搜尋",
       "glob": "文件查找",
       "webFetch": "網頁抓取",
       "webSearch": "網絡搜索",
@@ -6329,7 +6412,7 @@
     "field": {
       "type": "類型",
       "name": "名稱",
-      "desc": "描述",
+      "desc": "說明",
       "permissions": "權限",
       "recommendedModel": "推薦模型",
       "systemPrompt": "系統提示"
@@ -6367,12 +6450,12 @@
     "newCustomTitle": "新建自定義專家",
     "editTitle": "編輯專家",
     "unnamed": "未命名專家",
-    "added": "已添加",
+    "added": "已新載",
     "exportExternal": "導出外部專家",
     "importFromFolder": "從文件夾導入專家",
     "exportCustom": "導出自定義專家",
     "name": "名稱",
-    "desc": "描述",
+    "desc": "說明",
     "category": "分類",
     "prompt": "系統提示詞",
     "icon": "圖標",
@@ -6409,7 +6492,7 @@
     "expertLabel": "Expert (領域知識)",
     "none": "無",
     "category": {
-      "general": "通用",
+      "general": "一般",
       "development": "開發",
       "security": "安全",
       "data": "數據",
@@ -6438,7 +6521,7 @@
     "workdirPlaceholder": "請輸入項目工作目錄路徑",
     "createSession": "創建會話",
     "activeSessions": "活躍會話",
-    "refresh": "刷新",
+    "refresh": "重新整理",
     "testFirst": "請先測試連接",
     "noSessions": "暫無活躍會話",
     "confirmClose": "確認關閉此會話?",
@@ -6467,7 +6550,7 @@
       "title": "記憶源"
     },
     "noConfig": "暫無配置信息",
-    "search": "搜索",
+    "search": "搜尋",
     "searchPlaceholder": "搜索數據源...",
     "stats": {
       "documents": "文檔",
@@ -6497,7 +6580,7 @@
     },
     "view": "進入",
     "viewAll": "查看全部",
-    "viewConfig": "配置",
+    "viewConfig": "設定",
     "wiki": {
       "title": "Wiki 源",
       "wikiList": "Wiki 列表"
@@ -6555,7 +6638,7 @@
     "disabled": "已禁用"
   },
   "scheduler": {
-    "refresh": "刷新",
+    "refresh": "重新整理",
     "dailyReport": "日報",
     "backup": "備份",
     "cleanup": "清理",
@@ -6650,7 +6733,7 @@
     "topicPlaceholder": "輸入研究主題，例如：人工智慧的發展歷史和未來趨勢",
     "noSearchResults": "暫無搜索結果",
     "relevance": "相關度",
-    "addToCitation": "添加到引用",
+    "addToCitation": "新載到引用",
     "moreSources": "還有 {{count}} 個來源...",
     "sourceDetail": "來源詳情",
     "sourceTitle": "標題",
@@ -6670,7 +6753,7 @@
     "sourceTypeUnknown": "未知",
     "selectSourceToView": "選擇一個來源查看詳情",
     "phasePlanning": "規劃",
-    "phaseSearching": "搜索",
+    "phaseSearching": "搜尋",
     "phaseExtracting": "提取",
     "phaseAnalyzing": "分析",
     "phaseSynthesizing": "綜合",
@@ -6707,7 +6790,7 @@
     "avgCredibility": "平均可信度:",
     "addToReport": "添加到報告",
     "title": "引用管理 ({count})",
-    "addCitation": "添加引用",
+    "addCitation": "新載引用",
     "empty": "暫無引用，請從搜索結果中添加",
     "inReport": "報告中使用的引用 ({count})",
     "notInReport": "未使用的引用 ({count})",
@@ -6749,7 +6832,7 @@
     "stepPreview": "分解預覽",
     "stepComplete": "完成",
     "colName": "名稱",
-    "colDescription": "描述",
+    "colDescription": "說明",
     "colEntryType": "入口類型",
     "market": "市場",
     "repo": "倉庫",
@@ -6805,14 +6888,15 @@
     "jsonParseError": "JSON 解析失敗: {{error}}"
   },
   "expertCategory": {
-    "general": "通用",
+    "general": "一般",
     "development": "開發",
     "security": "安全",
     "data": "資料",
     "devops": "維運",
     "design": "設計",
     "writing": "寫作",
-    "business": "商業"
+    "business": "商業",
+    "finance": "金融"
   },
   "planStore": {
     "rejectFailed": "拒絕計劃失敗: {{error}}",
@@ -6990,14 +7074,14 @@
     }
   },
   "agentRole": {
-    "coordinator": "",
-    "researcher": "",
-    "planner": "",
-    "developer": "",
-    "reviewer": "",
-    "browser": "",
-    "synthesizer": "",
-    "executor": ""
+    "coordinator": "協調者",
+    "researcher": "研究員",
+    "planner": "規劃者",
+    "developer": "開發者",
+    "reviewer": "審查者",
+    "browser": "瀏覽器",
+    "synthesizer": "綜合者",
+    "executor": "執行者"
   },
   "stream": {
     "timeout": "⚠️ 串流回應超時（5分鐘無更新），已自動中斷"
@@ -7034,8 +7118,8 @@
     "title": "權限審批"
   },
   "gatewayMonitor": {
-    "refresh": "刷新",
-    "clear": "清空",
+    "refresh": "重新整理",
+    "clear": "清除",
     "totalRequests": "總請求",
     "totalTokens": "總 Token",
     "activeConnections": "活躍連接",
@@ -7208,7 +7292,7 @@
   "datasetManager": {
     "title": "微調數據集管理器",
     "name": "名稱",
-    "description": "描述",
+    "description": "說明",
     "samples": "樣本數",
     "created": "創建時間",
     "action": "操作",
@@ -7216,9 +7300,9 @@
     "yes": "是",
     "no": "No",
     "cancel": "取消",
-    "createdSuccess": "",
-    "deletedSuccess": "",
-    "sampleAdded": "",
+    "createdSuccess": "資料集建立成功",
+    "deletedSuccess": "資料集已刪除",
+    "sampleAdded": "樣本新增成功",
     "createNew": "創建新數據集"
   },
   "loraConfig": {
@@ -7230,7 +7314,7 @@
     "learningRate": "學習率",
     "batchSize": "批次大小",
     "epochs": "輪次",
-    "reset": "重置"
+    "reset": "重設"
   },
   "trainingJob": {
     "title": "訓練任務",
@@ -7260,7 +7344,7 @@
     "success": "成功",
     "failed": "失敗",
     "schedule": "排程",
-    "scheduleDescription": "描述",
+    "scheduleDescription": "說明",
     "platform": "平臺",
     "time": "時間",
     "loading": "正在載入定時任務結果…",
@@ -7355,7 +7439,50 @@
     "errorRecoveryScore": "錯誤恢復",
     "goalCompletionScore": "目標完成度",
     "reflectError": "反思失敗",
-    "retry": "重試"
+    "retry": "重試",
+    "autoTrigger": "Auto-Triggered",
+    "delete": {
+      "confirm": "Delete this insight?",
+      "failed": "Failed to delete insight",
+      "success": "Insight deleted"
+    },
+    "deleteInsight": "Delete Insight",
+    "feedback": {
+      "failed": "Feedback submission failed",
+      "notFound": "Insight not found",
+      "thanksNotUseful": "Thanks! Marked as not useful",
+      "thanksUseful": "Thanks! Marked as useful"
+    },
+    "notUseful": "Not Useful",
+    "settings": {
+      "cancel": "Cancel",
+      "core": "Core Settings",
+      "decayDays": "Decay Days",
+      "maxHistory": "Max History",
+      "maxInsights": "Max Insights",
+      "qualityThreshold": "Quality Threshold",
+      "reset": "Reset",
+      "save": "Save",
+      "saved": "Settings saved",
+      "title": "Reflection Settings",
+      "decayDaysHint": "Insights automatically decay in weight after N days",
+      "enabled": "Enable Auto-Reflection",
+      "enabledHint": "Auto-trigger reflection after task execution",
+      "errorSection": "Error Analysis",
+      "insightSection": "Insight Settings",
+      "maxHistoryHint": "Keep the most recent N reflection history entries",
+      "maxInsightsHint": "Keep at most N insight records",
+      "qualitySection": "Quality Threshold",
+      "qualityThresholdHint": "Insights below this threshold will be filtered out",
+      "saveFailed": "Save failed",
+      "storageSection": "Storage Settings",
+      "storeInsights": "Persist Insights",
+      "storeInsightsHint": "Insights will be saved locally and available across sessions",
+      "subtitle": "Configure auto-reflection and insight management",
+      "useErrorClassifier": "Enable Error Classifier",
+      "useErrorClassifierHint": "Auto-classify error patterns for analysis"
+    },
+    "useful": "Useful"
   },
   "subAgentCard": {
     "viewConversation": "查看子會話",
@@ -7443,7 +7570,9 @@
     "steerInput": "引導",
     "showExtras": "更多面板",
     "hideExtras": "收起",
-    "close": "關閉"
+    "close": "關閉",
+    "collapse": "Collapse Panel",
+    "expand": "Expand Panel"
   },
   "knowledgeSettings": {
     "title": "知識庫"
@@ -7523,5 +7652,382 @@
     "recordAudio": "錄製音訊",
     "takePhoto": "拍照",
     "uploadFile": "上傳檔案"
+  },
+  "trade": {
+    "title": "交易日志",
+    "disabledHint": "开启后可手动记录买卖交易，自动跟踪持仓成本与盈亏",
+    "stockCode": "代码",
+    "stockName": "名称",
+    "buy": "买",
+    "sell": "卖",
+    "price": "价格",
+    "quantity": "数量",
+    "cost": "成本",
+    "shares": "持仓",
+    "pnl": "盈亏",
+    "recorded": "已记录",
+    "fillRequired": "请填写必要信息",
+    "toggleFailed": "切换失败",
+    "limitsBlocked": "Position limits blocked this order",
+    "agentRole.coordinator": "协调者",
+    "agentRole.researcher": "研究员",
+    "agentRole.planner": "规划者",
+    "agentRole.developer": "开发者",
+    "agentRole.reviewer": "审查者",
+    "agentRole.browser": "浏览器",
+    "agentRole.synthesizer": "综合者",
+    "agentRole.executor": "执行者",
+    "placeholder": "執行與回放交易",
+    "agentRole": {
+      "browser": "Browser",
+      "coordinator": "Coordinator",
+      "developer": "Developer",
+      "executor": "Executor",
+      "planner": "Planner",
+      "researcher": "Researcher",
+      "reviewer": "Reviewer",
+      "synthesizer": "Synthesizer"
+    }
+  },
+  "watchlist": {
+    "title": "自選股",
+    "placeholder": "管理你的自選股和價格提醒"
+  },
+  "screener": {
+    "title": "選股中心",
+    "placeholder": "依條件篩選股票",
+    "tab": {
+      "smartReco": "智能薦股",
+      "myFilter": "我的篩選",
+      "serenity": "Bottleneck Hunt"
+    }
+  },
+  "backtest": {
+    "title": "回測驗證",
+    "placeholder": "用歷史資料驗證策略"
+  },
+  "compare": {
+    "title": "對標研究",
+    "placeholder": "對比同業公司"
+  },
+  "dualView": {
+    "notRegistered": "未註冊的 dual view: {{id}}",
+    "expand": "展開為「{{title}}」",
+    "expandToPanel": "展開為面板",
+    "collapse": "折疊",
+    "collapseToBubble": "折疊為氣泡",
+    "decision": {
+      "llmUnavailableHint": "LLM 分析暫時不可用，請檢查模型配置或網絡連接",
+      "title": "決策雙視角對比",
+      "field": "決策維度",
+      "formula": "公式視角",
+      "llm": "LLM 視角",
+      "action": "操作建議",
+      "positionPct": "倉位佔比",
+      "confidence": "置信度",
+      "reasoning": "推理過程",
+      "formulaReasoningOmitted": "公式決策無推理過程",
+      "formulaBadge": "公式",
+      "llmBadge": "LLM",
+      "llmUnavailable": "LLM 視角暫不可用",
+      "reviewRecommended": "建議人工覆核",
+      "highAgreementHint": "雙視角高度一致",
+      "midAgreementHint": "雙視角部分一致",
+      "lowAgreementHint": "雙視角存在分歧",
+      "llmMissingHint": "一致性評分 {{score}}/100"
+    }
+  },
+  "timeTravel": {
+    "modeSwitch": {
+      "live": "即時",
+      "replay": "回放 {{date}}",
+      "sweep": "批次回測",
+      "tooltipLive": "點擊進入回放模式（按過去某日分析）",
+      "tooltipReplay": "點擊切回即時模式",
+      "confirmTitle": "確認切回即時模式？",
+      "confirmBody": "即時模式使用最新行情，此前得出的結論可能已被新資訊推翻。回放模式把世界封在選定的過去某日，可避免前視偏差。",
+      "confirmOk": "切到即時",
+      "confirmCancel": "保持在回放",
+      "currentlyInReplay": "當前正以 {{date}} 為錨點回放。",
+      "enteredReplay": "已進入回放模式：{{date}}",
+      "switchedToLive": "已切到即時模式"
+    },
+    "datePicker": {
+      "hint": "請選擇過去的交易日。今天及未來日期被禁用（封閉世界假設）。",
+      "placeholder": "選擇截止日期",
+      "ok": "進入回放",
+      "cancel": "取消"
+    },
+    "pageAnchor": {
+      "live": "即時",
+      "replay": "回放",
+      "untilDate": "截至 {{date}}"
+    },
+    "replayBadge": {
+      "label": "回放 · {{date}}",
+      "tooltip": "此視圖中的所有資料、提示詞與結論都以 {{date}} 為錨點。不可用於實盤交易。",
+      "replay": "Replay {{date}}",
+      "sweep": "Batch Scan"
+    },
+    "replayWatermark": {
+      "label": "截至 {{date}}"
+    },
+    "tour": {
+      "title": "時間旅行模式已上線",
+      "body": "把分析和薦股都錨定到過去的某一日，可以安全地回測策略、避免前視偏差。系統會拒絕未來日期，違反時間約束的輸出會在時間線上高亮。",
+      "gotIt": "知道了",
+      "stepAnchor": "隨時點擊「即時」膠囊進入回放模式。"
+    },
+    "violations": {
+      "chip": "⚠ {{n}} 處違規",
+      "chip_plural": "⚠ {{n}} 處違規",
+      "chipAria": "本節點有 {{n}} 處未來日期引用違規",
+      "tooltip": "本節點輸出提及了 as-of 錨點之後的日期。結論應視為不可信。",
+      "markClass": "ax-violation-mark"
+    },
+    "recommendationBanner": "回放模式：薦股基於截至 {{date}} 的資料，今日及之後的行情不參與排序。",
+    "backtestHint": "回放模式：以下統計僅彙總 as-of 錨點 = {{date}} 的歷史回放。",
+    "degradedStyles": {
+      "title": "as-of 截斷導致的資料降級",
+      "description": "以下資料風格因 as-of 截止日 {{date}} 截斷了所需的全部歷史,在回放模式下以低可信度輸出。",
+      "reason": "原因: {{reason}}",
+      "hint": "降級不等於錯誤,只是資訊量變少,請低於非降級風格的可信度處理。",
+      "vendor": "資料源: {{name}}"
+    },
+    "degradedMarker": {
+      "label": "已降級 · 部分資料無歷史",
+      "labelWithCount": "已降級 · {{n}} 項",
+      "tooltip": "回放模式下資金流向/融資融券/北向持倉等資料無歷史語意,已被跳過。詳見推薦面板的降級提示。"
+    }
+  },
+  "replayWorkbench": {
+    "title": "回放工作台",
+    "description": "把所有資料錨定到過去的某一天。系統會拒絕未來日期。可安全回測策略，避免前視偏差。",
+    "step1": {
+      "title": "選擇截止日期",
+      "currentlyPicked": "當前正以 {{date}} 為錨點回放",
+      "reselect": "重選"
+    },
+    "step2": {
+      "title": "執行回放感知分析",
+      "description": "下方所有操作都會把 as_of_date = {{date}} 注入後端，把世界封閉在該日。",
+      "analyze": "分析單股",
+      "backtest": "查看回測統計",
+      "watchlist": "查看自選股"
+    },
+    "sweep": {
+      "title": "回放矩陣",
+      "intro": "批次跑「股票 × as-of 截止日」回測矩陣。強制重選日期範圍（不沿用全域 TimeAnchor）。",
+      "codesLabel": "股票代碼（每行一個或逗號分隔）",
+      "codesPlaceholder": "600519\n000001\n000333",
+      "dateRangeLabel": "As-of 截止日範圍（僅工作日）",
+      "holdingDaysLabel": "持有天數",
+      "actionLabel": "假設決策",
+      "confidenceLabel": "決策信心 (0–1)",
+      "runBtn": "開始 Sweep",
+      "running": "正在跑 sweep {{done}} / {{total}} …",
+      "summary": "Sweep 完成: 共 {{total}},有效 {{valid}}, 失敗 {{invalid}}。",
+      "violationNotice": "已記錄 {{count}} 處 as-of 違規 — 詳見 Invalid 折疊面板。",
+      "invalidTitle": "失敗樣本",
+      "noInvalid": "無失敗樣本。",
+      "exportCsv": "匯出 CSV",
+      "exportJson": "匯出 JSON"
+    },
+    "notice": "此工作台中的所有資料、提示詞與結論都以選定日期為錨點。切回 Live 模式需要顯式確認。",
+    "exitHint": "你仍在回放模式。在別處發起的任何新分析都會帶 as-of 錨點。",
+    "exitBtn": "切回 Live"
+  },
+  "serenityPanel": {
+    "desc": "Serenity 瓶頸分析法：從市場數據中發現產業鏈瓶頸環節，自動篩選潛在標的",
+    "run": "運行 Serenity 篩選",
+    "running": "篩選中...",
+    "stage_loading": "載入工作流範本...",
+    "stage_scanning": "階段 0/4: 掃描市場趨勢",
+    "stage_decomposing": "階段 1/4: 拆解產業鏈",
+    "stage_identifying": "階段 2/4: 鑑定瓶頸環節",
+    "stage_mapping": "階段 3/4: 映射候選公司",
+    "stage_saving": "階段 4/4: 儲存結果",
+    "stage_done": "篩選完成",
+    "stage_error": "篩選失敗",
+    "analyzing": "正在分析產業鏈數據，LLM 推理需要 1-3 分鐘...",
+    "trendTitle": "發現的產業趨勢",
+    "bottleneckLink": "瓶頸環節: ",
+    "candidateTitle": "候選標的",
+    "directBenefit": "直接受益",
+    "indirectBenefit": "間接受益",
+    "themeRelated": "主題相關",
+    "bottleneckProduct": "瓶頸產品: ",
+    "riskPrefix": "風險: ",
+    "confidencePrefix": "置信度 ",
+    "scoreSuffix": "分",
+    "emptyHint": "點擊上方按鈕運行 Serenity 瓶頸篩選",
+    "noCandidateTitle": "本次未產出候選標的",
+    "errorUnknown": "未知錯誤",
+    "callFailed": "呼叫失敗",
+    "stepLogTitle": "Execution Log",
+    "nodeTitles": {
+      "trigger": "啟動篩選",
+      "t-industry-rank": "行業排名",
+      "t-cls-flash": "即時快訊",
+      "t-northbound": "北向資金",
+      "t-baseline-semi": "半導體基線",
+      "t-baseline-battery": "電池基線",
+      "t-baseline-chem": "化工基線",
+      "t-baseline-med": "醫藥基線",
+      "t-baseline-aero": "軍工基線",
+      "t-baseline-consumer-elec": "消費電子基線",
+      "t-baseline-auto": "汽車基線",
+      "a-trend-scanner": "產業趨勢掃描",
+      "a-chain-trend1": "產業鏈拆解 #1",
+      "a-chain-trend2": "產業鏈拆解 #2",
+      "a-chain-trend3": "產業鏈拆解 #3",
+      "a-chain-trend4": "產業鏈拆解 #4",
+      "a-chain-trend5": "產業鏈拆解 #5",
+      "a-chokepoint-trend1": "瓶頸鑑定 #1",
+      "a-chokepoint-trend2": "瓶頸鑑定 #2",
+      "a-chokepoint-trend3": "瓶頸鑑定 #3",
+      "a-chokepoint-trend4": "瓶頸鑑定 #4",
+      "a-chokepoint-trend5": "瓶頸鑑定 #5",
+      "a-candidate-mapper": "候選公司篩選",
+      "c-bottleneck-trend1": "瓶頸指標計算 #1",
+      "c-bottleneck-trend2": "瓶頸指標計算 #2",
+      "c-bottleneck-trend3": "瓶頸指標計算 #3",
+      "c-bottleneck-trend4": "瓶頸指標計算 #4",
+      "c-bottleneck-trend5": "瓶頸指標計算 #5"
+    },
+    "catalystEarnings": "Earnings",
+    "catalystProdRamp": "Ramp Up",
+    "catalystPolicy": "Policy",
+    "catalystSupplyShock": "Supply Shock",
+    "catalystCapacityRelease": "Capacity Release",
+    "catalystContractAward": "Contract",
+    "timeframeShort": "1-3M",
+    "timeframeMid": "3-6M",
+    "timeframeLong": "6M+",
+    "exitNow": "Now",
+    "exitCaution": "Caution",
+    "exitWatch": "Watch",
+    "exitNone": "None",
+    "catalystLabelPrefix": "Catalyst: ",
+    "exitLabelPrefix": "Exit: ",
+    "attentionLabelPrefix": "Attention: ",
+    "heatLabelPrefix": "Heat: ",
+    "feedbackTitle": "Feedback ({{count}} candidates)",
+    "feedbackWinRate": "Win Rate",
+    "feedbackAvgReturn": "Avg Return",
+    "feedbackProfitable": "Profitable/Total",
+    "feedbackButton": "History Feedback",
+    "refreshExitButton": "Refresh Exit Signals",
+    "feedbackCatalyst": "Catalyst {{verified}}/{{total}}",
+    "serenityHistory": {
+      "viewHistory": "查看瓶頸掘金歷史",
+      "title": "瓶頸掘金歷史",
+      "generatedAt": "推薦時間",
+      "candidateCount": "候選數",
+      "batchDelete": "批量刪除 ({{count}})",
+      "deleteConfirm": "確定刪除選中的 {{count}} 條瓶頸掘金記錄？",
+      "deleteSuccess": "已刪除 {{count}} 條瓶頸掘金記錄",
+      "selectedCount": "已選 {{count}} 項",
+      "exitSelect": "退出多選",
+      "empty": "暫無瓶頸掘金歷史"
+    }
+  },
+  "quant": {
+    "backtest": {
+      "code": "Stock Code",
+      "codePlaceholder": "Enter stock code (e.g., 600519)",
+      "endDate": "End Date",
+      "errorRunning": "Backtest execution error",
+      "initialCash": "Initial Capital",
+      "noResult": "No backtest results",
+      "overfitWarning": "Overfitting Warning",
+      "result": "Backtest Result",
+      "run": "Run Backtest",
+      "running": "Backtesting...",
+      "selectStrategy": "Select Strategy",
+      "stabilityScore": "Stability Score",
+      "startDate": "Start Date",
+      "title": "Strategy Backtest",
+      "walkForward": "Walk-Forward",
+      "walkForwardForceOff": "Disable Walk-Forward",
+      "walkForwardTitle": "Walk-Forward Backtest"
+    },
+    "common": {
+      "empty": "No data"
+    },
+    "compare": {
+      "compare": "Start Compare",
+      "comparing": "Comparing...",
+      "selectRuns": "Select backtest runs",
+      "title": "Strategy Comparison"
+    },
+    "metrics": {
+      "annualizedReturn": "Annualized Return",
+      "bestBy": "Best Parameters",
+      "maxDrawdownPct": "Max Drawdown",
+      "sharpe": "Sharpe Ratio",
+      "totalReturn": "Total Return",
+      "totalTrades": "Total Trades",
+      "winRate": "Win Rate"
+    },
+    "rhai": {
+      "compileError": "Compile Error",
+      "hint": "Write trading strategy logic in Rhai language",
+      "name": "Script Name",
+      "save": "Save",
+      "saved": "Saved",
+      "source": "Source Code",
+      "title": "Rhai Script Editor",
+      "version": "Version"
+    },
+    "strategy": {
+      "builtin": "Built-in Strategy",
+      "description": "Strategy Description",
+      "lastUpdated": "Last Updated",
+      "name": "Strategy Name",
+      "params": "Strategy Parameters",
+      "rhai": "Rhai Script Strategy",
+      "type": "Strategy Type",
+      "version": "Version"
+    },
+    "subtitle": "Strategy Backtest · Parameter Optimization · Signal Evaluation",
+    "tabs": {
+      "backtest": "Backtest",
+      "compare": "Compare",
+      "rhai": "Rhai Script",
+      "strategies": "Strategies"
+    },
+    "title": "Quant Lab",
+    "trades": {
+      "amount": "Amount",
+      "code": "Code",
+      "empty": "No trade records",
+      "fee": "Fee",
+      "filterAll": "All",
+      "flat": "Close",
+      "flatCount": "Closed Trades",
+      "long": "Long",
+      "longCount": "Long Trades",
+      "price": "Price",
+      "quantity": "Qty",
+      "realizedPnl": "Realized P&L",
+      "reason": "Reason",
+      "searchPlaceholder": "Search trade records",
+      "short": "Short",
+      "shortCount": "Short Trades",
+      "side": "Side",
+      "time": "Time",
+      "totalAmount": "Total Amount",
+      "totalCount": "Total Trades",
+      "totalFee": "Total Fee",
+      "totalPnl": "Total P&L",
+      "totalRows": "{{count}} records"
+    }
+  },
+  "ipc": {
+    "disconnected": "Backend connection lost",
+    "disconnectedHint": "The app was idle in the background. The IPC channel may have been disconnected.",
+    "reconnecting": "Reconnecting…",
+    "retry": "Retry"
   }
 }

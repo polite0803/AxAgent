@@ -10,5 +10,6 @@ argon2 = "0.5"
 axagent-harness = { path = "../harness" }
 base64 = "0.22"
 hex = "0.4"
+hmac = "0.12"
 sha2 = "0.10"
 tracing = { workspace = true }

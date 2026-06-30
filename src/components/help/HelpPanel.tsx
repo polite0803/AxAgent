@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 // 全局帮助面板 — ? 快捷键打开，右侧 Drawer
-import { useHelpStore } from "@/stores/feature/helpStore";
+import { useOnboardingStore } from "@/stores";
 import { Bot, Globe, Keyboard, MessageSquare, Puzzle, Search, Workflow, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -24,10 +24,10 @@ export function HelpPanel() {
   const { t } = useTranslation();
   const [search, setSearch] = useState("");
   const [activeLocal, setActiveLocal] = useState<string | null>(null);
-  const open = useHelpStore((s) => s.open);
-  const toggleHelp = useHelpStore((s) => s.toggle);
-  const closeHelp = useHelpStore((s) => s.close);
-  const helpActiveSection = useHelpStore((s) => s.activeSection);
+  const open = useOnboardingStore((s) => s.open);
+  const toggleHelp = useOnboardingStore((s) => s.toggle);
+  const closeHelp = useOnboardingStore((s) => s.close);
+  const helpActiveSection = useOnboardingStore((s) => s.activeSection);
 
   // 外部打开指定 section 时自动展开
   useEffect(() => {

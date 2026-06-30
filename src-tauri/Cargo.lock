@@ -914,6 +914,7 @@ dependencies = [
  "axagent-harness",
  "base64 0.22.1",
  "hex",
+ "hmac 0.12.1",
  "sha2 0.10.9",
  "tracing",
 ]

@@ -16,6 +16,7 @@ use crate::state::{BrowserClientField, SandboxExecutorField};
 use axagent_core::cloud_storage::{CloudStorageConfig, SyncEngine};
 use axagent_plugins::{PluginManager, PluginManagerConfig};
 use axagent_runtime_core::prompt_cache::PromptCache;
+use sea_orm::EntityTrait;
 use tokio_util::sync::CancellationToken;
 
 /// 构造 AppState。
@@ -348,11 +349,9 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState, Strin
         ));
         // Plan 模式：AgentExecutor 注入 engine 引用以创建/执行临时工作流
         rt.block_on(engine.inject_into_agent_executor(engine.clone()));
-        // 注册默认领域约束（动态注入至 agent system prompt 的 head/tail 槽位）
+        // 注册领域约束：所有角色走通用 DomainConstraints::by_role
         rt.block_on(engine.set_domain_constraints(Arc::new(|role_name: &str| {
-            axagent_rt_workflow::work_engine::domain_constraints::DomainConstraints::by_role(
-                role_name,
-            )
+            axagent_rt_workflow::work_engine::domain_constraints::DomainConstraints::by_role(role_name)
         })));
         engine
     };
@@ -589,6 +588,27 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState, Strin
         process_reward_model.clone(),
         proactive_service.clone(),
     );
+
+    // 初始化 reflector 持久化
+    {
+        let r_clone = reflector.clone();
+        let reflection_path: std::path::PathBuf = app_dir.join("reflections.jsonl");
+        let insight_path: std::path::PathBuf = app_dir.join("insights.jsonl");
+        let ig_clone = r_clone.get_insight_generator();
+        rt.spawn(async move {
+            if let Err(e) = r_clone.init_persistence(reflection_path, 200).await {
+                tracing::warn!("[reflector] init_persistence failed: {}", e);
+            }
+            match ig_clone.init_persistence(insight_path).await {
+                Ok(n) => {
+                    tracing::info!("[insight] loaded {} insights from disk", n);
+                },
+                Err(e) => {
+                    tracing::warn!("[insight] init_persistence failed: {}", e);
+                },
+            }
+        });
+    }
 
     Ok(AppState {
         harness,

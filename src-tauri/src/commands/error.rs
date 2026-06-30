@@ -133,3 +133,7 @@ impl std::fmt::Display for ErrorResponse {
         write!(f, "{}", json)
     }
 }
+
+// SECURITY (C9): 实现 std::error::Error trait，使 ErrorResponse 可用于 anyhow::Result
+// 和 `?` 操作符的错误链传播。
+impl std::error::Error for ErrorResponse {}

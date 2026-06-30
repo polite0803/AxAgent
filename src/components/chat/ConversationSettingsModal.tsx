@@ -5,7 +5,7 @@ import { Tooltip } from "@/components/layout/Tooltip";
 import { IconEditor } from "@/components/shared/IconEditor";
 import { CONV_ICON_KEY, type ConvIcon, type ConvIconType } from "@/lib/convIcon";
 import { useConversationStore, useSettingsStore } from "@/stores";
-import { useAgentProfileStore } from "@/stores/feature/agentProfileStore";
+import { useAgentStore } from "@/stores/feature/agentStore";
 import { ModelIcon } from "@lobehub/icons";
 import { Button, Card, Input, Modal, Slider, Tag, theme } from "antd";
 import type { MenuProps } from "antd";
@@ -238,7 +238,7 @@ export function ConversationSettingsModal({
             <div style={{ marginBottom: 6 }}>
               <Tag color="blue" style={{ fontSize: 12 }}>
                 {(() => {
-                  const profile = useAgentProfileStore
+                  const profile = useAgentStore
                     .getState()
                     .getProfileById(conversation.agent_profile_id!);
                   return profile

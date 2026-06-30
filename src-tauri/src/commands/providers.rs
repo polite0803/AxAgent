@@ -98,11 +98,8 @@ pub async fn update_provider_key(
 ) -> Result<ProviderKey, String> {
     let encrypted = axagent_core::crypto::encrypt_key(&raw_key, state.harness.master_key())
         .map_err(|e| e.to_string())?;
-    let prefix = if raw_key.len() >= 8 {
-        format!("{}...", &raw_key[..8])
-    } else {
-        raw_key.clone()
-    };
+    // SECURITY: 使用 SHA-256 哈希前 8 字符作为不可逆标识，避免明文 key 前 8 字符泄露
+    let prefix = format!("{}...", &axagent_core::crypto::sha256_hash(&raw_key)[..8]);
     axagent_core::repo::provider::update_provider_key(
         state.harness.db(),
         &key_id,
@@ -131,6 +128,8 @@ pub async fn toggle_provider_key(
         .map_err(|e| e.to_string())
 }
 
+/// SECURITY (C1): 仅返回密钥前缀用于 UI 展示，禁止返回完整明文密钥。
+/// 若前端需要验证密钥有效性，请使用 `validate_provider_key` 命令。
 #[tauri::command]
 pub async fn get_decrypted_provider_key(
     state: State<'_, AppState>,
@@ -139,8 +138,9 @@ pub async fn get_decrypted_provider_key(
     let key_row = axagent_core::repo::provider::get_provider_key(state.harness.db(), &key_id)
         .await
         .map_err(|e| e.to_string())?;
-    axagent_core::crypto::decrypt_key(&key_row.key_encrypted, state.harness.master_key())
-        .map_err(|e| e.to_string())
+    let decrypted = axagent_core::crypto::decrypt_key(&key_row.key_encrypted, state.harness.master_key())
+        .map_err(|e| e.to_string())?;
+    Ok(axagent_core::crypto::key_prefix(&decrypted))
 }
 
 #[tauri::command]
@@ -176,6 +176,7 @@ pub async fn validate_provider_key(
         .ok_or_else(|| format!("No adapter for provider type: {}", provider_type_str))?;
     let global_settings = axagent_core::repo::settings::get_settings(state.harness.db())
         .await
+        .inspect_err(|e| tracing::warn!("Failed to read global settings, falling back to defaults: {}", e))
         .unwrap_or_default();
     let resolved_proxy = axagent_harness::types::ProviderProxyConfig::resolve(
         &provider.proxy_config,
@@ -309,6 +310,7 @@ pub async fn fetch_remote_models(
         .ok_or_else(|| format!("No adapter for provider type: {}", provider_type_str))?;
     let global_settings = axagent_core::repo::settings::get_settings(state.harness.db())
         .await
+        .inspect_err(|e| tracing::warn!("Failed to read global settings, falling back to defaults: {}", e))
         .unwrap_or_default();
     let resolved_proxy = axagent_harness::types::ProviderProxyConfig::resolve(
         &provider.proxy_config,
@@ -403,6 +405,7 @@ pub async fn test_model(
         .ok_or_else(|| format!("No adapter for provider type: {}", provider_type_str))?;
     let global_settings = axagent_core::repo::settings::get_settings(state.harness.db())
         .await
+        .inspect_err(|e| tracing::warn!("Failed to read global settings, falling back to defaults: {}", e))
         .unwrap_or_default();
     let resolved_proxy = axagent_harness::types::ProviderProxyConfig::resolve(
         &provider.proxy_config,

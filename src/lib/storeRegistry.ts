@@ -65,7 +65,7 @@ export async function initStoreRegistry(): Promise<void> {
     },
     {
       name: "chatWorkspace",
-      store: stores.useChatWorkspaceStore as unknown as {
+      store: stores.useUIStore as unknown as {
         getState: () => unknown;
         setState: (partial: unknown) => void;
       },

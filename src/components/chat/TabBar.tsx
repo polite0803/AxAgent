@@ -6,7 +6,7 @@ import { getConvIcon } from "@/lib/convIcon";
 import {
   type TabItem,
   useConversationStore,
-  useHelpStore,
+  useOnboardingStore,
   useProviderStore,
   useSettingsStore,
   useStreamStore,
@@ -145,7 +145,7 @@ const Tab = memo(function Tab({
 export function TabBar() {
   const { token } = theme.useToken();
   const { t } = useTranslation();
-  const toggleHelp = useHelpStore((s) => s.toggle);
+  const toggleHelp = useOnboardingStore((s) => s.toggle);
   const tabs = useTabStore((s) => s.tabs);
   const activeTabId = useTabStore((s) => s.activeTabId);
   const setActiveTab = useTabStore((s) => s.setActiveTab);

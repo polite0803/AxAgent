@@ -160,11 +160,16 @@ impl SandboxRunner {
         //   --no-warnings: 减少噪声
         //   --input-type=module: 不强制
         // 不使用 --experimental-vm-modules（依赖环境）。
+        // SECURITY (C6): 对 Node.js 子进程增加内存限制，防止 OOM 影响宿主机。
+        // --max-old-space-size: V8 老生代最大堆 (MB)
+        // --max-semi-space-size: V8 新生代半空间 (MB)
         let mut cmd = Command::new(&self.node_path);
         if self.hard_sandbox {
             cmd.arg("--frozen-intrinsics")
                 .arg("--disallow-code-generation-from-strings")
-                .arg("--no-warnings");
+                .arg("--no-warnings")
+                .arg("--max-old-space-size=256")
+                .arg("--max-semi-space-size=8");
         }
         let output_fut = cmd
             .arg(&script_path)

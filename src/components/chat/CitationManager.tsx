@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import { useCitationStore } from "@/stores/feature/citationStore";
+import { useStreamStore } from "@/stores";
 import type { Citation, CitationStatsData } from "@/types";
 import { CheckCircleOutlined, DeleteOutlined, PlusOutlined } from "@ant-design/icons";
 import { Button, List, Space, Tag, Typography } from "antd";
@@ -46,7 +46,7 @@ export function CitationManager({
   selectedCitationId: externalSelectedId,
 }: CitationManagerProps) {
   const { t } = useTranslation();
-  const store = useCitationStore();
+  const store = useStreamStore();
   const citations = externalCitations ?? store.citations;
   const selectedCitationId = externalSelectedId ?? store.selectedCitationId;
   const citationsInReport = citations.filter((c) => c.inReport);
@@ -226,7 +226,7 @@ export function CitationStats({
   citations: externalCitations,
 }: CitationStatsProps) {
   const { t } = useTranslation();
-  const storeCitations = useCitationStore((s) => s.citations);
+  const storeCitations = useStreamStore((s) => s.citations);
   const stats: CitationStatsData = useMemo(() => {
     const src = externalCitations ?? storeCitations;
     const total = src.length;

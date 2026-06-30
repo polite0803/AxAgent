@@ -7,6 +7,7 @@ import { useConversationStore } from "@/stores/domain/conversationStore";
 import { useStreamStore } from "@/stores/domain/streamStore";
 import { deriveLegacyStreamFields, getStreamingMessageId } from "@/stores/domain/streamStore";
 import type {
+  AgentProfile, CreateAgentProfileInput, UpdateAgentProfileInput,
   AgentCancelledEvent,
   AgentDoneEvent,
   AgentErrorEvent,
@@ -147,6 +148,23 @@ interface AgentStore {
   pauseAgent: (conversationId: string) => Promise<void>;
   resumeAgent: (conversationId: string) => Promise<void>;
   isAgentPaused: (conversationId: string) => boolean;
+
+  // --- Agent Profile management ---
+profiles: AgentProfile[];
+  loaded: boolean;
+
+  loadProfiles(): Promise<void>;
+  getAllProfiles(): AgentProfile[];
+  getProfileById(id: string): AgentProfile | undefined;
+
+  importFromAgency(): Promise<{ count: number; errors: string[] }>;
+
+  createCustomProfile(input: CreateAgentProfileInput): Promise<AgentProfile>;
+  updateCustomProfile(
+    id: string,
+    input: UpdateAgentProfileInput,
+  ): Promise<AgentProfile>;
+  deleteCustomProfile(id: string): Promise<void>;
 }
 
 export const useAgentStore = create<AgentStore>((set, get) => ({
@@ -163,6 +181,10 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
   currentToolCall: null,
   isExecuting: {},
   executingConversationIds: [],
+
+  // --- Agent Profile state ---
+  profiles: [],
+  loaded: false,
   agentPool: {},
   workflowMatchSuggestion: null,
 
@@ -181,6 +203,60 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
       }
       return { agentPool: { ...s.agentPool, [item.conversationId]: pool } };
     });
+  },
+
+    async loadProfiles(): Promise<void> {
+    try {
+      const rows: AgentProfile[] = await invoke("list_agent_profiles");
+      set({ profiles: Array.isArray(rows) ? rows : [], loaded: true });
+    } catch {
+      set({ loaded: true });
+    }
+  },
+
+  getAllProfiles(): AgentProfile[] {
+    return get().profiles;
+  },
+
+  getProfileById(id: string): AgentProfile | undefined {
+    return get().profiles.find((p) => p.id === id);
+  },
+
+  async importFromAgency(): Promise<{ count: number; errors: string[] }> {
+    const result: { count: number; errors: string[] } = await invoke(
+      "import_agent_profiles_from_agency",
+    );
+    await get().loadProfiles();
+    return result;
+  },
+
+  async createCustomProfile(
+    input: CreateAgentProfileInput,
+  ): Promise<AgentProfile> {
+    const profile: AgentProfile = await invoke("create_agent_profile", {
+      input,
+    });
+    set((s) => ({ profiles: [...s.profiles, profile] }));
+    return profile;
+  },
+
+  async updateCustomProfile(
+    id: string,
+    input: UpdateAgentProfileInput,
+  ): Promise<AgentProfile> {
+    const profile: AgentProfile = await invoke("update_agent_profile", {
+      id,
+      input,
+    });
+    set((s) => ({
+      profiles: s.profiles.map((p) => (p.id === id ? profile : p)),
+    }));
+    return profile;
+  },
+
+  async deleteCustomProfile(id: string): Promise<void> {
+    await invoke("delete_agent_profile", { id });
+    set((s) => ({ profiles: s.profiles.filter((p) => p.id !== id) }));
   },
 
   clearConversationUI: (conversationId) => {

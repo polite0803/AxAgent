@@ -5,8 +5,8 @@
     "description": "AI-संचालित वर्क असिस्टेंट"
   },
   "artifact": {
-    "copiedToClipboard": "",
-    "copyFailed": ""
+    "copiedToClipboard": "Copied to clipboard",
+    "copyFailed": "Copy failed"
   },
   "nav": {
     "chat": "चैट",
@@ -23,15 +23,29 @@
     "link": "लिंक",
     "devTools": "डेव टूल्स",
     "wiki": "विकी",
-    "app": "AxAgent"
+    "app": "AxAgent",
+    "stockAnalysis": "Stock Analysis",
+    "watchlist": "वॉचलिस्ट",
+    "screener": "स्क्रीनर",
+    "trade": "Trade",
+    "backtest": "बैकटेस्ट",
+    "compare": "तुलना",
+    "recommend": "推荐",
+    "quant": "量化",
+    "replayWorkbench": "回放工作台"
   },
   "sidebar": {
     "sectionWork": "कार्य",
     "sectionTools": "उपकरण",
+    "sectionInvest": "निवेश",
     "sectionInfrastructure": "बुनियादी ढांचा",
     "sectionPlugins": "प्लगइन",
     "expand": "साइडबार विस्तृत करें",
-    "collapse": "साइडबार संकुचित करें"
+    "collapse": "साइडबार संकुचित करें",
+    "sectionInvestDiscover": "Discover",
+    "sectionInvestMonitor": "Monitor",
+    "sectionInvestExecute": "Execute",
+    "sectionInvestReview": "Review"
   },
   "chat": {
     "newConversation": "नई बातचीत",
@@ -541,8 +555,8 @@
         "AGENT_STATUS_INITIALIZING": "प्रारंभ हो रहा है...",
         "AGENT_STATUS_CALLING_MODEL": "मॉडल को कॉल कर रहा है...",
         "AGENT_STATUS_STEER_APPLIED": "{count} निर्देश लागू किए गए",
-        "THINKING_BLOCK_START": "",
-        "THINKING_BLOCK_END": "",
+        "THINKING_BLOCK_START": "Start",
+        "THINKING_BLOCK_END": "End",
         "TITLE_NO_MESSAGES": "शीर्षक बनाने के लिए कोई संदेश नहीं मिला",
         "SESSION_NO_MESSAGES_TO_COMPRESS": "संपीड़ित करने के लिए कोई संदेश नहीं",
         "STEER_INSTRUCTION_TOO_LONG": "निर्देश बहुत लंबा है (अधिकतम 10KB)",
@@ -700,7 +714,9 @@
       "noSteps": "कोई चरण नहीं",
       "chart": {
         "renderError": "चार्ट रेंडर त्रुटि"
-      }
+      },
+      "elapsedHint": "Node runtime, auto-refreshes every 1s",
+      "lastUpdatedHint": "Last workflow status fetch time"
     },
     "modelRoutingConfig": {
       "title": "मॉडल रूटिंग कॉन्फ़िगरेशन",
@@ -1134,6 +1150,23 @@
       "ask": "प्रश्न",
       "plan": "योजना",
       "title": "मोड बदलें"
+    },
+    "multiModelVote": {
+      "button": "Aggregate Vote",
+      "title": "Multi-Model Decision Vote",
+      "strategy": "Aggregation Strategy",
+      "strategyMajority": "Majority Vote",
+      "strategyWeighted": "Confidence-Weighted",
+      "strategyConsensus": "Unanimous Consensus",
+      "modelCount": "Models Participated",
+      "validCount": "Valid Decisions",
+      "finalAction": "Final Action",
+      "winnerModel": "Winner Model",
+      "avgConfidence": "Avg. Confidence",
+      "voteBreakdown": "Vote Breakdown",
+      "allAgree": "All models agree",
+      "disagreement": "Disagreement detected",
+      "noDecision": "No decision to aggregate"
     }
   },
   "gateway": {
@@ -2292,9 +2325,9 @@
     "workflow": {
       "title": "वर्कफ़्लो सेटिंग्स",
       "description": "वर्कफ़्लो टेम्पलेट और संपादक सेटिंग्स प्रबंधित करें",
-      "createdSuccess": "",
-      "deletedSuccess": "",
-      "sampleAdded": "",
+      "createdSuccess": "Created successfully",
+      "deletedSuccess": "Deleted successfully",
+      "sampleAdded": "Sample added",
       "createNew": "नया टेम्पलेट बनाएं",
       "visualEditor": "विज़ुअल संपादक",
       "visualEditorDesc": "ड्रैग-एंड-ड्रॉप DAG संपादक से वर्कफ़्लो बनाएं",
@@ -2558,7 +2591,8 @@
     "provider": {
       "deepseekBalance": "DeepSeek शेष",
       "noValidKey": "कोई मान्य कुंजी नहीं"
-    }
+    },
+    "stockAnalysis": "Stock Analysis"
   },
   "backup": {
     "title": "बैकअप केंद्र",
@@ -2683,6 +2717,7 @@
     "permissionAcceptEdits": "संपादन स्वीकारें",
     "permissionFullAccess": "पूर्ण पहुँच",
     "selectDirectory": "निर्देशिका चुनें",
+    "unknown": "अज्ञात",
     "workingDirectory": "कार्य निर्देशिका",
     "permissionRequired": "अनुमति आवश्यक",
     "toolInput": "टूल इनपुट",
@@ -2765,10 +2800,16 @@
     },
     "default": "डिफ़ॉल्ट",
     "operationFailed": "ऑपरेशन विफल",
-    "key": "",
-    "value": "",
+    "key": "Key",
+    "value": "Value",
     "hide": "छिपाएँ",
-    "searchPlaceholder": "खोजें..."
+    "searchPlaceholder": "खोजें...",
+    "exportMarkdown": "Export Markdown",
+    "saveFailed": "Save failed",
+    "saved": "Saved",
+    "unknownError": "Unknown error",
+    "deleted": "हटाया गया",
+    "required": "आवश्यक"
   },
   "image": {
     "loadError": "छवि लोड करने में विफल",
@@ -2802,8 +2843,8 @@
   },
   "tray": {
     "show": "दिखाएँ",
-    "key": "",
-    "value": "",
+    "key": "Key",
+    "value": "Value",
     "hide": "छुपाएँ",
     "quit": "बाहर निकलें"
   },
@@ -3028,7 +3069,8 @@
     "dismiss": "ख़ारिज करें",
     "atomic": "परमाणु",
     "extractAtomic": "परमाणु कौशल निकालें",
-    "stats": "आँकड़े"
+    "stats": "आँकड़े",
+    "atomicSkills": "Atomic Skills"
   },
   "agent": {
     "askUserPlaceholder": "अपना उत्तर टाइप करें...",
@@ -3976,7 +4018,10 @@
       "axagentFolderHint": "AxAgent प्रारूप JSON फ़ाइलों वाला फ़ोल्डर चुनें। सभी वर्कफ़्लो टेम्प्लेट स्वचालित रूप से स्कैन और आयात किए जाएंगे।",
       "n8nFolderHint": "n8n प्रारूप JSON फ़ाइलों वाला फ़ोल्डर चुनें। सभी n8n वर्कफ़्लो स्वचालित रूप से परिवर्तित और आयात किए जाएंगे।",
       "importStructuralErrors": "Imported workflow has {{count}} structural error(s):\n{{details}}",
-      "importValidationWarnings": "Imported workflow has {{count}} warning(s):\n{{details}}"
+      "importValidationWarnings": "Imported workflow has {{count}} warning(s):\n{{details}}",
+      "fileTooLarge": "File too large",
+      "invalidJsonFile": "Invalid JSON file",
+      "jsonTooDeep": "JSON nesting too deep"
     },
     "preview": "पूर्वावलोकन",
     "publish": "प्रकाशित करें",
@@ -4029,7 +4074,12 @@
       "diffNodeTypeChanged": "Node type changed",
       "diffNodeConfigChanged": "Node config changed",
       "diffEdgeAdded": "Edge added ({{type}})",
-      "diffEdgeRemoved": "Edge removed ({{type}})"
+      "diffEdgeRemoved": "Edge removed ({{type}})",
+      "latest": "Latest",
+      "rollback": "Rollback to This Version",
+      "rollbackConfirm": "Confirm rollback?",
+      "rollbackTo": "Rollback to {{version}}",
+      "rolledBack": "Rolled back"
     },
     "versionHistoryLoadFailed": "संस्करण इतिहास लोड करने में विफल",
     "versionLoaded": "संस्करण{{version}} loaded",
@@ -4262,15 +4312,15 @@
       "defaultCodePythonComment": "# Input: input\n# रिटर्न मान output_var में सहेजा जाता है",
       "codeInputParams": "इनपुट पैरामीटर: input",
       "codeReturnHint": "वापसी मान output_var में संग्रहीत किया जाएगा",
-      "roleCoordinator": "",
-      "roleBrowser": "",
-      "selectRole": "",
-      "roleTag": "",
-      "bindRole": "",
-      "expertNotFound": "",
-      "profileMatched": "",
-      "profileCreated": "",
-      "profileCreateFailed": "",
+      "roleCoordinator": "Coordinator",
+      "roleBrowser": "Browser",
+      "selectRole": "Select role",
+      "roleTag": "Role: {{role}}",
+      "bindRole": "Bind role",
+      "expertNotFound": "Expert not found",
+      "profileMatched": "Matched to existing profile",
+      "profileCreated": "Profile created",
+      "profileCreateFailed": "Profile create failed: {{error}}",
       "executionMode": "निष्पादन मोड",
       "executionReact": "रिएक्टिव",
       "executionPlan": "नियोजित",
@@ -4345,7 +4395,19 @@
       "switchValuePlaceholder": "value",
       "to": "प्रति",
       "urlPlaceholder": "https://api.example.com/data",
-      "webhookUrlPlaceholder": "https://hook.example.com/..."
+      "webhookUrlPlaceholder": "https://hook.example.com/...",
+      "inputVariablePlaceholder": "e.g. data.result",
+      "backend": "Storage Backend",
+      "vectorDb": "Vector Database",
+      "fileSystem": "File System",
+      "operation": "Operation",
+      "insert": "Insert",
+      "upsert": "Upsert",
+      "append": "Append",
+      "collection": "Collection/Table",
+      "collectionPlaceholder": "e.g. records",
+      "keyVariable": "Key Variable",
+      "keyVariablePlaceholder": "e.g. record.id"
     },
     "debug": {
       "totalDuration": "कुल अवधि",
@@ -4431,6 +4493,35 @@
       "showSpanTree": "显示 Span 树",
       "hideSpanTree": "隐藏 Span 树",
       "noSpanData": "暂未解析到 Span 数据"
+    },
+    "validation": {
+      "validation": {
+        "title": "验证规则",
+        "noRules": "暂无验证规则。点击「添加规则」开始创建。",
+        "addRule": "添加规则",
+        "rule": "规则",
+        "ruleName": "规则名称",
+        "ruleNamePlaceholder": "给自己的规则取个名字",
+        "ruleType": "规则类型",
+        "description": "描述",
+        "descriptionPlaceholder": "这条规则是做什么的",
+        "schema": "JSON Schema",
+        "sourceNode": "源节点",
+        "selectNode": "选择节点",
+        "expectedPath": "期望路径",
+        "expectedPathPlaceholder": "例如 output.status",
+        "assertionOp": "断言操作",
+        "expectedValue": "期望值",
+        "expectedValuePlaceholder": "输入期望值",
+        "metric": "指标",
+        "maxValue": "最大值",
+        "minValue": "最小值",
+        "onFailStrategy": "失败策略",
+        "warn": "仅警告",
+        "block": "阻止执行",
+        "continue": "继续执行",
+        "saved": "验证规则已保存"
+      }
     },
     "applySemanticCheck": "लागू करें",
     "applyUpgrade": "अपग्रेड लागू करें",
@@ -4639,9 +4730,9 @@
       "roleReviewer": "समीक्षक",
       "roleSynthesizer": "सिंथेसाइज़र",
       "roleExecutor": "निष्पादक",
-      "agent": "",
-      "roleCoordinator": "",
-      "roleBrowser": ""
+      "agent": "Agent",
+      "roleCoordinator": "Coordinator",
+      "roleBrowser": "Browser"
     },
     "conditionNode": {
       "title": "शर्त",
@@ -4718,7 +4809,12 @@
       "manual": "मैनुअल",
       "schedule": "अनुसूचित",
       "event": "घटना",
-      "title": "ट्रिगर"
+      "title": "ट्रिगर",
+      "configure": "Configure Trigger",
+      "configureHint": "Configure trigger conditions and parameters",
+      "statusActive": "Running",
+      "statusDisabled": "Disabled",
+      "statusUnconfigured": "Unconfigured"
     },
     "documentParserNode": {
       "notSet": "सेट नहीं",
@@ -4764,7 +4860,12 @@
     "node": {
       "tickMode": "Tick मोड",
       "breakpoint": "ब्रेकपॉइंट",
-      "retryEnabled": "पुनः प्रयास सक्षम"
+      "retryEnabled": "पुनः प्रयास सक्षम",
+      "clickToCollapsePorts": "Click to collapse ports",
+      "clickToExpandPorts": "Click to expand ports",
+      "inputs": "Inputs",
+      "outputs": "Outputs",
+      "type": "Type"
     },
     "code": {
       "rhaiDynamicTool": "🦀 Rhai (डायनामिक टूल)",
@@ -5208,7 +5309,10 @@
     },
     "swarmNode": {
       "agents": "Agents",
-      "rounds": "rounds"
+      "rounds": "rounds",
+      "newAgent": "Agent",
+      "noAgentsHint": "Add Agent nodes inside this container",
+      "addAgent": "Add Agent"
     },
     "groupNode": {
       "untitled": "Group",
@@ -5242,37 +5346,16 @@
     },
     "run": "Run",
     "settings": "Settings",
+    "workflowRef": {
+      "targetWorkflow": "Target Workflow",
+      "contextMode": "Context Mode",
+      "inherit": "Inherit",
+      "isolated": "Isolated"
+    },
+    "durationMinutes": "{{minutes}} min",
+    "durationSeconds": "{{seconds}} sec",
     "aggregatorNode": {
       "inputs": "इनपुट"
-    },
-    "validation": {
-      "validation": {
-        "title": "验证规则",
-        "noRules": "暂无验证规则。点击「添加规则」开始创建。",
-        "addRule": "添加规则",
-        "rule": "规则",
-        "ruleName": "规则名称",
-        "ruleNamePlaceholder": "给自己的规则取个名字",
-        "ruleType": "规则类型",
-        "description": "描述",
-        "descriptionPlaceholder": "这条规则是做什么的",
-        "schema": "JSON Schema",
-        "sourceNode": "源节点",
-        "selectNode": "选择节点",
-        "expectedPath": "期望路径",
-        "expectedPathPlaceholder": "例如 output.status",
-        "assertionOp": "断言操作",
-        "expectedValue": "期望值",
-        "expectedValuePlaceholder": "输入期望值",
-        "metric": "指标",
-        "maxValue": "最大值",
-        "minValue": "最小值",
-        "onFailStrategy": "失败策略",
-        "warn": "仅警告",
-        "block": "阻止执行",
-        "continue": "继续执行",
-        "saved": "验证规则已保存"
-      }
     }
   },
   "atomicSkill": {
@@ -6812,7 +6895,8 @@
     "devops": "DevOps",
     "design": "डिज़ाइन",
     "writing": "लेखन",
-    "business": "व्यापार"
+    "business": "व्यापार",
+    "finance": "वित्त"
   },
   "planStore": {
     "rejectFailed": "योजना अस्वीकार करने में विफल: {{error}}",
@@ -6990,14 +7074,14 @@
     }
   },
   "agentRole": {
-    "coordinator": "",
-    "researcher": "",
-    "planner": "",
-    "developer": "",
-    "reviewer": "",
-    "browser": "",
-    "synthesizer": "",
-    "executor": ""
+    "coordinator": "Coordinator",
+    "researcher": "Researcher",
+    "planner": "Planner",
+    "developer": "Developer",
+    "reviewer": "Reviewer",
+    "browser": "Browser",
+    "synthesizer": "Synthesizer",
+    "executor": "Executor"
   },
   "stream": {
     "timeout": "⚠️ स्ट्रीम टाइमआउट (5 मिनट से कोई अपडेट नहीं), स्वचालित रूप से रोका गया"
@@ -7216,9 +7300,9 @@
     "yes": "हाँ",
     "no": "No",
     "cancel": "रद्द करें",
-    "createdSuccess": "",
-    "deletedSuccess": "",
-    "sampleAdded": "",
+    "createdSuccess": "Dataset created",
+    "deletedSuccess": "Dataset deleted",
+    "sampleAdded": "Sample added",
     "createNew": "नया डेटासेट बनाएं"
   },
   "loraConfig": {
@@ -7355,7 +7439,50 @@
     "errorRecoveryScore": "त्रुटि पुनर्प्राप्ति",
     "goalCompletionScore": "लक्ष्य पूर्ति",
     "reflectError": "प्रतिबिंब विफल",
-    "retry": "पुनः प्रयास"
+    "retry": "पुनः प्रयास",
+    "autoTrigger": "Auto-Triggered",
+    "delete": {
+      "confirm": "Delete this insight?",
+      "failed": "Failed to delete insight",
+      "success": "Insight deleted"
+    },
+    "deleteInsight": "Delete Insight",
+    "feedback": {
+      "failed": "Feedback submission failed",
+      "notFound": "Insight not found",
+      "thanksNotUseful": "Thanks! Marked as not useful",
+      "thanksUseful": "Thanks! Marked as useful"
+    },
+    "notUseful": "Not Useful",
+    "settings": {
+      "cancel": "Cancel",
+      "core": "Core Settings",
+      "decayDays": "Decay Days",
+      "maxHistory": "Max History",
+      "maxInsights": "Max Insights",
+      "qualityThreshold": "Quality Threshold",
+      "reset": "Reset",
+      "save": "Save",
+      "saved": "Settings saved",
+      "title": "Reflection Settings",
+      "decayDaysHint": "Insights automatically decay in weight after N days",
+      "enabled": "Enable Auto-Reflection",
+      "enabledHint": "Auto-trigger reflection after task execution",
+      "errorSection": "Error Analysis",
+      "insightSection": "Insight Settings",
+      "maxHistoryHint": "Keep the most recent N reflection history entries",
+      "maxInsightsHint": "Keep at most N insight records",
+      "qualitySection": "Quality Threshold",
+      "qualityThresholdHint": "Insights below this threshold will be filtered out",
+      "saveFailed": "Save failed",
+      "storageSection": "Storage Settings",
+      "storeInsights": "Persist Insights",
+      "storeInsightsHint": "Insights will be saved locally and available across sessions",
+      "subtitle": "Configure auto-reflection and insight management",
+      "useErrorClassifier": "Enable Error Classifier",
+      "useErrorClassifierHint": "Auto-classify error patterns for analysis"
+    },
+    "useful": "Useful"
   },
   "subAgentCard": {
     "viewConversation": "उप-वार्तालाप देखें",
@@ -7443,7 +7570,9 @@
     "steerInput": "चलाएं",
     "showExtras": "और",
     "hideExtras": "छुपाएं",
-    "close": "बंद करें"
+    "close": "बंद करें",
+    "collapse": "Collapse Panel",
+    "expand": "Expand Panel"
   },
   "knowledgeSettings": {
     "title": "ज्ञान"
@@ -7523,5 +7652,385 @@
     "recordAudio": "ऑडियो रिकॉर्ड करें",
     "takePhoto": "फोटो लें",
     "uploadFile": "फ़ाइल अपलोड"
+  },
+  "trade": {
+    "title": "Trading Log",
+    "disabledHint": "Enable to record buy/sell trades. Tracks position cost and P&L.",
+    "stockCode": "Code",
+    "stockName": "Name",
+    "buy": "Buy",
+    "sell": "Sell",
+    "price": "Price",
+    "quantity": "Qty",
+    "cost": "Cost",
+    "shares": "Position",
+    "pnl": "P&L",
+    "recorded": "Recorded",
+    "fillRequired": "Fill required fields",
+    "toggleFailed": "Toggle failed",
+    "limitsBlocked": "Position limits blocked",
+    "agentRole.coordinator": "Coordinator",
+    "agentRole.researcher": "Researcher",
+    "agentRole.planner": "Planner",
+    "agentRole.developer": "Developer",
+    "agentRole.reviewer": "Reviewer",
+    "agentRole.browser": "Browser",
+    "agentRole.synthesizer": "Synthesizer",
+    "agentRole.executor": "Executor",
+    "placeholder": "ट्रेड निष्पादित और समीक्षा करें",
+    "agentRole": {
+      "browser": "Browser",
+      "coordinator": "Coordinator",
+      "developer": "Developer",
+      "executor": "Executor",
+      "planner": "Planner",
+      "researcher": "Researcher",
+      "reviewer": "Reviewer",
+      "synthesizer": "Synthesizer"
+    }
+  },
+  "watchlist": {
+    "title": "वॉचलिस्ट",
+    "placeholder": "वॉचलिस्ट और मूल्य अलर्ट प्रबंधित करें"
+  },
+  "screener": {
+    "title": "स्टॉक स्क्रीनर",
+    "placeholder": "मानदंडों से स्टॉक खोजें",
+    "tab": {
+      "smartReco": "स्मार्ट सुझाव",
+      "myFilter": "मेरा फ़िल्टर",
+      "serenity": "Bottleneck Hunt"
+    }
+  },
+  "backtest": {
+    "title": "बैकटेस्ट",
+    "placeholder": "ऐतिहासिक डेटा से रणनीति सत्यापित करें"
+  },
+  "compare": {
+    "title": "तुलना",
+    "placeholder": "साथियों के साथ स्टॉक तुलना"
+  },
+  "dualView": {
+    "notRegistered": "अपंजीकृत dual view: {{id}}",
+    "expand": "{{title}} में विस्तृत करें",
+    "expandToPanel": "पैनल में विस्तृत करें",
+    "collapse": "संकुचित करें",
+    "collapseToBubble": "बुलबुले में संकुचित करें",
+    "decision": {
+      "llmUnavailableHint": "LLM analysis is temporarily unavailable. Please check your model configuration or network connection",
+      "title": "Decision: Dual-View Comparison",
+      "field": "Decision Dimension",
+      "formula": "Formula View",
+      "llm": "LLM View",
+      "action": "Trade Action",
+      "positionPct": "Position %",
+      "confidence": "Confidence",
+      "reasoning": "Reasoning",
+      "formulaReasoningOmitted": "Formula has no reasoning chain",
+      "formulaBadge": "Formula",
+      "llmBadge": "LLM",
+      "llmUnavailable": "LLM view unavailable",
+      "reviewRecommended": "Manual Review Recommended",
+      "highAgreementHint": "High agreement between views",
+      "midAgreementHint": "Partial agreement between views",
+      "lowAgreementHint": "Views diverge significantly",
+      "llmMissingHint": "Agreement score: {{score}}/100"
+    }
+  },
+  "timeTravel": {
+    "modeSwitch": {
+      "live": "लाइव",
+      "replay": "{{date}} पर रीप्ले",
+      "sweep": "स्वीप बैकटेस्ट",
+      "tooltipLive": "रीप्ले मोड में प्रवेश करने के लिए क्लिक करें (पिछली तारीख पर विश्लेषण)",
+      "tooltipReplay": "लाइव मोड पर वापस जाने के लिए क्लिक करें",
+      "confirmTitle": "क्या लाइव मोड पर वापस जाना है?",
+      "confirmBody": "लाइव मोड वास्तविक समय के डेटा का उपयोग करता है और पहले निकाले गए निष्कर्ष नई जानकारी से अमान्य हो सकते हैं। रीप्ले मोड लुक-अहेड पक्षपात से बचने के लिए चुनी गई पिछली तारीख पर दुनिया को बंद कर देता है।",
+      "confirmOk": "लाइव पर जाएँ",
+      "confirmCancel": "रीप्ले में रहें",
+      "currentlyInReplay": "{{date}} को एंकर करके रीप्ले चल रहा है।",
+      "enteredReplay": "रीप्ले मोड सक्रिय: {{date}}",
+      "switchedToLive": "लाइव मोड पर स्विच किया गया"
+    },
+    "datePicker": {
+      "hint": "पिछला ट्रेडिंग दिन चुनें. आज और भविष्य की तारीखें अक्षम हैं (बंद दुनिया धारणा).",
+      "placeholder": "as-of तारीख चुनें",
+      "ok": "रीप्ले शुरू करें",
+      "cancel": "रद्द करें"
+    },
+    "pageAnchor": {
+      "live": "लाइव",
+      "replay": "रीप्ले",
+      "untilDate": "{{date}} तक"
+    },
+    "replayBadge": {
+      "label": "रीप्ले · {{date}}",
+      "tooltip": "इस दृश्य का सारा डेटा, प्रॉम्प्ट और निर्णय {{date}} पर एंकर किए गए हैं। लाइव ट्रेडिंग के लिए उपयोग न करें।",
+      "replay": "Replay {{date}}",
+      "sweep": "Batch Scan"
+    },
+    "replayWatermark": {
+      "label": "{{date}} तक"
+    },
+    "tour": {
+      "title": "टाइम ट्रैवल मोड उपलब्ध है",
+      "body": "लुक-अहेड पक्षपात के बिना रणनीतियों का सुरक्षित रूप से बैकटेस्ट करने के लिए सभी विश्लेषण और सिफारिशें पिछले ट्रेडिंग दिन पर एंकर करें। सिस्टम भविष्य की तारीखों को अस्वीकार करेगा और टाइमस्टैम्प उल्लंघनों को टाइमलाइन पर हाइलाइट किया जाएगा।",
+      "gotIt": "समझ गया",
+      "stepAnchor": "कभी भी रीप्ले मोड में प्रवेश करने के लिए 'लाइव' पिल पर क्लिक करें।"
+    },
+    "violations": {
+      "chip": "⚠ {{n}} उल्लंघन",
+      "chip_plural": "⚠ {{n}} उल्लंघन",
+      "chipAria": "इस नोड पर {{n}} भविष्य-संदर्भ उल्लंघन",
+      "tooltip": "इस नोड का आउटपुट as-of एंकर के बाद की तारीखों का उल्लेख करता है। इसके निष्कर्ष को अविश्वसनीय मानें।",
+      "markClass": "ax-violation-mark"
+    },
+    "recommendationBanner": "रीप्ले मोड सक्रिय। चयन, कीमतें और प्रवेश सीमाएँ {{date}} पर एंकर की गई हैं। लाइव ट्रेडिंग के लिए उपयोग न करें।",
+    "backtestHint": "ये आंकड़े {{date}} तक सभी पूर्ण विश्लेषणों (लाइव + रीप्ले) को एकत्र करते हैं। मोड के अनुसार फ़िल्टर करने के लिए रीप्ले वर्कबेंच का उपयोग करें।",
+    "degradedStyles": {
+      "title": "as-of ट्रंकेशन के कारण डेटा स्रोतों का अवनमन",
+      "description": "निम्नलिखित डेटा शैलियों की विश्वसनीयता कम हुई क्योंकि as-of तिथि {{date}} पूर्ण संकेत के लिए आवश्यक इतिहास को काटती है।",
+      "reason": "कारण: {{reason}}",
+      "hint": "अवनत परिणाम गलत नहीं है; यह कम जानकारीपूर्ण है। इसके विश्वास को गैर-अवनत शैलियों से कम मानें।",
+      "vendor": "विक्रेता: {{name}}"
+    },
+    "degradedMarker": {
+      "label": "अवनत · कुछ डेटा का इतिहास नहीं",
+      "labelWithCount": "अवनत · {{n}} आइटम",
+      "tooltip": "रीप्ले मोड में मनी फ्लो/मार्जिन/नॉर्थ-बाउंड होल्डिंग आदि का कोई ऐतिहासिक अर्थ नहीं है, छोड़ दिया गया।"
+    }
+  },
+  "replayWorkbench": {
+    "title": "रीप्ले वर्कबेंच",
+    "description": "सारे डेटा को पिछले किसी दिन पर एंकर करें। सिस्टम भविष्य की तारीखों को अस्वीकार करेगा। लुक-अहेड पक्षपात के बिना अपनी रणनीतियों का सुरक्षित रूप से बैकटेस्ट करें।",
+    "step1": {
+      "title": "as-of तारीख चुनें",
+      "currentlyPicked": "वर्तमान में {{date}} को एंकर करके रीप्ले चल रहा है",
+      "reselect": "फिर से चुनें"
+    },
+    "step2": {
+      "title": "रीप्ले-जागरूक विश्लेषण चलाएँ",
+      "description": "नीचे के सभी क्रियाएँ as_of_date = {{date}} को बैकएंड में इंजेक्ट करती हैं और उस दिन दुनिया को बंद कर देती हैं।",
+      "analyze": "एक स्टॉक का विश्लेषण करें",
+      "backtest": "बैकटेस्ट आंकड़े देखें",
+      "watchlist": "वॉचलिस्ट देखें"
+    },
+    "sweep": {
+      "title": "रीप्ले स्वीप मैट्रिक्स",
+      "intro": "स्टॉक × as-of तारीखों के बैकटेस्ट को बैच में चलाएँ। तारीख रेंज को पुनः चुनने पर मजबूर करता है (वैश्विक TimeAnchor विरासत में नहीं मिलता)।",
+      "codesLabel": "स्टॉक कोड (प्रति पंक्ति एक या अल्पविराम से अलग)",
+      "codesPlaceholder": "600519\n000001\n000333",
+      "dateRangeLabel": "As-of तारीख रेंज (केवल कार्य दिवस)",
+      "holdingDaysLabel": "होल्डिंग दिन",
+      "actionLabel": "परिकल्पित निर्णय",
+      "confidenceLabel": "निर्णय विश्वास (0–1)",
+      "runBtn": "स्वीप शुरू करें",
+      "running": "स्वीप चल रहा है {{done}} / {{total}} …",
+      "summary": "स्वीप पूरा: कुल {{total}},वैध {{valid}}, अवैध {{invalid}}।",
+      "violationNotice": "{{count}} as-of उल्लंघन दर्ज — Invalid पैनल देखें।",
+      "invalidTitle": "अवैध नमूने",
+      "noInvalid": "कोई अवैध नमूना नहीं।",
+      "exportCsv": "CSV निर्यात",
+      "exportJson": "JSON निर्यात"
+    },
+    "notice": "इस वर्कबेंच का सारा डेटा, प्रॉम्प्ट और निर्णय चुनी गई तारीख पर एंकर किए गए हैं। लाइव मोड पर वापस जाने के लिए स्पष्ट पुष्टि आवश्यक है।",
+    "exitHint": "आप अभी भी रीप्ले मोड में हैं। कहीं और शुरू किया गया कोई भी नया विश्लेषण भी रीप्ले-एंकर होगा।",
+    "exitBtn": "लाइव पर वापस जाएँ"
+  },
+  "serenityPanel": {
+    "desc": "Serenity बॉतलनेक विधि: बाजार के डेटा से उद्योग श्रृंखला में बॉतलनेक लिंक की खोज करके स्वचालित रूप से संभावित स्टॉकों को स्क्रीन करें",
+    "run": "Serenity स्क्रीनिंग चलाएं",
+    "running": "स्क्रीनिंग...",
+    "stage_loading": "वर्कफ्लो टेम्पलेट लोड हो रहा है...",
+    "stage_scanning": "चरण 0/4: बाजार के रुझानों को स्केन करना",
+    "stage_decomposing": "चरण 1/4: उद्योग श्रृंखला को विघटित करना",
+    "stage_identifying": "चरण 2/4: बॉतलनेक लिंक की पहचान करना",
+    "stage_mapping": "चरण 3/4: उम्मीदवार कंपनियों का मैपिंग",
+    "stage_saving": "चरण 4/4: परिणामों को सहेजना",
+    "stage_done": "स्क्रीनिंग पूर्ण",
+    "stage_error": "स्क्रीनिंग विफल",
+    "analyzing": "उद्योग श्रृंखला डेटा का विश्लेषण, LLM तर्क को 1-3 मिनट चाहिए...",
+    "trendTitle": "खोजी गई उद्योग tren्ड",
+    "bottleneckLink": "बॉतलनेक लिंक: ",
+    "candidateTitle": "उम्मीदवार लक्ष्य",
+    "directBenefit": "प्रत्यक्ष लाभार्थी",
+    "indirectBenefit": "अप्रत्यक्ष लाभार्थी",
+    "themeRelated": "विषय संबंधित",
+    "bottleneckProduct": "बॉतलनेक उत्पाद: ",
+    "riskPrefix": "जोखिम: ",
+    "confidencePrefix": "विश्वास ",
+    "scoreSuffix": " अंक",
+    "emptyHint": "Serenity बॉतलनेक स्क्रीनिंग चलाने के लिए ऊपर बटन पर क्लिक करें",
+    "noCandidateTitle": "कोई उम्मीदवार स्टॉक उत्पन्न नहीं हुआ",
+    "errorUnknown": "अज्ञात त्रुटि",
+    "callFailed": "कॉल विफल",
+    "stepLogTitle": "Execution Log",
+    "nodeTitles": {
+      "trigger": "Start Screening",
+      "t-industry-rank": "Industry Ranking",
+      "t-cls-flash": "Real-time Flash",
+      "t-northbound": "Northbound Capital",
+      "t-baseline-semi": "Semi Baseline",
+      "t-baseline-battery": "Battery Baseline",
+      "t-baseline-chem": "Chem Baseline",
+      "t-baseline-med": "Medical Baseline",
+      "t-baseline-aero": "Aerospace Baseline",
+      "t-baseline-consumer-elec": "Consumer Elec Baseline",
+      "t-baseline-auto": "Auto Baseline",
+      "a-trend-scanner": "Trend Scanner",
+      "a-chain-trend1": "Chain Decomposer #1",
+      "a-chain-trend2": "Chain Decomposer #2",
+      "a-chain-trend3": "Chain Decomposer #3",
+      "a-chain-trend4": "Chain Decomposer #4",
+      "a-chain-trend5": "Chain Decomposer #5",
+      "a-chokepoint-trend1": "Chokepoint ID #1",
+      "a-chokepoint-trend2": "Chokepoint ID #2",
+      "a-chokepoint-trend3": "Chokepoint ID #3",
+      "a-chokepoint-trend4": "Bottleneck ID #4",
+      "a-chokepoint-trend5": "Bottleneck ID #5",
+      "a-candidate-mapper": "Candidate Mapper",
+      "c-bottleneck-trend1": "瓶颈指标计算 #1",
+      "c-bottleneck-trend2": "瓶颈指标计算 #2",
+      "c-bottleneck-trend3": "瓶颈指标计算 #3",
+      "c-bottleneck-trend4": "瓶颈指标计算 #4",
+      "c-bottleneck-trend5": "瓶颈指标计算 #5"
+    },
+    "catalystEarnings": "Earnings",
+    "catalystProdRamp": "Ramp Up",
+    "catalystPolicy": "Policy",
+    "catalystSupplyShock": "Supply Shock",
+    "catalystCapacityRelease": "Capacity Release",
+    "catalystContractAward": "Contract",
+    "timeframeShort": "1-3M",
+    "timeframeMid": "3-6M",
+    "timeframeLong": "6M+",
+    "exitNow": "Now",
+    "exitCaution": "Caution",
+    "exitWatch": "Watch",
+    "exitNone": "None",
+    "catalystLabelPrefix": "Catalyst: ",
+    "exitLabelPrefix": "Exit: ",
+    "attentionLabelPrefix": "Attention: ",
+    "heatLabelPrefix": "Heat: ",
+    "feedbackTitle": "Feedback ({{count}} candidates)",
+    "feedbackWinRate": "Win Rate",
+    "feedbackAvgReturn": "Avg Return",
+    "feedbackProfitable": "Profitable/Total",
+    "feedbackButton": "History Feedback",
+    "refreshExitButton": "Refresh Exit Signals",
+    "feedbackCatalyst": "Catalyst {{verified}}/{{total}}",
+    "serenityHistory": {
+      "viewHistory": "इतिहास देखें",
+      "title": "अनुशंसा इतिहास",
+      "generatedAt": "अनुशंसा समय",
+      "period": "अवधि",
+      "stockCount": "शेयर संख्या",
+      "candidateCount": "उम्मीदवार संख्या",
+      "styles": "शैलियाँ",
+      "batchDelete": "बैच हटाएं ({{count}})",
+      "deleteConfirm": "चयनित {{count}} रिकॉर्ड हटाएं?",
+      "deleteSuccess": "{{count}} रिकॉर्ड हटाए गए",
+      "selectedCount": "{{count}} चयनित",
+      "exitSelect": "चयन बंद करें",
+      "empty": "कोई अनुशंसा इतिहास नहीं"
+    }
+  },
+  "quant": {
+    "backtest": {
+      "code": "Stock Code",
+      "codePlaceholder": "Enter stock code (e.g., 600519)",
+      "endDate": "End Date",
+      "errorRunning": "Backtest execution error",
+      "initialCash": "Initial Capital",
+      "noResult": "No backtest results",
+      "overfitWarning": "Overfitting Warning",
+      "result": "Backtest Result",
+      "run": "Run Backtest",
+      "running": "Backtesting...",
+      "selectStrategy": "Select Strategy",
+      "stabilityScore": "Stability Score",
+      "startDate": "Start Date",
+      "title": "Strategy Backtest",
+      "walkForward": "Walk-Forward",
+      "walkForwardForceOff": "Disable Walk-Forward",
+      "walkForwardTitle": "Walk-Forward Backtest"
+    },
+    "common": {
+      "empty": "No data"
+    },
+    "compare": {
+      "compare": "Start Compare",
+      "comparing": "Comparing...",
+      "selectRuns": "Select backtest runs",
+      "title": "Strategy Comparison"
+    },
+    "metrics": {
+      "annualizedReturn": "Annualized Return",
+      "bestBy": "Best Parameters",
+      "maxDrawdownPct": "Max Drawdown",
+      "sharpe": "Sharpe Ratio",
+      "totalReturn": "Total Return",
+      "totalTrades": "Total Trades",
+      "winRate": "Win Rate"
+    },
+    "rhai": {
+      "compileError": "Compile Error",
+      "hint": "Write trading strategy logic in Rhai language",
+      "name": "Script Name",
+      "save": "Save",
+      "saved": "Saved",
+      "source": "Source Code",
+      "title": "Rhai Script Editor",
+      "version": "Version"
+    },
+    "strategy": {
+      "builtin": "Built-in Strategy",
+      "description": "Strategy Description",
+      "lastUpdated": "Last Updated",
+      "name": "Strategy Name",
+      "params": "Strategy Parameters",
+      "rhai": "Rhai Script Strategy",
+      "type": "Strategy Type",
+      "version": "Version"
+    },
+    "subtitle": "Strategy Backtest · Parameter Optimization · Signal Evaluation",
+    "tabs": {
+      "backtest": "Backtest",
+      "compare": "Compare",
+      "rhai": "Rhai Script",
+      "strategies": "Strategies"
+    },
+    "title": "Quant Lab",
+    "trades": {
+      "amount": "Amount",
+      "code": "Code",
+      "empty": "No trade records",
+      "fee": "Fee",
+      "filterAll": "All",
+      "flat": "Close",
+      "flatCount": "Closed Trades",
+      "long": "Long",
+      "longCount": "Long Trades",
+      "price": "Price",
+      "quantity": "Qty",
+      "realizedPnl": "Realized P&L",
+      "reason": "Reason",
+      "searchPlaceholder": "Search trade records",
+      "short": "Short",
+      "shortCount": "Short Trades",
+      "side": "Side",
+      "time": "Time",
+      "totalAmount": "Total Amount",
+      "totalCount": "Total Trades",
+      "totalFee": "Total Fee",
+      "totalPnl": "Total P&L",
+      "totalRows": "{{count}} records"
+    }
+  },
+  "ipc": {
+    "disconnected": "Backend connection lost",
+    "disconnectedHint": "The app was idle in the background. The IPC channel may have been disconnected.",
+    "reconnecting": "Reconnecting…",
+    "retry": "Retry"
   }
 }

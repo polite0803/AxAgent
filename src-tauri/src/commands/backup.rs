@@ -58,8 +58,9 @@ pub async fn restore_backup(
                 .await
                 .map_err(|e| e.to_string())?;
             // 移除残留的 WAL/SHM 文件，防止 SQLite 在重启后回放不兼容的日志
-            let _ = std::fs::remove_file(format!("{}-wal", db_path));
-            let _ = std::fs::remove_file(format!("{}-shm", db_path));
+            let db_path = std::path::Path::new(db_path);
+            let _ = std::fs::remove_file(db_path.with_extension("db-wal"));
+            let _ = std::fs::remove_file(db_path.with_extension("db-shm"));
 
             // SQLite 恢复后需要重启应用
             app.restart();

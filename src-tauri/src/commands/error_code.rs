@@ -15,6 +15,8 @@
 
 /// 会话/对话相关错误码
 pub mod conversation {
+    /// 内部服务器错误
+    pub const INTERNAL: &str = "CONVERSATION_INTERNAL";
     /// 此会话不是工作流类型，请使用普通归档
     pub const NOT_WORKFLOW: &str = "CONVERSATION_NOT_WORKFLOW";
     /// 会话已归档，请勿重复操作
@@ -137,6 +139,8 @@ pub mod expert {
 
 /// Agent相关错误码
 pub mod agent {
+    /// 内部服务器错误
+    pub const INTERNAL: &str = "AGENT_INTERNAL";
     /// Agent已在运行
     pub const RUNNING: &str = "AGENT_RUNNING";
     /// Agent未运行
@@ -327,6 +331,16 @@ pub mod gateway {
     pub const HTTP_UNAVAILABLE: &str = "GATEWAY_HTTP_UNAVAILABLE";
     /// 网关已在运行
     pub const ALREADY_RUNNING: &str = "GATEWAY_ALREADY_RUNNING";
+}
+
+/// 通用错误码
+pub mod common {
+    /// 内部服务器错误
+    pub const INTERNAL: &str = "COMMON_INTERNAL";
+    /// 无效的输入参数
+    pub const INVALID_INPUT: &str = "COMMON_INVALID_INPUT";
+    /// 超时
+    pub const TIMEOUT: &str = "COMMON_TIMEOUT";
 }
 
 // ── 别名模块：统一子命令内部使用的简写名称 ──

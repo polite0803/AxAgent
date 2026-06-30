@@ -5,8 +5,8 @@
     "description": "Asistente de Trabajo Impulsado por IA"
   },
   "artifact": {
-    "copiedToClipboard": "",
-    "copyFailed": ""
+    "copiedToClipboard": "Copied to clipboard",
+    "copyFailed": "Copy failed"
   },
   "nav": {
     "chat": "Chat",
@@ -23,15 +23,29 @@
     "link": "Enlace",
     "devTools": "Herramientas de desarrollo",
     "wiki": "Wiki",
-    "app": "AxAgent"
+    "app": "AxAgent",
+    "stockAnalysis": "Stock Analysis",
+    "watchlist": "Lista de seguimiento",
+    "screener": "Filtro",
+    "trade": "Trade",
+    "backtest": "Backtest",
+    "compare": "Comparar",
+    "recommend": "推荐",
+    "quant": "量化",
+    "replayWorkbench": "回放工作台"
   },
   "sidebar": {
     "sectionWork": "Trabajo",
     "sectionTools": "Herramientas",
+    "sectionInvest": "Inversión",
     "sectionInfrastructure": "Infraestructura",
     "sectionPlugins": "Plugins",
     "expand": "Expandir barra lateral",
-    "collapse": "Contraer barra lateral"
+    "collapse": "Contraer barra lateral",
+    "sectionInvestDiscover": "Discover",
+    "sectionInvestMonitor": "Monitor",
+    "sectionInvestExecute": "Execute",
+    "sectionInvestReview": "Review"
   },
   "chat": {
     "newConversation": "Nueva conversación",
@@ -542,8 +556,8 @@
         "AGENT_STATUS_INITIALIZING": "Inicializando...",
         "AGENT_STATUS_CALLING_MODEL": "Llamando al modelo...",
         "AGENT_STATUS_STEER_APPLIED": "{count} instrucción(es) de dirección aplicada(s)",
-        "THINKING_BLOCK_START": "",
-        "THINKING_BLOCK_END": "",
+        "THINKING_BLOCK_START": "Start",
+        "THINKING_BLOCK_END": "End",
         "TITLE_NO_MESSAGES": "No se encontraron mensajes para generar título",
         "SESSION_NO_MESSAGES_TO_COMPRESS": "No hay mensajes para comprimir",
         "STEER_INSTRUCTION_TOO_LONG": "Instrucción demasiado larga (máx 10KB)",
@@ -701,7 +715,9 @@
       "noSteps": "Sin pasos",
       "chart": {
         "renderError": "Error al renderizar el gráfico"
-      }
+      },
+      "elapsedHint": "Node runtime, auto-refreshes every 1s",
+      "lastUpdatedHint": "Last workflow status fetch time"
     },
     "modelRoutingConfig": {
       "title": "Configuración de enrutamiento de modelo",
@@ -1134,6 +1150,23 @@
       "ask": "Pregunta",
       "plan": "Plan",
       "title": "Cambiar modo"
+    },
+    "multiModelVote": {
+      "button": "Aggregate Vote",
+      "title": "Multi-Model Decision Vote",
+      "strategy": "Aggregation Strategy",
+      "strategyMajority": "Majority Vote",
+      "strategyWeighted": "Confidence-Weighted",
+      "strategyConsensus": "Unanimous Consensus",
+      "modelCount": "Models Participated",
+      "validCount": "Valid Decisions",
+      "finalAction": "Final Action",
+      "winnerModel": "Winner Model",
+      "avgConfidence": "Avg. Confidence",
+      "voteBreakdown": "Vote Breakdown",
+      "allAgree": "All models agree",
+      "disagreement": "Disagreement detected",
+      "noDecision": "No decision to aggregate"
     }
   },
   "gateway": {
@@ -2487,9 +2520,9 @@
     "workflow": {
       "title": "Configuración del flujo de trabajo",
       "description": "Gestionar plantillas de flujo de trabajo y configuración del editor",
-      "createdSuccess": "",
-      "deletedSuccess": "",
-      "sampleAdded": "",
+      "createdSuccess": "Created successfully",
+      "deletedSuccess": "Deleted successfully",
+      "sampleAdded": "Sample added",
       "createNew": "Crear nueva plantilla",
       "visualEditor": "Editor visual",
       "visualEditorDesc": "Crear y editar flujos de trabajo con el editor DAG de arrastrar y soltar",
@@ -2558,7 +2591,8 @@
     "provider": {
       "deepseekBalance": "Saldo de DeepSeek",
       "noValidKey": "Sin clave válida"
-    }
+    },
+    "stockAnalysis": "Stock Analysis"
   },
   "backup": {
     "title": "Centro de copias de seguridad",
@@ -2699,6 +2733,7 @@
     "permissionAcceptEdits": "Aceptar ediciones",
     "permissionFullAccess": "Acceso completo",
     "selectDirectory": "Seleccionar directorio",
+    "unknown": "Desconocido",
     "workingDirectory": "Directorio de trabajo",
     "permissionRequired": "Permiso requerido",
     "toolInput": "Entrada de herramienta",
@@ -2765,10 +2800,16 @@
     "retry": "Reintentar",
     "default": "Predeterminado",
     "operationFailed": "Operación fallida",
-    "key": "",
-    "value": "",
+    "key": "Key",
+    "value": "Value",
     "hide": "Ocultar",
-    "searchPlaceholder": "Buscar..."
+    "searchPlaceholder": "Buscar...",
+    "exportMarkdown": "Export Markdown",
+    "saveFailed": "Save failed",
+    "saved": "Saved",
+    "unknownError": "Unknown error",
+    "deleted": "Eliminado",
+    "required": "Obligatorio"
   },
   "multiAgent": {
     "title": "Estado Multi-Agente",
@@ -2835,8 +2876,8 @@
   },
   "tray": {
     "show": "Mostrar",
-    "key": "",
-    "value": "",
+    "key": "Key",
+    "value": "Value",
     "hide": "Ocultar",
     "quit": "Salir"
   },
@@ -3061,7 +3102,8 @@
     "dismiss": "Descartar",
     "atomic": "Atómico",
     "extractAtomic": "Extract Atomic Skills",
-    "stats": "Estadísticas"
+    "stats": "Estadísticas",
+    "atomicSkills": "Atomic Skills"
   },
   "agent": {
     "askUserPlaceholder": "Escriba su respuesta...",
@@ -3976,7 +4018,10 @@
       "axagentFolderHint": "Seleccione una carpeta que contenga archivos JSON en formato AxAgent. Todas las plantillas de flujo de trabajo se escanearán e importarán automáticamente.",
       "n8nFolderHint": "Seleccione una carpeta que contenga archivos JSON en formato n8n. Todos los flujos de trabajo n8n se convertirán e importarán automáticamente.",
       "importStructuralErrors": "Imported workflow has {{count}} structural error(s):\n{{details}}",
-      "importValidationWarnings": "Imported workflow has {{count}} warning(s):\n{{details}}"
+      "importValidationWarnings": "Imported workflow has {{count}} warning(s):\n{{details}}",
+      "fileTooLarge": "File too large",
+      "invalidJsonFile": "Invalid JSON file",
+      "jsonTooDeep": "JSON nesting too deep"
     },
     "preview": "Vista previa",
     "publish": "Publicar",
@@ -4029,7 +4074,12 @@
       "diffNodeTypeChanged": "Node type changed",
       "diffNodeConfigChanged": "Node config changed",
       "diffEdgeAdded": "Edge added ({{type}})",
-      "diffEdgeRemoved": "Edge removed ({{type}})"
+      "diffEdgeRemoved": "Edge removed ({{type}})",
+      "latest": "Latest",
+      "rollback": "Rollback to This Version",
+      "rollbackConfirm": "Confirm rollback?",
+      "rollbackTo": "Rollback to {{version}}",
+      "rolledBack": "Rolled back"
     },
     "versionHistoryLoadFailed": "Error al cargar historial de versiones",
     "versionLoaded": "Versión{{version}} loaded",
@@ -4262,15 +4312,15 @@
       "defaultCodePythonComment": "# Input: input\n# El valor de retorno se guarda en output_var",
       "codeInputParams": "Parámetros de entrada: input",
       "codeReturnHint": "El valor de retorno se almacenará en output_var",
-      "roleCoordinator": "",
-      "roleBrowser": "",
-      "selectRole": "",
-      "roleTag": "",
-      "bindRole": "",
-      "expertNotFound": "",
-      "profileMatched": "",
-      "profileCreated": "",
-      "profileCreateFailed": "",
+      "roleCoordinator": "Coordinator",
+      "roleBrowser": "Browser",
+      "selectRole": "Select role",
+      "roleTag": "Role: {{role}}",
+      "bindRole": "Bind role",
+      "expertNotFound": "Expert not found",
+      "profileMatched": "Matched to existing profile",
+      "profileCreated": "Profile created",
+      "profileCreateFailed": "Profile create failed: {{error}}",
       "executionMode": "Modo de ejecución",
       "executionReact": "Reactivo",
       "executionPlan": "Planificado",
@@ -4345,7 +4395,19 @@
       "switchValuePlaceholder": "value",
       "to": "Para",
       "urlPlaceholder": "https://api.example.com/data",
-      "webhookUrlPlaceholder": "https://hook.example.com/..."
+      "webhookUrlPlaceholder": "https://hook.example.com/...",
+      "inputVariablePlaceholder": "e.g. data.result",
+      "backend": "Storage Backend",
+      "vectorDb": "Vector Database",
+      "fileSystem": "File System",
+      "operation": "Operation",
+      "insert": "Insert",
+      "upsert": "Upsert",
+      "append": "Append",
+      "collection": "Collection/Table",
+      "collectionPlaceholder": "e.g. records",
+      "keyVariable": "Key Variable",
+      "keyVariablePlaceholder": "e.g. record.id"
     },
     "debug": {
       "totalDuration": "Duración total",
@@ -4431,6 +4493,35 @@
       "showSpanTree": "显示 Span 树",
       "hideSpanTree": "隐藏 Span 树",
       "noSpanData": "暂未解析到 Span 数据"
+    },
+    "validation": {
+      "validation": {
+        "title": "验证规则",
+        "noRules": "暂无验证规则。点击「添加规则」开始创建。",
+        "addRule": "添加规则",
+        "rule": "规则",
+        "ruleName": "规则名称",
+        "ruleNamePlaceholder": "给自己的规则取个名字",
+        "ruleType": "规则类型",
+        "description": "描述",
+        "descriptionPlaceholder": "这条规则是做什么的",
+        "schema": "JSON Schema",
+        "sourceNode": "源节点",
+        "selectNode": "选择节点",
+        "expectedPath": "期望路径",
+        "expectedPathPlaceholder": "例如 output.status",
+        "assertionOp": "断言操作",
+        "expectedValue": "期望值",
+        "expectedValuePlaceholder": "输入期望值",
+        "metric": "指标",
+        "maxValue": "最大值",
+        "minValue": "最小值",
+        "onFailStrategy": "失败策略",
+        "warn": "仅警告",
+        "block": "阻止执行",
+        "continue": "继续执行",
+        "saved": "验证规则已保存"
+      }
     },
     "applySemanticCheck": "Aplicar",
     "applyUpgrade": "Aplicar actualización",
@@ -4639,9 +4730,9 @@
       "roleReviewer": "Revisor",
       "roleSynthesizer": "Sintetizador",
       "roleExecutor": "Ejecutor",
-      "agent": "",
-      "roleCoordinator": "",
-      "roleBrowser": ""
+      "agent": "Agent",
+      "roleCoordinator": "Coordinator",
+      "roleBrowser": "Browser"
     },
     "conditionNode": {
       "title": "Condición",
@@ -4718,7 +4809,12 @@
       "manual": "Manual",
       "schedule": "Programado",
       "event": "Evento",
-      "title": "Disparador"
+      "title": "Disparador",
+      "configure": "Configure Trigger",
+      "configureHint": "Configure trigger conditions and parameters",
+      "statusActive": "Running",
+      "statusDisabled": "Disabled",
+      "statusUnconfigured": "Unconfigured"
     },
     "documentParserNode": {
       "notSet": "No establecido",
@@ -4764,7 +4860,12 @@
     "node": {
       "tickMode": "Modo Tick",
       "breakpoint": "Punto de interrupción",
-      "retryEnabled": "Reintento habilitado"
+      "retryEnabled": "Reintento habilitado",
+      "clickToCollapsePorts": "Click to collapse ports",
+      "clickToExpandPorts": "Click to expand ports",
+      "inputs": "Inputs",
+      "outputs": "Outputs",
+      "type": "Type"
     },
     "code": {
       "rhaiDynamicTool": "🦀 Rhai (Herramienta dinámica)",
@@ -5208,7 +5309,10 @@
     },
     "swarmNode": {
       "agents": "Agents",
-      "rounds": "rounds"
+      "rounds": "rounds",
+      "newAgent": "Agent",
+      "noAgentsHint": "Add Agent nodes inside this container",
+      "addAgent": "Add Agent"
     },
     "groupNode": {
       "untitled": "Group",
@@ -5242,37 +5346,16 @@
     },
     "run": "Run",
     "settings": "Settings",
+    "workflowRef": {
+      "targetWorkflow": "Target Workflow",
+      "contextMode": "Context Mode",
+      "inherit": "Inherit",
+      "isolated": "Isolated"
+    },
+    "durationMinutes": "{{minutes}} min",
+    "durationSeconds": "{{seconds}} sec",
     "aggregatorNode": {
       "inputs": "Entradas"
-    },
-    "validation": {
-      "validation": {
-        "title": "验证规则",
-        "noRules": "暂无验证规则。点击「添加规则」开始创建。",
-        "addRule": "添加规则",
-        "rule": "规则",
-        "ruleName": "规则名称",
-        "ruleNamePlaceholder": "给自己的规则取个名字",
-        "ruleType": "规则类型",
-        "description": "描述",
-        "descriptionPlaceholder": "这条规则是做什么的",
-        "schema": "JSON Schema",
-        "sourceNode": "源节点",
-        "selectNode": "选择节点",
-        "expectedPath": "期望路径",
-        "expectedPathPlaceholder": "例如 output.status",
-        "assertionOp": "断言操作",
-        "expectedValue": "期望值",
-        "expectedValuePlaceholder": "输入期望值",
-        "metric": "指标",
-        "maxValue": "最大值",
-        "minValue": "最小值",
-        "onFailStrategy": "失败策略",
-        "warn": "仅警告",
-        "block": "阻止执行",
-        "continue": "继续执行",
-        "saved": "验证规则已保存"
-      }
     }
   },
   "atomicSkill": {
@@ -6812,7 +6895,8 @@
     "devops": "DevOps",
     "design": "Diseño",
     "writing": "Escritura",
-    "business": "Negocios"
+    "business": "Negocios",
+    "finance": "Finanzas"
   },
   "planStore": {
     "rejectFailed": "Error al rechazar plan: {{error}}",
@@ -6990,14 +7074,14 @@
     }
   },
   "agentRole": {
-    "coordinator": "",
-    "researcher": "",
-    "planner": "",
-    "developer": "",
-    "reviewer": "",
-    "browser": "",
-    "synthesizer": "",
-    "executor": ""
+    "coordinator": "Coordinator",
+    "researcher": "Researcher",
+    "planner": "Planner",
+    "developer": "Developer",
+    "reviewer": "Reviewer",
+    "browser": "Browser",
+    "synthesizer": "Synthesizer",
+    "executor": "Executor"
   },
   "stream": {
     "timeout": "⚠️ Tiempo de espera agotado (5 min sin actualización), detenido automáticamente"
@@ -7216,9 +7300,9 @@
     "yes": "Sí",
     "no": "No",
     "cancel": "Cancelar",
-    "createdSuccess": "",
-    "deletedSuccess": "",
-    "sampleAdded": "",
+    "createdSuccess": "Dataset created",
+    "deletedSuccess": "Dataset deleted",
+    "sampleAdded": "Sample added",
     "createNew": "Crear nuevo dataset"
   },
   "loraConfig": {
@@ -7362,7 +7446,50 @@
     "errorRecoveryScore": "Recuperación de errores",
     "goalCompletionScore": "Cumplimiento de objetivos",
     "reflectError": "Reflexión fallida",
-    "retry": "Reintentar"
+    "retry": "Reintentar",
+    "autoTrigger": "Auto-Triggered",
+    "delete": {
+      "confirm": "Delete this insight?",
+      "failed": "Failed to delete insight",
+      "success": "Insight deleted"
+    },
+    "deleteInsight": "Delete Insight",
+    "feedback": {
+      "failed": "Feedback submission failed",
+      "notFound": "Insight not found",
+      "thanksNotUseful": "Thanks! Marked as not useful",
+      "thanksUseful": "Thanks! Marked as useful"
+    },
+    "notUseful": "Not Useful",
+    "settings": {
+      "cancel": "Cancel",
+      "core": "Core Settings",
+      "decayDays": "Decay Days",
+      "maxHistory": "Max History",
+      "maxInsights": "Max Insights",
+      "qualityThreshold": "Quality Threshold",
+      "reset": "Reset",
+      "save": "Save",
+      "saved": "Settings saved",
+      "title": "Reflection Settings",
+      "decayDaysHint": "Insights automatically decay in weight after N days",
+      "enabled": "Enable Auto-Reflection",
+      "enabledHint": "Auto-trigger reflection after task execution",
+      "errorSection": "Error Analysis",
+      "insightSection": "Insight Settings",
+      "maxHistoryHint": "Keep the most recent N reflection history entries",
+      "maxInsightsHint": "Keep at most N insight records",
+      "qualitySection": "Quality Threshold",
+      "qualityThresholdHint": "Insights below this threshold will be filtered out",
+      "saveFailed": "Save failed",
+      "storageSection": "Storage Settings",
+      "storeInsights": "Persist Insights",
+      "storeInsightsHint": "Insights will be saved locally and available across sessions",
+      "subtitle": "Configure auto-reflection and insight management",
+      "useErrorClassifier": "Enable Error Classifier",
+      "useErrorClassifierHint": "Auto-classify error patterns for analysis"
+    },
+    "useful": "Useful"
   },
   "subAgentCard": {
     "viewConversation": "Ver sub-conversación",
@@ -7450,7 +7577,9 @@
     "steerInput": "Dirigir",
     "showExtras": "Más",
     "hideExtras": "Menos",
-    "close": "Cerrar"
+    "close": "Cerrar",
+    "collapse": "Collapse Panel",
+    "expand": "Expand Panel"
   },
   "knowledgeSettings": {
     "title": "Conocimiento"
@@ -7523,5 +7652,382 @@
     "recordAudio": "Grabar audio",
     "takePhoto": "Tomar foto",
     "uploadFile": "Subir archivo"
+  },
+  "trade": {
+    "title": "Trading Log",
+    "disabledHint": "Enable to record buy/sell trades. Tracks position cost and P&L.",
+    "stockCode": "Code",
+    "stockName": "Name",
+    "buy": "Buy",
+    "sell": "Sell",
+    "price": "Price",
+    "quantity": "Qty",
+    "cost": "Cost",
+    "shares": "Position",
+    "pnl": "P&L",
+    "recorded": "Recorded",
+    "fillRequired": "Fill required fields",
+    "toggleFailed": "Toggle failed",
+    "limitsBlocked": "Position limits blocked",
+    "agentRole.coordinator": "Coordinator",
+    "agentRole.researcher": "Researcher",
+    "agentRole.planner": "Planner",
+    "agentRole.developer": "Developer",
+    "agentRole.reviewer": "Reviewer",
+    "agentRole.browser": "Browser",
+    "agentRole.synthesizer": "Synthesizer",
+    "agentRole.executor": "Executor",
+    "placeholder": "Ejecutar y revisar operaciones",
+    "agentRole": {
+      "browser": "Browser",
+      "coordinator": "Coordinator",
+      "developer": "Developer",
+      "executor": "Executor",
+      "planner": "Planner",
+      "researcher": "Researcher",
+      "reviewer": "Reviewer",
+      "synthesizer": "Synthesizer"
+    }
+  },
+  "watchlist": {
+    "title": "Lista de seguimiento",
+    "placeholder": "Gestionar lista y alertas de precio"
+  },
+  "screener": {
+    "title": "Filtro de acciones",
+    "placeholder": "Buscar acciones por criterios",
+    "tab": {
+      "smartReco": "Recomendaciones",
+      "myFilter": "Mi filtro",
+      "serenity": "Bottleneck Hunt"
+    }
+  },
+  "backtest": {
+    "title": "Backtest",
+    "placeholder": "Validar estrategias con datos históricos"
+  },
+  "compare": {
+    "title": "Comparación",
+    "placeholder": "Comparar acciones con sus pares"
+  },
+  "dualView": {
+    "notRegistered": "Vista dual no registrada: {{id}}",
+    "expand": "Expandir a {{title}}",
+    "expandToPanel": "Expandir a panel",
+    "collapse": "Contraer",
+    "collapseToBubble": "Contraer a burbuja",
+    "decision": {
+      "llmUnavailableHint": "LLM analysis is temporarily unavailable. Please check your model configuration or network connection",
+      "title": "Decision: Dual-View Comparison",
+      "field": "Decision Dimension",
+      "formula": "Formula View",
+      "llm": "LLM View",
+      "action": "Trade Action",
+      "positionPct": "Position %",
+      "confidence": "Confidence",
+      "reasoning": "Reasoning",
+      "formulaReasoningOmitted": "Formula has no reasoning chain",
+      "formulaBadge": "Formula",
+      "llmBadge": "LLM",
+      "llmUnavailable": "LLM view unavailable",
+      "reviewRecommended": "Manual Review Recommended",
+      "highAgreementHint": "High agreement between views",
+      "midAgreementHint": "Partial agreement between views",
+      "lowAgreementHint": "Views diverge significantly",
+      "llmMissingHint": "Agreement score: {{score}}/100"
+    }
+  },
+  "timeTravel": {
+    "modeSwitch": {
+      "live": "EN VIVO",
+      "replay": "Replay {{date}}",
+      "sweep": "Backtest por lotes",
+      "tooltipLive": "Haga clic para entrar en modo Replay (analizar a una fecha pasada)",
+      "tooltipReplay": "Haga clic para volver al modo En vivo",
+      "confirmTitle": "¿Volver al modo En vivo?",
+      "confirmBody": "El modo En vivo usa datos en tiempo real y las conclusiones anteriores pueden haber sido invalidadas por nueva información. El modo Replay cierra el mundo en una fecha pasada elegida para evitar el sesgo de look-ahead.",
+      "confirmOk": "Cambiar a En vivo",
+      "confirmCancel": "Permanecer en Replay",
+      "currentlyInReplay": "Reproduciendo al {{date}}.",
+      "enteredReplay": "Modo Replay activado: {{date}}",
+      "switchedToLive": "Cambiado al modo En vivo"
+    },
+    "datePicker": {
+      "hint": "Elija un día de cotización pasado. Hoy y fechas futuras están deshabilitados (supuesto de mundo cerrado).",
+      "placeholder": "Seleccionar fecha de referencia",
+      "ok": "Iniciar Replay",
+      "cancel": "Cancelar"
+    },
+    "pageAnchor": {
+      "live": "En vivo",
+      "replay": "Replay",
+      "untilDate": "al {{date}}"
+    },
+    "replayBadge": {
+      "label": "Replay · {{date}}",
+      "tooltip": "Todos los datos, prompts y veredictos de esta vista están anclados al {{date}}. No usar para trading en vivo.",
+      "replay": "Replay {{date}}",
+      "sweep": "Batch Scan"
+    },
+    "replayWatermark": {
+      "label": "al {{date}}"
+    },
+    "tour": {
+      "title": "El modo Viaje en el tiempo está disponible",
+      "body": "Ancle todos los análisis y recomendaciones a un día de cotización pasado para backtestear estrategias de forma segura, sin sesgo de look-ahead. El sistema rechazará fechas futuras y las violaciones de marca temporal se resaltarán en la línea de tiempo.",
+      "gotIt": "Entendido",
+      "stepAnchor": "Haga clic en la píldora EN VIVO en cualquier momento para entrar al modo Replay."
+    },
+    "violations": {
+      "chip": "⚠ {{n}} violación",
+      "chip_plural": "⚠ {{n}} violaciones",
+      "chipAria": "{{n}} violación(es) de referencia futura en este nodo",
+      "tooltip": "La salida de este nodo menciona fechas posteriores al ancla as-of. Trate su conclusión como no confiable.",
+      "markClass": "ax-violation-mark"
+    },
+    "recommendationBanner": "Modo Replay activo. Las selecciones, precios y bandas de entrada están ancladas al {{date}}. No usar para trading en vivo.",
+    "backtestHint": "Estas estadísticas agregan todos los análisis completados (en vivo + replay) al {{date}}. Use el Banco de Trabajo Replay para filtrar por modo.",
+    "degradedStyles": {
+      "title": "Fuentes de datos degradadas bajo truncamiento as-of",
+      "description": "Los siguientes estilos de datos se redujeron en fidelidad porque la fecha as-of {{date}} corta el historial necesario para la señal completa.",
+      "reason": "Motivo: {{reason}}",
+      "hint": "Un resultado degradado no es un resultado incorrecto; es menos informativo. Trate su confianza como inferior a la de los estilos no degradados.",
+      "vendor": "proveedor: {{name}}"
+    },
+    "degradedMarker": {
+      "label": "Degradado · Algunos datos sin historial",
+      "labelWithCount": "Degradado · {{n}} elementos",
+      "tooltip": "En modo replay, flujo de dinero/margen/tenencia norte-bound etc. no tienen semántica histórica y se omitieron."
+    }
+  },
+  "replayWorkbench": {
+    "title": "Banco de Trabajo Replay",
+    "description": "Ancle todos los datos a un día pasado. El sistema rechazará fechas futuras. Backtestee sus estrategias de forma segura, sin sesgo de look-ahead.",
+    "step1": {
+      "title": "Elegir fecha de referencia",
+      "currentlyPicked": "Actualmente reproduciendo al {{date}}",
+      "reselect": "Volver a elegir"
+    },
+    "step2": {
+      "title": "Ejecutar análisis con conciencia de Replay",
+      "description": "Todas las acciones a continuación inyectan as_of_date = {{date}} en el backend y cierran el mundo en esa fecha.",
+      "analyze": "Analizar una sola acción",
+      "backtest": "Ver estadísticas de backtest",
+      "watchlist": "Ver watchlist"
+    },
+    "sweep": {
+      "title": "Matriz de barrido Replay",
+      "intro": "Ejecuta backtest en lote sobre acciones × fechas de referencia. Obliga a re-seleccionar el rango (no hereda del TimeAnchor global).",
+      "codesLabel": "Códigos de acciones (uno por línea o separados por comas)",
+      "codesPlaceholder": "600519\n000001\n000333",
+      "dateRangeLabel": "Rango de fechas de referencia (solo días hábiles)",
+      "holdingDaysLabel": "Días de tenencia",
+      "actionLabel": "Decisión hipotética",
+      "confidenceLabel": "Confianza de la decisión (0–1)",
+      "runBtn": "Iniciar barrido",
+      "running": "Barrido en curso {{done}} / {{total}} …",
+      "summary": "Barrido terminado: de {{total}},{{valid}} válidos / {{invalid}} inválidos.",
+      "violationNotice": "{{count}} violaciones as-of registradas — ver el panel Invalid.",
+      "invalidTitle": "Muestras inválidas",
+      "noInvalid": "Sin muestras inválidas.",
+      "exportCsv": "Exportar CSV",
+      "exportJson": "Exportar JSON"
+    },
+    "notice": "Todos los datos, prompts y veredictos de este banco de trabajo están anclados a la fecha elegida. Volver al modo En vivo requiere confirmación explícita.",
+    "exitHint": "Aún está en modo Replay. Cualquier análisis nuevo iniciado en otro lugar también estará anclado al replay.",
+    "exitBtn": "Volver a En vivo"
+  },
+  "serenityPanel": {
+    "desc": "Método de cuellos de botella Serenity: cribar automáticamente acciones potenciales descubriendo enlaces de cuellos de botella en la cadena industrial a partir de datos del mercado",
+    "run": "Ejecutar cribado Serenity",
+    "running": "Cribando...",
+    "stage_loading": "Cargando plantilla de flujo de trabajo...",
+    "stage_scanning": "Etapa 0/4: Escaneando tendencias del mercado",
+    "stage_decomposing": "Etapa 1/4: Descomponiendo cadena industrial",
+    "stage_identifying": "Etapa 2/4: Identificando enlaces de cuellos de botella",
+    "stage_mapping": "Etapa 3/4: Mapeando empresas candidatas",
+    "stage_saving": "Etapa 4/4: Guardando resultados",
+    "stage_done": "Cribado completado",
+    "stage_error": "Fallo en el cribado",
+    "analyzing": "Analizando datos de la cadena industrial, el razonamiento LLM requiere 1-3 minutos...",
+    "trendTitle": "Tendencias industriales descubiertas",
+    "bottleneckLink": "Enlace de cuello de botella: ",
+    "candidateTitle": "Candidatos",
+    "directBenefit": "Beneficiario directo",
+    "indirectBenefit": "Beneficiario indirecto",
+    "themeRelated": "Tema relacionado",
+    "bottleneckProduct": "Producto de cuello de botella: ",
+    "riskPrefix": "Riesgo: ",
+    "confidencePrefix": "Confianza ",
+    "scoreSuffix": " puntos",
+    "emptyHint": "Haga clic en el botón de arriba para ejecutar el cribado de cuellos de botella Serenity",
+    "noCandidateTitle": "No se generaron acciones candidatas",
+    "errorUnknown": "Error desconocido",
+    "callFailed": "Llamada fallida",
+    "stepLogTitle": "Execution Log",
+    "nodeTitles": {
+      "trigger": "Start Screening",
+      "t-industry-rank": "Industry Ranking",
+      "t-cls-flash": "Real-time Flash",
+      "t-northbound": "Northbound Capital",
+      "t-baseline-semi": "Semi Baseline",
+      "t-baseline-battery": "Battery Baseline",
+      "t-baseline-chem": "Chem Baseline",
+      "t-baseline-med": "Medical Baseline",
+      "t-baseline-aero": "Aerospace Baseline",
+      "t-baseline-consumer-elec": "Consumer Elec Baseline",
+      "t-baseline-auto": "Auto Baseline",
+      "a-trend-scanner": "Trend Scanner",
+      "a-chain-trend1": "Chain Decomposer #1",
+      "a-chain-trend2": "Chain Decomposer #2",
+      "a-chain-trend3": "Chain Decomposer #3",
+      "a-chain-trend4": "Chain Decomposer #4",
+      "a-chain-trend5": "Chain Decomposer #5",
+      "a-chokepoint-trend1": "Chokepoint ID #1",
+      "a-chokepoint-trend2": "Chokepoint ID #2",
+      "a-chokepoint-trend3": "Chokepoint ID #3",
+      "a-chokepoint-trend4": "Bottleneck ID #4",
+      "a-chokepoint-trend5": "Bottleneck ID #5",
+      "a-candidate-mapper": "Candidate Mapper",
+      "c-bottleneck-trend1": "瓶颈指标计算 #1",
+      "c-bottleneck-trend2": "瓶颈指标计算 #2",
+      "c-bottleneck-trend3": "瓶颈指标计算 #3",
+      "c-bottleneck-trend4": "瓶颈指标计算 #4",
+      "c-bottleneck-trend5": "瓶颈指标计算 #5"
+    },
+    "catalystEarnings": "Earnings",
+    "catalystProdRamp": "Ramp Up",
+    "catalystPolicy": "Policy",
+    "catalystSupplyShock": "Supply Shock",
+    "catalystCapacityRelease": "Capacity Release",
+    "catalystContractAward": "Contract",
+    "timeframeShort": "1-3M",
+    "timeframeMid": "3-6M",
+    "timeframeLong": "6M+",
+    "exitNow": "Now",
+    "exitCaution": "Caution",
+    "exitWatch": "Watch",
+    "exitNone": "None",
+    "catalystLabelPrefix": "Catalyst: ",
+    "exitLabelPrefix": "Exit: ",
+    "attentionLabelPrefix": "Attention: ",
+    "heatLabelPrefix": "Heat: ",
+    "feedbackTitle": "Feedback ({{count}} candidates)",
+    "feedbackWinRate": "Win Rate",
+    "feedbackAvgReturn": "Avg Return",
+    "feedbackProfitable": "Profitable/Total",
+    "feedbackButton": "History Feedback",
+    "refreshExitButton": "Refresh Exit Signals",
+    "feedbackCatalyst": "Catalyst {{verified}}/{{total}}",
+    "serenityHistory": {
+      "viewHistory": "Ver historial de cuellos de botella",
+      "title": "Historial de cuellos de botella",
+      "generatedAt": "Fecha de recomendación",
+      "candidateCount": "Candidatos",
+      "batchDelete": "Eliminar lotes ({{count}})",
+      "deleteConfirm": "¿Eliminar {{count}} registros seleccionados?",
+      "deleteSuccess": "{{count}} registros eliminados",
+      "selectedCount": "{{count}} seleccionados",
+      "exitSelect": "Salir selección múltiple",
+      "empty": "Sin historial de cuellos de botella"
+    }
+  },
+  "quant": {
+    "backtest": {
+      "code": "Stock Code",
+      "codePlaceholder": "Enter stock code (e.g., 600519)",
+      "endDate": "End Date",
+      "errorRunning": "Backtest execution error",
+      "initialCash": "Initial Capital",
+      "noResult": "No backtest results",
+      "overfitWarning": "Overfitting Warning",
+      "result": "Backtest Result",
+      "run": "Run Backtest",
+      "running": "Backtesting...",
+      "selectStrategy": "Select Strategy",
+      "stabilityScore": "Stability Score",
+      "startDate": "Start Date",
+      "title": "Strategy Backtest",
+      "walkForward": "Walk-Forward",
+      "walkForwardForceOff": "Disable Walk-Forward",
+      "walkForwardTitle": "Walk-Forward Backtest"
+    },
+    "common": {
+      "empty": "No data"
+    },
+    "compare": {
+      "compare": "Start Compare",
+      "comparing": "Comparing...",
+      "selectRuns": "Select backtest runs",
+      "title": "Strategy Comparison"
+    },
+    "metrics": {
+      "annualizedReturn": "Annualized Return",
+      "bestBy": "Best Parameters",
+      "maxDrawdownPct": "Max Drawdown",
+      "sharpe": "Sharpe Ratio",
+      "totalReturn": "Total Return",
+      "totalTrades": "Total Trades",
+      "winRate": "Win Rate"
+    },
+    "rhai": {
+      "compileError": "Compile Error",
+      "hint": "Write trading strategy logic in Rhai language",
+      "name": "Script Name",
+      "save": "Save",
+      "saved": "Saved",
+      "source": "Source Code",
+      "title": "Rhai Script Editor",
+      "version": "Version"
+    },
+    "strategy": {
+      "builtin": "Built-in Strategy",
+      "description": "Strategy Description",
+      "lastUpdated": "Last Updated",
+      "name": "Strategy Name",
+      "params": "Strategy Parameters",
+      "rhai": "Rhai Script Strategy",
+      "type": "Strategy Type",
+      "version": "Version"
+    },
+    "subtitle": "Strategy Backtest · Parameter Optimization · Signal Evaluation",
+    "tabs": {
+      "backtest": "Backtest",
+      "compare": "Compare",
+      "rhai": "Rhai Script",
+      "strategies": "Strategies"
+    },
+    "title": "Quant Lab",
+    "trades": {
+      "amount": "Amount",
+      "code": "Code",
+      "empty": "No trade records",
+      "fee": "Fee",
+      "filterAll": "All",
+      "flat": "Close",
+      "flatCount": "Closed Trades",
+      "long": "Long",
+      "longCount": "Long Trades",
+      "price": "Price",
+      "quantity": "Qty",
+      "realizedPnl": "Realized P&L",
+      "reason": "Reason",
+      "searchPlaceholder": "Search trade records",
+      "short": "Short",
+      "shortCount": "Short Trades",
+      "side": "Side",
+      "time": "Time",
+      "totalAmount": "Total Amount",
+      "totalCount": "Total Trades",
+      "totalFee": "Total Fee",
+      "totalPnl": "Total P&L",
+      "totalRows": "{{count}} records"
+    }
+  },
+  "ipc": {
+    "disconnected": "Backend connection lost",
+    "disconnectedHint": "The app was idle in the background. The IPC channel may have been disconnected.",
+    "reconnecting": "Reconnecting…",
+    "retry": "Retry"
   }
 }
