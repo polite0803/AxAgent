@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-/* eslint-disable react-hooks/refs, react-refresh/only-export-components, react-hooks/set-state-in-effect, react-hooks/preserve-manual-memoization */
+/* eslint-disable react-hooks/refs, react-refresh/only-export-components */
 // 本文件大量使用 refs 做渲染时缓存，React Compiler 规则与之冲突，主动禁用。
 
 // Local message types (replacing @ant-design/x Bubble)
