@@ -5,6 +5,12 @@
   "total_files": 251,
   "entries": [
     {
+      "file": "src/stores/domain/streamStore.ts",
+      "lines": "933,951,1149,1167",
+      "reason": "logIpcError 错误日志，非 UI 字符串",
+      "phase": 3
+    },
+    {
       "file": "src/App.tsx",
       "lines": "362,366,382,386",
       "reason": "硬编码中文字符串",
