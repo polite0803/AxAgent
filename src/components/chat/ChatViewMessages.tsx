@@ -4,6 +4,10 @@
 // 本文件大量使用 refs 做渲染时缓存（bubbleItemCacheRef、aiContentNodesCacheRef 等），
 // 这是经过验证的优化模式。React Compiler 的 refs 规则与该模式冲突，主动禁用。
 
+// eslint-disable react-hooks/refs, react-hooks/set-state-in-effect, react-hooks/preserve-manual-memoization
+// 本文件大量使用 refs 做渲染时缓存（bubbleItemCacheRef、aiContentNodesCacheRef 等），
+// 这是经过验证的优化模式。React Compiler 的 refs 规则与该模式冲突，主动禁用。
+
 // Local message types (replacing @ant-design/x Bubble)
 import { type CSSProperties, type ReactNode } from "react";
 
