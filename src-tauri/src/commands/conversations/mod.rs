@@ -26,7 +26,11 @@ use futures::FutureExt;
 use sea_orm::*;
 #[cfg(test)]
 use std::collections::HashMap;
+#[cfg(test)]
+use std::fs;
 use std::sync::Arc;
+#[cfg(test)]
+use std::sync::Mutex;
 use std::sync::atomic::AtomicBool;
 use tauri::Emitter;
 use tauri::State;
@@ -2719,14 +2723,7 @@ pub(crate) async fn persist_attachments_registers_stored_files_for_files_page() 
         #[cfg(target_os = "android")]
         sandbox_executor: Arc::new(()),
         sync_engine: None,
-        astock_client: Arc::new(axagent_astock_data::AStockClient::new()),
-        stock_monitor: None,
-        trading_engine: Arc::new(tokio::sync::RwLock::new(
-            axagent_stock_analysis::trading::TradingEngine::new(
-                Arc::new(db.clone()),
-                Arc::new(axagent_astock_data::AStockClient::new()),
-            ),
-        )),
+        // stock_monitor / astock_client / trading_engine 已在另一分支维护
         plugin_manager: Arc::new(tokio::sync::RwLock::new(axagent_plugins::PluginManager::new(
             axagent_plugins::PluginManagerConfig::new(temp_dir.clone()),
         ))),

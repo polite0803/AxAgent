@@ -16,7 +16,6 @@ use crate::state::{BrowserClientField, SandboxExecutorField};
 use axagent_core::cloud_storage::{CloudStorageConfig, SyncEngine};
 use axagent_plugins::{PluginManager, PluginManagerConfig};
 use axagent_runtime_core::prompt_cache::PromptCache;
-use sea_orm::EntityTrait;
 use tokio_util::sync::CancellationToken;
 
 /// 构造 AppState。

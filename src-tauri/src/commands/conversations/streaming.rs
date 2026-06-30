@@ -2,20 +2,12 @@
 
 use super::*;
 use crate::AppState;
-#[cfg(test)]
-use crate::app_state::SemanticCacheState;
-#[cfg(test)]
-use crate::commands::proactive::ProactiveService;
 use axagent_agent::clean_output;
 use axagent_harness::types::*;
 use axagent_harness::url_utils::resolve_base_url_for_type;
 use axagent_providers::ProviderRequestContext;
-#[cfg(test)]
-use axagent_runtime_core::prompt_cache::PromptCache;
 use dashmap::DashMap;
 use sea_orm::*;
-#[cfg(test)]
-use std::collections::HashMap;
 use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 use tauri::{Emitter, State};
