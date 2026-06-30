@@ -4,7 +4,8 @@
 //!
 //! 为 RLOptimizer 提供训练能力：
 //! - `train()`: 主训练入口，从 ExperiencePool 采样并更新策略
-//! - 自动调度钩子：当经验池新增经验数达到阈值时触发 train()
+//! - `auto_train_if_needed()`: 静态阈值检查，一次性触发
+//! - `ThresholdScheduler`: 有状态调度器，追踪增量并阈值触发
 
 use super::{ExperiencePool, Policy, RLError, RLOptimizer, TrainingStats};
 use chrono::Utc;
@@ -116,8 +117,8 @@ pub fn train(optimizer: &mut RLOptimizer) -> Result<TrainingStats, RLError> {
 
 /// 自动训练调度入口。
 ///
-/// 当经验池大小 >= threshold 时返回 `Some(true)` 表示已触发训练；
-/// 否则返回 `Some(false)` 表示未触发；`None` 表示经验池为空。
+/// 当经验池大小 >= threshold 时返回 `Some(Ok(stats))` 表示已触发训练；
+/// 否则返回 `None` 表示未触发。
 pub fn auto_train_if_needed(optimizer: &mut RLOptimizer, threshold: usize) -> Option<TrainingStats> {
     let pool_size = optimizer.experience_pool.experiences.len();
     if pool_size >= threshold {
@@ -129,6 +130,115 @@ pub fn auto_train_if_needed(optimizer: &mut RLOptimizer, threshold: usize) -> Op
         train(optimizer).ok()
     } else {
         None
+    }
+}
+
+/// 有状态的经验池阈值调度器。
+///
+/// 追踪两次调度之间的经验增量，当新增经验数 >= `increment_threshold`
+/// 或总池大小 >= `pool_threshold` 时触发训练。
+///
+/// # 使用方式
+///
+/// ```ignore
+/// let mut scheduler = ThresholdScheduler::new(100, 500);
+/// // 每次向经验池写入后调用
+/// if let Some(result) = scheduler.check_and_train(&mut optimizer) {
+///     // 训练已触发
+/// }
+/// ```
+pub struct ThresholdScheduler {
+    /// 上次触发训练时的经验池总大小
+    last_train_pool_size: usize,
+    /// 当新增经验数 >= 此值时触发训练
+    increment_threshold: usize,
+    /// 当经验池总大小 >= 此值时触发训练
+    pool_threshold: usize,
+    /// 总共触发训练次数
+    train_count: u64,
+}
+
+impl ThresholdScheduler {
+    pub fn new(increment_threshold: usize, pool_threshold: usize) -> Self {
+        Self {
+            last_train_pool_size: 0,
+            increment_threshold,
+            pool_threshold,
+            train_count: 0,
+        }
+    }
+
+    /// 检查当前经验池状态，必要时触发训练。
+    ///
+    /// 返回：
+    /// - `Some(Ok(stats))` — 训练成功，返回统计信息
+    /// - `Some(Err(e))` — 训练被触发但执行失败
+    /// - `None` — 不满足触发条件，未执行训练
+    pub fn check_and_train(
+        &mut self,
+        optimizer: &mut RLOptimizer,
+    ) -> Option<Result<TrainingStats, RLError>> {
+        let pool_size = optimizer.experience_pool.experiences.len();
+        let new_since_last = pool_size.saturating_sub(self.last_train_pool_size);
+
+        let should_train = new_since_last >= self.increment_threshold
+            || pool_size >= self.pool_threshold;
+
+        if !should_train {
+            return None;
+        }
+
+        tracing::info!(
+            "[ThresholdScheduler] auto-train trigger: pool={}, new_since_last={}, inc_thresh={}, pool_thresh={}",
+            pool_size, new_since_last, self.increment_threshold, self.pool_threshold
+        );
+
+        match train(optimizer) {
+            Ok(stats) => {
+                self.last_train_pool_size = pool_size;
+                self.train_count += 1;
+                tracing::info!(
+                    "[ThresholdScheduler] train #{}, episodes={}, avg_reward={:.3}",
+                    self.train_count,
+                    stats.episodes_completed,
+                    stats.avg_reward
+                );
+                Some(Ok(stats))
+            }
+            Err(e) => {
+                tracing::warn!("[ThresholdScheduler] train failed: {}", e);
+                Some(Err(e))
+            }
+        }
+    }
+
+    /// 强制触发训练（无视阈值）。
+    pub fn force_train(
+        &mut self,
+        optimizer: &mut RLOptimizer,
+    ) -> Result<TrainingStats, RLError> {
+        let pool_size = optimizer.experience_pool.experiences.len();
+        match train(optimizer) {
+            Ok(stats) => {
+                self.last_train_pool_size = pool_size;
+                self.train_count += 1;
+                Ok(stats)
+            }
+            Err(e) => Err(e),
+        }
+    }
+
+    /// 重置调度器状态（通常用于RL训练完成后）。
+    pub fn reset(&mut self) {
+        self.last_train_pool_size = 0;
+    }
+
+    pub fn train_count(&self) -> u64 {
+        self.train_count
+    }
+
+    pub fn last_pool_size(&self) -> usize {
+        self.last_train_pool_size
     }
 }
 
@@ -214,5 +324,78 @@ mod tests {
         }
         let result = auto_train_if_needed(&mut opt, 10);
         assert!(result.is_some());
+    }
+
+    #[test]
+    fn test_threshold_scheduler_increment_trigger() {
+        let mut opt = RLOptimizer::new("test_increment".into(), "Increment Scheduler".into());
+        let mut sched = ThresholdScheduler::new(10, 1000);
+
+        // 先加 5 条 — 不触发
+        for i in 0..5 {
+            opt.experience_pool.add(make_experience(&format!("e{}", i), 0.5));
+        }
+        assert!(sched.check_and_train(&mut opt).is_none());
+
+        // 再加 5 条 — 增量达到 10，应触发
+        for i in 5..10 {
+            opt.experience_pool.add(make_experience(&format!("e{}", i), 0.5));
+        }
+        let result = sched.check_and_train(&mut opt);
+        assert!(result.is_some());
+        assert!(result.unwrap().is_ok());
+        assert_eq!(sched.train_count(), 1);
+    }
+
+    #[test]
+    fn test_threshold_scheduler_pool_trigger() {
+        let mut opt = RLOptimizer::new("test_pool".into(), "Pool Scheduler".into());
+        let mut sched = ThresholdScheduler::new(100, 20); // increment high, pool low
+
+        // 加 20 条 — 池大小触发
+        for i in 0..20 {
+            opt.experience_pool.add(make_experience(&format!("e{}", i), 0.5));
+        }
+        let result = sched.check_and_train(&mut opt);
+        assert!(result.is_some());
+        assert!(result.unwrap().is_ok());
+        assert_eq!(sched.train_count(), 1);
+    }
+
+    #[test]
+    fn test_threshold_scheduler_reset() {
+        let mut opt = RLOptimizer::new("test_reset".into(), "Reset Scheduler".into());
+        let mut sched = ThresholdScheduler::new(5, 1000);
+
+        for i in 0..10 {
+            opt.experience_pool.add(make_experience(&format!("e{}", i), 0.5));
+        }
+        assert!(sched.check_and_train(&mut opt).is_some());
+        assert_eq!(sched.train_count(), 1);
+
+        sched.reset();
+        assert_eq!(sched.last_pool_size(), 0);
+
+        // 再次加 10 条 — reset 后增量从 0 重新计数，应触发
+        for i in 10..20 {
+            opt.experience_pool.add(make_experience(&format!("e{}", i), 0.5));
+        }
+        assert!(sched.check_and_train(&mut opt).is_some());
+        assert_eq!(sched.train_count(), 2);
+    }
+
+    #[test]
+    fn test_threshold_scheduler_force_train() {
+        let mut opt = RLOptimizer::new("test_force".into(), "Force Scheduler".into());
+        let mut sched = ThresholdScheduler::new(1000, 1000);
+
+        // 仅 1 条经验 — 阈值未到
+        opt.experience_pool.add(make_experience("e0", 0.5));
+        assert!(sched.check_and_train(&mut opt).is_none());
+
+        // 强制训练
+        let result = sched.force_train(&mut opt);
+        assert!(result.is_ok());
+        assert_eq!(sched.train_count(), 1);
     }
 }

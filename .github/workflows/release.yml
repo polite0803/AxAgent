@@ -153,10 +153,10 @@ jobs:
       - name: Install x86_64 OpenSSL (macOS Intel cross-compile)
         if: matrix.target == 'x86_64-apple-darwin'
         run: |
-          arch -x86_64 brew install openssl@3
-          echo "OPENSSL_DIR=$(arch -x86_64 brew --prefix openssl@3)" >> $GITHUB_ENV
-          echo "OPENSSL_INCLUDE_DIR=$(arch -x86_64 brew --prefix openssl@3)/include" >> $GITHUB_ENV
-          echo "OPENSSL_LIB_DIR=$(arch -x86_64 brew --prefix openssl@3)/lib" >> $GITHUB_ENV
+          brew install openssl@3
+          echo "OPENSSL_DIR=$(brew --prefix openssl@3)" >> $GITHUB_ENV
+          echo "OPENSSL_INCLUDE_DIR=$(brew --prefix openssl@3)/include" >> $GITHUB_ENV
+          echo "OPENSSL_LIB_DIR=$(brew --prefix openssl@3)/lib" >> $GITHUB_ENV
 
       - name: Install Protoc (macOS)
         if: matrix.os == 'macos-latest'

@@ -5,6 +5,8 @@ pub mod policy;
 pub mod rl_training_loop;
 pub mod trainer;
 
+pub use rl_training_loop::ThresholdScheduler;
+
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 

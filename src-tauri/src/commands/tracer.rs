@@ -513,12 +513,13 @@ pub fn tracer_submit_feedback(
     comment: Option<String>,
 ) -> Result<(), String> {
     let record = FeedbackRecord {
-        trace_id,
-        rating,
-        comment,
+        trace_id: trace_id.clone(),
+        rating: rating.clone(),
+        comment: comment.clone(),
         timestamp: chrono::Utc::now().timestamp_millis(),
     };
 
+    // 1. 持久化落盘
     let mut feedback = FEEDBACK_STORAGE
         .lock()
         .map_err(|e| format!("Lock error: {}", e))?;
@@ -526,6 +527,84 @@ pub fn tracer_submit_feedback(
 
     let count = feedback.len();
     tracing::info!("Feedback submitted (total: {})", count);
+
+    // 2. 通过 ExperiencePipeline 将反馈转为经验写入 ExperiencePool
+    if let Ok(rating_val) = rating.parse::<u8>() {
+        let pipeline = super::shared_state::SHARED_PIPELINE.clone();
+        let trace = trace_id.clone();
+        let comment_clone = comment.clone();
+        tokio::task::spawn(async move {
+            let mut pipeline = pipeline.write().await;
+            pipeline
+                .process_feedback(&trace, rating_val, comment_clone.as_deref())
+                .await;
+        });
+    }
+
+    // 3. 通过 FeedbackOrchestrator 检查是否触发自动优化
+    if let Ok(rating_val) = rating.parse::<u8>() {
+        let orchestrator = super::shared_state::SHARED_ORCHESTRATOR.clone();
+        let optimizer = super::shared_state::SHARED_OPTIMIZER.clone();
+        tokio::task::spawn(async move {
+            let action = orchestrator.record_feedback(rating_val);
+            match action {
+                axagent_agent::OrchestratorAction::TriggerRLTraining { reason, negative_count } => {
+                    tracing::info!(
+                        "[FeedbackOrchestrator] TriggerRLTraining: {} ({} negatives)",
+                        reason,
+                        negative_count
+                    );
+                    let mut opt = optimizer.write().await;
+                    match axagent_agent::rl_optimizer::rl_training_loop::train(&mut opt) {
+                        Ok(stats) => {
+                            tracing::info!(
+                                "[FeedbackOrchestrator] RL training completed: episodes={}, avg_reward={:.3}",
+                                stats.episodes_completed,
+                                stats.avg_reward
+                            );
+                        }
+                        Err(e) => {
+                            tracing::warn!(
+                                "[FeedbackOrchestrator] RL training failed: {}",
+                                e
+                            );
+                        }
+                    }
+                }
+                axagent_agent::OrchestratorAction::TriggerSkillEvolution { reason, positive_count } => {
+                    tracing::info!(
+                        "[FeedbackOrchestrator] TriggerSkillEvolution: {} ({} positives)",
+                        reason,
+                        positive_count
+                    );
+                    // TODO(Phase3): 触发技能进化评估
+                }
+                axagent_agent::OrchestratorAction::TriggerPoolSizeCheck { pool_size } => {
+                    tracing::info!(
+                        "[FeedbackOrchestrator] PoolSizeCheck: pool_size={}",
+                        pool_size
+                    );
+                    let mut opt = optimizer.write().await;
+                    match axagent_agent::rl_optimizer::rl_training_loop::train(&mut opt) {
+                        Ok(stats) => {
+                            tracing::info!(
+                                "[FeedbackOrchestrator] pool-triggered RL training completed: episodes={}",
+                                stats.episodes_completed
+                            );
+                        }
+                        Err(e) => {
+                            tracing::warn!(
+                                "[FeedbackOrchestrator] pool-triggered RL training failed: {}",
+                                e
+                            );
+                        }
+                    }
+                }
+                axagent_agent::OrchestratorAction::None => {}
+            }
+        });
+    }
+
     Ok(())
 }
 

@@ -9,7 +9,7 @@
 //!        FeedbackRecord → ExperiencePipeline → RL Optimizer ExperiencePool
 
 use crate::reflector::Reflection;
-use crate::rl_optimizer::{Experience, ExperiencePool, RLOptimizer, TaskState, ToolSelection};
+use crate::rl_optimizer::{Experience, ExperiencePool, RLOptimizer, TaskState, ToolSelection, ThresholdScheduler};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
@@ -21,10 +21,8 @@ pub struct ExperiencePipeline {
     reflections_processed: u64,
     /// 统计已处理的反馈数量
     feedback_processed: u64,
-    /// 上一次自动触发训练时的经验池大小
-    last_train_pool_size: usize,
-    /// 当经验池新增 ≥ 此值时自动触发 train()
-    auto_train_threshold: usize,
+    /// 有状态阈值调度器（追踪增量，触发训练）
+    train_scheduler: ThresholdScheduler,
 }
 
 impl ExperiencePipeline {
@@ -39,8 +37,7 @@ impl ExperiencePipeline {
             rl_optimizer,
             reflections_processed: 0,
             feedback_processed: 0,
-            last_train_pool_size: 0,
-            auto_train_threshold: threshold,
+            train_scheduler: ThresholdScheduler::new(threshold, threshold * 10),
         }
     }
 
@@ -227,39 +224,25 @@ impl ExperiencePipeline {
         experience
     }
 
-    /// 自动训练调度：当经验池新增经验数 >= 阈值时自动触发 train()。
+    /// 自动训练调度：委托给 ThresholdScheduler，当增量或池大小达到阈值时触发 train()。
     async fn check_auto_train(&mut self) {
-        let pool_size = {
-            let opt = self.rl_optimizer.read().await;
-            opt.experience_pool.experiences.len()
-        };
-
-        let new_experiences = pool_size.saturating_sub(self.last_train_pool_size);
-        if new_experiences >= self.auto_train_threshold {
-            tracing::info!(
-                "[ExperiencePipeline] auto-train trigger: pool={}, new_since_last={}, threshold={}",
-                pool_size,
-                new_experiences,
-                self.auto_train_threshold
-            );
-
-            let mut opt = self.rl_optimizer.write().await;
-            match crate::rl_optimizer::rl_training_loop::train(&mut opt) {
-                Ok(stats) => {
-                    tracing::info!(
-                        "[ExperiencePipeline] auto-train completed: episodes={}, avg_reward={:.3}",
-                        stats.episodes_completed,
-                        stats.avg_reward
-                    );
-                    self.last_train_pool_size = pool_size;
-                }
-                Err(e) => {
-                    tracing::warn!(
-                        "[ExperiencePipeline] auto-train failed: {}",
-                        e
-                    );
-                }
+        let mut opt = self.rl_optimizer.write().await;
+        match self.train_scheduler.check_and_train(&mut opt) {
+            Some(Ok(stats)) => {
+                tracing::info!(
+                    "[ExperiencePipeline] auto-train completed: train_count={}, episodes={}, avg_reward={:.3}",
+                    self.train_scheduler.train_count(),
+                    stats.episodes_completed,
+                    stats.avg_reward
+                );
             }
+            Some(Err(e)) => {
+                tracing::warn!(
+                    "[ExperiencePipeline] auto-train failed: {}",
+                    e
+                );
+            }
+            None => { /* 未达到阈值，不触发 */ }
         }
     }
 
