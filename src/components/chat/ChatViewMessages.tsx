@@ -1,12 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-// eslint-disable react-hooks/refs, react-hooks/set-state-in-effect, react-hooks/preserve-manual-memoization
-// 本文件大量使用 refs 做渲染时缓存（bubbleItemCacheRef、aiContentNodesCacheRef 等），
-// 这是经过验证的优化模式。React Compiler 的 refs 规则与该模式冲突，主动禁用。
-
-// eslint-disable react-hooks/refs, react-hooks/set-state-in-effect, react-hooks/preserve-manual-memoization
-// 本文件大量使用 refs 做渲染时缓存（bubbleItemCacheRef、aiContentNodesCacheRef 等），
-// 这是经过验证的优化模式。React Compiler 的 refs 规则与该模式冲突，主动禁用。
+/* eslint-disable react-hooks/refs, react-hooks/set-state-in-effect, react-hooks/preserve-manual-memoization */
+// 本文件大量使用 refs 做渲染时缓存，React Compiler 规则与之冲突，主动禁用。
 
 // Local message types (replacing @ant-design/x Bubble)
 import { type CSSProperties, type ReactNode } from "react";
@@ -45,7 +40,6 @@ interface ActionItem {
   onItemClick?: () => void;
   actionRender?: () => ReactNode;
 }
-// eslint-disable-next-line react-refresh/only-export-components
 function Actions({ items, onActionClick }: { items: ActionItem[]; onActionClick?: (item: ActionItem) => void }) {
   return (
     <div className="msg-actions">
@@ -131,7 +125,6 @@ import { buildAssistantDisplayContent, shouldHideAssistantBubble } from "./toolC
 import { TopicGroupDivider } from "./TopicGroupDivider";
 import { VersionPagination } from "./VersionPagination";
 
-// eslint-disable-next-line react-refresh/only-export-components
 function AssistantFooter({
   msg,
   conversationId,
