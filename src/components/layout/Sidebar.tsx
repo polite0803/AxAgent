@@ -2,6 +2,7 @@
 
 import { Icon } from "@/components/common/Icon";
 import { Tooltip } from "@/components/layout/Tooltip";
+import { FEATURE_FLAGS } from "@/constants/featureFlags";
 import { useResolvedAvatarSrc } from "@/hooks/useResolvedAvatarSrc";
 import { NAV_ICON_COLORS } from "@/lib/iconColors";
 import { invoke } from "@/lib/invoke";
@@ -9,6 +10,7 @@ import { formatShortcutForDisplay, getShortcutBinding } from "@/lib/shortcuts";
 import type { ShortcutAction } from "@/lib/shortcuts";
 import { resolveIconComponent } from "@/lib/skillIcons";
 import {
+  useAgentPanelStore,
   useOnboardingStore,
   useSettingsStore,
   useSkillExtensionStore,
@@ -37,7 +39,7 @@ const pageKeyToPath: Record<PageKey, string> = {
 
 function pathToPageKey(path: string): PageKey {
   if (path === "/" || path === "") {
-    return "chat";
+    return "knowledge";
   }
   if (path.startsWith("/skill/")) {
     return path;
@@ -59,13 +61,6 @@ interface NavItem {
 }
 
 const builtinNavItems: NavItem[] = [
-  {
-    key: "chat",
-    icon: <Icon icon="fluent:chat-20-filled" size={17} />,
-    labelKey: "nav.chat",
-    path: "/",
-    isPlugin: false,
-  },
   {
     key: "knowledge",
     icon: <Icon icon="fluent:book-database-20-filled" size={17} />,
@@ -325,6 +320,9 @@ export function Sidebar() {
   const sidebarCollapsed = useUIStore((s) => s.sidebarCollapsed);
   const toggleSidebar = useUIStore((s) => s.toggleSidebar);
   const toggleHelp = useOnboardingStore((s) => s.toggle);
+  const toggleAgentPanel = useAgentPanelStore((s) => s.toggle);
+  const isAgentPanelOpen = useAgentPanelStore((s) => s.isOpen);
+  const agentInTheLoopEnabled = FEATURE_FLAGS.AGENT_IN_THE_LOOP;
 
   const sections = useMemo<SidebarSection[]>(() => {
     const pluginItems: NavItem[] = [];
@@ -356,16 +354,7 @@ export function Sidebar() {
       sections.push({
         key: "work",
         labelKey: "sidebar.sectionWork",
-        items: [
-          ...topPlugins,
-          ...builtinNavItems.filter((n) => n.key === "chat"),
-        ],
-      });
-    } else {
-      sections.push({
-        key: "work",
-        labelKey: "sidebar.sectionWork",
-        items: [builtinNavItems.find((n) => n.key === "chat")!],
+        items: topPlugins,
       });
     }
 
@@ -440,6 +429,24 @@ export function Sidebar() {
       ))}
 
       <div className="flex-1" />
+
+      {/* Agent Panel toggle */}
+      {agentInTheLoopEnabled && (
+        <Tooltip title={sidebarCollapsed ? (isAgentPanelOpen ? "关闭 Agent" : "打开 Agent") : ""} placement="right">
+          <button
+            type="button"
+            className={`nav-item${isAgentPanelOpen ? " active" : ""}`}
+            onClick={toggleAgentPanel}
+            aria-label="Agent Panel"
+            style={isAgentPanelOpen ? { color: "var(--color-primary)" } : undefined}
+          >
+            <Icon icon="fluent:bot-20-filled" size={17} />
+            {!sidebarCollapsed && (
+              <span className="nav-label">Agent</span>
+            )}
+          </button>
+        </Tooltip>
+      )}
 
       {/* Settings — lower group, above plugins in prototype */}
       <Tooltip title={sidebarCollapsed ? t("settings.openSettings") : ""} placement="right">

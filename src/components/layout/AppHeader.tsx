@@ -2,9 +2,10 @@
 
 import { Tooltip } from "@/components/layout/Tooltip";
 import { ModeSwitch } from "@/components/time-travel/ModeSwitch";
-import { useOnboardingStore } from "@/stores";
+import { FEATURE_FLAGS } from "@/constants/featureFlags";
+import { useAgentPanelStore, useOnboardingStore } from "@/stores";
 import { theme } from "antd";
-import { ArrowLeft, HelpCircle } from "lucide-react";
+import { ArrowLeft, Bot, HelpCircle } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";
 
@@ -57,6 +58,9 @@ export function AppHeader() {
   const location = useLocation();
   const navigate = useNavigate();
   const toggleHelp = useOnboardingStore((s) => s.toggle);
+  const toggleAgentPanel = useAgentPanelStore((s) => s.toggle);
+  const isAgentPanelOpen = useAgentPanelStore((s) => s.isOpen);
+  const agentInTheLoopEnabled = FEATURE_FLAGS.AGENT_IN_THE_LOOP;
 
   const isChatPage = location.pathname === "/" || location.pathname === "";
   const labelKey = resolvePageLabel(location.pathname);
@@ -127,6 +131,19 @@ export function AppHeader() {
 
       <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
         <ModeSwitch />
+        {agentInTheLoopEnabled && (
+          <Tooltip title={isAgentPanelOpen ? "关闭 Agent 面板" : "打开 Agent 面板"}>
+            <button
+              type="button"
+              onClick={toggleAgentPanel}
+              className={`titlebar-btn${isAgentPanelOpen ? " text-[var(--color-primary)]" : ""}`}
+              aria-label="Agent Panel"
+              style={{ color: isAgentPanelOpen ? undefined : token.colorTextQuaternary, flexShrink: 0 }}
+            >
+              <Bot size={16} />
+            </button>
+          </Tooltip>
+        )}
         <Tooltip title={t("help.title")}>
           <button
             type="button"

@@ -3,6 +3,7 @@
 import i18n from "@/i18n";
 import { invoke, logIpcError } from "@/lib/invoke";
 import { extractRequiredCommands, validateSkillPermissions } from "@/lib/skillPermissions";
+import { componentRegistry } from "@/lib/dynamicUI/ComponentRegistry";
 import type {
   DeclarativeActionType,
   Skill,
@@ -10,7 +11,11 @@ import type {
   SkillCommandAction,
   SkillHandler,
   SkillToolbarCapability,
+  ComponentRegistryEntry,
+  UISchema,
 } from "@/types";
+import type { DynamicUIProps } from "@/types";
+import React from "react";
 import { create } from "zustand";
 
 export interface MergedNavItem {
@@ -31,6 +36,8 @@ export interface MergedPage {
   icon?: string;
   skillName: string;
   sourcePath: string;
+  /** DynamicUI Schema（Phase 2），Agent 动态生成的 UI Schema */
+  uiSchema?: UISchema;
 }
 
 export interface MergedCommand {
@@ -55,6 +62,8 @@ export interface MergedPanel {
   defaultCollapsed: boolean;
   skillName: string;
   sourcePath: string;
+  /** DynamicUI Schema（Phase 2），Agent 动态生成的 UI Schema */
+  uiSchema?: UISchema;
 }
 
 export interface MergedSettingsSection {
@@ -121,6 +130,7 @@ interface SkillExtensionState {
   fetchSkills: () => Promise<void>;
   getHandler: (name: string) => SkillHandler | undefined;
   refreshSkill: (skillName: string) => Promise<void>;
+  registerCustomComponent: (name: string, entry: ComponentRegistryEntry) => void;
 }
 
 function namespaceId(skillName: string, id: string): string {
@@ -450,6 +460,10 @@ export const useSkillExtensionStore = create<SkillExtensionState>(
       }
       const merged = mergeExtensions(skills);
       set({ skills, ...merged });
+    },
+
+    registerCustomComponent: (name: string, entry: ComponentRegistryEntry) => {
+      componentRegistry.register(entry);
     },
   }),
 );

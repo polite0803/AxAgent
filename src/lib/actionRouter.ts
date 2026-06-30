@@ -44,6 +44,7 @@ const VALID_ACTION_TYPES = new Set<string>([
   "function",
   "handler",
   "chain",
+  "update-schema",
 ]);
 
 interface ActionSchemaRule {
@@ -74,6 +75,10 @@ const ACTION_SCHEMAS: Record<string, ActionSchemaRule> = {
     fieldTypes: { name: "string", args: "object" },
   },
   chain: { requiredFields: ["actions"], fieldTypes: { actions: "array" } },
+  "update-schema": {
+    requiredFields: ["schemaId", "operation"],
+    fieldTypes: { schemaId: "string", operation: "string", path: "string", newSchema: "object" },
+  },
 };
 
 function validateAction(action: DeclarativeActionType): string | null {
@@ -461,6 +466,20 @@ export class ActionRouter {
         })),
         { ...ctx, _chainDepth: depth },
       );
+    });
+
+    // update-schema: 动态更新 UI Schema（通过 CustomEvent 通知 DynamicUIRenderer）
+    this.declarativeExecutors.set("update-schema", async (action, ctx) => {
+      if (action.type !== "update-schema") {
+        return { success: false, error: i18n.t("actionRouter.typeMismatch") };
+      }
+      const { schemaId, operation, path, newSchema } = action as Record<string, unknown>;
+      window.dispatchEvent(
+        new CustomEvent("dynamic-ui:schema-update", {
+          detail: { schemaId, operation, path, newSchema },
+        }),
+      );
+      return { success: true, data: { schemaId, operation } };
     });
   }
 }

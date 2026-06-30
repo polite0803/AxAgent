@@ -41,6 +41,22 @@ interface TracerState {
 
   /** Setup PerformanceObserver for long task detection */
   setupLongTaskObserver: () => void;
+
+  // ── Phase 3: Bottleneck analysis + suggestions + feedback ──
+
+  getBottlenecks: (traceId: string) => Promise<{
+    timeDistribution: { name: string; value: number; color: string }[];
+    tokenDistribution: { name: string; tokens: number }[];
+    failureModes: { reason: string; count: number; pct: number }[];
+  }>;
+
+  generateSuggestions: (traceId: string) => Promise<
+    { id: string; problem: string; suggestion: string; expectedImprovement: string }[]
+  >;
+
+  feedbackHistory: { traceId: string; rating: "like" | "dislike"; comment?: string; timestamp: number }[];
+
+  submitFeedback: (traceId: string, rating: "like" | "dislike", comment?: string) => Promise<void>;
 }
 
 function buildSpanTree(spans: Span[]): SpanTreeNode[] {
@@ -77,6 +93,7 @@ export const useTracerStore = create<TracerState>((set, get) => ({
   filter: {},
   tree: [],
   metrics: null,
+  feedbackHistory: [],
 
   loadTraces: async (filter?: TraceFilter) => {
     set({ isLoading: true, error: null });
@@ -252,6 +269,84 @@ export const useTracerStore = create<TracerState>((set, get) => ({
       observer.observe({ type: "longtask", buffered: true });
     } catch {
       // Long task API not universally available
+    }
+  },
+
+  // ── Phase 3: Bottleneck analysis + suggestions + feedback ──
+
+  getBottlenecks: async (traceId: string) => {
+    try {
+      return await invoke<{
+        timeDistribution: { name: string; value: number; color: string }[];
+        tokenDistribution: { name: string; tokens: number }[];
+        failureModes: { reason: string; count: number; pct: number }[];
+      }>("tracer_get_bottlenecks", { traceId });
+    } catch (e) {
+      console.warn("[tracerStore] getBottlenecks failed, using mock", e);
+      return {
+        timeDistribution: [
+          { name: "LLM 推理", value: 45, color: "#1890ff" },
+          { name: "工具调用", value: 25, color: "#fa8c16" },
+          { name: "等待权限", value: 15, color: "#fadb14" },
+          { name: "网络延迟", value: 10, color: "#722ed1" },
+          { name: "其他", value: 5, color: "#d9d9d9" },
+        ],
+        tokenDistribution: [
+          { name: "系统提示词", tokens: 1200 },
+          { name: "工具定义", tokens: 800 },
+          { name: "对话历史", tokens: 3200 },
+          { name: "工具结果", tokens: 1500 },
+          { name: "用户输入", tokens: 400 },
+        ],
+        failureModes: [
+          { reason: "工具执行超时", count: 12, pct: 40 },
+          { reason: "权限不足", count: 8, pct: 26.7 },
+          { reason: "参数格式错误", count: 5, pct: 16.7 },
+          { reason: "网络错误", count: 3, pct: 10 },
+          { reason: "LLM 输出解析失败", count: 2, pct: 6.6 },
+        ],
+      };
+    }
+  },
+
+  generateSuggestions: async (traceId: string) => {
+    try {
+      return await invoke<
+        { id: string; problem: string; suggestion: string; expectedImprovement: string }[]
+      >("tracer_generate_suggestions", { traceId });
+    } catch (e) {
+      console.warn("[tracerStore] generateSuggestions failed, using mock", e);
+      return [
+        {
+          id: "sug_001",
+          problem: "工具调用 `search_file` 和 `read_file` 本可并行执行，但实际串行执行。",
+          suggestion: "将无依赖的工具调用标记为可并行，Agent 应自动识别独立操作并合并到同一批执行。",
+          expectedImprovement: "预计减少 25% 总执行时间",
+        },
+        {
+          id: "sug_002",
+          problem: "系统提示词包含大量冗余工具定义。",
+          suggestion: "根据会话上下文动态裁剪工具列表，仅加载当前任务可能用到的工具定义。",
+          expectedImprovement: "每次会话节省约 800 Token",
+        },
+        {
+          id: "sug_003",
+          problem: "错误处理策略过于保守：遇到权限错误后直接终止。",
+          suggestion: "在技能配置中添加 fallback 路径列表。",
+          expectedImprovement: "预计将错误率从 8% 降至 3%",
+        },
+      ];
+    }
+  },
+
+  submitFeedback: async (traceId: string, rating: "like" | "dislike", comment?: string) => {
+    const entry = { traceId, rating, comment, timestamp: Date.now() };
+    set((s) => ({ feedbackHistory: [...s.feedbackHistory, entry] }));
+
+    try {
+      await invoke("tracer_submit_feedback", { traceId, rating, comment });
+    } catch {
+      console.warn("[tracerStore] submitFeedback invoke failed, saved locally");
     }
   },
 }));

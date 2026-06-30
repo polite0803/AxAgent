@@ -1,5 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+import { AgentEntryPoint } from "@/components/agent/AgentEntryPoint";
+import { AgentMiniPanel } from "@/components/agent/AgentMiniPanel";
+import { AgentPanel } from "@/components/agent/AgentPanel";
 import { BuddyWidget } from "@/components/chat/BuddyWidget";
 import { TabBar } from "@/components/chat/TabBar";
 import { HelpPanel } from "@/components/help/HelpPanel";
@@ -17,6 +20,7 @@ import { InteractiveTutorial } from "@/components/onboarding/InteractiveTutorial
 import { WelcomeWizard } from "@/components/onboarding/WelcomeWizard";
 import { PageErrorBoundary } from "@/components/shared/ErrorBoundary";
 import { SkillPanels } from "@/components/skill/SkillPanels";
+import { FEATURE_FLAGS } from "@/constants/featureFlags";
 import { useCommandPalette } from "@/hooks/useCommandPalette";
 import { useGlobalOverlayScrollbars } from "@/hooks/useGlobalOverlayScrollbars";
 import { useGlobalShortcutManager } from "@/hooks/useGlobalShortcutManager";
@@ -25,7 +29,7 @@ import { useResolvedDarkMode } from "@/hooks/useResolvedDarkMode";
 import { useResponsive } from "@/hooks/useResponsive";
 import { useUpdateChecker } from "@/hooks/useUpdateChecker";
 import { invoke, isTauri, listen } from "@/lib/invoke";
-import { useSettingsStore, useStreamStore, useUIStore } from "@/stores";
+import { useAgentPanelStore, useSettingsStore, useStreamStore, useUIStore } from "@/stores";
 import { useShadcnTheme } from "@/theme/shadcnTheme";
 import type { ThemePreset } from "@/theme/shadcnTheme";
 import { App as AntdApp, ConfigProvider, theme } from "antd";
@@ -107,6 +111,10 @@ function AppInner() {
   const isInSettings = location.pathname === "/settings"
     || location.pathname.startsWith("/settings/");
   const sidebarCollapsed = useUIStore((s) => s.sidebarCollapsed);
+  const isAgentPanelOpen = useAgentPanelStore((s) => s.isOpen);
+  const isAgentMiniMode = useAgentPanelStore((s) => s.isMiniMode);
+  const agentPanelWidth = useAgentPanelStore((s) => s.panelWidth);
+  const agentInTheLoopEnabled = FEATURE_FLAGS.AGENT_IN_THE_LOOP;
 
   const [isQuickBarWindow] = useState(() => {
     const params = new URLSearchParams(window.location.search);
@@ -265,7 +273,12 @@ function AppInner() {
                     <Sidebar />
                   </ModuleErrorBoundary>
                 </nav>
-                <div className="content-col">
+                <div className="content-col" style={{
+                  flex: 1,
+                  minWidth: 0,
+                  marginRight: agentInTheLoopEnabled && isAgentPanelOpen ? agentPanelWidth : 0,
+                  transition: "margin-right 300ms ease-in-out",
+                }}>
                   <GlobalTabBar />
                   <div className="page-area">
                     <PageTransitionWrapper>
@@ -274,6 +287,7 @@ function AppInner() {
                   </div>
                   <GlobalStatusBarWrapper />
                 </div>
+                {agentInTheLoopEnabled && <AgentPanel />}
               </div>
             </>
           )}
@@ -282,6 +296,8 @@ function AppInner() {
       <InteractiveTutorial />
       <HelpPanel />
       <BuddyWidget />
+      {agentInTheLoopEnabled && isAgentMiniMode && <AgentMiniPanel />}
+      {agentInTheLoopEnabled && <AgentEntryPoint />}
     </>
   );
 }

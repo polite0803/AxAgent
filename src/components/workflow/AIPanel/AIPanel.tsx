@@ -3,12 +3,17 @@
 import { logIpcError } from "@/lib/invoke";
 import type { AiChatMessage } from "@/stores/feature/workflowEditorStore";
 import { useWorkflowEditorStore } from "@/stores/feature/workflowEditorStore";
-import { App, Button, Card, Empty, Input, Radio, Tag, theme } from "antd";
+import { App, Button, Card, Empty, Input, Progress, Radio, Tag, theme } from "antd";
 import DOMPurify from "dompurify";
-import { Lightbulb, MessageSquare, Play, Send, Sparkles, StopCircle, Trash2, Wand2 } from "lucide-react";
+import { Lightbulb, MessageSquare, Play, Rocket, Send, Sparkles, StopCircle, Trash2, Wand2 } from "lucide-react";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useShallow } from "zustand/react/shallow";
+import { useEvolutionStore } from "@/stores/feature/evolutionStore";
+import { useWorkflowStore } from "@/stores/feature/workflowStore";
+import type { NLParseResult } from "@/types/workflow";
+import { EvolutionTab } from "./EvolutionTab";
+import { NLParseResultView } from "./NLParseResultView";
 import { setDragPayload } from "../dndState";
 import type { WorkflowEdge, WorkflowNode } from "../types/workflow.types";
 import { ActionDiffPreview } from "./ActionDiffPreview";
@@ -33,6 +38,61 @@ interface AIPanelProps {
   onChatSend: (message: string) => void;
   onChatCancel: () => void;
   onChatClear: () => void;
+}
+
+// Phase 4: progress map for NL parse stages (moved outside component for stable reference)
+const NL_PARSE_PROGRESS_MAP: Record<string, number> = {
+  "正在分析意图": 25,
+  "正在匹配节点": 50,
+  "正在构建工作流": 75,
+  "正在优化": 95,
+};
+
+/** Render assistant message content with Markdown-like formatting — defined outside component to avoid re-creation */
+function renderAssistantContent(content: string) {
+  const lines = content.split("\n");
+  return lines.map((line, i) => {
+    if (line.startsWith("### ")) {
+      return (
+        <div key={i} style={{ fontWeight: 600, fontSize: 14, marginTop: 8, marginBottom: 4 }}>{line.slice(4)}</div>
+      );
+    }
+    if (line.startsWith("## ")) {
+      return (
+        <div key={i} style={{ fontWeight: 700, fontSize: 15, marginTop: 10, marginBottom: 4 }}>{line.slice(3)}</div>
+      );
+    }
+    if (line.startsWith("# ")) {
+      return (
+        <div key={i} style={{ fontWeight: 700, fontSize: 16, marginTop: 12, marginBottom: 6 }}>{line.slice(2)}</div>
+      );
+    }
+    if (line.startsWith("- ") || line.startsWith("* ")) {
+      return (
+        <div key={i} style={{ paddingLeft: 16, position: "relative" }}>
+          <span style={{ position: "absolute", left: 4 }}>•</span>
+          {line.slice(2)}
+        </div>
+      );
+    }
+    const numberedMatch = line.match(/^(\d+)\.\s/);
+    if (numberedMatch) {
+      return <div key={i} style={{ paddingLeft: 16 }}>{line}</div>;
+    }
+    if (line.startsWith("```")) {
+      return null;
+    }
+    if (line.trim() === "") {
+      return <div key={i} style={{ height: 8 }} />;
+    }
+    const boldText = line.replace(/\*\*(.*?)\*\*/g, "<b>$1</b>");
+    const codeText = boldText.replace(
+      /`([^`]+)`/g,
+      "<code style='background:rgba(0,0,0,0.06);padding:1px 4px;border-radius:3px;font-size:12px'>$1</code>",
+    );
+    const safeHtml = DOMPurify.sanitize(codeText, { ALLOWED_TAGS: ["b", "code"] });
+    return <div key={i} dangerouslySetInnerHTML={{ __html: safeHtml }} />;
+  });
 }
 
 export const AIPanel: React.FC<AIPanelProps> = ({
@@ -71,7 +131,7 @@ export const AIPanel: React.FC<AIPanelProps> = ({
     })),
   );
 
-  const [activeTab, setActiveTab] = useState<"chat" | "tools">("chat");
+  const [activeTab, setActiveTab] = useState<"chat" | "tools" | "evolution">("chat");
   const [chatInput, setChatInput] = useState("");
   const [toolTab, setToolTab] = useState<"generate" | "optimize" | "recommend">("generate");
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -94,6 +154,12 @@ export const AIPanel: React.FC<AIPanelProps> = ({
   const [optimizeError, setOptimizeError] = useState<string | null>(null);
   const [recommendError, setRecommendError] = useState<string | null>(null);
 
+  // Phase 3/4: NL parse + evolution state
+  const [nlResult, setNlResult] = useState<NLParseResult | null>(null);
+  const workflowStore = useWorkflowStore();
+  const evolutionStore = useEvolutionStore();
+  const [chatContextMessage, setChatContextMessage] = useState<string | null>(null);
+
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView?.({ behavior: "smooth" });
   }, []);
@@ -101,6 +167,16 @@ export const AIPanel: React.FC<AIPanelProps> = ({
   useEffect(() => {
     scrollToBottom();
   }, [chatMessages, scrollToBottom]);
+
+  // Phase 3: build chat context on mount
+  useEffect(() => {
+    try {
+      const ctx = useWorkflowEditorStore.getState().buildChatContext();
+      setChatContextMessage(ctx);
+    } catch {
+      setChatContextMessage(null);
+    }
+  }, []);
 
   const handleChatSend = () => {
     if (!chatInput.trim() || chatStreaming) { return; }
@@ -136,13 +212,36 @@ export const AIPanel: React.FC<AIPanelProps> = ({
     }
     setIsGenerating(true);
     setGenerateError(null);
+    setNlResult(null);
     try {
-      const result = await onGenerateWorkflow(generatePrompt, mergeMode);
+      // Phase 4: use NL parse pipeline
+      const result = await workflowStore.parseNaturalLanguage({ prompt: generatePrompt });
       if (result) {
-        if (!mergeMode) {
-          // Store handles setting nodes/edges
+        setNlResult(result);
+        if (result.confidence >= 0.7) {
+          message.success(t("workflow.aiPanel.workflowParsed"));
+        } else {
+          message.warning(t("workflow.aiPanel.workflowParsedLowConfidence"));
         }
+      }
+    } catch (error) {
+      logIpcError("NL 解析工作流")(error);
+      setGenerateError(String(error));
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleApplyNLResult = async (workflow: import("@/types/workflow").WorkflowDefinition) => {
+    setIsGenerating(true);
+    try {
+      const result = await onGenerateWorkflow(
+        JSON.stringify({ nodes: workflow.nodes, edges: workflow.edges }),
+        mergeMode,
+      );
+      if (result) {
         message.success(t("workflow.aiPanel.workflowGenerated"));
+        setNlResult(null);
       }
     } catch (error) {
       logIpcError("AI 生成工作流")(error);
@@ -183,7 +282,26 @@ export const AIPanel: React.FC<AIPanelProps> = ({
     setRecommendedNodes(null);
     setRecommendError(null);
     try {
-      const result = await onRecommendNodes(recommendContext);
+      // Phase 3: inject evolution stats into context
+      let enrichedContext = recommendContext;
+      try {
+        const engines = evolutionStore.engines;
+        const evoStats: string[] = [];
+        for (const [_key, engine] of Object.entries(engines)) {
+          if (engine.running) {
+            evoStats.push(`${engine.displayName}: 运行中`);
+          }
+          if (engine.stats && Object.keys(engine.stats).length > 0) {
+            evoStats.push(`${engine.displayName}: ${JSON.stringify(engine.stats)}`);
+          }
+        }
+        if (evoStats.length > 0) {
+          enrichedContext = `${recommendContext}\n\n【进化引擎统计】\n${evoStats.join("\n")}`;
+        }
+      } catch {
+        // evolutionStore unavailable, proceed without enrichment
+      }
+      const result = await onRecommendNodes(enrichedContext);
       if (result) {
         setRecommendedNodes(result);
         message.success(t("workflow.aiPanel.recommendationGenerated"));
@@ -206,6 +324,12 @@ export const AIPanel: React.FC<AIPanelProps> = ({
   const handleApplyToNode = () => {
     if (optimizedResult && selectedNodeId && onApplyPromptToNode) {
       onApplyPromptToNode(selectedNodeId, optimizedResult);
+      // Phase 3: trigger evolution record
+      try {
+        evolutionStore.triggerSkillEvolution(selectedNodeId);
+      } catch (e) {
+        console.warn("[AIPanel] triggerSkillEvolution fallback:", e);
+      }
       message.success(t("workflow.aiPanel.promptAppliedToNode"));
     }
   };
@@ -214,52 +338,6 @@ export const AIPanel: React.FC<AIPanelProps> = ({
     if (selectedNodePrompt) {
       setOptimizePrompt(selectedNodePrompt);
     }
-  };
-
-  const renderAssistantContent = (content: string) => {
-    const lines = content.split("\n");
-    return lines.map((line, i) => {
-      if (line.startsWith("### ")) {
-        return (
-          <div key={i} style={{ fontWeight: 600, fontSize: 14, marginTop: 8, marginBottom: 4 }}>{line.slice(4)}</div>
-        );
-      }
-      if (line.startsWith("## ")) {
-        return (
-          <div key={i} style={{ fontWeight: 700, fontSize: 15, marginTop: 10, marginBottom: 4 }}>{line.slice(3)}</div>
-        );
-      }
-      if (line.startsWith("# ")) {
-        return (
-          <div key={i} style={{ fontWeight: 700, fontSize: 16, marginTop: 12, marginBottom: 6 }}>{line.slice(2)}</div>
-        );
-      }
-      if (line.startsWith("- ") || line.startsWith("* ")) {
-        return (
-          <div key={i} style={{ paddingLeft: 16, position: "relative" }}>
-            <span style={{ position: "absolute", left: 4 }}>•</span>
-            {line.slice(2)}
-          </div>
-        );
-      }
-      const numberedMatch = line.match(/^(\d+)\.\s/);
-      if (numberedMatch) {
-        return <div key={i} style={{ paddingLeft: 16 }}>{line}</div>;
-      }
-      if (line.startsWith("```")) {
-        return null;
-      }
-      if (line.trim() === "") {
-        return <div key={i} style={{ height: 8 }} />;
-      }
-      const boldText = line.replace(/\*\*(.*?)\*\*/g, "<b>$1</b>");
-      const codeText = boldText.replace(
-        /`([^`]+)`/g,
-        "<code style='background:rgba(0,0,0,0.06);padding:1px 4px;border-radius:3px;font-size:12px'>$1</code>",
-      );
-      const safeHtml = DOMPurify.sanitize(codeText, { ALLOWED_TAGS: ["b", "code"] });
-      return <div key={i} dangerouslySetInnerHTML={{ __html: safeHtml }} />;
-    });
   };
 
   const renderChatMessage = (msg: AiChatMessage) => {
@@ -364,6 +442,24 @@ export const AIPanel: React.FC<AIPanelProps> = ({
           minHeight: 0,
         }}
       >
+        {/* Phase 3: chat context system message */}
+        {chatContextMessage && (
+          <div
+            style={{
+              margin: "0 12px 8px",
+              padding: "8px 10px",
+              background: token.colorFillTertiary,
+              borderRadius: 8,
+              fontSize: 11,
+              color: token.colorTextTertiary,
+              lineHeight: 1.6,
+              whiteSpace: "pre-wrap",
+              wordBreak: "break-word",
+            }}
+          >
+            {chatContextMessage}
+          </div>
+        )}
         {chatMessages.length === 0 && (
           <div style={{ padding: "24px 12px", textAlign: "center" }}>
             <Sparkles size={24} color={token.colorTextTertiary} style={{ marginBottom: 8 }} />
@@ -453,20 +549,44 @@ export const AIPanel: React.FC<AIPanelProps> = ({
         type="primary"
         icon={<Sparkles size={14} />}
         onClick={handleGenerate}
-        loading={isGenerating}
+        loading={isGenerating && !workflowStore.parseProgress}
         disabled={isGenerating}
         style={{ width: "100%" }}
       >
-        {isGenerating
+        {isGenerating && !workflowStore.parseProgress
           ? t("workflow.aiPanel.generating")
           : mergeMode
           ? t("workflow.aiPanel.generateMergeBtn")
           : t("workflow.aiPanel.generateBtn")}
       </Button>
+      {/* Phase 4: parse progress bar */}
+      {isGenerating && workflowStore.parseProgress && (
+        <div style={{ marginTop: 12 }}>
+          <div style={{ color: token.colorTextSecondary, fontSize: 12, marginBottom: 4 }}>
+            {workflowStore.parseProgress}
+          </div>
+          <Progress
+            percent={NL_PARSE_PROGRESS_MAP[workflowStore.parseProgress] || 10}
+            size="small"
+            showInfo={false}
+            strokeColor={token.colorPrimary}
+          />
+        </div>
+      )}
       {generateError && !isGenerating && (
         <Button type="dashed" size="small" onClick={handleGenerate} style={{ width: "100%", marginTop: 8 }}>
           {t("workflow.aiPanel.retry")}
         </Button>
+      )}
+      {/* Phase 4: NLParseResultView */}
+      {nlResult && !isGenerating && (
+        <div style={{ marginTop: 12 }}>
+          <NLParseResultView
+            result={nlResult}
+            onApply={handleApplyNLResult}
+            loading={isGenerating}
+          />
+        </div>
       )}
     </div>
   );
@@ -535,6 +655,53 @@ export const AIPanel: React.FC<AIPanelProps> = ({
               {optimizedResult}
             </pre>
           </Card>
+          {/* Phase 3: evolution history for selected node */}
+          {selectedNodeId && (() => {
+            try {
+              const history = evolutionStore.getSkillEvolutionHistory(selectedNodeId);
+              if (history && history.length > 0) {
+                const recent = history.slice(-3);
+                return (
+                  <div style={{ marginTop: 12 }}>
+                    <label style={{
+                      display: "block",
+                      color: token.colorTextSecondary,
+                      fontSize: 12,
+                      marginBottom: 6,
+                    }}>
+                      进化历史
+                    </label>
+                    {recent.map((evt, i) => (
+                      <Card
+                        key={i}
+                        size="small"
+                        style={{
+                          background: token.colorFillTertiary,
+                          border: "none",
+                          marginBottom: 4,
+                        }}
+                        styles={{ body: { padding: "6px 10px" } }}
+                      >
+                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11 }}>
+                          <span style={{ color: token.colorTextSecondary }}>
+                            v{evt.version}
+                            {" "}
+                            {evt.summary || "优化"}
+                          </span>
+                          <span style={{ color: token.colorTextTertiary }}>
+                            {new Date(evt.timestamp).toLocaleDateString()}
+                          </span>
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                );
+              }
+            } catch {
+              // evolutionStore unavailable
+            }
+            return null;
+          })()}
         </div>
       )}
     </div>
@@ -606,6 +773,31 @@ export const AIPanel: React.FC<AIPanelProps> = ({
                     )}
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 6, marginLeft: 8, flexShrink: 0 }}>
+                    {/* Phase 3: evolution badges */}
+                    {(() => {
+                      try {
+                        const abResults = evolutionStore.getABTestResults(node.node_type);
+                        const historyResults = evolutionStore.getSkillEvolutionHistory(node.node_type);
+                        const hasABWin = abResults && abResults.length > 0;
+                        const hasHistory = historyResults && historyResults.length > 0;
+                        return (
+                          <>
+                            {hasABWin && (
+                              <Tag color="green" style={{ fontSize: 10, margin: 0, padding: "0 4px", lineHeight: "16px" }}>
+                                已验证有效
+                              </Tag>
+                            )}
+                            {hasHistory && !hasABWin && (
+                              <Tag color="blue" style={{ fontSize: 10, margin: 0, padding: "0 4px", lineHeight: "16px" }}>
+                                有进化记录
+                              </Tag>
+                            )}
+                          </>
+                        );
+                      } catch {
+                        return null;
+                      }
+                    })()}
                     <span
                       style={{
                         color: node.confidence >= 0.8
@@ -715,11 +907,22 @@ export const AIPanel: React.FC<AIPanelProps> = ({
               <Wand2 size={11} style={{ marginRight: 4, verticalAlign: -1 }} />
               {t("workflow.aiPanel.toolsMode")}
             </Radio.Button>
+            <Radio.Button value="evolution">
+              <Rocket size={11} style={{ marginRight: 4, verticalAlign: -1 }} />
+              进化
+            </Radio.Button>
           </Radio.Group>
         </div>
       </div>
       <div style={{ flex: 1, minHeight: 0, overflow: "hidden" }}>
-        {activeTab === "chat" ? renderChatTab() : renderToolsTab()}
+        {activeTab === "chat" && renderChatTab()}
+        {activeTab === "tools" && renderToolsTab()}
+        {activeTab === "evolution" && (
+          <EvolutionTab
+            currentWorkflowId={workflowStore.currentWorkflowId ?? null}
+            nodes={nodes}
+          />
+        )}
       </div>
       <ActionDiffPreview
         actions={pendingAiChatActions}

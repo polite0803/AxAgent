@@ -7,3 +7,7 @@ export { SpanTree } from "./SpanTree";
 export { Timeline } from "./Timeline";
 export { TraceDetail } from "./TraceDetail";
 export { TraceList } from "./TraceList";
+export { RLTrainingPanel } from "./RLTrainingPanel";
+export { RLTrainingConfig } from "./RLTrainingConfig";
+export { RLTrainingMonitor } from "./RLTrainingMonitor";
+export { RLCheckpointManager } from "./RLCheckpointManager";

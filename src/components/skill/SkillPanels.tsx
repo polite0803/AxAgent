@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+import { DynamicUIRenderer } from "@/components/dynamicUI/DynamicUIRenderer";
 import { useSkillExtensionStore } from "@/stores";
 import { Button } from "antd";
 import { ChevronDown, ChevronRight } from "lucide-react";
@@ -81,7 +82,11 @@ function CollapsiblePanel({
     panel.collapsible ? panel.defaultCollapsed : false,
   );
 
-  if (!panel.collapsible) {
+  const renderContent = () => {
+    // Phase 2: DynamicUI 分支 — 当 componentType 为 DynamicUI 且有 uiSchema 时直接渲染
+    if (panel.componentType === "DynamicUI" && panel.uiSchema) {
+      return <DynamicUIRenderer schema={panel.uiSchema} />;
+    }
     return (
       <SkillPageRenderer
         componentType={panel.componentType}
@@ -89,6 +94,10 @@ function CollapsiblePanel({
         skillName={panel.skillName}
       />
     );
+  };
+
+  if (!panel.collapsible) {
+    return renderContent();
   }
 
   return (
@@ -123,13 +132,7 @@ function CollapsiblePanel({
         />
         {panel.title}
       </div>
-      {!collapsed && (
-        <SkillPageRenderer
-          componentType={panel.componentType}
-          componentConfig={panel.componentConfig}
-          skillName={panel.skillName}
-        />
-      )}
+      {!collapsed && renderContent()}
     </div>
   );
 }

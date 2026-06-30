@@ -36,6 +36,8 @@ export interface ExpandedSubWorkflowData {
 import { invoke, logIpcError } from "@/lib/invoke";
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
+import { useEvolutionStore } from "./evolutionStore";
+import { useTracerStore } from "../devtools/tracerStore";
 
 export interface AiChatMessage {
   role: "user" | "assistant";
@@ -352,6 +354,9 @@ interface WorkflowEditorState {
   collapseAllContainers: () => void;
   /** 全部展开容器 */
   expandAllContainers: () => void;
+
+  /** 构建当前工作流的聊天上下文信息 */
+  buildChatContext: () => string;
 }
 
 interface ConversationWorkflowPreviewResponse {
@@ -2753,6 +2758,35 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
           // ignore
         }
       });
+    },
+
+    buildChatContext: () => {
+      const state = get();
+      const template = state.currentTemplate;
+      const nodes = state.nodes;
+      const edges = state.edges;
+
+      let context = `当前工作流：${template?.name || "未命名"}（${nodes.length} 节点/${edges.length} 边）`;
+
+      // 尝试获取执行痕迹（从 tracerStore）
+      try {
+        const tracerState = useTracerStore.getState();
+        if (tracerState.traces && tracerState.traces.length > 0) {
+          const latest = tracerState.traces[tracerState.traces.length - 1];
+          context += `\n最近执行：${latest.trace_id || "未命名"}，耗时 ${latest.duration_ms ?? "?"}ms`;
+        }
+      } catch { /* tracerStore not available */ }
+
+      // 尝试获取改进建议（从 evolutionStore）
+      try {
+        const evoState = useEvolutionStore.getState();
+        const runningEngines = Object.values(evoState.engines).filter((e) => e.running);
+        if (runningEngines.length > 0) {
+          context += `\n运行中的进化引擎：${runningEngines.map((e) => e.displayName).join("、")}`;
+        }
+      } catch { /* evolutionStore not available */ }
+
+      return context;
     },
   })),
 );

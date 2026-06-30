@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 export { useArtifactStore } from "./shared/artifactStore";
+export { useAgentPanelStore } from "./shared/agentPanelStore";
+export type { AgentContext, AgentPanelTab, AgentSelection } from "./shared/agentPanelStore";
 export { type TabItem, useTabStore } from "./shared/tabStore";
 export { useUIStore } from "./shared/uiStore";
 
@@ -63,3 +65,7 @@ export type { AvatarType } from "./feature/userProfileStore";
 export { useWorkEngineStore } from "./feature/workEngineStore";
 export { useWorkflowEditorStore } from "./feature/workflowEditorStore";
 export type { SaveSkillWorkflowResponse, SimilarWorkflow } from "./feature/workflowEditorStore";
+export { useEvolutionStore } from "./feature/evolutionStore";
+export type { ABTestResult, EngineLog, EngineStatus, EvolutionEvent, SkillVersion } from "./feature/evolutionStore";
+export { useRlTrainingStore } from "./feature/rlTrainingStore";
+export type { CheckpointInfo, RLTrainingConfig, TrainingMetrics } from "./feature/rlTrainingStore";

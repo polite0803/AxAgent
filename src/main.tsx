@@ -6,6 +6,7 @@ import { AppRoot } from "./App";
 import "./index.css";
 import { logIpcError } from "@/lib/invoke";
 import { initStoreRegistry } from "./lib/storeRegistry";
+import { registerAllBuiltins } from "./lib/dynamicUI/registerBuiltins";
 import { ensureHotReloadRegistered } from "./stores/feature/skillExtensionStore";
 
 // Native context menu prevention is handled by GlobalCopyMenu component.
@@ -16,6 +17,9 @@ initStoreRegistry().catch(logIpcError("Store registry init failed"));
 
 // ── 初始化 Skill 热重载监听（P1）──
 ensureHotReloadRegistered();
+
+// ── 注册所有内置 DynamicUI 组件（P0 - Phase 2）──
+registerAllBuiltins();
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>

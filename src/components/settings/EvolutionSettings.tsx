@@ -1,365 +1,171 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import { Tooltip } from "@/components/layout/Tooltip";
-import { invoke } from "@/lib/invoke";
-import { Badge, Button, Card, Col, Divider, Row, Spin, Statistic, Tag, theme, Typography } from "antd";
-import { Activity, Brain, Dna, FlaskConical, Lightbulb, RefreshCw, Shield, Sparkles, Wrench } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import EngineDetailPanel from "@/components/settings/EngineDetailPanel";
+import { useEvolutionStore } from "@/stores/feature/evolutionStore";
+import type { EngineStatus } from "@/stores/feature/evolutionStore";
+import { Badge, Button, Card, Col, Row, Space, Statistic, Switch, Typography } from "antd";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { pushNotification } from "../layout/NotificationBell";
-import { SettingsGroup } from "./SettingsGroup";
 
-const { Text } = Typography;
+const { Text, Paragraph } = Typography;
 
-interface EvolutionEngineStatus {
-  name: string;
-  running: boolean;
-  last_run: string | null;
-  items_processed: number;
-}
-
-interface EvolutionStats {
-  skill_count: number;
-  total_trajectories: number;
-  evolution_engines: EvolutionEngineStatus[];
-  auto_tools_count: number;
-  auto_tool_patterns: string[];
-  text_grad_nodes: number;
-  text_grad_gradients: number;
-  constitution_rules: number;
-  intrinsic_motivation_active: boolean;
-  coevolution_tasks: number;
-  dream_knowledge_count: number;
-  prm_enabled: boolean;
-  sandbox_enabled: boolean;
-  llm_provider_connected: boolean;
-}
-
-const ENGINE_ICONS: Record<string, React.ReactNode> = {
-  "Skill Evolution": <Dna size={16} />,
-  "RL Reward": <Activity size={16} />,
-  "Process Reward Model": <FlaskConical size={16} />,
-  "Auto Tool Creator": <Wrench size={16} />,
-  "TextGrad Engine": <Brain size={16} />,
-  "Dream Consolidator": <Lightbulb size={16} />,
-  "Intrinsic Motivation": <Sparkles size={16} />,
-  Coevolution: <Dna size={16} />,
+const CATEGORY_COLORS: Record<string, string> = {
+  core: "blue",
+  learning: "green",
+  safety: "orange",
+  experimental: "purple",
 };
 
-const ENGINE_NAME_KEY_MAP: Record<string, string> = {
-  "Skill Evolution": "evolution.engineNames.skillEvolution",
-  "RL Reward": "evolution.engineNames.rlReward",
-  "Process Reward Model": "evolution.engineNames.processRewardModel",
-  "Auto Tool Creator": "evolution.engineNames.autoToolCreator",
-  "TextGrad Engine": "evolution.engineNames.textGradEngine",
-  "Dream Consolidator": "evolution.engineNames.dreamConsolidator",
-  "Intrinsic Motivation": "evolution.engineNames.intrinsicMotivation",
-  Coevolution: "evolution.engineNames.coevolution",
-};
-
-function EngineStatusCard({ engine }: { engine: EvolutionEngineStatus }) {
-  const { t } = useTranslation();
-  const { token } = theme.useToken();
-  const icon = ENGINE_ICONS[engine.name] ?? <Activity size={16} />;
-
-  return (
-    <Card
-      size="small"
-      style={{
-        borderRadius: 8,
-        border: `1px solid ${engine.running ? token.colorSuccessBorder : token.colorBorderSecondary}`,
-        backgroundColor: engine.running
-          ? token.colorSuccessBg
-          : token.colorBgContainer,
-      }}
-    >
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 8,
-          marginBottom: 4,
-        }}
-      >
-        <span
-          style={{
-            color: engine.running
-              ? token.colorSuccess
-              : token.colorTextQuaternary,
-          }}
-        >
-          {icon}
-        </span>
-        <Text strong style={{ fontSize: 13, flex: 1 }}>
-          {t(ENGINE_NAME_KEY_MAP[engine.name] ?? engine.name, engine.name)}
-        </Text>
-        <Badge
-          status={engine.running ? "success" : "default"}
-          text={
-            <Text
-              style={{
-                fontSize: 12,
-                color: engine.running
-                  ? token.colorSuccess
-                  : token.colorTextQuaternary,
-              }}
-            >
-              {engine.running ? t("evolution.running") : t("evolution.idle")}
-            </Text>
-          }
-        />
-      </div>
-      <Text type="secondary" style={{ fontSize: 12 }}>
-        {t("evolution.processed", { count: engine.items_processed })}
-      </Text>
-    </Card>
-  );
+function getTopStats(engine: EngineStatus): { key: string; label: string; value: string | number }[] {
+  const entries = Object.entries(engine.stats).slice(0, 3);
+  return entries.map(([key, value]) => ({
+    key,
+    label: key.replace(/([A-Z])/g, " $1").replace(/^./, (s) => s.toUpperCase()),
+    value: typeof value === "number" && key.toLowerCase().includes("time") && value > 1000000000
+      ? new Date(value as number).toLocaleDateString()
+      : String(value),
+  }));
 }
 
-function InfrastructureStatus({ stats }: { stats: EvolutionStats }) {
+export default function EvolutionSettings() {
   const { t } = useTranslation();
+  const engines = useEvolutionStore((s) => s.engines);
+  const loading = useEvolutionStore((s) => s.loading);
+  const fetchAllEngineStatus = useEvolutionStore((s) => s.fetchAllEngineStatus);
+  const startEngine = useEvolutionStore((s) => s.startEngine);
+  const stopEngine = useEvolutionStore((s) => s.stopEngine);
 
-  const items = [
-    { label: t("evolution.llmProvider"), ok: stats.llm_provider_connected },
-    { label: t("evolution.sandbox"), ok: stats.sandbox_enabled },
-    { label: t("evolution.prm"), ok: stats.prm_enabled },
-    { label: t("evolution.intrinsic"), ok: stats.intrinsic_motivation_active },
-  ];
+  const [detailEngine, setDetailEngine] = useState<string | null>(null);
 
-  return (
-    <SettingsGroup title={t("evolution.infrastructure")}>
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-        {items.map((item) => (
-          <Tag
-            key={item.label}
-            color={item.ok ? "success" : "default"}
-            style={{ margin: 0, borderRadius: 6, padding: "2px 10px" }}
-          >
-            {item.ok ? "✓" : "○"} {item.label}
-          </Tag>
-        ))}
-      </div>
-    </SettingsGroup>
-  );
-}
+  useEffect(() => {
+    fetchAllEngineStatus();
+  }, [fetchAllEngineStatus]);
 
-function MetricsOverview({ stats }: { stats: EvolutionStats }) {
-  const { t } = useTranslation();
+  const engineList = Object.values(engines);
+  const runningCount = engineList.filter((e) => e.running).length;
 
-  return (
-    <SettingsGroup title={t("evolution.metricsOverview")}>
-      <Row gutter={[12, 12]}>
-        <Col span={6}>
-          <Statistic
-            title={t("evolution.skillCount")}
-            value={stats.skill_count}
-            valueStyle={{ fontSize: 20 }}
-          />
-        </Col>
-        <Col span={6}>
-          <Statistic
-            title={t("evolution.trajectories")}
-            value={stats.total_trajectories}
-            valueStyle={{ fontSize: 20 }}
-          />
-        </Col>
-        <Col span={6}>
-          <Statistic
-            title={t("evolution.autoTools")}
-            value={stats.auto_tools_count}
-            valueStyle={{ fontSize: 20 }}
-          />
-        </Col>
-        <Col span={6}>
-          <Statistic
-            title={t("evolution.dreamKnowledge")}
-            value={stats.dream_knowledge_count}
-            valueStyle={{ fontSize: 20 }}
-          />
-        </Col>
-      </Row>
-      <Divider style={{ margin: "12px 0" }} />
-      <Row gutter={[12, 12]}>
-        <Col span={6}>
-          <Statistic
-            title={t("evolution.textGradNodes")}
-            value={stats.text_grad_nodes}
-            valueStyle={{ fontSize: 20 }}
-          />
-        </Col>
-        <Col span={6}>
-          <Statistic
-            title={t("evolution.textGradGradients")}
-            value={stats.text_grad_gradients}
-            valueStyle={{ fontSize: 20 }}
-          />
-        </Col>
-        <Col span={6}>
-          <Statistic
-            title={t("evolution.constitutionRules")}
-            value={stats.constitution_rules}
-            valueStyle={{ fontSize: 20 }}
-          />
-        </Col>
-        <Col span={6}>
-          <Statistic
-            title={t("evolution.coevolutionTasks")}
-            value={stats.coevolution_tasks}
-            valueStyle={{ fontSize: 20 }}
-          />
-        </Col>
-      </Row>
-    </SettingsGroup>
-  );
-}
-
-function AutoToolPatterns({ patterns }: { patterns: string[] }) {
-  const { t } = useTranslation();
-
-  if (patterns.length === 0) {
-    return null;
-  }
-
-  return (
-    <SettingsGroup title={t("evolution.frequentPatterns")}>
-      <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-        {patterns.map((p) => (
-          <Tag key={p} style={{ borderRadius: 6, margin: 0 }}>
-            {p}
-          </Tag>
-        ))}
-      </div>
-    </SettingsGroup>
-  );
-}
-
-export function EvolutionSettings() {
-  const { t } = useTranslation();
-  const { token } = theme.useToken();
-  const [stats, setStats] = useState<EvolutionStats | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const fetchStats = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const result = await invoke<EvolutionStats>("get_evolution_stats");
-      if (result && !Array.isArray(result)) {
-        setStats(result);
-        const prevCount = stats?.auto_tools_count ?? 0;
-        if (result.auto_tools_count > prevCount) {
-          pushNotification("success", t("evolution.newToolDiscovered"));
-        }
-        const prevKnowledge = stats?.dream_knowledge_count ?? 0;
-        if (result.dream_knowledge_count > prevKnowledge) {
-          pushNotification("info", t("evolution.newDreamKnowledge"));
-        }
-      }
-    } catch (e) {
-      setError(String(e));
-    } finally {
-      setLoading(false);
+  const handleStartAll = useCallback(() => {
+    for (const e of engineList) {
+      if (!e.running) startEngine(e.name);
     }
-  }, [stats, t]);
+  }, [engineList, startEngine]);
 
-  const fetchStatsRef = useRef(fetchStats);
-  useEffect(() => {
-    fetchStatsRef.current = fetchStats;
-  });
-
-  useEffect(() => {
-    fetchStatsRef.current();
-    const interval = setInterval(() => fetchStatsRef.current(), 30000);
-    return () => clearInterval(interval);
-  }, []);
+  const handleStopAll = useCallback(() => {
+    for (const e of engineList) {
+      if (e.running) stopEngine(e.name);
+    }
+  }, [engineList, stopEngine]);
 
   return (
-    <div>
+    <div style={{ padding: 24 }}>
+      {/* Global control bar */}
       <div
         style={{
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          marginBottom: 16,
+          marginBottom: 24,
+          padding: "12px 16px",
+          background: "var(--ant-color-bg-container, #fff)",
+          borderRadius: 8,
+          border: "1px solid var(--ant-color-border-secondary, #f0f0f0)",
         }}
       >
-        <div>
-          <Text strong style={{ fontSize: 16 }}>
-            {t("evolution.title")}
-          </Text>
-          <br />
-          <Text type="secondary" style={{ fontSize: 12 }}>
-            {t("evolution.description")}
-          </Text>
-        </div>
-        <Tooltip title={t("evolution.refresh")}>
-          <Button
-            size="small"
-            icon={<RefreshCw size={14} />}
-            onClick={fetchStats}
-            loading={loading}
-            style={{ display: "flex", alignItems: "center", gap: 4 }}
-          >
-            {t("evolution.refresh")}
+        <Space>
+          <Button type="primary" onClick={handleStartAll}>
+            {t("settings.evolution.startAll", "全部启动")}
           </Button>
-        </Tooltip>
+          <Button onClick={handleStopAll}>
+            {t("settings.evolution.stopAll", "全部停止")}
+          </Button>
+          <Button onClick={fetchAllEngineStatus} loading={loading}>
+            {t("settings.evolution.refresh", "刷新状态")}
+          </Button>
+        </Space>
+        <Text>
+          {t("settings.evolution.engineCount", "运行中")}: {runningCount} / {engineList.length}
+        </Text>
       </div>
 
-      {error && (
-        <Card
-          size="small"
-          style={{ marginBottom: 12, borderColor: token.colorErrorBorder }}
-        >
-          <Text type="danger" style={{ fontSize: 12 }}>
-            {error}
-          </Text>
-        </Card>
-      )}
+      {/* Engine card grid */}
+      <Row gutter={[16, 16]}>
+        {engineList.map((engine) => {
+          const topStats = getTopStats(engine);
+          return (
+            <Col key={engine.name} xs={24} sm={12} lg={8}>
+              <Card
+                size="small"
+                hoverable
+                title={
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <Badge status={engine.running ? "processing" : "default"} />
+                    <span style={{ fontSize: 14, fontWeight: 600 }}>{engine.displayName}</span>
+                    <span
+                      style={{
+                        fontSize: 11,
+                        padding: "1px 6px",
+                        borderRadius: 4,
+                        background: CATEGORY_COLORS[engine.category] ?? "#888",
+                        color: "#fff",
+                      }}
+                    >
+                      {engine.category}
+                    </span>
+                  </div>
+                }
+                extra={
+                  <Switch
+                    checked={engine.running}
+                    size="small"
+                    onChange={(checked) => {
+                      if (checked) startEngine(engine.name);
+                      else stopEngine(engine.name);
+                    }}
+                  />
+                }
+              >
+                <Paragraph
+                  type="secondary"
+                  ellipsis={{ rows: 2 }}
+                  style={{ fontSize: 12, marginBottom: 12, minHeight: 36 }}
+                >
+                  {engine.description}
+                </Paragraph>
 
-      {loading && !stats && (
-        <div style={{ textAlign: "center", padding: 40 }}>
-          <Spin />
-        </div>
-      )}
+                <Row gutter={8}>
+                  {topStats.map((s) => (
+                    <Col key={s.key} span={8}>
+                      <Statistic
+                        title={s.label}
+                        value={s.value}
+                        valueStyle={{ fontSize: 14 }}
+                      />
+                    </Col>
+                  ))}
+                </Row>
 
-      {stats && (
-        <>
-          <InfrastructureStatus stats={stats} />
-          <MetricsOverview stats={stats} />
+                <div style={{ marginTop: 12, textAlign: "right" }}>
+                  <Button
+                    type="link"
+                    size="small"
+                    onClick={() => setDetailEngine(engine.name)}
+                  >
+                    {t("common.details", "详情")}
+                  </Button>
+                </div>
+              </Card>
+            </Col>
+          );
+        })}
+      </Row>
 
-          <SettingsGroup title={t("evolution.engineStatus")}>
-            <Row gutter={[8, 8]}>
-              {stats.evolution_engines.map((engine) => (
-                <Col span={12} key={engine.name}>
-                  <EngineStatusCard engine={engine} />
-                </Col>
-              ))}
-            </Row>
-          </SettingsGroup>
-
-          <AutoToolPatterns patterns={stats.auto_tool_patterns} />
-
-          <SettingsGroup title={t("evolution.constitutionShield")}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <Shield
-                size={16}
-                style={{
-                  color: stats.constitution_rules > 0
-                    ? token.colorSuccess
-                    : token.colorTextQuaternary,
-                }}
-              />
-              <Text style={{ fontSize: 13 }}>
-                {stats.constitution_rules > 0
-                  ? t("evolution.constitutionActive", {
-                    count: stats.constitution_rules,
-                  })
-                  : t("evolution.constitutionEmpty")}
-              </Text>
-            </div>
-          </SettingsGroup>
-        </>
+      {/* Detail drawer */}
+      {detailEngine && (
+        <EngineDetailPanel
+          engineName={detailEngine}
+          open={detailEngine !== null}
+          onClose={() => setDetailEngine(null)}
+        />
       )}
     </div>
   );

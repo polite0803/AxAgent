@@ -1520,3 +1520,21 @@ export interface ShareParticipant {
   name: string;
   joined_at: number;
 }
+
+// ── Dynamic UI ──
+export type {
+  ComponentRegistryEntry,
+  ConditionalRule,
+  DataSourceConfig,
+  DynamicAction,
+  DynamicComponentType,
+  DynamicUIProps,
+  EventHandler,
+  SchemaValidationError,
+  SchemaValidationResult,
+  UISchema,
+} from "./dynamicUI";
+export {
+  COMPONENT_REQUIRED_PROPS,
+  VALID_DYNAMIC_COMPONENT_TYPES,
+} from "./dynamicUI";
