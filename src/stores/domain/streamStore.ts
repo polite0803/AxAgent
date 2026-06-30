@@ -831,7 +831,7 @@ interface ConversationStoreRefState {
   multiModelParentId: string | null;
   pendingCompanionModels: Array<{ providerId: string; model_id: string }>;
   multiModelDoneMessageIds: string[];
-  regenerateMessage: (messageId: string) => Promise<void>;
+  regenerateMessage: (targetMessageId?: string) => Promise<void>;
 }
 
 interface ConversationStoreRef {
