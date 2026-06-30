@@ -29,8 +29,6 @@ use std::collections::HashMap;
 #[cfg(test)]
 use std::fs;
 use std::sync::Arc;
-#[cfg(test)]
-use std::sync::Mutex;
 use std::sync::atomic::AtomicBool;
 use tauri::Emitter;
 use tauri::State;
@@ -2554,25 +2552,27 @@ pub(crate) async fn persist_attachments_registers_stored_files_for_files_page() 
         similarity_threshold: 0.85,
     }));
     let state = crate::AppState {
-        gateway: Arc::new(Mutex::new(None)),
+        gateway: Arc::new(tokio::sync::Mutex::new(None)),
         close_to_tray: Arc::new(AtomicBool::new(false)),
         app_data_dir: temp_dir.clone(),
-        auto_backup_handle: Arc::new(Mutex::new(None)),
-        webdav_sync_handle: Arc::new(Mutex::new(None)),
-        api_server_handle: Arc::new(Mutex::new(None)),
-        trajectory_cleanup_handle: Arc::new(Mutex::new(None)),
+        auto_backup_handle: Arc::new(tokio::sync::Mutex::new(None)),
+        webdav_sync_handle: Arc::new(tokio::sync::Mutex::new(None)),
+        api_server_handle: Arc::new(tokio::sync::Mutex::new(None)),
+        trajectory_cleanup_handle: Arc::new(tokio::sync::Mutex::new(None)),
         task_manager: Arc::new(axagent_runtime::task_manager::TaskManager::new()),
         skill_watcher_shutdown: std::sync::OnceLock::new(),
         vector_store: vector_store.clone(),
         indexing_semaphore: Arc::new(tokio::sync::Semaphore::new(2)),
         stream_cancel_flags: Arc::new(DashMap::new()),
-        agent_permission_senders: Arc::new(Mutex::new(std::collections::HashMap::new())),
-        agent_ask_senders: Arc::new(Mutex::new(std::collections::HashMap::new())),
-        agent_always_allowed: Arc::new(Mutex::new(std::collections::HashMap::new())),
-        agent_prompters: Arc::new(Mutex::new(std::collections::HashMap::new())),
+        agent_permission_senders: Arc::new(tokio::sync::Mutex::new(
+            std::collections::HashMap::new(),
+        )),
+        agent_ask_senders: Arc::new(tokio::sync::Mutex::new(std::collections::HashMap::new())),
+        agent_always_allowed: Arc::new(tokio::sync::Mutex::new(std::collections::HashMap::new())),
+        agent_prompters: Arc::new(tokio::sync::Mutex::new(std::collections::HashMap::new())),
         agent_session_manager: Arc::new(axagent_agent::SessionManager::new(db.clone())),
         agent_cancel_tokens: Arc::new(DashMap::new()),
-        agent_paused: Arc::new(Mutex::new(std::collections::HashSet::new())),
+        agent_paused: Arc::new(tokio::sync::Mutex::new(std::collections::HashSet::new())),
         running_agents: Arc::new(tokio::sync::RwLock::new(std::collections::HashSet::new())),
         reflector: Arc::new(axagent_agent::Reflector::new()),
         shared_memory: Arc::new(tokio::sync::RwLock::new(
@@ -2748,25 +2748,25 @@ pub(crate) async fn persist_attachments_registers_stored_files_for_files_page() 
             Arc::new(axagent_core::file_authorizer::FileAuthorizer::new()),
             temp_dir.clone(),
         ),
-        gateway_state: crate::state::GatewayState::new(Arc::new(Mutex::new(None))),
+        gateway_state: crate::state::GatewayState::new(Arc::new(tokio::sync::Mutex::new(None))),
         task: crate::state::TaskState::new(
             Arc::new(axagent_runtime::task_manager::TaskManager::new()),
-            Arc::new(Mutex::new(None)),
-            Arc::new(Mutex::new(None)),
-            Arc::new(Mutex::new(None)),
-            Arc::new(Mutex::new(None)),
+            Arc::new(tokio::sync::Mutex::new(None)),
+            Arc::new(tokio::sync::Mutex::new(None)),
+            Arc::new(tokio::sync::Mutex::new(None)),
+            Arc::new(tokio::sync::Mutex::new(None)),
             tokio_util::sync::CancellationToken::new(),
             Arc::new(AtomicBool::new(false)),
             Arc::new(DashMap::new()),
-            Arc::new(Mutex::new(std::collections::HashMap::new())),
-            Arc::new(Mutex::new(std::collections::HashMap::new())),
-            Arc::new(Mutex::new(std::collections::HashMap::new())),
-            Arc::new(Mutex::new(std::collections::HashMap::new())),
+            Arc::new(tokio::sync::Mutex::new(std::collections::HashMap::new())),
+            Arc::new(tokio::sync::Mutex::new(std::collections::HashMap::new())),
+            Arc::new(tokio::sync::Mutex::new(std::collections::HashMap::new())),
+            Arc::new(tokio::sync::Mutex::new(std::collections::HashMap::new())),
         ),
         agent: crate::state::AgentState::new(
             Arc::new(axagent_agent::SessionManager::new(db.clone())),
             Arc::new(DashMap::new()),
-            Arc::new(Mutex::new(std::collections::HashSet::new())),
+            Arc::new(tokio::sync::Mutex::new(std::collections::HashSet::new())),
             Arc::new(tokio::sync::RwLock::new(std::collections::HashSet::new())),
             Arc::new(axagent_agent::Reflector::new()),
             Arc::new(axagent_runtime::message_gateway::platform_manager::PlatformManager::new()),
