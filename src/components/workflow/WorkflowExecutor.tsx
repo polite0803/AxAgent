@@ -7,7 +7,7 @@ import type { WorkflowDefinition, WorkflowExecution } from "@/types/workflow";
 import { Button, Descriptions, Form, Input, Modal, Space, Tag, Typography } from "antd";
 import { useCallback, useState } from "react";
 
-const { Text, Title } = Typography;
+const { Text } = Typography;
 
 interface WorkflowExecutorProps {
   workflow: WorkflowDefinition;
@@ -116,8 +116,7 @@ export function WorkflowExecutor({ workflow, open, onClose }: WorkflowExecutorPr
               <Space wrap>
                 {execution.nodeStates.map((ns) => (
                   <Tag key={ns.nodeId} color={statusColor[ns.status]}>
-                    {workflow.nodes.find((n) => n.id === ns.nodeId)?.label ?? ns.nodeId}:{" "}
-                    {statusLabel[ns.status]}
+                    {workflow.nodes.find((n) => n.id === ns.nodeId)?.label ?? ns.nodeId}: {statusLabel[ns.status]}
                   </Tag>
                 ))}
               </Space>

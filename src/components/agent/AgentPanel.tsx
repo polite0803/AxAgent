@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+/* eslint-disable react-refresh/only-export-components */
 
 import { AgentChatTab } from "@/components/agent/AgentChatTab";
 import { AgentExecutionTab } from "@/components/agent/AgentExecutionTab";
@@ -17,7 +18,7 @@ const MAX_WIDTH = 600;
 
 /** 内容区容器样式：根据面板展开状态动态调整右侧 margin */
 function getContentStyle(isOpen: boolean, panelWidth: number): React.CSSProperties {
-  if (!isOpen) return {};
+  if (!isOpen) { return {}; }
   return { marginRight: panelWidth };
 }
 
@@ -50,7 +51,7 @@ export function AgentPanel() {
       startWidthRef.current = panelWidth;
 
       const handleMouseMove = (ev: MouseEvent) => {
-        if (!draggingRef.current) return;
+        if (!draggingRef.current) { return; }
         const delta = startXRef.current - ev.clientX;
         const newWidth = Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, startWidthRef.current + delta));
         setWidth(newWidth);
@@ -74,7 +75,7 @@ export function AgentPanel() {
 
   // 按 Escape 关闭面板
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen) { return; }
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         close();

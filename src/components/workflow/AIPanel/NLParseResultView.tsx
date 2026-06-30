@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import type { NLParseResult, WorkflowDefinition } from "@/types/workflow";
-import { Button, Card, List, Progress, Radio, Statistic, Tag, Typography, theme } from "antd";
+import { Button, Card, List, Progress, Radio, Statistic, Tag, theme, Typography } from "antd";
 import { Lightbulb, Workflow } from "lucide-react";
 import React, { useMemo, useState } from "react";
 
@@ -19,7 +19,7 @@ export const NLParseResultView: React.FC<NLParseResultViewProps> = React.memo(({
 
   const confidenceColor = percent >= 80 ? token.colorSuccess : percent >= 60 ? token.colorPrimary : token.colorWarning;
 
-  const alternatives = result.alternatives ?? [];
+  const alternatives = useMemo(() => result.alternatives ?? [], [result.alternatives]);
   const [selectedAltIndex, setSelectedAltIndex] = useState(0);
   const hasAlternatives = alternatives.length > 0;
 
@@ -35,7 +35,7 @@ export const NLParseResultView: React.FC<NLParseResultViewProps> = React.memo(({
   const variableCount = Object.keys(displayWorkflow?.variables ?? {}).length;
 
   const nodeTypeCounts = useMemo(() => {
-    if (!displayWorkflow?.nodes) return {};
+    if (!displayWorkflow?.nodes) { return {}; }
     const counts: Record<string, number> = {};
     for (const n of displayWorkflow.nodes) {
       const t = n.type || "unknown";

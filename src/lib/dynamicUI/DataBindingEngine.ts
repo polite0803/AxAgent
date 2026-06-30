@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import type { DataSourceConfig } from "@/types";
 import { invoke } from "@/lib/invoke";
+import type { DataSourceConfig } from "@/types";
 
 /**
  * 数据绑定引擎：解析 DataSourceConfig 并返回实际数据。

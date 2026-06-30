@@ -45,15 +45,17 @@ interface EvaluatorState {
 
   getABTestResults: (
     skillId: string,
-  ) => Promise<{
-    testId: string;
-    skillId: string;
-    versionA: string;
-    versionB: string;
-    winner: "A" | "B" | "tie";
-    metrics: { name: string; valueA: number; valueB: number; unit: string }[];
-    conclusion: string;
-  } | null>;
+  ) => Promise<
+    {
+      testId: string;
+      skillId: string;
+      versionA: string;
+      versionB: string;
+      winner: "A" | "B" | "tie";
+      metrics: { name: string; valueA: number; valueB: number; unit: string }[];
+      conclusion: string;
+    } | null
+  >;
 }
 
 export const useEvaluatorStore = create<EvaluatorState>((set, get) => ({
@@ -223,15 +225,17 @@ export const useEvaluatorStore = create<EvaluatorState>((set, get) => ({
 
   getABTestResults: async (skillId: string) => {
     try {
-      return await invoke<{
-        testId: string;
-        skillId: string;
-        versionA: string;
-        versionB: string;
-        winner: "A" | "B" | "tie";
-        metrics: { name: string; valueA: number; valueB: number; unit: string }[];
-        conclusion: string;
-      } | null>("evaluator_get_ab_results", { skillId });
+      return await invoke<
+        {
+          testId: string;
+          skillId: string;
+          versionA: string;
+          versionB: string;
+          winner: "A" | "B" | "tie";
+          metrics: { name: string; valueA: number; valueB: number; unit: string }[];
+          conclusion: string;
+        } | null
+      >("evaluator_get_ab_results", { skillId });
     } catch (e) {
       console.warn("[evaluatorStore] getABTestResults failed, using mock", e);
       return {

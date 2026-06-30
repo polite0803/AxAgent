@@ -2,7 +2,7 @@
 
 import type { NL2SkillResult, SkillDefinition } from "@/types/workflow";
 import { BulbOutlined, CheckCircleOutlined, PlayCircleOutlined, ThunderboltOutlined } from "@ant-design/icons";
-import { Button, Collapse, List, Progress, Space, Statistic, Tag, Typography, theme } from "antd";
+import { Button, Collapse, List, Progress, Space, Statistic, Tag, theme, Typography } from "antd";
 import React from "react";
 
 const { Text, Title } = Typography;
@@ -47,9 +47,7 @@ export const NL2SkillResultView: React.FC<NL2SkillResultViewProps> = React.memo(
         <div>
           <Text strong>触发词：</Text>
           <Space style={{ marginLeft: 8 }}>
-            {skill.triggers.map((t) => (
-              <Tag key={t} color="blue">{t}</Tag>
-            ))}
+            {skill.triggers.map((t) => <Tag key={t} color="blue">{t}</Tag>)}
           </Space>
         </div>
 
@@ -88,11 +86,9 @@ export const NL2SkillResultView: React.FC<NL2SkillResultViewProps> = React.memo(
                   renderItem={(p) => (
                     <List.Item style={{ padding: "2px 0" }}>
                       <Space>
-                        {p.status === "done" ? (
-                          <CheckCircleOutlined style={{ color: token.colorSuccess }} />
-                        ) : (
-                          <ThunderboltOutlined style={{ color: token.colorPrimary }} />
-                        )}
+                        {p.status === "done"
+                          ? <CheckCircleOutlined style={{ color: token.colorSuccess }} />
+                          : <ThunderboltOutlined style={{ color: token.colorPrimary }} />}
                         <Text strong>{p.phase}</Text>
                         <Text type="secondary">{p.detail}</Text>
                       </Space>

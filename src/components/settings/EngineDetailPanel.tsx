@@ -31,9 +31,15 @@ function buildConfigFields(engine: EngineStatus): ConfigField[] {
     if (typeof value === "boolean") {
       fields.push({ key, label, type: "switch" });
     } else if (typeof value === "number") {
-      if (key.toLowerCase().includes("rate") || key.toLowerCase().includes("ratio") || key.toLowerCase().includes("threshold")) {
+      if (
+        key.toLowerCase().includes("rate") || key.toLowerCase().includes("ratio")
+        || key.toLowerCase().includes("threshold")
+      ) {
         fields.push({ key, label, type: "number", min: 0, max: 1, step: 0.01 });
-      } else if (key.toLowerCase().includes("count") || key.toLowerCase().includes("size") || key.toLowerCase().includes("budget")) {
+      } else if (
+        key.toLowerCase().includes("count") || key.toLowerCase().includes("size")
+        || key.toLowerCase().includes("budget")
+      ) {
         fields.push({ key, label, type: "number", min: 1, max: 10000, step: 1 });
       } else if (key.toLowerCase().includes("interval") || key.toLowerCase().includes("timeout")) {
         fields.push({ key, label, type: "number", min: 0, max: 86400000, step: 1000 });
@@ -41,7 +47,10 @@ function buildConfigFields(engine: EngineStatus): ConfigField[] {
         fields.push({ key, label, type: "number", min: 0, step: 0.001 });
       }
     } else if (typeof value === "string") {
-      if (key.toLowerCase().includes("language") || key.toLowerCase().includes("optimizer") || key.toLowerCase().includes("type")) {
+      if (
+        key.toLowerCase().includes("language") || key.toLowerCase().includes("optimizer")
+        || key.toLowerCase().includes("type")
+      ) {
         fields.push({
           key,
           label,
@@ -50,8 +59,7 @@ function buildConfigFields(engine: EngineStatus): ConfigField[] {
             ? ["adam", "sgd", "rmsprop", "adagrad"]
             : key.toLowerCase().includes("complexity")
             ? ["low", "medium", "high"]
-            : ["python", "javascript", "bash"]
-          ).map((v) => ({ label: v, value: v })),
+            : ["python", "javascript", "bash"]).map((v) => ({ label: v, value: v })),
         });
       } else {
         fields.push({ key, label, type: "text" });
@@ -150,7 +158,10 @@ export default function EngineDetailPanel({ engineName, open, onClose }: EngineD
             children: (
               <Descriptions column={2} size="small" bordered>
                 {Object.entries(engine.stats).map(([key, value]) => (
-                  <Descriptions.Item key={key} label={key.replace(/([A-Z])/g, " $1").replace(/^./, (s) => s.toUpperCase())}>
+                  <Descriptions.Item
+                    key={key}
+                    label={key.replace(/([A-Z])/g, " $1").replace(/^./, (s) => s.toUpperCase())}
+                  >
                     {typeof value === "number" && key.toLowerCase().includes("time") && value > 1000000000
                       ? new Date(value as number).toLocaleString()
                       : String(value)}
@@ -183,9 +194,7 @@ export default function EngineDetailPanel({ engineName, open, onClose }: EngineD
             ),
             children: (
               <div style={{ maxHeight: 400, overflow: "auto", fontFamily: "monospace", fontSize: 12 }}>
-                {engine.logs.length === 0 ? (
-                  <Text type="secondary">暂无日志</Text>
-                ) : (
+                {engine.logs.length === 0 ? <Text type="secondary">暂无日志</Text> : (
                   engine.logs.map((log, i) => (
                     <div
                       key={i}

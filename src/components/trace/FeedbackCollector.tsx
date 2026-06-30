@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import { Button, Input, Space, Typography, notification } from "antd";
-import { LikeOutlined, DislikeOutlined } from "@ant-design/icons";
+import { DislikeOutlined, LikeOutlined } from "@ant-design/icons";
+import { Button, Input, notification, Space, Typography } from "antd";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 

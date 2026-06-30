@@ -28,36 +28,30 @@ export const DataTable: React.FC<DynamicUIProps> = ({
     size?: "small" | "middle" | "large";
   };
 
-  const data =
-    staticData
-    || (dataContext &&
-        Array.isArray(
+  const data = staticData
+      || (dataContext
+        && Array.isArray(
           (dataContext as Record<string, unknown>)[schema.id],
         ))
-      ? (
-        (dataContext as Record<string, unknown>)[schema.id] as Record<
-          string,
-          unknown
-        >[]
-      )
-      : [];
+    ? (
+      (dataContext as Record<string, unknown>)[schema.id] as Record<
+        string,
+        unknown
+      >[]
+    )
+    : [];
 
   return (
     <Table<Record<string, unknown>>
       columns={columns}
       dataSource={data}
-      pagination={
-        pagination === false ? false : { pageSize: 10, ...(pagination as object) }
-      }
-      rowSelection={
-        rowSelection
-          ? (rowSelection as TableColumnsType<Record<string, unknown>>[0] extends {
-              rowSelection: infer R;
-            }
-              ? R
-              : never)
-          : undefined
-      }
+      pagination={pagination === false ? false : { pageSize: 10, ...(pagination as object) }}
+      rowSelection={rowSelection
+        ? (rowSelection as TableColumnsType<Record<string, unknown>>[0] extends {
+          rowSelection: infer R;
+        } ? R
+          : never)
+        : undefined}
       showHeader={showHeader}
       size={size}
       rowKey={(record) => String(record.id || record.key || "")}

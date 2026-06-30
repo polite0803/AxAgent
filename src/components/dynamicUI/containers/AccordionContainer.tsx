@@ -20,8 +20,7 @@ export const AccordionContainer: React.FC<DynamicUIProps> = ({
 
   const items = (schema.children || []).map((child, index) => ({
     key: child.id || `panel-${index}`,
-    label:
-      ((child.props as Record<string, unknown>)?.label as string)
+    label: ((child.props as Record<string, unknown>)?.label as string)
       || `Section ${index + 1}`,
     children: renderChild(child, dataContext, onAction),
   }));
@@ -43,8 +42,7 @@ function renderChild(
   onAction: DynamicUIProps["onAction"],
 ): React.ReactNode {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const DynamicUIRenderer =
-    require("../DynamicUIRenderer").DynamicUIRenderer as React.ComponentType<DynamicUIProps>;
+  const DynamicUIRenderer = require("../DynamicUIRenderer").DynamicUIRenderer as React.ComponentType<DynamicUIProps>;
   return (
     <DynamicUIRenderer
       schema={child}

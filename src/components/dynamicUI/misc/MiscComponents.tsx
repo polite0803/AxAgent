@@ -1,14 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import type { DynamicUIProps } from "@/types";
-import {
-  Button,
-  Typography,
-  Divider,
-  Progress,
-  Tag,
-  Image,
-} from "antd";
+import { Button, Divider, Image, Progress, Tag, Typography } from "antd";
 
 const { Text, Title } = Typography;
 
@@ -27,7 +20,6 @@ export const DynamicButton: React.FC<DynamicUIProps> = ({
     danger = false,
     loading = false,
     block = false,
-    icon,
     ...rest
   } = schema.props as {
     text?: string;
@@ -121,13 +113,12 @@ export const DynamicText: React.FC<DynamicUIProps> = ({ schema }) => {
  * 分割线组件，基于 Ant Design Divider。
  */
 export const DynamicDivider: React.FC<DynamicUIProps> = ({ schema }) => {
-  const { text, orientation = "center", plain = false, dashed = false } =
-    schema.props as {
-      text?: string;
-      orientation?: "left" | "right" | "center";
-      plain?: boolean;
-      dashed?: boolean;
-    };
+  const { text, orientation = "center", plain = false, dashed = false } = schema.props as {
+    text?: string;
+    orientation?: "left" | "right" | "center";
+    plain?: boolean;
+    dashed?: boolean;
+  };
 
   return (
     <Divider

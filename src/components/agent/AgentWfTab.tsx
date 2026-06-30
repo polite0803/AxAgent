@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import type { NL2SkillRequest, NL2SkillResult, NL2UIRequest, NL2UIResult, SkillDefinition } from "@/types/workflow";
-import type { UISchema } from "@/types/dynamicUI";
-import { useWorkflowStore } from "@/stores/feature/workflowStore";
 import { NL2SkillResultView } from "@/components/workflow/AIPanel/NL2SkillResultView";
 import { NL2UIResultView } from "@/components/workflow/AIPanel/NL2UIResultView";
+import { useWorkflowStore } from "@/stores/feature/workflowStore";
+import type { UISchema } from "@/types/dynamicUI";
+import type { NL2SkillRequest, NL2SkillResult, NL2UIRequest, NL2UIResult, SkillDefinition } from "@/types/workflow";
 import { LayoutOutlined, SendOutlined, ThunderboltOutlined } from "@ant-design/icons";
 import { Button, Empty, Input, Progress, Select, Space, Tabs, Typography } from "antd";
 import { useState } from "react";
@@ -36,7 +36,7 @@ export function AgentWfTab() {
   const [uiResult, setUIResult] = useState<NL2UIResult | null>(null);
 
   const handleGenerate = async () => {
-    if (!prompt.trim()) return;
+    if (!prompt.trim()) { return; }
     setIsGenerating(true);
     setSkillResult(null);
     setUIResult(null);
@@ -77,8 +77,22 @@ export function AgentWfTab() {
         size="small"
         style={{ paddingLeft: 8, paddingRight: 8 }}
         items={[
-          { key: "skill", label: <Space><ThunderboltOutlined />NL2Skill</Space> },
-          { key: "ui", label: <Space><LayoutOutlined />NL2UI</Space> },
+          {
+            key: "skill",
+            label: (
+              <Space>
+                <ThunderboltOutlined />NL2Skill
+              </Space>
+            ),
+          },
+          {
+            key: "ui",
+            label: (
+              <Space>
+                <LayoutOutlined />NL2UI
+              </Space>
+            ),
+          },
         ]}
       />
 
@@ -87,43 +101,43 @@ export function AgentWfTab() {
         <TextArea
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
-          placeholder={
-            mode === "skill"
-              ? "描述你需要的技能，如：创建一个自动回复客服消息的技能，支持多轮对话"
-              : "描述你需要的界面，如：一个数据看板，展示请求量、成功率和最近7天趋势"
-          }
+          placeholder={mode === "skill"
+            ? "描述你需要的技能，如：创建一个自动回复客服消息的技能，支持多轮对话"
+            : "描述你需要的界面，如：一个数据看板，展示请求量、成功率和最近7天趋势"}
           rows={3}
           disabled={isGenerating}
         />
         <div style={{ display: "flex", gap: 8 }}>
-          {mode === "skill" ? (
-            <Select
-              value={skillType}
-              onChange={setSkillType}
-              size="small"
-              style={{ width: 100 }}
-              options={[
-                { label: "对话", value: "chat" },
-                { label: "工具", value: "tool" },
-                { label: "工作流", value: "workflow" },
-                { label: "自动化", value: "automation" },
-              ]}
-            />
-          ) : (
-            <Select
-              value={uiType}
-              onChange={setUIType}
-              size="small"
-              style={{ width: 110 }}
-              options={[
-                { label: "仪表盘", value: "dashboard" },
-                { label: "表单", value: "form" },
-                { label: "设置", value: "settings" },
-                { label: "报告", value: "report" },
-                { label: "自定义", value: "custom" },
-              ]}
-            />
-          )}
+          {mode === "skill"
+            ? (
+              <Select
+                value={skillType}
+                onChange={setSkillType}
+                size="small"
+                style={{ width: 100 }}
+                options={[
+                  { label: "对话", value: "chat" },
+                  { label: "工具", value: "tool" },
+                  { label: "工作流", value: "workflow" },
+                  { label: "自动化", value: "automation" },
+                ]}
+              />
+            )
+            : (
+              <Select
+                value={uiType}
+                onChange={setUIType}
+                size="small"
+                style={{ width: 110 }}
+                options={[
+                  { label: "仪表盘", value: "dashboard" },
+                  { label: "表单", value: "form" },
+                  { label: "设置", value: "settings" },
+                  { label: "报告", value: "report" },
+                  { label: "自定义", value: "custom" },
+                ]}
+              />
+            )}
           <Button
             type="primary"
             icon={<SendOutlined />}
@@ -150,9 +164,7 @@ export function AgentWfTab() {
         {mode === "skill" && skillResult && (
           <NL2SkillResultView result={skillResult} onApply={handleApplySkill} loading={false} />
         )}
-        {mode === "ui" && uiResult && (
-          <NL2UIResultView result={uiResult} onApply={handleApplyUI} loading={false} />
-        )}
+        {mode === "ui" && uiResult && <NL2UIResultView result={uiResult} onApply={handleApplyUI} loading={false} />}
         {!isGenerating && !skillResult && !uiResult && (
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", padding: 24 }}>
             <Empty

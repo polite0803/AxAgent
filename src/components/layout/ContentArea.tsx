@@ -12,7 +12,6 @@ import { lazy, memo, Suspense, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 
-const LazyChatPage = lazy(() => import("@/pages/ChatPage").then((m) => ({ default: m.ChatPage })));
 const LazyKnowledgeHubPage = lazy(() =>
   import("@/pages/KnowledgeHubPage").then((m) => ({
     default: m.KnowledgeHubPage,
@@ -44,7 +43,7 @@ const LazyToolRecommender = lazy(() =>
 const LazyRLTrainingPanel = lazy(() =>
   import("@/components/devtools/RLTrainingPanel").then((m) => ({
     default: m.default,
-  })),
+  }))
 );
 const LazyFineTune = lazy(() => import("@/pages/FineTunePage").then((m) => ({ default: m.FineTunePage })));
 const LazyIngestPage = lazy(() => import("@/pages/IngestPage").then((m) => ({ default: m.IngestPage })));
@@ -155,106 +154,166 @@ export const ContentArea = memo(function ContentArea() {
       <div style={{ flex: 1, overflow: "auto", display: "flex", flexDirection: "column", minWidth: 0 }}>
         <Routes>
           <Route path="/" element={<Navigate to="/knowledge" replace />} />
-          <Route path="/knowledge" element={
-            <PageContextProvider page="knowledge">
-              <SafeLazyPage Page={LazyKnowledgeHubPage} />
-            </PageContextProvider>
-          } />
-          <Route path="/memory" element={
-            <PageContextProvider page="memory">
-              <SafeLazyPage Page={LazyMemoryPage} />
-            </PageContextProvider>
-          } />
-          <Route path="/link" element={
-            <PageContextProvider page="link">
-              <SafeLazyPage Page={LazyGatewayLinkPage} />
-            </PageContextProvider>
-          } />
-          <Route path="/gateway" element={
-            <PageContextProvider page="gateway">
-              <SafeLazyPage Page={LazyGatewayLinkPage} />
-            </PageContextProvider>
-          } />
-          <Route path="/settings/*" element={
-            <PageContextProvider page="settings">
-              <SafeLazyPage Page={LazySettingsPage} />
-            </PageContextProvider>
-          } />
-          <Route path="/workflow" element={
-            <PageContextProvider page="workflow">
-              <SafeLazyPage Page={LazyWorkflowPage} />
-            </PageContextProvider>
-          } />
-          <Route path="/llm-wiki" element={
-            <PageContextProvider page="wiki">
-              <SafeLazyPage Page={LazyKnowledgeHubPage} />
-            </PageContextProvider>
-          } />
-          <Route path="/llm-wiki/:wikiId/graph" element={
-            <PageContextProvider page="wiki">
-              <SafeLazyPage Page={LazyWikiGraphPage} />
-            </PageContextProvider>
-          } />
-          <Route path="/llm-wiki/:wikiId/ingest" element={
-            <PageContextProvider page="wiki">
-              <SafeLazyPage Page={LazyIngestPage} />
-            </PageContextProvider>
-          } />
-          <Route path="/llm-wiki/:wikiId/edit/:noteId" element={
-            <PageContextProvider page="wiki">
-              <SafeLazyPage Page={LazyWikiEditPage} />
-            </PageContextProvider>
-          } />
-          <Route path="/wiki" element={
-            <PageContextProvider page="wiki">
-              <SafeLazyPage Page={LazyWikiGraphPage} />
-            </PageContextProvider>
-          } />
-          <Route path="/wiki/:wikiId" element={
-            <PageContextProvider page="wiki">
-              <SafeLazyPage Page={LazyWikiGraphPage} />
-            </PageContextProvider>
-          } />
-          <Route path="/quickbar" element={
-            <PageContextProvider page="quickbar">
-              <SafeLazyPage Page={LazyQuickBarPage} />
-            </PageContextProvider>
-          } />
-          <Route path="/files" element={
-            <PageContextProvider page="files">
-              <SafeLazyPage Page={LazyFilesPage} />
-            </PageContextProvider>
-          } />
-          <Route path="/terminal" element={
-            <PageContextProvider page="terminal">
-              <SafeLazyPage Page={LazyTerminalPage} />
-            </PageContextProvider>
-          } />
-          <Route path="/devtools/trace-explorer" element={
-            <PageContextProvider page="devtools">
-              <SafeLazyPage Page={LazyTraceExplorer} />
-            </PageContextProvider>
-          } />
-          <Route path="/devtools/benchmark" element={
-            <PageContextProvider page="devtools">
-              <SafeLazyPage Page={LazyBenchmarkRunner} />
-            </PageContextProvider>
-          } />
-          <Route path="/devtools/tool-recommender" element={
-            <PageContextProvider page="devtools">
-              <SafeLazyPage Page={LazyToolRecommender} />
-            </PageContextProvider>
-          } />
-          <Route path="/devtools/fine-tune" element={
-            <PageContextProvider page="devtools">
-              <SafeLazyPage Page={LazyFineTune} />
-            </PageContextProvider>
-          } />
-          <Route path="/devtools/rl-training" element={
-            <PageContextProvider page="devtools">
-              <SafeLazyPage Page={LazyRLTrainingPanel} />
-            </PageContextProvider>
-          } />
+          <Route
+            path="/knowledge"
+            element={
+              <PageContextProvider page="knowledge">
+                <SafeLazyPage Page={LazyKnowledgeHubPage} />
+              </PageContextProvider>
+            }
+          />
+          <Route
+            path="/memory"
+            element={
+              <PageContextProvider page="memory">
+                <SafeLazyPage Page={LazyMemoryPage} />
+              </PageContextProvider>
+            }
+          />
+          <Route
+            path="/link"
+            element={
+              <PageContextProvider page="link">
+                <SafeLazyPage Page={LazyGatewayLinkPage} />
+              </PageContextProvider>
+            }
+          />
+          <Route
+            path="/gateway"
+            element={
+              <PageContextProvider page="gateway">
+                <SafeLazyPage Page={LazyGatewayLinkPage} />
+              </PageContextProvider>
+            }
+          />
+          <Route
+            path="/settings/*"
+            element={
+              <PageContextProvider page="settings">
+                <SafeLazyPage Page={LazySettingsPage} />
+              </PageContextProvider>
+            }
+          />
+          <Route
+            path="/workflow"
+            element={
+              <PageContextProvider page="workflow">
+                <SafeLazyPage Page={LazyWorkflowPage} />
+              </PageContextProvider>
+            }
+          />
+          <Route
+            path="/llm-wiki"
+            element={
+              <PageContextProvider page="wiki">
+                <SafeLazyPage Page={LazyKnowledgeHubPage} />
+              </PageContextProvider>
+            }
+          />
+          <Route
+            path="/llm-wiki/:wikiId/graph"
+            element={
+              <PageContextProvider page="wiki">
+                <SafeLazyPage Page={LazyWikiGraphPage} />
+              </PageContextProvider>
+            }
+          />
+          <Route
+            path="/llm-wiki/:wikiId/ingest"
+            element={
+              <PageContextProvider page="wiki">
+                <SafeLazyPage Page={LazyIngestPage} />
+              </PageContextProvider>
+            }
+          />
+          <Route
+            path="/llm-wiki/:wikiId/edit/:noteId"
+            element={
+              <PageContextProvider page="wiki">
+                <SafeLazyPage Page={LazyWikiEditPage} />
+              </PageContextProvider>
+            }
+          />
+          <Route
+            path="/wiki"
+            element={
+              <PageContextProvider page="wiki">
+                <SafeLazyPage Page={LazyWikiGraphPage} />
+              </PageContextProvider>
+            }
+          />
+          <Route
+            path="/wiki/:wikiId"
+            element={
+              <PageContextProvider page="wiki">
+                <SafeLazyPage Page={LazyWikiGraphPage} />
+              </PageContextProvider>
+            }
+          />
+          <Route
+            path="/quickbar"
+            element={
+              <PageContextProvider page="quickbar">
+                <SafeLazyPage Page={LazyQuickBarPage} />
+              </PageContextProvider>
+            }
+          />
+          <Route
+            path="/files"
+            element={
+              <PageContextProvider page="files">
+                <SafeLazyPage Page={LazyFilesPage} />
+              </PageContextProvider>
+            }
+          />
+          <Route
+            path="/terminal"
+            element={
+              <PageContextProvider page="terminal">
+                <SafeLazyPage Page={LazyTerminalPage} />
+              </PageContextProvider>
+            }
+          />
+          <Route
+            path="/devtools/trace-explorer"
+            element={
+              <PageContextProvider page="devtools">
+                <SafeLazyPage Page={LazyTraceExplorer} />
+              </PageContextProvider>
+            }
+          />
+          <Route
+            path="/devtools/benchmark"
+            element={
+              <PageContextProvider page="devtools">
+                <SafeLazyPage Page={LazyBenchmarkRunner} />
+              </PageContextProvider>
+            }
+          />
+          <Route
+            path="/devtools/tool-recommender"
+            element={
+              <PageContextProvider page="devtools">
+                <SafeLazyPage Page={LazyToolRecommender} />
+              </PageContextProvider>
+            }
+          />
+          <Route
+            path="/devtools/fine-tune"
+            element={
+              <PageContextProvider page="devtools">
+                <SafeLazyPage Page={LazyFineTune} />
+              </PageContextProvider>
+            }
+          />
+          <Route
+            path="/devtools/rl-training"
+            element={
+              <PageContextProvider page="devtools">
+                <SafeLazyPage Page={LazyRLTrainingPanel} />
+              </PageContextProvider>
+            }
+          />
 
           {/* 技能声明式动态路由 */}
           {pluginRoutes}

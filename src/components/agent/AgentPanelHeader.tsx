@@ -2,12 +2,7 @@
 
 import { useAgentPanelStore } from "@/stores/shared/agentPanelStore";
 import { Tooltip } from "antd";
-import {
-  Bot,
-  Minimize2,
-  Maximize2,
-  PanelRightClose,
-} from "lucide-react";
+import { Bot, Maximize2, Minimize2, PanelRightClose } from "lucide-react";
 
 export function AgentPanelHeader() {
   const agentContext = useAgentPanelStore((s) => s.agentContext);
@@ -29,20 +24,22 @@ export function AgentPanelHeader() {
 
       {/* 中间：上下文指示 */}
       <div className="flex-1 mx-3 min-w-0">
-        {contextLabel ? (
-          <div className="text-xs px-2 py-0.5 rounded-full bg-[var(--color-primary)]/10 text-[var(--color-primary)] truncate text-center">
-            {contextLabel}
-            {agentContext?.selection && (
-              <span className="ml-1 opacity-70">
-                · {agentContext.selection.label}
-              </span>
-            )}
-          </div>
-        ) : (
-          <div className="text-xs text-[var(--color-text-secondary)] text-center">
-            全局模式
-          </div>
-        )}
+        {contextLabel
+          ? (
+            <div className="text-xs px-2 py-0.5 rounded-full bg-[var(--color-primary)]/10 text-[var(--color-primary)] truncate text-center">
+              {contextLabel}
+              {agentContext?.selection && (
+                <span className="ml-1 opacity-70">
+                  · {agentContext.selection.label}
+                </span>
+              )}
+            </div>
+          )
+          : (
+            <div className="text-xs text-[var(--color-text-secondary)] text-center">
+              全局模式
+            </div>
+          )}
       </div>
 
       {/* 右侧：操作按钮 */}

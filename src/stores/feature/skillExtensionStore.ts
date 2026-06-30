@@ -1,21 +1,19 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import i18n from "@/i18n";
+import { componentRegistry } from "@/lib/dynamicUI/ComponentRegistry";
 import { invoke, logIpcError } from "@/lib/invoke";
 import { extractRequiredCommands, validateSkillPermissions } from "@/lib/skillPermissions";
-import { componentRegistry } from "@/lib/dynamicUI/ComponentRegistry";
 import type {
+  ComponentRegistryEntry,
   DeclarativeActionType,
   Skill,
   SkillCapability,
   SkillCommandAction,
   SkillHandler,
   SkillToolbarCapability,
-  ComponentRegistryEntry,
   UISchema,
 } from "@/types";
-import type { DynamicUIProps } from "@/types";
-import React from "react";
 import { create } from "zustand";
 
 export interface MergedNavItem {
@@ -462,7 +460,7 @@ export const useSkillExtensionStore = create<SkillExtensionState>(
       set({ skills, ...merged });
     },
 
-    registerCustomComponent: (name: string, entry: ComponentRegistryEntry) => {
+    registerCustomComponent: (_name: string, entry: ComponentRegistryEntry) => {
       componentRegistry.register(entry);
     },
   }),

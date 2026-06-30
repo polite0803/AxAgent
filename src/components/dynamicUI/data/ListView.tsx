@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import type { DynamicUIProps } from "@/types";
-import { List, Empty } from "antd";
+import { Empty, List } from "antd";
 import { lazy, Suspense } from "react";
 
 /**
@@ -24,19 +24,18 @@ export const ListView: React.FC<DynamicUIProps> = ({
     split?: boolean;
   };
 
-  const data =
-    (schema.props.dataSource as Record<string, unknown>[])
-    || (dataContext &&
-        Array.isArray(
+  const data = (schema.props.dataSource as Record<string, unknown>[])
+      || (dataContext
+        && Array.isArray(
           (dataContext as Record<string, unknown>)[schema.id],
         ))
-      ? (
-        (dataContext as Record<string, unknown>)[schema.id] as Record<
-          string,
-          unknown
-        >[]
-      )
-      : [];
+    ? (
+      (dataContext as Record<string, unknown>)[schema.id] as Record<
+        string,
+        unknown
+      >[]
+    )
+    : [];
 
   if (data.length === 0) {
     return <Empty description="暂无数据" />;
@@ -44,8 +43,7 @@ export const ListView: React.FC<DynamicUIProps> = ({
 
   const renderItem = (item: Record<string, unknown>) => {
     const title = item.title || item.label || item.name;
-    const description =
-      item.description || item.content || item.summary;
+    const description = item.description || item.content || item.summary;
 
     return (
       <List.Item>

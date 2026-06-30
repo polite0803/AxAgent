@@ -30,7 +30,7 @@ describe("NL-to-Workflow Pipeline", () => {
     const parsePromise = act(() =>
       result.current.parseNaturalLanguage({
         prompt: "创建一个数据同步工作流",
-      }),
+      })
     );
 
     // Progress should be set immediately

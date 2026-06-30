@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // 集成测试：工作流创建流程 —— 添加节点 → 连接 → 保存
 
+import type { WorkflowEdge, WorkflowNode } from "@/components/workflow/types/workflow.types";
 import { useWorkflowEditorStore } from "@/stores/feature/workflowEditorStore";
 import { act, renderHook } from "@testing-library/react";
 import React from "react";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it } from "vitest";
-import type { WorkflowNode, WorkflowEdge } from "@/components/workflow/types/workflow.types";
 
 // 使用 react-hooks 的 renderHook 直接测试 store 逻辑
 // （ReactFlow 画布渲染依赖 DOM 布局，集成测试专注于 store 状态正确性）
@@ -31,9 +31,7 @@ function createTestEdge(id: string, source: string, target: string): WorkflowEdg
 describe("Workflow Creation Flow (Store)", () => {
   it("adds a node and verifies store state", () => {
     const { result } = renderHook(() => useWorkflowEditorStore(), {
-      wrapper: ({ children }: { children: React.ReactNode }) => (
-        <MemoryRouter>{children}</MemoryRouter>
-      ),
+      wrapper: ({ children }: { children: React.ReactNode }) => <MemoryRouter>{children}</MemoryRouter>,
     });
 
     const node = createTestNode("n1");
@@ -49,9 +47,7 @@ describe("Workflow Creation Flow (Store)", () => {
 
   it("adds multiple nodes sequentially", () => {
     const { result } = renderHook(() => useWorkflowEditorStore(), {
-      wrapper: ({ children }: { children: React.ReactNode }) => (
-        <MemoryRouter>{children}</MemoryRouter>
-      ),
+      wrapper: ({ children }: { children: React.ReactNode }) => <MemoryRouter>{children}</MemoryRouter>,
     });
 
     act(() => {
@@ -69,9 +65,7 @@ describe("Workflow Creation Flow (Store)", () => {
 
   it("connects nodes with edges", () => {
     const { result } = renderHook(() => useWorkflowEditorStore(), {
-      wrapper: ({ children }: { children: React.ReactNode }) => (
-        <MemoryRouter>{children}</MemoryRouter>
-      ),
+      wrapper: ({ children }: { children: React.ReactNode }) => <MemoryRouter>{children}</MemoryRouter>,
     });
 
     act(() => {
@@ -90,9 +84,7 @@ describe("Workflow Creation Flow (Store)", () => {
 
   it("removes a node and its connected edges", () => {
     const { result } = renderHook(() => useWorkflowEditorStore(), {
-      wrapper: ({ children }: { children: React.ReactNode }) => (
-        <MemoryRouter>{children}</MemoryRouter>
-      ),
+      wrapper: ({ children }: { children: React.ReactNode }) => <MemoryRouter>{children}</MemoryRouter>,
     });
 
     act(() => {
@@ -115,9 +107,7 @@ describe("Workflow Creation Flow (Store)", () => {
 
   it("updates a node's config", () => {
     const { result } = renderHook(() => useWorkflowEditorStore(), {
-      wrapper: ({ children }: { children: React.ReactNode }) => (
-        <MemoryRouter>{children}</MemoryRouter>
-      ),
+      wrapper: ({ children }: { children: React.ReactNode }) => <MemoryRouter>{children}</MemoryRouter>,
     });
 
     act(() => {
@@ -135,9 +125,7 @@ describe("Workflow Creation Flow (Store)", () => {
 
   it("clears all nodes and edges", () => {
     const { result } = renderHook(() => useWorkflowEditorStore(), {
-      wrapper: ({ children }: { children: React.ReactNode }) => (
-        <MemoryRouter>{children}</MemoryRouter>
-      ),
+      wrapper: ({ children }: { children: React.ReactNode }) => <MemoryRouter>{children}</MemoryRouter>,
     });
 
     act(() => {

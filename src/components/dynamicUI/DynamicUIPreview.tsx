@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import React, { useState, useMemo, useCallback } from "react";
-import { DynamicUIRenderer } from "./DynamicUIRenderer";
 import { validateSchema } from "@/lib/dynamicUI/SchemaValidator";
-import type { UISchema, SchemaValidationResult } from "@/types";
-import { Alert, Button, Input, Typography, Space, Card, Badge } from "antd";
-import { CheckCircleOutlined, CloseCircleOutlined } from "@ant-design/icons";
+import type { SchemaValidationResult, UISchema } from "@/types";
+import { CheckCircleOutlined } from "@ant-design/icons";
+import { Alert, Badge, Button, Card, Input, Space, Typography } from "antd";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { DynamicUIRenderer } from "./DynamicUIRenderer";
 
 const { Text } = Typography;
 const { TextArea } = Input;
@@ -52,15 +52,28 @@ export const DynamicUIPreview: React.FC = () => {
     try {
       const parsed = JSON.parse(schemaText) as unknown;
       const result = validateSchema(parsed);
-      setParseError(null);
       return { schema: parsed as UISchema, validation: result };
-    } catch (err) {
-      setParseError(
-        err instanceof Error ? err.message : "JSON 解析失败",
-      );
+    } catch {
       return { schema: null, validation: null };
     }
   }, [schemaText]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (schema) {
+        setParseError(null);
+      } else if (schemaText) {
+        try {
+          JSON.parse(schemaText);
+        } catch (err) {
+          setParseError(
+            err instanceof Error ? err.message : "JSON 解析失败",
+          );
+        }
+      }
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [schema, schemaText]);
 
   const handleReset = useCallback(() => {
     setSchemaText(JSON.stringify(DEFAULT_SCHEMA, null, 2));
@@ -106,13 +119,11 @@ export const DynamicUIPreview: React.FC = () => {
           size="small"
           className="flex-1 min-w-0 overflow-auto"
         >
-          {parseError ? (
-            <Alert type="error" message="JSON 解析错误" description={parseError} showIcon />
-          ) : schema ? (
-            <DynamicUIRenderer schema={schema} />
-          ) : (
-            <Alert type="info" message="等待有效 JSON..." showIcon />
-          )}
+          {parseError
+            ? <Alert type="error" message="JSON 解析错误" description={parseError} showIcon />
+            : schema
+            ? <DynamicUIRenderer schema={schema} />
+            : <Alert type="info" message="等待有效 JSON..." showIcon />}
         </Card>
       </div>
 
@@ -121,45 +132,51 @@ export const DynamicUIPreview: React.FC = () => {
         title={
           <Space>
             <span>Schema 校验</span>
-            {validation ? (
-              validation.valid ? (
-                <Badge
-                  status="success"
-                  text={<Text type="success">通过</Text>}
-                />
-              ) : (
-                <Badge
-                  status="error"
-                  text={
-                    <Text type="danger">
-                      {validation.errors.length} 个错误
-                    </Text>
-                  }
-                />
+            {validation
+              ? (
+                validation.valid
+                  ? (
+                    <Badge
+                      status="success"
+                      text={<Text type="success">通过</Text>}
+                    />
+                  )
+                  : (
+                    <Badge
+                      status="error"
+                      text={
+                        <Text type="danger">
+                          {validation.errors.length} 个错误
+                        </Text>
+                      }
+                    />
+                  )
               )
-            ) : null}
+              : null}
           </Space>
         }
         size="small"
       >
-        {parseError ? (
-          <Text type="secondary">JSON 解析错误，无法校验</Text>
-        ) : validation ? (
-          validation.valid ? (
-            <Text type="success">
-              <CheckCircleOutlined className="mr-1" />
-              Schema 校验通过，所有字段合法
-            </Text>
-          ) : (
-            <ul className="list-disc pl-4 m-0">
-              {validation.errors.map((err, i) => (
-                <li key={i} className="text-red-600 dark:text-red-400 text-sm">
-                  <Text code>{err.path}</Text>: {err.message}
-                </li>
-              ))}
-            </ul>
+        {parseError ? <Text type="secondary">JSON 解析错误，无法校验</Text> : validation
+          ? (
+            validation.valid
+              ? (
+                <Text type="success">
+                  <CheckCircleOutlined className="mr-1" />
+                  Schema 校验通过，所有字段合法
+                </Text>
+              )
+              : (
+                <ul className="list-disc pl-4 m-0">
+                  {validation.errors.map((err, i) => (
+                    <li key={i} className="text-red-600 dark:text-red-400 text-sm">
+                      <Text code>{err.path}</Text>: {err.message}
+                    </li>
+                  ))}
+                </ul>
+              )
           )
-        ) : null}
+          : null}
       </Card>
     </div>
   );

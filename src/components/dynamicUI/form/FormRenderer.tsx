@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import type { DynamicUIProps, DynamicAction } from "@/types";
-import { Form, Button } from "antd";
-import { useState } from "react";
 import { evaluateConditions } from "@/lib/dynamicUI/ConditionalRenderer";
+import type { DynamicAction, DynamicUIProps } from "@/types";
+import { Button, Form } from "antd";
+import { useState } from "react";
 
 /**
  * 表单渲染器，基于 Ant Design Form。
@@ -75,19 +75,19 @@ export const FormRenderer: React.FC<DynamicUIProps> = ({
       onFinish={handleSubmit}
       style={schema.style as React.CSSProperties}
     >
-      {visibleChildren.map((child) =>
-        renderFormField(child, dataContext, onAction),
-      )}
+      {visibleChildren.map((child) => renderFormField(child, dataContext, onAction))}
 
       <Form.Item>
         <Button type="primary" htmlType="submit" loading={submitting}>
           {submitText}
         </Button>
-        {resetText ? (
-          <Button style={{ marginLeft: 8 }} onClick={handleReset}>
-            {resetText}
-          </Button>
-        ) : null}
+        {resetText
+          ? (
+            <Button style={{ marginLeft: 8 }} onClick={handleReset}>
+              {resetText}
+            </Button>
+          )
+          : null}
       </Form.Item>
     </Form>
   );
@@ -99,8 +99,7 @@ function renderFormField(
   onAction: DynamicUIProps["onAction"],
 ): React.ReactNode {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const DynamicUIRenderer =
-    require("../DynamicUIRenderer").DynamicUIRenderer as React.ComponentType<DynamicUIProps>;
+  const DynamicUIRenderer = require("../DynamicUIRenderer").DynamicUIRenderer as React.ComponentType<DynamicUIProps>;
   return (
     <DynamicUIRenderer
       key={child.id}

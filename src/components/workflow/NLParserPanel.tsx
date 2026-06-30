@@ -28,9 +28,17 @@ export function NLParserPanel({ onApply }: NLParserPanelProps) {
   const parseProgress = useWorkflowStore((s) => s.parseProgress);
   const parseNaturalLanguage = useWorkflowStore((s) => s.parseNaturalLanguage);
 
+  // 在组件挂载时选择一个随机的 placeholder 示例
+  const [placeholderExample] = useState(
+    () => placeholderExamples[Math.floor(Math.random() * placeholderExamples.length)],
+  );
+
   const handleParse = useCallback(async () => {
-    if (!prompt.trim()) return;
-    const res = await parseNaturalLanguage({ prompt: prompt.trim(), constraints: constraints ? [constraints.trim()] : undefined });
+    if (!prompt.trim()) { return; }
+    const res = await parseNaturalLanguage({
+      prompt: prompt.trim(),
+      constraints: constraints ? [constraints.trim()] : undefined,
+    });
     setResult(res);
   }, [prompt, constraints, parseNaturalLanguage]);
 
@@ -53,7 +61,7 @@ export function NLParserPanel({ onApply }: NLParserPanelProps) {
           rows={5}
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
-          placeholder={`例如：${placeholderExamples[Math.floor(Math.random() * placeholderExamples.length)]}`}
+          placeholder={`例如：${placeholderExample}`}
           disabled={isParsing}
           style={{ fontSize: 13 }}
         />
@@ -109,7 +117,9 @@ export function NLParserPanel({ onApply }: NLParserPanelProps) {
               strokeColor="#1677ff"
             />
             <div>
-              <Text>置信度: <Text strong>{Math.round(result.confidence * 100)}%</Text></Text>
+              <Text>
+                置信度: <Text strong>{Math.round(result.confidence * 100)}%</Text>
+              </Text>
               <br />
               <Text type="secondary" style={{ fontSize: 12 }}>
                 {result.workflow.nodes.length} 节点 · {result.workflow.edges.length} 连线 ·{" "}
@@ -122,9 +132,7 @@ export function NLParserPanel({ onApply }: NLParserPanelProps) {
             <div style={{ marginBottom: 12 }}>
               <Text strong style={{ display: "block", marginBottom: 4 }}>AI 建议</Text>
               <Space direction="vertical" size={4}>
-                {result.suggestions.map((s, i) => (
-                  <Tag key={i} color="processing">{s}</Tag>
-                ))}
+                {result.suggestions.map((s, i) => <Tag key={i} color="processing">{s}</Tag>)}
               </Space>
             </div>
           )}

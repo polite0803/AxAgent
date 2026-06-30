@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import type { DynamicUIProps } from "@/types";
-import { Image, Typography, Button } from "antd";
 import { DownloadOutlined, FileOutlined } from "@ant-design/icons";
+import { Button, Image, Typography } from "antd";
 import { useMemo } from "react";
 
 const { Text } = Typography;
@@ -58,16 +58,18 @@ export const FilePreviewView: React.FC<DynamicUIProps> = ({ schema }) => {
           <Text type="secondary" className="mb-4 text-sm">
             不支持预览此文件类型
           </Text>
-          {url ? (
-            <Button
-              type="primary"
-              icon={<DownloadOutlined />}
-              href={url}
-              download={fileName}
-            >
-              下载文件
-            </Button>
-          ) : null}
+          {url
+            ? (
+              <Button
+                type="primary"
+                icon={<DownloadOutlined />}
+                href={url}
+                download={fileName}
+              >
+                下载文件
+              </Button>
+            )
+            : null}
         </div>
       );
   }

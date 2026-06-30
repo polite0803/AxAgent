@@ -46,13 +46,13 @@ export default function EvolutionSettings() {
 
   const handleStartAll = useCallback(() => {
     for (const e of engineList) {
-      if (!e.running) startEngine(e.name);
+      if (!e.running) { startEngine(e.name); }
     }
   }, [engineList, startEngine]);
 
   const handleStopAll = useCallback(() => {
     for (const e of engineList) {
-      if (e.running) stopEngine(e.name);
+      if (e.running) { stopEngine(e.name); }
     }
   }, [engineList, stopEngine]);
 
@@ -118,8 +118,8 @@ export default function EvolutionSettings() {
                     checked={engine.running}
                     size="small"
                     onChange={(checked) => {
-                      if (checked) startEngine(engine.name);
-                      else stopEngine(engine.name);
+                      if (checked) { startEngine(engine.name); }
+                      else { stopEngine(engine.name); }
                     }}
                   />
                 }

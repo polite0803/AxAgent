@@ -11,14 +11,13 @@ export const RowContainer: React.FC<DynamicUIProps> = ({
   dataContext,
   onAction,
 }) => {
-  const { gap = 8, align = "center", justify = "start", wrap, className } =
-    schema.props as {
-      gap?: number;
-      align?: string;
-      justify?: string;
-      wrap?: boolean;
-      className?: string;
-    };
+  const { gap = 8, align = "center", justify = "start", wrap, className } = schema.props as {
+    gap?: number;
+    align?: string;
+    justify?: string;
+    wrap?: boolean;
+    className?: string;
+  };
 
   return (
     <div
@@ -48,8 +47,7 @@ function renderChildren(
 
   // 延迟导入 DynamicUIRenderer 避免循环依赖
   // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const DynamicUIRenderer =
-    require("../DynamicUIRenderer").DynamicUIRenderer as React.ComponentType<DynamicUIProps>;
+  const DynamicUIRenderer = require("../DynamicUIRenderer").DynamicUIRenderer as React.ComponentType<DynamicUIProps>;
 
   return schema.children.map((child) => (
     <DynamicUIRenderer

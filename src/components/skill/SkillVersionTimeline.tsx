@@ -2,7 +2,7 @@
 
 import { useEvolutionStore } from "@/stores/feature/evolutionStore";
 import type { SkillVersion } from "@/stores/feature/evolutionStore";
-import { Button, Modal, Tag, Timeline, Typography, theme } from "antd";
+import { Button, Modal, Tag, theme, Timeline, Typography } from "antd";
 import { useState } from "react";
 
 const { Text, Paragraph } = Typography;
@@ -19,14 +19,15 @@ function MetricChange({ metrics }: { metrics: Record<string, { before: number; a
         const pct = before !== 0 ? ((diff / before) * 100) : 0;
         const isGood = key.toLowerCase().includes("success") || key.toLowerCase().includes("rate")
           ? diff > 0
-          : key.toLowerCase().includes("token") || key.toLowerCase().includes("error") || key.toLowerCase().includes("time")
+          : key.toLowerCase().includes("token") || key.toLowerCase().includes("error")
+              || key.toLowerCase().includes("time")
           ? diff < 0
           : diff > 0;
-        const color = isGood ? "#52c41a" : "#ff4d4f";
         const arrow = diff > 0 ? "↑" : diff < 0 ? "↓" : "→";
         return (
           <Tag key={key} color={isGood ? "green" : "red"} style={{ marginBottom: 4 }}>
-            {key}: {arrow}{Math.abs(pct).toFixed(0)}%
+            {key}: {arrow}
+            {Math.abs(pct).toFixed(0)}%
           </Tag>
         );
       })}
@@ -108,7 +109,9 @@ export default function SkillVersionTimeline({ skillId }: SkillVersionTimelinePr
                 marginBottom: 8,
               }}
             >
-              <Text type="danger" strong>旧版 (v{versions.findIndex((v) => v.promptDiff?.old === selectedDiff.old) + 1})</Text>
+              <Text type="danger" strong>
+                旧版 (v{versions.findIndex((v) => v.promptDiff?.old === selectedDiff.old) + 1})
+              </Text>
               <pre style={{ whiteSpace: "pre-wrap", margin: "4px 0" }}>{selectedDiff.old}</pre>
             </div>
             <div
@@ -118,7 +121,9 @@ export default function SkillVersionTimeline({ skillId }: SkillVersionTimelinePr
                 borderRadius: 4,
               }}
             >
-              <Text type="success" strong>新版 (v{versions.findIndex((v) => v.promptDiff?.new === selectedDiff.new) + 1})</Text>
+              <Text type="success" strong>
+                新版 (v{versions.findIndex((v) => v.promptDiff?.new === selectedDiff.new) + 1})
+              </Text>
               <pre style={{ whiteSpace: "pre-wrap", margin: "4px 0" }}>{selectedDiff.new}</pre>
             </div>
           </div>

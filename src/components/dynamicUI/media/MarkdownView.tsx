@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import type { DynamicUIProps } from "@/types";
-import { lazy, Suspense } from "react";
 import { Typography } from "antd";
+import { lazy, Suspense } from "react";
 
 /**
  * Markdown 渲染组件。
@@ -48,9 +48,7 @@ const LazyMarkdownRenderer = lazy(
           content: string;
         }>;
         return {
-          default: ({ content }: { content: string }) => (
-            <NodeRenderer content={content} />
-          ),
+          default: ({ content }: { content: string }) => <NodeRenderer content={content} />,
         };
       })
       .catch(() => ({

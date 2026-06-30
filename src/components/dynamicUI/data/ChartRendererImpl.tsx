@@ -1,10 +1,14 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+import React from "react";
 import {
+  Area,
+  AreaChart,
   Bar,
   BarChart,
   CartesianGrid,
   Cell,
+  Legend,
   Line,
   LineChart,
   Pie,
@@ -15,11 +19,7 @@ import {
   Tooltip,
   XAxis,
   YAxis,
-  Area,
-  AreaChart,
-  Legend,
 } from "recharts";
-import React from "react";
 
 const COLORS = [
   "#1677ff",
@@ -64,18 +64,18 @@ const ChartRendererImpl: React.FC<ChartRendererImplProps> = ({
             <XAxis dataKey={xKey} />
             <YAxis />
             <Tooltip />
-            {seriesKey ? (
-              <Bar dataKey={seriesKey} fill={COLORS[0]}>
-                {data.map((_, index) => (
-                  <Cell
-                    key={`cell-${index}`}
-                    fill={COLORS[index % COLORS.length]}
-                  />
-                ))}
-              </Bar>
-            ) : (
-              <Bar dataKey={yKey} fill={COLORS[0]} />
-            )}
+            {seriesKey
+              ? (
+                <Bar dataKey={seriesKey} fill={COLORS[0]}>
+                  {data.map((_, index) => (
+                    <Cell
+                      key={`cell-${index}`}
+                      fill={COLORS[index % COLORS.length]}
+                    />
+                  ))}
+                </Bar>
+              )
+              : <Bar dataKey={yKey} fill={COLORS[0]} />}
           </BarChart>
         </ResponsiveContainer>
       );

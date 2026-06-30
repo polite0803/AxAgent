@@ -30,7 +30,10 @@ export function WorkflowVersionManager({ workflow, open, onClose }: WorkflowVers
   }, [workflow.id, getVersionHistory]);
 
   useEffect(() => {
-    if (open) loadVersions();
+    const tid = setTimeout(() => {
+      if (open) { loadVersions(); }
+    }, 0);
+    return () => clearTimeout(tid);
   }, [open, loadVersions]);
 
   const handleRestore = useCallback(
@@ -125,9 +128,7 @@ export function WorkflowVersionManager({ workflow, open, onClose }: WorkflowVers
       width={640}
     >
       <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-        {versions.length === 0 && !loading ? (
-          <Empty description="暂无版本记录" />
-        ) : (
+        {versions.length === 0 && !loading ? <Empty description="暂无版本记录" /> : (
           <>
             <Space>
               <Button

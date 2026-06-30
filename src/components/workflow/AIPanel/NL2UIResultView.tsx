@@ -1,11 +1,17 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import type { NL2UIResult } from "@/types/workflow";
-import type { UISchema } from "@/types/dynamicUI";
-import { BulbOutlined, CheckCircleOutlined, EyeOutlined, PlayCircleOutlined, ThunderboltOutlined } from "@ant-design/icons";
-import { Button, Collapse, List, Progress, Space, Statistic, Tag, Typography, theme } from "antd";
-import React from "react";
 import { DynamicUIRenderer } from "@/components/dynamicUI/DynamicUIRenderer";
+import type { UISchema } from "@/types/dynamicUI";
+import type { NL2UIResult } from "@/types/workflow";
+import {
+  BulbOutlined,
+  CheckCircleOutlined,
+  EyeOutlined,
+  PlayCircleOutlined,
+  ThunderboltOutlined,
+} from "@ant-design/icons";
+import { Button, Collapse, List, Progress, Space, Statistic, Tag, theme, Typography } from "antd";
+import React from "react";
 
 const { Text, Title } = Typography;
 
@@ -93,11 +99,9 @@ export const NL2UIResultView: React.FC<NL2UIResultViewProps> = React.memo(
                   renderItem={(p) => (
                     <List.Item style={{ padding: "2px 0" }}>
                       <Space>
-                        {p.status === "done" ? (
-                          <CheckCircleOutlined style={{ color: token.colorSuccess }} />
-                        ) : (
-                          <ThunderboltOutlined style={{ color: token.colorPrimary }} />
-                        )}
+                        {p.status === "done"
+                          ? <CheckCircleOutlined style={{ color: token.colorSuccess }} />
+                          : <ThunderboltOutlined style={{ color: token.colorPrimary }} />}
                         <Text strong>{p.phase}</Text>
                         <Text type="secondary">{p.detail}</Text>
                       </Space>
@@ -153,6 +157,6 @@ function countComponents(schema: UISchema): number {
 }
 
 function maxDepth(schema: UISchema, depth = 1): number {
-  if (!schema.children || schema.children.length === 0) return depth;
+  if (!schema.children || schema.children.length === 0) { return depth; }
   return Math.max(...schema.children.map((c) => maxDepth(c, depth + 1)));
 }

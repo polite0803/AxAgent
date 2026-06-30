@@ -45,29 +45,31 @@ export default function EngineConfigForm({ config, fields, onSave }: EngineConfi
           label={field.label}
           valuePropName={field.type === "switch" ? "checked" : "value"}
         >
-          {field.type === "switch" ? (
-            <Switch />
-          ) : field.type === "number" ? (
-            <InputNumber
-              style={{ width: "100%" }}
-              min={field.min}
-              max={field.max}
-              step={field.step}
-            />
-          ) : field.type === "select" ? (
-            <Select
-              options={field.options?.map((o) => ({ label: o.label, value: o.value }))}
-            />
-          ) : field.type === "slider" ? (
-            <InputNumber
-              style={{ width: "100%" }}
-              min={field.min ?? 0}
-              max={field.max ?? 100}
-              step={field.step ?? 1}
-            />
-          ) : (
-            <Input />
-          )}
+          {field.type === "switch" ? <Switch /> : field.type === "number"
+            ? (
+              <InputNumber
+                style={{ width: "100%" }}
+                min={field.min}
+                max={field.max}
+                step={field.step}
+              />
+            )
+            : field.type === "select"
+            ? (
+              <Select
+                options={field.options?.map((o) => ({ label: o.label, value: o.value }))}
+              />
+            )
+            : field.type === "slider"
+            ? (
+              <InputNumber
+                style={{ width: "100%" }}
+                min={field.min ?? 0}
+                max={field.max ?? 100}
+                step={field.step ?? 1}
+              />
+            )
+            : <Input />}
         </Form.Item>
       ))}
 

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import { Popover, Progress, Typography } from "antd";
+import { Popover, Typography } from "antd";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -42,15 +42,85 @@ const TYPE_LABELS: Record<string, string> = {
 
 function buildMockSteps(): TraceStep[] {
   const steps: TraceStep[] = [
-    { id: "s1", name: "理解用户意图", type: "thinking", description: "解析用户输入，识别意图和关键实体", durationMs: 1200, tokenUsage: 450, startMs: 0 },
-    { id: "s2", name: "制定执行计划", type: "thinking", description: "生成分步执行计划，评估工具需求", durationMs: 800, tokenUsage: 320, startMs: 1200 },
-    { id: "s3", name: "search_file", type: "tool_call", description: "搜索相关文档文件", durationMs: 1500, tokenUsage: 120, startMs: 2000 },
-    { id: "s4", name: "等待用户授权", type: "permission", description: "需要用户确认文件删除操作", durationMs: 5000, startMs: 3500 },
-    { id: "s5", name: "read_file", type: "tool_call", description: "读取目标文件内容", durationMs: 600, tokenUsage: 80, startMs: 8500 },
-    { id: "s6", name: "分析文件内容", type: "thinking", description: "使用 LLM 分析文件并生成摘要", durationMs: 2200, tokenUsage: 680, startMs: 9100 },
-    { id: "s7", name: "write_file", type: "tool_call", description: "将分析结果写入新文件", durationMs: 400, tokenUsage: 50, startMs: 11300 },
-    { id: "s8", name: "write_file 失败", type: "error", description: "权限不足，无法写入目标路径", durationMs: 200, startMs: 11700 },
-    { id: "s9", name: "重试 write_file", type: "tool_call", description: "切换到有权限的路径重新写入", durationMs: 350, tokenUsage: 45, startMs: 11900 },
+    {
+      id: "s1",
+      name: "理解用户意图",
+      type: "thinking",
+      description: "解析用户输入，识别意图和关键实体",
+      durationMs: 1200,
+      tokenUsage: 450,
+      startMs: 0,
+    },
+    {
+      id: "s2",
+      name: "制定执行计划",
+      type: "thinking",
+      description: "生成分步执行计划，评估工具需求",
+      durationMs: 800,
+      tokenUsage: 320,
+      startMs: 1200,
+    },
+    {
+      id: "s3",
+      name: "search_file",
+      type: "tool_call",
+      description: "搜索相关文档文件",
+      durationMs: 1500,
+      tokenUsage: 120,
+      startMs: 2000,
+    },
+    {
+      id: "s4",
+      name: "等待用户授权",
+      type: "permission",
+      description: "需要用户确认文件删除操作",
+      durationMs: 5000,
+      startMs: 3500,
+    },
+    {
+      id: "s5",
+      name: "read_file",
+      type: "tool_call",
+      description: "读取目标文件内容",
+      durationMs: 600,
+      tokenUsage: 80,
+      startMs: 8500,
+    },
+    {
+      id: "s6",
+      name: "分析文件内容",
+      type: "thinking",
+      description: "使用 LLM 分析文件并生成摘要",
+      durationMs: 2200,
+      tokenUsage: 680,
+      startMs: 9100,
+    },
+    {
+      id: "s7",
+      name: "write_file",
+      type: "tool_call",
+      description: "将分析结果写入新文件",
+      durationMs: 400,
+      tokenUsage: 50,
+      startMs: 11300,
+    },
+    {
+      id: "s8",
+      name: "write_file 失败",
+      type: "error",
+      description: "权限不足，无法写入目标路径",
+      durationMs: 200,
+      startMs: 11700,
+    },
+    {
+      id: "s9",
+      name: "重试 write_file",
+      type: "tool_call",
+      description: "切换到有权限的路径重新写入",
+      durationMs: 350,
+      tokenUsage: 45,
+      startMs: 11900,
+    },
   ];
   // Assign cumulative startMs for proportional display
   return steps;
@@ -84,20 +154,28 @@ export default function TraceTimeline({ traceId: _traceId }: TraceTimelineProps)
       >
         <div>
           <Text type="secondary" style={{ fontSize: 12 }}>{t("trace.totalSteps", "总步骤")}</Text>
-          <div><Text strong>{steps.length}</Text></div>
+          <div>
+            <Text strong>{steps.length}</Text>
+          </div>
         </div>
         <div>
           <Text type="secondary" style={{ fontSize: 12 }}>{t("trace.totalDuration", "总耗时")}</Text>
-          <div><Text strong>{(totalDuration / 1000).toFixed(1)}s</Text></div>
+          <div>
+            <Text strong>{(totalDuration / 1000).toFixed(1)}s</Text>
+          </div>
         </div>
         <div>
           <Text type="secondary" style={{ fontSize: 12 }}>{t("trace.totalTokens", "总 Token")}</Text>
-          <div><Text strong>{totalTokens.toLocaleString()}</Text></div>
+          <div>
+            <Text strong>{totalTokens.toLocaleString()}</Text>
+          </div>
         </div>
         {errorCount > 0 && (
           <div>
             <Text type="secondary" style={{ fontSize: 12 }}>{t("trace.errors", "错误")}</Text>
-            <div><Text strong type="danger">{errorCount}</Text></div>
+            <div>
+              <Text strong type="danger">{errorCount}</Text>
+            </div>
           </div>
         )}
       </div>

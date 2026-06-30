@@ -1534,7 +1534,4 @@ export type {
   SchemaValidationResult,
   UISchema,
 } from "./dynamicUI";
-export {
-  COMPONENT_REQUIRED_PROPS,
-  VALID_DYNAMIC_COMPONENT_TYPES,
-} from "./dynamicUI";
+export { COMPONENT_REQUIRED_PROPS, VALID_DYNAMIC_COMPONENT_TYPES } from "./dynamicUI";

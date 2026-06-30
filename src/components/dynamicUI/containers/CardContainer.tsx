@@ -49,8 +49,7 @@ function renderChildren(
     return null;
   }
   // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const DynamicUIRenderer =
-    require("../DynamicUIRenderer").DynamicUIRenderer as React.ComponentType<DynamicUIProps>;
+  const DynamicUIRenderer = require("../DynamicUIRenderer").DynamicUIRenderer as React.ComponentType<DynamicUIProps>;
   return schema.children.map((child) => (
     <DynamicUIRenderer
       key={child.id}

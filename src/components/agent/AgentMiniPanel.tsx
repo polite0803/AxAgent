@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { useAgentPanelStore } from "@/stores/shared/agentPanelStore";
-import { Bot, Expand, Plus, Ellipsis } from "lucide-react";
+import { Bot, Ellipsis, Expand, Plus } from "lucide-react";
 import { useCallback, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
@@ -47,7 +47,7 @@ export function AgentMiniPanel() {
     };
 
     const handleMouseMove = (ev: MouseEvent) => {
-      if (!draggingRef.current) return;
+      if (!draggingRef.current) { return; }
       setPosition({
         x: Math.max(0, Math.min(window.innerWidth - MINI_WIDTH, ev.clientX - dragOffsetRef.current.x)),
         y: Math.max(0, Math.min(window.innerHeight - MINI_HEIGHT, ev.clientY - dragOffsetRef.current.y)),
@@ -113,7 +113,15 @@ export function AgentMiniPanel() {
           className="p-0.5 rounded hover:bg-[var(--color-fill-alter)] text-[var(--color-text-secondary)]"
           onClick={() => setIsMiniExpanded(false)}
         >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={2}
+            strokeLinecap="round"
+          >
             <line x1={18} y1={6} x2={6} y2={18} />
             <line x1={6} y1={6} x2={18} y2={18} />
           </svg>

@@ -469,7 +469,7 @@ export class ActionRouter {
     });
 
     // update-schema: 动态更新 UI Schema（通过 CustomEvent 通知 DynamicUIRenderer）
-    this.declarativeExecutors.set("update-schema", async (action, ctx) => {
+    this.declarativeExecutors.set("update-schema", async (action, _ctx) => {
       if (action.type !== "update-schema") {
         return { success: false, error: i18n.t("actionRouter.typeMismatch") };
       }

@@ -441,9 +441,7 @@ export function Sidebar() {
             style={isAgentPanelOpen ? { color: "var(--color-primary)" } : undefined}
           >
             <Icon icon="fluent:bot-20-filled" size={17} />
-            {!sidebarCollapsed && (
-              <span className="nav-label">Agent</span>
-            )}
+            {!sidebarCollapsed && <span className="nav-label">Agent</span>}
           </button>
         </Tooltip>
       )}

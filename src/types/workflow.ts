@@ -2,7 +2,7 @@
 // Phase 4: NL2Workflow — 自然语言驱动工作流类型定义
 
 /** 节点类型枚举 */
-export type NodeType = 'trigger' | 'action' | 'condition' | 'loop' | 'parallel' | 'subflow' | 'output';
+export type NodeType = "trigger" | "action" | "condition" | "loop" | "parallel" | "subflow" | "output";
 
 /** 单个节点定义 */
 export interface WorkflowNode {
@@ -36,7 +36,7 @@ export interface WorkflowDefinition {
   variables: Record<string, unknown>;
   createdAt: number;
   updatedAt: number;
-  status: 'draft' | 'active' | 'archived';
+  status: "draft" | "active" | "archived";
 }
 
 /** 自然语言解析请求 */
@@ -59,7 +59,7 @@ export interface WorkflowTemplate {
   id: string;
   name: string;
   description: string;
-  category: 'data-processing' | 'notification' | 'content-generation' | 'monitoring' | 'integration';
+  category: "data-processing" | "notification" | "content-generation" | "monitoring" | "integration";
   nodeCount: number;
   tags: string[];
   workflow: WorkflowDefinition;
@@ -69,12 +69,12 @@ export interface WorkflowTemplate {
 }
 
 /** 工作流执行状态 */
-export type WorkflowExecutionStatus = 'idle' | 'running' | 'paused' | 'completed' | 'failed';
+export type WorkflowExecutionStatus = "idle" | "running" | "paused" | "completed" | "failed";
 
 /** 节点执行状态 */
 export interface NodeExecutionState {
   nodeId: string;
-  status: 'waiting' | 'running' | 'success' | 'failed';
+  status: "waiting" | "running" | "success" | "failed";
   startedAt?: number;
   finishedAt?: number;
   output?: unknown;
@@ -99,7 +99,7 @@ export interface ExecutionLogEntry {
   timestamp: number;
   nodeId: string;
   nodeName: string;
-  level: 'info' | 'warn' | 'error';
+  level: "info" | "warn" | "error";
   message: string;
 }
 
@@ -108,7 +108,7 @@ export interface WorkflowVersion {
   version: number;
   updatedAt: number;
   summary: string;
-  status: 'draft' | 'active' | 'archived';
+  status: "draft" | "active" | "archived";
   snapshot: WorkflowDefinition;
 }
 
@@ -125,8 +125,8 @@ export interface VersionDiff {
 /** 工作流筛选 */
 export interface WorkflowFilter {
   search?: string;
-  status?: 'all' | 'draft' | 'active' | 'archived';
-  category?: WorkflowTemplate['category'] | 'all';
+  status?: "all" | "draft" | "active" | "archived";
+  category?: WorkflowTemplate["category"] | "all";
 }
 
 // ============================================================

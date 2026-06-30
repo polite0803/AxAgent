@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Phase 4: NL2Workflow Store — 工作流状态管理
 
+import type { UISchema } from "@/types/dynamicUI";
 import type {
   ExecutionLogEntry,
   NL2SkillRequest,
@@ -20,7 +21,6 @@ import type {
   WorkflowTemplate,
   WorkflowVersion,
 } from "@/types/workflow";
-import type { UISchema } from "@/types/dynamicUI";
 import { create } from "zustand";
 
 // ============================================================
@@ -33,10 +33,40 @@ function makeId(): string {
 
 const mockNodes: WorkflowNode[] = [
   { id: "trigger-1", type: "trigger", label: "定时触发", config: { cron: "0 8 * * *" }, position: { x: 100, y: 50 } },
-  { id: "action-1", type: "action", label: "HTTP 请求", config: { url: "https://api.example.com/data", method: "GET" }, position: { x: 100, y: 150 }, inputs: ["trigger-1"], outputs: ["response_data"] },
-  { id: "condition-1", type: "condition", label: "数据校验", config: { expression: "response.status === 200" }, position: { x: 100, y: 270 }, inputs: ["action-1"] },
-  { id: "action-2", type: "action", label: "AI 分析摘要", config: { prompt: "请分析以下数据并生成摘要" }, position: { x: 300, y: 270 }, inputs: ["condition-1"], outputs: ["summary"] },
-  { id: "output-1", type: "output", label: "发送通知", config: { channel: "企业微信", template: "每日报告已生成" }, position: { x: 100, y: 390 }, inputs: ["action-2"] },
+  {
+    id: "action-1",
+    type: "action",
+    label: "HTTP 请求",
+    config: { url: "https://api.example.com/data", method: "GET" },
+    position: { x: 100, y: 150 },
+    inputs: ["trigger-1"],
+    outputs: ["response_data"],
+  },
+  {
+    id: "condition-1",
+    type: "condition",
+    label: "数据校验",
+    config: { expression: "response.status === 200" },
+    position: { x: 100, y: 270 },
+    inputs: ["action-1"],
+  },
+  {
+    id: "action-2",
+    type: "action",
+    label: "AI 分析摘要",
+    config: { prompt: "请分析以下数据并生成摘要" },
+    position: { x: 300, y: 270 },
+    inputs: ["condition-1"],
+    outputs: ["summary"],
+  },
+  {
+    id: "output-1",
+    type: "output",
+    label: "发送通知",
+    config: { channel: "企业微信", template: "每日报告已生成" },
+    position: { x: 100, y: 390 },
+    inputs: ["action-2"],
+  },
 ];
 
 const mockEdges: WorkflowEdge[] = [
@@ -45,22 +75,6 @@ const mockEdges: WorkflowEdge[] = [
   { id: "e3", source: "condition-1", target: "action-2", condition: "status === 200" },
   { id: "e4", source: "action-2", target: "output-1" },
 ];
-
-function createMockWorkflow(overrides: Partial<WorkflowDefinition> = {}): WorkflowDefinition {
-  return {
-    id: makeId(),
-    name: "新建工作流",
-    description: "",
-    version: 1,
-    nodes: [],
-    edges: [],
-    variables: {},
-    createdAt: Date.now(),
-    updatedAt: Date.now(),
-    status: "draft",
-    ...overrides,
-  };
-}
 
 const mockWorkflows: WorkflowDefinition[] = [
   {
@@ -82,10 +96,39 @@ const mockWorkflows: WorkflowDefinition[] = [
     version: 2,
     nodes: [
       { id: "t1", type: "trigger", label: "定时触发", config: { cron: "0 * * * *" }, position: { x: 50, y: 50 } },
-      { id: "a1", type: "action", label: "查询源数据库", config: { query: "SELECT * FROM updates WHERE synced=0" }, position: { x: 50, y: 160 }, inputs: ["t1"], outputs: ["rows"] },
-      { id: "c1", type: "condition", label: "有新数据?", config: { expression: "rows.length > 0" }, position: { x: 50, y: 280 }, inputs: ["a1"] },
-      { id: "a2", type: "action", label: "写入目标库", config: { query: "INSERT INTO archive ..." }, position: { x: 250, y: 280 }, inputs: ["c1"] },
-      { id: "o1", type: "output", label: "更新同步状态", config: { query: "UPDATE updates SET synced=1" }, position: { x: 50, y: 400 }, inputs: ["a2"] },
+      {
+        id: "a1",
+        type: "action",
+        label: "查询源数据库",
+        config: { query: "SELECT * FROM updates WHERE synced=0" },
+        position: { x: 50, y: 160 },
+        inputs: ["t1"],
+        outputs: ["rows"],
+      },
+      {
+        id: "c1",
+        type: "condition",
+        label: "有新数据?",
+        config: { expression: "rows.length > 0" },
+        position: { x: 50, y: 280 },
+        inputs: ["a1"],
+      },
+      {
+        id: "a2",
+        type: "action",
+        label: "写入目标库",
+        config: { query: "INSERT INTO archive ..." },
+        position: { x: 250, y: 280 },
+        inputs: ["c1"],
+      },
+      {
+        id: "o1",
+        type: "output",
+        label: "更新同步状态",
+        config: { query: "UPDATE updates SET synced=1" },
+        position: { x: 50, y: 400 },
+        inputs: ["a2"],
+      },
     ],
     edges: [
       { id: "e1", source: "t1", target: "a1" },
@@ -104,12 +147,46 @@ const mockWorkflows: WorkflowDefinition[] = [
     description: "每 5 分钟检查服务健康状态，异常时通过多渠道发送告警",
     version: 1,
     nodes: [
-      { id: "t1", type: "trigger", label: "定时触发(5min)", config: { cron: "*/5 * * * *" }, position: { x: 100, y: 50 } },
-      { id: "a1", type: "action", label: "健康检查", config: { url: "https://api.example.com/health", method: "GET" }, position: { x: 100, y: 150 }, inputs: ["t1"] },
-      { id: "c1", type: "condition", label: "是否异常?", config: { expression: "response.status !== 200" }, position: { x: 100, y: 260 }, inputs: ["a1"] },
+      {
+        id: "t1",
+        type: "trigger",
+        label: "定时触发(5min)",
+        config: { cron: "*/5 * * * *" },
+        position: { x: 100, y: 50 },
+      },
+      {
+        id: "a1",
+        type: "action",
+        label: "健康检查",
+        config: { url: "https://api.example.com/health", method: "GET" },
+        position: { x: 100, y: 150 },
+        inputs: ["t1"],
+      },
+      {
+        id: "c1",
+        type: "condition",
+        label: "是否异常?",
+        config: { expression: "response.status !== 200" },
+        position: { x: 100, y: 260 },
+        inputs: ["a1"],
+      },
       { id: "p1", type: "parallel", label: "多渠道通知", config: {}, position: { x: 300, y: 150 }, inputs: ["c1"] },
-      { id: "a2", type: "action", label: "发送邮件", config: { to: "admin@example.com" }, position: { x: 300, y: 260 }, inputs: ["p1"] },
-      { id: "a3", type: "action", label: "企业微信通知", config: { webhook: "xxx" }, position: { x: 300, y: 360 }, inputs: ["p1"] },
+      {
+        id: "a2",
+        type: "action",
+        label: "发送邮件",
+        config: { to: "admin@example.com" },
+        position: { x: 300, y: 260 },
+        inputs: ["p1"],
+      },
+      {
+        id: "a3",
+        type: "action",
+        label: "企业微信通知",
+        config: { webhook: "xxx" },
+        position: { x: 300, y: 360 },
+        inputs: ["p1"],
+      },
     ],
     edges: [
       { id: "e1", source: "t1", target: "a1" },
@@ -129,12 +206,55 @@ const mockWorkflows: WorkflowDefinition[] = [
     description: "用户提交内容后自动进行敏感词检测和 AI 内容审核",
     version: 5,
     nodes: [
-      { id: "t1", type: "trigger", label: "Webhook 触发", config: { path: "/review", method: "POST" }, position: { x: 100, y: 50 } },
-      { id: "a1", type: "action", label: "敏感词检测", config: { wordlist: ["违禁词1", "违禁词2"] }, position: { x: 100, y: 160 }, inputs: ["t1"], outputs: ["has_sensitive"] },
-      { id: "c1", type: "condition", label: "是否含敏感词?", config: { expression: "has_sensitive === true" }, position: { x: 100, y: 270 }, inputs: ["a1"] },
-      { id: "a2", type: "action", label: "AI 内容审核", config: { model: "gpt-4", prompt: "审核以下内容是否违规" }, position: { x: 300, y: 160 }, inputs: ["c1"], outputs: ["review_result"] },
-      { id: "o1", type: "output", label: "审核通过", config: { action: "publish" }, position: { x: 100, y: 380 }, inputs: ["a2"] },
-      { id: "o2", type: "output", label: "拒绝发布", config: { action: "reject" }, position: { x: 300, y: 380 }, inputs: ["a1"] },
+      {
+        id: "t1",
+        type: "trigger",
+        label: "Webhook 触发",
+        config: { path: "/review", method: "POST" },
+        position: { x: 100, y: 50 },
+      },
+      {
+        id: "a1",
+        type: "action",
+        label: "敏感词检测",
+        config: { wordlist: ["违禁词1", "违禁词2"] },
+        position: { x: 100, y: 160 },
+        inputs: ["t1"],
+        outputs: ["has_sensitive"],
+      },
+      {
+        id: "c1",
+        type: "condition",
+        label: "是否含敏感词?",
+        config: { expression: "has_sensitive === true" },
+        position: { x: 100, y: 270 },
+        inputs: ["a1"],
+      },
+      {
+        id: "a2",
+        type: "action",
+        label: "AI 内容审核",
+        config: { model: "gpt-4", prompt: "审核以下内容是否违规" },
+        position: { x: 300, y: 160 },
+        inputs: ["c1"],
+        outputs: ["review_result"],
+      },
+      {
+        id: "o1",
+        type: "output",
+        label: "审核通过",
+        config: { action: "publish" },
+        position: { x: 100, y: 380 },
+        inputs: ["a2"],
+      },
+      {
+        id: "o2",
+        type: "output",
+        label: "拒绝发布",
+        config: { action: "reject" },
+        position: { x: 300, y: 380 },
+        inputs: ["a1"],
+      },
     ],
     edges: [
       { id: "e1", source: "t1", target: "a1" },
@@ -154,10 +274,39 @@ const mockWorkflows: WorkflowDefinition[] = [
     description: "订单状态变更时自动发送短信和邮件通知客户",
     version: 2,
     nodes: [
-      { id: "t1", type: "trigger", label: "事件触发", config: { event: "order.status_changed" }, position: { x: 100, y: 50 } },
-      { id: "c1", type: "condition", label: "判断状态", config: { expression: "event.new_status" }, position: { x: 100, y: 160 }, inputs: ["t1"] },
-      { id: "a1", type: "action", label: "发送短信", config: { template: "您的订单已{status}" }, position: { x: 300, y: 100 }, inputs: ["c1"], outputs: ["sms_sent"] },
-      { id: "a2", type: "action", label: "发送邮件", config: { template: "order_update" }, position: { x: 300, y: 220 }, inputs: ["c1"], outputs: ["email_sent"] },
+      {
+        id: "t1",
+        type: "trigger",
+        label: "事件触发",
+        config: { event: "order.status_changed" },
+        position: { x: 100, y: 50 },
+      },
+      {
+        id: "c1",
+        type: "condition",
+        label: "判断状态",
+        config: { expression: "event.new_status" },
+        position: { x: 100, y: 160 },
+        inputs: ["t1"],
+      },
+      {
+        id: "a1",
+        type: "action",
+        label: "发送短信",
+        config: { template: "您的订单已{status}" },
+        position: { x: 300, y: 100 },
+        inputs: ["c1"],
+        outputs: ["sms_sent"],
+      },
+      {
+        id: "a2",
+        type: "action",
+        label: "发送邮件",
+        config: { template: "order_update" },
+        position: { x: 300, y: 220 },
+        inputs: ["c1"],
+        outputs: ["email_sent"],
+      },
       { id: "o1", type: "output", label: "记录日志", config: {}, position: { x: 100, y: 320 }, inputs: ["a1", "a2"] },
     ],
     edges: [
@@ -245,10 +394,40 @@ function generateMockParseResult(prompt: string): NLParseResult {
     version: 1,
     nodes: [
       { id: "trigger-1", type: "trigger", label: "手动触发", config: {}, position: { x: 100, y: 50 } },
-      { id: "action-1", type: "action", label: "处理步骤 1", config: { text: prompt }, position: { x: 100, y: 160 }, inputs: ["trigger-1"], outputs: ["result_1"] },
-      { id: "condition-1", type: "condition", label: "条件判断", config: { expression: "result_1 !== null" }, position: { x: 100, y: 280 }, inputs: ["action-1"] },
-      { id: "action-2", type: "action", label: "处理步骤 2", config: {}, position: { x: 300, y: 280 }, inputs: ["condition-1"], outputs: ["result_2"] },
-      { id: "output-1", type: "output", label: "输出结果", config: {}, position: { x: 100, y: 400 }, inputs: ["action-2"] },
+      {
+        id: "action-1",
+        type: "action",
+        label: "处理步骤 1",
+        config: { text: prompt },
+        position: { x: 100, y: 160 },
+        inputs: ["trigger-1"],
+        outputs: ["result_1"],
+      },
+      {
+        id: "condition-1",
+        type: "condition",
+        label: "条件判断",
+        config: { expression: "result_1 !== null" },
+        position: { x: 100, y: 280 },
+        inputs: ["action-1"],
+      },
+      {
+        id: "action-2",
+        type: "action",
+        label: "处理步骤 2",
+        config: {},
+        position: { x: 300, y: 280 },
+        inputs: ["condition-1"],
+        outputs: ["result_2"],
+      },
+      {
+        id: "output-1",
+        type: "output",
+        label: "输出结果",
+        config: {},
+        position: { x: 100, y: 400 },
+        inputs: ["action-2"],
+      },
     ],
     edges: [
       { id: "e1", source: "trigger-1", target: "action-1" },
@@ -466,7 +645,7 @@ export const useWorkflowStore = create<WorkflowStoreState>((set, get) => ({
     try {
       await new Promise((r) => setTimeout(r, 200));
       const original = get().workflows.find((w) => w.id === id);
-      if (!original) throw new Error(`Workflow ${id} not found`);
+      if (!original) { throw new Error(`Workflow ${id} not found`); }
       const dup: WorkflowDefinition = {
         ...original,
         id: makeId(),
@@ -532,7 +711,7 @@ export const useWorkflowStore = create<WorkflowStoreState>((set, get) => ({
     try {
       await new Promise((r) => setTimeout(r, 300));
       const template = get().templates.find((t) => t.id === templateId);
-      if (!template) throw new Error(`Template ${templateId} not found`);
+      if (!template) { throw new Error(`Template ${templateId} not found`); }
       const newWf: WorkflowDefinition = {
         ...template.workflow,
         id: makeId(),
@@ -624,17 +803,29 @@ export const useWorkflowStore = create<WorkflowStoreState>((set, get) => ({
 
   getVersionHistory: async (workflowId: string) => {
     const wf = get().workflows.find((w) => w.id === workflowId);
-    if (!wf) return [];
+    if (!wf) { return []; }
     const versions: WorkflowVersion[] = [
       { version: wf.version, updatedAt: wf.updatedAt, summary: "当前版本", status: wf.status, snapshot: wf },
-      { version: wf.version - 1, updatedAt: wf.updatedAt - 86400000, summary: "优化节点配置", status: "active", snapshot: wf },
-      { version: wf.version - 2, updatedAt: wf.updatedAt - 86400000 * 2, summary: "添加条件分支", status: "active", snapshot: wf },
+      {
+        version: wf.version - 1,
+        updatedAt: wf.updatedAt - 86400000,
+        summary: "优化节点配置",
+        status: "active",
+        snapshot: wf,
+      },
+      {
+        version: wf.version - 2,
+        updatedAt: wf.updatedAt - 86400000 * 2,
+        summary: "添加条件分支",
+        status: "active",
+        snapshot: wf,
+      },
       { version: 1, updatedAt: wf.createdAt, summary: "初始创建", status: "draft", snapshot: wf },
     ];
     return versions;
   },
 
-  restoreVersion: async (workflowId: string, version: number) => {
+  restoreVersion: async (workflowId: string, _version: number) => {
     await new Promise((r) => setTimeout(r, 300));
     set((s) => ({
       workflows: s.workflows.map((w) =>
@@ -664,10 +855,10 @@ export const useWorkflowStore = create<WorkflowStoreState>((set, get) => ({
   getFilteredWorkflows: () => {
     const { workflows, filter } = get();
     return workflows.filter((wf) => {
-      if (filter.status && filter.status !== "all" && wf.status !== filter.status) return false;
+      if (filter.status && filter.status !== "all" && wf.status !== filter.status) { return false; }
       if (filter.search) {
         const q = filter.search.toLowerCase();
-        if (!wf.name.toLowerCase().includes(q) && !wf.description.toLowerCase().includes(q)) return false;
+        if (!wf.name.toLowerCase().includes(q) && !wf.description.toLowerCase().includes(q)) { return false; }
       }
       return true;
     });
@@ -694,10 +885,10 @@ export const useWorkflowStore = create<WorkflowStoreState>((set, get) => ({
       workflows: s.workflows.map((w) =>
         w.id === s.currentWorkflowId
           ? {
-              ...w,
-              nodes: w.nodes.map((n) => (n.id === nodeId ? { ...n, ...updates } : n)),
-              updatedAt: Date.now(),
-            }
+            ...w,
+            nodes: w.nodes.map((n) => (n.id === nodeId ? { ...n, ...updates } : n)),
+            updatedAt: Date.now(),
+          }
           : w
       ),
     }));
@@ -708,11 +899,11 @@ export const useWorkflowStore = create<WorkflowStoreState>((set, get) => ({
       workflows: s.workflows.map((w) =>
         w.id === s.currentWorkflowId
           ? {
-              ...w,
-              nodes: w.nodes.filter((n) => n.id !== nodeId),
-              edges: w.edges.filter((e) => e.source !== nodeId && e.target !== nodeId),
-              updatedAt: Date.now(),
-            }
+            ...w,
+            nodes: w.nodes.filter((n) => n.id !== nodeId),
+            edges: w.edges.filter((e) => e.source !== nodeId && e.target !== nodeId),
+            updatedAt: Date.now(),
+          }
           : w
       ),
     }));
@@ -748,8 +939,24 @@ export const useWorkflowStore = create<WorkflowStoreState>((set, get) => ({
     set({ isParsing: true, parseProgress: "意图分析" });
 
     const phases = [
-      { phase: "意图分析", status: "done" as const, detail: `识别为${request.prompt.includes("客服") ? "客服自动回复" : request.prompt.includes("报告") ? "报告生成" : request.prompt.includes("翻译") ? "多语言翻译" : "自定义"}技能` },
-      { phase: "技能匹配", status: "done" as const, detail: `匹配到 ${request.skillType || "chat"} 类型，${extractTriggers(request.prompt).length} 个触发词` },
+      {
+        phase: "意图分析",
+        status: "done" as const,
+        detail: `识别为${
+          request.prompt.includes("客服")
+            ? "客服自动回复"
+            : request.prompt.includes("报告")
+            ? "报告生成"
+            : request.prompt.includes("翻译")
+            ? "多语言翻译"
+            : "自定义"
+        }技能`,
+      },
+      {
+        phase: "技能匹配",
+        status: "done" as const,
+        detail: `匹配到 ${request.skillType || "chat"} 类型，${extractTriggers(request.prompt).length} 个触发词`,
+      },
       { phase: "参数提取", status: "done" as const, detail: "提取 2 个参数：query、context" },
       { phase: "模板生成", status: "done" as const, detail: "生成提示词模板" },
       { phase: "校验优化", status: "done" as const, detail: "通过语义校验，置信度 92%" },
@@ -764,9 +971,12 @@ export const useWorkflowStore = create<WorkflowStoreState>((set, get) => ({
     const skillId = `skill_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
     const skill: SkillDefinition = {
       id: skillId,
-      name: request.prompt.includes("客服") ? "智能客服回复"
-        : request.prompt.includes("报告") ? "日报生成"
-        : request.prompt.includes("翻译") ? "多语言翻译"
+      name: request.prompt.includes("客服")
+        ? "智能客服回复"
+        : request.prompt.includes("报告")
+        ? "日报生成"
+        : request.prompt.includes("翻译")
+        ? "多语言翻译"
         : "自定义技能",
       description: request.prompt.slice(0, 100),
       type: request.skillType || "chat",
@@ -837,7 +1047,7 @@ export const useWorkflowStore = create<WorkflowStoreState>((set, get) => ({
 // Selector for working with current workflow
 export function useCurrentWorkflow(): WorkflowDefinition | null {
   return useWorkflowStore((s) => {
-    if (!s.currentWorkflowId) return null;
+    if (!s.currentWorkflowId) { return null; }
     return s.workflows.find((w) => w.id === s.currentWorkflowId) ?? null;
   });
 }
@@ -847,9 +1057,9 @@ export function useCurrentWorkflow(): WorkflowDefinition | null {
 // ============================================================
 
 function extractTriggers(prompt: string): string[] {
-  if (prompt.includes("客服")) return ["客服", "帮助", "咨询", "问题"];
-  if (prompt.includes("报告")) return ["生成报告", "日报", "周报", "总结"];
-  if (prompt.includes("翻译")) return ["翻译", "translate", "译"];
+  if (prompt.includes("客服")) { return ["客服", "帮助", "咨询", "问题"]; }
+  if (prompt.includes("报告")) { return ["生成报告", "日报", "周报", "总结"]; }
+  if (prompt.includes("翻译")) { return ["翻译", "translate", "译"]; }
   return ["帮助", "help", "怎么", "如何"];
 }
 
@@ -864,16 +1074,66 @@ function generateUISchema(request: NL2UIRequest): UISchema {
       props: { style: { padding: "16px", display: "flex", flexDirection: "column", gap: "16px" } },
       children: [
         {
-          version: "1.0", id: "row_1", type: "Row", props: { gutter: 16 },
+          version: "1.0",
+          id: "row_1",
+          type: "Row",
+          props: { gutter: 16 },
           children: [
-            { version: "1.0", id: "stat_1", type: "Card", props: { title: "总请求量" }, children: [{ version: "1.0", id: "stat_1_inner", type: "Text", props: { content: "12,847 次", style: { fontSize: "24px", fontWeight: "bold", color: "#52c41a" } } }] },
-            { version: "1.0", id: "stat_2", type: "Card", props: { title: "成功率" }, children: [{ version: "1.0", id: "stat_2_inner", type: "Text", props: { content: "98.5%", style: { fontSize: "24px", fontWeight: "bold", color: "#1677ff" } } }] },
-            { version: "1.0", id: "stat_3", type: "Card", props: { title: "平均耗时" }, children: [{ version: "1.0", id: "stat_3_inner", type: "Text", props: { content: "234 ms", style: { fontSize: "24px", fontWeight: "bold", color: "#faad14" } } }] },
+            {
+              version: "1.0",
+              id: "stat_1",
+              type: "Card",
+              props: { title: "总请求量" },
+              children: [{
+                version: "1.0",
+                id: "stat_1_inner",
+                type: "Text",
+                props: { content: "12,847 次", style: { fontSize: "24px", fontWeight: "bold", color: "#52c41a" } },
+              }],
+            },
+            {
+              version: "1.0",
+              id: "stat_2",
+              type: "Card",
+              props: { title: "成功率" },
+              children: [{
+                version: "1.0",
+                id: "stat_2_inner",
+                type: "Text",
+                props: { content: "98.5%", style: { fontSize: "24px", fontWeight: "bold", color: "#1677ff" } },
+              }],
+            },
+            {
+              version: "1.0",
+              id: "stat_3",
+              type: "Card",
+              props: { title: "平均耗时" },
+              children: [{
+                version: "1.0",
+                id: "stat_3_inner",
+                type: "Text",
+                props: { content: "234 ms", style: { fontSize: "24px", fontWeight: "bold", color: "#faad14" } },
+              }],
+            },
           ],
         },
         {
-          version: "1.0", id: "chart_1", type: "Card", props: { title: "请求趋势（近 7 天）" },
-          children: [{ version: "1.0", id: "chart_1_inner", type: "Chart", props: { chartType: "line", data: { labels: ["周一", "周二", "周三", "周四", "周五", "周六", "周日"], values: [1200, 1900, 1500, 2100, 1800, 2400, 1700] } } }],
+          version: "1.0",
+          id: "chart_1",
+          type: "Card",
+          props: { title: "请求趋势（近 7 天）" },
+          children: [{
+            version: "1.0",
+            id: "chart_1_inner",
+            type: "Chart",
+            props: {
+              chartType: "line",
+              data: {
+                labels: ["周一", "周二", "周三", "周四", "周五", "周六", "周日"],
+                values: [1200, 1900, 1500, 2100, 1800, 2400, 1700],
+              },
+            },
+          }],
         },
       ],
     };
@@ -886,8 +1146,22 @@ function generateUISchema(request: NL2UIRequest): UISchema {
       type: "Form",
       props: { layout: "vertical", submitText: "提交" },
       children: [
-        { version: "1.0", id: "input_1", type: "Input", props: { label: "名称", name: "name", required: true, placeholder: "请输入名称" } },
-        { version: "1.0", id: "select_1", type: "Select", props: { label: "类型", name: "type", options: [{ label: "选项A", value: "a" }, { label: "选项B", value: "b" }] } },
+        {
+          version: "1.0",
+          id: "input_1",
+          type: "Input",
+          props: { label: "名称", name: "name", required: true, placeholder: "请输入名称" },
+        },
+        {
+          version: "1.0",
+          id: "select_1",
+          type: "Select",
+          props: {
+            label: "类型",
+            name: "type",
+            options: [{ label: "选项A", value: "a" }, { label: "选项B", value: "b" }],
+          },
+        },
         { version: "1.0", id: "textarea_1", type: "Textarea", props: { label: "描述", name: "description", rows: 4 } },
         { version: "1.0", id: "switch_1", type: "Switch", props: { label: "启用", name: "enabled", default: true } },
         { version: "1.0", id: "btn_1", type: "Button", props: { children: "提交", type: "primary", action: "submit" } },
@@ -903,16 +1177,41 @@ function generateUISchema(request: NL2UIRequest): UISchema {
       props: { items: [{ key: "general", label: "常规" }, { key: "advanced", label: "高级" }] },
       children: [
         {
-          version: "1.0", id: "tab_general", type: "Container", props: { tabKey: "general" },
+          version: "1.0",
+          id: "tab_general",
+          type: "Container",
+          props: { tabKey: "general" },
           children: [
-            { version: "1.0", id: "input_appName", type: "Input", props: { label: "应用名称", name: "appName", default: "AxAgent" } },
-            { version: "1.0", id: "select_lang", type: "Select", props: { label: "语言", name: "lang", options: [{ label: "中文", value: "zh" }, { label: "English", value: "en" }] } },
+            {
+              version: "1.0",
+              id: "input_appName",
+              type: "Input",
+              props: { label: "应用名称", name: "appName", default: "AxAgent" },
+            },
+            {
+              version: "1.0",
+              id: "select_lang",
+              type: "Select",
+              props: {
+                label: "语言",
+                name: "lang",
+                options: [{ label: "中文", value: "zh" }, { label: "English", value: "en" }],
+              },
+            },
           ],
         },
         {
-          version: "1.0", id: "tab_advanced", type: "Container", props: { tabKey: "advanced" },
+          version: "1.0",
+          id: "tab_advanced",
+          type: "Container",
+          props: { tabKey: "advanced" },
           children: [
-            { version: "1.0", id: "switch_debug", type: "Switch", props: { label: "调试模式", name: "debug", default: false } },
+            {
+              version: "1.0",
+              id: "switch_debug",
+              type: "Switch",
+              props: { label: "调试模式", name: "debug", default: false },
+            },
             { version: "1.0", id: "input_api", type: "Input", props: { label: "API 端点", name: "apiEndpoint" } },
           ],
         },
@@ -928,7 +1227,12 @@ function generateUISchema(request: NL2UIRequest): UISchema {
     type: "Card",
     props: { title: truncatedTitle },
     children: [
-      { version: "1.0", id: "md_1", type: "Markdown", props: { content: `# 基于描述生成的 UI\n\n${request.prompt}\n\n*此 UI 由 NL2UI 自动生成*` } },
+      {
+        version: "1.0",
+        id: "md_1",
+        type: "Markdown",
+        props: { content: `# 基于描述生成的 UI\n\n${request.prompt}\n\n*此 UI 由 NL2UI 自动生成*` },
+      },
       { version: "1.0", id: "tag_1", type: "Tag", props: { children: "AI 生成", color: "blue" } },
     ],
   };

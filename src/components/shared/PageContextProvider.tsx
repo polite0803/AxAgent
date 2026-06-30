@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+/* eslint-disable react-refresh/only-export-components */
 
-import { useAgentPanelStore } from "@/stores/shared/agentPanelStore";
-import type { AgentSelection } from "@/stores/shared/agentPanelStore";
 import { useEvolutionStore } from "@/stores/feature/evolutionStore";
 import { useWorkflowEditorStore } from "@/stores/feature/workflowEditorStore";
 import { useWorkflowStore } from "@/stores/feature/workflowStore";
-import React, { createContext, useContext, useEffect, useMemo, useRef } from "react";
+import { useAgentPanelStore } from "@/stores/shared/agentPanelStore";
+import type { AgentSelection } from "@/stores/shared/agentPanelStore";
+import React, { createContext, useContext, useEffect, useMemo } from "react";
 import { useLocation } from "react-router-dom";
 
 // ── Page Context (React Context) ──
@@ -83,10 +84,6 @@ export function PageContextProvider({
   const location = useLocation();
   const setAgentContext = useAgentPanelStore((s) => s.setAgentContext);
   const clearAgentContext = useAgentPanelStore((s) => s.clearAgentContext);
-
-  // 追踪 selection 引用以正确清理
-  const selectionRef = useRef(selection);
-  selectionRef.current = selection;
 
   // ── 注入 Agent 面板上下文 ──
 

@@ -28,19 +28,18 @@ export const ChartRenderer: React.FC<DynamicUIProps> = ({
     seriesKey?: string;
   };
 
-  const chartData =
-    data
-    || (dataContext &&
-        Array.isArray(
+  const chartData = data
+      || (dataContext
+        && Array.isArray(
           (dataContext as Record<string, unknown>)[schema.id],
         ))
-      ? (
-        (dataContext as Record<string, unknown>)[schema.id] as Record<
-          string,
-          unknown
-        >[]
-      )
-      : [];
+    ? (
+      (dataContext as Record<string, unknown>)[schema.id] as Record<
+        string,
+        unknown
+      >[]
+    )
+    : [];
 
   return (
     <div style={schema.style as React.CSSProperties}>

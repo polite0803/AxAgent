@@ -1,26 +1,13 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import React, {
-  useEffect,
-  useMemo,
-  useState,
-  useCallback,
-} from "react";
-import type {
-  DynamicUIProps,
-  EventHandler,
-  UISchema,
-} from "@/types";
-import { validateSchema } from "@/lib/dynamicUI/SchemaValidator";
 import { componentRegistry } from "@/lib/dynamicUI/ComponentRegistry";
 import { evaluateConditions } from "@/lib/dynamicUI/ConditionalRenderer";
 import { resolveDataSource } from "@/lib/dynamicUI/DataBindingEngine";
-import {
-  handleEvents,
-  getLifecycleHandlers,
-  executeActions,
-} from "@/lib/dynamicUI/EventHandlerEngine";
+import { executeActions, getLifecycleHandlers, handleEvents } from "@/lib/dynamicUI/EventHandlerEngine";
+import { validateSchema } from "@/lib/dynamicUI/SchemaValidator";
+import type { DynamicUIProps } from "@/types";
 import { Alert } from "antd";
+import React, { useEffect, useMemo, useState } from "react";
 
 /**
  * 核心递归渲染器。
@@ -43,9 +30,7 @@ export const DynamicUIRenderer: React.FC<DynamicUIProps> = React.memo(
                   {err.path}: {err.message}
                 </li>
               ))}
-              {validation.errors.length > 5 ? (
-                <li>... 及其他 {validation.errors.length - 5} 个错误</li>
-              ) : null}
+              {validation.errors.length > 5 ? <li>... 及其他 {validation.errors.length - 5} 个错误</li> : null}
             </ul>
           }
           showIcon
@@ -73,7 +58,6 @@ const DynamicUIRendererInner: React.FC<
   DynamicUIProps & { externalContext?: Record<string, unknown> }
 > = ({ schema, externalContext, onAction }) => {
   const [resolvedData, setResolvedData] = useState<unknown>(null);
-  const [dataError, setDataError] = useState<Error | null>(null);
 
   // ── 2. 解析 dataSource ──
   useEffect(() => {
@@ -83,13 +67,10 @@ const DynamicUIRendererInner: React.FC<
         .then((data) => {
           if (!cancelled) {
             setResolvedData(data);
-            setDataError(null);
           }
         })
-        .catch((err: Error) => {
-          if (!cancelled) {
-            setDataError(err);
-          }
+        .catch(() => {
+          // dataSource 解析失败，错误被静默处理
         });
       return () => {
         cancelled = true;
@@ -130,15 +111,8 @@ const DynamicUIRendererInner: React.FC<
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (!shouldRender) {
-    return null;
-  }
-
   // ── 5. 获取注册组件 ──
   const entry = componentRegistry.get(schema.type);
-  if (!entry) {
-    return <UnregisteredPlaceholder type={schema.type} />;
-  }
 
   // ── 6. 构建子组件渲染 ──
   const childNodes = useMemo(() => {
@@ -164,7 +138,7 @@ const DynamicUIRendererInner: React.FC<
   // ── 8. 合并 props ──
   const mergedProps = useMemo(() => {
     const base = {
-      ...(entry.defaultProps || {}),
+      ...(entry?.defaultProps || {}),
       ...(schema.props || {}),
     };
     // dataSource 已解析，合并到 props 的 dataSource 字段
@@ -172,25 +146,29 @@ const DynamicUIRendererInner: React.FC<
       base.dataSource = resolvedData;
     }
     return base;
-  }, [entry.defaultProps, schema.props, resolvedData]);
+  }, [entry?.defaultProps, schema.props, resolvedData]);
+
+  // ── 条件渲染（在所有 hooks 之后检查） ──
+  if (!shouldRender) {
+    return null;
+  }
+  if (!entry) {
+    return <UnregisteredPlaceholder type={schema.type} />;
+  }
 
   const Component = entry.component;
 
-  // 包裹 children 和事件绑定
-  try {
-    return (
-      <Component
-        schema={{ ...schema, props: mergedProps, children: undefined }}
-        dataContext={mergedContext}
-        onAction={onAction}
-        {...eventBindings}
-      >
-        {childNodes}
-      </Component>
-    );
-  } catch (error) {
-    return <ErrorPlaceholder type={schema.type} error={error} />;
-  }
+  // 包裹 children 和事件绑定（通过 SchemaErrorBoundary 捕获错误，无需 try/catch）
+  return (
+    <Component
+      schema={{ ...schema, props: mergedProps, children: undefined }}
+      dataContext={mergedContext}
+      onAction={onAction}
+      {...eventBindings}
+    >
+      {childNodes}
+    </Component>
+  );
 };
 
 // ── 辅助组件 ──

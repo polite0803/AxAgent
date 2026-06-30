@@ -78,7 +78,11 @@ export default function SkillABTestResults({ skillId }: SkillABTestResultsProps)
       />
       <Text type="secondary">
         结论：版本 A 胜出 {winCountA} 项，版本 B 胜出 {winCountB} 项。
-        {winCountA > winCountB ? " 推荐采用版本 A。" : winCountB > winCountA ? " 推荐采用版本 B。" : " 两个版本无明显差异。"}
+        {winCountA > winCountB
+          ? " 推荐采用版本 A。"
+          : winCountB > winCountA
+          ? " 推荐采用版本 B。"
+          : " 两个版本无明显差异。"}
       </Text>
     </div>
   );

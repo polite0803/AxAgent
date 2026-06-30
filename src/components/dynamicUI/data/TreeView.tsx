@@ -8,14 +8,13 @@ import type { TreeDataNode } from "antd";
  * 树形控件，基于 Ant Design Tree。
  */
 export const TreeView: React.FC<DynamicUIProps> = ({ schema, dataContext }) => {
-  const treeData =
-    (schema.props.treeData as TreeDataNode[])
-    || (dataContext &&
-        Array.isArray((dataContext as Record<string, unknown>)[schema.id]))
-      ? (
-        (dataContext as Record<string, unknown>)[schema.id] as TreeDataNode[]
-      )
-      : [];
+  const treeData = (schema.props.treeData as TreeDataNode[])
+      || (dataContext
+        && Array.isArray((dataContext as Record<string, unknown>)[schema.id]))
+    ? (
+      (dataContext as Record<string, unknown>)[schema.id] as TreeDataNode[]
+    )
+    : [];
 
   const {
     checkable = false,

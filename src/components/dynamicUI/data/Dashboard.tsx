@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import type { DynamicUIProps } from "@/types";
-import { Card, Statistic } from "antd";
 import { ArrowDownOutlined, ArrowUpOutlined } from "@ant-design/icons";
+import { Card, Statistic } from "antd";
 
 interface DashboardItem {
   label: string;
@@ -19,16 +19,15 @@ interface DashboardItem {
 export const Dashboard: React.FC<DynamicUIProps> = ({ schema, dataContext }) => {
   const rawItems = schema.props.items as DashboardItem[] | undefined;
 
-  const items: DashboardItem[] =
-    rawItems
-    || (dataContext &&
-        Array.isArray(
+  const items: DashboardItem[] = rawItems
+      || (dataContext
+        && Array.isArray(
           (dataContext as Record<string, unknown>)[schema.id],
         ))
-      ? (
-        (dataContext as Record<string, unknown>)[schema.id] as DashboardItem[]
-      )
-      : [];
+    ? (
+      (dataContext as Record<string, unknown>)[schema.id] as DashboardItem[]
+    )
+    : [];
 
   const { columns = 3, gap = 16 } = schema.props as {
     columns?: number;
@@ -51,13 +50,11 @@ export const Dashboard: React.FC<DynamicUIProps> = ({ schema, dataContext }) => 
             value={item.value}
             suffix={item.unit}
             valueStyle={item.color ? { color: item.color } : undefined}
-            prefix={
-              item.trend === "up" ? (
-                <ArrowUpOutlined style={{ color: "#52c41a" }} />
-              ) : item.trend === "down" ? (
-                <ArrowDownOutlined style={{ color: "#ff4d4f" }} />
-              ) : undefined
-            }
+            prefix={item.trend === "up"
+              ? <ArrowUpOutlined style={{ color: "#52c41a" }} />
+              : item.trend === "down"
+              ? <ArrowDownOutlined style={{ color: "#ff4d4f" }} />
+              : undefined}
           />
         </Card>
       ))}

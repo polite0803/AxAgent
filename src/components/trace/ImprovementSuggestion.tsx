@@ -58,38 +58,38 @@ export default function ImprovementSuggestion({ traceId: _traceId }: Improvement
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-      {suggestions.length === 0 ? (
-        <Text type="secondary">{t("trace.improvement.noSuggestions", "暂无改进建议")}</Text>
-      ) : (
-        suggestions.map((item) => (
-          <Card
-            key={item.id}
-            size="small"
-            style={{ borderLeft: "3px solid #1890ff" }}
-          >
-            <div style={{ marginBottom: 8 }}>
-              <Text type="danger" strong style={{ fontSize: 12 }}>
-                {t("trace.improvement.problem", "问题")}:
-              </Text>
-              <Paragraph style={{ margin: "4px 0", fontSize: 13 }}>{item.problem}</Paragraph>
-            </div>
-            <div style={{ marginBottom: 8 }}>
-              <Text type="warning" strong style={{ fontSize: 12 }}>
-                {t("trace.improvement.suggestion", "建议")}:
-              </Text>
-              <Paragraph style={{ margin: "4px 0", fontSize: 13 }}>{item.suggestion}</Paragraph>
-            </div>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <Text type="success" style={{ fontSize: 12 }}>
-                {item.expectedImprovement}
-              </Text>
-              <Button type="primary" size="small">
-                {t("trace.improvement.apply", "应用改进")}
-              </Button>
-            </div>
-          </Card>
-        ))
-      )}
+      {suggestions.length === 0
+        ? <Text type="secondary">{t("trace.improvement.noSuggestions", "暂无改进建议")}</Text>
+        : (
+          suggestions.map((item) => (
+            <Card
+              key={item.id}
+              size="small"
+              style={{ borderLeft: "3px solid #1890ff" }}
+            >
+              <div style={{ marginBottom: 8 }}>
+                <Text type="danger" strong style={{ fontSize: 12 }}>
+                  {t("trace.improvement.problem", "问题")}:
+                </Text>
+                <Paragraph style={{ margin: "4px 0", fontSize: 13 }}>{item.problem}</Paragraph>
+              </div>
+              <div style={{ marginBottom: 8 }}>
+                <Text type="warning" strong style={{ fontSize: 12 }}>
+                  {t("trace.improvement.suggestion", "建议")}:
+                </Text>
+                <Paragraph style={{ margin: "4px 0", fontSize: 13 }}>{item.suggestion}</Paragraph>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <Text type="success" style={{ fontSize: 12 }}>
+                  {item.expectedImprovement}
+                </Text>
+                <Button type="primary" size="small">
+                  {t("trace.improvement.apply", "应用改进")}
+                </Button>
+              </div>
+            </Card>
+          ))
+        )}
     </div>
   );
 }

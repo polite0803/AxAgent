@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+import RLCheckpointManager from "@/components/devtools/RLCheckpointManager";
 import RLTrainingConfig from "@/components/devtools/RLTrainingConfig";
 import RLTrainingMonitor from "@/components/devtools/RLTrainingMonitor";
-import RLCheckpointManager from "@/components/devtools/RLCheckpointManager";
 import { useRlTrainingStore } from "@/stores/feature/rlTrainingStore";
 import { Badge, Button, Space, Tabs, Typography } from "antd";
 import { useTranslation } from "react-i18next";
@@ -56,15 +56,17 @@ export default function RLTrainingPanel() {
           />
         </Space>
         <Space>
-          {isRunning ? (
-            <Button danger onClick={stopTraining}>
-              {t("rl.panel.stop", "停止训练")}
-            </Button>
-          ) : (
-            <Button type="primary" onClick={() => startTraining(config)}>
-              {t("rl.panel.start", "启动训练")}
-            </Button>
-          )}
+          {isRunning
+            ? (
+              <Button danger onClick={stopTraining}>
+                {t("rl.panel.stop", "停止训练")}
+              </Button>
+            )
+            : (
+              <Button type="primary" onClick={() => startTraining(config)}>
+                {t("rl.panel.start", "启动训练")}
+              </Button>
+            )}
         </Space>
       </div>
 

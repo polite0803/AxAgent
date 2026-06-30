@@ -16,14 +16,13 @@ export const TimelineView: React.FC<DynamicUIProps> = ({
   schema,
   dataContext,
 }) => {
-  const items: TimelineItem[] =
-    (schema.props.items as TimelineItem[])
-    || (dataContext &&
-        Array.isArray((dataContext as Record<string, unknown>)[schema.id]))
-      ? (
-        (dataContext as Record<string, unknown>)[schema.id] as TimelineItem[]
-      )
-      : [];
+  const items: TimelineItem[] = (schema.props.items as TimelineItem[])
+      || (dataContext
+        && Array.isArray((dataContext as Record<string, unknown>)[schema.id]))
+    ? (
+      (dataContext as Record<string, unknown>)[schema.id] as TimelineItem[]
+    )
+    : [];
 
   return (
     <Timeline

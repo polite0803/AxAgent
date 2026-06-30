@@ -37,8 +37,7 @@ export async function executeActions(
           action: {
             type: action.type,
             ...action.config,
-          } as Parameters<typeof router.execute>[0] extends { action: infer A }
-            ? A
+          } as Parameters<typeof router.execute>[0] extends { action: infer A } ? A
             : never,
         } as Parameters<typeof router.execute>[0],
         actionCtx,

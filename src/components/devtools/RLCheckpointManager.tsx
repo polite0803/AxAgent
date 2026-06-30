@@ -18,7 +18,7 @@ export default function RLCheckpointManager() {
   const [loadingId, setLoadingId] = useState<string | null>(null);
 
   const handleSave = async () => {
-    if (!checkpointName.trim()) return;
+    if (!checkpointName.trim()) { return; }
     await saveCheckpoint(checkpointName.trim());
     setCheckpointName("");
     setSaveModalOpen(false);

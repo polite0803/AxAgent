@@ -46,8 +46,7 @@ function renderChild(
   onAction: DynamicUIProps["onAction"],
 ): React.ReactNode {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const DynamicUIRenderer =
-    require("../DynamicUIRenderer").DynamicUIRenderer as React.ComponentType<DynamicUIProps>;
+  const DynamicUIRenderer = require("../DynamicUIRenderer").DynamicUIRenderer as React.ComponentType<DynamicUIProps>;
   return (
     <DynamicUIRenderer
       schema={child}

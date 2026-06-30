@@ -1,22 +1,22 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { logIpcError } from "@/lib/invoke";
+import { useEvolutionStore } from "@/stores/feature/evolutionStore";
 import type { AiChatMessage } from "@/stores/feature/workflowEditorStore";
 import { useWorkflowEditorStore } from "@/stores/feature/workflowEditorStore";
+import { useWorkflowStore } from "@/stores/feature/workflowStore";
+import type { NLParseResult } from "@/types/workflow";
 import { App, Button, Card, Empty, Input, Progress, Radio, Tag, theme } from "antd";
 import DOMPurify from "dompurify";
 import { Lightbulb, MessageSquare, Play, Rocket, Send, Sparkles, StopCircle, Trash2, Wand2 } from "lucide-react";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useShallow } from "zustand/react/shallow";
-import { useEvolutionStore } from "@/stores/feature/evolutionStore";
-import { useWorkflowStore } from "@/stores/feature/workflowStore";
-import type { NLParseResult } from "@/types/workflow";
-import { EvolutionTab } from "./EvolutionTab";
-import { NLParseResultView } from "./NLParseResultView";
 import { setDragPayload } from "../dndState";
 import type { WorkflowEdge, WorkflowNode } from "../types/workflow.types";
 import { ActionDiffPreview } from "./ActionDiffPreview";
+import { EvolutionTab } from "./EvolutionTab";
+import { NLParseResultView } from "./NLParseResultView";
 
 const { TextArea } = Input;
 
@@ -170,12 +170,15 @@ export const AIPanel: React.FC<AIPanelProps> = ({
 
   // Phase 3: build chat context on mount
   useEffect(() => {
-    try {
-      const ctx = useWorkflowEditorStore.getState().buildChatContext();
-      setChatContextMessage(ctx);
-    } catch {
-      setChatContextMessage(null);
-    }
+    const tid = setTimeout(() => {
+      try {
+        const ctx = useWorkflowEditorStore.getState().buildChatContext();
+        setChatContextMessage(ctx);
+      } catch {
+        setChatContextMessage(null);
+      }
+    }, 0);
+    return () => clearTimeout(tid);
   }, []);
 
   const handleChatSend = () => {
@@ -287,7 +290,7 @@ export const AIPanel: React.FC<AIPanelProps> = ({
       try {
         const engines = evolutionStore.engines;
         const evoStats: string[] = [];
-        for (const [_key, engine] of Object.entries(engines)) {
+        for (const [, engine] of Object.entries(engines)) {
           if (engine.running) {
             evoStats.push(`${engine.displayName}: 运行中`);
           }
@@ -663,12 +666,14 @@ export const AIPanel: React.FC<AIPanelProps> = ({
                 const recent = history.slice(-3);
                 return (
                   <div style={{ marginTop: 12 }}>
-                    <label style={{
-                      display: "block",
-                      color: token.colorTextSecondary,
-                      fontSize: 12,
-                      marginBottom: 6,
-                    }}>
+                    <label
+                      style={{
+                        display: "block",
+                        color: token.colorTextSecondary,
+                        fontSize: 12,
+                        marginBottom: 6,
+                      }}
+                    >
                       进化历史
                     </label>
                     {recent.map((evt, i) => (
@@ -684,9 +689,7 @@ export const AIPanel: React.FC<AIPanelProps> = ({
                       >
                         <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11 }}>
                           <span style={{ color: token.colorTextSecondary }}>
-                            v{evt.version}
-                            {" "}
-                            {evt.summary || "优化"}
+                            v{evt.version} {evt.summary || "优化"}
                           </span>
                           <span style={{ color: token.colorTextTertiary }}>
                             {new Date(evt.timestamp).toLocaleDateString()}
@@ -783,12 +786,18 @@ export const AIPanel: React.FC<AIPanelProps> = ({
                         return (
                           <>
                             {hasABWin && (
-                              <Tag color="green" style={{ fontSize: 10, margin: 0, padding: "0 4px", lineHeight: "16px" }}>
+                              <Tag
+                                color="green"
+                                style={{ fontSize: 10, margin: 0, padding: "0 4px", lineHeight: "16px" }}
+                              >
                                 已验证有效
                               </Tag>
                             )}
                             {hasHistory && !hasABWin && (
-                              <Tag color="blue" style={{ fontSize: 10, margin: 0, padding: "0 4px", lineHeight: "16px" }}>
+                              <Tag
+                                color="blue"
+                                style={{ fontSize: 10, margin: 0, padding: "0 4px", lineHeight: "16px" }}
+                              >
                                 有进化记录
                               </Tag>
                             )}

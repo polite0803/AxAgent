@@ -273,12 +273,15 @@ function AppInner() {
                     <Sidebar />
                   </ModuleErrorBoundary>
                 </nav>
-                <div className="content-col" style={{
-                  flex: 1,
-                  minWidth: 0,
-                  marginRight: agentInTheLoopEnabled && isAgentPanelOpen ? agentPanelWidth : 0,
-                  transition: "margin-right 300ms ease-in-out",
-                }}>
+                <div
+                  className="content-col"
+                  style={{
+                    flex: 1,
+                    minWidth: 0,
+                    marginRight: agentInTheLoopEnabled && isAgentPanelOpen ? agentPanelWidth : 0,
+                    transition: "margin-right 300ms ease-in-out",
+                  }}
+                >
                   <GlobalTabBar />
                   <div className="page-area">
                     <PageTransitionWrapper>

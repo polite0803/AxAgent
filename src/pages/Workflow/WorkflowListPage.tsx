@@ -2,18 +2,14 @@
 // Phase 4: WorkflowListPage — 工作流列表页
 
 import { useWorkflowStore } from "@/stores/feature/workflowStore";
-import type { WorkflowDefinition, WorkflowFilter } from "@/types/workflow";
 import {
-  ApartmentOutlined,
   CopyOutlined,
   DeleteOutlined,
   EditOutlined,
   FileAddOutlined,
-  PlayCircleOutlined,
   SearchOutlined,
   ThunderboltOutlined,
 } from "@ant-design/icons";
-import type { MenuProps } from "antd";
 import { Button, Card, Col, Empty, Input, Popconfirm, Row, Select, Space, Tag, Typography } from "antd";
 import { useCallback, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -30,8 +26,6 @@ export function WorkflowListPage() {
   const navigate = useNavigate();
   const [searchText, setSearchText] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [viewMode, setViewMode] = useState<"card" | "table">("card");
-
   const workflows = useWorkflowStore((s) => s.workflows);
   const createWorkflow = useWorkflowStore((s) => s.createWorkflow);
   const deleteWorkflow = useWorkflowStore((s) => s.deleteWorkflow);
@@ -39,10 +33,10 @@ export function WorkflowListPage() {
 
   const filtered = useMemo(() => {
     return workflows.filter((wf) => {
-      if (statusFilter !== "all" && wf.status !== statusFilter) return false;
+      if (statusFilter !== "all" && wf.status !== statusFilter) { return false; }
       if (searchText) {
         const q = searchText.toLowerCase();
-        if (!wf.name.toLowerCase().includes(q) && !wf.description.toLowerCase().includes(q)) return false;
+        if (!wf.name.toLowerCase().includes(q) && !wf.description.toLowerCase().includes(q)) { return false; }
       }
       return true;
     });
@@ -81,7 +75,16 @@ export function WorkflowListPage() {
   return (
     <div style={{ padding: 24, height: "100%", overflow: "auto" }}>
       {/* 工具栏 */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          marginBottom: 20,
+          flexWrap: "wrap",
+          gap: 12,
+        }}
+      >
         <Title level={4} style={{ margin: 0 }}>工作流</Title>
         <Space wrap>
           <Input
@@ -126,9 +129,7 @@ export function WorkflowListPage() {
       </div>
 
       {/* 列表 */}
-      {filtered.length === 0 ? (
-        <Empty description="暂无工作流，点击上方按钮创建" />
-      ) : (
+      {filtered.length === 0 ? <Empty description="暂无工作流，点击上方按钮创建" /> : (
         <Row gutter={[16, 16]}>
           {filtered.map((wf) => (
             <Col key={wf.id} xs={24} sm={12} lg={8} xl={6}>
@@ -138,13 +139,20 @@ export function WorkflowListPage() {
                 style={{ cursor: "pointer", height: "100%" }}
                 bodyStyle={{ padding: 16 }}
               >
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "flex-start",
+                    marginBottom: 8,
+                  }}
+                >
                   <Text strong ellipsis style={{ maxWidth: 180 }}>{wf.name}</Text>
                   <Tag color={statusConfig[wf.status]?.color}>{statusConfig[wf.status]?.label}</Tag>
                 </div>
                 <Text
                   type="secondary"
-                  ellipsis={{ rows: 2 }}
+                  ellipsis
                   style={{ display: "block", marginBottom: 12, fontSize: 12, minHeight: 36 }}
                 >
                   {wf.description || "暂无描述"}

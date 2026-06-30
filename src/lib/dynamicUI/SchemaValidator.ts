@@ -2,10 +2,10 @@
 
 import {
   COMPONENT_REQUIRED_PROPS,
-  VALID_DYNAMIC_COMPONENT_TYPES,
   type SchemaValidationError,
   type SchemaValidationResult,
   type UISchema,
+  VALID_DYNAMIC_COMPONENT_TYPES,
 } from "@/types";
 
 /**

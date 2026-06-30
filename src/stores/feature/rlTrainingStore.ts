@@ -95,17 +95,17 @@ export const useRlTrainingStore = create<RlTrainingState>((set, get) => ({
 
     // Clear any existing interval
     const existing = get()._intervalId;
-    if (existing !== null) clearInterval(existing);
+    if (existing !== null) { clearInterval(existing); }
 
     let step = 0;
     const maxSteps = config.maxSteps;
     const fetchMetrics = () => {
       const state = get();
-      if (state.status !== "running") return;
+      if (state.status !== "running") { return; }
 
       if (step >= maxSteps) {
         const id = state._intervalId;
-        if (id !== null) clearInterval(id);
+        if (id !== null) { clearInterval(id); }
         set({ status: "completed", _intervalId: null });
         return;
       }
@@ -177,7 +177,7 @@ export const useRlTrainingStore = create<RlTrainingState>((set, get) => ({
   fetchMetrics: () => {
     // Called externally; internal interval handles this
     const state = get();
-    if (state.status !== "running") return;
+    if (state.status !== "running") { return; }
 
     const step = state.metricsHistory.length > 0
       ? state.metricsHistory[state.metricsHistory.length - 1].step + 10
@@ -210,7 +210,7 @@ export const useRlTrainingStore = create<RlTrainingState>((set, get) => ({
   saveCheckpoint: async (name: string) => {
     const state = get();
     const metrics = state.currentMetrics;
-    if (!metrics) return;
+    if (!metrics) { return; }
 
     const newCheckpoint: CheckpointInfo = {
       id: `ckpt_${Date.now()}`,
@@ -222,7 +222,7 @@ export const useRlTrainingStore = create<RlTrainingState>((set, get) => ({
     };
 
     try {
-      await invoke("save_checkpoint", { name, ...newCheckpoint });
+      await invoke("save_checkpoint", { ...newCheckpoint });
     } catch (err) {
       console.warn("[rlTrainingStore] saveCheckpoint invoke failed, using mock", err);
     }

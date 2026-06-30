@@ -1,30 +1,30 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import { componentRegistry } from "./ComponentRegistry";
 import type { ComponentRegistryEntry } from "@/types";
+import { componentRegistry } from "./ComponentRegistry";
 
-import { RowContainer } from "@/components/dynamicUI/containers/RowContainer";
+import { AccordionContainer } from "@/components/dynamicUI/containers/AccordionContainer";
+import { CardContainer } from "@/components/dynamicUI/containers/CardContainer";
 import { ColumnContainer } from "@/components/dynamicUI/containers/ColumnContainer";
 import { GridContainer } from "@/components/dynamicUI/containers/GridContainer";
-import { CardContainer } from "@/components/dynamicUI/containers/CardContainer";
+import { RowContainer } from "@/components/dynamicUI/containers/RowContainer";
 import { TabsContainer } from "@/components/dynamicUI/containers/TabsContainer";
-import { AccordionContainer } from "@/components/dynamicUI/containers/AccordionContainer";
 
-import { DataTable } from "@/components/dynamicUI/data/DataTable";
 import { ChartRenderer } from "@/components/dynamicUI/data/ChartRenderer";
 import { Dashboard } from "@/components/dynamicUI/data/Dashboard";
+import { DataTable } from "@/components/dynamicUI/data/DataTable";
 import { ListView } from "@/components/dynamicUI/data/ListView";
-import { TreeView } from "@/components/dynamicUI/data/TreeView";
 import { TimelineView } from "@/components/dynamicUI/data/TimelineView";
+import { TreeView } from "@/components/dynamicUI/data/TreeView";
 
-import { FormRenderer } from "@/components/dynamicUI/form/FormRenderer";
 import {
+  DatePickerField,
   InputField,
   SelectField,
-  DatePickerField,
   SwitchField,
   TextareaField,
 } from "@/components/dynamicUI/form/FormFields";
+import { FormRenderer } from "@/components/dynamicUI/form/FormRenderer";
 
 import { CodeEditorView } from "@/components/dynamicUI/media/CodeEditorView";
 import { FilePreviewView } from "@/components/dynamicUI/media/FilePreviewView";
@@ -32,11 +32,11 @@ import { MarkdownView } from "@/components/dynamicUI/media/MarkdownView";
 
 import {
   DynamicButton,
-  DynamicText,
   DynamicDivider,
+  DynamicImage,
   DynamicProgress,
   DynamicTag,
-  DynamicImage,
+  DynamicText,
 } from "@/components/dynamicUI/misc/MiscComponents";
 
 /**

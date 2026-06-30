@@ -54,13 +54,13 @@ export default function SkillEvolutionViewer({ skillId }: SkillEvolutionViewerPr
       </div>
 
       {/* Timeline */}
-      {versions.length > 0 ? (
-        <SkillVersionTimeline skillId={skillId} />
-      ) : (
-        <Text type="secondary" style={{ display: "block", marginBottom: 24 }}>
-          该技能暂无进化历史
-        </Text>
-      )}
+      {versions.length > 0
+        ? <SkillVersionTimeline skillId={skillId} />
+        : (
+          <Text type="secondary" style={{ display: "block", marginBottom: 24 }}>
+            该技能暂无进化历史
+          </Text>
+        )}
 
       {/* A/B Test Results */}
       {abResults.length > 0 && (

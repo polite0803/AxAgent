@@ -177,8 +177,18 @@ function buildDefaultConfig(engineName: string): Record<string, unknown> {
 
 function buildDefaultStats(engineName: string): Record<string, unknown> {
   const stats: Record<string, Record<string, unknown>> = {
-    skill_evolution: { totalEvolutions: 42, activeSkills: 12, avgImprovement: "8.3%", lastEvolution: Date.now() - 3600000 },
-    auto_tool_creator: { toolsCreated: 7, patternsDetected: 23, avgConfidence: "87%", lastCreated: Date.now() - 7200000 },
+    skill_evolution: {
+      totalEvolutions: 42,
+      activeSkills: 12,
+      avgImprovement: "8.3%",
+      lastEvolution: Date.now() - 3600000,
+    },
+    auto_tool_creator: {
+      toolsCreated: 7,
+      patternsDetected: 23,
+      avgConfidence: "87%",
+      lastCreated: Date.now() - 7200000,
+    },
     text_grad: { nodes: 156, gradients: 1280, iterations: 5000, lossReduction: "34%" },
     constitution: { rules: 18, violations: 3, enforcementRate: "99.7%", lastViolation: Date.now() - 86400000 },
     intrinsic_motivation: { explorationScore: 0.72, noveltyCount: 45, activeDrives: 3, energyLevel: "85%" },
@@ -222,27 +232,46 @@ function buildMockSkillVersions(): SkillVersion[] {
       version: 4,
       timestamp: Date.now() - 86400000,
       summary: "优化了推理链步骤顺序，减少了冗余工具调用",
-      metrics: { successRate: { before: 78, after: 85 }, tokenUsage: { before: 3200, after: 2800 }, avgTime: { before: 12.5, after: 10.2 } },
-      promptDiff: { old: "You are an expert assistant. Think step by step.", new: "You are an expert assistant. Analyze the problem, identify key constraints, then execute efficiently." },
+      metrics: {
+        successRate: { before: 78, after: 85 },
+        tokenUsage: { before: 3200, after: 2800 },
+        avgTime: { before: 12.5, after: 10.2 },
+      },
+      promptDiff: {
+        old: "You are an expert assistant. Think step by step.",
+        new: "You are an expert assistant. Analyze the problem, identify key constraints, then execute efficiently.",
+      },
     },
     {
       version: 3,
       timestamp: Date.now() - 172800000,
       summary: "增加了错误处理分支，提高了鲁棒性",
-      metrics: { successRate: { before: 72, after: 78 }, errorRate: { before: 15, after: 8 }, avgTime: { before: 14.0, after: 12.5 } },
+      metrics: {
+        successRate: { before: 72, after: 78 },
+        errorRate: { before: 15, after: 8 },
+        avgTime: { before: 14.0, after: 12.5 },
+      },
     },
     {
       version: 2,
       timestamp: Date.now() - 259200000,
       summary: "引入了并行工具调用策略",
-      metrics: { successRate: { before: 65, after: 72 }, tokenUsage: { before: 4000, after: 3500 }, avgTime: { before: 18.0, after: 14.0 } },
+      metrics: {
+        successRate: { before: 65, after: 72 },
+        tokenUsage: { before: 4000, after: 3500 },
+        avgTime: { before: 18.0, after: 14.0 },
+      },
       promptDiff: { old: "Call tools one at a time.", new: "When possible, call independent tools in parallel." },
     },
     {
       version: 1,
       timestamp: Date.now() - 345600000,
       summary: "初始版本，基础功能实现",
-      metrics: { successRate: { before: 0, after: 65 }, tokenUsage: { before: 0, after: 4000 }, avgTime: { before: 0, after: 18.0 } },
+      metrics: {
+        successRate: { before: 0, after: 65 },
+        tokenUsage: { before: 0, after: 4000 },
+        avgTime: { before: 0, after: 18.0 },
+      },
     },
   ];
 }
@@ -303,7 +332,12 @@ export const useEvolutionStore = create<EvolutionState>((set, get) => ({
           [name]: { ...state.engines[name], running: true, lastActive: Date.now() },
         },
       }));
-      get().addEvolutionEvent({ engine: name, timestamp: Date.now(), type: "started", detail: `Engine ${name} started` });
+      get().addEvolutionEvent({
+        engine: name,
+        timestamp: Date.now(),
+        type: "started",
+        detail: `Engine ${name} started`,
+      });
     } catch (err) {
       console.warn("[evolutionStore] startEngine failed, using mock", err);
       set((state) => ({
@@ -312,7 +346,12 @@ export const useEvolutionStore = create<EvolutionState>((set, get) => ({
           [name]: { ...state.engines[name], running: true, lastActive: Date.now() },
         },
       }));
-      get().addEvolutionEvent({ engine: name, timestamp: Date.now(), type: "started", detail: `Engine ${name} started (mock)` });
+      get().addEvolutionEvent({
+        engine: name,
+        timestamp: Date.now(),
+        type: "started",
+        detail: `Engine ${name} started (mock)`,
+      });
     }
   },
 
@@ -325,7 +364,12 @@ export const useEvolutionStore = create<EvolutionState>((set, get) => ({
           [name]: { ...state.engines[name], running: false },
         },
       }));
-      get().addEvolutionEvent({ engine: name, timestamp: Date.now(), type: "stopped", detail: `Engine ${name} stopped` });
+      get().addEvolutionEvent({
+        engine: name,
+        timestamp: Date.now(),
+        type: "stopped",
+        detail: `Engine ${name} stopped`,
+      });
     } catch (err) {
       console.warn("[evolutionStore] stopEngine failed, using mock", err);
       set((state) => ({
@@ -334,7 +378,12 @@ export const useEvolutionStore = create<EvolutionState>((set, get) => ({
           [name]: { ...state.engines[name], running: false },
         },
       }));
-      get().addEvolutionEvent({ engine: name, timestamp: Date.now(), type: "stopped", detail: `Engine ${name} stopped (mock)` });
+      get().addEvolutionEvent({
+        engine: name,
+        timestamp: Date.now(),
+        type: "stopped",
+        detail: `Engine ${name} stopped (mock)`,
+      });
     }
   },
 
@@ -347,7 +396,12 @@ export const useEvolutionStore = create<EvolutionState>((set, get) => ({
           [name]: { ...state.engines[name], config: { ...state.engines[name].config, ...config } },
         },
       }));
-      get().addEvolutionEvent({ engine: name, timestamp: Date.now(), type: "config_changed", detail: "Configuration updated" });
+      get().addEvolutionEvent({
+        engine: name,
+        timestamp: Date.now(),
+        type: "config_changed",
+        detail: "Configuration updated",
+      });
     } catch (err) {
       console.warn("[evolutionStore] updateEngineConfig failed, using mock", err);
       set((state) => ({

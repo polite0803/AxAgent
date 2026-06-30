@@ -2,7 +2,7 @@
 // Phase 4: WorkflowLogPanel — 工作流执行日志面板
 
 import type { ExecutionLogEntry } from "@/types/workflow";
-import { Button, Empty, Space } from "antd";
+import { Button, Empty } from "antd";
 import { useCallback, useEffect, useRef } from "react";
 
 interface WorkflowLogPanelProps {
@@ -72,8 +72,7 @@ export function WorkflowLogPanel({ logs, onClear, onExport, maxHeight = 300 }: W
             <span style={{ color: levelColors[log.level], fontWeight: 600 }}>
               [{levelLabels[log.level]}]
             </span>{" "}
-            <span style={{ color: "#569cd6" }}>[{log.nodeName}]</span>{" "}
-            <span>{log.message}</span>
+            <span style={{ color: "#569cd6" }}>[{log.nodeName}]</span> <span>{log.message}</span>
           </div>
         ))}
         <div ref={containerRef} />

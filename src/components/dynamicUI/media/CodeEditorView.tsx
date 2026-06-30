@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import type { DynamicUIProps } from "@/types";
-import { Alert, Input } from "antd";
+import { Input } from "antd";
 import { lazy, Suspense } from "react";
 
 /**

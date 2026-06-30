@@ -52,8 +52,9 @@ function PieChart({ data }: { data: { name: string; value: number; color: string
       <div style={{ position: "relative", width: 200, height: 200 }}>
         <svg viewBox="0 0 36 36" style={{ width: "100%", height: "100%" }}>
           {(() => {
+            const segments: { d: string; color: string }[] = [];
             let cumulative = 0;
-            return data.map((d) => {
+            for (const d of data) {
               const pct = d.value / total;
               const startAngle = cumulative * 360;
               const endAngle = (cumulative + pct) * 360;
@@ -67,16 +68,20 @@ function PieChart({ data }: { data: { name: string; value: number; color: string
               const y1 = cy + r * Math.sin(startRad);
               const x2 = cx + r * Math.cos(endRad);
               const y2 = cy + r * Math.sin(endRad);
-              return (
-                <path
-                  key={d.name}
-                  d={`M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2} Z`}
-                  fill={d.color}
-                  stroke="#fff"
-                  strokeWidth={0.5}
-                />
-              );
-            });
+              segments.push({
+                d: `M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2} Z`,
+                color: d.color,
+              });
+            }
+            return segments.map((seg, i) => (
+              <path
+                key={i}
+                d={seg.d}
+                fill={seg.color}
+                stroke="#fff"
+                strokeWidth={0.5}
+              />
+            ));
           })()}
         </svg>
       </div>

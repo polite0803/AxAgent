@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import type { DynamicUIProps } from "@/types";
-import { Input, Select, DatePicker, Switch, InputNumber } from "antd";
-import { lazy, Suspense } from "react";
+import { DatePicker, Input, InputNumber, Select, Switch } from "antd";
 
 /**
  * 输入框组件，基于 Ant Design Input。
@@ -108,15 +107,14 @@ export const SelectField: React.FC<DynamicUIProps> = ({ schema }) => {
  * 日期选择器，基于 Ant Design DatePicker。
  */
 export const DatePickerField: React.FC<DynamicUIProps> = ({ schema }) => {
-  const { label, name, placeholder, required, disabled, ...rest } =
-    schema.props as {
-      label?: string;
-      name?: string;
-      placeholder?: string;
-      required?: boolean;
-      disabled?: boolean;
-      [key: string]: unknown;
-    };
+  const { label, name, placeholder, required, disabled, ...rest } = schema.props as {
+    label?: string;
+    name?: string;
+    placeholder?: string;
+    required?: boolean;
+    disabled?: boolean;
+    [key: string]: unknown;
+  };
 
   return (
     <FormFieldWrapper label={label} name={name} required={required}>
@@ -205,33 +203,44 @@ function FormFieldWrapper({
   children: React.ReactNode;
 }) {
   // 当在 FormRenderer 内部时使用 Form.Item，否则直接渲染
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { Form } = require("antd");
-    // 尝试使用 Form.Item（如果不在 Form 上下文中，antd 会处理降级）
-    return (
-      <Form.Item
-        label={label}
-        name={name}
-        rules={required ? [{ required: true, message: `请输入${label}` }] : []}
-        valuePropName={valuePropName}
-      >
-        {children}
-      </Form.Item>
-    );
-  } catch {
-    return (
-      <div className="mb-4">
-        {label ? (
+  // 使用函数调用来代替 try/catch 包裹 JSX
+  const renderFormItem = () => {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const { Form } = require("antd");
+      return (
+        <Form.Item
+          label={label}
+          name={name}
+          rules={required ? [{ required: true, message: `请输入${label}` }] : []}
+          valuePropName={valuePropName}
+        >
+          {children}
+        </Form.Item>
+      );
+    } catch {
+      return null;
+    }
+  };
+
+  const formItem = renderFormItem();
+  if (formItem) {
+    return formItem;
+  }
+
+  return (
+    <div className="mb-4">
+      {label
+        ? (
           <label className="block mb-1 text-sm font-medium">
             {label}
             {required ? <span className="text-red-500 ml-0.5">*</span> : null}
           </label>
-        ) : null}
-        {children}
-      </div>
-    );
-  }
+        )
+        : null}
+      {children}
+    </div>
+  );
 }
 
 export default InputField;

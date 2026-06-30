@@ -36,8 +36,8 @@ export interface ExpandedSubWorkflowData {
 import { invoke, logIpcError } from "@/lib/invoke";
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
-import { useEvolutionStore } from "./evolutionStore";
 import { useTracerStore } from "../devtools/tracerStore";
+import { useEvolutionStore } from "./evolutionStore";
 
 export interface AiChatMessage {
   role: "user" | "assistant";

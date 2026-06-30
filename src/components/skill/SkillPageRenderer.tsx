@@ -30,12 +30,14 @@ export function SkillPageRenderer({
   if (componentType === "DynamicUI") {
     const uiSchema = componentConfig.uiSchema as UISchema | undefined;
     if (!uiSchema || !uiSchema.type) {
-      return <SkillSandboxContainer
-        skillName={skillName}
-        componentId="fallback"
-        componentConfig={componentConfig}
-        permissions={(componentConfig.permissions ?? {}) as SkillPermissions}
-      />;
+      return (
+        <SkillSandboxContainer
+          skillName={skillName}
+          componentId="fallback"
+          componentConfig={componentConfig}
+          permissions={(componentConfig.permissions ?? {}) as SkillPermissions}
+        />
+      );
     }
     return <DynamicUIRenderer schema={uiSchema} />;
   }
