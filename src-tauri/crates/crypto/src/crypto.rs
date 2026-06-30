@@ -198,6 +198,7 @@ pub fn decrypt_backup_key(enc_data: &[u8]) -> Result<Vec<u8>> {
 ///   - 无盐哈希：同一密码总是生成相同密钥，易受彩虹表攻击
 ///   - 固定字符串 KDF：密钥空间小，暴力破解成本低
 ///   - 无密钥拉伸：单次 SHA256 极快，无法抵抗 GPU 暴力搜索
+///
 /// **迁移计划**: 2026-Q3 移除 v1 支持，启动时自动检测并升级 v1 备份到 v2 (Argon2id)。
 /// 请尽快重新加密为 v2 格式。
 fn decrypt_backup_key_v1(enc_data: &[u8]) -> Result<Vec<u8>> {
