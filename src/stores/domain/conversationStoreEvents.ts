@@ -62,7 +62,7 @@ export function createEventMethods(
 
       const [chunkUnsub, errorUnsub, titleUnsub, titleGenUnsub, ragUnsub] = await Promise.all([
         listen<ChatStreamEvent>("chat-stream-chunk", (event) => {
-          if (_listenerGen !== gen) {
+          if (getListenerGen() !== gen) {
             return; // stale listener
           }
           if (!useStreamStore.getState().streaming) {
@@ -321,7 +321,7 @@ export function createEventMethods(
           );
         }),
         listen<ChatStreamErrorEvent>("chat-stream-error", (event) => {
-          if (_listenerGen !== gen) {
+          if (getListenerGen() !== gen) {
             return; // stale listener
           }
           if (!useStreamStore.getState().streaming) {
@@ -419,7 +419,7 @@ export function createEventMethods(
         listen<{ conversation_id: string; title: string }>(
           "conversation-title-updated",
           (event) => {
-            if (_listenerGen !== gen) {
+            if (getListenerGen() !== gen) {
               return;
             }
             const { conversation_id, title } = event.payload;
@@ -433,7 +433,7 @@ export function createEventMethods(
           generating: boolean;
           error: string | null;
         }>("conversation-title-generating", (event) => {
-          if (_listenerGen !== gen) {
+          if (getListenerGen() !== gen) {
             return;
           }
           const { conversation_id, generating, error } = event.payload;
@@ -448,7 +448,7 @@ export function createEventMethods(
           }
         }),
         listen<RagContextRetrievedEvent>("rag-context-retrieved", (event) => {
-          if (_listenerGen !== gen) {
+          if (getListenerGen() !== gen) {
             return;
           }
           if (!useStreamStore.getState().streaming) {
@@ -544,7 +544,7 @@ export function createEventMethods(
       ]);
 
       // If generation changed while awaiting, this listener set is stale
-      if (_listenerGen !== gen) {
+      if (getListenerGen() !== gen) {
         chunkUnsub();
         errorUnsub();
         titleUnsub();

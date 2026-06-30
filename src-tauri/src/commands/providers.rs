@@ -138,8 +138,9 @@ pub async fn get_decrypted_provider_key(
     let key_row = axagent_core::repo::provider::get_provider_key(state.harness.db(), &key_id)
         .await
         .map_err(|e| e.to_string())?;
-    let decrypted = axagent_core::crypto::decrypt_key(&key_row.key_encrypted, state.harness.master_key())
-        .map_err(|e| e.to_string())?;
+    let decrypted =
+        axagent_core::crypto::decrypt_key(&key_row.key_encrypted, state.harness.master_key())
+            .map_err(|e| e.to_string())?;
     Ok(axagent_core::crypto::key_prefix(&decrypted))
 }
 
@@ -176,7 +177,9 @@ pub async fn validate_provider_key(
         .ok_or_else(|| format!("No adapter for provider type: {}", provider_type_str))?;
     let global_settings = axagent_core::repo::settings::get_settings(state.harness.db())
         .await
-        .inspect_err(|e| tracing::warn!("Failed to read global settings, falling back to defaults: {}", e))
+        .inspect_err(|e| {
+            tracing::warn!("Failed to read global settings, falling back to defaults: {}", e)
+        })
         .unwrap_or_default();
     let resolved_proxy = axagent_harness::types::ProviderProxyConfig::resolve(
         &provider.proxy_config,
@@ -310,7 +313,9 @@ pub async fn fetch_remote_models(
         .ok_or_else(|| format!("No adapter for provider type: {}", provider_type_str))?;
     let global_settings = axagent_core::repo::settings::get_settings(state.harness.db())
         .await
-        .inspect_err(|e| tracing::warn!("Failed to read global settings, falling back to defaults: {}", e))
+        .inspect_err(|e| {
+            tracing::warn!("Failed to read global settings, falling back to defaults: {}", e)
+        })
         .unwrap_or_default();
     let resolved_proxy = axagent_harness::types::ProviderProxyConfig::resolve(
         &provider.proxy_config,
@@ -405,7 +410,9 @@ pub async fn test_model(
         .ok_or_else(|| format!("No adapter for provider type: {}", provider_type_str))?;
     let global_settings = axagent_core::repo::settings::get_settings(state.harness.db())
         .await
-        .inspect_err(|e| tracing::warn!("Failed to read global settings, falling back to defaults: {}", e))
+        .inspect_err(|e| {
+            tracing::warn!("Failed to read global settings, falling back to defaults: {}", e)
+        })
         .unwrap_or_default();
     let resolved_proxy = axagent_harness::types::ProviderProxyConfig::resolve(
         &provider.proxy_config,

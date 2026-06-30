@@ -40,7 +40,8 @@ const WATCHDOG_INTERVAL_MS = 30 * 1000;
 let _watchdogTimer: ReturnType<typeof setInterval> | null = null;
 
 function startWatchdog(checkFn: () => void): void {
-  if (_watchdogTimer !== null) return; // 已启动，防止 StrictMode 双重启动
+  if (_watchdogTimer !== null) { return; // 已启动，防止 StrictMode 双重启动
+   }
   _watchdogTimer = setInterval(checkFn, WATCHDOG_INTERVAL_MS);
 }
 function stopWatchdog(): void {
@@ -66,7 +67,7 @@ export function markStreamActivity(conversationId: string) {
 // 启动流看门狗：定期检查 streamingStartTimestamps，
 // 超过 STUCK_STREAM_TIMEOUT_MS 无活跃则视为卡住，自动取消并标记错误。
 export function startStreamWatchdog() {
-  if (isWatchdogRunning()) return;
+  if (isWatchdogRunning()) { return; }
 
   startWatchdog(() => {
     const state = useStreamStore.getState();
@@ -289,12 +290,6 @@ export let _userManuallySelectedVersion = false;
 // When omitted, the default session AND the backward-compatible exported
 // variable are updated.
 
-export function setUnlisten(value: UnlistenFn | null) {
-  _unlisten = value;
-}
-export function incrementListenerGen() {
-  return ++_listenerGen;
-}
 export function setStreamBuffer(
   value: StreamBuffer | null,
   conversationId?: string,
@@ -971,99 +966,6 @@ export function deriveLegacyStreamFields(
   return {
     streaming: false,
     streamingMessageId: null,
-
-  // --- Citation state ---
-citations: [],
-  selectedCitationId: null,
-
-  setCitations: (citations) => set({ citations }),
-
-  addCitation: (citation) =>
-    set((s) => {
-      const exists = s.citations.some((c) => c.id === citation.id);
-      if (exists) {
-        return {
-          citations: s.citations.map((c) => c.id === citation.id ? citation : c),
-        };
-      }
-      return { citations: [...s.citations, citation] };
-    }),
-
-  removeCitation: (citationId) =>
-    set((s) => ({
-      citations: s.citations.filter((c) => c.id !== citationId),
-      selectedCitationId: s.selectedCitationId === citationId ? null : s.selectedCitationId,
-    })),
-
-  toggleInReport: (citationId) =>
-    set((s) => ({
-      citations: s.citations.map((c) => c.id === citationId ? { ...c, inReport: !c.inReport } : c),
-    })),
-
-  selectCitation: (citationId) => set({ selectedCitationId: citationId }),
-
-  clearCitations: () => set({ citations: [], selectedCitationId: null }),
-
-  getStats: () => {
-    const citations = get().citations;
-    const total = citations.length;
-    const inReport = citations.filter((c) => c.inReport).length;
-    const byType = citations.reduce<Partial<Record<string, number>>>(
-      (acc, c) => {
-        acc[c.sourceType] = (acc[c.sourceType] || 0) + 1;
-        return acc;
-      },
-      {},
-    );
-    const avgCredibility = total > 0
-      ? citations.reduce((sum, c) => sum + c.credibility, 0) / total
-      : 0;
-    return { total, inReport, byType, avgCredibility };
-  },
-
-  // --- Continuation state ---
-continuing: {},
-  continuableMessages: {},
-
-  loadContinuable: async (conversationId: string) => {
-    try {
-      const result = await invoke<
-        Array<{
-          id: string;
-          parentMessageId: string;
-          status: string;
-          contentPreview: string;
-          createdAt: number;
-        }>
-      >("list_continuable_messages", { conversationId });
-      set((s) => ({
-        continuableMessages: {
-          ...s.continuableMessages,
-          [conversationId]: result,
-        },
-      }));
-    } catch (e) {
-      logIpcError("continuationStore: 加载可续写消息失败")(e);
-    }
-  },
-
-  startContinue: async (conversationId, messageId, branch) => {
-    // 临时占位消息（temp- 前缀）不存在于数据库中，无法续写
-    if (messageId.startsWith("temp-")) {
-      return;
-    }
-    set((s) => ({ continuing: { ...s.continuing, [messageId]: true } }));
-
-    try {
-      await invoke("continue_message", { conversationId, messageId, branch });
-      const convStore = useConversationStore.getState();
-      await convStore.regenerateMessage(messageId);
-    } catch (e) {
-      logIpcError("continuationStore: 续写失败")(e);
-    } finally {
-      set((s) => ({ continuing: { ...s.continuing, [messageId]: false } }));
-    }
-  },
     streamingConversationId: null,
   };
 }
@@ -1130,7 +1032,7 @@ interface StreamState {
   isConversationStreaming: (conversationId: string) => boolean;
 
   // --- Citation management (merged from citationStore) ---
-citations: Citation[];
+  citations: Citation[];
   selectedCitationId: string | null;
 
   setCitations: (citations: Citation[]) => void;
@@ -1142,7 +1044,7 @@ citations: Citation[];
   getStats: () => CitationStatsData;
 
   // --- Continuation (merged from continuationStore) ---
-continuing: Record<string, boolean>;
+  continuing: Record<string, boolean>;
   continuableMessages: Record<
     string,
     Array<{
@@ -1168,7 +1070,7 @@ export const useStreamStore = create<StreamState>((set, get) => ({
   streamingMessageId: null,
 
   // --- Citation state ---
-citations: [],
+  citations: [],
   selectedCitationId: null,
 
   setCitations: (citations) => set({ citations }),
@@ -1217,7 +1119,7 @@ citations: [],
   },
 
   // --- Continuation state ---
-continuing: {},
+  continuing: {},
   continuableMessages: {},
 
   loadContinuable: async (conversationId: string) => {

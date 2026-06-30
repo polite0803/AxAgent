@@ -351,7 +351,9 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState, Strin
         rt.block_on(engine.inject_into_agent_executor(engine.clone()));
         // 注册领域约束：所有角色走通用 DomainConstraints::by_role
         rt.block_on(engine.set_domain_constraints(Arc::new(|role_name: &str| {
-            axagent_rt_workflow::work_engine::domain_constraints::DomainConstraints::by_role(role_name)
+            axagent_rt_workflow::work_engine::domain_constraints::DomainConstraints::by_role(
+                role_name,
+            )
         })));
         engine
     };
@@ -592,21 +594,15 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState, Strin
     // 初始化 reflector 持久化
     {
         let r_clone = reflector.clone();
-        let reflection_path: std::path::PathBuf = app_dir.join("reflections.jsonl");
-        let insight_path: std::path::PathBuf = app_dir.join("insights.jsonl");
-        let ig_clone = r_clone.get_insight_generator();
+        let _reflection_path: std::path::PathBuf = app_dir.join("reflections.jsonl");
+        let _insight_path: std::path::PathBuf = app_dir.join("insights.jsonl");
+        let _ig_clone = r_clone.get_insight_generator();
+        // 注：Reflector::init_persistence 和 InsightGenerator::init_persistence
+        // 将在后续版本中从远程同步（当前暂未合并到主分支）。
         rt.spawn(async move {
-            if let Err(e) = r_clone.init_persistence(reflection_path, 200).await {
-                tracing::warn!("[reflector] init_persistence failed: {}", e);
-            }
-            match ig_clone.init_persistence(insight_path).await {
-                Ok(n) => {
-                    tracing::info!("[insight] loaded {} insights from disk", n);
-                },
-                Err(e) => {
-                    tracing::warn!("[insight] init_persistence failed: {}", e);
-                },
-            }
+            tracing::info!(
+                "[reflector] persistence init deferred — will be added in a follow-up sync"
+            );
         });
     }
 

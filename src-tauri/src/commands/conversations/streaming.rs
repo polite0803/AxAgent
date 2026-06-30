@@ -2070,4 +2070,3 @@ pub async fn regenerate_with_model(
     );
     Ok(())
 }
-

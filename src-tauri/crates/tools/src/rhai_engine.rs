@@ -27,8 +27,8 @@ pub fn create_rhai_engine() -> Engine {
     engine.set_max_call_levels(16);
     engine.set_max_modules(0);
     // DoS 防护：限制字符串和数组大小
-    engine.set_max_string_size(2_000_000);  // 2MB
-    engine.set_max_array_size(50_000);       // 5 万元素上限
+    engine.set_max_string_size(2_000_000); // 2MB
+    engine.set_max_array_size(50_000); // 5 万元素上限
     engine
 }
 

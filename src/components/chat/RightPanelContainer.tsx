@@ -5,7 +5,7 @@ import { DropdownMenu } from "@/components/layout/DropdownMenu";
 import { Tooltip } from "@/components/layout/Tooltip";
 import { useResolvedDarkMode } from "@/hooks/useResolvedDarkMode";
 import i18n from "@/i18n";
-import { useConversationStore, useUIStore, useSettingsStore } from "@/stores";
+import { useConversationStore, useSettingsStore, useUIStore } from "@/stores";
 import { useCacheStore } from "@/stores/feature/cacheStore";
 import {
   BarChart3,

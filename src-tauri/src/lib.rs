@@ -13,6 +13,10 @@ mod indexing_triggers;
 mod init;
 mod knowledge_integration;
 mod memory_extract;
+
+#[macro_use]
+mod register_commands;
+
 mod paths;
 mod semantic_cache;
 mod smart_router;
@@ -168,20 +172,20 @@ pub fn run() {
                 }
             }
 
-            // ── 在主线程解析并创建 axinvest_home ──
+            // ── 在主线程解析并创建 axagent_home ──
             // Android 子线程中 dirs::data_dir() 因缺少 JNI 上下文返回 None，
             // 回退到 / 导致 Permission denied。必须在主线程完成目录创建。
             let app_dir = {
-                let dir = crate::paths::axinvest_home();
+                let dir = crate::paths::axagent_home();
                 if let Err(e) = std::fs::create_dir_all(&dir) {
-                    tracing::error!("Failed to create AxInvest home dir: {}", e);
+                    tracing::error!("Failed to create AxAgent home dir: {}", e);
                     android_utils::report_fatal_error(&format!(
-                        "Failed to create AxInvest home dir: {}",
+                        "Failed to create AxAgent home dir: {}",
                         e
                     ));
-                    panic!("Fatal: AxInvest home dir creation failed: {}", e);
+                    panic!("Fatal: AxAgent home dir creation failed: {}", e);
                 }
-                tracing::info!("axinvest_home ready: {}", dir.display());
+                tracing::info!("axagent_home ready: {}", dir.display());
                 dir
             };
 
@@ -427,10 +431,9 @@ pub fn run() {
             let tray_language = "en".to_string();
 
             // 异步启动：不阻塞 UI
-            let seed_db = state.harness.db().clone();
+            let _seed_db = state.harness.db().clone();
             tauri::async_runtime::spawn(async move {
-                // 种子化失败不阻塞，load_and_inject_template 有自愈机制
-                let _ = commands::stock_analysis_setup::ensure_stock_analysis_experts_seeded(&seed_db).await;
+                // 股票业务种子化（stock_analysis_setup）已在另一分支维护
             });
             init::services::start_background_services(app.handle(), &state, app_dir.clone(), tray_language);
 

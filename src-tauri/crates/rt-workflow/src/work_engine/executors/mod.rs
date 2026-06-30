@@ -81,3 +81,31 @@ pub const WORKFLOW_PROVIDER_ID_VAR: &str = "__workflow_provider_id__";
 // 抽成公共 helper 消除 4 处字节级同义代码。
 pub(crate) mod llm_resolve;
 pub(crate) use llm_resolve::resolve_provider_and_adapter;
+
+// ── 共享变量路径解析器 ──
+// 多个 executor 需要从 ExecutionState.variables 中按点号路径（如 "node_id.output.field"）
+// 取出嵌套值。每个 executor 此前都有重复的私有实现，这里统一提供。
+// 注意：与 prompt_template::resolve_dot_path 不同——后者在模板渲染阶段对
+// `{{path}}` 占位符做类型转换，本函数返回 `Option<Value>` 供代码逻辑使用。
+
+/// 从 variables HashMap 中按点号分隔路径解析嵌套值。
+///
+/// 首段为节点 ID（variables 顶层 key），后续段递归进入 JSON 嵌套值。
+/// 若顶层 key 不存在，将整个 path 作为 plain key 直查（原始 fallback 行为）。
+pub(crate) fn resolve_var_path(
+    path: &str,
+    variables: &std::collections::HashMap<String, serde_json::Value>,
+) -> Option<serde_json::Value> {
+    if path.is_empty() {
+        return None;
+    }
+    let parts: Vec<&str> = path.split('.').collect();
+    if let Some(root) = variables.get(parts[0]) {
+        let mut current = root.clone();
+        for part in &parts[1..] {
+            current = current.get(part)?.clone();
+        }
+        return Some(current);
+    }
+    variables.get(path).cloned()
+}

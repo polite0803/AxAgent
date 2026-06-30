@@ -8,7 +8,13 @@ import { invoke } from "@/lib/invoke";
 import { formatShortcutForDisplay, getShortcutBinding } from "@/lib/shortcuts";
 import type { ShortcutAction } from "@/lib/shortcuts";
 import { resolveIconComponent } from "@/lib/skillIcons";
-import { useOnboardingStore, useSettingsStore, useSkillExtensionStore, useUIStore, useUserProfileStore } from "@/stores";
+import {
+  useOnboardingStore,
+  useSettingsStore,
+  useSkillExtensionStore,
+  useUIStore,
+  useUserProfileStore,
+} from "@/stores";
 import type { AppSettings, PageKey } from "@/types";
 import { MenuFoldOutlined, MenuUnfoldOutlined } from "@ant-design/icons";
 import { Avatar } from "antd";

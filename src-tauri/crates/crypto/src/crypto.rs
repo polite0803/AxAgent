@@ -93,8 +93,8 @@ pub fn hmac_sha256(key: &[u8], msg: &str) -> String {
     use hmac::{Hmac, Mac};
     use sha2::Sha256;
 
-    let mut mac = <Hmac<Sha256> as Mac>::new_from_slice(key)
-        .expect("HMAC-SHA256 accepts any key length");
+    let mut mac =
+        <Hmac<Sha256> as Mac>::new_from_slice(key).expect("HMAC-SHA256 accepts any key length");
     mac.update(msg.as_bytes());
     let result = mac.finalize();
     format!("{:x}", result.into_bytes())

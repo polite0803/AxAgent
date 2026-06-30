@@ -47,7 +47,7 @@ export const useLocalToolStore = create<LocalToolState>((set) => ({
     } catch (e) {
       set({ error: String(e) });
     }
-  },,
+  },
 
   loadGroups: async () => {
     set({ loading: true });

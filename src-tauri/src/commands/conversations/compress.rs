@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+use super::chat_message_from_message;
 use super::*;
 use crate::AppState;
-use crate::commands::error_code::conv_err;
 #[cfg(test)]
 use crate::app_state::SemanticCacheState;
 use crate::commands::error::ErrorResponse;
+use crate::commands::error_code::conv_err;
 use crate::commands::error_code::session as session_err;
 #[cfg(test)]
 use crate::commands::proactive::ProactiveService;
@@ -17,7 +18,6 @@ use axagent_runtime_core::prompt_cache::PromptCache;
 use sea_orm::*;
 #[cfg(test)]
 use std::collections::HashMap;
-use super::{chat_message_from_message};
 
 use tauri::{Emitter, State};
 
@@ -213,10 +213,10 @@ pub(crate) async fn do_compress(
         .get(registry_key)
         .ok_or_else(|| "Provider adapter not found".to_string())?;
 
-    let response = adapter
-        .chat(&ctx, request)
-        .await
-        .map_err(|e| ErrorResponse::new(conv_err::INTERNAL).with_detail(format!("Summary generation failed: {}", e)))?;
+    let response = adapter.chat(&ctx, request).await.map_err(|e| {
+        ErrorResponse::new(conv_err::INTERNAL)
+            .with_detail(format!("Summary generation failed: {}", e))
+    })?;
 
     let token_count = axagent_core::token_counter::estimate_tokens(&response.content);
     axagent_core::repo::conversation::upsert_summary(
@@ -228,7 +228,9 @@ pub(crate) async fn do_compress(
         Some(&comp_model_id),
     )
     .await
-    .map_err(|e| ErrorResponse::new(conv_err::INTERNAL).with_detail(format!("Failed to save summary: {}", e)))?;
+    .map_err(|e| {
+        ErrorResponse::new(conv_err::INTERNAL).with_detail(format!("Failed to save summary: {}", e))
+    })?;
 
     tracing::debug!("Compressed context for {} ({} tokens)", conversation_id, token_count);
     Ok(response.content)

@@ -656,6 +656,12 @@ pub struct CodeNodeConfig {
     /// Rhai 脚本注册为工具名（language="rhai" 时生效，为空则用 code_<node_id>）
     #[serde(default)]
     pub tool_name: Option<String>,
+    /// 是否直接执行（不经过工具注册流程），供 Rhai 脚本在 DAG 中直接运行
+    #[serde(default)]
+    pub execute_directly: bool,
+    /// 输入映射：上游变量到 Rhai scope 变量的映射
+    #[serde(default)]
+    pub input_mapping: std::collections::HashMap<String, String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]

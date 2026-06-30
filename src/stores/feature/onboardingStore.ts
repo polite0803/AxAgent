@@ -43,7 +43,7 @@ interface OnboardingStore {
   loadFromSettings: () => void;
 
   // --- Help panel (merged from helpStore) ---
-open: boolean;
+  open: boolean;
   activeSection: string | null;
   toggle: () => void;
   openSection: (section: string) => void;
@@ -62,7 +62,7 @@ export const useOnboardingStore = create<OnboardingStore>((set, get) => ({
   tutorialActive: false,
 
   // --- Help panel state ---
-open: false,
+  open: false,
   activeSection: null,
   toggle: () => set((s) => ({ open: !s.open })),
   openSection: (section) => set({ open: true, activeSection: section }),
@@ -129,28 +129,14 @@ open: false,
   nextTutorialStep: () => set((s) => ({ tutorialStep: s.tutorialStep + 1 })),
 
   skipTutorial: async () => {
-    set({ tutorialActive: false,
-
-  // --- Help panel state ---
-open: false,
-  activeSection: null,
-  toggle: () => set((s) => ({ open: !s.open })),
-  openSection: (section) => set({ open: true, activeSection: section }),
-  close: () => set({ open: false, activeSection: null }),, tutorialCompleted: true });
+    set({ tutorialActive: false, tutorialCompleted: true });
     await useSettingsStore
       .getState()
       .saveSettings({ onboarding_tutorial_completed: true });
   },
 
   completeTutorial: async () => {
-    set({ tutorialActive: false,
-
-  // --- Help panel state ---
-open: false,
-  activeSection: null,
-  toggle: () => set((s) => ({ open: !s.open })),
-  openSection: (section) => set({ open: true, activeSection: section }),
-  close: () => set({ open: false, activeSection: null }),, tutorialCompleted: true });
+    set({ tutorialActive: false, tutorialCompleted: true });
     await useSettingsStore
       .getState()
       .saveSettings({ onboarding_tutorial_completed: true });

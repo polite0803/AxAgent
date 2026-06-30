@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import type { Citation, PageKey, SettingsSection } from "@/types";
 import type { ChartData } from "@/components/chat/ChartInterpreter";
+import type { Citation, PageKey, SettingsSection } from "@/types";
 import { create } from "zustand";
 
 /** UISnapshotViewer 元素 */
@@ -99,7 +99,7 @@ export const useUIStore = create<UIState>((set, get) => ({
   deviceLayout: resolveDeviceLayout(window.innerWidth),
 
   // --- Right Panel state ---
-chartData: null,
+  chartData: null,
   chartRawAnalysis: "",
   setChartResult: (chartData, chartRawAnalysis) => set({ chartData, chartRawAnalysis }),
 
@@ -111,10 +111,10 @@ chartData: null,
   setResearchSources: (researchSources) => set({ researchSources }),
 
   report: null,
-  setReport: (report) => set({ report }),,
+  setReport: (report) => set({ report }),
 
   // --- Chat Workspace state ---
-selectedArtifactId: null,
+  selectedArtifactId: null,
   comparedMessageIds: null,
 
   selectArtifact: (id) => set({ selectedArtifactId: id }),

@@ -1,7 +1,16 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { invoke, listen } from "@/lib/invoke";
-import type { CreateKnowledgeBaseInput, FileCategory, FileRow, FileSortKey, FilesPageEntry, KnowledgeBase, KnowledgeDocument, UpdateKnowledgeBaseInput } from "@/types";
+import type {
+  CreateKnowledgeBaseInput,
+  FileCategory,
+  FileRow,
+  FileSortKey,
+  FilesPageEntry,
+  KnowledgeBase,
+  KnowledgeDocument,
+  UpdateKnowledgeBaseInput,
+} from "@/types";
 import { create } from "zustand";
 
 function normalizeFileRow(row: FileRow | FilesPageEntry): FileRow {

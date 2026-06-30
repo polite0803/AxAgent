@@ -10,8 +10,7 @@ use axagent_core::cloud_workspace::CloudWorkspace;
 use axagent_core::repo::{conversation, message, provider, search_provider};
 use axagent_core::workspace_uri::WorkspaceUri;
 use axagent_harness::types::{
-    Attachment, ChatTool, ChatToolFunction, McpServer, MessageRole,
-    ProviderProxyConfig,
+    Attachment, ChatTool, ChatToolFunction, McpServer, MessageRole, ProviderProxyConfig,
 };
 use axagent_harness::{ProviderAdapter, ProviderRequestContext, resolve_base_url_for_type};
 use axagent_tools::context_keys;
@@ -101,15 +100,18 @@ pub fn init_pricing_config(app: &tauri::AppHandle) {
 fn load_pricing_from_disk(app_handle: &tauri::AppHandle) -> Result<PricingConfigFile, String> {
     use std::fs;
     use tauri::Manager;
-    let resource_dir = app_handle
-        .path()
-        .resource_dir()
-        .map_err(|e| ErrorResponse::new(agent_err::INTERNAL).with_detail(format!("Failed to get resource dir: {}", e)))?;
+    let resource_dir = app_handle.path().resource_dir().map_err(|e| {
+        ErrorResponse::new(agent_err::INTERNAL)
+            .with_detail(format!("Failed to get resource dir: {}", e))
+    })?;
     let mut path = resource_dir.join("pricing.toml");
     // Also check next to the executable (production fallback)
     if !path.exists() {
         let exe_dir = std::env::current_exe()
-            .map_err(|e| ErrorResponse::new(agent_err::INTERNAL).with_detail(format!("Failed to get exe dir: {}", e)))?
+            .map_err(|e| {
+                ErrorResponse::new(agent_err::INTERNAL)
+                    .with_detail(format!("Failed to get exe dir: {}", e))
+            })?
             .parent()
             .ok_or("No exe parent dir")?
             .to_path_buf();
@@ -122,10 +124,17 @@ fn load_pricing_from_disk(app_handle: &tauri::AppHandle) -> Result<PricingConfig
             path = dev_path;
         }
     }
-    let content = fs::read_to_string(&path)
-        .map_err(|e| ErrorResponse::new(agent_err::INTERNAL).with_detail(format!("Failed to read {}: {}", path.display(), e)))?;
-    let config: PricingConfigFile =
-        toml::from_str(&content).map_err(|e| ErrorResponse::new(agent_err::INTERNAL).with_detail(format!("Failed to parse pricing.toml: {}", e)))?;
+    let content = fs::read_to_string(&path).map_err(|e| {
+        ErrorResponse::new(agent_err::INTERNAL).with_detail(format!(
+            "Failed to read {}: {}",
+            path.display(),
+            e
+        ))
+    })?;
+    let config: PricingConfigFile = toml::from_str(&content).map_err(|e| {
+        ErrorResponse::new(agent_err::INTERNAL)
+            .with_detail(format!("Failed to parse pricing.toml: {}", e))
+    })?;
     tracing::info!(
         "Loaded pricing config with {} models, budget: tokens={}, daily=${}, session=${}",
         config.models.len(),
@@ -2451,7 +2460,11 @@ struct McpToolCall {
 }
 
 fn parse_skill_input(input: &str) -> Result<SkillInput, String> {
-    serde_json::from_str(input).map_err(|e| ErrorResponse::new(agent_err::INTERNAL).with_detail(format!("Invalid skill input JSON: {}", e)).to_string())
+    serde_json::from_str(input).map_err(|e| {
+        ErrorResponse::new(agent_err::INTERNAL)
+            .with_detail(format!("Invalid skill input JSON: {}", e))
+            .to_string()
+    })
 }
 
 fn extract_mcp_tool_call(content: &str) -> Option<McpToolCall> {
@@ -2659,7 +2672,11 @@ async fn execute_skill_async(
         }
     }
 
-    serde_json::to_string_pretty(&result).map_err(|e| ErrorResponse::new(agent_err::INTERNAL).with_detail(format!("Failed to serialize result: {}", e)).to_string())
+    serde_json::to_string_pretty(&result).map_err(|e| {
+        ErrorResponse::new(agent_err::INTERNAL)
+            .with_detail(format!("Failed to serialize result: {}", e))
+            .to_string()
+    })
 }
 
 async fn execute_mcp_tool_call(
@@ -2668,13 +2685,18 @@ async fn execute_mcp_tool_call(
     ctx: &SkillExecutionContext,
 ) -> Result<String, String> {
     let registry = ctx.mcp_registry().as_ref().clone();
-    let args_json = serde_json::to_string(&arguments)
-        .map_err(|e| ErrorResponse::new(agent_err::INTERNAL).with_detail(format!("Failed to serialize arguments: {}", e)))?;
+    let args_json = serde_json::to_string(&arguments).map_err(|e| {
+        ErrorResponse::new(agent_err::INTERNAL)
+            .with_detail(format!("Failed to serialize arguments: {}", e))
+    })?;
     let result = registry
         .execute_mcp(tool_name, &args_json)
         .await
         .map(|r| r.content)
-        .map_err(|e| ErrorResponse::new(agent_err::INTERNAL).with_detail(format!("MCP tool execution failed: {}", e)))?;
+        .map_err(|e| {
+            ErrorResponse::new(agent_err::INTERNAL)
+                .with_detail(format!("MCP tool execution failed: {}", e))
+        })?;
     Ok(serde_json::json!({
         "content": result,
         "is_error": false
@@ -2697,8 +2719,10 @@ fn execute_skill_sync(
     if let Ok(handle) = tokio::runtime::Handle::try_current() {
         handle.block_on(execute_skill_async(&s_id, &s_name, &s_content, &s_input, &ctx))
     } else {
-        let rt =
-            tokio::runtime::Runtime::new().map_err(|e| ErrorResponse::new(agent_err::INTERNAL).with_detail(format!("Failed to create runtime: {e}")))?;
+        let rt = tokio::runtime::Runtime::new().map_err(|e| {
+            ErrorResponse::new(agent_err::INTERNAL)
+                .with_detail(format!("Failed to create runtime: {e}"))
+        })?;
         rt.block_on(execute_skill_async(&s_id, &s_name, &s_content, &s_input, &ctx))
     }
 }
@@ -3366,8 +3390,10 @@ pub async fn agent_ensure_workspace(
     };
 
     if let Some(uri_str) = workspace_uri_str {
-        let workspace_uri =
-            WorkspaceUri::parse(&uri_str).map_err(|e| ErrorResponse::new(agent_err::INTERNAL).with_detail(format!("Invalid workspace URI: {}", e)))?;
+        let workspace_uri = WorkspaceUri::parse(&uri_str).map_err(|e| {
+            ErrorResponse::new(agent_err::INTERNAL)
+                .with_detail(format!("Invalid workspace URI: {}", e))
+        })?;
 
         if workspace_uri.is_cloud() {
             // Cloud workspace: sync to local cache
@@ -3393,10 +3419,10 @@ pub async fn agent_ensure_workspace(
                 CloudWorkspace::new(workspace_uri, backend, cache_base, device_id);
 
             // Perform sync to ensure files are available locally
-            let sync_result = cloud_workspace
-                .sync()
-                .await
-                .map_err(|e| ErrorResponse::new(agent_err::INTERNAL).with_detail(format!("Failed to sync cloud workspace: {}", e)))?;
+            let sync_result = cloud_workspace.sync().await.map_err(|e| {
+                ErrorResponse::new(agent_err::INTERNAL)
+                    .with_detail(format!("Failed to sync cloud workspace: {}", e))
+            })?;
 
             info!(
                 "Cloud workspace synced: downloaded={}, uploaded={}, conflicts={}",
@@ -3727,7 +3753,10 @@ pub async fn get_conversation_workflow_preview(
 
     let executions = axagent_core::repo::tool_execution::list_tool_executions(db, &conversation_id)
         .await
-        .map_err(|e| ErrorResponse::new(agent_err::INTERNAL).with_detail(format!("Failed to list tool executions: {}", e)))?;
+        .map_err(|e| {
+            ErrorResponse::new(agent_err::INTERNAL)
+                .with_detail(format!("Failed to list tool executions: {}", e))
+        })?;
 
     let mut all_nodes: Vec<serde_json::Value> = Vec::new();
     let mut all_edges: Vec<serde_json::Value> = Vec::new();
@@ -3962,13 +3991,21 @@ pub async fn record_feedback(
         "failure" => axagent_trajectory::FeedbackType::Failure,
         "partial" => axagent_trajectory::FeedbackType::Partial,
         "correction" => axagent_trajectory::FeedbackType::Correction,
-        _ => return Err(ErrorResponse::new(agent_err::INTERNAL).with_detail(format!("Unknown feedback type: {}", feedback_type)).to_string()),
+        _ => {
+            return Err(ErrorResponse::new(agent_err::INTERNAL)
+                .with_detail(format!("Unknown feedback type: {}", feedback_type))
+                .to_string());
+        },
     };
     let fs = match source.as_str() {
         "user" => axagent_trajectory::FeedbackSource::User,
         "system" => axagent_trajectory::FeedbackSource::System,
         "self" => axagent_trajectory::FeedbackSource::Self_,
-        _ => return Err(ErrorResponse::new(agent_err::INTERNAL).with_detail(format!("Unknown feedback source: {}", source)).to_string()),
+        _ => {
+            return Err(ErrorResponse::new(agent_err::INTERNAL)
+                .with_detail(format!("Unknown feedback source: {}", source))
+                .to_string());
+        },
     };
 
     let mut rl = app_state.realtime_learning.lock().await;
@@ -4014,7 +4051,11 @@ pub async fn pattern_list(
             "multi_step" => axagent_trajectory::PatternType::MultiStep,
             "goal_oriented" => axagent_trajectory::PatternType::GoalOriented,
             "exploratory" => axagent_trajectory::PatternType::Exploratory,
-            _ => return Err(ErrorResponse::new(agent_err::INTERNAL).with_detail(format!("Unknown pattern type: {}", pt)).to_string()),
+            _ => {
+                return Err(ErrorResponse::new(agent_err::INTERNAL)
+                    .with_detail(format!("Unknown pattern type: {}", pt))
+                    .to_string());
+            },
         };
         pl.get_patterns_by_type(ptype)
             .iter()
@@ -4165,7 +4206,11 @@ pub async fn user_profile_set_expertise(
         "intermediate" => axagent_trajectory::ExpertiseLevel::Intermediate,
         "advanced" => axagent_trajectory::ExpertiseLevel::Advanced,
         "expert" => axagent_trajectory::ExpertiseLevel::Expert,
-        _ => return Err(ErrorResponse::new(agent_err::INTERNAL).with_detail(format!("Unknown expertise level: {}", level)).to_string()),
+        _ => {
+            return Err(ErrorResponse::new(agent_err::INTERNAL)
+                .with_detail(format!("Unknown expertise level: {}", level))
+                .to_string());
+        },
     };
     let mut profile = app_state.user_profile.write().await;
     profile.set_expertise(domain, expertise);

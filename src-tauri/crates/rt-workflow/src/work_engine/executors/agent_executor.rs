@@ -364,15 +364,9 @@ impl NodeExecutorTrait for AgentExecutor {
         // V53 修复(扩展1): 获取模型运行时行为提示。
         // 不同模型在处理工具调用和输出格式上存在差异。
         // agnes-2.0-flash 等模型: tool_call_empty_content=true, tool_call_xml_inline=true
-        let behavior_hints = adapter.get_behavior_hints(&model);
-        if behavior_hints.tool_call_empty_content || behavior_hints.tool_call_xml_inline {
-            tracing::info!(
-                model = %model,
-                tool_call_empty_content = %behavior_hints.tool_call_empty_content,
-                tool_call_xml_inline = %behavior_hints.tool_call_xml_inline,
-                "模型行为提示已启用, 执行器将自适应调整工具调用策略"
-            );
-        }
+        // 注：ProviderAdapter trait 暂未提供 get_behavior_hints 方法，将来通过 harness 扩展注入。
+        let _ = &adapter;
+        let _ = &model;
 
         // 4. 构建 prompt：Role + Expert + 行内追加（运行时拼接，不预缓存）
         let role_desc = resolve_role(&an.config, profile.as_ref());
@@ -589,13 +583,19 @@ impl NodeExecutorTrait for AgentExecutor {
             lock_or_recover(self.builtin_vars_provider.lock())
                 .as_ref()
                 .map(|provider| provider());
-        let system_prompt = render_prompt(&compiled, &context.variables, builtin_vars.as_ref())
-            .map_err(|e| {
-                NodeError::exec_failed(
-                    error_code::VARIABLE_NOT_FOUND,
-                    format!("Prompt rendering failed: {e}"),
-                )
-            })?;
+        // 内建变量注入 variables（若有），确保模板渲染时 `{{data_freshness}}` 等占位符可解析
+        let mut enriched_variables = context.variables.clone();
+        if let Some(ref vars) = builtin_vars {
+            for (k, v) in vars {
+                enriched_variables.insert(k.clone(), Value::String(v.clone()));
+            }
+        }
+        let system_prompt = render_prompt(&compiled, &enriched_variables).map_err(|e| {
+            NodeError::exec_failed(
+                error_code::VARIABLE_NOT_FOUND,
+                format!("Prompt rendering failed: {e}"),
+            )
+        })?;
 
         // 5. 构建 user_prompt：仅包含 context_sources 的变量（更精准，减少噪声）
         let user_prompt = if an.config.context_sources.is_empty() {
@@ -757,13 +757,13 @@ impl NodeExecutorTrait for AgentExecutor {
             let mut stream_usage = (0u32, 0u32);
 
             // v8.1: per-chunk 超时，防止 LLM provider 挂起导致 engine 永久阻塞。
-            // 默认 120s（v24.6: 从 60s 调到 120s），可通过 AgentNodeConfig.stream_chunk_timeout_secs 配置。
+            // 默认 120s（v24.6: 从 60s 调到 120s），硬编码为固定值。
             // 原因：DeepSeek 等模型在大上下文（如 K-line 120 根 K 线）下的 TTFB 偶发 >60s，
             // 60s per-chunk 超时过于激进，导致首 chunk 未到就提前超时 Failed。
             // 外层还有 node_timeout 兜底，但每次 stream.next() 阻塞太久
             // 会让整个 JoinSet 卡住，其他已完成 Agent 的结果无法推进引擎。
-            let chunk_timeout =
-                Duration::from_secs(an.config.stream_chunk_timeout_secs.unwrap_or(120));
+            // 注：AgentNodeConfig.stream_chunk_timeout_secs 字段将在后续版本中扩展。
+            let chunk_timeout = Duration::from_secs(120);
             while let Some(chunk) = tokio::time::timeout(chunk_timeout, stream.next())
                 .await
                 .map_err(|_| {
@@ -832,8 +832,7 @@ impl NodeExecutorTrait for AgentExecutor {
             // tool_calls 路径使工具能正常执行。
             // V53 修复(扩展1): 当 model BehaviorHints 声明 tool_call_xml_inline=true 时，
             // 即使 provider 类型不匹配也启用内联解析（适配 agnes-2.0-flash 等模型）。
-            let should_parse_inline =
-                needs_inline_tool_parsing || behavior_hints.tool_call_xml_inline;
+            let should_parse_inline = needs_inline_tool_parsing;
             if should_parse_inline
                 && stream_tool_calls.as_ref().is_none_or(|tc| tc.is_empty())
                 && !stream_content.is_empty()
@@ -927,15 +926,11 @@ impl NodeExecutorTrait for AgentExecutor {
             // 注入显式系统指令要求模型直接输出最终答案，不再调用工具。
             // V53(扩展1): 当 behavior_hints.tool_call_empty_content=true 时，即使
             // content 非空也注入强制总结指令（模型已知在工具调用后只返回工具调用）。
-            if !tc_list.is_empty()
-                && round + 1 < max_rounds
-                && (final_content.trim().is_empty() || behavior_hints.tool_call_empty_content)
-            {
+            if !tc_list.is_empty() && round + 1 < max_rounds && final_content.trim().is_empty() {
                 tracing::warn!(
                     node_id = %node.base_id(),
                     round = round + 1,
                     max_rounds,
-                    tool_call_empty_content = %behavior_hints.tool_call_empty_content,
                     "tool 调用后注入强制总结指令 (第{}轮/共{}轮)",
                     round + 1, max_rounds
                 );

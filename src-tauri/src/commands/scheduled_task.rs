@@ -24,7 +24,9 @@ fn state_has_operator(_state: &State<'_, AppState>) -> bool {
     // TODO(C5): 待 AppState 引入 active_operator: Option<String> 字段后，
     // 此处改为 state.active_operator.is_some()。
     // 当前调度任务未实施操作者认证，所有请求均通过。
-    tracing::warn!("SECURITY (C5): operator authentication not yet implemented — all scheduled task requests are permitted");
+    tracing::warn!(
+        "SECURITY (C5): operator authentication not yet implemented — all scheduled task requests are permitted"
+    );
     true
 }
 

@@ -7,15 +7,16 @@ import { useConversationStore } from "@/stores/domain/conversationStore";
 import { useStreamStore } from "@/stores/domain/streamStore";
 import { deriveLegacyStreamFields, getStreamingMessageId } from "@/stores/domain/streamStore";
 import type {
-  AgentProfile, CreateAgentProfileInput, UpdateAgentProfileInput,
   AgentCancelledEvent,
   AgentDoneEvent,
   AgentErrorEvent,
   AgentPoolItem,
   AgentPoolSummary,
+  AgentProfile,
   AgentRateLimitEvent,
   AgentSession,
   AskUserEvent,
+  CreateAgentProfileInput,
   PermissionRequestEvent,
   SubAgentCardData,
   SubAgentCardEvent,
@@ -23,6 +24,7 @@ import type {
   ToolResultEvent,
   ToolStartEvent,
   ToolUseEvent,
+  UpdateAgentProfileInput,
   WorkerMessage,
 } from "@/types";
 import type { ToolExecution } from "@/types";
@@ -150,7 +152,7 @@ interface AgentStore {
   isAgentPaused: (conversationId: string) => boolean;
 
   // --- Agent Profile management ---
-profiles: AgentProfile[];
+  profiles: AgentProfile[];
   loaded: boolean;
 
   loadProfiles(): Promise<void>;
@@ -205,7 +207,7 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
     });
   },
 
-    async loadProfiles(): Promise<void> {
+  async loadProfiles(): Promise<void> {
     try {
       const rows: AgentProfile[] = await invoke("list_agent_profiles");
       set({ profiles: Array.isArray(rows) ? rows : [], loaded: true });

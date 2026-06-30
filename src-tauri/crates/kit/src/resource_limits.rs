@@ -85,11 +85,7 @@ impl ResourceLimits {
         )?;
 
         // RLIMIT_NOFILE: 最大打开文件描述符数（防止 fd 耗尽）
-        self.set_rlimit(
-            libc::RLIMIT_NOFILE as _,
-            self.max_open_files,
-            self.max_open_files,
-        )?;
+        self.set_rlimit(libc::RLIMIT_NOFILE as _, self.max_open_files, self.max_open_files)?;
 
         Ok(())
     }

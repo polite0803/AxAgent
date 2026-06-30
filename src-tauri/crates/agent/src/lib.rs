@@ -152,4 +152,9 @@ pub use agent_runtime::{AgentOutput, AgentRuntimeError};
 // 模块级引用 — 外部引用：commands/llm_wiki（模块已是 pub mod，无需重复 pub use）
 
 // runtime-core 类型透传 — 外部引用：commands/agent
+
+/// 清理 AI 输出内容：去除尾部空白、控制字符等。
+pub fn clean_output(content: &str) -> String {
+    content.trim_end().to_string()
+}
 pub use axagent_runtime_core::AgentExecutionProgressSnapshot;
