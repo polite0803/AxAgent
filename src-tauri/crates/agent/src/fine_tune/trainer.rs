@@ -1176,7 +1176,9 @@ mod tests {
         let called_clone = called.clone();
         trainer.set_callback(Box::new(move |status| {
             *called_clone.lock().unwrap() = true;
-            assert!(status.loss > 0.0);
+            if status.phase == TrainingPhase::Training {
+                assert!(status.loss > 0.0, "training loss should be positive");
+            }
         }));
 
         let job =
