@@ -723,13 +723,27 @@ mod tests {
 
         let max_replans = plan.max_replans;
 
-        // Exhaust all replan rounds by repeatedly failing
-        for _ in 0..=max_replans {
-            let result = executor
-                .report_sub_task_failed("analyze", "persistent failure")
-                .await;
-            if let Err(e) = result {
-                assert!(matches!(e, OrchestrationError::MaxReplansExceeded(_)));
+        // Collect all sub_task ids from the plan
+        let all_ids: Vec<String> = plan.sub_tasks.iter().map(|st| st.id.clone()).collect();
+
+        // Each round: fail ALL sub_tasks, then monitor triggers replan
+        for round in 0..=max_replans {
+            // Fail all sub-tasks to make the plan terminal
+            for id in &all_ids {
+                executor
+                    .update_sub_task_status(id, SubTaskStatus::Failed)
+                    .await
+                    .unwrap();
+            }
+
+            // Trigger replan check. The first max_replans rounds succeed
+            let result = executor.monitor_and_maybe_replan().await;
+            if let Err(e) = &result {
+                assert!(
+                    matches!(e, OrchestrationError::MaxReplansExceeded(_)),
+                    "Expected MaxReplansExceeded, got {:?}",
+                    e
+                );
                 let state = executor.current_state().await;
                 assert!(matches!(state, OrchestratorState::Aborted(_)));
                 return;
