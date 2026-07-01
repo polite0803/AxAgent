@@ -19,7 +19,7 @@ use crate::types::{
     DecompositionPlan, OrchestrationError, OrchestrationEvent, OrchestrationStrategy,
     StructuredHandover, SubTask, SubTaskStatus,
 };
-use axagent_core::workflow_types::{AgentRole, WorkflowGraph};
+use axagent_core::workflow_types::{AgentRole, SubGraph};
 
 // ── OrchestratorState ──────────────────────────────────────────────────
 
@@ -175,7 +175,7 @@ impl OrchestratorExecutor {
     }
 
     /// Generate the executable subgraph from the current plan.
-    pub async fn generate_subgraph(&self) -> Result<WorkflowGraph, OrchestrationError> {
+    pub async fn generate_subgraph(&self) -> Result<SubGraph, OrchestrationError> {
         let plan = {
             let p = self.plan.read().await;
             p.clone().ok_or_else(|| {
@@ -233,10 +233,10 @@ impl OrchestratorExecutor {
         // Update error field in plan
         {
             let mut plan_guard = self.plan.write().await;
-            if let Some(ref mut plan) = *plan_guard {
-                if let Some(st) = plan.sub_tasks.iter_mut().find(|s| s.id == sub_task_id) {
-                    st.error = Some(error.to_string());
-                }
+            if let Some(ref mut plan) = *plan_guard
+                && let Some(st) = plan.sub_tasks.iter_mut().find(|s| s.id == sub_task_id)
+            {
+                st.error = Some(error.to_string());
             }
         }
 
@@ -307,7 +307,7 @@ impl OrchestratorExecutor {
                 })
                 .await;
 
-                let new_plan = self.replan(&failed_ids)?;
+                let new_plan = self.replan(&failed_ids).await?;
                 return Ok(Some(new_plan));
             }
 
@@ -368,7 +368,7 @@ impl OrchestratorExecutor {
                 SubTask::new(
                     "review".to_string(),
                     "Review".to_string(),
-                    "Review findings from analysis, identify issues",
+                    "Review findings from analysis, identify issues".to_string(),
                     AgentRole::Reviewer,
                 )
                 .with_dependencies(vec!["analyze".to_string()]),
@@ -378,7 +378,7 @@ impl OrchestratorExecutor {
                 SubTask::new(
                     "report".to_string(),
                     "Report".to_string(),
-                    "Compile review findings into structured report",
+                    "Compile review findings into structured report".to_string(),
                     AgentRole::Synthesizer,
                 )
                 .with_dependencies(vec!["review".to_string()]),
@@ -401,7 +401,7 @@ impl OrchestratorExecutor {
                 SubTask::new(
                     "plan".to_string(),
                     "Plan Refactor".to_string(),
-                    "Create refactoring plan with migration steps",
+                    "Create refactoring plan with migration steps".to_string(),
                     AgentRole::Planner,
                 )
                 .with_dependencies(vec!["analyze".to_string()]),
@@ -411,7 +411,7 @@ impl OrchestratorExecutor {
                 SubTask::new(
                     "implement".to_string(),
                     "Implement".to_string(),
-                    "Execute the refactoring changes",
+                    "Execute the refactoring changes".to_string(),
                     AgentRole::Developer,
                 )
                 .with_dependencies(vec!["plan".to_string()]),
@@ -421,7 +421,7 @@ impl OrchestratorExecutor {
                 SubTask::new(
                     "verify".to_string(),
                     "Verify".to_string(),
-                    "Verify refactored code works correctly",
+                    "Verify refactored code works correctly".to_string(),
                     AgentRole::Reviewer,
                 )
                 .with_dependencies(vec!["implement".to_string()]),
@@ -444,7 +444,7 @@ impl OrchestratorExecutor {
                 SubTask::new(
                     "design".to_string(),
                     "Design".to_string(),
-                    "Create the design/architecture",
+                    "Create the design/architecture".to_string(),
                     AgentRole::Planner,
                 )
                 .with_dependencies(vec!["research".to_string()]),
@@ -454,7 +454,7 @@ impl OrchestratorExecutor {
                 SubTask::new(
                     "review".to_string(),
                     "Review Design".to_string(),
-                    "Review the design for completeness and correctness",
+                    "Review the design for completeness and correctness".to_string(),
                     AgentRole::Reviewer,
                 )
                 .with_dependencies(vec!["design".to_string()]),
@@ -484,7 +484,7 @@ impl OrchestratorExecutor {
                 SubTask::new(
                     "review".to_string(),
                     "Review".to_string(),
-                    "Review the implementation for correctness",
+                    "Review the implementation for correctness".to_string(),
                     AgentRole::Reviewer,
                 )
                 .with_dependencies(vec!["implement".to_string()]),
@@ -508,7 +508,7 @@ impl OrchestratorExecutor {
     }
 
     /// Replan: create a new plan subset that retries failed tasks.
-    fn replan(&self, failed_ids: &[String]) -> Result<DecompositionPlan, OrchestrationError> {
+    async fn replan(&self, failed_ids: &[String]) -> Result<DecompositionPlan, OrchestrationError> {
         let plan_guard = self.plan.read().await;
         let old_plan = plan_guard.as_ref().ok_or_else(|| {
             OrchestrationError::ReplanFailed("No existing plan to replan".to_string())
@@ -633,8 +633,8 @@ mod tests {
             .unwrap();
 
         assert_eq!(plan.sub_tasks.len(), 4); // Refactor pattern
-        assert_eq!(plan.sub_tasks[1].role, AgentRole::Planner);
-        assert_eq!(plan.sub_tasks[2].role, AgentRole::Developer);
+        assert!(matches!(plan.sub_tasks[1].role, AgentRole::Planner));
+        assert!(matches!(plan.sub_tasks[2].role, AgentRole::Developer));
     }
 
     #[tokio::test]

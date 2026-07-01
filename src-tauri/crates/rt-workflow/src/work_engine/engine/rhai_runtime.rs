@@ -5,7 +5,7 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use rhai::{AST, EvalAltResult, Position};
+use rhai::AST;
 
 /// Convert Rhai dynamic map to JSON value
 pub(crate) fn rhai_map_to_json(map: rhai::Map) -> serde_json::Value {

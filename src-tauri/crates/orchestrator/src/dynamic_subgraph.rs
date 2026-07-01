@@ -19,8 +19,8 @@
 use std::collections::{HashMap, HashSet, VecDeque};
 
 use axagent_core::workflow_types::{
-    AgentNode, AgentNodeConfig, AgentRole, EdgeType, OutputMode, Position, RetryConfig, ToolDef,
-    WorkflowEdge, WorkflowNode, WorkflowNodeBase,
+    AgentNode, AgentNodeConfig, AgentRole, EdgeType, OutputMode, Position, RetryConfig, SubGraph,
+    ToolDef, WorkflowEdge, WorkflowNode, WorkflowNodeBase,
 };
 
 use crate::types::{DecompositionPlan, OrchestrationError, OrchestrationStrategy, SubTask};
@@ -47,10 +47,8 @@ impl GeneratedSubGraph {
     }
 
     /// Returns the Workflow struct for submission to the work engine.
-    pub fn to_workflow(&self) -> axagent_core::workflow_types::WorkflowGraph {
-        axagent_core::workflow_types::WorkflowGraph {
-            id: self.id.clone(),
-            name: self.plan.mission.clone(),
+    pub fn to_workflow(&self) -> SubGraph {
+        SubGraph {
             nodes: self.nodes.clone(),
             edges: self.edges.clone(),
         }
@@ -123,6 +121,7 @@ impl DynamicSubGraph {
             enabled: true,
             parent_id: None,
             compensation: None,
+            continue_on_fail: false,
         };
 
         let system_prompt = sub_task
@@ -145,8 +144,13 @@ impl DynamicSubGraph {
             }],
             exposed_tools: vec![],
             output_mode: OutputMode::Text,
-            agent_profile_id: None,
-            agent_role_override: Some(sub_task.role.clone()),
+            agent_profile_id: Some(sub_task.role.as_str().to_string()),
+            max_tool_rounds: None,
+            execution_mode: None,
+            rag_source_ids: vec![],
+            model_role: None,
+            consistency_check: None,
+            hallucination_guard: None,
         };
 
         WorkflowNode::Agent(AgentNode { base, config })
@@ -229,7 +233,7 @@ impl DynamicSubGraph {
                                 source_handle: None,
                                 target: adjudicator_id.clone(),
                                 target_handle: None,
-                                edge_type: EdgeType::Converge,
+                                edge_type: EdgeType::Grouping,
                                 label: None,
                             });
                         }
@@ -282,7 +286,7 @@ impl DynamicSubGraph {
         // Kahn's algorithm for cycle detection + topological order
         let mut queue: VecDeque<&str> = in_degree
             .iter()
-            .filter(|(_, &deg)| deg == 0)
+            .filter(|entry| *entry.1 == 0)
             .map(|(&id, _)| id)
             .collect();
 
@@ -447,6 +451,7 @@ mod tests {
                     enabled: true,
                     parent_id: None,
                     compensation: None,
+                    continue_on_fail: false,
                 };
                 WorkflowNode::Agent(AgentNode {
                     base,
@@ -462,7 +467,12 @@ mod tests {
                         exposed_tools: vec![],
                         output_mode: OutputMode::Text,
                         agent_profile_id: None,
-                        agent_role_override: None,
+                        max_tool_rounds: None,
+                        execution_mode: None,
+                        rag_source_ids: vec![],
+                        model_role: None,
+                        consistency_check: None,
+                        hallucination_guard: None,
                     },
                 })
             })
@@ -510,6 +520,7 @@ mod tests {
                         enabled: true,
                         parent_id: None,
                         compensation: None,
+                        continue_on_fail: false,
                     },
                     config: AgentNodeConfig {
                         system_prompt: "test".to_string(),
@@ -523,7 +534,12 @@ mod tests {
                         exposed_tools: vec![],
                         output_mode: OutputMode::Text,
                         agent_profile_id: None,
-                        agent_role_override: None,
+                        max_tool_rounds: None,
+                        execution_mode: None,
+                        rag_source_ids: vec![],
+                        model_role: None,
+                        consistency_check: None,
+                        hallucination_guard: None,
                     },
                 })
             })

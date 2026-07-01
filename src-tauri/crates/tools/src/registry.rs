@@ -469,14 +469,11 @@ impl Clone for UnifiedToolRegistry {
 impl UnifiedToolRegistry {
     /// 创建默认安全沙箱配置（向后兼容宽松模式：允许网络、不限制路径/命令，可通过 configure_sandbox 收紧）
     fn default_sandbox(working_dir: &str) -> Arc<crate::SecuritySandbox> {
-        let mut config = crate::SandboxConfig::default();
-        config.network_enabled = true;
-        config
-            .allowed_paths
-            .push(std::path::PathBuf::from(working_dir));
-        config.allowed_commands.clear();
-        config.denied_commands.clear();
-        config.env_whitelist.clear();
+        let config = crate::SandboxConfig {
+            network_enabled: true,
+            allowed_paths: vec![std::path::PathBuf::from(working_dir)],
+            ..Default::default()
+        };
         Arc::new(crate::SecuritySandbox::new(config))
     }
 
@@ -512,16 +509,12 @@ impl UnifiedToolRegistry {
                     "工具所属组已被禁用或工具已被单独禁用",
                 ));
             }
-        } else if let Some((mcp_key, _config)) = self.resolve_mcp_tool(tool_name) {
-            if self.disabled_tools.contains(&mcp_key) {
-                return Err(ToolError::permission_denied(tool_name, "MCP 工具已被禁用"));
-            }
+        } else if let Some((mcp_key, _config)) = self.resolve_mcp_tool(tool_name)
+            && self.disabled_tools.contains(&mcp_key)
+        {
+            return Err(ToolError::permission_denied(tool_name, "MCP 工具已被禁用"));
         }
         Ok(())
-    }
-
-    fn is_mcp_tool_name(&self, tool_name: &str) -> bool {
-        self.resolve_mcp_tool(tool_name).is_some()
     }
 
     /// 创建并初始化：自动注册全部本地工具（数量见 tools/mod.rs register_all()）

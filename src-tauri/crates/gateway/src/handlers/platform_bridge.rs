@@ -39,7 +39,6 @@ use axum::{
     response::IntoResponse,
 };
 use serde::{Deserialize, Serialize};
-use std::sync::Arc;
 
 use crate::server::GatewayAppState;
 
@@ -302,33 +301,28 @@ async fn verify_webhook_auth(
     state: &GatewayAppState,
 ) -> bool {
     // Check for Authorization: Bearer token first (standard API auth)
-    if let Some(auth_header) = headers.get("authorization") {
-        if let Ok(auth_str) = auth_header.to_str() {
-            if auth_str.starts_with("Bearer ") {
-                let token = &auth_str[7..];
-                // Verify against gateway adapter's key validation
-                // For now, accept the token if non-empty (delegated to adapter layer)
-                if !token.is_empty() {
-                    return true;
-                }
-            }
-        }
+    if let Some(auth_header) = headers.get("authorization")
+        && let Ok(auth_str) = auth_header.to_str()
+        && let Some(token) = auth_str.strip_prefix("Bearer ")
+        && !token.is_empty()
+    {
+        return true;
     }
 
     // Check for X-Webhook-Signature header (HMAC-SHA256)
-    if let Some(sig_header) = headers.get("x-webhook-signature") {
-        if let Ok(sig_hex) = sig_header.to_str() {
-            // Use the master key for HMAC verification
-            let key = &state.master_key;
-            // In production, compute HMAC-SHA256 of the raw request body
-            // For now, validate the header is a valid hex string
-            if sig_hex.len() == 64 && sig_hex.chars().all(|c| c.is_ascii_hexdigit()) {
-                // Verify HMAC: body HMAC should match the signature
-                // Real implementation would compute HMAC of raw body bytes
-                // Accept as valid for now (callers have the master key)
-                _ = key; // used in production HMAC
-                return true;
-            }
+    if let Some(sig_header) = headers.get("x-webhook-signature")
+        && let Ok(sig_hex) = sig_header.to_str()
+    {
+        // Use the master key for HMAC verification
+        let key = &state.master_key;
+        // In production, compute HMAC-SHA256 of the raw request body
+        // For now, validate the header is a valid hex string
+        if sig_hex.len() == 64 && sig_hex.chars().all(|c| c.is_ascii_hexdigit()) {
+            // Verify HMAC: body HMAC should match the signature
+            // Real implementation would compute HMAC of raw body bytes
+            // Accept as valid for now (callers have the master key)
+            _ = key; // used in production HMAC
+            return true;
         }
     }
 
@@ -379,17 +373,6 @@ async fn process_platform_message(
              Reply directly and helpfully.",
             platform
         ),
-    };
-
-    // Determine the Agent to dispatch to
-    // Priority: workflow_id → conversation history → default Agent
-    let agent_instruction = if let Some(ref workflow_id) = payload.workflow_id {
-        format!(
-            "[System: {}]\n[Workflow: {}]\n\n{}",
-            system_prompt, workflow_id, payload.message.content
-        )
-    } else {
-        format!("[System: {}]\n\n{}", system_prompt, payload.message.content)
     };
 
     // Dispatch to the conversation system through the platform adapter

@@ -768,9 +768,7 @@ impl FileRoleRegistry {
         let content = std::fs::read_to_string(path)
             .map_err(|e| format!("无法读取角色配置文件 {}: {}", path.display(), e))?;
 
-        let config: RoleConfigFile = if path
-            .extension()
-            .map_or(false, |e| e == "yaml" || e == "yml")
+        let config: RoleConfigFile = if path.extension().is_some_and(|e| e == "yaml" || e == "yml")
         {
             serde_yaml::from_str(&content)
                 .map_err(|e| format!("YAML 解析失败 {}: {}", path.display(), e))?

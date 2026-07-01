@@ -54,7 +54,7 @@ pub fn train(optimizer: &mut RLOptimizer) -> Result<TrainingStats, RLError> {
                     || tool_name_lower.contains(&policy_name_lower)
                     || policy_lower == "tool_selection" // 全局策略匹配所有
             })
-            .map(|e| *e)
+            .copied()
             .collect();
 
         if !relevant_samples.is_empty() {

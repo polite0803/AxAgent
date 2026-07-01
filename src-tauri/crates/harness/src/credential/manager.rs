@@ -43,18 +43,20 @@ impl CredentialManager {
     /// Get a credential by ID, loading from disk and caching on first access.
     pub fn get_credential(&self, id: &str) -> Result<Credential> {
         {
-            let cache = self.cache.lock().map_err(|e| {
-                AxAgentError::Internal(format!("credential cache lock: {e}"))
-            })?;
+            let cache = self
+                .cache
+                .lock()
+                .map_err(|e| AxAgentError::Internal(format!("credential cache lock: {e}")))?;
             if let Some(cached) = cache.get(id) {
                 return Ok(cached.clone());
             }
         }
         let cred = self.store.load_credential(id)?;
         {
-            let mut cache = self.cache.lock().map_err(|e| {
-                AxAgentError::Internal(format!("credential cache lock: {e}"))
-            })?;
+            let mut cache = self
+                .cache
+                .lock()
+                .map_err(|e| AxAgentError::Internal(format!("credential cache lock: {e}")))?;
             cache.insert(id.to_string(), cred.clone());
         }
         Ok(cred)
@@ -102,15 +104,11 @@ impl CredentialManager {
         request: reqwest::RequestBuilder,
     ) -> Result<reqwest::RequestBuilder> {
         match &credential.credential_type {
-            CredentialType::ApiKey { key, header_name } => {
-                Ok(request.header(header_name, key))
-            }
+            CredentialType::ApiKey { key, header_name } => Ok(request.header(header_name, key)),
             CredentialType::BasicAuth { username, password } => {
                 Ok(request.basic_auth(username, Some(password)))
-            }
-            CredentialType::BearerToken { token } => {
-                Ok(request.bearer_auth(token))
-            }
+            },
+            CredentialType::BearerToken { token } => Ok(request.bearer_auth(token)),
             CredentialType::OAuth2 {
                 client_id: _,
                 client_secret: _,
@@ -129,31 +127,28 @@ impl CredentialManager {
         match &credential.credential_type {
             CredentialType::ApiKey { key, header_name } => {
                 Ok(vec![(header_name.clone(), key.clone())])
-            }
+            },
             CredentialType::BearerToken { token } => {
                 Ok(vec![("Authorization".to_string(), format!("Bearer {token}"))])
-            }
+            },
             CredentialType::BasicAuth { username, password } => {
                 let encoded = base64::Engine::encode(
                     &base64::engine::general_purpose::STANDARD,
                     format!("{username}:{password}"),
                 );
                 Ok(vec![("Authorization".to_string(), format!("Basic {encoded}"))])
-            }
+            },
             _ => Ok(vec![]),
         }
     }
 
     /// Extract a database connection string from a credential.
-    pub fn get_database_connection_string(
-        &self,
-        credential_id: &str,
-    ) -> Result<String> {
+    pub fn get_database_connection_string(&self, credential_id: &str) -> Result<String> {
         let cred = self.get_credential(credential_id)?;
         match &cred.credential_type {
-            CredentialType::DatabaseConnection {
-                connection_string,
-            } => Ok(connection_string.clone()),
+            CredentialType::DatabaseConnection { connection_string } => {
+                Ok(connection_string.clone())
+            },
             other => Err(AxAgentError::Validation(format!(
                 "credential {credential_id} is {other}, not DatabaseConnection"
             ))),

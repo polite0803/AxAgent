@@ -76,7 +76,7 @@ impl NodeExecutorTrait for NotificationExecutor {
     async fn execute(
         &self,
         node: &WorkflowNode,
-        ctx: &ExecutionState,
+        _ctx: &ExecutionState,
     ) -> Result<NodeOutput, NodeError> {
         let WorkflowNode::Notification(n) = node else {
             return Err(NodeError::type_mismatch("notification", self.node_type()));

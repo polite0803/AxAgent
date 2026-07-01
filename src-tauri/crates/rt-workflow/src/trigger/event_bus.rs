@@ -8,8 +8,6 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use tokio::sync::RwLock;
-
 use super::TriggerManager;
 
 /// 事件总线 —— 轻量封装 TriggerManager 的 publish/subscribe 能力。

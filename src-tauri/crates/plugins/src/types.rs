@@ -1,3 +1,10 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+//! 插件类型定义 —— 清单、配置、权限、安装源等。
+//!
+//! 部分 helper 常量/import 仅在测试或可选特性中使用，因此本文件放宽 dead_code 检查。
+
+#![allow(dead_code, unused_imports)]
+
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::fmt::{Display, Formatter};
 use std::fs;

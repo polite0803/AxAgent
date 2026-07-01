@@ -12,7 +12,10 @@ pub mod skill_installer;
 pub mod test_isolation;
 
 pub use core::*;
+pub use hooks::{HookEvent, HookRunResult, HookRunner};
 pub use manager::*;
+pub use mcp_launcher::{McpLaunchError, McpLauncher};
+pub use skill_installer::SkillInstaller;
 pub use types::*;
 
 #[cfg(test)]

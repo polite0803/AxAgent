@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-use axagent_entities::dynamic_ui_form_data::Column as FormDataColumn;
-use axagent_entities::dynamic_ui_form_data::{
+use axagent_core::entity::dynamic_ui_form_data::Column as FormDataColumn;
+use axagent_core::entity::dynamic_ui_form_data::{
     ActiveModel as FormDataActiveModel, Entity as FormDataEntity, Model as FormDataModel,
 };
-use axagent_entities::dynamic_ui_schemas::{
+use axagent_core::entity::dynamic_ui_schemas::{
     ActiveModel as SchemaActiveModel, Column as SchemaColumn, Entity as SchemaEntity,
     Model as SchemaModel,
 };

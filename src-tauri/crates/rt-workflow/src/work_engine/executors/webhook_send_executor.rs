@@ -69,22 +69,22 @@ impl NodeExecutorTrait for WebhookSendExecutor {
         };
 
         // Inject credential-based auth headers if credential_id is set
-        if let Some(cid) = c.credential_id.as_deref() {
-            if let Some(cm) = &ctx.credential_manager {
-                match cm.get_credential(cid) {
-                    Ok(cred) => {
-                        for (key, value) in cm.get_auth_headers(&cred).unwrap_or_default() {
-                            req = req.header(&key, &value);
-                        }
-                    },
-                    Err(e) => {
-                        tracing::warn!(
-                            credential_id = cid,
-                            error = %e,
-                            "WebhookSend: failed to load credential, proceeding without auth"
-                        );
-                    },
-                }
+        if let Some(cid) = c.credential_id.as_deref()
+            && let Some(cm) = &ctx.credential_manager
+        {
+            match cm.get_credential(cid) {
+                Ok(cred) => {
+                    for (key, value) in cm.get_auth_headers(&cred).unwrap_or_default() {
+                        req = req.header(&key, &value);
+                    }
+                },
+                Err(e) => {
+                    tracing::warn!(
+                        credential_id = cid,
+                        error = %e,
+                        "WebhookSend: failed to load credential, proceeding without auth"
+                    );
+                },
             }
         }
 
@@ -94,12 +94,12 @@ impl NodeExecutorTrait for WebhookSendExecutor {
         }
 
         // Attach body
-        if let Some(ref body) = c.body {
-            if !body.trim().is_empty() {
-                req = req
-                    .header("Content-Type", "application/json")
-                    .body(body.clone());
-            }
+        if let Some(ref body) = c.body
+            && !body.trim().is_empty()
+        {
+            req = req
+                .header("Content-Type", "application/json")
+                .body(body.clone());
         }
 
         let start = std::time::Instant::now();

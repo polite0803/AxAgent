@@ -1,3 +1,10 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+//! 插件管理器：安装/卸载/启用/禁用/查询 + 清单加载与校验。
+//!
+//! 部分 helper 常量/import 仅在测试或可选特性中使用，因此本文件放宽 dead_code 检查。
+
+#![allow(dead_code, unused_imports)]
+
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::fmt::{Display, Formatter};
 use std::fs;
@@ -23,9 +30,9 @@ const MANIFEST_RELATIVE_PATH: &str = ".claude-plugin/plugin.json";
 const SKILL_MD_FILE_NAME: &str = "SKILL.md";
 
 use crate::core::*;
-use crate::types::*;
 use crate::mcp_launcher::McpLauncher;
 use crate::skill_installer::SkillInstaller;
+use crate::types::*;
 
 #[derive(Debug)]
 pub struct PluginManagerConfig {

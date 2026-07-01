@@ -822,6 +822,7 @@ fn parse_llm_response(
         });
 
         let base = WorkflowNodeBase {
+            continue_on_fail: false,
             compensation: None,
             id: node_id.clone(),
             title: llm_node.title.clone(),
@@ -1085,6 +1086,7 @@ fn parse_llm_response(
                         body: None,
                         body_type: "json".to_string(),
                         timeout_secs: 30,
+                        credential_id: None,
                         output_var: "response".to_string(),
                     });
                 WorkflowNode::HttpRequest(HttpRequestNode { base, config: cfg })
@@ -1096,6 +1098,7 @@ fn parse_llm_response(
                         params: vec![],
                         connection_name: None,
                         timeout_secs: 30,
+                        credential_id: None,
                         output_var: "db_result".to_string(),
                     });
                 WorkflowNode::DatabaseQuery(DatabaseQueryNode { base, config: cfg })
@@ -1152,6 +1155,7 @@ fn parse_llm_response(
                         method: "POST".to_string(),
                         body: None,
                         headers: std::collections::HashMap::new(),
+                        credential_id: None,
                         output_var: "webhook_result".to_string(),
                     });
                 WorkflowNode::WebhookSend(WebhookSendNode { base, config: cfg })
@@ -1203,6 +1207,7 @@ fn parse_llm_response(
                         smtp_port: None,
                         smtp_user: None,
                         smtp_pass: None,
+                        credential_id: None,
                         output_var: "sent".to_string(),
                     });
                 WorkflowNode::Email(EmailNode { base, config: cfg })

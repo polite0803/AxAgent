@@ -51,10 +51,10 @@ fn dynamic_to_value(d: Dynamic) -> Value {
     if d.is::<i64>() {
         Value::Number(d.as_int().unwrap().into())
     } else if d.is::<f64>() {
-        if let Ok(f) = d.as_float() {
-            if let Some(n) = serde_json::Number::from_f64(f) {
-                return Value::Number(n);
-            }
+        if let Ok(f) = d.as_float()
+            && let Some(n) = serde_json::Number::from_f64(f)
+        {
+            return Value::Number(n);
         }
         Value::Null
     } else if d.is::<bool>() {

@@ -122,6 +122,7 @@ pub async fn create_workflow_template(
         variables: input.variables,
         error_config: input.error_config,
         tool_defs: input.tool_defs.unwrap_or_default(),
+        error_workflow_id: None,
         created_at: now,
         updated_at: now,
     };
@@ -224,6 +225,7 @@ pub async fn duplicate_workflow_template(
         variables: response.variables,
         error_config: response.error_config,
         tool_defs: vec![],
+        error_workflow_id: None,
         created_at: now,
         updated_at: now,
     };
@@ -1372,6 +1374,7 @@ async fn convert_n8n_to_axagent(
 
     let trigger_node = WorkflowNode::Trigger(TriggerNode {
         base: WorkflowNodeBase {
+            continue_on_fail: false,
             compensation: None,
             id: "trigger_imported".to_string(),
             title: "Trigger".to_string(),
@@ -1421,6 +1424,7 @@ async fn convert_n8n_to_axagent(
             .unwrap_or(Position { x: 0.0, y: 0.0 });
 
         let base = WorkflowNodeBase {
+            continue_on_fail: false,
             compensation: None,
             id: node_id.clone(),
             title: node_name.clone(),
@@ -1497,6 +1501,7 @@ async fn convert_n8n_to_axagent(
         agent_config.context_sources = Vec::new(); // 暂不自动关联上游节点
 
         let base = WorkflowNodeBase {
+            continue_on_fail: false,
             compensation: None,
             id: node_id.clone(),
             title: node_name,
@@ -1556,6 +1561,7 @@ async fn convert_n8n_to_axagent(
 
     let end_node = WorkflowNode::End(EndNode {
         base: WorkflowNodeBase {
+            continue_on_fail: false,
             compensation: None,
             id: "end_imported".to_string(),
             title: "End".to_string(),
@@ -1686,6 +1692,7 @@ async fn convert_n8n_to_axagent(
         variables: Vec::new(),
         error_config: None,
         tool_defs: vec![],
+        error_workflow_id: None,
         created_at: now,
         updated_at: now,
     })
@@ -1731,6 +1738,7 @@ async fn do_import_workflow(
             variables: template.variables,
             error_config: template.error_config,
             tool_defs: vec![],
+            error_workflow_id: None,
             created_at: now,
             updated_at: now,
         }

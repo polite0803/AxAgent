@@ -66,22 +66,21 @@ impl NodeExecutorTrait for TriggerExecutor {
             TriggerType::Schedule => {
                 if let Ok(cfg) = serde_json::from_value::<ScheduleTriggerConfig>(
                     trigger_node.config.config.clone(),
-                ) {
-                    if let Some(tm) = tm {
-                        tm.register_schedule(
-                            trigger_node.base.id.as_str(),
-                            &cfg.cron,
-                            &cfg.timezone,
-                            cfg.input_params.clone(),
+                ) && let Some(tm) = tm
+                {
+                    tm.register_schedule(
+                        trigger_node.base.id.as_str(),
+                        &cfg.cron,
+                        &cfg.timezone,
+                        cfg.input_params.clone(),
+                    )
+                    .await
+                    .map_err(|e| {
+                        NodeError::exec_failed(
+                            crate::work_engine::node_executor_trait::error_code::VALIDATION_FAILED,
+                            format!("定时触发器注册失败: {e}"),
                         )
-                        .await
-                        .map_err(|e| {
-                            NodeError::exec_failed(
-                                crate::work_engine::node_executor_trait::error_code::VALIDATION_FAILED,
-                                format!("定时触发器注册失败: {e}"),
-                            )
-                        })?;
-                    }
+                    })?;
                 }
                 Ok(NodeOutput {
                     output: build_output("schedule", &trigger_node.config.config),
@@ -91,17 +90,16 @@ impl NodeExecutorTrait for TriggerExecutor {
             TriggerType::Webhook => {
                 if let Ok(cfg) = serde_json::from_value::<WebhookTriggerConfig>(
                     trigger_node.config.config.clone(),
-                ) {
-                    if let Some(tm) = tm {
-                        let mode = cfg.response_mode.as_deref().unwrap_or("async");
-                        tm.register_webhook(
-                            trigger_node.base.id.as_str(),
-                            &cfg.path,
-                            &cfg.method,
-                            mode,
-                        )
-                        .await;
-                    }
+                ) && let Some(tm) = tm
+                {
+                    let mode = cfg.response_mode.as_deref().unwrap_or("async");
+                    tm.register_webhook(
+                        trigger_node.base.id.as_str(),
+                        &cfg.path,
+                        &cfg.method,
+                        mode,
+                    )
+                    .await;
                 }
                 Ok(NodeOutput {
                     output: build_output("webhook", &trigger_node.config.config),
@@ -111,11 +109,10 @@ impl NodeExecutorTrait for TriggerExecutor {
             TriggerType::Event => {
                 if let Ok(cfg) =
                     serde_json::from_value::<EventTriggerConfig>(trigger_node.config.config.clone())
+                    && let Some(tm) = tm
                 {
-                    if let Some(tm) = tm {
-                        tm.register_event(trigger_node.base.id.as_str(), &cfg.event_type)
-                            .await;
-                    }
+                    tm.register_event(trigger_node.base.id.as_str(), &cfg.event_type)
+                        .await;
                 }
                 Ok(NodeOutput {
                     output: build_output("event", &trigger_node.config.config),

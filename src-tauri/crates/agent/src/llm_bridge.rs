@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-use crate::provider_fallback::{
-    ProviderEntry, ProviderFallbackManager,
-};
+use crate::provider_fallback::{ProviderEntry, ProviderFallbackManager};
 #[cfg(test)]
 use axagent_harness::trajectory_types::ProcedureStep;
 use axagent_harness::trajectory_types::{
@@ -86,9 +84,9 @@ impl LlmResponseCache {
                 .iter()
                 .min_by_key(|(_, (_, exp))| *exp)
                 .map(|(k, _)| k.clone())
-            {
-                map.remove(&oldest);
-            }
+        {
+            map.remove(&oldest);
+        }
         map.insert(key, (response.to_string(), Instant::now() + self.ttl));
     }
 }
@@ -281,14 +279,15 @@ impl ProviderLlmBridge {
         // 缓存键 = SHA-256(model || system_prompt || user_prompt)
         if temperature == 0.0
             && let Some(ref cache) = self.llm_cache
-                && let Some(cached) = cache.get(&self.model, system, user) {
-                    tracing::debug!(
-                        model = %self.model,
-                        prompt_len = system.len() + user.len(),
-                        "LLM response cache HIT (temp=0, deterministic)"
-                    );
-                    return Ok(cached);
-                }
+            && let Some(cached) = cache.get(&self.model, system, user)
+        {
+            tracing::debug!(
+                model = %self.model,
+                prompt_len = system.len() + user.len(),
+                "LLM response cache HIT (temp=0, deterministic)"
+            );
+            return Ok(cached);
+        }
 
         // 第一步：尝试主适配器
         let start = Instant::now();
@@ -297,27 +296,30 @@ impl ProviderLlmBridge {
                 let latency = start.elapsed().as_millis() as u64;
                 // 记录成功
                 if let Some(ref mgr) = self.fallback_mgr
-                    && let Some(ref pref_id) = self.preferred_provider_id {
-                        mgr.record_success(pref_id, latency).await;
-                    }
+                    && let Some(ref pref_id) = self.preferred_provider_id
+                {
+                    mgr.record_success(pref_id, latency).await;
+                }
                 // 将温度 0 的结果写入缓存
                 if temperature == 0.0
-                    && let Some(ref cache) = self.llm_cache {
-                        cache.put(&self.model, system, user, &resp.content);
-                        tracing::debug!(
-                            model = %self.model,
-                            latency_ms = latency,
-                            "LLM response cached (temp=0)"
-                        );
-                    }
+                    && let Some(ref cache) = self.llm_cache
+                {
+                    cache.put(&self.model, system, user, &resp.content);
+                    tracing::debug!(
+                        model = %self.model,
+                        latency_ms = latency,
+                        "LLM response cached (temp=0)"
+                    );
+                }
                 Ok(resp.content)
             },
             Err(primary_err) => {
                 // 记录失败
                 if let Some(ref mgr) = self.fallback_mgr
-                    && let Some(ref pref_id) = self.preferred_provider_id {
-                        mgr.record_failure(pref_id).await;
-                    }
+                    && let Some(ref pref_id) = self.preferred_provider_id
+                {
+                    mgr.record_failure(pref_id).await;
+                }
                 // 第二步：检查是否有 fallback 管理器
                 let mgr = match self.fallback_mgr.as_ref() {
                     Some(m) => m,

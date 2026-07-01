@@ -15,12 +15,12 @@ use tokio::sync::Mutex;
 use tokio_util::sync::CancellationToken;
 
 use axagent_core::workflow_types::{
-    BackoffType, CompensationStrategy, DegradeStrategy, EdgeType, ErrorConfig, JsonSchema,
-    OnFailureAction, Variable, WorkflowEdge, WorkflowNode,
+    CompensationStrategy, DegradeStrategy, EdgeType, JsonSchema, OnFailureAction, Variable,
+    WorkflowEdge, WorkflowNode,
 };
 
 use axagent_harness::RhaiEngineAdapter;
-use rhai::{AST, EvalAltResult, Position};
+use rhai::{EvalAltResult, Position};
 
 pub mod dag_store;
 pub mod node_state;
@@ -31,7 +31,7 @@ use output_builder::{
 };
 use rhai_runtime::{LocalRhaiToolFn, RhaiScriptCache, rhai_map_to_json};
 
-use dag_store::{mark_subtree_skipped, skip_disabled_branch_nodes};
+use dag_store::skip_disabled_branch_nodes;
 use node_state::{NodeCircuitBreaker, NodeResult, compute_backoff};
 
 use crate::workflow_engine::{
@@ -553,7 +553,7 @@ impl WorkEngine {
         let agent_provider_cache = Arc::new(tokio::sync::Mutex::new(None));
         let agent_profile_cache = Arc::new(tokio::sync::Mutex::new(HashMap::new()));
 
-        let mut dispatcher = NodeDispatcher::new();
+        let dispatcher = NodeDispatcher::new();
 
         // 统一走 HasProviderRegistry trait，避免 5 个 executor 各自实现 with_provider_registry。
         use axagent_harness::HasProviderRegistry;
@@ -1476,10 +1476,18 @@ impl WorkEngine {
                         return true;
                     }
                     if let Some(nt) = node_type_map.get(nid) {
-                        let limit = type_limits.get(nt.as_str()).copied().unwrap_or(global_limit);
+                        let limit = type_limits
+                            .get(nt.as_str())
+                            .copied()
+                            .unwrap_or(global_limit);
                         let active_of_type = active_nodes
                             .iter()
-                            .filter(|an| node_type_map.get(an.as_str()).map(|t| t == nt).unwrap_or(false))
+                            .filter(|an| {
+                                node_type_map
+                                    .get(an.as_str())
+                                    .map(|t| t == nt)
+                                    .unwrap_or(false)
+                            })
                             .count();
                         if active_of_type >= limit {
                             return false;
@@ -2096,20 +2104,17 @@ impl WorkEngine {
                                     for edge in &wf.edges {
                                         if edge.source == nr.node_id
                                             && edge.edge_type == EdgeType::Error
-                                        {
-                                            if let Some(state) =
+                                            && let Some(state) =
                                                 wf.node_states.get_mut(&edge.target)
-                                            {
-                                                if matches!(state.status, NodeStatus::Pending) {
-                                                    state.status = NodeStatus::Ready;
-                                                    tracing::info!(
-                                                        workflow_id = %workflow_id,
-                                                        failed_node = %nr.node_id,
-                                                        error_target = %edge.target,
-                                                        "Activated Error edge target"
-                                                    );
-                                                }
-                                            }
+                                            && matches!(state.status, NodeStatus::Pending)
+                                        {
+                                            state.status = NodeStatus::Ready;
+                                            tracing::info!(
+                                                workflow_id = %workflow_id,
+                                                failed_node = %nr.node_id,
+                                                error_target = %edge.target,
+                                                "Activated Error edge target"
+                                            );
                                         }
                                     }
                                 }
@@ -2121,28 +2126,28 @@ impl WorkEngine {
 
                             if needs_continuation {
                                 let mut workflows = self.workflows.write().await;
-                                if let Some(wf) = workflows.get_mut(workflow_id) {
-                                    if wf.status == WorkflowStatus::Failed {
-                                        let has_ready = wf.node_states.values().any(|s| {
-                                            matches!(
-                                                s.status,
-                                                NodeStatus::Ready
-                                                    | NodeStatus::Pending
-                                                    | NodeStatus::Running
-                                            )
-                                        });
-                                        if has_ready {
-                                            wf.status = WorkflowStatus::Running;
-                                            wf.completed_at = None;
-                                            tracing::info!(
-                                                workflow_id = %workflow_id,
-                                                "continue_on_fail / ErrorBranch: reverting workflow status to Running"
-                                            );
-                                        } else {
-                                            wf.status = WorkflowStatus::PartiallyCompleted;
-                                            wf.completed_at =
-                                                Some(Utc::now().timestamp_millis() as u64);
-                                        }
+                                if let Some(wf) = workflows.get_mut(workflow_id)
+                                    && wf.status == WorkflowStatus::Failed
+                                {
+                                    let has_ready = wf.node_states.values().any(|s| {
+                                        matches!(
+                                            s.status,
+                                            NodeStatus::Ready
+                                                | NodeStatus::Pending
+                                                | NodeStatus::Running
+                                        )
+                                    });
+                                    if has_ready {
+                                        wf.status = WorkflowStatus::Running;
+                                        wf.completed_at = None;
+                                        tracing::info!(
+                                            workflow_id = %workflow_id,
+                                            "continue_on_fail / ErrorBranch: reverting workflow status to Running"
+                                        );
+                                    } else {
+                                        wf.status = WorkflowStatus::PartiallyCompleted;
+                                        wf.completed_at =
+                                            Some(Utc::now().timestamp_millis() as u64);
                                     }
                                 }
                             }
@@ -2362,7 +2367,7 @@ impl WorkEngine {
                         let node = {
                             let workflows = self.workflows.read().await;
                             workflows.get(workflow_id).and_then(|wf| {
-                                wf.nodes.iter().find(|n| n.base_id() == &nid).cloned()
+                                wf.nodes.iter().find(|n| n.base_id() == nid).cloned()
                             })
                         };
                         let Some(node) = node else {
@@ -2416,7 +2421,7 @@ impl WorkEngine {
                         }
                         exec_ctx.variables = merged_vars;
                         let dispatcher = Arc::clone(&self.dispatcher);
-                        let cancel_token = options
+                        let _cancel_token = options
                             .parent_cancel_token
                             .clone()
                             .unwrap_or_else(|| cancel_token.clone());

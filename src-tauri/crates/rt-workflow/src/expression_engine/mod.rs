@@ -22,6 +22,12 @@ pub struct ExpressionContext {
     pub env: HashMap<String, String>,
 }
 
+impl Default for ExpressionContext {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ExpressionContext {
     pub fn new() -> Self {
         Self {

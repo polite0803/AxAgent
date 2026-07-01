@@ -143,10 +143,10 @@ fn parse_prometheus_text_to_json(text: &str) -> Value {
         let split: Vec<&str> = line.splitn(2, '{').collect();
         if split.len() < 2 {
             // Untyped or unlabelled metric
-            if let Some((name, val)) = split[0].split_once(' ') {
-                if let Ok(v) = val.parse::<f64>() {
-                    map.insert(name.to_string(), Value::from(v));
-                }
+            if let Some((name, val)) = split[0].split_once(' ')
+                && let Ok(v) = val.parse::<f64>()
+            {
+                map.insert(name.to_string(), Value::from(v));
             }
             continue;
         }

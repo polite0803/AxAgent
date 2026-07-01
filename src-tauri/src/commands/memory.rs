@@ -6,7 +6,7 @@ use axagent_core::repo::index_jobs as jobs;
 use axagent_harness::types::*;
 use axagent_harness::{ProviderRequestContext, url_utils::resolve_base_url_for_type};
 use sea_orm::ActiveModelTrait;
-use tauri::{AppHandle, Emitter, State};
+use tauri::{AppHandle, State};
 
 fn provider_type_to_registry_key(pt: &ProviderType) -> &'static str {
     match pt {

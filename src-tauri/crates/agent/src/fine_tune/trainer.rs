@@ -323,9 +323,10 @@ impl FineTuneTrainer {
                 continue;
             }
             if let Some(score) = entry.quality_score
-                && score < quality_threshold {
-                    continue;
-                }
+                && score < quality_threshold
+            {
+                continue;
+            }
 
             let sample = FineTuneSample {
                 id: format!("trace_{}", uuid::Uuid::new_v4()),

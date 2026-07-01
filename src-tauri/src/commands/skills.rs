@@ -134,7 +134,7 @@ lazy_static::lazy_static! {
 #[tauri::command]
 pub async fn list_skills(state: State<'_, AppState>) -> Result<Vec<SkillInfo>, String> {
     // P2 #7: 使用 SkillState 中缓存的 PluginManager，避免每次完整重建
-    let plugin_manager = state.skill_state.plugin_manager.read().await;
+    let plugin_manager = state.skill.plugin_manager.read().await;
     // Use plugin_registry_report() directly instead of list_plugins().
     // list_plugins() -> plugin_registry() -> plugin_registry_report()?.into_registry()
     // into_registry() returns Err(LoadFailures) if ANY plugin fails to load,
@@ -218,7 +218,7 @@ pub async fn get_skill(
     name: String,
 ) -> Result<SkillDetail, ErrorResponse> {
     // P2 #7: 使用 SkillState 中缓存的 PluginManager，避免每次完整重建
-    let plugin_manager = state.skill_state.plugin_manager.read().await;
+    let plugin_manager = state.skill.plugin_manager.read().await;
     // Use plugin_registry_report() + into_registry_allowing_failures()
     // to tolerate individual plugin load failures (e.g. Claude Code format, missing version).
     let report = plugin_manager
@@ -1037,7 +1037,7 @@ fn ensure_path_under_base(path: &Path, base: &Path) -> Result<(), String> {
 
 /// 卸载结果：记录每个目录的删除状况
 #[derive(Debug, Clone, serde::Serialize)]
-struct UninstallResult {
+pub struct UninstallResult {
     pub dir: String,
     pub status: String, // "deleted" | "not_found" | "error"
     pub detail: Option<String>,
@@ -1973,7 +1973,7 @@ pub async fn skill_analyze_frontend(
 ) -> Result<serde_json::Value, String> {
     // 读取技能内容
     // P2 #7: 使用 SkillState 中缓存的 PluginManager
-    let plugin_manager = state.skill_state.plugin_manager.read().await;
+    let plugin_manager = state.skill.plugin_manager.read().await;
     let report = plugin_manager
         .plugin_registry_report()
         .map_err(|e| e.to_string())?;
@@ -2265,22 +2265,22 @@ pub fn skill_read_asset(name: String, file_name: String) -> Result<String, Error
         || file_name.contains('/')
         || file_name.is_empty()
     {
-        return Err("Invalid file_name: path traversal or empty".to_string());
+        return Err("Invalid file_name: path traversal or empty".into());
     }
     // 拒绝绝对路径（Windows 盘符或 Unix 根路径）
     if file_name.len() >= 2 {
         let b = file_name.as_bytes();
         if b[0].is_ascii_alphabetic() && b[1] == b':' {
-            return Err("Invalid file_name: absolute path not allowed".to_string());
+            return Err("Invalid file_name: absolute path not allowed".into());
         }
     }
     if file_name.starts_with('/') {
-        return Err("Invalid file_name: absolute path not allowed".to_string());
+        return Err("Invalid file_name: absolute path not allowed".into());
     }
 
     let skill_dir = skills_dir().join(&name);
     if !skill_dir.exists() {
-        return Err(format!("Skill '{}' not found", name));
+        return Err(format!("Skill '{}' not found", name).into());
     }
 
     // 安全检查：防止路径遍历攻击
@@ -2289,11 +2289,11 @@ pub fn skill_read_asset(name: String, file_name: String) -> Result<String, Error
     let canonical_requested = requested.canonicalize().map_err(|e| e.to_string())?;
 
     if !canonical_requested.starts_with(&canonical_dir) {
-        return Err("Access denied: file is outside skill directory".to_string());
+        return Err("Access denied: file is outside skill directory".into());
     }
 
     if !canonical_requested.is_file() {
-        return Err(format!("File '{}' not found in skill '{}'", file_name, name));
+        return Err(format!("File '{}' not found in skill '{}'", file_name, name).into());
     }
 
     // 允许文本类文件和常见二进制资源
@@ -2307,8 +2307,8 @@ pub fn skill_read_asset(name: String, file_name: String) -> Result<String, Error
         "webp", "ico", "woff", "woff2", "ttf", "otf",
     ];
     if !allowed.contains(&ext.as_str()) {
-        return Err(format!("File type '{}' is not allowed for direct reading", ext));
+        return Err(format!("File type '{}' is not allowed for direct reading", ext).into());
     }
 
-    std::fs::read_to_string(&canonical_requested).map_err(|e| e.to_string())
+    Ok(std::fs::read_to_string(&canonical_requested).map_err(|e| e.to_string())?)
 }

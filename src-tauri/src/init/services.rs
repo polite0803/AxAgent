@@ -46,13 +46,8 @@ fn start_plugins(state: &AppState) {
         tracing::info!("Initializing plugin system...");
 
         let mut manager = plugin_manager.write().await;
-        match tauri::async_runtime::spawn_blocking(move || {
-            let started = manager.start_enabled_plugins()?;
-            Ok::<_, String>(started)
-        })
-        .await
-        {
-            Ok(Ok(started)) => {
+        let _started = match manager.start_enabled_plugins() {
+            Ok(started) => {
                 if !started.is_empty() {
                     tracing::info!(
                         "Started {} enabled plugin(s): {}",
@@ -62,14 +57,14 @@ fn start_plugins(state: &AppState) {
                 } else {
                     tracing::info!("No enabled plugins to start");
                 }
-            },
-            Ok(Err(e)) => {
-                tracing::error!("Failed to start enabled plugins: {e}");
+                started
             },
             Err(e) => {
-                tracing::error!("Plugin startup task panicked: {e}");
+                tracing::error!("Failed to start enabled plugins: {e}");
+                Vec::new()
             },
-        }
+        };
+
         drop(manager);
 
         if let Some(registry) = dashboard_registry {

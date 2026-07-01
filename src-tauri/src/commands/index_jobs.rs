@@ -6,6 +6,7 @@ use axagent_core::repo::index_jobs::{
     INDEX_JOB_STATUS_PENDING, INDEX_JOB_STATUS_PROCESSING, IndexJob, JOB_TYPE_INDEX_DOCUMENT,
     JOB_TYPE_INDEX_MEMORY, JOB_TYPE_INDEX_WIKI_NOTE,
 };
+use sea_orm::{ColumnTrait, EntityTrait, QueryFilter, QueryOrder, QuerySelect};
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, State};
 
@@ -61,10 +62,7 @@ pub async fn index_jobs_list(
         .await
         .map_err(|e| e.to_string())?;
 
-    Ok(models
-        .into_iter()
-        .map(|m| index_jobs::model_to_job(m))
-        .collect())
+    Ok(models.into_iter().map(index_jobs::model_to_job).collect())
 }
 
 #[tauri::command]
@@ -93,6 +91,7 @@ pub async fn index_jobs_stats(state: State<'_, AppState>) -> Result<IndexQueueSt
 #[tauri::command]
 pub async fn index_jobs_retry(
     state: State<'_, AppState>,
+    app: AppHandle,
     job_id: String,
 ) -> Result<IndexJob, String> {
     index_jobs::reset_job_for_retry(state.harness.db(), &job_id)
@@ -101,10 +100,7 @@ pub async fn index_jobs_retry(
     let job = index_jobs::get_job(state.harness.db(), &job_id)
         .await
         .map_err(|e| e.to_string())?;
-    if let Some(service) = state.index_job_service.upgrade() {
-        service.notify_new_job();
-    }
-    let _ = state.app.emit(
+    let _ = app.emit(
         "index-job-updated",
         serde_json::json!({ "jobId": job_id, "status": INDEX_JOB_STATUS_PENDING }),
     );
@@ -114,6 +110,7 @@ pub async fn index_jobs_retry(
 #[tauri::command]
 pub async fn index_jobs_cancel(
     state: State<'_, AppState>,
+    app: AppHandle,
     job_id: String,
 ) -> Result<IndexJob, String> {
     index_jobs::cancel_job(state.harness.db(), &job_id)
@@ -122,7 +119,7 @@ pub async fn index_jobs_cancel(
     let job = index_jobs::get_job(state.harness.db(), &job_id)
         .await
         .map_err(|e| e.to_string())?;
-    let _ = state.app.emit(
+    let _ = app.emit(
         "index-job-updated",
         serde_json::json!({ "jobId": job_id, "status": INDEX_JOB_STATUS_CANCELLED }),
     );
@@ -137,11 +134,6 @@ pub async fn index_jobs_retry_all_failed(state: State<'_, AppState>) -> Result<u
     let count = jobs.len() as u64;
     for job in &jobs {
         let _ = index_jobs::reset_job_for_retry(state.harness.db(), &job.id).await;
-    }
-    if count > 0 {
-        if let Some(service) = state.index_job_service.upgrade() {
-            service.notify_new_job();
-        }
     }
     Ok(count)
 }
@@ -188,10 +180,9 @@ pub async fn index_jobs_reindex_collection(
             Ok(count)
         },
         "memory" => {
-            let items =
-                axagent_core::repo::memory::list_namespace_items(state.harness.db(), &source_id)
-                    .await
-                    .map_err(|e| e.to_string())?;
+            let items = axagent_core::repo::memory::list_namespaces(state.harness.db())
+                .await
+                .map_err(|e| e.to_string())?;
             let count = items.len() as u64;
             for item in items {
                 let _ = crate::index_queue::enqueue_job_sync(

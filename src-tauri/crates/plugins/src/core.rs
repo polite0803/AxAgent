@@ -1,3 +1,11 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+//! Plugin trait 实现 —— Builtin/Bundled/External 三个变体的 Plugin 行为。
+//!
+//! 类型通过 `pub use core::*` 在 lib.rs 根 re-export，
+//! 部分 helper 常量/import 仅在测试或可选特性中使用，因此本文件放宽 dead_code 检查。
+
+#![allow(dead_code, unused_imports)]
+
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::fmt::{Display, Formatter};
 use std::fs;
@@ -21,8 +29,11 @@ const MANIFEST_FILE_NAME: &str = "plugin.json";
 const MANIFEST_RELATIVE_PATH: &str = ".claude-plugin/plugin.json";
 const SKILL_MD_FILE_NAME: &str = "SKILL.md";
 
+use crate::manager::{
+    PluginError, run_lifecycle_commands, validate_hook_paths, validate_lifecycle_paths,
+    validate_tool_paths,
+};
 use crate::types::*;
-use crate::manager::{PluginError, validate_hook_paths, validate_lifecycle_paths, validate_tool_paths, run_lifecycle_commands};
 
 pub trait Plugin {
     fn metadata(&self) -> &PluginMetadata;

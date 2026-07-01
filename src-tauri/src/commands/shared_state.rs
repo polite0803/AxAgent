@@ -34,6 +34,7 @@ lazy_static::lazy_static! {
 }
 
 /// App 启动时调用（预留，当前 lazy_static 已自动初始化）。
+#[allow(dead_code)]
 pub fn init_shared_state() {
     lazy_static::initialize(&SHARED_OPTIMIZER);
     lazy_static::initialize(&SHARED_PIPELINE);

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use crate::AppState;
-use axagent_core::hybrid_search::{HybridSearchOptions, HybridSearcher};
+use axagent_core::hybrid_search::{FusionAlgorithm, HybridSearchOptions, HybridSearcher};
 use axagent_core::rag::{RAGSource, WikiVaultRAG, collection_id};
 use axagent_core::repo::index_jobs as jobs;
 use axagent_core::repo::louvain::{self, LouvainResult};
@@ -379,6 +379,8 @@ async fn wiki_notes_search_hybrid(
         bm25_weight: 0.3,
         top_k,
         min_score: None,
+        fusion: FusionAlgorithm::Rrf,
+        rrf_k: 60.0,
     };
 
     let hybrid_results = searcher

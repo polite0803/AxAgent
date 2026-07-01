@@ -9,9 +9,7 @@
 //!        FeedbackRecord → ExperiencePipeline → RL Optimizer ExperiencePool
 
 use crate::reflector::Reflection;
-use crate::rl_optimizer::{
-    Experience, RLOptimizer, TaskState, ThresholdScheduler, ToolSelection,
-};
+use crate::rl_optimizer::{Experience, RLOptimizer, TaskState, ThresholdScheduler, ToolSelection};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;

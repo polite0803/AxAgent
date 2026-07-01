@@ -8,15 +8,16 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-use axagent_core::workflow_types::{AgentNode, AgentRole, EdgeType, WorkflowEdge, WorkflowNode};
+use axagent_core::workflow_types::AgentRole;
 
 // ── Orchestration Strategy ──────────────────────────────────────────
 
 /// Strategy for how the orchestrator decomposes and schedules tasks.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "snake_case")]
 pub enum OrchestrationStrategy {
     /// Serial execution, one after another. For tasks with strict ordering.
+    #[default]
     Ordered,
     /// Parallel fan-out. All independent subtasks run concurrently.
     FanOut,
@@ -28,12 +29,6 @@ pub enum OrchestrationStrategy {
     Debate,
     /// Dynamic — LLM determines topology at runtime. For unstructured tasks.
     Dynamic,
-}
-
-impl Default for OrchestrationStrategy {
-    fn default() -> Self {
-        Self::Ordered
-    }
 }
 
 impl OrchestrationStrategy {

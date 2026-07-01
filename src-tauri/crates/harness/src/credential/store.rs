@@ -6,7 +6,6 @@
 //! to the filesystem. The master key is derived from environment variables or
 //! configuration at application startup.
 
-use std::collections::HashMap;
 use std::path::PathBuf;
 
 use aes_gcm::{
@@ -17,7 +16,7 @@ use base64::{Engine, engine::general_purpose::STANDARD as BASE64};
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 
-use super::{Credential, CredentialType};
+use super::Credential;
 use crate::core_error::{AxAgentError, Result};
 
 const NONCE_SIZE: usize = 12;
@@ -74,24 +73,22 @@ impl CredentialStore {
     /// 3. Generate a new random key (persisted via the caller)
     pub fn derive_master_key() -> [u8; 32] {
         // Try credential-specific key first
-        if let Ok(hex_key) = std::env::var("AXAGENT_CREDENTIAL_MASTER_KEY") {
-            if let Ok(bytes) = hex::decode(&hex_key) {
-                if bytes.len() == 32 {
-                    let mut key = [0u8; 32];
-                    key.copy_from_slice(&bytes);
-                    return key;
-                }
-            }
+        if let Ok(hex_key) = std::env::var("AXAGENT_CREDENTIAL_MASTER_KEY")
+            && let Ok(bytes) = hex::decode(&hex_key)
+            && bytes.len() == 32
+        {
+            let mut key = [0u8; 32];
+            key.copy_from_slice(&bytes);
+            return key;
         }
         // Fall back to shared master key
-        if let Ok(hex_key) = std::env::var("AXAGENT_MASTER_KEY") {
-            if let Ok(bytes) = hex::decode(&hex_key) {
-                if bytes.len() == 32 {
-                    let mut key = [0u8; 32];
-                    key.copy_from_slice(&bytes);
-                    return key;
-                }
-            }
+        if let Ok(hex_key) = std::env::var("AXAGENT_MASTER_KEY")
+            && let Ok(bytes) = hex::decode(&hex_key)
+            && bytes.len() == 32
+        {
+            let mut key = [0u8; 32];
+            key.copy_from_slice(&bytes);
+            return key;
         }
         // Generate new random key
         let mut key = [0u8; 32];
@@ -121,9 +118,7 @@ impl CredentialStore {
     /// Decrypt ciphertext bytes with AES-256-GCM.
     fn decrypt(&self, data: &[u8]) -> Result<Vec<u8>> {
         if data.len() < NONCE_SIZE + 16 {
-            return Err(AxAgentError::Crypto(
-                "credential data too short".to_string(),
-            ));
+            return Err(AxAgentError::Crypto("credential data too short".to_string()));
         }
         let (nonce_bytes, ciphertext) = data.split_at(NONCE_SIZE);
         let nonce = Nonce::from_slice(nonce_bytes);
@@ -144,10 +139,7 @@ impl CredentialStore {
     /// Ensure the store directory exists.
     fn ensure_dir(&self) -> Result<()> {
         std::fs::create_dir_all(&self.store_dir).map_err(|e| {
-            AxAgentError::Io(std::io::Error::new(
-                std::io::ErrorKind::Other,
-                format!("credential store dir: {e}"),
-            ))
+            AxAgentError::Io(std::io::Error::other(format!("credential store dir: {e}")))
         })
     }
 
@@ -158,11 +150,8 @@ impl CredentialStore {
             .map_err(|e| AxAgentError::Internal(format!("credential serialize: {e}")))?;
         let encrypted = self.encrypt(&json)?;
         let path = self.file_path(&credential.id);
-        std::fs::write(&path, &BASE64.encode(&encrypted)).map_err(|e| {
-            AxAgentError::Io(std::io::Error::new(
-                std::io::ErrorKind::Other,
-                format!("credential write {path:?}: {e}"),
-            ))
+        std::fs::write(&path, BASE64.encode(&encrypted)).map_err(|e| {
+            AxAgentError::Io(std::io::Error::other(format!("credential write {path:?}: {e}")))
         })
     }
 
@@ -170,14 +159,11 @@ impl CredentialStore {
     pub fn load_credential(&self, id: &str) -> Result<Credential> {
         let path = self.file_path(id);
         let b64_data = std::fs::read_to_string(&path).map_err(|e| {
-            AxAgentError::Io(std::io::Error::new(
-                std::io::ErrorKind::Other,
-                format!("credential read {path:?}: {e}"),
-            ))
+            AxAgentError::Io(std::io::Error::other(format!("credential read {path:?}: {e}")))
         })?;
-        let encrypted = BASE64.decode(b64_data.trim()).map_err(|e| {
-            AxAgentError::Crypto(format!("credential base64 decode: {e}"))
-        })?;
+        let encrypted = BASE64
+            .decode(b64_data.trim())
+            .map_err(|e| AxAgentError::Crypto(format!("credential base64 decode: {e}")))?;
         let json = self.decrypt(&encrypted)?;
         serde_json::from_slice(&json)
             .map_err(|e| AxAgentError::Internal(format!("credential deserialize: {e}")))
@@ -188,10 +174,7 @@ impl CredentialStore {
         let path = self.file_path(id);
         if path.exists() {
             std::fs::remove_file(&path).map_err(|e| {
-                AxAgentError::Io(std::io::Error::new(
-                    std::io::ErrorKind::Other,
-                    format!("credential delete {path:?}: {e}"),
-                ))
+                AxAgentError::Io(std::io::Error::other(format!("credential delete {path:?}: {e}")))
             })?;
         }
         Ok(())
@@ -207,18 +190,14 @@ impl CredentialStore {
         };
         for entry in entries.flatten() {
             let path = entry.path();
-            if path.extension().map_or(false, |ext| ext == "enc") {
-                if let Some(stem) = path.file_stem().and_then(|s| s.to_str()) {
-                    match self.load_credential(stem) {
-                        Ok(cred) => metas.push(CredentialMeta::from(&cred)),
-                        Err(e) => {
-                            tracing::warn!(
-                                ?e,
-                                id = stem,
-                                "Failed to load credential for listing"
-                            );
-                        }
-                    }
+            if path.extension().is_some_and(|ext| ext == "enc")
+                && let Some(stem) = path.file_stem().and_then(|s| s.to_str())
+            {
+                match self.load_credential(stem) {
+                    Ok(cred) => metas.push(CredentialMeta::from(&cred)),
+                    Err(e) => {
+                        tracing::warn!(?e, id = stem, "Failed to load credential for listing");
+                    },
                 }
             }
         }

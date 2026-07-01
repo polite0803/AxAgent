@@ -102,7 +102,6 @@ pub fn import_workflow_yaml(
         return Err(YamlIoError::Validation("Workflow must have at least one node".to_string()));
     }
 
-    let now = current_epoch_ms();
     let workflow = Workflow {
         id: yaml.metadata.id.clone(),
         name: yaml.metadata.name.clone(),

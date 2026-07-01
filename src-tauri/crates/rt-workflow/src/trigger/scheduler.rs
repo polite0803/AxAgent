@@ -7,7 +7,6 @@
 
 use chrono::Utc;
 use std::str::FromStr;
-use std::sync::Arc;
 
 use super::TriggerManager;
 
@@ -36,7 +35,7 @@ pub(crate) async fn spawn_schedule(
     let engine = engine_lock.ok_or_else(|| "引擎未就绪".to_string())?;
 
     let handle = tokio::spawn(async move {
-        let mut schedule = schedule;
+        let schedule = schedule;
         loop {
             // 计算下一次触发时间（UTC）
             let now_utc = Utc::now();
@@ -110,13 +109,11 @@ fn parse_timezone_to_offset(tz_name: &str) -> Result<chrono::FixedOffset, String
                 ),
             ])
             .output()
+            && let Ok(stdout) = String::from_utf8(output.stdout)
+            && let Ok(minutes) = stdout.trim().parse::<f64>()
         {
-            if let Ok(stdout) = String::from_utf8(output.stdout) {
-                if let Ok(minutes) = stdout.trim().parse::<f64>() {
-                    return Ok(chrono::FixedOffset::east_opt((minutes * 60.0) as i32)
-                        .ok_or_else(|| format!("无效的时区偏移: {minutes} 分钟"))?);
-                }
-            }
+            return chrono::FixedOffset::east_opt((minutes * 60.0) as i32)
+                .ok_or_else(|| format!("无效的时区偏移: {minutes} 分钟"));
         }
     }
 

@@ -6,7 +6,6 @@
 //! 支持同步（等待完成）和异步（立即返回 202）两种响应模式。
 
 use std::collections::HashMap;
-use std::io::Read;
 use std::sync::Arc;
 
 use crate::work_engine::WorkEngine;

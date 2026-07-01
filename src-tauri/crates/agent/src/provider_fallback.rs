@@ -263,10 +263,11 @@ impl ProviderFallbackManager {
         // 1. 如果有首选且健康，直接返回
         if let Some(pref_id) = preferred_id
             && let Some(entry) = providers.iter().find(|p| p.provider_id == pref_id)
-                && let Some(h) = health.get(pref_id)
-                    && !h.marked_down {
-                        return Some((entry.clone(), false));
-                    }
+            && let Some(h) = health.get(pref_id)
+            && !h.marked_down
+        {
+            return Some((entry.clone(), false));
+        }
 
         // 2. 找到首选对应档次
         let preferred_tier = preferred_id
@@ -280,10 +281,11 @@ impl ProviderFallbackManager {
             for entry in providers.iter() {
                 if entry.tier == *tier
                     && let Some(h) = health.get(&entry.provider_id)
-                        && !h.marked_down {
-                            let is_fallback = entry.provider_id != preferred_id.unwrap_or("");
-                            return Some((entry.clone(), is_fallback));
-                        }
+                    && !h.marked_down
+                {
+                    let is_fallback = entry.provider_id != preferred_id.unwrap_or("");
+                    return Some((entry.clone(), is_fallback));
+                }
             }
         }
 
