@@ -179,10 +179,9 @@ jobs:
 
   test-e2e:
     name: E2E Tests (macOS)
-    if: false
+    needs: [should-run-heavy]
+    if: needs.should-run-heavy.outputs.skip != 'true'
     runs-on: macos-latest
-    timeout-minutes: 10
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
 
@@ -194,11 +193,20 @@ jobs:
       - name: Install frontend dependencies
         run: npm ci
 
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        id: playwright-cache
+        with:
+          path: ~/Library/Caches/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-playwright-
+
+      - name: Install Playwright browsers
+        run: npx --yes playwright install chromium --with-deps
+
       - name: Run E2E tests
-        env:
-          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 1
-          PLAYWRIGHT_HTML_REPORT: /dev/null
-        run: npx playwright test --grep-invert "(Agent|Cache|Conversation|Gateway)"
+        run: npm run test:e2e
 
   cargo-audit:
     name: Security Audit
