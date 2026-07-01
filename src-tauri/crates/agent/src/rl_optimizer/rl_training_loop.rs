@@ -241,7 +241,7 @@ impl ThresholdScheduler {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::rl_optimizer::{Experience, ExperiencePool, TaskState, ToolSelection};
+    use crate::rl_optimizer::{Experience, TaskState, ToolSelection};
     use std::collections::HashMap;
 
     fn make_experience(id: &str, reward: f32) -> Experience {
