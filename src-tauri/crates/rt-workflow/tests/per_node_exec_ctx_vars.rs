@@ -97,6 +97,7 @@ fn make_base(id: &str, title: &str) -> WorkflowNodeBase {
         enabled: true,
         parent_id: None,
         compensation: None,
+        continue_on_fail: false,
     }
 }
 
