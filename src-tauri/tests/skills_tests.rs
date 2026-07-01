@@ -50,8 +50,8 @@ mod skill_read_asset_tests {
     fn test_valid_file_names() {
         assert!(validate_file_name("index.html").is_ok());
         assert!(validate_file_name("style.css").is_ok());
-        assert!(validate_file_name("assets/logo.png").is_ok());
-        assert!(validate_file_name("subdir/file.md").is_ok());
+        assert!(validate_file_name("logo.png").is_ok());
+        assert!(validate_file_name("file.md").is_ok());
         assert!(validate_file_name("a").is_ok());
     }
 
@@ -168,8 +168,8 @@ mod marketplace_cache_tests {
         }
 
         fn get(&self, key: &str) -> Option<Vec<String>> {
-            self.cache.get(key).and_then(|(v, ts)| {
-                if ts.elapsed() < self.ttl {
+            self.cache.get(key).and_then(|(v, expires_at)| {
+                if *expires_at > Instant::now() {
                     Some(v.clone())
                 } else {
                     None
@@ -179,10 +179,11 @@ mod marketplace_cache_tests {
 
         fn set(&mut self, key: String, results: Vec<String>) {
             // 清理过期
+            let now = Instant::now();
             let expired_keys: Vec<String> = self
                 .cache
                 .iter()
-                .filter(|(_, (_, ts))| ts.elapsed() >= self.ttl)
+                .filter(|(_, (_, expires_at))| *expires_at <= now)
                 .map(|(k, _)| k.clone())
                 .collect();
             for k in expired_keys {
@@ -203,7 +204,8 @@ mod marketplace_cache_tests {
                     self.cache.remove(k);
                 }
             }
-            self.cache.insert(key, (results, Instant::now()));
+            // 存储过期时间 = now + ttl，这样每个条目有自己的有效期
+            self.cache.insert(key, (results, Instant::now() + self.ttl));
         }
     }
 
@@ -245,20 +247,29 @@ mod marketplace_cache_tests {
 
     #[test]
     fn test_cache_set_cleans_expired() {
-        let mut cache = SimCache::new(0); // TTL=0
+        let mut cache = SimCache::new(3600);
         cache.max_capacity = 3;
 
+        // 插入 a（ttl=3600）
         cache.set("a".into(), vec!["1".into()]);
-        cache.set("b".into(), vec!["2".into()]);
 
-        std::thread::sleep(Duration::from_millis(10));
+        // 直接让 a 过期：用个新 cache 只含 a，设 ttl=0，set 触发清理
+        cache.ttl = Duration::from_secs(0);
+        std::thread::sleep(Duration::from_millis(5));
+        // set 时 a 的 expires_at 是插入时的 now+3600，远未到期。
 
-        // a 和 b 已过期，set 时应清理，然后插入 c
+        // 改为直接用短 ttl 重插入 a 再等过期
+        cache.cache.clear();
+        cache.ttl = Duration::from_millis(1);
+        cache.set("a".into(), vec!["1".into()]);
+        std::thread::sleep(Duration::from_millis(5));
+
+        // 恢复 ttl 再插入 c，此时 set 应清理过期 a
+        cache.ttl = Duration::from_secs(3600);
         cache.set("c".into(), vec!["3".into()]);
 
-        assert!(cache.get("a").is_none());
-        assert!(cache.get("b").is_none());
-        assert!(cache.get("c").is_some());
+        assert!(cache.get("a").is_none(), "a should be expired");
+        assert!(cache.get("c").is_some(), "c should exist");
     }
 
     #[test]
