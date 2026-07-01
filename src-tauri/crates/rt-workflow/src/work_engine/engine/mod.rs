@@ -742,6 +742,8 @@ impl WorkEngine {
             results: HashMap::new(),
             node_states,
             output: None,
+            error_config: None,
+            error_workflow_id: None,
         };
 
         let mut workflows = self.workflows.write().await;
@@ -750,8 +752,8 @@ impl WorkEngine {
         tracing::info!(
             workflow_id = %workflow_id,
             name = %name,
-            node_count = nodes.len(),
-            edge_count = edges.len(),
+            node_count = workflow.nodes.len(),
+            edge_count = workflow.edges.len(),
             "DAG created"
         );
 
@@ -1451,37 +1453,36 @@ impl WorkEngine {
                 std::collections::HashSet::new();
 
             // Determine per-node-type concurrency limits
-            let type_limits = options.max_concurrent_by_type.as_ref();
+            let type_limits = options.max_concurrent_by_type.clone().unwrap_or_default();
             let global_limit = options.max_concurrent;
+
+            // Pre-compute node type map to avoid async access in filter closure
+            let node_type_map: HashMap<String, String> = {
+                let workflows = self.workflows.read().await;
+                let wf = workflows.get(workflow_id);
+                wf.map(|wf| {
+                    wf.nodes
+                        .iter()
+                        .map(|n| (n.base_id().to_string(), node_type_name(n).to_string()))
+                        .collect()
+                })
+                .unwrap_or_default()
+            };
 
             let batch: Vec<String> = ready_nodes
                 .into_iter()
                 .filter(|nid| {
-                    // Apply per-type limit if configured
-                    if let Some(limits) = type_limits {
-                        let node = {
-                            let workflows = self.workflows.read().await;
-                            workflows.get(workflow_id).and_then(|wf| {
-                                wf.nodes.iter().find(|n| n.base_id() == nid).cloned()
-                            })
-                        };
-                        if let Some(node) = node {
-                            let nt = node_type_name(&node);
-                            let limit = limits.get(nt).copied().unwrap_or(global_limit);
-                            let active_of_type = active_nodes
-                                .iter()
-                                .filter(|an| {
-                                    let wf = self.workflows.try_read();
-                                    wf.ok()
-                                        .and_then(|wfs| wfs.get(workflow_id))
-                                        .and_then(|wf| wf.nodes.iter().find(|n| n.base_id() == *an))
-                                        .map(|n| node_type_name(n) == nt)
-                                        .unwrap_or(false)
-                                })
-                                .count();
-                            if active_of_type >= limit {
-                                return false;
-                            }
+                    if type_limits.is_empty() {
+                        return true;
+                    }
+                    if let Some(nt) = node_type_map.get(nid) {
+                        let limit = type_limits.get(nt.as_str()).copied().unwrap_or(global_limit);
+                        let active_of_type = active_nodes
+                            .iter()
+                            .filter(|an| node_type_map.get(an.as_str()).map(|t| t == nt).unwrap_or(false))
+                            .count();
+                        if active_of_type >= limit {
+                            return false;
                         }
                     }
                     true
@@ -2139,7 +2140,8 @@ impl WorkEngine {
                                             );
                                         } else {
                                             wf.status = WorkflowStatus::PartiallyCompleted;
-                                            wf.completed_at = Some(Utc::now().timestamp_millis());
+                                            wf.completed_at =
+                                                Some(Utc::now().timestamp_millis() as u64);
                                         }
                                     }
                                 }
@@ -2405,8 +2407,8 @@ impl WorkEngine {
                                 for (k, v) in &state.variables {
                                     merged_vars.entry(k.clone()).or_insert_with(|| v.clone());
                                 }
-                                if let Some(ref input) = state.input_params {
-                                    for (k, v) in input.as_object().iter().flat_map(|o| o.iter()) {
+                                if let Some(obj) = state.input_params.as_object() {
+                                    for (k, v) in obj {
                                         merged_vars.entry(k.clone()).or_insert_with(|| v.clone());
                                     }
                                 }
@@ -2583,6 +2585,8 @@ impl WorkEngine {
             results: HashMap::new(),
             node_states: HashMap::new(),
             output: None,
+            error_config: None,
+            error_workflow_id: None,
         }))
     }
 
@@ -2623,7 +2627,7 @@ impl WorkEngine {
             input_params.as_deref(),
         )
         .await
-        .map_err(|e| WorkEngineError::Db(e))?;
+        .map_err(|e| WorkEngineError::Db(e.to_string()))?;
         // 为本次执行预创建 partial_result 广播器（容量 256，足够 Loop
         // 万级迭代的扇出，前端订阅者可拿到完整历史）。
         let (partial_tx, _) = tokio::sync::broadcast::channel(256);
@@ -2719,7 +2723,7 @@ impl WorkEngine {
                 None,
             )
             .await
-            .map_err(|e| WorkEngineError::Db(e))?;
+            .map_err(|e| WorkEngineError::Db(e.to_string()))?;
             Ok(())
         } else {
             Err(WorkEngineError::NotFound(execution_id.to_string()))
@@ -2819,7 +2823,7 @@ impl WorkEngine {
     ) -> Result<Vec<axagent_core::entity::workflow_executions::Model>, WorkEngineError> {
         axagent_core::repo::workflow_execution::list_workflow_executions(&self.db, workflow_id)
             .await
-            .map_err(|e| WorkEngineError::Db(e))
+            .map_err(|e| WorkEngineError::Db(e.to_string()))
     }
 
     pub async fn record_node_execution(
@@ -2911,7 +2915,7 @@ impl WorkEngine {
                 Some(total_time_ms as i32),
             )
             .await
-            .map_err(|e| WorkEngineError::Db(e))?;
+            .map_err(|e| WorkEngineError::Db(e.to_string()))?;
             Ok(())
         } else {
             Err(WorkEngineError::NotFound(execution_id.to_string()))
@@ -2924,7 +2928,7 @@ impl WorkEngine {
 #[derive(Debug)]
 pub enum WorkEngineError {
     NotFound(String),
-    Db(#[source] sea_orm::DbErr),
+    Db(String),
     TimeoutMs(u64),
     Cancelled,
     ToolError { name: String, message: String },
@@ -2946,10 +2950,7 @@ impl std::fmt::Display for WorkEngineError {
 
 impl std::error::Error for WorkEngineError {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        match self {
-            Self::Db(e) => Some(e),
-            _ => None,
-        }
+        None
     }
 }
 
@@ -3033,8 +3034,6 @@ pub fn build_loop_checkpoint_ops(
         }),
     }
 }
-
-impl std::error::Error for WorkEngineError {}
 
 // ── Condition 节点分支跳过辅助 ──
 

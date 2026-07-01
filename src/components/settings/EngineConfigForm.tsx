@@ -2,6 +2,7 @@
 
 import { Button, Form, Input, InputNumber, Select, Switch } from "antd";
 import { useEffect } from "react";
+import { useTranslation } from "react-i18next";
 
 export interface ConfigField {
   key: string;
@@ -20,6 +21,7 @@ interface EngineConfigFormProps {
 }
 
 export default function EngineConfigForm({ config, fields, onSave }: EngineConfigFormProps) {
+  const { t } = useTranslation();
   const [form] = Form.useForm();
 
   useEffect(() => {
@@ -75,7 +77,7 @@ export default function EngineConfigForm({ config, fields, onSave }: EngineConfi
 
       <Form.Item>
         <Button type="primary" htmlType="submit">
-          保存配置
+          {t("settings.evolution.saveConfig")}
         </Button>
       </Form.Item>
     </Form>

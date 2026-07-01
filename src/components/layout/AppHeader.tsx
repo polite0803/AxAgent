@@ -132,7 +132,7 @@ export function AppHeader() {
       <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
         <ModeSwitch />
         {agentInTheLoopEnabled && (
-          <Tooltip title={isAgentPanelOpen ? "关闭 Agent 面板" : "打开 Agent 面板"}>
+          <Tooltip title={isAgentPanelOpen ? t("appHeader.closeAgentPanel") : t("appHeader.openAgentPanel")}>
             <button
               type="button"
               onClick={toggleAgentPanel}

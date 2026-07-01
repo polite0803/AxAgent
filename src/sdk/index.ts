@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+import { t } from "@/lib/i18nStoreHelper";
+
 /**
  * AxAgent SDK — TypeScript 客户端 SDK
  *
@@ -123,7 +125,7 @@ export class AxAgentClient {
         .json()
         .catch(() => ({ message: response.statusText }));
       throw new Error(
-        `ACP 请求失败: ${(error as { message?: string }).message || response.statusText}`,
+        t("sdk.acpRequestFailed", { message: (error as { message?: string }).message || response.statusText }),
       );
     }
 

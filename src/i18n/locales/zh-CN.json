@@ -48,7 +48,9 @@
     "sectionInvestDiscover": "发现",
     "sectionInvestMonitor": "跟踪",
     "sectionInvestExecute": "执行",
-    "sectionInvestReview": "复盘"
+    "sectionInvestReview": "复盘",
+    "closeAgent": "关闭 Agent",
+    "openAgent": "打开 Agent"
   },
   "chat": {
     "newConversation": "新建对话",
@@ -1346,7 +1348,9 @@
       "mySkills": "我的技能",
       "mySkillsDescription": "管理已安装的技能",
       "exportSkill": "导出",
-      "importSkill": "导入"
+      "importSkill": "导入",
+      "noSkillsToExport": "没有可导出的技能",
+      "invalidSkillFile": "无效的技能文件：缺少名称"
     },
     "plugins": {
       "title": "插件"
@@ -2575,7 +2579,27 @@
       "noStatuses": "暂无连接状态"
     },
     "advanced": "高级设置",
-    "evolution": "自我进化",
+    "evolution": {
+      "config": "配置",
+      "stats": "统计",
+      "logs": "日志",
+      "startAll": "全部启动",
+      "stopAll": "全部停止",
+      "refresh": "刷新状态",
+      "engineCount": "运行中",
+      "saveConfig": "保存配置",
+      "categoryCore": "核心",
+      "categoryLearning": "学习",
+      "categorySafety": "安全",
+      "categoryExperimental": "实验",
+      "engineNotFound": "引擎未找到",
+      "engineNotFoundDesc": "未找到引擎 \"{{name}}\"",
+      "running": "运行中",
+      "stopped": "已停止",
+      "start": "启动",
+      "stop": "停止",
+      "noLogs": "暂无日志"
+    },
     "promptTemplates": "提示词模板",
     "appConfig": "Agent 控制面板",
     "appConfigDesc": "模型选择、功能开关、Agent 管理与 Hook 配置",
@@ -2814,7 +2838,8 @@
     "saved": "已保存",
     "unknownError": "未知错误",
     "deleted": "已删除",
-    "required": "必填项"
+    "required": "必填项",
+    "details": "详情"
   },
   "image": {
     "loadError": "图片加载失败",
@@ -5351,7 +5376,29 @@
     "durationSeconds": "{{seconds}} 秒",
     "aggregatorNode": {
       "inputs": "输入"
-    }
+    },
+    "parse": {
+      "analyzingIntent": "正在分析意图...",
+      "matchingNodes": "正在匹配节点...",
+      "buildingWorkflow": "正在构建工作流...",
+      "optimizing": "正在优化...",
+      "intentAnalysis": "意图分析",
+      "complete": "完成"
+    },
+    "execution": {
+      "startingNode": "开始执行节点: {{label}}",
+      "nodeCompleted": "节点执行完成: {{label}}",
+      "success": "执行成功"
+    },
+    "version": {
+      "current": "当前版本",
+      "optimizedConfig": "优化节点配置",
+      "addedBranch": "添加条件分支",
+      "initialCreation": "初始创建"
+    },
+    "duplicateSuffix": "{{name}} (副本)",
+    "fromTemplate": "{{name}} (来自模板)",
+    "defaultWorkflowName": "新建工作流"
   },
   "atomicSkill": {
     "entryType": "入口类型",
@@ -5428,7 +5475,25 @@
     "modelId": "模型 ID",
     "modelIdRequired": "请输入模型 ID",
     "modelIdPlaceholder": "输入模型 ID",
-    "train": "训练"
+    "train": "训练",
+    "checkpoints": {
+      "title": "检查点列表",
+      "save": "保存检查点",
+      "empty": "暂无检查点",
+      "saveModal": "保存检查点",
+      "namePlaceholder": "输入检查点名称..."
+    },
+    "monitor": {
+      "idle": "训练未开始，请先配置并启动训练。"
+    },
+    "panel": {
+      "title": "RL 训练面板",
+      "stop": "停止训练",
+      "start": "启动训练",
+      "config": "配置",
+      "monitor": "监控",
+      "checkpoints": "检查点"
+    }
   },
   "devtools": {
     "durationOverview": "耗时概览",
@@ -5599,7 +5664,14 @@
     "tasks": "任务"
   },
   "traceExplorer": {
-    "selectTrace": "选择一个 trace 查看详情"
+    "selectTrace": "选择一个 trace 查看详情",
+    "tab": {
+      "detail": "详情",
+      "timeline": "时间线",
+      "bottleneck": "瓶颈分析",
+      "suggestions": "改进建议",
+      "feedback": "反馈"
+    }
   },
   "evolution": {
     "title": "自我进化系统",
@@ -5638,6 +5710,44 @@
       "dreamConsolidator": "梦境整合器",
       "intrinsicMotivation": "内在动机",
       "coevolution": "协同进化"
+    },
+    "engines": {
+      "skill_evolution": {
+        "name": "技能进化引擎",
+        "desc": "自动进化技能提示词和工具调用策略，基于执行反馈持续优化"
+      },
+      "auto_tool_creator": {
+        "name": "自动工具创建器",
+        "desc": "从频繁执行模式中学习，自动创建新的可复用工具"
+      },
+      "text_grad": {
+        "name": "TextGrad 优化",
+        "desc": "文本梯度优化引擎，类似梯度下降但用于文本提示词优化"
+      },
+      "constitution": {
+        "name": "宪法规则引擎",
+        "desc": "约束 Agent 行为的规则系统，确保安全合规"
+      },
+      "intrinsic_motivation": {
+        "name": "内在动机系统",
+        "desc": "自主驱动学习系统，模拟人类好奇心驱动的探索行为"
+      },
+      "coevolution": {
+        "name": "协同进化环境",
+        "desc": "多 Agent 协同进化环境，促进跨智能体的知识共享与竞争"
+      },
+      "dream_consolidator": {
+        "name": "梦境巩固器",
+        "desc": "类似人类 REM 睡眠的记忆巩固机制，离线优化知识表示"
+      },
+      "process_reward": {
+        "name": "过程奖励模型",
+        "desc": "评估中间步骤质量而非仅最终结果，提供细粒度反馈信号"
+      },
+      "sandbox": {
+        "name": "沙箱执行器",
+        "desc": "安全执行不受信代码，隔离运行环境防止系统损害"
+      }
     }
   },
   "promptTemplates": {
@@ -5921,7 +6031,34 @@
     "generateAgent": "生成智能体",
     "agentGenerated": "智能体生成",
     "noSkillName": "未命名技能",
-    "notFound": "未找到技能"
+    "notFound": "未找到技能",
+    "abTest": {
+      "noData": "暂无 A/B 测试数据",
+      "metric": "指标",
+      "versionA": "版本 A",
+      "versionB": "版本 B",
+      "change": "变化",
+      "winner": "优胜",
+      "tie": "平局",
+      "conclusion": "结论：版本 A 胜出 {{winCountA}} 项，版本 B 胜出 {{winCountB}} 项。",
+      "recommendA": " 推荐采用版本 A。",
+      "recommendB": " 推荐采用版本 B。",
+      "noDifference": " 两个版本无明显差异。"
+    },
+    "evolution": {
+      "currentVersion": "当前版本",
+      "totalEvolutions": "总进化次数",
+      "latestEvolution": "最近进化",
+      "none": "无",
+      "noHistory": "该技能暂无进化历史",
+      "abTestResults": "A/B 测试结果",
+      "viewDiff": "查看 Diff",
+      "rollback": "回滚",
+      "oldVersion": "旧版 (v{{version}})",
+      "newVersion": "新版 (v{{version}})",
+      "confirmRollback": "确认回滚",
+      "rollbackConfirmMessage": "确定要回滚到 v{{version}} 吗？此操作将丢弃之后的所有进化变更。"
+    }
   },
   "task": {
     "title": "后台任务",
@@ -6365,7 +6502,13 @@
     "viewSubSession": "查看子会话",
     "running": "运行",
     "pending": "等待",
-    "failed": "失败"
+    "failed": "失败",
+    "type": {
+      "subAgent": "子智能体",
+      "worker": "工作器",
+      "step": "步骤"
+    },
+    "summary": "Agent 池 ({completed}/{total})"
   },
   "agentHierarchy": {
     "running": "运行中",
@@ -7572,7 +7715,9 @@
     "knowledgeContext": "知识库概览",
     "gatewayContext": "网关运行中",
     "filesContext": "文件管理",
-    "terminalContext": "终端会话"
+    "terminalContext": "终端会话",
+    "closeAgentPanel": "关闭 Agent 面板",
+    "openAgentPanel": "打开 Agent 面板"
   },
   "input": {
     "recordAudio": "录制音频",
@@ -8095,5 +8240,174 @@
       "applySkillComingSoon": "技能应用功能即将推出",
       "applyUIComingSoon": "UI 应用功能即将推出"
     }
+  },
+  "trace": {
+    "bottleneck": {
+      "loading": "加载瓶颈分析...",
+      "error": "分析失败",
+      "empty": "暂无瓶颈数据",
+      "timeDistribution": "时间分布",
+      "tokenConsumption": "Token 消耗",
+      "failurePatterns": "失败模式"
+    },
+    "feedback": {
+      "thanks": "感谢反馈",
+      "received": "您的反馈已提交，将用于优化 Agent 执行策略。",
+      "error": "提交失败",
+      "errorRetry": "请稍后重试",
+      "submitted": "反馈已提交",
+      "question": "这次执行对您有帮助吗？",
+      "helpful": "有帮助",
+      "notHelpful": "不满意",
+      "commentPlaceholder": "请描述具体问题，帮助我们改进...",
+      "submit": "提交反馈"
+    },
+    "improvement": {
+      "loading": "生成改进建议...",
+      "error": "生成失败",
+      "applied": "改进已应用",
+      "noSuggestions": "暂无改进建议",
+      "problem": "问题",
+      "suggestion": "建议",
+      "apply": "应用改进"
+    },
+    "loading": "加载执行轨迹...",
+    "error": "加载失败",
+    "empty": "未找到执行轨迹数据",
+    "totalSteps": "总步骤",
+    "totalDuration": "总耗时",
+    "totalTokens": "总 Token",
+    "errors": "错误"
+  },
+  "components_devtools_RLTrainingConfig": {
+    "算法": "算法",
+    "学习率": "学习率",
+    "批次大小": "批次大小",
+    "训练轮数": "训练轮数",
+    "最大步数": "最大步数"
+  },
+  "components_devtools_RLTrainingMonitor": {
+    "数据不足": "数据不足",
+    "components_devtools": "components_devtools_RLTrainingMonitor.数据不足",
+    "当前步数": "当前步数",
+    "损失": "损失",
+    "奖励": "奖励",
+    "速度": "速度",
+    "损失曲线": "损失曲线",
+    "奖励曲线": "奖励曲线"
+  },
+  "components_devtools_RLTrainingPanel": {
+    "空闲": "空闲",
+    "训练中": "训练中",
+    "已暂停": "已暂停",
+    "已完成": "已完成",
+    "失败": "失败"
+  },
+  "components_skill_SkillABTestResults": {
+    "暂无_A_B_测试数据": "暂无 A/B 测试数据",
+    "components_skill_Ski": "components_skill_SkillABTestResults.暂无_A_B_测试数据",
+    "指标": "指标",
+    "版本_A": "版本 A",
+    "版本_B": "版本 B",
+    "变化": "变化",
+    "优胜": "优胜",
+    "平局": "平局",
+    "推荐采用版本_A": " 推荐采用版本 A。",
+    "推荐采用版本_B": " 推荐采用版本 B。",
+    "两个版本无明显差异": " 两个版本无明显差异。"
+  },
+  "components_skill_SkillEvolutionViewer": {
+    "当前版本": "当前版本",
+    "总进化次数": "总进化次数",
+    "最近进化": "最近进化",
+    "A_B_测试结果": "A/B 测试结果",
+    "components_skill_Ski": "components_skill_SkillEvolutionViewer.A_B_测试结果"
+  },
+  "components_skill_SkillVersionTimeline": {
+    "暂无进化历史": "暂无进化历史",
+    "components_skill_Ski": "components_skill_SkillVersionTimeline.暂无进化历史",
+    "确认回滚": "确认回滚"
+  },
+  "components_trace_BottleneckAnalyzer": {
+    "失败原因": "失败原因",
+    "次数": "次数",
+    "占比": "占比"
+  },
+  "components_trace_TraceTimeline": {
+    "思考": "思考",
+    "工具调用": "工具调用",
+    "等待权限": "等待权限",
+    "错误": "错误"
+  },
+  "components_workflow_NLParserPanel": {
+    "每天早上_8_点抓取指定网站的最新文章": "每天早上 8 点抓取指定网站的最新文章，用 AI 总结后发送到企业微信群",
+    "收到新邮件后_用_AI_分析内容_如果是": "收到新邮件后，用 AI 分析内容，如果是重要邮件就发通知并创建待办",
+    "用户提交表单后_先验证数据_然后写入数据": "用户提交表单后，先验证数据，然后写入数据库并发送确认邮件",
+    "自然语言描述": "自然语言描述",
+    "components_workflow": "components_workflow_NLParserPanel.自然语言描述",
+    "约束条件_可选": "约束条件（可选）",
+    "例如_执行时间不超过_5_分钟_出错时重": "例如：执行时间不超过 5 分钟、出错时重试 3 次",
+    "解析中": "解析中...",
+    "解析生成": "解析生成",
+    "解析结果": "解析结果",
+    "AI_建议": "AI 建议"
+  },
+  "components_workflow_WorkflowExecutor": {
+    "等待": "等待",
+    "执行中": "执行中",
+    "成功": "成功",
+    "失败": "失败",
+    "输入变量": "输入变量",
+    "components_workflow": "components_workflow_WorkflowExecutor.输入变量",
+    "执行工作流": "执行工作流",
+    "正在执行工作流节点": "正在执行工作流节点...",
+    "状态": "状态",
+    "执行成功": "执行成功",
+    "执行失败": "执行失败",
+    "耗时": "耗时",
+    "节点执行状态": "节点执行状态",
+    "输出结果": "输出结果",
+    "执行日志": "执行日志",
+    "关闭": "关闭"
+  },
+  "components_workflow_WorkflowLogPanel": {
+    "暂无日志": "暂无日志"
+  },
+  "components_workflow_WorkflowVersionManager": {
+    "版本对比": "版本对比",
+    "新增节点_output_2_发送": "+ 新增节点: output-2 (发送摘要)",
+    "components_workflow": "components_workflow_WorkflowVersionManager.新增节点_output_2_发送",
+    "删除节点_action_3_冗余": "- 删除节点: action-3 (冗余步骤)",
+    "修改节点_action_1_超时": "~ 修改节点: action-1 (超时时间 30s → 60s)",
+    "版本": "版本",
+    "更新时间": "更新时间",
+    "变更摘要": "变更摘要",
+    "状态": "状态",
+    "草稿": "草稿",
+    "活跃": "活跃",
+    "归档": "归档",
+    "操作": "操作",
+    "当前工作流将被新版本覆盖": "当前工作流将被新版本覆盖",
+    "暂无版本记录": "暂无版本记录",
+    "时间线": "时间线"
+  },
+  "pages_Workflow_WorkflowListPage": {
+    "草稿": "草稿",
+    "活跃": "活跃",
+    "归档": "归档",
+    "新建工作流": "新建工作流",
+    "工作流": "工作流",
+    "pages_Workflow_Workf": "pages_Workflow_WorkflowListPage.工作流",
+    "搜索工作流": "搜索工作流...",
+    "全部": "全部",
+    "暂无工作流_点击上方按钮创建": "暂无工作流，点击上方按钮创建",
+    "暂无描述": "暂无描述",
+    "确定删除此工作流": "确定删除此工作流？"
+  },
+  "promptTemplate": {
+    "unnamed": "未命名"
+  },
+  "sdk": {
+    "acpRequestFailed": "ACP 请求失败: {{message}}"
   }
 }

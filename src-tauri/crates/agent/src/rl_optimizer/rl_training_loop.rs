@@ -7,7 +7,7 @@
 //! - `auto_train_if_needed()`: 静态阈值检查，一次性触发
 //! - `ThresholdScheduler`: 有状态调度器，追踪增量并阈值触发
 
-use super::{ExperiencePool, Policy, RLError, RLOptimizer, TrainingStats};
+use super::{RLError, RLOptimizer, TrainingStats};
 use chrono::Utc;
 
 /// 对给定 RLOptimizer 执行一轮训练。
@@ -54,7 +54,7 @@ pub fn train(optimizer: &mut RLOptimizer) -> Result<TrainingStats, RLError> {
                     || tool_name_lower.contains(&policy_name_lower)
                     || policy_lower == "tool_selection" // 全局策略匹配所有
             })
-            .copied()
+            .map(|e| *e)
             .collect();
 
         if !relevant_samples.is_empty() {

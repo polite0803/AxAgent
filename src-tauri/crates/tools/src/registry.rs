@@ -1255,7 +1255,7 @@ impl UnifiedToolRegistry {
                     let _ = recorder
                         .record_start(
                             self.conversation_id.as_deref().unwrap_or(""),
-                            self.message_id.clone(),
+                            self.message_id.as_deref(),
                             &config.server_id,
                             &mcp_key,
                             Some(&input_preview),
@@ -1368,6 +1368,7 @@ impl axagent_harness::ToolRegistry for UnifiedToolRegistry {
                 is_concurrency_safe: true,
                 is_read_only: false,
                 is_destructive: false,
+                enabled: true,
             });
         }
         infos
@@ -1388,6 +1389,7 @@ impl axagent_harness::ToolRegistry for UnifiedToolRegistry {
                     is_concurrency_safe: true,
                     is_read_only: false,
                     is_destructive: false,
+                    enabled: true,
                 })
                 .collect();
         }

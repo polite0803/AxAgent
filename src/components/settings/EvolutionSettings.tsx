@@ -73,17 +73,17 @@ export function EvolutionSettings() {
       >
         <Space>
           <Button type="primary" onClick={handleStartAll}>
-            {t("settings.evolution.startAll", "全部启动")}
+            {t("settings.evolution.startAll")}
           </Button>
           <Button onClick={handleStopAll}>
-            {t("settings.evolution.stopAll", "全部停止")}
+            {t("settings.evolution.stopAll")}
           </Button>
           <Button onClick={fetchAllEngineStatus} loading={loading}>
-            {t("settings.evolution.refresh", "刷新状态")}
+            {t("settings.evolution.refresh")}
           </Button>
         </Space>
         <Text>
-          {t("settings.evolution.engineCount", "运行中")}: {runningCount} / {engineList.length}
+          {t("settings.evolution.engineCount")}: {runningCount} / {engineList.length}
         </Text>
       </div>
 
@@ -150,7 +150,7 @@ export function EvolutionSettings() {
                     size="small"
                     onClick={() => setDetailEngine(engine.name)}
                   >
-                    {t("common.details", "详情")}
+                    {t("common.details")}
                   </Button>
                 </div>
               </Card>

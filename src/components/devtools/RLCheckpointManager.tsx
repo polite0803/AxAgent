@@ -81,9 +81,9 @@ export function RLCheckpointManager() {
   return (
     <div>
       <div style={{ marginBottom: 12, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <Text strong>{t("rl.checkpoints.title", "检查点列表")}</Text>
+        <Text strong>{t("rl.checkpoints.title")}</Text>
         <Button type="primary" size="small" onClick={() => setSaveModalOpen(true)}>
-          {t("rl.checkpoints.save", "保存检查点")}
+          {t("rl.checkpoints.save")}
         </Button>
       </div>
 
@@ -92,18 +92,18 @@ export function RLCheckpointManager() {
         columns={columns}
         pagination={false}
         size="small"
-        locale={{ emptyText: t("rl.checkpoints.empty", "暂无检查点") }}
+        locale={{ emptyText: t("rl.checkpoints.empty") }}
       />
 
       <Modal
-        title={t("rl.checkpoints.saveModal", "保存检查点")}
+        title={t("rl.checkpoints.saveModal")}
         open={saveModalOpen}
         onCancel={() => setSaveModalOpen(false)}
         onOk={handleSave}
-        okText={t("common.save", "保存")}
+        okText={t("common.save")}
       >
         <Input
-          placeholder={t("rl.checkpoints.namePlaceholder", "输入检查点名称...")}
+          placeholder={t("rl.checkpoints.namePlaceholder")}
           value={checkpointName}
           onChange={(e) => setCheckpointName(e.target.value)}
         />

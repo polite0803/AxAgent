@@ -148,8 +148,8 @@ impl FineTuneTrainer {
         let job = self.check_job_ready(job_id)?;
 
         let job_clone = job.clone();
-        let dataset_id = job_clone.dataset_id.clone();
-        let base_model = job_clone.base_model.clone();
+        let _dataset_id = job_clone.dataset_id.clone();
+        let _base_model = job_clone.base_model.clone();
         let config = job_clone.config.clone();
 
         // Phase 1: Preparing
@@ -157,7 +157,7 @@ impl FineTuneTrainer {
         self.notify_progress(job_id, 0, 0, 0.0, TrainingPhase::Preparing);
 
         // Build output path
-        let output_dir = self.built_in_config.output_dir.join(&job_id);
+        let output_dir = self.built_in_config.output_dir.join(job_id);
         std::fs::create_dir_all(&output_dir).map_err(|e| FineTuneError::IoError(e.to_string()))?;
 
         // Phase 2: Training
@@ -167,6 +167,7 @@ impl FineTuneTrainer {
         let mut train_losses: Vec<f32> = Vec::new();
         let mut val_losses: Vec<f32> = Vec::new();
         let mut best_loss = f32::MAX;
+        #[allow(unused_assignments)]
         let mut final_loss = 0.0;
 
         // Initialize progress tracking
@@ -321,11 +322,10 @@ impl FineTuneTrainer {
             if !entry.success {
                 continue;
             }
-            if let Some(score) = entry.quality_score {
-                if score < quality_threshold {
+            if let Some(score) = entry.quality_score
+                && score < quality_threshold {
                     continue;
                 }
-            }
 
             let sample = FineTuneSample {
                 id: format!("trace_{}", uuid::Uuid::new_v4()),
@@ -502,6 +502,7 @@ impl FineTuneTrainer {
         Ok(())
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn update_progress_inner(
         &mut self,
         job_id: &str,
@@ -550,6 +551,7 @@ impl FineTuneTrainer {
         );
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn notify_callback(
         &self,
         job_id: &str,

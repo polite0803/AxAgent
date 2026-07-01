@@ -480,7 +480,6 @@ const PermissionCard: React.FC<PermissionCardProps> = ({
           <Text>
             {t(
               "common.dangerousOperationWarning",
-              "This operation will execute commands that may have system-wide effects:",
             )}
           </Text>
           <ul style={{ margin: 0, paddingLeft: 20 }}>

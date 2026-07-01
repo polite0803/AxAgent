@@ -3,6 +3,7 @@
 import { useEvolutionStore } from "@/stores/feature/evolutionStore";
 import type { ABTestResult as ABTestResultType } from "@/stores/feature/evolutionStore";
 import { Table, Tag, Typography } from "antd";
+import { useTranslation } from "react-i18next";
 
 const { Text } = Typography;
 
@@ -11,36 +12,37 @@ interface SkillABTestResultsProps {
 }
 
 export default function SkillABTestResults({ skillId }: SkillABTestResultsProps) {
+  const { t } = useTranslation();
   const getABTestResults = useEvolutionStore((s) => s.getABTestResults);
   const results: ABTestResultType[] = getABTestResults(skillId);
 
   if (results.length === 0) {
-    return <Text type="secondary">暂无 A/B 测试数据</Text>;
+    return <Text type="secondary">{t("skill.abTest.noData")}</Text>;
   }
 
   const columns = [
     {
-      title: "指标",
+      title: t("skill.abTest.metric"),
       dataIndex: "metric",
       key: "metric",
       width: 160,
     },
     {
-      title: "版本 A",
+      title: t("skill.abTest.versionA"),
       dataIndex: "valueA",
       key: "valueA",
       width: 100,
       align: "right" as const,
     },
     {
-      title: "版本 B",
+      title: t("skill.abTest.versionB"),
       dataIndex: "valueB",
       key: "valueB",
       width: 100,
       align: "right" as const,
     },
     {
-      title: "变化",
+      title: t("skill.abTest.change"),
       dataIndex: "change",
       key: "change",
       width: 100,
@@ -52,13 +54,17 @@ export default function SkillABTestResults({ skillId }: SkillABTestResultsProps)
       },
     },
     {
-      title: "优胜",
+      title: t("skill.abTest.winner"),
       dataIndex: "winner",
       key: "winner",
       width: 80,
       render: (winner: string) => (
         <Tag color={winner === "A" ? "blue" : winner === "B" ? "green" : "default"}>
-          {winner === "A" ? "版本 A" : winner === "B" ? "版本 B" : "平局"}
+          {winner === "A"
+            ? t("skill.abTest.versionA")
+            : winner === "B"
+            ? t("skill.abTest.versionB")
+            : t("skill.abTest.tie")}
         </Tag>
       ),
     },
@@ -77,12 +83,12 @@ export default function SkillABTestResults({ skillId }: SkillABTestResultsProps)
         style={{ marginBottom: 12 }}
       />
       <Text type="secondary">
-        结论：版本 A 胜出 {winCountA} 项，版本 B 胜出 {winCountB} 项。
+        {t("skill.abTest.conclusion", { winCountA, winCountB })}
         {winCountA > winCountB
-          ? " 推荐采用版本 A。"
+          ? t("skill.abTest.recommendA")
           : winCountB > winCountA
-          ? " 推荐采用版本 B。"
-          : " 两个版本无明显差异。"}
+          ? t("skill.abTest.recommendB")
+          : t("skill.abTest.noDifference")}
       </Text>
     </div>
   );

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Phase 4: NL2Workflow Store — 工作流状态管理
 
+import { t } from "@/lib/i18nStoreHelper";
 import type {
   ExecutionLogEntry,
   NL2SkillRequest,
@@ -155,7 +156,7 @@ export const useWorkflowStore = create<WorkflowStoreState>((set, get) => ({
       await new Promise((r) => setTimeout(r, 200));
       const newWf: WorkflowDefinition = {
         id: makeId(),
-        name: workflow.name ?? "新建工作流",
+        name: workflow.name ?? t("workflow.defaultWorkflowName"),
         description: workflow.description ?? "",
         version: 1,
         nodes: workflow.nodes ?? [],
@@ -220,7 +221,7 @@ export const useWorkflowStore = create<WorkflowStoreState>((set, get) => ({
       const dup: WorkflowDefinition = {
         ...original,
         id: makeId(),
-        name: `${original.name} (副本)`,
+        name: t("workflow.duplicateSuffix", { name: original.name }),
         version: 1,
         createdAt: Date.now(),
         updatedAt: Date.now(),
@@ -240,17 +241,17 @@ export const useWorkflowStore = create<WorkflowStoreState>((set, get) => ({
   // ========== NL 解析 ==========
 
   parseNaturalLanguage: async (request: NLParseRequest) => {
-    set({ isParsing: true, parseProgress: "正在分析意图..." });
+    set({ isParsing: true, parseProgress: t("workflow.parse.analyzingIntent") });
     try {
       const mocks = await getMocks();
       if (mocks) {
         // Dev mode: use mock with staged progress
         await new Promise((r) => setTimeout(r, 600));
-        set({ parseProgress: "正在匹配节点..." });
+        set({ parseProgress: t("workflow.parse.matchingNodes") });
         await new Promise((r) => setTimeout(r, 600));
-        set({ parseProgress: "正在构建工作流..." });
+        set({ parseProgress: t("workflow.parse.buildingWorkflow") });
         await new Promise((r) => setTimeout(r, 600));
-        set({ parseProgress: "正在优化..." });
+        set({ parseProgress: t("workflow.parse.optimizing") });
         await new Promise((r) => setTimeout(r, 400));
         const result = mocks.generateMockParseResult(request.prompt);
         set((s) => ({ parseHistory: [result, ...s.parseHistory] }));
@@ -290,7 +291,7 @@ export const useWorkflowStore = create<WorkflowStoreState>((set, get) => ({
       const newWf: WorkflowDefinition = {
         ...template.workflow,
         id: makeId(),
-        name: `${template.name} (来自模板)`,
+        name: t("workflow.fromTemplate", { name: template.name }),
         version: 1,
         createdAt: Date.now(),
         updatedAt: Date.now(),
@@ -326,14 +327,14 @@ export const useWorkflowStore = create<WorkflowStoreState>((set, get) => ({
     try {
       if (wf) {
         for (const node of wf.nodes) {
-          addLog(node.id, node.label, "info", `开始执行节点: ${node.label}`);
+          addLog(node.id, node.label, "info", t("workflow.execution.startingNode", { label: node.label }));
           set({ isExecuting: true });
           await new Promise((r) => setTimeout(r, 300 + Math.random() * 400));
           const idx = nodeStates.findIndex((ns) => ns.nodeId === node.id);
           if (idx >= 0) {
             nodeStates[idx] = { nodeId: node.id, status: "success", startedAt: Date.now(), finishedAt: Date.now() };
           }
-          addLog(node.id, node.label, "info", `节点执行完成: ${node.label}`);
+          addLog(node.id, node.label, "info", t("workflow.execution.nodeCompleted", { label: node.label }));
         }
       }
 
@@ -345,7 +346,7 @@ export const useWorkflowStore = create<WorkflowStoreState>((set, get) => ({
         finishedAt: Date.now(),
         nodeStates,
         inputs,
-        outputs: { message: "执行成功" },
+        outputs: { message: t("workflow.execution.success") },
         logs,
       };
 
@@ -380,22 +381,34 @@ export const useWorkflowStore = create<WorkflowStoreState>((set, get) => ({
     const wf = get().workflows.find((w) => w.id === workflowId);
     if (!wf) { return []; }
     const versions: WorkflowVersion[] = [
-      { version: wf.version, updatedAt: wf.updatedAt, summary: "当前版本", status: wf.status, snapshot: wf },
+      {
+        version: wf.version,
+        updatedAt: wf.updatedAt,
+        summary: t("workflow.version.current"),
+        status: wf.status,
+        snapshot: wf,
+      },
       {
         version: wf.version - 1,
         updatedAt: wf.updatedAt - 86400000,
-        summary: "优化节点配置",
+        summary: t("workflow.version.optimizedConfig"),
         status: "active",
         snapshot: wf,
       },
       {
         version: wf.version - 2,
         updatedAt: wf.updatedAt - 86400000 * 2,
-        summary: "添加条件分支",
+        summary: t("workflow.version.addedBranch"),
         status: "active",
         snapshot: wf,
       },
-      { version: 1, updatedAt: wf.createdAt, summary: "初始创建", status: "draft", snapshot: wf },
+      {
+        version: 1,
+        updatedAt: wf.createdAt,
+        summary: t("workflow.version.initialCreation"),
+        status: "draft",
+        snapshot: wf,
+      },
     ];
     return versions;
   },
@@ -511,7 +524,7 @@ export const useWorkflowStore = create<WorkflowStoreState>((set, get) => ({
   // ========== NL2Skill ==========
 
   parseSkillFromNaturalLanguage: async (request: NL2SkillRequest) => {
-    set({ isParsing: true, parseProgress: "意图分析" });
+    set({ isParsing: true, parseProgress: t("workflow.parse.intentAnalysis") });
     try {
       const mocks = await getMocks();
       if (mocks) {
@@ -520,13 +533,13 @@ export const useWorkflowStore = create<WorkflowStoreState>((set, get) => ({
           request.skillType || "chat",
           (p) => set({ parseProgress: p }),
         );
-        set({ isParsing: false, parseProgress: "完成" });
+        set({ isParsing: false, parseProgress: t("workflow.parse.complete") });
         return result;
       }
       // Production: invoke backend
       throw new Error("NL2Skill backend not yet connected");
     } catch (e) {
-      set({ isParsing: false, parseProgress: "完成" });
+      set({ isParsing: false, parseProgress: t("workflow.parse.complete") });
       throw e;
     }
   },
@@ -534,7 +547,7 @@ export const useWorkflowStore = create<WorkflowStoreState>((set, get) => ({
   // ========== NL2UI ==========
 
   parseUIFromNaturalLanguage: async (request: NL2UIRequest) => {
-    set({ isParsing: true, parseProgress: "意图分析" });
+    set({ isParsing: true, parseProgress: t("workflow.parse.intentAnalysis") });
     try {
       const mocks = await getMocks();
       if (mocks) {
@@ -542,13 +555,13 @@ export const useWorkflowStore = create<WorkflowStoreState>((set, get) => ({
           request,
           (p) => set({ parseProgress: p }),
         );
-        set({ isParsing: false, parseProgress: "完成" });
+        set({ isParsing: false, parseProgress: t("workflow.parse.complete") });
         return result;
       }
       // Production: invoke backend
       throw new Error("NL2UI backend not yet connected");
     } catch (e) {
-      set({ isParsing: false, parseProgress: "完成" });
+      set({ isParsing: false, parseProgress: t("workflow.parse.complete") });
       throw e;
     }
   },

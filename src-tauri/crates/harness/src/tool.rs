@@ -307,6 +307,7 @@ pub struct ToolInfo {
     pub is_concurrency_safe: bool,
     pub is_read_only: bool,
     pub is_destructive: bool,
+    pub enabled: bool,
 }
 
 /// 权限检查结果
@@ -579,6 +580,7 @@ impl ToolInfo {
             is_concurrency_safe: tool.is_concurrency_safe(),
             is_read_only: tool.is_read_only(),
             is_destructive: tool.is_destructive(),
+            enabled: true,
         }
     }
 }

@@ -46,12 +46,12 @@ export function TraceExplorer() {
               items={[
                 {
                   key: "detail",
-                  label: t("traceExplorer.tab.detail", "详情"),
+                  label: t("traceExplorer.tab.detail"),
                   children: <TraceDetail />,
                 },
                 {
                   key: "timeline",
-                  label: t("traceExplorer.tab.timeline", "时间线"),
+                  label: t("traceExplorer.tab.timeline"),
                   children: (
                     <div style={{ padding: 16 }}>
                       <TraceTimeline traceId={selectedTrace.trace.trace_id} />
@@ -60,7 +60,7 @@ export function TraceExplorer() {
                 },
                 {
                   key: "bottleneck",
-                  label: t("traceExplorer.tab.bottleneck", "瓶颈分析"),
+                  label: t("traceExplorer.tab.bottleneck"),
                   children: (
                     <div style={{ padding: 16 }}>
                       <BottleneckAnalyzer traceId={selectedTrace.trace.trace_id} />
@@ -69,7 +69,7 @@ export function TraceExplorer() {
                 },
                 {
                   key: "suggestions",
-                  label: t("traceExplorer.tab.suggestions", "改进建议"),
+                  label: t("traceExplorer.tab.suggestions"),
                   children: (
                     <div style={{ padding: 16 }}>
                       <ImprovementSuggestion traceId={selectedTrace.trace.trace_id} />
@@ -78,7 +78,7 @@ export function TraceExplorer() {
                 },
                 {
                   key: "feedback",
-                  label: t("traceExplorer.tab.feedback", "反馈"),
+                  label: t("traceExplorer.tab.feedback"),
                   children: (
                     <div style={{ padding: 16 }}>
                       <FeedbackCollector traceId={selectedTrace.trace.trace_id} />

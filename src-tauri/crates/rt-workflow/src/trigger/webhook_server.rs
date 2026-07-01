@@ -38,7 +38,7 @@ pub async fn serve(
             tokio::task::block_in_place(|| {
                 let handle = tokio::runtime::Handle::current();
                 handle.block_on(async {
-                    handle_request(&request, &path, &method, &routes, &engine).await;
+                    handle_request(request, &path, &method, &routes, &engine).await;
                 });
             });
         }
@@ -51,7 +51,7 @@ pub async fn serve(
 
 /// 处理单个 HTTP 请求。
 async fn handle_request(
-    request: &tiny_http::Request,
+    mut request: tiny_http::Request,
     path: &str,
     method: &str,
     routes: &HashMap<String, WebhookRoute>,
@@ -82,7 +82,7 @@ async fn handle_request(
     }
 
     // 提取请求体 JSON
-    let input = extract_json_body(request);
+    let input = extract_json_body(&mut request);
 
     let wf_id = route.workflow_id.clone();
     let response_mode = route.response_mode.clone();
@@ -167,11 +167,10 @@ async fn handle_request(
 }
 
 /// 从请求体中提取 JSON，失败时返回空对象。
-fn extract_json_body(request: &tiny_http::Request) -> serde_json::Value {
+fn extract_json_body(request: &mut tiny_http::Request) -> serde_json::Value {
     let mut body_str = String::new();
-    if let Ok(mut reader) = request.as_reader().as_reader() {
-        let _ = reader.read_to_string(&mut body_str);
-    }
+    let reader = request.as_reader();
+    let _ = reader.read_to_string(&mut body_str);
     if body_str.trim().is_empty() {
         return serde_json::json!({});
     }

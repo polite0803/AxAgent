@@ -66,12 +66,12 @@ pub(crate) fn compute_backoff(
 }
 
 pub(crate) struct NodeResult {
-    node_id: String,
-    node: WorkflowNode,
-    input_snapshot: serde_json::Value,
-    started_at: i64,
-    elapsed_ms: u64,
-    dispatch_result: Result<Result<NodeOutput, NodeError>, tokio::time::error::Elapsed>,
+    pub(crate) node_id: String,
+    pub(crate) node: WorkflowNode,
+    pub(crate) input_snapshot: serde_json::Value,
+    pub(crate) started_at: i64,
+    pub(crate) elapsed_ms: u64,
+    pub(crate) dispatch_result: Result<Result<NodeOutput, NodeError>, tokio::time::error::Elapsed>,
 }
 
 // ── 测试 ──

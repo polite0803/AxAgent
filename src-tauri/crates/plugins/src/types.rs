@@ -12,6 +12,8 @@ use serde_json::{Map, Value};
 
 use axagent_harness::{NpmRegistryService, parse_npm_package_spec};
 
+use crate::manager::PluginError;
+
 const EXTERNAL_MARKETPLACE: &str = "external";
 const BUILTIN_MARKETPLACE: &str = "builtin";
 const BUNDLED_MARKETPLACE: &str = "bundled";
@@ -21,6 +23,7 @@ const MANIFEST_FILE_NAME: &str = "plugin.json";
 const MANIFEST_RELATIVE_PATH: &str = ".claude-plugin/plugin.json";
 const SKILL_MD_FILE_NAME: &str = "SKILL.md";
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum PluginKind {
     Builtin,
     Bundled,
@@ -39,7 +42,7 @@ impl Display for PluginKind {
 
 impl PluginKind {
     #[must_use]
-    fn marketplace(self) -> &'static str {
+    pub fn marketplace(self) -> &'static str {
         match self {
             Self::Builtin => BUILTIN_MARKETPLACE,
             Self::Bundled => BUNDLED_MARKETPLACE,
@@ -218,7 +221,7 @@ impl PluginPermission {
         }
     }
 
-    fn parse(value: &str) -> Option<Self> {
+    pub fn parse(value: &str) -> Option<Self> {
         match value {
             "read" => Some(Self::Read),
             "write" => Some(Self::Write),
@@ -296,7 +299,7 @@ impl PluginToolPermission {
         }
     }
 
-    fn parse(value: &str) -> Option<Self> {
+    pub fn parse(value: &str) -> Option<Self> {
         match value {
             "read-only" => Some(Self::ReadOnly),
             "workspace-write" => Some(Self::WorkspaceWrite),
@@ -389,7 +392,7 @@ pub(crate) struct RawPluginManifest {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-struct RawPluginToolManifest {
+pub struct RawPluginToolManifest {
     pub name: String,
     pub description: String,
     #[serde(rename = "inputSchema")]
@@ -406,7 +409,7 @@ pub struct PluginTool {
     plugin_id: String,
     plugin_name: String,
     definition: PluginToolDefinition,
-    command: String,
+    pub command: String,
     args: Vec<String>,
     required_permission: PluginToolPermission,
     root: Option<PathBuf>,
@@ -621,30 +624,30 @@ fn default_plugin_kind() -> PluginKind {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct BuiltinPlugin {
-    metadata: PluginMetadata,
-    hooks: PluginHooks,
-    lifecycle: PluginLifecycle,
-    tools: Vec<PluginTool>,
-    mcp_servers: Vec<PluginMcpServer>,
-    skills: Vec<PluginSkillEntry>,
+    pub metadata: PluginMetadata,
+    pub hooks: PluginHooks,
+    pub lifecycle: PluginLifecycle,
+    pub tools: Vec<PluginTool>,
+    pub mcp_servers: Vec<PluginMcpServer>,
+    pub skills: Vec<PluginSkillEntry>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct BundledPlugin {
-    metadata: PluginMetadata,
-    hooks: PluginHooks,
-    lifecycle: PluginLifecycle,
-    tools: Vec<PluginTool>,
-    mcp_servers: Vec<PluginMcpServer>,
-    skills: Vec<PluginSkillEntry>,
+    pub metadata: PluginMetadata,
+    pub hooks: PluginHooks,
+    pub lifecycle: PluginLifecycle,
+    pub tools: Vec<PluginTool>,
+    pub mcp_servers: Vec<PluginMcpServer>,
+    pub skills: Vec<PluginSkillEntry>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ExternalPlugin {
-    metadata: PluginMetadata,
-    hooks: PluginHooks,
-    lifecycle: PluginLifecycle,
-    tools: Vec<PluginTool>,
-    mcp_servers: Vec<PluginMcpServer>,
-    skills: Vec<PluginSkillEntry>,
+    pub metadata: PluginMetadata,
+    pub hooks: PluginHooks,
+    pub lifecycle: PluginLifecycle,
+    pub tools: Vec<PluginTool>,
+    pub mcp_servers: Vec<PluginMcpServer>,
+    pub skills: Vec<PluginSkillEntry>,
 }

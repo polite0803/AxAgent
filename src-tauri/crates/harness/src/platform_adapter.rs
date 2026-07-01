@@ -10,6 +10,14 @@ use async_trait::async_trait;
 use crate::core_error::Result;
 use crate::types::{AppSettings, GatewayKey, ProviderConfig, ProviderKey};
 
+/// Chat completion parameters for platform bridge dispatches.
+pub struct ChatCompletionParams {
+    pub system_prompt: String,
+    pub message: String,
+    pub platform: String,
+    pub workflow_id: Option<String>,
+}
+
 // ── 1. ProviderRepository ──
 
 #[async_trait]
@@ -80,10 +88,20 @@ pub trait CryptoService: Send + Sync {
 
 /// 把上面 5 个子 trait 聚合成一个入口，wiring 层注入一次，gateway 内部通过
 /// `state.adapter.providers().xxx()` 链式调用。
+#[async_trait]
 pub trait PlatformAdapter: Send + Sync {
     fn providers(&self) -> &dyn ProviderRepository;
     fn settings(&self) -> &dyn SettingsRepository;
     fn gateway_keys(&self) -> &dyn GatewayKeyRepository;
     fn request_log(&self) -> &dyn GatewayRequestLogRepository;
     fn crypto(&self) -> &dyn CryptoService;
+
+    /// Dispatch a chat completion request via the configured provider.
+    /// Used by the platform bridge webhook handler to respond to incoming messages.
+    async fn chat_completion(&self, params: ChatCompletionParams) -> Result<String> {
+        let _ = params;
+        Err(crate::core_error::AxAgentError::Internal(
+            "chat_completion not implemented by this adapter".into(),
+        ))
+    }
 }

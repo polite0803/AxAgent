@@ -75,6 +75,8 @@ fn make_workflow(id: &str, nodes: Vec<WorkflowNode>, edges: Vec<WorkflowEdge>) -
         results: HashMap::new(),
         node_states,
         output: None,
+        error_config: None,
+        error_workflow_id: None,
     }
 }
 

@@ -7,7 +7,7 @@ export function KnowledgeHubPage() {
   const { t } = useTranslation();
 
   return (
-    <div className="kb-layout">
+    <div className="kb-layout" data-testid="knowledge-hub">
       <div className="kb-header">
         <div className="kb-header-title">{t("nav.knowledge")}</div>
       </div>

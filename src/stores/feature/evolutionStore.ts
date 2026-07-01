@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+import { t } from "@/lib/i18nStoreHelper";
 import { invoke } from "@/lib/invoke";
 import { create } from "zustand";
 
@@ -51,56 +52,56 @@ export interface EvolutionEvent {
 const ENGINE_DEFINITIONS: Omit<EngineStatus, "running" | "config" | "stats" | "logs" | "lastActive">[] = [
   {
     name: "skill_evolution",
-    displayName: "技能进化引擎",
-    description: "自动进化技能提示词和工具调用策略，基于执行反馈持续优化",
+    displayName: t("evolution.engines.skill_evolution.name"),
+    description: t("evolution.engines.skill_evolution.desc"),
     category: "core",
   },
   {
     name: "auto_tool_creator",
-    displayName: "自动工具创建器",
-    description: "从频繁执行模式中学习，自动创建新的可复用工具",
+    displayName: t("evolution.engines.auto_tool_creator.name"),
+    description: t("evolution.engines.auto_tool_creator.desc"),
     category: "core",
   },
   {
     name: "text_grad",
-    displayName: "TextGrad 优化",
-    description: "文本梯度优化引擎，类似梯度下降但用于文本提示词优化",
+    displayName: t("evolution.engines.text_grad.name"),
+    description: t("evolution.engines.text_grad.desc"),
     category: "core",
   },
   {
     name: "constitution",
-    displayName: "宪法规则引擎",
-    description: "约束 Agent 行为的规则系统，确保安全合规",
+    displayName: t("evolution.engines.constitution.name"),
+    description: t("evolution.engines.constitution.desc"),
     category: "safety",
   },
   {
     name: "intrinsic_motivation",
-    displayName: "内在动机系统",
-    description: "自主驱动学习系统，模拟人类好奇心驱动的探索行为",
+    displayName: t("evolution.engines.intrinsic_motivation.name"),
+    description: t("evolution.engines.intrinsic_motivation.desc"),
     category: "learning",
   },
   {
     name: "coevolution",
-    displayName: "协同进化环境",
-    description: "多 Agent 协同进化环境，促进跨智能体的知识共享与竞争",
+    displayName: t("evolution.engines.coevolution.name"),
+    description: t("evolution.engines.coevolution.desc"),
     category: "learning",
   },
   {
     name: "dream_consolidator",
-    displayName: "梦境巩固器",
-    description: "类似人类 REM 睡眠的记忆巩固机制，离线优化知识表示",
+    displayName: t("evolution.engines.dream_consolidator.name"),
+    description: t("evolution.engines.dream_consolidator.desc"),
     category: "learning",
   },
   {
     name: "process_reward",
-    displayName: "过程奖励模型",
-    description: "评估中间步骤质量而非仅最终结果，提供细粒度反馈信号",
+    displayName: t("evolution.engines.process_reward.name"),
+    description: t("evolution.engines.process_reward.desc"),
     category: "learning",
   },
   {
     name: "sandbox",
-    displayName: "沙箱执行器",
-    description: "安全执行不受信代码，隔离运行环境防止系统损害",
+    displayName: t("evolution.engines.sandbox.name"),
+    description: t("evolution.engines.sandbox.desc"),
     category: "safety",
   },
 ];

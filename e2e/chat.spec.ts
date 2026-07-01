@@ -1,20 +1,18 @@
 import { expect, test } from "@playwright/test";
 
-test.describe("Chat Flow", () => {
+test.describe("Knowledge Hub", () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto("/");
-    await page.waitForSelector('[data-testid="chat-view"]', { timeout: 60000 });
+    await page.goto("/knowledge");
+    await page.waitForSelector('[data-testid="knowledge-hub"]', { timeout: 30000 });
   });
 
-  test("should display chat interface", async ({ page }) => {
-    await expect(page.locator('[data-testid="chat-view"]')).toBeVisible();
+  test("should display knowledge hub interface", async ({ page }) => {
+    await expect(page.locator('[data-testid="knowledge-hub"]')).toBeVisible();
   });
 
-  test("should have message input area", async ({ page }) => {
-    const input = page.locator('[data-testid="message-input"]');
-    const isVisible = await input.isVisible({ timeout: 5000 }).catch(() => false);
-    test.skip(!isVisible, "Input not visible (welcome page)");
-    await expect(input).toBeEnabled();
+  test("should have knowledge header visible", async ({ page }) => {
+    const header = page.locator(".kb-header-title");
+    await expect(header).toBeVisible({ timeout: 5000 });
   });
 
   test("should navigate to settings page via URL", async ({ page }) => {

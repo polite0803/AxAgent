@@ -70,7 +70,7 @@ export function RLTrainingMonitor() {
   }, [metricsHistory]);
 
   if (status === "idle") {
-    return <Text type="secondary">{t("rl.monitor.idle", "训练未开始，请先配置并启动训练。")}</Text>;
+    return <Text type="secondary">{t("rl.monitor.idle")}</Text>;
   }
 
   return (

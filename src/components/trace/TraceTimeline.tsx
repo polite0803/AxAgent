@@ -114,7 +114,7 @@ export function TraceTimeline({ traceId }: TraceTimelineProps) {
       <div style={{ textAlign: "center", padding: 32 }}>
         <Spin />
         <Text type="secondary" style={{ display: "block", marginTop: 8 }}>
-          {t("trace.loading", "加载执行轨迹...")}
+          {t("trace.loading")}
         </Text>
       </div>
     );
@@ -123,7 +123,7 @@ export function TraceTimeline({ traceId }: TraceTimelineProps) {
   if (error) {
     return (
       <div style={{ textAlign: "center", padding: 32 }}>
-        <Text type="danger">{t("trace.error", "加载失败")}: {error}</Text>
+        <Text type="danger">{t("trace.error")}: {error}</Text>
       </div>
     );
   }
@@ -131,7 +131,7 @@ export function TraceTimeline({ traceId }: TraceTimelineProps) {
   if (steps.length === 0) {
     return (
       <div style={{ textAlign: "center", padding: 32 }}>
-        <Text type="secondary">{t("trace.empty", "未找到执行轨迹数据")}</Text>
+        <Text type="secondary">{t("trace.empty")}</Text>
       </div>
     );
   }
@@ -159,26 +159,26 @@ export function TraceTimeline({ traceId }: TraceTimelineProps) {
         }}
       >
         <div>
-          <Text type="secondary" style={{ fontSize: 12 }}>{t("trace.totalSteps", "总步骤")}</Text>
+          <Text type="secondary" style={{ fontSize: 12 }}>{t("trace.totalSteps")}</Text>
           <div>
             <Text strong>{steps.length}</Text>
           </div>
         </div>
         <div>
-          <Text type="secondary" style={{ fontSize: 12 }}>{t("trace.totalDuration", "总耗时")}</Text>
+          <Text type="secondary" style={{ fontSize: 12 }}>{t("trace.totalDuration")}</Text>
           <div>
             <Text strong>{(totalDuration / 1000).toFixed(1)}s</Text>
           </div>
         </div>
         <div>
-          <Text type="secondary" style={{ fontSize: 12 }}>{t("trace.totalTokens", "总 Token")}</Text>
+          <Text type="secondary" style={{ fontSize: 12 }}>{t("trace.totalTokens")}</Text>
           <div>
             <Text strong>{totalTokens.toLocaleString()}</Text>
           </div>
         </div>
         {errorCount > 0 && (
           <div>
-            <Text type="secondary" style={{ fontSize: 12 }}>{t("trace.errors", "错误")}</Text>
+            <Text type="secondary" style={{ fontSize: 12 }}>{t("trace.errors")}</Text>
             <div>
               <Text strong type="danger">{errorCount}</Text>
             </div>

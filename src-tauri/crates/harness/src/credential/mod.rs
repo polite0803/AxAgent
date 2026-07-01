@@ -7,6 +7,10 @@
 
 use serde::{Deserialize, Serialize};
 
+pub mod manager;
+pub mod store;
+pub use manager::CredentialManager;
+
 /// Supported credential types for various integrations
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum CredentialType {

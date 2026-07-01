@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use super::ExpressionContext;
-use chrono::Utc;
+use chrono::{Datelike, Timelike, Utc};
 use rhai::{Dynamic, Engine, Map, Scope};
 use serde_json::Value;
 
@@ -51,7 +51,7 @@ fn dynamic_to_value(d: Dynamic) -> Value {
     if d.is::<i64>() {
         Value::Number(d.as_int().unwrap().into())
     } else if d.is::<f64>() {
-        if let Some(f) = d.as_float() {
+        if let Ok(f) = d.as_float() {
             if let Some(n) = serde_json::Number::from_f64(f) {
                 return Value::Number(n);
             }
@@ -70,7 +70,7 @@ fn dynamic_to_value(d: Dynamic) -> Value {
             .collect();
         Value::Array(arr)
     } else if d.is::<Map>() {
-        let map = d.into_map().unwrap();
+        let map = d.try_cast::<Map>().unwrap();
         let obj: serde_json::Map<String, Value> = map
             .into_iter()
             .map(|(k, v)| (k.to_string(), dynamic_to_value(v)))
@@ -92,7 +92,7 @@ pub fn resolve_expression(expr: &str, ctx: &ExpressionContext) -> Result<Value, 
     let vars_map = ctx
         .variables
         .iter()
-        .map(|(k, v)| (k.clone(), value_to_dynamic(v)))
+        .map(|(k, v)| (k.clone().into(), value_to_dynamic(v)))
         .collect::<Map>();
     scope.push_dynamic("$vars", Dynamic::from_map(vars_map));
 
@@ -100,7 +100,7 @@ pub fn resolve_expression(expr: &str, ctx: &ExpressionContext) -> Result<Value, 
     let node_map = ctx
         .node_outputs
         .iter()
-        .map(|(k, v)| (k.clone(), value_to_dynamic(v)))
+        .map(|(k, v)| (k.clone().into(), value_to_dynamic(v)))
         .collect::<Map>();
     scope.push_dynamic("$node", Dynamic::from_map(node_map));
 
@@ -123,7 +123,7 @@ pub fn resolve_expression(expr: &str, ctx: &ExpressionContext) -> Result<Value, 
     let env_map = ctx
         .env
         .iter()
-        .map(|(k, v)| (k.clone(), Dynamic::from(v.clone())))
+        .map(|(k, v)| (k.clone().into(), Dynamic::from(v.clone())))
         .collect::<Map>();
     scope.push_dynamic("$env", Dynamic::from_map(env_map));
 

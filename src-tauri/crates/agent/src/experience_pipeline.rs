@@ -10,7 +10,7 @@
 
 use crate::reflector::Reflection;
 use crate::rl_optimizer::{
-    Experience, ExperiencePool, RLOptimizer, TaskState, ThresholdScheduler, ToolSelection,
+    Experience, RLOptimizer, TaskState, ThresholdScheduler, ToolSelection,
 };
 use std::collections::HashMap;
 use std::sync::Arc;

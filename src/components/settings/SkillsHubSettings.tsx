@@ -98,7 +98,7 @@ export function SkillsHubSettings() {
       const result = await invoke<{ skills: Array<{ name: string }> }>("list_skills");
       const availableSkills = result?.skills ?? [];
       if (availableSkills.length === 0) {
-        message.warning("No installed skills to export");
+        message.warning(t("settings.skillsHub.noSkillsToExport"));
         return;
       }
       // 导出第一个 Skill 作为示例，后续可扩展为多选 UI
@@ -118,7 +118,7 @@ export function SkillsHubSettings() {
       console.error("Export failed:", e);
       message.error(`Export failed: ${e}`);
     }
-  }, []);
+  }, [t]);
 
   // P1 #13: 导入 Skill 处理函数
   const handleImportSkill = useCallback(async () => {
@@ -132,7 +132,7 @@ export function SkillsHubSettings() {
         const text = await file.text();
         const skillData = JSON.parse(text);
         if (!skillData.name) {
-          message.error("Invalid skill file: missing name");
+          message.error(t("settings.skillsHub.invalidSkillFile"));
           return;
         }
         await invoke("install_skill", {
@@ -146,7 +146,7 @@ export function SkillsHubSettings() {
       }
     };
     input.click();
-  }, []);
+  }, [t]);
 
   const columns = [
     {

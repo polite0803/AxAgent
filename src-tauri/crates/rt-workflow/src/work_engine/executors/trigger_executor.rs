@@ -47,7 +47,7 @@ impl NodeExecutorTrait for TriggerExecutor {
             ));
         };
 
-        let trigger_type = trigger_node.config.trigger_type;
+        let trigger_type = trigger_node.config.trigger_type.clone();
 
         // 获取 TriggerManager（若未注入则降级为旧版直通行为）
         let tm = context

@@ -161,7 +161,7 @@ export function BottleneckAnalyzer({ traceId }: BottleneckAnalyzerProps) {
       <div style={{ textAlign: "center", padding: 32 }}>
         <Spin />
         <Text type="secondary" style={{ display: "block", marginTop: 8 }}>
-          {t("trace.bottleneck.loading", "加载瓶颈分析...")}
+          {t("trace.bottleneck.loading")}
         </Text>
       </div>
     );
@@ -170,7 +170,7 @@ export function BottleneckAnalyzer({ traceId }: BottleneckAnalyzerProps) {
   if (error) {
     return (
       <div style={{ textAlign: "center", padding: 32 }}>
-        <Text type="danger">{t("trace.bottleneck.error", "分析失败")}: {error}</Text>
+        <Text type="danger">{t("trace.bottleneck.error")}: {error}</Text>
       </div>
     );
   }
@@ -183,7 +183,7 @@ export function BottleneckAnalyzer({ traceId }: BottleneckAnalyzerProps) {
   ) {
     return (
       <div style={{ textAlign: "center", padding: 32 }}>
-        <Text type="secondary">{t("trace.bottleneck.empty", "暂无瓶颈数据")}</Text>
+        <Text type="secondary">{t("trace.bottleneck.empty")}</Text>
       </div>
     );
   }
@@ -208,17 +208,17 @@ export function BottleneckAnalyzer({ traceId }: BottleneckAnalyzerProps) {
       items={[
         {
           key: "time",
-          label: t("trace.bottleneck.timeDistribution", "时间分布"),
+          label: t("trace.bottleneck.timeDistribution"),
           children: <PieChart data={data.timeDistribution} />,
         },
         {
           key: "token",
-          label: t("trace.bottleneck.tokenConsumption", "Token 消耗"),
+          label: t("trace.bottleneck.tokenConsumption"),
           children: <BarChart data={data.tokenDistribution} />,
         },
         {
           key: "failure",
-          label: t("trace.bottleneck.failurePatterns", "失败模式"),
+          label: t("trace.bottleneck.failurePatterns"),
           children: (
             <Table
               dataSource={data.failureModes.map((r, i) => ({ ...r, key: i }))}

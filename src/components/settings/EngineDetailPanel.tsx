@@ -17,12 +17,7 @@ const CATEGORY_COLORS: Record<string, string> = {
   experimental: "purple",
 };
 
-const CATEGORY_LABELS: Record<string, string> = {
-  core: "核心",
-  learning: "学习",
-  safety: "安全",
-  experimental: "实验",
-};
+// CATEGORY_LABELS now uses t() inside component; see below
 
 function buildConfigFields(engine: EngineStatus): ConfigField[] {
   const fields: ConfigField[] = [];
@@ -88,6 +83,13 @@ export default function EngineDetailPanel({ engineName, open, onClose }: EngineD
 
   const configFields = useMemo(() => (engine ? buildConfigFields(engine) : []), [engine]);
 
+  const categoryLabelMap: Record<string, string> = {
+    core: t("settings.evolution.categoryCore"),
+    learning: t("settings.evolution.categoryLearning"),
+    safety: t("settings.evolution.categorySafety"),
+    experimental: t("settings.evolution.categoryExperimental"),
+  };
+
   useEffect(() => {
     if (open && engine) {
       fetchEngineLogs(engineName);
@@ -100,8 +102,8 @@ export default function EngineDetailPanel({ engineName, open, onClose }: EngineD
 
   if (!engine) {
     return (
-      <Drawer title="引擎未找到" open={open} onClose={onClose} width={640}>
-        <Text type="secondary">未找到引擎 "{engineName}"</Text>
+      <Drawer title={t("settings.evolution.engineNotFound")} open={open} onClose={onClose} width={640}>
+        <Text type="secondary">{t("settings.evolution.engineNotFoundDesc", { name: engineName })}</Text>
       </Drawer>
     );
   }
@@ -119,8 +121,11 @@ export default function EngineDetailPanel({ engineName, open, onClose }: EngineD
       title={
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <span>{engine.displayName}</span>
-          <Badge status={engine.running ? "processing" : "default"} text={engine.running ? "运行中" : "已停止"} />
-          <Tag color={CATEGORY_COLORS[engine.category]}>{CATEGORY_LABELS[engine.category] ?? engine.category}</Tag>
+          <Badge
+            status={engine.running ? "processing" : "default"}
+            text={engine.running ? t("settings.evolution.running") : t("settings.evolution.stopped")}
+          />
+          <Tag color={CATEGORY_COLORS[engine.category]}>{categoryLabelMap[engine.category] ?? engine.category}</Tag>
         </div>
       }
       open={open}
@@ -132,7 +137,7 @@ export default function EngineDetailPanel({ engineName, open, onClose }: EngineD
           danger={engine.running}
           onClick={() => (engine.running ? stopEngine(engineName) : startEngine(engineName))}
         >
-          {engine.running ? "停止" : "启动"}
+          {engine.running ? t("settings.evolution.stop") : t("settings.evolution.start")}
         </Button>
       }
     >
@@ -143,7 +148,7 @@ export default function EngineDetailPanel({ engineName, open, onClose }: EngineD
         items={[
           {
             key: "config",
-            label: t("settings.evolution.config", "配置"),
+            label: t("settings.evolution.config"),
             children: (
               <EngineConfigForm
                 config={engine.config}
@@ -154,7 +159,7 @@ export default function EngineDetailPanel({ engineName, open, onClose }: EngineD
           },
           {
             key: "stats",
-            label: t("settings.evolution.stats", "统计"),
+            label: t("settings.evolution.stats"),
             children: (
               <Descriptions column={2} size="small" bordered>
                 {Object.entries(engine.stats).map(([key, value]) => (
@@ -174,7 +179,7 @@ export default function EngineDetailPanel({ engineName, open, onClose }: EngineD
             key: "logs",
             label: (
               <span>
-                {t("settings.evolution.logs", "日志")}
+                {t("settings.evolution.logs")}
                 {runningCount > 0 && (
                   <span style={{ marginLeft: 4, fontSize: 12, color: "#888" }}>
                     ({runningCount})
@@ -194,7 +199,7 @@ export default function EngineDetailPanel({ engineName, open, onClose }: EngineD
             ),
             children: (
               <div style={{ maxHeight: 400, overflow: "auto", fontFamily: "monospace", fontSize: 12 }}>
-                {engine.logs.length === 0 ? <Text type="secondary">暂无日志</Text> : (
+                {engine.logs.length === 0 ? <Text type="secondary">{t("settings.evolution.noLogs")}</Text> : (
                   engine.logs.map((log, i) => (
                     <div
                       key={i}

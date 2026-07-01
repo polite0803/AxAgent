@@ -35,14 +35,14 @@ export function FeedbackCollector({ traceId }: FeedbackCollectorProps) {
       await submitFeedback(traceId, rating!, comment || undefined);
       setSubmitted(true);
       notification.success({
-        message: t("trace.feedback.thanks", "感谢反馈"),
-        description: t("trace.feedback.received", "您的反馈已提交，将用于优化 Agent 执行策略。"),
+        message: t("trace.feedback.thanks"),
+        description: t("trace.feedback.received"),
         placement: "bottomRight",
       });
     } catch (e: unknown) {
       notification.error({
-        message: t("trace.feedback.error", "提交失败"),
-        description: e instanceof Error ? e.message : t("trace.feedback.errorRetry", "请稍后重试"),
+        message: t("trace.feedback.error"),
+        description: e instanceof Error ? e.message : t("trace.feedback.errorRetry"),
         placement: "bottomRight",
       });
     } finally {
@@ -53,7 +53,7 @@ export function FeedbackCollector({ traceId }: FeedbackCollectorProps) {
   if (submitted) {
     return (
       <div style={{ textAlign: "center", padding: 16 }}>
-        <Text type="secondary">{t("trace.feedback.submitted", "反馈已提交")}</Text>
+        <Text type="secondary">{t("trace.feedback.submitted")}</Text>
       </div>
     );
   }
@@ -61,7 +61,7 @@ export function FeedbackCollector({ traceId }: FeedbackCollectorProps) {
   return (
     <div style={{ padding: 12 }}>
       <Text style={{ display: "block", marginBottom: 12 }}>
-        {t("trace.feedback.question", "这次执行对您有帮助吗？")}
+        {t("trace.feedback.question")}
       </Text>
 
       <Space size={12} style={{ marginBottom: rating === "dislike" ? 12 : 0 }}>
@@ -70,7 +70,7 @@ export function FeedbackCollector({ traceId }: FeedbackCollectorProps) {
           type={rating === "like" ? "primary" : "default"}
           onClick={() => setRating("like")}
         >
-          {t("trace.feedback.helpful", "有帮助")}
+          {t("trace.feedback.helpful")}
         </Button>
         <Button
           icon={<DislikeOutlined />}
@@ -78,7 +78,7 @@ export function FeedbackCollector({ traceId }: FeedbackCollectorProps) {
           danger={rating === "dislike"}
           onClick={() => setRating("dislike")}
         >
-          {t("trace.feedback.notHelpful", "不满意")}
+          {t("trace.feedback.notHelpful")}
         </Button>
       </Space>
 
@@ -86,7 +86,7 @@ export function FeedbackCollector({ traceId }: FeedbackCollectorProps) {
         <div style={{ marginTop: 12 }}>
           <TextArea
             rows={3}
-            placeholder={t("trace.feedback.commentPlaceholder", "请描述具体问题，帮助我们改进...")}
+            placeholder={t("trace.feedback.commentPlaceholder")}
             value={comment}
             onChange={(e) => setComment(e.target.value)}
           />
@@ -96,7 +96,7 @@ export function FeedbackCollector({ traceId }: FeedbackCollectorProps) {
       {rating !== null && (
         <div style={{ marginTop: 12 }}>
           <Button type="primary" size="small" loading={submitting} onClick={handleSubmit}>
-            {t("trace.feedback.submit", "提交反馈")}
+            {t("trace.feedback.submit")}
           </Button>
         </div>
       )}

@@ -396,12 +396,12 @@ async fn process_platform_message(
     // The adapter resolves: model selection → prompt construction → LLM call
     let response = state
         .adapter
-        .chat_completion(
-            "platform-bridge".to_string(),
-            agent_instruction,
-            None, // no conversation history for platform messages
-            None, // default model
-        )
+        .chat_completion(axagent_harness::platform_adapter::ChatCompletionParams {
+            system_prompt,
+            message: payload.message.content.clone(),
+            platform: format!("{:?}", platform),
+            workflow_id: payload.workflow_id.clone(),
+        })
         .await
         .map_err(|e| format!("Agent dispatch failed: {}", e))?;
 

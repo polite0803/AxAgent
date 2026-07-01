@@ -6,6 +6,7 @@ import { useEvolutionStore } from "@/stores/feature/evolutionStore";
 import type { SkillVersion } from "@/stores/feature/evolutionStore";
 import { Statistic, Typography } from "antd";
 import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 
 const { Text } = Typography;
 
@@ -14,6 +15,7 @@ interface SkillEvolutionViewerProps {
 }
 
 export default function SkillEvolutionViewer({ skillId }: SkillEvolutionViewerProps) {
+  const { t } = useTranslation();
   const getSkillEvolutionHistory = useEvolutionStore((s) => s.getSkillEvolutionHistory);
   const getABTestResults = useEvolutionStore((s) => s.getABTestResults);
 
@@ -45,11 +47,11 @@ export default function SkillEvolutionViewer({ skillId }: SkillEvolutionViewerPr
           border: "1px solid var(--ant-color-border-secondary, #f0f0f0)",
         }}
       >
-        <Statistic title="当前版本" value={`v${currentVersion}`} />
-        <Statistic title="总进化次数" value={totalEvolutions} />
+        <Statistic title={t("skill.evolution.currentVersion")} value={`v${currentVersion}`} />
+        <Statistic title={t("skill.evolution.totalEvolutions")} value={totalEvolutions} />
         <Statistic
-          title="最近进化"
-          value={latestEvoTime > 0 ? new Date(latestEvoTime).toLocaleDateString() : "无"}
+          title={t("skill.evolution.latestEvolution")}
+          value={latestEvoTime > 0 ? new Date(latestEvoTime).toLocaleDateString() : t("skill.evolution.none")}
         />
       </div>
 
@@ -58,14 +60,14 @@ export default function SkillEvolutionViewer({ skillId }: SkillEvolutionViewerPr
         ? <SkillVersionTimeline skillId={skillId} />
         : (
           <Text type="secondary" style={{ display: "block", marginBottom: 24 }}>
-            该技能暂无进化历史
+            {t("skill.evolution.noHistory")}
           </Text>
         )}
 
       {/* A/B Test Results */}
       {abResults.length > 0 && (
         <div style={{ marginTop: 24 }}>
-          <Text strong style={{ display: "block", marginBottom: 12 }}>A/B 测试结果</Text>
+          <Text strong style={{ display: "block", marginBottom: 12 }}>{t("skill.evolution.abTestResults")}</Text>
           <SkillABTestResults skillId={skillId} />
         </div>
       )}

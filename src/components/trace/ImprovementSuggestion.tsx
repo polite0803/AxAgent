@@ -64,7 +64,7 @@ export function ImprovementSuggestion({ traceId }: ImprovementSuggestionProps) {
       <div style={{ textAlign: "center", padding: 32 }}>
         <Spin />
         <Text type="secondary" style={{ display: "block", marginTop: 8 }}>
-          {t("trace.improvement.loading", "生成改进建议...")}
+          {t("trace.improvement.loading")}
         </Text>
       </div>
     );
@@ -73,14 +73,14 @@ export function ImprovementSuggestion({ traceId }: ImprovementSuggestionProps) {
   if (error) {
     return (
       <div style={{ textAlign: "center", padding: 32 }}>
-        <Text type="danger">{t("trace.improvement.error", "生成失败")}: {error}</Text>
+        <Text type="danger">{t("trace.improvement.error")}: {error}</Text>
       </div>
     );
   }
 
   const handleApply = (item: ImprovementSuggestion) => {
     notification.info({
-      message: t("trace.improvement.applied", "改进已应用"),
+      message: t("trace.improvement.applied"),
       description: item.expectedImprovement,
       placement: "bottomRight",
     });
@@ -89,7 +89,7 @@ export function ImprovementSuggestion({ traceId }: ImprovementSuggestionProps) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       {suggestions.length === 0
-        ? <Text type="secondary">{t("trace.improvement.noSuggestions", "暂无改进建议")}</Text>
+        ? <Text type="secondary">{t("trace.improvement.noSuggestions")}</Text>
         : (
           suggestions.map((item) => (
             <Card
@@ -99,13 +99,13 @@ export function ImprovementSuggestion({ traceId }: ImprovementSuggestionProps) {
             >
               <div style={{ marginBottom: 8 }}>
                 <Text type="danger" strong style={{ fontSize: 12 }}>
-                  {t("trace.improvement.problem", "问题")}:
+                  {t("trace.improvement.problem")}:
                 </Text>
                 <Paragraph style={{ margin: "4px 0", fontSize: 13 }}>{item.problem}</Paragraph>
               </div>
               <div style={{ marginBottom: 8 }}>
                 <Text type="warning" strong style={{ fontSize: 12 }}>
-                  {t("trace.improvement.suggestion", "建议")}:
+                  {t("trace.improvement.suggestion")}:
                 </Text>
                 <Paragraph style={{ margin: "4px 0", fontSize: 13 }}>{item.suggestion}</Paragraph>
               </div>
@@ -114,7 +114,7 @@ export function ImprovementSuggestion({ traceId }: ImprovementSuggestionProps) {
                   {item.expectedImprovement}
                 </Text>
                 <Button type="primary" size="small" onClick={() => handleApply(item)}>
-                  {t("trace.improvement.apply", "应用改进")}
+                  {t("trace.improvement.apply")}
                 </Button>
               </div>
             </Card>

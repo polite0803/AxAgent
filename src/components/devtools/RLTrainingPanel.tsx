@@ -49,7 +49,7 @@ export function RLTrainingPanel() {
         }}
       >
         <Space>
-          <Text strong>{t("rl.panel.title", "RL 训练面板")}</Text>
+          <Text strong>{t("rl.panel.title")}</Text>
           <Badge
             status={STATUS_BADGE[status] ?? "default"}
             text={STATUS_LABELS[status] ?? status}
@@ -59,12 +59,12 @@ export function RLTrainingPanel() {
           {isRunning
             ? (
               <Button danger onClick={stopTraining}>
-                {t("rl.panel.stop", "停止训练")}
+                {t("rl.panel.stop")}
               </Button>
             )
             : (
               <Button type="primary" onClick={() => startTraining(config)}>
-                {t("rl.panel.start", "启动训练")}
+                {t("rl.panel.start")}
               </Button>
             )}
         </Space>
@@ -75,17 +75,17 @@ export function RLTrainingPanel() {
         items={[
           {
             key: "config",
-            label: t("rl.panel.config", "配置"),
+            label: t("rl.panel.config"),
             children: <RLTrainingConfig />,
           },
           {
             key: "monitor",
-            label: t("rl.panel.monitor", "监控"),
+            label: t("rl.panel.monitor"),
             children: <RLTrainingMonitor />,
           },
           {
             key: "checkpoints",
-            label: t("rl.panel.checkpoints", "检查点"),
+            label: t("rl.panel.checkpoints"),
             children: <RLCheckpointManager />,
           },
         ]}

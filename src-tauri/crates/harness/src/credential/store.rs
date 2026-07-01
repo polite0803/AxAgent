@@ -95,7 +95,7 @@ impl CredentialStore {
         }
         // Generate new random key
         let mut key = [0u8; 32];
-        rand::rng().fill(&mut key);
+        rand::thread_rng().fill(&mut key);
         key
     }
 
@@ -105,7 +105,7 @@ impl CredentialStore {
             .map_err(|e| AxAgentError::Crypto(format!("credential cipher init: {e}")))?;
 
         let mut nonce_bytes = [0u8; NONCE_SIZE];
-        rand::rng().fill(&mut nonce_bytes);
+        rand::thread_rng().fill(&mut nonce_bytes);
         let nonce = Nonce::from_slice(&nonce_bytes);
 
         let ciphertext = cipher

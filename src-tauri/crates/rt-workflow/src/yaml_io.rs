@@ -114,6 +114,8 @@ pub fn import_workflow_yaml(
         results: HashMap::new(),
         node_states: HashMap::new(),
         output: None,
+        error_config: None,
+        error_workflow_id: None,
     };
 
     Ok((workflow, yaml.metadata))
@@ -169,6 +171,8 @@ mod tests {
             results: HashMap::new(),
             node_states: HashMap::new(),
             output: None,
+            error_config: None,
+            error_workflow_id: None,
         }
     }
 

@@ -83,7 +83,7 @@ impl NodeExecutorTrait for NotificationExecutor {
         };
         let c = &n.config;
 
-        if c.webhook_url.trim().is_empty() {
+        if c.webhook_url.as_deref().unwrap_or("").trim().is_empty() {
             return Err(NodeError::exec_failed(
                 "NOTIFICATION_CONFIG_INVALID",
                 "webhook_url is empty",
@@ -94,7 +94,7 @@ impl NodeExecutorTrait for NotificationExecutor {
 
         tracing::info!(
             channel = %c.channel,
-            url = %c.webhook_url,
+            url = %c.webhook_url.as_deref().unwrap_or(""),
             "NotificationExecutor: sending"
         );
 
@@ -104,7 +104,7 @@ impl NodeExecutorTrait for NotificationExecutor {
             .map_err(|e| NodeError::exec_failed("NOTIFICATION_CLIENT_FAILED", e.to_string()))?;
 
         let response = client
-            .post(&c.webhook_url)
+            .post(c.webhook_url.as_deref().unwrap_or_default())
             .header("Content-Type", "application/json")
             .json(&payload)
             .send()

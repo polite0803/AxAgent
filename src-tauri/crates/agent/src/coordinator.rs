@@ -515,7 +515,7 @@ impl<T: AgentImpl> AgentCoordinator<T> {
         }
     }
 
-    pub fn with_tot_engine(mut self, engine: TreeOfThoughtsEngine) -> Self {
+    pub fn with_tot_engine(self, engine: TreeOfThoughtsEngine) -> Self {
         *self.tot_engine.blocking_lock() = Some(engine);
         self
     }
@@ -524,14 +524,14 @@ impl<T: AgentImpl> AgentCoordinator<T> {
     ///
     /// 每次 execute() 被调用时，自动从任务描述中提取特征并选择最优推理引擎。
     /// 如果不调用此方法，默认使用 ReactEngine。
-    pub fn with_reasoning_router(mut self) -> Self {
+    pub fn with_reasoning_router(self) -> Self {
         self.engine_selection_source
             .store(ENGINE_SOURCE_AUTO, Ordering::Release);
         self
     }
 
     /// 手动指定推理引擎（覆盖自动选择）。
-    pub fn with_reasoning_engine(mut self, engine: ReasoningEngine) -> Self {
+    pub fn with_reasoning_engine(self, engine: ReasoningEngine) -> Self {
         *self.reasoning_engine.blocking_write() = engine;
         self.engine_selection_source
             .store(ENGINE_SOURCE_MANUAL, Ordering::Release);
@@ -735,7 +735,7 @@ impl<T: AgentImpl> AgentCoordinator<T> {
 
         // For complex tasks that require multi-path reasoning, use Tree of Thoughts
         // when tot_engine is available AND router recommends it
-        let should_use_tot = selected_engine == ReasoningEngine::TreeOfThoughts
+        let _should_use_tot = selected_engine == ReasoningEngine::TreeOfThoughts
             && self.tot_engine.lock().await.is_some();
 
         let cache_was_valid = self.prompt_cache.is_cache_valid().await;

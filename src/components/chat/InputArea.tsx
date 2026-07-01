@@ -1665,7 +1665,6 @@ export function InputArea() {
             messageApi.info(
               t(
                 "chat.switchAgentModeNoConversationInfo",
-                "Switched to Agent mode. Send a message to create an Agent conversation.",
               ),
             );
           } else {
@@ -1764,7 +1763,6 @@ export function InputArea() {
               messageApi.warning(
                 t(
                   "chat.agentInitTransient",
-                  "Agent session initialization failed due to a temporary connection issue. You can try sending again in a moment.",
                 ),
               );
             } else {

@@ -165,11 +165,14 @@ impl NodeDispatcher {
             }
         }
 
-        let map = self.executors.read().expect("executors lock poisoned");
-        let executor = map.get(node_type).unwrap_or_else(|| {
-            map.get("fallback")
-                .expect("FallbackExecutor must be registered")
-        });
+        let executor = {
+            let map = self.executors.read().expect("executors lock poisoned");
+            map.get(node_type).cloned().unwrap_or_else(|| {
+                map.get("fallback")
+                    .cloned()
+                    .expect("FallbackExecutor must be registered")
+            })
+        };
         tracing::info!(
             node_id = %node.base_id(),
             node_type,

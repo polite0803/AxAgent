@@ -441,7 +441,10 @@ export function Sidebar() {
 
       {/* Agent Panel toggle */}
       {agentInTheLoopEnabled && (
-        <Tooltip title={sidebarCollapsed ? (isAgentPanelOpen ? "关闭 Agent" : "打开 Agent") : ""} placement="right">
+        <Tooltip
+          title={sidebarCollapsed ? (isAgentPanelOpen ? t("sidebar.closeAgent") : t("sidebar.openAgent")) : ""}
+          placement="right"
+        >
           <button
             type="button"
             className={`nav-item${isAgentPanelOpen ? " active" : ""}`}

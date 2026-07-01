@@ -78,14 +78,14 @@ function getTypeIcon(type: string, agentType?: string): string {
   }
 }
 
-function getTypeLabel(type: string): string {
+function getTypeLabel(type: string, t: (key: string) => string): string {
   switch (type) {
     case "sub_agent":
-      return "Sub-Agent";
+      return t("agentPool.type.subAgent");
     case "worker":
-      return "Worker";
+      return t("agentPool.type.worker");
     case "workflow_step":
-      return "Step";
+      return t("agentPool.type.step");
     default:
       return type;
   }
@@ -193,7 +193,7 @@ function PoolItemCard({ item }: { item: AgentPoolItem }) {
   const { scrollTo } = useScrollToMessage();
   const color = getTypeColor(item.type, item.agentType);
   const icon = getTypeIcon(item.type, item.agentType);
-  const typeLabel = getTypeLabel(item.type);
+  const typeLabel = getTypeLabel(item.type, t);
   const isRunning = item.status === "running";
   const isCompleted = item.status === "completed";
   const isFailed = item.status === "failed";
@@ -317,7 +317,7 @@ function PoolSummaryBar({ summary }: { summary: AgentPoolSummary }) {
     <div className="pool-summary">
       <div className="pool-summary__stats">
         <span className="pool-summary__label">
-          Agent Pool ({summary.completed}/{summary.total})
+          {t("agentPool.summary", { completed: summary.completed, total: summary.total })}
         </span>
         <div className="pool-summary__bar">
           <div

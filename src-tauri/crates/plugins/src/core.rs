@@ -22,6 +22,7 @@ const MANIFEST_RELATIVE_PATH: &str = ".claude-plugin/plugin.json";
 const SKILL_MD_FILE_NAME: &str = "SKILL.md";
 
 use crate::types::*;
+use crate::manager::{PluginError, validate_hook_paths, validate_lifecycle_paths, validate_tool_paths, run_lifecycle_commands};
 
 pub trait Plugin {
     fn metadata(&self) -> &PluginMetadata;
@@ -257,7 +258,7 @@ impl Plugin for PluginDefinition {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct RegisteredPlugin {
-    definition: PluginDefinition,
+    pub(crate) definition: PluginDefinition,
     enabled: bool,
 }
 
@@ -424,21 +425,21 @@ impl PluginRegistryReport {
 }
 
 #[derive(Debug, Default)]
-struct PluginDiscovery {
-    plugins: Vec<PluginDefinition>,
-    failures: Vec<PluginLoadFailure>,
+pub(crate) struct PluginDiscovery {
+    pub(crate) plugins: Vec<PluginDefinition>,
+    pub(crate) failures: Vec<PluginLoadFailure>,
 }
 
 impl PluginDiscovery {
-    fn push_plugin(&mut self, plugin: PluginDefinition) {
+    pub(crate) fn push_plugin(&mut self, plugin: PluginDefinition) {
         self.plugins.push(plugin);
     }
 
-    fn push_failure(&mut self, failure: PluginLoadFailure) {
+    pub(crate) fn push_failure(&mut self, failure: PluginLoadFailure) {
         self.failures.push(failure);
     }
 
-    fn extend(&mut self, other: Self) {
+    pub(crate) fn extend(&mut self, other: Self) {
         self.plugins.extend(other.plugins);
         self.failures.extend(other.failures);
     }
@@ -446,7 +447,7 @@ impl PluginDiscovery {
 
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct PluginRegistry {
-    plugins: Vec<RegisteredPlugin>,
+    pub(crate) plugins: Vec<RegisteredPlugin>,
 }
 
 impl PluginRegistry {

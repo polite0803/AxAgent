@@ -31,6 +31,7 @@ pub(crate) async fn spawn_schedule(
     };
 
     let wf_id = workflow_id.to_string();
+    let cron_expr = cron_expr.to_string();
     let engine_lock = manager.get_engine().await;
     let engine = engine_lock.ok_or_else(|| "引擎未就绪".to_string())?;
 

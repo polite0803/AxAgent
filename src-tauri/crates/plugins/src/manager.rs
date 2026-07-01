@@ -24,7 +24,10 @@ const SKILL_MD_FILE_NAME: &str = "SKILL.md";
 
 use crate::core::*;
 use crate::types::*;
+use crate::mcp_launcher::McpLauncher;
+use crate::skill_installer::SkillInstaller;
 
+#[derive(Debug)]
 pub struct PluginManagerConfig {
     pub config_home: PathBuf,
     pub enabled_plugins: BTreeMap<String, bool>,
@@ -512,10 +515,15 @@ impl PluginManager {
         let mut started = Vec::new();
         let mut errors = Vec::new();
 
-        for (plugin_id, enabled) in &self.config.enabled_plugins {
-            if !enabled {
-                continue;
-            }
+        let enabled_ids: Vec<String> = self
+            .config
+            .enabled_plugins
+            .iter()
+            .filter(|entry| *entry.1)
+            .map(|(id, _)| id.clone())
+            .collect();
+
+        for plugin_id in &enabled_ids {
             let Some(record) = registry.plugins.get(plugin_id) else {
                 continue;
             };
@@ -549,7 +557,7 @@ impl PluginManager {
             .config
             .enabled_plugins
             .iter()
-            .filter(|(_, &enabled)| enabled)
+            .filter(|entry| *entry.1)
             .map(|(id, _)| id.clone())
             .collect();
         for plugin_id in plugin_ids {
@@ -1671,7 +1679,7 @@ fn resolve_tools(
         .collect()
 }
 
-fn validate_hook_paths(root: Option<&Path>, hooks: &PluginHooks) -> Result<(), PluginError> {
+pub fn validate_hook_paths(root: Option<&Path>, hooks: &PluginHooks) -> Result<(), PluginError> {
     let Some(root) = root else {
         return Ok(());
     };
@@ -1686,7 +1694,7 @@ fn validate_hook_paths(root: Option<&Path>, hooks: &PluginHooks) -> Result<(), P
     Ok(())
 }
 
-fn validate_lifecycle_paths(
+pub fn validate_lifecycle_paths(
     root: Option<&Path>,
     lifecycle: &PluginLifecycle,
 ) -> Result<(), PluginError> {
@@ -1699,7 +1707,7 @@ fn validate_lifecycle_paths(
     Ok(())
 }
 
-fn validate_tool_paths(root: Option<&Path>, tools: &[PluginTool]) -> Result<(), PluginError> {
+pub fn validate_tool_paths(root: Option<&Path>, tools: &[PluginTool]) -> Result<(), PluginError> {
     let Some(root) = root else {
         return Ok(());
     };
@@ -1745,7 +1753,7 @@ fn is_literal_command(entry: &str) -> bool {
     !entry.starts_with("./") && !entry.starts_with("../") && !Path::new(entry).is_absolute()
 }
 
-fn run_lifecycle_commands(
+pub fn run_lifecycle_commands(
     metadata: &PluginMetadata,
     lifecycle: &PluginLifecycle,
     phase: &str,

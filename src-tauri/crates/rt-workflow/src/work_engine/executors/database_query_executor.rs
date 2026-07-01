@@ -8,6 +8,8 @@
 
 use async_trait::async_trait;
 use axagent_core::workflow_types::WorkflowNode;
+use sqlx::any::AnyPoolOptions;
+use sqlx::Row;
 
 use crate::work_engine::execution_state::ExecutionState;
 use crate::work_engine::node_executor_trait::{NodeError, NodeExecutorTrait, NodeOutput};
@@ -81,17 +83,19 @@ impl NodeExecutorTrait for DatabaseQueryExecutor {
             c.connection_name.as_deref(),
         )?;
 
-        let mut conn = sqlx::AnyConnection::connect(&conn_str)
+        let pool = AnyPoolOptions::new()
+            .max_connections(1)
+            .connect(&conn_str)
             .await
             .map_err(|e| NodeError::exec_failed("DATABASE_CONNECT_FAILED", e.to_string()))?;
 
         let rows = sqlx::query(&c.query)
-            .fetch_all(&mut conn)
+            .fetch_all(&pool)
             .await
             .map_err(|e| NodeError::exec_failed("DATABASE_QUERY_FAILED", e.to_string()));
 
-        // Close connection explicitly
-        drop(conn);
+        // Drop pool connection explicitly
+        drop(pool);
 
         let rows = rows?;
 
@@ -110,7 +114,7 @@ impl NodeExecutorTrait for DatabaseQueryExecutor {
                 } else {
                     serde_json::Value::Null
                 };
-                map.insert(col.name().to_string(), val);
+                map.insert(col.name.to_string(), val);
             }
             results.push(serde_json::Value::Object(map));
         }

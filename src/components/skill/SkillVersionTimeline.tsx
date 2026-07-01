@@ -4,6 +4,7 @@ import { useEvolutionStore } from "@/stores/feature/evolutionStore";
 import type { SkillVersion } from "@/stores/feature/evolutionStore";
 import { Button, Modal, Tag, theme, Timeline, Typography } from "antd";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 
 const { Text, Paragraph } = Typography;
 
@@ -36,6 +37,7 @@ function MetricChange({ metrics }: { metrics: Record<string, { before: number; a
 }
 
 export default function SkillVersionTimeline({ skillId }: SkillVersionTimelineProps) {
+  const { t } = useTranslation();
   const getSkillEvolutionHistory = useEvolutionStore((s) => s.getSkillEvolutionHistory);
   const versions: SkillVersion[] = getSkillEvolutionHistory(skillId);
   const [diffModalOpen, setDiffModalOpen] = useState(false);
@@ -44,7 +46,7 @@ export default function SkillVersionTimeline({ skillId }: SkillVersionTimelinePr
   const { token } = theme.useToken();
 
   if (versions.length === 0) {
-    return <Text type="secondary">暂无进化历史</Text>;
+    return <Text type="secondary">{t("skill.evolution.noHistory")}</Text>;
   }
 
   const items = versions.map((v) => ({
@@ -70,7 +72,7 @@ export default function SkillVersionTimeline({ skillId }: SkillVersionTimelinePr
                 setDiffModalOpen(true);
               }}
             >
-              查看 Diff
+              {t("skill.evolution.viewDiff")}
             </Button>
           )}
           {v.version > 1 && (
@@ -80,7 +82,7 @@ export default function SkillVersionTimeline({ skillId }: SkillVersionTimelinePr
               type="link"
               onClick={() => setRollbackConfirm(v.version)}
             >
-              回滚
+              {t("skill.evolution.rollback")}
             </Button>
           )}
         </div>
@@ -110,7 +112,9 @@ export default function SkillVersionTimeline({ skillId }: SkillVersionTimelinePr
               }}
             >
               <Text type="danger" strong>
-                旧版 (v{versions.findIndex((v) => v.promptDiff?.old === selectedDiff.old) + 1})
+                {t("skill.evolution.oldVersion", {
+                  version: versions.findIndex((v) => v.promptDiff?.old === selectedDiff.old) + 1,
+                })}
               </Text>
               <pre style={{ whiteSpace: "pre-wrap", margin: "4px 0" }}>{selectedDiff.old}</pre>
             </div>
@@ -122,7 +126,9 @@ export default function SkillVersionTimeline({ skillId }: SkillVersionTimelinePr
               }}
             >
               <Text type="success" strong>
-                新版 (v{versions.findIndex((v) => v.promptDiff?.new === selectedDiff.new) + 1})
+                {t("skill.evolution.newVersion", {
+                  version: versions.findIndex((v) => v.promptDiff?.new === selectedDiff.new) + 1,
+                })}
               </Text>
               <pre style={{ whiteSpace: "pre-wrap", margin: "4px 0" }}>{selectedDiff.new}</pre>
             </div>
@@ -131,17 +137,17 @@ export default function SkillVersionTimeline({ skillId }: SkillVersionTimelinePr
       </Modal>
 
       <Modal
-        title="确认回滚"
+        title={t("skill.evolution.confirmRollback")}
         open={rollbackConfirm !== null}
         onCancel={() => setRollbackConfirm(null)}
         onOk={() => {
           setRollbackConfirm(null);
         }}
-        okText="确认回滚"
+        okText={t("skill.evolution.confirmRollback")}
         okButtonProps={{ danger: true }}
       >
         <Paragraph>
-          确定要回滚到 v{rollbackConfirm} 吗？此操作将丢弃之后的所有进化变更。
+          {t("skill.evolution.rollbackConfirmMessage", { version: rollbackConfirm })}
         </Paragraph>
       </Modal>
     </div>

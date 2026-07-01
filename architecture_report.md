@@ -397,6 +397,576 @@ AxAgent 作为能力基座，提供了以下扩展维度：
 
 ---
 
+## 8. 业务接入最佳实践深度调研
+
+> 本章涵盖 Plugin 能力边界、Skill 定义格式、工作流节点类型、编排器策略、动态 UI 机制和现有配置样本六个方面。所有结论基于真实代码分析。
+
+### 8.1 Plugin 的能力边界
+
+#### 8.1.1 Plugin Trait 的 9 个方法（`plugins/src/core.rs`）
+
+`Plugin` trait 是插件系统的最低抽象层，所有插件类型（Builtin / Bundled / External）都必须实现此 trait。完整方法签名：
+
+| # | 方法            | 返回类型                                   | 语义                                                                          |
+| - | --------------- | ------------------------------------------ | ----------------------------------------------------------------------------- |
+| 1 | `metadata()`    | `&PluginMetadata`                          | 静态元信息（name/version/description/author/homepage/repository）             |
+| 2 | `hooks()`       | `Option<&'static [PluginHookDefinition]>`  | 声明此插件拦截哪些生命周期事件；`None` = 不注册任何 Hook                      |
+| 3 | `lifecycle()`   | `PluginLifecycle`                          | 声明支持的阶段：`OnLoad` / `OnEnable` / `OnDisable` / `OnUninstall`           |
+| 4 | `tools()`       | `Option<&'static [PluginToolDefinition]>`  | 插件提供的工具定义（name + description + inputSchema + optional permissions） |
+| 5 | `mcp_servers()` | `Option<&'static [PluginMcpServerConfig]>` | 插件托管的 MCP 服务器（command/args/env/healthCheck）                         |
+| 6 | `skills()`      | `Option<&'static [PluginSkillEntry]>`      | 插件附带的技能文件（name + path 指向 .md 文件）                               |
+| 7 | `validate()`    | `Result<(), PluginValidationError>`        | 插件自校验（manifest 一致性、资源可达性）                                     |
+| 8 | `initialize()`  | `Result<(), PluginError>`                  | 一次性初始化（连接数据库、预热缓存）                                          |
+| 9 | `shutdown()`    | `Result<(), PluginError>`                  | 优雅关闭（断开连接、保存状态）                                                |
+
+**关键约束**：`Plugin` trait 上没有 `agents()` 和 `dashboards()` 方法。Agent 和 Dashboard 的注册走完全独立的通道（见 8.1.4）。
+
+#### 8.1.2 PluginManifest 完整字段（`plugins/src/types.rs`）
+
+`PluginManifest` 定义了插件对外声明的能力集合，共 **16 个字段**：
+
+| 字段               | 类型                          | 说明                                                             |
+| ------------------ | ----------------------------- | ---------------------------------------------------------------- |
+| `id`               | `String`                      | 全局唯一标识符（如 `com.example.myplugin`）                      |
+| `name`             | `String`                      | 显示名称                                                         |
+| `version`          | `String`                      | 语义版本号                                                       |
+| `description`      | `String`                      | 简短描述                                                         |
+| `author`           | `Option<String>`              | 作者                                                             |
+| `homepage`         | `Option<String>`              | 项目主页                                                         |
+| `repository`       | `Option<String>`              | 代码仓库                                                         |
+| `license`          | `Option<String>`              | 许可证                                                           |
+| `icon`             | `Option<String>`              | 图标路径                                                         |
+| `min_app_version`  | `Option<String>`              | 最低 AxAgent 版本要求                                            |
+| `tools`            | `Vec<PluginToolManifest>`     | 通过 stdin/stdout 子进程通信的外部工具                           |
+| `skills`           | `Vec<PluginSkillEntry>`       | 技能文件（仅 name + path）                                       |
+| `agents`           | `Vec<PluginAgentDefInternal>` | Agent 定义（9 个子字段，含 tools / disallowed_tools / model 等） |
+| `mcp_servers`      | `Vec<PluginMcpServer>`        | MCP 服务器定义                                                   |
+| `dashboard_panels` | `Vec<PluginDashboardPanel>`   | 仪表盘面板（id / component_name / position / size）              |
+| `scenarios`        | `Vec<String>`                 | 适用场景标签（用于技能市场推荐）                                 |
+
+**能力声明的自由度**：Manifest 中的声明本质上是**静态能力清单**。插件可以声明它提供 Tool / Skill / Agent / MCP / Dashboard 五种能力中的任意组合。但声明只是第一步——Tool 需要实现 `PluginToolManifest` 中的子进程或 WASM 接口；Skill 需要对应的 .md 文件真实存在；Agent 需要实现 `PluginAgentDefInternal` 并注册到 `PluginAgentRegistry`；MCP 服务器需要可执行文件在运行时可达。
+
+**能力的限制（Plugin 不能做的事）**：
+
+1. **不能在工作流编辑器中声明新节点类型**——WorkflowNode 是编译期枚举，不支持动态扩展
+2. **不能修改核心调度逻辑**——NodeDispatcher 的 HashMap 路由是内部实现细节，不对外暴露注册接口
+3. **不能覆盖内置 Agent 角色**——AgentRole 枚举（Coordinator / Researcher 等 8 种）在 harness crate 中硬编码
+4. **不能绕过 PluginManager 的生命周期管理**——插件加载/卸载严格走 PluginManager 的队列调度
+5. **工具通信有两个层级**：trait 上的 `tools()` 返回进程内工具定义；manifest 上的 `tools` 字段声明子进程工具。两者针对不同的工具实现模式（SDK 内联 vs 独立进程）
+
+#### 8.1.3 PluginDefinition 枚举
+
+```rust
+pub enum PluginDefinition {
+    Builtin(BuiltinPlugin),     // 编译期内联，二进制内嵌，无独立目录
+    Bundled(BundledPlugin),     // 随应用分发，位于 {bundled_root}/
+    External(ExternalPlugin),   // 用户安装或外部搜索目录发现
+}
+```
+
+三种变体的区别在于**发现和加载机制**：Builtin 通过 Rust 编译期静态注册；Bundled 在启动时从磁盘扫描；External 从 `external_directories` 和 `install_root/installed.json` 动态发现。
+
+#### 8.1.4 能力声明的下游消费路径（完整链路）
+
+**工具（Tool）消费链路**：
+
+```
+Plugin::tools() / PluginManifest.tools
+  → PluginRegistry::aggregated_tools()   [遍历已启用插件 → 去重 → 重名检测]
+  → ToolRegistry::register()             [注册到中心化工具注册表]
+  → ToolExecutor::execute()              [工作流节点按 tool_name 精确匹配]
+  → LLM function calling                 [Agent 节点将工具列表转换为 LLM schema]
+```
+
+**技能（Skill）消费链路**：
+
+```
+Plugin::skills() / PluginManifest.skills
+  → SkillInstaller::install_plugin_skills()  [复制 .md 文件到 {config_home}/skills/{plugin_id}/]
+  → skills_dir() 文件系统索引               [技能 CRUD 命令通过文件路径访问]
+  → SkillManager / SkillMatcher              [运行时按关键词匹配加载]
+```
+
+**Agent 消费链路（独立通道）**：
+
+```
+PluginManifest.agents
+  → PluginAgentRegistry::register_plugin_agents()  [HashMap<String, PluginAgentDef> + RwLock]
+  → GLOBAL_PLUGIN_AGENTS 全局单例                   [跨 crate 通过 LazyLock 访问]
+  → AgentExecutor / AgentCoordinator                [按 agent_type 字符串查找]
+```
+
+与 Plugin trait 解耦：Agent 注册发生在 `PluginManager` 的加载流程中，不通过 `Plugin` trait 的任何方法。
+
+**Dashboard 消费链路**：
+
+```
+PluginManifest.dashboard_panels
+  → DashboardRegistry::register_plugin_panels()
+  → DashboardPluginAdapter                         [适配为 DashboardPlugin trait]
+  → DynamicUIRenderer                              [前端按 component_name 查找注册表中的组件]
+```
+
+**MCP 服务器消费链路**：
+
+```
+Plugin::mcp_servers() / PluginManifest.mcp_servers
+  → McpLauncher::launch_plugin_mcp()
+  → MCP 客户端进程管理（启动/健康检查/关闭/重启）
+  → MCP 工具自动发现（通过 tools/list 协议）
+```
+
+### 8.2 Skill 的完整定义格式
+
+#### 8.2.1 技能文件物理格式
+
+技能以目录为单位组织，存储在 `{config_home}/skills/{skill_name}/`。目录中至少包含一个 `SKILL.md` 文件作为技能入口，格式为 **YAML frontmatter + Markdown body**：
+
+```markdown
+---
+name: my-skill
+description: A skill that does something useful
+version: 1.0.0
+metadata:
+  hermes:
+    tags: [python, automation]
+    category: development
+    related_skills: []
+---
+
+# Skill Content
+
+技能的实际指令内容，包含操作步骤、工具使用说明、代码示例等。
+支持完整的 Markdown 语法，包括代码块（含语言标注）、表格、列表等。
+```
+
+#### 8.2.2 skill-manifest.json 格式
+
+安装/部署技能时，系统自动生成或合并 `skill-manifest.json`：
+
+```json
+{
+  "source_kind": "github",
+  "source_ref": "owner/repo",
+  "branch": "main",
+  "commit": "abc1234",
+  "installed_at": "2026-07-01T12:00:00Z",
+  "installed_via": "marketplace",
+  "versions": [
+    { "version": "abc1234", "installed_at": "...", "commit": "abc1234" }
+  ],
+  "scenarios": ["code-generation", "testing"],
+  "dependencies": [{ "name": "other-skill", "version_constraint": ">=1.0.0", "required": true }]
+}
+```
+
+#### 8.2.3 HermesMetadata 完整字段（`trajectory/src/skill.rs`）
+
+`HermesMetadata` 是 Skill 元数据的核心结构，定义了技能的可替代性和依赖关系：
+
+| 字段                    | 类型                           | 用途                                                       |
+| ----------------------- | ------------------------------ | ---------------------------------------------------------- |
+| `tags`                  | `Vec<String>`                  | 分类标签（用于搜索和推荐）                                 |
+| `category`              | `String`                       | 类别（默认为 "general"）                                   |
+| `fallback_for_toolsets` | `Vec<String>`                  | 此技能可替代的工具集——当指定工具不可用时自动回退           |
+| `requires_toolsets`     | `Vec<String>`                  | 此技能依赖的工具集——缺失时技能不可用                       |
+| `config`                | `Vec<SkillConfig>`             | 用户可配置参数（key + description + default + prompt）     |
+| `source_kind`           | `Option<String>`               | 来源类型：`"plugin"` / `"github"` / `"local"` / `"manual"` |
+| `source_ref`            | `Option<String>`               | 来源引用（如 GitHub owner/repo）                           |
+| `commit`                | `Option<String>`               | 安装时的 Git commit hash                                   |
+| `skill_dependencies`    | `Option<Vec<SkillDependency>>` | 对其他技能的依赖声明                                       |
+
+**`fallback_for_toolsets` 与 `requires_toolsets` 的设计意图**：这两个字段实现了技能的**可替代性模型**。一个技能可以声明"当工具集 X 不可用时，我可以作为替代方案"（fallback）；同时声明"我需要工具集 Y 才能正常运行"（requires）。这为运行时的能力协商提供了数据基础。
+
+#### 8.2.4 技能的存储和索引方式
+
+**目录结构**：
+
+```
+{config_home}/skills/
+├── skill-name-1/
+│   ├── SKILL.md                  # 主技能文件（YAML frontmatter + Markdown）
+│   ├── skill-manifest.json       # 安装元数据（自动生成）
+│   └── sub-docs/                 # 附属文档（可选，递归深度 ≤5 层）
+│       ├── example.md
+│       └── reference.md
+├── skill-name-2/
+│   └── ...
+```
+
+**内容收集**：`collect_markdown_files()` 递归扫描技能目录中的所有 `.md` 文件（深度限制 5 层，单文件 ≤5MB，总量 ≤10MB）。
+
+**索引机制**：技能通过两个维度被索引和查找：
+
+1. **文件系统直接访问**：`skills_dir().join(name)` — 技能目录通过约定的名称直接定位
+2. **Plugin 注册表索引**：`PluginManager.plugin_registry_report()` 返回所有插件含技能信息的摘要列表
+3. **关键词匹配**：`SkillMatcher` 使用约 25 个类别的 `KeywordPatterns` HashMap 进行关键词匹配（非向量语义匹配）
+
+**安装来源**：
+
+| 来源              | 触发方式                          | 安装逻辑                                                                                               |
+| ----------------- | --------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| GitHub            | `install_skill("owner/repo")`     | `git clone --depth 1` → 解析 → 写 `skill-manifest.json`                                                |
+| GitHub (fallback) | Git 不可用时                      | API zipball 下载 → 路径遍历验证（三阶段：enclosed_name 预检 → extract → 解压后二次 CANONICALIZE 验证） |
+| 本地目录          | `install_skill("/path/to/skill")` | 直接 `copy_dir_recursive` → 写 manifest                                                                |
+
+#### 8.2.5 技能版本管理
+
+- `install_skill` 时自动记录 commit 和 installed_at
+- `skill-manifest.json` 中 `versions` 数组保留最近 10 个版本
+- `rollback_skill(name, target_version)` 支持回滚到指定版本（仅 GitHub 来源）
+- `check_skill_dependencies()` 自动校验依赖技能的安装状态
+
+### 8.3 工作流的节点类型和能力边界
+
+#### 8.3.1 完整节点类型列表
+
+`harness/src/workflow_types.rs` 中 `WorkflowNode` 枚举实际包含 **32 种**节点类型（报告中此前统计为 28 种，经代码复核后更正）：
+
+| #  | 变体名            | 配置结构                           | 说明                         |
+| -- | ----------------- | ---------------------------------- | ---------------------------- |
+| 1  | `Trigger`         | `TriggerNodeConfig`                | 定时/Webhook 等触发条件      |
+| 2  | `LLM`             | `LLMNodeConfig`                    | 纯 LLM 文本生成              |
+| 3  | `Agent`           | `AgentNodeConfig`                  | 完整 Agent（含工具调用循环） |
+| 4  | `Tool`            | `ToolNodeConfig`                   | 单个工具调用                 |
+| 5  | `Condition`       | `ConditionNodeConfig`              | 条件分支                     |
+| 6  | `Loop`            | `LoopNodeConfig` + `sub_graph`     | 循环（含子图）               |
+| 7  | `Switch`          | `SwitchNodeConfig`                 | 多路分支                     |
+| 8  | `Parallel`        | `ParallelNodeConfig` + `sub_graph` | 并行执行（含子图）           |
+| 9  | `Merge`           | `MergeConfig`                      | 合并多个输入                 |
+| 10 | `SubWorkflow`     | `SubWorkflowConfig`                | 引用另一个工作流定义         |
+| 11 | `Code`            | `CodeNodeConfig`                   | 代码执行（Python/JS/Bash）   |
+| 12 | `HTTPRequest`     | `HttpRequestConfig`                | HTTP API 调用                |
+| 13 | `DatabaseQuery`   | `DatabaseQueryConfig`              | 数据库查询                   |
+| 14 | `FileOperation`   | `FileOperationConfig`              | 文件读写操作                 |
+| 15 | `Email`           | `EmailConfig`                      | 邮件发送                     |
+| 16 | `Notification`    | `NotificationConfig`               | 通知推送                     |
+| 17 | `WebhookSend`     | `WebhookSendConfig`                | 主动 Webhook 发送            |
+| 18 | `VectorRetrieve`  | `VectorRetrieveConfig`             | 向量检索                     |
+| 19 | `DataTransformer` | `DataTransformerConfig`            | 数据转换/格式化              |
+| 20 | `LLMClassifier`   | `LLMClassifierConfig`              | LLM 文本分类                 |
+| 21 | `DocumentParser`  | `DocumentParserConfig`             | 文档解析                     |
+| 22 | `Debate`          | `DebateNodeConfig` + `sub_graph`   | 多 Agent 辩论（含子图）      |
+| 23 | `Swarm`           | `SwarmConfig` + `sub_graph`        | Agent 集群协作（含子图）     |
+| 24 | `HumanInput`      | `HumanInputConfig`                 | 人工输入节点                 |
+| 25 | `Timer`           | `TimerConfig`                      | 定时延迟                     |
+| 26 | `Variable`        | `VariableConfig`                   | 变量定义/赋值                |
+| 27 | `Comment`         | `CommentConfig`                    | 注释说明（无执行逻辑）       |
+| 28 | `Subgraph`        | `SubgraphConfig`                   | 内联子图（匿名）             |
+| 29 | `Start`           | `StartConfig`                      | 工作流入口                   |
+| 30 | `End`             | `EndConfig`                        | 工作流出口                   |
+| 31 | `RAG`             | `RAGNodeConfig`                    | RAG 检索增强生成             |
+| 32 | `Connector`       | `ConnectorConfig`                  | 多入/多出连接器              |
+
+#### 8.3.2 ToolNodeConfig 的约束
+
+```rust
+pub struct ToolNodeConfig {
+    pub tool_name: String,                    // 工具名称字符串（精确匹配）
+    pub input_mapping: HashMap<String, String>, // 输入参数映射
+    pub output_var: String,                   // 输出变量的变量名
+}
+```
+
+**自由度**：非常有限。`tool_name` 是纯字符串，必须与 `ToolRegistry` 中注册的工具名完全一致。没有版本约束、没有命名空间、没有 fallback。
+
+**运行时绑定**：`ToolExecutor` 在运行时通过 `ExecutionState.tool_registry.execute_tool(tool_name, ...)` 查找。如果 tool_name 未注册，返回明确错误。支持通过 `callbacks.tool_handlers` 和 `callbacks.tool_fallback` 做两层回退。
+
+**权限校验**：`ExecutionState.tool_permissions` 中的 `forbidden_tools` 和 `allowed_tools` 列表在工作流执行前注入，在 ToolExecutor 层面做前置拦截。
+
+#### 8.3.3 AgentNodeConfig 的自由度
+
+```rust
+pub struct AgentNodeConfig {
+    pub system_prompt: String,                          // 系统提示（支持 {{var}} 模板）
+    pub tools: Vec<ToolDef>,                            // 可用工具定义列表
+    pub exposed_tools: Vec<String>,                     // 实际暴露给 LLM 的工具子集
+    pub context_sources: Vec<String>,                   // 上下文来源（工作流变量/全局状态）
+    pub input_mapping: HashMap<String, String>,         // 输入映射
+    pub output_var: String,                             // 输出变量名
+    pub model: Option<String>,                          // 模型指定（None=使用默认）
+    pub temperature: Option<f64>,                       // 温度参数
+    pub max_tokens: Option<u32>,                        // 最大 Token 数
+    pub agent_profile_id: Option<String>,               // 引用的 Agent 配置文件（DB 查找）
+    pub agent_role_override: Option<AgentRole>,         // 角色覆盖
+    pub consistency_check: Option<bool>,                // 一致性校验
+    pub hallucination_guard: Option<bool>,              // 幻觉防护
+    pub output_mode: OutputMode,                        // Text / Structured / Both
+    pub retry: RetryConfig,                             // 重试策略
+    pub timeout: Option<u32>,                           // 超时（秒）
+    // ... 更多扩展字段
+}
+```
+
+**自由度**：非常高。20+ 可配置字段，涵盖 LLM 参数、工具选择、角色绑定、输出模式、质量保障等。`tools` 字段本身就是完整的 `Vec<ToolDef>`，可以在工作流设计时静态指定任意工具组合。
+
+**与 Skill 的关系**：Agent 节点的 `system_prompt` 字段可以引用 Skill 的内容。但工作流引擎本身**没有**内置的"将 Skill 转换为 Agent 节点"的快捷机制——Skill 需要通过 LLM 的 system prompt 注入方式间接参与。
+
+#### 8.3.4 工作流能否调用 Skill？
+
+**不能直接调用**。工作流节点类型中没有任何 `Skill` 节点。Skill 的典型消费路径是：
+
+1. **Agent 节点的 system_prompt 注入**：将 Skill 的 Markdown 内容拼接到 Agent 的 system_prompt 中，让 LLM 按照技能指引执行
+2. **SubWorkflow 节点引用**：如果 Skill 被编排为工作流模板，可通过 SubWorkflow 节点引用
+3. **Tool 调用间接使用**：如果 Skill 指导使用特定工具，Agent 会通过常规工具调用路径执行
+
+**设计哲学**：Skill 是"Agent 的知识/指令"，不是"工作流的原子节点"。工作流管执行拓扑，Skill 管执行方法。
+
+#### 8.3.5 工作流能否嵌套其他工作流？
+
+**可以，有两种方式**：
+
+1. **`SubWorkflow` 节点**：引用外部工作流定义（通过 ID 或名称）——支持参数传递和结果回传
+2. **容器节点 + `sub_graph`**：`Loop` / `Parallel` / `Debate` / `Swarm` / `Subgraph` 五种容器节点类型内置 `sub_graph: Vec<WorkflowNode>` 字段，直接在定义中嵌套子图
+
+**嵌套约束**：子图继承父工作流的 `ExecutionState`，但可以有自己的变量作用域（通过 `context_sources` 控制可见性）。嵌套深度没有硬性限制，但受数据库字段大小和序列化性能制约。
+
+### 8.4 编排器（Orchestrator）的 6 种策略
+
+#### 8.4.1 OrchestrationStrategy 枚举（`orchestrator/src/types.rs`）
+
+```rust
+pub enum OrchestrationStrategy {
+    Ordered,   // 串行：子任务按顺序执行，结果依次传递
+    FanOut,    // 全并行：所有子任务同时启动，无依赖
+    Pipeline,  // 流水线：分阶段执行，每阶段内并行、阶段间串行
+    Race,      // 竞速：多方案并行，最先完成者胜出
+    Debate,    // 辩论：多 Agent 并行分析，最终由裁判 Agent 综合
+    Dynamic,   // 动态：由 LLM 实时决策任务分解和依赖关系
+}
+```
+
+#### 8.4.2 编排器与工作流引擎的关系
+
+**它们是独立但嵌套的**：编排器是工作流引擎的"上层建筑"。
+
+```
+OrchestratorExecutor.receive_mission("任务描述", strategy)
+  │
+  ├── decompose()           [规则驱动分解为 SubTask 列表]
+  │     └── 关键词匹配：review → 3任务 / refactor → 4任务 / design → 3任务 / default → 3任务
+  │
+  ├── generate_subgraph()   [DynamicSubGraph 将 SubTask 转换为 WorkflowNode + WorkflowEdge]
+  │     ├── 每个 SubTask → 一个 AgentNode（含系统提示、工具绑定、角色指定）
+  │     └── 按策略构建边：
+  │         Ordered/Pipeline → 串行链（隐式顺序边）
+  │         FanOut/Race      → 无边（全并行）
+  │         Debate            → 全部节点 → 裁判节点（Converge 边）
+  │         Dynamic           → 保留 LLM 生成的依赖边（不添加隐式边）
+  │
+  ├── validate()            [Kahn's algorithm 检测环 + 孤立节点检测]
+  │
+  └── 产出 WorkflowGraph → 提交给 WorkEngine 执行
+       │
+       ├── monitor_and_maybe_replan()  [监听子任务完成/失败事件]
+       │     ├── 全部成功 → Completed
+       │     ├── 有失败 → replan() 重置失败任务状态，保留已完成任务
+       │     │              → max_replans = 3（默认）
+       │     └── 超限 → Aborted
+       │
+       └── emit OrchesterEvent 通知监听器
+```
+
+**关键设计**：
+
+1. **编排器不直接执行**——它只负责分解和生成工作流图，实际执行交给 `WorkEngine`
+2. **当前 decompose() 是规则驱动的**（关键词匹配），代码中明确标注了 "Future: LLM-driven decomposition"
+3. **replan() 不会重复已完成的任务**——只重置失败任务状态，保留已完成任务的输出
+4. **StructuredHandover** 定义了 Agent 间的交接协议：`completed_work` / `files_changed` / `next_steps` / `remaining_issues` / `dependencies_needed` / `validation_evidence`
+
+#### 8.4.3 6 种策略的拓扑语义
+
+| 策略       | 子图拓扑               | 最大并行            | 适用场景                                   |
+| ---------- | ---------------------- | ------------------- | ------------------------------------------ |
+| `Ordered`  | 串行链                 | 1                   | 严格顺序依赖的任务（分析→设计→实现）       |
+| `FanOut`   | 无边图                 | phase_count         | 完全独立的任务（多文件分析、数据并行处理） |
+| `Pipeline` | 阶段内并行、阶段间串行 | 每个阶段内 = 任务数 | 流水线作业（采集→清洗→分析→报告）          |
+| `Race`     | 无边图                 | phase_count         | 多方案竞速（不同模型/不同思路同时尝试）    |
+| `Debate`   | N→1 汇聚               | N                   | 需要多视角辩论后综合决策                   |
+| `Dynamic`  | 由 LLM 决定            | 由 LLM 决定         | 复杂且不可预知结构的任务                   |
+
+### 8.5 动态 UI 的触发和消费方式
+
+#### 8.5.1 JSON Schema 由谁生成？
+
+**三种生成来源**：
+
+| 来源         | 场景              | 生成方式                                                                      |
+| ------------ | ----------------- | ----------------------------------------------------------------------------- |
+| **LLM**      | 对话式自然语言→UI | 用户说"帮我做一个XXX表单" → LLM 通过 `nl2ui.ts` 生成 UISchema                 |
+| **手动定义** | 开发者设计 UI     | 通过 Tauri 命令 `create_dynamic_ui_schema` 写入 DB 的 `dynamic_ui_schemas` 表 |
+| **插件声明** | 插件附带 UI       | `PluginManifest.dashboard_panels` 中的 `props` 字段包含 JSON Schema           |
+
+#### 8.5.2 nl2ui.ts 的核心转换逻辑（`src/lib/dynamicUI/nl2ui.ts`）
+
+自然语言→UI Schema 的转换流程：
+
+1. **`FIELD_PATTERNS`** — 14 种关键词模式（姓名/邮箱/电话/地址/日期/性别/分类/金额/密码/URL/数量/评分/多行文本/图片）
+
+2. **`detectFields()`** — 对自然语言描述做关键词匹配，检测表单字段类型：
+   ```
+   输入："收集姓名、邮箱和电话号码"
+   → [{type: "input", label: "姓名"}, {type: "email", label: "邮箱"}, {type: "tel", label: "电话"}]
+   ```
+
+3. **`generateUIFromNaturalLanguage()`** — 组装 UISchema：
+   ```
+   Column → Text（标题说明）→ Form（含检测到的字段）
+   ```
+   匹配不到任何字段时 fallback 为"标题 + 内容输入框"
+
+**核心约束**：
+
+- 转换算法是**规则驱动**的（关键词匹配），不是 LLM 驱动的
+- 14 种关键词模式覆盖常见表单场景，但不覆盖复杂 UI（如仪表盘、图表、树状视图）
+- 复杂 UI 的 Schema 需要手动构建或通过 LLM 直接输出 UISchema JSON
+
+#### 8.5.3 ComponentRegistry 组件注册表（`src/lib/dynamicUI/ComponentRegistry.ts`）
+
+```typescript
+class ComponentRegistry {
+  private registry: Map<string, ComponentRegistryEntry>; // 支持 namespace:component 格式
+
+  register(entry, namespace?); // 注册单个组件
+  registerBatch(entries, namespace?); // 批量注册
+  get(type: string); // 按名称获取（支持跨命名空间查找）
+  resolve(type, namespace?); // 按命名空间精确解析
+  getByCategory(category); // 按分类获取
+  has(type); // 存在性检查
+  unregister(type, namespace?); // 注销单个组件
+  unregisterNamespace(namespace); // 注销整个命名空间
+}
+```
+
+**命名空间隔离**：`PluginA:MyButton` 和 `PluginB:MyButton` 是两个独立组件。`get()` 在没有命名空间冲突时支持无命名空间查找，`resolve()` 是精确解析。
+
+#### 8.5.4 registerBuiltins 内置组件（`src/lib/dynamicUI/registerBuiltins.ts`）
+
+共注册 **27 个内置组件**，分 5 类：
+
+| 分类                      | 组件                                                                                                                               |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| **Container**（布局容器） | `Container` / `Row` / `Column` / `Grid` / `Card` / `Tabs` / `Accordion`                                                            |
+| **Data**（数据展示）      | `DataTable` / `ChartRenderer` / `TimelineView` / `TreeView` / `ListView` / `Dashboard`                                             |
+| **Form**（表单组件）      | `FormRenderer` / `InputField` / `SelectField` / `DatePickerField` / `NumberField` / `CheckboxField` / `RadioField` / `SwitchField` |
+| **Media**（媒体展示）     | `MarkdownView` / `CodeEditorView` / `FilePreviewView`                                                                              |
+| **Misc**（杂项）          | `DynamicButton` / `DynamicText` / `DynamicImage` / `DynamicProgress` / `DynamicTag` / `DynamicDivider`                             |
+
+#### 8.5.5 DynamicUIRenderer 渲染入口（`src/components/dynamicUI/DynamicUIRenderer.tsx`）
+
+**核心渲染逻辑**（465 行）：
+
+1. 接收 `UISchema`（递归树结构）
+2. 从 `ComponentRegistry` 查找对应组件 → 未找到渲染错误提示
+3. **数据绑定**：`subscribeDataSource` 订阅外部数据源，自动更新组件显示
+4. **条件渲染**：`evaluateConditions` 按 `visibleWhen` / `hiddenWhen` 字段控制显隐
+5. **事件处理**：`handleEvents` 处理 `onClick` / `onChange` / `onSubmit` 等事件，通过 `executeActions` 触发动作链
+6. **Schema 热更新**：监听 `CustomEvent('schema-update')`，支持运行时动态替换/追加/移除 UI 节点（通过 `operation: "replace" | "append" | "remove"`）
+
+**特殊处理**：`Tabs` / `Accordion` / `Form` 三种容器组件在渲染前做子节点预处理（`NEEDS_CHILD_PREPROCESSING`），因为它们需要将子节点重新组织到面板结构中。
+
+#### 8.5.6 动态 UI 的运行时和设计时角色
+
+**设计时**：
+
+- 开发者通过 Tauri 命令 CRUD Schema（`list_dynamic_ui_schemas` / `create_dynamic_ui_schema` / `update_dynamic_ui_schema` / `delete_dynamic_ui_schema`）
+- Schema 存储在数据库 `dynamic_ui_schemas` 表中（`id` / `title` / `schema_json` / `category` / `tags` / `is_builtin`）
+- 表单数据通过 `dynamic_ui_form_data` 表持久化（支持 `instance_key` 多实例）
+
+**运行时**：
+
+- `DynamicUIRenderer` 根据 Schema JSON 递归渲染组件树
+- 支持数据绑定（外部数据源 → 组件 props）、条件渲染、事件动作链
+- 不支持 WebSocket 实时推送——状态更新依赖 React state + CustomEvent 机制
+
+### 8.6 现有的配置文件和示例
+
+#### 8.6.1 settings.json（项目根目录，284 行）
+
+关键配置要点：
+
+```json
+{
+  "models": {
+    "DeepSeek-V3-0324": { "provider": "deepseek", "apiKey": "..." },
+    "NVIDIA-Llama-3.1-Nemotron": { "provider": "nvidia", "apiKey": "...", "baseUrl": "..." }
+  },
+  "enabledPlugins": {
+    "com.github.copilot": true
+  },
+  "agent": {
+    "maxRequests": 500,
+    "maxParallelTools": 16,
+    "planMode": true,
+    "thinkingTool": "extended"
+  }
+}
+```
+
+**实践样本特征**：
+
+- 多 Provider 模型配置（DeepSeek + NVIDIA）
+- GitHub Copilot 插件显式启用
+- Agent 配置中 `maxRequests=500` / `maxParallelTools=16` 表明面向高并发长任务
+- `planMode=true` 启用编排器的 Plan 模式
+- 代码生成指令中指定了文件排除列表（node_modules / .git / dist）
+
+#### 8.6.2 .codeartsdoer/ 目录结构
+
+```
+.codeartsdoer/
+├── AGENTS.md                    # IDE 代理上下文声明
+│   └── Language Context: TS / TS_Strict / TS_ESM
+│   └── 技术栈: React + Vite + Antd
+├── package.json                 # 依赖: @opencode-ai/plugin 1.3.17, @opencode-ai/sdk 1.1.3
+├── agents/                      # 空目录（待扩展）
+├── mcp/
+│   └── mcp_settings.json        # 空 MCP 服务器配置 {}
+├── rule/
+│   └── metadata.properties      # projectExpert=[]（项目领域专家配置为空）
+└── skills/
+    └── ProjectSkillStatus.txt   # 空文件（技能状态占位）
+```
+
+**实践总结**：
+
+1. **`AGENTS.md`** 是 IDE 上下文声明文件，定义了此项目的基础语言环境和架构栈信息，供 IDE 内的 Agent 加载使用
+2. **`mcp_settings.json`** 为空对象，表明当前未配置任何业务级 MCP 服务器——MCP 能力通过插件系统中的 `PluginManifest.mcp_servers` 走插件通道
+3. **`rule/metadata.properties`** 中 `projectExpert=[]` 表明未配置项目级领域专家规则
+4. **`skills/`** 目录仅有一个占位文件，表明当前项目尚未创建自定义本地技能——技能主要通过插件系统和技能市场获取
+
+#### 8.6.3 从配置样本看业务接入的典型模式
+
+| 扩展需求            | 实践方式                                   | 配置位置                                     |
+| ------------------- | ------------------------------------------ | -------------------------------------------- |
+| 自定义 LLM Provider | 通过 `settings.json` 的 `models` 字段声明  | `settings.json`                              |
+| 插件启用/禁用       | `enabledPlugins` 字段按 plugin_id 精确控制 | `settings.json`                              |
+| MCP 服务器          | 通过插件 manifest 声明（非本地配置文件）   | `plugin.json` → `PluginManifest.mcp_servers` |
+| Agent 行为调整      | `agent` 字段控制全局 Agent 参数            | `settings.json`                              |
+| 项目上下文声明      | `AGENTS.md` 提供语言/架构栈信息            | `.codeartsdoer/AGENTS.md`                    |
+| 业务规则            | `rule/metadata.properties`（当前为空）     | `.codeartsdoer/rule/`                        |
+| 本地技能            | `skills/` 目录（当前为空）                 | `.codeartsdoer/skills/`                      |
+
+#### 8.6.4 能力声明的完整矩阵
+
+综合前六节分析，AxAgent 中每种扩展能力的目标对象、声明方式与生效路径：
+
+| 能力            | 声明位置                                   | 声明格式                      | 生效触发器               | 查找方式                                   |
+| --------------- | ------------------------------------------ | ----------------------------- | ------------------------ | ------------------------------------------ |
+| Tool（SDK内联） | Plugin trait `tools()`                     | `Vec<PluginToolDefinition>`   | PluginManager 加载       | 按 `name` 精确匹配                         |
+| Tool（子进程）  | PluginManifest `tools`                     | `Vec<PluginToolManifest>`     | PluginManager 加载       | 子进程 stdin/stdout 通信                   |
+| Skill           | PluginManifest `skills`                    | `Vec<PluginSkillEntry>`       | SkillInstaller 部署      | 文件系统路径 + 关键词匹配                  |
+| Agent           | PluginManifest `agents`                    | `Vec<PluginAgentDefInternal>` | PluginAgentRegistry 注册 | 按 `agent_type` 字符串查找                 |
+| Dashboard       | PluginManifest `dashboard_panels`          | `Vec<PluginDashboardPanel>`   | DashboardRegistry 注册   | 按 `component_name` 查找 ComponentRegistry |
+| MCP 服务器      | Plugin trait `mcp_servers()`               | `Vec<PluginMcpServerConfig>`  | McpLauncher 启动进程     | MCP 协议 tools/list 发现                   |
+| Hook            | Plugin trait `hooks()`                     | `Vec<PluginHookDefinition>`   | HookRunner 分发          | 按事件类型 + 优先级排序                    |
+| 工作流节点      | 编译期枚举                                 | `WorkflowNode::XXX`           | NodeDispatcher dispatch  | 按 `node_type` 字符串 HashMap              |
+| Feature Flag    | RuntimeConfig `features`                   | `BTreeMap<String, bool>`      | 代码内运行时判断         | 按 key 精确匹配                            |
+| 编排策略        | OrchestratorExecutor `receive_mission(..)` | `OrchestrationStrategy` 枚举  | orchestrator decompose   | 策略影响拓扑生成                           |
+| 动态 UI Schema  | `create_dynamic_ui_schema` Tauri 命令      | JSON Schema（DB 持久化）      | DynamicUIRenderer        | ComponentRegistry 按 `type` 查找           |
+
+---
+
 ## 7. 关键模块深度调研
 
 > 基于代码级深入分析，涵盖五个关键方面。所有结论均有文件引用支撑。

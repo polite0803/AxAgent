@@ -1,14 +1,16 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use axum::{
-    Extension, Router,
+    Extension, Json, Router,
     extract::{Path, State},
+    http::HeaderMap,
     middleware,
     response::IntoResponse,
     routing::{delete, get, patch, post, put},
 };
 use http::StatusCode;
 use http::header::{AUTHORIZATION, CONTENT_TYPE};
+use serde_json::json;
 use tower_http::cors::CorsLayer;
 
 use crate::auth::{AuthState, auth_middleware};
@@ -29,30 +31,23 @@ async fn receive_webhook_with_path(
     Path(platform_str): Path<String>,
     headers: HeaderMap,
     Json(payload): Json<WebhookPayload>,
-) -> Result<impl IntoResponse, (StatusCode, Json<serde_json::Value>)> {
+) -> impl IntoResponse {
     match Platform::from_path_segment(&platform_str) {
         Some(platform) => {
             receive_webhook(State(state), Extension(platform), headers, Json(payload))
                 .await
-                .map(|resp| {
-                    let (status, body) = resp;
-                    let json_body = serde_json::to_value(body.0).unwrap_or(json!({}));
-                    (status, Json(json_body))
-                })
-                .map_err(|(status, body)| {
-                    let json_body = serde_json::to_value(body.0).unwrap_or(json!({}));
-                    (status, Json(json_body))
-                })
+                .into_response()
         },
         None => {
             let err_body = Json(json!({
                 "status": "unsupported_platform",
                 "message": format!("Unsupported platform: {}", platform_str)
             }));
-            Err((StatusCode::BAD_REQUEST, err_body))
+            (StatusCode::BAD_REQUEST, err_body).into_response()
         },
     }
 }
+
 use crate::marketplace_handlers::{
     create_review, delete_review, get_marketplace_stats, get_my_review, get_reviews, update_review,
 };

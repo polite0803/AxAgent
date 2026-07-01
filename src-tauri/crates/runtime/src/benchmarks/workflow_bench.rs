@@ -107,6 +107,7 @@ pub fn build_sequential_template(
             enabled: true,
             parent_id: None,
             compensation: None,
+            continue_on_fail: false,
         },
         config: TriggerConfig {
             trigger_type: TriggerType::Manual,
@@ -139,6 +140,7 @@ pub fn build_sequential_template(
                 enabled: !is_fail, // failed nodes are still included
                 parent_id: None,
                 compensation: None,
+                continue_on_fail: false,
             },
             config: EndNodeConfig { output_var: None },
         }));
@@ -160,6 +162,7 @@ pub fn build_sequential_template(
             enabled: true,
             parent_id: None,
             compensation: None,
+            continue_on_fail: false,
         },
         config: EndNodeConfig { output_var: None },
     }));

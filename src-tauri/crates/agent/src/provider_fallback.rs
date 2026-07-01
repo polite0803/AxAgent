@@ -10,7 +10,6 @@
 //! 回传 fallbackUsed / fallbackModelId 字段。
 
 use std::collections::HashMap;
-use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::sync::RwLock;
 
@@ -223,9 +222,7 @@ impl ProviderFallbackManager {
         let mut health = self.health.write().await;
         if let Some(h) = health.get_mut(provider_id) {
             let timeout_ms = self.config.read().await.timeout_ms;
-            if latency_ms > timeout_ms {
-                h.record_failure();
-            } else if is_error {
+            if latency_ms > timeout_ms || is_error {
                 h.record_failure();
             } else {
                 h.record_success(latency_ms);
@@ -264,15 +261,12 @@ impl ProviderFallbackManager {
         let health = self.health.read().await;
 
         // 1. 如果有首选且健康，直接返回
-        if let Some(pref_id) = preferred_id {
-            if let Some(entry) = providers.iter().find(|p| p.provider_id == pref_id) {
-                if let Some(h) = health.get(pref_id) {
-                    if !h.marked_down {
+        if let Some(pref_id) = preferred_id
+            && let Some(entry) = providers.iter().find(|p| p.provider_id == pref_id)
+                && let Some(h) = health.get(pref_id)
+                    && !h.marked_down {
                         return Some((entry.clone(), false));
                     }
-                }
-            }
-        }
 
         // 2. 找到首选对应档次
         let preferred_tier = preferred_id
@@ -284,14 +278,12 @@ impl ProviderFallbackManager {
         let chain = preferred_tier.degradation_chain();
         for tier in &chain {
             for entry in providers.iter() {
-                if entry.tier == *tier {
-                    if let Some(h) = health.get(&entry.provider_id) {
-                        if !h.marked_down {
+                if entry.tier == *tier
+                    && let Some(h) = health.get(&entry.provider_id)
+                        && !h.marked_down {
                             let is_fallback = entry.provider_id != preferred_id.unwrap_or("");
                             return Some((entry.clone(), is_fallback));
                         }
-                    }
-                }
             }
         }
 

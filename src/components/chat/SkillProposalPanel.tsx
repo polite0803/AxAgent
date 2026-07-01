@@ -205,7 +205,6 @@ export const SkillProposalPanel: React.FC<SkillProposalPanelProps> = ({
               <Text type="secondary">
                 {t(
                   "skill.proposal.empty",
-                  "No skill proposals yet. Complete complex tasks with the Agent to generate suggestions.",
                 )}
               </Text>
             }
@@ -219,7 +218,6 @@ export const SkillProposalPanel: React.FC<SkillProposalPanelProps> = ({
             >
               {t(
                 "skill.proposal.hint",
-                "These skills were auto-generated from your successful Agent workflows. Review and create them to automate similar tasks in the future.",
               )}
             </Paragraph>
             {localProposals.map((proposal) => (

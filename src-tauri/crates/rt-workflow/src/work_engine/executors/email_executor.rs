@@ -148,7 +148,7 @@ impl NodeExecutorTrait for EmailExecutor {
         let mailer = if smtp.tls {
             AsyncSmtpTransport::<Tokio1Executor>::starttls_relay(&smtp.host)
         } else {
-            AsyncSmtpTransport::<Tokio1Executor>::builder_dangerous(&smtp.host)
+            Ok(AsyncSmtpTransport::<Tokio1Executor>::builder_dangerous(&smtp.host))
         }
         .map_err(|e| NodeError::exec_failed("EMAIL_TRANSPORT_FAILED", e.to_string()))?
         .port(smtp.port)
