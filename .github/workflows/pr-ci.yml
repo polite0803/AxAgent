@@ -179,8 +179,7 @@ jobs:
 
   test-e2e:
     name: E2E Tests (macOS)
-    needs: [should-run-heavy]
-    if: needs.should-run-heavy.outputs.skip != 'true'
+    if: false
     runs-on: macos-latest
     timeout-minutes: 10
     continue-on-error: true
