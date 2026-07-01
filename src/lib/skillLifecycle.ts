@@ -24,17 +24,38 @@ async function readLifecycleData(
     return { hooks: cached.hooks, permissions: cached.permissions };
   }
 
-  try {
-    const detail = await invoke<{ manifest?: SkillManifest }>("get_skill", {
-      name: skillName,
-    });
-    const hooks = detail?.manifest?.lifecycle ?? null;
-    const permissions = detail?.manifest?.permissions;
-    lifecycleCache.set(skillName, { hooks, permissions, ts: Date.now() });
-    return { hooks, permissions };
-  } catch {
-    return { hooks: null, permissions: undefined };
+  // P2 #19: 带退避的重试
+  const maxRetries = 3;
+  const retryDelays = [1000, 2000, 4000]; // ms
+
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      const detail = await invoke<{ manifest?: SkillManifest }>("get_skill", {
+        name: skillName,
+      });
+      const hooks = detail?.manifest?.lifecycle ?? null;
+      const permissions = detail?.manifest?.permissions;
+      lifecycleCache.set(skillName, { hooks, permissions, ts: Date.now() });
+      return { hooks, permissions };
+    } catch (e) {
+      if (attempt < maxRetries) {
+        console.warn(
+          `[skillLifecycle] get_skill failed for "${skillName}" (attempt ${attempt + 1}/${
+            maxRetries + 1
+          }), retrying in ${retryDelays[attempt]}ms:`,
+          e,
+        );
+        await new Promise((resolve) => setTimeout(resolve, retryDelays[attempt]));
+      } else {
+        console.error(
+          `[skillLifecycle] get_skill failed for "${skillName}" after ${maxRetries + 1} attempts:`,
+          e,
+        );
+        return { hooks: null, permissions: undefined };
+      }
+    }
   }
+  return { hooks: null, permissions: undefined };
 }
 
 /** 清除指定 skill 的缓存 */
@@ -58,6 +79,26 @@ async function executeHooks(
   );
 }
 
+/** P3 #22: 顺序执行钩子，消除卸载时的竞态条件 */
+async function executeHooksSequential(
+  actions: SkillCommandAction[],
+  skillName: string,
+  permissions?: SkillPermissions,
+): Promise<void> {
+  if (!actions || actions.length === 0) {
+    return;
+  }
+  const router = getActionRouter();
+  for (const action of actions) {
+    try {
+      await router.execute(action, { skillName, permissions });
+    } catch (e) {
+      logIpcError(`Lifecycle hook failed for ${skillName}`)(e);
+      // P3 #22: 顺序执行时，单个钩子失败不阻断后续钩子
+    }
+  }
+}
+
 export async function triggerOnInstall(skillName: string): Promise<void> {
   const { hooks, permissions } = await readLifecycleData(skillName);
   if (hooks?.onInstall) {
@@ -75,14 +116,14 @@ export async function triggerOnEnable(skillName: string): Promise<void> {
 export async function triggerOnDisable(skillName: string): Promise<void> {
   const { hooks, permissions } = await readLifecycleData(skillName);
   if (hooks?.onDisable) {
-    await executeHooks(hooks.onDisable, skillName, permissions);
+    await executeHooksSequential(hooks.onDisable, skillName, permissions);
   }
 }
 
 export async function triggerOnUninstall(skillName: string): Promise<void> {
   const { hooks, permissions } = await readLifecycleData(skillName);
   if (hooks?.onUninstall) {
-    await executeHooks(hooks.onUninstall, skillName, permissions);
+    await executeHooksSequential(hooks.onUninstall, skillName, permissions);
   }
 }
 

@@ -112,7 +112,11 @@ impl ContextWindow {
 
         // 1. 摘要（如果有）
         if let Some(ref summary) = self.summarized_prefix {
-            parts.push(format!("早期步骤摘要:\n{}", summary));
+            parts.push(format!(
+                "{}:\n{}",
+                axagent_core::i18n::msg(axagent_core::i18n::I18nKey::AgentEarlyStepSummary),
+                summary
+            ));
         }
 
         // 2. 关键步骤
@@ -185,7 +189,10 @@ impl ContextWindow {
                 format!("[{}] {}", step.state.as_str(), truncate_string(&step.reasoning, 60));
             char_count += line.len();
             if char_count > max_chars {
-                lines.push("... (更早的步骤已省略)".to_string());
+                lines.push(
+                    axagent_core::i18n::msg(axagent_core::i18n::I18nKey::AgentOlderStepsOmitted)
+                        .to_string(),
+                );
                 break;
             }
             lines.push(line);

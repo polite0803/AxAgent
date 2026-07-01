@@ -8,6 +8,7 @@
 mod android_utils;
 mod commands;
 mod context_manager;
+mod index_queue;
 mod indexing;
 mod indexing_triggers;
 mod init;
@@ -585,6 +586,39 @@ pub fn run() {
             await_handle(&state.webdav_sync_handle, "webdav_sync");
             await_handle(&state.api_server_handle, "api_server");
             await_handle(&state.trajectory_cleanup_handle, "trajectory_cleanup");
+
+            // 停止所有插件（MCP 服务、agents、skills）
+            tracing::info!("[shutdown] 正在停止插件...");
+            let plugin_manager = state.plugin_manager.clone();
+            rt_handle.block_on(async move {
+                match tauri::async_runtime::spawn_blocking(move || {
+                    let mut manager = plugin_manager.blocking_write();
+                    manager.stop_all_plugins();
+                })
+                .await
+                {
+                    Ok(()) => tracing::info!("[shutdown] 所有插件已停止"),
+                    Err(e) => tracing::warn!("[shutdown] 插件停止任务异常: {e}"),
+                }
+            });
+
+            // 停止 Dashboard 插件
+            if let Some(registry) = state.dashboard_registry.clone() {
+                tracing::info!("[shutdown] 正在卸载 Dashboard 插件...");
+                rt_handle.block_on(async move {
+                    let plugins = registry.list_plugins().await;
+                    for plugin_info in plugins {
+                        if let Err(e) = registry.unregister(&plugin_info.id).await {
+                            tracing::warn!(
+                                "[shutdown] 卸载 Dashboard 插件 {} 失败: {e}",
+                                plugin_info.id
+                            );
+                        }
+                    }
+                    tracing::info!("[shutdown] Dashboard 插件已卸载");
+                });
+            }
+
             // 集中式 TaskManager 兜底清理
             rt_handle.block_on(
                 state

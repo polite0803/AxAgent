@@ -1,5 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+use crate::provider_fallback::{
+    FallbackConfig, ProviderEntry, ProviderFallbackManager, ProviderTier,
+};
 #[cfg(test)]
 use axagent_harness::trajectory_types::ProcedureStep;
 use axagent_harness::trajectory_types::{
@@ -9,9 +12,12 @@ use axagent_harness::trajectory_types::{
 };
 use axagent_harness::types::{ChatContent, ChatMessage, ChatRequest};
 use axagent_harness::{ProviderAdapter, ProviderRequestContext};
+use sha2::{Digest, Sha256};
+use std::collections::HashMap;
 use std::future::Future;
 use std::pin::Pin;
-use std::sync::{Arc, LazyLock};
+use std::sync::{Arc, LazyLock, Mutex};
+use std::time::Instant;
 
 static SCORE_NUMBER_RE: LazyLock<regex::Regex> =
     LazyLock::new(|| regex::Regex::new(r"(-?\d+\.?\d*)").expect("hardcoded regex is valid"));
@@ -21,11 +27,144 @@ static CODE_BLOCK_RE: LazyLock<regex::Regex> = LazyLock::new(|| {
 static JSON_OBJECT_RE: LazyLock<regex::Regex> =
     LazyLock::new(|| regex::Regex::new(r"(?s)\{.*\}").expect("hardcoded regex is valid"));
 
+/// Deterministic LLM response cache.
+///
+/// Only caches `temperature = 0` calls (deterministic). Cache key is
+/// `SHA-256(model || system_prompt || user_prompt)` — temperature is omitted
+/// because non-zero temp calls are never cached.
+///
+/// Default TTL: 300 seconds (5 minutes). Eviction runs on each cache miss.
+pub struct LlmResponseCache {
+    inner: Mutex<HashMap<String, (String, Instant)>>,
+    ttl: std::time::Duration,
+    max_entries: usize,
+}
+
+impl LlmResponseCache {
+    pub fn new(ttl_secs: u64, max_entries: usize) -> Self {
+        Self {
+            inner: Mutex::new(HashMap::new()),
+            ttl: std::time::Duration::from_secs(ttl_secs),
+            max_entries,
+        }
+    }
+
+    fn cache_key(model: &str, system: &str, user: &str) -> String {
+        use std::fmt::Write as FmtWrite;
+        let mut h = Sha256::new();
+        h.update(model.as_bytes());
+        h.update(b"||");
+        h.update(system.as_bytes());
+        h.update(b"||");
+        h.update(user.as_bytes());
+        let digest = h.finalize();
+        let mut s = String::with_capacity(64);
+        for byte in digest {
+            write!(&mut s, "{:02x}", byte).unwrap();
+        }
+        s
+    }
+
+    /// Try to get a cached response. Returns `None` on miss or expiry.
+    fn get(&self, model: &str, system: &str, user: &str) -> Option<String> {
+        let key = Self::cache_key(model, system, user);
+        let mut map = self.inner.lock().unwrap();
+        // Evict expired entries on every get (amortized cleanup)
+        let now = Instant::now();
+        map.retain(|_, (_, expiry)| now < *expiry);
+        map.get(&key)
+            .and_then(|(val, expiry)| (now < *expiry).then(|| val.clone()))
+    }
+
+    /// Insert a cached response.
+    fn put(&self, model: &str, system: &str, user: &str, response: &str) {
+        let key = Self::cache_key(model, system, user);
+        let mut map = self.inner.lock().unwrap();
+        // Evict oldest entry if at capacity
+        if map.len() >= self.max_entries {
+            if let Some(oldest) = map
+                .iter()
+                .min_by_key(|(_, (_, exp))| *exp)
+                .map(|(k, _)| k.clone())
+            {
+                map.remove(&oldest);
+            }
+        }
+        map.insert(key, (response.to_string(), Instant::now() + self.ttl));
+    }
+}
+
+impl Default for LlmResponseCache {
+    fn default() -> Self {
+        Self::new(300, 256)
+    }
+}
+
+// ── 测试 ──
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn cache_hit_same_key() {
+        let cache = LlmResponseCache::new(600, 10);
+        cache.put("gpt-4", "You are helpful.", "Hello", "Hi there!");
+        let result = cache.get("gpt-4", "You are helpful.", "Hello");
+        assert_eq!(result, Some("Hi there!".to_string()));
+    }
+
+    #[test]
+    fn cache_miss_different_model() {
+        let cache = LlmResponseCache::new(600, 10);
+        cache.put("gpt-4", "sys", "usr", "resp");
+        assert!(cache.get("gpt-3.5", "sys", "usr").is_none());
+    }
+
+    #[test]
+    fn cache_miss_different_prompt() {
+        let cache = LlmResponseCache::new(600, 10);
+        cache.put("gpt-4", "sys", "usr1", "resp");
+        assert!(cache.get("gpt-4", "sys", "usr2").is_none());
+    }
+
+    #[test]
+    fn cache_expiry() {
+        let cache = LlmResponseCache::new(0, 10); // 0s TTL — expires immediately
+        cache.put("gpt-4", "sys", "usr", "resp");
+        // Any small delay should make it expire
+        std::thread::sleep(std::time::Duration::from_millis(1));
+        assert!(cache.get("gpt-4", "sys", "usr").is_none());
+    }
+
+    #[test]
+    fn cache_eviction_at_capacity() {
+        let cache = LlmResponseCache::new(600, 2);
+        cache.put("m", "s1", "u1", "r1");
+        cache.put("m", "s2", "u2", "r2");
+        cache.put("m", "s3", "u3", "r3"); // should evict oldest
+        // At least one of the first two should be gone
+        let hits = [
+            cache.get("m", "s1", "u1").is_some(),
+            cache.get("m", "s2", "u2").is_some(),
+            cache.get("m", "s3", "u3").is_some(),
+        ];
+        assert!(hits.iter().filter(|&&x| x).count() <= 2);
+        assert!(cache.get("m", "s3", "u3").is_some());
+    }
+}
+
 #[derive(Clone)]
 pub struct ProviderLlmBridge {
     adapter: Arc<dyn ProviderAdapter>,
     ctx: ProviderRequestContext,
     model: String,
+    /// Provider fallback 管理器 + 适配器池（可选）
+    fallback_mgr: Option<Arc<ProviderFallbackManager>>,
+    adapter_pool: Arc<Vec<Arc<dyn ProviderAdapter>>>,
+    preferred_provider_id: Option<String>,
+    /// Deterministic LLM response cache (temperature=0 only)
+    llm_cache: Option<Arc<LlmResponseCache>>,
 }
 
 impl ProviderLlmBridge {
@@ -38,51 +177,74 @@ impl ProviderLlmBridge {
             adapter,
             ctx,
             model: model.into(),
+            fallback_mgr: None,
+            adapter_pool: Arc::new(Vec::new()),
+            preferred_provider_id: None,
+            llm_cache: None,
         }
     }
 
-    pub async fn call_llm(&self, system: &str, user: &str) -> Result<String, String> {
-        let request = ChatRequest {
-            model: self.model.clone(),
-            messages: vec![
-                ChatMessage {
-                    role: "system".to_string(),
-                    content: ChatContent::Text(system.to_string()),
-                    tool_calls: None,
-                    tool_call_id: None,
-                    thinking: None,
-                },
-                ChatMessage {
-                    role: "user".to_string(),
-                    content: ChatContent::Text(user.to_string()),
-                    tool_calls: None,
-                    tool_call_id: None,
-                    thinking: None,
-                },
-            ],
-            stream: false,
-            temperature: Some(0.7),
-            max_tokens: Some(2048),
-            top_p: None,
-            tools: None,
-            thinking_budget: None,
-            use_max_completion_tokens: None,
-            thinking_param_style: None,
-            api_mode: None,
-            instructions: None,
-            conversation: None,
-            previous_response_id: None,
-            store: None,
-        };
+    /// 创建带 fallback 支持的桥接实例。
+    ///
+    /// - `fallback_mgr`: ProviderFallbackManager 实例
+    /// - `adapter_pool`: 所有可用适配器列表（索引与 ProviderEntry.adapter_index 对应）
+    /// - `preferred_provider_id`: 首选 Provider ID（需与 manager 中注册的一致）
+    pub fn new_with_fallback(
+        adapter: Arc<dyn ProviderAdapter>,
+        ctx: ProviderRequestContext,
+        model: impl Into<String>,
+        fallback_mgr: Arc<ProviderFallbackManager>,
+        adapter_pool: Vec<Arc<dyn ProviderAdapter>>,
+        preferred_provider_id: String,
+    ) -> Self {
+        Self {
+            adapter,
+            ctx,
+            model: model.into(),
+            fallback_mgr: Some(fallback_mgr),
+            adapter_pool: Arc::new(adapter_pool),
+            preferred_provider_id: Some(preferred_provider_id),
+            llm_cache: None,
+        }
+    }
 
-        self.adapter
-            .chat(&self.ctx, request)
-            .await
-            .map(|resp| resp.content)
-            .map_err(|e| e.to_string())
+    /// 启用确定性 LLM 响应缓存（temperature=0 调用自动缓存）。
+    ///
+    /// TTL 建议 300-600s；max_entries 默认 256。
+    pub fn with_cache(mut self, ttl_secs: u64, max_entries: usize) -> Self {
+        self.llm_cache = Some(Arc::new(LlmResponseCache::new(ttl_secs, max_entries)));
+        self
+    }
+
+    /// 注册一个 fallback Provider（在 new 之后动态添加）
+    pub async fn register_fallback(&self, entry: ProviderEntry) {
+        if let Some(ref mgr) = self.fallback_mgr {
+            mgr.register(entry).await;
+        }
+    }
+
+    /// 获取 fallback 管理器的引用（用于外部查询健康状态）
+    pub fn fallback_manager(&self) -> Option<&Arc<ProviderFallbackManager>> {
+        self.fallback_mgr.as_ref()
+    }
+
+    /// 核心 LLM 调用：优先用主适配器，失败时自动 fallback。
+    pub async fn call_llm(&self, system: &str, user: &str) -> Result<String, String> {
+        self.call_with_temp(system, user, 0.7, 2048).await
     }
 
     async fn call_llm_low_temp(&self, system: &str, user: &str) -> Result<String, String> {
+        self.call_with_temp(system, user, 0.3, 64).await
+    }
+
+    /// 统一的 LLM 调用 + fallback 编排
+    async fn call_with_temp(
+        &self,
+        system: &str,
+        user: &str,
+        temperature: f64,
+        max_tokens: u32,
+    ) -> Result<String, String> {
         let request = ChatRequest {
             model: self.model.clone(),
             messages: vec![
@@ -102,8 +264,8 @@ impl ProviderLlmBridge {
                 },
             ],
             stream: false,
-            temperature: Some(0.3),
-            max_tokens: Some(64),
+            temperature: Some(temperature),
+            max_tokens: Some(max_tokens),
             top_p: None,
             tools: None,
             thinking_budget: None,
@@ -116,11 +278,101 @@ impl ProviderLlmBridge {
             store: None,
         };
 
-        self.adapter
-            .chat(&self.ctx, request)
-            .await
-            .map(|resp| resp.content)
-            .map_err(|e| e.to_string())
+        // 确定性缓存：仅对 temperature=0 做缓存（确定性输出）
+        // 缓存键 = SHA-256(model || system_prompt || user_prompt)
+        if temperature == 0.0 {
+            if let Some(ref cache) = self.llm_cache {
+                if let Some(cached) = cache.get(&self.model, system, user) {
+                    tracing::debug!(
+                        model = %self.model,
+                        prompt_len = system.len() + user.len(),
+                        "LLM response cache HIT (temp=0, deterministic)"
+                    );
+                    return Ok(cached);
+                }
+            }
+        }
+
+        // 第一步：尝试主适配器
+        let start = Instant::now();
+        match self.adapter.chat(&self.ctx, request.clone()).await {
+            Ok(resp) => {
+                let latency = start.elapsed().as_millis() as u64;
+                // 记录成功
+                if let Some(ref mgr) = self.fallback_mgr {
+                    if let Some(ref pref_id) = self.preferred_provider_id {
+                        mgr.record_success(pref_id, latency).await;
+                    }
+                }
+                // 将温度 0 的结果写入缓存
+                if temperature == 0.0 {
+                    if let Some(ref cache) = self.llm_cache {
+                        cache.put(&self.model, system, user, &resp.content);
+                        tracing::debug!(
+                            model = %self.model,
+                            latency_ms = latency,
+                            "LLM response cached (temp=0)"
+                        );
+                    }
+                }
+                return Ok(resp.content);
+            },
+            Err(primary_err) => {
+                // 记录失败
+                if let Some(ref mgr) = self.fallback_mgr {
+                    if let Some(ref pref_id) = self.preferred_provider_id {
+                        mgr.record_failure(pref_id).await;
+                    }
+                }
+                // 第二步：检查是否有 fallback 管理器
+                let mgr = match self.fallback_mgr.as_ref() {
+                    Some(m) => m,
+                    None => return Err(primary_err.to_string()),
+                };
+                // 第三步：选择备选 Provider
+                let (fallback_entry, is_fallback) = match mgr
+                    .select_provider(self.preferred_provider_id.as_deref())
+                    .await
+                {
+                    Some((entry, is_fb)) => (entry, is_fb),
+                    None => return Err(primary_err.to_string()),
+                };
+                if !is_fallback && fallback_entry.adapter_index == 0 {
+                    // 选回主 Provider 但没有实际备选，返回原始错误
+                    return Err(primary_err.to_string());
+                }
+                // 第四步：用备选适配器重试
+                let fb_adapter = self.adapter_pool.get(fallback_entry.adapter_index).cloned();
+                let fb_adapter = match fb_adapter {
+                    Some(a) => a,
+                    None => return Err(primary_err.to_string()),
+                };
+                let mut fb_request = request;
+                fb_request.model = fallback_entry.model_id.clone();
+                let fb_start = Instant::now();
+                match fb_adapter.chat(&self.ctx, fb_request).await {
+                    Ok(resp) => {
+                        let latency = fb_start.elapsed().as_millis() as u64;
+                        mgr.record_success(&fallback_entry.provider_id, latency)
+                            .await;
+                        tracing::warn!(
+                            "Provider fallback: {} → {} (primary error: {})",
+                            self.preferred_provider_id.as_deref().unwrap_or("unknown"),
+                            fallback_entry.provider_id,
+                            primary_err
+                        );
+                        Ok(resp.content)
+                    },
+                    Err(fb_err) => {
+                        mgr.record_failure(&fallback_entry.provider_id).await;
+                        Err(format!(
+                            "Primary provider error: {}. Fallback provider ({}) also failed: {}",
+                            primary_err, fallback_entry.provider_id, fb_err
+                        ))
+                    },
+                }
+            },
+        }
     }
 }
 

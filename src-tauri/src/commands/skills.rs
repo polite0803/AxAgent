@@ -51,6 +51,7 @@ fn all_skills_dirs() -> Vec<PathBuf> {
     axagent_core::skill_dirs::all_skills_dirs()
 }
 
+#[allow(dead_code)]
 fn create_plugin_manager_with_skill_dirs() -> Result<PluginManager, String> {
     let home = home_dir();
     let config_home = home.join(".claw");
@@ -97,11 +98,11 @@ impl MarketplaceSearchCache {
             let mut entries: Vec<_> = self.cache.iter().collect();
             entries.sort_by_key(|(_, v)| v.created_at);
             let remove_count = entries.len() - self.max_capacity + 1;
-            // 先收集要删除的 key，避免 borrow conflict
+            // P2 #6: 使用 into_iter() 消除多余 clone
             let keys_to_remove: Vec<String> = entries
-                .iter()
+                .into_iter()
                 .take(remove_count)
-                .map(|(k, _)| (*k).clone())
+                .map(|(k, _)| k.clone())
                 .collect();
             for k in keys_to_remove {
                 self.cache.remove(&k);
@@ -132,7 +133,8 @@ lazy_static::lazy_static! {
 
 #[tauri::command]
 pub async fn list_skills(state: State<'_, AppState>) -> Result<Vec<SkillInfo>, String> {
-    let plugin_manager = create_plugin_manager_with_skill_dirs()?;
+    // P2 #7: 使用 SkillState 中缓存的 PluginManager，避免每次完整重建
+    let plugin_manager = state.skill_state.plugin_manager.read().await;
     // Use plugin_registry_report() directly instead of list_plugins().
     // list_plugins() -> plugin_registry() -> plugin_registry_report()?.into_registry()
     // into_registry() returns Err(LoadFailures) if ANY plugin fails to load,
@@ -211,8 +213,12 @@ pub async fn list_skills(state: State<'_, AppState>) -> Result<Vec<SkillInfo>, S
 }
 
 #[tauri::command]
-pub async fn get_skill(state: State<'_, AppState>, name: String) -> Result<SkillDetail, String> {
-    let plugin_manager = create_plugin_manager_with_skill_dirs()?;
+pub async fn get_skill(
+    state: State<'_, AppState>,
+    name: String,
+) -> Result<SkillDetail, ErrorResponse> {
+    // P2 #7: 使用 SkillState 中缓存的 PluginManager，避免每次完整重建
+    let plugin_manager = state.skill_state.plugin_manager.read().await;
     // Use plugin_registry_report() + into_registry_allowing_failures()
     // to tolerate individual plugin load failures (e.g. Claude Code format, missing version).
     let report = plugin_manager
@@ -228,7 +234,9 @@ pub async fn get_skill(state: State<'_, AppState>, name: String) -> Result<Skill
         .summaries()
         .into_iter()
         .find(|p| p.metadata.name == name)
-        .ok_or_else(|| format!("Skill '{}' not found", name))?;
+        .ok_or_else(|| {
+            ErrorResponse::new(skill_err::NOT_FOUND).with_param("name".to_string(), name.clone())
+        })?;
 
     let disabled = axagent_core::repo::skill::get_disabled_skills(state.harness.db())
         .await
@@ -288,14 +296,36 @@ pub async fn get_skill(state: State<'_, AppState>, name: String) -> Result<Skill
     })
 }
 
+// P2 #8: 文件大小和深度限制
+const MAX_SINGLE_FILE_SIZE: u64 = 5 * 1024 * 1024; // 5 MB
+const MAX_TOTAL_CONTENT_SIZE: u64 = 10 * 1024 * 1024; // 10 MB
+const MAX_RECURSION_DEPTH: u32 = 5;
+
 /// Recursively read all .md files in a skill directory and concatenate them.
 fn collect_skill_content(dir: &Path) -> String {
     let mut content = String::new();
-    let Ok(entries) = collect_markdown_files(dir) else {
+    let Ok(entries) = collect_markdown_files(dir, 0) else {
         return content;
     };
+    let mut total_bytes: u64 = 0;
     for path in entries {
+        // 检查文件大小
+        if let Ok(meta) = std::fs::metadata(&path) {
+            if meta.len() > MAX_SINGLE_FILE_SIZE {
+                content.push_str(&format!(
+                    "\n\n<!-- [SKIPPED] {} exceeds size limit ({} bytes) -->\n",
+                    path.display(),
+                    meta.len()
+                ));
+                continue;
+            }
+        }
         if let Ok(text) = std::fs::read_to_string(&path) {
+            total_bytes += text.len() as u64;
+            if total_bytes > MAX_TOTAL_CONTENT_SIZE {
+                content.push_str("\n\n<!-- [TRUNCATED] Total content exceeds 10MB limit -->\n");
+                break;
+            }
             if !content.is_empty() {
                 content.push_str("\n\n---\n\n");
             }
@@ -306,16 +336,16 @@ fn collect_skill_content(dir: &Path) -> String {
 }
 
 /// Recursively collect all .md files under a directory, sorted by name.
-pub(crate) fn collect_markdown_files(dir: &Path) -> std::io::Result<Vec<PathBuf>> {
+pub(crate) fn collect_markdown_files(dir: &Path, depth: u32) -> std::io::Result<Vec<PathBuf>> {
     let mut files = Vec::new();
-    if !dir.is_dir() {
+    if !dir.is_dir() || depth > MAX_RECURSION_DEPTH {
         return Ok(files);
     }
     for entry in std::fs::read_dir(dir)? {
         let entry = entry?;
         let path = entry.path();
         if path.is_dir() {
-            files.extend(collect_markdown_files(&path)?);
+            files.extend(collect_markdown_files(&path, depth + 1)?);
         } else if path
             .extension()
             .is_some_and(|ext| ext.eq_ignore_ascii_case("md"))
@@ -333,7 +363,7 @@ pub async fn toggle_skill(
     state: State<'_, AppState>,
     name: String,
     enabled: bool,
-) -> Result<(), String> {
+) -> Result<(), ErrorResponse> {
     axagent_core::repo::skill::set_skill_enabled(state.harness.db(), &name, enabled)
         .await
         .map_err(|e| e.to_string())?;
@@ -668,22 +698,54 @@ async fn install_from_github_zipball(
         .path()
         .canonicalize()
         .map_err(|e| format!("Failed to canonicalize temp dir: {}", e))?;
+    // 阶段一：使用 enclosed_name() 验证所有 entry
     for i in 0..archive.len() {
         let entry = archive
             .by_index(i)
             .map_err(|e| format!("Failed to read zip entry: {}", e))?;
-        let entry_path = entry.mangled_name();
+
+        // enclosed_name(): 非 UTF-8 或路径遍历路径时返回 None
+        let entry_path = entry
+            .enclosed_name()
+            .ok_or_else(|| {
+                format!("Invalid zip entry name (non-UTF-8 or path traversal): entry {}", i)
+            })?
+            .to_path_buf();
+
         let resolved = temp_dir.path().join(&entry_path);
-        if let Ok(canonical) = resolved.canonicalize() {
-            if !canonical.starts_with(&dest_canonical) {
-                return Err("Path traversal detected in zip".into());
-            }
+        let canonical = resolved
+            .canonicalize()
+            .map_err(|e| format!("Failed to canonicalize zip entry path: {}", e))?;
+        if !canonical.starts_with(&dest_canonical) {
+            return Err("Path traversal detected in zip".into());
         }
     }
 
+    // 阶段二：解压
     archive
         .extract(temp_dir.path())
         .map_err(|e| format!("Failed to extract: {}", e))?;
+
+    // 阶段三：解压后二次验证（防止 TOCTOU）
+    for i in 0..archive.len() {
+        let entry = archive
+            .by_index(i)
+            .map_err(|e| format!("Failed to re-read zip entry: {}", e))?;
+        let entry_path = entry.enclosed_name().ok_or_else(|| {
+            format!("Invalid zip entry name during post-extract check: entry {}", i)
+        })?;
+        let resolved = temp_dir.path().join(&entry_path);
+        if resolved.exists() {
+            let canonical = resolved
+                .canonicalize()
+                .map_err(|e| format!("Failed to canonicalize extracted file: {}", e))?;
+            if !canonical.starts_with(&dest_canonical) {
+                // 回滚已解压文件
+                let _ = std::fs::remove_dir_all(temp_dir.path());
+                return Err("Post-extract path traversal violation detected".into());
+            }
+        }
+    }
 
     let extracted = temp_dir.path().join(&top_dir);
     let skill_target = target_dir.join(repo);
@@ -916,31 +978,76 @@ fn validate_skill_name(name: &str) -> Result<(), String> {
     if name.is_empty() {
         return Err("Skill name must not be empty".to_string());
     }
+    // P2 #10: 长度限制
+    if name.len() > 64 {
+        return Err("Skill name must not exceed 64 characters".to_string());
+    }
+    // 禁止路径分隔符和遍历字符
     if name.contains('/') || name.contains('\\') || name.contains("..") {
         return Err("Skill name must not contain path separators or traversal".to_string());
     }
+    // 禁止空字节
+    if name.contains('\0') {
+        return Err("Skill name must not contain null bytes".to_string());
+    }
+    // 禁止 Windows 盘符
     if name.len() >= 2 {
         let b = name.as_bytes();
         if b[0].is_ascii_alphabetic() && b[1] == b':' {
             return Err("Skill name must not contain Windows drive letter".to_string());
         }
     }
-    Ok(())
-}
-
-fn ensure_path_under_base(path: &Path, base: &Path) -> Result<(), String> {
-    if let Ok(canonical_path) = path.canonicalize() {
-        if let Ok(canonical_base) = base.canonicalize() {
-            if !canonical_path.starts_with(&canonical_base) {
-                return Err("Path traversal detected".to_string());
-            }
-        }
+    // P2 #10: Windows 保留名称黑名单（不区分大小写）
+    const WINDOWS_RESERVED: &[&str] = &[
+        "CON", "PRN", "AUX", "NUL", "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8",
+        "COM9", "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9",
+    ];
+    let upper = name.to_ascii_uppercase();
+    if WINDOWS_RESERVED
+        .iter()
+        .any(|r| upper.as_str() == *r || upper.starts_with(&format!("{}.", r)))
+    {
+        return Err(format!("Skill name '{}' is a Windows reserved name", name));
+    }
+    // P2 #10: 仅允许字母、数字、连字符、下划线
+    if !name
+        .chars()
+        .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
+    {
+        return Err(
+            "Skill name must only contain alphanumeric characters, hyphens, and underscores"
+                .to_string(),
+        );
     }
     Ok(())
 }
 
+fn ensure_path_under_base(path: &Path, base: &Path) -> Result<(), String> {
+    let canonical_path = path
+        .canonicalize()
+        .map_err(|e| format!("Failed to canonicalize path: {}", e))?;
+    let canonical_base = base
+        .canonicalize()
+        .map_err(|e| format!("Failed to canonicalize base: {}", e))?;
+    if !canonical_path.starts_with(&canonical_base) {
+        return Err("Path traversal detected".to_string());
+    }
+    Ok(())
+}
+
+/// 卸载结果：记录每个目录的删除状况
+#[derive(Debug, Clone, serde::Serialize)]
+struct UninstallResult {
+    pub dir: String,
+    pub status: String, // "deleted" | "not_found" | "error"
+    pub detail: Option<String>,
+}
+
 #[tauri::command]
-pub async fn uninstall_skill(app: tauri::AppHandle, name: String) -> Result<(), String> {
+pub async fn uninstall_skill(
+    app: tauri::AppHandle,
+    name: String,
+) -> Result<Vec<UninstallResult>, ErrorResponse> {
     validate_skill_name(&name)?;
     let home = home_dir();
     let search_dirs = [
@@ -952,23 +1059,56 @@ pub async fn uninstall_skill(app: tauri::AppHandle, name: String) -> Result<(), 
         home.join(".workbuddy").join("skills"),
     ];
 
+    let mut results: Vec<UninstallResult> = Vec::new();
+    let mut any_deleted = false;
+
     for parent in &search_dirs {
         let skill_dir = parent.join(&name);
+        let dir_label = parent.to_string_lossy().to_string();
         if skill_dir.exists() && skill_dir.is_dir() {
-            ensure_path_under_base(&skill_dir, parent)?;
-            std::fs::remove_dir_all(&skill_dir).map_err(|e| e.to_string())?;
-            let _ = app.emit(
-                "skill-state-changed",
-                serde_json::json!({
-                    "skillName": &name,
-                    "action": "uninstalled",
-                }),
-            );
-            return Ok(());
+            match ensure_path_under_base(&skill_dir, parent)
+                .and_then(|_| std::fs::remove_dir_all(&skill_dir).map_err(|e| e.to_string()))
+            {
+                Ok(()) => {
+                    results.push(UninstallResult {
+                        dir: dir_label,
+                        status: "deleted".to_string(),
+                        detail: None,
+                    });
+                    any_deleted = true;
+                },
+                Err(e) => {
+                    results.push(UninstallResult {
+                        dir: dir_label,
+                        status: "error".to_string(),
+                        detail: Some(e),
+                    });
+                },
+            }
+        } else {
+            results.push(UninstallResult {
+                dir: dir_label,
+                status: "not_found".to_string(),
+                detail: None,
+            });
         }
     }
 
-    Err(format!("Skill '{}' 未在任何技能目录中找到", name))
+    if any_deleted {
+        let _ = app.emit(
+            "skill-state-changed",
+            serde_json::json!({
+                "skillName": &name,
+                "action": "uninstalled",
+            }),
+        );
+    }
+
+    if !any_deleted {
+        return Err(ErrorResponse::new(skill_err::NOT_FOUND).with_param("name".to_string(), name));
+    }
+
+    Ok(results)
 }
 
 #[tauri::command]
@@ -1504,25 +1644,30 @@ pub async fn check_skill_updates() -> Result<Vec<SkillUpdateInfo>, String> {
 // P1: Self-evolution skill create/patch/edit commands
 // ---------------------------------------------------------------------------
 
-/// Patch an existing skill by appending a note
-#[tauri::command]
-pub async fn skill_patch(name: String, content: String) -> Result<String, String> {
-    validate_skill_name(&name)?;
-    let path = skills_dir().join(&name).join("SKILL.md");
+/// P3 #12: 提取公共前置逻辑 — 验证 skill_name、定位 SKILL.md、安全检查、读取内容。
+/// Returns (canonical_path, content) 供调用方继续执行特有操作。
+fn validate_and_read_skill_md(name: &str) -> Result<(PathBuf, String), String> {
+    validate_skill_name(name)?;
+    let path = skills_dir().join(name).join("SKILL.md");
     if !path.exists() {
         return Err(format!("Skill '{}' not found", name));
     }
-
     let canonical_dir = skills_dir()
-        .join(&name)
+        .join(name)
         .canonicalize()
         .map_err(|e| e.to_string())?;
     let canonical_path = path.canonicalize().map_err(|e| e.to_string())?;
     if !canonical_path.starts_with(&canonical_dir) {
         return Err("Path traversal detected".to_string());
     }
+    let content = std::fs::read_to_string(&canonical_path).map_err(|e| e.to_string())?;
+    Ok((canonical_path, content))
+}
 
-    let existing = std::fs::read_to_string(&canonical_path).map_err(|e| e.to_string())?;
+/// Patch an existing skill by appending a note
+#[tauri::command]
+pub async fn skill_patch(name: String, content: String) -> Result<String, ErrorResponse> {
+    let (canonical_path, existing) = validate_and_read_skill_md(&name)?;
     let patched = format!(
         "{}\n\n## Patch ({})\n\n{}",
         existing,
@@ -1536,23 +1681,8 @@ pub async fn skill_patch(name: String, content: String) -> Result<String, String
 
 /// Edit an existing skill by replacing the body (preserving frontmatter)
 #[tauri::command]
-pub async fn skill_edit(name: String, content: String) -> Result<String, String> {
-    validate_skill_name(&name)?;
-    let path = skills_dir().join(&name).join("SKILL.md");
-    if !path.exists() {
-        return Err(format!("Skill '{}' not found", name));
-    }
-
-    let canonical_dir = skills_dir()
-        .join(&name)
-        .canonicalize()
-        .map_err(|e| e.to_string())?;
-    let canonical_path = path.canonicalize().map_err(|e| e.to_string())?;
-    if !canonical_path.starts_with(&canonical_dir) {
-        return Err("Path traversal detected".to_string());
-    }
-
-    let existing = std::fs::read_to_string(&canonical_path).map_err(|e| e.to_string())?;
+pub async fn skill_edit(name: String, content: String) -> Result<String, ErrorResponse> {
+    let (canonical_path, existing) = validate_and_read_skill_md(&name)?;
 
     // Preserve YAML frontmatter
     let edited = if let Some(fm_end) = find_frontmatter_end(&existing) {
@@ -1561,7 +1691,7 @@ pub async fn skill_edit(name: String, content: String) -> Result<String, String>
         content
     };
 
-    std::fs::write(&path, &edited).map_err(|e| e.to_string())?;
+    std::fs::write(&canonical_path, &edited).map_err(|e| e.to_string())?;
     Ok(format!("Skill '{}' edited", name))
 }
 
@@ -1842,7 +1972,8 @@ pub async fn skill_analyze_frontend(
     name: String,
 ) -> Result<serde_json::Value, String> {
     // 读取技能内容
-    let plugin_manager = create_plugin_manager_with_skill_dirs()?;
+    // P2 #7: 使用 SkillState 中缓存的 PluginManager
+    let plugin_manager = state.skill_state.plugin_manager.read().await;
     let report = plugin_manager
         .plugin_registry_report()
         .map_err(|e| e.to_string())?;
@@ -2127,7 +2258,26 @@ fn extract_json(content: &str) -> &str {
 
 /// 读取技能目录下的资源文件内容（用于 HTML/JS/CSS 等静态资源）
 #[tauri::command]
-pub fn skill_read_asset(name: String, file_name: String) -> Result<String, String> {
+pub fn skill_read_asset(name: String, file_name: String) -> Result<String, ErrorResponse> {
+    // P1 #3: 对 file_name 参数增加独立的路径遍历校验
+    if file_name.contains("..")
+        || file_name.contains('\\')
+        || file_name.contains('/')
+        || file_name.is_empty()
+    {
+        return Err("Invalid file_name: path traversal or empty".to_string());
+    }
+    // 拒绝绝对路径（Windows 盘符或 Unix 根路径）
+    if file_name.len() >= 2 {
+        let b = file_name.as_bytes();
+        if b[0].is_ascii_alphabetic() && b[1] == b':' {
+            return Err("Invalid file_name: absolute path not allowed".to_string());
+        }
+    }
+    if file_name.starts_with('/') {
+        return Err("Invalid file_name: absolute path not allowed".to_string());
+    }
+
     let skill_dir = skills_dir().join(&name);
     if !skill_dir.exists() {
         return Err(format!("Skill '{}' not found", name));

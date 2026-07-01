@@ -692,6 +692,8 @@ export type BuiltinPageKey =
   | "gateway"
   | "files"
   | "terminal"
+  | "workflow"
+  | "dynamic-ui"
   | "settings"
   | "marketplace"
   | "wiki";
@@ -1467,6 +1469,7 @@ export type ExportPromptFormat = "json" | "yaml" | "markdown";
 export * from "./wiki";
 
 // === Plugin System ===
+
 export interface PluginSummaryDto {
   id: string;
   name: string;
@@ -1494,6 +1497,13 @@ export interface PluginManifestDto {
 export interface InstallOutcomeDto {
   plugin_id: string;
   version: string;
+  install_path: string;
+}
+
+export interface UpdateOutcomeDto {
+  plugin_id: string;
+  old_version: string;
+  new_version: string;
   install_path: string;
 }
 
@@ -1525,14 +1535,20 @@ export interface ShareParticipant {
 // ── Dynamic UI ──
 export type {
   ComponentRegistryEntry,
+  ConditionalDisplay,
   ConditionalRule,
+  CreateDynamicUISchemaParams,
   DataSourceConfig,
   DynamicAction,
   DynamicComponentType,
+  DynamicUIFormDataRecord,
   DynamicUIProps,
+  DynamicUISchemaRecord,
   EventHandler,
+  SaveDynamicUIFormDataParams,
   SchemaValidationError,
   SchemaValidationResult,
   UISchema,
+  UpdateDynamicUISchemaParams,
 } from "./dynamicUI";
 export { COMPONENT_REQUIRED_PROPS, VALID_DYNAMIC_COMPONENT_TYPES } from "./dynamicUI";

@@ -10,6 +10,7 @@ use async_trait::async_trait;
 use sea_orm::{ConnectionTrait, DatabaseConnection, DbBackend, Statement};
 use serde::{Deserialize, Serialize};
 
+use crate::hybrid_search::{HybridSearchOptions, HybridSearchResult, HybridSearcher};
 use crate::self_rag::RetrievalQuality;
 use crate::sources;
 use crate::text_chunker;
@@ -267,6 +268,10 @@ pub fn collection_id(prefix: &str, container_id: &str) -> String {
 
 /// Search a single RAG source for content relevant to `query`.
 ///
+/// Uses hybrid search (vector similarity + BM25 full-text with trigram
+/// tokenizer for Chinese support) with Reciprocal Rank Fusion by default.
+/// Falls back to pure vector search if FTS index is unavailable.
+///
 /// This is the generic replacement for the separate `search_knowledge` /
 /// `search_memory` functions.  The concrete `EmbedFn` is injected by the
 /// caller (typically `crate::indexing::generate_embeddings`).
@@ -282,6 +287,51 @@ pub async fn search<S: RAGSource + ?Sized>(
     dimensions: Option<usize>,
     embed_fn: impl AsyncEmbedFn,
 ) -> Result<Vec<VectorSearchResult>> {
+    let hybrid_opts = HybridSearchOptions {
+        top_k,
+        ..Default::default()
+    };
+    let hybrid_results = search_hybrid(
+        source,
+        db,
+        master_key,
+        vector_store,
+        container_id,
+        query,
+        dimensions,
+        embed_fn,
+        hybrid_opts,
+    )
+    .await?;
+
+    Ok(hybrid_results
+        .into_iter()
+        .map(|r| VectorSearchResult {
+            id: r.id,
+            document_id: r.document_id,
+            chunk_index: r.chunk_index,
+            content: r.content,
+            score: 1.0 - r.combined_score,
+            has_embedding: r.vector_score.is_some(),
+        })
+        .collect())
+}
+
+/// Hybrid search (vector + BM25 FTS5 with trigram tokenizer) returning
+/// detailed score breakdown.  Uses Reciprocal Rank Fusion by default for
+/// robust score combination without manual weight tuning.
+#[allow(clippy::too_many_arguments)]
+pub async fn search_hybrid<S: RAGSource + ?Sized>(
+    source: &S,
+    db: &DatabaseConnection,
+    master_key: &[u8; 32],
+    _vector_store: &VectorStore,
+    container_id: &str,
+    query: &str,
+    dimensions: Option<usize>,
+    embed_fn: impl AsyncEmbedFn,
+    options: HybridSearchOptions,
+) -> Result<Vec<HybridSearchResult>> {
     let embedding_provider = source.resolve_embedding_provider(db, container_id).await?;
     let cid = collection_id(source.collection_prefix(), container_id);
 
@@ -295,7 +345,13 @@ pub async fn search<S: RAGSource + ?Sized>(
         .next()
         .ok_or_else(|| AxAgentError::Provider("No query embedding returned".into()))?;
 
-    let results = vector_store.search(&cid, query_embedding, top_k).await?;
+    let searcher = HybridSearcher::new(db.clone());
+    let _ = searcher.ensure_fts5_index(&cid).await;
+
+    let results = searcher
+        .hybrid_search(&cid, query, query_embedding, options)
+        .await?;
+
     Ok(results)
 }
 

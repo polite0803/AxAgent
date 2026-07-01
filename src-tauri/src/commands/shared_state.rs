@@ -7,8 +7,8 @@
 //! - tracer.rs 通过 SHARED_PIPELINE / SHARED_ORCHESTRATOR 摄入反馈
 //! - 在 app 启动时调用 init_shared_state() 初始化
 
-use axagent_agent::{ExperiencePipeline, FeedbackOrchestrator};
 use axagent_agent::rl_optimizer::RLOptimizer;
+use axagent_agent::{ExperiencePipeline, FeedbackOrchestrator};
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
@@ -38,5 +38,7 @@ pub fn init_shared_state() {
     lazy_static::initialize(&SHARED_OPTIMIZER);
     lazy_static::initialize(&SHARED_PIPELINE);
     lazy_static::initialize(&SHARED_ORCHESTRATOR);
-    tracing::info!("[shared_state] RLOptimizer + ExperiencePipeline + FeedbackOrchestrator initialized");
+    tracing::info!(
+        "[shared_state] RLOptimizer + ExperiencePipeline + FeedbackOrchestrator initialized"
+    );
 }

@@ -7,8 +7,8 @@
 //! - 正向反馈（rating >= 4）累积时 → 触发技能进化评估
 //! - 定期检查经验池大小，超过阈值触发训练
 
-use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::Duration;
 
 /// 反馈聚合后的动作指令。
@@ -27,9 +27,7 @@ pub enum OrchestratorAction {
         positive_count: usize,
     },
     /// 经验池大小检查触发训练。
-    TriggerPoolSizeCheck {
-        pool_size: usize,
-    },
+    TriggerPoolSizeCheck { pool_size: usize },
 }
 
 /// 反馈驱动的自动优化调度器。
@@ -38,6 +36,7 @@ pub enum OrchestratorAction {
 /// - 累积正面/负面反馈计数
 /// - 达到阈值时触发对应的优化动作
 /// - 支持可选定时检查
+/// - 桥接 tracer FeedbackRecord → orchestrator（process_feedback_record）
 pub struct FeedbackOrchestrator {
     /// 负反馈阈值（默认 5）
     negative_threshold: usize,
@@ -51,6 +50,8 @@ pub struct FeedbackOrchestrator {
     total_feedback: AtomicUsize,
     /// 经验池规模检查阈值（默认 100）
     pool_size_threshold: usize,
+    /// 已处理的反馈记录 trace_id 集合（用于去重）
+    seen_traces: std::sync::Mutex<std::collections::HashSet<String>>,
 }
 
 impl FeedbackOrchestrator {
@@ -62,6 +63,7 @@ impl FeedbackOrchestrator {
             positive_count: AtomicUsize::new(0),
             total_feedback: AtomicUsize::new(0),
             pool_size_threshold: 100,
+            seen_traces: std::sync::Mutex::new(std::collections::HashSet::new()),
         }
     }
 
@@ -98,16 +100,17 @@ impl FeedbackOrchestrator {
                     // 达到负反馈阈值，重置计数器并触发 RL 训练
                     self.negative_count.store(0, Ordering::Relaxed);
                     OrchestratorAction::TriggerRLTraining {
-                        reason: format!(
-                            "累积 {} 条负面反馈（评级 1-2），已达到阈值 {}",
-                            prev, self.negative_threshold
+                        reason: axagent_core::i18n::fmt_msg_with(
+                            axagent_core::i18n::I18nKey::AgentNegativeFeedbackThreshold,
+                            &prev.to_string(),
+                            &self.negative_threshold.to_string(),
                         ),
                         negative_count: prev,
                     }
                 } else {
                     OrchestratorAction::None
                 }
-            }
+            },
             4 | 5 => {
                 let prev = self.positive_count.fetch_add(1, Ordering::Relaxed) + 1;
                 tracing::info!(
@@ -119,16 +122,17 @@ impl FeedbackOrchestrator {
                 if prev >= self.positive_threshold {
                     self.positive_count.store(0, Ordering::Relaxed);
                     OrchestratorAction::TriggerSkillEvolution {
-                        reason: format!(
-                            "累积 {} 条正向反馈（评级 4-5），已达到阈值 {}",
-                            prev, self.positive_threshold
+                        reason: axagent_core::i18n::fmt_msg_with(
+                            axagent_core::i18n::I18nKey::AgentPositiveFeedbackThreshold,
+                            &prev.to_string(),
+                            &self.positive_threshold.to_string(),
                         ),
                         positive_count: prev,
                     }
                 } else {
                     OrchestratorAction::None
                 }
-            }
+            },
             _ => OrchestratorAction::None, // rating == 3 中性，不触发任何动作
         }
     }
@@ -140,6 +144,62 @@ impl FeedbackOrchestrator {
         } else {
             OrchestratorAction::None
         }
+    }
+
+    /// 处理来自 tracer 的 FeedbackRecord（桥接 tracer → orchestrator）。
+    ///
+    /// 解析字符串格式的 rating，去重（同 trace_id 多次提交只计首次），
+    /// 然后委托给 `record_feedback`。
+    ///
+    /// 返回解析后的 rating 值和对应的 OrchestratorAction。
+    /// 若 rating 解析失败或已处理过该 trace，返回 `None`。
+    pub fn process_feedback_record(
+        &self,
+        trace_id: &str,
+        rating_str: &str,
+    ) -> Option<(u8, OrchestratorAction)> {
+        // 去重：同 trace_id 只处理一次
+        {
+            let mut seen = self.seen_traces.lock().unwrap();
+            if !seen.insert(trace_id.to_string()) {
+                tracing::debug!("[FeedbackOrchestrator] skipping duplicate trace_id={}", trace_id);
+                return None;
+            }
+        }
+
+        // 解析 rating 字符串
+        let rating: u8 = rating_str.parse().ok()?;
+        let rating = rating.clamp(1, 5);
+
+        let action = self.record_feedback(rating);
+        Some((rating, action))
+    }
+
+    /// 批量处理 FeedbackRecord 列表（从 tracer 的 FEEDBACK_STORAGE 拉取后调用）。
+    ///
+    /// 返回触发的动作列表（仅包含 Trigger* 变体，不含 None）。
+    pub fn process_feedback_batch(
+        &self,
+        records: &[FeedbackRecordInput],
+    ) -> Vec<FeedbackBatchResult> {
+        let mut results = Vec::new();
+        for rec in records {
+            if let Some((rating, action)) = self.process_feedback_record(&rec.trace_id, &rec.rating)
+            {
+                results.push(FeedbackBatchResult {
+                    trace_id: rec.trace_id.clone(),
+                    rating,
+                    action,
+                    comment: rec.comment.clone(),
+                });
+            }
+        }
+        results
+    }
+
+    /// 获取已处理 trace_id 数量（去重计数）。
+    pub fn seen_count(&self) -> usize {
+        self.seen_traces.lock().unwrap().len()
     }
 
     /// 重置负反馈计数器（RL 训练完成后调用）。
@@ -196,6 +256,23 @@ pub enum FeedbackCategory {
     Negative,
     Neutral,
     Positive,
+}
+
+/// tracer 反馈记录的输入表示（桥梁类型，避免循环依赖）。
+#[derive(Debug, Clone)]
+pub struct FeedbackRecordInput {
+    pub trace_id: String,
+    pub rating: String,
+    pub comment: Option<String>,
+}
+
+/// 批量处理反馈后的单条结果。
+#[derive(Debug, Clone)]
+pub struct FeedbackBatchResult {
+    pub trace_id: String,
+    pub rating: u8,
+    pub action: OrchestratorAction,
+    pub comment: Option<String>,
 }
 
 #[cfg(test)]

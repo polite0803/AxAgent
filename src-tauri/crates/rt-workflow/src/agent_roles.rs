@@ -2,13 +2,15 @@
 
 //! Agent Role System - Defines agent archetypes and their capabilities
 //!
-//! DB-first lookup: checks `agent_roles` table first, falls back to built-in enum.
+//! Lookup priority: 1) DB `agent_roles` table → 2) config file (YAML/JSON) → 3) built-in enum.
 //! Custom roles imported from Open Agent Spec or other sources are stored in the DB
 //! and take precedence over the hardcoded 8 variants.
 
 use sea_orm::DatabaseConnection;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::path::Path;
+use std::sync::RwLock;
 
 /// 8 built-in role variants — used as enum fallback.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -481,7 +483,7 @@ impl AgentRole {
 }
 
 impl AgentRole {
-    /// DB-first role resolver: look up `agent_roles` table, fall back to enum.
+    /// DB-first role resolver: check DB → fall back to enum.
     pub async fn resolve(db: &DatabaseConnection, role_name: &str) -> Option<ResolvedRole> {
         if let Ok(Some(row)) = get_role_from_db(db, role_name).await {
             return Some(ResolvedRole {
@@ -499,6 +501,44 @@ impl AgentRole {
                 source: row.source,
             });
         }
+        Self::from_str_opt(role_name).map(|r| ResolvedRole {
+            name: role_name.to_string(),
+            system_prompt: r.system_prompt().to_string(),
+            default_tools: r.default_tools().iter().map(|s| s.to_string()).collect(),
+            max_concurrent: r.max_concurrent(),
+            timeout_seconds: r.timeout_seconds(),
+            source: "builtin".to_string(),
+        })
+    }
+
+    /// 三级查找：DB → 文件注册表 → 内置枚举。
+    pub async fn resolve_with_file_registry(
+        db: &DatabaseConnection,
+        file_registry: &FileRoleRegistry,
+        role_name: &str,
+    ) -> Option<ResolvedRole> {
+        // 1) DB
+        if let Ok(Some(row)) = get_role_from_db(db, role_name).await {
+            return Some(ResolvedRole {
+                name: row.name,
+                system_prompt: if row.system_prompt.is_empty() {
+                    Self::from_str_opt(role_name)
+                        .map(|r| r.system_prompt().to_string())
+                        .unwrap_or_default()
+                } else {
+                    row.system_prompt
+                },
+                default_tools: row.default_tools,
+                max_concurrent: row.max_concurrent as usize,
+                timeout_seconds: row.timeout_seconds as u64,
+                source: row.source,
+            });
+        }
+        // 2) 文件注册表
+        if let Some(r) = file_registry.resolve(role_name) {
+            return Some(r);
+        }
+        // 3) 内置枚举
         Self::from_str_opt(role_name).map(|r| ResolvedRole {
             name: role_name.to_string(),
             system_prompt: r.system_prompt().to_string(),
@@ -648,6 +688,141 @@ impl RoleRegistry {
 
     pub fn is_enabled(&self, role: &AgentRole) -> bool {
         self.roles.get(role).map(|c| c.enabled).unwrap_or(true)
+    }
+}
+
+// ── 配置文件驱动的角色定义（扩展性核心） ──
+
+/// 从外部配置文件（YAML 或 JSON）加载的角色定义。
+/// 字段语义与 RoleConfig 对齐，但角色名是字符串（支持自定义角色名）。
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FileRoleDefinition {
+    /// 角色名（如 "financial_auditor"）
+    pub name: String,
+    /// 是否启用
+    #[serde(default = "default_enabled")]
+    pub enabled: bool,
+    /// System prompt 模板
+    pub system_prompt: String,
+    /// 允许的工具列表
+    #[serde(default)]
+    pub allowed_tools: Vec<String>,
+    /// 最大并发数
+    #[serde(default = "default_max_concurrent")]
+    pub max_concurrent: usize,
+    /// 超时秒数
+    #[serde(default = "default_timeout_seconds")]
+    pub timeout_seconds: u64,
+    /// 来源标注（如 "file:roles.yaml"）
+    #[serde(default)]
+    pub source: String,
+}
+
+fn default_enabled() -> bool {
+    true
+}
+fn default_max_concurrent() -> usize {
+    3
+}
+fn default_timeout_seconds() -> u64 {
+    300
+}
+
+/// 角色配置文件顶层结构。
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RoleConfigFile {
+    #[serde(default = "default_schema_version")]
+    pub schema_version: u32,
+    pub roles: Vec<FileRoleDefinition>,
+}
+
+fn default_schema_version() -> u32 {
+    1
+}
+
+impl Default for RoleConfigFile {
+    fn default() -> Self {
+        Self {
+            schema_version: 1,
+            roles: Vec::new(),
+        }
+    }
+}
+
+/// 从文件加载的自定义角色注册表（线程安全）。
+#[derive(Debug, Default)]
+pub struct FileRoleRegistry {
+    roles: RwLock<HashMap<String, FileRoleDefinition>>,
+}
+
+impl FileRoleRegistry {
+    pub fn new() -> Self {
+        Self {
+            roles: RwLock::new(HashMap::new()),
+        }
+    }
+
+    /// 从 YAML 或 JSON 文件加载角色定义。
+    /// 支持 .yaml / .yml / .json 扩展名。
+    pub fn load_from_file(&self, path: &Path) -> Result<usize, String> {
+        let content = std::fs::read_to_string(path)
+            .map_err(|e| format!("无法读取角色配置文件 {}: {}", path.display(), e))?;
+
+        let config: RoleConfigFile = if path
+            .extension()
+            .map_or(false, |e| e == "yaml" || e == "yml")
+        {
+            serde_yaml::from_str(&content)
+                .map_err(|e| format!("YAML 解析失败 {}: {}", path.display(), e))?
+        } else {
+            serde_json::from_str(&content)
+                .map_err(|e| format!("JSON 解析失败 {}: {}", path.display(), e))?
+        };
+
+        let count = config.roles.len();
+        let source = format!("file:{}", path.display());
+        let mut map = self
+            .roles
+            .write()
+            .map_err(|e| format!("Lock poisoned: {}", e))?;
+
+        for mut role in config.roles {
+            if role.source.is_empty() {
+                role.source = source.clone();
+            }
+            map.insert(role.name.clone(), role);
+        }
+
+        Ok(count)
+    }
+
+    /// 按角色名查找文件定义的 ResolvedRole。
+    pub fn resolve(&self, role_name: &str) -> Option<ResolvedRole> {
+        let map = self.roles.read().ok()?;
+        map.get(role_name).map(|r| ResolvedRole {
+            name: r.name.clone(),
+            system_prompt: r.system_prompt.clone(),
+            default_tools: r.allowed_tools.clone(),
+            max_concurrent: r.max_concurrent,
+            timeout_seconds: r.timeout_seconds,
+            source: r.source.clone(),
+        })
+    }
+
+    /// 列出所有文件角色的名称。
+    pub fn role_names(&self) -> Vec<String> {
+        self.roles
+            .read()
+            .map(|map| map.keys().cloned().collect())
+            .unwrap_or_default()
+    }
+
+    /// 列出所有文件角色定义。
+    pub fn all_roles(&self) -> Vec<FileRoleDefinition> {
+        self.roles
+            .read()
+            .map(|map| map.values().cloned().collect())
+            .unwrap_or_default()
     }
 }
 

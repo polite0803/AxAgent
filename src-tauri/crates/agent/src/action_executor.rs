@@ -105,7 +105,10 @@ impl ActionExecutor {
         let (_server_name, local_name) = parse_full_tool_name(tool_name);
 
         if let Err(e) = Self::sandbox_check(local_name, &input) {
-            return Err(ActionError::ToolExecution(format!("沙箱安全检查未通过: {e}")));
+            return Err(ActionError::ToolExecution(axagent_core::i18n::fmt_msg(
+                axagent_core::i18n::I18nKey::AgentSandboxCheckFailed,
+                &e.to_string(),
+            )));
         }
 
         let args = if let Some(obj) = input.as_object() {
@@ -126,23 +129,32 @@ impl ActionExecutor {
             }
         } else {
             Err(ActionError::InvalidAction(
-                "未配置工具注册表（Harness 未注入 registry）".to_string(),
+                axagent_core::i18n::msg(
+                    axagent_core::i18n::I18nKey::AgentToolRegistryNotConfigured,
+                )
+                .to_string(),
             ))
         }
     }
 
-    fn sandbox_check(tool_name: &str, input: &Value) -> Result<(), String> {
+    fn sandbox_check(tool_name: &str, input: &Value) -> Result<(), ActionError> {
         // 基本路径安全检查——完整沙箱由运行时层的 ToolExecutor 执行
         if let Some(path_str) = input.get("path").and_then(|v| v.as_str()) {
             let path = std::path::Path::new(path_str);
             if path.is_absolute() {
-                return Err(format!("工具 '{tool_name}' 不允许访问绝对路径: {path_str}"));
+                return Err(ActionError::ToolExecution(axagent_core::i18n::fmt_msg(
+                    axagent_core::i18n::I18nKey::AgentToolAbsolutePathDenied,
+                    &format!("{tool_name}: {path_str}"),
+                )));
             }
             if path
                 .components()
                 .any(|c| c == std::path::Component::ParentDir)
             {
-                return Err(format!("工具 '{tool_name}' 不允许路径回溯: {path_str}"));
+                return Err(ActionError::ToolExecution(axagent_core::i18n::fmt_msg(
+                    axagent_core::i18n::I18nKey::AgentToolPathTraversalDenied,
+                    &format!("{tool_name}: {path_str}"),
+                )));
             }
         }
         Ok(())

@@ -10,6 +10,7 @@ export { useBackendStatusStore } from "./shared/backendStatusStore";
 export { useErrorNotificationStore } from "./shared/errorNotificationStore";
 
 export { useDecompositionStore } from "./feature/decompositionStore";
+export { useDynamicUIStore } from "./feature/dynamicUIStore";
 export { useLlmWikiStore } from "./feature/llmWikiStore";
 export { useProactiveStore } from "./feature/proactiveStore";
 export { useStyleStore } from "./feature/styleStore";
@@ -51,6 +52,7 @@ export { useNudgeStore } from "./feature/nudgeStore";
 export { useOnboardingStore } from "./feature/onboardingStore";
 export { setupPlanEventListeners, usePlanStore } from "./feature/planStore";
 export { usePlatformStore } from "./feature/platformStore";
+export { usePluginStore } from "./feature/pluginStore";
 export { usePromptTemplateStore } from "./feature/promptTemplateStore";
 export { useProviderStore } from "./feature/providerStore";
 export { useRlTrainingStore } from "./feature/rlTrainingStore";

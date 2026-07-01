@@ -39,5 +39,3 @@ export const TimelineView: React.FC<DynamicUIProps> = ({
     />
   );
 };
-
-export default TimelineView;

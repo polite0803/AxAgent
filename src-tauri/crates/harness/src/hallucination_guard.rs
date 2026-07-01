@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use serde::{Deserialize, Serialize};
+use ts_rs::TS;
 
 /// 防幻觉锚定配置
-#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema, TS)]
 pub struct HallucinationGuardConfig {
     pub enabled: bool,
     /// 引用匹配阈值（0-1），低于此值判定为幻觉

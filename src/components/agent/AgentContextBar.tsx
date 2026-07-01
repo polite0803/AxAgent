@@ -2,6 +2,7 @@
 
 import { useAgentPanelStore } from "@/stores/shared/agentPanelStore";
 import { MapPin } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 /**
  * Agent 上下文信息栏
@@ -11,13 +12,14 @@ import { MapPin } from "lucide-react";
  * - 无上下文时：显示"全局模式"
  */
 export function AgentContextBar() {
+  const { t } = useTranslation();
   const agentContext = useAgentPanelStore((s) => s.agentContext);
 
   if (!agentContext) {
     return (
       <span className="text-xs text-[var(--color-text-secondary)] inline-flex items-center gap-1">
         <MapPin size={12} />
-        全局模式
+        {t("agentPanel.globalMode")}
       </span>
     );
   }

@@ -3,6 +3,54 @@
 import i18n from "@/i18n";
 import type { SkillPermissions } from "@/types";
 
+// ── 权限声明签名校验（P3 #21） ──────────────────────────────────────
+
+/** 存储各 skill 的权限 manifest 哈希 */
+const permissionHashStore = new Map<string, string>();
+
+/**
+ * 计算权限声明的确定性哈希（SHA-256 截取前 16 字符 hex）。
+ * 对 permissions 对象做 JSON 稳定序列化后计算。
+ */
+async function computePermissionHash(
+  permissions: SkillPermissions | undefined,
+): Promise<string> {
+  const payload = JSON.stringify(permissions ?? {}, Object.keys(permissions ?? {}).sort());
+  const encoder = new TextEncoder();
+  const data = encoder.encode(payload);
+  const digest = await crypto.subtle.digest("SHA-256", data);
+  const hex = Array.from(new Uint8Array(digest))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+  return hex.slice(0, 16);
+}
+
+/**
+ * 检查权限声明是否发生变更。若已存储哈希与新哈希不匹配，发出 console.warn。
+ * @returns 当前哈希值
+ */
+export async function checkPermissionIntegrity(
+  skillName: string,
+  permissions: SkillPermissions | undefined,
+): Promise<string> {
+  const newHash = await computePermissionHash(permissions);
+  const oldHash = permissionHashStore.get(skillName);
+  if (oldHash !== undefined && oldHash !== newHash) {
+    console.warn(
+      `[skillPermissions] Permission manifest changed for "${skillName}" — `
+        + `old hash: ${oldHash}, new hash: ${newHash}. `
+        + `Review the updated permissions before trusting this skill.`,
+    );
+  }
+  permissionHashStore.set(skillName, newHash);
+  return newHash;
+}
+
+/** 清除指定 skill 的权限哈希缓存 */
+export function clearPermissionHash(skillName: string): void {
+  permissionHashStore.delete(skillName);
+}
+
 // ── 权限校验（加载时强制执行的白名单） ──────────────────────────────
 
 /** 权限校验结果 */
@@ -12,6 +60,9 @@ export interface PermissionValidationResult {
   /** 拒绝原因列表 */
   violations: string[];
 }
+
+/** P1 #16: 禁止 Skill 通过声明式 action 访问的 Store */
+const FORBIDDEN_STORES = new Set(["skill"]);
 
 /** 默认权限：无声明时拒绝所有操作 */
 const DEFAULT_PERMISSIONS: Required<SkillPermissions> = {
@@ -107,6 +158,24 @@ export function validateSkillPermissions(
   }
 
   const perms = { ...DEFAULT_PERMISSIONS, ...permissions };
+
+  // P1 #16: 硬性拒绝访问 forbidden store
+  for (const perm of perms.storeRead) {
+    const { storeName } = parseStorePerm(perm);
+    if (FORBIDDEN_STORES.has(storeName)) {
+      violations.push(
+        `${UNAUTHORIZED_PREFIX}storeRead "${perm}" is forbidden: skill store access is restricted`,
+      );
+    }
+  }
+  for (const perm of perms.storeWrite) {
+    const { storeName } = parseStorePerm(perm);
+    if (FORBIDDEN_STORES.has(storeName)) {
+      violations.push(
+        `${UNAUTHORIZED_PREFIX}storeWrite "${perm}" is forbidden: skill store access is restricted`,
+      );
+    }
+  }
 
   for (const cmd of requiredCommands) {
     if (!isWildcardMatch(cmd, perms.commands)) {

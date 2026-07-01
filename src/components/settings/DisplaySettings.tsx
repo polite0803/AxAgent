@@ -46,6 +46,19 @@ export function DisplaySettings() {
       bg: "#131a13",
       accent: "#3dbf5c",
     },
+    // 21th 设计系统 — 新野兽派风格
+    {
+      key: "21th-dark",
+      label: t("settings.themePreset21thDark"),
+      bg: "#0a0a0a",
+      accent: "#ffffff",
+    },
+    {
+      key: "21th-light",
+      label: t("settings.themePreset21thLight"),
+      bg: "#c5c9c9",
+      accent: "#111111",
+    },
     // 经典预设
     {
       key: "cyberpunk-dark",

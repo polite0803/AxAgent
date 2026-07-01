@@ -128,7 +128,8 @@ interface SkillExtensionState {
   fetchSkills: () => Promise<void>;
   getHandler: (name: string) => SkillHandler | undefined;
   refreshSkill: (skillName: string) => Promise<void>;
-  registerCustomComponent: (name: string, entry: ComponentRegistryEntry) => void;
+  registerCustomComponent: (skillName: string, entry: ComponentRegistryEntry) => void;
+  unregisterSkillComponents: (skillName: string) => void;
 }
 
 function namespaceId(skillName: string, id: string): string {
@@ -460,8 +461,12 @@ export const useSkillExtensionStore = create<SkillExtensionState>(
       set({ skills, ...merged });
     },
 
-    registerCustomComponent: (_name: string, entry: ComponentRegistryEntry) => {
-      componentRegistry.register(entry);
+    registerCustomComponent: (skillName: string, entry: ComponentRegistryEntry) => {
+      componentRegistry.register(entry, skillName);
+    },
+
+    unregisterSkillComponents: (skillName: string) => {
+      componentRegistry.unregisterNamespace(skillName);
     },
   }),
 );

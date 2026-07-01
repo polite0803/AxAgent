@@ -126,6 +126,7 @@ fn step_to_agent_node(
         enabled: true,
         parent_id: None,
         compensation: None,
+        continue_on_fail: false,
     };
 
     WorkflowNode::Agent(AgentNode {
@@ -267,6 +268,7 @@ fn build_workflow_nodes(
                 enabled: true,
                 parent_id: None,
                 compensation: None,
+                continue_on_fail: false,
             },
             config: ParallelNodeConfig {
                 branches: group
@@ -302,6 +304,7 @@ fn build_workflow_nodes(
                 enabled: true,
                 parent_id: None,
                 compensation: None,
+                continue_on_fail: false,
             },
             config: MergeNodeConfig {
                 merge_type: MergeStrategy::All,
@@ -329,6 +332,7 @@ fn build_stock_analysis_nodes(_steps: &[PresetStep], start_y: f64) -> Vec<Workfl
             enabled: true,
             parent_id: None,
             compensation: None,
+            continue_on_fail: false,
         },
         config: ParallelNodeConfig {
             branches: vec![
@@ -423,6 +427,7 @@ fn build_stock_analysis_nodes(_steps: &[PresetStep], start_y: f64) -> Vec<Workfl
             enabled: true,
             parent_id: None,
             compensation: None,
+            continue_on_fail: false,
         },
         config: MergeNodeConfig {
             merge_type: MergeStrategy::All,
@@ -454,6 +459,7 @@ fn build_stock_analysis_nodes(_steps: &[PresetStep], start_y: f64) -> Vec<Workfl
             enabled: true,
                 parent_id: None,
                 compensation: None,
+                continue_on_fail: false,
         },
         config: ConditionNodeConfig {
             conditions: vec![],
@@ -480,6 +486,7 @@ fn build_stock_analysis_nodes(_steps: &[PresetStep], start_y: f64) -> Vec<Workfl
             enabled: true,
             parent_id: None,
             compensation: None,
+            continue_on_fail: false,
         },
         config: EndNodeConfig { output_var: None },
     }));
@@ -504,6 +511,7 @@ pub fn convert_preset_to_workflow_template(preset: &PresetTemplate) -> WorkflowT
             enabled: true,
             parent_id: None,
             compensation: None,
+            continue_on_fail: false,
         },
         config: TriggerConfig {
             trigger_type: TriggerType::Manual,
@@ -580,6 +588,7 @@ pub fn convert_preset_to_workflow_template(preset: &PresetTemplate) -> WorkflowT
                 enabled: true,
                 parent_id: None,
                 compensation: None,
+                continue_on_fail: false,
             },
             config: EndNodeConfig { output_var: None },
         }));
@@ -721,6 +730,7 @@ pub fn convert_preset_to_workflow_template(preset: &PresetTemplate) -> WorkflowT
             error_branch: None,
             compensation_steps: None,
         }),
+        error_workflow_id: None,
         tool_defs: vec![],
         created_at: now,
         updated_at: now,

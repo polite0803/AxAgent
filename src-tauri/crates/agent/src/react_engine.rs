@@ -77,8 +77,8 @@ pub enum ReActError {
     LlmReasoningError(String),
     #[error("Cycle detected: {0}")]
     CycleDetected(String),
-    #[error("Other: {0}")]
-    Other(String),
+    #[error(transparent)]
+    Other(Box<dyn std::error::Error + Send + Sync>),
 }
 
 #[async_trait::async_trait]

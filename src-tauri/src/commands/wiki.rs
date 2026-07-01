@@ -3,6 +3,7 @@
 use crate::AppState;
 use axagent_core::hybrid_search::{HybridSearchOptions, HybridSearcher};
 use axagent_core::rag::{RAGSource, WikiVaultRAG, collection_id};
+use axagent_core::repo::index_jobs as jobs;
 use axagent_core::repo::louvain::{self, LouvainResult};
 use axagent_core::repo::note::{CreateNoteInput, GraphData, Note, NoteLink, UpdateNoteInput};
 use axagent_core::repo::note_graph::LinkGraph;
@@ -11,52 +12,22 @@ use axagent_harness::types::NoteSearchResult;
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter, State};
 
-fn spawn_wiki_note_indexing(
+fn enqueue_wiki_note_indexing(
     state: &State<'_, AppState>,
+    app: &AppHandle,
     wiki_id: &str,
     note_id: &str,
-    content: &str,
 ) {
-    let db = state.harness.db().clone();
-    let master_key = state.harness.master_key_owned();
-    let vector_store = state.vector_store.clone();
-    let wid = wiki_id.to_string();
-    let nid = note_id.to_string();
-    let c = content.to_string();
-
-    tokio::spawn(async move {
-        let wiki = match axagent_core::repo::wiki::get_wiki(&db, &wid).await {
-            Ok(w) => w,
-            Err(_) => return,
-        };
-
-        if wiki.embedding_provider.is_none() {
-            return;
-        }
-
-        let container = axagent_core::rag::KnowledgeContainer::from_wiki(&wiki);
-
-        let collection_id = format!("wiki_{}", wid);
-        let _ = vector_store
-            .delete_document_embeddings(&collection_id, &nid)
-            .await;
-
-        let result = crate::indexing::index_source(
-            &db,
-            &master_key,
-            &vector_store,
-            &container,
-            &nid,
-            &c,
-            None,
-            None,
-        )
-        .await;
-
-        if let Err(e) = &result {
-            tracing::error!("Wiki note indexing failed for {}: {}", nid, e);
-        }
-    });
+    let _ = crate::index_queue::enqueue_job_sync(
+        state,
+        app,
+        jobs::JOB_TYPE_INDEX_WIKI_NOTE,
+        "wiki",
+        wiki_id,
+        note_id,
+        None,
+        None,
+    );
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -96,6 +67,7 @@ pub async fn wiki_notes_get_by_path(
 
 #[tauri::command]
 pub async fn wiki_notes_create(
+    app: AppHandle,
     state: State<'_, AppState>,
     input: CreateNoteInput,
 ) -> Result<Note, String> {
@@ -103,13 +75,14 @@ pub async fn wiki_notes_create(
         .await
         .map_err(|e| e.to_string())?;
 
-    spawn_wiki_note_indexing(&state, &note.vault_id, &note.id, &note.content);
+    enqueue_wiki_note_indexing(&state, &app, &note.vault_id, &note.id);
 
     Ok(note)
 }
 
 #[tauri::command]
 pub async fn wiki_notes_update(
+    app: AppHandle,
     state: State<'_, AppState>,
     id: String,
     input: UpdateNoteInput,
@@ -134,7 +107,7 @@ pub async fn wiki_notes_update(
 
     let _ = wiki::delete_old_versions(state.harness.db(), &id, 20).await;
 
-    spawn_wiki_note_indexing(&state, &updated.vault_id, &updated.id, &updated.content);
+    enqueue_wiki_note_indexing(&state, &app, &updated.vault_id, &updated.id);
 
     Ok(updated)
 }
@@ -650,50 +623,22 @@ pub async fn sync_note_to_knowledge_base(
             .map_err(|e| e.to_string())?;
 
     if kb.embedding_provider.is_some() {
-        let container = axagent_core::rag::KnowledgeContainer::from_knowledge_base(&kb);
-        let db = state.harness.db().clone();
-        let master_key = state.harness.master_key_owned();
-        let vector_store = state.vector_store.clone();
-        let doc_id = doc.id.clone();
-        let src_path = source_path.clone();
-        let mime = "text/markdown".to_string();
-        let semaphore = state.indexing_semaphore.clone();
-
-        tokio::spawn(async move {
-            let _permit = semaphore.acquire().await;
-            let result = crate::indexing::index_source(
-                &db,
-                &master_key,
-                &vector_store,
-                &container,
-                &doc_id,
-                "",
-                Some(&src_path),
-                Some(&mime),
-            )
-            .await;
-
-            if let Err(e) = &result {
-                let err_msg = e.to_string();
-                tracing::error!("Indexing failed for synced doc {}: {}", doc_id, err_msg);
-                let _ = axagent_core::repo::knowledge::update_document_status_with_error(
-                    &db,
-                    &doc_id,
-                    "failed",
-                    Some(&err_msg),
-                )
-                .await;
-            }
-
-            let _ = app.emit(
-                "knowledge-document-indexed",
-                serde_json::json!({
-                    "documentId": doc_id,
-                    "success": result.is_ok(),
-                    "error": result.err().map(|e| e.to_string()),
-                }),
-            );
-        });
+        let _ = axagent_core::repo::knowledge::update_document_status(
+            state.harness.db(),
+            &doc.id,
+            "pending",
+        )
+        .await;
+        let _ = crate::index_queue::enqueue_job_sync(
+            &state,
+            &app,
+            jobs::JOB_TYPE_INDEX_DOCUMENT,
+            "kb",
+            &knowledge_base_id,
+            &doc.id,
+            None,
+            None,
+        );
     }
 
     Ok(())
@@ -701,6 +646,7 @@ pub async fn sync_note_to_knowledge_base(
 
 #[tauri::command]
 pub async fn sync_knowledge_document_to_wiki(
+    app: AppHandle,
     state: State<'_, AppState>,
     document_id: String,
     vault_id: String,
@@ -751,7 +697,7 @@ pub async fn sync_knowledge_document_to_wiki(
         .await
         .map_err(|e| e.to_string())?;
 
-    spawn_wiki_note_indexing(&state, &vault_id, &note.id, &note.content);
+    enqueue_wiki_note_indexing(&state, &app, &vault_id, &note.id);
 
     Ok(())
 }
@@ -778,6 +724,7 @@ pub async fn wiki_note_get_version(
 
 #[tauri::command]
 pub async fn wiki_note_restore_version(
+    app: AppHandle,
     state: State<'_, AppState>,
     note_id: String,
     version_id: i64,
@@ -814,7 +761,7 @@ pub async fn wiki_note_restore_version(
 
     let _ = wiki::delete_old_versions(state.harness.db(), &note_id, 20).await;
 
-    spawn_wiki_note_indexing(&state, &updated.vault_id, &updated.id, &updated.content);
+    enqueue_wiki_note_indexing(&state, &app, &updated.vault_id, &updated.id);
 
     Ok(updated)
 }
@@ -848,6 +795,7 @@ pub async fn wiki_template_delete(state: State<'_, AppState>, id: String) -> Res
 
 #[tauri::command]
 pub async fn wiki_note_create_from_template(
+    app: AppHandle,
     state: State<'_, AppState>,
     vault_id: String,
     template_id: String,
@@ -882,13 +830,14 @@ pub async fn wiki_note_create_from_template(
         .await
         .map_err(|e| e.to_string())?;
 
-    spawn_wiki_note_indexing(&state, &vault_id, &note.id, &note.content);
+    enqueue_wiki_note_indexing(&state, &app, &vault_id, &note.id);
 
     Ok(note)
 }
 
 #[tauri::command]
 pub async fn wiki_create_daily_note(
+    app: AppHandle,
     state: State<'_, AppState>,
     vault_id: String,
 ) -> Result<Note, String> {
@@ -916,7 +865,7 @@ pub async fn wiki_create_daily_note(
                 .await
                 .map_err(|e| e.to_string())?;
 
-            spawn_wiki_note_indexing(&state, &vault_id, &note.id, &note.content);
+            enqueue_wiki_note_indexing(&state, &app, &vault_id, &note.id);
 
             Ok(note)
         },
@@ -940,6 +889,7 @@ pub struct ExportStats {
 
 #[tauri::command]
 pub async fn wiki_import_obsidian_vault(
+    app: AppHandle,
     state: State<'_, AppState>,
     wiki_id: String,
     vault_path: String,
@@ -1033,7 +983,7 @@ pub async fn wiki_import_obsidian_vault(
 
         match axagent_core::repo::note::create_note(state.harness.db(), input).await {
             Ok(note) => {
-                spawn_wiki_note_indexing(&state, &wiki_id, &note.id, &note.content);
+                enqueue_wiki_note_indexing(&state, &app, &wiki_id, &note.id);
                 imported += 1;
             },
             Err(e) => {

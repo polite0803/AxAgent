@@ -1,15 +1,27 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use crate::event_bus::{AgentEventBus, AgentEventType, UnifiedAgentEvent};
+use crate::reasoning_router::{self, ReasoningEngine, TaskFeatures};
 use crate::steer_manager::SteerManager;
 use crate::tree_of_thoughts::{LlmReasoningProvider as ToTReasoningProvider, TreeOfThoughtsEngine};
 use async_trait::async_trait;
 use axagent_runtime_core::{CacheGuard, HookChain, prompt_cache::PromptCache};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
-use std::sync::atomic::{AtomicU8, Ordering};
+use std::sync::atomic::{AtomicU8, AtomicU32, Ordering};
 use thiserror::Error;
 use tokio::sync::RwLock;
+
+// ---------------------------------------------------------------------------
+// Phase 4: 推理引擎选择来源常量
+// ---------------------------------------------------------------------------
+
+/// 默认（未显式配置，按 ReactEngine 兜底）
+const ENGINE_SOURCE_DEFAULT: u32 = 0;
+/// 通过 with_reasoning_router() 启用自动选择
+const ENGINE_SOURCE_AUTO: u32 = 1;
+/// 通过 with_reasoning_engine() 手动指定
+const ENGINE_SOURCE_MANUAL: u32 = 2;
 
 // ---------------------------------------------------------------------------
 // 工作者（Worker）Agent 模式
@@ -67,17 +79,18 @@ impl WorkerDefinition {
     /// 验证工作者定义是否合法。
     // i18n-note: Validation error messages. Future: accept language parameter or convert to error codes.
     pub fn validate(&self) -> Result<(), String> {
+        use axagent_core::i18n::{self, I18nKey};
         if self.agent_type.is_empty() {
-            return Err("agent_type 不能为空".to_string());
+            return Err(i18n::fmt_msg(I18nKey::AgentFieldRequired, "agent_type"));
         }
         if self.when_to_use.is_empty() {
-            return Err("when_to_use 不能为空".to_string());
+            return Err(i18n::fmt_msg(I18nKey::AgentFieldRequired, "when_to_use"));
         }
         if self.tools.is_empty() {
-            return Err("tools 不能为空".to_string());
+            return Err(i18n::fmt_msg(I18nKey::AgentFieldRequired, "tools"));
         }
         if self.system_prompt.is_empty() {
-            return Err("system_prompt 不能为空".to_string());
+            return Err(i18n::fmt_msg(I18nKey::AgentFieldRequired, "system_prompt"));
         }
         Ok(())
     }
@@ -466,7 +479,13 @@ pub struct AgentCoordinator<T: AgentImpl> {
     pub cache_guard: Arc<CacheGuard>,
     pub hook_chain: Arc<HookChain>,
     pub steer_manager: Arc<SteerManager>,
-    tot_engine: Option<TreeOfThoughtsEngine>,
+    tot_engine: Arc<tokio::sync::Mutex<Option<TreeOfThoughtsEngine>>>,
+    /// Phase 4: 推理策略自动选择路由器
+    reasoning_engine: Arc<RwLock<ReasoningEngine>>,
+    /// 从 execute() 输入中自动提取的任务特征（用于决策追溯）
+    current_task_features: Arc<RwLock<Option<TaskFeatures>>>,
+    /// 推理引擎选择来源：auto（自动选择）或 manual（手动指定）
+    engine_selection_source: Arc<AtomicU32>,
 }
 
 impl<T: AgentImpl> AgentCoordinator<T> {
@@ -489,22 +508,65 @@ impl<T: AgentImpl> AgentCoordinator<T> {
             cache_guard: Arc::new(CacheGuard::new(prompt_cache)),
             hook_chain: Arc::new(HookChain::new()),
             steer_manager: Arc::new(SteerManager::new()),
-            tot_engine: None,
+            tot_engine: Arc::new(tokio::sync::Mutex::new(None)),
+            reasoning_engine: Arc::new(RwLock::new(ReasoningEngine::ReactEngine)),
+            current_task_features: Arc::new(RwLock::new(None)),
+            engine_selection_source: Arc::new(AtomicU32::new(ENGINE_SOURCE_DEFAULT)),
         }
     }
 
     pub fn with_tot_engine(mut self, engine: TreeOfThoughtsEngine) -> Self {
-        self.tot_engine = Some(engine);
+        *self.tot_engine.blocking_lock() = Some(engine);
         self
     }
 
+    /// 启用推理策略自动选择路由器。
+    ///
+    /// 每次 execute() 被调用时，自动从任务描述中提取特征并选择最优推理引擎。
+    /// 如果不调用此方法，默认使用 ReactEngine。
+    pub fn with_reasoning_router(mut self) -> Self {
+        self.engine_selection_source
+            .store(ENGINE_SOURCE_AUTO, Ordering::Release);
+        self
+    }
+
+    /// 手动指定推理引擎（覆盖自动选择）。
+    pub fn with_reasoning_engine(mut self, engine: ReasoningEngine) -> Self {
+        *self.reasoning_engine.blocking_write() = engine;
+        self.engine_selection_source
+            .store(ENGINE_SOURCE_MANUAL, Ordering::Release);
+        self
+    }
+
+    /// 获取当前推理引擎类型
+    pub async fn current_reasoning_engine(&self) -> ReasoningEngine {
+        *self.reasoning_engine.read().await
+    }
+
+    /// 获取最近一次任务特征（用于诊断）
+    pub async fn current_task_features(&self) -> Option<TaskFeatures> {
+        self.current_task_features.read().await.clone()
+    }
+
+    /// 使用 Tree of Thoughts 探索多路径推理。
+    ///
+    /// Phase 4: 在执行前检查当前推理引擎是否支持 ToT，不支持则跳过。
     pub async fn reason_with_tot(
-        &mut self,
+        &self,
         _problem: &str,
         context: &str,
         provider: &Arc<dyn ToTReasoningProvider>,
     ) -> Option<Vec<String>> {
-        let engine = self.tot_engine.as_mut()?;
+        let current_engine = *self.reasoning_engine.read().await;
+        if current_engine != ReasoningEngine::TreeOfThoughts {
+            tracing::debug!(
+                engine = %current_engine,
+                "Current engine != TreeOfThoughts, skipping ToT reasoning"
+            );
+            return None;
+        }
+        let mut engine_guard = self.tot_engine.lock().await;
+        let engine = engine_guard.as_mut()?;
 
         let root_id = engine.root_id.clone();
         let child_ids = engine
@@ -533,6 +595,33 @@ impl<T: AgentImpl> AgentCoordinator<T> {
         }
 
         Some(best_path)
+    }
+
+    /// Phase 4: 推理状态机模式——适用于需要验证/复核的任务。
+    ///
+    /// 当前为占位实现：如果当前引擎为 ReasoningStateMachine 且 config 中
+    /// enable_self_verification 为 true，则在 execute 完成后触发一次额外的
+    /// 验证循环（通过将输出重新注入为带验证提示的输入）。
+    pub async fn reason_with_state_machine(&self, output: &str) -> Option<String> {
+        let current_engine = *self.reasoning_engine.read().await;
+        if current_engine != ReasoningEngine::ReasoningStateMachine {
+            return None;
+        }
+        let config = self.config.read().await;
+        if !config.enable_self_verification {
+            tracing::debug!("ReasoningStateMachine selected but self_verification disabled");
+            return None;
+        }
+        // 验证提示：将输出回传为带验证指令的新输入
+        let verification_prompt = format!(
+            "Please verify the following output for factual accuracy, logical consistency, and completeness. \
+             If you find any issues, correct them and produce a revised version. \
+             If the output is already correct, respond with 'VERIFIED' followed by the original output.\n\n\
+             --- OUTPUT TO VERIFY ---\n{}",
+            output
+        );
+        tracing::info!("ReasoningStateMachine: triggering verification cycle");
+        Some(verification_prompt)
     }
 
     pub async fn initialize(&self, config: AgentConfig) -> Result<(), AgentError> {
@@ -622,8 +711,32 @@ impl<T: AgentImpl> AgentCoordinator<T> {
             tracing::info!("Injecting steer instructions into agent turn");
         }
 
-        // For complex tasks, use Tree of Thoughts to explore multiple reasoning paths
-        // before delegating to workers
+        // Phase 4: 推理策略自动选择路由器
+        // ——如果是 auto 或 manual 模式，在每次 execute 时重新评估
+        let source = self.engine_selection_source.load(Ordering::Acquire);
+        let selected_engine = if source == ENGINE_SOURCE_AUTO {
+            let (engine, features) = reasoning_router::auto_select_engine(&input.content);
+            {
+                let mut eng = self.reasoning_engine.write().await;
+                *eng = engine;
+            }
+            {
+                let mut ft = self.current_task_features.write().await;
+                *ft = Some(features);
+            }
+            tracing::info!(
+                engine = %engine,
+                "Reasoning router auto-selected engine"
+            );
+            engine
+        } else {
+            *self.reasoning_engine.read().await
+        };
+
+        // For complex tasks that require multi-path reasoning, use Tree of Thoughts
+        // when tot_engine is available AND router recommends it
+        let should_use_tot = selected_engine == ReasoningEngine::TreeOfThoughts
+            && self.tot_engine.lock().await.is_some();
 
         let cache_was_valid = self.prompt_cache.is_cache_valid().await;
         self.emit_event(
@@ -632,6 +745,8 @@ impl<T: AgentImpl> AgentCoordinator<T> {
                 "input_preview": input.content.chars().take(100).collect::<String>(),
                 "cache_valid": cache_was_valid,
                 "has_pending_changes": self.prompt_cache.has_pending_changes().await,
+                "reasoning_engine": selected_engine.to_string(),
+                "engine_source": if source == ENGINE_SOURCE_AUTO { "auto" } else if source == ENGINE_SOURCE_MANUAL { "manual" } else { "default" },
             }),
         )
         .await;

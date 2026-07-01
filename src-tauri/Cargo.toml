@@ -15,6 +15,7 @@ members = [
   "crates/mcp",
   "crates/migration",
   "crates/npm",
+  "crates/orchestrator",
   "crates/plugins",
   "crates/prompt-guard",
   "crates/providers",

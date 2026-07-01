@@ -191,8 +191,7 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState, Strin
 
     let sync_engine = create_sync_engine(&sea_db, &app_settings, rt.handle());
 
-    let home = dirs::home_dir().unwrap_or_default();
-    let config_home = home.join(".claw");
+    let config_home = app_dir.clone();
     let mut plugin_config = PluginManagerConfig::new(config_home.clone());
     plugin_config.external_dirs = axagent_core::skill_dirs::all_skills_dirs();
     let plugin_manager = Arc::new(tokio::sync::RwLock::new(PluginManager::new(plugin_config)));
@@ -581,12 +580,7 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState, Strin
         tot_sessions.clone(),
         planner_sessions.clone(),
         browser_client_field,
-        text_grad_engine.clone(),
-        auto_tool_creator.clone(),
-        intrinsic_motivation.clone(),
-        coevolution_env.clone(),
         constitution.clone(),
-        process_reward_model.clone(),
         proactive_service.clone(),
     );
 

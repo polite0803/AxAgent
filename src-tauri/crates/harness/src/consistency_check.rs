@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use serde::{Deserialize, Serialize};
+use ts_rs::TS;
 
 /// 一致性检查配置
-#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema, TS)]
 pub struct ConsistencyCheckConfig {
     /// 是否启用
     pub enabled: bool,
@@ -27,7 +28,7 @@ impl Default for ConsistencyCheckConfig {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema, TS)]
 pub enum ConsistencyMode {
     /// 相同模型执行 2 次对比
     #[serde(rename = "sameModelRepeated")]

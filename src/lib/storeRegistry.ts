@@ -49,13 +49,8 @@ export async function initStoreRegistry(): Promise<void> {
         setState: (partial: unknown) => void;
       },
     },
-    {
-      name: "skill",
-      store: stores.useSkillStore as unknown as {
-        getState: () => unknown;
-        setState: (partial: unknown) => void;
-      },
-    },
+    // P1 #16: skill store 已从白名单移除 — Skill 不应通过声明式 action
+    // 修改技能系统自身状态。Skill 间通信使用 skillEventBus 的 emit/on 机制。
     {
       name: "artifact",
       store: stores.useArtifactStore as unknown as {
@@ -108,6 +103,13 @@ export async function initStoreRegistry(): Promise<void> {
     {
       name: "stream",
       store: stores.useStreamStore as unknown as {
+        getState: () => unknown;
+        setState: (partial: unknown) => void;
+      },
+    },
+    {
+      name: "execution",
+      store: stores.useExecutionStore as unknown as {
         getState: () => unknown;
         setState: (partial: unknown) => void;
       },

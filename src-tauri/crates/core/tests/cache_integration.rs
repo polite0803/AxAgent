@@ -2,11 +2,10 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use axagent_core::cache::{EmbeddingCache, TextHashCache};
-use std::time::Duration;
 
 #[test]
 fn test_embedding_cache_insert_and_get() {
-    let cache = EmbeddingCache::new(100, Duration::from_secs(3600));
+    let cache = EmbeddingCache::new(100);
 
     cache.insert("key1".to_string(), vec![0.1, 0.2, 0.3]);
     let result = cache.get("key1");
@@ -21,7 +20,7 @@ fn test_embedding_cache_insert_and_get() {
 
 #[test]
 fn test_embedding_cache_miss() {
-    let cache = EmbeddingCache::new(100, Duration::from_secs(3600));
+    let cache = EmbeddingCache::new(100);
 
     let result = cache.get("nonexistent");
 
@@ -30,7 +29,7 @@ fn test_embedding_cache_miss() {
 
 #[test]
 fn test_embedding_cache_remove() {
-    let cache = EmbeddingCache::new(100, Duration::from_secs(3600));
+    let cache = EmbeddingCache::new(100);
 
     cache.insert("key1".to_string(), vec![0.1, 0.2]);
     assert!(cache.get("key1").is_some());
@@ -41,7 +40,7 @@ fn test_embedding_cache_remove() {
 
 #[test]
 fn test_embedding_cache_clear() {
-    let cache = EmbeddingCache::new(100, Duration::from_secs(3600));
+    let cache = EmbeddingCache::new(100);
 
     cache.insert("key1".to_string(), vec![0.1]);
     cache.insert("key2".to_string(), vec![0.2]);
@@ -56,7 +55,7 @@ fn test_embedding_cache_clear() {
 
 #[test]
 fn test_embedding_cache_max_entries() {
-    let cache = EmbeddingCache::new(2, Duration::from_secs(3600));
+    let cache = EmbeddingCache::new(2);
 
     cache.insert("key1".to_string(), vec![0.1]);
     cache.insert("key2".to_string(), vec![0.2]);
@@ -75,7 +74,7 @@ fn test_embedding_cache_max_entries() {
 
 #[test]
 fn test_text_hash_cache_insert_and_get() {
-    let cache = TextHashCache::new(100, Duration::from_secs(7200));
+    let cache = TextHashCache::new(100);
 
     cache.insert("doc1".to_string(), "hash123".to_string());
     let result = cache.get("doc1");
@@ -86,7 +85,7 @@ fn test_text_hash_cache_insert_and_get() {
 
 #[test]
 fn test_text_hash_cache_miss() {
-    let cache = TextHashCache::new(100, Duration::from_secs(7200));
+    let cache = TextHashCache::new(100);
 
     let result = cache.get("nonexistent");
 
@@ -95,7 +94,7 @@ fn test_text_hash_cache_miss() {
 
 #[test]
 fn test_text_hash_cache_clear() {
-    let cache = TextHashCache::new(100, Duration::from_secs(7200));
+    let cache = TextHashCache::new(100);
 
     cache.insert("doc1".to_string(), "hash1".to_string());
     cache.insert("doc2".to_string(), "hash2".to_string());
@@ -124,7 +123,7 @@ fn test_text_hash_cache_default() {
 
 #[test]
 fn test_embedding_cache_with_empty_key() {
-    let cache = EmbeddingCache::new(100, Duration::from_secs(3600));
+    let cache = EmbeddingCache::new(100);
 
     cache.insert("".to_string(), vec![1.0]);
     assert!(cache.get("").is_some());
@@ -132,7 +131,7 @@ fn test_embedding_cache_with_empty_key() {
 
 #[test]
 fn test_text_hash_cache_with_empty_value() {
-    let cache = TextHashCache::new(100, Duration::from_secs(7200));
+    let cache = TextHashCache::new(100);
 
     cache.insert("doc".to_string(), "".to_string());
     assert!(cache.get("doc").is_some());

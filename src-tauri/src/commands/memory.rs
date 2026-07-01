@@ -2,6 +2,7 @@
 
 use crate::AppState;
 use axagent_core::prompts::PromptLang;
+use axagent_core::repo::index_jobs as jobs;
 use axagent_harness::types::*;
 use axagent_harness::{ProviderRequestContext, url_utils::resolve_base_url_for_type};
 use sea_orm::ActiveModelTrait;
@@ -97,63 +98,28 @@ pub async fn add_memory_item(
         .map_err(|e| e.to_string())?;
 
     if ns.embedding_provider.is_some() {
-        let container = axagent_core::rag::KnowledgeContainer::from_memory_ns(&ns);
         let _ = axagent_core::repo::memory::update_item_index_status(
             state.harness.db(),
             &item.id,
-            "indexing",
+            "pending",
             None,
         )
         .await;
 
-        let db = state.harness.db().clone();
-        let master_key = state.harness.master_key_owned();
-        let vector_store = state.vector_store.clone();
-        let item_id = item.id.clone();
-        let content = item.content.clone();
+        crate::index_queue::enqueue_job_sync(
+            &state,
+            &app,
+            jobs::JOB_TYPE_INDEX_MEMORY,
+            "mem",
+            &item.namespace_id,
+            &item.id,
+            None,
+            None,
+        )
+        .map_err(|e| e.to_string())?;
 
-        tokio::spawn(async move {
-            let result = crate::indexing::index_source(
-                &db,
-                &master_key,
-                &vector_store,
-                &container,
-                &item_id,
-                &content,
-                None,
-                None,
-            )
-            .await;
-
-            let (status, err_msg) = match &result {
-                Ok(_) => ("ready", None),
-                Err(e) => {
-                    tracing::error!("Memory embedding failed for item {}: {}", item_id, e);
-                    ("failed", Some(e.to_string()))
-                },
-            };
-            let _ = axagent_core::repo::memory::update_item_index_status(
-                &db,
-                &item_id,
-                status,
-                err_msg.as_deref(),
-            )
-            .await;
-
-            let _ = app.emit(
-                "memory-item-indexed",
-                serde_json::json!({
-                    "itemId": item_id,
-                    "success": result.is_ok(),
-                    "status": status,
-                    "error": err_msg,
-                }),
-            );
-        });
-
-        // Return item with "indexing" status
         Ok(MemoryItem {
-            index_status: "indexing".to_string(),
+            index_status: "pending".to_string(),
             ..item
         })
     } else {
@@ -210,67 +176,28 @@ pub async fn update_memory_item(
             .map_err(|e| e.to_string())?;
 
         if ns.embedding_provider.is_some() {
-            let container = axagent_core::rag::KnowledgeContainer::from_memory_ns(&ns);
             let _ = axagent_core::repo::memory::update_item_index_status(
                 state.harness.db(),
                 &id,
-                "indexing",
+                "pending",
                 None,
             )
             .await;
 
-            let db = state.harness.db().clone();
-            let master_key = state.harness.master_key_owned();
-            let vector_store = state.vector_store.clone();
-            let item_id = item.id.clone();
-            let content = item.content.clone();
-
-            tokio::spawn(async move {
-                let collection_id = format!("mem_{}", container.id);
-                let _ = vector_store
-                    .delete_document_embeddings(&collection_id, &item_id)
-                    .await;
-
-                let result = crate::indexing::index_source(
-                    &db,
-                    &master_key,
-                    &vector_store,
-                    &container,
-                    &item_id,
-                    &content,
-                    None,
-                    None,
-                )
-                .await;
-
-                let (status, err_msg) = match &result {
-                    Ok(_) => ("ready", None),
-                    Err(e) => {
-                        tracing::error!("Memory re-embedding failed for item {}: {}", item_id, e);
-                        ("failed", Some(e.to_string()))
-                    },
-                };
-                let _ = axagent_core::repo::memory::update_item_index_status(
-                    &db,
-                    &item_id,
-                    status,
-                    err_msg.as_deref(),
-                )
-                .await;
-
-                let _ = app.emit(
-                    "memory-item-indexed",
-                    serde_json::json!({
-                        "itemId": item_id,
-                        "success": result.is_ok(),
-                        "status": status,
-                        "error": err_msg,
-                    }),
-                );
-            });
+            crate::index_queue::enqueue_job_sync(
+                &state,
+                &app,
+                jobs::JOB_TYPE_REINDEX_DOCUMENT,
+                "mem",
+                &namespace_id,
+                &id,
+                None,
+                None,
+            )
+            .map_err(|e| e.to_string())?;
 
             return Ok(MemoryItem {
-                index_status: "indexing".to_string(),
+                index_status: "pending".to_string(),
                 ..item
             });
         }
@@ -323,12 +250,9 @@ pub async fn rebuild_memory_index(
         .await
         .map_err(|e| e.to_string())?;
 
-    let _embedding_provider = ns
-        .embedding_provider
-        .as_ref()
-        .ok_or("No embedding provider configured")?;
-
-    let container = axagent_core::rag::KnowledgeContainer::from_memory_ns(&ns);
+    if ns.embedding_provider.is_none() {
+        return Err("No embedding provider configured".to_string());
+    }
 
     let collection_id = format!("mem_{}", namespace_id);
     let _ = state.vector_store.delete_collection(&collection_id).await;
@@ -341,61 +265,23 @@ pub async fn rebuild_memory_index(
         let _ = axagent_core::repo::memory::update_item_index_status(
             state.harness.db(),
             &item.id,
-            "indexing",
+            "pending",
             None,
         )
         .await;
+
+        crate::index_queue::enqueue_job_sync(
+            &state,
+            &app,
+            jobs::JOB_TYPE_REBUILD_CONTAINER,
+            "mem",
+            &namespace_id,
+            &item.id,
+            Some(10),
+            None,
+        )
+        .map_err(|e| e.to_string())?;
     }
-
-    let db = state.harness.db().clone();
-    let master_key = state.harness.master_key_owned();
-    let vector_store = state.vector_store.clone();
-
-    tokio::spawn(async move {
-        for item in items {
-            let result = crate::indexing::index_source(
-                &db,
-                &master_key,
-                &vector_store,
-                &container,
-                &item.id,
-                &item.content,
-                None,
-                None,
-            )
-            .await;
-
-            let (status, err_msg) = match &result {
-                Ok(_) => ("ready", None),
-                Err(e) => {
-                    tracing::error!("Memory re-indexing failed for item {}: {}", item.id, e);
-                    ("failed", Some(e.to_string()))
-                },
-            };
-            let _ = axagent_core::repo::memory::update_item_index_status(
-                &db,
-                &item.id,
-                status,
-                err_msg.as_deref(),
-            )
-            .await;
-
-            // Emit per-item event for real-time progress
-            let _ = app.emit(
-                "memory-item-indexed",
-                serde_json::json!({
-                    "itemId": item.id,
-                    "success": result.is_ok(),
-                    "status": status,
-                    "error": err_msg,
-                    "isRebuild": true,
-                }),
-            );
-        }
-
-        let _ =
-            app.emit("memory-rebuild-complete", serde_json::json!({ "namespaceId": namespace_id }));
-    });
 
     Ok(())
 }
@@ -610,54 +496,24 @@ pub async fn auto_extract_incremental_memories(
                 .ok();
             if let Some(ns) = ns {
                 if ns.embedding_provider.is_some() {
-                    let container = axagent_core::rag::KnowledgeContainer::from_memory_ns(&ns);
                     let _ = axagent_core::repo::memory::update_item_index_status(
                         state.harness.db(),
                         &mem_item.id,
-                        "indexing",
+                        "pending",
                         None,
                     )
                     .await;
 
-                    let db = state.harness.db().clone();
-                    let master_key = state.harness.master_key_owned();
-                    let vector_store = state.vector_store.clone();
-                    let item_id = mem_item.id.clone();
-                    let content = mem_item.content.clone();
-                    let app_clone = app.clone();
-
-                    tokio::spawn(async move {
-                        let res = crate::indexing::index_source(
-                            &db,
-                            &master_key,
-                            &vector_store,
-                            &container,
-                            &item_id,
-                            &content,
-                            None,
-                            None,
-                        )
-                        .await;
-
-                        let (status, err_msg) = match &res {
-                            Ok(_) => ("ready", None),
-                            Err(e) => ("failed", Some(e.to_string())),
-                        };
-                        let _ = axagent_core::repo::memory::update_item_index_status(
-                            &db,
-                            &item_id,
-                            status,
-                            err_msg.as_deref(),
-                        )
-                        .await;
-                        let _ = app_clone.emit(
-                            "memory-item-indexed",
-                            serde_json::json!({
-                                "itemId": item_id,
-                                "success": res.is_ok(),
-                            }),
-                        );
-                    });
+                    let _ = crate::index_queue::enqueue_job_sync(
+                        &state,
+                        &app,
+                        jobs::JOB_TYPE_INDEX_MEMORY,
+                        "mem",
+                        &namespace_id,
+                        &mem_item.id,
+                        None,
+                        None,
+                    );
                 }
             }
             saved_count += 1;
@@ -744,77 +600,29 @@ pub async fn reindex_memory_item(
         .await
         .map_err(|e| e.to_string())?;
 
-    let container = axagent_core::rag::KnowledgeContainer::from_memory_ns(&ns);
-    if container.embedding_provider.is_none() {
+    if ns.embedding_provider.is_none() {
         return Err("No embedding provider configured".to_string());
     }
-
-    let items = axagent_core::repo::memory::list_items(state.harness.db(), &namespace_id)
-        .await
-        .map_err(|e| e.to_string())?;
-
-    let item = items
-        .into_iter()
-        .find(|i| i.id == item_id)
-        .ok_or("Item not found")?;
 
     let _ = axagent_core::repo::memory::update_item_index_status(
         state.harness.db(),
         &item_id,
-        "indexing",
+        "pending",
         None,
     )
     .await;
 
-    let db = state.harness.db().clone();
-    let master_key = state.harness.master_key_owned();
-    let vector_store = state.vector_store.clone();
-    let iid = item_id.clone();
-    let content = item.content.clone();
-
-    tokio::spawn(async move {
-        let collection_id = format!("mem_{}", container.id);
-        let _ = vector_store
-            .delete_document_embeddings(&collection_id, &iid)
-            .await;
-
-        let result = crate::indexing::index_source(
-            &db,
-            &master_key,
-            &vector_store,
-            &container,
-            &iid,
-            &content,
-            None,
-            None,
-        )
-        .await;
-
-        let (status, err_msg) = match &result {
-            Ok(_) => ("ready", None),
-            Err(e) => {
-                tracing::error!("Memory reindex failed for item {}: {}", iid, e);
-                ("failed", Some(e.to_string()))
-            },
-        };
-        let _ = axagent_core::repo::memory::update_item_index_status(
-            &db,
-            &iid,
-            status,
-            err_msg.as_deref(),
-        )
-        .await;
-
-        let _ = app.emit(
-            "memory-item-indexed",
-            serde_json::json!({
-                "itemId": iid,
-                "success": result.is_ok(),
-                "status": status,
-                "error": err_msg,
-            }),
-        );
-    });
+    crate::index_queue::enqueue_job_sync(
+        &state,
+        &app,
+        jobs::JOB_TYPE_REINDEX_DOCUMENT,
+        "mem",
+        &namespace_id,
+        &item_id,
+        None,
+        None,
+    )
+    .map_err(|e| e.to_string())?;
 
     Ok(())
 }
@@ -851,64 +659,24 @@ pub async fn sync_working_memory_to_namespace(
                         .ok();
                 if let Some(ns) = ns {
                     if ns.embedding_provider.is_some() {
-                        let container = axagent_core::rag::KnowledgeContainer::from_memory_ns(&ns);
                         let _ = axagent_core::repo::memory::update_item_index_status(
                             state.harness.db(),
                             &mem_item.id,
-                            "indexing",
+                            "pending",
                             None,
                         )
                         .await;
 
-                        let db = state.harness.db().clone();
-                        let master_key = state.harness.master_key_owned();
-                        let vector_store = state.vector_store.clone();
-                        let item_id = mem_item.id.clone();
-                        let item_content = mem_item.content.clone();
-                        let app_clone = app.clone();
-
-                        tokio::spawn(async move {
-                            let res = crate::indexing::index_source(
-                                &db,
-                                &master_key,
-                                &vector_store,
-                                &container,
-                                &item_id,
-                                &item_content,
-                                None,
-                                None,
-                            )
-                            .await;
-
-                            let (status, err_msg) = match &res {
-                                Ok(_) => ("ready", None),
-                                Err(e) => {
-                                    tracing::warn!(
-                                        "Sync working memory embedding failed for {}: {}",
-                                        item_id,
-                                        e
-                                    );
-                                    ("failed", Some(e.to_string()))
-                                },
-                            };
-                            let _ = axagent_core::repo::memory::update_item_index_status(
-                                &db,
-                                &item_id,
-                                status,
-                                err_msg.as_deref(),
-                            )
-                            .await;
-
-                            let _ = app_clone.emit(
-                                "memory-item-indexed",
-                                serde_json::json!({
-                                    "itemId": item_id,
-                                    "success": res.is_ok(),
-                                    "status": status,
-                                    "error": err_msg,
-                                }),
-                            );
-                        });
+                        let _ = crate::index_queue::enqueue_job_sync(
+                            &state,
+                            &app,
+                            jobs::JOB_TYPE_INDEX_MEMORY,
+                            "mem",
+                            &namespace_id,
+                            &mem_item.id,
+                            None,
+                            None,
+                        );
                     } else {
                         let _ = axagent_core::repo::memory::update_item_index_status(
                             state.harness.db(),
@@ -1584,67 +1352,27 @@ pub async fn extract_conversation_memories(
                         .ok();
                 if let Some(ns) = ns {
                     if ns.embedding_provider.is_some() {
-                        let container = axagent_core::rag::KnowledgeContainer::from_memory_ns(&ns);
                         let _ = axagent_core::repo::memory::update_item_index_status(
                             state.harness.db(),
                             &mem_item.id,
-                            "indexing",
+                            "pending",
                             None,
                         )
                         .await;
 
-                        let db = state.harness.db().clone();
-                        let master_key = state.harness.master_key_owned();
-                        let vector_store = state.vector_store.clone();
-                        let item_id = mem_item.id.clone();
-                        let content = mem_item.content.clone();
-                        let app_clone = app.clone();
-
-                        tokio::spawn(async move {
-                            let res = crate::indexing::index_source(
-                                &db,
-                                &master_key,
-                                &vector_store,
-                                &container,
-                                &item_id,
-                                &content,
-                                None,
-                                None,
-                            )
-                            .await;
-
-                            let (status, err_msg) = match &res {
-                                Ok(_) => ("ready", None),
-                                Err(e) => {
-                                    tracing::warn!(
-                                        "Auto-extract memory embedding failed for {}: {}",
-                                        item_id,
-                                        e
-                                    );
-                                    ("failed", Some(e.to_string()))
-                                },
-                            };
-                            let _ = axagent_core::repo::memory::update_item_index_status(
-                                &db,
-                                &item_id,
-                                status,
-                                err_msg.as_deref(),
-                            )
-                            .await;
-
-                            let _ = app_clone.emit(
-                                "memory-item-indexed",
-                                serde_json::json!({
-                                    "itemId": item_id,
-                                    "success": res.is_ok(),
-                                    "status": status,
-                                    "error": err_msg,
-                                }),
-                            );
-                        });
+                        let _ = crate::index_queue::enqueue_job_sync(
+                            &state,
+                            &app,
+                            jobs::JOB_TYPE_INDEX_MEMORY,
+                            "mem",
+                            &namespace_id,
+                            &mem_item.id,
+                            None,
+                            None,
+                        );
 
                         saved.push(MemoryItem {
-                            index_status: "indexing".to_string(),
+                            index_status: "pending".to_string(),
                             ..mem_item
                         });
 

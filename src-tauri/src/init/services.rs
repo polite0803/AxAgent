@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use crate::AppState;
+use crate::index_queue::IndexJobService;
 use chrono;
 use notify::{Event, RecursiveMode, Watcher};
 use std::sync::Arc;
@@ -33,6 +34,55 @@ pub fn start_background_services(
     start_memory_decay_tick(state);
     start_memory_maintenance_tick(state);
     start_trajectory_cleanup(state);
+    start_index_job_service(app, state);
+    start_plugins(state);
+}
+
+fn start_plugins(state: &AppState) {
+    let plugin_manager = state.plugin_manager.clone();
+    let dashboard_registry = state.dashboard_registry.clone();
+
+    tauri::async_runtime::spawn(async move {
+        tracing::info!("Initializing plugin system...");
+
+        let mut manager = plugin_manager.write().await;
+        match tauri::async_runtime::spawn_blocking(move || {
+            let started = manager.start_enabled_plugins()?;
+            Ok::<_, String>(started)
+        })
+        .await
+        {
+            Ok(Ok(started)) => {
+                if !started.is_empty() {
+                    tracing::info!(
+                        "Started {} enabled plugin(s): {}",
+                        started.len(),
+                        started.join(", ")
+                    );
+                } else {
+                    tracing::info!("No enabled plugins to start");
+                }
+            },
+            Ok(Err(e)) => {
+                tracing::error!("Failed to start enabled plugins: {e}");
+            },
+            Err(e) => {
+                tracing::error!("Plugin startup task panicked: {e}");
+            },
+        }
+        drop(manager);
+
+        if let Some(registry) = dashboard_registry {
+            if let Err(e) = registry.reload().await {
+                tracing::warn!("Failed to reload dashboard plugins: {e}");
+            } else {
+                let count = registry.list_plugins().await.len();
+                tracing::info!("Loaded {count} dashboard plugin(s)");
+            }
+        }
+
+        tracing::info!("Plugin system initialization complete");
+    });
 }
 
 fn start_auto_backup(_app: &tauri::AppHandle, state: &AppState, app_dir: std::path::PathBuf) {
@@ -1302,4 +1352,24 @@ fn start_trajectory_cleanup(state: &AppState) {
         config_for_log.max_age_days,
         config_for_log.max_trajectories
     );
+}
+
+fn start_index_job_service(app: &tauri::AppHandle, state: &AppState) {
+    let db = state.harness.db().clone();
+    let vector_store = state.vector_store.clone();
+    let master_key = state.harness.master_key_owned();
+    let shutdown_token = state.shutdown_token.clone();
+    let app_handle = app.clone();
+
+    tauri::async_runtime::spawn(async move {
+        let service = std::sync::Arc::new(IndexJobService::new(
+            db,
+            vector_store,
+            master_key,
+            shutdown_token,
+            app_handle,
+        ));
+        service.start().await;
+    });
+    tracing::info!("[index_queue] 已启动持久化索引队列 worker");
 }

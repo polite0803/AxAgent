@@ -124,7 +124,10 @@ impl AgentImpl for AgentImplAdapter {
                 }
             } else {
                 Err(AgentError::ExecutionFailed(
-                    "AgentImplAdapter 未配置工具执行器（Harness 未注入 executor）".to_string(),
+                    axagent_core::i18n::msg(
+                        axagent_core::i18n::I18nKey::AgentExecutorNotConfigured,
+                    )
+                    .to_string(),
                 ))
             }
         } else {

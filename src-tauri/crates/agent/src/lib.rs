@@ -54,9 +54,11 @@ pub mod pre_validator;
 pub mod proactive_mode;
 pub mod project_memory;
 pub mod provider_adapter;
+pub mod provider_fallback;
 pub mod purpose_manager;
 pub mod query_engine;
 pub mod react_engine;
+pub mod reasoning_router;
 pub mod reasoning_state;
 pub mod recovery_strategies;
 pub mod reference_builder;
@@ -122,14 +124,15 @@ pub use hierarchical_planner::{
 pub use insight_generator::{Insight, InsightCategory, InsightStats};
 
 // rl_optimizer — 外部引用：commands/rl
-pub use rl_optimizer::{Policy, PolicyType, TrainingStats};
+pub use rl_optimizer::{Policy, PolicyType, ThresholdScheduler, TrainingStats};
 
 // experience_pipeline — 外部引用：commands/rl, init
 pub use experience_pipeline::{ExperiencePipeline, PipelineStats};
 
 // feedback_orchestrator — 外部引用：commands/rl, init
 pub use feedback_orchestrator::{
-    FeedbackOrchestrator, OrchestratorAction, OrchestratorStats, classify_feedback_rating,
+    FeedbackBatchResult, FeedbackOrchestrator, FeedbackRecordInput, OrchestratorAction,
+    OrchestratorStats, classify_feedback_rating,
 };
 
 // vision_pipeline — 外部引用：commands/screen_vision
@@ -158,6 +161,17 @@ pub use fine_tune::{
 
 // agent_runtime — 内部引用：agent_adapter
 pub use agent_runtime::{AgentOutput, AgentRuntimeError};
+
+// provider_fallback — 外部引用：runtime/llm_bridge, commands/provider
+pub use provider_fallback::{
+    FallbackConfig, ProviderEntry, ProviderFallbackManager, ProviderHealthSummary, ProviderTier,
+};
+
+// reasoning_router — 外部引用：runtime/agent_runtime, commands/agent
+pub use reasoning_router::{
+    FEATURE_ANALYSIS_PROMPT, ReasoningEngine, TaskFeatures, auto_select_engine,
+    route_reasoning_engine, select_with_llm_hint,
+};
 
 // 模块级引用 — 外部引用：commands/llm_wiki（模块已是 pub mod，无需重复 pub use）
 

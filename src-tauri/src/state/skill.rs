@@ -34,13 +34,16 @@ pub struct SkillState {
         Arc<tokio::sync::Mutex<Option<axagent_core::browser_automation::PlaywrightClient>>>,
     #[cfg(target_os = "android")]
     pub browser_client: Arc<tokio::sync::Mutex<Option<()>>>,
-    pub text_grad_engine: Arc<tokio::sync::Mutex<axagent_trajectory::TextGradEngine>>,
-    pub auto_tool_creator: Arc<tokio::sync::Mutex<axagent_trajectory::AutoToolCreator>>,
+    // P3 #11: WIP engines — None until implemented
+    pub text_grad_engine: Option<Arc<tokio::sync::Mutex<axagent_trajectory::TextGradEngine>>>,
+    pub auto_tool_creator: Option<Arc<tokio::sync::Mutex<axagent_trajectory::AutoToolCreator>>>,
     pub intrinsic_motivation:
-        Arc<tokio::sync::Mutex<axagent_trajectory::IntrinsicMotivationEngine>>,
-    pub coevolution_env: Arc<tokio::sync::Mutex<axagent_trajectory::CoevolutionEnvironment>>,
+        Option<Arc<tokio::sync::Mutex<axagent_trajectory::IntrinsicMotivationEngine>>>,
+    pub coevolution_env:
+        Option<Arc<tokio::sync::Mutex<axagent_trajectory::CoevolutionEnvironment>>>,
     pub constitution: Arc<axagent_trajectory::ImmutableConstitution>,
-    pub process_reward_model: Arc<tokio::sync::Mutex<axagent_trajectory::ProcessRewardModel>>,
+    pub process_reward_model:
+        Option<Arc<tokio::sync::Mutex<axagent_trajectory::ProcessRewardModel>>>,
     pub proactive_service: Arc<tokio::sync::RwLock<crate::commands::proactive::ProactiveService>>,
 }
 
@@ -65,14 +68,7 @@ impl SkillState {
             tokio::sync::Mutex<std::collections::HashMap<String, crate::app_state::PlannerSession>>,
         >,
         browser_client: BrowserClientField,
-        text_grad_engine: Arc<tokio::sync::Mutex<axagent_trajectory::TextGradEngine>>,
-        auto_tool_creator: Arc<tokio::sync::Mutex<axagent_trajectory::AutoToolCreator>>,
-        intrinsic_motivation: Arc<
-            tokio::sync::Mutex<axagent_trajectory::IntrinsicMotivationEngine>,
-        >,
-        coevolution_env: Arc<tokio::sync::Mutex<axagent_trajectory::CoevolutionEnvironment>>,
         constitution: Arc<axagent_trajectory::ImmutableConstitution>,
-        process_reward_model: Arc<tokio::sync::Mutex<axagent_trajectory::ProcessRewardModel>>,
         proactive_service: Arc<tokio::sync::RwLock<crate::commands::proactive::ProactiveService>>,
     ) -> Self {
         Self {
@@ -113,12 +109,12 @@ impl SkillState {
                     panic!("BrowserClientField mismatch (real provided on android)")
                 },
             },
-            text_grad_engine,
-            auto_tool_creator,
-            intrinsic_motivation,
-            coevolution_env,
+            text_grad_engine: None,
+            auto_tool_creator: None,
+            intrinsic_motivation: None,
+            coevolution_env: None,
             constitution,
-            process_reward_model,
+            process_reward_model: None,
             proactive_service,
         }
     }

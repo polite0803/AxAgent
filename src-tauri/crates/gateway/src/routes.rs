@@ -1,19 +1,58 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use axum::{
-    Extension, Router, middleware,
+    Extension, Router,
+    extract::{Path, State},
+    middleware,
+    response::IntoResponse,
     routing::{delete, get, patch, post, put},
 };
+use http::StatusCode;
 use http::header::{AUTHORIZATION, CONTENT_TYPE};
 use tower_http::cors::CorsLayer;
 
 use crate::auth::{AuthState, auth_middleware};
+use crate::handlers::platform_bridge::{
+    Platform, WebhookPayload, direct_message, platform_health, receive_webhook,
+};
 use crate::handlers::{
     cancel_run, chat_completions, create_job, delete_job, delete_response, detailed_health_check,
     disable_job, enable_job, get_job, get_job_schedule, get_response, get_run, get_run_logs,
     health_check, list_jobs, list_models, list_runs, pause_job, resume_job, retry_run, trigger_job,
     trigger_run, update_job, update_job_schedule,
 };
+
+/// Wrapper that extracts the `{platform}` path parameter, converts it to a
+/// `Platform` extension, and delegates to `receive_webhook`.
+async fn receive_webhook_with_path(
+    State(state): State<GatewayAppState>,
+    Path(platform_str): Path<String>,
+    headers: HeaderMap,
+    Json(payload): Json<WebhookPayload>,
+) -> Result<impl IntoResponse, (StatusCode, Json<serde_json::Value>)> {
+    match Platform::from_path_segment(&platform_str) {
+        Some(platform) => {
+            receive_webhook(State(state), Extension(platform), headers, Json(payload))
+                .await
+                .map(|resp| {
+                    let (status, body) = resp;
+                    let json_body = serde_json::to_value(body.0).unwrap_or(json!({}));
+                    (status, Json(json_body))
+                })
+                .map_err(|(status, body)| {
+                    let json_body = serde_json::to_value(body.0).unwrap_or(json!({}));
+                    (status, Json(json_body))
+                })
+        },
+        None => {
+            let err_body = Json(json!({
+                "status": "unsupported_platform",
+                "message": format!("Unsupported platform: {}", platform_str)
+            }));
+            Err((StatusCode::BAD_REQUEST, err_body))
+        },
+    }
+}
 use crate::marketplace_handlers::{
     create_review, delete_review, get_marketplace_stats, get_my_review, get_reviews, update_review,
 };
@@ -140,8 +179,15 @@ pub fn create_router(state: GatewayAppState) -> Router {
         .route("/metrics", get(metrics_handler))
         .layer(middleware::from_fn(rate_limit_middleware));
 
+    // Platform bridge routes — internal auth with optional API key
+    let platform = Router::new()
+        .route("/api/platform/health", get(platform_health))
+        .route("/api/platform/message", post(direct_message))
+        .route("/api/webhook/{platform}", post(receive_webhook_with_path));
+
     Router::new()
         .merge(protected)
+        .merge(platform)
         .merge(public)
         .layer(cors)
         .with_state(state)

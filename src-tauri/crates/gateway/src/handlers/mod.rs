@@ -23,6 +23,7 @@ pub mod error;
 pub mod health;
 pub mod jobs;
 pub mod models;
+pub mod platform_bridge;
 pub mod responses;
 pub mod streaming;
 

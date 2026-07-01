@@ -32,9 +32,15 @@ export interface AgentContext {
   recentActions?: AgentRecentAction[];
 }
 
+/** 面板最小/最大/默认宽度 */
+export const PANEL_MIN_WIDTH = 320;
+export const PANEL_MAX_WIDTH = 600;
+const PANEL_DEFAULT_WIDTH = 400;
+
 /** localStorage 持久化的键 */
 const STORAGE_KEY_WIDTH = "axagent:agentPanel:width";
 const STORAGE_KEY_MINI = "axagent:agentPanel:miniMode";
+const STORAGE_KEY_TAB = "axagent:agentPanel:activeTab";
 
 /** 从 localStorage 读取持久化值 */
 function loadPersistedWidth(): number {
@@ -42,14 +48,14 @@ function loadPersistedWidth(): number {
     const raw = localStorage.getItem(STORAGE_KEY_WIDTH);
     if (raw !== null) {
       const val = Number(raw);
-      if (!Number.isNaN(val) && val >= 320 && val <= 600) {
+      if (!Number.isNaN(val) && val >= PANEL_MIN_WIDTH && val <= PANEL_MAX_WIDTH) {
         return val;
       }
     }
   } catch {
     // localStorage 不可用，忽略
   }
-  return 400;
+  return PANEL_DEFAULT_WIDTH;
 }
 
 function loadPersistedMiniMode(): boolean {
@@ -58,6 +64,18 @@ function loadPersistedMiniMode(): boolean {
   } catch {
     return false;
   }
+}
+
+function loadPersistedTab(): AgentPanelTab {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY_TAB);
+    if (raw === "chat" || raw === "execution" || raw === "skill" || raw === "nl-generation") {
+      return raw;
+    }
+  } catch {
+    // 忽略
+  }
+  return "chat";
 }
 
 function persistWidth(w: number): void {
@@ -76,9 +94,13 @@ function persistMiniMode(m: boolean): void {
   }
 }
 
-/** 面板最小/最大宽度 */
-const PANEL_MIN_WIDTH = 320;
-const PANEL_MAX_WIDTH = 600;
+function persistTab(tab: AgentPanelTab): void {
+  try {
+    localStorage.setItem(STORAGE_KEY_TAB, tab);
+  } catch {
+    // 忽略
+  }
+}
 
 interface AgentPanelState {
   /** 面板是否展开 */
@@ -93,6 +115,9 @@ interface AgentPanelState {
   /** 迷你模式开关 */
   isMiniMode: boolean;
 
+  /** 是否正在拖拽调整宽度（拖拽时禁用 transition） */
+  isDragging: boolean;
+
   /** Agent 页面上下文 */
   agentContext: AgentContext | null;
 
@@ -103,6 +128,7 @@ interface AgentPanelState {
   close(): void;
   setTab(tab: AgentPanelTab): void;
   setWidth(w: number): void;
+  setDragging(dragging: boolean): void;
   toggleMiniMode(): void;
   setAgentContext(ctx: AgentContext): void;
   clearAgentContext(): void;
@@ -110,9 +136,10 @@ interface AgentPanelState {
 
 export const useAgentPanelStore = create<AgentPanelState>((set, get) => ({
   isOpen: false,
-  activeTab: "chat",
+  activeTab: loadPersistedTab(),
   panelWidth: loadPersistedWidth(),
   isMiniMode: loadPersistedMiniMode(),
+  isDragging: false,
   agentContext: null,
 
   toggle() {
@@ -130,7 +157,7 @@ export const useAgentPanelStore = create<AgentPanelState>((set, get) => ({
 
   setTab(tab) {
     set({ activeTab: tab });
-    // 切换标签页时自动打开面板
+    persistTab(tab);
     if (!get().isOpen) {
       set({ isOpen: true });
     }
@@ -140,6 +167,10 @@ export const useAgentPanelStore = create<AgentPanelState>((set, get) => ({
     const clamped = Math.min(PANEL_MAX_WIDTH, Math.max(PANEL_MIN_WIDTH, Math.round(w)));
     set({ panelWidth: clamped });
     persistWidth(clamped);
+  },
+
+  setDragging(dragging) {
+    set({ isDragging: dragging });
   },
 
   toggleMiniMode() {

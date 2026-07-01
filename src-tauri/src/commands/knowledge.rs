@@ -2,6 +2,7 @@
 
 use crate::AppState;
 use axagent_core::rag::KnowledgeContainer;
+use axagent_core::repo::index_jobs as jobs;
 use axagent_harness::types::*;
 use tauri::{AppHandle, Emitter, State};
 
@@ -86,57 +87,29 @@ pub async fn add_knowledge_document(
     .await
     .map_err(|e| e.to_string())?;
 
-    // Spawn async indexing task
+    // 将文档状态标记为pending（等待队列处理）
     let kb = axagent_core::repo::knowledge::get_knowledge_base(state.harness.db(), &base_id)
         .await
         .map_err(|e| e.to_string())?;
 
     if kb.embedding_provider.is_some() {
-        let container = axagent_core::rag::KnowledgeContainer::from_knowledge_base(&kb);
-        let db = state.harness.db().clone();
-        let master_key = state.harness.master_key_owned();
-        let vector_store = state.vector_store.clone();
-        let doc_id = doc.id.clone();
-        let src_path = source_path.clone();
-        let mime = mime_type.clone();
-        let semaphore = state.indexing_semaphore.clone();
-
-        tokio::spawn(async move {
-            let _permit = semaphore.acquire().await;
-            let result = crate::indexing::index_source(
-                &db,
-                &master_key,
-                &vector_store,
-                &container,
-                &doc_id,
-                "",
-                Some(&src_path),
-                Some(&mime),
-            )
-            .await;
-
-            if let Err(e) = &result {
-                let err_msg = e.to_string();
-                tracing::error!("Indexing failed for doc {}: {}", doc_id, err_msg);
-                let _ = axagent_core::repo::knowledge::update_document_status_with_error(
-                    &db,
-                    &doc_id,
-                    "failed",
-                    Some(&err_msg),
-                )
-                .await;
-            }
-
-            // Emit event to notify frontend
-            let _ = app.emit(
-                "knowledge-document-indexed",
-                serde_json::json!({
-                    "documentId": doc_id,
-                    "success": result.is_ok(),
-                    "error": result.err().map(|e| e.to_string()),
-                }),
-            );
-        });
+        let _ = axagent_core::repo::knowledge::update_document_status(
+            state.harness.db(),
+            &doc.id,
+            "pending",
+        )
+        .await;
+        crate::index_queue::enqueue_job_sync(
+            &state,
+            &app,
+            jobs::JOB_TYPE_INDEX_DOCUMENT,
+            "kb",
+            &base_id,
+            &doc.id,
+            None,
+            None,
+        )
+        .map_err(|e| e.to_string())?;
     }
 
     Ok(doc)

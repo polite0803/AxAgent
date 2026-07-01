@@ -151,6 +151,14 @@ pub async fn list_items(db: &DatabaseConnection, namespace_id: &str) -> Result<V
     Ok(models.into_iter().map(model_to_item).collect())
 }
 
+pub async fn get_item(db: &DatabaseConnection, id: &str) -> Result<MemoryItem> {
+    let model = memory_items::Entity::find_by_id(id)
+        .one(db)
+        .await?
+        .ok_or_else(|| AxAgentError::NotFound(format!("MemoryItem {}", id)))?;
+    Ok(model_to_item(model))
+}
+
 pub async fn add_item(db: &DatabaseConnection, input: CreateMemoryItemInput) -> Result<MemoryItem> {
     let id = gen_id();
     let source = input.source.unwrap_or_else(|| "manual".to_string());

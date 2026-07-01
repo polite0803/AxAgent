@@ -52,6 +52,9 @@ const LazyWikiEditPage = lazy(() => import("@/pages/WikiEditPage").then((m) => (
 const LazyQuickBarPage = lazy(() => import("@/pages/QuickBarPage").then((m) => ({ default: m.QuickBarPage })));
 const LazyTerminalPage = lazy(() => import("@/pages/TerminalPage").then((m) => ({ default: m.TerminalPage })));
 const LazyFilesPage = lazy(() => import("@/pages/FilesPage").then((m) => ({ default: m.FilesPage })));
+const LazyDynamicUIManagerPage = lazy(() =>
+  import("@/pages/DynamicUIManagerPage").then((m) => ({ default: m.DynamicUIManagerPage }))
+);
 
 function PageLoader() {
   return (
@@ -271,6 +274,14 @@ export const ContentArea = memo(function ContentArea() {
             element={
               <PageContextProvider page="terminal">
                 <SafeLazyPage Page={LazyTerminalPage} />
+              </PageContextProvider>
+            }
+          />
+          <Route
+            path="/dynamic-ui"
+            element={
+              <PageContextProvider page="dynamic-ui">
+                <SafeLazyPage Page={LazyDynamicUIManagerPage} />
               </PageContextProvider>
             }
           />

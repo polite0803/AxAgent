@@ -3,13 +3,12 @@
 //! 统一工具注册表
 //!
 //! 管理所有已注册工具的生命周期：注册、查找、列举、启用/禁用。
-//! 集成 MCP 执行、DB 审计记录、缓存、使用统计。
+//! 集成 MCP 执行、DB 审计记录、使用统计、安全沙箱、权限检查、Hook。
 
 use crate::audit::{AuditEntry, ToolAuditor, shared_auditor};
 use crate::hooks::executors::execute_hook;
 use crate::hooks::registry::HookRegistry;
 use crate::hooks::{HookAction, HookConfig, HookEventType};
-use crate::orchestration::{Orchestrator, ToolCallRequest};
 use crate::permissions::{PermissionMode, PermissionPolicy};
 use crate::recorder::ToolExecutionRecorder;
 use crate::stats::ToolUsageStats;
@@ -42,7 +41,7 @@ pub struct ToolRegistry {
     /// 别名 -> 主名
     aliases: HashMap<String, String>,
     /// 禁用列表
-    disabled: std::collections::HashSet<String>,
+    disabled: HashSet<String>,
 }
 
 impl std::fmt::Debug for ToolRegistry {
@@ -60,7 +59,7 @@ impl ToolRegistry {
         Self {
             tools: HashMap::new(),
             aliases: HashMap::new(),
-            disabled: std::collections::HashSet::new(),
+            disabled: HashSet::new(),
         }
     }
 
@@ -68,7 +67,6 @@ impl ToolRegistry {
     pub fn register(&mut self, tool: Arc<dyn Tool>) {
         let name = tool.name().to_string();
 
-        // 注册别名映射
         for alias in tool.aliases() {
             self.aliases.insert(alias.to_string(), name.clone());
         }
@@ -83,32 +81,49 @@ impl ToolRegistry {
         }
     }
 
-    /// 查找工具（支持别名匹配）
+    /// 检查工具是否被禁用（先查主名，再查别名映射后的主名）
+    fn is_name_disabled(&self, name: &str) -> bool {
+        if self.disabled.contains(name) {
+            return true;
+        }
+        if let Some(primary) = self.aliases.get(name) {
+            return self.disabled.contains(primary);
+        }
+        false
+    }
+
+    /// 查找工具（支持别名匹配，自动排除禁用的工具）
     pub fn find(&self, name: &str) -> Option<&Arc<dyn Tool>> {
-        // 先按主名查找
+        if self.is_name_disabled(name) {
+            return None;
+        }
         if let Some(tool) = self.tools.get(name) {
             return Some(tool);
         }
-        // 再按别名查找
         if let Some(primary) = self.aliases.get(name) {
+            if self.disabled.contains(primary) {
+                return None;
+            }
             return self.tools.get(primary);
         }
         None
     }
 
-    /// 按类别筛选工具
+    /// 按类别筛选工具（排除禁用的）
     pub fn by_category(&self, category: ToolCategory) -> Vec<&Arc<dyn Tool>> {
         self.tools
             .values()
-            .filter(|t| t.category() == category && t.is_enabled())
+            .filter(|t| {
+                t.category() == category && t.is_enabled() && !self.disabled.contains(t.name())
+            })
             .collect()
     }
 
-    /// 列出所有已启用工具的信息
+    /// 列出所有已启用且未禁用工具的信息
     pub fn list_all(&self) -> Vec<ToolInfo> {
         self.tools
             .values()
-            .filter(|t| t.is_enabled())
+            .filter(|t| t.is_enabled() && !self.disabled.contains(t.name()))
             .map(|t| ToolInfo::from_tool(t.as_ref()))
             .collect()
     }
@@ -117,36 +132,51 @@ impl ToolRegistry {
     pub fn list_all_with_disabled(&self) -> Vec<ToolInfo> {
         self.tools
             .values()
-            .map(|t| ToolInfo::from_tool(t.as_ref()))
+            .map(|t| {
+                let mut info = ToolInfo::from_tool(t.as_ref());
+                if self.disabled.contains(t.name()) {
+                    info.enabled = false;
+                }
+                info
+            })
             .collect()
     }
 
-    /// 获取只读工具列表
+    /// 获取只读工具列表（排除禁用的）
     pub fn read_only_tools(&self) -> Vec<ToolInfo> {
         self.tools
             .values()
-            .filter(|t| t.is_read_only() && t.is_enabled())
+            .filter(|t| t.is_read_only() && t.is_enabled() && !self.disabled.contains(t.name()))
             .map(|t| ToolInfo::from_tool(t.as_ref()))
             .collect()
     }
 
-    /// 获取可并发工具列表
+    /// 获取可并发工具列表（排除禁用的）
     pub fn concurrency_safe_tools(&self) -> Vec<ToolInfo> {
         self.tools
             .values()
-            .filter(|t| t.is_concurrency_safe() && t.is_enabled())
+            .filter(|t| {
+                t.is_concurrency_safe() && t.is_enabled() && !self.disabled.contains(t.name())
+            })
             .map(|t| ToolInfo::from_tool(t.as_ref()))
             .collect()
     }
 
     /// 禁用工具
     pub fn disable(&mut self, name: &str) {
-        self.disabled.insert(name.to_string());
+        if let Some(primary) = self.aliases.get(name) {
+            self.disabled.insert(primary.clone());
+        } else {
+            self.disabled.insert(name.to_string());
+        }
     }
 
     /// 启用工具
     pub fn enable(&mut self, name: &str) {
         self.disabled.remove(name);
+        if let Some(primary) = self.aliases.get(name) {
+            self.disabled.remove(primary);
+        }
     }
 
     /// 批量按类别禁用
@@ -158,27 +188,48 @@ impl ToolRegistry {
         }
     }
 
-    /// 是否已注册
+    /// 是否已注册且未被禁用
     pub fn contains(&self, name: &str) -> bool {
-        self.tools.contains_key(name) || self.aliases.contains_key(name)
+        if self.is_name_disabled(name) {
+            return false;
+        }
+        if self.tools.contains_key(name) {
+            return true;
+        }
+        if let Some(primary) = self.aliases.get(name) {
+            return !self.disabled.contains(primary) && self.tools.contains_key(primary);
+        }
+        false
     }
 
-    /// 工具总数
+    /// 工具总数（不含禁用）
     pub fn len(&self) -> usize {
-        self.tools.len()
+        self.tools
+            .values()
+            .filter(|t| !self.disabled.contains(t.name()))
+            .count()
     }
 
     /// 是否为空
     pub fn is_empty(&self) -> bool {
-        self.tools.is_empty()
+        self.len() == 0
+    }
+
+    /// 已注册总数（含禁用）
+    pub fn total_registered(&self) -> usize {
+        self.tools.len()
     }
 
     /// 移除工具
     pub fn unregister(&mut self, name: &str) -> Option<Arc<dyn Tool>> {
-        // 清理别名
-        self.aliases.retain(|_, v| v != name);
-        self.disabled.remove(name);
-        self.tools.remove(name)
+        let primary = self
+            .aliases
+            .get(name)
+            .cloned()
+            .unwrap_or_else(|| name.to_string());
+        self.aliases.retain(|_, v| v != &primary);
+        self.disabled.remove(&primary);
+        self.tools.remove(&primary)
     }
 }
 
@@ -195,16 +246,29 @@ impl Default for ToolRegistry {
 #[async_trait]
 impl axagent_harness::ToolRegistry for ToolRegistry {
     fn get(&self, name: &str) -> Option<Arc<dyn Tool>> {
+        if self.is_name_disabled(name) {
+            return None;
+        }
+        if let Some(primary) = self.aliases.get(name) {
+            if self.disabled.contains(primary) {
+                return None;
+            }
+            return self.tools.get(primary).cloned();
+        }
         self.tools.get(name).cloned()
     }
 
     fn find(&self, name: &str) -> Option<Arc<dyn Tool>> {
-        // 先按主名查找
+        if self.is_name_disabled(name) {
+            return None;
+        }
         if let Some(tool) = self.tools.get(name) {
             return Some(tool.clone());
         }
-        // 再按别名查找
         if let Some(primary) = self.aliases.get(name) {
+            if self.disabled.contains(primary) {
+                return None;
+            }
             return self.tools.get(primary).cloned();
         }
         None
@@ -222,7 +286,7 @@ impl axagent_harness::ToolRegistry for ToolRegistry {
     }
 
     fn is_disabled(&self, name: &str) -> bool {
-        self.disabled.contains(name)
+        self.is_name_disabled(name)
     }
 }
 
@@ -290,11 +354,8 @@ pub fn tools_to_openai_format(tools: &[ToolInfo]) -> serde_json::Value {
 }
 
 // ============================================================
-// 统一 ToolRegistry（含 MCP + 缓存 + 审计 + 统计）
+// 统一 ToolRegistry（含 MCP + 审计 + 统计）
 // ============================================================
-
-const CACHE_TTL_SECS: u64 = 300;
-const CACHE_MAX_ENTRIES: usize = 200;
 
 #[derive(Debug, Clone)]
 pub struct McpServerConfig {
@@ -354,8 +415,8 @@ pub struct UnifiedToolRegistry {
     pub hook_registry: HookRegistry,
     /// 工具调用审计器
     pub auditor: Arc<ToolAuditor>,
-    /// 结果缓存（待集成）
-    result_cache: HashMap<(String, u64), (String, Instant)>,
+    /// 安全沙箱配置（路径/命令/网络控制）
+    sandbox: Arc<crate::SecuritySandbox>,
     /// 权限控制
     allowed_tools: HashSet<String>,
     blocked_tools: HashSet<String>,
@@ -389,7 +450,7 @@ impl Clone for UnifiedToolRegistry {
             permission_policy: self.permission_policy.clone(),
             hook_registry: self.hook_registry.clone(),
             auditor: self.auditor.clone(),
-            result_cache: self.result_cache.clone(),
+            sandbox: self.sandbox.clone(),
             allowed_tools: self.allowed_tools.clone(),
             blocked_tools: self.blocked_tools.clone(),
             strict_mode: self.strict_mode,
@@ -406,8 +467,68 @@ impl Clone for UnifiedToolRegistry {
 }
 
 impl UnifiedToolRegistry {
+    /// 创建默认安全沙箱配置（向后兼容宽松模式：允许网络、不限制路径/命令，可通过 configure_sandbox 收紧）
+    fn default_sandbox(working_dir: &str) -> Arc<crate::SecuritySandbox> {
+        let mut config = crate::SandboxConfig::default();
+        config.network_enabled = true;
+        config
+            .allowed_paths
+            .push(std::path::PathBuf::from(working_dir));
+        config.allowed_commands.clear();
+        config.denied_commands.clear();
+        config.env_whitelist.clear();
+        Arc::new(crate::SecuritySandbox::new(config))
+    }
+
+    /// 配置安全沙箱
+    pub fn configure_sandbox(&mut self, config: crate::SandboxConfig) {
+        self.sandbox = Arc::new(crate::SecuritySandbox::new(config));
+    }
+
+    /// 将 UnifiedToolRegistry 的 disabled_tools 同步到内层 ToolRegistry
+    fn sync_disabled_to_inner(&mut self) {
+        for tool_name in &self.disabled_tools {
+            self.tools.disable(tool_name);
+        }
+    }
+
+    /// 检查工具是否允许执行（包含组启用、单工具禁用、黑白名单检查）
+    fn check_tool_enabled(&self, tool_name: &str) -> Result<(), crate::ToolError> {
+        if self.blocked_tools.contains(tool_name) {
+            return Err(ToolError::permission_denied(tool_name, "工具在黑名单中"));
+        }
+        if self.strict_mode
+            && !self.allowed_tools.is_empty()
+            && !self.allowed_tools.contains(tool_name)
+        {
+            return Err(ToolError::permission_denied(tool_name, "严格模式下工具不在白名单中"));
+        }
+
+        if let Some(tool) = self.tools.find(tool_name) {
+            let info = ToolInfo::from_tool(tool.as_ref());
+            if !self.is_tool_group_enabled(&info) {
+                return Err(ToolError::permission_denied(
+                    tool_name,
+                    "工具所属组已被禁用或工具已被单独禁用",
+                ));
+            }
+        } else if let Some((mcp_key, _config)) = self.resolve_mcp_tool(tool_name) {
+            if self.disabled_tools.contains(&mcp_key) {
+                return Err(ToolError::permission_denied(tool_name, "MCP 工具已被禁用"));
+            }
+        }
+        Ok(())
+    }
+
+    fn is_mcp_tool_name(&self, tool_name: &str) -> bool {
+        self.resolve_mcp_tool(tool_name).is_some()
+    }
+
     /// 创建并初始化：自动注册全部本地工具（数量见 tools/mod.rs register_all()）
     pub fn new() -> Self {
+        let working_dir = std::env::current_dir()
+            .map(|p| p.to_string_lossy().to_string())
+            .unwrap_or_else(|_| ".".to_string());
         let mut reg = Self {
             tools: ToolRegistry::new(),
             mcp_tools: BTreeMap::new(),
@@ -417,15 +538,13 @@ impl UnifiedToolRegistry {
             permission_policy: PermissionPolicy::new(PermissionMode::WorkspaceWrite),
             hook_registry: HookRegistry::new(),
             auditor: shared_auditor(),
-            result_cache: HashMap::new(),
+            sandbox: Self::default_sandbox(&working_dir),
             allowed_tools: HashSet::new(),
             blocked_tools: HashSet::new(),
             strict_mode: false,
             conversation_id: None,
             message_id: None,
-            working_dir: std::env::current_dir()
-                .map(|p| p.to_string_lossy().to_string())
-                .unwrap_or_else(|_| ".".to_string()),
+            working_dir,
             group_enabled: HashMap::new(),
             disabled_tools: HashSet::new(),
             group_names: HashMap::new(),
@@ -495,16 +614,6 @@ impl UnifiedToolRegistry {
         self
     }
 
-    fn is_allowed(&self, tool_name: &str) -> bool {
-        if self.blocked_tools.contains(tool_name) {
-            return false;
-        }
-        if self.strict_mode && !self.allowed_tools.is_empty() {
-            return self.allowed_tools.contains(tool_name);
-        }
-        true
-    }
-
     /// 检查工具在启用状态/禁用列表中是否应对外暴露
     fn is_tool_group_enabled(&self, info: &ToolInfo) -> bool {
         if self.disabled_tools.contains(&info.name) {
@@ -551,6 +660,19 @@ impl UnifiedToolRegistry {
                 },
             });
         }
+        for (key, config) in &self.mcp_tools {
+            if self.tools.disabled.contains(key) {
+                continue;
+            }
+            out.push(axagent_harness::types::ChatTool {
+                r#type: "function".into(),
+                function: axagent_harness::types::ChatToolFunction {
+                    name: key.clone(),
+                    description: Some(config.description.clone().unwrap_or_default()),
+                    parameters: config.input_schema.clone(),
+                },
+            });
+        }
         out
     }
 
@@ -579,6 +701,22 @@ impl UnifiedToolRegistry {
                         name: info.name.clone(),
                         description: Some(info.description.clone()),
                         parameters: Some(info.input_schema.clone()),
+                    },
+                });
+            }
+        }
+        let mcp_allowed = !matches!(mode, crate::permissions::PermissionMode::ReadOnly);
+        if mcp_allowed {
+            for (key, config) in &self.mcp_tools {
+                if self.tools.disabled.contains(key) {
+                    continue;
+                }
+                out.push(axagent_harness::types::ChatTool {
+                    r#type: "function".into(),
+                    function: axagent_harness::types::ChatToolFunction {
+                        name: key.clone(),
+                        description: Some(config.description.clone().unwrap_or_default()),
+                        parameters: config.input_schema.clone(),
                     },
                 });
             }
@@ -671,6 +809,8 @@ impl UnifiedToolRegistry {
                 .entry(gid.to_string())
                 .or_insert_with(|| gname.to_string());
         }
+
+        self.sync_disabled_to_inner();
     }
 
     /// 获取工具组列表
@@ -746,8 +886,10 @@ impl UnifiedToolRegistry {
         let currently_disabled = self.disabled_tools.contains(tool_name);
         if currently_disabled {
             self.disabled_tools.remove(tool_name);
+            self.tools.enable(tool_name);
         } else {
             self.disabled_tools.insert(tool_name.to_string());
+            self.tools.disable(tool_name);
         }
 
         let key = "disabled_tools";
@@ -839,7 +981,7 @@ impl UnifiedToolRegistry {
         self
     }
 
-    /// 列出所有已注册工具名
+    /// 列出所有已注册工具名（MCP 工具使用 server_id/tool_name 格式）
     pub fn list_all_tool_names(&self) -> Vec<String> {
         let mut names: Vec<String> = self
             .tools
@@ -847,8 +989,31 @@ impl UnifiedToolRegistry {
             .into_iter()
             .map(|t| t.name.clone())
             .collect();
-        names.extend(self.mcp_tools.values().map(|c| c.tool_name.clone()));
+        names.extend(self.mcp_tools.keys().cloned());
         names
+    }
+
+    /// 解析工具名，判断是否是 MCP 工具并返回 (server_id, tool_name)
+    fn resolve_mcp_tool(&self, name: &str) -> Option<(String, &McpToolConfig)> {
+        if let Some(config) = self.mcp_tools.get(name) {
+            return Some((name.to_string(), config));
+        }
+        if let Some((server_id, tool_name)) = name.split_once('/') {
+            if let Some(config) = self.mcp_tools.get(name) {
+                return Some((server_id.to_string(), config));
+            }
+            for (key, config) in &self.mcp_tools {
+                if config.server_id == server_id && config.tool_name == tool_name {
+                    return Some((key.clone(), config));
+                }
+            }
+        }
+        for (key, config) in &self.mcp_tools {
+            if config.tool_name == name {
+                return Some((key.clone(), config));
+            }
+        }
+        None
     }
 
     /// 执行工具（统一入口，集成权限 + Hook）
@@ -857,6 +1022,9 @@ impl UnifiedToolRegistry {
         tool_name: &str,
         input: &str,
     ) -> Result<ToolResult, crate::ToolError> {
+        // ── 工具启用状态检查（组开关 + 单工具禁用 + 黑白名单） ──
+        self.check_tool_enabled(tool_name)?;
+
         // ── 频率限制检查（审计器） ──
         if let Err(rate_limit_msg) = self.auditor.check_rate_limit(tool_name).await {
             return Err(ToolError::permission_denied(tool_name, &rate_limit_msg));
@@ -873,10 +1041,8 @@ impl UnifiedToolRegistry {
             return Err(ToolError::permission_denied(tool_name, &decision.reason));
         }
 
-        // 简单黑白名单检查（兼容旧逻辑）
-        if !self.is_allowed(tool_name) {
-            return Err(ToolError::permission_denied(tool_name, "工具被黑白名单策略阻止"));
-        }
+        // ── 工具启用状态检查（组启用、单工具禁用、黑白名单） ──
+        self.check_tool_enabled(tool_name)?;
 
         // ── PreToolUse Hooks ──
         let pre_hooks: Vec<HookConfig> = self
@@ -903,44 +1069,41 @@ impl UnifiedToolRegistry {
 
         let start = Instant::now();
 
-        self.result_cache
-            .retain(|_, (_, inserted)| inserted.elapsed().as_secs() < CACHE_TTL_SECS);
-        if self.result_cache.len() > CACHE_MAX_ENTRIES {
-            let mut entries: Vec<_> = self.result_cache.iter().collect();
-            entries.sort_by_key(|(_, (_, t))| *t);
-            let keys_to_remove: Vec<_> = entries
-                .into_iter()
-                .take(self.result_cache.len() - CACHE_MAX_ENTRIES)
-                .map(|(k, _)| k.clone())
-                .collect();
-            for k in keys_to_remove {
-                self.result_cache.remove(&k);
-            }
-        }
-
         let result = if let Some(tool) = self.tools.find(tool_name) {
-            // 1. 尝试新体系工具
             let input_val: Value = serde_json::from_str(&effective_input).unwrap_or(Value::Null);
+            let category = tool.category();
+
+            if category == ToolCategory::Network && !self.sandbox.config().network_enabled {
+                return Err(ToolError::permission_denied(tool_name, "沙箱已禁止网络访问"));
+            }
+            if category == ToolCategory::Shell {
+                let cmd_check = if let Some(cmd) = input_val["command"].as_str() {
+                    self.sandbox.check_command(cmd)
+                } else {
+                    self.sandbox.check_command("")
+                };
+                if !cmd_check.allowed {
+                    let msg = cmd_check
+                        .violations
+                        .first()
+                        .map(|v| v.message.as_str())
+                        .unwrap_or("命令被沙箱策略拒绝");
+                    return Err(ToolError::permission_denied(tool_name, msg));
+                }
+            }
+
             let ctx = crate::ToolContext {
                 working_dir: self.working_dir.clone(),
                 conversation_id: self.conversation_id.clone(),
                 message_id: self.message_id.clone(),
                 allow_write: true,
                 allow_execute: true,
-                allow_network: true,
+                allow_network: self.sandbox.config().network_enabled,
                 abort_signal: None,
                 extra: self.tool_extra.clone(),
                 permissions: None,
                 output_sanitizer: None,
             };
-
-            // ── 权限校验（基于 ToolPermissions） ──
-            if let Some(ref perms) = ctx.permissions {
-                let result = perms.check_tool_allowed(tool_name, tool.category(), 0);
-                if let crate::PermissionResult::Deny(reason) = result {
-                    return Err(ToolError::permission_denied(tool_name, &reason));
-                }
-            }
 
             match tool.call(input_val, &ctx).await {
                 Ok(mut r) => {
@@ -950,11 +1113,15 @@ impl UnifiedToolRegistry {
                 Err(e) => Err(e),
             }
         } else if let Some(result) = self.execute_skill_tool(tool_name, &effective_input) {
-            // 2. 尝试注册的 Skill 工具
             result
-        } else if self.mcp_tools.values().any(|c| c.tool_name == tool_name) {
-            // 3. 尝试 MCP 工具
-            self.execute_mcp(tool_name, input).await
+        } else if let Some((mcp_key, _config)) = self.resolve_mcp_tool(tool_name) {
+            if !self.sandbox.config().network_enabled {
+                return Err(ToolError::permission_denied(
+                    &mcp_key,
+                    "沙箱已禁止网络访问，MCP 工具无法调用",
+                ));
+            }
+            self.execute_mcp(tool_name, &effective_input).await
         } else {
             Err(ToolError::not_found(tool_name))
         };
@@ -1019,10 +1186,8 @@ impl UnifiedToolRegistry {
         tool_name: &str,
         input: &str,
     ) -> Result<ToolResult, crate::ToolError> {
-        let config = self
-            .mcp_tools
-            .values()
-            .find(|c| c.tool_name == tool_name)
+        let (mcp_key, config) = self
+            .resolve_mcp_tool(tool_name)
             .ok_or_else(|| ToolError::not_found(tool_name))?;
 
         let server = self.mcp_servers.get(&config.server_id).ok_or_else(|| {
@@ -1046,7 +1211,7 @@ impl UnifiedToolRegistry {
             .and_then(|s| serde_json::from_str(s).ok());
         let endpoint = server.endpoint.as_deref();
 
-        // 使用统一的 MCP 客户端入口
+        // 使用统一的 MCP 客户端入口（使用原始 MCP 工具名，不带前缀）
         let result = tokio::time::timeout(
             timeout,
             axagent_core::mcp_client::call_tool_unified(
@@ -1055,7 +1220,7 @@ impl UnifiedToolRegistry {
                 args.as_deref(),
                 env.as_ref(),
                 endpoint,
-                tool_name,
+                &config.tool_name,
                 arguments,
             ),
         )
@@ -1065,7 +1230,6 @@ impl UnifiedToolRegistry {
 
         match result {
             Ok(Ok(mcp_result)) => {
-                // 将 MCP 进度条目转换为 ToolResult 进度
                 let progress: Vec<crate::ProgressEntry> = mcp_result
                     .progress
                     .iter()
@@ -1086,15 +1250,14 @@ impl UnifiedToolRegistry {
                     progress,
                 };
 
-                // 写入执行记录
                 if let Some(ref recorder) = self.recorder {
                     let input_preview = truncate_str(input, 200);
                     let _ = recorder
                         .record_start(
-                            "", // conversation_id 由调用方设置
-                            None,
+                            self.conversation_id.as_deref().unwrap_or(""),
+                            self.message_id.clone(),
                             &config.server_id,
-                            tool_name,
+                            &mcp_key,
                             Some(&input_preview),
                         )
                         .await;
@@ -1104,11 +1267,11 @@ impl UnifiedToolRegistry {
             },
             Ok(Err(e)) => {
                 let err_msg = format!("MCP 工具调用失败: {e}");
-                Err(ToolError::execution_failed_for(tool_name, err_msg))
+                Err(ToolError::execution_failed_for(&mcp_key, err_msg))
             },
             Err(_) => Err(ToolError {
-                error_code: format!("tool.{}.timeout", tool_name),
-                message: format!("MCP 工具 '{}' 执行超时（{} 秒）", tool_name, timeout.as_secs()),
+                error_code: format!("tool.{}.timeout", mcp_key),
+                message: format!("MCP 工具 '{}' 执行超时（{} 秒）", mcp_key, timeout.as_secs()),
                 kind: ToolErrorKind::Timeout,
             }),
         }
@@ -1134,11 +1297,23 @@ impl Default for UnifiedToolRegistry {
 // ToolExecutor trait 实现（兼容 ConversationRuntime）
 // ============================================================
 
+/// 获取全局共享的备用 Tokio runtime，用于在无 runtime 上下文时执行异步任务。
+/// 使用 OnceLock 保证只创建一次，避免重复创建嵌套 runtime。
+fn fallback_runtime() -> &'static tokio::runtime::Runtime {
+    use std::sync::OnceLock;
+    static RT: OnceLock<tokio::runtime::Runtime> = OnceLock::new();
+    RT.get_or_init(|| {
+        tokio::runtime::Builder::new_multi_thread()
+            .worker_threads(2)
+            .enable_all()
+            .build()
+            .expect("Failed to create fallback Tokio runtime")
+    })
+}
+
 impl RuntimeToolExecutor for UnifiedToolRegistry {
     fn execute(&mut self, tool_name: &str, input: &str) -> Result<String, ToolError> {
-        if !self.is_allowed(tool_name) {
-            return Err(ToolError::new(format!("Tool '{}' denied", tool_name)));
-        }
+        self.check_tool_enabled(tool_name)?;
 
         match tokio::runtime::Handle::try_current() {
             Ok(handle) => tokio::task::block_in_place(|| {
@@ -1149,86 +1324,13 @@ impl RuntimeToolExecutor for UnifiedToolRegistry {
                     }
                 })
             }),
-            Err(_) => {
-                let rt = tokio::runtime::Runtime::new()
-                    .map_err(|e| ToolError::new(format!("Failed to create Tokio runtime: {e}")))?;
-                rt.block_on(async {
-                    match self.execute(tool_name, input).await {
-                        Ok(r) => Ok(r.content),
-                        Err(e) => Err(e),
-                    }
-                })
-            },
-        }
-    }
-
-    fn execute_batch(
-        &mut self,
-        requests: &[(String, String, String)],
-    ) -> Vec<(String, String, Result<String, ToolError>)> {
-        use std::sync::Arc;
-
-        let tool_requests: Vec<ToolCallRequest> = requests
-            .iter()
-            .map(|(id, name, input)| ToolCallRequest {
-                id: id.clone(),
-                name: name.clone(),
-                input: input.clone(),
-            })
-            .collect();
-
-        let ctx = crate::ToolContext {
-            working_dir: self.working_dir.clone(),
-            conversation_id: None,
-            message_id: None,
-            allow_write: true,
-            allow_execute: true,
-            allow_network: true,
-            abort_signal: None,
-            extra: std::collections::HashMap::new(),
-            permissions: None,
-            output_sanitizer: None,
-        };
-
-        let orchestrator = Orchestrator::default();
-        let registry = Arc::new(self.tools.clone());
-
-        let results: Vec<_> = match tokio::runtime::Handle::try_current() {
-            Ok(handle) => tokio::task::block_in_place(|| {
-                handle.block_on(async { orchestrator.execute(tool_requests, registry, &ctx).await })
-            }),
-            Err(_) => {
-                let rt = match tokio::runtime::Runtime::new() {
-                    Ok(rt) => rt,
-                    Err(e) => {
-                        return requests
-                            .iter()
-                            .map(|(id, name, _)| {
-                                (
-                                    id.clone(),
-                                    name.clone(),
-                                    Err(ToolError::new(format!(
-                                        "Failed to create Tokio runtime: {e}"
-                                    ))),
-                                )
-                            })
-                            .collect();
-                    },
-                };
-                rt.block_on(async { orchestrator.execute(tool_requests, registry, &ctx).await })
-            },
-        };
-
-        results
-            .into_iter()
-            .map(|r| {
-                let output = match r.result {
-                    Ok(tr) => Ok(tr.content),
+            Err(_) => fallback_runtime().block_on(async {
+                match self.execute(tool_name, input).await {
+                    Ok(r) => Ok(r.content),
                     Err(e) => Err(e),
-                };
-                (r.id, r.name, output)
-            })
-            .collect()
+                }
+            }),
+        }
     }
 }
 
@@ -1242,29 +1344,27 @@ impl axagent_harness::ToolRegistry for UnifiedToolRegistry {
     }
 
     fn find(&self, name: &str) -> Option<Arc<dyn Tool>> {
-        // 先从本地工具查找
         if let Some(tool) = self.tools.find(name) {
             return Some(tool.clone());
         }
-        // MCP 工具由执行时动态解析（无本地 Tool 实例），
-        // 此处通过 mcp_tools 确认存在性后返回 None，
-        // 实际执行走 UnifiedToolRegistry::execute 的 MCP 分支
-        if self.mcp_tools.contains_key(name) {
-            return None; // MCP 工具无本地 Tool 实例，由 execute() 直接处理
+        if self.resolve_mcp_tool(name).is_some() {
+            return None;
         }
         None
     }
 
     fn list(&self) -> Vec<ToolInfo> {
         let mut infos = self.tools.list_all();
-        // 添加 MCP 工具信息
-        for mcp in self.mcp_tools.values() {
+        for (key, mcp) in &self.mcp_tools {
+            if self.disabled_tools.contains(key) {
+                continue;
+            }
             infos.push(ToolInfo {
-                name: format!("{}/{}", mcp.server_name, mcp.tool_name),
+                name: key.clone(),
                 description: mcp.description.clone().unwrap_or_default(),
                 input_schema: mcp.input_schema.clone().unwrap_or(serde_json::json!({})),
-                aliases: vec![],
-                category: ToolCategory::FileRead, // MCP 工具默认归为 FileRead
+                aliases: vec![mcp.tool_name.clone()],
+                category: ToolCategory::Integration,
                 is_concurrency_safe: true,
                 is_read_only: false,
                 is_destructive: false,
@@ -1274,7 +1374,23 @@ impl axagent_harness::ToolRegistry for UnifiedToolRegistry {
     }
 
     fn list_by_category(&self, category: ToolCategory) -> Vec<ToolInfo> {
-        // 仅筛选本地工具，MCP 工具不在分类中
+        if category == ToolCategory::Integration {
+            return self
+                .mcp_tools
+                .iter()
+                .filter(|(key, _)| !self.disabled_tools.contains(*key))
+                .map(|(key, mcp)| ToolInfo {
+                    name: key.clone(),
+                    description: mcp.description.clone().unwrap_or_default(),
+                    input_schema: mcp.input_schema.clone().unwrap_or(serde_json::json!({})),
+                    aliases: vec![mcp.tool_name.clone()],
+                    category: ToolCategory::Integration,
+                    is_concurrency_safe: true,
+                    is_read_only: false,
+                    is_destructive: false,
+                })
+                .collect();
+        }
         self.tools
             .by_category(category)
             .into_iter()
@@ -1283,7 +1399,7 @@ impl axagent_harness::ToolRegistry for UnifiedToolRegistry {
     }
 
     fn is_disabled(&self, name: &str) -> bool {
-        self.disabled_tools.contains(name) || self.tools.is_disabled(name)
+        self.disabled_tools.contains(name) || self.tools.is_name_disabled(name)
     }
 }
 

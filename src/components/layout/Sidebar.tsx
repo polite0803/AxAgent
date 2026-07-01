@@ -34,6 +34,7 @@ const pageKeyToPath: Record<PageKey, string> = {
   files: "/files",
   terminal: "/terminal",
   workflow: "/workflow",
+  "dynamic-ui": "/dynamic-ui",
   settings: "/settings",
 };
 
@@ -94,6 +95,13 @@ const builtinNavItems: NavItem[] = [
     icon: <Icon icon="fluent:flow-20-filled" size={17} />,
     labelKey: "nav.workflow",
     path: "/workflow",
+    isPlugin: false,
+  },
+  {
+    key: "dynamic-ui",
+    icon: <Icon icon="fluent:apps-20-filled" size={17} />,
+    labelKey: "nav.dynamicUI",
+    path: "/dynamic-ui",
     isPlugin: false,
   },
 ];
@@ -369,6 +377,7 @@ export function Sidebar() {
       labelKey: "sidebar.sectionInfrastructure",
       items: builtinNavItems.filter((n) =>
         n.key === "gateway" || n.key === "terminal" || n.key === "files" || n.key === "workflow"
+        || n.key === "dynamic-ui"
       ),
     });
 

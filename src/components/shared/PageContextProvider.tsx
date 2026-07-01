@@ -97,19 +97,7 @@ export function PageContextProvider({
     return () => {
       clearAgentContext();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page]);
-
-  // 监听 URL 变化，更新 context.url
-  useEffect(() => {
-    const currentCtx = useAgentPanelStore.getState().agentContext;
-    if (currentCtx && currentCtx.page === page) {
-      setAgentContext({
-        ...currentCtx,
-        url: location.pathname + location.search,
-      });
-    }
-  }, [location.pathname, location.search, page, setAgentContext]);
+  }, [page, selection, location.pathname, location.search, setAgentContext, clearAgentContext]);
 
   // ── React Context: 从各 store 聚合页面上下文 ──
 

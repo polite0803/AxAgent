@@ -61,5 +61,3 @@ export const Dashboard: React.FC<DynamicUIProps> = ({ schema, dataContext }) => 
     </div>
   );
 };
-
-export default Dashboard;

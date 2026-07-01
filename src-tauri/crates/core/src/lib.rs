@@ -23,6 +23,7 @@ pub mod document_parser;
 pub use axagent_entities as entity;
 pub mod error;
 pub mod error_codes;
+pub mod i18n;
 pub use axagent_kit::git_tools;
 pub use axagent_kit::html_cleaner;
 pub use axagent_kit::markdown_parser;

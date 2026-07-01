@@ -339,6 +339,8 @@ interface ImportExportModalProps {
   onImportComplete?: () => void;
   onImportedTemplate?: (id: string) => void;
   templates: WorkflowTemplateResponse[];
+  onExportYaml?: () => Promise<string | null>;
+  onImportYaml?: (yaml: string) => Promise<boolean>;
 }
 
 export const ImportExportModal: React.FC<ImportExportModalProps> = ({
@@ -349,6 +351,8 @@ export const ImportExportModal: React.FC<ImportExportModalProps> = ({
   onImportComplete,
   onImportedTemplate,
   templates,
+  onExportYaml,
+  onImportYaml,
 }) => {
   const { t } = useTranslation();
   const { token } = theme.useToken();
@@ -758,6 +762,90 @@ export const ImportExportModal: React.FC<ImportExportModalProps> = ({
         </div>
       ),
     },
+    ...(onExportYaml || onImportYaml
+      ? [
+        {
+          key: "yaml",
+          label: "YAML",
+          children: (
+            <div style={{ padding: "16px 0" }}>
+              {onExportYaml && (
+                <>
+                  <label
+                    style={{
+                      display: "block",
+                      color: token.colorTextTertiary,
+                      fontSize: 12,
+                      marginBottom: 8,
+                    }}
+                  >
+                    {t("workflow.importExport.exportYamlDesc", { defaultValue: "Export current workflow as YAML" })}
+                  </label>
+                  <Button
+                    type="primary"
+                    icon={<Download size={14} />}
+                    onClick={async () => {
+                      const yaml = await onExportYaml();
+                      if (yaml) {
+                        const blob = new Blob([yaml], { type: "application/x-yaml" });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement("a");
+                        a.href = url;
+                        a.download = `workflow-${Date.now()}.yaml`;
+                        a.click();
+                        URL.revokeObjectURL(url);
+                        message.success(
+                          t("workflow.importExport.yamlExportSuccess", { defaultValue: "YAML exported" }),
+                        );
+                      }
+                    }}
+                    style={{ marginBottom: 24 }}
+                  >
+                    {t("workflow.importExport.exportYamlBtn", { defaultValue: "Export YAML" })}
+                  </Button>
+                </>
+              )}
+              {onImportYaml && (
+                <>
+                  {onExportYaml && <Divider />}
+                  <label
+                    style={{
+                      display: "block",
+                      color: token.colorTextTertiary,
+                      fontSize: 12,
+                      marginBottom: 8,
+                    }}
+                  >
+                    {t("workflow.importExport.uploadYamlFile", { defaultValue: "Upload YAML file" })}
+                  </label>
+                  <Upload.Dragger
+                    accept=".yaml,.yml"
+                    customRequest={async ({ file }) => {
+                      const text = await (file as File).text();
+                      const ok = await onImportYaml(text);
+                      if (ok) {
+                        message.success(
+                          t("workflow.importExport.yamlImportSuccess", { defaultValue: "YAML imported" }),
+                        );
+                        onImportComplete?.();
+                      }
+                    }}
+                    showUploadList={false}
+                    style={{ marginBottom: 16 }}
+                  >
+                    <p style={{ color: token.colorTextTertiary, margin: "16px 0" }}>
+                      <UploadIcon size={24} color={token.colorTextTertiary} style={{ marginBottom: 8 }} />
+                      <br />
+                      {t("workflow.importExport.dragOrClickUpload")}
+                    </p>
+                  </Upload.Dragger>
+                </>
+              )}
+            </div>
+          ),
+        } as const,
+      ]
+      : []),
   ];
 
   return (

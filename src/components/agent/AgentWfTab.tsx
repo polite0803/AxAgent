@@ -6,8 +6,9 @@ import { useWorkflowStore } from "@/stores/feature/workflowStore";
 import type { UISchema } from "@/types/dynamicUI";
 import type { NL2SkillRequest, NL2SkillResult, NL2UIRequest, NL2UIResult, SkillDefinition } from "@/types/workflow";
 import { LayoutOutlined, SendOutlined, ThunderboltOutlined } from "@ant-design/icons";
-import { Button, Empty, Input, Progress, Select, Space, Tabs, Typography } from "antd";
-import { useState } from "react";
+import { App, Button, Empty, Input, Progress, Select, Space, Tabs, Typography } from "antd";
+import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 const { TextArea } = Input;
 const { Text } = Typography;
@@ -15,13 +16,15 @@ const { Text } = Typography;
 type GenerationMode = "skill" | "ui";
 
 /**
- * NL 生成标签页 — Phase 4
+ * NL 生成标签页
  *
  * 支持两种生成模式：
  * - NL2Skill：自然语言 → 技能定义（SkillDefinition）
  * - NL2UI：自然语言 → 动态 UI Schema（UISchema）
  */
 export function AgentWfTab() {
+  const { t } = useTranslation();
+  const { message } = App.useApp();
   const [mode, setMode] = useState<GenerationMode>("skill");
   const [prompt, setPrompt] = useState("");
   const [skillType, setSkillType] = useState<NL2SkillRequest["skillType"]>("chat");
@@ -34,6 +37,21 @@ export function AgentWfTab() {
 
   const [skillResult, setSkillResult] = useState<NL2SkillResult | null>(null);
   const [uiResult, setUIResult] = useState<NL2UIResult | null>(null);
+
+  const skillTypeOptions = useMemo(() => [
+    { label: t("agentPanel.nlGen.skillTypeChat"), value: "chat" },
+    { label: t("agentPanel.nlGen.skillTypeTool"), value: "tool" },
+    { label: t("agentPanel.nlGen.skillTypeWorkflow"), value: "workflow" },
+    { label: t("agentPanel.nlGen.skillTypeAutomation"), value: "automation" },
+  ], [t]);
+
+  const uiTypeOptions = useMemo(() => [
+    { label: t("agentPanel.nlGen.uiTypeDashboard"), value: "dashboard" },
+    { label: t("agentPanel.nlGen.uiTypeForm"), value: "form" },
+    { label: t("agentPanel.nlGen.uiTypeSettings"), value: "settings" },
+    { label: t("agentPanel.nlGen.uiTypeReport"), value: "report" },
+    { label: t("agentPanel.nlGen.uiTypeCustom"), value: "custom" },
+  ], [t]);
 
   const handleGenerate = async () => {
     if (!prompt.trim()) { return; }
@@ -51,22 +69,22 @@ export function AgentWfTab() {
       }
     } catch (err) {
       console.warn("[AgentWfTab] NL generation failed:", err);
+      message.error(t("agentPanel.nlGen.generateFailed"));
     } finally {
       setIsGenerating(false);
     }
   };
 
-  const handleApplySkill = (skill: SkillDefinition) => {
-    console.log("[AgentWfTab] Apply skill:", skill);
+  const handleApplySkill = (_skill: SkillDefinition) => {
+    message.info(t("agentPanel.nlGen.applySkillComingSoon"));
   };
 
-  const handleApplyUI = (schema: UISchema) => {
-    console.log("[AgentWfTab] Apply UI schema:", schema);
+  const handleApplyUI = (_schema: UISchema) => {
+    message.info(t("agentPanel.nlGen.applyUIComingSoon"));
   };
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
-      {/* 模式切换 */}
       <Tabs
         activeKey={mode}
         onChange={(k) => {
@@ -96,14 +114,13 @@ export function AgentWfTab() {
         ]}
       />
 
-      {/* 输入区 */}
       <div style={{ padding: "0 12px 8px", display: "flex", flexDirection: "column", gap: 8 }}>
         <TextArea
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
           placeholder={mode === "skill"
-            ? "描述你需要的技能，如：创建一个自动回复客服消息的技能，支持多轮对话"
-            : "描述你需要的界面，如：一个数据看板，展示请求量、成功率和最近7天趋势"}
+            ? t("agentPanel.nlGen.skillPlaceholder")
+            : t("agentPanel.nlGen.uiPlaceholder")}
           rows={3}
           disabled={isGenerating}
         />
@@ -115,12 +132,7 @@ export function AgentWfTab() {
                 onChange={setSkillType}
                 size="small"
                 style={{ width: 100 }}
-                options={[
-                  { label: "对话", value: "chat" },
-                  { label: "工具", value: "tool" },
-                  { label: "工作流", value: "workflow" },
-                  { label: "自动化", value: "automation" },
-                ]}
+                options={skillTypeOptions}
               />
             )
             : (
@@ -129,13 +141,7 @@ export function AgentWfTab() {
                 onChange={setUIType}
                 size="small"
                 style={{ width: 110 }}
-                options={[
-                  { label: "仪表盘", value: "dashboard" },
-                  { label: "表单", value: "form" },
-                  { label: "设置", value: "settings" },
-                  { label: "报告", value: "report" },
-                  { label: "自定义", value: "custom" },
-                ]}
+                options={uiTypeOptions}
               />
             )}
           <Button
@@ -146,12 +152,11 @@ export function AgentWfTab() {
             disabled={!prompt.trim()}
             style={{ marginLeft: "auto" }}
           >
-            生成
+            {t("agentPanel.nlGen.generate")}
           </Button>
         </div>
       </div>
 
-      {/* 进度条 */}
       {isGenerating && (
         <div style={{ padding: "0 12px 8px" }}>
           <Progress percent={100} size="small" status="active" />
@@ -159,7 +164,6 @@ export function AgentWfTab() {
         </div>
       )}
 
-      {/* 结果区 */}
       <div style={{ flex: 1, overflow: "auto" }}>
         {mode === "skill" && skillResult && (
           <NL2SkillResultView result={skillResult} onApply={handleApplySkill} loading={false} />
@@ -171,7 +175,7 @@ export function AgentWfTab() {
               image={Empty.PRESENTED_IMAGE_SIMPLE}
               description={
                 <span style={{ color: "var(--color-text-secondary)", fontSize: 13 }}>
-                  输入描述后点击生成
+                  {t("agentPanel.nlGen.emptyHint")}
                 </span>
               }
             />

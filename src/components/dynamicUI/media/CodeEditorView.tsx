@@ -77,5 +77,3 @@ const LazyMonacoEditor = lazy(
 
 // 实际 Monaco 编辑器实现（当 @monaco-editor/react 可用时）
 // 由 lazy import 自动处理，无需显式实现
-
-export default CodeEditorView;

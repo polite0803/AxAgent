@@ -2,6 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 
+use crate::work_engine::error_handling::ErrorContext;
 use crate::work_engine::node_executor_trait::NodeOutput;
 
 /// Overall execution status of a workflow
@@ -77,6 +78,8 @@ use super::prompt_template::CompiledPrompt;
 /// 运行时回调容器（非序列化，仅在内存中传递）
 #[derive(Clone)]
 pub struct ExecutionContextCallbacks {
+    /// 触发器管理器（供 TriggerExecutor 注册/激活触发器）
+    pub trigger_manager: Option<Arc<crate::trigger::TriggerManager>>,
     /// 按工具名注册的 handler 映射（多路注册，优先级最高）
     pub tool_handlers: HashMap<String, ToolCallback>,
     /// 旧版全局回调（fallback，tool_handlers 未命中时使用）
@@ -94,6 +97,13 @@ pub struct ExecutionContextCallbacks {
 impl std::fmt::Debug for ExecutionContextCallbacks {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("ExecutionContextCallbacks")
+            .field(
+                "trigger_manager",
+                &self
+                    .trigger_manager
+                    .as_ref()
+                    .map(|_| "Some(TriggerManager)"),
+            )
             .field("tool_handlers", &self.tool_handlers.len())
             .field("tool_fallback", &self.tool_fallback.is_some())
             .field("subworkflow", &self.subworkflow.is_some())
@@ -199,6 +209,10 @@ pub struct ExecutionState {
     /// 与 domain_constraints（软约束，仅作为 LLM prompt 建议）共存。
     #[serde(skip, default)]
     pub business_rule_engine: Option<Arc<axagent_harness::business_rules::BusinessRuleEngine>>,
+    /// 凭证管理器（可选，None = 不使用凭证）。
+    /// 执行器通过它按 credential_id 懒加载并解密 DatabaseConnection / Smtp / ApiKey 等凭证。
+    #[serde(skip, default)]
+    pub credential_manager: Option<Arc<axagent_harness::credential::CredentialManager>>,
     /// 工具注册表（可选，设置后 tool_executor 优先通过 ToolRegistry.execute_tool() 执行工具）
     #[serde(skip, default)]
     pub tool_registry: Option<Arc<dyn axagent_harness::ToolRegistry>>,
@@ -219,9 +233,18 @@ pub struct ExecutionState {
     pub node_records: Vec<NodeExecutionRecord>,
     pub current_node_id: Option<String>,
     pub parent_execution_id: Option<String>,
+    /// 按节点名称索引的历史输出，供表达式引擎 $node["NodeName"] 引用
+    #[serde(skip, default)]
+    pub node_outputs: std::collections::HashMap<String, serde_json::Value>,
     pub total_time_ms: u64,
     pub created_at: i64,
     pub updated_at: i64,
+    /// 最后一次节点失败的错误上下文（供 Error Workflow 引用）。
+    #[serde(skip, default)]
+    pub last_error: Option<ErrorContext>,
+    /// 错误工作流 ID（模板级配置，引擎在 run_workflow 时注入）。
+    #[serde(skip, default)]
+    pub error_workflow_id: Option<String>,
 }
 
 impl ExecutionState {
@@ -248,9 +271,13 @@ impl ExecutionState {
             tool_registry: None,
             partial_result_tx: None,
             interrupt_signal: None,
+            credential_manager: None,
+            node_outputs: std::collections::HashMap::new(),
             total_time_ms: 0,
             created_at: now,
             updated_at: now,
+            last_error: None,
+            error_workflow_id: None,
         }
     }
 

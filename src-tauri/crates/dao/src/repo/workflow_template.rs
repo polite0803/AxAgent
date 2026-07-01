@@ -353,6 +353,7 @@ pub fn template_model_to_data(
             .unwrap_or_default(),
         created_at: model.created_at,
         updated_at: model.updated_at,
+        error_workflow_id: None,
     }
 }
 

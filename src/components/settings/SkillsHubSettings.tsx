@@ -92,6 +92,62 @@ export function SkillsHubSettings() {
     }
   };
 
+  // P1 #13: 导出 Skill 处理函数
+  const handleExportSkill = useCallback(async () => {
+    try {
+      const result = await invoke<{ skills: Array<{ name: string }> }>("list_skills");
+      const availableSkills = result?.skills ?? [];
+      if (availableSkills.length === 0) {
+        message.warning("No installed skills to export");
+        return;
+      }
+      // 导出第一个 Skill 作为示例，后续可扩展为多选 UI
+      const skillName = availableSkills[0].name;
+      const detail = await invoke("get_skill", { name: skillName });
+      const blob = new Blob([JSON.stringify(detail, null, 2)], {
+        type: "application/json",
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${skillName}.skill.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      message.success(`Exported ${skillName}`);
+    } catch (e) {
+      console.error("Export failed:", e);
+      message.error(`Export failed: ${e}`);
+    }
+  }, []);
+
+  // P1 #13: 导入 Skill 处理函数
+  const handleImportSkill = useCallback(async () => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".skill.json";
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) { return; }
+      try {
+        const text = await file.text();
+        const skillData = JSON.parse(text);
+        if (!skillData.name) {
+          message.error("Invalid skill file: missing name");
+          return;
+        }
+        await invoke("install_skill", {
+          name: skillData.name,
+          sourcePath: skillData.sourcePath ?? skillData.name,
+        });
+        message.success(`Imported ${skillData.name}`);
+      } catch (e) {
+        console.error("Import failed:", e);
+        message.error(`Import failed: ${e}`);
+      }
+    };
+    input.click();
+  }, []);
+
   const columns = [
     {
       title: t("settings.skillsHub.name"),
@@ -231,10 +287,16 @@ export function SkillsHubSettings() {
           {t("settings.skillsHub.mySkillsDescription")}
         </Paragraph>
         <div className="flex gap-3">
-          <Button icon={<Upload size={16} />}>
+          <Button
+            icon={<Upload size={16} />}
+            onClick={handleExportSkill}
+          >
             {t("settings.skillsHub.exportSkill")}
           </Button>
-          <Button icon={<Download size={16} />}>
+          <Button
+            icon={<Download size={16} />}
+            onClick={handleImportSkill}
+          >
             {t("settings.skillsHub.importSkill")}
           </Button>
         </div>

@@ -24,9 +24,12 @@ use sea_orm::{ConnectionTrait, DatabaseBackend, DbErr, Statement};
 pub mod v001_initial;
 pub mod v002_indices;
 pub mod v003_drop_dead_tables;
+pub mod v004_dynamic_ui;
+pub mod v005_index_queue;
+pub mod v006_vec_collections;
 
 /// 当前 schema 版本号。每次新增 migration 时必须累加此常量。
-pub const CURRENT_VERSION: i32 = 3;
+pub const CURRENT_VERSION: i32 = 6;
 
 /// 迁移函数签名：所有 `up()` 都遵循这个接口。
 ///
@@ -67,6 +70,21 @@ const MIGRATIONS: &[Migration] = &[
         version: 3,
         description: "v003_drop_dead_tables: drop unused categories/apps/context_packs",
         up: |db| Box::pin(v003_drop_dead_tables::up(db)),
+    },
+    Migration {
+        version: 4,
+        description: "v004_dynamic_ui: tables for standalone dynamic UI system",
+        up: |db| Box::pin(v004_dynamic_ui::up(db)),
+    },
+    Migration {
+        version: 5,
+        description: "v005_index_queue: persistent index job queue with retry/progress",
+        up: |db| Box::pin(v005_index_queue::up(db)),
+    },
+    Migration {
+        version: 6,
+        description: "v006_vec_collections: vector collection metadata registry",
+        up: |db| Box::pin(v006_vec_collections::up(db)),
     },
 ];
 
@@ -211,7 +229,7 @@ mod tests {
         let max: i32 = read_max_version(&db).await.unwrap();
         assert_eq!(max, CURRENT_VERSION, "version should be {}", CURRENT_VERSION);
 
-        // schema_version 表应只有 3 行
+        // schema_version 表应只有 5 行
         let count_row = db
             .query_one_raw(Statement::from_string(
                 DatabaseBackend::Sqlite,
@@ -221,7 +239,7 @@ mod tests {
             .unwrap()
             .expect("count row");
         let cnt: i32 = count_row.try_get_by("cnt").unwrap();
-        assert_eq!(cnt, 3, "schema_version should have exactly 3 rows");
+        assert_eq!(cnt, 6, "schema_version should have exactly 6 rows");
     }
 
     /// 防回归：v002 引入的索引必须真实存在。

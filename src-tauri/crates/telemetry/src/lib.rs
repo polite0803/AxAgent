@@ -16,6 +16,7 @@ pub mod event;
 pub mod exporter;
 pub mod metrics;
 pub mod otel;
+pub mod runtime_metrics;
 pub mod span;
 pub mod storage;
 pub mod structured_logging;

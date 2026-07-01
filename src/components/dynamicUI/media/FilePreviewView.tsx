@@ -4,15 +4,14 @@ import type { DynamicUIProps } from "@/types";
 import { DownloadOutlined, FileOutlined } from "@ant-design/icons";
 import { Button, Image, Typography } from "antd";
 import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 
 const { Text } = Typography;
 
 type PreviewMode = "image" | "text" | "unknown";
 
-/**
- * 文件预览组件，根据文件类型自适应预览。
- */
 export const FilePreviewView: React.FC<DynamicUIProps> = ({ schema }) => {
+  const { t } = useTranslation();
   const { filePath, fileUrl } = schema.props as {
     filePath?: string;
     fileUrl?: string;
@@ -40,7 +39,7 @@ export const FilePreviewView: React.FC<DynamicUIProps> = ({ schema }) => {
             code
             style={{ whiteSpace: "pre-wrap", wordBreak: "break-all" }}
           >
-            {fileName ? `文件预览: ${fileName}` : "文本文件"}
+            {fileName ? t("dynamicUI.filePreview", { fileName }) : t("dynamicUI.textFile")}
           </Text>
         </div>
       );
@@ -53,10 +52,10 @@ export const FilePreviewView: React.FC<DynamicUIProps> = ({ schema }) => {
         >
           <FileOutlined style={{ fontSize: 48, color: "#8c8c8c" }} />
           <Text className="mt-2 mb-1 font-medium">
-            {fileName || "未知文件"}
+            {fileName || t("dynamicUI.unknownFile")}
           </Text>
           <Text type="secondary" className="mb-4 text-sm">
-            不支持预览此文件类型
+            {t("dynamicUI.previewNotSupported")}
           </Text>
           {url
             ? (
@@ -66,7 +65,7 @@ export const FilePreviewView: React.FC<DynamicUIProps> = ({ schema }) => {
                 href={url}
                 download={fileName}
               >
-                下载文件
+                {t("dynamicUI.downloadFile")}
               </Button>
             )
             : null}
@@ -99,5 +98,3 @@ function detectFileType(url: string): PreviewMode {
 
   return "unknown";
 }
-
-export default FilePreviewView;

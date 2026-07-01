@@ -1,26 +1,34 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+/* eslint-disable react-refresh/only-export-components */
 
+import { useSchemaRenderer } from "@/components/dynamicUI/SchemaRenderContext";
 import { evaluateConditions } from "@/lib/dynamicUI/ConditionalRenderer";
+import { executeActions } from "@/lib/dynamicUI/EventHandlerEngine";
 import type { DynamicAction, DynamicUIProps } from "@/types";
 import { Button, Form } from "antd";
-import { useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 
-/**
- * 表单渲染器，基于 Ant Design Form。
- * 动态渲染表单字段（children 中的 Input、Select、DatePicker 等），
- * 支持 onSubmit 事件（触发 onAction 回调）。
- */
+const InFormContext = createContext<boolean>(false);
+
+export function useInFormContext(): boolean {
+  return useContext(InFormContext);
+}
+
 export const FormRenderer: React.FC<DynamicUIProps> = ({
   schema,
   dataContext,
   onAction,
 }) => {
+  const { t } = useTranslation();
   const [form] = Form.useForm();
   const [submitting, setSubmitting] = useState(false);
+  const [formValues, setFormValues] = useState<Record<string, unknown>>({});
+  const { renderSchema } = useSchemaRenderer();
 
   const {
     layout = "vertical",
-    submitText = "提交",
+    submitText = t("dynamicUI.submit"),
     resetText,
   } = schema.props as {
     layout?: "horizontal" | "vertical" | "inline";
@@ -28,25 +36,84 @@ export const FormRenderer: React.FC<DynamicUIProps> = ({
     resetText?: string;
   };
 
+  const mergedDataContext = useMemo(() => ({
+    ...(dataContext || {}),
+    ...formValues,
+  }), [dataContext, formValues]);
+
+  const initialValues = useMemo(() => {
+    const init: Record<string, unknown> = {};
+    if (schema.children) {
+      for (const child of schema.children) {
+        const props = child.props as Record<string, unknown> | undefined;
+        const name = props?.name as string | undefined;
+        if (name && props?.defaultValue !== undefined) {
+          init[name] = props.defaultValue;
+        }
+      }
+    }
+    return init;
+  }, [schema.children]);
+
+  const appliedDataRef = useRef<Record<string, unknown>>({});
+  useEffect(() => {
+    if (!dataContext || !schema.children) {
+      return;
+    }
+    const toSet: Record<string, unknown> = {};
+    let changed = false;
+    for (const child of schema.children) {
+      const props = child.props as Record<string, unknown> | undefined;
+      const name = props?.name as string | undefined;
+      if (!name) {
+        continue;
+      }
+      if (name in dataContext && appliedDataRef.current[name] !== dataContext[name]) {
+        toSet[name] = dataContext[name];
+        appliedDataRef.current[name] = dataContext[name];
+        changed = true;
+      }
+    }
+    if (changed) {
+      form.setFieldsValue(toSet);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setFormValues((prev) => ({ ...prev, ...toSet }));
+    }
+  }, [dataContext, schema.children, form]);
+
+  const visibleChildren = useMemo(() => {
+    if (!schema.children || schema.children.length === 0) {
+      return [];
+    }
+    return schema.children.filter((child) => evaluateConditions(child.conditionalDisplay, mergedDataContext));
+  }, [schema.children, mergedDataContext]);
+
   const handleSubmit = async (values: Record<string, unknown>) => {
     setSubmitting(true);
     try {
-      // 找到 onSubmit 事件并触发
       const submitHandler = schema.events?.find(
         (e) => e.trigger === "onSubmit",
       );
-      if (submitHandler && onAction) {
-        for (const action of submitHandler.actions) {
-          // 将表单值合并到 action config 中
-          const enrichedAction: DynamicAction = {
-            ...action,
-            config: {
-              ...(action.config as Record<string, unknown>),
-              formValues: values,
-            },
-          };
-          onAction(enrichedAction);
-        }
+      if (submitHandler) {
+        const submitContext = {
+          ...(dataContext || {}),
+          ...values,
+          formValues: values,
+        };
+        const enrichedActions: DynamicAction[] = submitHandler.actions.map((action) => ({
+          ...action,
+          config: {
+            ...(action.config as Record<string, unknown>),
+            formValues: values,
+            values,
+          },
+        }));
+        await executeActions(enrichedActions, { context: submitContext, onAction });
+      } else if (onAction) {
+        onAction({
+          type: "store",
+          config: { formValues: values, values },
+        });
       }
     } finally {
       setSubmitting(false);
@@ -55,59 +122,34 @@ export const FormRenderer: React.FC<DynamicUIProps> = ({
 
   const handleReset = () => {
     form.resetFields();
+    setFormValues({});
   };
 
-  // 过滤条件不满足的子组件
-  const visibleChildren = (schema.children || []).filter((child) => {
-    if (!child.conditionalDisplay || child.conditionalDisplay.length === 0) {
-      return true;
-    }
-    return evaluateConditions(child.conditionalDisplay, {
-      ...(dataContext || {}),
-      ...form.getFieldsValue(),
-    });
-  });
-
   return (
-    <Form
-      form={form}
-      layout={layout}
-      onFinish={handleSubmit}
-      style={schema.style as React.CSSProperties}
-    >
-      {visibleChildren.map((child) => renderFormField(child, dataContext, onAction))}
+    <InFormContext.Provider value={true}>
+      <Form
+        form={form}
+        layout={layout}
+        initialValues={initialValues}
+        onFinish={handleSubmit}
+        onValuesChange={(_changed, allValues) => setFormValues(allValues)}
+        style={schema.style as React.CSSProperties}
+      >
+        {visibleChildren.map((child) => <div key={child.id}>{renderSchema(child, mergedDataContext)}</div>)}
 
-      <Form.Item>
-        <Button type="primary" htmlType="submit" loading={submitting}>
-          {submitText}
-        </Button>
-        {resetText
-          ? (
-            <Button style={{ marginLeft: 8 }} onClick={handleReset}>
-              {resetText}
-            </Button>
-          )
-          : null}
-      </Form.Item>
-    </Form>
+        <Form.Item>
+          <Button type="primary" htmlType="submit" loading={submitting}>
+            {submitText}
+          </Button>
+          {resetText
+            ? (
+              <Button style={{ marginLeft: 8 }} onClick={handleReset}>
+                {resetText}
+              </Button>
+            )
+            : null}
+        </Form.Item>
+      </Form>
+    </InFormContext.Provider>
   );
 };
-
-function renderFormField(
-  child: DynamicUIProps["schema"],
-  dataContext: Record<string, unknown> | undefined,
-  onAction: DynamicUIProps["onAction"],
-): React.ReactNode {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const DynamicUIRenderer = require("../DynamicUIRenderer").DynamicUIRenderer as React.ComponentType<DynamicUIProps>;
-  return (
-    <DynamicUIRenderer
-      key={child.id}
-      schema={child}
-      dataContext={dataContext}
-      onAction={onAction}
-    />
-  );
-}
-
-export default FormRenderer;

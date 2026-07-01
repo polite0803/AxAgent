@@ -40,6 +40,7 @@ pub fn compile_plan_to_dag(
             enabled: true,
             parent_id: None,
             compensation: None,
+            continue_on_fail: false,
         },
         config: TriggerConfig {
             trigger_type: TriggerType::Manual,
@@ -75,6 +76,7 @@ pub fn compile_plan_to_dag(
                 enabled: true,
                 parent_id: None,
                 compensation: None,
+                continue_on_fail: false,
             };
 
             let node = match task.action_type.as_str() {
@@ -241,6 +243,7 @@ pub fn compile_plan_to_dag(
             enabled: true,
             parent_id: None,
             compensation: None,
+            continue_on_fail: false,
         },
         config: EndNodeConfig {
             output_var: Some("plan_result".to_string()),

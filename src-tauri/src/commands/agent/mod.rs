@@ -2214,7 +2214,7 @@ async fn load_enabled_skill_contents(
         };
 
         let mut contents = String::new();
-        if let Ok(entries) = super::skills::collect_markdown_files(root) {
+        if let Ok(entries) = super::skills::collect_markdown_files(root, 0) {
             for md_path in entries {
                 if let Ok(text) = std::fs::read_to_string(&md_path) {
                     if !contents.is_empty() {

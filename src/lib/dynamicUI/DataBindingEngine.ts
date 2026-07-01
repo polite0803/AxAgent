@@ -7,11 +7,15 @@ import type { DataSourceConfig } from "@/types";
  * 数据绑定引擎：解析 DataSourceConfig 并返回实际数据。
  *
  * 支持四种数据源类型：
- * - store：读取 Zustand Store 数据
+ * - store：读取 Zustand Store 数据（支持响应式订阅）
  * - api：调用 Tauri invoke 或 fetch
  * - static：直接返回静态数据
  * - agent-generated：从 Agent 生成数据中获取
  */
+
+export interface DataSourceSubscriber {
+  unsubscribe: () => void;
+}
 
 /**
  * 解析数据源配置，返回实际数据（非 Hook 版本，用于一次性获取）。
@@ -75,6 +79,93 @@ export async function resolveDataSource(
     default:
       throw new Error(`Unknown data source type: ${config.type}`);
   }
+}
+
+/**
+ * 订阅数据源变化，支持store响应式和轮询。
+ * @param config 数据源配置
+ * @param onData 数据更新回调
+ * @returns 取消订阅函数
+ */
+export async function subscribeDataSource(
+  config: DataSourceConfig,
+  onData: (data: unknown) => void,
+  onError?: (error: Error) => void,
+): Promise<DataSourceSubscriber> {
+  // 先执行一次初始加载
+  try {
+    const initialData = await resolveDataSource(config);
+    onData(initialData);
+  } catch (err) {
+    if (onError) {
+      onError(err instanceof Error ? err : new Error(String(err)));
+    }
+  }
+
+  const cleanupFns: Array<() => void> = [];
+
+  // 处理轮询
+  if (config.polling && config.polling > 0) {
+    const timer = window.setInterval(async () => {
+      try {
+        const data = await resolveDataSource(config);
+        onData(data);
+      } catch (err) {
+        if (onError) {
+          onError(err instanceof Error ? err : new Error(String(err)));
+        }
+      }
+    }, config.polling);
+    cleanupFns.push(() => window.clearInterval(timer));
+  }
+
+  // 处理store响应式订阅
+  if (config.type === "store") {
+    const { storeName, selector } = config.config as {
+      storeName: string;
+      selector?: string;
+    };
+    const stores = await import("@/stores");
+    const storeMap: Record<string, { subscribe: (listener: () => void) => () => void }> = {
+      preference: stores.usePreferenceStore as never,
+      conversation: stores.useConversationStore as never,
+      ui: stores.useUIStore as never,
+      skill: stores.useSkillStore as never,
+      artifact: stores.useArtifactStore as never,
+      settings: stores.useSettingsStore as never,
+      provider: stores.useProviderStore as never,
+      knowledge: stores.useKnowledgeStore as never,
+      agent: stores.useAgentStore as never,
+      tab: stores.useTabStore as never,
+      stream: stores.useStreamStore as never,
+      execution: stores.useExecutionStore as never,
+    };
+
+    const zustandStore = storeMap[storeName];
+    if (zustandStore) {
+      const getNested = getNestedValue;
+      const unsubscribe = zustandStore.subscribe(() => {
+        void (async () => {
+          const { getStoreRegistry } = await import("@/lib/storeRegistry");
+          const store = getStoreRegistry().get(storeName);
+          if (store) {
+            const state = store.get() as Record<string, unknown>;
+            const data = selector ? getNested(state, selector) : state;
+            onData(data);
+          }
+        })();
+      });
+      cleanupFns.push(unsubscribe);
+    }
+  }
+
+  return {
+    unsubscribe: () => {
+      for (const fn of cleanupFns) {
+        fn();
+      }
+    },
+  };
 }
 
 /**

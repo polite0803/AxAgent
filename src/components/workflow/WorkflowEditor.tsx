@@ -1206,6 +1206,54 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
     }
   }, [reactFlowInstance, currentTemplate, t]);
 
+  const handleExportYaml = useCallback(async (): Promise<string | null> => {
+    try {
+      const state = useWorkflowEditorStore.getState();
+      const { nodes, edges, parentRefs, currentTemplate: tmpl } = state;
+      const nodesWithParent = nodes.map((n) => {
+        const pid = parentRefs[n.id];
+        return pid === undefined ? n : ({ ...n, parentId: pid } as WorkflowNode);
+      });
+      const workflowInput = {
+        name: tmpl?.name || "Unnamed Workflow",
+        description: tmpl?.description,
+        icon: tmpl?.icon || "Bot",
+        tags: tmpl?.tags || [],
+        trigger_config: tmpl?.trigger_config,
+        nodes: nodesWithParent,
+        edges,
+        input_schema: tmpl?.input_schema,
+        output_schema: tmpl?.output_schema,
+        variables: tmpl?.variables || [],
+        error_config: tmpl?.error_config,
+      };
+      const yaml = await invoke<string>("export_workflow_yaml", { workflowJson: JSON.stringify(workflowInput) });
+      return yaml || null;
+    } catch (e) {
+      console.error("[exportYaml]", e);
+      message.error(t("workflow.importExport.yamlExportFailed", { defaultValue: "YAML export failed" }));
+      return null;
+    }
+  }, [t]);
+
+  const handleImportYaml = useCallback(async (yaml: string): Promise<boolean> => {
+    try {
+      // Tauri auto-maps snake_case → camelCase: the Rust parameter yaml_str becomes yamlStr
+      const resultStr = await invoke<string>("import_workflow_yaml", { yamlStr: yaml });
+      const result = JSON.parse(resultStr) as { workflow: { id: string }; metadata: Record<string, unknown> };
+      if (result?.workflow?.id) {
+        await loadTemplate(result.workflow.id);
+        return true;
+      }
+      message.error(t("workflow.importExport.yamlImportFailed", { defaultValue: "YAML import failed" }));
+      return false;
+    } catch (e) {
+      console.error("[importYaml]", e);
+      message.error(t("workflow.importExport.yamlImportFailed", { defaultValue: "YAML import failed" }));
+      return false;
+    }
+  }, [t, loadTemplate]);
+
   const handleNodeContextMenu = useCallback(
     (event: React.MouseEvent, node: Node) => {
       event.preventDefault();
@@ -2137,6 +2185,8 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
           loadTemplates();
         }}
         onImportedTemplate={handleImportedTemplate}
+        onExportYaml={handleExportYaml}
+        onImportYaml={handleImportYaml}
       />
 
       <VersionHistoryModal

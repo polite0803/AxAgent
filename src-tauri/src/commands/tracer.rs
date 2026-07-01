@@ -454,7 +454,8 @@ pub fn tracer_generate_suggestions(trace_id: String) -> Result<Vec<SuggestionIte
                         .to_string(),
                 expected_improvement: format!(
                     "预计减少约 {}% 总执行时间",
-                    (total_tool_time as f64 / tool_spans.len() as f64 / total_tool_time as f64 * 50.0)
+                    (total_tool_time as f64 / tool_spans.len() as f64 / total_tool_time as f64
+                        * 50.0)
                         .round()
                 ),
             });
@@ -548,7 +549,10 @@ pub fn tracer_submit_feedback(
         tokio::task::spawn(async move {
             let action = orchestrator.record_feedback(rating_val);
             match action {
-                axagent_agent::OrchestratorAction::TriggerRLTraining { reason, negative_count } => {
+                axagent_agent::OrchestratorAction::TriggerRLTraining {
+                    reason,
+                    negative_count,
+                } => {
                     tracing::info!(
                         "[FeedbackOrchestrator] TriggerRLTraining: {} ({} negatives)",
                         reason,
@@ -562,28 +566,25 @@ pub fn tracer_submit_feedback(
                                 stats.episodes_completed,
                                 stats.avg_reward
                             );
-                        }
+                        },
                         Err(e) => {
-                            tracing::warn!(
-                                "[FeedbackOrchestrator] RL training failed: {}",
-                                e
-                            );
-                        }
+                            tracing::warn!("[FeedbackOrchestrator] RL training failed: {}", e);
+                        },
                     }
-                }
-                axagent_agent::OrchestratorAction::TriggerSkillEvolution { reason, positive_count } => {
+                },
+                axagent_agent::OrchestratorAction::TriggerSkillEvolution {
+                    reason,
+                    positive_count,
+                } => {
                     tracing::info!(
                         "[FeedbackOrchestrator] TriggerSkillEvolution: {} ({} positives)",
                         reason,
                         positive_count
                     );
                     // TODO(Phase3): 触发技能进化评估
-                }
+                },
                 axagent_agent::OrchestratorAction::TriggerPoolSizeCheck { pool_size } => {
-                    tracing::info!(
-                        "[FeedbackOrchestrator] PoolSizeCheck: pool_size={}",
-                        pool_size
-                    );
+                    tracing::info!("[FeedbackOrchestrator] PoolSizeCheck: pool_size={}", pool_size);
                     let mut opt = optimizer.write().await;
                     match axagent_agent::rl_optimizer::rl_training_loop::train(&mut opt) {
                         Ok(stats) => {
@@ -591,16 +592,16 @@ pub fn tracer_submit_feedback(
                                 "[FeedbackOrchestrator] pool-triggered RL training completed: episodes={}",
                                 stats.episodes_completed
                             );
-                        }
+                        },
                         Err(e) => {
                             tracing::warn!(
                                 "[FeedbackOrchestrator] pool-triggered RL training failed: {}",
                                 e
                             );
-                        }
+                        },
                     }
-                }
-                axagent_agent::OrchestratorAction::None => {}
+                },
+                axagent_agent::OrchestratorAction::None => {},
             }
         });
     }

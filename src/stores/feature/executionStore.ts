@@ -25,53 +25,10 @@ import type {
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
 
-// ── 执行阶段状态机 ──
+import { ACTIVE_PHASES, type ExecutionPhase, PHASE_TRANSITIONS, TERMINAL_PHASES } from "./executionPhaseMachine";
 
-export type ExecutionPhase =
-  | "idle"
-  | "planning"
-  | "executing"
-  | "waiting_permission"
-  | "completed"
-  | "failed"
-  | "cancelled";
-
-const PHASE_TRANSITIONS: Record<ExecutionPhase, ExecutionPhase[]> = {
-  idle: ["planning", "executing", "completed", "failed", "cancelled"],
-  planning: ["executing", "failed", "cancelled"],
-  executing: [
-    "executing",
-    "waiting_permission",
-    "completed",
-    "failed",
-    "cancelled",
-  ],
-  waiting_permission: ["executing", "cancelled"],
-  completed: ["idle", "executing"],
-  failed: ["idle", "executing"],
-  cancelled: ["idle", "executing"],
-};
-
-export const ACTIVE_PHASES: Set<ExecutionPhase> = new Set([
-  "planning",
-  "executing",
-  "waiting_permission",
-]);
-
-export const TERMINAL_PHASES: Set<ExecutionPhase> = new Set([
-  "completed",
-  "failed",
-  "cancelled",
-]);
-
-// ── 工具调用追踪 ──
-
-export interface CurrentToolCall {
-  toolName: string;
-  toolUseId: string;
-  conversationId: string;
-  startedAt: number;
-}
+import type { CurrentToolCall } from "./executionToolCallUtils";
+import { shouldClearToolCall } from "./executionToolCallUtils";
 
 // ── Store 接口 ──
 
@@ -162,28 +119,6 @@ const initialState = {
   loadingTrajectories: false,
   loadingTrajectoryDetail: {} as Record<string, boolean>,
 };
-
-/**
- * 判断是否应清除 currentToolCall。
- * 满足以下任一条件时清除：
- * 1. currentToolCall 属于当前完成事件的会话（直接匹配）
- * 2. currentToolCall 所属会话的状态已是终端态（跨对话残留检测）
- */
-function shouldClearToolCall(
-  s: ExecutionStore,
-  doneConversationId: string,
-): boolean {
-  if (!s.currentToolCall) {
-    return false;
-  }
-  // 直接匹配：属于同一会话
-  if (s.currentToolCall.conversationId === doneConversationId) {
-    return true;
-  }
-  // 跨对话残留：currentToolCall 所属会话已非活跃态
-  const ownerPhase = s.phases[s.currentToolCall.conversationId] || "idle";
-  return !ACTIVE_PHASES.has(ownerPhase);
-}
 
 export const useExecutionStore = create<ExecutionStore>()(
   devtools(
@@ -567,7 +502,7 @@ export const useExecutionStore = create<ExecutionStore>()(
         get().transition(event.conversationId, "completed");
         set(
           (s) => ({
-            currentToolCall: shouldClearToolCall(s, event.conversationId)
+            currentToolCall: shouldClearToolCall(s.currentToolCall, s.phases, event.conversationId)
               ? null
               : s.currentToolCall,
             agentStatus: { ...s.agentStatus, [event.conversationId]: "" },
@@ -585,7 +520,7 @@ export const useExecutionStore = create<ExecutionStore>()(
         get().transition(event.conversationId, "failed");
         set(
           (s) => ({
-            currentToolCall: shouldClearToolCall(s, event.conversationId)
+            currentToolCall: shouldClearToolCall(s.currentToolCall, s.phases, event.conversationId)
               ? null
               : s.currentToolCall,
             agentStatus: {

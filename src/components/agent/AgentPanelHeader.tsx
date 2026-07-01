@@ -3,8 +3,10 @@
 import { useAgentPanelStore } from "@/stores/shared/agentPanelStore";
 import { Tooltip } from "antd";
 import { Bot, Maximize2, Minimize2, PanelRightClose } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 export function AgentPanelHeader() {
+  const { t } = useTranslation();
   const agentContext = useAgentPanelStore((s) => s.agentContext);
   const isMiniMode = useAgentPanelStore((s) => s.isMiniMode);
   const toggleMiniMode = useAgentPanelStore((s) => s.toggleMiniMode);
@@ -16,13 +18,11 @@ export function AgentPanelHeader() {
 
   return (
     <div className="flex items-center justify-between px-3 py-2 border-b border-[var(--border-color)] shrink-0">
-      {/* 左侧：标题 */}
       <div className="flex items-center gap-2 min-w-0">
         <Bot size={18} className="text-[var(--color-primary)] shrink-0" />
         <span className="font-semibold text-sm truncate">AxAgent</span>
       </div>
 
-      {/* 中间：上下文指示 */}
       <div className="flex-1 mx-3 min-w-0">
         {contextLabel
           ? (
@@ -37,14 +37,13 @@ export function AgentPanelHeader() {
           )
           : (
             <div className="text-xs text-[var(--color-text-secondary)] text-center">
-              全局模式
+              {t("agentPanel.globalMode")}
             </div>
           )}
       </div>
 
-      {/* 右侧：操作按钮 */}
       <div className="flex items-center gap-1 shrink-0">
-        <Tooltip title={isMiniMode ? "展开全尺寸面板" : "迷你模式"}>
+        <Tooltip title={isMiniMode ? t("agentPanel.expandFullPanel") : t("agentPanel.miniMode")}>
           <button
             type="button"
             className="p-1 rounded hover:bg-[var(--color-fill-alter)] text-[var(--color-text-secondary)]"
@@ -53,7 +52,7 @@ export function AgentPanelHeader() {
             {isMiniMode ? <Maximize2 size={15} /> : <Minimize2 size={15} />}
           </button>
         </Tooltip>
-        <Tooltip title="关闭面板">
+        <Tooltip title={t("agentPanel.closePanel")}>
           <button
             type="button"
             className="p-1 rounded hover:bg-[var(--color-fill-alter)] text-[var(--color-text-secondary)]"

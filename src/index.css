@@ -130,6 +130,78 @@
   --purple-bg: oklch(60% 0.16 290 / 0.12);
 }
 
+/* ═══ THEME: 21th 暗色 ═══ */
+[data-theme-preset="21th-dark"],
+[data-theme="21th-dark"] {
+  --bg: oklch(14.48% 0 0);
+  --surface: oklch(21.78% 0 0);
+  --surface-2: oklch(32.11% 0 0);
+  --fg: oklch(100% 0 0);
+  --fg-2: oklch(78% 0 0);
+  --muted: oklch(73.8% 0 0);
+  --border: oklch(32.11% 0 0);
+  --border-light: oklch(25.2% 0 0);
+  --accent: oklch(100% 0 0);
+  --accent-soft: oklch(100% 0 0 / 0.12);
+  --accent-bg: oklch(100% 0 0 / 0.08);
+  --accent-dim: oklch(100% 0 0 / 0.04);
+  --green: oklch(77.29% 0.1535 163.2231);
+  --green-bg: oklch(77.29% 0.1535 163.2231 / 0.12);
+  --red: oklch(63.68% 0.2078 25.3313);
+  --red-bg: oklch(63.68% 0.2078 25.3313 / 0.12);
+  --amber: oklch(83.69% 0.1644 84.4286);
+  --amber-bg: oklch(83.69% 0.1644 84.4286 / 0.12);
+  --teal: oklch(71.37% 0.1434 254.624);
+  --purple: oklch(68.01% 0.1583 276.9349);
+  --purple-bg: oklch(68.01% 0.1583 276.9349 / 0.12);
+  /* 21th 特有变量 */
+  --radius: 0px;
+  --radius-lg: 0px;
+  --shadow-brutalist-sm: 2px 2px 0px 0px rgba(0, 0, 0, 0.5);
+  --shadow-brutalist: 2px 2px 0px 0px rgba(0, 0, 0, 1), 2px 1px 2px -1px rgba(0, 0, 0, 1);
+  --shadow-brutalist-md: 2px 2px 0px 0px rgba(0, 0, 0, 1), 2px 2px 4px -1px rgba(0, 0, 0, 1);
+  --shadow-brutalist-lg: 2px 2px 0px 0px rgba(0, 0, 0, 1), 2px 4px 6px -1px rgba(0, 0, 0, 1);
+  --font-mono-preferred: "Geist Mono", ui-monospace, monospace;
+  --font-sans-preferred: "Geist", ui-sans-serif, sans-serif, system-ui;
+  --tracking-tight: -0.05em;
+}
+
+/* ═══ THEME: 21th 亮色 ═══ */
+[data-theme-preset="21th-light"],
+[data-theme="21th-light"] {
+  --bg: oklch(83.28% 0.0044 197.0717);
+  --surface: oklch(88.68% 0.0022 197.1175);
+  --surface-2: oklch(88.68% 0.0022 197.1175);
+  --fg: oklch(17.76% 0 0);
+  --fg-2: oklch(40% 0 0);
+  --muted: oklch(62.68% 0 0);
+  --border: oklch(100% 0 0);
+  --border-light: oklch(90% 0 0);
+  --accent: oklch(17.76% 0 0);
+  --accent-soft: oklch(17.76% 0 0 / 0.12);
+  --accent-bg: oklch(17.76% 0 0 / 0.08);
+  --accent-dim: oklch(17.76% 0 0 / 0.04);
+  --green: oklch(52% 0.18 150);
+  --green-bg: oklch(52% 0.18 150 / 0.12);
+  --red: oklch(57.87% 0.2005 26.1521);
+  --red-bg: oklch(57.87% 0.2005 26.1521 / 0.12);
+  --amber: oklch(58% 0.16 85);
+  --amber-bg: oklch(58% 0.16 85 / 0.12);
+  --teal: oklch(50.12% 0.2803 263.8733);
+  --purple: oklch(58.16% 0.228 265.4658);
+  --purple-bg: oklch(58.16% 0.228 265.4658 / 0.12);
+  /* 21th 特有变量 */
+  --radius: 0px;
+  --radius-lg: 0px;
+  --shadow-brutalist-sm: 2px 2px 0px 0px rgba(0, 0, 0, 0.5);
+  --shadow-brutalist: 2px 2px 0px 0px rgba(0, 0, 0, 1), 2px 1px 2px -1px rgba(0, 0, 0, 1);
+  --shadow-brutalist-md: 2px 2px 0px 0px rgba(0, 0, 0, 1), 2px 2px 4px -1px rgba(0, 0, 0, 1);
+  --shadow-brutalist-lg: 2px 2px 0px 0px rgba(0, 0, 0, 1), 2px 4px 6px -1px rgba(0, 0, 0, 1);
+  --font-mono-preferred: "Geist Mono", ui-monospace, monospace;
+  --font-sans-preferred: "Geist", ui-sans-serif, sans-serif, system-ui;
+  --tracking-tight: -0.05em;
+}
+
 /* ── Cyberpunk preset 覆盖 ── */
 [data-theme-preset*="cyber"],
 [data-theme-preset*="neon"] {

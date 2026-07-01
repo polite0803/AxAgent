@@ -1,17 +1,15 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import type { DynamicUIProps } from "@/types";
-import { Table } from "antd";
+import { Alert, Spin, Table } from "antd";
 import type { TableColumnsType } from "antd";
+import { useTranslation } from "react-i18next";
 
-/**
- * 数据表格，基于 Ant Design Table。
- * 支持分页、排序、行选择。
- */
 export const DataTable: React.FC<DynamicUIProps> = ({
   schema,
   dataContext,
 }) => {
+  const { t } = useTranslation();
   const {
     columns = [],
     dataSource: staticData,
@@ -19,6 +17,8 @@ export const DataTable: React.FC<DynamicUIProps> = ({
     rowSelection,
     showHeader = true,
     size = "middle",
+    dataLoading,
+    dataError,
   } = schema.props as {
     columns: TableColumnsType<Record<string, unknown>>;
     dataSource?: Record<string, unknown>[];
@@ -26,7 +26,20 @@ export const DataTable: React.FC<DynamicUIProps> = ({
     rowSelection?: Record<string, unknown>;
     showHeader?: boolean;
     size?: "small" | "middle" | "large";
+    dataLoading?: boolean;
+    dataError?: Error | null;
   };
+
+  if (dataError) {
+    return (
+      <Alert
+        type="error"
+        message={t("dynamicUI.dataLoadFailed")}
+        description={dataError.message}
+        showIcon
+      />
+    );
+  }
 
   const data = staticData
       || (dataContext
@@ -42,22 +55,23 @@ export const DataTable: React.FC<DynamicUIProps> = ({
     : [];
 
   return (
-    <Table<Record<string, unknown>>
-      columns={columns}
-      dataSource={data}
-      pagination={pagination === false ? false : { pageSize: 10, ...(pagination as object) }}
-      rowSelection={rowSelection
-        ? (rowSelection as TableColumnsType<Record<string, unknown>>[0] extends {
-          rowSelection: infer R;
-        } ? R
-          : never)
-        : undefined}
-      showHeader={showHeader}
-      size={size}
-      rowKey={(record) => String(record.id || record.key || "")}
-      style={schema.style as React.CSSProperties}
-    />
+    <Spin spinning={!!dataLoading}>
+      <Table<Record<string, unknown>>
+        columns={columns}
+        dataSource={data}
+        loading={!!dataLoading}
+        pagination={pagination === false ? false : { pageSize: 10, ...(pagination as object) }}
+        rowSelection={rowSelection
+          ? (rowSelection as TableColumnsType<Record<string, unknown>>[0] extends {
+            rowSelection: infer R;
+          } ? R
+            : never)
+          : undefined}
+        showHeader={showHeader}
+        size={size}
+        rowKey={(record) => String(record.id || record.key || "")}
+        style={schema.style as React.CSSProperties}
+      />
+    </Spin>
   );
 };
-
-export default DataTable;

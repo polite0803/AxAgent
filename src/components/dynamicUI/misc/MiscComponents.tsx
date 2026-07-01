@@ -2,18 +2,17 @@
 
 import type { DynamicUIProps } from "@/types";
 import { Button, Divider, Image, Progress, Tag, Typography } from "antd";
+import { useTranslation } from "react-i18next";
 
 const { Text, Title } = Typography;
 
-/**
- * 按钮组件，基于 Ant Design Button。
- */
 export const DynamicButton: React.FC<DynamicUIProps> = ({
   schema,
   onAction,
 }) => {
+  const { t } = useTranslation();
   const {
-    text = "按钮",
+    text = t("dynamicUI.button"),
     type = "default",
     size = "middle",
     disabled = false,
@@ -59,9 +58,6 @@ export const DynamicButton: React.FC<DynamicUIProps> = ({
   );
 };
 
-/**
- * 文本组件，基于 Ant Design Typography.Text / Title。
- */
 export const DynamicText: React.FC<DynamicUIProps> = ({ schema }) => {
   const {
     content = "",
@@ -109,9 +105,6 @@ export const DynamicText: React.FC<DynamicUIProps> = ({ schema }) => {
   );
 };
 
-/**
- * 分割线组件，基于 Ant Design Divider。
- */
 export const DynamicDivider: React.FC<DynamicUIProps> = ({ schema }) => {
   const { text, orientation: titlePlacement = "center" as const, plain = false, dashed = false } = schema.props as {
     text?: string;
@@ -132,9 +125,6 @@ export const DynamicDivider: React.FC<DynamicUIProps> = ({ schema }) => {
   );
 };
 
-/**
- * 进度条组件，基于 Ant Design Progress。
- */
 export const DynamicProgress: React.FC<DynamicUIProps> = ({ schema }) => {
   const {
     percent = 0,
@@ -162,9 +152,6 @@ export const DynamicProgress: React.FC<DynamicUIProps> = ({ schema }) => {
   );
 };
 
-/**
- * 标签组件，基于 Ant Design Tag。
- */
 export const DynamicTag: React.FC<DynamicUIProps> = ({ schema }) => {
   const { text = "", color, closable = false } = schema.props as {
     text?: string;
@@ -183,9 +170,6 @@ export const DynamicTag: React.FC<DynamicUIProps> = ({ schema }) => {
   );
 };
 
-/**
- * 图片组件，基于 Ant Design Image。
- */
 export const DynamicImage: React.FC<DynamicUIProps> = ({ schema }) => {
   const {
     src = "",

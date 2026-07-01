@@ -13,9 +13,12 @@ export type DynamicComponentType =
   | "Accordion"
   | "Form"
   | "Input"
+  | "Number"
   | "Select"
   | "DatePicker"
   | "Switch"
+  | "Checkbox"
+  | "Radio"
   | "Textarea"
   | "Table"
   | "Chart"
@@ -66,9 +69,7 @@ export interface DynamicAction {
 
 // ── 条件渲染规则 ──
 export interface ConditionalRule {
-  /** 数据上下文字段名 */
   field: string;
-  /** 比较操作符 */
   operator:
     | "eq"
     | "neq"
@@ -77,10 +78,19 @@ export interface ConditionalRule {
     | "lt"
     | "lte"
     | "in"
-    | "contains";
-  /** 比较值 */
-  value: unknown;
+    | "contains"
+    | "exists"
+    | "empty";
+  value?: unknown;
 }
+
+export type ConditionalDisplay =
+  | ConditionalRule[]
+  | {
+    logic: "and" | "or";
+    rules: ConditionalDisplay[];
+    not?: boolean;
+  };
 
 // ── UI Schema 顶层结构 ──
 export interface UISchema {
@@ -98,8 +108,8 @@ export interface UISchema {
   dataSource?: DataSourceConfig;
   /** 事件处理器 */
   events?: EventHandler[];
-  /** 条件显示规则（全部满足才渲染） */
-  conditionalDisplay?: ConditionalRule[];
+  /** 条件显示规则（支持AND/OR/NOT逻辑组合） */
+  conditionalDisplay?: ConditionalDisplay;
   /** 样式覆盖 */
   style?: Record<string, string | number>;
 }
@@ -156,9 +166,12 @@ export const VALID_DYNAMIC_COMPONENT_TYPES: ReadonlySet<string> = new Set<Dynami
   "Accordion",
   "Form",
   "Input",
+  "Number",
   "Select",
   "DatePicker",
   "Switch",
+  "Checkbox",
+  "Radio",
   "Textarea",
   "Table",
   "Chart",
@@ -190,9 +203,12 @@ export const COMPONENT_REQUIRED_PROPS: Readonly<
   Accordion: [],
   Form: [],
   Input: [],
+  Number: [],
   Select: [],
   DatePicker: [],
   Switch: [],
+  Checkbox: [],
+  Radio: [],
   Textarea: [],
   Table: ["columns"],
   Chart: ["chartType"],
@@ -210,3 +226,47 @@ export const COMPONENT_REQUIRED_PROPS: Readonly<
   Tree: ["treeData"],
   Timeline: ["items"],
 };
+
+// ── 持久化 Schema 相关类型 ──
+
+export interface DynamicUISchemaRecord {
+  id: string;
+  title: string;
+  description: string;
+  schema_json: string;
+  category: string;
+  tags: string[];
+  is_builtin: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DynamicUIFormDataRecord {
+  id: string;
+  schema_id: string;
+  form_data_json: string;
+  instance_key: string;
+  updated_at: string;
+}
+
+export interface CreateDynamicUISchemaParams {
+  title: string;
+  description: string;
+  schema_json: string;
+  category: string;
+  tags: string[];
+}
+
+export interface UpdateDynamicUISchemaParams {
+  title?: string;
+  description?: string;
+  schema_json?: string;
+  category?: string;
+  tags?: string[];
+}
+
+export interface SaveDynamicUIFormDataParams {
+  schema_id: string;
+  form_data_json: string;
+  instance_key?: string;
+}

@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use std::collections::HashMap;
-use std::sync::Arc;
+use std::sync::{Arc, RwLock};
 
 use axagent_core::workflow_types::WorkflowNode;
+
+use crate::expression_engine::{ExpressionContext, resolve_value_templates};
 
 use super::execution_state::ExecutionState;
 use super::executors::{
@@ -19,7 +21,7 @@ use super::node_executor_trait::{
 };
 
 pub struct NodeDispatcher {
-    executors: HashMap<&'static str, Arc<dyn NodeExecutorTrait>>,
+    executors: Arc<RwLock<HashMap<&'static str, Arc<dyn NodeExecutorTrait>>>>,
 }
 
 impl Default for NodeDispatcher {
@@ -30,8 +32,8 @@ impl Default for NodeDispatcher {
 
 impl NodeDispatcher {
     pub fn new() -> Self {
-        let mut dispatcher = Self {
-            executors: HashMap::new(),
+        let dispatcher = Self {
+            executors: Arc::new(RwLock::new(HashMap::new())),
         };
         dispatcher.register(TriggerExecutor::new());
         dispatcher.register(ParallelExecutor::new());
@@ -65,7 +67,7 @@ impl NodeDispatcher {
 
     /// 注册 executor。若同名 executor 已存在，记录 warn 日志
     /// （覆盖仅用于共享 Arc 的"重置"场景，调用方应使用 `register_arc` 共享同一实例）。
-    pub fn register<E: NodeExecutorTrait + 'static>(&mut self, executor: E) {
+    pub fn register<E: NodeExecutorTrait + 'static>(&self, executor: E) {
         self.register_arc(Arc::new(executor));
     }
 
@@ -73,17 +75,22 @@ impl NodeDispatcher {
     /// 同名已存在时**直接覆盖**（不打印 warn，因为是同一实例热更新）。
     /// 真正的"防呆"是：业务代码不要再调用 register(E) 重新注册 agent
     /// executor；统一通过 WorkEngine.agent_executor 字段访问并修改状态。
-    pub fn register_arc(&mut self, executor: Arc<dyn NodeExecutorTrait>) {
+    pub fn register_arc(&self, executor: Arc<dyn NodeExecutorTrait>) {
         let key = executor.node_type();
-        if self.executors.contains_key(key)
-            && !Arc::ptr_eq(self.executors.get(key).expect("checked above"), &executor)
-        {
+        let mut map = self.executors.write().expect("executors lock poisoned");
+        if map.contains_key(key) && !Arc::ptr_eq(map.get(key).expect("checked above"), &executor) {
             tracing::warn!(
                 node_type = key,
                 "dispatcher.register_arc: 覆盖已存在的不同实例（请检查是否还有遗留的重复 register 调用）"
             );
         }
-        self.executors.insert(key, executor);
+        map.insert(key, executor);
+    }
+
+    /// 公开注册 API（供外部 crate 注册自定义执行器）。
+    /// 与 register_arc 等价，仅命名上明确表示"外部注册"语义。
+    pub fn register_external(&self, executor: Arc<dyn NodeExecutorTrait>) {
+        self.register_arc(executor);
     }
 
     pub async fn dispatch(
@@ -158,9 +165,9 @@ impl NodeDispatcher {
             }
         }
 
-        let executor = self.executors.get(node_type).unwrap_or_else(|| {
-            self.executors
-                .get("fallback")
+        let map = self.executors.read().expect("executors lock poisoned");
+        let executor = map.get(node_type).unwrap_or_else(|| {
+            map.get("fallback")
                 .expect("FallbackExecutor must be registered")
         });
         tracing::info!(
@@ -169,15 +176,69 @@ impl NodeDispatcher {
             executor_type = %executor.node_type(),
             "dispatch"
         );
-        executor.execute(node, context).await
+        // ── 表达式模板解析 ──
+        // 对节点配置 JSON 递归扫描 {{ expression }} 模板并求值，
+        // 注入 $vars / $node / $input / $now / $env 到求值上下文。
+        // 任何环节失败均优雅降级回原始节点。
+        let resolved_node = {
+            let expr_ctx = ExpressionContext {
+                variables: context.variables.clone(),
+                node_outputs: context.node_outputs.clone(),
+                input_params: context.input_params.clone(),
+                env: std::env::vars().collect(),
+            };
+            match serde_json::to_value(node) {
+                Ok(node_json) => match resolve_value_templates(&node_json, &expr_ctx) {
+                    Ok(resolved_json) => {
+                        match serde_json::from_value::<WorkflowNode>(resolved_json) {
+                            Ok(n) => n,
+                            Err(e) => {
+                                tracing::warn!(
+                                    node_id = %node.base_id(),
+                                    error = %e,
+                                    "表达式模板解析后反序列化失败，回退到原始节点"
+                                );
+                                node.clone()
+                            },
+                        }
+                    },
+                    Err(e) => {
+                        tracing::warn!(
+                            node_id = %node.base_id(),
+                            error = %e,
+                            "表达式模板解析失败，回退到原始节点"
+                        );
+                        node.clone()
+                    },
+                },
+                Err(e) => {
+                    tracing::warn!(
+                        node_id = %node.base_id(),
+                        error = %e,
+                        "节点序列化失败，跳过模板解析"
+                    );
+                    node.clone()
+                },
+            }
+        };
+        executor.execute(&resolved_node, context).await
     }
 
-    pub fn get_executor(&self, node_type: &str) -> Option<&dyn NodeExecutorTrait> {
-        self.executors.get(node_type).map(|e| e.as_ref())
+    pub fn get_executor(&self, node_type: &str) -> Option<Arc<dyn NodeExecutorTrait>> {
+        self.executors
+            .read()
+            .expect("executors lock poisoned")
+            .get(node_type)
+            .cloned()
     }
 
     pub fn registered_types(&self) -> Vec<&'static str> {
-        self.executors.keys().copied().collect()
+        self.executors
+            .read()
+            .expect("executors lock poisoned")
+            .keys()
+            .copied()
+            .collect()
     }
 }
 
@@ -251,4 +312,124 @@ fn build_node_input_snapshot(node: &WorkflowNode, context: &ExecutionState) -> s
     }
 
     serde_json::Value::Object(map)
+}
+
+// ── 测试 ──
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// A simple executor that just returns the node id in its output.
+    struct TestExecutor {
+        node_type_str: &'static str,
+    }
+
+    impl TestExecutor {
+        fn new(key: &'static str) -> Self {
+            Self { node_type_str: key }
+        }
+    }
+
+    #[async_trait::async_trait]
+    impl NodeExecutorTrait for TestExecutor {
+        fn node_type(&self) -> &'static str {
+            self.node_type_str
+        }
+        async fn execute(
+            &self,
+            _node: &WorkflowNode,
+            _context: &super::ExecutionState,
+        ) -> Result<NodeOutput, NodeError> {
+            Ok(NodeOutput {
+                output: serde_json::json!({"node_type": self.node_type_str}),
+                output_var: None,
+            })
+        }
+    }
+
+    fn make_test_exec_state() -> ExecutionState {
+        ExecutionState {
+            workflow_id: "test_wf".to_string(),
+            node_states: std::collections::HashMap::new(),
+            variables: std::collections::HashMap::new(),
+            sub_workflow_outputs: std::collections::HashMap::new(),
+            business_rule_engine: None,
+        }
+    }
+
+    #[test]
+    fn register_and_lookup() {
+        let disp = NodeDispatcher::new();
+        disp.register(TestExecutor::new("testExec"));
+        assert!(disp.get_executor("testExec").is_some());
+        assert!(disp.get_executor("nonexistent").is_none());
+    }
+
+    #[test]
+    fn registered_types_collects_keys() {
+        let disp = NodeDispatcher::new();
+        disp.register(TestExecutor::new("customA"));
+        disp.register(TestExecutor::new("customB"));
+        let types = disp.registered_types();
+        assert!(types.contains(&"customA"));
+        assert!(types.contains(&"customB"));
+        // The built-in executors are registered too
+        assert!(types.contains(&"tool"));
+    }
+
+    #[tokio::test]
+    async fn dispatch_to_registered_executor() {
+        let mut disp = NodeDispatcher::new();
+        disp.register(TestExecutor::new("myExecutor"));
+        let node = make_tool_node("n1", true);
+        let ctx = make_test_exec_state();
+        // Override executor lookup: we need to test dispatch by using the
+        // executor key "tool" since our test node is a Tool variant.
+        let disp2 = NodeDispatcher {
+            executors: Arc::new(RwLock::new(HashMap::new())),
+        };
+        disp2.register(TestExecutor::new("tool"));
+        let result = disp2.dispatch(&node, &ctx).await;
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap().output["node_type"], "tool");
+    }
+
+    #[tokio::test]
+    async fn fallback_executor_when_not_found() {
+        let disp = NodeDispatcher {
+            executors: Arc::new(RwLock::new(HashMap::new())),
+        };
+        disp.register(TestExecutor::new("fallback"));
+        let node = make_tool_node("n2", true);
+        let ctx = make_test_exec_state();
+        let result = disp.dispatch(&node, &ctx).await;
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap().output["node_type"], "fallback");
+    }
+
+    // Re-use helper from dag_store tests — define locally
+    fn make_tool_node(id: &str, enabled: bool) -> WorkflowNode {
+        use axagent_harness::workflow_types::{
+            Position, RetryConfig, ToolNode, ToolNodeConfig, WorkflowNodeBase,
+        };
+        WorkflowNode::Tool(ToolNode {
+            base: WorkflowNodeBase {
+                id: id.to_string(),
+                title: format!("Tool {id}"),
+                description: None,
+                position: Position { x: 0.0, y: 0.0 },
+                retry: RetryConfig::default(),
+                timeout: None,
+                enabled,
+                parent_id: None,
+                compensation: None,
+            },
+            config: ToolNodeConfig {
+                tool_name: format!("tool_{id}"),
+                input_mapping: std::collections::HashMap::new(),
+                output_var: format!("out_{id}"),
+            },
+        })
+    }
 }

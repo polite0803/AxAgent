@@ -8,7 +8,7 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-use axagent_core::workflow_types::{WorkflowEdge, WorkflowNode};
+use axagent_core::workflow_types::{ErrorConfig, WorkflowEdge, WorkflowNode};
 
 // ── 节点运行时状态 ──
 
@@ -43,6 +43,12 @@ pub struct Workflow {
     pub node_states: HashMap<String, NodeRuntimeState>,
     /// 工作流最终输出（经 output_schema 过滤或 EndNode 聚合后的精简结果）
     pub output: Option<serde_json::Value>,
+    /// 错误处理配置（模板级）
+    #[serde(default)]
+    pub error_config: Option<ErrorConfig>,
+    /// 错误工作流 ID（模板级，节点失败时触发独立的错误处理工作流）
+    #[serde(default)]
+    pub error_workflow_id: Option<String>,
 }
 
 /// 单个节点的运行时追踪状态

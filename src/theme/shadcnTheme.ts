@@ -17,7 +17,10 @@ export type ThemePreset =
   | "deep-dusk"
   | "light-dawn"
   | "oceanic-dark"
-  | "forest-dark";
+  | "forest-dark"
+  // 21th 设计系统 — 新野兽派风格（零圆角 + 硬偏移阴影 + 等宽字体）
+  | "21th-dark"
+  | "21th-light";
 
 interface PresetColors {
   bgBase: string;
@@ -33,7 +36,7 @@ interface PresetColors {
   errorColor: string;
   warningColor: string;
   borderRadiusBias: number;
-  shadowStyle: "soft-dark" | "glow" | "soft-light" | "none" | "border-only";
+  shadowStyle: "soft-dark" | "glow" | "soft-light" | "none" | "border-only" | "brutalist";
 }
 
 const PRESETS: Record<ThemePreset, PresetColors> = {
@@ -233,6 +236,40 @@ const PRESETS: Record<ThemePreset, PresetColors> = {
     borderRadiusBias: -2,
     shadowStyle: "soft-light",
   },
+  // 21th 暗色 — 纯黑基底 + 白色主色 + 电蓝强调 + 硬偏移阴影
+  "21th-dark": {
+    bgBase: "#0a0a0a",
+    bgElevated: "#1a1a1a",
+    bgSurface2: "#333333",
+    borderColor: "#333333",
+    borderLight: "#222222",
+    textPrimary: "rgba(255,255,255,1)",
+    textSecondary: "rgba(170,170,170,1)",
+    textFg2: "rgba(200,200,200,1)",
+    primaryColor: "#ffffff",
+    successColor: "#34d399",
+    errorColor: "#ef4444",
+    warningColor: "#fbbf24",
+    borderRadiusBias: 0,
+    shadowStyle: "brutalist",
+  },
+  // 21th 亮色 — 冷灰基底 + 纯黑主色 + 电蓝强调 + 硬偏移阴影
+  "21th-light": {
+    bgBase: "#c5c9c9",
+    bgElevated: "#d8dada",
+    bgSurface2: "#d8dada",
+    borderColor: "#ffffff",
+    borderLight: "#e0e0e0",
+    textPrimary: "#111111",
+    textSecondary: "#888888",
+    textFg2: "#555555",
+    primaryColor: "#111111",
+    successColor: "#16a34a",
+    errorColor: "#d73333",
+    warningColor: "#d97706",
+    borderRadiusBias: 0,
+    shadowStyle: "brutalist",
+  },
 };
 
 export const IS_DARK_PRESET: Record<ThemePreset, boolean> = {
@@ -248,6 +285,8 @@ export const IS_DARK_PRESET: Record<ThemePreset, boolean> = {
   "light-dawn": false,
   "oceanic-dark": true,
   "forest-dark": true,
+  "21th-dark": true,
+  "21th-light": false,
 };
 
 function resolveShadow(preset: PresetColors): {
@@ -276,6 +315,11 @@ function resolveShadow(preset: PresetColors): {
       return {
         boxShadow: "0 1px 2px 0 rgba(0,0,0,0.1)",
         boxShadowSecondary: "0 1px 3px 0 rgba(0,0,0,0.06)",
+      };
+    case "brutalist":
+      return {
+        boxShadow: "2px 2px 0px 0px rgba(0,0,0,1)",
+        boxShadowSecondary: "2px 2px 0px 0px rgba(0,0,0,1), 2px 4px 6px -1px rgba(0,0,0,1)",
       };
   }
 }

@@ -453,6 +453,13 @@ macro_rules! register_all_commands {
             commands::image_gen::generate_image,
             commands::image_gen_settings::get_image_gen_config,
             commands::image_gen_settings::save_image_gen_config,
+            commands::index_jobs::index_jobs_list,
+            commands::index_jobs::index_jobs_stats,
+            commands::index_jobs::index_jobs_retry,
+            commands::index_jobs::index_jobs_cancel,
+            commands::index_jobs::index_jobs_retry_all_failed,
+            commands::index_jobs::index_jobs_clear_completed,
+            commands::index_jobs::index_jobs_reindex_collection,
             commands::chart_generator::generate_chart_config,
             commands::gateway::get_gateway_status,
             commands::gateway::start_gateway,
@@ -834,6 +841,18 @@ macro_rules! register_all_commands {
             commands::migration::migration_execute,
             commands::migration::migration_list_backups,
             commands::migration::migration_rollback,
+            // Workflow YAML import/export
+            commands::workflow_yaml::export_workflow_yaml,
+            commands::workflow_yaml::import_workflow_yaml,
+            // Dynamic UI standalone system
+            commands::dynamic_ui::list_dynamic_ui_schemas,
+            commands::dynamic_ui::get_dynamic_ui_schema,
+            commands::dynamic_ui::create_dynamic_ui_schema,
+            commands::dynamic_ui::update_dynamic_ui_schema,
+            commands::dynamic_ui::delete_dynamic_ui_schema,
+            commands::dynamic_ui::save_dynamic_ui_form_data,
+            commands::dynamic_ui::get_dynamic_ui_form_data,
+            commands::dynamic_ui::delete_dynamic_ui_form_data,
         ]
     };
 }

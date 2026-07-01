@@ -39,5 +39,3 @@ export const TreeView: React.FC<DynamicUIProps> = ({ schema, dataContext }) => {
     />
   );
 };
-
-export default TreeView;

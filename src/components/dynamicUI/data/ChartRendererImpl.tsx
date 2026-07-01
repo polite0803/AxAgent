@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import React from "react";
+import { useTranslation } from "react-i18next";
 import {
   Area,
   AreaChart,
@@ -40,17 +41,19 @@ interface ChartRendererImplProps {
   seriesKey?: string;
 }
 
-const ChartRendererImpl: React.FC<ChartRendererImplProps> = ({
+export const ChartRendererImpl: React.FC<ChartRendererImplProps> = ({
   chartType,
   data,
   xKey,
   yKey,
   seriesKey,
 }) => {
+  const { t } = useTranslation();
+
   if (data.length === 0) {
     return (
       <div className="flex items-center justify-center h-64 text-gray-400">
-        暂无数据
+        {t("dynamicUI.noData")}
       </div>
     );
   }
@@ -159,10 +162,8 @@ const ChartRendererImpl: React.FC<ChartRendererImplProps> = ({
     default:
       return (
         <div className="flex items-center justify-center h-64 text-gray-400">
-          不支持的图表类型: {chartType}
+          {t("dynamicUI.unsupportedChartType", { type: chartType })}
         </div>
       );
   }
 };
-
-export default ChartRendererImpl;

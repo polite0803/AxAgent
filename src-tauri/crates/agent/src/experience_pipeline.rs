@@ -9,7 +9,9 @@
 //!        FeedbackRecord → ExperiencePipeline → RL Optimizer ExperiencePool
 
 use crate::reflector::Reflection;
-use crate::rl_optimizer::{Experience, ExperiencePool, RLOptimizer, TaskState, ToolSelection, ThresholdScheduler};
+use crate::rl_optimizer::{
+    Experience, ExperiencePool, RLOptimizer, TaskState, ThresholdScheduler, ToolSelection,
+};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
@@ -53,10 +55,7 @@ impl ExperiencePipeline {
         let reward = (reflection.quality_score as f32 - 5.5) / 5.0;
 
         let mut context = HashMap::new();
-        context.insert(
-            "error_patterns".to_string(),
-            serde_json::json!(reflection.error_patterns),
-        );
+        context.insert("error_patterns".to_string(), serde_json::json!(reflection.error_patterns));
         context.insert(
             "reusable_patterns".to_string(),
             serde_json::json!(reflection.reusable_patterns),
@@ -185,9 +184,7 @@ impl ExperiencePipeline {
             "User rated trace {} as {}/5{}",
             trace_id,
             rating,
-            comment
-                .map(|c| format!(": {}", c))
-                .unwrap_or_default()
+            comment.map(|c| format!(": {}", c)).unwrap_or_default()
         );
 
         let experience = Experience {
@@ -235,14 +232,11 @@ impl ExperiencePipeline {
                     stats.episodes_completed,
                     stats.avg_reward
                 );
-            }
+            },
             Some(Err(e)) => {
-                tracing::warn!(
-                    "[ExperiencePipeline] auto-train failed: {}",
-                    e
-                );
-            }
-            None => { /* 未达到阈值，不触发 */ }
+                tracing::warn!("[ExperiencePipeline] auto-train failed: {}", e);
+            },
+            None => { /* 未达到阈值，不触发 */ },
         }
     }
 

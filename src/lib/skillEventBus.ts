@@ -6,6 +6,11 @@ type EventHandler = (payload: unknown) => void | Promise<void>;
 const listeners = new Map<string, Set<EventHandler>>();
 const MAX_LISTENER_KEYS = 200;
 
+/**
+ * 容量驱逐策略：FIFO（先进先出）。
+ * 当注册的监听器 key 数量超过 MAX_LISTENER_KEYS 时，驱逐最早注册的监听器。
+ * 对于 event bus 场景，FIFO 是可接受的——长期未活跃的 Skill 通常先注册。
+ */
 function evictIfNeeded() {
   if (listeners.size <= MAX_LISTENER_KEYS) {
     return;

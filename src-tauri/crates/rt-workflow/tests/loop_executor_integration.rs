@@ -106,6 +106,7 @@ fn make_state(execution_id: &str) -> ExecutionState {
     let mut s =
         ExecutionState::new(execution_id.to_string(), "wf1".to_string(), serde_json::json!({}));
     s.callbacks = Some(ExecutionContextCallbacks {
+        trigger_manager: None,
         tool_handlers: HashMap::new(),
         tool_fallback: None,
         subworkflow: None,

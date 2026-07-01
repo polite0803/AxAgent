@@ -314,16 +314,27 @@ fn chunk_text_impl(text: &str, chunk_size: usize, overlap: usize) -> Vec<TextChu
 }
 
 /// Find a good break point near `target` position, searching backwards from target.
-/// Prefers: paragraph break (\n\n) > line break (\n) > sentence end (. ! ?) > space
+/// Prefers: paragraph break (\n\n) > line break (\n) > sentence end (. ! ? 。！？；) > space/CJK space
 fn find_break_point(text: &str, start: usize, target: usize) -> usize {
     let search_range = &text[start..target];
     let min_chunk = (target - start) / 2; // Don't break before half the chunk
 
-    // Try paragraph break
-    if let Some(pos) = search_range.rfind("\n\n")
-        && pos >= min_chunk
-    {
-        return start + pos + 2; // After the double newline
+    // Try paragraph break (double newline, handles both \n\n and \r\n\r\n)
+    for marker in ["\n\n", "\r\n\r\n"] {
+        if let Some(pos) = search_range.rfind(marker)
+            && pos >= min_chunk
+        {
+            return start + pos + marker.len();
+        }
+    }
+
+    // Try horizontal rule / separator lines
+    for marker in ["\n---\n", "\n***\n", "\n___\n"] {
+        if let Some(pos) = search_range.rfind(marker)
+            && pos >= min_chunk
+        {
+            return start + pos + marker.len();
+        }
     }
 
     // Try line break
@@ -333,22 +344,52 @@ fn find_break_point(text: &str, start: usize, target: usize) -> usize {
         return start + pos + 1;
     }
 
-    // Try sentence end
-    let bytes = search_range.as_bytes();
-    for i in (min_chunk..bytes.len()).rev() {
-        if matches!(bytes[i], b'.' | b'!' | b'?') {
-            // Check it's followed by a space or end
-            if i + 1 >= bytes.len() || bytes[i + 1] == b' ' || bytes[i + 1] == b'\n' {
-                return start + i + 1;
+    // Try sentence end (ASCII + CJK punctuation)
+    // Search character-by-character backwards for CJK punctuation
+    let chars: Vec<(usize, char)> = search_range.char_indices().collect();
+    for (pos, ch) in chars.iter().rev() {
+        if *pos < min_chunk {
+            break;
+        }
+        if matches!(ch, '。' | '！' | '？' | '；' | '!' | '?' | ';' | '.') {
+            let byte_end = pos + ch.len_utf8();
+            if byte_end <= search_range.len() {
+                let next_char = search_range[byte_end..].chars().next();
+                let is_sentence_end = match next_char {
+                    Some(nc) => {
+                        nc.is_whitespace()
+                            || nc == '"'
+                            || nc == '\''
+                            || nc == '”'
+                            || nc == '’'
+                            || nc == '）'
+                            || nc == '】'
+                    },
+                    None => true,
+                };
+                if is_sentence_end {
+                    return start + byte_end;
+                }
             }
         }
     }
 
-    // Try word break (space)
+    // Try word break (space) — for English text
     if let Some(pos) = search_range.rfind(' ')
         && pos >= min_chunk
     {
         return start + pos + 1;
+    }
+
+    // For CJK text without spaces, try breaking after common suffix particles
+    // (的、了、吗、呢、啊、吧 等) — but only as a last resort
+    for (pos, ch) in chars.iter().rev() {
+        if *pos < min_chunk {
+            break;
+        }
+        if matches!(ch, '，' | '、' | '：' | '）' | '】' | '」' | '』') {
+            return start + pos + ch.len_utf8();
+        }
     }
 
     // No good break found, just cut at target
@@ -439,6 +480,60 @@ pub fn chunk_for_code(
     }
 
     chunks
+}
+
+/// Chunk text by MIME type, automatically selecting the optimal strategy.
+///
+/// - Code MIME types (text/x-*, application/javascript, etc.) use code-optimized chunking
+/// - Markdown (text/markdown, text/x-markdown) uses heading-aware chunking
+/// - Plain text and everything else uses smart sentence/paragraph chunking
+pub fn chunk_by_mime_type(
+    text: &str,
+    mime_type: &str,
+    chunk_size: Option<usize>,
+    overlap: Option<usize>,
+) -> Vec<TextChunk> {
+    let lower_mime = mime_type.to_lowercase();
+
+    let is_code = lower_mime.starts_with("text/x-")
+        || matches!(
+            lower_mime.as_str(),
+            "application/javascript"
+                | "application/typescript"
+                | "application/x-typescript"
+                | "application/json"
+                | "application/xml"
+                | "application/x-yaml"
+                | "text/javascript"
+                | "text/typescript"
+        )
+        || lower_mime.contains("rust")
+        || lower_mime.contains("python")
+        || lower_mime.contains("java")
+        || lower_mime.contains("csharp")
+        || lower_mime.contains("cpp")
+        || lower_mime.contains("go-source")
+        || lower_mime.contains("php");
+
+    if is_code {
+        return chunk_for_code(text, chunk_size, overlap);
+    }
+
+    let is_markdown = matches!(
+        lower_mime.as_str(),
+        "text/markdown" | "text/x-markdown" | "text/markdown+github"
+    ) || lower_mime.ends_with(".md")
+        || text.starts_with("# ")
+        || text.starts_with("## ");
+
+    let chunk_size = chunk_size.unwrap_or(DEFAULT_CHUNK_SIZE);
+    let overlap = overlap.unwrap_or(DEFAULT_OVERLAP);
+
+    if is_markdown {
+        return chunk_text_with_separator_and_markdown(text, chunk_size, overlap, None, true);
+    }
+
+    chunk_text(text, chunk_size, overlap)
 }
 
 #[cfg(test)]

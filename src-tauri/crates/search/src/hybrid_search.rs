@@ -17,12 +17,23 @@ pub struct HybridSearchResult {
     pub combined_score: f32,
 }
 
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Default)]
+pub enum FusionAlgorithm {
+    /// Weighted linear combination of normalized scores.
+    Weighted,
+    /// Reciprocal Rank Fusion — robust to score scale differences, default k=60.
+    #[default]
+    Rrf,
+}
+
 #[derive(Debug, Clone)]
 pub struct HybridSearchOptions {
     pub vector_weight: f32,
     pub bm25_weight: f32,
     pub top_k: usize,
     pub min_score: Option<f32>,
+    pub fusion: FusionAlgorithm,
+    pub rrf_k: f32,
 }
 
 impl Default for HybridSearchOptions {
@@ -32,6 +43,8 @@ impl Default for HybridSearchOptions {
             bm25_weight: 0.3,
             top_k: 10,
             min_score: None,
+            fusion: FusionAlgorithm::Rrf,
+            rrf_k: 60.0,
         }
     }
 }
@@ -49,19 +62,68 @@ impl HybridSearcher {
         }
     }
 
+    pub fn vector_store(&self) -> &VectorStore {
+        &self.vector_store
+    }
+
     pub async fn ensure_fts5_index(&self, collection_id: &str) -> Result<()> {
-        let safe_name = collection_id.replace('-', "_");
-        let table_name = format!("vec_{}_meta", safe_name);
-        let fts_table = format!("{}_fts", table_name);
+        let safe_name = sanitize_name_for_table(collection_id);
+        let meta_table = format!("vec_{safe_name}_meta");
+        let fts_table = format!("{meta_table}_fts");
+
+        let table_exists: bool = self
+            .db
+            .query_one_raw(Statement::from_sql_and_values(
+                DbBackend::Sqlite,
+                "SELECT name FROM sqlite_master WHERE type='table' AND name=?1",
+                vec![fts_table.clone().into()],
+            ))
+            .await
+            .map(|r| r.is_some())
+            .unwrap_or(false);
+
+        if table_exists {
+            let rebuild_sql = format!("INSERT INTO {fts_table}({fts_table}) VALUES('rebuild')");
+            let _ = self.db.execute_unprepared(&rebuild_sql).await;
+            return Ok(());
+        }
 
         let create_sql = format!(
-            "CREATE VIRTUAL TABLE IF NOT EXISTS {fts_table} USING fts5(id, document_id, content, content='vec_{safe_name}_meta', content_rowid=rowid)"
+            "CREATE VIRTUAL TABLE IF NOT EXISTS {fts_table} USING fts5(
+                id UNINDEXED,
+                document_id UNINDEXED,
+                chunk_index UNINDEXED,
+                content,
+                content={meta_table},
+                content_rowid=rowid,
+                tokenize='trigram'
+            )"
         );
 
-        self.db
-            .execute_unprepared(&create_sql)
+        self.db.execute_unprepared(&create_sql).await.map_err(|e| {
+            AxAgentError::Provider(format!("FTS5 trigram index creation failed: {}", e))
+        })?;
+
+        let populated: Option<i64> = self
+            .db
+            .query_one_raw(Statement::from_string(
+                DbBackend::Sqlite,
+                format!("SELECT COUNT(*) as cnt FROM {fts_table}"),
+            ))
             .await
-            .map_err(|e| AxAgentError::Provider(format!("FTS5 index creation failed: {}", e)))?;
+            .ok()
+            .flatten()
+            .and_then(|r| r.try_get::<i64>("", "cnt").ok());
+
+        if populated.unwrap_or(0) == 0 {
+            let populate_sql = format!(
+                "INSERT INTO {fts_table}(rowid, id, document_id, chunk_index, content) \
+                 SELECT rowid, id, document_id, chunk_index, content FROM {meta_table}"
+            );
+            if let Err(e) = self.db.execute_unprepared(&populate_sql).await {
+                tracing::debug!("FTS5 initial population failed (non-critical): {}", e);
+            }
+        }
 
         Ok(())
     }
@@ -75,18 +137,23 @@ impl HybridSearcher {
     ) -> Result<Vec<HybridSearchResult>> {
         let vector_results = self
             .vector_store
-            .search(collection_id, query_embedding.clone(), options.top_k * 2)
+            .search(collection_id, query_embedding.clone(), options.top_k * 3)
             .await?;
         let bm25_results = self
-            .bm25_search(collection_id, query, options.top_k * 2)
+            .bm25_search(collection_id, query, options.top_k * 3)
             .await?;
 
-        let combined = self.merge_results(
-            vector_results,
-            bm25_results,
-            options.vector_weight,
-            options.bm25_weight,
-        );
+        let combined = match options.fusion {
+            FusionAlgorithm::Weighted => self.merge_results_weighted(
+                vector_results,
+                bm25_results,
+                options.vector_weight,
+                options.bm25_weight,
+            ),
+            FusionAlgorithm::Rrf => {
+                self.merge_results_rrf(vector_results, bm25_results, options.rrf_k)
+            },
+        };
 
         let mut filtered: Vec<HybridSearchResult> = combined
             .into_iter()
@@ -120,13 +187,14 @@ impl HybridSearcher {
             return Ok(vec![]);
         }
 
-        let safe_name = collection_id.replace('-', "_");
-        let table_name = format!("vec_{}_meta", safe_name);
-        let fts_table = format!("{}_fts", table_name);
+        let safe_name = sanitize_name_for_table(collection_id);
+        let meta_table = format!("vec_{safe_name}_meta");
+        let fts_table = format!("{meta_table}_fts");
 
         let fts_sql = format!(
-            "SELECT f.id, f.document_id, f.chunk_index, f.content, bm25({fts_table}) as bm25_score \
+            "SELECT m.id, m.document_id, m.chunk_index, m.content, bm25({fts_table}) as bm25_score \
              FROM {fts_table} f \
+             JOIN {meta_table} m ON m.rowid = f.rowid \
              WHERE {fts_table} MATCH ?1 \
              ORDER BY bm25_score \
              LIMIT ?2"
@@ -167,11 +235,11 @@ impl HybridSearcher {
                     return Ok(results);
                 }
 
-                self.bm25_search_fallback(&table_name, &sanitized, top_k)
+                self.bm25_search_fallback(&meta_table, &sanitized, top_k)
                     .await
             },
             _ => {
-                self.bm25_search_fallback(&table_name, &sanitized, top_k)
+                self.bm25_search_fallback(&meta_table, &sanitized, top_k)
                     .await
             },
         }
@@ -179,11 +247,11 @@ impl HybridSearcher {
 
     async fn bm25_search_fallback(
         &self,
-        table_name: &str,
+        meta_table: &str,
         query: &str,
         top_k: usize,
     ) -> Result<Vec<Bm25Result>> {
-        let words: Vec<&str> = query.split_whitespace().take(5).collect();
+        let words: Vec<&str> = query.split_whitespace().take(8).collect();
         if words.is_empty() {
             return Ok(vec![]);
         }
@@ -196,8 +264,8 @@ impl HybridSearcher {
 
         let sql = format!(
             "SELECT id, document_id, chunk_index, content, \
-             (CASE WHEN content LIKE '%{}%' THEN 0.5 ELSE 0.1 END) as bm25_score \
-             FROM {table_name} \
+             (CASE WHEN content LIKE '%{}%' THEN 1.0 ELSE 0.3 END) as bm25_score \
+             FROM {meta_table} \
              WHERE {where_clause} \
              LIMIT ?1",
             words.first().unwrap_or(&"").replace('\'', "''")
@@ -235,7 +303,56 @@ impl HybridSearcher {
         Ok(results)
     }
 
-    fn merge_results(
+    fn merge_results_rrf(
+        &self,
+        vector_results: Vec<VectorSearchResult>,
+        bm25_results: Vec<Bm25Result>,
+        k: f32,
+    ) -> Vec<HybridSearchResult> {
+        let mut score_map: std::collections::HashMap<String, HybridSearchResult> =
+            std::collections::HashMap::new();
+
+        for (rank, vr) in vector_results.iter().enumerate() {
+            let rrf_score = 1.0 / (k + (rank as f32) + 1.0);
+            score_map.insert(
+                vr.id.clone(),
+                HybridSearchResult {
+                    id: vr.id.clone(),
+                    document_id: vr.document_id.clone(),
+                    chunk_index: vr.chunk_index,
+                    content: vr.content.clone(),
+                    vector_score: Some(1.0 - vr.score),
+                    bm25_score: None,
+                    combined_score: rrf_score,
+                },
+            );
+        }
+
+        for (rank, br) in bm25_results.iter().enumerate() {
+            let rrf_score = 1.0 / (k + (rank as f32) + 1.0);
+            if let Some(existing) = score_map.get_mut(&br.id) {
+                existing.bm25_score = Some(br.bm25_score);
+                existing.combined_score += rrf_score;
+            } else {
+                score_map.insert(
+                    br.id.clone(),
+                    HybridSearchResult {
+                        id: br.id.clone(),
+                        document_id: br.document_id.clone(),
+                        chunk_index: br.chunk_index,
+                        content: br.content.clone(),
+                        vector_score: None,
+                        bm25_score: Some(br.bm25_score),
+                        combined_score: rrf_score,
+                    },
+                );
+            }
+        }
+
+        score_map.into_values().collect()
+    }
+
+    fn merge_results_weighted(
         &self,
         vector_results: Vec<VectorSearchResult>,
         bm25_results: Vec<Bm25Result>,
@@ -245,85 +362,69 @@ impl HybridSearcher {
         let mut score_map: std::collections::HashMap<String, HybridSearchResult> =
             std::collections::HashMap::new();
 
-        let max_vector_score = vector_results
+        let max_vector_distance = vector_results
             .iter()
             .map(|r| r.score)
-            .fold(1f32, f32::min)
-            .max(1f32);
+            .fold(0f32, f32::max)
+            .max(f32::EPSILON);
         let max_bm25_score = bm25_results
             .iter()
             .map(|r| r.bm25_score)
-            .fold(1f32, f32::max)
-            .max(1f32);
+            .fold(0f32, f32::max)
+            .max(f32::EPSILON);
 
         for vr in vector_results {
-            let normalized_vector_score = 1.0 - (vr.score / max_vector_score);
-            let content = vr.content.clone();
-            let id = vr.id.clone();
+            let normalized_vector = 1.0 - (vr.score / max_vector_distance).clamp(0.0, 1.0);
 
-            let combined = if bm25_weight > 0.0 {
-                let bm25_score = bm25_results
-                    .iter()
-                    .find(|b| b.id == vr.id)
-                    .map(|b| b.bm25_score)
-                    .unwrap_or(0.0);
-                let normalized_bm25 = if max_bm25_score > 0.0 {
-                    bm25_score / max_bm25_score
-                } else {
-                    0.0
-                };
-                normalized_vector_score * vector_weight + normalized_bm25 * bm25_weight
-            } else {
-                normalized_vector_score
-            };
+            let (bm25_part, bm25_raw) = bm25_results
+                .iter()
+                .find(|b| b.id == vr.id)
+                .map(|b| {
+                    let norm = b.bm25_score / max_bm25_score;
+                    (Some(norm), Some(b.bm25_score))
+                })
+                .unwrap_or((None, None));
+
+            let combined =
+                normalized_vector * vector_weight + bm25_part.unwrap_or(0.0) * bm25_weight;
 
             score_map.insert(
-                id.clone(),
+                vr.id.clone(),
                 HybridSearchResult {
-                    id,
+                    id: vr.id,
                     document_id: vr.document_id,
                     chunk_index: vr.chunk_index,
-                    content,
-                    vector_score: Some(normalized_vector_score),
-                    bm25_score: None,
+                    content: vr.content,
+                    vector_score: Some(normalized_vector),
+                    bm25_score: bm25_raw,
                     combined_score: combined,
                 },
             );
         }
 
         for br in bm25_results {
-            let normalized_bm25 = if max_bm25_score > 0.0 {
-                br.bm25_score / max_bm25_score
-            } else {
-                0.0
-            };
+            if score_map.contains_key(&br.id) {
+                continue;
+            }
+            let normalized_bm25 = br.bm25_score / max_bm25_score;
             let combined = if vector_weight > 0.0 {
-                let vector_score = score_map
-                    .get(&br.id)
-                    .and_then(|r| r.vector_score)
-                    .unwrap_or(0.0);
-                vector_score * vector_weight + normalized_bm25 * bm25_weight
+                normalized_bm25 * bm25_weight
             } else {
                 normalized_bm25
             };
 
-            if let Some(existing) = score_map.get_mut(&br.id) {
-                existing.bm25_score = Some(normalized_bm25);
-                existing.combined_score = combined;
-            } else {
-                score_map.insert(
-                    br.id.clone(),
-                    HybridSearchResult {
-                        id: br.id,
-                        document_id: br.document_id,
-                        chunk_index: br.chunk_index,
-                        content: br.content,
-                        vector_score: None,
-                        bm25_score: Some(normalized_bm25),
-                        combined_score: combined,
-                    },
-                );
-            }
+            score_map.insert(
+                br.id.clone(),
+                HybridSearchResult {
+                    id: br.id,
+                    document_id: br.document_id,
+                    chunk_index: br.chunk_index,
+                    content: br.content,
+                    vector_score: None,
+                    bm25_score: Some(br.bm25_score),
+                    combined_score: combined,
+                },
+            );
         }
 
         score_map.into_values().collect()
@@ -339,36 +440,39 @@ struct Bm25Result {
     bm25_score: f32,
 }
 
+fn sanitize_name_for_table(collection_id: &str) -> String {
+    collection_id
+        .chars()
+        .map(|c| if c == '-' { '_' } else { c })
+        .collect()
+}
+
 fn sanitize_fts5_query(query: &str) -> String {
     let trimmed = query.trim();
     if trimmed.is_empty() {
         return String::new();
     }
 
-    let words: Vec<String> = trimmed
-        .split_whitespace()
-        .filter(|w| w.len() > 1)
-        .map(|w| {
-            let mut clean = String::new();
-            for c in w.chars() {
-                match c {
-                    'a'..='z' | 'A'..='Z' | '0'..='9' | '-' | '_' => clean.push(c),
-                    _ => {
-                        if c.is_alphabetic() || c.is_alphanumeric() {
-                            clean.push(c);
-                        }
-                    },
-                }
-            }
-            clean
-        })
-        .filter(|w| !w.is_empty())
-        .take(10)
-        .collect();
+    let mut tokens: Vec<String> = Vec::new();
+    let mut current = String::new();
 
-    if words.is_empty() {
+    for c in trimmed.chars() {
+        if c.is_alphanumeric() || c == '-' || c == '_' || (c > '\u{4e00}' && c < '\u{9fff}') {
+            current.push(c);
+        } else if !current.is_empty() {
+            if current.len() >= 3 {
+                tokens.push(current.replace('\'', "''"));
+            }
+            current = String::new();
+        }
+    }
+    if !current.is_empty() && current.len() >= 3 {
+        tokens.push(current.replace('\'', "''"));
+    }
+
+    if tokens.is_empty() {
         return String::new();
     }
 
-    words.join(" OR ")
+    tokens.join(" OR ")
 }

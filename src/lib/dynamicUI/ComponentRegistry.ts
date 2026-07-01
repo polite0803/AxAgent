@@ -2,41 +2,51 @@
 
 import type { ComponentRegistryEntry, DynamicComponentType } from "@/types";
 
-/**
- * 全局组件注册表。
- * 使用 Map<string, ComponentRegistryEntry> 存储注册的组件，
- * 支持按类型、分类查询，及动态注册/注销。
- */
-class ComponentRegistry {
-  private registry = new Map<string, ComponentRegistryEntry>();
+interface NamespacedComponentEntry extends ComponentRegistryEntry {
+  namespace?: string;
+}
 
-  /**
-   * 注册单个组件。
-   * 如果同类型已存在，将覆盖旧组件。
-   */
-  register(entry: ComponentRegistryEntry): void {
-    this.registry.set(entry.type, entry);
+class ComponentRegistry {
+  private registry = new Map<string, NamespacedComponentEntry>();
+
+  register(entry: ComponentRegistryEntry, namespace?: string): void {
+    const fullKey = namespace ? `${namespace}:${entry.type}` : entry.type;
+    this.registry.set(fullKey, { ...entry, namespace });
   }
 
-  /**
-   * 批量注册组件。
-   */
-  registerBatch(entries: ComponentRegistryEntry[]): void {
+  registerBatch(entries: ComponentRegistryEntry[], namespace?: string): void {
     for (const entry of entries) {
-      this.registry.set(entry.type, entry);
+      this.register(entry, namespace);
     }
   }
 
-  /**
-   * 根据组件类型获取注册项。
-   */
   get(type: string): ComponentRegistryEntry | undefined {
-    return this.registry.get(type);
+    if (this.registry.has(type)) {
+      return this.registry.get(type);
+    }
+    for (const [, entry] of this.registry) {
+      const entryType = entry.namespace ? `${entry.namespace}:${entry.type}` : entry.type;
+      if (entryType === type) {
+        return entry;
+      }
+      if (!entry.namespace && entry.type === type) {
+        return entry;
+      }
+    }
+    return undefined;
   }
 
-  /**
-   * 按分类获取所有注册项。
-   */
+  resolve(type: string, namespace?: string): ComponentRegistryEntry | undefined {
+    if (namespace) {
+      const namespacedKey = `${namespace}:${type}`;
+      if (this.registry.has(namespacedKey)) {
+        return this.registry.get(namespacedKey);
+      }
+    }
+    const globalKey = type;
+    return this.registry.get(globalKey);
+  }
+
   getByCategory(category: string): ComponentRegistryEntry[] {
     const result: ComponentRegistryEntry[] = [];
     for (const entry of this.registry.values()) {
@@ -47,34 +57,30 @@ class ComponentRegistry {
     return result;
   }
 
-  /**
-   * 检查指定类型是否已注册。
-   */
   has(type: string): boolean {
-    return this.registry.has(type);
+    return this.get(type) !== undefined;
   }
 
-  /**
-   * 注销指定类型的组件（用于技能卸载时清理自定义组件）。
-   */
-  unregister(type: string): void {
-    this.registry.delete(type);
+  unregister(type: string, namespace?: string): void {
+    const fullKey = namespace ? `${namespace}:${type}` : type;
+    this.registry.delete(fullKey);
   }
 
-  /**
-   * 获取所有已注册的组件类型列表。
-   */
+  unregisterNamespace(namespace: string): void {
+    for (const [key] of this.registry) {
+      if (key.startsWith(`${namespace}:`)) {
+        this.registry.delete(key);
+      }
+    }
+  }
+
   getAllTypes(): DynamicComponentType[] {
     return [...this.registry.keys()] as DynamicComponentType[];
   }
 
-  /**
-   * 清空所有注册（仅用于测试/重置）。
-   */
   clear(): void {
     this.registry.clear();
   }
 }
 
-/** 全局单例 */
 export const componentRegistry = new ComponentRegistry();

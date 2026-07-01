@@ -15,57 +15,24 @@ use tokio::sync::Mutex;
 use tokio_util::sync::CancellationToken;
 
 use axagent_core::workflow_types::{
-    BackoffType, CompensationStrategy, DegradeStrategy, EdgeType, JsonSchema, Variable,
-    WorkflowEdge, WorkflowNode,
+    BackoffType, CompensationStrategy, DegradeStrategy, EdgeType, ErrorConfig, JsonSchema,
+    OnFailureAction, Variable, WorkflowEdge, WorkflowNode,
 };
 
 use axagent_harness::RhaiEngineAdapter;
 use rhai::{AST, EvalAltResult, Position};
 
-/// Convert Rhai dynamic map to JSON value
-fn rhai_map_to_json(map: rhai::Map) -> serde_json::Value {
-    let mut obj = serde_json::Map::new();
-    for (k, v) in map {
-        let val: serde_json::Value = if v.is_int() {
-            v.as_int()
-                .map(|n| serde_json::Value::Number(n.into()))
-                .unwrap_or(serde_json::Value::Null)
-        } else if v.is_string() {
-            v.try_cast::<String>()
-                .map(serde_json::Value::String)
-                .unwrap_or(serde_json::Value::Null)
-        } else if v.is_float() {
-            match v.as_float() {
-                Ok(f) => serde_json::Number::from_f64(f)
-                    .map(serde_json::Value::Number)
-                    .unwrap_or(serde_json::Value::Null),
-                Err(_) => serde_json::Value::Null,
-            }
-        } else if v.is_bool() {
-            v.as_bool()
-                .map(serde_json::Value::Bool)
-                .unwrap_or(serde_json::Value::Null)
-        } else {
-            serde_json::Value::Null
-        };
-        obj.insert(k.to_string(), val);
-    }
-    serde_json::Value::Object(obj)
-}
+pub mod dag_store;
+pub mod node_state;
+pub mod output_builder;
+pub mod rhai_runtime;
+use output_builder::{
+    build_workflow_output, collect_workflow_tool_names, extract_end_output, validate_input,
+};
+use rhai_runtime::{LocalRhaiToolFn, RhaiScriptCache, rhai_map_to_json};
 
-/// Rhai 脚本缓存类型：workflow_id -> (tool_name -> compiled AST)
-type RhaiScriptCache = HashMap<String, Arc<AST>>;
-
-/// Rhai 脚本工具回调类型
-type LocalRhaiToolFn = Arc<
-    dyn Fn(
-            String,
-            serde_json::Value,
-        ) -> std::pin::Pin<
-            Box<dyn futures::Future<Output = Result<serde_json::Value, String>> + Send>,
-        > + Send
-        + Sync,
->;
+use dag_store::{mark_subtree_skipped, skip_disabled_branch_nodes};
+use node_state::{NodeCircuitBreaker, NodeResult, compute_backoff};
 
 use crate::workflow_engine::{
     NodeRuntimeState, NodeStatus, Workflow, WorkflowError, WorkflowStatus, current_epoch_ms,
@@ -73,6 +40,7 @@ use crate::workflow_engine::{
 };
 
 use super::dispatcher::NodeDispatcher;
+use super::error_handling::ErrorContext;
 use super::execution_state::{ExecutionState, ExecutionStatus, NodeExecutionRecord};
 use super::executors::{
     AgentExecutor, ConditionExecutor, LlmClassifierExecutor, LlmExecutor, PlanCallbacks,
@@ -96,6 +64,8 @@ pub type ToolResolver = Arc<
 #[derive(Clone)]
 pub struct RunOptions {
     pub max_concurrent: usize,
+    /// 按节点类型细粒度并发限制：工具/文件操作为 10，LLM 调用为 3；None 则统一用 max_concurrent
+    pub max_concurrent_by_type: Option<HashMap<String, usize>>,
     pub step_timeout: Duration,
     /// 调用方指定的模型 ID（来自会话/用户设置），执行器优先使用
     pub model_id: Option<String>,
@@ -141,6 +111,7 @@ impl std::fmt::Debug for RunOptions {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("RunOptions")
             .field("max_concurrent", &self.max_concurrent)
+            .field("max_concurrent_by_type", &self.max_concurrent_by_type)
             .field("step_timeout", &self.step_timeout)
             .field("model_id", &self.model_id)
             .field("provider_id", &self.provider_id)
@@ -156,8 +127,15 @@ impl std::fmt::Debug for RunOptions {
 
 impl Default for RunOptions {
     fn default() -> Self {
+        let mut by_type = std::collections::HashMap::new();
+        by_type.insert("tool".to_string(), 10);
+        by_type.insert("file".to_string(), 10);
+        by_type.insert("llm".to_string(), 3);
+        by_type.insert("agent".to_string(), 3);
+
         Self {
             max_concurrent: 3,
+            max_concurrent_by_type: Some(by_type),
             step_timeout: Duration::from_secs(300),
             model_id: None,
             provider_id: None,
@@ -204,74 +182,6 @@ impl RunOptions {
         self.variables = Some(variables);
         self
     }
-}
-
-// ── 内部追踪类型 ──
-
-/// 断路器状态（按节点追踪）
-#[derive(Debug, Clone)]
-struct NodeCircuitBreaker {
-    failure_count: u32,
-    failure_threshold: u32,
-    reset_timeout_ms: u64,
-    opened_at: Option<u64>,
-}
-
-impl NodeCircuitBreaker {
-    fn new() -> Self {
-        Self {
-            failure_count: 0,
-            failure_threshold: 3,
-            reset_timeout_ms: 60_000,
-            opened_at: None,
-        }
-    }
-
-    fn is_open(&self, now_ms: u64) -> bool {
-        if let Some(opened_at) = self.opened_at {
-            now_ms < opened_at + self.reset_timeout_ms
-        } else {
-            false
-        }
-    }
-
-    fn record_success(&mut self) {
-        self.failure_count = 0;
-        self.opened_at = None;
-    }
-
-    fn record_failure(&mut self, now_ms: u64) {
-        self.failure_count += 1;
-        if self.failure_count >= self.failure_threshold {
-            self.opened_at = Some(now_ms);
-        }
-    }
-}
-
-fn compute_backoff(
-    backoff_type: BackoffType,
-    base_delay_ms: u64,
-    max_delay_ms: u64,
-    attempt: u32,
-) -> u64 {
-    let delay = match backoff_type {
-        BackoffType::Fixed => base_delay_ms,
-        BackoffType::Linear => base_delay_ms.saturating_mul(attempt as u64),
-        BackoffType::Exponential => {
-            let exp = 1u64.checked_shl(attempt).unwrap_or(u64::MAX);
-            base_delay_ms.saturating_mul(exp)
-        },
-    };
-    delay.min(max_delay_ms)
-}
-
-struct NodeResult {
-    node_id: String,
-    node: WorkflowNode,
-    input_snapshot: serde_json::Value,
-    started_at: i64,
-    elapsed_ms: u64,
-    dispatch_result: Result<Result<NodeOutput, NodeError>, tokio::time::error::Elapsed>,
 }
 
 // ── WorkEngine ──
@@ -329,6 +239,8 @@ pub struct WorkEngine {
     /// master_key / provider_registry 由 AgentExecutor / LlmExecutor / ConditionExecutor /
     /// LlmClassifierExecutor 各自持有，WorkEngine 不再冗余存储。
     agent_executor: Arc<AgentExecutor>,
+    /// 触发器管理器（Schedule / Webhook / Event）
+    pub trigger_manager: Arc<crate::trigger::TriggerManager>,
     /// 审计记录器（可选，None = 不记录审计日志）
     pub audit_recorder: Arc<std::sync::Mutex<Option<Arc<dyn axagent_harness::AuditRecorder>>>>,
     /// 工具注册表（可选，设置后 tool_executor 优先通过 ToolRegistry.execute_tool() 执行工具）
@@ -505,7 +417,38 @@ impl WorkEngine {
         node: &WorkflowNode,
         context: &ExecutionState,
     ) -> Result<NodeOutput, NodeError> {
-        self.dispatcher.read().await.dispatch(node, context).await
+        let node_id = node.base_id();
+        let node_type = node_type_name(node);
+        let start = std::time::Instant::now();
+        tracing::info!(
+            node_id = %node_id,
+            node_type,
+            "execute_node → dispatch start"
+        );
+        match self.dispatcher.read().await.dispatch(node, context).await {
+            Ok(output) => {
+                let duration_ms = start.elapsed().as_millis() as u64;
+                tracing::info!(
+                    node_id = %node_id,
+                    node_type,
+                    duration_ms,
+                    status = "ok",
+                    "execute_node → dispatch complete"
+                );
+                Ok(output)
+            },
+            Err(e) => {
+                let duration_ms = start.elapsed().as_millis() as u64;
+                tracing::warn!(
+                    node_id = %node_id,
+                    node_type,
+                    duration_ms,
+                    error = %e,
+                    "execute_node → dispatch failed"
+                );
+                Err(e)
+            },
+        }
     }
 
     pub async fn registered_executor_types(&self) -> Vec<&'static str> {
@@ -658,11 +601,33 @@ impl WorkEngine {
             breakpoints: Arc::new(Mutex::new(HashSet::new())),
             node_breakers: Arc::new(Mutex::new(HashMap::new())),
             agent_executor: agent_exec,
+            trigger_manager: Arc::new(crate::trigger::TriggerManager::new()),
             audit_recorder: Arc::new(std::sync::Mutex::new(None)),
             tool_registry: Arc::new(std::sync::Mutex::new(None)),
             loop_partial_txs: Arc::new(Mutex::new(HashMap::new())),
             loop_interrupt_signals: Arc::new(Mutex::new(HashMap::new())),
         }
+    }
+
+    /// 初始化触发器管理器，注入引擎引用。
+    ///
+    /// 由于 `TriggerManager` 需要持有 `Arc<WorkEngine>` 来在触发器触发时
+    /// 调用 `run_workflow`，而 `WorkEngine::new()` 返回的是 `Self` 而非
+    /// `Arc<Self>`，因此必须在外部将 `WorkEngine` 包装为 `Arc` 后调用本方法。
+    ///
+    /// 外部调用方式：
+    /// ```ignore
+    /// let engine = Arc::new(WorkEngine::new(db, master_key, registry));
+    /// rt.block_on(engine.init_trigger_manager());
+    /// ```
+    pub async fn init_trigger_manager(self: &Arc<Self>) {
+        self.trigger_manager.set_engine(self.clone()).await;
+    }
+
+    /// 注册自定义节点执行器（供外部 crate 扩展）。
+    /// 通过 dispatcher 的 register_external 门面方法转发。
+    pub async fn register_executor(&self, executor: Arc<dyn NodeExecutorTrait>) {
+        self.dispatcher.read().await.register_external(executor);
     }
 
     pub async fn clear_node_breakers(&self) {
@@ -782,84 +747,15 @@ impl WorkEngine {
         let mut workflows = self.workflows.write().await;
         workflows.insert(workflow_id.clone(), workflow.clone());
 
+        tracing::info!(
+            workflow_id = %workflow_id,
+            name = %name,
+            node_count = nodes.len(),
+            edge_count = edges.len(),
+            "DAG created"
+        );
+
         Ok(workflow)
-    }
-
-    /// 根据 edges 构建邻接表，返回就绪节点（入度为 0 的节点）。
-    fn compute_ready_nodes(workflow: &Workflow) -> Vec<String> {
-        let done_or_skipped: HashSet<&str> = workflow
-            .node_states
-            .iter()
-            .filter(|(_, s)| matches!(s.status, NodeStatus::Completed | NodeStatus::Skipped))
-            .map(|(id, _)| id.as_str())
-            .collect();
-
-        // 计算每个未完成节点的"未完成依赖数"
-        let mut remaining_deps: HashMap<&str, usize> = HashMap::new();
-        for node in &workflow.nodes {
-            remaining_deps.entry(node.base_id()).or_insert(0);
-        }
-        for edge in &workflow.edges {
-            // source 未完成 → target 有未满足的依赖
-            if !done_or_skipped.contains(edge.source.as_str()) {
-                *remaining_deps.entry(edge.target.as_str()).or_insert(0) += 1;
-                continue;
-            }
-
-            // ConditionTrue/ConditionFalse 边：根据 condition 节点的输出决定是否激活
-            if edge.edge_type == EdgeType::ConditionTrue
-                || edge.edge_type == EdgeType::ConditionFalse
-            {
-                let cond_output = workflow.results.get(edge.source.as_str());
-                let result = cond_output
-                    .and_then(|o| o.get("result"))
-                    .and_then(|r| r.as_bool())
-                    .unwrap_or(false);
-                // source_handle 回退到 edge_type：ConditionTrue → "true", ConditionFalse → "false"
-                let branch = edge
-                    .source_handle
-                    .as_deref()
-                    .unwrap_or(match edge.edge_type {
-                        EdgeType::ConditionTrue => "true",
-                        EdgeType::ConditionFalse => "false",
-                        _ => "true",
-                    });
-                let should_follow = (branch == "true" && result) || (branch == "false" && !result);
-                if !should_follow {
-                    continue;
-                }
-            }
-
-            // Switch 边：根据 switch 节点的 matched_label 决定是否激活
-            let is_switch_source = workflow
-                .nodes
-                .iter()
-                .any(|n| n.base_id() == edge.source && matches!(n, WorkflowNode::Switch(_)));
-            if is_switch_source {
-                let switch_output = workflow.results.get(edge.source.as_str());
-                let selected_case = switch_output
-                    .and_then(|o| o.get("matched_label"))
-                    .and_then(|v| v.as_str());
-                if let Some(ref handle) = edge.source_handle
-                    && selected_case.is_none_or(|case| case != handle.as_str())
-                {
-                    continue;
-                }
-            }
-        }
-
-        workflow
-            .nodes
-            .iter()
-            .filter(|n| {
-                let state = workflow.node_states.get(n.base_id());
-                let is_pending = state
-                    .is_none_or(|s| matches!(s.status, NodeStatus::Pending | NodeStatus::Ready));
-                let deps_met = remaining_deps.get(n.base_id()).copied().unwrap_or(0) == 0;
-                is_pending && deps_met && n.base_enabled()
-            })
-            .map(|n| n.base_id().to_string())
-            .collect()
     }
 
     /// 获取依赖节点的输出结果（根据 edges 确定依赖关系）
@@ -1094,6 +990,14 @@ impl WorkEngine {
         workflow_id: &str,
         options: RunOptions,
     ) -> Result<Workflow, WorkflowError> {
+        let span = tracing::info_span!(
+            "run_workflow",
+            workflow_id = %workflow_id,
+            execution_id = %options.execution_id.as_deref().unwrap_or("auto"),
+            max_concurrent = options.max_concurrent,
+        );
+        let _guard = span.enter();
+
         let cancel_token = options
             .parent_cancel_token
             .as_ref()
@@ -1423,7 +1327,8 @@ impl WorkEngine {
             }
         }
 
-        // 懒编译兜底：若工作流从 DB 加载（非 create_workflow 新建），编译模板
+        // 懒编译兜底：若工作流从 DB 加载（非 create_workflow 新建），编译模板。
+        // Phase 1: deduplicate by template hash — same template across nodes compiles once.
         {
             let compiled = self.compiled_prompts.read().await;
             if !compiled.contains_key(workflow_id) {
@@ -1431,12 +1336,23 @@ impl WorkEngine {
                 let workflows = self.workflows.read().await;
                 if let Some(wf) = workflows.get(workflow_id) {
                     let mut compiled_map: HashMap<String, CompiledPrompt> = HashMap::new();
+                    // Dedup index: template_hash → node_id (first node with this template)
+                    let mut template_dedup: HashMap<u64, String> = HashMap::new();
                     for node in &wf.nodes {
                         if let WorkflowNode::Agent(an) = node {
-                            compiled_map.insert(
-                                an.base.id.clone(),
-                                compile_prompt(&an.config.system_prompt),
-                            );
+                            let raw = &an.config.system_prompt;
+                            let mut hasher = std::collections::hash_map::DefaultHasher::new();
+                            std::hash::Hash::hash(raw, &mut hasher);
+                            let tpl_hash = std::hash::Hasher::finish(&hasher);
+                            if let Some(existing_node) = template_dedup.get(&tpl_hash) {
+                                // Reuse compiled prompt from the first node with same template
+                                if let Some(cp) = compiled_map.get(existing_node) {
+                                    compiled_map.insert(an.base.id.clone(), cp.clone());
+                                    continue;
+                                }
+                            }
+                            template_dedup.insert(tpl_hash, an.base.id.clone());
+                            compiled_map.insert(an.base.id.clone(), compile_prompt(raw));
                         }
                     }
                     self.compiled_prompts
@@ -1530,10 +1446,50 @@ impl WorkEngine {
                 break;
             };
 
+            // Track active node IDs for inter-batch early scheduling and per-type limits
+            let mut active_nodes: std::collections::HashSet<String> =
+                std::collections::HashSet::new();
+
+            // Determine per-node-type concurrency limits
+            let type_limits = options.max_concurrent_by_type.as_ref();
+            let global_limit = options.max_concurrent;
+
             let batch: Vec<String> = ready_nodes
                 .into_iter()
+                .filter(|nid| {
+                    // Apply per-type limit if configured
+                    if let Some(limits) = type_limits {
+                        let node = {
+                            let workflows = self.workflows.read().await;
+                            workflows.get(workflow_id).and_then(|wf| {
+                                wf.nodes.iter().find(|n| n.base_id() == nid).cloned()
+                            })
+                        };
+                        if let Some(node) = node {
+                            let nt = node_type_name(&node);
+                            let limit = limits.get(nt).copied().unwrap_or(global_limit);
+                            let active_of_type = active_nodes
+                                .iter()
+                                .filter(|an| {
+                                    let wf = self.workflows.try_read();
+                                    wf.ok()
+                                        .and_then(|wfs| wfs.get(workflow_id))
+                                        .and_then(|wf| wf.nodes.iter().find(|n| n.base_id() == *an))
+                                        .map(|n| node_type_name(n) == nt)
+                                        .unwrap_or(false)
+                                })
+                                .count();
+                            if active_of_type >= limit {
+                                return false;
+                            }
+                        }
+                    }
+                    true
+                })
                 .take(options.max_concurrent)
                 .collect();
+
+            active_nodes.extend(batch.iter().cloned());
 
             let mut join_set: tokio::task::JoinSet<NodeResult> = tokio::task::JoinSet::new();
 
@@ -1553,6 +1509,11 @@ impl WorkEngine {
                     .or_insert_with(NodeCircuitBreaker::new)
                     .is_open(current_epoch_ms());
                 if cb_open {
+                    tracing::warn!(
+                        workflow_id = %workflow_id,
+                        node_id = %node_id,
+                        "Circuit breaker open — skipping node"
+                    );
                     self.update_node_status(
                         workflow_id,
                         node_id,
@@ -1793,6 +1754,7 @@ impl WorkEngine {
                         );
 
                     exec_ctx.callbacks = Some(super::execution_state::ExecutionContextCallbacks {
+                        trigger_manager: Some(self.trigger_manager.clone()),
                         tool_handlers,
                         tool_fallback,
                         subworkflow: Some(sub_cb),
@@ -1817,6 +1779,13 @@ impl WorkEngine {
 
                 let dispatcher = self.dispatcher.clone();
                 let node_id_owned = node_id.clone();
+                let node_type = node_type_name(&node).to_string();
+                tracing::info!(
+                    workflow_id = %workflow_id,
+                    node_id = %node_id,
+                    node_type = %node_type,
+                    "Dispatching node"
+                );
                 join_set.spawn(async move {
                     let result = tokio::time::timeout(
                         node_timeout,
@@ -1844,6 +1813,14 @@ impl WorkEngine {
 
                 match nr.dispatch_result {
                     Ok(Ok(output)) => {
+                        tracing::info!(
+                            workflow_id = %workflow_id,
+                            node_id = %nr.node_id,
+                            status = "completed",
+                            duration_ms = nr.elapsed_ms,
+                            "Node completed"
+                        );
+
                         breakers
                             .entry(format!("{}:{}", workflow_id, nr.node_id))
                             .or_insert_with(NodeCircuitBreaker::new)
@@ -1936,6 +1913,15 @@ impl WorkEngine {
                         }
                     },
                     Ok(Err(err)) => {
+                        let err_msg = err.to_string();
+                        tracing::warn!(
+                            workflow_id = %workflow_id,
+                            node_id = %nr.node_id,
+                            error = %err_msg,
+                            elapsed_ms = nr.elapsed_ms,
+                            "Node failed"
+                        );
+
                         breakers
                             .entry(format!("{}:{}", workflow_id, nr.node_id))
                             .or_insert_with(NodeCircuitBreaker::new)
@@ -1954,6 +1940,14 @@ impl WorkEngine {
                         };
 
                         if retry_cfg.enabled && current_attempts < retry_cfg.max_retries {
+                            tracing::info!(
+                                workflow_id = %workflow_id,
+                                node_id = %nr.node_id,
+                                attempt = current_attempts + 1,
+                                max_retries = retry_cfg.max_retries,
+                                "Retrying node"
+                            );
+
                             let backoff_ms = compute_backoff(
                                 retry_cfg.backoff_type.clone(),
                                 retry_cfg.base_delay_ms,
@@ -2054,8 +2048,122 @@ impl WorkEngine {
                             })
                             .await;
                         }
+
+                        // ── 错误处理基础设施 ──
+                        // 构建 ErrorContext 并注入 ExecutionState，
+                        // 检查 continue_on_fail、Error 边、error_workflow。
+                        {
+                            let error_ctx = ErrorContext::new(
+                                nr.node_id.clone(),
+                                nr.node.base_title().to_string(),
+                                "NODE_ERROR".to_string(),
+                                err_msg.clone(),
+                                workflow_id.to_string(),
+                                execution_id.clone(),
+                                None,
+                            );
+
+                            let mut executions = self.executions.lock().await;
+                            if let Some(state) = executions.get_mut(&execution_id) {
+                                state.last_error = Some(error_ctx.clone());
+                                state.variables.insert(
+                                    ErrorContext::variable_name().to_string(),
+                                    error_ctx.to_variable(),
+                                );
+                            }
+
+                            // 读取 continue_on_fail 与 error_config
+                            let continue_on_fail = nr.node.base().continue_on_fail;
+                            let (ec_opt, ewf_id_opt) = {
+                                let workflows = self.workflows.read().await;
+                                let wf = workflows.get(workflow_id);
+                                (
+                                    wf.and_then(|w| w.error_config.clone()),
+                                    wf.and_then(|w| w.error_workflow_id.clone()),
+                                )
+                            };
+
+                            let should_run_error_branch = ec_opt
+                                .as_ref()
+                                .map(|ec| matches!(ec.on_failure, OnFailureAction::RunErrorBranch))
+                                .unwrap_or(false);
+
+                            // 激活 Error 边目标节点
+                            if should_run_error_branch {
+                                let mut workflows = self.workflows.write().await;
+                                if let Some(wf) = workflows.get_mut(workflow_id) {
+                                    for edge in &wf.edges {
+                                        if edge.source == nr.node_id
+                                            && edge.edge_type == EdgeType::Error
+                                        {
+                                            if let Some(state) =
+                                                wf.node_states.get_mut(&edge.target)
+                                            {
+                                                if matches!(state.status, NodeStatus::Pending) {
+                                                    state.status = NodeStatus::Ready;
+                                                    tracing::info!(
+                                                        workflow_id = %workflow_id,
+                                                        failed_node = %nr.node_id,
+                                                        error_target = %edge.target,
+                                                        "Activated Error edge target"
+                                                    );
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            // 如果 continue_on_fail 或 Error 边激活，确保工作流不终止
+                            let needs_continuation =
+                                continue_on_fail || should_run_error_branch || ewf_id_opt.is_some();
+
+                            if needs_continuation {
+                                let mut workflows = self.workflows.write().await;
+                                if let Some(wf) = workflows.get_mut(workflow_id) {
+                                    if wf.status == WorkflowStatus::Failed {
+                                        let has_ready = wf.node_states.values().any(|s| {
+                                            matches!(
+                                                s.status,
+                                                NodeStatus::Ready
+                                                    | NodeStatus::Pending
+                                                    | NodeStatus::Running
+                                            )
+                                        });
+                                        if has_ready {
+                                            wf.status = WorkflowStatus::Running;
+                                            wf.completed_at = None;
+                                            tracing::info!(
+                                                workflow_id = %workflow_id,
+                                                "continue_on_fail / ErrorBranch: reverting workflow status to Running"
+                                            );
+                                        } else {
+                                            wf.status = WorkflowStatus::PartiallyCompleted;
+                                            wf.completed_at = Some(Utc::now().timestamp_millis());
+                                        }
+                                    }
+                                }
+                            }
+
+                            // Error Workflow 触发（记录意图，后续阶段实现异步执行）
+                            if let Some(ref ewf_id) = ewf_id_opt {
+                                tracing::info!(
+                                    workflow_id = %workflow_id,
+                                    node_id = %nr.node_id,
+                                    error_workflow_id = %ewf_id,
+                                    "Error Workflow trigger intent recorded"
+                                );
+                            }
+                        }
                     },
                     Err(_) => {
+                        tracing::warn!(
+                            workflow_id = %workflow_id,
+                            node_id = %nr.node_id,
+                            elapsed_ms = nr.elapsed_ms,
+                            "Node timed out"
+                        );
+
                         breakers
                             .entry(format!("{}:{}", workflow_id, nr.node_id))
                             .or_insert_with(NodeCircuitBreaker::new)
@@ -2074,6 +2182,14 @@ impl WorkEngine {
                         };
 
                         if retry_cfg.enabled && current_attempts < retry_cfg.max_retries {
+                            tracing::info!(
+                                workflow_id = %workflow_id,
+                                node_id = %nr.node_id,
+                                attempt = current_attempts + 1,
+                                max_retries = retry_cfg.max_retries,
+                                "Retrying node after timeout"
+                            );
+
                             let backoff_ms = compute_backoff(
                                 retry_cfg.backoff_type.clone(),
                                 retry_cfg.base_delay_ms,
@@ -2218,6 +2334,110 @@ impl WorkEngine {
                     },
                 }
 
+                // Inter-batch early scheduling: after a node finishes, check if
+                // new nodes have become ready (their deps satisfied by this completion).
+                active_nodes.remove(&nr.node_id);
+                {
+                    let new_ready = self.get_ready_steps(workflow_id).await.unwrap_or_default();
+                    if !new_ready.is_empty() {
+                        tracing::info!(
+                            workflow_id,
+                            finished_node = %nr.node_id,
+                            new_ready_count = new_ready.len(),
+                            active_count = active_nodes.len(),
+                            "inter-batch early scheduling: new nodes became ready"
+                        );
+                    }
+                    for nid in new_ready {
+                        if active_nodes.len() >= options.max_concurrent {
+                            break;
+                        }
+                        if active_nodes.contains(&nid) {
+                            continue;
+                        }
+                        active_nodes.insert(nid.clone());
+
+                        let node = {
+                            let workflows = self.workflows.read().await;
+                            workflows.get(workflow_id).and_then(|wf| {
+                                wf.nodes.iter().find(|n| n.base_id() == &nid).cloned()
+                            })
+                        };
+                        let Some(node) = node else {
+                            continue;
+                        };
+
+                        let node_id_owned = nid.clone();
+                        let deps_results = {
+                            let workflows = self.workflows.read().await;
+                            workflows
+                                .get(workflow_id)
+                                .map(|wf| Self::get_node_dependency_results(wf, &nid))
+                                .unwrap_or_default()
+                        };
+                        let input_snapshot =
+                            serde_json::to_value(&deps_results).unwrap_or(serde_json::json!({}));
+                        let started_at = Utc::now().timestamp_millis();
+                        self.update_node_status(
+                            workflow_id,
+                            &nid,
+                            NodeStatus::Running,
+                            None,
+                            None,
+                            None,
+                        )
+                        .await
+                        .ok();
+
+                        let node_timeout = node
+                            .base_timeout()
+                            .map(Duration::from_secs)
+                            .unwrap_or(options.step_timeout);
+                        let mut exec_ctx = ExecutionState::new(
+                            format!("node_{}", uuid::Uuid::new_v4()),
+                            workflow_id.to_string(),
+                            serde_json::json!({}),
+                        );
+                        let mut merged_vars: HashMap<String, serde_json::Value> = deps_results;
+                        {
+                            let executions = self.executions.lock().await;
+                            if let Some(state) = executions.get(&execution_id) {
+                                for (k, v) in &state.variables {
+                                    merged_vars.entry(k.clone()).or_insert_with(|| v.clone());
+                                }
+                                if let Some(ref input) = state.input_params {
+                                    for (k, v) in input.as_object().iter().flat_map(|o| o.iter()) {
+                                        merged_vars.entry(k.clone()).or_insert_with(|| v.clone());
+                                    }
+                                }
+                            }
+                        }
+                        exec_ctx.variables = merged_vars;
+                        let dispatcher = Arc::clone(&self.dispatcher);
+                        let cancel_token = options
+                            .parent_cancel_token
+                            .clone()
+                            .unwrap_or_else(|| cancel_token.clone());
+
+                        join_set.spawn(async move {
+                            let result = tokio::time::timeout(
+                                node_timeout,
+                                dispatcher.read().await.dispatch(&node, &exec_ctx),
+                            )
+                            .await;
+                            let elapsed_ms = (Utc::now().timestamp_millis() - started_at) as u64;
+                            NodeResult {
+                                node_id: node_id_owned,
+                                node,
+                                input_snapshot,
+                                started_at,
+                                elapsed_ms,
+                                dispatch_result: result,
+                            }
+                        });
+                    }
+                }
+
                 if cancel_token.is_cancelled() {
                     join_set.abort_all();
                     workflow_cancelled = true;
@@ -2335,6 +2555,11 @@ impl WorkEngine {
                 )
             });
             if should_remove {
+                tracing::info!(
+                    workflow_id = %workflow_id,
+                    status = ?workflows.get(workflow_id).map(|w| &w.status),
+                    "DAG removed — workflow in terminal state"
+                );
                 workflows.remove(workflow_id);
                 {
                     let mut compiled = self.compiled_prompts.write().await;
@@ -2398,7 +2623,7 @@ impl WorkEngine {
             input_params.as_deref(),
         )
         .await
-        .map_err(|e| WorkEngineError::Db(e.to_string()))?;
+        .map_err(|e| WorkEngineError::Db(e))?;
         // 为本次执行预创建 partial_result 广播器（容量 256，足够 Loop
         // 万级迭代的扇出，前端订阅者可拿到完整历史）。
         let (partial_tx, _) = tokio::sync::broadcast::channel(256);
@@ -2494,7 +2719,7 @@ impl WorkEngine {
                 None,
             )
             .await
-            .map_err(|e| WorkEngineError::Db(e.to_string()))?;
+            .map_err(|e| WorkEngineError::Db(e))?;
             Ok(())
         } else {
             Err(WorkEngineError::NotFound(execution_id.to_string()))
@@ -2594,7 +2819,7 @@ impl WorkEngine {
     ) -> Result<Vec<axagent_core::entity::workflow_executions::Model>, WorkEngineError> {
         axagent_core::repo::workflow_execution::list_workflow_executions(&self.db, workflow_id)
             .await
-            .map_err(|e| WorkEngineError::Db(e.to_string()))
+            .map_err(|e| WorkEngineError::Db(e))
     }
 
     pub async fn record_node_execution(
@@ -2686,7 +2911,7 @@ impl WorkEngine {
                 Some(total_time_ms as i32),
             )
             .await
-            .map_err(|e| WorkEngineError::Db(e.to_string()))?;
+            .map_err(|e| WorkEngineError::Db(e))?;
             Ok(())
         } else {
             Err(WorkEngineError::NotFound(execution_id.to_string()))
@@ -2694,160 +2919,15 @@ impl WorkEngine {
     }
 }
 
-// ── 辅助函数（run_workflow 尾部使用）──
-
-/// 扫描所有 EndNode，提取其 output_var 指向的节点输出作为聚合结果。
-fn extract_end_output(
-    nodes: &[WorkflowNode],
-    results: &HashMap<String, serde_json::Value>,
-) -> Option<serde_json::Value> {
-    let end_nodes: Vec<_> = nodes
-        .iter()
-        .filter_map(|n| match n {
-            WorkflowNode::End(en) => Some(&en.config),
-            _ => None,
-        })
-        .collect();
-
-    if end_nodes.is_empty() {
-        return None;
-    }
-
-    // 收集所有 EndNode 的输出
-    let mut outputs = serde_json::Map::new();
-    for cfg in &end_nodes {
-        if let Some(ref var) = cfg.output_var
-            && let Some(val) = results.get(var)
-        {
-            outputs.insert(var.clone(), val.clone());
-        }
-    }
-
-    if outputs.is_empty() {
-        None
-    } else if outputs.len() == 1 {
-        outputs.into_values().next()
-    } else {
-        Some(serde_json::Value::Object(outputs))
-    }
-}
-
-/// 按 output_schema 过滤/重组输出。
-/// schema 中通过 `"$source": "node_id"` 字段标记值来源节点。
-fn build_workflow_output(
-    results: &HashMap<String, serde_json::Value>,
-    end_output: Option<serde_json::Value>,
-    output_schema: Option<&JsonSchema>,
-) -> Option<serde_json::Value> {
-    match output_schema {
-        None => {
-            // 无 schema → 优先使用 EndNode 聚合输出，否则返回全部 results
-            end_output.or_else(|| Some(serde_json::json!(results)))
-        },
-        Some(schema) => {
-            let filtered = filter_by_schema(results, schema);
-            Some(filtered)
-        },
-    }
-}
-
-/// 按 JsonSchema 从 results 中提取/重组字段。
-fn filter_by_schema(
-    results: &HashMap<String, serde_json::Value>,
-    schema: &JsonSchema,
-) -> serde_json::Value {
-    let props = match &schema.properties {
-        Some(p) => p,
-        None => return serde_json::json!(results),
-    };
-
-    let mut out = serde_json::Map::new();
-    for (key, prop) in props {
-        // 检查是否有 $source 自定义字段（标记值来源节点）
-        let source = prop
-            .default
-            .as_ref()
-            .and_then(|d| d.get("$source"))
-            .and_then(|s| s.as_str());
-
-        if let Some(node_id) = source {
-            // 从指定节点输出中提取
-            if let Some(node_output) = results.get(node_id) {
-                out.insert(key.clone(), extract_nested(node_output, key));
-            }
-        } else if let Some(val) = results.get(key) {
-            // 按 key 名直接匹配 node_id
-            out.insert(key.clone(), val.clone());
-        }
-    }
-
-    if out.is_empty() {
-        serde_json::json!(results)
-    } else {
-        serde_json::Value::Object(out)
-    }
-}
-
-/// 从嵌套 JSON 中提取最内层有意义的值。
-fn extract_nested(value: &serde_json::Value, _key: &str) -> serde_json::Value {
-    match value {
-        serde_json::Value::Object(obj) => {
-            // 尝试提取常见的包装字段
-            if let Some(inner) = obj
-                .get("result")
-                .or_else(|| obj.get("output"))
-                .or_else(|| obj.get("content"))
-            {
-                inner.clone()
-            } else {
-                value.clone()
-            }
-        },
-        _ => value.clone(),
-    }
-}
-
-/// 用 jsonschema crate 校验 input 是否匹配 schema。
-fn validate_input(input: &serde_json::Value, schema: &JsonSchema) -> Result<(), Vec<String>> {
-    let schema_json = serde_json::to_value(schema).unwrap_or(serde_json::Value::Null);
-    let validator = jsonschema::Validator::new(&schema_json)
-        .map_err(|e| vec![format!("Schema compile error: {e}")])?;
-    let mut errors: Vec<String> = Vec::new();
-    for err in validator.iter_errors(input) {
-        errors.push(format!("{}: {}", err.instance_path(), err));
-    }
-    if errors.is_empty() {
-        Ok(())
-    } else {
-        Err(errors)
-    }
-}
-
-/// 扫描工作流节点，收集所有 AgentNode 中引用的工具名。
-fn collect_workflow_tool_names(nodes: &[WorkflowNode]) -> Vec<String> {
-    let mut names = std::collections::HashSet::new();
-    for node in nodes {
-        match node {
-            WorkflowNode::Agent(an) => {
-                for tool in &an.config.tools {
-                    names.insert(tool.name.clone());
-                }
-            },
-            WorkflowNode::Tool(tn) if !tn.config.tool_name.is_empty() => {
-                names.insert(tn.config.tool_name.clone());
-            },
-            _ => {},
-        }
-    }
-    names.into_iter().collect()
-}
-
 // ── 错误类型 ──
 
 #[derive(Debug)]
 pub enum WorkEngineError {
     NotFound(String),
-    Db(String),
+    Db(#[source] sea_orm::DbErr),
+    TimeoutMs(u64),
+    Cancelled,
+    ToolError { name: String, message: String },
     Execution(String),
 }
 
@@ -2856,7 +2936,19 @@ impl std::fmt::Display for WorkEngineError {
         match self {
             Self::NotFound(id) => write!(f, "Execution record not found: {id}"),
             Self::Db(e) => write!(f, "数据库错误: {e}"),
+            Self::TimeoutMs(ms) => write!(f, "执行超时: {ms}ms"),
+            Self::Cancelled => write!(f, "执行已取消"),
+            Self::ToolError { name, message } => write!(f, "工具执行错误 [{name}]: {message}"),
             Self::Execution(e) => write!(f, "执行错误: {e}"),
+        }
+    }
+}
+
+impl std::error::Error for WorkEngineError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::Db(e) => Some(e),
+            _ => None,
         }
     }
 }
@@ -2947,65 +3039,6 @@ impl std::error::Error for WorkEngineError {}
 // ── Condition 节点分支跳过辅助 ──
 
 /// Condition 节点完成后，将不匹配分支上的所有下游节点标记为 Skipped。
-fn skip_disabled_branch_nodes(workflow: &mut Workflow, edges: &[WorkflowEdge], cond_node_id: &str) {
-    let cond_output = workflow.results.get(cond_node_id);
-    let result = cond_output
-        .and_then(|o| o.get("result"))
-        .and_then(|r| r.as_bool())
-        .unwrap_or(false);
-
-    // 确定要跳过的分支：result==true → 跳过 "false" 分支；result==false → 跳过 "true" 分支
-    let skip_branch = if result { "false" } else { "true" };
-
-    for edge in edges {
-        if edge.source != cond_node_id {
-            continue;
-        }
-        if edge.edge_type != EdgeType::ConditionTrue && edge.edge_type != EdgeType::ConditionFalse {
-            continue;
-        }
-        let actual_branch = edge
-            .source_handle
-            .as_deref()
-            .unwrap_or(match edge.edge_type {
-                EdgeType::ConditionTrue => "true",
-                EdgeType::ConditionFalse => "false",
-                _ => "true",
-            });
-        if actual_branch == skip_branch {
-            mark_subtree_skipped(workflow, edges, &edge.target);
-        }
-    }
-}
-
-/// 递归标记节点及其所有下游节点为 Skipped
-fn mark_subtree_skipped(workflow: &mut Workflow, edges: &[WorkflowEdge], node_id: &str) {
-    // 如果已经标记过（Completed/Failed/Skipped），不再递归
-    if let Some(state) = workflow.node_states.get(node_id)
-        && matches!(state.status, NodeStatus::Completed | NodeStatus::Failed | NodeStatus::Skipped)
-    {
-        return;
-    }
-
-    workflow
-        .node_states
-        .entry(node_id.to_string())
-        .or_insert_with(|| NodeRuntimeState {
-            status: NodeStatus::Skipped,
-            attempts: 0,
-            error: None,
-            started_at: None,
-            completed_at: Some(current_timestamp() as i64),
-        })
-        .status = NodeStatus::Skipped;
-
-    // 递归跳过所有下游节点
-    for edge in edges {
-        if edge.source == node_id {
-            mark_subtree_skipped(workflow, edges, &edge.target);
-        }
-    }
-}
 
 // ── 测试 ──
 

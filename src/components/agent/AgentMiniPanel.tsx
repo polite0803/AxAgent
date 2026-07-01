@@ -2,41 +2,79 @@
 
 import { useAgentPanelStore } from "@/stores/shared/agentPanelStore";
 import { Bot, Ellipsis, Expand, Plus } from "lucide-react";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { useTranslation } from "react-i18next";
 
-/** 迷你面板尺寸 */
 const MINI_WIDTH = 380;
 const MINI_HEIGHT = 500;
-
-/** 浮动按钮到屏幕边缘的间距 */
 const BUTTON_MARGIN = 20;
+const STORAGE_KEY_POSITION = "axagent:agentMiniPanel:position";
+
+function loadPersistedPosition(): { x: number; y: number } {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY_POSITION);
+    if (raw) {
+      const parsed = JSON.parse(raw) as { x: number; y: number };
+      if (typeof parsed.x === "number" && typeof parsed.y === "number") {
+        return {
+          x: Math.max(0, Math.min(window.innerWidth - MINI_WIDTH, parsed.x)),
+          y: Math.max(0, Math.min(window.innerHeight - MINI_HEIGHT, parsed.y)),
+        };
+      }
+    }
+  } catch {
+    // 忽略
+  }
+  return {
+    x: window.innerWidth - MINI_WIDTH - BUTTON_MARGIN,
+    y: window.innerHeight - MINI_HEIGHT - 80,
+  };
+}
+
+function persistPosition(x: number, y: number): void {
+  try {
+    localStorage.setItem(STORAGE_KEY_POSITION, JSON.stringify({ x, y }));
+  } catch {
+    // 忽略
+  }
+}
 
 /**
- * Agent 迷你面板 — 升级版 BuddyWidget
+ * Agent 迷你面板
  *
- * - 右下角浮动（fixed 定位），可拖拽移动
+ * - 右下角浮动（fixed 定位），可拖拽移动，位置持久化
  * - 未打开时显示浮动圆形按钮，点击展开迷你面板
+ * - 响应窗口 resize，自动修正位置避免跑出屏幕
  * - 显示迷你对话输入框 + 最近消息预览
  * - 底部工具栏：展开全尺寸面板按钮 + 新建对话 + 更多操作
  */
 export function AgentMiniPanel() {
+  const { t } = useTranslation();
   const isOpen = useAgentPanelStore((s) => s.isOpen);
   const isMiniMode = useAgentPanelStore((s) => s.isMiniMode);
   const open = useAgentPanelStore((s) => s.open);
-  const toggleMiniMode = useAgentPanelStore((s) => s.toggleMiniMode);
-  void toggleMiniMode; // Reserved for Phase 1 mini-mode expand button
 
-  // 迷你窗口的位置（可拖拽）
-  const [position, setPosition] = useState({
-    x: window.innerWidth - MINI_WIDTH - BUTTON_MARGIN,
-    y: window.innerHeight - MINI_HEIGHT - 80,
-  });
+  const [position, setPosition] = useState(loadPersistedPosition);
   const [isMiniExpanded, setIsMiniExpanded] = useState(false);
 
-  // 拖拽状态
   const draggingRef = useRef(false);
   const dragOffsetRef = useRef({ x: 0, y: 0 });
+
+  const clampPosition = useCallback((x: number, y: number) => {
+    return {
+      x: Math.max(0, Math.min(window.innerWidth - MINI_WIDTH, x)),
+      y: Math.max(0, Math.min(window.innerHeight - MINI_HEIGHT, y)),
+    };
+  }, []);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setPosition((prev) => clampPosition(prev.x, prev.y));
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, [clampPosition]);
 
   const handleHeaderMouseDown = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -48,28 +86,32 @@ export function AgentMiniPanel() {
 
     const handleMouseMove = (ev: MouseEvent) => {
       if (!draggingRef.current) { return; }
-      setPosition({
-        x: Math.max(0, Math.min(window.innerWidth - MINI_WIDTH, ev.clientX - dragOffsetRef.current.x)),
-        y: Math.max(0, Math.min(window.innerHeight - MINI_HEIGHT, ev.clientY - dragOffsetRef.current.y)),
-      });
+      const next = clampPosition(
+        ev.clientX - dragOffsetRef.current.x,
+        ev.clientY - dragOffsetRef.current.y,
+      );
+      setPosition(next);
     };
 
     const handleMouseUp = () => {
       draggingRef.current = false;
       document.removeEventListener("mousemove", handleMouseMove);
       document.removeEventListener("mouseup", handleMouseUp);
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+      persistPosition(position.x, position.y);
     };
 
+    document.body.style.cursor = "move";
+    document.body.style.userSelect = "none";
     document.addEventListener("mousemove", handleMouseMove);
     document.addEventListener("mouseup", handleMouseUp);
-  }, [position]);
+  }, [position, clampPosition]);
 
-  // 如果全尺寸面板已经打开或不在迷你模式，只显示浮动按钮
   if (!isMiniMode || isOpen) {
     return null;
   }
 
-  // 浮动圆形按钮（未展开迷你面板时）
   if (!isMiniExpanded) {
     return createPortal(
       <button
@@ -80,7 +122,7 @@ export function AgentMiniPanel() {
           bottom: 80,
         }}
         onClick={() => setIsMiniExpanded(true)}
-        aria-label="打开 Agent 迷你面板"
+        aria-label={t("agentPanel.openMiniPanel")}
       >
         <Bot size={22} />
       </button>,
@@ -88,7 +130,6 @@ export function AgentMiniPanel() {
     );
   }
 
-  // 迷你面板展开
   return createPortal(
     <div
       className="fixed z-[998] bg-[var(--color-bg-elevated)] rounded-lg shadow-2xl border border-[var(--border-color)] flex flex-col overflow-hidden"
@@ -99,7 +140,6 @@ export function AgentMiniPanel() {
         height: MINI_HEIGHT,
       }}
     >
-      {/* 可拖拽标题栏 */}
       <div
         className="flex items-center justify-between px-3 py-2 bg-[var(--color-bg-container)] border-b border-[var(--border-color)] cursor-move shrink-0"
         onMouseDown={handleHeaderMouseDown}
@@ -112,6 +152,7 @@ export function AgentMiniPanel() {
           type="button"
           className="p-0.5 rounded hover:bg-[var(--color-fill-alter)] text-[var(--color-text-secondary)]"
           onClick={() => setIsMiniExpanded(false)}
+          aria-label={t("common.close")}
         >
           <svg
             width="14"
@@ -128,21 +169,19 @@ export function AgentMiniPanel() {
         </button>
       </div>
 
-      {/* 内容区 — 占位 */}
       <div className="flex-1 flex items-center justify-center p-4">
         <div className="text-center text-[var(--color-text-secondary)] text-sm">
           <Bot size={40} className="mx-auto mb-3 opacity-30" />
-          <p>Agent 迷你面板</p>
-          <p className="text-xs mt-1 opacity-70">对话功能将在后续版本中开放</p>
+          <p>{t("agentPanel.miniPanelTitle")}</p>
+          <p className="text-xs mt-1 opacity-70">{t("agentPanel.miniPanelComingSoon")}</p>
         </div>
       </div>
 
-      {/* 底部工具栏 */}
       <div className="flex items-center justify-between px-3 py-2 border-t border-[var(--border-color)] bg-[var(--color-bg-container)] shrink-0">
         <button
           type="button"
           className="p-1.5 rounded hover:bg-[var(--color-fill-alter)] text-[var(--color-text-secondary)]"
-          title="新建对话"
+          title={t("agentPanel.newChat")}
         >
           <Plus size={16} />
         </button>
@@ -150,14 +189,14 @@ export function AgentMiniPanel() {
           <button
             type="button"
             className="p-1.5 rounded hover:bg-[var(--color-fill-alter)] text-[var(--color-text-secondary)]"
-            title="更多操作"
+            title={t("common.more")}
           >
             <Ellipsis size={16} />
           </button>
           <button
             type="button"
             className="p-1.5 rounded hover:bg-[var(--color-primary)]/10 text-[var(--color-primary)]"
-            title="展开全尺寸面板"
+            title={t("agentPanel.expandFullPanel")}
             onClick={() => {
               setIsMiniExpanded(false);
               open();

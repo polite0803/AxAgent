@@ -6,6 +6,7 @@ import { componentRegistry } from "./ComponentRegistry";
 import { AccordionContainer } from "@/components/dynamicUI/containers/AccordionContainer";
 import { CardContainer } from "@/components/dynamicUI/containers/CardContainer";
 import { ColumnContainer } from "@/components/dynamicUI/containers/ColumnContainer";
+import { Container } from "@/components/dynamicUI/containers/Container";
 import { GridContainer } from "@/components/dynamicUI/containers/GridContainer";
 import { RowContainer } from "@/components/dynamicUI/containers/RowContainer";
 import { TabsContainer } from "@/components/dynamicUI/containers/TabsContainer";
@@ -18,11 +19,13 @@ import { TimelineView } from "@/components/dynamicUI/data/TimelineView";
 import { TreeView } from "@/components/dynamicUI/data/TreeView";
 
 import {
+  CheckboxField,
   DatePickerField,
   InputField,
+  NumberField,
+  RadioField,
   SelectField,
   SwitchField,
-  TextareaField,
 } from "@/components/dynamicUI/form/FormFields";
 import { FormRenderer } from "@/components/dynamicUI/form/FormRenderer";
 
@@ -47,10 +50,10 @@ const BUILTIN_COMPONENTS: ComponentRegistryEntry[] = [
   // ── Container Components ──
   {
     type: "Container",
-    component: RowContainer,
+    component: Container,
     category: "container",
     label: "容器",
-    defaultProps: {},
+    defaultProps: { display: "block" },
   },
   {
     type: "Row",
@@ -145,7 +148,7 @@ const BUILTIN_COMPONENTS: ComponentRegistryEntry[] = [
     component: FormRenderer,
     category: "form",
     label: "表单",
-    defaultProps: { layout: "vertical", submitText: "提交" },
+    defaultProps: { layout: "vertical" },
   },
   {
     type: "Input",
@@ -153,6 +156,20 @@ const BUILTIN_COMPONENTS: ComponentRegistryEntry[] = [
     category: "form",
     label: "输入框",
     defaultProps: { type: "text" },
+  },
+  {
+    type: "Textarea",
+    component: InputField,
+    category: "form",
+    label: "文本域",
+    defaultProps: { type: "textarea", rows: 4 },
+  },
+  {
+    type: "Number",
+    component: NumberField,
+    category: "form",
+    label: "数字输入",
+    defaultProps: {},
   },
   {
     type: "Select",
@@ -165,8 +182,8 @@ const BUILTIN_COMPONENTS: ComponentRegistryEntry[] = [
     type: "DatePicker",
     component: DatePickerField,
     category: "form",
-    label: "日期选择器",
-    defaultProps: {},
+    label: "日期选择",
+    defaultProps: { format: "YYYY-MM-DD" },
   },
   {
     type: "Switch",
@@ -176,11 +193,18 @@ const BUILTIN_COMPONENTS: ComponentRegistryEntry[] = [
     defaultProps: {},
   },
   {
-    type: "Textarea",
-    component: TextareaField,
+    type: "Checkbox",
+    component: CheckboxField,
     category: "form",
-    label: "文本域",
-    defaultProps: { rows: 4 },
+    label: "复选框",
+    defaultProps: {},
+  },
+  {
+    type: "Radio",
+    component: RadioField,
+    category: "form",
+    label: "单选框",
+    defaultProps: {},
   },
 
   // ── Media Components ──

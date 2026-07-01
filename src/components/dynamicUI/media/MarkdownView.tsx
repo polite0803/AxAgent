@@ -61,5 +61,3 @@ const LazyMarkdownRenderer = lazy(
         ),
       })),
 );
-
-export default MarkdownView;

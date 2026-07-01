@@ -4,6 +4,7 @@ pub mod cache_layer;
 pub mod dispatcher;
 pub mod domain_constraints;
 pub mod engine;
+pub mod error_handling;
 pub mod execution_state;
 pub mod executors;
 pub mod node_executor;
@@ -16,6 +17,7 @@ pub use engine::{
     LoopResumeDecision, ProgressCallback, RunOptions, StepProgressEvent, ToolResolver, WorkEngine,
     WorkEngineError,
 };
+pub use error_handling::ErrorContext;
 pub use execution_state::{
     ExecutionContextCallbacks, ExecutionState, ExecutionStatus, NodeExecutionRecord,
     PartialResultEvent,

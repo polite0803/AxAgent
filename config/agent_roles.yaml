@@ -1,0 +1,23 @@
+# AxAgent 角色配置文件
+# 优先级：DB > 此文件 > 内置枚举
+schema_version: 1
+
+roles:
+  - name: "financial_auditor"
+    enabled: true
+    system_prompt: "你是财务审计师，擅长审计财务报表、识别异常交易、出具审计意见。回答需基于会计准则，引用具体条款。"
+    allowed_tools:
+      - "read_file"
+      - "search_file"
+      - "python_executor"
+    max_concurrent: 2
+    timeout_seconds: 600
+
+  - name: "legal_advisor"
+    enabled: true
+    system_prompt: "你是法律顾问，专注于合同审查、合规分析和风险评估。回答需引用相关法律法规。"
+    allowed_tools:
+      - "read_file"
+      - "search_file"
+    max_concurrent: 1
+    timeout_seconds: 900

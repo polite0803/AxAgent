@@ -33,6 +33,7 @@ pub mod backup_manifests;
 pub mod backup_targets;
 pub mod context_sources;
 pub mod conversation_branches;
+pub mod credentials;
 pub mod import_jobs;
 pub mod knowledge_attributes;
 pub mod knowledge_bases;
@@ -94,5 +95,15 @@ pub mod trajectory_sessions;
 pub mod trajectory_skill_executions;
 pub mod trajectory_skills;
 pub mod trajectory_steps;
+
+// Dynamic UI entities
+pub mod dynamic_ui_form_data;
+pub mod dynamic_ui_schemas;
+
+// Index queue entities
+pub mod index_jobs;
+
+// Vector store entities
+pub mod vec_collections;
 
 pub use sea_orm;

@@ -3,13 +3,56 @@
 import type { DynamicUIProps } from "@/types";
 import { Alert } from "antd";
 import { lazy, Suspense } from "react";
+import { useTranslation } from "react-i18next";
 
 type ChartType = "line" | "bar" | "pie" | "scatter" | "area";
 
-/**
- * 图表渲染器。
- * 尝试延迟加载 Recharts，如果未安装则渲染提示。
- */
+const LazyRechartsRenderer = lazy(
+  () =>
+    import("./ChartRendererImpl").then((m) => ({
+      default: m.ChartRendererImpl,
+    })).catch(() => ({
+      default: (() => <RechartsNotInstalled />) as React.FC<{
+        chartType: string;
+        data: Record<string, unknown>[];
+        xKey: string;
+        yKey: string;
+        seriesKey?: string;
+      }>,
+    })) as Promise<{
+      default: React.ComponentType<{
+        chartType: string;
+        data: Record<string, unknown>[];
+        xKey: string;
+        yKey: string;
+        seriesKey?: string;
+      }>;
+    }>,
+);
+
+function RechartsNotInstalled() {
+  const { t } = useTranslation();
+  return (
+    <Alert
+      message={t("dynamicUI.rechartsRequired")}
+      description={t("dynamicUI.rechartsInstallHint")}
+      type="warning"
+      showIcon
+    />
+  );
+}
+
+function ChartLoading() {
+  const { t } = useTranslation();
+  return (
+    <Alert
+      message={t("dynamicUI.loadingChart")}
+      type="info"
+      showIcon
+    />
+  );
+}
+
 export const ChartRenderer: React.FC<DynamicUIProps> = ({
   schema,
   dataContext,
@@ -43,15 +86,7 @@ export const ChartRenderer: React.FC<DynamicUIProps> = ({
 
   return (
     <div style={schema.style as React.CSSProperties}>
-      <Suspense
-        fallback={
-          <Alert
-            message="加载图表组件中..."
-            type="info"
-            showIcon
-          />
-        }
-      >
+      <Suspense fallback={<ChartLoading />}>
         <LazyRechartsRenderer
           chartType={chartType}
           data={chartData}
@@ -63,37 +98,3 @@ export const ChartRenderer: React.FC<DynamicUIProps> = ({
     </div>
   );
 };
-
-/**
- * 延迟加载 Recharts 图表渲染子组件。
- * 如果导入失败，显示安装提示。
- */
-const LazyRechartsRenderer = lazy(
-  () =>
-    import("./ChartRendererImpl").catch(() => ({
-      default: (() => (
-        <Alert
-          message="图表功能需要安装 Recharts"
-          description="请执行 npm install recharts 或 pnpm add recharts"
-          type="warning"
-          showIcon
-        />
-      )) as React.FC<{
-        chartType: string;
-        data: Record<string, unknown>[];
-        xKey: string;
-        yKey: string;
-        seriesKey?: string;
-      }>,
-    })) as Promise<{
-      default: React.ComponentType<{
-        chartType: string;
-        data: Record<string, unknown>[];
-        xKey: string;
-        yKey: string;
-        seriesKey?: string;
-      }>;
-    }>,
-);
-
-export default ChartRenderer;

@@ -3,6 +3,7 @@
 import type { DynamicUIProps } from "@/types";
 import { Empty, List } from "antd";
 import { lazy, Suspense } from "react";
+import { useTranslation } from "react-i18next";
 
 /**
  * 列表组件，基于 Ant Design List。
@@ -12,6 +13,7 @@ export const ListView: React.FC<DynamicUIProps> = ({
   schema,
   dataContext,
 }) => {
+  const { t } = useTranslation();
   const {
     itemLayout = "vertical",
     size = "default",
@@ -38,7 +40,7 @@ export const ListView: React.FC<DynamicUIProps> = ({
     : [];
 
   if (data.length === 0) {
-    return <Empty description="暂无数据" />;
+    return <Empty description={t("dynamicUI.noData")} />;
   }
 
   const renderItem = (item: Record<string, unknown>) => {
@@ -112,5 +114,3 @@ const VirtuosoListView = lazy(
       };
     }),
 );
-
-export default ListView;

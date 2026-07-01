@@ -45,6 +45,7 @@ export function generateSandboxHtml(options: SandboxTemplateOptions): string {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; font-src 'none'; connect-src 'none';">
   <title>Skill: ${skillName}</title>
   <style>
     *, *::before, *::after {
@@ -94,9 +95,9 @@ export function generateSandboxHtml(options: SandboxTemplateOptions): string {
     }
   </style>
   <script>
-    // 删除危险 API
-    delete window.fetch;
-    delete window.XMLHttpRequest;
+    // 禁用危险 API（Object.defineProperty 比 delete 更可靠）
+    Object.defineProperty(window, 'fetch', { value: undefined, configurable: false, writable: false });
+    Object.defineProperty(window, 'XMLHttpRequest', { value: undefined, configurable: false, writable: false });
     // 禁止顶层导航（sandbox 属性已限制，此处作为额外防护）
     window.addEventListener("beforeunload", function(e) {
       e.preventDefault();
@@ -146,6 +147,12 @@ function generateRuntimeScript(rpcTimeoutMs: number): string {
   var callIdCounter = 0;
 
   function isValidOrigin(origin) {
+    // Tauri WebView sandbox iframe 中 window.location.origin 为 "null"
+    // 此时放宽 origin 检查，接受宿主发来的任何 origin
+    // 纵深防御：sandbox 属性 + CSP + fetch/XHR 禁用已提供多层保护
+    if (TARGET_ORIGIN === "null") {
+      return true;
+    }
     return origin === TARGET_ORIGIN;
   }
 

@@ -113,6 +113,7 @@ function AppInner() {
   const sidebarCollapsed = useUIStore((s) => s.sidebarCollapsed);
   const isAgentPanelOpen = useAgentPanelStore((s) => s.isOpen);
   const isAgentMiniMode = useAgentPanelStore((s) => s.isMiniMode);
+  const isAgentDragging = useAgentPanelStore((s) => s.isDragging);
   const agentPanelWidth = useAgentPanelStore((s) => s.panelWidth);
   const agentInTheLoopEnabled = FEATURE_FLAGS.AGENT_IN_THE_LOOP;
 
@@ -279,7 +280,7 @@ function AppInner() {
                     flex: 1,
                     minWidth: 0,
                     marginRight: agentInTheLoopEnabled && isAgentPanelOpen ? agentPanelWidth : 0,
-                    transition: "margin-right 300ms ease-in-out",
+                    transition: isAgentDragging ? "none" : "margin-right 300ms ease-in-out",
                   }}
                 >
                   <GlobalTabBar />
@@ -300,7 +301,7 @@ function AppInner() {
       <HelpPanel />
       <BuddyWidget />
       {agentInTheLoopEnabled && isAgentMiniMode && <AgentMiniPanel />}
-      {agentInTheLoopEnabled && <AgentEntryPoint />}
+      {agentInTheLoopEnabled && !isAgentMiniMode && <AgentEntryPoint />}
     </>
   );
 }

@@ -30,7 +30,13 @@ impl AnthropicAdapter {
     pub fn new() -> Self {
         Self {
             client: crate::build_default_http_client().unwrap_or_else(|e| {
-                tracing::warn!("无法构建 Anthropic HTTP 客户端: {e}，降级为默认客户端");
+                tracing::warn!(
+                    "{}",
+                    axagent_core::i18n::fmt_msg(
+                        axagent_core::i18n::I18nKey::ProviderHttpClientBuildFailed,
+                        &format!("Anthropic: {e}")
+                    )
+                );
                 reqwest::Client::new()
             }),
         }

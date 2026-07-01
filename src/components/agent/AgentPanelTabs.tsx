@@ -3,17 +3,20 @@
 import { useAgentPanelStore } from "@/stores/shared/agentPanelStore";
 import type { AgentPanelTab } from "@/stores/shared/agentPanelStore";
 import { Tabs } from "antd";
-
-const TAB_ITEMS: { key: AgentPanelTab; label: string }[] = [
-  { key: "chat", label: "对话" },
-  { key: "execution", label: "执行追踪" },
-  { key: "skill", label: "技能" },
-  { key: "nl-generation", label: "NL 生成" },
-];
+import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 
 export function AgentPanelTabs() {
+  const { t } = useTranslation();
   const activeTab = useAgentPanelStore((s) => s.activeTab);
   const setTab = useAgentPanelStore((s) => s.setTab);
+
+  const tabItems = useMemo(() => [
+    { key: "chat" as AgentPanelTab, label: t("agentPanel.tabs.chat") },
+    { key: "execution" as AgentPanelTab, label: t("agentPanel.tabs.execution") },
+    { key: "skill" as AgentPanelTab, label: t("agentPanel.tabs.skill") },
+    { key: "nl-generation" as AgentPanelTab, label: t("agentPanel.tabs.nlGeneration") },
+  ], [t]);
 
   return (
     <div className="px-2 pt-1 shrink-0">
@@ -21,7 +24,7 @@ export function AgentPanelTabs() {
         size="small"
         activeKey={activeTab}
         onChange={(key) => setTab(key as AgentPanelTab)}
-        items={TAB_ITEMS.map((item) => ({
+        items={tabItems.map((item) => ({
           key: item.key,
           label: <span className="text-xs">{item.label}</span>,
         }))}

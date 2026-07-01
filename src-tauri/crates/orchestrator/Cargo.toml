@@ -1,0 +1,18 @@
+[package]
+name = "axagent-orchestrator"
+version.workspace = true
+edition.workspace = true
+publish = false
+
+[dependencies]
+async-trait = "0.1"
+axagent-core = { path = "../core" }
+axagent-harness = { path = "../harness" }
+axagent-runtime-core = { path = "../runtime-core" }
+chrono = { version = "0.4", features = ["serde"] }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+uuid = { version = "1.6.1", features = ["v4"] }

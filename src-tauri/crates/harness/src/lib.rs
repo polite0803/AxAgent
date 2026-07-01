@@ -18,6 +18,7 @@ pub use audit_trail::{AuditEntry, AuditRecorder};
 pub mod cache_interceptor;
 pub use cache_interceptor::{HarnessCache, LlmCacheKey};
 pub mod confidence;
+pub mod credential;
 pub use confidence::{ConfidenceAction, ConfidenceConfig, ConfidenceOutput};
 pub mod constants;
 pub mod core_error;

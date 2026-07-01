@@ -138,6 +138,11 @@ impl Default for HnswConfig {
 /// Each knowledge base gets two tables in the shared SQLite database:
 /// - `vec_{id}_meta` — chunk metadata (id, document_id, content, …)
 /// - `vec_{id}`      — vec0 virtual table holding the embedding vectors
+///
+/// Collection metadata (dimensions, embedding model, index type, etc.) is
+/// tracked in the `vec_collections` registry table for fast lookup without
+/// relying on sqlite-vec pragma parsing.
+#[derive(Debug, Clone)]
 pub struct VectorStore {
     db: DatabaseConnection,
 }
@@ -169,51 +174,116 @@ impl VectorStore {
         Ok(format!("vec_{}", Self::sanitize_collection_id(collection_id)))
     }
 
-    /// Ensure both the metadata and vec0 tables exist for a collection.
-    /// Validates that existing vector dimensions match the requested dimensions.
-    pub async fn ensure_collection(&self, collection_id: &str, dimensions: usize) -> Result<()> {
-        validate_collection_name(collection_id)?;
-        let name = Self::validated_collection_name(collection_id)?;
-
-        self.exec(&format!(
-            "CREATE TABLE IF NOT EXISTS {name}_meta (
-                rowid INTEGER PRIMARY KEY AUTOINCREMENT,
-                id TEXT NOT NULL UNIQUE,
-                document_id TEXT NOT NULL,
-                chunk_index INTEGER NOT NULL,
-                content TEXT NOT NULL
-            )"
-        ))
-        .await?;
-
-        self.exec(&format!(
-            "CREATE INDEX IF NOT EXISTS idx_{name}_doc ON {name}_meta(document_id)"
-        ))
-        .await?;
-
-        // #16: 维度验证 — 检查现有 vec0 表的维度是否与请求维度一致
-        let existing_dim = self.get_collection_dimensions(collection_id).await?;
-        if let Some(existing) = existing_dim {
-            if existing != dimensions {
-                return Err(AxAgentError::Validation(format!(
-                    "Dimension mismatch for collection {collection_id}: existing={existing}, requested={dimensions}. \
-                     Rebuild the index or clear the collection before changing embedding dimensions."
-                )));
-            }
-        } else {
-            self.exec(&format!(
-                "CREATE VIRTUAL TABLE IF NOT EXISTS {name} USING vec0(embedding float[{dimensions}])"
-            ))
-            .await?;
-        }
-
-        Ok(())
+    fn now_ms() -> i64 {
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_millis() as i64)
+            .unwrap_or(0)
     }
 
-    /// Query the current embedding dimensions of a collection's vec0 table.
-    /// Returns None if the table does not exist.
-    pub async fn get_collection_dimensions(&self, collection_id: &str) -> Result<Option<usize>> {
-        validate_collection_name(collection_id)?;
+    async fn registry_upsert_collection(
+        &self,
+        collection_id: &str,
+        dimensions: usize,
+        index_type: &str,
+        hnsw_config: Option<&HnswConfig>,
+    ) {
+        let dim_i32 = dimensions as i32;
+        let now = Self::now_ms();
+        let (ef_c, m, ef_s) = match hnsw_config {
+            Some(c) => (Some(c.ef_construction as i32), Some(c.m as i32), Some(c.ef_search as i32)),
+            None => (None, None, None),
+        };
+
+        let sql = match self.registry_get_collection(collection_id).await {
+            Some(_) => {
+                format!(
+                    "UPDATE vec_collections SET updated_at={now}, index_type='{index_type}', \
+                     vector_count=COALESCE((SELECT COUNT(*) FROM vec_{sanitized}_meta), 0) \
+                     WHERE collection_id='{cid}'",
+                    sanitized = Self::sanitize_collection_id(collection_id),
+                    cid = collection_id.replace('\'', "''"),
+                )
+            },
+            None => {
+                format!(
+                    "INSERT OR IGNORE INTO vec_collections \
+                     (collection_id, dimensions, index_type, hnsw_ef_construction, hnsw_m, hnsw_ef_search, \
+                      vector_count, created_at, updated_at) \
+                     VALUES ('{cid}', {dim_i32}, '{index_type}', {ef_c_val}, {m_val}, {ef_s_val}, \
+                     COALESCE((SELECT COUNT(*) FROM vec_{sanitized}_meta), 0), {now}, {now})",
+                    cid = collection_id.replace('\'', "''"),
+                    sanitized = Self::sanitize_collection_id(collection_id),
+                    ef_c_val = ef_c
+                        .map(|v| v.to_string())
+                        .unwrap_or_else(|| "NULL".to_string()),
+                    m_val = m
+                        .map(|v| v.to_string())
+                        .unwrap_or_else(|| "NULL".to_string()),
+                    ef_s_val = ef_s
+                        .map(|v| v.to_string())
+                        .unwrap_or_else(|| "NULL".to_string()),
+                )
+            },
+        };
+
+        if let Err(e) = self.exec(&sql).await {
+            tracing::debug!(
+                "Failed to update vec_collections registry for {}: {} (non-critical, table may not exist yet)",
+                collection_id,
+                e
+            );
+        }
+    }
+
+    async fn registry_get_collection(&self, collection_id: &str) -> Option<(i32, String)> {
+        let cid = collection_id.replace('\'', "''");
+        let row = self
+            .db
+            .query_one_raw(Statement::from_string(
+                DbBackend::Sqlite,
+                format!(
+                    "SELECT dimensions, index_type FROM vec_collections WHERE collection_id='{cid}'"
+                ),
+            ))
+            .await
+            .ok()
+            .flatten();
+
+        row.and_then(|r| {
+            let dim: i32 = r.try_get("", "dimensions").ok()?;
+            let idx_type: String = r.try_get("", "index_type").ok()?;
+            Some((dim, idx_type))
+        })
+    }
+
+    async fn registry_get_dimensions(&self, collection_id: &str) -> Option<usize> {
+        self.registry_get_collection(collection_id)
+            .await
+            .map(|(dim, _)| dim as usize)
+    }
+
+    async fn registry_delete_collection(&self, collection_id: &str) {
+        let cid = collection_id.replace('\'', "''");
+        let _ = self
+            .exec(&format!("DELETE FROM vec_collections WHERE collection_id='{cid}'"))
+            .await;
+    }
+
+    async fn registry_update_vector_count(&self, collection_id: &str) {
+        let cid = collection_id.replace('\'', "''");
+        let sanitized = Self::sanitize_collection_id(collection_id);
+        let now = Self::now_ms();
+        let _ = self
+            .exec(&format!(
+                "UPDATE vec_collections SET vector_count = (SELECT COUNT(*) FROM vec_{sanitized}_meta), \
+                 updated_at = {now}, last_indexed_at = {now} \
+                 WHERE collection_id='{cid}'"
+            ))
+            .await;
+    }
+
+    async fn registry_get_dimensions_pragma(&self, collection_id: &str) -> Result<Option<usize>> {
         let name = Self::validated_collection_name(collection_id)?;
         let table_exists = self.table_exists(&name).await?;
         if !table_exists {
@@ -238,6 +308,117 @@ impl VectorStore {
                     .parse::<usize>()
                     .ok()
             }))
+    }
+
+    /// Ensure both the metadata and vec0 tables exist for a collection.
+    /// Validates that existing vector dimensions match the requested dimensions.
+    /// Also registers collection metadata in vec_collections registry table.
+    /// For existing collections that pre-date the registry (upgrades), this
+    /// will backfill the registry entry automatically.
+    pub async fn ensure_collection(&self, collection_id: &str, dimensions: usize) -> Result<()> {
+        validate_collection_name(collection_id)?;
+        let name = Self::validated_collection_name(collection_id)?;
+
+        self.exec(&format!(
+            "CREATE TABLE IF NOT EXISTS {name}_meta (
+                rowid INTEGER PRIMARY KEY AUTOINCREMENT,
+                id TEXT NOT NULL UNIQUE,
+                document_id TEXT NOT NULL,
+                chunk_index INTEGER NOT NULL,
+                content TEXT NOT NULL
+            )"
+        ))
+        .await?;
+
+        self.exec(&format!(
+            "CREATE INDEX IF NOT EXISTS idx_{name}_doc ON {name}_meta(document_id)"
+        ))
+        .await?;
+
+        let registry_dim = self.registry_get_dimensions(collection_id).await;
+        let pragma_dim = self.registry_get_dimensions_pragma(collection_id).await?;
+
+        if let Some(existing) = registry_dim.or(pragma_dim) {
+            if existing != dimensions {
+                return Err(AxAgentError::Validation(format!(
+                    "Dimension mismatch for collection {collection_id}: existing={existing}, requested={dimensions}. \
+                     Rebuild the index or clear the collection before changing embedding dimensions."
+                )));
+            }
+            if registry_dim.is_none() {
+                self.registry_upsert_collection(collection_id, dimensions, "flat", None)
+                    .await;
+            }
+        } else {
+            self.exec(&format!(
+                "CREATE VIRTUAL TABLE IF NOT EXISTS {name} USING vec0(embedding float[{dimensions}])"
+            ))
+            .await?;
+            self.registry_upsert_collection(collection_id, dimensions, "flat", None)
+                .await;
+        }
+
+        let _ = self.ensure_fts5_index(collection_id).await;
+
+        Ok(())
+    }
+
+    /// Query the current embedding dimensions of a collection.
+    /// First checks the vec_collections registry, then falls back to pragma parsing.
+    /// Returns None if the table does not exist.
+    pub async fn get_collection_dimensions(&self, collection_id: &str) -> Result<Option<usize>> {
+        validate_collection_name(collection_id)?;
+
+        if let Some(dim) = self.registry_get_dimensions(collection_id).await {
+            return Ok(Some(dim));
+        }
+
+        self.registry_get_dimensions_pragma(collection_id).await
+    }
+
+    /// Prepare collection for (re)indexing: if dimensions match, does nothing;
+    /// if dimensions differ (embedding model changed), drops the old collection entirely
+    /// and creates a fresh one with the correct dimensions, allowing re-indexing to proceed.
+    ///
+    /// Unlike `ensure_collection`, which errors on dimension mismatch, this method
+    /// automatically resets the collection, which is the desired behavior when
+    /// starting a fresh indexing job after the embedding provider/model has changed.
+    pub async fn prepare_collection_for_indexing(
+        &self,
+        collection_id: &str,
+        dimensions: usize,
+    ) -> Result<()> {
+        validate_collection_name(collection_id)?;
+        let name = Self::validated_collection_name(collection_id)?;
+        let meta_table = format!("{name}_meta");
+        let fts_table = format!("{meta_table}_fts");
+
+        let existing_dims = self.get_collection_dimensions(collection_id).await?;
+
+        match existing_dims {
+            Some(existing) if existing == dimensions => {
+                let _ = self.ensure_fts5_index(collection_id).await;
+                Ok(())
+            },
+            Some(_mismatched) => {
+                tracing::info!(
+                    collection_id = %collection_id,
+                    old_dim = existing_dims,
+                    new_dim = dimensions,
+                    "Embedding dimensions changed, resetting collection for re-indexing"
+                );
+                let _ = self.exec(&format!("DROP TABLE IF EXISTS {name}")).await;
+                let _ = self
+                    .exec(&format!("DROP TABLE IF EXISTS {meta_table}"))
+                    .await;
+                let _ = self
+                    .exec(&format!("DROP TABLE IF EXISTS {fts_table}"))
+                    .await;
+                self.registry_delete_collection(collection_id).await;
+                self.ensure_collection(collection_id, dimensions).await
+            },
+            None => self.ensure_collection(collection_id, dimensions).await,
+        }
     }
 
     /// Ensure a collection exists with HNSW indexing for faster approximate nearest neighbor search.
@@ -273,23 +454,55 @@ impl VectorStore {
         ))
         .await?;
 
-        let hnsw_sql = format!(
-            "CREATE VIRTUAL TABLE IF NOT EXISTS {name} USING vec0(embedding float[{}], hnsw(ef_construction={}, m={}, ef_search={}))",
-            dimensions, hnsw_config.ef_construction, hnsw_config.m, hnsw_config.ef_search
-        );
+        let registry_dim = self.registry_get_dimensions(collection_id).await;
+        let pragma_dim = self.registry_get_dimensions_pragma(collection_id).await?;
 
-        if let Err(e) = self.exec(&hnsw_sql).await {
-            tracing::warn!(
-                "HNSW table creation failed for {}, falling back to exact search: {}",
-                name,
-                e
+        if let Some(existing) = registry_dim.or(pragma_dim) {
+            if existing != dimensions {
+                return Err(AxAgentError::Validation(format!(
+                    "Dimension mismatch for collection {collection_id}: existing={existing}, requested={dimensions}. \
+                     Rebuild the index or clear the collection before changing embedding dimensions."
+                )));
+            }
+            self.registry_upsert_collection(collection_id, dimensions, "hnsw", Some(&hnsw_config))
+                .await;
+        } else {
+            let hnsw_sql = format!(
+                "CREATE VIRTUAL TABLE IF NOT EXISTS {name} USING vec0(embedding float[{}], hnsw(ef_construction={}, m={}, ef_search={}))",
+                dimensions, hnsw_config.ef_construction, hnsw_config.m, hnsw_config.ef_search
             );
-            self.exec(&format!(
-                "CREATE VIRTUAL TABLE IF NOT EXISTS {name} USING vec0(embedding float[{}])",
-                dimensions
-            ))
-            .await?;
+
+            let created_hnsw = if let Err(e) = self.exec(&hnsw_sql).await {
+                tracing::warn!(
+                    "HNSW table creation failed for {}, falling back to exact search: {}",
+                    name,
+                    e
+                );
+                self.exec(&format!(
+                    "CREATE VIRTUAL TABLE IF NOT EXISTS {name} USING vec0(embedding float[{}])",
+                    dimensions
+                ))
+                .await?;
+                false
+            } else {
+                true
+            };
+
+            let idx_type = if created_hnsw { "hnsw" } else { "flat" };
+            self.registry_upsert_collection(
+                collection_id,
+                dimensions,
+                idx_type,
+                if created_hnsw {
+                    Some(&hnsw_config)
+                } else {
+                    None
+                },
+            )
+            .await;
         }
+
+        let _ = self.ensure_fts5_index(collection_id).await;
 
         Ok(())
     }
@@ -322,7 +535,8 @@ impl VectorStore {
             }
         }
 
-        self.ensure_collection(collection_id, dimensions).await?;
+        self.prepare_collection_for_indexing(collection_id, dimensions)
+            .await?;
 
         let name = Self::validated_collection_name(collection_id)?;
         let doc_id = &records[0].document_id;
@@ -404,6 +618,12 @@ impl VectorStore {
         match result {
             Ok(()) => {
                 self.exec("COMMIT").await?;
+                self.registry_update_vector_count(collection_id).await;
+                let cid = collection_id.to_string();
+                let db = self.clone();
+                tokio::spawn(async move {
+                    db.rebuild_fts_index(&cid).await;
+                });
                 Ok(())
             },
             Err(e) => {
@@ -514,6 +734,12 @@ impl VectorStore {
             return Err(Self::wrap(e));
         }
         self.exec("COMMIT").await?;
+        self.registry_update_vector_count(collection_id).await;
+        let cid = collection_id.to_string();
+        let db = self.clone();
+        tokio::spawn(async move {
+            db.rebuild_fts_index(&cid).await;
+        });
         Ok(chunk_id)
     }
 
@@ -592,19 +818,32 @@ impl VectorStore {
             return Ok(());
         }
 
-        self.delete_rows_by_document(&name, document_id).await
+        self.delete_rows_by_document(&name, document_id).await?;
+        self.registry_update_vector_count(knowledge_base_id).await;
+        let cid = knowledge_base_id.to_string();
+        let db = self.clone();
+        tokio::spawn(async move {
+            db.rebuild_fts_index(&cid).await;
+        });
+        Ok(())
     }
 
     /// Drop both tables for a knowledge base.
     ///
     /// Silently succeeds if the tables do not exist.
+    /// Also removes the collection entry from vec_collections registry.
     pub async fn delete_collection(&self, knowledge_base_id: &str) -> Result<()> {
         validate_collection_name(knowledge_base_id)?;
         let name = Self::validated_collection_name(knowledge_base_id)?;
+        let fts_table = format!("{name}_meta_fts");
         let _ = self.exec(&format!("DROP TABLE IF EXISTS {name}")).await;
         let _ = self
             .exec(&format!("DROP TABLE IF EXISTS {name}_meta"))
             .await;
+        let _ = self
+            .exec(&format!("DROP TABLE IF EXISTS {fts_table}"))
+            .await;
+        self.registry_delete_collection(knowledge_base_id).await;
         Ok(())
     }
 
@@ -614,31 +853,19 @@ impl VectorStore {
         validate_collection_name(collection_id)?;
         let name = Self::validated_collection_name(collection_id)?;
 
-        // Drop and recreate vec0 to clear all embeddings
-        // We need the dimensions to recreate, so read from an existing row first
-        let dim_row = self
-            .db
-            .query_one_raw(Statement::from_string(
-                DbBackend::Sqlite,
-                format!("SELECT vec_length(embedding) AS dim FROM {name} LIMIT 1"),
-            ))
-            .await
-            .ok()
-            .flatten();
-
         let _ = self.exec(&format!("DROP TABLE IF EXISTS {name}")).await;
 
-        // Recreate vec0 if we know the dimensions
-        if let Some(row) = dim_row
-            && let Ok(dim) = row.try_get::<i32>("", "dim")
-        {
+        let dim = self.get_collection_dimensions(collection_id).await?;
+
+        if let Some(d) = dim {
             let _ = self
                 .exec(&format!(
-                    "CREATE VIRTUAL TABLE IF NOT EXISTS {name} USING vec0(embedding float[{dim}])"
+                    "CREATE VIRTUAL TABLE IF NOT EXISTS {name} USING vec0(embedding float[{d}])"
                 ))
                 .await;
         }
 
+        self.registry_update_vector_count(collection_id).await;
         Ok(())
     }
 
@@ -767,7 +994,132 @@ impl VectorStore {
         }
 
         self.exec("COMMIT").await?;
+        self.registry_update_vector_count(collection_id).await;
+        let cid = collection_id.to_string();
+        let db = self.clone();
+        tokio::spawn(async move {
+            db.rebuild_fts_index(&cid).await;
+        });
         Ok(())
+    }
+
+    /// Set the embedding model name for a collection in the registry.
+    pub async fn set_collection_embedding_model(
+        &self,
+        collection_id: &str,
+        model: Option<&str>,
+    ) -> Result<()> {
+        validate_collection_name(collection_id)?;
+        let cid = collection_id.replace('\'', "''");
+        let model_val = match model {
+            Some(m) => format!("'{}'", m.replace('\'', "''")),
+            None => "NULL".to_string(),
+        };
+        let now = Self::now_ms();
+        if let Err(e) = self
+            .exec(&format!(
+                "UPDATE vec_collections SET embedding_model={model_val}, updated_at={now} \
+                 WHERE collection_id='{cid}'"
+            ))
+            .await
+        {
+            tracing::debug!(
+                "Failed to update embedding model for {}: {} (non-critical)",
+                collection_id,
+                e
+            );
+        }
+        Ok(())
+    }
+
+    pub async fn ensure_fts5_index(&self, collection_id: &str) -> Result<()> {
+        validate_collection_name(collection_id)?;
+        let safe_name = Self::sanitize_collection_id(collection_id);
+        let meta_table = format!("vec_{safe_name}_meta");
+        let fts_table = format!("{meta_table}_fts");
+
+        let table_exists: bool = self
+            .db
+            .query_one_raw(Statement::from_sql_and_values(
+                DbBackend::Sqlite,
+                "SELECT name FROM sqlite_master WHERE type='table' AND name=?1",
+                vec![fts_table.clone().into()],
+            ))
+            .await
+            .map(|r| r.is_some())
+            .unwrap_or(false);
+
+        if table_exists {
+            let rebuild_sql = format!("INSERT INTO {fts_table}({fts_table}) VALUES('rebuild')");
+            let _ = self.exec(&rebuild_sql).await;
+            return Ok(());
+        }
+
+        if !self.table_exists(&meta_table).await? {
+            return Ok(());
+        }
+
+        let create_sql = format!(
+            "CREATE VIRTUAL TABLE IF NOT EXISTS {fts_table} USING fts5(
+                id UNINDEXED,
+                document_id UNINDEXED,
+                chunk_index UNINDEXED,
+                content,
+                content={meta_table},
+                content_rowid=rowid,
+                tokenize='trigram'
+            )"
+        );
+
+        if let Err(e) = self.exec(&create_sql).await {
+            tracing::debug!("FTS5 trigram index creation failed (non-critical): {}", e);
+            return Ok(());
+        }
+
+        let populated: Option<i64> = self
+            .db
+            .query_one_raw(Statement::from_string(
+                DbBackend::Sqlite,
+                format!("SELECT COUNT(*) as cnt FROM {fts_table}"),
+            ))
+            .await
+            .ok()
+            .flatten()
+            .and_then(|r| r.try_get::<i64>("", "cnt").ok());
+
+        if populated.unwrap_or(0) == 0 {
+            let populate_sql = format!(
+                "INSERT INTO {fts_table}(rowid, id, document_id, chunk_index, content) \
+                 SELECT rowid, id, document_id, chunk_index, content FROM {meta_table}"
+            );
+            let _ = self.exec(&populate_sql).await;
+        }
+
+        Ok(())
+    }
+
+    pub async fn rebuild_fts_index(&self, collection_id: &str) {
+        if validate_collection_name(collection_id).is_err() {
+            return;
+        }
+        let safe_name = Self::sanitize_collection_id(collection_id);
+        let fts_table = format!("vec_{safe_name}_meta_fts");
+
+        let exists: bool = self
+            .db
+            .query_one_raw(Statement::from_sql_and_values(
+                DbBackend::Sqlite,
+                "SELECT name FROM sqlite_master WHERE type='table' AND name=?1",
+                vec![fts_table.clone().into()],
+            ))
+            .await
+            .map(|r| r.is_some())
+            .unwrap_or(false);
+
+        if exists {
+            let rebuild_sql = format!("INSERT INTO {fts_table}({fts_table}) VALUES('rebuild')");
+            let _ = self.exec(&rebuild_sql).await;
+        }
     }
 
     /// Delete a single chunk by its id from both vec0 and metadata tables.
@@ -826,6 +1178,12 @@ impl VectorStore {
             self.exec("COMMIT").await?;
         }
 
+        self.registry_update_vector_count(collection_id).await;
+        let cid = collection_id.to_string();
+        let db = self.clone();
+        tokio::spawn(async move {
+            db.rebuild_fts_index(&cid).await;
+        });
         Ok(())
     }
 

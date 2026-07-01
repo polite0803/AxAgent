@@ -6,6 +6,7 @@ use axagent_runtime_core::{
 use tokio::sync::broadcast;
 
 use crate::proactive_mode::ProactiveMode;
+use crate::reasoning_router::{ReasoningEngine, auto_select_engine};
 
 #[derive(Debug, Clone)]
 pub struct AgentOutput {
@@ -178,6 +179,41 @@ where
 
     pub fn run(&mut self, input: &str) -> Result<AgentOutput, AgentRuntimeError> {
         self.emit(AgentEvent::TurnStarted { iteration: 0 });
+
+        // Phase 4: reasoning engine auto-selection
+        let (engine, features) = auto_select_engine(input);
+        match engine {
+            ReasoningEngine::ReactEngine => {
+                tracing::info!(
+                    role = %self.config.role,
+                    task = %input,
+                    engine = "ReactEngine",
+                    node_count = features.node_count,
+                    has_conditions = features.has_conditions,
+                    "Reasoning router selected ReactEngine for single-step task"
+                );
+            },
+            ReasoningEngine::TreeOfThoughts => {
+                tracing::info!(
+                    role = %self.config.role,
+                    task = %input,
+                    engine = "TreeOfThoughts",
+                    node_count = features.node_count,
+                    has_branches = features.has_branches,
+                    "Reasoning router selected TreeOfThoughts for multi-branch task"
+                );
+            },
+            ReasoningEngine::ReasoningStateMachine => {
+                tracing::info!(
+                    role = %self.config.role,
+                    task = %input,
+                    engine = "ReasoningStateMachine",
+                    node_count = features.node_count,
+                    requires_verification = features.requires_verification,
+                    "Reasoning router selected ReasoningStateMachine for verification-requiring task"
+                );
+            },
+        }
 
         let preprocessed = crate::slash_command::apply_slash_command_for_agent(input);
 

@@ -1,246 +1,361 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import type { DynamicUIProps } from "@/types";
-import { DatePicker, Input, InputNumber, Select, Switch } from "antd";
+import { Checkbox, DatePicker, Form, Input, InputNumber, Radio, Select, Switch } from "antd";
+import type { CheckboxOptionType, RadioGroupProps } from "antd";
+import dayjs from "dayjs";
+import { useTranslation } from "react-i18next";
+import { useInFormContext } from "./FormRenderer";
 
-/**
- * 输入框组件，基于 Ant Design Input。
- */
 export const InputField: React.FC<DynamicUIProps> = ({ schema }) => {
+  const { t } = useTranslation();
   const {
-    label,
     name,
+    label,
     placeholder,
-    required,
-    disabled,
     type = "text",
-    ...rest
-  } = schema.props as {
-    label?: string;
-    name?: string;
-    placeholder?: string;
-    required?: boolean;
-    disabled?: boolean;
-    type?: string;
-    [key: string]: unknown;
-  };
-
-  // 数字输入
-  if (type === "number") {
-    return (
-      <FormFieldWrapper label={label} name={name} required={required}>
-        <InputNumber
-          placeholder={placeholder}
-          disabled={disabled}
-          style={{ width: "100%", ...(schema.style as React.CSSProperties) }}
-          {...rest}
-        />
-      </FormFieldWrapper>
-    );
-  }
-
-  // 密码输入
-  if (type === "password") {
-    return (
-      <FormFieldWrapper label={label} name={name} required={required}>
-        <Input.Password
-          placeholder={placeholder}
-          disabled={disabled}
-          style={schema.style as React.CSSProperties}
-          {...rest}
-        />
-      </FormFieldWrapper>
-    );
-  }
-
-  return (
-    <FormFieldWrapper label={label} name={name} required={required}>
-      <Input
-        placeholder={placeholder}
-        disabled={disabled}
-        style={schema.style as React.CSSProperties}
-        {...rest}
-      />
-    </FormFieldWrapper>
-  );
-};
-
-/**
- * 下拉选择组件，基于 Ant Design Select。
- */
-export const SelectField: React.FC<DynamicUIProps> = ({ schema }) => {
-  const {
-    label,
-    name,
-    placeholder,
     required,
+    rules,
     disabled,
-    options = [],
-    mode,
-    ...rest
+    rows,
+    maxLength,
   } = schema.props as {
-    label?: string;
     name?: string;
+    label?: string;
     placeholder?: string;
+    type?: "text" | "password" | "textarea";
     required?: boolean;
-    disabled?: boolean;
-    options?: { label: string; value: string | number }[];
-    mode?: "multiple" | "tags";
-    [key: string]: unknown;
-  };
-
-  return (
-    <FormFieldWrapper label={label} name={name} required={required}>
-      <Select
-        placeholder={placeholder}
-        disabled={disabled}
-        mode={mode}
-        options={options}
-        style={schema.style as React.CSSProperties}
-        {...rest}
-      />
-    </FormFieldWrapper>
-  );
-};
-
-/**
- * 日期选择器，基于 Ant Design DatePicker。
- */
-export const DatePickerField: React.FC<DynamicUIProps> = ({ schema }) => {
-  const { label, name, placeholder, required, disabled, ...rest } = schema.props as {
-    label?: string;
-    name?: string;
-    placeholder?: string;
-    required?: boolean;
-    disabled?: boolean;
-    [key: string]: unknown;
-  };
-
-  return (
-    <FormFieldWrapper label={label} name={name} required={required}>
-      <DatePicker
-        placeholder={placeholder}
-        disabled={disabled}
-        style={{ width: "100%", ...(schema.style as React.CSSProperties) }}
-        {...rest}
-      />
-    </FormFieldWrapper>
-  );
-};
-
-/**
- * 开关组件，基于 Ant Design Switch。
- */
-export const SwitchField: React.FC<DynamicUIProps> = ({ schema }) => {
-  const { label, name, required, disabled, ...rest } = schema.props as {
-    label?: string;
-    name?: string;
-    required?: boolean;
-    disabled?: boolean;
-    [key: string]: unknown;
-  };
-
-  return (
-    <FormFieldWrapper
-      label={label}
-      name={name}
-      required={required}
-      valuePropName="checked"
-    >
-      <Switch disabled={disabled} {...rest} />
-    </FormFieldWrapper>
-  );
-};
-
-/**
- * 文本域组件，基于 Ant Design Input.TextArea。
- */
-export const TextareaField: React.FC<DynamicUIProps> = ({ schema }) => {
-  const {
-    label,
-    name,
-    placeholder,
-    required,
-    disabled,
-    rows = 4,
-    ...rest
-  } = schema.props as {
-    label?: string;
-    name?: string;
-    placeholder?: string;
-    required?: boolean;
+    rules?: Array<{ required?: boolean; message?: string }>;
     disabled?: boolean;
     rows?: number;
-    [key: string]: unknown;
+    maxLength?: number;
   };
 
+  const inForm = useInFormContext();
+
+  const inputProps = {
+    placeholder: placeholder || (label ? t("dynamicUI.pleaseEnter", { label }) : undefined),
+    disabled,
+    maxLength,
+    style: schema.style as React.CSSProperties,
+  };
+
+  const inputEl = type === "textarea"
+    ? <Input.TextArea rows={rows || 4} {...inputProps} />
+    : <Input type={type} {...inputProps} />;
+
+  if (inForm && name) {
+    const formRules = [
+      ...(rules || []),
+      ...(required
+        ? [{ required: true, message: t("dynamicUI.fieldRequired", { field: label || name }) }]
+        : []),
+    ];
+    return (
+      <FormFieldWrapper name={name} label={label} rules={formRules}>
+        {inputEl}
+      </FormFieldWrapper>
+    );
+  }
+
+  return inputEl;
+};
+
+export const SelectField: React.FC<DynamicUIProps> = ({ schema }) => {
+  const { t } = useTranslation();
+  const {
+    name,
+    label,
+    placeholder,
+    options,
+    required,
+    rules,
+    disabled,
+    mode,
+  } = schema.props as {
+    name?: string;
+    label?: string;
+    placeholder?: string;
+    options?: Array<{ label: string; value: string | number }>;
+    required?: boolean;
+    rules?: Array<{ required?: boolean; message?: string }>;
+    disabled?: boolean;
+    mode?: "multiple" | "tags";
+  };
+
+  const inForm = useInFormContext();
+
+  const selectEl = (
+    <Select
+      placeholder={placeholder || t("dynamicUI.pleaseSelect", { label: label || "" })}
+      options={options}
+      disabled={disabled}
+      mode={mode}
+      style={{ width: "100%", ...(schema.style as React.CSSProperties) }}
+    />
+  );
+
+  if (inForm && name) {
+    const formRules = [
+      ...(rules || []),
+      ...(required
+        ? [{ required: true, message: t("dynamicUI.pleaseSelect", { label: label || name }) }]
+        : []),
+    ];
+    return (
+      <FormFieldWrapper name={name} label={label} rules={formRules}>
+        {selectEl}
+      </FormFieldWrapper>
+    );
+  }
+
+  return selectEl;
+};
+
+export const NumberField: React.FC<DynamicUIProps> = ({ schema }) => {
+  const { t } = useTranslation();
+  const {
+    name,
+    label,
+    placeholder,
+    min,
+    max,
+    step,
+    required,
+    rules,
+    disabled,
+  } = schema.props as {
+    name?: string;
+    label?: string;
+    placeholder?: string;
+    min?: number;
+    max?: number;
+    step?: number;
+    required?: boolean;
+    rules?: Array<{ required?: boolean; message?: string }>;
+    disabled?: boolean;
+  };
+
+  const inForm = useInFormContext();
+
+  const numberEl = (
+    <InputNumber
+      placeholder={placeholder || (label ? t("dynamicUI.pleaseEnter", { label }) : undefined)}
+      min={min}
+      max={max}
+      step={step}
+      disabled={disabled}
+      style={{ width: "100%", ...(schema.style as React.CSSProperties) }}
+    />
+  );
+
+  if (inForm && name) {
+    const formRules = [
+      ...(rules || []),
+      ...(required
+        ? [{ required: true, message: t("dynamicUI.fieldRequired", { field: label || name }) }]
+        : []),
+    ];
+    return (
+      <FormFieldWrapper name={name} label={label} rules={formRules}>
+        {numberEl}
+      </FormFieldWrapper>
+    );
+  }
+
+  return numberEl;
+};
+
+export const SwitchField: React.FC<DynamicUIProps> = ({ schema }) => {
+  const { name, label, defaultChecked, disabled } = schema.props as {
+    name?: string;
+    label?: string;
+    defaultChecked?: boolean;
+    disabled?: boolean;
+  };
+
+  const inForm = useInFormContext();
+
+  const switchEl = (
+    <Switch
+      defaultChecked={defaultChecked}
+      disabled={disabled}
+      style={schema.style as React.CSSProperties}
+    />
+  );
+
+  if (inForm && name) {
+    return (
+      <FormFieldWrapper name={name} label={label} valuePropName="checked">
+        {switchEl}
+      </FormFieldWrapper>
+    );
+  }
+
   return (
-    <FormFieldWrapper label={label} name={name} required={required}>
-      <Input.TextArea
-        placeholder={placeholder}
-        disabled={disabled}
-        rows={rows}
-        style={schema.style as React.CSSProperties}
-        {...rest}
-      />
-    </FormFieldWrapper>
+    <div className="flex items-center gap-2">
+      {label ? <span>{label}:</span> : null}
+      {switchEl}
+    </div>
   );
 };
 
-// ── 辅助组件 ──
+export const CheckboxField: React.FC<DynamicUIProps> = ({ schema }) => {
+  const { name, label, options, disabled } = schema.props as {
+    name?: string;
+    label?: string;
+    options?: CheckboxOptionType[];
+    disabled?: boolean;
+  };
+
+  const inForm = useInFormContext();
+
+  const checkboxEl = options
+    ? (
+      <Checkbox.Group
+        options={options}
+        disabled={disabled}
+        style={schema.style as React.CSSProperties}
+      />
+    )
+    : <Checkbox disabled={disabled} style={schema.style as React.CSSProperties}>{label}</Checkbox>;
+
+  if (inForm && name) {
+    return (
+      <FormFieldWrapper name={name} label={options ? label : undefined} valuePropName="checked">
+        {checkboxEl}
+      </FormFieldWrapper>
+    );
+  }
+
+  return checkboxEl;
+};
+
+export const RadioField: React.FC<DynamicUIProps> = ({ schema }) => {
+  const { name, label, options, disabled } = schema.props as {
+    name?: string;
+    label?: string;
+    options?: RadioGroupProps["options"];
+    disabled?: boolean;
+  };
+
+  const inForm = useInFormContext();
+
+  const radioEl = (
+    <Radio.Group
+      options={options}
+      disabled={disabled}
+      style={schema.style as React.CSSProperties}
+    />
+  );
+
+  if (inForm && name) {
+    return (
+      <FormFieldWrapper name={name} label={label}>
+        {radioEl}
+      </FormFieldWrapper>
+    );
+  }
+
+  return (
+    <div>
+      {label ? <div className="mb-1">{label}</div> : null}
+      {radioEl}
+    </div>
+  );
+};
+
+export const DatePickerField: React.FC<DynamicUIProps> = ({ schema }) => {
+  const { t } = useTranslation();
+  const {
+    name,
+    label,
+    placeholder,
+    required,
+    rules,
+    disabled,
+    format = "YYYY-MM-DD",
+    showTime,
+  } = schema.props as {
+    name?: string;
+    label?: string;
+    placeholder?: string;
+    required?: boolean;
+    rules?: Array<{ required?: boolean; message?: string }>;
+    disabled?: boolean;
+    format?: string;
+    showTime?: boolean;
+  };
+
+  const inForm = useInFormContext();
+
+  const pickerEl = (
+    <DatePicker
+      placeholder={placeholder || (label ? t("dynamicUI.pleaseSelect", { label }) : undefined)}
+      disabled={disabled}
+      format={format}
+      showTime={showTime}
+      style={{ width: "100%", ...(schema.style as React.CSSProperties) }}
+    />
+  );
+
+  if (inForm && name) {
+    const formRules = [
+      ...(rules || []),
+      ...(required
+        ? [{ required: true, message: t("dynamicUI.fieldRequired", { field: label || name }) }]
+        : []),
+    ];
+    const getValueProps = (val: unknown) => {
+      if (!val) {
+        return { value: undefined };
+      }
+      if (dayjs.isDayjs(val)) {
+        return { value: val };
+      }
+      if (typeof val === "string") {
+        const d = dayjs(val);
+        return { value: d.isValid() ? d : undefined };
+      }
+      return { value: undefined };
+    };
+    return (
+      <Form.Item
+        name={name}
+        label={label}
+        rules={formRules}
+        getValueProps={getValueProps}
+        getValueFromEvent={(v) => (dayjs.isDayjs(v) ? v.format(format) : null)}
+      >
+        {pickerEl}
+      </Form.Item>
+    );
+  }
+
+  return pickerEl;
+};
 
 function FormFieldWrapper({
-  label,
   name,
-  required,
+  label,
+  rules,
   valuePropName,
   children,
 }: {
+  name: string;
   label?: string;
-  name?: string;
-  required?: boolean;
+  rules?: Array<{ required?: boolean; message?: string }>;
   valuePropName?: string;
   children: React.ReactNode;
 }) {
-  // 当在 FormRenderer 内部时使用 Form.Item，否则直接渲染
-  // 使用函数调用来代替 try/catch 包裹 JSX
-  const renderFormItem = () => {
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const { Form } = require("antd");
-      return (
-        <Form.Item
-          label={label}
-          name={name}
-          rules={required ? [{ required: true, message: `请输入${label}` }] : []}
-          valuePropName={valuePropName}
-        >
-          {children}
-        </Form.Item>
-      );
-    } catch {
-      return null;
-    }
-  };
-
-  const formItem = renderFormItem();
-  if (formItem) {
-    return formItem;
-  }
-
   return (
-    <div className="mb-4">
-      {label
-        ? (
-          <label className="block mb-1 text-sm font-medium">
-            {label}
-            {required ? <span className="text-red-500 ml-0.5">*</span> : null}
-          </label>
-        )
-        : null}
+    <Form.Item
+      name={name}
+      label={label}
+      rules={rules}
+      valuePropName={valuePropName}
+    >
       {children}
-    </div>
+    </Form.Item>
   );
 }
-
-export default InputField;

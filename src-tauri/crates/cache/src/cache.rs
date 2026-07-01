@@ -13,7 +13,6 @@
 //! Both caches use `quick_cache` under the hood for lock-free concurrent access.
 
 use quick_cache::sync::Cache;
-use std::time::Duration;
 
 /// Thread-safe cache for storing pre-computed embedding vectors.
 ///
@@ -29,9 +28,8 @@ use std::time::Duration;
 ///
 /// ```no_run
 /// use axagent_core::cache::EmbeddingCache;
-/// use std::time::Duration;
 ///
-/// let cache = EmbeddingCache::new(1000, Duration::from_secs(3600));
+/// let cache = EmbeddingCache::new(1000);
 /// cache.insert("text_hash".to_string(), vec![0.1, 0.2, 0.3]);
 ///
 /// if let Some(embedding) = cache.get("text_hash") {
@@ -43,13 +41,12 @@ pub struct EmbeddingCache {
 }
 
 impl EmbeddingCache {
-    /// Creates a new embedding cache with the specified maximum entries and TTL.
+    /// Creates a new embedding cache with the specified maximum entries.
     ///
     /// # Parameters
     ///
     /// - `max_entries`: Maximum number of embeddings to store
-    /// - `_ttl`: Time-to-live duration (currently unused, reserved for future)
-    pub fn new(max_entries: usize, _ttl: Duration) -> Self {
+    pub fn new(max_entries: usize) -> Self {
         Self {
             cache: Cache::new(max_entries),
         }
@@ -104,7 +101,7 @@ impl EmbeddingCache {
 
 impl Default for EmbeddingCache {
     fn default() -> Self {
-        Self::new(1000, Duration::from_secs(3600))
+        Self::new(1000)
     }
 }
 
@@ -117,9 +114,8 @@ impl Default for EmbeddingCache {
 ///
 /// ```no_run
 /// use axagent_core::cache::TextHashCache;
-/// use std::time::Duration;
 ///
-/// let cache = TextHashCache::new(500, Duration::from_secs(7200));
+/// let cache = TextHashCache::new(500);
 /// cache.insert("document_id".to_string(), "hash_value".to_string());
 ///
 /// if let Some(hash) = cache.get("document_id") {
@@ -131,13 +127,12 @@ pub struct TextHashCache {
 }
 
 impl TextHashCache {
-    /// Creates a new text hash cache with the specified maximum entries and TTL.
+    /// Creates a new text hash cache with the specified maximum entries.
     ///
     /// # Parameters
     ///
     /// - `max_entries`: Maximum number of hashes to store
-    /// - `_ttl`: Time-to-live duration (currently unused, reserved for future)
-    pub fn new(max_entries: usize, _ttl: Duration) -> Self {
+    pub fn new(max_entries: usize) -> Self {
         Self {
             cache: Cache::new(max_entries),
         }
@@ -181,6 +176,6 @@ impl TextHashCache {
 
 impl Default for TextHashCache {
     fn default() -> Self {
-        Self::new(500, Duration::from_secs(7200))
+        Self::new(500)
     }
 }

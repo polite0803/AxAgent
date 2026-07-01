@@ -181,5 +181,3 @@ export const DynamicUIPreview: React.FC = () => {
     </div>
   );
 };
-
-export default DynamicUIPreview;

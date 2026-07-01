@@ -41,7 +41,7 @@ const VALID_ACTION_TYPES = new Set<string>([
   "navigate",
   "emit",
   "store",
-  "function",
+  "function", // P2 #20: experimental — full registration via skillActionExecutor not yet complete
   "handler",
   "chain",
   "update-schema",
@@ -406,6 +406,10 @@ export class ActionRouter {
     });
 
     this.declarativeExecutors.set("function", async (action, ctx) => {
+      // P2 #20: function 类型标记为 experimental
+      console.warn(
+        "[actionRouter] function type is experimental and may be removed in a future release.",
+      );
       if (action.type !== "function") {
         return { success: false, error: i18n.t("actionRouter.typeMismatch") };
       }
@@ -436,7 +440,27 @@ export class ActionRouter {
         };
       }
       if (handler.mode === "declarative" && handler.actions) {
-        return this.executeChain(handler.actions, ctx);
+        // P1 #15: 跨 skill handler 引用时，使用目标 skill 的权限上下文
+        // handler key 格式为 "skillName::handlerName"
+        const doubleColonIdx = action.name.lastIndexOf("::");
+        const handlerSkillName = doubleColonIdx > 0
+          ? action.name.slice(0, doubleColonIdx)
+          : ctx.skillName;
+
+        let handlerPermissions = ctx.permissions;
+        if (handlerSkillName !== ctx.skillName) {
+          const targetSkill = useSkillExtensionStore
+            .getState()
+            .skills.find((s) => s.name === handlerSkillName);
+          handlerPermissions = targetSkill?.manifest?.permissions ?? ctx.permissions;
+        }
+
+        const handlerCtx: ActionContext = {
+          ...ctx,
+          skillName: handlerSkillName,
+          permissions: handlerPermissions,
+        };
+        return this.executeChain(handler.actions, handlerCtx);
       }
       return {
         success: false,
