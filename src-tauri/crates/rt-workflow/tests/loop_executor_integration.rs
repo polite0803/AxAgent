@@ -42,6 +42,7 @@ fn make_loop_base(id: &str) -> WorkflowNodeBase {
         enabled: true,
         parent_id: None,
         compensation: None,
+        continue_on_fail: false,
     }
 }
 
