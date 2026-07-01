@@ -7,8 +7,6 @@
 // 方式二：在集成测试中使用公共 API 间接验证。
 // 本文件采用方式二：通过 Tauri 命令调用验证边界条件，以及对公开类型进行单元测试。
 
-use std::path::PathBuf;
-
 // ── compare_versions 公开性验证 ─────────────────────────────────
 // 若 compare_versions 是私有函数，则无法直接测试。
 // 替代方案：通过 skills_hub 的版本过滤间接验证。
@@ -322,15 +320,15 @@ mod collect_skill_content_tests {
         };
         let mut total_bytes: u64 = 0;
         for path in entries {
-            if let Ok(meta) = std::fs::metadata(&path) {
-                if meta.len() > MAX_SINGLE_FILE_SIZE {
-                    content.push_str(&format!(
-                        "\n<!-- [SKIPPED] {} ({}) -->\n",
-                        path.display(),
-                        meta.len()
-                    ));
-                    continue;
-                }
+            if let Ok(meta) = std::fs::metadata(&path)
+                && meta.len() > MAX_SINGLE_FILE_SIZE
+            {
+                content.push_str(&format!(
+                    "\n<!-- [SKIPPED] {} ({}) -->\n",
+                    path.display(),
+                    meta.len()
+                ));
+                continue;
             }
             if let Ok(text) = std::fs::read_to_string(&path) {
                 total_bytes += text.len() as u64;
