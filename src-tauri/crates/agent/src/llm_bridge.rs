@@ -680,6 +680,9 @@ impl PrmLlmProvider for ProviderLlmBridge {
 #[cfg(test)]
 mod tests_extract_score {
     use super::*;
+
+    #[test]
+    fn test_extract_score_from_text_number_only() {
         assert!((extract_score_from_text("0.75") - 0.75).abs() < f64::EPSILON);
     }
 
