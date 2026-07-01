@@ -436,12 +436,12 @@ mod tests {
             created_at: chrono::Utc::now(),
         };
 
-        let mut dsg = DynamicSubGraph::new();
+        let dsg = DynamicSubGraph::new();
         let nodes: Vec<_> = plan
             .sub_tasks
             .iter()
             .map(|st| {
-                let mut base = WorkflowNodeBase {
+                let base = WorkflowNodeBase {
                     id: st.id.clone(),
                     title: st.name.clone(),
                     description: Some(st.description.clone()),
@@ -506,7 +506,7 @@ mod tests {
 
     #[test]
     fn test_isolated_node_detection() {
-        let mut dsg = DynamicSubGraph::new();
+        let dsg = DynamicSubGraph::new();
         let nodes: Vec<_> = (1..=3)
             .map(|i| {
                 WorkflowNode::Agent(AgentNode {
