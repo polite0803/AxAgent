@@ -390,13 +390,9 @@ mod collect_skill_content_tests {
     fn test_collect_total_size_limit() {
         let tmp = TempDir::new().unwrap();
         let chunk_size = (MAX_SINGLE_FILE_SIZE / 2) as usize;
-        // 创建3个文件，每个小于单文件限制，总和超过总限制
+        // 创建5个文件，每个小于单文件限制，总和超过总限制
         for i in 0..5 {
-            fs::write(
-                tmp.path().join(format!("{i}.md")),
-                "X".repeat(chunk_size),
-            )
-            .unwrap();
+            fs::write(tmp.path().join(format!("{i}.md")), "X".repeat(chunk_size)).unwrap();
         }
 
         let result = collect_content(tmp.path());
