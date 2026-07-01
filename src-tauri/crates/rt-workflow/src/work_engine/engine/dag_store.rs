@@ -28,6 +28,7 @@ fn make_tool_node(id: &str, enabled: bool) -> WorkflowNode {
             enabled,
             parent_id: None,
             compensation: None,
+            continue_on_fail: false,
         },
         config: ToolNodeConfig {
             tool_name: format!("tool_{id}"),
@@ -44,14 +45,10 @@ fn make_edge(source: &str, target: &str) -> WorkflowEdge {
         id: format!("edge_{source}_{target}"),
         source: source.to_string(),
         target: target.to_string(),
-        edge_type: EdgeType::Default,
+        edge_type: EdgeType::Direct,
         source_handle: None,
-        source_port_id: None,
-        target_port_id: None,
-        source_port_type: None,
-        target_port_type: None,
-        animated: false,
-        style: None,
+        target_handle: None,
+        label: None,
     }
 }
 
@@ -192,27 +189,6 @@ pub(crate) fn skip_disabled_branch_nodes(
         if actual_branch == skip_branch {
             mark_subtree_skipped(workflow, edges, &edge.target);
         }
-    }
-}
-
-/// Build a simple test Workflow from nodes and edges.
-#[cfg(test)]
-fn make_workflow(id: &str, nodes: Vec<WorkflowNode>, edges: Vec<WorkflowEdge>) -> Workflow {
-    let node_states: HashMap<String, NodeRuntimeState> = nodes
-        .iter()
-        .map(|n| (n.base_id().to_string(), NodeRuntimeState::default()))
-        .collect();
-    Workflow {
-        id: id.to_string(),
-        name: "test".to_string(),
-        nodes,
-        edges,
-        status: crate::workflow_engine::WorkflowStatus::Created,
-        created_at: 0,
-        completed_at: None,
-        results: HashMap::new(),
-        node_states,
-        output: None,
     }
 }
 

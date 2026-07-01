@@ -483,6 +483,7 @@ mod tests {
                 enabled: true,
                 parent_id: None,
                 compensation: None,
+                continue_on_fail: false,
             },
             config: LlmClassifierNodeConfig {
                 categories: vec!["a".to_string(), "b".to_string()],

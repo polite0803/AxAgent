@@ -11,7 +11,7 @@
 mod common;
 
 use axagent_plugins::{PluginManager, PluginManagerConfig, load_plugin_from_directory};
-use common::{TempDir, minimal_plugin_json};
+use common::TempDir;
 
 #[test]
 fn malformed_json_does_not_panic() {

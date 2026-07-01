@@ -21,9 +21,13 @@ pub use types::*;
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serde_json::Value;
+    use std::collections::BTreeMap;
+    use std::fs;
+    use std::path::{Path, PathBuf};
 
     fn env_guard() -> std::sync::MutexGuard<'static, ()> {
-        env_lock().lock().unwrap_or_else(|e| {
+        crate::manager::env_lock().lock().unwrap_or_else(|e| {
             tracing::warn!("env lock poisoned, recovering");
             e.into_inner()
         })

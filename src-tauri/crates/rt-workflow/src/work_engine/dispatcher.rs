@@ -352,13 +352,11 @@ mod tests {
     }
 
     fn make_test_exec_state() -> ExecutionState {
-        ExecutionState {
-            workflow_id: "test_wf".to_string(),
-            node_states: std::collections::HashMap::new(),
-            variables: std::collections::HashMap::new(),
-            sub_workflow_outputs: std::collections::HashMap::new(),
-            business_rule_engine: None,
-        }
+        ExecutionState::new(
+            "test_exec".into(),
+            "test_wf".into(),
+            serde_json::json!({}),
+        )
     }
 
     #[test]
@@ -383,7 +381,7 @@ mod tests {
 
     #[tokio::test]
     async fn dispatch_to_registered_executor() {
-        let mut disp = NodeDispatcher::new();
+        let disp = NodeDispatcher::new();
         disp.register(TestExecutor::new("myExecutor"));
         let node = make_tool_node("n1", true);
         let ctx = make_test_exec_state();
@@ -427,6 +425,7 @@ mod tests {
                 enabled,
                 parent_id: None,
                 compensation: None,
+                continue_on_fail: false,
             },
             config: ToolNodeConfig {
                 tool_name: format!("tool_{id}"),

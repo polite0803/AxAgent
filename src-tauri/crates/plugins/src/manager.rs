@@ -34,7 +34,7 @@ use crate::mcp_launcher::McpLauncher;
 use crate::skill_installer::SkillInstaller;
 use crate::types::*;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct PluginManagerConfig {
     pub config_home: PathBuf,
     pub enabled_plugins: BTreeMap<String, bool>,
@@ -914,7 +914,7 @@ impl PluginManager {
         }
     }
 
-    fn load_registry(&self) -> Result<InstalledPluginRegistry, PluginError> {
+    pub(crate) fn load_registry(&self) -> Result<InstalledPluginRegistry, PluginError> {
         let path = self.registry_path();
         match fs::read_to_string(&path) {
             Ok(contents) if contents.trim().is_empty() => Ok(InstalledPluginRegistry::default()),
@@ -926,7 +926,7 @@ impl PluginManager {
         }
     }
 
-    fn store_registry(&self, registry: &InstalledPluginRegistry) -> Result<(), PluginError> {
+    pub(crate) fn store_registry(&self, registry: &InstalledPluginRegistry) -> Result<(), PluginError> {
         let path = self.registry_path();
         if let Some(parent) = path.parent() {
             fs::create_dir_all(parent)?;
@@ -935,7 +935,7 @@ impl PluginManager {
         Ok(())
     }
 
-    fn write_enabled_state(
+    pub(crate) fn write_enabled_state(
         &self,
         plugin_id: &str,
         enabled: Option<bool>,
@@ -2035,7 +2035,7 @@ fn ensure_object<'a>(root: &'a mut Map<String, Value>, key: &str) -> &'a mut Map
 /// Environment variable lock for test isolation.
 /// Guards against concurrent modification of `CLAW_CONFIG_HOME`.
 #[cfg(test)]
-fn env_lock() -> &'static std::sync::Mutex<()> {
+pub(crate) fn env_lock() -> &'static std::sync::Mutex<()> {
     static ENV_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
     &ENV_LOCK
 }

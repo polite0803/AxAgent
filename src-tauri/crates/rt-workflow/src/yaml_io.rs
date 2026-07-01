@@ -144,6 +144,7 @@ mod tests {
                 enabled: true,
                 parent_id: None,
                 compensation: None,
+                continue_on_fail: false,
             },
             config: TriggerConfig {
                 trigger_type: TriggerType::Manual,

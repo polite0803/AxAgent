@@ -25,8 +25,8 @@ const BUILTIN_MARKETPLACE: &str = "builtin";
 const BUNDLED_MARKETPLACE: &str = "bundled";
 const SETTINGS_FILE_NAME: &str = "settings.json";
 const REGISTRY_FILE_NAME: &str = "installed.json";
-const MANIFEST_FILE_NAME: &str = "plugin.json";
-const MANIFEST_RELATIVE_PATH: &str = ".claude-plugin/plugin.json";
+pub(crate) const MANIFEST_FILE_NAME: &str = "plugin.json";
+pub(crate) const MANIFEST_RELATIVE_PATH: &str = ".claude-plugin/plugin.json";
 const SKILL_MD_FILE_NAME: &str = "SKILL.md";
 
 use crate::manager::{
