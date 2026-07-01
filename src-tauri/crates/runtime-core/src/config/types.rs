@@ -326,8 +326,8 @@ mod tests {
 
     #[test]
     fn deep_merge_nested_objects() {
-        let mut inner_target = BTreeMap::from([kv("x", "t_x")]);
-        let mut inner_source = BTreeMap::from([kv("y", "s_y")]);
+        let inner_target = BTreeMap::from([kv("x", "t_x")]);
+        let inner_source = BTreeMap::from([kv("y", "s_y")]);
         let mut target = BTreeMap::from([("nested".into(), JsonValue::Object(inner_target))]);
         let source = BTreeMap::from([("nested".into(), JsonValue::Object(inner_source))]);
         deep_merge_objects(&mut target, &source);

@@ -8,6 +8,8 @@ pub mod types;
 mod tests;
 
 pub use loader::ConfigLoader;
+pub(crate) use runtime::parse_permission_mode_label;
+pub(crate) use types::deep_merge_objects;
 pub use types::{
     CLAW_SETTINGS_SCHEMA_NAME, ConfigEntry, ConfigError, ConfigSource, McpConfigCollection,
     McpManagedProxyServerConfig, McpOAuthConfig, McpRemoteServerConfig, McpSdkServerConfig,
