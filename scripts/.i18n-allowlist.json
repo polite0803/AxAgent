@@ -2753,7 +2753,7 @@
     },
     {
       "file": "src/components/dynamicUI/SchemaTreeEditor.tsx",
-      "lines": "345,353",
+      "lines": "353,361",
       "reason": "非UI字符串-原生HTML属性",
       "note": "Input placeholder 是原生 HTML attrs，非 i18n 字符串"
     },
