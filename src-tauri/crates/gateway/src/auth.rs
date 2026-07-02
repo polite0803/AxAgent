@@ -62,7 +62,7 @@ pub fn extract_client_ip<B>(
     let peer_ip = fallback.map(|addr| addr.ip());
 
     let peer_is_trusted = peer_ip
-        .map(|ip| policy.trusted_proxies.iter().any(|trusted| ip == *trusted))
+        .map(|ip| policy.trusted_proxies.contains(&ip))
         .unwrap_or(false);
 
     if peer_is_trusted {

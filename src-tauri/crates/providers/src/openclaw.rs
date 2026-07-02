@@ -24,7 +24,7 @@ impl OpenClawAdapter {
 
     /// 构造使用 OpenClaw base_url 的 ProviderRequestContext,
     /// 然后委托给 HermesAdapter 执行实际请求。
-    fn remap_ctx<'a>(&self, ctx: &'a ProviderRequestContext) -> ProviderRequestContext {
+    fn remap_ctx(&self, ctx: &ProviderRequestContext) -> ProviderRequestContext {
         let mut out = ctx.clone();
         if out.base_url.is_none() {
             out.base_url = Some(axagent_core::constants::default_url::OPENCLAW_HOST.to_string());

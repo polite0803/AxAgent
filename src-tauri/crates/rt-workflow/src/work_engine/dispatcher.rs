@@ -35,10 +35,9 @@ impl Default for NodeDispatcher {
 
 impl NodeDispatcher {
     pub fn new() -> Self {
-        let dispatcher = Self {
+        Self {
             executors: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
-        };
-        dispatcher
+        }
     }
 
     /// 一次性注册所有内置 executor（异步版本）。

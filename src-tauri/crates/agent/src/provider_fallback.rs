@@ -271,7 +271,7 @@ impl ProviderFallbackManager {
                 {
                     // P1-5 修复:边界错误 —— 使用 map_or 避免 preferred_id 为 None 时
                     // unwrap_or("") 永远产生空字符串,导致 entry.provider_id != "" 恒为 true
-                    let is_fallback = preferred_id.map_or(false, |id| entry.provider_id != id);
+                    let is_fallback = preferred_id.is_some_and(|id| entry.provider_id != id);
                     return Some((entry.clone(), is_fallback));
                 }
             }

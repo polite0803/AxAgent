@@ -261,6 +261,7 @@ fn validate_origin(raw: &str) -> Result<http::HeaderValue, &'static str> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::auth::ClientIpPolicy;
     use axagent_dao::db::create_test_pool;
     use axum::{
         body::Body,
@@ -282,6 +283,7 @@ mod tests {
                 100,
                 std::time::Duration::from_secs(60),
             )),
+            client_ip_policy: std::sync::Arc::new(ClientIpPolicy::trust_all()),
         }
     }
 

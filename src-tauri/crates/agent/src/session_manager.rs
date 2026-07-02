@@ -403,7 +403,7 @@ impl SessionManager {
                         .messages
                         .iter()
                         .rev()
-                        .find_map(|m| m.usage.clone())
+                        .find_map(|m| m.usage)
                 });
                 let tokens_delta = effective_usage
                     .as_ref()

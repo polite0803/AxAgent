@@ -1302,6 +1302,7 @@ mod tests {
                 100,
                 std::time::Duration::from_secs(60),
             )),
+            client_ip_policy: std::sync::Arc::new(crate::auth::ClientIpPolicy::trust_all()),
         };
         (create_router(state.clone()), handle, gateway_key.plain_key, state)
     }
@@ -1723,6 +1724,7 @@ mod tests {
                 100,
                 std::time::Duration::from_secs(60),
             )),
+            client_ip_policy: std::sync::Arc::new(crate::auth::ClientIpPolicy::trust_all()),
         });
         let response = app
             .oneshot(

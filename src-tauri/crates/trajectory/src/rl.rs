@@ -540,7 +540,7 @@ impl RLEngine {
         // 避免索引错配（原代码直接用 rewards[t] 当作 step t 的奖励，但 rewards 顺序与 step 顺序未必一致）
         let mut step_rewards: Vec<f64> = vec![0.0; values.len()];
         for r in rewards {
-            let idx = r.step_index as usize;
+            let idx = r.step_index;
             if idx < step_rewards.len() {
                 step_rewards[idx] += r.value;
             }
@@ -604,7 +604,7 @@ impl RLEngine {
         // 先按 step_index 聚合 rewards → step_rewards
         let mut step_rewards: Vec<f64> = vec![0.0; steps];
         for r in &trajectory.rewards {
-            let idx = r.step_index as usize;
+            let idx = r.step_index;
             if idx < step_rewards.len() {
                 step_rewards[idx] += r.value;
             }

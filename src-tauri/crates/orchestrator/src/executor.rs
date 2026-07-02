@@ -735,7 +735,7 @@ mod tests {
         let all_ids: Vec<String> = plan.sub_tasks.iter().map(|st| st.id.clone()).collect();
 
         // Each round: fail ALL sub_tasks, then monitor triggers replan
-        for round in 0..=max_replans {
+        for _round in 0..=max_replans {
             // Fail all sub-tasks to make the plan terminal
             for id in &all_ids {
                 executor

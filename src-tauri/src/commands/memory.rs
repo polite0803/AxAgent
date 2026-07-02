@@ -914,7 +914,9 @@ pub async fn extract_conversation_entities(
                     updated.aliases.push(alias.clone());
                 }
             }
-            let _ = storage.save_entity(&updated);
+            if let Err(e) = storage.save_entity(&updated).await {
+                tracing::warn!("Failed to save updated entity {}: {}", updated.name, e);
+            }
         }
     }
 
@@ -1186,7 +1188,10 @@ pub async fn consolidate_memory_cluster(
     if result.success {
         for id in &memory_ids {
             let ms2 = state.memory_service.read().await;
-            let _ = ms2.remove_memory("memory", id);
+            let rm_result = ms2.remove_memory("memory", id).await;
+            if !rm_result.success {
+                tracing::warn!("Failed to remove old memory {}: {}", id, rm_result.message);
+            }
         }
     }
 
