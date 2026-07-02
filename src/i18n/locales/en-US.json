@@ -8454,5 +8454,23 @@
     "report": "Reports",
     "monitor": "Monitoring",
     "other": "Other"
+  },
+  "dynamicUIManager": {
+    "defaults": {
+      "inputLabel": "Input",
+      "inputPlaceholder": "Please enter",
+      "numberLabel": "Number",
+      "selectLabel": "Select",
+      "dateLabel": "Date",
+      "switchLabel": "Switch",
+      "checkboxLabel": "Checkbox",
+      "radioLabel": "Radio",
+      "textareaLabel": "Textarea",
+      "buttonText": "Button",
+      "textContent": "Text",
+      "formSubmit": "Submit",
+      "cardTitle": "Card",
+      "tagText": "Tag"
+    }
   }
 }

@@ -53,42 +53,54 @@ function genId(prefix: string): string {
   return `${prefix}-${Date.now()}-${_idCounter}`;
 }
 
-const DEFAULT_PROPS_MAP: Partial<Record<DynamicComponentType, Record<string, unknown>>> = {
-  Input: { name: "field", label: "输入框", placeholder: "请输入" },
-  Number: { name: "number", label: "数字" },
-  Select: { name: "select", label: "下拉选择", options: [] },
-  DatePicker: { name: "date", label: "日期" },
-  Switch: { name: "enabled", label: "开关" },
-  Checkbox: { name: "checked", label: "复选框" },
-  Radio: { name: "option", label: "单选", options: [] },
-  Textarea: { name: "text", label: "文本域", placeholder: "请输入" },
-  Button: { text: "按钮" },
-  Text: { content: "文本" },
-  Form: { layout: "vertical", submitText: "提交" },
-  Card: { title: "卡片" },
-  Container: {},
-  Row: {},
-  Column: {},
-  Grid: { columns: 3 },
-  Tabs: {},
-  Accordion: {},
-  Table: { columns: [] },
-  Chart: { chartType: "line" },
-  List: {},
-  Dashboard: { items: [] },
-  CodeEditor: {},
-  FilePreview: {},
-  Markdown: { content: "" },
-  Image: { src: "" },
-  Divider: {},
-  Progress: { percent: 0 },
-  Tag: { text: "标签" },
-  Tree: { treeData: [] },
-  Timeline: { items: [] },
-};
+/** 根据 i18n t 函数生成组件默认 props */
+function getDefaultProps(t: (key: string) => string): Partial<Record<DynamicComponentType, Record<string, unknown>>> {
+  return {
+    Input: {
+      name: "field",
+      label: t("dynamicUIManager.defaults.inputLabel"),
+      placeholder: t("dynamicUIManager.defaults.inputPlaceholder"),
+    },
+    Number: { name: "number", label: t("dynamicUIManager.defaults.numberLabel") },
+    Select: { name: "select", label: t("dynamicUIManager.defaults.selectLabel"), options: [] },
+    DatePicker: { name: "date", label: t("dynamicUIManager.defaults.dateLabel") },
+    Switch: { name: "enabled", label: t("dynamicUIManager.defaults.switchLabel") },
+    Checkbox: { name: "checked", label: t("dynamicUIManager.defaults.checkboxLabel") },
+    Radio: { name: "option", label: t("dynamicUIManager.defaults.radioLabel"), options: [] },
+    Textarea: {
+      name: "text",
+      label: t("dynamicUIManager.defaults.textareaLabel"),
+      placeholder: t("dynamicUIManager.defaults.inputPlaceholder"),
+    },
+    Button: { text: t("dynamicUIManager.defaults.buttonText") },
+    Text: { content: t("dynamicUIManager.defaults.textContent") },
+    Form: { layout: "vertical", submitText: t("dynamicUIManager.defaults.formSubmit") },
+    Card: { title: t("dynamicUIManager.defaults.cardTitle") },
+    Container: {},
+    Row: {},
+    Column: {},
+    Grid: { columns: 3 },
+    Tabs: {},
+    Accordion: {},
+    Table: { columns: [] },
+    Chart: { chartType: "line" },
+    List: {},
+    Dashboard: { items: [] },
+    CodeEditor: {},
+    FilePreview: {},
+    Markdown: { content: "" },
+    Image: { src: "" },
+    Divider: {},
+    Progress: { percent: 0 },
+    Tag: { text: t("dynamicUIManager.defaults.tagText") },
+    Tree: { treeData: [] },
+    Timeline: { items: [] },
+  };
+}
 
 export function SchemaTreeEditor({ schema, onChange }: SchemaTreeEditorProps) {
   const { t } = useTranslation();
+  const defaultPropsMap = useMemo(() => getDefaultProps(t), [t]);
 
   // 用 id 路径定位选中节点
   const [selectedPath, setSelectedPath] = useState<string[]>([]);
@@ -204,12 +216,12 @@ export function SchemaTreeEditor({ schema, onChange }: SchemaTreeEditorProps) {
         node.type = newType;
         // 保留已有 props 中合法项，叠加新类型的默认 props
         node.props = {
-          ...(DEFAULT_PROPS_MAP[newType] ?? {}),
+          ...(defaultPropsMap[newType] ?? {}),
           ...node.props,
         };
       });
     },
-    [updateSelectedNode],
+    [updateSelectedNode, defaultPropsMap],
   );
 
   // Children 管理
@@ -243,12 +255,12 @@ export function SchemaTreeEditor({ schema, onChange }: SchemaTreeEditorProps) {
         version: "1.0",
         id: genId(addChildType.toLowerCase()),
         type: addChildType,
-        props: DEFAULT_PROPS_MAP[addChildType] ?? {},
+        props: defaultPropsMap[addChildType] ?? {},
       };
       node.children = [...(node.children ?? []), newChild];
     });
     setAddChildType(null);
-  }, [addChildType, updateSelectedNode]);
+  }, [addChildType, updateSelectedNode, defaultPropsMap]);
 
   const requiredProps = selectedNode
     ? COMPONENT_REQUIRED_PROPS[selectedNode.type as DynamicComponentType] ?? []

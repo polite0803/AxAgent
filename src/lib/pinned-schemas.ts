@@ -25,12 +25,12 @@ export interface PinnedSchemaConfig {
   position: number;
 }
 
-/** 预置分组定义 */
+/** 预置分组定义——实际显示用 labelKey 走 i18n，label 仅作后备 */
 export const PIN_GROUPS = [
-  { key: "dashboard", label: "仪表盘", labelKey: "pinnedGroups.dashboard" },
-  { key: "report", label: "报表", labelKey: "pinnedGroups.report" },
-  { key: "monitor", label: "监控", labelKey: "pinnedGroups.monitor" },
-  { key: "other", label: "其他", labelKey: "pinnedGroups.other" },
+  { key: "dashboard", label: "Dashboard", labelKey: "pinnedGroups.dashboard" },
+  { key: "report", label: "Report", labelKey: "pinnedGroups.report" },
+  { key: "monitor", label: "Monitor", labelKey: "pinnedGroups.monitor" },
+  { key: "other", label: "Other", labelKey: "pinnedGroups.other" },
 ] as const;
 
 // ─── 内部辅助 ───────────────────────────────────────────

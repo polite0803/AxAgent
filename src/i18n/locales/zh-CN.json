@@ -8380,7 +8380,23 @@
     "generateWithNL": "自然语言生成",
     "nlInputPlaceholder": "描述你想要的UI，例如：一个包含姓名、邮箱、电话的联系表单",
     "generating": "正在生成...",
-    "generateSuccess": "生成成功，请检查后保存"
+    "generateSuccess": "生成成功，请检查后保存",
+    "defaults": {
+      "inputLabel": "输入框",
+      "inputPlaceholder": "请输入",
+      "numberLabel": "数字",
+      "selectLabel": "下拉选择",
+      "dateLabel": "日期",
+      "switchLabel": "开关",
+      "checkboxLabel": "复选框",
+      "radioLabel": "单选",
+      "textareaLabel": "文本域",
+      "buttonText": "按钮",
+      "textContent": "文本",
+      "formSubmit": "提交",
+      "cardTitle": "卡片",
+      "tagText": "标签"
+    }
   },
   "dynamicUIPreview": {
     "title": "Dynamic UI Preview",

@@ -2750,6 +2750,18 @@
       "lines": "68,71,75",
       "reason": "非UI字符串-演示数据",
       "note": "handleCompare demo 数据，非真实 UI 文本"
+    },
+    {
+      "file": "src/components/dynamicUI/SchemaTreeEditor.tsx",
+      "lines": "345,353",
+      "reason": "非UI字符串-原生HTML属性",
+      "note": "Input placeholder 是原生 HTML attrs，非 i18n 字符串"
+    },
+    {
+      "file": "src/lib/dynamicUI/nl2ui-edit.ts",
+      "lines": "38,45",
+      "reason": "非UI字符串-Mock数据",
+      "note": "AI 后端返回的后备描述，非 UI 硬编码"
     }
   ]
 }
