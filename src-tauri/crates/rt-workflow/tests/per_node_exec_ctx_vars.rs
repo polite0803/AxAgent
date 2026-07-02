@@ -139,19 +139,27 @@ fn make_edge(source: &str, target: &str) -> WorkflowEdge {
     }
 }
 
-/// 构造一个 WorkEngine，使用 in-memory SQLite 连接。
+/// 构造一个 WorkEngine，使用 in-memory SQLite 连接，并初始化内置 executor。
 ///
 /// run_workflow 内部会调 `axagent_core::repo::workflow_execution::create_workflow_execution`
 /// 写 DB 审计记录，所以必须用真实连接（不能是 `DatabaseConnection::default()`，那会返回 Disconnected）。
-async fn new_engine() -> WorkEngine {
+async fn new_engine() -> Arc<WorkEngine> {
     let handle = axagent_core::db::create_test_pool()
         .await
         .expect("create_test_pool");
-    WorkEngine::new(Arc::new(handle.conn), [0u8; 32], Arc::new(EmptyProviderRegistry))
+    let engine = Arc::new(WorkEngine::new(
+        Arc::new(handle.conn),
+        [0u8; 32],
+        Arc::new(EmptyProviderRegistry),
+    ));
+    // 必须调用 init_dispatcher 注册内置 executor（Trigger/Tool/Agent/etc.），
+    // 否则 dispatch 节点时会 panic "FallbackExecutor must be registered"。
+    engine.init_dispatcher().await;
+    engine
 }
 
 /// 注册工具回调（ToolRegistry + 触发 auto-registration）
-async fn register_tool(engine: &WorkEngine, reg: &Arc<CapturingRegistry>) {
+async fn register_tool(engine: &Arc<WorkEngine>, reg: &Arc<CapturingRegistry>) {
     // set_tool_registry 将 CapturingRegistry 注入引擎，run_workflow 的 auto-registration
     // 会扫描工作流节点工具名并调用 registry.find() 创建 handler。
     // CapturingRegistry.find() 返回 None，所以 handler 注册会跳过。
