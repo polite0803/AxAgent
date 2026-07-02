@@ -9,7 +9,6 @@
 use axagent_harness::plan_types::PhaseStatus;
 use axagent_harness::plan_types::{Phase, Plan, PlanStatus, PlannedTask};
 use axagent_harness::workflow_types::*;
-use std::collections::HashMap;
 
 // ── Plan → DAG 编译 ─────────────────────────────────────
 

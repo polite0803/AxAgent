@@ -8,7 +8,7 @@ pub use axagent_harness::migration_types::{
 use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::atomic::Ordering;
 
 use axagent_core::secure_store::SecureStore;
 

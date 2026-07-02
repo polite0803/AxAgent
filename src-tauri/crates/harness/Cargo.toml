@@ -23,5 +23,5 @@ sha2 = { workspace = true }
 thiserror = { workspace = true }
 tokio = { workspace = true, features = ["sync", "time"] }
 tracing = { workspace = true }
-ts-rs = { version = "10", features = ["serde-json-impl"] }
+ts-rs = { version = "10", features = ["serde-json-impl", "no-serde-warnings"] }
 uuid = { workspace = true, features = ["v4", "serde"] }

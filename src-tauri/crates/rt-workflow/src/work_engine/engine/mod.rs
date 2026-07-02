@@ -730,7 +730,11 @@ impl WorkEngine {
     /// 注册自定义节点执行器（供外部 crate 扩展）。
     /// 通过 dispatcher 的 register_external 门面方法转发。
     pub async fn register_executor(&self, executor: Arc<dyn NodeExecutorTrait>) {
-        self.dispatcher.read().await.register_external(executor);
+        self.dispatcher
+            .read()
+            .await
+            .register_external(executor)
+            .await;
     }
 
     pub async fn clear_node_breakers(&self) {
