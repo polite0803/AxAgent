@@ -91,24 +91,11 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
         std::sync::Arc::new(axagent_document_parser::parser_impl::DefaultDocumentParser),
     );
 
-    let rt = tokio::runtime::Runtime::new()
-        .or_else(|e| {
-            tracing::warn!("Failed to create multi-threaded runtime for state init: {} — falling back to current-thread", e);
-            tokio::runtime::Builder::new_current_thread().enable_all().build()
-        })
-        .map_err(|e| {
-            tracing::error!("Failed to create init runtime in state: {}", e);
-            crate::android_utils::report_fatal_error(&format!(
-                "Init runtime creation failed in state: {}",
-                e
-            ));
-            format!("Init runtime creation failed in state: {}", e)
-        })?;
     // ensure_preset_servers / migrate_hardcoded_paths / migrate_legacy_keys
     // 已合并到 axagent_core::db::create_pool() 中，无需在此重复调用
 
-    let app_settings = rt
-        .block_on(axagent_core::repo::settings::get_settings(&sea_db))
+    let app_settings = axagent_core::repo::settings::get_settings(&sea_db)
+        .await
         .unwrap_or_default();
 
     axagent_core::storage_paths::init_documents_root(
@@ -123,15 +110,15 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
 
     let shared_trajectory_storage: Arc<axagent_trajectory::TrajectoryStorage> = {
         let db_file_path = db_path.strip_prefix("sqlite:").unwrap_or(&db_path);
-        let storage = rt
-            .block_on(axagent_trajectory::TrajectoryStorage::with_fts_path(
-                Arc::new(sea_db.clone()),
-                db_file_path,
-            ))
-            .unwrap_or_else(|e| {
-                tracing::warn!("Failed to init trajectory FTS5, falling back to no-FTS: {}", e);
-                axagent_trajectory::TrajectoryStorage::new(Arc::new(sea_db.clone()))
-            });
+        let storage = axagent_trajectory::TrajectoryStorage::with_fts_path(
+            Arc::new(sea_db.clone()),
+            db_file_path,
+        )
+        .await
+        .unwrap_or_else(|e| {
+            tracing::warn!("Failed to init trajectory FTS5, falling back to no-FTS: {}", e);
+            axagent_trajectory::TrajectoryStorage::new(Arc::new(sea_db.clone()))
+        });
         Arc::new(storage)
     };
 
@@ -187,9 +174,9 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
 
     let platform_bridge = harness.build_platform_bridge(platform_manager.clone());
 
-    rt.block_on(platform_manager.set_message_callback(platform_bridge.clone()));
+    platform_manager.set_message_callback(platform_bridge.clone()).await;
 
-    let sync_engine = create_sync_engine(&sea_db, &app_settings, rt.handle());
+    let sync_engine = create_sync_engine(&sea_db, &app_settings).await;
 
     let config_home = app_dir.clone();
     let mut plugin_config = PluginManagerConfig::new(config_home.clone());
@@ -331,12 +318,12 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
         tokio::sync::RwLock<axagent_trajectory::ParallelExecutionService>,
     > = Arc::new(tokio::sync::RwLock::new(axagent_trajectory::ParallelExecutionService::new(10)));
     let cron_job_store: Arc<axagent_runtime_core::CronJobStore> =
-        Arc::new(rt.block_on(axagent_runtime_core::CronJobStore::new(Arc::new(sea_db.clone()))));
+        Arc::new(axagent_runtime_core::CronJobStore::new(Arc::new(sea_db.clone())).await);
     let user_profile: Arc<TokioRwLock<axagent_trajectory::UserProfile>> =
         Arc::new(TokioRwLock::new(axagent_trajectory::UserProfile::new()));
     let local_tool_registry: Arc<tokio::sync::Mutex<axagent_tools::registry::UnifiedToolRegistry>> = {
         let mut registry = axagent_tools::registry::UnifiedToolRegistry::new();
-        rt.block_on(registry.load_enabled_state(&sea_db));
+        registry.load_enabled_state(&sea_db).await;
         Arc::new(tokio::sync::Mutex::new(registry))
     };
     let work_engine: Arc<axagent_runtime::work_engine::WorkEngine> = {
@@ -346,13 +333,13 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
             harness_registry.clone(),
         ));
         // Plan 模式：AgentExecutor 注入 engine 引用以创建/执行临时工作流
-        rt.block_on(engine.inject_into_agent_executor(engine.clone()));
+        engine.inject_into_agent_executor(engine.clone()).await;
         // 注册领域约束：所有角色走通用 DomainConstraints::by_role
-        rt.block_on(engine.set_domain_constraints(Arc::new(|role_name: &str| {
+        engine.set_domain_constraints(Arc::new(|role_name: &str| {
             axagent_rt_workflow::work_engine::domain_constraints::DomainConstraints::by_role(
                 role_name,
             )
-        })));
+        })).await;
         engine
     };
     let skill_decomposer: Arc<tokio::sync::RwLock<axagent_trajectory::SkillDecomposer>> =
@@ -376,11 +363,11 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
         axagent_runtime::webhook_subscription::WebhookSubscriptionManager::new(),
     ));
     let semantic_cache: Arc<tokio::sync::Mutex<SemanticCacheState>> = {
-        let cache = match rt.block_on(SemanticCache::new(sea_db.clone(), CacheConfig::default())) {
+        let cache = match SemanticCache::new(sea_db.clone(), CacheConfig::default()).await {
             Ok(c) => c,
             Err(e) => {
                 tracing::error!("Semantic cache init failed: {} — retrying once", e);
-                match rt.block_on(SemanticCache::new(sea_db.clone(), CacheConfig::default())) {
+                match SemanticCache::new(sea_db.clone(), CacheConfig::default()).await {
                     Ok(c) => c,
                     Err(e2) => {
                         // 数据库初始化已成功，两次失败表明 CREATE TABLE 持续出错。
@@ -390,10 +377,10 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
                             e2
                         );
                         let fallback_db =
-                            rt.block_on(sea_orm::Database::connect("sqlite::memory:"));
+                            sea_orm::Database::connect("sqlite::memory:").await;
                         match fallback_db {
-                            Ok(mem_db) => rt
-                                .block_on(SemanticCache::new(mem_db, CacheConfig::default()))
+                            Ok(mem_db) => SemanticCache::new(mem_db, CacheConfig::default())
+                                .await
                                 .map_err(|e3| {
                                     crate::android_utils::report_fatal_error(&format!(
                                         "SemanticCache in-memory fallback failed: {}",
@@ -592,7 +579,7 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
         let _ig_clone = r_clone.get_insight_generator();
         // 注：Reflector::init_persistence 和 InsightGenerator::init_persistence
         // 将在后续版本中从远程同步（当前暂未合并到主分支）。
-        rt.spawn(async move {
+        tokio::spawn(async move {
             tracing::info!(
                 "[reflector] persistence init deferred — will be added in a follow-up sync"
             );
@@ -680,26 +667,24 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
     })
 }
 
-fn create_sync_engine(
+async fn create_sync_engine(
     _sea_db: &sea_orm::DatabaseConnection,
     _app_settings: &axagent_harness::types::AppSettings,
-    rt_handle: &tokio::runtime::Handle,
 ) -> Option<Arc<SyncEngine>> {
-    let cloud_config = load_cloud_storage_config(_sea_db, _app_settings, rt_handle)?;
+    let cloud_config = load_cloud_storage_config(_sea_db, _app_settings).await?;
     let backend = cloud_config.create_backend().ok()?;
     let device_id = hostname_or_uuid();
     let profile_name = cloud_config.profile_name.clone();
     Some(Arc::new(SyncEngine::new(backend, &profile_name, &device_id)))
 }
 
-fn load_cloud_storage_config(
+async fn load_cloud_storage_config(
     sea_db: &sea_orm::DatabaseConnection,
     _app_settings: &axagent_harness::types::AppSettings,
-    rt_handle: &tokio::runtime::Handle,
 ) -> Option<CloudStorageConfig> {
     use axagent_core::cloud_storage::{BackendType, S3Config, S3ProviderPreset, SyncMode};
-    let settings = rt_handle
-        .block_on(axagent_core::repo::settings::get_settings(sea_db))
+    let settings = axagent_core::repo::settings::get_settings(sea_db)
+        .await
         .ok()?;
 
     if !settings.cloud_sync_enabled {
