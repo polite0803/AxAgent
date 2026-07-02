@@ -34,12 +34,11 @@ export function FilesContent({ activeCategory }: FilesContentProps) {
 
   const [selectedRowKeys, setSelectedRowKeys] = useState<string[]>([]);
 
-  // 组件挂载时初始化状态
+  // 组件挂载时初始化外部 store 状态（避免在 effect 内 setState 触发级联渲染）
   useEffect(() => {
     setSearch("");
     setSortKey("createdAt");
-    setSelectedRowKeys([]);
-  }, [setSearch, setSortKey, setSelectedRowKeys]);
+  }, [setSearch, setSortKey]);
 
   useEffect(() => {
     void loadCategory(activeCategory);

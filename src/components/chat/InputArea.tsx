@@ -203,19 +203,19 @@ export function InputArea() {
   const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
 
   const objectUrlsRef = useRef<string[]>([]);
-  const attachmentObjectUrls = useMemo(() => {
-    // 为每个附件创建 blob URL；旧 URL 由 useEffect cleanup 释放
-    const urls = attachedFiles.map((f) => URL.createObjectURL(f));
-    objectUrlsRef.current = urls;
-    return urls;
-  }, [attachedFiles]);
+  // 仅为缓存上一次的 URLs（用于 cleanup），不能在 render phase 写入 ref
+  const attachmentObjectUrls = useMemo(
+    () => attachedFiles.map((f) => URL.createObjectURL(f)),
+    [attachedFiles],
+  );
   useEffect(() => {
-    // cleanup: 组件卸载或 attachedFiles 更新前，释放旧 blob URL
-    const prevUrls = objectUrlsRef.current;
+    // 同步最新 URLs 到 ref，供后续 cleanup 读取
+    objectUrlsRef.current = attachmentObjectUrls;
     return () => {
-      prevUrls.forEach((url) => URL.revokeObjectURL(url));
+      // 组件卸载或 attachedFiles 更新前，释放旧 blob URL
+      objectUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
     };
-  }, [attachedFiles]);
+  }, [attachmentObjectUrls]);
   const [voiceCallVisible, setVoiceCallVisible] = useState(false);
   const photoInputRef = useRef<HTMLInputElement>(null);
   const audioInputRef = useRef<HTMLInputElement>(null);

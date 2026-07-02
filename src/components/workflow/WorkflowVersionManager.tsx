@@ -81,7 +81,7 @@ export function WorkflowVersionManager({ workflow, open, onClose }: WorkflowVers
         ),
       });
     }
-  }, [selectedVersions]);
+  }, [selectedVersions, t]);
 
   const columns = [
     {

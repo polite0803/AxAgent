@@ -62,7 +62,8 @@ export function DiagnosticDrawer({ open, onClose, onJumpToNode }: DiagnosticDraw
     })),
   );
 
-  const issues = report?.issues ?? [];
+  // useMemo 包装 issues，避免每次 render 创建新数组导致下方 useMemo 依赖频繁变更
+  const issues = useMemo(() => report?.issues ?? [], [report?.issues]);
   const summary = report?.summary ?? { error: 0, warning: 0, info: 0 };
 
   const filtered = useMemo(() => {
