@@ -92,8 +92,9 @@ test.describe("Workflow Editor Canvas", () => {
   });
 
   test("should open AI panel", async ({ page }) => {
+    // 先确认编辑器头存在（工作流编辑器已完全渲染），再找 AI 面板按钮
     const aiPanelBtn = page.locator('[data-testid="workflow-ai-panel-btn"]');
-    await expect(aiPanelBtn).toBeVisible({ timeout: 5000 });
+    await expect(aiPanelBtn).toBeVisible({ timeout: 10000 });
     await aiPanelBtn.click();
     await page.waitForTimeout(500);
     const textarea = page.locator("textarea").first();

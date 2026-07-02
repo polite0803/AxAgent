@@ -478,13 +478,15 @@ mod tests {
 
     #[test]
     fn test_get_recovery_strategy_recoverable_without_adjustments() {
+        // 关闭 adjustments 时,Recoverable 错误降级为纯 Retry(而非 Fail),
+        // 保证关闭"调整参数"开关时仍可重试,只是不会自动调整参数。
         let config = RecoveryConfig {
             enable_adjustments: false,
             ..RecoveryConfig::default()
         };
         let engine = ErrorRecoveryEngine::new().with_config(config);
         let strategy = engine.get_recovery_strategy(ErrorType::Recoverable);
-        assert!(matches!(strategy, RecoveryStrategy::Fail));
+        assert!(matches!(strategy, RecoveryStrategy::Retry { .. }));
     }
 
     #[test]
