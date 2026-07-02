@@ -174,7 +174,9 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
 
     let platform_bridge = harness.build_platform_bridge(platform_manager.clone());
 
-    platform_manager.set_message_callback(platform_bridge.clone()).await;
+    platform_manager
+        .set_message_callback(platform_bridge.clone())
+        .await;
 
     let sync_engine = create_sync_engine(&sea_db, &app_settings).await;
 
@@ -326,22 +328,23 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
         registry.load_enabled_state(&sea_db).await;
         Arc::new(tokio::sync::Mutex::new(registry))
     };
-    let work_engine: Arc<axagent_runtime::work_engine::WorkEngine> = {
-        let engine = Arc::new(axagent_runtime::work_engine::WorkEngine::new(
-            Arc::new(sea_db.clone()),
-            master_key,
-            harness_registry.clone(),
-        ));
-        // Plan 模式：AgentExecutor 注入 engine 引用以创建/执行临时工作流
-        engine.inject_into_agent_executor(engine.clone()).await;
-        // 注册领域约束：所有角色走通用 DomainConstraints::by_role
-        engine.set_domain_constraints(Arc::new(|role_name: &str| {
+    let work_engine: Arc<axagent_runtime::work_engine::WorkEngine> =
+        {
+            let engine = Arc::new(axagent_runtime::work_engine::WorkEngine::new(
+                Arc::new(sea_db.clone()),
+                master_key,
+                harness_registry.clone(),
+            ));
+            // Plan 模式：AgentExecutor 注入 engine 引用以创建/执行临时工作流
+            engine.inject_into_agent_executor(engine.clone()).await;
+            // 注册领域约束：所有角色走通用 DomainConstraints::by_role
+            engine.set_domain_constraints(Arc::new(|role_name: &str| {
             axagent_rt_workflow::work_engine::domain_constraints::DomainConstraints::by_role(
                 role_name,
             )
         })).await;
-        engine
-    };
+            engine
+        };
     let skill_decomposer: Arc<tokio::sync::RwLock<axagent_trajectory::SkillDecomposer>> =
         Arc::new(tokio::sync::RwLock::new(axagent_trajectory::SkillDecomposer::new()));
     let proactive_service: Arc<tokio::sync::RwLock<ProactiveService>> =
@@ -376,8 +379,7 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
                             "Semantic cache failed permanently: {} — using in-memory fallback (non-persistent cache)",
                             e2
                         );
-                        let fallback_db =
-                            sea_orm::Database::connect("sqlite::memory:").await;
+                        let fallback_db = sea_orm::Database::connect("sqlite::memory:").await;
                         match fallback_db {
                             Ok(mem_db) => SemanticCache::new(mem_db, CacheConfig::default())
                                 .await
