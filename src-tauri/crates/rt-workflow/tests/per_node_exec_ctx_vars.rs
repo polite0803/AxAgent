@@ -150,14 +150,23 @@ async fn new_engine() -> WorkEngine {
     WorkEngine::new(Arc::new(handle.conn), [0u8; 32], Arc::new(EmptyProviderRegistry))
 }
 
+/// 注册工具回调（ToolRegistry + 触发 auto-registration）
+async fn register_tool(engine: &WorkEngine, reg: &Arc<CapturingRegistry>) {
+    // set_tool_registry 将 CapturingRegistry 注入引擎，run_workflow 的 auto-registration
+    // 会扫描工作流节点工具名并调用 registry.find() 创建 handler。
+    // CapturingRegistry.find() 返回 None，所以 handler 注册会跳过。
+    // 但 tool_executor 优先走 ToolRegistry 执行路径（exec_ctx.tool_registry），
+    // 当 CapturingRegistry 被注入 exec_ctx 后，直接调用 execute_tool() 捕获调用。
+    engine.set_tool_registry(reg.clone()).await;
+}
+
 // ── 回归测试 1：state.variables 透传到 per-node exec_ctx ────────────────
 
 #[tokio::test]
-#[ignore = "flaky: depends on WorkEngine tool execution path — engine regression needs triage"]
 async fn per_node_exec_ctx_inherits_global_variables() {
     let engine = new_engine().await;
     let reg = Arc::new(CapturingRegistry::default());
-    engine.set_tool_registry(reg.clone()).await;
+    register_tool(&engine, &reg).await;
 
     // workflow: trigger -> tool1(input_mapping: stock_code <- "stock_code")
     let mut input_mapping = HashMap::new();
@@ -206,7 +215,7 @@ async fn per_node_exec_ctx_inherits_global_variables() {
 async fn per_node_exec_ctx_input_params_fallback() {
     let engine = new_engine().await;
     let reg = Arc::new(CapturingRegistry::default());
-    engine.set_tool_registry(reg.clone()).await;
+    register_tool(&engine, &reg).await;
 
     let mut input_mapping = HashMap::new();
     input_mapping.insert("stock_code".to_string(), "stock_code".to_string());
@@ -245,11 +254,10 @@ async fn per_node_exec_ctx_input_params_fallback() {
 // ── 回归测试 3：deps_results 优先于 state.variables ─────────────────────
 
 #[tokio::test]
-#[ignore = "flaky: depends on WorkEngine tool execution path — engine regression needs triage"]
 async fn per_node_exec_ctx_deps_results_take_precedence() {
     let engine = new_engine().await;
     let reg = Arc::new(CapturingRegistry::default());
-    engine.set_tool_registry(reg.clone()).await;
+    register_tool(&engine, &reg).await;
 
     // workflow: trigger -> upstream(id="upstream_value") -> downstream
     //

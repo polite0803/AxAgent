@@ -41,7 +41,9 @@ use crate::workflow_engine::{
 
 use super::dispatcher::NodeDispatcher;
 use super::error_handling::ErrorContext;
-use super::execution_state::{ExecutionState, ExecutionStatus, NodeExecutionRecord};
+use super::execution_state::{
+    ExecutionContextCallbacks, ExecutionState, ExecutionStatus, NodeExecutionRecord,
+};
 use super::executors::{
     AgentExecutor, ConditionExecutor, LlmClassifierExecutor, LlmExecutor, PlanCallbacks,
     ProfileCache, ProviderCache, RagCallback, SubWorkflowCallback, ToolCallback,
@@ -1666,6 +1668,15 @@ impl WorkEngine {
                 {
                     let tool_handlers = self.tool_handlers.lock().await.clone();
                     let tool_fallback = self.tool_fallback.lock().await.clone();
+                    // 将 tool handlers 注入 per-node exec_ctx，供 tool executor 回调路径使用
+                    exec_ctx.callbacks = Some(ExecutionContextCallbacks {
+                        tool_handlers: tool_handlers.clone(),
+                        tool_fallback: tool_fallback.clone(),
+                        trigger_manager: None,
+                        subworkflow: None,
+                        loop_body_dispatch: None,
+                        loop_checkpoint: None,
+                    });
 
                     let engine_clone = self.clone();
                     let sub_model_id = options.model_id.clone();
@@ -2420,6 +2431,18 @@ impl WorkEngine {
                             }
                         }
                         exec_ctx.variables = merged_vars;
+                        exec_ctx.tool_registry = self.tool_registry();
+                        exec_ctx.cancel_token = Some(cancel_token.clone());
+                        exec_ctx.dry_run = options.dry_run;
+                        exec_ctx.business_rule_engine = self.business_rule_engine();
+                        {
+                            let bp = self.breakpoints.lock().await;
+                            exec_ctx.breakpoints = bp.clone();
+                        }
+                        {
+                            let compiled = self.compiled_prompts.read().await;
+                            exec_ctx.compiled_prompts = compiled.get(workflow_id).cloned();
+                        }
                         let dispatcher = Arc::clone(&self.dispatcher);
                         let _cancel_token = options
                             .parent_cancel_token
