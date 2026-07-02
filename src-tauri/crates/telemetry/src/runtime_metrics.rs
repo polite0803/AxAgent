@@ -214,7 +214,12 @@ mod tests {
 
         // llm_calls_total should have entries
         assert!(obj.contains_key("llm_calls_total"));
-        assert!(obj.contains_key("llm_latency_ms"));
+        // Histogram metrics emit suffixed keys (bucket/sum/count), not the base name
+        assert!(
+            obj.contains_key("llm_latency_ms_sum") || obj.contains_key("llm_latency_ms_count"),
+            "expected llm_latency_ms histogram data (sum or count) in export, got keys: {:?}",
+            obj.keys().collect::<Vec<_>>()
+        );
         assert!(obj.contains_key("llm_tokens_total"));
 
         // Check that our recorded values appear
