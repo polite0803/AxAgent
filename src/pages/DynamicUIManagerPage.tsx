@@ -33,8 +33,9 @@ import {
   Tag,
   Typography,
 } from "antd";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useSearchParams } from "react-router-dom";
 
 const { Title, Paragraph, Text } = Typography;
 const { TextArea } = Input;
@@ -65,6 +66,20 @@ export function DynamicUIManagerPage() {
   useEffect(() => {
     void fetchSchemas();
   }, [fetchSchemas]);
+
+  // 支持 ?schema=<标题> URL 查询参数自动选中
+  const [searchParams] = useSearchParams();
+  const schemaParam = searchParams.get("schema");
+  const autoSelectedRef = useRef(false);
+
+  useEffect(() => {
+    if (autoSelectedRef.current || !schemaParam || schemas.length === 0) { return; }
+    const match = schemas.find((s) => s.title === schemaParam);
+    if (match) {
+      setSelectedSchema(match);
+      autoSelectedRef.current = true;
+    }
+  }, [schemaParam, schemas]);
 
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {

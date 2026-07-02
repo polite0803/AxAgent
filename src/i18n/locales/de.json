@@ -2620,7 +2620,19 @@
       "deepseekBalance": "DeepSeek-Guthaben",
       "noValidKey": "Kein gültiger Schlüssel"
     },
-    "stockAnalysis": "Stock Analysis"
+    "stockAnalysis": "Stock Analysis",
+    "dynamicPages": {
+      "title": "Dynamische Seiten",
+      "description": "Dynamische UI-Seiten erstellen und verwalten, mit Anheftung an die Seitenleiste",
+      "createNew": "Neue Seite erstellen",
+      "aiGenerate": "KI generieren",
+      "fixed": "Angeheftet",
+      "group": "Gruppe",
+      "position": "Position",
+      "pinToNav": "An Navigation anheften",
+      "pinAfterCreate": "Nach Erstellung an Seitenleiste anheften",
+      "schemaJson": "Schema JSON"
+    }
   },
   "backup": {
     "title": "Sicherungscenter",
@@ -8381,5 +8393,11 @@
   },
   "sdk": {
     "acpRequestFailed": "[TODO] ACP request failed: {{message}}"
+  },
+  "pinnedGroups": {
+    "dashboard": "Dashboard",
+    "report": "Berichte",
+    "monitor": "Überwachung",
+    "other": "Sonstiges"
   }
 }

@@ -730,6 +730,7 @@ export type SettingsSection =
   | "imageGen"
   | "theme"
   | "cron"
+  | "dynamicPages"
   | string;
 
 // === Generated Tool ===

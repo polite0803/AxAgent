@@ -2620,7 +2620,19 @@
       "deepseekBalance": "DeepSeek 残高",
       "noValidKey": "有効なキーがありません"
     },
-    "stockAnalysis": "Stock Analysis"
+    "stockAnalysis": "Stock Analysis",
+    "dynamicPages": {
+      "title": "動的ページ",
+      "description": "動的UIページを作成・管理し、サイドバーナビゲーションにピン留めできます",
+      "createNew": "新規ページ作成",
+      "aiGenerate": "AI生成",
+      "fixed": "ピン留め",
+      "group": "グループ",
+      "position": "位置",
+      "pinToNav": "ナビゲーションにピン留め",
+      "pinAfterCreate": "作成後にサイドバーにピン留め",
+      "schemaJson": "スキーマJSON"
+    }
   },
   "backup": {
     "title": "バックアップセンター",
@@ -8384,5 +8396,11 @@
   },
   "sdk": {
     "acpRequestFailed": "[TODO] ACP request failed: {{message}}"
+  },
+  "pinnedGroups": {
+    "dashboard": "ダッシュボード",
+    "report": "レポート",
+    "monitor": "監視",
+    "other": "その他"
   }
 }

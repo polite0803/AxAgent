@@ -1374,6 +1374,18 @@
       "disabled": "插件已禁用",
       "unloaded": "插件已卸载"
     },
+    "dynamicPages": {
+      "title": "动态页面管理",
+      "description": "创建和管理动态UI页面，支持固定到侧栏导航",
+      "createNew": "创建新页面",
+      "aiGenerate": "AI 生成",
+      "fixed": "固定在导航",
+      "group": "分组",
+      "position": "位置",
+      "pinToNav": "固定到导航",
+      "pinAfterCreate": "创建后固定到侧栏导航",
+      "schemaJson": "Schema JSON"
+    },
     "webhooks": "Webhook",
     "data": {
       "title": "数据管理"
@@ -5402,10 +5414,24 @@
       "success": "执行成功"
     },
     "version": {
+      "newNode": "+ 新增节点: {{id}} ({{desc}})",
+      "deletedNode": "- 删除节点: {{id}} ({{desc}})",
+      "modifiedNode": "~ 修改节点: {{id}} ({{desc}})",
+      "compareHint": "正在对比版本 {{v1}} 和版本 {{v2}}",
       "current": "当前版本",
-      "optimizedConfig": "优化节点配置",
-      "addedBranch": "添加条件分支",
-      "initialCreation": "初始创建"
+      "version": "版本",
+      "updateTime": "更新时间",
+      "changeSummary": "变更摘要",
+      "status": "状态",
+      "currentWorkflowWillBeOverwritten": "当前工作流将被新版本覆盖",
+      "noVersionHistory": "暂无版本记录",
+      "timeline": "时间线",
+      "action": "操作",
+      "restoreToVersion": "恢复到此版本",
+      "confirmRestore": "确定恢复到版本 {{version}}？",
+      "compareSelected": "对比选中版本 ({{selected}}/2)",
+      "clearSelection": "清除选择",
+      "versionManager": "版本管理: {{name}}"
     },
     "duplicateSuffix": "{{name}} (副本)",
     "fromTemplate": "{{name}} (来自模板)",
@@ -5427,29 +5453,9 @@
       "duplicate": "复制",
       "deleteConfirm": "确定删除此工作流？"
     },
-    "version": {
-      "newNode": "+ 新增节点: {{id}} ({{desc}})",
-      "deletedNode": "- 删除节点: {{id}} ({{desc}})",
-      "modifiedNode": "~ 修改节点: {{id}} ({{desc}})",
-      "compareHint": "正在对比版本 {{v1}} 和版本 {{v2}}",
-      "current": "当前版本",
-      "version": "版本",
-      "updateTime": "更新时间",
-      "changeSummary": "变更摘要",
-      "status": "状态",
-      "currentWorkflowWillBeOverwritten": "当前工作流将被新版本覆盖",
-      "noVersionHistory": "暂无版本记录",
-      "timeline": "时间线",
-      "action": "操作",
-      "restoreToVersion": "恢复到此版本",
-      "confirmRestore": "确定恢复到版本 {{version}}？",
-      "compareSelected": "对比选中版本 ({{selected}}/2)",
-      "clearSelection": "清除选择",
-      "versionManager": "版本管理: {{name}}"
-    },
     "executor": {
       "inputVariables": "输入变量",
-      "executing": "正在执行工作流节点...",
+      "executing": "执行中...",
       "status": "状态",
       "duration": "耗时",
       "nodeExecutionStatus": "节点执行状态",
@@ -5457,7 +5463,6 @@
       "executionLog": "执行日志",
       "close": "关闭",
       "execute": "执行工作流",
-      "executing": "执行中...",
       "executionSuccess": "执行成功",
       "executionFailed": "执行失败"
     },
@@ -5607,7 +5612,15 @@
       "save": "保存检查点",
       "empty": "暂无检查点",
       "saveModal": "保存检查点",
-      "namePlaceholder": "输入检查点名称..."
+      "namePlaceholder": "输入检查点名称...",
+      "name": "名称",
+      "step": "步数",
+      "loss": "损失",
+      "reward": "奖励",
+      "time": "时间",
+      "action": "操作",
+      "load": "加载",
+      "delete": "删除"
     },
     "status": {
       "idle": "空闲",
@@ -5632,21 +5645,6 @@
       "batchSize": "批次大小",
       "epochs": "训练轮数",
       "maxSteps": "最大步数"
-    },
-    "checkpoints": {
-      "title": "检查点列表",
-      "save": "保存检查点",
-      "empty": "暂无检查点",
-      "saveModal": "保存检查点",
-      "namePlaceholder": "输入检查点名称...",
-      "name": "名称",
-      "step": "步数",
-      "loss": "损失",
-      "reward": "奖励",
-      "time": "时间",
-      "action": "操作",
-      "load": "加载",
-      "delete": "删除"
     },
     "panel": {
       "title": "RL 训练面板",
@@ -8512,5 +8510,11 @@
   },
   "sdk": {
     "acpRequestFailed": "ACP 请求失败: {{message}}"
+  },
+  "pinnedGroups": {
+    "dashboard": "仪表盘",
+    "report": "报表",
+    "monitor": "监控",
+    "other": "其他"
   }
 }

@@ -100,6 +100,9 @@ const LazyThemeManager = lazy(() =>
 const LazyCronManager = lazy(() =>
   import("@/components/settings/CronManager").then((m) => ({ default: m.CronManager }))
 );
+const LazyDynamicPagesSettings = lazy(() =>
+  import("@/components/settings/DynamicPagesSettings").then((m) => ({ default: m.DynamicPagesSettings }))
+);
 
 function SectionFallback() {
   return (
@@ -263,6 +266,11 @@ const SECTION_COMPONENTS: Record<SettingsSection, () => React.ReactNode> = {
   cron: () => (
     <Suspense fallback={<SectionFallback />}>
       <CronManagerWrapper />
+    </Suspense>
+  ),
+  dynamicPages: () => (
+    <Suspense fallback={<SectionFallback />}>
+      <LazyDynamicPagesSettings />
     </Suspense>
   ),
 };

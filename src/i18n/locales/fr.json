@@ -2620,7 +2620,19 @@
       "deepseekBalance": "Solde DeepSeek",
       "noValidKey": "Aucune clé valide"
     },
-    "stockAnalysis": "Stock Analysis"
+    "stockAnalysis": "Stock Analysis",
+    "dynamicPages": {
+      "title": "Pages dynamiques",
+      "description": "Créer et gérer des pages UI dynamiques, supporte l'épinglage à la barre latérale",
+      "createNew": "Créer une nouvelle page",
+      "aiGenerate": "Générer par IA",
+      "fixed": "Épinglé",
+      "group": "Groupe",
+      "position": "Position",
+      "pinToNav": "Épingler à la navigation",
+      "pinAfterCreate": "Épingler à la barre latérale après création",
+      "schemaJson": "Schéma JSON"
+    }
   },
   "backup": {
     "title": "Centre de sauvegarde",
@@ -8381,5 +8393,11 @@
   },
   "sdk": {
     "acpRequestFailed": "[TODO] ACP request failed: {{message}}"
+  },
+  "pinnedGroups": {
+    "dashboard": "Tableau de bord",
+    "report": "Rapports",
+    "monitor": "Surveillance",
+    "other": "Autres"
   }
 }

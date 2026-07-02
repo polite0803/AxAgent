@@ -120,41 +120,20 @@ export async function subscribeDataSource(
     cleanupFns.push(() => window.clearInterval(timer));
   }
 
-  // 处理store响应式订阅
+  // Store 类型数据源 — 通过 StoreRegistry 获取 store 并执行响应式订阅
   if (config.type === "store") {
     const { storeName, selector } = config.config as {
       storeName: string;
       selector?: string;
     };
-    const stores = await import("@/stores");
-    const storeMap: Record<string, { subscribe: (listener: () => void) => () => void }> = {
-      preference: stores.usePreferenceStore as never,
-      conversation: stores.useConversationStore as never,
-      ui: stores.useUIStore as never,
-      skill: stores.useSkillStore as never,
-      artifact: stores.useArtifactStore as never,
-      settings: stores.useSettingsStore as never,
-      provider: stores.useProviderStore as never,
-      knowledge: stores.useKnowledgeStore as never,
-      agent: stores.useAgentStore as never,
-      tab: stores.useTabStore as never,
-      stream: stores.useStreamStore as never,
-      execution: stores.useExecutionStore as never,
-    };
-
-    const zustandStore = storeMap[storeName];
-    if (zustandStore) {
+    const { getStoreRegistry } = await import("@/lib/storeRegistry");
+    const store = getStoreRegistry().get(storeName);
+    if (store && typeof store.subscribe === "function") {
       const getNested = getNestedValue;
-      const unsubscribe = zustandStore.subscribe(() => {
-        void (async () => {
-          const { getStoreRegistry } = await import("@/lib/storeRegistry");
-          const store = getStoreRegistry().get(storeName);
-          if (store) {
-            const state = store.get() as Record<string, unknown>;
-            const data = selector ? getNested(state, selector) : state;
-            onData(data);
-          }
-        })();
+      const unsubscribe = store.subscribe(() => {
+        const state = store.get() as Record<string, unknown>;
+        const data = selector ? getNested(state, selector) : state;
+        onData(data);
       });
       cleanupFns.push(unsubscribe);
     }

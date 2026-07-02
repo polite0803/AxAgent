@@ -2620,7 +2620,19 @@
       "deepseekBalance": "DeepSeek 餘額",
       "noValidKey": "無可用金鑰"
     },
-    "stockAnalysis": "Stock Analysis"
+    "stockAnalysis": "Stock Analysis",
+    "dynamicPages": {
+      "title": "動態頁面管理",
+      "description": "創建和管理動態 UI 頁面，支援固定到側欄導航",
+      "createNew": "創建新頁面",
+      "aiGenerate": "AI 生成",
+      "fixed": "固定在導航",
+      "group": "分組",
+      "position": "位置",
+      "pinToNav": "固定到導航",
+      "pinAfterCreate": "創建後固定到側欄導航",
+      "schemaJson": "Schema JSON"
+    }
   },
   "backup": {
     "title": "備份中心",
@@ -8381,5 +8393,11 @@
   },
   "sdk": {
     "acpRequestFailed": "[TODO] ACP request failed: {{message}}"
+  },
+  "pinnedGroups": {
+    "dashboard": "傀表盤",
+    "report": "報表",
+    "monitor": "監控",
+    "other": "其他"
   }
 }

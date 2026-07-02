@@ -2620,7 +2620,19 @@
       "deepseekBalance": "DeepSeek शेष",
       "noValidKey": "कोई मान्य कुंजी नहीं"
     },
-    "stockAnalysis": "Stock Analysis"
+    "stockAnalysis": "Stock Analysis",
+    "dynamicPages": {
+      "title": "डायनेमिक पेज",
+      "description": "डायनेमिक UI पेज बनाएं और प्रबंधित करें, साइडबैर नेविगेशन पर पिन करने का समर्थन करता है",
+      "createNew": "नया पेज बनाएं",
+      "aiGenerate": "AI जनरेट करें",
+      "fixed": "पिन किया गया",
+      "group": "समूह",
+      "position": "स्थिति",
+      "pinToNav": "नेविगेशन पर पिन करें",
+      "pinAfterCreate": "बनाने के बाद साइडबैर पर पिन करें",
+      "schemaJson": "स्कीमा JSON"
+    }
   },
   "backup": {
     "title": "बैकअप केंद्र",
@@ -8384,5 +8396,11 @@
   },
   "sdk": {
     "acpRequestFailed": "[TODO] ACP request failed: {{message}}"
+  },
+  "pinnedGroups": {
+    "dashboard": "डैशबोर्ड",
+    "report": "रिपोर्ट",
+    "monitor": "निगरानी",
+    "other": "अन्य"
   }
 }

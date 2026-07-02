@@ -1373,6 +1373,18 @@
       "disabled": "تم تعطيل الإضافة",
       "unloaded": "تم إلغاء تحميل الإضافة"
     },
+    "dynamicPages": {
+      "title": "صفحات ديناميكية",
+      "description": "إنشاء وإدارة صفحات واجهة ديناميكية، تدعم التثبيت في الشريط الجانبي",
+      "createNew": "إنشاء صفحة جديدة",
+      "aiGenerate": "توليد بالذكاء الاصطناعي",
+      "fixed": "مثبت",
+      "group": "مجموعة",
+      "position": "الموضع",
+      "pinToNav": "تثبيت في التنقل",
+      "pinAfterCreate": "تثبيت في الشريط الجانبي بعد الإنشاء",
+      "schemaJson": "مخطط JSON"
+    },
     "webhooks": "ويب هوك",
     "data": {
       "title": "إدارة البيانات"
@@ -8384,5 +8396,11 @@
   },
   "sdk": {
     "acpRequestFailed": "[TODO] ACP request failed: {{message}}"
+  },
+  "pinnedGroups": {
+    "dashboard": "لوحة القيادة",
+    "report": "التقارير",
+    "monitor": "المراقبة",
+    "other": "أخرى"
   }
 }

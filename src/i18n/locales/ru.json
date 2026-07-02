@@ -2620,7 +2620,19 @@
       "deepseekBalance": "Баланс DeepSeek",
       "noValidKey": "Нет действительного ключа"
     },
-    "stockAnalysis": "Stock Analysis"
+    "stockAnalysis": "Stock Analysis",
+    "dynamicPages": {
+      "title": "Динамические страницы",
+      "description": "Создание и управление динамическими UI-страницами, поддержка закрепления в боковой панели",
+      "createNew": "Создать страницу",
+      "aiGenerate": "Сгенерировать ИИ",
+      "fixed": "Закреплено",
+      "group": "Группа",
+      "position": "Позиция",
+      "pinToNav": "Закрепить в навигации",
+      "pinAfterCreate": "Закрепить в боковой панели после создания",
+      "schemaJson": "Схема JSON"
+    }
   },
   "backup": {
     "title": "Центр резервного копирования",
@@ -8384,5 +8396,11 @@
   },
   "sdk": {
     "acpRequestFailed": "[TODO] ACP request failed: {{message}}"
+  },
+  "pinnedGroups": {
+    "dashboard": "Панель",
+    "report": "Отчеты",
+    "monitor": "Мониторинг",
+    "other": "Другое"
   }
 }

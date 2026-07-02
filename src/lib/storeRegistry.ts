@@ -6,6 +6,7 @@ type StoreAccessor = {
   get: (payload?: unknown) => unknown;
   set: (payload?: unknown) => void;
   update: (payload?: unknown) => void;
+  subscribe: (listener: () => void) => () => void;
 };
 
 const storeRegistry = new Map<string, StoreAccessor>();
@@ -26,7 +27,11 @@ export async function initStoreRegistry(): Promise<void> {
 
   const registry: Array<{
     name: string;
-    store: { getState: () => unknown; setState: (partial: unknown) => void };
+    store: {
+      getState: () => unknown;
+      setState: (partial: unknown) => void;
+      subscribe: (listener: () => void) => () => void;
+    };
   }> = [
     {
       name: "preference",
@@ -34,6 +39,7 @@ export async function initStoreRegistry(): Promise<void> {
       store: stores.usePreferenceStore as unknown as {
         getState: () => unknown;
         setState: (partial: unknown) => void;
+        subscribe: (listener: () => void) => () => void;
       },
     },
     {
@@ -42,6 +48,7 @@ export async function initStoreRegistry(): Promise<void> {
       store: stores.useConversationStore as unknown as {
         getState: () => unknown;
         setState: (partial: unknown) => void;
+        subscribe: (listener: () => void) => () => void;
       },
     },
     {
@@ -50,6 +57,7 @@ export async function initStoreRegistry(): Promise<void> {
       store: stores.useUIStore as unknown as {
         getState: () => unknown;
         setState: (partial: unknown) => void;
+        subscribe: (listener: () => void) => () => void;
       },
     },
     // P1 #16: skill store 已从白名单移除 — Skill 不应通过声明式 action
@@ -60,6 +68,7 @@ export async function initStoreRegistry(): Promise<void> {
       store: stores.useArtifactStore as unknown as {
         getState: () => unknown;
         setState: (partial: unknown) => void;
+        subscribe: (listener: () => void) => () => void;
       },
     },
     {
@@ -68,6 +77,7 @@ export async function initStoreRegistry(): Promise<void> {
       store: stores.useUIStore as unknown as {
         getState: () => unknown;
         setState: (partial: unknown) => void;
+        subscribe: (listener: () => void) => () => void;
       },
     },
     {
@@ -76,6 +86,7 @@ export async function initStoreRegistry(): Promise<void> {
       store: stores.useSettingsStore as unknown as {
         getState: () => unknown;
         setState: (partial: unknown) => void;
+        subscribe: (listener: () => void) => () => void;
       },
     },
     {
@@ -84,6 +95,7 @@ export async function initStoreRegistry(): Promise<void> {
       store: stores.useProviderStore as unknown as {
         getState: () => unknown;
         setState: (partial: unknown) => void;
+        subscribe: (listener: () => void) => () => void;
       },
     },
     {
@@ -92,6 +104,7 @@ export async function initStoreRegistry(): Promise<void> {
       store: stores.useKnowledgeStore as unknown as {
         getState: () => unknown;
         setState: (partial: unknown) => void;
+        subscribe: (listener: () => void) => () => void;
       },
     },
     {
@@ -100,6 +113,7 @@ export async function initStoreRegistry(): Promise<void> {
       store: stores.useAgentStore as unknown as {
         getState: () => unknown;
         setState: (partial: unknown) => void;
+        subscribe: (listener: () => void) => () => void;
       },
     },
     {
@@ -108,6 +122,7 @@ export async function initStoreRegistry(): Promise<void> {
       store: stores.useTabStore as unknown as {
         getState: () => unknown;
         setState: (partial: unknown) => void;
+        subscribe: (listener: () => void) => () => void;
       },
     },
     {
@@ -116,6 +131,7 @@ export async function initStoreRegistry(): Promise<void> {
       store: stores.useStreamStore as unknown as {
         getState: () => unknown;
         setState: (partial: unknown) => void;
+        subscribe: (listener: () => void) => () => void;
       },
     },
     {
@@ -124,6 +140,7 @@ export async function initStoreRegistry(): Promise<void> {
       store: stores.useExecutionStore as unknown as {
         getState: () => unknown;
         setState: (partial: unknown) => void;
+        subscribe: (listener: () => void) => () => void;
       },
     },
   ];
@@ -161,6 +178,7 @@ export async function initStoreRegistry(): Promise<void> {
           );
         }
       },
+      subscribe: (listener) => store.subscribe(listener),
     });
   }
 }

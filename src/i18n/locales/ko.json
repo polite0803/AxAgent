@@ -2620,7 +2620,19 @@
       "deepseekBalance": "DeepSeek 잔액",
       "noValidKey": "유효한 키 없음"
     },
-    "stockAnalysis": "Stock Analysis"
+    "stockAnalysis": "Stock Analysis",
+    "dynamicPages": {
+      "title": "동적 페이지",
+      "description": "동적 UI 페이지를 생성하고 관리하며, 사이드바 탐색에 고정할 수 있습니다",
+      "createNew": "새 페이지 만들기",
+      "aiGenerate": "AI 생성",
+      "fixed": "고정됨",
+      "group": "그룹",
+      "position": "위치",
+      "pinToNav": "탐색에 고정",
+      "pinAfterCreate": "생성 후 사이드바에 고정",
+      "schemaJson": "스키마 JSON"
+    }
   },
   "backup": {
     "title": "백업 센터",
@@ -8384,5 +8396,11 @@
   },
   "sdk": {
     "acpRequestFailed": "[TODO] ACP request failed: {{message}}"
+  },
+  "pinnedGroups": {
+    "dashboard": "대시보드",
+    "report": "보고서",
+    "monitor": "모니터링",
+    "other": "기타"
   }
 }

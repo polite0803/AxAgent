@@ -32,6 +32,7 @@ export { PluginMarketplace } from "../chat/PluginMarketplace";
 export { BackupCenter } from "./BackupCenter";
 export { CacheConfigPanel } from "./CacheConfigPanel";
 export { CronManager } from "./CronManager";
+export { DynamicPagesSettings } from "./DynamicPagesSettings";
 export { ImageGenSettings } from "./ImageGenSettings";
 export { PromptTemplatesSettings } from "./PromptTemplatesSettings";
 export { SchedulerSettings } from "./SchedulerSettings";
