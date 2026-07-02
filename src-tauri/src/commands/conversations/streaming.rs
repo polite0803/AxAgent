@@ -1375,7 +1375,7 @@ pub async fn regenerate_message(
         let wm_content_2: String;
         {
             let ms = state.memory_service.read().await;
-            wm_content_2 = ms.format_for_prompt();
+            wm_content_2 = ms.format_for_prompt().await;
         }
 
         if !rag_result.context_parts.is_empty() {
@@ -1777,7 +1777,7 @@ pub async fn regenerate_with_model(
         let wm_content_3: String;
         {
             let ms = state.memory_service.read().await;
-            wm_content_3 = ms.format_for_prompt();
+            wm_content_3 = ms.format_for_prompt().await;
         }
 
         if !rag_result.context_parts.is_empty() {

@@ -184,6 +184,7 @@ pub async fn skills_hub_review(
             state
                 .trajectory_storage
                 .save_skill(&axagent_skill)
+                .await
                 .map_err(|e| format!("保存 skill 到存储失败: {e}"))?;
 
             let skill_content = axagent_skill.content.clone();

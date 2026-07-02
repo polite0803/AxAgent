@@ -109,6 +109,7 @@ axagent-document-parser = { path = "crates/document-parser" }
 axagent-gateway = { path = "crates/gateway" }
 axagent-harness = { path = "crates/harness" }
 axagent-migration = { path = "crates/migration" }
+axagent-orchestrator = { path = "crates/orchestrator" }
 axagent-plugins = { path = "crates/plugins" }
 axagent-prompt-guard = { path = "crates/prompt-guard" }
 axagent-providers = { path = "crates/providers" }

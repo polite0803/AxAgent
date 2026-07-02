@@ -174,7 +174,7 @@ fn start_memory_maintenance_tick(state: &AppState) {
                         );
                     }
                     let ms = memory_service.read().await;
-                    let clusters = ms.find_similar_clusters(0.75);
+                    let clusters = ms.find_similar_clusters(0.75).await;
                     drop(ms);
                     if !clusters.is_empty() {
                         tracing::info!(
@@ -941,7 +941,7 @@ fn start_memory_decay_tick(state: &AppState) {
         let interval = std::time::Duration::from_secs(3600);
         loop {
             tokio::time::sleep(interval).await;
-            let ms = state.memory_service.read().await;
+            let ms = memory_service.read().await;
             let evicted = ms.apply_decay_tick().await;
             drop(ms);
             if evicted > 0 {

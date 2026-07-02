@@ -226,7 +226,16 @@ pub fn run() {
             // 在独立线程中运行初始化，避免在 Tauri 的 tokio runtime 内创建嵌套 Runtime
             android_utils::mark_startup_phase("state_init_start");
             let state = match std::thread::spawn(move || {
-                init::state::create_app_state(db_result)
+                let rt = tokio::runtime::Runtime::new()
+                    .or_else(|e| {
+                        tracing::warn!("Failed to create multi-threaded runtime for state init: {} — falling back to current-thread", e);
+                        tokio::runtime::Builder::new_current_thread().enable_all().build()
+                    })
+                    .unwrap_or_else(|e| {
+                        android_utils::report_fatal_error(&format!("Failed to create state init runtime: {}", e));
+                        panic!("Fatal: state init runtime creation failed: {}", e);
+                    });
+                rt.block_on(init::state::create_app_state(db_result))
             }).join() {
                 Ok(Ok(s)) => s,
                 Ok(Err(e)) => {
@@ -299,7 +308,7 @@ pub fn run() {
                 }
             }
 
-            if let Ok(persisted) = state.trajectory_storage.get_patterns() as Result<Vec<axagent_trajectory::TrajectoryPattern>, _> {
+            if let Ok(persisted) = tauri::async_runtime::block_on(state.trajectory_storage.get_patterns()) {
                 if !persisted.is_empty() {
                     let pattern_count = persisted.len();
                     let pattern_learner = state.pattern_learner.clone();

@@ -883,6 +883,7 @@ pub async fn extract_conversation_entities(
 
         let existing_entities = storage
             .search_entities(&ext_entity.name, 5)
+            .await
             .unwrap_or_default();
         let already_exists = existing_entities.iter().any(|e| {
             e.name.to_lowercase() == ext_entity.name.to_lowercase()
@@ -891,7 +892,7 @@ pub async fn extract_conversation_entities(
         });
 
         if !already_exists {
-            if let Err(e) = storage.save_entity(&entity) {
+            if let Err(e) = storage.save_entity(&entity).await {
                 tracing::warn!("Failed to save entity {}: {}", ext_entity.name, e);
             } else {
                 saved_entities += 1;
@@ -925,9 +926,11 @@ pub async fn extract_conversation_entities(
     for ext_rel in &result.relations {
         let source_entities = storage
             .search_entities(&ext_rel.source_name, 3)
+            .await
             .unwrap_or_default();
         let target_entities = storage
             .search_entities(&ext_rel.target_name, 3)
+            .await
             .unwrap_or_default();
 
         let source_id = match source_entities.first() {
@@ -951,7 +954,7 @@ pub async fn extract_conversation_entities(
             created_at: chrono::Utc::now(),
         };
 
-        if let Err(e) = storage.save_relationship(&rel) {
+        if let Err(e) = storage.save_relationship(&rel).await {
             tracing::warn!("Failed to save relationship: {}", e);
         } else {
             saved_relations += 1;
@@ -973,7 +976,7 @@ pub async fn graph_search_memories(
     limit: Option<usize>,
 ) -> Result<serde_json::Value, String> {
     let ms = state.memory_service.read().await;
-    let results = ms.graph_enhanced_search(&query, limit.unwrap_or(10));
+    let results = ms.graph_enhanced_search(&query, limit.unwrap_or(10)).await;
     Ok(serde_json::to_value(results).unwrap_or_default())
 }
 

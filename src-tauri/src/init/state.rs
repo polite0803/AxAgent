@@ -22,7 +22,7 @@ use tokio_util::sync::CancellationToken;
 ///
 /// 失败时返回结构化错误，由调用方决定如何处理（错误展示 / 重试 / 退出）。
 /// 不再 `process::exit(1)`——harness 架构要求启动错误可被前端感知。
-pub fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState, String> {
+pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState, String> {
     let DatabaseInitResult {
         db_handle,
         master_key,

@@ -4091,6 +4091,7 @@ pub async fn pattern_list(
         let all = app_state
             .trajectory_storage
             .get_patterns()
+            .await
             .map_err(|e| e.to_string())?;
         all.iter()
             .filter_map(|p| serde_json::to_value(p).ok())
