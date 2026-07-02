@@ -683,7 +683,7 @@ export const AIPanel: React.FC<AIPanelProps> = ({
                         marginBottom: 6,
                       }}
                     >
-                      进化历史
+                      {t("workflow.aiPanel.evolutionHistory")}
                     </label>
                     {recent.map((evt) => (
                       <Card
@@ -698,7 +698,7 @@ export const AIPanel: React.FC<AIPanelProps> = ({
                       >
                         <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11 }}>
                           <span style={{ color: token.colorTextSecondary }}>
-                            v{evt.version} {evt.summary || "优化"}
+                            v{evt.version} {evt.summary || t("workflow.aiPanel.evolutionFallback")}
                           </span>
                           <span style={{ color: token.colorTextTertiary }}>
                             {new Date(evt.timestamp).toLocaleDateString()}
@@ -799,7 +799,7 @@ export const AIPanel: React.FC<AIPanelProps> = ({
                                 color="green"
                                 style={{ fontSize: 10, margin: 0, padding: "0 4px", lineHeight: "16px" }}
                               >
-                                已验证有效
+                                {t("workflow.aiPanel.verified")}
                               </Tag>
                             )}
                             {hasHistory && !hasABWin && (
@@ -807,7 +807,7 @@ export const AIPanel: React.FC<AIPanelProps> = ({
                                 color="blue"
                                 style={{ fontSize: 10, margin: 0, padding: "0 4px", lineHeight: "16px" }}
                               >
-                                有进化记录
+                                {t("workflow.aiPanel.hasEvolution")}
                               </Tag>
                             )}
                           </>
@@ -927,7 +927,7 @@ export const AIPanel: React.FC<AIPanelProps> = ({
             </Radio.Button>
             <Radio.Button value="evolution">
               <Rocket size={11} style={{ marginRight: 4, verticalAlign: -1 }} />
-              进化
+              {t("workflow.aiPanel.tabEvolution")}
             </Radio.Button>
           </Radio.Group>
         </div>

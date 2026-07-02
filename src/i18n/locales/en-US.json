@@ -3805,7 +3805,12 @@
       "promptAppliedToNode": "Prompt applied to node",
       "replaceMode": "Replace mode",
       "retry": "Retry",
-      "toolsMode": "Tools mode"
+      "toolsMode": "Tools mode",
+      "tabEvolution": "Evolution",
+      "evolutionHistory": "Evolution History",
+      "evolutionFallback": "Optimization",
+      "verified": "Verified",
+      "hasEvolution": "Has evolution records"
     },
     "templateList": {
       "moreActions": "More actions for {{name}}",
@@ -5103,7 +5108,7 @@
     },
     "executor": {
       "inputVariables": "Input Variables",
-      "executing": "Executing workflow nodes...",
+      "executing": "Executing...",
       "status": "Status",
       "duration": "Duration",
       "nodeExecutionStatus": "Node Execution Status",
@@ -5111,7 +5116,6 @@
       "executionLog": "Execution Log",
       "close": "Close",
       "execute": "Execute Workflow",
-      "executing": "Executing...",
       "executionSuccess": "Execution Successful",
       "executionFailed": "Execution Failed"
     },
@@ -5254,7 +5258,15 @@
       "save": "Save Checkpoint",
       "empty": "No checkpoints",
       "saveModal": "Save Checkpoint",
-      "namePlaceholder": "Enter checkpoint name..."
+      "namePlaceholder": "Enter checkpoint name...",
+      "name": "Name",
+      "step": "Step",
+      "loss": "Loss",
+      "reward": "Reward",
+      "time": "Time",
+      "action": "Action",
+      "load": "Load",
+      "delete": "Delete"
     },
     "status": {
       "idle": "Idle",
@@ -5279,21 +5291,6 @@
       "batchSize": "Batch Size",
       "epochs": "Epochs",
       "maxSteps": "Max Steps"
-    },
-    "checkpoints": {
-      "title": "Checkpoints",
-      "save": "Save Checkpoint",
-      "empty": "No checkpoints",
-      "saveModal": "Save Checkpoint",
-      "namePlaceholder": "Enter checkpoint name...",
-      "name": "Name",
-      "step": "Step",
-      "loss": "Loss",
-      "reward": "Reward",
-      "time": "Time",
-      "action": "Action",
-      "load": "Load",
-      "delete": "Delete"
     },
     "panel": {
       "title": "RL Training Panel",
@@ -6091,6 +6088,9 @@
     "import": "Import",
     "importObsidian": "Import Obsidian Vault",
     "importObsidianDesc": "Select an Obsidian vault directory to import all .md files as Wiki notes.",
+    "importKnowledgeMd": "Import knowledge source",
+    "importKnowledgeMdDesc": "Import KNOWLEDGE.md as Wiki notes for RAG indexing",
+    "importKnowledgeMdResult": "Knowledge source imported: {{imported}} created, {{skipped}} skipped, {{failed}} failed",
     "importResult": "Imported: {{imported}}, Skipped: {{skipped}}, Failed: {{failed}}",
     "nodes": "Nodes",
     "preview": "Preview",

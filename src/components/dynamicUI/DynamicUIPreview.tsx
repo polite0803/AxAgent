@@ -69,13 +69,13 @@ export const DynamicUIPreview: React.FC = () => {
           JSON.parse(schemaText);
         } catch (err) {
           setParseError(
-            err instanceof Error ? err.message : "JSON 解析失败",
+            err instanceof Error ? err.message : t("dynamicUIPreview.jsonParseError"),
           );
         }
       }
     }, 0);
     return () => clearTimeout(timer);
-  }, [schema, schemaText]);
+  }, [schema, schemaText, t]);
 
   const handleReset = useCallback(() => {
     setSchemaText(JSON.stringify(DEFAULT_SCHEMA, null, 2));

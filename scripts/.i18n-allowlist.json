@@ -1,8 +1,8 @@
 {
   "version": "2",
   "generated": "2026-07-01",
-  "total_entries": 429,
-  "total_files": 400,
+  "total_entries": 458,
+  "total_files": 419,
   "entries": [
     {
       "file": "src/stores/domain/streamStore.ts",
@@ -1576,9 +1576,10 @@
     },
     {
       "file": "src/stores/feature/workflowEditorStore.ts",
-      "lines": "23,25,27,123,124,239,240,241,242,260,267,268,269,270,271,287,288,289,317,319,322,324,370,371,392,677,903,904,919,920,951,962,971,1076,1805,1834,2144,2147,2153,2164,2183,2201,2205,2218,2219,2220",
+      "lines": "23,25,27,123,124,239,240,241,242,260,267,268,269,270,271,287,288,289,317,319,322,324,370,371,392,677,903,904,919,920,951,962,971,1076,1805,1834,2144,2147,2153,2164,2183,2201,2205,2218,2219,2220,2779,2786,2795",
       "reason": "硬编码中文字符串",
-      "phase": 3
+      "phase": 3,
+      "note": "2779/2786/2795=LLM prompt context"
     },
     {
       "file": "src/stores/shared/rightPanelStore.ts",
@@ -2620,9 +2621,9 @@
     },
     {
       "file": "src/components/workflow/AIPanel/AIPanel.tsx",
-      "lines": "45,46,47,48,231,250,272,295,302,313,677,692,793,801,921",
+      "lines": "45,46,47,48,231,240,250,259,272,281,295,302,304,311,313,322,677,692,793,801,921",
       "reason": "硬编码中文字符串-待迁移",
-      "note": "Phase 4 自动分类：硬编码中文字符串-待迁移"
+      "note": "Phase 4 自动分类：硬编码中文字符串-待迁移；240/259/281/322=内部日志；304/311=LLM context"
     },
     {
       "file": "src/components/workflow/AIPanel/EvolutionTab.tsx",
@@ -2731,6 +2732,24 @@
       "lines": "2769,2776,2785",
       "reason": "硬编码中文字符串-待迁移",
       "note": "Phase 4 自动分类：硬编码中文字符串-待迁移"
+    },
+    {
+      "file": "src/components/dynamicUI/DynamicUIPreview.tsx",
+      "lines": "24,30",
+      "reason": "非UI字符串-演示数据",
+      "note": "DEFAULT_SCHEMA 演示数据，非真实 UI 文本"
+    },
+    {
+      "file": "src/components/workflow/NLParserPanel.tsx",
+      "lines": "20",
+      "reason": "非UI字符串-演示数据",
+      "note": "placeholder 示例数据，非真实 UI 文本"
+    },
+    {
+      "file": "src/components/workflow/WorkflowVersionManager.tsx",
+      "lines": "68,71,75",
+      "reason": "非UI字符串-演示数据",
+      "note": "handleCompare demo 数据，非真实 UI 文本"
     }
   ]
 }
