@@ -96,28 +96,27 @@ export function SchemaTreeEditor({ schema, onChange }: SchemaTreeEditorProps) {
 
   const root = useMemo(() => cloneSchema(schema), [schema]);
 
-  // 递归构建 Tree DataNode
-  const buildTreeData = useCallback(
-    (node: UISchema, parentPath: string[] = []): DataNode => {
-      const currentPath = [...parentPath, node.id];
-      return {
-        key: currentPath.join("."),
-        title: (
-          <span className="flex items-center gap-1">
-            <Tag color="geekblue" className="text-[10px] leading-none px-1 py-0">
-              {node.type}
-            </Tag>
-            <span className="text-xs truncate max-w-[140px]">{node.id}</span>
-          </span>
-        ),
-        children: node.children?.map((c) => buildTreeData(c, currentPath)),
-        isLeaf: !node.children || node.children.length === 0,
-      };
-    },
-    [],
-  );
+  // 递归构建 Tree DataNode（用 function 声明而非 const + useCallback，
+  // 否则递归引用 buildTreeData 时会触发 react-hooks/immutability 违规）
+  function buildTreeData(node: UISchema, parentPath: string[] = []): DataNode {
+    const currentPath = [...parentPath, node.id];
+    return {
+      key: currentPath.join("."),
+      title: (
+        <span className="flex items-center gap-1">
+          <Tag color="geekblue" className="text-[10px] leading-none px-1 py-0">
+            {node.type}
+          </Tag>
+          <span className="text-xs truncate max-w-[140px]">{node.id}</span>
+        </span>
+      ),
+      children: node.children?.map((c) => buildTreeData(c, currentPath)),
+      isLeaf: !node.children || node.children.length === 0,
+    };
+  }
 
-  const treeData = useMemo(() => [buildTreeData(root)], [root, buildTreeData]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const treeData = useMemo(() => [buildTreeData(root)], [root]);
 
   // 选中的节点
   const selectedNode = useMemo(() => {

@@ -72,6 +72,7 @@ export function DynamicUIManagerPage() {
   const schemaParam = searchParams.get("schema");
   const autoSelectedRef = useRef(false);
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (autoSelectedRef.current || !schemaParam || schemas.length === 0) { return; }
     const match = schemas.find((s) => s.title === schemaParam);
@@ -80,6 +81,7 @@ export function DynamicUIManagerPage() {
       autoSelectedRef.current = true;
     }
   }, [schemaParam, schemas]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {

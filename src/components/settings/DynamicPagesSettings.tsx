@@ -32,7 +32,6 @@ import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 const { Text, Paragraph, Title } = Typography;
-const { TextArea } = Input;
 
 export function DynamicPagesSettings() {
   const { t } = useTranslation();
@@ -54,7 +53,7 @@ export function DynamicPagesSettings() {
   const [editNlPrompt, setEditNlPrompt] = useState("");
   const [editGenerating, setEditGenerating] = useState(false);
   const [editSaving, setEditSaving] = useState(false);
-  const [editParseError, setEditParseError] = useState<string | null>(null);
+  const [, setEditParseError] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
   const [editTags, setEditTags] = useState<string[]>([]);
 
