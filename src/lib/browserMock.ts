@@ -3098,6 +3098,32 @@ export async function handleCommand<T>(
     case "pty_clear_output":
       return null as T;
 
+    // ── NL-to-Workflow ────────────────────────────────────────────────
+    case "generate_workflow_from_prompt": {
+      return {
+        nodes: [
+          {
+            id: "trigger-1",
+            type: "trigger",
+            label: "触发器",
+            config: { trigger_type: "manual" },
+            position: { x: 100, y: 100 },
+          },
+          {
+            id: "action-1",
+            type: "tool",
+            label: "执行动作",
+            config: { tool_name: "mock_tool" },
+            position: { x: 300, y: 100 },
+          },
+        ],
+        edges: [
+          { id: "e1", source: "trigger-1", target: "action-1" },
+        ],
+        explanation: `由 NL prompt "${(args as { prompt?: string })?.prompt ?? ""}" 解析生成`,
+      } as T;
+    }
+
     default: {
       console.warn(`[BrowserMock] Unhandled command: ${cmd}`, args);
       // SAFE: browser mock fallback for unhandled commands — returns empty placeholder matching generic T
