@@ -62,7 +62,11 @@ pub fn extract_client_ip<B>(
     let peer_ip = fallback.map(|addr| addr.ip());
 
     let peer_is_trusted = peer_ip
-        .map(|ip| policy.trusted_proxies.contains(&ip))
+        .map(|ip| {
+            policy.trusted_proxies.contains(&ip)
+                || policy.trusted_proxies.contains(&std::net::IpAddr::V4(std::net::Ipv4Addr::UNSPECIFIED))
+                || policy.trusted_proxies.contains(&std::net::IpAddr::V6(std::net::Ipv6Addr::UNSPECIFIED))
+        })
         .unwrap_or(false);
 
     if peer_is_trusted {
