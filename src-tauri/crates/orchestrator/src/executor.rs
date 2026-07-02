@@ -686,16 +686,24 @@ mod tests {
     #[tokio::test]
     async fn test_replan_on_failure() {
         let executor = OrchestratorExecutor::new();
-        executor
-            .receive_mission("Test replan", OrchestrationStrategy::Ordered)
+        let plan = executor
+            .receive_mission("Quick fix", OrchestrationStrategy::Ordered)
             .await
             .unwrap();
 
-        // Fail the analyze task
-        let result = executor
-            .report_sub_task_failed("analyze", "test failure")
-            .await
-            .unwrap();
+        // Collect actual sub-task IDs from the plan
+        let all_ids: Vec<String> = plan.sub_tasks.iter().map(|st| st.id.clone()).collect();
+
+        // Fail ALL sub-tasks so the plan becomes terminal
+        for id in &all_ids {
+            executor
+                .update_sub_task_status(id, SubTaskStatus::Failed)
+                .await
+                .unwrap();
+        }
+
+        // Trigger replan — plan is terminal with failures
+        let result = executor.monitor_and_maybe_replan().await.unwrap();
 
         // Should trigger replan since all terminal with failures
         assert!(result.is_some());
