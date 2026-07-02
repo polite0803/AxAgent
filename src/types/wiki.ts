@@ -99,6 +99,13 @@ export type ImportStats = {
   skipped: number;
 };
 
+export type KnowledgeMdImportStats = {
+  imported: number;
+  failed: number;
+  skipped: number;
+  total: number;
+};
+
 export type ExportStats = {
   exported: number;
   failed: number;

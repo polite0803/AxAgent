@@ -760,6 +760,7 @@ macro_rules! register_all_commands {
             commands::wiki::wiki_note_create_from_template,
             commands::wiki::wiki_create_daily_note,
             commands::wiki::wiki_import_obsidian_vault,
+            commands::wiki::wiki_import_knowledge_md,
             commands::wiki::wiki_export_markdown,
             commands::wiki::wiki_export_html,
             commands::wiki::wiki_note_export_pdf,

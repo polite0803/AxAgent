@@ -10,7 +10,7 @@ import { WikiNodeContextMenu } from "@/components/wiki/WikiNodeContextMenu";
 import { invoke } from "@/lib/invoke";
 import { useLlmWikiStore } from "@/stores/feature/llmWikiStore";
 import { useWikiStore } from "@/stores/feature/wikiStore";
-import { FileAddOutlined, NodeIndexOutlined, ReloadOutlined, SearchOutlined } from "@ant-design/icons";
+import { BookOutlined, FileAddOutlined, NodeIndexOutlined, ReloadOutlined, SearchOutlined } from "@ant-design/icons";
 import { Button, Empty, Input, message, Select, Space, Spin, Tag, theme, Typography } from "antd";
 import { Eye, PanelLeft, PanelRight } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -214,6 +214,30 @@ export function WikiGraphPage() {
     }
   }, [wikiIdFromUrl, createNote, loadNotes, loadGraphData, i18n.language, t]);
 
+  const { importKnowledgeMd } = useWikiStore();
+  const [importingMd, setImportingMd] = useState(false);
+
+  const handleImportKnowledgeMd = useCallback(async () => {
+    setImportingMd(true);
+    try {
+      const stats = await importKnowledgeMd(wikiIdFromUrl);
+      if (stats) {
+        message.success(
+          t("wiki.importKnowledgeMdResult", {
+            imported: stats.imported,
+            skipped: stats.skipped,
+            failed: stats.failed,
+          }),
+        );
+        loadNotes(wikiIdFromUrl);
+        loadGraphData();
+      }
+    } catch (e) {
+      message.error(String(e));
+    }
+    setImportingMd(false);
+  }, [wikiIdFromUrl, importKnowledgeMd, loadNotes, loadGraphData, t]);
+
   const handleCreateLinkedNote = useCallback(
     async (sourceNodeId: string) => {
       const sourceNode = graphData?.nodes.find((n) => n.id === sourceNodeId);
@@ -382,6 +406,15 @@ export function WikiGraphPage() {
             size="small"
             icon={<FileAddOutlined />}
             onClick={handleCreateNote}
+          />
+        </Tooltip>
+
+        <Tooltip title={t("wiki.importKnowledgeMdDesc")}>
+          <Button
+            size="small"
+            icon={<BookOutlined />}
+            onClick={handleImportKnowledgeMd}
+            loading={importingMd}
           />
         </Tooltip>
 

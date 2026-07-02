@@ -7,6 +7,7 @@ import type {
   CreateWikiTemplateInput,
   ExportStats,
   ImportStats,
+  KnowledgeMdImportStats,
   Note,
   NoteLink,
   NoteSearchResult,
@@ -62,6 +63,10 @@ interface WikiState {
     wikiId: string,
     vaultPath: string,
   ) => Promise<ImportStats | null>;
+  importKnowledgeMd: (
+    wikiId: string,
+    filePath?: string,
+  ) => Promise<{ imported: number; failed: number; skipped: number; total: number } | null>;
   exportMarkdown: (
     wikiId: string,
     outputPath: string,
@@ -314,6 +319,20 @@ export const useWikiStore = create<WikiState>((set) => ({
       const stats = await invoke<ImportStats>("wiki_import_obsidian_vault", {
         wikiId,
         vaultPath,
+      });
+      set({ error: null });
+      return stats;
+    } catch (e) {
+      set({ error: String(e) });
+      return null;
+    }
+  },
+
+  importKnowledgeMd: async (wikiId, filePath) => {
+    try {
+      const stats = await invoke<KnowledgeMdImportStats>("wiki_import_knowledge_md", {
+        wikiId,
+        filePath: filePath ?? null,
       });
       set({ error: null });
       return stats;

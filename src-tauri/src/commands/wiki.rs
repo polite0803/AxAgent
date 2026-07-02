@@ -1002,6 +1002,120 @@ pub async fn wiki_import_obsidian_vault(
     })
 }
 
+#[derive(Debug, Clone, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct KnowledgeMdImportStats {
+    pub imported: usize,
+    pub failed: usize,
+    pub skipped: usize,
+    pub total: usize,
+}
+
+/// 将 KNOWLEDGE.md（精炼知识源）导入为 Wiki 笔记。
+/// 按 `## ` 标题分割章节，每个章节创建一条笔记。
+/// 自动触发向量索引，使知识可通过 RAG 管道检索。
+#[tauri::command]
+pub async fn wiki_import_knowledge_md(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    wiki_id: String,
+    file_path: Option<String>,
+) -> Result<KnowledgeMdImportStats, String> {
+    let default_path = std::path::Path::new(".workbuddy/memory/KNOWLEDGE.md");
+    let path = file_path.as_deref().unwrap_or_default();
+    let knowledge_path = if path.is_empty() {
+        default_path
+    } else {
+        std::path::Path::new(path)
+    };
+
+    // 检查文件是否存在
+    if !knowledge_path.exists() {
+        return Err(format!("KNOWLEDGE.md not found at: {}", knowledge_path.display()));
+    }
+
+    let raw = std::fs::read_to_string(knowledge_path)
+        .map_err(|e| format!("Failed to read KNOWLEDGE.md: {}", e))?;
+
+    // 解析章节：按 `## ` 分割，跳过第一个（标题/引言）
+    let sections: Vec<&str> = raw.split("\n## ").collect();
+    if sections.is_empty() {
+        return Ok(KnowledgeMdImportStats {
+            imported: 0,
+            failed: 0,
+            skipped: 0,
+            total: 0,
+        });
+    }
+
+    // 获取已有笔记标题，跳过重复
+    let existing = axagent_core::repo::note::list_notes(state.harness.db(), &wiki_id)
+        .await
+        .map_err(|e| e.to_string())?;
+    let existing_titles: std::collections::HashSet<String> =
+        existing.iter().map(|n| n.title.clone()).collect();
+
+    let mut imported = 0usize;
+    let mut failed = 0usize;
+    let mut skipped = 0usize;
+
+    for section in &sections {
+        // 提取标题和内容
+        let (title, content) = if let Some(pos) = section.find('\n') {
+            let title_raw = section[..pos].trim().to_string();
+            let body = section[pos + 1..].trim().to_string();
+            // 跳过 INTRODUCTION 和元信息
+            if title_raw.is_empty()
+                || title_raw.to_lowercase().contains("introduction")
+                || title_raw.starts_with("---")
+            {
+                continue;
+            }
+            (title_raw, body)
+        } else {
+            // 无换行的短片段，跳过
+            continue;
+        };
+
+        if title.is_empty() {
+            continue;
+        }
+
+        if existing_titles.contains(&title) {
+            skipped += 1;
+            continue;
+        }
+
+        let input = CreateNoteInput {
+            vault_id: wiki_id.clone(),
+            title: title.clone(),
+            file_path: format!("knowledge/{}.md", title),
+            content: format!("## {}\n\n{}", title, content),
+            author: "knowledge-md-import".to_string(),
+            page_type: Some("knowledge".to_string()),
+            source_refs: Some(vec![knowledge_path.to_string_lossy().to_string()]),
+        };
+
+        match axagent_core::repo::note::create_note(state.harness.db(), input).await {
+            Ok(note) => {
+                enqueue_wiki_note_indexing(&state, &app, &wiki_id, &note.id);
+                imported += 1;
+            },
+            Err(e) => {
+                tracing::warn!("Failed to create note from section '{}': {}", title, e);
+                failed += 1;
+            },
+        }
+    }
+
+    Ok(KnowledgeMdImportStats {
+        imported,
+        failed,
+        skipped,
+        total: sections.len(),
+    })
+}
+
 fn collect_md_files(current: &std::path::Path, files: &mut Vec<std::path::PathBuf>) {
     if let Ok(entries) = std::fs::read_dir(current) {
         for entry in entries.flatten() {
