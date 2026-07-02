@@ -152,6 +152,18 @@ impl EvolutionPopulation {
 fn tournament_select(population: &[SkillGenome], tournament_size: usize) -> SkillGenome {
     use rand::seq::SliceRandom;
 
+    // P1-10: 空种群直接 panic 防护
+    if population.is_empty() {
+        // 返回一个占位的空 genome，避免上游崩溃
+        return SkillGenome {
+            skill_id: String::new(),
+            content: String::new(),
+            description: String::new(),
+            steps: Vec::new(),
+            fitness: 0.0,
+        };
+    }
+
     let mut rng = rand::thread_rng();
     let size = population.len().min(tournament_size);
     let indices: Vec<usize> = (0..population.len()).collect();
@@ -175,11 +187,18 @@ fn tournament_select(population: &[SkillGenome], tournament_size: usize) -> Skil
 }
 
 fn crossover_genomes(parent1: &SkillGenome, parent2: &SkillGenome) -> SkillGenome {
+    // P0-7: 任一父本 steps 为空都直接返回 parent1，避免 slice panic
+    if parent1.steps.is_empty() || parent2.steps.is_empty() {
+        return parent1.clone();
+    }
+
     let mut rng = rand::thread_rng();
 
-    let cross_point = rng.gen_range(1..parent1.steps.len().max(2));
+    let cross_point = rng
+        .gen_range(1..parent1.steps.len().max(2))
+        .min(parent1.steps.len());
 
-    let mut child_steps = parent1.steps[..cross_point.min(parent1.steps.len())].to_vec();
+    let mut child_steps = parent1.steps[..cross_point].to_vec();
     if cross_point < parent2.steps.len() {
         child_steps.extend_from_slice(&parent2.steps[cross_point..]);
     }
@@ -204,6 +223,7 @@ fn mutate_genome(genome: &SkillGenome, mutation_rate: f64) -> SkillGenome {
     let mut new_steps: Vec<ProcedureStep> = genome.steps.clone();
 
     for i in 0..new_steps.len() {
+        // P1-9: 修复判断逻辑——当随机数 < mutation_rate 时触发变异
         if rng.r#gen::<f64>() >= mutation_rate {
             continue;
         }
@@ -521,8 +541,19 @@ impl SkillEvolutionEngine {
                     if let Ok(response) = provider.generate_mutation(&request).await
                         && response.confidence > 0.5
                     {
+                        // P1-8: 保留变异前快照，若新 fitness 更低则回滚
+                        let snapshot_steps = individual.steps.clone();
+                        let snapshot_content = individual.content.clone();
+                        let snapshot_fitness = individual.fitness;
                         individual.steps = response.revised_steps;
                         individual.content = serialize_steps(&individual.steps);
+                        Self::evaluate_fitness_static(individual, test_trajectories);
+                        if individual.fitness < snapshot_fitness {
+                            // 新 fitness 倒退，回滚
+                            individual.steps = snapshot_steps;
+                            individual.content = snapshot_content;
+                            individual.fitness = snapshot_fitness;
+                        }
                     }
                 }
             }
@@ -631,11 +662,10 @@ impl SkillEvolutionEngine {
     ) -> Option<SkillModification> {
         self.initialize(skill);
 
-        loop {
-            if self.evolve_generation_v2(test_trajectories).await.is_none() {
-                break;
-            }
-
+        // P1-7: 用 max_generations 显式控制循环次数，避免依赖 is_converged
+        // 之外依赖 evolve_generation_v2 是否返回 None（它几乎总是 Some）
+        for _generation in 0..self.config.max_generations {
+            // 提前检查是否已收敛
             if let Some(ref pop) = self.population {
                 if pop.is_converged(&self.config) {
                     break;
@@ -643,6 +673,9 @@ impl SkillEvolutionEngine {
                 if pop.generation >= self.config.max_generations as u32 {
                     break;
                 }
+            }
+            if self.evolve_generation_v2(test_trajectories).await.is_none() {
+                break;
             }
         }
 

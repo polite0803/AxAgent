@@ -3100,7 +3100,7 @@ export async function handleCommand<T>(
 
     default: {
       console.warn(`[BrowserMock] Unhandled command: ${cmd}`, args);
-      // Safe defaults based on command naming convention
+      // SAFE: browser mock fallback for unhandled commands — returns empty placeholder matching generic T
       if (cmd.startsWith("list_") || cmd.endsWith("_list") || cmd.includes("_list_") || cmd.endsWith("s")) {
         return [] as unknown as T;
       }

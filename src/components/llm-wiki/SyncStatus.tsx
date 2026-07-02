@@ -52,6 +52,7 @@ export function SyncStatus({
 
   useEffect(() => {
     loadSyncStatus();
+    // loadSyncStatus 未用 useCallback 包裹，每次渲染重新创建，加入 deps 会导致无效重复请求。
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [wikiId]);
 
@@ -61,6 +62,7 @@ export function SyncStatus({
     }
     const interval = setInterval(loadSyncStatus, refreshInterval);
     return () => clearInterval(interval);
+    // loadSyncStatus 未用 useCallback 包裹，加入 deps 会导致 setInterval 反复重建。
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoRefresh, refreshInterval, wikiId]);
 

@@ -4,6 +4,7 @@ import { useEvolutionStore } from "@/stores/feature/evolutionStore";
 import { Badge, Button, Card, Collapse, Empty, Tag, theme, Typography } from "antd";
 import { Activity, ChevronDown, Clock, Play, TrendingDown, TrendingUp } from "lucide-react";
 import React, { useCallback, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { WorkflowNode } from "../types/workflow.types";
 
 const { Text } = Typography;
@@ -39,6 +40,7 @@ interface ABTestResult {
 }
 
 export const EvolutionTab: React.FC<EvolutionTabProps> = React.memo(({ currentWorkflowId, nodes }) => {
+  const { t } = useTranslation();
   const { token } = theme.useToken();
   const evolutionStore = useEvolutionStore();
 
@@ -55,7 +57,7 @@ export const EvolutionTab: React.FC<EvolutionTabProps> = React.memo(({ currentWo
       const histories: Record<string, EvolutionEntry[]> = {};
       for (const node of nodes) {
         try {
-          const history = evolutionStore.getSkillEvolutionHistory(node.id) as unknown as EvolutionEntry[];
+          const history = evolutionStore.getSkillEvolutionHistory(node.id) as unknown as EvolutionEntry[]; // SAFE: store method returns IPC data; runtime shape matches EvolutionEntry[]
           if (history && history.length > 0) {
             histories[node.id] = history;
           }
@@ -67,7 +69,7 @@ export const EvolutionTab: React.FC<EvolutionTabProps> = React.memo(({ currentWo
 
       // fetch A/B test results
       try {
-        const results = evolutionStore.getABTestResults(currentWorkflowId ?? "") as unknown as ABTestResult[];
+        const results = evolutionStore.getABTestResults(currentWorkflowId ?? "") as unknown as ABTestResult[]; // SAFE: store method returns IPC data; runtime shape matches ABTestResult[]
         if (!cancelled && results) { setAbResults(results); }
       } catch {
         // no AB results
@@ -126,7 +128,7 @@ export const EvolutionTab: React.FC<EvolutionTabProps> = React.memo(({ currentWo
         }}
       >
         <Text strong style={{ fontSize: 13, color: token.colorText }}>
-          进化状态
+          {t("workflow.evolution.title")}
         </Text>
         {nodes.length > 0 && (
           <Button
@@ -136,16 +138,16 @@ export const EvolutionTab: React.FC<EvolutionTabProps> = React.memo(({ currentWo
             onClick={handleTriggerAll}
             style={{ fontSize: 12 }}
           >
-            全部触发进化
+            {t("workflow.evolution.triggerAll")}
           </Button>
         )}
       </div>
 
       {/* 可优化节点列表 */}
       {nodes.length === 0
-        ? <Empty description="当前画布无节点" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+        ? <Empty description={t("workflow.evolution.noNodes")} image={Empty.PRESENTED_IMAGE_SIMPLE} />
         : !hasAnyHistory && !loading
-        ? <Empty description="暂无进化记录" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+        ? <Empty description={t("workflow.evolution.noHistory")} image={Empty.PRESENTED_IMAGE_SIMPLE} />
         : (
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {nodes.map((node) => {
@@ -223,8 +225,9 @@ export const EvolutionTab: React.FC<EvolutionTabProps> = React.memo(({ currentWo
                                 }}
                               >
                                 {srDiff >= 0 ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
-                                成功率 {srDiff >= 0 ? "+" : ""}
-                                {(srDiff * 100).toFixed(1)}%
+                                {t("workflow.evolution.successRate", {
+                                  diff: `${srDiff >= 0 ? "+" : ""}${(srDiff * 100).toFixed(1)}%`,
+                                })}
                               </span>
                             )}
                             {latDiff != null && (
@@ -237,21 +240,26 @@ export const EvolutionTab: React.FC<EvolutionTabProps> = React.memo(({ currentWo
                                 }}
                               >
                                 {latDiff <= 0 ? <TrendingDown size={10} /> : <TrendingUp size={10} />}
-                                延迟 {latDiff >= 0 ? "+" : ""}
-                                {latDiff.toFixed(0)}ms
+                                {t("workflow.evolution.latency", {
+                                  diff: `${latDiff >= 0 ? "+" : ""}${latDiff.toFixed(0)}ms`,
+                                })}
                               </span>
                             )}
                           </div>
                         )
                         : (
                           <Text style={{ fontSize: 11, color: token.colorTextTertiary }}>
-                            无进化记录 — 可触发首次进化
+                            {t("workflow.evolution.noEvolutionRecord")}
                           </Text>
                         )}
                     </div>
 
                     {latest?.ab_test_won && (
-                      <Badge status="success" text="A/B 胜出" style={{ fontSize: 10, marginRight: 6 }} />
+                      <Badge
+                        status="success"
+                        text={t("workflow.evolution.abTestWon")}
+                        style={{ fontSize: 10, marginRight: 6 }}
+                      />
                     )}
 
                     <Button
@@ -261,7 +269,7 @@ export const EvolutionTab: React.FC<EvolutionTabProps> = React.memo(({ currentWo
                       onClick={() => handleTriggerSingle(node.id)}
                       style={{ fontSize: 11, flexShrink: 0 }}
                     >
-                      触发进化
+                      {t("workflow.evolution.triggerEvolution")}
                     </Button>
                   </div>
                 </Card>
@@ -283,22 +291,22 @@ export const EvolutionTab: React.FC<EvolutionTabProps> = React.memo(({ currentWo
               key: "ab-test",
               label: (
                 <Text strong style={{ fontSize: 12, color: token.colorText }}>
-                  A/B 测试 ({abResults.length})
+                  {t("workflow.evolution.abTestTitle", { count: abResults.length })}
                 </Text>
               ),
               children: abResults.length === 0
                 ? (
                   <Empty
-                    description="暂无活跃的 A/B 测试"
+                    description={t("workflow.evolution.noActiveABTest")}
                     image={Empty.PRESENTED_IMAGE_SIMPLE}
                     style={{ padding: "8px 0" }}
                   />
                 )
                 : (
                   <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                    {abResults.map((res, idx) => (
+                    {abResults.map((res) => (
                       <Card
-                        key={idx}
+                        key={`${res.variant_a}-${res.variant_b}`}
                         size="small"
                         style={{ background: token.colorFillTertiary, border: "none" }}
                         styles={{ body: { padding: "8px 10px" } }}
@@ -319,12 +327,14 @@ export const EvolutionTab: React.FC<EvolutionTabProps> = React.memo(({ currentWo
                               color="green"
                               style={{ fontSize: 10, margin: 0, padding: "0 4px", lineHeight: "16px" }}
                             >
-                              {res.winner} 胜出
+                              {t("workflow.evolution.winner", { winner: res.winner })}
                             </Tag>
                           )}
                         </div>
                         <div style={{ display: "flex", gap: 16, fontSize: 11, color: token.colorTextSecondary }}>
-                          <span>置信度: {(res.confidence * 100).toFixed(1)}%</span>
+                          <span>
+                            {t("workflow.evolution.confidence", { value: (res.confidence * 100).toFixed(1) })}
+                          </span>
                           {Object.entries(res.metrics_a).map(([k, v]) => (
                             <span key={k}>
                               {k}: A={typeof v === "number" ? v.toFixed(2) : String(v)}{" "}

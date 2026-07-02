@@ -299,6 +299,9 @@ function ChatViewInner({
       scrollTo: scroll.minimapScrollTo,
       scrollBoxRef: scroll.scrollBoxRef,
     });
+    // 显式省略 onScrollToReady / scroll.scrollBoxRef：
+    // scroll.scrollBoxRef 是稳定 ref，onScrollToReady 是父组件传入的回调，
+    // 加入 deps 会导致父组件重渲染时反复注册回调，而此处仅用于初始注册。
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scroll.minimapScrollTo]);
 

@@ -1523,7 +1523,6 @@ export function useChatViewMessages({
                 <AskUserCard
                   key={ask.askId}
                   askId={ask.askId}
-                  conversationId={ask.conversationId}
                   question={ask.question}
                   options={ask.options}
                 />

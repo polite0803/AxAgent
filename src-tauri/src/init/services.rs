@@ -164,7 +164,7 @@ fn start_memory_maintenance_tick(state: &AppState) {
                 }
                 _ = tokio::time::sleep(interval) => {
                     let ms = memory_service.read().await;
-                    let disambiguation = ms.disambiguate_entities();
+                    let disambiguation = ms.disambiguate_entities().await;
                     drop(ms);
                     if disambiguation.merged > 0 {
                         tracing::info!(
@@ -363,7 +363,7 @@ fn start_pattern_learning(state: &AppState) {
         loop {
             tokio::time::sleep(interval).await;
             let trajectories: Vec<axagent_trajectory::Trajectory> =
-                match trajectory_storage.get_trajectories(Some(20)) {
+                match trajectory_storage.get_trajectories(Some(20)).await {
                     Ok(t) => t,
                     Err(e) => {
                         tracing::warn!("[pattern] Failed to fetch trajectories: {}", e);
@@ -383,7 +383,7 @@ fn start_pattern_learning(state: &AppState) {
                     trajectories.len()
                 );
                 for pattern in &new_patterns {
-                    if let Err(e) = trajectory_storage.save_pattern(pattern) {
+                    if let Err(e) = trajectory_storage.save_pattern(pattern).await {
                         tracing::warn!("[pattern] Failed to persist pattern: {}", e);
                     }
                 }
@@ -401,7 +401,7 @@ fn start_cross_session_learning(state: &AppState) {
         loop {
             tokio::time::sleep(interval).await;
             let trajectories: Vec<axagent_trajectory::Trajectory> =
-                match trajectory_storage.get_trajectories(Some(50)) {
+                match trajectory_storage.get_trajectories(Some(50)).await {
                     Ok(t) => t,
                     Err(e) => {
                         tracing::warn!("[cross_session] Failed to fetch trajectories: {}", e);
@@ -431,7 +431,7 @@ fn start_cross_session_learning(state: &AppState) {
                 );
                 let mut is = insight_system.write().await;
                 for pattern in &new_patterns {
-                    if let Err(e) = trajectory_storage.save_pattern(pattern) {
+                    if let Err(e) = trajectory_storage.save_pattern(pattern).await {
                         tracing::warn!("[cross_session] Failed to persist pattern: {}", e);
                     }
                     if pattern.success_rate >= 0.7 && pattern.frequency >= 3 {
@@ -483,7 +483,7 @@ fn start_rl_reward_computation(state: &AppState) {
         loop {
             tokio::time::sleep(interval).await;
             let mut trajectories: Vec<axagent_trajectory::Trajectory> =
-                match trajectory_storage.get_trajectories(Some(15)) {
+                match trajectory_storage.get_trajectories(Some(15)).await {
                     Ok(t) => t,
                     Err(e) => {
                         tracing::warn!("[rl] Failed to fetch trajectories: {}", e);
@@ -544,7 +544,7 @@ fn start_rl_reward_computation(state: &AppState) {
                     }
                     let total_reward: f64 = trajectory.rewards.iter().map(|r| r.value).sum();
                     trajectory.value_score = (trajectory.value_score + total_reward) / 2.0;
-                    if let Err(e) = trajectory_storage.save_trajectory(trajectory) {
+                    if let Err(e) = trajectory_storage.save_trajectory(trajectory).await {
                         tracing::warn!("[rl] Failed to update trajectory: {}", e);
                     }
                 }
@@ -608,7 +608,7 @@ fn start_batch_processing(state: &AppState) {
                 _ = tokio::time::sleep(interval) => {
             let bp = &*batch_processor;
             let trajectories: Vec<axagent_trajectory::Trajectory> =
-                match trajectory_storage.get_trajectories(Some(50)) {
+                match trajectory_storage.get_trajectories(Some(50)).await {
                     Ok(t) => t,
                     Err(_) => continue,
                 };
@@ -697,7 +697,8 @@ fn start_skill_evolution(state: &AppState) {
         let min_usages = 3;
         loop {
             tokio::time::sleep(interval).await;
-            let skills: Vec<axagent_trajectory::Skill> = match trajectory_storage.get_skills() {
+            let skills: Vec<axagent_trajectory::Skill> = match trajectory_storage.get_skills().await
+            {
                 Ok(s) => s,
                 Err(e) => {
                     tracing::warn!("[evolution] Failed to fetch skills: {}", e);
@@ -717,7 +718,7 @@ fn start_skill_evolution(state: &AppState) {
                 success_threshold * 100.0
             );
             let test_trajectories: Vec<axagent_trajectory::Trajectory> =
-                match trajectory_storage.get_trajectories(Some(30)) {
+                match trajectory_storage.get_trajectories(Some(30)).await {
                     Ok(t) => t,
                     Err(_) => continue,
                 };
@@ -777,7 +778,7 @@ fn start_skill_evolution(state: &AppState) {
                                 .trim_end_matches(|c: char| c == '.' || c.is_ascii_digit()),
                             chrono::Utc::now().timestamp_millis() % 10000
                         );
-                        if let Err(e) = trajectory_storage.save_skill(&updated_skill) {
+                        if let Err(e) = trajectory_storage.save_skill(&updated_skill).await {
                             tracing::warn!("[evolution] Failed to save evolved skill: {}", e);
                         }
 
@@ -940,8 +941,8 @@ fn start_memory_decay_tick(state: &AppState) {
         let interval = std::time::Duration::from_secs(3600);
         loop {
             tokio::time::sleep(interval).await;
-            let ms = memory_service.read().await;
-            let evicted = ms.apply_decay_tick();
+            let ms = state.memory_service.read().await;
+            let evicted = ms.apply_decay_tick().await;
             drop(ms);
             if evicted > 0 {
                 tracing::info!("[memory_decay] Evicted {} expired/decayed memories", evicted);
@@ -969,7 +970,7 @@ fn start_auto_tool_observation(state: &AppState) {
         loop {
             tokio::time::sleep(interval).await;
             let trajectories: Vec<axagent_trajectory::Trajectory> =
-                match trajectory_storage.get_trajectories(Some(30)) {
+                match trajectory_storage.get_trajectories(Some(30)).await {
                     Ok(t) => t,
                     Err(e) => {
                         tracing::warn!("[auto_tool] Failed to fetch trajectories: {}", e);
@@ -1045,7 +1046,7 @@ fn start_text_grad_analysis(state: &AppState) {
         loop {
             tokio::time::sleep(interval).await;
             let trajectories: Vec<axagent_trajectory::Trajectory> =
-                match trajectory_storage.get_trajectories(Some(10)) {
+                match trajectory_storage.get_trajectories(Some(10)).await {
                     Ok(t) => t,
                     Err(e) => {
                         tracing::warn!("[text_grad] Failed to fetch trajectories: {}", e);
@@ -1315,7 +1316,7 @@ fn start_trajectory_cleanup(state: &AppState) {
             loop {
                 tokio::select! {
                     _ = tick.tick() => {
-                        match trajectory_storage.cleanup(&config) {
+                        match trajectory_storage.cleanup(&config).await {
                             Ok(count) if count > 0 => {
                                 tracing::info!(
                                     "[trajectory_cleanup] Cleaned up {} old trajectories",

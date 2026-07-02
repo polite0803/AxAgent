@@ -40,7 +40,7 @@ jobs:
           workspaces: src-tauri -> target
 
       - name: Install Protoc
-        run: sudo apt-get install -y protobuf-compiler
+        run: brew install protobuf
 
       - uses: actions/setup-node@v4
         with:

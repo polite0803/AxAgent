@@ -32,7 +32,9 @@
     "backtest": "バックテスト",
     "compare": "比較",
     "quant": "クオンツ",
-    "replayWorkbench": "リプレイワークベンチ"
+    "replayWorkbench": "リプレイワークベンチ",
+    "portfolio": "[TODO] Portfolio",
+    "scheduledAnalysis": "[TODO] Scheduled"
   },
   "sidebar": {
     "sectionWork": "ワーク",
@@ -45,7 +47,9 @@
     "sectionInvestDiscover": "Discover",
     "sectionInvestMonitor": "Monitor",
     "sectionInvestExecute": "Execute",
-    "sectionInvestReview": "Review"
+    "sectionInvestReview": "Review",
+    "closeAgent": "[TODO] Close Agent",
+    "openAgent": "[TODO] Open Agent"
   },
   "chat": {
     "newConversation": "新しい会話",
@@ -1378,7 +1382,9 @@
       "mySkills": "マイスキル",
       "mySkillsDescription": "インストール済みスキルを管理",
       "exportSkill": "エクスポート",
-      "importSkill": "インポート"
+      "importSkill": "インポート",
+      "noSkillsToExport": "[TODO] No installed skills to export",
+      "invalidSkillFile": "[TODO] Invalid skill file: missing name"
     },
     "plugins": {
       "title": "プラグイン"
@@ -1404,7 +1410,27 @@
     },
     "webhooks": "Webhook",
     "advanced": "詳細設定",
-    "evolution": "自己進化",
+    "evolution": {
+      "config": "[TODO] Config",
+      "stats": "[TODO] Stats",
+      "logs": "[TODO] Logs",
+      "startAll": "[TODO] Start All",
+      "stopAll": "[TODO] Stop All",
+      "refresh": "[TODO] Refresh Status",
+      "engineCount": "[TODO] Running",
+      "saveConfig": "[TODO] Save Config",
+      "categoryCore": "[TODO] Core",
+      "categoryLearning": "[TODO] Learning",
+      "categorySafety": "[TODO] Safety",
+      "categoryExperimental": "[TODO] Experimental",
+      "engineNotFound": "[TODO] Engine Not Found",
+      "engineNotFoundDesc": "[TODO] Engine \"{{name}}\" not found",
+      "running": "[TODO] Running",
+      "stopped": "[TODO] Stopped",
+      "start": "[TODO] Start",
+      "stop": "[TODO] Stop",
+      "noLogs": "[TODO] No logs yet"
+    },
     "data": {
       "title": "データ管理"
     },
@@ -2811,7 +2837,8 @@
     "saved": "Saved",
     "unknownError": "Unknown error",
     "deleted": "削除済み",
-    "required": "必須"
+    "required": "必須",
+    "details": "[TODO] Details"
   },
   "multiAgent": {
     "title": "マルチエージェント状態",
@@ -4927,7 +4954,29 @@
     "durationSeconds": "{{seconds}} sec",
     "aggregatorNode": {
       "inputs": "インプット"
-    }
+    },
+    "parse": {
+      "analyzingIntent": "[TODO] Analyzing intent...",
+      "matchingNodes": "[TODO] Matching nodes...",
+      "buildingWorkflow": "[TODO] Building workflow...",
+      "optimizing": "[TODO] Optimizing...",
+      "intentAnalysis": "[TODO] Intent Analysis",
+      "complete": "[TODO] Complete"
+    },
+    "execution": {
+      "startingNode": "[TODO] Starting node: {{label}}",
+      "nodeCompleted": "[TODO] Node completed: {{label}}",
+      "success": "[TODO] Execution succeeded"
+    },
+    "version": {
+      "current": "[TODO] Current version",
+      "optimizedConfig": "[TODO] Optimized node configuration",
+      "addedBranch": "[TODO] Added conditional branch",
+      "initialCreation": "[TODO] Initial creation"
+    },
+    "duplicateSuffix": "[TODO] {{name}} (copy)",
+    "fromTemplate": "[TODO] {{name}} (from template)",
+    "defaultWorkflowName": "[TODO] New Workflow"
   },
   "atomicSkill": {
     "entryType": "エントリータイプ",
@@ -5004,7 +5053,25 @@
     "modelId": "モデル ID",
     "modelIdRequired": "モデル ID を入力してください",
     "modelIdPlaceholder": "モデル ID を入力",
-    "train": "訓練"
+    "train": "訓練",
+    "checkpoints": {
+      "title": "[TODO] Checkpoints",
+      "save": "[TODO] Save Checkpoint",
+      "empty": "[TODO] No checkpoints",
+      "saveModal": "[TODO] Save Checkpoint",
+      "namePlaceholder": "[TODO] Enter checkpoint name..."
+    },
+    "monitor": {
+      "idle": "[TODO] Training not started. Configure and start training."
+    },
+    "panel": {
+      "title": "[TODO] RL Training Panel",
+      "stop": "[TODO] Stop Training",
+      "start": "[TODO] Start Training",
+      "config": "[TODO] Config",
+      "monitor": "[TODO] Monitor",
+      "checkpoints": "[TODO] Checkpoints"
+    }
   },
   "devtools": {
     "durationOverview": "所要時間概要",
@@ -5175,7 +5242,14 @@
     "tasks": "タスク"
   },
   "traceExplorer": {
-    "selectTrace": "トレースを選択して詳細を表示"
+    "selectTrace": "トレースを選択して詳細を表示",
+    "tab": {
+      "detail": "[TODO] Details",
+      "timeline": "[TODO] Timeline",
+      "bottleneck": "[TODO] Bottleneck Analysis",
+      "suggestions": "[TODO] Suggestions",
+      "feedback": "[TODO] Feedback"
+    }
   },
   "evolution": {
     "title": "自己進化システム",
@@ -5214,6 +5288,44 @@
       "dreamConsolidator": "ドリーム統合",
       "intrinsicMotivation": "内発的動機",
       "coevolution": "共進化"
+    },
+    "engines": {
+      "skill_evolution": {
+        "name": "[TODO] Skill Evolution Engine",
+        "desc": "[TODO] Automatically evolves skill prompts and tool-calling strategies based on execution feedback"
+      },
+      "auto_tool_creator": {
+        "name": "[TODO] Auto Tool Creator",
+        "desc": "[TODO] Learns from frequent execution patterns and automatically creates new reusable tools"
+      },
+      "text_grad": {
+        "name": "[TODO] TextGrad Optimizer",
+        "desc": "[TODO] Textual gradient optimization engine, analogous to gradient descent but for text prompt optimization"
+      },
+      "constitution": {
+        "name": "[TODO] Constitution Engine",
+        "desc": "[TODO] Rules system that constrains agent behavior to ensure safety and compliance"
+      },
+      "intrinsic_motivation": {
+        "name": "[TODO] Intrinsic Motivation System",
+        "desc": "[TODO] Self-driven learning system that simulates human curiosity-driven exploration behavior"
+      },
+      "coevolution": {
+        "name": "[TODO] Coevolution Environment",
+        "desc": "[TODO] Multi-agent coevolution environment that promotes cross-agent knowledge sharing and competition"
+      },
+      "dream_consolidator": {
+        "name": "[TODO] Dream Consolidator",
+        "desc": "[TODO] Memory consolidation mechanism analogous to human REM sleep, optimizing knowledge representation offline"
+      },
+      "process_reward": {
+        "name": "[TODO] Process Reward Model",
+        "desc": "[TODO] Evaluates intermediate step quality rather than only final results, providing fine-grained feedback signals"
+      },
+      "sandbox": {
+        "name": "[TODO] Sandbox Executor",
+        "desc": "[TODO] Securely executes untrusted code in an isolated environment to prevent system damage"
+      }
     }
   },
   "promptTemplates": {
@@ -5928,7 +6040,34 @@
     "generateAgent": "エージェントを生成",
     "agentGenerated": "エージェント生成",
     "noSkillName": "名前のないスキル",
-    "notFound": "スキルが見つかりません"
+    "notFound": "スキルが見つかりません",
+    "abTest": {
+      "noData": "[TODO] No A/B test data yet",
+      "metric": "[TODO] Metric",
+      "versionA": "[TODO] Version A",
+      "versionB": "[TODO] Version B",
+      "change": "[TODO] Change",
+      "winner": "[TODO] Winner",
+      "tie": "[TODO] Tie",
+      "conclusion": "[TODO] Conclusion: Version A won {{winCountA}} items, Version B won {{winCountB}} items.",
+      "recommendA": "[TODO]  Recommended to adopt Version A.",
+      "recommendB": "[TODO]  Recommended to adopt Version B.",
+      "noDifference": "[TODO]  No significant difference between the two versions."
+    },
+    "evolution": {
+      "currentVersion": "[TODO] Current Version",
+      "totalEvolutions": "[TODO] Total Evolutions",
+      "latestEvolution": "[TODO] Latest Evolution",
+      "none": "[TODO] None",
+      "noHistory": "[TODO] This skill has no evolution history yet",
+      "abTestResults": "[TODO] A/B Test Results",
+      "viewDiff": "[TODO] View Diff",
+      "rollback": "[TODO] Rollback",
+      "oldVersion": "[TODO] Old (v{{version}})",
+      "newVersion": "[TODO] New (v{{version}})",
+      "confirmRollback": "[TODO] Confirm Rollback",
+      "rollbackConfirmMessage": "[TODO] Are you sure you want to roll back to v{{version}}? This will discard all evolution changes after that version."
+    }
   },
   "task": {
     "title": "バックグラウンドタスク",
@@ -6372,7 +6511,13 @@
     "viewSubSession": "サブセッションを表示",
     "running": "実行中",
     "pending": "保留中",
-    "failed": "失敗"
+    "failed": "失敗",
+    "type": {
+      "subAgent": "[TODO] Sub-Agent",
+      "worker": "[TODO] Worker",
+      "step": "[TODO] Step"
+    },
+    "summary": "[TODO] Agent Pool ({completed}/{total})"
   },
   "agentHierarchy": {
     "running": "実行中",
@@ -7588,7 +7733,9 @@
     "knowledgeContext": "ナレッジ",
     "gatewayContext": "ゲートウェイ",
     "filesContext": "ファイル",
-    "terminalContext": "ターミナル"
+    "terminalContext": "ターミナル",
+    "closeAgentPanel": "[TODO] Close Agent Panel",
+    "openAgentPanel": "[TODO] Open Agent Panel"
   },
   "input": {
     "recordAudio": "音声を録音",
@@ -7691,7 +7838,8 @@
       "selectedCount": "{{count}}件選択中",
       "exitSelect": "選択を解除",
       "empty": "推奨履歴がありません"
-    }
+    },
+    "settings": "[TODO] Valuation Filters"
   },
   "trade": {
     "title": "Trading Log",
@@ -7761,7 +7909,8 @@
       "highAgreementHint": "High agreement between views",
       "midAgreementHint": "Partial agreement between views",
       "lowAgreementHint": "Views diverge significantly",
-      "llmMissingHint": "Agreement score: {{score}}/100"
+      "llmMissingHint": "Agreement score: {{score}}/100",
+      "executionMode": "[TODO] Execution Mode"
     }
   },
   "quant": {
@@ -8037,5 +8186,195 @@
       "applySkillComingSoon": "Skill apply coming soon",
       "applyUIComingSoon": "UI apply coming soon"
     }
+  },
+  "portfolio": {
+    "title": "[TODO] Portfolio Tracking",
+    "stock": "[TODO] Stock",
+    "shares": "[TODO] Shares",
+    "avgCost": "[TODO] Avg Cost",
+    "currentPrice": "[TODO] Current",
+    "marketValue": "[TODO] Market Value",
+    "pnl": "[TODO] P&L",
+    "totalMarketValue": "[TODO] Total Value",
+    "totalPnl": "[TODO] Total P&L",
+    "totalCost": "[TODO] Total Cost",
+    "holdings": "[TODO] Holdings",
+    "manualImport": "[TODO] Manual Import",
+    "vlmImport": "[TODO] VLM Import",
+    "importHint": "[TODO] Format: stockCode, shares, avgCost[, stockName] — one per line",
+    "vlmHint": "[TODO] Paste the VLM raw output from screenshot recognition here",
+    "vlmPlaceholder": "[TODO] Paste VLM output here...",
+    "importSuccess": "[TODO] Imported {{count}} holdings",
+    "importFailed": "[TODO] Failed to parse holdings from VLM output",
+    "preview": "[TODO] Preview"
+  },
+  "trace": {
+    "bottleneck": {
+      "loading": "[TODO] Loading bottleneck analysis...",
+      "error": "[TODO] Analysis failed",
+      "empty": "[TODO] No bottleneck data",
+      "timeDistribution": "[TODO] Time Distribution",
+      "tokenConsumption": "[TODO] Token Consumption",
+      "failurePatterns": "[TODO] Failure Patterns"
+    },
+    "feedback": {
+      "thanks": "[TODO] Thank you for your feedback",
+      "received": "[TODO] Your feedback has been submitted and will be used to improve Agent execution.",
+      "error": "[TODO] Submit failed",
+      "errorRetry": "[TODO] Please retry later",
+      "submitted": "[TODO] Feedback submitted",
+      "question": "[TODO] Was this execution helpful?",
+      "helpful": "[TODO] Helpful",
+      "notHelpful": "[TODO] Not Helpful",
+      "commentPlaceholder": "[TODO] Describe the issue to help us improve...",
+      "submit": "[TODO] Submit Feedback"
+    },
+    "improvement": {
+      "loading": "[TODO] Generating improvement suggestions...",
+      "error": "[TODO] Generation failed",
+      "applied": "[TODO] Improvement applied",
+      "noSuggestions": "[TODO] No improvement suggestions",
+      "problem": "[TODO] Problem",
+      "suggestion": "[TODO] Suggestion",
+      "apply": "[TODO] Apply Improvement"
+    },
+    "loading": "[TODO] Loading execution trace...",
+    "error": "[TODO] Load failed",
+    "empty": "[TODO] No execution trace data",
+    "totalSteps": "[TODO] Total Steps",
+    "totalDuration": "[TODO] Total Duration",
+    "totalTokens": "[TODO] Total Tokens",
+    "errors": "[TODO] Errors"
+  },
+  "components_devtools_RLTrainingConfig": {
+    "算法": "[TODO] 算法",
+    "学习率": "[TODO] 学习率",
+    "批次大小": "[TODO] 批次大小",
+    "训练轮数": "[TODO] 训练轮数",
+    "最大步数": "[TODO] 最大步数"
+  },
+  "components_devtools_RLTrainingMonitor": {
+    "数据不足": "[TODO] 数据不足",
+    "components_devtools": "[TODO] components_devtools_RLTrainingMonitor.数据不足",
+    "当前步数": "[TODO] 当前步数",
+    "损失": "[TODO] 损失",
+    "奖励": "[TODO] 奖励",
+    "速度": "[TODO] 速度",
+    "损失曲线": "[TODO] 损失曲线",
+    "奖励曲线": "[TODO] 奖励曲线"
+  },
+  "components_devtools_RLTrainingPanel": {
+    "空闲": "[TODO] 空闲",
+    "训练中": "[TODO] 训练中",
+    "已暂停": "[TODO] 已暂停",
+    "已完成": "[TODO] 已完成",
+    "失败": "[TODO] 失败"
+  },
+  "components_skill_SkillABTestResults": {
+    "暂无_A_B_测试数据": "[TODO] 暂无 A/B 测试数据",
+    "components_skill_Ski": "[TODO] components_skill_SkillABTestResults.暂无_A_B_测试数据",
+    "指标": "[TODO] 指标",
+    "版本_A": "[TODO] 版本 A",
+    "版本_B": "[TODO] 版本 B",
+    "变化": "[TODO] 变化",
+    "优胜": "[TODO] 优胜",
+    "平局": "[TODO] 平局",
+    "推荐采用版本_A": "[TODO]  推荐采用版本 A。",
+    "推荐采用版本_B": "[TODO]  推荐采用版本 B。",
+    "两个版本无明显差异": "[TODO]  两个版本无明显差异。"
+  },
+  "components_skill_SkillEvolutionViewer": {
+    "当前版本": "[TODO] 当前版本",
+    "总进化次数": "[TODO] 总进化次数",
+    "最近进化": "[TODO] 最近进化",
+    "A_B_测试结果": "[TODO] A/B 测试结果",
+    "components_skill_Ski": "[TODO] components_skill_SkillEvolutionViewer.A_B_测试结果"
+  },
+  "components_skill_SkillVersionTimeline": {
+    "暂无进化历史": "[TODO] 暂无进化历史",
+    "components_skill_Ski": "[TODO] components_skill_SkillVersionTimeline.暂无进化历史",
+    "确认回滚": "[TODO] 确认回滚"
+  },
+  "components_trace_BottleneckAnalyzer": {
+    "失败原因": "[TODO] 失败原因",
+    "次数": "[TODO] 次数",
+    "占比": "[TODO] 占比"
+  },
+  "components_trace_TraceTimeline": {
+    "思考": "[TODO] 思考",
+    "工具调用": "[TODO] 工具调用",
+    "等待权限": "[TODO] 等待权限",
+    "错误": "[TODO] 错误"
+  },
+  "components_workflow_NLParserPanel": {
+    "每天早上_8_点抓取指定网站的最新文章": "[TODO] 每天早上 8 点抓取指定网站的最新文章，用 AI 总结后发送到企业微信群",
+    "收到新邮件后_用_AI_分析内容_如果是": "[TODO] 收到新邮件后，用 AI 分析内容，如果是重要邮件就发通知并创建待办",
+    "用户提交表单后_先验证数据_然后写入数据": "[TODO] 用户提交表单后，先验证数据，然后写入数据库并发送确认邮件",
+    "自然语言描述": "[TODO] 自然语言描述",
+    "components_workflow": "[TODO] components_workflow_NLParserPanel.自然语言描述",
+    "约束条件_可选": "[TODO] 约束条件（可选）",
+    "例如_执行时间不超过_5_分钟_出错时重": "[TODO] 例如：执行时间不超过 5 分钟、出错时重试 3 次",
+    "解析中": "[TODO] 解析中...",
+    "解析生成": "[TODO] 解析生成",
+    "解析结果": "[TODO] 解析结果",
+    "AI_建议": "[TODO] AI 建议"
+  },
+  "components_workflow_WorkflowExecutor": {
+    "等待": "[TODO] 等待",
+    "执行中": "[TODO] 执行中",
+    "成功": "[TODO] 成功",
+    "失败": "[TODO] 失败",
+    "输入变量": "[TODO] 输入变量",
+    "components_workflow": "[TODO] components_workflow_WorkflowExecutor.输入变量",
+    "执行工作流": "[TODO] 执行工作流",
+    "正在执行工作流节点": "[TODO] 正在执行工作流节点...",
+    "状态": "[TODO] 状态",
+    "执行成功": "[TODO] 执行成功",
+    "执行失败": "[TODO] 执行失败",
+    "耗时": "[TODO] 耗时",
+    "节点执行状态": "[TODO] 节点执行状态",
+    "输出结果": "[TODO] 输出结果",
+    "执行日志": "[TODO] 执行日志",
+    "关闭": "[TODO] 关闭"
+  },
+  "components_workflow_WorkflowLogPanel": {
+    "暂无日志": "[TODO] 暂无日志"
+  },
+  "components_workflow_WorkflowVersionManager": {
+    "版本对比": "[TODO] 版本对比",
+    "新增节点_output_2_发送": "[TODO] + 新增节点: output-2 (发送摘要)",
+    "components_workflow": "[TODO] components_workflow_WorkflowVersionManager.新增节点_output_2_发送",
+    "删除节点_action_3_冗余": "[TODO] - 删除节点: action-3 (冗余步骤)",
+    "修改节点_action_1_超时": "[TODO] ~ 修改节点: action-1 (超时时间 30s → 60s)",
+    "版本": "[TODO] 版本",
+    "更新时间": "[TODO] 更新时间",
+    "变更摘要": "[TODO] 变更摘要",
+    "状态": "[TODO] 状态",
+    "草稿": "[TODO] 草稿",
+    "活跃": "[TODO] 活跃",
+    "归档": "[TODO] 归档",
+    "操作": "[TODO] 操作",
+    "当前工作流将被新版本覆盖": "[TODO] 当前工作流将被新版本覆盖",
+    "暂无版本记录": "[TODO] 暂无版本记录",
+    "时间线": "[TODO] 时间线"
+  },
+  "pages_Workflow_WorkflowListPage": {
+    "草稿": "[TODO] 草稿",
+    "活跃": "[TODO] 活跃",
+    "归档": "[TODO] 归档",
+    "新建工作流": "[TODO] 新建工作流",
+    "工作流": "[TODO] 工作流",
+    "pages_Workflow_Workf": "[TODO] pages_Workflow_WorkflowListPage.工作流",
+    "搜索工作流": "[TODO] 搜索工作流...",
+    "全部": "[TODO] 全部",
+    "暂无工作流_点击上方按钮创建": "[TODO] 暂无工作流，点击上方按钮创建",
+    "暂无描述": "[TODO] 暂无描述",
+    "确定删除此工作流": "[TODO] 确定删除此工作流？"
+  },
+  "promptTemplate": {
+    "unnamed": "[TODO] Unnamed"
+  },
+  "sdk": {
+    "acpRequestFailed": "[TODO] ACP request failed: {{message}}"
   }
 }

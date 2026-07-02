@@ -170,15 +170,16 @@ impl ClosedLoopService {
         new_nudges
     }
 
-    pub fn get_skill_by_id(&self, skill_id: &str) -> Result<Option<Skill>, anyhow::Error> {
-        self.storage.get_skill(skill_id)
+    pub async fn get_skill_by_id(&self, skill_id: &str) -> Result<Option<Skill>, anyhow::Error> {
+        self.storage.get_skill(skill_id).await
     }
 
     pub async fn execute_upgrade_action(&self, auto_action: &AutoAction) {
         if auto_action.action_type == "upgrade_skill"
             && let Ok(proposal) = serde_json::from_str::<SkillUpgradeProposal>(&auto_action.target)
         {
-            if let Ok(Some(mut existing_skill)) = self.storage.get_skill(&proposal.target_skill_id)
+            if let Ok(Some(mut existing_skill)) =
+                self.storage.get_skill(&proposal.target_skill_id).await
             {
                 let now = chrono::Utc::now();
 
@@ -207,7 +208,7 @@ impl ClosedLoopService {
                 existing_skill.version = new_version.clone();
                 existing_skill.updated_at = now;
 
-                if let Err(e) = self.storage.save_skill(&existing_skill) {
+                if let Err(e) = self.storage.save_skill(&existing_skill).await {
                     tracing::warn!("Failed to upgrade skill in storage: {}", e);
                 } else {
                     tracing::info!(
@@ -269,18 +270,19 @@ impl ClosedLoopService {
     async fn evaluate_memory_consolidation(&self) -> Result<Vec<PeriodicNudge>, anyhow::Error> {
         let mut nudges = Vec::new();
 
-        let recent_trajectories =
-            self.storage
-                .query_trajectories(&crate::trajectory::TrajectoryQuery {
-                    session_id: None,
-                    user_id: None,
-                    topic: None,
-                    min_quality: Some(0.5),
-                    min_value_score: None,
-                    outcome: None,
-                    time_range: None,
-                    limit: Some(10),
-                })?;
+        let recent_trajectories = self
+            .storage
+            .query_trajectories(&crate::trajectory::TrajectoryQuery {
+                session_id: None,
+                user_id: None,
+                topic: None,
+                min_quality: Some(0.5),
+                min_value_score: None,
+                outcome: None,
+                time_range: None,
+                limit: Some(10),
+            })
+            .await?;
 
         if recent_trajectories.len() < 2 {
             return Ok(nudges);
@@ -325,18 +327,19 @@ impl ClosedLoopService {
     async fn evaluate_skill_creation(&self) -> Result<Vec<PeriodicNudge>, anyhow::Error> {
         let mut nudges = Vec::new();
 
-        let recent_trajectories =
-            self.storage
-                .query_trajectories(&crate::trajectory::TrajectoryQuery {
-                    session_id: None,
-                    user_id: None,
-                    topic: None,
-                    min_quality: None,
-                    min_value_score: None,
-                    outcome: None,
-                    time_range: None,
-                    limit: Some(20),
-                })?;
+        let recent_trajectories = self
+            .storage
+            .query_trajectories(&crate::trajectory::TrajectoryQuery {
+                session_id: None,
+                user_id: None,
+                topic: None,
+                min_quality: None,
+                min_value_score: None,
+                outcome: None,
+                time_range: None,
+                limit: Some(20),
+            })
+            .await?;
 
         let complex_tasks: Vec<_> = recent_trajectories
             .iter()
@@ -344,7 +347,7 @@ impl ClosedLoopService {
             .collect();
 
         for task in complex_tasks.iter().take(5) {
-            if let Ok(similar_skills) = self.find_similar_skills(&task.topic) {
+            if let Ok(similar_skills) = self.find_similar_skills(&task.topic).await {
                 if let Some(similar) = similar_skills.first() {
                     if let Some((upgrade_proposal, _creation_proposal)) =
                         self.propose_skill_improvement(similar, task)
@@ -422,7 +425,10 @@ impl ClosedLoopService {
     async fn evaluate_pattern_learning(&self) -> Result<Vec<PeriodicNudge>, anyhow::Error> {
         let mut nudges = Vec::new();
 
-        let patterns = self.storage.get_patterns_by_success_rate(0.0, Some(100))?;
+        let patterns = self
+            .storage
+            .get_patterns_by_success_rate(0.0, Some(100))
+            .await?;
         let high_failure_patterns: Vec<_> = patterns
             .iter()
             .filter(|p| p.success_rate < 0.3 && p.frequency > 3)
@@ -462,7 +468,9 @@ impl ClosedLoopService {
                 match auto_action.action_type.as_str() {
                     "save_to_memory" => {
                         if let Some(ref ms) = self.memory_service {
-                            let result = ms.add_memory_with_dedup("memory", &auto_action.target);
+                            let result = ms
+                                .add_memory_with_dedup("memory", &auto_action.target)
+                                .await;
                             if !result.success {
                                 tracing::debug!(
                                     "Closed-loop memory dedup skip: {}",
@@ -496,7 +504,7 @@ impl ClosedLoopService {
                                 tags: vec!["auto_extract".to_string()],
                                 namespace_id: None,
                             };
-                            if let Err(e) = self.storage.save_memory(&entry) {
+                            if let Err(e) = self.storage.save_memory(&entry).await {
                                 tracing::warn!("Failed to auto-save memory: {}", e);
                             }
                         }
@@ -537,7 +545,7 @@ impl ClosedLoopService {
                                 },
                             };
 
-                            if let Err(e) = self.storage.save_skill(&skill) {
+                            if let Err(e) = self.storage.save_skill(&skill).await {
                                 tracing::warn!("Failed to save skill to storage: {}", e);
                             } else {
                                 tracing::info!(
@@ -588,7 +596,7 @@ impl ClosedLoopService {
                             serde_json::from_str::<SkillUpgradeProposal>(&auto_action.target)
                         {
                             if let Ok(Some(mut existing_skill)) =
-                                self.storage.get_skill(&proposal.target_skill_id)
+                                self.storage.get_skill(&proposal.target_skill_id).await
                             {
                                 let now = chrono::Utc::now();
 
@@ -617,7 +625,7 @@ impl ClosedLoopService {
                                 existing_skill.version = new_version.clone();
                                 existing_skill.updated_at = now;
 
-                                if let Err(e) = self.storage.save_skill(&existing_skill) {
+                                if let Err(e) = self.storage.save_skill(&existing_skill).await {
                                     tracing::warn!("Failed to upgrade skill in storage: {}", e);
                                 } else {
                                     tracing::info!(
@@ -751,8 +759,8 @@ impl ClosedLoopService {
         }
     }
 
-    pub fn find_similar_skills(&self, topic: &str) -> Result<Vec<Skill>, anyhow::Error> {
-        let all_skills = self.storage.get_all_skills()?;
+    pub async fn find_similar_skills(&self, topic: &str) -> Result<Vec<Skill>, anyhow::Error> {
+        let all_skills = self.storage.get_all_skills().await?;
         let topic_lower = topic.to_lowercase();
         let topic_keywords = self.extract_keywords(&topic_lower);
 

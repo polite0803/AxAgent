@@ -3,10 +3,7 @@
   "ignore": [
     "scripts/**",
     "extension/**",
-    "public/audio-processor.js",
-    "check-lang-mix.cjs",
     "src-tauri/scripts/**",
-    "src/__tests__/e2e/**",
     "src/i18n/compare_locales.js",
     "src/components/benchmark/index.ts",
     "src/components/chat/index.ts",

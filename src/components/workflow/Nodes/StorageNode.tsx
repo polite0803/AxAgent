@@ -21,7 +21,7 @@ interface StorageNodeData {
 }
 
 const StorageNodeComponent: React.FC<NodeProps> = ({ data: _data, selected }) => {
-  const data = _data as unknown as StorageNodeData;
+  const data = _data as unknown as StorageNodeData; // SAFE: ReactFlow NodeProps.data is untyped; runtime data matches expected component data
   const { token } = theme.useToken();
 
   const borderColor = selected ? token.colorPrimary : PINK_BASE;

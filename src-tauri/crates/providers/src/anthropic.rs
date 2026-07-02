@@ -204,8 +204,21 @@ fn convert_messages(
                 }
                 if let Some(ref tcs) = msg.tool_calls {
                     for tc in tcs {
-                        let args: serde_json::Value = serde_json::from_str(&tc.function.arguments)
-                            .unwrap_or(serde_json::Value::Object(serde_json::Map::new()));
+                        // 解析失败不应静默退化为空对象,改用 warn 记录便于排查
+                        let args: serde_json::Value = match serde_json::from_str(
+                            &tc.function.arguments,
+                        ) {
+                            Ok(v) => v,
+                            Err(e) => {
+                                tracing::warn!(
+                                    "anthropic: failed to parse tool_call args for tool '{}' (id={}): {}",
+                                    tc.function.name,
+                                    tc.id,
+                                    e
+                                );
+                                serde_json::Value::Object(serde_json::Map::new())
+                            },
+                        };
                         blocks.push(serde_json::json!({
                             "type": "tool_use",
                             "id": tc.id,
@@ -767,8 +780,11 @@ impl ProviderAdapter for AnthropicAdapter {
                                                 .collect(),
                                         )
                                     };
+                                    // 放宽条件:只要有任何 token 统计字段,均视为有效 usage
                                     let final_usage = if accumulated_prompt_tokens > 0
                                         || accumulated_completion_tokens > 0
+                                        || accumulated_cache_creation > 0
+                                        || accumulated_cache_read > 0
                                     {
                                         Some(TokenUsage {
                                             prompt_tokens: accumulated_prompt_tokens,

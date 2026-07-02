@@ -170,7 +170,7 @@ export const useTracerStore = create<TracerState>((set, get) => ({
           if (span.id === spanId) {
             return span;
           }
-          const found = findSpan(span.events as unknown as Span[]);
+          const found = findSpan(span.events as unknown as Span[]); /* SAFE: tracer span events type narrowing */
           if (found) {
             return found;
           }

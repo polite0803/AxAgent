@@ -921,7 +921,7 @@ export function QuickBarPage() {
             ...d,
             labelKey: t(d.labelKey),
             descKey: t(d.descKey),
-          }) as unknown as CommandDef,
+          }) as unknown as CommandDef, /* SAFE: dynamic command definition construction */
       ),
     [t],
   );

@@ -178,7 +178,7 @@ export const LeftPanel: React.FC<LeftPanelProps> = ({ width }) => {
                               if (e.key === "Enter" || e.key === " ") {
                                 e.preventDefault();
                                 handleMouseDown(
-                                  e as unknown as React.MouseEvent,
+                                  e as unknown as React.MouseEvent, /* FIXME: KeyboardEvent cast to MouseEvent to reuse handler; should use a shared callback */
                                   type,
                                   t(info.labelKey),
                                 );
@@ -250,7 +250,7 @@ export const LeftPanel: React.FC<LeftPanelProps> = ({ width }) => {
                         if (e.key === "Enter" || e.key === " ") {
                           e.preventDefault();
                           handleMouseDown(
-                            e as unknown as React.MouseEvent,
+                            e as unknown as React.MouseEvent, /* FIXME: KeyboardEvent cast to MouseEvent to reuse handler; should use a shared callback */
                             "_phaseSeparator",
                             t("workflow.nodeTypes.phaseSeparator"),
                           );
@@ -284,7 +284,7 @@ export const LeftPanel: React.FC<LeftPanelProps> = ({ width }) => {
                         if (e.key === "Enter" || e.key === " ") {
                           e.preventDefault();
                           handleMouseDown(
-                            e as unknown as React.MouseEvent,
+                            e as unknown as React.MouseEvent, /* FIXME: KeyboardEvent cast to MouseEvent to reuse handler; should use a shared callback */
                             "groupFrame",
                             t("workflow.nodeTypes.groupFrame"),
                           );

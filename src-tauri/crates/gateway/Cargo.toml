@@ -12,6 +12,8 @@ axum = { version = "0.8", features = ["ws"] }
 axum-server = { version = "0.7", features = ["tls-rustls"] }
 futures = "0.3"
 governor = "0.8"
+hex = { workspace = true }
+hmac = "0.12"
 http = "1"
 parking_lot = "0.12"
 prometheus = "0.14"
@@ -19,11 +21,14 @@ reqwest = { workspace = true, features = ["stream"] }
 sea-orm = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
+sha2 = { workspace = true }
+subtle = "2"
 tokio = { workspace = true }
 tokio-stream = "0.1"
 tower = "0.5"
 tower-http = { version = "0.6", features = ["cors"] }
 tracing = { workspace = true }
+url = "2"
 uuid = { workspace = true }
 
 [dev-dependencies]

@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+import { invoke } from "@/lib/invoke";
+import type { DecompositionPreview } from "@/types";
 import { create } from "zustand";
-import { invoke } from "../../lib/invoke";
-import type { DecompositionPreview } from "../../types";
 
 type ToolAction = "auto_install" | "manual_install" | "generate" | "skip";
 
@@ -78,7 +78,8 @@ export const useDecompositionStore = create<DecompositionState>((set, get) => ({
         },
       );
       return result.success;
-    } catch {
+    } catch (e) {
+      console.error("[decompositionStore] 生成工具失败:", e);
       return false;
     }
   },

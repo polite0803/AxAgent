@@ -251,6 +251,17 @@ pub(crate) async fn handle_stream(
         let mut stream_error: Option<String> = None;
 
         while let Some(chunk_result) = stream.next().await {
+            // P2-22: 显式监听客户端断开 —— tx.closed() 触发时立即跳出，
+            // 避免 provider 继续耗 token 推给已断开的客户端。
+            if tx.is_closed() {
+                tracing::info!(
+                    provider = %prov_id,
+                    model = %model_str,
+                    chunks_sent = total_completion,
+                    "SSE 客户端已断开，提前终止上游 stream"
+                );
+                break;
+            }
             match chunk_result {
                 Ok(chunk) => {
                     if let Some(usage) = &chunk.usage {

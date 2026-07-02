@@ -853,6 +853,7 @@ macro_rules! register_all_commands {
             commands::dynamic_ui::save_dynamic_ui_form_data,
             commands::dynamic_ui::get_dynamic_ui_form_data,
             commands::dynamic_ui::delete_dynamic_ui_form_data,
+            commands::orchestrator::orchestrate_mission,
         ]
     };
 }

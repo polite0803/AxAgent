@@ -164,7 +164,7 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState, Strin
                 }
             },
         };
-        if let Err(e) = ms.initialize() {
+        if let Err(e) = ms.initialize().await {
             tracing::warn!("Failed to initialize MemoryService: {}", e);
         }
         Arc::new(TokioRwLock::new(ms))
@@ -314,7 +314,7 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState, Strin
                 }
             },
         };
-        if let Err(e) = auto_ms.initialize() {
+        if let Err(e) = auto_ms.initialize().await {
             tracing::warn!("Failed to initialize MemoryService for AutoMemory: {}", e);
         }
         let auto_ms = Arc::new(tokio::sync::RwLock::new(auto_ms));

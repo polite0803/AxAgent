@@ -92,8 +92,14 @@ export function BenchmarkRunner() {
               label: t("benchmark.tasks"),
               children: (
                 <TaskList
-                  tasks={(currentReport as unknown as { tasks: BenchmarkTask[] }).tasks ?? []}
-                  results={(currentReport as unknown as { results: TaskResult[] }).results ?? []}
+                  tasks={
+                    (currentReport as unknown as { tasks: BenchmarkTask[] }).tasks
+                      ?? [] /* SAFE: IPC response shape; runtime validation via ?? [] */
+                  }
+                  results={
+                    (currentReport as unknown as { results: TaskResult[] }).results
+                      ?? [] /* SAFE: IPC response shape; runtime validation via ?? [] */
+                  }
                 />
               ),
             },

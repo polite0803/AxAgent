@@ -174,6 +174,7 @@ const CHAT_INFOGRAPHIC_PROPS = {
     />
   ),
   renderZoomControls: (ctx: InfographicBlockActionContext) => (
+    // SAFE: MermaidZoomControls context type is intentionally InternalMarkdownBlockActionContext; runtime compatible
     <MermaidZoomControls ctx={ctx as unknown as MermaidBlockActionContext} />
   ),
 };

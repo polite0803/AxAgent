@@ -14,7 +14,7 @@ interface MergeNodeData extends ContainerNodeData {
 }
 
 const MergeNodeComponent: React.FC<NodeProps> = ({ data: _data, selected }) => {
-  const data = _data as unknown as MergeNodeData;
+  const data = _data as unknown as MergeNodeData; // SAFE: ReactFlow NodeProps.data is untyped; runtime data matches expected component data
   const { t } = useTranslation();
 
   return (

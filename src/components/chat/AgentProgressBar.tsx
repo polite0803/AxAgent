@@ -74,6 +74,9 @@ export const AgentProgressBar: React.FC<AgentProgressBarProps> = ({
     return currentToolCall?.conversationId === conversationId
       ? getToolDisplayName(currentToolCall.toolName, t)
       : null;
+    // 显式使用 specific 属性而非 currentToolCall 对象整体作为 deps：
+    // currentToolCall 可能包含频繁变化的无关属性（如进度、时间戳），
+    // 加入整体对象会导致 useMemo 不必要的重新计算。
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     currentToolCall?.toolName,
@@ -126,6 +129,8 @@ export const AgentProgressBar: React.FC<AgentProgressBarProps> = ({
   }
 
   const elapsed = ownToolActive
+    // Date.now() 在 render 中调用是为了显示实时流逝秒数，
+    // 这是预期行为，组件每秒还会重新渲染以更新显示。
     // eslint-disable-next-line react-hooks/purity
     ? Math.round((Date.now() - currentToolCall!.startedAt) / 1000)
     : 0;

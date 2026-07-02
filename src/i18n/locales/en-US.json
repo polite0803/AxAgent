@@ -5062,11 +5062,116 @@
       "current": "Current version",
       "optimizedConfig": "Optimized node configuration",
       "addedBranch": "Added conditional branch",
-      "initialCreation": "Initial creation"
+      "initialCreation": "Initial creation",
+      "newNode": "+ Added node: {{id}} ({{desc}})",
+      "deletedNode": "- Removed node: {{id}} ({{desc}})",
+      "modifiedNode": "~ Modified node: {{id}} ({{desc}})",
+      "compareHint": "Comparing version {{v1}} with version {{v2}}",
+      "version": "Version",
+      "updateTime": "Update Time",
+      "changeSummary": "Change Summary",
+      "status": "Status",
+      "currentWorkflowWillBeOverwritten": "Current workflow will be overwritten by the new version",
+      "noVersionHistory": "No version history",
+      "timeline": "Timeline",
+      "action": "Action",
+      "restoreToVersion": "Restore to this version",
+      "confirmRestore": "Restore to version {{version}}?",
+      "compareSelected": "Compare selected ({{selected}}/2)",
+      "clearSelection": "Clear selection",
+      "versionManager": "Version Manager: {{name}}"
     },
     "duplicateSuffix": "{{name}} (copy)",
     "fromTemplate": "{{name}} (from template)",
-    "defaultWorkflowName": "New Workflow"
+    "defaultWorkflowName": "New Workflow",
+    "list": {
+      "title": "Workflows",
+      "searchPlaceholder": "Search workflows...",
+      "all": "All",
+      "draft": "Draft",
+      "active": "Active",
+      "archived": "Archived",
+      "templates": "Templates",
+      "createNew": "New Workflow",
+      "empty": "No workflows, click the button above to create",
+      "noDescription": "No description",
+      "nodeCount": "{{count}} nodes",
+      "edgeCount": "{{count}} edges",
+      "edit": "Edit",
+      "duplicate": "Duplicate",
+      "deleteConfirm": "Are you sure you want to delete this workflow?"
+    },
+    "executor": {
+      "inputVariables": "Input Variables",
+      "executing": "Executing workflow nodes...",
+      "status": "Status",
+      "duration": "Duration",
+      "nodeExecutionStatus": "Node Execution Status",
+      "outputResult": "Output Result",
+      "executionLog": "Execution Log",
+      "close": "Close",
+      "execute": "Execute Workflow",
+      "executing": "Executing...",
+      "executionSuccess": "Execution Successful",
+      "executionFailed": "Execution Failed"
+    },
+    "log": {
+      "empty": "No logs",
+      "clear": "Clear Logs",
+      "export": "Export Logs"
+    },
+    "nlParser": {
+      "naturalLanguageDesc": "Natural Language Description",
+      "constraintsOptional": "Constraints (Optional)",
+      "examplePlaceholder": "e.g. {{example}}",
+      "constraintsPlaceholder": "e.g.: execution time no more than 5 minutes, retry 3 times on error",
+      "parsing": "Parsing...",
+      "parseGenerate": "Parse & Generate",
+      "parseResult": "Parse Result",
+      "aiSuggestion": "AI Suggestion",
+      "resultSummary": "{{nodes}} nodes · {{edges}} edges · {{variables}} variables",
+      "applySolution": "Apply This Plan",
+      "confidence": "Parse Confidence",
+      "nodes": "Nodes",
+      "edges": "Edges",
+      "variables": "Variables",
+      "alternatives": "Alternatives",
+      "planLabel": "Plan {{index}}: {{desc}}"
+    },
+    "nl2Skill": {
+      "triggers": "Triggers",
+      "parameters": "Parameters",
+      "tools": "Tools",
+      "unit": "",
+      "triggersLabel": "Triggers: ",
+      "parametersLabel": "Parameters: ",
+      "required": "Required",
+      "optional": "Optional",
+      "parsingPhases": "Parsing Phases",
+      "applySkill": "Apply This Skill"
+    },
+    "nl2UI": {
+      "rootType": "Root Type",
+      "componentCount": "Component Count",
+      "depthLevel": "Depth",
+      "components": "{{count}} components",
+      "applyUI": "Apply This UI"
+    },
+    "evolution": {
+      "noNodes": "No nodes on current canvas",
+      "noHistory": "No evolution history",
+      "abTestWon": "A/B Won",
+      "noActiveABTest": "No active A/B test",
+      "confidence": "Confidence: {{value}}%",
+      "title": "Evolution Status",
+      "triggerAll": "Trigger All Evolution",
+      "triggerEvolution": "Trigger Evolution",
+      "successRate": "Success Rate {{diff}}",
+      "latency": "Latency {{diff}}",
+      "noEvolutionRecord": "No evolution record — trigger first evolution",
+      "abTestTitle": "A/B Test ({{count}})",
+      "winner": "{{winner}} Won"
+    }
   },
   "atomicSkill": {
     "entryType": "Entry Type",
@@ -5151,8 +5256,44 @@
       "saveModal": "Save Checkpoint",
       "namePlaceholder": "Enter checkpoint name..."
     },
+    "status": {
+      "idle": "Idle",
+      "running": "Training",
+      "paused": "Paused",
+      "completed": "Completed",
+      "failed": "Failed"
+    },
     "monitor": {
-      "idle": "Training not started. Configure and start training."
+      "idle": "Training not started. Configure and start training.",
+      "insufficientData": "Insufficient Data",
+      "currentStep": "Current Step",
+      "loss": "Loss",
+      "reward": "Reward",
+      "speed": "Speed",
+      "lossCurve": "Loss Curve",
+      "rewardCurve": "Reward Curve"
+    },
+    "config": {
+      "algorithm": "Algorithm",
+      "learningRate": "Learning Rate",
+      "batchSize": "Batch Size",
+      "epochs": "Epochs",
+      "maxSteps": "Max Steps"
+    },
+    "checkpoints": {
+      "title": "Checkpoints",
+      "save": "Save Checkpoint",
+      "empty": "No checkpoints",
+      "saveModal": "Save Checkpoint",
+      "namePlaceholder": "Enter checkpoint name...",
+      "name": "Name",
+      "step": "Step",
+      "loss": "Loss",
+      "reward": "Reward",
+      "time": "Time",
+      "action": "Action",
+      "load": "Load",
+      "delete": "Delete"
     },
     "panel": {
       "title": "RL Training Panel",
@@ -8212,7 +8353,10 @@
       "empty": "No bottleneck data",
       "timeDistribution": "Time Distribution",
       "tokenConsumption": "Token Consumption",
-      "failurePatterns": "Failure Patterns"
+      "failurePatterns": "Failure Patterns",
+      "failureReason": "Failure Reason",
+      "count": "Count",
+      "percentage": "Percentage"
     },
     "feedback": {
       "thanks": "Thank you for your feedback",
@@ -8241,31 +8385,26 @@
     "totalSteps": "Total Steps",
     "totalDuration": "Total Duration",
     "totalTokens": "Total Tokens",
-    "errors": "Errors"
+    "errors": "Errors",
+    "type": {
+      "thinking": "Thinking",
+      "toolCall": "Tool Call",
+      "waitingPermission": "Waiting Permission",
+      "error": "Error"
+    },
+    "duration": "Duration: {{duration}}s"
   },
-  "components_devtools_RLTrainingConfig": {
-    "算法": "算法",
-    "学习率": "学习率",
-    "批次大小": "批次大小",
-    "训练轮数": "训练轮数",
-    "最大步数": "最大步数"
-  },
-  "components_devtools_RLTrainingMonitor": {
-    "数据不足": "数据不足",
-    "components_devtools": "components_devtools_RLTrainingMonitor.数据不足",
-    "当前步数": "当前步数",
-    "损失": "损失",
-    "奖励": "奖励",
-    "速度": "速度",
-    "损失曲线": "损失曲线",
-    "奖励曲线": "奖励曲线"
-  },
-  "components_devtools_RLTrainingPanel": {
-    "空闲": "空闲",
-    "训练中": "训练中",
-    "已暂停": "已暂停",
-    "已完成": "已完成",
-    "失败": "失败"
+  "dynamicUIPreview": {
+    "title": "Dynamic UI Preview",
+    "reset": "Reset",
+    "livePreview": "Live Preview",
+    "jsonParseError": "JSON Parse Error",
+    "waitingForJson": "Waiting for valid JSON...",
+    "schemaValidation": "Schema Validation",
+    "pass": "Pass",
+    "errorsCount": "{{count}} errors",
+    "parseErrorCantValidate": "JSON parse error, cannot validate",
+    "schemaAllValid": "Schema validation passed, all fields valid"
   },
   "components_skill_SkillABTestResults": {
     "暂无_A_B_测试数据": "暂无 A/B 测试数据",
@@ -8291,82 +8430,6 @@
     "暂无进化历史": "暂无进化历史",
     "components_skill_Ski": "components_skill_SkillVersionTimeline.暂无进化历史",
     "确认回滚": "确认回滚"
-  },
-  "components_trace_BottleneckAnalyzer": {
-    "失败原因": "失败原因",
-    "次数": "次数",
-    "占比": "占比"
-  },
-  "components_trace_TraceTimeline": {
-    "思考": "思考",
-    "工具调用": "工具调用",
-    "等待权限": "等待权限",
-    "错误": "错误"
-  },
-  "components_workflow_NLParserPanel": {
-    "每天早上_8_点抓取指定网站的最新文章": "每天早上 8 点抓取指定网站的最新文章，用 AI 总结后发送到企业微信群",
-    "收到新邮件后_用_AI_分析内容_如果是": "收到新邮件后，用 AI 分析内容，如果是重要邮件就发通知并创建待办",
-    "用户提交表单后_先验证数据_然后写入数据": "用户提交表单后，先验证数据，然后写入数据库并发送确认邮件",
-    "自然语言描述": "自然语言描述",
-    "components_workflow": "components_workflow_NLParserPanel.自然语言描述",
-    "约束条件_可选": "约束条件（可选）",
-    "例如_执行时间不超过_5_分钟_出错时重": "例如：执行时间不超过 5 分钟、出错时重试 3 次",
-    "解析中": "解析中...",
-    "解析生成": "解析生成",
-    "解析结果": "解析结果",
-    "AI_建议": "AI 建议"
-  },
-  "components_workflow_WorkflowExecutor": {
-    "等待": "等待",
-    "执行中": "执行中",
-    "成功": "成功",
-    "失败": "失败",
-    "输入变量": "输入变量",
-    "components_workflow": "components_workflow_WorkflowExecutor.输入变量",
-    "执行工作流": "执行工作流",
-    "正在执行工作流节点": "正在执行工作流节点...",
-    "状态": "状态",
-    "执行成功": "执行成功",
-    "执行失败": "执行失败",
-    "耗时": "耗时",
-    "节点执行状态": "节点执行状态",
-    "输出结果": "输出结果",
-    "执行日志": "执行日志",
-    "关闭": "关闭"
-  },
-  "components_workflow_WorkflowLogPanel": {
-    "暂无日志": "暂无日志"
-  },
-  "components_workflow_WorkflowVersionManager": {
-    "版本对比": "版本对比",
-    "新增节点_output_2_发送": "+ 新增节点: output-2 (发送摘要)",
-    "components_workflow": "components_workflow_WorkflowVersionManager.新增节点_output_2_发送",
-    "删除节点_action_3_冗余": "- 删除节点: action-3 (冗余步骤)",
-    "修改节点_action_1_超时": "~ 修改节点: action-1 (超时时间 30s → 60s)",
-    "版本": "版本",
-    "更新时间": "更新时间",
-    "变更摘要": "变更摘要",
-    "状态": "状态",
-    "草稿": "草稿",
-    "活跃": "活跃",
-    "归档": "归档",
-    "操作": "操作",
-    "当前工作流将被新版本覆盖": "当前工作流将被新版本覆盖",
-    "暂无版本记录": "暂无版本记录",
-    "时间线": "时间线"
-  },
-  "pages_Workflow_WorkflowListPage": {
-    "草稿": "草稿",
-    "活跃": "活跃",
-    "归档": "归档",
-    "新建工作流": "新建工作流",
-    "工作流": "工作流",
-    "pages_Workflow_Workf": "pages_Workflow_WorkflowListPage.工作流",
-    "搜索工作流": "搜索工作流...",
-    "全部": "全部",
-    "暂无工作流_点击上方按钮创建": "暂无工作流，点击上方按钮创建",
-    "暂无描述": "暂无描述",
-    "确定删除此工作流": "确定删除此工作流？"
   },
   "promptTemplate": {
     "unnamed": "Unnamed"

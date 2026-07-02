@@ -10,7 +10,7 @@
 use crate::TrajectoryStorage;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
 
 // ── Memory Tier ──────────────────────────────────────────────────────────────
 
@@ -250,7 +250,7 @@ pub struct MemoryActionResult {
 
 pub struct MemoryService {
     storage: Arc<TrajectoryStorage>,
-    working_memory: RwLock<WorkingMemory>,
+    working_memory: tokio::sync::RwLock<WorkingMemory>,
     config: MemoryConfig,
 }
 
@@ -258,7 +258,7 @@ impl MemoryService {
     pub fn new(storage: Arc<TrajectoryStorage>) -> anyhow::Result<Self> {
         Ok(Self {
             storage,
-            working_memory: RwLock::new(WorkingMemory::default()),
+            working_memory: tokio::sync::RwLock::new(WorkingMemory::default()),
             config: MemoryConfig::default(),
         })
     }
@@ -272,18 +272,15 @@ impl MemoryService {
         self.storage.clone()
     }
 
-    pub fn initialize(&self) -> anyhow::Result<()> {
+    pub async fn initialize(&self) -> anyhow::Result<()> {
         self.storage.init_memory_tables()?;
-        self.load_memories_from_storage()
+        self.load_memories_from_storage().await
     }
 
-    fn load_memories_from_storage(&self) -> anyhow::Result<()> {
-        let memories = self.storage.get_all_memories()?;
+    async fn load_memories_from_storage(&self) -> anyhow::Result<()> {
+        let memories = self.storage.get_all_memories().await?;
 
-        let mut working = self.working_memory.write().unwrap_or_else(|e| {
-            tracing::warn!("Working memory lock poisoned, recovering: {}", e);
-            e.into_inner()
-        });
+        let mut working = self.working_memory.write().await;
 
         for memory in memories {
             let entry = MemoryEntry {
@@ -305,7 +302,7 @@ impl MemoryService {
             };
 
             if entry.is_expired() {
-                if let Err(e) = self.storage.delete_memory(&entry.id) {
+                if let Err(e) = self.storage.delete_memory(&entry.id).await {
                     tracing::warn!("Failed to delete expired memory {}: {}", entry.id, e);
                 }
                 continue;
@@ -319,7 +316,7 @@ impl MemoryService {
 
     // ── Core CRUD ────────────────────────────────────────────────────────────
 
-    pub fn add_memory(&self, target: &str, content: &str) -> MemoryActionResult {
+    pub async fn add_memory(&self, target: &str, content: &str) -> MemoryActionResult {
         self.add_memory_advanced(AddMemoryRequest {
             target: target.to_string(),
             content: content.to_string(),
@@ -331,9 +328,10 @@ impl MemoryService {
             expires_at: None,
             namespace_id: None,
         })
+        .await
     }
 
-    pub fn add_memory_advanced(&self, req: AddMemoryRequest) -> MemoryActionResult {
+    pub async fn add_memory_advanced(&self, req: AddMemoryRequest) -> MemoryActionResult {
         if req.content.trim().is_empty() {
             return MemoryActionResult {
                 success: false,
@@ -342,7 +340,7 @@ impl MemoryService {
             };
         }
 
-        let dedup_result = self.check_dedup(&req.content);
+        let dedup_result = self.check_dedup(&req.content).await;
         if let Some(dedup) = dedup_result {
             return dedup;
         }
@@ -366,7 +364,7 @@ impl MemoryService {
             namespace_id: req.namespace_id.clone(),
         };
 
-        if let Err(e) = self.storage.save_memory(&entry) {
+        if let Err(e) = self.storage.save_memory(&entry).await {
             return MemoryActionResult {
                 success: false,
                 message: format!("保存失败: {}", e),
@@ -374,33 +372,29 @@ impl MemoryService {
             };
         }
 
-        if let Err(e) = crate::storage::TrajectoryStorage::block_on(self.storage.index_memory_fts(
-            &entry.id,
-            &entry.memory_type,
-            &entry.content,
-            &entry.tags,
-        )) {
+        if let Err(e) = self
+            .storage
+            .index_memory_fts(&entry.id, &entry.memory_type, &entry.content, &entry.tags)
+            .await
+        {
             tracing::warn!("Failed to sync FTS5 index for new memory: {}", e);
         }
 
         {
-            let mut mem = self.working_memory.write().unwrap_or_else(|e| {
-                tracing::warn!("Working memory lock poisoned, recovering: {}", e);
-                e.into_inner()
-            });
+            let mut mem = self.working_memory.write().await;
             mem.entries.insert(entry.id.clone(), entry);
         }
 
-        self.enforce_tier_capacity(req.tier);
+        self.enforce_tier_capacity(req.tier).await;
 
         MemoryActionResult {
             success: true,
             message: format!("已添加记忆: \"{}\"", &req.content[..req.content.len().min(30)]),
-            new_usage: Some(self.get_memory_usage()),
+            new_usage: Some(self.get_memory_usage().await),
         }
     }
 
-    pub fn replace_memory(
+    pub async fn replace_memory(
         &self,
         target: &str,
         old_text: &str,
@@ -414,10 +408,7 @@ impl MemoryService {
             };
         }
 
-        let mut mem = self.working_memory.write().unwrap_or_else(|e| {
-            tracing::warn!("Working memory lock poisoned, recovering: {}", e);
-            e.into_inner()
-        });
+        let mut mem = self.working_memory.write().await;
 
         let found = mem
             .entries
@@ -432,7 +423,7 @@ impl MemoryService {
             updated.updated_at = now;
             updated.last_accessed = now;
 
-            if let Err(e) = self.storage.save_memory(&updated) {
+            if let Err(e) = self.storage.save_memory(&updated).await {
                 return MemoryActionResult {
                     success: false,
                     message: format!("替换失败: {}", e),
@@ -440,13 +431,15 @@ impl MemoryService {
                 };
             }
 
-            if let Err(e) =
-                crate::storage::TrajectoryStorage::block_on(self.storage.index_memory_fts(
+            if let Err(e) = self
+                .storage
+                .index_memory_fts(
                     &updated.id,
                     &updated.memory_type,
                     &updated.content,
                     &updated.tags,
-                ))
+                )
+                .await
             {
                 tracing::warn!("Failed to sync FTS5 index for replaced memory: {}", e);
             }
@@ -456,7 +449,7 @@ impl MemoryService {
             MemoryActionResult {
                 success: true,
                 message: "已替换记忆".to_string(),
-                new_usage: Some(self.get_memory_usage()),
+                new_usage: Some(self.get_memory_usage().await),
             }
         } else {
             MemoryActionResult {
@@ -467,7 +460,7 @@ impl MemoryService {
         }
     }
 
-    pub fn remove_memory(&self, target: &str, text: &str) -> MemoryActionResult {
+    pub async fn remove_memory(&self, target: &str, text: &str) -> MemoryActionResult {
         if text.trim().is_empty() {
             return MemoryActionResult {
                 success: false,
@@ -476,10 +469,7 @@ impl MemoryService {
             };
         }
 
-        let mut mem = self.working_memory.write().unwrap_or_else(|e| {
-            tracing::warn!("Working memory lock poisoned, recovering: {}", e);
-            e.into_inner()
-        });
+        let mut mem = self.working_memory.write().await;
 
         let found = mem
             .entries
@@ -488,7 +478,7 @@ impl MemoryService {
 
         if let Some(found) = found {
             let id = found.id.clone();
-            if let Err(e) = self.storage.delete_memory(&id) {
+            if let Err(e) = self.storage.delete_memory(&id).await {
                 return MemoryActionResult {
                     success: false,
                     message: format!("删除失败: {}", e),
@@ -496,9 +486,7 @@ impl MemoryService {
                 };
             }
 
-            if let Err(e) =
-                crate::storage::TrajectoryStorage::block_on(self.storage.delete_memory_fts(&id))
-            {
+            if let Err(e) = self.storage.delete_memory_fts(&id).await {
                 tracing::warn!("Failed to remove memory from FTS5 index: {}", e);
             }
 
@@ -507,7 +495,7 @@ impl MemoryService {
             MemoryActionResult {
                 success: true,
                 message: "已删除记忆".to_string(),
-                new_usage: Some(self.get_memory_usage()),
+                new_usage: Some(self.get_memory_usage().await),
             }
         } else {
             MemoryActionResult {
@@ -520,11 +508,8 @@ impl MemoryService {
 
     // ── Tier Management ──────────────────────────────────────────────────────
 
-    pub fn promote_memory(&self, id: &str) -> MemoryActionResult {
-        let mut mem = self.working_memory.write().unwrap_or_else(|e| {
-            tracing::warn!("Working memory lock poisoned, recovering: {}", e);
-            e.into_inner()
-        });
+    pub async fn promote_memory(&self, id: &str) -> MemoryActionResult {
+        let mut mem = self.working_memory.write().await;
 
         if let Some(entry) = mem.entries.get_mut(id) {
             if let Some(next_tier) = entry.tier.next_tier() {
@@ -532,7 +517,7 @@ impl MemoryService {
                 entry.decay_rate = next_tier.default_decay_rate();
                 entry.updated_at = chrono::Utc::now().timestamp();
 
-                if let Err(e) = self.storage.save_memory(entry) {
+                if let Err(e) = self.storage.save_memory(entry).await {
                     return MemoryActionResult {
                         success: false,
                         message: format!("晋升保存失败: {}", e),
@@ -543,7 +528,7 @@ impl MemoryService {
                 return MemoryActionResult {
                     success: true,
                     message: format!("记忆已晋升到 {} 层", next_tier.as_str()),
-                    new_usage: Some(self.get_memory_usage()),
+                    new_usage: Some(self.get_memory_usage().await),
                 };
             } else {
                 return MemoryActionResult {
@@ -561,11 +546,8 @@ impl MemoryService {
         }
     }
 
-    pub fn demote_memory(&self, id: &str) -> MemoryActionResult {
-        let mut mem = self.working_memory.write().unwrap_or_else(|e| {
-            tracing::warn!("Working memory lock poisoned, recovering: {}", e);
-            e.into_inner()
-        });
+    pub async fn demote_memory(&self, id: &str) -> MemoryActionResult {
+        let mut mem = self.working_memory.write().await;
 
         if let Some(entry) = mem.entries.get_mut(id) {
             let lower_tier = match entry.tier {
@@ -585,7 +567,7 @@ impl MemoryService {
             entry.decay_rate = lower_tier.default_decay_rate();
             entry.updated_at = chrono::Utc::now().timestamp();
 
-            if let Err(e) = self.storage.save_memory(entry) {
+            if let Err(e) = self.storage.save_memory(entry).await {
                 return MemoryActionResult {
                     success: false,
                     message: format!("降级保存失败: {}", e),
@@ -596,7 +578,7 @@ impl MemoryService {
             return MemoryActionResult {
                 success: true,
                 message: format!("记忆已降级到 {} 层", lower_tier.as_str()),
-                new_usage: Some(self.get_memory_usage()),
+                new_usage: Some(self.get_memory_usage().await),
             };
         }
 
@@ -607,12 +589,9 @@ impl MemoryService {
         }
     }
 
-    fn enforce_tier_capacity(&self, tier: MemoryTier) {
+    async fn enforce_tier_capacity(&self, tier: MemoryTier) {
         let capacity = tier.default_capacity();
-        let mut mem = self.working_memory.write().unwrap_or_else(|e| {
-            tracing::warn!("Working memory lock poisoned, recovering: {}", e);
-            e.into_inner()
-        });
+        let mut mem = self.working_memory.write().await;
 
         let tier_entries: Vec<(String, f64)> = mem
             .entries
@@ -626,15 +605,15 @@ impl MemoryService {
             sorted.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(std::cmp::Ordering::Equal));
 
             let to_evict = sorted.len() - capacity;
+            let eviction_threshold = self.config.eviction_score_threshold;
+            let storage = self.storage.clone();
             for (id, score) in sorted.iter().take(to_evict) {
-                if *score < self.config.eviction_score_threshold {
+                if *score < eviction_threshold {
                     tracing::info!("Evicting low-score memory {} (score={:.4})", id, score);
-                    if let Err(e) = self.storage.delete_memory(id) {
+                    if let Err(e) = storage.delete_memory(id).await {
                         tracing::warn!("Failed to evict memory {}: {}", id, e);
                     }
-                    if let Err(e) = crate::storage::TrajectoryStorage::block_on(
-                        self.storage.delete_memory_fts(id),
-                    ) {
+                    if let Err(e) = storage.delete_memory_fts(id).await {
                         tracing::warn!("Failed to remove evicted memory from FTS5: {}", e);
                     }
                     mem.entries.remove(id);
@@ -645,11 +624,8 @@ impl MemoryService {
 
     // ── Decay & Auto-Promotion ───────────────────────────────────────────────
 
-    pub fn apply_decay_tick(&self) -> usize {
-        let mut mem = self.working_memory.write().unwrap_or_else(|e| {
-            tracing::warn!("Working memory lock poisoned, recovering: {}", e);
-            e.into_inner()
-        });
+    pub async fn apply_decay_tick(&self) -> usize {
+        let mut mem = self.working_memory.write().await;
 
         let now = chrono::Utc::now().timestamp();
         let mut evicted = 0;
@@ -663,30 +639,27 @@ impl MemoryService {
             .collect();
 
         for id in &expired_ids {
-            if let Err(e) = self.storage.delete_memory(id) {
+            if let Err(e) = self.storage.delete_memory(id).await {
                 tracing::warn!("Failed to delete expired memory {}: {}", id, e);
             }
-            if let Err(e) =
-                crate::storage::TrajectoryStorage::block_on(self.storage.delete_memory_fts(id))
-            {
+            if let Err(e) = self.storage.delete_memory_fts(id).await {
                 tracing::warn!("Failed to remove expired memory from FTS5: {}", e);
             }
             mem.entries.remove(id);
             evicted += 1;
         }
 
+        let eviction_threshold = self.config.eviction_score_threshold;
         for entry in mem.entries.values_mut() {
             let hours_since_access = ((now - entry.last_accessed).max(0) as f64) / 3600.0;
             let decay_factor = (-entry.decay_rate * hours_since_access).exp();
             entry.importance *= decay_factor.max(0.01);
 
-            if entry.importance < self.config.eviction_score_threshold {
-                if let Err(e) = self.storage.delete_memory(&entry.id) {
+            if entry.importance < eviction_threshold {
+                if let Err(e) = self.storage.delete_memory(&entry.id).await {
                     tracing::warn!("Failed to delete decayed memory {}: {}", entry.id, e);
                 }
-                if let Err(e) = crate::storage::TrajectoryStorage::block_on(
-                    self.storage.delete_memory_fts(&entry.id),
-                ) {
+                if let Err(e) = self.storage.delete_memory_fts(&entry.id).await {
                     tracing::warn!("Failed to remove decayed memory from FTS5: {}", e);
                 }
                 evicted += 1;
@@ -698,7 +671,7 @@ impl MemoryService {
         let evicted_ids: Vec<String> = mem
             .entries
             .iter()
-            .filter(|(_, e)| e.importance < self.config.eviction_score_threshold)
+            .filter(|(_, e)| e.importance < eviction_threshold)
             .map(|(id, _)| id.clone())
             .collect();
         for id in &evicted_ids {
@@ -708,7 +681,7 @@ impl MemoryService {
         drop(mem);
 
         for id in to_promote {
-            let _ = self.promote_memory(&id);
+            let _ = self.promote_memory(&id).await;
         }
 
         evicted
@@ -716,11 +689,8 @@ impl MemoryService {
 
     // ── Dedup & Merge ────────────────────────────────────────────────────────
 
-    fn check_dedup(&self, content: &str) -> Option<MemoryActionResult> {
-        let mem = self.working_memory.read().unwrap_or_else(|e| {
-            tracing::warn!("Working memory lock poisoned, recovering: {}", e);
-            e.into_inner()
-        });
+    async fn check_dedup(&self, content: &str) -> Option<MemoryActionResult> {
+        let mem = self.working_memory.read().await;
 
         let content_lower = content.to_lowercase();
         let content_words: Vec<&str> = content_lower
@@ -770,11 +740,8 @@ impl MemoryService {
         None
     }
 
-    pub fn add_memory_with_dedup(&self, target: &str, content: &str) -> MemoryActionResult {
-        let mem = self.working_memory.read().unwrap_or_else(|e| {
-            tracing::warn!("Working memory lock poisoned, recovering: {}", e);
-            e.into_inner()
-        });
+    pub async fn add_memory_with_dedup(&self, target: &str, content: &str) -> MemoryActionResult {
+        let mem = self.working_memory.read().await;
 
         let content_chars: Vec<char> = content.to_lowercase().chars().collect();
         let content_bigrams: std::collections::HashSet<String> = content_chars
@@ -827,10 +794,12 @@ impl MemoryService {
 
         if let Some((_existing_id, _similarity, existing_content)) = best_match {
             let merged = self.merge_content(&existing_content, content);
-            return self.replace_memory(target, &existing_content, &merged);
+            return self
+                .replace_memory(target, &existing_content, &merged)
+                .await;
         }
 
-        self.add_memory(target, content)
+        self.add_memory(target, content).await
     }
 
     fn merge_content(&self, existing: &str, new: &str) -> String {
@@ -853,11 +822,8 @@ impl MemoryService {
 
     // ── Retrieval & Prompt Formatting ────────────────────────────────────────
 
-    pub fn get_memory_usage(&self) -> MemoryUsage {
-        let mem = self.working_memory.read().unwrap_or_else(|e| {
-            tracing::warn!("Working memory lock poisoned, recovering: {}", e);
-            e.into_inner()
-        });
+    pub async fn get_memory_usage(&self) -> MemoryUsage {
+        let mem = self.working_memory.read().await;
 
         let mut tier_counts: HashMap<String, usize> = HashMap::new();
         for entry in mem.entries.values() {
@@ -887,21 +853,12 @@ impl MemoryService {
         }
     }
 
-    pub fn get_working_memory(&self) -> WorkingMemory {
-        self.working_memory
-            .read()
-            .unwrap_or_else(|e| {
-                tracing::warn!("Working memory lock poisoned, recovering: {}", e);
-                e.into_inner()
-            })
-            .clone()
+    pub async fn get_working_memory(&self) -> WorkingMemory {
+        self.working_memory.read().await.clone()
     }
 
-    pub fn get_all_entries_for_sync(&self) -> Vec<(String, String, String)> {
-        let mem = self.working_memory.read().unwrap_or_else(|e| {
-            tracing::warn!("Working memory lock poisoned, recovering: {}", e);
-            e.into_inner()
-        });
+    pub async fn get_all_entries_for_sync(&self) -> Vec<(String, String, String)> {
+        let mem = self.working_memory.read().await;
 
         mem.entries
             .values()
@@ -909,11 +866,8 @@ impl MemoryService {
             .collect()
     }
 
-    pub fn format_for_prompt(&self) -> String {
-        let mem = self.working_memory.read().unwrap_or_else(|e| {
-            tracing::warn!("Working memory lock poisoned, recovering: {}", e);
-            e.into_inner()
-        });
+    pub async fn format_for_prompt(&self) -> String {
+        let mem = self.working_memory.read().await;
 
         let sorted = mem.sorted_by_score();
 
@@ -962,8 +916,9 @@ impl MemoryService {
             sections.push(format!("- {}{}{}", entry.content, nature_tag, time_age));
             token_count += entry.content.len() / 4;
         }
+        drop(mem);
 
-        if let Ok(entities) = self.storage.get_all_entities() {
+        if let Ok(entities) = self.storage.get_all_entities().await {
             let top_entities: Vec<_> = entities
                 .iter()
                 .filter(|e| e.mention_count >= 2 || e.confidence >= 0.8)
@@ -979,21 +934,22 @@ impl MemoryService {
                     let rels = self
                         .storage
                         .get_relationships_by_entity(&entity.id)
+                        .await
                         .unwrap_or_default();
-                    let rel_summary: Vec<String> =
-                        rels.iter()
-                            .take(3)
-                            .filter_map(|r| {
-                                let other_id = if r.source_id == entity.id {
-                                    &r.target_id
-                                } else {
-                                    &r.source_id
-                                };
-                                self.storage.get_entity(other_id).ok().flatten().map(|e| {
-                                    format!("{} {} {}", entity.name, r.relation_type, e.name)
-                                })
-                            })
-                            .collect();
+                    let rel_summary: Vec<String> = {
+                        let mut buf = Vec::new();
+                        for r in rels.iter().take(3) {
+                            let other_id = if r.source_id == entity.id {
+                                &r.target_id
+                            } else {
+                                &r.source_id
+                            };
+                            if let Ok(Some(e)) = self.storage.get_entity(other_id).await {
+                                buf.push(format!("{} {} {}", entity.name, r.relation_type, e.name));
+                            }
+                        }
+                        buf
+                    };
                     if rel_summary.is_empty() {
                         sections.push(format!(
                             "- {} ({}: mentioned {}x)",
@@ -1010,20 +966,17 @@ impl MemoryService {
         sections.join("\n")
     }
 
-    pub fn search_memories(&self, query: &str, limit: usize) -> Vec<MemoryEntry> {
-        let explained = self.search_memories_explained(query, limit);
+    pub async fn search_memories(&self, query: &str, limit: usize) -> Vec<MemoryEntry> {
+        let explained = self.search_memories_explained(query, limit).await;
         explained.into_iter().map(|r| r.entry).collect()
     }
 
-    pub fn search_memories_explained(
+    pub async fn search_memories_explained(
         &self,
         query: &str,
         limit: usize,
     ) -> Vec<ExplainedSearchResult> {
-        let mem = self.working_memory.read().unwrap_or_else(|e| {
-            tracing::warn!("Working memory lock poisoned, recovering: {}", e);
-            e.into_inner()
-        });
+        let mem = self.working_memory.read().await;
 
         let query_lower = query.to_lowercase();
         let query_words: Vec<&str> = query_lower
@@ -1104,10 +1057,7 @@ impl MemoryService {
         }
 
         if !touched.is_empty() {
-            let mut mem = self.working_memory.write().unwrap_or_else(|e| {
-                tracing::warn!("Working memory lock poisoned, recovering: {}", e);
-                e.into_inner()
-            });
+            let mut mem = self.working_memory.write().await;
             for id in &touched {
                 if let Some(entry) = mem.entries.get_mut(id) {
                     entry.touch();
@@ -1118,16 +1068,13 @@ impl MemoryService {
         results
     }
 
-    pub fn search_memories_by_time_range(
+    pub async fn search_memories_by_time_range(
         &self,
         start_ts: i64,
         end_ts: i64,
         limit: usize,
     ) -> Vec<MemoryEntry> {
-        let mem = self.working_memory.read().unwrap_or_else(|e| {
-            tracing::warn!("Working memory lock poisoned, recovering: {}", e);
-            e.into_inner()
-        });
+        let mem = self.working_memory.read().await;
 
         let mut results: Vec<MemoryEntry> = mem
             .entries
@@ -1146,11 +1093,8 @@ impl MemoryService {
         results.into_iter().take(limit).collect()
     }
 
-    pub fn get_memories_grouped_by_time(&self) -> TimeGroupedMemories {
-        let mem = self.working_memory.read().unwrap_or_else(|e| {
-            tracing::warn!("Working memory lock poisoned, recovering: {}", e);
-            e.into_inner()
-        });
+    pub async fn get_memories_grouped_by_time(&self) -> TimeGroupedMemories {
+        let mem = self.working_memory.read().await;
 
         let now = chrono::Utc::now().timestamp();
         let one_day = 86400i64;
@@ -1190,17 +1134,14 @@ impl MemoryService {
         groups
     }
 
-    pub fn update_importance(&self, id: &str, delta: f64) -> MemoryActionResult {
-        let mut mem = self.working_memory.write().unwrap_or_else(|e| {
-            tracing::warn!("Working memory lock poisoned, recovering: {}", e);
-            e.into_inner()
-        });
+    pub async fn update_importance(&self, id: &str, delta: f64) -> MemoryActionResult {
+        let mut mem = self.working_memory.write().await;
 
         if let Some(entry) = mem.entries.get_mut(id) {
             entry.importance = (entry.importance + delta).clamp(0.0, 1.0);
             entry.updated_at = chrono::Utc::now().timestamp();
 
-            if let Err(e) = self.storage.save_memory(entry) {
+            if let Err(e) = self.storage.save_memory(entry).await {
                 return MemoryActionResult {
                     success: false,
                     message: format!("更新重要性失败: {}", e),
@@ -1211,7 +1152,7 @@ impl MemoryService {
             MemoryActionResult {
                 success: true,
                 message: format!("重要性已更新为 {:.2}", entry.importance),
-                new_usage: Some(self.get_memory_usage()),
+                new_usage: Some(self.get_memory_usage().await),
             }
         } else {
             MemoryActionResult {
@@ -1222,14 +1163,22 @@ impl MemoryService {
         }
     }
 
-    pub fn graph_enhanced_search(&self, query: &str, limit: usize) -> Vec<GraphEnhancedResult> {
-        let base_results = self.search_memories(query, limit);
-        let entities = self.storage.search_entities(query, 10).unwrap_or_default();
+    pub async fn graph_enhanced_search(
+        &self,
+        query: &str,
+        limit: usize,
+    ) -> Vec<GraphEnhancedResult> {
+        let base_results = self.search_memories(query, limit).await;
+        let entities = self
+            .storage
+            .search_entities(query, 10)
+            .await
+            .unwrap_or_default();
 
         let entity_ids: Vec<String> = entities.iter().map(|e| e.id.clone()).collect();
         let mut related_entity_ids = std::collections::HashSet::new();
         for eid in &entity_ids {
-            if let Ok(rels) = self.storage.get_relationships_by_entity(eid) {
+            if let Ok(rels) = self.storage.get_relationships_by_entity(eid).await {
                 for rel in &rels {
                     if &rel.source_id == eid {
                         related_entity_ids.insert(rel.target_id.clone());
@@ -1249,7 +1198,7 @@ impl MemoryService {
         }
 
         for eid in &related_entity_ids {
-            if let Ok(Some(entity)) = self.storage.get_entity(eid)
+            if let Ok(Some(entity)) = self.storage.get_entity(eid).await
                 && !entities.iter().any(|e| e.id == entity.id)
             {
                 entity_contents.push(format!(
@@ -1272,8 +1221,8 @@ impl MemoryService {
             .collect()
     }
 
-    pub fn disambiguate_entities(&self) -> DisambiguationResult {
-        let entities = match self.storage.get_all_entities() {
+    pub async fn disambiguate_entities(&self) -> DisambiguationResult {
+        let entities = match self.storage.get_all_entities().await {
             Ok(e) => e,
             Err(_) => {
                 return DisambiguationResult {
@@ -1321,7 +1270,11 @@ impl MemoryService {
                         &entities[i]
                     };
 
-                    if let Ok(rels) = self.storage.get_relationships_by_entity(&remove_id.id) {
+                    if let Ok(rels) = self
+                        .storage
+                        .get_relationships_by_entity(&remove_id.id)
+                        .await
+                    {
                         for rel in &rels {
                             let new_source = if rel.source_id == remove_id.id {
                                 keep_id.id.clone()
@@ -1338,11 +1291,11 @@ impl MemoryService {
                             new_rel.source_id = new_source;
                             new_rel.target_id = new_target;
                             new_rel.weight = (new_rel.weight + rel.weight) / 2.0;
-                            let _ = self.storage.save_relationship(&new_rel);
+                            let _ = self.storage.save_relationship(&new_rel).await;
                         }
                     }
 
-                    let _ = self.storage.delete_entity(&remove_id.id);
+                    let _ = self.storage.delete_entity(&remove_id.id).await;
                     processed.insert(remove_id.id.clone());
                     merged += 1;
                 }
@@ -1352,11 +1305,8 @@ impl MemoryService {
         DisambiguationResult { merged, total }
     }
 
-    pub fn find_similar_clusters(&self, similarity_threshold: f64) -> Vec<MemoryCluster> {
-        let mem = self.working_memory.read().unwrap_or_else(|e| {
-            tracing::warn!("Working memory lock poisoned, recovering: {}", e);
-            e.into_inner()
-        });
+    pub async fn find_similar_clusters(&self, similarity_threshold: f64) -> Vec<MemoryCluster> {
+        let mem = self.working_memory.read().await;
 
         let entries: Vec<&MemoryEntry> = mem.entries.values().filter(|e| !e.is_expired()).collect();
 
@@ -1440,11 +1390,8 @@ impl MemoryService {
         clusters
     }
 
-    pub fn apply_user_feedback(&self, memory_id: &str, feedback: &str) -> MemoryActionResult {
-        let mut mem = self.working_memory.write().unwrap_or_else(|e| {
-            tracing::warn!("Working memory lock poisoned, recovering: {}", e);
-            e.into_inner()
-        });
+    pub async fn apply_user_feedback(&self, memory_id: &str, feedback: &str) -> MemoryActionResult {
+        let mut mem = self.working_memory.write().await;
 
         if let Some(entry) = mem.entries.get_mut(memory_id) {
             match feedback {
@@ -1470,7 +1417,7 @@ impl MemoryService {
 
             entry.updated_at = chrono::Utc::now().timestamp();
 
-            if let Err(e) = self.storage.save_memory(entry) {
+            if let Err(e) = self.storage.save_memory(entry).await {
                 return MemoryActionResult {
                     success: false,
                     message: format!("反馈保存失败: {}", e),
@@ -1488,7 +1435,7 @@ impl MemoryService {
             MemoryActionResult {
                 success: true,
                 message: format!("反馈已应用: {} (重要性={:.2})", action_desc, entry.importance),
-                new_usage: Some(self.get_memory_usage()),
+                new_usage: Some(self.get_memory_usage().await),
             }
         } else {
             MemoryActionResult {

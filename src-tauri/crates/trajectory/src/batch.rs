@@ -82,13 +82,16 @@ impl BatchProcessor {
         Self { storage, config }
     }
 
-    pub fn batch_generate<S: AsRef<str>>(&self, session_ids: &[S]) -> Result<Vec<Trajectory>> {
+    pub async fn batch_generate<S: AsRef<str>>(
+        &self,
+        session_ids: &[S],
+    ) -> Result<Vec<Trajectory>> {
         let storage = &*self.storage;
         let mut trajectories = Vec::new();
         let mut errors = Vec::new();
 
         for session_id in session_ids {
-            match storage.get_session_trajectories(session_id.as_ref()) {
+            match storage.get_session_trajectories(session_id.as_ref()).await {
                 Ok(trajs) => trajectories.extend(trajs),
                 Err(e) => {
                     warn!("Failed to get trajectories for session {}: {}", session_id.as_ref(), e);

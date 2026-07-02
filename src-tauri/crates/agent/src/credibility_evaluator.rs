@@ -439,10 +439,9 @@ impl CredibilityEvaluator {
         }
     }
 
-    pub fn evaluate_batch(&self, results: &[SearchResult]) -> Vec<CredibilityAssessment> {
+    pub async fn evaluate_batch(&self, results: &[SearchResult]) -> Vec<CredibilityAssessment> {
         let futures: Vec<_> = results.iter().map(|r| self.evaluate(r)).collect();
-        tokio::runtime::Handle::current()
-            .block_on(async { futures::future::join_all(futures).await })
+        futures::future::join_all(futures).await
     }
 }
 

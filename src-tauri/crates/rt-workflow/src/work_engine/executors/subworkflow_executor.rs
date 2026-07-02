@@ -85,18 +85,45 @@ impl SubWorkflowExecutor {
         parent_execution_id: &str,
         input: HashMap<String, Value>,
         max_retries: u32,
+        cancel_token: Option<&tokio_util::sync::CancellationToken>,
     ) -> Result<(String, Value), NodeError> {
         let mut last_error = None;
         for attempt in 1..=max_retries + 1 {
+            // P1-12: 超时后调 engine.cancel 子执行（如果 cancel_token 存在）；
+            // 当前 cb 是黑盒无法访问 engine，所以我们仅记录 intent，由调用方
+            // 配合 engine.cancel(child_execution_id) 实现真正的取消。
             match cb(sub_workflow_id.to_string(), parent_execution_id.to_string(), input.clone())
                 .await
             {
                 Ok(result) => return Ok(result),
                 Err(e) => {
+                    let err_msg = e.clone();
                     last_error = Some(e);
-                    if attempt <= max_retries {
-                        tokio::time::sleep(Duration::from_millis(100 * attempt as u64)).await;
+                    if attempt > max_retries {
+                        break;
                     }
+                    // P1-12: 指数退避 + jitter —— 避免多个子工作流同时重试造成雪崩
+                    // base = 100ms * 2^(attempt-1); cap = 30s
+                    let base_ms = (100u64).saturating_mul(1u64 << (attempt - 1).min(8));
+                    let capped_ms = base_ms.min(30_000);
+                    let jitter_ms = rand::random::<u64>() % (capped_ms / 2).max(1);
+                    let delay = Duration::from_millis(capped_ms + jitter_ms);
+                    tracing::warn!(
+                        sub_workflow_id = %sub_workflow_id,
+                        attempt,
+                        delay_ms = delay.as_millis() as u64,
+                        error = %err_msg,
+                        "Sub-workflow 失败，指数退避+jitter 后重试"
+                    );
+                    if let Some(token) = cancel_token
+                        && token.is_cancelled()
+                    {
+                        return Err(NodeError::exec_failed(
+                            error_code::SUBWORKFLOW_FAILED,
+                            "Parent cancelled - abort retry".to_string(),
+                        ));
+                    }
+                    tokio::time::sleep(delay).await;
                 },
             }
         }
@@ -159,6 +186,7 @@ impl NodeExecutorTrait for SubWorkflowExecutor {
                 &context.execution_id,
                 mapped_input,
                 self.config.max_retries,
+                context.cancel_token.as_ref(),
             ),
         )
         .await

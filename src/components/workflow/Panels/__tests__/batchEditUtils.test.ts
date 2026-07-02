@@ -14,7 +14,7 @@ function makeNode(retry?: Record<string, unknown>): WorkflowNode {
     config: {},
     retry: retry as never,
     enabled: true,
-  } as unknown as WorkflowNode;
+  } as unknown as WorkflowNode; // SAFE: test mock data construction
 }
 
 describe("buildBatchUpdate - #6.7", () => {

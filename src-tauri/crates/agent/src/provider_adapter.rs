@@ -13,6 +13,7 @@ use axagent_runtime_core::{
 };
 use futures::StreamExt;
 use std::sync::Arc;
+use std::sync::atomic::AtomicBool;
 
 /// Callback type invoked for each streamed event during `ApiClient::stream()`.
 /// Allows the caller to emit Tauri events in real-time as chunks arrive,
@@ -47,6 +48,9 @@ pub struct AxAgentApiClient {
     /// The runtime's `ContentBlock` enum only supports text, so we inject images at the
     /// wire-format conversion layer in `convert_messages`.
     image_urls: Vec<String>,
+    /// Optional cancellation token, forwarded to the provider's `chat_stream`.
+    /// When set, long-running streams can be cancelled cooperatively.
+    cancel_token: Option<Arc<AtomicBool>>,
     /// When true, the provider respects prompt cache breakpoints and sends
     /// cache-aware annotations (e.g., `cache_control: { "type": "ephemeral" }`) with
     /// the system message to instruct the provider to cache the prefix and avoid
@@ -75,6 +79,7 @@ impl AxAgentApiClient {
             request_delay_ms: None,
             on_event: None,
             image_urls: Vec::new(),
+            cancel_token: None,
             enable_cache_breakpoints: false,
             system_prompt_cache_hash: None,
         }
@@ -100,6 +105,7 @@ impl AxAgentApiClient {
             request_delay_ms: None,
             on_event: None,
             image_urls: Vec::new(),
+            cancel_token: None,
             enable_cache_breakpoints: false,
             system_prompt_cache_hash: None,
         }
@@ -168,6 +174,13 @@ impl AxAgentApiClient {
     /// so images are attached at the wire-format conversion layer.
     pub fn with_image_urls(mut self, urls: Vec<String>) -> Self {
         self.image_urls = urls;
+        self
+    }
+
+    /// Set a cancellation token forwarded to the provider's `chat_stream`.
+    /// When the token is flipped to `true`, the stream should terminate promptly.
+    pub fn with_cancel_token(mut self, token: Option<Arc<AtomicBool>>) -> Self {
+        self.cancel_token = token;
         self
     }
 }
@@ -424,7 +437,9 @@ impl ApiClient for AxAgentApiClient {
         };
 
         // Call AxAgent's provider stream
-        let mut stream = self.adapter.chat_stream(&self.ctx, chat_request, None);
+        let mut stream =
+            self.adapter
+                .chat_stream(&self.ctx, chat_request, self.cancel_token.clone());
         let mut events = Vec::new();
         let on_event = self.on_event.clone();
 
@@ -508,9 +523,23 @@ impl ApiClient for AxAgentApiClient {
             Ok(events)
         };
 
+        // 不能在已存在的 tokio runtime 中嵌套 block_on,改用 spawn_blocking + oneshot
+        // 在专用阻塞线程上驱动 future,避免与当前 runtime 冲突。
         if let Ok(handle) = tokio::runtime::Handle::try_current() {
-            handle.block_on(process_stream)
+            let (tx, rx) = tokio::sync::oneshot::channel();
+            handle.spawn_blocking(move || {
+                let res = futures::executor::block_on(process_stream);
+                let _ = tx.send(res);
+            });
+            tokio::task::block_in_place(|| {
+                futures::executor::block_on(async move {
+                    rx.await.unwrap_or_else(|e| {
+                        Err(RuntimeError::new(format!("stream task dropped: {e}")))
+                    })
+                })
+            })
         } else {
+            // 不在 runtime 内时退化为创建独立 runtime
             tokio::runtime::Builder::new_current_thread()
                 .enable_all()
                 .build()

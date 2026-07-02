@@ -144,6 +144,9 @@ export function WikiEditorPage({ noteId, onBack }: WikiEditorPageProps) {
         clearTimeout(autoSaveTimerRef.current);
       }
     };
+    // 显式省略 hasChanges / saving / handleSave：
+    // hasChanges 和 saving 会在保存流程中变化，加入 deps 会重新触发 effect 并重置计时器，
+    // handleSave 也可能在父组件重渲染时变化，导致意外的自动保存。
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [content, title]);
 

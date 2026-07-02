@@ -21,8 +21,6 @@
     "invalidLink": true,
     "notDocumented": true
   },
-  "plugin": [
-    "typedoc-plugin-zod"
-  ],
+  "plugin": [],
   "tsconfig": "tsconfig.json"
 }

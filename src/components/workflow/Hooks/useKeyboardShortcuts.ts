@@ -121,12 +121,18 @@ export function useKeyboardShortcuts(params: UseKeyboardShortcutsParams) {
             const childIds = new Set(allNodes.map((n) => n.id));
             for (const e of store.edges) {
               if (childIds.has(e.source) && childIds.has(e.target)) {
+                // FIXME: edges stored as WorkflowNode[] — conflates Edge and Node types.
+                // Should refactor clipboard to use separate arrays for nodes and edges,
+                // or introduce a ClipboardData type with distinct fields.
                 allEdges.push(e as unknown as WorkflowNode);
               }
             }
           }
           r.clipboardRef.current = allNodes;
+          // FIXME: clipboardRef is typed as WorkflowNode[] but mutated to hold edges via _edges.
+          // Refactor to a proper clipboard data structure that separates nodes and edges.
           (r.clipboardRef as unknown as React.MutableRefObject<WorkflowNode[] & { _edges?: WorkflowNode[] }>).current
+            // FIXME: edges stored as WorkflowNode[] — type is wrong at both write and read sites.
             ._edges = allEdges as unknown as WorkflowNode[];
           message.success(t("workflow.nodeCopied"));
         }
@@ -152,11 +158,14 @@ export function useKeyboardShortcuts(params: UseKeyboardShortcutsParams) {
             }
           }
         });
+        // FIXME: clipboardRef is mutated to hold edges on _edges (see copy handler above).
         const clipboardEdges =
           (r.clipboardRef as unknown as React.MutableRefObject<WorkflowNode[] & { _edges?: WorkflowNode[] }>).current
             ._edges;
         if (clipboardEdges && clipboardEdges.length > 0) {
           const store = useWorkflowEditorStore.getState();
+          // FIXME: clipboardEdges was stored as WorkflowNode[]; treat it as WorkflowEdge[] here.
+          // Same underlying bug — refactor clipboard to separate node/edge types.
           for (const edge of clipboardEdges as unknown as import("../types").WorkflowEdge[]) {
             const newSource = idMap.get(edge.source) ?? edge.source;
             const newTarget = idMap.get(edge.target) ?? edge.target;

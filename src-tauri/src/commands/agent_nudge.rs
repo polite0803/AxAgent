@@ -79,6 +79,7 @@ pub async fn skill_find_similar(
     let closed_loop = app_state.closed_loop_service.clone();
     let similar = closed_loop
         .find_similar_skills(&topic)
+        .await
         .map_err(|e| e.to_string())?;
     Ok(similar
         .iter()
@@ -94,7 +95,7 @@ pub async fn skill_upgrade_propose(
 ) -> Result<Option<serde_json::Value>, String> {
     let closed_loop = app_state.closed_loop_service.clone();
 
-    if let Ok(Some(skill)) = closed_loop.get_skill_by_id(&skill_id) {
+    if let Ok(Some(skill)) = closed_loop.get_skill_by_id(&skill_id).await {
         let skill_factor = skill.success_rate;
         let confidence = 0.5 + 0.3 * skill_factor;
 

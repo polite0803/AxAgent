@@ -6,8 +6,10 @@
 //! `axagent-agent::hierarchical_planner` 和 `axagent-rt-workflow`
 //! 均可使用，无需依赖彼此。
 
-use axagent_harness::plan_types::Plan;
+use axagent_harness::plan_types::PhaseStatus;
+use axagent_harness::plan_types::{Phase, Plan, PlanStatus, PlannedTask};
 use axagent_harness::workflow_types::*;
+use std::collections::HashMap;
 
 // ── Plan → DAG 编译 ─────────────────────────────────────
 
@@ -276,4 +278,73 @@ pub fn compile_plan_to_dag(
     }
 
     (nodes, edges)
+}
+
+// ── DAG → Plan 反向编译 ─────────────────────────────────────
+
+/// 将工作流 DAG（WorkflowNode + WorkflowEdge）反向编译为 Plan。
+///
+/// 允许用户将编辑器中手工搭建的工作流转为 Plan 格式，
+/// 便于 Plan 模式审批执行。
+pub fn dag_to_plan(goal: &str, nodes: &[WorkflowNode], edges: &[WorkflowEdge]) -> Plan {
+    let mut phase_tasks: Vec<PlannedTask> = Vec::new();
+    let mut all_ids: Vec<String> = Vec::new();
+
+    // 每个非 Trigger/End 节点 → 一个 PlannedTask
+    for node in nodes {
+        let nid = node.base().id.clone();
+        let ntitle = node.base().title.clone();
+        let (action_type, params) = match node {
+            WorkflowNode::Tool(_) => ("tool".to_string(), serde_json::json!({"tool": ntitle})),
+            WorkflowNode::Agent(_) | WorkflowNode::Llm(_) => {
+                ("llm".to_string(), serde_json::json!({"prompt": ntitle}))
+            },
+            _ => continue,
+        };
+
+        let mut deps: Vec<String> = Vec::new();
+        for edge in edges {
+            if edge.target == nid {
+                let source_title = nodes
+                    .iter()
+                    .find(|n| n.base().id == edge.source)
+                    .map(|n| n.base().id.clone())
+                    .unwrap_or_default();
+                if !source_title.is_empty() && source_title != "trigger" {
+                    deps.push(source_title);
+                }
+            }
+        }
+
+        phase_tasks.push(PlannedTask {
+            id: nid.clone(),
+            description: format!("{}: {}", action_type, ntitle),
+            action_type,
+            parameters: params,
+            dependencies: deps,
+            max_retries: 3,
+            assigned_role: None,
+            error: None,
+            result: None,
+            retry_count: 0,
+            status: axagent_harness::plan_types::TaskStatus::Pending,
+        });
+        all_ids.push(nid);
+    }
+
+    Plan {
+        id: format!("dag_plan_{}", uuid::Uuid::new_v4().to_string().replace('-', "_")),
+        goal: goal.to_string(),
+        phases: vec![Phase {
+            id: "phase_1".to_string(),
+            name: "Auto-generated Phase".to_string(),
+            description: format!("Reverse-compiled from {} nodes", nodes.len()),
+            tasks: phase_tasks,
+            dependencies: vec![],
+            status: PhaseStatus::Pending,
+        }],
+        status: PlanStatus::Draft,
+        created_at: chrono::Utc::now().timestamp_millis(),
+        updated_at: chrono::Utc::now().timestamp_millis(),
+    }
 }

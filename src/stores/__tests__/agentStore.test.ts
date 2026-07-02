@@ -239,7 +239,7 @@ describe("agentStore event handling", () => {
 
   it("should setup event listeners", () => {
     const unlistenFn = vi.fn();
-    (listen as unknown as ReturnType<typeof vi.fn>).mockReturnValue(
+    (listen as unknown as ReturnType<typeof vi.fn>).mockReturnValue /* SAFE: vi mock helper cast for test setup */(
       Promise.resolve(unlistenFn),
     );
 

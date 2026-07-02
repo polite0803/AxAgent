@@ -313,13 +313,17 @@ impl AutoMemoryExtractor {
         self.extraction_cache.clear();
     }
 
-    pub fn apply_memories_to_service(&self, memories: &[ExtractedMemory]) -> anyhow::Result<usize> {
+    pub async fn apply_memories_to_service(
+        &self,
+        memories: &[ExtractedMemory],
+    ) -> anyhow::Result<usize> {
         let memory_service = self.memory_service.blocking_write();
         let mut applied = 0;
 
         for memory in memories {
-            let result =
-                memory_service.add_memory_with_dedup(memory.memory_type.as_str(), &memory.content);
+            let result = memory_service
+                .add_memory_with_dedup(memory.memory_type.as_str(), &memory.content)
+                .await;
             if result.success {
                 applied += 1;
             } else {

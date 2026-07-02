@@ -15,7 +15,7 @@ interface Props {
 export const AggregatorPropertyPanel: React.FC<Props> = ({ node, onUpdate, onDelete }) => {
   const { token } = theme.useToken();
   const { t } = useTranslation();
-  const n = node as unknown as AggregatorNode;
+  const n = node as unknown as AggregatorNode; // SAFE: WorkflowNode union narrowed to specific node type via config field access
   const c = n.config || {
     strategy: "all",
     input_sources: [],

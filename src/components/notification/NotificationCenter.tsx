@@ -96,7 +96,10 @@ export function NotificationCenter({ trigger }: NotificationCenterProps) {
   };
 
   const formatTime = (timestamp: number) => {
-    const now = Date.now(); // eslint-disable-line react-hooks/purity
+    // Date.now() 用于计算相对时间（"刚刚"、"X 分钟前"），
+    // 故意在 render 中调用以保证每次渲染都显示最新时间差。
+    // eslint-disable-next-line react-hooks/purity
+    const now = Date.now();
     const diff = now - timestamp;
 
     if (diff < 60000) {

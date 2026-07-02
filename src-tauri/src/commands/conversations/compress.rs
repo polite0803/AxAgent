@@ -660,7 +660,7 @@ mod tests_conversation {
                 axagent_trajectory::TrajectoryStorage::new(std::sync::Arc::new(db.clone()));
             let ms = axagent_trajectory::MemoryService::new(std::sync::Arc::new(storage))
                 .unwrap_or_else(|e| panic!("Failed to create MemoryService: {}", e));
-            if let Err(e) = ms.initialize() {
+            if let Err(e) = ms.initialize().await {
                 panic!("Failed to initialize MemoryService: {}", e);
             }
             Arc::new(tokio::sync::RwLock::new(ms))

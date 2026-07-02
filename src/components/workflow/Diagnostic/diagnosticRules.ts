@@ -20,14 +20,17 @@ interface RuleContext {
 type Rule = (ctx: RuleContext) => DiagnosticIssue[];
 
 function baseOf(n: WorkflowNode): WorkflowNodeBase {
+  // SAFE: all WorkflowNode union variants extend WorkflowNodeBase at runtime
   return n as unknown as WorkflowNodeBase;
 }
 
 function nodeType(n: WorkflowNode): string {
+  // SAFE: all WorkflowNode union variants have a `type` discriminant field
   return (n as unknown as { type: string }).type;
 }
 
 function configOf(n: WorkflowNode): Record<string, unknown> {
+  // SAFE: all WorkflowNode union variants have a `config` property at runtime
   return (n as unknown as { config: Record<string, unknown> }).config ?? {};
 }
 

@@ -8,8 +8,14 @@ import { useTranslation } from "react-i18next";
 const { Text } = Typography;
 
 // Mini SVG chart — 声明在组件外部以避免在 render 期间创建组件
-function MiniLineChart({ data, color }: { data: { step: number; value: number }[]; color: string }) {
-  if (data.length < 2) { return <Text type="secondary">数据不足</Text>; }
+function MiniLineChart(
+  { data, color, insufficientDataText }: {
+    data: { step: number; value: number }[];
+    color: string;
+    insufficientDataText: string;
+  },
+) {
+  if (data.length < 2) { return <Text type="secondary">{insufficientDataText}</Text>; }
   const w = 340, h = 100, pad = { t: 8, r: 8, b: 16, l: 40 };
   const xs = data.map((d) => d.step);
   const ys = data.map((d) => d.value);
@@ -84,19 +90,31 @@ export function RLTrainingMonitor() {
 
       {/* Info stats */}
       <div style={{ display: "flex", gap: 24, marginBottom: 16, flexWrap: "wrap" }}>
-        <Statistic title="当前步数" value={currentStep} valueStyle={{ fontSize: 16 }} />
-        <Statistic title="损失" value={currentMetrics?.loss?.toFixed(4) ?? "-"} valueStyle={{ fontSize: 16 }} />
-        <Statistic title="奖励" value={currentMetrics?.reward?.toFixed(4) ?? "-"} valueStyle={{ fontSize: 16 }} />
-        <Statistic title="速度" value={`${stepsPerSec.toFixed(1)} steps/s`} valueStyle={{ fontSize: 16 }} />
+        <Statistic title={t("rl.monitor.currentStep")} value={currentStep} valueStyle={{ fontSize: 16 }} />
+        <Statistic
+          title={t("rl.monitor.loss")}
+          value={currentMetrics?.loss?.toFixed(4) ?? "-"}
+          valueStyle={{ fontSize: 16 }}
+        />
+        <Statistic
+          title={t("rl.monitor.reward")}
+          value={currentMetrics?.reward?.toFixed(4) ?? "-"}
+          valueStyle={{ fontSize: 16 }}
+        />
+        <Statistic
+          title={t("rl.monitor.speed")}
+          value={`${stepsPerSec.toFixed(1)} steps/s`}
+          valueStyle={{ fontSize: 16 }}
+        />
       </div>
 
       {/* Loss chart (3 lines) */}
-      <Text strong style={{ display: "block", marginBottom: 4 }}>损失曲线</Text>
-      <MiniLineChart data={chartData.loss} color="#1890ff" />
+      <Text strong style={{ display: "block", marginBottom: 4 }}>{t("rl.monitor.lossCurve")}</Text>
+      <MiniLineChart data={chartData.loss} color="#1890ff" insufficientDataText={t("rl.monitor.insufficientData")} />
 
       {/* Reward chart */}
-      <Text strong style={{ display: "block", marginBottom: 4, marginTop: 12 }}>奖励曲线</Text>
-      <MiniLineChart data={chartData.reward} color="#52c41a" />
+      <Text strong style={{ display: "block", marginBottom: 4, marginTop: 12 }}>{t("rl.monitor.rewardCurve")}</Text>
+      <MiniLineChart data={chartData.reward} color="#52c41a" insufficientDataText={t("rl.monitor.insufficientData")} />
     </div>
   );
 }

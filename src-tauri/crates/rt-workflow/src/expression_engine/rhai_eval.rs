@@ -49,28 +49,30 @@ fn value_to_dynamic(value: &Value) -> Dynamic {
 /// 将 Rhai Dynamic 转换回 serde_json::Value
 fn dynamic_to_value(d: Dynamic) -> Value {
     if d.is::<i64>() {
-        Value::Number(d.as_int().unwrap().into())
+        let n: i64 = d.try_cast().unwrap_or(0);
+        Value::Number(n.into())
     } else if d.is::<f64>() {
-        if let Ok(f) = d.as_float()
-            && let Some(n) = serde_json::Number::from_f64(f)
-        {
+        let f: f64 = d.try_cast().unwrap_or(0.0);
+        if let Some(n) = serde_json::Number::from_f64(f) {
             return Value::Number(n);
         }
         Value::Null
     } else if d.is::<bool>() {
-        Value::Bool(d.as_bool().unwrap())
+        let b: bool = d.try_cast().unwrap_or(false);
+        Value::Bool(b)
     } else if d.is::<String>() {
-        Value::String(d.into_string().unwrap())
+        let s: String = d.try_cast().unwrap_or_default();
+        Value::String(s)
     } else if d.is::<Vec<Dynamic>>() {
         let arr: Vec<Value> = d
-            .into_array()
-            .unwrap()
+            .try_cast::<Vec<Dynamic>>()
+            .unwrap_or_default()
             .into_iter()
             .map(dynamic_to_value)
             .collect();
         Value::Array(arr)
     } else if d.is::<Map>() {
-        let map = d.try_cast::<Map>().unwrap();
+        let map: Map = d.try_cast::<Map>().unwrap_or_default();
         let obj: serde_json::Map<String, Value> = map
             .into_iter()
             .map(|(k, v)| (k.to_string(), dynamic_to_value(v)))

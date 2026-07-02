@@ -1,0 +1,635 @@
+    Blocking waiting for file lock on build directory
+warning: failed to parse serde attribute
+  | 
+  | #[serde(default, skip_serializing_if = "Option::is_none")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(default, skip_serializing_if = "Option::is_none")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(default, skip_serializing_if = "Option::is_none")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(default, skip_serializing_if = "Option::is_none")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(default, skip_serializing_if = "Option::is_none")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(default, skip_serializing_if = "Option::is_none")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(skip_serializing_if = "Option::is_none")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(skip_serializing_if = "Option::is_none")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(default, skip_serializing_if = "Option::is_none")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(default, skip_serializing_if = "Option::is_none")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(default, skip_serializing_if = "Option::is_none")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(default, skip_serializing_if = "Option::is_none")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(default, skip_serializing_if = "Option::is_none")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(default = "default_webhook_response_mode", skip_serializing_if =
+"Option::is_none")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(default, skip_serializing_if = "Option::is_none")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(default, skip_serializing_if = "Option::is_none")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(default, skip_serializing_if = "Option::is_none")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(default, skip_serializing_if = "Option::is_none")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(deserialize_with = "deserialize_tool_defs")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(default, skip_serializing_if = "Option::is_none")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(default, skip_serializing_if = "Option::is_none")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(default, skip_serializing_if = "Option::is_none")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(default, skip_serializing_if = "Option::is_none")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(default, skip_serializing_if = "Option::is_none")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(default, skip_serializing_if = "Option::is_none")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(default, skip_serializing_if = "Option::is_none")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(default, skip_serializing_if = "Option::is_none")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(default, skip_serializing_if = "Option::is_none")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(default, skip_serializing_if = "Option::is_none")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(default, skip_serializing_if = "Option::is_none")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(default, skip_serializing_if = "Option::is_none")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(default, skip_serializing_if = "Option::is_none")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(default, skip_serializing_if = "Option::is_none", rename =
+"subGraph")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(default, skip_serializing_if = "Option::is_none")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(default, skip_serializing_if = "Option::is_none")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(default, skip_serializing_if = "Option::is_none")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(default, skip_serializing_if = "Option::is_none")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(default, skip_serializing_if = "Option::is_none")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(default, skip_serializing_if = "Option::is_none")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(default, skip_serializing_if = "Option::is_none")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(default, skip_serializing_if = "Option::is_none", rename =
+"subGraph")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(default, skip_serializing_if = "Option::is_none", rename =
+"subGraph")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(default, skip_serializing_if = "Option::is_none")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(default, skip_serializing_if = "Option::is_none")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(default, skip_serializing_if = "Option::is_none")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(default, skip_serializing_if = "Option::is_none")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(default, skip_serializing_if = "Option::is_none")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(default, skip_serializing_if = "Option::is_none")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(default, skip_serializing_if = "Option::is_none")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(default, skip_serializing_if = "Option::is_none")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(default, skip_serializing_if = "Option::is_none")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(default, skip_serializing_if = "Option::is_none")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(default, skip_serializing_if = "Option::is_none")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(default, skip_serializing_if = "Option::is_none")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(default, skip_serializing_if = "Option::is_none")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(default, skip_serializing_if = "Option::is_none")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(default, skip_serializing_if = "Option::is_none")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(default, skip_serializing_if = "Option::is_none")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(default, skip_serializing_if = "Option::is_none")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(default, skip_serializing_if = "Option::is_none")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(default, skip_serializing_if = "Option::is_none")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(default, skip_serializing_if = "Option::is_none", rename =
+"subGraph")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(default, skip_serializing_if = "Option::is_none")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(default, skip_serializing_if = "Option::is_none")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(default, skip_serializing_if = "Option::is_none")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(default, skip_serializing_if = "Option::is_none")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(default, skip_serializing_if = "Option::is_none", rename =
+"subGraph")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(default, skip_serializing_if = "Option::is_none")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(default, skip_serializing_if = "Option::is_none")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(default, skip_serializing_if = "Option::is_none", rename =
+"subGraph")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(default, skip_serializing_if = "Option::is_none")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+    Checking axagent-trajectory v2.8.0 (D:\OneManager\AxAgent\src-tauri\crates\trajectory)
+error[E0277]: the `?` operator can only be applied to values that implement `Try`
+   --> crates\trajectory\src\memory_providers\closed_loop.rs:273:13
+    |
+273 | /             self.storage
+274 | |                 .query_trajectories(&crate::trajectory::TrajectoryQuery {
+275 | |                     session_id: None,
+276 | |                     user_id: None,
+...   |
+282 | |                     limit: Some(10),
+283 | |                 })?;
+    | |___________________^ the `?` operator cannot be applied to type `impl std::future::Future<Output = Result<Vec<Trajectory>, anyhow::Error>>`
+    |
+    = help: the nightly-only, unstable trait `Try` is not implemented for `impl std::future::Future<Output = Result<Vec<Trajectory>, anyhow::Error>>`
+help: consider `await`ing on the `Future`
+    |
+283 |                 }).await?;
+    |                   ++++++
+
+error[E0277]: the `?` operator can only be applied to values that implement `Try`
+   --> crates\trajectory\src\memory_providers\closed_loop.rs:329:13
+    |
+329 | /             self.storage
+330 | |                 .query_trajectories(&crate::trajectory::TrajectoryQuery {
+331 | |                     session_id: None,
+332 | |                     user_id: None,
+...   |
+338 | |                     limit: Some(20),
+339 | |                 })?;
+    | |___________________^ the `?` operator cannot be applied to type `impl std::future::Future<Output = Result<Vec<Trajectory>, anyhow::Error>>`
+    |
+    = help: the nightly-only, unstable trait `Try` is not implemented for `impl std::future::Future<Output = Result<Vec<Trajectory>, anyhow::Error>>`
+help: consider `await`ing on the `Future`
+    |
+339 |                 }).await?;
+    |                   ++++++
+
+error[E0277]: the `?` operator can only be applied to values that implement `Try`
+   --> crates\trajectory\src\memory_providers\closed_loop.rs:425:24
+    |
+425 |         let patterns = self.storage.get_patterns_by_success_rate(0.0, Some(100))?;
+    |                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the `?` operator cannot be applied to type `impl std::future::Future<Output = Result<Vec<TrajectoryPattern>, anyhow::Error>>`
+    |
+    = help: the nightly-only, unstable trait `Try` is not implemented for `impl std::future::Future<Output = Result<Vec<TrajectoryPattern>, anyhow::Error>>`
+help: consider `await`ing on the `Future`
+    |
+425 |         let patterns = self.storage.get_patterns_by_success_rate(0.0, Some(100)).await?;
+    |                                                                                 ++++++
+
+error[E0308]: mismatched types
+   --> crates\trajectory\src\memory_providers\closed_loop.rs:499:36
+    |
+499 | ...                   if let Err(e) = self.storage.save_memory(&entry) {
+    |                              ^^^^^^   -------------------------------- this expression has type `impl std::future::Future<Output = Result<(), anyhow::Error>>`
+    |                              |
+    |                              expected future, found `Result<_, _>`
+    |
+    = note: expected opaque type `impl std::future::Future<Output = Result<(), anyhow::Error>>`
+                      found enum `Result<_, _>`
+help: consider `await`ing on the `Future`
+    |
+499 |                             if let Err(e) = self.storage.save_memory(&entry).await {
+    |                                                                             ++++++
+
+error[E0308]: mismatched types
+   --> crates\trajectory\src\memory_providers\closed_loop.rs:540:36
+    |
+540 | ...                   if let Err(e) = self.storage.save_skill(&skill) {
+    |                              ^^^^^^   ------------------------------- this expression has type `impl std::future::Future<Output = Result<(), anyhow::Error>>`
+    |                              |
+    |                              expected future, found `Result<_, _>`
+    |
+    = note: expected opaque type `impl std::future::Future<Output = Result<(), anyhow::Error>>`
+                      found enum `Result<_, _>`
+help: consider `await`ing on the `Future`
+    |
+540 |                             if let Err(e) = self.storage.save_skill(&skill).await {
+    |                                                                            ++++++
+
+error[E0308]: mismatched types
+   --> crates\trajectory\src\memory_providers\closed_loop.rs:620:40
+    |
+620 | ...                   if let Err(e) = self.storage.save_skill(&existing_skill) {
+    |                              ^^^^^^   ---------------------------------------- this expression has type `impl std::future::Future<Output = Result<(), anyhow::Error>>`
+    |                              |
+    |                              expected future, found `Result<_, _>`
+    |
+    = note: expected opaque type `impl std::future::Future<Output = Result<(), anyhow::Error>>`
+                      found enum `Result<_, _>`
+help: consider `await`ing on the `Future`
+    |
+620 |                                 if let Err(e) = self.storage.save_skill(&existing_skill).await {
+    |                                                                                         ++++++
+
+error[E0308]: mismatched types
+   --> crates\trajectory\src\storage.rs:309:56
+    |
+309 |         let rows: Vec<QueryResult> = self.db.query_all(stmt).await?;
+    |                                              --------- ^^^^ expected `&_`, found `Statement`
+    |                                              |
+    |                                              arguments to this method are incorrect
+    |
+    = note: expected reference `&_`
+                  found struct `sea_orm::Statement`
+note: method defined here
+   --> C:\Users\polit\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\sea-orm-2.0.0-rc.41\src\database\connection.rs:49:14
+    |
+ 49 |     async fn query_all<S: StatementBuilder>(&self, stmt: &S) -> Result<Vec<QueryResult>, DbErr> {
+    |              ^^^^^^^^^
+help: consider borrowing here
+    |
+309 |         let rows: Vec<QueryResult> = self.db.query_all(&stmt).await?;
+    |                                                        +
+
+error[E0308]: mismatched types
+  --> crates\trajectory\src\batch.rs:92:17
+   |
+91 |             match storage.get_session_trajectories(session_id.as_ref()) {
+   |                   ----------------------------------------------------- this expression has type `impl std::future::Future<Output = Result<Vec<Trajectory>, anyhow::Error>>`
+92 |                 Ok(trajs) => trajectories.extend(trajs),
+   |                 ^^^^^^^^^ expected future, found `Result<_, _>`
+   |
+   = note: expected opaque type `impl std::future::Future<Output = Result<Vec<Trajectory>, anyhow::Error>>`
+                     found enum `Result<_, _>`
+
+error[E0308]: mismatched types
+  --> crates\trajectory\src\batch.rs:93:17
+   |
+91 |             match storage.get_session_trajectories(session_id.as_ref()) {
+   |                   ----------------------------------------------------- this expression has type `impl std::future::Future<Output = Result<Vec<Trajectory>, anyhow::Error>>`
+92 |                 Ok(trajs) => trajectories.extend(trajs),
+93 |                 Err(e) => {
+   |                 ^^^^^^ expected future, found `Result<_, _>`
+   |
+   = note: expected opaque type `impl std::future::Future<Output = Result<Vec<Trajectory>, anyhow::Error>>`
+                     found enum `Result<_, _>`
+
+error[E0599]: `impl std::future::Future<Output = Result<Vec<Trajectory>, anyhow::Error>>` is not an iterator
+   --> crates\trajectory\src\dream_data_provider.rs:125:14
+    |
+122 |           let result = self
+    |  ______________________-
+123 | |             .storage
+124 | |             .get_trajectories(Some(limit))
+125 | |             .map(|trajectories| {
+    | |             -^^^ `impl std::future::Future<Output = Result<Vec<Trajectory>, anyhow::Error>>` is not an iterator
+    | |_____________|
+    |
+    |
+    = note: the following trait bounds were not satisfied:
+            `impl std::future::Future<Output = Result<Vec<Trajectory>, anyhow::Error>>: Iterator`
+            which is required by `&mut impl std::future::Future<Output = Result<Vec<Trajectory>, anyhow::Error>>: Iterator`
+    = help: items from traits can only be used if the trait is in scope
+help: consider `await`ing on the `Future` and calling the method on its `Output`
+    |
+125 |             .await.map(|trajectories| {
+    |              ++++++
+help: trait `FutureExt` which provides `map` is implemented but not in scope; perhaps you want to import it
+    |
+  3 + use futures_util::future::future::FutureExt;
+    |
+
+error[E0599]: `impl std::future::Future<Output = Result<Vec<Trajectory>, anyhow::Error>>` is not an iterator
+   --> crates\trajectory\src\dream_data_provider.rs:144:14
+    |
+141 |           let result = self
+    |  ______________________-
+142 | |             .storage
+143 | |             .get_trajectories(None)
+144 | |             .map(|trajectories| {
+    | |             -^^^ `impl std::future::Future<Output = Result<Vec<Trajectory>, anyhow::Error>>` is not an iterator
+    | |_____________|
+    |
+    |
+    = note: the following trait bounds were not satisfied:
+            `impl std::future::Future<Output = Result<Vec<Trajectory>, anyhow::Error>>: Iterator`
+            which is required by `&mut impl std::future::Future<Output = Result<Vec<Trajectory>, anyhow::Error>>: Iterator`
+    = help: items from traits can only be used if the trait is in scope
+help: consider `await`ing on the `Future` and calling the method on its `Output`
+    |
+144 |             .await.map(|trajectories| {
+    |              ++++++
+help: trait `FutureExt` which provides `map` is implemented but not in scope; perhaps you want to import it
+    |
+  3 + use futures_util::future::future::FutureExt;
+    |
+
+error[E0599]: no method named `map_err` found for opaque type `impl std::future::Future<Output = Result<(), anyhow::Error>>` in the current scope
+   --> crates\trajectory\src\dream_data_provider.rs:167:62
+    |
+167 |         let persist_result = self.storage.save_skill(&skill).map_err(|e| e.to_string());
+    |                                                              ^^^^^^^ method not found in `impl std::future::Future<Output = Result<(), anyhow::Error>>`
+    |
+   ::: C:\Users\polit\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\futures-util-0.3.32\src\future\try_future\mod.rs:308:8
+    |
+308 |     fn map_err<E, F>(self, f: F) -> MapErr<Self, F>
+    |        ------- the method is available for `impl std::future::Future<Output = Result<(), anyhow::Error>>` here
+    |
+    = help: items from traits can only be used if the trait is in scope
+help: consider `await`ing on the `Future` and calling the method on its `Output`
+    |
+167 |         let persist_result = self.storage.save_skill(&skill).await.map_err(|e| e.to_string());
+    |                                                              ++++++
+help: trait `TryFutureExt` which provides `map_err` is implemented but not in scope; perhaps you want to import it
+    |
+  3 + use futures_util::future::try_future::TryFutureExt;
+    |
+
+error[E0277]: the `?` operator can only be applied to values that implement `Try`
+   --> crates\trajectory\src\memory_providers\closed_loop.rs:755:26
+    |
+755 |         let all_skills = self.storage.get_all_skills()?;
+    |                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the `?` operator cannot be applied to type `impl std::future::Future<Output = Result<Vec<Skill>, anyhow::Error>>`
+    |
+    = help: the nightly-only, unstable trait `Try` is not implemented for `impl std::future::Future<Output = Result<Vec<Skill>, anyhow::Error>>`
+note: this implements `Future` and its output type supports `?`, but the future cannot be awaited in a synchronous function
+   --> crates\trajectory\src\memory_providers\closed_loop.rs:755:55
+    |
+754 |     pub fn find_similar_skills(&self, topic: &str) -> Result<Vec<Skill>, anyhow::Error> {
+    |     ----------------------------------------------------------------------------------- this is not `async`
+755 |         let all_skills = self.storage.get_all_skills()?;
+    |                                                       ^
+
+error[E0277]: `Result<(), anyhow::Error>` is not a future
+   --> crates\trajectory\src\memory_providers\service.rs:284:24
+    |
+284 |         block_on_async(self.storage.init_memory_tables())?;
+    |         -------------- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `Result<(), anyhow::Error>` is not a future
+    |         |
+    |         required by a bound introduced by this call
+    |
+    = help: the trait `std::future::Future` is not implemented for `Result<(), anyhow::Error>`
+note: required by a bound in `block_on_async`
+   --> crates\trajectory\src\memory_providers\service.rs:19:22
+    |
+ 19 | fn block_on_async<F: std::future::Future>(f: F) -> F::Output {
+    |                      ^^^^^^^^^^^^^^^^^^^ required by this bound in `block_on_async`
+
+error[E0277]: `Result<(), anyhow::Error>` is not a future
+   --> crates\trajectory\src\memory_providers\service.rs:284:9
+    |
+284 |         block_on_async(self.storage.init_memory_tables())?;
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `Result<(), anyhow::Error>` is not a future
+    |
+    = help: the trait `std::future::Future` is not implemented for `Result<(), anyhow::Error>`
+
+error[E0599]: no method named `unwrap_or_default` found for opaque type `impl std::future::Future<Output = Result<Vec<Relationship>, anyhow::Error>>` in the current scope
+   --> crates\trajectory\src\memory_providers\service.rs:980:26
+    |
+977 |                       let rels = self
+    |  ________________________________-
+978 | |                         .storage
+979 | |                         .get_relationships_by_entity(&entity.id)
+980 | |                         .unwrap_or_default();
+    | |_________________________-^^^^^^^^^^^^^^^^^
+    |
+help: there is a method `unwrap_or_else` with a similar name, but with different arguments
+   --> C:\Users\polit\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\futures-util-0.3.32\src\future\try_future\mod.rs:570:5
+    |
+570 | /     fn unwrap_or_else<F>(self, f: F) -> UnwrapOrElse<Self, F>
+571 | |     where
+572 | |         Self: Sized,
+573 | |         F: FnOnce(Self::Error) -> Self::Ok,
+    | |___________________________________________^
+help: consider `await`ing on the `Future` and calling the method on its `Output`
+    |
+980 |                         .await.unwrap_or_default();
+    |                          ++++++
+
+Some errors have detailed explanations: E0277, E0308, E0599.
+For more information about an error, try `rustc --explain E0277`.
+error: could not compile `axagent-trajectory` (lib) due to 16 previous errors

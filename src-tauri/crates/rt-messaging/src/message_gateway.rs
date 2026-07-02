@@ -17,7 +17,7 @@ pub mod platforms;
 pub mod session_router;
 
 use std::collections::HashMap;
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use async_trait::async_trait;
@@ -29,6 +29,9 @@ fn now_ms() -> u128 {
         .unwrap_or_default()
         .as_millis()
 }
+
+/// P1-10: 消息队列上限（背压控制）。超出后入队时丢弃最老消息。
+pub const MAX_QUEUE_SIZE: usize = 10_000;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AgentMessage {
@@ -160,7 +163,7 @@ pub struct GatewayState {
 
 #[derive(Clone)]
 pub struct MessageGateway {
-    state: Arc<RwLock<GatewayState>>,
+    state: Arc<tokio::sync::RwLock<GatewayState>>,
     transport_handlers: HashMap<TransportType, Arc<dyn TransportHandler>>,
 }
 
@@ -214,7 +217,7 @@ impl std::error::Error for GatewayError {}
 impl MessageGateway {
     pub fn new() -> Self {
         Self {
-            state: Arc::new(RwLock::new(GatewayState::default())),
+            state: Arc::new(tokio::sync::RwLock::new(GatewayState::default())),
             transport_handlers: HashMap::new(),
         }
     }
@@ -224,110 +227,102 @@ impl MessageGateway {
             .insert(handler.transport_type(), Arc::new(handler));
     }
 
-    #[allow(clippy::await_holding_lock)]
+    /// 注册 endpoint：先调 transport 的 connect（async），拿到结果后再持写锁写 state。
+    /// 这样写锁不会跨 await，符合 async 锁的预期用法。
     pub async fn register_endpoint(&self, endpoint: AgentEndpoint) -> Result<(), GatewayError> {
-        let mut state = self
-            .state
-            .write()
-            .map_err(|_| GatewayError::TransportError {
-                reason: "Failed to acquire lock".to_string(),
-            })?;
-
         if let Some(handler) = self.transport_handlers.get(&endpoint.transport) {
             handler.connect(&endpoint).await?;
         }
 
+        let mut state = self.state.write().await;
         let agent_id = endpoint.agent_id.clone();
         let url = endpoint.url.clone();
         state.endpoints.insert(agent_id.clone(), endpoint);
         state.routing_table.insert(agent_id, url);
-
         Ok(())
     }
 
-    #[allow(clippy::await_holding_lock)]
+    /// 注销 endpoint：先在持写锁前取出 endpoint（仅读锁），调用 disconnect 后再写。
     pub async fn unregister_endpoint(&self, agent_id: &str) -> Result<AgentEndpoint, GatewayError> {
-        let mut state = self
-            .state
-            .write()
-            .map_err(|_| GatewayError::TransportError {
-                reason: "Failed to acquire lock".to_string(),
-            })?;
-
-        let endpoint = state
-            .endpoints
-            .remove(agent_id)
-            .ok_or_else(|| GatewayError::NotFound {
-                entity: format!("endpoint {}", agent_id),
-            })?;
+        let endpoint = {
+            let state = self.state.read().await;
+            state
+                .endpoints
+                .get(agent_id)
+                .cloned()
+                .ok_or_else(|| GatewayError::NotFound {
+                    entity: format!("endpoint {}", agent_id),
+                })?
+        };
 
         if let Some(handler) = self.transport_handlers.get(&endpoint.transport) {
             handler.disconnect(agent_id).await?;
         }
 
+        let mut state = self.state.write().await;
+        state.endpoints.remove(agent_id);
         state.routing_table.remove(agent_id);
-
         Ok(endpoint)
     }
 
-    #[allow(clippy::await_holding_lock)]
+    /// 发送：先 read 拿到 endpoint/handler 引用（read 锁内不 await），释放后调 handler.send。
     pub async fn send_message(&self, message: &AgentMessage) -> Result<(), GatewayError> {
-        let state = self
-            .state
-            .read()
-            .map_err(|_| GatewayError::TransportError {
-                reason: "Failed to acquire lock".to_string(),
-            })?;
+        let (handler, target) = {
+            let state = self.state.read().await;
+            let endpoint = state
+                .endpoints
+                .get(&message.to)
+                .ok_or_else(|| GatewayError::NotFound {
+                    entity: format!("endpoint {}", message.to),
+                })?
+                .clone();
+            let handler = self
+                .transport_handlers
+                .get(&endpoint.transport)
+                .ok_or_else(|| GatewayError::TransportError {
+                    reason: format!("No handler for transport {:?}", endpoint.transport),
+                })?
+                .clone();
+            (handler, endpoint)
+        };
 
-        let endpoint = state
-            .endpoints
-            .get(&message.to)
-            .ok_or_else(|| GatewayError::NotFound {
-                entity: format!("endpoint {}", message.to),
-            })?;
-
-        let handler = self
-            .transport_handlers
-            .get(&endpoint.transport)
-            .ok_or_else(|| GatewayError::TransportError {
-                reason: format!("No handler for transport {:?}", endpoint.transport),
-            })?;
-
-        handler.send(&message.to, message).await
+        handler.send(&target.agent_id, message).await
     }
 
-    #[allow(clippy::await_holding_lock)]
+    /// 广播：先 read 收集所有 (agent_id, handler_clone) 然后释放锁，循环 await。
     pub async fn broadcast(
         &self,
         agent_ids: &[String],
         message: &AgentMessage,
     ) -> Result<(), GatewayError> {
-        let state = self
-            .state
-            .read()
-            .map_err(|_| GatewayError::TransportError {
-                reason: "Failed to acquire lock".to_string(),
-            })?;
+        // 把每次 send 需要的 handler 与 agent_id 提前取出
+        let targets: Vec<(String, Arc<dyn TransportHandler>)> = {
+            let state = self.state.read().await;
+            agent_ids
+                .iter()
+                .filter_map(|aid| {
+                    let endpoint = state.endpoints.get(aid)?;
+                    let handler = self.transport_handlers.get(&endpoint.transport)?.clone();
+                    Some((aid.clone(), handler))
+                })
+                .collect()
+        };
 
-        for agent_id in agent_ids {
-            if let Some(endpoint) = state.endpoints.get(agent_id)
-                && let Some(handler) = self.transport_handlers.get(&endpoint.transport)
-            {
-                handler.send(agent_id, message).await?;
-            }
+        for (agent_id, handler) in &targets {
+            handler.send(agent_id, message).await?;
         }
-
         Ok(())
     }
 
     pub fn route_message(&self, message: &AgentMessage) -> Result<String, GatewayError> {
+        // 同步接口不能 await：先尝试 read 锁（非阻塞），失败则返回错误。
+        // 调用方应使用 `try_route_message` 的 async 替代品。
         let state = self
             .state
-            .read()
+            .try_read()
             .map_err(|_| GatewayError::TransportError {
-                reason: "Failed to acquire lock".to_string(),
+                reason: "state lock contended; use async try_route_message".to_string(),
             })?;
-
         state
             .routing_table
             .get(&message.to)
@@ -337,46 +332,34 @@ impl MessageGateway {
             })
     }
 
-    pub fn queue_message(&self, message: AgentMessage) -> Result<(), GatewayError> {
-        let mut state = self
-            .state
-            .write()
-            .map_err(|_| GatewayError::TransportError {
-                reason: "Failed to acquire lock".to_string(),
-            })?;
-
+    pub async fn queue_message(&self, message: AgentMessage) -> Result<(), GatewayError> {
+        // 入队时若超过 MAX_QUEUE_SIZE 则丢弃最老元素（背压控制）
+        let mut state = self.state.write().await;
+        if state.message_queue.len() >= MAX_QUEUE_SIZE {
+            state.message_queue.remove(0);
+            tracing::warn!(
+                queue_size = state.message_queue.len(),
+                "message_queue 已达上限，丢弃最老元素"
+            );
+        }
         state.message_queue.push(message);
         Ok(())
     }
 
-    pub fn flush_queue(&self, agent_id: &str) -> Result<Vec<AgentMessage>, GatewayError> {
-        let mut state = self
-            .state
-            .write()
-            .map_err(|_| GatewayError::TransportError {
-                reason: "Failed to acquire lock".to_string(),
-            })?;
-
+    pub async fn flush_queue(&self, agent_id: &str) -> Result<Vec<AgentMessage>, GatewayError> {
+        let mut state = self.state.write().await;
         let pending: Vec<AgentMessage> = state
             .message_queue
             .iter()
             .filter(|m| m.to == agent_id)
             .cloned()
             .collect();
-
         state.message_queue.retain(|m| m.to != agent_id);
-
         Ok(pending)
     }
 
-    pub fn get_endpoint(&self, agent_id: &str) -> Result<AgentEndpoint, GatewayError> {
-        let state = self
-            .state
-            .read()
-            .map_err(|_| GatewayError::TransportError {
-                reason: "Failed to acquire lock".to_string(),
-            })?;
-
+    pub async fn get_endpoint(&self, agent_id: &str) -> Result<AgentEndpoint, GatewayError> {
+        let state = self.state.read().await;
         state
             .endpoints
             .get(agent_id)
@@ -386,42 +369,25 @@ impl MessageGateway {
             })
     }
 
-    pub fn list_endpoints(&self) -> Result<Vec<AgentEndpoint>, GatewayError> {
-        let state = self
-            .state
-            .read()
-            .map_err(|_| GatewayError::TransportError {
-                reason: "Failed to acquire lock".to_string(),
-            })?;
-
+    pub async fn list_endpoints(&self) -> Result<Vec<AgentEndpoint>, GatewayError> {
+        let state = self.state.read().await;
         Ok(state.endpoints.values().cloned().collect())
     }
 
-    pub fn update_heartbeat(&self, agent_id: &str) -> Result<(), GatewayError> {
-        let mut state = self
-            .state
-            .write()
-            .map_err(|_| GatewayError::TransportError {
-                reason: "Failed to acquire lock".to_string(),
-            })?;
-
+    pub async fn update_heartbeat(&self, agent_id: &str) -> Result<(), GatewayError> {
+        let mut state = self.state.write().await;
         let endpoint = state
             .endpoints
             .get_mut(agent_id)
             .ok_or_else(|| GatewayError::NotFound {
                 entity: format!("endpoint {}", agent_id),
             })?;
-
         endpoint.last_seen = now_ms();
         Ok(())
     }
 
-    pub fn get_stale_endpoints(&self, threshold_ms: u128) -> Vec<String> {
-        let state = match self.state.read() {
-            Ok(s) => s,
-            Err(_) => return Vec::new(),
-        };
-
+    pub async fn get_stale_endpoints(&self, threshold_ms: u128) -> Vec<String> {
+        let state = self.state.read().await;
         let now = now_ms();
         state
             .endpoints
@@ -433,28 +399,8 @@ impl MessageGateway {
 }
 
 fn uuid_v4() -> String {
-    use std::time::SystemTime;
-    let now = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_default();
-    format!(
-        "{:08x}-{:04x}-4{:03x}-{:04x}-{:012x}",
-        now.as_secs() as u32,
-        (now.as_secs() >> 32) as u16,
-        (now.as_nanos() >> 48) as u16 & 0x0FFF,
-        rand_u16(),
-        now.as_nanos() & 0xFFFFFFFFFFFF
-    )
-}
-
-fn rand_u16() -> u16 {
-    static VAL: std::sync::OnceLock<u16> = std::sync::OnceLock::new();
-    *VAL.get_or_init(|| {
-        std::time::SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap_or_default()
-            .as_nanos() as u16
-    })
+    // P1-10: 使用真正的 uuid v4（密码学随机），不再用时间戳拼凑
+    uuid::Uuid::new_v4().to_string()
 }
 
 impl Default for MessageGateway {
@@ -496,12 +442,12 @@ mod tests {
         };
 
         gateway.register_endpoint(endpoint).await.unwrap();
-        let retrieved = gateway.get_endpoint("test_agent").unwrap();
+        let retrieved = gateway.get_endpoint("test_agent").await.unwrap();
         assert_eq!(retrieved.agent_id, "test_agent");
     }
 
-    #[test]
-    fn test_message_queue() {
+    #[tokio::test]
+    async fn test_message_queue() {
         let gateway = MessageGateway::new();
         let msg = AgentMessage::new(
             "a",
@@ -511,8 +457,8 @@ mod tests {
             },
         );
 
-        gateway.queue_message(msg).unwrap();
-        let pending = gateway.flush_queue("b").unwrap();
+        gateway.queue_message(msg).await.unwrap();
+        let pending = gateway.flush_queue("b").await.unwrap();
         assert_eq!(pending.len(), 1);
     }
 }

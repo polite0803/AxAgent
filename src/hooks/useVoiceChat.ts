@@ -34,7 +34,7 @@ interface UseVoiceChatReturn {
 
 export function useVoiceChat({
   port = 8080,
-  host = "127.1.0.0",
+  host = "127.0.0.1",
   config,
 }: UseVoiceChatOptions): UseVoiceChatReturn {
   const { t } = useTranslation();

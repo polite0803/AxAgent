@@ -5,6 +5,7 @@ import type { SchemaValidationResult, UISchema } from "@/types";
 import { CheckCircleOutlined } from "@ant-design/icons";
 import { Alert, Badge, Button, Card, Input, Space, Typography } from "antd";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { DynamicUIRenderer } from "./DynamicUIRenderer";
 
 const { Text } = Typography;
@@ -40,6 +41,7 @@ const DEFAULT_SCHEMA: UISchema = {
  * 底部：SchemaValidator 校验结果
  */
 export const DynamicUIPreview: React.FC = () => {
+  const { t } = useTranslation();
   const [schemaText, setSchemaText] = useState(
     JSON.stringify(DEFAULT_SCHEMA, null, 2),
   );
@@ -87,7 +89,7 @@ export const DynamicUIPreview: React.FC = () => {
           Dynamic UI Preview
         </Text>
         <Button size="small" onClick={handleReset}>
-          重置
+          {t("dynamicUIPreview.reset")}
         </Button>
       </div>
 
@@ -115,15 +117,15 @@ export const DynamicUIPreview: React.FC = () => {
 
         {/* Right: Preview */}
         <Card
-          title="实时预览"
+          title={t("dynamicUIPreview.livePreview")}
           size="small"
           className="flex-1 min-w-0 overflow-auto"
         >
           {parseError
-            ? <Alert type="error" message="JSON 解析错误" description={parseError} showIcon />
+            ? <Alert type="error" message={t("dynamicUIPreview.jsonParseError")} description={parseError} showIcon />
             : schema
             ? <DynamicUIRenderer schema={schema} />
-            : <Alert type="info" message="等待有效 JSON..." showIcon />}
+            : <Alert type="info" message={t("dynamicUIPreview.waitingForJson")} showIcon />}
         </Card>
       </div>
 
@@ -131,14 +133,14 @@ export const DynamicUIPreview: React.FC = () => {
       <Card
         title={
           <Space>
-            <span>Schema 校验</span>
+            <span>{t("dynamicUIPreview.schemaValidation")}</span>
             {validation
               ? (
                 validation.valid
                   ? (
                     <Badge
                       status="success"
-                      text={<Text type="success">通过</Text>}
+                      text={<Text type="success">{t("dynamicUIPreview.pass")}</Text>}
                     />
                   )
                   : (
@@ -146,7 +148,7 @@ export const DynamicUIPreview: React.FC = () => {
                       status="error"
                       text={
                         <Text type="danger">
-                          {validation.errors.length} 个错误
+                          {t("dynamicUIPreview.errorsCount", { count: validation.errors.length })}
                         </Text>
                       }
                     />
@@ -157,19 +159,19 @@ export const DynamicUIPreview: React.FC = () => {
         }
         size="small"
       >
-        {parseError ? <Text type="secondary">JSON 解析错误，无法校验</Text> : validation
+        {parseError ? <Text type="secondary">{t("dynamicUIPreview.parseErrorCantValidate")}</Text> : validation
           ? (
             validation.valid
               ? (
                 <Text type="success">
                   <CheckCircleOutlined className="mr-1" />
-                  Schema 校验通过，所有字段合法
+                  {t("dynamicUIPreview.schemaAllValid")}
                 </Text>
               )
               : (
                 <ul className="list-disc pl-4 m-0">
                   {validation.errors.map((err, i) => (
-                    <li key={i} className="text-red-600 dark:text-red-400 text-sm">
+                    <li key={`${err.path}-${i}`} className="text-red-600 dark:text-red-400 text-sm">
                       <Text code>{err.path}</Text>: {err.message}
                     </li>
                   ))}

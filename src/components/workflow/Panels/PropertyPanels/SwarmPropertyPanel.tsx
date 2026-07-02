@@ -17,7 +17,7 @@ interface Props {
 export const SwarmPropertyPanel: React.FC<Props> = ({ node, onUpdate, onDelete }) => {
   const { t } = useTranslation();
   const { token } = theme.useToken();
-  const n = node as unknown as SwarmNode;
+  const n = node as unknown as SwarmNode; // SAFE: WorkflowNode union narrowed to specific node type via config field access
   const c = n.config || {
     agent_steps: [],
     max_rounds: 3,
@@ -51,7 +51,7 @@ export const SwarmPropertyPanel: React.FC<Props> = ({ node, onUpdate, onDelete }
         exposed_tools: [],
         output_mode: "text",
       },
-    } as unknown as WorkflowNode;
+    } as unknown as WorkflowNode; // SAFE: constructing WorkflowNode-compatible object for store insertion
     addNode(newNode);
     setParentRef(id, n.id, true);
     sc("agent_steps", [...agentSteps, id]);

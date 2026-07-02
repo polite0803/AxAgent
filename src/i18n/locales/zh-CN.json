@@ -4829,7 +4829,10 @@
     },
     "swarmNode": {
       "agents": "智能体",
-      "rounds": "轮"
+      "rounds": "轮",
+      "newAgent": "[TODO] Agent",
+      "noAgentsHint": "[TODO] Add Agent nodes inside this container",
+      "addAgent": "[TODO] Add Agent"
     },
     "groupNode": {
       "untitled": "分组",
@@ -5398,7 +5401,122 @@
     },
     "duplicateSuffix": "{{name}} (副本)",
     "fromTemplate": "{{name}} (来自模板)",
-    "defaultWorkflowName": "新建工作流"
+    "defaultWorkflowName": "新建工作流",
+    "list": {
+      "title": "工作流",
+      "searchPlaceholder": "搜索工作流...",
+      "all": "全部",
+      "draft": "草稿",
+      "active": "活跃",
+      "archived": "归档",
+      "templates": "模板库",
+      "createNew": "新建工作流",
+      "empty": "暂无工作流，点击上方按钮创建",
+      "noDescription": "暂无描述",
+      "nodeCount": "{{count}} 节点",
+      "edgeCount": "{{count}} 连线",
+      "edit": "编辑",
+      "duplicate": "复制",
+      "deleteConfirm": "确定删除此工作流？"
+    },
+    "version": {
+      "newNode": "+ 新增节点: {{id}} ({{desc}})",
+      "deletedNode": "- 删除节点: {{id}} ({{desc}})",
+      "modifiedNode": "~ 修改节点: {{id}} ({{desc}})",
+      "compareHint": "正在对比版本 {{v1}} 和版本 {{v2}}",
+      "current": "当前版本",
+      "version": "版本",
+      "updateTime": "更新时间",
+      "changeSummary": "变更摘要",
+      "status": "状态",
+      "currentWorkflowWillBeOverwritten": "当前工作流将被新版本覆盖",
+      "noVersionHistory": "暂无版本记录",
+      "timeline": "时间线",
+      "action": "操作",
+      "restoreToVersion": "恢复到此版本",
+      "confirmRestore": "确定恢复到版本 {{version}}？",
+      "compareSelected": "对比选中版本 ({{selected}}/2)",
+      "clearSelection": "清除选择",
+      "versionManager": "版本管理: {{name}}"
+    },
+    "executor": {
+      "inputVariables": "输入变量",
+      "executing": "正在执行工作流节点...",
+      "status": "状态",
+      "duration": "耗时",
+      "nodeExecutionStatus": "节点执行状态",
+      "outputResult": "输出结果",
+      "executionLog": "执行日志",
+      "close": "关闭",
+      "execute": "执行工作流",
+      "executing": "执行中...",
+      "executionSuccess": "执行成功",
+      "executionFailed": "执行失败"
+    },
+    "log": {
+      "empty": "暂无日志",
+      "clear": "清空日志",
+      "export": "导出日志"
+    },
+    "nlParser": {
+      "naturalLanguageDesc": "自然语言描述",
+      "constraintsOptional": "约束条件（可选）",
+      "examplePlaceholder": "例如：{{example}}",
+      "constraintsPlaceholder": "例如：执行时间不超过 5 分钟、出错时重试 3 次",
+      "parsing": "解析中...",
+      "parseGenerate": "解析生成",
+      "parseResult": "解析结果",
+      "aiSuggestion": "AI 建议",
+      "resultSummary": "{{nodes}} 节点 · {{edges}} 连线 · {{variables}} 变量",
+      "applySolution": "应用此方案",
+      "confidence": "解析置信度",
+      "nodes": "节点",
+      "edges": "边",
+      "variables": "变量",
+      "alternatives": "备选方案",
+      "planLabel": "方案 {{index}}：{{desc}}"
+    },
+    "nl2Skill": {
+      "triggers": "触发词",
+      "parameters": "参数",
+      "tools": "工具",
+      "unit": "个",
+      "triggersLabel": "触发词：",
+      "parametersLabel": "参数：",
+      "required": "必填",
+      "optional": "可选",
+      "parsingPhases": "解析阶段",
+      "applySkill": "应用此技能"
+    },
+    "nl2UI": {
+      "rootType": "根类型",
+      "componentCount": "组件数",
+      "depthLevel": "层级深度",
+      "components": "{{count}} 个组件",
+      "applyUI": "应用此 UI"
+    },
+    "evolution": {
+      "noNodes": "当前画布无节点",
+      "noHistory": "暂无进化记录",
+      "abTestWon": "A/B 胜出",
+      "noActiveABTest": "暂无活跃的 A/B 测试",
+      "confidence": "置信度: {{value}}%",
+      "title": "进化状态",
+      "triggerAll": "全部触发进化",
+      "triggerEvolution": "触发进化",
+      "successRate": "成功率 {{diff}}",
+      "latency": "延迟 {{diff}}",
+      "noEvolutionRecord": "无进化记录 — 可触发首次进化",
+      "abTestTitle": "A/B 测试 ({{count}})",
+      "winner": "{{winner}} 胜出"
+    },
+    "loopBackCycleDetected": "[TODO] Loop-back edge would form a cycle, please adjust the target node",
+    "cycleDetectedOnConnect": "[TODO] This edge creates a cycle without a loopBack marker — the workflow engine may reject it.",
+    "decorativeContainerNoEdges": "[TODO] Decorative container has no connections",
+    "unsavedTitle": "[TODO] Unsaved Workflow",
+    "unsavedContent": "[TODO] You have unsaved changes.",
+    "discard": "[TODO] Discard",
+    "keepEditing": "[TODO] Keep Editing"
   },
   "atomicSkill": {
     "entryType": "入口类型",
@@ -5483,8 +5601,44 @@
       "saveModal": "保存检查点",
       "namePlaceholder": "输入检查点名称..."
     },
+    "status": {
+      "idle": "空闲",
+      "running": "训练中",
+      "paused": "已暂停",
+      "completed": "已完成",
+      "failed": "失败"
+    },
     "monitor": {
-      "idle": "训练未开始，请先配置并启动训练。"
+      "idle": "训练未开始，请先配置并启动训练。",
+      "insufficientData": "数据不足",
+      "currentStep": "当前步数",
+      "loss": "损失",
+      "reward": "奖励",
+      "speed": "速度",
+      "lossCurve": "损失曲线",
+      "rewardCurve": "奖励曲线"
+    },
+    "config": {
+      "algorithm": "算法",
+      "learningRate": "学习率",
+      "batchSize": "批次大小",
+      "epochs": "训练轮数",
+      "maxSteps": "最大步数"
+    },
+    "checkpoints": {
+      "title": "检查点列表",
+      "save": "保存检查点",
+      "empty": "暂无检查点",
+      "saveModal": "保存检查点",
+      "namePlaceholder": "输入检查点名称...",
+      "name": "名称",
+      "step": "步数",
+      "loss": "损失",
+      "reward": "奖励",
+      "time": "时间",
+      "action": "操作",
+      "load": "加载",
+      "delete": "删除"
     },
     "panel": {
       "title": "RL 训练面板",
@@ -7212,7 +7366,16 @@
     "active": "缓存已激活。{{hits}} 次命中，~{{tokens}} tokens 已节省。"
   },
   "artifactPanel": {
-    "fullscreen": "全屏"
+    "fullscreen": "全屏",
+    "noArtifactSelected": "[TODO] No artifact selected",
+    "previewNotAvailable": "[TODO] Preview not available for this format",
+    "untitled": "[TODO] Untitled",
+    "copyCode": "[TODO] Copy code",
+    "download": "[TODO] Download",
+    "segmentedCode": "[TODO] Code",
+    "segmentedSplit": "[TODO] Split",
+    "segmentedPreview": "[TODO] Preview",
+    "copied": "[TODO] Copied!"
   },
   "cronManager": {
     "deleteConfirm": "确定删除此定时任务？",
@@ -7748,7 +7911,17 @@
     "agentRole.browser": "浏览器",
     "agentRole.synthesizer": "综合者",
     "agentRole.executor": "执行者",
-    "placeholder": "执行与回放交易"
+    "placeholder": "执行与回放交易",
+    "agentRole": {
+      "browser": "[TODO] Browser",
+      "coordinator": "[TODO] Coordinator",
+      "developer": "[TODO] Developer",
+      "executor": "[TODO] Executor",
+      "planner": "[TODO] Planner",
+      "researcher": "[TODO] Researcher",
+      "reviewer": "[TODO] Reviewer",
+      "synthesizer": "[TODO] Synthesizer"
+    }
   },
   "watchlist": {
     "title": "自选股",
@@ -8203,6 +8376,18 @@
     "generating": "正在生成...",
     "generateSuccess": "生成成功，请检查后保存"
   },
+  "dynamicUIPreview": {
+    "title": "Dynamic UI Preview",
+    "reset": "重置",
+    "livePreview": "实时预览",
+    "jsonParseError": "JSON 解析错误",
+    "waitingForJson": "等待有效 JSON...",
+    "schemaValidation": "Schema 校验",
+    "pass": "通过",
+    "errorsCount": "{{count}} 个错误",
+    "parseErrorCantValidate": "JSON 解析错误，无法校验",
+    "schemaAllValid": "Schema 校验通过，所有字段合法"
+  },
   "agentPanel": {
     "openPanel": "打开 AxAgent 面板",
     "openMiniPanel": "打开 Agent 迷你面板",
@@ -8248,7 +8433,10 @@
       "empty": "暂无瓶颈数据",
       "timeDistribution": "时间分布",
       "tokenConsumption": "Token 消耗",
-      "failurePatterns": "失败模式"
+      "failurePatterns": "失败模式",
+      "failureReason": "失败原因",
+      "count": "次数",
+      "percentage": "占比"
     },
     "feedback": {
       "thanks": "感谢反馈",
@@ -8277,31 +8465,14 @@
     "totalSteps": "总步骤",
     "totalDuration": "总耗时",
     "totalTokens": "总 Token",
-    "errors": "错误"
-  },
-  "components_devtools_RLTrainingConfig": {
-    "算法": "算法",
-    "学习率": "学习率",
-    "批次大小": "批次大小",
-    "训练轮数": "训练轮数",
-    "最大步数": "最大步数"
-  },
-  "components_devtools_RLTrainingMonitor": {
-    "数据不足": "数据不足",
-    "components_devtools": "components_devtools_RLTrainingMonitor.数据不足",
-    "当前步数": "当前步数",
-    "损失": "损失",
-    "奖励": "奖励",
-    "速度": "速度",
-    "损失曲线": "损失曲线",
-    "奖励曲线": "奖励曲线"
-  },
-  "components_devtools_RLTrainingPanel": {
-    "空闲": "空闲",
-    "训练中": "训练中",
-    "已暂停": "已暂停",
-    "已完成": "已完成",
-    "失败": "失败"
+    "errors": "错误",
+    "type": {
+      "thinking": "思考",
+      "toolCall": "工具调用",
+      "waitingPermission": "等待权限",
+      "error": "错误"
+    },
+    "duration": "耗时: {{duration}}s"
   },
   "components_skill_SkillABTestResults": {
     "暂无_A_B_测试数据": "暂无 A/B 测试数据",
@@ -8327,82 +8498,6 @@
     "暂无进化历史": "暂无进化历史",
     "components_skill_Ski": "components_skill_SkillVersionTimeline.暂无进化历史",
     "确认回滚": "确认回滚"
-  },
-  "components_trace_BottleneckAnalyzer": {
-    "失败原因": "失败原因",
-    "次数": "次数",
-    "占比": "占比"
-  },
-  "components_trace_TraceTimeline": {
-    "思考": "思考",
-    "工具调用": "工具调用",
-    "等待权限": "等待权限",
-    "错误": "错误"
-  },
-  "components_workflow_NLParserPanel": {
-    "每天早上_8_点抓取指定网站的最新文章": "每天早上 8 点抓取指定网站的最新文章，用 AI 总结后发送到企业微信群",
-    "收到新邮件后_用_AI_分析内容_如果是": "收到新邮件后，用 AI 分析内容，如果是重要邮件就发通知并创建待办",
-    "用户提交表单后_先验证数据_然后写入数据": "用户提交表单后，先验证数据，然后写入数据库并发送确认邮件",
-    "自然语言描述": "自然语言描述",
-    "components_workflow": "components_workflow_NLParserPanel.自然语言描述",
-    "约束条件_可选": "约束条件（可选）",
-    "例如_执行时间不超过_5_分钟_出错时重": "例如：执行时间不超过 5 分钟、出错时重试 3 次",
-    "解析中": "解析中...",
-    "解析生成": "解析生成",
-    "解析结果": "解析结果",
-    "AI_建议": "AI 建议"
-  },
-  "components_workflow_WorkflowExecutor": {
-    "等待": "等待",
-    "执行中": "执行中",
-    "成功": "成功",
-    "失败": "失败",
-    "输入变量": "输入变量",
-    "components_workflow": "components_workflow_WorkflowExecutor.输入变量",
-    "执行工作流": "执行工作流",
-    "正在执行工作流节点": "正在执行工作流节点...",
-    "状态": "状态",
-    "执行成功": "执行成功",
-    "执行失败": "执行失败",
-    "耗时": "耗时",
-    "节点执行状态": "节点执行状态",
-    "输出结果": "输出结果",
-    "执行日志": "执行日志",
-    "关闭": "关闭"
-  },
-  "components_workflow_WorkflowLogPanel": {
-    "暂无日志": "暂无日志"
-  },
-  "components_workflow_WorkflowVersionManager": {
-    "版本对比": "版本对比",
-    "新增节点_output_2_发送": "+ 新增节点: output-2 (发送摘要)",
-    "components_workflow": "components_workflow_WorkflowVersionManager.新增节点_output_2_发送",
-    "删除节点_action_3_冗余": "- 删除节点: action-3 (冗余步骤)",
-    "修改节点_action_1_超时": "~ 修改节点: action-1 (超时时间 30s → 60s)",
-    "版本": "版本",
-    "更新时间": "更新时间",
-    "变更摘要": "变更摘要",
-    "状态": "状态",
-    "草稿": "草稿",
-    "活跃": "活跃",
-    "归档": "归档",
-    "操作": "操作",
-    "当前工作流将被新版本覆盖": "当前工作流将被新版本覆盖",
-    "暂无版本记录": "暂无版本记录",
-    "时间线": "时间线"
-  },
-  "pages_Workflow_WorkflowListPage": {
-    "草稿": "草稿",
-    "活跃": "活跃",
-    "归档": "归档",
-    "新建工作流": "新建工作流",
-    "工作流": "工作流",
-    "pages_Workflow_Workf": "pages_Workflow_WorkflowListPage.工作流",
-    "搜索工作流": "搜索工作流...",
-    "全部": "全部",
-    "暂无工作流_点击上方按钮创建": "暂无工作流，点击上方按钮创建",
-    "暂无描述": "暂无描述",
-    "确定删除此工作流": "确定删除此工作流？"
   },
   "promptTemplate": {
     "unnamed": "未命名"

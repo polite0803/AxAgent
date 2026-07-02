@@ -271,6 +271,7 @@ function ensureDiag(): IpcDiagState {
   if (typeof window === "undefined") {
     return initDiagState();
   }
+  // SAFE: diagnostic storage on window for IPC diagnostics — deliberately untyped
   const key = "__AXAGENT_IPC_DIAG__" as keyof Window & "__AXAGENT_IPC_DIAG__";
   if (!(window as unknown as Record<string, unknown>)[key]) {
     (window as unknown as Record<string, unknown>)[key] = initDiagState();
@@ -315,6 +316,7 @@ function recordDiag(
         || msg.includes("fetch")
       ) {
         if (diag.connectionErrors.length < 50) {
+          // SAFE: checking for Tauri runtime internals on window object
           const internalsObj = typeof window !== "undefined" && "__TAURI_INTERNALS__" in window
             ? ((window as unknown as Record<string, unknown>)
               .__TAURI_INTERNALS__ as Record<string, unknown>)

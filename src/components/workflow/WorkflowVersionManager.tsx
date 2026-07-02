@@ -4,7 +4,8 @@
 import { useWorkflowStore } from "@/stores/feature/workflowStore";
 import type { WorkflowDefinition, WorkflowVersion } from "@/types/workflow";
 import { Button, Drawer, Empty, Modal, Popconfirm, Space, Table, Tag, Timeline, Typography } from "antd";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 const { Text, Title } = Typography;
 
@@ -15,12 +16,19 @@ interface WorkflowVersionManagerProps {
 }
 
 export function WorkflowVersionManager({ workflow, open, onClose }: WorkflowVersionManagerProps) {
+  const { t } = useTranslation();
   const [versions, setVersions] = useState<WorkflowVersion[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedVersions, setSelectedVersions] = useState<number[]>([]);
 
   const getVersionHistory = useWorkflowStore((s) => s.getVersionHistory);
   const restoreVersion = useWorkflowStore((s) => s.restoreVersion);
+
+  const statusLabelMap: Record<string, string> = useMemo(() => ({
+    draft: t("workflow.list.draft"),
+    active: t("workflow.list.active"),
+    archived: t("workflow.list.archived"),
+  }), [t]);
 
   const loadVersions = useCallback(async () => {
     setLoading(true);
@@ -47,23 +55,25 @@ export function WorkflowVersionManager({ workflow, open, onClose }: WorkflowVers
   const handleCompare = useCallback(() => {
     if (selectedVersions.length === 2) {
       Modal.info({
-        title: "版本对比",
+        title: t("workflow.version.version"),
         width: 700,
         content: (
           <div>
             <Text>
-              正在对比版本 {selectedVersions[0]} 和版本 {selectedVersions[1]}
+              {t("workflow.version.compareHint", { v1: selectedVersions[0], v2: selectedVersions[1] })}
             </Text>
             <div style={{ marginTop: 16 }}>
               <Space direction="vertical" style={{ width: "100%" }}>
                 <div style={{ padding: 8, backgroundColor: "#f6ffed", borderRadius: 4 }}>
-                  <Text type="success">+ 新增节点: output-2 (发送摘要)</Text>
+                  <Text type="success">+ {t("workflow.version.newNode", { id: "output-2", desc: "发送摘要" })}</Text>
                 </div>
                 <div style={{ padding: 8, backgroundColor: "#fff2f0", borderRadius: 4 }}>
-                  <Text type="danger">- 删除节点: action-3 (冗余步骤)</Text>
+                  <Text type="danger">- {t("workflow.version.deletedNode", { id: "action-3", desc: "冗余步骤" })}</Text>
                 </div>
                 <div style={{ padding: 8, backgroundColor: "#fffbe6", borderRadius: 4 }}>
-                  <Text type="warning">~ 修改节点: action-1 (超时时间 30s → 60s)</Text>
+                  <Text type="warning">
+                    ~ {t("workflow.version.modifiedNode", { id: "action-1", desc: "超时时间 30s → 60s" })}
+                  </Text>
                 </div>
               </Space>
             </div>
@@ -75,45 +85,44 @@ export function WorkflowVersionManager({ workflow, open, onClose }: WorkflowVers
 
   const columns = [
     {
-      title: "版本",
+      title: t("workflow.version.version"),
       dataIndex: "version",
       key: "version",
       width: 80,
       render: (v: number) => <Tag color="blue">v{v}</Tag>,
     },
     {
-      title: "更新时间",
+      title: t("workflow.version.updateTime"),
       dataIndex: "updatedAt",
       key: "updatedAt",
       render: (v: number) => new Date(v).toLocaleString(),
     },
     {
-      title: "变更摘要",
+      title: t("workflow.version.changeSummary"),
       dataIndex: "summary",
       key: "summary",
     },
     {
-      title: "状态",
+      title: t("workflow.version.status"),
       dataIndex: "status",
       key: "status",
       render: (v: string) => {
         const colorMap: Record<string, string> = { draft: "default", active: "success", archived: "warning" };
-        const labelMap: Record<string, string> = { draft: "草稿", active: "活跃", archived: "归档" };
-        return <Tag color={colorMap[v] ?? "default"}>{labelMap[v] ?? v}</Tag>;
+        return <Tag color={colorMap[v] ?? "default"}>{statusLabelMap[v] ?? v}</Tag>;
       },
     },
     {
-      title: "操作",
+      title: t("workflow.version.action"),
       key: "actions",
       width: 140,
       render: (_: unknown, record: WorkflowVersion) => (
         <Popconfirm
-          title={`确定恢复到版本 ${record.version}？`}
-          description="当前工作流将被新版本覆盖"
+          title={t("workflow.version.confirmRestore", { version: record.version })}
+          description={t("workflow.version.currentWorkflowWillBeOverwritten")}
           onConfirm={() => handleRestore(record.version)}
         >
           <Button size="small" type="link">
-            恢复到此版本
+            {t("workflow.version.restoreToVersion")}
           </Button>
         </Popconfirm>
       ),
@@ -122,13 +131,13 @@ export function WorkflowVersionManager({ workflow, open, onClose }: WorkflowVers
 
   return (
     <Drawer
-      title={`版本管理: ${workflow.name}`}
+      title={t("workflow.version.versionManager", { name: workflow.name })}
       open={open}
       onClose={onClose}
       width={640}
     >
       <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-        {versions.length === 0 && !loading ? <Empty description="暂无版本记录" /> : (
+        {versions.length === 0 && !loading ? <Empty description={t("workflow.version.noVersionHistory")} /> : (
           <>
             <Space>
               <Button
@@ -136,14 +145,14 @@ export function WorkflowVersionManager({ workflow, open, onClose }: WorkflowVers
                 disabled={selectedVersions.length !== 2}
                 onClick={handleCompare}
               >
-                对比选中版本 ({selectedVersions.length}/2)
+                {t("workflow.version.compareSelected", { selected: selectedVersions.length })}
               </Button>
               <Button
                 size="small"
                 onClick={() => setSelectedVersions([])}
                 disabled={selectedVersions.length === 0}
               >
-                清除选择
+                {t("workflow.version.clearSelection")}
               </Button>
             </Space>
 
@@ -163,7 +172,7 @@ export function WorkflowVersionManager({ workflow, open, onClose }: WorkflowVers
             />
 
             <div>
-              <Title level={5} style={{ marginTop: 16 }}>时间线</Title>
+              <Title level={5} style={{ marginTop: 16 }}>{t("workflow.version.timeline")}</Title>
               <Timeline
                 items={versions.map((v) => ({
                   color: v.status === "active" ? "green" : v.status === "archived" ? "orange" : "gray",

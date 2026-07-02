@@ -201,8 +201,9 @@ export default function EngineDetailPanel({ engineName, open, onClose }: EngineD
               <div style={{ maxHeight: 400, overflow: "auto", fontFamily: "monospace", fontSize: 12 }}>
                 {engine.logs.length === 0 ? <Text type="secondary">{t("settings.evolution.noLogs")}</Text> : (
                   engine.logs.map((log, i) => (
+                    // FIXME: 日志项无稳定唯一标识，使用前缀+索引
                     <div
-                      key={i}
+                      key={`log-${i}`}
                       style={{
                         padding: "2px 0",
                         color: log.level === "error" ? "#ff4d4f" : log.level === "warn" ? "#faad14" : "#888",

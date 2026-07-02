@@ -599,6 +599,8 @@ function GraphViewInner({
       }
     };
     containerRef.current?.addEventListener("keydown", handleKeyDown);
+    // 显式省略 handleKeyDown：每次渲染重新创建闭包，加入 deps 会导致
+    // 反复 add/remove event listener，而 handleKeyDown 仅依赖稳定的 deps。
     // eslint-disable-next-line react-hooks/exhaustive-deps
     return () => containerRef.current?.removeEventListener("keydown", handleKeyDown);
   }, [selectedNodeId, onDeleteNode, onDeselect]);

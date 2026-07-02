@@ -55,6 +55,16 @@ impl NodeExecutorTrait for ToolExecutor {
         node: &WorkflowNode,
         context: &ExecutionState,
     ) -> Result<NodeOutput, NodeError> {
+        // ── 取消检查：避免已取消的 Workflow 继续执行工具并消耗资源 ──
+        if let Some(ref token) = context.cancel_token
+            && token.is_cancelled()
+        {
+            return Err(NodeError::exec_failed(
+                "CANCELLED",
+                "Workflow 已取消，跳过工具执行".to_string(),
+            ));
+        }
+
         let WorkflowNode::Tool(tool_node) = node else {
             return Err(NodeError::type_mismatch(
                 "tool".to_string(),

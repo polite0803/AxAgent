@@ -41,6 +41,9 @@ pub struct WebhookRoute {
     pub method: String,
     /// "sync" | "async"
     pub response_mode: String,
+    /// P0-6: HMAC-SHA256 共享密钥。若设置则要求请求必须带 X-Webhook-Signature。
+    /// 设为 None 表示不校验（仅用于本地开发/调试；生产必须设置）。
+    pub secret: Option<String>,
 }
 
 impl TriggerManager {
@@ -101,12 +104,26 @@ impl TriggerManager {
         method: &str,
         response_mode: &str,
     ) {
+        self.register_webhook_with_secret(workflow_id, path, method, response_mode, None)
+            .await;
+    }
+
+    /// P0-6: 注册带 HMAC 共享密钥的 webhook 路由。
+    pub async fn register_webhook_with_secret(
+        &self,
+        workflow_id: &str,
+        path: &str,
+        method: &str,
+        response_mode: &str,
+        secret: Option<String>,
+    ) {
         self.webhook_routes.write().await.insert(
             path.to_string(),
             WebhookRoute {
                 workflow_id: workflow_id.to_string(),
                 method: method.to_string(),
                 response_mode: response_mode.to_string(),
+                secret,
             },
         );
     }

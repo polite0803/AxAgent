@@ -9,6 +9,7 @@ pub async fn trajectory_stats(app_state: State<'_, AppState>) -> Result<serde_js
     let stats = app_state
         .trajectory_storage
         .get_statistics()
+        .await
         .map_err(|e| e.to_string())?;
     serde_json::to_value(stats).map_err(|e| e.to_string())
 }
@@ -27,6 +28,7 @@ pub async fn trajectory_list(
     let trajectories = app_state
         .trajectory_storage
         .query_trajectories(&query)
+        .await
         .map_err(|e| e.to_string())?;
     Ok(trajectories
         .iter()
@@ -42,6 +44,7 @@ pub async fn get_trajectory_detail(
     let trajectory = app_state
         .trajectory_storage
         .get_trajectory(&trajectory_id)
+        .await
         .map_err(|e| e.to_string())?
         .ok_or_else(|| format!("Trajectory {} not found", trajectory_id))?;
     serde_json::to_value(trajectory).map_err(|e| e.to_string())
@@ -100,6 +103,7 @@ pub async fn rl_export_training_data(
     let entries = app_state
         .trajectory_storage
         .export_trajectories(&options)
+        .await
         .map_err(|e| e.to_string())?;
     Ok(entries
         .iter()
@@ -115,6 +119,7 @@ pub async fn rl_compute_rewards(
     let storage = &app_state.trajectory_storage;
     let mut trajectory = storage
         .get_trajectory(&trajectory_id)
+        .await
         .map_err(|e| e.to_string())?
         .ok_or_else(|| format!("Trajectory {} not found", trajectory_id))?;
 

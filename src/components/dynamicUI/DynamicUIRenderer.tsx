@@ -342,7 +342,7 @@ export const DynamicUIRenderer: React.FC<DynamicUIProps> = React.memo(
           description={
             <ul className="list-disc pl-4 mt-1">
               {validation.errors.slice(0, 5).map((err, i) => (
-                <li key={i}>
+                <li key={`${err.path}-${i}`}>
                   {err.path}: {err.message}
                 </li>
               ))}

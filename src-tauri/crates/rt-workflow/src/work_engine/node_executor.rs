@@ -33,11 +33,11 @@ impl NodeExecutor {
         self.dispatcher.dispatch(node, context).await
     }
 
-    pub fn register<E: NodeExecutorTrait + 'static>(&mut self, executor: E) {
-        self.dispatcher.register(executor);
+    pub async fn register<E: NodeExecutorTrait + 'static>(&mut self, executor: E) {
+        self.dispatcher.register(executor).await;
     }
 
-    pub fn registered_types(&self) -> Vec<&'static str> {
-        self.dispatcher.registered_types()
+    pub async fn registered_types(&self) -> Vec<&'static str> {
+        self.dispatcher.registered_types().await
     }
 }

@@ -11,7 +11,6 @@ const { TextArea } = Input;
 
 interface AskUserCardProps {
   askId: string;
-  conversationId: string;
   question: string;
   options?: string[];
 }

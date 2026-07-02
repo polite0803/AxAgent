@@ -174,8 +174,9 @@ impl HermesAdapter {
 
         let mut req = client
             .request(
-                reqwest::Method::from_bytes(method.as_bytes())
-                    .map_err(|e| format!("无效的 HTTP 方法 '{}': {}", method, e))?,
+                reqwest::Method::from_bytes(method.as_bytes()).map_err(|e| {
+                    AxAgentError::Provider(format!("无效的 HTTP 方法 '{}': {}", method, e))
+                })?,
                 &url,
             )
             .header("Authorization", format!("Bearer {}", ctx.api_key))

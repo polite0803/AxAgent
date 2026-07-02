@@ -170,6 +170,7 @@ impl ProviderAdapter for OllamaAdapter {
                     }
                 }
                 let group_name = m.details.as_ref().and_then(|d| d.family.clone());
+                // get_model_context_window 已经返回 Option,保留 None 表示未知
                 let max_tokens = axagent_core::model_knowledge::get_model_context_window(&m.name);
                 let name = m
                     .details

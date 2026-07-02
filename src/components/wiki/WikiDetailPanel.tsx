@@ -598,8 +598,9 @@ function BacklinkList({
                 {bl.title}
               </Text>
               {bl.snippets.map((snippet, si) => (
+                // FIXME: snippets 是字符串数组，无稳定唯一标识
                 <Typography.Paragraph
-                  key={si}
+                  key={`snippet-${si}`}
                   className="!mb-1 text-xs leading-relaxed !mt-1"
                   style={{ color: token.colorTextSecondary }}
                   ellipsis={{ rows: 2, expandable: false }}

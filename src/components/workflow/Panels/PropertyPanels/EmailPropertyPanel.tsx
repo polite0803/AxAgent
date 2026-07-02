@@ -17,7 +17,7 @@ export const EmailPropertyPanel: React.FC<Props> = ({ node, onUpdate, onDelete }
   const { t } = useTranslation();
   const { token } = theme.useToken();
   const [messageApi, messageContextHolder] = message.useMessage();
-  const n = node as unknown as EmailNode;
+  const n = node as unknown as EmailNode; // SAFE: WorkflowNode union narrowed to specific node type via config field access
   const c = n.config || {
     to: [],
     subject: "",

@@ -47,7 +47,7 @@ function mapBackendTemplate(
     .map((n) => ({
       id: n.id,
       goal: n.title || n.description || n.id,
-      role: (n as unknown as Record<string, unknown>).role as string || "coder",
+      role: (n as unknown as Record<string, unknown>).role as string || "coder", // SAFE: WorkflowNode accessed as Record for role field
       needs: (bt.edges || [])
         .filter((e) => e.target === n.id)
         .map((e) => e.source),
@@ -185,13 +185,15 @@ export const WorkflowTemplateSelector: React.FC<
           title: n.title || n.description || n.id,
           description: n.description || "",
           position: n.position || { x: 0, y: 0 },
-          retry: (n as unknown as Record<string, unknown>).retry || {
-            enabled: true,
-            max_retries: 2,
-            backoff_type: "exponential",
-            base_delay_ms: 1000,
-            max_delay_ms: 30000,
-          },
+          retry:
+            (n as unknown as Record<string, unknown>).retry /* SAFE: WorkflowNode accessed as Record for retry field */
+            || {
+              enabled: true,
+              max_retries: 2,
+              backoff_type: "exponential",
+              base_delay_ms: 1000,
+              max_delay_ms: 30000,
+            },
           timeout: null,
           enabled: true,
         }));

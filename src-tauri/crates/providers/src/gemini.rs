@@ -261,12 +261,23 @@ fn convert_messages(messages: &[ChatMessage]) -> (Option<GeminiContent>, Vec<Gem
         match msg.role.as_str() {
             "tool" => {
                 // Gemini needs the function NAME, not the call ID
-                // Look up the actual name from the tool_call_id → name map
-                let tool_name = msg
+                // Look up the actual name from the tool_call_id → name map.
+                // 若查不到 (异常数据 / tool 已被截断),跳过此消息并 warn,
+                // 避免把 unknown 投递给上游引发 400。
+                let tool_name = match msg
                     .tool_call_id
                     .as_deref()
                     .and_then(|id| tool_id_to_name.get(id).map(|s| s.as_str()))
-                    .unwrap_or("unknown");
+                {
+                    Some(name) => name.to_string(),
+                    None => {
+                        tracing::warn!(
+                            "gemini: tool message dropped — tool_call_id {:?} not in id→name map",
+                            msg.tool_call_id
+                        );
+                        continue;
+                    },
+                };
                 let result_value: serde_json::Value =
                     serde_json::from_str(&crate::extract_text_content(&msg.content)).unwrap_or(
                         serde_json::json!({ "result": crate::extract_text_content(&msg.content) }),
@@ -309,8 +320,21 @@ fn convert_messages(messages: &[ChatMessage]) -> (Option<GeminiContent>, Vec<Gem
                 }
                 if let Some(ref tcs) = msg.tool_calls {
                     for tc in tcs {
-                        let args: serde_json::Value = serde_json::from_str(&tc.function.arguments)
-                            .unwrap_or(serde_json::Value::Object(serde_json::Map::new()));
+                        // 解析失败应记录 warn,避免静默退化为空对象导致上游调用失败难以定位
+                        let args: serde_json::Value = match serde_json::from_str(
+                            &tc.function.arguments,
+                        ) {
+                            Ok(v) => v,
+                            Err(e) => {
+                                tracing::warn!(
+                                    "gemini: failed to parse tool_call args for tool '{}' (id={}): {}",
+                                    tc.function.name,
+                                    tc.id,
+                                    e
+                                );
+                                serde_json::Value::Object(serde_json::Map::new())
+                            },
+                        };
                         parts.push(GeminiPart {
                             text: None,
                             inline_data: None,
@@ -506,8 +530,8 @@ impl ProviderAdapter for GeminiAdapter {
         request: ChatRequest,
     ) -> Result<ChatResponse> {
         let base_url = Self::base_url(ctx);
-        let url =
-            format!("{}/models/{}:generateContent?key={}", base_url, request.model, ctx.api_key);
+        // 不在 URL 中传递 API key,改用 x-goog-api-key header (更安全,且避免 URL 日志泄露)
+        let url = format!("{}/models/{}:generateContent", base_url, request.model);
 
         let (system_instruction, contents) = convert_messages(&request.messages);
         let body = GeminiRequest {
@@ -517,13 +541,16 @@ impl ProviderAdapter for GeminiAdapter {
             tools: convert_tools_to_gemini(&request.tools),
         };
 
-        let resp = crate::apply_request_headers(self.get_client(ctx)?.post(&url).json(&body), ctx)
-            .send()
-            .await
-            .map_err(|e| {
-                let redacted_url = crate::redact_api_key_from_url(&url);
-                AxAgentError::Provider(format!("Request to {} failed: {}", redacted_url, e))
-            })?;
+        let resp = crate::apply_request_headers(
+            self.get_client(ctx)?
+                .post(&url)
+                .header("x-goog-api-key", &ctx.api_key)
+                .json(&body),
+            ctx,
+        )
+        .send()
+        .await
+        .map_err(|e| AxAgentError::Provider(format!("Request to {url} failed: {e}")))?;
 
         if !resp.status().is_success() {
             let s = resp.status();
@@ -600,11 +627,8 @@ impl ProviderAdapter for GeminiAdapter {
         let api_key = ctx.api_key.clone();
         let custom_headers = ctx.custom_headers.clone();
         let base_url = Self::base_url(ctx);
-        let url = format!(
-            "{}/models/{}:streamGenerateContent?alt=sse&key={}",
-            base_url, request.model, api_key
-        );
-        let redacted_url = crate::redact_api_key_from_url(&url);
+        // 不在 URL 中传递 API key,改用 x-goog-api-key header (更安全,且避免 URL 日志泄露)
+        let url = format!("{}/models/{}:streamGenerateContent?alt=sse", base_url, request.model);
 
         let (system_instruction, contents) = convert_messages(&request.messages);
         let body = GeminiRequest {
@@ -618,7 +642,10 @@ impl ProviderAdapter for GeminiAdapter {
 
         tokio::spawn(async move {
             let resp = match crate::apply_stream_headers_to_request(
-                client.post(&url).json(&body),
+                client
+                    .post(&url)
+                    .header("x-goog-api-key", &api_key)
+                    .json(&body),
                 &custom_headers,
             )
             .send()
@@ -636,7 +663,7 @@ impl ProviderAdapter for GeminiAdapter {
                 Err(e) => {
                     let _ = tx.try_send(Err(AxAgentError::Provider(format!(
                         "Request to {} failed: {}",
-                        redacted_url,
+                        url,
                         super::diagnose_reqwest_error(&e)
                     ))));
                     return;
@@ -771,15 +798,17 @@ impl ProviderAdapter for GeminiAdapter {
     }
 
     async fn list_models(&self, ctx: &ProviderRequestContext) -> Result<Vec<Model>> {
-        let url = format!("{}/models?key={}", Self::base_url(ctx), ctx.api_key);
+        let url = format!("{}/models", Self::base_url(ctx));
 
-        let resp = crate::apply_request_headers(self.get_client(ctx)?.get(&url), ctx)
-            .send()
-            .await
-            .map_err(|e| {
-                let redacted_url = crate::redact_api_key_from_url(&url);
-                AxAgentError::Provider(format!("Request to {} failed: {}", redacted_url, e))
-            })?;
+        let resp = crate::apply_request_headers(
+            self.get_client(ctx)?
+                .get(&url)
+                .header("x-goog-api-key", &ctx.api_key),
+            ctx,
+        )
+        .send()
+        .await
+        .map_err(|e| AxAgentError::Provider(format!("Request to {url} failed: {e}")))?;
 
         if !resp.status().is_success() {
             let s = resp.status();
@@ -845,8 +874,8 @@ impl ProviderAdapter for GeminiAdapter {
         request: EmbedRequest,
     ) -> Result<EmbedResponse> {
         let base_url = Self::base_url(ctx);
-        let url =
-            format!("{}/models/{}:batchEmbedContents?key={}", base_url, request.model, ctx.api_key);
+        // 不在 URL 中传递 API key,改用 x-goog-api-key header
+        let url = format!("{}/models/{}:batchEmbedContents", base_url, request.model);
 
         let requests: Vec<serde_json::Value> = request
             .input
@@ -865,16 +894,16 @@ impl ProviderAdapter for GeminiAdapter {
 
         let body = serde_json::json!({ "requests": requests });
 
-        let resp = crate::apply_request_headers(self.get_client(ctx)?.post(&url).json(&body), ctx)
-            .send()
-            .await
-            .map_err(|e| {
-                let redacted_url = crate::redact_api_key_from_url(&url);
-                AxAgentError::Provider(format!(
-                    "Gemini embed request to {} failed: {}",
-                    redacted_url, e
-                ))
-            })?;
+        let resp = crate::apply_request_headers(
+            self.get_client(ctx)?
+                .post(&url)
+                .header("x-goog-api-key", &ctx.api_key)
+                .json(&body),
+            ctx,
+        )
+        .send()
+        .await
+        .map_err(|e| AxAgentError::Provider(format!("Gemini embed request failed: {e}")))?;
 
         if !resp.status().is_success() {
             let s = resp.status();

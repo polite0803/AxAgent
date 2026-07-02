@@ -50,7 +50,7 @@ function makeMockWorkflowNode(
     ...base,
     type: "trigger" as const,
     config: { trigger_type: "manual", config: {} },
-  } as unknown as WorkflowNode;
+  } as unknown as WorkflowNode; /* SAFE: test mock data construction */
 }
 
 function makeMockWorkflowEdge(

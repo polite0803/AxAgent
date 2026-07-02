@@ -10,12 +10,13 @@ import { SettingsGroup } from "./SettingsGroup";
 function useExtSetting<T>(key: string, defaultVal: T): [T, (v: T) => void] {
   const settings = useSettingsStore((s) => s.settings);
   const saveSettings = useSettingsStore((s) => s.saveSettings);
+  // SAFE: dynamic key-based settings access for extended configuration not yet in AppSettings type
   const val = (settings as unknown as Record<string, unknown>)[key] as
     | T
     | undefined;
   return [
     (val ?? defaultVal) as T,
-    (v: T) => saveSettings({ [key]: v } as unknown as Partial<typeof settings>),
+    (v: T) => saveSettings({ [key]: v } as unknown as Partial<typeof settings>), // SAFE: dynamic key update on settings
   ];
 }
 

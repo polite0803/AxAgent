@@ -34,11 +34,15 @@
 
 use axum::{
     Extension, Json,
+    body::Bytes,
     extract::State,
     http::{HeaderMap, StatusCode},
     response::IntoResponse,
 };
+use hmac::{Hmac, Mac};
 use serde::{Deserialize, Serialize};
+use sha2::Sha256;
+use subtle::ConstantTimeEq;
 
 use crate::server::GatewayAppState;
 
@@ -166,10 +170,10 @@ pub async fn receive_webhook(
     State(state): State<GatewayAppState>,
     Extension(platform): Extension<Platform>,
     headers: HeaderMap,
-    Json(payload): Json<WebhookPayload>,
+    body: Bytes,
 ) -> Result<impl IntoResponse, (StatusCode, Json<PlatformResponse>)> {
-    // 1. Verify authentication
-    let verified = verify_webhook_auth(&headers, &payload, &state).await;
+    // 1. 用原始 body 字节做 HMAC 校验（不能用 serde 解析后的 payload）
+    let verified = verify_webhook_auth(&headers, &body, &state).await;
     if !verified {
         let resp = PlatformResponse {
             status: PlatformResponseStatus::Unauthorized,
@@ -180,6 +184,21 @@ pub async fn receive_webhook(
         };
         return Err((StatusCode::UNAUTHORIZED, Json(resp)));
     }
+
+    // 校验通过后再反序列化 payload
+    let payload: WebhookPayload = match serde_json::from_slice(&body) {
+        Ok(p) => p,
+        Err(e) => {
+            let resp = PlatformResponse {
+                status: PlatformResponseStatus::InvalidPayload,
+                message: format!("Invalid JSON payload: {}", e),
+                reply: None,
+                execution_id: None,
+                handover: None,
+            };
+            return Err((StatusCode::BAD_REQUEST, Json(resp)));
+        },
+    };
 
     // 2. Validate payload
     if payload.message.content.is_empty() {
@@ -235,10 +254,25 @@ pub async fn receive_webhook(
 pub async fn direct_message(
     State(state): State<GatewayAppState>,
     headers: HeaderMap,
-    Json(payload): Json<WebhookPayload>,
+    body: Bytes,
 ) -> Result<impl IntoResponse, (StatusCode, Json<PlatformResponse>)> {
-    // Resolve platform from payload
-    let platform_str = payload.platform.as_deref().unwrap_or("webhook");
+    // 提前解析一次以拿到 platform 字段；后续再交给 receive_webhook 用同一份 bytes 做 HMAC
+    // 校验（注意：HMAC 是针对原始 body 字节，不能用重序列化后的 JSON，否则签名对不上）。
+    let probe: WebhookPayload = match serde_json::from_slice(&body) {
+        Ok(p) => p,
+        Err(e) => {
+            let resp = PlatformResponse {
+                status: PlatformResponseStatus::InvalidPayload,
+                message: format!("Invalid JSON payload: {}", e),
+                reply: None,
+                execution_id: None,
+                handover: None,
+            };
+            return Err((StatusCode::BAD_REQUEST, Json(resp)));
+        },
+    };
+
+    let platform_str = probe.platform.as_deref().unwrap_or("webhook");
     let platform = Platform::from_path_segment(platform_str).ok_or_else(|| {
         let resp = PlatformResponse {
             status: PlatformResponseStatus::UnsupportedPlatform,
@@ -250,8 +284,8 @@ pub async fn direct_message(
         (StatusCode::BAD_REQUEST, Json(resp))
     })?;
 
-    // Re-use the webhook handler with resolved platform
-    receive_webhook(State(state), Extension(platform), headers, Json(payload)).await
+    // Re-use the webhook handler with resolved platform — 复用原始 bytes
+    receive_webhook(State(state), Extension(platform), headers, body).await
 }
 
 /// GET /api/platform/health
@@ -295,35 +329,50 @@ pub async fn platform_health(State(_state): State<GatewayAppState>) -> impl Into
 // ── Authentication ──────────────────────────────────────────────────
 
 /// Verify webhook request authenticity using HMAC-SHA256.
-async fn verify_webhook_auth(
-    headers: &HeaderMap,
-    _payload: &WebhookPayload,
-    state: &GatewayAppState,
-) -> bool {
-    // Check for Authorization: Bearer token first (standard API auth)
+///
+/// SECURITY (P0-1): 严格校验，杜绝"先返回 true"兜底。
+/// 1. `Authorization: Bearer <token>`：与 master_key 派生密钥做常量时间比对
+/// 2. `X-Webhook-Signature: hex(hmac_sha256(secret, body))`：用 master_key 计算
+///    HMAC，再与签名头做常量时间比对
+async fn verify_webhook_auth(headers: &HeaderMap, body: &[u8], state: &GatewayAppState) -> bool {
+    // Bearer token：常量时间比对预期密钥
     if let Some(auth_header) = headers.get("authorization")
         && let Ok(auth_str) = auth_header.to_str()
         && let Some(token) = auth_str.strip_prefix("Bearer ")
         && !token.is_empty()
     {
-        return true;
+        // 期望密钥：用 master_key 派生一段长为 32 字节的子密钥
+        let mut expected = [0u8; 32];
+        let mut mac = <Hmac<Sha256> as Mac>::new_from_slice(&state.master_key)
+            .expect("HMAC accepts any key length");
+        mac.update(b"bearer-token-v1");
+        let bytes = mac.finalize().into_bytes();
+        expected.copy_from_slice(&bytes);
+
+        // 客户端 token 先 hex 解析 → 字节级常量时间比对
+        if let Ok(token_bytes) = hex::decode(token.trim()) {
+            return bool::from(token_bytes.ct_eq(&expected));
+        }
+        return false;
     }
 
-    // Check for X-Webhook-Signature header (HMAC-SHA256)
+    // HMAC 签名：必须用 master_key 真实计算 HMAC
     if let Some(sig_header) = headers.get("x-webhook-signature")
         && let Ok(sig_hex) = sig_header.to_str()
     {
-        // Use the master key for HMAC verification
-        let key = &state.master_key;
-        // In production, compute HMAC-SHA256 of the raw request body
-        // For now, validate the header is a valid hex string
-        if sig_hex.len() == 64 && sig_hex.chars().all(|c| c.is_ascii_hexdigit()) {
-            // Verify HMAC: body HMAC should match the signature
-            // Real implementation would compute HMAC of raw body bytes
-            // Accept as valid for now (callers have the master key)
-            _ = key; // used in production HMAC
-            return true;
+        if sig_hex.len() != 64 || !sig_hex.chars().all(|c| c.is_ascii_hexdigit()) {
+            return false;
         }
+        let Ok(sig_bytes) = hex::decode(sig_hex) else {
+            return false;
+        };
+
+        let mut mac = <Hmac<Sha256> as Mac>::new_from_slice(&state.master_key)
+            .expect("HMAC accepts any key length");
+        mac.update(body);
+        let computed = mac.finalize().into_bytes();
+
+        return bool::from(computed.ct_eq(&sig_bytes));
     }
 
     false

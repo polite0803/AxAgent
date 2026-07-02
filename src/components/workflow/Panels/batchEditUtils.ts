@@ -26,7 +26,8 @@ export function buildBatchUpdate(
       base_delay_ms: 0,
       max_delay_ms: 0,
     };
-    const existing = (node as unknown as { retry?: RetryConfig }).retry;
+    const existing =
+      (node as unknown as { retry?: RetryConfig }).retry; /* SAFE: WorkflowNode accessed for retry config */
     const merged: RetryConfig = existing
       ? { ...baseRetry, ...existing, enabled: options.retryEnabled }
       : { ...baseRetry, enabled: options.retryEnabled };

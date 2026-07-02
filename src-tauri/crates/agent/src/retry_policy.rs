@@ -141,28 +141,23 @@ where
     let start = std::time::Instant::now();
     let mut backoff = policy.build_backoff();
 
-    loop {
+    // 统一为 `while attempts < max_attempts` 模式:
+    // 循环前用 should_retry 决定是否进入,循环结束唯一出口
+    // (成功 -> Ok,耗尽 -> Exhausted),避免双重边界判断导致的 +1 越界。
+    while state.current_attempt < policy.max_attempts {
         match f().await {
-            Ok(result) => {
-                return Ok(result);
-            },
+            Ok(result) => return Ok(result),
             Err(error) => {
                 let error_str = error.to_string();
                 let error_type = classifier.classify(&error_str);
 
-                if !policy.should_retry(state.current_attempt, error_type) {
-                    return Err(RetryError::Exhausted {
-                        errors: std::mem::take(&mut state.errors),
-                        attempts: state.current_attempt,
-                        last_error: error_str,
-                        elapsed: start.elapsed(),
-                    });
-                }
-
+                // 本次失败先计入,再判断是否还可继续
                 let delay = backoff.next().unwrap_or(policy.max_delay);
                 state.increment(error_str.clone(), delay.as_millis() as u64);
 
-                if state.current_attempt >= policy.max_attempts {
+                if !policy.should_retry(state.current_attempt, error_type)
+                    || state.current_attempt >= policy.max_attempts
+                {
                     return Err(RetryError::Exhausted {
                         errors: std::mem::take(&mut state.errors),
                         attempts: state.current_attempt,
@@ -175,6 +170,13 @@ where
             },
         }
     }
+
+    Err(RetryError::Exhausted {
+        errors: std::mem::take(&mut state.errors),
+        attempts: state.current_attempt,
+        last_error: String::new(),
+        elapsed: start.elapsed(),
+    })
 }
 
 #[derive(Debug, thiserror::Error)]

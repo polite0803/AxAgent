@@ -668,7 +668,7 @@ export function DebugPanel({ workflowId }: DebugPanelProps) {
   const analyzeSubWorkflows = useCallback(async () => {
     setSubAnalyzing(true);
     const subNodes =
-      (nodes as unknown as { type?: string; data?: Record<string, unknown>; config?: Record<string, unknown> }[])
+      (nodes as unknown as { type?: string; data?: Record<string, unknown>; config?: Record<string, unknown> }[]) // SAFE: nodes cast to shape with type/data/config for runtime property access
         .filter((n) => {
           const t = n.type || n.data?.type || "";
           return t === "subWorkflow";
@@ -709,7 +709,7 @@ export function DebugPanel({ workflowId }: DebugPanelProps) {
     }
 
     for (const sn of subNodes) {
-      const s = sn as unknown as { [key: string]: unknown };
+      const s = sn as unknown as { [key: string]: unknown }; // SAFE: dynamic property access on sub-workflow node
       const sCfg = s["config"] as { [key: string]: unknown } | undefined;
       const sData = s["data"] as { [key: string]: unknown } | undefined;
       const subId =
@@ -724,7 +724,7 @@ export function DebugPanel({ workflowId }: DebugPanelProps) {
     }
 
     for (const sn of subNodes) {
-      const s = sn as unknown as { [key: string]: unknown };
+      const s = sn as unknown as { [key: string]: unknown }; // SAFE: dynamic property access on sub-workflow node
       const sCfg = s["config"] as { [key: string]: unknown } | undefined;
       const sData = s["data"] as { [key: string]: unknown } | undefined;
       const subId =
@@ -776,6 +776,7 @@ export function DebugPanel({ workflowId }: DebugPanelProps) {
     if (result) {
       (result as Record<string, unknown>)["_recursionErrors"] = recursionErrors;
     }
+    // SAFE: IPC response typed as generic record; cast to expected sub-diagnostic shape
     setSubDiags(
       result as unknown as Record<
         string,
@@ -797,7 +798,7 @@ export function DebugPanel({ workflowId }: DebugPanelProps) {
 
   useEffect(() => {
     const subNodes =
-      (nodes as unknown as { type?: string; data?: Record<string, unknown>; config?: Record<string, unknown> }[])
+      (nodes as unknown as { type?: string; data?: Record<string, unknown>; config?: Record<string, unknown> }[]) // SAFE: nodes cast to shape with type/data/config for runtime property access
         .filter((n) => {
           const t = n.type || n.data?.type || "";
           return t === "subWorkflow";
@@ -815,8 +816,7 @@ export function DebugPanel({ workflowId }: DebugPanelProps) {
       });
     }, 500);
     return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [nodes]);
+  }, [nodes, analyzeSubWorkflows]);
 
   const runValidation = useCallback(async () => {
     setValidating(true);
@@ -833,16 +833,14 @@ export function DebugPanel({ workflowId }: DebugPanelProps) {
   useEffect(() => {
     if (!workflowId) { return; }
     loadHistory(workflowId);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [workflowId]);
+  }, [workflowId, loadHistory]);
 
   // ── Trace 快照加载 ──
   useEffect(() => {
     if (!traceExpanded || !executionId) { return; }
     dispatchTraceLoading("LOADING");
     loadTraces({ session_id: executionId, limit: 5 }).finally(() => dispatchTraceLoading("LOADED"));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [traceExpanded, executionId]);
+  }, [traceExpanded, executionId, loadTraces, dispatchTraceLoading]);
 
   const handleDebugRun = useCallback(async () => {
     if (!workflowId) { return; }
@@ -1125,7 +1123,8 @@ export function DebugPanel({ workflowId }: DebugPanelProps) {
             <Card size="small" type="inner" className="mb-2">
               <Text type="danger" strong>{t("workflow.debug.cyclesDetected")}: {cycles.length}</Text>
               {cycles.map((c, i) => (
-                <Paragraph key={i} className="mt-1 mb-0" code>
+                // FIXME: 环路数据无稳定唯一标识，使用前缀+索引
+                <Paragraph key={`cycle-${i}`} className="mt-1 mb-0" code>
                   {c.join(" → ")}
                 </Paragraph>
               ))}
@@ -1155,11 +1154,13 @@ export function DebugPanel({ workflowId }: DebugPanelProps) {
 
         {Object.keys(subDiags).length > 0 && (
           <Panel header={`Sub-Workflows (${Object.keys(subDiags).length})${subAnalyzing ? " ..." : ""}`} key="subs">
-            {((subDiags as unknown as { _recursionErrors?: string[] })._recursionErrors?.length ?? 0) > 0 && (
+            {(((subDiags as unknown as { _recursionErrors?: string[] })._recursionErrors?.length ?? 0) > 0) && (
               <Card size="small" type="inner" className="mb-2">
                 <Text type="danger" strong>Recursive References Detected</Text>
+                {/* SAFE: subDiags has runtime _recursionErrors field appended by analyzeSubWorkflows */}
                 {(subDiags as unknown as { _recursionErrors?: string[] })._recursionErrors?.map((path, i) => (
-                  <Paragraph key={i} className="mt-1 mb-0" code type="danger">
+                  // FIXME: 递归错误路径无稳定唯一标识，使用前缀+索引
+                  <Paragraph key={`recursion-${i}`} className="mt-1 mb-0" code type="danger">
                     {path}
                   </Paragraph>
                 ))}
@@ -1184,7 +1185,8 @@ export function DebugPanel({ workflowId }: DebugPanelProps) {
                   {(info.mappingIssues && info.mappingIssues.length > 0) && (
                     <div className="mb-2">
                       {info.mappingIssues.map((issue: string, i: number) => (
-                        <Tag key={i} color="warning" className="mb-1">{issue}</Tag>
+                        // FIXME: 映射问题无稳定唯一标识，使用前缀+索引
+                        <Tag key={`mapping-${i}`} color="warning" className="mb-1">{issue}</Tag>
                       ))}
                     </div>
                   )}
@@ -1502,7 +1504,7 @@ export function DebugPanel({ workflowId }: DebugPanelProps) {
                 <div className="flex flex-wrap gap-1">
                   {breakpoints.map((id) => {
                     const node = nodes.find((n: { id: string }) => n.id === id);
-                    const name = node?.title || (node as unknown as { data?: { title?: string } })?.data?.title || id;
+                    const name = node?.title || (node as unknown as { data?: { title?: string } })?.data?.title || id; // SAFE: node cast to access data.title for breakpoint display
                     return (
                       <Tag
                         key={id}

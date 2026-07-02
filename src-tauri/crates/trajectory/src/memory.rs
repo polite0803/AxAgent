@@ -39,7 +39,7 @@ impl MemoryRegistry {
         })
     }
 
-    pub(crate) fn initialize(&self) -> anyhow::Result<()> {
-        self.memory_service.initialize()
+    pub(crate) async fn initialize(&self) -> anyhow::Result<()> {
+        self.memory_service.initialize().await
     }
 }

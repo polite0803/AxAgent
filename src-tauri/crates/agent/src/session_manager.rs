@@ -16,9 +16,9 @@ use axagent_runtime_core::{
 use sea_orm::DatabaseConnection;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
 use tauri::{AppHandle, Emitter};
-use tokio::sync::Mutex;
+use tokio::sync::{Mutex, RwLock};
 use tracing::info;
 
 const AUTO_COMPACTION_TOKEN_THRESHOLD: usize = 100_000;
@@ -217,10 +217,9 @@ impl AgentSession {
     }
 
     /// 记录此 Agent 的决策到 Blackboard
-    pub fn record_to_blackboard(&self, field: &str, value: &str) {
-        if let Some(ref bb) = self.blackboard
-            && let Ok(mut board) = bb.write()
-        {
+    pub async fn record_to_blackboard(&self, field: &str, value: &str) {
+        if let Some(ref bb) = self.blackboard {
+            let mut board = bb.write().await;
             board.record_decision(
                 &self.axagent_session_id.clone().unwrap_or_default(),
                 &self.conversation_id,
@@ -239,8 +238,8 @@ pub struct SessionManager {
     /// Tracks last access time for each session_id (epoch millis)
     session_last_access: Mutex<std::collections::HashMap<String, u64>>,
     db: Arc<DatabaseConnection>,
-    app_handle: std::sync::Mutex<Option<AppHandle>>,
-    default_workspace_dir: std::sync::Mutex<Option<String>>,
+    app_handle: tokio::sync::Mutex<Option<AppHandle>>,
+    default_workspace_dir: tokio::sync::Mutex<Option<String>>,
     /// Per-conversation execution progress trackers for frontend panels.
     progress_trackers:
         tokio::sync::RwLock<std::collections::HashMap<String, Arc<AgentExecutionProgress>>>,
@@ -260,31 +259,25 @@ impl SessionManager {
             conversation_index: Mutex::new(std::collections::HashMap::new()),
             session_last_access: Mutex::new(std::collections::HashMap::new()),
             db: Arc::new(db),
-            app_handle: std::sync::Mutex::new(None),
-            default_workspace_dir: std::sync::Mutex::new(None),
+            app_handle: tokio::sync::Mutex::new(None),
+            default_workspace_dir: tokio::sync::Mutex::new(None),
             progress_trackers: tokio::sync::RwLock::new(std::collections::HashMap::new()),
             trajectory: None,
         }
     }
 
-    pub fn set_default_workspace_dir(&self, dir: Option<String>) {
-        let mut default_workspace_dir = self
-            .default_workspace_dir
-            .lock()
-            .unwrap_or_else(|e| e.into_inner());
+    pub async fn set_default_workspace_dir(&self, dir: Option<String>) {
+        let mut default_workspace_dir = self.default_workspace_dir.lock().await;
         *default_workspace_dir = dir;
     }
 
-    pub fn set_app_handle(&self, app_handle: AppHandle) {
-        let mut handle = self.app_handle.lock().unwrap_or_else(|e| e.into_inner());
+    pub async fn set_app_handle(&self, app_handle: AppHandle) {
+        let mut handle = self.app_handle.lock().await;
         *handle = Some(app_handle);
     }
 
-    pub fn has_app_handle(&self) -> bool {
-        self.app_handle
-            .lock()
-            .unwrap_or_else(|e| e.into_inner())
-            .is_some()
+    pub async fn has_app_handle(&self) -> bool {
+        self.app_handle.lock().await.is_some()
     }
 
     /// Returns the number of currently cached sessions.
@@ -331,10 +324,7 @@ impl SessionManager {
         let session_id = session.session().session_id.clone();
 
         let default_workspace_dir = {
-            let guard = self
-                .default_workspace_dir
-                .lock()
-                .map_err(|e| format!("Failed to lock default_workspace_dir: {}", e))?;
+            let guard = self.default_workspace_dir.lock().await;
             guard.clone()
         };
 
@@ -386,7 +376,15 @@ impl SessionManager {
     }
 
     /// Update the session in memory after a turn completes, preserving conversation history.
-    pub async fn update_session_after_turn(&self, conversation_id: &str, updated_session: Session) {
+    ///
+    /// `usage` 携带本轮的 token 统计 (input + output + cache_*),作为权威来源。
+    /// 若调用方未传,则回退从 `updated_session.messages` 末尾的 `usage` 字段汇总。
+    pub async fn update_session_after_turn(
+        &self,
+        conversation_id: &str,
+        updated_session: Session,
+        usage: Option<axagent_runtime_core::TokenUsage>,
+    ) {
         let mut sessions = self.sessions.lock().await;
         let conv_index = self.conversation_index.lock().await;
         if let Some(session_id) = conv_index.get(conversation_id)
@@ -398,7 +396,19 @@ impl SessionManager {
             if let Some(axagent_session_id) = session.axagent_session_id() {
                 let db = self.db.clone();
                 let axagent_sid = axagent_session_id.to_string();
-                let tokens_delta = 0;
+                // 优先使用调用方传入的 usage;否则从 messages 末尾的 usage 字段汇总
+                let effective_usage = usage.or_else(|| {
+                    session
+                        .session()
+                        .messages
+                        .iter()
+                        .rev()
+                        .find_map(|m| m.usage.clone())
+                });
+                let tokens_delta = effective_usage
+                    .as_ref()
+                    .map(|u| u.input_tokens as i32 + u.output_tokens as i32)
+                    .unwrap_or(0);
 
                 drop(conv_index);
                 drop(sessions);
@@ -444,6 +454,7 @@ impl SessionManager {
 
         let mut to_evict = Vec::new();
         {
+            // 锁顺序: session_last_access (只读,单独)
             let last_access = self.session_last_access.lock().await;
             for (session_id, &last_ms) in last_access.iter() {
                 if last_ms < ttl_cutoff_ms {
@@ -453,6 +464,7 @@ impl SessionManager {
         }
 
         {
+            // 锁顺序: sessions -> session_last_access
             let sessions = self.sessions.lock().await;
             if sessions.len() > MAX_CACHED_SESSIONS {
                 let last_access = self.session_last_access.lock().await;
@@ -470,9 +482,10 @@ impl SessionManager {
 
         if !to_evict.is_empty() {
             info!("[SessionManager] Evicting {} stale sessions", to_evict.len());
+            // 锁顺序: sessions -> conversation_index -> session_last_access
             let mut sessions = self.sessions.lock().await;
-            let mut conv_index = self.conversation_index.lock().await;
             let mut last_access = self.session_last_access.lock().await;
+            let mut conv_index = self.conversation_index.lock().await;
             for session_id in to_evict {
                 sessions.remove(&session_id);
                 last_access.remove(&session_id);
@@ -646,11 +659,7 @@ impl SessionManager {
         let permission_policy = PermissionPolicy::new(permission_mode);
 
         // Get app handle for event emission
-        let app_handle = self
-            .app_handle
-            .lock()
-            .map_err(|e| RuntimeError::new(format!("Failed to lock app_handle: {}", e)))?
-            .clone();
+        let app_handle = self.app_handle.lock().await.clone();
 
         // Create runtime with ToolRegistry and progress reporter
         let mut runtime = ConversationRuntime::new(
@@ -719,16 +728,25 @@ impl SessionManager {
         // look up the prompter and deliver decisions during the run.
         let conv_id_for_prompter = conversation_id.clone();
         let mut prompter_opt = prompters.lock().await.get(&conv_id_for_prompter).cloned();
-        let summary = tokio::task::block_in_place(|| {
-            if let Some(ref mut p) = prompter_opt {
+        // run_turn 是同步的,通过 spawn_blocking + oneshot 在专用阻塞线程执行,
+        // 避免 block_in_place 在多线程 runtime 中产生调度隐患。
+        // 同时把 `updated_session` 一并从闭包中传出（runtime 已被 move 进去，
+        // 闭包外无法再调用 into_session）。
+        let (tx, rx) = tokio::sync::oneshot::channel();
+        tokio::task::spawn_blocking(move || {
+            let result = if let Some(ref mut p) = prompter_opt {
                 runtime.run_turn(user_input, Some(p))
             } else {
                 runtime.run_turn(user_input, None)
-            }
-        })?;
+            };
+            let payload = result.map(|summary| (summary, runtime.into_session()));
+            let _ = tx.send(payload);
+        });
+        let (summary, updated_session) = rx
+            .await
+            .map_err(|e| RuntimeError::new(format!("run_turn task dropped: {e}")))?
+            .map_err(|e| RuntimeError::new(format!("run_turn failed: {e}")))?;
 
-        // Extract updated session
-        let updated_session = runtime.into_session();
         session.session_mut().messages = updated_session.messages.clone();
         session.session_mut().updated_at_ms = updated_session.updated_at_ms;
 
@@ -1529,15 +1547,16 @@ mod tests {
         let db = setup_test_db().await;
         let mgr = SessionManager::new(db);
         assert_eq!(mgr.session_count().await, 0);
-        assert!(!mgr.has_app_handle());
+        assert!(!mgr.has_app_handle().await);
     }
 
     #[tokio::test]
     async fn test_session_manager_set_default_workspace_dir() {
         let db = setup_test_db().await;
         let mgr = SessionManager::new(db);
-        mgr.set_default_workspace_dir(Some("/tmp/workspace".to_string()));
-        let default_dir = mgr.default_workspace_dir.lock().unwrap();
+        mgr.set_default_workspace_dir(Some("/tmp/workspace".to_string()))
+            .await;
+        let default_dir = mgr.default_workspace_dir.lock().await;
         assert_eq!(*default_dir, Some("/tmp/workspace".to_string()));
     }
 
@@ -1545,9 +1564,10 @@ mod tests {
     async fn test_session_manager_set_default_workspace_dir_none() {
         let db = setup_test_db().await;
         let mgr = SessionManager::new(db);
-        mgr.set_default_workspace_dir(Some("/tmp/workspace".to_string()));
-        mgr.set_default_workspace_dir(None);
-        let default_dir = mgr.default_workspace_dir.lock().unwrap();
+        mgr.set_default_workspace_dir(Some("/tmp/workspace".to_string()))
+            .await;
+        mgr.set_default_workspace_dir(None).await;
+        let default_dir = mgr.default_workspace_dir.lock().await;
         assert!(default_dir.is_none());
     }
 
@@ -1555,7 +1575,7 @@ mod tests {
     async fn test_session_manager_has_app_handle_initially_false() {
         let db = setup_test_db().await;
         let mgr = SessionManager::new(db);
-        assert!(!mgr.has_app_handle());
+        assert!(!mgr.has_app_handle().await);
     }
 
     #[tokio::test]

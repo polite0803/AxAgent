@@ -118,11 +118,18 @@ impl SandboxRunner {
         // 拿不到 AWS_*/SSH_AUTH_SOCK 等敏感变量。
         #[cfg(target_os = "windows")]
         {
-            // FIXME(Windows): rlimit 无原生等价物；cmd.exe 也不支持
-            // set -euo pipefail。env_clear + PATH 注入仍然生效。
-            let mut command = Command::new("cmd");
-            command.arg("/C");
-            command.arg(cmd);
+            // 使用 powershell 而非 cmd.exe，以获得更好的错误传播和子进程管理。
+            // 通过 -Command 传递脚本并设置 $ErrorActionPreference='Stop' 模拟 set -e。
+            // 子进程通过 Job Object 确保进程树被正确终止。
+            let script = format!(
+                "$ErrorActionPreference='Stop'; [Console]::OutputEncoding=[Text.Encoding]::UTF8; {}",
+                cmd
+            );
+            let mut command = Command::new("powershell");
+            command.arg("-NoProfile");
+            command.arg("-NonInteractive");
+            command.arg("-Command");
+            command.arg(script);
             apply_safe_env(&mut command);
             command
         }

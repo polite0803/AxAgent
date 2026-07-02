@@ -31,10 +31,10 @@ export function RLCheckpointManager() {
   };
 
   const columns = [
-    { title: "名称", dataIndex: "name", key: "name" },
-    { title: "步数", dataIndex: "step", key: "step", width: 80, align: "right" as const },
+    { title: t("rl.checkpoints.name"), dataIndex: "name", key: "name" },
+    { title: t("rl.checkpoints.step"), dataIndex: "step", key: "step", width: 80, align: "right" as const },
     {
-      title: "损失",
+      title: t("rl.checkpoints.loss"),
       dataIndex: "loss",
       key: "loss",
       width: 100,
@@ -42,7 +42,7 @@ export function RLCheckpointManager() {
       render: (v: number) => v.toFixed(4),
     },
     {
-      title: "奖励",
+      title: t("rl.checkpoints.reward"),
       dataIndex: "reward",
       key: "reward",
       width: 100,
@@ -50,14 +50,14 @@ export function RLCheckpointManager() {
       render: (v: number) => v.toFixed(4),
     },
     {
-      title: "时间",
+      title: t("rl.checkpoints.time"),
       dataIndex: "timestamp",
       key: "timestamp",
       width: 160,
       render: (v: number) => new Date(v).toLocaleString(),
     },
     {
-      title: "操作",
+      title: t("rl.checkpoints.action"),
       key: "actions",
       width: 160,
       render: (_: unknown, record: CheckpointInfo) => (
@@ -68,10 +68,10 @@ export function RLCheckpointManager() {
             loading={loadingId === record.id}
             onClick={() => handleLoad(record.id)}
           >
-            加载
+            {t("rl.checkpoints.load")}
           </Button>
           <Button size="small" type="link" danger>
-            删除
+            {t("rl.checkpoints.delete")}
           </Button>
         </Space>
       ),

@@ -5,7 +5,8 @@ import { WorkflowLogPanel } from "@/components/workflow/WorkflowLogPanel";
 import { useWorkflowStore } from "@/stores/feature/workflowStore";
 import type { WorkflowDefinition, WorkflowExecution } from "@/types/workflow";
 import { Button, Descriptions, Form, Input, Modal, Space, Tag, Typography } from "antd";
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 const { Text } = Typography;
 
@@ -22,18 +23,19 @@ const statusColor: Record<string, string> = {
   failed: "error",
 };
 
-const statusLabel: Record<string, string> = {
-  waiting: "等待",
-  running: "执行中",
-  success: "成功",
-  failed: "失败",
-};
-
 export function WorkflowExecutor({ workflow, open, onClose }: WorkflowExecutorProps) {
+  const { t } = useTranslation();
   const [form] = Form.useForm();
   const [execution, setExecution] = useState<WorkflowExecution | null>(null);
   const isExecuting = useWorkflowStore((s) => s.isExecuting);
   const executeWorkflow = useWorkflowStore((s) => s.executeWorkflow);
+
+  const statusLabel: Record<string, string> = useMemo(() => ({
+    waiting: t("rl.status.idle"),
+    running: t("rl.status.running"),
+    success: t("rl.status.completed"),
+    failed: t("rl.status.failed"),
+  }), [t]);
 
   const handleExecute = useCallback(async () => {
     const values = form.getFieldsValue();
@@ -51,7 +53,7 @@ export function WorkflowExecutor({ workflow, open, onClose }: WorkflowExecutorPr
 
   return (
     <Modal
-      title={`执行工作流: ${workflow.name}`}
+      title={`${t("workflow.executor.execute")}: ${workflow.name}`}
       open={open}
       onCancel={handleClose}
       width={700}
@@ -59,10 +61,10 @@ export function WorkflowExecutor({ workflow, open, onClose }: WorkflowExecutorPr
       destroyOnClose
     >
       <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-        {/* 输入变量表单 */}
+        {/* Input variables form */}
         {variableEntries.length > 0 && !execution && (
           <div>
-            <Text strong style={{ display: "block", marginBottom: 8 }}>输入变量</Text>
+            <Text strong style={{ display: "block", marginBottom: 8 }}>{t("workflow.executor.inputVariables")}</Text>
             <Form form={form} layout="vertical" size="small">
               {variableEntries.map(([key, val]) => (
                 <Form.Item key={key} name={key} label={key} initialValue={typeof val === "string" ? val : ""}>
@@ -76,14 +78,14 @@ export function WorkflowExecutor({ workflow, open, onClose }: WorkflowExecutorPr
         {/* 执行按钮 */}
         {!execution && (
           <Button type="primary" onClick={handleExecute} loading={isExecuting} block>
-            {isExecuting ? "执行中..." : "执行工作流"}
+            {isExecuting ? t("workflow.executor.executing") : t("workflow.executor.execute")}
           </Button>
         )}
 
         {/* 执行中状态 */}
         {isExecuting && (
           <div style={{ textAlign: "center", padding: 16 }}>
-            <Text type="secondary">正在执行工作流节点...</Text>
+            <Text type="secondary">{t("workflow.executor.executing")}</Text>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 12, justifyContent: "center" }}>
               {workflow.nodes.map((node) => (
                 <Tag key={node.id} color="processing">
@@ -98,12 +100,14 @@ export function WorkflowExecutor({ workflow, open, onClose }: WorkflowExecutorPr
         {execution && !isExecuting && (
           <>
             <Descriptions size="small" column={2} bordered>
-              <Descriptions.Item label="状态">
+              <Descriptions.Item label={t("workflow.executor.status")}>
                 <Tag color={execution.status === "completed" ? "success" : "error"}>
-                  {execution.status === "completed" ? "执行成功" : "执行失败"}
+                  {execution.status === "completed"
+                    ? t("workflow.executor.executionSuccess")
+                    : t("workflow.executor.executionFailed")}
                 </Tag>
               </Descriptions.Item>
-              <Descriptions.Item label="耗时">
+              <Descriptions.Item label={t("workflow.executor.duration")}>
                 {execution.finishedAt && execution.startedAt
                   ? `${((execution.finishedAt - execution.startedAt) / 1000).toFixed(1)}s`
                   : "-"}
@@ -112,7 +116,9 @@ export function WorkflowExecutor({ workflow, open, onClose }: WorkflowExecutorPr
 
             {/* 节点状态 */}
             <div>
-              <Text strong style={{ display: "block", marginBottom: 8 }}>节点执行状态</Text>
+              <Text strong style={{ display: "block", marginBottom: 8 }}>
+                {t("workflow.executor.nodeExecutionStatus")}
+              </Text>
               <Space wrap>
                 {execution.nodeStates.map((ns) => (
                   <Tag key={ns.nodeId} color={statusColor[ns.status]}>
@@ -125,7 +131,7 @@ export function WorkflowExecutor({ workflow, open, onClose }: WorkflowExecutorPr
             {/* 输出变量 */}
             {execution.outputs && Object.keys(execution.outputs).length > 0 && (
               <div>
-                <Text strong style={{ display: "block", marginBottom: 8 }}>输出结果</Text>
+                <Text strong style={{ display: "block", marginBottom: 8 }}>{t("workflow.executor.outputResult")}</Text>
                 <pre
                   style={{
                     backgroundColor: "var(--color-fill-tertiary)",
@@ -144,7 +150,7 @@ export function WorkflowExecutor({ workflow, open, onClose }: WorkflowExecutorPr
             {/* 日志 */}
             {execution.logs.length > 0 && (
               <div>
-                <Text strong style={{ display: "block", marginBottom: 8 }}>执行日志</Text>
+                <Text strong style={{ display: "block", marginBottom: 8 }}>{t("workflow.executor.executionLog")}</Text>
                 <WorkflowLogPanel
                   logs={execution.logs}
                   onClear={() => {}}
@@ -154,7 +160,7 @@ export function WorkflowExecutor({ workflow, open, onClose }: WorkflowExecutorPr
               </div>
             )}
 
-            <Button onClick={handleClose}>关闭</Button>
+            <Button onClick={handleClose}>{t("workflow.executor.close")}</Button>
           </>
         )}
       </div>

@@ -85,8 +85,17 @@ impl ErrorRecoveryEngine {
     }
 
     pub fn get_recovery_strategy(&self, error_type: ErrorType) -> RecoveryStrategy {
-        if !self.config.enable_adjustments && matches!(error_type, ErrorType::Recoverable) {
-            return RecoveryStrategy::Fail;
+        // 关闭 adjustments 时,Recoverable 错误降级为纯 Retry (而非 Fail),
+        // 保证关闭"调整参数"开关时仍可重试,只是不会自动调整参数。
+        if !self.config.enable_adjustments
+            && matches!(error_type, ErrorType::Recoverable | ErrorType::Transient)
+        {
+            return RecoveryStrategy::Retry {
+                max_attempts: 3,
+                base_delay_ms: 1000,
+                max_delay_ms: 10000,
+                exponential_backoff: true,
+            };
         }
 
         RecoveryStrategy::for_error_type(error_type)

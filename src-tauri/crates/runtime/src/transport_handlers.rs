@@ -24,6 +24,7 @@ pub struct WebSocketTransportConfig {
     pub pong_timeout: Duration,
     pub connect_timeout: Duration,
     pub max_reconnect_attempts: u32,
+    pub reconnect_delay: Duration,
 }
 
 impl Default for WebSocketTransportConfig {
@@ -33,6 +34,7 @@ impl Default for WebSocketTransportConfig {
             pong_timeout: Duration::from_secs(5),
             connect_timeout: Duration::from_secs(10),
             max_reconnect_attempts: 5,
+            reconnect_delay: Duration::from_secs(2),
         }
     }
 }
@@ -55,6 +57,44 @@ impl WebSocketTransportHandler {
     pub fn with_config(mut self, config: WebSocketTransportConfig) -> Self {
         self.config = config;
         self
+    }
+
+    /// 带重试的连接包装器，使用 config.max_reconnect_attempts
+    pub async fn connect(&self, endpoint: &AgentEndpoint) -> Result<(), GatewayError> {
+        let max_attempts = self.config.max_reconnect_attempts.max(1);
+        let mut last_err = None;
+        for attempt in 1..=max_attempts {
+            match self.connect_internal(endpoint).await {
+                Ok(()) => {
+                    if attempt > 1 {
+                        tracing::info!(
+                            agent_id = %endpoint.agent_id,
+                            attempt,
+                            "WebSocket 重连成功"
+                        );
+                    }
+                    return Ok(());
+                },
+                Err(e) => {
+                    tracing::warn!(
+                        agent_id = %endpoint.agent_id,
+                        attempt,
+                        max_attempts,
+                        error = %e,
+                        "WebSocket 连接失败，将重试"
+                    );
+                    last_err = Some(e);
+                    if attempt < max_attempts {
+                        let delay = self.config.reconnect_delay * attempt;
+                        tokio::time::sleep(delay).await;
+                    }
+                },
+            }
+        }
+        Err(last_err.unwrap_or_else(|| GatewayError::ConnectionFailed {
+            endpoint: endpoint.agent_id.clone(),
+            reason: "All reconnect attempts exhausted".to_string(),
+        }))
     }
 
     pub async fn connect_internal(&self, endpoint: &AgentEndpoint) -> Result<(), GatewayError> {

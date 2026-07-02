@@ -43,6 +43,7 @@ pub async fn get_evolution_stats(
     let trajectories = state
         .trajectory_storage
         .get_trajectories(Some(1000))
+        .await
         .unwrap_or_default();
 
     let auto_tool = state.auto_tool_creator.lock().await;

@@ -179,22 +179,70 @@ pub async fn list_workflow_executions(
 
 // ── 可视化工作流节点执行 ──
 
+/// P1-14: 节点类型白名单。**仅允许这些节点类型通过 IPC 直接触发执行**，
+/// 其余类型（agent / tool / subWorkflow / databaseQuery / httpRequest /
+/// storage / email / notification / approval / webhookSend / debate / fallback /
+/// llm / llmClassifier / code / documentParser / vectorRetrieve 等）必须
+/// 走完整的 `run_workflow` 流程，不能被可视化调试接口"借壳"执行。
+///
+/// 允许的语义是"纯函数式节点"——单次 execute 不会写库、发网络、占资源。
+const DEBUGGABLE_NODE_TYPES: &[&str] = &[
+    "trigger",
+    "end",
+    "logging",
+    "validation",
+    "dataTransformer",
+    "switch",
+    "merge",
+    "delay",
+    "aggregator",
+];
+
+/// P1-14: input 大小上限（bytes），超过直接拒绝 —— 防止通过 input 注入
+/// 巨大 JSON 触发 OOM。
+const MAX_DEBUG_INPUT_BYTES: usize = 64 * 1024;
+
 #[tauri::command]
 pub async fn execute_workflow_node(
     state: State<'_, AppState>,
     execution_id: String,
     node_json: serde_json::Value,
 ) -> Result<serde_json::Value, String> {
+    // P1-14: 限制 input 大小
+    let serialized_len = serde_json::to_string(&node_json)
+        .map(|s| s.len())
+        .unwrap_or(0);
+    if serialized_len > MAX_DEBUG_INPUT_BYTES {
+        return Err(format!(
+            "node_json 超过大小限制 ({} > {})",
+            serialized_len, MAX_DEBUG_INPUT_BYTES
+        ));
+    }
+
     let node: axagent_core::workflow_types::WorkflowNode =
         serde_json::from_value(node_json).map_err(|e| format!("节点 JSON 解析失败: {}", e))?;
 
+    // P1-14: 节点类型白名单校验 —— 拒绝执行危险节点类型
+    let node_type_str = axagent_runtime::work_engine::node_type_of(&node);
+    if !DEBUGGABLE_NODE_TYPES.contains(&node_type_str) {
+        return Err(format!(
+            "节点类型 '{}' 不在可调试白名单内（仅允许：{}）",
+            node_type_str,
+            DEBUGGABLE_NODE_TYPES.join(", ")
+        ));
+    }
+
     let engine = &*state.work_engine;
-    let context = engine
+    // P1-14: 校验 execution_id 归属 —— 防止任意调用方探测他人工作流
+    let status = engine
         .get_status(&execution_id)
         .await
         .map_err(|e| e.to_string())?;
+    if status.workflow_id.is_empty() {
+        return Err("execution_id 无效或工作流未注册".to_string());
+    }
 
-    match engine.execute_node(&node, &context).await {
+    match engine.execute_node(&node, &status).await {
         Ok(output) => serde_json::to_value(output).map_err(|e| e.to_string()),
         Err(e) => Err(e.to_string()),
     }

@@ -142,8 +142,7 @@ function AppInner() {
         },
       );
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [navigate]);
+  }, [navigate, isQuickBarWindow]);
 
   useKeyboardShortcuts();
   useGlobalShortcutManager();

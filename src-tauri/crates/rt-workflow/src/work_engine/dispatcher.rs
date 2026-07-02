@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use std::collections::HashMap;
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
 
 use axagent_core::workflow_types::WorkflowNode;
 
@@ -20,8 +20,11 @@ use super::node_executor_trait::{
     NodeError, NodeExecutorTrait, NodeOutput, error_code, node_type_name,
 };
 
+/// P0-2: 全部改用 `tokio::sync::RwLock`,并删除 `#[allow(clippy::await_holding_lock)]` 标记。
+/// `register_arc`/`register`/`get_executor`/`registered_types` 改 async,调用方通过
+/// `WorkEngine::init_dispatcher` 在 tokio runtime 内完成初始化。
 pub struct NodeDispatcher {
-    executors: Arc<RwLock<HashMap<&'static str, Arc<dyn NodeExecutorTrait>>>>,
+    executors: Arc<tokio::sync::RwLock<HashMap<&'static str, Arc<dyn NodeExecutorTrait>>>>,
 }
 
 impl Default for NodeDispatcher {
@@ -33,51 +36,56 @@ impl Default for NodeDispatcher {
 impl NodeDispatcher {
     pub fn new() -> Self {
         let dispatcher = Self {
-            executors: Arc::new(RwLock::new(HashMap::new())),
+            executors: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
         };
-        dispatcher.register(TriggerExecutor::new());
-        dispatcher.register(ParallelExecutor::new());
-        dispatcher.register(LoopExecutor::new());
-        dispatcher.register(MergeExecutor::new());
-        dispatcher.register(DelayExecutor::new());
-        dispatcher.register(SubWorkflowExecutor::new());
-        dispatcher.register(DocumentParserExecutor::new());
-        dispatcher.register(VectorRetrieveExecutor::new());
-        dispatcher.register(EndExecutor::new());
-        dispatcher.register(ValidationExecutor::new());
-        dispatcher.register(ToolExecutor::new());
-        dispatcher.register(CodeExecutor::new());
-        dispatcher.register(DebateExecutor::new());
-        dispatcher.register(FallbackExecutor::new());
-        dispatcher.register(HttpRequestExecutor::new());
-        dispatcher.register(SwitchExecutor::new());
-        dispatcher.register(DatabaseQueryExecutor::new());
-        dispatcher.register(NotificationExecutor::new());
-        dispatcher.register(ApprovalExecutor::new());
-        dispatcher.register(FileOperationExecutor::new());
-        dispatcher.register(DataTransformerExecutor::new());
-        dispatcher.register(WebhookSendExecutor::new());
-        dispatcher.register(LoggingExecutor::new());
-        dispatcher.register(StorageExecutor::new());
-        // LlmClassifierExecutor 由 WorkEngine::new() 配置并注册（需要 db、master_key 等依赖）
-        dispatcher.register(AggregatorExecutor::new());
-        dispatcher.register(EmailExecutor::new());
         dispatcher
+    }
+
+    /// 一次性注册所有内置 executor（异步版本）。
+    /// 必须在 tokio runtime 中调用（与 `WorkEngine::init_dispatcher` 配套）。
+    pub async fn init_builtin(&self) {
+        self.register(TriggerExecutor::new()).await;
+        self.register(ParallelExecutor::new()).await;
+        self.register(LoopExecutor::new()).await;
+        self.register(MergeExecutor::new()).await;
+        self.register(DelayExecutor::new()).await;
+        self.register(SubWorkflowExecutor::new()).await;
+        self.register(DocumentParserExecutor::new()).await;
+        self.register(VectorRetrieveExecutor::new()).await;
+        self.register(EndExecutor::new()).await;
+        self.register(ValidationExecutor::new()).await;
+        self.register(ToolExecutor::new()).await;
+        self.register(CodeExecutor::new()).await;
+        self.register(DebateExecutor::new()).await;
+        self.register(FallbackExecutor::new()).await;
+        self.register(HttpRequestExecutor::new()).await;
+        self.register(SwitchExecutor::new()).await;
+        self.register(DatabaseQueryExecutor::new()).await;
+        self.register(NotificationExecutor::new()).await;
+        self.register(ApprovalExecutor::new()).await;
+        self.register(FileOperationExecutor::new()).await;
+        self.register(DataTransformerExecutor::new()).await;
+        self.register(WebhookSendExecutor::new()).await;
+        self.register(LoggingExecutor::new()).await;
+        self.register(StorageExecutor::new()).await;
+        // LlmClassifierExecutor 由 WorkEngine::init_dispatcher 配置并注册
+        self.register(AggregatorExecutor::new()).await;
+        self.register(EmailExecutor::new()).await;
     }
 
     /// 注册 executor。若同名 executor 已存在，记录 warn 日志
     /// （覆盖仅用于共享 Arc 的"重置"场景，调用方应使用 `register_arc` 共享同一实例）。
-    pub fn register<E: NodeExecutorTrait + 'static>(&self, executor: E) {
-        self.register_arc(Arc::new(executor));
+    pub async fn register<E: NodeExecutorTrait + 'static>(&self, executor: E) {
+        self.register_arc(Arc::new(executor)).await;
     }
 
     /// 注册共享实例（与 WorkEngine.agent_executor 配合使用）。
     /// 同名已存在时**直接覆盖**（不打印 warn，因为是同一实例热更新）。
     /// 真正的"防呆"是：业务代码不要再调用 register(E) 重新注册 agent
     /// executor；统一通过 WorkEngine.agent_executor 字段访问并修改状态。
-    pub fn register_arc(&self, executor: Arc<dyn NodeExecutorTrait>) {
+    pub async fn register_arc(&self, executor: Arc<dyn NodeExecutorTrait>) {
         let key = executor.node_type();
-        let mut map = self.executors.write().expect("executors lock poisoned");
+        let mut map = self.executors.write().await;
         if map.contains_key(key) && !Arc::ptr_eq(map.get(key).expect("checked above"), &executor) {
             tracing::warn!(
                 node_type = key,
@@ -89,8 +97,8 @@ impl NodeDispatcher {
 
     /// 公开注册 API（供外部 crate 注册自定义执行器）。
     /// 与 register_arc 等价，仅命名上明确表示"外部注册"语义。
-    pub fn register_external(&self, executor: Arc<dyn NodeExecutorTrait>) {
-        self.register_arc(executor);
+    pub async fn register_external(&self, executor: Arc<dyn NodeExecutorTrait>) {
+        self.register_arc(executor).await;
     }
 
     pub async fn dispatch(
@@ -166,7 +174,7 @@ impl NodeDispatcher {
         }
 
         let executor = {
-            let map = self.executors.read().expect("executors lock poisoned");
+            let map = self.executors.read().await;
             map.get(node_type).cloned().unwrap_or_else(|| {
                 map.get("fallback")
                     .cloned()
@@ -226,22 +234,13 @@ impl NodeDispatcher {
         };
         executor.execute(&resolved_node, context).await
     }
-    
-    pub fn get_executor(&self, node_type: &str) -> Option<Arc<dyn NodeExecutorTrait>> {
-        self.executors
-            .read()
-            .expect("executors lock poisoned")
-            .get(node_type)
-            .cloned()
+
+    pub async fn get_executor(&self, node_type: &str) -> Option<Arc<dyn NodeExecutorTrait>> {
+        self.executors.read().await.get(node_type).cloned()
     }
 
-    pub fn registered_types(&self) -> Vec<&'static str> {
-        self.executors
-            .read()
-            .expect("executors lock poisoned")
-            .keys()
-            .copied()
-            .collect()
+    pub async fn registered_types(&self) -> Vec<&'static str> {
+        self.executors.read().await.keys().copied().collect()
     }
 }
 
@@ -352,56 +351,52 @@ mod tests {
     }
 
     fn make_test_exec_state() -> ExecutionState {
-        ExecutionState::new(
-            "test_exec".into(),
-            "test_wf".into(),
-            serde_json::json!({}),
-        )
+        ExecutionState::new("test_exec".into(), "test_wf".into(), serde_json::json!({}))
     }
 
     #[test]
     fn register_and_lookup() {
+        let rt = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .unwrap();
         let disp = NodeDispatcher::new();
-        disp.register(TestExecutor::new("testExec"));
-        assert!(disp.get_executor("testExec").is_some());
-        assert!(disp.get_executor("nonexistent").is_none());
+        rt.block_on(disp.register(TestExecutor::new("testExec")));
+        assert!(rt.block_on(disp.get_executor("testExec")).is_some());
+        assert!(rt.block_on(disp.get_executor("nonexistent")).is_none());
     }
 
     #[test]
     fn registered_types_collects_keys() {
+        let rt = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .unwrap();
         let disp = NodeDispatcher::new();
-        disp.register(TestExecutor::new("customA"));
-        disp.register(TestExecutor::new("customB"));
-        let types = disp.registered_types();
+        rt.block_on(disp.register(TestExecutor::new("customA")));
+        rt.block_on(disp.register(TestExecutor::new("customB")));
+        let types = rt.block_on(disp.registered_types());
         assert!(types.contains(&"customA"));
         assert!(types.contains(&"customB"));
-        // The built-in executors are registered too
-        assert!(types.contains(&"tool"));
+        // The built-in executors are not registered in this empty dispatcher
+        // (init_builtin must be called explicitly).
     }
 
     #[tokio::test]
     async fn dispatch_to_registered_executor() {
         let disp = NodeDispatcher::new();
-        disp.register(TestExecutor::new("myExecutor"));
+        disp.register(TestExecutor::new("tool")).await;
         let node = make_tool_node("n1", true);
         let ctx = make_test_exec_state();
-        // Override executor lookup: we need to test dispatch by using the
-        // executor key "tool" since our test node is a Tool variant.
-        let disp2 = NodeDispatcher {
-            executors: Arc::new(RwLock::new(HashMap::new())),
-        };
-        disp2.register(TestExecutor::new("tool"));
-        let result = disp2.dispatch(&node, &ctx).await;
+        let result = disp.dispatch(&node, &ctx).await;
         assert!(result.is_ok());
         assert_eq!(result.unwrap().output["node_type"], "tool");
     }
 
     #[tokio::test]
     async fn fallback_executor_when_not_found() {
-        let disp = NodeDispatcher {
-            executors: Arc::new(RwLock::new(HashMap::new())),
-        };
-        disp.register(TestExecutor::new("fallback"));
+        let disp = NodeDispatcher::new();
+        disp.register(TestExecutor::new("fallback")).await;
         let node = make_tool_node("n2", true);
         let ctx = make_test_exec_state();
         let result = disp.dispatch(&node, &ctx).await;

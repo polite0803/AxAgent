@@ -36,7 +36,7 @@ impl Default for PoolConfig {
 
 #[derive(Debug)]
 pub struct PooledConnection<C> {
-    conn: C,
+    conn: Option<C>,
     pool: Arc<ConnectionPool<C>>,
     created_at: Instant,
     last_used: Instant,
@@ -47,7 +47,7 @@ impl<C> PooledConnection<C> {
     pub fn new(conn: C, pool: Arc<ConnectionPool<C>>) -> Self {
         let now = Instant::now();
         Self {
-            conn,
+            conn: Some(conn),
             pool,
             created_at: now,
             last_used: now,
@@ -56,11 +56,11 @@ impl<C> PooledConnection<C> {
     }
 
     pub fn get_ref(&self) -> &C {
-        &self.conn
+        self.conn.as_ref().expect("connection taken")
     }
 
     pub fn get_mut(&mut self) -> &mut C {
-        &mut self.conn
+        self.conn.as_mut().expect("connection taken")
     }
 
     pub fn mark_invalid(&mut self) {
@@ -74,20 +74,27 @@ impl<C> PooledConnection<C> {
 
 impl<C> Drop for PooledConnection<C> {
     fn drop(&mut self) {
-        if self.is_valid {
-            let mut conn = PooledConnection {
-                conn: std::mem::replace(&mut self.conn, panic!("connection already taken")),
+        if self.is_valid
+            && let Some(conn) = self.conn.take()
+        {
+            // P0-3: 不要 panic！Drop 阶段如果连接已经被取走，说明逻辑 bug，
+            // 但绝不能 panic（panic 会污染其他正在进行的 tokio 任务）。
+            // 若无连接可归还（Option 为 None），仅记录日志后 return。
+            let conn = PooledConnection {
+                conn: Some(conn),
                 pool: self.pool.clone(),
                 created_at: self.created_at,
                 last_used: self.last_used,
                 is_valid: true,
             };
-            conn.last_used = Instant::now();
 
             let pool = self.pool.clone();
-            tokio::spawn(async move {
+            // P0-3: spawn 失败（runtime 关闭等）时记录日志而非静默吞掉
+            if let Err(e) = tokio::spawn(async move {
                 pool.release(conn).await;
-            });
+            }) {
+                tracing::error!(error = %e, "connection_pool: spawn release 任务失败");
+            }
         }
     }
 }
@@ -103,7 +110,9 @@ pub struct ConnectionPool<C> {
     connections: Arc<RwLock<Vec<PooledConnectionInner<C>>>>,
     total_count: Arc<RwLock<usize>>,
     semaphore: Arc<Semaphore>,
-    factory: ConnectionFactory<C>,
+    /// P0-3: factory 改 Option；默认 None，create_connection 时返回
+    /// CreationFailed("no factory configured") 而不是 panic。
+    factory: Option<ConnectionFactory<C>>,
 }
 
 impl<C: Send + 'static> ConnectionPool<C> {
@@ -114,9 +123,7 @@ impl<C: Send + 'static> ConnectionPool<C> {
             connections: Arc::new(RwLock::new(Vec::new())),
             total_count: Arc::new(RwLock::new(0)),
             semaphore,
-            factory: Arc::new(
-                Box::new(|| panic!("No factory configured")) as Box<dyn Fn() -> C + Send + 'static>
-            ),
+            factory: None,
         }
     }
 
@@ -152,30 +159,38 @@ impl<C: Send + 'static> ConnectionPool<C> {
     }
 
     async fn create_connection(&self) -> Result<C, PoolError> {
-        let factory = self.factory.clone();
+        // P0-3: factory 为 None 时直接返回错误，不再 panic
+        let factory = self
+            .factory
+            .as_ref()
+            .ok_or_else(|| PoolError::CreationFailed("no factory configured".to_string()))?
+            .clone();
         tokio::task::spawn_blocking(move || (factory)())
             .await
             .map_err(|_| PoolError::CreationFailed("Connection creation task panicked".to_string()))
     }
 
-    async fn release(&self, mut conn: PooledConnection<C>) {
+    /// P0-3: release 路径简化 —— 之前 acquire_owned + drop permit 是反模式（无意义消耗一次信号量）。
+    /// 归还连接只需更新 total_count（如果池满）并放回 idle 列表。
+    async fn release(&self, conn: PooledConnection<C>) {
         if !conn.is_valid {
             let mut count = self.total_count.write().await;
             *count = count.saturating_sub(1);
-            let permit = self
-                .semaphore
-                .clone()
-                .acquire_owned()
-                .await
-                .map_err(|_| PoolError::SemaphoreClosed)?;
-            drop(permit);
             return;
         }
+
+        // 从 PooledConnection 中取出真实连接（Drop 时已 take，这里 unwrap 安全）
+        let Some(real_conn) = conn.conn else {
+            // 已没有可归还的连接，total_count 仍要恢复
+            let mut count = self.total_count.write().await;
+            *count = count.saturating_sub(1);
+            return;
+        };
 
         let mut connections = self.connections.write().await;
         if connections.len() < self.config.max_idle {
             connections.push(PooledConnectionInner {
-                conn: conn.conn,
+                conn: real_conn,
                 created_at: conn.created_at,
                 last_used: conn.last_used,
             });
@@ -183,14 +198,6 @@ impl<C: Send + 'static> ConnectionPool<C> {
             let mut count = self.total_count.write().await;
             *count = count.saturating_sub(1);
         }
-
-        let permit = self
-            .semaphore
-            .clone()
-            .acquire_owned()
-            .await
-            .map_err(|_| PoolError::SemaphoreClosed)?;
-        drop(permit);
     }
 
     pub async fn close(&self) {
@@ -248,14 +255,13 @@ where
     F: Fn() -> C + Send + 'static,
 {
     pub fn build(self) -> Arc<ConnectionPool<C>> {
-        Arc::new(ConnectionPool {
-            config: self.pool.config.clone(),
-            connections: self.pool.connections.clone(),
-            total_count: self.pool.total_count.clone(),
-            semaphore: self.pool.semaphore.clone(),
-            factory: Arc::new(Box::new(self.maker.take().expect("Builder already used"))
-                as Box<dyn Fn() -> C + Send + 'static>),
-        })
+        // P0-3: builder 关闭时把 maker 注入到 pool.factory，不再用 panic 占位
+        let mut pool = (*self.pool).clone();
+        pool.factory = Some(Arc::new(Box::new(
+            self.maker.take().expect("Builder already used"),
+        )
+            as Box<dyn Fn() -> C + Send + 'static>));
+        Arc::new(pool)
     }
 }
 

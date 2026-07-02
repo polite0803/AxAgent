@@ -243,23 +243,41 @@ export const useWorkflowStore = create<WorkflowStoreState>((set, get) => ({
   parseNaturalLanguage: async (request: NLParseRequest) => {
     set({ isParsing: true, parseProgress: t("workflow.parse.analyzingIntent") });
     try {
-      const mocks = await getMocks();
-      if (mocks) {
-        // Dev mode: use mock with staged progress
-        await new Promise((r) => setTimeout(r, 600));
-        set({ parseProgress: t("workflow.parse.matchingNodes") });
-        await new Promise((r) => setTimeout(r, 600));
-        set({ parseProgress: t("workflow.parse.buildingWorkflow") });
-        await new Promise((r) => setTimeout(r, 600));
-        set({ parseProgress: t("workflow.parse.optimizing") });
-        await new Promise((r) => setTimeout(r, 400));
-        const result = mocks.generateMockParseResult(request.prompt);
-        set((s) => ({ parseHistory: [result, ...s.parseHistory] }));
-        return result;
-      }
-      // Production: invoke backend
-      // const result = await invoke<NLParseResult>("workflow_parse_nl", { prompt: request.prompt });
-      throw new Error("NL parsing backend not yet connected");
+      // Production: invoke backend generate_workflow_from_prompt
+      set({ parseProgress: t("workflow.parse.matchingNodes") });
+      const { invoke } = await import("@/lib/invoke");
+
+      type GenerationResult = {
+        nodes: unknown[];
+        edges: unknown[];
+        explanation: string;
+      };
+
+      const result = await invoke<GenerationResult>("generate_workflow_from_prompt", {
+        prompt: request.prompt,
+        current_nodes: null,
+        current_edges: null,
+      });
+
+      const nlResult: NLParseResult = {
+        workflow: {
+          id: "",
+          name: `NL-${Date.now()}`,
+          description: result.explanation,
+          version: 1,
+          nodes: result.nodes as any[],
+          edges: result.edges as any[],
+          variables: {},
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+          status: "draft",
+        },
+        confidence: 0.85,
+        suggestions: [result.explanation],
+      };
+
+      set((s) => ({ parseHistory: [nlResult, ...s.parseHistory] }));
+      return nlResult;
     } catch (e) {
       console.warn("[workflowStore] parseNaturalLanguage failed:", e);
       set({ error: String(e) });

@@ -189,10 +189,10 @@ export function BottleneckAnalyzer({ traceId }: BottleneckAnalyzerProps) {
   }
 
   const failureColumns = [
-    { title: "失败原因", dataIndex: "reason", key: "reason" },
-    { title: "次数", dataIndex: "count", key: "count", width: 80, align: "right" as const },
+    { title: t("trace.bottleneck.failureReason"), dataIndex: "reason", key: "reason" },
+    { title: t("trace.bottleneck.count"), dataIndex: "count", key: "count", width: 80, align: "right" as const },
     {
-      title: "占比",
+      title: t("trace.bottleneck.percentage"),
       dataIndex: "pct",
       key: "pct",
       width: 80,

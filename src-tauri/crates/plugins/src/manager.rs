@@ -926,7 +926,10 @@ impl PluginManager {
         }
     }
 
-    pub(crate) fn store_registry(&self, registry: &InstalledPluginRegistry) -> Result<(), PluginError> {
+    pub(crate) fn store_registry(
+        &self,
+        registry: &InstalledPluginRegistry,
+    ) -> Result<(), PluginError> {
         let path = self.registry_path();
         if let Some(parent) = path.parent() {
             fs::create_dir_all(parent)?;

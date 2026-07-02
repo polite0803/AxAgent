@@ -184,9 +184,13 @@ mod tests {
     #[test]
     fn test_locale_from_env_en() {
         // SAFETY: test-only env var mutation, single-threaded test context
-        unsafe { std::env::set_var("AXAGENT_LOCALE", "en-US"); }
+        unsafe {
+            std::env::set_var("AXAGENT_LOCALE", "en-US");
+        }
         let s = msg(I18nKey::AgentToolRegistryNotConfigured);
         assert!(s.contains("Tool registry"));
-        unsafe { std::env::remove_var("AXAGENT_LOCALE"); }
+        unsafe {
+            std::env::remove_var("AXAGENT_LOCALE");
+        }
     }
 }

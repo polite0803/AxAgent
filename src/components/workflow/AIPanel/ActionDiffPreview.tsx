@@ -137,8 +137,9 @@ export const ActionDiffPreview: React.FC<ActionDiffPreviewProps> = ({
         ? (
           <div style={{ display: "flex", flexDirection: "column", gap: 12, maxHeight: "60vh", overflowY: "auto" }}>
             {actions.map((action, idx) => (
+              // FIXME: AiChatAction 无稳定唯一标识，使用 action_type + 索引
               <ActionDiffItem
-                key={idx}
+                key={`${action.action_type}-${idx}`}
                 action={action}
                 currentNodes={currentNodes}
                 currentEdges={currentEdges}

@@ -241,6 +241,12 @@ pub struct WorkEngine {
     /// master_key / provider_registry 由 AgentExecutor / LlmExecutor / ConditionExecutor /
     /// LlmClassifierExecutor 各自持有，WorkEngine 不再冗余存储。
     agent_executor: Arc<AgentExecutor>,
+    /// P0-2: dispatcher 的 register 改 async 后，WorkEngine::new 处于同步上下文，
+    /// 无法直接 await register。这里把内置 executor（Llm/Condition/LlmClassifier）
+    /// 的注册动作延迟到 `init_dispatcher` 阶段在 tokio runtime 中完成。
+    /// 存储的是构造好的实例（已经注入 provider_registry），init_dispatcher 时消费。
+    /// 用 Option 包裹，便于 init_dispatcher 后清空释放。
+    pending_dispatcher_registrations: Arc<tokio::sync::Mutex<Vec<Box<dyn NodeExecutorTrait>>>>,
     /// 触发器管理器（Schedule / Webhook / Event）
     pub trigger_manager: Arc<crate::trigger::TriggerManager>,
     /// 审计记录器（可选，None = 不记录审计日志）
@@ -264,12 +270,71 @@ pub struct WorkEngine {
     loop_interrupt_signals: Arc<Mutex<HashMap<String, std::sync::Arc<tokio::sync::Notify>>>>,
 }
 
+/// P1-14: 提取节点的类型字符串（用于白名单校验）。
+/// 与 `dispatcher.rs::node_type_name` 等价；放这里以让外部 binary 不必
+/// 跨 crate 引入 dispatcher 内部函数。
+pub fn node_type_of(node: &axagent_core::workflow_types::WorkflowNode) -> &'static str {
+    use axagent_core::workflow_types::WorkflowNode;
+    match node {
+        WorkflowNode::Trigger(_) => "trigger",
+        WorkflowNode::Agent(_) => "agent",
+        WorkflowNode::Tool(_) => "tool",
+        WorkflowNode::Condition(_) => "condition",
+        WorkflowNode::Switch(_) => "switch",
+        WorkflowNode::Loop(_) => "loop",
+        WorkflowNode::Parallel(_) => "parallel",
+        WorkflowNode::Merge(_) => "merge",
+        WorkflowNode::Delay(_) => "delay",
+        WorkflowNode::SubWorkflow(_) => "subWorkflow",
+        WorkflowNode::End(_) => "end",
+        WorkflowNode::Validation(_) => "validation",
+        WorkflowNode::Code(_) => "code",
+        WorkflowNode::DocumentParser(_) => "documentParser",
+        WorkflowNode::VectorRetrieve(_) => "vectorRetrieve",
+        WorkflowNode::Debate(_) => "debate",
+        WorkflowNode::HttpRequest(_) => "httpRequest",
+        WorkflowNode::DatabaseQuery(_) => "databaseQuery",
+        WorkflowNode::Notification(_) => "notification",
+        WorkflowNode::Approval(_) => "approval",
+        WorkflowNode::FileOperation(_) => "fileOperation",
+        WorkflowNode::DataTransformer(_) => "dataTransformer",
+        WorkflowNode::WebhookSend(_) => "webhookSend",
+        WorkflowNode::Logging(_) => "logging",
+        WorkflowNode::Storage(_) => "storage",
+        WorkflowNode::Llm(_) => "llm",
+        WorkflowNode::LlmClassifier(_) => "llmClassifier",
+        WorkflowNode::Aggregator(_) => "aggregator",
+        WorkflowNode::Email(_) => "email",
+        WorkflowNode::WorkflowRef(_) => "workflowRef",
+        WorkflowNode::Swarm(_) => "swarm",
+    }
+}
+
 const _: fn() = || {
     fn assert_send<T: Send>() {}
     fn assert_sync<T: Sync>() {}
     assert_send::<WorkEngine>();
     assert_sync::<WorkEngine>();
 };
+
+/// P1-13: WorkEngine 内部锁顺序约束。
+///
+/// 多重锁路径上必须按以下顺序获取（顺序由低到高），反向则视为潜在死锁：
+///
+/// 1. `cancel_tokens` (sync `Mutex`)
+/// 2. `breakpoints` / `node_breakers` / `loop_partial_txs` (sync `Mutex`)
+/// 3. `executions` (sync `Mutex`)
+/// 4. `workflows` (tokio `RwLock`)
+/// 5. `compiled_prompts` / `compiled_rhai_scripts` (tokio `RwLock`)
+/// 6. `dispatcher` (tokio `RwLock`)
+///
+/// 关键不变量：**先 `executions` 后 `workflows`**。`cancel_workflow` 等
+/// 复合操作就是按此顺序：先看 executions 决定哪些 child 要 cancel，
+/// 再写 workflows 状态。新增方法必须遵守同样的顺序。
+///
+/// 调试死锁时，`tokio-console` 或 `tracing` 配合 `#[instrument(skip(self))]`
+/// 可以快速定位哪个路径顺序错了。
+const _LOCK_ORDER_DOC: fn() = || {};
 
 impl WorkEngine {
     /// 设置断点
@@ -454,7 +519,7 @@ impl WorkEngine {
     }
 
     pub async fn registered_executor_types(&self) -> Vec<&'static str> {
-        self.dispatcher.read().await.registered_types()
+        self.dispatcher.read().await.registered_types().await
     }
 
     /// 设置工具 resolver（按需延迟注册，run_workflow 时自动扫描并注册工作流中的工具）
@@ -578,10 +643,19 @@ impl WorkEngine {
         classifier_exec.set_provider_registry(provider_registry.clone());
 
         let agent_exec = Arc::new(agent_exec);
-        dispatcher.register(llm_exec);
-        dispatcher.register_arc(agent_exec.clone() as Arc<dyn NodeExecutorTrait>);
-        dispatcher.register(cond_exec);
-        dispatcher.register(classifier_exec);
+
+        // P0-2: dispatcher 的 register_arc 改 async 后，WorkEngine::new 处于同步上下文
+        // 不能 await register。改用 pending_dispatcher_registrations 暂存，调用方在
+        // tokio runtime 内执行 init_dispatcher 完成最终注册。
+        let pending_dispatcher_registrations: Vec<Box<dyn NodeExecutorTrait>> = vec![
+            Box::new(llm_exec),
+            Box::new(cond_exec),
+            Box::new(classifier_exec),
+        ];
+        let pending_dispatcher_registrations =
+            Arc::new(tokio::sync::Mutex::new(pending_dispatcher_registrations));
+
+        // Self { ... }
         Self {
             db,
             executions: Arc::new(Mutex::new(HashMap::new())),
@@ -603,6 +677,7 @@ impl WorkEngine {
             breakpoints: Arc::new(Mutex::new(HashSet::new())),
             node_breakers: Arc::new(Mutex::new(HashMap::new())),
             agent_executor: agent_exec,
+            pending_dispatcher_registrations,
             trigger_manager: Arc::new(crate::trigger::TriggerManager::new()),
             audit_recorder: Arc::new(std::sync::Mutex::new(None)),
             tool_registry: Arc::new(std::sync::Mutex::new(None)),
@@ -624,6 +699,32 @@ impl WorkEngine {
     /// ```
     pub async fn init_trigger_manager(self: &Arc<Self>) {
         self.trigger_manager.set_engine(self.clone()).await;
+    }
+
+    /// P0-2: 在 tokio runtime 中完成 dispatcher 的初始化注册。
+    /// 必须在 setup 阶段 rt.block_on 调用，确保 dispatch 工作前所有内置 executor 已就位。
+    /// 内部顺序：
+    /// 1. init_builtin：注册所有内置 executor（Trigger/Loop/End/Fallback/...）
+    /// 2. 注册 self.agent_executor 到 dispatcher（与 self.agent_executor 共享同一 Arc）
+    /// 3. 把 pending_dispatcher_registrations 中的 Llm/Condition/LlmClassifier 注册
+    pub async fn init_dispatcher(self: &Arc<Self>) {
+        let disp = self.dispatcher.read().await;
+        disp.init_builtin().await;
+        // 共享 Arc：dispatcher 与 self.agent_executor 指向同一 AgentExecutor 实例
+        disp.register_arc(self.agent_executor.clone() as Arc<dyn NodeExecutorTrait>)
+            .await;
+        drop(disp);
+
+        // 取出 pending 中的 Llm / Condition / LlmClassifier 并注册
+        let pending: Vec<Box<dyn NodeExecutorTrait>> = {
+            let mut guard = self.pending_dispatcher_registrations.lock().await;
+            std::mem::take(&mut *guard)
+        };
+        let disp = self.dispatcher.read().await;
+        for exec in pending {
+            let exec: Arc<dyn NodeExecutorTrait> = Arc::from(exec);
+            disp.register_arc(exec).await;
+        }
     }
 
     /// 注册自定义节点执行器（供外部 crate 扩展）。
@@ -1423,23 +1524,52 @@ impl WorkEngine {
             // 1. 取就绪节点（支持并行调度）
             let ready_nodes = self.get_ready_steps(workflow_id).await?;
             if ready_nodes.is_empty() {
-                // 死锁检测：上游 Failed 可能永久阻塞下游 Pending/Ready 节点
-                let has_blocked = {
-                    let workflows = self.workflows.read().await;
-                    workflows
-                        .get(workflow_id)
-                        .map(|wf| {
-                            wf.node_states.values().any(|s| {
-                                matches!(s.status, NodeStatus::Pending | NodeStatus::Ready)
+                // P1-17: 死锁检测 —— 增加 5s grace period，避免在节点刚完成、上游
+                // 状态尚未传播到下游时被误判为死锁；同时区分"上游 Failed/Skipped"
+                // （真死锁）和"上游 Running 但下游已被错误判定为 Pending"（假死锁）。
+                let mut workflows = self.workflows.write().await;
+                if let Some(wf) = workflows.get_mut(workflow_id) {
+                    // 5s grace period：最近 5s 内有节点完成 → 继续等下一轮
+                    let now = current_epoch_ms() as i64;
+                    let last_completion =
+                        wf.node_states.values().filter_map(|s| s.completed_at).max();
+                    let within_grace = last_completion.map(|t| now - t < 5_000).unwrap_or(false);
+                    if within_grace {
+                        // 仍在 grace period 内，释放锁让其他路径进展
+                        drop(workflows);
+                        tokio::time::sleep(Duration::from_millis(500)).await;
+                        continue;
+                    }
+                    // 区分依赖未完成 vs 已 Skip
+                    let has_blocked = wf
+                        .node_states
+                        .values()
+                        .any(|s| matches!(s.status, NodeStatus::Pending | NodeStatus::Ready));
+                    if has_blocked {
+                        // 先收集需要标记为 Skipped 的节点 key，避免 mutable + immutable
+                        // 双重借用 wf.node_states。
+                        let keys_to_skip: Vec<String> = wf
+                            .node_states
+                            .iter()
+                            .filter_map(|(state_key, state)| {
+                                if !matches!(state.status, NodeStatus::Pending | NodeStatus::Ready)
+                                {
+                                    return None;
+                                }
+                                let upstream_terminal = wf.edges.iter().all(|e| {
+                                    if e.target != *state_key {
+                                        return true;
+                                    }
+                                    matches!(
+                                        wf.node_states.get(&e.source).map(|s| &s.status),
+                                        Some(NodeStatus::Skipped | NodeStatus::Failed)
+                                    )
+                                });
+                                upstream_terminal.then(|| state_key.clone())
                             })
-                        })
-                        .unwrap_or(false)
-                };
-                if has_blocked {
-                    let mut workflows = self.workflows.write().await;
-                    if let Some(wf) = workflows.get_mut(workflow_id) {
-                        for state in wf.node_states.values_mut() {
-                            if matches!(state.status, NodeStatus::Pending | NodeStatus::Ready) {
+                            .collect();
+                        for key in keys_to_skip {
+                            if let Some(state) = wf.node_states.get_mut(&key) {
                                 state.status = NodeStatus::Skipped;
                             }
                         }
@@ -1640,7 +1770,11 @@ impl WorkEngine {
                         if state.pause_signal.is_none() {
                             state.pause_signal = Some(Arc::new(tokio::sync::Notify::new()));
                         }
-                        state.pause_signal.clone().unwrap()
+                        state.pause_signal.clone().unwrap_or_else(|| {
+                            let new_signal = Arc::new(tokio::sync::Notify::new());
+                            state.pause_signal = Some(new_signal.clone());
+                            new_signal
+                        })
                     } else {
                         Arc::new(tokio::sync::Notify::new())
                     }
@@ -1703,68 +1837,82 @@ impl WorkEngine {
                                 let child_execution_id = uuid::Uuid::new_v4().to_string();
                                 let child_eid_for_result = child_execution_id.clone();
 
+                                // run_workflow() 返回 non-Send future（包含 Rc 等），
+                                // 因此无法用 tokio::spawn。改用 spawn_blocking +
+                                // current_thread runtime 在新线程中执行。
                                 let (tx, rx) = tokio::sync::oneshot::channel();
-                                let rt = tokio::runtime::Handle::current();
-                                std::thread::spawn(move || {
-                                    let result = rt.block_on(async {
+                                tokio::task::spawn_blocking(move || {
+                                    let rt = tokio::runtime::Builder::new_current_thread()
+                                        .enable_all()
+                                        .build()
+                                        .expect("failed to build sub-workflow runtime");
+                                    rt.block_on(async move {
                                         use axagent_core::repo::workflow_template;
 
-                                        let db = &engine.db;
-                                        let template = workflow_template::get_workflow_template(
-                                            db,
-                                            &sub_workflow_id,
-                                        )
-                                        .await
-                                        .map_err(|e| e.to_string())?
-                                        .ok_or_else(|| {
-                                            format!("Template {} not found", sub_workflow_id)
-                                        })?;
+                                        let result: Result<(String, serde_json::Value), String> =
+                                            async {
+                                                let db = &engine.db;
+                                                let template =
+                                                    workflow_template::get_workflow_template(
+                                                        db,
+                                                        &sub_workflow_id,
+                                                    )
+                                                    .await
+                                                    .map_err(|e| e.to_string())?
+                                                    .ok_or_else(|| {
+                                                        format!(
+                                                            "Template {} not found",
+                                                            sub_workflow_id
+                                                        )
+                                                    })?;
 
-                                        let nodes: Vec<WorkflowNode> =
-                                            serde_json::from_str(&template.nodes)
-                                                .map_err(|e| format!("节点解析失败: {}", e))?;
-                                        let edges: Vec<WorkflowEdge> =
-                                            serde_json::from_str(&template.edges)
-                                                .map_err(|e| format!("边解析失败: {}", e))?;
+                                                let nodes: Vec<WorkflowNode> =
+                                                    serde_json::from_str(&template.nodes).map_err(
+                                                        |e| format!("节点解析失败: {}", e),
+                                                    )?;
+                                                let edges: Vec<WorkflowEdge> =
+                                                    serde_json::from_str(&template.edges).map_err(
+                                                        |e| format!("边解析失败: {}", e),
+                                                    )?;
 
-                                        let workflow = engine
-                                            .create_workflow(&template.name, nodes, edges)
-                                            .await
-                                            .map_err(|e| e.to_string())?;
-                                        let wid = workflow.id.clone();
+                                                let workflow = engine
+                                                    .create_workflow(&template.name, nodes, edges)
+                                                    .await
+                                                    .map_err(|e| e.to_string())?;
+                                                let wid = workflow.id.clone();
 
-                                        let input_value = serde_json::to_value(&input_vars)
-                                            .unwrap_or(serde_json::json!({}));
+                                                let input_value = serde_json::to_value(&input_vars)
+                                                    .unwrap_or(serde_json::json!({}));
 
-                                        let mut opts = RunOptions {
-                                            execution_id: Some(child_execution_id),
-                                            input: Some(input_value),
-                                            dry_run,
-                                            parent_execution_id: Some(parent_execution_id),
-                                            model_id,
-                                            provider_id,
-                                            step_timeout: sub_step_timeout,
-                                            parent_cancel_token: Some(cancel_token),
-                                            ..Default::default()
-                                        };
-                                        if let Some(cb) = progress_cb {
-                                            opts = opts.with_progress_callback(cb);
-                                        }
+                                                let mut opts = RunOptions {
+                                                    execution_id: Some(child_execution_id),
+                                                    input: Some(input_value),
+                                                    dry_run,
+                                                    parent_execution_id: Some(parent_execution_id),
+                                                    model_id,
+                                                    provider_id,
+                                                    step_timeout: sub_step_timeout,
+                                                    parent_cancel_token: Some(cancel_token),
+                                                    ..Default::default()
+                                                };
+                                                if let Some(cb) = progress_cb {
+                                                    opts = opts.with_progress_callback(cb);
+                                                }
 
-                                        let result = engine
-                                            .run_workflow(&wid, opts)
-                                            .await
-                                            .map_err(|e| e.to_string())?;
+                                                let result = engine
+                                                    .run_workflow(&wid, opts)
+                                                    .await
+                                                    .map_err(|e| e.to_string())?;
 
-                                        let output =
-                                            result.output.unwrap_or_else(|| serde_json::json!({}));
+                                                let output = result
+                                                    .output
+                                                    .unwrap_or_else(|| serde_json::json!({}));
 
-                                        Ok::<(String, serde_json::Value), String>((
-                                            child_eid_for_result,
-                                            output,
-                                        ))
+                                                Ok((child_eid_for_result, output))
+                                            }
+                                            .await;
+                                        let _ = tx.send(result);
                                     });
-                                    let _ = tx.send(result);
                                 });
                                 Box::pin(async move {
                                     rx.await
@@ -2894,7 +3042,14 @@ impl WorkEngine {
         output_str.hash(&mut hasher);
         let output_hash = hasher.finish().to_string();
 
-        if let Some(ref recorder) = *self.audit_recorder.lock().unwrap() {
+        let recorder_guard = match self.audit_recorder.lock() {
+            Ok(guard) => guard,
+            Err(poisoned) => {
+                tracing::error!("[Audit] Mutex poisoned, clearing and recovering");
+                poisoned.into_inner()
+            },
+        };
+        if let Some(ref recorder) = *recorder_guard {
             recorder.record(axagent_harness::AuditEntry {
                 id: uuid::Uuid::new_v4().to_string(),
                 timestamp: current_timestamp(),

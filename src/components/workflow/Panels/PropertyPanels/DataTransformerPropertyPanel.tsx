@@ -13,7 +13,7 @@ interface Props {
 export const DataTransformerPropertyPanel: React.FC<Props> = ({ node, onUpdate, onDelete }) => {
   const { t } = useTranslation();
   const { token } = theme.useToken();
-  const n = node as unknown as DataTransformerNode;
+  const n = node as unknown as DataTransformerNode; // SAFE: WorkflowNode union narrowed to specific node type via config field access
   const c = n.config || { input_var: "", expression: "", output_var: "" };
   const sc = (k: string, v: unknown) => onUpdate({ config: { ...c, [k]: v } });
   return (

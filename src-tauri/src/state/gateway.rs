@@ -11,12 +11,14 @@ use tokio::sync::Mutex;
 
 use axagent_gateway::server::GatewayServer;
 
-#[allow(dead_code)]
+// 通过 Arc<GatewayState> 在 AppState 中间接引用
+#[expect(dead_code)]
 pub struct GatewayState {
     pub gateway_server: Arc<Mutex<Option<GatewayServer>>>,
 }
 
-#[allow(dead_code)]
+// 同上：impl 块因间接引用被标记 dead_code
+#[expect(dead_code)]
 impl GatewayState {
     pub fn new(gateway_server: Arc<Mutex<Option<GatewayServer>>>) -> Self {
         Self { gateway_server }

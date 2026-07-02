@@ -65,9 +65,10 @@ export async function resolveDataSource(
       const { generationId } = config.config as { generationId: string };
       const { useExecutionStore } = await import("@/stores");
       const executionState = useExecutionStore.getState();
-      const generation = (executionState as unknown as Record<string, unknown>)[
-        generationId
-      ];
+      const generation =
+        (executionState as unknown as Record<string, unknown>) /* SAFE: dynamic UI data binding from execution state */[
+          generationId
+        ];
       if (!generation) {
         throw new Error(
           `Agent generated data "${generationId}" not found in execution store`,

@@ -8,8 +8,94 @@
 
 pub use axagent_harness::{DispatchResult, WebhookEvent, WebhookPayload, WebhookSubscription};
 
+use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 use std::sync::Arc;
+use tokio::net::lookup_host;
 use tokio::sync::RwLock;
+
+/// P0-5: SSRF 校验 —— 检查 URL 主机名解析出的 IP 是否在黑名单中。
+/// 拒绝：loopback、私网、link-local（含 169.254/16 云元数据）、IPv6 link-local、
+/// unique local、multicast、未指定地址。
+pub fn is_blocked_ip(ip: &IpAddr) -> bool {
+    if ip.is_loopback() {
+        return true;
+    }
+    match ip {
+        IpAddr::V4(v4) => {
+            if v4.is_private()
+                || v4.is_link_local() // 169.254.0.0/16 — 含 169.254.169.254
+                || v4.is_unspecified()
+                || v4.is_multicast()
+                || v4.is_broadcast()
+            {
+                return true;
+            }
+        },
+        IpAddr::V6(v6) => {
+            if v6.is_unicast_link_local()
+                || (v6.segments()[0] & 0xfe00) == 0xfc00 // fc00::/7
+                || v6.is_unspecified()
+                || v6.is_multicast()
+            {
+                return true;
+            }
+            // IPv4-mapped IPv6 (::ffff:0:0/96) 也要校验内嵌的 v4
+            if let Some(v4) = ipv4_mapped_from_v6(v6)
+                && is_blocked_ip(&IpAddr::V4(v4))
+            {
+                return true;
+            }
+        },
+    }
+    false
+}
+
+fn ipv4_mapped_from_v6(v6: &Ipv6Addr) -> Option<Ipv4Addr> {
+    let seg = v6.segments();
+    if seg[0] == 0 && seg[1] == 0 && seg[2] == 0 && seg[3] == 0 && seg[4] == 0 && seg[5] == 0xffff {
+        let octets = v6.octets();
+        return Some(Ipv4Addr::new(octets[12], octets[13], octets[14], octets[15]));
+    }
+    None
+}
+
+/// P0-5: 严格 SSRF 校验：解析 URL → 校验 scheme → DNS lookup → 检查所有解析 IP。
+/// 异步版本，避免阻塞调用方。
+pub async fn assert_url_safe(url: &str, require_https: bool) -> Result<(), String> {
+    let parsed = url::Url::parse(url).map_err(|e| format!("Invalid URL: {e}"))?;
+    let scheme = parsed.scheme();
+    if require_https {
+        if scheme != "https" {
+            return Err("URL must use HTTPS".to_string());
+        }
+    } else if scheme != "http" && scheme != "https" {
+        return Err(format!("URL scheme '{scheme}' is not allowed (only http/https)"));
+    }
+    let host = parsed
+        .host_str()
+        .ok_or_else(|| "URL has no host".to_string())?;
+    if host.is_empty() {
+        return Err("URL has empty host".to_string());
+    }
+
+    // DNS 解析所有地址，任一在黑名单就拒绝
+    let addrs: Vec<IpAddr> = lookup_host((host, 0u16))
+        .await
+        .map_err(|e| format!("DNS lookup failed for {host}: {e}"))?
+        .map(|sa| sa.ip())
+        .collect();
+    if addrs.is_empty() {
+        return Err(format!("DNS lookup for {host} returned no addresses"));
+    }
+    for ip in &addrs {
+        if is_blocked_ip(ip) {
+            return Err(format!(
+                "URL points to blocked IP {ip} (loopback/private/link-local/cloud-metadata/multicast)"
+            ));
+        }
+    }
+    Ok(())
+}
 
 /// Webhook 事件派发 trait（纯数据 DTO 已迁至 harness）
 #[async_trait::async_trait]
@@ -46,26 +132,8 @@ impl WebhookSubscriptionManager {
         events: Vec<WebhookEvent>,
         secret: Option<String>,
     ) -> Result<WebhookSubscription, String> {
-        let parsed_url =
-            url::Url::parse(&url).map_err(|e| format!("Invalid webhook URL: {}", e))?;
-        if parsed_url.scheme() != "https" {
-            return Err("Webhook URL must use HTTPS".to_string());
-        }
-        let host = parsed_url.host_str().unwrap_or("");
-        if host == "localhost" || host == "127.0.0.1" || host == "::1" {
-            return Err("Webhook URL cannot point to localhost".to_string());
-        }
-        if let Ok(ip) = host.parse::<std::net::IpAddr>() {
-            let is_restricted = match ip {
-                std::net::IpAddr::V4(v4) => {
-                    v4.is_loopback() || v4.is_private() || v4.is_link_local()
-                },
-                std::net::IpAddr::V6(v6) => v6.is_loopback(),
-            };
-            if is_restricted {
-                return Err("Webhook URL cannot point to a private/internal address".to_string());
-            }
-        }
+        // P0-5: 用 DNS 解析 + IpAddr 黑名单做严格 SSRF 校验，覆盖 link-local/云元数据
+        assert_url_safe(&url, true).await?;
 
         let subscription = WebhookSubscription {
             id: uuid::Uuid::new_v4().to_string(),

@@ -43,8 +43,8 @@ export const Dashboard: React.FC<DynamicUIProps> = ({ schema, dataContext }) => 
         ...(schema.style as React.CSSProperties),
       }}
     >
-      {items.map((item, index) => (
-        <Card key={index} size="small">
+      {items.map((item) => (
+        <Card key={item.label} size="small">
           <Statistic
             title={item.label}
             value={item.value}

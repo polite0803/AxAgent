@@ -375,7 +375,7 @@ export const VersionHistoryModal: React.FC<VersionHistoryModalProps> = ({
                 const prefix = entry.type === "added" ? "+" : entry.type === "removed" ? "−" : "~";
                 return (
                   <div
-                    key={i}
+                    key={`${entry.type}-${entry.label}-${i}`}
                     style={{
                       padding: "3px 8px",
                       marginBottom: 2,

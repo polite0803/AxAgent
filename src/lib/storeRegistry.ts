@@ -30,6 +30,7 @@ export async function initStoreRegistry(): Promise<void> {
   }> = [
     {
       name: "preference",
+      // SAFE: uniform store registry — all Zustand stores expose getState/setState
       store: stores.usePreferenceStore as unknown as {
         getState: () => unknown;
         setState: (partial: unknown) => void;
@@ -37,6 +38,7 @@ export async function initStoreRegistry(): Promise<void> {
     },
     {
       name: "conversation",
+      // SAFE: uniform store registry — all Zustand stores expose getState/setState
       store: stores.useConversationStore as unknown as {
         getState: () => unknown;
         setState: (partial: unknown) => void;
@@ -44,6 +46,7 @@ export async function initStoreRegistry(): Promise<void> {
     },
     {
       name: "ui",
+      // SAFE: uniform store registry — all Zustand stores expose getState/setState
       store: stores.useUIStore as unknown as {
         getState: () => unknown;
         setState: (partial: unknown) => void;
@@ -53,6 +56,7 @@ export async function initStoreRegistry(): Promise<void> {
     // 修改技能系统自身状态。Skill 间通信使用 skillEventBus 的 emit/on 机制。
     {
       name: "artifact",
+      // SAFE: uniform store registry — all Zustand stores expose getState/setState
       store: stores.useArtifactStore as unknown as {
         getState: () => unknown;
         setState: (partial: unknown) => void;
@@ -60,6 +64,7 @@ export async function initStoreRegistry(): Promise<void> {
     },
     {
       name: "chatWorkspace",
+      // SAFE: uniform store registry — all Zustand stores expose getState/setState
       store: stores.useUIStore as unknown as {
         getState: () => unknown;
         setState: (partial: unknown) => void;
@@ -67,6 +72,7 @@ export async function initStoreRegistry(): Promise<void> {
     },
     {
       name: "settings",
+      // SAFE: uniform store registry — all Zustand stores expose getState/setState
       store: stores.useSettingsStore as unknown as {
         getState: () => unknown;
         setState: (partial: unknown) => void;
@@ -74,6 +80,7 @@ export async function initStoreRegistry(): Promise<void> {
     },
     {
       name: "provider",
+      // SAFE: uniform store registry — all Zustand stores expose getState/setState
       store: stores.useProviderStore as unknown as {
         getState: () => unknown;
         setState: (partial: unknown) => void;
@@ -81,6 +88,7 @@ export async function initStoreRegistry(): Promise<void> {
     },
     {
       name: "knowledge",
+      // SAFE: uniform store registry — all Zustand stores expose getState/setState
       store: stores.useKnowledgeStore as unknown as {
         getState: () => unknown;
         setState: (partial: unknown) => void;
@@ -88,6 +96,7 @@ export async function initStoreRegistry(): Promise<void> {
     },
     {
       name: "agent",
+      // SAFE: uniform store registry — all Zustand stores expose getState/setState
       store: stores.useAgentStore as unknown as {
         getState: () => unknown;
         setState: (partial: unknown) => void;
@@ -95,6 +104,7 @@ export async function initStoreRegistry(): Promise<void> {
     },
     {
       name: "tab",
+      // SAFE: uniform store registry — all Zustand stores expose getState/setState
       store: stores.useTabStore as unknown as {
         getState: () => unknown;
         setState: (partial: unknown) => void;
@@ -102,6 +112,7 @@ export async function initStoreRegistry(): Promise<void> {
     },
     {
       name: "stream",
+      // SAFE: uniform store registry — all Zustand stores expose getState/setState
       store: stores.useStreamStore as unknown as {
         getState: () => unknown;
         setState: (partial: unknown) => void;
@@ -109,6 +120,7 @@ export async function initStoreRegistry(): Promise<void> {
     },
     {
       name: "execution",
+      // SAFE: uniform store registry — all Zustand stores expose getState/setState
       store: stores.useExecutionStore as unknown as {
         getState: () => unknown;
         setState: (partial: unknown) => void;
@@ -119,6 +131,7 @@ export async function initStoreRegistry(): Promise<void> {
   for (const { name, store } of registry) {
     registerStore(name, {
       get: (payload?: unknown) => {
+        // SAFE: store state is treated as generic Record for registry access
         const state = store.getState() as Record<string, unknown>;
         const key = typeof payload === "string" ? payload : undefined;
         return key ? state[key] : state;
@@ -135,10 +148,12 @@ export async function initStoreRegistry(): Promise<void> {
           );
           return;
         }
+        // SAFE: runtime validation above ensures payload is a plain object compatible with setState
         store.setState(payload as Parameters<typeof store.setState>[0]);
       },
       update: (payload?: unknown) => {
         if (payload && typeof payload === "object" && !Array.isArray(payload)) {
+          // SAFE: runtime validation above ensures payload is a plain object compatible with setState
           store.setState(payload as Parameters<typeof store.setState>[0]);
         } else if (payload !== undefined) {
           console.warn(

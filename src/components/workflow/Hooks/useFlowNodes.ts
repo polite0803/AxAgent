@@ -102,7 +102,8 @@ export function useFlowNodes(params: UseFlowNodesParams) {
       const typeMeta = NODE_TYPE_MAP[rtType];
       const isContainer = typeMeta?.isContainer === true
         || (rtType === "subWorkflow" && expandedSubWorkflows[node.id] != null);
-      const nodeConfig = (node as unknown as Record<string, unknown>).config as Record<string, unknown> | undefined;
+      const nodeConfig = (node as unknown as Record<string, unknown>)
+        .config /* SAFE: all WorkflowNode union members have config */ as Record<string, unknown> | undefined;
       const subGraph = nodeConfig?.subGraph as Record<string, unknown> | undefined;
       const subGraphNodes = subGraph?.nodes;
       let subGraphChildCount = Array.isArray(subGraphNodes) ? (subGraphNodes as unknown[]).length : 0;
@@ -287,7 +288,10 @@ export function useFlowNodes(params: UseFlowNodesParams) {
     const hiddenChildIds = new Set<string>();
     const expectedParentByNode: Record<string, string> = {};
     for (const node of nodes) {
-      const scopedNode = node as unknown as Record<string, unknown>;
+      const scopedNode = node as unknown as Record<
+        string,
+        unknown
+      >; /* SAFE: all WorkflowNode union members have standard object shape */
       const scopedConfig = scopedNode.config as Record<string, unknown> | undefined;
       if (node.type === "parallel" && scopedConfig?.branches) {
         const branches = scopedConfig.branches as { steps?: string[] }[];
@@ -351,6 +355,8 @@ export function useFlowNodes(params: UseFlowNodesParams) {
             if (isCollapsedParent) { hiddenChildIds.add(stepId); }
             flowNodes[childIdx] = {
               ...flowNodes[childIdx],
+              parentId: node.id,
+              extent: "parent" as const,
               hidden: isCollapsedParent ? true : flowNodes[childIdx].hidden,
             };
             expectedParentByNode[stepId] = node.id;
@@ -362,9 +368,10 @@ export function useFlowNodes(params: UseFlowNodesParams) {
     for (const containerNode of nodes) {
       const typeMeta = NODE_TYPE_MAP[containerNode.type];
       if (!typeMeta?.isContainer) { continue; }
-      const cnCfg = (containerNode as unknown as Record<string, unknown>).config as
-        | Record<string, unknown>
-        | undefined;
+      const cnCfg = (containerNode as unknown as Record<string, unknown>)
+        .config /* SAFE: all WorkflowNode union members have config */ as
+          | Record<string, unknown>
+          | undefined;
       const subGraph = cnCfg?.subGraph as
         | { nodes?: WorkflowNode[]; edges?: WorkflowEdge[] }
         | undefined;
@@ -419,7 +426,7 @@ export function useFlowNodes(params: UseFlowNodesParams) {
       for (const subNode of swData.nodes) {
         flowNodes.push({
           id: subNode.id,
-          type: (subNode as unknown as { type?: string }).type || "agent",
+          type: (subNode as unknown as { type?: string }).type || "agent", // SAFE: sub-workflow node data has type field
           position: { x: subNode.position.x, y: subNode.position.y },
           parentId: swNodeId,
           extent: "parent" as const,
@@ -451,6 +458,7 @@ export function useFlowNodes(params: UseFlowNodesParams) {
     const childPortMap = new Map<string, string>();
     for (const node of nodes) {
       if (node.type !== "parallel") { continue; }
+      // SAFE: ParallelNode.config has branches; cast through Record<string,unknown> to access it
       const nodeCfg = (node as unknown as Record<string, unknown>).config as
         | { branches?: Array<{ steps: string[] }> }
         | undefined;
@@ -515,9 +523,10 @@ export function useFlowNodes(params: UseFlowNodesParams) {
     for (const containerNode of nodes) {
       const typeMeta = NODE_TYPE_MAP[containerNode.type];
       if (!typeMeta?.isContainer) { continue; }
-      const cnCfg = (containerNode as unknown as Record<string, unknown>).config as
-        | Record<string, unknown>
-        | undefined;
+      const cnCfg = (containerNode as unknown as Record<string, unknown>)
+        .config /* SAFE: all WorkflowNode union members have config */ as
+          | Record<string, unknown>
+          | undefined;
       const subGraph = cnCfg?.subGraph as
         | { nodes?: WorkflowNode[]; edges?: WorkflowEdge[] }
         | undefined;

@@ -12,6 +12,7 @@ import {
 } from "@ant-design/icons";
 import { Button, Collapse, List, Progress, Space, Statistic, Tag, theme, Typography } from "antd";
 import React from "react";
+import { useTranslation } from "react-i18next";
 
 const { Text, Title } = Typography;
 
@@ -23,6 +24,7 @@ interface NL2UIResultViewProps {
 
 export const NL2UIResultView: React.FC<NL2UIResultViewProps> = React.memo(
   ({ result, onApply, loading }) => {
+    const { t } = useTranslation();
     const { token } = theme.useToken();
     const { schema, confidence, phases, suggestions } = result;
     const percent = Math.round(confidence * 100);
@@ -43,16 +45,16 @@ export const NL2UIResultView: React.FC<NL2UIResultViewProps> = React.memo(
             <Title level={5} style={{ marginBottom: 2 }}>UI Schema</Title>
             <Space>
               <Tag color="purple">{schema.type}</Tag>
-              <Text type="secondary">{componentCount} 个组件</Text>
+              <Text type="secondary">{t("workflow.nl2UI.components", { count: componentCount })}</Text>
             </Space>
           </div>
         </div>
 
         {/* 组件统计 */}
         <div style={{ display: "flex", gap: 16 }}>
-          <Statistic title="根类型" value={schema.type} />
-          <Statistic title="组件数" value={componentCount} />
-          <Statistic title="层级深度" value={maxDepth(schema)} />
+          <Statistic title={t("workflow.nl2UI.rootType")} value={schema.type} />
+          <Statistic title={t("workflow.nl2UI.componentCount")} value={componentCount} />
+          <Statistic title={t("workflow.nl2UI.depthLevel")} value={maxDepth(schema)} />
         </div>
 
         {/* 实时预览 */}
@@ -63,7 +65,8 @@ export const NL2UIResultView: React.FC<NL2UIResultViewProps> = React.memo(
               key: "preview",
               label: (
                 <Space>
-                  <EyeOutlined />实时预览
+                  <EyeOutlined />
+                  {t("dynamicUIPreview.livePreview")}
                 </Space>
               ),
               children: (
@@ -91,7 +94,7 @@ export const NL2UIResultView: React.FC<NL2UIResultViewProps> = React.memo(
           items={[
             {
               key: "phases",
-              label: "解析阶段",
+              label: t("workflow.nl2Skill.parsingPhases"),
               children: (
                 <List
                   size="small"
@@ -116,7 +119,7 @@ export const NL2UIResultView: React.FC<NL2UIResultViewProps> = React.memo(
         {/* AI 建议 */}
         <div>
           <Text strong>
-            <BulbOutlined /> AI 建议：
+            <BulbOutlined /> {t("workflow.nlParser.aiSuggestion")}：
           </Text>
           <List
             size="small"
@@ -137,7 +140,7 @@ export const NL2UIResultView: React.FC<NL2UIResultViewProps> = React.memo(
           onClick={() => onApply(schema)}
           loading={loading}
         >
-          应用此 UI
+          {t("workflow.nl2UI.applyUI")}
         </Button>
       </div>
     );

@@ -17,14 +17,6 @@ const STATUS_BADGE: Record<string, "processing" | "success" | "error" | "warning
   failed: "error",
 };
 
-const STATUS_LABELS: Record<string, string> = {
-  idle: "空闲",
-  running: "训练中",
-  paused: "已暂停",
-  completed: "已完成",
-  failed: "失败",
-};
-
 export function RLTrainingPanel() {
   const { t } = useTranslation();
   const status = useRlTrainingStore((s) => s.status);
@@ -33,6 +25,8 @@ export function RLTrainingPanel() {
   const config = useRlTrainingStore((s) => s.config);
 
   const isRunning = status === "running";
+
+  const statusLabel = (s: string) => t(`rl.status.${s}`);
 
   return (
     <div style={{ padding: 24 }}>
@@ -52,7 +46,7 @@ export function RLTrainingPanel() {
           <Text strong>{t("rl.panel.title")}</Text>
           <Badge
             status={STATUS_BADGE[status] ?? "default"}
-            text={STATUS_LABELS[status] ?? status}
+            text={statusLabel(status)}
           />
         </Space>
         <Space>

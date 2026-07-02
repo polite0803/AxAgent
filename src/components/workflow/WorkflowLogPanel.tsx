@@ -4,6 +4,7 @@
 import type { ExecutionLogEntry } from "@/types/workflow";
 import { Button, Empty } from "antd";
 import { useCallback, useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 
 interface WorkflowLogPanelProps {
   logs: ExecutionLogEntry[];
@@ -25,6 +26,7 @@ const levelLabels: Record<ExecutionLogEntry["level"], string> = {
 };
 
 export function WorkflowLogPanel({ logs, onClear, onExport, maxHeight = 300 }: WorkflowLogPanelProps) {
+  const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = useCallback(() => {
@@ -38,17 +40,17 @@ export function WorkflowLogPanel({ logs, onClear, onExport, maxHeight = 300 }: W
   }, [logs, scrollToBottom]);
 
   if (logs.length === 0) {
-    return <Empty description="暂无日志" image={Empty.PRESENTED_IMAGE_SIMPLE} />;
+    return <Empty description={t("workflow.log.empty")} image={Empty.PRESENTED_IMAGE_SIMPLE} />;
   }
 
   return (
     <div>
       <div style={{ marginBottom: 8, display: "flex", justifyContent: "flex-end", gap: 8 }}>
         <Button size="small" onClick={onClear}>
-          清空日志
+          {t("workflow.log.clear")}
         </Button>
         <Button size="small" onClick={onExport}>
-          导出日志
+          {t("workflow.log.export")}
         </Button>
       </div>
       <div

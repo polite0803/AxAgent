@@ -2,6 +2,7 @@
 
 use axum::{
     Extension, Json, Router,
+    body::Bytes,
     extract::{Path, State},
     http::HeaderMap,
     middleware,
@@ -15,7 +16,7 @@ use tower_http::cors::CorsLayer;
 
 use crate::auth::{AuthState, auth_middleware};
 use crate::handlers::platform_bridge::{
-    Platform, WebhookPayload, direct_message, platform_health, receive_webhook,
+    Platform, direct_message, platform_health, receive_webhook,
 };
 use crate::handlers::{
     cancel_run, chat_completions, create_job, delete_job, delete_response, detailed_health_check,
@@ -30,14 +31,12 @@ async fn receive_webhook_with_path(
     State(state): State<GatewayAppState>,
     Path(platform_str): Path<String>,
     headers: HeaderMap,
-    Json(payload): Json<WebhookPayload>,
+    body: Bytes,
 ) -> impl IntoResponse {
     match Platform::from_path_segment(&platform_str) {
-        Some(platform) => {
-            receive_webhook(State(state), Extension(platform), headers, Json(payload))
-                .await
-                .into_response()
-        },
+        Some(platform) => receive_webhook(State(state), Extension(platform), headers, body)
+            .await
+            .into_response(),
         None => {
             let err_body = Json(json!({
                 "status": "unsupported_platform",
@@ -61,45 +60,7 @@ use crate::realtime::{issue_realtime_ticket, realtime_handler};
 use crate::server::GatewayAppState;
 
 pub fn create_router(state: GatewayAppState) -> Router {
-    // SECURITY (C9): CORS 白名单收紧：
-    // - 删除 `tauri://localhost`（沙箱 iframe 可被滥用跨源）
-    // - 删除任意 1419 来源（避免本机任意 webview 跨源调用）
-    // - 改为只放行显式配置的 origin，环境变量 `AXAGENT_GATEWAY_ALLOWED_ORIGINS` 可扩展
-    let mut allowed: Vec<http::HeaderValue> = Vec::new();
-    for default_origin in &[
-        // Tauri 桌面 webview 内核使用 https://tauri.localhost
-        "https://tauri.localhost",
-    ] {
-        if let Ok(v) = default_origin.parse() {
-            allowed.push(v);
-        }
-    }
-    if let Ok(extra) = std::env::var("AXAGENT_GATEWAY_ALLOWED_ORIGINS") {
-        for raw in extra.split(',').map(str::trim).filter(|s| !s.is_empty()) {
-            if let Ok(v) = raw.parse() {
-                allowed.push(v);
-            }
-        }
-    }
-    if allowed.is_empty() {
-        // 兜底：至少允许一个 tauri 内核回环
-        if let Ok(v) = "https://tauri.localhost".parse() {
-            allowed.push(v);
-        }
-    }
-    let cors = CorsLayer::new()
-        .allow_origin(allowed)
-        .allow_methods([
-            http::Method::GET,
-            http::Method::POST,
-            http::Method::PUT,
-            http::Method::PATCH,
-            http::Method::DELETE,
-            http::Method::OPTIONS,
-        ])
-        .allow_headers([AUTHORIZATION, CONTENT_TYPE])
-        .allow_credentials(false)
-        .max_age(std::time::Duration::from_secs(600));
+    let cors = build_cors_layer();
 
     // Protected routes (require auth)
     let protected = Router::new()
@@ -164,6 +125,7 @@ pub fn create_router(state: GatewayAppState) -> Router {
                 db: state.db.clone(),
                 adapter: state.adapter.clone(),
                 key_verify_limiter: state.key_verify_limiter.clone(),
+                client_ip_policy: state.client_ip_policy.clone(),
             },
             auth_middleware,
         ));
@@ -186,6 +148,114 @@ pub fn create_router(state: GatewayAppState) -> Router {
         .merge(public)
         .layer(cors)
         .with_state(state)
+}
+
+/// 构造网关 CORS 层。
+///
+/// SECURITY (C9 + P2-23): CORS 白名单收紧，启动时校验。
+/// - 删除 `tauri://localhost`（沙箱 iframe 可被滥用跨源）
+/// - 删除任意 1419 来源（避免本机任意 webview 跨源调用）
+/// - 只放行显式配置的 origin，环境变量 `AXAGENT_GATEWAY_ALLOWED_ORIGINS` 可扩展
+/// - 启动时校验每条 origin 必须是 https / http://localhost / http://127.0.0.1；
+///   拒绝包含用户信息、片段或非允许 scheme 的来源
+fn build_cors_layer() -> CorsLayer {
+    // 收集来源字符串，启动后再校验/转换
+    let mut raw_origins: Vec<String> = vec!["https://tauri.localhost".to_string()];
+
+    if let Ok(extra) = std::env::var("AXAGENT_GATEWAY_ALLOWED_ORIGINS") {
+        for raw in extra.split(',').map(str::trim).filter(|s| !s.is_empty()) {
+            raw_origins.push(raw.to_string());
+        }
+    }
+
+    let mut allowed: Vec<http::HeaderValue> = Vec::with_capacity(raw_origins.len());
+    let mut rejected: Vec<String> = Vec::new();
+    for raw in raw_origins {
+        match validate_origin(&raw) {
+            Ok(header) => allowed.push(header),
+            Err(reason) => rejected.push(format!("{raw} ({reason})")),
+        }
+    }
+    if allowed.is_empty() {
+        // 兜底：至少允许一个 tauri 内核回环
+        if let Ok(v) = "https://tauri.localhost".parse() {
+            allowed.push(v);
+        }
+    }
+
+    // 启动时日志：让运维一眼能看见实际生效的白名单
+    let final_list: Vec<String> = allowed
+        .iter()
+        .map(|v| v.to_str().unwrap_or("<binary>").to_string())
+        .collect();
+    tracing::info!(
+        target: "axagent.gateway.cors",
+        "CORS allowed origins: [{}]",
+        final_list.join(", ")
+    );
+    if !rejected.is_empty() {
+        tracing::warn!(
+            target: "axagent.gateway.cors",
+            "CORS rejected origins (set AXAGENT_GATEWAY_ALLOWED_ORIGINS to override): [{}]",
+            rejected.join(", ")
+        );
+    }
+
+    CorsLayer::new()
+        .allow_origin(allowed)
+        .allow_methods([
+            http::Method::GET,
+            http::Method::POST,
+            http::Method::PUT,
+            http::Method::PATCH,
+            http::Method::DELETE,
+            http::Method::OPTIONS,
+        ])
+        .allow_headers([AUTHORIZATION, CONTENT_TYPE])
+        .allow_credentials(false)
+        .max_age(std::time::Duration::from_secs(600))
+}
+
+/// 校验 origin 字符串：必须能解析为 `HeaderValue`，并满足以下条件之一：
+/// - scheme = `https`
+/// - scheme = `http` 且 host 是 `localhost` / `127.0.0.1` / `::1`（开发态）
+///
+/// 拒绝包含 userinfo、path、query、fragment 的来源（这些都不是合法 origin）。
+fn validate_origin(raw: &str) -> Result<http::HeaderValue, &'static str> {
+    let value: http::HeaderValue = raw.parse().map_err(|_| "not a valid header value")?;
+
+    // HeaderValue 必须是可见 ASCII
+    if value.to_str().map_err(|_| "non-ascii bytes")? != raw {
+        return Err("value round-trip mismatch");
+    }
+
+    // URL 形态校验
+    let url = url::Url::parse(raw).map_err(|_| "not a valid URL")?;
+    if url.has_authority() && !url.authority().is_empty() {
+        let host = url.host_str().unwrap_or("");
+        let userinfo = !url.username().is_empty() || url.password().is_some();
+        if userinfo {
+            return Err("userinfo not allowed");
+        }
+        if url.path() != "/" && !url.path().is_empty() {
+            return Err("path not allowed in origin");
+        }
+        if url.query().is_some() {
+            return Err("query not allowed in origin");
+        }
+        if url.fragment().is_some() {
+            return Err("fragment not allowed in origin");
+        }
+        match url.scheme() {
+            "https" => {},
+            "http" if matches!(host, "localhost" | "127.0.0.1" | "::1") => {},
+            _ => return Err("scheme/host not allowed"),
+        }
+    } else {
+        return Err("missing host");
+    }
+
+    Ok(value)
 }
 
 #[cfg(test)]
@@ -280,5 +350,30 @@ mod tests {
         assert!(!serialized.iter().any(|s| s.contains("1419")));
         assert!(!serialized.iter().any(|s| s.contains("tauri://")));
         assert!(serialized.iter().any(|s| s == "https://tauri.localhost"));
+    }
+
+    #[test]
+    fn validate_origin_accepts_https_and_localhost() {
+        // https 来源
+        assert!(validate_origin("https://tauri.localhost").is_ok());
+        assert!(validate_origin("https://app.example.com").is_ok());
+        // http + 本机回环（开发态）
+        assert!(validate_origin("http://localhost:3000").is_ok());
+        assert!(validate_origin("http://127.0.0.1:8080").is_ok());
+    }
+
+    #[test]
+    fn validate_origin_rejects_insecure_or_malformed() {
+        // SECURITY (P2-23): 拒绝 http + 非回环（mixed-content / 中间人风险）
+        assert!(validate_origin("http://app.example.com").is_err());
+        assert!(validate_origin("http://10.0.0.5").is_err());
+        // 拒绝 userinfo / path / query / fragment
+        assert!(validate_origin("https://user:pw@app.example.com").is_err());
+        assert!(validate_origin("https://app.example.com/path").is_err());
+        assert!(validate_origin("https://app.example.com?x=1").is_err());
+        assert!(validate_origin("https://app.example.com#frag").is_err());
+        // 拒绝缺失 scheme / host
+        assert!(validate_origin("app.example.com").is_err());
+        assert!(validate_origin("https://").is_err());
     }
 }

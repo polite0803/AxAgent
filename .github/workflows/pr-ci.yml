@@ -177,6 +177,9 @@ jobs:
       - name: Run frontend tests
         run: npm run test:run
 
+      - name: Run frontend integration tests
+        run: npm run test:integration
+
   test-e2e:
     name: E2E Tests (macOS)
     needs: [should-run-heavy]
@@ -196,6 +199,9 @@ jobs:
       - name: Run E2E tests (uses system Chrome, skip 165MB download)
         env:
           PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 1
+        # 排除依赖后端服务的测试类别（Agent/Cache/Conversation/Gateway），
+        # 这些测试需要完整的 Tauri IPC + 多提供商 Mock，当前 E2E 框架不支持。
+        # 相关功能由 Rust 后端测试覆盖。
         run: npx playwright test --project=chromium --grep-invert "(Agent|Cache|Conversation|Gateway)" --timeout=60000
 
   cargo-audit:

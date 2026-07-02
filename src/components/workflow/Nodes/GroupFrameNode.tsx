@@ -22,7 +22,7 @@ interface GroupFrameData {
  * 本身不包含执行逻辑，仅在编辑器中渲染为框。支持嵌套。
  */
 const GroupFrameNodeComponent: React.FC<NodeProps> = ({ data: _data, selected }) => {
-  const data = _data as unknown as GroupFrameData;
+  const data = _data as unknown as GroupFrameData; // SAFE: ReactFlow NodeProps.data is untyped; runtime data matches expected component data
   const { t } = useTranslation();
   const { token } = theme.useToken();
   const [collapsed, setCollapsed] = useState(data.collapsed || false);

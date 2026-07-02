@@ -35,7 +35,7 @@ function makeReview(overrides: Partial<ReviewResponse> = {}): ReviewResponse {
 describe("reviewApi", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
-    global.fetch = vi.fn() as unknown as typeof fetch;
+    global.fetch = vi.fn() as unknown as typeof fetch; /* SAFE: test mock for global fetch */
   });
 
   afterEach(() => {

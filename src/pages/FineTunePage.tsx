@@ -24,8 +24,7 @@ export function FineTunePage() {
     fetchBaseModels();
     fetchLoRAAdapters();
     fetchTrainingStats();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [fetchDatasets, fetchTrainingJobs, fetchBaseModels, fetchLoRAAdapters, fetchTrainingStats]);
 
   const tabItems = [
     {

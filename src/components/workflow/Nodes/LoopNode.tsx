@@ -17,7 +17,7 @@ interface LoopNodeData extends ContainerNodeData {
 }
 
 const LoopNodeComponent: React.FC<NodeProps> = ({ data: _data, selected }) => {
-  const data = _data as unknown as LoopNodeData;
+  const data = _data as unknown as LoopNodeData; // SAFE: ReactFlow NodeProps.data is untyped; runtime data matches expected component data
   const { t } = useTranslation();
   const loopType = data.loopType || "count";
 

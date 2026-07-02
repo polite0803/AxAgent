@@ -247,6 +247,8 @@ export function ChatSidebar({
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setExpandedParentIds((prev) => new Set(prev).add(active.parent_conversation_id!));
     }
+    // 显式省略 expandedParentIds：将其加入 deps 会导致 setExpandedParentIds
+    // → expandedParentIds 变化 → effect 重新执行 → 再次 set 的无限循环
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeConversationId, conversations]);
 

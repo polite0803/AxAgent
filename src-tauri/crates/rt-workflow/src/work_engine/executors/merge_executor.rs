@@ -69,14 +69,14 @@ fn apply_merge(
                 .iter()
                 .max_by_key(|(_, c)| *c)
                 .map(|(v, _)| (*v).clone());
+            let max_count = counts.values().max().copied().unwrap_or(0);
             let required = values.len() / 2 + 1;
-            match counts.values().max().copied() {
-                Some(c) if c >= required => Ok(majority.unwrap()),
-                _ => Err(format!(
-                    "Merge.Majority: 没有任何值达到多数（{}/{})",
-                    counts.values().max().copied().unwrap_or(0),
-                    required
-                )),
+            match max_count {
+                c if c >= required => majority
+                    .ok_or_else(|| "Merge.Majority: max_by_key 返回 None（内部错误）".to_string()),
+                _ => {
+                    Err(format!("Merge.Majority: 没有任何值达到多数（{}/{})", max_count, required))
+                },
             }
         },
     }

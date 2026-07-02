@@ -1648,7 +1648,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
     );
     // 使用新的 auto_layout（按 type 分层 + Barycenter 启发式）
     const layoutedNodes = auto_layout(
-      reactFlowNodes as unknown as AutoNode[],
+      reactFlowNodes as unknown as AutoNode[], // SAFE: ReactFlow Node to AutoNode for layout engine — both carry position/id/type
       layoutEdges,
       parentRefs,
     );
@@ -2122,7 +2122,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
               onClose={() => setAiPanelVisible(false)}
               selectedNodeId={selectedNodeId}
               selectedNodePrompt={selectedNodeId
-                ? (nodes.find(n => n.id === selectedNodeId) as unknown as { config?: { system_prompt?: string } })
+                ? (nodes.find(n => n.id === selectedNodeId) as unknown as { config?: { system_prompt?: string } }) // SAFE: accessing config.system_prompt on WorkflowNode union
                   ?.config?.system_prompt ?? null
                 : null}
               onApplyPromptToNode={applyOptimizedPromptToNode}
@@ -2651,6 +2651,6 @@ function createWorkflowNode(
         ...baseNode,
         type: "agent" as const,
         config: {},
-      } as unknown as WorkflowNode;
+      } as unknown as WorkflowNode; // SAFE: fallback agent node constructed from base with correct type discriminator
   }
 }

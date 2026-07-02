@@ -67,6 +67,10 @@ export interface ConversationState {
   error: string | null;
   /** Current streaming message ID (for streamStore compatibility) */
   streamingMessageId: string | null;
+  /** 抑制侧栏自动选择 (防止删除/归档后自动跳转) */
+  sidebarAutoSelectSuppressed: boolean;
+  /** 抑制自动选择的计时器清理函数 */
+  sidebarSuppressTimer: ReturnType<typeof setTimeout> | null;
   /** Insert a context-clear marker into the conversation */
   insertContextClear: () => Promise<void>;
   /** Remove a context-clear marker */
@@ -223,6 +227,8 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
   oldestLoadedMessageId: null,
   error: null,
   streamingMessageId: null,
+  sidebarAutoSelectSuppressed: false,
+  sidebarSuppressTimer: null,
   titleGeneratingConversationId: null,
   pendingCompanionModels: [],
   multiModelParentId: null,
@@ -1384,7 +1390,9 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
 registerConversationStoreRef({
   getState: () => useConversationStore.getState(),
   setState: (partial) =>
-    useConversationStore.setState(partial as unknown as Parameters<typeof useConversationStore.setState>[0]),
+    useConversationStore.setState(
+      partial as unknown as Parameters<typeof useConversationStore.setState>[0],
+    ), /* SAFE: external store update via dynamic type */
 });
 
 // ─── Sidebar auto-select suppression ───
@@ -1394,40 +1402,37 @@ registerConversationStoreRef({
 // Setting this flag to true tells the sidebar to skip auto-select for one
 // render cycle, keeping the ChatView on the welcome screen.
 //
-// TEMPORARY ESCAPE HATCH: This module-level flag is a workaround for
-// preventing sidebar auto-selection after deletion/archive. A proper
-// solution would use a Zustand store action or a dedicated UI state machine.
-
-let _suppressSidebarAutoSelect = false;
+// ── Sidebar Auto-Select Suppression ──────────────────────────────────
+// 防止删除/归档后侧栏自动跳转。使用 Zustand store 替代模块级可变状态，
+// 避免多测试/SSR 场景下的状态污染。
+// 本质上是临时绕过方案；长期应改用更清晰的 UI 状态机。
 
 export function isSidebarAutoSelectSuppressed(): boolean {
-  return _suppressSidebarAutoSelect;
+  return useConversationStore.getState().sidebarAutoSelectSuppressed;
 }
 
 export function setSidebarAutoSelectSuppressed(val: boolean): void {
-  _suppressSidebarAutoSelect = val;
+  useConversationStore.setState({ sidebarAutoSelectSuppressed: val });
 }
-
-let _sideBarSuppressTimer: ReturnType<typeof setTimeout> | null = null;
 
 /** Reset the sidebar auto-select suppression flag (called by ChatSidebar after consuming). */
 export function resetSidebarAutoSelectSuppression() {
-  _suppressSidebarAutoSelect = false;
-  if (_sideBarSuppressTimer) {
-    clearTimeout(_sideBarSuppressTimer);
-    _sideBarSuppressTimer = null;
+  const state = useConversationStore.getState();
+  if (state.sidebarSuppressTimer) {
+    clearTimeout(state.sidebarSuppressTimer);
   }
+  useConversationStore.setState({ sidebarAutoSelectSuppressed: false, sidebarSuppressTimer: null });
 }
 
 export function setSidebarAutoSelectSuppression() {
-  _suppressSidebarAutoSelect = true;
-  if (_sideBarSuppressTimer) {
-    clearTimeout(_sideBarSuppressTimer);
+  const state = useConversationStore.getState();
+  if (state.sidebarSuppressTimer) {
+    clearTimeout(state.sidebarSuppressTimer);
   }
-  _sideBarSuppressTimer = setTimeout(() => {
-    _suppressSidebarAutoSelect = false;
-    _sideBarSuppressTimer = null;
+  const timer = setTimeout(() => {
+    useConversationStore.setState({ sidebarAutoSelectSuppressed: false, sidebarSuppressTimer: null });
   }, 5000);
+  useConversationStore.setState({ sidebarAutoSelectSuppressed: true, sidebarSuppressTimer: timer });
 }
 
 // Auto-rebuild message index on every messages replacement to keep O(1) streaming fast.

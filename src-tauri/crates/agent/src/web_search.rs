@@ -137,8 +137,10 @@ impl WebSearchProvider {
         }
 
         if results.is_empty() {
-            let wiki_results =
-                tokio::runtime::Handle::current().block_on(self.search_via_wikipedia(query));
+            // 不在已存在的 tokio runtime 中嵌套 block_on,改用 spawn_blocking。
+            let wiki_results = tokio::task::block_in_place(|| {
+                futures::executor::block_on(self.search_via_wikipedia(query))
+            });
             return wiki_results;
         }
 

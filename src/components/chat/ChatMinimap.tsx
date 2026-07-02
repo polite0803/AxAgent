@@ -213,6 +213,9 @@ function useActiveMessageId(entries: MinimapEntry[]): string | null {
       clearTimeout(retryTimer);
       scrollBox?.removeEventListener("scroll", updateActive);
     };
+    // 显式省略 updateActive / attach：每次渲染都会重新创建这些闭包函数，
+    // 加入 deps 会导致 cleanup → re-attach → 新一轮渲染的循环，
+    // 仅依赖稳定的 scrollBoxRef 和 entries。
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scrollBoxRef, entries]);
 

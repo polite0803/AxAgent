@@ -328,7 +328,7 @@ function computeDagLayout(steps: StepLike[], token: GlobalToken): {
 
 const WorkflowDagNode: React.FC<NodeProps> = memo(
   ({ data, selected }) => {
-    const dagData = data as unknown as WorkflowDagNodeData;
+    const dagData = data as unknown as WorkflowDagNodeData; /* SAFE: workflow progress state cast */
     const { token } = theme.useToken();
     const color = getStatusColor(dagData.status, token);
     const isRunning = dagData.status === "running";

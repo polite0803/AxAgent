@@ -5,6 +5,7 @@ import { useWorkflowStore } from "@/stores/feature/workflowStore";
 import type { NLParseResult } from "@/types/workflow";
 import { Button, Input, Progress, Space, Tag, Typography } from "antd";
 import { useCallback, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 const { TextArea } = Input;
 const { Text, Title } = Typography;
@@ -20,6 +21,7 @@ const placeholderExamples = [
 ];
 
 export function NLParserPanel({ onApply }: NLParserPanelProps) {
+  const { t } = useTranslation();
   const [prompt, setPrompt] = useState("");
   const [constraints, setConstraints] = useState("");
   const [result, setResult] = useState<NLParseResult | null>(null);
@@ -56,24 +58,24 @@ export function NLParserPanel({ onApply }: NLParserPanelProps) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       <div>
-        <Text strong style={{ display: "block", marginBottom: 6 }}>自然语言描述</Text>
+        <Text strong style={{ display: "block", marginBottom: 6 }}>{t("workflow.nlParser.naturalLanguageDesc")}</Text>
         <TextArea
           rows={5}
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
-          placeholder={`例如：${placeholderExample}`}
+          placeholder={t("workflow.nlParser.examplePlaceholder", { example: placeholderExample })}
           disabled={isParsing}
           style={{ fontSize: 13 }}
         />
       </div>
 
       <div>
-        <Text strong style={{ display: "block", marginBottom: 6 }}>约束条件（可选）</Text>
+        <Text strong style={{ display: "block", marginBottom: 6 }}>{t("workflow.nlParser.constraintsOptional")}</Text>
         <TextArea
           rows={2}
           value={constraints}
           onChange={(e) => setConstraints(e.target.value)}
-          placeholder="例如：执行时间不超过 5 分钟、出错时重试 3 次"
+          placeholder={t("workflow.nlParser.constraintsPlaceholder")}
           disabled={isParsing}
           style={{ fontSize: 13 }}
         />
@@ -86,7 +88,7 @@ export function NLParserPanel({ onApply }: NLParserPanelProps) {
         disabled={!hasContent || isParsing}
         block
       >
-        {isParsing ? "解析中..." : "解析生成"}
+        {isParsing ? t("workflow.nlParser.parsing") : t("workflow.nlParser.parseGenerate")}
       </Button>
 
       {isParsing && (
@@ -107,7 +109,7 @@ export function NLParserPanel({ onApply }: NLParserPanelProps) {
             backgroundColor: "var(--color-fill-tertiary)",
           }}
         >
-          <Title level={5} style={{ marginTop: 0 }}>解析结果</Title>
+          <Title level={5} style={{ marginTop: 0 }}>{t("workflow.nlParser.parseResult")}</Title>
 
           <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
             <Progress
@@ -118,27 +120,33 @@ export function NLParserPanel({ onApply }: NLParserPanelProps) {
             />
             <div>
               <Text>
-                置信度: <Text strong>{Math.round(result.confidence * 100)}%</Text>
+                {t("workflow.nlParser.confidence")}: <Text strong>{Math.round(result.confidence * 100)}%</Text>
               </Text>
               <br />
               <Text type="secondary" style={{ fontSize: 12 }}>
-                {result.workflow.nodes.length} 节点 · {result.workflow.edges.length} 连线 ·{" "}
-                {Object.keys(result.workflow.variables).length} 变量
+                {t("workflow.nlParser.resultSummary", {
+                  nodes: result.workflow.nodes.length,
+                  edges: result.workflow.edges.length,
+                  variables: Object.keys(result.workflow.variables).length,
+                })}
               </Text>
             </div>
           </div>
 
           {result.suggestions.length > 0 && (
             <div style={{ marginBottom: 12 }}>
-              <Text strong style={{ display: "block", marginBottom: 4 }}>AI 建议</Text>
+              <Text strong style={{ display: "block", marginBottom: 4 }}>{t("workflow.nlParser.aiSuggestion")}</Text>
               <Space direction="vertical" size={4}>
-                {result.suggestions.map((s, i) => <Tag key={i} color="processing">{s}</Tag>)}
+                {result.suggestions.map((s, i) => (
+                  // FIXME: suggestions 是字符串数组，无稳定唯一标识
+                  <Tag key={`suggestion-${i}`} color="processing">{s}</Tag>
+                ))}
               </Space>
             </div>
           )}
 
           <Button type="primary" block onClick={handleApply}>
-            应用此方案
+            {t("workflow.nlParser.applySolution")}
           </Button>
         </div>
       )}

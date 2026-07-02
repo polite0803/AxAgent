@@ -295,9 +295,23 @@ impl FTS5Search {
         let id = id.to_string();
         tokio::task::spawn_blocking(move || -> Result<()> {
             let conn = conn.blocking_lock();
-            let sql =
-                format!("INSERT INTO {}({}, id, content) VALUES('delete', ?1, ?2)", table, table);
-            conn.execute(&sql, params![id, ""])?;
+            // P2-4: FTS5 'delete' 命令需要传原始 content 才能正确删除索引项
+            // 删除前先 SELECT content（content 是 FTS5 索引的最后一列）
+            let mut stmt = conn.prepare(&format!("SELECT content FROM {} WHERE id = ?1", table))?;
+            let content_opt: Option<String> = stmt.query_row(params![id], |row| row.get(0)).ok();
+            let content = content_opt.unwrap_or_default();
+            // 若该行已不存在 FTS 索引（没有 content 列），退化为旧逻辑
+            let sql = if content.is_empty() {
+                // 再次尝试直接 delete-all（无 content 时 FTS5 仍可工作）
+                format!("INSERT INTO {}({}, id, content) VALUES('delete', ?1, NULL)", table, table)
+            } else {
+                format!("INSERT INTO {}({}, id, content) VALUES('delete', ?1, ?2)", table, table)
+            };
+            if content.is_empty() {
+                conn.execute(&sql, params![id])?;
+            } else {
+                conn.execute(&sql, params![id, content])?;
+            }
             debug!("Deleted {} from FTS5 table {}", id, table);
             Ok(())
         })
@@ -561,11 +575,15 @@ impl FTS5Search {
         let query_terms: Vec<&str> = query.split_whitespace().collect();
         let content_lower = content.to_lowercase();
 
-        let mut best_pos = 0;
+        // P0-6: 使用 char_indices 找最匹配位置，但 snippet 截取用 chars
+        // 避免在多字节字符中间切断引发 panic
+        let mut best_pos = 0usize;
         let mut best_matches = 0;
-
         for (i, _) in content.char_indices() {
-            let window = &content_lower[i..std::cmp::min(i + 200, content_lower.len())];
+            let window_end = std::cmp::min(i + 200, content_lower.len());
+            // i 来自 char_indices 所以必为 char boundary；window_end 同样需要落到 char boundary
+            let window_end = floor_char_boundary(&content_lower, window_end);
+            let window = &content_lower[i..window_end];
             let matches = query_terms
                 .iter()
                 .filter(|t| window.contains(&t.to_lowercase()))
@@ -576,10 +594,13 @@ impl FTS5Search {
             }
         }
 
-        let start = best_pos.saturating_sub(50);
-        let end = std::cmp::min(start + config.snippet_size, content.len());
+        // 计算字符维度的 start/end，先按字节减 50，再向最近的 char boundary 对齐
+        let start_byte = best_pos.saturating_sub(50);
+        let start_byte = floor_char_boundary(content, start_byte);
+        let desired_end_byte = std::cmp::min(start_byte + config.snippet_size, content.len());
+        let end_byte = floor_char_boundary(content, desired_end_byte);
 
-        let mut snippet = content[start..end].to_string();
+        let mut snippet = content[start_byte..end_byte].to_string();
 
         for term in query_terms {
             let pattern = format!("(?i){}", regex::escape(term));
@@ -593,10 +614,10 @@ impl FTS5Search {
             }
         }
 
-        if start > 0 {
+        if start_byte > 0 {
             snippet = format!("...{}", snippet);
         }
-        if end < content.len() {
+        if end_byte < content.len() {
             snippet = format!("{}...", snippet);
         }
 
@@ -640,4 +661,18 @@ impl FTS5Search {
         .await??;
         Ok(())
     }
+}
+
+/// 把任意字节偏移向下对齐到最近的 char boundary，避免在多字节字符中间切片触发 panic。
+/// 如果 `index` 已经超过字符串长度，返回字符串总长度。
+fn floor_char_boundary(s: &str, index: usize) -> usize {
+    if index >= s.len() {
+        return s.len();
+    }
+    // 从 index 向前找最近的 char boundary
+    let mut i = index;
+    while i > 0 && !s.is_char_boundary(i) {
+        i -= 1;
+    }
+    i
 }

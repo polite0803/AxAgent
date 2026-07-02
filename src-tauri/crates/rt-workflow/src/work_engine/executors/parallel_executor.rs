@@ -1,5 +1,42 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+//! ParallelExecutor —— **声明式并行节点**。
+//!
+//! ## 重要：当前实际行为（与命名不完全一致）
+//!
+//! `Parallel` 节点**不**在 execute() 内真正派发分支子节点。execute() 只做：
+//! 1. 校验 `branches` 非空
+//! 2. 为每个分支准备 `branch_inputs`（按 `auto_input_from_parent` 继承父 variables
+//!    快照或用空对象）
+//! 3. 输出 `branch_configs`（超时 / 降级策略）让上游调度器（WorkEngine 的
+//!    `dispatch_node` 路径）拿到后做真正的并行 spawn。
+//!
+//! 也就是说：**真正的并发调度是 WorkEngine 在 DAG 调度阶段完成的**，
+//! Parallel 节点只是元数据提供方。读者请勿在 execute() 中查找 `tokio::join!` /
+//! `futures::join!` —— 它们在 `WorkEngine::execute_node` 调度的下游
+//! `loop_partial_txs` / `get_ready_steps` 路径里。
+//!
+//! ## 历史与未来
+//!
+//! 早期实现尝试在 execute() 内 join 所有分支，但遇到两个问题：
+//! 1. `NodeOutput` 是同步返回类型，无法表达 join 后的"未来值"；
+//! 2. 每个分支可能又是 DAG 子图（嵌套 Parallel / Loop），同步 join 会无限递归。
+//!
+//! 因此改为"声明 + 调度分离"：本节点声明并行意图 + 输入 + 策略，WorkEngine
+//! 真正在调度循环里 spawn 各分支任务并 collect 结果。
+//!
+//! 关联：见 `WorkEngine::dispatch_node` 与 `loop_partial_txs` 的下游使用。
+//!
+//! ## 配置字段语义
+//!
+//! - `branches`: 至少 1 个分支，每个含 `id` / `input_var` / `branch_timeout_ms` /
+//!   `degrade_strategy`
+//! - `auto_input_from_parent`: true 时分支继承父 variables 快照；false 时要求
+//!   分支显式声明 `input_var`（由上游节点显式填充）
+//! - `wait_for_all`: true → 等所有分支完成（失败由 degrade_strategy 处理）；
+//!   false → 任意分支成功即可（race/any）
+//! - `aggregation`: All / Any / Race / Majority，决定如何从分支结果合成最终输出
+
 use async_trait::async_trait;
 use axagent_core::workflow_types::{MergeStrategy, WorkflowNode};
 

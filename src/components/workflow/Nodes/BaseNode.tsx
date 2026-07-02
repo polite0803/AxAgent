@@ -31,7 +31,7 @@ const BaseNodeComponent: React.FC<NodeProps> = ({
   data,
   selected,
 }) => {
-  const bd = data as unknown as BaseNodeData;
+  const bd = data as unknown as BaseNodeData; // SAFE: ReactFlow NodeProps.data is untyped; runtime data matches BaseNodeData shape
   const { t } = useTranslation();
   const { token } = theme.useToken();
 

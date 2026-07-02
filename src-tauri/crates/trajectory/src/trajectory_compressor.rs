@@ -119,10 +119,17 @@ impl TrajectoryCompressor {
 }
 
 fn summarize(content: &str, max_len: usize) -> String {
-    if content.len() <= max_len {
+    // P0-5: 用字符边界而非字节边界切分，避免非 ASCII（中文/表情）触发 panic
+    let char_count = content.chars().count();
+    if char_count <= max_len {
         content.to_string()
     } else {
         let half = max_len / 2;
-        format!("{}...{}", &content[..half], &content[content.len() - half..])
+        // 找到 head 末端的 char boundary
+        let head: String = content.chars().take(half).collect();
+        // 找到 tail 起点的 char boundary
+        let skip_tail = char_count.saturating_sub(half);
+        let tail: String = content.chars().skip(skip_tail).collect();
+        format!("{}...{}", head, tail)
     }
 }

@@ -270,6 +270,18 @@ impl VectorStore {
             .await;
     }
 
+    /// P2-2: 将 collection 在注册表中标记为 disabled，避免坏掉的 collection 被反复使用
+    async fn registry_mark_disabled(&self, collection_id: &str) {
+        let cid = collection_id.replace('\'', "''");
+        let now = Self::now_ms();
+        let _ = self
+            .exec(&format!(
+                "UPDATE vec_collections SET index_type='disabled', updated_at={now} \
+                 WHERE collection_id='{cid}'"
+            ))
+            .await;
+    }
+
     async fn registry_update_vector_count(&self, collection_id: &str) {
         let cid = collection_id.replace('\'', "''");
         let sanitized = Self::sanitize_collection_id(collection_id);
@@ -407,15 +419,55 @@ impl VectorStore {
                     new_dim = dimensions,
                     "Embedding dimensions changed, resetting collection for re-indexing"
                 );
-                let _ = self.exec(&format!("DROP TABLE IF EXISTS {name}")).await;
+                // P2-3: 重命名旧表为 _bak_{ts} 而不是直接 DROP，
+                // 失败时回滚重命名，避免数据丢失
+                let ts = chrono::Utc::now().timestamp_millis();
+                let backup_name = format!("{name}_bak_{}", ts);
+                let backup_meta = format!("{meta_table}_bak_{}", ts);
+                let backup_fts = format!("{fts_table}_bak_{}", ts);
+                // 尝试重命名
+                let rename_res = self
+                    .exec(&format!("ALTER TABLE {name} RENAME TO {backup_name}"))
+                    .await;
+                if rename_res.is_err() {
+                    // 旧表可能不存在（已删除），忽略
+                }
                 let _ = self
-                    .exec(&format!("DROP TABLE IF EXISTS {meta_table}"))
+                    .exec(&format!("ALTER TABLE {meta_table} RENAME TO {backup_meta}"))
                     .await;
                 let _ = self
-                    .exec(&format!("DROP TABLE IF EXISTS {fts_table}"))
+                    .exec(&format!("ALTER TABLE {fts_table} RENAME TO {backup_fts}"))
                     .await;
-                self.registry_delete_collection(collection_id).await;
-                self.ensure_collection(collection_id, dimensions).await
+                // 重建新表
+                match self.ensure_collection(collection_id, dimensions).await {
+                    Ok(()) => {
+                        // 重建成功后清理旧备份
+                        let _ = self
+                            .exec(&format!("DROP TABLE IF EXISTS {backup_name}"))
+                            .await;
+                        let _ = self
+                            .exec(&format!("DROP TABLE IF EXISTS {backup_meta}"))
+                            .await;
+                        let _ = self
+                            .exec(&format!("DROP TABLE IF EXISTS {backup_fts}"))
+                            .await;
+                        self.registry_delete_collection(collection_id).await;
+                        Ok(())
+                    },
+                    Err(e) => {
+                        // 重建失败：回滚重命名，保留原表
+                        let _ = self
+                            .exec(&format!("ALTER TABLE {backup_name} RENAME TO {name}"))
+                            .await;
+                        let _ = self
+                            .exec(&format!("ALTER TABLE {backup_meta} RENAME TO {meta_table}"))
+                            .await;
+                        let _ = self
+                            .exec(&format!("ALTER TABLE {backup_fts} RENAME TO {fts_table}"))
+                            .await;
+                        Err(e)
+                    },
+                }
             },
             None => self.ensure_collection(collection_id, dimensions).await,
         }
@@ -853,16 +905,48 @@ impl VectorStore {
         validate_collection_name(collection_id)?;
         let name = Self::validated_collection_name(collection_id)?;
 
-        let _ = self.exec(&format!("DROP TABLE IF EXISTS {name}")).await;
-
         let dim = self.get_collection_dimensions(collection_id).await?;
 
+        // P2-2: 先用临时名重命名旧 vec0 表；若 CREATE 失败则回滚重命名保留原表
+        let ts = chrono::Utc::now().timestamp_millis();
+        let tmp_name = format!("{name}_old_{}", ts);
+
+        // 1) 重命名旧表到临时名（vec0 表已存在时）
+        let rename_res = self
+            .exec(&format!("ALTER TABLE {name} RENAME TO {tmp_name}"))
+            .await;
+        let renamed = rename_res.is_ok();
+
+        // 2) 用记录的维度重建 vec0
         if let Some(d) = dim {
-            let _ = self
+            let create_res = self
                 .exec(&format!(
                     "CREATE VIRTUAL TABLE IF NOT EXISTS {name} USING vec0(embedding float[{d}])"
                 ))
                 .await;
+            if let Err(e) = create_res {
+                // CREATE 失败：回滚重命名
+                if renamed {
+                    let _ = self
+                        .exec(&format!("ALTER TABLE {tmp_name} RENAME TO {name}"))
+                        .await;
+                } else {
+                    // 没重命名过（说明原表不存在）→ 标记 collection 为 disabled
+                    self.registry_mark_disabled(collection_id).await;
+                }
+                return Err(AxAgentError::Provider(format!(
+                    "重建 vec0 表失败，collection={}, err={}",
+                    collection_id, e
+                )));
+            }
+        } else {
+            // 没有维度信息：直接走兼容路径，禁用该 collection
+            self.registry_mark_disabled(collection_id).await;
+        }
+
+        // 3) 重建成功后再清理临时表
+        if renamed {
+            let _ = self.exec(&format!("DROP TABLE IF EXISTS {tmp_name}")).await;
         }
 
         self.registry_update_vector_count(collection_id).await;
@@ -969,14 +1053,23 @@ impl VectorStore {
         self.exec("BEGIN IMMEDIATE").await?;
 
         for (rid, embedding) in &entries {
-            let _ = self
+            // P2-1: DELETE 失败时记录日志而非完全忽略
+            if let Err(e) = self
                 .db
                 .execute_raw(Statement::from_sql_and_values(
                     DbBackend::Sqlite,
                     format!("DELETE FROM {name} WHERE rowid = $1"),
                     vec![(*rid).into()],
                 ))
-                .await;
+                .await
+            {
+                tracing::warn!(
+                    "Failed to DELETE existing embedding rowid={} from {}: {} (continuing)",
+                    rid,
+                    name,
+                    e
+                );
+            }
 
             let vec_json = Self::embedding_to_json(embedding);
             if let Err(e) = self

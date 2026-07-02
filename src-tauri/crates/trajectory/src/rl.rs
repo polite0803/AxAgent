@@ -536,13 +536,23 @@ impl RLEngine {
     pub fn compute_advantages(&self, rewards: &[RewardSignal], values: &[f64]) -> Vec<f64> {
         let mut advantages = vec![0.0; values.len()];
 
+        // P0-3: 先按 step_index 聚合 rewards，生成长度等于 values.len() 的 step_rewards
+        // 避免索引错配（原代码直接用 rewards[t] 当作 step t 的奖励，但 rewards 顺序与 step 顺序未必一致）
+        let mut step_rewards: Vec<f64> = vec![0.0; values.len()];
+        for r in rewards {
+            let idx = r.step_index as usize;
+            if idx < step_rewards.len() {
+                step_rewards[idx] += r.value;
+            }
+        }
+
         if self.config.use_td_lambda {
-            let (td_errors, _) = self.compute_td_lambda(rewards, values);
+            let (td_errors, _) = self.compute_td_lambda(&step_rewards, values);
             advantages = td_errors;
         } else {
             let mut cumulative = 0.0;
             for t in (0..values.len()).rev() {
-                let reward_t = rewards.get(t).map(|r| r.value).unwrap_or(0.0);
+                let reward_t = step_rewards[t];
                 let next_value = values.get(t + 1).copied().unwrap_or(0.0);
                 let td_error = reward_t + self.config.gamma * next_value - values[t];
                 cumulative = td_error + self.config.gamma * self.config.lambda * cumulative;
@@ -558,13 +568,13 @@ impl RLEngine {
         advantages
     }
 
-    fn compute_td_lambda(&self, rewards: &[RewardSignal], values: &[f64]) -> (Vec<f64>, Vec<f64>) {
+    fn compute_td_lambda(&self, step_rewards: &[f64], values: &[f64]) -> (Vec<f64>, Vec<f64>) {
         let mut td_errors = vec![0.0; values.len()];
         let mut returns = vec![0.0; values.len()];
 
         let mut lambda_return = 0.0;
         for t in (0..values.len()).rev() {
-            let reward_t = rewards.get(t).map(|r| r.value).unwrap_or(0.0);
+            let reward_t = step_rewards[t];
             let next_value = values.get(t + 1).copied().unwrap_or(0.0);
             let delta = reward_t + self.config.gamma * next_value - values[t];
             lambda_return = delta + self.config.gamma * self.config.lambda * lambda_return;
@@ -584,20 +594,27 @@ impl RLEngine {
         variance.sqrt()
     }
 
+    /// P0-4: 修复时间衰减公式
+    /// 正确的 TD(λ) 形式 V(s_t) = Σ_{k≥0} γ^k r_{t+k}
+    /// 即对每个 step i，把从 step i 开始到末尾的所有奖励按 γ^k 加权累加
     pub fn estimate_value_function(&self, trajectory: &Trajectory) -> Vec<f64> {
         let steps = trajectory.steps.len();
         let mut values = vec![0.0; steps];
 
-        for (i, _) in trajectory.steps.iter().enumerate() {
-            let future_rewards: f64 = trajectory
-                .rewards
-                .iter()
-                .filter(|r| r.step_index >= i)
-                .map(|r| r.value)
-                .sum();
+        // 先按 step_index 聚合 rewards → step_rewards
+        let mut step_rewards: Vec<f64> = vec![0.0; steps];
+        for r in &trajectory.rewards {
+            let idx = r.step_index as usize;
+            if idx < step_rewards.len() {
+                step_rewards[idx] += r.value;
+            }
+        }
 
-            let discount_factor = self.config.gamma.powi((steps - i) as i32);
-            values[i] = future_rewards * discount_factor;
+        // V(s_i) = Σ_{k=0..steps-i} γ^k * r_{i+k}
+        for i in 0..steps {
+            for k in 0..(steps - i) {
+                values[i] += self.config.gamma.powi(k as i32) * step_rewards[i + k];
+            }
         }
 
         values
@@ -678,16 +695,38 @@ impl RewardNormalizer {
         }
 
         let values: Vec<f64> = rewards.iter().map(|r| r.value).collect();
-        let batch_mean = values.iter().sum::<f64>() / values.len() as f64;
-        let _batch_var =
-            values.iter().map(|v| (v - batch_mean).powi(2)).sum::<f64>() / values.len() as f64;
+        let batch_size = values.len();
+        let batch_mean = values.iter().sum::<f64>() / batch_size as f64;
 
-        self.count += 1;
-        let delta = batch_mean - self.running_mean;
-        self.running_mean += delta / self.count as f64;
-        self.running_var += delta * (batch_mean - self.running_mean);
+        // P1-11: 用标准 Welford 算法正确计算 running variance
+        // 关键修正：count += batch_size（不是 +1），M2 用 (v - new_mean) * (v - old_mean) 增量更新
+        let prev_mean = self.running_mean;
+        let prev_m2 = self.running_var;
+        let prev_count = self.count;
 
-        let std = (self.running_var / (self.count - 1).max(1) as f64 + self.epsilon).sqrt();
+        // 增量更新 mean
+        let new_count = prev_count + batch_size as u64;
+        let delta = batch_mean - prev_mean;
+        let new_mean = prev_mean + delta * (batch_size as f64 / new_count as f64);
+
+        // Welford 合并 M2
+        let mut new_m2 = prev_m2;
+        // batch 内每项相对于 prev_mean 的偏差平方和
+        let batch_ss: f64 = values.iter().map(|v| (v - prev_mean).powi(2)).sum();
+        // 修正因子：delta^2 * prev_count * batch_size / new_count
+        let correction =
+            delta * delta * (prev_count as f64) * (batch_size as f64) / new_count as f64;
+        new_m2 += batch_ss + correction;
+
+        self.running_mean = new_mean;
+        self.running_var = new_m2;
+        self.count = new_count;
+
+        let std = if self.count > 1 {
+            (self.running_var / (self.count - 1) as f64 + self.epsilon).sqrt()
+        } else {
+            (1.0 + self.epsilon).sqrt()
+        };
 
         for reward in rewards.iter_mut() {
             reward.value = (reward.value - self.running_mean) / std;

@@ -4,6 +4,7 @@ import type { NL2SkillResult, SkillDefinition } from "@/types/workflow";
 import { BulbOutlined, CheckCircleOutlined, PlayCircleOutlined, ThunderboltOutlined } from "@ant-design/icons";
 import { Button, Collapse, List, Progress, Space, Statistic, Tag, theme, Typography } from "antd";
 import React from "react";
+import { useTranslation } from "react-i18next";
 
 const { Text, Title } = Typography;
 
@@ -15,6 +16,7 @@ interface NL2SkillResultViewProps {
 
 export const NL2SkillResultView: React.FC<NL2SkillResultViewProps> = React.memo(
   ({ result, onApply, loading }) => {
+    const { t } = useTranslation();
     const { token } = theme.useToken();
     const { skill, confidence, suggestions, phases } = result;
     const percent = Math.round(confidence * 100);
@@ -38,22 +40,34 @@ export const NL2SkillResultView: React.FC<NL2SkillResultViewProps> = React.memo(
 
         {/* 技能概要 */}
         <div style={{ display: "flex", gap: 16 }}>
-          <Statistic title="触发词" value={skill.triggers.length} suffix="个" />
-          <Statistic title="参数" value={skill.parameters.length} suffix="个" />
-          <Statistic title="工具" value={skill.tools.length} suffix="个" />
+          <Statistic
+            title={t("workflow.nl2Skill.triggers")}
+            value={skill.triggers.length}
+            suffix={t("workflow.nl2Skill.unit")}
+          />
+          <Statistic
+            title={t("workflow.nl2Skill.parameters")}
+            value={skill.parameters.length}
+            suffix={t("workflow.nl2Skill.unit")}
+          />
+          <Statistic
+            title={t("workflow.nl2Skill.tools")}
+            value={skill.tools.length}
+            suffix={t("workflow.nl2Skill.unit")}
+          />
         </div>
 
         {/* 触发词 */}
         <div>
-          <Text strong>触发词：</Text>
+          <Text strong>{t("workflow.nl2Skill.triggersLabel")}</Text>
           <Space style={{ marginLeft: 8 }}>
             {skill.triggers.map((t) => <Tag key={t} color="blue">{t}</Tag>)}
           </Space>
         </div>
 
-        {/* 参数列表 */}
+        {/* Parameter list */}
         <div>
-          <Text strong>参数：</Text>
+          <Text strong>{t("workflow.nl2Skill.parametersLabel")}</Text>
           <List
             size="small"
             dataSource={skill.parameters}
@@ -61,7 +75,7 @@ export const NL2SkillResultView: React.FC<NL2SkillResultViewProps> = React.memo(
               <List.Item style={{ padding: "4px 0" }}>
                 <Space>
                   <Tag color={p.required ? "red" : "default"}>
-                    {p.required ? "必填" : "可选"}
+                    {p.required ? t("workflow.nl2Skill.required") : t("workflow.nl2Skill.optional")}
                   </Tag>
                   <Text code>{p.name}</Text>
                   <Text type="secondary">({p.type})</Text>
@@ -78,7 +92,7 @@ export const NL2SkillResultView: React.FC<NL2SkillResultViewProps> = React.memo(
           items={[
             {
               key: "phases",
-              label: "解析阶段",
+              label: t("workflow.nl2Skill.parsingPhases"),
               children: (
                 <List
                   size="small"
@@ -103,7 +117,7 @@ export const NL2SkillResultView: React.FC<NL2SkillResultViewProps> = React.memo(
         {/* AI 建议 */}
         <div>
           <Text strong>
-            <BulbOutlined /> AI 建议：
+            <BulbOutlined /> {t("workflow.nlParser.aiSuggestion")}：
           </Text>
           <List
             size="small"
@@ -124,7 +138,7 @@ export const NL2SkillResultView: React.FC<NL2SkillResultViewProps> = React.memo(
           onClick={() => onApply(skill)}
           loading={loading}
         >
-          应用此技能
+          {t("workflow.nl2Skill.applySkill")}
         </Button>
       </div>
     );

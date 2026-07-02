@@ -12,7 +12,7 @@ interface Props {
 }
 export const LlmClassifierPropertyPanel: React.FC<Props> = ({ node, onUpdate, onDelete }) => {
   const { token } = theme.useToken();
-  const n = node as unknown as LlmClassifierNode;
+  const n = node as unknown as LlmClassifierNode; // SAFE: WorkflowNode union narrowed to specific node type via config field access
   const c = n.config || { categories: [], prompt: "", model: "", input_var: "", output_var: "" };
   const sc = (k: string, v: unknown) => onUpdate({ config: { ...c, [k]: v } });
   return (
@@ -29,8 +29,9 @@ export const LlmClassifierPropertyPanel: React.FC<Props> = ({ node, onUpdate, on
         <label style={{ color: token.colorTextTertiary, fontSize: 12 }}>Categories ({c.categories.length})</label>
         <div style={{ display: "flex", gap: 4, marginBottom: 4 }}>
           {c.categories.map((cat, i) => (
+            // FIXME: categories 是字符串数组且可编辑/删除/排序，无稳定唯一标识
             <span
-              key={i}
+              key={`cat-${i}`}
               style={{
                 display: "flex",
                 gap: 2,

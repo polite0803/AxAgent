@@ -34,13 +34,6 @@ const TYPE_COLORS: Record<string, string> = {
   error: "#f5222d",
 };
 
-const TYPE_LABELS: Record<string, string> = {
-  thinking: "思考",
-  tool_call: "工具调用",
-  permission: "等待权限",
-  error: "错误",
-};
-
 // ── Helpers ──
 
 function mapSpanTypeToStepType(spanType: string, status: string): TraceStep["type"] {
@@ -221,7 +214,7 @@ export function TraceTimeline({ traceId }: TraceTimelineProps) {
                   />
                   <Text strong>{step.name}</Text>
                   <Text type="secondary" style={{ fontSize: 11 }}>
-                    {TYPE_LABELS[step.type] ?? step.type}
+                    {t(`trace.type.${step.type}`)}
                   </Text>
                 </div>
               }
@@ -233,7 +226,7 @@ export function TraceTimeline({ traceId }: TraceTimelineProps) {
                     </Text>
                   )}
                   <Text type="secondary" style={{ fontSize: 11 }}>
-                    耗时: {(step.durationMs / 1000).toFixed(2)}s
+                    {t("trace.duration", { duration: (step.durationMs / 1000).toFixed(2) })}
                   </Text>
                   {step.tokenUsage !== undefined && (
                     <Text type="secondary" style={{ fontSize: 11, display: "block" }}>
@@ -291,7 +284,7 @@ export function TraceTimeline({ traceId }: TraceTimelineProps) {
                 background: color,
               }}
             />
-            <Text style={{ fontSize: 12 }}>{TYPE_LABELS[type] ?? type}</Text>
+            <Text style={{ fontSize: 12 }}>{t(`trace.type.${type}`)}</Text>
           </div>
         ))}
       </div>

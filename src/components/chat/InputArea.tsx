@@ -204,18 +204,18 @@ export function InputArea() {
 
   const objectUrlsRef = useRef<string[]>([]);
   const attachmentObjectUrls = useMemo(() => {
-    // eslint-disable-next-line react-hooks/refs
-    objectUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
+    // 为每个附件创建 blob URL；旧 URL 由 useEffect cleanup 释放
     const urls = attachedFiles.map((f) => URL.createObjectURL(f));
-    // eslint-disable-next-line react-hooks/refs
     objectUrlsRef.current = urls;
     return urls;
   }, [attachedFiles]);
   useEffect(() => {
+    // cleanup: 组件卸载或 attachedFiles 更新前，释放旧 blob URL
+    const prevUrls = objectUrlsRef.current;
     return () => {
-      objectUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
+      prevUrls.forEach((url) => URL.revokeObjectURL(url));
     };
-  }, []);
+  }, [attachedFiles]);
   const [voiceCallVisible, setVoiceCallVisible] = useState(false);
   const photoInputRef = useRef<HTMLInputElement>(null);
   const audioInputRef = useRef<HTMLInputElement>(null);

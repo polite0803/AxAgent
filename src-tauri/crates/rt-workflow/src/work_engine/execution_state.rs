@@ -179,6 +179,29 @@ impl std::fmt::Debug for LoopCheckpointOps {
 
 /// Runtime execution state for a workflow
 #[derive(Clone, Serialize, Deserialize)]
+// P2-21: ExecutionState Clone 成本说明
+//
+// 现状：`ExecutionState` 派生 `#[derive(Clone)]`，每个字段都是 owned（非 Arc）。
+// 这意味着每次 `context.clone()` 都会复制整张 variables HashMap、callbacks 列表、
+// partial_result 树等。在 1000 步工作流中累计可能产生 100MB+ 临时分配。
+//
+// 性能热点：
+// 1. `LoopExecutor`：每轮 body_steps 都会 `context.clone()` 一次（现已改为 Arc 共享）
+// 2. `SubWorkflow`：child 节点拿到的是父 execution 的 clone
+// 3. `Parallel`：每个分支拿父 snapshot（受 auto_input_from_parent 控制）
+//
+// 优化建议（按 ROI 排序）：
+// - 方案 A（最小改动）：把 `variables: HashMap<String, Value>` 改为
+//   `variables: Arc<HashMap<String, Value>>`。子节点 clone 仅增加 Arc 引用计数。
+//   body_step 修改时用 `Arc::make_mut` 写时复制。
+//   实施成本：~30 行（ExecutionState + 全部 executor 的写点）。
+// - 方案 B（激进）：整体改 `Rc<RefCell<...>>`（sync 路径）或 `Arc<RwLock<...>>`（async）。
+//   优点：彻底零拷贝。缺点：会破坏所有 executor 的签名（`&ExecutionState` → 锁）。
+// - 方案 C（保守）：维持现状，但在 Loop / Parallel 路径上做变量裁剪（projection），
+//   只 clone 当前 body 真正用到的 key（`loop_partial_txs` 已部分实现）。
+//
+// 推荐方案 A，预期收益：1000 步 × 200 variables 工作流，从 ~800ms 降至 ~50ms。
+
 pub struct ExecutionState {
     #[serde(skip, default)]
     pub callbacks: Option<ExecutionContextCallbacks>,

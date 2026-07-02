@@ -458,6 +458,7 @@ pub async fn install_skill(
     state
         .trajectory_storage
         .save_skill(&skill)
+        .await
         .map_err(|e| e.to_string())?;
 
     let _ = app.emit(
@@ -1776,6 +1777,7 @@ pub async fn skill_check_similar(
 
     let similar = closed_loop
         .find_similar_skills(&check_topic)
+        .await
         .map_err(|e| e.to_string())?;
 
     if similar.is_empty() {

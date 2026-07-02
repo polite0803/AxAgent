@@ -23,6 +23,71 @@ use parking_lot::Mutex;
 #[derive(Clone, Debug)]
 pub struct AuthenticatedKey(pub GatewayKey);
 
+/// 提取 client IP 的策略。
+///
+/// P1-7: 仅当直接 peer 在 trusted_proxies 列表中时才解析 X-Forwarded-For，
+/// 否则直接用 socket peer IP。这能阻止攻击者通过伪造 XFF 头绕过 per-IP 限流。
+#[derive(Clone, Debug, Default)]
+pub struct ClientIpPolicy {
+    /// 受信反向代理的 IP CIDR/地址列表（由 server.rs 启动时根据环境变量配置）。
+    /// 为空时一律拒绝解析 XFF（最安全默认）。
+    pub trusted_proxies: Vec<std::net::IpAddr>,
+}
+
+impl ClientIpPolicy {
+    /// 默认策略：trust 任何 proxy（保留向后兼容行为；生产部署应显式配置）。
+    pub fn trust_all() -> Self {
+        // 0.0.0.0/0 + ::/0 = 全部 IP
+        Self {
+            trusted_proxies: vec!["0.0.0.0".parse().unwrap(), "::".parse().unwrap()],
+        }
+    }
+
+    pub fn with_trusted(mut self, proxies: Vec<std::net::IpAddr>) -> Self {
+        self.trusted_proxies = proxies;
+        self
+    }
+}
+
+/// 提取 client IP：仅当 `peer_addr` 在 `policy.trusted_proxies` 中时才解析 X-Forwarded-For。
+///
+/// SECURITY (P1-7): 旧实现无条件信任 XFF，导致攻击者可以伪造 header 绕过
+/// per-IP 限流。修复后：未配置 trusted_proxies 时强制用 socket peer IP，
+/// 配置后才走 XFF 链。
+pub fn extract_client_ip<B>(
+    request: &Request<B>,
+    fallback: Option<SocketAddr>,
+    policy: &ClientIpPolicy,
+) -> String {
+    let peer_ip = fallback.map(|addr| addr.ip());
+
+    let peer_is_trusted = peer_ip
+        .map(|ip| policy.trusted_proxies.iter().any(|trusted| ip == *trusted))
+        .unwrap_or(false);
+
+    if peer_is_trusted {
+        if let Some(xff) = request.headers().get("x-forwarded-for")
+            && let Ok(s) = xff.to_str()
+            && let Some(first) = s.split(',').next()
+        {
+            let trimmed = first.trim();
+            if !trimmed.is_empty() {
+                return trimmed.to_string();
+            }
+        }
+        if let Some(real_ip) = request.headers().get("x-real-ip")
+            && let Ok(s) = real_ip.to_str()
+            && !s.is_empty()
+        {
+            return s.to_string();
+        }
+    }
+
+    peer_ip
+        .map(|ip| ip.to_string())
+        .unwrap_or_else(|| "unknown".to_string())
+}
+
 /// SECURITY (Phase 2 Task 2.3): per-IP 失败计数 + 冷却。
 ///
 /// 攻击模型：API key 的 `key_prefix` 只 8 字符，攻击者持有**一个**有效
@@ -98,32 +163,8 @@ pub struct AuthState {
     pub adapter: Arc<dyn PlatformAdapter>,
     /// SECURITY (Phase 2 Task 2.3): per-IP 限流器。共享给所有 request。
     pub key_verify_limiter: Arc<KeyVerifyLimiter>,
-}
-
-/// 提取 client IP：X-Forwarded-For (首个) → peer addr → "unknown"。
-///
-/// 部署场景：在 nginx / cloud LB 后面时，X-Forwarded-For 包含真实
-/// 客户端 IP（首段）；裸 socket 时 fallback 到 ConnectInfo。三个
-/// fallback 保证任何 axum 部署都能拿到一个有意义的 key。
-pub fn extract_client_ip<B>(request: &Request<B>, fallback: Option<SocketAddr>) -> String {
-    if let Some(xff) = request.headers().get("x-forwarded-for")
-        && let Ok(s) = xff.to_str()
-        && let Some(first) = s.split(',').next()
-    {
-        let trimmed = first.trim();
-        if !trimmed.is_empty() {
-            return trimmed.to_string();
-        }
-    }
-    if let Some(real_ip) = request.headers().get("x-real-ip")
-        && let Ok(s) = real_ip.to_str()
-        && !s.is_empty()
-    {
-        return s.to_string();
-    }
-    fallback
-        .map(|addr| addr.ip().to_string())
-        .unwrap_or_else(|| "unknown".to_string())
+    /// P1-7: 客户端 IP 提取策略（trusted_proxies 决定是否信任 XFF）
+    pub client_ip_policy: Arc<ClientIpPolicy>,
 }
 
 /// Auth middleware: extracts Bearer token, verifies against gateway_keys, updates last_used_at.
@@ -140,7 +181,7 @@ pub async fn auth_middleware(
         .extensions()
         .get::<axum::extract::ConnectInfo<SocketAddr>>()
         .map(|ci| ci.0);
-    let client_ip = extract_client_ip(&request, peer_addr);
+    let client_ip = extract_client_ip(&request, peer_addr, &state.client_ip_policy);
 
     // SECURITY (Phase 2 Task 2.3): 限流检查。check() 走 sync 锁极快，
     // 不应在 request path 上构成瓶颈。
@@ -287,7 +328,10 @@ mod tests {
         let mut req = Request::new(Body::empty());
         req.headers_mut()
             .insert("x-forwarded-for", "203.0.113.1, 10.0.0.1".parse().unwrap());
-        let ip = extract_client_ip(&req, None);
+        // peer 是 trusted proxy 时才解析 XFF
+        let addr: SocketAddr = "10.0.0.1:54321".parse().unwrap();
+        let policy = ClientIpPolicy::trust_all();
+        let ip = extract_client_ip(&req, Some(addr), &policy);
         assert_eq!(ip, "203.0.113.1");
     }
 
@@ -296,7 +340,9 @@ mod tests {
         let mut req = Request::new(Body::empty());
         req.headers_mut()
             .insert("x-real-ip", "203.0.113.2".parse().unwrap());
-        let ip = extract_client_ip(&req, None);
+        let addr: SocketAddr = "10.0.0.1:54321".parse().unwrap();
+        let policy = ClientIpPolicy::trust_all();
+        let ip = extract_client_ip(&req, Some(addr), &policy);
         assert_eq!(ip, "203.0.113.2");
     }
 
@@ -304,14 +350,30 @@ mod tests {
     fn extract_client_ip_falls_back_to_peer() {
         let req = Request::new(Body::empty());
         let addr: SocketAddr = "10.0.0.5:54321".parse().unwrap();
-        let ip = extract_client_ip(&req, Some(addr));
+        let policy = ClientIpPolicy::default();
+        let ip = extract_client_ip(&req, Some(addr), &policy);
         assert_eq!(ip, "10.0.0.5");
     }
 
     #[test]
     fn extract_client_ip_unknown_when_no_signal() {
         let req = Request::new(Body::empty());
-        let ip = extract_client_ip(&req, None);
+        let policy = ClientIpPolicy::default();
+        let ip = extract_client_ip(&req, None, &policy);
         assert_eq!(ip, "unknown");
+    }
+
+    #[test]
+    fn extract_client_ip_ignores_xff_when_peer_untrusted() {
+        // P1-7: 关键安全测试 —— 攻击者伪造 XFF，peer 不是 trusted proxy
+        // 时必须忽略 header，否则 per-IP 限流形同虚设。
+        let mut req = Request::new(Body::empty());
+        req.headers_mut()
+            .insert("x-forwarded-for", "1.2.3.4".parse().unwrap());
+        let addr: SocketAddr = "203.0.113.99:54321".parse().unwrap();
+        let policy = ClientIpPolicy::default(); // 没有任何 trusted proxy
+        let ip = extract_client_ip(&req, Some(addr), &policy);
+        // 必须用 peer IP 而不是 1.2.3.4
+        assert_eq!(ip, "203.0.113.99");
     }
 }

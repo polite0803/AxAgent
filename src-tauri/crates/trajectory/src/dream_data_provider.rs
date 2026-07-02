@@ -119,38 +119,36 @@ impl ConsolidationDataProvider for TrajectoryDreamDataProvider {
         &self,
         limit: usize,
     ) -> Pin<Box<dyn Future<Output = Result<Vec<ExperienceRecord>, String>> + Send + '_>> {
-        let result = self
-            .storage
-            .get_trajectories(Some(limit))
-            .map(|trajectories| {
-                trajectories
-                    .iter()
-                    .map(trajectory_to_experience_record)
-                    .collect()
-            })
-            .map_err(|e| e.to_string());
-
-        Box::pin(async move { result })
+        let storage = self.storage.clone();
+        Box::pin(async move {
+            let trajectories = storage
+                .get_trajectories(Some(limit))
+                .await
+                .map_err(|e| e.to_string())?;
+            Ok(trajectories
+                .iter()
+                .map(trajectory_to_experience_record)
+                .collect())
+        })
     }
 
     fn fetch_experience_by_topic(
         &self,
         topic: &str,
     ) -> Pin<Box<dyn Future<Output = Result<Vec<ExperienceRecord>, String>> + Send + '_>> {
+        let storage = self.storage.clone();
         let topic_owned = topic.to_string();
-        let result = self
-            .storage
-            .get_trajectories(None)
-            .map(|trajectories| {
-                trajectories
-                    .iter()
-                    .filter(|t| t.topic.contains(&topic_owned))
-                    .map(trajectory_to_experience_record)
-                    .collect()
-            })
-            .map_err(|e| e.to_string());
-
-        Box::pin(async move { result })
+        Box::pin(async move {
+            let trajectories = storage
+                .get_trajectories(None)
+                .await
+                .map_err(|e| e.to_string())?;
+            Ok(trajectories
+                .iter()
+                .filter(|t| t.topic.contains(&topic_owned))
+                .map(trajectory_to_experience_record)
+                .collect())
+        })
     }
 
     fn store_distilled_knowledge(
@@ -160,13 +158,12 @@ impl ConsolidationDataProvider for TrajectoryDreamDataProvider {
         let knowledge_clone = knowledge.clone();
 
         if let Ok(mut cache) = self.knowledge_cache.write() {
-            cache.insert(knowledge.id.clone(), knowledge_clone.clone());
+            cache.insert(knowledge.id.clone(), knowledge_clone);
         }
 
+        let storage = self.storage.clone();
         let skill = distilled_knowledge_to_skill(knowledge);
-        let persist_result = self.storage.save_skill(&skill).map_err(|e| e.to_string());
-
-        Box::pin(async move { persist_result })
+        Box::pin(async move { storage.save_skill(&skill).await.map_err(|e| e.to_string()) })
     }
 
     fn store_suggestion(

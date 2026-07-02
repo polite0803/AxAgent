@@ -25,7 +25,7 @@ const MODEL_ROLE_OPTIONS = [
 export const DebatePropertyPanel: React.FC<Props> = ({ node, onUpdate, onDelete }) => {
   const { t } = useTranslation();
   const { token } = theme.useToken();
-  const n = node as unknown as DebateNode;
+  const n = node as unknown as DebateNode; // SAFE: WorkflowNode union narrowed to specific node type via config field access
   const c = n.config || {
     debater_steps: [],
     max_rounds: 2,
@@ -85,7 +85,7 @@ export const DebatePropertyPanel: React.FC<Props> = ({ node, onUpdate, onDelete 
         exposed_tools: [],
         output_mode: "text",
       },
-    } as unknown as WorkflowNode;
+    } as unknown as WorkflowNode; // SAFE: constructing WorkflowNode-compatible object for store insertion
     addNode(newNode);
     setParentRef(id, n.id, true);
     sc("debater_steps", [...debaterSteps, id]);
@@ -107,7 +107,7 @@ export const DebatePropertyPanel: React.FC<Props> = ({ node, onUpdate, onDelete 
         exposed_tools: [],
         output_mode: "text",
       },
-    } as unknown as WorkflowNode;
+    } as unknown as WorkflowNode; // SAFE: constructing WorkflowNode-compatible object for store insertion
     addNode(newNode);
     setParentRef(id, n.id, true);
     sc("debater_steps", [...debaterSteps, id]);

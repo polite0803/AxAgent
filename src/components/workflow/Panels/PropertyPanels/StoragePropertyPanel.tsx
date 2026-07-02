@@ -15,7 +15,7 @@ interface Props {
 export const StoragePropertyPanel: React.FC<Props> = ({ node, onUpdate, onDelete }) => {
   const { t } = useTranslation();
   const { token } = theme.useToken();
-  const sn = node as unknown as StorageNode;
+  const sn = node as unknown as StorageNode; // SAFE: WorkflowNode union narrowed to specific node type via config field access
   const config = sn.config || { backend: "sqlite", operation: "insert", input_var: "", collection: "", output_var: "" };
 
   const setCfg = (key: string, val: unknown) => onUpdate({ config: { ...config, [key]: val } });

@@ -18,7 +18,7 @@ use tokio::task::JoinHandle;
 
 use axagent_harness::core_error::{AxAgentError, Result};
 
-use crate::auth::KeyVerifyLimiter;
+use crate::auth::{ClientIpPolicy, KeyVerifyLimiter};
 use crate::realtime_ticket::TicketStore;
 
 /// Shared state for Axum handlers (separate from Tauri AppState).
@@ -38,6 +38,9 @@ pub struct GatewayAppState {
     /// SECURITY (Phase 2 Task 2.3): per-IP 限流器，防御 prefix 爆破。
     /// 5 失败 → 60s 冷却（参见 spec 2.3）。
     pub key_verify_limiter: Arc<KeyVerifyLimiter>,
+    /// P1-7: 客户端 IP 提取策略（trusted_proxies）。
+    /// 默认 trust_all 保留向后兼容；生产环境应通过环境变量 `TRUSTED_PROXIES=...` 显式收紧。
+    pub client_ip_policy: Arc<ClientIpPolicy>,
 }
 
 /// TLS certificate material.
@@ -147,6 +150,7 @@ impl GatewayServer {
             ticket_store: crate::realtime::default_ticket_store(),
             // SECURITY (Phase 2 Task 2.3): 5 失败 → 60s 冷却。
             key_verify_limiter: Arc::new(KeyVerifyLimiter::new(5, Duration::from_secs(60))),
+            client_ip_policy: Arc::new(ClientIpPolicy::trust_all()),
         };
         Self::start_inner(app_state, config).await
     }

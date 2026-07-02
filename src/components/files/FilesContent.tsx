@@ -34,13 +34,12 @@ export function FilesContent({ activeCategory }: FilesContentProps) {
 
   const [selectedRowKeys, setSelectedRowKeys] = useState<string[]>([]);
 
+  // 组件挂载时初始化状态
   useEffect(() => {
     setSearch("");
     setSortKey("createdAt");
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setSelectedRowKeys([]);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [setSearch, setSortKey, setSelectedRowKeys]);
 
   useEffect(() => {
     void loadCategory(activeCategory);

@@ -228,6 +228,8 @@ export function BuddyWidget() {
     panelDragging.current = false;
   }, []);
 
+  // 在 render 期间读取拖拽 ref 以同步显示面板位置，
+  // 这是拖拽交互的惯用模式，避免为实时位置增加状态。
   // eslint-disable-next-line react-hooks/refs
   const panelPosition = (panelPos ?? panelDragging.current) ? panelCurrentDragPos.current : null;
   const panelPosStyle = panelPosition

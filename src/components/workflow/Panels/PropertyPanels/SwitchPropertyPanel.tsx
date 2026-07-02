@@ -19,7 +19,7 @@ export const SwitchPropertyPanel: React.FC<Props> = ({ node, onUpdate, onDelete 
   const { token } = theme.useToken();
   const { generate: aiGenerate, generating: aiGenerating } = useNodeAIAssist();
   const [messageApi, contextHolder] = message.useMessage();
-  const sw = node as unknown as SwitchNode;
+  const sw = node as unknown as SwitchNode; // SAFE: WorkflowNode union narrowed to specific node type via config field access
   const config = sw.config || {
     input_var: "",
     cases: [],

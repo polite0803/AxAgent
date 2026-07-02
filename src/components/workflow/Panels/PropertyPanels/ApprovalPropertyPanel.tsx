@@ -11,7 +11,7 @@ interface Props {
 }
 export const ApprovalPropertyPanel: React.FC<Props> = ({ node, onUpdate, onDelete }) => {
   const { token } = theme.useToken();
-  const n = node as unknown as ApprovalNode;
+  const n = node as unknown as ApprovalNode; // SAFE: WorkflowNode union narrowed to specific node type via config field access
   const c = n.config
     || { message: "", approver: "", timeout_secs: 86400, timeout_action: "auto_reject", output_var: "" };
   const sc = (k: string, v: unknown) => onUpdate({ config: { ...c, [k]: v } });

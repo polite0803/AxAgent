@@ -23,7 +23,7 @@ interface ConditionNodeData {
 }
 
 const ConditionNodeComponent: React.FC<NodeProps> = ({ data: _data, selected }) => {
-  const data = _data as unknown as ConditionNodeData;
+  const data = _data as unknown as ConditionNodeData; // SAFE: ReactFlow NodeProps.data is untyped; runtime data matches expected component data
   const { token } = theme.useToken();
   const color = ORANGE_BASE;
   const conditions = data.conditions || [];

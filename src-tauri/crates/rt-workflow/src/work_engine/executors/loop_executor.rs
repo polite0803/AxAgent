@@ -28,6 +28,8 @@ use async_trait::async_trait;
 use axagent_core::workflow_types::{LoopCheckpoint, LoopType, WorkflowNode};
 #[cfg(test)]
 use serde_json::json;
+use std::collections::HashMap;
+use std::sync::Arc;
 
 use crate::work_engine::execution_state::{ExecutionState, PartialResultEvent};
 use crate::work_engine::node_executor_trait::{
@@ -209,21 +211,29 @@ impl NodeExecutorTrait for LoopExecutor {
             let item = input_items[iter_index as usize].clone();
 
             // ── 构造本轮 body 调度的 ctx 副本 ──
-            let mut iter_ctx = context.clone();
+            // P1-11: iter_ctx 改 Arc 共享 —— 把 variables 提取到 Arc<Mutex<...>>，
+            // iter_ctx clone 仅 Arc 引用计数，body_step 内部修改通过 lock 写回。
+            // 减少 N 轮 × M 步 × 全量 variables clone 的开销。
+            let iter_vars: Arc<tokio::sync::Mutex<HashMap<String, serde_json::Value>>> =
+                Arc::new(tokio::sync::Mutex::new(context.variables.clone()));
             // 注入 iteratee 变量
-            iter_ctx
-                .variables
+            iter_vars
+                .lock()
+                .await
                 .insert(iteratee_var_key.clone(), item.clone());
             // 注入 partial_result（用于下游 body_step 看到累计结果）
-            iter_ctx
-                .variables
+            iter_vars
+                .lock()
+                .await
                 .insert(format!("{output_var_key}__partial"), serde_json::json!(partial));
             // 暴露 loop 元信息
-            iter_ctx
-                .variables
+            iter_vars
+                .lock()
+                .await
                 .insert("__loop_iter_index__".to_string(), serde_json::json!(iter_index));
-            iter_ctx
-                .variables
+            iter_vars
+                .lock()
+                .await
                 .insert("__loop_iter_total__".to_string(), serde_json::json!(total));
 
             // ── 顺序执行 body_steps ──
@@ -231,15 +241,16 @@ impl NodeExecutorTrait for LoopExecutor {
             let mut interrupt_hit: Option<(String, serde_json::Value)> = None;
 
             for body_step_id in &c.body_steps {
-                let step_ctx = iter_ctx.clone();
+                // P1-11: step_ctx 共享 iter_vars Arc，clone 仅 Arc clone
+                let mut step_ctx = context.clone();
+                step_ctx.variables = iter_vars.lock().await.clone(); // 给下游 executor 看 current snapshot（同步）
                 match loop_dispatch(body_step_id.clone(), step_ctx).await {
                     Ok(out) => {
-                        // 把 body_step 的输出写入 iter_ctx.variables 供下游步骤读取
-                        // （约定：output_var 是 body_step 配置的输出 key，executor 已经
-                        // 把 output 放在 output.output 字段里；这里再写到 context 上）。
+                        // 把 body_step 的输出写回 iter_vars（Arc 共享）
                         if let Some(ref out_var) = out.output_var {
-                            iter_ctx
-                                .variables
+                            iter_vars
+                                .lock()
+                                .await
                                 .insert(out_var.clone(), out.output.clone());
                         }
                         last_step_output = out.output.clone();
@@ -323,7 +334,7 @@ impl NodeExecutorTrait for LoopExecutor {
                     });
                 }
 
-                // 等待 resume signal
+                // 等待 resume signal —— 加 timeout 防止 notify 永远不来挂住执行
                 if let Some(sig) = &context.interrupt_signal {
                     tracing::info!(
                         execution_id = %exec_id,
@@ -332,12 +343,34 @@ impl NodeExecutorTrait for LoopExecutor {
                         hit_step = %hit_step_id,
                         "[Loop] 等待 resume signal..."
                     );
-                    sig.notified().await;
-                    tracing::info!(
-                        execution_id = %exec_id,
-                        node_id = %node_id,
-                        "[Loop] resume signal 收到，继续迭代"
-                    );
+                    // P1-11: 24h timeout —— 防止 resume signal 永远不到挂住整个执行
+                    // （之前 sig.notified().await 无 timeout，bug 一旦触发永久挂起）
+                    match tokio::time::timeout(
+                        std::time::Duration::from_secs(24 * 3600),
+                        sig.notified(),
+                    )
+                    .await
+                    {
+                        Ok(()) => {
+                            tracing::info!(
+                                execution_id = %exec_id,
+                                node_id = %node_id,
+                                "[Loop] resume signal 收到，继续迭代"
+                            );
+                        },
+                        Err(_) => {
+                            tracing::error!(
+                                execution_id = %exec_id,
+                                node_id = %node_id,
+                                "[Loop] resume signal 等待超时（24h），强制终止执行"
+                            );
+                            return Err(NodeError::exec_failed(
+                                error_code::TIMEOUT,
+                                "Loop interrupt wait timeout (24h) - resume signal never arrived"
+                                    .to_string(),
+                            ));
+                        },
+                    }
                 }
 
                 // 重新读 checkpoint 决定下一步（resume_loop_iteration 可能更新了
@@ -499,9 +532,17 @@ fn evaluate_continue_condition(cond: &str, partial: &[serde_json::Value], iter_i
     let parts: Vec<&str> = trimmed.split_whitespace().collect();
     if parts.len() == 3 && parts[0] == "iter_index" {
         let op = parts[1];
+        // P1-11: 解析失败改 false（停止循环），避免错误条件被静默吞掉导致死循环
         let rhs: u32 = match parts[2].parse() {
             Ok(n) => n,
-            Err(_) => return true,
+            Err(_) => {
+                tracing::warn!(
+                    cond = %cond,
+                    rhs = %parts[2],
+                    "loop continue_condition: rhs 解析失败，默认停止循环（修复死循环）"
+                );
+                return false;
+            },
         };
         match op {
             "<" => return iter_index < rhs,
@@ -516,9 +557,17 @@ fn evaluate_continue_condition(cond: &str, partial: &[serde_json::Value], iter_i
     // 形式：`partial.length <op> <number>`
     if parts.len() == 3 && parts[0] == "partial.length" {
         let op = parts[1];
+        // P1-11: 同上，解析失败改 false
         let rhs: usize = match parts[2].parse() {
             Ok(n) => n,
-            Err(_) => return true,
+            Err(_) => {
+                tracing::warn!(
+                    cond = %cond,
+                    rhs = %parts[2],
+                    "loop continue_condition: partial.length rhs 解析失败，默认停止循环"
+                );
+                return false;
+            },
         };
         let lhs = partial.len();
         match op {
@@ -532,7 +581,12 @@ fn evaluate_continue_condition(cond: &str, partial: &[serde_json::Value], iter_i
         }
     }
     // 默认继续
-    true
+    // P1-11: 未识别的表达式 → 改 false + 记 error 级别日志，让用户察觉
+    tracing::error!(
+        cond = %cond,
+        "loop continue_condition: 无法识别的表达式，默认停止循环以防死循环"
+    );
+    false
 }
 
 #[cfg(test)]

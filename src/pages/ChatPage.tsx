@@ -169,6 +169,9 @@ export function ChatPage() {
     if (activeTab && activeTab.conversationId !== activeConversationId) {
       void setActiveConversation(activeTab.conversationId);
     }
+    // 显式省略 tabs/activeConversationId/setActiveConversation：
+    // tabs 在 tab 切换时变化，activeConversationId 由 effect 内部修改，
+    // 加入 deps 会导致循环同步（tab 切换 ↔ 会话切换 ↔ 效果重新触发）。
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTabId]);
 
@@ -192,6 +195,9 @@ export function ChatPage() {
     } else if (existingTab.id !== activeTabId) {
       useTabStore.getState().setActiveTab(existingTab.id);
     }
+    // 显式省略 tabs/activeTabId/openTab/conversations：
+    // 这些状态在同步过程中彼此依赖，加入 deps 会导致
+    // conversation ↔ tab 的双向同步循环。
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeConversationId]);
 

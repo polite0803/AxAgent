@@ -10,7 +10,9 @@ axagent-core = { path = "../core" }
 axagent-harness = { path = "../harness" }
 axagent-runtime-core = { path = "../runtime-core" }
 chrono = { workspace = true }
+chrono-tz = "0.8"
 futures = "0.3"
+rand = "0.8"
 rhai = { version = "1", features = ["sync"] }
 sea-orm = { workspace = true }
 serde = { workspace = true }
@@ -20,14 +22,19 @@ thiserror = { workspace = true }
 tokio = { workspace = true }
 tokio-util = { version = "0.7", features = ["rt"] }
 tracing = { workspace = true }
+url = "2"
 uuid = { workspace = true }
 
 cron = "0.12"
+hex = { workspace = true }
+hmac = "0.12"
 jsonschema = "0.46"
 lettre = { version = "0.11", features = ["tokio1-native-tls", "builder"] }
 regex = "1"
 reqwest = { workspace = true }
+sha2 = { workspace = true }
 sqlx = { version = "0.8", features = ["runtime-tokio", "postgres", "mysql", "sqlite"] }
+subtle = "2"
 tiny_http = "0.12"
 
 [dev-dependencies]

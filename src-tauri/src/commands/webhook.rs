@@ -3,7 +3,7 @@
 use crate::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::platform as platform_err;
-use axagent_runtime::webhook_subscription::{WebhookEvent, WebhookSubscription};
+use axagent_runtime::webhook_subscription::{WebhookEvent, WebhookSubscription, assert_url_safe};
 use tauri::State;
 
 #[derive(Debug, Clone, serde::Serialize)]
@@ -59,33 +59,11 @@ pub async fn webhook_create_subscription(
     secret: Option<String>,
 ) -> Result<WebhookSubscriptionResponse, String> {
     {
-        if !url.starts_with("https://") && !url.starts_with("http://") {
-            return Err("Webhook URL must use http or https scheme".to_string());
-        }
-        let after_scheme = url.split("://").nth(1).unwrap_or(&url);
-        let host_part = after_scheme.split('/').next().unwrap_or(after_scheme);
-        let host = host_part
-            .split(':')
-            .next()
-            .unwrap_or(host_part)
-            .to_lowercase();
-        if host == "localhost"
-            || host == "127.0.0.1"
-            || host == "::1"
-            || host.starts_with("169.254.")
-            || host.starts_with("10.")
-            || host.starts_with("192.168.")
-            || (host.starts_with("172.")
-                && host
-                    .split('.')
-                    .nth(1)
-                    .is_some_and(|o| o.parse::<u8>().is_ok_and(|n| (16..=31).contains(&n))))
-            || host.starts_with("fc")
-            || host.starts_with("fd")
-            || host.starts_with("fe80:")
-        {
-            return Err("Webhook URL must not point to a private/reserved address".to_string());
-        }
+        // P0-5: 用 DNS 解析 + IpAddr 黑名单做严格 SSRF 校验，覆盖 link-local/云元数据/私网
+        // subscription 路径在 manager.subscribe 内部会再次校验（双保险）。
+        assert_url_safe(&url, false)
+            .await
+            .map_err(|e| e.to_string())?;
     }
     let manager = state.webhook_subscription_manager.as_ref().ok_or_else(|| {
         ErrorResponse::err_with_detail(

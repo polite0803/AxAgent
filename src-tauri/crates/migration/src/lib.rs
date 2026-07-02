@@ -8,6 +8,7 @@ pub use axagent_harness::migration_types::{
 use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicUsize, Ordering};
 
 use axagent_core::secure_store::SecureStore;
 
@@ -30,7 +31,54 @@ fn hermes_home() -> PathBuf {
 }
 
 fn timestamp_str() -> String {
-    chrono::Utc::now().format("%Y%m%dT%H%M%SZ").to_string()
+    // P2-5: 追加毫秒 + UUID 后缀，避免快速连续两次备份产生同名目录
+    use std::sync::atomic::AtomicU64;
+    static COUNTER: AtomicU64 = AtomicU64::new(0);
+    let n = COUNTER.fetch_add(1, Ordering::SeqCst);
+    let now = chrono::Utc::now();
+    let millis = now.timestamp_millis();
+    let nanos = now.timestamp_subsec_nanos();
+    let suffix = uuid::Uuid::new_v4().simple().to_string();
+    format!("{:013}-{:09}-{:04}-{}", millis, nanos, n & 0xFFFF, &suffix[..8])
+}
+
+/// P1-13: 进程级 migration 锁，防止并发迁移互相覆盖。
+/// 通过 `migration.lock` 锁文件实现（不依赖第三方 crate）。
+/// 锁文件持有者即拥有本次迁移的独占权。
+struct MigrationLock {
+    _file: fs::File,
+    path: PathBuf,
+}
+
+impl MigrationLock {
+    fn acquire() -> Result<Self, String> {
+        let path = axagent_home().join("migration.lock");
+        if let Some(parent) = path.parent() {
+            fs::create_dir_all(parent).map_err(|e| format!("创建锁目录失败: {}", e))?;
+        }
+        // 用 create_new 保证只有一个进程能拿到锁
+        let file = fs::OpenOptions::new()
+            .create_new(true)
+            .write(true)
+            .open(&path)
+            .map_err(|e| {
+                if e.kind() == std::io::ErrorKind::AlreadyExists {
+                    format!(
+                        "迁移正在进行中（锁文件 {} 已存在）。如确认无其他迁移，请删除该文件后重试",
+                        path.display()
+                    )
+                } else {
+                    format!("获取迁移锁失败: {}", e)
+                }
+            })?;
+        Ok(Self { _file: file, path })
+    }
+}
+
+impl Drop for MigrationLock {
+    fn drop(&mut self) {
+        let _ = fs::remove_file(&self.path);
+    }
 }
 
 pub fn detect_platforms() -> Vec<DetectedPlatform> {
@@ -626,19 +674,27 @@ fn merge_yaml_values(
         (serde_yaml::Value::Mapping(base_map), serde_yaml::Value::Mapping(overlay_map)) => {
             for (key, value) in overlay_map {
                 if let Some(existing) = base_map.get(&key) {
+                    // P1-12: mapping 嵌套合并，递归调用
                     if existing.is_mapping() && value.is_mapping() {
                         let merged = merge_yaml_values(existing.clone(), value, overwrite);
                         base_map.insert(key, merged);
                     } else if overwrite {
+                        // overwrite 模式下用 overlay 覆盖 base
                         base_map.insert(key, value);
+                    } else {
+                        // 非 overwrite 模式：保留 base
+                        // 保留 base 中已有值，不做任何修改
                     }
                 } else {
+                    // base 中不存在的 key：直接插入
                     base_map.insert(key, value);
                 }
             }
             base
         },
+        // P1-12: 任一非 mapping 类型，overwrite=true 时用 overlay，否则保留 base
         (_, overlay) if overwrite => overlay,
+        // 关键修复：避免 overlay 变成"替换为新值但返回了 base 的引用"
         (base, _) => std::mem::take(base),
     }
 }
@@ -657,6 +713,26 @@ enum ClassifiedEntry {
 }
 
 pub fn migrate_openclaw(overwrite: bool) -> MigrationReport {
+    // P1-13: 获取进程级 migration 锁
+    let _lock = match MigrationLock::acquire() {
+        Ok(l) => l,
+        Err(e) => {
+            return MigrationReport {
+                platform: "OpenClaw".to_string(),
+                timestamp: chrono::Utc::now().to_rfc3339(),
+                migrated: Vec::new(),
+                skipped: Vec::new(),
+                failed: vec![MigrationEntry {
+                    source: "OpenClaw".to_string(),
+                    destination: "lock".to_string(),
+                    item_type: "platform".to_string(),
+                    description: e,
+                    reason: "并发锁冲突".to_string(),
+                }],
+            };
+        },
+    };
+
     let oc = openclaw_home();
     let home = axagent_home();
     let ts = timestamp_str();
@@ -740,6 +816,26 @@ pub fn migrate_openclaw(overwrite: bool) -> MigrationReport {
 }
 
 pub fn migrate_hermes(overwrite: bool) -> MigrationReport {
+    // P1-13: 获取进程级 migration 锁
+    let _lock = match MigrationLock::acquire() {
+        Ok(l) => l,
+        Err(e) => {
+            return MigrationReport {
+                platform: "Hermes".to_string(),
+                timestamp: chrono::Utc::now().to_rfc3339(),
+                migrated: Vec::new(),
+                skipped: Vec::new(),
+                failed: vec![MigrationEntry {
+                    source: "Hermes".to_string(),
+                    destination: "lock".to_string(),
+                    item_type: "platform".to_string(),
+                    description: e,
+                    reason: "并发锁冲突".to_string(),
+                }],
+            };
+        },
+    };
+
     let hm = hermes_home();
     let home = axagent_home();
     let ts = timestamp_str();
@@ -835,6 +931,9 @@ pub fn migrate_hermes(overwrite: bool) -> MigrationReport {
 }
 
 pub fn rollback(backup_path: &Path) -> Result<MigrationReport, String> {
+    // P1-13: 获取进程级 migration 锁
+    let _lock = MigrationLock::acquire()?;
+
     let home = axagent_home();
     let backup_root = home.join("migration-backup");
 
@@ -862,6 +961,71 @@ pub fn rollback(backup_path: &Path) -> Result<MigrationReport, String> {
         return Err(format!("备份路径不存在: {}", backup_path.display()));
     }
 
+    // P1-14: 收集备份中的所有条目；回滚前先删除目标 home 中备份不存在的条目
+    // 防止"备份里没有的、迁移后新增的文件"残留
+    let backup_names: HashSet<String> = match fs::read_dir(backup_path) {
+        Ok(entries) => entries
+            .filter_map(|e| e.ok())
+            .map(|e| e.file_name().to_string_lossy().to_string())
+            .collect(),
+        Err(e) => {
+            return Err(format!("无法读取备份目录: {}", e));
+        },
+    };
+
+    // 枚举 home 中的同名顶层条目（personalities/memories/skills/配置文件），
+    // 删除那些不在备份中的（说明是迁移过程中新增的，需清理）
+    let protected_top_level = [
+        "personalities",
+        "memories",
+        "skills",
+        "allowed-commands.json",
+        ".env",
+        "config.yaml",
+        "cron-tasks.json",
+    ];
+    for name in protected_top_level {
+        let path = home.join(name);
+        if path.exists() && !backup_names.contains(name) {
+            if path.is_dir() {
+                if let Err(e) = fs::remove_dir_all(&path) {
+                    failed.push(MigrationEntry {
+                        source: path.display().to_string(),
+                        destination: "deleted".to_string(),
+                        item_type: "directory".to_string(),
+                        description: format!("删除新增目录: {}", e),
+                        reason: "回滚清理".to_string(),
+                    });
+                } else {
+                    migrated.push(MigrationEntry {
+                        source: path.display().to_string(),
+                        destination: "deleted".to_string(),
+                        item_type: "directory".to_string(),
+                        description: "已删除迁移过程中新增的目录".to_string(),
+                        reason: "回滚清理".to_string(),
+                    });
+                }
+            } else if let Err(e) = fs::remove_file(&path) {
+                failed.push(MigrationEntry {
+                    source: path.display().to_string(),
+                    destination: "deleted".to_string(),
+                    item_type: "file".to_string(),
+                    description: format!("删除新增文件: {}", e),
+                    reason: "回滚清理".to_string(),
+                });
+            } else {
+                migrated.push(MigrationEntry {
+                    source: path.display().to_string(),
+                    destination: "deleted".to_string(),
+                    item_type: "file".to_string(),
+                    description: "已删除迁移过程中新增的文件".to_string(),
+                    reason: "回滚清理".to_string(),
+                });
+            }
+        }
+    }
+
+    // 用备份文件覆盖/写回 home
     if let Ok(entries) = fs::read_dir(backup_path) {
         for entry in entries.filter_map(|e| e.ok()) {
             let src_path = entry.path();

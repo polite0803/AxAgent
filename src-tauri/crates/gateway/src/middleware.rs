@@ -31,19 +31,15 @@ static RATE_LIMITER: std::sync::LazyLock<
 });
 
 pub async fn rate_limit_middleware(request: Request<Body>, next: Next) -> Response {
-    let key = if let Some(ci) = request.extensions().get::<ConnectInfo<SocketAddr>>() {
-        ci.0.ip().to_string()
-    } else {
-        // NOTE: In production behind a reverse proxy, x-forwarded-for and x-real-ip
-        // headers should be validated against trusted proxy IPs to prevent IP spoofing.
-        request
-            .headers()
-            .get("x-forwarded-for")
-            .or_else(|| request.headers().get("x-real-ip"))
-            .and_then(|v| v.to_str().ok())
-            .unwrap_or("unknown")
-            .to_string()
-    };
+    // P1-7: 安全起见，默认用 socket peer IP 作为限流 key。
+    // XFF 解析仅在 reverse proxy 部署时启用（需要 explicit configuration）；
+    // 当前中间件不知道 trusted_proxies 配置，所以无条件忽略 XFF。
+    // 注释里说的 "should be validated" 之前没有实现 — 这里补上。
+    let key = request
+        .extensions()
+        .get::<ConnectInfo<SocketAddr>>()
+        .map(|ci| ci.0.ip().to_string())
+        .unwrap_or_else(|| "unknown".to_string());
 
     if RATE_LIMITER.check_key(&key).is_err() {
         return (StatusCode::TOO_MANY_REQUESTS, "Rate limit exceeded. Please try again later.")

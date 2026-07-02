@@ -14,21 +14,28 @@ interface BalanceData {
 
 export const BalanceBadge: React.FC = () => {
   const { t } = useTranslation();
-  const fetchBalance = useProviderStore((s) => (s as any).fetchBalance); // eslint-disable-line @typescript-eslint/no-explicit-any
+  const fetchBalance = useProviderStore((s) =>
+    (s as unknown as Record<string, unknown>).fetchBalance as (() => Promise<BalanceData>) | undefined
+  );
   const [balance, setBalance] = useState<BalanceData | null>(null);
   const [loading, setLoading] = useState(false);
 
+  // fetchBalance 方法尚未在 providerStore 中实现，静默返回 null
   useEffect(() => {
+    if (typeof fetchBalance !== "function") { return; }
     let cancelled = false;
     const load = async () => {
       setLoading(true);
-      const data = await fetchBalance();
-      if (!cancelled) {
-        setBalance(data);
-        setLoading(false);
+      try {
+        const data = await fetchBalance();
+        if (!cancelled) {
+          setBalance(data);
+          setLoading(false);
+        }
+      } catch {
+        if (!cancelled) { setLoading(false); }
       }
     };
-    // Check every 5 minutes
     load();
     const interval = setInterval(load, 5 * 60 * 1000);
     return () => {

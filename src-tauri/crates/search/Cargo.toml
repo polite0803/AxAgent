@@ -16,7 +16,7 @@ hex = "0.4"
 libsqlite3-sys = { workspace = true }
 quick_cache = "0.4"
 regex = "1"
-reqwest = { workspace = true, features = ["cookies"] }
+reqwest = { workspace = true, features = ["cookies", "stream"] }
 rusqlite = { version = "0.32", features = ["bundled"] }
 sea-orm = { workspace = true }
 serde = { workspace = true }

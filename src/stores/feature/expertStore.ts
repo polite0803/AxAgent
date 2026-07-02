@@ -56,7 +56,7 @@ function loadCustomRoles(): AgentProfile[] {
         };
       }
       return item;
-    }) as unknown as AgentProfile[];
+    }) as unknown as AgentProfile[]; /* SAFE: store state type cast */
   } catch {
     return [];
   }

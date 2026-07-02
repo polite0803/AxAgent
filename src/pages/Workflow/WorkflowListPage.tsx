@@ -12,17 +12,13 @@ import {
 } from "@ant-design/icons";
 import { Button, Card, Col, Empty, Input, Popconfirm, Row, Select, Space, Tag, Typography } from "antd";
 import { useCallback, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 
 const { Text, Title } = Typography;
 
-const statusConfig: Record<string, { color: string; label: string }> = {
-  draft: { color: "default", label: "草稿" },
-  active: { color: "success", label: "活跃" },
-  archived: { color: "warning", label: "归档" },
-};
-
 export function WorkflowListPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [searchText, setSearchText] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -30,6 +26,12 @@ export function WorkflowListPage() {
   const createWorkflow = useWorkflowStore((s) => s.createWorkflow);
   const deleteWorkflow = useWorkflowStore((s) => s.deleteWorkflow);
   const duplicateWorkflow = useWorkflowStore((s) => s.duplicateWorkflow);
+
+  const statusConfig: Record<string, { color: string; label: string }> = useMemo(() => ({
+    draft: { color: "default", label: t("workflow.list.draft") },
+    active: { color: "success", label: t("workflow.list.active") },
+    archived: { color: "warning", label: t("workflow.list.archived") },
+  }), [t]);
 
   const filtered = useMemo(() => {
     return workflows.filter((wf) => {
@@ -43,9 +45,9 @@ export function WorkflowListPage() {
   }, [workflows, searchText, statusFilter]);
 
   const handleCreate = useCallback(async () => {
-    const wf = await createWorkflow({ name: "新建工作流" });
+    const wf = await createWorkflow({ name: t("workflow.list.createNew") });
     navigate(`/workflows/${wf.id}/edit`);
-  }, [createWorkflow, navigate]);
+  }, [createWorkflow, navigate, t]);
 
   const handleEdit = useCallback(
     (id: string) => {
@@ -85,10 +87,10 @@ export function WorkflowListPage() {
           gap: 12,
         }}
       >
-        <Title level={4} style={{ margin: 0 }}>工作流</Title>
+        <Title level={4} style={{ margin: 0 }}>{t("workflow.list.title")}</Title>
         <Space wrap>
           <Input
-            placeholder="搜索工作流..."
+            placeholder={t("workflow.list.searchPlaceholder")}
             prefix={<SearchOutlined />}
             value={searchText}
             onChange={(e) => setSearchText(e.target.value)}
@@ -100,17 +102,17 @@ export function WorkflowListPage() {
             onChange={setStatusFilter}
             style={{ width: 110 }}
             options={[
-              { value: "all", label: "全部" },
-              { value: "draft", label: "草稿" },
-              { value: "active", label: "活跃" },
-              { value: "archived", label: "归档" },
+              { value: "all", label: t("workflow.list.all") },
+              { value: "draft", label: t("workflow.list.draft") },
+              { value: "active", label: t("workflow.list.active") },
+              { value: "archived", label: t("workflow.list.archived") },
             ]}
           />
           <Button icon={<ThunderboltOutlined />} onClick={handleTemplates}>
-            模板库
+            {t("workflow.list.templates")}
           </Button>
           <Button type="primary" icon={<FileAddOutlined />} onClick={handleCreate}>
-            新建工作流
+            {t("workflow.list.createNew")}
           </Button>
         </Space>
       </div>
@@ -121,7 +123,9 @@ export function WorkflowListPage() {
           const count = s === "all" ? workflows.length : workflows.filter((w) => w.status === s).length;
           return (
             <Card key={s} size="small" style={{ flex: 1, textAlign: "center" }} bodyStyle={{ padding: "10px 16px" }}>
-              <Text type="secondary" style={{ fontSize: 11 }}>{s === "all" ? "全部" : statusConfig[s]?.label}</Text>
+              <Text type="secondary" style={{ fontSize: 11 }}>
+                {s === "all" ? t("workflow.list.all") : statusConfig[s]?.label}
+              </Text>
               <div style={{ fontSize: 22, fontWeight: 700 }}>{count}</div>
             </Card>
           );
@@ -129,7 +133,7 @@ export function WorkflowListPage() {
       </div>
 
       {/* 列表 */}
-      {filtered.length === 0 ? <Empty description="暂无工作流，点击上方按钮创建" /> : (
+      {filtered.length === 0 ? <Empty description={t("workflow.list.empty")} /> : (
         <Row gutter={[16, 16]}>
           {filtered.map((wf) => (
             <Col key={wf.id} xs={24} sm={12} lg={8} xl={6}>
@@ -155,11 +159,11 @@ export function WorkflowListPage() {
                   ellipsis
                   style={{ display: "block", marginBottom: 12, fontSize: 12, minHeight: 36 }}
                 >
-                  {wf.description || "暂无描述"}
+                  {wf.description || t("workflow.list.noDescription")}
                 </Text>
                 <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
-                  <Tag>{wf.nodes.length} 节点</Tag>
-                  <Tag>{wf.edges.length} 连线</Tag>
+                  <Tag>{t("workflow.list.nodeCount", { count: wf.nodes.length })}</Tag>
+                  <Tag>{t("workflow.list.edgeCount", { count: wf.edges.length })}</Tag>
                   <Tag color="blue">v{wf.version}</Tag>
                 </div>
                 <Text type="secondary" style={{ fontSize: 11, display: "block", marginBottom: 8 }}>
@@ -167,13 +171,13 @@ export function WorkflowListPage() {
                 </Text>
                 <div onClick={(e) => e.stopPropagation()} style={{ display: "flex", gap: 4 }}>
                   <Button size="small" icon={<EditOutlined />} onClick={() => handleEdit(wf.id)}>
-                    编辑
+                    {t("workflow.list.edit")}
                   </Button>
                   <Button size="small" icon={<CopyOutlined />} onClick={() => handleDuplicate(wf.id)}>
-                    复制
+                    {t("workflow.list.duplicate")}
                   </Button>
                   <Popconfirm
-                    title="确定删除此工作流？"
+                    title={t("workflow.list.deleteConfirm")}
                     onConfirm={() => handleDelete(wf.id)}
                   >
                     <Button size="small" danger icon={<DeleteOutlined />} />

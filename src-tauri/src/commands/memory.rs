@@ -520,28 +520,30 @@ pub async fn auto_extract_incremental_memories(
 
             {
                 let ms = state.memory_service.read().await;
-                let _ = ms.add_memory_advanced(axagent_trajectory::AddMemoryRequest {
-                    target: "memory".to_string(),
-                    content: item.content.clone(),
-                    tier: axagent_trajectory::MemoryTier::Working,
-                    importance: item.importance,
-                    nature: match item.nature {
-                        crate::memory_extract::ExtractedNature::Episodic => {
-                            axagent_trajectory::MemoryNature::Episodic
+                let _ = ms
+                    .add_memory_advanced(axagent_trajectory::AddMemoryRequest {
+                        target: "memory".to_string(),
+                        content: item.content.clone(),
+                        tier: axagent_trajectory::MemoryTier::Working,
+                        importance: item.importance,
+                        nature: match item.nature {
+                            crate::memory_extract::ExtractedNature::Episodic => {
+                                axagent_trajectory::MemoryNature::Episodic
+                            },
+                            crate::memory_extract::ExtractedNature::Semantic => {
+                                axagent_trajectory::MemoryNature::Semantic
+                            },
                         },
-                        crate::memory_extract::ExtractedNature::Semantic => {
-                            axagent_trajectory::MemoryNature::Semantic
-                        },
-                    },
-                    provenance: Some(axagent_trajectory::MemoryProvenance {
-                        conversation_id: Some(conversation_id.clone()),
-                        message_id: None,
-                        extraction_method: "auto_incremental".to_string(),
-                    }),
-                    tags: item.tags.clone(),
-                    expires_at: None,
-                    namespace_id: Some(namespace_id.clone()),
-                });
+                        provenance: Some(axagent_trajectory::MemoryProvenance {
+                            conversation_id: Some(conversation_id.clone()),
+                            message_id: None,
+                            extraction_method: "auto_incremental".to_string(),
+                        }),
+                        tags: item.tags.clone(),
+                        expires_at: None,
+                        namespace_id: Some(namespace_id.clone()),
+                    })
+                    .await;
             }
         }
     }
@@ -635,7 +637,7 @@ pub async fn sync_working_memory_to_namespace(
 ) -> Result<usize, String> {
     let entries = {
         let ms = state.memory_service.read().await;
-        ms.get_all_entries_for_sync()
+        ms.get_all_entries_for_sync().await
     };
 
     if entries.is_empty() {
@@ -716,7 +718,7 @@ pub async fn promote_memory_entry(
     memory_id: String,
 ) -> Result<serde_json::Value, String> {
     let ms = state.memory_service.read().await;
-    let result = ms.promote_memory(&memory_id);
+    let result = ms.promote_memory(&memory_id).await;
     Ok(serde_json::to_value(result).unwrap_or_default())
 }
 
@@ -726,7 +728,7 @@ pub async fn demote_memory_entry(
     memory_id: String,
 ) -> Result<serde_json::Value, String> {
     let ms = state.memory_service.read().await;
-    let result = ms.demote_memory(&memory_id);
+    let result = ms.demote_memory(&memory_id).await;
     Ok(serde_json::to_value(result).unwrap_or_default())
 }
 
@@ -737,7 +739,7 @@ pub async fn add_memory_with_dedup(
     content: String,
 ) -> Result<serde_json::Value, String> {
     let ms = state.memory_service.read().await;
-    let result = ms.add_memory_with_dedup(&target, &content);
+    let result = ms.add_memory_with_dedup(&target, &content).await;
     Ok(serde_json::to_value(result).unwrap_or_default())
 }
 
@@ -746,7 +748,7 @@ pub async fn apply_memory_decay_tick(
     state: State<'_, AppState>,
 ) -> Result<serde_json::Value, String> {
     let ms = state.memory_service.read().await;
-    let evicted = ms.apply_decay_tick();
+    let evicted = ms.apply_decay_tick().await;
     Ok(serde_json::json!({ "evicted_count": evicted }))
 }
 
@@ -757,7 +759,7 @@ pub async fn search_working_memories(
     limit: Option<usize>,
 ) -> Result<serde_json::Value, String> {
     let ms = state.memory_service.read().await;
-    let results = ms.search_memories(&query, limit.unwrap_or(10));
+    let results = ms.search_memories(&query, limit.unwrap_or(10)).await;
     Ok(serde_json::to_value(results).unwrap_or_default())
 }
 
@@ -768,7 +770,7 @@ pub async fn update_memory_importance(
     delta: f64,
 ) -> Result<serde_json::Value, String> {
     let ms = state.memory_service.read().await;
-    let result = ms.update_importance(&memory_id, delta);
+    let result = ms.update_importance(&memory_id, delta).await;
     Ok(serde_json::to_value(result).unwrap_or_default())
 }
 
@@ -777,7 +779,7 @@ pub async fn get_memory_tier_stats(
     state: State<'_, AppState>,
 ) -> Result<serde_json::Value, String> {
     let ms = state.memory_service.read().await;
-    let usage = ms.get_memory_usage();
+    let usage = ms.get_memory_usage().await;
     Ok(serde_json::to_value(usage).unwrap_or_default())
 }
 
@@ -980,7 +982,7 @@ pub async fn disambiguate_memory_entities(
     state: State<'_, AppState>,
 ) -> Result<serde_json::Value, String> {
     let ms = state.memory_service.read().await;
-    let result = ms.disambiguate_entities();
+    let result = ms.disambiguate_entities().await;
     Ok(serde_json::to_value(result).unwrap_or_default())
 }
 
@@ -988,8 +990,14 @@ pub async fn disambiguate_memory_entities(
 pub async fn list_knowledge_graph(state: State<'_, AppState>) -> Result<serde_json::Value, String> {
     let ms = state.memory_service.read().await;
     let storage = ms.storage();
-    let entities = storage.get_all_entities().map_err(|e| e.to_string())?;
-    let relationships = storage.get_all_relationships().map_err(|e| e.to_string())?;
+    let entities = storage
+        .get_all_entities()
+        .await
+        .map_err(|e| e.to_string())?;
+    let relationships = storage
+        .get_all_relationships()
+        .await
+        .map_err(|e| e.to_string())?;
     Ok(serde_json::json!({
         "entities": entities,
         "relationships": relationships,
@@ -1004,7 +1012,9 @@ pub async fn search_memories_by_time(
     limit: Option<usize>,
 ) -> Result<serde_json::Value, String> {
     let ms = state.memory_service.read().await;
-    let results = ms.search_memories_by_time_range(start_ts, end_ts, limit.unwrap_or(50));
+    let results = ms
+        .search_memories_by_time_range(start_ts, end_ts, limit.unwrap_or(50))
+        .await;
     Ok(serde_json::to_value(results).unwrap_or_default())
 }
 
@@ -1013,7 +1023,7 @@ pub async fn get_memories_time_grouped(
     state: State<'_, AppState>,
 ) -> Result<serde_json::Value, String> {
     let ms = state.memory_service.read().await;
-    let groups = ms.get_memories_grouped_by_time();
+    let groups = ms.get_memories_grouped_by_time().await;
     Ok(serde_json::to_value(groups).unwrap_or_default())
 }
 
@@ -1024,7 +1034,9 @@ pub async fn search_memories_explained(
     limit: Option<usize>,
 ) -> Result<serde_json::Value, String> {
     let ms = state.memory_service.read().await;
-    let results = ms.search_memories_explained(&query, limit.unwrap_or(10));
+    let results = ms
+        .search_memories_explained(&query, limit.unwrap_or(10))
+        .await;
     Ok(serde_json::to_value(results).unwrap_or_default())
 }
 
@@ -1034,7 +1046,7 @@ pub async fn get_memory_provenance(
     memory_id: String,
 ) -> Result<serde_json::Value, String> {
     let ms = state.memory_service.read().await;
-    let mem = ms.get_working_memory();
+    let mem = ms.get_working_memory().await;
     match mem.entries.get(&memory_id) {
         Some(entry) => Ok(serde_json::json!({
             "id": entry.id,
@@ -1060,7 +1072,9 @@ pub async fn find_memory_clusters(
     similarity_threshold: Option<f64>,
 ) -> Result<serde_json::Value, String> {
     let ms = state.memory_service.read().await;
-    let clusters = ms.find_similar_clusters(similarity_threshold.unwrap_or(0.5));
+    let clusters = ms
+        .find_similar_clusters(similarity_threshold.unwrap_or(0.5))
+        .await;
     Ok(serde_json::to_value(clusters).unwrap_or_default())
 }
 
@@ -1075,7 +1089,7 @@ pub async fn consolidate_memory_cluster(
     }
 
     let ms = state.memory_service.read().await;
-    let mem = ms.get_working_memory();
+    let mem = ms.get_working_memory().await;
 
     let contents: Vec<String> = memory_ids
         .iter()
@@ -1148,21 +1162,23 @@ pub async fn consolidate_memory_cluster(
     .await?;
 
     let ms = state.memory_service.read().await;
-    let result = ms.add_memory_advanced(axagent_trajectory::AddMemoryRequest {
-        target: "memory".to_string(),
-        content: consolidated.content,
-        tier: axagent_trajectory::MemoryTier::Working,
-        importance: consolidated.importance,
-        nature: axagent_trajectory::MemoryNature::Semantic,
-        provenance: Some(axagent_trajectory::MemoryProvenance {
-            conversation_id: None,
-            message_id: None,
-            extraction_method: "consolidation".to_string(),
-        }),
-        tags: consolidated.tags,
-        expires_at: None,
-        namespace_id: None,
-    });
+    let result = ms
+        .add_memory_advanced(axagent_trajectory::AddMemoryRequest {
+            target: "memory".to_string(),
+            content: consolidated.content,
+            tier: axagent_trajectory::MemoryTier::Working,
+            importance: consolidated.importance,
+            nature: axagent_trajectory::MemoryNature::Semantic,
+            provenance: Some(axagent_trajectory::MemoryProvenance {
+                conversation_id: None,
+                message_id: None,
+                extraction_method: "consolidation".to_string(),
+            }),
+            tags: consolidated.tags,
+            expires_at: None,
+            namespace_id: None,
+        })
+        .await;
 
     if result.success {
         for id in &memory_ids {
@@ -1181,7 +1197,7 @@ pub async fn submit_memory_feedback(
     feedback: String,
 ) -> Result<serde_json::Value, String> {
     let ms = state.memory_service.read().await;
-    let result = ms.apply_user_feedback(&memory_id, &feedback);
+    let result = ms.apply_user_feedback(&memory_id, &feedback).await;
     Ok(serde_json::to_value(result).unwrap_or_default())
 }
 
@@ -1378,28 +1394,30 @@ pub async fn extract_conversation_memories(
 
                         {
                             let ms = state.memory_service.read().await;
-                            let _ = ms.add_memory_advanced(axagent_trajectory::AddMemoryRequest {
-                                target: "memory".to_string(),
-                                content: item.content.clone(),
-                                tier: axagent_trajectory::MemoryTier::Working,
-                                importance: item.importance,
-                                nature: match item.nature {
-                                    crate::memory_extract::ExtractedNature::Episodic => {
-                                        axagent_trajectory::MemoryNature::Episodic
+                            let _ = ms
+                                .add_memory_advanced(axagent_trajectory::AddMemoryRequest {
+                                    target: "memory".to_string(),
+                                    content: item.content.clone(),
+                                    tier: axagent_trajectory::MemoryTier::Working,
+                                    importance: item.importance,
+                                    nature: match item.nature {
+                                        crate::memory_extract::ExtractedNature::Episodic => {
+                                            axagent_trajectory::MemoryNature::Episodic
+                                        },
+                                        crate::memory_extract::ExtractedNature::Semantic => {
+                                            axagent_trajectory::MemoryNature::Semantic
+                                        },
                                     },
-                                    crate::memory_extract::ExtractedNature::Semantic => {
-                                        axagent_trajectory::MemoryNature::Semantic
-                                    },
-                                },
-                                provenance: Some(axagent_trajectory::MemoryProvenance {
-                                    conversation_id: Some(conversation_id.clone()),
-                                    message_id: None,
-                                    extraction_method: "manual_extract".to_string(),
-                                }),
-                                tags: item.tags.clone(),
-                                expires_at: None,
-                                namespace_id: None,
-                            });
+                                    provenance: Some(axagent_trajectory::MemoryProvenance {
+                                        conversation_id: Some(conversation_id.clone()),
+                                        message_id: None,
+                                        extraction_method: "manual_extract".to_string(),
+                                    }),
+                                    tags: item.tags.clone(),
+                                    expires_at: None,
+                                    namespace_id: None,
+                                })
+                                .await;
                         }
 
                         continue;
@@ -1420,28 +1438,30 @@ pub async fn extract_conversation_memories(
 
                 {
                     let ms = state.memory_service.read().await;
-                    let _ = ms.add_memory_advanced(axagent_trajectory::AddMemoryRequest {
-                        target: "memory".to_string(),
-                        content: item.content.clone(),
-                        tier: axagent_trajectory::MemoryTier::Working,
-                        importance: item.importance,
-                        nature: match item.nature {
-                            crate::memory_extract::ExtractedNature::Episodic => {
-                                axagent_trajectory::MemoryNature::Episodic
+                    let _ = ms
+                        .add_memory_advanced(axagent_trajectory::AddMemoryRequest {
+                            target: "memory".to_string(),
+                            content: item.content.clone(),
+                            tier: axagent_trajectory::MemoryTier::Working,
+                            importance: item.importance,
+                            nature: match item.nature {
+                                crate::memory_extract::ExtractedNature::Episodic => {
+                                    axagent_trajectory::MemoryNature::Episodic
+                                },
+                                crate::memory_extract::ExtractedNature::Semantic => {
+                                    axagent_trajectory::MemoryNature::Semantic
+                                },
                             },
-                            crate::memory_extract::ExtractedNature::Semantic => {
-                                axagent_trajectory::MemoryNature::Semantic
-                            },
-                        },
-                        provenance: Some(axagent_trajectory::MemoryProvenance {
-                            conversation_id: Some(conversation_id.clone()),
-                            message_id: None,
-                            extraction_method: "manual_extract".to_string(),
-                        }),
-                        tags: item.tags.clone(),
-                        expires_at: None,
-                        namespace_id: None,
-                    });
+                            provenance: Some(axagent_trajectory::MemoryProvenance {
+                                conversation_id: Some(conversation_id.clone()),
+                                message_id: None,
+                                extraction_method: "manual_extract".to_string(),
+                            }),
+                            tags: item.tags.clone(),
+                            expires_at: None,
+                            namespace_id: None,
+                        })
+                        .await;
                 }
             },
             Err(e) => {

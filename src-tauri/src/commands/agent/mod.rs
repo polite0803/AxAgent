@@ -970,11 +970,13 @@ pub async fn agent_query(
     // Use the long-lived SessionManager from AppState (persists sessions across queries)
     let session_manager = &app_state.agent_session_manager;
     // Ensure app_handle is set (idempotent if already set)
-    session_manager.set_app_handle(app.clone());
-    session_manager.set_default_workspace_dir(settings.default_workspace_dir.clone());
+    session_manager.set_app_handle(app.clone()).await;
+    session_manager
+        .set_default_workspace_dir(settings.default_workspace_dir.clone())
+        .await;
     info!(
         "[agent_query] Using AppState SessionManager, has_app_handle: {}",
-        session_manager.has_app_handle()
+        session_manager.has_app_handle().await
     );
 
     // Get or create session (reuse existing session to preserve conversation history)
@@ -1104,7 +1106,7 @@ pub async fn agent_query(
     // Format working memory from MemoryService
     let working_memory_text = {
         let ms = app_state.memory_service.read().await;
-        let wm = ms.format_for_prompt();
+        let wm = ms.format_for_prompt().await;
         if wm.is_empty() { None } else { Some(wm) }
     };
 
@@ -1817,7 +1819,7 @@ pub async fn agent_query(
                     }
                 }
 
-                if let Err(e) = storage.save_trajectory(&trajectory) {
+                if let Err(e) = storage.save_trajectory(&trajectory).await {
                     tracing::warn!("[P4] Failed to save trajectory: {}", e);
                 } else {
                     tracing::debug!(
@@ -1838,7 +1840,7 @@ pub async fn agent_query(
                             );
                             // Persist newly discovered patterns
                             for pattern in &new_patterns {
-                                if let Err(e) = storage.save_pattern(pattern) {
+                                if let Err(e) = storage.save_pattern(pattern).await {
                                     tracing::warn!("[P5] Failed to persist pattern: {}", e);
                                 }
                             }
@@ -1861,7 +1863,7 @@ pub async fn agent_query(
                             let mut updated = trajectory.clone();
                             updated.rewards = rewards;
                             updated.value_score = (updated.value_score + total_reward) / 2.0;
-                            if let Err(e) = storage.save_trajectory(&updated) {
+                            if let Err(e) = storage.save_trajectory(&updated).await {
                                 tracing::warn!("Failed to save trajectory: {}", e);
                             }
                         }
@@ -2177,7 +2179,7 @@ async fn load_enabled_skill_contents(
     };
 
     let trajectory_storage = &app_state.trajectory_storage;
-    let all_skills = match trajectory_storage.get_skills() {
+    let all_skills = match trajectory_storage.get_skills().await {
         Ok(skills) => skills,
         Err(_) => return Vec::new(),
     };
@@ -2247,7 +2249,7 @@ async fn load_skill_tools(
         };
 
     let trajectory_storage = &app_state.trajectory_storage;
-    let all_skills = match trajectory_storage.get_skills() {
+    let all_skills = match trajectory_storage.get_skills().await {
         Ok(skills) => skills,
         Err(_) => return (Vec::new(), HashMap::new()),
     };
@@ -2323,27 +2325,41 @@ impl SkillOutputTracker {
         }
     }
 
-    fn record_execution(&self, conversation_id: &str, record: SkillExecutionRecord) {
-        let mut tracker = self.inner.lock().expect("SkillOutputTracker poisoned");
+    fn record_execution(
+        &self,
+        conversation_id: &str,
+        record: SkillExecutionRecord,
+    ) -> Result<(), String> {
+        let mut tracker = self.inner.lock().map_err(|e| e.to_string())?;
         let entries = tracker.entry(conversation_id.to_string()).or_default();
         entries.push(record);
+        Ok(())
     }
 
-    fn get_recent_skills(&self, conversation_id: &str, limit: usize) -> Vec<SkillExecutionRecord> {
-        let tracker = self.inner.lock().expect("SkillOutputTracker poisoned");
+    fn get_recent_skills(
+        &self,
+        conversation_id: &str,
+        limit: usize,
+    ) -> Result<Vec<SkillExecutionRecord>, String> {
+        let tracker = self.inner.lock().map_err(|e| e.to_string())?;
         if let Some(entries) = tracker.get(conversation_id) {
             let start = if entries.len() > limit {
                 entries.len() - limit
             } else {
                 0
             };
-            return entries[start..].to_vec();
+            return Ok(entries[start..].to_vec());
         }
-        Vec::new()
+        Ok(Vec::new())
     }
 
-    fn update_output(&self, conversation_id: &str, skill_name: &str, output: String) {
-        let mut tracker = self.inner.lock().expect("SkillOutputTracker poisoned");
+    fn update_output(
+        &self,
+        conversation_id: &str,
+        skill_name: &str,
+        output: String,
+    ) -> Result<(), String> {
+        let mut tracker = self.inner.lock().map_err(|e| e.to_string())?;
         if let Some(entries) = tracker.get_mut(conversation_id) {
             if let Some(last) = entries
                 .iter_mut()
@@ -2353,6 +2369,7 @@ impl SkillOutputTracker {
                 last.output = Some(output);
             }
         }
+        Ok(())
     }
 }
 
@@ -2554,7 +2571,9 @@ async fn execute_skill_async(
 
     let tracker = get_skill_output_tracker();
     let conversation_id = ctx.conversation_id.clone();
-    let recent_skills = tracker.get_recent_skills(&conversation_id, 10);
+    let recent_skills = tracker
+        .get_recent_skills(&conversation_id, 10)
+        .unwrap_or_default();
     let inter_skill_deps = detect_inter_skill_dependencies(task, &recent_skills);
     let inter_skill_deps_json = if inter_skill_deps.is_empty() {
         None
@@ -2566,7 +2585,7 @@ async fn execute_skill_async(
         skill_name: skill_name.to_string(),
         output: None,
     };
-    tracker.record_execution(&conversation_id, execution_record);
+    let _ = tracker.record_execution(&conversation_id, execution_record);
 
     let mut mcp_result: Option<String> = None;
     let mut message = format!("Skill '{}' executed. Task: {}", skill_name, task);
@@ -2614,7 +2633,7 @@ async fn execute_skill_async(
         message,
     };
 
-    tracker.update_output(&conversation_id, skill_name, result.message.clone());
+    let _ = tracker.update_output(&conversation_id, skill_name, result.message.clone());
 
     if let Some(ref skill_steps) = result.steps {
         if let Ok(skill_steps_json) = serde_json::to_string(skill_steps) {
@@ -3974,7 +3993,7 @@ pub async fn memory_flush(
 
     // Use MemoryService to persist the memory
     let ms = app_state.memory_service.read().await;
-    let result = ms.add_memory(valid_target, &content);
+    let result = ms.add_memory(valid_target, &content).await;
     serde_json::to_value(result).map_err(|e| e.to_string())
 }
 
@@ -4111,6 +4130,7 @@ pub async fn skill_evolution_start(
     let skill = app_state
         .trajectory_storage
         .get_skill(&skill_id)
+        .await
         .map_err(|e| e.to_string())?
         .ok_or_else(|| format!("Skill '{}' not found", skill_id))?;
 
@@ -4118,6 +4138,7 @@ pub async fn skill_evolution_start(
     let trajectories = app_state
         .trajectory_storage
         .get_trajectories(Some(30))
+        .await
         .map_err(|e| e.to_string())?;
     let test_refs: Vec<_> = trajectories.iter().collect();
 
@@ -4137,7 +4158,7 @@ pub async fn skill_evolution_start(
                 let mut updated = skill.clone();
                 updated.content = modification.new_content.clone();
                 updated.quality_score = modification.confidence;
-                if let Err(e) = app_state.trajectory_storage.save_skill(&updated) {
+                if let Err(e) = app_state.trajectory_storage.save_skill(&updated).await {
                     tracing::warn!("[evolution] Failed to save evolved skill: {}", e);
                 }
             }

@@ -17,7 +17,7 @@ interface DatabaseQueryNodeData {
 }
 
 const DatabaseQueryNodeComponent: React.FC<NodeProps> = ({ data: _data, selected }) => {
-  const data = _data as unknown as DatabaseQueryNodeData;
+  const data = _data as unknown as DatabaseQueryNodeData; // SAFE: ReactFlow NodeProps.data is untyped; runtime data matches expected component data
   const { token } = theme.useToken();
 
   const borderColor = selected ? token.colorPrimary : DB_COLOR;

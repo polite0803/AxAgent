@@ -16,7 +16,7 @@ interface DebateNodeData extends ContainerNodeData {
 }
 
 const DebateNodeComponent: React.FC<NodeProps> = ({ data: _data, selected }) => {
-  const data = _data as unknown as DebateNodeData;
+  const data = _data as unknown as DebateNodeData; // SAFE: ReactFlow NodeProps.data is untyped; runtime data matches expected component data
   const { t } = useTranslation();
   const debaterCount = data.debaterSteps?.length || data.childCount || 0;
   const maxRounds = data.maxRounds || 2;

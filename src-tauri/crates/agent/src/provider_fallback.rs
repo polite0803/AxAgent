@@ -63,12 +63,9 @@ impl ProviderHealth {
             self.avg_latency_ms = (self.avg_latency_ms * 7 + latency_ms) / 8;
         }
 
-        self.success_rate = if self.total_calls == 0 {
-            1.0
-        } else {
-            let successes = self.total_calls - self.total_failures;
-            successes as f64 / self.total_calls as f64
-        };
+        // total_calls 已经被 += 1,必 >= 1,无需再判 0
+        let successes = self.total_calls - self.total_failures;
+        self.success_rate = successes as f64 / self.total_calls as f64;
     }
 
     /// 记录一次失败调用
@@ -78,12 +75,9 @@ impl ProviderHealth {
         self.consecutive_failures += 1;
         self.last_check = Instant::now();
 
-        self.success_rate = if self.total_calls == 0 {
-            1.0
-        } else {
-            let successes = self.total_calls - self.total_failures;
-            successes as f64 / self.total_calls as f64
-        };
+        // total_calls 已经被 += 1,必 >= 1,无需再判 0
+        let successes = self.total_calls - self.total_failures;
+        self.success_rate = successes as f64 / self.total_calls as f64;
 
         // 连续失败 3 次标记为 down
         if self.consecutive_failures >= 3 {
@@ -240,30 +234,22 @@ impl ProviderFallbackManager {
         &self,
         preferred_id: Option<&str>,
     ) -> Option<(ProviderEntry, bool)> {
-        let config = self.config.read().await;
-        let health = self.health.read().await;
-        let providers = self.providers.read().await;
+        // 统一锁顺序: config -> providers -> health
+        // 整个决策在一次临界区内完成,避免 TOCTOU 与中途状态变更
+        let config_guard = self.config.read().await;
+        let cooldown = config_guard.cooldown_duration;
+        let providers_guard = self.providers.read().await;
+        let mut health_guard = self.health.write().await;
 
-        // 恢复已冷却的 Provider
-        // （只读借用不能修改，我们用 clone 来处理）
-        drop(health);
-        drop(config);
-
-        // 先做 recover
-        {
-            let config = self.config.read().await;
-            let mut health = self.health.write().await;
-            for h in health.values_mut() {
-                h.maybe_recover(config.cooldown_duration);
-            }
+        // recover 与决策合并到同一临界区,避免重入读取不一致状态
+        for h in health_guard.values_mut() {
+            h.maybe_recover(cooldown);
         }
-
-        let health = self.health.read().await;
 
         // 1. 如果有首选且健康，直接返回
         if let Some(pref_id) = preferred_id
-            && let Some(entry) = providers.iter().find(|p| p.provider_id == pref_id)
-            && let Some(h) = health.get(pref_id)
+            && let Some(entry) = providers_guard.iter().find(|p| p.provider_id == pref_id)
+            && let Some(h) = health_guard.get(pref_id)
             && !h.marked_down
         {
             return Some((entry.clone(), false));
@@ -271,26 +257,38 @@ impl ProviderFallbackManager {
 
         // 2. 找到首选对应档次
         let preferred_tier = preferred_id
-            .and_then(|id| providers.iter().find(|p| p.provider_id == id))
+            .and_then(|id| providers_guard.iter().find(|p| p.provider_id == id))
             .map(|p| p.tier)
             .unwrap_or(ProviderTier::Standard);
 
         // 3. 按降级链搜索
         let chain = preferred_tier.degradation_chain();
         for tier in &chain {
-            for entry in providers.iter() {
+            for entry in providers_guard.iter() {
                 if entry.tier == *tier
-                    && let Some(h) = health.get(&entry.provider_id)
+                    && let Some(h) = health_guard.get(&entry.provider_id)
                     && !h.marked_down
                 {
-                    let is_fallback = entry.provider_id != preferred_id.unwrap_or("");
+                    // P1-5 修复:边界错误 —— 使用 map_or 避免 preferred_id 为 None 时
+                    // unwrap_or("") 永远产生空字符串,导致 entry.provider_id != "" 恒为 true
+                    let is_fallback = preferred_id.map_or(false, |id| entry.provider_id != id);
                     return Some((entry.clone(), is_fallback));
                 }
             }
         }
 
-        // 4. 所有 Provider 都 down 了，尝试强制使用第一个
-        if let Some(entry) = providers.first() {
+        // 4. 所有 Provider 都 down 了,强制恢复冷却最短的那个,避免服务彻底不可用
+        //    (P1-4 修复:不直接返回第一个,而是选择"冷得最透"的,即 last_check 最早的)
+        if let Some(entry) = providers_guard.iter().min_by_key(|p| {
+            health_guard
+                .get(&p.provider_id)
+                .map(|h| h.last_check)
+                .unwrap_or_else(Instant::now)
+        }) {
+            if let Some(h) = health_guard.get_mut(&entry.provider_id) {
+                h.marked_down = false;
+                h.consecutive_failures = 0;
+            }
             return Some((entry.clone(), true));
         }
 

@@ -15,7 +15,7 @@ interface SwarmNodeData extends ContainerNodeData {
 }
 
 const SwarmNodeComponent: React.FC<NodeProps> = ({ data: _data, selected }) => {
-  const data = _data as unknown as SwarmNodeData;
+  const data = _data as unknown as SwarmNodeData; // SAFE: ReactFlow NodeProps.data is untyped; runtime data matches expected component data
   const { t } = useTranslation();
   const agentCount = data.agentSteps?.length || data.childCount || 0;
   const maxRounds = data.maxRounds || 3;

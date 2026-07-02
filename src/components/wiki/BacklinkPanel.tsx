@@ -171,8 +171,9 @@ export function BacklinkPanel({
               {bl.snippets.length > 0 && (
                 <div className="px-3 pb-2">
                   {bl.snippets.map((snippet, si) => (
+                    // FIXME: snippets 是字符串数组，无稳定唯一标识
                     <Paragraph
-                      key={si}
+                      key={`snippet-${si}`}
                       className="!mb-1 text-xs leading-relaxed"
                       style={{ color: token.colorTextSecondary }}
                       ellipsis={{ rows: 2, expandable: false }}

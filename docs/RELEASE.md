@@ -5,7 +5,7 @@
 采用 [Semantic Versioning 2.0.0](https://semver.org/lang/zh-CN/)：
 
 ```
-MAJOR.MINOR.PATCH    例: 2.4.0 → 2.5.0 → 3.0.0
+MAJOR.MINOR.PATCH    例: 2.8.0 → 2.9.0 → 3.0.0
 ```
 
 | 位置 | 触发条件 |
@@ -46,12 +46,12 @@ gh run list --branch master --limit 5
 
 ```bash
 # PATCH 升级
-npm run bump 2.4.1
+npm run bump 2.8.1
 # MINOR 升级
-npm run bump 2.5.0
+npm run bump 2.9.0
 # Beta 预发布（手动打 tag）
-npm run bump 2.5.0
-git tag v2.5.0-beta.1
+npm run bump 2.9.0
+git tag v2.9.0-beta.1
 git push --tags
 ```
 
@@ -79,16 +79,6 @@ git push && git push --tags
 - [ ] 检查 Release Notes 内容正确
 - [ ] 将 GitHub Release 从 draft 改为 published
 - [ ] 通知团队
-
-## Composer 包发布
-
-前端 Composer 包 (`@axagent/composer`) 独立于桌面端发版：
-
-```bash
-cd packages/composer
-npm version patch  # 或 minor
-npm publish
-```
 
 ## 回滚
 

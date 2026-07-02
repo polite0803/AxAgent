@@ -51,8 +51,7 @@ export function WelcomeWizard() {
   useEffect(() => {
     void detectOllama();
     void detectKeys();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [detectOllama, detectKeys]);
 
   const handleApplyPreset = async (preset: string) => {
     if (applying) {

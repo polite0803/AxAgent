@@ -23,7 +23,7 @@ interface SubWorkflowNodeData {
 }
 
 const SubWorkflowNodeComponent: React.FC<NodeProps> = ({ data: _data, selected }) => {
-  const data = _data as unknown as SubWorkflowNodeData;
+  const data = _data as unknown as SubWorkflowNodeData; // SAFE: ReactFlow NodeProps.data is untyped; runtime data matches expected component data
   const { token } = theme.useToken();
 
   const workflowId = data.subWorkflowId || data.target_workflow_id;

@@ -12,7 +12,7 @@ interface Props {
 }
 export const NotificationPropertyPanel: React.FC<Props> = ({ node, onUpdate, onDelete }) => {
   const { token } = theme.useToken();
-  const n = node as unknown as NotificationNode;
+  const n = node as unknown as NotificationNode; // SAFE: WorkflowNode union narrowed to specific node type via config field access
   const c = n.config
     || { channel: "webhook", message: "", webhook_url: "", recipients: [], subject: "", enabled: true, output_var: "" };
   const sc = (k: string, v: unknown) => onUpdate({ config: { ...c, [k]: v } });

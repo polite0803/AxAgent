@@ -76,6 +76,8 @@ export function MonacoEditor({
     return () => {
       editor.dispose();
     };
+    // 仅挂载时初始化 Monaco editor 实例，后续通过另一个 effect 更新内容。
+    // 加入 value/language/onChange 会导致每次变更销毁并重建编辑器，性能极差。
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

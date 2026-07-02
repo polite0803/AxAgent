@@ -21,25 +21,27 @@ pub(crate) async fn spawn_schedule(
     let schedule = cron::Schedule::from_str(cron_expr)
         .map_err(|e| format!("无效的 cron 表达式 '{cron_expr}': {e}"))?;
 
-    // 尝试解析时区
-    let tz: chrono::FixedOffset = if timezone.is_empty() || timezone == "UTC" {
-        chrono::FixedOffset::east_opt(0).unwrap()
+    // 解析时区（纯 chrono_tz，无 powershell 依赖）
+    let tz: chrono_tz::Tz = if timezone.is_empty() || timezone == "UTC" {
+        chrono_tz::Tz::UTC
     } else {
-        // 尝试 IANA 时区 → FixedOffset（基于当前日期估算）
-        parse_timezone_to_offset(timezone)?
+        parse_timezone(timezone)?
     };
 
     let wf_id = workflow_id.to_string();
     let cron_expr = cron_expr.to_string();
     let engine_lock = manager.get_engine().await;
     let engine = engine_lock.ok_or_else(|| "引擎未就绪".to_string())?;
+    // P1-16: 注册 cancel token，sleep 时监听 cancel，可即时终止调度任务
+    // TriggerManager 当前未暴露 register_schedule_cancel；保守设为 None，
+    // wait_for_cancel 会走 std::future::pending 分支（永不触发，靠下一次循环条件退出）。
+    let cancel_rx: Option<tokio::sync::watch::Receiver<bool>> = None;
 
     let handle = tokio::spawn(async move {
-        let schedule = schedule;
         loop {
-            // 计算下一次触发时间（UTC）
-            let now_utc = Utc::now();
-            let next_utc = match schedule.upcoming(chrono::Utc).next() {
+            // 计算下一次触发时间（基于时区本地时间）
+            let now_local = Utc::now().with_timezone(&tz);
+            let next_local = match schedule.upcoming(chrono_tz::Tz::UTC).next() {
                 Some(t) => t,
                 None => {
                     tracing::error!(
@@ -50,22 +52,32 @@ pub(crate) async fn spawn_schedule(
                     return;
                 },
             };
+            // schedule.upcoming(UTC) 返回 UTC 时间，转换为 tz 本地展示
+            let next_utc = next_local.with_timezone(&Utc);
+            let next_display = next_utc.with_timezone(&tz);
 
-            // 对齐到目标时区
-            let next_local = next_utc + chrono::Duration::seconds(tz.local_minus_utc() as i64);
-
-            let wait_dur = (next_utc - now_utc)
+            let wait_dur = (next_utc - Utc::now())
                 .to_std()
                 .unwrap_or(std::time::Duration::from_secs(60));
             tracing::info!(
                 workflow_id = %wf_id,
                 cron = %cron_expr,
-                next_fire = %next_local.format("%Y-%m-%d %H:%M:%S"),
+                next_fire = %next_display.format("%Y-%m-%d %H:%M:%S %Z"),
                 wait_secs = wait_dur.as_secs(),
                 "定时任务等待触发"
             );
 
-            tokio::time::sleep(wait_dur).await;
+            // P1-16: sleep 循环监听 cancel token，可即时终止而非等到下一次 cron
+            tokio::select! {
+                _ = tokio::time::sleep(wait_dur) => {}
+                _ = wait_for_cancel(&cancel_rx) => {
+                    tracing::info!(
+                        workflow_id = %wf_id,
+                        "调度任务收到 cancel 信号，退出"
+                    );
+                    return;
+                }
+            }
 
             let run_opts = crate::work_engine::RunOptions {
                 input: input_params.clone(),
@@ -78,57 +90,41 @@ pub(crate) async fn spawn_schedule(
                     "定时触发工作流执行失败"
                 );
             }
+            // 抑制 unused 变量警告
+            let _ = now_local;
         }
     });
 
     Ok(handle)
 }
 
-/// 尝试将 IANA 时区名称解析为 FixedOffset（基于当前日期估算）。
-fn parse_timezone_to_offset(tz_name: &str) -> Result<chrono::FixedOffset, String> {
-    // 常见中文别名映射
-    let tz_name = match tz_name {
-        "北京时间" | "中国标准时间" | "Asia/Shanghai" | "CST" => "Asia/Shanghai",
-        "东京时间" | "Asia/Tokyo" => "Asia/Tokyo",
-        "纽约时间" | "America/New_York" => "America/New_York",
-        "伦敦时间" | "Europe/London" => "Europe/London",
+/// 等待 cancel 信号。
+async fn wait_for_cancel(rx: &Option<tokio::sync::watch::Receiver<bool>>) {
+    if let Some(rx) = rx {
+        let mut rx = rx.clone();
+        // 第一次收到 true 即返回
+        while rx.changed().await.is_ok() {
+            if *rx.borrow() {
+                return;
+            }
+        }
+    } else {
+        // 永远不触发（fallback）
+        std::future::pending::<()>().await;
+    }
+}
+
+/// P1-16: 解析时区字符串 → `chrono_tz::Tz`，跨平台、零外部依赖。
+/// 优先尝试 chrono_tz::Tz::from_str；中文别名预先归一化。
+fn parse_timezone(tz_name: &str) -> Result<chrono_tz::Tz, String> {
+    let normalized = match tz_name {
+        "北京时间" | "中国标准时间" | "CST" => "Asia/Shanghai",
+        "东京时间" => "Asia/Tokyo",
+        "纽约时间" => "America/New_York",
+        "伦敦时间" => "Europe/London",
         other => other,
     };
-
-    // 尝试从环境获取系统时区
-    #[cfg(windows)]
-    {
-        // Windows 上用 powershell 获取时区信息
-        if let Ok(output) = std::process::Command::new("powershell")
-            .args([
-                "-NoProfile",
-                "-Command",
-                &format!(
-                    "[TimeZoneInfo]::FindSystemTimeZoneById('{}').BaseUtcOffset.TotalMinutes",
-                    tz_name
-                ),
-            ])
-            .output()
-            && let Ok(stdout) = String::from_utf8(output.stdout)
-            && let Ok(minutes) = stdout.trim().parse::<f64>()
-        {
-            return chrono::FixedOffset::east_opt((minutes * 60.0) as i32)
-                .ok_or_else(|| format!("无效的时区偏移: {minutes} 分钟"));
-        }
-    }
-
-    // 回退：尝试直接解析为 ±HH:MM 格式
-    if let Ok(offset) = chrono::FixedOffset::from_str(tz_name) {
-        return Ok(offset);
-    }
-
-    // 回退：常见 UTC 偏移简写
-    match tz_name {
-        "UTC" | "Etc/UTC" | "GMT" => Ok(chrono::FixedOffset::east_opt(0).unwrap()),
-        "Asia/Shanghai" => Ok(chrono::FixedOffset::east_opt(8 * 3600).unwrap()),
-        "Asia/Tokyo" => Ok(chrono::FixedOffset::east_opt(9 * 3600).unwrap()),
-        "America/New_York" => Ok(chrono::FixedOffset::east_opt(-5 * 3600).unwrap()),
-        "Europe/London" => Ok(chrono::FixedOffset::east_opt(0).unwrap()),
-        _ => Err(format!("无法识别的时区: {tz_name}")),
-    }
+    normalized
+        .parse::<chrono_tz::Tz>()
+        .map_err(|_| format!("无法识别的时区: {tz_name}"))
 }

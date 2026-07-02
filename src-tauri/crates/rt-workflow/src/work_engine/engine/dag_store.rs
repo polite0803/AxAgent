@@ -192,31 +192,67 @@ pub(crate) fn skip_disabled_branch_nodes(
     }
 }
 
-/// 递归标记节点及其所有下游节点为 Skipped
-pub(crate) fn mark_subtree_skipped(workflow: &mut Workflow, edges: &[WorkflowEdge], node_id: &str) {
-    // 如果已经标记过（Completed/Failed/Skipped），不再递归
-    if let Some(state) = workflow.node_states.get(node_id)
-        && matches!(state.status, NodeStatus::Completed | NodeStatus::Failed | NodeStatus::Skipped)
-    {
-        return;
-    }
+/// P2-20: 标记节点及其所有下游节点为 Skipped —— **改用显式栈迭代**避免栈溢出。
+///
+/// 之前的递归实现在深 DAG（如 500+ 节点的 financial pipeline）上会因为
+/// Rust 默认栈大小（8MB）触发 stack overflow。改成 `Vec<String>` 显式栈：
+/// - 每个节点 push 一次
+/// - 弹栈时把每个未访问的下游 push 进去
+/// - 遇到已 terminal 状态（Completed / Failed / Skipped）就跳过
+pub(crate) fn mark_subtree_skipped(workflow: &mut Workflow, edges: &[WorkflowEdge], root_id: &str) {
+    let mut stack: Vec<String> = Vec::with_capacity(16);
+    stack.push(root_id.to_string());
 
-    workflow
-        .node_states
-        .entry(node_id.to_string())
-        .or_insert_with(|| NodeRuntimeState {
-            status: NodeStatus::Skipped,
-            attempts: 0,
-            error: None,
-            started_at: None,
-            completed_at: Some(current_timestamp() as i64),
-        })
-        .status = NodeStatus::Skipped;
+    // 防御性上限：单次 mark 最多处理 MAX_NODES 个节点，避免恶意/畸形 DAG 触发 DoS
+    const MAX_NODES: usize = 10_000;
+    let mut processed: usize = 0;
 
-    // 递归跳过所有下游节点
-    for edge in edges {
-        if edge.source == node_id {
-            mark_subtree_skipped(workflow, edges, &edge.target);
+    while let Some(node_id) = stack.pop() {
+        if processed >= MAX_NODES {
+            tracing::error!(
+                processed,
+                "mark_subtree_skipped: 超过 MAX_NODES={MAX_NODES}，停止展开以防 DoS"
+            );
+            break;
+        }
+        processed += 1;
+
+        // 已 terminal 状态 → 不再展开
+        if let Some(state) = workflow.node_states.get(&node_id)
+            && matches!(
+                state.status,
+                NodeStatus::Completed | NodeStatus::Failed | NodeStatus::Skipped
+            )
+        {
+            continue;
+        }
+
+        workflow
+            .node_states
+            .entry(node_id.clone())
+            .or_insert_with(|| NodeRuntimeState {
+                status: NodeStatus::Skipped,
+                attempts: 0,
+                error: None,
+                started_at: None,
+                completed_at: Some(current_timestamp() as i64),
+            })
+            .status = NodeStatus::Skipped;
+
+        // 把所有下游未访问节点 push 到栈上（继续展开）
+        for edge in edges {
+            if edge.source == node_id {
+                let target = edge.target.clone();
+                let already_terminal = workflow.node_states.get(&target).is_some_and(|s| {
+                    matches!(
+                        s.status,
+                        NodeStatus::Completed | NodeStatus::Failed | NodeStatus::Skipped
+                    )
+                });
+                if !already_terminal {
+                    stack.push(target);
+                }
+            }
         }
     }
 }

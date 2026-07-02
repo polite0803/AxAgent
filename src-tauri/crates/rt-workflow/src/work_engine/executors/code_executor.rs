@@ -9,7 +9,9 @@
 
 use async_trait::async_trait;
 use axagent_harness::workflow_types::WorkflowNode;
+use rhai::Engine;
 use serde_json::Value;
+use std::collections::HashMap;
 
 use crate::work_engine::execution_state::ExecutionState;
 use crate::work_engine::node_executor_trait::{
@@ -37,13 +39,11 @@ impl Default for CodeExecutor {
 /// Phase 5: 返回 (script_result, input_params_snapshot) 二元组。
 /// input_params_snapshot 是所有 input_mapping 解析值的快照，
 /// 用于 What-If 回测 UI 读取原始参数值。
-fn execute_rhai_directly(
+async fn execute_rhai_directly(
     code: &str,
     input_mapping: &std::collections::HashMap<String, String>,
     context: &ExecutionState,
 ) -> Result<(serde_json::Value, serde_json::Value), NodeError> {
-    use rhai::{Engine, Scope};
-
     let mut engine = Engine::new();
     // SECURITY (C4): Rhai 沙箱限制 — 防 DoS
     engine.set_max_operations(200_000);
@@ -85,17 +85,17 @@ fn execute_rhai_directly(
             },
         }
     });
-    let mut scope = Scope::new();
     let mut input_params_snapshot = serde_json::Map::new();
 
     // V49 诊断：input_mapping 是否为空（空则所有变量丢失）
-    tracing::error!(
+    tracing::debug!(
         "[code_executor V49] input_mapping entries={}, keys={:?}",
         input_mapping.len(),
         input_mapping.keys().collect::<Vec<_>>()
     );
 
     // 将 input_mapping 的值注入 Rhai scope
+    let mut scope_vars: HashMap<String, rhai::Dynamic> = HashMap::new();
     for (target_key, source_key) in input_mapping {
         let value = super::resolve_var_path(source_key, &context.variables);
         // 记录解析值的快照（Phase 5: What-If 回测参数持久化）
@@ -119,7 +119,7 @@ fn execute_rhai_directly(
             Some(Value::String(s)) => rhai::Dynamic::from(s.clone()),
             Some(v) => json_value_to_dynamic(v),
         };
-        scope.push_constant(target_key.as_str(), dyn_val);
+        scope_vars.insert(target_key.clone(), dyn_val);
     }
     // V29 诊断：记录所有 input_mapping resolve 结果，精确定位哪个变量解析失败
     tracing::warn!(
@@ -128,10 +128,80 @@ fn execute_rhai_directly(
     );
 
     // 执行脚本，期望返回一个 map
-    let result: rhai::Dynamic = engine.eval_with_scope(&mut scope, code).map_err(|e| {
-        tracing::error!(error = %e, "Rhai 执行失败");
-        NodeError::exec_failed(error_code::VALIDATION_FAILED, format!("Rhai execution failed: {e}"))
-    })?;
+    // scope_vars 已从 input_mapping 直接构建为 HashMap，避免 Rhai Scope 的 Send 限制。
+    let code_owned = code.to_string();
+    let join = tokio::task::spawn_blocking(move || {
+        let mut engine = Engine::new();
+        engine.set_max_operations(200_000);
+        engine.set_max_call_levels(32);
+        engine.set_max_modules(0);
+        engine.set_max_string_size(2_000_000);
+        engine.set_max_array_size(50_000);
+        engine.set_max_expr_depths(1024, 1024);
+        engine.register_fn("clamp", |value: f64, min: f64, max: f64| -> f64 {
+            if value < min {
+                min
+            } else if value > max {
+                max
+            } else {
+                value
+            }
+        });
+        engine.register_fn("join", |arr: rhai::Array, sep: &str| -> String {
+            arr.iter()
+                .map(|item| item.to_string())
+                .collect::<Vec<_>>()
+                .join(sep)
+        });
+        engine.register_fn("json_parse", |s: &str| -> rhai::Dynamic {
+            match serde_json::from_str::<serde_json::Value>(s) {
+                Ok(v) => json_value_to_dynamic(&v),
+                Err(e) => {
+                    tracing::warn!(
+                        "[code_executor] json_parse 失败: {e}, input={}",
+                        &s[..s.len().min(200)]
+                    );
+                    rhai::Dynamic::UNIT
+                },
+            }
+        });
+        let mut scope = rhai::Scope::new();
+        for (k, v) in scope_vars {
+            scope.push_constant(k, v);
+        }
+        engine
+            .eval_expression::<rhai::Dynamic>(&code_owned)
+            .map_err(|e| e.to_string())
+    });
+    let result: rhai::Dynamic = match tokio::time::timeout(
+        std::time::Duration::from_secs(30), // P2-18: 30s 硬上限
+        join,
+    )
+    .await
+    {
+        Ok(Ok(Ok(v))) => v,
+        Ok(Ok(Err(e))) => {
+            tracing::error!(error = %e, "Rhai 执行失败");
+            return Err(NodeError::exec_failed(
+                error_code::VALIDATION_FAILED,
+                format!("Rhai execution failed: {e}"),
+            ));
+        },
+        Ok(Err(join_err)) => {
+            tracing::error!(error = %join_err, "Rhai 任务被取消");
+            return Err(NodeError::exec_failed(
+                error_code::TIMEOUT,
+                "Rhai task cancelled".to_string(),
+            ));
+        },
+        Err(_elapsed) => {
+            tracing::error!("Rhai 执行超时（30s）—— 强制终止");
+            return Err(NodeError::exec_failed(
+                error_code::TIMEOUT,
+                "Rhai execution exceeded 30s timeout".to_string(),
+            ));
+        },
+    };
 
     // 将 Rhai 结果转换回 JSON
     Ok((dynamic_to_json_value(&result), Value::Object(input_params_snapshot)))
@@ -247,7 +317,8 @@ impl NodeExecutorTrait for CodeExecutor {
                 &code_node.config.code,
                 &code_node.config.input_mapping,
                 context,
-            )?;
+            )
+            .await?;
             // Phase 5: 将 input_mapping 解析值快照嵌入 output.input_params，
             // 确保 What-If 回测 UI 可直接读取原始参数值，无需从上游节点重建。
             return Ok(NodeOutput {

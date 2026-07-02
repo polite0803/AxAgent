@@ -16,7 +16,7 @@ interface Props {
 export const WorkflowRefPropertyPanel: React.FC<Props> = ({ node, onUpdate, onDelete }) => {
   const { t } = useTranslation();
   const { token } = theme.useToken();
-  const n = node as unknown as WorkflowRefNode;
+  const n = node as unknown as WorkflowRefNode; // SAFE: WorkflowNode union narrowed to specific node type via config field access
   const c = n.config || {
     target_workflow_id: "",
     input_mapping: {},

@@ -203,7 +203,9 @@ export const CommandSuggest: React.FC<CommandSuggestProps> = ({
     [suggestions, selectedIndex, onSelect],
   );
 
-  // Expose key handler
+  // Expose key handler — FIXME: mutating React component prototype to expose a method.
+  // Should be refactored to use a shared module-level ref or context instead.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   useEffect(() => {
     (
       CommandSuggest as unknown as { _handleKeyDown: typeof handleKeyDown }

@@ -18,7 +18,7 @@ export const DatabaseQueryPropertyPanel: React.FC<Props> = ({ node, onUpdate, on
   const { token } = theme.useToken();
   const { generate: aiGenerate, generating: aiGenerating } = useNodeAIAssist();
   const [messageApi, contextHolder] = message.useMessage();
-  const dq = node as unknown as DatabaseQueryNode;
+  const dq = node as unknown as DatabaseQueryNode; // SAFE: WorkflowNode union narrowed to specific node type via config field access
   const config = dq.config || { query: "", params: [], connection_name: "", timeout_secs: 30, output_var: "" };
 
   const setCfg = (key: string, val: unknown) => onUpdate({ config: { ...config, [key]: val } });

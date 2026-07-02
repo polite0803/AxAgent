@@ -890,7 +890,11 @@ impl ProviderAdapter for OpenAIAdapter {
                         });
                     if let Some(tc_deltas) = tool_call_deltas {
                         for tc in tc_deltas {
-                            let idx = tc.index;
+                            // 上限保护:防止恶意/异常上游把 index 推到很大,
+                            // 导致 vector grow 吃掉内存
+                            const MAX_PENDING_TOOL_CALLS: usize = 256;
+                            let idx =
+                                (tc.index as u32).min(MAX_PENDING_TOOL_CALLS as u32 - 1) as usize;
                             while pending_tool_calls.len() <= idx {
                                 pending_tool_calls.push((
                                     String::new(),
@@ -1035,12 +1039,14 @@ impl ProviderAdapter for OpenAIAdapter {
             }
 
             // Stream ended without explicit [DONE]
+            // 即使流异常结束,也要把已累计的 usage 透出,便于上层统计 token 消耗
+            let last_usage = last_usage.take();
             let _ = tx.try_send(Ok(ChatStreamChunk {
                 content: None,
                 thinking: None,
                 done: true,
                 is_final: None,
-                usage: None,
+                usage: last_usage,
                 tool_calls: None,
             }));
         });
@@ -1141,11 +1147,9 @@ impl ProviderAdapter for OpenAIAdapter {
     }
 
     async fn validate_key(&self, ctx: &ProviderRequestContext) -> Result<bool> {
-        // Try list_models first
-        if self.list_models(ctx).await.is_ok() {
-            return Ok(true);
-        }
-        // Fallback: probe /models endpoint, valid key → 200/400, invalid → 401/403
+        // 轻量端点:`/models` 仅校验鉴权有效性,
+        // 比之前的 list_models 还要轻,避免触发模型列表遍历开销。
+        // 401/403 → 鉴权失败;200/4xx(除鉴权) → 鉴权通过
         let url = format!("{}/models", Self::base_url(ctx));
         let resp = crate::apply_request_headers(
             self.get_client(ctx)?

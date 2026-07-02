@@ -55,6 +55,7 @@ pub mod message_continuation;
 pub mod messages;
 pub mod migration;
 pub mod onboarding;
+pub mod orchestrator;
 pub mod parallel_execution;
 pub mod personality;
 pub mod plan;

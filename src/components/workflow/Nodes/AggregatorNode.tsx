@@ -15,7 +15,7 @@ interface AggregatorNodeData extends ContainerNodeData {
 }
 
 const AggregatorNodeComponent: React.FC<NodeProps> = ({ data: _data, selected }) => {
-  const data = _data as unknown as AggregatorNodeData;
+  const data = _data as unknown as AggregatorNodeData; // SAFE: ReactFlow NodeProps.data is untyped; runtime data matches expected component data
   const { t } = useTranslation();
 
   return (

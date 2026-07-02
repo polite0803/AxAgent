@@ -18,7 +18,7 @@ interface ParallelNodeData extends ContainerNodeData {
 }
 
 const ParallelNodeComponent: React.FC<NodeProps> = ({ data: _data, selected }) => {
-  const data = _data as unknown as ParallelNodeData;
+  const data = _data as unknown as ParallelNodeData; // SAFE: ReactFlow NodeProps.data is untyped; runtime data matches expected component data
   const { t } = useTranslation();
   const isDecorative = data.kind === "decorative";
   const branches = data.branches || 2;

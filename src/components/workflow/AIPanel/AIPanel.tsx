@@ -51,25 +51,33 @@ const NL_PARSE_PROGRESS_MAP: Record<string, number> = {
 /** Render assistant message content with Markdown-like formatting — defined outside component to avoid re-creation */
 function renderAssistantContent(content: string) {
   const lines = content.split("\n");
+  // FIXME: 文本行无稳定唯一标识，使用前缀+索引作为 key
   return lines.map((line, i) => {
+    const lineKey = `line-${i}`;
     if (line.startsWith("### ")) {
       return (
-        <div key={i} style={{ fontWeight: 600, fontSize: 14, marginTop: 8, marginBottom: 4 }}>{line.slice(4)}</div>
+        <div key={lineKey} style={{ fontWeight: 600, fontSize: 14, marginTop: 8, marginBottom: 4 }}>
+          {line.slice(4)}
+        </div>
       );
     }
     if (line.startsWith("## ")) {
       return (
-        <div key={i} style={{ fontWeight: 700, fontSize: 15, marginTop: 10, marginBottom: 4 }}>{line.slice(3)}</div>
+        <div key={lineKey} style={{ fontWeight: 700, fontSize: 15, marginTop: 10, marginBottom: 4 }}>
+          {line.slice(3)}
+        </div>
       );
     }
     if (line.startsWith("# ")) {
       return (
-        <div key={i} style={{ fontWeight: 700, fontSize: 16, marginTop: 12, marginBottom: 6 }}>{line.slice(2)}</div>
+        <div key={lineKey} style={{ fontWeight: 700, fontSize: 16, marginTop: 12, marginBottom: 6 }}>
+          {line.slice(2)}
+        </div>
       );
     }
     if (line.startsWith("- ") || line.startsWith("* ")) {
       return (
-        <div key={i} style={{ paddingLeft: 16, position: "relative" }}>
+        <div key={lineKey} style={{ paddingLeft: 16, position: "relative" }}>
           <span style={{ position: "absolute", left: 4 }}>•</span>
           {line.slice(2)}
         </div>
@@ -77,13 +85,13 @@ function renderAssistantContent(content: string) {
     }
     const numberedMatch = line.match(/^(\d+)\.\s/);
     if (numberedMatch) {
-      return <div key={i} style={{ paddingLeft: 16 }}>{line}</div>;
+      return <div key={lineKey} style={{ paddingLeft: 16 }}>{line}</div>;
     }
     if (line.startsWith("```")) {
       return null;
     }
     if (line.trim() === "") {
-      return <div key={i} style={{ height: 8 }} />;
+      return <div key={lineKey} style={{ height: 8 }} />;
     }
     const boldText = line.replace(/\*\*(.*?)\*\*/g, "<b>$1</b>");
     const codeText = boldText.replace(
@@ -91,7 +99,7 @@ function renderAssistantContent(content: string) {
       "<code style='background:rgba(0,0,0,0.06);padding:1px 4px;border-radius:3px;font-size:12px'>$1</code>",
     );
     const safeHtml = DOMPurify.sanitize(codeText, { ALLOWED_TAGS: ["b", "code"] });
-    return <div key={i} dangerouslySetInnerHTML={{ __html: safeHtml }} />;
+    return <div key={lineKey} dangerouslySetInnerHTML={{ __html: safeHtml }} />;
   });
 }
 
@@ -113,6 +121,7 @@ export const AIPanel: React.FC<AIPanelProps> = ({
   const { token } = theme.useToken();
   const { message } = App.useApp();
   // 用 store selector 订阅 nodes/edges 变化，确保 Diff 预览拿到最新数据
+  // SAFE: immer middleware wraps store state; runtime return type is correct WorkflowNode[]/WorkflowEdge[]
   const nodes = useWorkflowEditorStore((s) => s.nodes) as unknown as WorkflowNode[];
   const edges = useWorkflowEditorStore((s) => s.edges) as unknown as WorkflowEdge[];
 
@@ -676,9 +685,9 @@ export const AIPanel: React.FC<AIPanelProps> = ({
                     >
                       进化历史
                     </label>
-                    {recent.map((evt, i) => (
+                    {recent.map((evt) => (
                       <Card
-                        key={i}
+                        key={`${evt.version}-${evt.timestamp}`}
                         size="small"
                         style={{
                           background: token.colorFillTertiary,

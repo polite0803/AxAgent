@@ -607,6 +607,9 @@ export const ContextGraphPanel = React.memo(function ContextGraphPanel({
                     onKeyDown={(e) => {
                       if (e.key === "Enter" || e.key === " ") {
                         e.preventDefault();
+                        // FIXME: KeyboardEvent cast to MouseEvent to reuse click handler.
+                        // toggleType should accept React.SyntheticEvent or have a dedicated
+                        // callback variant that doesn't depend on MouseEvent.
                         toggleType(type, e as unknown as React.MouseEvent);
                       }
                     }}

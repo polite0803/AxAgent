@@ -21,7 +21,7 @@ interface PhaseSeparatorData {
 const PhaseSeparatorNodeComponent: React.FC<
   NodeProps
 > = ({ data: _data, selected }) => {
-  const data = _data as unknown as PhaseSeparatorData;
+  const data = _data as unknown as PhaseSeparatorData; // SAFE: ReactFlow NodeProps.data is untyped; runtime data matches expected component data
   const { t } = useTranslation();
   const { token } = theme.useToken();
 
