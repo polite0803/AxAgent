@@ -154,9 +154,10 @@ async fn with_retry_stops_on_unrecoverable() {
     let err_msg = "500 parse error: invalid syntax";
     let result = with_retry(&policy, || async { Err::<(), _>(err_msg) }).await;
     assert!(result.is_err());
-    // 不可恢复错误首次尝试即应返回失败 (attempts=0, 未进行任何重试)
+    // 不可恢复错误首次尝试即返回失败,计入 1 次尝试 (f() 被调用了一次),
+    // 但不进行任何重试。attempts=1 表示"执行了 1 次,判定不可恢复即止"。
     match result.unwrap_err() {
-        RetryError::Exhausted { attempts, .. } => assert_eq!(attempts, 0),
+        RetryError::Exhausted { attempts, .. } => assert_eq!(attempts, 1),
         other => panic!("expected Exhausted with 1 attempt, got {other:?}"),
     }
 }
