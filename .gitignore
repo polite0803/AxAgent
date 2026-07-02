@@ -101,6 +101,9 @@ service-account*.json
 cargo-check-output.txt
 .check-i18n-tmp-*
 
+# i18n allowlist backups (temporary files)
+scripts/.i18n-allowlist.json.backup*
+
 # Generated scripts
 *.mjs
 axagent-design-prototype.html
