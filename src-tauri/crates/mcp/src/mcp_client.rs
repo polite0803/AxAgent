@@ -1332,11 +1332,18 @@ mod tests {
     #[cfg(not(target_os = "android"))]
     #[tokio::test]
     async fn call_tool_stdio_does_not_hang_when_initialize_stdout_is_non_json_then_eof() {
-        let args = vec!["npm notice".to_string()];
+        // Windows 上没有独立的 echo.exe（echo 是 cmd 内置），且 MSYS echo.exe
+        // 通过 tokio piped IO 运行时管道 EOF 信号时序不可靠，导致 rmcp handshake
+        // 卡住等待更多数据。使用 cmd /c echo 确保管道正确关闭。
+        let (cmd, args) = if cfg!(target_os = "windows") {
+            ("cmd".to_string(), vec!["/c".to_string(), "echo".to_string(), "npm notice".to_string()])
+        } else {
+            ("echo".to_string(), vec!["npm notice".to_string()])
+        };
 
         let result = tokio::time::timeout(
             std::time::Duration::from_secs(5),
-            call_tool_stdio("echo", &args, &HashMap::new(), "fetch_url", serde_json::json!({})),
+            call_tool_stdio(&cmd, &args, &HashMap::new(), "fetch_url", serde_json::json!({})),
         )
         .await;
 

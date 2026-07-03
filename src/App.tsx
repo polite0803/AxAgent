@@ -108,6 +108,7 @@ function AppInner() {
   const location = useLocation();
   const navigate = useNavigate();
   const { open: cmdOpen, setOpen: setCmdOpen } = useCommandPalette();
+  const handleCloseCmdPalette = useCallback(() => setCmdOpen(false), [setCmdOpen]);
   const isInSettings = location.pathname === "/settings"
     || location.pathname.startsWith("/settings/");
   const sidebarCollapsed = useUIStore((s) => s.sidebarCollapsed);
@@ -264,7 +265,7 @@ function AppInner() {
               <ModuleErrorBoundary moduleName="TitleBar">
                 <TitleBar />
               </ModuleErrorBoundary>
-              <CommandPalette open={cmdOpen} onClose={() => setCmdOpen(false)} />
+              <CommandPalette open={cmdOpen} onClose={handleCloseCmdPalette} />
               <GlobalCopyMenu />
               <ErrorNotificationToast />
               <div className="main-area">
