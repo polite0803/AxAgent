@@ -10,6 +10,7 @@
   },
   "nav": {
     "chat": "चैट",
+    "dashboard": "डैशबोर्ड",
     "knowledge": "ज्ञान आधार",
     "memory": "स्मृति",
     "gateway": "गेटवे",
@@ -49,7 +50,8 @@
     "sectionInvestExecute": "Execute",
     "sectionInvestReview": "Review",
     "closeAgent": "[TODO] Close Agent",
-    "openAgent": "[TODO] Open Agent"
+    "openAgent": "[TODO] Open Agent",
+    "sectionOverview": "अवलोकन"
   },
   "chat": {
     "newConversation": "नई बातचीत",

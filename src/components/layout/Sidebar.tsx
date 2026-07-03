@@ -29,6 +29,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { UserProfileModal } from "./UserProfileModal";
 const pageKeyToPath: Record<PageKey, string> = {
   chat: "/",
+  dashboard: "/dashboard",
   knowledge: "/knowledge",
   memory: "/memory",
   link: "/link",
@@ -42,7 +43,7 @@ const pageKeyToPath: Record<PageKey, string> = {
 
 function pathToPageKey(path: string): PageKey {
   if (path === "/" || path === "") {
-    return "knowledge";
+    return "dashboard";
   }
   if (path.startsWith("/skill/")) {
     return path;
@@ -64,6 +65,13 @@ interface NavItem {
 }
 
 const builtinNavItems: NavItem[] = [
+  {
+    key: "dashboard",
+    icon: <Icon icon="fluent:grid-20-filled" size={17} />,
+    labelKey: "nav.dashboard",
+    path: "/dashboard",
+    isPlugin: false,
+  },
   {
     key: "knowledge",
     icon: <Icon icon="fluent:book-database-20-filled" size={17} />,
@@ -367,6 +375,12 @@ export function Sidebar() {
         items: topPlugins,
       });
     }
+
+    sections.push({
+      key: "overview",
+      labelKey: "sidebar.sectionOverview",
+      items: builtinNavItems.filter((n) => n.key === "dashboard"),
+    });
 
     sections.push({
       key: "tools",

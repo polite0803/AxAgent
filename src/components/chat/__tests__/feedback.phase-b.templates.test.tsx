@@ -11,7 +11,9 @@ function readSource(...segments: string[]) {
 describe("Phase B category template regressions", () => {
   it("extends category contracts with default model and parameter template fields", () => {
     const typeSource = readSource("src/types/index.ts");
-    const rustTypeSource = readSource("src-tauri/crates/harness/src/types.rs");
+    const rustTypeSource = readSource(
+      "src-tauri/crates/harness/src/types/settings_chat.rs",
+    );
     const entitySource = readSource(
       "src-tauri/crates/entities/src/conversation_categories.rs",
     );
@@ -25,11 +27,11 @@ describe("Phase B category template regressions", () => {
 
     expect(rustTypeSource).toMatch(/pub default_provider_id: Option<String>/);
     expect(rustTypeSource).toMatch(/pub default_model_id: Option<String>/);
-    expect(rustTypeSource).toMatch(/pub default_temperature: Option<f64>/);
-    expect(rustTypeSource).toMatch(/pub default_max_tokens: Option<i64>/);
-    expect(rustTypeSource).toMatch(/pub default_top_p: Option<f64>/);
+    expect(rustTypeSource).toMatch(/pub default_temperature: Option<f32>/);
+    expect(rustTypeSource).toMatch(/pub default_max_tokens: Option<u32>/);
+    expect(rustTypeSource).toMatch(/pub default_top_p: Option<f32>/);
     expect(rustTypeSource).toMatch(
-      /pub default_frequency_penalty: Option<f64>/,
+      /pub default_frequency_penalty: Option<f32>/,
     );
 
     expect(entitySource).toMatch(/pub default_provider_id: Option<String>/);

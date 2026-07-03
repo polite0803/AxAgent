@@ -10,6 +10,7 @@
   },
   "nav": {
     "chat": "Chat",
+    "dashboard": "Tableau de bord",
     "knowledge": "Connaissances",
     "memory": "Mémoire",
     "gateway": "Passerelle",
@@ -49,7 +50,8 @@
     "sectionInvestExecute": "Execute",
     "sectionInvestReview": "Review",
     "closeAgent": "[TODO] Close Agent",
-    "openAgent": "[TODO] Open Agent"
+    "openAgent": "[TODO] Open Agent",
+    "sectionOverview": "Aperçu"
   },
   "chat": {
     "newConversation": "Nouvelle conversation",

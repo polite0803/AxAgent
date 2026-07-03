@@ -377,8 +377,9 @@ export function useFlowNodes(params: UseFlowNodesParams) {
         | undefined;
       if (!subGraph?.nodes?.length) { continue; }
       const isCollapsedParent = collapsedContainers[containerNode.id];
-      if (isCollapsedParent) { continue; }
 
+      // 折叠时也注入 subGraph 子节点（hidden=true），以便上方 hiddenChildToParent
+      // 能把它们映射到父容器，外部边才能重写到折叠容器上；hidden 节点不会被渲染。
       for (const subNode of subGraph.nodes) {
         const existingIdx = flowNodeIndexMap.get(subNode.id);
         const subTypeInfo = NODE_TYPE_MAP[subNode.type] || { color: token.colorTextQuaternary };
@@ -400,12 +401,14 @@ export function useFlowNodes(params: UseFlowNodesParams) {
           parentId: containerNode.id,
           extent: "parent" as const,
           zIndex: 10,
+          ...(isCollapsedParent ? { hidden: true } : {}),
           data: subData,
         };
 
         if (existingIdx !== undefined) {
           flowNodes[existingIdx] = {
             ...subFlowNode,
+            hidden: isCollapsedParent ? true : flowNodes[existingIdx].hidden,
             data: {
               ...flowNodes[existingIdx].data,
               ...subData,
@@ -442,15 +445,16 @@ export function useFlowNodes(params: UseFlowNodesParams) {
       }
     }
 
+    // 构建 childToParent：所有容器子节点 → 父容器（不论是否折叠/隐藏）。
+    // 优先使用 fn.parentId（运行时直接设置的父子关系，如 debate/loop/swarm/aggregator
+    // 在下方行 358 直接赋值 parentId 但未同步 parentRefs），fallback 到 parentRefs。
     const nodeHiddenMap = new Map<string, boolean>();
-    const hiddenChildToParent = new Map<string, string>();
+    const childToParent = new Map<string, string>();
     for (const fn of flowNodes) {
       nodeHiddenMap.set(fn.id, fn.hidden === true);
-      if (fn.hidden) {
-        const pid = parentRefs[fn.id];
-        if (pid && collapsedContainers[pid]) {
-          hiddenChildToParent.set(fn.id, pid);
-        }
+      const pid = fn.parentId || parentRefs[fn.id];
+      if (pid) {
+        childToParent.set(fn.id, pid);
       }
     }
     const seenEdgeKeys = new Set<string>();
@@ -474,13 +478,21 @@ export function useFlowNodes(params: UseFlowNodesParams) {
       }
     }
 
+    // 边重映射规则（统一视觉逻辑，不论容器折叠与否）：
+    // - 两端都是同一容器的子节点：容器内部边，保留原 source/target；父容器折叠时 hidden。
+    //   这样 parallel/loop/debate 等容器内部的子节点串联边在展开时正常显示。
+    // - 仅一端是某容器子节点（或两端属于不同容器）：把子节点端重写到父容器，
+    //   清空对应 handle（容器只有一个 target/source Handle）。
+    //   这样跨容器边统一连到容器边界，折叠/展开行为一致，不会出现"端点悬空在隐藏子节点"的断裂。
+    // - 子节点为孤儿 hidden（无 parent）：保留 hidden，避免误显示。
     const flowEdges: Edge[] = [];
     for (const edge of edges as WorkflowEdge[]) {
-      const remappedSource = hiddenChildToParent.get(edge.source) ?? edge.source;
-      const remappedTarget = hiddenChildToParent.get(edge.target) ?? edge.target;
-      const bothHidden = nodeHiddenMap.get(edge.source) === true
-        && nodeHiddenMap.get(edge.target) === true;
-      if (bothHidden) {
+      const sourceParent = childToParent.get(edge.source);
+      const targetParent = childToParent.get(edge.target);
+
+      // 同一容器内部边：保留子节点端点，折叠时隐藏
+      if (sourceParent && targetParent && sourceParent === targetParent) {
+        const isCollapsed = collapsedContainers[sourceParent];
         flowEdges.push({
           id: edge.id,
           source: edge.source,
@@ -491,18 +503,26 @@ export function useFlowNodes(params: UseFlowNodesParams) {
           animated: edge.edge_type === "loopBack",
           label: edge.label,
           data: { edgeType: edge.edge_type },
-          hidden: true,
+          ...(isCollapsed ? { hidden: true } : {}),
         });
         continue;
       }
+
+      // 跨容器 / 子节点↔外部：子节点端重写到父容器
+      const remappedSource = sourceParent ?? edge.source;
+      const remappedTarget = targetParent ?? edge.target;
       const wasRemapped = remappedSource !== edge.source || remappedTarget !== edge.target;
-      const sourceIsOtherHidden = nodeHiddenMap.get(edge.source) === true && !hiddenChildToParent.has(edge.source);
-      const targetIsOtherHidden = nodeHiddenMap.get(edge.target) === true && !hiddenChildToParent.has(edge.target);
+
       if (wasRemapped) {
         const key = `${remappedSource}→${remappedTarget}:${edge.edge_type}`;
         if (seenEdgeKeys.has(key)) { continue; }
         seenEdgeKeys.add(key);
       }
+
+      // 孤儿 hidden（无 parent 的 hidden 节点）参与的边隐藏，避免误显示
+      const sourceIsOrphanHidden = nodeHiddenMap.get(edge.source) === true && !sourceParent;
+      const targetIsOrphanHidden = nodeHiddenMap.get(edge.target) === true && !targetParent;
+
       flowEdges.push({
         id: edge.id,
         source: remappedSource,
@@ -515,7 +535,7 @@ export function useFlowNodes(params: UseFlowNodesParams) {
         animated: edge.edge_type === "loopBack",
         label: edge.label,
         data: { edgeType: edge.edge_type },
-        ...((sourceIsOtherHidden || targetIsOtherHidden) ? { hidden: true } : {}),
+        ...((sourceIsOrphanHidden || targetIsOrphanHidden) ? { hidden: true } : {}),
       });
     }
 

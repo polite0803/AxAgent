@@ -18,6 +18,7 @@
   },
   "nav": {
     "chat": "Chat",
+    "dashboard": "Dashboard",
     "knowledge": "Knowledge Sources",
     "memory": "Memory",
     "link": "Link",
@@ -57,7 +58,8 @@
     "sectionInvestExecute": "Execute",
     "sectionInvestReview": "Review",
     "closeAgent": "Close Agent",
-    "openAgent": "Open Agent"
+    "openAgent": "Open Agent",
+    "sectionOverview": "Overview"
   },
   "knowledge": {
     "commonPanel": "Common Panel",

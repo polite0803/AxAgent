@@ -190,13 +190,29 @@ vi.mock("@/lib/invoke", () => ({
 }));
 
 vi.mock("@/i18n", () => ({
-  default: { language: "zh-CN", changeLanguage: vi.fn() },
+  default: {
+    language: "zh-CN",
+    changeLanguage: vi.fn(),
+    t: (key: string) => key,
+  },
 }));
 
 vi.mock("react-router-dom", () => ({
   BrowserRouter: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   useLocation: () => ({ pathname: "/" }),
   useNavigate: () => vi.fn(),
+}));
+
+vi.mock("@/components/agent/AgentEntryPoint", () => ({
+  AgentEntryPoint: () => null,
+}));
+
+vi.mock("@/components/agent/AgentMiniPanel", () => ({
+  AgentMiniPanel: () => null,
+}));
+
+vi.mock("@/components/agent/AgentPanel", () => ({
+  AgentPanel: () => null,
 }));
 
 vi.mock("@/components/chat/BuddyWidget", () => ({

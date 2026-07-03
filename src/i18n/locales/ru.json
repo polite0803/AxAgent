@@ -10,6 +10,7 @@
   },
   "nav": {
     "chat": "Чат",
+    "dashboard": "Панель",
     "knowledge": "База знаний",
     "memory": "Память",
     "gateway": "Шлюз",
@@ -49,7 +50,8 @@
     "sectionInvestExecute": "Execute",
     "sectionInvestReview": "Review",
     "closeAgent": "[TODO] Close Agent",
-    "openAgent": "[TODO] Open Agent"
+    "openAgent": "[TODO] Open Agent",
+    "sectionOverview": "Обзор"
   },
   "chat": {
     "newConversation": "Новый чат",

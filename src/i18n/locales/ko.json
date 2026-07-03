@@ -10,6 +10,7 @@
   },
   "nav": {
     "chat": "채팅",
+    "dashboard": "대시보드",
     "knowledge": "지식",
     "memory": "메모리",
     "gateway": "게이트웨이",
@@ -49,7 +50,8 @@
     "sectionInvestExecute": "Execute",
     "sectionInvestReview": "Review",
     "closeAgent": "[TODO] Close Agent",
-    "openAgent": "[TODO] Open Agent"
+    "openAgent": "[TODO] Open Agent",
+    "sectionOverview": "개요"
   },
   "chat": {
     "newConversation": "새 대화",

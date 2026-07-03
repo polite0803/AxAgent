@@ -10,6 +10,7 @@
   },
   "nav": {
     "chat": "对话",
+    "dashboard": "仪表盘",
     "knowledge": "知识源",
     "memory": "记忆",
     "gateway": "网关",
@@ -50,7 +51,8 @@
     "sectionInvestExecute": "执行",
     "sectionInvestReview": "复盘",
     "closeAgent": "关闭 Agent",
-    "openAgent": "打开 Agent"
+    "openAgent": "打开 Agent",
+    "sectionOverview": "概览"
   },
   "chat": {
     "newConversation": "新建对话",

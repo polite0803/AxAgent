@@ -10,6 +10,7 @@
   },
   "nav": {
     "chat": "المحادثة",
+    "dashboard": "لوحة القيادة",
     "knowledge": "قاعدة المعرفة",
     "memory": "الذاكرة",
     "gateway": "البوابة",
@@ -49,7 +50,8 @@
     "sectionInvestReview": "Review",
     "sectionInvestMonitor": "Monitor",
     "closeAgent": "[TODO] Close Agent",
-    "openAgent": "[TODO] Open Agent"
+    "openAgent": "[TODO] Open Agent",
+    "sectionOverview": "نظرة عامة"
   },
   "chat": {
     "newConversation": "محادثة جديدة",

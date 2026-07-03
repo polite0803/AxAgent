@@ -23,6 +23,11 @@ const LazyGatewayLinkPage = lazy(() =>
     default: m.GatewayLinkPage,
   }))
 );
+const LazyDashboardPage = lazy(() =>
+  import("@/pages/DashboardPage").then((m) => ({
+    default: m.DashboardPage,
+  }))
+);
 const LazySettingsPage = lazy(() => import("@/pages/SettingsPage").then((m) => ({ default: m.SettingsPage })));
 const LazyWorkflowPage = lazy(() => import("@/pages/WorkflowPage").then((m) => ({ default: m.WorkflowPage })));
 const LazyTraceExplorer = lazy(() =>
@@ -156,7 +161,15 @@ export const ContentArea = memo(function ContentArea() {
       <AppHeader />
       <div style={{ flex: 1, overflow: "auto", display: "flex", flexDirection: "column", minWidth: 0 }}>
         <Routes>
-          <Route path="/" element={<Navigate to="/knowledge" replace />} />
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route
+            path="/dashboard"
+            element={
+              <PageContextProvider page="dashboard">
+                <SafeLazyPage Page={LazyDashboardPage} />
+              </PageContextProvider>
+            }
+          />
           <Route
             path="/knowledge"
             element={

@@ -28,6 +28,7 @@ export interface RegistryPage {
  * - "marketplace" → no route defined
  */
 const BUILTIN_HOME_PAGES: RegistryPage[] = [
+  { path: "/dashboard", labelKey: "nav.dashboard" },
   { path: "/knowledge", labelKey: "nav.knowledge" },
   { path: "/memory", labelKey: "nav.memory" },
   { path: "/gateway", labelKey: "nav.gateway" },
@@ -44,6 +45,7 @@ const BUILTIN_HOME_PAGES: RegistryPage[] = [
  */
 export const BUILTIN_PAGE_PATH: Record<string, string> = {
   chat: "/",
+  dashboard: "/dashboard",
   knowledge: "/knowledge",
   memory: "/memory",
   link: "/link",

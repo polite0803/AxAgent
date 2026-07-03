@@ -10,6 +10,7 @@
   },
   "nav": {
     "chat": "對話",
+    "dashboard": "儀表板",
     "knowledge": "知識庫",
     "memory": "記憶",
     "gateway": "閘道",
@@ -49,7 +50,8 @@
     "sectionInvestExecute": "Execute",
     "sectionInvestReview": "Review",
     "closeAgent": "[TODO] Close Agent",
-    "openAgent": "[TODO] Open Agent"
+    "openAgent": "[TODO] Open Agent",
+    "sectionOverview": "概覽"
   },
   "chat": {
     "newConversation": "新建對話",

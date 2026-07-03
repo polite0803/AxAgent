@@ -686,6 +686,7 @@ export interface GatewayLinkActivity {
 // === UI State ===
 export type BuiltinPageKey =
   | "chat"
+  | "dashboard"
   | "knowledge"
   | "memory"
   | "link"

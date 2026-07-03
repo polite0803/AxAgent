@@ -10,6 +10,7 @@
   },
   "nav": {
     "chat": "チャット",
+    "dashboard": "ダッシュボード",
     "knowledge": "ナレッジ",
     "memory": "メモリ",
     "gateway": "ゲートウェイ",
@@ -49,7 +50,8 @@
     "sectionInvestExecute": "Execute",
     "sectionInvestReview": "Review",
     "closeAgent": "[TODO] Close Agent",
-    "openAgent": "[TODO] Open Agent"
+    "openAgent": "[TODO] Open Agent",
+    "sectionOverview": "概要"
   },
   "chat": {
     "newConversation": "新しい会話",
