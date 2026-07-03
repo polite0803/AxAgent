@@ -11,7 +11,7 @@ axagent-kit = { path = "../kit" }
 axum = { version = "0.8", features = ["ws"] }
 axum-server = { version = "0.7", features = ["tls-rustls"] }
 futures = "0.3"
-governor = "0.8"
+governor = "0.10"
 hex = { workspace = true }
 hmac = "0.12"
 http = "1"
