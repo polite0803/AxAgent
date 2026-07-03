@@ -84,6 +84,9 @@ pub fn run() {
                 tracing_subscriber::EnvFilter::try_from_default_env()
                     .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("info")),
             )
+            .with_timer(tracing_subscriber::fmt::time::ChronoLocal::new(
+                "%Y-%m-%dT%H:%M:%S%.3f%z".into(),
+            ))
             .init();
     }
 
