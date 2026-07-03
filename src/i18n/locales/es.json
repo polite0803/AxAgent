@@ -2635,7 +2635,17 @@
       "position": "Posición",
       "pinToNav": "Fijar a navegación",
       "pinAfterCreate": "Fijar a la barra lateral después de crear",
-      "schemaJson": "Esquema JSON"
+      "schemaJson": "Esquema JSON",
+      "editPage": "Editar página",
+      "visualEdit": "Edición visual",
+      "aiEdit": "Edición con IA",
+      "currentSchema": "Esquema actual",
+      "childrenCount": "hijos",
+      "aiGenerateInstruction": "Describe la página que deseas crear",
+      "editInstruction": "Describe lo que deseas cambiar",
+      "aiEditPlaceholder": "Describe los cambios, ej: agregar un campo de búsqueda, cambiar a diseño de dos columnas...",
+      "schemaPreview": "Vista previa del esquema",
+      "jsonEdit": "Edición JSON"
     }
   },
   "backup": {

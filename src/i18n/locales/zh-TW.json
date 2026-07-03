@@ -2635,7 +2635,17 @@
       "position": "位置",
       "pinToNav": "固定到導航",
       "pinAfterCreate": "創建後固定到側欄導航",
-      "schemaJson": "Schema JSON"
+      "schemaJson": "Schema JSON",
+      "editPage": "編輯頁面",
+      "visualEdit": "可視化編輯",
+      "aiEdit": "AI 編輯",
+      "currentSchema": "當前 Schema",
+      "childrenCount": "個子節點",
+      "aiGenerateInstruction": "描述你想要創建的頁面功能",
+      "editInstruction": "描述你想要修改的內容",
+      "aiEditPlaceholder": "描述修改內容，例如：添加一個搜索框、改為兩列佈局...",
+      "schemaPreview": "Schema 預覽",
+      "jsonEdit": "JSON 編輯"
     }
   },
   "backup": {

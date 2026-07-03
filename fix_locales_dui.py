@@ -145,6 +145,20 @@ cat_fallbacks = {
 
 cat_zh_cn = {'catForm': '表单', 'catDashboard': '仪表盘', 'catReport': '报表', 'catCustom': '自定义'}
 
+# Missing settings.dynamicPages keys for ALL locales
+settings_dp_missing = {
+    'editPage': '编辑页面',
+    'visualEdit': '可视化编辑',
+    'aiEdit': 'AI 编辑',
+    'currentSchema': '当前 Schema',
+    'childrenCount': '个子节点',
+    'aiGenerateInstruction': '描述你想要创建的页面功能',
+    'editInstruction': '描述你想要修改的内容',
+    'aiEditPlaceholder': '描述修改内容，例如：添加一个搜索框、改为两列布局...',
+    'schemaPreview': 'Schema 预览',
+    'jsonEdit': 'JSON 编辑',
+}
+
 # Process each locale file
 import os
 for fname in sorted(os.listdir(base)):

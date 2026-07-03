@@ -2635,7 +2635,17 @@
       "position": "Позиция",
       "pinToNav": "Закрепить в навигации",
       "pinAfterCreate": "Закрепить в боковой панели после создания",
-      "schemaJson": "Схема JSON"
+      "schemaJson": "Схема JSON",
+      "editPage": "Редактировать страницу",
+      "visualEdit": "Визуальное редактирование",
+      "aiEdit": "AI-редактирование",
+      "currentSchema": "Текущая схема",
+      "childrenCount": "дочерних",
+      "aiGenerateInstruction": "Опишите страницу, которую хотите создать",
+      "editInstruction": "Опишите, что хотите изменить",
+      "aiEditPlaceholder": "Опишите изменения, например: добавить поиск, изменить на двухколоночный макет...",
+      "schemaPreview": "Предпросмотр схемы",
+      "jsonEdit": "JSON-редактор"
     }
   },
   "backup": {

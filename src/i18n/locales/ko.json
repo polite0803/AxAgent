@@ -2635,7 +2635,17 @@
       "position": "위치",
       "pinToNav": "탐색에 고정",
       "pinAfterCreate": "생성 후 사이드바에 고정",
-      "schemaJson": "스키마 JSON"
+      "schemaJson": "스키마 JSON",
+      "editPage": "페이지 편집",
+      "visualEdit": "시각적 편집",
+      "aiEdit": "AI 편집",
+      "currentSchema": "현재 스키마",
+      "childrenCount": "자식",
+      "aiGenerateInstruction": "생성하려는 페이지를 설명하세요",
+      "editInstruction": "변경하려는 내용을 설명하세요",
+      "aiEditPlaceholder": "변경 사항 설명, 예: 검색 상자 추가, 2열 레이아웃으로 변경...",
+      "schemaPreview": "스키마 미리보기",
+      "jsonEdit": "JSON 편집"
     }
   },
   "backup": {

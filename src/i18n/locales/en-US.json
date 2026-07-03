@@ -2778,7 +2778,17 @@
       "position": "Position",
       "pinToNav": "Pin to Navigation",
       "pinAfterCreate": "Pin to sidebar after creation",
-      "schemaJson": "Schema JSON"
+      "schemaJson": "Schema JSON",
+      "editPage": "Edit Page",
+      "visualEdit": "Visual Edit",
+      "aiEdit": "AI Edit",
+      "currentSchema": "Current Schema",
+      "childrenCount": "children",
+      "aiGenerateInstruction": "Describe the page you want to create",
+      "editInstruction": "Describe what you want to change",
+      "aiEditPlaceholder": "Describe changes, e.g.: add a search box, change to two-column layout...",
+      "schemaPreview": "Schema Preview",
+      "jsonEdit": "JSON Edit"
     }
   },
   "backup": {

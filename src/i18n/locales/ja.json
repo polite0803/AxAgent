@@ -2635,7 +2635,17 @@
       "position": "位置",
       "pinToNav": "ナビゲーションにピン留め",
       "pinAfterCreate": "作成後にサイドバーにピン留め",
-      "schemaJson": "スキーマJSON"
+      "schemaJson": "スキーマJSON",
+      "editPage": "ページ編集",
+      "visualEdit": "ビジュアル編集",
+      "aiEdit": "AI編集",
+      "currentSchema": "現在のスキーマ",
+      "childrenCount": "子要素",
+      "aiGenerateInstruction": "作成したいページを説明してください",
+      "editInstruction": "変更内容を説明してください",
+      "aiEditPlaceholder": "変更内容を説明してください。例：検索ボックスを追加、2カラムレイアウトに変更...",
+      "schemaPreview": "スキーマプレビュー",
+      "jsonEdit": "JSON編集"
     }
   },
   "backup": {

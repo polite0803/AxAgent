@@ -1386,7 +1386,17 @@
       "position": "الموضع",
       "pinToNav": "تثبيت في التنقل",
       "pinAfterCreate": "تثبيت في الشريط الجانبي بعد الإنشاء",
-      "schemaJson": "مخطط JSON"
+      "schemaJson": "مخطط JSON",
+      "editPage": "تعديل الصفحة",
+      "visualEdit": "تحرير بصري",
+      "aiEdit": "تعديل بالذكاء الاصطناعي",
+      "currentSchema": "المخطط الحالي",
+      "childrenCount": "عناصر فرعية",
+      "aiGenerateInstruction": "صف الصفحة التي تريد إنشاءها",
+      "editInstruction": "صف ما تريد تعديله",
+      "aiEditPlaceholder": "صف التعديلات، مثال: أضف مربع بحث، غير إلى تخطيط عمودين...",
+      "schemaPreview": "معاينة المخطط",
+      "jsonEdit": "تعديل JSON"
     },
     "webhooks": "ويب هوك",
     "data": {

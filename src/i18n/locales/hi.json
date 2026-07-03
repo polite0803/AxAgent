@@ -2635,7 +2635,17 @@
       "position": "स्थिति",
       "pinToNav": "नेविगेशन पर पिन करें",
       "pinAfterCreate": "बनाने के बाद साइडबैर पर पिन करें",
-      "schemaJson": "स्कीमा JSON"
+      "schemaJson": "स्कीमा JSON",
+      "editPage": "पेज संपादित करें",
+      "visualEdit": "दृश्य संपादन",
+      "aiEdit": "AI संपादन",
+      "currentSchema": "वर्तमान स्कीमा",
+      "childrenCount": "चाइल्ड",
+      "aiGenerateInstruction": "आप जो पेज बनाना चाहते हैं उसका वर्णन करें",
+      "editInstruction": "आप क्या बदलना चाहते हैं इसका वर्णन करें",
+      "aiEditPlaceholder": "बदलावों का वर्णन करें, जैसे: सर्च बॉक्स जोड़ें, दो-कॉलम लेआउट में बदलें...",
+      "schemaPreview": "स्कीमा पूर्वावलोकन",
+      "jsonEdit": "JSON संपादन"
     }
   },
   "backup": {
