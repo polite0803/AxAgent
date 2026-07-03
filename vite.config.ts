@@ -107,10 +107,10 @@ export default defineConfig(async () => ({
     },
   },
   css: {
-    transformer: "lightningcss",
-    lightningcss: {
-      errorRecovery: true, // Tailwind v4 CSS var() 在 @media 中会触发 strict 模式错误
-    },
+    // postcss 而非 lightningcss：antd/@ant-design/x 的 CSS-in-JS
+    // 会生成非标准选择器/属性（如 .[agent:researcher-1]），
+    // lightningcss 严格解析器报 Unexpected token Semicolon
+    transformer: "postcss",
   },
   build: {
     sourcemap: false, // 生产构建不暴露源码

@@ -343,6 +343,10 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
                 role_name,
             )
         })).await;
+            // P0-3: 初始化 dispatcher — 注册所有内置 executor（Trigger/Fallback/Tool/...）
+            // 及 pending 中的 Llm/Condition/LlmClassifier。缺此调用会导致 dispatch 时
+            // panic("FallbackExecutor must be registered")。
+            engine.init_dispatcher().await;
             engine
         };
     let skill_decomposer: Arc<tokio::sync::RwLock<axagent_trajectory::SkillDecomposer>> =
