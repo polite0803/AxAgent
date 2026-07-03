@@ -7769,7 +7769,8 @@
     "filesContext": "Файлы",
     "terminalContext": "Терминал",
     "closeAgentPanel": "[TODO] Close Agent Panel",
-    "openAgentPanel": "[TODO] Open Agent Panel"
+    "openAgentPanel": "[TODO] Open Agent Panel",
+    "dashboardContext": "Обзор системы"
   },
   "input": {
     "recordAudio": "Записать аудио",
@@ -8428,5 +8429,28 @@
     "noProps": "Нет свойств",
     "addChild": "Добавить дочерний",
     "noChildren": "Нет дочерних"
+  },
+  "dashboard": {
+    "overview": "Обзор",
+    "totalConversations": "Всего бесед",
+    "totalMessages": "Всего сообщений",
+    "totalTokens": "Всего токенов",
+    "providers": "Провайдеры",
+    "providersUnit": "{{count}} моделей",
+    "tokenConsumption": "Потребление токенов",
+    "gatewayActiveConnections": "Активные соединения",
+    "todayRequests": "Запросы сегодня",
+    "todayTokenUsage": "Потребление токенов сегодня",
+    "gatewayStatus": "Статус шлюза",
+    "totalRequests": "Всего запросов",
+    "activeConnections": "Активные соединения",
+    "gatewayNotRunning": "Шлюз не запущен или нет данных",
+    "agentActivity": "Активность агента",
+    "agentTotalSessions": "Всего сессий",
+    "agentCompleted": "Завершено",
+    "agentFailed": "Ошибок",
+    "modelProviderSummary": "Сводка по моделям и провайдерам",
+    "totalProviders": "Провайдеры",
+    "totalModels": "Модели"
   }
 }

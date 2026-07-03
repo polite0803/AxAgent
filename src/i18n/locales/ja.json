@@ -7769,7 +7769,8 @@
     "filesContext": "ファイル",
     "terminalContext": "ターミナル",
     "closeAgentPanel": "[TODO] Close Agent Panel",
-    "openAgentPanel": "[TODO] Open Agent Panel"
+    "openAgentPanel": "[TODO] Open Agent Panel",
+    "dashboardContext": "システユ概要"
   },
   "input": {
     "recordAudio": "音声を録音",
@@ -8462,5 +8463,28 @@
     "noProps": "プロパティなし",
     "addChild": "子を追加",
     "noChildren": "子なし"
+  },
+  "dashboard": {
+    "overview": "概要",
+    "totalConversations": "会話総数",
+    "totalMessages": "メッセージ総数",
+    "totalTokens": "トークヵ合計",
+    "providers": "プロバイダー",
+    "providersUnit": "{{count}} モデル",
+    "tokenConsumption": "トークン消費量",
+    "gatewayActiveConnections": "アクティブ3絣",
+    "todayRequests": "今日のリクエスト",
+    "todayTokenUsage": "今日のトークン使用量",
+    "gatewayStatus": "ゲートウェイ状態",
+    "totalRequests": "リクエスト総数",
+    "activeConnections": "アクティブ3絣",
+    "gatewayNotRunning": "ゲートウェウウ未起動またはデータなし",
+    "agentActivity": "エージェント活動",
+    "agentTotalSessions": "セッション総数",
+    "agentCompleted": "完了",
+    "agentFailed": "失敗",
+    "modelProviderSummary": "モデル/プロバイダー概要",
+    "totalProviders": "プロバイダー数",
+    "totalModels": "モデル数"
   }
 }

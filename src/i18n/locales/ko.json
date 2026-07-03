@@ -7769,7 +7769,8 @@
     "filesContext": "파일",
     "terminalContext": "터미널",
     "closeAgentPanel": "[TODO] Close Agent Panel",
-    "openAgentPanel": "[TODO] Open Agent Panel"
+    "openAgentPanel": "[TODO] Open Agent Panel",
+    "dashboardContext": "시스템 개요"
   },
   "input": {
     "recordAudio": "오디오 녹음",
@@ -8462,5 +8463,28 @@
     "noProps": "속성 없음",
     "addChild": "자식 추가",
     "noChildren": "자식 없음"
+  },
+  "dashboard": {
+    "overview": "개요",
+    "totalConversations": "cdotal 대화 수",
+    "totalMessages": "cdotal 메시지",
+    "totalTokens": "cdotal 토큰",
+    "providers": "공급자",
+    "providersUnit": "{{count}} 모덼",
+    "tokenConsumption": "토큰 소비량",
+    "gatewayActiveConnections": "활성 연결",
+    "todayRequests": "오늘 요청",
+    "todayTokenUsage": "오늘 토큰 사용량",
+    "gatewayStatus": "게이트웨이 상태",
+    "totalRequests": "cdotal 요청수",
+    "activeConnections": "활성 연결",
+    "gatewayNotRunning": "게이트웨이 미작동 또는 데이터 없음",
+    "agentActivity": "에이전트 활동",
+    "agentTotalSessions": "cdotal 세션 수",
+    "agentCompleted": "uc644료",
+    "agentFailed": "uc2e4패",
+    "modelProviderSummary": "모덼/공급자 요약",
+    "totalProviders": "공급자",
+    "totalModels": "모덼"
   }
 }

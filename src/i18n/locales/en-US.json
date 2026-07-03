@@ -10,7 +10,8 @@
     "filesContext": "File Management",
     "terminalContext": "Terminal Sessions",
     "closeAgentPanel": "Close Agent Panel",
-    "openAgentPanel": "Open Agent Panel"
+    "openAgentPanel": "Open Agent Panel",
+    "dashboardContext": "System overview at a glance"
   },
   "artifact": {
     "copiedToClipboard": "Copied to clipboard",
@@ -8530,5 +8531,28 @@
     "noProps": "No Props",
     "addChild": "Add Child",
     "noChildren": "No Children"
+  },
+  "dashboard": {
+    "overview": "Overview",
+    "totalConversations": "Total Conversations",
+    "totalMessages": "Total Messages",
+    "totalTokens": "Total Tokens",
+    "providers": "Providers",
+    "providersUnit": "{{count}} models",
+    "tokenConsumption": "Token Consumption",
+    "gatewayActiveConnections": "Active Connections",
+    "todayRequests": "Today Requests",
+    "todayTokenUsage": "Today Token Usage",
+    "gatewayStatus": "Gateway Status",
+    "totalRequests": "Total Requests",
+    "activeConnections": "Active Connections",
+    "gatewayNotRunning": "Gateway not running or no data",
+    "agentActivity": "Agent Activity",
+    "agentTotalSessions": "Total Sessions",
+    "agentCompleted": "Completed",
+    "agentFailed": "Failed",
+    "modelProviderSummary": "Model / Provider Summary",
+    "totalProviders": "Providers",
+    "totalModels": "Models"
   }
 }

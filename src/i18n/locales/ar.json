@@ -7769,7 +7769,8 @@
     "filesContext": "الملفات",
     "terminalContext": "الطرفية",
     "closeAgentPanel": "[TODO] Close Agent Panel",
-    "openAgentPanel": "[TODO] Open Agent Panel"
+    "openAgentPanel": "[TODO] Open Agent Panel",
+    "dashboardContext": "نظرة عامة على النظام"
   },
   "input": {
     "recordAudio": "تسجيل الصوت",
@@ -8428,5 +8429,28 @@
     "noProps": "لا توجد خصائص",
     "addChild": "إضافة عنصر فرعي",
     "noChildren": "لا توجد عناصر فرعية"
+  },
+  "dashboard": {
+    "overview": "نظرة عامة",
+    "totalConversations": "إجمالي المحادثات",
+    "totalMessages": "إجمالي الرسائل",
+    "totalTokens": "إجمالي الرموز",
+    "providers": "المزودون",
+    "providersUnit": "{{count}} نماذج",
+    "tokenConsumption": "استهلاك الرموز",
+    "gatewayActiveConnections": "الاتصالات النشطة",
+    "todayRequests": "طلبات اليوم",
+    "todayTokenUsage": "استهلاك الرموز اليوم",
+    "gatewayStatus": "حالة البوابة",
+    "totalRequests": "إجمالي الطلبات",
+    "activeConnections": "الاتصالات النشطة",
+    "gatewayNotRunning": "البوابة غير مشغلة أو لا توجد بيانات",
+    "agentActivity": "نشاط الوكيل",
+    "agentTotalSessions": "إجمالي الجلسات",
+    "agentCompleted": "مكتمل",
+    "agentFailed": "فشل",
+    "modelProviderSummary": "ملخص النماذج والمزودين",
+    "totalProviders": "المزودون",
+    "totalModels": "النماذج"
   }
 }

@@ -7762,7 +7762,8 @@
     "filesContext": "फ़ाइलें",
     "terminalContext": "टर्मिनल",
     "closeAgentPanel": "[TODO] Close Agent Panel",
-    "openAgentPanel": "[TODO] Open Agent Panel"
+    "openAgentPanel": "[TODO] Open Agent Panel",
+    "dashboardContext": "सिस्टम अवलोकन"
   },
   "errorNotification": {
     "retry": "पुनः प्रयास"
@@ -8428,5 +8429,28 @@
     "noProps": "कोई गुण नहीं",
     "addChild": "चाइल्ड जोड़ें",
     "noChildren": "कोई चाइल्ड नहीं"
+  },
+  "dashboard": {
+    "overview": "अवलोकन",
+    "totalConversations": "कुल बातचीत",
+    "totalMessages": "कुल संदेश",
+    "totalTokens": "कुल टोकन",
+    "providers": "प्रदाता",
+    "providersUnit": "{{count}} मॉडल",
+    "tokenConsumption": "टोकन खपत",
+    "gatewayActiveConnections": "सक्रिय कनेक्शन",
+    "todayRequests": "आज के अनुरोध",
+    "todayTokenUsage": "आज की टोकन खपत",
+    "gatewayStatus": "गेटवे स्थिति",
+    "totalRequests": "कुल अनुरोध",
+    "activeConnections": "सक्रिय कनेक्शन",
+    "gatewayNotRunning": "गेटवे सक्रिय नहीं या कोई डेटा नहीं",
+    "agentActivity": "एजेंट गतिविधि",
+    "agentTotalSessions": "कुल सत्र",
+    "agentCompleted": "पूर्ण",
+    "agentFailed": "विफल",
+    "modelProviderSummary": "मॉडल/प्रदाता सारांश",
+    "totalProviders": "प्रदाता",
+    "totalModels": "मॉडल"
   }
 }

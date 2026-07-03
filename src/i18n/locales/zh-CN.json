@@ -7900,7 +7900,8 @@
     "filesContext": "文件管理",
     "terminalContext": "终端会话",
     "closeAgentPanel": "关闭 Agent 面板",
-    "openAgentPanel": "打开 Agent 面板"
+    "openAgentPanel": "打开 Agent 面板",
+    "dashboardContext": "系统运行状态总览"
   },
   "input": {
     "recordAudio": "录制音频",
@@ -8556,5 +8557,28 @@
     "report": "报表",
     "monitor": "监控",
     "other": "其他"
+  },
+  "dashboard": {
+    "overview": "概览",
+    "totalConversations": "会话总数",
+    "totalMessages": "消息总数",
+    "totalTokens": "Token 总量",
+    "providers": "提供商",
+    "providersUnit": "{{count}} 个模型",
+    "tokenConsumption": "Token 消耗",
+    "gatewayActiveConnections": "活跃连接",
+    "todayRequests": "今日请求",
+    "todayTokenUsage": "今日 Token 用量",
+    "gatewayStatus": "网关状态",
+    "totalRequests": "总请求数",
+    "activeConnections": "活跃连接",
+    "gatewayNotRunning": "网关未启动或无数据",
+    "agentActivity": "Agent 活动",
+    "agentTotalSessions": "总会话数",
+    "agentCompleted": "已完成",
+    "agentFailed": "失败",
+    "modelProviderSummary": "模型/提供商概览",
+    "totalProviders": "提供商数",
+    "totalModels": "模型数"
   }
 }

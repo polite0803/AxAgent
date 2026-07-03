@@ -7769,7 +7769,8 @@
     "filesContext": "Archivos",
     "terminalContext": "Terminal",
     "closeAgentPanel": "[TODO] Close Agent Panel",
-    "openAgentPanel": "[TODO] Open Agent Panel"
+    "openAgentPanel": "[TODO] Open Agent Panel",
+    "dashboardContext": "Vista general del sistema"
   },
   "input": {
     "recordAudio": "Grabar audio",
@@ -8425,5 +8426,28 @@
     "noProps": "Sin propiedades",
     "addChild": "Agregar hijo",
     "noChildren": "Sin hijos"
+  },
+  "dashboard": {
+    "overview": "Resumen",
+    "totalConversations": "Conversaciones totales",
+    "totalMessages": "Mensajes totales",
+    "totalTokens": "Tokens totales",
+    "providers": "Proveedores",
+    "providersUnit": "{{count}} modelos",
+    "tokenConsumption": "Consumo de tokens",
+    "gatewayActiveConnections": "Conexiones activas",
+    "todayRequests": "Solicitudes de hoy",
+    "todayTokenUsage": "Uso de tokens de hoy",
+    "gatewayStatus": "Estado del gateway",
+    "totalRequests": "Solicitudes totales",
+    "activeConnections": "Conexiones activas",
+    "gatewayNotRunning": "Gateway no activo o sin datos",
+    "agentActivity": "Actividad del agente",
+    "agentTotalSessions": "Sesiones totales",
+    "agentCompleted": "Completado",
+    "agentFailed": "Fallido",
+    "modelProviderSummary": "Resumen de modelos/proveedores",
+    "totalProviders": "Proveedores",
+    "totalModels": "Modelos"
   }
 }
