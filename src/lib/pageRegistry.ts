@@ -21,13 +21,13 @@ export interface RegistryPage {
  * The order here controls the order in the settings drop-down.
  *
  * Pages excluded:
- * - "chat"     → maps to "/" which is the redirect itself (circular)
  * - "settings" → makes no sense as a landing page
  * - "devtools" → debug-only
  * - "link"     → transient connection flows
  * - "marketplace" → no route defined
  */
 const BUILTIN_HOME_PAGES: RegistryPage[] = [
+  { path: "/chat", labelKey: "nav.chat" },
   { path: "/dashboard", labelKey: "nav.dashboard" },
   { path: "/knowledge", labelKey: "nav.knowledge" },
   { path: "/memory", labelKey: "nav.memory" },
@@ -44,7 +44,7 @@ const BUILTIN_HOME_PAGES: RegistryPage[] = [
  * exposed in the home-page selector — used by sidebar etc.).
  */
 export const BUILTIN_PAGE_PATH: Record<string, string> = {
-  chat: "/",
+  chat: "/chat",
   dashboard: "/dashboard",
   knowledge: "/knowledge",
   memory: "/memory",

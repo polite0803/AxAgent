@@ -11,6 +11,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 
 const PAGE_LABELS: Record<string, string> = {
   "/": "nav.chat",
+  "/chat": "nav.chat",
   "/knowledge": "nav.knowledge",
   "/memory": "nav.memory",
   "/gateway": "nav.gateway",
@@ -62,7 +63,7 @@ export function AppHeader() {
   const isAgentPanelOpen = useAgentPanelStore((s) => s.isOpen);
   const agentInTheLoopEnabled = FEATURE_FLAGS.AGENT_IN_THE_LOOP;
 
-  const isChatPage = location.pathname === "/" || location.pathname === "";
+  const isChatPage = location.pathname === "/chat" || location.pathname === "/" || location.pathname === "";
   const labelKey = resolvePageLabel(location.pathname);
   const contextSummary = getPageContext(location.pathname, t);
 

@@ -27,9 +27,10 @@ pub mod v003_drop_dead_tables;
 pub mod v004_dynamic_ui;
 pub mod v005_index_queue;
 pub mod v006_vec_collections;
+pub mod v007_dynamic_ui_version;
 
 /// 当前 schema 版本号。每次新增 migration 时必须累加此常量。
-pub const CURRENT_VERSION: i32 = 6;
+pub const CURRENT_VERSION: i32 = 7;
 
 /// 迁移函数签名：所有 `up()` 都遵循这个接口。
 ///
@@ -85,6 +86,11 @@ const MIGRATIONS: &[Migration] = &[
         version: 6,
         description: "v006_vec_collections: vector collection metadata registry",
         up: |db| Box::pin(v006_vec_collections::up(db)),
+    },
+    Migration {
+        version: 7,
+        description: "v007_dynamic_ui_version: add version to dynamic_ui_schemas, create dynamic_ui_schema_versions table",
+        up: |db| Box::pin(v007_dynamic_ui_version::up(db)),
     },
 ];
 
@@ -239,7 +245,7 @@ mod tests {
             .unwrap()
             .expect("count row");
         let cnt: i32 = count_row.try_get_by("cnt").unwrap();
-        assert_eq!(cnt, 6, "schema_version should have exactly 6 rows");
+        assert_eq!(cnt, 7, "schema_version should have exactly 7 rows");
     }
 
     /// 防回归：v002 引入的索引必须真实存在。

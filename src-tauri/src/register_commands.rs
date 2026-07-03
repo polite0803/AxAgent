@@ -854,6 +854,10 @@ macro_rules! register_all_commands {
             commands::dynamic_ui::save_dynamic_ui_form_data,
             commands::dynamic_ui::get_dynamic_ui_form_data,
             commands::dynamic_ui::delete_dynamic_ui_form_data,
+            // Dynamic UI version management
+            commands::dynamic_ui::list_dynamic_ui_schema_versions,
+            commands::dynamic_ui::get_dynamic_ui_schema_version,
+            commands::dynamic_ui::restore_dynamic_ui_schema_version,
             commands::orchestrator::orchestrate_mission,
         ]
     };

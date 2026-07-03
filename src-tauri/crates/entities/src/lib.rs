@@ -98,6 +98,7 @@ pub mod trajectory_steps;
 
 // Dynamic UI entities
 pub mod dynamic_ui_form_data;
+pub mod dynamic_ui_schema_versions;
 pub mod dynamic_ui_schemas;
 
 // Index queue entities

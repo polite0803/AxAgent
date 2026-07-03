@@ -92,7 +92,7 @@ function GlobalStatusBarWrapper() {
 
 function GlobalTabBar() {
   const location = useLocation();
-  const isChatPage = location.pathname === "/" || location.pathname === "";
+  const isChatPage = location.pathname === "/chat" || location.pathname === "/" || location.pathname === "";
   if (!isChatPage) { return null; }
   return (
     <ModuleErrorBoundary moduleName="TabBar">

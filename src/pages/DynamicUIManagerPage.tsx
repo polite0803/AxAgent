@@ -4,15 +4,18 @@ import { DynamicUIRenderer } from "@/components/dynamicUI/DynamicUIRenderer";
 import { generateUIFromNL } from "@/lib/dynamicUI/nl2ui";
 import { validateSchema } from "@/lib/dynamicUI/SchemaValidator";
 import { useDynamicUIStore } from "@/stores";
-import type { DynamicUISchemaRecord, UISchema } from "@/types";
+import type { DynamicUISchemaRecord, DynamicUISchemaVersion, UISchema } from "@/types";
 import {
   AppstoreAddOutlined,
   DeleteOutlined,
   EditOutlined,
   EyeOutlined,
+  HistoryOutlined,
   PlusOutlined,
   RobotOutlined,
+  RollbackOutlined,
   SaveOutlined,
+  TagOutlined,
 } from "@ant-design/icons";
 import {
   Alert,
@@ -29,8 +32,10 @@ import {
   Select,
   Space,
   Spin,
+  Table,
   Tabs,
   Tag,
+  Tooltip,
   Typography,
 } from "antd";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -51,6 +56,10 @@ export function DynamicUIManagerPage() {
     createSchema,
     updateSchema,
     deleteSchema,
+    versionList,
+    versionLoading,
+    loadVersions,
+    restoreVersion,
   } = useDynamicUIStore();
 
   const [selectedSchema, setSelectedSchema] = useState<DynamicUISchemaRecord | null>(null);
@@ -62,6 +71,10 @@ export function DynamicUIManagerPage() {
   const [parseError, setParseError] = useState<string | null>(null);
   const [nlPrompt, setNlPrompt] = useState("");
   const [generating, setGenerating] = useState(false);
+
+  // 版本历史面板
+  const [versionPanelOpen, setVersionPanelOpen] = useState(false);
+  const [versionPreview, setVersionPreview] = useState<DynamicUISchemaVersion | null>(null);
 
   useEffect(() => {
     void fetchSchemas();
@@ -91,11 +104,13 @@ export function DynamicUIManagerPage() {
         description: editingRecord.description,
         category: editingRecord.category,
         tags: editingRecord.tags,
+        version: "",
+        change_log: "",
       });
       setJsonSchemaText(editingRecord.schema_json);
     } else {
       form.resetFields();
-      form.setFieldsValue({ category: "custom" });
+      form.setFieldsValue({ category: "custom", version: "", change_log: "" });
       setJsonSchemaText("");
     }
   }, [editingRecord, form]);
@@ -160,14 +175,24 @@ export function DynamicUIManagerPage() {
         return;
       }
 
+      const updateParams: Record<string, unknown> = {
+        title: values.title,
+        description: values.description,
+        category: values.category,
+        tags: values.tags,
+        schema_json: jsonSchemaText,
+      };
+
+      // 附加版本号和变更说明
+      if (values.version?.trim()) {
+        updateParams.version = values.version.trim();
+      }
+      if (values.change_log?.trim()) {
+        updateParams.change_log = values.change_log.trim();
+      }
+
       if (editingRecord) {
-        await updateSchema(editingRecord.id, {
-          title: values.title,
-          description: values.description,
-          category: values.category,
-          tags: values.tags,
-          schema_json: jsonSchemaText,
-        });
+        await updateSchema(editingRecord.id, updateParams as Parameters<typeof updateSchema>[1]);
         message.success(t("dynamicUIManager.updateSuccess"));
       } else {
         await createSchema({
@@ -215,8 +240,45 @@ export function DynamicUIManagerPage() {
     message.success(t("dynamicUIManager.deleteSuccess"));
   };
 
+  // ── 版本管理 ──
+
+  const handleOpenVersionPanel = async (record: DynamicUISchemaRecord) => {
+    setSelectedSchema(record);
+    setVersionPreview(null);
+    setVersionPanelOpen(true);
+    await loadVersions(record.id);
+  };
+
+  const handlePreviewVersion = async (version: DynamicUISchemaVersion) => {
+    setVersionPreview(version);
+  };
+
+  const handleRestoreVersion = async (version: DynamicUISchemaVersion) => {
+    if (!selectedSchema) { return; }
+    const result = await restoreVersion(selectedSchema.id, version.id);
+    if (result) {
+      message.success(t("dynamicUIManager.restoreSuccess"));
+      // 刷新版本列表
+      await loadVersions(selectedSchema.id);
+      setVersionPreview(null);
+    } else {
+      message.error(t("dynamicUIManager.restoreFailed"));
+    }
+  };
+
   const renderPreview = () => {
-    if (!selectedSchema) {
+    // 如果正在查看版本历史中的某个版本
+    const schemaToRender = versionPreview
+      ? {
+        title: versionPreview.title,
+        description: versionPreview.description,
+        schema_json: versionPreview.schema_json,
+        category: versionPreview.category,
+        tags: versionPreview.tags,
+      }
+      : selectedSchema;
+
+    if (!schemaToRender) {
       return (
         <Empty
           description={t("dynamicUIManager.selectToPreview")}
@@ -225,17 +287,34 @@ export function DynamicUIManagerPage() {
       );
     }
     try {
-      const schema = JSON.parse(selectedSchema.schema_json) as UISchema;
+      const schema = JSON.parse(schemaToRender.schema_json) as UISchema;
+      const isHistorical = !!versionPreview;
       return (
         <div className="p-4">
           <div className="mb-4">
-            <Title level={4}>{selectedSchema.title}</Title>
-            <Space wrap>
-              <Tag color="blue">{selectedSchema.category}</Tag>
-              {selectedSchema.tags.map((tag) => <Tag key={tag}>{tag}</Tag>)}
+            <div className="flex items-center gap-2">
+              <Title level={4} style={{ margin: 0 }}>
+                {schemaToRender.title}
+              </Title>
+              {isHistorical && (
+                <Tag color="orange" icon={<HistoryOutlined />}>
+                  v{versionPreview!.version} ({t("dynamicUIManager.versionHistory")})
+                </Tag>
+              )}
+            </div>
+            <Space wrap className="mt-2">
+              <Tag color="blue">{schemaToRender.category}</Tag>
+              {schemaToRender.tags.map((tag) => <Tag key={tag}>{tag}</Tag>)}
+              {!isHistorical && selectedSchema
+                ? (
+                  <Tag color="green" icon={<TagOutlined />}>
+                    {t("dynamicUIManager.version")}: {selectedSchema.version}
+                  </Tag>
+                )
+                : null}
             </Space>
-            {selectedSchema.description
-              ? <Paragraph type="secondary">{selectedSchema.description}</Paragraph>
+            {schemaToRender.description
+              ? <Paragraph type="secondary">{schemaToRender.description}</Paragraph>
               : null}
           </div>
           <div className="border rounded-lg p-4 bg-white dark:bg-gray-900">
@@ -247,6 +326,70 @@ export function DynamicUIManagerPage() {
       return <Alert type="error" message={t("dynamicUIManager.invalidSchema")} />;
     }
   };
+
+  const versionColumns = [
+    {
+      title: t("dynamicUIManager.version"),
+      dataIndex: "version",
+      key: "version",
+      width: 100,
+      render: (v: string, _record: DynamicUISchemaVersion) => (
+        <Tag color={selectedSchema?.version === v ? "green" : "default"}>
+          v{v}
+          {selectedSchema?.version === v ? ` (${t("dynamicUIManager.currentVersion")})` : ""}
+        </Tag>
+      ),
+    },
+    {
+      title: t("dynamicUIManager.changeLog"),
+      dataIndex: "change_log",
+      key: "change_log",
+      ellipsis: true,
+    },
+    {
+      title: t("dynamicUIManager.versionUpdatedAt"),
+      dataIndex: "created_at",
+      key: "created_at",
+      width: 160,
+      render: (ts: number) => new Date(ts * 1000).toLocaleString(),
+    },
+    {
+      title: t("common.action"),
+      key: "action",
+      width: 160,
+      render: (_: unknown, record: DynamicUISchemaVersion) => (
+        <Space>
+          <Button
+            type="link"
+            size="small"
+            icon={<EyeOutlined />}
+            onClick={() => handlePreviewVersion(record)}
+          >
+            {t("dynamicUIManager.preview")}
+          </Button>
+          {selectedSchema?.version !== record.version
+            ? (
+              <Popconfirm
+                title={t("dynamicUIManager.confirmRestore")}
+                onConfirm={() => handleRestoreVersion(record)}
+                okText={t("common.confirm")}
+                cancelText={t("common.cancel")}
+              >
+                <Button
+                  type="link"
+                  size="small"
+                  icon={<RollbackOutlined />}
+                  danger
+                >
+                  {t("dynamicUIManager.restore")}
+                </Button>
+              </Popconfirm>
+            )
+            : null}
+        </Space>
+      ),
+    },
+  ];
 
   return (
     <div className="h-full flex flex-col p-4">
@@ -278,6 +421,13 @@ export function DynamicUIManagerPage() {
               renderItem={(item) => (
                 <List.Item
                   actions={[
+                    <Tooltip key="version" title={t("dynamicUIManager.versionHistory")}>
+                      <Button
+                        type="text"
+                        icon={<HistoryOutlined />}
+                        onClick={() => handleOpenVersionPanel(item)}
+                      />
+                    </Tooltip>,
                     <Button
                       key="preview"
                       type="text"
@@ -314,6 +464,9 @@ export function DynamicUIManagerPage() {
                         {item.is_builtin
                           ? <Tag color="purple">{t("dynamicUIManager.builtin")}</Tag>
                           : null}
+                        <Tag color="green" style={{ fontSize: 11 }}>
+                          v{item.version}
+                        </Tag>
                       </Space>
                     }
                     description={
@@ -338,13 +491,21 @@ export function DynamicUIManagerPage() {
 
         <Card
           className="flex flex-col min-h-0"
-          title={t("dynamicUIManager.preview")}
+          title={
+            <Space>
+              <span>{t("dynamicUIManager.preview")}</span>
+              {selectedSchema && !versionPreview
+                ? <Tag color="green">v{selectedSchema.version}</Tag>
+                : null}
+            </Space>
+          }
           styles={{ body: { flex: 1, overflow: "auto", padding: 0 } }}
         >
           {renderPreview()}
         </Card>
       </div>
 
+      {/* 编辑弹窗 */}
       <Modal
         title={editingRecord
           ? t("dynamicUIManager.editSchema")
@@ -393,6 +554,45 @@ export function DynamicUIManagerPage() {
           <Form.Item name="tags" label={t("dynamicUIManager.tags")}>
             <Select mode="tags" placeholder={t("dynamicUIManager.tagsPlaceholder")} />
           </Form.Item>
+
+          {/* 版本管理和变更说明（仅编辑时显示） */}
+          {editingRecord
+            ? (
+              <>
+                <Divider plain>
+                  <Space size={4}>
+                    <TagOutlined />
+                    <span>{t("dynamicUIManager.version")}</span>
+                  </Space>
+                </Divider>
+                <Space className="w-full" style={{ alignItems: "flex-start" }}>
+                  <Form.Item
+                    name="version"
+                    label={t("dynamicUIManager.version")}
+                    tooltip={t("dynamicUIManager.versionAutoHint")}
+                    style={{ flex: 1 }}
+                  >
+                    <Input
+                      placeholder={t("dynamicUIManager.versionAutoHint")}
+                    />
+                  </Form.Item>
+                  <Form.Item
+                    name="change_log"
+                    label={t("dynamicUIManager.changeLog")}
+                    style={{ flex: 2 }}
+                  >
+                    <Input placeholder={t("dynamicUIManager.changeLogPlaceholder")} />
+                  </Form.Item>
+                </Space>
+                <Text type="secondary" className="text-xs">
+                  {t("dynamicUIManager.currentVersion")}: {editingRecord.version}
+                  {" | "}
+                  {t("dynamicUIManager.versionAutoHint")}
+                </Text>
+                <Divider />
+              </>
+            )
+            : null}
 
           {!editingRecord
             ? (
@@ -462,6 +662,46 @@ export function DynamicUIManagerPage() {
             )
             : null}
         </Form>
+      </Modal>
+
+      {/* 版本历史弹窗 */}
+      <Modal
+        title={
+          <Space>
+            <HistoryOutlined />
+            <span>{t("dynamicUIManager.versionHistory")}</span>
+            {selectedSchema
+              ? <Tag color="green">v{selectedSchema.version}</Tag>
+              : null}
+          </Space>
+        }
+        open={versionPanelOpen}
+        onCancel={() => {
+          setVersionPanelOpen(false);
+          setVersionPreview(null);
+        }}
+        width={900}
+        footer={null}
+      >
+        <Spin spinning={versionLoading}>
+          {versionList.length === 0
+            ? (
+              <Empty
+                description={t("dynamicUIManager.noVersions")}
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
+              />
+            )
+            : (
+              <Table
+                dataSource={versionList}
+                columns={versionColumns}
+                rowKey="id"
+                size="small"
+                pagination={false}
+                scroll={{ y: 400 }}
+              />
+            )}
+        </Spin>
       </Modal>
     </div>
   );

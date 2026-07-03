@@ -5,6 +5,8 @@ import type {
   CreateDynamicUISchemaParams,
   DynamicUIFormDataRecord,
   DynamicUISchemaRecord,
+  DynamicUISchemaVersion,
+  ListVersionsResponse,
   SaveDynamicUIFormDataParams,
   UpdateDynamicUISchemaParams,
 } from "@/types";
@@ -15,6 +17,9 @@ interface DynamicUIState {
   loading: boolean;
   currentSchema: DynamicUISchemaRecord | null;
   formDataCache: Map<string, Record<string, unknown>>;
+  /** 当前 schema 的版本列表缓存 */
+  versionList: DynamicUISchemaVersion[];
+  versionLoading: boolean;
 
   fetchSchemas: (category?: string) => Promise<void>;
   getSchema: (id: string) => Promise<DynamicUISchemaRecord>;
@@ -27,6 +32,11 @@ interface DynamicUIState {
   clearFormData: (schemaId: string, instanceKey?: string) => Promise<void>;
 
   setCurrentSchema: (schema: DynamicUISchemaRecord | null) => void;
+
+  // ── 版本管理 ──
+  loadVersions: (schemaId: string) => Promise<DynamicUISchemaVersion[]>;
+  getVersion: (versionId: number) => Promise<DynamicUISchemaVersion | null>;
+  restoreVersion: (schemaId: string, versionId: number) => Promise<DynamicUISchemaRecord | null>;
 }
 
 export const useDynamicUIStore = create<DynamicUIState>((set, get) => ({
@@ -34,6 +44,8 @@ export const useDynamicUIStore = create<DynamicUIState>((set, get) => ({
   loading: false,
   currentSchema: null,
   formDataCache: new Map(),
+  versionList: [],
+  versionLoading: false,
 
   fetchSchemas: async (category) => {
     set({ loading: true });
@@ -142,4 +154,46 @@ export const useDynamicUIStore = create<DynamicUIState>((set, get) => ({
   },
 
   setCurrentSchema: (schema) => set({ currentSchema: schema }),
+
+  // ── 版本管理 ──
+
+  loadVersions: async (schemaId) => {
+    set({ versionLoading: true });
+    try {
+      const result = await invoke<ListVersionsResponse>("list_dynamic_ui_schema_versions", {
+        schemaId,
+      });
+      set({ versionList: result.versions, versionLoading: false });
+      return result.versions;
+    } catch {
+      set({ versionLoading: false });
+      return [];
+    }
+  },
+
+  getVersion: async (versionId) => {
+    try {
+      return await invoke<DynamicUISchemaVersion>("get_dynamic_ui_schema_version", {
+        versionId,
+      });
+    } catch {
+      return null;
+    }
+  },
+
+  restoreVersion: async (schemaId, versionId) => {
+    try {
+      const updated = await invoke<DynamicUISchemaRecord>("restore_dynamic_ui_schema_version", {
+        schemaId,
+        versionId,
+      });
+      set((state) => ({
+        schemas: state.schemas.map((s) => (s.id === schemaId ? updated : s)),
+        currentSchema: state.currentSchema?.id === schemaId ? updated : state.currentSchema,
+      }));
+      return updated;
+    } catch {
+      return null;
+    }
+  },
 }));

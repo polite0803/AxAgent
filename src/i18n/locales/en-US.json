@@ -8530,7 +8530,23 @@
     "requiredProps": "Required Props",
     "noProps": "No Props",
     "addChild": "Add Child",
-    "noChildren": "No Children"
+    "noChildren": "No Children",
+    "version": "Version",
+    "versionHistory": "Version History",
+    "currentVersion": "Current Version",
+    "restore": "Restore to this version",
+    "confirmRestore": "Are you sure you want to restore to this version? Current version will be archived.",
+    "restoreSuccess": "Restored successfully",
+    "restoreFailed": "Restore failed",
+    "versionLoading": "Loading version history...",
+    "noVersions": "No version history",
+    "changeLog": "Change Log",
+    "changeLogPlaceholder": "Describe what changed (optional)",
+    "versionRequired": "New version must be higher than current version",
+    "versionInvalid": "Invalid version format (expected major.minor.patch)",
+    "versionAutoHint": "Leave empty to auto-increment patch version",
+    "rollbackArchive": "Pre-restore archive (restore to {version})",
+    "versionUpdatedAt": "Created At"
   },
   "visualEditor": {
     "palette": {

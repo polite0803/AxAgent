@@ -8421,7 +8421,23 @@
     "requiredProps": "必填属性",
     "noProps": "暂无属性",
     "addChild": "添加子节点",
-    "noChildren": "暂无子节点"
+    "noChildren": "暂无子节点",
+    "version": "版本",
+    "versionHistory": "版本历史",
+    "currentVersion": "当前版本",
+    "restore": "回滚到此版本",
+    "confirmRestore": "确定要回滚到此版本吗？当前版本将会被存档。",
+    "restoreSuccess": "回滚成功",
+    "restoreFailed": "回滚失败",
+    "versionLoading": "加载版本历史...",
+    "noVersions": "暂无版本历史",
+    "changeLog": "变更说明",
+    "changeLogPlaceholder": "描述本次变更内容（可选）",
+    "versionRequired": "新版本号必须高于当前版本",
+    "versionInvalid": "版本号格式无效（应为 major.minor.patch）",
+    "versionAutoHint": "不指定则自动递增 patch 版本",
+    "rollbackArchive": "回滚前存档（回滚到 {version})",
+    "versionUpdatedAt": "创建时间"
   },
   "visualEditor": {
     "palette": {

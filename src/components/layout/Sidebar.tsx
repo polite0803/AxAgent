@@ -28,7 +28,7 @@ import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";
 import { UserProfileModal } from "./UserProfileModal";
 const pageKeyToPath: Record<PageKey, string> = {
-  chat: "/",
+  chat: "/chat",
   dashboard: "/dashboard",
   knowledge: "/knowledge",
   memory: "/memory",
@@ -42,6 +42,9 @@ const pageKeyToPath: Record<PageKey, string> = {
 };
 
 function pathToPageKey(path: string): PageKey {
+  if (path === "/chat") {
+    return "chat";
+  }
   if (path === "/" || path === "") {
     return "dashboard";
   }
@@ -65,6 +68,13 @@ interface NavItem {
 }
 
 const builtinNavItems: NavItem[] = [
+  {
+    key: "chat",
+    icon: <Icon icon="fluent:chat-20-filled" size={17} />,
+    labelKey: "nav.chat",
+    path: "/chat",
+    isPlugin: false,
+  },
   {
     key: "dashboard",
     icon: <Icon icon="fluent:grid-20-filled" size={17} />,
@@ -379,7 +389,7 @@ export function Sidebar() {
     sections.push({
       key: "overview",
       labelKey: "sidebar.sectionOverview",
-      items: builtinNavItems.filter((n) => n.key === "dashboard"),
+      items: builtinNavItems.filter((n) => n.key === "chat" || n.key === "dashboard"),
     });
 
     sections.push({

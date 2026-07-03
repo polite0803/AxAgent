@@ -12,6 +12,11 @@ import { lazy, memo, Suspense, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 
+const LazyChatPage = lazy(() =>
+  import("@/pages/ChatPage").then((m) => ({
+    default: m.ChatPage,
+  }))
+);
 const LazyKnowledgeHubPage = lazy(() =>
   import("@/pages/KnowledgeHubPage").then((m) => ({
     default: m.KnowledgeHubPage,
@@ -162,6 +167,14 @@ export const ContentArea = memo(function ContentArea() {
       <div style={{ flex: 1, overflow: "auto", display: "flex", flexDirection: "column", minWidth: 0 }}>
         <Routes>
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route
+            path="/chat"
+            element={
+              <PageContextProvider page="chat">
+                <SafeLazyPage Page={LazyChatPage} />
+              </PageContextProvider>
+            }
+          />
           <Route
             path="/dashboard"
             element={

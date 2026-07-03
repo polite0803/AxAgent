@@ -236,6 +236,7 @@ export interface DynamicUISchemaRecord {
   schema_json: string;
   category: string;
   tags: string[];
+  version: string;
   is_builtin: boolean;
   created_at: string;
   updated_at: string;
@@ -263,10 +264,34 @@ export interface UpdateDynamicUISchemaParams {
   schema_json?: string;
   category?: string;
   tags?: string[];
+  /** 语义化版本号（可选），不传则自动递增 patch */
+  version?: string;
+  /** 变更说明 */
+  change_log?: string;
 }
 
 export interface SaveDynamicUIFormDataParams {
   schema_id: string;
   form_data_json: string;
   instance_key?: string;
+}
+
+// ── 版本管理类型 ──
+
+export interface DynamicUISchemaVersion {
+  id: number;
+  schema_id: string;
+  version: string;
+  title: string;
+  description: string;
+  schema_json: string;
+  category: string;
+  tags: string[];
+  change_log: string;
+  created_at: number;
+}
+
+export interface ListVersionsResponse {
+  versions: DynamicUISchemaVersion[];
+  current_version: string;
 }
