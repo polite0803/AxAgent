@@ -8406,5 +8406,17 @@
     "report": "Отчеты",
     "monitor": "Мониторинг",
     "other": "Другое"
+  },
+  "dynamicUIManager": {
+    "catForm": "Форма",
+    "catDashboard": "Панель",
+    "catReport": "Отчет",
+    "catCustom": "Пользовательский",
+    "componentType": "Тип компонента",
+    "addProp": "Добавить свойство",
+    "requiredProps": "Обязательные свойства",
+    "noProps": "Нет свойств",
+    "addChild": "Добавить дочерний",
+    "noChildren": "Нет дочерних"
   }
 }

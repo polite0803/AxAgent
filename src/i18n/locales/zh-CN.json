@@ -8400,7 +8400,17 @@
       "formSubmit": "提交",
       "cardTitle": "卡片",
       "tagText": "标签"
-    }
+    },
+    "catForm": "表单",
+    "catDashboard": "仪表盘",
+    "catReport": "报表",
+    "catCustom": "自定义",
+    "componentType": "组件类型",
+    "addProp": "添加属性",
+    "requiredProps": "必填属性",
+    "noProps": "暂无属性",
+    "addChild": "添加子节点",
+    "noChildren": "暂无子节点"
   },
   "dynamicUIPreview": {
     "title": "Dynamic UI Preview",

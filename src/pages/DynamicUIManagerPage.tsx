@@ -383,7 +383,12 @@ export function DynamicUIManagerPage() {
             <TextArea rows={2} placeholder={t("dynamicUIManager.descPlaceholder")} />
           </Form.Item>
           <Form.Item name="category" label={t("dynamicUIManager.category")}>
-            <Select options={CATEGORIES.map((c) => ({ label: c, value: c }))} />
+            <Select
+              options={CATEGORIES.map((c) => ({
+                label: t(`dynamicUIManager.cat${c.charAt(0).toUpperCase() + c.slice(1)}`),
+                value: c,
+              }))}
+            />
           </Form.Item>
           <Form.Item name="tags" label={t("dynamicUIManager.tags")}>
             <Select mode="tags" placeholder={t("dynamicUIManager.tagsPlaceholder")} />

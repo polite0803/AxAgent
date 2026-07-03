@@ -8406,5 +8406,17 @@
     "report": "रिपोर्ट",
     "monitor": "निगरानी",
     "other": "अन्य"
+  },
+  "dynamicUIManager": {
+    "catForm": "फ़ॉर्म",
+    "catDashboard": "डैशबोर्ड",
+    "catReport": "रिपोर्ट",
+    "catCustom": "कस्टम",
+    "componentType": "कंपोनेंट प्रकार",
+    "addProp": "गुण जोड़ें",
+    "requiredProps": "आवश्यक गुण",
+    "noProps": "कोई गुण नहीं",
+    "addChild": "चाइल्ड जोड़ें",
+    "noChildren": "कोई चाइल्ड नहीं"
   }
 }

@@ -8406,5 +8406,17 @@
     "report": "التقارير",
     "monitor": "المراقبة",
     "other": "أخرى"
+  },
+  "dynamicUIManager": {
+    "catForm": "نموذج",
+    "catDashboard": "لوحة القيادة",
+    "catReport": "تقرير",
+    "catCustom": "مخصص",
+    "componentType": "نوع المكون",
+    "addProp": "إضافة خاصية",
+    "requiredProps": "الخصائص المطلوبة",
+    "noProps": "لا توجد خصائص",
+    "addChild": "إضافة عنصر فرعي",
+    "noChildren": "لا توجد عناصر فرعية"
   }
 }

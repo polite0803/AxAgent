@@ -8403,5 +8403,17 @@
     "report": "Rapports",
     "monitor": "Surveillance",
     "other": "Autres"
+  },
+  "dynamicUIManager": {
+    "catForm": "Formulaire",
+    "catDashboard": "Tableau de bord",
+    "catReport": "Rapport",
+    "catCustom": "Personnalisé",
+    "componentType": "Type de composant",
+    "addProp": "Ajouter une propriété",
+    "requiredProps": "Propriétés requises",
+    "noProps": "Aucune propriété",
+    "addChild": "Ajouter un enfant",
+    "noChildren": "Aucun enfant"
   }
 }
