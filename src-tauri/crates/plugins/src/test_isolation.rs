@@ -63,17 +63,18 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_env_lock_creates_isolated_home() {
+    fn test_env_lock_creates_isolated_home_and_directories() {
         let lock = EnvLock::lock();
         let home = env::var("HOME").unwrap();
         assert!(home.contains("plugin-test-"));
         assert_eq!(home, lock.temp_home().to_str().unwrap());
-    }
 
-    #[test]
-    fn test_env_lock_creates_plugin_directories() {
-        let lock = EnvLock::lock();
         let plugins_dir = lock.temp_home().join(".claude/plugins/installed");
-        assert!(plugins_dir.exists(), "plugins dir should exist at {:?}", plugins_dir);
+        assert!(
+            plugins_dir.exists(),
+            "plugins dir should exist at {:?}",
+            plugins_dir,
+        );
     }
+}
 }
