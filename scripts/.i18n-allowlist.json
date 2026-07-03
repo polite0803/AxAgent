@@ -2762,6 +2762,12 @@
       "lines": "38,45",
       "reason": "非UI字符串-Mock数据",
       "note": "AI 后端返回的后备描述，非 UI 硬编码"
+    },
+    {
+      "file": "src/components/workflow/__tests__/workflowComponents.test.tsx",
+      "lines": "142,143,144,145,510,511",
+      "reason": "非UI字符串-测试Mock数据",
+      "note": "测试文件中的 mock t() 返回值，非实际 UI 文本"
     }
   ]
 }
