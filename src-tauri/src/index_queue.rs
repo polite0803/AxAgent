@@ -11,6 +11,7 @@ use crate::AppState;
 use axagent_core::rag;
 use axagent_core::repo::index_jobs as jobs;
 use axagent_core::vector_store::VectorStore;
+use sea_orm::ConnectionTrait;
 use sea_orm::DatabaseConnection;
 use std::sync::Arc;
 use std::time::Duration;
