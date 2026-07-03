@@ -77,7 +77,9 @@ test.describe("Workflow Editor Canvas", () => {
     const newButton = page.getByTestId("workflow-create-new-btn").first();
     await expect(newButton).toBeVisible({ timeout: 5000 });
     await newButton.click({ force: true });
-    await page.waitForTimeout(2000);
+
+    // 等待编辑器完全渲染（节点出现），超时较长为首次加载留足时间
+    await expect(page.locator("text=触发器").first()).toBeVisible({ timeout: 15000 });
     await dismissModals(page);
   });
 
@@ -92,7 +94,6 @@ test.describe("Workflow Editor Canvas", () => {
   });
 
   test("should open AI panel", async ({ page }) => {
-    // 先确认编辑器头存在（工作流编辑器已完全渲染），再找 AI 面板按钮
     const aiPanelBtn = page.locator('[data-testid="workflow-ai-panel-btn"]');
     await expect(aiPanelBtn).toBeVisible({ timeout: 10000 });
     await aiPanelBtn.click();
