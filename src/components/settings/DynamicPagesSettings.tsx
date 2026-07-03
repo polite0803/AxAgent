@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { DynamicUIRenderer } from "@/components/dynamicUI/DynamicUIRenderer";
-import { SchemaTreeEditor } from "@/components/dynamicUI/SchemaTreeEditor";
+import { VisualEditor } from "@/components/dynamicUI/VisualEditor";
 import { generateUIFromNL } from "@/lib/dynamicUI/nl2ui";
 import { editUIFromNL } from "@/lib/dynamicUI/nl2ui-edit";
 import { validateSchema } from "@/lib/dynamicUI/SchemaValidator";
@@ -429,23 +429,16 @@ export function DynamicPagesSettings() {
             {
               key: "visual",
               label: t("settings.dynamicPages.visualEdit"),
-              children: editSchema
-                ? (
-                  <SchemaTreeEditor
-                    schema={editSchema}
-                    onChange={(newSchema) => {
-                      setEditSchema(newSchema);
-                      setEditJsonText(JSON.stringify(newSchema, null, 2));
-                    }}
-                  />
-                )
-                : (
-                  <Empty
-                    description={isCreating
-                      ? t("dynamicUIManager.nlInputPlaceholder")
-                      : t("dynamicUIManager.selectToPreview")}
-                  />
-                ),
+              children: (
+                <VisualEditor
+                  key={editSchema?.id ?? editingRecord?.id ?? "new"}
+                  schema={editSchema}
+                  onChange={(newSchema) => {
+                    setEditSchema(newSchema);
+                    setEditJsonText(JSON.stringify(newSchema, null, 2));
+                  }}
+                />
+              ),
             },
             {
               key: "ai",

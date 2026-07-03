@@ -8423,6 +8423,74 @@
     "addChild": "添加子节点",
     "noChildren": "暂无子节点"
   },
+  "visualEditor": {
+    "palette": {
+      "title": "组件"
+    },
+    "categories": {
+      "container": "布局容器",
+      "data-display": "数据展示",
+      "form": "表单",
+      "media": "媒体",
+      "misc": "其他"
+    },
+    "components": {
+      "Container": "容器",
+      "Row": "行布局",
+      "Column": "列布局",
+      "Grid": "网格布局",
+      "Card": "卡片",
+      "Tabs": "标签页",
+      "Accordion": "手风琴",
+      "Table": "数据表格",
+      "Chart": "图表",
+      "Dashboard": "仪表盘",
+      "List": "列表",
+      "Tree": "树形控件",
+      "Timeline": "时间线",
+      "Form": "表单",
+      "Input": "输入框",
+      "Textarea": "文本域",
+      "Number": "数字输入",
+      "Select": "下拉选择",
+      "DatePicker": "日期选择",
+      "Switch": "开关",
+      "Checkbox": "复选框",
+      "Radio": "单选框",
+      "CodeEditor": "代码编辑器",
+      "FilePreview": "文件预览",
+      "Markdown": "Markdown",
+      "Image": "图片",
+      "Button": "按钮",
+      "Text": "文本",
+      "Divider": "分割线",
+      "Progress": "进度条",
+      "Tag": "标签"
+    },
+    "canvas": {
+      "leafNode": "叶子节点",
+      "childCount": "个子节点",
+      "emptyHint": "画布为空，从左侧拖入组件开始构建 UI",
+      "dropPrompt": "将组件拖放到此处",
+      "dropHint": "支持容器、表单、数据展示等多种组件类型",
+      "rootHint": "个根级子组件"
+    },
+    "property": {
+      "title": "属性面板",
+      "selectHint": "点击画布中的组件\n以编辑其属性",
+      "delete": "删除",
+      "tabs": {
+        "basic": "基本",
+        "style": "样式"
+      },
+      "style": {
+        "label": "样式属性",
+        "add": "添加",
+        "empty": "暂无样式属性",
+        "quickStyles": "快捷样式"
+      }
+    }
+  },
   "dynamicUIPreview": {
     "title": "Dynamic UI Preview",
     "reset": "重置",
