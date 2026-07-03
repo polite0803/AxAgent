@@ -70,11 +70,6 @@ mod tests {
         assert_eq!(home, lock.temp_home().to_str().unwrap());
 
         let plugins_dir = lock.temp_home().join(".claude/plugins/installed");
-        assert!(
-            plugins_dir.exists(),
-            "plugins dir should exist at {:?}",
-            plugins_dir,
-        );
+        assert!(plugins_dir.exists(), "plugins dir should exist at {:?}", plugins_dir,);
     }
-}
 }
