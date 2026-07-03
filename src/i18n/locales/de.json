@@ -2628,6 +2628,7 @@
       "description": "Dynamische UI-Seiten erstellen und verwalten, mit Anheftung an die Seitenleiste",
       "createNew": "Neue Seite erstellen",
       "aiGenerate": "KI generieren",
+      "actions": "Aktionen",
       "fixed": "Angeheftet",
       "group": "Gruppe",
       "position": "Position",

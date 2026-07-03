@@ -2628,6 +2628,7 @@
       "description": "Créer et gérer des pages UI dynamiques, supporte l'épinglage à la barre latérale",
       "createNew": "Créer une nouvelle page",
       "aiGenerate": "Générer par IA",
+      "actions": "Actions",
       "fixed": "Épinglé",
       "group": "Groupe",
       "position": "Position",

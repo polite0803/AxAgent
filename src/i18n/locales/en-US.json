@@ -2771,6 +2771,7 @@
       "description": "Create and manage dynamic UI pages, supports pinning to sidebar navigation",
       "createNew": "Create New Page",
       "aiGenerate": "AI Generate",
+      "actions": "Actions",
       "fixed": "Pinned",
       "group": "Group",
       "position": "Position",

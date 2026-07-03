@@ -2628,6 +2628,7 @@
       "description": "創建和管理動態 UI 頁面，支援固定到側欄導航",
       "createNew": "創建新頁面",
       "aiGenerate": "AI 生成",
+      "actions": "操作",
       "fixed": "固定在導航",
       "group": "分組",
       "position": "位置",

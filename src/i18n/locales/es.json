@@ -2628,6 +2628,7 @@
       "description": "Cree y administre páginas de interfaz dinámicas, admite fijación a la barra lateral",
       "createNew": "Crear nueva página",
       "aiGenerate": "Generar con IA",
+      "actions": "Acciones",
       "fixed": "Fijado",
       "group": "Grupo",
       "position": "Posición",

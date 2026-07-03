@@ -2628,6 +2628,7 @@
       "description": "動的UIページを作成・管理し、サイドバーナビゲーションにピン留めできます",
       "createNew": "新規ページ作成",
       "aiGenerate": "AI生成",
+      "actions": "操作",
       "fixed": "ピン留め",
       "group": "グループ",
       "position": "位置",

@@ -2628,6 +2628,7 @@
       "description": "동적 UI 페이지를 생성하고 관리하며, 사이드바 탐색에 고정할 수 있습니다",
       "createNew": "새 페이지 만들기",
       "aiGenerate": "AI 생성",
+      "actions": "작업",
       "fixed": "고정됨",
       "group": "그룹",
       "position": "위치",
