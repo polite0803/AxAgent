@@ -8487,7 +8487,15 @@
         "label": "样式属性",
         "add": "添加",
         "empty": "暂无样式属性",
-        "quickStyles": "快捷样式"
+        "quickStyles": "快捷样式",
+        "placeholder": {
+          "propKey": "样式属性名",
+          "propValue": "属性值"
+        }
+      },
+      "placeholder": {
+        "propKey": "属性名",
+        "propValue": "属性值"
       }
     }
   },

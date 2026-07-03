@@ -610,7 +610,7 @@ function PropertyPanel({
                   <Input
                     size="small"
                     className="w-[38%] font-mono text-[11px]"
-                    placeholder="key"
+                    placeholder={t("visualEditor.property.placeholder.propKey")}
                     value={entry.key}
                     onChange={(e) => handlePropChange(idx, "key", e.target.value)}
                     status={requiredProps.includes(entry.key) && !entry.value ? "warning" : undefined}
@@ -618,7 +618,7 @@ function PropertyPanel({
                   <Input
                     size="small"
                     className="flex-1 font-mono text-[11px]"
-                    placeholder="value"
+                    placeholder={t("visualEditor.property.placeholder.propValue")}
                     value={entry.value}
                     onChange={(e) => handlePropChange(idx, "value", e.target.value)}
                   />
@@ -653,7 +653,7 @@ function PropertyPanel({
                   <Input
                     size="small"
                     className="w-[38%] font-mono text-[11px]"
-                    placeholder="property"
+                    placeholder={t("visualEditor.property.style.placeholder.propKey")}
                     value={key}
                     onChange={(e) => {
                       const newKey = e.target.value;
@@ -667,7 +667,7 @@ function PropertyPanel({
                   <Input
                     size="small"
                     className="flex-1 font-mono text-[11px]"
-                    placeholder="value"
+                    placeholder={t("visualEditor.property.style.placeholder.propValue")}
                     value={String(val)}
                     onChange={(e) => handleStyleChange(key, e.target.value)}
                   />

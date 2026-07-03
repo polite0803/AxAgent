@@ -8596,7 +8596,15 @@
         "label": "Style Properties",
         "add": "Add",
         "empty": "No style properties",
-        "quickStyles": "Quick Styles"
+        "quickStyles": "Quick Styles",
+        "placeholder": {
+          "propKey": "Property",
+          "propValue": "Value"
+        }
+      },
+      "placeholder": {
+        "propKey": "Key",
+        "propValue": "Value"
       }
     }
   },
