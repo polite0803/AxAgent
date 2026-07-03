@@ -1368,6 +1368,7 @@
     "webhooks": "Webhook",
     "advanced": "進階設定",
     "evolution": {
+      "title": "自我進化",
       "config": "[TODO] Config",
       "stats": "[TODO] Stats",
       "logs": "[TODO] Logs",

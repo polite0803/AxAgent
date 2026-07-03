@@ -2581,6 +2581,7 @@
     },
     "advanced": "उन्नत सेटिंग्स",
     "evolution": {
+      "title": "स्व-विकास",
       "config": "[TODO] Config",
       "stats": "[TODO] Stats",
       "logs": "[TODO] Logs",

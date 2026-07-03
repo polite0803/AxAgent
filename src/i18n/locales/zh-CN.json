@@ -2595,6 +2595,7 @@
     },
     "advanced": "高级设置",
     "evolution": {
+      "title": "自我进化",
       "config": "配置",
       "stats": "统计",
       "logs": "日志",

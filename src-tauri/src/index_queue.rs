@@ -53,6 +53,32 @@ impl IndexJobService {
 
     pub async fn start(self: Arc<Self>) {
         tracing::info!("[index_queue] 启动持久化索引队列服务");
+        // 防御性建表：确保 index_jobs 表存在（迁移系统可能尚未补跑 v5）
+        if let Err(e) = self
+            .db
+            .execute_unprepared(
+                "CREATE TABLE IF NOT EXISTS index_jobs (\
+                 id TEXT NOT NULL PRIMARY KEY, \
+                 job_type TEXT NOT NULL, \
+                 container_type TEXT NOT NULL, \
+                 container_id TEXT NOT NULL, \
+                 item_id TEXT NOT NULL, \
+                 status TEXT NOT NULL DEFAULT 'pending', \
+                 current_stage TEXT, \
+                 progress INTEGER NOT NULL DEFAULT 0, \
+                 error_message TEXT, \
+                 retry_count INTEGER NOT NULL DEFAULT 0, \
+                 max_retries INTEGER NOT NULL DEFAULT 3, \
+                 priority INTEGER NOT NULL DEFAULT 0, \
+                 created_at INTEGER NOT NULL, \
+                 started_at INTEGER, \
+                 completed_at INTEGER, \
+                 metadata TEXT)",
+            )
+            .await
+        {
+            tracing::warn!("[index_queue] 防御性建表失败: {}", e);
+        }
         self.recover_pending_jobs().await;
 
         loop {

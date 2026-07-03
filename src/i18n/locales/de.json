@@ -2581,6 +2581,7 @@
     },
     "advanced": "Erweiterte Einstellungen",
     "evolution": {
+      "title": "Selbstevolution",
       "config": "[TODO] Config",
       "stats": "[TODO] Stats",
       "logs": "[TODO] Logs",

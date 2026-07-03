@@ -1413,6 +1413,7 @@
     "webhooks": "웹훅",
     "advanced": "고급 설정",
     "evolution": {
+      "title": "자기 진화",
       "config": "[TODO] Config",
       "stats": "[TODO] Stats",
       "logs": "[TODO] Logs",

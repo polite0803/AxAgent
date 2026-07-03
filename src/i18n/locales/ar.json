@@ -2594,6 +2594,7 @@
     },
     "advanced": "الإعدادات المتقدمة",
     "evolution": {
+      "title": "التطور الذاتي",
       "config": "[TODO] Config",
       "stats": "[TODO] Stats",
       "logs": "[TODO] Logs",

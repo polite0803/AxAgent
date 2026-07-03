@@ -2581,6 +2581,7 @@
     },
     "advanced": "Расширенные настройки",
     "evolution": {
+      "title": "Самоэволюция",
       "config": "[TODO] Config",
       "stats": "[TODO] Stats",
       "logs": "[TODO] Logs",

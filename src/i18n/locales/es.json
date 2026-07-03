@@ -2583,6 +2583,7 @@
     },
     "advanced": "Configuración avanzada",
     "evolution": {
+      "title": "Auto-evolución",
       "config": "[TODO] Config",
       "stats": "[TODO] Stats",
       "logs": "[TODO] Logs",

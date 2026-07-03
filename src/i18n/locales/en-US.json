@@ -1519,6 +1519,7 @@
     },
     "about": "About",
     "evolution": {
+      "title": "Self-Evolution",
       "config": "Config",
       "stats": "Stats",
       "logs": "Logs",
