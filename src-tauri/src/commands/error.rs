@@ -152,15 +152,15 @@ pub fn sanitize_error(msg: String) -> String {
             // 用占位符替换从路径开头到第一个冒号/空格/换行之间的内容
             let after_prefix = &msg[start + 3..];
             let path_end = after_prefix
-                .find(|c: char| c == ':' || c == ' ' || c == '\n' || c == ')')
+                .find([':', ' ', '\n', ')'])
                 .unwrap_or(after_prefix.len().min(60));
             return format!("{}[REDACTED]{}", &msg[..start], &after_prefix[path_end..]);
         }
     }
     // 防止 Unix 路径泄露（/开头的绝对路径）
-    if msg.starts_with('/') {
-        if let Some(end) = msg[1..].find(|c: char| c == ':' || c == ' ' || c == '\n') {
-            return format!("[REDACTED]{}", &msg[end + 1..]);
+    if let Some(stripped) = msg.strip_prefix('/') {
+        if let Some(end) = stripped.find([':', ' ', '\n']) {
+            return format!("[REDACTED]{}", &stripped[end + 1..]);
         }
     }
     msg
