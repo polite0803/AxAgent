@@ -409,7 +409,11 @@ export const useMultiModelStore = create<MultiModelState>((set, get) => ({
 // ─── 向后兼容：同步多模型状态到 conversationStore ───
 // 消费者组件通过 useConversationStore 读取 multiModelParentId 等字段，
 // 所以 multiModelStore 状态变化时需要同步写入 conversationStore。
+// 使用 re-entrancy guard 防止 conversationStore 写入 multiModelStore 形成无限循环。
+let _syncingToConversation = false;
+
 useMultiModelStore.subscribe((state, prev) => {
+  if (_syncingToConversation) { return; }
   const updates: Partial<
     Pick<
       ConversationState,
@@ -432,6 +436,8 @@ useMultiModelStore.subscribe((state, prev) => {
     updates.pendingPromptText = state.pendingPromptText;
   }
   if (Object.keys(updates).length > 0) {
+    _syncingToConversation = true;
     useConversationStore.setState(updates);
+    _syncingToConversation = false;
   }
 });

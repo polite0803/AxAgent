@@ -66,9 +66,13 @@ interface AgentStore {
   pausedConversations: Set<string>; // conversationIds that are paused
   subAgentCards: Record<string, SubAgentCardData>; // cardId → card data
 
-  // 执行进度追踪（仅 agentStore 独有的执行标志——toolCalls/currentToolCall/agentPool 由 executionStore 管理）
+  // 执行进度追踪（仅 agentStore 独有的标志——agentPool/agentStatus/sdkIdToExecId 由 executionStore 管理）
   isExecuting: Record<string, boolean>; // conversationId → 是否正在执行工具
   executingConversationIds: string[]; // 当前有工具在执行的对话 ID 列表（有序）
+  currentToolCall: { conversationId: string; toolUseId: string } | null;
+  sdkIdToExecId: Record<string, string>;
+  toolCalls: Record<string, ToolCallState>;
+  agentStatus: Record<string, string>;
 
   // Workflow match suggestion for conversation-type sessions
   workflowMatchSuggestion: WorkflowMatchSuggestion | null;
@@ -159,6 +163,10 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
   subAgentCards: {},
   isExecuting: {},
   executingConversationIds: [],
+  currentToolCall: null,
+  sdkIdToExecId: {},
+  toolCalls: {},
+  agentStatus: {},
 
   // --- Agent Profile state ---
   profiles: [],
@@ -238,163 +246,39 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
 
   clearConversationUI: (conversationId) => {
     set((s) => ({
-      currentToolCall: s.currentToolCall?.conversationId === conversationId
-        ? null
-        : s.currentToolCall,
+      // currentToolCall 由 executionStore 管理
       workflowMatchSuggestion: s.workflowMatchSuggestion?.conversationId === conversationId
         ? null
         : s.workflowMatchSuggestion,
     }));
   },
 
-  removePoolItem: (conversationId, itemId) => {
-    set((s) => {
-      const pool = (s.agentPool[conversationId] || []).filter(
-        (p) => p.id !== itemId,
-      );
-      return { agentPool: { ...s.agentPool, [conversationId]: pool } };
-    });
+  removePoolItem: () => {
+    // 由 executionStore 管理
   },
 
-  getPoolSummary: (conversationId) => {
-    const pool = get().agentPool[conversationId] || [];
-    const total = pool.length;
-    const completed = pool.filter((p) => p.status === "completed").length;
-    const running = pool.filter((p) => p.status === "running").length;
-    const pending = pool.filter((p) => p.status === "pending").length;
-    const failed = pool.filter((p) => p.status === "failed").length;
-    return {
-      total,
-      completed,
-      running,
-      pending,
-      failed,
-      pctComplete: total > 0 ? Math.round((completed / total) * 100) : 0,
-    };
-  },
+  getPoolSummary: () => ({
+    totalItems: 0,
+    subAgents: 0,
+    workers: 0,
+    workflowSteps: 0,
+    completedItems: 0,
+    failedItems: 0,
+    runningItems: 0,
+  }),
 
-  handleWorkerEvent: (event) => {
-    const poolId = `worker-${event.workerId}`;
-    const msg: WorkerMessage = {
-      workerId: event.workerId,
-      taskId: event.taskId,
-      messageType: (event.messageType
-        || "progress") as WorkerMessage["messageType"],
-      content: event.content,
-      timestamp: Date.now(),
-    };
-
-    set((s) => {
-      const pool = [...(s.agentPool[event.conversationId] || [])];
-      const idx = pool.findIndex((p) => p.id === poolId);
-
-      const statusMap: Record<string, AgentPoolItem["status"]> = {
-        progress: "running",
-        result: "completed",
-        completion: "completed",
-        error: "failed",
-      };
-
-      const newStatus = (event.status
-        || statusMap[event.messageType]
-        || "running") as AgentPoolItem["status"];
-
-      if (idx >= 0) {
-        const existing = pool[idx];
-        pool[idx] = {
-          ...existing,
-          status: newStatus,
-          summary: event.messageType === "progress" ? event.content : existing.summary,
-          error: event.messageType === "error" ? event.content : existing.error,
-          messages: [...(existing.messages || []), msg],
-          duration: existing.startedAt
-            ? Date.now() - existing.startedAt
-            : undefined,
-        };
-      } else {
-        pool.push({
-          id: poolId,
-          conversationId: event.conversationId,
-          type: "worker",
-          name: event.workerId,
-          status: "running",
-          taskDescription: event.taskId,
-          messages: [msg],
-          startedAt: Date.now(),
-        });
-      }
-
-      return { agentPool: { ...s.agentPool, [event.conversationId]: pool } };
-    });
+  handleWorkerEvent: () => {
+    // 由 executionStore 管理
   },
 
   // ── 队友管理 ──
 
-  addTeammateMessage: (conversationId, agentId, message) => {
-    set((s) => {
-      const pool = [...(s.agentPool[conversationId] || [])];
-      const idx = pool.findIndex((p) => p.id === agentId);
-
-      const workerMsg: WorkerMessage = {
-        workerId: agentId,
-        taskId: "",
-        messageType: "progress",
-        content: message,
-        timestamp: Date.now(),
-      };
-
-      if (idx >= 0) {
-        const existing = pool[idx];
-        pool[idx] = {
-          ...existing,
-          messages: [...(existing.messages || []), workerMsg],
-          currentTask: existing.currentTask
-            ? `${existing.currentTask} — ${message}`
-            : message,
-        };
-      } else {
-        pool.push({
-          id: agentId,
-          conversationId,
-          type: "worker",
-          name: agentId,
-          status: "running",
-          currentTask: message,
-          messages: [workerMsg],
-          startedAt: Date.now(),
-        });
-      }
-
-      return { agentPool: { ...s.agentPool, [conversationId]: pool } };
-    });
+  addTeammateMessage: () => {
+    // 由 executionStore 管理
   },
 
-  updateTeammateTask: (conversationId, agentId, task) => {
-    set((s) => {
-      const pool = [...(s.agentPool[conversationId] || [])];
-      const idx = pool.findIndex((p) => p.id === agentId);
-
-      if (idx >= 0) {
-        const existing = pool[idx];
-        pool[idx] = {
-          ...existing,
-          currentTask: task || undefined,
-          status: task ? "running" : existing.status,
-        };
-      } else {
-        pool.push({
-          id: agentId,
-          conversationId,
-          type: "worker",
-          name: agentId,
-          status: "running",
-          currentTask: task || undefined,
-          startedAt: Date.now(),
-        });
-      }
-
-      return { agentPool: { ...s.agentPool, [conversationId]: pool } };
-    });
+  updateTeammateTask: () => {
+    // 由 executionStore 管理
   },
 
   fetchSession: async (conversationId) => {
@@ -571,18 +455,12 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
     }
   },
 
-  handleStatus: (conversationId, message) => {
-    set((s) => ({
-      agentStatus: { ...s.agentStatus, [conversationId]: message },
-    }));
+  handleStatus: () => {
+    // 由 executionStore 管理
   },
 
-  clearStatus: (conversationId) => {
-    set((s) => {
-      const rest = { ...s.agentStatus };
-      delete rest[conversationId];
-      return { agentStatus: rest };
-    });
+  clearStatus: () => {
+    // 由 executionStore 管理
   },
 
   handleDone: (event) => {
@@ -608,12 +486,7 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
     set((s) => {
       const isExecuting = { ...s.isExecuting };
       delete isExecuting[event.conversationId];
-      // Guard: only clear currentToolCall if it belongs to this conversation.
-      // If another conversation's tool call replaced ours, leave it alone.
-      const shouldClear = !s.currentToolCall
-        || s.currentToolCall.conversationId === event.conversationId;
       return {
-        currentToolCall: shouldClear ? null : s.currentToolCall,
         isExecuting,
         executingConversationIds: s.executingConversationIds.filter(
           (id) => id !== event.conversationId,
@@ -639,7 +512,6 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
         const isExecuting = { ...s.isExecuting };
         delete isExecuting[event.conversationId];
         return {
-          currentToolCall: null,
           isExecuting,
           executingConversationIds: s.executingConversationIds.filter(
             (id) => id !== event.conversationId,
@@ -724,7 +596,6 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
         const isExecuting = { ...s.isExecuting };
         delete isExecuting[event.conversationId];
         return {
-          currentToolCall: null,
           isExecuting,
           executingConversationIds: s.executingConversationIds.filter(
             (id) => id !== event.conversationId,
@@ -778,19 +649,9 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
       summary: event.description,
       startedAt: Date.now(),
     };
-    set((s) => {
-      const pool = [...(s.agentPool[event.conversationId] || [])];
-      const idx = pool.findIndex((p) => p.id === cardId);
-      if (idx >= 0) {
-        pool[idx] = { ...pool[idx], ...poolItem };
-      } else {
-        pool.push(poolItem);
-      }
-      return {
-        subAgentCards: { ...s.subAgentCards, [cardId]: card },
-        agentPool: { ...s.agentPool, [event.conversationId]: pool },
-      };
-    });
+    set((s) => ({
+      subAgentCards: { ...s.subAgentCards, [cardId]: card },
+    }));
   },
 
   expirePendingPermissions: (conversationId) => {
