@@ -350,6 +350,17 @@ pub async fn download_cloud_backup(
         .unwrap_or_else(|| "cloud_backup.db".to_string());
     let local_path = backup_dir.join(&file_name);
 
+    // Canonicalize to prevent path traversal: verify the resolved path is within backup_dir
+    let canonical = local_path
+        .canonicalize()
+        .map_err(|e| format!("路径解析失败: {}", e))?;
+    let backup_canonical = backup_dir
+        .canonicalize()
+        .map_err(|e| format!("备份目录解析失败: {}", e))?;
+    if !canonical.starts_with(&backup_canonical) {
+        return Err("路径穿越检测失败：cloud_key 指向了备份目录之外的位置".to_string());
+    }
+
     std::fs::write(&local_path, &obj.data).map_err(|e| format!("写入备份文件失败: {}", e))?;
 
     tracing::info!("云端备份已下载到: {:?}", local_path);

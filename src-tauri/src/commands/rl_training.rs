@@ -8,8 +8,9 @@
 
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::sync::{Mutex, OnceLock};
+use std::sync::OnceLock;
 use tauri::command;
+use tokio::sync::Mutex;
 
 // ── Types ──
 
@@ -96,9 +97,7 @@ pub async fn start_rl_training(config: RLTrainingConfig) -> Result<String, Strin
         checkpoints: Vec::new(),
     };
 
-    let mut store = training_state()
-        .lock()
-        .map_err(|e| format!("Lock error: {e}"))?;
+    let mut store = training_state().lock().await;
     store.insert(training_id.clone(), state);
     tracing::info!(target: "rl_training", training_id = %training_id, "RL training started");
     Ok(training_id)
@@ -106,9 +105,7 @@ pub async fn start_rl_training(config: RLTrainingConfig) -> Result<String, Strin
 
 #[command]
 pub async fn stop_rl_training(training_id: String) -> Result<(), String> {
-    let mut store = training_state()
-        .lock()
-        .map_err(|e| format!("Lock error: {e}"))?;
+    let mut store = training_state().lock().await;
     match store.get_mut(&training_id) {
         Some(state) => {
             state.status = "paused".into();
@@ -122,9 +119,7 @@ pub async fn stop_rl_training(training_id: String) -> Result<(), String> {
 #[command]
 pub async fn get_training_metrics(step: u64) -> Result<TrainingMetrics, String> {
     // Use the latest training's config for simulation, or defaults
-    let store = training_state()
-        .lock()
-        .map_err(|e| format!("Lock error: {e}"))?;
+    let store = training_state().lock().await;
     let config = store
         .values()
         .next()
@@ -150,9 +145,7 @@ pub async fn save_checkpoint(
     reward: f64,
     timestamp: i64,
 ) -> Result<(), String> {
-    let mut store = training_state()
-        .lock()
-        .map_err(|e| format!("Lock error: {e}"))?;
+    let mut store = training_state().lock().await;
     // Find the training with the matching step
     for state in store.values_mut() {
         if state.current_step <= step {
@@ -183,7 +176,7 @@ pub async fn save_checkpoint(
         .get()
         .ok_or("CHECKPOINTS not initialized")?
         .lock()
-        .map_err(|e| format!("Lock error: {e}"))?
+        .await
         .push(ckpt);
     tracing::info!(target: "rl_training", checkpoint_id = %ckpt_id, "Checkpoint saved");
     Ok(())
@@ -197,9 +190,7 @@ fn checkpoints() -> &'static Mutex<Vec<CheckpointInfo>> {
 
 #[command]
 pub async fn load_checkpoint(checkpoint_id: String) -> Result<(), String> {
-    let store = training_state()
-        .lock()
-        .map_err(|e| format!("Lock error: {e}"))?;
+    let store = training_state().lock().await;
     let found = store
         .values()
         .any(|s| s.checkpoints.iter().any(|c| c.id == checkpoint_id));
@@ -208,9 +199,7 @@ pub async fn load_checkpoint(checkpoint_id: String) -> Result<(), String> {
         Ok(())
     } else {
         // Check orphan checkpoints
-        let orphan = checkpoints()
-            .lock()
-            .map_err(|e| format!("Lock error: {e}"))?;
+        let orphan = checkpoints().lock().await;
         if orphan.iter().any(|c| c.id == checkpoint_id) {
             return Ok(());
         }
@@ -221,16 +210,12 @@ pub async fn load_checkpoint(checkpoint_id: String) -> Result<(), String> {
 #[command]
 pub async fn list_checkpoints() -> Result<Vec<CheckpointInfo>, String> {
     let mut all = Vec::new();
-    let store = training_state()
-        .lock()
-        .map_err(|e| format!("Lock error: {e}"))?;
+    let store = training_state().lock().await;
     for state in store.values() {
         all.extend(state.checkpoints.clone());
     }
     drop(store);
-    let orphan = checkpoints()
-        .lock()
-        .map_err(|e| format!("Lock error: {e}"))?;
+    let orphan = checkpoints().lock().await;
     all.extend(orphan.clone());
     Ok(all)
 }

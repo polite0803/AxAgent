@@ -7,8 +7,9 @@
 
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::sync::{Mutex, OnceLock};
+use std::sync::OnceLock;
 use tauri::command;
+use tokio::sync::Mutex;
 
 // ── Types ──
 
@@ -82,7 +83,7 @@ fn timestamp_millis() -> i64 {
 
 #[command]
 pub async fn get_all_engine_status() -> Result<HashMap<String, EngineStatus>, String> {
-    let store = engines().lock().map_err(|e| format!("Lock error: {e}"))?;
+    let store = engines().lock().await;
     // Return a snapshot with updated "last_active" for running engines
     let now = timestamp_millis();
     let mut result: HashMap<String, EngineStatus> = HashMap::new();
@@ -98,7 +99,7 @@ pub async fn get_all_engine_status() -> Result<HashMap<String, EngineStatus>, St
 
 #[command]
 pub async fn start_engine(engine_name: String) -> Result<(), String> {
-    let mut store = engines().lock().map_err(|e| format!("Lock error: {e}"))?;
+    let mut store = engines().lock().await;
     match store.get_mut(&engine_name) {
         Some(engine) => {
             if engine.running {
@@ -120,7 +121,7 @@ pub async fn start_engine(engine_name: String) -> Result<(), String> {
 
 #[command]
 pub async fn stop_engine(engine_name: String) -> Result<(), String> {
-    let mut store = engines().lock().map_err(|e| format!("Lock error: {e}"))?;
+    let mut store = engines().lock().await;
     match store.get_mut(&engine_name) {
         Some(engine) => {
             if !engine.running {
@@ -144,7 +145,7 @@ pub async fn update_engine_config(
     engine_name: String,
     config: serde_json::Value,
 ) -> Result<(), String> {
-    let mut store = engines().lock().map_err(|e| format!("Lock error: {e}"))?;
+    let mut store = engines().lock().await;
     match store.get_mut(&engine_name) {
         Some(engine) => {
             // Merge config (only top-level keys)
@@ -174,7 +175,7 @@ pub async fn get_engine_logs(
     engine_name: String,
     limit: Option<usize>,
 ) -> Result<Vec<EngineLog>, String> {
-    let store = engines().lock().map_err(|e| format!("Lock error: {e}"))?;
+    let store = engines().lock().await;
     match store.get(&engine_name) {
         Some(engine) => {
             let logs = if let Some(l) = limit {
@@ -194,7 +195,7 @@ pub async fn get_engine_logs(
 
 #[command]
 pub async fn trigger_skill_evolution(skill_id: String) -> Result<(), String> {
-    let mut store = engines().lock().map_err(|e| format!("Lock error: {e}"))?;
+    let mut store = engines().lock().await;
     let now = timestamp_millis();
     if let Some(engine) = store.get_mut("skill_evolution") {
         engine.last_active = Some(now);

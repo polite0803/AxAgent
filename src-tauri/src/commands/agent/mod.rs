@@ -827,7 +827,13 @@ pub async fn agent_query(
             .flatten()
             .and_then(|e| e.api_key_ref)
             .and_then(|enc| {
-                axagent_core::crypto::decrypt_key(&enc, app_state.harness.master_key()).ok()
+                match axagent_core::crypto::decrypt_key(&enc, app_state.harness.master_key()) {
+                    Ok(key) => Some(key),
+                    Err(e) => {
+                        tracing::warn!("[agent] 搜索 API key 解密失败: {}", e);
+                        None
+                    },
+                }
             })
             .unwrap_or_default();
         tool_registry = tool_registry

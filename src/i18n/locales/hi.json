@@ -8556,5 +8556,11 @@
     "modelProviderSummary": "मॉडल/प्रदाता सारांश",
     "totalProviders": "प्रदाता",
     "totalModels": "मॉडल"
+  },
+  "dataBinding": {
+    "storeNotRegistered": "Store \"{{storeName}}\" not registered",
+    "apiRequestFailed": "API request failed: {{statusText}}",
+    "agentDataNotFound": "Agent generated data \"{{generationId}}\" not found in execution store",
+    "unknownSourceType": "Unknown data source type: {{type}}"
   }
 }

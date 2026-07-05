@@ -8590,5 +8590,11 @@
     "modelProviderSummary": "모덼/공급자 요약",
     "totalProviders": "공급자",
     "totalModels": "모덼"
+  },
+  "dataBinding": {
+    "storeNotRegistered": "Store \"{{storeName}}\" not registered",
+    "apiRequestFailed": "API request failed: {{statusText}}",
+    "agentDataNotFound": "Agent generated data \"{{generationId}}\" not found in execution store",
+    "unknownSourceType": "Unknown data source type: {{type}}"
   }
 }

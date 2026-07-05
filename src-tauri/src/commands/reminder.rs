@@ -8,7 +8,8 @@
 use axagent_trajectory::{Reminder, ReminderManager, ReminderNotification};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use std::sync::{Mutex, OnceLock};
+use std::sync::OnceLock;
+use tokio::sync::Mutex;
 
 static REMINDER_MANAGER: OnceLock<Mutex<ReminderManager>> = OnceLock::new();
 
@@ -117,7 +118,7 @@ pub async fn reminder_create(input: CreateReminderInput) -> Result<ReminderItem,
         recurrence,
     };
 
-    let mut mgr = manager().lock().map_err(|e| format!("Lock error: {e}"))?;
+    let mut mgr = manager().lock().await;
     mgr.add_reminder(reminder.clone())
         .map_err(|e| format!("添加提醒失败: {e}"))?;
 
@@ -129,7 +130,7 @@ pub async fn reminder_create(input: CreateReminderInput) -> Result<ReminderItem,
 
 #[tauri::command]
 pub async fn reminder_list() -> Result<ReminderListResult, String> {
-    let mgr = manager().lock().map_err(|e| format!("Lock error: {e}"))?;
+    let mgr = manager().lock().await;
 
     let active: Vec<ReminderItem> = mgr
         .get_active_reminders()
@@ -156,7 +157,7 @@ pub async fn reminder_list() -> Result<ReminderListResult, String> {
 
 #[tauri::command]
 pub async fn reminder_complete(id: String) -> Result<ReminderItem, String> {
-    let mut mgr = manager().lock().map_err(|e| format!("Lock error: {e}"))?;
+    let mut mgr = manager().lock().await;
     let r = mgr
         .complete_reminder(&id)
         .map_err(|e| format!("完成提醒失败: {e}"))?;
@@ -168,7 +169,7 @@ pub async fn reminder_snooze(
     id: String,
     duration_minutes: Option<i64>,
 ) -> Result<ReminderItem, String> {
-    let mut mgr = manager().lock().map_err(|e| format!("Lock error: {e}"))?;
+    let mut mgr = manager().lock().await;
     let r = mgr
         .snooze_reminder(&id, duration_minutes)
         .map_err(|e| format!("贪睡失败: {e}"))?;
@@ -177,7 +178,7 @@ pub async fn reminder_snooze(
 
 #[tauri::command]
 pub async fn reminder_delete(id: String) -> Result<(), String> {
-    let mut mgr = manager().lock().map_err(|e| format!("Lock error: {e}"))?;
+    let mut mgr = manager().lock().await;
     mgr.delete_reminder(&id)
         .map_err(|e| format!("删除提醒失败: {e}"))?;
     Ok(())
@@ -199,7 +200,7 @@ pub async fn reminder_update(
         None => None,
     };
 
-    let mut mgr = manager().lock().map_err(|e| format!("Lock error: {e}"))?;
+    let mut mgr = manager().lock().await;
     let r = mgr
         .update_reminder(&id, title, description, scheduled)
         .map_err(|e| format!("更新提醒失败: {e}"))?;
@@ -208,7 +209,7 @@ pub async fn reminder_update(
 
 #[tauri::command]
 pub async fn reminder_acknowledge(notification_id: String) -> Result<(), String> {
-    let mut mgr = manager().lock().map_err(|e| format!("Lock error: {e}"))?;
+    let mut mgr = manager().lock().await;
     mgr.acknowledge_notification(&notification_id)
         .map_err(|e| format!("确认通知失败: {e}"))?;
     Ok(())
@@ -216,7 +217,7 @@ pub async fn reminder_acknowledge(notification_id: String) -> Result<(), String>
 
 #[tauri::command]
 pub async fn reminder_cleanup() -> Result<u64, String> {
-    let mut mgr = manager().lock().map_err(|e| format!("Lock error: {e}"))?;
+    let mut mgr = manager().lock().await;
     let before = mgr.get_completed_history().len();
     mgr.cleanup_completed();
     let after = mgr.get_completed_history().len();

@@ -677,6 +677,16 @@ pub async fn reindex_knowledge_chunk(
         .embedding_provider
         .ok_or_else(|| "No embedding provider configured".to_string())?;
 
+    // Whitelist check: base_id must only contain alphanumeric chars and hyphens (for safe table name usage)
+    if !base_id
+        .chars()
+        .all(|c| c.is_ascii_alphanumeric() || c == '-')
+    {
+        return Err(format!(
+            "Invalid base_id: '{base_id}' — only ASCII alphanumeric and hyphens allowed"
+        ));
+    }
+
     let collection_id = format!("kb_{}", base_id);
 
     let chunk_content = {

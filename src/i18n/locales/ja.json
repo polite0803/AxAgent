@@ -8590,5 +8590,11 @@
     "modelProviderSummary": "モデル/プロバイダー概要",
     "totalProviders": "プロバイダー数",
     "totalModels": "モデル数"
+  },
+  "dataBinding": {
+    "storeNotRegistered": "Store \"{{storeName}}\" not registered",
+    "apiRequestFailed": "API request failed: {{statusText}}",
+    "agentDataNotFound": "Agent generated data \"{{generationId}}\" not found in execution store",
+    "unknownSourceType": "Unknown data source type: {{type}}"
   }
 }
