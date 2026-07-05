@@ -362,3 +362,16 @@ export const usePreferenceStore = create<PreferenceState>((set, get) => ({
 
 // 注入自身引用到 conversationStore，打破循环依赖
 _injectPreferenceStore(usePreferenceStore);
+
+// 同步初始偏好值到 conversationStore（覆盖 null 占位符，确保组件可安全读取）
+const prefState = usePreferenceStore.getState();
+useConversationStore.setState({
+  searchEnabled: prefState.searchEnabled,
+  searchProviderId: prefState.searchProviderId,
+  thinkingBudget: prefState.thinkingBudget,
+  mcpMode: prefState.mcpMode,
+  enabledMcpServerIds: prefState.enabledMcpServerIds,
+  enabledKnowledgeBaseIds: prefState.enabledKnowledgeBaseIds,
+  activeMemoryNamespaceId: prefState.activeMemoryNamespaceId,
+  enabledWikiIds: prefState.enabledWikiIds,
+});
