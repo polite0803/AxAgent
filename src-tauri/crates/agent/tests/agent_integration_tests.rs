@@ -1508,19 +1508,29 @@ mod test_agent_coordinator_lifecycle {
     #[tokio::test]
     async fn test_coordinator_cancel_from_running() {
         let agent = Arc::new(tokio::sync::Mutex::new(MockCoordinatorAgent::new()));
-        let coordinator = AgentCoordinator::new(agent, None);
+        let coordinator = Arc::new(AgentCoordinator::new(agent, None));
 
-        let input = AgentInput {
-            content: "start".to_string(),
-            context: None,
-        };
-        let _ = coordinator.execute(input).await;
+        // 在一个独立任务中执行，使其保持 Running 状态
+        let coord = coordinator.clone();
+        let exec_handle = tokio::spawn(async move {
+            let input = AgentInput {
+                content: "start".to_string(),
+                context: None,
+            };
+            coord.execute(input).await
+        });
+
+        // 给 execute 一点时间进入 Running 状态
+        tokio::time::sleep(tokio::time::Duration::from_millis(10)).await;
 
         let cancel_result = coordinator.cancel().await;
-        assert!(cancel_result.is_ok());
+        assert!(cancel_result.is_ok(), "cancel should succeed: {:?}", cancel_result);
 
         let status = coordinator.get_status().await;
         assert_eq!(status, AgentStatus::Idle);
+
+        // 等待 execute 任务完成（cancel 会使其提前返回）
+        let _ = exec_handle.await;
     }
 
     #[tokio::test]

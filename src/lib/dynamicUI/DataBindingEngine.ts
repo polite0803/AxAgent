@@ -2,6 +2,7 @@
 
 import { invoke } from "@/lib/invoke";
 import type { DataSourceConfig } from "@/types";
+import i18n from "@/i18n";
 
 /**
  * 数据绑定引擎：解析 DataSourceConfig 并返回实际数据。
@@ -35,7 +36,7 @@ export async function resolveDataSource(
       const { getStoreRegistry } = await import("@/lib/storeRegistry");
       const store = getStoreRegistry().get(storeName);
       if (!store) {
-        throw new Error(`Store "${storeName}" not registered`);
+        throw new Error(i18n.t("dataBinding.storeNotRegistered", { storeName }));
       }
       const state = store.get() as Record<string, unknown>;
       if (selector) {
@@ -56,7 +57,7 @@ export async function resolveDataSource(
       // fetch 模式
       const response = await fetch(endpoint, params as RequestInit);
       if (!response.ok) {
-        throw new Error(`API request failed: ${response.statusText}`);
+        throw new Error(i18n.t("dataBinding.apiRequestFailed", { statusText: response.statusText }));
       }
       return response.json();
     }
@@ -71,14 +72,14 @@ export async function resolveDataSource(
         ];
       if (!generation) {
         throw new Error(
-          `Agent generated data "${generationId}" not found in execution store`,
+          i18n.t("dataBinding.agentDataNotFound", { generationId }),
         );
       }
       return generation;
     }
 
     default:
-      throw new Error(`Unknown data source type: ${config.type}`);
+      throw new Error(i18n.t("dataBinding.unknownSourceType", { type: config.type }));
   }
 }
 

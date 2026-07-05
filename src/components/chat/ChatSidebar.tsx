@@ -1407,6 +1407,8 @@ export function ChatSidebar({
                 conversationId: conv.id,
                 cwd: menuInfo.key.slice("move-ws:".length),
               },
+            }).catch((err) => {
+              console.warn("[ChatSidebar] agent_update_session (move-ws) failed:", err);
             });
             return;
           }
@@ -1416,6 +1418,8 @@ export function ChatSidebar({
                 conversationId: conv.id,
                 cwd: null,
               },
+            }).catch((err) => {
+              console.warn("[ChatSidebar] agent_update_session (remove-ws) failed:", err);
             });
             return;
           }
@@ -1669,6 +1673,8 @@ export function ChatSidebar({
               conversationId: conv.id,
               cwd: menuInfo.key.slice("move-ws:".length),
             },
+          }).catch((err) => {
+            console.warn("[ChatSidebar] agent_update_session (move-ws, alt) failed:", err);
           });
           return;
         }
@@ -1678,6 +1684,8 @@ export function ChatSidebar({
               conversationId: conv.id,
               cwd: null,
             },
+          }).catch((err) => {
+            console.warn("[ChatSidebar] agent_update_session (remove-ws, alt) failed:", err);
           });
           return;
         }

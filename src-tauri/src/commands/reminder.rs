@@ -5,9 +5,7 @@
 //! 提供提醒的增删改查、完成、贪睡、通知确认等操作。
 //! ReminderManager 实例以 once_cell::sync::OnceLock 方式持有，线程安全。
 
-use axagent_trajectory::{
-    Reminder, ReminderManager, ReminderNotification,
-};
+use axagent_trajectory::{Reminder, ReminderManager, ReminderNotification};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::sync::{Mutex, OnceLock};
@@ -46,7 +44,10 @@ impl From<&Reminder> for ReminderItem {
             description: r.description.clone(),
             scheduled_at: r.scheduled_at.to_rfc3339(),
             completed: r.completed,
-            recurrence: r.recurrence.as_ref().map(|rec| format!("{:?}/{}", rec.frequency, rec.interval)),
+            recurrence: r
+                .recurrence
+                .as_ref()
+                .map(|rec| format!("{:?}/{}", rec.frequency, rec.interval)),
             created_at: r.created_at.to_rfc3339(),
         }
     }
@@ -78,7 +79,7 @@ pub struct CreateReminderInput {
     pub title: String,
     pub description: Option<String>,
     pub scheduled_at: String,
-    pub recurrence_frequency: Option<String>,  // "daily" | "weekly" | "monthly"
+    pub recurrence_frequency: Option<String>, // "daily" | "weekly" | "monthly"
     pub recurrence_interval: Option<u32>,
 }
 
@@ -120,17 +121,31 @@ pub async fn reminder_create(input: CreateReminderInput) -> Result<ReminderItem,
     mgr.add_reminder(reminder.clone())
         .map_err(|e| format!("添加提醒失败: {e}"))?;
 
-    Ok(ReminderItem::from(mgr.get_reminder(&reminder.id).unwrap()))
+    Ok(ReminderItem::from(
+        mgr.get_reminder(&reminder.id)
+            .ok_or_else(|| "添加后未找到提醒".into())?,
+    ))
 }
 
 #[tauri::command]
 pub async fn reminder_list() -> Result<ReminderListResult, String> {
     let mgr = manager().lock().map_err(|e| format!("Lock error: {e}"))?;
 
-    let active: Vec<ReminderItem> = mgr.get_active_reminders().into_iter().map(|r| r.into()).collect();
-    let completed: Vec<ReminderItem> = mgr.get_completed_history().iter().map(|r| r.into()).collect();
-    let pending_notifications: Vec<ReminderNotificationItem> =
-        mgr.get_pending_notifications().into_iter().map(|n| n.into()).collect();
+    let active: Vec<ReminderItem> = mgr
+        .get_active_reminders()
+        .into_iter()
+        .map(|r| r.into())
+        .collect();
+    let completed: Vec<ReminderItem> = mgr
+        .get_completed_history()
+        .iter()
+        .map(|r| r.into())
+        .collect();
+    let pending_notifications: Vec<ReminderNotificationItem> = mgr
+        .get_pending_notifications()
+        .into_iter()
+        .map(|n| n.into())
+        .collect();
 
     Ok(ReminderListResult {
         active,
@@ -142,21 +157,29 @@ pub async fn reminder_list() -> Result<ReminderListResult, String> {
 #[tauri::command]
 pub async fn reminder_complete(id: String) -> Result<ReminderItem, String> {
     let mut mgr = manager().lock().map_err(|e| format!("Lock error: {e}"))?;
-    let r = mgr.complete_reminder(&id).map_err(|e| format!("完成提醒失败: {e}"))?;
+    let r = mgr
+        .complete_reminder(&id)
+        .map_err(|e| format!("完成提醒失败: {e}"))?;
     Ok(ReminderItem::from(&r))
 }
 
 #[tauri::command]
-pub async fn reminder_snooze(id: String, duration_minutes: Option<i64>) -> Result<ReminderItem, String> {
+pub async fn reminder_snooze(
+    id: String,
+    duration_minutes: Option<i64>,
+) -> Result<ReminderItem, String> {
     let mut mgr = manager().lock().map_err(|e| format!("Lock error: {e}"))?;
-    let r = mgr.snooze_reminder(&id, duration_minutes).map_err(|e| format!("贪睡失败: {e}"))?;
+    let r = mgr
+        .snooze_reminder(&id, duration_minutes)
+        .map_err(|e| format!("贪睡失败: {e}"))?;
     Ok(ReminderItem::from(&r))
 }
 
 #[tauri::command]
 pub async fn reminder_delete(id: String) -> Result<(), String> {
     let mut mgr = manager().lock().map_err(|e| format!("Lock error: {e}"))?;
-    mgr.delete_reminder(&id).map_err(|e| format!("删除提醒失败: {e}"))?;
+    mgr.delete_reminder(&id)
+        .map_err(|e| format!("删除提醒失败: {e}"))?;
     Ok(())
 }
 

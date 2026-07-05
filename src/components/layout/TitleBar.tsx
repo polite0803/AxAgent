@@ -493,7 +493,9 @@ export function TitleBar() {
       clearTimeout(dragTimerRef.current);
       dragTimerRef.current = null;
     }
-    invoke("toggle_maximize_window");
+    invoke("toggle_maximize_window").catch((err) => {
+      console.warn("[TitleBar] toggle_maximize_window failed:", err);
+    });
   }, []);
 
   return (

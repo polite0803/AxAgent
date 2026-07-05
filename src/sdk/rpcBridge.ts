@@ -117,17 +117,6 @@ export function createHostRpcBridge(
       const callId = `host_${++callIdCounter}_${Date.now()}`;
 
       return new Promise<unknown>((resolve, reject) => {
-        const timer = setTimeout(() => {
-          pendingCalls.delete(callId);
-          reject(
-            new Error(
-              `RPC call "${method}" timed out after ${RPC_TIMEOUT_MS}ms`,
-            ),
-          );
-        }, RPC_TIMEOUT_MS);
-
-        pendingCalls.set(callId, { resolve, reject, timer });
-
         const responseHandler = (event: MessageEvent<HostToSkillMessage>) => {
           const msg = event.data;
           if (msg?.type === "rpc:response" && msg.callId === callId) {
@@ -146,7 +135,17 @@ export function createHostRpcBridge(
           }
         };
 
-        window.addEventListener("message", responseHandler);
+        const timer = setTimeout(() => {
+          window.removeEventListener("message", responseHandler);
+          pendingCalls.delete(callId);
+          reject(
+            new Error(
+              `RPC call "${method}" timed out after ${RPC_TIMEOUT_MS}ms`,
+            ),
+          );
+        }, RPC_TIMEOUT_MS);
+
+        pendingCalls.set(callId, { resolve, reject, timer });
 
         // 发送 rpc:request 到 Skill
         const requestMsg: SkillToHostMessage = {

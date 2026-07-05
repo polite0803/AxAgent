@@ -654,6 +654,21 @@ macro_rules! register_all_commands {
             commands::tracer::tracer_generate_suggestions,
             commands::tracer::tracer_submit_feedback,
             commands::tracer::tracer_get_feedback,
+            commands::tracer::telemetry_report_error,
+            // RL Training commands
+            commands::rl_training::start_rl_training,
+            commands::rl_training::stop_rl_training,
+            commands::rl_training::get_training_metrics,
+            commands::rl_training::save_checkpoint,
+            commands::rl_training::load_checkpoint,
+            commands::rl_training::list_checkpoints,
+            // Evolution Engine commands
+            commands::evolution_engine::get_all_engine_status,
+            commands::evolution_engine::start_engine,
+            commands::evolution_engine::stop_engine,
+            commands::evolution_engine::update_engine_config,
+            commands::evolution_engine::get_engine_logs,
+            commands::evolution_engine::trigger_skill_evolution,
             commands::evaluator::evaluator_list_benchmarks,
             commands::evaluator::evaluator_get_benchmark,
             commands::evaluator::evaluator_run_benchmark,
@@ -832,6 +847,15 @@ macro_rules! register_all_commands {
             commands::crash_report::get_crash_log,
             // Service health check
             commands::health::get_service_health,
+            // Reminder commands
+            commands::reminder::reminder_create,
+            commands::reminder::reminder_list,
+            commands::reminder::reminder_complete,
+            commands::reminder::reminder_snooze,
+            commands::reminder::reminder_delete,
+            commands::reminder::reminder_update,
+            commands::reminder::reminder_acknowledge,
+            commands::reminder::reminder_cleanup,
             // Personality commands
             commands::personality::personality_list,
             commands::personality::personality_get,

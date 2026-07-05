@@ -212,7 +212,9 @@ export function GlobalCopyMenu() {
   }, []);
 
   const handleOpenDevtools = useCallback(() => {
-    void invoke("open_devtools");
+    void invoke("open_devtools").catch((err) => {
+      console.warn("[GlobalCopyMenu] open_devtools failed:", err);
+    });
     setMenuPos(null);
   }, []);
 

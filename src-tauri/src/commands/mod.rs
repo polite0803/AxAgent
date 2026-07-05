@@ -34,6 +34,7 @@ pub mod error;
 pub mod error_code;
 pub mod evaluator;
 pub mod evolution;
+pub mod evolution_engine;
 pub(crate) mod file_cleanup;
 pub mod files;
 pub mod files_page;
@@ -70,8 +71,10 @@ pub mod pty;
 #[cfg(not(mobile))]
 pub mod quickbar;
 pub mod reflection;
+pub mod reminder;
 pub mod research;
 pub mod rl;
+pub mod rl_training;
 pub mod sandbox;
 pub mod scheduled_task;
 #[cfg(not(mobile))]

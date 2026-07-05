@@ -2308,77 +2308,6 @@ static SKILL_MCP_REGISTRY: std::sync::OnceLock<
     std::sync::Arc<axagent_tools::registry::UnifiedToolRegistry>,
 > = std::sync::OnceLock::new();
 
-#[derive(Clone)]
-struct SkillExecutionRecord {
-    skill_name: String,
-    output: Option<String>,
-}
-
-struct SkillOutputTracker {
-    inner: Mutex<HashMap<String, Vec<SkillExecutionRecord>>>,
-}
-
-impl SkillOutputTracker {
-    fn new() -> Self {
-        Self {
-            inner: Mutex::new(HashMap::new()),
-        }
-    }
-
-    fn record_execution(
-        &self,
-        conversation_id: &str,
-        record: SkillExecutionRecord,
-    ) -> Result<(), String> {
-        let mut tracker = self.inner.lock().map_err(|e| e.to_string())?;
-        let entries = tracker.entry(conversation_id.to_string()).or_default();
-        entries.push(record);
-        Ok(())
-    }
-
-    fn get_recent_skills(
-        &self,
-        conversation_id: &str,
-        limit: usize,
-    ) -> Result<Vec<SkillExecutionRecord>, String> {
-        let tracker = self.inner.lock().map_err(|e| e.to_string())?;
-        if let Some(entries) = tracker.get(conversation_id) {
-            let start = if entries.len() > limit {
-                entries.len() - limit
-            } else {
-                0
-            };
-            return Ok(entries[start..].to_vec());
-        }
-        Ok(Vec::new())
-    }
-
-    fn update_output(
-        &self,
-        conversation_id: &str,
-        skill_name: &str,
-        output: String,
-    ) -> Result<(), String> {
-        let mut tracker = self.inner.lock().map_err(|e| e.to_string())?;
-        if let Some(entries) = tracker.get_mut(conversation_id) {
-            if let Some(last) = entries
-                .iter_mut()
-                .rev()
-                .find(|r| r.skill_name == skill_name)
-            {
-                last.output = Some(output);
-            }
-        }
-        Ok(())
-    }
-}
-
-static SKILL_OUTPUT_TRACKER: std::sync::OnceLock<SkillOutputTracker> = std::sync::OnceLock::new();
-
-fn get_skill_output_tracker() -> &'static SkillOutputTracker {
-    SKILL_OUTPUT_TRACKER.get_or_init(SkillOutputTracker::new)
-}
-
 fn get_skill_mcp_registry() -> std::sync::Arc<axagent_tools::registry::UnifiedToolRegistry> {
     SKILL_MCP_REGISTRY
         .get_or_init(|| std::sync::Arc::new(axagent_tools::registry::UnifiedToolRegistry::new()))
@@ -2387,7 +2316,7 @@ fn get_skill_mcp_registry() -> std::sync::Arc<axagent_tools::registry::UnifiedTo
 
 fn detect_inter_skill_dependencies(
     task: &str,
-    recent_skills: &[SkillExecutionRecord],
+    recent_skills: &[skill_execution::SkillExecutionRecord],
 ) -> Vec<String> {
     let mut dependencies = Vec::new();
     let task_lower = task.to_lowercase();
@@ -2569,7 +2498,7 @@ async fn execute_skill_async(
     let execution_mode = "content".to_string();
     let mcp_tool_call = extract_mcp_tool_call(skill_content);
 
-    let tracker = get_skill_output_tracker();
+    let tracker = skill_execution::get_skill_output_tracker();
     let conversation_id = ctx.conversation_id.clone();
     let recent_skills = tracker
         .get_recent_skills(&conversation_id, 10)
@@ -2581,7 +2510,7 @@ async fn execute_skill_async(
         serde_json::to_string(&inter_skill_deps).ok()
     };
 
-    let execution_record = SkillExecutionRecord {
+    let execution_record = skill_execution::SkillExecutionRecord {
         skill_name: skill_name.to_string(),
         output: None,
     };

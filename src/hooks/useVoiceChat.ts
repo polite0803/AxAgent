@@ -226,6 +226,8 @@ export function useVoiceChat({
 
     const worklet = workletRef.current;
     if (worklet) {
+      // 清除旧 handler，避免闭包持有旧的 ws 引用
+      worklet.port.onmessage = null;
       worklet.port.onmessage = (e: MessageEvent) => {
         if (ws.readyState === WebSocket.OPEN && !isMutedRef.current) {
           ws.send(e.data as ArrayBuffer);

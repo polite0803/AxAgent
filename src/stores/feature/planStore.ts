@@ -124,6 +124,8 @@ export const usePlanStore = create<PlanStore>((set, get) => ({
         pendingStepIds.map((stepId) =>
           invoke("plan_modify_step", {
             request: { planId, stepId, approved: true },
+          }).catch((err) => {
+            console.warn(`[planStore] plan_modify_step(${stepId}) failed:`, err);
           })
         ),
       );

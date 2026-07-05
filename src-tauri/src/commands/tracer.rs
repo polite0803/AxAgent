@@ -625,3 +625,33 @@ pub fn tracer_get_feedback(trace_id: Option<String>) -> Result<Vec<FeedbackRecor
         Ok(feedback.clone())
     }
 }
+
+/// 从前端 GlobalErrorBoundary 接收前端错误并记录到 tracing 系统。
+#[derive(Debug, Deserialize)]
+pub struct FrontendErrorPayload {
+    pub message: String,
+    pub stack: String,
+    pub component_stack: Option<String>,
+    pub url: String,
+    pub timestamp: i64,
+}
+
+#[command]
+pub fn telemetry_report_error(error: FrontendErrorPayload) -> Result<(), String> {
+    tracing::error!(
+        target: "frontend_error",
+        url = %error.url,
+        timestamp = %error.timestamp,
+        "Frontend error: {} | componentStack: {} | stack: {}",
+        error.message,
+        error.component_stack.as_deref().unwrap_or(""),
+        error.stack,
+    );
+
+    // Also record as a tracer span error for visibility
+    if let Ok(mut storage) = TRACE_STORAGE.lock() {
+        storage.record_error("frontend_global_error", &error.message, &error.stack);
+    }
+
+    Ok(())
+}
