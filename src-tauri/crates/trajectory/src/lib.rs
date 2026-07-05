@@ -138,6 +138,10 @@ pub use preference_learner::{LearningMetrics, PreferenceLearner};
 
 pub use process_reward::ProcessRewardModel;
 
+pub use reminder_manager::{
+    ReminderError, ReminderManager, ReminderManagerConfig, ReminderNotification, ReminderSchedule,
+};
+
 pub use proactive_assistant::{
     ContextPrediction, PredictedIntent, Priority, ProactiveAssistant, ProactiveConfig,
     ProactiveSuggestion, RecurrenceFrequency, Reminder, ReminderRecurrence, SuggestionAction,

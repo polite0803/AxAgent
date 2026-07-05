@@ -1,5 +1,4 @@
 use axagent_harness::types::function_call::ChatTool;
-use crate::app_state::AppState as State;
 use crate::app_state::AppState;
 use crate::commands::agent::agent_err;
 use crate::commands::error::ErrorResponse;
@@ -174,7 +173,7 @@ pub(super) async fn check_and_suggest_workflow_match(
 /// Load the content of enabled skills from the file system based on conversation scenario.
 /// Returns a list of (skill_name, content_string) pairs filtered by scenario and enabled_skill_ids.
 pub(super) async fn load_enabled_skill_contents(
-    app_state: &State<'_, AppState>,
+    app_state: &AppState,
     scenario: Option<&str>,
     enabled_skill_ids: &[String],
 ) -> Vec<(String, String)> {
@@ -261,7 +260,7 @@ pub(super) async fn load_enabled_skill_contents(
 /// Load ChatTool definitions and skill data from enabled skills for Agent tool calling.
 /// Returns (chat_tools, skill_name_to_skill_map) for both tool definitions and handler registration.
 pub(super) async fn load_skill_tools(
-    app_state: &State<'_, AppState>,
+    app_state: &AppState,
     scenario: Option<&str>,
     enabled_skill_ids: &[String],
 ) -> (Vec<ChatTool>, HashMap<String, axagent_trajectory::Skill>) {

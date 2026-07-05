@@ -69,7 +69,7 @@ fn generate_checkpoint_id() -> String {
 
 fn simulate_metrics(step: u64, config: &RLTrainingConfig) -> TrainingMetrics {
     let progress = step as f64 / config.max_steps as f64;
-    let base_loss = 2.5 * (-step as f64 * 0.002).exp();
+    let base_loss = 2.5 * (-(step as i64) as f64 * 0.002).exp();
     let noise = (step as f64).sin() * 0.05 + (step as f64 * 0.1).cos() * 0.03;
     TrainingMetrics {
         step,
@@ -180,6 +180,8 @@ pub async fn save_checkpoint(
     let ckpt_id = ckpt.id.clone();
     // We use a second static for orphan checkpoints
     CHECKPOINTS
+        .get()
+        .ok_or("CHECKPOINTS not initialized")?
         .lock()
         .map_err(|e| format!("Lock error: {e}"))?
         .push(ckpt);

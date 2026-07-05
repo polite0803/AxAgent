@@ -15,7 +15,7 @@ import {
   preferenceStateMatches,
   stagePreference,
 } from "./conversationPreferences";
-import { useConversationStore } from "./conversationStore";
+import { _injectPreferenceStore, useConversationStore } from "./conversationStore";
 
 async function persistConversationPreferences(
   conversationId: string,
@@ -359,3 +359,6 @@ export const usePreferenceStore = create<PreferenceState>((set, get) => ({
     }
   },
 }));
+
+// 注入自身引用到 conversationStore，打破循环依赖
+_injectPreferenceStore(usePreferenceStore);

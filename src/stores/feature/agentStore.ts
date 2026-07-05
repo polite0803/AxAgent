@@ -58,19 +58,15 @@ interface AgentStore {
   // Session cache (truth lives in backend DB)
   sessions: Record<string, AgentSession>;
 
-  // Runtime state
-  agentStatus: Record<string, string>; // conversationId → status message
+  // Runtime state (unique to agentStore — execution state delegated to executionStore)
   pendingPermissions: Record<string, PermissionRequestEvent>; // toolUseId → request
   pendingAskUser: Record<string, AskUserEvent>; // askId → request
-  toolCalls: Record<string, ToolCallState>; // toolUseId or execId → state
-  sdkIdToExecId: Record<string, string>; // SDK toolUseId → DB execution ID mapping
   queryStats: Record<string, QueryStats>; // assistantMessageId → cost stats
   rateLimitInfo: Record<string, AgentRateLimitEvent>; // conversationId → rate limit event
   pausedConversations: Set<string>; // conversationIds that are paused
   subAgentCards: Record<string, SubAgentCardData>; // cardId → card data
 
-  // 执行进度追踪
-  currentToolCall: CurrentToolCall | null; // 当前正在执行的工具调用
+  // 执行进度追踪（仅 agentStore 独有的执行标志——toolCalls/currentToolCall/agentPool 由 executionStore 管理）
   isExecuting: Record<string, boolean>; // conversationId → 是否正在执行工具
   executingConversationIds: string[]; // 当前有工具在执行的对话 ID 列表（有序）
 
@@ -79,22 +75,6 @@ interface AgentStore {
   setWorkflowMatchSuggestion: (
     suggestion: WorkflowMatchSuggestion | null,
   ) => void;
-
-  // Unified Agent Pool — 子Agent + 工作者 + 工作流步骤
-  agentPool: Record<string, AgentPoolItem[]>; // conversationId → pool items
-
-  // Pool actions
-  upsertPoolItem: (item: AgentPoolItem) => void;
-  removePoolItem: (conversationId: string, itemId: string) => void;
-  getPoolSummary: (conversationId: string) => AgentPoolSummary;
-  handleWorkerEvent: (event: {
-    conversationId: string;
-    workerId: string;
-    taskId: string;
-    messageType: string;
-    content: string;
-    status?: string;
-  }) => void;
 
   // 队友管理
   addTeammateMessage: (
@@ -171,41 +151,36 @@ interface AgentStore {
 
 export const useAgentStore = create<AgentStore>((set, get) => ({
   sessions: {},
-  agentStatus: {},
   pendingPermissions: {},
   pendingAskUser: {},
-  toolCalls: {},
-  sdkIdToExecId: {},
   queryStats: {},
   rateLimitInfo: {},
   pausedConversations: new Set<string>(),
   subAgentCards: {},
-  currentToolCall: null,
   isExecuting: {},
   executingConversationIds: [],
 
   // --- Agent Profile state ---
   profiles: [],
   loaded: false,
-  agentPool: {},
   workflowMatchSuggestion: null,
 
   setWorkflowMatchSuggestion: (suggestion) => set({ workflowMatchSuggestion: suggestion }),
 
-  // --- AgentPool actions ---
+  // --- AgentPool actions delegated to executionStore ---
 
-  upsertPoolItem: (item) => {
-    set((s) => {
-      const pool = [...(s.agentPool[item.conversationId] || [])];
-      const idx = pool.findIndex((p) => p.id === item.id);
-      if (idx >= 0) {
-        pool[idx] = { ...pool[idx], ...item };
-      } else {
-        pool.push(item);
-      }
-      return { agentPool: { ...s.agentPool, [item.conversationId]: pool } };
-    });
-  },
+  upsertPoolItem: () => {/* 由 executionStore 管理 */},
+  removePoolItem: () => {/* 由 executionStore 管理 */},
+  getPoolSummary: () => ({
+    totalItems: 0,
+    subAgents: 0,
+    workers: 0,
+    workflowSteps: 0,
+    completedItems: 0,
+    failedItems: 0,
+    runningItems: 0,
+  }),
+  handleWorkerEvent: () => {/* 由 executionStore 管理 */},
 
   async loadProfiles(): Promise<void> {
     try {
@@ -491,24 +466,6 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
 
   handleToolUse: (event) => {
     set((s) => {
-      const toolCall: ToolCallState = {
-        toolUseId: event.toolUseId,
-        toolName: event.toolName,
-        input: event.input,
-        assistantMessageId: event.assistantMessageId,
-        executionStatus: "queued",
-      };
-      const updates: Record<string, ToolCallState> = {
-        [event.toolUseId]: toolCall,
-      };
-      const idMap = { ...s.sdkIdToExecId };
-      if (event.executionId) {
-        updates[event.executionId] = {
-          ...toolCall,
-          toolUseId: event.executionId,
-        };
-        idMap[event.toolUseId] = event.executionId;
-      }
       // Create optimistic sub-agent card when task tool is called
       const cardUpdates: Record<string, SubAgentCardData> = {};
       if (event.toolName === "task" && event.conversationId) {
@@ -522,13 +479,7 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
           status: "running",
         };
       }
-      // 追踪当前工具调用
-      const currentToolCall: CurrentToolCall = {
-        toolName: event.toolName,
-        toolUseId: event.toolUseId,
-        conversationId: event.conversationId,
-        startedAt: Date.now(),
-      };
+      // 追踪当前执行状态（仅 agentStore 独有的标志）
       const isExecuting = { ...s.isExecuting, [event.conversationId]: true };
       const executingIds = s.executingConversationIds.includes(
           event.conversationId,
@@ -536,71 +487,28 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
         ? s.executingConversationIds
         : [...s.executingConversationIds, event.conversationId];
       return {
-        toolCalls: { ...s.toolCalls, ...updates },
-        sdkIdToExecId: idMap,
         subAgentCards: { ...s.subAgentCards, ...cardUpdates },
-        currentToolCall,
         isExecuting,
         executingConversationIds: executingIds,
       };
     });
   },
 
-  handleToolStart: (event) => {
-    set((s) => {
-      const existing = s.toolCalls[event.toolUseId];
-      const updated: ToolCallState = {
-        toolUseId: event.toolUseId,
-        toolName: event.toolName,
-        input: event.input,
-        assistantMessageId: event.assistantMessageId,
-        executionStatus: "running",
-        approvalStatus: existing?.approvalStatus,
-      };
-      const updates: Record<string, ToolCallState> = {
-        [event.toolUseId]: updated,
-      };
-      const execId = s.sdkIdToExecId[event.toolUseId];
-      if (execId) {
-        updates[execId] = { ...updated, toolUseId: execId };
-      }
-      return { toolCalls: { ...s.toolCalls, ...updates } };
-    });
+  handleToolStart: (_event) => {
+    // 委托给 executionStore——agentStore 不维护 toolCalls
   },
 
   handleToolResult: (event) => {
     set((s) => {
-      const existing = s.toolCalls[event.toolUseId];
-      const newStatus = event.isError ? "failed" : "success";
-      const updated: ToolCallState = {
-        toolUseId: event.toolUseId,
-        toolName: event.toolName || existing?.toolName || "",
-        input: existing?.input ?? {},
-        assistantMessageId: event.assistantMessageId,
-        executionStatus: newStatus,
-        approvalStatus: existing?.approvalStatus,
-        output: event.content,
-        isError: event.isError,
-      };
-      const updates: Record<string, ToolCallState> = {
-        [event.toolUseId]: updated,
-      };
-      const execId = s.sdkIdToExecId[event.toolUseId];
-      if (execId) {
-        updates[execId] = { ...updated, toolUseId: execId };
-      }
-      // 如果当前追踪的工具完成了，清除执行状态
-      const wasActive = s.currentToolCall?.toolUseId === event.toolUseId;
-      const isExecuting = wasActive ? { ...s.isExecuting } : s.isExecuting;
-      if (wasActive && event.conversationId) {
+      // 仅处理 agentStore 独有的执行标志；toolCalls/agentPool 由 executionStore 管理
+      const isExecuting = { ...s.isExecuting };
+      if (event.conversationId) {
         delete isExecuting[event.conversationId];
       }
-      const executingIds = wasActive
-        ? s.executingConversationIds.filter((id) => id !== event.conversationId)
-        : s.executingConversationIds;
+      const executingIds = s.executingConversationIds.filter(
+        (id) => id !== event.conversationId,
+      );
       return {
-        toolCalls: { ...s.toolCalls, ...updates },
-        currentToolCall: wasActive ? null : s.currentToolCall,
         isExecuting,
         executingConversationIds: executingIds,
       };

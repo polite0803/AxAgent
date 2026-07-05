@@ -217,6 +217,8 @@ use std::sync::Arc;
 use tauri::{AppHandle, Emitter, State};
 
 mod payloads;
+mod skill_execution;
+pub(crate) mod skill_execution;
 pub use payloads::*;
 
 /// Async RAII guard that removes a conversation ID from AppState::running_agents on drop.
@@ -2301,8 +2303,6 @@ struct SkillTaskContext {
     #[serde(default)]
     constraints: Option<Vec<String>>,
 }
-
-use std::sync::Mutex;
 
 static SKILL_MCP_REGISTRY: std::sync::OnceLock<
     std::sync::Arc<axagent_tools::registry::UnifiedToolRegistry>,

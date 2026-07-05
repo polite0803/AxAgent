@@ -22,6 +22,24 @@ import { usePlanStore } from "../feature/planStore";
 import { useTrajectoryStore } from "../feature/trajectoryStore";
 import { useTabStore } from "../shared/tabStore";
 
+// ── 惰性 PreferenceStore 访问器（打破 conversation ↔ preference 循环依赖）──
+// preferenceStore 在自身初始化后主动注入引用；conversationStore 不 import preferenceStore。
+// 使用 Record 替代精确类型，避免 `import type` 产生隐含依赖。
+
+let _prefStore: any = null;
+
+/** preferenceStore 初始化后主动调用此函数注入自身引用 */
+export function _injectPreferenceStore(store: any): void {
+  _prefStore = store;
+}
+
+function getPref(): any {
+  if (!_prefStore) {
+    throw new Error("preferenceStore 尚未初始化");
+  }
+  return _prefStore;
+}
+
 // 单调递增计数器，与 Date.now() 组合防止同毫秒 ID 重复
 let _idSeq = 0;
 export function tempId(prefix: string): string {
@@ -37,7 +55,6 @@ import {
 import { createEventMethods } from "./conversationStoreEvents";
 import { createSendMethods } from "./conversationStoreSend";
 import { useMultiModelStore } from "./multiModelStore";
-import { usePreferenceStore } from "./preferenceStore";
 import {
   _activeMessageLoadSeq,
   _isMultiModelActive,
@@ -238,24 +255,42 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
     useMultiModelStore.getState().setPendingPromptText(text);
     set({ pendingPromptText: text });
   },
-  searchEnabled: usePreferenceStore.getState().searchEnabled,
-  searchProviderId: usePreferenceStore.getState().searchProviderId,
-  thinkingBudget: usePreferenceStore.getState().thinkingBudget,
-  mcpMode: usePreferenceStore.getState().mcpMode,
-  enabledMcpServerIds: usePreferenceStore.getState().enabledMcpServerIds,
-  enabledKnowledgeBaseIds: usePreferenceStore.getState().enabledKnowledgeBaseIds,
-  activeMemoryNamespaceId: usePreferenceStore.getState().activeMemoryNamespaceId,
-  enabledWikiIds: usePreferenceStore.getState().enabledWikiIds,
+  // 偏好设置在 store 初始化后从 preferenceStore 同步，此时用 null 占位避免循环依赖
+  searchEnabled: null,
+  searchProviderId: null,
+  thinkingBudget: null,
+  mcpMode: null,
+  enabledMcpServerIds: [] as string[],
+  enabledKnowledgeBaseIds: [] as string[],
+  activeMemoryNamespaceId: null,
+  enabledWikiIds: [] as string[],
+  syncPreferencesFromStore: () => {
+    try {
+      const p = getPref().getState();
+      set({
+        searchEnabled: p.searchEnabled,
+        searchProviderId: p.searchProviderId,
+        thinkingBudget: p.thinkingBudget,
+        mcpMode: p.mcpMode,
+        enabledMcpServerIds: p.enabledMcpServerIds,
+        enabledKnowledgeBaseIds: p.enabledKnowledgeBaseIds,
+        activeMemoryNamespaceId: p.activeMemoryNamespaceId,
+        enabledWikiIds: p.enabledWikiIds,
+      });
+    } catch {
+      // preferenceStore 尚未就绪，稍后重试
+    }
+  },
   setMcpMode: (mode: "auto" | "manual" | "disabled") => {
-    usePreferenceStore.getState().setMcpMode(mode);
+    getPref().getState().setMcpMode(mode);
     set({ mcpMode: mode });
   },
   setSearchEnabled: (enabled) => {
-    usePreferenceStore.getState().setSearchEnabled(enabled);
+    getPref().getState().setSearchEnabled(enabled);
     set({ searchEnabled: enabled });
   },
   setSearchProviderId: (id) => {
-    usePreferenceStore.getState().setSearchProviderId(id);
+    getPref().getState().setSearchProviderId(id);
     set({ searchProviderId: id });
   },
   toggleMcpServer: async (id) => {
@@ -265,14 +300,14 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       : [...current, id];
     set({ enabledMcpServerIds: next });
     try {
-      await usePreferenceStore.getState().toggleMcpServer(id);
+      await getPref().getState().toggleMcpServer(id);
     } catch (e) {
       set({ enabledMcpServerIds: current });
       throw e;
     }
   },
   setThinkingBudget: (budget) => {
-    usePreferenceStore.getState().setThinkingBudget(budget);
+    getPref().getState().setThinkingBudget(budget);
     set({ thinkingBudget: budget });
   },
   toggleKnowledgeBase: async (id) => {
@@ -282,7 +317,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       : [...current, id];
     set({ enabledKnowledgeBaseIds: next });
     try {
-      await usePreferenceStore.getState().toggleKnowledgeBase(id);
+      await getPref().getState().toggleKnowledgeBase(id);
     } catch (e) {
       set({ enabledKnowledgeBaseIds: current });
       throw e;
@@ -291,7 +326,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
   setActiveMemoryNamespace: (id) => {
     const current = get().activeMemoryNamespaceId;
     const nextId = current === id ? null : id;
-    usePreferenceStore.getState().setActiveMemoryNamespaceId(nextId);
+    getPref().getState().setActiveMemoryNamespaceId(nextId);
     set({ activeMemoryNamespaceId: nextId });
   },
   toggleWiki: (id) => {
@@ -299,7 +334,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
     const next = current.includes(id)
       ? current.filter((s) => s !== id)
       : [...current, id];
-    usePreferenceStore.getState().toggleWiki(id);
+    getPref().getState().toggleWiki(id);
     set({ enabledWikiIds: next });
   },
   insertContextClear: async () => {
@@ -541,7 +576,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       enabledWikiIds: prefState.enabledWikiIds,
     });
     // 同步偏好状态到 preferenceStore（两个不同 store 的 setState，不能合并）
-    usePreferenceStore.setState(prefState);
+    getPref().setState(prefState);
     // 保留尚未持久化的 temp- 消息，防止被服务端返回的列表覆盖丢失
     const tempIds = get().messages.flatMap((m) => m.id.startsWith("temp-") ? [m.id] : []);
     get()
@@ -669,7 +704,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
             input: {
               ...categoryTemplateUpdateFromCategory(category),
               ...conversationPreferenceUpdateFromState(
-                usePreferenceStore.getState(),
+                getPref().getState(),
               ),
               scenario: options?.scenario,
               agent_profile_id: options?.agent_profile_id,
@@ -708,7 +743,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
         error: null,
       }));
       // Sync preference state from the created conversation
-      usePreferenceStore.setState(
+      getPref().setState(
         conversationPreferenceStateFromConversation(conversation),
       );
       return conversation;
@@ -734,7 +769,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       }));
       // Sync preference state if this is the active conversation
       if (get().activeConversationId === id) {
-        usePreferenceStore.setState(
+        getPref().setState(
           conversationPreferenceStateFromConversation(updated),
         );
       }
