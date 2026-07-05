@@ -1194,8 +1194,11 @@ fn start_cron_scheduler(state: &AppState) {
                     }
                 })
             });
-        let handle = tokio::runtime::Handle::current();
-        handle.block_on(state.work_engine.set_tool_resolver(resolver));
+        let rt = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .expect("Failed to build one-shot Tokio runtime for tool resolver");
+        rt.block_on(state.work_engine.set_tool_resolver(resolver));
     }
 
     // 设置 RAG 知识源检索回调（供工作流 Agent 节点从知识库/记忆/Wiki 检索上下文）
@@ -1228,8 +1231,11 @@ fn start_cron_scheduler(state: &AppState) {
                 })
             },
         );
-        let handle = tokio::runtime::Handle::current();
-        handle.block_on(state.work_engine.set_rag_callback(rag_callback));
+        let rt = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .expect("Failed to build one-shot Tokio runtime for RAG callback");
+        rt.block_on(state.work_engine.set_rag_callback(rag_callback));
     }
 
     let work_engine = state.work_engine.clone();
