@@ -122,6 +122,18 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-cargo-test-
 
+      - name: Install WebView2 runtime (Windows)
+        shell: pwsh
+        run: |
+          $DownloadUrl = "https://go.microsoft.com/fwlink/p/?LinkId=2124703"
+          $SetupPath = "$env:TEMP\MicrosoftEdgeWebview2Setup.exe"
+          Write-Host "Downloading WebView2 runtime..."
+          Invoke-WebRequest -Uri $DownloadUrl -OutFile $SetupPath
+          Write-Host "Installing WebView2 runtime (silent)..."
+          Start-Process "$SetupPath" -ArgumentList "/silent /install" -Wait
+          Write-Host "WebView2 runtime installed."
+        if: runner.os == 'Windows'
+
       - name: Cargo test
         run: cargo test --workspace --all-features
 
