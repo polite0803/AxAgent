@@ -57,6 +57,13 @@ pub async fn save_webdav_config(
         .await
         .map_err(|e| e.to_string())?;
 
+    // SECURITY (S8): 用户启用 accept_invalid_certs 时记录安全警告
+    if config.accept_invalid_certs && !settings.webdav_accept_invalid_certs.unwrap_or(false) {
+        tracing::warn!(
+            "SECURITY: WebDAV accept_invalid_certs 已启用 — 跳过 TLS 证书验证，可能遭受中间人攻击"
+        );
+    }
+
     settings.webdav_host = Some(config.host);
     settings.webdav_username = Some(config.username);
     settings.webdav_path = Some(config.path);
@@ -181,8 +188,27 @@ pub async fn webdav_restore(
         let _ = std::fs::set_permissions(&safety_key_backup, perms);
     }
 
-    // 5. Restore master.key if present in backup (required for decrypting API keys)
+    // 5. Restore master.key if present in backup — with integrity check
+    // SECURITY (S7): 恢复 master.key 前验证文件完整性（非空 + 32 字节）
     if let Some(ref key_path) = contents.master_key_path {
+        let key_meta = std::fs::metadata(key_path)
+            .map_err(|e| format!("Failed to stat master.key in backup: {}", e))?;
+        if key_meta.len() != 32 {
+            return Err(ErrorResponse::new(backup_err::RESTORE_FAILED)
+                .with_detail(format!(
+                    "master.key 大小异常 ({})，期望 32 字节 — 备份文件可能损坏",
+                    key_meta.len(),
+                ))
+                .into());
+        }
+        // 额外校验：读取文件内容确认非空
+        let key_data = std::fs::read(key_path)
+            .map_err(|e| format!("Failed to read master.key from backup: {}", e))?;
+        if key_data.iter().all(|&b| b == 0) {
+            return Err(ErrorResponse::new(backup_err::RESTORE_FAILED)
+                .with_detail("master.key 内容全零 — 备份文件可能损坏".to_string())
+                .into());
+        }
         std::fs::copy(key_path, &master_key_dest)
             .map_err(|e| format!("Failed to restore master.key: {}", e))?;
         #[cfg(unix)]

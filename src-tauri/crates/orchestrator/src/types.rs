@@ -9,6 +9,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 use axagent_core::workflow_types::AgentRole;
+use axagent_harness::workflow_types::ToolDef;
 
 // ── Orchestration Strategy ──────────────────────────────────────────
 
@@ -114,6 +115,10 @@ pub struct SubTask {
     pub attempts: u32,
     /// Maximum allowed retries before marking as Failed.
     pub max_retries: u32,
+    /// Tools available to this sub-task's Agent node.
+    /// Populated by the decomposer or caller. Empty = no tool access.
+    #[serde(default)]
+    pub tools: Vec<ToolDef>,
 }
 
 impl SubTask {
@@ -133,6 +138,7 @@ impl SubTask {
             error: None,
             attempts: 0,
             max_retries: 3,
+            tools: Vec::new(),
         }
     }
 

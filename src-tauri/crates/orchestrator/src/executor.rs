@@ -14,12 +14,13 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
+use crate::decomposer::{MissionDecomposer, RuleBasedDecomposer};
 use crate::dynamic_subgraph::DynamicSubGraph;
 use crate::types::{
     DecompositionPlan, OrchestrationError, OrchestrationEvent, OrchestrationStrategy,
-    StructuredHandover, SubTask, SubTaskStatus,
+    StructuredHandover, SubTaskStatus,
 };
-use axagent_core::workflow_types::{AgentRole, SubGraph};
+use axagent_core::workflow_types::SubGraph;
 
 // ── OrchestratorState ──────────────────────────────────────────────────
 
@@ -76,18 +77,27 @@ pub struct OrchestratorExecutor {
     plan: RwLock<Option<DecompositionPlan>>,
     /// Dynamic subgraph builder.
     subgraph_builder: RwLock<DynamicSubGraph>,
+    /// Mission decomposer strategy.
+    decomposer: Box<dyn MissionDecomposer>,
     /// Event listeners notified on state transitions.
     event_listeners: RwLock<Vec<OrchestrationEventHandler>>,
 }
 
 impl OrchestratorExecutor {
-    pub fn new() -> Self {
+    /// Create a new executor with a custom decomposer strategy.
+    pub fn with_decomposer(decomposer: Box<dyn MissionDecomposer>) -> Self {
         Self {
             state: RwLock::new(OrchestratorState::Idle),
             plan: RwLock::new(None),
             subgraph_builder: RwLock::new(DynamicSubGraph::new()),
+            decomposer,
             event_listeners: RwLock::new(Vec::new()),
         }
+    }
+
+    /// Create a new executor with the default rule-based decomposer.
+    pub fn new() -> Self {
+        Self::with_decomposer(Box::new(RuleBasedDecomposer::new()))
     }
 
     // ── Event system ────────────────────────────────────────────────
@@ -334,172 +344,18 @@ impl OrchestratorExecutor {
 
     // ── Private methods ──────────────────────────────────────────────
 
-    /// Decompose a mission into sub-tasks.
-    ///
-    /// Currently rule-based. Future: LLM-driven decomposition.
-    /// The decomposition follows standard software engineering phases
-    /// for code tasks, and general analysis→synthesis for other tasks.
+    /// Decompose a mission into sub-tasks using the configured strategy.
     fn decompose(
         &self,
         mission: &str,
         strategy: OrchestrationStrategy,
     ) -> Result<DecompositionPlan, OrchestrationError> {
-        let mission_lower = mission.to_lowercase();
-        let mut plan = DecompositionPlan::new(mission.to_string(), strategy);
-
-        // Heuristic decomposition based on mission keywords
-        let phase_count = if mission_lower.contains("review")
-            || mission_lower.contains("audit")
-            || mission_lower.contains("inspect")
-        {
-            // Review tasks: analyze → review → report
-            plan.sub_tasks.push(SubTask::new(
-                "analyze".to_string(),
-                "Analyze".to_string(),
-                format!("Analyze the codebase/documents for: {}", mission),
-                AgentRole::Researcher,
-            ));
-
-            plan.sub_tasks.push(
-                SubTask::new(
-                    "review".to_string(),
-                    "Review".to_string(),
-                    "Review findings from analysis, identify issues".to_string(),
-                    AgentRole::Reviewer,
-                )
-                .with_dependencies(vec!["analyze".to_string()]),
-            );
-
-            plan.sub_tasks.push(
-                SubTask::new(
-                    "report".to_string(),
-                    "Report".to_string(),
-                    "Compile review findings into structured report".to_string(),
-                    AgentRole::Synthesizer,
-                )
-                .with_dependencies(vec!["review".to_string()]),
-            );
-
-            3
-        } else if mission_lower.contains("refactor")
-            || mission_lower.contains("rewrite")
-            || mission_lower.contains("restructure")
-        {
-            // Refactor tasks: analyze → plan → implement → verify
-            plan.sub_tasks.push(SubTask::new(
-                "analyze".to_string(),
-                "Analyze".to_string(),
-                format!("Analyze current code structure for: {}", mission),
-                AgentRole::Researcher,
-            ));
-
-            plan.sub_tasks.push(
-                SubTask::new(
-                    "plan".to_string(),
-                    "Plan Refactor".to_string(),
-                    "Create refactoring plan with migration steps".to_string(),
-                    AgentRole::Planner,
-                )
-                .with_dependencies(vec!["analyze".to_string()]),
-            );
-
-            plan.sub_tasks.push(
-                SubTask::new(
-                    "implement".to_string(),
-                    "Implement".to_string(),
-                    "Execute the refactoring changes".to_string(),
-                    AgentRole::Developer,
-                )
-                .with_dependencies(vec!["plan".to_string()]),
-            );
-
-            plan.sub_tasks.push(
-                SubTask::new(
-                    "verify".to_string(),
-                    "Verify".to_string(),
-                    "Verify refactored code works correctly".to_string(),
-                    AgentRole::Reviewer,
-                )
-                .with_dependencies(vec!["implement".to_string()]),
-            );
-
-            4
-        } else if mission_lower.contains("design")
-            || mission_lower.contains("architect")
-            || mission_lower.contains("plan")
-        {
-            // Design tasks: research → design → review
-            plan.sub_tasks.push(SubTask::new(
-                "research".to_string(),
-                "Research".to_string(),
-                format!("Research requirements and constraints for: {}", mission),
-                AgentRole::Researcher,
-            ));
-
-            plan.sub_tasks.push(
-                SubTask::new(
-                    "design".to_string(),
-                    "Design".to_string(),
-                    "Create the design/architecture".to_string(),
-                    AgentRole::Planner,
-                )
-                .with_dependencies(vec!["research".to_string()]),
-            );
-
-            plan.sub_tasks.push(
-                SubTask::new(
-                    "review".to_string(),
-                    "Review Design".to_string(),
-                    "Review the design for completeness and correctness".to_string(),
-                    AgentRole::Reviewer,
-                )
-                .with_dependencies(vec!["design".to_string()]),
-            );
-
-            3
-        } else {
-            // Default: analyze → implement → review
-            plan.sub_tasks.push(SubTask::new(
-                "analyze".to_string(),
-                "Analyze Requirements".to_string(),
-                format!("Analyze and understand: {}", mission),
-                AgentRole::Researcher,
-            ));
-
-            plan.sub_tasks.push(
-                SubTask::new(
-                    "implement".to_string(),
-                    "Implement".to_string(),
-                    format!("Implement the solution for: {}", mission),
-                    AgentRole::Developer,
-                )
-                .with_dependencies(vec!["analyze".to_string()]),
-            );
-
-            plan.sub_tasks.push(
-                SubTask::new(
-                    "review".to_string(),
-                    "Review".to_string(),
-                    "Review the implementation for correctness".to_string(),
-                    AgentRole::Reviewer,
-                )
-                .with_dependencies(vec!["implement".to_string()]),
-            );
-
-            3
-        };
-
-        plan.max_parallel = match strategy {
-            OrchestrationStrategy::FanOut => phase_count as u32,
-            _ => 2,
-        };
-
+        let plan = self.decomposer.decompose(mission, strategy)?;
         tracing::info!(
             sub_tasks = plan.sub_tasks.len(),
             strategy = strategy.as_str(),
             "decomposition complete"
         );
-
         Ok(plan)
     }
 

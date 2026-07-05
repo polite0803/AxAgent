@@ -137,3 +137,30 @@ impl std::fmt::Display for ErrorResponse {
 // SECURITY (C9): 实现 std::error::Error trait，使 ErrorResponse 可用于 anyhow::Result
 // 和 `?` 操作符的错误链传播。
 impl std::error::Error for ErrorResponse {}
+
+/// 脱敏错误信息：阻止常见的内部路径泄露到前端。
+/// 使用 `map_err(sanitize_error)` 包装 `.map_err(|e| e.to_string())` 调用。
+pub fn sanitize_error(msg: String) -> String {
+    // 防止 Windows 路径泄露（简单检测 `C:\`、`D:\` 等）
+    for drive in [
+        'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R',
+        'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
+    ] {
+        let prefix = format!("{}:\\", drive);
+        if let Some(start) = msg.find(&prefix) {
+            // 用占位符替换从路径开头到第一个冒号/空格/换行之间的内容
+            let after_prefix = &msg[start + 3..];
+            let path_end = after_prefix
+                .find(|c: char| c == ':' || c == ' ' || c == '\n' || c == ')')
+                .unwrap_or(after_prefix.len().min(60));
+            return format!("{}[REDACTED]{}", &msg[..start], &after_prefix[path_end..]);
+        }
+    }
+    // 防止 Unix 路径泄露（/开头的绝对路径）
+    if msg.starts_with('/') {
+        if let Some(end) = msg[1..].find(|c: char| c == ':' || c == ' ' || c == '\n') {
+            return format!("[REDACTED]{}", &msg[end + 1..]);
+        }
+    }
+    msg
+}

@@ -16,6 +16,7 @@
 //!                                engine.execute(subgraph) → monitor() → replan() ↻
 //! ```
 
+pub mod decomposer;
 pub mod dynamic_subgraph;
 pub mod executor;
 pub mod types;

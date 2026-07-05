@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use tauri::{State, command};
+use tracing::warn;
 
 use crate::app_state::AppState;
 
@@ -110,11 +111,25 @@ pub async fn plugin_validate_source(
     .map_err(|e| format!("plugin validate task panicked: {e}"))?
 }
 
+/// SECURITY (S9): 远程插件源（Git URL、npm 包）安装时无 SHA-256 完整性校验或签名验证。
+/// 用户应从可信源（如官方 AxHub 市场）安装插件，避免安装来源不明的远程插件。
+/// 前端应在安装前通过 `plugin_validate_source` 验证插件元数据。
 #[command]
 pub async fn plugin_install(
     state: State<'_, AppState>,
     source: String,
 ) -> Result<InstallOutcomeDto, String> {
+    // 安全日志：记录远程插件源安装（无完整性校验）
+    if source.starts_with("http://")
+        || source.starts_with("https://")
+        || source.starts_with("git@")
+        || source.starts_with('@')
+    {
+        warn!(
+            "SECURITY: Installing plugin from remote source without integrity verification: {}",
+            source
+        );
+    }
     let plugin_manager = state.plugin_manager.clone();
     tauri::async_runtime::spawn_blocking(move || {
         let mut manager = plugin_manager.blocking_write();

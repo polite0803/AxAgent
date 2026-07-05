@@ -2,7 +2,8 @@
 
 use crate::action_executor::ActionExecutor;
 use crate::cycle_detector::CycleDetector;
-use crate::reasoning_state::{ActionType, ReActConfig, ReasoningContext, ReasoningState};
+pub use crate::reasoning_state::ReActConfig;
+use crate::reasoning_state::{ActionType, ReasoningContext, ReasoningState};
 use crate::self_verifier::{SelfVerifier, VerificationResult};
 use crate::thought_chain::{Action, ChainSummary, ThoughtChain, ThoughtEvent, ThoughtStep};
 use axagent_core::token_budget::{TokenBudgetDecision, TokenBudgetTracker};

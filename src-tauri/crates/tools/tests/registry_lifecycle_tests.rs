@@ -2,44 +2,63 @@
 
 //! Tests for ToolRegistry state management: disable/enable/unregister.
 
+use async_trait::async_trait;
 use axagent_tools::registry::ToolRegistry;
-use axagent_tools::{Tool, ToolCategory, ToolError, ToolInfo};
+use axagent_tools::{Tool, ToolCategory, ToolContext, ToolError, ToolResult};
+use std::sync::Arc;
 
 /// A minimal mock tool for registry tests.
-struct MockTool {
-    name: &'static str,
-    category: ToolCategory,
-    description: &'static str,
-}
+struct MockRegistryTool;
 
-impl MockTool {
-    fn new(name: &'static str, category: ToolCategory) -> Self {
-        Self {
-            name,
-            category,
-            description: "mock tool for testing",
-        }
-    }
-}
-
-impl Tool for MockTool {
+#[async_trait]
+impl Tool for MockRegistryTool {
     fn name(&self) -> &str {
-        self.name
+        "mock-registry-tool"
     }
     fn description(&self) -> &str {
-        self.description
+        "mock tool for registry testing"
     }
     fn category(&self) -> ToolCategory {
-        self.category
+        ToolCategory::Shell
     }
     fn input_schema(&self) -> serde_json::Value {
         serde_json::json!({"type": "object", "properties": {}})
     }
-    async fn execute(&self, _input: serde_json::Value) -> Result<serde_json::Value, ToolError> {
-        Ok(serde_json::json!({"result": "ok"}))
+    async fn call(
+        &self,
+        _input: serde_json::Value,
+        _ctx: &ToolContext,
+    ) -> Result<ToolResult, ToolError> {
+        Ok(ToolResult::success("ok"))
     }
-    fn tool_type(&self) -> axagent_harness::ToolType {
-        axagent_harness::ToolType::Builtin
+}
+
+/// A named mock tool that's distinguishable by name.
+struct NamedMockTool {
+    name: &'static str,
+    cat: ToolCategory,
+}
+
+#[async_trait]
+impl Tool for NamedMockTool {
+    fn name(&self) -> &str {
+        self.name
+    }
+    fn description(&self) -> &str {
+        "named mock tool"
+    }
+    fn category(&self) -> ToolCategory {
+        self.cat
+    }
+    fn input_schema(&self) -> serde_json::Value {
+        serde_json::json!({"type": "object", "properties": {}})
+    }
+    async fn call(
+        &self,
+        _input: serde_json::Value,
+        _ctx: &ToolContext,
+    ) -> Result<ToolResult, ToolError> {
+        Ok(ToolResult::success("ok"))
     }
 }
 
@@ -48,25 +67,33 @@ impl Tool for MockTool {
 // ---------------------------------------------------------------------------
 
 #[test]
-fn test_registry_register_and_find() {
+fn test_registry_lifecycle_register_and_find() {
     let mut reg = ToolRegistry::new();
-    let tool = std::sync::Arc::new(MockTool::new("mock-a", ToolCategory::General));
+    let tool: Arc<dyn Tool> = Arc::new(MockRegistryTool);
 
-    assert!(!reg.contains("mock-a"));
+    assert!(!reg.contains("mock-registry-tool"));
     reg.register(tool);
-    assert!(reg.contains("mock-a"));
-    assert!(reg.find("mock-a").is_some());
+    assert!(reg.contains("mock-registry-tool"));
+    assert!(reg.find("mock-registry-tool").is_some());
 }
 
 #[test]
-fn test_registry_register_all_and_list() {
+fn test_registry_lifecycle_register_all_and_list() {
     let mut reg = ToolRegistry::new();
-    let tools: Vec<std::sync::Arc<dyn Tool>> = vec![
-        std::sync::Arc::new(MockTool::new("t1", ToolCategory::General)),
-        std::sync::Arc::new(MockTool::new("t2", ToolCategory::FileSystem)),
-        std::sync::Arc::new(MockTool::new("t3", ToolCategory::Network)),
-    ];
-    reg.register_all(tools);
+    reg.register_all(vec![
+        Arc::new(NamedMockTool {
+            name: "lifecycle-a",
+            cat: ToolCategory::FileRead,
+        }) as Arc<dyn Tool>,
+        Arc::new(NamedMockTool {
+            name: "lifecycle-b",
+            cat: ToolCategory::FileWrite,
+        }),
+        Arc::new(NamedMockTool {
+            name: "lifecycle-c",
+            cat: ToolCategory::Network,
+        }),
+    ]);
     assert_eq!(reg.list_all().len(), 3);
     assert_eq!(reg.len(), 3);
 }
@@ -76,50 +103,58 @@ fn test_registry_register_all_and_list() {
 // ---------------------------------------------------------------------------
 
 #[test]
-fn test_registry_disable_tool() {
+fn test_registry_lifecycle_disable_then_enable() {
     let mut reg = ToolRegistry::new();
-    let tool = std::sync::Arc::new(MockTool::new("toggle-me", ToolCategory::General));
+    let tool: Arc<dyn Tool> = Arc::new(NamedMockTool {
+        name: "reg-toggle",
+        cat: ToolCategory::Shell,
+    });
     reg.register(tool);
 
     // Initially enabled
-    assert!(reg.find("toggle-me").is_some());
+    assert!(reg.find("reg-toggle").is_some());
 
     // Disable
-    reg.disable("toggle-me");
-    // Should still be in registry but find returns None
-    assert!(reg.find("toggle-me").is_none());
+    reg.disable("reg-toggle");
+    assert!(reg.find("reg-toggle").is_none(), "Disabled tool should not be found");
 
     // Re-enable
-    reg.enable("toggle-me");
-    assert!(reg.find("toggle-me").is_some());
+    reg.enable("reg-toggle");
+    assert!(reg.find("reg-toggle").is_some(), "Re-enabled tool should be found");
 }
 
 #[test]
-fn test_registry_disable_nonexistent_tool() {
+fn test_registry_lifecycle_disable_nonexistent() {
     let mut reg = ToolRegistry::new();
-    // Should not panic
-    reg.disable("does-not-exist");
+    reg.disable("does-not-exist"); // should not panic
 }
 
 #[test]
-fn test_registry_enable_nonexistent_tool() {
+fn test_registry_lifecycle_enable_nonexistent() {
     let mut reg = ToolRegistry::new();
     reg.enable("does-not-exist"); // should not panic
 }
 
 #[test]
-fn test_registry_disable_category() {
+fn test_registry_lifecycle_disable_category() {
     let mut reg = ToolRegistry::new();
-    reg.register(std::sync::Arc::new(MockTool::new("f1", ToolCategory::FileSystem)));
-    reg.register(std::sync::Arc::new(MockTool::new("f2", ToolCategory::FileSystem)));
-    reg.register(std::sync::Arc::new(MockTool::new("g1", ToolCategory::General)));
+    reg.register(Arc::new(NamedMockTool {
+        name: "cat-f1",
+        cat: ToolCategory::FileRead,
+    }) as Arc<dyn Tool>);
+    reg.register(Arc::new(NamedMockTool {
+        name: "cat-f2",
+        cat: ToolCategory::FileRead,
+    }) as Arc<dyn Tool>);
+    reg.register(Arc::new(NamedMockTool {
+        name: "cat-shell",
+        cat: ToolCategory::Shell,
+    }) as Arc<dyn Tool>);
 
-    reg.disable_category(ToolCategory::FileSystem);
-    // FileSystem tools should be gone from find
-    assert!(reg.find("f1").is_none());
-    assert!(reg.find("f2").is_none());
-    // General tool should remain
-    assert!(reg.find("g1").is_some());
+    reg.disable_category(ToolCategory::FileRead);
+    assert!(reg.find("cat-f1").is_none(), "FileRead tool should be disabled");
+    assert!(reg.find("cat-f2").is_none(), "FileRead tool should be disabled");
+    assert!(reg.find("cat-shell").is_some(), "Shell tool should remain");
 }
 
 // ---------------------------------------------------------------------------
@@ -127,18 +162,21 @@ fn test_registry_disable_category() {
 // ---------------------------------------------------------------------------
 
 #[test]
-fn test_registry_unregister_tool() {
+fn test_registry_lifecycle_unregister() {
     let mut reg = ToolRegistry::new();
-    reg.register(std::sync::Arc::new(MockTool::new("remove-me", ToolCategory::General)));
-    assert!(reg.contains("remove-me"));
+    reg.register(Arc::new(NamedMockTool {
+        name: "unreg-me",
+        cat: ToolCategory::Shell,
+    }) as Arc<dyn Tool>);
+    assert!(reg.contains("unreg-me"));
 
-    reg.unregister("remove-me");
-    assert!(!reg.contains("remove-me"));
-    assert!(reg.find("remove-me").is_none());
+    reg.unregister("unreg-me");
+    assert!(!reg.contains("unreg-me"));
+    assert!(reg.find("unreg-me").is_none());
 }
 
 #[test]
-fn test_registry_unregister_nonexistent() {
+fn test_registry_lifecycle_unregister_nonexistent() {
     let mut reg = ToolRegistry::new();
     reg.unregister("ghost"); // should not panic
 }
@@ -148,17 +186,26 @@ fn test_registry_unregister_nonexistent() {
 // ---------------------------------------------------------------------------
 
 #[test]
-fn test_registry_by_category() {
+fn test_registry_lifecycle_by_category() {
     let mut reg = ToolRegistry::new();
-    reg.register(std::sync::Arc::new(MockTool::new("a1", ToolCategory::General)));
-    reg.register(std::sync::Arc::new(MockTool::new("a2", ToolCategory::General)));
-    reg.register(std::sync::Arc::new(MockTool::new("fs1", ToolCategory::FileSystem)));
+    reg.register(Arc::new(NamedMockTool {
+        name: "bc-a1",
+        cat: ToolCategory::Shell,
+    }) as Arc<dyn Tool>);
+    reg.register(Arc::new(NamedMockTool {
+        name: "bc-a2",
+        cat: ToolCategory::Shell,
+    }) as Arc<dyn Tool>);
+    reg.register(Arc::new(NamedMockTool {
+        name: "bc-net",
+        cat: ToolCategory::Network,
+    }) as Arc<dyn Tool>);
 
-    let general_tools = reg.by_category(ToolCategory::General);
-    assert_eq!(general_tools.len(), 2);
+    let shell_tools = reg.by_category(ToolCategory::Shell);
+    assert_eq!(shell_tools.len(), 2);
 
-    let fs_tools = reg.by_category(ToolCategory::FileSystem);
-    assert_eq!(fs_tools.len(), 1);
+    let net_tools = reg.by_category(ToolCategory::Network);
+    assert_eq!(net_tools.len(), 1);
 }
 
 // ---------------------------------------------------------------------------
@@ -166,153 +213,19 @@ fn test_registry_by_category() {
 // ---------------------------------------------------------------------------
 
 #[test]
-fn test_registry_empty() {
+fn test_registry_lifecycle_empty_state() {
     let reg = ToolRegistry::new();
     assert!(reg.is_empty());
     assert_eq!(reg.total_registered(), 0);
 }
 
 #[test]
-fn test_registry_not_empty() {
+fn test_registry_lifecycle_not_empty() {
     let mut reg = ToolRegistry::new();
-    reg.register(std::sync::Arc::new(MockTool::new("x", ToolCategory::General)));
-    assert!(!reg.is_empty());
-    assert_eq!(reg.total_registered(), 1);
-}
-
-// ---------------------------------------------------------------------------
-// ToolRegistry: register & find
-// ---------------------------------------------------------------------------
-
-#[test]
-fn test_registry_register_and_find() {
-    let mut reg = ToolRegistry::new();
-    let tool = std::sync::Arc::new(MockTool::new("mock-a", ToolCategory::General));
-
-    assert!(!reg.contains("mock-a"));
-    reg.register(tool);
-    assert!(reg.contains("mock-a"));
-    assert!(reg.find("mock-a").is_some());
-}
-
-#[test]
-fn test_registry_register_all_and_list() {
-    let mut reg = ToolRegistry::new();
-    let tools: Vec<std::sync::Arc<dyn axagent_tools::tool::Tool>> = vec![
-        std::sync::Arc::new(MockTool::new("t1", ToolCategory::General)),
-        std::sync::Arc::new(MockTool::new("t2", ToolCategory::FileSystem)),
-        std::sync::Arc::new(MockTool::new("t3", ToolCategory::Network)),
-    ];
-    reg.register_all(tools);
-    assert_eq!(reg.list_all().len(), 3);
-    assert_eq!(reg.len(), 3);
-}
-
-// ---------------------------------------------------------------------------
-// ToolRegistry: disable / enable
-// ---------------------------------------------------------------------------
-
-#[test]
-fn test_registry_disable_tool() {
-    let mut reg = ToolRegistry::new();
-    let tool = std::sync::Arc::new(MockTool::new("toggle-me", ToolCategory::General));
-    reg.register(tool);
-
-    // Initially enabled
-    assert!(reg.find("toggle-me").is_some());
-
-    // Disable
-    reg.disable("toggle-me");
-    // Should still be in registry but find returns None
-    assert!(reg.find("toggle-me").is_none());
-
-    // Re-enable
-    reg.enable("toggle-me");
-    assert!(reg.find("toggle-me").is_some());
-}
-
-#[test]
-fn test_registry_disable_nonexistent_tool() {
-    let mut reg = ToolRegistry::new();
-    // Should not panic
-    reg.disable("does-not-exist");
-}
-
-#[test]
-fn test_registry_enable_nonexistent_tool() {
-    let mut reg = ToolRegistry::new();
-    reg.enable("does-not-exist"); // should not panic
-}
-
-#[test]
-fn test_registry_disable_category() {
-    let mut reg = ToolRegistry::new();
-    reg.register(std::sync::Arc::new(MockTool::new("f1", ToolCategory::FileSystem)));
-    reg.register(std::sync::Arc::new(MockTool::new("f2", ToolCategory::FileSystem)));
-    reg.register(std::sync::Arc::new(MockTool::new("g1", ToolCategory::General)));
-
-    reg.disable_category(ToolCategory::FileSystem);
-    // FileSystem tools should be gone from find
-    assert!(reg.find("f1").is_none());
-    assert!(reg.find("f2").is_none());
-    // General tool should remain
-    assert!(reg.find("g1").is_some());
-}
-
-// ---------------------------------------------------------------------------
-// ToolRegistry: unregister
-// ---------------------------------------------------------------------------
-
-#[test]
-fn test_registry_unregister_tool() {
-    let mut reg = ToolRegistry::new();
-    reg.register(std::sync::Arc::new(MockTool::new("remove-me", ToolCategory::General)));
-    assert!(reg.contains("remove-me"));
-
-    reg.unregister("remove-me");
-    assert!(!reg.contains("remove-me"));
-    assert!(reg.find("remove-me").is_none());
-}
-
-#[test]
-fn test_registry_unregister_nonexistent() {
-    let mut reg = ToolRegistry::new();
-    reg.unregister("ghost"); // should not panic
-}
-
-// ---------------------------------------------------------------------------
-// ToolRegistry: by_category
-// ---------------------------------------------------------------------------
-
-#[test]
-fn test_registry_by_category() {
-    let mut reg = ToolRegistry::new();
-    reg.register(std::sync::Arc::new(MockTool::new("a1", ToolCategory::General)));
-    reg.register(std::sync::Arc::new(MockTool::new("a2", ToolCategory::General)));
-    reg.register(std::sync::Arc::new(MockTool::new("fs1", ToolCategory::FileSystem)));
-
-    let general_tools = reg.by_category(ToolCategory::General);
-    assert_eq!(general_tools.len(), 2);
-
-    let fs_tools = reg.by_category(ToolCategory::FileSystem);
-    assert_eq!(fs_tools.len(), 1);
-}
-
-// ---------------------------------------------------------------------------
-// ToolRegistry: is_empty / total_registered
-// ---------------------------------------------------------------------------
-
-#[test]
-fn test_registry_empty() {
-    let reg = ToolRegistry::new();
-    assert!(reg.is_empty());
-    assert_eq!(reg.total_registered(), 0);
-}
-
-#[test]
-fn test_registry_not_empty() {
-    let mut reg = ToolRegistry::new();
-    reg.register(std::sync::Arc::new(MockTool::new("x", ToolCategory::General)));
+    reg.register(Arc::new(NamedMockTool {
+        name: "only-one",
+        cat: ToolCategory::Shell,
+    }) as Arc<dyn Tool>);
     assert!(!reg.is_empty());
     assert_eq!(reg.total_registered(), 1);
 }

@@ -67,6 +67,12 @@ pub mod browser {
     pub const NOT_INITIALIZED: &str = "BROWSER_NOT_INITIALIZED";
     /// 浏览器操作失败
     pub const ACTION_FAILED: &str = "BROWSER_ACTION_FAILED";
+    /// URL格式无效
+    pub const INVALID_URL: &str = "BROWSER_INVALID_URL";
+    /// URL协议不允许（仅允许 http/https）
+    pub const SCHEME_NOT_ALLOWED: &str = "BROWSER_SCHEME_NOT_ALLOWED";
+    /// 目标地址不允许访问（内网/私有地址）
+    pub const ADDRESS_NOT_ALLOWED: &str = "BROWSER_ADDRESS_NOT_ALLOWED";
 }
 
 /// 存储/文件相关错误码

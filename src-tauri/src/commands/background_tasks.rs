@@ -13,8 +13,10 @@ use tracing::warn;
 /// 对传给 shell 的命令参数做基础转义，防止命令注入。
 /// 仅允许字母数字、空格和常见安全字符，拒绝包含 shell 元字符的命令。
 fn validate_command(cmd: &str) -> Result<(), String> {
-    // 危险字符黑名单：管道、重定向、命令分隔符、命令替换、变量展开
-    const DANGEROUS_CHARS: &[char] = &[';', '&', '|', '`', '$', '(', ')', '<', '>', '\n', '\r'];
+    // 危险字符黑名单：管道、重定向、命令分隔符、命令替换、变量展开、单引号（纵深防御）
+    const DANGEROUS_CHARS: &[char] = &[
+        ';', '&', '|', '`', '$', '(', ')', '<', '>', '\n', '\r', '\'',
+    ];
     for ch in DANGEROUS_CHARS {
         if cmd.contains(*ch) {
             warn!("background_tasks: 命令包含危险字符 '{}', 已拒绝: {}", ch, cmd);

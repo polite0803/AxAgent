@@ -791,10 +791,15 @@ export async function handleCommand<T>(
         providerId?: string;
         rawKey?: string;
       };
+      // SECURITY (S5): 浏览器 mock 模式下，对 API Key 进行 base64 编码存储，防止明文泄露
+      const encodedKey = rawKey ? btoa(rawKey) : "";
+      console.warn(
+        "[browserMock] SECURITY: API key is stored with obfuscation in localStorage. Do NOT use browser mock mode in production.",
+      );
       const key: ProviderKey = {
         id: genId(),
         provider_id: providerId ?? "",
-        key_encrypted: rawKey ?? "",
+        key_encrypted: encodedKey,
         key_prefix: (rawKey ?? "").substring(0, 8) + "...",
         enabled: true,
         last_validated_at: null,

@@ -203,9 +203,9 @@ impl AccessPolicyValidator {
     }
 
     /// 验证当前进程环境变量是否符合白名单
-    /// 返回被拒绝的环境变量列表
-    pub fn validate_environment(&self) -> Vec<String> {
-        let mut denied = Vec::new();
+    /// 返回包含违规详情的 SandboxResult（advisory，不阻止执行）。
+    pub fn validate_environment(&self) -> SandboxResult {
+        let mut violations = Vec::new();
         for (key, _value) in std::env::vars() {
             if !self
                 .config
@@ -213,13 +213,23 @@ impl AccessPolicyValidator {
                 .iter()
                 .any(|allowed| allowed.eq_ignore_ascii_case(&key))
             {
-                denied.push(key);
+                violations.push(SandboxViolation {
+                    violation_type: SandboxViolationType::EnvVarDenied,
+                    resource: key.clone(),
+                    message: format!("Environment variable '{}' is not whitelisted", key),
+                });
             }
         }
-        if !denied.is_empty() {
-            tracing::warn!("Non-whitelisted environment variables detected: {:?}", denied);
+        if !violations.is_empty() {
+            tracing::warn!(
+                "Non-whitelisted environment variables detected: {:?}",
+                violations.iter().map(|v| &v.resource).collect::<Vec<_>>()
+            );
         }
-        denied
+        SandboxResult {
+            allowed: true, // Advisory only — callers may choose to block
+            violations,
+        }
     }
 
     pub fn get_platform_recommendations(&self) -> Vec<String> {
@@ -328,8 +338,11 @@ mod tests {
     #[test]
     fn validate_environment_detects_denied_vars() {
         let sandbox = AccessPolicyValidator::with_default_config();
-        let denied = sandbox.validate_environment();
-        assert!(!denied.iter().any(|v| v == "PATH"));
-        assert!(!denied.iter().any(|v| v == "HOME"));
+        let result = sandbox.validate_environment();
+        // Whiltelisted vars should NOT appear in violations
+        assert!(!result.violations.iter().any(|v| v.resource == "PATH"));
+        assert!(!result.violations.iter().any(|v| v.resource == "HOME"));
+        // Result is advisory (allowed = true)
+        assert!(result.allowed);
     }
 }

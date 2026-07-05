@@ -2,7 +2,7 @@
 
 //! Extended tests for react_engine: resume, builder patterns, token budget.
 
-use axagent_agent::react_engine::{ReActConfig, ReActEngine};
+use axagent_agent::react_engine::ReActEngine;
 
 // ---------------------------------------------------------------------------
 // ReActEngine — resume() method  (checkpoint edge cases)
@@ -28,10 +28,8 @@ async fn test_react_engine_resume_after_run() {
 
 #[tokio::test]
 async fn test_react_engine_with_config_and_goal_eval() {
-    let config = ReActConfig {
-        max_iterations: 5,
-        ..Default::default()
-    };
+    use axagent_agent::reasoning_state::ReActConfig;
+    let config = ReActConfig::for_simple_task();
 
     let mut engine = ReActEngine::new()
         .with_config(config)
@@ -61,7 +59,6 @@ async fn test_react_engine_reset_and_rerun() {
     let r1 = engine.run("Task one").await;
     let r2 = engine.run("Task two").await;
     // Multiple runs should each produce results without panic
-    // (both may succeed or fail depending on mocked provider, but no crash)
     assert!(r1.total_duration_ms >= 0 || !r1.success);
     assert!(r2.total_duration_ms >= 0 || !r2.success);
 }

@@ -104,10 +104,18 @@ pub async fn get_window_state() -> Result<serde_json::Value, String> {
     }))
 }
 
+/// SECURITY: 仅在调试构建中开放 DevTools 命令，防止生产环境中通过 IPC 调用打开 DevTools。
+#[cfg(debug_assertions)]
 #[tauri::command]
 pub async fn open_devtools(webview_window: tauri::WebviewWindow) -> Result<(), String> {
     webview_window.open_devtools();
     Ok(())
+}
+
+#[cfg(not(debug_assertions))]
+#[tauri::command]
+pub async fn open_devtools() -> Result<(), String> {
+    Err("DevTools are disabled in release builds".to_string())
 }
 
 #[tauri::command]
@@ -151,12 +159,15 @@ pub async fn test_proxy(
     let addr = format!("{}:{}", proxy_address, proxy_port);
     let start = Instant::now();
 
+    /// SECURITY (S2): 脱敏错误信息，防止泄露内网拓扑或内部网络细节。
     match timeout(Duration::from_secs(5), TcpStream::connect(&addr)).await {
         Ok(Ok(_stream)) => {
             let latency = start.elapsed().as_millis();
             Ok(serde_json::json!({ "ok": true, "latency_ms": latency }))
         },
-        Ok(Err(e)) => Ok(serde_json::json!({ "ok": false, "error": e.to_string() })),
+        Ok(Err(_e)) => {
+            Ok(serde_json::json!({ "ok": false, "error": "Connection refused or failed" }))
+        },
         Err(_) => Ok(serde_json::json!({ "ok": false, "error": "Connection timed out (5s)" })),
     }
 }

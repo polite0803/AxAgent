@@ -30,6 +30,49 @@ pub async fn browser_navigate(
     state: State<'_, AppState>,
     url: String,
 ) -> Result<NavigateResult, String> {
+    // SECURITY (S4): SSRF 防护 — 仅允许 http/https 协议，阻止内网地址
+    let parsed =
+        reqwest::Url::parse(&url).map_err(|_| ErrorResponse::new(browser_err::INVALID_URL))?;
+    match parsed.scheme() {
+        "http" | "https" => {},
+        _ => return Err(ErrorResponse::new(browser_err::SCHEME_NOT_ALLOWED).into()),
+    }
+    let host = parsed.host_str().unwrap_or("");
+    let host_lower = host.to_lowercase();
+    if host_lower == "localhost"
+        || host_lower == "0.0.0.0"
+        || host_lower == "::1"
+        || host_lower == "[::1]"
+        || host_lower.starts_with("127.")
+        || host_lower.starts_with("10.")
+        || host_lower.starts_with("192.168.")
+        || host_lower.starts_with("169.254.")
+        || host_lower.starts_with("172.")
+    {
+        return Err(ErrorResponse::new(browser_err::ADDRESS_NOT_ALLOWED).into());
+    }
+    // 检查非 IP 字面量是否解析为私网
+    if let Ok(ip) = host.parse::<std::net::IpAddr>() {
+        match ip {
+            std::net::IpAddr::V4(v4)
+                if v4.is_loopback()
+                    || v4.is_private()
+                    || v4.is_unspecified()
+                    || v4.is_link_local() =>
+            {
+                return Err(ErrorResponse::new(browser_err::ADDRESS_NOT_ALLOWED).into());
+            },
+            std::net::IpAddr::V6(v6)
+                if v6.is_loopback()
+                    || v6.is_unspecified()
+                    || v6.segments()[0] & 0xFFC0 == 0xFE80 =>
+            {
+                return Err(ErrorResponse::new(browser_err::ADDRESS_NOT_ALLOWED).into());
+            },
+            _ => {},
+        }
+    }
+
     ensure_browser_client(&state).await?;
     let mut guard = state.browser_client.lock().await;
     let client = guard

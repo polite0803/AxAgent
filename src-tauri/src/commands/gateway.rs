@@ -455,16 +455,19 @@ pub async fn toggle_gateway_key(
         .map_err(|e| e.to_string())
 }
 
+/// SECURITY (S3): 仅返回密钥前缀用于 UI 展示，禁止返回完整明文密钥。
+/// 与 `get_decrypted_provider_key` 保持一致的安全策略。
 #[tauri::command]
 pub async fn decrypt_gateway_key(state: State<'_, AppState>, id: String) -> Result<String, String> {
-    axagent_core::repo::gateway_key::get_plain_key(
+    let plain = axagent_core::repo::gateway_key::get_plain_key(
         state.harness.db(),
         &DefaultCryptoService::new(state.harness.master_key_owned()),
         state.harness.master_key(),
         &id,
     )
     .await
-    .map_err(|e| e.to_string())
+    .map_err(|e| e.to_string())?;
+    Ok(axagent_core::crypto::key_prefix(&plain))
 }
 
 #[tauri::command]

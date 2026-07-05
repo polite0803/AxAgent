@@ -107,6 +107,8 @@ export function createDebouncedStorage(prefix: string, delay = 300) {
  * 在 Tauri 环境下调用后端 Rust 加密/解密命令，密钥从机器指纹派生。
  * 在浏览器模式下回退到 localStorage（开发调试用），并发出警告。
  */
+/// SECURITY (S6): 浏览器 fallback 模式下对敏感值加 base64 编码，防止明文泄露。
+/// 生产环境必须使用 Tauri 后端 AES-256-GCM 加密。
 export const secureStorage = {
   async set<T>(key: string, value: T): Promise<void> {
     const serialized = JSON.stringify(value);
@@ -120,9 +122,10 @@ export const secureStorage = {
       // Tauri not available: fall through to localStorage
     }
     console.warn(
-      `[secureStorage] Tauri not available, falling back to localStorage for key: ${key}`,
+      `⚠️ [secureStorage] SECURITY: Tauri not available, falling back to obfuscated localStorage for key: ${key}. Sensitive data is NOT encrypted in this mode — do NOT use browser mode in production.`,
     );
-    storage.set(`secure:${key}`, serialized);
+    // 浏览器 fallback 模式下使用 base64 编码存储，非加密，仅防明文泄露
+    storage.set(`secure:${key}`, btoa(serialized));
   },
 
   async get<T = string>(key: string): Promise<T | null> {
@@ -145,9 +148,11 @@ export const secureStorage = {
     const raw = storage.get<string>(`secure:${key}`);
     if (raw === null) { return null; }
     try {
-      return JSON.parse(raw) as T;
+      return JSON.parse(atob(raw)) as T;
     } catch {
-      return raw as unknown as T;
+      try { return atob(raw) as unknown as T; } catch {
+        return raw as unknown as T;
+      }
     }
   },
 

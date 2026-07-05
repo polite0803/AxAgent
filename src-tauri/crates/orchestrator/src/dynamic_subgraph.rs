@@ -137,7 +137,7 @@ impl DynamicSubGraph {
             model: None,
             temperature: None,
             max_tokens: None,
-            tools: vec![], // Tools resolved from agent profile — caller should specify via SubTask configuration
+            tools: sub_task.tools.clone(), // Propagate tools from sub-task decomposition
             exposed_tools: vec![],
             output_mode: OutputMode::Text,
             agent_profile_id: Some(sub_task.role.as_str().to_string()),
