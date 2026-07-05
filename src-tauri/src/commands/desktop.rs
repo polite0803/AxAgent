@@ -159,7 +159,7 @@ pub async fn test_proxy(
     let addr = format!("{}:{}", proxy_address, proxy_port);
     let start = Instant::now();
 
-    /// SECURITY (S2): 脱敏错误信息，防止泄露内网拓扑或内部网络细节。
+    // SECURITY (S2): 脱敏错误信息，防止泄露内网拓扑或内部网络细节。
     match timeout(Duration::from_secs(5), TcpStream::connect(&addr)).await {
         Ok(Ok(_stream)) => {
             let latency = start.elapsed().as_millis();

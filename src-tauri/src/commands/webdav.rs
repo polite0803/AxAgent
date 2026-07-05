@@ -58,7 +58,7 @@ pub async fn save_webdav_config(
         .map_err(|e| e.to_string())?;
 
     // SECURITY (S8): 用户启用 accept_invalid_certs 时记录安全警告
-    if config.accept_invalid_certs && !settings.webdav_accept_invalid_certs.unwrap_or(false) {
+    if config.accept_invalid_certs && !settings.webdav_accept_invalid_certs {
         tracing::warn!(
             "SECURITY: WebDAV accept_invalid_certs 已启用 — 跳过 TLS 证书验证，可能遭受中间人攻击"
         );

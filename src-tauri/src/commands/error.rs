@@ -140,6 +140,7 @@ impl std::error::Error for ErrorResponse {}
 
 /// 脱敏错误信息：阻止常见的内部路径泄露到前端。
 /// 使用 `map_err(sanitize_error)` 包装 `.map_err(|e| e.to_string())` 调用。
+#[expect(dead_code)]
 pub fn sanitize_error(msg: String) -> String {
     // 防止 Windows 路径泄露（简单检测 `C:\`、`D:\` 等）
     for drive in [
