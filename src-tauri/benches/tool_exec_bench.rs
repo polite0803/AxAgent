@@ -15,7 +15,7 @@ use criterion::{Criterion, black_box, criterion_group, criterion_main};
 /// Build a minimal ToolRegistry with a representative set of mock tools
 /// registered under known names and aliases.
 fn build_small_registry() -> ToolRegistry {
-    let mut reg = ToolRegistry::default();
+    let reg = ToolRegistry::default();
     let names = [
         "read_file",
         "write_file",
