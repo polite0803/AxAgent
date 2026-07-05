@@ -64,6 +64,7 @@ fn generate_training_id() -> String {
     format!("training_{}", chrono::Utc::now().timestamp_millis())
 }
 
+#[expect(dead_code)]
 fn generate_checkpoint_id() -> String {
     format!("ckpt_{}", chrono::Utc::now().timestamp_millis())
 }
@@ -75,9 +76,7 @@ fn simulate_metrics(step: u64, config: &RLTrainingConfig) -> TrainingMetrics {
     TrainingMetrics {
         step,
         loss: (base_loss + noise * 0.5).max(0.01),
-        reward: (0.2 + 0.8 * (1.0 - (-progress * 3.0).exp()) + noise * 0.02)
-            .min(1.0)
-            .max(0.0),
+        reward: (0.2 + 0.8 * (1.0 - (-progress * 3.0).exp()) + noise * 0.02).clamp(0.0, 1.0),
         policy_loss: (base_loss * 0.6 + noise * 0.3).max(0.01),
         value_loss: (base_loss * 0.4 + noise * 0.2).max(0.01),
         timestamp: chrono::Utc::now().timestamp_millis(),
