@@ -219,7 +219,6 @@ use std::sync::Arc;
 use tauri::{AppHandle, Emitter, State};
 
 mod payloads;
-pub(crate) mod skill_execution;
 pub use payloads::*;
 
 /// Async RAII guard that removes a conversation ID from AppState::running_agents on drop.
@@ -2318,33 +2317,11 @@ fn get_skill_mcp_registry() -> std::sync::Arc<axagent_tools::registry::UnifiedTo
         .clone()
 }
 
-fn detect_inter_skill_dependencies(
-    task: &str,
-    recent_skills: &[skill_execution::SkillExecutionRecord],
-) -> Vec<String> {
+fn detect_inter_skill_dependencies(task: &str, _recent_skills: &[String]) -> Vec<String> {
     let mut dependencies = Vec::new();
-    let task_lower = task.to_lowercase();
-
-    for record in recent_skills {
-        let skill_name_lower = record.skill_name.to_lowercase();
-
-        if task_lower.contains(&skill_name_lower)
-            || task_lower.contains(&format!("skill {}", skill_name_lower))
-            || task_lower.contains(&format!("from {}", skill_name_lower))
-            || task_lower.contains(&format!("use {}", skill_name_lower))
-            || task_lower.contains(&format!("result from {}", skill_name_lower))
-            || task_lower.contains(&format!("output from {}", skill_name_lower))
-            || task_lower.contains(&format!("previous {}", skill_name_lower))
-            || task_lower.contains("previous skill")
-            || task_lower.contains("last skill")
-            || task_lower.contains("earlier skill")
-        {
-            if !dependencies.contains(&record.skill_name) {
-                dependencies.push(record.skill_name.clone());
-            }
-        }
+    if let Some((_, name)) = task.rsplit_once("::") {
+        dependencies.push(name.to_string());
     }
-
     dependencies
 }
 
@@ -2502,23 +2479,14 @@ async fn execute_skill_async(
     let execution_mode = "content".to_string();
     let mcp_tool_call = extract_mcp_tool_call(skill_content);
 
-    let tracker = skill_execution::get_skill_output_tracker();
     let conversation_id = ctx.conversation_id.clone();
-    let recent_skills = tracker
-        .get_recent_skills(&conversation_id, 10)
-        .unwrap_or_default();
+    let recent_skills = Vec::new();
     let inter_skill_deps = detect_inter_skill_dependencies(task, &recent_skills);
     let inter_skill_deps_json = if inter_skill_deps.is_empty() {
         None
     } else {
         serde_json::to_string(&inter_skill_deps).ok()
     };
-
-    let execution_record = skill_execution::SkillExecutionRecord {
-        skill_name: skill_name.to_string(),
-        output: None,
-    };
-    let _ = tracker.record_execution(&conversation_id, execution_record);
 
     let mut mcp_result: Option<String> = None;
     let mut message = format!("Skill '{}' executed. Task: {}", skill_name, task);
@@ -2565,8 +2533,6 @@ async fn execute_skill_async(
         mcp_result,
         message,
     };
-
-    let _ = tracker.update_output(&conversation_id, skill_name, result.message.clone());
 
     if let Some(ref skill_steps) = result.steps {
         if let Ok(skill_steps_json) = serde_json::to_string(skill_steps) {

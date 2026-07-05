@@ -1,12 +1,14 @@
 use crate::app_state::AppState;
 use crate::commands::agent::agent_err;
 use crate::commands::error::ErrorResponse;
-use axagent_harness::types::function_call::ChatTool;
+use crate::commands::skills;
+use axagent_harness::types::settings_chat::ChatTool;
+use axagent_providers::ProviderAdapter;
 use sea_orm::DatabaseConnection;
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::sync::Mutex;
-use tracing::{info, warn};
+use tracing::warn;
 
 /// 语义匹配：检查用户输入是否匹配已有工作流模板
 pub(super) async fn check_and_suggest_workflow_match(
@@ -238,7 +240,7 @@ pub(super) async fn load_enabled_skill_contents(
         };
 
         let mut contents = String::new();
-        if let Ok(entries) = super::skills::collect_markdown_files(root, 0) {
+        if let Ok(entries) = skills::collect_markdown_files(root, 0) {
             for md_path in entries {
                 if let Ok(text) = std::fs::read_to_string(&md_path) {
                     if !contents.is_empty() {
