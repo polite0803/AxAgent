@@ -158,10 +158,10 @@ function AppInner() {
       cancelText: t("desktop.closeConfirmCancel"),
       okButtonProps: { danger: true },
       onOk: () => {
-          invoke("force_quit").catch((err) => {
-            console.error("Force quit failed:", err);
-          });
-        },
+        invoke("force_quit").catch((err) => {
+          console.error("Force quit failed:", err);
+        });
+      },
     });
   }, [modal, t]);
 

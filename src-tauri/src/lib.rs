@@ -196,11 +196,7 @@ pub fn run() {
             android_utils::mark_startup_phase("db_init_start");
 
             let db_result = match std::thread::spawn(move || {
-                let rt = tokio::runtime::Runtime::new()
-                    .or_else(|e| {
-                        tracing::warn!("Failed to create multi-threaded runtime for DB init: {} — falling back to current-thread", e);
-                        tokio::runtime::Builder::new_current_thread().enable_all().build()
-                    })
+                let rt = tokio::runtime::Builder::new_current_thread().enable_all().build()
                     .unwrap_or_else(|e| {
                         android_utils::report_fatal_error(&format!("Failed to create db init runtime: {}", e));
                         panic!("Fatal: db init runtime creation failed: {}", e);
@@ -229,11 +225,7 @@ pub fn run() {
             // 在独立线程中运行初始化，避免在 Tauri 的 tokio runtime 内创建嵌套 Runtime
             android_utils::mark_startup_phase("state_init_start");
             let state = match std::thread::spawn(move || {
-                let rt = tokio::runtime::Runtime::new()
-                    .or_else(|e| {
-                        tracing::warn!("Failed to create multi-threaded runtime for state init: {} — falling back to current-thread", e);
-                        tokio::runtime::Builder::new_current_thread().enable_all().build()
-                    })
+                let rt = tokio::runtime::Builder::new_current_thread().enable_all().build()
                     .unwrap_or_else(|e| {
                         android_utils::report_fatal_error(&format!("Failed to create state init runtime: {}", e));
                         panic!("Fatal: state init runtime creation failed: {}", e);
@@ -262,11 +254,7 @@ pub fn run() {
 
             let sea_db2 = sea_db.clone();
             std::thread::spawn(move || {
-                let rt = tokio::runtime::Runtime::new()
-                    .or_else(|e| {
-                        tracing::warn!("Failed to create multi-threaded runtime for session reset: {} — falling back to current-thread", e);
-                        tokio::runtime::Builder::new_current_thread().enable_all().build()
-                    })
+                let rt = tokio::runtime::Builder::new_current_thread().enable_all().build()
                     .unwrap_or_else(|e| {
                         android_utils::report_fatal_error(&format!("Failed to create session reset runtime: {}", e));
                         panic!("Fatal: session reset runtime creation failed: {}", e);
@@ -288,11 +276,7 @@ pub fn run() {
                         if let Some(profile) = axagent_trajectory::UserProfile::from_user_md(&content) {
                             let user_profile = state.user_profile.clone();
                             std::thread::spawn(move || {
-                                let rt = tokio::runtime::Runtime::new()
-                                    .or_else(|e| {
-                                        tracing::warn!("Failed to create multi-threaded runtime for user profile: {} — falling back to current-thread", e);
-                                        tokio::runtime::Builder::new_current_thread().enable_all().build()
-                                    })
+                                let rt = tokio::runtime::Builder::new_current_thread().enable_all().build()
                                     .unwrap_or_else(|e| {
                                         android_utils::report_fatal_error(&format!("Failed to create tokio runtime: {}", e));
                                         panic!("Fatal: user profile runtime creation failed: {}", e);
@@ -316,11 +300,7 @@ pub fn run() {
                     let pattern_count = persisted.len();
                     let pattern_learner = state.pattern_learner.clone();
                     std::thread::spawn(move || {
-                        let rt = tokio::runtime::Runtime::new()
-                            .or_else(|e| {
-                                tracing::warn!("Failed to create multi-threaded runtime for pattern learner: {} — falling back to current-thread", e);
-                                tokio::runtime::Builder::new_current_thread().enable_all().build()
-                            })
+                        let rt = tokio::runtime::Builder::new_current_thread().enable_all().build()
                             .unwrap_or_else(|e| {
                                 android_utils::report_fatal_error(&format!("Failed to create tokio runtime: {}", e));
                                 panic!("Fatal: pattern learner runtime creation failed: {}", e);
@@ -402,11 +382,7 @@ pub fn run() {
                 tracing::info!("[mobile] Starting cloud sync engine...");
                 let engine = sync_engine.clone();
                 std::thread::spawn(move || {
-                    let rt = tokio::runtime::Runtime::new()
-                        .or_else(|e| {
-                            tracing::warn!("Failed to create multi-threaded runtime for cloud sync: {} — falling back to current-thread", e);
-                            tokio::runtime::Builder::new_current_thread().enable_all().build()
-                        })
+                    let rt = tokio::runtime::Builder::new_current_thread().enable_all().build()
                         .unwrap_or_else(|e| {
                             android_utils::report_fatal_error(&format!("Failed to create cloud sync runtime: {}", e));
                             panic!("Fatal: cloud sync runtime creation failed: {}", e);
@@ -428,7 +404,7 @@ pub fn run() {
             let tray_language = {
                 let db = state.harness.db().clone();
                 std::thread::spawn(move || {
-                    let rt = tokio::runtime::Runtime::new().unwrap_or_else(|e| {
+                    let rt = tokio::runtime::Builder::new_current_thread().enable_all().build().unwrap_or_else(|e| {
                                 android_utils::report_fatal_error(&format!("Failed to create tokio runtime: {}", e));
                                 panic!("Fatal: tray language runtime creation failed: {}", e);
                             });
