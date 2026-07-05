@@ -18,11 +18,10 @@
 #![allow(clippy::manual_strip)]
 
 mod adaptation;
-mod arch_search;
 mod auto_memory;
 mod auto_tool;
 mod batch;
-mod behavior_learner;
+#[cfg(feature = "abandoned")]
 mod behavior_tracker;
 mod coevolution;
 mod compactor;
@@ -45,6 +44,7 @@ mod proactive_assistant;
 mod process_reward;
 mod reminder_manager;
 mod rl;
+#[cfg(feature = "abandoned")]
 mod rl_trainer;
 mod sandbox_executor;
 mod skill;
@@ -53,19 +53,22 @@ mod skill_evolution;
 mod skill_manager;
 mod skill_matcher;
 mod skill_proposal;
+#[cfg(feature = "abandoned")]
 mod skills_hub_adapter;
+#[cfg(feature = "abandoned")]
 mod skills_hub_client;
 mod storage;
 mod style_applier;
 mod style_extractor;
-mod style_migrator;
 mod style_vectorizer;
 mod sub_agent;
 mod suggestion_engine;
 mod task_prefetcher;
 mod text_grad;
+#[cfg(feature = "abandoned")]
 mod training_env;
 mod trajectory;
+#[cfg(feature = "abandoned")]
 mod trajectory_compressor;
 mod user_profile;
 
@@ -166,9 +169,11 @@ pub use skill_matcher::{Complexity, estimate_complexity_public};
 
 pub use skill_proposal::SkillProposalService;
 
+#[cfg(feature = "abandoned")]
 pub use skills_hub_adapter::SkillsHubAdapter;
 
-pub use skills_hub_client::{SkillsHubClient, SkillsHubConfig, SkillsHubSearchResult};
+#[cfg(feature = "abandoned")]
+pub use skills_hub_client::{SkillsHubConfig, SkillsHubSearchResult, SkillsHubSkill};
 
 pub use storage::{
     TrajectoryCleanupConfig, TrajectoryCleanupTask, TrajectoryStatistics, TrajectoryStorage,

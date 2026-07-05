@@ -6,7 +6,6 @@ import { SkillProposalPanel } from "@/components/chat/SkillProposalPanel";
 import { CopyButton } from "@/components/common/CopyButton";
 import { DecompositionPreview } from "@/components/decomposition/DecompositionPreview";
 import { AgentGeneratorModal } from "@/components/settings/AgentGeneratorModal";
-import { SkillsHubSettings } from "@/components/settings/SkillsHubSettings";
 import { FrontendEditorModal } from "@/components/skill/FrontendEditorModal";
 import { SkillDependencyCheck } from "@/components/skill/SkillDependencyCheck";
 import { SkillStatsPanel } from "@/components/skill/SkillStatsPanel";
@@ -1242,20 +1241,6 @@ export function SkillsPage() {
                 </span>
               ),
               children: marketplaceContent,
-            },
-            {
-              key: "hub",
-              label: (
-                <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-                  <Store size={14} color={CHAT_ICON_COLORS.Cloud} />
-                  {"Skills Hub"}
-                </span>
-              ),
-              children: (
-                <div style={{ padding: "0 4px", overflow: "auto", height: "100%" }}>
-                  <SkillsHubSettings />
-                </div>
-              ),
             },
             {
               key: "stats",

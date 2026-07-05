@@ -135,11 +135,8 @@ pub fn register_all(registry: &mut crate::registry::ToolRegistry) {
         std::sync::Arc::new(batch_missing::ReviewArtifactTool),
         std::sync::Arc::new(batch_missing::TerminalCaptureTool),
         std::sync::Arc::new(skill::DiscoverSkillsTool),
-        // ── Skills Hub (agentskills.io) ──
-        std::sync::Arc::new(skill::SkillHubSearchTool),
-        std::sync::Arc::new(skill::SkillHubInstallTool),
+        // ── Skills Hub — 本地隔离区管理 ──
         std::sync::Arc::new(skill::SkillHubReviewTool),
-        std::sync::Arc::new(skill::SkillHubPublishTool),
         std::sync::Arc::new(skill::SkillEnvCheckTool),
         std::sync::Arc::new(skill::SkillConfigTool),
         // ── 消息和文件 ──

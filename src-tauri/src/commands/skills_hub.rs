@@ -2,125 +2,11 @@
 
 use crate::AppState;
 use crate::paths::axagent_home;
-use axagent_trajectory::{
-    Skill, SkillsHubAdapter, SkillsHubClient, SkillsHubConfig, SkillsHubSearchResult,
-};
+use axagent_trajectory::{Skill, SkillsHubAdapter};
 use serde::{Deserialize, Serialize};
 use tauri::State;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SkillsHubSearchResponse {
-    pub skills: Vec<SkillsHubSkillInfo>,
-    pub total: u32,
-    pub page: u32,
-    pub page_size: u32,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SkillsHubSkillInfo {
-    pub id: String,
-    pub name: String,
-    pub description: String,
-    pub category: String,
-    pub author: String,
-    pub version: String,
-    pub tags: Vec<String>,
-    pub downloads: u32,
-    pub rating: f32,
-}
-
-impl From<SkillsHubSearchResult> for SkillsHubSearchResponse {
-    fn from(result: SkillsHubSearchResult) -> Self {
-        Self {
-            skills: result
-                .skills
-                .into_iter()
-                .map(|s| SkillsHubSkillInfo {
-                    id: s.id,
-                    name: s.name,
-                    description: s.description,
-                    category: s.category,
-                    author: s.author,
-                    version: s.version,
-                    tags: s.tags,
-                    downloads: s.downloads as u32,
-                    rating: s.rating as f32,
-                })
-                .collect(),
-            total: result.total as u32,
-            page: result.page as u32,
-            page_size: result.page_size as u32,
-        }
-    }
-}
-
-#[tauri::command]
-pub async fn skills_hub_search(
-    query: String,
-    category: Option<String>,
-    page: u32,
-    page_size: u32,
-) -> Result<SkillsHubSearchResponse, String> {
-    let client = SkillsHubClient::new(SkillsHubConfig::default());
-    let result = client
-        .search(&query, category.as_deref(), page as usize, page_size as usize)
-        .await?;
-    Ok(result.into())
-}
-
-#[tauri::command]
-pub async fn skills_hub_install(skill_id: String) -> Result<String, String> {
-    let client = SkillsHubClient::new(SkillsHubConfig::default());
-    let mut adapter = SkillsHubAdapter::new();
-
-    let skill = client.get_skill(&skill_id).await?;
-
-    adapter.parse_hermes_skill_md(skill.readme_url.as_deref().unwrap_or_default())?;
-
-    let axagent_skill = adapter.to_axagent_skill()?;
-
-    tracing::info!("Downloading skill '{}' from Skills Hub to quarantine", axagent_skill.name);
-
-    let hub_base = axagent_home().join("skills").join(".hub");
-    std::fs::create_dir_all(&hub_base).map_err(|e| format!("创建 .hub 目录失败: {e}"))?;
-
-    let q_dir = hub_base.join("quarantine").join(&axagent_skill.name);
-    if q_dir.exists() {
-        std::fs::remove_dir_all(&q_dir).map_err(|e| format!("清理旧隔离目录失败: {e}"))?;
-    }
-    std::fs::create_dir_all(&q_dir).map_err(|e| format!("创建隔离目录失败: {e}"))?;
-
-    let skill_md = format!(
-        "---\nname: {}\nversion: {}\ndescription: {}\ncategory: {}\nsource: skills_hub\n---\n\n{}",
-        axagent_skill.name,
-        axagent_skill.version,
-        axagent_skill.description,
-        axagent_skill.category,
-        axagent_skill.content,
-    );
-    std::fs::write(q_dir.join("SKILL.md"), &skill_md)
-        .map_err(|e| format!("写入 SKILL.md 失败: {e}"))?;
-
-    let manifest = serde_json::json!({
-        "name": axagent_skill.name,
-        "version": axagent_skill.version,
-        "description": axagent_skill.description,
-        "category": axagent_skill.category,
-        "tags": axagent_skill.tags,
-        "source_kind": "skills_hub",
-        "skill_id": skill_id,
-    });
-    std::fs::write(
-        q_dir.join("skill-manifest.json"),
-        serde_json::to_string_pretty(&manifest).unwrap_or_default(),
-    )
-    .map_err(|e| format!("写入 skill-manifest.json 失败: {e}"))?;
-
-    Ok(format!(
-        "技能 '{}' 已下载到隔离区。请审查后使用 skills_hub_review action=approve 批准安装。",
-        axagent_skill.name
-    ))
-}
+// ── review / export / import — 纯本地操作（无网络依赖） ──
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SkillsHubReviewResult {
@@ -139,7 +25,7 @@ pub async fn skills_hub_review(
     let q_dir = hub_base.join("quarantine").join(&name);
 
     if !q_dir.exists() {
-        return Err(format!("隔离区中未找到技能 '{}'。请先使用 skills_hub_install 下载。", name));
+        return Err(format!("隔离区中未找到技能 '{}'。请先将技能文件放入隔离区后重试。", name));
     }
 
     let action_str = action.as_deref().unwrap_or("");
@@ -193,7 +79,7 @@ pub async fn skills_hub_review(
                 let mut reg = state.local_tool_registry.lock().await;
                 reg.register_skill_tool(
                     skill_name_for_tool,
-                    Box::new(move |_input: &str| Ok(skill_content.clone())),
+                    std::sync::Arc::new(move |_input: &str| Ok(skill_content.clone())),
                 );
             }
 

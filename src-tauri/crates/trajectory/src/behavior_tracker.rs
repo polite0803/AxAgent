@@ -1,5 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+// ABANDONED(2026-07-05): 此模块经评估不建议继续维护。
+// 原因：需要完整 BehaviorEventType 映射，当前仅有类型定义无实际事件源。
+// 若未来需求变更可解除此标记，当前通过 #[cfg(feature = "abandoned")] 隔离。
+
 #![allow(dead_code)]
 
 use chrono::{DateTime, Datelike, Timelike, Utc};

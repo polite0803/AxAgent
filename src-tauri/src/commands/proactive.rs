@@ -5,11 +5,11 @@ use axagent_trajectory::ProactiveSuggestionType;
 use axagent_trajectory::{
     ContextFeatures, ContextPredictor, PredictionResult as TrajectoryPredictionResult,
     ProactiveAssistant, ProactiveConfig as TrajProactiveConfig,
-    ProactiveSuggestion as TrajProactiveSuggestion, Reminder as TrajReminder, ReminderRecurrence,
-    SuggestionAction, SuggestionEngine, TaskPrefetcher,
+    ProactiveSuggestion as TrajProactiveSuggestion, SuggestionAction, SuggestionEngine,
+    TaskPrefetcher,
 };
 use axagent_trajectory::{PrefetchResult, PrefetchResults, PrefetchType};
-use chrono::{DateTime, Utc};
+use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use tauri::State;
 
@@ -169,42 +169,6 @@ impl From<TrajectoryPredictionResult> for PredictionResult {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct Reminder {
-    pub id: String,
-    pub title: String,
-    pub description: String,
-    pub scheduled_at: String,
-    pub recurrence: Option<serde_json::Value>,
-    pub completed: bool,
-    pub created_at: String,
-}
-
-impl From<&TrajReminder> for Reminder {
-    fn from(r: &TrajReminder) -> Self {
-        let recurrence = r.recurrence.as_ref().map(|rec| {
-            serde_json::json!({
-                "frequency": match rec.frequency {
-                    axagent_trajectory::RecurrenceFrequency::Daily => "daily",
-                    axagent_trajectory::RecurrenceFrequency::Weekly => "weekly",
-                    axagent_trajectory::RecurrenceFrequency::Monthly => "monthly",
-                },
-                "interval": rec.interval,
-            })
-        });
-
-        Self {
-            id: r.id.clone(),
-            title: r.title.clone(),
-            description: r.description.clone(),
-            scheduled_at: r.scheduled_at.to_rfc3339(),
-            recurrence,
-            completed: r.completed,
-            created_at: r.created_at.to_rfc3339(),
-        }
-    }
-}
-
-#[derive(Debug, Serialize, Deserialize)]
 pub struct ProactiveConfig {
     pub enabled: bool,
     #[serde(rename = "max_suggestions")]
@@ -304,26 +268,6 @@ impl ProactiveService {
         self.assistant
             .snooze_suggestion(id, duration_minutes)
             .is_some()
-    }
-
-    pub fn add_reminder(&mut self, reminder: TrajReminder) {
-        self.assistant.add_reminder(reminder);
-    }
-
-    pub fn get_reminders(&self) -> Vec<Reminder> {
-        self.assistant
-            .get_reminders()
-            .iter()
-            .map(|r| Reminder::from(*r))
-            .collect()
-    }
-
-    pub fn complete_reminder(&mut self, id: &str) -> bool {
-        self.assistant.complete_reminder(id).is_some()
-    }
-
-    pub fn delete_reminder(&mut self, id: &str) -> bool {
-        self.assistant.delete_reminder(id).is_some()
     }
 
     pub fn predict(&self, context: ContextFeatures) -> PredictionResult {
@@ -438,12 +382,6 @@ pub async fn proactive_predict(
 }
 
 #[tauri::command]
-pub async fn proactive_list_reminders(state: State<'_, AppState>) -> Result<Vec<Reminder>, String> {
-    let service = state.proactive_service.read().await;
-    Ok(service.get_reminders())
-}
-
-#[tauri::command]
 pub async fn proactive_dismiss_suggestion(
     state: State<'_, AppState>,
     id: String,
@@ -469,85 +407,6 @@ pub async fn proactive_snooze_suggestion(
 ) -> Result<bool, String> {
     let mut service = state.proactive_service.write().await;
     Ok(service.snooze_suggestion(&id, duration))
-}
-
-#[tauri::command]
-pub async fn proactive_add_reminder(
-    state: State<'_, AppState>,
-    reminder: serde_json::Value,
-) -> Result<Reminder, String> {
-    #[derive(Deserialize)]
-    struct ReminderInput {
-        title: String,
-        description: String,
-        #[serde(rename = "scheduled_at")]
-        scheduled_at: String,
-        recurrence: Option<ReminderRecurrenceInput>,
-    }
-
-    #[derive(Deserialize)]
-    struct ReminderRecurrenceInput {
-        frequency: String,
-        interval: u32,
-    }
-
-    let input: ReminderInput = serde_json::from_value(reminder)
-        .map_err(|e| format!("Failed to parse reminder input: {}", e))?;
-
-    let scheduled_at = DateTime::parse_from_rfc3339(&input.scheduled_at)
-        .map_err(|e| format!("Invalid scheduled_at format: {}", e))?
-        .with_timezone(&Utc);
-
-    let recurrence = match input.recurrence {
-        Some(r) => {
-            let frequency = match r.frequency.as_str() {
-                "daily" => axagent_trajectory::RecurrenceFrequency::Daily,
-                "weekly" => axagent_trajectory::RecurrenceFrequency::Weekly,
-                "monthly" => axagent_trajectory::RecurrenceFrequency::Monthly,
-                _ => return Err(format!("Invalid recurrence frequency: {}", r.frequency)),
-            };
-            Some(ReminderRecurrence {
-                frequency,
-                interval: r.interval,
-            })
-        },
-        None => None,
-    };
-
-    let traj_reminder = TrajReminder {
-        id: uuid::Uuid::new_v4().to_string(),
-        title: input.title,
-        description: input.description,
-        scheduled_at,
-        recurrence,
-        completed: false,
-        created_at: Utc::now(),
-    };
-
-    let reminder_result = Reminder::from(&traj_reminder);
-
-    let mut service = state.proactive_service.write().await;
-    service.add_reminder(traj_reminder);
-
-    Ok(reminder_result)
-}
-
-#[tauri::command]
-pub async fn proactive_delete_reminder(
-    state: State<'_, AppState>,
-    id: String,
-) -> Result<bool, String> {
-    let mut service = state.proactive_service.write().await;
-    Ok(service.delete_reminder(&id))
-}
-
-#[tauri::command]
-pub async fn proactive_complete_reminder(
-    state: State<'_, AppState>,
-    id: String,
-) -> Result<bool, String> {
-    let mut service = state.proactive_service.write().await;
-    Ok(service.complete_reminder(&id))
 }
 
 #[tauri::command]

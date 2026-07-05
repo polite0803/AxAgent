@@ -1,5 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+// ABANDONED(2026-07-05): 此模块经评估不建议继续维护。
+// 原因：与 compactor 功能高度重叠。
+// 若未来需求变更可解除此标记，当前通过 #[cfg(feature = "abandoned")] 隔离。
+
 use crate::trajectory::{MessageRole, Trajectory};
 use serde::{Deserialize, Serialize};
 

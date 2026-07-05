@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-use reqwest::Client;
+// ABANDONED(2026-07-05): 此模块经评估不建议继续维护。
+// 原因：硬编码虚构 API 端点。
+// 若未来需求变更可解除此标记，当前通过 #[cfg(feature = "abandoned")] 隔离。
+
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -26,114 +29,26 @@ pub struct SkillsHubSearchResult {
     pub page_size: usize,
 }
 
+/// Skills Hub 配置，由环境变量驱动。
+/// 不设置则默认不可用，无硬编码端点。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SkillsHubConfig {
     pub api_url: String,
     pub api_key: Option<String>,
 }
 
-impl Default for SkillsHubConfig {
-    fn default() -> Self {
+impl SkillsHubConfig {
+    /// 从环境变量构造配置：
+    /// - `AGENTSKILLS_API_URL` — 后端 API 地址
+    /// - `AGENTSKILLS_API_KEY` — 可选的 API Key
+    pub fn from_env() -> Self {
         Self {
-            api_url: "https://api.agentskills.io".to_string(),
-            api_key: None,
-        }
-    }
-}
-
-pub struct SkillsHubClient {
-    config: SkillsHubConfig,
-    client: Client,
-}
-
-impl SkillsHubClient {
-    pub fn new(config: SkillsHubConfig) -> Self {
-        Self {
-            config,
-            client: Client::new(),
+            api_url: std::env::var("AGENTSKILLS_API_URL").unwrap_or_default(),
+            api_key: std::env::var("AGENTSKILLS_API_KEY").ok(),
         }
     }
 
-    pub async fn search(
-        &self,
-        query: &str,
-        _category: Option<&str>,
-        page: usize,
-        page_size: usize,
-    ) -> Result<SkillsHubSearchResult, String> {
-        let url = format!(
-            "{}/v1/skills/search?q={}&page={}&page_size={}",
-            self.config.api_url, query, page, page_size
-        );
-        let mut req = self.client.get(&url);
-        if let Some(key) = &self.config.api_key {
-            req = req.header("Authorization", format!("Bearer {}", key));
-        }
-        let resp = req.send().await.map_err(|e| e.to_string())?;
-        if !resp.status().is_success() {
-            return Err(format!("Skills Hub API error: {}", resp.status()));
-        }
-        resp.json::<SkillsHubSearchResult>()
-            .await
-            .map_err(|e| e.to_string())
-    }
-
-    pub async fn get_skill(&self, skill_id: &str) -> Result<SkillsHubSkill, String> {
-        let url = format!("{}/v1/skills/{}", self.config.api_url, skill_id);
-        let mut req = self.client.get(&url);
-        if let Some(key) = &self.config.api_key {
-            req = req.header("Authorization", format!("Bearer {}", key));
-        }
-        let resp = req.send().await.map_err(|e| e.to_string())?;
-        if !resp.status().is_success() {
-            return Err(format!("Skills Hub API error: {}", resp.status()));
-        }
-        resp.json::<SkillsHubSkill>()
-            .await
-            .map_err(|e| e.to_string())
-    }
-
-    pub async fn download_skill(&self, skill_id: &str) -> Result<Vec<u8>, String> {
-        let url = format!("{}/v1/skills/{}/download", self.config.api_url, skill_id);
-        let mut req = self.client.get(&url);
-        if let Some(key) = &self.config.api_key {
-            req = req.header("Authorization", format!("Bearer {}", key));
-        }
-        let resp = req.send().await.map_err(|e| e.to_string())?;
-        if !resp.status().is_success() {
-            return Err(format!("Download failed: {}", resp.status()));
-        }
-        resp.bytes()
-            .await
-            .map(|b| b.to_vec())
-            .map_err(|e| e.to_string())
-    }
-
-    pub async fn list_categories(&self) -> Result<Vec<String>, String> {
-        let url = format!("{}/v1/skills/categories", self.config.api_url);
-        let mut req = self.client.get(&url);
-        if let Some(key) = &self.config.api_key {
-            req = req.header("Authorization", format!("Bearer {}", key));
-        }
-        let resp = req.send().await.map_err(|e| e.to_string())?;
-        if !resp.status().is_success() {
-            return Err(format!("Skills Hub API error: {}", resp.status()));
-        }
-        resp.json::<Vec<String>>().await.map_err(|e| e.to_string())
-    }
-
-    pub async fn featured(&self) -> Result<Vec<SkillsHubSkill>, String> {
-        let url = format!("{}/v1/skills/featured", self.config.api_url);
-        let mut req = self.client.get(&url);
-        if let Some(key) = &self.config.api_key {
-            req = req.header("Authorization", format!("Bearer {}", key));
-        }
-        let resp = req.send().await.map_err(|e| e.to_string())?;
-        if !resp.status().is_success() {
-            return Err(format!("Skills Hub API error: {}", resp.status()));
-        }
-        resp.json::<Vec<SkillsHubSkill>>()
-            .await
-            .map_err(|e| e.to_string())
+    pub fn is_configured(&self) -> bool {
+        !self.api_url.is_empty()
     }
 }

@@ -219,7 +219,6 @@ use std::sync::Arc;
 use tauri::{AppHandle, Emitter, State};
 
 mod payloads;
-mod skill_execution;
 pub(crate) mod skill_execution;
 pub use payloads::*;
 
@@ -879,7 +878,7 @@ pub async fn agent_query(
             let ctx = skill_ctx.clone();
             tool_registry.register_skill_tool(
                 tool_name.clone(),
-                Box::new(move |input: &str| {
+                std::sync::Arc::new(move |input: &str| {
                     execute_skill_sync(&skill_id, &skill_name, &skill_content, input, &ctx)
                         .map_err(axagent_harness::ToolError::new)
                 }),

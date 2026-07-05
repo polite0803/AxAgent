@@ -128,8 +128,8 @@ mod tests {
         assert!((clamped.width - 1360.8).abs() < f64::EPSILON);
         assert!((clamped.height - 883.8).abs() < 1e-9);
         // x clamped to monitor_width - 100
-        assert!((clamped.x.unwrap() - 1412.0).abs() < f64::EPSILON);
+        assert!((clamped.x.expect("测试：x 应已设置") - 1412.0).abs() < f64::EPSILON);
         // y clamped to monitor_height - 100
-        assert!((clamped.y.unwrap() - 882.0).abs() < f64::EPSILON);
+        assert!((clamped.y.expect("测试：y 应已设置") - 882.0).abs() < f64::EPSILON);
     }
 }

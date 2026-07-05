@@ -11,6 +11,9 @@ pub struct PermissionBridge {
     pub allow_execute: bool,
     /// 是否允许网络访问
     pub allow_network: bool,
+    /// 权限模式上限。Worker 权限不会超过此值，默认 "ReadOnly"。
+    /// 即使 Leader 运行在 DangerFullAccess，Worker 也被限制在此上限内。
+    pub max_permission_mode: String,
 }
 
 impl PermissionBridge {
@@ -20,15 +23,32 @@ impl PermissionBridge {
             allow_write,
             allow_execute,
             allow_network,
+            max_permission_mode: "ReadOnly".to_string(),
         }
     }
 
-    /// 从 leader 环境变量同步（默认全部允许）
+    /// 创建带权限上限的桥接。
+    pub fn with_max_permission_mode(
+        allow_write: bool,
+        allow_execute: bool,
+        allow_network: bool,
+        max_permission_mode: impl Into<String>,
+    ) -> Self {
+        Self {
+            allow_write,
+            allow_execute,
+            allow_network,
+            max_permission_mode: max_permission_mode.into(),
+        }
+    }
+
+    /// 从 leader 环境变量同步（默认全部允许，权限上限为 ReadOnly）
     pub fn from_env() -> Self {
         Self {
             allow_write: true,
             allow_execute: true,
             allow_network: true,
+            max_permission_mode: "ReadOnly".to_string(),
         }
     }
 
@@ -38,12 +58,12 @@ impl PermissionBridge {
             ("AXAGENT_ALLOW_WRITE".into(), self.allow_write.to_string()),
             ("AXAGENT_ALLOW_EXECUTE".into(), self.allow_execute.to_string()),
             ("AXAGENT_ALLOW_NETWORK".into(), self.allow_network.to_string()),
+            ("AXAGENT_MAX_PERMISSION_MODE".into(), self.max_permission_mode.clone()),
         ]
     }
-}
 
-impl Default for PermissionBridge {
-    fn default() -> Self {
-        Self::from_env()
+    /// 获取权限上限的枚举值（用于与 WorkerDefinition 对比）
+    pub fn max_mode(&self) -> &str {
+        &self.max_permission_mode
     }
 }
