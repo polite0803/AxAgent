@@ -674,22 +674,32 @@ pub(super) async fn execute_skill_async(
             let deps_json = inter_skill_deps_json.clone();
 
             tokio::spawn(async move {
-                if let Ok(Some(execution)) =
+                let execution =
                     axagent_core::repo::tool_execution::find_latest_execution_by_tool(
                         &db,
                         &conversation_id_clone,
                         &skill_name_for_lookup,
                     )
-                    .await
-                {
-                    let _ =
-                        axagent_core::repo::tool_execution::update_tool_execution_skill_details(
+                    .await;
+                match execution {
+                    Ok(Some(exec)) => {
+                        if let Err(e) = axagent_core::repo::tool_execution::update_tool_execution_skill_details(
                             &db,
-                            &execution.id,
+                            &exec.id,
                             Some(&skill_steps_json),
                             deps_json.as_deref(),
                         )
-                        .await;
+                        .await
+                        {
+                            tracing::warn!("[skill_execution] 更新 tool execution 详情失败 (conversation={}, skill={}): {}", conversation_id_clone, skill_name_for_lookup, e);
+                        }
+                    },
+                    Ok(None) => {
+                        tracing::debug!("[skill_execution] 未找到 tool execution 记录 (conversation={}, skill={})", conversation_id_clone, skill_name_for_lookup);
+                    },
+                    Err(e) => {
+                        tracing::warn!("[skill_execution] 查询 tool execution 失败 (conversation={}, skill={}): {}", conversation_id_clone, skill_name_for_lookup, e);
+                    },
                 }
             });
         }
@@ -701,22 +711,32 @@ pub(super) async fn execute_skill_async(
             let skill_name_for_lookup = skill_name.to_string();
 
             tokio::spawn(async move {
-                if let Ok(Some(execution)) =
+                let execution =
                     axagent_core::repo::tool_execution::find_latest_execution_by_tool(
                         &db,
                         &conversation_id_clone,
                         &skill_name_for_lookup,
                     )
-                    .await
-                {
-                    let _ =
-                        axagent_core::repo::tool_execution::update_tool_execution_skill_details(
+                    .await;
+                match execution {
+                    Ok(Some(exec)) => {
+                        if let Err(e) = axagent_core::repo::tool_execution::update_tool_execution_skill_details(
                             &db,
-                            &execution.id,
+                            &exec.id,
                             None,
                             deps_json.as_deref(),
                         )
-                        .await;
+                        .await
+                        {
+                            tracing::warn!("[skill_execution] 更新 tool execution 依赖失败 (conversation={}, skill={}): {}", conversation_id_clone, skill_name_for_lookup, e);
+                        }
+                    },
+                    Ok(None) => {
+                        tracing::debug!("[skill_execution] 未找到 tool execution 记录 (conversation={}, skill={})", conversation_id_clone, skill_name_for_lookup);
+                    },
+                    Err(e) => {
+                        tracing::warn!("[skill_execution] 查询 tool execution 失败 (conversation={}, skill={}): {}", conversation_id_clone, skill_name_for_lookup, e);
+                    },
                 }
             });
         }

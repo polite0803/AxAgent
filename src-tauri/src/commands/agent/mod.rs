@@ -2548,22 +2548,46 @@ async fn execute_skill_async(
             let deps_json = inter_skill_deps_json.clone();
 
             tokio::spawn(async move {
-                if let Ok(Some(execution)) =
-                    axagent_core::repo::tool_execution::find_latest_execution_by_tool(
-                        &db,
-                        &conversation_id_clone,
-                        &skill_name_for_lookup,
-                    )
-                    .await
-                {
-                    let _ =
-                        axagent_core::repo::tool_execution::update_tool_execution_skill_details(
-                            &db,
-                            &execution.id,
-                            Some(&skill_steps_json),
-                            deps_json.as_deref(),
-                        )
-                        .await;
+                let execution = axagent_core::repo::tool_execution::find_latest_execution_by_tool(
+                    &db,
+                    &conversation_id_clone,
+                    &skill_name_for_lookup,
+                )
+                .await;
+                match execution {
+                    Ok(Some(exec)) => {
+                        if let Err(e) =
+                            axagent_core::repo::tool_execution::update_tool_execution_skill_details(
+                                &db,
+                                &exec.id,
+                                Some(&skill_steps_json),
+                                deps_json.as_deref(),
+                            )
+                            .await
+                        {
+                            tracing::warn!(
+                                "[skill] 更新 tool execution 详情失败 (conversation={}, skill={}): {}",
+                                conversation_id_clone,
+                                skill_name_for_lookup,
+                                e
+                            );
+                        }
+                    },
+                    Ok(None) => {
+                        tracing::debug!(
+                            "[skill] 未找到 tool execution 记录 (conversation={}, skill={})",
+                            conversation_id_clone,
+                            skill_name_for_lookup
+                        );
+                    },
+                    Err(e) => {
+                        tracing::warn!(
+                            "[skill] 查询 tool execution 失败 (conversation={}, skill={}): {}",
+                            conversation_id_clone,
+                            skill_name_for_lookup,
+                            e
+                        );
+                    },
                 }
             });
         }
@@ -2575,22 +2599,45 @@ async fn execute_skill_async(
             let skill_name_for_lookup = skill_name.to_string();
 
             tokio::spawn(async move {
-                if let Ok(Some(execution)) =
-                    axagent_core::repo::tool_execution::find_latest_execution_by_tool(
-                        &db,
-                        &conversation_id_clone,
-                        &skill_name_for_lookup,
-                    )
-                    .await
-                {
-                    let _ =
-                        axagent_core::repo::tool_execution::update_tool_execution_skill_details(
-                            &db,
-                            &execution.id,
-                            None,
-                            deps_json.as_deref(),
-                        )
-                        .await;
+                let execution = axagent_core::repo::tool_execution::find_latest_execution_by_tool(
+                    &db,
+                    &conversation_id_clone,
+                    &skill_name_for_lookup,
+                )
+                .await;
+                match execution {
+                    Ok(Some(exec)) => {
+                        if let Err(e) =
+                            axagent_core::repo::tool_execution::update_tool_execution_skill_details(
+                                &db,
+                                &exec.id,
+                                deps_json.as_deref(),
+                            )
+                            .await
+                        {
+                            tracing::warn!(
+                                "[skill] 更新 tool execution 依赖失败 (conversation={}, skill={}): {}",
+                                conversation_id_clone,
+                                skill_name_for_lookup,
+                                e
+                            );
+                        }
+                    },
+                    Ok(None) => {
+                        tracing::debug!(
+                            "[skill] 未找到 tool execution 记录 (conversation={}, skill={})",
+                            conversation_id_clone,
+                            skill_name_for_lookup
+                        );
+                    },
+                    Err(e) => {
+                        tracing::warn!(
+                            "[skill] 查询 tool execution 失败 (conversation={}, skill={}): {}",
+                            conversation_id_clone,
+                            skill_name_for_lookup,
+                            e
+                        );
+                    },
                 }
             });
         }
@@ -3485,6 +3532,7 @@ pub async fn workflow_create(
 /// Execute a workflow with LLM step execution
 #[tauri::command]
 pub async fn workflow_execute(
+    app: tauri::AppHandle,
     app_state: State<'_, AppState>,
     workflow_id: String,
     model_id: Option<String>,
@@ -3505,6 +3553,7 @@ pub async fn workflow_execute(
 
     let engine = app_state.work_engine.clone();
     let wid = workflow_id.clone();
+    let app_for_emit = app.clone();
     tokio::spawn(async move {
         let mut opts = axagent_runtime::work_engine::RunOptions::default();
         if let Some(m) = model_id {
@@ -3516,8 +3565,28 @@ pub async fn workflow_execute(
         if let Some(vars) = variables {
             opts = opts.with_variables(vars);
         }
-        if let Err(e) = engine.run_workflow(&wid, opts).await {
-            tracing::error!("[workflow] 执行失败: {}", e);
+        match engine.run_workflow(&wid, opts).await {
+            Ok(result) => {
+                let _ = app_for_emit.emit(
+                    "workflow:execution-completed",
+                    serde_json::json!({
+                        "workflow_id": wid,
+                        "success": true,
+                        "result": result,
+                    }),
+                );
+            },
+            Err(e) => {
+                tracing::error!("[workflow] 执行失败: {}", e);
+                let _ = app_for_emit.emit(
+                    "workflow:execution-completed",
+                    serde_json::json!({
+                        "workflow_id": wid,
+                        "success": false,
+                        "error": e.to_string(),
+                    }),
+                );
+            },
         }
     });
 
