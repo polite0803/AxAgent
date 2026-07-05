@@ -37,7 +37,7 @@ export function _injectPreferenceStore(store: any): void {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function getPref(): any {
   if (!_prefStore) {
-    throw new Error("preferenceStore 尚未初始化");
+    throw new Error("preferenceStore_not_initialized");
   }
   return _prefStore;
 }
