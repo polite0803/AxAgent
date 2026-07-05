@@ -25,14 +25,16 @@ import { useTabStore } from "../shared/tabStore";
 // ── 惰性 PreferenceStore 访问器（打破 conversation ↔ preference 循环依赖）──
 // preferenceStore 在自身初始化后主动注入引用；conversationStore 不 import preferenceStore。
 // 使用 Record 替代精确类型，避免 `import type` 产生隐含依赖。
-
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 let _prefStore: any = null;
 
 /** preferenceStore 初始化后主动调用此函数注入自身引用 */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function _injectPreferenceStore(store: any): void {
   _prefStore = store;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function getPref(): any {
   if (!_prefStore) {
     throw new Error("preferenceStore 尚未初始化");
