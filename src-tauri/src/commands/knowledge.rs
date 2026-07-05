@@ -735,6 +735,10 @@ pub async fn reindex_knowledge_chunk(
         }
         .await;
 
+        if let Err(ref e) = result {
+            tracing::warn!("[knowledge] 重索引单块失败 (chunk={}): {}", cid, e);
+        }
+
         let _ = app.emit(
             "knowledge-chunk-reindexed",
             serde_json::json!({
