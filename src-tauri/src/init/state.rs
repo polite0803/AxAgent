@@ -220,6 +220,8 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
         Arc::new(Mutex::new(std::collections::HashSet::new()));
     let running_agents: Arc<tokio::sync::RwLock<std::collections::HashSet<String>>> =
         Arc::new(tokio::sync::RwLock::new(std::collections::HashSet::new()));
+    let steer_queue: Arc<tokio::sync::Mutex<std::collections::HashMap<String, Vec<String>>>> =
+        Arc::new(tokio::sync::Mutex::new(std::collections::HashMap::new()));
     let reflector = Arc::new(axagent_agent::Reflector::new());
     let shared_memory: Arc<TokioRwLock<axagent_runtime::shared_memory::SharedMemory>> =
         Arc::new(TokioRwLock::new(axagent_runtime::shared_memory::SharedMemory::new()));
@@ -615,6 +617,7 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
         agent_cancel_tokens,
         agent_paused,
         running_agents,
+        steer_queue,
         reflector,
         shared_memory,
         sub_agent_registry,

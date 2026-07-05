@@ -83,6 +83,8 @@ struct BudgetConfig {
 }
 
 /// Cached pricing config loaded at startup.
+/// 使用 OnceLock 而非 AppState：pricing 在启动时加载一次后不可变，
+/// 跨命令共享且无需 lock，OnceLock 最轻量。迁移到 AppState 无额外收益。
 static PRICING_CONFIG: OnceLock<PricingConfigFile> = OnceLock::new();
 
 /// Initialize pricing from the config file. Called once during app startup.
@@ -2304,6 +2306,9 @@ struct SkillTaskContext {
     constraints: Option<Vec<String>>,
 }
 
+/// Unified tool registry for skills + MCP tools.
+/// OnceLock 设计：注册表在第一次调用时创建，之后只读。
+/// 迁移到 AppState 需要所有工具调用函数都持有 state 引用，收益有限。
 static SKILL_MCP_REGISTRY: std::sync::OnceLock<
     std::sync::Arc<axagent_tools::registry::UnifiedToolRegistry>,
 > = std::sync::OnceLock::new();
@@ -4216,7 +4221,7 @@ fn steer_queue() -> &'static tokio::sync::Mutex<std::collections::HashMap<String
 
 #[tauri::command]
 pub async fn agent_steer(
-    _state: tauri::State<'_, AppState>,
+    state: tauri::State<'_, AppState>,
     conversation_id: String,
     instruction: String,
 ) -> Result<(), String> {
@@ -4231,7 +4236,8 @@ pub async fn agent_steer(
         conversation_id,
         instruction.len()
     );
-    steer_queue()
+    state
+        .steer_queue
         .lock()
         .await
         .entry(conversation_id)

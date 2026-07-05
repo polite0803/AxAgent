@@ -217,6 +217,8 @@ pub struct AppState {
     pub agent_cancel_tokens: Arc<DashMap<String, Arc<AtomicBool>>>,
     pub agent_paused: Arc<Mutex<std::collections::HashSet<String>>>,
     pub running_agents: Arc<tokio::sync::RwLock<std::collections::HashSet<String>>>,
+    /// 前端 SteerInput 指令队列。conversationId → Vec<instruction>
+    pub steer_queue: Arc<tokio::sync::Mutex<std::collections::HashMap<String, Vec<String>>>>,
     pub reflector: Arc<axagent_agent::Reflector>,
     // 以下字段从 std::sync::RwLock 改为 tokio::sync::RwLock
     // 原因：std::sync::RwLock 的 guard 是 !Send，在异步上下文中跨 await 持有会导致未定义行为
