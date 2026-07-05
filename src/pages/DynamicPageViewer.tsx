@@ -4,7 +4,7 @@ import { DynamicUIRenderer } from "@/components/dynamicUI/DynamicUIRenderer";
 import { useDynamicUIStore } from "@/stores";
 import type { DynamicAction, UISchema } from "@/types";
 import { Result, Spin } from "antd";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useReducer } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
 
@@ -22,36 +22,53 @@ export function DynamicPageViewer() {
   const navigate = useNavigate();
   const getSchema = useDynamicUIStore((s) => s.getSchema);
 
-  const [schema, setSchema] = useState<UISchema | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  type ViewState =
+    | { kind: "loading" }
+    | { kind: "error"; message: string }
+    | { kind: "ready"; schema: UISchema };
+
+  type ViewAction =
+    | { type: "start_load" }
+    | { type: "load_error"; message: string }
+    | { type: "load_ok"; schema: UISchema }
+    | { type: "reset" };
+
+  function viewReducer(_state: ViewState, action: ViewAction): ViewState {
+    switch (action.type) {
+      case "start_load":
+        return { kind: "loading" };
+      case "load_error":
+        return { kind: "error", message: action.message };
+      case "load_ok":
+        return { kind: "ready", schema: action.schema };
+      case "reset":
+        return { kind: "loading" };
+    }
+  }
+
+  const [viewState, dispatch] = useReducer(viewReducer, { kind: "loading" });
 
   useEffect(() => {
     if (!schemaId) {
-      setError(t("dynamicUI.schemaNotFound"));
-      setLoading(false);
       return;
     }
 
     let cancelled = false;
-    setLoading(true);
-    setError(null);
+    dispatch({ type: "start_load" });
 
     getSchema(schemaId)
       .then((record) => {
         if (cancelled) { return; }
         const parsed = parseSchema(record.schema_json);
         if (!parsed) {
-          setError(t("dynamicUIManager.invalidSchema"));
+          dispatch({ type: "load_error", message: t("dynamicUIManager.invalidSchema") });
         } else {
-          setSchema(parsed);
+          dispatch({ type: "load_ok", schema: parsed });
         }
-        setLoading(false);
       })
       .catch(() => {
         if (cancelled) { return; }
-        setError(t("dynamicUI.schemaNotFound"));
-        setLoading(false);
+        dispatch({ type: "load_error", message: t("dynamicUI.schemaNotFound") });
       });
 
     return () => {
@@ -78,23 +95,7 @@ export function DynamicPageViewer() {
     [navigate],
   );
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-full w-full" style={{ minHeight: 200 }}>
-        <Spin size="large" />
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div style={{ padding: 48, textAlign: "center" }}>
-        <Result status="404" title="404" subTitle={error} />
-      </div>
-    );
-  }
-
-  if (!schema) {
+  if (!schemaId) {
     return (
       <div style={{ padding: 48, textAlign: "center" }}>
         <Result status="404" title="404" subTitle={t("dynamicUI.schemaNotFound")} />
@@ -102,9 +103,25 @@ export function DynamicPageViewer() {
     );
   }
 
+  if (viewState.kind === "loading") {
+    return (
+      <div className="flex items-center justify-center h-full w-full" style={{ minHeight: 200 }}>
+        <Spin size="large" />
+      </div>
+    );
+  }
+
+  if (viewState.kind === "error") {
+    return (
+      <div style={{ padding: 48, textAlign: "center" }}>
+        <Result status="404" title="404" subTitle={viewState.message} />
+      </div>
+    );
+  }
+
   return (
     <div className="p-6" style={{ flex: 1, overflow: "auto" }}>
-      <DynamicUIRenderer schema={schema} onAction={handleAction} />
+      <DynamicUIRenderer schema={viewState.schema} onAction={handleAction} />
     </div>
   );
 }

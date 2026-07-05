@@ -552,7 +552,7 @@ export function InputAreaControls(props: {
                 try {
                   const { revealItemInDir } = await import("@tauri-apps/plugin-opener");
                   await revealItemInDir(agentCwd);
-                } catch (e) {
+                } catch {
                   // silent
                 }
               }}

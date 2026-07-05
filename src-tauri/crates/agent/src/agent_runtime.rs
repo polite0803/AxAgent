@@ -360,6 +360,7 @@ mod tests {
             system_prompt: "You are a planner".to_string(),
             max_iterations: 100,
             timeout_secs: 600,
+            permission_prompter: None,
         };
         assert_eq!(config.role, "planner");
         assert_eq!(config.system_prompt, "You are a planner");
@@ -676,6 +677,7 @@ mod tests {
             system_prompt: "Plan tasks".to_string(),
             max_iterations: 100,
             timeout_secs: 600,
+            permission_prompter: None,
         };
         assert_eq!(config.role, "planner");
         assert_eq!(config.system_prompt, "Plan tasks");

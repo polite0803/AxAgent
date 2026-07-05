@@ -139,7 +139,7 @@ fn bench_apply_request_headers(c: &mut Criterion) {
         b.iter(|| {
             let client = reqwest::Client::new();
             let builder = client.get("https://api.example.com/v1/test");
-            black_box(apply_request_headers(black_box(builder), black_box(&ctx)));
+            let _ = black_box(apply_request_headers(black_box(builder), black_box(&ctx)));
         })
     });
 }
