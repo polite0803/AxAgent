@@ -519,10 +519,7 @@ pub async fn get_active_key(db: &DatabaseConnection, provider_id: &str) -> Resul
     let keys = get_enabled_keys(db, provider_id).await?;
 
     if keys.is_empty() {
-        return Err(AxAgentError::NotFound(format!(
-            "No active key for provider {}",
-            provider_id
-        )));
+        return Err(AxAgentError::NotFound(format!("No active key for provider {}", provider_id)));
     }
 
     // 只有一个 key 时无需轮询
@@ -543,7 +540,11 @@ pub async fn get_active_key(db: &DatabaseConnection, provider_id: &str) -> Resul
 /// 报告当前 key 请求失败，以便故障转移到下一个 key。
 ///
 /// 在 Gateway handler 捕获 401/403/429 后调用。
-pub async fn report_key_failure(db: &DatabaseConnection, key_id: &str, error_msg: &str) -> Result<()> {
+pub async fn report_key_failure(
+    db: &DatabaseConnection,
+    key_id: &str,
+    error_msg: &str,
+) -> Result<()> {
     if let Some(row) = provider_keys::Entity::find_by_id(key_id).one(db).await? {
         let mut am: provider_keys::ActiveModel = row.into();
         am.last_error = Set(Some(error_msg.to_string()));
