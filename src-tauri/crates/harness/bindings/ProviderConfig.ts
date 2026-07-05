@@ -4,4 +4,20 @@ import type { ProviderKey } from "./ProviderKey";
 import type { ProviderProxyConfig } from "./ProviderProxyConfig";
 import type { ProviderType } from "./ProviderType";
 
-export type ProviderConfig = { id: string, name: string, provider_type: ProviderType, api_host: string, api_path: string | null, enabled: boolean, models: Array<Model>, keys: Array<ProviderKey>, proxy_config: ProviderProxyConfig | null, custom_headers: string | null, icon: string | null, builtin_id: string | null, sort_order: number, created_at: bigint, updated_at: bigint, };
+export type ProviderConfig = {
+  id: string;
+  name: string;
+  provider_type: ProviderType;
+  api_host: string;
+  api_path: string | null;
+  enabled: boolean;
+  models: Array<Model>;
+  keys: Array<ProviderKey>;
+  proxy_config: ProviderProxyConfig | null;
+  custom_headers: string | null;
+  icon: string | null;
+  builtin_id: string | null;
+  sort_order: number;
+  created_at: bigint;
+  updated_at: bigint;
+};

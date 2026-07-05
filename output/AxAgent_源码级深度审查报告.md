@@ -18,14 +18,14 @@ AIGC:
 
 ## 一、项目概览
 
-| 指标 | 数值 |
-|------|------|
-| Rust 源文件数 | 895 |
-| 含测试的文件数 | 297（33%） |
-| `#[test]` 总数 | 3106 |
-| TODO/FIXME/HACK 标记 | 64 |
-| 最大 crate（LOC） | agent: 58,346 行 |
-| 最小 crate（LOC） | npm: 241 行 |
+| 指标                 | 数值             |
+| -------------------- | ---------------- |
+| Rust 源文件数        | 895              |
+| 含测试的文件数       | 297（33%）       |
+| `#[test]` 总数       | 3106             |
+| TODO/FIXME/HACK 标记 | 64               |
+| 最大 crate（LOC）    | agent: 58,346 行 |
+| 最小 crate（LOC）    | npm: 241 行      |
 
 ---
 
@@ -84,7 +84,7 @@ let phase_count = if mission_lower.contains("review")
 
 **代码证据**：
 
-```rust
+````rust
 // 第 158 行：analyze_input —— 只数字符数
 fn analyze_input(&self, input: &str) -> String {
     let word_count = input.split_whitespace().count();
@@ -116,7 +116,7 @@ fn create_plan(&self, input: &str, context: &mut ReasoningContext) -> String {
     };
     plan_steps.join(" -> ")
 }
-```
+````
 
 **缺陷分析**：
 
@@ -127,6 +127,7 @@ fn create_plan(&self, input: &str, context: &mut ReasoningContext) -> String {
 - 这个 trait 有 5 个方法（analyze / think / plan / reflect / synthesize），但 `DefaultReasoningProvider` 全部用纯规则实现
 
 **改进建议**：
+
 1. 删除或重命名 `DefaultReasoningProvider`，避免误导
 2. 改为必须显式注入 `LlmDrivenReasoningProvider`（项目中已实现但需要手动切换）
 3. 对简单任务可保留一个轻量推理器，但必须通过分类器判断何时使用
@@ -170,14 +171,14 @@ match plan.strategy {
 
 **与 LangGraph 对比**：
 
-| 能力 | AxAgent | LangGraph |
-|------|---------|-----------|
-| 条件边 | 无 | `add_conditional_edges` |
-| 循环/迭代 | 手动 replan | `END` / `START` 节点 |
-| 子图嵌套 | 无 | `StateGraph` 嵌套 |
-| 流式状态 | 仅终端状态 | 节点间流式传递 |
-| 人机中断 | 无 | `interrupt_before/after` |
-| Checkpoint/恢复 | 有（checkpoint.rs 1763行） | 内建持久化 |
+| 能力            | AxAgent                    | LangGraph                |
+| --------------- | -------------------------- | ------------------------ |
+| 条件边          | 无                         | `add_conditional_edges`  |
+| 循环/迭代       | 手动 replan                | `END` / `START` 节点     |
+| 子图嵌套        | 无                         | `StateGraph` 嵌套        |
+| 流式状态        | 仅终端状态                 | 节点间流式传递           |
+| 人机中断        | 无                         | `interrupt_before/after` |
+| Checkpoint/恢复 | 有（checkpoint.rs 1763行） | 内建持久化               |
 
 ---
 
@@ -358,15 +359,15 @@ fn medium_risk_patterns() -> &'static RegexSet {
 
 ## 四、测试覆盖率严重不均
 
-| Crate | LOC | 测试数 | 测试密度 | 评级 |
-|-------|-----|--------|----------|------|
-| agent | 58,346 | 1522 | 中高 | B+ |
-| runtime | 29,580 | 400 | 低 | C |
-| tools | 24,463 | 95 | 极低 | D |
-| dao | 14,881 | 4 | 灾难 | F |
-| entities | 2,432 | 0 | 灾难 | F |
-| orchestrator | 1,534 | 3 | 极低 | D- |
-| mcp | 1,735 | 6 | 极低 | D- |
+| Crate        | LOC    | 测试数 | 测试密度 | 评级 |
+| ------------ | ------ | ------ | -------- | ---- |
+| agent        | 58,346 | 1522   | 中高     | B+   |
+| runtime      | 29,580 | 400    | 低       | C    |
+| tools        | 24,463 | 95     | 极低     | D    |
+| dao          | 14,881 | 4      | 灾难     | F    |
+| entities     | 2,432  | 0      | 灾难     | F    |
+| orchestrator | 1,534  | 3      | 极低     | D-   |
+| mcp          | 1,735  | 6      | 极低     | D-   |
 
 - `entities` crate（实体定义，86 文件，2432 行）零测试——这是建模层，任何字段变更都无法验证
 - `dao` crate（数据访问层，61 文件，14,881 行）仅 4 个测试——数据库操作无回归保护
@@ -391,6 +392,7 @@ fn medium_risk_patterns() -> &'static RegexSet {
 ### 5.2 分层规划器实现完善
 
 `hierarchical_planner.rs`（1854 行）具备：
+
 - Phase/Task 双层结构
 - 依赖管理和循环检测
 - 失败时自动 replan
@@ -400,6 +402,7 @@ fn medium_risk_patterns() -> &'static RegexSet {
 ### 5.3 自我验证器（Self-Verifier）实现扎实
 
 `self_verifier.rs`（1763 行）具备：
+
 - JSON 模式合规检查
 - 状态差异跟踪（StateDiff）
 - 基于 LLM 的语义验证
@@ -408,6 +411,7 @@ fn medium_risk_patterns() -> &'static RegexSet {
 ### 5.4 Tree of Thoughts 探索引擎
 
 `tree_of_thoughts.rs`（1453 行）实现了：
+
 - 分支探索（branching_factor 可配置）
 - 节点评估打分
 - 剪枝（pruning）
@@ -416,6 +420,7 @@ fn medium_risk_patterns() -> &'static RegexSet {
 ### 5.5 协调者/工作者模式
 
 `coordinator.rs`（985 行）实现了主从 Agent 模式：
+
 - Worker 自动过滤内部编排工具
 - 消息类型分离（Progress/Result/Error/Completion）
 - Worker 状态生命周期管理
@@ -456,15 +461,17 @@ fn medium_risk_patterns() -> &'static RegexSet {
 AxAgent 是一个"野心很大、骨架齐全，但肌肉不足"的项目。**1046 个 Rust 文件**表明开发者投入了巨大的工程努力，但核心智能环节（推理、任务分解、沙箱、MCP）被规则匹配和空壳实现替代。
 
 **最大亮点**：
+
 - `hierarchical_planner.rs`（1854 行）的分层规划 + replan
 - `self_verifier.rs`（1763 行）的多维验证
 - `tree_of_thoughts.rs`（1453 行）的深度探索
 - `react_engine.rs` 的完整 ReAct 循环（前提是切换到 LLM 驱动）
 
 **最大短板**：
+
 - 推理引擎名不副实（`DefaultReasoningProvider` 不做推理）
 - 任务分解是玩具级实现（3 个 if/else）
 - MCP 协议是空壳（91 行 BTreeMap）
 - 沙箱是纸面隔离（前缀匹配而非 OS 级）
 - 注入防护是正则黑名单（19 条规则可轻易绕过）
-*（内容由AI生成，仅供参考）*
+  _（内容由AI生成，仅供参考）_

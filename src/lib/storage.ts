@@ -150,7 +150,9 @@ export const secureStorage = {
     try {
       return JSON.parse(atob(raw)) as T;
     } catch {
-      try { return atob(raw) as unknown as T; } catch {
+      try {
+        return atob(raw) as unknown as T;
+      } catch {
         return raw as unknown as T;
       }
     }
