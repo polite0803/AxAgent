@@ -257,7 +257,10 @@ pub async fn get_webdav_sync_status(
 
 /// Restart the WebDAV auto-sync scheduler based on current settings.
 #[tauri::command]
-pub async fn restart_webdav_sync(state: State<'_, AppState>) -> Result<(), String> {
+pub async fn restart_webdav_sync(
+    app: tauri::AppHandle,
+    state: State<'_, AppState>,
+) -> Result<(), String> {
     let settings = settings_repo::get_settings(state.harness.db())
         .await
         .map_err(|e| e.to_string())?;
@@ -280,6 +283,7 @@ pub async fn restart_webdav_sync(state: State<'_, AppState>) -> Result<(), Strin
     let interval_minutes = settings.webdav_sync_interval_minutes;
     let shutdown_token = state.shutdown_token.clone();
     let task = spawn_webdav_sync_task(
+        app,
         db,
         master_key,
         app_data_dir,
@@ -490,6 +494,7 @@ async fn record_webdav_sync_status(db: &DatabaseConnection, status: &str) {
 }
 
 pub(crate) fn spawn_webdav_sync_task(
+    app: tauri::AppHandle,
     db: DatabaseConnection,
     master_key: [u8; 32],
     app_data_dir: std::path::PathBuf,
@@ -497,6 +502,7 @@ pub(crate) fn spawn_webdav_sync_task(
     initial_delay_secs: u64,
     shutdown_token: tokio_util::sync::CancellationToken,
 ) -> tokio::task::JoinHandle<()> {
+    let app_for_emit = app.clone();
     tokio::spawn(async move {
         let interval = std::time::Duration::from_secs(interval_minutes as u64 * 60);
         // Initial wait (may be shorter if overdue)
@@ -509,8 +515,20 @@ pub(crate) fn spawn_webdav_sync_task(
                 }
                 _ = tokio::time::sleep(interval) => {
                     match do_webdav_backup_impl(&db, &master_key, &app_data_dir).await {
-                        Ok(name) => tracing::info!("WebDAV auto-sync completed: {}", name),
-                        Err(e) => tracing::warn!("WebDAV auto-sync failed: {}", e),
+                        Ok(name) => {
+                            tracing::info!("WebDAV auto-sync completed: {}", name);
+                            let _ = app_for_emit.emit("webdav-sync-completed", serde_json::json!({
+                                "success": true,
+                                "name": name,
+                            }));
+                        },
+                        Err(e) => {
+                            tracing::warn!("WebDAV auto-sync failed: {}", e);
+                            let _ = app_for_emit.emit("webdav-sync-completed", serde_json::json!({
+                                "success": false,
+                                "error": e.to_string(),
+                            }));
+                        },
                     }
                 }
             }

@@ -172,6 +172,7 @@ pub struct IngestResultOutput {
 
 #[tauri::command]
 pub async fn llm_wiki_ingest(
+    app: tauri::AppHandle,
     state: State<'_, AppState>,
     input: IngestSourceInput,
 ) -> Result<IngestResultOutput, String> {
@@ -208,6 +209,7 @@ pub async fn llm_wiki_ingest(
             let vector_store = state.vector_store.clone();
             let wiki_id = input.wiki_id.clone();
             let note_ids = result.generated_note_ids.clone();
+            let app_for_emit = app.clone();
 
             tokio::spawn(async move {
                 for note_id in &note_ids {
@@ -230,9 +232,25 @@ pub async fn llm_wiki_ingest(
                         )
                         .await;
 
-                        if let Err(e) = &index_result {
-                            tracing::error!("Wiki ingest indexing failed for {}: {}", note_id, e);
-                        }
+                        let (success, error_msg) = match &index_result {
+                            Ok(_) => (true, None),
+                            Err(e) => {
+                                tracing::error!(
+                                    "Wiki ingest indexing failed for {}: {}",
+                                    note_id,
+                                    e
+                                );
+                                (false, Some(e.to_string()))
+                            },
+                        };
+                        let _ = app_for_emit.emit(
+                            "wiki-note-indexed",
+                            serde_json::json!({
+                                "noteId": note_id,
+                                "success": success,
+                                "error": error_msg,
+                            }),
+                        );
                     }
                 }
             });
@@ -343,6 +361,7 @@ async fn build_llm_adapter(
 
 #[tauri::command]
 pub async fn llm_wiki_compile(
+    app: tauri::AppHandle,
     state: State<'_, AppState>,
     input: CompileInput,
 ) -> Result<CompileResultOutput, String> {
@@ -381,6 +400,7 @@ pub async fn llm_wiki_compile(
             let master_key = state.harness.master_key_owned();
             let vector_store = state.vector_store.clone();
             let wiki_id = input.wiki_id.clone();
+            let app_for_emit = app.clone();
 
             tokio::spawn(async move {
                 for (title, content) in &pages_to_index {
@@ -414,6 +434,22 @@ pub async fn llm_wiki_compile(
                                 "Wiki compile indexing failed for {}: {}",
                                 note_model.id,
                                 e
+                            );
+                            let _ = app_for_emit.emit(
+                                "wiki-note-indexed",
+                                serde_json::json!({
+                                    "noteId": note_model.id,
+                                    "success": false,
+                                    "error": e.to_string(),
+                                }),
+                            );
+                        } else {
+                            let _ = app_for_emit.emit(
+                                "wiki-note-indexed",
+                                serde_json::json!({
+                                    "noteId": note_model.id,
+                                    "success": true,
+                                }),
                             );
                         }
                     }

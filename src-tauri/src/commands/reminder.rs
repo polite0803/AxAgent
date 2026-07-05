@@ -124,7 +124,7 @@ pub async fn reminder_create(input: CreateReminderInput) -> Result<ReminderItem,
 
     Ok(ReminderItem::from(
         mgr.get_reminder(&reminder.id)
-            .ok_or_else(|| "添加后未找到提醒".into())?,
+            .ok_or_else(|| String::from("添加后未找到提醒"))?,
     ))
 }
 

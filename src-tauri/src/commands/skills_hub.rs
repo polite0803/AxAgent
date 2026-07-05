@@ -79,7 +79,7 @@ pub async fn skills_hub_review(
                 let mut reg = state.local_tool_registry.lock().await;
                 reg.register_skill_tool(
                     skill_name_for_tool,
-                    std::sync::Arc::new(move |_input: &str| Ok(skill_content.clone())),
+                    Box::new(move |_input: &str| Ok(skill_content.clone())),
                 );
             }
 

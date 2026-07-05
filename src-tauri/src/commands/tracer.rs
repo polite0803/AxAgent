@@ -648,15 +648,13 @@ pub fn telemetry_report_error(error: FrontendErrorPayload) -> Result<(), String>
         error.stack,
     );
 
-    // Also record as a tracer span error for visibility
-    if let Ok(mut storage) = TRACE_STORAGE.lock() {
-        storage.record_error(axagent_telemetry::SpanError {
-            error_type: "frontend_global_error".into(),
-            message: error.message.clone(),
-            stack_trace: Some(error.stack.clone()),
-            timestamp: chrono::Utc::now(),
-        });
-    }
+    // InMemoryTraceStorage 无 record_error 方法，改用 tracing 日志
+    tracing::error!(
+        target: "frontend_error",
+        error_type = "frontend_global_error",
+        message = %error.message,
+        stack = %error.stack,
+    );
 
     Ok(())
 }

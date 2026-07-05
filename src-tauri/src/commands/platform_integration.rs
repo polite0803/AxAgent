@@ -312,7 +312,10 @@ pub async fn reconcile_platforms(
 // ── API Server 命令 ──
 
 #[tauri::command]
-pub async fn start_api_server(state: State<'_, AppState>) -> Result<(), String> {
+pub async fn start_api_server(
+    app: tauri::AppHandle,
+    state: State<'_, AppState>,
+) -> Result<(), String> {
     let config = axagent_core::repo::platform_config::get_platform_config(state.harness.db()).await;
 
     if !config.api_server_enabled {
@@ -333,10 +336,31 @@ pub async fn start_api_server(state: State<'_, AppState>) -> Result<(), String> 
         }
     }
 
+    let app_for_emit = app.clone();
+
     // 在后台启动 server
     let join_handle = tokio::spawn(async move {
-        if let Err(e) = server.start(port).await {
-            tracing::error!("API Server error: {}", e);
+        match server.start(port).await {
+            Ok(_) => {
+                tracing::info!("API Server started successfully on port {}", port);
+                let _ = app_for_emit.emit(
+                    "api-server-status",
+                    serde_json::json!({
+                        "status": "running",
+                        "port": port,
+                    }),
+                );
+            },
+            Err(e) => {
+                tracing::error!("API Server error: {}", e);
+                let _ = app_for_emit.emit(
+                    "api-server-status",
+                    serde_json::json!({
+                        "status": "error",
+                        "error": e.to_string(),
+                    }),
+                );
+            },
         }
     });
 

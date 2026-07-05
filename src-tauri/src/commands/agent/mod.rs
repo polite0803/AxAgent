@@ -883,7 +883,7 @@ pub async fn agent_query(
             let ctx = skill_ctx.clone();
             tool_registry.register_skill_tool(
                 tool_name.clone(),
-                std::sync::Arc::new(move |input: &str| {
+                Box::new(move |input: &str| {
                     execute_skill_sync(&skill_id, &skill_name, &skill_content, input, &ctx)
                         .map_err(axagent_harness::ToolError::new)
                 }),
@@ -2612,6 +2612,7 @@ async fn execute_skill_async(
                                 &db,
                                 &exec.id,
                                 deps_json.as_deref(),
+                                None,
                             )
                             .await
                         {

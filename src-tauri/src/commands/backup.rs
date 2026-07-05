@@ -121,6 +121,7 @@ pub async fn get_backup_settings(state: State<'_, AppState>) -> Result<AutoBacku
 
 #[tauri::command]
 pub async fn update_backup_settings(
+    app: tauri::AppHandle,
     state: State<'_, AppState>,
     backup_settings: AutoBackupSettings,
 ) -> Result<(), String> {
@@ -138,6 +139,7 @@ pub async fn update_backup_settings(
 
     // Restart scheduler with new settings
     restart_auto_backup(
+        app,
         &state.auto_backup_handle,
         state.harness.db(),
         &state.app_data_dir,
@@ -150,6 +152,7 @@ pub async fn update_backup_settings(
 
 /// Start or restart the auto-backup scheduler
 async fn restart_auto_backup(
+    app: tauri::AppHandle,
     handle: &Arc<Mutex<Option<tokio::task::JoinHandle<()>>>>,
     db: &DatabaseConnection,
     app_data_dir: &Path,
@@ -171,6 +174,7 @@ async fn restart_auto_backup(
     let interval_hours = settings.interval_hours;
     let max_count = settings.max_count;
     let interval_secs = interval_hours as u64 * 3600;
+    let app_for_emit = app.clone();
 
     // Calculate initial delay: catch up if overdue
     let initial_delay_secs = match backup::list_backups(&db, &DefaultPathEncoder).await {
@@ -207,18 +211,32 @@ async fn restart_auto_backup(
             };
 
             // Create auto backup (SQLite format for speed)
-            if let Err(e) =
-                backup::create_backup(&db, "sqlite", &backup_dir, &DefaultPathEncoder).await
-            {
-                tracing::warn!("Auto-backup failed: {}", e);
-            } else {
-                tracing::info!("Auto-backup created successfully");
-                // Cleanup old backups
-                if let Err(e) =
-                    backup::cleanup_old_backups(&db, max_count, &DefaultPathEncoder).await
-                {
-                    tracing::warn!("Auto-backup cleanup failed: {}", e);
-                }
+            match backup::create_backup(&db, "sqlite", &backup_dir, &DefaultPathEncoder).await {
+                Ok(_) => {
+                    tracing::info!("Auto-backup created successfully");
+                    let _ = app_for_emit.emit(
+                        "auto-backup-completed",
+                        serde_json::json!({
+                            "success": true,
+                            "message": "Auto-backup created successfully",
+                        }),
+                    );
+                    if let Err(e) =
+                        backup::cleanup_old_backups(&db, max_count, &DefaultPathEncoder).await
+                    {
+                        tracing::warn!("Auto-backup cleanup failed: {}", e);
+                    }
+                },
+                Err(e) => {
+                    tracing::warn!("Auto-backup failed: {}", e);
+                    let _ = app_for_emit.emit(
+                        "auto-backup-completed",
+                        serde_json::json!({
+                            "success": false,
+                            "error": e.to_string(),
+                        }),
+                    );
+                },
             }
             tokio::time::sleep(interval).await;
         }

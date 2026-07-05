@@ -80,11 +80,12 @@ fn start_plugins(state: &AppState) {
     });
 }
 
-fn start_auto_backup(_app: &tauri::AppHandle, state: &AppState, app_dir: std::path::PathBuf) {
+fn start_auto_backup(app: &tauri::AppHandle, state: &AppState, app_dir: std::path::PathBuf) {
     let db = state.harness.db().clone();
     let app_data = app_dir.clone();
     let handle = state.auto_backup_handle.clone();
     let shutdown_token = state.shutdown_token.clone();
+    let app_for_emit = app.clone();
     tauri::async_runtime::spawn(async move {
         if let Ok(settings) = axagent_core::repo::settings::get_settings(&db).await {
             if settings.auto_backup_enabled && settings.auto_backup_interval_hours > 0 {
@@ -96,6 +97,7 @@ fn start_auto_backup(_app: &tauri::AppHandle, state: &AppState, app_dir: std::pa
                 let db2 = db.clone();
                 let app_dir2 = app_data.clone();
                 let shutdown_token = shutdown_token.clone();
+                let app_for_backup = app_for_emit.clone();
 
                 let initial_delay_secs = match axagent_core::repo::backup::list_backups(
                     &db,
@@ -140,8 +142,16 @@ fn start_auto_backup(_app: &tauri::AppHandle, state: &AppState, app_dir: std::pa
                                         .await
                                 {
                                     tracing::warn!("Auto-backup failed: {}", e);
+                                    let _ = app_for_backup.emit("auto-backup-completed", serde_json::json!({
+                                        "success": false,
+                                        "error": e.to_string(),
+                                    }));
                                 } else {
                                     tracing::info!("Auto-backup created");
+                                    let _ = app_for_backup.emit("auto-backup-completed", serde_json::json!({
+                                        "success": true,
+                                        "message": "Auto-backup created successfully",
+                                    }));
                                     let _ =
                                         axagent_core::repo::backup::cleanup_old_backups(&db2, max_count, &axagent_storage::DefaultPathEncoder)
                                             .await;
@@ -224,7 +234,7 @@ fn start_platform_adapters(state: &AppState) {
     });
 }
 
-fn start_webdav_sync(_app: &tauri::AppHandle, state: &AppState, app_dir: std::path::PathBuf) {
+fn start_webdav_sync(app: &tauri::AppHandle, state: &AppState, app_dir: std::path::PathBuf) {
     let db = state.harness.db().clone();
     let master_key = state.harness.master_key_owned();
     let app_data_dir = app_dir.clone();
@@ -256,6 +266,7 @@ fn start_webdav_sync(_app: &tauri::AppHandle, state: &AppState, app_dir: std::pa
                     };
 
                 let task = crate::commands::webdav::spawn_webdav_sync_task(
+                    app.clone(),
                     db2,
                     master_key,
                     app_data_dir,
