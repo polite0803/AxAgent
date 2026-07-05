@@ -240,6 +240,7 @@ fn start_webdav_sync(app: &tauri::AppHandle, state: &AppState, app_dir: std::pat
     let app_data_dir = app_dir.clone();
     let handle = state.webdav_sync_handle.clone();
     let shutdown_token = state.shutdown_token.clone();
+    let app_clone = app.clone();
     tauri::async_runtime::spawn(async move {
         if let Ok(settings) = axagent_core::repo::settings::get_settings(&db).await {
             if settings.webdav_sync_enabled && settings.webdav_sync_interval_minutes > 0 {
@@ -266,7 +267,7 @@ fn start_webdav_sync(app: &tauri::AppHandle, state: &AppState, app_dir: std::pat
                     };
 
                 let task = crate::commands::webdav::spawn_webdav_sync_task(
-                    app.clone(),
+                    app_clone,
                     db2,
                     master_key,
                     app_data_dir,

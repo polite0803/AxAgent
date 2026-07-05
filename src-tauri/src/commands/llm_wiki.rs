@@ -13,6 +13,7 @@ use sea_orm::{
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
+use tauri::Emitter;
 use tauri::State;
 
 #[derive(Debug, Serialize)]

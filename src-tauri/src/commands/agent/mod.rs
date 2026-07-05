@@ -2485,7 +2485,7 @@ async fn execute_skill_async(
     let execution_mode = "content".to_string();
     let mcp_tool_call = extract_mcp_tool_call(skill_content);
 
-    let conversation_id = ctx.conversation_id.clone();
+    let _conversation_id = ctx.conversation_id.clone();
     let recent_skills = Vec::new();
     let inter_skill_deps = detect_inter_skill_dependencies(task, &recent_skills);
     let inter_skill_deps_json = if inter_skill_deps.is_empty() {

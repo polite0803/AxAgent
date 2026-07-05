@@ -10,6 +10,7 @@ use axagent_runtime::message_gateway::platform_manager::{
     PlatformAdapterStatus, PlatformReconcileReport,
 };
 use serde::Serialize;
+use tauri::Emitter;
 use tauri::State;
 
 const VALID_PLATFORMS: &[&str] = &["discord", "telegram", "slack", "webhook"];

@@ -10,6 +10,7 @@ use axagent_storage::DefaultPathEncoder;
 use sea_orm::DatabaseConnection;
 use std::path::Path;
 use std::sync::Arc;
+use tauri::Emitter;
 use tauri::State;
 use tokio::sync::Mutex;
 

@@ -11,6 +11,7 @@ use sea_orm::{ConnectionTrait, DatabaseConnection, EntityTrait, PaginatorTrait, 
 use std::os::unix::fs::PermissionsExt;
 use std::path::Path;
 use std::path::PathBuf;
+use tauri::Emitter;
 use tauri::State;
 
 #[derive(Default)]
