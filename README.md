@@ -336,7 +336,7 @@
 
 ### Rust 后端架构
 
-后端组织为 Rust workspace，包含 **18 个** 专业化的 crates：
+后端组织为 Rust workspace，包含 **30 个** 专业化的 crates（实际 workspace 共 32 个成员）：
 
 ```
 src-tauri/crates/

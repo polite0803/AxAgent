@@ -1661,4 +1661,56 @@ mod tests {
             assert!(!result.final_response.is_empty());
         }
     }
+
+    // ── extract_json_from_response ─────────────────────────────────────
+
+    #[test]
+    fn test_extract_json_empty() {
+        assert!(extract_json_from_response("").is_empty());
+    }
+
+    #[test]
+    fn test_extract_json_plain() {
+        let input = r#"{"key": "value"}"#;
+        assert_eq!(extract_json_from_response(input), input);
+    }
+
+    #[test]
+    fn test_extract_json_from_json_block() {
+        let input = "```json\n{\"name\": \"test\", \"val\": 42}\n```";
+        assert_eq!(extract_json_from_response(input), r#"{"name": "test", "val": 42}"#);
+    }
+
+    #[test]
+    fn test_extract_json_from_generic_block() {
+        let input = "```\n{\"result\": \"ok\"}\n```";
+        assert_eq!(extract_json_from_response(input), r#"{"result": "ok"}"#);
+    }
+
+    #[test]
+    fn test_extract_json_unclosed_block() {
+        let input = "```json\n{\"incomplete\": true}";
+        assert_eq!(extract_json_from_response(input), "{\"incomplete\": true}");
+    }
+
+    #[test]
+    fn test_extract_json_nested() {
+        let input = "```json\n{\"a\": {\"b\": [1,2,3]}}\n```";
+        assert_eq!(extract_json_from_response(input), r#"{"a": {"b": [1,2,3]}}"#);
+    }
+
+    // ── estimate_chain_tokens ───────────────────────────────────────────
+
+    #[test]
+    fn test_estimate_chain_tokens_empty() {
+        let chain = ThoughtChain::new();
+        assert_eq!(estimate_chain_tokens(&chain), 0);
+    }
+
+    #[test]
+    fn test_truncate_string_edge_cases() {
+        assert_eq!(truncate_string("exact", 5), "exact");
+        assert_eq!(truncate_string("longer string", 3), "lon...");
+        assert_eq!(truncate_string("", 5), "");
+    }
 }

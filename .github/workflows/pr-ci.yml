@@ -173,6 +173,9 @@ jobs:
       - name: Run frontend integration tests
         run: npm run test:integration
 
+      - name: npm audit
+        run: npm audit --audit-level=high || echo "npm audit found issues (non-blocking, run npm audit fix for details)"
+
   test-e2e:
     name: E2E Tests (macOS)
     needs: [should-run-heavy]
