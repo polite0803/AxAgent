@@ -32,6 +32,10 @@ impl ProviderRepository for DefaultProviderRepository {
     async fn get_active_key(&self, provider_id: &str) -> Result<ProviderKey> {
         repo::provider::get_active_key(&self.db, provider_id).await
     }
+
+    async fn report_key_failure(&self, key_id: &str, error_msg: &str) -> Result<()> {
+        repo::provider::report_key_failure(&self.db, key_id, error_msg).await
+    }
 }
 
 // ── SettingsRepository ──

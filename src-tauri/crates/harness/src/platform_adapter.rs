@@ -24,6 +24,12 @@ pub struct ChatCompletionParams {
 pub trait ProviderRepository: Send + Sync {
     async fn list_providers(&self) -> Result<Vec<ProviderConfig>>;
     async fn get_active_key(&self, provider_id: &str) -> Result<ProviderKey>;
+    /// Report a provider API key failure (e.g. 401/403/429)
+    /// so subsequent calls can failover to the next available key.
+    async fn report_key_failure(&self, _key_id: &str, _error_msg: &str) -> Result<()> {
+        // Default implementation: no-op (backwards compatible).
+        Ok(())
+    }
 }
 
 // ── 2. SettingsRepository ──

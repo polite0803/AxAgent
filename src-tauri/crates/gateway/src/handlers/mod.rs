@@ -30,7 +30,7 @@ pub mod streaming;
 
 // Re-exports to preserve the original `crate::handlers::xxx` paths.
 #[allow(unused_imports)]
-pub(crate) use chat::{chat_completions, handle_non_stream, handle_stream};
+pub(crate) use chat::{chat_completions, handle_non_stream, handle_stream, handle_non_stream_with_failover};
 pub use health::{detailed_health_check, health_check};
 pub use jobs::{
     cancel_run, create_job, delete_job, disable_job, enable_job, get_job, get_job_schedule,

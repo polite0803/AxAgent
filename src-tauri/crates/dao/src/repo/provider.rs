@@ -7,6 +7,9 @@ use axagent_entities::{models, provider_keys, providers};
 use axagent_harness::core_error::{AxAgentError, Result};
 use axagent_harness::types::*;
 use axagent_harness::util_fns::{gen_id, now_ts};
+use std::collections::HashMap;
+use std::sync::Mutex;
+use std::sync::OnceLock;
 
 fn parse_provider_type(s: &str) -> ProviderType {
     match s {
@@ -513,16 +516,40 @@ pub async fn get_provider_key(db: &DatabaseConnection, key_id: &str) -> Result<P
 }
 
 pub async fn get_active_key(db: &DatabaseConnection, provider_id: &str) -> Result<ProviderKey> {
-    let row = provider_keys::Entity::find()
-        .filter(provider_keys::Column::ProviderId.eq(provider_id))
-        .filter(provider_keys::Column::Enabled.eq(1))
-        .order_by_asc(provider_keys::Column::RotationIndex)
-        .one(db)
-        .await?
-        .ok_or_else(|| {
-            AxAgentError::NotFound(format!("No active key for provider {}", provider_id))
-        })?;
-    Ok(key_from_entity(row))
+    let keys = get_enabled_keys(db, provider_id).await?;
+
+    if keys.is_empty() {
+        return Err(AxAgentError::NotFound(format!(
+            "No active key for provider {}",
+            provider_id
+        )));
+    }
+
+    // 只有一个 key 时无需轮询
+    if keys.len() == 1 {
+        return Ok(keys.into_iter().next().unwrap());
+    }
+
+    // 多个 key 时使用 RoundRobin 轮询
+    static ROUND_ROBIN: OnceLock<Mutex<HashMap<String, u32>>> = OnceLock::new();
+    let rr = ROUND_ROBIN.get_or_init(|| Mutex::new(HashMap::new()));
+    let mut map = rr.lock().unwrap();
+    let idx = map.entry(provider_id.to_string()).or_insert(0);
+    let selected = &keys[*idx as usize % keys.len()];
+    *idx = idx.wrapping_add(1);
+    Ok(selected.clone())
+}
+
+/// 报告当前 key 请求失败，以便故障转移到下一个 key。
+///
+/// 在 Gateway handler 捕获 401/403/429 后调用。
+pub async fn report_key_failure(db: &DatabaseConnection, key_id: &str, error_msg: &str) -> Result<()> {
+    if let Some(row) = provider_keys::Entity::find_by_id(key_id).one(db).await? {
+        let mut am: provider_keys::ActiveModel = row.into();
+        am.last_error = Set(Some(error_msg.to_string()));
+        am.update(db).await?;
+    }
+    Ok(())
 }
 
 pub async fn update_key_validation(

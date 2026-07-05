@@ -23,6 +23,19 @@ use crate::handlers::models::{
 };
 use crate::server::GatewayAppState;
 
+/// Maximum key failover retries for a single request.
+const KEY_FAILOVER_MAX_RETRIES: u32 = 2;
+
+/// Checks whether a provider error is retriable by switching to the next key.
+fn is_retriable_key_error(msg: &str) -> bool {
+    msg.contains("API error 401")
+        || msg.contains("API error 403")
+        || msg.contains("API error 429")
+        || msg.contains("401 Unauthorized")
+        || msg.contains("403 Forbidden")
+        || msg.contains("rate limit")
+}
+
 /// POST /v1/chat/completions — main proxy handler
 pub async fn chat_completions(
     State(state): State<GatewayAppState>,
@@ -149,7 +162,7 @@ pub async fn chat_completions(
         )
         .await
     } else {
-        handle_non_stream(
+        handle_non_stream_with_failover(
             adapter_ref,
             &ctx,
             request,
@@ -163,7 +176,141 @@ pub async fn chat_completions(
     }
 }
 
+/// Non-streaming handler with automatic key failover.
+///
+/// On 401/403/429 errors, the current key is reported as failed and the
+/// next available key (via the provider's round-robin) is tried, up to
+/// `KEY_FAILOVER_MAX_RETRIES`.
 #[allow(clippy::too_many_arguments)]
+pub(crate) async fn handle_non_stream_with_failover(
+    adapter: &dyn ProviderAdapter,
+    initial_ctx: &ProviderRequestContext,
+    request: ChatRequest,
+    state: &GatewayAppState,
+    gateway_key: &GatewayKey,
+    provider_id: &str,
+    model_id: &str,
+    start_time: Instant,
+) -> axum::response::Response {
+    let mut current_ctx = initial_ctx.clone();
+    let mut last_error: Option<axagent_harness::core_error::AxAgentError> = None;
+
+    for attempt in 0..=KEY_FAILOVER_MAX_RETRIES {
+        match adapter.chat(&current_ctx, request.clone()).await {
+            Ok(response) => {
+                if attempt > 0 {
+                    tracing::info!(
+                        key_id = %current_ctx.key_id,
+                        attempt,
+                        "Chat completion succeeded after key failover"
+                    );
+                }
+                // Record usage
+                let _ = state
+                    .adapter
+                    .gateway_keys()
+                    .record_usage(
+                        &gateway_key.id,
+                        provider_id,
+                        Some(model_id),
+                        response.usage.prompt_tokens as u64,
+                        response.usage.completion_tokens as u64,
+                        response.usage.cache_read_tokens.unwrap_or(0) as u64,
+                    )
+                    .await;
+
+                let elapsed = start_time.elapsed().as_millis() as i32;
+                record_log!(
+                    &state.adapter,
+                    gateway_key,
+                    "POST",
+                    "/v1/chat/completions",
+                    Some(model_id),
+                    provider_id,
+                    200,
+                    elapsed,
+                    response.usage.prompt_tokens as i64,
+                    response.usage.completion_tokens as i64,
+                    None
+                );
+
+                return Json(build_non_stream_response_body(&response)).into_response();
+            },
+            Err(e) => {
+                let should_retry = attempt < KEY_FAILOVER_MAX_RETRIES
+                    && matches!(&e, axagent_harness::core_error::AxAgentError::Provider(msg) if is_retriable_key_error(msg));
+
+                if should_retry {
+                    let _ = state
+                        .adapter
+                        .providers()
+                        .report_key_failure(&current_ctx.key_id, &e.to_string())
+                        .await;
+
+                    match state.adapter.providers().get_active_key(provider_id).await {
+                        Ok(new_key) if new_key.id != current_ctx.key_id => {
+                            match state.adapter.crypto().decrypt_key(&new_key.key_encrypted) {
+                                Ok(new_api_key) => {
+                                    tracing::info!(
+                                        old_key = %current_ctx.key_id,
+                                        new_key = %new_key.id,
+                                        attempt,
+                                        "Failing over to next API key"
+                                    );
+                                    current_ctx.key_id = new_key.id;
+                                    current_ctx.api_key = new_api_key;
+                                    continue;
+                                },
+                                Err(decrypt_err) => {
+                                    tracing::error!(
+                                        key_id = %new_key.id,
+                                        error = %decrypt_err,
+                                        "Failed to decrypt failover key"
+                                    );
+                                },
+                            }
+                        },
+                        Ok(_) => {
+                            tracing::debug!("No alternative key available for failover");
+                        },
+                        Err(err) => {
+                            tracing::warn!(error = %err, "Failed to fetch next key for failover");
+                        },
+                    }
+                }
+
+                last_error = Some(e);
+                break;
+            },
+        }
+    }
+
+    let elapsed = start_time.elapsed().as_millis() as i32;
+    let err_msg = last_error
+        .as_ref()
+        .map(|e| e.to_string())
+        .unwrap_or_default();
+    record_log!(
+        &state.adapter,
+        gateway_key,
+        "POST",
+        "/v1/chat/completions",
+        Some(model_id),
+        provider_id,
+        502,
+        elapsed,
+        0,
+        0,
+        Some(&err_msg)
+    );
+
+    tracing::error!(error = %err_msg, provider = %provider_id, model = %model_id, "Chat completion request failed");
+    error_response(StatusCode::BAD_GATEWAY, "Chat completion request failed")
+}
+
+#[allow(clippy::too_many_arguments)]
+/// Inner non-streaming handler (no failover — kept for potential direct-use scenarios).
+#[allow(dead_code)]
 pub(crate) async fn handle_non_stream(
     adapter: &dyn ProviderAdapter,
     ctx: &ProviderRequestContext,
