@@ -400,6 +400,7 @@ mod tests {
             ],
             max_parallel: 2,
             max_replans: 2,
+            replan_count: 0,
             created_at: chrono::Utc::now(),
         };
 
@@ -429,6 +430,7 @@ mod tests {
             ],
             max_parallel: 2,
             max_replans: 1,
+            replan_count: 0,
             created_at: chrono::Utc::now(),
         };
 
