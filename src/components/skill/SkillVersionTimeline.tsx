@@ -36,7 +36,7 @@ function MetricChange({ metrics }: { metrics: Record<string, { before: number; a
   );
 }
 
-export default function SkillVersionTimeline({ skillId }: SkillVersionTimelineProps) {
+export function SkillVersionTimeline({ skillId }: SkillVersionTimelineProps) {
   const { t } = useTranslation();
   const getSkillEvolutionHistory = useEvolutionStore((s) => s.getSkillEvolutionHistory);
   const versions: SkillVersion[] = getSkillEvolutionHistory(skillId);

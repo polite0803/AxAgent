@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import type { ConfigField } from "@/components/settings/EngineConfigForm";
-import EngineConfigForm from "@/components/settings/EngineConfigForm";
+import { EngineConfigForm } from "@/components/settings/EngineConfigForm";
 import { useEvolutionStore } from "@/stores/feature/evolutionStore";
 import type { EngineStatus } from "@/stores/feature/evolutionStore";
 import { Badge, Button, Descriptions, Drawer, Tabs, Tag, Typography } from "antd";
@@ -70,7 +70,7 @@ interface EngineDetailPanelProps {
   onClose: () => void;
 }
 
-export default function EngineDetailPanel({ engineName, open, onClose }: EngineDetailPanelProps) {
+export function EngineDetailPanel({ engineName, open, onClose }: EngineDetailPanelProps) {
   const { t } = useTranslation();
   const engines = useEvolutionStore((s) => s.engines);
   const startEngine = useEvolutionStore((s) => s.startEngine);

@@ -11,7 +11,7 @@ interface SkillABTestResultsProps {
   skillId: string;
 }
 
-export default function SkillABTestResults({ skillId }: SkillABTestResultsProps) {
+export function SkillABTestResults({ skillId }: SkillABTestResultsProps) {
   const { t } = useTranslation();
   const getABTestResults = useEvolutionStore((s) => s.getABTestResults);
   const results: ABTestResultType[] = getABTestResults(skillId);

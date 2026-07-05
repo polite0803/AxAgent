@@ -8,7 +8,7 @@ use aes_gcm::{
 use argon2::{Algorithm, Argon2, Params, Version};
 use base64::{Engine, engine::general_purpose::STANDARD as BASE64};
 use sha2::{Digest, Sha256};
-use zeroize::{Zeroize, Zeroizing};
+use zeroize::Zeroize;
 
 use axagent_harness::core_error::{AxAgentError, Result};
 

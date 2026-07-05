@@ -850,15 +850,6 @@ macro_rules! register_all_commands {
             commands::crash_report::get_crash_log,
             // Service health check
             commands::health::get_service_health,
-            // Reminder commands
-            commands::reminder::reminder_create,
-            commands::reminder::reminder_list,
-            commands::reminder::reminder_complete,
-            commands::reminder::reminder_snooze,
-            commands::reminder::reminder_delete,
-            commands::reminder::reminder_update,
-            commands::reminder::reminder_acknowledge,
-            commands::reminder::reminder_cleanup,
             // Personality commands
             commands::personality::personality_list,
             commands::personality::personality_get,

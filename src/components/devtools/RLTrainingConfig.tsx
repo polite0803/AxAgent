@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import type { ConfigField } from "@/components/settings/EngineConfigForm";
-import EngineConfigForm from "@/components/settings/EngineConfigForm";
+import { EngineConfigForm } from "@/components/settings/EngineConfigForm";
 import { useRlTrainingStore } from "@/stores/feature/rlTrainingStore";
 import type { RLTrainingConfig } from "@/stores/feature/rlTrainingStore";
 import { useCallback, useMemo } from "react";

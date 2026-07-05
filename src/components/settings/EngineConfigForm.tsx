@@ -20,7 +20,7 @@ interface EngineConfigFormProps {
   onSave: (config: Record<string, unknown>) => void;
 }
 
-export default function EngineConfigForm({ config, fields, onSave }: EngineConfigFormProps) {
+export function EngineConfigForm({ config, fields, onSave }: EngineConfigFormProps) {
   const { t } = useTranslation();
   const [form] = Form.useForm();
 

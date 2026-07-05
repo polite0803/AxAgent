@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import EngineDetailPanel from "@/components/settings/EngineDetailPanel";
+import { EngineDetailPanel } from "@/components/settings/EngineDetailPanel";
 import { useEvolutionStore } from "@/stores/feature/evolutionStore";
 import type { EngineStatus } from "@/stores/feature/evolutionStore";
 import { Badge, Button, Card, Col, Row, Space, Statistic, Switch, Typography } from "antd";

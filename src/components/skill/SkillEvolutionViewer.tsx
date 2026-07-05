@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import SkillABTestResults from "@/components/skill/SkillABTestResults";
-import SkillVersionTimeline from "@/components/skill/SkillVersionTimeline";
+import { SkillABTestResults } from "@/components/skill/SkillABTestResults";
+import { SkillVersionTimeline } from "@/components/skill/SkillVersionTimeline";
 import { useEvolutionStore } from "@/stores/feature/evolutionStore";
 import type { SkillVersion } from "@/stores/feature/evolutionStore";
 import { Statistic, Typography } from "antd";
@@ -14,7 +14,7 @@ interface SkillEvolutionViewerProps {
   skillId: string;
 }
 
-export default function SkillEvolutionViewer({ skillId }: SkillEvolutionViewerProps) {
+export function SkillEvolutionViewer({ skillId }: SkillEvolutionViewerProps) {
   const { t } = useTranslation();
   const getSkillEvolutionHistory = useEvolutionStore((s) => s.getSkillEvolutionHistory);
   const getABTestResults = useEvolutionStore((s) => s.getABTestResults);

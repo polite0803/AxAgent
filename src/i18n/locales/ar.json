@@ -8184,6 +8184,94 @@
     "previewNotSupported": "المعاينة غير مدعومة لهذا النوع من الملفات",
     "downloadFile": "تحميل الملف"
   },
+  "visualEditor": {
+    "palette": {
+      "title": "Components"
+    },
+    "categories": {
+      "container": "Layout & Containers",
+      "data-display": "Data Display",
+      "form": "Form",
+      "media": "Media",
+      "misc": "Miscellaneous"
+    },
+    "components": {
+      "Container": "Container",
+      "Row": "Row",
+      "Column": "Column",
+      "Grid": "Grid",
+      "Card": "Card",
+      "Tabs": "Tabs",
+      "Accordion": "Accordion",
+      "Table": "Table",
+      "Chart": "Chart",
+      "Dashboard": "Dashboard",
+      "List": "List",
+      "Tree": "Tree",
+      "Timeline": "Timeline",
+      "Form": "Form",
+      "Input": "Input",
+      "Textarea": "Textarea",
+      "Number": "Number",
+      "Select": "Select",
+      "DatePicker": "Date Picker",
+      "Switch": "Switch",
+      "Checkbox": "Checkbox",
+      "Radio": "Radio",
+      "CodeEditor": "Code Editor",
+      "FilePreview": "File Preview",
+      "Markdown": "Markdown",
+      "Image": "Image",
+      "Button": "Button",
+      "Text": "Text",
+      "Divider": "Divider",
+      "Progress": "Progress",
+      "Tag": "Tag"
+    },
+    "canvas": {
+      "leafNode": "leaf node",
+      "childCount": "children",
+      "emptyHint": "Canvas is empty. Drag components from the left panel to build your UI",
+      "dropPrompt": "Drop components here",
+      "dropHint": "Supports containers, forms, data display, and more",
+      "rootHint": "root-level child(ren)"
+    },
+    "property": {
+      "title": "Property Panel",
+      "selectHint": "Click a component on the canvas\nto edit its properties",
+      "delete": "Delete",
+      "tabs": {
+        "basic": "Basic",
+        "style": "Style"
+      },
+      "style": {
+        "label": "Style Properties",
+        "add": "Add",
+        "empty": "No style properties",
+        "quickStyles": "Quick Styles",
+        "placeholder": {
+          "propKey": "Property",
+          "propValue": "Value"
+        }
+      },
+      "placeholder": {
+        "propKey": "Key",
+        "propValue": "Value"
+      }
+    }
+  },
+  "dynamicUIPreview": {
+    "title": "Dynamic UI Preview",
+    "reset": "Reset",
+    "livePreview": "Live Preview",
+    "jsonParseError": "JSON Parse Error",
+    "waitingForJson": "Waiting for valid JSON...",
+    "schemaValidation": "Schema Validation",
+    "pass": "Pass",
+    "errorsCount": "{{count}} errors",
+    "parseErrorCantValidate": "JSON parse error, cannot validate",
+    "schemaAllValid": "Schema validation passed, all fields valid"
+  },
   "agentPanel": {
     "openPanel": "Open AxAgent Panel",
     "openMiniPanel": "Open Agent Mini Panel",
