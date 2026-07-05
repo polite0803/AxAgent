@@ -20,7 +20,7 @@ use crate::types::{
     DecompositionPlan, OrchestrationError, OrchestrationEvent, OrchestrationStrategy,
     StructuredHandover, SubTaskStatus,
 };
-use axagent_core::workflow_types::{AgentRole, SubGraph};
+use axagent_core::workflow_types::SubGraph;
 
 // ── OrchestratorState ──────────────────────────────────────────────────
 
@@ -459,6 +459,7 @@ impl Default for OrchestratorExecutor {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use axagent_core::workflow_types::AgentRole;
 
     #[tokio::test]
     async fn test_decompose_code_mission() {
