@@ -5,6 +5,43 @@ use std::path::{Path, PathBuf};
 #[cfg(all(unix, not(mobile)))]
 use std::os::unix::fs::PermissionsExt;
 
+/// 限制密钥文件权限为仅当前用户可访问。
+/// - Unix: 0o600 (owner rw)
+/// - Windows: icacls 移除继承权限，仅保留当前用户
+pub fn restrict_file_permissions(path: &Path) -> Result<(), String> {
+    #[cfg(all(unix, not(mobile)))]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let perms = std::fs::Permissions::from_mode(0o600);
+        std::fs::set_permissions(path, perms)
+            .map_err(|e| format!("failed to set file permissions: {}", e))?;
+    }
+    #[cfg(windows)]
+    {
+        // Windows: 使用 icacls 移除继承权限，仅保留当前用户
+        let username = std::env::var("USERNAME").unwrap_or_else(|_| "SYSTEM".into());
+        let result = std::process::Command::new("icacls")
+            .arg(path.as_os_str())
+            .arg("/inheritance:r")
+            .arg("/grant")
+            .arg(format!("{}:(R,W)", username))
+            .output()
+            .map_err(|e| format!("failed to run icacls: {}", e))?;
+        if !result.status.success() {
+            let stderr = String::from_utf8_lossy(&result.stderr);
+            tracing::warn!(
+                "icacls restricted permissions reported non-zero exit: stderr={}",
+                stderr
+            );
+        }
+    }
+    #[cfg(not(any(unix, windows)))]
+    {
+        let _ = path; // unsupported platform, skip
+    }
+    Ok(())
+}
+
 pub struct DatabaseInitResult {
     pub db_handle: axagent_core::db::DbHandle,
     pub db_path: String,
@@ -109,12 +146,7 @@ fn load_or_create_master_key(key_path: &Path, app_dir: &Path) -> Result<[u8; 32]
         }
         let key = axagent_core::crypto::generate_master_key();
         std::fs::write(key_path, key).map_err(|e| format!("failed to write master key: {}", e))?;
-        #[cfg(all(unix, not(mobile)))]
-        {
-            let perms = std::fs::Permissions::from_mode(0o600);
-            std::fs::set_permissions(key_path, perms)
-                .map_err(|e| format!("failed to set master.key permissions: {}", e))?;
-        }
+        restrict_file_permissions(key_path)?;
         Ok(key)
     }
 }

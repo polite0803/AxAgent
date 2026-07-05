@@ -11,7 +11,6 @@ import type {
   AgentDoneEvent,
   AgentErrorEvent,
   AgentPoolItem,
-  AgentPoolSummary,
   AgentProfile,
   AgentRateLimitEvent,
   AgentSession,
@@ -25,7 +24,6 @@ import type {
   ToolStartEvent,
   ToolUseEvent,
   UpdateAgentProfileInput,
-  WorkerMessage,
 } from "@/types";
 import type { ToolExecution } from "@/types";
 import { message } from "antd";
@@ -69,10 +67,11 @@ interface AgentStore {
   // 执行进度追踪（仅 agentStore 独有的标志——agentPool/agentStatus/sdkIdToExecId 由 executionStore 管理）
   isExecuting: Record<string, boolean>; // conversationId → 是否正在执行工具
   executingConversationIds: string[]; // 当前有工具在执行的对话 ID 列表（有序）
-  currentToolCall: { conversationId: string; toolUseId: string } | null;
+  currentToolCall: { toolName: string; toolUseId: string; conversationId: string; startedAt: number } | null;
   sdkIdToExecId: Record<string, string>;
   toolCalls: Record<string, ToolCallState>;
   agentStatus: Record<string, string>;
+  agentPool: Record<string, AgentPoolItem[]>;
 
   // Workflow match suggestion for conversation-type sessions
   workflowMatchSuggestion: WorkflowMatchSuggestion | null;
@@ -167,6 +166,7 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
   sdkIdToExecId: {},
   toolCalls: {},
   agentStatus: {},
+  agentPool: {},
 
   // --- Agent Profile state ---
   profiles: [],
@@ -251,24 +251,6 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
         ? null
         : s.workflowMatchSuggestion,
     }));
-  },
-
-  removePoolItem: () => {
-    // 由 executionStore 管理
-  },
-
-  getPoolSummary: () => ({
-    totalItems: 0,
-    subAgents: 0,
-    workers: 0,
-    workflowSteps: 0,
-    completedItems: 0,
-    failedItems: 0,
-    runningItems: 0,
-  }),
-
-  handleWorkerEvent: () => {
-    // 由 executionStore 管理
   },
 
   // ── 队友管理 ──
@@ -632,23 +614,7 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
       childConversationId: event.childConversationId,
       childSessionId: event.childSessionId,
     };
-    // 同时写入 agentPool
-    const poolItem: AgentPoolItem = {
-      id: cardId,
-      conversationId: event.conversationId,
-      type: "sub_agent",
-      name: event.agentName || event.agentType,
-      status: event.status === "failed"
-        ? "failed"
-        : event.status === "completed"
-        ? "completed"
-        : "running",
-      agentType: event.agentType,
-      childConversationId: event.childConversationId,
-      childSessionId: event.childSessionId,
-      summary: event.description,
-      startedAt: Date.now(),
-    };
+    // 同时写入 agentPool — subAgentCards 已通过 card 写入
     set((s) => ({
       subAgentCards: { ...s.subAgentCards, [cardId]: card },
     }));

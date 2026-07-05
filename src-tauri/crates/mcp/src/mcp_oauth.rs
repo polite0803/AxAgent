@@ -17,6 +17,39 @@ use tracing::{info, warn};
 use axagent_harness::platform_adapter::CryptoService;
 use urlencoding;
 
+/// 限制密钥文件权限为仅当前用户可访问
+fn restrict_file_permissions(path: &std::path::Path) {
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let _ = fs::set_permissions(path, fs::Permissions::from_mode(0o600));
+    }
+    #[cfg(windows)]
+    {
+        let username = std::env::var("USERNAME").unwrap_or_else(|_| "SYSTEM".into());
+        let result = std::process::Command::new("icacls")
+            .arg(path.as_os_str())
+            .arg("/inheritance:r")
+            .arg("/grant")
+            .arg(format!("{}:(R,W)", username))
+            .output();
+        match result {
+            Ok(output) if !output.status.success() => {
+                warn!(
+                    "[McpOAuth] icacls 权限设置警告: {}",
+                    String::from_utf8_lossy(&output.stderr)
+                );
+            },
+            Err(e) => warn!("[McpOAuth] icacls 执行失败: {}", e),
+            _ => {},
+        }
+    }
+    #[cfg(not(any(unix, windows)))]
+    {
+        let _ = path;
+    }
+}
+
 /// 持久化的 MCP OAuth 凭据
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct McpOAuthCredentials {
@@ -163,11 +196,8 @@ impl McpOAuthStore {
         if fs::write(&key_path, key).is_err() {
             warn!("[McpOAuth] OAuth 密钥文件写入失败，凭据可能无法在下次启动时恢复");
         }
-        #[cfg(unix)]
-        {
-            use std::os::unix::fs::PermissionsExt;
-            let _ = fs::set_permissions(&key_path, fs::Permissions::from_mode(0o600));
-        }
+        // 限制密钥文件权限为仅当前用户可访问
+        restrict_file_permissions(&key_path);
         key
     }
 

@@ -1327,7 +1327,7 @@ pub async fn agent_query(
         workspace_root_for_prompt.as_deref(),
         app_language.as_deref(),
         {
-            let mut q = steer_queue().lock().await;
+            let mut q = app_state.steer_queue.lock().await;
             if q.is_empty() {
                 None
             } else {
@@ -1430,7 +1430,7 @@ pub async fn agent_query(
 
     // Drain steer queue and inject instructions into the prompt
     let augmented_input = {
-        let mut queue = steer_queue().lock().await;
+        let mut queue = app_state.steer_queue.lock().await;
         if let Some(instructions) = queue.remove(&conversation_id) {
             if instructions.is_empty() {
                 request.input.clone()
@@ -4210,14 +4210,8 @@ pub fn classify_route(request: ClassifyRouteRequest) -> crate::smart_router::Rou
     crate::smart_router::classify_and_route(&request.prompt)
 }
 
-/// 前端 SteerInput 推送方向指令。暂存供 agent_query 注入。
-static STEER_QUEUE: std::sync::OnceLock<
-    tokio::sync::Mutex<std::collections::HashMap<String, Vec<String>>>,
-> = std::sync::OnceLock::new();
-
-fn steer_queue() -> &'static tokio::sync::Mutex<std::collections::HashMap<String, Vec<String>>> {
-    STEER_QUEUE.get_or_init(|| tokio::sync::Mutex::new(std::collections::HashMap::new()))
-}
+/// 前端 SteerInput 推送方向指令。已迁移到 AppState.steer_queue，保留此模块级辅助函数
+/// 仅作为非命令上下文的 fallback（当前无用途）。
 
 #[tauri::command]
 pub async fn agent_steer(

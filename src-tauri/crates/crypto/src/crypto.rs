@@ -8,6 +8,7 @@ use aes_gcm::{
 use argon2::{Algorithm, Argon2, Params, Version};
 use base64::{Engine, engine::general_purpose::STANDARD as BASE64};
 use sha2::{Digest, Sha256};
+use zeroize::{Zeroize, Zeroizing};
 
 use axagent_harness::core_error::{AxAgentError, Result};
 
@@ -35,7 +36,9 @@ pub fn encrypt_key(plaintext: &str, master_key: &[u8; 32]) -> Result<String> {
     combined.extend_from_slice(&nonce_bytes);
     combined.extend_from_slice(&ciphertext);
 
-    Ok(BASE64.encode(&combined))
+    let result = Ok(BASE64.encode(&combined));
+    combined.zeroize();
+    result
 }
 
 pub fn decrypt_key(encrypted: &str, master_key: &[u8; 32]) -> Result<String> {
@@ -53,12 +56,15 @@ pub fn decrypt_key(encrypted: &str, master_key: &[u8; 32]) -> Result<String> {
     let cipher = Aes256Gcm::new_from_slice(master_key)
         .map_err(|e| AxAgentError::Crypto(format!("Failed to create cipher: {}", e)))?;
 
-    let plaintext = cipher
+    let mut plaintext = cipher
         .decrypt(nonce, ciphertext)
         .map_err(|e| AxAgentError::Crypto(format!("Decryption failed: {}", e)))?;
 
-    String::from_utf8(plaintext)
-        .map_err(|e| AxAgentError::Crypto(format!("UTF-8 decode failed: {}", e)))
+    // Convert to String and zeroize the intermediate buffer
+    let result = String::from_utf8(plaintext.clone())
+        .map_err(|e| AxAgentError::Crypto(format!("UTF-8 decode failed: {}", e)));
+    plaintext.zeroize();
+    result
 }
 
 pub fn sha256_hash(input: &str) -> String {
@@ -123,6 +129,7 @@ fn derive_backup_key_v2(salt: &[u8]) -> Result<[u8; 32]> {
     argon2
         .hash_password_into(&password, salt, &mut key)
         .map_err(|e| AxAgentError::Crypto(format!("Argon2 密钥派生失败: {e}")))?;
+    password.zeroize();
     Ok(key)
 }
 
@@ -169,7 +176,7 @@ fn read_or_create_machine_id() -> Option<String> {
 pub fn encrypt_backup_key(key_data: &[u8]) -> Result<Vec<u8>> {
     let mut salt = [0u8; BACKUP_SALT_SIZE];
     OsRng.fill_bytes(&mut salt);
-    let derived_key = derive_backup_key_v2(&salt)?;
+    let mut derived_key = derive_backup_key_v2(&salt)?;
 
     let cipher = Aes256Gcm::new_from_slice(&derived_key)
         .map_err(|e| AxAgentError::Crypto(format!("Failed to create backup cipher: {}", e)))?;
@@ -182,13 +189,18 @@ pub fn encrypt_backup_key(key_data: &[u8]) -> Result<Vec<u8>> {
         .encrypt(nonce, key_data)
         .map_err(|e| AxAgentError::Crypto(format!("Backup key encryption failed: {}", e)))?;
 
+    // Zeroize derived key after use
+    derived_key.zeroize();
+
     // Format: version_byte(1) + salt(16) + nonce(12) + ciphertext
     let mut combined = Vec::with_capacity(1 + BACKUP_SALT_SIZE + NONCE_SIZE + ciphertext.len());
     combined.push(BACKUP_VERSION_BYTE);
     combined.extend_from_slice(&salt);
     combined.extend_from_slice(&nonce_bytes);
     combined.extend_from_slice(&ciphertext);
-    Ok(combined)
+    let result = Ok(combined);
+    // combined moved to result on success — no explicit zeroize needed
+    result
 }
 
 pub fn decrypt_backup_key(enc_data: &[u8]) -> Result<Vec<u8>> {
@@ -206,14 +218,16 @@ pub fn decrypt_backup_key(enc_data: &[u8]) -> Result<Vec<u8>> {
         let nonce_bytes = &enc_data[1 + BACKUP_SALT_SIZE..1 + BACKUP_SALT_SIZE + NONCE_SIZE];
         let ciphertext = &enc_data[1 + BACKUP_SALT_SIZE + NONCE_SIZE..];
 
-        let derived_key = derive_backup_key_v2(salt)?;
+        let mut derived_key = derive_backup_key_v2(salt)?;
         let cipher = Aes256Gcm::new_from_slice(&derived_key)
             .map_err(|e| AxAgentError::Crypto(format!("Failed to create backup cipher: {}", e)))?;
         let nonce = Nonce::from_slice(nonce_bytes);
 
-        return cipher
+        let result = cipher
             .decrypt(nonce, ciphertext)
             .map_err(|e| AxAgentError::Crypto(format!("Backup key decryption failed: {}", e)));
+        derived_key.zeroize();
+        return result;
     }
 
     // Legacy v1 format: nonce(12) + ciphertext (SHA256-based KDF)
@@ -302,6 +316,9 @@ pub fn auto_upgrade_backup_to_v2(enc_data: &[u8]) -> Result<Vec<u8>> {
 
     // Re-encrypt with v2 (Argon2id)
     let upgraded = encrypt_backup_key(&key_data)?;
+
+    derived_key.zeroize();
+    // key_data is returned as Vec<u8> — caller should zeroize after use
 
     tracing::info!("备份密钥已成功升级到 v2 格式（{} → {} bytes）", enc_data.len(), upgraded.len());
     Ok(upgraded)

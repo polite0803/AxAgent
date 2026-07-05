@@ -256,10 +256,10 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
     set({ pendingPromptText: text });
   },
   // 偏好设置在 store 初始化后从 preferenceStore 同步，此时用 null 占位避免循环依赖
-  searchEnabled: null,
-  searchProviderId: null,
-  thinkingBudget: null,
-  mcpMode: null,
+  searchEnabled: null as unknown as boolean,
+  searchProviderId: null as unknown as string,
+  thinkingBudget: null as unknown as number,
+  mcpMode: null as unknown as "manual" | "auto" | "disabled",
   enabledMcpServerIds: [] as string[],
   enabledKnowledgeBaseIds: [] as string[],
   activeMemoryNamespaceId: null,

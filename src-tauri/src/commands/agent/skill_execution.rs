@@ -1,7 +1,7 @@
-use axagent_harness::types::function_call::ChatTool;
 use crate::app_state::AppState;
 use crate::commands::agent::agent_err;
 use crate::commands::error::ErrorResponse;
+use axagent_harness::types::function_call::ChatTool;
 use sea_orm::DatabaseConnection;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -324,7 +324,6 @@ pub(super) struct SkillTaskContext {
     constraints: Option<Vec<String>>,
 }
 
-
 static SKILL_MCP_REGISTRY: std::sync::OnceLock<
     std::sync::Arc<axagent_tools::registry::UnifiedToolRegistry>,
 > = std::sync::OnceLock::new();
@@ -400,7 +399,8 @@ pub(super) fn get_skill_output_tracker() -> &'static SkillOutputTracker {
     SKILL_OUTPUT_TRACKER.get_or_init(SkillOutputTracker::new)
 }
 
-pub(super) fn get_skill_mcp_registry() -> std::sync::Arc<axagent_tools::registry::UnifiedToolRegistry> {
+pub(super) fn get_skill_mcp_registry()
+-> std::sync::Arc<axagent_tools::registry::UnifiedToolRegistry> {
     SKILL_MCP_REGISTRY
         .get_or_init(|| std::sync::Arc::new(axagent_tools::registry::UnifiedToolRegistry::new()))
         .clone()
@@ -545,7 +545,10 @@ pub(super) fn extract_mcp_tool_call(content: &str) -> Option<McpToolCall> {
     })
 }
 
-pub(super) fn infer_agent_role(action: &str, description: &str) -> axagent_runtime::agent_roles::AgentRole {
+pub(super) fn infer_agent_role(
+    action: &str,
+    description: &str,
+) -> axagent_runtime::agent_roles::AgentRole {
     let combined = format!("{} {}", action, description).to_lowercase();
     if combined.contains("research") || combined.contains("search") || combined.contains("find") {
         axagent_runtime::agent_roles::AgentRole::Researcher
@@ -602,7 +605,9 @@ pub(super) async fn execute_skill_async(
     let inter_skill_deps_json = if inter_skill_deps.is_empty() {
         None
     } else {
-        serde_json::to_string(&inter_skill_deps).inspect_err(|e| tracing::error!(%e, "serde_json 序列化失败")).ok()
+        serde_json::to_string(&inter_skill_deps)
+            .inspect_err(|e| tracing::error!(%e, "serde_json 序列化失败"))
+            .ok()
     };
 
     let execution_record = SkillExecutionRecord {
@@ -933,4 +938,3 @@ pub(super) fn build_agent_system_prompt(
 
     prompts
 }
-

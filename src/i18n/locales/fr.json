@@ -31,11 +31,11 @@
     "trade": "Trade",
     "backtest": "Backtest",
     "compare": "Comparer",
-    "recommend": "推荐",
-    "quant": "量化",
-    "replayWorkbench": "回放工作台",
-    "portfolio": "[TODO] Portfolio",
-    "scheduledAnalysis": "[TODO] Scheduled"
+    "recommend": "Recommend",
+    "quant": "Quant",
+    "replayWorkbench": "Replay Workbench",
+    "portfolio": "Portfolio",
+    "scheduledAnalysis": "Scheduled"
   },
   "sidebar": {
     "sectionWork": "Travail",
@@ -49,8 +49,8 @@
     "sectionInvestMonitor": "Monitor",
     "sectionInvestExecute": "Execute",
     "sectionInvestReview": "Review",
-    "closeAgent": "[TODO] Close Agent",
-    "openAgent": "[TODO] Open Agent",
+    "closeAgent": "Close Agent",
+    "openAgent": "Open Agent",
     "sectionOverview": "Aperçu"
   },
   "chat": {
@@ -1350,8 +1350,8 @@
       "mySkillsDescription": "Gérer vos compétences installées",
       "exportSkill": "Exporter",
       "importSkill": "Importer",
-      "noSkillsToExport": "[TODO] No installed skills to export",
-      "invalidSkillFile": "[TODO] Invalid skill file: missing name"
+      "noSkillsToExport": "No installed skills to export",
+      "invalidSkillFile": "Invalid skill file: missing name"
     },
     "plugins": {
       "title": "Plugins"
@@ -2582,25 +2582,25 @@
     "advanced": "Paramètres avancés",
     "evolution": {
       "title": "Auto-évolution",
-      "config": "[TODO] Config",
-      "stats": "[TODO] Stats",
-      "logs": "[TODO] Logs",
-      "startAll": "[TODO] Start All",
-      "stopAll": "[TODO] Stop All",
-      "refresh": "[TODO] Refresh Status",
-      "engineCount": "[TODO] Running",
-      "saveConfig": "[TODO] Save Config",
-      "categoryCore": "[TODO] Core",
-      "categoryLearning": "[TODO] Learning",
-      "categorySafety": "[TODO] Safety",
-      "categoryExperimental": "[TODO] Experimental",
-      "engineNotFound": "[TODO] Engine Not Found",
-      "engineNotFoundDesc": "[TODO] Engine \"{{name}}\" not found",
-      "running": "[TODO] Running",
-      "stopped": "[TODO] Stopped",
-      "start": "[TODO] Start",
-      "stop": "[TODO] Stop",
-      "noLogs": "[TODO] No logs yet"
+      "config": "Config",
+      "stats": "Stats",
+      "logs": "Logs",
+      "startAll": "Start All",
+      "stopAll": "Stop All",
+      "refresh": "Refresh Status",
+      "engineCount": "Running",
+      "saveConfig": "Save Config",
+      "categoryCore": "Core",
+      "categoryLearning": "Learning",
+      "categorySafety": "Safety",
+      "categoryExperimental": "Experimental",
+      "engineNotFound": "Engine Not Found",
+      "engineNotFoundDesc": "Engine \"{{name}}\" not found",
+      "running": "Running",
+      "stopped": "Stopped",
+      "start": "Start",
+      "stop": "Stop",
+      "noLogs": "No logs yet"
     },
     "promptTemplates": "Modèles de prompts",
     "appConfig": "Panneau de contrôle de l'Agent",
@@ -2864,7 +2864,7 @@
     "unknownError": "Unknown error",
     "deleted": "Supprimé",
     "required": "Requis",
-    "details": "[TODO] Details"
+    "details": "Details"
   },
   "multiAgent": {
     "title": "État Multi-Agent",
@@ -3799,9 +3799,9 @@
     "import": "Importer",
     "importObsidian": "Importer un coffre Obsidian",
     "importObsidianDesc": "Import markdown files from an existing Obsidian vault",
-    "importKnowledgeMd": "导入知识源",
-    "importKnowledgeMdDesc": "将 KNOWLEDGE.md（精炼知识源）导入为 Wiki 笔记",
-    "importKnowledgeMdResult": "知识源导入完成：导入 {{imported}} 条，跳过 {{skipped}} 条，失败 {{failed}} 条",
+    "importKnowledgeMd": "Import knowledge source",
+    "importKnowledgeMdDesc": "Import KNOWLEDGE.md as Wiki notes for RAG indexing",
+    "importKnowledgeMdResult": "Knowledge source imported: {{imported}} created, {{skipped}} skipped, {{failed}} failed",
     "importResult": "Importés : {{imported}}, Ignorés : {{skipped}}, Échoués : {{failed}}",
     "nodes": "Nœuds",
     "preview": "Aperçu",
@@ -4550,12 +4550,12 @@
       "viewSubExecution": "Voir la sous-exécution",
       "waitingForNodes": "En attente de nœuds",
       "warnings": "Avertissements",
-      "traceSnapshot": "Trace 快照",
-      "loadTraces": "加载 Trace",
-      "noTraceData": "暂无 Trace 数据",
-      "showSpanTree": "显示 Span 树",
-      "hideSpanTree": "隐藏 Span 树",
-      "noSpanData": "暂未解析到 Span 数据"
+      "traceSnapshot": "Trace Snapshot",
+      "loadTraces": "Load Traces",
+      "noTraceData": "No trace data",
+      "showSpanTree": "Show Span Tree",
+      "hideSpanTree": "Hide Span Tree",
+      "noSpanData": "No span data resolved"
     },
     "validation": {
       "validation": {
@@ -4571,8 +4571,8 @@
         "schema": "JSON Schema",
         "sourceNode": "源节点",
         "selectNode": "选择节点",
-        "expectedPath": "期望路径",
-        "expectedPathPlaceholder": "例如 output.status",
+        "expectedPath": "expected path",
+        "expectedPathPlaceholder": "e.g. output.status",
         "assertionOp": "断言操作",
         "expectedValue": "期望值",
         "expectedValuePlaceholder": "输入期望值",
@@ -5421,27 +5421,27 @@
       "inputs": "Entrées"
     },
     "parse": {
-      "analyzingIntent": "[TODO] Analyzing intent...",
-      "matchingNodes": "[TODO] Matching nodes...",
-      "buildingWorkflow": "[TODO] Building workflow...",
-      "optimizing": "[TODO] Optimizing...",
-      "intentAnalysis": "[TODO] Intent Analysis",
-      "complete": "[TODO] Complete"
+      "analyzingIntent": "Analyzing intent...",
+      "matchingNodes": "Matching nodes...",
+      "buildingWorkflow": "Building workflow...",
+      "optimizing": "Optimizing...",
+      "intentAnalysis": "Intent Analysis",
+      "complete": "Complete"
     },
     "execution": {
-      "startingNode": "[TODO] Starting node: {{label}}",
-      "nodeCompleted": "[TODO] Node completed: {{label}}",
-      "success": "[TODO] Execution succeeded"
+      "startingNode": "Starting node: {{label}}",
+      "nodeCompleted": "Node completed: {{label}}",
+      "success": "Execution succeeded"
     },
     "version": {
-      "current": "[TODO] Current version",
-      "optimizedConfig": "[TODO] Optimized node configuration",
-      "addedBranch": "[TODO] Added conditional branch",
-      "initialCreation": "[TODO] Initial creation"
+      "current": "Current version",
+      "optimizedConfig": "Optimized node configuration",
+      "addedBranch": "Added conditional branch",
+      "initialCreation": "Initial creation"
     },
-    "duplicateSuffix": "[TODO] {{name}} (copy)",
-    "fromTemplate": "[TODO] {{name}} (from template)",
-    "defaultWorkflowName": "[TODO] New Workflow"
+    "duplicateSuffix": "{{name}} (copy)",
+    "fromTemplate": "{{name}} (from template)",
+    "defaultWorkflowName": "New Workflow"
   },
   "atomicSkill": {
     "entryType": "Type d'entrée",
@@ -5520,22 +5520,22 @@
     "modelIdPlaceholder": "Entrer l'ID du modèle",
     "train": "Entraîner",
     "checkpoints": {
-      "title": "[TODO] Checkpoints",
-      "save": "[TODO] Save Checkpoint",
-      "empty": "[TODO] No checkpoints",
-      "saveModal": "[TODO] Save Checkpoint",
-      "namePlaceholder": "[TODO] Enter checkpoint name..."
+      "title": "Checkpoints",
+      "save": "Save Checkpoint",
+      "empty": "No checkpoints",
+      "saveModal": "Save Checkpoint",
+      "namePlaceholder": "Enter checkpoint name..."
     },
     "monitor": {
-      "idle": "[TODO] Training not started. Configure and start training."
+      "idle": "Training not started. Configure and start training."
     },
     "panel": {
-      "title": "[TODO] RL Training Panel",
-      "stop": "[TODO] Stop Training",
-      "start": "[TODO] Start Training",
-      "config": "[TODO] Config",
-      "monitor": "[TODO] Monitor",
-      "checkpoints": "[TODO] Checkpoints"
+      "title": "RL Training Panel",
+      "stop": "Stop Training",
+      "start": "Start Training",
+      "config": "Config",
+      "monitor": "Monitor",
+      "checkpoints": "Checkpoints"
     }
   },
   "devtools": {
@@ -5709,11 +5709,11 @@
   "traceExplorer": {
     "selectTrace": "Sélectionnez une trace pour voir les détails",
     "tab": {
-      "detail": "[TODO] Details",
-      "timeline": "[TODO] Timeline",
-      "bottleneck": "[TODO] Bottleneck Analysis",
-      "suggestions": "[TODO] Suggestions",
-      "feedback": "[TODO] Feedback"
+      "detail": "Details",
+      "timeline": "Timeline",
+      "bottleneck": "Bottleneck Analysis",
+      "suggestions": "Suggestions",
+      "feedback": "Feedback"
     }
   },
   "evolution": {
@@ -5756,40 +5756,40 @@
     },
     "engines": {
       "skill_evolution": {
-        "name": "[TODO] Skill Evolution Engine",
-        "desc": "[TODO] Automatically evolves skill prompts and tool-calling strategies based on execution feedback"
+        "name": "Skill Evolution Engine",
+        "desc": "Automatically evolves skill prompts and tool-calling strategies based on execution feedback"
       },
       "auto_tool_creator": {
-        "name": "[TODO] Auto Tool Creator",
-        "desc": "[TODO] Learns from frequent execution patterns and automatically creates new reusable tools"
+        "name": "Auto Tool Creator",
+        "desc": "Learns from frequent execution patterns and automatically creates new reusable tools"
       },
       "text_grad": {
-        "name": "[TODO] TextGrad Optimizer",
-        "desc": "[TODO] Textual gradient optimization engine, analogous to gradient descent but for text prompt optimization"
+        "name": "TextGrad Optimizer",
+        "desc": "Textual gradient optimization engine, analogous to gradient descent but for text prompt optimization"
       },
       "constitution": {
-        "name": "[TODO] Constitution Engine",
-        "desc": "[TODO] Rules system that constrains agent behavior to ensure safety and compliance"
+        "name": "Constitution Engine",
+        "desc": "Rules system that constrains agent behavior to ensure safety and compliance"
       },
       "intrinsic_motivation": {
-        "name": "[TODO] Intrinsic Motivation System",
-        "desc": "[TODO] Self-driven learning system that simulates human curiosity-driven exploration behavior"
+        "name": "Intrinsic Motivation System",
+        "desc": "Self-driven learning system that simulates human curiosity-driven exploration behavior"
       },
       "coevolution": {
-        "name": "[TODO] Coevolution Environment",
-        "desc": "[TODO] Multi-agent coevolution environment that promotes cross-agent knowledge sharing and competition"
+        "name": "Coevolution Environment",
+        "desc": "Multi-agent coevolution environment that promotes cross-agent knowledge sharing and competition"
       },
       "dream_consolidator": {
-        "name": "[TODO] Dream Consolidator",
-        "desc": "[TODO] Memory consolidation mechanism analogous to human REM sleep, optimizing knowledge representation offline"
+        "name": "Dream Consolidator",
+        "desc": "Memory consolidation mechanism analogous to human REM sleep, optimizing knowledge representation offline"
       },
       "process_reward": {
-        "name": "[TODO] Process Reward Model",
-        "desc": "[TODO] Evaluates intermediate step quality rather than only final results, providing fine-grained feedback signals"
+        "name": "Process Reward Model",
+        "desc": "Evaluates intermediate step quality rather than only final results, providing fine-grained feedback signals"
       },
       "sandbox": {
-        "name": "[TODO] Sandbox Executor",
-        "desc": "[TODO] Securely executes untrusted code in an isolated environment to prevent system damage"
+        "name": "Sandbox Executor",
+        "desc": "Securely executes untrusted code in an isolated environment to prevent system damage"
       }
     }
   },
@@ -6076,31 +6076,31 @@
     "noSkillName": "Compétence sans nom",
     "notFound": "Compétence introuvable",
     "abTest": {
-      "noData": "[TODO] No A/B test data yet",
-      "metric": "[TODO] Metric",
-      "versionA": "[TODO] Version A",
-      "versionB": "[TODO] Version B",
-      "change": "[TODO] Change",
-      "winner": "[TODO] Winner",
-      "tie": "[TODO] Tie",
-      "conclusion": "[TODO] Conclusion: Version A won {{winCountA}} items, Version B won {{winCountB}} items.",
-      "recommendA": "[TODO]  Recommended to adopt Version A.",
-      "recommendB": "[TODO]  Recommended to adopt Version B.",
-      "noDifference": "[TODO]  No significant difference between the two versions."
+      "noData": "No A/B test data yet",
+      "metric": "Metric",
+      "versionA": "Version A",
+      "versionB": "Version B",
+      "change": "Change",
+      "winner": "Winner",
+      "tie": "Tie",
+      "conclusion": "Conclusion: Version A won {{winCountA}} items, Version B won {{winCountB}} items.",
+      "recommendA": "Recommended to adopt Version A.",
+      "recommendB": "Recommended to adopt Version B.",
+      "noDifference": "No significant difference between the two versions."
     },
     "evolution": {
-      "currentVersion": "[TODO] Current Version",
-      "totalEvolutions": "[TODO] Total Evolutions",
-      "latestEvolution": "[TODO] Latest Evolution",
-      "none": "[TODO] None",
-      "noHistory": "[TODO] This skill has no evolution history yet",
-      "abTestResults": "[TODO] A/B Test Results",
-      "viewDiff": "[TODO] View Diff",
-      "rollback": "[TODO] Rollback",
-      "oldVersion": "[TODO] Old (v{{version}})",
-      "newVersion": "[TODO] New (v{{version}})",
-      "confirmRollback": "[TODO] Confirm Rollback",
-      "rollbackConfirmMessage": "[TODO] Are you sure you want to roll back to v{{version}}? This will discard all evolution changes after that version."
+      "currentVersion": "Current Version",
+      "totalEvolutions": "Total Evolutions",
+      "latestEvolution": "Latest Evolution",
+      "none": "None",
+      "noHistory": "This skill has no evolution history yet",
+      "abTestResults": "A/B Test Results",
+      "viewDiff": "View Diff",
+      "rollback": "Rollback",
+      "oldVersion": "Old (v{{version}})",
+      "newVersion": "New (v{{version}})",
+      "confirmRollback": "Confirm Rollback",
+      "rollbackConfirmMessage": "Are you sure you want to roll back to v{{version}}? This will discard all evolution changes after that version."
     }
   },
   "task": {
@@ -6547,11 +6547,11 @@
     "pending": "En attente",
     "failed": "Échoué",
     "type": {
-      "subAgent": "[TODO] Sub-Agent",
-      "worker": "[TODO] Worker",
-      "step": "[TODO] Step"
+      "subAgent": "Sub-Agent",
+      "worker": "Worker",
+      "step": "Step"
     },
-    "summary": "[TODO] Agent Pool ({completed}/{total})"
+    "summary": "Agent Pool ({completed}/{total})"
   },
   "agentHierarchy": {
     "running": "En cours",
@@ -7768,8 +7768,8 @@
     "gatewayContext": "Passerelle",
     "filesContext": "Fichiers",
     "terminalContext": "Terminal",
-    "closeAgentPanel": "[TODO] Close Agent Panel",
-    "openAgentPanel": "[TODO] Open Agent Panel",
+    "closeAgentPanel": "Close Agent Panel",
+    "openAgentPanel": "Open Agent Panel",
     "dashboardContext": "Aperçu du système d’un coup d’œil"
   },
   "input": {
@@ -7859,7 +7859,7 @@
       "midAgreementHint": "Partial agreement between views",
       "lowAgreementHint": "Views diverge significantly",
       "llmMissingHint": "Agreement score: {{score}}/100",
-      "executionMode": "[TODO] Execution Mode"
+      "executionMode": "Execution Mode"
     }
   },
   "timeTravel": {
@@ -8014,11 +8014,11 @@
       "a-chokepoint-trend4": "Bottleneck ID #4",
       "a-chokepoint-trend5": "Bottleneck ID #5",
       "a-candidate-mapper": "Candidate Mapper",
-      "c-bottleneck-trend1": "瓶颈指标计算 #1",
-      "c-bottleneck-trend2": "瓶颈指标计算 #2",
-      "c-bottleneck-trend3": "瓶颈指标计算 #3",
-      "c-bottleneck-trend4": "瓶颈指标计算 #4",
-      "c-bottleneck-trend5": "瓶颈指标计算 #5"
+      "c-bottleneck-trend1": "Bottleneck Calc #1",
+      "c-bottleneck-trend2": "Bottleneck Calc #2",
+      "c-bottleneck-trend3": "Bottleneck Calc #3",
+      "c-bottleneck-trend4": "Bottleneck Calc #4",
+      "c-bottleneck-trend5": "Bottleneck Calc #5"
     },
     "catalystEarnings": "Earnings",
     "catalystProdRamp": "Ramp Up",
@@ -8056,7 +8056,7 @@
       "exitSelect": "Quitter la sélection multiple",
       "empty": "Aucun historique de goulots"
     },
-    "settings": "[TODO] Valuation Filters"
+    "settings": "Valuation Filters"
   },
   "quant": {
     "backtest": {
@@ -8220,194 +8220,194 @@
     }
   },
   "portfolio": {
-    "title": "[TODO] Portfolio Tracking",
-    "stock": "[TODO] Stock",
-    "shares": "[TODO] Shares",
-    "avgCost": "[TODO] Avg Cost",
-    "currentPrice": "[TODO] Current",
-    "marketValue": "[TODO] Market Value",
-    "pnl": "[TODO] P&L",
-    "totalMarketValue": "[TODO] Total Value",
-    "totalPnl": "[TODO] Total P&L",
-    "totalCost": "[TODO] Total Cost",
-    "holdings": "[TODO] Holdings",
-    "manualImport": "[TODO] Manual Import",
-    "vlmImport": "[TODO] VLM Import",
-    "importHint": "[TODO] Format: stockCode, shares, avgCost[, stockName] — one per line",
-    "vlmHint": "[TODO] Paste the VLM raw output from screenshot recognition here",
-    "vlmPlaceholder": "[TODO] Paste VLM output here...",
-    "importSuccess": "[TODO] Imported {{count}} holdings",
-    "importFailed": "[TODO] Failed to parse holdings from VLM output",
-    "preview": "[TODO] Preview"
+    "title": "Portfolio Tracking",
+    "stock": "Stock",
+    "shares": "Shares",
+    "avgCost": "Avg Cost",
+    "currentPrice": "Current",
+    "marketValue": "Market Value",
+    "pnl": "P&L",
+    "totalMarketValue": "Total Value",
+    "totalPnl": "Total P&L",
+    "totalCost": "Total Cost",
+    "holdings": "Holdings",
+    "manualImport": "Manual Import",
+    "vlmImport": "VLM Import",
+    "importHint": "Format: stockCode, shares, avgCost[, stockName] — one per line",
+    "vlmHint": "Paste the VLM raw output from screenshot recognition here",
+    "vlmPlaceholder": "Paste VLM output here...",
+    "importSuccess": "Imported {{count}} holdings",
+    "importFailed": "Failed to parse holdings from VLM output",
+    "preview": "Preview"
   },
   "trace": {
     "bottleneck": {
-      "loading": "[TODO] Loading bottleneck analysis...",
-      "error": "[TODO] Analysis failed",
-      "empty": "[TODO] No bottleneck data",
-      "timeDistribution": "[TODO] Time Distribution",
-      "tokenConsumption": "[TODO] Token Consumption",
-      "failurePatterns": "[TODO] Failure Patterns"
+      "loading": "Loading bottleneck analysis...",
+      "error": "Analysis failed",
+      "empty": "No bottleneck data",
+      "timeDistribution": "Time Distribution",
+      "tokenConsumption": "Token Consumption",
+      "failurePatterns": "Failure Patterns"
     },
     "feedback": {
-      "thanks": "[TODO] Thank you for your feedback",
-      "received": "[TODO] Your feedback has been submitted and will be used to improve Agent execution.",
-      "error": "[TODO] Submit failed",
-      "errorRetry": "[TODO] Please retry later",
-      "submitted": "[TODO] Feedback submitted",
-      "question": "[TODO] Was this execution helpful?",
-      "helpful": "[TODO] Helpful",
-      "notHelpful": "[TODO] Not Helpful",
-      "commentPlaceholder": "[TODO] Describe the issue to help us improve...",
-      "submit": "[TODO] Submit Feedback"
+      "thanks": "Thank you for your feedback",
+      "received": "Your feedback has been submitted and will be used to improve Agent execution.",
+      "error": "Submit failed",
+      "errorRetry": "Please retry later",
+      "submitted": "Feedback submitted",
+      "question": "Was this execution helpful?",
+      "helpful": "Helpful",
+      "notHelpful": "Not Helpful",
+      "commentPlaceholder": "Describe the issue to help us improve...",
+      "submit": "Submit Feedback"
     },
     "improvement": {
-      "loading": "[TODO] Generating improvement suggestions...",
-      "error": "[TODO] Generation failed",
-      "applied": "[TODO] Improvement applied",
-      "noSuggestions": "[TODO] No improvement suggestions",
-      "problem": "[TODO] Problem",
-      "suggestion": "[TODO] Suggestion",
-      "apply": "[TODO] Apply Improvement"
+      "loading": "Generating improvement suggestions...",
+      "error": "Generation failed",
+      "applied": "Improvement applied",
+      "noSuggestions": "No improvement suggestions",
+      "problem": "Problem",
+      "suggestion": "Suggestion",
+      "apply": "Apply Improvement"
     },
-    "loading": "[TODO] Loading execution trace...",
-    "error": "[TODO] Load failed",
-    "empty": "[TODO] No execution trace data",
-    "totalSteps": "[TODO] Total Steps",
-    "totalDuration": "[TODO] Total Duration",
-    "totalTokens": "[TODO] Total Tokens",
-    "errors": "[TODO] Errors"
+    "loading": "Loading execution trace...",
+    "error": "Load failed",
+    "empty": "No execution trace data",
+    "totalSteps": "Total Steps",
+    "totalDuration": "Total Duration",
+    "totalTokens": "Total Tokens",
+    "errors": "Errors"
   },
   "components_devtools_RLTrainingConfig": {
-    "算法": "[TODO] 算法",
-    "学习率": "[TODO] 学习率",
-    "批次大小": "[TODO] 批次大小",
-    "训练轮数": "[TODO] 训练轮数",
-    "最大步数": "[TODO] 最大步数"
+    "算法": "算法",
+    "学习率": "学习率",
+    "批次大小": "批次大小",
+    "训练轮数": "训练轮数",
+    "最大步数": "最大步数"
   },
   "components_devtools_RLTrainingMonitor": {
-    "数据不足": "[TODO] 数据不足",
-    "components_devtools": "[TODO] components_devtools_RLTrainingMonitor.数据不足",
-    "当前步数": "[TODO] 当前步数",
-    "损失": "[TODO] 损失",
-    "奖励": "[TODO] 奖励",
-    "速度": "[TODO] 速度",
-    "损失曲线": "[TODO] 损失曲线",
-    "奖励曲线": "[TODO] 奖励曲线"
+    "数据不足": "数据不足",
+    "components_devtools": "components_devtools_RLTrainingMonitor.数据不足",
+    "当前步数": "当前步数",
+    "损失": "损失",
+    "奖励": "奖励",
+    "速度": "速度",
+    "损失曲线": "损失曲线",
+    "奖励曲线": "奖励曲线"
   },
   "components_devtools_RLTrainingPanel": {
-    "空闲": "[TODO] 空闲",
-    "训练中": "[TODO] 训练中",
-    "已暂停": "[TODO] 已暂停",
-    "已完成": "[TODO] 已完成",
-    "失败": "[TODO] 失败"
+    "空闲": "空闲",
+    "训练中": "训练中",
+    "已暂停": "已暂停",
+    "已完成": "已完成",
+    "失败": "失败"
   },
   "components_skill_SkillABTestResults": {
-    "暂无_A_B_测试数据": "[TODO] 暂无 A/B 测试数据",
-    "components_skill_Ski": "[TODO] components_skill_SkillABTestResults.暂无_A_B_测试数据",
-    "指标": "[TODO] 指标",
-    "版本_A": "[TODO] 版本 A",
-    "版本_B": "[TODO] 版本 B",
-    "变化": "[TODO] 变化",
-    "优胜": "[TODO] 优胜",
-    "平局": "[TODO] 平局",
-    "推荐采用版本_A": "[TODO]  推荐采用版本 A。",
-    "推荐采用版本_B": "[TODO]  推荐采用版本 B。",
-    "两个版本无明显差异": "[TODO]  两个版本无明显差异。"
+    "暂无_A_B_测试数据": "暂无 A/B 测试数据",
+    "components_skill_Ski": "components_skill_SkillABTestResults.暂无_A_B_测试数据",
+    "指标": "指标",
+    "版本_A": "版本 A",
+    "版本_B": "版本 B",
+    "变化": "变化",
+    "优胜": "优胜",
+    "平局": "平局",
+    "推荐采用版本_A": " 推荐采用版本 A。",
+    "推荐采用版本_B": " 推荐采用版本 B。",
+    "两个版本无明显差异": " 两个版本无明显差异。"
   },
   "components_skill_SkillEvolutionViewer": {
-    "当前版本": "[TODO] 当前版本",
-    "总进化次数": "[TODO] 总进化次数",
-    "最近进化": "[TODO] 最近进化",
-    "A_B_测试结果": "[TODO] A/B 测试结果",
-    "components_skill_Ski": "[TODO] components_skill_SkillEvolutionViewer.A_B_测试结果"
+    "当前版本": "当前版本",
+    "总进化次数": "总进化次数",
+    "最近进化": "最近进化",
+    "A_B_测试结果": "A/B 测试结果",
+    "components_skill_Ski": "components_skill_SkillEvolutionViewer.A_B_测试结果"
   },
   "components_skill_SkillVersionTimeline": {
-    "暂无进化历史": "[TODO] 暂无进化历史",
-    "components_skill_Ski": "[TODO] components_skill_SkillVersionTimeline.暂无进化历史",
-    "确认回滚": "[TODO] 确认回滚"
+    "暂无进化历史": "暂无进化历史",
+    "components_skill_Ski": "components_skill_SkillVersionTimeline.暂无进化历史",
+    "确认回滚": "确认回滚"
   },
   "components_trace_BottleneckAnalyzer": {
-    "失败原因": "[TODO] 失败原因",
-    "次数": "[TODO] 次数",
-    "占比": "[TODO] 占比"
+    "失败原因": "失败原因",
+    "次数": "次数",
+    "占比": "占比"
   },
   "components_trace_TraceTimeline": {
-    "思考": "[TODO] 思考",
-    "工具调用": "[TODO] 工具调用",
-    "等待权限": "[TODO] 等待权限",
-    "错误": "[TODO] 错误"
+    "思考": "思考",
+    "工具调用": "工具调用",
+    "等待权限": "等待权限",
+    "错误": "错误"
   },
   "components_workflow_NLParserPanel": {
-    "每天早上_8_点抓取指定网站的最新文章": "[TODO] 每天早上 8 点抓取指定网站的最新文章，用 AI 总结后发送到企业微信群",
-    "收到新邮件后_用_AI_分析内容_如果是": "[TODO] 收到新邮件后，用 AI 分析内容，如果是重要邮件就发通知并创建待办",
-    "用户提交表单后_先验证数据_然后写入数据": "[TODO] 用户提交表单后，先验证数据，然后写入数据库并发送确认邮件",
-    "自然语言描述": "[TODO] 自然语言描述",
-    "components_workflow": "[TODO] components_workflow_NLParserPanel.自然语言描述",
-    "约束条件_可选": "[TODO] 约束条件（可选）",
-    "例如_执行时间不超过_5_分钟_出错时重": "[TODO] 例如：执行时间不超过 5 分钟、出错时重试 3 次",
-    "解析中": "[TODO] 解析中...",
-    "解析生成": "[TODO] 解析生成",
-    "解析结果": "[TODO] 解析结果",
-    "AI_建议": "[TODO] AI 建议"
+    "每天早上_8_点抓取指定网站的最新文章": "每天早上 8 点抓取指定网站的最新文章，用 AI 总结后发送到企业微信群",
+    "收到新邮件后_用_AI_分析内容_如果是": "收到新邮件后，用 AI 分析内容，如果是重要邮件就发通知并创建待办",
+    "用户提交表单后_先验证数据_然后写入数据": "用户提交表单后，先验证数据，然后写入数据库并发送确认邮件",
+    "自然语言描述": "自然语言描述",
+    "components_workflow": "components_workflow_NLParserPanel.自然语言描述",
+    "约束条件_可选": "约束条件（可选）",
+    "例如_执行时间不超过_5_分钟_出错时重": "例如：执行时间不超过 5 分钟、出错时重试 3 次",
+    "解析中": "解析中...",
+    "解析生成": "解析生成",
+    "解析结果": "解析结果",
+    "AI_建议": "AI 建议"
   },
   "components_workflow_WorkflowExecutor": {
-    "等待": "[TODO] 等待",
-    "执行中": "[TODO] 执行中",
-    "成功": "[TODO] 成功",
-    "失败": "[TODO] 失败",
-    "输入变量": "[TODO] 输入变量",
-    "components_workflow": "[TODO] components_workflow_WorkflowExecutor.输入变量",
-    "执行工作流": "[TODO] 执行工作流",
-    "正在执行工作流节点": "[TODO] 正在执行工作流节点...",
-    "状态": "[TODO] 状态",
-    "执行成功": "[TODO] 执行成功",
-    "执行失败": "[TODO] 执行失败",
-    "耗时": "[TODO] 耗时",
-    "节点执行状态": "[TODO] 节点执行状态",
-    "输出结果": "[TODO] 输出结果",
-    "执行日志": "[TODO] 执行日志",
-    "关闭": "[TODO] 关闭"
+    "等待": "等待",
+    "执行中": "执行中",
+    "成功": "成功",
+    "失败": "失败",
+    "输入变量": "输入变量",
+    "components_workflow": "components_workflow_WorkflowExecutor.输入变量",
+    "执行工作流": "执行工作流",
+    "正在执行工作流节点": "正在执行工作流节点...",
+    "状态": "状态",
+    "执行成功": "执行成功",
+    "执行失败": "执行失败",
+    "耗时": "耗时",
+    "节点执行状态": "节点执行状态",
+    "输出结果": "输出结果",
+    "执行日志": "执行日志",
+    "关闭": "关闭"
   },
   "components_workflow_WorkflowLogPanel": {
-    "暂无日志": "[TODO] 暂无日志"
+    "暂无日志": "暂无日志"
   },
   "components_workflow_WorkflowVersionManager": {
-    "版本对比": "[TODO] 版本对比",
-    "新增节点_output_2_发送": "[TODO] + 新增节点: output-2 (发送摘要)",
-    "components_workflow": "[TODO] components_workflow_WorkflowVersionManager.新增节点_output_2_发送",
-    "删除节点_action_3_冗余": "[TODO] - 删除节点: action-3 (冗余步骤)",
-    "修改节点_action_1_超时": "[TODO] ~ 修改节点: action-1 (超时时间 30s → 60s)",
-    "版本": "[TODO] 版本",
-    "更新时间": "[TODO] 更新时间",
-    "变更摘要": "[TODO] 变更摘要",
-    "状态": "[TODO] 状态",
-    "草稿": "[TODO] 草稿",
-    "活跃": "[TODO] 活跃",
-    "归档": "[TODO] 归档",
-    "操作": "[TODO] 操作",
-    "当前工作流将被新版本覆盖": "[TODO] 当前工作流将被新版本覆盖",
-    "暂无版本记录": "[TODO] 暂无版本记录",
-    "时间线": "[TODO] 时间线"
+    "版本对比": "版本对比",
+    "新增节点_output_2_发送": "+ 新增节点: output-2 (发送摘要)",
+    "components_workflow": "components_workflow_WorkflowVersionManager.新增节点_output_2_发送",
+    "删除节点_action_3_冗余": "- 删除节点: action-3 (冗余步骤)",
+    "修改节点_action_1_超时": "~ 修改节点: action-1 (超时时间 30s → 60s)",
+    "版本": "版本",
+    "更新时间": "更新时间",
+    "变更摘要": "变更摘要",
+    "状态": "状态",
+    "草稿": "草稿",
+    "活跃": "活跃",
+    "归档": "归档",
+    "操作": "操作",
+    "当前工作流将被新版本覆盖": "当前工作流将被新版本覆盖",
+    "暂无版本记录": "暂无版本记录",
+    "时间线": "时间线"
   },
   "pages_Workflow_WorkflowListPage": {
-    "草稿": "[TODO] 草稿",
-    "活跃": "[TODO] 活跃",
-    "归档": "[TODO] 归档",
-    "新建工作流": "[TODO] 新建工作流",
-    "工作流": "[TODO] 工作流",
-    "pages_Workflow_Workf": "[TODO] pages_Workflow_WorkflowListPage.工作流",
-    "搜索工作流": "[TODO] 搜索工作流...",
-    "全部": "[TODO] 全部",
-    "暂无工作流_点击上方按钮创建": "[TODO] 暂无工作流，点击上方按钮创建",
-    "暂无描述": "[TODO] 暂无描述",
-    "确定删除此工作流": "[TODO] 确定删除此工作流？"
+    "草稿": "草稿",
+    "活跃": "活跃",
+    "归档": "归档",
+    "新建工作流": "新建工作流",
+    "工作流": "工作流",
+    "pages_Workflow_Workf": "pages_Workflow_WorkflowListPage.工作流",
+    "搜索工作流": "搜索工作流...",
+    "全部": "全部",
+    "暂无工作流_点击上方按钮创建": "暂无工作流，点击上方按钮创建",
+    "暂无描述": "暂无描述",
+    "确定删除此工作流": "确定删除此工作流？"
   },
   "promptTemplate": {
-    "unnamed": "[TODO] Unnamed"
+    "unnamed": "Unnamed"
   },
   "sdk": {
-    "acpRequestFailed": "[TODO] ACP request failed: {{message}}"
+    "acpRequestFailed": "ACP request failed: {{message}}"
   },
   "pinnedGroups": {
     "dashboard": "Tableau de bord",

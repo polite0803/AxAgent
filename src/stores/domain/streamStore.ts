@@ -1323,4 +1323,22 @@ export const useStreamStore = create<StreamState>((set, get) => ({
   isConversationStreaming: (conversationId: string) => {
     return conversationId in get().activeStreams;
   },
+
+  // ── DevTools 可见性：暴露模块级变量快照 ──
+  // 作为 Zustand 之外的同步镜像，方便 DevTools 调试查看。
+  // 这些值本身由模块级 let/export 管理（与 conversationStore 共享），
+  // 此处提供 getter 使它们可在 React DevTools 中展开。
+  getModuleLevelState: () => ({
+    streamBuffer: _streamBuffer,
+    streamPrefix: _streamPrefix,
+    pendingUiChunk: _pendingUiChunk,
+    isMultiModelActive: _isMultiModelActive,
+    multiModelTotalRemaining: _multiModelTotalRemaining,
+    multiModelFirstModelId: _multiModelFirstModelId,
+    multiModelFirstMessageId: _multiModelFirstMessageId,
+    userManuallySelectedVersion: _userManuallySelectedVersion,
+    activeMessageLoadSeq: _activeMessageLoadSeq,
+    pendingConversationRefreshCount: _pendingConversationRefresh.size,
+    streamSessionsCount: _streamSessions.size,
+  }),
 }));

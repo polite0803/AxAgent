@@ -94,12 +94,16 @@ export async function subscribeDataSource(
   onData: (data: unknown) => void,
   onError?: (error: Error) => void,
 ): Promise<DataSourceSubscriber> {
+  let cancelled = false;
+
   // 先执行一次初始加载
   try {
     const initialData = await resolveDataSource(config);
-    onData(initialData);
+    if (!cancelled) {
+      onData(initialData);
+    }
   } catch (err) {
-    if (onError) {
+    if (!cancelled && onError) {
       onError(err instanceof Error ? err : new Error(String(err)));
     }
   }
@@ -109,11 +113,12 @@ export async function subscribeDataSource(
   // 处理轮询
   if (config.polling && config.polling > 0) {
     const timer = window.setInterval(async () => {
+      if (cancelled) { return; }
       try {
         const data = await resolveDataSource(config);
-        onData(data);
+        if (!cancelled) { onData(data); }
       } catch (err) {
-        if (onError) {
+        if (!cancelled && onError) {
           onError(err instanceof Error ? err : new Error(String(err)));
         }
       }
@@ -132,6 +137,7 @@ export async function subscribeDataSource(
     if (store && typeof store.subscribe === "function") {
       const getNested = getNestedValue;
       const unsubscribe = store.subscribe(() => {
+        if (cancelled) { return; }
         const state = store.get() as Record<string, unknown>;
         const data = selector ? getNested(state, selector) : state;
         onData(data);
@@ -142,6 +148,7 @@ export async function subscribeDataSource(
 
   return {
     unsubscribe: () => {
+      cancelled = true;
       for (const fn of cleanupFns) {
         fn();
       }
