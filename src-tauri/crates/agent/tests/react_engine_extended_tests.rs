@@ -59,6 +59,6 @@ async fn test_react_engine_reset_and_rerun() {
     let r1 = engine.run("Task one").await;
     let r2 = engine.run("Task two").await;
     // Multiple runs should each produce results without panic
-    assert!(r1.total_duration_ms >= 0 || !r1.success);
-    assert!(r2.total_duration_ms >= 0 || !r2.success);
+    assert!(r1.success || r1.total_duration_ms > 0);
+    assert!(r2.success || r2.total_duration_ms > 0);
 }

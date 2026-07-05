@@ -20,7 +20,7 @@ use crate::types::{
     DecompositionPlan, OrchestrationError, OrchestrationEvent, OrchestrationStrategy,
     StructuredHandover, SubTaskStatus,
 };
-use axagent_core::workflow_types::SubGraph;
+use axagent_core::workflow_types::{AgentRole, SubGraph};
 
 // ── OrchestratorState ──────────────────────────────────────────────────
 
