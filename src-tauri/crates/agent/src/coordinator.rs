@@ -397,7 +397,7 @@ pub struct AgentConfig {
 impl Default for AgentConfig {
     fn default() -> Self {
         Self {
-            max_iterations: 100,
+            max_iterations: axagent_harness::constants::DEFAULT_MAX_ITERATIONS,
             timeout_secs: Some(300),
             enable_self_verification: false,
             enable_error_recovery: true,
@@ -880,6 +880,15 @@ impl<T: AgentImpl> AgentCoordinator<T> {
     }
 
     pub async fn cancel(&self) -> Result<(), AgentError> {
+        // 0. 状态守卫：仅允许 Running / Paused / WaitingForConfirmation 进入取消流程
+        let current = self.current_state();
+        if !matches!(current, STATE_RUNNING | STATE_PAUSED | STATE_WAITING_FOR_CONFIRMATION) {
+            return Err(AgentError::InvalidState(format!(
+                "Cannot cancel agent in state: {}",
+                current
+            )));
+        }
+
         // 1. 调用实现；失败时原状态保持不变，错误直接传播（避免掩盖实现层错误）
         {
             let mut impl_guard = self.implementation.lock().await;
@@ -905,7 +914,18 @@ impl<T: AgentImpl> AgentCoordinator<T> {
     }
 
     pub async fn get_status(&self) -> AgentStatus {
-        self.status.read().await.clone()
+        // 先读 atomic 判别值，以它为准；RwLock 仅补充 detail
+        let disc = self.current_state();
+        match disc {
+            STATE_IDLE => AgentStatus::Idle,
+            STATE_RUNNING => self.status.read().await.clone(),
+            STATE_PAUSED => AgentStatus::Paused,
+            STATE_WAITING_FOR_CONFIRMATION => AgentStatus::WaitingForConfirmation,
+            STATE_COMPLETED => AgentStatus::Completed,
+            STATE_FAILED => self.status.read().await.clone(),
+            STATE_INITIALIZING => AgentStatus::Initializing,
+            _ => AgentStatus::Idle,
+        }
     }
 
     pub fn event_bus(&self) -> Arc<AgentEventBus> {

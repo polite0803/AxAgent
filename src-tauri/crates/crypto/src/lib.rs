@@ -6,3 +6,7 @@
 
 pub mod crypto;
 pub mod platform_adapter_impl;
+
+pub use crypto::decrypt_key;
+pub use crypto::derive_storage_master_key;
+pub use crypto::encrypt_key;

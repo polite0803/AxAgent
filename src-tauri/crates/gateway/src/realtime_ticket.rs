@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 //! Single-use, short-lived tickets for `/v1/realtime` WebSocket auth.
 //!
 //! Background (SECURITY P0-2.2):

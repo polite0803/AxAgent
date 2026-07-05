@@ -2,64 +2,26 @@
 
 //! axagent-dao — Marketplace / Review 服务
 //!
-//! 从 `axagent_kit::marketplace_service` 迁入，因为这里全部是 SeaORM
-//! 数据访问逻辑（ActiveModel / Entity / Column），属于 dao 层职责。
-//! 仍然通过 `axagent_kit::marketplace_service` re-export 暴露，调用方零改动。
+//! SeaORM 数据访问实现。DTO 和 trait 契约在 `axagent_harness::marketplace` 中定义，
+//! 本模块实现 `MarketplaceService` trait，通过 harness 暴露给上层。
 
+use async_trait::async_trait;
 use sea_orm::*;
-use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use axagent_entities::{workflow_marketplace, workflow_marketplace_review};
+use axagent_harness::marketplace::{
+    CreateReviewRequest, MarketplaceService as MarketplaceServiceTrait, MarketplaceStats,
+    ReviewResponse, UpdateReviewRequest,
+};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct CreateReviewRequest {
-    pub marketplace_id: String,
-    pub user_id: String,
-    pub rating: i32,
-    pub comment: Option<String>,
-}
+/// Default SeaORM-backed implementation of `MarketplaceService`.
+pub struct MarketplaceServiceImpl;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct UpdateReviewRequest {
-    pub rating: Option<i32>,
-    pub comment: Option<String>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ReviewResponse {
-    pub id: String,
-    pub marketplace_id: String,
-    pub user_id: String,
-    pub rating: i32,
-    pub comment: Option<String>,
-    pub created_at: i64,
-}
-
-impl From<workflow_marketplace_review::Model> for ReviewResponse {
-    fn from(model: workflow_marketplace_review::Model) -> Self {
-        Self {
-            id: model.id,
-            marketplace_id: model.marketplace_id,
-            user_id: model.user_id,
-            rating: model.rating,
-            comment: model.comment,
-            created_at: model.created_at,
-        }
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct MarketplaceStats {
-    pub marketplace_id: String,
-    pub total_reviews: i32,
-    pub rating_average: f64,
-}
-
-pub struct MarketplaceService;
-
-impl MarketplaceService {
-    pub async fn create_review(
+#[async_trait]
+impl MarketplaceServiceTrait for MarketplaceServiceImpl {
+    async fn create_review(
+        &self,
         db: &DatabaseConnection,
         req: CreateReviewRequest,
     ) -> Result<ReviewResponse, String> {
@@ -82,12 +44,14 @@ impl MarketplaceService {
 
         let result = review.insert(db).await.map_err(|e| e.to_string())?;
 
-        Self::update_marketplace_rating(db, &req.marketplace_id).await?;
+        self.update_marketplace_rating(db, &req.marketplace_id)
+            .await?;
 
-        Ok(ReviewResponse::from(result))
+        Ok(model_to_response(result))
     }
 
-    pub async fn get_reviews(
+    async fn get_reviews(
+        &self,
         db: &DatabaseConnection,
         marketplace_id: &str,
     ) -> Result<Vec<ReviewResponse>, String> {
@@ -99,10 +63,11 @@ impl MarketplaceService {
             .await
             .map_err(|e| e.to_string())?;
 
-        Ok(reviews.into_iter().map(ReviewResponse::from).collect())
+        Ok(reviews.into_iter().map(model_to_response).collect())
     }
 
-    pub async fn get_user_review(
+    async fn get_user_review(
+        &self,
         db: &DatabaseConnection,
         marketplace_id: &str,
         user_id: &str,
@@ -114,10 +79,11 @@ impl MarketplaceService {
             .await
             .map_err(|e| e.to_string())?;
 
-        Ok(review.map(ReviewResponse::from))
+        Ok(review.map(model_to_response))
     }
 
-    pub async fn update_review(
+    async fn update_review(
+        &self,
         db: &DatabaseConnection,
         review_id: &str,
         req: UpdateReviewRequest,
@@ -148,12 +114,12 @@ impl MarketplaceService {
 
         let result = active_model.update(db).await.map_err(|e| e.to_string())?;
 
-        Self::update_marketplace_rating(db, &marketplace_id).await?;
+        self.update_marketplace_rating(db, &marketplace_id).await?;
 
-        Ok(ReviewResponse::from(result))
+        Ok(model_to_response(result))
     }
 
-    pub async fn delete_review(db: &DatabaseConnection, review_id: &str) -> Result<(), String> {
+    async fn delete_review(&self, db: &DatabaseConnection, review_id: &str) -> Result<(), String> {
         let review = workflow_marketplace_review::Entity::find()
             .filter(workflow_marketplace_review::Column::Id.eq(review_id))
             .one(db)
@@ -166,12 +132,13 @@ impl MarketplaceService {
         let active_model: workflow_marketplace_review::ActiveModel = review.into();
         active_model.delete(db).await.map_err(|e| e.to_string())?;
 
-        Self::update_marketplace_rating(db, &marketplace_id).await?;
+        self.update_marketplace_rating(db, &marketplace_id).await?;
 
         Ok(())
     }
 
-    pub async fn get_stats(
+    async fn get_stats(
+        &self,
         db: &DatabaseConnection,
         marketplace_id: &str,
     ) -> Result<MarketplaceStats, String> {
@@ -197,11 +164,42 @@ impl MarketplaceService {
         })
     }
 
+    async fn get_marketplace_id_for_review(
+        &self,
+        db: &DatabaseConnection,
+        review_id: &str,
+    ) -> Result<String, String> {
+        let review = workflow_marketplace_review::Entity::find()
+            .filter(workflow_marketplace_review::Column::Id.eq(review_id))
+            .one(db)
+            .await
+            .map_err(|e| e.to_string())?
+            .ok_or_else(|| "Review not found".to_string())?;
+
+        Ok(review.marketplace_id)
+    }
+}
+
+// ── Private helpers ──
+
+fn model_to_response(model: workflow_marketplace_review::Model) -> ReviewResponse {
+    ReviewResponse {
+        id: model.id,
+        marketplace_id: model.marketplace_id,
+        user_id: model.user_id,
+        rating: model.rating,
+        comment: model.comment,
+        created_at: model.created_at,
+    }
+}
+
+impl MarketplaceServiceImpl {
     async fn update_marketplace_rating(
+        &self,
         db: &DatabaseConnection,
         marketplace_id: &str,
     ) -> Result<(), String> {
-        let stats = Self::get_stats(db, marketplace_id).await?;
+        let stats = <Self as MarketplaceServiceTrait>::get_stats(self, db, marketplace_id).await?;
 
         let marketplace = workflow_marketplace::Entity::find()
             .filter(workflow_marketplace::Column::Id.eq(marketplace_id))
@@ -220,3 +218,8 @@ impl MarketplaceService {
         Ok(())
     }
 }
+
+// ── Backward compatibility: type alias for old `MarketplaceService` struct name ──
+/// Deprecated alias — use `MarketplaceServiceImpl` directly or the
+/// `axagent_harness::marketplace::MarketplaceService` trait.
+pub type MarketplaceService = MarketplaceServiceImpl;

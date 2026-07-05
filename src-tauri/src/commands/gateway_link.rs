@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use crate::AppState;
+use axagent_crypto::platform_adapter_impl::DefaultCryptoService;
 use axagent_harness::types::*;
 use tauri::State;
 
@@ -13,6 +14,7 @@ async fn resolve_link_api_key(
     if let Some(ref key_id) = link.api_key_id {
         let plain_key = axagent_core::repo::gateway_key::get_plain_key(
             state.harness.db(),
+            &DefaultCryptoService::new(state.harness.master_key_owned()),
             state.harness.master_key(),
             key_id,
         )
@@ -42,6 +44,7 @@ pub async fn create_gateway_link(
         let result = axagent_core::repo::gateway_key::create_gateway_key(
             state.harness.db(),
             &key_name,
+            &DefaultCryptoService::new(state.harness.master_key_owned()),
             Some(state.harness.master_key()),
         )
         .await

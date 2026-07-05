@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 use super::{
     CLAW_SETTINGS_SCHEMA_NAME, ConfigLoader, ConfigSource, McpServerConfig, McpTransport,
     ResolvedPermissionMode, RuntimeHookConfig, RuntimePluginConfig, deep_merge_objects,

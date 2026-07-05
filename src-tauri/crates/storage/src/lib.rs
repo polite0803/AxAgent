@@ -10,6 +10,7 @@ pub mod cloud_workspace;
 pub mod file_authorizer;
 pub mod file_store;
 pub mod path_vars;
+pub use path_vars::DefaultPathEncoder;
 pub mod storage_inventory;
 pub mod storage_migration;
 pub mod storage_paths;

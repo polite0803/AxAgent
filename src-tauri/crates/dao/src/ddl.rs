@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 //! Backward-compat shim — delegates to `migrations::run_migrations`.
 //!
 //! 历史背景：v001 之前 dao crate 启动时跑这个函数 DROP `seaql_migrations` +

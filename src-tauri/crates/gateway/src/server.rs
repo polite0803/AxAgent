@@ -32,6 +32,8 @@ pub struct GatewayAppState {
     /// 平台层 trait 聚合（provider / settings / gateway_key / request_log / crypto）。
     /// 由 wiring 层构造，把 gateway 与 dao + crypto 解耦。
     pub adapter: Arc<dyn axagent_harness::PlatformAdapter>,
+    /// Marketplace review service（消除 gateway→kit→dao 违规链）。
+    pub marketplace_service: Arc<dyn axagent_harness::marketplace::MarketplaceService>,
     /// In-memory store of single-use tickets for `/v1/realtime` WS auth
     /// (SECURITY P0-2.2). One per gateway instance.
     pub ticket_store: Arc<TicketStore>,
@@ -139,6 +141,7 @@ impl GatewayServer {
         config: GatewayStartConfig,
         provider_registry: Arc<dyn axagent_harness::registry::ProviderRegistry>,
         adapter: Arc<dyn axagent_harness::PlatformAdapter>,
+        marketplace_service: Arc<dyn axagent_harness::marketplace::MarketplaceService>,
     ) -> Result<Self> {
         let started_at = axagent_harness::util_fns::now_ts();
         let app_state = GatewayAppState {
@@ -147,6 +150,7 @@ impl GatewayServer {
             started_at,
             provider_registry,
             adapter,
+            marketplace_service,
             ticket_store: crate::realtime::default_ticket_store(),
             // SECURITY (Phase 2 Task 2.3): 5 失败 → 60s 冷却。
             key_verify_limiter: Arc::new(KeyVerifyLimiter::new(5, Duration::from_secs(60))),

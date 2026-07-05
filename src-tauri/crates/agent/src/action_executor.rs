@@ -46,7 +46,7 @@ impl ActionExecutor {
     pub async fn execute(
         &self,
         action: Action,
-        _conversation_id: &str,
+        conversation_id: &str,
     ) -> Result<ActionResult, ActionError> {
         // 执行前校验
         if let Some(ref validator) = self.pre_validator
@@ -54,6 +54,8 @@ impl ActionExecutor {
         {
             return Err(e.into());
         }
+
+        tracing::debug!(conversation_id = %conversation_id, action_type = ?action.action_type, "Executing action");
 
         let start = Instant::now();
         match action.action_type {
@@ -139,22 +141,36 @@ impl ActionExecutor {
 
     fn sandbox_check(tool_name: &str, input: &Value) -> Result<(), ActionError> {
         // 基本路径安全检查——完整沙箱由运行时层的 ToolExecutor 执行
-        if let Some(path_str) = input.get("path").and_then(|v| v.as_str()) {
-            let path = std::path::Path::new(path_str);
-            if path.is_absolute() {
-                return Err(ActionError::ToolExecution(axagent_core::i18n::fmt_msg(
-                    axagent_core::i18n::I18nKey::AgentToolAbsolutePathDenied,
-                    &format!("{tool_name}: {path_str}"),
-                )));
-            }
-            if path
-                .components()
-                .any(|c| c == std::path::Component::ParentDir)
-            {
-                return Err(ActionError::ToolExecution(axagent_core::i18n::fmt_msg(
-                    axagent_core::i18n::I18nKey::AgentToolPathTraversalDenied,
-                    &format!("{tool_name}: {path_str}"),
-                )));
+        const PATH_KEYS: &[&str] = &[
+            "path",
+            "file_path",
+            "filePath",
+            "notebook_path",
+            "notebookPath",
+            "working_dir",
+            "output_path",
+            "outputPath",
+            "source",
+            "target",
+        ];
+        for key in PATH_KEYS {
+            if let Some(path_str) = input.get(key).and_then(|v| v.as_str()) {
+                let path = std::path::Path::new(path_str);
+                if path.is_absolute() {
+                    return Err(ActionError::ToolExecution(axagent_core::i18n::fmt_msg(
+                        axagent_core::i18n::I18nKey::AgentToolAbsolutePathDenied,
+                        &format!("{tool_name}[{key}]: {path_str}"),
+                    )));
+                }
+                if path
+                    .components()
+                    .any(|c| c == std::path::Component::ParentDir)
+                {
+                    return Err(ActionError::ToolExecution(axagent_core::i18n::fmt_msg(
+                        axagent_core::i18n::I18nKey::AgentToolPathTraversalDenied,
+                        &format!("{tool_name}[{key}]: {path_str}"),
+                    )));
+                }
             }
         }
         Ok(())

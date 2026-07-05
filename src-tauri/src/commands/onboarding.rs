@@ -198,7 +198,7 @@ pub async fn apply_quick_start_preset(
 
         "openai" => {
             let key_val = std::env::var("OPENAI_API_KEY").unwrap_or_default();
-            let key_prefix: String = key_val.chars().take(8).collect();
+            let key_prefix: String = axagent_crypto::crypto::key_prefix(&key_val);
 
             let existing = list_providers(db)
                 .await

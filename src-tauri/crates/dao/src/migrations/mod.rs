@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 //! Versioned schema migration framework.
 //!
 //! Phase 2 引入的迁移系统：取代旧 `ddl.rs::run_initialization` 的 "drop

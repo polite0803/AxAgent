@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 //! v002 — 补齐关键查询索引
 //!
 //! P1-3.4 审查发现：v001 漏掉了几个 hot-path 查询需要的复合索引。

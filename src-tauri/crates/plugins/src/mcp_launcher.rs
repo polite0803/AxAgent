@@ -13,6 +13,9 @@ use crate::PluginMcpServer;
 const MCP_STARTUP_POLL_INTERVAL_MS: u64 = 100;
 const MCP_STARTUP_TIMEOUT_SECS: u64 = 10;
 
+/// 允许的 MCP 启动命令白名单（仅相对路径/简单名称时校验）
+const SAFE_MCP_BINARIES: &[&str] = &["npx", "uvx", "node", "python", "python3"];
+
 struct RunningMcpProcess {
     child: Child,
     server_name: String,
@@ -121,6 +124,42 @@ impl McpLauncher {
         server: &PluginMcpServer,
         plugin_root: &Path,
     ) -> Result<RunningMcpProcess, McpLaunchError> {
+        // ── M-12: 二进制白名单校验 ──
+        let cmd_path = Path::new(&server.command);
+        if cmd_path.is_absolute() {
+            if !cmd_path.starts_with(plugin_root) {
+                warn!(
+                    "mcp: blocked server `{}` — command `{}` outside plugin_root",
+                    server.name, server.command
+                );
+                return Err(McpLaunchError::SpawnFailed {
+                    server: server.name.clone(),
+                    source: std::io::Error::new(
+                        std::io::ErrorKind::PermissionDenied,
+                        format!(
+                            "MCP command '{}' is outside plugin directory — blocked for security",
+                            server.command
+                        ),
+                    ),
+                });
+            }
+        } else if !SAFE_MCP_BINARIES.contains(&server.command.as_str()) {
+            warn!(
+                "mcp: blocked server `{}` — command `{}` not in safe whitelist",
+                server.name, server.command
+            );
+            return Err(McpLaunchError::SpawnFailed {
+                server: server.name.clone(),
+                source: std::io::Error::new(
+                    std::io::ErrorKind::PermissionDenied,
+                    format!(
+                        "MCP command '{}' not in allowed whitelist — use absolute path within plugin directory",
+                        server.command
+                    ),
+                ),
+            });
+        }
+
         info!(
             "mcp: starting server `{}` for plugin `{}`: {} {}",
             server.name,

@@ -6,7 +6,6 @@ publish = false
 
 [dependencies]
 async-trait = "0.1"
-axagent-crypto = { path = "../crypto" }
 axagent-entities = { path = "../entities" }
 axagent-harness = { path = "../harness" }
 chrono = { workspace = true }

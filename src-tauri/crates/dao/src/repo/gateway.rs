@@ -2,9 +2,9 @@
 
 use sea_orm::*;
 
-use axagent_crypto::crypto;
 use axagent_entities::{gateway_keys, gateway_usage};
 use axagent_harness::core_error::{AxAgentError, Result};
+use axagent_harness::platform_adapter::CryptoService;
 use axagent_harness::types::*;
 use axagent_harness::util_fns::now_ts;
 
@@ -35,9 +35,10 @@ pub async fn list_gateway_keys(db: &DatabaseConnection) -> Result<Vec<GatewayKey
 pub async fn create_gateway_key(
     db: &DatabaseConnection,
     name: &str,
+    crypto: &dyn CryptoService,
     master_key: Option<&[u8; 32]>,
 ) -> Result<CreateGatewayKeyResult> {
-    crate::repo::gateway_key::create_gateway_key(db, name, master_key).await
+    crate::repo::gateway_key::create_gateway_key(db, name, crypto, master_key).await
 }
 
 pub async fn delete_gateway_key(db: &DatabaseConnection, id: &str) -> Result<()> {
@@ -70,11 +71,12 @@ pub async fn toggle_gateway_key(db: &DatabaseConnection, id: &str, enabled: bool
 pub async fn verify_key(
     db: &DatabaseConnection,
     plain_key: &str,
+    crypto: &dyn CryptoService,
     master_key: &[u8; 32],
 ) -> Result<GatewayKey> {
     use subtle::ConstantTimeEq;
     // 1) 用 master_key 派生 HMAC；这样数据库只存"key 受 master_key 保护"的形式。
-    let key_hash = crypto::hmac_sha256(master_key, plain_key);
+    let key_hash = crypto.hmac_sha256(master_key, plain_key);
 
     let row = gateway_keys::Entity::find()
         .filter(gateway_keys::Column::KeyHash.eq(&key_hash))

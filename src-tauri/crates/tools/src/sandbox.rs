@@ -56,7 +56,7 @@ pub struct SandboxResult {
     pub violations: Vec<SandboxViolation>,
 }
 
-pub struct SecuritySandbox {
+pub struct AccessPolicyValidator {
     config: SandboxConfig,
     platform: SandboxPlatform,
 }
@@ -69,7 +69,7 @@ pub enum SandboxPlatform {
     Unknown,
 }
 
-impl SecuritySandbox {
+impl AccessPolicyValidator {
     pub fn new(config: SandboxConfig) -> Self {
         let platform = if cfg!(target_os = "linux") {
             SandboxPlatform::Linux
@@ -267,7 +267,7 @@ mod tests {
             allowed_paths: vec![PathBuf::from("/workspace")],
             ..Default::default()
         };
-        let sandbox = SecuritySandbox::new(config);
+        let sandbox = AccessPolicyValidator::new(config);
         let result = sandbox.check_path_access(PathBuf::from("/workspace/file.txt").as_path());
         assert!(result.allowed);
     }
@@ -278,14 +278,14 @@ mod tests {
             allowed_paths: vec![PathBuf::from("/workspace")],
             ..Default::default()
         };
-        let sandbox = SecuritySandbox::new(config);
+        let sandbox = AccessPolicyValidator::new(config);
         let result = sandbox.check_path_access(PathBuf::from("/etc/passwd").as_path());
         assert!(!result.allowed);
     }
 
     #[test]
     fn test_command_allowed() {
-        let sandbox = SecuritySandbox::with_default_config();
+        let sandbox = AccessPolicyValidator::with_default_config();
         let result = sandbox.check_command("ls -la");
         assert!(result.allowed);
     }
@@ -296,28 +296,28 @@ mod tests {
             denied_commands: vec!["rm".to_string(), "sudo".to_string()],
             ..Default::default()
         };
-        let sandbox = SecuritySandbox::new(config);
+        let sandbox = AccessPolicyValidator::new(config);
         let result = sandbox.check_command("rm -rf /");
         assert!(!result.allowed);
     }
 
     #[test]
     fn test_network_denied_by_default() {
-        let sandbox = SecuritySandbox::with_default_config();
+        let sandbox = AccessPolicyValidator::with_default_config();
         let result = sandbox.check_network();
         assert!(!result.allowed);
     }
 
     #[test]
     fn test_env_var_whitelist() {
-        let sandbox = SecuritySandbox::with_default_config();
+        let sandbox = AccessPolicyValidator::with_default_config();
         assert!(sandbox.check_env_var("PATH").allowed);
         assert!(!sandbox.check_env_var("SECRET_KEY").allowed);
     }
 
     #[test]
     fn env_whitelist_accepts_path() {
-        let sandbox = SecuritySandbox::with_default_config();
+        let sandbox = AccessPolicyValidator::with_default_config();
         assert!(sandbox.check_env_var("PATH").allowed);
         assert!(sandbox.check_env_var("HOME").allowed);
         assert!(sandbox.check_env_var("TEMP").allowed);
@@ -327,7 +327,7 @@ mod tests {
 
     #[test]
     fn validate_environment_detects_denied_vars() {
-        let sandbox = SecuritySandbox::with_default_config();
+        let sandbox = AccessPolicyValidator::with_default_config();
         let denied = sandbox.validate_environment();
         assert!(!denied.iter().any(|v| v == "PATH"));
         assert!(!denied.iter().any(|v| v == "HOME"));

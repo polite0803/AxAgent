@@ -6,12 +6,8 @@ use axum::{
     http::StatusCode,
     response::IntoResponse,
 };
-use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
 
-use axagent_entities::workflow_marketplace_review;
-use axagent_kit::marketplace_service::{
-    CreateReviewRequest, MarketplaceService, UpdateReviewRequest,
-};
+use axagent_harness::marketplace::{CreateReviewRequest, UpdateReviewRequest};
 
 use crate::auth::AuthenticatedKey;
 use crate::server::GatewayAppState;
@@ -50,7 +46,11 @@ pub async fn create_review(
         comment: payload.comment,
     };
 
-    match MarketplaceService::create_review(&state.db, req).await {
+    match state
+        .marketplace_service
+        .create_review(&state.db, req)
+        .await
+    {
         Ok(review) => Ok((StatusCode::CREATED, Json(review))),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({ "error": e })))),
     }
@@ -60,7 +60,11 @@ pub async fn get_reviews(
     State(state): State<GatewayAppState>,
     Path(marketplace_id): Path<String>,
 ) -> impl IntoResponse {
-    match MarketplaceService::get_reviews(&state.db, &marketplace_id).await {
+    match state
+        .marketplace_service
+        .get_reviews(&state.db, &marketplace_id)
+        .await
+    {
         Ok(reviews) => Ok(Json(reviews)),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({ "error": e })))),
     }
@@ -72,7 +76,11 @@ pub async fn get_my_review(
     Path(marketplace_id): Path<String>,
 ) -> impl IntoResponse {
     let user_id = auth.0.id.clone();
-    match MarketplaceService::get_user_review(&state.db, &marketplace_id, &user_id).await {
+    match state
+        .marketplace_service
+        .get_user_review(&state.db, &marketplace_id, &user_id)
+        .await
+    {
         Ok(review) => Ok(Json(review)),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({ "error": e })))),
     }
@@ -86,23 +94,30 @@ pub async fn update_review(
 ) -> impl IntoResponse {
     let user_id = auth.0.id.clone();
 
-    let marketplace_id = match marketplace_id_for_review(&state.db, &review_id).await {
+    let marketplace_id = match state
+        .marketplace_service
+        .get_marketplace_id_for_review(&state.db, &review_id)
+        .await
+    {
         Ok(id) => id,
-        Err((status, msg)) => {
-            return Err((status, Json(serde_json::json!({ "error": msg }))));
+        Err(e) => {
+            return Err((StatusCode::NOT_FOUND, Json(serde_json::json!({ "error": e }))));
         },
     };
 
-    let existing =
-        match MarketplaceService::get_user_review(&state.db, &marketplace_id, &user_id).await {
-            Ok(rev) => rev,
-            Err(e) => {
-                return Err((
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    Json(serde_json::json!({ "error": e })),
-                ));
-            },
-        };
+    let existing = match state
+        .marketplace_service
+        .get_user_review(&state.db, &marketplace_id, &user_id)
+        .await
+    {
+        Ok(rev) => rev,
+        Err(e) => {
+            return Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(serde_json::json!({ "error": e })),
+            ));
+        },
+    };
 
     match existing {
         Some(r) if r.id != review_id => {
@@ -125,7 +140,11 @@ pub async fn update_review(
         comment: payload.comment,
     };
 
-    match MarketplaceService::update_review(&state.db, &review_id, req).await {
+    match state
+        .marketplace_service
+        .update_review(&state.db, &review_id, req)
+        .await
+    {
         Ok(review) => Ok(Json(review)),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({ "error": e })))),
     }
@@ -138,23 +157,30 @@ pub async fn delete_review(
 ) -> impl IntoResponse {
     let user_id = auth.0.id.clone();
 
-    let marketplace_id = match marketplace_id_for_review(&state.db, &review_id).await {
+    let marketplace_id = match state
+        .marketplace_service
+        .get_marketplace_id_for_review(&state.db, &review_id)
+        .await
+    {
         Ok(id) => id,
-        Err((status, msg)) => {
-            return Err((status, Json(serde_json::json!({ "error": msg }))));
+        Err(e) => {
+            return Err((StatusCode::NOT_FOUND, Json(serde_json::json!({ "error": e }))));
         },
     };
 
-    let existing =
-        match MarketplaceService::get_user_review(&state.db, &marketplace_id, &user_id).await {
-            Ok(rev) => rev,
-            Err(_) => {
-                return Err((
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    Json(serde_json::json!({ "error": "Database error" })),
-                ));
-            },
-        };
+    let existing = match state
+        .marketplace_service
+        .get_user_review(&state.db, &marketplace_id, &user_id)
+        .await
+    {
+        Ok(rev) => rev,
+        Err(_) => {
+            return Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(serde_json::json!({ "error": "Database error" })),
+            ));
+        },
+    };
 
     match existing {
         Some(r) if r.id == review_id => {},
@@ -166,7 +192,11 @@ pub async fn delete_review(
         },
     }
 
-    match MarketplaceService::delete_review(&state.db, &review_id).await {
+    match state
+        .marketplace_service
+        .delete_review(&state.db, &review_id)
+        .await
+    {
         Ok(()) => Ok(Json(serde_json::json!({ "success": true }))),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({ "error": e })))),
     }
@@ -176,23 +206,12 @@ pub async fn get_marketplace_stats(
     State(state): State<GatewayAppState>,
     Path(marketplace_id): Path<String>,
 ) -> impl IntoResponse {
-    match MarketplaceService::get_stats(&state.db, &marketplace_id).await {
+    match state
+        .marketplace_service
+        .get_stats(&state.db, &marketplace_id)
+        .await
+    {
         Ok(stats) => Ok(Json(stats)),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({ "error": e })))),
     }
-}
-
-async fn marketplace_id_for_review(
-    db: &sea_orm::DatabaseConnection,
-    review_id: &str,
-) -> Result<String, (StatusCode, &'static str)> {
-    let review = workflow_marketplace_review::Entity::find()
-        .filter(workflow_marketplace_review::Column::Id.eq(review_id))
-        .one(db)
-        .await
-        .map_err(|_| (StatusCode::INTERNAL_SERVER_ERROR, "Database error"))?;
-
-    review
-        .map(|r| r.marketplace_id)
-        .ok_or((StatusCode::NOT_FOUND, "Review not found"))
 }

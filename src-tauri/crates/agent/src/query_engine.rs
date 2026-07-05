@@ -78,6 +78,7 @@ impl QueryEngine {
         self
     }
 
+    #[tracing::instrument(skip(self, ctx))]
     pub async fn query(&self, ctx: &QueryContext) -> Result<QueryResult, String> {
         let _wiki = wikis::Entity::find_by_id(&ctx.wiki_id)
             .one(self.db.as_ref())

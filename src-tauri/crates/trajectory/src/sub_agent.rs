@@ -897,6 +897,8 @@ pub struct TaskDeduplicator {
     pub similarity_threshold: f64,
     /// Known task descriptions and their token sets.
     known_tasks: Vec<(String, Vec<String>)>,
+    /// Maximum capacity before evicting oldest entries (LRU-style).
+    max_capacity: usize,
 }
 
 impl Default for TaskDeduplicator {
@@ -904,6 +906,7 @@ impl Default for TaskDeduplicator {
         Self {
             similarity_threshold: 0.6,
             known_tasks: Vec::new(),
+            max_capacity: 10_000,
         }
     }
 }
@@ -914,6 +917,7 @@ impl TaskDeduplicator {
         Self {
             similarity_threshold,
             known_tasks: Vec::new(),
+            max_capacity: 10_000,
         }
     }
 

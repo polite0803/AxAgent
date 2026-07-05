@@ -71,15 +71,13 @@ pub struct OrchestratorExecutor {
     /// Current orchestrator state.
     state: RwLock<OrchestratorState>,
     /// Current decomposition plan (None until decompose() called).
+    /// Contains both the plan tree, sub-task statuses, and replan round counter
+    /// within a single lock to prevent consistency issues.
     plan: RwLock<Option<DecompositionPlan>>,
     /// Dynamic subgraph builder.
     subgraph_builder: RwLock<DynamicSubGraph>,
-    /// Number of completed replan rounds.
-    replan_count: RwLock<u32>,
     /// Event listeners notified on state transitions.
     event_listeners: RwLock<Vec<OrchestrationEventHandler>>,
-    /// Historical sub-task status snapshots (sub_task_id → status).
-    sub_task_status: RwLock<HashMap<String, SubTaskStatus>>,
 }
 
 impl OrchestratorExecutor {
@@ -88,9 +86,7 @@ impl OrchestratorExecutor {
             state: RwLock::new(OrchestratorState::Idle),
             plan: RwLock::new(None),
             subgraph_builder: RwLock::new(DynamicSubGraph::new()),
-            replan_count: RwLock::new(0),
             event_listeners: RwLock::new(Vec::new()),
-            sub_task_status: RwLock::new(HashMap::new()),
         }
     }
 
@@ -161,14 +157,6 @@ impl OrchestratorExecutor {
             plan: plan.clone(),
         })
         .await;
-
-        // Track initial statuses
-        {
-            let mut status_map = self.sub_task_status.write().await;
-            for st in &plan.sub_tasks {
-                status_map.insert(st.id.clone(), st.status);
-            }
-        }
 
         self.transition(OrchestratorState::BuildingSubGraph).await;
         Ok(plan)
@@ -266,7 +254,7 @@ impl OrchestratorExecutor {
             let failed = plan.failed_count();
             if failed > 0 {
                 // Trigger replan
-                let replan_count = { *self.replan_count.read().await };
+                let replan_count = plan.replan_count;
 
                 if replan_count >= plan.max_replans {
                     self.transition(OrchestratorState::Aborted(format!(
@@ -296,14 +284,22 @@ impl OrchestratorExecutor {
 
                 self.transition(OrchestratorState::Replanning).await;
 
+                // Increment replan count inside the plan lock
                 {
-                    let mut rc = self.replan_count.write().await;
-                    *rc += 1;
+                    let mut p = self.plan.write().await;
+                    if let Some(ref mut p) = *p {
+                        p.replan_count += 1;
+                    }
                 }
+
+                let current_replan_count = {
+                    let p = self.plan.read().await;
+                    p.as_ref().map(|p| p.replan_count).unwrap_or(0)
+                };
 
                 self.emit(OrchestrationEvent::ReplanTriggered {
                     failed_sub_tasks: failed_ids.clone(),
-                    replan_round: *self.replan_count.read().await,
+                    replan_round: current_replan_count,
                 })
                 .await;
 
@@ -565,37 +561,34 @@ impl OrchestratorExecutor {
         sub_task_id: &str,
         new_status: SubTaskStatus,
     ) -> Result<(), OrchestrationError> {
-        {
-            let mut plan_guard = self.plan.write().await;
-            let plan = plan_guard
-                .as_mut()
-                .ok_or_else(|| OrchestrationError::InvalidConfig("No plan".to_string()))?;
+        let mut plan_guard = self.plan.write().await;
+        let plan = plan_guard
+            .as_mut()
+            .ok_or_else(|| OrchestrationError::InvalidConfig("No plan".to_string()))?;
 
-            let sub_task = plan
-                .sub_tasks
-                .iter_mut()
-                .find(|st| st.id == sub_task_id)
-                .ok_or_else(|| OrchestrationError::SubTaskNotFound(sub_task_id.to_string()))?;
+        let sub_task = plan
+            .sub_tasks
+            .iter_mut()
+            .find(|st| st.id == sub_task_id)
+            .ok_or_else(|| OrchestrationError::SubTaskNotFound(sub_task_id.to_string()))?;
 
-            sub_task.status = new_status;
-        }
-        {
-            self.sub_task_status
-                .write()
-                .await
-                .insert(sub_task_id.to_string(), new_status);
-        }
+        sub_task.status = new_status;
         Ok(())
     }
 
     /// Get a snapshot of all sub-task statuses.
     pub async fn status_snapshot(&self) -> HashMap<String, String> {
-        self.sub_task_status
+        self.plan
             .read()
             .await
-            .iter()
-            .map(|(k, v)| (k.clone(), v.to_string()))
-            .collect()
+            .as_ref()
+            .map(|p| {
+                p.sub_tasks
+                    .iter()
+                    .map(|st| (st.id.clone(), st.status.to_string()))
+                    .collect()
+            })
+            .unwrap_or_default()
     }
 }
 

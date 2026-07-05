@@ -14,7 +14,7 @@ use serde::{Deserialize, Serialize};
 use tokio::sync::RwLock;
 use tracing::{info, warn};
 
-use axagent_crypto::crypto::{decrypt_key, encrypt_key};
+use axagent_harness::platform_adapter::CryptoService;
 use urlencoding;
 
 /// 持久化的 MCP OAuth 凭据
@@ -54,39 +54,57 @@ impl McpOAuthCredentials {
 ///
 /// 将 OAuth 凭据持久化到 `~/.axagent/mcp_oauth_credentials.json`，
 /// 按 server_id 索引。
-#[derive(Default)]
+/// 模块级全局单例存储。
+static GLOBAL_STORE: std::sync::OnceLock<Arc<McpOAuthStore>> = std::sync::OnceLock::new();
+
 pub struct McpOAuthStore {
     credentials: RwLock<HashMap<String, McpOAuthCredentials>>,
     store_path: PathBuf,
+    crypto_service: Arc<dyn CryptoService>,
+    oauth_key: [u8; 32],
 }
 
 impl McpOAuthStore {
     /// 创建新的凭据存储，从磁盘加载已有凭据
-    #[must_use]
-    pub fn new() -> Self {
+    pub fn new(crypto_service: Arc<dyn CryptoService>) -> Self {
         let store_path = Self::default_store_path();
-        let credentials = Self::load_from_disk(&store_path);
+        let oauth_key = Self::get_master_key(crypto_service.as_ref());
+        let credentials = Self::load_from_disk(&store_path, crypto_service.as_ref(), &oauth_key);
         Self {
             credentials: RwLock::new(credentials),
             store_path,
+            crypto_service,
+            oauth_key,
         }
     }
 
     #[must_use]
-    pub fn with_path(store_path: PathBuf) -> Self {
-        let credentials = Self::load_from_disk(&store_path);
+    pub fn with_path(store_path: PathBuf, crypto_service: Arc<dyn CryptoService>) -> Self {
+        let oauth_key = Self::get_master_key(crypto_service.as_ref());
+        let credentials = Self::load_from_disk(&store_path, crypto_service.as_ref(), &oauth_key);
         Self {
             credentials: RwLock::new(credentials),
             store_path,
+            crypto_service,
+            oauth_key,
         }
     }
 
     /// 全局单例
+    ///
+    /// 必须先通过 `Self::new()` 或 `Self::with_path()` 构造实例后调用
+    /// `init_global()` 初始化；否则会 panic。
     #[must_use]
     pub fn global() -> Arc<McpOAuthStore> {
-        use std::sync::OnceLock;
-        static STORE: OnceLock<Arc<McpOAuthStore>> = OnceLock::new();
-        STORE.get_or_init(|| Arc::new(McpOAuthStore::new())).clone()
+        GLOBAL_STORE
+            .get()
+            .expect("McpOAuthStore::global() called before init_global()")
+            .clone()
+    }
+
+    /// 初始化全局单例。
+    pub fn init_global(store: Arc<McpOAuthStore>) {
+        let _ = GLOBAL_STORE.set(store);
     }
 
     fn default_store_path() -> PathBuf {
@@ -94,7 +112,11 @@ impl McpOAuthStore {
         home.join(".axagent").join("mcp_oauth_credentials.enc")
     }
 
-    fn load_from_disk(path: &PathBuf) -> HashMap<String, McpOAuthCredentials> {
+    fn load_from_disk(
+        path: &PathBuf,
+        crypto: &dyn CryptoService,
+        master_key: &[u8; 32],
+    ) -> HashMap<String, McpOAuthCredentials> {
         let encrypted = fs::read(path).ok().unwrap_or_default();
         if encrypted.is_empty() {
             let legacy_path = {
@@ -112,9 +134,8 @@ impl McpOAuthStore {
             }
             return HashMap::new();
         }
-        let master_key = Self::get_master_key();
         let encrypted_str = String::from_utf8_lossy(&encrypted);
-        let decrypted = match decrypt_key(&encrypted_str, &master_key) {
+        let decrypted = match crypto.decrypt_key_with(&encrypted_str, master_key) {
             Ok(d) => d,
             Err(e) => {
                 warn!("[McpOAuth] 凭据解密失败，将使用空存储: {e}");
@@ -124,7 +145,7 @@ impl McpOAuthStore {
         serde_json::from_str(&decrypted).unwrap_or_default()
     }
 
-    fn get_master_key() -> [u8; 32] {
+    fn get_master_key(crypto: &dyn CryptoService) -> [u8; 32] {
         let home = dirs::home_dir().unwrap_or_default();
         let key_path = home.join(".axagent").join(".oauth_key");
         if key_path.exists()
@@ -135,7 +156,7 @@ impl McpOAuthStore {
             key.copy_from_slice(&key_bytes);
             return key;
         }
-        let key = axagent_crypto::crypto::generate_master_key();
+        let key = crypto.generate_master_key();
         if let Some(parent) = key_path.parent() {
             let _ = fs::create_dir_all(parent);
         }
@@ -156,8 +177,7 @@ impl McpOAuthStore {
             let _ = fs::create_dir_all(parent);
         }
         if let Ok(json) = serde_json::to_string_pretty(&*creds) {
-            let master_key = Self::get_master_key();
-            match encrypt_key(&json, &master_key) {
+            match self.crypto_service.encrypt_key_with(&json, &self.oauth_key) {
                 Ok(encrypted) => {
                     let _ = fs::write(&self.store_path, encrypted.as_bytes());
                 },
@@ -219,7 +239,7 @@ impl McpOAuthStore {
         token_endpoint: &str,
         client_id: &Option<String>,
         refresh_token: &str,
-    ) -> Result<McpOAuthCredentials, String> {
+    ) -> std::result::Result<McpOAuthCredentials, String> {
         let client = reqwest::Client::new();
         let mut body = format!(
             "grant_type=refresh_token&refresh_token={}",
@@ -274,7 +294,7 @@ pub async fn exchange_code_for_token(
     code_verifier: &str,
     code: &str,
     redirect_uri: &str,
-) -> Result<McpOAuthCredentials, String> {
+) -> std::result::Result<McpOAuthCredentials, String> {
     let client = reqwest::Client::new();
     let params = [
         ("grant_type", "authorization_code"),

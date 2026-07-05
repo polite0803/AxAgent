@@ -80,8 +80,28 @@ pub trait GatewayRequestLogRepository: Send + Sync {
 // ── 5. CryptoService ──
 
 pub trait CryptoService: Send + Sync {
-    /// 解密用 master_key 加密的 base64 字符串，返回明文。
+    /// 使用内置 master_key 解密 base64 字符串，返回明文。
     fn decrypt_key(&self, encrypted: &str) -> Result<String>;
+    /// 使用内置 master_key 加密明文，返回 base64 密文。
+    fn encrypt_key(&self, plaintext: &str) -> Result<String>;
+    /// 使用显式密钥解密。
+    fn decrypt_key_with(&self, encrypted: &str, master_key: &[u8; 32]) -> Result<String>;
+    /// 使用显式密钥加密。
+    fn encrypt_key_with(&self, plaintext: &str, master_key: &[u8; 32]) -> Result<String>;
+    /// HMAC-SHA256，返回十六进制字符串。key 为原始字节。
+    fn hmac_sha256(&self, key: &[u8], msg: &str) -> String;
+    /// SHA-256 哈希，返回十六进制字符串。
+    fn sha256_hash(&self, input: &str) -> String;
+    /// 从 key 中提取可识别前缀（仅用于 UI 展示）。
+    fn key_prefix(&self, key: &str) -> String;
+    /// 生成新的 gateway API key。
+    fn generate_gateway_key(&self) -> String;
+    /// 生成随机 32 字节 master key。
+    fn generate_master_key(&self) -> [u8; 32];
+    /// 使用机器指纹派生密钥加密备份数据。
+    fn encrypt_backup_key(&self, key_data: &[u8]) -> Result<Vec<u8>>;
+    /// 解密备份数据。
+    fn decrypt_backup_key(&self, enc_data: &[u8]) -> Result<Vec<u8>>;
 }
 
 // ── PlatformAdapter（facade trait） ──

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 //! Streaming helpers for `/v1/chat/completions`.
 //!
 //! The actual streaming implementation lives in [`super::chat`] (alongside the

@@ -71,6 +71,28 @@ impl ToolCategory {
     pub fn is_read_only(&self) -> bool {
         matches!(self, ToolCategory::FileRead | ToolCategory::Network | ToolCategory::Knowledge)
     }
+
+    /// 返回该类工具对应的默认工具组 ID。
+    /// 统一 category → group 映射，消除多处重复定义。
+    pub fn default_group(&self) -> &'static str {
+        match self {
+            ToolCategory::FileRead => "builtin-file-read",
+            ToolCategory::FileWrite => "builtin-file-write",
+            ToolCategory::Shell => "builtin-shell",
+            ToolCategory::Network => "builtin-network",
+            ToolCategory::System => "builtin-system-tools",
+            ToolCategory::Agent => "builtin-agent",
+            ToolCategory::Vcs => "builtin-vcs",
+            ToolCategory::Automation => "builtin-automation",
+            ToolCategory::Communication => "builtin-communication",
+            ToolCategory::AiMedia => "builtin-ai-media",
+            ToolCategory::Integration => "builtin-integration",
+            ToolCategory::Storage => "builtin-storage",
+            ToolCategory::Knowledge => "builtin-knowledge",
+            ToolCategory::Browser => "builtin-browser",
+            ToolCategory::Desktop => "builtin-desktop",
+        }
+    }
 }
 
 /// 权限范围定义

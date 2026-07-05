@@ -68,18 +68,18 @@ pub fn sha256_hash(input: &str) -> String {
 }
 
 /// SECURITY (H7): 真正从 key 中提取可识别前缀。
-/// 取前 4 + 末 4 字符；长度不足时返回全 `*`。
+/// 取前 2 + 末 2 字符；长度不足时返回全 `*`。
 /// 仅用于 UI 展示，不参与任何权限判定。
 pub fn key_prefix(key: &str) -> String {
     let chars: Vec<char> = key.chars().collect();
-    if chars.len() < 8 {
+    if chars.len() < 4 {
         return "*".repeat(chars.len());
     }
-    let head: String = chars.iter().take(4).collect();
+    let head: String = chars.iter().take(2).collect();
     let tail: String = chars
         .iter()
         .rev()
-        .take(4)
+        .take(2)
         .collect::<Vec<_>>()
         .into_iter()
         .rev()
@@ -127,16 +127,43 @@ fn derive_backup_key_v2(salt: &[u8]) -> Result<[u8; 32]> {
 }
 
 fn get_machine_fingerprint() -> String {
-    let hostname = std::env::var("HOSTNAME")
-        .or_else(|_| std::env::var("COMPUTERNAME"))
-        .or_else(|_| std::env::var("NAME"))
-        .unwrap_or_else(|_| "unknown".to_string());
-    let username = std::env::var("USER")
-        .or_else(|_| std::env::var("USERNAME"))
-        .unwrap_or_else(|_| "unknown".to_string());
-    let os_info = format!("{}-{}", std::env::consts::OS, std::env::consts::ARCH);
-    let raw = format!("{}:{}:{}", hostname, username, os_info);
-    sha256_hash(&raw)
+    read_or_create_machine_id().unwrap_or_else(|| {
+        let hostname = std::env::var("HOSTNAME")
+            .or_else(|_| std::env::var("COMPUTERNAME"))
+            .or_else(|_| std::env::var("NAME"))
+            .unwrap_or_else(|_| "unknown".to_string());
+        let username = std::env::var("USER")
+            .or_else(|_| std::env::var("USERNAME"))
+            .unwrap_or_else(|_| "unknown".to_string());
+        let os_info = format!("{}-{}", std::env::consts::OS, std::env::consts::ARCH);
+        let raw = format!("{}:{}:{}", hostname, username, os_info);
+        sha256_hash(&raw)
+    })
+}
+
+fn read_or_create_machine_id() -> Option<String> {
+    let dir = if cfg!(target_os = "windows") {
+        std::env::var("LOCALAPPDATA").ok()?
+    } else {
+        let home = std::env::var("HOME").ok()?;
+        format!("{}/.config", home)
+    };
+    let dir = std::path::PathBuf::from(dir).join("axagent");
+    let file_path = dir.join("machine-id");
+
+    if let Ok(content) = std::fs::read_to_string(&file_path) {
+        let id = content.trim().to_string();
+        if id.len() == 64 {
+            return Some(id);
+        }
+    }
+
+    std::fs::create_dir_all(&dir).ok()?;
+    let mut id = [0u8; 32];
+    OsRng.fill_bytes(&mut id);
+    let hex_id = hex::encode(id);
+    std::fs::write(&file_path, &hex_id).ok()?;
+    Some(hex_id)
 }
 
 pub fn encrypt_backup_key(key_data: &[u8]) -> Result<Vec<u8>> {
@@ -190,7 +217,16 @@ pub fn decrypt_backup_key(enc_data: &[u8]) -> Result<Vec<u8>> {
     }
 
     // Legacy v1 format: nonce(12) + ciphertext (SHA256-based KDF)
-    decrypt_backup_key_v1(enc_data)
+    // Only available with "backup_v1_compat" feature gate.
+    #[cfg(feature = "backup_v1_compat")]
+    return decrypt_backup_key_v1(enc_data);
+
+    #[cfg(not(feature = "backup_v1_compat"))]
+    Err(AxAgentError::Crypto(
+        "v1 backup format detected but feature 'backup_v1_compat' is not enabled. \
+         Use auto_upgrade_backup_to_v2() to migrate this backup to v2 (Argon2id) format."
+            .to_string(),
+    ))
 }
 
 /// Legacy decrypt for v1 backups (SHA256 KDF, fixed salt).
@@ -201,6 +237,7 @@ pub fn decrypt_backup_key(enc_data: &[u8]) -> Result<Vec<u8>> {
 ///
 /// **迁移计划**: 2026-Q3 移除 v1 支持，启动时自动检测并升级 v1 备份到 v2 (Argon2id)。
 /// 请尽快重新加密为 v2 格式。
+#[cfg(feature = "backup_v1_compat")]
 fn decrypt_backup_key_v1(enc_data: &[u8]) -> Result<Vec<u8>> {
     tracing::warn!(
         "SECURITY: 正在使用已弃用的 v1 备份密钥解密（弱 KDF: 无盐 SHA256）。\
@@ -224,8 +261,67 @@ fn decrypt_backup_key_v1(enc_data: &[u8]) -> Result<Vec<u8>> {
         .map_err(|e| AxAgentError::Crypto(format!("Backup key decryption failed: {}", e)))
 }
 
+/// 自动将 v1 格式的备份密钥升级到 v2 (Argon2id)。
+///
+/// 如果输入已经是 v2 格式，直接返回输入（无操作）。
+/// 如果是 v1 格式，解密后用 Argon2id 重新加密并返回 v2 格式数据。
+/// 调用方应将返回的 v2 数据写回原始文件路径以完成迁移。
+///
+/// 此函数**不需要** `backup_v1_compat` feature gate，
+/// 专为一次性迁移场景设计。
+pub fn auto_upgrade_backup_to_v2(enc_data: &[u8]) -> Result<Vec<u8>> {
+    if enc_data.len() < 1 + NONCE_SIZE + 16 {
+        return Err(AxAgentError::Crypto(
+            "Invalid encrypted backup key data for upgrade".to_string(),
+        ));
+    }
+
+    // Already v2: no upgrade needed
+    if enc_data[0] == BACKUP_VERSION_BYTE {
+        return Ok(enc_data.to_vec());
+    }
+
+    // v1 format detected — decrypt with legacy KDF, then re-encrypt with v2
+    tracing::info!("检测到 v1 格式备份密钥，正在自动升级到 v2 (Argon2id)...");
+
+    let (nonce_bytes, ciphertext) = enc_data.split_at(NONCE_SIZE);
+    let nonce = Nonce::from_slice(nonce_bytes);
+
+    let mut derived_key = [0u8; 32];
+    let mut hasher = Sha256::new();
+    hasher.update(b"axagent-backup-key-derivation-v1");
+    hasher.update(b"axagent-backup-encryption");
+    derived_key.copy_from_slice(&hasher.finalize());
+
+    let cipher = Aes256Gcm::new_from_slice(&derived_key)
+        .map_err(|e| AxAgentError::Crypto(format!("v1 decrypt cipher init failed: {e}")))?;
+
+    let key_data = cipher
+        .decrypt(nonce, ciphertext)
+        .map_err(|e| AxAgentError::Crypto(format!("v1 backup key decryption failed: {e}")))?;
+
+    // Re-encrypt with v2 (Argon2id)
+    let upgraded = encrypt_backup_key(&key_data)?;
+
+    tracing::info!("备份密钥已成功升级到 v2 格式（{} → {} bytes）", enc_data.len(), upgraded.len());
+    Ok(upgraded)
+}
+
 pub fn generate_gateway_key() -> String {
     let mut bytes = [0u8; 32];
     OsRng.fill_bytes(&mut bytes);
     format!("aq-{}", hex::encode(bytes))
+}
+
+/// 从机器指纹派生前端 secure storage 的 AES-256 主密钥。
+/// 密钥与机器绑定，用于 encrypt_key/decrypt_key 保护 localStorage 中的敏感数据。
+pub fn derive_storage_master_key() -> [u8; 32] {
+    let fingerprint = get_machine_fingerprint();
+    let seed = format!("axagent-storage-key-v2:{}:storage-encryption", fingerprint);
+    let hash = sha256_hash(&seed);
+    let mut key = [0u8; 32];
+    let decoded = hex::decode(&hash).unwrap_or_else(|_| vec![0u8; 32]);
+    let len = decoded.len().min(32);
+    key[..len].copy_from_slice(&decoded[..len]);
+    key
 }

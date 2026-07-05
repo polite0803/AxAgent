@@ -12,6 +12,7 @@ use axagent_harness::workflow_types::WorkflowNode;
 use rhai::Engine;
 use serde_json::Value;
 use std::collections::HashMap;
+use std::sync::OnceLock;
 
 use crate::work_engine::execution_state::ExecutionState;
 use crate::work_engine::node_executor_trait::{
@@ -32,6 +33,46 @@ impl Default for CodeExecutor {
     }
 }
 
+/// 共享 Rhai Engine 单例（池化 + 复用），避免每次执行重复分配与初始化。
+fn shared_rhai_engine() -> &'static Engine {
+    static ENGINE: OnceLock<Engine> = OnceLock::new();
+    ENGINE.get_or_init(|| {
+        let mut engine = Engine::new();
+        // SECURITY (C4): Rhai 沙箱限制 — 防 DoS
+        engine.set_max_operations(200_000);
+        engine.set_max_call_levels(32);
+        engine.set_max_modules(0);
+        engine.set_max_string_size(2_000_000);
+        engine.set_max_array_size(50_000);
+        engine.set_max_expr_depths(1024, 1024);
+        engine.register_fn("clamp", |value: f64, min: f64, max: f64| -> f64 {
+            if value < min {
+                min
+            } else if value > max {
+                max
+            } else {
+                value
+            }
+        });
+        engine.register_fn("join", |arr: rhai::Array, sep: &str| -> String {
+            arr.iter()
+                .map(|item| item.to_string())
+                .collect::<Vec<_>>()
+                .join(sep)
+        });
+        engine.register_fn("json_parse", |s: &str| -> rhai::Dynamic {
+            match serde_json::from_str::<serde_json::Value>(s) {
+                Ok(v) => json_value_to_dynamic(&v),
+                Err(e) => {
+                    tracing::warn!("[code_executor] json_parse 失败: {e}");
+                    rhai::Dynamic::UNIT
+                },
+            }
+        });
+        engine
+    })
+}
+
 /// 执行 Rhai 脚本的 in-process 引擎。
 /// 通过 `input_mapping` 从 context.variables 读取注入值为数字/字符串，
 /// 并通过 Rhai 的 `Scope` 传递给脚本，执行后收集结果构造 JSON 输出。
@@ -44,47 +85,6 @@ async fn execute_rhai_directly(
     input_mapping: &std::collections::HashMap<String, String>,
     context: &ExecutionState,
 ) -> Result<(serde_json::Value, serde_json::Value), NodeError> {
-    let mut engine = Engine::new();
-    // SECURITY (C4): Rhai 沙箱限制 — 防 DoS
-    engine.set_max_operations(200_000);
-    engine.set_max_call_levels(32);
-    engine.set_max_modules(0);
-    engine.set_max_string_size(2_000_000);
-    engine.set_max_array_size(50_000);
-    // 提升表达式复杂度上限：瓶颈计算脚本有复杂嵌套 map + 大量条件判断链
-    // 默认 max_expr_depths(128,128) 在某些 Rhai 版本中对长 if 链 + map 字面量不够
-    engine.set_max_expr_depths(1024, 1024);
-    // Rhai 无内建 clamp，portfolio-mgr.rhai 等脚本依赖
-    engine.register_fn("clamp", |value: f64, min: f64, max: f64| -> f64 {
-        if value < min {
-            min
-        } else if value > max {
-            max
-        } else {
-            value
-        }
-    });
-    // Rhai 原生 Array 无 join 方法，portfolio-mgr.rhai 中 data_gaps.join(", ") 依赖此函数
-    engine.register_fn("join", |arr: rhai::Array, sep: &str| -> String {
-        arr.iter()
-            .map(|item| item.to_string())
-            .collect::<Vec<_>>()
-            .join(sep)
-    });
-    // V48: JSON 字符串解析 — bottleneck-calc.rhai 需要解析 Agent tool_call 输出中的
-    // 嵌套 JSON（如 arguments.content 是 JSON 字符串），Rhai 原生不支持 JSON 解析。
-    engine.register_fn("json_parse", |s: &str| -> rhai::Dynamic {
-        match serde_json::from_str::<serde_json::Value>(s) {
-            Ok(v) => json_value_to_dynamic(&v),
-            Err(e) => {
-                tracing::warn!(
-                    "[code_executor] json_parse 失败: {e}, input={}",
-                    &s[..s.len().min(200)]
-                );
-                rhai::Dynamic::UNIT
-            },
-        }
-    });
     let mut input_params_snapshot = serde_json::Map::new();
 
     // V49 诊断：input_mapping 是否为空（空则所有变量丢失）
@@ -131,40 +131,7 @@ async fn execute_rhai_directly(
     // scope_vars 已从 input_mapping 直接构建为 HashMap，避免 Rhai Scope 的 Send 限制。
     let code_owned = code.to_string();
     let join = tokio::task::spawn_blocking(move || {
-        let mut engine = Engine::new();
-        engine.set_max_operations(200_000);
-        engine.set_max_call_levels(32);
-        engine.set_max_modules(0);
-        engine.set_max_string_size(2_000_000);
-        engine.set_max_array_size(50_000);
-        engine.set_max_expr_depths(1024, 1024);
-        engine.register_fn("clamp", |value: f64, min: f64, max: f64| -> f64 {
-            if value < min {
-                min
-            } else if value > max {
-                max
-            } else {
-                value
-            }
-        });
-        engine.register_fn("join", |arr: rhai::Array, sep: &str| -> String {
-            arr.iter()
-                .map(|item| item.to_string())
-                .collect::<Vec<_>>()
-                .join(sep)
-        });
-        engine.register_fn("json_parse", |s: &str| -> rhai::Dynamic {
-            match serde_json::from_str::<serde_json::Value>(s) {
-                Ok(v) => json_value_to_dynamic(&v),
-                Err(e) => {
-                    tracing::warn!(
-                        "[code_executor] json_parse 失败: {e}, input={}",
-                        &s[..s.len().min(200)]
-                    );
-                    rhai::Dynamic::UNIT
-                },
-            }
-        });
+        let engine = shared_rhai_engine();
         let mut scope = rhai::Scope::new();
         for (k, v) in scope_vars {
             scope.push_constant(k, v);

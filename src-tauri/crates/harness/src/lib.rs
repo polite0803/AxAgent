@@ -100,12 +100,26 @@ pub use search_sources::{
     DocumentParser, KnowledgeSource, MemorySource, SettingsSource, WikiSource,
 };
 
+// ── Marketplace 契约（让 gateway / kit 不依赖 dao / entities） ──
+pub mod marketplace;
+pub use marketplace::{
+    CreateReviewRequest, MarketplaceService, MarketplaceStats, ReviewResponse, UpdateReviewRequest,
+};
+
 // ── Gateway 平台层 trait（让 gateway crate 不依赖 dao / crypto） ──
 pub mod platform_adapter;
 pub use platform_adapter::{
     CryptoService, GatewayKeyRepository, GatewayRequestLogRepository, PlatformAdapter,
     ProviderRepository, SettingsRepository,
 };
+
+// ── 路径编解码 trait（让 dao crate 不依赖 storage） ──
+pub mod path_vars;
+pub use path_vars::PathEncoder;
+
+// ── MCP 共享类型（让 dao crate 不依赖 mcp） ──
+pub mod mcp_types;
+pub use mcp_types::DiscoveredTool;
 
 pub mod trajectory_types;
 

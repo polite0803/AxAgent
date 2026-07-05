@@ -7,6 +7,21 @@
 //! absolute paths when reading.  This allows backups and WebDAV syncs to be restored on
 //! a different machine without hard-coded user paths breaking.
 
+use axagent_harness::path_vars::PathEncoder;
+
+/// Default implementation of `PathEncoder` backed by `dirs`.
+pub struct DefaultPathEncoder;
+
+impl PathEncoder for DefaultPathEncoder {
+    fn encode_path(&self, absolute_path: &str) -> String {
+        encode_path(absolute_path)
+    }
+
+    fn decode_path(&self, encoded_path: &str) -> String {
+        decode_path(encoded_path)
+    }
+}
+
 const VAR_AX_AGENT_HOME: &str = "{{AxAgent_HOME}}";
 const VAR_DOCUMENTS: &str = "{{DOCUMENTS}}";
 const VAR_HOME: &str = "{{HOME}}";

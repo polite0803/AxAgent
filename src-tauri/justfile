@@ -1,0 +1,45 @@
+# AxAgent CI / development shortcuts
+# Requires: https://github.com/casey/just
+
+_default:
+    @just --list
+
+# Build in debug mode
+build:
+    cargo build --workspace
+
+# Build in release mode
+release:
+    cargo build --workspace --release
+
+# Run all unit tests
+test:
+    cargo test --workspace
+
+# Check compilation (fast, no codegen)
+check:
+    cargo check --workspace
+
+# Run clippy with default settings
+clippy:
+    cargo clippy --workspace -- -D warnings
+
+# Run clippy and auto-fix suggestions
+clippy-fix:
+    cargo clippy --fix --allow-dirty --allow-staged --workspace
+
+# Format all code
+fmt:
+    cargo fmt --all -- --check
+
+# Auto-format all code
+fmt-fix:
+    cargo fmt --all
+
+# Full CI pipeline (check + test + clippy + fmt)
+ci: check test clippy fmt
+    @echo "CI pipeline passed"
+
+# Clean build artifacts
+clean:
+    cargo clean

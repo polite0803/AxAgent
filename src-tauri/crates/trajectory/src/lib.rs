@@ -35,7 +35,6 @@ mod fts5;
 mod insight;
 mod intrinsic_reward;
 mod memory;
-mod memory_provider;
 mod memory_providers;
 mod nudge;
 mod parallel_execution;
@@ -124,11 +123,6 @@ pub use memory_providers::closed_loop::{
 pub use memory_providers::entity::{Entity, EntityType, Relationship, RelationshipType};
 pub use memory_providers::service::{
     AddMemoryRequest, MemoryNature, MemoryProvenance, MemoryService, MemoryTier,
-};
-
-pub use memory_provider::{
-    MemoryEntry, MemoryProvider, MemoryProviderRegistry, MemoryQuery, MemoryQueryResult,
-    MemoryType as MemoryProviderType,
 };
 
 pub use nudge::{NudgeAction, NudgeCandidate, NudgeContext, NudgeEntity, NudgeService, Urgency};

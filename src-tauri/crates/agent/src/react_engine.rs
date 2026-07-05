@@ -713,6 +713,7 @@ impl ReActEngine {
         self.event_sender.subscribe()
     }
 
+    #[tracing::instrument(skip(self, user_input))]
     pub async fn run(&mut self, user_input: &str) -> ReActResult {
         let start = std::time::Instant::now();
         let mut chain = ThoughtChain::new();

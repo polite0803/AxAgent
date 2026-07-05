@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 //! Subprocess 包装 helper —— `safe_spawn` 统一 setsid。
 //!
 //! ## 背景（P1-3.7）

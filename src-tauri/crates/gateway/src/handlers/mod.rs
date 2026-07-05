@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 //! HTTP handlers for the Axum gateway, split by endpoint family.
 //!
 //! ## Layout

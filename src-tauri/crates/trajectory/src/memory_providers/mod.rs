@@ -2,6 +2,4 @@
 
 pub mod closed_loop;
 pub mod entity;
-pub mod honcho_provider;
-pub mod mem0_provider;
 pub mod service;

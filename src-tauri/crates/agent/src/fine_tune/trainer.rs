@@ -1175,7 +1175,7 @@ mod tests {
         let called = std::sync::Arc::new(std::sync::Mutex::new(false));
         let called_clone = called.clone();
         trainer.set_callback(Box::new(move |status| {
-            *called_clone.lock().unwrap() = true;
+            *called_clone.lock().expect("trainer lock") = true;
             if status.phase == TrainingPhase::Training {
                 assert!(status.loss > 0.0, "training loss should be positive");
             }
@@ -1184,6 +1184,9 @@ mod tests {
         let job =
             trainer.create_job("ds1".to_string(), "model1".to_string(), LoRAConfig::default());
         trainer.start_training(&job.id).unwrap();
-        assert!(*called.lock().unwrap(), "callback should have been called during training");
+        assert!(
+            *called.lock().expect("trainer lock"),
+            "callback should have been called during training"
+        );
     }
 }

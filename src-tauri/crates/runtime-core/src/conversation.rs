@@ -23,7 +23,7 @@ use crate::session::{ContentBlock, ConversationMessage, Session};
 use crate::usage::{TokenUsage, UsageTracker};
 
 const DEFAULT_AUTO_COMPACTION_INPUT_TOKENS_THRESHOLD: u32 = 100_000;
-const AUTO_COMPACTION_THRESHOLD_ENV_VAR: &str = "CLAUDE_CODE_AUTO_COMPACT_INPUT_TOKENS";
+const AUTO_COMPACTION_THRESHOLD_ENV_VAR: &str = "AXAGENT_AUTO_COMPACT_INPUT_TOKENS";
 
 pub struct PauseState {
     is_paused: Mutex<bool>,
@@ -418,6 +418,59 @@ where
         }
     }
 
+    /// Execute a tool on a dedicated thread with timeout enforcement.
+    ///
+    /// Spawns the tool execution on a separate OS thread so that
+    /// `recv_timeout` actually enforces the deadline. Uses
+    /// `block_in_place` to avoid starving the tokio runtime while
+    /// waiting on the channel.
+    ///
+    /// If `retry` is `Some(n)`, error messages include the retry
+    /// count suffix for differentiated logging.
+    fn execute_tool_threaded(
+        tool_executor: &Arc<Mutex<T>>,
+        tool_name: &str,
+        input: &str,
+        timeout: Duration,
+        retry: Option<u32>,
+    ) -> Result<String, RuntimeError> {
+        let (tx, rx) = std::sync::mpsc::channel();
+        let t_name = tool_name.to_string();
+        let t_input = input.to_string();
+        let t_executor = tool_executor.clone();
+        let t_timeout = timeout;
+        let rt_handle = tokio::runtime::Handle::try_current().ok();
+        std::thread::spawn(move || {
+            let _guard = rt_handle.as_ref().map(|h| h.enter());
+            let result = match t_executor.lock() {
+                Ok(mut ex) => ex.execute(&t_name, &t_input),
+                Err(e) => Err(ToolError::new(format!("Lock error: {}", e))),
+            };
+            let _ = tx.send(result);
+        });
+        let scope_result = tokio::task::block_in_place(|| rx.recv_timeout(t_timeout));
+        match scope_result {
+            Ok(Ok(output)) => Ok(output),
+            Ok(Err(tool_err)) => Err(RuntimeError::new(tool_err.to_string())),
+            Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {
+                Err(RuntimeError::new(match retry {
+                    Some(n) => {
+                        format!("Tool '{}' timed out after {:?} (retry {})", tool_name, timeout, n)
+                    },
+                    None => format!("Tool '{}' timed out after {:?}", tool_name, timeout),
+                }))
+            },
+            Err(std::sync::mpsc::RecvTimeoutError::Disconnected) => {
+                Err(RuntimeError::new(match retry {
+                    Some(n) => format!("Tool '{}' retry {} thread panicked", tool_name, n),
+                    None => {
+                        format!("Tool '{}' execution thread panicked (disconnected)", tool_name)
+                    },
+                }))
+            },
+        }
+    }
+
     #[allow(clippy::too_many_lines)] // Complex agent loop with cancel/pause/compaction hooks; splitting would obscure control flow
     pub fn run_turn(
         &mut self,
@@ -715,53 +768,13 @@ where
                         let tool_timeout = Self::tool_timeout_for(&tool_name);
 
                         let (mut output, mut is_error) = {
-                            // Spawn tool execution on a dedicated thread so
-                            // `recv_timeout` actually enforces the timeout.
-                            // Previously execute() ran on the current thread
-                            // and the channel was populated *before* the
-                            // receive, making the timeout a no-op.
-                            let (tx, rx) = std::sync::mpsc::channel();
-                            let t_name = tool_name.clone();
-                            let t_input = effective_input.clone();
-                            let t_executor = self.tool_executor.clone();
-                            let t_timeout = tool_timeout;
-                            // Capture the Tokio runtime handle so the spawned
-                            // thread can enter the runtime context — some tool
-                            // executors (UnifiedToolRegistry) require a Tokio
-                            // runtime to run async tool implementations.
-                            // StaticToolExecutor and other sync-only executors
-                            // work without one, so try_current() is used.
-                            let rt_handle: Option<tokio::runtime::Handle> =
-                                tokio::runtime::Handle::try_current().ok();
-                            std::thread::spawn(move || {
-                                let _guard = rt_handle.as_ref().map(|h| h.enter());
-                                let result = match t_executor.lock() {
-                                    Ok(mut ex) => ex.execute(&t_name, &t_input),
-                                    Err(e) => Err(ToolError::new(format!("Lock error: {}", e))),
-                                };
-                                let _ = tx.send(result);
-                            });
-                            let scope_result: Result<
-                                Result<String, ToolError>,
-                                std::sync::mpsc::RecvTimeoutError,
-                            > = tokio::task::block_in_place(|| rx.recv_timeout(t_timeout));
-
-                            let first_result: Result<String, RuntimeError> = match scope_result {
-                                Ok(Ok(output)) => Ok(output),
-                                Ok(Err(tool_err)) => Err(RuntimeError::new(tool_err.to_string())),
-                                Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {
-                                    Err(RuntimeError::new(format!(
-                                        "Tool '{}' timed out after {:?}",
-                                        tool_name, tool_timeout
-                                    )))
-                                },
-                                Err(std::sync::mpsc::RecvTimeoutError::Disconnected) => {
-                                    Err(RuntimeError::new(format!(
-                                        "Tool '{}' execution thread panicked (disconnected)",
-                                        tool_name
-                                    )))
-                                },
-                            };
+                            let first_result = Self::execute_tool_threaded(
+                                &self.tool_executor,
+                                &tool_name,
+                                &effective_input,
+                                tool_timeout,
+                                None,
+                            );
                             match first_result {
                                 Ok(output) => (output, false),
                                 Err(error) => {
@@ -813,47 +826,13 @@ where
                                                     self.max_iterations,
                                                 );
                                             }
-                                            // Retry with same timeout enforcement —
-                                            // spawn on a dedicated thread so the
-                                            // timeout actually applies.
-                                            let (retry_tx, retry_rx) = std::sync::mpsc::channel();
-                                            let rt_name = tool_name.clone();
-                                            let rt_input = effective_input.clone();
-                                            let rt_executor = self.tool_executor.clone();
-                                            let rt_timeout = tool_timeout;
-                                            let rt_handle: Option<tokio::runtime::Handle> =
-                                                tokio::runtime::Handle::try_current().ok();
-                                            std::thread::spawn(move || {
-                                                let _guard = rt_handle.as_ref().map(|h| h.enter());
-                                                let result = match rt_executor.lock() {
-                                                    Ok(mut ex) => ex.execute(&rt_name, &rt_input),
-                                                    Err(e) => Err(ToolError::new(format!(
-                                                        "Lock error: {}",
-                                                        e
-                                                    ))),
-                                                };
-                                                let _ = retry_tx.send(result);
-                                            });
-                                            let retry_scope_result: Result<
-                                                Result<String, ToolError>,
-                                                std::sync::mpsc::RecvTimeoutError,
-                                            > = tokio::task::block_in_place(|| {
-                                                retry_rx.recv_timeout(rt_timeout)
-                                            });
-                                            let retry_result: Result<String, RuntimeError> = match retry_scope_result {
-                                                Ok(Ok(output)) => Ok(output),
-                                                Ok(Err(tool_err)) => Err(RuntimeError::new(tool_err.to_string())),
-                                                Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {
-                                                    Err(RuntimeError::new(
-                                                        format!("Tool '{}' timed out after {:?} (retry {})", tool_name, tool_timeout, retry_count)
-                                                    ))
-                                                }
-                                                Err(std::sync::mpsc::RecvTimeoutError::Disconnected) => {
-                                                    Err(RuntimeError::new(
-                                                        format!("Tool '{}' retry {} thread panicked", tool_name, retry_count)
-                                                    ))
-                                                }
-                                            };
+                                            let retry_result = Self::execute_tool_threaded(
+                                                &self.tool_executor,
+                                                &tool_name,
+                                                &effective_input,
+                                                tool_timeout,
+                                                Some(retry_count),
+                                            );
                                             match retry_result {
                                                 Ok(output) => break (output, false),
                                                 Err(retry_err) => {
@@ -1108,7 +1087,10 @@ where
             "subprocess",
             "spawn",
         ];
-        if EXECUTE_PATTERNS.iter().any(|p| name_lower.contains(p)) {
+        if EXECUTE_PATTERNS
+            .iter()
+            .any(|p| Self::match_tool_pattern(&name_lower, p))
+        {
             return std::time::Duration::from_secs(300);
         }
 
@@ -1117,7 +1099,10 @@ where
             "write", "edit", "create", "delete", "remove", "move", "rename", "patch", "mkdir",
             "save", "put", "post", "upload", "install",
         ];
-        if WRITE_PATTERNS.iter().any(|p| name_lower.contains(p)) {
+        if WRITE_PATTERNS
+            .iter()
+            .any(|p| Self::match_tool_pattern(&name_lower, p))
+        {
             return std::time::Duration::from_secs(120);
         }
 
@@ -1126,7 +1111,10 @@ where
             "search", "query", "find", "rag", "vector", "web", "fetch", "http", "request", "api",
             "crawl",
         ];
-        if SEARCH_PATTERNS.iter().any(|p| name_lower.contains(p)) {
+        if SEARCH_PATTERNS
+            .iter()
+            .any(|p| Self::match_tool_pattern(&name_lower, p))
+        {
             return std::time::Duration::from_secs(60);
         }
 
@@ -1135,12 +1123,54 @@ where
             "read", "list", "get", "grep", "glob", "head", "cat", "stat", "ls", "dir", "type",
             "peek", "view",
         ];
-        if READ_PATTERNS.iter().any(|p| name_lower.contains(p)) {
+        if READ_PATTERNS
+            .iter()
+            .any(|p| Self::match_tool_pattern(&name_lower, p))
+        {
             return std::time::Duration::from_secs(30);
         }
 
         // Default timeout
         std::time::Duration::from_secs(60)
+    }
+
+    /// 边界感知的工具名模式匹配，防止子串误匹配。
+    ///
+    /// 匹配规则（按优先级）：
+    /// 1. 完整相等（如 `"bash"` 匹配 `"bash"`）
+    /// 2. 前缀 + 分隔符（如 `"bash"` 匹配 `"bash_shell"`, `"bash-run"`）
+    /// 3. 后缀 + 分隔符（如 `"bash"` 匹配 `"my_bash"`, `"run-bash"`）
+    ///
+    /// 子串匹配（如 `"edit"` 匹配 `"credit_check"`）返回 false。
+    /// 不区分大小写。
+    fn match_tool_pattern(tool_name_lower: &str, pattern: &str) -> bool {
+        if tool_name_lower == pattern {
+            return true;
+        }
+        let n = tool_name_lower.len();
+        let p = pattern.len();
+        if p > n {
+            return false;
+        }
+        // Prefix match: pattern at start, followed by word boundary char
+        if tool_name_lower.starts_with(pattern)
+            && tool_name_lower
+                .as_bytes()
+                .get(p)
+                .is_some_and(|&ch| matches!(ch, b'_' | b'-' | b'.' | b'/' | b':' | b' '))
+        {
+            return true;
+        }
+        // Suffix match: pattern at end, preceded by word boundary char
+        if tool_name_lower.ends_with(pattern)
+            && tool_name_lower
+                .as_bytes()
+                .get(n - p - 1)
+                .is_some_and(|&ch| matches!(ch, b'_' | b'-' | b'.' | b'/' | b':' | b' '))
+        {
+            return true;
+        }
+        false
     }
 
     fn record_tool_finished(&self, iteration: usize, result_message: &ConversationMessage) {

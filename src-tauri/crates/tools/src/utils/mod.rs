@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 //! 工具模块
 //!
 //! 当前包含：subprocess 包装（safe_spawn）。

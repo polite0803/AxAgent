@@ -109,6 +109,36 @@ impl CryptoService for EmptyCryptoService {
     fn decrypt_key(&self, _encrypted: &str) -> Result<String> {
         Err(AxAgentError::Crypto("test stub".into()))
     }
+    fn encrypt_key(&self, _plaintext: &str) -> Result<String> {
+        Err(AxAgentError::Crypto("test stub".into()))
+    }
+    fn decrypt_key_with(&self, _encrypted: &str, _master_key: &[u8; 32]) -> Result<String> {
+        Err(AxAgentError::Crypto("test stub".into()))
+    }
+    fn encrypt_key_with(&self, _plaintext: &str, _master_key: &[u8; 32]) -> Result<String> {
+        Err(AxAgentError::Crypto("test stub".into()))
+    }
+    fn hmac_sha256(&self, _key: &[u8], _msg: &str) -> String {
+        String::new()
+    }
+    fn sha256_hash(&self, _input: &str) -> String {
+        String::new()
+    }
+    fn key_prefix(&self, _key: &str) -> String {
+        String::new()
+    }
+    fn generate_gateway_key(&self) -> String {
+        String::new()
+    }
+    fn generate_master_key(&self) -> [u8; 32] {
+        [0u8; 32]
+    }
+    fn encrypt_backup_key(&self, _key_data: &[u8]) -> Result<Vec<u8>> {
+        Err(AxAgentError::Crypto("test stub".into()))
+    }
+    fn decrypt_backup_key(&self, _enc_data: &[u8]) -> Result<Vec<u8>> {
+        Err(AxAgentError::Crypto("test stub".into()))
+    }
 }
 
 struct EmptyPlatformAdapter;
@@ -133,4 +163,73 @@ impl PlatformAdapter for EmptyPlatformAdapter {
 /// 工厂：构造一个 `Arc<dyn PlatformAdapter>` 测试替身（所有方法返回空 / 错误）
 pub fn empty_platform_adapter() -> Arc<dyn PlatformAdapter> {
     Arc::new(EmptyPlatformAdapter)
+}
+
+// ── MarketplaceService 测试替身 ──
+
+use crate::marketplace::{
+    CreateReviewRequest, MarketplaceService, MarketplaceStats, ReviewResponse, UpdateReviewRequest,
+};
+use sea_orm::DatabaseConnection;
+
+struct EmptyMarketplaceService;
+
+#[async_trait::async_trait]
+impl MarketplaceService for EmptyMarketplaceService {
+    async fn create_review(
+        &self,
+        _db: &DatabaseConnection,
+        _req: CreateReviewRequest,
+    ) -> std::result::Result<ReviewResponse, String> {
+        Err("test stub".into())
+    }
+    async fn get_reviews(
+        &self,
+        _db: &DatabaseConnection,
+        _marketplace_id: &str,
+    ) -> std::result::Result<Vec<ReviewResponse>, String> {
+        Err("test stub".into())
+    }
+    async fn get_user_review(
+        &self,
+        _db: &DatabaseConnection,
+        _marketplace_id: &str,
+        _user_id: &str,
+    ) -> std::result::Result<Option<ReviewResponse>, String> {
+        Err("test stub".into())
+    }
+    async fn update_review(
+        &self,
+        _db: &DatabaseConnection,
+        _review_id: &str,
+        _req: UpdateReviewRequest,
+    ) -> std::result::Result<ReviewResponse, String> {
+        Err("test stub".into())
+    }
+    async fn delete_review(
+        &self,
+        _db: &DatabaseConnection,
+        _review_id: &str,
+    ) -> std::result::Result<(), String> {
+        Err("test stub".into())
+    }
+    async fn get_stats(
+        &self,
+        _db: &DatabaseConnection,
+        _marketplace_id: &str,
+    ) -> std::result::Result<MarketplaceStats, String> {
+        Err("test stub".into())
+    }
+    async fn get_marketplace_id_for_review(
+        &self,
+        _db: &DatabaseConnection,
+        _review_id: &str,
+    ) -> std::result::Result<String, String> {
+        Err("test stub".into())
+    }
+}
+
+/// 工厂：构造一个 `Arc<dyn MarketplaceService>` 测试替身（所有方法返回错误）
+pub fn empty_marketplace_service() -> Arc<dyn MarketplaceService> {
+    Arc::new(EmptyMarketplaceService)
 }

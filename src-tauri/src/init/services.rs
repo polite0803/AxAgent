@@ -97,7 +97,12 @@ fn start_auto_backup(_app: &tauri::AppHandle, state: &AppState, app_dir: std::pa
                 let app_dir2 = app_data.clone();
                 let shutdown_token = shutdown_token.clone();
 
-                let initial_delay_secs = match axagent_core::repo::backup::list_backups(&db).await {
+                let initial_delay_secs = match axagent_core::repo::backup::list_backups(
+                    &db,
+                    &axagent_storage::DefaultPathEncoder,
+                )
+                .await
+                {
                     Ok(backups) if !backups.is_empty() => {
                         let last_ts = &backups[0].created_at;
                         if let Ok(last_time) =
@@ -131,14 +136,14 @@ fn start_auto_backup(_app: &tauri::AppHandle, state: &AppState, app_dir: std::pa
                                     &app_dir2,
                                 );
                                 if let Err(e) =
-                                    axagent_core::repo::backup::create_backup(&db2, "sqlite", &backup_dir)
+                                    axagent_core::repo::backup::create_backup(&db2, "sqlite", &backup_dir, &axagent_storage::DefaultPathEncoder)
                                         .await
                                 {
                                     tracing::warn!("Auto-backup failed: {}", e);
                                 } else {
                                     tracing::info!("Auto-backup created");
                                     let _ =
-                                        axagent_core::repo::backup::cleanup_old_backups(&db2, max_count)
+                                        axagent_core::repo::backup::cleanup_old_backups(&db2, max_count, &axagent_storage::DefaultPathEncoder)
                                             .await;
                                 }
                             }
@@ -1137,7 +1142,7 @@ fn start_cron_scheduler(state: &AppState) {
                 Box::pin(async move {
                     let reg = registry.lock().await;
                     let known = reg.list_all_tool_names().contains(&tool_name)
-                        || reg.mcp_tools.contains_key(&tool_name);
+                        || reg.mcp.mcp_tools.contains_key(&tool_name);
                     if known {
                         let registry = registry.clone();
                         let cb: axagent_runtime::work_engine::ToolCallback =
@@ -1189,9 +1194,8 @@ fn start_cron_scheduler(state: &AppState) {
                     }
                 })
             });
-        let rt = tokio::runtime::Runtime::new()
-            .expect("Failed to create tokio runtime for tool resolver");
-        rt.block_on(state.work_engine.set_tool_resolver(resolver));
+        let handle = tokio::runtime::Handle::current();
+        handle.block_on(state.work_engine.set_tool_resolver(resolver));
     }
 
     // 设置 RAG 知识源检索回调（供工作流 Agent 节点从知识库/记忆/Wiki 检索上下文）
@@ -1224,9 +1228,8 @@ fn start_cron_scheduler(state: &AppState) {
                 })
             },
         );
-        let rt = tokio::runtime::Runtime::new()
-            .expect("Failed to create tokio runtime for RAG callback");
-        rt.block_on(state.work_engine.set_rag_callback(rag_callback));
+        let handle = tokio::runtime::Handle::current();
+        handle.block_on(state.work_engine.set_rag_callback(rag_callback));
     }
 
     let work_engine = state.work_engine.clone();

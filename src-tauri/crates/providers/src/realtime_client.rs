@@ -150,16 +150,19 @@ impl RealtimeClient {
             *state = RealtimeConnectionState::Connecting;
         }
 
+        // NOTE: OpenAI Realtime API 要求通过 URL query 传递 API Key 进行 WebSocket 认证。
+        // 这是 API 设计约束，无法改用 Header。通过 redact 函数保护错误/日志中的 URL。
         let url = if let Some(ref api_key) = self.config.api_key {
             format!("{}?api_key={}", self.config.url, api_key)
         } else {
             self.config.url.clone()
         };
+        let safe_url = crate::redact_api_key_from_url(&url);
 
         let (ws_stream, _) = timeout(self.config.connect_timeout, connect_async(&url))
             .await
             .map_err(|_| RealtimeClientError::ConnectTimeout)?
-            .map_err(|e| RealtimeClientError::ConnectionFailed(e.to_string()))?;
+            .map_err(|e| RealtimeClientError::ConnectionFailed(format!("{safe_url}: {e}")))?;
 
         let (mut write, mut read) = ws_stream.split();
 

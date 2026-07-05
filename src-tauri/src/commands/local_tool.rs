@@ -102,7 +102,7 @@ pub async fn list_local_tools(
 ) -> Result<Vec<LocalToolGroupInfo>, String> {
     let mut registry = state.local_tool_registry.lock().await;
     registry.load_enabled_state(state.harness.db()).await;
-    let disabled = registry.disabled_tools.clone();
+    let disabled = registry.groups.disabled_tools.clone();
     Ok(registry
         .get_tool_groups()
         .into_iter()
@@ -124,7 +124,7 @@ pub async fn toggle_local_tool_group(
         .await
         .map_err(|e| e.to_string())?;
 
-    let disabled = registry.disabled_tools.clone();
+    let disabled = registry.groups.disabled_tools.clone();
     let groups = registry.get_tool_groups();
     let group = groups
         .into_iter()
@@ -147,7 +147,7 @@ pub async fn toggle_single_tool(
         .await
         .map_err(|e| e.to_string())?;
 
-    let disabled = registry.disabled_tools.clone();
+    let disabled = registry.groups.disabled_tools.clone();
     Ok(registry
         .get_tool_groups()
         .into_iter()

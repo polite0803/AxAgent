@@ -196,6 +196,7 @@ impl TaskExecutor {
         Ok(graph)
     }
 
+    #[tracing::instrument(skip(self))]
     pub async fn execute(&self) -> Result<TaskGraph, ExecutionError> {
         let graph_guard = self.graph.read().await;
         let mut graph = graph_guard.clone().ok_or(ExecutionError::NotPrepared)?;
@@ -386,6 +387,7 @@ impl TaskExecutor {
         }
     }
 
+    #[tracing::instrument(skip(self))]
     pub async fn execute_with_groups(&self) -> Result<TaskGraph, ExecutionError> {
         self.execute().await
     }

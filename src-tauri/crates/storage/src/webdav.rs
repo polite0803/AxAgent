@@ -12,6 +12,7 @@ use std::sync::Mutex;
 use zip::write::SimpleFileOptions;
 
 use axagent_harness::core_error::{AxAgentError, Result};
+use axagent_harness::platform_adapter::CryptoService;
 use axagent_harness::util_fns::current_rfc3339;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -526,6 +527,7 @@ pub fn create_backup_zip(
     dest_zip: &Path,
     app_version: &str,
     object_counts_json: &str,
+    crypto: &dyn CryptoService,
 ) -> Result<()> {
     let file = std::fs::File::create(dest_zip)
         .map_err(|e| AxAgentError::Gateway(format!("Failed to create ZIP file: {}", e)))?;
@@ -566,7 +568,8 @@ pub fn create_backup_zip(
     {
         let key_data = std::fs::read(key_path)
             .map_err(|e| AxAgentError::Gateway(format!("Failed to read master.key: {}", e)))?;
-        let encrypted_key = axagent_crypto::crypto::encrypt_backup_key(&key_data)
+        let encrypted_key = crypto
+            .encrypt_backup_key(&key_data)
             .map_err(|e| AxAgentError::Gateway(format!("Failed to encrypt backup key: {}", e)))?;
         zip.start_file("master.key.enc", options)
             .map_err(|e| AxAgentError::Gateway(format!("ZIP error: {}", e)))?;
@@ -591,7 +594,11 @@ pub fn create_backup_zip(
     Ok(())
 }
 
-pub fn extract_backup_zip(zip_path: &Path, dest_dir: &Path) -> Result<BackupZipContents> {
+pub fn extract_backup_zip(
+    zip_path: &Path,
+    dest_dir: &Path,
+    crypto: &dyn CryptoService,
+) -> Result<BackupZipContents> {
     let file = std::fs::File::open(zip_path)
         .map_err(|e| AxAgentError::Gateway(format!("Failed to open ZIP: {}", e)))?;
     let mut archive = zip::ZipArchive::new(file)
@@ -683,7 +690,7 @@ pub fn extract_backup_zip(zip_path: &Path, dest_dir: &Path) -> Result<BackupZipC
             entry.read_to_end(&mut enc_data).map_err(|e| {
                 AxAgentError::Gateway(format!("Failed to read master.key.enc: {}", e))
             })?;
-            let key_data = axagent_crypto::crypto::decrypt_backup_key(&enc_data).map_err(|e| {
+            let key_data = crypto.decrypt_backup_key(&enc_data).map_err(|e| {
                 AxAgentError::Gateway(format!("Failed to decrypt master.key: {}", e))
             })?;
             let path = dest_dir.join("master.key");
@@ -1099,18 +1106,18 @@ mod tests {
 
         let result = run_after_directory_ready(
             move || async move {
-                check_events.lock().unwrap().push("check");
+                check_events.lock().expect("webdav lock").push("check");
                 Ok(true)
             },
             move || async move {
-                action_events.lock().unwrap().push("action");
+                action_events.lock().expect("webdav lock").push("action");
                 Ok::<_, AxAgentError>("done")
             },
         )
         .await;
 
         assert!(matches!(result, Ok("done")));
-        assert_eq!(*events.lock().unwrap(), vec!["check", "action"]);
+        assert_eq!(*events.lock().expect("webdav lock"), vec!["check", "action"]);
     }
 
     #[tokio::test]
@@ -1121,18 +1128,18 @@ mod tests {
 
         let result: Result<&'static str> = run_after_directory_ready(
             move || async move {
-                check_events.lock().unwrap().push("check");
+                check_events.lock().expect("webdav lock").push("check");
                 Err(AxAgentError::Gateway("probe failed".into()))
             },
             move || async move {
-                action_events.lock().unwrap().push("action");
+                action_events.lock().expect("webdav lock").push("action");
                 Ok("done")
             },
         )
         .await;
 
         assert!(result.is_err(), "check failures must stop the action");
-        assert_eq!(*events.lock().unwrap(), vec!["check"]);
+        assert_eq!(*events.lock().expect("webdav lock"), vec!["check"]);
     }
 
     #[test]

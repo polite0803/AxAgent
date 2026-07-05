@@ -589,7 +589,7 @@ pub async fn list_tools_for_server(
 pub async fn save_tool_descriptors(
     db: &DatabaseConnection,
     server_id: &str,
-    tools: Vec<axagent_mcp::mcp_client::DiscoveredTool>,
+    tools: Vec<axagent_harness::mcp_types::DiscoveredTool>,
 ) -> Result<Vec<ToolDescriptor>> {
     // Delete existing tools for this server
     tool_descriptors::Entity::delete_many()

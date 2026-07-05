@@ -322,9 +322,12 @@ pub async fn list_files_page_entries(
             }
         },
         "backups" => {
-            let manifests = axagent_core::repo::backup::list_backups(state.harness.db())
-                .await
-                .map_err(|e| e.to_string())?;
+            let manifests = axagent_core::repo::backup::list_backups(
+                state.harness.db(),
+                &axagent_storage::DefaultPathEncoder,
+            )
+            .await
+            .map_err(|e| e.to_string())?;
             build_backup_entries(&manifests)
         },
         _ => return Err(format!("Unknown category: {}", category)),
@@ -369,11 +372,13 @@ pub async fn cleanup_missing_files_page_entry(
             )
             .await
         },
-        "backup_manifest" => {
-            axagent_core::repo::backup::delete_backup(state.harness.db(), record_id)
-                .await
-                .map_err(|e| e.to_string())
-        },
+        "backup_manifest" => axagent_core::repo::backup::delete_backup(
+            state.harness.db(),
+            record_id,
+            &axagent_storage::DefaultPathEncoder,
+        )
+        .await
+        .map_err(|e| e.to_string()),
         _ => Err(format!("Unknown source_kind: {}", source_kind)),
     }
 }

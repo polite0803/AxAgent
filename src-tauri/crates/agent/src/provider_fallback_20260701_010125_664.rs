@@ -192,7 +192,7 @@ impl ProviderFallbackEngine {
 
     /// 记录调用成功
     pub fn record_success(&self, provider_type: &str) {
-        let mut health_map = self.health.lock().unwrap();
+        let mut health_map = self.health.lock().expect("mutex lock poisoned");
         health_map
             .entry(provider_type.to_string())
             .or_insert_with(ProviderHealth::new)
@@ -201,7 +201,7 @@ impl ProviderFallbackEngine {
 
     /// 记录调用失败
     pub fn record_failure(&self, provider_type: &str) {
-        let mut health_map = self.health.lock().unwrap();
+        let mut health_map = self.health.lock().expect("mutex lock poisoned");
         health_map
             .entry(provider_type.to_string())
             .or_insert_with(ProviderHealth::new)
@@ -210,7 +210,7 @@ impl ProviderFallbackEngine {
 
     /// 检查 provider 是否健康
     pub fn is_healthy(&self, provider_type: &str) -> bool {
-        let health_map = self.health.lock().unwrap();
+        let health_map = self.health.lock().expect("mutex lock poisoned");
         match health_map.get(provider_type) {
             Some(h) => !h.is_unhealthy || h.can_retry(self.cooldown),
             None => true, // 未追踪 = 假设健康
@@ -219,7 +219,7 @@ impl ProviderFallbackEngine {
 
     /// 获取 provider 的错误率
     pub fn error_rate(&self, provider_type: &str) -> f64 {
-        let health_map = self.health.lock().unwrap();
+        let health_map = self.health.lock().expect("mutex lock poisoned");
         health_map
             .get(provider_type)
             .map(|h| h.recent_error_rate())
@@ -259,12 +259,12 @@ impl ProviderFallbackEngine {
 
     /// 获取所有 provider 的健康状态快照（用于调试/监控）
     pub fn health_snapshot(&self) -> HashMap<String, ProviderHealth> {
-        self.health.lock().unwrap().clone()
+        self.health.lock().expect("mutex lock poisoned").clone()
     }
 
     /// 重置所有健康状态
     pub fn reset_all(&self) {
-        let mut health_map = self.health.lock().unwrap();
+        let mut health_map = self.health.lock().expect("mutex lock poisoned");
         health_map.clear();
     }
 }

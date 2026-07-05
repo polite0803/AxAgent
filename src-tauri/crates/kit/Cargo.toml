@@ -6,7 +6,6 @@ publish = false
 
 [dependencies]
 anyhow = { workspace = true }
-axagent-dao = { path = "../dao" }
 axagent-harness = { path = "../harness" }
 base64 = "0.22"
 chrono = { workspace = true }

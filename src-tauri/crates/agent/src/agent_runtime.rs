@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use axagent_runtime_core::{
-    ApiClient, ConversationRuntime, PermissionMode, PermissionPolicy, Session, ToolExecutor,
+    ApiClient, ConversationRuntime, PermissionMode, PermissionPolicy, PermissionPrompter, Session,
+    ToolExecutor,
 };
 use tokio::sync::broadcast;
 
@@ -43,6 +44,7 @@ pub struct AgentRuntimeConfig {
     pub system_prompt: String,
     pub max_iterations: usize,
     pub timeout_secs: u64,
+    pub permission_prompter: Option<Box<dyn PermissionPrompter>>,
 }
 
 impl Default for AgentRuntimeConfig {
@@ -50,8 +52,9 @@ impl Default for AgentRuntimeConfig {
         Self {
             role: "executor".to_string(),
             system_prompt: String::new(),
-            max_iterations: 50,
+            max_iterations: axagent_harness::constants::DEFAULT_MAX_ITERATIONS,
             timeout_secs: 300,
+            permission_prompter: None,
         }
     }
 }
@@ -231,7 +234,16 @@ where
             preprocessed.modified_text
         };
 
-        let result = self.conversation_runtime.run_turn(&effective_input, None);
+        // Take ownership of the prompter so the reference doesn't borrow self.config
+        // while self.conversation_runtime is simultaneously borrowed by run_turn.
+        let mut prompter_box = self.config.permission_prompter.take();
+        let result = if let Some(ref mut p) = prompter_box {
+            self.conversation_runtime
+                .run_turn(&effective_input, Some(&mut **p))
+        } else {
+            self.conversation_runtime.run_turn(&effective_input, None)
+        };
+        self.config.permission_prompter = prompter_box;
 
         if let Some(ref mut proactive) = self.proactive {
             proactive.resume();

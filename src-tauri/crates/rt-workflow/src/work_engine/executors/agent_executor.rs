@@ -1260,20 +1260,24 @@ impl AgentExecutor {
             .iter()
             .map(|p| serde_json::to_value(p).unwrap_or_default())
             .collect();
-        lock_or_recover(planner_arc.lock())
-            .create_plan(&an.config.system_prompt, &phases_json)
-            .map_err(|e| {
-                NodeError::exec_failed(error_code::VALIDATION_FAILED, format!("Plan 创建失败: {e}"))
-            })?;
-
-        lock_or_recover(planner_arc.lock())
-            .start_execution()
-            .map_err(|e| {
+        // Bundle planner operations into a single lock scope to avoid TOCTOU
+        {
+            let mut planner = lock_or_recover(planner_arc.lock());
+            planner
+                .create_plan(&an.config.system_prompt, &phases_json)
+                .map_err(|e| {
+                    NodeError::exec_failed(
+                        error_code::VALIDATION_FAILED,
+                        format!("Plan 创建失败: {e}"),
+                    )
+                })?;
+            planner.start_execution().map_err(|e| {
                 NodeError::exec_failed(
                     error_code::UNSUPPORTED_PROVIDER,
                     format!("Plan validation: {e}"),
                 )
             })?;
+        }
 
         let phase_count = plan.phases.len();
         let task_count: u32 = plan.phases.iter().map(|p| p.tasks.len() as u32).sum();
@@ -1313,15 +1317,15 @@ impl AgentExecutor {
 
             match exec_result {
                 Ok((wf_result, _wf)) => {
-                    for (pi, phase) in current_plan.phases.iter().enumerate() {
-                        for (ti, task) in phase.tasks.iter().enumerate() {
-                            let key = format!("r_p{pi}_t{ti}_{}", task.id);
-                            if let Some(v) = wf_result.results.get(&key) {
-                                lock_or_recover(planner_arc.lock()).mark_task_completed(
-                                    pi,
-                                    ti,
-                                    v.clone(),
-                                );
+                    // Bundle all mark_task_completed calls into a single lock scope
+                    {
+                        let mut planner = lock_or_recover(planner_arc.lock());
+                        for (pi, phase) in current_plan.phases.iter().enumerate() {
+                            for (ti, task) in phase.tasks.iter().enumerate() {
+                                let key = format!("r_p{pi}_t{ti}_{}", task.id);
+                                if let Some(v) = wf_result.results.get(&key) {
+                                    planner.mark_task_completed(pi, ti, v.clone());
+                                }
                             }
                         }
                     }
@@ -1394,12 +1398,12 @@ impl AgentExecutor {
                         .request_replan("StepFailed", &[reason_json])
                     {
                         Ok(()) => {
-                            if let Some(p) = lock_or_recover(planner_arc.lock())
+                            // Re-read from the same planner lock scope
+                            current_plan = lock_or_recover(planner_arc.lock())
                                 .current_plan()
                                 .and_then(|v| serde_json::from_value::<Plan>(v).ok())
-                            {
-                                current_plan = p;
-                            } else {
+                                .unwrap_or_else(|| current_plan.clone());
+                            if current_plan.phases.is_empty() {
                                 break serde_json::json!({"error": "Replan produced no plan"});
                             }
                         },

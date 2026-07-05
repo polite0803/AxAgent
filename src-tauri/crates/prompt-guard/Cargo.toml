@@ -11,6 +11,7 @@ axagent-harness = { path = "../harness" }
 regex = "1"
 serde.workspace = true
 tracing.workspace = true
+unicode-normalization = "0.1"
 
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(mobile)'] }

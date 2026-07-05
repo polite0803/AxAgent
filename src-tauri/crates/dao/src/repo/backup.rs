@@ -6,11 +6,12 @@ use std::path::{Path, PathBuf};
 
 use axagent_entities::backup_manifests;
 use axagent_harness::core_error::{AxAgentError, Result};
+use axagent_harness::path_vars::PathEncoder;
 use axagent_harness::types::BackupManifest;
 use axagent_harness::util_fns::current_rfc3339;
 use axagent_harness::util_fns::gen_id;
 
-fn model_to_manifest(m: backup_manifests::Model) -> BackupManifest {
+fn model_to_manifest(m: backup_manifests::Model, encoder: &dyn PathEncoder) -> BackupManifest {
     BackupManifest {
         id: m.id,
         version: m.version,
@@ -19,10 +20,7 @@ fn model_to_manifest(m: backup_manifests::Model) -> BackupManifest {
         checksum: m.checksum,
         object_counts_json: m.object_counts_json,
         source_app_version: m.source_app_version,
-        file_path: m
-            .file_path
-            .as_ref()
-            .map(|p| axagent_storage::path_vars::decode_path(p)),
+        file_path: m.file_path.as_ref().map(|p| encoder.decode_path(p)),
         file_size: m.file_size,
     }
 }
@@ -48,6 +46,7 @@ pub async fn create_backup(
     db: &DatabaseConnection,
     format: &str,
     backup_dir: &Path,
+    encoder: &dyn PathEncoder,
 ) -> Result<BackupManifest> {
     ensure_backup_dir(backup_dir)?;
 
@@ -84,14 +83,14 @@ pub async fn create_backup(
         checksum: Set(checksum),
         object_counts_json: Set(object_counts),
         source_app_version: Set(env!("CARGO_PKG_VERSION").to_string()),
-        file_path: Set(Some(axagent_storage::path_vars::encode_path(&file_path.to_string_lossy()))),
+        file_path: Set(Some(encoder.encode_path(&file_path.to_string_lossy()))),
         file_size: Set(file_size),
         ..Default::default()
     };
 
     am.insert(db).await?;
 
-    get_backup(db, &id).await
+    get_backup(db, &id, encoder).await
 }
 
 /// Create a SQLite backup using VACUUM INTO
@@ -167,26 +166,40 @@ async fn count_objects(db: &DatabaseConnection) -> Result<String> {
     Ok(counts.to_string())
 }
 
-pub async fn list_backups(db: &DatabaseConnection) -> Result<Vec<BackupManifest>> {
+pub async fn list_backups(
+    db: &DatabaseConnection,
+    encoder: &dyn PathEncoder,
+) -> Result<Vec<BackupManifest>> {
     let models = backup_manifests::Entity::find()
         .order_by_desc(backup_manifests::Column::CreatedAt)
         .all(db)
         .await?;
 
-    Ok(models.into_iter().map(model_to_manifest).collect())
+    Ok(models
+        .into_iter()
+        .map(|m| model_to_manifest(m, encoder))
+        .collect())
 }
 
-pub async fn get_backup(db: &DatabaseConnection, id: &str) -> Result<BackupManifest> {
+pub async fn get_backup(
+    db: &DatabaseConnection,
+    id: &str,
+    encoder: &dyn PathEncoder,
+) -> Result<BackupManifest> {
     let model = backup_manifests::Entity::find_by_id(id)
         .one(db)
         .await?
         .ok_or_else(|| AxAgentError::NotFound(format!("BackupManifest {}", id)))?;
 
-    Ok(model_to_manifest(model))
+    Ok(model_to_manifest(model, encoder))
 }
 
-pub async fn delete_backup(db: &DatabaseConnection, id: &str) -> Result<()> {
-    let manifest = get_backup(db, id).await?;
+pub async fn delete_backup(
+    db: &DatabaseConnection,
+    id: &str,
+    encoder: &dyn PathEncoder,
+) -> Result<()> {
+    let manifest = get_backup(db, id, encoder).await?;
 
     // Delete the file from disk if it exists
     if let Some(ref path) = manifest.file_path {
@@ -204,9 +217,13 @@ pub async fn delete_backup(db: &DatabaseConnection, id: &str) -> Result<()> {
     Ok(())
 }
 
-pub async fn batch_delete_backups(db: &DatabaseConnection, ids: &[String]) -> Result<()> {
+pub async fn batch_delete_backups(
+    db: &DatabaseConnection,
+    ids: &[String],
+    encoder: &dyn PathEncoder,
+) -> Result<()> {
     for id in ids {
-        delete_backup(db, id).await?;
+        delete_backup(db, id, encoder).await?;
     }
     Ok(())
 }
@@ -421,8 +438,12 @@ pub async fn restore_json_backup(
 }
 
 /// Clean up old backups exceeding max_count (keeps most recent)
-pub async fn cleanup_old_backups(db: &DatabaseConnection, max_count: u32) -> Result<u32> {
-    let all = list_backups(db).await?;
+pub async fn cleanup_old_backups(
+    db: &DatabaseConnection,
+    max_count: u32,
+    encoder: &dyn PathEncoder,
+) -> Result<u32> {
+    let all = list_backups(db, encoder).await?;
     if all.len() <= max_count as usize {
         return Ok(0);
     }
@@ -430,7 +451,7 @@ pub async fn cleanup_old_backups(db: &DatabaseConnection, max_count: u32) -> Res
     let to_delete = &all[max_count as usize..];
     let mut deleted = 0u32;
     for backup in to_delete {
-        delete_backup(db, &backup.id).await?;
+        delete_backup(db, &backup.id, encoder).await?;
         deleted += 1;
     }
     Ok(deleted)

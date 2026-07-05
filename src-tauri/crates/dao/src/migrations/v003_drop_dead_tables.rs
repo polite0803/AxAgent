@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 //! v003 — 清理死表
 //!
 //! ddl.rs 注释明确标记以下三张表为死表（无代码引用，现存代码用

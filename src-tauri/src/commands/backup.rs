@@ -6,6 +6,7 @@ use crate::commands::error_code::backup as backup_err;
 use axagent_core::repo::backup;
 use axagent_core::repo::settings::get_settings;
 use axagent_harness::types::*;
+use axagent_storage::DefaultPathEncoder;
 use sea_orm::DatabaseConnection;
 use std::path::Path;
 use std::sync::Arc;
@@ -14,7 +15,7 @@ use tokio::sync::Mutex;
 
 #[tauri::command]
 pub async fn list_backups(state: State<'_, AppState>) -> Result<Vec<BackupManifest>, String> {
-    backup::list_backups(state.harness.db())
+    backup::list_backups(state.harness.db(), &DefaultPathEncoder)
         .await
         .map_err(|e| e.to_string())
 }
@@ -29,7 +30,7 @@ pub async fn create_backup(
         .map_err(|e| e.to_string())?;
     let decoded_backup_dir = axagent_core::path_vars::decode_path_opt(&settings.backup_dir);
     let backup_dir = backup::resolve_backup_dir(decoded_backup_dir.as_deref(), &state.app_data_dir);
-    backup::create_backup(state.harness.db(), &format, &backup_dir)
+    backup::create_backup(state.harness.db(), &format, &backup_dir, &DefaultPathEncoder)
         .await
         .map_err(|e| e.to_string())
 }
@@ -41,7 +42,7 @@ pub async fn restore_backup(
     backup_id: String,
     strategy: Option<String>,
 ) -> Result<serde_json::Value, String> {
-    let manifest = backup::get_backup(state.harness.db(), &backup_id)
+    let manifest = backup::get_backup(state.harness.db(), &backup_id, &DefaultPathEncoder)
         .await
         .map_err(|e| e.to_string())?;
 
@@ -86,7 +87,7 @@ pub async fn restore_backup(
 
 #[tauri::command]
 pub async fn delete_backup(state: State<'_, AppState>, backup_id: String) -> Result<(), String> {
-    backup::delete_backup(state.harness.db(), &backup_id)
+    backup::delete_backup(state.harness.db(), &backup_id, &DefaultPathEncoder)
         .await
         .map_err(|e| e.to_string())
 }
@@ -96,7 +97,7 @@ pub async fn batch_delete_backups(
     state: State<'_, AppState>,
     backup_ids: Vec<String>,
 ) -> Result<(), String> {
-    backup::batch_delete_backups(state.harness.db(), &backup_ids)
+    backup::batch_delete_backups(state.harness.db(), &backup_ids, &DefaultPathEncoder)
         .await
         .map_err(|e| e.to_string())
 }
@@ -172,7 +173,7 @@ async fn restart_auto_backup(
     let interval_secs = interval_hours as u64 * 3600;
 
     // Calculate initial delay: catch up if overdue
-    let initial_delay_secs = match backup::list_backups(&db).await {
+    let initial_delay_secs = match backup::list_backups(&db, &DefaultPathEncoder).await {
         Ok(backups) if !backups.is_empty() => {
             let last_ts = &backups[0].created_at;
             if let Ok(last_time) =
@@ -206,12 +207,16 @@ async fn restart_auto_backup(
             };
 
             // Create auto backup (SQLite format for speed)
-            if let Err(e) = backup::create_backup(&db, "sqlite", &backup_dir).await {
+            if let Err(e) =
+                backup::create_backup(&db, "sqlite", &backup_dir, &DefaultPathEncoder).await
+            {
                 tracing::warn!("Auto-backup failed: {}", e);
             } else {
                 tracing::info!("Auto-backup created successfully");
                 // Cleanup old backups
-                if let Err(e) = backup::cleanup_old_backups(&db, max_count).await {
+                if let Err(e) =
+                    backup::cleanup_old_backups(&db, max_count, &DefaultPathEncoder).await
+                {
                     tracing::warn!("Auto-backup cleanup failed: {}", e);
                 }
             }
@@ -239,7 +244,7 @@ pub async fn upload_backup_to_cloud(
         .backend
         .clone();
 
-    let manifest = backup::get_backup(state.harness.db(), &request.backup_id)
+    let manifest = backup::get_backup(state.harness.db(), &request.backup_id, &DefaultPathEncoder)
         .await
         .map_err(|e| e.to_string())?;
 

@@ -98,9 +98,22 @@ impl ErrorRecoveryEngine {
             };
         }
 
-        RecoveryStrategy::for_error_type(error_type)
+        let strategy = RecoveryStrategy::for_error_type(error_type);
+
+        // 关闭 fallback 时,将 Fallback 策略降级为 Fail
+        if !self.config.enable_fallback && matches!(&strategy, RecoveryStrategy::Fallback { .. }) {
+            return RecoveryStrategy::Retry {
+                max_attempts: 3,
+                base_delay_ms: 1000,
+                max_delay_ms: 10000,
+                exponential_backoff: true,
+            };
+        }
+
+        strategy
     }
 
+    #[tracing::instrument(skip(self, f))]
     pub async fn recover<F, Fut, T>(&self, error: &str, mut f: F) -> RecoveryResult
     where
         F: FnMut() -> Fut,

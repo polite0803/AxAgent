@@ -51,12 +51,7 @@ pub struct McpToolResult {
 }
 
 /// A tool discovered from an MCP server via tools/list.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct DiscoveredTool {
-    pub name: String,
-    pub description: Option<String>,
-    pub input_schema: Option<Value>,
-}
+pub use axagent_harness::mcp_types::DiscoveredTool;
 
 /// Resolve the user's login shell PATH so that GUI-launched apps can find
 /// tools like `npx`, `node`, `python`, etc. that are installed via version
@@ -1336,7 +1331,14 @@ mod tests {
         // 通过 tokio piped IO 运行时管道 EOF 信号时序不可靠，导致 rmcp handshake
         // 卡住等待更多数据。使用 cmd /c echo 确保管道正确关闭。
         let (cmd, args) = if cfg!(target_os = "windows") {
-            ("cmd".to_string(), vec!["/c".to_string(), "echo".to_string(), "npm notice".to_string()])
+            (
+                "cmd".to_string(),
+                vec![
+                    "/c".to_string(),
+                    "echo".to_string(),
+                    "npm notice".to_string(),
+                ],
+            )
         } else {
             ("echo".to_string(), vec!["npm notice".to_string()])
         };

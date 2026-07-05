@@ -9,12 +9,12 @@ use rhai::{AST, Engine, Scope};
 use serde_json::Value as JsonValue;
 use std::collections::HashMap;
 use std::sync::Arc;
-use std::sync::{LazyLock, Mutex};
+use std::sync::Mutex;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::time::Duration;
 
-static SHARED_RHAI_RUNTIME: LazyLock<std::sync::Arc<tokio::runtime::Runtime>> =
-    LazyLock::new(|| {
-        std::sync::Arc::new(tokio::runtime::Runtime::new().expect("failed to create Rhai runtime"))
-    });
+/// Rhai 脚本最大执行时间（wall-clock）
+pub const RHAI_TIMEOUT: Duration = Duration::from_secs(30);
 
 pub type RhaiScriptCache = HashMap<String, Arc<AST>>;
 
@@ -78,27 +78,33 @@ pub fn execute_rhai_ast(
     let mut engine = create_rhai_engine();
     let mut scope = Scope::new();
 
-    // 注入 tool() 函数 —— 共享一个独立 Runtime，避免每次调用都创建线程池
-    let rt = if tools.is_some() {
-        Some(SHARED_RHAI_RUNTIME.clone())
-    } else {
-        None
-    };
-
-    if let (Some(tool_map), Some(rt)) = (tools, rt.clone()) {
+    // 注入 tool() 函数 —— 复用当前 tokio runtime，避免嵌套
+    if let Some(tool_map) = tools {
         let tool_map = tool_map.clone();
         engine.register_fn("tool", move |name: &str, args: rhai::Map| {
             let tool_map = tool_map.clone();
             let tool_name = name.to_string();
             let json_args = rhai_map_to_json(args);
-            let rt = rt.clone(); // Arc 复用，零开销
-            let result = rt.block_on(async {
-                if let Some(h) = tool_map.get(&tool_name) {
-                    h(tool_name, json_args).await
-                } else {
-                    Err(format!("工具 '{tool_name}' 未注册"))
-                }
-            });
+            let result = if let Ok(handle) = tokio::runtime::Handle::try_current() {
+                tokio::task::block_in_place(|| {
+                    handle.block_on(async {
+                        if let Some(h) = tool_map.get(&tool_name) {
+                            h(tool_name, json_args).await
+                        } else {
+                            Err(format!("工具 '{tool_name}' 未注册"))
+                        }
+                    })
+                })
+            } else {
+                let rt = tokio::runtime::Runtime::new().expect("failed to create Rhai runtime");
+                rt.block_on(async {
+                    if let Some(h) = tool_map.get(&tool_name) {
+                        h(tool_name, json_args).await
+                    } else {
+                        Err(format!("工具 '{tool_name}' 未注册"))
+                    }
+                })
+            };
             match result {
                 Ok(v) => json_to_dynamic(&v),
                 Err(e) => rhai::Dynamic::from(format!("Error: {e}")),
@@ -113,6 +119,22 @@ pub fn execute_rhai_ast(
     } else {
         scope.push("input", args);
     }
+
+    // ── Wall-clock 超时保护（L-01） ──
+    // 通过 on_progress 回调 + AtomicBool 实现，无需线程阻塞式 join
+    let timed_out = Arc::new(AtomicBool::new(false));
+    let timeout_flag = timed_out.clone();
+    std::thread::spawn(move || {
+        std::thread::sleep(RHAI_TIMEOUT);
+        timeout_flag.store(true, Ordering::Relaxed);
+    });
+    engine.on_progress(move |_ops| {
+        if timed_out.load(Ordering::Relaxed) {
+            Some(rhai::Dynamic::from("Rhai 脚本执行超时（30s）"))
+        } else {
+            None
+        }
+    });
 
     let result: rhai::Dynamic = engine
         .eval_ast_with_scope(&mut scope, ast)

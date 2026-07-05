@@ -10,7 +10,7 @@
 
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 use tokio::sync::RwLock;
 
@@ -55,6 +55,8 @@ pub struct AuditConfig {
     pub scan_sensitive: bool,
     /// 最大保留日志条数
     pub max_log_entries: usize,
+    /// SQLite 数据库路径（None 表示不持久化）
+    pub audit_db_path: Option<String>,
 }
 
 impl Default for AuditConfig {
@@ -65,6 +67,7 @@ impl Default for AuditConfig {
             window_secs: 10,
             scan_sensitive: true,
             max_log_entries: 500,
+            audit_db_path: None,
         }
     }
 }
@@ -74,16 +77,57 @@ pub struct ToolAuditor {
     config: AuditConfig,
     /// 每个工具独立的频率限制状态
     rate_limits: RwLock<HashMap<String, RateLimitState>>,
-    /// 审计日志
+    /// 审计日志（内存）
     log: RwLock<Vec<AuditEntry>>,
+    /// SQLite 持久化连接（None 表示不持久化）
+    db: Option<Arc<Mutex<rusqlite::Connection>>>,
 }
 
 impl ToolAuditor {
     pub fn new(config: AuditConfig) -> Self {
+        let db = config.audit_db_path.as_ref().and_then(|path| {
+            match rusqlite::Connection::open(path) {
+                Ok(conn) => {
+                    if let Err(e) = conn.execute(
+                        "CREATE TABLE IF NOT EXISTS audit_log (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            timestamp INTEGER NOT NULL,
+                            tool_name TEXT NOT NULL,
+                            conversation_id TEXT,
+                            success INTEGER NOT NULL,
+                            duration_ms INTEGER NOT NULL,
+                            output_preview TEXT NOT NULL,
+                            has_sensitive_input INTEGER NOT NULL,
+                            has_sensitive_output INTEGER NOT NULL
+                        )",
+                        [],
+                    ) {
+                        tracing::error!("Failed to create audit_log table: {e}");
+                        return None;
+                    }
+                    // Create index for common queries
+                    let _ = conn.execute(
+                        "CREATE INDEX IF NOT EXISTS idx_audit_tool_name ON audit_log(tool_name)",
+                        [],
+                    );
+                    let _ = conn.execute(
+                        "CREATE INDEX IF NOT EXISTS idx_audit_timestamp ON audit_log(timestamp)",
+                        [],
+                    );
+                    Some(Arc::new(Mutex::new(conn)))
+                },
+                Err(e) => {
+                    tracing::error!("Failed to open audit DB at {path}: {e}");
+                    None
+                },
+            }
+        });
+
         Self {
             config,
             rate_limits: RwLock::new(HashMap::new()),
             log: RwLock::new(Vec::new()),
+            db,
         }
     }
 
@@ -235,8 +279,32 @@ impl ToolAuditor {
         false
     }
 
-    /// 记录审计条目
+    /// 记录审计条目（内存 + SQLite）
     pub async fn log(&self, entry: AuditEntry) {
+        // 持久化到 SQLite（如果启用）
+        if let Some(ref db) = self.db {
+            let e = entry.clone();
+            let db = db.clone();
+            let _ = tokio::task::spawn_blocking(move || {
+                let conn = db.lock().expect("audit log lock");
+                let _ = conn.execute(
+                    "INSERT INTO audit_log (timestamp, tool_name, conversation_id, success, duration_ms, output_preview, has_sensitive_input, has_sensitive_output)
+                     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+                    rusqlite::params![
+                        e.timestamp,
+                        e.tool_name,
+                        e.conversation_id,
+                        e.success as i32,
+                        e.duration_ms as i32,
+                        e.output_preview,
+                        e.has_sensitive_input as i32,
+                        e.has_sensitive_output as i32,
+                    ],
+                );
+            })
+            .await;
+        }
+        // 内存日志
         let mut log = self.log.write().await;
         log.push(entry);
         if log.len() > self.config.max_log_entries {
@@ -304,14 +372,6 @@ pub struct AuditSummary {
     pub sensitive_output_detected: u64,
     pub avg_duration_ms: u64,
     pub top_tools: Vec<(String, u32)>,
-}
-
-/// 全局共享审计器
-static SHARED_AUDITOR: std::sync::LazyLock<Arc<ToolAuditor>> =
-    std::sync::LazyLock::new(|| Arc::new(ToolAuditor::default()));
-
-pub fn shared_auditor() -> Arc<ToolAuditor> {
-    SHARED_AUDITOR.clone()
 }
 
 #[cfg(test)]

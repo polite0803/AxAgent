@@ -25,6 +25,12 @@ impl ProviderRegistry {
 
     /// Register a provider adapter (takes `Arc` to support the harness `ProviderRegistry` trait)
     pub fn register(&mut self, provider_type: &str, adapter: Arc<dyn ProviderAdapter>) {
+        if self.adapters.contains_key(provider_type) {
+            tracing::warn!(
+                provider_type,
+                "Provider adapter already registered; overwriting existing entry"
+            );
+        }
         self.adapters.insert(provider_type.to_string(), adapter);
     }
 

@@ -4,6 +4,7 @@ use crate::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::gateway as gateway_err;
 use axagent_core::repo::cli_config::CliTool;
+use axagent_crypto::platform_adapter_impl::DefaultCryptoService;
 use axagent_harness::types::*;
 use tauri::State;
 
@@ -385,6 +386,7 @@ pub async fn connect_cli_tool(
     // Get plain key via decryption
     let plain_key = axagent_core::repo::gateway_key::get_plain_key(
         state.harness.db(),
+        &DefaultCryptoService::new(state.harness.master_key_owned()),
         state.harness.master_key(),
         &key_id,
     )
@@ -428,6 +430,7 @@ pub async fn create_gateway_key(
     axagent_core::repo::gateway_key::create_gateway_key(
         state.harness.db(),
         &name,
+        &DefaultCryptoService::new(state.harness.master_key_owned()),
         Some(state.harness.master_key()),
     )
     .await
@@ -456,6 +459,7 @@ pub async fn toggle_gateway_key(
 pub async fn decrypt_gateway_key(state: State<'_, AppState>, id: String) -> Result<String, String> {
     axagent_core::repo::gateway_key::get_plain_key(
         state.harness.db(),
+        &DefaultCryptoService::new(state.harness.master_key_owned()),
         state.harness.master_key(),
         &id,
     )
@@ -523,6 +527,7 @@ pub async fn start_gateway(state: State<'_, AppState>) -> Result<(), String> {
                 state.harness.master_key_owned(),
             )),
         ),
+        std::sync::Arc::new(axagent_dao::marketplace_service::MarketplaceServiceImpl),
     )
     .await
     .map_err(|e| e.to_string())?;

@@ -4,6 +4,10 @@ version.workspace = true
 edition.workspace = true
 publish = false
 
+[features]
+default = []
+backup_v1_compat = []
+
 [dependencies]
 aes-gcm = "0.10"
 argon2 = "0.5"

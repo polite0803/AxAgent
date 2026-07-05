@@ -29,7 +29,6 @@ pub use axagent_kit::html_cleaner;
 pub use axagent_kit::markdown_parser;
 pub use axagent_kit::marketplace;
 pub use axagent_kit::marketplace_service;
-pub use axagent_kit::memory_forgetting;
 pub use axagent_kit::model_knowledge;
 pub use axagent_kit::operation_audit;
 pub use axagent_kit::output_processor;
@@ -86,7 +85,6 @@ pub mod workflow_types;
 pub use axagent_kit::workflow_version;
 pub use axagent_storage::workspace_uri;
 
-pub use memory_forgetting::{ForgettingConfig, MemoryEntry, MemoryForgettingEngine};
 pub use resource_limits::ResourceLimits;
 pub use schema_validator::{validate_against_schema, validate_recursive};
 pub use service_container::ServiceContainer;

@@ -52,6 +52,7 @@ impl SettingsRepository for DefaultSettingsRepository {
 pub struct DefaultGatewayKeyRepository {
     pub db: DatabaseConnection,
     pub master_key: [u8; 32],
+    pub crypto: std::sync::Arc<dyn axagent_harness::platform_adapter::CryptoService>,
 }
 
 #[async_trait]
@@ -62,7 +63,9 @@ impl GatewayKeyRepository for DefaultGatewayKeyRepository {
 
     async fn verify_key(&self, token: &str) -> Result<Option<GatewayKey>> {
         // 原 free fn 返回 Result<GatewayKey>（用 Err 表示"找不到"），这里转成 Option。
-        match repo::gateway::verify_key(&self.db, token, &self.master_key).await {
+        match repo::gateway::verify_key(&self.db, token, self.crypto.as_ref(), &self.master_key)
+            .await
+        {
             Ok(k) => Ok(Some(k)),
             Err(_) => Ok(None), // 调用方用 .ok_or_else() 转成 auth error
         }
@@ -183,6 +186,7 @@ pub fn build_platform_adapter(
         gateway_keys: std::sync::Arc::new(DefaultGatewayKeyRepository {
             db: db.clone(),
             master_key,
+            crypto: crypto.clone(),
         }),
         request_log: std::sync::Arc::new(DefaultGatewayRequestLogRepository { db }),
         crypto,

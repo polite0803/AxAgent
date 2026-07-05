@@ -66,7 +66,7 @@ impl LlmResponseCache {
     /// Try to get a cached response. Returns `None` on miss or expiry.
     fn get(&self, model: &str, system: &str, user: &str) -> Option<String> {
         let key = Self::cache_key(model, system, user);
-        let mut map = self.inner.lock().unwrap();
+        let mut map = self.inner.lock().expect("llm_bridge lock");
         // Evict expired entries on every get (amortized cleanup)
         let now = Instant::now();
         map.retain(|_, (_, expiry)| now < *expiry);
@@ -77,7 +77,7 @@ impl LlmResponseCache {
     /// Insert a cached response.
     fn put(&self, model: &str, system: &str, user: &str, response: &str) {
         let key = Self::cache_key(model, system, user);
-        let mut map = self.inner.lock().unwrap();
+        let mut map = self.inner.lock().expect("llm_bridge lock");
         // Evict oldest entry if at capacity
         if map.len() >= self.max_entries
             && let Some(oldest) = map

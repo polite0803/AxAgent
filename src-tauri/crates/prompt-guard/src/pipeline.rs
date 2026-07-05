@@ -34,7 +34,10 @@ impl PromptGuardPipeline {
 
         // L1: 模式检测
         match self.pattern_detector.detect(&normalized) {
-            DetectionResult::Blocked { reason } => return Err(reason),
+            DetectionResult::Blocked { reason } => {
+                tracing::warn!(%reason, "User input blocked by L1 pattern detector");
+                return Err(reason);
+            },
             DetectionResult::Flagged { text, .. } => {
                 tracing::warn!("User input flagged by L1: risk indicators present");
                 // 标记后继续处理
@@ -96,15 +99,8 @@ fn unicode_normalize(s: &str) -> String {
             )
         })
         .collect();
-    // 2) NFKC 归一化（如果 unicode-normalization 可用）
-    //    这里手写最常见的几条：全角 → 半角、连字、组合字符
-    stripped
-        .replace('\u{FF01}', "!")
-        .replace('\u{FF1F}', "?")
-        .replace('\u{FF0C}', ",")
-        .replace('\u{FF1A}', ":")
-        .replace('\u{FF1B}', ";")
-        .replace('\u{3002}', ".")
+    // 2) NFKC 归一化 — 覆盖全角字母数字、连字、组合字符（> 数百字符）
+    unicode_normalization::UnicodeNormalization::nfkc(stripped.as_str()).collect::<String>()
 }
 
 #[cfg(test)]

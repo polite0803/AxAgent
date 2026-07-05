@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 //! v001 — 全量 DDL 初始化（从 ddl.rs 迁出）
 //!
 //! 这是 schema 的"初始快照"：所有 `CREATE TABLE IF NOT EXISTS`、

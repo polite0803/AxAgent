@@ -494,6 +494,13 @@ fn extract_permission_subject(input: &str) -> Option<String> {
             "pattern",
             "code",
             "message",
+            "working_dir",
+            "output_path",
+            "outputPath",
+            "source",
+            "target",
+            "dest",
+            "destination",
         ] {
             if let Some(value) = object.get(key).and_then(Value::as_str) {
                 return Some(value.to_string());

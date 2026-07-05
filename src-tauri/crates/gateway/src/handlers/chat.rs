@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 use axum::extract::{Extension, State};
 use axum::http::StatusCode;
 use axum::response::{
@@ -46,8 +47,12 @@ pub async fn chat_completions(
                 )
             })
             .collect(),
-        Err(e) => {
-            return error_response(StatusCode::INTERNAL_SERVER_ERROR, &e.to_string());
+        Err(_e) => {
+            tracing::error!(error = ?_e, "Failed to list providers for chat completion");
+            return error_response(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "An internal error occurred while listing providers",
+            );
         },
     };
     let public_id_map = build_provider_public_id_map(&providers);
@@ -218,7 +223,8 @@ pub(crate) async fn handle_non_stream(
                 Some(&e.to_string())
             );
 
-            error_response(StatusCode::BAD_GATEWAY, &e.to_string())
+            tracing::error!(error = %e, provider = %provider_id, model = %model_id, "Chat completion request failed");
+            error_response(StatusCode::BAD_GATEWAY, "Chat completion request failed")
         },
     }
 }
@@ -295,8 +301,9 @@ pub(crate) async fn handle_stream(
                 },
                 Err(e) => {
                     stream_error = Some(e.to_string());
+                    tracing::error!(error = %e, "Stream processing error in chat completion");
                     let data = json!({
-                        "error": { "message": e.to_string() }
+                        "error": { "message": "Stream processing error" }
                     });
                     let _ = tx.send(Ok(Event::default().data(data.to_string()))).await;
                     break;

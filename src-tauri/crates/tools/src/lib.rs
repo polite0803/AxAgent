@@ -10,10 +10,12 @@ pub mod audit;
 pub mod bash;
 pub mod context_keys;
 pub mod global_state;
+pub mod group_manager;
 pub mod hooks;
 pub mod knowledge_callback;
 pub mod markdown;
 pub mod mcp;
+pub mod mcp_manager;
 pub mod orchestration;
 pub mod permissions;
 pub mod plugin_sdk;
@@ -33,7 +35,7 @@ pub use plugin_sdk::{
 };
 pub use recorder::ToolExecutionRecorder;
 pub use sandbox::{
-    SandboxConfig, SandboxPlatform, SandboxViolation, SandboxViolationType, SecuritySandbox,
+    AccessPolicyValidator, SandboxConfig, SandboxPlatform, SandboxViolation, SandboxViolationType,
 };
 pub use stats::{StatCategory, ToolMetadata, ToolUsageStats};
 

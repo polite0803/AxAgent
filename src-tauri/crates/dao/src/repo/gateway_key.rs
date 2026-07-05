@@ -2,9 +2,9 @@
 
 use sea_orm::*;
 
-use axagent_crypto::crypto;
 use axagent_entities::gateway_keys;
 use axagent_harness::core_error::{AxAgentError, Result};
+use axagent_harness::platform_adapter::CryptoService;
 use axagent_harness::types::{CreateGatewayKeyResult, GatewayKey};
 use axagent_harness::util_fns::{gen_id, now_ts};
 
@@ -33,21 +33,22 @@ pub async fn list_gateway_keys(db: &DatabaseConnection) -> Result<Vec<GatewayKey
 pub async fn create_gateway_key(
     db: &DatabaseConnection,
     name: &str,
+    crypto: &dyn CryptoService,
     master_key: Option<&[u8; 32]>,
 ) -> Result<CreateGatewayKeyResult> {
     let id = gen_id();
     let now = now_ts();
-    let plain_key = crypto::generate_gateway_key();
+    let plain_key = crypto.generate_gateway_key();
     // SECURITY (H6): 当 master_key 提供时使用 HMAC 而非裸 SHA-256；
     // 没有 master_key 时回退到 SHA-256（兼容旧调用方，但生产环境应传 master_key）。
     let key_hash = match master_key {
-        Some(mk) => crypto::hmac_sha256(mk, &plain_key),
-        None => crypto::sha256_hash(&plain_key),
+        Some(mk) => crypto.hmac_sha256(mk, &plain_key),
+        None => crypto.sha256_hash(&plain_key),
     };
-    let key_prefix = crypto::key_prefix(&plain_key);
+    let key_prefix = crypto.key_prefix(&plain_key);
 
     let encrypted_key = master_key
-        .map(|mk| crypto::encrypt_key(&plain_key, mk))
+        .map(|mk| crypto.encrypt_key_with(&plain_key, mk))
         .transpose()?;
 
     gateway_keys::ActiveModel {
@@ -102,8 +103,12 @@ pub async fn toggle_gateway_key(db: &DatabaseConnection, id: &str) -> Result<Gat
 }
 
 /// Verify an incoming API key against stored hashes. Returns the matching key if found.
-pub async fn verify_key(db: &DatabaseConnection, plain_key: &str) -> Result<GatewayKey> {
-    let key_hash = crypto::sha256_hash(plain_key);
+pub async fn verify_key(
+    db: &DatabaseConnection,
+    plain_key: &str,
+    crypto: &dyn CryptoService,
+) -> Result<GatewayKey> {
+    let key_hash = crypto.sha256_hash(plain_key);
 
     let row = gateway_keys::Entity::find()
         .filter(gateway_keys::Column::KeyHash.eq(&key_hash))
@@ -127,6 +132,7 @@ pub async fn update_last_used(db: &DatabaseConnection, id: &str) -> Result<()> {
 /// Decrypt and return the plain key for a given key ID.
 pub async fn get_plain_key(
     db: &DatabaseConnection,
+    crypto: &dyn CryptoService,
     master_key: &[u8; 32],
     key_id: &str,
 ) -> Result<String> {
@@ -139,5 +145,5 @@ pub async fn get_plain_key(
         AxAgentError::Crypto("Key was created before encrypted storage was available".to_string())
     })?;
 
-    crypto::decrypt_key(&encrypted, master_key)
+    crypto.decrypt_key_with(&encrypted, master_key)
 }

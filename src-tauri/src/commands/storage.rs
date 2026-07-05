@@ -215,3 +215,73 @@ pub async fn reset_documents_root(state: State<'_, AppState>) -> Result<(), Stri
     storage_paths::clear_documents_root_override();
     Ok(())
 }
+
+// ============================================================
+// Secure Key-Value Storage（AES-256-GCM 加密的 localStorage 后端）
+// ============================================================
+
+/// 使用 AES-256-GCM 加密并返回 base64 密文。
+/// 密钥从机器指纹派生，与当前设备绑定。
+fn validate_secure_key(key: &str) -> Result<(), String> {
+    if key.is_empty() || key.contains("..") || key.contains('/') || key.contains('\\') {
+        return Err(
+            "Invalid key: must not contain path separators or traversal sequences".to_string()
+        );
+    }
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn secure_store(
+    _state: State<'_, AppState>,
+    key: String,
+    value: String,
+) -> Result<(), String> {
+    validate_secure_key(&key)?;
+    let master_key = axagent_crypto::derive_storage_master_key();
+    let encrypted = axagent_crypto::encrypt_key(&value, &master_key).map_err(|e| e.to_string())?;
+    // Store encrypted value in a simple file-based DB via std::fs
+    let dir = dirs::data_local_dir()
+        .ok_or_else(|| "Cannot determine data directory".to_string())?
+        .join("axagent")
+        .join("secure_storage");
+    std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    let path = dir.join(format!("{key}.enc"));
+    std::fs::write(&path, encrypted).map_err(|e| e.to_string())
+}
+
+/// 解密之前通过 secure_store 存储的值。
+#[tauri::command]
+pub async fn secure_get(
+    _state: State<'_, AppState>,
+    key: String,
+) -> Result<Option<String>, String> {
+    validate_secure_key(&key)?;
+    let dir = dirs::data_local_dir()
+        .ok_or_else(|| "Cannot determine data directory".to_string())?
+        .join("axagent")
+        .join("secure_storage");
+    let path = dir.join(format!("{key}.enc"));
+    if !path.exists() {
+        return Ok(None);
+    }
+    let encrypted = std::fs::read_to_string(&path).map_err(|e| e.to_string())?;
+    let master_key = axagent_crypto::derive_storage_master_key();
+    let decrypted =
+        axagent_crypto::decrypt_key(&encrypted, &master_key).map_err(|e| e.to_string())?;
+    Ok(Some(decrypted))
+}
+
+/// 删除一个 secure storage 键值对。
+#[tauri::command]
+pub async fn secure_remove(_state: State<'_, AppState>, key: String) -> Result<(), String> {
+    let dir = dirs::data_local_dir()
+        .ok_or_else(|| "Cannot determine data directory".to_string())?
+        .join("axagent")
+        .join("secure_storage");
+    let path = dir.join(format!("{key}.enc"));
+    if path.exists() {
+        std::fs::remove_file(&path).map_err(|e| e.to_string())?;
+    }
+    Ok(())
+}

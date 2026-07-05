@@ -1758,11 +1758,11 @@ mod tests {
         };
         let inner = Arc::new(inner);
         {
-            let mut set = inner.always_allowed.lock().unwrap();
+            let mut set = inner.always_allowed.lock().expect("session_manager lock");
             set.insert("read_file".to_string());
             set.insert("bash".to_string());
         }
-        let set = inner.always_allowed.lock().unwrap();
+        let set = inner.always_allowed.lock().expect("session_manager lock");
         assert_eq!(set.len(), 2);
         assert!(set.contains("read_file"));
         assert!(set.contains("bash"));
@@ -1777,7 +1777,7 @@ mod tests {
         };
         let inner = Arc::new(inner);
         let result = {
-            let mut map = inner.pending_senders.lock().unwrap();
+            let mut map = inner.pending_senders.lock().expect("session_manager lock");
             if let Some(sender) = map.remove("nonexistent") {
                 sender.send(PermissionPromptDecision::Allow).is_ok()
             } else {
@@ -1797,16 +1797,16 @@ mod tests {
         let inner = Arc::new(inner);
         let (tx, rx) = std::sync::mpsc::channel::<PermissionPromptDecision>();
         {
-            let mut map = inner.pending_senders.lock().unwrap();
+            let mut map = inner.pending_senders.lock().expect("session_manager lock");
             map.insert("req-1".to_string(), tx);
         }
         {
-            let mut map = inner.pending_senders.lock().unwrap();
+            let mut map = inner.pending_senders.lock().expect("session_manager lock");
             assert_eq!(map.len(), 1);
             map.clear();
         }
         {
-            let map = inner.pending_senders.lock().unwrap();
+            let map = inner.pending_senders.lock().expect("session_manager lock");
             assert!(map.is_empty());
         }
         drop(rx);
@@ -1822,11 +1822,11 @@ mod tests {
         let inner = Arc::new(inner);
         let (tx, rx) = std::sync::mpsc::channel::<PermissionPromptDecision>();
         {
-            let mut map = inner.pending_senders.lock().unwrap();
+            let mut map = inner.pending_senders.lock().expect("session_manager lock");
             map.insert("req-1".to_string(), tx);
         }
         let result = {
-            let mut map = inner.pending_senders.lock().unwrap();
+            let mut map = inner.pending_senders.lock().expect("session_manager lock");
             if let Some(sender) = map.remove("req-1") {
                 sender.send(PermissionPromptDecision::Allow).is_ok()
             } else {
@@ -1850,7 +1850,7 @@ mod tests {
             workspace_root: std::sync::Mutex::new(String::new()),
         };
         let inner = Arc::new(inner);
-        let set = inner.always_allowed.lock().unwrap();
+        let set = inner.always_allowed.lock().expect("session_manager lock");
         assert!(set.contains("read_file"));
         assert!(!set.contains("bash"));
     }
@@ -1863,7 +1863,7 @@ mod tests {
             workspace_root: std::sync::Mutex::new("/my/workspace".to_string()),
         };
         let inner = Arc::new(inner);
-        let root = inner.workspace_root.lock().unwrap();
+        let root = inner.workspace_root.lock().expect("session_manager lock");
         assert_eq!(*root, "/my/workspace");
     }
 

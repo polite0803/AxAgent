@@ -141,7 +141,11 @@ pub async fn webdav_restore(
     let temp_dir = backup_dir.join("_webdav_restore_temp");
     let _ = std::fs::remove_dir_all(&temp_dir);
     cleanup.track_dir(&temp_dir);
-    let contents = webdav::extract_backup_zip(&zip_path, &temp_dir).map_err(|e| e.to_string())?;
+    let crypto = axagent_crypto::platform_adapter_impl::DefaultCryptoService::new(
+        state.harness.master_key_owned(),
+    );
+    let contents =
+        webdav::extract_backup_zip(&zip_path, &temp_dir, &crypto).map_err(|e| e.to_string())?;
 
     // 3. Verify checksum
     if let Some(expected) = contents
@@ -392,6 +396,7 @@ async fn do_webdav_backup_once(
     let master_key_path = app_data_dir.join("master.key");
     let zip_filename = webdav::generate_backup_filename();
     let zip_path = backup_dir.join(&zip_filename);
+    let crypto = axagent_crypto::platform_adapter_impl::DefaultCryptoService::new(*master_key);
     webdav::create_backup_zip(
         &temp_db_path,
         documents_dir.as_deref(),
@@ -400,6 +405,7 @@ async fn do_webdav_backup_once(
         &zip_path,
         env!("CARGO_PKG_VERSION"),
         &object_counts,
+        &crypto,
     )
     .map_err(|e| e.to_string())?;
 

@@ -256,6 +256,8 @@ pub struct DecompositionPlan {
     pub max_parallel: u32,
     /// Maximum replanning rounds.
     pub max_replans: u32,
+    /// Current replan round counter (lives inside the plan lock for consistency).
+    pub replan_count: u32,
     /// Plan creation timestamp.
     pub created_at: DateTime<Utc>,
 }
@@ -268,6 +270,7 @@ impl DecompositionPlan {
             sub_tasks: Vec::new(),
             max_parallel: 4,
             max_replans: 3,
+            replan_count: 0,
             created_at: Utc::now(),
         }
     }

@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-//! Re-export shim — 实际实现在 `axagent_dao::marketplace_service`。
-//! 业务逻辑（SeaORM Entity/Column/ActiveModel）下沉到 dao 层后，
+//! Re-export shim — 实际实现在 `axagent_harness::marketplace`。
 //! 上层调用方（gateway / core）只需保持 `axagent_kit::marketplace_service::*` 路径不变。
 
-pub use axagent_dao::marketplace_service::*;
+pub use axagent_harness::marketplace::*;

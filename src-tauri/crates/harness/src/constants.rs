@@ -217,6 +217,10 @@ pub mod embed {
     pub const RAG_CACHE_TTL_SECS: u64 = 30;
 }
 
+/// Agent 执行默认迭代上限。各层（coordinator / agent_runtime / conversation_runtime）
+/// 引用此常量以避免三层默认值不一致。coordinator 层可在 AgentConfig 中覆写。
+pub const DEFAULT_MAX_ITERATIONS: usize = 50;
+
 /// 智能路由层级
 pub mod routing_tier {
     pub const BUDGET: &str = "budget";

@@ -2736,7 +2736,9 @@ fn execute_skill_sync(
     let s_content = skill_content.to_string();
     let s_input = input.to_string();
     if let Ok(handle) = tokio::runtime::Handle::try_current() {
-        handle.block_on(execute_skill_async(&s_id, &s_name, &s_content, &s_input, &ctx))
+        tokio::task::block_in_place(|| {
+            handle.block_on(execute_skill_async(&s_id, &s_name, &s_content, &s_input, &ctx))
+        })
     } else {
         let rt = tokio::runtime::Runtime::new().map_err(|e| {
             ErrorResponse::new(agent_err::INTERNAL)

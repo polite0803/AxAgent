@@ -1236,9 +1236,12 @@ mod tests {
         let handle = create_test_pool().await.unwrap();
         let db = &handle.conn;
         let master_key = [9u8; 32];
-        let gateway_key = gateway::create_gateway_key(db, "Native Test Key", Some(&master_key))
-            .await
-            .unwrap();
+        let crypto_service =
+            axagent_crypto::platform_adapter_impl::DefaultCryptoService::new(master_key);
+        let gateway_key =
+            gateway::create_gateway_key(db, "Native Test Key", &crypto_service, Some(&master_key))
+                .await
+                .unwrap();
         let provider = provider::create_provider(
             db,
             CreateProviderInput {
@@ -1294,6 +1297,7 @@ mod tests {
                     axagent_crypto::platform_adapter_impl::DefaultCryptoService::new(master_key),
                 ),
             ),
+            marketplace_service: axagent_harness::test_support::empty_marketplace_service(),
             ticket_store: crate::realtime::default_ticket_store(),
             // SECURITY (Phase 2 Task 2.3): 测试用独立 limiter 实例，
             // 避免跨测试污染。设置一个很宽的阈值（100）让单测不会被
@@ -1506,7 +1510,7 @@ mod tests {
             serde_json::from_str::<serde_json::Value>(&upstream_body).unwrap()
         );
 
-        let captured = captures.lock().unwrap();
+        let captured = captures.lock().expect("gateway state lock");
         assert_eq!(captured.len(), 1);
         assert_eq!(captured[0].method, "POST");
         assert_eq!(captured[0].path_and_query, "/v1/responses");
@@ -1579,7 +1583,7 @@ mod tests {
         assert_eq!(content_type.unwrap(), "text/event-stream");
         assert_eq!(body_text, upstream_body);
 
-        let captured = captures.lock().unwrap();
+        let captured = captures.lock().expect("gateway state lock");
         assert_eq!(captured.len(), 1);
         assert_eq!(captured[0].path_and_query, "/v1/messages");
         assert_eq!(captured[0].x_api_key.as_deref(), Some("upstream-secret"));
@@ -1641,7 +1645,7 @@ mod tests {
             serde_json::from_str::<serde_json::Value>(&upstream_body).unwrap()
         );
 
-        let captured = captures.lock().unwrap();
+        let captured = captures.lock().expect("gateway state lock");
         assert_eq!(captured.len(), 1);
         // Gemini 现在通过 x-goog-api-key header 传递 key，而非 query param
         assert_eq!(captured[0].path_and_query, "/v1beta/models/gemini-2.5-pro:countTokens");
@@ -1682,9 +1686,12 @@ mod tests {
         let handle = create_test_pool().await.unwrap();
         let db = &handle.conn;
         let master_key = [9u8; 32];
-        let gateway_key = gateway::create_gateway_key(db, "Native Test Key", Some(&master_key))
-            .await
-            .unwrap();
+        let crypto_service =
+            axagent_crypto::platform_adapter_impl::DefaultCryptoService::new(master_key);
+        let gateway_key =
+            gateway::create_gateway_key(db, "Native Test Key", &crypto_service, Some(&master_key))
+                .await
+                .unwrap();
 
         insert_provider_with_optional_key(
             db,
@@ -1719,6 +1726,7 @@ mod tests {
                     axagent_crypto::platform_adapter_impl::DefaultCryptoService::new(master_key),
                 ),
             ),
+            marketplace_service: axagent_harness::test_support::empty_marketplace_service(),
             ticket_store: crate::realtime::default_ticket_store(),
             key_verify_limiter: std::sync::Arc::new(crate::auth::KeyVerifyLimiter::new(
                 100,
@@ -1746,7 +1754,7 @@ mod tests {
             .unwrap();
 
         assert_eq!(response.status(), StatusCode::OK);
-        let captured = captures.lock().unwrap();
+        let captured = captures.lock().expect("gateway state lock");
         assert_eq!(captured.len(), 1);
         assert_eq!(captured[0].path_and_query, "/v1/responses");
 
@@ -1793,7 +1801,7 @@ mod tests {
             .unwrap();
 
         assert_eq!(response.status(), StatusCode::OK);
-        let captured = captures.lock().unwrap();
+        let captured = captures.lock().expect("gateway state lock");
         assert_eq!(captured.len(), 1);
         assert_eq!(captured[0].path_and_query, "/v1/responses");
 

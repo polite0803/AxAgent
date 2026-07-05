@@ -20,7 +20,7 @@ use std::collections::{HashMap, HashSet, VecDeque};
 
 use axagent_core::workflow_types::{
     AgentNode, AgentNodeConfig, AgentRole, EdgeType, OutputMode, Position, RetryConfig, SubGraph,
-    ToolDef, WorkflowEdge, WorkflowNode, WorkflowNodeBase,
+    WorkflowEdge, WorkflowNode, WorkflowNodeBase,
 };
 
 use crate::types::{DecompositionPlan, OrchestrationError, OrchestrationStrategy, SubTask};
@@ -137,11 +137,7 @@ impl DynamicSubGraph {
             model: None,
             temperature: None,
             max_tokens: None,
-            tools: vec![ToolDef {
-                name: "read_file".to_string(),
-                description: Some("Read file contents".to_string()),
-                parameters: None,
-            }],
+            tools: vec![], // Tools resolved from agent profile — caller should specify via SubTask configuration
             exposed_tools: vec![],
             output_mode: OutputMode::Text,
             agent_profile_id: Some(sub_task.role.as_str().to_string()),

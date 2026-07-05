@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 use axum::extract::{Extension, State};
 use axum::response::{IntoResponse, Json};
 use serde_json::json;

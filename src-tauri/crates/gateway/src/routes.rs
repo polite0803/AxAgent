@@ -276,6 +276,7 @@ mod tests {
             started_at: 0,
             provider_registry: axagent_harness::test_support::empty_provider_registry(),
             adapter: axagent_harness::test_support::empty_platform_adapter(),
+            marketplace_service: axagent_harness::test_support::empty_marketplace_service(),
             ticket_store: crate::realtime::default_ticket_store(),
             // SECURITY (Phase 2 Task 2.3): 路由层测试用宽阈值 limiter，
             // 避免和限流本身的目的混在一起。

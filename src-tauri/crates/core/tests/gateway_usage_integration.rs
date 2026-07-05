@@ -2,6 +2,7 @@
 
 use axagent_core::db::create_test_pool;
 use axagent_core::repo::{gateway, provider};
+use axagent_crypto::platform_adapter_impl::DefaultCryptoService;
 use axagent_harness::types::{CreateProviderInput, ProviderType};
 
 async fn seed_gateway_usage() -> (
@@ -12,7 +13,8 @@ async fn seed_gateway_usage() -> (
     let h = create_test_pool().await.unwrap();
     let db = &h.conn;
 
-    let key = gateway::create_gateway_key(db, "Gateway Usage Test Key", None)
+    let crypto = DefaultCryptoService::new([0u8; 32]);
+    let key = gateway::create_gateway_key(db, "Gateway Usage Test Key", &crypto, None)
         .await
         .unwrap()
         .gateway_key;

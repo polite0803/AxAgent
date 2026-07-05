@@ -12,7 +12,6 @@ pub mod computer_control;
 pub mod computer_control;
 pub mod git_tools;
 pub mod html_cleaner;
-pub mod memory_forgetting;
 pub mod model_knowledge;
 pub mod operation_audit;
 pub mod output_processor;
