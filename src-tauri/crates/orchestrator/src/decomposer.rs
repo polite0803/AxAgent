@@ -434,13 +434,11 @@ fn extract_json(text: &str) -> String {
 
     // Remove markdown code fences
     let text = if text.starts_with("```") {
-        let without_fence = text
-            .lines()
-            .skip(1) // skip ```json or ```
+        text.lines()
+            .skip(1)
             .filter(|l| !l.trim().starts_with("```"))
             .collect::<Vec<_>>()
-            .join("\n");
-        without_fence
+            .join("\n")
     } else {
         text.to_string()
     };
