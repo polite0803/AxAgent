@@ -2,9 +2,9 @@
 
 use axagent_core::error::AxAgentError;
 use axagent_core::token_counter::estimate_tokens;
+use axagent_harness::llm_execution::{LlmCallConfig, SharedLlmExecutionService};
 use axagent_harness::types::{ChatContent, ChatMessage, ChatRequest};
 use axagent_harness::{ProviderAdapter, ProviderRequestContext};
-use axagent_runtime_core::{LlmCallConfig, execute_llm};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -596,8 +596,10 @@ pub struct DefaultToTReasoningProvider {
     adapter: Option<Arc<dyn ProviderAdapter>>,
     ctx: Option<ProviderRequestContext>,
     model: String,
-    /// 中心化 LLM 调用配置（可选，设置后走 execute_llm 路径）
+    /// 中心化 LLM 调用配置（可选，设置后走 harness LlmExecutionService 路径）
     llm_call_config: Option<LlmCallConfig>,
+    /// Harness 层 LLM 执行服务（与 llm_call_config 配套使用）
+    llm_service: Option<SharedLlmExecutionService>,
 }
 
 impl DefaultToTReasoningProvider {
@@ -607,12 +609,18 @@ impl DefaultToTReasoningProvider {
             ctx: None,
             model: "gpt-4o".to_string(),
             llm_call_config: None,
+            llm_service: None,
         }
     }
 
-    /// 注入中心化 LLM 调用配置
-    pub fn with_llm_call_config(mut self, config: LlmCallConfig) -> Self {
+    /// 注入中心化 LLM 调用配置与执行服务
+    pub fn with_llm_call_config(
+        mut self,
+        config: LlmCallConfig,
+        service: SharedLlmExecutionService,
+    ) -> Self {
         self.llm_call_config = Some(config);
+        self.llm_service = Some(service);
         self
     }
 
@@ -626,6 +634,7 @@ impl DefaultToTReasoningProvider {
             ctx: Some(ctx),
             model,
             llm_call_config: None,
+            llm_service: None,
         }
     }
 
@@ -639,6 +648,7 @@ impl DefaultToTReasoningProvider {
             ctx: Some(ctx),
             model,
             llm_call_config: None,
+            llm_service: None,
         }
     }
 
@@ -681,10 +691,12 @@ impl DefaultToTReasoningProvider {
                 store: None,
             };
 
-            // ── 中心化路径：如果配置了 LlmCallConfig，走 execute_llm() ──
-            if let Some(ref config) = self.llm_call_config {
-                return match execute_llm(&**adapter, ctx, request, config).await {
-                    Ok(result) => Ok(result.response.content),
+            // ── 中心化路径：如果配置了 LlmCallConfig + LlmExecutionService，走 harness 路径 ──
+            if let (Some(config), Some(svc)) = (&self.llm_call_config, &self.llm_service) {
+                let messages = serde_json::to_value(&request)
+                    .map_err(|e| AxAgentError::Provider(e.to_string()))?;
+                return match svc.execute(&**adapter, ctx, messages, config).await {
+                    Ok(result) => Ok(result.content),
                     Err(e) => Err(AxAgentError::Provider(e)),
                 };
             }
@@ -745,8 +757,10 @@ pub struct ProviderAdapterBridge {
     adapter: Arc<dyn ProviderAdapter>,
     ctx: ProviderRequestContext,
     model: String,
-    /// 中心化 LLM 调用配置（可选，设置后走 execute_llm 路径）
+    /// 中心化 LLM 调用配置（可选，设置后走 harness LlmExecutionService 路径）
     llm_call_config: Option<LlmCallConfig>,
+    /// Harness 层 LLM 执行服务（与 llm_call_config 配套使用）
+    llm_service: Option<SharedLlmExecutionService>,
 }
 
 impl ProviderAdapterBridge {
@@ -760,12 +774,18 @@ impl ProviderAdapterBridge {
             ctx,
             model,
             llm_call_config: None,
+            llm_service: None,
         }
     }
 
-    /// 注入中心化 LLM 调用配置
-    pub fn with_llm_call_config(mut self, config: LlmCallConfig) -> Self {
+    /// 注入中心化 LLM 调用配置与执行服务
+    pub fn with_llm_call_config(
+        mut self,
+        config: LlmCallConfig,
+        service: SharedLlmExecutionService,
+    ) -> Self {
         self.llm_call_config = Some(config);
+        self.llm_service = Some(service);
         self
     }
 }
@@ -806,10 +826,15 @@ impl LlmReasoningProvider for ProviderAdapterBridge {
             store: None,
         };
 
-        // ── 中心化路径：如果配置了 LlmCallConfig，走 execute_llm() ──
-        if let Some(ref config) = self.llm_call_config {
-            return match execute_llm(&*self.adapter, &self.ctx, request, config).await {
-                Ok(result) => Ok(result.response.content),
+        // ── 中心化路径：如果配置了 LlmCallConfig + LlmExecutionService，走 harness 路径 ──
+        if let (Some(config), Some(svc)) = (&self.llm_call_config, &self.llm_service) {
+            let messages = serde_json::to_value(&request)
+                .map_err(|e| AxAgentError::Provider(e.to_string()))?;
+            return match svc
+                .execute(&*self.adapter, &self.ctx, messages, config)
+                .await
+            {
+                Ok(result) => Ok(result.content),
                 Err(e) => Err(AxAgentError::Provider(e)),
             };
         }
@@ -855,10 +880,15 @@ impl LlmReasoningProvider for ProviderAdapterBridge {
             store: None,
         };
 
-        // ── 中心化路径：如果配置了 LlmCallConfig，走 execute_llm() ──
-        if let Some(ref config) = self.llm_call_config {
-            return match execute_llm(&*self.adapter, &self.ctx, request, config).await {
-                Ok(result) => Ok(result.response.content),
+        // ── 中心化路径：如果配置了 LlmCallConfig + LlmExecutionService，走 harness 路径 ──
+        if let (Some(config), Some(svc)) = (&self.llm_call_config, &self.llm_service) {
+            let messages = serde_json::to_value(&request)
+                .map_err(|e| AxAgentError::Provider(e.to_string()))?;
+            return match svc
+                .execute(&*self.adapter, &self.ctx, messages, config)
+                .await
+            {
+                Ok(result) => Ok(result.content),
                 Err(e) => Err(AxAgentError::Provider(e)),
             };
         }

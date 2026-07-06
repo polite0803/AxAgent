@@ -16,6 +16,20 @@ use crate::ToolError;
 pub trait HarnessToolExecutor: Send {
     /// 同步执行单个工具调用。
     fn execute(&mut self, tool_name: &str, input: &str) -> Result<String, ToolError>;
+
+    /// 批量执行工具调用。默认实现串行逐个执行，子类型可覆盖为并发编排。
+    fn execute_batch(
+        &mut self,
+        requests: &[(String, String, String)], // (tool_use_id, tool_name, input)
+    ) -> Vec<(String, String, Result<String, ToolError>)> {
+        requests
+            .iter()
+            .map(|(id, name, input)| {
+                let result = self.execute(name, input);
+                (id.clone(), name.clone(), result)
+            })
+            .collect()
+    }
 }
 
 /// API 客户端 — harness 级别最小契约。

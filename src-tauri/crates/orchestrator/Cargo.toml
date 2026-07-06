@@ -8,7 +8,6 @@ publish = false
 async-trait = "0.1"
 axagent-core = { path = "../core" }
 axagent-harness = { path = "../harness" }
-axagent-runtime-core = { path = "../runtime-core" }
 chrono = { version = "0.4", features = ["serde"] }
 serde = { workspace = true }
 serde_json = { workspace = true }

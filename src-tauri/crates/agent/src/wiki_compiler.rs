@@ -8,9 +8,9 @@ use serde::{Deserialize, Serialize};
 use axagent_core::entity::{notes, wiki_operations, wiki_pages, wiki_sources, wikis};
 use axagent_core::repo::note::{CreateNoteInput, Note, UpdateNoteInput, calculate_content_hash};
 use axagent_core::utils::gen_id;
+use axagent_harness::llm_execution::{LlmCallConfig, SharedLlmExecutionService};
 use axagent_harness::types::{ChatContent, ChatMessage, ChatRequest};
 use axagent_harness::{ProviderAdapter, ProviderRequestContext};
-use axagent_runtime_core::{LlmCallConfig, execute_llm};
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, IntoActiveModel, QueryFilter,
     Set,
@@ -44,8 +44,10 @@ pub struct WikiCompiler {
     llm_model: String,
     quality_threshold: f64,
     use_llm_quality_eval: bool,
-    /// 中心化 LLM 调用配置（可选，设置后走 execute_llm 路径）
+    /// 中心化 LLM 调用配置（可选，设置后走 harness LlmExecutionService 路径）
     llm_call_config: Option<LlmCallConfig>,
+    /// Harness 层 LLM 执行服务（与 llm_call_config 配套使用）
+    llm_service: Option<SharedLlmExecutionService>,
 }
 
 impl WikiCompiler {
@@ -63,12 +65,18 @@ impl WikiCompiler {
             quality_threshold: 0.5,
             use_llm_quality_eval: false,
             llm_call_config: None,
+            llm_service: None,
         }
     }
 
-    /// 注入中心化 LLM 调用配置
-    pub fn with_llm_call_config(mut self, config: LlmCallConfig) -> Self {
+    /// 注入中心化 LLM 调用配置与执行服务
+    pub fn with_llm_call_config(
+        mut self,
+        config: LlmCallConfig,
+        service: SharedLlmExecutionService,
+    ) -> Self {
         self.llm_call_config = Some(config);
+        self.llm_service = Some(service);
         self
     }
 
@@ -265,17 +273,25 @@ impl WikiCompiler {
             let prompt = Self::build_compile_prompt(schema, &sources_text.join("\n\n"), language);
             let request = self.build_chat_request(prompt);
 
-            let response = if let Some(ref config) = self.llm_call_config {
-                execute_llm(&*self.llm_adapter, &self.llm_ctx, request, config)
-                    .await
-                    .map_err(|e| format!("LLM call failed: {}", e))?
-                    .response
-            } else {
-                self.llm_adapter
-                    .chat(&self.llm_ctx, request)
-                    .await
-                    .map_err(|e| format!("LLM call failed: {}", e))?
-            };
+            let response =
+                if let (Some(config), Some(svc)) = (&self.llm_call_config, &self.llm_service) {
+                    let messages = serde_json::to_value(&request)
+                        .map_err(|e| format!("serialize request failed: {}", e))?;
+                    let content = svc
+                        .execute(&*self.llm_adapter, &self.llm_ctx, messages, config)
+                        .await
+                        .map_err(|e| format!("LLM call failed: {}", e))?
+                        .content;
+                    axagent_harness::types::ChatResponse {
+                        content,
+                        ..Default::default()
+                    }
+                } else {
+                    self.llm_adapter
+                        .chat(&self.llm_ctx, request)
+                        .await
+                        .map_err(|e| format!("LLM call failed: {}", e))?
+                };
 
             let raw_text = response.content;
             let pages = Self::parse_llm_response(&raw_text)?;
@@ -384,18 +400,21 @@ impl WikiCompiler {
             let prompt = Self::build_compile_prompt(schema, &sources_text, language);
             let request = self.build_chat_request(prompt);
 
-            let result = if let Some(ref config) = self.llm_call_config {
-                execute_llm(&*self.llm_adapter, &self.llm_ctx, request, config)
-                    .await
-                    .map(|r| r.response.content)
-                    .map_err(|e| format!("LLM call failed: {}", e))
-            } else {
-                self.llm_adapter
-                    .chat(&self.llm_ctx, request)
-                    .await
-                    .map(|r| r.content)
-                    .map_err(|e| format!("LLM call failed: {}", e))
-            };
+            let result =
+                if let (Some(config), Some(svc)) = (&self.llm_call_config, &self.llm_service) {
+                    let messages = serde_json::to_value(&request)
+                        .map_err(|e| format!("serialize request failed: {}", e))?;
+                    svc.execute(&*self.llm_adapter, &self.llm_ctx, messages, config)
+                        .await
+                        .map(|r| r.content)
+                        .map_err(|e| format!("LLM call failed: {}", e))
+                } else {
+                    self.llm_adapter
+                        .chat(&self.llm_ctx, request)
+                        .await
+                        .map(|r| r.content)
+                        .map_err(|e| format!("LLM call failed: {}", e))
+                };
 
             match result {
                 Ok(raw) => match Self::parse_llm_response(&raw) {
@@ -1244,9 +1263,20 @@ impl WikiCompiler {
             store: None,
         };
 
-        let content = if let Some(ref config) = self.llm_call_config {
-            match execute_llm(&*self.llm_adapter, &self.llm_ctx, request, config).await {
-                Ok(result) => result.response.content,
+        let content = if let (Some(config), Some(svc)) = (&self.llm_call_config, &self.llm_service)
+        {
+            let messages = match serde_json::to_value(&request) {
+                Ok(m) => m,
+                Err(e) => {
+                    tracing::warn!("serialize request failed for LLM quality eval: {}", e);
+                    return None;
+                },
+            };
+            match svc
+                .execute(&*self.llm_adapter, &self.llm_ctx, messages, config)
+                .await
+            {
+                Ok(result) => result.content,
                 Err(e) => {
                     tracing::warn!("LLM quality evaluation failed: {}", e);
                     return None;

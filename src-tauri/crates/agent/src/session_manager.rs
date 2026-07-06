@@ -6,13 +6,17 @@ use crate::event_bus::AgentPermissionPayload;
 use crate::provider_adapter::AxAgentApiClient;
 use crate::shared_blackboard::SharedBlackboard;
 use axagent_core::repo::agent_session;
+use axagent_harness::conversation_model::{
+    ContentBlock as HarnessContentBlock, ConversationMessage as HarnessConversationMessage,
+    MessageRole as HarnessMessageRole, TokenUsage as HarnessTokenUsage,
+};
 use axagent_harness::prompt_provider::NoopPromptProvider;
 use axagent_harness::{TaskComplexity, TrajectoryService};
 use axagent_runtime_core::{
-    AgentExecutionProgress, CompactionConfig, ContentBlock, ConversationMessage,
-    ConversationRuntime, HookEvent, HookProgressEvent, HookProgressReporter, MessageRole,
-    PermissionMode, PermissionPolicy, PermissionPromptDecision, PermissionPrompter,
-    PermissionRequest, RuntimeError, Session, ToolExecutor, compact_session, should_compact,
+    AgentExecutionProgress, CompactionConfig, ConversationMessage, ConversationRuntime, HookEvent,
+    HookProgressEvent, HookProgressReporter, PermissionMode, PermissionPolicy,
+    PermissionPromptDecision, PermissionPrompter, PermissionRequest, RuntimeError, Session,
+    ToolExecutor, compact_session, should_compact,
 };
 
 const NP: &NoopPromptProvider = &NoopPromptProvider;
@@ -37,10 +41,7 @@ pub struct TokenUsageBreakdown {
 }
 
 impl TokenUsageBreakdown {
-    pub fn from_turn_summary(
-        usage: &axagent_runtime_core::TokenUsage,
-        estimated_chars: usize,
-    ) -> Self {
+    pub fn from_turn_summary(usage: &HarnessTokenUsage, estimated_chars: usize) -> Self {
         let total = usage.total_tokens();
         let estimated_from_chars = total == 0 && estimated_chars > 0;
         Self {
@@ -64,26 +65,24 @@ pub fn estimate_tokens_from_text(text: &str) -> usize {
     text.len() / TOKEN_ESTIMATION_CHARS_PER_TOKEN
 }
 
-pub fn estimate_tokens_from_messages(
-    messages: &[axagent_runtime_core::ConversationMessage],
-) -> usize {
+pub fn estimate_tokens_from_messages(messages: &[HarnessConversationMessage]) -> usize {
     messages
         .iter()
         .map(|m| estimate_tokens_from_content_blocks(&m.blocks))
         .sum()
 }
 
-fn estimate_tokens_from_content_blocks(blocks: &[axagent_runtime_core::ContentBlock]) -> usize {
+fn estimate_tokens_from_content_blocks(blocks: &[HarnessContentBlock]) -> usize {
     blocks
         .iter()
         .map(|block| match block {
-            axagent_runtime_core::ContentBlock::Text { text } => estimate_tokens_from_text(text),
-            axagent_runtime_core::ContentBlock::ToolUse { id, name, input } => {
+            HarnessContentBlock::Text { text } => estimate_tokens_from_text(text),
+            HarnessContentBlock::ToolUse { id, name, input } => {
                 estimate_tokens_from_text(id)
                     + estimate_tokens_from_text(name)
                     + estimate_tokens_from_text(input)
             },
-            axagent_runtime_core::ContentBlock::ToolResult {
+            HarnessContentBlock::ToolResult {
                 tool_use_id,
                 tool_name,
                 output,
@@ -126,13 +125,17 @@ pub fn append_user_message(session: &mut Session, text: &str) -> Result<(), Stri
         None => text.to_string(),
     };
     // 直接推送已处理的消息，避免 push_user_text 的二次包装
-    session
-        .push_message(ConversationMessage {
-            role: MessageRole::User,
-            blocks: vec![ContentBlock::Text { text: processed }],
-            usage: None,
-        })
-        .map_err(|e| e.to_string())
+    // 注意：Session::push_message 接受 runtime_core::ConversationMessage，
+    // 此处通过 serde 转换（harness DTO 与 runtime-core DTO 结构一致）。
+    let harness_msg = HarnessConversationMessage {
+        role: HarnessMessageRole::User,
+        blocks: vec![HarnessContentBlock::Text { text: processed }],
+        usage: None,
+    };
+    let rt_msg: ConversationMessage =
+        serde_json::from_value(serde_json::to_value(&harness_msg).map_err(|e| e.to_string())?)
+            .map_err(|e| e.to_string())?;
+    session.push_message(rt_msg).map_err(|e| e.to_string())
 }
 
 /// Agent Session wrapper
@@ -1252,16 +1255,15 @@ mod tests {
 
     #[test]
     fn test_estimate_tokens_from_messages_empty() {
-        let messages: Vec<axagent_runtime_core::ConversationMessage> = vec![];
+        let messages: Vec<HarnessConversationMessage> = vec![];
         assert_eq!(estimate_tokens_from_messages(&messages), 0);
     }
 
     #[test]
     fn test_estimate_tokens_from_messages_with_text() {
-        use axagent_runtime_core::{ContentBlock, ConversationMessage, MessageRole};
-        let messages = vec![ConversationMessage {
-            role: MessageRole::User,
-            blocks: vec![ContentBlock::Text {
+        let messages = vec![HarnessConversationMessage {
+            role: HarnessMessageRole::User,
+            blocks: vec![HarnessContentBlock::Text {
                 text: "hello world".to_string(),
             }],
             usage: None,
@@ -1271,10 +1273,9 @@ mod tests {
 
     #[test]
     fn test_estimate_tokens_from_messages_with_tool_use() {
-        use axagent_runtime_core::{ContentBlock, ConversationMessage, MessageRole};
-        let messages = vec![ConversationMessage {
-            role: MessageRole::Assistant,
-            blocks: vec![ContentBlock::ToolUse {
+        let messages = vec![HarnessConversationMessage {
+            role: HarnessMessageRole::Assistant,
+            blocks: vec![HarnessContentBlock::ToolUse {
                 id: "tool-1".to_string(),
                 name: "read_file".to_string(),
                 input: "{}".to_string(),
@@ -1287,10 +1288,9 @@ mod tests {
 
     #[test]
     fn test_estimate_tokens_from_messages_with_tool_result() {
-        use axagent_runtime_core::{ContentBlock, ConversationMessage, MessageRole};
-        let messages = vec![ConversationMessage {
-            role: MessageRole::Tool,
-            blocks: vec![ContentBlock::ToolResult {
+        let messages = vec![HarnessConversationMessage {
+            role: HarnessMessageRole::Tool,
+            blocks: vec![HarnessContentBlock::ToolResult {
                 tool_use_id: "tu-1".to_string(),
                 tool_name: "read_file".to_string(),
                 output: "file contents here".to_string(),
@@ -1319,7 +1319,7 @@ mod tests {
 
     #[test]
     fn test_token_usage_breakdown_with_actual_usage() {
-        let usage = axagent_runtime_core::TokenUsage {
+        let usage = HarnessTokenUsage {
             input_tokens: 100,
             output_tokens: 50,
             cache_creation_input_tokens: 0,
@@ -1335,7 +1335,7 @@ mod tests {
 
     #[test]
     fn test_token_usage_breakdown_with_estimated_chars() {
-        let usage = axagent_runtime_core::TokenUsage {
+        let usage = HarnessTokenUsage {
             input_tokens: 0,
             output_tokens: 0,
             cache_creation_input_tokens: 0,
@@ -1349,7 +1349,7 @@ mod tests {
 
     #[test]
     fn test_token_usage_breakdown_tokens_delta() {
-        let usage = axagent_runtime_core::TokenUsage {
+        let usage = HarnessTokenUsage {
             input_tokens: 100,
             output_tokens: 50,
             cache_creation_input_tokens: 0,
@@ -1432,7 +1432,7 @@ mod tests {
 
     #[test]
     fn test_estimate_tokens_from_content_blocks_text() {
-        let blocks = vec![axagent_runtime_core::ContentBlock::Text {
+        let blocks = vec![HarnessContentBlock::Text {
             text: "hello world test!".to_string(),
         }];
         let tokens = estimate_tokens_from_content_blocks(&blocks);
@@ -1441,7 +1441,7 @@ mod tests {
 
     #[test]
     fn test_estimate_tokens_from_content_blocks_tool_use() {
-        let blocks = vec![axagent_runtime_core::ContentBlock::ToolUse {
+        let blocks = vec![HarnessContentBlock::ToolUse {
             id: "id-1234".to_string(),
             name: "read_file".to_string(),
             input: "{\"path\": \"/test\"}".to_string(),
@@ -1452,7 +1452,7 @@ mod tests {
 
     #[test]
     fn test_estimate_tokens_from_content_blocks_tool_result() {
-        let blocks = vec![axagent_runtime_core::ContentBlock::ToolResult {
+        let blocks = vec![HarnessContentBlock::ToolResult {
             tool_use_id: "tu-1234".to_string(),
             tool_name: "bash".to_string(),
             output: "command output here".to_string(),
@@ -1465,10 +1465,10 @@ mod tests {
     #[test]
     fn test_estimate_tokens_from_content_blocks_multiple() {
         let blocks = vec![
-            axagent_runtime_core::ContentBlock::Text {
+            HarnessContentBlock::Text {
                 text: "hello".to_string(),
             },
-            axagent_runtime_core::ContentBlock::Text {
+            HarnessContentBlock::Text {
                 text: "world".to_string(),
             },
         ];
@@ -1478,7 +1478,7 @@ mod tests {
 
     #[test]
     fn test_token_usage_breakdown_zero_tokens_zero_chars() {
-        let usage = axagent_runtime_core::TokenUsage {
+        let usage = HarnessTokenUsage {
             input_tokens: 0,
             output_tokens: 0,
             cache_creation_input_tokens: 0,
@@ -1492,7 +1492,7 @@ mod tests {
 
     #[test]
     fn test_token_usage_breakdown_actual_overrides_estimate() {
-        let usage = axagent_runtime_core::TokenUsage {
+        let usage = HarnessTokenUsage {
             input_tokens: 50,
             output_tokens: 25,
             cache_creation_input_tokens: 0,
@@ -1521,7 +1521,7 @@ mod tests {
 
     #[test]
     fn test_token_usage_breakdown_serialization() {
-        let usage = axagent_runtime_core::TokenUsage {
+        let usage = HarnessTokenUsage {
             input_tokens: 100,
             output_tokens: 50,
             cache_creation_input_tokens: 0,
@@ -1872,22 +1872,21 @@ mod tests {
 
     #[test]
     fn test_estimate_tokens_from_messages_mixed_blocks() {
-        use axagent_runtime_core::{ContentBlock, ConversationMessage, MessageRole};
         let messages = vec![
-            ConversationMessage {
-                role: MessageRole::User,
-                blocks: vec![ContentBlock::Text {
+            HarnessConversationMessage {
+                role: HarnessMessageRole::User,
+                blocks: vec![HarnessContentBlock::Text {
                     text: "hello".to_string(),
                 }],
                 usage: None,
             },
-            ConversationMessage {
-                role: MessageRole::Assistant,
+            HarnessConversationMessage {
+                role: HarnessMessageRole::Assistant,
                 blocks: vec![
-                    ContentBlock::Text {
+                    HarnessContentBlock::Text {
                         text: "response text here".to_string(),
                     },
-                    ContentBlock::ToolUse {
+                    HarnessContentBlock::ToolUse {
                         id: "id-1".to_string(),
                         name: "bash".to_string(),
                         input: "{\"command\":\"ls\"}".to_string(),
@@ -1902,7 +1901,7 @@ mod tests {
 
     #[test]
     fn test_token_usage_breakdown_negative_delta() {
-        let usage = axagent_runtime_core::TokenUsage {
+        let usage = HarnessTokenUsage {
             input_tokens: 0,
             output_tokens: 0,
             cache_creation_input_tokens: 0,
@@ -1915,7 +1914,7 @@ mod tests {
 
     #[test]
     fn test_token_usage_breakdown_large_values() {
-        let usage = axagent_runtime_core::TokenUsage {
+        let usage = HarnessTokenUsage {
             input_tokens: 100000,
             output_tokens: 50000,
             cache_creation_input_tokens: 0,
@@ -1929,31 +1928,30 @@ mod tests {
 
     #[test]
     fn test_estimate_tokens_from_content_blocks_empty() {
-        let blocks: Vec<axagent_runtime_core::ContentBlock> = vec![];
+        let blocks: Vec<HarnessContentBlock> = vec![];
         assert_eq!(estimate_tokens_from_content_blocks(&blocks), 0);
     }
 
     #[test]
     fn test_estimate_tokens_from_messages_multiple_messages() {
-        use axagent_runtime_core::{ContentBlock, ConversationMessage, MessageRole};
         let messages = vec![
-            ConversationMessage {
-                role: MessageRole::User,
-                blocks: vec![ContentBlock::Text {
+            HarnessConversationMessage {
+                role: HarnessMessageRole::User,
+                blocks: vec![HarnessContentBlock::Text {
                     text: "first message".to_string(),
                 }],
                 usage: None,
             },
-            ConversationMessage {
-                role: MessageRole::Assistant,
-                blocks: vec![ContentBlock::Text {
+            HarnessConversationMessage {
+                role: HarnessMessageRole::Assistant,
+                blocks: vec![HarnessContentBlock::Text {
                     text: "second message".to_string(),
                 }],
                 usage: None,
             },
-            ConversationMessage {
-                role: MessageRole::User,
-                blocks: vec![ContentBlock::Text {
+            HarnessConversationMessage {
+                role: HarnessMessageRole::User,
+                blocks: vec![HarnessContentBlock::Text {
                     text: "third message here".to_string(),
                 }],
                 usage: None,

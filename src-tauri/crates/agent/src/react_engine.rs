@@ -8,9 +8,9 @@ use crate::self_verifier::{SelfVerifier, VerificationResult};
 use crate::thought_chain::{Action, ChainSummary, ThoughtChain, ThoughtEvent, ThoughtStep};
 use axagent_core::token_budget::{TokenBudgetDecision, TokenBudgetTracker};
 use axagent_core::token_counter::estimate_tokens;
+use axagent_harness::llm_execution::{LlmCallConfig, SharedLlmExecutionService};
 use axagent_harness::types::{ChatContent, ChatMessage, ChatRequest};
 use axagent_harness::{ProviderAdapter, ProviderRequestContext};
-use axagent_runtime_core::{LlmCallConfig, execute_llm};
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::broadcast;
@@ -258,8 +258,10 @@ pub struct LlmDrivenReasoningProvider {
     ctx: ProviderRequestContext,
     model: String,
     fallback: DefaultReasoningProvider,
-    /// 中心化 LLM 调用配置（可选，设置后走 execute_llm 路径）
+    /// 中心化 LLM 调用配置（可选，设置后走 harness LlmExecutionService 路径）
     llm_call_config: Option<LlmCallConfig>,
+    /// Harness 层 LLM 执行服务（与 llm_call_config 配套使用）
+    llm_service: Option<SharedLlmExecutionService>,
 }
 
 impl LlmDrivenReasoningProvider {
@@ -274,12 +276,18 @@ impl LlmDrivenReasoningProvider {
             model,
             fallback: DefaultReasoningProvider::new(),
             llm_call_config: None,
+            llm_service: None,
         }
     }
 
-    /// 注入中心化 LLM 调用配置
-    pub fn with_llm_call_config(mut self, config: LlmCallConfig) -> Self {
+    /// 注入中心化 LLM 调用配置与执行服务
+    pub fn with_llm_call_config(
+        mut self,
+        config: LlmCallConfig,
+        service: SharedLlmExecutionService,
+    ) -> Self {
         self.llm_call_config = Some(config);
+        self.llm_service = Some(service);
         self
     }
 
@@ -317,10 +325,15 @@ impl LlmDrivenReasoningProvider {
             store: None,
         };
 
-        // ── 中心化路径：如果配置了 LlmCallConfig，走 execute_llm() ──
-        if let Some(ref config) = self.llm_call_config {
-            return match execute_llm(&*self.adapter, &self.ctx, request, config).await {
-                Ok(result) => Ok(result.response.content),
+        // ── 中心化路径：如果配置了 LlmCallConfig + LlmExecutionService，走 harness 路径 ──
+        if let (Some(config), Some(svc)) = (&self.llm_call_config, &self.llm_service) {
+            let messages = serde_json::to_value(&request)
+                .map_err(|e| ReActError::LlmReasoningError(e.to_string()))?;
+            return match svc
+                .execute(&*self.adapter, &self.ctx, messages, config)
+                .await
+            {
+                Ok(result) => Ok(result.content),
                 Err(e) => Err(ReActError::LlmReasoningError(e)),
             };
         }

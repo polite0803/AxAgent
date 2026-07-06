@@ -26,6 +26,9 @@ pub mod credential;
 pub use confidence::{ConfidenceAction, ConfidenceConfig, ConfidenceOutput};
 pub mod channel_adapter;
 pub mod constants;
+pub mod contracts;
+pub use contracts::HarnessToolExecutor;
+pub mod conversation_model;
 pub mod core_error;
 pub mod error_codes;
 mod persistence_mod;
@@ -67,6 +70,8 @@ pub mod context_builder;
 pub mod error;
 pub mod has_provider_registry;
 pub mod inference_engine;
+pub mod model_knowledge;
+pub use model_knowledge::ModelKnowledgeProvider;
 pub mod npm_registry;
 pub mod persistence;
 pub mod planner;
@@ -113,6 +118,11 @@ pub use search_sources::{
 };
 
 // ── Marketplace 契约（让 gateway / kit 不依赖 dao / entities） ──
+pub mod llm_execution;
+pub use llm_execution::{
+    LlmCallConfig as HarnessLlmCallConfig, LlmCallResult as HarnessLlmCallResult,
+    LlmExecutionService, NoopLlmExecutionService, SharedLlmExecutionService,
+};
 pub mod marketplace;
 pub use marketplace::{
     CreateReviewRequest, MarketplaceService, MarketplaceStats, ReviewResponse, UpdateReviewRequest,

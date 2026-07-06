@@ -149,6 +149,20 @@ pub trait ToolExecutor: Send {
     }
 }
 
+/// 为 StaticToolExecutor 实现 HarnessToolExecutor 契约
+impl axagent_harness::HarnessToolExecutor for StaticToolExecutor {
+    fn execute(&mut self, tool_name: &str, input: &str) -> Result<String, ToolError> {
+        ToolExecutor::execute(self, tool_name, input)
+    }
+
+    fn execute_batch(
+        &mut self,
+        requests: &[(String, String, String)],
+    ) -> Vec<(String, String, Result<String, ToolError>)> {
+        ToolExecutor::execute_batch(self, requests)
+    }
+}
+
 /// 工具错误类型 — 从 axagent-harness 导入的契约定义
 pub use axagent_harness::{ToolError, ToolErrorKind};
 

@@ -15,9 +15,9 @@ use std::sync::Arc;
 
 use crate::types::{DecompositionPlan, OrchestrationError, OrchestrationStrategy, SubTask};
 use axagent_core::workflow_types::AgentRole;
+use axagent_harness::llm_execution::LlmExecutionService;
 use axagent_harness::provider::{ProviderAdapter, ProviderRequestContext};
 use axagent_harness::types::ChatContent;
-use axagent_runtime_core::{LlmCallConfig, execute_llm};
 use serde::Deserialize;
 
 // ── Trait ──────────────────────────────────────────────────────────────
@@ -217,7 +217,7 @@ impl MissionDecomposer for RuleBasedDecomposer {
 pub struct LlmBasedDecomposer {
     adapter: Arc<dyn ProviderAdapter>,
     ctx: ProviderRequestContext,
-    config: LlmCallConfig,
+    llm_service: Arc<dyn LlmExecutionService>,
     fallback: RuleBasedDecomposer,
 }
 
@@ -225,12 +225,12 @@ impl LlmBasedDecomposer {
     pub fn new(
         adapter: Arc<dyn ProviderAdapter>,
         ctx: ProviderRequestContext,
-        config: Option<LlmCallConfig>,
+        llm_service: Arc<dyn LlmExecutionService>,
     ) -> Self {
         Self {
             adapter,
             ctx,
-            config: config.unwrap_or_default(),
+            llm_service,
             fallback: RuleBasedDecomposer,
         }
     }
@@ -286,7 +286,7 @@ Respond with ONLY a JSON object:
             strategy = strategy.as_str(),
         );
 
-        let config = &self.config;
+        let config = axagent_harness::llm_execution::LlmCallConfig::default();
         let request = axagent_harness::types::ChatRequest {
             model: String::new(),
             messages: vec![
@@ -323,13 +323,24 @@ Respond with ONLY a JSON object:
             store: None,
         };
 
+        let request_json = match serde_json::to_value(&request) {
+            Ok(v) => v,
+            Err(e) => {
+                tracing::warn!(error = %e, "Failed to serialize ChatRequest, falling back to rule-based");
+                return self.fallback.decompose(mission, strategy);
+            },
+        };
+
         let result = tokio::task::block_in_place(|| {
-            tokio::runtime::Handle::current()
-                .block_on(async { execute_llm(&*self.adapter, &self.ctx, request, config).await })
+            tokio::runtime::Handle::current().block_on(async {
+                self.llm_service
+                    .execute(&*self.adapter, &self.ctx, request_json, &config)
+                    .await
+            })
         });
 
         let response_text = match result {
-            Ok(r) => r.response.content,
+            Ok(r) => r.content,
             Err(e) => {
                 tracing::warn!(error = %e, "LLM decompose failed, falling back to rule-based");
                 return self.fallback.decompose(mission, strategy);
