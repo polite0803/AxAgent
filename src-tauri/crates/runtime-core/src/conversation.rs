@@ -592,7 +592,7 @@ where
                     conversation_id: None,
                     session: &self.session,
                     system_prompt: &self.system_prompt,
-                    feature_flags: &crate::feature_flags::global_feature_flags(),
+                    feature_flags: crate::feature_flags::global_feature_flags(),
                     extras: &Default::default(),
                 };
                 for contributor in &self.context_contributors {
@@ -1040,21 +1040,22 @@ where
         self.turn_count = self.turn_count.saturating_add(1);
 
         // 1. 轮次数前置压缩：每 N 轮强制压缩一次，防止渐进膨胀
-        if let Some(every_n) = self.compact_every_n_turns {
-            if every_n > 0 && self.turn_count % every_n == 0 {
-                let result =
-                    compact_session(&self.session, crate::compact::CompactionConfig::default(), NP);
-                if result.removed_message_count > 0 {
-                    tracing::info!(
-                        "Turn-count compaction triggered at turn {} (every {})",
-                        self.turn_count,
-                        every_n,
-                    );
-                    self.session = result.compacted_session;
-                    return Some(AutoCompactionEvent {
-                        removed_message_count: result.removed_message_count,
-                    });
-                }
+        if let Some(every_n) = self.compact_every_n_turns
+            && every_n > 0
+            && self.turn_count.is_multiple_of(every_n)
+        {
+            let result =
+                compact_session(&self.session, crate::compact::CompactionConfig::default(), NP);
+            if result.removed_message_count > 0 {
+                tracing::info!(
+                    "Turn-count compaction triggered at turn {} (every {})",
+                    self.turn_count,
+                    every_n,
+                );
+                self.session = result.compacted_session;
+                return Some(AutoCompactionEvent {
+                    removed_message_count: result.removed_message_count,
+                });
             }
         }
 
