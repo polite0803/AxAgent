@@ -713,9 +713,10 @@ impl Default for TrajectoryRecorder {
 mod tests {
     use super::*;
     use axagent_harness::trajectory_types::{
-        MessageRole, ToolCall as TrajectoryToolCall, ToolResult as TrajectoryToolResult,
-        Trajectory, TrajectoryOutcome, TrajectoryQuality, TrajectoryStep,
+        MessageRole, ToolCall as TrajectoryToolCall, Trajectory, TrajectoryOutcome,
+        TrajectoryQuality, TrajectoryStep,
     };
+    use axagent_harness::trajectory_types::TrajectoryToolResult;
 
     fn make_step(
         role: MessageRole,
