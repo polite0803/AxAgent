@@ -8,6 +8,7 @@ use std::sync::{Condvar, Mutex};
 use std::time::Duration;
 
 use axagent_harness::SessionTracer;
+use axagent_harness::prompt_provider::NoopPromptProvider;
 use serde_json::{Map, Value};
 
 use crate::compact::{
@@ -22,6 +23,8 @@ use crate::permissions::{
 };
 use crate::session::{ContentBlock, ConversationMessage, Session};
 use crate::usage::{TokenUsage, UsageTracker};
+
+const NP: &NoopPromptProvider = &NoopPromptProvider;
 
 const DEFAULT_AUTO_COMPACTION_INPUT_TOKENS_THRESHOLD: u32 = 100_000;
 const AUTO_COMPACTION_THRESHOLD_ENV_VAR: &str = "AXAGENT_AUTO_COMPACT_INPUT_TOKENS";
@@ -997,7 +1000,7 @@ where
 
     #[must_use]
     pub fn compact(&self, config: CompactionConfig) -> CompactionResult {
-        compact_session(&self.session, config)
+        compact_session(&self.session, config, NP)
     }
 
     #[must_use]
@@ -1040,7 +1043,7 @@ where
         if let Some(every_n) = self.compact_every_n_turns {
             if every_n > 0 && self.turn_count % every_n == 0 {
                 let result =
-                    compact_session(&self.session, crate::compact::CompactionConfig::default());
+                    compact_session(&self.session, crate::compact::CompactionConfig::default(), NP);
                 if result.removed_message_count > 0 {
                     tracing::info!(
                         "Turn-count compaction triggered at turn {} (every {})",
@@ -1072,7 +1075,7 @@ where
             }
         };
 
-        let result = compact_session(&self.session, config);
+        let result = compact_session(&self.session, config, NP);
 
         if result.removed_message_count == 0 {
             return None;
@@ -1305,7 +1308,7 @@ where
 
 /// Reads the automatic compaction threshold from the environment.
 #[must_use]
-pub async fn auto_compaction_threshold_from_env() -> u32 {
+pub fn auto_compaction_threshold_from_env() -> u32 {
     parse_auto_compaction_threshold(
         std::env::var(AUTO_COMPACTION_THRESHOLD_ENV_VAR)
             .ok()

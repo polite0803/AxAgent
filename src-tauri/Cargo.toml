@@ -74,8 +74,12 @@ license = "AGPL-3.0-only"
 description = "AxAgent - AI Chat Desktop App"
 
 [features]
-default = ["notification"]
+default = ["notification", "browser-use", "computer-use", "channel-platforms"]
 notification = ["dep:tauri-plugin-notification"]
+browser-use = []
+computer-use = []
+channel-platforms = []
+server = []
 
 [package.metadata.cargo-machete]
 # All declared axagent-* path deps are referenced in src/app_state.rs as
@@ -96,6 +100,11 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 [[bin]]
 name = "AxAgent"
 path = "src/main.rs"
+
+[[bin]]
+name = "axagent-server"
+path = "src/server_main.rs"
+required-features = ["server"]
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }

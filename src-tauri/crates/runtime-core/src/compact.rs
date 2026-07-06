@@ -83,8 +83,12 @@ pub fn estimate_session_tokens(session: &Session) -> usize {
 
 /// Returns `true` when the session exceeds the configured compaction budget.
 #[must_use]
-pub fn should_compact(session: &Session, config: CompactionConfig) -> bool {
-    let start = compacted_summary_prefix_len(session);
+pub fn should_compact(
+    session: &Session,
+    config: CompactionConfig,
+    provider: &dyn PromptProvider,
+) -> bool {
+    let start = compacted_summary_prefix_len(session, provider);
     let compactable = &session.messages[start..];
 
     compactable.len() > config.preserve_recent_messages
@@ -208,7 +212,7 @@ pub fn compact_session(
         .to_string(),
     );
 
-    if !should_compact(session, config) {
+    if !should_compact(session, config, provider) {
         return CompactionResult {
             summary: String::new(),
             formatted_summary: String::new(),
@@ -368,12 +372,12 @@ pub fn compact_session(
     result
 }
 
-fn compacted_summary_prefix_len(session: &Session) -> usize {
+fn compacted_summary_prefix_len(session: &Session, provider: &dyn PromptProvider) -> usize {
     usize::from(
         session
             .messages
             .first()
-            .and_then(extract_existing_compacted_summary)
+            .and_then(|msg| extract_existing_compacted_summary(msg, provider))
             .is_some(),
     )
 }
@@ -993,6 +997,7 @@ mod tests {
                 max_estimated_tokens: 1,
                 ..Default::default()
             },
+            NP,
         ));
         // Note: with the tool-use/tool-result boundary guard the compacted session
         // may preserve one extra message at the boundary, so token reduction is
@@ -1089,7 +1094,8 @@ mod tests {
                 preserve_recent_messages: 2,
                 max_estimated_tokens: 1,
                 ..Default::default()
-            }
+            },
+            NP,
         ));
     }
 

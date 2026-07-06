@@ -6,9 +6,9 @@
 
 pub mod browser_automation;
 pub mod command_validator;
-#[cfg(not(target_os = "android"))]
+#[cfg(feature = "computer-use")]
 pub mod computer_control;
-#[cfg(target_os = "android")]
+#[cfg(not(feature = "computer-use"))]
 pub mod computer_control;
 pub mod git_tools;
 pub mod html_cleaner;
@@ -27,9 +27,9 @@ pub mod token_counter;
 pub mod unified_config;
 pub mod utils;
 
-#[cfg(not(target_os = "android"))]
+#[cfg(feature = "computer-use")]
 pub mod ui_automation;
-#[cfg(target_os = "android")]
+#[cfg(not(feature = "computer-use"))]
 pub mod ui_automation;
 
 pub mod billing;
