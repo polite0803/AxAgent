@@ -860,8 +860,14 @@ enum CommandExecution {
 
 #[cfg(test)]
 mod tests {
-    use super::{HookEvent, HookProgressEvent, HookProgressReporter, HookRunResult, HookRunner};
+    use super::{
+        HookAbortSignal, HookEvent, HookProgressEvent, HookProgressReporter, HookRunResult,
+        HookRunner,
+    };
     use crate::config::{RuntimeFeatureConfig, RuntimeHookConfig};
+    use crate::permissions::PermissionOverride;
+    use std::thread;
+    use std::time::Duration;
 
     struct RecordingReporter {
         events: Vec<HookProgressEvent>,

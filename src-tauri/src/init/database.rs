@@ -2,9 +2,6 @@
 
 use std::path::{Path, PathBuf};
 
-#[cfg(all(unix, not(mobile)))]
-use std::os::unix::fs::PermissionsExt;
-
 /// 限制密钥文件权限为仅当前用户可访问。
 /// - Unix: 0o600 (owner rw)
 /// - Windows: icacls 移除继承权限，仅保留当前用户
