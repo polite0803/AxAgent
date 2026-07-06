@@ -53,6 +53,7 @@
   "plugins": {
     "updater": {
       "active": false,
+      "pubkey": "",
       "endpoints": [],
       "windows": {
         "installMode": "passive"

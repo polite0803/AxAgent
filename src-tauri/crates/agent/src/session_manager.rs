@@ -6,6 +6,7 @@ use crate::event_bus::AgentPermissionPayload;
 use crate::provider_adapter::AxAgentApiClient;
 use crate::shared_blackboard::SharedBlackboard;
 use axagent_core::repo::agent_session;
+use axagent_harness::prompt_provider::NoopPromptProvider;
 use axagent_harness::{TaskComplexity, TrajectoryService};
 use axagent_runtime_core::{
     AgentExecutionProgress, CompactionConfig, ContentBlock, ConversationMessage,
@@ -13,6 +14,8 @@ use axagent_runtime_core::{
     PermissionMode, PermissionPolicy, PermissionPromptDecision, PermissionPrompter,
     PermissionRequest, RuntimeError, Session, ToolExecutor, compact_session, should_compact,
 };
+
+const NP: &NoopPromptProvider = &NoopPromptProvider;
 use sea_orm::DatabaseConnection;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
@@ -541,8 +544,8 @@ impl SessionManager {
         // Use CompactionConfig::default() consistently for both the check
         // and the compaction to avoid configuration mismatch.
         let compaction_config = CompactionConfig::default();
-        let mut session = if should_compact(session.session(), compaction_config) {
-            let result = compact_session(session.session(), compaction_config);
+        let mut session = if should_compact(session.session(), compaction_config, NP) {
+            let result = compact_session(session.session(), compaction_config, NP);
 
             // Build MessageRecords for integrity verification
             let original_msgs: Vec<serde_json::Value> = session

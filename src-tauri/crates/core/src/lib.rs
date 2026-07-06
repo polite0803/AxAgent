@@ -10,7 +10,12 @@ pub use axagent_kit::billing;
 #[cfg(not(target_os = "android"))]
 pub use axagent_kit::browser_automation;
 pub use axagent_kit::command_validator;
+#[cfg(feature = "computer-use")]
 pub use axagent_kit::computer_control;
+#[cfg(feature = "computer-use")]
+pub use axagent_kit::screen_capture;
+#[cfg(feature = "computer-use")]
+pub use axagent_kit::screen_vision;
 pub use axagent_search::ast_index;
 pub use axagent_storage::cloud_storage;
 pub use axagent_storage::cloud_workspace;
@@ -53,7 +58,9 @@ pub use axagent_kit::prompts;
 pub use axagent_kit::resource_limits;
 pub use axagent_kit::sandbox_runner;
 pub use axagent_kit::schema_validator;
+#[cfg(feature = "computer-use")]
 pub use axagent_kit::screen_capture;
+#[cfg(feature = "computer-use")]
 pub use axagent_kit::screen_vision;
 pub use axagent_kit::secure_store;
 pub use axagent_kit::service_container;
@@ -62,6 +69,7 @@ pub use axagent_kit::skill_dirs;
 pub use axagent_kit::slash_command;
 pub use axagent_kit::token_budget;
 pub use axagent_kit::token_counter;
+#[cfg(feature = "computer-use")]
 pub use axagent_kit::ui_automation;
 pub use axagent_kit::unified_config;
 pub use axagent_kit::utils;
