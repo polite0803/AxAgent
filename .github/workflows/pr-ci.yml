@@ -5,6 +5,12 @@ on:
     branches:
       - master
       - develop
+  push:
+    branches:
+      - master
+      - develop
+    tags:
+      - 'v*.*.*'
 
 permissions:
   contents: read
