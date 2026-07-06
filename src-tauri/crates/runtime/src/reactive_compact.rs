@@ -8,6 +8,9 @@
 
 use crate::compact::{CompactionConfig, CompactionResult, compact_session};
 use crate::session::Session;
+use axagent_harness::prompt_provider::{NoopPromptProvider, PromptProvider};
+
+const NP: &NoopPromptProvider = &NoopPromptProvider;
 
 /// 响应式压缩尝试的结果。
 #[derive(Debug, Clone)]
@@ -83,7 +86,7 @@ pub fn try_reactive_compact(
         ..base_config
     };
 
-    let result = compact_session(session, reactive_config);
+    let result = compact_session(session, reactive_config, NP);
 
     // 检查压缩是否有实际效果
     if result.removed_message_count == 0 {
@@ -93,7 +96,7 @@ pub fn try_reactive_compact(
             max_estimated_tokens: 10_000,
             ..base_config
         };
-        let retry_result = compact_session(session, aggressive_config);
+        let retry_result = compact_session(session, aggressive_config, NP);
 
         if retry_result.removed_message_count == 0 {
             return ReactiveCompactResult::Failed {

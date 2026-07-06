@@ -12,7 +12,6 @@ mod indexing;
 mod indexing_triggers;
 mod init;
 pub use init::{create_app_state, init_database_with_dir};
-pub use paths;
 mod knowledge_integration;
 mod memory_extract;
 
