@@ -156,11 +156,10 @@ export function useChatViewScroll({
 
   useEffect(() => {
     pendingScrollConversationIdRef.current = activeConversationId ?? null;
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setShowScrollToBottom(false);
-    setStickToBottom(true);
+    setTimeout(() => setShowScrollToBottom(false), 0);
+    setTimeout(() => setStickToBottom(true), 0);
     scrollLayoutMetricsRef.current = { scrollHeight: 0, clientHeight: 0 };
-  }, [activeConversationId]);
+  }, [activeConversationId, setShowScrollToBottom]);
 
   const syncScrollToBottomVisibility = useCallback(() => {
     const target = scrollBoxRef.current;

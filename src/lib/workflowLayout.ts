@@ -233,8 +233,9 @@ export function findCyclicSCCs(nodes: NodeLike[], edges: EdgeLike[]): string[][]
 
 /** 提取节点标题：优先 data.title（ReactFlow），回退到 WorkflowNode.title */
 function titleOf(n: NodeLike): string {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  if (typeof (n as any).title === "string") { return (n as any).title; }
+  if (typeof (n as unknown as Record<string, unknown>).title === "string") {
+    return (n as unknown as Record<string, unknown>).title as string;
+  }
   if (typeof n.data?.title === "string") { return n.data.title; }
   return "";
 }
@@ -298,10 +299,11 @@ export function validate_workflow(
   edges: EdgeLike[],
   t: RenderFn = defaultT,
 ): ValidationResult {
-  // 过滤分组/装饰边——不参与结构校验
   const realEdges = edges.filter(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (e) => e.edge_type !== "grouping" && (e as any).data?.edgeType !== "grouping",
+    (e) =>
+      e.edge_type !== "grouping"
+      && ((e as unknown as Record<string, unknown>).data as Record<string, unknown> | undefined)?.edgeType
+        !== "grouping",
   );
   const issues: ValidateIssue[] = [];
   const indegree = buildIndegree(realEdges);
@@ -351,12 +353,11 @@ export function validate_workflow(
     if (!CONTAINER_NODE_TYPES.has(tType)) { continue; }
     if ((indegree.get(n.id) || 0) > 0 || (outdegree.get(n.id) || 0) > 0) { continue; }
 
-    // decorative 容器跳过入度/出度检查（仅供视觉分组，调度引擎忽略）
     if (
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (n as any).kind === "decorative" || (n as any).data?.kind === "decorative"
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      || (n as any).config?.kind === "decorative"
+      (n as unknown as Record<string, unknown>).kind === "decorative"
+      || ((n as unknown as Record<string, unknown>).data as Record<string, unknown> | undefined)?.kind === "decorative"
+      || ((n as unknown as Record<string, unknown>).config as Record<string, unknown> | undefined)?.kind
+        === "decorative"
     ) { continue; }
 
     const hasChildren = nodes.some((x) => x.parentId === n.id);
@@ -580,9 +581,8 @@ export function validate_workflow(
 
 /** 从节点中提取 config 字段值（兼容 WorkflowNode 和 ReactFlow Node） */
 function extractConfig(n: NodeLike, key: string): string | undefined {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const cfg = (n as any).config;
-  if (cfg && typeof cfg[key] === "string") { return cfg[key]; }
+  const cfg = (n as unknown as Record<string, unknown>).config as Record<string, unknown> | undefined;
+  if (cfg && typeof cfg[key] === "string") { return cfg[key] as string; }
   if (n.data && typeof n.data[key] === "string") { return n.data[key] as string; }
   if (n.data?.config && typeof (n.data.config as Record<string, unknown>)[key] === "string") {
     return (n.data.config as Record<string, unknown>)[key] as string;

@@ -116,17 +116,15 @@ function SourceConfigModal({
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    /* eslint-disable react-hooks/set-state-in-effect */
     if (!open || !source) {
-      setConfig(null);
+      setTimeout(() => setConfig(null), 0);
       return;
     }
-    setLoading(true);
+    setTimeout(() => setLoading(true), 0);
     getSourceConfig(source.containerType, source.id)
       .then(setConfig)
       .catch(() => setConfig(null))
       .finally(() => setLoading(false));
-    /* eslint-enable react-hooks/set-state-in-effect */
   }, [open, source, getSourceConfig]);
 
   return (

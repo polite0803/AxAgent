@@ -1,5 +1,6 @@
 use super::manage::{generate_ai_title, update_conversation};
 use super::messages::build_message_content;
+use crate::commands::spawn_guard::SpawnGuard;
 #[tauri::command]
 pub async fn regenerate_conversation_title(
     app: tauri::AppHandle,
@@ -77,6 +78,17 @@ pub async fn regenerate_conversation_title(
     let conv_model_id = conversation.model_id.clone();
     let harness_clone = state.harness.clone();
     tokio::spawn(async move {
+        // 兜底：panic / 早退 / return 路径上 emit generating=false + error
+        let _guard = SpawnGuard::new("regenerate_conversation_title", || {
+            let _ = app_clone.emit(
+                "conversation-title-generating",
+                ConversationTitleGeneratingEvent {
+                    conversation_id: conv_id.clone(),
+                    generating: false,
+                    error: Some("Internal panic during title generation".to_string()),
+                },
+            );
+        });
         let ai_title = generate_ai_title(
             &harness_clone,
             &conversation_messages,
@@ -135,6 +147,7 @@ pub async fn regenerate_conversation_title(
                 );
             },
         }
+        _guard.finish();
     });
 
     Ok(())

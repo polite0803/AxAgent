@@ -18,7 +18,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   font_weight: 400,
   font_family: "'Geist Variable', 'Inter Variable', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
   code_font_family: "'JetBrains Mono Variable', ui-monospace, monospace",
-  bubble_style: "minimal",
+  bubble_style: "modern",
   code_theme: "poimandres",
   code_theme_light: "github-light",
   default_provider_id: null,

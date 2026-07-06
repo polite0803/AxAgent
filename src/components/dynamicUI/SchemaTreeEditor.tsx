@@ -5,7 +5,7 @@ import { COMPONENT_REQUIRED_PROPS, VALID_DYNAMIC_COMPONENT_TYPES } from "@/types
 import { ArrowDownOutlined, ArrowUpOutlined, DeleteOutlined, PlusOutlined } from "@ant-design/icons";
 import { Button, Divider, Empty, Input, Select, Space, Tag, Tree } from "antd";
 import type { DataNode } from "antd/es/tree";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 interface SchemaTreeEditorProps {
@@ -127,8 +127,10 @@ export function SchemaTreeEditor({ schema, onChange }: SchemaTreeEditorProps) {
     };
   }
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const treeData = useMemo(() => [buildTreeData(root)], [root]);
+  const buildTreeDataRef = useRef(buildTreeData);
+  buildTreeDataRef.current = buildTreeData;
+
+  const treeData = useMemo(() => [buildTreeDataRef.current(root)], [root]);
 
   // 选中的节点
   const selectedNode = useMemo(() => {

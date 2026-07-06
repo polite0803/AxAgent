@@ -3,11 +3,14 @@
 use crate::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::backup as backup_err;
+use crate::commands::spawn_guard::panic_message;
 use axagent_core::repo::backup;
 use axagent_core::repo::settings::get_settings;
 use axagent_harness::types::*;
 use axagent_storage::DefaultPathEncoder;
+use futures::FutureExt;
 use sea_orm::DatabaseConnection;
+use std::panic::AssertUnwindSafe;
 use std::path::Path;
 use std::sync::Arc;
 use tauri::Emitter;
@@ -60,9 +63,22 @@ pub async fn restore_backup(
                 .await
                 .map_err(|e| e.to_string())?;
             // 移除残留的 WAL/SHM 文件，防止 SQLite 在重启后回放不兼容的日志
+            // 文件不存在（NotFound）属正常路径，其他 I/O 错误必须打 warn 而非吞错
             let db_path = std::path::Path::new(db_path);
-            let _ = std::fs::remove_file(db_path.with_extension("db-wal"));
-            let _ = std::fs::remove_file(db_path.with_extension("db-shm"));
+            for suffix in ["db-wal", "db-shm"] {
+                let aux_path = db_path.with_extension(suffix);
+                match std::fs::remove_file(&aux_path) {
+                    Ok(()) => {},
+                    Err(e) if e.kind() == std::io::ErrorKind::NotFound => {},
+                    Err(e) => {
+                        tracing::warn!(
+                            "failed to remove auxiliary db file {}: {}",
+                            aux_path.display(),
+                            e
+                        );
+                    },
+                }
+            }
 
             // SQLite 恢复后需要重启应用
             app.restart();
@@ -202,43 +218,61 @@ async fn restart_auto_backup(
         // Initial wait (may be shorter if overdue)
         tokio::time::sleep(std::time::Duration::from_secs(initial_delay_secs)).await;
         loop {
-            // Read current settings to get backup_dir
-            let backup_dir = match get_settings(&db).await {
-                Ok(s) => {
-                    let decoded = axagent_core::path_vars::decode_path_opt(&s.backup_dir);
-                    backup::resolve_backup_dir(decoded.as_deref(), &app_dir)
-                },
-                Err(_) => backup::resolve_backup_dir(None, &app_dir),
-            };
+            // 用 catch_unwind 包裹单次周期执行体；panic 不会杀死整个周期任务，
+            // 日志 + emit 失败事件后继续下一轮循环
+            let result = AssertUnwindSafe(async {
+                // Read current settings to get backup_dir
+                let backup_dir = match get_settings(&db).await {
+                    Ok(s) => {
+                        let decoded = axagent_core::path_vars::decode_path_opt(&s.backup_dir);
+                        backup::resolve_backup_dir(decoded.as_deref(), &app_dir)
+                    },
+                    Err(_) => backup::resolve_backup_dir(None, &app_dir),
+                };
 
-            // Create auto backup (SQLite format for speed)
-            match backup::create_backup(&db, "sqlite", &backup_dir, &DefaultPathEncoder).await {
-                Ok(_) => {
-                    tracing::info!("Auto-backup created successfully");
-                    let _ = app_for_emit.emit(
-                        "auto-backup-completed",
-                        serde_json::json!({
-                            "success": true,
-                            "message": "Auto-backup created successfully",
-                        }),
-                    );
-                    if let Err(e) =
-                        backup::cleanup_old_backups(&db, max_count, &DefaultPathEncoder).await
-                    {
-                        tracing::warn!("Auto-backup cleanup failed: {}", e);
-                    }
-                },
-                Err(e) => {
-                    tracing::warn!("Auto-backup failed: {}", e);
-                    let _ = app_for_emit.emit(
-                        "auto-backup-completed",
-                        serde_json::json!({
-                            "success": false,
-                            "error": e.to_string(),
-                        }),
-                    );
-                },
+                // Create auto backup (SQLite format for speed)
+                match backup::create_backup(&db, "sqlite", &backup_dir, &DefaultPathEncoder).await {
+                    Ok(_) => {
+                        tracing::info!("Auto-backup created successfully");
+                        let _ = app_for_emit.emit(
+                            "auto-backup-completed",
+                            serde_json::json!({
+                                "success": true,
+                                "message": "Auto-backup created successfully",
+                            }),
+                        );
+                        if let Err(e) =
+                            backup::cleanup_old_backups(&db, max_count, &DefaultPathEncoder).await
+                        {
+                            tracing::warn!("Auto-backup cleanup failed: {}", e);
+                        }
+                    },
+                    Err(e) => {
+                        tracing::warn!("Auto-backup failed: {}", e);
+                        let _ = app_for_emit.emit(
+                            "auto-backup-completed",
+                            serde_json::json!({
+                                "success": false,
+                                "error": e.to_string(),
+                            }),
+                        );
+                    },
+                }
+            })
+            .catch_unwind()
+            .await;
+
+            if let Err(p) = result {
+                tracing::error!("[auto_backup] PANIC 在一次周期备份执行中: {}", panic_message(&p));
+                let _ = app_for_emit.emit(
+                    "auto-backup-completed",
+                    serde_json::json!({
+                        "success": false,
+                        "error": "Internal panic during auto-backup",
+                    }),
+                );
             }
+
             tokio::time::sleep(interval).await;
         }
     });

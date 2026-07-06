@@ -4,7 +4,7 @@ import { invoke } from "@/lib/invoke";
 import { useConversationStore } from "@/stores";
 import { App, theme } from "antd";
 import { BoxSelect, Bug, ClipboardPaste, Copy, Scissors, TextCursorInput } from "lucide-react";
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 /**
@@ -248,80 +248,64 @@ export function GlobalCopyMenu() {
     el.style.top = y + "px";
   }, [menuPos, isTextInput, hasSelection]);
 
+  const menuItemData = useMemo(() => {
+    const result: {
+      key: string;
+      icon: React.ReactNode;
+      label: string;
+      disabled?: boolean;
+      divider?: boolean;
+    }[] = [];
+
+    if (isTextInput) {
+      result.push(
+        { key: "cut", icon: <Scissors size={14} />, label: t("common.cut"), disabled: !hasSelection },
+        { key: "copy", icon: <Copy size={14} />, label: t("common.copy"), disabled: !hasSelection },
+        { key: "paste", icon: <ClipboardPaste size={14} />, label: t("common.paste") },
+        { key: "selectAll", icon: <BoxSelect size={14} />, label: t("common.selectAll"), divider: true },
+      );
+    } else {
+      if (hasSelection) {
+        result.push({ key: "copy", icon: <Copy size={14} />, label: t("common.copy") });
+        if (activeConversationId && inChatMessages) {
+          result.push({ key: "fill", icon: <TextCursorInput size={14} />, label: t("common.fillToInput") });
+        }
+      }
+    }
+
+    if (isDev) {
+      result.push({ key: "devtools", icon: <Bug size={14} />, label: t("common.openDevtools") });
+    }
+
+    return result;
+  }, [isTextInput, hasSelection, isDev, activeConversationId, inChatMessages, t]);
+
   if (!menuPos) {
     return null;
   }
 
-  interface MenuItem {
-    key: string;
-    icon: React.ReactNode;
-    label: string;
-    onClick: () => void;
-    disabled?: boolean;
-    divider?: boolean;
-  }
-
-  const items: MenuItem[] = [];
-
-  /* eslint-disable react-hooks/refs */
-  if (isTextInput) {
-    items.push(
-      {
-        key: "cut",
-        icon: <Scissors size={14} />,
-        label: t("common.cut"),
-        onClick: handleCut,
-        disabled: !hasSelection,
-      },
-      {
-        key: "copy",
-        icon: <Copy size={14} />,
-        label: t("common.copy"),
-        onClick: handleCopy,
-        disabled: !hasSelection,
-      },
-      {
-        key: "paste",
-        icon: <ClipboardPaste size={14} />,
-        label: t("common.paste"),
-        onClick: handlePaste,
-      },
-      {
-        key: "selectAll",
-        icon: <BoxSelect size={14} />,
-        label: t("common.selectAll"),
-        onClick: handleSelectAll,
-        divider: true,
-      },
-    );
-  } else {
-    if (hasSelection) {
-      items.push({
-        key: "copy",
-        icon: <Copy size={14} />,
-        label: t("common.copy"),
-        onClick: handleCopy,
-      });
-      if (activeConversationId && inChatMessages) {
-        items.push({
-          key: "fill",
-          icon: <TextCursorInput size={14} />,
-          label: t("common.fillToInput"),
-          onClick: handleFillInput,
-        });
-      }
+  const handleMenuAction = (key: string) => {
+    switch (key) {
+      case "cut":
+        handleCut();
+        break;
+      case "copy":
+        handleCopy();
+        break;
+      case "paste":
+        handlePaste();
+        break;
+      case "selectAll":
+        handleSelectAll();
+        break;
+      case "fill":
+        handleFillInput();
+        break;
+      case "devtools":
+        handleOpenDevtools();
+        break;
     }
-  }
-
-  if (isDev) {
-    items.push({
-      key: "devtools",
-      icon: <Bug size={14} />,
-      label: t("common.openDevtools"),
-      onClick: handleOpenDevtools,
-    });
-  }
-  /* eslint-enable react-hooks/refs */
+  };
 
   return (
     <div
@@ -338,7 +322,7 @@ export function GlobalCopyMenu() {
         minWidth: 120,
       }}
     >
-      {items.map((item) => (
+      {menuItemData.map((item) => (
         <div key={item.key}>
           {item.divider && (
             <div
@@ -361,12 +345,12 @@ export function GlobalCopyMenu() {
               cursor: item.disabled ? "default" : "pointer",
               transition: "background-color 0.15s",
             }}
-            onClick={item.disabled ? undefined : item.onClick}
+            onClick={item.disabled ? undefined : () => handleMenuAction(item.key)}
             onKeyDown={item.disabled
               ? undefined
               : (e) => {
                 if (e.key === "Enter" || e.key === " ") {
-                  item.onClick();
+                  handleMenuAction(item.key);
                 }
               }}
             onMouseEnter={(e) => {

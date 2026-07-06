@@ -56,8 +56,7 @@ export function DashboardPluginsSettings() {
   };
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    loadPlugins();
+    setTimeout(() => loadPlugins(), 0);
   }, []);
 
   const handleRefresh = async () => {

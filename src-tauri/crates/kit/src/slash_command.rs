@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use serde::{Deserialize, Serialize};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::LazyLock;
 use std::time::Instant;
 
@@ -137,7 +137,9 @@ fn is_skill_name(name: &str) -> bool {
 }
 
 fn is_personality_name(name: &str) -> bool {
-    let personalities_dir = ACTIVE_PERSONALITY_FILE.parent().unwrap();
+    let personalities_dir = ACTIVE_PERSONALITY_FILE
+        .parent()
+        .unwrap_or_else(|| Path::new("."));
     personalities_dir.join(name).join("SOUL.md").exists()
 }
 
@@ -145,7 +147,9 @@ pub fn switch_personality(name: &str) -> Result<String, String> {
     if name.contains('/') || name.contains('\\') || name.contains("..") || name.starts_with('.') {
         return Err(format!("Invalid personality name: '{}'", name));
     }
-    let personalities_dir = ACTIVE_PERSONALITY_FILE.parent().unwrap();
+    let personalities_dir = ACTIVE_PERSONALITY_FILE
+        .parent()
+        .unwrap_or_else(|| Path::new("."));
     let dir = personalities_dir.join(name);
     if !dir.exists() || !dir.join("SOUL.md").exists() {
         return Err(format!(
@@ -162,7 +166,9 @@ pub fn switch_personality(name: &str) -> Result<String, String> {
 }
 
 fn list_personality_names() -> Vec<String> {
-    let personalities_dir = ACTIVE_PERSONALITY_FILE.parent().unwrap();
+    let personalities_dir = ACTIVE_PERSONALITY_FILE
+        .parent()
+        .unwrap_or_else(|| Path::new("."));
     if !personalities_dir.exists() {
         return Vec::new();
     }

@@ -323,7 +323,9 @@ pub async fn browser_http_get_json(
     if guard.is_none() {
         *guard = Some(PlaywrightClient::launch().await?);
     }
-    let client = guard.as_mut().unwrap();
+    let client = guard
+        .as_mut()
+        .ok_or_else(|| anyhow::anyhow!("browser pool not initialized after launch"))?;
     client.fetch_json_via_browser(url, headers).await
 }
 
@@ -337,7 +339,9 @@ pub async fn browser_http_get_text(url: &str) -> anyhow::Result<serde_json::Valu
     if guard.is_none() {
         *guard = Some(PlaywrightClient::launch().await?);
     }
-    let client = guard.as_mut().unwrap();
+    let client = guard
+        .as_mut()
+        .ok_or_else(|| anyhow::anyhow!("browser pool not initialized after launch"))?;
     client.http_get_via_browser(url).await
 }
 
@@ -349,6 +353,8 @@ pub async fn browser_http_get_json_page(url: &str) -> anyhow::Result<serde_json:
     if guard.is_none() {
         *guard = Some(PlaywrightClient::launch().await?);
     }
-    let client = guard.as_mut().unwrap();
+    let client = guard
+        .as_mut()
+        .ok_or_else(|| anyhow::anyhow!("browser pool not initialized after launch"))?;
     client.http_get_via_fetch(url).await
 }

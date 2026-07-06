@@ -725,7 +725,7 @@ pub struct CrossSessionInsight {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::trajectory::{MessageRole, ToolCall, ToolResult, TrajectoryStep};
+    use crate::trajectory::{MessageRole, ToolCall, TrajectoryStep, TrajectoryToolResult};
 
     fn create_test_trajectory(tools: Vec<&str>, has_error: bool) -> Trajectory {
         let steps: Vec<TrajectoryStep> = tools

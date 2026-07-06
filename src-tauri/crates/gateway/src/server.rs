@@ -73,6 +73,47 @@ pub struct GatewayStartConfig {
 
 // ─── SSL redirect handler ─────────────────────────────────────────────────
 
+/// 从环境变量 `TRUSTED_PROXIES` 解析可信代理 IP 列表。
+///
+/// 格式：逗号分隔的 IP 字面量，例如 `TRUSTED_PROXIES=10.0.0.1,192.168.1.5`。
+/// 支持 IPv4 和 IPv6 单地址；CIDR 形式暂不支持（避免引入额外依赖 + CIDR 展开边界 bug）。
+///
+/// 未设置或解析为空时回退到 `ClientIpPolicy::trust_all()`，并打印一次 warn。
+pub(crate) fn client_ip_policy_from_env_or_default() -> ClientIpPolicy {
+    let raw = std::env::var("TRUSTED_PROXIES")
+        .ok()
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty());
+
+    let Some(raw) = raw else {
+        tracing::warn!(
+            "TRUSTED_PROXIES 未设置，client_ip_policy 回退到 trust_all()；生产部署建议显式配置"
+        );
+        return ClientIpPolicy::trust_all();
+    };
+
+    let mut proxies: Vec<std::net::IpAddr> = Vec::new();
+    let mut bad: Vec<String> = Vec::new();
+    for token in raw.split(',').map(str::trim).filter(|s| !s.is_empty()) {
+        match token.parse::<std::net::IpAddr>() {
+            Ok(ip) => proxies.push(ip),
+            Err(_) => bad.push(token.to_string()),
+        }
+    }
+
+    if !bad.is_empty() {
+        tracing::warn!("TRUSTED_PROXIES 中以下项解析失败: {:?}（已忽略）", bad);
+    }
+
+    if proxies.is_empty() {
+        tracing::warn!("TRUSTED_PROXIES 解析后为空，回退到 trust_all()");
+        return ClientIpPolicy::trust_all();
+    }
+
+    tracing::info!("TRUSTED_PROXIES 已配置 {} 个可信代理", proxies.len());
+    ClientIpPolicy::default().with_trusted(proxies)
+}
+
 #[derive(Clone)]
 struct RedirectState {
     https_port: u16,
@@ -154,7 +195,9 @@ impl GatewayServer {
             ticket_store: crate::realtime::default_ticket_store(),
             // SECURITY (Phase 2 Task 2.3): 5 失败 → 60s 冷却。
             key_verify_limiter: Arc::new(KeyVerifyLimiter::new(5, Duration::from_secs(60))),
-            client_ip_policy: Arc::new(ClientIpPolicy::trust_all()),
+            // P1-7: 默认从环境变量 `TRUSTED_PROXIES=ip1,ip2,...` 读取可信代理；
+            // 未配置时回退到 `trust_all()` 保留向后兼容，但打 warn 提醒生产环境收紧。
+            client_ip_policy: Arc::new(client_ip_policy_from_env_or_default()),
         };
         Self::start_inner(app_state, config).await
     }

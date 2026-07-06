@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 use tauri::{Emitter, State};
 
 use crate::app_state::AppState;
+use crate::commands::spawn_guard::SpawnGuard;
 
 // ── Types ──
 
@@ -399,7 +400,28 @@ pub async fn debug_run_workflow(
     let wid = workflow_id.clone();
     let eid = execution_id.clone();
     let app_for_completion = app.clone();
+    let app_for_panic = app_for_completion.clone();
+    let wid_for_panic = wid.clone();
+    let eid_for_panic = eid.clone();
     tokio::spawn(async move {
+        // 兜底：panic / 早退路径上 emit execution-completed failed 事件,
+        // 前端能感知 workflow 异常退出, 不会卡在 running
+        let _guard = SpawnGuard::new("debug_run_workflow", move || {
+            tracing::error!(
+                "[debug_run_workflow] PANIC guard fired for workflow={}",
+                wid_for_panic
+            );
+            let _ = app_for_panic.emit(
+                "workflow:execution-completed",
+                serde_json::json!({
+                    "workflow_id": wid_for_panic,
+                    "execution_id": eid_for_panic,
+                    "status": "failed",
+                    "total_time_ms": 0,
+                    "error": "Internal panic during workflow execution",
+                }),
+            );
+        });
         let mut opts =
             axagent_runtime::work_engine::RunOptions::default().with_progress_callback(progress_cb);
         opts.execution_id = Some(eid.clone());
@@ -452,6 +474,7 @@ pub async fn debug_run_workflow(
                 );
             },
         }
+        _guard.finish();
     });
 
     Ok(execution_id)

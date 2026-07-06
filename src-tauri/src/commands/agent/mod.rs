@@ -5,6 +5,7 @@ use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::agent as agent_err;
 use crate::commands::error_code::agent_status as agent_status_err;
 use crate::commands::error_code::steer as steer_err;
+use crate::commands::spawn_guard::{SpawnGuard, catch_unwind_logged};
 use axagent_agent::{AgentExecutionProgressSnapshot, AxAgentApiClient};
 use axagent_core::cloud_workspace::CloudWorkspace;
 use axagent_core::repo::{conversation, message, provider, search_provider};
@@ -237,13 +238,13 @@ impl Drop for AsyncRunningAgentGuard {
         let paused_set = self.paused_set.clone();
         let conversation_id = self.conversation_id.clone();
         if let Ok(_handle) = tokio::runtime::Handle::try_current() {
-            tokio::spawn(async move {
+            tokio::spawn(catch_unwind_logged("agent.cleanup", async move {
                 let mut agents = running_agents.write().await;
                 agents.remove(&conversation_id);
                 cancel_tokens.remove(&conversation_id);
                 let mut paused = paused_set.lock().await;
                 paused.remove(&conversation_id);
-            });
+            }));
         } else {
             let mut agents = running_agents.blocking_write();
             agents.remove(&conversation_id);
@@ -1746,7 +1747,8 @@ pub async fn agent_query(
                 for msg in &summary.assistant_messages {
                     let mut content_parts = Vec::new();
                     let mut tool_calls_vec: Vec<axagent_trajectory::ToolCall> = Vec::new();
-                    let mut tool_results_vec: Vec<axagent_trajectory::ToolResult> = Vec::new();
+                    let mut tool_results_vec: Vec<axagent_trajectory::TrajectoryToolResult> =
+                        Vec::new();
 
                     for block in &msg.blocks {
                         match block {
@@ -1766,7 +1768,7 @@ pub async fn agent_query(
                                 output: result_content,
                                 is_error,
                             } => {
-                                tool_results_vec.push(axagent_trajectory::ToolResult {
+                                tool_results_vec.push(axagent_trajectory::TrajectoryToolResult {
                                     tool_use_id: tool_use_id.clone(),
                                     tool_name: tool_name.clone(),
                                     output: result_content.clone(),
@@ -2547,7 +2549,7 @@ async fn execute_skill_async(
             let skill_name_for_lookup = skill_name.to_string();
             let deps_json = inter_skill_deps_json.clone();
 
-            tokio::spawn(async move {
+            tokio::spawn(catch_unwind_logged("skill.tool_execution_update.steps", async move {
                 let execution = axagent_core::repo::tool_execution::find_latest_execution_by_tool(
                     &db,
                     &conversation_id_clone,
@@ -2589,7 +2591,7 @@ async fn execute_skill_async(
                         );
                     },
                 }
-            });
+            }));
         }
     } else {
         let deps_json = inter_skill_deps_json.clone();
@@ -2598,7 +2600,7 @@ async fn execute_skill_async(
             let db = ctx.sea_db.clone();
             let skill_name_for_lookup = skill_name.to_string();
 
-            tokio::spawn(async move {
+            tokio::spawn(catch_unwind_logged("skill.tool_execution_update.deps", async move {
                 let execution = axagent_core::repo::tool_execution::find_latest_execution_by_tool(
                     &db,
                     &conversation_id_clone,
@@ -2640,7 +2642,7 @@ async fn execute_skill_async(
                         );
                     },
                 }
-            });
+            }));
         }
     }
 
@@ -3555,7 +3557,21 @@ pub async fn workflow_execute(
     let engine = app_state.work_engine.clone();
     let wid = workflow_id.clone();
     let app_for_emit = app.clone();
+    let app_for_panic = app_for_emit.clone();
+    let wid_for_panic = wid.clone();
     tokio::spawn(async move {
+        // 兜底：panic / 早退路径上 emit execution-completed failed 事件
+        let _guard = SpawnGuard::new("workflow_run", move || {
+            tracing::error!("[workflow_run] PANIC guard fired for workflow={}", wid_for_panic);
+            let _ = app_for_panic.emit(
+                "workflow:execution-completed",
+                serde_json::json!({
+                    "workflow_id": wid_for_panic,
+                    "success": false,
+                    "error": "Internal panic during workflow execution",
+                }),
+            );
+        });
         let mut opts = axagent_runtime::work_engine::RunOptions::default();
         if let Some(m) = model_id {
             opts = opts.with_model(m);
@@ -3589,6 +3605,7 @@ pub async fn workflow_execute(
                 );
             },
         }
+        _guard.finish();
     });
 
     Ok(workflow_id)

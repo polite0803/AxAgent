@@ -41,10 +41,10 @@ pub struct MarkdownParser {
 impl MarkdownParser {
     pub fn new() -> Self {
         Self {
-            link_regex: Regex::new(r"\[([^\]]+)\]\(([^\)]+)\)").unwrap(),
-            wiki_link_regex: Regex::new(r"\[\[([^\]|]+)(?:\|([^\]]+))?\]\]").unwrap(),
-            frontmatter_regex: Regex::new(r"(?s)^---\n(.+?)\n---").unwrap(),
-            tag_regex: Regex::new(r"(?:^|\s)#([a-zA-Z0-9_-]+)").unwrap(),
+            link_regex: Regex::new(r"\[([^\]]+)\]\(([^\)]+)\)").expect("static regex"),
+            wiki_link_regex: Regex::new(r"\[\[([^\]|]+)(?:\|([^\]]+))?\]\]").expect("static regex"),
+            frontmatter_regex: Regex::new(r"(?s)^---\n(.+?)\n---").expect("static regex"),
+            tag_regex: Regex::new(r"(?:^|\s)#([a-zA-Z0-9_-]+)").expect("static regex"),
         }
     }
 

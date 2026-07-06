@@ -57,21 +57,23 @@ export function useKeyboardShortcuts(params: UseKeyboardShortcutsParams) {
     updateNode,
     clipboardRef,
   });
-  // eslint-disable-next-line react-hooks/refs
-  keyRef.current = {
-    undo,
-    redo,
-    canUndo,
-    canRedo,
-    selectedNodeId,
-    deleteNode,
-    nodes,
-    addNode,
-    setSelectedNode,
-    setParentRef,
-    updateNode,
-    clipboardRef,
-  };
+
+  useEffect(() => {
+    keyRef.current = {
+      undo,
+      redo,
+      canUndo,
+      canRedo,
+      selectedNodeId,
+      deleteNode,
+      nodes,
+      addNode,
+      setSelectedNode,
+      setParentRef,
+      updateNode,
+      clipboardRef,
+    };
+  });
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {

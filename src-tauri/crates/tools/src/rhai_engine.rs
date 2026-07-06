@@ -96,7 +96,10 @@ pub fn execute_rhai_ast(
                     })
                 })
             } else {
-                let rt = tokio::runtime::Runtime::new().expect("failed to create Rhai runtime");
+                let rt = tokio::runtime::Builder::new_current_thread()
+                    .enable_all()
+                    .build()
+                    .expect("failed to create Rhai runtime");
                 rt.block_on(async {
                     if let Some(h) = tool_map.get(&tool_name) {
                         h(tool_name, json_args).await

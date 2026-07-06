@@ -15,6 +15,7 @@ use crate::commands::error_code::thinking as thinking_err;
 use crate::commands::error_code::title as title_err;
 #[cfg(test)]
 use crate::commands::proactive::ProactiveService;
+use crate::commands::spawn_guard::catch_unwind_logged;
 use axagent_harness::types::*;
 use axagent_harness::url_utils::resolve_base_url_for_type;
 use axagent_providers::{ProviderRequestContext, extract_reasoning_from_text};
@@ -812,7 +813,7 @@ pub async fn archive_conversation_to_knowledge_base(
         let mime = doc.mime_type.clone();
         let semaphore = state.indexing_semaphore.clone();
 
-        tokio::spawn(async move {
+        tokio::spawn(catch_unwind_logged("conversations.archive_conv_index", async move {
             let _permit = semaphore.acquire().await;
             let result = crate::indexing::index_source(
                 &db,
@@ -850,7 +851,7 @@ pub async fn archive_conversation_to_knowledge_base(
                     "error": result.err().map(|e| e.to_string()),
                 }),
             );
-        });
+        }));
     }
 
     Ok(updated_conv)
@@ -2033,7 +2034,7 @@ pub async fn regenerate_conversation_title(
     let conv_id = conversation_id.clone();
     let conv_model_id = conversation.model_id.clone();
     let harness_clone = state.harness.clone();
-    tokio::spawn(async move {
+    tokio::spawn(catch_unwind_logged("conversations.batch_title", async move {
         let ai_title = generate_ai_title(
             &harness_clone,
             &conversation_messages,
@@ -2092,7 +2093,7 @@ pub async fn regenerate_conversation_title(
                 );
             },
         }
-    });
+    }));
 
     Ok(())
 }

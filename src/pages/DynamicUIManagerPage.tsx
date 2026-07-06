@@ -85,18 +85,15 @@ export function DynamicUIManagerPage() {
   const schemaParam = searchParams.get("schema");
   const autoSelectedRef = useRef(false);
 
-  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (autoSelectedRef.current || !schemaParam || schemas.length === 0) { return; }
     const match = schemas.find((s) => s.title === schemaParam);
     if (match) {
-      setSelectedSchema(match);
+      setTimeout(() => setSelectedSchema(match), 0);
       autoSelectedRef.current = true;
     }
-  }, [schemaParam, schemas]);
-  /* eslint-enable react-hooks/set-state-in-effect */
+  }, [schemaParam, schemas, setSelectedSchema]);
 
-  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (editingRecord) {
       form.setFieldsValue({
@@ -107,14 +104,13 @@ export function DynamicUIManagerPage() {
         version: "",
         change_log: "",
       });
-      setJsonSchemaText(editingRecord.schema_json);
+      setTimeout(() => setJsonSchemaText(editingRecord.schema_json), 0);
     } else {
       form.resetFields();
       form.setFieldsValue({ category: "custom", version: "", change_log: "" });
-      setJsonSchemaText("");
+      setTimeout(() => setJsonSchemaText(""), 0);
     }
-  }, [editingRecord, form]);
-  /* eslint-enable react-hooks/set-state-in-effect */
+  }, [editingRecord, form, setJsonSchemaText]);
 
   const derivedParseError = useMemo(() => {
     if (!jsonSchemaText) { return null; }

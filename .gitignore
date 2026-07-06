@@ -84,6 +84,11 @@ tmp-*.txt
 v15_*.rs
 eslint-out.log
 
+# Backup files (临时备份/历史版本)
+*.bak
+*~
+*.orig
+
 # Documentation (local)
 Docs/
 

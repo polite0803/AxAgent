@@ -302,38 +302,32 @@ function McpServerDetail({
 
   // Reset local state when switching servers
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setLocalName(server.name);
-    setLocalCommand(server.command ?? "");
-    try {
-      setLocalArgs((JSON.parse(server.argsJson ?? "[]") as string[]).join(" "));
-    } catch {
-      setLocalArgs("");
-    }
-    setLocalEndpoint(server.endpoint ?? "");
-    try {
-      const obj = JSON.parse(server.headersJson ?? "{}") as Record<
-        string,
-        string
-      >;
-      setLocalHeaders(
-        Object.entries(obj)
-          .map(([k, v]) => `${k}=${v}`)
-          .join("\n"),
-      );
-    } catch {
-      setLocalHeaders("");
-    }
-    try {
-      const obj = JSON.parse(server.envJson ?? "{}") as Record<string, string>;
-      setLocalEnv(
-        Object.entries(obj)
-          .map(([k, v]) => `${k}=${v}`)
-          .join("\n"),
-      );
-    } catch {
-      setLocalEnv("");
-    }
+    setTimeout(() => {
+      setLocalName(server.name);
+      setLocalCommand(server.command ?? "");
+      try {
+        setLocalArgs((JSON.parse(server.argsJson ?? "[]") as string[]).join(" "));
+      } catch {
+        setLocalArgs("");
+      }
+      setLocalEndpoint(server.endpoint ?? "");
+      try {
+        const obj = JSON.parse(server.headersJson ?? "{}") as Record<string, string>;
+        setLocalHeaders(
+          Object.entries(obj).map(([k, v]) => `${k}=${v}`).join("\n"),
+        );
+      } catch {
+        setLocalHeaders("");
+      }
+      try {
+        const obj = JSON.parse(server.envJson ?? "{}") as Record<string, string>;
+        setLocalEnv(
+          Object.entries(obj).map(([k, v]) => `${k}=${v}`).join("\n"),
+        );
+      } catch {
+        setLocalEnv("");
+      }
+    }, 0);
   }, [server]);
 
   useEffect(() => {

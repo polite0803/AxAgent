@@ -142,7 +142,7 @@ impl ProviderFallbackEngine {
         );
         self.health
             .lock()
-            .unwrap()
+            .unwrap_or_else(|e| e.into_inner())
             .entry(provider_type.to_string())
             .or_insert_with(ProviderHealth::new);
     }

@@ -477,7 +477,7 @@ impl RLEngine {
         &self,
         steps: &[TrajectoryStep],
         current_idx: usize,
-        results: &[crate::trajectory::ToolResult],
+        results: &[crate::trajectory::TrajectoryToolResult],
     ) -> f64 {
         let has_errors = results.iter().any(|r| r.is_error);
         if !has_errors {
@@ -765,7 +765,7 @@ mod tests {
                     name: "read_file".to_string(),
                     arguments: "{}".to_string(),
                 }]),
-                tool_results: Some(vec![crate::trajectory::ToolResult {
+                tool_results: Some(vec![crate::trajectory::TrajectoryToolResult {
                     tool_use_id: "call_1".to_string(),
                     tool_name: "read_file".to_string(),
                     output: "file content".to_string(),

@@ -339,15 +339,33 @@ interface NodeDiagnostic {
   issueCount: number;
 }
 
+interface DiagNode {
+  id: string;
+  type?: string;
+  data?: Record<string, unknown>;
+  config?: Record<string, unknown>;
+  title?: string;
+  base?: Record<string, unknown>;
+  [key: string]: unknown;
+}
+interface DiagEdge {
+  source: string;
+  target: string;
+  sourceHandle?: string;
+  targetHandle?: string;
+  edge_type?: string;
+  [key: string]: unknown;
+}
+
 /// 兼容编辑器层 + DAG 原始格式推断节点真实类型
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function resolveNodeType(n: any): string {
+function resolveNodeType(n: DiagNode): string {
   // 1. 编辑器 ReactFlow 节点（优先走 data.type / node.type）
-  if (n.type && n.type !== "base") { return n.type; }
-  if (n.data?.type) { return n.data.type; }
+  if (typeof n.type === "string" && n.type !== "base") { return n.type; }
+  const ndata = n.data as Record<string, unknown> | undefined;
+  if (ndata && typeof ndata.type === "string") { return ndata.type; }
 
   // 2. DAG 原始 WorkflowNode 变体：检查特化字段推断类型
-  const cfg = n.config || n.data?.config || {};
+  const cfg = (n.config || ndata?.config || {}) as Record<string, unknown>;
   if (cfg.trigger_type) { return "trigger"; }
   if (cfg.system_prompt) { return "agent"; }
   if (cfg.prompt && !cfg.system_prompt) { return "llm"; }
@@ -356,19 +374,18 @@ function resolveNodeType(n: any): string {
   if (cfg.target_workflow_id) { return "workflowRef"; }
   if (cfg.conditions) { return "condition"; }
   if (cfg.cases) { return "switch"; }
-  // end: output_var 但无其他 config 特化字段
   if (cfg.output_var) { return "end"; }
 
   // 3. 按 base.id 中的前缀推断（如 ToolNode::xxx）
-  const baseId = n.base?.id || n.id || "";
+  const base = n.base as Record<string, unknown> | undefined;
+  const baseId = (base?.id || n.id || "") as string;
   if (baseId.startsWith("tool_")) { return "tool"; }
   if (baseId.startsWith("agent_")) { return "agent"; }
   if (baseId.startsWith("llm_")) { return "llm"; }
   return "unknown";
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function analyzeNodes(nodes: any[], edges: any[]): NodeDiagnostic[] {
+function analyzeNodes(nodes: DiagNode[], edges: DiagEdge[]): NodeDiagnostic[] {
   const sources = new Set(edges.map((e) => e.source));
   const targets = new Set(edges.map((e) => e.target));
 
@@ -382,6 +399,8 @@ function analyzeNodes(nodes: any[], edges: any[]): NodeDiagnostic[] {
   const totalTerminals = countTerminalNodes(summaries);
 
   return nodes.map((n) => {
+    const ndata = n.data;
+    const ndcfg = ndata?.config as Record<string, unknown> | undefined;
     const nt = resolveNodeType(n);
     const hasIncoming = targets.has(n.id);
     const hasOutgoing = sources.has(n.id);
@@ -399,27 +418,30 @@ function analyzeNodes(nodes: any[], edges: any[]): NodeDiagnostic[] {
     if (isDeadEnd) { issueCount++; }
 
     if (nt === "tool") {
-      const tn = n.config?.tool_name || n.data?.config?.tool_name || n.data?.tool_name;
+      const tn = (n.config?.tool_name as string | undefined) || (ndcfg?.tool_name as string | undefined)
+        || (ndata?.tool_name as string | undefined);
       if (!tn) {
         issueCount++;
         toolMissing = "(empty)";
       }
     }
     if (nt === "agent" || nt === "llm") {
-      const sp = n.config?.system_prompt || n.data?.config?.system_prompt || n.data?.system_prompt;
+      const sp = (n.config?.system_prompt as string | undefined) || (ndcfg?.system_prompt as string | undefined)
+        || (ndata?.system_prompt as string | undefined);
       if (!sp) {
         issueCount++;
         promptEmpty = true;
       }
     }
     if (nt === "subWorkflow") {
-      const sid = n.config?.sub_workflow_id || n.data?.config?.sub_workflow_id || n.data?.subWorkflowId;
+      const sid = (n.config?.sub_workflow_id as string | undefined) || (ndcfg?.sub_workflow_id as string | undefined)
+        || (ndata?.subWorkflowId as string | undefined);
       if (!sid) { issueCount++; }
     }
 
     return {
       nodeId: n.id,
-      nodeName: n.title || n.data?.title || n.data?.label || n.id,
+      nodeName: n.title || (ndata?.title as string | undefined) || (ndata?.label as string | undefined) || n.id,
       nodeType: nt || "unknown",
       hasIncoming,
       hasOutgoing,
@@ -432,8 +454,7 @@ function analyzeNodes(nodes: any[], edges: any[]): NodeDiagnostic[] {
   });
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function analyzeEdges(edges: any[], nodeIds: Set<string>): { invalidSource: number; invalidTarget: number }[] {
+function analyzeEdges(edges: DiagEdge[], nodeIds: Set<string>): { invalidSource: number; invalidTarget: number }[] {
   let invalidSource = 0;
   let invalidTarget = 0;
   for (const e of edges) {
@@ -443,8 +464,7 @@ function analyzeEdges(edges: any[], nodeIds: Set<string>): { invalidSource: numb
   return [{ invalidSource, invalidTarget }];
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function findCycles(edges: any[]): string[][] {
+function findCycles(edges: DiagEdge[]): string[][] {
   // 复用 workflowLayout 的 Tarjan SCC 算法，避免重复实现
   const nodeIds = new Set<string>();
   for (const e of edges) {
@@ -466,8 +486,7 @@ const CONTAINER_NODE_TYPES = new Set([
   "merge",
 ]);
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function findUnreachableNodes(nodes: any[], edges: any[]): string[] {
+function findUnreachableNodes(nodes: DiagNode[], edges: DiagEdge[]): string[] {
   const reachable = new Set<string>();
   const adj = new Map<string, string[]>();
   for (const e of edges) {
@@ -492,9 +511,9 @@ function findUnreachableNodes(nodes: any[], edges: any[]): string[] {
   }
 
   // 容器节点不参与边拓扑（子节点通过 parentId 关联），跳过不可达检查
-  return nodes.filter((n) => !reachable.has(n.id) && !CONTAINER_NODE_TYPES.has(n.type || n.data?.type)).map((n) =>
-    n.id
-  );
+  return nodes.filter((n) =>
+    !reachable.has(n.id) && !CONTAINER_NODE_TYPES.has(n.type || (n.data?.type as string | undefined) || "")
+  ).map((n) => n.id);
 }
 
 function formatDuration(ms: number | null): string {
@@ -548,8 +567,10 @@ export function DebugPanel({ workflowId }: DebugPanelProps) {
     false,
   );
 
-  const nodes = useWorkflowEditorStore((s) => s.nodes);
-  const edges = useWorkflowEditorStore((s) => s.edges);
+  const rawNodes = useWorkflowEditorStore((s) => s.nodes);
+  const rawEdges = useWorkflowEditorStore((s) => s.edges);
+  const nodes = rawNodes as unknown as DiagNode[];
+  const edges = rawEdges as unknown as DiagEdge[];
   const validateTemplate = useWorkflowEditorStore((s) => s.validateTemplate);
 
   // 用字段级 selector 订阅，避免任何 workEngine store 字段更新都触发重渲染
@@ -641,8 +662,7 @@ export function DebugPanel({ workflowId }: DebugPanelProps) {
   const setDryRun = useWorkEngineStore((s) => s.setDryRun);
   const toggleBreakpoint = useWorkEngineStore((s) => s.toggleBreakpoint);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const nodeIds = useMemo(() => new Set(nodes.map((n: any) => n.id)), [nodes]);
+  const nodeIds = useMemo(() => new Set(nodes.map((n) => n.id)), [nodes]);
   const diagnostics = useMemo(() => analyzeNodes(nodes, edges), [nodes, edges]);
   const edgeAnalysis = useMemo(() => analyzeEdges(edges, nodeIds), [edges, nodeIds]);
   const cycles = useMemo(() => findCycles(edges), [edges]);
@@ -731,11 +751,10 @@ export function DebugPanel({ workflowId }: DebugPanelProps) {
         (sCfg?.sub_workflow_id || (sData?.config as Record<string, unknown> | undefined)?.["sub_workflow_id"]
           || sData?.subWorkflowId || sData?.sub_workflow_id) as string | undefined;
       try {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const tmpl: any = await invoke("get_workflow_template", { id: subId });
+        const tmpl = await invoke<Record<string, unknown>>("get_workflow_template", { id: subId });
         if (!tmpl?.nodes || !Array.isArray(tmpl.nodes)) { continue; }
-        const subN = tmpl.nodes;
-        const subE = tmpl.edges || [];
+        const subN = tmpl.nodes as DiagNode[];
+        const subE = (tmpl.edges || []) as DiagEdge[];
         const diags = analyzeNodes(subN, subE);
         const cyc = findCycles(subE).length;
         const unreach = findUnreachableNodes(subN, subE).length;
@@ -804,8 +823,7 @@ export function DebugPanel({ workflowId }: DebugPanelProps) {
           return t === "subWorkflow";
         });
     if (subNodes.length === 0) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setSubDiags({});
+      setTimeout(() => setSubDiags({}), 0);
       return;
     }
     const currentVersion = ++analyzeVersionRef.current;
@@ -893,8 +911,7 @@ export function DebugPanel({ workflowId }: DebugPanelProps) {
       title: t("workflow.debug.colIssues"),
       key: "issues",
       width: 150,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      render: (_: any, r: NodeDiagnostic) => (
+      render: (_: unknown, r: NodeDiagnostic) => (
         <Space size={4} wrap>
           {r.isOrphan && <Tag color="warning">{t("workflow.debug.orphan")}</Tag>}
           {r.isDeadEnd && <Tag color="error">{t("workflow.debug.deadEnd")}</Tag>}
@@ -911,8 +928,7 @@ export function DebugPanel({ workflowId }: DebugPanelProps) {
       title: t("workflow.debug.colNode"),
       key: "node",
       ellipsis: true,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      render: (_: any, r: NodeExecutionRecord) => (
+      render: (_: unknown, r: NodeExecutionRecord) => (
         <Space size={4}>
           {r.status === "running" && <Badge status="processing" />}
           {r.status === "completed" && <CheckCircleOutlined style={{ color: token.colorSuccess }} />}
@@ -952,8 +968,7 @@ export function DebugPanel({ workflowId }: DebugPanelProps) {
       title: "",
       key: "actions",
       width: 40,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      render: (_: any, r: NodeExecutionRecord) => (
+      render: (_: unknown, r: NodeExecutionRecord) => (
         <Tooltip title={t("workflow.debug.viewDetail")}>
           <Button
             type="text"

@@ -23,7 +23,7 @@ import type { AppSettings, PageKey } from "@/types";
 import { AppstoreAddOutlined, MenuFoldOutlined, MenuUnfoldOutlined } from "@ant-design/icons";
 import { Avatar } from "antd";
 import { Globe, Moon, Pin, PinOff, RotateCcw, Settings, Sun, User } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { createElement, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";
 import { UserProfileModal } from "./UserProfileModal";
@@ -355,11 +355,9 @@ export function Sidebar() {
   const sections = useMemo<SidebarSection[]>(() => {
     const pluginItems: NavItem[] = [];
     for (const item of skillNavItems) {
-      const IconComp = resolveIconComponent(item.icon);
       pluginItems.push({
         key: `plugin:${item.id}`,
-        // eslint-disable-next-line react-hooks/static-components
-        icon: <IconComp size={18} color={NAV_ICON_COLORS.Router} />,
+        icon: createElement(resolveIconComponent(item.icon), { size: 18, color: NAV_ICON_COLORS.Router }),
         labelKey: item.label,
         path: `/skill/${item.skillName}/${item.pageId}`,
         isPlugin: true,

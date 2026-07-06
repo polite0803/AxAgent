@@ -144,36 +144,36 @@ colors:
   const yamlToTheme = (yaml: string): Theme | null => {
     try {
       const lines = yaml.split("\n");
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result: Record<string, any> = { metadata: {}, colors: {} };
+      const metadata: Record<string, string> = {};
+      const colors: Record<string, string> = {};
 
       for (const line of lines) {
         const [key, ...valueParts] = line.split(":");
         const value = valueParts.join(":").trim().replace(/"/g, "");
 
         if (key === "name") {
-          result.metadata.name = value;
+          metadata.name = value;
         } else if (key === "version") {
-          result.metadata.version = value;
+          metadata.version = value;
         } else if (key === "author") {
-          result.metadata.author = value;
+          metadata.author = value;
         } else if (key === "description") {
-          result.metadata.description = value;
+          metadata.description = value;
         } else if (key && value) {
           const cleanKey = key.replace(/-/g, "");
-          if (result.colors && cleanKey in result.colors) {
-            (result.colors as Record<string, string>)[cleanKey] = value;
+          if (cleanKey in colors) {
+            colors[cleanKey] = value;
           }
         }
       }
 
-      if (!result.metadata.name || !result.colors.background) {
+      if (!metadata.name || !colors.background) {
         return null;
       }
 
       return {
-        metadata: result.metadata as Theme["metadata"],
-        colors: result.colors as ThemeColors,
+        metadata: metadata as unknown as Theme["metadata"],
+        colors: colors as unknown as ThemeColors,
       };
     } catch {
       return null;

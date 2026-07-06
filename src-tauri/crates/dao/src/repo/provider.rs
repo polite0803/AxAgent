@@ -524,13 +524,15 @@ pub async fn get_active_key(db: &DatabaseConnection, provider_id: &str) -> Resul
 
     // 只有一个 key 时无需轮询
     if keys.len() == 1 {
-        return Ok(keys.into_iter().next().unwrap());
+        return Ok(keys.into_iter().next().ok_or_else(|| {
+            AxAgentError::Validation("expected at least one key after length check".to_string())
+        })?);
     }
 
     // 多个 key 时使用 RoundRobin 轮询
     static ROUND_ROBIN: OnceLock<Mutex<HashMap<String, u32>>> = OnceLock::new();
     let rr = ROUND_ROBIN.get_or_init(|| Mutex::new(HashMap::new()));
-    let mut map = rr.lock().unwrap();
+    let mut map = axagent_harness::try_lock_or_log!(rr.lock(), "ROUND_ROBIN lock poisoned");
     let idx = map.entry(provider_id.to_string()).or_insert(0);
     let selected = &keys[*idx as usize % keys.len()];
     *idx = idx.wrapping_add(1);

@@ -1204,12 +1204,12 @@ impl Default for UnifiedToolRegistry {
 
 /// 获取全局共享的备用 Tokio runtime，用于在无 runtime 上下文时执行异步任务。
 /// 使用 OnceLock 保证只创建一次，避免重复创建嵌套 runtime。
+/// 使用 new_current_thread() 而非 new_multi_thread()，减少资源占用且避免嵌套 runtime 风险。
 fn fallback_runtime() -> &'static tokio::runtime::Runtime {
     use std::sync::OnceLock;
     static RT: OnceLock<tokio::runtime::Runtime> = OnceLock::new();
     RT.get_or_init(|| {
-        tokio::runtime::Builder::new_multi_thread()
-            .worker_threads(2)
+        tokio::runtime::Builder::new_current_thread()
             .enable_all()
             .build()
             .expect("Failed to create fallback Tokio runtime")

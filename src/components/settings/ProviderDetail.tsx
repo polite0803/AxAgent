@@ -814,7 +814,6 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
     } catch {
       message.error(t("error.saveFailed"));
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     editingModel,
     editCapabilities,
@@ -828,13 +827,14 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
     editNoSystemRole,
     editForceMaxTokens,
     editThinkingParamStyle,
+    editRequestDelayMs,
     editGroupName,
     providerId,
     updateModelParams,
     saveModels,
     provider?.models,
-    message,
     t,
+    message,
   ]);
 
   const handleApiHostChange = useCallback(

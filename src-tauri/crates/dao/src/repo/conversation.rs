@@ -13,7 +13,7 @@ use axagent_harness::types::{
     Conversation, ConversationSearchResult, ConversationSummary, KnowledgeDocument,
     UpdateConversationInput,
 };
-use axagent_harness::util_fns::{gen_id, now_ts};
+use axagent_harness::util_fns::{gen_id, now_ts, truncate_to_char_boundary};
 
 pub fn conversation_from_entity(m: conversations::Model) -> Conversation {
     Conversation {
@@ -579,7 +579,7 @@ pub async fn archive_to_knowledge_base(
             });
 
         let a_preview = if final_answer.len() > 200 {
-            format!("{}...", &final_answer[..200])
+            format!("{}...", truncate_to_char_boundary(&final_answer, 200))
         } else {
             final_answer.clone()
         };

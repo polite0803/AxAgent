@@ -26,8 +26,14 @@ pub fn resolve_template(template: &str, ctx: &ExpressionContext) -> Result<Strin
     let mut last_end = 0;
 
     for caps in re.captures_iter(template) {
-        let full_match = caps.get(0).unwrap();
-        let expr = caps.get(1).unwrap().as_str().trim();
+        let full_match = caps
+            .get(0)
+            .ok_or_else(|| TemplateError::ParseError("missing capture group 0".into()))?;
+        let expr = caps
+            .get(1)
+            .ok_or_else(|| TemplateError::ParseError("missing capture group 1".into()))?
+            .as_str()
+            .trim();
 
         // 添加模板片段
         result.push_str(&template[last_end..full_match.start()]);

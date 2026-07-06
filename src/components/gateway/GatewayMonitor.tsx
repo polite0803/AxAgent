@@ -4,7 +4,7 @@ import { invoke, logIpcError } from "@/lib/invoke";
 import { ReloadOutlined } from "@ant-design/icons";
 import { Button, Card, Popconfirm, Spin, Statistic, Table, Tag, theme } from "antd";
 import { Activity, BarChart3, Clock, Server } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 interface GatewayMetrics {
@@ -36,7 +36,7 @@ export function GatewayMonitor() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -61,12 +61,16 @@ export function GatewayMonitor() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [t]);
+
+  const loadDataRef = useRef(loadData);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    loadData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    loadDataRef.current = loadData;
+  }, [loadData]);
+
+  useEffect(() => {
+    loadDataRef.current();
   }, []);
 
   const handleClearLogs = async () => {

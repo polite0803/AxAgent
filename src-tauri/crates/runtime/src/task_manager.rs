@@ -58,7 +58,10 @@ impl TaskManager {
                 // setup 阶段 runtime 未就绪时通过独立线程承载
                 tracing::debug!("[TaskManager] runtime 未就绪，'{}' 使用独立线程启动", name);
                 std::thread::spawn(move || {
-                    let rt = tokio::runtime::Runtime::new().expect("TaskManager fallback runtime");
+                    let rt = tokio::runtime::Builder::new_current_thread()
+                        .enable_all()
+                        .build()
+                        .expect("TaskManager fallback runtime");
                     rt.block_on(future);
                 });
             },

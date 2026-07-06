@@ -307,7 +307,7 @@ mod tests {
                     name: "read_file".to_string(),
                     arguments: "{}".to_string(),
                 }]),
-                tool_results: Some(vec![ToolResult {
+                tool_results: Some(vec![TrajectoryToolResult {
                     tool_use_id: "call_1".to_string(),
                     tool_name: "read_file".to_string(),
                     output: "file content".to_string(),

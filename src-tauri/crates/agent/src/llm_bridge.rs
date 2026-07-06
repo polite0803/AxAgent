@@ -58,7 +58,7 @@ impl LlmResponseCache {
         let digest = h.finalize();
         let mut s = String::with_capacity(64);
         for byte in digest {
-            write!(&mut s, "{:02x}", byte).unwrap();
+            let _ = write!(&mut s, "{:02x}", byte);
         }
         s
     }

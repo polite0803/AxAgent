@@ -9,8 +9,29 @@
 use crate::TrajectoryStorage;
 use crate::skill::Skill;
 use serde::{Deserialize, Serialize};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::{Arc, RwLock};
+
+/// 同步文件 IO helper：把阻塞的 std::fs 调用扔到 spawn_blocking 线程池。
+/// 多个小文件操作适合 inline `spawn_blocking`，避免污染 async runtime。
+async fn write_file_blocking(path: PathBuf, content: Vec<u8>) -> std::io::Result<()> {
+    tokio::task::spawn_blocking(move || std::fs::write(&path, &content))
+        .await
+        .map_err(std::io::Error::other)?
+}
+
+async fn create_dir_all_blocking(path: PathBuf) -> std::io::Result<()> {
+    tokio::task::spawn_blocking(move || std::fs::create_dir_all(&path))
+        .await
+        .map_err(std::io::Error::other)?
+}
+
+fn log_skill_io_result<T>(label: &str, path: &Path, result: std::io::Result<T>) {
+    match result {
+        Ok(_) => tracing::info!("{label} {}", path.display()),
+        Err(e) => tracing::warn!("{label} {}: {}", path.display(), e),
+    }
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ClosedLoopConfig {
@@ -234,14 +255,10 @@ impl ClosedLoopService {
                             .join("\n"),
                         existing_skill.content
                     );
-                    match std::fs::write(skill_dir.join("SKILL.md"), &skill_md) {
-                        Ok(_) => {
-                            tracing::info!("Updated skill file at {}", skill_dir.display());
-                        },
-                        Err(e) => {
-                            tracing::warn!("Failed to update skill file: {}", e);
-                        },
-                    }
+                    let skill_path = skill_dir.join("SKILL.md");
+                    let result =
+                        write_file_blocking(skill_path.clone(), skill_md.into_bytes()).await;
+                    log_skill_io_result("Updated skill file at", &skill_path, result);
                 }
             } else {
                 tracing::warn!("Target skill not found for upgrade: {}", proposal.target_skill_id);
@@ -556,7 +573,7 @@ impl ClosedLoopService {
 
                             if let Some(ref skills_dir) = self.skills_dir {
                                 let skill_dir = skills_dir.join(&skill.name);
-                                match std::fs::create_dir_all(&skill_dir) {
+                                match create_dir_all_blocking(skill_dir.clone()).await {
                                     Ok(_) => {
                                         let skill_md = format!(
                                             "---\nname: {}\ndescription: {}\nversion: {}\nscenarios:\n{}\nmetadata:\n  hermes:\n    tags: [auto-created]\n    related_skills: []\n---\n\n{}",
@@ -571,18 +588,17 @@ impl ClosedLoopService {
                                                 .join("\n"),
                                             skill.content
                                         );
-                                        match std::fs::write(skill_dir.join("SKILL.md"), &skill_md)
-                                        {
-                                            Ok(_) => {
-                                                tracing::info!(
-                                                    "Created skill file at {}",
-                                                    skill_dir.display()
-                                                );
-                                            },
-                                            Err(e) => {
-                                                tracing::warn!("Failed to write skill file: {}", e);
-                                            },
-                                        }
+                                        let skill_path = skill_dir.join("SKILL.md");
+                                        let result = write_file_blocking(
+                                            skill_path.clone(),
+                                            skill_md.into_bytes(),
+                                        )
+                                        .await;
+                                        log_skill_io_result(
+                                            "Created skill file at",
+                                            &skill_path,
+                                            result,
+                                        );
                                     },
                                     Err(e) => {
                                         tracing::warn!("Failed to create skill directory: {}", e);
@@ -651,17 +667,17 @@ impl ClosedLoopService {
                                             .join("\n"),
                                         existing_skill.content
                                     );
-                                    match std::fs::write(skill_dir.join("SKILL.md"), &skill_md) {
-                                        Ok(_) => {
-                                            tracing::info!(
-                                                "Updated skill file at {}",
-                                                skill_dir.display()
-                                            );
-                                        },
-                                        Err(e) => {
-                                            tracing::warn!("Failed to update skill file: {}", e);
-                                        },
-                                    }
+                                    let skill_path = skill_dir.join("SKILL.md");
+                                    let result = write_file_blocking(
+                                        skill_path.clone(),
+                                        skill_md.into_bytes(),
+                                    )
+                                    .await;
+                                    log_skill_io_result(
+                                        "Updated skill file at",
+                                        &skill_path,
+                                        result,
+                                    );
                                 }
                             } else {
                                 tracing::warn!(

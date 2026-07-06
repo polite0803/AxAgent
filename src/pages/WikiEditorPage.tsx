@@ -81,7 +81,7 @@ export function WikiEditorPage({ noteId, onBack }: WikiEditorPageProps) {
     setLoading(false);
   }, [noteId, getNote]);
 
-  const handleSave = async () => {
+  const handleSave = useCallback(async () => {
     if (!note || !hasChanges) {
       return;
     }
@@ -98,25 +98,23 @@ export function WikiEditorPage({ noteId, onBack }: WikiEditorPageProps) {
       message.error(String(e));
     }
     setSaving(false);
-  };
+  }, [note, hasChanges, content, title, updateNote, t]);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    loadNote();
+    setTimeout(() => loadNote(), 0);
   }, [loadNote]);
 
   useEffect(() => {
     if (note?.vaultId) {
-      loadNotes(note.vaultId);
+      setTimeout(() => loadNotes(note.vaultId), 0);
     }
   }, [note?.vaultId, loadNotes]);
 
   useEffect(() => {
     if (note) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setHasChanges(content !== note.content || title !== note.title);
+      setTimeout(() => setHasChanges(content !== note.content || title !== note.title), 0);
     }
-  }, [content, title, note]);
+  }, [content, title, note, setHasChanges]);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -129,25 +127,37 @@ export function WikiEditorPage({ noteId, onBack }: WikiEditorPageProps) {
     return () => window.removeEventListener("keydown", handler);
   });
 
+  const hasChangesRef = useRef(hasChanges);
+  const savingRef = useRef(saving);
+  const handleSaveRef = useRef(handleSave);
+
   useEffect(() => {
-    if (!hasChanges || saving) {
+    hasChangesRef.current = hasChanges;
+  }, [hasChanges]);
+
+  useEffect(() => {
+    savingRef.current = saving;
+  }, [saving]);
+
+  useEffect(() => {
+    handleSaveRef.current = handleSave;
+  }, [handleSave]);
+
+  useEffect(() => {
+    if (!hasChangesRef.current || savingRef.current) {
       return;
     }
     if (autoSaveTimerRef.current) {
       clearTimeout(autoSaveTimerRef.current);
     }
     autoSaveTimerRef.current = setTimeout(() => {
-      handleSave();
+      handleSaveRef.current();
     }, 3000);
     return () => {
       if (autoSaveTimerRef.current) {
         clearTimeout(autoSaveTimerRef.current);
       }
     };
-    // 显式省略 hasChanges / saving / handleSave：
-    // hasChanges 和 saving 会在保存流程中变化，加入 deps 会重新触发 effect 并重置计时器，
-    // handleSave 也可能在父组件重渲染时变化，导致意外的自动保存。
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [content, title]);
 
   useEffect(() => {

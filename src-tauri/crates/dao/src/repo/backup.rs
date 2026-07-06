@@ -349,23 +349,25 @@ pub async fn restore_json_backup(
             continue;
         }
 
+        // 表名合法性校验：仅允许 ASCII 字母数字 + 下划线，防止 JSON 备份中
+        // 恶意表名通过 `INSERT INTO "{table_name}"` 注入 SQL 片段。
+        if !table_name
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || c == '_')
+        {
+            return Err(AxAgentError::Gateway(format!(
+                "Invalid table name '{table_name}' in backup: only ASCII alphanumeric and underscore allowed"
+            )));
+        }
+
         // Overwrite 策略：先清空表
         if matches!(strategy, axagent_harness::types::RestoreStrategy::Overwrite) {
-            if !table_name
-                .chars()
-                .all(|c| c.is_ascii_alphanumeric() || c == '_')
-            {
-                return Err(AxAgentError::Gateway(format!(
-                    "Invalid table name '{}' in backup: only alphanumeric and underscore allowed",
-                    table_name
-                )));
-            }
             txn.execute_raw(Statement::from_string(
                 DatabaseBackend::Sqlite,
-                format!("DELETE FROM \"{}\"", table_name),
+                format!("DELETE FROM \"{table_name}\""),
             ))
             .await
-            .map_err(|e| AxAgentError::Gateway(format!("清空表 {} 失败: {}", table_name, e)))?;
+            .map_err(|e| AxAgentError::Gateway(format!("清空表 {table_name} 失败: {}", e)))?;
         }
 
         let mut imported = 0usize;
@@ -387,6 +389,16 @@ pub async fn restore_json_backup(
                 continue;
             }
 
+            // 列名白名单校验：JSON 备份中任意 key 都直接拼到 SQL，必须强制 ASCII
+            // 字母数字 + 下划线，否则丢弃该行（errored++）而非注入。
+            if !columns.iter().all(|c| {
+                !c.is_empty() && c.chars().all(|ch| ch.is_ascii_alphanumeric() || ch == '_')
+            }) {
+                tracing::warn!("恢复表 {} 时跳过非法列名的行: {:?}", table_name, columns);
+                errored += 1;
+                continue;
+            }
+
             let placeholders: Vec<&str> = vec!["?"; columns.len()];
             let conflict_clause = match strategy {
                 axagent_harness::types::RestoreStrategy::Merge => "OR IGNORE",
@@ -394,9 +406,7 @@ pub async fn restore_json_backup(
             };
 
             let sql = format!(
-                "INSERT {} INTO \"{}\" ({}) VALUES ({})",
-                conflict_clause,
-                table_name,
+                "INSERT {conflict_clause} INTO \"{table_name}\" ({}) VALUES ({})",
                 columns.join(", "),
                 placeholders.join(", "),
             );

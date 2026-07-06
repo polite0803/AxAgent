@@ -39,7 +39,10 @@ impl ClientIpPolicy {
     pub fn trust_all() -> Self {
         // 0.0.0.0/0 + ::/0 = 全部 IP
         Self {
-            trusted_proxies: vec!["0.0.0.0".parse().unwrap(), "::".parse().unwrap()],
+            trusted_proxies: vec![
+                "0.0.0.0".parse().expect("static IP literal"),
+                "::".parse().expect("static IP literal"),
+            ],
         }
     }
 

@@ -206,17 +206,15 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({
       loadAgentProfiles();
     }
     const roles = getAllRoles();
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setGlobalRoles(roles.map((r) => ({ id: r.id, name: r.name })));
-  }, [agentProfilesLoaded, loadAgentProfiles, getAllRoles]);
+    setTimeout(() => setGlobalRoles(roles.map((r) => ({ id: r.id, name: r.name }))), 0);
+  }, [agentProfilesLoaded, loadAgentProfiles, getAllRoles, setGlobalRoles]);
 
   // 从已选 profile 中恢复角色选择（独立 effect，确保 selectedExpert 就绪后同步）
   useEffect(() => {
     if (selectedExpert?.agentRole) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setSelectedRoleId(selectedExpert.agentRole);
+      setTimeout(() => setSelectedRoleId(selectedExpert.agentRole), 0);
     }
-  }, [selectedExpert?.agentRole]);
+  }, [selectedExpert?.agentRole, setSelectedRoleId]);
 
   useEffect(() => {
     if (toolGroups.length === 0) {

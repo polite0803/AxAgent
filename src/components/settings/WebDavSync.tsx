@@ -116,15 +116,13 @@ export function WebDavSync() {
   }, []);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    loadConfig();
-    loadSyncStatus();
+    setTimeout(() => loadConfig(), 0);
+    setTimeout(() => loadSyncStatus(), 0);
   }, [loadConfig, loadSyncStatus]);
 
   useEffect(() => {
     if (config?.host) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      loadRemoteBackups();
+      setTimeout(() => loadRemoteBackups(), 0);
     }
   }, [config?.host, loadRemoteBackups]);
 

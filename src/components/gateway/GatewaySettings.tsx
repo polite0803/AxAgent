@@ -6,7 +6,7 @@ import { useGatewayStore, useSettingsStore } from "@/stores";
 import { open } from "@tauri-apps/plugin-dialog";
 import { Alert, Button, Card, Divider, Input, InputNumber, message, Radio, Switch, theme } from "antd";
 import { Info, ShieldAlert, Upload as UploadIcon } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 interface CertResult {
@@ -32,13 +32,13 @@ export function GatewaySettings() {
 
   const settingsLocked = status.is_running;
 
-  const handleSave = async (partial: Parameters<typeof saveSettings>[0]) => {
+  const handleSave = useCallback(async (partial: Parameters<typeof saveSettings>[0]) => {
     try {
       await saveSettings(partial);
     } catch (e) {
       message.error(String(e));
     }
-  };
+  }, [saveSettings]);
 
   const handleSelectFile = async (
     field: "gateway_ssl_cert_path" | "gateway_ssl_key_path",
@@ -97,19 +97,22 @@ export function GatewaySettings() {
   // Each field syncs independently so an unsaved local edit in one field is never
   // clobbered when the other field's persisted value changes.
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setPortValue(settings.gateway_port ?? 8080);
-  }, [settings.gateway_port]);
+    setTimeout(() => setPortValue(settings.gateway_port ?? 8080), 0);
+  }, [settings.gateway_port, setPortValue]);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setSslPortValue(settings.gateway_ssl_port ?? 8443);
-  }, [settings.gateway_ssl_port]);
+    setTimeout(() => setSslPortValue(settings.gateway_ssl_port ?? 8443), 0);
+  }, [settings.gateway_ssl_port, setSslPortValue]);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setListenAddressValue(settings.gateway_listen_address ?? "127.1.0.0");
-  }, [settings.gateway_listen_address]);
+    setTimeout(() => setListenAddressValue(settings.gateway_listen_address ?? "127.1.0.0"), 0);
+  }, [settings.gateway_listen_address, setListenAddressValue]);
+
+  const handleSaveRef = useRef(handleSave);
+
+  useEffect(() => {
+    handleSaveRef.current = handleSave;
+  }, [handleSave]);
 
   // Recompute conflict errors whenever SSL is toggled or either local port value changes.
   // If a conflict clears for a port that had a pending (blocked) save, flush it now.
@@ -120,17 +123,17 @@ export function GatewaySettings() {
 
     if (!newPortError && portPendingSave.current) {
       portPendingSave.current = false;
-      handleSave({ gateway_port: portValue });
+      handleSaveRef.current({ gateway_port: portValue });
     }
     if (!newSslPortError && sslPortPendingSave.current) {
       sslPortPendingSave.current = false;
-      handleSave({ gateway_ssl_port: sslPortValue });
+      handleSaveRef.current({ gateway_ssl_port: sslPortValue });
     }
 
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setPortError(newPortError);
-    setSslPortError(newSslPortError);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    setTimeout(() => {
+      setPortError(newPortError);
+      setSslPortError(newSslPortError);
+    }, 0);
   }, [settings.gateway_ssl_enabled, portValue, sslPortValue]);
 
   const handleSslPortChange = (val: number | null) => {

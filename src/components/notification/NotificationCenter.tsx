@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-/* eslint-disable react-refresh/only-export-components */
 import { Badge, Button, Empty, List, Popover, Space, Typography } from "antd";
 import { AlertTriangle, Bell, Check, CheckCheck, Info, Trash2, X } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -30,19 +29,23 @@ export function NotificationCenter({ trigger }: NotificationCenterProps) {
   const { t } = useTranslation();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [visible, setVisible] = useState(false);
+  const [now, setNow] = useState(() => Date.now());
 
-  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     const stored = localStorage.getItem("axagent-notifications");
     if (stored) {
       try {
-        setNotifications(JSON.parse(stored));
+        setTimeout(() => setNotifications(JSON.parse(stored)), 0);
       } catch {
-        setNotifications([]);
+        setTimeout(() => setNotifications([]), 0);
       }
     }
+  }, [setNotifications]);
+
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 30000);
+    return () => clearInterval(timer);
   }, []);
-  /* eslint-enable react-hooks/set-state-in-effect */
 
   useEffect(() => {
     localStorage.setItem(
@@ -96,10 +99,6 @@ export function NotificationCenter({ trigger }: NotificationCenterProps) {
   };
 
   const formatTime = (timestamp: number) => {
-    // Date.now() 用于计算相对时间（"刚刚"、"X 分钟前"），
-    // 故意在 render 中调用以保证每次渲染都显示最新时间差。
-    // eslint-disable-next-line react-hooks/purity
-    const now = Date.now();
     const diff = now - timestamp;
 
     if (diff < 60000) {

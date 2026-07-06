@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import { listen } from "@tauri-apps/api/event";
+import { listen } from "@/lib/invoke";
 import { App, Button, Input, Modal, Spin, theme } from "antd";
 import DOMPurify from "dompurify";
 import { ChevronDown } from "lucide-react";
@@ -234,8 +234,7 @@ function ChatViewInner({
   );
   const workflowMatchSuggestion = useAgentStore((s) => s.workflowMatchSuggestion);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const bubbleListRef = useRef<any>(null);
+  const bubbleListRef = useRef<HTMLDivElement & { scrollBoxNativeElement?: HTMLElement | null } | null>(null);
   const messageAreaRef = useRef<HTMLDivElement | null>(null);
 
   const actions = useChatViewActions({
@@ -294,16 +293,18 @@ function ChatViewInner({
     lastBubbleKey: msgState.lastBubbleKey,
   });
 
+  const onScrollToReadyRef = useRef(onScrollToReady);
+
   useEffect(() => {
-    onScrollToReady?.({
+    onScrollToReadyRef.current = onScrollToReady;
+  }, [onScrollToReady]);
+
+  useEffect(() => {
+    onScrollToReadyRef.current?.({
       scrollTo: scroll.minimapScrollTo,
       scrollBoxRef: scroll.scrollBoxRef,
     });
-    // 显式省略 onScrollToReady / scroll.scrollBoxRef：
-    // scroll.scrollBoxRef 是稳定 ref，onScrollToReady 是父组件传入的回调，
-    // 加入 deps 会导致父组件重渲染时反复注册回调，而此处仅用于初始注册。
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scroll.minimapScrollTo]);
+  }, [scroll.minimapScrollTo, scroll.scrollBoxRef]);
 
   const activeMessages = useMemo(
     () => messages.filter((msg) => msg.is_active !== false),

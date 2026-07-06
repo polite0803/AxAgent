@@ -4,12 +4,9 @@ import { executeShortcutAction } from "@/lib/shortcutActions";
 import { getShortcutBinding, matchesShortcutEvent, SHORTCUT_ACTIONS, type ShortcutAction } from "@/lib/shortcuts";
 import { useConversationStore, useSettingsStore, useTabStore } from "@/stores";
 import { useCallback, useEffect } from "react";
-import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 
 export function useKeyboardShortcuts() {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { t: _t } = useTranslation();
   const navigate = useNavigate();
   const settings = useSettingsStore((s) => s.settings);
 

@@ -3,10 +3,14 @@
 use crate::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::task as task_err;
+use crate::commands::spawn_guard::panic_message;
 use axagent_core::entity::background_tasks;
 use chrono::Utc;
+use futures::FutureExt;
 use sea_orm::*;
 use serde::{Deserialize, Serialize};
+use std::panic::AssertUnwindSafe;
+use std::sync::atomic::{AtomicBool, Ordering};
 use tauri::{Emitter, State};
 use tracing::warn;
 
@@ -167,16 +171,55 @@ pub async fn spawn_background_task(
             let tid5 = id.clone();
             let app = app_handle.clone();
             tokio::spawn(async move {
-                if let Err(e) = update_status(&db1, &tid1, "running", None).await {
-                    warn!("更新任务状态失败: {}", e);
+                // === 1. Drop guard：任何路径退出都把 status 收敛到终态 ===
+                // 业务完成前 finished=false；任何 panic / 早退 / 早 return
+                // 都会触发 drop() 兜底：把 status 强制落为 failed 并 emit
+                // `background-task:failed` 事件，防止任务卡在 running。
+                struct TaskGuard {
+                    db: sea_orm::DatabaseConnection,
+                    task_id: String,
+                    app: tauri::AppHandle,
+                    finished: AtomicBool,
                 }
-                let mut child =
-                    match tokio::process::Command::new(if cfg!(windows) { "cmd" } else { "sh" })
-                        .arg(if cfg!(windows) { "/C" } else { "-c" })
-                        .arg(&cmd)
-                        .stdout(std::process::Stdio::piped())
-                        .stderr(std::process::Stdio::piped())
-                        .spawn()
+                impl Drop for TaskGuard {
+                    fn drop(&mut self) {
+                        if self.finished.load(Ordering::Acquire) {
+                            return;
+                        }
+                        // drop 路径上不能 .await，用 fire-and-forget spawn 兜底写库
+                        let db = self.db.clone();
+                        let tid = self.task_id.clone();
+                        let app = self.app.clone();
+                        tokio::spawn(async move {
+                            if let Err(e) = update_status(&db, &tid, "failed", Some(-1)).await {
+                                warn!("TaskGuard drop 兜底更新 status 失败: {}", e);
+                            }
+                            let _ = app.emit("background-task:failed", &tid);
+                        });
+                    }
+                }
+                let guard = TaskGuard {
+                    db: db1.clone(),
+                    task_id: tid1.clone(),
+                    app: app.clone(),
+                    finished: AtomicBool::new(false),
+                };
+
+                // === 2. catch_unwind 包裹主体 ===
+                let result = AssertUnwindSafe(async {
+                    if let Err(e) = update_status(&db1, &tid1, "running", None).await {
+                        warn!("更新任务状态失败: {}", e);
+                    }
+                    let mut child = match tokio::process::Command::new(if cfg!(windows) {
+                        "cmd"
+                    } else {
+                        "sh"
+                    })
+                    .arg(if cfg!(windows) { "/C" } else { "-c" })
+                    .arg(&cmd)
+                    .stdout(std::process::Stdio::piped())
+                    .stderr(std::process::Stdio::piped())
+                    .spawn()
                     {
                         Ok(c) => c,
                         Err(e) => {
@@ -185,74 +228,113 @@ pub async fn spawn_background_task(
                             {
                                 warn!("追加输出失败: {}", e2);
                             }
-                            if let Err(e2) = update_status(&db2, &tid2, "failed", Some(-1)).await {
-                                warn!("更新任务状态失败: {}", e2);
-                            }
-                            let _ = app.emit("background-task:updated", &tid2);
+                            // Drop guard 会兜底更新 status=failed + emit failed 事件
                             return;
                         },
                     };
-                let stdout = child.stdout.take();
-                let stderr = child.stderr.take();
-                let db_o = db3.clone();
-                let tid_o = tid3.clone();
-                let stdout_task = tokio::spawn(async move {
-                    if let Some(mut reader) = stdout {
-                        use tokio::io::AsyncBufReadExt;
-                        let mut lines = tokio::io::BufReader::new(&mut reader).lines();
-                        while let Ok(Some(line)) = lines.next_line().await {
-                            if let Err(e) = append_output(&db_o, &tid_o, &line).await {
-                                warn!("追加 stdout 输出失败: {}", e);
+                    let stdout = child.stdout.take();
+                    let stderr = child.stderr.take();
+                    let db_o = db3.clone();
+                    let tid_o = tid3.clone();
+                    // stdout_task: 子 spawn panic 只会丢部分输出
+                    // 用 catch_unwind 兜住, 不污染外层状态机
+                    let stdout_task = tokio::spawn(async move {
+                        let inner = AssertUnwindSafe(async {
+                            if let Some(mut reader) = stdout {
+                                use tokio::io::AsyncBufReadExt;
+                                let mut lines = tokio::io::BufReader::new(&mut reader).lines();
+                                while let Ok(Some(line)) = lines.next_line().await {
+                                    if let Err(e) = append_output(&db_o, &tid_o, &line).await {
+                                        warn!("追加 stdout 输出失败: {}", e);
+                                    }
+                                }
                             }
+                        })
+                        .catch_unwind()
+                        .await;
+                        if let Err(p) = inner {
+                            tracing::error!(
+                                "[spawn_background_task] stdout_task PANIC task={}: {}",
+                                tid_o,
+                                panic_message(&p)
+                            );
                         }
-                    }
-                });
-                let db_e = db3.clone();
-                let tid_e = tid5.clone();
-                let stderr_task = tokio::spawn(async move {
-                    if let Some(mut reader) = stderr {
-                        use tokio::io::AsyncBufReadExt;
-                        let mut lines = tokio::io::BufReader::new(&mut reader).lines();
-                        while let Ok(Some(line)) = lines.next_line().await {
-                            if let Err(e) =
-                                append_output(&db_e, &tid_e, &format!("[stderr] {}", line)).await
-                            {
-                                warn!("追加 stderr 输出失败: {}", e);
+                    });
+                    let db_e = db3.clone();
+                    let tid_e = tid5.clone();
+                    let stderr_task = tokio::spawn(async move {
+                        let inner = AssertUnwindSafe(async {
+                            if let Some(mut reader) = stderr {
+                                use tokio::io::AsyncBufReadExt;
+                                let mut lines = tokio::io::BufReader::new(&mut reader).lines();
+                                while let Ok(Some(line)) = lines.next_line().await {
+                                    if let Err(e) =
+                                        append_output(&db_e, &tid_e, &format!("[stderr] {}", line))
+                                            .await
+                                    {
+                                        warn!("追加 stderr 输出失败: {}", e);
+                                    }
+                                }
                             }
+                        })
+                        .catch_unwind()
+                        .await;
+                        if let Err(p) = inner {
+                            tracing::error!(
+                                "[spawn_background_task] stderr_task PANIC task={}: {}",
+                                tid_e,
+                                panic_message(&p)
+                            );
                         }
+                    });
+                    let status = child.wait().await;
+                    let _ = stdout_task.await;
+                    let _ = stderr_task.await;
+                    match status {
+                        Ok(exit) => {
+                            let code = exit.code().unwrap_or(-1);
+                            if exit.success() {
+                                let _ = append_output(
+                                    &db3,
+                                    &tid4,
+                                    &format!("\n--- 完成 (exit: {}) ---", code),
+                                )
+                                .await;
+                                let _ = update_status(&db3, &tid4, "completed", Some(code)).await;
+                            } else {
+                                let _ = append_output(
+                                    &db3,
+                                    &tid4,
+                                    &format!("\n--- 失败 (exit: {}) ---", code),
+                                )
+                                .await;
+                                let _ = update_status(&db3, &tid4, "failed", Some(code)).await;
+                            }
+                        },
+                        Err(e) => {
+                            let _ =
+                                append_output(&db3, &tid4, &format!("\n--- 执行错误: {} ---", e))
+                                    .await;
+                            // Drop guard 兜底覆盖 status=failed
+                            return;
+                        },
                     }
-                });
-                let status = child.wait().await;
-                let _ = stdout_task.await;
-                let _ = stderr_task.await;
-                match status {
-                    Ok(exit) => {
-                        let code = exit.code().unwrap_or(-1);
-                        if exit.success() {
-                            let _ = append_output(
-                                &db3,
-                                &tid4,
-                                &format!("\n--- 完成 (exit: {}) ---", code),
-                            )
-                            .await;
-                            let _ = update_status(&db3, &tid4, "completed", Some(code)).await;
-                        } else {
-                            let _ = append_output(
-                                &db3,
-                                &tid4,
-                                &format!("\n--- 失败 (exit: {}) ---", code),
-                            )
-                            .await;
-                            let _ = update_status(&db3, &tid4, "failed", Some(code)).await;
-                        }
-                    },
-                    Err(e) => {
-                        let _ =
-                            append_output(&db3, &tid4, &format!("\n--- 执行错误: {} ---", e)).await;
-                        let _ = update_status(&db3, &tid4, "failed", Some(-1)).await;
-                    },
+                    let _ = app.emit("background-task:updated", &tid4);
+                    // === 3. 业务正常完成, 通知 Drop guard 跳过兜底 ===
+                    guard.finished.store(true, Ordering::Release);
+                })
+                .catch_unwind()
+                .await;
+
+                if let Err(panic) = result {
+                    // Drop guard 在 outer scope 末尾 drop, 会自动把 status 落为 failed
+                    tracing::error!(
+                        "[spawn_background_task] PANIC task={}: {}",
+                        tid1,
+                        panic_message(&panic)
+                    );
                 }
-                let _ = app.emit("background-task:updated", &tid4);
+                // guard 在此 drop —— finished=false 时触发兜底
             });
         }
     } else if task_type == "agent" {

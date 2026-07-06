@@ -132,8 +132,7 @@ export function ToolSemanticCheck() {
     if (!selectedTool) {
       return;
     }
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    checkSemanticMatches(selectedTool);
+    setTimeout(() => checkSemanticMatches(selectedTool), 0);
   }, [selectedTool, checkSemanticMatches]);
 
   const handleUpgradeTool = useCallback(async () => {

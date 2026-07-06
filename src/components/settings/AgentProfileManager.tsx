@@ -41,7 +41,7 @@ import {
   TrendingUp,
   Workflow,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 const { Text } = Typography;
@@ -88,16 +88,20 @@ export function AgentProfileManager() {
     { value: string; label: string }[]
   >([]);
 
-  const store = useAgentStore();
+  const loadProfiles = useAgentStore((s) => s.loadProfiles);
+  const getAllProfiles = useAgentStore((s) => s.getAllProfiles);
+  const updateCustomProfile = useAgentStore((s) => s.updateCustomProfile);
+  const createCustomProfile = useAgentStore((s) => s.createCustomProfile);
+  const deleteCustomProfile = useAgentStore((s) => s.deleteCustomProfile);
 
-  const loadRoles = async () => {
+  const loadRoles = useCallback(async () => {
     try {
       const roles: { id: string; name: string }[] = await invoke("list_agent_roles");
       setRoleOptions(Array.isArray(roles) ? roles.map((r) => ({ value: r.id, label: r.name })) : []);
     } catch {
       /* fallback */
     }
-  };
+  }, []);
 
   const [importingRoles, setImportingRoles] = useState(false);
   const handleImportRoles = async () => {
@@ -135,7 +139,7 @@ export function AgentProfileManager() {
     }
   };
 
-  const loadExperts = async () => {
+  const loadExperts = useCallback(async () => {
     try {
       const experts: { id: string; name: string }[] = await invoke(
         "list_agency_experts",
@@ -144,24 +148,38 @@ export function AgentProfileManager() {
     } catch {
       /* fallback */
     }
-  };
+  }, []);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     try {
-      await store.loadProfiles();
-      setProfiles(store.getAllProfiles());
+      await loadProfiles();
+      setProfiles(getAllProfiles());
     } finally {
       setLoading(false);
     }
-  };
+  }, [loadProfiles, getAllProfiles]);
+
+  const loadRef = useRef(load);
+  const loadRolesRef = useRef(loadRoles);
+  const loadExpertsRef = useRef(loadExperts);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    load();
-    loadRoles();
-    loadExperts();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    loadRef.current = load;
+  }, [load]);
+
+  useEffect(() => {
+    loadRolesRef.current = loadRoles;
+  }, [loadRoles]);
+
+  useEffect(() => {
+    loadExpertsRef.current = loadExperts;
+  }, [loadExperts]);
+
+  useEffect(() => {
+    loadRef.current();
+    loadRolesRef.current();
+    loadExpertsRef.current();
   }, []);
 
   const filtered = useMemo(() => {
@@ -225,12 +243,12 @@ export function AgentProfileManager() {
     setSaving(true);
     try {
       if (editingProfile) {
-        await store.updateCustomProfile(
+        await updateCustomProfile(
           editingProfile.id,
           form as UpdateAgentProfileInput,
         );
       } else {
-        await store.createCustomProfile(form);
+        await createCustomProfile(form);
       }
       setEditorOpen(false);
       await load();
@@ -240,7 +258,7 @@ export function AgentProfileManager() {
   };
 
   const handleDelete = async (id: string) => {
-    await store.deleteCustomProfile(id);
+    await deleteCustomProfile(id);
     await load();
   };
 

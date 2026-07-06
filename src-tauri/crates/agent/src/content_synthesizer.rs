@@ -3,6 +3,7 @@
 use crate::citation_tracker::CitationTracker;
 use crate::credibility_evaluator::CredibilityEvaluator;
 use crate::research_state::{OutlineSection, SearchResult, SourceType};
+use axagent_harness::util_fns::truncate_to_char_boundary;
 use std::sync::Arc;
 
 pub struct ContentSynthesizer {
@@ -242,7 +243,7 @@ impl ContentSynthesizer {
             let snippet = &source.snippet;
             if snippet.len() > 50 {
                 let truncated = if snippet.len() > 200 {
-                    format!("{}...", &snippet[..200])
+                    format!("{}...", truncate_to_char_boundary(snippet, 200))
                 } else {
                     snippet.clone()
                 };

@@ -232,7 +232,7 @@ export function TitleBar() {
   const { backupSettings, loadBackupSettings } = useBackupStore();
   const evolutionStatus = useEvolutionStatus();
 
-  const fmtCountdown = (ms: number) => {
+  const fmtCountdown = useCallback((ms: number) => {
     if (ms <= 0) {
       return t("titlebar.now");
     }
@@ -243,7 +243,7 @@ export function TitleBar() {
       return `${h}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
     }
     return `${m}:${s.toString().padStart(2, "0")}`;
-  };
+  }, [t]);
 
   // Fetch backup info on mount and when popover opens
   useEffect(() => {

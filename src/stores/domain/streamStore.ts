@@ -997,8 +997,8 @@ export function stopConversationStream(
   if (!(conversationId in activeStreams)) {
     return { activeStreams };
   }
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { [conversationId]: _removed, ...rest } = activeStreams;
+  void _removed;
   return {
     activeStreams: rest,
     ...deriveLegacyStreamFields(rest),
@@ -1282,9 +1282,9 @@ export const useStreamStore = create<StreamState>((set, get) => ({
       streamingStartTimestamps,
       thinkingActiveMessageIds,
     } = get();
-    const { [activeConvId]: _msgId, ...restStreams } = activeStreams;
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { [activeConvId]: _ts, ...restTimestamps } = streamingStartTimestamps;
+    void _ts;
+    const { [activeConvId]: _msgId, ...restStreams } = activeStreams;
     // Only remove thinking indicators for the cancelled conversation's messages,
     // leaving other conversations' thinking state intact.
     const updatedThinking = new Set(thinkingActiveMessageIds);

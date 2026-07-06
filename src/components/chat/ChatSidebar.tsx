@@ -186,13 +186,11 @@ export function ChatSidebar({
   const [fts5ResultIds, setFts5ResultIds] = useState<string[] | null>(null);
 
   useEffect(() => {
-    // 以下分支互斥：无搜索词直接返回 null，异步搜索后 then/catch 各自只有一次 setState
+    let cancelled = false;
     if (!debouncedSearch) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setFts5ResultIds(null);
+      cancelled = true;
       return;
     }
-    let cancelled = false;
     invoke<Array<{ id: string }>>("search_conversations", {
       query: debouncedSearch,
     })
@@ -209,7 +207,7 @@ export function ChatSidebar({
     return () => {
       cancelled = true;
     };
-  }, [debouncedSearch]);
+  }, [debouncedSearch, setFts5ResultIds]);
   const [searchVisible, setSearchVisible] = useState(false);
   const [advancedSearchVisible, setAdvancedSearchVisible] = useState(false);
   const [multiSelectMode, setMultiSelectMode] = useState(false);
@@ -234,6 +232,12 @@ export function ChatSidebar({
   const [categoryManagerOpen, setCategoryManagerOpen] = useState(false);
   const conversationsLoading = useConversationStore((s) => s.loading);
 
+  const expandedParentIdsRef = useRef(expandedParentIds);
+
+  useEffect(() => {
+    expandedParentIdsRef.current = expandedParentIds;
+  }, [expandedParentIds]);
+
   // Auto-expand parent when active conversation is a child
   useEffect(() => {
     if (!activeConversationId) {
@@ -242,14 +246,10 @@ export function ChatSidebar({
     const active = conversations.find((c) => c.id === activeConversationId);
     if (
       active?.parent_conversation_id
-      && !expandedParentIds.has(active.parent_conversation_id)
+      && !expandedParentIdsRef.current.has(active.parent_conversation_id)
     ) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setExpandedParentIds((prev) => new Set(prev).add(active.parent_conversation_id!));
     }
-    // 显式省略 expandedParentIds：将其加入 deps 会导致 setExpandedParentIds
-    // → expandedParentIds 变化 → effect 重新执行 → 再次 set 的无限循环
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeConversationId, conversations]);
 
   // Auto-select conversation: restore last selected, or fall back to first
@@ -925,7 +925,7 @@ export function ChatSidebar({
   // Local state for expanded group keys (drives the UI immediately)
   const [expandedKeys, setExpandedKeys] = useState<string[]>([]);
 
-  // Auto-expand workspace groups on first load
+  // Auto-expand workspace groups on first load (deferred to avoid synchronous setState in effect)
   const wsAutoExpandDoneRef = useRef(false);
   useEffect(() => {
     if (wsAutoExpandDoneRef.current || conversationItems.length === 0) {
@@ -938,11 +938,13 @@ export function ChatSidebar({
       }
     });
     if (wsKeys.size > 0) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setExpandedKeys(Array.from(wsKeys));
+      const id = setTimeout(() => {
+        setExpandedKeys(Array.from(wsKeys));
+      }, 0);
       wsAutoExpandDoneRef.current = true;
+      return () => clearTimeout(id);
     }
-  }, [conversationItems]);
+  }, [conversationItems, setExpandedKeys]);
 
   const handleGroupExpand = useCallback((keys: string[]) => {
     setExpandedKeys(keys);

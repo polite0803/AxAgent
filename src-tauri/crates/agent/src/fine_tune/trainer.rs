@@ -172,7 +172,9 @@ impl FineTuneTrainer {
 
         // Initialize progress tracking
         {
-            let job = self.get_job_mut(job_id).unwrap();
+            let job = self
+                .get_job_mut(job_id)
+                .ok_or_else(|| FineTuneError::NotFound(job_id.to_string()))?;
             job.progress.total_epochs = config.epochs;
             job.progress.total_steps = total_steps;
         }
@@ -206,7 +208,9 @@ impl FineTuneTrainer {
 
                 // Track learning rates
                 {
-                    let job = self.get_job_mut(job_id).unwrap();
+                    let job = self
+                        .get_job_mut(job_id)
+                        .ok_or_else(|| FineTuneError::NotFound(job_id.to_string()))?;
                     job.metrics.learning_rates.push(lr);
                     job.metrics.train_loss.push(loss);
                 }
@@ -236,7 +240,9 @@ impl FineTuneTrainer {
                     let val_loss = loss * 1.05; // simulated val loss (slightly higher)
                     val_losses.push(val_loss);
                     {
-                        let job = self.get_job_mut(job_id).unwrap();
+                        let job = self
+                            .get_job_mut(job_id)
+                            .ok_or_else(|| FineTuneError::NotFound(job_id.to_string()))?;
                         job.metrics.val_loss.push(val_loss);
                     }
                     self.notify_progress(
@@ -270,7 +276,9 @@ impl FineTuneTrainer {
 
         // Record final metrics
         {
-            let job = self.get_job_mut(job_id).unwrap();
+            let job = self
+                .get_job_mut(job_id)
+                .ok_or_else(|| FineTuneError::NotFound(job_id.to_string()))?;
             job.metrics.final_loss = Some(final_loss);
             job.metrics.best_loss = Some(best_loss);
         }
@@ -278,7 +286,8 @@ impl FineTuneTrainer {
         self.complete_job(job_id, output_path_str.clone())?;
 
         let adapter_info = LoRAAdapterInfo::from_training_job(
-            self.get_job(job_id).unwrap(),
+            self.get_job(job_id)
+                .ok_or_else(|| FineTuneError::NotFound(job_id.to_string()))?,
             output_path_str.clone(),
         );
 
@@ -449,7 +458,9 @@ impl FineTuneTrainer {
 
         // Finalize
         {
-            let job = self.get_job_mut(job_id).unwrap();
+            let job = self
+                .get_job_mut(job_id)
+                .ok_or_else(|| FineTuneError::NotFound(job_id.to_string()))?;
             job.metrics.final_loss = Some(
                 final_response
                     .get("final_loss")
@@ -462,7 +473,8 @@ impl FineTuneTrainer {
         self.complete_job(job_id, output_path_str.clone())?;
 
         let adapter_info = LoRAAdapterInfo::from_training_job(
-            self.get_job(job_id).unwrap(),
+            self.get_job(job_id)
+                .ok_or_else(|| FineTuneError::NotFound(job_id.to_string()))?,
             output_path_str.clone(),
         );
 

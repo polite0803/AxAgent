@@ -19,7 +19,7 @@ pub struct ToolCall {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ToolResult {
+pub struct TrajectoryToolResult {
     pub tool_use_id: String,
     pub tool_name: String,
     pub output: String,
@@ -33,7 +33,7 @@ pub struct TrajectoryStep {
     pub content: String,
     pub reasoning: Option<String>,
     pub tool_calls: Option<Vec<ToolCall>>,
-    pub tool_results: Option<Vec<ToolResult>>,
+    pub tool_results: Option<Vec<TrajectoryToolResult>>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]

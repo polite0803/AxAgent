@@ -62,7 +62,8 @@ fn detect_media_type(ext: &str) -> Option<MediaType> {
 }
 
 fn extract_absolute_paths(text: &str) -> Vec<String> {
-    let re = regex::Regex::new(r#"(?:(?:[A-Za-z]:[/\\])|/)[^\s"'<>\]\)}，。；：！？、]+"#).unwrap();
+    let re = regex::Regex::new(r#"(?:(?:[A-Za-z]:[/\\])|/)[^\s"'<>\]\)}，。；：！？、]+"#)
+        .expect("static regex");
     let mut seen = std::collections::HashSet::new();
     let mut paths = Vec::new();
     for cap in re.captures_iter(text) {

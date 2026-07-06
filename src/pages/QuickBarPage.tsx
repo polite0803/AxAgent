@@ -617,13 +617,13 @@ function CommandMode({
                 onClick={() => {
                   setInput(`/${cmd.key} `);
                   setActiveCommand(cmd.key);
-                  setShowCommands(false);
+                  setTimeout(() => setShowCommands(false), 0);
                 }}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" || e.key === " ") {
                     setInput(`/${cmd.key} `);
                     setActiveCommand(cmd.key);
-                    setShowCommands(false);
+                    setTimeout(() => setShowCommands(false), 0);
                   }
                 }}
                 onMouseEnter={() => setSelectedCmd(idx)}
@@ -978,13 +978,12 @@ export function QuickBarPage() {
 
   useEffect(() => {
     if (input.trimStart().startsWith("/") && commandMode) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setShowCommands(true);
-      setSelectedCmd(0);
+      setTimeout(() => setShowCommands(true), 0);
+      setTimeout(() => setSelectedCmd(0), 0);
     } else {
-      setShowCommands(false);
+      setTimeout(() => setShowCommands(false), 0);
     }
-  }, [input, commandMode]);
+  }, [input, commandMode, setShowCommands]);
 
   const ensureConversation = useCallback(async (): Promise<string> => {
     if (convId) {

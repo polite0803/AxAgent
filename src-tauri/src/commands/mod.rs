@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+pub mod _shared_state;
+pub(crate) mod _workflow_ai_protocol;
 pub mod agency_expert;
 pub mod agent;
 pub mod agent_advanced;
@@ -82,11 +84,11 @@ pub mod screen_vision;
 pub mod search;
 pub mod session_share;
 pub mod settings;
-pub mod shared_state;
 pub mod skill_decomposition;
 pub mod skills;
 pub mod skills_hub;
 pub mod sources;
+pub mod spawn_guard;
 pub mod storage;
 #[cfg(not(mobile))]
 pub mod terminal;
@@ -101,6 +103,5 @@ pub mod work_engine;
 pub mod workflow_ai;
 pub mod workflow_ai_apply;
 pub mod workflow_ai_diagnose;
-pub mod workflow_ai_protocol;
 pub mod workflow_template;
 pub mod workflow_yaml;

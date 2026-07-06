@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use crate::AppState;
+use crate::commands::spawn_guard::catch_unwind_logged;
 use axagent_agent::{
     ingest_pipeline, lint_checker, purpose_manager, query_engine, schema_manager, wiki_compiler,
 };
@@ -212,7 +213,7 @@ pub async fn llm_wiki_ingest(
             let note_ids = result.generated_note_ids.clone();
             let app_for_emit = app.clone();
 
-            tokio::spawn(async move {
+            tokio::spawn(catch_unwind_logged("llm_wiki.ingest", async move {
                 for note_id in &note_ids {
                     let note_result = axagent_core::repo::note::get_note(&db, note_id).await;
                     if let Ok(note) = note_result {
@@ -254,7 +255,7 @@ pub async fn llm_wiki_ingest(
                         );
                     }
                 }
-            });
+            }));
         }
     }
 
@@ -403,7 +404,7 @@ pub async fn llm_wiki_compile(
             let wiki_id = input.wiki_id.clone();
             let app_for_emit = app.clone();
 
-            tokio::spawn(async move {
+            tokio::spawn(catch_unwind_logged("llm_wiki.compile", async move {
                 for (title, content) in &pages_to_index {
                     let note_result = axagent_core::entity::notes::Entity::find()
                         .filter(axagent_core::entity::notes::Column::VaultId.eq(&wiki_id))
@@ -455,7 +456,7 @@ pub async fn llm_wiki_compile(
                         }
                     }
                 }
-            });
+            }));
         }
     }
 

@@ -70,8 +70,7 @@ export const LeftPanel: React.FC<LeftPanelProps> = ({ width }) => {
       window.addEventListener("mousemove", handleMouseMove);
       window.addEventListener("mouseup", handleMouseUp);
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [token],
+    [],
   );
 
   const filteredNodeTypes = Object.entries(NODE_TYPE_MAP).filter(

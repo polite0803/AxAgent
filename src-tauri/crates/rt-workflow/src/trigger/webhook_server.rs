@@ -177,7 +177,7 @@ async fn handle_request(
                     .with_header(
                         "Content-Type: application/json"
                             .parse::<tiny_http::Header>()
-                            .unwrap(),
+                            .expect("Content-Type: application/json is a valid header"),
                     );
                     let _ = request.respond(response);
                 },
@@ -193,7 +193,7 @@ async fn handle_request(
                     .with_header(
                         "Content-Type: application/json"
                             .parse::<tiny_http::Header>()
-                            .unwrap(),
+                            .expect("Content-Type: application/json is a valid header"),
                     );
                     let _ = request.respond(response);
                 },

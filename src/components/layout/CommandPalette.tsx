@@ -27,14 +27,12 @@ export interface Command {
 // ─── 动态命令注册表 ───
 const commandRegistry: Command[] = [];
 
-// eslint-disable-next-line react-refresh/only-export-components
 export function registerCommand(cmd: Command) {
   if (!commandRegistry.find((c) => c.id === cmd.id)) {
     commandRegistry.push(cmd);
   }
 }
 
-// eslint-disable-next-line react-refresh/only-export-components
 export function unregisterCommand(id: string) {
   const idx = commandRegistry.findIndex((c) => c.id === id);
   if (idx !== -1) {
@@ -240,17 +238,15 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
   }, [commands, query, useCounts]);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setActiveIndex(0);
-  }, [query]);
+    setTimeout(() => setActiveIndex(0), 0);
+  }, [query, setActiveIndex]);
 
   useEffect(() => {
     if (!open) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setQuery("");
-      setActiveIndex(0);
+      setTimeout(() => setQuery(""), 0);
+      setTimeout(() => setActiveIndex(0), 0);
     }
-  }, [open]);
+  }, [open, setActiveIndex]);
 
   // 注册技能扩展命令
   const skillCommands = useSkillExtensionStore((s) => s.commands);

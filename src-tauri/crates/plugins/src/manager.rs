@@ -1882,6 +1882,13 @@ fn materialize_source(
     match source {
         PluginInstallSource::LocalPath { path } => Ok(path.clone()),
         PluginInstallSource::GitUrl { url } => {
+            // URL 合法性校验：阻止 `git clone` 把 `--upload-pack=...` 之类的 flag
+            // 误当作 URL 参数解析（任何以 `-` 开头的 token 都不是合法 URL）。
+            if url.is_empty() || url.starts_with('-') {
+                return Err(PluginError::InvalidManifest(format!(
+                    "git url must not be empty or start with '-': `{url}`"
+                )));
+            }
             static MATERIALIZE_COUNTER: AtomicU64 = AtomicU64::new(0);
             let unique = MATERIALIZE_COUNTER.fetch_add(1, Ordering::Relaxed);
             let nanos = SystemTime::now()
@@ -1889,10 +1896,12 @@ fn materialize_source(
                 .expect("system time is after UNIX epoch")
                 .as_nanos();
             let destination = temp_root.join(format!("plugin-{nanos}-{unique}"));
+            // `--` 终止 git 的 option 解析，后续 token 强制视为位置参数（URL/dest）
             let output = Command::new("git")
                 .arg("clone")
                 .arg("--depth")
                 .arg("1")
+                .arg("--")
                 .arg(url)
                 .arg(&destination)
                 .output()?;

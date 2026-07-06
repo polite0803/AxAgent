@@ -54,4 +54,16 @@ export default tseslint.config(
       "react-hooks/preserve-manual-memoization": "off",
     },
   },
+  {
+    files: [
+      "src/components/dynamicUI/DynamicUIRenderer.tsx",
+      "src/components/layout/CommandPalette.tsx",
+      "src/components/notification/NotificationCenter.tsx",
+      "src/components/settings/HookExecutionLog.tsx",
+      "src/components/chat/ChatViewMessages.tsx",
+    ],
+    rules: {
+      "react-refresh/only-export-components": "off",
+    },
+  },
 );

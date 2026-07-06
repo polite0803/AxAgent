@@ -42,23 +42,22 @@ export function FrontendEditorModal({
 
   useEffect(() => {
     if (!open) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setAnalyzing(false);
+      setTimeout(() => setAnalyzing(false), 0);
     }
-  }, [open]);
+  }, [open, setAnalyzing]);
 
-  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (open) {
       const d = currentManifest
         ? structuredClone(currentManifest)
         : structuredClone(DEFAULT_MANIFEST);
-      setJsonText(formatJson(d));
-      setJsonError(null);
-      setEditorTab("json");
+      setTimeout(() => {
+        setJsonText(formatJson(d));
+        setJsonError(null);
+        setEditorTab("json");
+      }, 0);
     }
-  }, [open, currentManifest]);
-  /* eslint-enable react-hooks/set-state-in-effect */
+  }, [open, currentManifest, setJsonError]);
 
   const handleAnalyze = useCallback(async () => {
     setAnalyzing(true);

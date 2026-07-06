@@ -17,10 +17,12 @@ use axagent_core::entity::{
     trajectory_steps,
 };
 use chrono::Utc;
+use futures::FutureExt;
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, ConnectionTrait, DatabaseConnection, EntityTrait, ExprTrait,
     IntoActiveModel, PaginatorTrait, QueryFilter, QueryOrder, Set, TransactionTrait,
 };
+use std::panic::AssertUnwindSafe;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use tracing::{info, warn};
@@ -1461,9 +1463,13 @@ impl TrajectoryQueue {
         // 队列满或关闭：降级为直接落盘，避免数据丢失
         let storage = self.storage.clone();
         tokio::spawn(async move {
-            if let Err(e) = storage.save_trajectory(&t).await {
-                warn!("[TrajectoryQueue] fallback persistence failed: {}", e);
-            }
+            let _ = AssertUnwindSafe(async {
+                if let Err(e) = storage.save_trajectory(&t).await {
+                    warn!("[TrajectoryQueue] fallback persistence failed: {}", e);
+                }
+            })
+            .catch_unwind()
+            .await;
         });
         // 入队失败但已落盘
         true
@@ -1479,7 +1485,11 @@ impl TrajectoryQueue {
                 let storage = self.storage.clone();
                 let t_for_persist = t.clone();
                 tokio::spawn(async move {
-                    let _ = storage.save_trajectory(&t_for_persist).await;
+                    let _ = AssertUnwindSafe(async {
+                        let _ = storage.save_trajectory(&t_for_persist).await;
+                    })
+                    .catch_unwind()
+                    .await;
                 });
                 Err(tokio::sync::mpsc::error::TrySendError::Closed(t))
             },
@@ -1543,14 +1553,28 @@ impl TrajectoryCleanupTask {
             loop {
                 tokio::select! {
                     _ = interval.tick() => {
-                        match storage.cleanup(&config).await {
-                            Ok(count) if count > 0 => {
-                                info!("Cleaned up {} old trajectories", count);
+                        let result = AssertUnwindSafe(async {
+                            match storage.cleanup(&config).await {
+                                Ok(count) if count > 0 => {
+                                    info!("Cleaned up {} old trajectories", count);
+                                }
+                                Ok(_) => {}
+                                Err(e) => {
+                                    warn!("[TrajectoryCleanupTask] cleanup failed: {}", e);
+                                }
                             }
-                            Ok(_) => {}
-                            Err(e) => {
-                                warn!("[TrajectoryCleanupTask] cleanup failed: {}", e);
-                            }
+                        })
+                        .catch_unwind()
+                        .await;
+                        if let Err(p) = result {
+                            let msg = if let Some(s) = p.downcast_ref::<String>() {
+                                s.clone()
+                            } else if let Some(s) = p.downcast_ref::<&'static str>() {
+                                (*s).to_owned()
+                            } else {
+                                "Unknown panic in trajectory cleanup".to_string()
+                            };
+                            warn!("[TrajectoryCleanupTask] PANIC in cleanup loop: {}", msg);
                         }
                     }
                     _ = &mut shutdown_rx => {

@@ -3,12 +3,15 @@
 use crate::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::backup as backup_err;
+use crate::commands::spawn_guard::panic_message;
 use axagent_core::crypto::{decrypt_key, encrypt_key};
 use axagent_core::repo::{backup, settings as settings_repo};
 use axagent_core::webdav::{self, WebDavClient, WebDavConfig, WebDavFileInfo};
+use futures::FutureExt;
 use sea_orm::{ConnectionTrait, DatabaseConnection, EntityTrait, PaginatorTrait, Statement};
 #[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
+use std::panic::AssertUnwindSafe;
 use std::path::Path;
 use std::path::PathBuf;
 use tauri::Emitter;
@@ -220,11 +223,20 @@ pub async fn webdav_restore(
 
     // 6. Restore database — also remove stale WAL/SHM files so SQLite
     //    doesn't try to replay a journal that belongs to the old database.
+    //    NotFound 属正常路径，其他 I/O 错误必须打 warn 而非静默吞错。
     backup::restore_sqlite_backup(contents.db_path.to_str().unwrap_or(""), db_path)
         .await
         .map_err(|e| e.to_string())?;
-    let _ = std::fs::remove_file(format!("{}-wal", db_path));
-    let _ = std::fs::remove_file(format!("{}-shm", db_path));
+    for suffix in ["-wal", "-shm"] {
+        let aux_path = format!("{db_path}{suffix}");
+        match std::fs::remove_file(&aux_path) {
+            Ok(()) => {},
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {},
+            Err(e) => {
+                tracing::warn!("failed to remove auxiliary db file {aux_path}: {e}");
+            },
+        }
+    }
 
     // 7. Restore documents if present
     if contents.has_documents {
@@ -541,21 +553,37 @@ pub(crate) fn spawn_webdav_sync_task(
                     break;
                 }
                 _ = tokio::time::sleep(interval) => {
-                    match do_webdav_backup_impl(&db, &master_key, &app_data_dir).await {
-                        Ok(name) => {
-                            tracing::info!("WebDAV auto-sync completed: {}", name);
-                            let _ = app_for_emit.emit("webdav-sync-completed", serde_json::json!({
-                                "success": true,
-                                "name": name,
-                            }));
-                        },
-                        Err(e) => {
-                            tracing::warn!("WebDAV auto-sync failed: {}", e);
-                            let _ = app_for_emit.emit("webdav-sync-completed", serde_json::json!({
-                                "success": false,
-                                "error": e.to_string(),
-                            }));
-                        },
+                    // 用 catch_unwind 包裹单次同步执行体；panic 不会杀死整个周期任务
+                    let result = AssertUnwindSafe(async {
+                        match do_webdav_backup_impl(&db, &master_key, &app_data_dir).await {
+                            Ok(name) => {
+                                tracing::info!("WebDAV auto-sync completed: {}", name);
+                                let _ = app_for_emit.emit("webdav-sync-completed", serde_json::json!({
+                                    "success": true,
+                                    "name": name,
+                                }));
+                            },
+                            Err(e) => {
+                                tracing::warn!("WebDAV auto-sync failed: {}", e);
+                                let _ = app_for_emit.emit("webdav-sync-completed", serde_json::json!({
+                                    "success": false,
+                                    "error": e.to_string(),
+                                }));
+                            },
+                        }
+                    })
+                    .catch_unwind()
+                    .await;
+
+                    if let Err(p) = result {
+                        tracing::error!(
+                            "[webdav_sync] PANIC 在一次周期同步执行中: {}",
+                            panic_message(&p)
+                        );
+                        let _ = app_for_emit.emit("webdav-sync-completed", serde_json::json!({
+                            "success": false,
+                            "error": "Internal panic during WebDAV sync",
+                        }));
                     }
                 }
             }

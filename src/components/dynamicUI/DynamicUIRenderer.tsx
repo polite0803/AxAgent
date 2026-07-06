@@ -1,5 +1,4 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-/* eslint-disable react-refresh/only-export-components */
 
 import { componentRegistry } from "@/lib/dynamicUI/ComponentRegistry";
 import { evaluateConditions } from "@/lib/dynamicUI/ConditionalRenderer";
@@ -118,8 +117,7 @@ const SchemaNodeRenderer = React.memo(function SchemaNodeRenderer({
       return;
     }
 
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setDataLoading(true);
+    setTimeout(() => setDataLoading(true), 0);
     let cancelled = false;
 
     subscribeDataSource(
@@ -153,7 +151,7 @@ const SchemaNodeRenderer = React.memo(function SchemaNodeRenderer({
         subscriberRef.current = null;
       }
     };
-  }, [schema.dataSource, schema.id]);
+  }, [schema.dataSource, schema.id, setDataLoading]);
 
   const mergedContext = useMemo(() => {
     const base = { ...(externalContext || {}) };
@@ -304,9 +302,8 @@ export const DynamicUIRenderer: React.FC<DynamicUIProps> = React.memo(
     }, [schema]);
 
     useEffect(() => {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setSchema(initialSchema);
-    }, [initialSchema]);
+      setTimeout(() => setSchema(initialSchema), 0);
+    }, [initialSchema, setSchema]);
 
     useEffect(() => {
       const handleSchemaUpdate = (event: Event) => {

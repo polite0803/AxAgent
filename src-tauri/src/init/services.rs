@@ -1091,35 +1091,33 @@ fn start_text_grad_analysis(state: &AppState) {
                 }
 
                 if !trajectory.steps.is_empty() {
-                    let last_step = trajectory
-                        .steps
-                        .last()
-                        .expect("is_empty check guarantees Some");
-                    let feedback = match trajectory.outcome {
-                        axagent_trajectory::TrajectoryOutcome::Success => {
-                            format!("Task succeeded: {}", topic)
-                        },
-                        axagent_trajectory::TrajectoryOutcome::Failure => {
-                            format!(
-                                "Task failed: {} - last step: {}",
-                                topic,
-                                &last_step.content.chars().take(100).collect::<String>()
-                            )
-                        },
-                        axagent_trajectory::TrajectoryOutcome::Partial => {
-                            format!("Task partially completed: {}", topic)
-                        },
-                        axagent_trajectory::TrajectoryOutcome::Abandoned => {
-                            format!("Task abandoned: {}", topic)
-                        },
-                    };
-                    let last_id = format!(
-                        "{}_{}",
-                        &session_id[..session_id.len().min(8)],
-                        trajectory.steps.len() - 1
-                    );
-                    let _ = engine.forward();
-                    let _ = engine.backward(&last_id, &feedback).await;
+                    if let Some(last_step) = trajectory.steps.last() {
+                        let feedback = match trajectory.outcome {
+                            axagent_trajectory::TrajectoryOutcome::Success => {
+                                format!("Task succeeded: {}", topic)
+                            },
+                            axagent_trajectory::TrajectoryOutcome::Failure => {
+                                format!(
+                                    "Task failed: {} - last step: {}",
+                                    topic,
+                                    &last_step.content.chars().take(100).collect::<String>()
+                                )
+                            },
+                            axagent_trajectory::TrajectoryOutcome::Partial => {
+                                format!("Task partially completed: {}", topic)
+                            },
+                            axagent_trajectory::TrajectoryOutcome::Abandoned => {
+                                format!("Task abandoned: {}", topic)
+                            },
+                        };
+                        let last_id = format!(
+                            "{}_{}",
+                            &session_id[..session_id.len().min(8)],
+                            trajectory.steps.len() - 1
+                        );
+                        let _ = engine.forward();
+                        let _ = engine.backward(&last_id, &feedback).await;
+                    }
                 }
             }
 

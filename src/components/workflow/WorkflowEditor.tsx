@@ -7,8 +7,10 @@ import {
   ConnectionLineType,
   Controls,
   type Edge,
+  type EdgeChange,
   MiniMap,
   type Node,
+  type NodeChange,
   Panel,
   ReactFlow,
   useEdgesState,
@@ -16,7 +18,7 @@ import {
   useReactFlow,
 } from "@xyflow/react";
 import domtoimage from "dom-to-image-more";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import "@xyflow/react/dist/style.css";
 import { invoke, isTauri } from "@/lib/invoke";
 import {
@@ -199,8 +201,9 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
   const canvasContainerRef = React.useRef<HTMLDivElement>(null);
   const clipboardRef = React.useRef<WorkflowNode[]>([]);
   const edgesRef = React.useRef(edges);
-  // eslint-disable-next-line react-hooks/refs
-  edgesRef.current = edges;
+  useEffect(() => {
+    edgesRef.current = edges;
+  }, [edges]);
   // 拖拽时的位置批处理：RAF 合并多次像素级位置变更，只写最后一次到 store
   const pendingPositionsRef = React.useRef<Map<string, { x: number; y: number }>>(new Map());
   const posRafRef = React.useRef<number | null>(null);
@@ -295,12 +298,23 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
     };
   }, [resizing]);
 
+  const leftPanelCollapsedRef = useRef(leftPanelCollapsed);
+  const rightPanelCollapsedRef = useRef(rightPanelCollapsed);
+
+  useEffect(() => {
+    leftPanelCollapsedRef.current = leftPanelCollapsed;
+  }, [leftPanelCollapsed]);
+
+  useEffect(() => {
+    rightPanelCollapsedRef.current = rightPanelCollapsed;
+  }, [rightPanelCollapsed]);
+
   // 响应式：窗口过小时自动折叠面板
   useEffect(() => {
     const checkWidth = () => {
       const w = window.innerWidth;
       if (w < 900) {
-        if (!leftPanelCollapsed) {
+        if (!leftPanelCollapsedRef.current) {
           setLeftPanelCollapsed(true);
           try {
             localStorage.setItem("workflowEditor.leftPanelCollapsed", "true");
@@ -308,7 +322,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
         }
       }
       if (w < 1100) {
-        if (!rightPanelCollapsed) {
+        if (!rightPanelCollapsedRef.current) {
           setRightPanelCollapsed(true);
           try {
             localStorage.setItem("workflowEditor.rightPanelCollapsed", "true");
@@ -319,7 +333,6 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
     checkWidth();
     window.addEventListener("resize", checkWidth);
     return () => window.removeEventListener("resize", checkWidth);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const validationTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -390,7 +403,6 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
     templates,
   } = useWorkflowEditorStore();
 
-  /* eslint-disable react-hooks/exhaustive-deps */
   useEffect(() => {
     hasAutoLaidOutRef.current = false;
     if (templateId) {
@@ -398,8 +410,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
     } else {
       initNewTemplate();
     }
-  }, [templateId]);
-  /* eslint-enable react-hooks/exhaustive-deps */
+  }, [templateId, loadTemplate, initNewTemplate]);
 
   // 初始化 workEngine 事件监听器：实时接收 node-status-changed / execution-completed 事件
   useEffect(() => {
@@ -678,8 +689,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
       };
       storeAddEdge(newEdge);
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [storeAddEdge],
+    [storeAddEdge, t, nodes],
   );
 
   const onNodeClick = useCallback(
@@ -848,8 +858,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
 
     window.addEventListener("mouseup", handleGlobalMouseUp);
     return () => window.removeEventListener("mouseup", handleGlobalMouseUp);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [reactFlowInstance, setRNodes]);
+  }, [reactFlowInstance, setRNodes, t, token]);
 
   // DnD 拖拽入容器高亮反馈
   useEffect(() => {
@@ -1022,8 +1031,9 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
     loadTemplate,
     isSaving,
   ]);
-  // eslint-disable-next-line react-hooks/refs
-  handleSaveRef.current = handleSave;
+  useEffect(() => {
+    handleSaveRef.current = handleSave;
+  }, [handleSave]);
 
   const handleSaveAsImage = useCallback(async () => {
     if (!reactFlowInstance) { return; }
@@ -1054,21 +1064,16 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
         return;
       }
       let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-      // Build a map of parent positions for converting child relative coords to absolute
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const nodeMap = new Map<string, any>();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      nodes.forEach((n: any) => nodeMap.set(n.id, n));
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const getAbsolutePosition = (node: any): { x: number; y: number } => {
+      const nodeMap = new Map<string, Node>();
+      nodes.forEach((n) => nodeMap.set(n.id, n));
+      const getAbsolutePosition = (node: Node): { x: number; y: number } => {
         if (!node.parentId) { return node.position; }
         const parent = nodeMap.get(node.parentId);
         if (!parent) { return node.position; }
         const parentAbs = getAbsolutePosition(parent);
         return { x: node.position.x + parentAbs.x, y: node.position.y + parentAbs.y };
       };
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      nodes.forEach((node: any) => {
+      nodes.forEach((node) => {
         const nodeType = (node.data?.type as string) || node.type || "";
         const fallback = NODE_TYPE_MAP[nodeType]?.isContainer
           ? getNodeSize(nodeType)
@@ -1303,22 +1308,17 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
   }, []);
 
   const handleNodesChange = useCallback(
-    /* eslint-disable @typescript-eslint/no-explicit-any */
-    (changes: any) => {
-      // ReactFlow 内部 handleParentExpand 尝试直接修改 node.position，
-      // 若 position 对象已被冻结则引发只读属性崩溃。
-      // 此处深拷贝 changes 中的 position/dimensions，确保传给 ReactFlow 的都是可写的新对象。
-      const clonedChanges = changes.map((c: any) => {
-        let result = c;
-        if (c.type && c.position) {
-          result = { ...result, position: { ...c.position } };
+    (changes: NodeChange[]) => {
+      const clonedChanges = changes.map((c) => {
+        const result: NodeChange = c;
+        if (c.type === "position" && c.position) {
+          return { ...result, position: { ...c.position } };
         }
-        if (c.dimensions) {
-          result = { ...result, dimensions: { ...c.dimensions } };
+        if (c.type === "dimensions" && c.dimensions) {
+          return { ...result, dimensions: { ...c.dimensions } };
         }
-        // "add" 类型的 change 可能包含 item（节点对象），其 position 也可能冻结
         if (c.type === "add" && c.item?.position) {
-          result = {
+          return {
             ...result,
             item: { ...c.item, position: { ...c.item.position } },
           };
@@ -1327,23 +1327,20 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
       });
       onNodesChange(clonedChanges);
 
-      // Track multi-selection
-      const hasSelectionChange = changes.some((c: any) => c.type === "select");
+      const hasSelectionChange = changes.some((c) => c.type === "select");
       if (hasSelectionChange) {
         const flowInstance = reactFlowInstance;
         if (flowInstance) {
-          const selected = flowInstance.getNodes().filter((n: any) => n.selected);
-          setSelectedNodeIds(new Set(selected.map((n: any) => n.id)));
+          const selected = flowInstance.getNodes().filter((n) => n.selected);
+          setSelectedNodeIds(new Set(selected.map((n) => n.id)));
         }
       }
 
-      changes.forEach((change: any) => {
+      changes.forEach((change) => {
         if (
           change.type === "position" && change.position && currentTemplate && !isDraggingRef.current
           && !skipPositionWriteRef.current
         ) {
-          // 方案 B：ReactFlow 在 extent:"parent" 模式下对子节点返回的是相对坐标，
-          // 写入 store 时需要转换为画布绝对坐标；顶层节点直接透传。
           const storePos = toAbsolutePosition(
             change.id,
             change.position,
@@ -1392,9 +1389,8 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
         }
       }
     },
-    /* eslint-enable @typescript-eslint/no-explicit-any */
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [onNodesChange, currentTemplate, updateNode, deleteNode, nodes, parentRefs],
+    //
+    [onNodesChange, currentTemplate, updateNode, deleteNode, parentRefs, reactFlowInstance],
   );
 
   const handleNodeDragStart = useCallback(() => {
@@ -1613,17 +1609,15 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
   );
 
   const handleEdgesChange = useCallback(
-    /* eslint-disable @typescript-eslint/no-explicit-any */
-    (changes: any) => {
+    (changes: EdgeChange[]) => {
       onEdgesChange(changes);
 
-      changes.forEach((change: any) => {
+      changes.forEach((change) => {
         if (change.type === "remove" && change.id) {
           deleteEdge(change.id);
         }
       });
     },
-    /* eslint-enable @typescript-eslint/no-explicit-any */
     [onEdgesChange, deleteEdge],
   );
 
@@ -1690,37 +1684,38 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
         const subId = subNode.data?.subWorkflowId || subNode.data?.sub_workflow_id;
         if (!subId) { continue; }
         try {
-          /* eslint-disable @typescript-eslint/no-explicit-any */
-          const tmpl: any = await invoke("get_workflow_template", { id: subId });
-          if (!tmpl?.nodes || !Array.isArray(tmpl.nodes)) { continue; }
-          const subNodes = tmpl.nodes;
-          const subEdges = tmpl.edges || [];
-          // 转换为兼容格式
-          const rfSubNodes = subNodes.map((n: any) => ({
-            id: n.id || n.base?.id || "",
-            type: (n.type || n.base?.type || "agent") as string,
-            position: n.position || n.base?.position || { x: 0, y: 0 },
-            data: { ...n, type: n.type || n.base?.type || "agent" },
-          }));
-          const rfSubEdges = subEdges.map((e: any, i: number) => ({
-            id: e.id || `sub_e_${i}`,
-            source: e.source,
-            target: e.target,
-            sourceHandle: e.source_handle || e.sourceHandle,
-            targetHandle: e.target_handle || e.targetHandle,
+          const tmpl: Record<string, unknown> = await invoke("get_workflow_template", { id: subId });
+          const rawNodes = tmpl.nodes as Array<Record<string, unknown>> | undefined;
+          if (!rawNodes) { continue; }
+          const subNodes: Array<Record<string, unknown>> = rawNodes;
+          const subEdges = (tmpl.edges || []) as Array<Record<string, unknown>>;
+          const rfSubNodes: AutoNode[] = subNodes.map((n) => {
+            const base = n.base as Record<string, unknown> | undefined;
+            const nType = (n.type || base?.type || "agent") as string;
+            return {
+              id: (n.id || base?.id || "") as string,
+              type: nType,
+              position: (n.position || base?.position || { x: 0, y: 0 }) as { x: number; y: number },
+              data: { ...n, type: nType },
+            };
+          });
+          const rfSubEdges = subEdges.map((e, i) => ({
+            id: (e.id || `sub_e_${i}`) as string,
+            source: e.source as string,
+            target: e.target as string,
+            sourceHandle: (e.source_handle || e.sourceHandle) as string | undefined,
+            targetHandle: (e.target_handle || e.targetHandle) as string | undefined,
           }));
           const subLayouted = auto_layout(rfSubNodes, rfSubEdges);
-          // 回写位置
-          const updatedSubNodes = subNodes.map((n: any) => {
-            const nodeId = n.id || n.base?.id || "";
-            const laid = subLayouted.find((ln: any) => ln.id === nodeId);
+          const updatedSubNodes: Array<Record<string, unknown>> = subNodes.map((n) => {
+            const nodeId = (n.id || (n.base as Record<string, unknown> | undefined)?.id || "") as string;
+            const laid = subLayouted.find((ln) => ln.id === nodeId);
             if (!laid) { return n; }
             if (n.base) {
-              return { ...n, base: { ...n.base, position: laid.position } };
+              return { ...n, base: { ...(n.base as Record<string, unknown>), position: laid.position } };
             }
             return { ...n, position: laid.position };
           });
-          /* eslint-enable @typescript-eslint/no-explicit-any */
           const input = {
             name: tmpl.name || "",
             icon: tmpl.icon || "",

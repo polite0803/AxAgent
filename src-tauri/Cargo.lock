@@ -919,6 +919,7 @@ dependencies = [
  "serde_json",
  "tokio",
  "toml_edit 0.22.27",
+ "tracing",
 ]
 
 [[package]]
@@ -1468,6 +1469,7 @@ dependencies = [
  "axagent-harness",
  "chrono",
  "dirs 5.0.1",
+ "futures",
  "itertools 0.13.0",
  "rand 0.8.6",
  "regex",

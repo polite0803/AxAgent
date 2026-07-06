@@ -30,6 +30,7 @@ serde = { workspace = true } # workflow_types.rs (derive Serialize/Deserialize)
 serde_json = { workspace = true } # workflow_types.rs (from_str)
 tokio = { workspace = true } # tests/*.rs use #[tokio::test]
 toml_edit = "0.22" # tests/cli_config_integration.rs
+tracing = { workspace = true } # macros.rs (try_unwrap_or_log!/try_lock_or_log!)
 
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(mobile)'] }

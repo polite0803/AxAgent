@@ -75,8 +75,7 @@ export function BacklinkPanel({
   }, [noteId, getNoteBacklinks, getNote]);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    loadBacklinks();
+    setTimeout(() => loadBacklinks(), 0);
   }, [loadBacklinks]);
 
   const totalCount = backlinks.reduce((sum, bl) => sum + bl.snippets.length, 0);

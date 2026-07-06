@@ -1,3 +1,4 @@
+use crate::commands::spawn_guard::catch_unwind_logged;
 use axagent_harness::types::conversation::ChatStreamChunk;
 use axagent_harness::types::conversation::MessageRole;
 use axagent_harness::types::function_call::ToolCall;
@@ -223,7 +224,7 @@ pub async fn archive_conversation_to_knowledge_base(
         let mime = doc.mime_type.clone();
         let semaphore = state.indexing_semaphore.clone();
 
-        tokio::spawn(async move {
+        tokio::spawn(catch_unwind_logged("conversations.manage_archive_index", async move {
             let _permit = semaphore.acquire().await;
             let result = crate::indexing::index_source(
                 &db,
@@ -261,7 +262,7 @@ pub async fn archive_conversation_to_knowledge_base(
                     "error": result.err().map(|e| e.to_string()),
                 }),
             );
-        });
+        }));
     }
 
     Ok(updated_conv)

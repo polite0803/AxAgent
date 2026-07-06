@@ -285,7 +285,7 @@ impl HealthCheckServer {
                     let status = registry.get_status().await;
                     let json = serde_json::to_string(&status)
                         .unwrap_or_else(|_| r#"{"error":"serialization failed"}"#.to_string());
-                    axum::response::Json(serde_json::from_str(&json).unwrap())
+                    axum::response::Json(serde_json::from_str(&json).unwrap_or(serde_json::json!({"error":"serialization failed"})))
                 }),
             )
             .route(

@@ -27,7 +27,7 @@ import {
   Tooltip,
   Typography,
 } from "antd";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 const { Text } = Typography;
@@ -50,23 +50,7 @@ export function SyncStatus({
   const [refreshing, setRefreshing] = useState(false);
   const [processing, setProcessing] = useState(false);
 
-  useEffect(() => {
-    loadSyncStatus();
-    // loadSyncStatus 未用 useCallback 包裹，每次渲染重新创建，加入 deps 会导致无效重复请求。
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [wikiId]);
-
-  useEffect(() => {
-    if (!autoRefresh) {
-      return;
-    }
-    const interval = setInterval(loadSyncStatus, refreshInterval);
-    return () => clearInterval(interval);
-    // loadSyncStatus 未用 useCallback 包裹，加入 deps 会导致 setInterval 反复重建。
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [autoRefresh, refreshInterval, wikiId]);
-
-  async function loadSyncStatus() {
+  const loadSyncStatus = useCallback(async () => {
     setRefreshing(true);
     try {
       const [queue, capacity] = await Promise.all([
@@ -80,7 +64,25 @@ export function SyncStatus({
     }
     setLoading(false);
     setRefreshing(false);
-  }
+  }, [wikiId]);
+
+  const loadSyncStatusRef = useRef(loadSyncStatus);
+
+  useEffect(() => {
+    loadSyncStatusRef.current = loadSyncStatus;
+  }, [loadSyncStatus]);
+
+  useEffect(() => {
+    loadSyncStatusRef.current();
+  }, [wikiId]);
+
+  useEffect(() => {
+    if (!autoRefresh) {
+      return;
+    }
+    const interval = setInterval(() => loadSyncStatusRef.current(), refreshInterval);
+    return () => clearInterval(interval);
+  }, [autoRefresh, refreshInterval]);
 
   const handleProcessQueue = async () => {
     setProcessing(true);

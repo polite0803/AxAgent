@@ -72,6 +72,10 @@ export function WikiGraphPage() {
     null,
   );
   const resizingRef = useRef<"left" | "right" | null>(null);
+  const [resizingSide, setResizingSide] = useState<"left" | "right" | null>(null);
+  useEffect(() => {
+    resizingRef.current = resizingSide;
+  }, [resizingSide]);
 
   // 搜索
   const [globalSearch, setGlobalSearch] = useState("");
@@ -106,8 +110,7 @@ export function WikiGraphPage() {
   useEffect(() => {
     setSelectedVaultId(wikiIdFromUrl);
     loadNotes(wikiIdFromUrl);
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    loadGraphData();
+    setTimeout(() => loadGraphData(), 0);
   }, [wikiIdFromUrl, setSelectedVaultId, loadNotes, loadGraphData]);
 
   const handleReload = () => {
@@ -147,7 +150,7 @@ export function WikiGraphPage() {
       }
     };
     const handleMouseUp = () => {
-      resizingRef.current = null;
+      setResizingSide(null);
       document.body.style.cursor = "";
       document.body.style.userSelect = "";
       setLeftAtBoundary(null);
@@ -163,8 +166,7 @@ export function WikiGraphPage() {
 
   const handleResizeStart = (side: "left" | "right") => (e: React.MouseEvent) => {
     e.preventDefault();
-    // eslint-disable-next-line react-hooks/refs
-    resizingRef.current = side;
+    setResizingSide(side);
     document.body.style.cursor = "col-resize";
     document.body.style.userSelect = "none";
   };

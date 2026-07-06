@@ -92,3 +92,26 @@ pub fn extract_json_from_llm_response(text: &str) -> &str {
 
     trimmed
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn extract_json_pure_json_passthrough() {
+        let raw = r#"{"a":1}"#;
+        assert_eq!(extract_json_from_llm_response(raw), raw);
+    }
+
+    #[test]
+    fn extract_json_from_json_fence() {
+        let raw = "prefix\n```json\n{\"a\":1}\n```\nsuffix";
+        assert_eq!(extract_json_from_llm_response(raw), "{\"a\":1}");
+    }
+
+    #[test]
+    fn extract_json_from_plain_fence() {
+        let raw = "before\n```\n[1,2,3]\n```\nafter";
+        assert_eq!(extract_json_from_llm_response(raw), "[1,2,3]");
+    }
+}

@@ -9,6 +9,7 @@
 //! then applied to modify the node's content.
 
 pub use axagent_harness::trajectory_types::LlmTextGradProvider;
+use axagent_harness::util_fns::truncate_to_char_boundary;
 
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet, VecDeque};
@@ -380,7 +381,7 @@ impl DefaultTextGradProvider {
             suggestions.push(format!(
                 "Based on feedback: \"{}\", consider refining the content to better align with expected outcomes.",
                 if output_feedback.len() > 100 {
-                    format!("{}...", &output_feedback[..100])
+                    format!("{}...", truncate_to_char_boundary(output_feedback, 100))
                 } else {
                     output_feedback.to_string()
                 }
@@ -786,7 +787,7 @@ fn summarize_content(content: &str) -> String {
     if content.len() <= 50 {
         content.to_string()
     } else {
-        format!("{}...", &content[..47])
+        format!("{}...", truncate_to_char_boundary(content, 47))
     }
 }
 

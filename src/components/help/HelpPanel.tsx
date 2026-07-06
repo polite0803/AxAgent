@@ -3,7 +3,7 @@
 // 全局帮助面板 — ? 快捷键打开，右侧 Drawer
 import { useOnboardingStore } from "@/stores";
 import { Bot, Globe, Keyboard, MessageSquare, Puzzle, Search, Workflow, X } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import "./HelpPanel.css";
 
@@ -32,10 +32,9 @@ export function HelpPanel() {
   // 外部打开指定 section 时自动展开
   useEffect(() => {
     if (helpActiveSection) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setActiveLocal(helpActiveSection);
+      setTimeout(() => setActiveLocal(helpActiveSection), 0);
     }
-  }, [helpActiveSection]);
+  }, [helpActiveSection, setActiveLocal]);
 
   const activeSection = activeLocal;
 
@@ -183,8 +182,14 @@ export function HelpPanel() {
   }, [open]);
 
   // ? 快捷键
+  const toggleHelpRef = useRef(toggleHelp);
+
   useEffect(() => {
-    const handleKeyDown = (e: globalThis.KeyboardEvent) => {
+    toggleHelpRef.current = toggleHelp;
+  }, [toggleHelp]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
       if (
         e.key === "?"
         && !e.ctrlKey
@@ -194,12 +199,11 @@ export function HelpPanel() {
         && document.activeElement?.tagName !== "TEXTAREA"
       ) {
         e.preventDefault();
-        toggleHelp();
+        toggleHelpRef.current();
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const filtered = useMemo(() => {

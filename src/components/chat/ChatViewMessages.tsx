@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-/* eslint-disable react-hooks/refs, react-refresh/only-export-components */
-// 本文件大量使用 refs 做渲染时缓存，React Compiler 规则与之冲突，主动禁用。
+// 本文件使用状态变量做渲染时缓存
 
 // Local message types (replacing @ant-design/x Bubble)
 import { type CSSProperties, type ReactNode } from "react";
@@ -620,14 +619,34 @@ export function useChatViewMessages({
 
   const [summaryModalOpen, setSummaryModalOpen] = useState(false);
   const [summaryModalText, setSummaryModalText] = useState("");
-  const contentRendererMessageIdsRef = useRef<Set<string>>(new Set());
+
+  // ── AI 消息折叠状态 ──
+  const [collapsedAiIds, setCollapsedAiIds] = useState<Set<string>>(new Set());
+  const [, setCollapseTick] = useState(0);
+  const prevStreamingRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    const prev = prevStreamingRef.current;
+    const curr = streamingMessageId;
+    if (prev === curr) { return; }
+    prevStreamingRef.current = curr;
+
+    setCollapsedAiIds((prevSet) => {
+      const next = new Set(prevSet);
+      if (prev && !next.has(prev)) { next.add(prev); }
+      if (curr && next.has(curr)) { next.delete(curr); }
+      setCollapseTick((t) => t + 1);
+      return next;
+    });
+  }, [streamingMessageId]);
+  const [contentRendererMessageIds] = useState<Set<string>>(() => new Set());
 
   useEffect(() => {
     if (!streaming || !streamingMessageId) {
       return;
     }
-    contentRendererMessageIdsRef.current.add(streamingMessageId);
-  }, [streaming, streamingMessageId]);
+    contentRendererMessageIds.add(streamingMessageId);
+  }, [streaming, streamingMessageId, contentRendererMessageIds]);
 
   const activeMessages = useMemo(
     () => messages.filter((msg) => msg.is_active !== false),
@@ -672,14 +691,14 @@ export function useChatViewMessages({
     return result;
   }, [messages]);
 
-  const multiModelVersionsRef = useRef<Map<string, Message[]>>(new Map());
+  const [multiModelVersions] = useState<Map<string, Message[]>>(() => new Map());
   const prevConvIdRef = useRef<string | undefined>(undefined);
   useEffect(() => {
     if (prevConvIdRef.current !== undefined && prevConvIdRef.current !== activeConversationId) {
-      multiModelVersionsRef.current.clear();
+      multiModelVersions.clear();
     }
     prevConvIdRef.current = activeConversationId ?? undefined;
-  }, [activeConversationId]);
+  }, [activeConversationId, multiModelVersions]);
 
   const [displayModeOverrides, setDisplayModeOverrides] = useState<
     Map<string, MultiModelDisplayMode>
@@ -696,12 +715,12 @@ export function useChatViewMessages({
   );
   const handleMultiModelDetected = useCallback(
     (parentMsgId: string, versions: Message[]) => {
-      const hadCached = multiModelVersionsRef.current.has(parentMsgId);
+      const hadCached = multiModelVersions.has(parentMsgId);
       const stillMultiModel = hasMultipleModelVersions(versions);
       if (stillMultiModel) {
-        multiModelVersionsRef.current.set(parentMsgId, versions);
+        multiModelVersions.set(parentMsgId, versions);
       } else {
-        multiModelVersionsRef.current.delete(parentMsgId);
+        multiModelVersions.delete(parentMsgId);
       }
       if (
         hadCached !== stillMultiModel
@@ -710,7 +729,7 @@ export function useChatViewMessages({
         setDisplayModeOverrides((prev) => new Map(prev));
       }
     },
-    [multiModelResponseParents],
+    [multiModelResponseParents, multiModelVersions],
   );
 
   const userSearchContentById = useMemo(() => {
@@ -723,11 +742,11 @@ export function useChatViewMessages({
     return next;
   }, [activeMessages]);
 
-  const bubbleItemCacheRef = useRef<
+  const [bubbleItemCache] = useState<
     Map<string, { signature: string; item: BubbleItemType }>
-  >(new Map());
+  >(() => new Map());
   const bubbleItems: BubbleItemType[] = useMemo(() => {
-    const cache = bubbleItemCacheRef.current;
+    const cache = bubbleItemCache;
     const nextCache = new Map<
       string,
       { signature: string; item: BubbleItemType }
@@ -833,9 +852,12 @@ export function useChatViewMessages({
       nextItems.push(item);
     }
 
-    bubbleItemCacheRef.current = nextCache;
+    cache.clear();
+    for (const [key, value] of nextCache) {
+      cache.set(key, value);
+    }
     return nextItems;
-  }, [activeMessages, thinkingActiveMessageIds, userSearchContentById]);
+  }, [activeMessages, thinkingActiveMessageIds, userSearchContentById, bubbleItemCache]);
 
   const [expertSwitchBubble, setExpertSwitchBubble] = useState<BubbleItemType | null>(null);
   useEffect(() => {
@@ -923,16 +945,16 @@ export function useChatViewMessages({
   ]);
 
   const visibleBubbleItems = useMemo(() => {
-    return allBubbleItems;
+    return [...allBubbleItems].reverse();
   }, [allBubbleItems]);
 
   const hiddenEarlierCount = 0;
 
-  const aiContentNodesCacheRef = useRef<
+  const [aiContentNodesCache] = useState<
     Map<string, { content: string; nodes: ChatMarkdownNode[] }>
-  >(new Map());
+  >(() => new Map());
   const aiContentNodesById = useMemo(() => {
-    const cache = aiContentNodesCacheRef.current;
+    const cache = aiContentNodesCache;
     const next = new Map<string, ChatMarkdownNode[]>();
     for (const item of bubbleItems) {
       if (item.role !== "ai" || typeof item.content !== "string") {
@@ -945,7 +967,7 @@ export function useChatViewMessages({
       }
       const shouldRenderFromContent = shouldRenderAssistantMarkdownFromContent(
         streaming && msg?.id === streamingMessageId,
-        Boolean(msg?.id && contentRendererMessageIdsRef.current.has(msg.id)),
+        Boolean(msg?.id && contentRendererMessageIds.has(msg.id)),
       );
       if (shouldRenderFromContent) {
         continue;
@@ -978,6 +1000,8 @@ export function useChatViewMessages({
     messageById,
     streaming,
     streamingMessageId,
+    aiContentNodesCache,
+    contentRendererMessageIds,
   ]);
 
   const formatTime = useCallback((ts: number) => {
@@ -1319,7 +1343,7 @@ export function useChatViewMessages({
       const isStreaming = streaming && msg?.id === streamingMessageId;
       const shouldRenderFromContent = shouldRenderAssistantMarkdownFromContent(
         isStreaming,
-        Boolean(msg?.id && contentRendererMessageIdsRef.current.has(msg.id)),
+        Boolean(msg?.id && contentRendererMessageIds.has(msg.id)),
       );
       const assistantCopyText = stripAxAgentTags(
         msg?.content
@@ -1339,7 +1363,7 @@ export function useChatViewMessages({
       const parentId = msg?.parent_message_id;
       const hasMultiModels = !!parentId
         && (multiModelResponseParents.has(parentId)
-          || multiModelVersionsRef.current.has(parentId));
+          || multiModelVersions.has(parentId));
       const effectiveDisplayMode: MultiModelDisplayMode = hasMultiModels
         ? (displayModeOverrides.get(parentId)
           ?? settings.multi_model_display_mode
@@ -1398,7 +1422,7 @@ export function useChatViewMessages({
           }
 
           if (isNonTabsMultiModel && parentId && activeConversationId) {
-            const refVersions = multiModelVersionsRef.current.get(parentId);
+            const refVersions = multiModelVersions.get(parentId);
             const storeVersions = messages.filter(
               (m) => m.parent_message_id === parentId && m.role === "assistant",
             );
@@ -1488,19 +1512,56 @@ export function useChatViewMessages({
             );
           }
 
+          // ── AI 消息折叠 ──
+          const msgId = msg?.id;
+          const isCollapsed = !!msgId && !isStreaming && collapsedAiIds.has(msgId);
+
           return (
             <>
               {msgMarker}
-              <AssistantMarkdown
-                content={text}
-                nodes={parsedNodes}
-                isDarkMode={isDarkMode}
-                isStreaming={isStreaming}
-                codeBlockDarkTheme={codeBlockDarkTheme}
-                codeBlockLightTheme={codeBlockLightTheme}
-                codeBlockThemes={codeBlockThemes}
-                codeFontFamily={settings.code_font_family || undefined}
-              />
+              <div className={`ai-content-wrapper${isCollapsed ? " ai-content-collapsed" : ""}`}>
+                <AssistantMarkdown
+                  content={text}
+                  nodes={parsedNodes}
+                  isDarkMode={isDarkMode}
+                  isStreaming={isStreaming}
+                  codeBlockDarkTheme={codeBlockDarkTheme}
+                  codeBlockLightTheme={codeBlockLightTheme}
+                  codeBlockThemes={codeBlockThemes}
+                  codeFontFamily={settings.code_font_family || undefined}
+                />
+                {isCollapsed && (
+                  <div
+                    className="ai-collapse-overlay"
+                    onClick={() => {
+                      setCollapsedAiIds((prev) => {
+                        const next = new Set(prev);
+                        next.delete(msgId);
+                        setCollapseTick((t) => t + 1);
+                        return next;
+                      });
+                    }}
+                  >
+                    <span className="ai-collapse-label">{t("chat.expandMessage")}</span>
+                  </div>
+                )}
+                {!isStreaming && !!msgId && (
+                  <button
+                    className="ai-collapse-toggle"
+                    onClick={() => {
+                      setCollapsedAiIds((prev) => {
+                        const next = new Set(prev);
+                        if (next.has(msgId)) { next.delete(msgId); }
+                        else { next.add(msgId); }
+                        setCollapseTick((t) => t + 1);
+                        return next;
+                      });
+                    }}
+                  >
+                    {isCollapsed ? t("common.expand") : t("common.collapse")}
+                  </button>
+                )}
+              </div>
               {msgPermissions.map((pr) => {
                 const resolvedTc = agentToolCalls[pr.toolUseId];
                 const permStatus = resolvedTc?.approvalStatus === "approved"
@@ -1684,6 +1745,8 @@ export function useChatViewMessages({
       codeBlockDarkTheme,
       codeBlockLightTheme,
       codeBlockThemes,
+      collapsedAiIds,
+      contentRendererMessageIds,
       deleteMessage,
       displayModeOverrides,
       formatTime,
@@ -1698,8 +1761,10 @@ export function useChatViewMessages({
       multiModelDoneMessageIds,
       multiModelParentId,
       multiModelResponseParents,
+      multiModelVersions,
       renderConvIconForChat,
       settings,
+      setCollapsedAiIds,
       streaming,
       streamingMessageId,
       switchMessageVersion,

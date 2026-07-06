@@ -1091,6 +1091,7 @@ export * from "./search";
 export * from "./style";
 export * from "./tracer";
 export * from "./wiki";
+export * from "./workflow";
 
 // ── Workspace / Context Types (merged from workspace.ts) ───────────────
 export type ContextSourceType =

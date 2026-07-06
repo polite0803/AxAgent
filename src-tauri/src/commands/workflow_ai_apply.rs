@@ -2,7 +2,7 @@
 
 //! V2 协议 chat action 的后端 apply 命令
 //!
-//! 详见 [`super::workflow_ai_protocol`] 的协议定义。
+//! 详见 [`super::_workflow_ai_protocol`] 的协议定义。
 //! 本文件目前实现 3 个相对简单的 action:
 //!   - `update_variable`      按 name / dotted path 修改 workflow_template.variables 数组
 //!   - `rollback_to_version`  从 workflow_template_versions 恢复指定版本
@@ -14,7 +14,7 @@
 //!
 //! ## 与 v2 协议字段对齐
 //!
-//! 所有 payload 与 `workflow_ai_protocol` 中的同名 struct 字段一一对应。
+//! 所有 payload 与 `_workflow_ai_protocol` 中的同名 struct 字段一一对应。
 //! 不做内嵌的 `data: {}` envelope — 由 Tauri command 直接接收扁平字段,
 //! 协议层 ChatAction 的 `data` 字段在这里展开。
 
@@ -290,7 +290,7 @@ pub struct EditAssetFileResult {
 pub async fn apply_edit_asset_file(
     state: State<'_, AppState>,
     path: String,
-    operation: super::workflow_ai_protocol::EditAssetOperation,
+    operation: super::_workflow_ai_protocol::EditAssetOperation,
     anchor_line: u32,
     code: Option<String>,
     description: String,
@@ -324,7 +324,7 @@ pub async fn apply_edit_asset_file(
         std::fs::read_to_string(&canonical_target).map_err(|e| format!("read failed: {e}"))?
     } else {
         match operation {
-            super::workflow_ai_protocol::EditAssetOperation::InsertAfter => String::new(),
+            super::_workflow_ai_protocol::EditAssetOperation::InsertAfter => String::new(),
             _ => return Err(format!("file '{path}' does not exist")),
         }
     };
@@ -359,7 +359,7 @@ pub async fn apply_edit_asset_file(
     };
 
     let (new_lines, changed_start, changed_end) = match operation {
-        super::workflow_ai_protocol::EditAssetOperation::InsertAfter => {
+        super::_workflow_ai_protocol::EditAssetOperation::InsertAfter => {
             if code.is_none() {
                 return Err("insert_after requires non-empty 'code'".to_string());
             }
@@ -372,7 +372,7 @@ pub async fn apply_edit_asset_file(
             let end = (insert_at + code_lines.len()) as u32;
             (new_lines, start, end)
         },
-        super::workflow_ai_protocol::EditAssetOperation::Replace => {
+        super::_workflow_ai_protocol::EditAssetOperation::Replace => {
             if code.is_none() {
                 return Err("replace requires non-empty 'code'".to_string());
             }
@@ -388,7 +388,7 @@ pub async fn apply_edit_asset_file(
             let end = (anchor_idx + code_lines.len()) as u32;
             (new_lines, start, end)
         },
-        super::workflow_ai_protocol::EditAssetOperation::Delete => {
+        super::_workflow_ai_protocol::EditAssetOperation::Delete => {
             if code.is_some() {
                 return Err("delete should not provide 'code'".to_string());
             }
@@ -490,8 +490,8 @@ pub struct ApplyDiffValidationResult {
 #[tauri::command]
 pub async fn apply_diff_with_validation(
     state: State<'_, AppState>,
-    actions: Vec<super::workflow_ai_protocol::ChatAction>,
-    validation: super::workflow_ai_protocol::ValidationSpec,
+    actions: Vec<super::_workflow_ai_protocol::ChatAction>,
+    validation: super::_workflow_ai_protocol::ValidationSpec,
     rollback_on_failure: Option<bool>,
 ) -> Result<ApplyDiffValidationResult, String> {
     do_apply_diff_with_validation(
@@ -514,11 +514,11 @@ pub async fn apply_diff_with_validation(
 /// 的 Arc 引用计数 clone,无运行时开销。
 pub(crate) async fn do_apply_diff_with_validation(
     state: State<'_, AppState>,
-    actions: Vec<super::workflow_ai_protocol::ChatAction>,
-    validation: super::workflow_ai_protocol::ValidationSpec,
+    actions: Vec<super::_workflow_ai_protocol::ChatAction>,
+    validation: super::_workflow_ai_protocol::ValidationSpec,
     rollback_on_failure: bool,
 ) -> Result<ApplyDiffValidationResult, String> {
-    use super::workflow_ai_protocol::ChatAction;
+    use super::_workflow_ai_protocol::ChatAction;
 
     if actions.is_empty() {
         return Err("actions array is empty".to_string());
@@ -600,8 +600,8 @@ pub(crate) async fn do_apply_diff_with_validation(
     })
 }
 
-fn action_label(action: &super::workflow_ai_protocol::ChatAction) -> &'static str {
-    use super::workflow_ai_protocol::ChatAction;
+fn action_label(action: &super::_workflow_ai_protocol::ChatAction) -> &'static str {
+    use super::_workflow_ai_protocol::ChatAction;
     match action {
         ChatAction::UpdateVariable { .. } => "update_variable",
         ChatAction::RollbackToVersion { .. } => "rollback_to_version",
@@ -624,9 +624,9 @@ enum Snapshot {
 /// 应用单条 ChatAction,并返回 snapshot
 async fn apply_single_action(
     state: &State<'_, AppState>,
-    action: &super::workflow_ai_protocol::ChatAction,
+    action: &super::_workflow_ai_protocol::ChatAction,
 ) -> Result<Snapshot, String> {
-    use super::workflow_ai_protocol::ChatAction;
+    use super::_workflow_ai_protocol::ChatAction;
     match action {
         ChatAction::UpdateVariable { data } => {
             let template = apply_update_variable(
@@ -720,7 +720,7 @@ async fn restore_snapshot(state: &State<'_, AppState>, snap: &Snapshot) -> Resul
 /// - 未知 type 视为 no-op pass(系统不阻塞,记录 metrics 为 Null)
 async fn run_validation_hook(
     _state: &State<'_, AppState>,
-    validation: &super::workflow_ai_protocol::ValidationSpec,
+    validation: &super::_workflow_ai_protocol::ValidationSpec,
 ) -> (bool, serde_json::Value) {
     match validation.r#type.as_str() {
         "backtest" => {

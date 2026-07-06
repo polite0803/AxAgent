@@ -42,15 +42,18 @@ export function useDataSource<T = unknown>(
     let mounted = true;
 
     if (!config) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setData(undefined);
-      setLoading(false);
-      setError(null);
+      setTimeout(() => {
+        setData(undefined);
+        setLoading(false);
+        setError(null);
+      }, 0);
       return;
     }
 
-    setLoading(true);
-    setError(null);
+    setTimeout(() => {
+      setLoading(true);
+      setError(null);
+    }, 0);
 
     void (async () => {
       try {
@@ -89,7 +92,7 @@ export function useDataSource<T = unknown>(
         subscriberRef.current = null;
       }
     };
-  }, [config]);
+  }, [config, setData]);
 
   return { data, loading, error, refresh };
 }

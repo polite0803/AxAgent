@@ -1,4 +1,3 @@
-#![allow(clippy::result_large_err)]
 // SPDX-License-Identifier: AGPL-3.0-only
 #![allow(clippy::too_many_arguments)]
 #![allow(clippy::collapsible_if)]
@@ -22,6 +21,8 @@ mod paths;
 mod semantic_cache;
 mod smart_router;
 pub mod state;
+
+#[macro_use]
 mod util;
 
 #[cfg(not(mobile))]
@@ -44,6 +45,30 @@ mod app_state;
 use tauri::{Emitter, Manager};
 
 pub use app_state::AppState;
+
+/// 在独立线程中创建 current_thread tokio runtime 并执行 async 任务。
+///
+/// 消除 setup 阶段 7 处重复的 `Builder::new_current_thread().enable_all().build()` 模式。
+/// 不能在 Tauri 的 tokio runtime 内直接 block_on，需要在独立线程+独立 runtime 中执行。
+fn spawn_block_on<F, T>(task_name: &'static str, f: F) -> std::thread::Result<T>
+where
+    F: Send + 'static + std::future::Future<Output = T>,
+    T: Send + 'static,
+{
+    std::thread::spawn(move || {
+        let rt = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .unwrap_or_else(|e| {
+                android_utils::report_fatal_error(&format!(
+                    "Failed to create tokio runtime for {task_name}: {e}"
+                ));
+                panic!("Fatal: tokio runtime creation failed for {task_name}: {e}");
+            });
+        rt.block_on(f)
+    })
+    .join()
+}
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -195,14 +220,7 @@ pub fn run() {
 
             android_utils::mark_startup_phase("db_init_start");
 
-            let db_result = match std::thread::spawn(move || {
-                let rt = tokio::runtime::Builder::new_current_thread().enable_all().build()
-                    .unwrap_or_else(|e| {
-                        android_utils::report_fatal_error(&format!("Failed to create db init runtime: {}", e));
-                        panic!("Fatal: db init runtime creation failed: {}", e);
-                    });
-                rt.block_on(init::init_database_with_dir(app_dir))
-            }).join() {
+            let db_result = match spawn_block_on("db_init", init::init_database_with_dir(app_dir)) {
                 Ok(Ok(result)) => result,
                 Ok(Err(e)) => {
                     tracing::error!("Database initialization failed: {}", e);
@@ -224,14 +242,7 @@ pub fn run() {
 
             // 在独立线程中运行初始化，避免在 Tauri 的 tokio runtime 内创建嵌套 Runtime
             android_utils::mark_startup_phase("state_init_start");
-            let state = match std::thread::spawn(move || {
-                let rt = tokio::runtime::Builder::new_current_thread().enable_all().build()
-                    .unwrap_or_else(|e| {
-                        android_utils::report_fatal_error(&format!("Failed to create state init runtime: {}", e));
-                        panic!("Fatal: state init runtime creation failed: {}", e);
-                    });
-                rt.block_on(init::state::create_app_state(db_result))
-            }).join() {
+            let state = match spawn_block_on("state_init", init::state::create_app_state(db_result)) {
                 Ok(Ok(s)) => s,
                 Ok(Err(e)) => {
                     tracing::error!("App state init returned error: {}", e);
@@ -252,17 +263,10 @@ pub fn run() {
             let state = app.state::<AppState>();
             let sea_db = state.harness.db().clone();
 
-            let sea_db2 = sea_db.clone();
-            std::thread::spawn(move || {
-                let rt = tokio::runtime::Builder::new_current_thread().enable_all().build()
-                    .unwrap_or_else(|e| {
-                        android_utils::report_fatal_error(&format!("Failed to create session reset runtime: {}", e));
-                        panic!("Fatal: session reset runtime creation failed: {}", e);
-                    });
-                rt.block_on(async {
-                    let _ = axagent_core::repo::agent_session::reset_running_sessions(&sea_db2).await;
-                });
-            }).join().unwrap_or_else(|e| {
+            spawn_block_on("session_reset", async move {
+                let _ = axagent_core::repo::agent_session::reset_running_sessions(&sea_db).await;
+            })
+            .unwrap_or_else(|e| {
                 tracing::error!("Session reset thread panicked: {:?}", e);
             });
 
@@ -275,19 +279,13 @@ pub fn run() {
                     if let Ok(content) = std::fs::read_to_string(&user_md_path) {
                         if let Some(profile) = axagent_trajectory::UserProfile::from_user_md(&content) {
                             let user_profile = state.user_profile.clone();
-                            std::thread::spawn(move || {
-                                let rt = tokio::runtime::Builder::new_current_thread().enable_all().build()
-                                    .unwrap_or_else(|e| {
-                                        android_utils::report_fatal_error(&format!("Failed to create tokio runtime: {}", e));
-                                        panic!("Fatal: user profile runtime creation failed: {}", e);
-                                    });
-                                rt.block_on(async {
-                                    let mut p = user_profile.write().await;
-                                    *p = profile;
-                                    tracing::info!("[user-profile] Loaded profile from USER.md ({} preferences, {} expertise domains)",
-                                        p.preferences.len(), p.expertise.len());
-                                });
-                            }).join().unwrap_or_else(|e| {
+                            spawn_block_on("user_profile", async move {
+                                let mut p = user_profile.write().await;
+                                *p = profile;
+                                tracing::info!("[user-profile] Loaded profile from USER.md ({} preferences, {} expertise domains)",
+                                    p.preferences.len(), p.expertise.len());
+                            })
+                            .unwrap_or_else(|e| {
                                 tracing::error!("User profile thread panicked: {:?}", e);
                             });
                         }
@@ -299,45 +297,39 @@ pub fn run() {
                 if !persisted.is_empty() {
                     let pattern_count = persisted.len();
                     let pattern_learner = state.pattern_learner.clone();
-                    std::thread::spawn(move || {
-                        let rt = tokio::runtime::Builder::new_current_thread().enable_all().build()
-                            .unwrap_or_else(|e| {
-                                android_utils::report_fatal_error(&format!("Failed to create tokio runtime: {}", e));
-                                panic!("Fatal: pattern learner runtime creation failed: {}", e);
+                    spawn_block_on("pattern_learner", async move {
+                        let mut pl = pattern_learner.write().await;
+                        for pattern in &persisted {
+                            pl.learn_from_trajectory(&axagent_trajectory::Trajectory {
+                                id: pattern.id.clone(),
+                                session_id: String::new(),
+                                user_id: String::new(),
+                                topic: pattern.name.clone(),
+                                summary: pattern.description.clone(),
+                                outcome: if pattern.success_rate >= 0.5 {
+                                    axagent_trajectory::TrajectoryOutcome::Success
+                                } else {
+                                    axagent_trajectory::TrajectoryOutcome::Failure
+                                },
+                                duration_ms: 0,
+                                quality: axagent_trajectory::TrajectoryQuality {
+                                    overall: pattern.average_quality,
+                                    task_completion: pattern.average_quality,
+                                    tool_efficiency: pattern.average_quality,
+                                    reasoning_quality: pattern.average_quality,
+                                    user_satisfaction: pattern.average_quality,
+                                },
+                                value_score: pattern.average_value_score,
+                                patterns: vec![],
+                                steps: vec![],
+                                rewards: vec![],
+                                created_at: pattern.created_at,
+                                replay_count: 0,
+                                last_replay_at: None,
                             });
-                        rt.block_on(async {
-                            let mut pl = pattern_learner.write().await;
-                            for pattern in &persisted {
-                                pl.learn_from_trajectory(&axagent_trajectory::Trajectory {
-                                    id: pattern.id.clone(),
-                                    session_id: String::new(),
-                                    user_id: String::new(),
-                                    topic: pattern.name.clone(),
-                                    summary: pattern.description.clone(),
-                                    outcome: if pattern.success_rate >= 0.5 {
-                                        axagent_trajectory::TrajectoryOutcome::Success
-                                    } else {
-                                        axagent_trajectory::TrajectoryOutcome::Failure
-                                    },
-                                    duration_ms: 0,
-                                    quality: axagent_trajectory::TrajectoryQuality {
-                                        overall: pattern.average_quality,
-                                        task_completion: pattern.average_quality,
-                                        tool_efficiency: pattern.average_quality,
-                                        reasoning_quality: pattern.average_quality,
-                                        user_satisfaction: pattern.average_quality,
-                                    },
-                                    value_score: pattern.average_value_score,
-                                    patterns: vec![],
-                                    steps: vec![],
-                                    rewards: vec![],
-                                    created_at: pattern.created_at,
-                                    replay_count: 0,
-                                    last_replay_at: None,
-                                });
-                            }
-                        });
-                    }).join().unwrap_or_else(|e| {
+                        }
+                    })
+                    .unwrap_or_else(|e| {
                         tracing::error!("Pattern learner thread panicked: {:?}", e);
                     });
                     tracing::info!("[P5] Loaded {} persisted patterns into PatternLearner", pattern_count);
@@ -381,20 +373,13 @@ pub fn run() {
             if let Some(ref sync_engine) = state.sync_engine {
                 tracing::info!("[mobile] Starting cloud sync engine...");
                 let engine = sync_engine.clone();
-                std::thread::spawn(move || {
-                    let rt = tokio::runtime::Builder::new_current_thread().enable_all().build()
-                        .unwrap_or_else(|e| {
-                            android_utils::report_fatal_error(&format!("Failed to create cloud sync runtime: {}", e));
-                            panic!("Fatal: cloud sync runtime creation failed: {}", e);
-                        });
-                    rt.block_on(async {
-                        match engine.backend.check_connection().await {
-                            Ok(true) => tracing::info!("[mobile] Cloud sync backend connected"),
-                            Ok(false) => tracing::warn!("[mobile] Cloud sync backend unreachable"),
-                            Err(e) => tracing::warn!("[mobile] Cloud sync connection check failed: {}", e),
-                        }
-                    });
-                }).join().unwrap_or_else(|e| {
+                spawn_block_on("cloud_sync", async move {
+                    match engine.backend.check_connection().await {
+                        Ok(true) => tracing::info!("[mobile] Cloud sync backend connected"),
+                        Ok(false) => tracing::warn!("[mobile] Cloud sync backend unreachable"),
+                        Err(e) => tracing::warn!("[mobile] Cloud sync connection check failed: {}", e),
+                    }
+                }).unwrap_or_else(|e| {
                     tracing::error!("Mobile sync thread panicked: {:?}", e);
                 });
             }
@@ -403,15 +388,12 @@ pub fn run() {
             #[cfg(not(mobile))]
             let tray_language = {
                 let db = state.harness.db().clone();
-                std::thread::spawn(move || {
-                    let rt = tokio::runtime::Builder::new_current_thread().enable_all().build().unwrap_or_else(|e| {
-                                android_utils::report_fatal_error(&format!("Failed to create tokio runtime: {}", e));
-                                panic!("Fatal: tray language runtime creation failed: {}", e);
-                            });
-                    rt.block_on(axagent_core::repo::settings::get_settings(&db))
+                spawn_block_on("tray_language", async move {
+                    axagent_core::repo::settings::get_settings(&db)
+                        .await
                         .map(|s| s.language)
                         .unwrap_or_else(|_| "en".to_string())
-                }).join().unwrap_or_else(|e| {
+                }).unwrap_or_else(|e| {
                     tracing::error!("Tray language thread panicked: {:?}", e);
                     "en".to_string()
                 })
@@ -544,76 +526,76 @@ pub fn run() {
             }
             tracing::info!("[shutdown] 正在停止后台任务...");
 
-            let rt_handle = tokio::runtime::Handle::try_current().unwrap_or_else(|_| {
-                tokio::runtime::Runtime::new()
-                    .expect("Failed to create runtime for cleanup")
-                    .handle()
-                    .clone()
-            });
-
-            let timeout = std::time::Duration::from_secs(5);
-            let await_handle = |handle: &std::sync::Arc<
-                tokio::sync::Mutex<Option<tokio::task::JoinHandle<()>>>,
-            >,
-                                name: &str| {
-                let mut guard = rt_handle.block_on(handle.lock());
-                if let Some(mut h) = guard.take() {
-                    match rt_handle.block_on(async { tokio::time::timeout(timeout, &mut h).await })
-                    {
-                        Ok(Ok(())) => tracing::info!("[shutdown] {} 已优雅停止", name),
-                        Ok(Err(e)) => tracing::warn!("[shutdown] {} join 错误: {}", name, e),
-                        Err(_) => {
-                            tracing::warn!("[shutdown] {} 超时 ({:?})，强制中止", name, timeout);
-                            h.abort();
-                        },
-                    }
-                }
-            };
-
-            await_handle(&state.auto_backup_handle, "auto_backup");
-            await_handle(&state.webdav_sync_handle, "webdav_sync");
-            await_handle(&state.api_server_handle, "api_server");
-            await_handle(&state.trajectory_cleanup_handle, "trajectory_cleanup");
-
-            // 停止所有插件（MCP 服务、agents、skills）
-            tracing::info!("[shutdown] 正在停止插件...");
+            // 在独立线程中创建 current_thread runtime 执行清理，
+            // 避免在已有 tokio runtime 中调用 block_on 导致 panic。
+            // 即使当前线程已在 runtime 中，新线程中创建独立 runtime 是安全的。
+            let auto_backup_handle = state.auto_backup_handle.clone();
+            let webdav_sync_handle = state.webdav_sync_handle.clone();
+            let api_server_handle = state.api_server_handle.clone();
+            let trajectory_cleanup_handle = state.trajectory_cleanup_handle.clone();
             let plugin_manager = state.plugin_manager.clone();
-            rt_handle.block_on(async move {
-                match tauri::async_runtime::spawn_blocking(move || {
-                    let mut manager = plugin_manager.blocking_write();
-                    manager.stop_all_plugins();
-                })
-                .await
-                {
-                    Ok(()) => tracing::info!("[shutdown] 所有插件已停止"),
-                    Err(e) => tracing::warn!("[shutdown] 插件停止任务异常: {e}"),
-                }
-            });
+            let dashboard_registry = state.dashboard_registry.clone();
+            let task_manager = state.task_manager.clone();
 
-            // 停止 Dashboard 插件
-            if let Some(registry) = state.dashboard_registry.clone() {
-                tracing::info!("[shutdown] 正在卸载 Dashboard 插件...");
-                rt_handle.block_on(async move {
-                    let plugins = registry.list_plugins().await;
-                    for plugin_info in plugins {
-                        if let Err(e) = registry.unregister(&plugin_info.id).await {
-                            tracing::warn!(
-                                "[shutdown] 卸载 Dashboard 插件 {} 失败: {e}",
-                                plugin_info.id
-                            );
-                        }
+            let shutdown_result = spawn_block_on("shutdown", async move {
+                let timeout = std::time::Duration::from_secs(5);
+
+                macro_rules! await_handle {
+                    ($handle:expr, $name:expr) => {
+                            let mut guard = $handle.lock().await;
+                            if let Some(mut h) = guard.take() {
+                                match tokio::time::timeout(timeout, &mut h).await {
+                                    Ok(Ok(())) => tracing::info!("[shutdown] {} 已优雅停止", $name),
+                                    Ok(Err(e)) => tracing::warn!("[shutdown] {} join 错误: {}", $name, e),
+                                    Err(_) => {
+                                        tracing::warn!("[shutdown] {} 超时 ({:?})，强制中止", $name, timeout);
+                                        h.abort();
+                                    },
+                                }
+                            }
+                        };
                     }
-                    tracing::info!("[shutdown] Dashboard 插件已卸载");
-                });
-            }
 
-            // 集中式 TaskManager 兜底清理
-            rt_handle.block_on(
-                state
-                    .task_manager
-                    .shutdown(std::time::Duration::from_secs(5)),
-            );
-            tracing::info!("[shutdown] 退出完成");
+                    await_handle!(auto_backup_handle, "auto_backup");
+                    await_handle!(webdav_sync_handle, "webdav_sync");
+                    await_handle!(api_server_handle, "api_server");
+                    await_handle!(trajectory_cleanup_handle, "trajectory_cleanup");
+
+                    // 停止所有插件（MCP 服务、agents、skills）
+                    tracing::info!("[shutdown] 正在停止插件...");
+                    match tokio::task::spawn_blocking(move || {
+                        let mut manager = plugin_manager.blocking_write();
+                        manager.stop_all_plugins();
+                    })
+                    .await
+                    {
+                        Ok(()) => tracing::info!("[shutdown] 所有插件已停止"),
+                        Err(e) => tracing::warn!("[shutdown] 插件停止任务异常: {e}"),
+                    }
+
+                    // 停止 Dashboard 插件
+                    if let Some(registry) = dashboard_registry {
+                        tracing::info!("[shutdown] 正在卸载 Dashboard 插件...");
+                        let plugins = registry.list_plugins().await;
+                        for plugin_info in plugins {
+                            if let Err(e) = registry.unregister(&plugin_info.id).await {
+                                tracing::warn!(
+                                    "[shutdown] 卸载 Dashboard 插件 {} 失败: {e}",
+                                    plugin_info.id
+                                );
+                            }
+                        }
+                        tracing::info!("[shutdown] Dashboard 插件已卸载");
+                    }
+
+                    // 集中式 TaskManager 兜底清理
+                    task_manager.shutdown(std::time::Duration::from_secs(5)).await;
+                    tracing::info!("[shutdown] 退出完成");
+                });
+
+            if let Err(e) = shutdown_result {
+                tracing::error!("[shutdown] 清理线程 panic: {:?}", e);
+            }
         }
     });
 }

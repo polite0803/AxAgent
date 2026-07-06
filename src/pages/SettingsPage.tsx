@@ -325,8 +325,7 @@ function CronManagerWrapper() {
   }, [t]);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    loadJobs();
+    setTimeout(() => loadJobs(), 0);
   }, [loadJobs]);
 
   const handleAdd = useCallback(

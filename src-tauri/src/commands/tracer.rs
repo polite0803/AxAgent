@@ -531,7 +531,7 @@ pub fn tracer_submit_feedback(
 
     // 2. 通过 ExperiencePipeline 将反馈转为经验写入 ExperiencePool
     if let Ok(rating_val) = rating.parse::<u8>() {
-        let pipeline = super::shared_state::SHARED_PIPELINE.clone();
+        let pipeline = super::_shared_state::SHARED_PIPELINE.clone();
         let trace = trace_id.clone();
         let comment_clone = comment.clone();
         tokio::task::spawn(async move {
@@ -544,8 +544,8 @@ pub fn tracer_submit_feedback(
 
     // 3. 通过 FeedbackOrchestrator 检查是否触发自动优化
     if let Ok(rating_val) = rating.parse::<u8>() {
-        let orchestrator = super::shared_state::SHARED_ORCHESTRATOR.clone();
-        let optimizer = super::shared_state::SHARED_OPTIMIZER.clone();
+        let orchestrator = super::_shared_state::SHARED_ORCHESTRATOR.clone();
+        let optimizer = super::_shared_state::SHARED_OPTIMIZER.clone();
         tokio::task::spawn(async move {
             let action = orchestrator.record_feedback(rating_val);
             match action {

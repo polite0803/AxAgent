@@ -44,14 +44,13 @@ export function IngestPage() {
 
   useEffect(() => {
     if (wikiIdFromUrl) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setSelectedWikiIdState(wikiIdFromUrl);
+      setTimeout(() => setSelectedWikiIdState(wikiIdFromUrl), 0);
       selectWiki(wikiIdFromUrl);
     } else if (wikis.length > 0 && !selectedWikiIdState) {
-      setSelectedWikiIdState(wikis[0].id);
+      setTimeout(() => setSelectedWikiIdState(wikis[0].id), 0);
       selectWiki(wikis[0].id);
     }
-  }, [wikiIdFromUrl, wikis, selectedWikiIdState, selectWiki]);
+  }, [wikiIdFromUrl, wikis, selectedWikiIdState, selectWiki, setSelectedWikiIdState]);
 
   const handleBack = () => {
     navigate(-1);

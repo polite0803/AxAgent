@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use axagent_harness::trajectory_types::{
-    MessageRole, ToolCall as TrajectoryToolCall, ToolResult as TrajectoryToolResult, Trajectory,
-    TrajectoryOutcome, TrajectoryQuality, TrajectoryStep,
+    MessageRole, ToolCall as TrajectoryToolCall, Trajectory, TrajectoryOutcome, TrajectoryQuality,
+    TrajectoryStep, TrajectoryToolResult,
 };
 use chrono::{DateTime, Utc};
 use sea_orm::{ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, Set};

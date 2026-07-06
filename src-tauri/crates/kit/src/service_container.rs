@@ -26,31 +26,47 @@ impl ServiceContainer {
         let type_id = TypeId::of::<T>();
         let wrapped_factory: ServiceFactory =
             Box::new(move || Box::new(factory()) as Box<dyn Any + Send + Sync>);
-        self.factories
-            .write()
-            .unwrap()
-            .insert(type_id, wrapped_factory);
+        axagent_harness::try_lock_or_log!(
+            self.factories.write(),
+            "ServiceContainer factories write lock poisoned"
+        )
+        .insert(type_id, wrapped_factory);
     }
 
     pub fn register_instance<T: 'static + Send + Sync + ?Sized>(&self, instance: Arc<T>) {
         let type_id = TypeId::of::<T>();
-        self.instances
-            .write()
-            .unwrap()
-            .insert(type_id, Box::new(instance));
+        axagent_harness::try_lock_or_log!(
+            self.instances.write(),
+            "ServiceContainer instances write lock poisoned"
+        )
+        .insert(type_id, Box::new(instance));
     }
 
     pub fn resolve<T: 'static + Send + Sync + ?Sized>(&self) -> Option<Arc<T>> {
         let type_id = TypeId::of::<T>();
 
-        if let Some(instance) = self.instances.read().unwrap().get(&type_id) {
+        if let Some(instance) = axagent_harness::try_lock_or_log!(
+            self.instances.read(),
+            "ServiceContainer instances read lock poisoned"
+        )
+        .get(&type_id)
+        {
             return instance.downcast_ref::<Arc<T>>().cloned();
         }
 
-        if let Some(factory) = self.factories.read().unwrap().get(&type_id) {
+        if let Some(factory) = axagent_harness::try_lock_or_log!(
+            self.factories.read(),
+            "ServiceContainer factories read lock poisoned"
+        )
+        .get(&type_id)
+        {
             let instance = factory();
             let result = instance.downcast_ref::<Arc<T>>().cloned();
-            self.instances.write().unwrap().insert(type_id, instance);
+            axagent_harness::try_lock_or_log!(
+                self.instances.write(),
+                "ServiceContainer instances write lock poisoned"
+            )
+            .insert(type_id, instance);
             return result;
         }
 
@@ -59,12 +75,24 @@ impl ServiceContainer {
 
     pub fn has<T: 'static + Send + Sync + ?Sized>(&self) -> bool {
         let type_id = TypeId::of::<T>();
-        self.factories.read().unwrap().contains_key(&type_id)
-            || self.instances.read().unwrap().contains_key(&type_id)
+        axagent_harness::try_lock_or_log!(
+            self.factories.read(),
+            "ServiceContainer factories read lock poisoned"
+        )
+        .contains_key(&type_id)
+            || axagent_harness::try_lock_or_log!(
+                self.instances.read(),
+                "ServiceContainer instances read lock poisoned"
+            )
+            .contains_key(&type_id)
     }
 
     pub fn reset(&self) {
-        self.instances.write().unwrap().clear();
+        axagent_harness::try_lock_or_log!(
+            self.instances.write(),
+            "ServiceContainer instances write lock poisoned"
+        )
+        .clear();
     }
 }
 

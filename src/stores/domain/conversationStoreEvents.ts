@@ -9,8 +9,6 @@ import { usePreferenceStore } from "./preferenceStore";
 import {
   _isMultiModelActive,
   _multiModelDoneResolve,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  _multiModelFirstMessageId,
   _multiModelTotalRemaining,
   _streamBuffer,
   _streamPrefix,

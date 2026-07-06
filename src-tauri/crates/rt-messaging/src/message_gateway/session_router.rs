@@ -63,7 +63,10 @@ impl SessionRouter {
             });
         self.sessions
             .get(&Self::session_key(platform, user_id))
-            .unwrap()
+            .unwrap_or_else(|| {
+                // Just inserted above — this branch is unreachable
+                panic!("get_or_create_route: session was just inserted")
+            })
     }
 
     pub fn get_session(&self, platform: &str, user_id: &str) -> Option<&RoutedSession> {

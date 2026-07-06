@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use crate::AppState;
+use crate::commands::spawn_guard::catch_unwind_logged;
 use axagent_core::rag::KnowledgeContainer;
 use axagent_core::repo::index_jobs as jobs;
 use axagent_harness::types::*;
@@ -212,8 +213,7 @@ pub async fn rebuild_knowledge_index(
     let ep = embedding_provider.clone();
     let provider_registry = state.harness.provider_registry().clone();
 
-    tokio::spawn(async move {
-        // Process each document individually so status updates per-doc
+    tokio::spawn(catch_unwind_logged("knowledge.batch_index_docs", async move {
         for doc in &docs {
             let chunks = match vector_store
                 .list_document_chunks_raw(&collection_id, &doc.id)
@@ -335,7 +335,7 @@ pub async fn rebuild_knowledge_index(
         }
 
         let _ = app.emit("knowledge-rebuild-complete", serde_json::json!({ "baseId": base_id }));
-    });
+    }));
 
     Ok(())
 }
@@ -558,7 +558,7 @@ pub async fn update_knowledge_chunk(
         let cid = chunk_id.clone();
         let chunk_content = content.clone();
 
-        tokio::spawn(async move {
+        tokio::spawn(catch_unwind_logged("knowledge.auto_reindex_chunk", async move {
             let result = async {
                 let embed_response = crate::indexing::generate_embeddings(
                     &db,
@@ -591,7 +591,7 @@ pub async fn update_knowledge_chunk(
                     "error": result.err().map(|e| e.to_string()),
                 }),
             );
-        });
+        }));
     }
 
     Ok(())
@@ -714,7 +714,7 @@ pub async fn reindex_knowledge_chunk(
     let vector_store = state.vector_store.clone();
     let cid = chunk_id.clone();
 
-    tokio::spawn(async move {
+    tokio::spawn(catch_unwind_logged("knowledge.reindex_chunk", async move {
         let result = async {
             let embed_response = crate::indexing::generate_embeddings(
                 &db,
@@ -747,7 +747,7 @@ pub async fn reindex_knowledge_chunk(
                 "error": result.err().map(|e| e.to_string()),
             }),
         );
-    });
+    }));
 
     Ok(())
 }
@@ -799,7 +799,7 @@ pub async fn rebuild_knowledge_document(
     let doc_id = document_id.clone();
     let provider_registry = state.harness.provider_registry().clone();
 
-    tokio::spawn(async move {
+    tokio::spawn(catch_unwind_logged("knowledge.rebuild_doc", async move {
         let texts: Vec<String> = chunks
             .iter()
             .map(|(_, _, content)| content.clone())
@@ -876,7 +876,7 @@ pub async fn rebuild_knowledge_document(
                 );
             },
         }
-    });
+    }));
 
     Ok(())
 }

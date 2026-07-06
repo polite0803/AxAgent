@@ -9,6 +9,7 @@
 //! - Timeout and error handling
 
 use anyhow::Result;
+use axagent_harness::util_fns::truncate_to_char_boundary;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -308,14 +309,14 @@ impl From<&ParallelTask> for TaskResultSummary {
             status: task.status,
             result_preview: task.result.as_ref().map(|r| {
                 if r.len() > 200 {
-                    format!("{}...", &r[..200])
+                    format!("{}...", truncate_to_char_boundary(r, 200))
                 } else {
                     r.clone()
                 }
             }),
             error_preview: task.error.as_ref().map(|e| {
                 if e.len() > 200 {
-                    format!("{}...", &e[..200])
+                    format!("{}...", truncate_to_char_boundary(e, 200))
                 } else {
                     e.clone()
                 }

@@ -129,10 +129,11 @@ export function VersionHistoryPanel({
 
   useEffect(() => {
     if (open && noteId) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      loadVersionList();
-      setSelectedVersion(null);
-      setDiffVersion(null);
+      setTimeout(() => {
+        loadVersionList();
+        setSelectedVersion(null);
+        setDiffVersion(null);
+      }, 0);
     }
   }, [open, noteId, loadVersionList]);
 

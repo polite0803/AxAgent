@@ -31,6 +31,8 @@ pub mod types;
 pub mod url_utils;
 pub mod util_fns;
 pub mod workflow_types;
+#[macro_use]
+pub mod reliability;
 
 // ── Persistence 契约 ──
 /// `Persistence` trait（实际定义在 `persistence_mod`）

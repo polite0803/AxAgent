@@ -535,22 +535,34 @@ impl DefaultOutputSanitizer {
     pub fn new() -> Self {
         let patterns = vec![
             // API key: sk-xxx
-            (regex::Regex::new(r"(?i)(sk|pk)-[a-zA-Z0-9]{20,}").unwrap(), "${1}-****"),
-            // 内部 IP: 192.168.x.x / 10.x.x.x
-            (regex::Regex::new(r"\b192\.168\.\d{1,3}\.\d{1,3}\b").unwrap(), "192.168.*.*"),
-            (regex::Regex::new(r"\b10\.\d{1,3}\.\d{1,3}\.\d{1,3}\b").unwrap(), "10.*.*.*"),
             (
-                regex::Regex::new(r"\b172\.(1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3}\b").unwrap(),
+                regex::Regex::new(r"(?i)(sk|pk)-[a-zA-Z0-9]{20,}").expect("static regex"),
+                "${1}-****",
+            ),
+            // 内部 IP: 192.168.x.x / 10.x.x.x
+            (
+                regex::Regex::new(r"\b192\.168\.\d{1,3}\.\d{1,3}\b").expect("static regex"),
+                "192.168.*.*",
+            ),
+            (
+                regex::Regex::new(r"\b10\.\d{1,3}\.\d{1,3}\.\d{1,3}\b").expect("static regex"),
+                "10.*.*.*",
+            ),
+            (
+                regex::Regex::new(r"\b172\.(1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3}\b")
+                    .expect("static regex"),
                 "172.*.*.*",
             ),
             // 邮箱
             (
-                regex::Regex::new(r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}").unwrap(),
+                regex::Regex::new(r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}")
+                    .expect("static regex"),
                 "***@***",
             ),
-            // 常见 token 模式: 需要分两步避免 raw string 中引号转义问题
+            // 常见 token 模式
             (
-                regex::Regex::new(r"(?i)(token|secret|password)\s*[:=]\s*\S{8,}").unwrap(),
+                regex::Regex::new(r"(?i)(token|secret|password)\s*[:=]\s*\S{8,}")
+                    .expect("static regex"),
                 "${1}=****",
             ),
         ];

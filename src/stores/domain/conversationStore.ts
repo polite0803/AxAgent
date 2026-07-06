@@ -24,18 +24,29 @@ import { useTabStore } from "../shared/tabStore";
 
 // ── 惰性 PreferenceStore 访问器（打破 conversation ↔ preference 循环依赖）──
 // preferenceStore 在自身初始化后主动注入引用；conversationStore 不 import preferenceStore。
-// 使用 Record 替代精确类型，避免 `import type` 产生隐含依赖。
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let _prefStore: any = null;
+// ConversationPreferenceState 来自 conversationPreferences.ts，无循环依赖风险。
+interface PrefStoreState extends ConversationPreferenceState {
+  setMcpMode: (mode: "auto" | "manual" | "disabled") => void;
+  setSearchEnabled: (enabled: boolean) => void;
+  setSearchProviderId: (id: string | null) => void;
+  toggleMcpServer: (id: string) => void;
+  setThinkingBudget: (budget: number | null) => void;
+  toggleKnowledgeBase: (id: string) => void;
+  setActiveMemoryNamespaceId: (id: string | null) => void;
+  toggleWiki: (id: string) => void;
+}
+interface PrefStoreHandle {
+  getState(): PrefStoreState;
+  setState(state: unknown): void;
+}
 
-/** preferenceStore 初始化后主动调用此函数注入自身引用 */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function _injectPreferenceStore(store: any): void {
+let _prefStore: PrefStoreHandle | null = null;
+
+export function _injectPreferenceStore(store: PrefStoreHandle): void {
   _prefStore = store;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function getPref(): any {
+function getPref(): PrefStoreHandle {
   if (!_prefStore) {
     throw new Error("preferenceStore_not_initialized");
   }
@@ -49,6 +60,7 @@ export function tempId(prefix: string): string {
 }
 import {
   categoryTemplateUpdateFromCategory,
+  type ConversationPreferenceState,
   conversationPreferenceStateFromConversation,
   conversationPreferenceUpdateFromState,
   getStagedPreferenceUpdate,

@@ -43,15 +43,31 @@ pub fn check_file_missing(path: &str) -> bool {
     !Path::new(path).exists()
 }
 
-fn resolve_storage_path(storage_path: &str) -> String {
+fn resolve_storage_path(storage_path: &str) -> Result<String, String> {
     let storage_path = Path::new(storage_path);
-    if storage_path.is_absolute() {
-        return storage_path.to_string_lossy().to_string();
-    }
+    let resolved = if storage_path.is_absolute() {
+        storage_path.to_path_buf()
+    } else {
+        axagent_core::storage_paths::resolve_documents_path(&storage_path.to_string_lossy())
+    };
 
-    axagent_core::storage_paths::resolve_documents_path(&storage_path.to_string_lossy())
-        .to_string_lossy()
-        .to_string()
+    // 路径安全：canonicalize 后必须落在 documents 根目录之内。
+    // 阻止 `..`、绝对路径、符号链接等方式越界访问系统任意文件。
+    // 不存在的路径 canonicalize 会失败，直接返回原路径（只读类命令可接受，
+    // 写/打开类命令由调用方根据结果决定是否继续）。
+    let documents_root = axagent_core::storage_paths::documents_root();
+    let canonical = resolved.canonicalize().unwrap_or(resolved);
+    let canonical_root = documents_root
+        .canonicalize()
+        .unwrap_or_else(|_| documents_root.clone());
+    if !canonical.starts_with(&canonical_root) {
+        return Err(format!(
+            "路径越界：'{}' 不在文档根目录 '{}' 内",
+            storage_path.display(),
+            documents_root.display()
+        ));
+    }
+    Ok(canonical.to_string_lossy().to_string())
 }
 
 /// Build image entries from stored files (mime_type starts with "image/").
@@ -61,7 +77,8 @@ pub fn build_image_entries(files: &[StoredFile]) -> Vec<FilesPageEntry> {
         .iter()
         .filter(|f| f.mime_type.starts_with("image/"))
         .map(|f| {
-            let resolved_path = resolve_storage_path(&f.storage_path);
+            let resolved_path =
+                resolve_storage_path(&f.storage_path).unwrap_or_else(|_| f.storage_path.clone());
             let missing = check_file_missing(&resolved_path);
             let preview_url = if missing {
                 None
@@ -91,7 +108,8 @@ pub fn build_file_entries(files: &[StoredFile]) -> Vec<FilesPageEntry> {
         .iter()
         .filter(|f| !f.mime_type.starts_with("image/"))
         .map(|f| {
-            let resolved_path = resolve_storage_path(&f.storage_path);
+            let resolved_path =
+                resolve_storage_path(&f.storage_path).unwrap_or_else(|_| f.storage_path.clone());
             FilesPageEntry {
                 id: format!("attachment::{}", f.id),
                 source_kind: "attachment".to_string(),
@@ -222,7 +240,7 @@ pub async fn check_attachment_exists(file_path: String) -> Result<bool, String> 
     if file_path.is_empty() {
         return Ok(false);
     }
-    let abs = resolve_storage_path(&file_path);
+    let abs = resolve_storage_path(&file_path)?;
     Ok(Path::new(&abs).exists())
 }
 
@@ -231,7 +249,7 @@ pub async fn read_attachment_preview(file_path: String) -> Result<String, String
     if file_path.is_empty() {
         return Err("file_path is empty".to_string());
     }
-    let abs = resolve_storage_path(&file_path);
+    let abs = resolve_storage_path(&file_path)?;
     let bytes = std::fs::read(&abs).map_err(|e| format!("Failed to read file: {e}"))?;
     let b64 = base64::engine::general_purpose::STANDARD.encode(&bytes);
     let mime = mime_from_extension(&abs);
@@ -256,7 +274,7 @@ pub async fn resolve_attachment_path(file_path: String) -> Result<String, ErrorR
     if file_path.is_empty() {
         return Err(ErrorResponse::new(file_err::PATH_EMPTY));
     }
-    Ok(resolve_storage_path(&file_path))
+    Ok(resolve_storage_path(&file_path)?)
 }
 
 #[tauri::command]
@@ -267,7 +285,7 @@ pub async fn reveal_attachment_file(
     if file_path.is_empty() {
         return Err(ErrorResponse::new(file_err::PATH_EMPTY));
     }
-    let abs = resolve_storage_path(&file_path);
+    let abs = resolve_storage_path(&file_path)?;
     use tauri_plugin_opener::OpenerExt;
     let path = Path::new(&abs);
     if path.exists() {
@@ -288,7 +306,7 @@ fn open_attachment_file_validate(file_path: &str) -> Result<String, ErrorRespons
     if file_path.is_empty() {
         return Err(ErrorResponse::new(file_err::PATH_EMPTY));
     }
-    let abs = resolve_storage_path(file_path);
+    let abs = resolve_storage_path(file_path)?;
     validate_path_for_open(&abs)?;
     Ok(abs)
 }

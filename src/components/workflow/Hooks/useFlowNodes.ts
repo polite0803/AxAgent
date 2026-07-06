@@ -580,14 +580,10 @@ export function useFlowNodes(params: UseFlowNodesParams) {
     for (const fn of flowNodes) {
       const pid = (fn as { parentId?: string }).parentId;
       if (pid && !flowNodeIdSet.has(pid)) {
-        // 孤儿：父节点不在本批次 flowNodes 中，移除 parentId
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        delete (fn as any).parentId;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        delete (fn as any).extent;
+        delete (fn as Record<string, unknown>).parentId;
+        delete (fn as Record<string, unknown>).extent;
         if (fn.data) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          delete (fn.data as any).parentId;
+          delete (fn.data as Record<string, unknown>).parentId;
         }
       }
     }

@@ -125,7 +125,9 @@ impl MetricsCalculator {
                 .filter(|m| m.scores.iter().any(|s| s.criteria_name == name))
                 .count();
             if count > 0 {
-                *score_breakdown.get_mut(&name).unwrap() /= count as f32;
+                if let Some(score) = score_breakdown.get_mut(&name) {
+                    *score /= count as f32;
+                }
             }
         }
 

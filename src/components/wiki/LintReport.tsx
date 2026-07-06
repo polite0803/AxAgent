@@ -47,8 +47,7 @@ export function LintReport({ wikiId }: LintReportProps) {
   }, [wikiId, t]);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    loadLintResults();
+    setTimeout(() => loadLintResults(), 0);
   }, [loadLintResults]);
 
   const handleLintNote = async (noteId: string) => {

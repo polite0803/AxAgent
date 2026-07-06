@@ -135,6 +135,8 @@ jobs:
         if: runner.os == 'Windows'
 
       - name: Cargo test
+        env:
+          __TAURI_WORKSPACE__: "true"
         run: cargo test --workspace --all-features
 
   bench:

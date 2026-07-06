@@ -247,13 +247,13 @@ export class AxAgentClient {
 
 // ── React Hook ──
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useState } from "react";
 
 /**
  * useAxAgent — React Hook，简化 ACP 客户端在 React 组件中的使用
  */
 export function useAxAgent(baseUrl: string) {
-  const clientRef = useRef<AxAgentClient>(new AxAgentClient(baseUrl));
+  const [client] = useState(() => new AxAgentClient(baseUrl));
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -262,7 +262,7 @@ export function useAxAgent(baseUrl: string) {
     setLoading(true);
     setError(null);
     try {
-      const session = await clientRef.current.createSession(params);
+      const session = await client.createSession(params);
       setSessions((prev) => [...prev, session]);
       return session;
     } catch (e) {
@@ -271,38 +271,37 @@ export function useAxAgent(baseUrl: string) {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [client]);
 
   const sendPrompt = useCallback(async (sessionId: string, prompt: string) => {
     setLoading(true);
     setError(null);
     try {
-      return await clientRef.current.sendPrompt(sessionId, prompt);
+      return await client.sendPrompt(sessionId, prompt);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
       throw e;
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [client]);
 
   const closeSession = useCallback(async (sessionId: string) => {
-    await clientRef.current.closeSession(sessionId);
+    await client.closeSession(sessionId);
     setSessions((prev) => prev.filter((s) => s.sessionId !== sessionId));
-  }, []);
+  }, [client]);
 
   const refreshSessions = useCallback(async () => {
     try {
-      const list = await clientRef.current.listSessions();
+      const list = await client.listSessions();
       setSessions(list);
     } catch {
       // 静默失败
     }
-  }, []);
+  }, [client]);
 
-  /* eslint-disable react-hooks/refs */
   return {
-    client: clientRef.current,
+    client,
     sessions,
     loading,
     error,
@@ -311,5 +310,4 @@ export function useAxAgent(baseUrl: string) {
     closeSession,
     refreshSessions,
   };
-  /* eslint-enable react-hooks/refs */
 }

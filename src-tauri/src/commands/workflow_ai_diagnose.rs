@@ -2,7 +2,7 @@
 
 //! Diagnose 路径:调用 LLM 生成 `DiagnosticReportV2`,并支持批量应用 fixes。
 //!
-//! V2 协议细节见 [`super::workflow_ai_protocol`]。本模块消费其中的
+//! V2 协议细节见 [`super::_workflow_ai_protocol`]。本模块消费其中的
 //! `DiagnosticReportV2` / `DiagnosticFix` / `InjectContextMarker`,并把
 //! 工具函数 `validate_report` / `validate_issue` / `dedup_fixes` 串到
 //! 真实命令路径上。
@@ -17,7 +17,7 @@ use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
 use serde::{Deserialize, Serialize};
 use tauri::State;
 
-use super::workflow_ai_protocol::{
+use super::_workflow_ai_protocol::{
     ChatAction, DiagnosticFix, DiagnosticReportV2, InputMappingEntry, validate_report,
 };
 
@@ -293,7 +293,7 @@ pub async fn apply_diagnostic_fixes(
     state: State<'_, AppState>,
     request: ApplyDiagnosticFixesRequest,
 ) -> Result<ApplyDiagnosticFixesResult, String> {
-    use super::workflow_ai_protocol::dedup_fixes;
+    use super::_workflow_ai_protocol::dedup_fixes;
 
     let received = request.fixes.len();
     let deduped = dedup_fixes(&request.fixes);
@@ -326,7 +326,7 @@ pub async fn apply_diagnostic_fixes(
     let scheduler_result = super::workflow_ai_apply::do_apply_diff_with_validation(
         state.clone(),
         server_actions.clone(),
-        super::workflow_ai_protocol::ValidationSpec {
+        super::_workflow_ai_protocol::ValidationSpec {
             r#type: "diagnostic".to_string(),
             params: serde_json::json!({
                 "client_fix_count": client_fix_count,
@@ -350,14 +350,14 @@ pub async fn apply_diagnostic_fixes(
 /// 把 `DiagnosticFix` 中"可由后端 apply_* 命令消费"的新 4 种映射成 `ChatAction`。
 /// 原 6 种(节点级 UI 操作)返回 `None`,由前端 store 路径处理。
 fn fix_to_chat_action(fix: &DiagnosticFix) -> Option<ChatAction> {
-    use super::workflow_ai_protocol::EditAssetFilePayload;
+    use super::_workflow_ai_protocol::EditAssetFilePayload;
     match fix {
         DiagnosticFix::UpdateVariable {
             template_id,
             name,
             value,
         } => Some(ChatAction::UpdateVariable {
-            data: super::workflow_ai_protocol::UpdateVariablePayload {
+            data: super::_workflow_ai_protocol::UpdateVariablePayload {
                 template_id: template_id.clone(),
                 name: name.clone(),
                 value: value.clone(),
@@ -365,7 +365,7 @@ fn fix_to_chat_action(fix: &DiagnosticFix) -> Option<ChatAction> {
         }),
         DiagnosticFix::UpdateInputMapping { node_id, mappings } => {
             Some(ChatAction::UpdateInputMapping {
-                data: super::workflow_ai_protocol::UpdateInputMappingPayload {
+                data: super::_workflow_ai_protocol::UpdateInputMappingPayload {
                     node_id: node_id.clone(),
                     mappings: mappings
                         .iter()
@@ -396,7 +396,7 @@ fn fix_to_chat_action(fix: &DiagnosticFix) -> Option<ChatAction> {
             template_id,
             version,
         } => Some(ChatAction::RollbackToVersion {
-            data: super::workflow_ai_protocol::RollbackToVersionPayload {
+            data: super::_workflow_ai_protocol::RollbackToVersionPayload {
                 template_id: template_id.clone(),
                 version: *version,
             },
@@ -444,7 +444,7 @@ mod tests {
 
     #[test]
     fn fix_to_chat_action_edit_asset_file() {
-        use super::super::workflow_ai_protocol::EditAssetOperation;
+        use super::super::_workflow_ai_protocol::EditAssetOperation;
         let fix = DiagnosticFix::EditAssetFile {
             path: "x.rhai".to_string(),
             operation: EditAssetOperation::InsertAfter,

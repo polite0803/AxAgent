@@ -186,9 +186,9 @@ pub use task_prefetcher::{PrefetchResult, PrefetchResults, PrefetchType, TaskPre
 pub use text_grad::{ComputationGraph, TextGradConfig, TextGradEngine};
 
 pub use trajectory::{
-    ExportFormat, MessageRole, RLTrainingEntry, ToolCall, ToolResult, Trajectory,
-    TrajectoryExportOptions, TrajectoryOutcome, TrajectoryPattern, TrajectoryQuality,
-    TrajectoryQuery, TrajectoryStep,
+    ExportFormat, MessageRole, RLTrainingEntry, ToolCall, Trajectory, TrajectoryExportOptions,
+    TrajectoryOutcome, TrajectoryPattern, TrajectoryQuality, TrajectoryQuery, TrajectoryStep,
+    TrajectoryToolResult,
 };
 
 pub use user_profile::{ExpertiseLevel, UserProfile};

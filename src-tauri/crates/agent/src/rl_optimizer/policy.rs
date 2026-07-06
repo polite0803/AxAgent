@@ -156,7 +156,7 @@ impl ToolSelectionPolicy {
         self.q_values
             .iter()
             .filter(|(k, _)| k.starts_with(state))
-            .max_by(|a, b| a.1.partial_cmp(b.1).unwrap())
+            .max_by(|a, b| a.1.partial_cmp(b.1).unwrap_or(std::cmp::Ordering::Equal))
             .map(|(k, _)| k.split(':').nth(1).unwrap_or("").to_string())
     }
 }

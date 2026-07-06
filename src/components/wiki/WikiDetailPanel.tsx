@@ -114,22 +114,22 @@ export function WikiDetailPanel({
 
   useEffect(() => {
     if (!noteId) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setNote(null);
-      setContent("");
-      setTitle("");
-      setLinks([]);
-      setBacklinks([]);
+      setTimeout(() => {
+        setNote(null);
+        setContent("");
+        setTitle("");
+        setLinks([]);
+        setBacklinks([]);
+      }, 0);
       return;
     }
-    loadNote();
-    loadLinks();
-  }, [noteId, loadNote, loadLinks]);
+    setTimeout(() => loadNote(), 0);
+    setTimeout(() => loadLinks(), 0);
+  }, [noteId, loadNote, loadLinks, setNote]);
 
   useEffect(() => {
     if (note) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setHasChanges(content !== note.content || title !== note.title);
+      setTimeout(() => setHasChanges(content !== note.content || title !== note.title), 0);
     }
   }, [content, title, note]);
 

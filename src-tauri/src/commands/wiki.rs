@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use crate::AppState;
+use crate::commands::spawn_guard::catch_unwind_logged;
 use axagent_core::hybrid_search::{FusionAlgorithm, HybridSearchOptions, HybridSearcher};
 use axagent_core::rag::{RAGSource, WikiVaultRAG, collection_id};
 use axagent_core::repo::index_jobs as jobs;
@@ -10,7 +11,28 @@ use axagent_core::repo::note_graph::LinkGraph;
 use axagent_core::repo::wiki::{self, CreateWikiTemplateInput, NoteVersion, WikiTemplate};
 use axagent_harness::types::NoteSearchResult;
 use serde::{Deserialize, Serialize};
+use std::path::PathBuf;
 use tauri::{AppHandle, Emitter, State};
+
+/// 同步 IO 包装：把 std::fs 调用扔到 spawn_blocking 线程池，避免阻塞 tokio runtime。
+/// 多个小文件操作适合 inline `spawn_blocking`。
+async fn write_file_blocking(path: PathBuf, content: Vec<u8>) -> std::io::Result<()> {
+    tokio::task::spawn_blocking(move || std::fs::write(&path, &content))
+        .await
+        .map_err(std::io::Error::other)?
+}
+
+async fn read_to_string_blocking(path: PathBuf) -> std::io::Result<String> {
+    tokio::task::spawn_blocking(move || std::fs::read_to_string(&path))
+        .await
+        .map_err(std::io::Error::other)?
+}
+
+async fn create_dir_all_blocking(path: PathBuf) -> std::io::Result<()> {
+    tokio::task::spawn_blocking(move || std::fs::create_dir_all(&path))
+        .await
+        .map_err(std::io::Error::other)?
+}
 
 fn enqueue_wiki_note_indexing(
     state: &State<'_, AppState>,
@@ -166,7 +188,7 @@ pub async fn rebuild_wiki_index(
     let vector_store = state.vector_store.clone();
     let wid = wiki_id.clone();
 
-    tokio::spawn(async move {
+    tokio::spawn(catch_unwind_logged("wiki.rebuild_index", async move {
         for note in &notes {
             let result = crate::indexing::index_source(
                 &db,
@@ -196,7 +218,7 @@ pub async fn rebuild_wiki_index(
         }
 
         let _ = app.emit("wiki-rebuild-complete", serde_json::json!({ "wikiId": wid }));
-    });
+    }));
 
     Ok(())
 }
@@ -601,10 +623,14 @@ pub async fn sync_note_to_knowledge_base(
 
     let file_name = format!("{}.md", note.title.replace('/', "_"));
     let data_dir = state.app_data_dir.join("wiki_sync").join(&note.vault_id);
-    std::fs::create_dir_all(&data_dir).map_err(|e| e.to_string())?;
+    create_dir_all_blocking(data_dir.clone())
+        .await
+        .map_err(|e| e.to_string())?;
 
     let full_path = data_dir.join(&file_name);
-    std::fs::write(&full_path, &note.content).map_err(|e| e.to_string())?;
+    write_file_blocking(full_path.clone(), note.content.into_bytes())
+        .await
+        .map_err(|e| e.to_string())?;
 
     let source_path = full_path.to_string_lossy().to_string();
 
@@ -915,7 +941,7 @@ pub async fn wiki_import_obsidian_vault(
     let mut skipped = 0usize;
 
     for file_path in &md_files {
-        let raw = match std::fs::read_to_string(file_path) {
+        let raw = match read_to_string_blocking(file_path.clone()).await {
             Ok(s) => s,
             Err(e) => {
                 tracing::warn!("Failed to read {}: {}", file_path.display(), e);
@@ -1034,7 +1060,8 @@ pub async fn wiki_import_knowledge_md(
         return Err(format!("KNOWLEDGE.md not found at: {}", knowledge_path.display()));
     }
 
-    let raw = std::fs::read_to_string(knowledge_path)
+    let raw = read_to_string_blocking(knowledge_path.to_path_buf())
+        .await
         .map_err(|e| format!("Failed to read KNOWLEDGE.md: {}", e))?;
 
     // 解析章节：按 `## ` 分割，跳过第一个（标题/引言）
@@ -1171,7 +1198,9 @@ pub async fn wiki_export_markdown(
         .map_err(|e| e.to_string())?;
 
     let output_dir = std::path::Path::new(&output_path);
-    std::fs::create_dir_all(output_dir).map_err(|e| e.to_string())?;
+    create_dir_all_blocking(output_dir.to_path_buf())
+        .await
+        .map_err(|e| e.to_string())?;
 
     let mut exported = 0usize;
     let mut failed = 0usize;
@@ -1182,7 +1211,9 @@ pub async fn wiki_export_markdown(
                 output_dir.to_path_buf()
             } else {
                 let d = output_dir.join(sanitize_filename(pt));
-                std::fs::create_dir_all(&d).map_err(|e| e.to_string())?;
+                create_dir_all_blocking(d.clone())
+                    .await
+                    .map_err(|e| e.to_string())?;
                 d
             }
         } else {
@@ -1213,7 +1244,7 @@ pub async fn wiki_export_markdown(
 
         let file_content = format!("{}{}", frontmatter, note.content);
 
-        match std::fs::write(&full_path, &file_content) {
+        match write_file_blocking(full_path.clone(), file_content.into_bytes()).await {
             Ok(_) => exported += 1,
             Err(e) => {
                 tracing::warn!("Failed to write {}: {}", full_path.display(), e);
@@ -1236,7 +1267,9 @@ pub async fn wiki_export_html(
         .map_err(|e| e.to_string())?;
 
     let output_dir = std::path::Path::new(&output_path);
-    std::fs::create_dir_all(output_dir).map_err(|e| e.to_string())?;
+    create_dir_all_blocking(output_dir.to_path_buf())
+        .await
+        .map_err(|e| e.to_string())?;
 
     let mut exported = 0usize;
     let mut failed = 0usize;
@@ -1282,7 +1315,7 @@ ul, ol {{ padding-left: 2em; }}
             html_body,
         );
 
-        match std::fs::write(&full_path, &html) {
+        match write_file_blocking(full_path.clone(), html.into_bytes()).await {
             Ok(_) => exported += 1,
             Err(e) => {
                 tracing::warn!("Failed to write {}: {}", full_path.display(), e);
@@ -1328,7 +1361,9 @@ li {{ padding: 4px 0; }}
         index_items,
     );
 
-    std::fs::write(&index_path, &index_html).map_err(|e| e.to_string())?;
+    write_file_blocking(index_path.clone(), index_html.into_bytes())
+        .await
+        .map_err(|e| e.to_string())?;
 
     Ok(ExportStats { exported, failed })
 }
@@ -1345,7 +1380,9 @@ pub async fn wiki_note_export_pdf(
 
     let output = std::path::Path::new(&output_path);
     if let Some(parent) = output.parent() {
-        std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+        create_dir_all_blocking(parent.to_path_buf())
+            .await
+            .map_err(|e| e.to_string())?;
     }
 
     let html_body = markdown_to_simple_html(&note.content, &std::collections::HashMap::new());
@@ -1385,7 +1422,9 @@ ul, ol {{ padding-left: 2em; }}
         output.to_path_buf()
     };
 
-    std::fs::write(&html_output, &html).map_err(|e| e.to_string())?;
+    write_file_blocking(html_output.clone(), html.into_bytes())
+        .await
+        .map_err(|e| e.to_string())?;
 
     let html_path = html_output.to_string_lossy().to_string();
     let _ = open::that(&html_output);

@@ -10,6 +10,7 @@ use tokio::fs;
 use axagent_core::entity::wiki_sources;
 use axagent_core::utils::gen_id;
 use axagent_harness::types::{ChatContent, ChatMessage, ChatRequest};
+use axagent_harness::util_fns::truncate_to_char_boundary;
 use axagent_harness::{ProviderAdapter, ProviderRequestContext};
 use sea_orm::{ActiveModelTrait, DatabaseConnection, EntityTrait, Set};
 
@@ -344,7 +345,7 @@ impl IngestPipeline {
             .unwrap_or_default();
 
         let truncated = if content.len() > 16000 {
-            format!("{}... [truncated]", &content[..16000])
+            format!("{}... [truncated]", truncate_to_char_boundary(content, 16000))
         } else {
             content.to_string()
         };

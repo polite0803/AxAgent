@@ -1,14 +1,17 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+use std::panic::AssertUnwindSafe;
 use std::sync::Arc;
 
 use crate::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::platform as platform_err;
+use crate::commands::spawn_guard::panic_message;
 use axagent_core::platform_config::PlatformConfig;
 use axagent_runtime::message_gateway::platform_manager::{
     PlatformAdapterStatus, PlatformReconcileReport,
 };
+use futures::FutureExt;
 use serde::Serialize;
 use tauri::Emitter;
 use tauri::State;
@@ -341,27 +344,42 @@ pub async fn start_api_server(
 
     // 在后台启动 server
     let join_handle = tokio::spawn(async move {
-        match server.start(port).await {
-            Ok(_) => {
-                tracing::info!("API Server started successfully on port {}", port);
-                let _ = app_for_emit.emit(
-                    "api-server-status",
-                    serde_json::json!({
-                        "status": "running",
-                        "port": port,
-                    }),
-                );
-            },
-            Err(e) => {
-                tracing::error!("API Server error: {}", e);
-                let _ = app_for_emit.emit(
-                    "api-server-status",
-                    serde_json::json!({
-                        "status": "error",
-                        "error": e.to_string(),
-                    }),
-                );
-            },
+        let result = AssertUnwindSafe(async {
+            match server.start(port).await {
+                Ok(_) => {
+                    tracing::info!("API Server started successfully on port {}", port);
+                    let _ = app_for_emit.emit(
+                        "api-server-status",
+                        serde_json::json!({
+                            "status": "running",
+                            "port": port,
+                        }),
+                    );
+                },
+                Err(e) => {
+                    tracing::error!("API Server error: {}", e);
+                    let _ = app_for_emit.emit(
+                        "api-server-status",
+                        serde_json::json!({
+                            "status": "error",
+                            "error": e.to_string(),
+                        }),
+                    );
+                },
+            }
+        })
+        .catch_unwind()
+        .await;
+
+        if let Err(p) = result {
+            tracing::error!("[api_server] PANIC during server.start: {}", panic_message(&p));
+            let _ = app_for_emit.emit(
+                "api-server-status",
+                serde_json::json!({
+                    "status": "error",
+                    "error": "Internal panic during API server startup",
+                }),
+            );
         }
     });
 

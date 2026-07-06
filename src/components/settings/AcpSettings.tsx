@@ -53,7 +53,6 @@ export function AcpSettings() {
     setConnected(null);
   };
 
-  // 测试连接
   const handleTestConnection = useCallback(async () => {
     setChecking(true);
     try {
@@ -72,8 +71,7 @@ export function AcpSettings() {
     } finally {
       setChecking(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [baseUrl, refreshSessions]);
+  }, [baseUrl, refreshSessions, t]);
 
   // 创建会话
   const handleCreateSession = async () => {

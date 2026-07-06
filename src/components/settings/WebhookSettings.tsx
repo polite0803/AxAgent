@@ -83,8 +83,7 @@ export function WebhookSettings() {
   };
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    loadSubscriptions();
+    setTimeout(() => loadSubscriptions(), 0);
   }, []);
 
   const handleRefresh = async () => {
