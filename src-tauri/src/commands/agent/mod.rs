@@ -1333,18 +1333,22 @@ pub async fn agent_query(
         app_language.as_deref(),
         {
             let mut q = app_state.steer_queue.lock().await;
-            if q.is_empty() {
+            let instructions = q.remove(&conversation_id).unwrap_or_default();
+            drop(q);
+            if instructions.is_empty() {
                 None
             } else {
-                let instructions = std::mem::take(&mut *q);
-                drop(q);
                 let formatted: String = instructions
                     .iter()
                     .enumerate()
-                    .map(|(i, inst)| format!("- [steer-{}] {}", i, inst.1.join(", ")))
+                    .map(|(i, inst)| format!("- [steer-{}] {}", i, inst))
                     .collect::<Vec<_>>()
                     .join("\n");
-                info!("[agent_query] Injecting {} steer instruction(s)", instructions.len());
+                info!(
+                    "[agent_query] Injecting {} steer instruction(s) for conversationId={}",
+                    instructions.len(),
+                    conversation_id
+                );
                 Some(formatted)
             }
         },

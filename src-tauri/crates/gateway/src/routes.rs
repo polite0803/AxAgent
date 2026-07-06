@@ -15,6 +15,7 @@ use serde_json::json;
 use tower_http::cors::CorsLayer;
 
 use crate::auth::{AuthState, auth_middleware};
+use crate::handlers::mcp_proxy::{call_mcp_tool, discover_mcp_tools, list_mcp_servers};
 use crate::handlers::platform_bridge::{
     Platform, direct_message, platform_health, receive_webhook,
 };
@@ -56,6 +57,7 @@ use crate::native::{
     anthropic_count_tokens, anthropic_messages, gemini_list_models, gemini_model_operation,
     openai_responses,
 };
+use crate::qr_bind_handlers::{consume_qr_token, generate_qr_token};
 use crate::realtime::{issue_realtime_ticket, realtime_handler};
 use crate::server::GatewayAppState;
 
@@ -119,6 +121,19 @@ pub fn create_router(state: GatewayAppState) -> Router {
         // SECURITY (P0-2.2): WS upgrade must not carry the long-lived API key.
         // Caller presents Bearer token, gets back a single-use short-lived ticket.
         .route("/v1/realtime-ticket", post(issue_realtime_ticket))
+        // QR 绑定路由（WebUI 生成 / 平台端消费）
+        .route("/v1/bind/qr-token", post(generate_qr_token))
+        .route("/v1/bind/qr-token/{token}", post(consume_qr_token))
+        // MCP 代理路由
+        .route("/v1/mcp/servers", get(list_mcp_servers))
+        .route(
+            "/v1/mcp/servers/{server_id}/tools/list",
+            post(discover_mcp_tools),
+        )
+        .route(
+            "/v1/mcp/servers/{server_id}/tools/call",
+            post(call_mcp_tool),
+        )
         .layer(Extension(state.ticket_store.clone()))
         .layer(middleware::from_fn_with_state(
             AuthState {

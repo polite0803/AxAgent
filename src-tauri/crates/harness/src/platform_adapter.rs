@@ -50,6 +50,17 @@ pub trait GatewayKeyRepository: Send + Sync {
     /// before granting access.
     async fn get_by_id(&self, key_id: &str) -> Result<Option<GatewayKey>>;
     async fn update_last_used(&self, key_id: &str) -> Result<()>;
+    /// 将平台用户 ID 绑定到指定的 API Key（QR 扫码绑定用）。
+    async fn bind_platform_user(
+        &self,
+        _key_id: &str,
+        _platform: &str,
+        _platform_user_id: &str,
+    ) -> Result<()> {
+        Err(crate::core_error::AxAgentError::Internal(
+            "bind_platform_user not implemented by this repository".into(),
+        ))
+    }
     #[allow(clippy::too_many_arguments)]
     async fn record_usage(
         &self,

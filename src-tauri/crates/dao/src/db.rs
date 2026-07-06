@@ -49,6 +49,9 @@ pub async fn create_pool(db_path: &str) -> Result<DbHandle> {
 
     let conn = Database::connect(opt).await?;
 
+    // 数据库完整性检测与自动恢复（在 PRAGMA 和迁移之前运行）
+    crate::integrity::auto_recover(&conn, &url).await?;
+
     conn.execute_raw(Statement::from_string(DbBackend::Sqlite, "PRAGMA journal_mode=WAL;"))
         .await?;
     conn.execute_raw(Statement::from_string(DbBackend::Sqlite, "PRAGMA foreign_keys=ON;"))

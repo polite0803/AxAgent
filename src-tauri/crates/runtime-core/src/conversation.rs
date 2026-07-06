@@ -14,6 +14,7 @@ use crate::compact::{
     CompactionConfig, CompactionResult, compact_session, estimate_session_tokens,
 };
 use crate::config::RuntimeFeatureConfig;
+use crate::context_contributor::{ContextContributor, ContextRequest};
 use crate::execution_progress::AgentExecutionProgress;
 use crate::hooks::{HookAbortSignal, HookProgressReporter, HookRunResult, HookRunner};
 use crate::permissions::{
@@ -200,12 +201,18 @@ pub struct ConversationRuntime<C, T> {
     usage_tracker: UsageTracker,
     hook_runner: HookRunner,
     auto_compaction_input_tokens_threshold: u32,
+    /// 每 N 轮强制压缩一次（防止渐进膨胀，参考 nomifun turn-count 调度）
+    compact_every_n_turns: Option<u32>,
+    /// 当前轮次计数（用于 compact_every_n_turns）
+    turn_count: u32,
     hook_abort_signal: HookAbortSignal,
     hook_progress_reporter: Option<Box<dyn HookProgressReporter>>,
     session_tracer: Option<Arc<dyn SessionTracer>>,
     cancel_token: Option<std::sync::Arc<std::sync::atomic::AtomicBool>>,
     pause_state: Option<Arc<PauseState>>,
     progress: Option<Arc<AgentExecutionProgress>>,
+    /// 动态上下文注入器列表（每次 LLM 调用前执行）。
+    context_contributors: Vec<Box<dyn ContextContributor>>,
 }
 
 impl<C, T> ConversationRuntime<C, T>
@@ -251,12 +258,15 @@ where
             usage_tracker,
             hook_runner: HookRunner::from_feature_config(feature_config),
             auto_compaction_input_tokens_threshold: auto_compaction_threshold_from_env(),
+            compact_every_n_turns: None,
+            turn_count: 0,
             hook_abort_signal: HookAbortSignal::default(),
             hook_progress_reporter: None,
             session_tracer: None,
             cancel_token: None,
             pause_state: None,
             progress: None,
+            context_contributors: Vec::new(),
         }
     }
 
@@ -289,6 +299,14 @@ where
         self
     }
 
+    /// 设置每 N 轮强制压缩一次（防止渐进膨胀）。
+    /// `None` 表示不启用（默认）。
+    #[must_use]
+    pub fn with_compact_every_n_turns(mut self, n: Option<u32>) -> Self {
+        self.compact_every_n_turns = n;
+        self
+    }
+
     #[must_use]
     pub fn with_hook_abort_signal(mut self, hook_abort_signal: HookAbortSignal) -> Self {
         self.hook_abort_signal = hook_abort_signal;
@@ -313,6 +331,14 @@ where
     #[must_use]
     pub fn with_session_tracer(mut self, session_tracer: Arc<dyn SessionTracer>) -> Self {
         self.session_tracer = Some(session_tracer);
+        self
+    }
+
+    /// 注册一个动态上下文注入器。
+    /// 每次 LLM 调用前，所有已注册的 contributor 会依次执行。
+    #[must_use]
+    pub fn with_context_contributor(mut self, contributor: Box<dyn ContextContributor>) -> Self {
+        self.context_contributors.push(contributor);
         self
     }
 
@@ -553,8 +579,29 @@ where
                 return Err(error);
             }
 
+            let mut system_prompt = self.system_prompt.clone();
+
+            // 执行动态上下文注入器（先收集后注入，避免借用冲突）
+            let mut extra_blocks: Vec<String> = Vec::new();
+            if !self.context_contributors.is_empty() {
+                let ctx_req = ContextRequest {
+                    session_id: &self.session.session_id,
+                    conversation_id: None,
+                    session: &self.session,
+                    system_prompt: &self.system_prompt,
+                    feature_flags: &crate::feature_flags::global_feature_flags(),
+                    extras: &Default::default(),
+                };
+                for contributor in &self.context_contributors {
+                    if let Some(block) = contributor.contribute(&ctx_req) {
+                        extra_blocks.push(block);
+                    }
+                }
+            }
+            system_prompt.extend(extra_blocks);
+
             let request = ApiRequest {
-                system_prompt: self.system_prompt.clone(),
+                system_prompt,
                 messages: self.session.messages.clone(),
             };
             let events = match self.api_client.stream(request) {
@@ -987,19 +1034,45 @@ where
     }
 
     fn maybe_auto_compact(&mut self) -> Option<AutoCompactionEvent> {
+        self.turn_count = self.turn_count.saturating_add(1);
+
+        // 1. 轮次数前置压缩：每 N 轮强制压缩一次，防止渐进膨胀
+        if let Some(every_n) = self.compact_every_n_turns {
+            if every_n > 0 && self.turn_count % every_n == 0 {
+                let result =
+                    compact_session(&self.session, crate::compact::CompactionConfig::default());
+                if result.removed_message_count > 0 {
+                    tracing::info!(
+                        "Turn-count compaction triggered at turn {} (every {})",
+                        self.turn_count,
+                        every_n,
+                    );
+                    self.session = result.compacted_session;
+                    return Some(AutoCompactionEvent {
+                        removed_message_count: result.removed_message_count,
+                    });
+                }
+            }
+        }
+
+        // 2. Token 阈值压缩 + 紧急模式
         if self.usage_tracker.cumulative_usage().input_tokens
             < self.auto_compaction_input_tokens_threshold
         {
             return None;
         }
 
-        let result = compact_session(
-            &self.session,
+        // 紧急模式预留：由外层 Coordinator 检测并设置 use_emergency
+        let config = if false {
+            crate::compact::emergency_compaction_config()
+        } else {
             CompactionConfig {
                 max_estimated_tokens: 0,
                 ..CompactionConfig::default()
-            },
-        );
+            }
+        };
+
+        let result = compact_session(&self.session, config);
 
         if result.removed_message_count == 0 {
             return None;
@@ -1232,7 +1305,7 @@ where
 
 /// Reads the automatic compaction threshold from the environment.
 #[must_use]
-pub fn auto_compaction_threshold_from_env() -> u32 {
+pub async fn auto_compaction_threshold_from_env() -> u32 {
     parse_auto_compaction_threshold(
         std::env::var(AUTO_COMPACTION_THRESHOLD_ENV_VAR)
             .ok()
@@ -1431,7 +1504,7 @@ mod tests {
         PermissionMode, PermissionPolicy, PermissionPromptDecision, PermissionPrompter,
         PermissionRequest,
     };
-    use crate::session::{ContentBlock, MessageRole, Session};
+    use crate::session::{ContentBlock, ConversationMessage, MessageRole, Session};
     use crate::usage::TokenUsage;
     use axagent_telemetry::{MemoryTelemetrySink, TelemetryEvent};
     use std::fs;
@@ -2204,6 +2277,96 @@ mod tests {
             parse_auto_compaction_threshold(Some("not-a-number")),
             DEFAULT_AUTO_COMPACTION_INPUT_TOKENS_THRESHOLD
         );
+    }
+
+    #[test]
+    fn turn_count_compaction_triggers_at_interval() {
+        struct SimpleApi;
+        impl ApiClient for SimpleApi {
+            fn stream(
+                &mut self,
+                _request: ApiRequest,
+            ) -> Result<Vec<AssistantEvent>, RuntimeError> {
+                Ok(vec![AssistantEvent::TextDelta("ok".into())])
+            }
+        }
+        let mut runtime = ConversationRuntime::new(
+            Session::new(),
+            SimpleApi,
+            StaticToolExecutor::new(),
+            PermissionPolicy::new(PermissionMode::DangerFullAccess),
+            vec!["system".to_string()],
+        )
+        .with_compact_every_n_turns(Some(2));
+
+        // Turn 1: no compaction
+        let summary = runtime.run_turn("msg1", None).expect("turn 1");
+        assert_eq!(summary.auto_compaction, None, "turn 1 should not compact");
+
+        // Turn 2: should compact via turn-count
+        let summary = runtime.run_turn("msg2", None).expect("turn 2");
+        assert_eq!(
+            summary.auto_compaction,
+            Some(AutoCompactionEvent {
+                removed_message_count: 0
+            }),
+            "turn 2 should trigger turn-count compaction (empty session: 0 removed)"
+        );
+    }
+
+    /// 快照测试：验证会话序列化格式的稳定性。
+    /// 防止无意的序列化格式变更影响数据库兼容性。
+    #[test]
+    fn session_serialization_snapshot() {
+        let mut session = Session::new();
+        session.push_user_text("Hello, assistant!").unwrap();
+        session
+            .push_message(ConversationMessage::assistant(vec![ContentBlock::Text {
+                text: "Hi there! How can I help you?".to_string(),
+            }]))
+            .unwrap();
+        session
+            .push_message(ConversationMessage::user_text("What is 2+2?"))
+            .unwrap();
+        session
+            .push_message(ConversationMessage::assistant(vec![ContentBlock::Text {
+                text: "2+2 = 4".to_string(),
+            }]))
+            .unwrap();
+
+        // JSON 序列化用于持久化，格式变更需审慎
+        let serialized = serde_json::to_string_pretty(&session).expect("serialize session");
+        insta::assert_snapshot!("session_serialization", serialized);
+    }
+
+    /// 快照测试：验证 TurnSummary 输出的稳定性。
+    /// 防止无意的 API 响应格式变更。
+    #[test]
+    fn turn_summary_snapshot() {
+        let summary = TurnSummary {
+            assistant_messages: vec![ConversationMessage::assistant(vec![ContentBlock::Text {
+                text: "Hello!".to_string(),
+            }])],
+            tool_results: vec![],
+            prompt_cache_events: vec![PromptCacheEvent {
+                unexpected: false,
+                reason: "cache read".to_string(),
+                previous_cache_read_input_tokens: 1_000,
+                current_cache_read_input_tokens: 800,
+                token_drop: 200,
+            }],
+            iterations: 1,
+            usage: crate::usage::TokenUsage {
+                input_tokens: 100,
+                output_tokens: 10,
+                cache_read_input_tokens: Some(800),
+                cache_creation_input_tokens: None,
+            },
+            auto_compaction: None,
+            thinking: String::new(),
+        };
+        let serialized = serde_json::to_string_pretty(&summary).expect("serialize summary");
+        insta::assert_snapshot!("turn_summary", serialized);
     }
 
     #[test]

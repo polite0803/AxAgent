@@ -20,6 +20,7 @@ pub use cache_interceptor::{HarnessCache, LlmCacheKey};
 pub mod confidence;
 pub mod credential;
 pub use confidence::{ConfidenceAction, ConfidenceConfig, ConfidenceOutput};
+pub mod channel_adapter;
 pub mod constants;
 pub mod core_error;
 pub mod error_codes;
@@ -185,3 +186,7 @@ pub use interceptor::{
     InterceptorChain, InterceptorContext, InterceptorResult, OutputValidationInterceptor,
     PromptGuardInterceptor,
 };
+
+// ── PromptProvider 契约（让 runtime-core 不依赖 kit） ──
+pub mod prompt_provider;
+pub use prompt_provider::{NoopPromptProvider, PromptLang, PromptProvider, StaticPromptProvider};

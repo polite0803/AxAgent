@@ -4,16 +4,16 @@ use std::collections::HashSet;
 
 use crate::session::{ContentBlock, ConversationMessage, MessageRole, Session};
 
-use axagent_core::prompts::PromptRegistry;
+use axagent_harness::prompt_provider::{PromptLang, PromptProvider};
 
-fn compact_continuation_preamble() -> &'static str {
-    PromptRegistry::get("compact.continuation_preamble", axagent_core::prompts::PromptLang::EnUS)
+fn compact_continuation_preamble(provider: &dyn PromptProvider) -> &'static str {
+    provider.get("compact.continuation_preamble", PromptLang::EnUS)
 }
-fn compact_recent_messages_note() -> &'static str {
-    PromptRegistry::get("compact.recent_messages_note", axagent_core::prompts::PromptLang::EnUS)
+fn compact_recent_messages_note(provider: &dyn PromptProvider) -> &'static str {
+    provider.get("compact.recent_messages_note", PromptLang::EnUS)
 }
-fn compact_direct_resume_instruction() -> &'static str {
-    PromptRegistry::get("compact.resume_instruction", axagent_core::prompts::PromptLang::EnUS)
+fn compact_direct_resume_instruction(provider: &dyn PromptProvider) -> &'static str {
+    provider.get("compact.resume_instruction", PromptLang::EnUS)
 }
 
 /// Thresholds controlling when and how a session is compacted.
@@ -47,6 +47,22 @@ impl Default for CompactionConfig {
             enable_task_boundary_cleanup: true,
             max_turn_age: Some(50),
         }
+    }
+}
+
+/// 紧急压缩配置：熔断器触发后的超激进模式。
+///
+/// 仅保留 1 条最近消息，目标 5K tokens，尽可能腾出空间。
+/// 参考 nomifun-tauri 的 emergency/micro 三级压缩设计。
+#[must_use]
+pub fn emergency_compaction_config() -> CompactionConfig {
+    CompactionConfig {
+        preserve_recent_messages: 1,
+        max_estimated_tokens: 5_000,
+        enable_turn_summaries: true,
+        enable_distance_decay: true,
+        enable_task_boundary_cleanup: true,
+        max_turn_age: Some(5),
     }
 }
 
@@ -121,6 +137,7 @@ pub fn smart_compact(
     session: &Session,
     config: CompactionConfig,
     memories: &[crate::session_memory_compact::StructuredMemory],
+    provider: &dyn PromptProvider,
 ) -> CompactionResult {
     // 尝试会话记忆压缩
     let sm_config = crate::session_memory_compact::SessionMemoryCompactConfig::default();
@@ -131,7 +148,7 @@ pub fn smart_compact(
     }
 
     // 回退到传统 LLM 压缩
-    compact_session(session, config)
+    compact_session(session, config, provider)
 }
 
 /// Normalizes a compaction summary into user-facing continuation text.
@@ -156,17 +173,19 @@ pub fn get_compact_continuation_message(
     summary: &str,
     suppress_follow_up_questions: bool,
     recent_messages_preserved: bool,
+    provider: &dyn PromptProvider,
 ) -> String {
-    let mut base = compact_continuation_preamble().to_string() + &format_compact_summary(summary);
+    let mut base =
+        compact_continuation_preamble(provider).to_string() + &format_compact_summary(summary);
 
     if recent_messages_preserved {
         base.push_str("\n\n");
-        base.push_str(compact_recent_messages_note());
+        base.push_str(compact_recent_messages_note(provider));
     }
 
     if suppress_follow_up_questions {
         base.push('\n');
-        base.push_str(compact_direct_resume_instruction());
+        base.push_str(compact_direct_resume_instruction(provider));
     }
 
     base
@@ -174,7 +193,11 @@ pub fn get_compact_continuation_message(
 
 /// Compacts a session by summarizing older messages and preserving the recent tail.
 #[must_use]
-pub fn compact_session(session: &Session, config: CompactionConfig) -> CompactionResult {
+pub fn compact_session(
+    session: &Session,
+    config: CompactionConfig,
+    provider: &dyn PromptProvider,
+) -> CompactionResult {
     // PreCompact hook — 在压缩前通知外部监听器
     let _ = crate::hooks::HookRunner::new(crate::config::RuntimeHookConfig::default()).run_event(
         crate::hooks::HookEvent::PreCompact,
@@ -197,7 +220,7 @@ pub fn compact_session(session: &Session, config: CompactionConfig) -> Compactio
     let existing_summary = session
         .messages
         .first()
-        .and_then(extract_existing_compacted_summary);
+        .and_then(|m| extract_existing_compacted_summary(m, provider));
     let compacted_prefix_len = usize::from(existing_summary.is_some());
     let raw_keep_from = session
         .messages
@@ -310,7 +333,8 @@ pub fn compact_session(session: &Session, config: CompactionConfig) -> Compactio
     let summary =
         merge_compact_summaries(existing_summary.as_deref(), &summarize_messages(&actual_removed));
     let formatted_summary = format_compact_summary(&summary);
-    let continuation = get_compact_continuation_message(&summary, true, !preserved.is_empty());
+    let continuation =
+        get_compact_continuation_message(&summary, true, !preserved.is_empty(), provider);
 
     let mut compacted_messages = vec![ConversationMessage {
         role: MessageRole::System,
@@ -657,18 +681,21 @@ fn collapse_blank_lines(content: &str) -> String {
     result
 }
 
-fn extract_existing_compacted_summary(message: &ConversationMessage) -> Option<String> {
+fn extract_existing_compacted_summary(
+    message: &ConversationMessage,
+    provider: &dyn PromptProvider,
+) -> Option<String> {
     if message.role != MessageRole::System {
         return None;
     }
 
     let text = first_text_block(message)?;
-    let summary = text.strip_prefix(compact_continuation_preamble())?;
+    let summary = text.strip_prefix(compact_continuation_preamble(provider))?;
     let summary = summary
-        .split_once(&("\n\n".to_string() + compact_recent_messages_note()))
+        .split_once(&("\n\n".to_string() + compact_recent_messages_note(provider)))
         .map_or(summary, |(value, _)| value);
     let summary = summary
-        .split_once(&("\n".to_string() + compact_direct_resume_instruction()))
+        .split_once(&("\n".to_string() + compact_direct_resume_instruction(provider)))
         .map_or(summary, |(value, _)| value);
     Some(summary.trim().to_string())
 }
@@ -896,6 +923,9 @@ mod tests {
         get_compact_continuation_message, infer_pending_work, should_compact,
     };
     use crate::session::{ContentBlock, ConversationMessage, MessageRole, Session};
+    use axagent_harness::prompt_provider::NoopPromptProvider;
+
+    const NP: &NoopPromptProvider = &NoopPromptProvider;
 
     #[test]
     fn formats_compact_summary_like_upstream() {
@@ -908,7 +938,7 @@ mod tests {
         let mut session = Session::new();
         session.messages = vec![ConversationMessage::user_text("hello")];
 
-        let result = compact_session(&session, CompactionConfig::default());
+        let result = compact_session(&session, CompactionConfig::default(), NP);
         assert_eq!(result.removed_message_count, 0);
         assert_eq!(result.compacted_session, session);
         assert!(result.summary.is_empty());
@@ -940,6 +970,7 @@ mod tests {
                 max_estimated_tokens: 1,
                 ..Default::default()
             },
+            NP,
         );
         // one extra message to avoid an orphaned tool result at the boundary.
         // messages[1] (assistant) must be kept along with messages[2] (tool result).
@@ -989,7 +1020,7 @@ mod tests {
             ..Default::default()
         };
 
-        let first = compact_session(&initial_session, config);
+        let first = compact_session(&initial_session, config, NP);
         let mut follow_up_messages = first.compacted_session.messages.clone();
         follow_up_messages.extend([
             ConversationMessage::user_text("Please add regression tests for compaction."),
@@ -1000,7 +1031,7 @@ mod tests {
 
         let mut second_session = Session::new();
         second_session.messages = follow_up_messages;
-        let second = compact_session(&second_session, config);
+        let second = compact_session(&second_session, config, NP);
 
         assert!(
             second
@@ -1042,7 +1073,7 @@ mod tests {
             ConversationMessage {
                 role: MessageRole::System,
                 blocks: vec![ContentBlock::Text {
-                    text: get_compact_continuation_message(summary, true, true),
+                    text: get_compact_continuation_message(summary, true, true, NP),
                 }],
                 usage: None,
             },
@@ -1125,7 +1156,7 @@ mod tests {
             preserve_recent_messages: 1,
             ..CompactionConfig::default()
         };
-        let result = compact_session(&session, config);
+        let result = compact_session(&session, config, NP);
         // After compaction, no two consecutive messages should have the pattern
         // tool_result immediately following a non-assistant message (i.e. an
         // orphaned tool result without a preceding assistant ToolUse).

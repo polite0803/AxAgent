@@ -136,6 +136,19 @@ impl AutoCompactTracking {
         self.consecutive_failures += 1;
     }
 
+    /// 熔断器触发后、上下文仍超阈值时是否进入紧急模式。
+    ///
+    /// 紧急模式下将使用超激进压缩配置（preserve_recent=1, max_tokens=5K），
+    /// 确保至少能腾出空间继续对话，而非让用户卡住。
+    pub fn emergency_mode(&self, estimated_tokens: u64, effective_window: u64) -> bool {
+        if !self.is_circuit_breaker_tripped() {
+            return false;
+        }
+        // 熔断器触发但上下文仍然超过自动压缩阈值 → 紧急模式
+        let auto_compact_threshold = effective_window.saturating_sub(AUTOCOMPACT_BUFFER_TOKENS);
+        estimated_tokens >= auto_compact_threshold
+    }
+
     /// 检查熔断器是否已跳闸（连续失败次数达到上限）。
     pub fn is_circuit_breaker_tripped(&self) -> bool {
         self.consecutive_failures >= MAX_CONSECUTIVE_AUTOCOMPACT_FAILURES

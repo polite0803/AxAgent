@@ -645,6 +645,25 @@ Each sub-skill should:
     }
 }
 
+// ── Harness PromptProvider 实现 ──────────────────────────────────────
+// 将 kit 的 PromptRegistry 桥接到 harness 的 PromptProvider trait，
+// 使 runtime-core 等消费者通过 harness 契约层获取提示模板，
+// 不再直接依赖 axagent-kit。
+
+impl axagent_harness::PromptProvider for PromptRegistry {
+    fn get(&self, key: &str, lang: axagent_harness::PromptLang) -> &'static str {
+        let kit_lang = match lang {
+            axagent_harness::PromptLang::ZhCN => PromptLang::ZhCN,
+            axagent_harness::PromptLang::EnUS => PromptLang::EnUS,
+        };
+        PromptRegistry::get(key, kit_lang)
+    }
+
+    fn get_all_languages(&self, key: &str) -> std::collections::HashMap<String, &'static str> {
+        PromptRegistry::get_all_languages(key)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -686,5 +705,36 @@ mod tests {
         assert!(map.contains_key("en-US"));
         assert!(!map.get("zh-CN").unwrap().is_empty());
         assert!(!map.get("en-US").unwrap().is_empty());
+    }
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// harness::PromptProvider impl — bridges kit's PromptRegistry to the harness
+// ────────────────────────────────────────────────────────────────────────────
+
+impl axagent_harness::prompt_provider::PromptProvider for PromptRegistry {
+    fn get(&self, key: &str, lang: axagent_harness::prompt_provider::PromptLang) -> &'static str {
+        let kit_lang = match lang {
+            axagent_harness::prompt_provider::PromptLang::ZhCN => PromptLang::ZhCN,
+            axagent_harness::prompt_provider::PromptLang::EnUS => PromptLang::EnUS,
+        };
+        PromptRegistry::get(key, kit_lang)
+    }
+
+    fn get_all_languages(&self, key: &str) -> std::collections::HashMap<String, &'static str> {
+        PromptRegistry::get_all_languages(key)
+    }
+
+    fn format(
+        &self,
+        key: &str,
+        lang: axagent_harness::prompt_provider::PromptLang,
+        args: &[&str],
+    ) -> String {
+        let kit_lang = match lang {
+            axagent_harness::prompt_provider::PromptLang::ZhCN => PromptLang::ZhCN,
+            axagent_harness::prompt_provider::PromptLang::EnUS => PromptLang::EnUS,
+        };
+        PromptRegistry::format(key, kit_lang, args)
     }
 }

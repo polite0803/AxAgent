@@ -8,6 +8,7 @@
 
 pub mod db;
 pub mod ddl;
+pub mod integrity;
 pub mod marketplace_service;
 pub mod migrations;
 pub mod platform_adapter_impl;

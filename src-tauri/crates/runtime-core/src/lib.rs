@@ -31,6 +31,7 @@ pub mod compact_thresholds;
 pub mod compact_warning;
 pub mod config;
 pub mod config_validate;
+pub mod context_contributor;
 pub mod conversation;
 pub mod cron_job;
 pub mod execution_progress;
@@ -64,9 +65,10 @@ pub use cron_job::{CronJob, CronJobStatus, CronJobStore, TaskConfig, TaskRunResu
 
 pub use compact::{
     CompactionConfig, CompactionResult, adaptive_compaction_config, cleanup_task_boundary,
-    compact_session, decay_weight, detect_task_boundary, estimate_message_tokens,
-    estimate_session_tokens, evaluate_compact_threshold, format_compact_summary,
-    get_compact_continuation_message, should_compact, smart_compact, summarize_turn,
+    compact_session, decay_weight, detect_task_boundary, emergency_compaction_config,
+    estimate_message_tokens, estimate_session_tokens, evaluate_compact_threshold,
+    format_compact_summary, get_compact_continuation_message, should_compact, smart_compact,
+    summarize_turn,
 };
 
 pub use compact_thresholds::{

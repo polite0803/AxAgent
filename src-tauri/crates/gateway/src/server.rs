@@ -19,6 +19,7 @@ use tokio::task::JoinHandle;
 use axagent_harness::core_error::{AxAgentError, Result};
 
 use crate::auth::{ClientIpPolicy, KeyVerifyLimiter};
+use crate::qr_bind::QrBindStore;
 use crate::realtime_ticket::TicketStore;
 
 /// Shared state for Axum handlers (separate from Tauri AppState).
@@ -37,6 +38,8 @@ pub struct GatewayAppState {
     /// In-memory store of single-use tickets for `/v1/realtime` WS auth
     /// (SECURITY P0-2.2). One per gateway instance.
     pub ticket_store: Arc<TicketStore>,
+    /// QR 绑定令牌存储（IM 渠道扫码绑定用，参考 nomifun QrTokenStore）。
+    pub qr_bind_store: QrBindStore,
     /// SECURITY (Phase 2 Task 2.3): per-IP 限流器，防御 prefix 爆破。
     /// 5 失败 → 60s 冷却（参见 spec 2.3）。
     pub key_verify_limiter: Arc<KeyVerifyLimiter>,
@@ -193,6 +196,7 @@ impl GatewayServer {
             adapter,
             marketplace_service,
             ticket_store: crate::realtime::default_ticket_store(),
+            qr_bind_store: crate::qr_bind::QrBindStore::new(),
             // SECURITY (Phase 2 Task 2.3): 5 失败 → 60s 冷却。
             key_verify_limiter: Arc::new(KeyVerifyLimiter::new(5, Duration::from_secs(60))),
             // P1-7: 默认从环境变量 `TRUSTED_PROXIES=ip1,ip2,...` 读取可信代理；

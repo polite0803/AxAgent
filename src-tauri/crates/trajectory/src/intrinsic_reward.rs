@@ -285,7 +285,9 @@ impl Default for IntrinsicMotivationEngine {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::trajectory::{MessageRole, ToolCall, ToolResult, TrajectoryOutcome, TrajectoryStep};
+    use crate::trajectory::{
+        MessageRole, ToolCall, TrajectoryOutcome, TrajectoryStep, TrajectoryToolResult,
+    };
 
     fn create_test_trajectory(outcome: TrajectoryOutcome) -> Trajectory {
         let steps = vec![

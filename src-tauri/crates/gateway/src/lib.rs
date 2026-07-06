@@ -6,6 +6,8 @@ pub mod marketplace_handlers;
 pub mod metrics;
 pub mod middleware;
 pub mod native;
+pub mod qr_bind;
+pub mod qr_bind_handlers;
 pub mod realtime;
 pub mod realtime_ticket;
 pub mod routes;

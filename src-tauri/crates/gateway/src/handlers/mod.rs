@@ -23,6 +23,7 @@ pub mod chat;
 pub mod error;
 pub mod health;
 pub mod jobs;
+pub mod mcp_proxy;
 pub mod models;
 pub mod platform_bridge;
 pub mod responses;

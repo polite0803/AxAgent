@@ -57,6 +57,23 @@ impl SteerManager {
         pending
     }
 
+    /// 批量推入多条指令（用于从 AppState.steer_queue 桥接）。
+    pub async fn extend(&self, instructions: Vec<String>) -> Vec<SteerMessage> {
+        let mut queue = self.queue.write().await;
+        let msgs: Vec<SteerMessage> = instructions
+            .into_iter()
+            .map(|instruction| SteerMessage {
+                id: uuid::Uuid::new_v4().to_string(),
+                instruction,
+                injected_at: chrono::Utc::now(),
+                consumed: false,
+            })
+            .collect();
+        queue.extend(msgs.clone());
+        tracing::info!("SteerManager: extended with {} instruction(s)", msgs.len());
+        msgs
+    }
+
     pub async fn format_steer_block(&self) -> Option<String> {
         let pending = self.drain_pending().await;
         if pending.is_empty() {

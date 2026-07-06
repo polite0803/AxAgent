@@ -739,7 +739,7 @@ mod tests {
                 }]);
 
                 let tool_results = if i > 0 {
-                    Some(vec![ToolResult {
+                    Some(vec![TrajectoryToolResult {
                         tool_use_id: format!("call_{}", i - 1),
                         tool_name: tool_name.to_string(),
                         output: "result".to_string(),
