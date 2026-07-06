@@ -11,6 +11,7 @@ pub mod bash;
 pub mod batch_missing;
 pub mod browser;
 pub mod ci;
+#[cfg(feature = "computer-use")]
 pub mod computer_use;
 pub mod context;
 pub mod cron;
@@ -102,6 +103,7 @@ pub fn register_all(registry: &mut crate::registry::ToolRegistry) {
         // ── 人格系统 ──
         std::sync::Arc::new(personality::PersonalityTool),
         // ── 桌面控制 ──
+        #[cfg(feature = "computer-use")]
         std::sync::Arc::new(computer_use::ComputerUseTool),
         // ── 浏览器 ──
         std::sync::Arc::new(browser::BrowserNavigateTool),

@@ -12,10 +12,6 @@ pub use axagent_kit::browser_automation;
 pub use axagent_kit::command_validator;
 #[cfg(feature = "computer-use")]
 pub use axagent_kit::computer_control;
-#[cfg(feature = "computer-use")]
-pub use axagent_kit::screen_capture;
-#[cfg(feature = "computer-use")]
-pub use axagent_kit::screen_vision;
 pub use axagent_search::ast_index;
 pub use axagent_storage::cloud_storage;
 pub use axagent_storage::cloud_workspace;

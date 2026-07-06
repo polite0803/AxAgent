@@ -2,6 +2,10 @@
 
 //! ComputerUseTool - 桌面控制和浏览器自动化工具
 
+// SPDX-License-Identifier: AGPL-3.0-only
+
+//! ComputerUseTool - 桌面控制和浏览器自动化工具
+
 use crate::{PermissionResult, Tool, ToolCategory, ToolContext, ToolError, ToolResult};
 use async_trait::async_trait;
 use axagent_core::computer_control;
