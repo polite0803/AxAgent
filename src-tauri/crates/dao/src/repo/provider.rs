@@ -524,9 +524,9 @@ pub async fn get_active_key(db: &DatabaseConnection, provider_id: &str) -> Resul
 
     // 只有一个 key 时无需轮询
     if keys.len() == 1 {
-        return Ok(keys.into_iter().next().ok_or_else(|| {
+        return keys.into_iter().next().ok_or_else(|| {
             AxAgentError::Validation("expected at least one key after length check".to_string())
-        })?);
+        });
     }
 
     // 多个 key 时使用 RoundRobin 轮询
