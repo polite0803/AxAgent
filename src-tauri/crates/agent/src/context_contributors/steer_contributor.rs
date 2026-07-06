@@ -5,15 +5,9 @@
 //! 从 `SteerManager` 中取出挂起的 steer 指令，格式化为 XML 块注入系统提示。
 //! 参考 nomifun-tauri 的 ContextContributor 设计。
 
-use std::collections::HashMap;
 use std::sync::Arc;
 
-use async_trait::async_trait;
-use tokio::sync::RwLock;
-
 use axagent_runtime_core::context_contributor::{ContextContributor, ContextRequest};
-use axagent_runtime_core::feature_flags::FeatureFlags;
-use axagent_runtime_core::session::Session;
 
 /// 从 `SteerManager` 获取 pending steer 指令的 contributor。
 pub struct SteerContributor {

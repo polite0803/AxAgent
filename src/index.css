@@ -4,6 +4,23 @@
 @import "@fontsource-variable/geist";
 @import "@fontsource-variable/jetbrains-mono";
 
+/* ── Tailwind v4 语义化颜色别名（参考 nomifun 设计） ── */
+@theme {
+  --color-base: var(--bg);
+  --color-surface-1: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-border-base: var(--border);
+  --color-border-light: var(--border-light);
+  --color-t-primary: var(--fg);
+  --color-t-secondary: var(--fg-2);
+  --color-t-tertiary: var(--muted);
+  --color-accent: var(--accent);
+  --color-success: var(--green);
+  --color-warning: var(--amber);
+  --color-danger: var(--red);
+  --color-info: var(--teal);
+}
+
 /* ═══════════════════════════════════════════════════════════════
    TOKEN SYSTEM — 原型 v3 oklch 色彩体系
    短名 token（--bg/--surface/--fg/...）是设计原型权威来源

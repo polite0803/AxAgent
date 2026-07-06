@@ -12,6 +12,10 @@
 //! - 最小依赖：仅 serde、async-trait、chrono、uuid、sea-orm（re-export）
 //! - 无运行时行为：所有实现都在下游 crate
 
+// ── 国际化 ──
+pub mod i18n;
+pub use i18n::{I18nKey, Locale, fmt_msg, fmt_msg_with, msg};
+
 // ── 共享数据类型 ──
 pub mod audit_trail;
 pub use audit_trail::{AuditEntry, AuditRecorder};
@@ -66,6 +70,11 @@ pub mod inference_engine;
 pub mod npm_registry;
 pub mod persistence;
 pub mod planner;
+pub mod plugin_hook;
+pub use plugin_hook::{
+    HookContext, HookDecision, LlmCallContext, LlmCallResult, PluginHook, SharedHook,
+    ToolCallContext, ToolCallResult,
+};
 pub mod prompt_guard;
 pub mod provider;
 pub mod registry;

@@ -8,7 +8,7 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-use axagent_core::workflow_types::{ErrorConfig, WorkflowEdge, WorkflowNode};
+use axagent_harness::workflow_types::{ErrorConfig, WorkflowEdge, WorkflowNode};
 
 // ── 节点运行时状态 ──
 

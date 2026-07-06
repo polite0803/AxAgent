@@ -10,7 +10,7 @@ mod context_manager;
 mod index_queue;
 mod indexing;
 mod indexing_triggers;
-mod init;
+pub mod init;
 pub use init::{create_app_state, init_database_with_dir};
 mod knowledge_integration;
 mod memory_extract;
@@ -18,7 +18,7 @@ mod memory_extract;
 #[macro_use]
 mod register_commands;
 
-mod paths;
+pub mod paths;
 pub use paths::axagent_home;
 mod semantic_cache;
 mod smart_router;

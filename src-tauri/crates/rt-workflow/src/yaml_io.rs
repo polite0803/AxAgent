@@ -6,7 +6,7 @@
 //! 前端可调用 `export_workflow_yaml` / `import_workflow_yaml` 完成 YAML 交互。
 
 use crate::workflow_engine::{Workflow, WorkflowStatus};
-use axagent_core::workflow_types::{WorkflowEdge, WorkflowNode};
+use axagent_harness::workflow_types::{WorkflowEdge, WorkflowNode};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -130,7 +130,7 @@ fn current_epoch_ms() -> u64 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use axagent_core::workflow_types::*;
+    use axagent_harness::workflow_types::*;
 
     fn make_mock_workflow() -> Workflow {
         let node = WorkflowNode::Trigger(TriggerNode {

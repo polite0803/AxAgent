@@ -1066,17 +1066,6 @@ where
             return None;
         }
 
-        // 紧急模式留空：由外层 Coordinator 或 AutoCompactTracking 触发
-        let use_emergency = false;
-        let config = if use_emergency {
-            tracing::warn!("Emergency compaction triggered: circuit breaker tripped");
-            crate::compact::emergency_compaction_config()
-        } else {
-            CompactionConfig {
-                max_estimated_tokens: 0,
-                ..CompactionConfig::default()
-            }
-        };
         let config = if false {
             crate::compact::emergency_compaction_config()
         } else {

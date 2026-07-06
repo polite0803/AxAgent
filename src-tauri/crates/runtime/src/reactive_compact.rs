@@ -8,7 +8,7 @@
 
 use crate::compact::{CompactionConfig, CompactionResult, compact_session};
 use crate::session::Session;
-use axagent_harness::prompt_provider::{NoopPromptProvider, PromptProvider};
+use axagent_harness::prompt_provider::NoopPromptProvider;
 
 const NP: &NoopPromptProvider = &NoopPromptProvider;
 

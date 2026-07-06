@@ -578,7 +578,7 @@ pub mod db_access {
         db: &DatabaseConnection,
         role_id: &str,
     ) -> Result<Option<AgentRoleRow>, sea_orm::DbErr> {
-        use axagent_core::entity::agent_roles;
+        use axagent_entities::agent_roles;
         let row = agent_roles::Entity::find_by_id(role_id).one(db).await?;
         Ok(row.map(|r| {
             let tools: Vec<String> = r

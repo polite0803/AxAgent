@@ -65,7 +65,7 @@ async fn async_main() {
     tracing::info!("Database initialized");
 
     // ── 创建 AppState（复用 Tauri 版本的全部业务逻辑） ──
-    let state = axagent_lib::init::state::create_app_state(db_result)
+    let _state = axagent_lib::init::state::create_app_state(db_result)
         .await
         .expect("Fatal: app state initialization failed");
     tracing::info!("AppState created");

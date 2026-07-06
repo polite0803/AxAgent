@@ -76,7 +76,7 @@ const DEFAULT_HOOK_TIMEOUT_SECS: u64 = 30;
 pub struct HookRunner {
     hooks: PluginHooks,
     timeout: Duration,
-    in_process_hooks: Vec<Arc<dyn axagent_runtime_core::plugin_hooks::PluginHook>>,
+    in_process_hooks: Vec<Arc<dyn axagent_harness::PluginHook>>,
 }
 
 impl std::fmt::Debug for HookRunner {
@@ -119,15 +119,12 @@ impl HookRunner {
         self
     }
 
-    pub fn register_in_process_hook(
-        &mut self,
-        hook: Arc<dyn axagent_runtime_core::plugin_hooks::PluginHook>,
-    ) {
+    pub fn register_in_process_hook(&mut self, hook: Arc<dyn axagent_harness::PluginHook>) {
         self.in_process_hooks.push(hook);
     }
 
     #[must_use]
-    pub fn in_process_hooks(&self) -> &[Arc<dyn axagent_runtime_core::plugin_hooks::PluginHook>] {
+    pub fn in_process_hooks(&self) -> &[Arc<dyn axagent_harness::PluginHook>] {
         &self.in_process_hooks
     }
 

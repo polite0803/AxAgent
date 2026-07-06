@@ -2,7 +2,7 @@
 
 use crate::event_bus::{AgentEventBus, AgentEventType, UnifiedAgentEvent};
 use crate::reasoning_router::{self, ReasoningEngine, TaskFeatures};
-use crate::steer_manager::{SteerManager, SteerMessage};
+use crate::steer_manager::SteerManager;
 use crate::tree_of_thoughts::{LlmReasoningProvider as ToTReasoningProvider, TreeOfThoughtsEngine};
 use async_trait::async_trait;
 use axagent_runtime_core::{CacheGuard, HookChain, prompt_cache::PromptCache};

@@ -71,6 +71,7 @@ async fn query_server_by_id(
         .map_err(|e| format!("Failed to query MCP server: {e}"))
 }
 
+#[allow(clippy::type_complexity)]
 fn build_call_args(
     server: &axagent_entities::mcp_servers::Model,
 ) -> (Option<&str>, Option<Vec<String>>, HashMap<String, String>, Option<&str>) {
