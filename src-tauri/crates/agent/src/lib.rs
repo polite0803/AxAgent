@@ -20,6 +20,7 @@ pub mod blackboard;
 pub mod checkpoint;
 pub mod citation_tracker;
 pub mod content_synthesizer;
+pub mod context_contributors;
 pub mod context_files;
 pub mod context_window;
 pub mod coordinator;

@@ -25,17 +25,18 @@ axagent-search = { path = "../search" }
 axagent-storage = { path = "../storage" }
 
 # Direct usage in src/
-anyhow = { workspace = true } # platform_config.rs (anyhow::bail!)
-serde = { workspace = true } # workflow_types.rs (derive Serialize/Deserialize)
-serde_json = { workspace = true } # workflow_types.rs (from_str)
-tokio = { workspace = true } # tests/*.rs use #[tokio::test]
-toml_edit = "0.22" # tests/cli_config_integration.rs
-tracing = { workspace = true } # macros.rs (try_unwrap_or_log!/try_lock_or_log!)
+anyhow = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tokio = { workspace = true }
+toml_edit = "0.22"
+tracing = { workspace = true }
+
+[features]
+computer-use = ["axagent-kit/computer-use"]
 
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(mobile)'] }
 
 [package.metadata.cargo-machete]
-# All declared deps are re-export targets referenced by `pub use` in lib.rs,
-# or direct deps used in src/*.rs (anyhow/serde/serde_json).
 ignored = []

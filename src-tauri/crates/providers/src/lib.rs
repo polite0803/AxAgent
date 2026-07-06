@@ -13,6 +13,7 @@ pub mod openai_responses;
 pub mod openclaw;
 pub mod realtime_client;
 pub mod registry;
+#[cfg(feature = "computer-use")]
 pub mod screen_vision;
 pub mod transport;
 

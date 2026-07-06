@@ -2,7 +2,7 @@
 
 use crate::event_bus::{AgentEventBus, AgentEventType, UnifiedAgentEvent};
 use crate::reasoning_router::{self, ReasoningEngine, TaskFeatures};
-use crate::steer_manager::SteerManager;
+use crate::steer_manager::{SteerManager, SteerMessage};
 use crate::tree_of_thoughts::{LlmReasoningProvider as ToTReasoningProvider, TreeOfThoughtsEngine};
 use async_trait::async_trait;
 use axagent_runtime_core::{CacheGuard, HookChain, prompt_cache::PromptCache};
@@ -673,7 +673,22 @@ impl<T: AgentImpl> AgentCoordinator<T> {
         Ok(())
     }
 
+    /// 将外部指令列表同步到内部 SteerManager。
+    ///
+    /// 调用方（commands/agent/mod.rs）在 execute 前将 AppState.steer_queue
+    /// 中的指定 conversation 指令取出来注入到此方法。
+    pub async fn sync_steer_queue(&self, instructions: Vec<String>) {
+        if !instructions.is_empty() {
+            let count = self.steer_manager.extend(instructions).await.len();
+            tracing::info!("[coordinator] synced {count} steer instruction(s) from external queue");
+        }
+    }
+
     pub async fn execute(&self, input: AgentInput) -> Result<CoordinatorOutput, AgentError> {
+        // 0. 从外部 steer_queue 同步指令到内部 SteerManager
+        // 此方法接收额外指令源（如 AppState.steer_queue），不直接引用 Tauri 状态
+        // 调用方（commands/agent/mod.rs）负责在 execute 前调用 self.sync_steer_queue()
+
         // 1. 原子守卫：仅允许从 Idle|Paused 进入 Running；并发进入时
         //    - 当前已是 Running → AlreadyRunning
         //    - 其余状态 → InvalidState

@@ -77,7 +77,7 @@ description = "AxAgent - AI Chat Desktop App"
 default = ["notification", "browser-use", "computer-use", "channel-platforms"]
 notification = ["dep:tauri-plugin-notification"]
 browser-use = []
-computer-use = []
+computer-use = ["axagent-core/computer-use", "axagent-providers/computer-use"]
 channel-platforms = []
 server = []
 
