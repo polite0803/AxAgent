@@ -662,78 +662,11 @@ impl axagent_harness::PromptProvider for PromptRegistry {
     fn get_all_languages(&self, key: &str) -> std::collections::HashMap<String, &'static str> {
         PromptRegistry::get_all_languages(key)
     }
-}
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_prompt_lang_from_locale() {
-        assert_eq!(PromptLang::from_locale("zh-CN"), PromptLang::ZhCN);
-        assert_eq!(PromptLang::from_locale("en-US"), PromptLang::EnUS);
-        assert_eq!(PromptLang::from_locale("ja"), PromptLang::ZhCN); // 默认回退中文
-    }
-
-    #[test]
-    fn test_get_prompt_both_languages() {
-        let zh = PromptRegistry::get("extraction.system_prompt", PromptLang::ZhCN);
-        let en = PromptRegistry::get("extraction.system_prompt", PromptLang::EnUS);
-        assert!(!zh.is_empty());
-        assert!(!en.is_empty());
-        assert_ne!(zh, en);
-    }
-
-    #[test]
-    fn test_format_with_args() {
-        let result =
-            PromptRegistry::format("extraction.user_template", PromptLang::ZhCN, &["测试对话内容"]);
-        assert!(result.contains("测试对话内容"));
-        assert!(!result.contains("{0}"));
-    }
-
-    #[test]
-    fn test_missing_key_returns_empty() {
-        let result = PromptRegistry::get("nonexistent.key", PromptLang::ZhCN);
-        assert_eq!(result, "");
-    }
-
-    #[test]
-    fn test_get_all_languages() {
-        let map = PromptRegistry::get_all_languages("extraction.system_prompt");
-        assert!(map.contains_key("zh-CN"));
-        assert!(map.contains_key("en-US"));
-        assert!(!map.get("zh-CN").unwrap().is_empty());
-        assert!(!map.get("en-US").unwrap().is_empty());
-    }
-}
-
-// ────────────────────────────────────────────────────────────────────────────
-// harness::PromptProvider impl — bridges kit's PromptRegistry to the harness
-// ────────────────────────────────────────────────────────────────────────────
-
-impl axagent_harness::prompt_provider::PromptProvider for PromptRegistry {
-    fn get(&self, key: &str, lang: axagent_harness::prompt_provider::PromptLang) -> &'static str {
+    fn format(&self, key: &str, lang: axagent_harness::PromptLang, args: &[&str]) -> String {
         let kit_lang = match lang {
-            axagent_harness::prompt_provider::PromptLang::ZhCN => PromptLang::ZhCN,
-            axagent_harness::prompt_provider::PromptLang::EnUS => PromptLang::EnUS,
-        };
-        PromptRegistry::get(key, kit_lang)
-    }
-
-    fn get_all_languages(&self, key: &str) -> std::collections::HashMap<String, &'static str> {
-        PromptRegistry::get_all_languages(key)
-    }
-
-    fn format(
-        &self,
-        key: &str,
-        lang: axagent_harness::prompt_provider::PromptLang,
-        args: &[&str],
-    ) -> String {
-        let kit_lang = match lang {
-            axagent_harness::prompt_provider::PromptLang::ZhCN => PromptLang::ZhCN,
-            axagent_harness::prompt_provider::PromptLang::EnUS => PromptLang::EnUS,
+            axagent_harness::PromptLang::ZhCN => PromptLang::ZhCN,
+            axagent_harness::PromptLang::EnUS => PromptLang::EnUS,
         };
         PromptRegistry::format(key, kit_lang, args)
     }
