@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+use axagent_harness::SharedFeatureFlagProvider;
 use axagent_runtime_core::{
     ApiClient, ConversationRuntime, PermissionMode, PermissionPolicy, PermissionPrompter, Session,
     ToolExecutor,
@@ -82,6 +83,7 @@ where
         session: Session,
         api_client: C,
         tool_executor: T,
+        feature_flags: SharedFeatureFlagProvider,
     ) -> Self {
         let (event_sender, _) = broadcast::channel(100);
 
@@ -138,8 +140,8 @@ where
         .with_max_iterations(config.max_iterations);
 
         // 根据 feature flag 启用主动模式
-        let proactive = if ProactiveMode::is_enabled() {
-            let mut pm = ProactiveMode::new();
+        let proactive = if ProactiveMode::is_enabled_static(&*feature_flags) {
+            let mut pm = ProactiveMode::new(feature_flags.clone());
             pm.activate();
             Some(pm)
         } else {

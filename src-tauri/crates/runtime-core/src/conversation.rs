@@ -2376,8 +2376,9 @@ mod tests {
             usage: crate::usage::TokenUsage {
                 input_tokens: 100,
                 output_tokens: 10,
-                cache_read_input_tokens: Some(800),
-                cache_creation_input_tokens: None,
+                cache_read_input_tokens: 800,
+                cache_creation_input_tokens: 0,
+                cache_miss_input_tokens: None,
             },
             auto_compaction: None,
             thinking: String::new(),

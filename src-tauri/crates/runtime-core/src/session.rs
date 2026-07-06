@@ -55,7 +55,7 @@ pub struct ConversationMessage {
 }
 
 /// Metadata describing the latest compaction that summarized a session.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
 pub struct SessionCompaction {
     pub count: u32,
     pub removed_message_count: usize,
@@ -63,20 +63,20 @@ pub struct SessionCompaction {
 }
 
 /// Provenance recorded when a session is forked from another session.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
 pub struct SessionFork {
     pub parent_session_id: String,
     pub branch_name: Option<String>,
 }
 
 /// A single user prompt recorded with a timestamp for history tracking.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
 pub struct SessionPromptEntry {
     pub timestamp_ms: u64,
     pub text: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
 struct SessionPersistence {
     path: PathBuf,
 }
@@ -89,7 +89,7 @@ struct SessionPersistence {
 /// lanes can race and report success while writes land in the wrong CWD. See
 /// ROADMAP.md item 41 (Phantom completions root cause) for the full
 /// background.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize)]
 pub struct Session {
     pub version: u32,
     pub session_id: String,
@@ -107,6 +107,7 @@ pub struct Session {
     pub model: Option<String>,
     persistence: Option<SessionPersistence>,
     /// Prompt 注入防护（可选，由 harness 注入）
+    #[serde(skip)]
     pub prompt_guard: Option<Arc<dyn PromptGuard>>,
 }
 

@@ -4,6 +4,7 @@
 //! Feature flag: PROACTIVE_MODE
 
 use axagent_harness::SharedFeatureFlagProvider;
+use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 /// 主动模式管理器
@@ -68,12 +69,7 @@ impl ProactiveMode {
         }
     }
 
-    /// 是否启用（检查 feature flag）— 无实例时的静态检查
-    pub fn is_enabled_static(provider: &dyn axagent_harness::FeatureFlagProvider) -> bool {
-        provider.is_enabled("PROACTIVE_MODE")
-    }
-
-    /// 是否启用（检查 feature flag）— 实例方法
+    /// 是否启用（检查 feature flag）
     pub fn is_enabled(&self) -> bool {
         self.feature_flags.is_enabled("PROACTIVE_MODE")
     }

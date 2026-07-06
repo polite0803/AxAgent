@@ -5,7 +5,7 @@ use crate::reasoning_router::{self, ReasoningEngine, TaskFeatures};
 use crate::steer_manager::SteerManager;
 use crate::tree_of_thoughts::{LlmReasoningProvider as ToTReasoningProvider, TreeOfThoughtsEngine};
 use async_trait::async_trait;
-use axagent_runtime_core::{CacheGuard, HookChain, prompt_cache::PromptCache};
+use axagent_harness::{SharedCacheService, SharedHookService};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use std::sync::atomic::{AtomicU8, AtomicU32, Ordering};
@@ -475,9 +475,8 @@ pub struct AgentCoordinator<T: AgentImpl> {
     implementation: Arc<tokio::sync::Mutex<T>>,
     event_bus: Arc<AgentEventBus>,
     correlation_counter: std::sync::atomic::AtomicU64,
-    pub prompt_cache: Arc<PromptCache>,
-    pub cache_guard: Arc<CacheGuard>,
-    pub hook_chain: Arc<HookChain>,
+    pub cache_service: SharedCacheService,
+    pub hook_chain: SharedHookService,
     pub steer_manager: Arc<SteerManager>,
     tot_engine: Arc<tokio::sync::Mutex<Option<TreeOfThoughtsEngine>>>,
     /// Phase 4: 推理策略自动选择路由器
@@ -492,10 +491,11 @@ impl<T: AgentImpl> AgentCoordinator<T> {
     pub fn new(
         implementation: Arc<tokio::sync::Mutex<T>>,
         event_bus: Option<Arc<AgentEventBus>>,
+        cache_service: SharedCacheService,
+        hook_chain: SharedHookService,
     ) -> Self {
         let event_bus =
             event_bus.unwrap_or_else(|| Arc::new(AgentEventBus::new("typed_coordinator")));
-        let prompt_cache = Arc::new(PromptCache::new());
 
         Self {
             state: Arc::new(AtomicU8::new(STATE_IDLE)),
@@ -504,9 +504,8 @@ impl<T: AgentImpl> AgentCoordinator<T> {
             implementation,
             event_bus,
             correlation_counter: std::sync::atomic::AtomicU64::new(0),
-            prompt_cache: prompt_cache.clone(),
-            cache_guard: Arc::new(CacheGuard::new(prompt_cache)),
-            hook_chain: Arc::new(HookChain::new()),
+            cache_service,
+            hook_chain,
             steer_manager: Arc::new(SteerManager::new()),
             tot_engine: Arc::new(tokio::sync::Mutex::new(None)),
             reasoning_engine: Arc::new(RwLock::new(ReasoningEngine::ReactEngine)),
@@ -753,13 +752,13 @@ impl<T: AgentImpl> AgentCoordinator<T> {
         let _should_use_tot = selected_engine == ReasoningEngine::TreeOfThoughts
             && self.tot_engine.lock().await.is_some();
 
-        let cache_was_valid = self.prompt_cache.is_cache_valid().await;
+        let cache_was_valid = self.cache_service.is_cache_valid().await;
         self.emit_event(
             AgentEventType::TurnStarted,
             serde_json::json!({
                 "input_preview": input.content.chars().take(100).collect::<String>(),
                 "cache_valid": cache_was_valid,
-                "has_pending_changes": self.prompt_cache.has_pending_changes().await,
+                "has_pending_changes": self.cache_service.has_pending_changes().await,
                 "reasoning_engine": selected_engine.to_string(),
                 "engine_source": if source == ENGINE_SOURCE_AUTO { "auto" } else if source == ENGINE_SOURCE_MANUAL { "manual" } else { "default" },
             }),
@@ -813,15 +812,15 @@ impl<T: AgentImpl> AgentCoordinator<T> {
     }
 
     pub async fn force_now(&self) {
-        self.cache_guard.set_force_immediate(true).await;
-        self.prompt_cache
+        self.cache_service.set_force_immediate(true).await;
+        self.cache_service
             .invalidate("--now flag: immediate invalidation")
             .await;
     }
 
     pub async fn prepare_for_new_session(&self) {
-        self.prompt_cache.invalidate_for_new_session().await;
-        self.cache_guard.set_force_immediate(false).await;
+        self.cache_service.invalidate_for_new_session().await;
+        self.cache_service.set_force_immediate(false).await;
     }
 
     pub async fn pause(&self) -> Result<(), AgentError> {

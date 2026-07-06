@@ -209,3 +209,15 @@ pub use interceptor::{
 // ── PromptProvider 契约（让 runtime-core 不依赖 kit） ──
 pub mod prompt_provider;
 pub use prompt_provider::{NoopPromptProvider, PromptLang, PromptProvider, StaticPromptProvider};
+
+// ── CacheService 契约 ──
+pub mod cache_service;
+pub use cache_service::{CacheService, SharedCacheService};
+
+// ── HookService 契约 ──
+pub mod hook_service;
+pub use hook_service::{HookService, SharedHookService};
+
+// ── FeatureFlagProvider 契约 ──
+pub mod feature_flag_provider;
+pub use feature_flag_provider::{FeatureFlagProvider, SharedFeatureFlagProvider};
