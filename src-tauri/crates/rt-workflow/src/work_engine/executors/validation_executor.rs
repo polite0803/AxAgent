@@ -60,7 +60,9 @@ impl NodeExecutorTrait for ValidationExecutor {
             let passed = match assertion.assertion_type.as_str() {
                 "json_schema" => {
                     if let (Some(expected), Some(actual)) = (&expected_value, &actual_value) {
-                        let (valid, _) = axagent_kit::schema_validator::validate_against_schema(actual, expected);
+                        let (valid, _) = axagent_kit::schema_validator::validate_against_schema(
+                            actual, expected,
+                        );
                         valid
                     } else {
                         false

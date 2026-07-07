@@ -76,7 +76,8 @@ impl PlatformBridge {
 
         let key_row = provider::get_active_key(&self.db, provider_id).await?;
 
-        let api_key = axagent_crypto::crypto::decrypt_key(&key_row.key_encrypted, &self.master_key)?;
+        let api_key =
+            axagent_crypto::crypto::decrypt_key(&key_row.key_encrypted, &self.master_key)?;
 
         let ctx = build_provider_request_context(&provider_config, &key_row, api_key);
 
@@ -216,8 +217,8 @@ impl PlatformBridge {
         text: &str,
     ) -> anyhow::Result<Option<String>> {
         use axagent_dao::repo::{conversation, message, settings};
-        use axagent_kit::slash_command::apply_slash_command_to_input;
         use axagent_harness::types::MessageRole;
+        use axagent_kit::slash_command::apply_slash_command_to_input;
 
         let preprocessed = apply_slash_command_to_input(text);
         let effective_text = &preprocessed.modified_text;

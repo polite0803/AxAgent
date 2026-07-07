@@ -236,9 +236,7 @@ pub use memory::{
 
 // ── P2: MemoryScanner 契约（本地日历/文件扫描） ──
 pub mod scanner;
-pub use scanner::{
-    MemoryScanner, NoopMemoryScanner, ScanResult, ScannedItem, ScannerConfig,
-};
+pub use scanner::{MemoryScanner, NoopMemoryScanner, ScanResult, ScannedItem, ScannerConfig};
 
 // ── P3: BrowserController 契约（浏览器自动化） ──
 pub mod browser;
@@ -268,9 +266,9 @@ pub use dream::{
 };
 pub mod profile;
 pub use profile::{
-    CodingStyleProfile, CommentStyle, CommunicationProfile, DomainKnowledgeProfile,
-    ExpertiseLevel, IndentationStyle, LearningState, NamingConvention, NoopUserProfileService,
-    ProfileUpdate, Tone, UserProfile, UserProfileService, WorkHabitProfile,
+    CodingStyleProfile, CommentStyle, CommunicationProfile, DomainKnowledgeProfile, ExpertiseLevel,
+    IndentationStyle, LearningState, NamingConvention, NoopUserProfileService, ProfileUpdate, Tone,
+    UserProfile, UserProfileService, WorkHabitProfile,
 };
 pub mod style;
 pub use style::{
@@ -308,11 +306,15 @@ pub use platform_manager::{
 
 // ── P9: 安全防护契约（限流 / SSRF / 内容过滤 / 工具指标 / 熔断 / 访问控制） ──
 pub mod rate_limiter;
-pub use rate_limiter::{NoopRateLimiter, RateLimitConfig, RateLimitResult, RateLimitStatus, RateLimiter};
+pub use rate_limiter::{
+    NoopRateLimiter, RateLimitConfig, RateLimitResult, RateLimitStatus, RateLimiter,
+};
 pub mod ssrf_guard;
 pub use ssrf_guard::{NoopSsrFGuard, SsrFConfig, SsrFGuard, UrlSafety};
 pub mod content_filter;
-pub use content_filter::{ContentFilter, ContentFilterConfig, ContentType, FilterAction, NoopContentFilter};
+pub use content_filter::{
+    ContentFilter, ContentFilterConfig, ContentType, FilterAction, NoopContentFilter,
+};
 pub mod tool_metrics;
 pub use tool_metrics::{
     NoopToolMetricsCollector, ToolCallRecord, ToolMetricsCollector, ToolMetricsSnapshot,

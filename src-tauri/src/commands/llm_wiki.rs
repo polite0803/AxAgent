@@ -333,8 +333,8 @@ async fn build_llm_adapter(
         .await
         .map_err(|e| e.to_string())?;
 
-    let api_key = axagent_crypto::decrypt_key(&key.key_encrypted, master_key)
-        .map_err(|e| e.to_string())?;
+    let api_key =
+        axagent_crypto::decrypt_key(&key.key_encrypted, master_key).map_err(|e| e.to_string())?;
 
     let settings = axagent_dao::repo::settings::get_settings(db)
         .await

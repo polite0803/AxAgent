@@ -52,7 +52,11 @@ pub fn validate_recursive(
         && let Some(obj) = value.as_object()
     {
         for (prop_name, prop_schema) in properties {
-            let child_path = if path.is_empty() { prop_name.clone() } else { format!("{path}.{prop_name}") };
+            let child_path = if path.is_empty() {
+                prop_name.clone()
+            } else {
+                format!("{path}.{prop_name}")
+            };
             if let Some(child_value) = obj.get(prop_name)
                 && !validate_recursive(child_value, prop_schema, &child_path, errors)
             {

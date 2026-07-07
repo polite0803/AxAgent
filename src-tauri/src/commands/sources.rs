@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-use axagent_search::rag::{ContainerType, KnowledgeContainer};
 use axagent_harness::types::CreateSourceInput;
+use axagent_search::rag::{ContainerType, KnowledgeContainer};
 use serde::{Deserialize, Serialize};
 use tauri::State;
 

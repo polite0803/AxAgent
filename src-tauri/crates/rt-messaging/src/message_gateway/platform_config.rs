@@ -22,19 +22,25 @@ impl PlatformConfigExt for PlatformConfig {
         if self.slack_enabled && self.slack_app_token.is_none() {
             anyhow::bail!("Slack app token is required when Slack Socket Mode is enabled");
         }
-        if self.wechat_enabled && (self.wechat_app_id.is_none() || self.wechat_app_secret.is_none()) {
+        if self.wechat_enabled && (self.wechat_app_id.is_none() || self.wechat_app_secret.is_none())
+        {
             anyhow::bail!("WeChat app_id and app_secret are required when WeChat is enabled");
         }
-        if self.feishu_enabled && (self.feishu_app_id.is_none() || self.feishu_app_secret.is_none()) {
+        if self.feishu_enabled && (self.feishu_app_id.is_none() || self.feishu_app_secret.is_none())
+        {
             anyhow::bail!("Feishu app_id and app_secret are required when Feishu is enabled");
         }
         if self.qq_enabled && (self.qq_bot_app_id.is_none() || self.qq_bot_token.is_none()) {
             anyhow::bail!("QQ bot_app_id and bot_token are required when QQ is enabled");
         }
         if self.dingtalk_enabled
-            && (self.dingtalk_app_key.is_none() || self.dingtalk_app_secret.is_none() || self.dingtalk_agent_id.is_none())
+            && (self.dingtalk_app_key.is_none()
+                || self.dingtalk_app_secret.is_none()
+                || self.dingtalk_agent_id.is_none())
         {
-            anyhow::bail!("Dingtalk app_key, app_secret, and agent_id are required when Dingtalk is enabled");
+            anyhow::bail!(
+                "Dingtalk app_key, app_secret, and agent_id are required when Dingtalk is enabled"
+            );
         }
         if self.api_server_enabled {
             let port = self.api_server_port.unwrap_or(8080);

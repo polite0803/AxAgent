@@ -97,37 +97,34 @@ fn spawn_stream_task(
             // Early create: persist a placeholder message so it survives crash/refresh
             // Skip if the caller already created the placeholder before spawning.
             if !skip_placeholder_create {
-                if let Err(e) =
-                    (axagent_entities::messages::ActiveModel {
-                        id: Set(assistant_message_id.clone()),
-                        conversation_id: Set(conversation_id.clone()),
-                        role: Set("assistant".to_string()),
-                        content: Set(String::new()),
-                        provider_id: Set(Some(provider.id.clone())),
-                        model_id: Set(Some(model_id.clone())),
-                        token_count: Set(None),
-                        prompt_tokens: Set(None),
-                        completion_tokens: Set(None),
-                        attachments: Set("[]".to_string()),
-                        thinking: Set(None),
-                        created_at: Set(
-                            override_created_at.unwrap_or_else(axagent_kit::utils::now_ts)
-                        ),
-                        branch_id: Set(None),
-                        parent_message_id: Set(Some(parent_message_id.clone())),
-                        version_index: Set(version_index),
-                        is_active: Set(if create_inactive { 0 } else { 1 }),
-                        tool_calls_json: Set(None),
-                        tool_call_id: Set(None),
-                        status: Set("partial".to_string()),
-                        tokens_per_second: Set(None),
-                        first_token_latency_ms: Set(None),
-                        parts: Set(None),
-                        cache_creation_tokens: Set(None),
-                        cache_read_tokens: Set(None),
-                    })
-                    .insert(&db)
-                    .await
+                if let Err(e) = (axagent_entities::messages::ActiveModel {
+                    id: Set(assistant_message_id.clone()),
+                    conversation_id: Set(conversation_id.clone()),
+                    role: Set("assistant".to_string()),
+                    content: Set(String::new()),
+                    provider_id: Set(Some(provider.id.clone())),
+                    model_id: Set(Some(model_id.clone())),
+                    token_count: Set(None),
+                    prompt_tokens: Set(None),
+                    completion_tokens: Set(None),
+                    attachments: Set("[]".to_string()),
+                    thinking: Set(None),
+                    created_at: Set(override_created_at.unwrap_or_else(axagent_kit::utils::now_ts)),
+                    branch_id: Set(None),
+                    parent_message_id: Set(Some(parent_message_id.clone())),
+                    version_index: Set(version_index),
+                    is_active: Set(if create_inactive { 0 } else { 1 }),
+                    tool_calls_json: Set(None),
+                    tool_call_id: Set(None),
+                    status: Set("partial".to_string()),
+                    tokens_per_second: Set(None),
+                    first_token_latency_ms: Set(None),
+                    parts: Set(None),
+                    cache_creation_tokens: Set(None),
+                    cache_read_tokens: Set(None),
+                })
+                .insert(&db)
+                .await
                 {
                     tracing::error!("Failed to create placeholder assistant message: {}", e);
                 }

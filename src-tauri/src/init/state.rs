@@ -13,9 +13,9 @@ use crate::app_state::SemanticCacheState;
 use crate::commands::proactive::ProactiveService;
 use crate::semantic_cache::{CacheConfig, SemanticCache};
 use crate::state::{BrowserClientField, SandboxExecutorField};
-use axagent_storage::cloud_storage::{CloudStorageConfig, SyncEngine};
 use axagent_plugins::{PluginManager, PluginManagerConfig};
 use axagent_runtime_core::prompt_cache::PromptCache;
+use axagent_storage::cloud_storage::{CloudStorageConfig, SyncEngine};
 use tokio_util::sync::CancellationToken;
 
 /// 构造 AppState。
@@ -718,16 +718,15 @@ async fn load_cloud_storage_config(
             .sync_profile_name
             .clone()
             .unwrap_or_else(|| "default".to_string()),
-        webdav: settings
-            .webdav_host
-            .as_ref()
-            .map(|h| axagent_storage::cloud_storage::WebDavConfig {
+        webdav: settings.webdav_host.as_ref().map(|h| {
+            axagent_storage::cloud_storage::WebDavConfig {
                 host: h.clone(),
                 username: settings.webdav_username.clone().unwrap_or_default(),
                 password: settings.webdav_password.clone().unwrap_or_default(),
                 path: settings.webdav_path.clone().unwrap_or_default(),
                 accept_invalid_certs: settings.webdav_accept_invalid_certs,
-            }),
+            }
+        }),
         s3: settings.s3_endpoint.as_ref().map(|e| S3Config {
             endpoint: e.clone(),
             region: settings.s3_region.clone().unwrap_or_default(),

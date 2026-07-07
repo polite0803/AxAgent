@@ -1149,16 +1149,15 @@ impl WorkEngine {
             // 持久化失败状态（status="failed"），便于审计与前端展示。
             // 注意：workflow_executions 表当前没有 error_message 字段，错误细节
             // 仅记入日志；后续若加字段再透传。
-            if let Err(e) =
-                axagent_dao::repo::workflow_execution::update_workflow_execution_status(
-                    &self.db,
-                    &execution_id,
-                    "failed",
-                    None,
-                    None,
-                    None,
-                )
-                .await
+            if let Err(e) = axagent_dao::repo::workflow_execution::update_workflow_execution_status(
+                &self.db,
+                &execution_id,
+                "failed",
+                None,
+                None,
+                None,
+            )
+            .await
             {
                 tracing::error!(
                     "[rt-workflow] 持久化校验失败状态失败: {e} (execution_id={execution_id})"

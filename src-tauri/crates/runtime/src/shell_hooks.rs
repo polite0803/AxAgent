@@ -80,8 +80,7 @@ impl ShellHookExecutor {
                 .stderr(Stdio::piped());
             #[cfg(windows)]
             axagent_kit::utils::hide_window(cmd.as_std_mut());
-            let result = match cmd.spawn()
-            {
+            let result = match cmd.spawn() {
                 Ok(mut child) => {
                     if let Some(mut stdin) = child.stdin.take()
                         && stdin.write_all(json_input.as_bytes()).await.is_err()

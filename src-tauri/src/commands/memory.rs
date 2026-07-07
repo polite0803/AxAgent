@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use crate::AppState;
-use axagent_kit::prompts::PromptLang;
 use axagent_dao::repo::index_jobs as jobs;
 use axagent_harness::types::*;
 use axagent_harness::{ProviderRequestContext, url_utils::resolve_base_url_for_type};
+use axagent_kit::prompts::PromptLang;
 use sea_orm::ActiveModelTrait;
 use tauri::{AppHandle, State};
 
@@ -402,9 +402,8 @@ pub async fn auto_extract_incremental_memories(
         (provider, key_row, model_id.to_string(), settings)
     };
 
-    let api_key =
-        axagent_crypto::decrypt_key(&key_row.key_encrypted, state.harness.master_key())
-            .map_err(|e| e.to_string())?;
+    let api_key = axagent_crypto::decrypt_key(&key_row.key_encrypted, state.harness.master_key())
+        .map_err(|e| e.to_string())?;
 
     let proxy = ProviderProxyConfig::resolve(&provider.proxy_config, &settings);
     let ctx = ProviderRequestContext {
@@ -489,8 +488,7 @@ pub async fn auto_extract_incremental_memories(
             content: item.content.clone(),
             source: Some("auto_extract".to_string()),
         };
-        if let Ok(mem_item) = axagent_dao::repo::memory::add_item(state.harness.db(), input).await
-        {
+        if let Ok(mem_item) = axagent_dao::repo::memory::add_item(state.harness.db(), input).await {
             let ns = axagent_dao::repo::memory::get_namespace(state.harness.db(), &namespace_id)
                 .await
                 .ok();
@@ -817,9 +815,8 @@ pub async fn extract_conversation_entities(
         (provider, key_row, model_id.to_string(), settings)
     };
 
-    let api_key =
-        axagent_crypto::decrypt_key(&key_row.key_encrypted, state.harness.master_key())
-            .map_err(|e| e.to_string())?;
+    let api_key = axagent_crypto::decrypt_key(&key_row.key_encrypted, state.harness.master_key())
+        .map_err(|e| e.to_string())?;
 
     let proxy = ProviderProxyConfig::resolve(&provider.proxy_config, &settings);
     let ctx = ProviderRequestContext {
@@ -1128,9 +1125,8 @@ pub async fn consolidate_memory_cluster(
         (provider, key_row, model_id.to_string(), settings)
     };
 
-    let api_key =
-        axagent_crypto::decrypt_key(&key_row.key_encrypted, state.harness.master_key())
-            .map_err(|e| e.to_string())?;
+    let api_key = axagent_crypto::decrypt_key(&key_row.key_encrypted, state.harness.master_key())
+        .map_err(|e| e.to_string())?;
 
     let proxy = ProviderProxyConfig::resolve(&provider.proxy_config, &settings);
     let ctx = ProviderRequestContext {
@@ -1284,9 +1280,8 @@ pub async fn extract_conversation_memories(
         (provider, key_row, model_id.to_string(), settings)
     };
 
-    let api_key =
-        axagent_crypto::decrypt_key(&key_row.key_encrypted, state.harness.master_key())
-            .map_err(|e| e.to_string())?;
+    let api_key = axagent_crypto::decrypt_key(&key_row.key_encrypted, state.harness.master_key())
+        .map_err(|e| e.to_string())?;
 
     let proxy = ProviderProxyConfig::resolve(&provider.proxy_config, &settings);
     let ctx = ProviderRequestContext {

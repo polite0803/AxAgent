@@ -2,14 +2,14 @@
 
 use crate::AppState;
 use crate::commands::spawn_guard::catch_unwind_logged;
-use axagent_search::hybrid_search::{FusionAlgorithm, HybridSearchOptions, HybridSearcher};
-use axagent_search::rag::{RAGSource, WikiVaultRAG, collection_id};
 use axagent_dao::repo::index_jobs as jobs;
 use axagent_dao::repo::louvain::{self, LouvainResult};
 use axagent_dao::repo::note::{CreateNoteInput, GraphData, Note, NoteLink, UpdateNoteInput};
 use axagent_dao::repo::note_graph::LinkGraph;
 use axagent_dao::repo::wiki::{self, CreateWikiTemplateInput, NoteVersion, WikiTemplate};
 use axagent_harness::types::NoteSearchResult;
+use axagent_search::hybrid_search::{FusionAlgorithm, HybridSearchOptions, HybridSearcher};
+use axagent_search::rag::{RAGSource, WikiVaultRAG, collection_id};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use tauri::{AppHandle, Emitter, State};
@@ -250,15 +250,12 @@ pub async fn wiki_notes_get_backlinks(
     let mut map: std::collections::HashMap<String, BacklinkInfo> = std::collections::HashMap::new();
 
     for link in &links {
-        let source_note = match axagent_dao::repo::note::get_note(
-            state.harness.db(),
-            &link.source_note_id,
-        )
-        .await
-        {
-            Ok(n) => n,
-            Err(_) => continue,
-        };
+        let source_note =
+            match axagent_dao::repo::note::get_note(state.harness.db(), &link.source_note_id).await
+            {
+                Ok(n) => n,
+                Err(_) => continue,
+            };
 
         let snippets = extract_link_context_snippets(&source_note.content, target_title, 80);
 
@@ -412,15 +409,13 @@ async fn wiki_notes_search_hybrid(
 
     let mut results = Vec::new();
     for hybrid_result in &hybrid_results {
-        let note = match axagent_dao::repo::note::get_note(
-            state.harness.db(),
-            &hybrid_result.document_id,
-        )
-        .await
-        {
-            Ok(n) => n,
-            Err(_) => continue,
-        };
+        let note =
+            match axagent_dao::repo::note::get_note(state.harness.db(), &hybrid_result.document_id)
+                .await
+            {
+                Ok(n) => n,
+                Err(_) => continue,
+            };
 
         let snippet = extract_highlight_snippet(&note.content, query, 50, 150);
         let score = hybrid_result.combined_score as f64;
@@ -872,8 +867,7 @@ pub async fn wiki_create_daily_note(
     let today = chrono::Utc::now().format("%Y-%m-%d").to_string();
     let file_path = format!("daily/{}.md", today);
 
-    match axagent_dao::repo::note::get_note_by_path(state.harness.db(), &vault_id, &file_path)
-        .await
+    match axagent_dao::repo::note::get_note_by_path(state.harness.db(), &vault_id, &file_path).await
     {
         Ok(note) => Ok(note),
         Err(_) => {

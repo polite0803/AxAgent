@@ -14,10 +14,10 @@
 use std::sync::Arc;
 
 use crate::types::{DecompositionPlan, OrchestrationError, OrchestrationStrategy, SubTask};
-use axagent_harness::workflow_types::AgentRole;
 use axagent_harness::llm_execution::LlmExecutionService;
 use axagent_harness::provider::{ProviderAdapter, ProviderRequestContext};
 use axagent_harness::types::ChatContent;
+use axagent_harness::workflow_types::AgentRole;
 use serde::Deserialize;
 
 // ── Trait ──────────────────────────────────────────────────────────────

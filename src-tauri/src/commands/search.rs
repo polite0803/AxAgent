@@ -112,10 +112,9 @@ pub async fn test_search_provider(
 ) -> Result<serde_json::Value, String> {
     use std::time::Instant;
 
-    let provider =
-        axagent_dao::repo::search_provider::get_search_provider(state.harness.db(), &id)
-            .await
-            .map_err(|e| e.to_string())?;
+    let provider = axagent_dao::repo::search_provider::get_search_provider(state.harness.db(), &id)
+        .await
+        .map_err(|e| e.to_string())?;
 
     let Some(endpoint) = &provider.endpoint else {
         return Ok(

@@ -80,14 +80,9 @@ pub async fn add_provider_key(
     } else {
         raw_key.clone()
     };
-    axagent_dao::repo::provider::add_provider_key(
-        state.harness.db(),
-        &real_id,
-        &encrypted,
-        &prefix,
-    )
-    .await
-    .map_err(|e| e.to_string())
+    axagent_dao::repo::provider::add_provider_key(state.harness.db(), &real_id, &encrypted, &prefix)
+        .await
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -138,9 +133,8 @@ pub async fn get_decrypted_provider_key(
     let key_row = axagent_dao::repo::provider::get_provider_key(state.harness.db(), &key_id)
         .await
         .map_err(|e| e.to_string())?;
-    let decrypted =
-        axagent_crypto::decrypt_key(&key_row.key_encrypted, state.harness.master_key())
-            .map_err(|e| e.to_string())?;
+    let decrypted = axagent_crypto::decrypt_key(&key_row.key_encrypted, state.harness.master_key())
+        .map_err(|e| e.to_string())?;
     Ok(axagent_crypto::key_prefix(&decrypted))
 }
 
@@ -152,9 +146,8 @@ pub async fn validate_provider_key(
     let key_row = axagent_dao::repo::provider::get_provider_key(state.harness.db(), &key_id)
         .await
         .map_err(|e| e.to_string())?;
-    let decrypted =
-        axagent_crypto::decrypt_key(&key_row.key_encrypted, state.harness.master_key())
-            .map_err(|e| e.to_string())?;
+    let decrypted = axagent_crypto::decrypt_key(&key_row.key_encrypted, state.harness.master_key())
+        .map_err(|e| e.to_string())?;
     let provider =
         axagent_dao::repo::provider::get_provider(state.harness.db(), &key_row.provider_id)
             .await
@@ -293,9 +286,8 @@ pub async fn fetch_remote_models(
     let key_row = axagent_dao::repo::provider::get_active_key(state.harness.db(), &real_id)
         .await
         .map_err(|e| e.to_string())?;
-    let decrypted =
-        axagent_crypto::decrypt_key(&key_row.key_encrypted, state.harness.master_key())
-            .map_err(|e| e.to_string())?;
+    let decrypted = axagent_crypto::decrypt_key(&key_row.key_encrypted, state.harness.master_key())
+        .map_err(|e| e.to_string())?;
 
     let provider_type_str = match provider.provider_type {
         ProviderType::OpenAI => "openai",
@@ -390,9 +382,8 @@ pub async fn test_model(
     let key_row = axagent_dao::repo::provider::get_active_key(state.harness.db(), &real_id)
         .await
         .map_err(|e| e.to_string())?;
-    let decrypted =
-        axagent_crypto::decrypt_key(&key_row.key_encrypted, state.harness.master_key())
-            .map_err(|e| e.to_string())?;
+    let decrypted = axagent_crypto::decrypt_key(&key_row.key_encrypted, state.harness.master_key())
+        .map_err(|e| e.to_string())?;
 
     let provider_type_str = match provider.provider_type {
         ProviderType::OpenAI => "openai",

@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-use axagent_kit::screen_vision::UIElementInfo;
 use axagent_harness::types::ProviderType;
 use axagent_harness::{ProviderAdapter, ProviderRequestContext};
+use axagent_kit::screen_vision::UIElementInfo;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tauri::State;

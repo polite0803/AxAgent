@@ -950,7 +950,9 @@ pub async fn archive_workflow_session(
 pub(crate) async fn consume_stream(
     app: &tauri::AppHandle,
     stream: &mut std::pin::Pin<
-        Box<dyn futures::Stream<Item = axagent_harness::core_error::Result<ChatStreamChunk>> + Send>,
+        Box<
+            dyn futures::Stream<Item = axagent_harness::core_error::Result<ChatStreamChunk>> + Send,
+        >,
     >,
     params: StreamConsumptionParams<'_>,
 ) -> (
@@ -1546,7 +1548,9 @@ pub(crate) async fn execute_tool_call(
                     is_error: r.is_error,
                     progress: Vec::new(),
                 }),
-                Ok(Err(e)) => Err(axagent_harness::core_error::AxAgentError::Gateway(e.to_string())),
+                Ok(Err(e)) => {
+                    Err(axagent_harness::core_error::AxAgentError::Gateway(e.to_string()))
+                },
                 Err(_) => {
                     use crate::commands::error_code::tool as tool_err;
                     return (

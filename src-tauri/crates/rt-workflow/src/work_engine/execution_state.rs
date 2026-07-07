@@ -151,7 +151,10 @@ type LoopCheckpointLoadFn = dyn Fn(
     ) -> std::pin::Pin<
         Box<
             dyn std::future::Future<
-                    Output = Result<Option<axagent_harness::workflow_types::LoopCheckpoint>, String>,
+                    Output = Result<
+                        Option<axagent_harness::workflow_types::LoopCheckpoint>,
+                        String,
+                    >,
                 > + Send,
         >,
     > + Send

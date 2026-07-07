@@ -111,7 +111,8 @@ impl LspProcess {
         // Windows: 隐藏控制台窗口
         #[cfg(windows)]
         axagent_kit::utils::hide_window(cmd.as_std_mut());
-        let mut child = cmd.spawn()
+        let mut child = cmd
+            .spawn()
             .map_err(|e| format!("Failed to spawn LSP server '{}': {}", self.config.command, e))?;
 
         let stdin = child

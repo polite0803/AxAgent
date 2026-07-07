@@ -154,10 +154,9 @@ pub async fn index_jobs_reindex_collection(
 ) -> Result<u64, String> {
     match source_type.as_str() {
         "kb" => {
-            let docs =
-                axagent_dao::repo::knowledge::list_documents(state.harness.db(), &source_id)
-                    .await
-                    .map_err(|e| e.to_string())?;
+            let docs = axagent_dao::repo::knowledge::list_documents(state.harness.db(), &source_id)
+                .await
+                .map_err(|e| e.to_string())?;
             let count = docs.len() as u64;
             for doc in docs {
                 let _ = axagent_dao::repo::knowledge::update_document_status(

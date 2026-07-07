@@ -57,8 +57,12 @@ pub struct NoopAgent;
 
 #[async_trait]
 impl Agent for NoopAgent {
-    fn name(&self) -> &str { "noop" }
-    fn capabilities(&self) -> Vec<AgentCapability> { vec![] }
+    fn name(&self) -> &str {
+        "noop"
+    }
+    fn capabilities(&self) -> Vec<AgentCapability> {
+        vec![]
+    }
     async fn execute(&self, _req: AgentExecuteRequest) -> Result<AgentResult, String> {
         Err("NoopAgent cannot execute".to_string())
     }
@@ -81,7 +85,9 @@ impl Default for AgentRegistry {
 
 impl AgentRegistry {
     pub fn new() -> Self {
-        Self { agents: HashMap::new() }
+        Self {
+            agents: HashMap::new(),
+        }
     }
     pub fn register(&mut self, name: &str, agent: Box<dyn Agent>) {
         self.agents.insert(name.to_string(), agent);
@@ -90,10 +96,13 @@ impl AgentRegistry {
         self.agents.get(name).map(|b| b.as_ref())
     }
     pub fn list(&self) -> Vec<AgentInfo> {
-        self.agents.iter().map(|(name, agent)| AgentInfo {
-            name: name.clone(),
-            description: String::new(),
-            capabilities: agent.capabilities(),
-        }).collect()
+        self.agents
+            .iter()
+            .map(|(name, agent)| AgentInfo {
+                name: name.clone(),
+                description: String::new(),
+                capabilities: agent.capabilities(),
+            })
+            .collect()
     }
 }

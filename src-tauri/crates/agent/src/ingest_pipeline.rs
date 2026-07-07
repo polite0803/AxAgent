@@ -8,10 +8,10 @@ use sha2::{Digest, Sha256};
 use tokio::fs;
 
 use axagent_entities::wiki_sources;
-use axagent_kit::utils::gen_id;
 use axagent_harness::types::{ChatContent, ChatMessage, ChatRequest};
 use axagent_harness::util_fns::truncate_to_char_boundary;
 use axagent_harness::{ProviderAdapter, ProviderRequestContext};
+use axagent_kit::utils::gen_id;
 use sea_orm::{ActiveModelTrait, DatabaseConnection, EntityTrait, Set};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]

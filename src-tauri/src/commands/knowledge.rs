@@ -2,9 +2,9 @@
 
 use crate::AppState;
 use crate::commands::spawn_guard::catch_unwind_logged;
-use axagent_search::rag::KnowledgeContainer;
 use axagent_dao::repo::index_jobs as jobs;
 use axagent_harness::types::*;
+use axagent_search::rag::KnowledgeContainer;
 use tauri::{AppHandle, Emitter, State};
 
 #[tauri::command]
@@ -637,7 +637,9 @@ pub async fn add_knowledge_chunk(
             .into_iter()
             .next()
             .ok_or_else(|| {
-                axagent_harness::core_error::AxAgentError::Provider("No embedding returned".to_string())
+                axagent_harness::core_error::AxAgentError::Provider(
+                    "No embedding returned".to_string(),
+                )
             })?;
 
         let chunk_id = vector_store

@@ -130,11 +130,7 @@ impl LintChecker {
         Ok(results)
     }
 
-    fn check_frontmatter(
-        &self,
-        note: &axagent_dao::repo::note::Note,
-        issues: &mut Vec<LintIssue>,
-    ) {
+    fn check_frontmatter(&self, note: &axagent_dao::repo::note::Note, issues: &mut Vec<LintIssue>) {
         if note.title.is_empty() {
             issues.push(LintIssue {
                 severity: IssueSeverity::Error,

@@ -3,9 +3,9 @@
 use crate::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::expert as expert_err;
-use axagent_entities::agency_experts;
 use axagent_dao::repo::provider::{self as provider_repo, get_active_key};
 use axagent_dao::repo::settings::get_settings;
+use axagent_entities::agency_experts;
 use axagent_harness::resolve_base_url_for_type;
 use axagent_harness::types::{ChatContent, ChatMessage, ChatRequest};
 use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set};
@@ -589,11 +589,10 @@ pub async fn extract_expert_structure(
             .with_detail(format!("无活跃密钥: {}", provider_id))
             .to_string()
     })?;
-    let api_key =
-        axagent_crypto::decrypt_key(&key_row.key_encrypted, state.harness.master_key())
-            .map_err(|e| {
-                ErrorResponse::new(expert_err::KEY_DECRYPT_FAILED).with_detail(e.to_string())
-            })?;
+    let api_key = axagent_crypto::decrypt_key(&key_row.key_encrypted, state.harness.master_key())
+        .map_err(|e| {
+        ErrorResponse::new(expert_err::KEY_DECRYPT_FAILED).with_detail(e.to_string())
+    })?;
 
     let registry_key = provider_config.provider_type.registry_key();
 

@@ -262,9 +262,8 @@ async fn generate_plan_via_llm(
         .await
         .map_err(|e| format!("No active provider key: {}", e))?;
 
-    let api_key =
-        axagent_crypto::decrypt_key(&key_row.key_encrypted, state.harness.master_key())
-            .map_err(|e| format!("Failed to decrypt provider key: {}", e))?;
+    let api_key = axagent_crypto::decrypt_key(&key_row.key_encrypted, state.harness.master_key())
+        .map_err(|e| format!("Failed to decrypt provider key: {}", e))?;
 
     // Parse proxy config from the provider
     let proxy_config = provider_config.proxy_config.clone();

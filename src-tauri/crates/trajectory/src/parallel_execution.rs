@@ -523,7 +523,8 @@ impl ParallelExecutionVerifier {
 
             match (schema, output_value) {
                 (Ok(schema), Ok(value)) => {
-                    let (valid, errors) = axagent_kit::schema_validator::validate_against_schema(&value, &schema);
+                    let (valid, errors) =
+                        axagent_kit::schema_validator::validate_against_schema(&value, &schema);
                     if valid {
                         passed_count += 1;
                         all_details.push(format!("{}: 通过", task.name));

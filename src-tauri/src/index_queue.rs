@@ -8,8 +8,8 @@
 //! 3. 细粒度进度事件（parsing → chunking → embedding → storing）
 
 use crate::AppState;
-use axagent_search::rag;
 use axagent_dao::repo::index_jobs as jobs;
+use axagent_search::rag;
 use axagent_search::vector_store::VectorStore;
 use sea_orm::ConnectionTrait;
 use sea_orm::DatabaseConnection;

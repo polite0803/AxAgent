@@ -2,8 +2,8 @@
 
 use crate::{ProviderAdapter, ProviderRequestContext};
 use axagent_harness::core_error::{AxAgentError, Result};
-use axagent_kit::screen_vision::{ScreenAnalysis, SuggestedAction, UIElementInfo};
 use axagent_harness::types::*;
+use axagent_kit::screen_vision::{ScreenAnalysis, SuggestedAction, UIElementInfo};
 
 /// Analyze a screen using the given provider adapter, context, and model.
 pub async fn analyze_screen(

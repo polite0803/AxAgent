@@ -5,12 +5,12 @@ use std::sync::Arc;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 
-use axagent_entities::{notes, wiki_operations, wiki_pages, wiki_sources, wikis};
 use axagent_dao::repo::note::{CreateNoteInput, Note, UpdateNoteInput, calculate_content_hash};
-use axagent_kit::utils::gen_id;
+use axagent_entities::{notes, wiki_operations, wiki_pages, wiki_sources, wikis};
 use axagent_harness::llm_execution::{LlmCallConfig, SharedLlmExecutionService};
 use axagent_harness::types::{ChatContent, ChatMessage, ChatRequest};
 use axagent_harness::{ProviderAdapter, ProviderRequestContext};
+use axagent_kit::utils::gen_id;
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, IntoActiveModel, QueryFilter,
     Set,

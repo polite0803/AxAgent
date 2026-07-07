@@ -13,8 +13,8 @@ use std::sync::{Arc, PoisonError};
 use std::time::Duration;
 
 use async_trait::async_trait;
-use axagent_harness::workflow_types::WorkflowNode;
 use axagent_harness::types::{ChatContent, ChatMessage, ChatRequest, RagContextResult};
+use axagent_harness::workflow_types::WorkflowNode;
 use futures::StreamExt;
 use sea_orm::DatabaseConnection;
 use serde_json::Value;
@@ -1138,8 +1138,8 @@ impl AgentExecutor {
         adapter: &std::sync::Arc<dyn axagent_harness::ProviderAdapter>,
         node: &WorkflowNode,
     ) -> Result<NodeOutput, NodeError> {
-        use axagent_kit::plan_compiler::compile_plan_to_dag;
         use axagent_harness::plan_types::{Plan, TaskStatus};
+        use axagent_kit::plan_compiler::compile_plan_to_dag;
         let role_desc = resolve_role(&an.config, None);
         let base_url = axagent_harness::url_utils::resolve_base_url_for_type(
             &prov.api_host,

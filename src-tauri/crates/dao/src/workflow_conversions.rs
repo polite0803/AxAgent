@@ -9,12 +9,17 @@
 //! 因为两个类型都不属于本 crate（E0117 orphan rule），故使用自由函数。
 
 use axagent_entities::workflow_template;
-use axagent_harness::workflow_types::{WorkflowTemplateResponse, TriggerConfig, WorkflowNode, WorkflowEdge, JsonSchema, Variable, ErrorConfig};
+use axagent_harness::workflow_types::{
+    ErrorConfig, JsonSchema, TriggerConfig, Variable, WorkflowEdge, WorkflowNode,
+    WorkflowTemplateResponse,
+};
 
 /// 将 SeaORM `workflow_template::Model` 转换为 `WorkflowTemplateResponse`。
 ///
 /// 返回的 `tool_defs` 字段固定为 `None`（当前模型不存储该字段）。
-pub fn workflow_template_response_from_model(model: workflow_template::Model) -> WorkflowTemplateResponse {
+pub fn workflow_template_response_from_model(
+    model: workflow_template::Model,
+) -> WorkflowTemplateResponse {
     let tags: Vec<String> = model
         .tags
         .as_ref()
@@ -26,10 +31,8 @@ pub fn workflow_template_response_from_model(model: workflow_template::Model) ->
         .as_ref()
         .and_then(|t| serde_json::from_str(t).ok());
 
-    let nodes: Vec<WorkflowNode> =
-        serde_json::from_str(&model.nodes).unwrap_or_default();
-    let edges: Vec<WorkflowEdge> =
-        serde_json::from_str(&model.edges).unwrap_or_default();
+    let nodes: Vec<WorkflowNode> = serde_json::from_str(&model.nodes).unwrap_or_default();
+    let edges: Vec<WorkflowEdge> = serde_json::from_str(&model.edges).unwrap_or_default();
     let input_schema: Option<JsonSchema> = model
         .input_schema
         .as_ref()

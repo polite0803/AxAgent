@@ -190,8 +190,10 @@ impl ContextWindow {
             char_count += line.len();
             if char_count > max_chars {
                 lines.push(
-                    axagent_harness::i18n::msg(axagent_harness::i18n::I18nKey::AgentOlderStepsOmitted)
-                        .to_string(),
+                    axagent_harness::i18n::msg(
+                        axagent_harness::i18n::I18nKey::AgentOlderStepsOmitted,
+                    )
+                    .to_string(),
                 );
                 break;
             }

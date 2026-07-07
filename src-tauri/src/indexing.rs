@@ -15,12 +15,12 @@ use sea_orm::DatabaseConnection;
 use std::sync::Arc;
 
 use axagent_harness::core_error::{AxAgentError, Result};
-use axagent_search::rag::{self, ChunkStrategy, KnowledgeRAG, LlmCallFn, MemoryRAG};
-use axagent_search::vector_store::{VectorSearchResult, VectorStore};
 use axagent_harness::types::*;
 use axagent_harness::{
     ProviderAdapter, ProviderRequestContext, url_utils::resolve_base_url_for_type,
 };
+use axagent_search::rag::{self, ChunkStrategy, KnowledgeRAG, LlmCallFn, MemoryRAG};
+use axagent_search::vector_store::{VectorSearchResult, VectorStore};
 
 // ── AsyncEmbedFn implementation ──────────────────────────────────────────────
 
@@ -289,9 +289,8 @@ pub async fn index_knowledge_document(
         },
         Err(e) => {
             // H5: set status to failed so the user can retry
-            let _ =
-                axagent_dao::repo::knowledge::update_document_status(db, document_id, "failed")
-                    .await;
+            let _ = axagent_dao::repo::knowledge::update_document_status(db, document_id, "failed")
+                .await;
             Err(e)
         },
     }

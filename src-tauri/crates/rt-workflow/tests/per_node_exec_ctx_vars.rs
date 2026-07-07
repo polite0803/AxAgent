@@ -18,11 +18,11 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use async_trait::async_trait;
+use axagent_harness::registry::ProviderRegistry;
 use axagent_harness::workflow_types::{
     EdgeType, Position, RetryConfig, ToolNode, ToolNodeConfig, TriggerConfig, TriggerNode,
     TriggerType, Variable, WorkflowEdge, WorkflowNode, WorkflowNodeBase,
 };
-use axagent_harness::registry::ProviderRegistry;
 use axagent_harness::{
     Tool, ToolCategory, ToolContext, ToolError, ToolInfo, ToolRegistry, ToolResult,
 };

@@ -7,13 +7,13 @@ use crate::commands::error_code::agent_status as agent_status_err;
 use crate::commands::error_code::steer as steer_err;
 use crate::commands::spawn_guard::{SpawnGuard, catch_unwind_logged};
 use axagent_agent::{AgentExecutionProgressSnapshot, AxAgentApiClient};
-use axagent_storage::cloud_workspace::CloudWorkspace;
 use axagent_dao::repo::{conversation, message, provider, search_provider};
-use axagent_storage::workspace_uri::WorkspaceUri;
 use axagent_harness::types::{
     Attachment, ChatTool, ChatToolFunction, McpServer, MessageRole, ProviderProxyConfig,
 };
 use axagent_harness::{ProviderAdapter, ProviderRequestContext, resolve_base_url_for_type};
+use axagent_storage::cloud_workspace::CloudWorkspace;
+use axagent_storage::workspace_uri::WorkspaceUri;
 use axagent_tools::context_keys;
 use axagent_tools::registry::{McpServerConfig, UnifiedToolRegistry};
 use base64::Engine;
@@ -529,9 +529,8 @@ pub async fn agent_query(
     info!("[agent_query] Found active key");
 
     // Decrypt key
-    let api_key =
-        axagent_crypto::decrypt_key(&key.key_encrypted, app_state.harness.master_key())
-            .map_err(|e| e.to_string())?;
+    let api_key = axagent_crypto::decrypt_key(&key.key_encrypted, app_state.harness.master_key())
+        .map_err(|e| e.to_string())?;
     info!("[agent_query] Decrypted API key");
 
     // Get settings from database
@@ -1403,8 +1402,7 @@ pub async fn agent_query(
     }
 
     // Check token budget before expensive LLM call
-    let estimated_input_tokens =
-        axagent_kit::token_counter::estimate_tokens(&request.input) as u64;
+    let estimated_input_tokens = axagent_kit::token_counter::estimate_tokens(&request.input) as u64;
     if let Err(budget_err) = check_token_budget(estimated_input_tokens) {
         tracing::warn!("[agent_query] Token budget check failed: {}", budget_err);
         // Emit error to frontend
@@ -2169,11 +2167,11 @@ async fn load_enabled_skill_contents(
     scenario: Option<&str>,
     enabled_skill_ids: &[String],
 ) -> Vec<(String, String)> {
-    let disabled =
-        match axagent_dao::repo::skill::get_disabled_skills(app_state.harness.db()).await {
-            Ok(d) => d,
-            Err(_) => return Vec::new(),
-        };
+    let disabled = match axagent_dao::repo::skill::get_disabled_skills(app_state.harness.db()).await
+    {
+        Ok(d) => d,
+        Err(_) => return Vec::new(),
+    };
 
     let home = match dirs::home_dir() {
         Some(h) => h,
@@ -2256,11 +2254,11 @@ async fn load_skill_tools(
     scenario: Option<&str>,
     enabled_skill_ids: &[String],
 ) -> (Vec<ChatTool>, HashMap<String, axagent_trajectory::Skill>) {
-    let disabled =
-        match axagent_dao::repo::skill::get_disabled_skills(app_state.harness.db()).await {
-            Ok(d) => d,
-            Err(_) => return (Vec::new(), HashMap::new()),
-        };
+    let disabled = match axagent_dao::repo::skill::get_disabled_skills(app_state.harness.db()).await
+    {
+        Ok(d) => d,
+        Err(_) => return (Vec::new(), HashMap::new()),
+    };
 
     let trajectory_storage = &app_state.trajectory_storage;
     let all_skills = match trajectory_storage.get_skills().await {
