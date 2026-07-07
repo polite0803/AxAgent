@@ -7,10 +7,46 @@ use axagent_agent::coordinator::{
     AgentConfig, AgentCoordinator, AgentError, AgentImpl, AgentInput, AgentStatus,
     CoordinatorOutput,
 };
-use axagent_harness::cache_service::NoopCacheService;
-use axagent_harness::hook_service::NoopHookService;
+use axagent_harness::cache_service::CacheService;
+use axagent_harness::hook_service::HookService;
 use std::sync::Arc;
 use tokio::sync::Mutex;
+
+struct NoopCacheService;
+#[async_trait::async_trait]
+impl CacheService for NoopCacheService {
+    async fn is_cache_valid(&self) -> bool {
+        false
+    }
+    async fn has_pending_changes(&self) -> bool {
+        false
+    }
+    async fn invalidate(&self, _reason: &str) {}
+    async fn invalidate_for_new_session(&self) {}
+    async fn set_force_immediate(&self, _force: bool) {}
+}
+
+struct NoopHookService;
+#[async_trait::async_trait]
+impl HookService for NoopHookService {
+    async fn register(&self, _hook: axagent_harness::plugin_hook::SharedHook) {}
+    async fn unregister(&self, _name: &str) {}
+    async fn list(&self) -> Vec<String> {
+        vec![]
+    }
+    async fn execute_pre_tool_call(
+        &self,
+        _ctx: &axagent_harness::plugin_hook::ToolCallContext,
+    ) -> Option<axagent_harness::plugin_hook::HookDecision> {
+        None
+    }
+    async fn execute_post_tool_call(
+        &self,
+        _ctx: &axagent_harness::plugin_hook::ToolCallContext,
+        _result: &axagent_harness::plugin_hook::ToolCallResult,
+    ) {
+    }
+}
 
 // ---------------------------------------------------------------------------
 // Mock agent for lifecycle testing
