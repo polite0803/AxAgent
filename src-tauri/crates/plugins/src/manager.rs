@@ -1777,6 +1777,11 @@ pub fn run_lifecycle_commands(
         let mut process = if Path::new(command).exists() {
             if cfg!(windows) {
                 let mut process = Command::new("cmd");
+                #[cfg(windows)]
+                {
+                    use std::os::windows::process::CommandExt;
+                    process.creation_flags(0x08000000); // CREATE_NO_WINDOW
+                }
                 process.arg("/C").arg(command);
                 process
             } else {
@@ -1786,6 +1791,11 @@ pub fn run_lifecycle_commands(
             }
         } else if cfg!(windows) {
             let mut process = Command::new("cmd");
+            #[cfg(windows)]
+            {
+                use std::os::windows::process::CommandExt;
+                process.creation_flags(0x08000000); // CREATE_NO_WINDOW
+            }
             process.arg("/C").arg(command);
             process
         } else {

@@ -114,7 +114,7 @@ impl ContextWindow {
         if let Some(ref summary) = self.summarized_prefix {
             parts.push(format!(
                 "{}:\n{}",
-                axagent_core::i18n::msg(axagent_core::i18n::I18nKey::AgentEarlyStepSummary),
+                axagent_harness::i18n::msg(axagent_harness::i18n::I18nKey::AgentEarlyStepSummary),
                 summary
             ));
         }
@@ -190,7 +190,7 @@ impl ContextWindow {
             char_count += line.len();
             if char_count > max_chars {
                 lines.push(
-                    axagent_core::i18n::msg(axagent_core::i18n::I18nKey::AgentOlderStepsOmitted)
+                    axagent_harness::i18n::msg(axagent_harness::i18n::I18nKey::AgentOlderStepsOmitted)
                         .to_string(),
                 );
                 break;

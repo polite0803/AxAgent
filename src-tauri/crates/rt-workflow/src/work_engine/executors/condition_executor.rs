@@ -7,7 +7,7 @@
 //!   2. LLM 动态路由：调用 LLM 根据上下文判断走 true/false 分支
 
 use async_trait::async_trait;
-use axagent_core::workflow_types::{CompareOperator, LogicalOperator, WorkflowNode};
+use axagent_harness::workflow_types::{CompareOperator, LogicalOperator, WorkflowNode};
 use sea_orm::DatabaseConnection;
 use std::sync::Arc;
 
@@ -177,7 +177,7 @@ impl ConditionExecutor {
     /// 调用 LLM 判断走 true 还是 false 分支。
     async fn execute_llm_route(
         &self,
-        config: &axagent_core::workflow_types::ConditionNodeConfig,
+        config: &axagent_harness::workflow_types::ConditionNodeConfig,
         context: &ExecutionState,
         node_id: &str,
     ) -> Result<NodeOutput, NodeError> {
@@ -393,7 +393,7 @@ impl ConditionExecutor {
 
 /// 启发式降级判断：有上下文数据走 true，否则走 false。
 fn evaluate_llm_heuristic(
-    config: &axagent_core::workflow_types::ConditionNodeConfig,
+    config: &axagent_harness::workflow_types::ConditionNodeConfig,
     context: &ExecutionState,
 ) -> bool {
     let meaningful_vars = context

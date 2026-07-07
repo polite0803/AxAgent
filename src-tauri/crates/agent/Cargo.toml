@@ -6,7 +6,6 @@ publish = false
 
 [dependencies]
 async-trait = "0.1"
-axagent-core = { path = "../core" }
 axagent-harness = { path = "../harness" }
 axagent-runtime-core = { path = "../runtime-core" }
 backon = "1.6"

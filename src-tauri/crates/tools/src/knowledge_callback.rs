@@ -5,7 +5,7 @@
 //! 提供全局知识搜索回调的注册和获取，供 knowledge.rs 和 state.rs 使用。
 //! 从 builtin_handlers.rs 迁移而来。
 
-use axagent_core::error::AxAgentError;
+use axagent_harness::core_error::AxAgentError;
 
 pub struct KnowledgeSearchHit {
     pub document_id: String,

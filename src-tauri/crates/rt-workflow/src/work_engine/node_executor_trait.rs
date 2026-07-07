@@ -3,7 +3,7 @@
 //! Node executor trait and related types
 
 use async_trait::async_trait;
-use axagent_core::workflow_types::WorkflowNode;
+use axagent_harness::workflow_types::WorkflowNode;
 use serde::{Deserialize, Serialize};
 
 /// Output from a node execution

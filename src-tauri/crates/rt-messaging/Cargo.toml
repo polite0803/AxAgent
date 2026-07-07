@@ -5,9 +5,11 @@ edition.workspace = true
 publish = false
 
 [dependencies]
+axagent-crypto = { path = "../crypto" }
+axagent-dao = { path = "../dao" }
+axagent-kit = { path = "../kit" }
 anyhow = { workspace = true }
 async-trait = "0.1"
-axagent-core = { path = "../core" }
 axagent-harness = { path = "../harness" }
 chrono = { workspace = true }
 flate2 = "1"

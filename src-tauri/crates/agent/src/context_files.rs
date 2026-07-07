@@ -190,7 +190,8 @@ async fn fetch_url_content(url: &str) -> Result<String, String> {
 
 fn resolve_skill_references(content: &str) -> String {
     let re = regex::Regex::new(r"@skill:([a-zA-Z0-9_-]+)").unwrap();
-    let dirs = axagent_core::skill_dirs::skill_dirs();
+    use axagent_harness::repositories::skill_dirs_provider;
+    let dirs = skill_dirs_provider().skill_dirs();
 
     re.replace_all(content, |caps: &regex::Captures| {
         let skill_name = &caps[1];

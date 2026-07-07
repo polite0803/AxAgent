@@ -5,16 +5,15 @@ use std::sync::Arc;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 
-use axagent_core::entity::{notes, wiki_operations, wiki_pages, wiki_sources, wikis};
-use axagent_core::repo::note::{CreateNoteInput, Note, UpdateNoteInput, calculate_content_hash};
-use axagent_core::utils::gen_id;
 use axagent_harness::llm_execution::{LlmCallConfig, SharedLlmExecutionService};
-use axagent_harness::types::{ChatContent, ChatMessage, ChatRequest};
-use axagent_harness::{ProviderAdapter, ProviderRequestContext};
-use sea_orm::{
-    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, IntoActiveModel, QueryFilter,
-    Set,
+use axagent_harness::repositories::{note_repository, wiki_page_repository, wiki_repository, wiki_source_repository};
+use axagent_harness::repo_dtos::{
+    CreateNoteInput, CreateWikiPageInput, Note, UpdateNoteInput, UpdateWikiPageInput, WikiSource,
 };
+use axagent_harness::types::{ChatContent, ChatMessage, ChatRequest};
+use axagent_harness::util_fns::{calculate_content_hash, gen_id};
+use axagent_harness::{ProviderAdapter, ProviderRequestContext};
+use sea_orm::DatabaseConnection;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CompiledPage {
@@ -141,11 +140,10 @@ impl WikiCompiler {
     }
 
     async fn read_schema(&self, wiki_id: &str) -> Result<String, String> {
-        let wiki = wikis::Entity::find_by_id(wiki_id)
-            .one(self.db.as_ref())
+        let wiki = wiki_repository()
+            .get_wiki(wiki_id)
             .await
-            .map_err(|e| e.to_string())?
-            .ok_or_else(|| format!("Wiki {} not found", wiki_id))?;
+            .map_err(|e| e.to_string())?;
 
         let schema_path = std::path::Path::new(&wiki.root_path).join("SCHEMA.md");
         if schema_path.exists() {
@@ -178,24 +176,17 @@ impl WikiCompiler {
         &self,
         wiki_id: &str,
         source_ids: &[String],
-    ) -> Result<Vec<wiki_sources::Model>, String> {
-        let sources = wiki_sources::Entity::find()
-            .filter(wiki_sources::Column::WikiId.eq(wiki_id))
-            .filter(
-                wiki_sources::Column::Id
-                    .is_in(source_ids.iter().map(|s| s.as_str()).collect::<Vec<_>>()),
-            )
-            .all(self.db.as_ref())
+    ) -> Result<Vec<WikiSource>, String> {
+        wiki_source_repository()
+            .load_sources(wiki_id, source_ids)
             .await
-            .map_err(|e| e.to_string())?;
-
-        Ok(sources)
+            .map_err(|e| e.to_string())
     }
 
     async fn read_source_contents(
         &self,
-        sources: &[wiki_sources::Model],
-    ) -> Result<Vec<(wiki_sources::Model, String)>, String> {
+        sources: &[WikiSource],
+    ) -> Result<Vec<(WikiSource, String)>, String> {
         let mut results = Vec::new();
         for source in sources {
             let path = std::path::Path::new(&source.source_path);
@@ -205,16 +196,17 @@ impl WikiCompiler {
                     .unwrap_or_else(|_| format!("[Content not readable: {}]", source.source_path));
                 results.push((source.clone(), content));
             } else {
-                let wiki = wikis::Entity::find_by_id(&source.wiki_id)
-                    .one(self.db.as_ref())
+                let maybe_path = wiki_repository()
+                    .get_wiki(&source.wiki_id)
                     .await
-                    .map_err(|e| e.to_string())?;
-                if let Some(w) = wiki {
-                    let alt_path = std::path::Path::new(&w.root_path).join("raw").join(
-                        std::path::Path::new(&source.source_path)
-                            .file_name()
-                            .unwrap_or_default(),
-                    );
+                    .map(|w| {
+                        std::path::Path::new(&w.root_path).join("raw").join(
+                            std::path::Path::new(&source.source_path)
+                                .file_name()
+                                .unwrap_or_default(),
+                        )
+                    });
+                if let Ok(alt_path) = maybe_path {
                     if alt_path.exists() {
                         let content = tokio::fs::read_to_string(&alt_path)
                             .await
@@ -232,7 +224,7 @@ impl WikiCompiler {
     async fn llm_compile(
         &self,
         schema: &str,
-        source_contents: &[(wiki_sources::Model, String)],
+        source_contents: &[(WikiSource, String)],
     ) -> Result<Vec<CompiledPage>, String> {
         let all_content: String = source_contents
             .iter()
@@ -379,7 +371,7 @@ impl WikiCompiler {
     async fn compile_long_source(
         &self,
         schema: &str,
-        source: &wiki_sources::Model,
+        source: &WikiSource,
         content: &str,
         language: &str,
     ) -> Result<Vec<CompiledPage>, String> {
@@ -676,15 +668,9 @@ impl WikiCompiler {
                 return Ok((note.clone(), false));
             }
 
-            let _ = axagent_core::repo::wiki::create_version(
-                self.db.as_ref(),
-                wiki_id,
-                &note.id,
-                &note.title,
-                &note.content,
-                &note.author,
-            )
-            .await;
+            let _ = wiki_repository()
+                .create_version(wiki_id, &note.id, &note.title, &note.content, &note.author)
+                .await;
 
             let input = UpdateNoteInput {
                 title: Some(page.title.clone()),
@@ -693,18 +679,17 @@ impl WikiCompiler {
                 related_pages: None,
             };
 
-            let updated_note =
-                axagent_core::repo::note::update_note(self.db.as_ref(), &note.id, input)
-                    .await
-                    .map_err(|e| e.to_string())?;
+            let updated_note = note_repository()
+                .update_note(&note.id, input)
+                .await
+                .map_err(|e| e.to_string())?;
 
             self.update_wiki_page(&updated_note, page).await?;
 
-            let wiki = wikis::Entity::find_by_id(wiki_id)
-                .one(self.db.as_ref())
+            let wiki = wiki_repository()
+                .get_wiki(wiki_id)
                 .await
-                .map_err(|e| e.to_string())?
-                .ok_or_else(|| format!("Wiki {} not found", wiki_id))?;
+                .map_err(|e| e.to_string())?;
 
             let note_path = std::path::Path::new(&wiki.root_path)
                 .join("notes")
@@ -727,17 +712,17 @@ impl WikiCompiler {
             source_refs: Some(page.source_ids.clone()),
         };
 
-        let note = axagent_core::repo::note::create_note(self.db.as_ref(), input)
+        let note = note_repository()
+            .create_note(input)
             .await
             .map_err(|e| e.to_string())?;
 
         self.create_wiki_page(wiki_id, &note, page).await?;
 
-        let wiki = wikis::Entity::find_by_id(wiki_id)
-            .one(self.db.as_ref())
+        let wiki = wiki_repository()
+            .get_wiki(wiki_id)
             .await
-            .map_err(|e| e.to_string())?
-            .ok_or_else(|| format!("Wiki {} not found", wiki_id))?;
+            .map_err(|e| e.to_string())?;
 
         let note_path = std::path::Path::new(&wiki.root_path)
             .join("notes")
@@ -747,7 +732,7 @@ impl WikiCompiler {
         }
         let _ = tokio::fs::write(&note_path, &page.content).await;
 
-        let _ = axagent_core::repo::wiki::increment_note_count(self.db.as_ref(), wiki_id).await;
+        let _ = wiki_repository().increment_note_count(wiki_id).await;
 
         Ok((note, false))
     }
@@ -770,18 +755,10 @@ impl WikiCompiler {
         wiki_id: &str,
         title: &str,
     ) -> Result<Option<Note>, String> {
-        let db_notes = notes::Entity::find()
-            .filter(notes::Column::VaultId.eq(wiki_id))
-            .filter(notes::Column::Title.eq(title))
-            .filter(notes::Column::IsDeleted.eq(0))
-            .all(self.db.as_ref())
-            .await
-            .map_err(|e| e.to_string())?;
-
-        Ok(db_notes
-            .into_iter()
-            .next()
-            .map(axagent_core::repo::note::model_to_note))
+        match note_repository().get_note_by_title(wiki_id, title).await {
+            Ok(note) => Ok(Some(note)),
+            Err(_) => Ok(None),
+        }
     }
 
     async fn update_quality_score(&self, note: &Note, page: &CompiledPage) -> Result<(), String> {
@@ -803,17 +780,19 @@ impl WikiCompiler {
             );
         }
 
-        let wiki_page = wiki_pages::Entity::find()
-            .filter(wiki_pages::Column::NoteId.eq(&note.id))
-            .one(self.db.as_ref())
+        let wiki_page = wiki_page_repository()
+            .get_wiki_page_by_note_id(&note.id)
             .await
             .map_err(|e| e.to_string())?;
 
         if let Some(wp) = wiki_page {
-            let mut am = wp.into_active_model();
-            am.quality_score = Set(Some(score));
-            am.last_linted_at = Set(Some(chrono::Utc::now().timestamp()));
-            am.update(self.db.as_ref())
+            let input = UpdateWikiPageInput {
+                quality_score: Some(score),
+                last_linted_at: Some(chrono::Utc::now().timestamp()),
+                ..UpdateWikiPageInput::default()
+            };
+            wiki_page_repository()
+                .update_wiki_page(&wp.id, input)
                 .await
                 .map_err(|e| e.to_string())?;
         }
@@ -822,17 +801,19 @@ impl WikiCompiler {
     }
 
     async fn update_wiki_page(&self, note: &Note, page: &CompiledPage) -> Result<(), String> {
-        let wiki_page = wiki_pages::Entity::find()
-            .filter(wiki_pages::Column::NoteId.eq(&note.id))
-            .one(self.db.as_ref())
+        let wiki_page = wiki_page_repository()
+            .get_wiki_page_by_note_id(&note.id)
             .await
             .map_err(|e| e.to_string())?;
 
         if let Some(wp) = wiki_page {
-            let mut am = wp.into_active_model();
-            am.last_compiled_at = Set(chrono::Utc::now().timestamp());
-            am.compiled_source_hash = Set(Some(calculate_content_hash(&page.content)));
-            am.update(self.db.as_ref())
+            let input = UpdateWikiPageInput {
+                last_compiled_at: Some(chrono::Utc::now().timestamp()),
+                compiled_source_hash: Some(calculate_content_hash(&page.content)),
+                ..UpdateWikiPageInput::default()
+            };
+            wiki_page_repository()
+                .update_wiki_page(&wp.id, input)
                 .await
                 .map_err(|e| e.to_string())?;
         }
@@ -846,23 +827,20 @@ impl WikiCompiler {
         note: &Note,
         page: &CompiledPage,
     ) -> Result<(), String> {
-        let wiki_page_model = wiki_pages::ActiveModel {
-            id: Set(gen_id()),
-            wiki_id: Set(wiki_id.to_string()),
-            note_id: Set(note.id.clone()),
-            page_type: Set(page.page_type.clone()),
-            title: Set(page.title.clone()),
-            source_ids: Set(Some(serde_json::to_value(&page.source_ids).unwrap_or_default())),
-            quality_score: Set(None),
-            last_linted_at: Set(None),
-            last_compiled_at: Set(chrono::Utc::now().timestamp()),
-            compiled_source_hash: Set(Some(calculate_content_hash(&page.content))),
-            created_at: Set(chrono::Utc::now().timestamp()),
-            updated_at: Set(chrono::Utc::now().timestamp()),
+        let input = CreateWikiPageInput {
+            wiki_id: wiki_id.to_string(),
+            note_id: note.id.clone(),
+            page_type: page.page_type.clone(),
+            title: page.title.clone(),
+            source_ids: Some(page.source_ids.clone()),
+            quality_score: None,
+            last_linted_at: None,
+            last_compiled_at: chrono::Utc::now().timestamp(),
+            compiled_source_hash: Some(calculate_content_hash(&page.content)),
         };
 
-        wiki_page_model
-            .insert(self.db.as_ref())
+        wiki_page_repository()
+            .create_wiki_page(input)
             .await
             .map_err(|e| e.to_string())?;
 
@@ -870,16 +848,13 @@ impl WikiCompiler {
     }
 
     async fn update_index(&self, wiki_id: &str) -> Result<(), String> {
-        let wiki = wikis::Entity::find_by_id(wiki_id)
-            .one(self.db.as_ref())
+        let wiki = wiki_repository()
+            .get_wiki(wiki_id)
             .await
-            .map_err(|e| e.to_string())?
-            .ok_or_else(|| format!("Wiki {} not found", wiki_id))?;
+            .map_err(|e| e.to_string())?;
 
-        let db_notes = notes::Entity::find()
-            .filter(notes::Column::VaultId.eq(wiki_id))
-            .filter(notes::Column::IsDeleted.eq(0))
-            .all(self.db.as_ref())
+        let notes = note_repository()
+            .list_notes(wiki_id)
             .await
             .map_err(|e| e.to_string())?;
 
@@ -891,9 +866,8 @@ impl WikiCompiler {
 
         let mut by_type: std::collections::HashMap<String, Vec<String>> =
             std::collections::HashMap::new();
-        for note in &db_notes {
-            let note_ref = axagent_core::repo::note::model_to_note(note.clone());
-            let pt = note_ref.page_type.unwrap_or_else(|| "note".to_string());
+        for note in &notes {
+            let pt = note.page_type.clone().unwrap_or_else(|| "note".to_string());
             by_type.entry(pt).or_default().push(note.title.clone());
         }
 
@@ -934,11 +908,10 @@ impl WikiCompiler {
         operation: &str,
         result: &CompileResult,
     ) -> Result<(), String> {
-        let wiki = wikis::Entity::find_by_id(wiki_id)
-            .one(self.db.as_ref())
+        let wiki = wiki_repository()
+            .get_wiki(wiki_id)
             .await
-            .map_err(|e| e.to_string())?
-            .ok_or_else(|| format!("Wiki {} not found", wiki_id))?;
+            .map_err(|e| e.to_string())?;
 
         let log_path = std::path::Path::new(&wiki.root_path)
             .join("notes")
@@ -975,26 +948,19 @@ impl WikiCompiler {
             .await
             .map_err(|e| e.to_string())?;
 
-        let log_model = wiki_operations::ActiveModel {
-            wiki_id: Set(wiki_id.to_string()),
-            operation_type: Set(operation.to_string()),
-            target_type: Set("compile".to_string()),
-            target_id: Set(gen_id()),
-            status: Set(if result.errors.is_empty() {
-                "completed"
-            } else {
-                "partial"
-            }
-            .to_string()),
-            details_json: Set(Some(serde_json::to_value(result).unwrap_or_default())),
-            error_message: Set(None),
-            created_at: Set(chrono::Utc::now().timestamp()),
-            completed_at: Set(Some(chrono::Utc::now().timestamp())),
-            ..Default::default()
-        };
-
-        log_model
-            .insert(self.db.as_ref())
+        wiki_page_repository()
+            .log_wiki_operation(
+                wiki_id,
+                operation,
+                "compile",
+                &gen_id(),
+                if result.errors.is_empty() {
+                    "completed"
+                } else {
+                    "partial"
+                },
+                Some(serde_json::to_value(result).unwrap_or_default()),
+            )
             .await
             .map_err(|e| e.to_string())?;
 
@@ -1003,25 +969,20 @@ impl WikiCompiler {
     }
 
     async fn update_overview(&self, wiki_id: &str) -> Result<(), String> {
-        let wiki = wikis::Entity::find_by_id(wiki_id)
-            .one(self.db.as_ref())
-            .await
-            .map_err(|e| e.to_string())?
-            .ok_or_else(|| format!("Wiki {} not found", wiki_id))?;
-
-        let db_notes = notes::Entity::find()
-            .filter(notes::Column::VaultId.eq(wiki_id))
-            .filter(notes::Column::IsDeleted.eq(0))
-            .all(self.db.as_ref())
+        let wiki = wiki_repository()
+            .get_wiki(wiki_id)
             .await
             .map_err(|e| e.to_string())?;
 
-        let source_count = wiki_sources::Entity::find()
-            .filter(wiki_sources::Column::WikiId.eq(wiki_id))
-            .all(self.db.as_ref())
+        let db_notes = note_repository()
+            .list_notes(wiki_id)
             .await
-            .map_err(|e| e.to_string())?
-            .len();
+            .map_err(|e| e.to_string())?;
+
+        let source_count = wiki_source_repository()
+            .count_sources(wiki_id)
+            .await
+            .map_err(|e| e.to_string())? as usize;
 
         let mut overview = format!(
             "# Wiki Overview\n\n\
@@ -1072,40 +1033,39 @@ impl WikiCompiler {
         content: &str,
         file_path: &str,
     ) -> Result<(), String> {
-        let existing = notes::Entity::find()
-            .filter(notes::Column::VaultId.eq(wiki_id))
-            .filter(notes::Column::Title.eq(title))
-            .filter(notes::Column::IsDeleted.eq(0))
-            .one(self.db.as_ref())
-            .await
-            .map_err(|e| e.to_string())?;
-
         let content_hash = calculate_content_hash(content);
 
-        if let Some(note) = existing {
-            if note.content_hash == content_hash {
-                return Ok(());
+        match note_repository().get_note_by_title(wiki_id, title).await {
+            Ok(note) => {
+                if note.content_hash == content_hash {
+                    return Ok(());
+                }
+                let input = UpdateNoteInput {
+                    title: Some(title.to_string()),
+                    content: Some(content.to_string()),
+                    page_type: Some(page_type.to_string()),
+                    related_pages: None,
+                };
+                note_repository()
+                    .update_note(&note.id, input)
+                    .await
+                    .map_err(|e| e.to_string())?;
             }
-            let mut am = note.into_active_model();
-            am.content = Set(content.to_string());
-            am.content_hash = Set(content_hash);
-            am.updated_at = Set(chrono::Utc::now().timestamp());
-            am.update(self.db.as_ref())
-                .await
-                .map_err(|e| e.to_string())?;
-        } else {
-            let input = CreateNoteInput {
-                vault_id: wiki_id.to_string(),
-                title: title.to_string(),
-                file_path: file_path.to_string(),
-                content: content.to_string(),
-                author: "llm".to_string(),
-                page_type: Some(page_type.to_string()),
-                source_refs: None,
-            };
-            let _ = axagent_core::repo::note::create_note(self.db.as_ref(), input)
-                .await
-                .map_err(|e| e.to_string())?;
+            Err(_) => {
+                let input = CreateNoteInput {
+                    vault_id: wiki_id.to_string(),
+                    title: title.to_string(),
+                    file_path: file_path.to_string(),
+                    content: content.to_string(),
+                    author: "llm".to_string(),
+                    page_type: Some(page_type.to_string()),
+                    source_refs: None,
+                };
+                note_repository()
+                    .create_note(input)
+                    .await
+                    .map_err(|e| e.to_string())?;
+            }
         }
 
         Ok(())
@@ -1147,15 +1107,13 @@ impl WikiCompiler {
     }
 
     pub async fn compile_wiki_incremental(&self, wiki_id: &str) -> Result<CompileResult, String> {
-        let wiki = wikis::Entity::find_by_id(wiki_id)
-            .one(self.db.as_ref())
+        let wiki = wiki_repository()
+            .get_wiki(wiki_id)
             .await
-            .map_err(|e| e.to_string())?
-            .ok_or_else(|| format!("Wiki {} not found", wiki_id))?;
+            .map_err(|e| e.to_string())?;
 
-        let all_sources = wiki_sources::Entity::find()
-            .filter(wiki_sources::Column::WikiId.eq(wiki_id))
-            .all(self.db.as_ref())
+        let all_sources = wiki_source_repository()
+            .list_sources(wiki_id)
             .await
             .map_err(|e| e.to_string())?;
 
@@ -1419,7 +1377,7 @@ mod tests {
             &self,
             _ctx: &ProviderRequestContext,
             _request: ChatRequest,
-        ) -> axagent_core::error::Result<ChatResponse> {
+        ) -> axagent_harness::core_error::Result<ChatResponse> {
             Ok(ChatResponse {
                 id: "test".to_string(),
                 model: "test".to_string(),
@@ -1442,7 +1400,7 @@ mod tests {
             _ctx: &ProviderRequestContext,
             _request: ChatRequest,
             _cancel_token: Option<std::sync::Arc<std::sync::atomic::AtomicBool>>,
-        ) -> Pin<Box<dyn Stream<Item = axagent_core::error::Result<ChatStreamChunk>> + Send>>
+        ) -> Pin<Box<dyn Stream<Item = axagent_harness::core_error::Result<ChatStreamChunk>> + Send>>
         {
             Box::pin(futures::stream::empty())
         }
@@ -1450,7 +1408,7 @@ mod tests {
         async fn list_models(
             &self,
             _ctx: &ProviderRequestContext,
-        ) -> axagent_core::error::Result<Vec<Model>> {
+        ) -> axagent_harness::core_error::Result<Vec<Model>> {
             Ok(vec![])
         }
 
@@ -1458,7 +1416,7 @@ mod tests {
             &self,
             _ctx: &ProviderRequestContext,
             _request: EmbedRequest,
-        ) -> axagent_core::error::Result<EmbedResponse> {
+        ) -> axagent_harness::core_error::Result<EmbedResponse> {
             Ok(EmbedResponse {
                 embeddings: vec![vec![0.0; 128]],
                 dimensions: 128,

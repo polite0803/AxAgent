@@ -5,7 +5,7 @@
 
 use std::collections::{HashMap, HashSet};
 
-use axagent_core::workflow_types::{EdgeType, WorkflowEdge, WorkflowNode};
+use axagent_harness::workflow_types::{EdgeType, WorkflowEdge, WorkflowNode};
 
 use crate::workflow_engine::{NodeRuntimeState, NodeStatus, Workflow, current_timestamp};
 

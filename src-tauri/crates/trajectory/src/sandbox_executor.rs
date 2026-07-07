@@ -174,7 +174,9 @@ impl SkillSandboxExecutor {
                 tokio::time::timeout(std::time::Duration::from_secs(self.policy.timeout_secs), {
                     #[cfg(target_family = "windows")]
                     {
-                        Command::new("cmd")
+                        let mut cmd_command = Command::new("cmd");
+                        cmd_command.creation_flags(0x08000000); // CREATE_NO_WINDOW
+                        cmd_command
                             .args(["/C", &cmd])
                             .stdout(Stdio::piped())
                             .stderr(Stdio::piped())

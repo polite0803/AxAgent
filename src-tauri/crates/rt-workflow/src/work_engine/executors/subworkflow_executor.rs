@@ -11,7 +11,7 @@ use crate::work_engine::node_executor_trait::{
     NodeError, NodeExecutorTrait, NodeOutput, error_code,
 };
 use async_trait::async_trait;
-use axagent_core::workflow_types::{SubWorkflowNode, WorkflowNode};
+use axagent_harness::workflow_types::{SubWorkflowNode, WorkflowNode};
 use serde_json::Value;
 use std::collections::HashMap;
 use std::pin::Pin;

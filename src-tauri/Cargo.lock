@@ -777,7 +777,6 @@ dependencies = [
  "android_logger",
  "async-trait",
  "axagent-agent",
- "axagent-core",
  "axagent-crypto",
  "axagent-dao",
  "axagent-document-parser",
@@ -795,6 +794,7 @@ dependencies = [
  "axagent-rt-workflow",
  "axagent-runtime",
  "axagent-runtime-core",
+ "axagent-scanner",
  "axagent-search",
  "axagent-storage",
  "axagent-telemetry",
@@ -854,7 +854,6 @@ name = "axagent-agent"
 version = "2.8.0"
 dependencies = [
  "async-trait",
- "axagent-core",
  "axagent-harness",
  "axagent-migration",
  "axagent-runtime-core",
@@ -897,29 +896,6 @@ dependencies = [
  "quick_cache",
  "serde",
  "serde_json",
- "tracing",
-]
-
-[[package]]
-name = "axagent-core"
-version = "2.8.0"
-dependencies = [
- "anyhow",
- "axagent-cache",
- "axagent-crypto",
- "axagent-dao",
- "axagent-disk-cache",
- "axagent-document-parser",
- "axagent-entities",
- "axagent-harness",
- "axagent-kit",
- "axagent-mcp",
- "axagent-search",
- "axagent-storage",
- "serde",
- "serde_json",
- "tokio",
- "toml_edit 0.22.27",
  "tracing",
 ]
 
@@ -995,9 +971,7 @@ version = "2.8.0"
 dependencies = [
  "axagent-crypto",
  "axagent-dao",
- "axagent-entities",
  "axagent-harness",
- "axagent-mcp",
  "axum",
  "axum-server",
  "futures",
@@ -1052,6 +1026,7 @@ name = "axagent-kit"
 version = "2.8.0"
 dependencies = [
  "anyhow",
+ "async-trait",
  "axagent-harness",
  "base64 0.22.1",
  "chrono",
@@ -1097,8 +1072,9 @@ dependencies = [
 name = "axagent-migration"
 version = "2.8.0"
 dependencies = [
- "axagent-core",
+ "axagent-dao",
  "axagent-harness",
+ "axagent-kit",
  "chrono",
  "dirs 5.0.1",
  "serde_yaml",
@@ -1125,7 +1101,6 @@ name = "axagent-orchestrator"
 version = "2.8.0"
 dependencies = [
  "async-trait",
- "axagent-core",
  "axagent-harness",
  "chrono",
  "serde",
@@ -1166,8 +1141,8 @@ version = "2.8.0"
 dependencies = [
  "anyhow",
  "async-trait",
- "axagent-core",
  "axagent-harness",
+ "axagent-kit",
  "futures",
  "reqwest 0.13.4",
  "serde",
@@ -1196,8 +1171,10 @@ version = "2.8.0"
 dependencies = [
  "anyhow",
  "async-trait",
- "axagent-core",
+ "axagent-crypto",
+ "axagent-dao",
  "axagent-harness",
+ "axagent-kit",
  "chrono",
  "flate2",
  "futures",
@@ -1247,9 +1224,11 @@ name = "axagent-rt-workflow"
 version = "2.8.0"
 dependencies = [
  "async-trait",
- "axagent-core",
+ "axagent-crypto",
+ "axagent-dao",
  "axagent-entities",
  "axagent-harness",
+ "axagent-kit",
  "axagent-runtime-core",
  "chrono",
  "chrono-tz",
@@ -1286,8 +1265,11 @@ dependencies = [
  "anyhow",
  "async-trait",
  "axagent-agent",
- "axagent-core",
+ "axagent-crypto",
+ "axagent-dao",
  "axagent-harness",
+ "axagent-kit",
+ "axagent-mcp",
  "axagent-plugins",
  "axagent-prompt-guard",
  "axagent-providers",
@@ -1344,6 +1326,17 @@ dependencies = [
  "tokio",
  "tracing",
  "uuid",
+]
+
+[[package]]
+name = "axagent-scanner"
+version = "2.8.0"
+dependencies = [
+ "async-trait",
+ "axagent-harness",
+ "chrono",
+ "serde",
+ "tracing",
 ]
 
 [[package]]
@@ -1423,9 +1416,12 @@ name = "axagent-tools"
 version = "2.8.0"
 dependencies = [
  "async-trait",
- "axagent-core",
+ "axagent-dao",
+ "axagent-entities",
  "axagent-harness",
+ "axagent-kit",
  "axagent-runtime-core",
+ "axagent-search",
  "base64 0.22.1",
  "chrono",
  "diff",
@@ -1467,8 +1463,9 @@ version = "2.8.0"
 dependencies = [
  "anyhow",
  "async-trait",
- "axagent-core",
+ "axagent-entities",
  "axagent-harness",
+ "axagent-kit",
  "chrono",
  "dirs 5.0.1",
  "futures",

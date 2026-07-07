@@ -18,7 +18,7 @@
 
 use std::collections::{HashMap, HashSet, VecDeque};
 
-use axagent_core::workflow_types::{
+use axagent_harness::workflow_types::{
     AgentNode, AgentNodeConfig, AgentRole, EdgeType, OutputMode, Position, RetryConfig, SubGraph,
     WorkflowEdge, WorkflowNode, WorkflowNodeBase,
 };

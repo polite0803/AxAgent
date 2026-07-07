@@ -85,6 +85,71 @@ pub struct SessionInfo {
     pub token_usage: Option<TokenUsage>,
 }
 
+/// Session 别名（与 SessionInfo 同构，重构兼容）。
+pub type Session = SessionInfo;
+
+/// 会话压缩配置。
+#[derive(Debug, Clone)]
+pub struct CompactionConfig {
+    pub max_tokens: usize,
+    pub strategy: String,
+}
+
+/// 会话压缩结果。
+#[derive(Debug, Clone)]
+pub struct CompactionResult {
+    pub compacted: bool,
+    pub tokens_saved: usize,
+}
+
+/// 运行时错误。
+#[derive(Debug, Clone)]
+pub enum RuntimeError {
+    Timeout,
+    TokenLimitExceeded { limit: usize, actual: usize },
+    InvalidRequest(String),
+    ApiError(String),
+    Internal(String),
+}
+
+impl std::fmt::Display for RuntimeError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            RuntimeError::Timeout => write!(f, "request timed out"),
+            RuntimeError::TokenLimitExceeded { limit, actual } => {
+                write!(f, "token limit exceeded: {actual}/{limit}")
+            }
+            RuntimeError::InvalidRequest(msg) => write!(f, "invalid request: {msg}"),
+            RuntimeError::ApiError(msg) => write!(f, "API error: {msg}"),
+            RuntimeError::Internal(msg) => write!(f, "internal error: {msg}"),
+        }
+    }
+}
+
+impl std::error::Error for RuntimeError {}
+
+/// 权限模式（与 runtime-core::permissions::PermissionMode 同构）。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum PermissionMode {
+    ReadOnly,
+    Prompt,
+    WorkspaceWrite,
+    DangerFullAccess,
+    Allow,
+}
+
+impl PermissionMode {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            PermissionMode::ReadOnly => "read_only",
+            PermissionMode::Prompt => "prompt",
+            PermissionMode::WorkspaceWrite => "workspace_write",
+            PermissionMode::DangerFullAccess => "danger_full_access",
+            PermissionMode::Allow => "allow",
+        }
+    }
+}
+
 // ── TurnSummary ──────────────────────────────────────────────────────────────
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

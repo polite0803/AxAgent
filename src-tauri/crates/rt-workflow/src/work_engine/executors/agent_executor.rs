@@ -13,7 +13,7 @@ use std::sync::{Arc, PoisonError};
 use std::time::Duration;
 
 use async_trait::async_trait;
-use axagent_core::workflow_types::WorkflowNode;
+use axagent_harness::workflow_types::WorkflowNode;
 use axagent_harness::types::{ChatContent, ChatMessage, ChatRequest, RagContextResult};
 use futures::StreamExt;
 use sea_orm::DatabaseConnection;
@@ -60,7 +60,7 @@ pub(crate) type ProviderCache = Option<(
     Arc<dyn axagent_harness::ProviderAdapter>,
     String,
 )>;
-pub(crate) type ProfileCache = HashMap<String, axagent_core::entity::agent_profiles::Model>;
+pub(crate) type ProfileCache = HashMap<String, axagent_entities::agent_profiles::Model>;
 
 pub type RagCallback = Arc<
     dyn Fn(
@@ -299,7 +299,7 @@ impl NodeExecutorTrait for AgentExecutor {
         };
 
         // 1. 加载 agent profile（带缓存）
-        use axagent_core::entity::agent_profiles;
+        use axagent_entities::agent_profiles;
         use sea_orm::EntityTrait;
         let profile = if let Some(ref pid) = an.config.agent_profile_id {
             // 先查缓存
@@ -397,7 +397,7 @@ impl NodeExecutorTrait for AgentExecutor {
             // 解析 Expert 的提示词
             if let Some(ref expert_id) = p.expert_id
                 && let Ok(Some(expert)) =
-                    axagent_core::entity::agency_experts::Entity::find_by_id(expert_id)
+                    axagent_entities::agency_experts::Entity::find_by_id(expert_id)
                         .one(self.db.as_ref())
                         .await
                 && !expert.system_prompt.is_empty()
@@ -657,7 +657,7 @@ impl NodeExecutorTrait for AgentExecutor {
         // 构建暴露给 LLM 的工具定义
         // 固定工具（上游 ToolNode 结果已注入 context_sources）不暴露
         // 向后兼容：exposed_tools 为空时暴露全部工具
-        let exposed_list: Vec<&axagent_core::workflow_types::ToolDef> =
+        let exposed_list: Vec<&axagent_harness::workflow_types::ToolDef> =
             if an.config.exposed_tools.is_empty() {
                 an.config.tools.iter().collect()
             } else {
@@ -1130,7 +1130,7 @@ impl AgentExecutor {
     #[allow(clippy::too_many_arguments)]
     async fn execute_plan_mode(
         &self,
-        an: &axagent_core::workflow_types::AgentNode,
+        an: &axagent_harness::workflow_types::AgentNode,
         _context: &ExecutionState,
         prov: &axagent_harness::types::ProviderConfig,
         api_key: &str,
@@ -1138,7 +1138,7 @@ impl AgentExecutor {
         adapter: &std::sync::Arc<dyn axagent_harness::ProviderAdapter>,
         node: &WorkflowNode,
     ) -> Result<NodeOutput, NodeError> {
-        use axagent_core::plan_compiler::compile_plan_to_dag;
+        use axagent_kit::plan_compiler::compile_plan_to_dag;
         use axagent_harness::plan_types::{Plan, TaskStatus};
         let role_desc = resolve_role(&an.config, None);
         let base_url = axagent_harness::url_utils::resolve_base_url_for_type(
@@ -1197,7 +1197,7 @@ impl AgentExecutor {
             })?;
 
         let text = resp.content.trim();
-        let json = axagent_core::extract_json_from_llm_response(text);
+        let json = axagent_kit::utils::extract_json_from_llm_response(text);
         let plan: Plan = serde_json::from_str(json).map_err(|e| {
             let preview = &json[..200.min(json.len())];
             NodeError::exec_failed(
@@ -1588,8 +1588,8 @@ impl AgentExecutor {
 
 /// 解析角色描述：从 AgentProfile 获取，无 Profile 时默认 "executor"
 fn resolve_role(
-    _config: &axagent_core::workflow_types::AgentNodeConfig,
-    profile: Option<&axagent_core::entity::agent_profiles::Model>,
+    _config: &axagent_harness::workflow_types::AgentNodeConfig,
+    profile: Option<&axagent_entities::agent_profiles::Model>,
 ) -> String {
     if let Some(p) = profile
         && let Some(ref role) = p.agent_role
@@ -1660,7 +1660,7 @@ fn parse_rag_source_ids(ids: &[String]) -> (Vec<String>, Vec<String>, Vec<String
 }
 
 fn user_prompt_for_rag(
-    config: &axagent_core::workflow_types::AgentNodeConfig,
+    config: &axagent_harness::workflow_types::AgentNodeConfig,
     variables: &std::collections::HashMap<String, Value>,
 ) -> String {
     if !config.context_sources.is_empty() {

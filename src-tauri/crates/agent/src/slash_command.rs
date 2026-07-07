@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-pub use axagent_core::slash_command::{
-    SlashCommandAction, SlashCommandPreprocessed, SlashCommandRouter, apply_slash_command_to_input,
-    load_bundle_content, load_skill_content, process_slash_command, switch_personality,
+pub use axagent_harness::slash_command::{
+    SlashCommandAction, SlashCommandPreprocessed, SlashCommandRouter,
 };
 
 use crate::personality::PersonalityManager;
+use axagent_harness::repositories::slash_command_provider;
 
 pub fn handle_switch_personality(name: &str) -> Result<String, String> {
     PersonalityManager::set_active(name)?;
@@ -22,7 +22,7 @@ pub fn handle_switch_personality(name: &str) -> Result<String, String> {
 }
 
 pub fn apply_slash_command_for_agent(text: &str) -> SlashCommandPreprocessed {
-    let Some(action) = process_slash_command(text) else {
+    let Some(action) = slash_command_provider().process(text) else {
         return SlashCommandPreprocessed {
             modified_text: text.to_string(),
             personality_prompt: None,
@@ -32,7 +32,7 @@ pub fn apply_slash_command_for_agent(text: &str) -> SlashCommandPreprocessed {
 
     match action {
         SlashCommandAction::LoadBundle { name, args } => {
-            let modified_text = if let Some(content) = load_bundle_content(&name, &args) {
+            let modified_text = if let Some(content) = slash_command_provider().load_bundle_content(&name, &args) {
                 let user_request = if args.is_empty() {
                     name.clone()
                 } else {
@@ -52,7 +52,7 @@ pub fn apply_slash_command_for_agent(text: &str) -> SlashCommandPreprocessed {
             }
         },
         SlashCommandAction::LoadSkill { name, args } => {
-            let modified_text = if let Some(content) = load_skill_content(&name, &args) {
+            let modified_text = if let Some(content) = slash_command_provider().load_skill_content(&name, &args) {
                 let user_request = if args.is_empty() {
                     name.clone()
                 } else {

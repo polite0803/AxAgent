@@ -4,7 +4,7 @@
 //!
 //! 将 builtin_handlers 中的 git_status、git_diff、git_commit、
 //! git_log、git_branch、git_review 迁移为 Tool trait 实现。
-//! 实际 Git 操作委托给 axagent_core::git_tools::GitTools。
+//! 实际 Git 操作委托给 axagent_kit::git_tools::GitTools。
 
 use crate::{Tool, ToolCategory, ToolContext, ToolError, ToolResult};
 use async_trait::async_trait;
@@ -50,7 +50,7 @@ impl Tool for GitStatusTool {
         if repo_path.is_empty() {
             return Ok(ToolResult::error("Error: repo_path 参数是必需的"));
         }
-        match axagent_core::git_tools::GitTools::get_status(repo_path) {
+        match axagent_kit::git_tools::GitTools::get_status(repo_path) {
             Ok(entries) => {
                 let output: Vec<Value> = entries
                     .iter()
@@ -106,8 +106,8 @@ impl Tool for GitDiffTool {
         }
         let base_branch = input.get("base_branch").and_then(|v| v.as_str());
         let result = match base_branch {
-            Some(b) => axagent_core::git_tools::GitTools::get_branch_diff(repo_path, b),
-            None => axagent_core::git_tools::GitTools::get_staged_diff(repo_path),
+            Some(b) => axagent_kit::git_tools::GitTools::get_branch_diff(repo_path, b),
+            None => axagent_kit::git_tools::GitTools::get_staged_diff(repo_path),
         };
         match result {
             Ok(diff) => Ok(ToolResult::success(serde_json::to_string(&diff).unwrap_or_default())),
@@ -170,10 +170,10 @@ impl Tool for GitCommitTool {
         if message.is_empty() {
             return Ok(ToolResult::error("Error: message 参数是必需的"));
         }
-        if stage_all && let Err(e) = axagent_core::git_tools::GitTools::stage_all(repo_path) {
+        if stage_all && let Err(e) = axagent_kit::git_tools::GitTools::stage_all(repo_path) {
             return Ok(ToolResult::error(format!("暂存文件失败: {}", e)));
         }
-        match axagent_core::git_tools::GitTools::commit(repo_path, message) {
+        match axagent_kit::git_tools::GitTools::commit(repo_path, message) {
             Ok(output) => Ok(ToolResult::success(output)),
             Err(e) => Ok(ToolResult::error(format!("Error: {}", e))),
         }
@@ -226,7 +226,7 @@ impl Tool for GitLogTool {
         if repo_path.is_empty() {
             return Ok(ToolResult::error("Error: repo_path 参数是必需的"));
         }
-        match axagent_core::git_tools::GitTools::get_log(repo_path, max_count) {
+        match axagent_kit::git_tools::GitTools::get_log(repo_path, max_count) {
             Ok(entries) => {
                 Ok(ToolResult::success(serde_json::to_string(&entries).unwrap_or_default()))
             },
@@ -284,21 +284,21 @@ impl Tool for GitBranchTool {
         }
 
         match action {
-            "list" => match axagent_core::git_tools::GitTools::list_branches(repo_path) {
+            "list" => match axagent_kit::git_tools::GitTools::list_branches(repo_path) {
                 Ok(branches) => {
                     Ok(ToolResult::success(serde_json::to_string(&branches).unwrap_or_default()))
                 },
                 Err(e) => Ok(ToolResult::error(format!("Error: {}", e))),
             },
             "create" => match name {
-                Some(n) => match axagent_core::git_tools::GitTools::create_branch(repo_path, n) {
+                Some(n) => match axagent_kit::git_tools::GitTools::create_branch(repo_path, n) {
                     Ok(o) => Ok(ToolResult::success(format!("已创建并切换到分支 '{}': {}", n, o))),
                     Err(e) => Ok(ToolResult::error(format!("Error: {}", e))),
                 },
                 None => Ok(ToolResult::error("Error: create 操作需要 name 参数")),
             },
             "switch" => match name {
-                Some(n) => match axagent_core::git_tools::GitTools::switch_branch(repo_path, n) {
+                Some(n) => match axagent_kit::git_tools::GitTools::switch_branch(repo_path, n) {
                     Ok(o) => Ok(ToolResult::success(format!("已切换到分支 '{}': {}", n, o))),
                     Err(e) => Ok(ToolResult::error(format!("Error: {}", e))),
                 },
@@ -356,8 +356,8 @@ impl Tool for GitReviewTool {
             return Ok(ToolResult::error("Error: repo_path 参数是必需的"));
         }
         let context = match base_branch {
-            Some(b) => axagent_core::git_tools::GitTools::generate_pr_context(repo_path, b),
-            None => axagent_core::git_tools::GitTools::generate_commit_context(repo_path),
+            Some(b) => axagent_kit::git_tools::GitTools::generate_pr_context(repo_path, b),
+            None => axagent_kit::git_tools::GitTools::generate_commit_context(repo_path),
         };
         match context {
             Ok(ctx) => Ok(ToolResult::success(ctx)),

@@ -6,6 +6,7 @@ publish = false
 
 [dependencies]
 anyhow = { workspace = true }
+async-trait = "0.1"
 axagent-harness = { path = "../harness" }
 base64 = "0.22"
 chrono = { workspace = true }

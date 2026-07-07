@@ -91,6 +91,39 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
         std::sync::Arc::new(axagent_document_parser::parser_impl::DefaultDocumentParser),
     );
 
+    // 注入 tools crate 的 MCP client service + document parser（harness 化）
+    axagent_tools::set_mcp_client_service(std::sync::Arc::new(ToolsMcpClientAdapter));
+    axagent_tools::set_document_parser(std::sync::Arc::new(
+        axagent_document_parser::parser_impl::DefaultDocumentParser,
+    ));
+
+    // 注入 harness 仓库 trait 实现（dao-backed），供 agent 作为纯消费者使用
+    {
+        use axagent_harness::repositories as repos;
+        let db = sea_db.clone();
+        repos::set_note_repository(std::sync::Arc::new(
+            axagent_dao::repo_harness::DaoNoteRepository::new(db.clone()),
+        ));
+        repos::set_wiki_repository(std::sync::Arc::new(
+            axagent_dao::repo_harness::DaoWikiRepository::new(db.clone()),
+        ));
+        repos::set_wiki_page_repository(std::sync::Arc::new(
+            axagent_dao::repo_harness::DaoWikiPageRepository::new(db.clone()),
+        ));
+        repos::set_wiki_source_repository(std::sync::Arc::new(
+            axagent_dao::repo_harness::DaoWikiSourceRepository::new(db.clone()),
+        ));
+        repos::set_session_repository(std::sync::Arc::new(
+            axagent_dao::repo_harness::DaoSessionRepository::new(db.clone()),
+        ));
+        repos::set_settings_repository(std::sync::Arc::new(
+            axagent_dao::repo_harness::DaoSettingsRepository::new(db.clone()),
+        ));
+        repos::set_database_initializer(std::sync::Arc::new(
+            axagent_dao::repo_harness::DaoDatabaseInitializer::new(db),
+        ));
+    }
+
     // ensure_preset_servers / migrate_hardcoded_paths / migrate_legacy_keys
     // 已合并到 axagent_core::db::create_pool() 中，无需在此重复调用
 
@@ -747,4 +780,81 @@ fn hostname_or_uuid() -> String {
         .ok()
         .or_else(|| std::env::var("COMPUTERNAME").ok())
         .unwrap_or_else(|| uuid::Uuid::new_v4().to_string())
+}
+
+// ── ToolsMcpClientAdapter：harness McpClientService 的 dao/mcp 包装 ──
+
+struct ToolsMcpClientAdapter;
+
+#[async_trait::async_trait]
+impl axagent_harness::McpClientService for ToolsMcpClientAdapter {
+    async fn discover_tools(
+        &self,
+        server: &axagent_harness::McpServerConfig,
+    ) -> Result<Vec<axagent_harness::DiscoveredMcpTool>, String> {
+        use std::collections::HashMap;
+        let transport = server.transport.as_str();
+        let command = server.command.as_deref();
+        let args: Option<Vec<String>> = server
+            .args_json
+            .as_ref()
+            .and_then(|s| serde_json::from_str(s).ok());
+        let env: Option<HashMap<String, String>> = server
+            .env_json
+            .as_ref()
+            .and_then(|s| serde_json::from_str(s).ok());
+        let endpoint = server.endpoint.as_deref();
+        let raw_tools = axagent_core::mcp_client::discover_tools_unified(
+            transport,
+            command,
+            args.as_deref(),
+            env.as_ref(),
+            endpoint,
+        )
+        .await
+        .map_err(|e| e.to_string())?;
+        Ok(raw_tools
+            .into_iter()
+            .map(|t| axagent_harness::DiscoveredMcpTool {
+                name: t.name,
+                description: t.description,
+                input_schema: t.input_schema.unwrap_or(serde_json::Value::Null),
+            })
+            .collect())
+    }
+
+    async fn call_tool(
+        &self,
+        server: &axagent_harness::McpServerConfig,
+        tool_name: &str,
+        arguments: serde_json::Value,
+    ) -> Result<axagent_harness::McpToolCallResult, String> {
+        use std::collections::HashMap;
+        let transport = server.transport.as_str();
+        let command = server.command.as_deref();
+        let args: Option<Vec<String>> = server
+            .args_json
+            .as_ref()
+            .and_then(|s| serde_json::from_str(s).ok());
+        let env: Option<HashMap<String, String>> = server
+            .env_json
+            .as_ref()
+            .and_then(|s| serde_json::from_str(s).ok());
+        let endpoint = server.endpoint.as_deref();
+        let result = axagent_core::mcp_client::call_tool_unified(
+            transport,
+            command,
+            args.as_deref(),
+            env.as_ref(),
+            endpoint,
+            tool_name,
+            arguments,
+        )
+        .await
+        .map_err(|e| e.to_string())?;
+        Ok(axagent_harness::McpToolCallResult {
+            content: serde_json::Value::String(result.content),
+            is_error: result.is_error,
+        })
+    }
 }

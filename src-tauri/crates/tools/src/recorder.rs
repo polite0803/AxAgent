@@ -7,7 +7,7 @@
 use sea_orm::DatabaseConnection;
 use std::sync::Arc;
 
-use axagent_core::repo::tool_execution;
+use axagent_dao::repo::tool_execution;
 
 #[derive(Clone)]
 pub struct ToolExecutionRecorder {

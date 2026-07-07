@@ -7,13 +7,10 @@ use serde::{Deserialize, Serialize};
 use tokio::fs;
 use tokio::sync::RwLock;
 
-use sea_orm::{
-    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, IntoActiveModel, QueryFilter,
-    Set,
-};
-
-use axagent_core::entity::{notes, wikis};
-use axagent_core::error::{AxAgentError, Result};
+use axagent_harness::core_error::{AxAgentError, Result};
+use axagent_harness::repositories::{note_repository, wiki_repository};
+use axagent_harness::repo_dtos::{Note, UpdateNoteInput};
+use sea_orm::DatabaseConnection;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SchemaVersion {
@@ -83,10 +80,9 @@ impl SchemaManager {
             }
         }
 
-        let wiki = wikis::Entity::find_by_id(wiki_id)
-            .one(self.db.as_ref())
-            .await?
-            .ok_or_else(|| AxAgentError::NotFound(format!("Wiki {} not found", wiki_id)))?;
+        let wiki = wiki_repository()
+            .get_wiki(wiki_id)
+            .await?;
 
         let schema_path = PathBuf::from(&wiki.root_path).join("SCHEMA.md");
         let content = fs::read_to_string(&schema_path)
@@ -106,10 +102,9 @@ impl SchemaManager {
         wiki_id: &str,
         required_version: &str,
     ) -> Result<Compatibility> {
-        let wiki = wikis::Entity::find_by_id(wiki_id)
-            .one(self.db.as_ref())
-            .await?
-            .ok_or_else(|| AxAgentError::NotFound(format!("Wiki {} not found", wiki_id)))?;
+        let wiki = wiki_repository()
+            .get_wiki(wiki_id)
+            .await?;
 
         let current = parse_version(&wiki.schema_version);
         let required = parse_version(required_version);
@@ -231,14 +226,11 @@ impl SchemaManager {
         let diff = self.diff_schemas(wiki_id, from_version, to_version).await?;
         let mut migrated = 0;
 
-        let db_notes = notes::Entity::find()
-            .filter(notes::Column::VaultId.eq(wiki_id))
-            .filter(notes::Column::IsDeleted.eq(0))
-            .all(self.db.as_ref())
+        let all_notes = note_repository()
+            .list_notes(wiki_id)
             .await?;
 
-        for note_model in db_notes {
-            let mut note = axagent_core::repo::note::model_to_note(note_model.clone());
+        for mut note in all_notes {
             let mut content_updated = false;
 
             for added_field in &diff.added_fields {
@@ -252,13 +244,14 @@ impl SchemaManager {
             }
 
             if content_updated {
-                let input = axagent_core::repo::note::UpdateNoteInput {
+                let input = UpdateNoteInput {
                     title: None,
                     content: Some(note.content.clone()),
                     page_type: None,
                     related_pages: None,
                 };
-                axagent_core::repo::note::update_note(self.db.as_ref(), &note.id, input)
+                note_repository()
+                    .update_note(&note.id, input)
                     .await
                     .map_err(|e| {
                         AxAgentError::Internal(format!("Failed to migrate page {}: {}", note.id, e))
@@ -268,15 +261,9 @@ impl SchemaManager {
         }
 
         if migrated > 0 {
-            let wiki_model = wikis::Entity::find_by_id(wiki_id)
-                .one(self.db.as_ref())
-                .await?
-                .ok_or_else(|| AxAgentError::NotFound(format!("Wiki {} not found", wiki_id)))?;
-
-            let mut am = wiki_model.into_active_model();
-            am.schema_version = Set(to_version.to_string());
-            am.updated_at = Set(chrono::Utc::now().timestamp());
-            am.update(self.db.as_ref()).await?;
+            wiki_repository()
+                .update_wiki_schema_version(wiki_id, to_version)
+                .await?;
         }
 
         Ok(migrated)
@@ -383,10 +370,9 @@ impl SchemaManager {
         version: &str,
         description: Option<String>,
     ) -> Result<SchemaVersion> {
-        let wiki = wikis::Entity::find_by_id(wiki_id)
-            .one(self.db.as_ref())
-            .await?
-            .ok_or_else(|| AxAgentError::NotFound(format!("Wiki {} not found", wiki_id)))?;
+        let wiki = wiki_repository()
+            .get_wiki(wiki_id)
+            .await?;
 
         let schema_path = PathBuf::from(&wiki.root_path).join("SCHEMA.md");
         let content = fs::read_to_string(&schema_path)

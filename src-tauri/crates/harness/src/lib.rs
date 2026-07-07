@@ -25,6 +25,7 @@ pub mod confidence;
 pub mod credential;
 pub use confidence::{ConfidenceAction, ConfidenceConfig, ConfidenceOutput};
 pub mod channel_adapter;
+pub use channel_adapter::*;
 pub mod constants;
 pub mod contracts;
 pub use contracts::HarnessToolExecutor;
@@ -221,3 +222,118 @@ pub use hook_service::{HookService, SharedHookService};
 // ── FeatureFlagProvider 契约 ──
 pub mod feature_flag_provider;
 pub use feature_flag_provider::{FeatureFlagProvider, SharedFeatureFlagProvider};
+
+// ── MemoryStore 契约（记忆外溢/共享，让 gateway 不依赖 trajectory） ──
+pub mod memory;
+pub use memory::{
+    MemoryActionResultDto, MemoryAddRequest, MemoryFeedbackRequest, MemoryGroupedDto,
+    MemorySearchItem, MemorySearchRequest, MemoryStore, MemoryTreeItem, MemoryUpdateRequest,
+    NoopMemoryStore,
+};
+
+// ── SchemaValidator 契约（JSON Schema 校验，让 agent/trajectory 不依赖 kit） ──
+pub mod schema_validator;
+pub use schema_validator::{validate_against_schema, validate_recursive};
+
+// ── MemoryScanner 契约（本地日历/消息扫描，让 scanner crate 不依赖 harness 下游） ──
+pub mod scanner;
+pub use scanner::{
+    MemoryScanner, NoopMemoryScanner, ScanResult, ScannedItem, ScannerConfig,
+};
+
+// ── BrowserController 契约（浏览器自动化，让 tools/gateway 不依赖 kit） ──
+pub mod browser;
+pub use browser::{
+    BrowserController, BrowserNavigateResult, BrowserScreenshotResult, ExtractedElement,
+    NoopBrowserController,
+};
+
+// ── Agent 契约（统一 agent 接口，让 coordinator/coordinator 不依赖 agent crate） ──
+pub mod agent;
+pub use agent::{
+    Agent, AgentCapability, AgentExecuteRequest, AgentInfo, AgentPlan, AgentRegistry,
+    AgentResult, NoopAgent, PlanStep,
+};
+
+// ── MCP Service 契约（让 tools/gateway 不依赖 mcp crate） ──
+pub mod mcp_service;
+pub use mcp_service::{
+    DiscoveredMcpTool, McpClientService, McpServerConfig, McpServerStore, McpToolCallResult,
+    NoopMcpClientService, NoopMcpServerStore,
+};
+
+// ── ApiClient 契约（让 runtime-core 不依赖 kit） ──
+pub mod api_client;
+pub mod compaction_service;
+pub mod context_contributor;
+pub mod cron_types;
+pub mod execution_progress;
+pub mod fork_bridge;
+pub mod fork_service;
+pub mod graph_analysis;
+pub mod hook_event_dispatcher;
+pub mod hooks;
+pub mod html_cleaner;
+pub mod markdown_parser;
+pub mod messaging_service;
+pub use messaging_service::ConversationInfo;
+pub mod permission_enforcer;
+pub mod permissions;
+pub mod plan_compiler;
+pub mod repo_dtos;
+pub mod repositories;
+pub mod runtime_instance;
+pub mod screen_vision;
+pub mod secure_store;
+pub mod slash_command;
+pub mod token_budget;
+pub mod token_counter;
+pub mod workflow_repository;
+
+// ── 自学习金字塔（P6）：RL / Dream / Profile / Style 契约 ──
+pub mod rl;
+pub mod dream;
+pub mod profile;
+pub mod style;
+pub use rl::*;
+pub use dream::*;
+pub use profile::*;
+pub use style::*;
+
+// ── 知识 RAG / 图谱 / 索引（P7）：RAGProvider / EntityGraphProvider / DocumentIndexer 契约 ──
+pub mod rag_provider;
+pub mod knowledge_graph;
+pub mod indexer;
+pub use rag_provider::*;
+pub use knowledge_graph::*;
+pub use indexer::*;
+
+// ── Gateway + 消息平台契约（P8）──
+pub mod gateway_service;
+pub mod platform_manager;
+pub use gateway_service::*;
+pub use platform_manager::*;
+
+// ── 工具生态 + 安全防护层（P9）──
+pub mod rate_limiter;
+pub mod ssrf_guard;
+pub mod content_filter;
+pub mod tool_metrics;
+pub use rate_limiter::*;
+pub use ssrf_guard::*;
+pub use content_filter::*;
+pub use tool_metrics::*;
+
+// ── P9 续：熔断器 + 工具访问控制 ──
+pub mod circuit_breaker;
+pub mod tool_access;
+pub use circuit_breaker::*;
+pub use tool_access::*;
+
+// ── 开发者体验（P10）：可观测性 / 基准测试 / 开发者工具 ──
+pub mod observability;
+pub mod benchmark;
+pub mod dev_experience;
+pub use observability::*;
+pub use benchmark::*;
+pub use dev_experience::*;

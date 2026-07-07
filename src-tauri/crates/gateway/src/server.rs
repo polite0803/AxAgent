@@ -17,6 +17,7 @@ use sea_orm::DatabaseConnection;
 use tokio::task::JoinHandle;
 
 use axagent_harness::core_error::{AxAgentError, Result};
+use axagent_harness::mcp_service::{McpClientService, McpServerStore};
 
 use crate::auth::{ClientIpPolicy, KeyVerifyLimiter};
 use crate::qr_bind::QrBindStore;
@@ -46,6 +47,12 @@ pub struct GatewayAppState {
     /// P1-7: 客户端 IP 提取策略（trusted_proxies）。
     /// 默认 trust_all 保留向后兼容；生产环境应通过环境变量 `TRUSTED_PROXIES=...` 显式收紧。
     pub client_ip_policy: Arc<ClientIpPolicy>,
+    /// 记忆存储契约（头等数据，经 auth 保护）。
+    pub memory_store: Arc<dyn axagent_harness::memory::MemoryStore>,
+    /// MCP 服务器配置存储（消除 gateway→entities/mcp 违规）
+    pub mcp_store: Arc<dyn McpServerStore>,
+    /// MCP 客户端调用服务（消除 gateway→mcp/mcp_client 违规）
+    pub mcp_client: Arc<dyn McpClientService>,
 }
 
 /// TLS certificate material.
@@ -186,6 +193,9 @@ impl GatewayServer {
         provider_registry: Arc<dyn axagent_harness::registry::ProviderRegistry>,
         adapter: Arc<dyn axagent_harness::PlatformAdapter>,
         marketplace_service: Arc<dyn axagent_harness::marketplace::MarketplaceService>,
+        memory_store: Arc<dyn axagent_harness::memory::MemoryStore>,
+        mcp_store: Arc<dyn McpServerStore>,
+        mcp_client: Arc<dyn McpClientService>,
     ) -> Result<Self> {
         let started_at = axagent_harness::util_fns::now_ts();
         let app_state = GatewayAppState {
@@ -202,6 +212,9 @@ impl GatewayServer {
             // P1-7: 默认从环境变量 `TRUSTED_PROXIES=ip1,ip2,...` 读取可信代理；
             // 未配置时回退到 `trust_all()` 保留向后兼容，但打 warn 提醒生产环境收紧。
             client_ip_policy: Arc::new(client_ip_policy_from_env_or_default()),
+            memory_store,
+            mcp_store,
+            mcp_client,
         };
         Self::start_inner(app_state, config).await
     }

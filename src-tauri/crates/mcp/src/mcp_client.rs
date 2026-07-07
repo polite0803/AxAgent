@@ -204,7 +204,10 @@ fn resolve_login_shell_path() -> Option<String> {
 #[cfg(all(not(unix), not(target_os = "android")))]
 fn read_registry_path(key: &str) -> Option<String> {
     use std::process::Command;
-    let output = Command::new("reg")
+    use std::os::windows::process::CommandExt;
+    let mut cmd = Command::new("reg");
+    cmd.creation_flags(0x08000000);
+    let output = cmd
         .args(["query", key, "/v", "Path"])
         .stdin(std::process::Stdio::null())
         .stderr(std::process::Stdio::null())
@@ -263,6 +266,10 @@ fn build_stdio_command(
     // 阻断路径遍历与形如 `--script /etc/passwd` 的危险 flag。
     validate_mcp_command(command, args).expect("MCP command validation failed");
     let mut cmd = tokio::process::Command::new(command);
+    #[cfg(windows)]
+    {
+        cmd.creation_flags(0x08000000);
+    }
     cmd.args(args);
     configure_stdio_env(&mut cmd, env);
     cmd

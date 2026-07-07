@@ -9,6 +9,14 @@ pub fn gen_id() -> String {
     uuid::Uuid::new_v4().to_string()
 }
 
+/// 计算字符串的 content hash（简单哈希，用于变更检测）
+pub fn calculate_content_hash(content: &str) -> String {
+    use std::hash::{Hash, Hasher};
+    let mut hasher = std::collections::hash_map::DefaultHasher::new();
+    content.hash(&mut hasher);
+    format!("{:x}", hasher.finish())
+}
+
 /// 获取当前 Unix 时间戳（秒）
 pub fn now_ts() -> i64 {
     chrono::Utc::now().timestamp()

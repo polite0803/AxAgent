@@ -220,7 +220,12 @@ foreach ($el in $elements) {
 $results | ConvertTo-Json -Compress
 "#;
 
-        let output = tokio::process::Command::new("powershell")
+        let mut ps_cmd = tokio::process::Command::new("powershell");
+        #[cfg(windows)]
+        {
+            ps_cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW — tokio::process::Command 内置方法
+        }
+        let output = ps_cmd
             .args(["-NoProfile", "-Command", script])
             .output()
             .await?;

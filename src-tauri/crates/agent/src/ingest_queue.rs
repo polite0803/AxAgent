@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use tokio::fs;
 use tokio::sync::Mutex;
 
-use axagent_core::utils::gen_id;
+use axagent_harness::util_fns::gen_id;
 
 use crate::ingest_pipeline::{IngestPipeline, IngestResult, IngestSource};
 

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-use sea_orm::{DatabaseConnection, EntityTrait};
+use axagent_harness::repositories::wiki_repository;
+use sea_orm::DatabaseConnection;
 
 pub const DEFAULT_PURPOSE_TEMPLATE: &str = r#"# {wiki_name}
 
@@ -32,11 +33,10 @@ pub struct PurposeManager;
 
 impl PurposeManager {
     pub async fn load(db: &DatabaseConnection, wiki_id: &str) -> Result<String, String> {
-        let wiki = axagent_core::entity::wikis::Entity::find_by_id(wiki_id)
-            .one(db)
+        let wiki = wiki_repository()
+            .get_wiki(wiki_id)
             .await
-            .map_err(|e| format!("DB error: {}", e))?
-            .ok_or_else(|| format!("Wiki {} not found", wiki_id))?;
+            .map_err(|e| format!("DB error: {}", e))?;
 
         let purpose_path = std::path::Path::new(&wiki.root_path).join("purpose.md");
         if purpose_path.exists() {
@@ -49,11 +49,10 @@ impl PurposeManager {
     }
 
     pub async fn save(db: &DatabaseConnection, wiki_id: &str, content: &str) -> Result<(), String> {
-        let wiki = axagent_core::entity::wikis::Entity::find_by_id(wiki_id)
-            .one(db)
+        let wiki = wiki_repository()
+            .get_wiki(wiki_id)
             .await
-            .map_err(|e| format!("DB error: {}", e))?
-            .ok_or_else(|| format!("Wiki {} not found", wiki_id))?;
+            .map_err(|e| format!("DB error: {}", e))?;
 
         let purpose_path = std::path::Path::new(&wiki.root_path).join("purpose.md");
         if let Some(parent) = purpose_path.parent() {
@@ -79,11 +78,10 @@ impl PurposeManager {
     }
 
     pub async fn exists(db: &DatabaseConnection, wiki_id: &str) -> Result<bool, String> {
-        let wiki = axagent_core::entity::wikis::Entity::find_by_id(wiki_id)
-            .one(db)
+        let wiki = wiki_repository()
+            .get_wiki(wiki_id)
             .await
-            .map_err(|e| format!("DB error: {}", e))?
-            .ok_or_else(|| format!("Wiki {} not found", wiki_id))?;
+            .map_err(|e| format!("DB error: {}", e))?;
 
         let purpose_path = std::path::Path::new(&wiki.root_path).join("purpose.md");
         Ok(purpose_path.exists())

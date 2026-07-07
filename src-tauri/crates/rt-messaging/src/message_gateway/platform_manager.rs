@@ -7,7 +7,7 @@ use tokio::sync::RwLock;
 use crate::message_gateway::platforms;
 use crate::message_gateway::platforms::PlatformAdapter;
 use crate::message_gateway::session_router::SessionRouter;
-use axagent_core::platform_config::PlatformConfig;
+use axagent_harness::platform_config::PlatformConfig;
 
 #[async_trait::async_trait]
 pub trait PlatformMessageCallback: Send + Sync {
@@ -156,7 +156,7 @@ impl PlatformManager {
 
         // 回退到持久化路由
         if let Some(db) = db {
-            let routes = axagent_core::repo::platform_config::load_session_routes(db).await;
+            let routes = axagent_dao::repo::platform_config::load_session_routes(db).await;
             let key = format!("{}_{}", platform, user_id);
             return routes.get(&key).cloned();
         }

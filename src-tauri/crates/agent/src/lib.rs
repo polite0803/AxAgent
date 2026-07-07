@@ -41,6 +41,7 @@ pub mod frontend_adapter;
 pub mod goal_evaluator;
 pub mod graph_insights;
 pub mod health_checker;
+pub mod harness_adapter;
 pub mod hierarchical_planner;
 pub mod ingest_pipeline;
 pub mod ingest_queue;

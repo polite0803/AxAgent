@@ -43,7 +43,9 @@ impl Tool for PushNotificationTool {
         #[cfg(target_os = "windows")]
         {
             // Windows 通知通过 Tauri notification API
+            use std::os::windows::process::CommandExt;
             let _ = std::process::Command::new("powershell")
+                .creation_flags(0x08000000) // CREATE_NO_WINDOW
                 .arg("-Command")
                 .arg(format!("[Windows.UI.Notifications.ToastNotificationManager, Windows.UI.Notifications, ContentType = WindowsRuntime] | Out-Null; New-BurntToastNotification -Text '{}', '{}'", title, body))
                 .output();

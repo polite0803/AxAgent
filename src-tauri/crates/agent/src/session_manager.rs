@@ -5,7 +5,7 @@
 use crate::event_bus::AgentPermissionPayload;
 use crate::provider_adapter::AxAgentApiClient;
 use crate::shared_blackboard::SharedBlackboard;
-use axagent_core::repo::agent_session;
+use axagent_harness::repositories::session_repository;
 use axagent_harness::conversation_model::{
     ContentBlock as HarnessContentBlock, ConversationMessage as HarnessConversationMessage,
     MessageRole as HarnessMessageRole, TokenUsage as HarnessTokenUsage,
@@ -351,14 +351,14 @@ impl SessionManager {
             session.session_mut().workspace_root = Some(std::path::PathBuf::from(cwd.as_str()));
         }
 
-        let axagent_session = agent_session::upsert_agent_session(
-            &self.db,
-            &conversation_id,
-            cwd_to_use.as_deref(),
-            Some("default"),
-        )
-        .await
-        .map_err(|e| e.to_string())?;
+        let axagent_session = session_repository()
+            .upsert_agent_session(
+                &conversation_id,
+                cwd_to_use.as_deref(),
+                Some("default"),
+            )
+            .await
+            .map_err(|e| e.to_string())?;
 
         session = session.with_axagent_session_id(axagent_session.id);
 
@@ -419,15 +419,15 @@ impl SessionManager {
                 drop(conv_index);
                 drop(sessions);
 
-                let _ = agent_session::update_agent_session_after_query(
-                    &db,
-                    &axagent_sid,
-                    "idle",
-                    None,
-                    tokens_delta,
-                    0.0,
-                )
-                .await;
+                let _ = session_repository()
+                    .update_agent_session_after_query(
+                        &axagent_sid,
+                        "idle",
+                        None,
+                        tokens_delta,
+                        0.0,
+                    )
+                    .await;
             }
         }
     }
@@ -443,8 +443,11 @@ impl SessionManager {
             sessions.remove(&session_id);
             self.session_last_access.lock().await.remove(&session_id);
 
-            let _ = agent_session::update_agent_session_status(&self.db, &session_id, "idle").await;
-            let _ = agent_session::clear_sdk_context_by_conversation_id(&self.db, conversation_id)
+            let _ = session_repository()
+                .update_agent_session_status(&session_id, "idle")
+                .await;
+            let _ = session_repository()
+                .clear_sdk_context_by_conversation_id(conversation_id)
                 .await;
         }
     }
@@ -765,15 +768,15 @@ impl SessionManager {
             // authoritative cost comes from the event payload.
             let cost_delta = 0.0;
 
-            let _ = agent_session::update_agent_session_after_query(
-                &self.db,
-                axagent_session_id,
-                "idle",
-                None,
-                tokens_delta,
-                cost_delta,
-            )
-            .await;
+            let _ = session_repository()
+                .update_agent_session_after_query(
+                    axagent_session_id,
+                    "idle",
+                    None,
+                    tokens_delta,
+                    cost_delta,
+                )
+                .await;
         }
 
         // Store updated session back

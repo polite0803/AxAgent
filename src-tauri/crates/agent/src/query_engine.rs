@@ -3,10 +3,11 @@
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
-use axagent_core::entity::{note_backlinks, note_links, notes, wikis};
+use axagent_harness::repositories::{note_repository, wiki_repository};
+use axagent_harness::repo_dtos::Note;
 use axagent_harness::types::{ChatContent, ChatMessage, ChatRequest};
 use axagent_harness::{ProviderAdapter, ProviderRequestContext};
-use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter};
+use sea_orm::DatabaseConnection;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -80,26 +81,18 @@ impl QueryEngine {
 
     #[tracing::instrument(skip(self, ctx))]
     pub async fn query(&self, ctx: &QueryContext) -> Result<QueryResult, String> {
-        let _wiki = wikis::Entity::find_by_id(&ctx.wiki_id)
-            .one(self.db.as_ref())
+        let _wiki = wiki_repository()
+            .get_wiki(&ctx.wiki_id)
             .await
-            .map_err(|e| e.to_string())?
-            .ok_or_else(|| format!("Wiki {} not found", ctx.wiki_id))?;
+            .map_err(|e| e.to_string())?;
 
-        let db_notes = notes::Entity::find()
-            .filter(notes::Column::VaultId.eq(&ctx.wiki_id))
-            .filter(notes::Column::IsDeleted.eq(0))
-            .all(self.db.as_ref())
+        let all_notes = note_repository()
+            .list_notes(&ctx.wiki_id)
             .await
             .map_err(|e| e.to_string())?;
 
         let query_lower = ctx.query.to_lowercase();
         let query_words: Vec<&str> = query_lower.split_whitespace().collect();
-
-        let all_notes: Vec<axagent_core::repo::note::Note> = db_notes
-            .into_iter()
-            .map(axagent_core::repo::note::model_to_note)
-            .collect();
 
         let avg_dl = if !all_notes.is_empty() {
             all_notes
@@ -124,7 +117,7 @@ impl QueryEngine {
             df.insert(word, count);
         }
 
-        let mut scored: Vec<(axagent_core::repo::note::Note, f64)> = Vec::new();
+        let mut scored: Vec<(Note, f64)> = Vec::new();
 
         for note in all_notes {
             let score =
@@ -145,9 +138,8 @@ impl QueryEngine {
 
         let mut pages = Vec::new();
         for (note, score) in paginated {
-            let links = note_links::Entity::find()
-                .filter(note_links::Column::SourceNoteId.eq(&note.id))
-                .all(self.db.as_ref())
+            let links = note_repository()
+                .get_note_links(&note.id)
                 .await
                 .map_err(|e| e.to_string())?;
 
@@ -173,11 +165,10 @@ impl QueryEngine {
         ctx: &QueryContext,
         query_embedding: &[f32],
     ) -> Result<QueryResult, String> {
-        let _wiki = wikis::Entity::find_by_id(&ctx.wiki_id)
-            .one(self.db.as_ref())
+        let _wiki = wiki_repository()
+            .get_wiki(&ctx.wiki_id)
             .await
-            .map_err(|e| e.to_string())?
-            .ok_or_else(|| format!("Wiki {} not found", ctx.wiki_id))?;
+            .map_err(|e| e.to_string())?;
 
         let vector_results = if let Some(vs) = &self.vector_store {
             vs.search(&ctx.wiki_id, query_embedding, ctx.limit * 2)
@@ -187,20 +178,13 @@ impl QueryEngine {
             vec![]
         };
 
-        let db_notes = notes::Entity::find()
-            .filter(notes::Column::VaultId.eq(&ctx.wiki_id))
-            .filter(notes::Column::IsDeleted.eq(0))
-            .all(self.db.as_ref())
+        let all_notes = note_repository()
+            .list_notes(&ctx.wiki_id)
             .await
             .map_err(|e| e.to_string())?;
 
         let query_lower = ctx.query.to_lowercase();
         let query_words: Vec<&str> = query_lower.split_whitespace().collect();
-
-        let all_notes: Vec<axagent_core::repo::note::Note> = db_notes
-            .into_iter()
-            .map(axagent_core::repo::note::model_to_note)
-            .collect();
 
         let avg_dl = if !all_notes.is_empty() {
             all_notes
@@ -256,15 +240,14 @@ impl QueryEngine {
             .take(ctx.limit)
             .collect();
 
-        let note_map: HashMap<String, axagent_core::repo::note::Note> =
+        let note_map: HashMap<String, Note> =
             all_notes.into_iter().map(|n| (n.id.clone(), n)).collect();
 
         let mut pages = Vec::new();
         for (note_id, score) in paginated {
             if let Some(note) = note_map.get(&note_id) {
-                let links = note_links::Entity::find()
-                    .filter(note_links::Column::SourceNoteId.eq(&note.id))
-                    .all(self.db.as_ref())
+                let links = note_repository()
+                    .get_note_links(&note.id)
                     .await
                     .map_err(|e| e.to_string())?;
 
@@ -318,7 +301,8 @@ impl QueryEngine {
 
         let mut context = String::from("Relevant wiki pages:\n\n");
         for (i, page) in search_result.pages.iter().enumerate() {
-            let note = axagent_core::repo::note::get_note(self.db.as_ref(), &page.note_id)
+            let note = note_repository()
+                .get_note(&page.note_id)
                 .await
                 .map_err(|e| e.to_string())?;
 
@@ -387,7 +371,8 @@ impl QueryEngine {
     }
 
     pub async fn get_page_context(&self, note_id: &str, depth: usize) -> Result<String, String> {
-        let note = axagent_core::repo::note::get_note(self.db.as_ref(), note_id)
+        let note = note_repository()
+            .get_note(note_id)
             .await
             .map_err(|e| e.to_string())?;
 
@@ -397,9 +382,8 @@ impl QueryEngine {
             return Ok(context);
         }
 
-        let backlinks = note_backlinks::Entity::find()
-            .filter(note_backlinks::Column::TargetNoteId.eq(note_id))
-            .all(self.db.as_ref())
+        let backlinks = note_repository()
+            .get_note_backlinks(note_id)
             .await
             .map_err(|e| e.to_string())?;
 
@@ -411,7 +395,7 @@ impl QueryEngine {
             visited.insert(bl.source_note_id.clone());
 
             if let Ok(ref_note) =
-                axagent_core::repo::note::get_note(self.db.as_ref(), &bl.source_note_id).await
+                note_repository().get_note(&bl.source_note_id).await
             {
                 context.push_str(&format!(
                     "## Related: {}\n{}\n\n",
@@ -433,7 +417,7 @@ const BM25_K1: f64 = 1.2;
 const BM25_B: f64 = 0.75;
 
 fn compute_bm25_score(
-    note: &axagent_core::repo::note::Note,
+    note: &Note,
     query_lower: &str,
     query_words: &[&str],
     df: &HashMap<&str, f64>,

@@ -5,9 +5,9 @@ edition.workspace = true
 publish = false
 
 [dependencies]
+axagent-kit = { path = "../kit" }
 anyhow = "1"
 async-trait = "0.1"
-axagent-core = { path = "../core" }
 axagent-harness = { path = "../harness" }
 futures = "0.3"
 reqwest = { workspace = true, features = ["stream", "socks", "rustls", "native-tls-vendored"] }
@@ -20,4 +20,4 @@ tracing = { workspace = true }
 uuid = { workspace = true }
 
 [features]
-computer-use = ["axagent-core/computer-use"]
+computer-use = ["axagent-kit/computer-use"]

@@ -7,7 +7,7 @@
 
 use crate::{Tool, ToolCategory, ToolContext, ToolError, ToolResult};
 use async_trait::async_trait;
-use axagent_core::entity::{
+use axagent_entities::{
     knowledge_documents, knowledge_entities, knowledge_flows, knowledge_interfaces,
 };
 use sea_orm::{ActiveModelTrait, Set};

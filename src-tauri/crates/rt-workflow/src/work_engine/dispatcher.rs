@@ -3,7 +3,7 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use axagent_core::workflow_types::WorkflowNode;
+use axagent_harness::workflow_types::WorkflowNode;
 
 use crate::expression_engine::{ExpressionContext, resolve_value_templates};
 
@@ -267,7 +267,7 @@ fn is_business_rule_applicable(node_type: &str) -> bool {
 /// 构建节点输入快照，供业务规则评估使用。
 /// 提取节点配置中的关键字段（工具名、URL、操作类型、金额等）。
 fn build_node_input_snapshot(node: &WorkflowNode, context: &ExecutionState) -> serde_json::Value {
-    use axagent_core::workflow_types::WorkflowNode;
+    use axagent_harness::workflow_types::WorkflowNode;
     let mut map = serde_json::Map::new();
     map.insert("node_id".to_string(), serde_json::json!(node.base_id()));
     map.insert("node_title".to_string(), serde_json::json!(node.base_title()));

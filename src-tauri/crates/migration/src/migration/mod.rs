@@ -8,7 +8,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::Ordering;
 
-use axagent_core::secure_store::SecureStore;
+use axagent_kit::secure_store::SecureStore;
 
 pub(crate) fn axagent_home() -> PathBuf {
     dirs::home_dir()
@@ -278,8 +278,8 @@ pub(crate) fn merge_env_file(
     }
     all_lines.extend(new_lines);
 
-    let store = axagent_core::secure_store::CombinedSecureStore::with_default_paths();
-    let is_secret = axagent_core::secure_store::is_secret_key;
+    let store = axagent_kit::secure_store::CombinedSecureStore::with_default_paths();
+    let is_secret = axagent_kit::secure_store::is_secret_key;
     let mut non_secret_lines = Vec::new();
     let mut secret_count = 0usize;
 

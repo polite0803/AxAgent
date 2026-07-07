@@ -106,7 +106,13 @@ pub fn check_config_exists(tool: CliTool) -> bool {
 }
 
 fn run_version_command(cmd: &str, arg: &str) -> Option<String> {
-    std::process::Command::new(cmd)
+    let mut c = std::process::Command::new(cmd);
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        c.creation_flags(0x08000000);
+    }
+    c
         .arg(arg)
         .stdout(std::process::Stdio::piped())
         .stderr(std::process::Stdio::piped())

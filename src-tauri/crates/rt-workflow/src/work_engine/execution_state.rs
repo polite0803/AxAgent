@@ -140,7 +140,7 @@ pub type LoopBodyDispatchFn = Arc<
 /// 注入到 `ExecutionState.callbacks.loop_checkpoint`，LoopExecutor 通过它读写
 /// `loop_checkpoints` 表。回调形式避免在 executor 静态结构里持有 db 句柄。
 type LoopCheckpointSaveFn = dyn Fn(
-        axagent_core::workflow_types::LoopCheckpoint,
+        axagent_harness::workflow_types::LoopCheckpoint,
     ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<(), String>> + Send>>
     + Send
     + Sync;
@@ -151,7 +151,7 @@ type LoopCheckpointLoadFn = dyn Fn(
     ) -> std::pin::Pin<
         Box<
             dyn std::future::Future<
-                    Output = Result<Option<axagent_core::workflow_types::LoopCheckpoint>, String>,
+                    Output = Result<Option<axagent_harness::workflow_types::LoopCheckpoint>, String>,
                 > + Send,
         >,
     > + Send

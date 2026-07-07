@@ -5,8 +5,11 @@ edition.workspace = true
 publish = false
 
 [dependencies]
+axagent-dao = { path = "../dao" }
+axagent-entities = { path = "../entities" }
+axagent-kit = { path = "../kit" }
+axagent-search = { path = "../search" }
 async-trait = "0.1"
-axagent-core = { path = "../core" }
 axagent-harness = { path = "../harness" }
 axagent-runtime-core = { path = "../runtime-core" }
 base64 = "0.22"

@@ -203,7 +203,12 @@ impl Tool for BashTool {
             ("bash", "-c")
         };
 
-        let child = tokio::process::Command::new(shell)
+        let mut command = tokio::process::Command::new(shell);
+        #[cfg(windows)]
+        {
+            command.creation_flags(0x08000000); // CREATE_NO_WINDOW — tokio::process::Command 内置方法
+        }
+        let child = command
             .arg(flag)
             .arg(cmd)
             .current_dir(working_dir)

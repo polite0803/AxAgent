@@ -5,9 +5,10 @@ edition.workspace = true
 publish = false
 
 [dependencies]
+axagent-entities = { path = "../entities" }
+axagent-kit = { path = "../kit" }
 anyhow = "1"
 async-trait = "0.1"
-axagent-core = { path = "../core" }
 axagent-harness = { path = "../harness" }
 chrono = { version = "0.4", features = ["serde"] }
 dirs = "5"

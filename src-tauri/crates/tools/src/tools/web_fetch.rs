@@ -2,8 +2,8 @@
 
 use crate::{ProgressEntry, Tool, ToolCategory, ToolContext, ToolError, ToolResult};
 use async_trait::async_trait;
-use axagent_core::html_cleaner::HtmlCleaner;
-use axagent_core::search::{is_safe_url_deep, shared_http_client};
+use axagent_kit::html_cleaner::HtmlCleaner;
+use axagent_search::search::{is_safe_url_deep, shared_http_client};
 use serde_json::Value;
 use std::time::Instant;
 
@@ -285,11 +285,11 @@ impl WebFetchTool {
             timestamp_ms: start.elapsed().as_millis() as u64,
         });
 
-        let pool = axagent_core::browser_automation::shared_browser_pool();
+        let pool = axagent_kit::browser_automation::shared_browser_pool();
         let mut guard = pool.lock().await;
         if guard.is_none() {
             *guard = Some(
-                axagent_core::browser_automation::PlaywrightClient::launch()
+                axagent_kit::browser_automation::PlaywrightClient::launch()
                     .await
                     .map_err(|e| ToolError::execution_failed(format!("浏览器启动失败: {}", e)))?,
             );

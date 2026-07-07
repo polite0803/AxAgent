@@ -26,7 +26,7 @@ pub use transport::{
     TransportRequest, TransportResponse, TransportStreamChunk,
 };
 
-use axagent_core::error::{AxAgentError, Result};
+use axagent_harness::core_error::{AxAgentError, Result};
 use axagent_harness::types::*;
 
 /// Provide a human-readable diagnostic hint for a `reqwest::Error`.

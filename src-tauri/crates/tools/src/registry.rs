@@ -685,7 +685,7 @@ impl UnifiedToolRegistry {
     pub async fn load_enabled_state(&mut self, db: &sea_orm::DatabaseConnection) {
         // 加载分类启用状态
         let key = "tool_groups_enabled";
-        let result = axagent_core::repo::settings::get_setting(db, key).await;
+        let result = axagent_dao::repo::settings::get_setting(db, key).await;
 
         if let Ok(Some(value)) = result
             && let Ok(map) = serde_json::from_str::<HashMap<String, bool>>(&value)
@@ -695,7 +695,7 @@ impl UnifiedToolRegistry {
 
         // 加载单工具禁用列表
         let dt_key = "disabled_tools";
-        let dt_result = axagent_core::repo::settings::get_setting(db, dt_key).await;
+        let dt_result = axagent_dao::repo::settings::get_setting(db, dt_key).await;
 
         if let Ok(Some(value)) = dt_result
             && let Ok(list) = serde_json::from_str::<Vec<String>>(&value)
@@ -774,7 +774,7 @@ impl UnifiedToolRegistry {
         let key = "tool_groups_enabled";
         let serialized =
             serde_json::to_string(&self.groups.group_enabled).map_err(|e| e.to_string())?;
-        axagent_core::repo::settings::set_setting(db, key, &serialized)
+        axagent_dao::repo::settings::set_setting(db, key, &serialized)
             .await
             .map_err(|e| e.to_string())?;
 
@@ -800,7 +800,7 @@ impl UnifiedToolRegistry {
         let serialized =
             serde_json::to_string(&self.groups.disabled_tools.iter().collect::<Vec<_>>())
                 .map_err(|e| e.to_string())?;
-        axagent_core::repo::settings::set_setting(db, key, &serialized)
+        axagent_dao::repo::settings::set_setting(db, key, &serialized)
             .await
             .map_err(|e| e.to_string())?;
 
@@ -1103,31 +1103,10 @@ impl UnifiedToolRegistry {
         let timeout = server.get_timeout();
         let started = std::time::Instant::now();
 
-        // 准备传输参数
-        let transport = server.transport.as_str();
-        let command = server.command.as_deref();
-        let args: Option<Vec<String>> = server
-            .args_json
-            .as_ref()
-            .and_then(|s| serde_json::from_str(s).ok());
-        let env: Option<HashMap<String, String>> = server
-            .env_json
-            .as_ref()
-            .and_then(|s| serde_json::from_str(s).ok());
-        let endpoint = server.endpoint.as_deref();
-
-        // 使用统一的 MCP 客户端入口（使用原始 MCP 工具名，不带前缀）
+        // 通过 harness McpClientService 调用（不直接依赖 axagent-core/mcp）
         let result = tokio::time::timeout(
             timeout,
-            axagent_core::mcp_client::call_tool_unified(
-                transport,
-                command,
-                args.as_deref(),
-                env.as_ref(),
-                endpoint,
-                &config.tool_name,
-                arguments,
-            ),
+            crate::mcp_client_service().call_tool(&server, &config.tool_name, arguments),
         )
         .await;
 
@@ -1135,24 +1114,18 @@ impl UnifiedToolRegistry {
 
         match result {
             Ok(Ok(mcp_result)) => {
-                let progress: Vec<crate::ProgressEntry> = mcp_result
-                    .progress
-                    .iter()
-                    .map(|p| crate::ProgressEntry {
-                        phase: p.phase.clone(),
-                        message: p.message.clone(),
-                        percent: p.percent,
-                        timestamp_ms: 0,
-                    })
-                    .collect();
+                let content_str = match &mcp_result.content {
+                    serde_json::Value::String(s) => s.clone(),
+                    other => serde_json::to_string(other).unwrap_or_default(),
+                };
 
                 let tool_result = ToolResult {
-                    content: mcp_result.content.clone(),
+                    content: content_str,
                     truncated: false,
                     is_error: mcp_result.is_error,
                     metadata: None,
                     duration_ms: Some(duration_ms),
-                    progress,
+                    progress: Vec::new(),
                 };
 
                 if let Some(ref recorder) = self.recorder {

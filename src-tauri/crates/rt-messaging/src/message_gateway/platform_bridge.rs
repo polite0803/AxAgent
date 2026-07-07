@@ -13,10 +13,10 @@ async fn persist_session_route(
     user_id: &str,
     agent_session_id: &str,
 ) -> anyhow::Result<()> {
-    let mut routes = axagent_core::repo::platform_config::load_session_routes(db).await;
+    let mut routes = axagent_dao::repo::platform_config::load_session_routes(db).await;
     let key = format!("{}_{}", platform, user_id);
     routes.insert(key, agent_session_id.to_string());
-    axagent_core::repo::platform_config::save_session_routes(db, &routes)
+    axagent_dao::repo::platform_config::save_session_routes(db, &routes)
         .await
         .map_err(|e| anyhow::anyhow!("{}", e))?;
     Ok(())
@@ -60,7 +60,7 @@ impl PlatformBridge {
         model_id: &str,
         messages: Vec<axagent_harness::types::ChatMessage>,
     ) -> anyhow::Result<String> {
-        use axagent_core::repo::provider;
+        use axagent_dao::repo::provider;
 
         let provider_config = provider::get_provider(&self.db, provider_id).await?;
 
@@ -76,7 +76,7 @@ impl PlatformBridge {
 
         let key_row = provider::get_active_key(&self.db, provider_id).await?;
 
-        let api_key = axagent_core::crypto::decrypt_key(&key_row.key_encrypted, &self.master_key)?;
+        let api_key = axagent_crypto::crypto::decrypt_key(&key_row.key_encrypted, &self.master_key)?;
 
         let ctx = build_provider_request_context(&provider_config, &key_row, api_key);
 
@@ -197,7 +197,7 @@ impl PlatformMessageCallback for PlatformBridge {
 
     async fn save_cursor(&self, platform: &str, cursor: i64) {
         if let Err(e) =
-            axagent_core::repo::platform_config::save_platform_cursor(&self.db, platform, cursor)
+            axagent_dao::repo::platform_config::save_platform_cursor(&self.db, platform, cursor)
                 .await
         {
             tracing::error!("[PlatformBridge] cursor save failed for {}: {}", platform, e);
@@ -215,8 +215,8 @@ impl PlatformBridge {
         _chat_id: &str,
         text: &str,
     ) -> anyhow::Result<Option<String>> {
-        use axagent_core::repo::{conversation, message, settings};
-        use axagent_core::slash_command::apply_slash_command_to_input;
+        use axagent_dao::repo::{conversation, message, settings};
+        use axagent_kit::slash_command::apply_slash_command_to_input;
         use axagent_harness::types::MessageRole;
 
         let preprocessed = apply_slash_command_to_input(text);

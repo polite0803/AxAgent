@@ -126,6 +126,11 @@ impl SandboxRunner {
                 cmd
             );
             let mut command = Command::new("powershell");
+            #[cfg(windows)]
+            {
+                use std::os::windows::process::CommandExt;
+                command.creation_flags(0x08000000); // CREATE_NO_WINDOW
+            }
             command.arg("-NoProfile");
             command.arg("-NonInteractive");
             command.arg("-Command");

@@ -2,7 +2,7 @@
 
 //! Internal tracking types: circuit breaker, backoff computation, node result.
 
-use axagent_core::workflow_types::{BackoffType, WorkflowNode};
+use axagent_harness::workflow_types::{BackoffType, WorkflowNode};
 
 use crate::work_engine::{NodeError, NodeOutput};
 

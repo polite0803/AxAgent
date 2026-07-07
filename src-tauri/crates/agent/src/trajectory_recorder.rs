@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+use axagent_harness::repositories::settings_repository;
 use axagent_harness::trajectory_types::{
     MessageRole, ToolCall as TrajectoryToolCall, Trajectory, TrajectoryOutcome, TrajectoryQuality,
     TrajectoryStep, TrajectoryToolResult,
 };
 use chrono::{DateTime, Utc};
-use sea_orm::{ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, Set};
+use sea_orm::DatabaseConnection;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tokio::sync::RwLock;
@@ -87,38 +88,13 @@ impl TrajectoryStore {
     }
 
     pub async fn save(&self, trajectory: &Trajectory) -> Result<(), String> {
-        use axagent_core::entity::settings as settings_model;
-        use axagent_core::entity::settings::Entity as SettingsEntity;
-
         let key = format!("trajectory:{}", trajectory.id);
         let json = serde_json::to_string(trajectory).map_err(|e| e.to_string())?;
 
-        let existing = SettingsEntity::find()
-            .filter(settings_model::Column::Key.eq(&key))
-            .one(self.db.as_ref())
+        settings_repository()
+            .save_setting(&key, &json)
             .await
             .map_err(|e| e.to_string())?;
-
-        match existing {
-            Some(record) => {
-                let mut active: settings_model::ActiveModel = record.into();
-                active.value = Set(json);
-                active
-                    .update(self.db.as_ref())
-                    .await
-                    .map_err(|e| e.to_string())?;
-            },
-            None => {
-                let active = settings_model::ActiveModel {
-                    key: Set(key),
-                    value: Set(json),
-                };
-                active
-                    .insert(self.db.as_ref())
-                    .await
-                    .map_err(|e| e.to_string())?;
-            },
-        }
 
         let index_key = "trajectory_index".to_string();
         let mut index: Vec<String> = self
@@ -136,23 +112,15 @@ impl TrajectoryStore {
     }
 
     pub async fn load(&self, id: &str) -> Result<Option<Trajectory>, String> {
-        use axagent_core::entity::settings as settings_model;
-        use axagent_core::entity::settings::Entity as SettingsEntity;
-
         let key = format!("trajectory:{}", id);
-        let result = SettingsEntity::find()
-            .filter(settings_model::Column::Key.eq(&key))
-            .one(self.db.as_ref())
-            .await
-            .map_err(|e| e.to_string())?;
-
-        match result {
-            Some(record) => {
+        match settings_repository().load_setting(&key).await {
+            Ok(Some(value)) => {
                 let trajectory: Trajectory =
-                    serde_json::from_str(&record.value).map_err(|e| e.to_string())?;
+                    serde_json::from_str(&value).map_err(|e| e.to_string())?;
                 Ok(Some(trajectory))
             },
-            None => Ok(None),
+            Ok(None) => Ok(None),
+            Err(e) => Err(e.to_string()),
         }
     }
 
@@ -196,92 +164,54 @@ impl TrajectoryStore {
     }
 
     pub async fn delete(&self, id: &str) -> Result<bool, String> {
-        use axagent_core::entity::settings as settings_model;
-        use axagent_core::entity::settings::Entity as SettingsEntity;
-
         let key = format!("trajectory:{}", id);
-        let existing = SettingsEntity::find()
-            .filter(settings_model::Column::Key.eq(&key))
-            .one(self.db.as_ref())
+
+        // Check if the setting exists before deleting
+        let exists = settings_repository()
+            .load_setting(&key)
             .await
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| e.to_string())?
+            .is_some();
 
-        match existing {
-            Some(record) => {
-                let active: settings_model::ActiveModel = record.into();
-                active
-                    .delete(self.db.as_ref())
-                    .await
-                    .map_err(|e| e.to_string())?;
+        if exists {
+            settings_repository()
+                .delete_setting(&key)
+                .await
+                .map_err(|e| e.to_string())?;
 
-                let index_key = "trajectory_index".to_string();
-                let mut index = self
-                    .load_index(&index_key)
-                    .await
-                    .unwrap_or_default()
-                    .unwrap_or_default();
-                index.retain(|i| i != id);
-                self.save_index(&index_key, &index).await?;
+            let index_key = "trajectory_index".to_string();
+            let mut index = self
+                .load_index(&index_key)
+                .await
+                .unwrap_or_default()
+                .unwrap_or_default();
+            index.retain(|i| i != id);
+            self.save_index(&index_key, &index).await?;
 
-                Ok(true)
-            },
-            None => Ok(false),
+            Ok(true)
+        } else {
+            Ok(false)
         }
     }
 
     async fn load_index(&self, index_key: &str) -> Result<Option<Vec<String>>, String> {
-        use axagent_core::entity::settings as settings_model;
-        use axagent_core::entity::settings::Entity as SettingsEntity;
-
-        let result = SettingsEntity::find()
-            .filter(settings_model::Column::Key.eq(index_key))
-            .one(self.db.as_ref())
-            .await
-            .map_err(|e| e.to_string())?;
-
-        match result {
-            Some(record) => {
+        match settings_repository().load_setting(index_key).await {
+            Ok(Some(value)) => {
                 let index: Vec<String> =
-                    serde_json::from_str(&record.value).map_err(|e| e.to_string())?;
+                    serde_json::from_str(&value).map_err(|e| e.to_string())?;
                 Ok(Some(index))
             },
-            None => Ok(None),
+            Ok(None) => Ok(None),
+            Err(e) => Err(e.to_string()),
         }
     }
 
     async fn save_index(&self, index_key: &str, index: &[String]) -> Result<(), String> {
-        use axagent_core::entity::settings as settings_model;
-        use axagent_core::entity::settings::Entity as SettingsEntity;
-
         let json = serde_json::to_string(index).map_err(|e| e.to_string())?;
-
-        let existing = SettingsEntity::find()
-            .filter(settings_model::Column::Key.eq(index_key))
-            .one(self.db.as_ref())
+        settings_repository()
+            .save_setting(index_key, &json)
             .await
             .map_err(|e| e.to_string())?;
-
-        match existing {
-            Some(record) => {
-                let mut active: settings_model::ActiveModel = record.into();
-                active.value = Set(json);
-                active
-                    .update(self.db.as_ref())
-                    .await
-                    .map_err(|e| e.to_string())?;
-            },
-            None => {
-                let active = settings_model::ActiveModel {
-                    key: Set(index_key.to_string()),
-                    value: Set(json),
-                };
-                active
-                    .insert(self.db.as_ref())
-                    .await
-                    .map_err(|e| e.to_string())?;
-            },
-        }
-
         Ok(())
     }
 }

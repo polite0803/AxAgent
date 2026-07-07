@@ -1307,6 +1307,9 @@ mod tests {
                 std::time::Duration::from_secs(60),
             )),
             client_ip_policy: std::sync::Arc::new(crate::auth::ClientIpPolicy::trust_all()),
+            memory_store: std::sync::Arc::new(axagent_harness::memory::NoopMemoryStore),
+            mcp_store: std::sync::Arc::new(axagent_harness::mcp_service::NoopMcpServerStore),
+            mcp_client: std::sync::Arc::new(axagent_harness::mcp_service::NoopMcpClientService),
         };
         (create_router(state.clone()), handle, gateway_key.plain_key, state)
     }
@@ -1733,6 +1736,9 @@ mod tests {
                 std::time::Duration::from_secs(60),
             )),
             client_ip_policy: std::sync::Arc::new(crate::auth::ClientIpPolicy::trust_all()),
+            memory_store: std::sync::Arc::new(axagent_harness::memory::NoopMemoryStore),
+            mcp_store: std::sync::Arc::new(axagent_harness::mcp_service::NoopMcpServerStore),
+            mcp_client: std::sync::Arc::new(axagent_harness::mcp_service::NoopMcpClientService),
         });
         let response = app
             .oneshot(

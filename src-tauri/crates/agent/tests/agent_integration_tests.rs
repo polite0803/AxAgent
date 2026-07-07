@@ -20,7 +20,7 @@ use axagent_agent::thought_chain::ThoughtChain;
 use axagent_agent::tree_of_thoughts::{
     LlmReasoningProvider as ToTLlmReasoningProvider, ThoughtStatus, TreeOfThoughtsEngine,
 };
-use axagent_core::error::AxAgentError;
+use axagent_harness::core_error::AxAgentError;
 use std::sync::Arc;
 use std::time::Duration;
 

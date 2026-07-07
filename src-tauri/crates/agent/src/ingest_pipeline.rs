@@ -7,12 +7,12 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use tokio::fs;
 
-use axagent_core::entity::wiki_sources;
-use axagent_core::utils::gen_id;
+use axagent_harness::repositories::{note_repository, wiki_repository, wiki_source_repository};
+use axagent_harness::repo_dtos::CreateNoteInput;
 use axagent_harness::types::{ChatContent, ChatMessage, ChatRequest};
-use axagent_harness::util_fns::truncate_to_char_boundary;
+use axagent_harness::util_fns::{gen_id, truncate_to_char_boundary};
 use axagent_harness::{ProviderAdapter, ProviderRequestContext};
-use sea_orm::{ActiveModelTrait, DatabaseConnection, EntityTrait, Set};
+use sea_orm::DatabaseConnection;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum IngestSourceType {
@@ -276,26 +276,23 @@ impl IngestPipeline {
             _ => "text/markdown",
         };
 
-        let am = wiki_sources::ActiveModel {
-            id: Set(id.clone()),
-            wiki_id: Set(wiki_id.to_string()),
-            source_type: Set(format!("{:?}", source_type).to_lowercase()),
-            source_path: Set(raw_path.clone()),
-            title: Set(metadata
-                .title
-                .clone()
-                .unwrap_or_else(|| "Untitled".to_string())),
-            mime_type: Set(mime_type.to_string()),
-            size_bytes: Set(0),
-            content_hash: Set(content_hash.clone()),
-            metadata_json: Set(Some(serde_json::to_value(&metadata).unwrap_or_default())),
-            created_at: Set(chrono::Utc::now().timestamp()),
-            updated_at: Set(chrono::Utc::now().timestamp()),
+        let source_input = axagent_harness::repo_dtos::CreateWikiSourceInput {
+            wiki_id: wiki_id.to_string(),
+            source_type: format!("{:?}", source_type).to_lowercase(),
+            source_path: raw_path.clone(),
+            title: metadata.title.clone().unwrap_or_else(|| "Untitled".to_string()),
+            mime_type: mime_type.to_string(),
+            size_bytes: 0,
+            content_hash: content_hash.clone(),
+            metadata_json: Some(serde_json::to_value(&metadata).unwrap_or_default()),
         };
 
-        am.insert(self.db.as_ref())
+        let source_record = wiki_source_repository()
+            .create_source(source_input)
             .await
             .map_err(|e| e.to_string())?;
+
+        let actual_source_id = source_record.id;
 
         let mut pages_generated = 0usize;
         let mut generated_note_ids = Vec::new();
@@ -314,7 +311,7 @@ impl IngestPipeline {
                     ctx,
                     model,
                     wiki_id,
-                    &id,
+                    &actual_source_id,
                     &raw_path,
                     &analysis,
                 )
@@ -324,7 +321,7 @@ impl IngestPipeline {
         }
 
         Ok(IngestResult {
-            source_id: id,
+            source_id: actual_source_id,
             raw_path,
             title: metadata.title.unwrap_or_else(|| "Untitled".to_string()),
             pages_generated,
@@ -637,11 +634,10 @@ Each page must be valid JSON inside a ```json fenced code block with these field
 
         let file_path = format!("notes/{}/{}.md", dir, slug);
 
-        let wiki = axagent_core::entity::wikis::Entity::find_by_id(wiki_id)
-            .one(self.db.as_ref())
+        let wiki = wiki_repository()
+            .get_wiki(wiki_id)
             .await
-            .map_err(|e| format!("DB error: {}", e))?
-            .ok_or_else(|| format!("Wiki {} not found", wiki_id))?;
+            .map_err(|e| format!("DB error: {}", e))?;
 
         let note_path = std::path::Path::new(&wiki.root_path).join(&file_path);
         if let Some(parent) = note_path.parent() {
@@ -653,7 +649,7 @@ Each page must be valid JSON inside a ```json fenced code block with these field
             .await
             .map_err(|e| e.to_string())?;
 
-        let input = axagent_core::repo::note::CreateNoteInput {
+        let input = CreateNoteInput {
             vault_id: wiki_id.to_string(),
             title: page.title.clone(),
             file_path: file_path.clone(),
@@ -663,7 +659,8 @@ Each page must be valid JSON inside a ```json fenced code block with these field
             source_refs: Some(vec![source_id.to_string()]),
         };
 
-        let note = axagent_core::repo::note::create_note(self.db.as_ref(), input)
+        let note = note_repository()
+            .create_note(input)
             .await
             .map_err(|e| format!("Failed to create note: {}", e))?;
 
@@ -744,11 +741,10 @@ Each page must be valid JSON inside a ```json fenced code block with these field
     }
 
     async fn load_purpose(&self, wiki_id: &str) -> Result<String, String> {
-        let wiki = axagent_core::entity::wikis::Entity::find_by_id(wiki_id)
-            .one(self.db.as_ref())
+        let wiki = wiki_repository()
+            .get_wiki(wiki_id)
             .await
-            .map_err(|e| format!("DB error: {}", e))?
-            .ok_or_else(|| format!("Wiki {} not found", wiki_id))?;
+            .map_err(|e| format!("DB error: {}", e))?;
 
         let purpose_path = std::path::Path::new(&wiki.root_path).join("purpose.md");
         if purpose_path.exists() {
@@ -899,8 +895,7 @@ Each page must be valid JSON inside a ```json fenced code block with these field
         metadata: &SourceMetadata,
         _content: &str,
         content_hash: &str,
-    ) -> Result<wiki_sources::Model, String> {
-        let id = gen_id();
+    ) -> Result<axagent_harness::repo_dtos::WikiSource, String> {
         let mime_type = match source.source_type {
             IngestSourceType::Pdf => "application/pdf",
             IngestSourceType::Docx => {
@@ -916,24 +911,18 @@ Each page must be valid JSON inside a ```json fenced code block with these field
             _ => "text/markdown",
         };
 
-        let am = wiki_sources::ActiveModel {
-            id: Set(id),
-            wiki_id: Set(wiki_id.to_string()),
-            source_type: Set(format!("{:?}", source.source_type).to_lowercase()),
-            source_path: Set(raw_path.to_string()),
-            title: Set(metadata
-                .title
-                .clone()
-                .unwrap_or_else(|| "Untitled".to_string())),
-            mime_type: Set(mime_type.to_string()),
-            size_bytes: Set(0),
-            content_hash: Set(content_hash.to_string()),
-            metadata_json: Set(Some(serde_json::to_value(metadata).unwrap_or_default())),
-            created_at: Set(chrono::Utc::now().timestamp()),
-            updated_at: Set(chrono::Utc::now().timestamp()),
+        let source_input = axagent_harness::repo_dtos::CreateWikiSourceInput {
+            wiki_id: wiki_id.to_string(),
+            source_type: format!("{:?}", source.source_type).to_lowercase(),
+            source_path: raw_path.to_string(),
+            title: metadata.title.clone().unwrap_or_else(|| "Untitled".to_string()),
+            mime_type: mime_type.to_string(),
+            size_bytes: 0,
+            content_hash: content_hash.to_string(),
+            metadata_json: Some(serde_json::to_value(metadata).unwrap_or_default()),
         };
 
-        am.insert(self.db.as_ref()).await.map_err(|e| e.to_string())
+        wiki_source_repository().create_source(source_input).await.map_err(|e| e.to_string())
     }
 }
 

@@ -5,6 +5,7 @@
 //! 包含浏览器自动化、HTML 清洗、操作审计、提示模板等零散模块。
 
 pub mod browser_automation;
+pub mod playwright_adapter;
 pub mod command_validator;
 #[cfg(feature = "computer-use")]
 pub mod computer_control;

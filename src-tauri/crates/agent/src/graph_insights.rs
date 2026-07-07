@@ -2,8 +2,7 @@
 
 use std::collections::{HashMap, HashSet};
 
-use axagent_core::repo::louvain::LouvainResult;
-use axagent_core::repo::note_graph::{LinkGraph, PageType};
+use axagent_harness::graph_analysis::{LinkGraph, LouvainResult, PageType};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]

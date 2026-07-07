@@ -2,7 +2,7 @@
 
 //! Migration crate.
 
-pub use axagent_core::ddl::run_initialization;
+pub use axagent_dao::ddl::run_initialization;
 pub use axagent_harness::migration_types::{
     BackupInfo, DetectedPlatform, MigrationEntry, MigrationItem, MigrationReport,
 };

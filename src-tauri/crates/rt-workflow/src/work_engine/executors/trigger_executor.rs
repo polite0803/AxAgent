@@ -8,7 +8,7 @@
 //! - Event:    调用 TriggerManager 注册事件订阅
 
 use async_trait::async_trait;
-use axagent_core::workflow_types::{
+use axagent_harness::workflow_types::{
     EventTriggerConfig, ScheduleTriggerConfig, TriggerType, WebhookTriggerConfig, WorkflowNode,
 };
 

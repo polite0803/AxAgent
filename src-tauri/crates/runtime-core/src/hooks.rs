@@ -781,6 +781,11 @@ fn shell_command(command: &str) -> CommandWithStdin {
     #[cfg(windows)]
     let command_builder = {
         let mut command_builder = Command::new("cmd");
+        #[cfg(windows)]
+        {
+            use std::os::windows::process::CommandExt;
+            command_builder.creation_flags(0x08000000); // CREATE_NO_WINDOW
+        }
         command_builder.arg("/C").arg(command);
         CommandWithStdin::new(command_builder)
     };

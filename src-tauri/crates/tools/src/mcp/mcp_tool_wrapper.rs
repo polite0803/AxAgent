@@ -51,49 +51,52 @@ impl Tool for McpToolWrapper {
     }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
-        let result = match &self.transport {
-            McpTransportConfig::Stdio { command, args, env } => {
-                axagent_core::mcp_client::call_tool_stdio_pooled(
-                    command,
-                    args,
-                    env,
-                    &self.tool_name,
-                    input,
-                )
-                .await
-                .map_err(|e| {
-                    ToolError::execution_failed_for(
-                        &self.tool_name,
-                        format!("MCP stdio 调用失败: {e}"),
-                    )
-                })?
+        let harness_server = axagent_harness::McpServerConfig {
+            id: self.name.clone(),
+            name: self.tool_name.clone(),
+            transport: match &self.transport {
+                McpTransportConfig::Stdio { .. } => "stdio".into(),
+                McpTransportConfig::Http { .. } => "http".into(),
+                McpTransportConfig::Sse { .. } => "sse".into(),
             },
-            McpTransportConfig::Http { endpoint } => {
-                axagent_core::mcp_client::call_tool_http(endpoint, &self.tool_name, input, None)
-                    .await
-                    .map_err(|e| {
-                        ToolError::execution_failed_for(
-                            &self.tool_name,
-                            format!("MCP HTTP 调用失败: {e}"),
-                        )
-                    })?
+            command: match &self.transport {
+                McpTransportConfig::Stdio { command, .. } => Some(command.clone()),
+                _ => None,
             },
-            McpTransportConfig::Sse { endpoint } => {
-                axagent_core::mcp_client::call_tool_sse(endpoint, &self.tool_name, input, None)
-                    .await
-                    .map_err(|e| {
-                        ToolError::execution_failed_for(
-                            &self.tool_name,
-                            format!("MCP SSE 调用失败: {e}"),
-                        )
-                    })?
+            args_json: match &self.transport {
+                McpTransportConfig::Stdio { args, .. } => {
+                    Some(serde_json::to_string(args).unwrap_or_default())
+                },
+                _ => None,
             },
+            env_json: match &self.transport {
+                McpTransportConfig::Stdio { env, .. } => {
+                    env.as_ref().map(|e| serde_json::to_string(e).unwrap_or_default())
+                },
+                _ => None,
+            },
+            endpoint: match &self.transport {
+                McpTransportConfig::Http { endpoint } | McpTransportConfig::Sse { endpoint } => {
+                    Some(endpoint.clone())
+                },
+                _ => None,
+            },
+        };
+        let result = crate::mcp_client_service()
+            .call_tool(&harness_server, &self.tool_name, input)
+            .await
+            .map_err(|e| ToolError::execution_failed_for(&self.tool_name, e))?;
+
+        // 将 harness Value content 转回字符串
+        let content_str = match &result.content {
+            serde_json::Value::String(s) => s.clone(),
+            other => serde_json::to_string(other).unwrap_or_default(),
         };
 
         if result.is_error {
-            Err(ToolError::execution_failed_for(&self.tool_name, result.content))
+            Err(ToolError::execution_failed_for(&self.tool_name, content_str))
         } else {
-            Ok(ToolResult::success(result.content))
+            Ok(ToolResult::success(content_str))
         }
     }
 }

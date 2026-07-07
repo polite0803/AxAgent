@@ -25,6 +25,10 @@ use crate::handlers::{
     health_check, list_jobs, list_models, list_runs, pause_job, resume_job, retry_run, trigger_job,
     trigger_run, update_job, update_job_schedule,
 };
+use crate::handlers::memory::{
+    add_memory, delete_memory_handler, memory_feedback, memory_grouped, memory_tree,
+    memory_working, search_memory, update_memory_handler,
+};
 
 /// Wrapper that extracts the `{platform}` path parameter, converts it to a
 /// `Platform` extension, and delegates to `receive_webhook`.
@@ -134,6 +138,15 @@ pub fn create_router(state: GatewayAppState) -> Router {
             "/v1/mcp/servers/{server_id}/tools/call",
             post(call_mcp_tool),
         )
+        // 记忆外溢路由（Companion Core 核心能力）
+        .route("/v1/memory", post(add_memory))
+        .route("/v1/memory/search", post(search_memory))
+        .route("/v1/memory/tree", get(memory_tree))
+        .route("/v1/memory/working", get(memory_working))
+        .route("/v1/memory/grouped", get(memory_grouped))
+        .route("/v1/memory/{id}", delete(delete_memory_handler))
+        .route("/v1/memory/{id}", patch(update_memory_handler))
+        .route("/v1/memory/{id}/feedback", post(memory_feedback))
         .layer(Extension(state.ticket_store.clone()))
         .layer(middleware::from_fn_with_state(
             AuthState {
@@ -293,6 +306,7 @@ mod tests {
             adapter: axagent_harness::test_support::empty_platform_adapter(),
             marketplace_service: axagent_harness::test_support::empty_marketplace_service(),
             ticket_store: crate::realtime::default_ticket_store(),
+            qr_bind_store: crate::qr_bind::QrBindStore::default(),
             // SECURITY (Phase 2 Task 2.3): 路由层测试用宽阈值 limiter，
             // 避免和限流本身的目的混在一起。
             key_verify_limiter: std::sync::Arc::new(crate::auth::KeyVerifyLimiter::new(
@@ -300,6 +314,9 @@ mod tests {
                 std::time::Duration::from_secs(60),
             )),
             client_ip_policy: std::sync::Arc::new(ClientIpPolicy::trust_all()),
+            memory_store: std::sync::Arc::new(axagent_harness::memory::NoopMemoryStore),
+            mcp_store: std::sync::Arc::new(axagent_harness::mcp_service::NoopMcpServerStore),
+            mcp_client: std::sync::Arc::new(axagent_harness::mcp_service::NoopMcpClientService),
         }
     }
 

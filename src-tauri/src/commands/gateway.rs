@@ -531,6 +531,7 @@ pub async fn start_gateway(state: State<'_, AppState>) -> Result<(), String> {
             )),
         ),
         std::sync::Arc::new(axagent_dao::marketplace_service::MarketplaceServiceImpl),
+        std::sync::Arc::new(axagent_harness::memory::NoopMemoryStore),
     )
     .await
     .map_err(|e| e.to_string())?;
@@ -870,6 +871,410 @@ pub async fn get_active_gateway_platform(state: State<'_, AppState>) -> Result<S
     }
 
     Ok(String::new())
+}
+
+// ============================================================
+// MemoryStoreAdapter — 桥接现有 MemoryService → harness MemoryStore trait
+// ============================================================
+
+use std::sync::Arc;
+use tokio::sync::RwLock;
+use axagent_harness::memory::{
+    MemoryActionResultDto, MemoryAddRequest, MemoryFeedbackRequest, MemoryGroupedDto,
+    MemorySearchItem, MemorySearchRequest, MemoryStore, MemoryTreeItem,
+};
+use axagent_trajectory::{
+    AddMemoryRequest as TrajAddMemoryRequest, MemoryNature, MemoryTier, MemoryProvenance,
+};
+
+struct MemoryStoreAdapter {
+    service: Arc<RwLock<axagent_trajectory::MemoryService>>,
+}
+
+#[async_trait::async_trait]
+impl MemoryStore for MemoryStoreAdapter {
+    async fn add_memory(&self, req: MemoryAddRequest) -> Result<MemoryActionResultDto, String> {
+        let svc = self.service.read().await;
+        let traj_req = TrajAddMemoryRequest {
+            target: req.target,
+            content: req.content,
+            tier: MemoryTier::from_str(&req.tier),
+            importance: req.importance,
+            nature: if req.nature.is_empty() {
+                MemoryNature::Semantic
+            } else {
+                MemoryNature::from_str(&req.nature)
+            },
+            tags: req.tags,
+            expires_at: req.expires_at,
+            namespace_id: req.namespace_id,
+            provenance: Some(MemoryProvenance {
+                conversation_id: None,
+                message_id: None,
+                extraction_method: "api".to_string(),
+            }),
+        };
+        let result = svc.add_memory_advanced(traj_req).await;
+        Ok(MemoryActionResultDto {
+            success: result.success,
+            message: result.message,
+        })
+    }
+
+    async fn search(&self, req: MemorySearchRequest) -> Result<Vec<MemorySearchItem>, String> {
+        let svc = self.service.read().await;
+        if req.graph_enhanced {
+            let results = svc.graph_enhanced_search(&req.query, req.limit).await;
+            Ok(results
+                .into_iter()
+                .map(|r| MemorySearchItem {
+                    id: r.entry.id,
+                    content: r.entry.content,
+                    memory_type: r.entry.memory_type,
+                    importance: r.entry.importance,
+                    score: Some(r.graph_boost),
+                    created_at: r.entry.created_at,
+                })
+                .collect())
+        } else {
+            let results = svc.search_memories(&req.query, req.limit).await;
+            Ok(results
+                .into_iter()
+                .map(|e| MemorySearchItem {
+                    id: e.id,
+                    content: e.content,
+                    memory_type: e.memory_type,
+                    importance: e.importance,
+                    score: None,
+                    created_at: e.created_at,
+                })
+                .collect())
+        }
+    }
+
+    async fn tree(&self) -> Result<Vec<MemoryTreeItem>, String> {
+        let svc = self.service.read().await;
+        let grouped = svc.get_memories_grouped_by_time().await;
+        let mut items: Vec<MemoryTreeItem> = grouped
+            .today
+            .iter()
+            .map(|e| MemoryTreeItem {
+                id: e.id.clone(),
+                content: e.content.clone(),
+                memory_type: e.memory_type.clone(),
+                tier: e.tier.as_str().to_string(),
+                importance: e.importance,
+                tags: e.tags.clone(),
+                namespace_id: e.namespace_id.clone(),
+                created_at: e.created_at,
+                updated_at: e.updated_at,
+            })
+            .collect();
+        for bucket in [&grouped.this_week, &grouped.this_month, &grouped.older] {
+            for e in bucket {
+                if !items
+                    .iter()
+                    .any(|i| i.content == e.content && i.tier == e.tier.as_str())
+                {
+                    items.push(MemoryTreeItem {
+                        id: e.id.clone(),
+                        content: e.content.clone(),
+                        memory_type: e.memory_type.clone(),
+                        tier: e.tier.as_str().to_string(),
+                        importance: e.importance,
+                        tags: e.tags.clone(),
+                        namespace_id: e.namespace_id.clone(),
+                        created_at: e.created_at,
+                        updated_at: e.updated_at,
+                    });
+                }
+            }
+        }
+        Ok(items)
+    }
+
+    async fn working(&self) -> Result<Vec<MemoryTreeItem>, String> {
+        let svc = self.service.read().await;
+        let wm = svc.get_working_memory().await;
+        Ok(wm
+            .entries
+            .values()
+            .map(|e| MemoryTreeItem {
+                id: e.id.clone(),
+                content: e.content.clone(),
+                memory_type: e.memory_type.clone(),
+                tier: e.tier.as_str().to_string(),
+                importance: e.importance,
+                tags: e.tags.clone(),
+                namespace_id: e.namespace_id.clone(),
+                created_at: e.created_at,
+                updated_at: e.updated_at,
+            })
+            .collect())
+    }
+
+    async fn grouped(&self) -> Result<MemoryGroupedDto, String> {
+        let svc = self.service.read().await;
+        let g = svc.get_memories_grouped_by_time().await;
+        Ok(MemoryGroupedDto {
+            today: g
+                .today
+                .iter()
+                .map(|e| MemoryTreeItem {
+                    id: e.id.clone(),
+                    content: e.content.clone(),
+                    memory_type: e.memory_type.clone(),
+                    tier: e.tier.as_str().to_string(),
+                    importance: e.importance,
+                    tags: e.tags.clone(),
+                    namespace_id: e.namespace_id.clone(),
+                    created_at: e.created_at,
+                    updated_at: e.updated_at,
+                })
+                .collect(),
+            this_week: g
+                .this_week
+                .iter()
+                .map(|e| MemoryTreeItem {
+                    id: e.id.clone(),
+                    content: e.content.clone(),
+                    memory_type: e.memory_type.clone(),
+                    tier: e.tier.as_str().to_string(),
+                    importance: e.importance,
+                    tags: e.tags.clone(),
+                    namespace_id: e.namespace_id.clone(),
+                    created_at: e.created_at,
+                    updated_at: e.updated_at,
+                })
+                .collect(),
+            this_month: g
+                .this_month
+                .iter()
+                .map(|e| MemoryTreeItem {
+                    id: e.id.clone(),
+                    content: e.content.clone(),
+                    memory_type: e.memory_type.clone(),
+                    tier: e.tier.as_str().to_string(),
+                    importance: e.importance,
+                    tags: e.tags.clone(),
+                    namespace_id: e.namespace_id.clone(),
+                    created_at: e.created_at,
+                    updated_at: e.updated_at,
+                })
+                .collect(),
+            older: g
+                .older
+                .iter()
+                .map(|e| MemoryTreeItem {
+                    id: e.id.clone(),
+                    content: e.content.clone(),
+                    memory_type: e.memory_type.clone(),
+                    tier: e.tier.as_str().to_string(),
+                    importance: e.importance,
+                    tags: e.tags.clone(),
+                    namespace_id: e.namespace_id.clone(),
+                    created_at: e.created_at,
+                    updated_at: e.updated_at,
+                })
+                .collect(),
+        })
+    }
+
+    async fn update_importance(
+        &self,
+        req: MemoryFeedbackRequest,
+    ) -> Result<MemoryActionResultDto, String> {
+        let svc = self.service.read().await;
+        let _ = svc.update_importance(&req.id, req.importance_delta).await;
+        Ok(MemoryActionResultDto {
+            success: true,
+            message: "ok".to_string(),
+        })
+    }
+
+    async fn delete_memory(&self, id: &str) -> Result<MemoryActionResultDto, String> {
+        let svc = self.service.read().await;
+        svc.storage()
+            .delete_memory(id)
+            .await
+            .map_err(|e| e.to_string())?;
+        svc.storage()
+            .delete_memory_fts(id)
+            .await
+            .map_err(|e| e.to_string())?;
+        Ok(MemoryActionResultDto {
+            success: true,
+            message: format!("deleted {}", id),
+        })
+    }
+
+    async fn update_memory(
+        &self,
+        id: &str,
+        req: MemoryUpdateRequest,
+    ) -> Result<MemoryActionResultDto, String> {
+        let svc = self.service.read().await;
+        let all = svc
+            .storage()
+            .get_all_memories()
+            .await
+            .map_err(|e| e.to_string())?;
+        let found = all.into_iter().find(|e| e.id == id);
+        match found {
+            None => Ok(MemoryActionResultDto {
+                success: false,
+                message: format!("memory not found: {id}"),
+            }),
+            Some(mut entry) => {
+                if let Some(content) = req.content {
+                    entry.content = content;
+                }
+                if let Some(tier) = req.tier {
+                    entry.tier = axagent_trajectory::MemoryTier::from_str(&tier);
+                }
+                if let Some(tags) = req.tags {
+                    entry.tags = tags;
+                }
+                svc.storage()
+                    .save_memory(&entry)
+                    .await
+                    .map_err(|e| e.to_string())?;
+                Ok(MemoryActionResultDto {
+                    success: true,
+                    message: format!("updated {id}"),
+                })
+            }
+        }
+    }
+}
+
+/// 注入 MemoryStoreAdapter 并启动 GatewayServer。
+pub async fn start_gateway_core(
+    state: &AppState,
+) -> Result<axagent_gateway::server::GatewayServer, String> {
+    let settings = load_gateway_runtime_settings(state).await?;
+    let ssl_config = if settings.ssl_enabled {
+        Some(axagent_gateway::server::GatewaySslConfig {
+            ssl_port: settings.ssl_port,
+            tls: axagent_gateway::server::GatewayTlsConfig {
+                cert_path: settings.ssl_cert_path.clone().unwrap_or_default(),
+                key_path: settings.ssl_key_path.clone().unwrap_or_default(),
+            },
+        })
+    } else {
+        None
+    };
+    let start_config = axagent_gateway::server::GatewayStartConfig {
+        listen_address: settings.listen_address,
+        http_port: settings.port,
+        ssl: ssl_config,
+        force_ssl: settings.force_ssl,
+    };
+
+    let memory_store: Arc<dyn MemoryStore> = Arc::new(MemoryStoreAdapter {
+        service: state.memory_service.clone(),
+    });
+
+    let server = axagent_gateway::server::GatewayServer::start_with_registry(
+        state.harness.db().clone(),
+        state.harness.master_key_owned(),
+        start_config,
+        state.harness.provider_registry().clone(),
+        axagent_dao::platform_adapter_impl::build_platform_adapter(
+            state.harness.db().clone(),
+            state.harness.master_key_owned(),
+            std::sync::Arc::new(axagent_crypto::platform_adapter_impl::DefaultCryptoService::new(
+                state.harness.master_key_owned(),
+            )),
+        ),
+        std::sync::Arc::new(axagent_dao::marketplace_service::MarketplaceServiceImpl),
+        memory_store,
+        // MCP 存储：DAO 实现（消除 gateway→entities/mcp 违规）
+        std::sync::Arc::new(axagent_dao::repo_harness::DaoMcpServerStore::new(
+            state.harness.db().clone(),
+        )),
+        // MCP 客户端：包装 axagent-core/mcp_client（wiring 层负责，gateway 不直接依赖）
+        std::sync::Arc::new(GatewayMcpClientAdapter),
+    )
+    .await
+    .map_err(|e| e.to_string())?;
+
+    Ok(server)
+}
+
+// ── GatewayMcpClientAdapter：harness McpClientService 的 wiring 层实现 ──
+
+struct GatewayMcpClientAdapter;
+
+#[async_trait::async_trait]
+impl axagent_harness::McpClientService for GatewayMcpClientAdapter {
+    async fn discover_tools(
+        &self,
+        server: &axagent_harness::McpServerConfig,
+    ) -> std::result::Result<Vec<axagent_harness::DiscoveredMcpTool>, String> {
+        let transport = server.transport.as_str();
+        let command = server.command.as_deref();
+        let args: Option<Vec<String>> = server
+            .args_json
+            .as_ref()
+            .and_then(|s| serde_json::from_str(s).ok());
+        let env: Option<std::collections::HashMap<String, String>> = server
+            .env_json
+            .as_ref()
+            .and_then(|s| serde_json::from_str(s).ok());
+        let endpoint = server.endpoint.as_deref();
+        let raw_tools = axagent_core::mcp_client::discover_tools_unified(
+            transport,
+            command,
+            args.as_deref(),
+            env.as_ref(),
+            endpoint,
+        )
+        .await
+        .map_err(|e| e.to_string())?;
+        Ok(raw_tools
+            .into_iter()
+            .map(|t| axagent_harness::DiscoveredMcpTool {
+                name: t.name,
+                description: t.description,
+                input_schema: t.input_schema.unwrap_or(serde_json::Value::Null),
+            })
+            .collect())
+    }
+
+    async fn call_tool(
+        &self,
+        server: &axagent_harness::McpServerConfig,
+        tool_name: &str,
+        arguments: serde_json::Value,
+    ) -> std::result::Result<axagent_harness::McpToolCallResult, String> {
+        let transport = server.transport.as_str();
+        let command = server.command.as_deref();
+        let args: Option<Vec<String>> = server
+            .args_json
+            .as_ref()
+            .and_then(|s| serde_json::from_str(s).ok());
+        let env: Option<std::collections::HashMap<String, String>> = server
+            .env_json
+            .as_ref()
+            .and_then(|s| serde_json::from_str(s).ok());
+        let endpoint = server.endpoint.as_deref();
+        let result = axagent_core::mcp_client::call_tool_unified(
+            transport,
+            command,
+            args.as_deref(),
+            env.as_ref(),
+            endpoint,
+            tool_name,
+            arguments,
+        )
+        .await
+        .map_err(|e| e.to_string())?;
+        Ok(axagent_harness::McpToolCallResult {
+            content: serde_json::Value::String(result.content),
+            is_error: result.is_error,
+        })
+    }
 }
 
 #[cfg(test)]

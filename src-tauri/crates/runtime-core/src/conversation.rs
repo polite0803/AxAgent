@@ -1512,7 +1512,7 @@ mod tests {
     use super::{
         ApiClient, ApiRequest, AssistantEvent, AutoCompactionEvent, ConversationRuntime,
         DEFAULT_AUTO_COMPACTION_INPUT_TOKENS_THRESHOLD, PromptCacheEvent, RuntimeError,
-        StaticToolExecutor, ToolExecutor, build_assistant_message, parse_auto_compaction_threshold,
+        StaticToolExecutor, ToolExecutor, TurnSummary, build_assistant_message, parse_auto_compaction_threshold,
     };
     use crate::ToolError;
     use crate::compact::CompactionConfig;

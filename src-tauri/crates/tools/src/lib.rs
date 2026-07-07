@@ -80,3 +80,36 @@ impl tools::rpc::ToolExecutorAccess for registry::ToolRegistry {
         }
     }
 }
+
+// ── MCP Client Service 注入 ──
+static MCP_CLIENT: std::sync::OnceLock<std::sync::Arc<dyn axagent_harness::McpClientService>> =
+    std::sync::OnceLock::new();
+
+pub fn set_mcp_client_service(svc: std::sync::Arc<dyn axagent_harness::McpClientService>) {
+    let _ = MCP_CLIENT.set(svc);
+}
+
+pub(crate) fn mcp_client_service(
+) -> &'static std::sync::Arc<dyn axagent_harness::McpClientService> {
+    static NOOP: std::sync::LazyLock<std::sync::Arc<dyn axagent_harness::McpClientService>> =
+        std::sync::LazyLock::new(|| {
+            std::sync::Arc::new(axagent_harness::NoopMcpClientService)
+        });
+    MCP_CLIENT.get().unwrap_or(&NOOP)
+}
+
+// ── DocumentParser 注入 ──
+static DOC_PARSER: std::sync::OnceLock<std::sync::Arc<dyn axagent_harness::DocumentParser>> =
+    std::sync::OnceLock::new();
+
+pub fn set_document_parser(parser: std::sync::Arc<dyn axagent_harness::DocumentParser>) {
+    let _ = DOC_PARSER.set(parser);
+}
+
+pub(crate) fn document_parser() -> &'static std::sync::Arc<dyn axagent_harness::DocumentParser> {
+    static NOOP: std::sync::LazyLock<std::sync::Arc<dyn axagent_harness::DocumentParser>> =
+        std::sync::LazyLock::new(|| {
+            std::sync::Arc::new(axagent_harness::NoopDocumentParser)
+        });
+    DOC_PARSER.get().unwrap_or(&NOOP)
+}

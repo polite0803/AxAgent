@@ -8,7 +8,7 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-use axagent_core::workflow_types::AgentRole;
+use axagent_harness::workflow_types::AgentRole;
 use axagent_harness::workflow_types::ToolDef;
 
 // ── Orchestration Strategy ──────────────────────────────────────────

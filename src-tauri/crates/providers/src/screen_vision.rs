@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use crate::{ProviderAdapter, ProviderRequestContext};
-use axagent_core::error::{AxAgentError, Result};
-use axagent_core::screen_vision::{ScreenAnalysis, SuggestedAction, UIElementInfo};
+use axagent_harness::core_error::{AxAgentError, Result};
+use axagent_kit::screen_vision::{ScreenAnalysis, SuggestedAction, UIElementInfo};
 use axagent_harness::types::*;
 
 /// Analyze a screen using the given provider adapter, context, and model.
@@ -157,7 +157,7 @@ fn parse_analysis_response(response: &str) -> Result<ScreenAnalysis> {
                     element_type: e["element_type"].as_str().unwrap_or("unknown").to_string(),
                     name: e["name"].as_str().unwrap_or("").to_string(),
                     description: e["description"].as_str().unwrap_or("").to_string(),
-                    bounds: axagent_core::screen_vision::ElementBounds {
+                    bounds: axagent_kit::screen_vision::ElementBounds {
                         x: e["bounds"]["x"].as_f64().unwrap_or(0.0),
                         y: e["bounds"]["y"].as_f64().unwrap_or(0.0),
                         width: e["bounds"]["width"].as_f64().unwrap_or(0.0),
@@ -180,7 +180,7 @@ fn parse_analysis_response(response: &str) -> Result<ScreenAnalysis> {
                         .as_str()
                         .unwrap_or("none")
                         .parse()
-                        .unwrap_or(axagent_core::screen_vision::ActionType::None),
+                        .unwrap_or(axagent_kit::screen_vision::ActionType::None),
                     target_element: a["target_element"].as_str().unwrap_or("").to_string(),
                     description: a["description"].as_str().unwrap_or("").to_string(),
                     reasoning: a["reasoning"].as_str().unwrap_or("").to_string(),
@@ -223,7 +223,7 @@ fn parse_element_response(response: &str) -> Result<Option<UIElementInfo>> {
             .to_string(),
         name: parsed["name"].as_str().unwrap_or("").to_string(),
         description: parsed["description"].as_str().unwrap_or("").to_string(),
-        bounds: axagent_core::screen_vision::ElementBounds {
+        bounds: axagent_kit::screen_vision::ElementBounds {
             x: parsed["bounds"]["x"].as_f64().unwrap_or(0.0),
             y: parsed["bounds"]["y"].as_f64().unwrap_or(0.0),
             width: parsed["bounds"]["width"].as_f64().unwrap_or(0.0),
@@ -259,7 +259,7 @@ fn parse_actions_response(response: &str) -> Result<Vec<SuggestedAction>> {
                         .as_str()
                         .unwrap_or("none")
                         .parse()
-                        .unwrap_or(axagent_core::screen_vision::ActionType::None),
+                        .unwrap_or(axagent_kit::screen_vision::ActionType::None),
                     target_element: a["target_element"].as_str().unwrap_or("").to_string(),
                     description: a["description"].as_str().unwrap_or("").to_string(),
                     reasoning: a["reasoning"].as_str().unwrap_or("").to_string(),
