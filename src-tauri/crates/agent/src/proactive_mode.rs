@@ -166,6 +166,7 @@ impl ProactiveMode {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::sync::Arc;
     use std::sync::atomic::{AtomicBool, Ordering};
 
     /// 测试用 FeatureFlagProvider，通过 AtomicBool 控制开关状态。
@@ -178,10 +179,6 @@ mod tests {
             Self {
                 enabled: AtomicBool::new(initial),
             }
-        }
-
-        fn enable(&self) {
-            self.enabled.store(true, Ordering::SeqCst);
         }
     }
 

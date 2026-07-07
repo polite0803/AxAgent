@@ -120,6 +120,7 @@ import { ModelTags } from "./ModelTags";
 import { LayoutSwitcher, MultiModelDisplay, type MultiModelDisplayMode } from "./MultiModelDisplay";
 import { PermissionCard } from "./PermissionCard";
 import { ToolCallCard } from "./ToolCallCard";
+import { ToolCallBlockView } from "./ToolCallBlockView";
 import { buildAssistantDisplayContent, shouldHideAssistantBubble } from "./toolCallDisplay";
 import { TopicGroupDivider } from "./TopicGroupDivider";
 import { VersionPagination } from "./VersionPagination";
@@ -1443,18 +1444,24 @@ export function useChatViewMessages({
                   multiModelDoneMessageIds={multiModelDoneMessageIds}
                   getModelDisplayInfo={getModelDisplayInfo}
                   renderContent={(vMsg, isVersionStreaming) => (
-                    <AssistantMarkdown
-                      content={buildAssistantDisplayContent(
-                        vMsg,
-                        activeMessages,
-                      )}
-                      isDarkMode={isDarkMode}
-                      isStreaming={isVersionStreaming}
-                      codeBlockDarkTheme={codeBlockDarkTheme}
-                      codeBlockLightTheme={codeBlockLightTheme}
-                      codeBlockThemes={codeBlockThemes}
-                      codeFontFamily={settings.code_font_family || undefined}
-                    />
+                    <>
+                      <AssistantMarkdown
+                        content={buildAssistantDisplayContent(
+                          vMsg,
+                          activeMessages,
+                        )}
+                        isDarkMode={isDarkMode}
+                        isStreaming={isVersionStreaming}
+                        codeBlockDarkTheme={codeBlockDarkTheme}
+                        codeBlockLightTheme={codeBlockLightTheme}
+                        codeBlockThemes={codeBlockThemes}
+                        codeFontFamily={settings.code_font_family || undefined}
+                      />
+                      {vMsg?.blocks
+                        && vMsg.blocks.some((b) => b.type === "tool_use")
+                        && !isVersionStreaming
+                        && <ToolCallBlockView blocks={vMsg.blocks} />}
+                    </>
                   )}
                 />
               </>
@@ -1588,6 +1595,10 @@ export function useChatViewMessages({
                   options={ask.options}
                 />
               ))}
+              {/* Persisted tool calls from message blocks */}
+              {msg?.blocks && msg.blocks.some((b) => b.type === "tool_use") && !isStreaming && (
+                <ToolCallBlockView blocks={msg.blocks} />
+              )}
               {isAgentMode
                 && msg
                 && activeConversationId

@@ -183,6 +183,12 @@ impl McpLauncher {
         } else {
             cmd.current_dir(plugin_root);
         }
+        // Windows: 隐藏控制台窗口
+        #[cfg(windows)]
+        {
+            use std::os::windows::process::CommandExt;
+            cmd.creation_flags(0x08000000);
+        }
 
         let mut child = cmd.spawn().map_err(|source| McpLaunchError::SpawnFailed {
             server: server.name.clone(),

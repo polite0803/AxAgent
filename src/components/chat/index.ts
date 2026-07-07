@@ -24,5 +24,6 @@ export { ReflectionPanel, useReflection } from "./ReflectionPanel";
 export { ReportViewer } from "./ReportViewer";
 export { ResearchSources, SourceDetailPanel } from "./ResearchSources";
 export type { SearchResult } from "./researchUtils";
+export { ToolCallBlockView } from "./ToolCallBlockView";
 export { ToolCallCard } from "./ToolCallCard";
 export { WorkflowProgressPanel } from "./WorkflowProgressPanel";

@@ -51,13 +51,16 @@ impl PlaywrightClient {
             .join("scripts")
             .join("browser-automation.mjs");
 
-        let mut child = Command::new("node")
+        let mut child_builder = Command::new("node");
+        child_builder
             .arg(&script_path)
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
-            .kill_on_drop(true)
-            .spawn()?;
+            .kill_on_drop(true);
+        #[cfg(windows)]
+        crate::utils::hide_window(child_builder.as_std_mut());
+        let mut child = child_builder.spawn()?;
 
         let stdin = child
             .stdin

@@ -17,12 +17,14 @@ pub fn restrict_file_permissions(path: &Path) -> Result<(), String> {
     {
         // Windows: 使用 icacls 移除继承权限，仅保留当前用户
         let username = std::env::var("USERNAME").unwrap_or_else(|_| "SYSTEM".into());
-        let result = std::process::Command::new("icacls")
-            .arg(path.as_os_str())
+        let mut scmd = std::process::Command::new("icacls");
+        scmd.arg(path.as_os_str())
             .arg("/inheritance:r")
             .arg("/grant")
-            .arg(format!("{}:(R,W)", username))
-            .output()
+            .arg(format!("{}:(R,W)", username));
+        #[cfg(windows)]
+        axagent_kit::utils::hide_window(&mut scmd);
+        let result = scmd.output()
             .map_err(|e| format!("failed to run icacls: {}", e))?;
         if !result.status.success() {
             let stderr = String::from_utf8_lossy(&result.stderr);

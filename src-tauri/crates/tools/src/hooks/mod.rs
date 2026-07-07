@@ -156,12 +156,13 @@ pub async fn execute_json_hooks(hooks: &[serde_json::Value], node_id: &str, even
 }
 
 async fn execute_shell_string(command: &str, node_id: &str) -> Result<String, String> {
-    let output = tokio::process::Command::new(if cfg!(windows) { "cmd" } else { "sh" })
-        .arg(if cfg!(windows) { "/C" } else { "-c" })
+    let mut cmd = tokio::process::Command::new(if cfg!(windows) { "cmd" } else { "sh" });
+    cmd.arg(if cfg!(windows) { "/C" } else { "-c" })
         .arg(command)
-        .env("AXAGENT_NODE_ID", node_id)
-        .output()
-        .await
+        .env("AXAGENT_NODE_ID", node_id);
+    #[cfg(windows)]
+    axagent_kit::utils::hide_window(cmd.as_std_mut());
+    let output = cmd.output().await
         .map_err(|e| format!("Hook shell failed: {e}"))?;
     Ok(String::from_utf8_lossy(&output.stdout).trim().to_string())
 }

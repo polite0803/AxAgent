@@ -204,11 +204,16 @@ fn resolve_login_shell_path() -> Option<String> {
 #[cfg(all(not(unix), not(target_os = "android")))]
 fn read_registry_path(key: &str) -> Option<String> {
     use std::process::Command;
-    let output = Command::new("reg")
-        .args(["query", key, "/v", "Path"])
+    let mut scmd = Command::new("reg");
+    scmd.args(["query", key, "/v", "Path"])
         .stdin(std::process::Stdio::null())
-        .stderr(std::process::Stdio::null())
-        .output()
+        .stderr(std::process::Stdio::null());
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        scmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
+    }
+    let output = scmd.output()
         .ok()?;
     let text = String::from_utf8_lossy(&output.stdout);
     // reg query output format:

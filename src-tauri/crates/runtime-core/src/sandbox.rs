@@ -468,9 +468,16 @@ fn detect_windows_job_object_supported() -> bool {
     *CACHED.get_or_init(|| {
         // Windows 8+ 都支持 JobObject
         // 简单检测：检查当前系统版本
-        let version = std::process::Command::new("cmd.exe")
-            .args(["/c", "ver"])
-            .output()
+        let version = {
+            let mut scmd = std::process::Command::new("cmd.exe");
+            scmd.args(["/c", "ver"]);
+            #[cfg(windows)]
+            {
+                use std::os::windows::process::CommandExt;
+                scmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
+            }
+            scmd.output()
+        }
             .ok()
             .and_then(|o| String::from_utf8(o.stdout).ok())
             .unwrap_or_default();

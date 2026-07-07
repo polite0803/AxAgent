@@ -790,8 +790,13 @@ where
 }
 
 fn get_hostname() -> String {
-    std::process::Command::new("hostname")
-        .output()
+    let mut scmd = std::process::Command::new("hostname");
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        scmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
+    }
+    scmd.output()
         .ok()
         .and_then(|o| String::from_utf8(o.stdout).ok())
         .map(|s| s.trim().to_string())

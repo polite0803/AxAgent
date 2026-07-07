@@ -91,10 +91,12 @@ impl Tool for ListProcessesTool {
             .unwrap_or(20);
 
         #[cfg(windows)]
-        let output = tokio::process::Command::new("tasklist")
-            .args(["/FO", "CSV", "/NH"])
-            .output()
-            .await;
+        let output = {
+            let mut cmd = tokio::process::Command::new("tasklist");
+            cmd.args(["/FO", "CSV", "/NH"]);
+            axagent_kit::utils::hide_window(cmd.as_std_mut());
+            cmd.output().await
+        };
 
         #[cfg(not(windows))]
         let output = tokio::process::Command::new("ps")

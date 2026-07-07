@@ -532,6 +532,12 @@ impl PluginTool {
             .env("CLAWD_PLUGIN_NAME", &self.plugin_name)
             .env("CLAWD_TOOL_NAME", &self.definition.name)
             .env("CLAWD_TOOL_INPUT", &input_json);
+        // Windows: 隐藏控制台窗口（插件命令可能是 node/python 等控制台程序）
+        #[cfg(windows)]
+        {
+            use std::os::windows::process::CommandExt;
+            process.creation_flags(0x08000000);
+        }
         if let Some(root) = &self.root {
             process
                 .current_dir(root)

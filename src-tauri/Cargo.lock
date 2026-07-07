@@ -1287,6 +1287,7 @@ dependencies = [
  "axagent-rt-theme",
  "axagent-rt-workflow",
  "axagent-runtime-core",
+ "axagent-search",
  "axagent-trajectory",
  "axum",
  "chrono",

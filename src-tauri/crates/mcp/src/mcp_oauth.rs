@@ -27,12 +27,17 @@ fn restrict_file_permissions(path: &std::path::Path) {
     #[cfg(windows)]
     {
         let username = std::env::var("USERNAME").unwrap_or_else(|_| "SYSTEM".into());
-        let result = std::process::Command::new("icacls")
-            .arg(path.as_os_str())
+        let mut scmd = std::process::Command::new("icacls");
+        scmd.arg(path.as_os_str())
             .arg("/inheritance:r")
             .arg("/grant")
-            .arg(format!("{}:(R,W)", username))
-            .output();
+            .arg(format!("{}:(R,W)", username));
+        #[cfg(windows)]
+        {
+            use std::os::windows::process::CommandExt;
+            scmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
+        }
+        let result = scmd.output();
         match result {
             Ok(output) if !output.status.success() => {
                 warn!(

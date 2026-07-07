@@ -50,6 +50,9 @@ async fn execute_shell_hook(
     cmd.args(&shell.args);
     cmd.env("CLAUDE_HOOK_TOOL_NAME", tool_name);
     cmd.env("CLAUDE_HOOK_INPUT", input);
+    // Windows: 隐藏控制台窗口
+    #[cfg(windows)]
+    axagent_kit::utils::hide_window(cmd.as_std_mut());
 
     if let Some(dir) = &shell.working_dir {
         cmd.current_dir(dir);

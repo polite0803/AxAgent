@@ -55,6 +55,7 @@ test = false
 doctest = false
 
 [dev-dependencies]
+axagent-search = { path = "../search" }
 tempfile = "3"
 
 [lints]
