@@ -114,7 +114,7 @@ pub enum AssistantEvent {
 }
 
 /// Prompt-cache telemetry captured from the provider response stream.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
 pub struct PromptCacheEvent {
     pub unexpected: bool,
     pub reason: String,
@@ -190,7 +190,7 @@ impl Display for RuntimeError {
 impl std::error::Error for RuntimeError {}
 
 /// Summary of one completed runtime turn, including tool results and usage.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
 pub struct TurnSummary {
     pub assistant_messages: Vec<ConversationMessage>,
     pub tool_results: Vec<ConversationMessage>,
@@ -202,7 +202,7 @@ pub struct TurnSummary {
 }
 
 /// Details about automatic session compaction applied during a turn.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]
 pub struct AutoCompactionEvent {
     pub removed_message_count: usize,
 }
@@ -1512,7 +1512,8 @@ mod tests {
     use super::{
         ApiClient, ApiRequest, AssistantEvent, AutoCompactionEvent, ConversationRuntime,
         DEFAULT_AUTO_COMPACTION_INPUT_TOKENS_THRESHOLD, PromptCacheEvent, RuntimeError,
-        StaticToolExecutor, ToolExecutor, build_assistant_message, parse_auto_compaction_threshold,
+        StaticToolExecutor, ToolExecutor, TurnSummary, build_assistant_message,
+        parse_auto_compaction_threshold,
     };
     use crate::ToolError;
     use crate::compact::CompactionConfig;

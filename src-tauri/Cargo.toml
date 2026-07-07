@@ -2,7 +2,8 @@
 members = [
   ".",
   "crates/agent",
-  "crates/cache",  "crates/crypto",
+  "crates/cache",
+  "crates/crypto",
   "crates/dao",
   "crates/disk-cache",
   "crates/document-parser",

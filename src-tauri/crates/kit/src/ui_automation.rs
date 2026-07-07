@@ -220,10 +220,10 @@ foreach ($el in $elements) {
 $results | ConvertTo-Json -Compress
 "#;
 
-        let output = tokio::process::Command::new("powershell")
-            .args(["-NoProfile", "-Command", script])
-            .output()
-            .await?;
+        let mut pscmd = tokio::process::Command::new("powershell");
+        pscmd.args(["-NoProfile", "-Command", script]);
+        crate::utils::hide_window(pscmd.as_std_mut());
+        let output = pscmd.output().await?;
 
         let json_str = String::from_utf8_lossy(&output.stdout);
         let raw_elements: Vec<serde_json::Value> =

@@ -1170,6 +1170,9 @@ impl McpStdioProcess {
             .stderr(Stdio::inherit());
         apply_env(&mut command, &transport.env);
 
+        // Windows: 隐藏控制台窗口
+        axagent_kit::utils::hide_window(command.as_std_mut());
+
         let mut child = command.spawn()?;
         let stdin = child
             .stdin

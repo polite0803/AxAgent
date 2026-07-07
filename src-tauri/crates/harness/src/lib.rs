@@ -225,3 +225,122 @@ pub use feature_flag_provider::{FeatureFlagProvider, SharedFeatureFlagProvider};
 // ── 校验工具 ──
 pub mod schema_validator;
 pub use schema_validator::{validate_against_schema, validate_recursive};
+
+// ── P1: MemoryStore 契约（记忆外溢/共享） ──
+pub mod memory;
+pub use memory::{
+    MemoryActionResultDto, MemoryAddRequest, MemoryFeedbackRequest, MemoryGroupedDto,
+    MemorySearchItem, MemorySearchRequest, MemoryStore, MemoryTreeItem, MemoryUpdateRequest,
+    NoopMemoryStore,
+};
+
+// ── P2: MemoryScanner 契约（本地日历/文件扫描） ──
+pub mod scanner;
+pub use scanner::{
+    MemoryScanner, NoopMemoryScanner, ScanResult, ScannedItem, ScannerConfig,
+};
+
+// ── P3: BrowserController 契约（浏览器自动化） ──
+pub mod browser;
+pub use browser::{
+    BrowserController, BrowserNavigateResult, BrowserScreenshotResult, ExtractedElement,
+    NoopBrowserController,
+};
+
+// ── P5: Agent 契约（统一 agent 接口 + 注册表） ──
+pub mod agent;
+pub use agent::{
+    Agent, AgentCapability, AgentExecuteRequest, AgentInfo, AgentPlan, AgentRegistry, AgentResult,
+    NoopAgent, PlanStep,
+};
+
+// ── P6: 自学习系统契约 ──
+pub mod rl;
+pub use rl::{
+    NoopRLEngine, NoopRLTrainer, RLConfig, RLEngine, RLTrainer, RewardWeights, TrainingEpisode,
+    TrainingReport, TrainingStep,
+};
+pub mod dream;
+pub use dream::{
+    ConsolidationDataProvider, DistilledKnowledge, DreamConsolidationConfig,
+    DreamConsolidationResult, DreamConsolidator, ExperienceRecord, NoopConsolidationDataProvider,
+    NoopDreamConsolidator, ReplaySample,
+};
+pub mod profile;
+pub use profile::{
+    CodingStyleProfile, CommentStyle, CommunicationProfile, DomainKnowledgeProfile,
+    ExpertiseLevel, IndentationStyle, LearningState, NamingConvention, NoopUserProfileService,
+    ProfileUpdate, Tone, UserProfile, UserProfileService, WorkHabitProfile,
+};
+pub mod style;
+pub use style::{
+    CodeSample, CodeStyleTemplate, DocumentStyleProfile, ExtractedCodePatterns, FunctionPattern,
+    MessageSample, NamingPattern, NoopStyleApplier, NoopStyleExtractor, NoopStyleVectorizer,
+    StructurePattern, StyleApplier, StyleExtractor, StylePattern, StylePatternType, StyleVector,
+    StyleVectorizer,
+};
+
+// ── P7: RAG 契约（向量检索 / 重排 / 知识图谱 / 文档索引） ──
+pub mod rag_provider;
+pub use rag_provider::{
+    EmbeddingProvider, NoopEmbeddingProvider, NoopRAGProvider, NoopRerankProvider,
+    NoopSelfRagProvider, NoopVectorStoreProvider, RAGProvider, RAGQuery, RerankProvider,
+    RetrievalQuality, SelfRagProvider, VectorQueryResult, VectorStoreProvider,
+};
+pub mod knowledge_graph;
+pub use knowledge_graph::{
+    EntityExtractor, EntityGraphProvider, ExtractedEntity, ExtractedRelation, NoopEntityExtractor,
+    NoopEntityGraphProvider,
+};
+pub mod indexer;
+pub use indexer::{
+    ChunkProvider, DocumentChunk, DocumentIndexer, IndexConfig, IndexJobStatus, NoopChunkProvider,
+    NoopDocumentIndexer,
+};
+
+// ── P8: 网关/平台管理契约 ──
+pub mod gateway_service;
+pub use gateway_service::{GatewayInfo, GatewayService, GatewayStatus, NoopGatewayService};
+pub mod platform_manager;
+pub use platform_manager::{
+    NoopPlatformManager, PlatformConnectionInfo, PlatformManager, PlatformMessageHandler,
+};
+
+// ── P9: 安全防护契约（限流 / SSRF / 内容过滤 / 工具指标 / 熔断 / 访问控制） ──
+pub mod rate_limiter;
+pub use rate_limiter::{NoopRateLimiter, RateLimitConfig, RateLimitResult, RateLimitStatus, RateLimiter};
+pub mod ssrf_guard;
+pub use ssrf_guard::{NoopSsrFGuard, SsrFConfig, SsrFGuard, UrlSafety};
+pub mod content_filter;
+pub use content_filter::{ContentFilter, ContentFilterConfig, ContentType, FilterAction, NoopContentFilter};
+pub mod tool_metrics;
+pub use tool_metrics::{
+    NoopToolMetricsCollector, ToolCallRecord, ToolMetricsCollector, ToolMetricsSnapshot,
+};
+pub mod circuit_breaker;
+pub use circuit_breaker::{
+    CircuitBreaker, CircuitBreakerConfig, CircuitBreakerSnapshot, CircuitState, NoopCircuitBreaker,
+};
+pub mod tool_access;
+pub use tool_access::{
+    AccessDecision, NoopToolAccessControl, ToolAccessControl, ToolAccessRequest,
+};
+
+// ── P10: 开发者体验契约（可观测 / 基准测试 / 开发体验） ──
+pub mod observability;
+pub use observability::{NoopObservabilityProvider, ObservabilityProvider, SpanType};
+pub mod benchmark;
+pub use benchmark::{
+    BenchmarkReport, BenchmarkRunner, BenchmarkTask, Difficulty, NoopBenchmarkRunner, TaskResult,
+};
+pub mod dev_experience;
+pub use dev_experience::{
+    DevExperienceProvider, EnvironmentInfo, LogLevel, NoopDevExperienceProvider,
+};
+
+// ── MCP 服务契约（让 tools/gateway 不依赖 mcp crate） ──
+pub mod mcp_service;
+pub use mcp_service::{
+    DiscoveredMcpTool, McpClientService, McpServerConfig, McpServerStore, McpToolCallResult,
+    NoopMcpClientService, NoopMcpServerStore,
+};

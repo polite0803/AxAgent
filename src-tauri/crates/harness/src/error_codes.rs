@@ -235,6 +235,13 @@ pub mod wiki {
 pub mod security {
     pub const PATH_TRAVERSAL: &str = "SECURITY_PATH_TRAVERSAL";
     pub const ACCESS_DENIED: &str = "SECURITY_ACCESS_DENIED";
+    pub const SSRF_BLOCKED: &str = "SECURITY_SSRF_BLOCKED";
+    pub const SSRF_PRIVATE_NETWORK: &str = "SECURITY_SSRF_PRIVATE_NETWORK";
+    pub const RATE_LIMIT_EXCEEDED: &str = "SECURITY_RATE_LIMIT_EXCEEDED";
+    pub const CONTENT_BLOCKED: &str = "SECURITY_CONTENT_BLOCKED";
+    pub const CONTENT_PII_DETECTED: &str = "SECURITY_CONTENT_PII_DETECTED";
+    pub const TOOL_ACCESS_DENIED: &str = "SECURITY_TOOL_ACCESS_DENIED";
+    pub const CIRCUIT_OPEN: &str = "SECURITY_CIRCUIT_OPEN";
 }
 
 /// 云存储相关错误码

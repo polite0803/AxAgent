@@ -174,11 +174,12 @@ impl SkillSandboxExecutor {
                 tokio::time::timeout(std::time::Duration::from_secs(self.policy.timeout_secs), {
                     #[cfg(target_family = "windows")]
                     {
-                        Command::new("cmd")
-                            .args(["/C", &cmd])
+                        let mut scmd = Command::new("cmd");
+                        scmd.args(["/C", &cmd])
                             .stdout(Stdio::piped())
-                            .stderr(Stdio::piped())
-                            .output()
+                            .stderr(Stdio::piped());
+                        axagent_kit::utils::hide_window(scmd.as_std_mut());
+                        scmd.output()
                     }
                     #[cfg(not(target_family = "windows"))]
                     {

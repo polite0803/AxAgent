@@ -203,13 +203,20 @@ impl Tool for BashTool {
             ("bash", "-c")
         };
 
-        let child = tokio::process::Command::new(shell)
+        let mut command = tokio::process::Command::new(shell);
+        command
             .arg(flag)
             .arg(cmd)
             .current_dir(working_dir)
             .stdout(std::process::Stdio::piped())
             .stderr(std::process::Stdio::piped())
-            .stdin(std::process::Stdio::null())
+            .stdin(std::process::Stdio::null());
+        // Windows: 隐藏控制台窗口
+        #[cfg(windows)]
+        {
+            axagent_kit::utils::hide_window(command.as_std_mut());
+        }
+        let child = command
             // FIXME(Windows): kill_on_drop kills cmd.exe but not grandchildren
             // (e.g. ping.exe spawned by cmd). The grandchild can keep the
             // stdout/stderr pipes open, delaying test process exit.

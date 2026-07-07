@@ -131,6 +131,8 @@ impl SandboxRunner {
             command.arg("-Command");
             command.arg(script);
             apply_safe_env(&mut command);
+            // Windows: 隐藏控制台窗口
+            axagent_kit::utils::hide_window(&mut command);
             command
         }
 

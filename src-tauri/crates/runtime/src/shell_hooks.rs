@@ -74,11 +74,13 @@ impl ShellHookExecutor {
         let mut results = Vec::new();
         for hook in hooks {
             let json_input = serde_json::to_string(&input).unwrap_or_default();
-            let result = match Command::new(&hook.command)
-                .stdin(Stdio::piped())
+            let mut cmd = Command::new(&hook.command);
+            cmd.stdin(Stdio::piped())
                 .stdout(Stdio::piped())
-                .stderr(Stdio::piped())
-                .spawn()
+                .stderr(Stdio::piped());
+            #[cfg(windows)]
+            axagent_kit::utils::hide_window(cmd.as_std_mut());
+            let result = match cmd.spawn()
             {
                 Ok(mut child) => {
                     if let Some(mut stdin) = child.stdin.take()

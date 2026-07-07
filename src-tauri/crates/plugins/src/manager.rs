@@ -1778,6 +1778,11 @@ pub fn run_lifecycle_commands(
             if cfg!(windows) {
                 let mut process = Command::new("cmd");
                 process.arg("/C").arg(command);
+                #[cfg(windows)]
+                {
+                    use std::os::windows::process::CommandExt;
+                    process.creation_flags(0x08000000); // CREATE_NO_WINDOW
+                }
                 process
             } else {
                 let mut process = Command::new("sh");
@@ -1787,6 +1792,11 @@ pub fn run_lifecycle_commands(
         } else if cfg!(windows) {
             let mut process = Command::new("cmd");
             process.arg("/C").arg(command);
+            #[cfg(windows)]
+            {
+                use std::os::windows::process::CommandExt;
+                process.creation_flags(0x08000000); // CREATE_NO_WINDOW
+            }
             process
         } else {
             let mut process = Command::new("sh");

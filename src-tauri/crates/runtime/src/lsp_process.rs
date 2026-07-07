@@ -102,13 +102,16 @@ impl LspProcess {
             *status = LspServerStatus::Starting;
         }
 
-        let mut child = Command::new(&self.config.command)
-            .args(&self.config.args)
+        let mut cmd = Command::new(&self.config.command);
+        cmd.args(&self.config.args)
             .envs(&self.config.env)
             .stdin(std::process::Stdio::piped())
             .stdout(std::process::Stdio::piped())
-            .stderr(std::process::Stdio::piped())
-            .spawn()
+            .stderr(std::process::Stdio::piped());
+        // Windows: 隐藏控制台窗口
+        #[cfg(windows)]
+        axagent_kit::utils::hide_window(cmd.as_std_mut());
+        let mut child = cmd.spawn()
             .map_err(|e| format!("Failed to spawn LSP server '{}': {}", self.config.command, e))?;
 
         let stdin = child

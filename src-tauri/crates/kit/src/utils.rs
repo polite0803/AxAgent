@@ -16,6 +16,30 @@ pub fn cmd(program: &str) -> StdCommand {
     StdCommand::new(program)
 }
 
+/// 为已有的 Command 设置 CREATE_NO_WINDOW 标志，统一作用于 std 和 tokio 两种 Command。
+///
+/// **std::process::Command**：直接传入 `&mut cmd`
+/// **tokio::process::Command**：传入 `cmd.as_std_mut()`
+///
+/// # 示例
+///
+/// ```ignore
+/// use std::process::Command;
+/// let mut cmd = Command::new("cmd");
+/// cmd.arg("/C").arg("echo hello");
+/// axagent_kit::utils::hide_window(&mut cmd);
+/// cmd.output();
+/// ```
+#[cfg(windows)]
+pub fn hide_window(cmd: &mut StdCommand) {
+    use std::os::windows::process::CommandExt;
+    cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
+}
+
+/// 非 Windows 平台空操作
+#[cfg(not(windows))]
+pub fn hide_window(_cmd: &mut StdCommand) {}
+
 pub use axagent_harness::util_fns::{current_rfc3339, gen_id, now_ts};
 
 const OUTPUT_LANGUAGE_TAG: &str = "<output-language>";

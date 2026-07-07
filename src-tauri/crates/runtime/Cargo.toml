@@ -8,9 +8,9 @@ publish = false
 anyhow = "1"
 async-trait = "0.1"
 axagent-agent = { path = "../agent" }
-axagent-harness = { path = "../harness" }
 axagent-crypto = { path = "../crypto" }
 axagent-dao = { path = "../dao" }
+axagent-harness = { path = "../harness" }
 axagent-kit = { path = "../kit" }
 axagent-mcp = { path = "../mcp" }
 axagent-plugins = { path = "../plugins" }

@@ -210,16 +210,20 @@ pub async fn spawn_background_task(
                     if let Err(e) = update_status(&db1, &tid1, "running", None).await {
                         warn!("更新任务状态失败: {}", e);
                     }
-                    let mut child = match tokio::process::Command::new(if cfg!(windows) {
+                    let mut cmd_builder = tokio::process::Command::new(if cfg!(windows) {
                         "cmd"
                     } else {
                         "sh"
-                    })
-                    .arg(if cfg!(windows) { "/C" } else { "-c" })
-                    .arg(&cmd)
-                    .stdout(std::process::Stdio::piped())
-                    .stderr(std::process::Stdio::piped())
-                    .spawn()
+                    });
+                    cmd_builder
+                        .arg(if cfg!(windows) { "/C" } else { "-c" })
+                        .arg(&cmd)
+                        .stdout(std::process::Stdio::piped())
+                        .stderr(std::process::Stdio::piped());
+                    // Windows: 隐藏控制台窗口
+                    #[cfg(windows)]
+                    axagent_kit::utils::hide_window(cmd_builder.as_std_mut());
+                    let mut child = match cmd_builder.spawn()
                     {
                         Ok(c) => c,
                         Err(e) => {

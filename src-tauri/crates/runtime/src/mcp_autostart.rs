@@ -104,6 +104,9 @@ fn start_mcp_process(
         cmd.env(key, value);
     }
 
+    // Windows: 隐藏控制台窗口
+    axagent_kit::utils::hide_window(&mut cmd);
+
     cmd.spawn().map_err(|e| format!("无法启动进程: {}", e))
 }
 

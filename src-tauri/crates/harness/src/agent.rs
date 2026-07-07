@@ -73,6 +73,12 @@ pub struct AgentRegistry {
     agents: HashMap<String, Box<dyn Agent>>,
 }
 
+impl Default for AgentRegistry {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl AgentRegistry {
     pub fn new() -> Self {
         Self { agents: HashMap::new() }
@@ -80,8 +86,8 @@ impl AgentRegistry {
     pub fn register(&mut self, name: &str, agent: Box<dyn Agent>) {
         self.agents.insert(name.to_string(), agent);
     }
-    pub fn get(&self, name: &str) -> Option<&Box<dyn Agent>> {
-        self.agents.get(name)
+    pub fn get(&self, name: &str) -> Option<&dyn Agent> {
+        self.agents.get(name).map(|b| b.as_ref())
     }
     pub fn list(&self) -> Vec<AgentInfo> {
         self.agents.iter().map(|(name, agent)| AgentInfo {

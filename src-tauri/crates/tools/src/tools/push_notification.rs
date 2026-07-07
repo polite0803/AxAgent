@@ -43,10 +43,11 @@ impl Tool for PushNotificationTool {
         #[cfg(target_os = "windows")]
         {
             // Windows 通知通过 Tauri notification API
-            let _ = std::process::Command::new("powershell")
-                .arg("-Command")
-                .arg(format!("[Windows.UI.Notifications.ToastNotificationManager, Windows.UI.Notifications, ContentType = WindowsRuntime] | Out-Null; New-BurntToastNotification -Text '{}', '{}'", title, body))
-                .output();
+            let mut pscmd = std::process::Command::new("powershell");
+            pscmd.arg("-Command")
+                .arg(format!("[Windows.UI.Notifications.ToastNotificationManager, Windows.UI.Notifications, ContentType = WindowsRuntime] | Out-Null; New-BurntToastNotification -Text '{}', '{}'", title, body));
+            axagent_kit::utils::hide_window(&mut pscmd);
+            let _ = pscmd.output();
         }
 
         #[cfg(target_os = "macos")]
