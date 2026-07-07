@@ -162,7 +162,9 @@ async fn execute_shell_string(command: &str, node_id: &str) -> Result<String, St
         .env("AXAGENT_NODE_ID", node_id);
     #[cfg(windows)]
     axagent_kit::utils::hide_window(cmd.as_std_mut());
-    let output = cmd.output().await
+    let output = cmd
+        .output()
+        .await
         .map_err(|e| format!("Hook shell failed: {e}"))?;
     Ok(String::from_utf8_lossy(&output.stdout).trim().to_string())
 }

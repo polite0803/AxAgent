@@ -1445,8 +1445,12 @@ mod test_agent_coordinator_lifecycle {
     struct NoopCacheService;
     #[async_trait]
     impl CacheService for NoopCacheService {
-        async fn is_cache_valid(&self) -> bool { true }
-        async fn has_pending_changes(&self) -> bool { false }
+        async fn is_cache_valid(&self) -> bool {
+            true
+        }
+        async fn has_pending_changes(&self) -> bool {
+            false
+        }
         async fn invalidate(&self, _reason: &str) {}
         async fn invalidate_for_new_session(&self) {}
         async fn set_force_immediate(&self, _force: bool) {}
@@ -1457,13 +1461,21 @@ mod test_agent_coordinator_lifecycle {
     impl HookService for NoopHookService {
         async fn register(&self, _hook: SharedHook) {}
         async fn unregister(&self, _name: &str) {}
-        async fn list(&self) -> Vec<String> { vec![] }
-        async fn execute_pre_tool_call(&self, _ctx: &ToolCallContext) -> Option<HookDecision> { None }
+        async fn list(&self) -> Vec<String> {
+            vec![]
+        }
+        async fn execute_pre_tool_call(&self, _ctx: &ToolCallContext) -> Option<HookDecision> {
+            None
+        }
         async fn execute_post_tool_call(&self, _ctx: &ToolCallContext, _result: &ToolCallResult) {}
     }
 
-    fn noop_cache() -> SharedCacheService { std::sync::Arc::new(NoopCacheService) }
-    fn noop_hook() -> SharedHookService { std::sync::Arc::new(NoopHookService) }
+    fn noop_cache() -> SharedCacheService {
+        std::sync::Arc::new(NoopCacheService)
+    }
+    fn noop_hook() -> SharedHookService {
+        std::sync::Arc::new(NoopHookService)
+    }
 
     #[tokio::test]
     async fn test_coordinator_init_to_done_lifecycle() {

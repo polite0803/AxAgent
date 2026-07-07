@@ -478,9 +478,9 @@ fn detect_windows_job_object_supported() -> bool {
             }
             scmd.output()
         }
-            .ok()
-            .and_then(|o| String::from_utf8(o.stdout).ok())
-            .unwrap_or_default();
+        .ok()
+        .and_then(|o| String::from_utf8(o.stdout).ok())
+        .unwrap_or_default();
         // Windows 10+ 或 Windows Server 2016+
         version.contains("10.") || version.contains("6.2") || version.contains("6.3")
     })

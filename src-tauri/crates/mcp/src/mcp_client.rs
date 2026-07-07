@@ -213,8 +213,7 @@ fn read_registry_path(key: &str) -> Option<String> {
         use std::os::windows::process::CommandExt;
         scmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
     }
-    let output = scmd.output()
-        .ok()?;
+    let output = scmd.output().ok()?;
     let text = String::from_utf8_lossy(&output.stdout);
     // reg query output format:
     //   HKEY_...\Environment
