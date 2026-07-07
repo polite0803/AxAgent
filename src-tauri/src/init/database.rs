@@ -24,7 +24,8 @@ pub fn restrict_file_permissions(path: &Path) -> Result<(), String> {
             .arg(format!("{}:(R,W)", username));
         #[cfg(windows)]
         axagent_kit::utils::hide_window(&mut scmd);
-        let result = scmd.output()
+        let result = scmd
+            .output()
             .map_err(|e| format!("failed to run icacls: {}", e))?;
         if !result.status.success() {
             let stderr = String::from_utf8_lossy(&result.stderr);
