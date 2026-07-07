@@ -7,6 +7,8 @@ use axagent_agent::coordinator::{
     AgentConfig, AgentCoordinator, AgentError, AgentImpl, AgentInput, AgentStatus,
     CoordinatorOutput,
 };
+use axagent_harness::cache_service::NoopCacheService;
+use axagent_harness::hook_service::NoopHookService;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
@@ -74,7 +76,8 @@ impl AgentImpl for LifecycleAgent {
 #[tokio::test]
 async fn test_coordinator_execute_simple() {
     let agent = Arc::new(Mutex::new(LifecycleAgent::new(0)));
-    let coordinator = AgentCoordinator::new(agent, None);
+    let coordinator =
+        AgentCoordinator::new(agent, None, Arc::new(NoopCacheService), Arc::new(NoopHookService));
 
     coordinator.initialize(AgentConfig::default()).await.unwrap();
 
@@ -89,7 +92,8 @@ async fn test_coordinator_execute_simple() {
 #[tokio::test]
 async fn test_coordinator_cannot_execute_twice() {
     let agent = Arc::new(Mutex::new(LifecycleAgent::new(300)));
-    let coordinator = AgentCoordinator::new(agent, None);
+    let coordinator =
+        AgentCoordinator::new(agent, None, Arc::new(NoopCacheService), Arc::new(NoopHookService));
 
     coordinator.initialize(AgentConfig::default()).await.unwrap();
 
@@ -109,7 +113,8 @@ async fn test_coordinator_cannot_execute_twice() {
 #[tokio::test]
 async fn test_coordinator_initialize_starts_idle() {
     let agent = Arc::new(Mutex::new(LifecycleAgent::new(0)));
-    let coordinator = AgentCoordinator::new(agent, None);
+    let coordinator =
+        AgentCoordinator::new(agent, None, Arc::new(NoopCacheService), Arc::new(NoopHookService));
 
     // Before init, status is Idle
     let status = coordinator.get_status().await;
@@ -119,7 +124,8 @@ async fn test_coordinator_initialize_starts_idle() {
 #[tokio::test]
 async fn test_coordinator_prepare_for_new_session() {
     let agent = Arc::new(Mutex::new(LifecycleAgent::new(50)));
-    let coordinator = AgentCoordinator::new(agent, None);
+    let coordinator =
+        AgentCoordinator::new(agent, None, Arc::new(NoopCacheService), Arc::new(NoopHookService));
 
     coordinator.initialize(AgentConfig::default()).await.unwrap();
 
