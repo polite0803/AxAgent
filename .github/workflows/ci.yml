@@ -1,16 +1,10 @@
-name: Pull Request CI
+name: CI
 
 on:
-  pull_request:
-    branches:
-      - master
-      - develop
   push:
-    branches:
-      - master
-      - develop
-    tags:
-      - 'v*.*.*'
+    branches: [master]
+  pull_request:
+    branches: [master]
 
 permissions:
   contents: read
@@ -74,7 +68,7 @@ jobs:
         run: bash scripts/check-hardcoded-i18n.sh --strict
 
   rust-check:
-    name: Rust Check
+    name: Rust Check (fmt + clippy + build)
     needs: [should-run-heavy]
     if: needs.should-run-heavy.outputs.skip != 'true'
     runs-on: ubuntu-24.04
@@ -108,12 +102,10 @@ jobs:
             libjavascriptcoregtk-4.1-dev protobuf-compiler
 
       - name: Check formatting
-        run: |
-          cargo fmt --check --manifest-path src-tauri/Cargo.toml
+        run: cargo fmt --check --manifest-path src-tauri/Cargo.toml
 
       - name: Clippy (deny warnings)
-        run: |
-          cargo clippy --all-targets --all-features --manifest-path src-tauri/Cargo.toml -- -D warnings
+        run: cargo clippy --all-targets --all-features --manifest-path src-tauri/Cargo.toml -- -D warnings
 
       - name: Check build
         run: cargo check --workspace --manifest-path src-tauri/Cargo.toml
@@ -201,9 +193,6 @@ jobs:
       - name: Run E2E tests (uses system Chrome, skip 165MB download)
         env:
           PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 1
-        # 排除依赖后端服务的测试类别（Agent/Cache/Conversation/Gateway），
-        # 这些测试需要完整的 Tauri IPC + 多提供商 Mock，当前 E2E 框架不支持。
-        # 相关功能由 Rust 后端测试覆盖。
         run: npx playwright test --project=chromium --grep-invert "(Agent|Cache|Conversation|Gateway)" --timeout=60000
 
   cargo-audit:
@@ -221,8 +210,6 @@ jobs:
         run: cargo install cargo-audit
         continue-on-error: true
 
-      # 忽略说明:
-      #   RUSTSEC-2023-0071: rsa crate 来自 sqlx-mysql 未启用的功能（SQLite only），不编译进二进制。上游无可用修复。
       - name: Run cargo audit
         working-directory: src-tauri
         continue-on-error: true
