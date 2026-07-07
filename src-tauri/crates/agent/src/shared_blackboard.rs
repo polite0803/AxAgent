@@ -98,10 +98,7 @@ impl SharedBlackboard {
         for d in &relevant {
             *votes.entry(&d.value).or_default() += 1;
         }
-        votes
-            .into_iter()
-            .max_by_key(|(_, count)| *count)
-            .map(|(value, _)| value.to_string())
+        votes.into_iter().max_by_key(|(_, count)| *count).map(|(value, _)| value.to_string())
     }
 
     /// 检测并解决冲突
@@ -109,10 +106,7 @@ impl SharedBlackboard {
         let mut records = Vec::new();
         let mut groups: HashMap<(String, String), Vec<&AgentDecision>> = HashMap::new();
         for d in &self.decisions {
-            groups
-                .entry((d.task_id.clone(), d.field.clone()))
-                .or_default()
-                .push(d);
+            groups.entry((d.task_id.clone(), d.field.clone())).or_default().push(d);
         }
         for ((task_id, field), decisions) in groups {
             if decisions.len() < 2 {
@@ -123,11 +117,8 @@ impl SharedBlackboard {
                 *votes.entry(&d.value).or_default() += 1;
             }
             let max_votes = votes.values().max().copied().unwrap_or(0);
-            let winners: Vec<&&str> = votes
-                .iter()
-                .filter(|(_, c)| **c == max_votes)
-                .map(|(v, _)| v)
-                .collect();
+            let winners: Vec<&&str> =
+                votes.iter().filter(|(_, c)| **c == max_votes).map(|(v, _)| v).collect();
             let resolution = if winners.len() == 1 {
                 ConflictResolution::MajorityVote {
                     winner: winners[0].to_string(),

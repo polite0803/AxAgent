@@ -21,22 +21,11 @@ pub enum CredentialType {
     /// Bearer token (JWT, opaque token, etc.)
     BearerToken { token: String },
     /// OAuth2 client credentials
-    OAuth2 {
-        client_id: String,
-        client_secret: String,
-        token_url: String,
-        scopes: Vec<String>,
-    },
+    OAuth2 { client_id: String, client_secret: String, token_url: String, scopes: Vec<String> },
     /// Database connection string
     DatabaseConnection { connection_string: String },
     /// SMTP mail server configuration
-    Smtp {
-        host: String,
-        port: u16,
-        user: String,
-        pass: String,
-        tls: bool,
-    },
+    Smtp { host: String, port: u16, user: String, pass: String, tls: bool },
 }
 
 /// A stored credential with metadata
@@ -58,13 +47,7 @@ pub struct CredentialRef {
 impl Credential {
     pub fn new(id: String, name: String, credential_type: CredentialType) -> Self {
         let now = chrono::Utc::now().timestamp_millis();
-        Self {
-            id,
-            name,
-            credential_type,
-            created_at: now,
-            updated_at: now,
-        }
+        Self { id, name, credential_type, created_at: now, updated_at: now }
     }
 }
 

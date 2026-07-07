@@ -106,13 +106,11 @@ pub async fn list_messages_page(
             .ok_or_else(|| AxAgentError::NotFound(format!("Message {}", cursor_id)))?;
 
         query = query.filter(
-            Condition::any()
-                .add(messages::Column::CreatedAt.lt(cursor.created_at))
-                .add(
-                    Condition::all()
-                        .add(messages::Column::CreatedAt.eq(cursor.created_at))
-                        .add(messages::Column::Id.lt(cursor.id.clone())),
-                ),
+            Condition::any().add(messages::Column::CreatedAt.lt(cursor.created_at)).add(
+                Condition::all()
+                    .add(messages::Column::CreatedAt.eq(cursor.created_at))
+                    .add(messages::Column::Id.lt(cursor.id.clone())),
+            ),
         );
     }
 
@@ -129,18 +127,10 @@ pub async fn list_messages_page(
     }
     rows.reverse();
 
-    let messages = rows
-        .into_iter()
-        .map(message_from_entity)
-        .collect::<Result<Vec<_>>>()?;
+    let messages = rows.into_iter().map(message_from_entity).collect::<Result<Vec<_>>>()?;
     let oldest_message_id = messages.first().map(|message| message.id.clone());
 
-    Ok(MessagePage {
-        messages,
-        has_older,
-        oldest_message_id,
-        total_active_count,
-    })
+    Ok(MessagePage { messages, has_older, oldest_message_id, total_active_count })
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -367,11 +357,8 @@ fn select_next_active_version(
     deleted: &messages::Model,
     versions: &[messages::Model],
 ) -> Option<messages::Model> {
-    let remaining: Vec<messages::Model> = versions
-        .iter()
-        .filter(|version| version.id != deleted.id)
-        .cloned()
-        .collect();
+    let remaining: Vec<messages::Model> =
+        versions.iter().filter(|version| version.id != deleted.id).cloned().collect();
     if remaining.is_empty() {
         return None;
     }
@@ -485,10 +472,8 @@ pub async fn list_message_versions(
         .all(db)
         .await?;
 
-    let tool_parent_ids: HashSet<String> = tool_rows
-        .into_iter()
-        .filter_map(|row| row.parent_message_id)
-        .collect();
+    let tool_parent_ids: HashSet<String> =
+        tool_rows.into_iter().filter_map(|row| row.parent_message_id).collect();
 
     rows.into_iter()
         .filter(|row| !tool_parent_ids.contains(&row.id))
@@ -527,9 +512,7 @@ pub async fn delete_message_group(db: &DatabaseConnection, user_message_id: &str
         .exec(db)
         .await?;
     // Delete the user message itself
-    messages::Entity::delete_by_id(user_message_id)
-        .exec(db)
-        .await?;
+    messages::Entity::delete_by_id(user_message_id).exec(db).await?;
     Ok(ai_result.rows_affected + 1)
 }
 
@@ -651,10 +634,9 @@ pub async fn get_conversation_stats(
         ))
         .await?;
 
-    let total_prompt = row
-        .as_ref()
-        .and_then(|r| r.try_get::<i64>("", "total_prompt_tokens").ok())
-        .unwrap_or(0) as u64;
+    let total_prompt =
+        row.as_ref().and_then(|r| r.try_get::<i64>("", "total_prompt_tokens").ok()).unwrap_or(0)
+            as u64;
     let total_completion = row
         .as_ref()
         .and_then(|r| r.try_get::<i64>("", "total_completion_tokens").ok())
@@ -663,9 +645,8 @@ pub async fn get_conversation_stats(
     let r = row.as_ref();
 
     Ok(ConversationStats {
-        total_messages: r
-            .and_then(|r| r.try_get::<i64>("", "total_messages").ok())
-            .unwrap_or(0) as u64,
+        total_messages: r.and_then(|r| r.try_get::<i64>("", "total_messages").ok()).unwrap_or(0)
+            as u64,
         total_user_messages: r
             .and_then(|r| r.try_get::<i64>("", "total_user_messages").ok())
             .unwrap_or(0) as u64,
@@ -696,9 +677,8 @@ mod tests {
         let h = create_test_pool().await.unwrap();
         let db = &h.conn;
 
-        let conv = conversation::create_conversation(db, "Attach Chat", "m1", "p1", None)
-            .await
-            .unwrap();
+        let conv =
+            conversation::create_conversation(db, "Attach Chat", "m1", "p1", None).await.unwrap();
 
         let msg = create_message(
             db,

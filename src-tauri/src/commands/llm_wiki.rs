@@ -110,9 +110,8 @@ pub async fn llm_wiki_create(
         embedding_provider: input.embedding_provider,
     };
 
-    let model = wiki::create_wiki(state.harness.db(), wiki_input)
-        .await
-        .map_err(|e| e.to_string())?;
+    let model =
+        wiki::create_wiki(state.harness.db(), wiki_input).await.map_err(|e| e.to_string())?;
 
     Ok(WikiOutput {
         id: model.id,
@@ -132,9 +131,7 @@ pub async fn llm_wiki_delete(state: State<'_, AppState>, wiki_id: String) -> Res
     let collection_id = format!("wiki_{}", wiki_id);
     let _ = state.vector_store.delete_collection(&collection_id).await;
 
-    wiki::delete_wiki(state.harness.db(), &wiki_id)
-        .await
-        .map_err(|e| e.to_string())
+    wiki::delete_wiki(state.harness.db(), &wiki_id).await.map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -150,10 +147,7 @@ pub async fn llm_wiki_operations_list(
         .await
         .map_err(|e| e.to_string())?;
 
-    Ok(operations
-        .into_iter()
-        .map(WikiOperationOutput::from)
-        .collect())
+    Ok(operations.into_iter().map(WikiOperationOutput::from).collect())
 }
 
 #[derive(Debug, Deserialize)]
@@ -219,9 +213,8 @@ pub async fn llm_wiki_ingest(
                     let note_result = axagent_dao::repo::note::get_note(&db, note_id).await;
                     if let Ok(note) = note_result {
                         let collection_id = format!("wiki_{}", wiki_id);
-                        let _ = vector_store
-                            .delete_document_embeddings(&collection_id, note_id)
-                            .await;
+                        let _ =
+                            vector_store.delete_document_embeddings(&collection_id, note_id).await;
 
                         let index_result = crate::indexing::index_source(
                             &db,
@@ -336,9 +329,7 @@ async fn build_llm_adapter(
     let api_key =
         axagent_crypto::decrypt_key(&key.key_encrypted, master_key).map_err(|e| e.to_string())?;
 
-    let settings = axagent_dao::repo::settings::get_settings(db)
-        .await
-        .unwrap_or_default();
+    let settings = axagent_dao::repo::settings::get_settings(db).await.unwrap_or_default();
 
     let ctx = ProviderRequestContext {
         api_key,
@@ -347,10 +338,7 @@ async fn build_llm_adapter(
         base_url: Some(resolve_base_url_for_type(&provider.api_host, &provider.provider_type)),
         api_path: provider.api_path,
         proxy_config: ProviderProxyConfig::resolve(&provider.proxy_config, &settings),
-        custom_headers: provider
-            .custom_headers
-            .as_ref()
-            .and_then(|s| serde_json::from_str(s).ok()),
+        custom_headers: provider.custom_headers.as_ref().and_then(|s| serde_json::from_str(s).ok()),
         api_mode: None,
         conversation: None,
         previous_response_id: None,
@@ -531,9 +519,8 @@ pub async fn llm_wiki_query(
     let result = if let Some(ref ep) = wiki.embedding_provider {
         match generate_query_embedding(&state, ep, &input.query, wiki.embedding_dimensions).await {
             Ok(embedding) => {
-                let vs = Arc::new(WikiVectorSearchAdapter {
-                    vector_store: state.vector_store.clone(),
-                });
+                let vs =
+                    Arc::new(WikiVectorSearchAdapter { vector_store: state.vector_store.clone() });
                 let engine = engine.with_vector_store(vs);
                 match engine.query_with_embedding(&ctx, &embedding).await {
                     Ok(r) => r,
@@ -619,10 +606,7 @@ impl query_engine::VectorSearch for WikiVectorSearchAdapter {
             .await
             .map_err(|e| e.to_string())?;
 
-        Ok(results
-            .into_iter()
-            .map(|r| (r.document_id, r.score as f64))
-            .collect())
+        Ok(results.into_iter().map(|r| (r.document_id, r.score as f64)).collect())
     }
 }
 
@@ -650,10 +634,7 @@ pub async fn llm_wiki_get_schema(
     wiki_id: String,
 ) -> Result<String, String> {
     let manager = schema_manager::SchemaManager::new(Arc::new(state.harness.db().clone()));
-    manager
-        .get_current_schema(&wiki_id)
-        .await
-        .map_err(|e| e.to_string())
+    manager.get_current_schema(&wiki_id).await.map_err(|e| e.to_string())
 }
 
 #[derive(Debug, Deserialize)]
@@ -683,10 +664,7 @@ pub async fn llm_wiki_create_schema_version(
     description: Option<String>,
 ) -> Result<schema_manager::SchemaVersion, String> {
     let manager = schema_manager::SchemaManager::new(Arc::new(state.harness.db().clone()));
-    manager
-        .create_schema_version(&wiki_id, &version, description)
-        .await
-        .map_err(|e| e.to_string())
+    manager.create_schema_version(&wiki_id, &version, description).await.map_err(|e| e.to_string())
 }
 
 #[derive(Debug, Deserialize)]
@@ -707,19 +685,13 @@ pub async fn llm_wiki_update_schema(
 
     let schema_path = std::path::PathBuf::from(&wiki.root_path).join("SCHEMA.md");
     if let Some(parent) = schema_path.parent() {
-        tokio::fs::create_dir_all(parent)
-            .await
-            .map_err(|e| e.to_string())?;
+        tokio::fs::create_dir_all(parent).await.map_err(|e| e.to_string())?;
     }
-    tokio::fs::write(&schema_path, &input.content)
-        .await
-        .map_err(|e| e.to_string())?;
+    tokio::fs::write(&schema_path, &input.content).await.map_err(|e| e.to_string())?;
 
     let mut am = wiki.into_active_model();
     am.updated_at = Set(chrono::Utc::now().timestamp());
-    am.update(state.harness.db())
-        .await
-        .map_err(|e| e.to_string())?;
+    am.update(state.harness.db()).await.map_err(|e| e.to_string())?;
 
     Ok(())
 }
@@ -735,9 +707,7 @@ pub async fn llm_wiki_delete_schema(
 
     let schema_path = std::path::PathBuf::from(&wiki.root_path).join("SCHEMA.md");
     if schema_path.exists() {
-        tokio::fs::remove_file(&schema_path)
-            .await
-            .map_err(|e| e.to_string())?;
+        tokio::fs::remove_file(&schema_path).await.map_err(|e| e.to_string())?;
     }
 
     Ok(())
@@ -808,14 +778,10 @@ pub async fn write_base64_to_file(
     let bytes = base64_decode(&input.base64_content)?;
 
     let raw_dir = std::path::PathBuf::from(&wiki.root_path).join("raw");
-    tokio::fs::create_dir_all(&raw_dir)
-        .await
-        .map_err(|e| e.to_string())?;
+    tokio::fs::create_dir_all(&raw_dir).await.map_err(|e| e.to_string())?;
 
     let file_path = raw_dir.join(&input.file_name);
-    tokio::fs::write(&file_path, &bytes)
-        .await
-        .map_err(|e| e.to_string())?;
+    tokio::fs::write(&file_path, &bytes).await.map_err(|e| e.to_string())?;
 
     let _source_content =
         String::from_utf8(bytes).unwrap_or_else(|_| "[Binary content]".to_string());
@@ -868,9 +834,7 @@ pub async fn wiki_sync_process_pending(
         let item_clone = item.clone();
         let mut am = item.into_active_model();
         am.status = Set("processing".to_string());
-        am.update(state.harness.db())
-            .await
-            .map_err(|e| e.to_string())?;
+        am.update(state.harness.db()).await.map_err(|e| e.to_string())?;
 
         match process_sync_event(
             state.harness.db(),
@@ -884,9 +848,7 @@ pub async fn wiki_sync_process_pending(
                 let mut am = item_clone.clone().into_active_model();
                 am.status = Set("completed".to_string());
                 am.processed_at = Set(Some(chrono::Utc::now().timestamp()));
-                am.update(state.harness.db())
-                    .await
-                    .map_err(|e| e.to_string())?;
+                am.update(state.harness.db()).await.map_err(|e| e.to_string())?;
                 processed += 1;
             },
             Err(e) => {
@@ -894,9 +856,7 @@ pub async fn wiki_sync_process_pending(
                 am.status = Set("failed".to_string());
                 am.error_message = Set(Some(e.to_string()));
                 am.retry_count = Set(item_clone.retry_count + 1);
-                am.update(state.harness.db())
-                    .await
-                    .map_err(|e| e.to_string())?;
+                am.update(state.harness.db()).await.map_err(|e| e.to_string())?;
             },
         }
     }
@@ -969,9 +929,7 @@ pub async fn wiki_sync_process(state: State<'_, AppState>, queue_id: i64) -> Res
     let model_clone = model.clone();
     let mut am = model.into_active_model();
     am.status = Set("processing".to_string());
-    am.update(state.harness.db())
-        .await
-        .map_err(|e| e.to_string())?;
+    am.update(state.harness.db()).await.map_err(|e| e.to_string())?;
 
     let result = process_sync_event(
         state.harness.db(),
@@ -986,9 +944,7 @@ pub async fn wiki_sync_process(state: State<'_, AppState>, queue_id: i64) -> Res
             let mut am = model_clone.clone().into_active_model();
             am.status = Set("completed".to_string());
             am.processed_at = Set(Some(chrono::Utc::now().timestamp()));
-            am.update(state.harness.db())
-                .await
-                .map_err(|e| e.to_string())?;
+            am.update(state.harness.db()).await.map_err(|e| e.to_string())?;
             Ok(())
         },
         Err(e) => {
@@ -996,9 +952,7 @@ pub async fn wiki_sync_process(state: State<'_, AppState>, queue_id: i64) -> Res
             am.status = Set("failed".to_string());
             am.error_message = Set(Some(e.to_string()));
             am.retry_count = Set(model_clone.retry_count + 1);
-            am.update(state.harness.db())
-                .await
-                .map_err(|e| e.to_string())?;
+            am.update(state.harness.db()).await.map_err(|e| e.to_string())?;
             Err(e.to_string())
         },
     }
@@ -1052,9 +1006,7 @@ async fn process_sync_event(
                 model.target_id,
                 model.wiki_id
             );
-            vector_store
-                .delete_document_embeddings(&collection_id, &model.target_id)
-                .await
+            vector_store.delete_document_embeddings(&collection_id, &model.target_id).await
         },
         "source_ingested" => {
             tracing::info!("Sync: source {} ingested for wiki {}", model.target_id, model.wiki_id);

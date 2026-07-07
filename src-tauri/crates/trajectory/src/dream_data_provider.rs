@@ -121,14 +121,9 @@ impl ConsolidationDataProvider for TrajectoryDreamDataProvider {
     ) -> Pin<Box<dyn Future<Output = Result<Vec<ExperienceRecord>, String>> + Send + '_>> {
         let storage = self.storage.clone();
         Box::pin(async move {
-            let trajectories = storage
-                .get_trajectories(Some(limit))
-                .await
-                .map_err(|e| e.to_string())?;
-            Ok(trajectories
-                .iter()
-                .map(trajectory_to_experience_record)
-                .collect())
+            let trajectories =
+                storage.get_trajectories(Some(limit)).await.map_err(|e| e.to_string())?;
+            Ok(trajectories.iter().map(trajectory_to_experience_record).collect())
         })
     }
 
@@ -139,10 +134,7 @@ impl ConsolidationDataProvider for TrajectoryDreamDataProvider {
         let storage = self.storage.clone();
         let topic_owned = topic.to_string();
         Box::pin(async move {
-            let trajectories = storage
-                .get_trajectories(None)
-                .await
-                .map_err(|e| e.to_string())?;
+            let trajectories = storage.get_trajectories(None).await.map_err(|e| e.to_string())?;
             Ok(trajectories
                 .iter()
                 .filter(|t| t.topic.contains(&topic_owned))
@@ -187,13 +179,7 @@ impl ConsolidationDataProvider for TrajectoryDreamDataProvider {
         let result = self
             .knowledge_cache
             .read()
-            .map(|cache| {
-                cache
-                    .values()
-                    .filter(|k| k.knowledge_type == kt)
-                    .cloned()
-                    .collect()
-            })
+            .map(|cache| cache.values().filter(|k| k.knowledge_type == kt).cloned().collect())
             .map_err(|e| format!("Knowledge cache read lock poisoned: {}", e));
 
         Box::pin(async move { result })
@@ -359,13 +345,7 @@ mod tests {
 
         assert_eq!(provider.cached_knowledge_count(), 1);
 
-        let cached = provider
-            .knowledge_cache
-            .read()
-            .unwrap()
-            .get("k1")
-            .cloned()
-            .unwrap();
+        let cached = provider.knowledge_cache.read().unwrap().get("k1").cloned().unwrap();
         assert_eq!(cached.content, "Pattern A");
     }
 
@@ -391,13 +371,7 @@ mod tests {
 
         assert_eq!(provider.cached_suggestions_count(), 1);
 
-        let cached = provider
-            .suggestions_cache
-            .read()
-            .unwrap()
-            .get("sug1")
-            .cloned()
-            .unwrap();
+        let cached = provider.suggestions_cache.read().unwrap().get("sug1").cloned().unwrap();
         assert_eq!(cached.content, "Improve X");
     }
 
@@ -445,9 +419,8 @@ mod tests {
         assert_eq!(reasoning_knowledge.len(), 1);
         assert_eq!(reasoning_knowledge[0].id, "k2");
 
-        let error_knowledge: Vec<DistilledKnowledge> = rt
-            .block_on(provider.fetch_existing_knowledge(&KnowledgeType::ErrorRecovery))
-            .unwrap();
+        let error_knowledge: Vec<DistilledKnowledge> =
+            rt.block_on(provider.fetch_existing_knowledge(&KnowledgeType::ErrorRecovery)).unwrap();
         assert!(error_knowledge.is_empty());
     }
 

@@ -84,11 +84,7 @@ impl Default for DebateManager {
 
 impl DebateManager {
     pub fn new() -> Self {
-        Self {
-            debates: HashMap::new(),
-            max_rounds: 5,
-            strength_threshold: 0.7,
-        }
+        Self { debates: HashMap::new(), max_rounds: 5, strength_threshold: 0.7 }
     }
 
     pub fn with_max_rounds(mut self, rounds: usize) -> Self {
@@ -104,12 +100,7 @@ impl DebateManager {
     pub fn start_debate(&mut self, topic: DebateTopic) -> String {
         let debate_id = format!("debate_{}", uuid_simple());
 
-        let debate = Debate {
-            topic,
-            rounds: Vec::new(),
-            pro_score: 0.0,
-            con_score: 0.0,
-        };
+        let debate = Debate { topic, rounds: Vec::new(), pro_score: 0.0, con_score: 0.0 };
 
         self.debates.insert(debate_id.clone(), debate);
         debate_id
@@ -276,10 +267,7 @@ impl std::error::Error for DebateError {}
 
 fn current_timestamp() -> u64 {
     use std::time::{SystemTime, UNIX_EPOCH};
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_secs()
+    SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_secs()
 }
 
 fn uuid_simple() -> String {
@@ -344,9 +332,7 @@ mod tests {
         manager
             .add_argument(&debate_id, DebateSide::Pro, "A is better due to performance", 0.9)
             .unwrap();
-        manager
-            .add_argument(&debate_id, DebateSide::Con, "B has lower cost", 0.7)
-            .unwrap();
+        manager.add_argument(&debate_id, DebateSide::Con, "B has lower cost", 0.7).unwrap();
 
         let result = manager.get_result(&debate_id).unwrap();
         assert_eq!(result.winner, DebateSide::Pro);

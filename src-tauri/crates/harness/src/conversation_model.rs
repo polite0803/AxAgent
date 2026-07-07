@@ -24,20 +24,9 @@ pub use crate::types::MessageRole;
 /// Mirrors `axagent_runtime_core::session::ContentBlock`.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ContentBlock {
-    Text {
-        text: String,
-    },
-    ToolUse {
-        id: String,
-        name: String,
-        input: String,
-    },
-    ToolResult {
-        tool_use_id: String,
-        tool_name: String,
-        output: String,
-        is_error: bool,
-    },
+    Text { text: String },
+    ToolUse { id: String, name: String, input: String },
+    ToolResult { tool_use_id: String, tool_name: String, output: String, is_error: bool },
 }
 
 // ── ConversationMessage ──────────────────────────────────────────────────────

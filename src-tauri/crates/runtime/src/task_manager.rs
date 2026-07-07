@@ -29,10 +29,7 @@ impl Default for TaskManager {
 
 impl TaskManager {
     pub fn new() -> Self {
-        Self {
-            handles: Mutex::new(HashMap::new()),
-            shutdown_token: CancellationToken::new(),
-        }
+        Self { handles: Mutex::new(HashMap::new()), shutdown_token: CancellationToken::new() }
     }
 
     /// 暴露 shutdown token，供任务在 loop 中检查 `token.cancelled()`。

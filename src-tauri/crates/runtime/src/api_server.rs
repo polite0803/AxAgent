@@ -45,10 +45,7 @@ impl ApiServer {
     ) -> Self {
         let (shutdown_tx, shutdown_rx) = tokio::sync::oneshot::channel();
         Self {
-            state: ApiServerState {
-                platform_config,
-                platform_manager,
-            },
+            state: ApiServerState { platform_config, platform_manager },
             shutdown_tx,
             shutdown_rx: Some(shutdown_rx),
         }
@@ -67,10 +64,7 @@ impl ApiServer {
                     .expect("hardcoded 127.0.0.1 header value is valid"),
             ])
             .allow_methods([axum::http::Method::GET, axum::http::Method::POST])
-            .allow_headers([
-                axum::http::header::CONTENT_TYPE,
-                axum::http::header::AUTHORIZATION,
-            ]);
+            .allow_headers([axum::http::header::CONTENT_TYPE, axum::http::header::AUTHORIZATION]);
 
         let app = Router::new()
             .route("/health", get(health_handler))
@@ -90,10 +84,7 @@ impl ApiServer {
 
         tracing::info!("API Server listening on {}", addr);
 
-        let shutdown_rx = self
-            .shutdown_rx
-            .take()
-            .ok_or("shutdown_rx already consumed")?;
+        let shutdown_rx = self.shutdown_rx.take().ok_or("shutdown_rx already consumed")?;
         axum::serve(listener, app)
             .with_graceful_shutdown(async {
                 let _ = shutdown_rx.await;
@@ -116,10 +107,8 @@ async fn auth_middleware(
         return Ok(next.run(req).await);
     }
 
-    let auth_header = req
-        .headers()
-        .get(axum::http::header::AUTHORIZATION)
-        .and_then(|v| v.to_str().ok());
+    let auth_header =
+        req.headers().get(axum::http::header::AUTHORIZATION).and_then(|v| v.to_str().ok());
 
     match auth_header {
         Some(header) if header == format!("Bearer {}", token) => Ok(next.run(req).await),
@@ -153,8 +142,7 @@ async fn chat_handler(
 ) -> Result<Json<ChatResponse>, StatusCode> {
     if req.message.trim().is_empty() {
         return Ok(Json(ChatResponse {
-            reply: None,
-            error: Some("消息内容不能为空".to_string()),
+            reply: None, error: Some("消息内容不能为空".to_string())
         }));
     }
 
@@ -164,23 +152,15 @@ async fn chat_handler(
     let adapter = state.platform_manager.get_adapter(platform).await;
     if let Some(adapter) = adapter {
         let config_guard = state.platform_config.read().await;
-        match adapter
-            .send_message(&config_guard, user_id, &req.message, None)
-            .await
-        {
-            Ok(()) => Ok(Json(ChatResponse {
-                reply: Some("消息已发送".to_string()),
-                error: None,
-            })),
-            Err(e) => Ok(Json(ChatResponse {
-                reply: None,
-                error: Some(format!("发送失败: {}", e)),
-            })),
+        match adapter.send_message(&config_guard, user_id, &req.message, None).await {
+            Ok(()) => {
+                Ok(Json(ChatResponse { reply: Some("消息已发送".to_string()), error: None }))
+            },
+            Err(e) => {
+                Ok(Json(ChatResponse { reply: None, error: Some(format!("发送失败: {}", e)) }))
+            },
         }
     } else {
-        Ok(Json(ChatResponse {
-            reply: None,
-            error: Some(format!("未知平台: {}", platform)),
-        }))
+        Ok(Json(ChatResponse { reply: None, error: Some(format!("未知平台: {}", platform)) }))
     }
 }

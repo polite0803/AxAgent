@@ -99,10 +99,7 @@ impl std::fmt::Debug for ExecutionContextCallbacks {
         f.debug_struct("ExecutionContextCallbacks")
             .field(
                 "trigger_manager",
-                &self
-                    .trigger_manager
-                    .as_ref()
-                    .map(|_| "Some(TriggerManager)"),
+                &self.trigger_manager.as_ref().map(|_| "Some(TriggerManager)"),
             )
             .field("tool_handlers", &self.tool_handlers.len())
             .field("tool_fallback", &self.tool_fallback.is_some())

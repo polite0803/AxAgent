@@ -44,15 +44,11 @@ impl SecurityAnalyzer {
         // 版本控制
         allowed.extend(["git", "hg", "svn"]);
         // 文件操作
-        allowed.extend([
-            "ls", "dir", "cat", "head", "tail", "wc", "echo", "pwd", "which", "type",
-        ]);
+        allowed.extend(["ls", "dir", "cat", "head", "tail", "wc", "echo", "pwd", "which", "type"]);
         // 搜索
         allowed.extend(["find", "grep", "rg", "locate", "fd"]);
         // 文本处理
-        allowed.extend([
-            "sed", "awk", "sort", "uniq", "cut", "tr", "wc", "diff", "patch",
-        ]);
+        allowed.extend(["sed", "awk", "sort", "uniq", "cut", "tr", "wc", "diff", "patch"]);
         // 构建工具
         allowed.extend([
             "cargo", "npm", "yarn", "pnpm", "npx", "go", "python", "python3", "node", "rustc",
@@ -61,9 +57,7 @@ impl SecurityAnalyzer {
         // 包管理
         allowed.extend(["pip", "pip3", "gem", "composer"]);
         // 系统信息
-        allowed.extend([
-            "uname", "whoami", "hostname", "date", "env", "printenv", "id", "uptime",
-        ]);
+        allowed.extend(["uname", "whoami", "hostname", "date", "env", "printenv", "id", "uptime"]);
         // 进程信息
         allowed.extend(["ps", "top", "htop"]);
         // 网络信息
@@ -146,10 +140,8 @@ impl SecurityAnalyzer {
         }
 
         let program = &cmd.argv[0];
-        let program_base = std::path::Path::new(program)
-            .file_name()
-            .and_then(|s| s.to_str())
-            .unwrap_or(program);
+        let program_base =
+            std::path::Path::new(program).file_name().and_then(|s| s.to_str()).unwrap_or(program);
 
         // 1. 检测绝对路径执行
         if program.starts_with('/') || program.starts_with(".\\") || program.starts_with("../") {
@@ -216,10 +208,7 @@ impl SecurityAnalyzer {
                 return SecurityResult::Warning(format!("命令 '{}' 需要参数", program_base));
             }
             for arg in &cmd.argv[1..] {
-                let is_safe = spec
-                    .safe_flags
-                    .iter()
-                    .any(|(flag, _)| arg.starts_with(flag));
+                let is_safe = spec.safe_flags.iter().any(|(flag, _)| arg.starts_with(flag));
                 if arg.starts_with('-') && !is_safe {
                     return SecurityResult::Warning(format!(
                         "命令 '{}' 的标志 '{}' 不在安全列表中",

@@ -137,17 +137,11 @@ impl FineTuneDataset {
             total_output_len += sample.output.len();
 
             if sample.input.is_empty() {
-                errors.push(ValidationError {
-                    line: i,
-                    message: "Empty input".to_string(),
-                });
+                errors.push(ValidationError { line: i, message: "Empty input".to_string() });
             }
 
             if sample.output.is_empty() {
-                errors.push(ValidationError {
-                    line: i,
-                    message: "Empty output".to_string(),
-                });
+                errors.push(ValidationError { line: i, message: "Empty output".to_string() });
             }
         }
 
@@ -386,12 +380,8 @@ mod tests {
 
     #[test]
     fn test_data_format_variants() {
-        let formats = vec![
-            DataFormat::Jsonl,
-            DataFormat::Alpaca,
-            DataFormat::ChatML,
-            DataFormat::OpenAI,
-        ];
+        let formats =
+            vec![DataFormat::Jsonl, DataFormat::Alpaca, DataFormat::ChatML, DataFormat::OpenAI];
         for fmt in formats {
             let json = serde_json::to_string(&fmt).unwrap();
             let de: DataFormat = serde_json::from_str(&json).unwrap();
@@ -403,9 +393,7 @@ mod tests {
     fn test_preprocessing_step_variants() {
         let steps = vec![
             PreprocessingStep::FilterLength { min: 1, max: 100 },
-            PreprocessingStep::FilterPattern {
-                pattern: "test".to_string(),
-            },
+            PreprocessingStep::FilterPattern { pattern: "test".to_string() },
             PreprocessingStep::Deduplicate,
             PreprocessingStep::NormalizeWhitespace,
             PreprocessingStep::Truncate { max_length: 512 },

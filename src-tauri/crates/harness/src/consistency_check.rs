@@ -111,16 +111,7 @@ fn text_distance(a: &str, b: &str) -> usize {
     if sa.is_empty() {
         return sb.len();
     }
-    let common_prefix = sa
-        .chars()
-        .zip(sb.chars())
-        .take_while(|(x, y)| x == y)
-        .count();
-    let common_suffix = sa
-        .chars()
-        .rev()
-        .zip(sb.chars().rev())
-        .take_while(|(x, y)| x == y)
-        .count();
+    let common_prefix = sa.chars().zip(sb.chars()).take_while(|(x, y)| x == y).count();
+    let common_suffix = sa.chars().rev().zip(sb.chars().rev()).take_while(|(x, y)| x == y).count();
     sa.len().max(sb.len()) - common_prefix.min(sa.len()) - common_suffix.min(sa.len())
 }

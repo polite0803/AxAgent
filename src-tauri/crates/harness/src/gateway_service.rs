@@ -6,10 +6,7 @@ use async_trait::async_trait;
 pub enum GatewayStatus {
     Stopped,
     Starting,
-    Running {
-        http_addr: String,
-        ssl_port: Option<u16>,
-    },
+    Running { http_addr: String, ssl_port: Option<u16> },
     Failed(String),
 }
 #[derive(Debug, Clone)]

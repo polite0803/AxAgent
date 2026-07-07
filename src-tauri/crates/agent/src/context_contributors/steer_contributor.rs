@@ -29,10 +29,8 @@ impl ContextContributor for SteerContributor {
         if instructions.is_empty() {
             return None;
         }
-        let formatted: Vec<String> = instructions
-            .iter()
-            .map(|m| format!("- [{}] {}", m.id, m.instruction))
-            .collect();
+        let formatted: Vec<String> =
+            instructions.iter().map(|m| format!("- [{}] {}", m.id, m.instruction)).collect();
         Some(format!(
             "<steer-instructions type=\"temporary\">\n# Steer Instructions\n\nThe following steering instructions were provided by the user in real time. These are temporary guidance for the current task only and should be followed with high priority.\n\n{}\n</steer-instructions>",
             formatted.join("\n")

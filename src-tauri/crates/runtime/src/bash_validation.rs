@@ -617,9 +617,7 @@ fn extract_first_command(command: &str) -> String {
             let before_eq = &next[..eq_pos];
             // Valid env var name: alphanumeric + underscore, no spaces.
             if !before_eq.is_empty()
-                && before_eq
-                    .chars()
-                    .all(|c| c.is_ascii_alphanumeric() || c == '_')
+                && before_eq.chars().all(|c| c.is_ascii_alphanumeric() || c == '_')
             {
                 // Skip past the value (might be quoted).
                 let after_eq = &next[eq_pos + 1..];
@@ -634,11 +632,7 @@ fn extract_first_command(command: &str) -> String {
         break;
     }
 
-    remaining
-        .split_whitespace()
-        .next()
-        .unwrap_or("")
-        .to_string()
+    remaining.split_whitespace().next().unwrap_or("").to_string()
 }
 
 /// Extract the command following "sudo" (skip sudo flags).

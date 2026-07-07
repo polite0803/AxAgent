@@ -189,14 +189,7 @@ impl MetricsCollector {
         let variance = samples.iter().map(|x| (x - mean).powi(2)).sum::<f64>() / count;
         let std_dev = variance.sqrt();
 
-        Some(TimingStats {
-            count,
-            min,
-            max,
-            mean,
-            median,
-            std_dev,
-        })
+        Some(TimingStats { count, min, max, mean, median, std_dev })
     }
 
     pub async fn get_all_metrics(&self) -> HashMap<String, MetricValue> {
@@ -257,14 +250,7 @@ impl MetricsCollector {
         let variance = samples.iter().map(|x| (x - mean).powi(2)).sum::<f64>() / count;
         let std_dev = variance.sqrt();
 
-        Some(TimingStats {
-            count,
-            min,
-            max,
-            mean,
-            median,
-            std_dev,
-        })
+        Some(TimingStats { count, min, max, mean, median, std_dev })
     }
 
     pub async fn reset(&self) {

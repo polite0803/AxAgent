@@ -33,12 +33,7 @@ fn default_timeout_ms() -> u64 {
 
 impl Default for RunnerConfig {
     fn default() -> Self {
-        Self {
-            max_concurrency: 3,
-            timeout_ms: 60000,
-            max_difficulty: None,
-            include_traces: true,
-        }
+        Self { max_concurrency: 3, timeout_ms: 60000, max_difficulty: None, include_traces: true }
     }
 }
 
@@ -83,10 +78,7 @@ pub struct EvaluationRunner {
 
 impl EvaluationRunner {
     pub fn new(config: RunnerConfig) -> Self {
-        Self {
-            config,
-            metrics_calculator: MetricsCalculator::new(),
-        }
+        Self { config, metrics_calculator: MetricsCalculator::new() }
     }
 
     pub fn with_config(&mut self, config: RunnerConfig) {
@@ -137,9 +129,7 @@ impl EvaluationRunner {
         for s in &scores {
             score_map.insert(s.criteria_name.clone(), s.raw_score);
         }
-        let task_metrics = self
-            .metrics_calculator
-            .calculate_task_score(task, &score_map);
+        let task_metrics = self.metrics_calculator.calculate_task_score(task, &score_map);
 
         TaskResult {
             task_id: task.id.clone(),
@@ -174,10 +164,8 @@ impl EvaluationRunner {
             .map(|criteria| {
                 let raw_score = self.compute_metric_score(&criteria.metric, task, response);
                 let weighted_score = raw_score * criteria.weight;
-                let passed = criteria
-                    .threshold
-                    .map(|threshold| raw_score >= threshold)
-                    .unwrap_or(true);
+                let passed =
+                    criteria.threshold.map(|threshold| raw_score >= threshold).unwrap_or(true);
 
                 ScoreResult {
                     criteria_name: criteria.name.clone(),
@@ -196,11 +184,7 @@ impl EvaluationRunner {
         task: &BenchmarkTask,
         response: &str,
     ) -> f32 {
-        let expected = task
-            .expected_output
-            .as_ref()
-            .map(|o| o.content.as_str())
-            .unwrap_or("");
+        let expected = task.expected_output.as_ref().map(|o| o.content.as_str()).unwrap_or("");
 
         match metric {
             EvaluationMetric::ExactMatch => exact_match_score(expected, response),
@@ -262,14 +246,11 @@ impl EvaluationRunner {
                 Difficulty::Hard => "hard",
                 Difficulty::Expert => "expert",
             };
-            *difficulty_distribution
-                .entry(difficulty_label.to_string())
-                .or_insert(0) += 1;
+            *difficulty_distribution.entry(difficulty_label.to_string()).or_insert(0) += 1;
 
             for score in &result.scores {
-                *score_breakdown
-                    .entry(score.criteria_name.clone())
-                    .or_insert(0.0) += score.raw_score;
+                *score_breakdown.entry(score.criteria_name.clone()).or_insert(0.0) +=
+                    score.raw_score;
             }
         }
 

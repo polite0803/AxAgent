@@ -123,9 +123,7 @@ pub struct InterceptorChain {
 
 impl InterceptorChain {
     pub fn new() -> Self {
-        Self {
-            interceptors: Vec::new(),
-        }
+        Self { interceptors: Vec::new() }
     }
 
     pub fn add(&mut self, interceptor: Arc<dyn HarnessInterceptor>) {
@@ -198,16 +196,12 @@ impl HarnessInterceptor for BusinessRuleInterceptor {
 
         match self.engine.evaluate(node_type, &input) {
             RuleEvaluationOutcome::Pass => InterceptorResult::Continue,
-            RuleEvaluationOutcome::Violation {
-                reason, action: _, ..
-            } => InterceptorResult::Block {
-                reason: format!("[业务规则] {reason}"),
+            RuleEvaluationOutcome::Violation { reason, action: _, .. } => {
+                InterceptorResult::Block { reason: format!("[业务规则] {reason}") }
             },
             RuleEvaluationOutcome::RequiresApproval { reason, .. } => {
                 // RequireApproval 视为阻断（当前层级无法通过，需要上层处理）
-                InterceptorResult::Block {
-                    reason: format!("[需审批] {reason}"),
-                }
+                InterceptorResult::Block { reason: format!("[需审批] {reason}") }
             },
         }
     }
@@ -404,9 +398,7 @@ mod tests {
         let rule = BusinessRule {
             name: "test_block".into(),
             description: "测试阻断".into(),
-            evaluate: Arc::new(|_, _| RuleResult::Violation {
-                reason: "测试违规".into(),
-            }),
+            evaluate: Arc::new(|_, _| RuleResult::Violation { reason: "测试违规".into() }),
             action: RuleAction::Block("阻断".into()),
         };
         let engine = Arc::new(BusinessRuleEngine::new(vec![rule]));
@@ -459,9 +451,7 @@ mod tests {
 
     #[test]
     fn test_interceptor_result_debug() {
-        let r = InterceptorResult::Block {
-            reason: "test".into(),
-        };
+        let r = InterceptorResult::Block { reason: "test".into() };
         assert!(format!("{r:?}").contains("Block"));
         let r = InterceptorResult::Continue;
         assert!(format!("{r:?}").contains("Continue"));

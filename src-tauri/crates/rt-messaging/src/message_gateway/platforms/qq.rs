@@ -284,11 +284,8 @@ async fn get_qq_gateway_url(
     bot_token: &str,
 ) -> anyhow::Result<String> {
     let url = format!("https://api.sgroup.qq.com/gateway/bot?appid={}", bot_app_id);
-    let resp = client
-        .get(&url)
-        .header("Authorization", format!("QQBot {}", bot_token))
-        .send()
-        .await?;
+    let resp =
+        client.get(&url).header("Authorization", format!("QQBot {}", bot_token)).send().await?;
 
     if !resp.status().is_success() {
         let status_code = resp.status().as_u16();

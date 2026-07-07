@@ -72,10 +72,7 @@ impl TrajectoryService for NoopTrajectoryService {
         _compressed: &[serde_json::Value],
         _key_entities: &[String],
     ) -> IntegrityResult {
-        IntegrityResult {
-            is_valid: true,
-            checks: Vec::new(),
-        }
+        IntegrityResult { is_valid: true, checks: Vec::new() }
     }
 
     fn estimate_complexity(&self, _input: &str) -> TaskComplexity {

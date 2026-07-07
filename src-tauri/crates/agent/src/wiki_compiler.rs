@@ -100,11 +100,8 @@ impl WikiCompiler {
         let source_contents = self.read_source_contents(&sources).await?;
         let pages = self.llm_compile(&schema, &source_contents).await?;
 
-        let mut result = CompileResult {
-            new_pages: Vec::new(),
-            updated_pages: Vec::new(),
-            errors: Vec::new(),
-        };
+        let mut result =
+            CompileResult { new_pages: Vec::new(), updated_pages: Vec::new(), errors: Vec::new() };
 
         let compiled_source_ids: std::collections::HashSet<String> =
             sources.iter().map(|s| s.id.clone()).collect();
@@ -211,9 +208,7 @@ impl WikiCompiler {
                     .map_err(|e| e.to_string())?;
                 if let Some(w) = wiki {
                     let alt_path = std::path::Path::new(&w.root_path).join("raw").join(
-                        std::path::Path::new(&source.source_path)
-                            .file_name()
-                            .unwrap_or_default(),
+                        std::path::Path::new(&source.source_path).file_name().unwrap_or_default(),
                     );
                     if alt_path.exists() {
                         let content = tokio::fs::read_to_string(&alt_path)
@@ -246,9 +241,8 @@ impl WikiCompiler {
 
         for (source, content) in source_contents {
             if content.len() > 8000 {
-                let chunk_pages = self
-                    .compile_long_source(schema, source, content, language)
-                    .await?;
+                let chunk_pages =
+                    self.compile_long_source(schema, source, content, language).await?;
                 all_pages.extend(chunk_pages);
             } else {
                 short_sources.push((source.clone(), content.clone()));
@@ -282,10 +276,7 @@ impl WikiCompiler {
                         .await
                         .map_err(|e| format!("LLM call failed: {}", e))?
                         .content;
-                    axagent_harness::types::ChatResponse {
-                        content,
-                        ..Default::default()
-                    }
+                    axagent_harness::types::ChatResponse { content, ..Default::default() }
                 } else {
                     self.llm_adapter
                         .chat(&self.llm_ctx, request)
@@ -521,12 +512,7 @@ impl WikiCompiler {
         let mut pages = Vec::new();
 
         for cap in json_re.captures_iter(raw_text) {
-            let json_str = cap
-                .get(1)
-                .map(|m| m.as_str())
-                .unwrap_or("")
-                .trim()
-                .to_string();
+            let json_str = cap.get(1).map(|m| m.as_str()).unwrap_or("").trim().to_string();
             if json_str.is_empty() {
                 continue;
             }
@@ -611,11 +597,8 @@ impl WikiCompiler {
                         .as_str()
                         .to_string(),
                 );
-                titles_seen.push(
-                    current_title
-                        .clone()
-                        .expect("current_title was just set to Some"),
-                );
+                titles_seen
+                    .push(current_title.clone().expect("current_title was just set to Some"));
                 continue;
             }
             if current_title.is_some() {
@@ -662,9 +645,7 @@ impl WikiCompiler {
         let dir = self.page_type_dir(&page.page_type);
         let file_path = format!("notes/{}/{}.md", dir, slug);
 
-        let existing_note = self
-            .find_existing_note_by_title(wiki_id, &page.title)
-            .await?;
+        let existing_note = self.find_existing_note_by_title(wiki_id, &page.title).await?;
 
         if let Some(ref note) = existing_note {
             if !self.should_overwrite(note).await? {
@@ -706,9 +687,7 @@ impl WikiCompiler {
                 .map_err(|e| e.to_string())?
                 .ok_or_else(|| format!("Wiki {} not found", wiki_id))?;
 
-            let note_path = std::path::Path::new(&wiki.root_path)
-                .join("notes")
-                .join(&file_path);
+            let note_path = std::path::Path::new(&wiki.root_path).join("notes").join(&file_path);
             if let Some(parent) = note_path.parent() {
                 let _ = tokio::fs::create_dir_all(parent).await;
             }
@@ -739,9 +718,7 @@ impl WikiCompiler {
             .map_err(|e| e.to_string())?
             .ok_or_else(|| format!("Wiki {} not found", wiki_id))?;
 
-        let note_path = std::path::Path::new(&wiki.root_path)
-            .join("notes")
-            .join(&file_path);
+        let note_path = std::path::Path::new(&wiki.root_path).join("notes").join(&file_path);
         if let Some(parent) = note_path.parent() {
             let _ = tokio::fs::create_dir_all(parent).await;
         }
@@ -778,10 +755,7 @@ impl WikiCompiler {
             .await
             .map_err(|e| e.to_string())?;
 
-        Ok(db_notes
-            .into_iter()
-            .next()
-            .map(axagent_dao::repo::note::model_to_note))
+        Ok(db_notes.into_iter().next().map(axagent_dao::repo::note::model_to_note))
     }
 
     async fn update_quality_score(&self, note: &Note, page: &CompiledPage) -> Result<(), String> {
@@ -813,9 +787,7 @@ impl WikiCompiler {
             let mut am = wp.into_active_model();
             am.quality_score = Set(Some(score));
             am.last_linted_at = Set(Some(chrono::Utc::now().timestamp()));
-            am.update(self.db.as_ref())
-                .await
-                .map_err(|e| e.to_string())?;
+            am.update(self.db.as_ref()).await.map_err(|e| e.to_string())?;
         }
 
         Ok(())
@@ -832,9 +804,7 @@ impl WikiCompiler {
             let mut am = wp.into_active_model();
             am.last_compiled_at = Set(chrono::Utc::now().timestamp());
             am.compiled_source_hash = Set(Some(calculate_content_hash(&page.content)));
-            am.update(self.db.as_ref())
-                .await
-                .map_err(|e| e.to_string())?;
+            am.update(self.db.as_ref()).await.map_err(|e| e.to_string())?;
         }
 
         Ok(())
@@ -861,10 +831,7 @@ impl WikiCompiler {
             updated_at: Set(chrono::Utc::now().timestamp()),
         };
 
-        wiki_page_model
-            .insert(self.db.as_ref())
-            .await
-            .map_err(|e| e.to_string())?;
+        wiki_page_model.insert(self.db.as_ref()).await.map_err(|e| e.to_string())?;
 
         Ok(())
     }
@@ -914,18 +881,13 @@ impl WikiCompiler {
             }
         }
 
-        let index_path = std::path::Path::new(&wiki.root_path)
-            .join("notes")
-            .join("index.md");
+        let index_path = std::path::Path::new(&wiki.root_path).join("notes").join("index.md");
         if let Some(parent) = index_path.parent() {
             let _ = tokio::fs::create_dir_all(parent).await;
         }
-        tokio::fs::write(&index_path, &index)
-            .await
-            .map_err(|e| e.to_string())?;
+        tokio::fs::write(&index_path, &index).await.map_err(|e| e.to_string())?;
 
-        self.upsert_system_note(wiki_id, "Index", "index", &index, "notes/index.md")
-            .await
+        self.upsert_system_note(wiki_id, "Index", "index", &index, "notes/index.md").await
     }
 
     async fn update_log(
@@ -940,15 +902,11 @@ impl WikiCompiler {
             .map_err(|e| e.to_string())?
             .ok_or_else(|| format!("Wiki {} not found", wiki_id))?;
 
-        let log_path = std::path::Path::new(&wiki.root_path)
-            .join("notes")
-            .join("log.md");
+        let log_path = std::path::Path::new(&wiki.root_path).join("notes").join("log.md");
 
         let mut existing = String::new();
         if log_path.exists() {
-            existing = tokio::fs::read_to_string(&log_path)
-                .await
-                .unwrap_or_default();
+            existing = tokio::fs::read_to_string(&log_path).await.unwrap_or_default();
         }
 
         let timestamp = chrono::Utc::now().format("%Y-%m-%d %H:%M UTC").to_string();
@@ -971,9 +929,7 @@ impl WikiCompiler {
             format!("{}\n{}", existing, entry)
         };
 
-        tokio::fs::write(&log_path, &new_log)
-            .await
-            .map_err(|e| e.to_string())?;
+        tokio::fs::write(&log_path, &new_log).await.map_err(|e| e.to_string())?;
 
         let log_model = wiki_operations::ActiveModel {
             wiki_id: Set(wiki_id.to_string()),
@@ -993,13 +949,9 @@ impl WikiCompiler {
             ..Default::default()
         };
 
-        log_model
-            .insert(self.db.as_ref())
-            .await
-            .map_err(|e| e.to_string())?;
+        log_model.insert(self.db.as_ref()).await.map_err(|e| e.to_string())?;
 
-        self.upsert_system_note(wiki_id, "Operation Log", "log", &new_log, "notes/log.md")
-            .await
+        self.upsert_system_note(wiki_id, "Operation Log", "log", &new_log, "notes/log.md").await
     }
 
     async fn update_overview(&self, wiki_id: &str) -> Result<(), String> {
@@ -1050,15 +1002,11 @@ impl WikiCompiler {
 
         overview.push_str("\n## Recent Activity\n\nSee [[Operation Log]] for details.\n");
 
-        let overview_path = std::path::Path::new(&wiki.root_path)
-            .join("notes")
-            .join("overview.md");
+        let overview_path = std::path::Path::new(&wiki.root_path).join("notes").join("overview.md");
         if let Some(parent) = overview_path.parent() {
             let _ = tokio::fs::create_dir_all(parent).await;
         }
-        tokio::fs::write(&overview_path, &overview)
-            .await
-            .map_err(|e| e.to_string())?;
+        tokio::fs::write(&overview_path, &overview).await.map_err(|e| e.to_string())?;
 
         self.upsert_system_note(wiki_id, "Overview", "overview", &overview, "notes/overview.md")
             .await
@@ -1090,9 +1038,7 @@ impl WikiCompiler {
             am.content = Set(content.to_string());
             am.content_hash = Set(content_hash);
             am.updated_at = Set(chrono::Utc::now().timestamp());
-            am.update(self.db.as_ref())
-                .await
-                .map_err(|e| e.to_string())?;
+            am.update(self.db.as_ref()).await.map_err(|e| e.to_string())?;
         } else {
             let input = CreateNoteInput {
                 vault_id: wiki_id.to_string(),
@@ -1123,17 +1069,9 @@ impl WikiCompiler {
         }
 
         let lower = page.content.to_lowercase();
-        let uncertain_phrases = [
-            "i don't know",
-            "cannot determine",
-            "i'm not sure",
-            "我无法确定",
-            "我不知道",
-        ];
-        let uncertain_count = uncertain_phrases
-            .iter()
-            .filter(|p| lower.contains(**p))
-            .count();
+        let uncertain_phrases =
+            ["i don't know", "cannot determine", "i'm not sure", "我无法确定", "我不知道"];
+        let uncertain_count = uncertain_phrases.iter().filter(|p| lower.contains(**p)).count();
         if uncertain_count > 0 {
             score -= 0.4 + 0.1 * (uncertain_count as f64 - 1.0);
         }
@@ -1165,9 +1103,7 @@ impl WikiCompiler {
 
         let cache_path = std::path::Path::new(&wiki.root_path).join(".compile_cache.json");
         let cached_hashes: std::collections::HashMap<String, String> = if cache_path.exists() {
-            let data = tokio::fs::read_to_string(&cache_path)
-                .await
-                .unwrap_or_default();
+            let data = tokio::fs::read_to_string(&cache_path).await.unwrap_or_default();
             serde_json::from_str(&data).unwrap_or_default()
         } else {
             std::collections::HashMap::new()
@@ -1272,10 +1208,7 @@ impl WikiCompiler {
                     return None;
                 },
             };
-            match svc
-                .execute(&*self.llm_adapter, &self.llm_ctx, messages, config)
-                .await
-            {
+            match svc.execute(&*self.llm_adapter, &self.llm_ctx, messages, config).await {
                 Ok(result) => result.content,
                 Err(e) => {
                     tracing::warn!("LLM quality evaluation failed: {}", e);
@@ -1293,9 +1226,7 @@ impl WikiCompiler {
         };
 
         let raw = content.trim();
-        raw.parse::<f64>()
-            .ok()
-            .map(|score| (score / 10.0).clamp(0.0, 1.0))
+        raw.parse::<f64>().ok().map(|score| (score / 10.0).clamp(0.0, 1.0))
     }
 
     pub async fn should_overwrite(&self, note: &Note) -> Result<bool, String> {
@@ -1361,15 +1292,9 @@ fn detect_content_language(content: &str) -> &'static str {
     }
 
     let lower = content.to_lowercase();
-    let de_markers = [
-        " der ", " die ", " das ", " und ", " ist ", " ein ", " eine ", " nicht ",
-    ];
-    let fr_markers = [
-        " le ", " la ", " les ", " des ", " du ", " un ", " une ", " est ", " pas ",
-    ];
-    let es_markers = [
-        " el ", " los ", " las ", " en ", " un ", " una ", " es ", " no ", " por ",
-    ];
+    let de_markers = [" der ", " die ", " das ", " und ", " ist ", " ein ", " eine ", " nicht "];
+    let fr_markers = [" le ", " la ", " les ", " des ", " du ", " un ", " une ", " est ", " pas "];
+    let es_markers = [" el ", " los ", " las ", " en ", " un ", " una ", " es ", " no ", " por "];
 
     let de_count = de_markers.iter().filter(|m| lower.contains(**m)).count();
     let fr_count = fr_markers.iter().filter(|m| lower.contains(**m)).count();
@@ -1459,10 +1384,7 @@ mod tests {
             _ctx: &ProviderRequestContext,
             _request: EmbedRequest,
         ) -> axagent_harness::core_error::Result<EmbedResponse> {
-            Ok(EmbedResponse {
-                embeddings: vec![vec![0.0; 128]],
-                dimensions: 128,
-            })
+            Ok(EmbedResponse { embeddings: vec![vec![0.0; 128]], dimensions: 128 })
         }
     }
 

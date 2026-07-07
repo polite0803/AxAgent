@@ -122,10 +122,7 @@ impl SandboxRunner {
         let hard_sandbox = std::env::var("AXAGENT_DISABLE_NODE_HARDEN")
             .map(|v| !matches!(v.trim().to_ascii_lowercase().as_str(), "1" | "true" | "yes" | "on"))
             .unwrap_or(true);
-        Self {
-            node_path: resolved,
-            hard_sandbox,
-        }
+        Self { node_path: resolved, hard_sandbox }
     }
 
     pub async fn execute(&self, code: &str, language: &str) -> Result<ExecutionResult> {
@@ -192,11 +189,7 @@ impl SandboxRunner {
         let stdout = String::from_utf8_lossy(&result.stdout).to_string();
         let stderr = String::from_utf8_lossy(&result.stderr).to_string();
 
-        Ok(ExecutionResult {
-            stdout,
-            stderr,
-            exit_code: result.status.code().unwrap_or(-1),
-        })
+        Ok(ExecutionResult { stdout, stderr, exit_code: result.status.code().unwrap_or(-1) })
     }
 
     async fn execute_python(&self, _code: &str) -> Result<ExecutionResult> {

@@ -26,10 +26,7 @@ pub struct ConfigLoader {
 impl ConfigLoader {
     #[must_use]
     pub fn new(cwd: impl Into<PathBuf>, config_home: impl Into<PathBuf>) -> Self {
-        Self {
-            cwd: cwd.into(),
-            config_home: config_home.into(),
-        }
+        Self { cwd: cwd.into(), config_home: config_home.into() }
     }
 
     #[must_use]
@@ -51,18 +48,12 @@ impl ConfigLoader {
             .parent()
             .map_or_else(|| PathBuf::from(".claw.json"), |parent| parent.join(".claw.json"));
         vec![
-            ConfigEntry {
-                source: ConfigSource::User,
-                path: user_legacy_path,
-            },
+            ConfigEntry { source: ConfigSource::User, path: user_legacy_path },
             ConfigEntry {
                 source: ConfigSource::User,
                 path: self.config_home.join("settings.json"),
             },
-            ConfigEntry {
-                source: ConfigSource::Project,
-                path: self.cwd.join(".claw.json"),
-            },
+            ConfigEntry { source: ConfigSource::Project, path: self.cwd.join(".claw.json") },
             ConfigEntry {
                 source: ConfigSource::Project,
                 path: self.cwd.join(".claw").join("settings.json"),
@@ -123,9 +114,7 @@ impl ConfigLoader {
         let feature_config = RuntimeFeatureConfig {
             hooks: parse_optional_hooks_config(&merged_value)?,
             plugins: parse_optional_plugin_config(&merged_value)?,
-            mcp: McpConfigCollection {
-                servers: mcp_servers,
-            },
+            mcp: McpConfigCollection { servers: mcp_servers },
             oauth: parse_optional_oauth_config(&merged_value, "merged settings.oauth")?,
             model: parse_optional_model(&merged_value),
             aliases: parse_optional_aliases(&merged_value)?,

@@ -49,11 +49,8 @@ impl Tool for REPLTool {
                     std::env::temp_dir().join(format!("axagent_repl_{}.rs", uuid::Uuid::new_v4()));
                 std::fs::write(&tmp, code)
                     .map_err(|e| ToolError::execution_failed(format!("写入临时文件失败: {}", e)))?;
-                let output = Command::new("rustc")
-                    .arg(&tmp)
-                    .arg("-o")
-                    .arg(tmp.with_extension(""))
-                    .output();
+                let output =
+                    Command::new("rustc").arg(&tmp).arg("-o").arg(tmp.with_extension("")).output();
                 let _ = std::fs::remove_file(&tmp);
                 match output {
                     Ok(o) if o.status.success() => {
@@ -89,10 +86,7 @@ impl Tool for REPLTool {
         if lang != "rust" {
             let output = tokio::time::timeout(
                 std::time::Duration::from_secs(timeout),
-                tokio::process::Command::new(runner)
-                    .arg(arg)
-                    .arg(code)
-                    .output(),
+                tokio::process::Command::new(runner).arg(arg).arg(code).output(),
             )
             .await;
 

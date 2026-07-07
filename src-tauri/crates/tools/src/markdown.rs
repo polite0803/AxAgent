@@ -15,32 +15,13 @@ pub struct MdDocument {
 
 #[derive(Debug, Clone)]
 pub enum MdBlock {
-    Heading {
-        level: u8,
-        text: String,
-    },
-    Paragraph {
-        inlines: Vec<MdInline>,
-    },
-    CodeBlock {
-        language: String,
-        code: String,
-    },
-    Table {
-        headers: Vec<String>,
-        rows: Vec<Vec<String>>,
-    },
-    List {
-        ordered: bool,
-        items: Vec<Vec<MdInline>>,
-    },
-    Blockquote {
-        inlines: Vec<MdInline>,
-    },
-    Image {
-        alt: String,
-        path: String,
-    },
+    Heading { level: u8, text: String },
+    Paragraph { inlines: Vec<MdInline> },
+    CodeBlock { language: String, code: String },
+    Table { headers: Vec<String>, rows: Vec<Vec<String>> },
+    List { ordered: bool, items: Vec<Vec<MdInline>> },
+    Blockquote { inlines: Vec<MdInline> },
+    Image { alt: String, path: String },
     HorizontalRule,
 }
 
@@ -78,16 +59,12 @@ pub fn parse_markdown(text: &str) -> MdDocument {
             Event::Start(tag) => match tag {
                 Tag::Heading { level, .. } => {
                     flush_inlines(&mut current_inlines, &mut current_block, &mut doc);
-                    current_block = Some(MdBlock::Heading {
-                        level: level_to_u8(level),
-                        text: String::new(),
-                    });
+                    current_block =
+                        Some(MdBlock::Heading { level: level_to_u8(level), text: String::new() });
                 },
                 Tag::Paragraph => {
                     flush_inlines(&mut current_inlines, &mut current_block, &mut doc);
-                    current_block = Some(MdBlock::Paragraph {
-                        inlines: Vec::new(),
-                    });
+                    current_block = Some(MdBlock::Paragraph { inlines: Vec::new() });
                 },
                 Tag::CodeBlock(kind) => {
                     flush_inlines(&mut current_inlines, &mut current_block, &mut doc);
@@ -118,28 +95,20 @@ pub fn parse_markdown(text: &str) -> MdDocument {
                 Tag::List(ordered) => {
                     flush_inlines(&mut current_inlines, &mut current_block, &mut doc);
                     list_items.clear();
-                    current_block = Some(MdBlock::List {
-                        ordered: ordered.is_some(),
-                        items: Vec::new(),
-                    });
+                    current_block =
+                        Some(MdBlock::List { ordered: ordered.is_some(), items: Vec::new() });
                 },
                 Tag::Item => {
                     current_item_inlines.clear();
                 },
                 Tag::BlockQuote(_) => {
                     flush_inlines(&mut current_inlines, &mut current_block, &mut doc);
-                    current_block = Some(MdBlock::Blockquote {
-                        inlines: Vec::new(),
-                    });
+                    current_block = Some(MdBlock::Blockquote { inlines: Vec::new() });
                 },
-                Tag::Image {
-                    dest_url, title, ..
-                } => {
+                Tag::Image { dest_url, title, .. } => {
                     flush_inlines(&mut current_inlines, &mut current_block, &mut doc);
-                    current_block = Some(MdBlock::Image {
-                        alt: title.to_string(),
-                        path: dest_url.to_string(),
-                    });
+                    current_block =
+                        Some(MdBlock::Image { alt: title.to_string(), path: dest_url.to_string() });
                 },
                 _ => {},
             },
@@ -344,10 +313,7 @@ pub fn render_to_html(markdown: &str) -> String {
 
 /// 从 MdDocument 提取所有表格
 pub fn extract_tables(doc: &MdDocument) -> Vec<&MdBlock> {
-    doc.blocks
-        .iter()
-        .filter(|b| matches!(b, MdBlock::Table { .. }))
-        .collect()
+    doc.blocks.iter().filter(|b| matches!(b, MdBlock::Table { .. })).collect()
 }
 
 /// 从 MdDocument 提取所有代码块
@@ -408,9 +374,7 @@ fn flush_and_store(current_block: &mut Option<MdBlock>, doc: &mut MdDocument) {
         // 跳过空段落
         if let MdBlock::Paragraph { ref inlines } = block
             && (inlines.is_empty()
-                || inlines
-                    .iter()
-                    .all(|i| matches!(i, MdInline::Text(t) if t.trim().is_empty())))
+                || inlines.iter().all(|i| matches!(i, MdInline::Text(t) if t.trim().is_empty())))
         {
             return;
         }
@@ -500,9 +464,5 @@ fn inline_to_string(inline: &MdInline) -> String {
 }
 
 fn inlines_to_string(inlines: &[MdInline]) -> String {
-    inlines
-        .iter()
-        .map(inline_to_string)
-        .collect::<Vec<_>>()
-        .join("")
+    inlines.iter().map(inline_to_string).collect::<Vec<_>>().join("")
 }

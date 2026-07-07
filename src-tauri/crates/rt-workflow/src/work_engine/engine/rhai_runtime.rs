@@ -16,9 +16,7 @@ pub(crate) fn rhai_map_to_json(map: rhai::Map) -> serde_json::Value {
                 .map(|n| serde_json::Value::Number(n.into()))
                 .unwrap_or(serde_json::Value::Null)
         } else if v.is_string() {
-            v.try_cast::<String>()
-                .map(serde_json::Value::String)
-                .unwrap_or(serde_json::Value::Null)
+            v.try_cast::<String>().map(serde_json::Value::String).unwrap_or(serde_json::Value::Null)
         } else if v.is_float() {
             match v.as_float() {
                 Ok(f) => serde_json::Number::from_f64(f)
@@ -27,9 +25,7 @@ pub(crate) fn rhai_map_to_json(map: rhai::Map) -> serde_json::Value {
                 Err(_) => serde_json::Value::Null,
             }
         } else if v.is_bool() {
-            v.as_bool()
-                .map(serde_json::Value::Bool)
-                .unwrap_or(serde_json::Value::Null)
+            v.as_bool().map(serde_json::Value::Bool).unwrap_or(serde_json::Value::Null)
         } else {
             serde_json::Value::Null
         };

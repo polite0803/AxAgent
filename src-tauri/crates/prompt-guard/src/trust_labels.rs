@@ -54,12 +54,7 @@ pub struct TrustLabeler;
 impl TrustLabeler {
     /// 为外部数据源生成信任前缀标签
     pub fn label(source: SourceType, source_id: &str) -> String {
-        format!(
-            "[UNTRUSTED-SOURCE:{}/{} risk={}]",
-            source.label(),
-            source_id,
-            source.risk_level()
-        )
+        format!("[UNTRUSTED-SOURCE:{}/{} risk={}]", source.label(), source_id, source.risk_level())
     }
 
     /// 包装带标签的外部数据

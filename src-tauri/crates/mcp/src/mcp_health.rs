@@ -81,8 +81,7 @@ impl McpHealthMonitor {
         if after_check < pool_size {
             let evicted = pool_size - after_check;
             tracing::warn!("[McpHealth] 健康检查期间驱逐了 {} 个不健康连接", evicted);
-            self.increment_unhealthy_count("evicted_pool", evicted)
-                .await;
+            self.increment_unhealthy_count("evicted_pool", evicted).await;
         }
 
         reports
@@ -96,8 +95,7 @@ impl McpHealthMonitor {
 
     pub async fn is_unhealthy(&self, server_id: &str) -> bool {
         let map = self.unhealthy_count.lock().await;
-        map.get(server_id)
-            .is_some_and(|&c| c >= self.unhealthy_threshold)
+        map.get(server_id).is_some_and(|&c| c >= self.unhealthy_threshold)
     }
 
     pub async fn reset_unhealthy_count(&self, server_id: &str) {
@@ -136,12 +134,7 @@ mod tests {
     #[test]
     fn health_status_equality() {
         assert_eq!(HealthStatus::Healthy, HealthStatus::Healthy);
-        assert_ne!(
-            HealthStatus::Healthy,
-            HealthStatus::Unhealthy {
-                reason: "timeout".into()
-            }
-        );
+        assert_ne!(HealthStatus::Healthy, HealthStatus::Unhealthy { reason: "timeout".into() });
     }
 
     #[cfg(not(target_os = "android"))]

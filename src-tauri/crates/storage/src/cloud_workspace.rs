@@ -100,13 +100,7 @@ impl CloudWorkspace {
         let sync_state = Self::load_sync_state(&state_file)
             .unwrap_or_else(|| SyncState::new(device_id, uri.raw.clone()));
 
-        Self {
-            uri,
-            backend,
-            cache_dir,
-            sync_state,
-            state_file,
-        }
+        Self { uri, backend, cache_dir, sync_state, state_file }
     }
 
     /// Load sync state from local file.
@@ -322,10 +316,7 @@ impl CloudWorkspace {
         })?;
 
         let remote_key = format!("{}/{}", prefix.trim_end_matches('/'), key);
-        let meta = self
-            .backend
-            .put(&remote_key, &local_data, "application/octet-stream")
-            .await?;
+        let meta = self.backend.put(&remote_key, &local_data, "application/octet-stream").await?;
 
         let local_hash = compute_content_hash(&local_data);
         let _entry = TrackedFileEntry {
@@ -360,9 +351,7 @@ impl CloudWorkspace {
 
         // Add tombstone
         let state_ref = &self.sync_state;
-        let _last_etag = state_ref
-            .get_entry(key)
-            .and_then(|e| e.last_sync_remote_etag.clone());
+        let _last_etag = state_ref.get_entry(key).and_then(|e| e.last_sync_remote_etag.clone());
 
         // Note: can't mutate sync_state here (borrow issue), handled by caller
         Ok(true)
@@ -704,10 +693,8 @@ impl CloudWorkspace {
         let mut continuation_token: Option<String> = None;
 
         loop {
-            let list_result = self
-                .backend
-                .list(prefix, 1000, continuation_token.as_deref())
-                .await?;
+            let list_result =
+                self.backend.list(prefix, 1000, continuation_token.as_deref()).await?;
 
             for item in &list_result.objects {
                 let relative = item.key.strip_prefix(prefix).unwrap_or(&item.key);
@@ -834,12 +821,7 @@ impl CloudWorkspace {
 
                 files.insert(
                     key.clone(),
-                    LocalFileInfo {
-                        key,
-                        size: metadata.len() as i64,
-                        content_hash,
-                        modified_at,
-                    },
+                    LocalFileInfo { key, size: metadata.len() as i64, content_hash, modified_at },
                 );
             }
         }

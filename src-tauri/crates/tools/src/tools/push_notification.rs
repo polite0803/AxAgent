@@ -60,10 +60,7 @@ impl Tool for PushNotificationTool {
 
         #[cfg(target_os = "linux")]
         {
-            let _ = std::process::Command::new("notify-send")
-                .arg(title)
-                .arg(body)
-                .output();
+            let _ = std::process::Command::new("notify-send").arg(title).arg(body).output();
         }
 
         Ok(ToolResult::success(format!("🔔 通知已发送: {}", title)))

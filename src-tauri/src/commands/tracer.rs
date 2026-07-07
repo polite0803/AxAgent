@@ -113,9 +113,7 @@ lazy_static::lazy_static! {
 #[command]
 pub fn tracer_start_span(request: StartSpanRequest) -> Result<String, String> {
     let span_id = uuid::Uuid::new_v4().to_string();
-    let trace_id = request
-        .trace_id
-        .unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
+    let trace_id = request.trace_id.unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
 
     let mut span = Span::new(
         span_id.clone(),
@@ -154,9 +152,7 @@ pub fn tracer_record_error(request: RecordErrorRequest) -> Result<(), String> {
 
 #[command]
 pub fn tracer_record_span(request: RecordSpanRequest) -> Result<(), String> {
-    let storage = TRACE_STORAGE
-        .lock()
-        .map_err(|e| format!("Lock error: {}", e))?;
+    let storage = TRACE_STORAGE.lock().map_err(|e| format!("Lock error: {}", e))?;
 
     let span_status: SpanStatus = match request.span.status.as_str() {
         "ok" => SpanStatus::Ok,
@@ -217,17 +213,13 @@ pub fn tracer_record_span(request: RecordSpanRequest) -> Result<(), String> {
 
 #[command]
 pub fn tracer_list_traces(filter: TraceFilter) -> Result<Vec<TraceSummary>, String> {
-    let storage = TRACE_STORAGE
-        .lock()
-        .map_err(|e| format!("Lock error: {}", e))?;
+    let storage = TRACE_STORAGE.lock().map_err(|e| format!("Lock error: {}", e))?;
     storage.list(&filter).map_err(|e| format!("{}", e))
 }
 
 #[command]
 pub fn tracer_get_trace(trace_id: String) -> Result<Option<TraceExport>, String> {
-    let storage = TRACE_STORAGE
-        .lock()
-        .map_err(|e| format!("Lock error: {}", e))?;
+    let storage = TRACE_STORAGE.lock().map_err(|e| format!("Lock error: {}", e))?;
     storage.get(&trace_id).map_err(|e| format!("{}", e))
 }
 
@@ -239,9 +231,7 @@ pub fn tracer_get_span(_span_id: String) -> Result<Option<Span>, String> {
 
 #[command]
 pub fn tracer_get_metrics(trace_id: String) -> Result<Option<TraceMetrics>, String> {
-    let storage = TRACE_STORAGE
-        .lock()
-        .map_err(|e| format!("Lock error: {}", e))?;
+    let storage = TRACE_STORAGE.lock().map_err(|e| format!("Lock error: {}", e))?;
 
     let trace = storage.get(&trace_id).map_err(|e| format!("{}", e))?;
     match trace {
@@ -276,9 +266,7 @@ pub fn tracer_get_metrics(trace_id: String) -> Result<Option<TraceMetrics>, Stri
 
 #[command]
 pub fn tracer_export_traces(trace_ids: Vec<String>, _format: String) -> Result<Vec<u8>, String> {
-    let storage = TRACE_STORAGE
-        .lock()
-        .map_err(|e| format!("Lock error: {}", e))?;
+    let storage = TRACE_STORAGE.lock().map_err(|e| format!("Lock error: {}", e))?;
 
     let mut exports = Vec::new();
     for id in &trace_ids {
@@ -292,9 +280,7 @@ pub fn tracer_export_traces(trace_ids: Vec<String>, _format: String) -> Result<V
 
 #[command]
 pub fn tracer_delete_trace(trace_id: String) -> Result<(), String> {
-    let storage = TRACE_STORAGE
-        .lock()
-        .map_err(|e| format!("Lock error: {}", e))?;
+    let storage = TRACE_STORAGE.lock().map_err(|e| format!("Lock error: {}", e))?;
     storage.delete(&trace_id).map_err(|e| format!("{}", e))
 }
 
@@ -308,9 +294,7 @@ pub fn tracer_delete_old_traces(_older_than_days: u32) -> Result<u64, String> {
 
 #[command]
 pub fn tracer_get_bottlenecks(trace_id: String) -> Result<BottleneckResult, String> {
-    let storage = TRACE_STORAGE
-        .lock()
-        .map_err(|e| format!("Lock error: {}", e))?;
+    let storage = TRACE_STORAGE.lock().map_err(|e| format!("Lock error: {}", e))?;
 
     let trace = storage
         .get(&trace_id)
@@ -351,18 +335,10 @@ pub fn tracer_get_bottlenecks(trace_id: String) -> Result<BottleneckResult, Stri
         if let Some(v) = span.attributes.get("input_tokens").and_then(|v| v.as_u64()) {
             total_input += v;
         }
-        if let Some(v) = span
-            .attributes
-            .get("output_tokens")
-            .and_then(|v| v.as_u64())
-        {
+        if let Some(v) = span.attributes.get("output_tokens").and_then(|v| v.as_u64()) {
             total_output += v;
         }
-        if let Some(v) = span
-            .attributes
-            .get("cache_read_tokens")
-            .and_then(|v| v.as_u64())
-        {
+        if let Some(v) = span.attributes.get("cache_read_tokens").and_then(|v| v.as_u64()) {
             total_cache += v;
         }
     }
@@ -404,20 +380,14 @@ pub fn tracer_get_bottlenecks(trace_id: String) -> Result<BottleneckResult, Stri
         })
         .collect();
 
-    Ok(BottleneckResult {
-        time_distribution,
-        token_distribution: token_items,
-        failure_modes,
-    })
+    Ok(BottleneckResult { time_distribution, token_distribution: token_items, failure_modes })
 }
 
 // ── Phase 3: Improvement suggestions ──
 
 #[command]
 pub fn tracer_generate_suggestions(trace_id: String) -> Result<Vec<SuggestionItem>, String> {
-    let storage = TRACE_STORAGE
-        .lock()
-        .map_err(|e| format!("Lock error: {}", e))?;
+    let storage = TRACE_STORAGE.lock().map_err(|e| format!("Lock error: {}", e))?;
 
     let trace = storage
         .get(&trace_id)
@@ -428,11 +398,8 @@ pub fn tracer_generate_suggestions(trace_id: String) -> Result<Vec<SuggestionIte
     let mut id_counter: u32 = 0;
 
     // Check for serial tool calls that could be parallel
-    let tool_spans: Vec<&Span> = trace
-        .spans
-        .iter()
-        .filter(|s| matches!(s.span_type, SpanType::Tool))
-        .collect();
+    let tool_spans: Vec<&Span> =
+        trace.spans.iter().filter(|s| matches!(s.span_type, SpanType::Tool)).collect();
 
     if tool_spans.len() >= 2 {
         let total_tool_time: u64 = tool_spans.iter().filter_map(|s| s.duration_ms).sum();
@@ -477,11 +444,7 @@ pub fn tracer_generate_suggestions(trace_id: String) -> Result<Vec<SuggestionIte
     }
 
     // Check for long spans
-    if let Some(longest) = trace
-        .spans
-        .iter()
-        .max_by_key(|s| s.duration_ms.unwrap_or(0))
-    {
+    if let Some(longest) = trace.spans.iter().max_by_key(|s| s.duration_ms.unwrap_or(0)) {
         if let Some(dur) = longest.duration_ms {
             let total: u64 = trace.spans.iter().filter_map(|s| s.duration_ms).sum();
             if total > 0 && dur as f64 / total as f64 > 0.5 {
@@ -521,9 +484,7 @@ pub fn tracer_submit_feedback(
     };
 
     // 1. 持久化落盘
-    let mut feedback = FEEDBACK_STORAGE
-        .lock()
-        .map_err(|e| format!("Lock error: {}", e))?;
+    let mut feedback = FEEDBACK_STORAGE.lock().map_err(|e| format!("Lock error: {}", e))?;
     feedback.push(record);
 
     let count = feedback.len();
@@ -536,9 +497,7 @@ pub fn tracer_submit_feedback(
         let comment_clone = comment.clone();
         tokio::task::spawn(async move {
             let mut pipeline = pipeline.write().await;
-            pipeline
-                .process_feedback(&trace, rating_val, comment_clone.as_deref())
-                .await;
+            pipeline.process_feedback(&trace, rating_val, comment_clone.as_deref()).await;
         });
     }
 
@@ -549,10 +508,7 @@ pub fn tracer_submit_feedback(
         tokio::task::spawn(async move {
             let action = orchestrator.record_feedback(rating_val);
             match action {
-                axagent_agent::OrchestratorAction::TriggerRLTraining {
-                    reason,
-                    negative_count,
-                } => {
+                axagent_agent::OrchestratorAction::TriggerRLTraining { reason, negative_count } => {
                     tracing::info!(
                         "[FeedbackOrchestrator] TriggerRLTraining: {} ({} negatives)",
                         reason,
@@ -611,16 +567,10 @@ pub fn tracer_submit_feedback(
 
 #[command]
 pub fn tracer_get_feedback(trace_id: Option<String>) -> Result<Vec<FeedbackRecord>, String> {
-    let feedback = FEEDBACK_STORAGE
-        .lock()
-        .map_err(|e| format!("Lock error: {}", e))?;
+    let feedback = FEEDBACK_STORAGE.lock().map_err(|e| format!("Lock error: {}", e))?;
 
     if let Some(ref tid) = trace_id {
-        Ok(feedback
-            .iter()
-            .filter(|r| r.trace_id == *tid)
-            .cloned()
-            .collect())
+        Ok(feedback.iter().filter(|r| r.trace_id == *tid).cloned().collect())
     } else {
         Ok(feedback.clone())
     }

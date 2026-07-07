@@ -12,10 +12,7 @@ use tauri::State;
 use tracing::info;
 
 fn now_epoch_secs() -> i64 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map(|d| d.as_secs() as i64)
-        .unwrap_or(0)
+    SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_secs() as i64).unwrap_or(0)
 }
 
 fn ensure_tot_session(sessions: &mut HashMap<String, TotSession>, session_id: &str) {
@@ -23,13 +20,11 @@ fn ensure_tot_session(sessions: &mut HashMap<String, TotSession>, session_id: &s
 }
 
 fn ensure_planner_session(sessions: &mut HashMap<String, PlannerSession>, session_id: &str) {
-    sessions
-        .entry(session_id.to_string())
-        .or_insert_with(|| PlannerSession {
-            actions: Vec::new(),
-            versions: Vec::new(),
-            current_version: 0,
-        });
+    sessions.entry(session_id.to_string()).or_insert_with(|| PlannerSession {
+        actions: Vec::new(),
+        versions: Vec::new(),
+        current_version: 0,
+    });
 }
 
 // ---------------------------------------------------------------------------
@@ -44,9 +39,8 @@ pub async fn tot_get_state(
     info!(session_id = %session_id, "tot_get_state invoked");
     let mut sessions = app_state.tot_sessions.lock().await;
     ensure_tot_session(&mut sessions, &session_id);
-    let session = sessions
-        .get(&session_id)
-        .ok_or_else(|| format!("Session not found: {}", session_id))?;
+    let session =
+        sessions.get(&session_id).ok_or_else(|| format!("Session not found: {}", session_id))?;
     serde_json::to_value(session).map_err(|e| format!("Serialization error: {}", e))
 }
 
@@ -97,9 +91,7 @@ pub async fn tot_explore(
     } else {
         let root_node = TotNode {
             id: node_id.clone(),
-            content: prompt
-                .clone()
-                .unwrap_or_else(|| format!("Root node: {}", node_id)),
+            content: prompt.clone().unwrap_or_else(|| format!("Root node: {}", node_id)),
             score: Some(0.5),
             ..TotNode::default()
         };
@@ -120,9 +112,7 @@ pub async fn tot_explore(
         ));
     }
 
-    let branch_count = num_branches
-        .unwrap_or(session.max_branches)
-        .min(session.max_branches);
+    let branch_count = num_branches.unwrap_or(session.max_branches).min(session.max_branches);
 
     let thought_contents = if let Some(ts) = thoughts {
         ts
@@ -139,18 +129,10 @@ pub async fn tot_explore(
             })
             .collect()
     } else {
-        (0..branch_count)
-            .map(|i| format!("Branch {} exploration of node {}", i, node_id))
-            .collect()
+        (0..branch_count).map(|i| format!("Branch {} exploration of node {}", i, node_id)).collect()
     };
 
-    let thought_types = [
-        "reasoning",
-        "evaluation",
-        "planning",
-        "creative",
-        "critical",
-    ];
+    let thought_types = ["reasoning", "evaluation", "planning", "creative", "critical"];
 
     let mut children = Vec::new();
     for (i, content) in thought_contents.into_iter().enumerate() {
@@ -223,10 +205,8 @@ pub async fn tot_score_node(
         .get_mut(&session_id)
         .ok_or_else(|| format!("Session not found: {}", session_id))?;
 
-    let node = session
-        .nodes
-        .get_mut(&node_id)
-        .ok_or_else(|| format!("Node not found: {}", node_id))?;
+    let node =
+        session.nodes.get_mut(&node_id).ok_or_else(|| format!("Node not found: {}", node_id))?;
 
     let final_score = if let Some(s) = score {
         s.clamp(0.0, 1.0)
@@ -299,10 +279,7 @@ pub async fn tot_traverse(
         },
     };
 
-    let strat = strategy
-        .as_deref()
-        .unwrap_or(&session.traversal_strategy)
-        .to_string();
+    let strat = strategy.as_deref().unwrap_or(&session.traversal_strategy).to_string();
     session.traversal_strategy = strat.clone();
 
     let limit = max_nodes.unwrap_or(usize::MAX);
@@ -313,10 +290,8 @@ pub async fn tot_traverse(
         _ => traverse_bfs(&session.nodes, &root_id, limit),
     };
 
-    let scored_count = visited
-        .iter()
-        .filter(|id| session.nodes.get(*id).and_then(|n| n.score).is_some())
-        .count();
+    let scored_count =
+        visited.iter().filter(|id| session.nodes.get(*id).and_then(|n| n.score).is_some()).count();
 
     Ok(serde_json::json!({
         "nodes": visited,
@@ -381,9 +356,7 @@ fn traverse_best_first(
         frontier.sort_by(|a, b| {
             let score_a = nodes.get(a).and_then(|n| n.score).unwrap_or(0.0);
             let score_b = nodes.get(b).and_then(|n| n.score).unwrap_or(0.0);
-            score_b
-                .partial_cmp(&score_a)
-                .unwrap_or(std::cmp::Ordering::Equal)
+            score_b.partial_cmp(&score_a).unwrap_or(std::cmp::Ordering::Equal)
         });
 
         let best_id = frontier.remove(0);
@@ -601,17 +574,11 @@ fn compute_version_diff(
     let current_ids: std::collections::HashSet<String> =
         current.iter().map(|a| a.id.clone()).collect();
 
-    let actions_added: Vec<PlannerAction> = current
-        .iter()
-        .filter(|a| !previous_ids.contains(&a.id))
-        .cloned()
-        .collect();
+    let actions_added: Vec<PlannerAction> =
+        current.iter().filter(|a| !previous_ids.contains(&a.id)).cloned().collect();
 
-    let actions_removed: Vec<String> = previous
-        .iter()
-        .filter(|a| !current_ids.contains(&a.id))
-        .map(|a| a.id.clone())
-        .collect();
+    let actions_removed: Vec<String> =
+        previous.iter().filter(|a| !current_ids.contains(&a.id)).map(|a| a.id.clone()).collect();
 
     let summary = format!(
         "v{} → v{}: +{} actions, -{} actions",
@@ -621,13 +588,7 @@ fn compute_version_diff(
         actions_removed.len()
     );
 
-    PlannerVersionDiff {
-        from_version,
-        to_version,
-        actions_added,
-        actions_removed,
-        summary,
-    }
+    PlannerVersionDiff { from_version, to_version, actions_added, actions_removed, summary }
 }
 
 #[tauri::command]
@@ -794,9 +755,7 @@ pub async fn semantic_cache_lookup(
     let now = now_epoch_secs();
     let threshold = cache_state.similarity_threshold;
 
-    cache_state
-        .in_memory_entries
-        .retain(|entry| (now - entry.created_at) as u64 <= entry.ttl_secs);
+    cache_state.in_memory_entries.retain(|entry| (now - entry.created_at) as u64 <= entry.ttl_secs);
 
     let mut best_entry: Option<&mut InMemoryCacheEntry> = None;
     let mut best_similarity = 0.0f32;
@@ -959,11 +918,7 @@ impl std::fmt::Display for ErrorCategory {
 }
 
 fn categorize_error(error_json: &Value) -> ErrorCategory {
-    let error_type = error_json
-        .get("type")
-        .and_then(|t| t.as_str())
-        .unwrap_or("")
-        .to_lowercase();
+    let error_type = error_json.get("type").and_then(|t| t.as_str()).unwrap_or("").to_lowercase();
 
     let error_code = error_json
         .get("code")

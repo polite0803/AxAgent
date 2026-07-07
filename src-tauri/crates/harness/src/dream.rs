@@ -11,11 +11,7 @@ pub struct DreamConsolidationConfig {
 }
 impl Default for DreamConsolidationConfig {
     fn default() -> Self {
-        Self {
-            min_interval_secs: 300,
-            max_experiences_per_run: 50,
-            temperature: 0.3,
-        }
+        Self { min_interval_secs: 300, max_experiences_per_run: 50, temperature: 0.3 }
     }
 }
 

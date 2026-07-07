@@ -73,10 +73,8 @@ fn dynamic_to_value(d: Dynamic) -> Value {
         Value::Array(arr)
     } else if d.is::<Map>() {
         let map: Map = d.try_cast::<Map>().unwrap_or_default();
-        let obj: serde_json::Map<String, Value> = map
-            .into_iter()
-            .map(|(k, v)| (k.to_string(), dynamic_to_value(v)))
-            .collect();
+        let obj: serde_json::Map<String, Value> =
+            map.into_iter().map(|(k, v)| (k.to_string(), dynamic_to_value(v))).collect();
         Value::Object(obj)
     } else {
         Value::Null
@@ -91,11 +89,8 @@ pub fn resolve_expression(expr: &str, ctx: &ExpressionContext) -> Result<Value, 
     let mut scope = Scope::new();
 
     // 注入 $vars：全局变量
-    let vars_map = ctx
-        .variables
-        .iter()
-        .map(|(k, v)| (k.clone().into(), value_to_dynamic(v)))
-        .collect::<Map>();
+    let vars_map =
+        ctx.variables.iter().map(|(k, v)| (k.clone().into(), value_to_dynamic(v))).collect::<Map>();
     scope.push_dynamic("$vars", Dynamic::from_map(vars_map));
 
     // 注入 $node：节点输出（按名称索引）
@@ -122,17 +117,13 @@ pub fn resolve_expression(expr: &str, ctx: &ExpressionContext) -> Result<Value, 
     scope.push_dynamic("$now", Dynamic::from_map(now_map));
 
     // 注入 $env
-    let env_map = ctx
-        .env
-        .iter()
-        .map(|(k, v)| (k.clone().into(), Dynamic::from(v.clone())))
-        .collect::<Map>();
+    let env_map =
+        ctx.env.iter().map(|(k, v)| (k.clone().into(), Dynamic::from(v.clone()))).collect::<Map>();
     scope.push_dynamic("$env", Dynamic::from_map(env_map));
 
     // 编译并执行
-    let ast = engine
-        .compile_expression(expr)
-        .map_err(|e| RhaiEvalError::CompileError(e.to_string()))?;
+    let ast =
+        engine.compile_expression(expr).map_err(|e| RhaiEvalError::CompileError(e.to_string()))?;
 
     let result = engine
         .eval_ast_with_scope::<Dynamic>(&mut scope, &ast)

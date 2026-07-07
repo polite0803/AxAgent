@@ -10,10 +10,7 @@ pub(crate) struct SkillPackageParser;
 #[allow(dead_code)]
 impl SkillPackageParser {
     pub fn parse_files(files: Vec<(String, String)>) -> Vec<SkillFile> {
-        files
-            .into_iter()
-            .map(|(path, content)| Self::parse_file(&path, &content))
-            .collect()
+        files.into_iter().map(|(path, content)| Self::parse_file(&path, &content)).collect()
     }
 
     pub fn parse_file(path: &str, content: &str) -> SkillFile {
@@ -238,10 +235,7 @@ impl SkillPackageParser {
     }
 
     pub fn build_file_graph(files: &[SkillFile]) -> FileGraph {
-        let mut graph = FileGraph {
-            nodes: Vec::new(),
-            edges: Vec::new(),
-        };
+        let mut graph = FileGraph { nodes: Vec::new(), edges: Vec::new() };
 
         for file in files {
             graph.nodes.push(FileNode {

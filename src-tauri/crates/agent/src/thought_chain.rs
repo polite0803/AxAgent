@@ -109,11 +109,7 @@ pub struct ThoughtChain {
 
 impl ThoughtChain {
     pub fn new() -> Self {
-        Self {
-            steps: Vec::new(),
-            current_state: ReasoningState::Thinking,
-            iteration: 0,
-        }
+        Self { steps: Vec::new(), current_state: ReasoningState::Thinking, iteration: 0 }
     }
 
     pub fn add_step(&mut self, step: ThoughtStep) {

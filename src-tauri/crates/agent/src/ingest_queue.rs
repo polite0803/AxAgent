@@ -49,20 +49,14 @@ pub struct IngestQueue {
 
 impl IngestQueue {
     pub fn new(pipeline: Arc<IngestPipeline>, queue_dir: String) -> Self {
-        Self {
-            tasks: Arc::new(Mutex::new(Vec::new())),
-            pipeline,
-            queue_dir,
-        }
+        Self { tasks: Arc::new(Mutex::new(Vec::new())), pipeline, queue_dir }
     }
 
     pub async fn load_from_disk(&self) -> Result<usize, String> {
         let path = self.snapshot_path();
         if let Ok(data) = tokio::fs::read_to_string(&path).await {
-            let snapshot: QueueSnapshot = serde_json::from_str(&data).unwrap_or(QueueSnapshot {
-                tasks: vec![],
-                updated_at: 0,
-            });
+            let snapshot: QueueSnapshot = serde_json::from_str(&data)
+                .unwrap_or(QueueSnapshot { tasks: vec![], updated_at: 0 });
 
             let pending: Vec<QueuedIngestTask> = snapshot
                 .tasks
@@ -136,10 +130,7 @@ impl IngestQueue {
     pub async fn process_next(&self) -> Option<IngestResult> {
         let task_id = {
             let mut tasks = self.tasks.lock().await;
-            if let Some(idx) = tasks
-                .iter()
-                .position(|t| t.status == IngestTaskStatus::Pending)
-            {
+            if let Some(idx) = tasks.iter().position(|t| t.status == IngestTaskStatus::Pending) {
                 tasks[idx].status = IngestTaskStatus::Processing;
                 tasks[idx].started_at = Some(chrono::Utc::now().timestamp());
                 tasks[idx].id.clone()
@@ -163,17 +154,15 @@ impl IngestQueue {
                 },
                 {
                     let tasks = self.tasks.lock().await;
-                    tasks
-                        .iter()
-                        .find(|t| t.id == task_id)
-                        .map(|t| t.source.clone())
-                        .unwrap_or_else(|| IngestSource {
+                    tasks.iter().find(|t| t.id == task_id).map(|t| t.source.clone()).unwrap_or_else(
+                        || IngestSource {
                             source_type: crate::ingest_pipeline::IngestSourceType::RawMarkdown,
                             path: String::new(),
                             url: None,
                             title: None,
                             folder_context: None,
-                        })
+                        },
+                    )
                 },
             )
             .await;
@@ -224,10 +213,7 @@ impl IngestQueue {
             if let Some(id) = task_id {
                 let error = {
                     let tasks = self.tasks.lock().await;
-                    tasks
-                        .iter()
-                        .find(|t| t.id == id)
-                        .and_then(|t| t.error_message.clone())
+                    tasks.iter().find(|t| t.id == id).and_then(|t| t.error_message.clone())
                 };
 
                 match error {
@@ -274,27 +260,17 @@ impl IngestQueue {
 
     pub async fn list_tasks(&self, wiki_id: Option<&str>) -> Vec<QueuedIngestTask> {
         let tasks = self.tasks.lock().await;
-        tasks
-            .iter()
-            .filter(|t| wiki_id.is_none_or(|w| t.wiki_id == w))
-            .cloned()
-            .collect()
+        tasks.iter().filter(|t| wiki_id.is_none_or(|w| t.wiki_id == w)).cloned().collect()
     }
 
     pub async fn pending_count(&self) -> usize {
         let tasks = self.tasks.lock().await;
-        tasks
-            .iter()
-            .filter(|t| t.status == IngestTaskStatus::Pending)
-            .count()
+        tasks.iter().filter(|t| t.status == IngestTaskStatus::Pending).count()
     }
 
     pub async fn processing_count(&self) -> usize {
         let tasks = self.tasks.lock().await;
-        tasks
-            .iter()
-            .filter(|t| t.status == IngestTaskStatus::Processing)
-            .count()
+        tasks.iter().filter(|t| t.status == IngestTaskStatus::Processing).count()
     }
 
     pub async fn clear_completed(&self) -> usize {
@@ -315,10 +291,7 @@ impl IngestQueue {
     async fn save_to_disk(&self) -> Result<(), String> {
         let snapshot = {
             let tasks = self.tasks.lock().await;
-            QueueSnapshot {
-                tasks: tasks.clone(),
-                updated_at: chrono::Utc::now().timestamp(),
-            }
+            QueueSnapshot { tasks: tasks.clone(), updated_at: chrono::Utc::now().timestamp() }
         };
 
         let dir = PathBuf::from(&self.queue_dir);
@@ -347,9 +320,7 @@ impl IngestQueue {
         let mut dir_stack: Vec<std::path::PathBuf> = vec![base_path.to_path_buf()];
 
         while let Some(current_path) = dir_stack.pop() {
-            let mut entries = fs::read_dir(&current_path)
-                .await
-                .map_err(|e| e.to_string())?;
+            let mut entries = fs::read_dir(&current_path).await.map_err(|e| e.to_string())?;
 
             while let Some(entry) = entries.next_entry().await.map_err(|e| e.to_string())? {
                 let path = entry.path();
@@ -382,17 +353,12 @@ impl IngestQueue {
     }
 
     fn get_relative_path(base: &std::path::Path, full: &std::path::Path) -> std::path::PathBuf {
-        full.strip_prefix(base)
-            .map(|p| p.to_path_buf())
-            .unwrap_or_else(|_| full.to_path_buf())
+        full.strip_prefix(base).map(|p| p.to_path_buf()).unwrap_or_else(|_| full.to_path_buf())
     }
 
     fn infer_type(path: &std::path::Path) -> crate::ingest_pipeline::IngestSourceType {
-        let extension = path
-            .extension()
-            .and_then(|e| e.to_str())
-            .map(|e| e.to_lowercase())
-            .unwrap_or_default();
+        let extension =
+            path.extension().and_then(|e| e.to_str()).map(|e| e.to_lowercase()).unwrap_or_default();
 
         match extension.as_str() {
             "pdf" => crate::ingest_pipeline::IngestSourceType::Pdf,
@@ -418,9 +384,7 @@ impl IngestQueue {
         let mut dir_stack: Vec<std::path::PathBuf> = vec![base_path.to_path_buf()];
 
         while let Some(current_path) = dir_stack.pop() {
-            let mut entries = fs::read_dir(&current_path)
-                .await
-                .map_err(|e| e.to_string())?;
+            let mut entries = fs::read_dir(&current_path).await.map_err(|e| e.to_string())?;
 
             while let Some(entry) = entries.next_entry().await.map_err(|e| e.to_string())? {
                 let path = entry.path();
@@ -435,11 +399,8 @@ impl IngestQueue {
                         .map(|p| p.replace('\\', "/"))
                         .unwrap_or_default();
 
-                    let file_name = path
-                        .file_name()
-                        .and_then(|n| n.to_str())
-                        .unwrap_or("unknown")
-                        .to_string();
+                    let file_name =
+                        path.file_name().and_then(|n| n.to_str()).unwrap_or("unknown").to_string();
 
                     let metadata = entry.metadata().await.map_err(|e| e.to_string())?;
 
@@ -521,11 +482,7 @@ mod tests {
     #[tokio::test]
     async fn test_enqueue_batch() {
         let queue = create_test_queue().await;
-        let sources = vec![
-            make_source("/a.md"),
-            make_source("/b.md"),
-            make_source("/c.md"),
-        ];
+        let sources = vec![make_source("/a.md"), make_source("/b.md"), make_source("/c.md")];
         let ids = queue.enqueue_batch("wiki1", sources).await;
         assert_eq!(ids.len(), 3);
 
@@ -838,18 +795,14 @@ mod tests {
     #[tokio::test]
     async fn test_import_folder_nonexistent() {
         let queue = create_test_queue().await;
-        let result = queue
-            .import_folder("wiki1", "/nonexistent/path/12345")
-            .await;
+        let result = queue.import_folder("wiki1", "/nonexistent/path/12345").await;
         assert!(result.is_err());
     }
 
     #[tokio::test]
     async fn test_get_folder_import_preview_nonexistent() {
         let queue = create_test_queue().await;
-        let result = queue
-            .get_folder_import_preview("/nonexistent/path/12345")
-            .await;
+        let result = queue.get_folder_import_preview("/nonexistent/path/12345").await;
         assert!(result.is_err());
     }
 

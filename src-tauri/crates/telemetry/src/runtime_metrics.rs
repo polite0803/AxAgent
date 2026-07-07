@@ -97,18 +97,10 @@ impl RuntimeMetrics {
 
         let status = if success { "success" } else { "failure" };
 
-        LLM_CALL_COUNTER
-            .with_label_values(&[provider, model, status])
-            .inc();
-        LLM_LATENCY_MS
-            .with_label_values(&[provider, model])
-            .observe(duration_ms);
-        LLM_TOKENS
-            .with_label_values(&[provider, model, "input"])
-            .inc_by(input_tokens);
-        LLM_TOKENS
-            .with_label_values(&[provider, model, "output"])
-            .inc_by(output_tokens);
+        LLM_CALL_COUNTER.with_label_values(&[provider, model, status]).inc();
+        LLM_LATENCY_MS.with_label_values(&[provider, model]).observe(duration_ms);
+        LLM_TOKENS.with_label_values(&[provider, model, "input"]).inc_by(input_tokens);
+        LLM_TOKENS.with_label_values(&[provider, model, "output"]).inc_by(output_tokens);
     }
 
     /// Export all metrics as a JSON object, suitable for a `/metrics` endpoint
@@ -158,15 +150,10 @@ fn parse_prometheus_text_to_json(text: &str) -> Value {
         let value_str = rest[brace_end + 1..].trim();
 
         // Parse value
-        let value: f64 = value_str
-            .split_whitespace()
-            .next()
-            .and_then(|v| v.parse().ok())
-            .unwrap_or(0.0);
+        let value: f64 =
+            value_str.split_whitespace().next().and_then(|v| v.parse().ok()).unwrap_or(0.0);
 
-        let entry = map
-            .entry(name.clone())
-            .or_insert_with(|| Value::Array(Vec::new()));
+        let entry = map.entry(name.clone()).or_insert_with(|| Value::Array(Vec::new()));
 
         if let Value::Array(arr) = entry {
             let mut metric = Map::new();

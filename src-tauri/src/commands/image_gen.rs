@@ -20,16 +20,8 @@ pub async fn generate_image(
 ) -> Result<ImageGenResponse, String> {
     let provider_name = provider.as_deref().unwrap_or("flux");
 
-    let request = ImageGenRequest {
-        prompt,
-        negative_prompt,
-        width,
-        height,
-        steps,
-        seed,
-        model,
-        n: Some(1),
-    };
+    let request =
+        ImageGenRequest { prompt, negative_prompt, width, height, steps, seed, model, n: Some(1) };
 
     match provider_name {
         "flux" | "Flux" => {

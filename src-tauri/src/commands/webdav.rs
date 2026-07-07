@@ -56,9 +56,8 @@ pub async fn save_webdav_config(
     state: State<'_, AppState>,
     config: WebDavConfig,
 ) -> Result<(), String> {
-    let mut settings = settings_repo::get_settings(state.harness.db())
-        .await
-        .map_err(|e| e.to_string())?;
+    let mut settings =
+        settings_repo::get_settings(state.harness.db()).await.map_err(|e| e.to_string())?;
 
     // SECURITY (S8): 用户启用 accept_invalid_certs 时记录安全警告
     if config.accept_invalid_certs && !settings.webdav_accept_invalid_certs {
@@ -72,9 +71,7 @@ pub async fn save_webdav_config(
     settings.webdav_path = Some(config.path);
     settings.webdav_accept_invalid_certs = config.accept_invalid_certs;
 
-    settings_repo::save_settings(state.harness.db(), &settings)
-        .await
-        .map_err(|e| e.to_string())?;
+    settings_repo::save_settings(state.harness.db(), &settings).await.map_err(|e| e.to_string())?;
 
     // Encrypt and store password separately
     if !config.password.is_empty() {
@@ -129,9 +126,8 @@ pub async fn webdav_restore(
         return Err("Backup file name must not contain path separators or traversal".to_string());
     }
     let config = get_webdav_config_from_db(state.harness.db(), state.harness.master_key()).await?;
-    let settings = settings_repo::get_settings(state.harness.db())
-        .await
-        .map_err(|e| e.to_string())?;
+    let settings =
+        settings_repo::get_settings(state.harness.db()).await.map_err(|e| e.to_string())?;
 
     let decoded_backup_dir = axagent_storage::path_vars::decode_path_opt(&settings.backup_dir);
     let backup_dir = backup::resolve_backup_dir(decoded_backup_dir.as_deref(), &state.app_data_dir);
@@ -143,10 +139,7 @@ pub async fn webdav_restore(
     let zip_path = backup_dir.join(&file_name);
     cleanup.track_file(&zip_path);
     let client = WebDavClient::new(config).map_err(|e| e.to_string())?;
-    client
-        .download_file(&file_name, &zip_path)
-        .await
-        .map_err(|e| e.to_string())?;
+    client.download_file(&file_name, &zip_path).await.map_err(|e| e.to_string())?;
 
     // 2. Extract to temp directory
     let temp_dir = backup_dir.join("_webdav_restore_temp");
@@ -159,11 +152,7 @@ pub async fn webdav_restore(
         webdav::extract_backup_zip(&zip_path, &temp_dir, &crypto).map_err(|e| e.to_string())?;
 
     // 3. Verify checksum
-    if let Some(expected) = contents
-        .metadata
-        .get("db_checksum")
-        .and_then(|v| v.as_str())
-    {
+    if let Some(expected) = contents.metadata.get("db_checksum").and_then(|v| v.as_str()) {
         let ok =
             webdav::verify_db_checksum(&contents.db_path, expected).map_err(|e| e.to_string())?;
         if !ok {
@@ -174,11 +163,8 @@ pub async fn webdav_restore(
     }
 
     // 4. Create a safety backup of current database and master.key
-    let db_path = state
-        .harness
-        .db_path()
-        .strip_prefix("sqlite:")
-        .unwrap_or(state.harness.db_path());
+    let db_path =
+        state.harness.db_path().strip_prefix("sqlite:").unwrap_or(state.harness.db_path());
     let safety_backup = backup_dir.join("_pre_webdav_restore_safety.db");
     let _ = std::fs::copy(db_path, &safety_backup);
     let master_key_dest = state.app_data_dir.join("master.key");
@@ -270,10 +256,7 @@ pub async fn webdav_delete_backup(
 ) -> Result<(), String> {
     let config = get_webdav_config_from_db(state.harness.db(), state.harness.master_key()).await?;
     let client = WebDavClient::new(config).map_err(|e| e.to_string())?;
-    client
-        .delete_file(&file_name)
-        .await
-        .map_err(|e| e.to_string())
+    client.delete_file(&file_name).await.map_err(|e| e.to_string())
 }
 
 /// Get WebDAV sync status (last sync time and result).
@@ -300,9 +283,8 @@ pub async fn restart_webdav_sync(
     app: tauri::AppHandle,
     state: State<'_, AppState>,
 ) -> Result<(), String> {
-    let settings = settings_repo::get_settings(state.harness.db())
-        .await
-        .map_err(|e| e.to_string())?;
+    let settings =
+        settings_repo::get_settings(state.harness.db()).await.map_err(|e| e.to_string())?;
 
     let mut guard: tokio::sync::MutexGuard<'_, Option<tokio::task::JoinHandle<()>>> =
         state.webdav_sync_handle.lock().await;
@@ -341,9 +323,7 @@ pub(crate) async fn get_webdav_config_from_db(
     db: &DatabaseConnection,
     master_key: &[u8; 32],
 ) -> Result<WebDavConfig, String> {
-    let settings = settings_repo::get_settings(db)
-        .await
-        .map_err(|e| e.to_string())?;
+    let settings = settings_repo::get_settings(db).await.map_err(|e| e.to_string())?;
     let encrypted_pw = settings_repo::get_setting(db, "webdav_password_encrypted")
         .await
         .map_err(|e| e.to_string())?;
@@ -356,9 +336,7 @@ pub(crate) async fn get_webdav_config_from_db(
         host: settings.webdav_host.unwrap_or_default(),
         username: settings.webdav_username.unwrap_or_default(),
         password,
-        path: settings
-            .webdav_path
-            .unwrap_or_else(|| "/axagent/".to_string()),
+        path: settings.webdav_path.unwrap_or_else(|| "/axagent/".to_string()),
         accept_invalid_certs: settings.webdav_accept_invalid_certs,
     })
 }
@@ -387,9 +365,7 @@ async fn do_webdav_backup_once(
             .into());
     }
 
-    let settings = settings_repo::get_settings(db)
-        .await
-        .map_err(|e| e.to_string())?;
+    let settings = settings_repo::get_settings(db).await.map_err(|e| e.to_string())?;
 
     // 2. Create local SQLite snapshot via VACUUM INTO
     let decoded_backup_dir = axagent_storage::path_vars::decode_path_opt(&settings.backup_dir);
@@ -454,10 +430,7 @@ async fn do_webdav_backup_once(
 
     // 6. Upload
     let client = WebDavClient::new(config).map_err(|e| e.to_string())?;
-    client
-        .upload_file(&zip_filename, &zip_path)
-        .await
-        .map_err(|e| e.to_string())?;
+    client.upload_file(&zip_filename, &zip_path).await.map_err(|e| e.to_string())?;
 
     // 7. Cleanup temp files
     let _ = std::fs::remove_file(&temp_db_path);
@@ -628,11 +601,7 @@ mod tests {
         std::fs::set_permissions(&safety_key, std::fs::Permissions::from_mode(0o600))
             .expect("set permissions");
 
-        let mode = std::fs::metadata(&safety_key)
-            .expect("metadata")
-            .permissions()
-            .mode()
-            & 0o777;
+        let mode = std::fs::metadata(&safety_key).expect("metadata").permissions().mode() & 0o777;
 
         assert_eq!(mode, 0o600, "safety key backups must be owner-readable only");
         let _ = std::fs::remove_dir_all(&temp_root);

@@ -35,9 +35,7 @@ impl OpenAIResponsesAdapter {
     }
 
     fn base_url(ctx: &ProviderRequestContext) -> String {
-        ctx.base_url
-            .clone()
-            .unwrap_or_else(|| DEFAULT_BASE_URL.to_string())
+        ctx.base_url.clone().unwrap_or_else(|| DEFAULT_BASE_URL.to_string())
     }
 
     fn chat_url(ctx: &ProviderRequestContext) -> String {
@@ -144,10 +142,7 @@ impl ResponsesUsage {
             completion_tokens: self.output_tokens,
             total_tokens: self.total_tokens,
             cache_creation_tokens: None,
-            cache_read_tokens: self
-                .input_tokens_details
-                .as_ref()
-                .and_then(|d| d.cached_tokens),
+            cache_read_tokens: self.input_tokens_details.as_ref().and_then(|d| d.cached_tokens),
             ..Default::default()
         }
     }
@@ -496,10 +491,8 @@ fn parse_response_output(output: &[serde_json::Value]) -> (String, Option<Vec<To
             "message" => {
                 if let Some(content) = obj.get("content").and_then(|v| v.as_array()) {
                     for part in content {
-                        let part_type = part
-                            .get("type")
-                            .and_then(|v| v.as_str())
-                            .unwrap_or_default();
+                        let part_type =
+                            part.get("type").and_then(|v| v.as_str()).unwrap_or_default();
                         if part_type == "output_text"
                             && let Some(text) = part.get("text").and_then(|v| v.as_str())
                         {
@@ -515,16 +508,9 @@ fn parse_response_output(output: &[serde_json::Value]) -> (String, Option<Vec<To
                     .or_else(|| obj.get("id").and_then(|v| v.as_str()))
                     .unwrap_or_default()
                     .to_string();
-                let name = obj
-                    .get("name")
-                    .and_then(|v| v.as_str())
-                    .unwrap_or_default()
-                    .to_string();
-                let arguments = obj
-                    .get("arguments")
-                    .and_then(|v| v.as_str())
-                    .unwrap_or_default()
-                    .to_string();
+                let name = obj.get("name").and_then(|v| v.as_str()).unwrap_or_default().to_string();
+                let arguments =
+                    obj.get("arguments").and_then(|v| v.as_str()).unwrap_or_default().to_string();
                 tool_calls.push(ToolCall {
                     id: call_id,
                     call_type: "function".to_string(),
@@ -572,10 +558,8 @@ impl ProviderAdapter for OpenAIResponsesAdapter {
             )));
         }
 
-        let oai: ResponsesResponse = resp
-            .json()
-            .await
-            .map_err(|e| AxAgentError::Provider(format!("Parse error: {e}")))?;
+        let oai: ResponsesResponse =
+            resp.json().await.map_err(|e| AxAgentError::Provider(format!("Parse error: {e}")))?;
 
         let (content, tool_calls) = parse_response_output(&oai.output);
 
@@ -966,10 +950,7 @@ impl ProviderAdapter for OpenAIResponsesAdapter {
                         .map(|(_, (call_id, name, args))| ToolCall {
                             id: call_id,
                             call_type: "function".to_string(),
-                            function: ToolCallFunction {
-                                name,
-                                arguments: args,
-                            },
+                            function: ToolCallFunction { name, arguments: args },
                         })
                         .collect(),
                 )
@@ -1006,10 +987,8 @@ impl ProviderAdapter for OpenAIResponsesAdapter {
             return Err(AxAgentError::Provider(format!("OpenAI API error {s}: {t}")));
         }
 
-        let models: ModelsResponse = resp
-            .json()
-            .await
-            .map_err(|e| AxAgentError::Provider(format!("Parse error: {e}")))?;
+        let models: ModelsResponse =
+            resp.json().await.map_err(|e| AxAgentError::Provider(format!("Parse error: {e}")))?;
 
         Ok(models
             .data
@@ -1059,11 +1038,8 @@ impl ProviderAdapter for OpenAIResponsesAdapter {
         request: EmbedRequest,
     ) -> Result<EmbedResponse> {
         let url = format!("{}/embeddings", Self::base_url(ctx));
-        let body = EmbedReq {
-            model: request.model,
-            input: request.input,
-            dimensions: request.dimensions,
-        };
+        let body =
+            EmbedReq { model: request.model, input: request.input, dimensions: request.dimensions };
 
         let resp = crate::apply_request_headers(
             self.get_client(ctx)?
@@ -1082,18 +1058,13 @@ impl ProviderAdapter for OpenAIResponsesAdapter {
             return Err(AxAgentError::Provider(format!("OpenAI API error {s}: {t}")));
         }
 
-        let result: EmbedResp = resp
-            .json()
-            .await
-            .map_err(|e| AxAgentError::Provider(format!("Parse error: {e}")))?;
+        let result: EmbedResp =
+            resp.json().await.map_err(|e| AxAgentError::Provider(format!("Parse error: {e}")))?;
 
         let dimensions = result.data.first().map(|d| d.embedding.len()).unwrap_or(0);
         let embeddings: Vec<Vec<f32>> = result.data.into_iter().map(|d| d.embedding).collect();
 
-        Ok(EmbedResponse {
-            embeddings,
-            dimensions,
-        })
+        Ok(EmbedResponse { embeddings, dimensions })
     }
 
     async fn get_response(
@@ -1119,9 +1090,7 @@ impl ProviderAdapter for OpenAIResponsesAdapter {
             return Err(AxAgentError::Provider(format!("Failed to get response {status}: {text}")));
         }
 
-        resp.text()
-            .await
-            .map_err(|e| AxAgentError::Provider(format!("Read error: {e}")))
+        resp.text().await.map_err(|e| AxAgentError::Provider(format!("Read error: {e}")))
     }
 
     async fn delete_response(&self, ctx: &ProviderRequestContext, response_id: &str) -> Result<()> {

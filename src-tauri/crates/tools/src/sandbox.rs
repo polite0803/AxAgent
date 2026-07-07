@@ -98,36 +98,24 @@ impl AccessPolicyValidator {
                     resource: path.display().to_string(),
                     message: format!("Path '{}' is in denied list", path.display()),
                 });
-                return SandboxResult {
-                    allowed: false,
-                    violations,
-                };
+                return SandboxResult { allowed: false, violations };
             }
         }
 
         if !self.config.allowed_paths.is_empty() {
-            let is_allowed = self
-                .config
-                .allowed_paths
-                .iter()
-                .any(|allowed| path.starts_with(allowed));
+            let is_allowed =
+                self.config.allowed_paths.iter().any(|allowed| path.starts_with(allowed));
             if !is_allowed {
                 violations.push(SandboxViolation {
                     violation_type: SandboxViolationType::PathAccessDenied,
                     resource: path.display().to_string(),
                     message: format!("Path '{}' is not in allowed list", path.display()),
                 });
-                return SandboxResult {
-                    allowed: false,
-                    violations,
-                };
+                return SandboxResult { allowed: false, violations };
             }
         }
 
-        SandboxResult {
-            allowed: true,
-            violations,
-        }
+        SandboxResult { allowed: true, violations }
     }
 
     pub fn check_command(&self, command: &str) -> SandboxResult {
@@ -159,10 +147,7 @@ impl AccessPolicyValidator {
             };
         }
 
-        SandboxResult {
-            allowed: true,
-            violations: Vec::new(),
-        }
+        SandboxResult { allowed: true, violations: Vec::new() }
     }
 
     pub fn check_network(&self) -> SandboxResult {
@@ -176,10 +161,7 @@ impl AccessPolicyValidator {
                 }],
             }
         } else {
-            SandboxResult {
-                allowed: true,
-                violations: Vec::new(),
-            }
+            SandboxResult { allowed: true, violations: Vec::new() }
         }
     }
 
@@ -196,10 +178,7 @@ impl AccessPolicyValidator {
                 }],
             };
         }
-        SandboxResult {
-            allowed: true,
-            violations: Vec::new(),
-        }
+        SandboxResult { allowed: true, violations: Vec::new() }
     }
 
     /// 验证当前进程环境变量是否符合白名单
@@ -207,12 +186,7 @@ impl AccessPolicyValidator {
     pub fn validate_environment(&self) -> SandboxResult {
         let mut violations = Vec::new();
         for (key, _value) in std::env::vars() {
-            if !self
-                .config
-                .env_whitelist
-                .iter()
-                .any(|allowed| allowed.eq_ignore_ascii_case(&key))
-            {
+            if !self.config.env_whitelist.iter().any(|allowed| allowed.eq_ignore_ascii_case(&key)) {
                 violations.push(SandboxViolation {
                     violation_type: SandboxViolationType::EnvVarDenied,
                     resource: key.clone(),

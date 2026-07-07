@@ -60,8 +60,7 @@ impl LanDiscovery {
         if self.running.load(std::sync::atomic::Ordering::SeqCst) {
             return Ok(());
         }
-        self.running
-            .store(true, std::sync::atomic::Ordering::SeqCst);
+        self.running.store(true, std::sync::atomic::Ordering::SeqCst);
 
         let running = self.running.clone();
         let _peers = self.peers.clone();
@@ -103,8 +102,7 @@ impl LanDiscovery {
     }
 
     pub async fn stop(&self) {
-        self.running
-            .store(false, std::sync::atomic::Ordering::SeqCst);
+        self.running.store(false, std::sync::atomic::Ordering::SeqCst);
         if let Some(task) = self.task.lock().await.take() {
             task.abort();
             let _ = task.await;
@@ -180,8 +178,7 @@ impl LanFileServer {
         if self.running.load(std::sync::atomic::Ordering::SeqCst) {
             return Ok(());
         }
-        self.running
-            .store(true, std::sync::atomic::Ordering::SeqCst);
+        self.running.store(true, std::sync::atomic::Ordering::SeqCst);
 
         let listener = TcpListener::bind("0.0.0.0:0")?;
         let port = listener.local_addr()?.port();
@@ -217,8 +214,7 @@ impl LanFileServer {
     }
 
     pub async fn stop(&self) {
-        self.running
-            .store(false, std::sync::atomic::Ordering::SeqCst);
+        self.running.store(false, std::sync::atomic::Ordering::SeqCst);
         if let Some(task) = self.task.lock().await.take() {
             task.abort();
             let _ = task.await;
@@ -260,12 +256,9 @@ async fn handle_transfer_connection(stream: &mut TcpStream, shared_dir: &std::pa
             return;
         }
         let file_path = shared_dir.join(&req.file_name);
-        let canonical_file = file_path
-            .canonicalize()
-            .unwrap_or_else(|_| file_path.clone());
-        let canonical_shared = shared_dir
-            .canonicalize()
-            .unwrap_or_else(|_| shared_dir.to_path_buf());
+        let canonical_file = file_path.canonicalize().unwrap_or_else(|_| file_path.clone());
+        let canonical_shared =
+            shared_dir.canonicalize().unwrap_or_else(|_| shared_dir.to_path_buf());
         if !canonical_file.starts_with(&canonical_shared) {
             let _ = send_msg(stream, &LanMessage::TransferRejected("Invalid path".into()));
             return;
@@ -296,10 +289,8 @@ async fn handle_transfer_connection(stream: &mut TcpStream, shared_dir: &std::pa
                 return;
             }
             sent = end;
-            let progress = LanMessage::TransferProgress {
-                bytes: sent as u64,
-                total: data.len() as u64,
-            };
+            let progress =
+                LanMessage::TransferProgress { bytes: sent as u64, total: data.len() as u64 };
             let _ = send_msg(stream, &progress);
         }
 

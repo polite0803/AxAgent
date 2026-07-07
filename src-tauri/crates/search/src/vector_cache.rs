@@ -41,8 +41,7 @@ impl VectorSearchCache {
             self.hits.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
             return Some(entry.results.clone());
         }
-        self.misses
-            .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        self.misses.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
         None
     }
 
@@ -53,14 +52,7 @@ impl VectorSearchCache {
             self.evict_oldest(&mut cache).await;
         }
 
-        cache.insert(
-            key,
-            CacheEntry {
-                results,
-                timestamp: Instant::now(),
-                query_hash,
-            },
-        );
+        cache.insert(key, CacheEntry { results, timestamp: Instant::now(), query_hash });
     }
 
     async fn evict_oldest(&self, cache: &mut HashMap<String, CacheEntry>) {
@@ -146,10 +138,7 @@ impl VectorSearchCache {
             .filter(|(_, entry)| entry.timestamp.elapsed() < self.ttl)
             .map(|(key, entry)| {
                 let results_json = serde_json::to_string(&entry.results).unwrap_or_default();
-                CacheEntrySnapshot {
-                    key: key.clone(),
-                    results_json,
-                }
+                CacheEntrySnapshot { key: key.clone(), results_json }
             })
             .collect()
     }
@@ -168,11 +157,7 @@ impl VectorSearchCache {
                 };
             cache.insert(
                 entry.key,
-                CacheEntry {
-                    results,
-                    timestamp: Instant::now(),
-                    query_hash: 0,
-                },
+                CacheEntry { results, timestamp: Instant::now(), query_hash: 0 },
             );
         }
     }

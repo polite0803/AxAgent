@@ -84,9 +84,7 @@ fn extract_key_terms(text: &str) -> Vec<String> {
     .collect();
 
     let lowercase_text = text.to_lowercase();
-    let words: Vec<&str> = lowercase_text
-        .split(|c: char| !c.is_alphanumeric())
-        .collect();
+    let words: Vec<&str> = lowercase_text.split(|c: char| !c.is_alphanumeric()).collect();
     let mut word_freq: HashMap<String, usize> = HashMap::new();
 
     for word in words {
@@ -147,11 +145,7 @@ fn score_message_importance(message: &MessageRecord) -> MessageImportance {
         reasons.push("包含代码响应".to_string());
     }
 
-    MessageImportance {
-        message: message.clone(),
-        score,
-        reasons,
-    }
+    MessageImportance { message: message.clone(), score, reasons }
 }
 
 #[allow(dead_code)]
@@ -169,10 +163,7 @@ impl Default for SessionCompactor {
 #[allow(dead_code)]
 impl SessionCompactor {
     pub fn new() -> Self {
-        Self {
-            preserve_top_n: 50,
-            min_importance_score: 1.0,
-        }
+        Self { preserve_top_n: 50, min_importance_score: 1.0 }
     }
 
     pub fn with_preserve_count(mut self, n: usize) -> Self {
@@ -190,11 +181,8 @@ impl SessionCompactor {
     }
 
     pub fn extract_entities(&self, messages: &[MessageRecord]) -> Vec<String> {
-        let all_content: String = messages
-            .iter()
-            .map(|m| m.content.clone())
-            .collect::<Vec<_>>()
-            .join(" ");
+        let all_content: String =
+            messages.iter().map(|m| m.content.clone()).collect::<Vec<_>>().join(" ");
 
         extract_key_terms(&all_content)
     }
@@ -244,12 +232,7 @@ impl SessionCompactor {
         if !integrity.is_valid {
             tracing::warn!(
                 "Compression integrity check failed: {:?}",
-                integrity
-                    .checks
-                    .iter()
-                    .filter(|c| !c.passed)
-                    .map(|c| &c.name)
-                    .collect::<Vec<_>>()
+                integrity.checks.iter().filter(|c| !c.passed).map(|c| &c.name).collect::<Vec<_>>()
             );
         }
 
@@ -416,9 +399,7 @@ pub fn verify_compression_integrity(
     let mut checks = Vec::new();
 
     // Check 1: Message ordering — timestamps should be non-decreasing
-    let ordering_ok = compressed
-        .windows(2)
-        .all(|w| w[0].timestamp <= w[1].timestamp);
+    let ordering_ok = compressed.windows(2).all(|w| w[0].timestamp <= w[1].timestamp);
     checks.push(IntegrityCheck {
         name: "message_ordering".to_string(),
         passed: ordering_ok,
@@ -431,11 +412,8 @@ pub fn verify_compression_integrity(
 
     // Check 2: Key entity preservation — at least 50% of key entities should appear in compressed
     if !key_entities.is_empty() {
-        let compressed_text: String = compressed
-            .iter()
-            .map(|m| m.content.to_lowercase())
-            .collect::<Vec<_>>()
-            .join(" ");
+        let compressed_text: String =
+            compressed.iter().map(|m| m.content.to_lowercase()).collect::<Vec<_>>().join(" ");
         let preserved_entities: Vec<&String> = key_entities
             .iter()
             .filter(|entity| compressed_text.contains(&entity.to_lowercase()))

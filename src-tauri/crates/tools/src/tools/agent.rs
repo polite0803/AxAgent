@@ -31,9 +31,7 @@ static PENDING_SUB_AGENT_CARDS: LazyLock<
 > = LazyLock::new(|| Mutex::new(std::collections::HashMap::new()));
 
 fn store_pending_card(parent_id: &str, child_id: &str, agent_type: &str, description: &str) {
-    let mut m = PENDING_SUB_AGENT_CARDS
-        .lock()
-        .unwrap_or_else(|e| e.into_inner());
+    let mut m = PENDING_SUB_AGENT_CARDS.lock().unwrap_or_else(|e| e.into_inner());
     m.insert(
         parent_id.to_string(),
         (child_id.to_string(), agent_type.to_string(), description.to_string()),
@@ -181,10 +179,7 @@ pub fn refresh_agent_registry(cwd: &std::path::Path) {
 
 /// 列出所有已注册 Agent
 pub fn list_agents() -> Vec<AgentDefinition> {
-    AGENT_REGISTRY
-        .read()
-        .unwrap_or_else(|e| e.into_inner())
-        .clone()
+    AGENT_REGISTRY.read().unwrap_or_else(|e| e.into_inner()).clone()
 }
 
 /// 查找指定类型的 Agent
@@ -199,10 +194,7 @@ pub fn find_agent(agent_type: &str) -> Option<AgentDefinition> {
 
 /// 注册自定义 Agent（运行时动态添加）
 pub fn register_agent(def: AgentDefinition) {
-    AGENT_REGISTRY
-        .write()
-        .unwrap_or_else(|e| e.into_inner())
-        .push(def);
+    AGENT_REGISTRY.write().unwrap_or_else(|e| e.into_inner()).push(def);
 }
 
 pub struct AgentTool;
@@ -265,10 +257,7 @@ impl Tool for AgentTool {
         // 查找 Agent 定义
         let agent_def = if agent_type.is_empty() {
             // 如启用 FORK_SUBAGENT，则隐式 fork
-            if axagent_runtime_core::feature_flags::global_feature_flags()
-                .fork_subagent()
-                .await
-            {
+            if axagent_runtime_core::feature_flags::global_feature_flags().fork_subagent().await {
                 return handle_fork_subagent(description, prompt, ctx).await;
             }
             // 默认使用 general-purpose
@@ -286,10 +275,7 @@ impl Tool for AgentTool {
             _ => "\u{1F916}",
         };
 
-        let resolved_type = agent_def
-            .as_ref()
-            .map(|a| a.agent_type.as_str())
-            .unwrap_or(agent_type);
+        let resolved_type = agent_def.as_ref().map(|a| a.agent_type.as_str()).unwrap_or(agent_type);
 
         let mut output = format!("## {} 子 Agent 已创建\n\n", emoji);
         output.push_str(&format!("**名称**: {}\n", description));

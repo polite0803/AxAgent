@@ -157,12 +157,7 @@ pub struct IngestPipeline {
 
 impl IngestPipeline {
     pub fn new(db: Arc<DatabaseConnection>) -> Self {
-        Self {
-            db,
-            llm_adapter: None,
-            llm_ctx: None,
-            llm_model: None,
-        }
+        Self { db, llm_adapter: None, llm_ctx: None, llm_model: None }
     }
 
     pub fn with_llm(
@@ -221,8 +216,7 @@ impl IngestPipeline {
             generated_note_ids = note_ids;
         }
 
-        self.update_cache(wiki_id, &source, &content_hash, &source_record.id)
-            .await?;
+        self.update_cache(wiki_id, &source, &content_hash, &source_record.id).await?;
 
         Ok(IngestResult {
             source_id: source_record.id,
@@ -254,9 +248,7 @@ impl IngestPipeline {
 
         let path = PathBuf::from(&raw_path);
         if let Some(parent) = path.parent() {
-            fs::create_dir_all(parent)
-                .await
-                .map_err(|e| e.to_string())?;
+            fs::create_dir_all(parent).await.map_err(|e| e.to_string())?;
         }
         fs::write(&path, text).await.map_err(|e| e.to_string())?;
 
@@ -281,10 +273,7 @@ impl IngestPipeline {
             wiki_id: Set(wiki_id.to_string()),
             source_type: Set(format!("{:?}", source_type).to_lowercase()),
             source_path: Set(raw_path.clone()),
-            title: Set(metadata
-                .title
-                .clone()
-                .unwrap_or_else(|| "Untitled".to_string())),
+            title: Set(metadata.title.clone().unwrap_or_else(|| "Untitled".to_string())),
             mime_type: Set(mime_type.to_string()),
             size_bytes: Set(0),
             content_hash: Set(content_hash.clone()),
@@ -293,9 +282,7 @@ impl IngestPipeline {
             updated_at: Set(chrono::Utc::now().timestamp()),
         };
 
-        am.insert(self.db.as_ref())
-            .await
-            .map_err(|e| e.to_string())?;
+        am.insert(self.db.as_ref()).await.map_err(|e| e.to_string())?;
 
         let mut pages_generated = 0usize;
         let mut generated_note_ids = Vec::new();
@@ -304,9 +291,8 @@ impl IngestPipeline {
             (&self.llm_adapter, &self.llm_ctx, &self.llm_model)
         {
             let purpose = self.load_purpose(wiki_id).await.ok();
-            let analysis = self
-                .analyze_source(adapter.as_ref(), ctx, model, text, purpose.as_deref())
-                .await?;
+            let analysis =
+                self.analyze_source(adapter.as_ref(), ctx, model, text, purpose.as_deref()).await?;
 
             let (count, note_ids) = self
                 .generate_wiki_pages(
@@ -340,9 +326,8 @@ impl IngestPipeline {
         content: &str,
         purpose: Option<&str>,
     ) -> Result<SourceAnalysis, String> {
-        let purpose_context = purpose
-            .map(|p| format!("\n\n## Wiki Purpose\n{}", p))
-            .unwrap_or_default();
+        let purpose_context =
+            purpose.map(|p| format!("\n\n## Wiki Purpose\n{}", p)).unwrap_or_default();
 
         let truncated = if content.len() > 16000 {
             format!("{}... [truncated]", truncate_to_char_boundary(content, 16000))
@@ -645,13 +630,9 @@ Each page must be valid JSON inside a ```json fenced code block with these field
 
         let note_path = std::path::Path::new(&wiki.root_path).join(&file_path);
         if let Some(parent) = note_path.parent() {
-            fs::create_dir_all(parent)
-                .await
-                .map_err(|e| e.to_string())?;
+            fs::create_dir_all(parent).await.map_err(|e| e.to_string())?;
         }
-        fs::write(&note_path, &page.content)
-            .await
-            .map_err(|e| e.to_string())?;
+        fs::write(&note_path, &page.content).await.map_err(|e| e.to_string())?;
 
         let input = axagent_dao::repo::note::CreateNoteInput {
             vault_id: wiki_id.to_string(),
@@ -690,11 +671,7 @@ Each page must be valid JSON inside a ```json fenced code block with these field
         if let Ok(data) = tokio::fs::read_to_string(&path).await {
             let cache: IngestCache =
                 serde_json::from_str(&data).unwrap_or(IngestCache { entries: vec![] });
-            if let Some(entry) = cache
-                .entries
-                .iter()
-                .find(|e| e.content_hash == content_hash)
-            {
+            if let Some(entry) = cache.entries.iter().find(|e| e.content_hash == content_hash) {
                 tracing::info!("Cache hit for source: {}", source.path);
                 return Ok(Some(IngestResult {
                     source_id: entry.source_id.clone(),
@@ -733,9 +710,7 @@ Each page must be valid JSON inside a ```json fenced code block with these field
             .parent()
             .expect("cache_path always produces a path with a parent directory (~/axagent-notes/{wiki_id}/.cache/)")
             .to_path_buf();
-        fs::create_dir_all(&cache_dir)
-            .await
-            .map_err(|e| e.to_string())?;
+        fs::create_dir_all(&cache_dir).await.map_err(|e| e.to_string())?;
         fs::write(&path, serde_json::to_string_pretty(&cache).map_err(|e| e.to_string())?)
             .await
             .map_err(|e| e.to_string())?;
@@ -766,19 +741,15 @@ Each page must be valid JSON inside a ```json fenced code block with these field
                 if let Some(url) = &source.url {
                     self.fetch_web_content(url).await
                 } else {
-                    tokio::fs::read_to_string(&source.path)
-                        .await
-                        .map_err(|e| e.to_string())
+                    tokio::fs::read_to_string(&source.path).await.map_err(|e| e.to_string())
                 }
             },
-            IngestSourceType::RawMarkdown => tokio::fs::read_to_string(&source.path)
-                .await
-                .map_err(|e| e.to_string()),
+            IngestSourceType::RawMarkdown => {
+                tokio::fs::read_to_string(&source.path).await.map_err(|e| e.to_string())
+            },
             IngestSourceType::Pdf => self.extract_pdf_text(&source.path).await,
             IngestSourceType::Docx => self.extract_docx_text(&source.path).await,
-            _ => tokio::fs::read_to_string(&source.path)
-                .await
-                .map_err(|e| e.to_string()),
+            _ => tokio::fs::read_to_string(&source.path).await.map_err(|e| e.to_string()),
         }
     }
 
@@ -855,12 +826,7 @@ Each page must be valid JSON inside a ```json fenced code block with these field
             }
         }
 
-        Ok(SourceMetadata {
-            title,
-            author,
-            created_date,
-            page_count: None,
-        })
+        Ok(SourceMetadata { title, author, created_date, page_count: None })
     }
 
     async fn save_to_raw(
@@ -882,9 +848,7 @@ Each page must be valid JSON inside a ```json fenced code block with these field
 
         let path = PathBuf::from(&raw_path);
         if let Some(parent) = path.parent() {
-            fs::create_dir_all(parent)
-                .await
-                .map_err(|e| e.to_string())?;
+            fs::create_dir_all(parent).await.map_err(|e| e.to_string())?;
         }
         fs::write(&path, content).await.map_err(|e| e.to_string())?;
 
@@ -921,10 +885,7 @@ Each page must be valid JSON inside a ```json fenced code block with these field
             wiki_id: Set(wiki_id.to_string()),
             source_type: Set(format!("{:?}", source.source_type).to_lowercase()),
             source_path: Set(raw_path.to_string()),
-            title: Set(metadata
-                .title
-                .clone()
-                .unwrap_or_else(|| "Untitled".to_string())),
+            title: Set(metadata.title.clone().unwrap_or_else(|| "Untitled".to_string())),
             mime_type: Set(mime_type.to_string()),
             size_bytes: Set(0),
             content_hash: Set(content_hash.to_string()),
@@ -1142,50 +1103,38 @@ mod tests {
     #[tokio::test]
     async fn test_extract_metadata_title_from_heading() {
         let pipeline = create_test_pipeline().await;
-        let metadata = pipeline
-            .extract_metadata("# My Document\n\nSome body text")
-            .await
-            .unwrap();
+        let metadata = pipeline.extract_metadata("# My Document\n\nSome body text").await.unwrap();
         assert_eq!(metadata.title.as_deref(), Some("My Document"));
     }
 
     #[tokio::test]
     async fn test_extract_metadata_title_from_prefix() {
         let pipeline = create_test_pipeline().await;
-        let metadata = pipeline
-            .extract_metadata("Title: My Title\n\nBody text")
-            .await
-            .unwrap();
+        let metadata = pipeline.extract_metadata("Title: My Title\n\nBody text").await.unwrap();
         assert_eq!(metadata.title.as_deref(), Some("My Title"));
     }
 
     #[tokio::test]
     async fn test_extract_metadata_author() {
         let pipeline = create_test_pipeline().await;
-        let metadata = pipeline
-            .extract_metadata("# Title\nAuthor: John Doe\n\nBody")
-            .await
-            .unwrap();
+        let metadata =
+            pipeline.extract_metadata("# Title\nAuthor: John Doe\n\nBody").await.unwrap();
         assert_eq!(metadata.author.as_deref(), Some("John Doe"));
     }
 
     #[tokio::test]
     async fn test_extract_metadata_author_lowercase() {
         let pipeline = create_test_pipeline().await;
-        let metadata = pipeline
-            .extract_metadata("# Title\nauthor: Jane Smith\n\nBody")
-            .await
-            .unwrap();
+        let metadata =
+            pipeline.extract_metadata("# Title\nauthor: Jane Smith\n\nBody").await.unwrap();
         assert_eq!(metadata.author.as_deref(), Some("Jane Smith"));
     }
 
     #[tokio::test]
     async fn test_extract_metadata_date() {
         let pipeline = create_test_pipeline().await;
-        let metadata = pipeline
-            .extract_metadata("# Title\nDate: 2024-01-15\n\nBody")
-            .await
-            .unwrap();
+        let metadata =
+            pipeline.extract_metadata("# Title\nDate: 2024-01-15\n\nBody").await.unwrap();
         assert_eq!(metadata.created_date.as_deref(), Some("2024-01-15"));
     }
 
@@ -1201,10 +1150,8 @@ mod tests {
     #[tokio::test]
     async fn test_extract_metadata_no_title() {
         let pipeline = create_test_pipeline().await;
-        let metadata = pipeline
-            .extract_metadata("Just some text\nwithout any heading")
-            .await
-            .unwrap();
+        let metadata =
+            pipeline.extract_metadata("Just some text\nwithout any heading").await.unwrap();
         assert!(metadata.title.is_none());
     }
 

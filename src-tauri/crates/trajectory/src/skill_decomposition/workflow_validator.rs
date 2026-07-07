@@ -19,15 +19,8 @@ const VALID_NODE_TYPES: &[&str] = &[
 ];
 
 #[allow(dead_code)]
-const VALID_EDGE_TYPES: &[&str] = &[
-    "direct",
-    "conditionTrue",
-    "conditionFalse",
-    "loopBack",
-    "parallelBranch",
-    "merge",
-    "error",
-];
+const VALID_EDGE_TYPES: &[&str] =
+    &["direct", "conditionTrue", "conditionFalse", "loopBack", "parallelBranch", "merge", "error"];
 
 #[allow(dead_code)]
 const VALID_LOOP_TYPES: &[&str] = &["forEach", "while", "doWhile", "until"];
@@ -56,14 +49,8 @@ const VALID_LOGICAL_OPERATORS: &[&str] = &["and", "or"];
 const VALID_TRIGGER_TYPES: &[&str] = &["manual", "schedule", "webhook", "event"];
 
 #[allow(dead_code)]
-const VALID_AGENT_ROLES: &[&str] = &[
-    "researcher",
-    "planner",
-    "developer",
-    "reviewer",
-    "synthesizer",
-    "executor",
-];
+const VALID_AGENT_ROLES: &[&str] =
+    &["researcher", "planner", "developer", "reviewer", "synthesizer", "executor"];
 
 #[allow(dead_code)]
 const VALID_OUTPUT_MODES: &[&str] = &["json", "text", "artifact"];
@@ -135,14 +122,8 @@ impl WorkflowValidator {
     fn validate_node(node: &mut serde_json::Value) -> Vec<ValidationIssue> {
         let mut issues = Vec::new();
 
-        let node_id = node
-            .get("id")
-            .and_then(|v| v.as_str())
-            .map(|s| s.to_string());
-        let node_type_opt = node
-            .get("type")
-            .and_then(|v| v.as_str())
-            .map(|s| s.to_string());
+        let node_id = node.get("id").and_then(|v| v.as_str()).map(|s| s.to_string());
+        let node_type_opt = node.get("type").and_then(|v| v.as_str()).map(|s| s.to_string());
         let has_title = node.get("title").and_then(|v| v.as_str()).is_some();
 
         if let Some(node_type) = node_type_opt {
@@ -345,10 +326,7 @@ impl WorkflowValidator {
 
     fn validate_edge(edge: &mut serde_json::Value) -> Vec<ValidationIssue> {
         let mut issues = Vec::new();
-        let edge_id = edge
-            .get("id")
-            .and_then(|v| v.as_str())
-            .map(|s| s.to_string());
+        let edge_id = edge.get("id").and_then(|v| v.as_str()).map(|s| s.to_string());
         let edge_type = edge.get("edge_type").and_then(|v| v.as_str());
 
         if let Some(edge_type) = edge_type

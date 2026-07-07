@@ -46,13 +46,7 @@ pub struct SpawnConfig {
 
 impl Default for SpawnConfig {
     fn default() -> Self {
-        Self {
-            shell: None,
-            cwd: None,
-            env: HashMap::new(),
-            rows: 24,
-            cols: 80,
-        }
+        Self { shell: None, cwd: None, env: HashMap::new(), rows: 24, cols: 80 }
     }
 }
 

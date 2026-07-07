@@ -219,10 +219,7 @@ pub fn dedupe_superseded_commit_events(events: &[LaneEvent]) -> Vec<LaneEvent> {
             .or_else(|| data.get("commit"))
             .and_then(serde_json::Value::as_str)
             .map(str::to_string);
-        let superseded = data
-            .get("supersededBy")
-            .and_then(serde_json::Value::as_str)
-            .is_some();
+        let superseded = data.get("supersededBy").and_then(serde_json::Value::as_str).is_some();
         if superseded {
             keep[index] = false;
             continue;
@@ -234,12 +231,7 @@ pub fn dedupe_superseded_commit_events(events: &[LaneEvent]) -> Vec<LaneEvent> {
         }
     }
 
-    events
-        .iter()
-        .cloned()
-        .zip(keep)
-        .filter_map(|(event, retain)| retain.then_some(event))
-        .collect()
+    events.iter().cloned().zip(keep).filter_map(|(event, retain)| retain.then_some(event)).collect()
 }
 
 #[cfg(test)]

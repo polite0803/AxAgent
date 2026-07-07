@@ -155,21 +155,9 @@ mod tests {
         let error = validate_packet(packet).expect_err("packet should be rejected");
 
         assert!(error.errors().len() >= 7);
-        assert!(
-            error
-                .errors()
-                .contains(&"objective must not be empty".to_string())
-        );
-        assert!(
-            error
-                .errors()
-                .contains(&"scope must not be empty".to_string())
-        );
-        assert!(
-            error
-                .errors()
-                .contains(&"repo must not be empty".to_string())
-        );
+        assert!(error.errors().contains(&"objective must not be empty".to_string()));
+        assert!(error.errors().contains(&"scope must not be empty".to_string()));
+        assert!(error.errors().contains(&"repo must not be empty".to_string()));
         assert!(
             error
                 .errors()

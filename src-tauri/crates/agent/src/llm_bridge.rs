@@ -70,8 +70,7 @@ impl LlmResponseCache {
         // Evict expired entries on every get (amortized cleanup)
         let now = Instant::now();
         map.retain(|_, (_, expiry)| now < *expiry);
-        map.get(&key)
-            .and_then(|(val, expiry)| (now < *expiry).then(|| val.clone()))
+        map.get(&key).and_then(|(val, expiry)| (now < *expiry).then(|| val.clone()))
     }
 
     /// Insert a cached response.
@@ -80,10 +79,8 @@ impl LlmResponseCache {
         let mut map = self.inner.lock().expect("llm_bridge lock");
         // Evict oldest entry if at capacity
         if map.len() >= self.max_entries
-            && let Some(oldest) = map
-                .iter()
-                .min_by_key(|(_, (_, exp))| *exp)
-                .map(|(k, _)| k.clone())
+            && let Some(oldest) =
+                map.iter().min_by_key(|(_, (_, exp))| *exp).map(|(k, _)| k.clone())
         {
             map.remove(&oldest);
         }
@@ -326,13 +323,11 @@ impl ProviderLlmBridge {
                     None => return Err(primary_err.to_string()),
                 };
                 // 第三步：选择备选 Provider
-                let (fallback_entry, is_fallback) = match mgr
-                    .select_provider(self.preferred_provider_id.as_deref())
-                    .await
-                {
-                    Some((entry, is_fb)) => (entry, is_fb),
-                    None => return Err(primary_err.to_string()),
-                };
+                let (fallback_entry, is_fallback) =
+                    match mgr.select_provider(self.preferred_provider_id.as_deref()).await {
+                        Some((entry, is_fb)) => (entry, is_fb),
+                        None => return Err(primary_err.to_string()),
+                    };
                 if !is_fallback && fallback_entry.adapter_index == 0 {
                     // 选回主 Provider 但没有实际备选，返回原始错误
                     return Err(primary_err.to_string());
@@ -349,8 +344,7 @@ impl ProviderLlmBridge {
                 match fb_adapter.chat(&self.ctx, fb_request).await {
                     Ok(resp) => {
                         let latency = fb_start.elapsed().as_millis() as u64;
-                        mgr.record_success(&fallback_entry.provider_id, latency)
-                            .await;
+                        mgr.record_success(&fallback_entry.provider_id, latency).await;
                         tracing::warn!(
                             "Provider fallback: {} → {} (primary error: {})",
                             self.preferred_provider_id.as_deref().unwrap_or("unknown"),
@@ -611,12 +605,7 @@ impl PrmLlmProvider for ProviderLlmBridge {
         context: &str,
         previous_steps: &[String],
     ) -> Pin<Box<dyn Future<Output = Result<StepReward, String>> + Send + '_>> {
-        let prev_summary = previous_steps
-            .iter()
-            .take(3)
-            .cloned()
-            .collect::<Vec<_>>()
-            .join(" | ");
+        let prev_summary = previous_steps.iter().take(3).cloned().collect::<Vec<_>>().join(" | ");
         let user_msg = format!(
             "Step content:\n{}\n\nTask context:\n{}\n\nPrevious steps summary:\n{}\n\n\
              Evaluate this step on each dimension. Respond with JSON:\n\

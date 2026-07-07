@@ -45,9 +45,7 @@ async fn link_get(endpoint: &str, api_key: Option<&str>, path: &str) -> Result<S
             status, url, text
         )));
     }
-    resp.text()
-        .await
-        .map_err(|e| AxAgentError::Gateway(format!("Read error from {}: {}", url, e)))
+    resp.text().await.map_err(|e| AxAgentError::Gateway(format!("Read error from {}: {}", url, e)))
 }
 
 /// Make an authenticated POST request with JSON body to a gateway link endpoint.
@@ -75,9 +73,7 @@ async fn link_post_json(
             status, url, text
         )));
     }
-    resp.text()
-        .await
-        .map_err(|e| AxAgentError::Gateway(format!("Read error from {}: {}", url, e)))
+    resp.text().await.map_err(|e| AxAgentError::Gateway(format!("Read error from {}: {}", url, e)))
 }
 
 fn link_from_entity(m: gateway_links::Model) -> GatewayLink {
@@ -751,9 +747,7 @@ fn build_health_check_client(
     api_key: Option<&str>,
 ) -> reqwest::Client {
     let mut builder = reqwest::Client::builder();
-    builder = builder
-        .timeout(timeouts.health_check)
-        .connect_timeout(timeouts.health_check);
+    builder = builder.timeout(timeouts.health_check).connect_timeout(timeouts.health_check);
     let _ = (endpoint, api_key);
     builder.build().unwrap_or_default()
 }
@@ -847,11 +841,7 @@ pub struct ExponentialBackoff {
 
 impl ExponentialBackoff {
     pub fn new(base_delay_ms: u64, max_delay_ms: u64) -> Self {
-        Self {
-            base_delay_ms,
-            max_delay_ms,
-            current_attempt: 0,
-        }
+        Self { base_delay_ms, max_delay_ms, current_attempt: 0 }
     }
 
     pub fn next_delay(&mut self) -> std::time::Duration {

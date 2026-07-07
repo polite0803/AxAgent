@@ -52,11 +52,7 @@ pub struct HookContext {
 
 impl HookContext {
     pub fn new(hook_name: &str) -> Self {
-        Self {
-            hook_name: hook_name.to_string(),
-            session_id: None,
-            metadata: serde_json::json!({}),
-        }
+        Self { hook_name: hook_name.to_string(), session_id: None, metadata: serde_json::json!({}) }
     }
 
     pub fn with_session(mut self, session_id: &str) -> Self {

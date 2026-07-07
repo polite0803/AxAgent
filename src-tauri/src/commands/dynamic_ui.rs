@@ -204,10 +204,7 @@ async fn create_version_snapshot(
         ..Default::default()
     };
 
-    let result = am
-        .insert(db)
-        .await
-        .map_err(|e| format!("创建版本快照失败: {e}"))?;
+    let result = am.insert(db).await.map_err(|e| format!("创建版本快照失败: {e}"))?;
     Ok(result.id)
 }
 
@@ -253,10 +250,7 @@ pub async fn list_dynamic_ui_schemas(
             query = query.filter(SchemaColumn::Category.eq(cat));
         }
     }
-    let models = query
-        .all(db)
-        .await
-        .map_err(|e| format!("查询Schema列表失败: {e}"))?;
+    let models = query.all(db).await.map_err(|e| format!("查询Schema列表失败: {e}"))?;
     Ok(models.into_iter().map(model_to_dto).collect())
 }
 
@@ -297,10 +291,7 @@ pub async fn create_dynamic_ui_schema(
         updated_at: Set(now),
     };
 
-    let model = active
-        .insert(db)
-        .await
-        .map_err(|e| format!("创建Schema失败: {e}"))?;
+    let model = active.insert(db).await.map_err(|e| format!("创建Schema失败: {e}"))?;
 
     // 创建初始版本快照
     create_version_snapshot(db, &model.id, "1.0.0", &model, "初始版本").await?;
@@ -373,10 +364,7 @@ pub async fn update_dynamic_ui_schema(
     active.version = Set(new_version);
     active.updated_at = Set(now_iso());
 
-    let updated = active
-        .update(db)
-        .await
-        .map_err(|e| format!("更新Schema失败: {e}"))?;
+    let updated = active.update(db).await.map_err(|e| format!("更新Schema失败: {e}"))?;
 
     // ── 清理旧版本（保留最近 30 个） ──
     let cleaned = cleanup_old_versions(db, &id, 30).await?;
@@ -528,10 +516,7 @@ pub async fn restore_dynamic_ui_schema_version(
     active.version = Set(restore_version);
     active.updated_at = Set(now_iso());
 
-    let updated = active
-        .update(db)
-        .await
-        .map_err(|e| format!("回滚Schema失败: {e}"))?;
+    let updated = active.update(db).await.map_err(|e| format!("回滚Schema失败: {e}"))?;
 
     tracing::info!(
         schema_id = %schema_id,
@@ -566,10 +551,7 @@ pub async fn save_dynamic_ui_form_data(
         let mut active: FormDataActiveModel = existing.into();
         active.form_data_json = Set(req.form_data_json);
         active.updated_at = Set(now);
-        active
-            .update(db)
-            .await
-            .map_err(|e| format!("更新表单数据失败: {e}"))?
+        active.update(db).await.map_err(|e| format!("更新表单数据失败: {e}"))?
     } else {
         let active = FormDataActiveModel {
             id: Set(Uuid::new_v4().to_string()),
@@ -578,10 +560,7 @@ pub async fn save_dynamic_ui_form_data(
             instance_key: Set(instance_key),
             updated_at: Set(now),
         };
-        active
-            .insert(db)
-            .await
-            .map_err(|e| format!("保存表单数据失败: {e}"))?
+        active.insert(db).await.map_err(|e| format!("保存表单数据失败: {e}"))?
     };
 
     Ok(form_data_model_to_dto(model))

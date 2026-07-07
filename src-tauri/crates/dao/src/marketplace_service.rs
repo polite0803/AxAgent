@@ -44,8 +44,7 @@ impl MarketplaceServiceTrait for MarketplaceServiceImpl {
 
         let result = review.insert(db).await.map_err(|e| e.to_string())?;
 
-        self.update_marketplace_rating(db, &req.marketplace_id)
-            .await?;
+        self.update_marketplace_rating(db, &req.marketplace_id).await?;
 
         Ok(model_to_response(result))
     }

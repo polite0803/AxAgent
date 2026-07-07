@@ -29,10 +29,7 @@ impl QueryEnhancer {
         + Sync
         + 'static,
     ) -> Self {
-        Self {
-            config,
-            llm_fn: Arc::new(llm_fn),
-        }
+        Self { config, llm_fn: Arc::new(llm_fn) }
     }
 
     /// 对原始查询进行增强，返回增强后的查询列表。
@@ -75,11 +72,7 @@ impl QueryEnhancer {
             }]);
         }
 
-        Ok(vec![EnhancedQuery {
-            text: trimmed,
-            strategy: EnhancementStrategy::Hyde,
-            weight: 1.0,
-        }])
+        Ok(vec![EnhancedQuery { text: trimmed, strategy: EnhancementStrategy::Hyde, weight: 1.0 }])
     }
 
     async fn enhance_multi_query(&self, query: &str) -> Result<Vec<EnhancedQuery>> {

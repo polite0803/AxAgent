@@ -71,17 +71,9 @@ impl BenchEvaluator for TerminalBenchEvaluator {
         }
 
         if output.is_empty() {
-            BenchScore {
-                score: 0.0,
-                passed: false,
-                details: Some("No output produced".into()),
-            }
+            BenchScore { score: 0.0, passed: false, details: Some("No output produced".into()) }
         } else if output.to_lowercase().contains("command not found") {
-            BenchScore {
-                score: 0.0,
-                passed: false,
-                details: Some("Command not found".into()),
-            }
+            BenchScore { score: 0.0, passed: false, details: Some("Command not found".into()) }
         } else {
             BenchScore {
                 score: 0.5,

@@ -16,12 +16,7 @@ pub struct WorkflowExport {
 
 impl WorkflowExport {
     pub fn new(template: WorkflowTemplateData, versions: Vec<WorkflowTemplateVersionData>) -> Self {
-        Self {
-            template,
-            versions,
-            exported_at: Utc::now(),
-            version: "1.0".to_string(),
-        }
+        Self { template, versions, exported_at: Utc::now(), version: "1.0".to_string() }
     }
 
     pub fn serialize(&self) -> Result<String, serde_json::Error> {

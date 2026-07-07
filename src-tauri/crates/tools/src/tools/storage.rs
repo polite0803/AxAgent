@@ -61,16 +61,11 @@ impl Tool for GetStorageInfoTool {
     async fn call(&self, _input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
         let docs = Path::new("documents");
         let total: u64 = if docs.exists() {
-            std::fs::read_dir(docs)
-                .map(|rd| rd.count() as u64)
-                .unwrap_or(0)
+            std::fs::read_dir(docs).map(|rd| rd.count() as u64).unwrap_or(0)
         } else {
             0
         };
-        Ok(ToolResult::success(format!(
-            "存储信息:\n  根目录: documents/\n  文件总数: {}",
-            total
-        )))
+        Ok(ToolResult::success(format!("存储信息:\n  根目录: documents/\n  文件总数: {}", total)))
     }
 }
 
@@ -108,11 +103,7 @@ impl Tool for ListStorageFilesTool {
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
         let path = input.get("path").and_then(|v| v.as_str()).unwrap_or("");
-        let limit = input
-            .get("limit")
-            .and_then(|v| v.as_u64())
-            .map(|v| v as usize)
-            .unwrap_or(50);
+        let limit = input.get("limit").and_then(|v| v.as_u64()).map(|v| v as usize).unwrap_or(50);
 
         let docs = Path::new("documents");
         let full_path = docs.join(path);
@@ -173,18 +164,10 @@ impl Tool for UploadStorageFileTool {
     }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
-        let filename = input
-            .get("filename")
-            .and_then(|v| v.as_str())
-            .unwrap_or_default();
-        let content_base64 = input
-            .get("content_base64")
-            .and_then(|v| v.as_str())
-            .unwrap_or_default();
-        let bucket = input
-            .get("bucket")
-            .and_then(|v| v.as_str())
-            .unwrap_or_default();
+        let filename = input.get("filename").and_then(|v| v.as_str()).unwrap_or_default();
+        let content_base64 =
+            input.get("content_base64").and_then(|v| v.as_str()).unwrap_or_default();
+        let bucket = input.get("bucket").and_then(|v| v.as_str()).unwrap_or_default();
 
         if filename.is_empty() {
             return Ok(ToolResult::error("Error: filename 是必需的"));
@@ -208,11 +191,7 @@ impl Tool for UploadStorageFileTool {
         std::fs::write(&bucket_path, decoded)
             .map_err(|e| ToolError::execution_failed(format!("写入文件失败: {}", e)))?;
 
-        Ok(ToolResult::success(format!(
-            "文件 '{}' 已上传到 '{}'",
-            filename,
-            bucket_path.display()
-        )))
+        Ok(ToolResult::success(format!("文件 '{}' 已上传到 '{}'", filename, bucket_path.display())))
     }
 }
 
@@ -249,10 +228,7 @@ impl Tool for DownloadStorageFileTool {
     }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
-        let path = input
-            .get("path")
-            .and_then(|v| v.as_str())
-            .unwrap_or_default();
+        let path = input.get("path").and_then(|v| v.as_str()).unwrap_or_default();
 
         if path.is_empty() {
             return Ok(ToolResult::error("Error: path 是必需的"));
@@ -306,10 +282,7 @@ impl Tool for DeleteStorageFileTool {
     }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
-        let path = input
-            .get("path")
-            .and_then(|v| v.as_str())
-            .unwrap_or_default();
+        let path = input.get("path").and_then(|v| v.as_str()).unwrap_or_default();
 
         if path.is_empty() {
             return Ok(ToolResult::error("Error: path 是必需的"));

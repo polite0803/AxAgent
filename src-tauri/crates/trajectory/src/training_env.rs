@@ -38,32 +38,20 @@ impl RewardComputation {
         let tool_count = trajectory
             .steps
             .iter()
-            .filter(|s| {
-                s.tool_calls
-                    .as_ref()
-                    .map(|t| !t.is_empty())
-                    .unwrap_or(false)
-            })
+            .filter(|s| s.tool_calls.as_ref().map(|t| !t.is_empty()).unwrap_or(false))
             .count();
         let tool_efficiency = if tool_count > 0 {
             (1.0 / (1.0 + tool_count as f64 * 0.1)).min(1.0)
         } else {
             0.5
         };
-        let reasoning_steps = trajectory
-            .steps
-            .iter()
-            .filter(|s| s.reasoning.is_some())
-            .count();
+        let reasoning_steps = trajectory.steps.iter().filter(|s| s.reasoning.is_some()).count();
         let reasoning_quality = (reasoning_steps as f64 * 0.2).min(1.0);
         let error_steps = trajectory
             .steps
             .iter()
             .filter(|s| {
-                s.tool_results
-                    .as_ref()
-                    .map(|r| r.iter().any(|t| t.is_error))
-                    .unwrap_or(false)
+                s.tool_results.as_ref().map(|r| r.iter().any(|t| t.is_error)).unwrap_or(false)
             })
             .count();
         let error_recovery = if error_steps > 0 { 0.3 } else { 1.0 };
@@ -72,13 +60,7 @@ impl RewardComputation {
             + reasoning_quality * 0.15
             + error_recovery * 0.15
             + 0.1;
-        Self {
-            task_completion,
-            tool_efficiency,
-            reasoning_quality,
-            error_recovery,
-            total,
-        }
+        Self { task_completion, tool_efficiency, reasoning_quality, error_recovery, total }
     }
 }
 

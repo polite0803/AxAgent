@@ -16,12 +16,7 @@ pub struct ToolTestResult {
 
 impl ToolTestResult {
     pub fn passed(output: &str, execution_time_ms: u64) -> Self {
-        Self {
-            passed: true,
-            output: output.to_string(),
-            error: None,
-            execution_time_ms,
-        }
+        Self { passed: true, output: output.to_string(), error: None, execution_time_ms }
     }
 
     pub fn failed(error: &str, execution_time_ms: u64) -> Self {
@@ -60,9 +55,7 @@ pub struct DefaultLlmToolProvider {
 
 impl DefaultLlmToolProvider {
     pub fn new() -> Self {
-        Self {
-            template_prefix: "auto_tool".to_string(),
-        }
+        Self { template_prefix: "auto_tool".to_string() }
     }
 
     fn build_code_from_template(&self, request: &ToolCreationRequest) -> String {
@@ -236,8 +229,7 @@ impl AutoToolCreator {
         if test_result.passed {
             let mut registered = tool;
             registered.test_coverage = 1.0;
-            self.created_tools
-                .insert(registered.name.clone(), registered.clone());
+            self.created_tools.insert(registered.name.clone(), registered.clone());
             Ok(registered)
         } else {
             let error_msg = test_result
@@ -270,10 +262,7 @@ impl AutoToolCreator {
             .ok_or_else(|| format!("Tool '{}' not found", tool_name))?
             .clone();
 
-        let improved = self
-            .llm_provider
-            .improve_tool_code(&existing, error)
-            .await?;
+        let improved = self.llm_provider.improve_tool_code(&existing, error).await?;
 
         if improved.code.len() > self.config.max_code_length {
             return Err(format!(
@@ -293,8 +282,7 @@ impl AutoToolCreator {
             if test_result.passed {
                 let mut registered = improved;
                 registered.test_coverage = 1.0;
-                self.created_tools
-                    .insert(registered.name.clone(), registered.clone());
+                self.created_tools.insert(registered.name.clone(), registered.clone());
                 return Ok(registered);
             } else {
                 let error_msg = test_result
@@ -304,8 +292,7 @@ impl AutoToolCreator {
             }
         }
 
-        self.created_tools
-            .insert(improved.name.clone(), improved.clone());
+        self.created_tools.insert(improved.name.clone(), improved.clone());
         Ok(improved)
     }
 
@@ -502,9 +489,7 @@ mod tests {
     #[tokio::test]
     async fn test_create_tool_insufficient_frequency() {
         let mut creator = make_creator_with_tester(Box::new(AlwaysPassTester));
-        let result = creator
-            .create_tool_from_pattern("rare_pattern", "ctx", vec![])
-            .await;
+        let result = creator.create_tool_from_pattern("rare_pattern", "ctx", vec![]).await;
         assert!(result.is_err());
         assert!(result.unwrap_err().contains("minimum required"));
     }
@@ -515,9 +500,7 @@ mod tests {
         creator.observe_pattern("common_pattern");
         creator.observe_pattern("common_pattern");
 
-        let result = creator
-            .create_tool_from_pattern("common_pattern", "ctx", vec![])
-            .await;
+        let result = creator.create_tool_from_pattern("common_pattern", "ctx", vec![]).await;
         assert!(result.is_ok());
         let tool = result.unwrap();
         assert_eq!(tool.name, "common_pattern");
@@ -531,9 +514,7 @@ mod tests {
         creator.observe_pattern("failing_pattern");
         creator.observe_pattern("failing_pattern");
 
-        let result = creator
-            .create_tool_from_pattern("failing_pattern", "ctx", vec![])
-            .await;
+        let result = creator.create_tool_from_pattern("failing_pattern", "ctx", vec![]).await;
         assert!(result.is_err());
         assert!(result.unwrap_err().contains("validation failed"));
     }
@@ -565,10 +546,7 @@ mod tests {
         creator.observe_pattern("lookup_pattern");
         creator.observe_pattern("lookup_pattern");
 
-        creator
-            .create_tool_from_pattern("lookup_pattern", "ctx", vec![])
-            .await
-            .unwrap();
+        creator.create_tool_from_pattern("lookup_pattern", "ctx", vec![]).await.unwrap();
 
         assert!(creator.get_tool("lookup_pattern").is_some());
         assert!(creator.get_tool("nonexistent").is_none());
@@ -584,14 +562,8 @@ mod tests {
         creator.observe_pattern("list_b");
         creator.observe_pattern("list_b");
 
-        creator
-            .create_tool_from_pattern("list_a", "ctx", vec![])
-            .await
-            .unwrap();
-        creator
-            .create_tool_from_pattern("list_b", "ctx", vec![])
-            .await
-            .unwrap();
+        creator.create_tool_from_pattern("list_a", "ctx", vec![]).await.unwrap();
+        creator.create_tool_from_pattern("list_b", "ctx", vec![]).await.unwrap();
 
         assert_eq!(creator.list_tools().len(), 2);
     }
@@ -602,10 +574,7 @@ mod tests {
         creator.observe_pattern("improve_me");
         creator.observe_pattern("improve_me");
 
-        creator
-            .create_tool_from_pattern("improve_me", "ctx", vec![])
-            .await
-            .unwrap();
+        creator.create_tool_from_pattern("improve_me", "ctx", vec![]).await.unwrap();
 
         let result = creator.improve_tool("improve_me", "some error").await;
         assert!(result.is_ok());
@@ -664,9 +633,7 @@ mod tests {
 
         creator.observe_pattern("no_test_pattern");
 
-        let result = creator
-            .create_tool_from_pattern("no_test_pattern", "ctx", vec![])
-            .await;
+        let result = creator.create_tool_from_pattern("no_test_pattern", "ctx", vec![]).await;
         assert!(result.is_ok());
         assert_eq!(result.unwrap().test_coverage, 0.0);
         assert_eq!(creator.tool_count(), 1);
@@ -685,9 +652,7 @@ mod tests {
 
         creator.observe_pattern("long_code");
 
-        let result = creator
-            .create_tool_from_pattern("long_code", "ctx", vec![])
-            .await;
+        let result = creator.create_tool_from_pattern("long_code", "ctx", vec![]).await;
         assert!(result.is_err());
         assert!(result.unwrap_err().contains("exceeds maximum"));
     }

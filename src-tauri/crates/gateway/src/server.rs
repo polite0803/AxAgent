@@ -126,11 +126,8 @@ async fn ssl_redirect_handler(
     AxumState(state): AxumState<RedirectState>,
     req: Request<Body>,
 ) -> Response {
-    let host_header = req
-        .headers()
-        .get(header::HOST)
-        .and_then(|v| v.to_str().ok())
-        .unwrap_or("localhost");
+    let host_header =
+        req.headers().get(header::HOST).and_then(|v| v.to_str().ok()).unwrap_or("localhost");
 
     // Strip any existing port from the Host header, handling bracketed IPv6.
     let bare_host = if host_header.starts_with('[') {
@@ -146,11 +143,7 @@ async fn ssl_redirect_handler(
         }
     };
 
-    let path_and_query = req
-        .uri()
-        .path_and_query()
-        .map(|pq| pq.as_str())
-        .unwrap_or("/");
+    let path_and_query = req.uri().path_and_query().map(|pq| pq.as_str()).unwrap_or("/");
 
     let location = format!("https://{}:{}{}", bare_host, state.https_port, path_and_query);
     // 307 preserves the request method (POST stays POST), unlike 302.
@@ -158,9 +151,7 @@ async fn ssl_redirect_handler(
 }
 
 fn create_redirect_router(https_port: u16) -> Router {
-    Router::new()
-        .fallback(ssl_redirect_handler)
-        .with_state(RedirectState { https_port })
+    Router::new().fallback(ssl_redirect_handler).with_state(RedirectState { https_port })
 }
 
 // ─── GatewayServer ────────────────────────────────────────────────────────
@@ -230,11 +221,9 @@ impl GatewayServer {
         let https_binding: Option<HttpsBinding> = match &config.ssl {
             Some(ssl_cfg) => {
                 let https_bind: SocketAddr =
-                    format!("{}:{}", config.listen_address, ssl_cfg.ssl_port)
-                        .parse()
-                        .map_err(|e| {
-                            AxAgentError::Gateway(format!("Invalid HTTPS bind address: {}", e))
-                        })?;
+                    format!("{}:{}", config.listen_address, ssl_cfg.ssl_port).parse().map_err(
+                        |e| AxAgentError::Gateway(format!("Invalid HTTPS bind address: {}", e)),
+                    )?;
                 let listener = std::net::TcpListener::bind(https_bind).map_err(|e| {
                     AxAgentError::Gateway(format!("Failed to bind HTTPS port: {}", e))
                 })?;
@@ -250,11 +239,7 @@ impl GatewayServer {
                         .map_err(|e| {
                             AxAgentError::Gateway(format!("Failed to load TLS certificate: {}", e))
                         })?;
-                Some(HttpsBinding {
-                    listener,
-                    rustls,
-                    addr,
-                })
+                Some(HttpsBinding { listener, rustls, addr })
             },
             None => None,
         };
@@ -364,8 +349,7 @@ impl GatewayServer {
 
     pub async fn stop(&mut self) -> Result<()> {
         // Signal graceful shutdown on both listeners.
-        self.http_handle
-            .graceful_shutdown(Some(Duration::from_secs(5)));
+        self.http_handle.graceful_shutdown(Some(Duration::from_secs(5)));
         if let Some(ref h) = self.https_handle {
             h.graceful_shutdown(Some(Duration::from_secs(5)));
         }

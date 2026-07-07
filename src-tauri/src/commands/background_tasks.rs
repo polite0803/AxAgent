@@ -18,9 +18,8 @@ use tracing::warn;
 /// 仅允许字母数字、空格和常见安全字符，拒绝包含 shell 元字符的命令。
 fn validate_command(cmd: &str) -> Result<(), String> {
     // 危险字符黑名单：管道、重定向、命令分隔符、命令替换、变量展开、单引号（纵深防御）
-    const DANGEROUS_CHARS: &[char] = &[
-        ';', '&', '|', '`', '$', '(', ')', '<', '>', '\n', '\r', '\'',
-    ];
+    const DANGEROUS_CHARS: &[char] =
+        &[';', '&', '|', '`', '$', '(', ')', '<', '>', '\n', '\r', '\''];
     for ch in DANGEROUS_CHARS {
         if cmd.contains(*ch) {
             warn!("background_tasks: 命令包含危险字符 '{}', 已拒绝: {}", ch, cmd);
@@ -152,10 +151,7 @@ pub async fn spawn_background_task(
         updated_at: Set(now),
         finished_at: Set(None),
     };
-    background_tasks::Entity::insert(model)
-        .exec(&db)
-        .await
-        .map_err(|e| e.to_string())?;
+    background_tasks::Entity::insert(model).exec(&db).await.map_err(|e| e.to_string())?;
 
     if task_type == "bash" {
         if let Some(cmd) = command {

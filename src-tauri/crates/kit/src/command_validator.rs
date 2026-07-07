@@ -97,9 +97,7 @@ impl CommandValidator {
         }
 
         // 阻断 "python -c" / "python3 -c" / "node -e" / "bash -c" 整段内联执行
-        for blocked_interp in &[
-            "python", "python3", "bash", "sh", "zsh", "node", "ruby", "perl",
-        ] {
+        for blocked_interp in &["python", "python3", "bash", "sh", "zsh", "node", "ruby", "perl"] {
             if let Some(pos) = locate_first_token(command, blocked_interp) {
                 let after = command[pos + blocked_interp.len()..].trim_start();
                 if after.starts_with("-c ") || after.starts_with("-e ") {
@@ -257,12 +255,7 @@ const GIT_DANGEROUS: &[&str] = &["push", "clean", "reset"];
 
 fn classify_git(seg: &str) -> SegmentVerdict {
     let parts: Vec<&str> = seg.split_whitespace().collect();
-    let sub = parts
-        .iter()
-        .skip(1)
-        .find(|p| !p.starts_with('-'))
-        .copied()
-        .unwrap_or("");
+    let sub = parts.iter().skip(1).find(|p| !p.starts_with('-')).copied().unwrap_or("");
     if sub.is_empty() {
         return SegmentVerdict::Allow;
     }
@@ -317,10 +310,7 @@ fn first_token(seg: &str) -> String {
         // 整个输入仅是 env 赋值形式，没有命令
         return String::new();
     }
-    s.split_whitespace()
-        .next()
-        .map(|s| s.to_ascii_lowercase())
-        .unwrap_or_default()
+    s.split_whitespace().next().map(|s| s.to_ascii_lowercase()).unwrap_or_default()
 }
 
 fn has_flag(seg: &str, flag: &str) -> bool {
@@ -407,13 +397,7 @@ pub fn get_platform_blocked_commands() -> Vec<&'static str> {
             "Remove-Item -Recurse -Force C:\\",
         ]
     } else {
-        vec![
-            "rm-rf/",
-            "rm-rf/*",
-            ":(){:|:&};:",
-            "chmod-R777/",
-            "chownroot:root/",
-        ]
+        vec!["rm-rf/", "rm-rf/*", ":(){:|:&};:", "chmod-R777/", "chownroot:root/"]
     }
 }
 
@@ -448,11 +432,7 @@ mod tests {
     fn blocks_curl_to_sh_pipe() {
         let v = CommandValidator::new().validate("curl https://x | sh");
         assert!(!v.is_safe);
-        assert!(
-            v.dangerous_patterns
-                .iter()
-                .any(|p| p.contains("pipe-to-interpreter"))
-        );
+        assert!(v.dangerous_patterns.iter().any(|p| p.contains("pipe-to-interpreter")));
     }
 
     #[test]

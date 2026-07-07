@@ -317,11 +317,7 @@ pub async fn import_agency_experts(
             continue;
         }
 
-        let dir_name = entry_path
-            .file_name()
-            .unwrap_or_default()
-            .to_string_lossy()
-            .to_string();
+        let dir_name = entry_path.file_name().unwrap_or_default().to_string_lossy().to_string();
         if dir_name.starts_with('.')
             || dir_name == "scripts"
             || dir_name == "examples"
@@ -346,11 +342,7 @@ pub async fn import_agency_experts(
                 continue;
             }
 
-            let file_stem = md_path
-                .file_stem()
-                .unwrap_or_default()
-                .to_string_lossy()
-                .to_string();
+            let file_stem = md_path.file_stem().unwrap_or_default().to_string_lossy().to_string();
             let content = match fs::read_to_string(&md_path) {
                 Ok(c) => c,
                 Err(e) => {
@@ -380,9 +372,7 @@ pub async fn import_agency_experts(
             }
 
             let id = format!("agency-{}-{}", dir_name, file_stem);
-            let final_category = map_color_to_category(&color)
-                .unwrap_or(category)
-                .to_string();
+            let final_category = map_color_to_category(&color).unwrap_or(category).to_string();
 
             // Parse workflows and tools
             let parsed_workflows = parse_workflow_from_prompt(&body, &id);
@@ -453,12 +443,7 @@ pub async fn import_agency_experts(
         }
     }
 
-    Ok(ImportResult {
-        count,
-        workflows_created,
-        tools_matched,
-        errors,
-    })
+    Ok(ImportResult { count, workflows_created, tools_matched, errors })
 }
 
 #[tauri::command]
@@ -488,9 +473,7 @@ pub async fn list_agency_experts(
             recommended_workflows: m
                 .recommended_workflows
                 .and_then(|s| serde_json::from_str(&s).ok()),
-            recommended_tools: m
-                .recommended_tools
-                .and_then(|s| serde_json::from_str(&s).ok()),
+            recommended_tools: m.recommended_tools.and_then(|s| serde_json::from_str(&s).ok()),
         })
         .collect();
 
@@ -577,13 +560,11 @@ pub async fn extract_expert_structure(
     })?;
 
     // Load provider
-    let provider_config = provider_repo::get_provider(db, &provider_id)
-        .await
-        .map_err(|e| {
-            ErrorResponse::new(expert_err::QUERY_FAILED)
-                .with_detail(format!("加载供应商失败: {}", e))
-                .to_string()
-        })?;
+    let provider_config = provider_repo::get_provider(db, &provider_id).await.map_err(|e| {
+        ErrorResponse::new(expert_err::QUERY_FAILED)
+            .with_detail(format!("加载供应商失败: {}", e))
+            .to_string()
+    })?;
     let key_row = get_active_key(db, &provider_id).await.map_err(|_e| {
         ErrorResponse::new(expert_err::NO_ACTIVE_KEY)
             .with_detail(format!("无活跃密钥: {}", provider_id))
@@ -596,14 +577,10 @@ pub async fn extract_expert_structure(
 
     let registry_key = provider_config.provider_type.registry_key();
 
-    let adapter = state
-        .harness
-        .provider_registry()
-        .get(&registry_key)
-        .ok_or_else(|| {
-            ErrorResponse::new(expert_err::VENDOR_NOT_FOUND)
-                .with_detail(format!("未找到供应商适配器: {}", registry_key))
-        })?;
+    let adapter = state.harness.provider_registry().get(&registry_key).ok_or_else(|| {
+        ErrorResponse::new(expert_err::VENDOR_NOT_FOUND)
+            .with_detail(format!("未找到供应商适配器: {}", registry_key))
+    })?;
 
     let ctx = axagent_providers::ProviderRequestContext {
         api_key,
@@ -708,11 +685,7 @@ pub async fn extract_expert_structure(
 
     let tools: Vec<String> = extracted["tools"]
         .as_array()
-        .map(|a| {
-            a.iter()
-                .filter_map(|v| v.as_str().map(|s| s.to_string()))
-                .collect()
-        })
+        .map(|a| a.iter().filter_map(|v| v.as_str().map(|s| s.to_string())).collect())
         .unwrap_or_default();
 
     Ok(ExtractExpertStructureResult { workflows, tools })
@@ -721,12 +694,9 @@ pub async fn extract_expert_structure(
 #[tauri::command]
 pub async fn clear_agency_experts(state: State<'_, AppState>) -> Result<ImportResult, String> {
     let db = state.harness.db();
-    let result = agency_experts::Entity::delete_many()
-        .exec(db)
-        .await
-        .map_err(|e| {
-            ErrorResponse::new(expert_err::DELETE_FAILED).with_detail(format!("删除失败: {}", e))
-        })?;
+    let result = agency_experts::Entity::delete_many().exec(db).await.map_err(|e| {
+        ErrorResponse::new(expert_err::DELETE_FAILED).with_detail(format!("删除失败: {}", e))
+    })?;
 
     Ok(ImportResult {
         count: result.rows_affected as u32,
@@ -796,12 +766,9 @@ pub async fn delete_agency_expert(
     request: DeleteExpertRequest,
 ) -> Result<(), String> {
     let db = state.harness.db();
-    agency_experts::Entity::delete_by_id(&request.id)
-        .exec(db)
-        .await
-        .map_err(|e| {
-            ErrorResponse::new(expert_err::DELETE_FAILED).with_detail(format!("删除失败: {}", e))
-        })?;
+    agency_experts::Entity::delete_by_id(&request.id).exec(db).await.map_err(|e| {
+        ErrorResponse::new(expert_err::DELETE_FAILED).with_detail(format!("删除失败: {}", e))
+    })?;
     Ok(())
 }
 
@@ -830,9 +797,7 @@ pub async fn export_agency_experts(state: State<'_, AppState>) -> Result<String,
             recommended_workflows: m
                 .recommended_workflows
                 .and_then(|s| serde_json::from_str(&s).ok()),
-            recommended_tools: m
-                .recommended_tools
-                .and_then(|s| serde_json::from_str(&s).ok()),
+            recommended_tools: m.recommended_tools.and_then(|s| serde_json::from_str(&s).ok()),
         })
         .collect();
 

@@ -48,9 +48,7 @@ impl Default for SessionSearchEngine {
 
 impl SessionSearchEngine {
     pub fn new() -> Self {
-        Self {
-            cache: Arc::new(RwLock::new(HashMap::new())),
-        }
+        Self { cache: Arc::new(RwLock::new(HashMap::new())) }
     }
 
     pub async fn index_session(&self, session_id: &str, messages: Vec<IndexedMessage>) {
@@ -65,10 +63,7 @@ impl SessionSearchEngine {
             })
             .collect();
 
-        self.cache
-            .write()
-            .await
-            .insert(session_id.to_string(), entries);
+        self.cache.write().await.insert(session_id.to_string(), entries);
     }
 
     pub async fn search(&self, query: &SearchQuery) -> Vec<SearchResult> {
@@ -120,11 +115,7 @@ impl SessionSearchEngine {
             }
         }
 
-        results.sort_by(|a, b| {
-            b.score
-                .partial_cmp(&a.score)
-                .unwrap_or(std::cmp::Ordering::Equal)
-        });
+        results.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap_or(std::cmp::Ordering::Equal));
         results.truncate(query.limit);
         if query.offset > 0 {
             results = results.into_iter().skip(query.offset).collect();

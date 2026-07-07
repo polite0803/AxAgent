@@ -96,9 +96,7 @@ impl ReminderManager {
 
     pub fn add_reminder(&mut self, reminder: Reminder) -> Result<(), ReminderError> {
         if self.reminders.len() >= self.config.max_active_reminders {
-            return Err(ReminderError::LimitReached {
-                max: self.config.max_active_reminders,
-            });
+            return Err(ReminderError::LimitReached { max: self.config.max_active_reminders });
         }
 
         let schedule = self.calculate_next_schedule(&reminder);
@@ -130,10 +128,7 @@ impl ReminderManager {
 
     pub fn get_due_reminders(&self) -> Vec<&Reminder> {
         let now = Utc::now();
-        self.reminders
-            .values()
-            .filter(|r| !r.completed && r.scheduled_at <= now)
-            .collect()
+        self.reminders.values().filter(|r| !r.completed && r.scheduled_at <= now).collect()
     }
 
     pub fn complete_reminder(&mut self, id: &str) -> Result<Reminder, ReminderError> {
@@ -262,10 +257,7 @@ impl ReminderManager {
     }
 
     pub fn get_pending_notifications(&self) -> Vec<&ReminderNotification> {
-        self.notifications
-            .iter()
-            .filter(|n| !n.acknowledged)
-            .collect()
+        self.notifications.iter().filter(|n| !n.acknowledged).collect()
     }
 
     pub fn cleanup_completed(&mut self) {

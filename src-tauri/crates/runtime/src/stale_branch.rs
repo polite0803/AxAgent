@@ -6,15 +6,8 @@ use std::process::Command;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum BranchFreshness {
     Fresh,
-    Stale {
-        commits_behind: usize,
-        missing_fixes: Vec<String>,
-    },
-    Diverged {
-        ahead: usize,
-        behind: usize,
-        missing_fixes: Vec<String>,
-    },
+    Stale { commits_behind: usize, missing_fixes: Vec<String> },
+    Diverged { ahead: usize, behind: usize, missing_fixes: Vec<String> },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -27,19 +20,9 @@ pub enum StaleBranchPolicy {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum StaleBranchEvent {
-    BranchStaleAgainstMain {
-        branch: String,
-        commits_behind: usize,
-        missing_fixes: Vec<String>,
-    },
-    RebaseAttempted {
-        branch: String,
-        result: String,
-    },
-    MergeForwardAttempted {
-        branch: String,
-        result: String,
-    },
+    BranchStaleAgainstMain { branch: String, commits_behind: usize, missing_fixes: Vec<String> },
+    RebaseAttempted { branch: String, result: String },
+    MergeForwardAttempted { branch: String, result: String },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -58,10 +41,7 @@ pub fn check_freshness(branch: &str, main_ref: &str) -> BranchFreshness {
 pub fn apply_policy(freshness: &BranchFreshness, policy: StaleBranchPolicy) -> StaleBranchAction {
     match freshness {
         BranchFreshness::Fresh => StaleBranchAction::Noop,
-        BranchFreshness::Stale {
-            commits_behind,
-            missing_fixes,
-        } => match policy {
+        BranchFreshness::Stale { commits_behind, missing_fixes } => match policy {
             StaleBranchPolicy::WarnOnly => StaleBranchAction::Warn {
                 message: format!(
                     "Branch is {commits_behind} commit(s) behind main. Missing fixes: {}",
@@ -80,11 +60,7 @@ pub fn apply_policy(freshness: &BranchFreshness, policy: StaleBranchPolicy) -> S
             StaleBranchPolicy::AutoRebase => StaleBranchAction::Rebase,
             StaleBranchPolicy::AutoMergeForward => StaleBranchAction::MergeForward,
         },
-        BranchFreshness::Diverged {
-            ahead,
-            behind,
-            missing_fixes,
-        } => match policy {
+        BranchFreshness::Diverged { ahead, behind, missing_fixes } => match policy {
             StaleBranchPolicy::WarnOnly => StaleBranchAction::Warn {
                 message: format!(
                     "Branch has diverged: {ahead} commit(s) ahead, {behind} commit(s) behind main. Missing fixes: {}",
@@ -124,10 +100,7 @@ pub(crate) fn check_freshness_in(
     }
 
     let missing_fixes = missing_fix_subjects(main_ref, branch, repo_path);
-    BranchFreshness::Stale {
-        commits_behind: behind,
-        missing_fixes,
-    }
+    BranchFreshness::Stale { commits_behind: behind, missing_fixes }
 }
 
 fn format_missing_fixes(missing_fixes: &[String]) -> String {
@@ -144,10 +117,9 @@ fn rev_list_count(a: &str, b: &str, repo_path: &Path) -> usize {
         .current_dir(repo_path)
         .output();
     match output {
-        Ok(o) if o.status.success() => String::from_utf8_lossy(&o.stdout)
-            .trim()
-            .parse::<usize>()
-            .unwrap_or(0),
+        Ok(o) if o.status.success() => {
+            String::from_utf8_lossy(&o.stdout).trim().parse::<usize>().unwrap_or(0)
+        },
         _ => 0,
     }
 }
@@ -257,10 +229,7 @@ mod tests {
 
         // then
         match freshness {
-            BranchFreshness::Stale {
-                commits_behind,
-                missing_fixes,
-            } => {
+            BranchFreshness::Stale { commits_behind, missing_fixes } => {
                 assert_eq!(commits_behind, 2);
                 assert_eq!(missing_fixes.len(), 2);
                 assert_eq!(missing_fixes[0], "fix: handle null pointer");
@@ -288,11 +257,7 @@ mod tests {
 
         // then
         match freshness {
-            BranchFreshness::Diverged {
-                ahead,
-                behind,
-                missing_fixes,
-            } => {
+            BranchFreshness::Diverged { ahead, behind, missing_fixes } => {
                 assert_eq!(ahead, 1);
                 assert_eq!(behind, 1);
                 assert_eq!(missing_fixes, vec!["main fix".to_string()]);
@@ -340,10 +305,8 @@ mod tests {
     #[test]
     fn policy_block_for_stale_branch() {
         // given
-        let freshness = BranchFreshness::Stale {
-            commits_behind: 1,
-            missing_fixes: vec!["hotfix".into()],
-        };
+        let freshness =
+            BranchFreshness::Stale { commits_behind: 1, missing_fixes: vec!["hotfix".into()] };
 
         // when
         let action = apply_policy(&freshness, StaleBranchPolicy::Block);
@@ -360,10 +323,7 @@ mod tests {
     #[test]
     fn policy_auto_rebase_for_stale_branch() {
         // given
-        let freshness = BranchFreshness::Stale {
-            commits_behind: 2,
-            missing_fixes: vec![],
-        };
+        let freshness = BranchFreshness::Stale { commits_behind: 2, missing_fixes: vec![] };
 
         // when
         let action = apply_policy(&freshness, StaleBranchPolicy::AutoRebase);

@@ -29,9 +29,7 @@ pub struct SearchPlanner {
 
 impl SearchPlanner {
     pub fn new() -> Self {
-        Self {
-            config: SearchPlannerConfig::default(),
-        }
+        Self { config: SearchPlannerConfig::default() }
     }
 
     pub fn with_config(mut self, config: SearchPlannerConfig) -> Self {

@@ -27,10 +27,7 @@ impl Tool for OcrImageTool {
     }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
-        let file_path = input
-            .get("file_path")
-            .and_then(|v| v.as_str())
-            .unwrap_or_default();
+        let file_path = input.get("file_path").and_then(|v| v.as_str()).unwrap_or_default();
         let lang = input.get("lang").and_then(|v| v.as_str()).unwrap_or("eng");
 
         if file_path.is_empty() {
@@ -116,9 +113,7 @@ impl Tool for OcrDetectLangsTool {
     async fn call(&self, _input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
         let output = tokio::time::timeout(
             std::time::Duration::from_secs(10),
-            tokio::process::Command::new("tesseract")
-                .arg("--list-langs")
-                .output(),
+            tokio::process::Command::new("tesseract").arg("--list-langs").output(),
         )
         .await;
 

@@ -56,9 +56,8 @@ pub(crate) async fn spawn_schedule(
             let next_utc = next_local.with_timezone(&Utc);
             let next_display = next_utc.with_timezone(&tz);
 
-            let wait_dur = (next_utc - Utc::now())
-                .to_std()
-                .unwrap_or(std::time::Duration::from_secs(60));
+            let wait_dur =
+                (next_utc - Utc::now()).to_std().unwrap_or(std::time::Duration::from_secs(60));
             tracing::info!(
                 workflow_id = %wf_id,
                 cron = %cron_expr,
@@ -124,7 +123,5 @@ fn parse_timezone(tz_name: &str) -> Result<chrono_tz::Tz, String> {
         "伦敦时间" => "Europe/London",
         other => other,
     };
-    normalized
-        .parse::<chrono_tz::Tz>()
-        .map_err(|_| format!("无法识别的时区: {tz_name}"))
+    normalized.parse::<chrono_tz::Tz>().map_err(|_| format!("无法识别的时区: {tz_name}"))
 }

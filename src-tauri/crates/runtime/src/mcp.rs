@@ -16,9 +16,7 @@ pub fn normalize_name_for_mcp(name: &str) -> String {
         .collect::<String>();
 
     if name.starts_with(CLAUDEAI_SERVER_PREFIX) {
-        normalized = collapse_underscores(&normalized)
-            .trim_matches('_')
-            .to_string();
+        normalized = collapse_underscores(&normalized).trim_matches('_').to_string();
     }
 
     normalized
@@ -36,10 +34,7 @@ pub fn mcp_tool_name(server_name: &str, tool_name: &str) -> String {
 
 #[must_use]
 pub fn unwrap_ccr_proxy_url(url: &str) -> String {
-    if !CCR_PROXY_PATH_MARKERS
-        .iter()
-        .any(|marker| url.contains(marker))
-    {
+    if !CCR_PROXY_PATH_MARKERS.iter().any(|marker| url.contains(marker)) {
         return url.to_string();
     }
 
@@ -129,10 +124,7 @@ fn render_command_signature(command: &[String]) -> String {
 }
 
 fn render_env_signature(map: &std::collections::BTreeMap<String, String>) -> String {
-    map.iter()
-        .map(|(key, value)| format!("{key}={value}"))
-        .collect::<Vec<_>>()
-        .join(";")
+    map.iter().map(|(key, value)| format!("{key}={value}")).collect::<Vec<_>>().join(";")
 }
 
 fn render_oauth_signature(oauth: Option<&crate::config::McpOAuthConfig>) -> String {
@@ -140,9 +132,7 @@ fn render_oauth_signature(oauth: Option<&crate::config::McpOAuthConfig>) -> Stri
         format!(
             "{}|{}|{}|{}",
             oauth.client_id.as_deref().unwrap_or(""),
-            oauth
-                .callback_port
-                .map_or_else(String::new, |port| port.to_string()),
+            oauth.callback_port.map_or_else(String::new, |port| port.to_string()),
             oauth.auth_server_metadata_url.as_deref().unwrap_or(""),
             oauth.xaa.map_or_else(String::new, |flag| flag.to_string())
         )
@@ -239,14 +229,8 @@ mod tests {
             headers_helper: Some("helper.sh".to_string()),
             oauth: None,
         });
-        let user = ScopedMcpServerConfig {
-            scope: ConfigSource::User,
-            config: base_config.clone(),
-        };
-        let local = ScopedMcpServerConfig {
-            scope: ConfigSource::Local,
-            config: base_config,
-        };
+        let user = ScopedMcpServerConfig { scope: ConfigSource::User, config: base_config.clone() };
+        let local = ScopedMcpServerConfig { scope: ConfigSource::Local, config: base_config };
         assert_eq!(scoped_mcp_config_hash(&user), scoped_mcp_config_hash(&local));
 
         let changed = ScopedMcpServerConfig {

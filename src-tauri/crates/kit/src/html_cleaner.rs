@@ -113,10 +113,7 @@ impl HtmlCleaner {
             .collect::<Vec<_>>()
             .join(" ");
 
-        let root = doc
-            .select(&self.content_selector)
-            .next()
-            .unwrap_or_else(|| doc.root_element());
+        let root = doc.select(&self.content_selector).next().unwrap_or_else(|| doc.root_element());
 
         let full_text: String = root.text().collect::<Vec<_>>().join(" ");
 
@@ -124,11 +121,8 @@ impl HtmlCleaner {
             && !noise_text.is_empty()
             && full_text.len() > noise_text.len() * 2
         {
-            let noise_words: std::collections::HashSet<String> = noise_text
-                .split_whitespace()
-                .take(200)
-                .map(|s| s.to_string())
-                .collect();
+            let noise_words: std::collections::HashSet<String> =
+                noise_text.split_whitespace().take(200).map(|s| s.to_string()).collect();
 
             full_text
                 .split_whitespace()
@@ -154,12 +148,7 @@ impl HtmlCleaner {
             Vec::new()
         };
 
-        CleanedHtml {
-            title,
-            body_text,
-            links,
-            headings,
-        }
+        CleanedHtml { title, body_text, links, headings }
     }
 
     /// 仅提取纯文本（替代 web_search.rs 的 extract_page_text）
@@ -205,10 +194,7 @@ impl HtmlCleaner {
             }
         }
 
-        let root = doc
-            .select(&self.content_selector)
-            .next()
-            .unwrap_or_else(|| doc.root_element());
+        let root = doc.select(&self.content_selector).next().unwrap_or_else(|| doc.root_element());
 
         let prompt_terms: Vec<String> = if !prompt.is_empty() {
             prompt
@@ -278,11 +264,8 @@ impl HtmlCleaner {
 
     /// 提取标题+正文+链接（替代 agent/web_search.rs 的 extract_readability）
     pub fn extract_readability(&self, html: &str) -> (String, String, Vec<String>) {
-        let options = CleanOptions {
-            extract_links: true,
-            noise_words_to_dedup: true,
-            ..Default::default()
-        };
+        let options =
+            CleanOptions { extract_links: true, noise_words_to_dedup: true, ..Default::default() };
         let cleaned = self.clean(html, &options);
         (cleaned.title, cleaned.body_text, cleaned.links)
     }

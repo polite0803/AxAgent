@@ -294,10 +294,8 @@ impl ScreenCapture {
     #[cfg(target_os = "macos")]
     async fn capture_macos_full(&self, _monitor_index: u32) -> Result<ScreenCaptureResult> {
         let temp_path = format!("/tmp/axagent_capture_{}.png", std::process::id());
-        let output = tokio::process::Command::new("screencapture")
-            .args(["-x", &temp_path])
-            .output()
-            .await?;
+        let output =
+            tokio::process::Command::new("screencapture").args(["-x", &temp_path]).output().await?;
 
         if !output.status.success() {
             anyhow::bail!("screencapture failed");

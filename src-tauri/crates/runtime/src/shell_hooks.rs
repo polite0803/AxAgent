@@ -27,14 +27,8 @@ pub struct ShellHookOutput {
 
 impl ShellHookOutput {
     pub fn from_raw(exit_code: i32, stdout: String, stderr: String) -> Self {
-        let mut result = Self {
-            exit_code,
-            stdout,
-            stderr,
-            veto: false,
-            reason: None,
-            modified_input: None,
-        };
+        let mut result =
+            Self { exit_code, stdout, stderr, veto: false, reason: None, modified_input: None };
         if exit_code != 0 {
             result.veto = true;
             result.reason = Some(format!("Hook exited with code {}", exit_code));
@@ -60,9 +54,7 @@ pub struct ShellHookExecutor {
 
 impl ShellHookExecutor {
     pub fn from_dir(dir: &Path) -> Self {
-        Self {
-            config: ShellHooksConfig::load_from_dir(dir),
-        }
+        Self { config: ShellHooksConfig::load_from_dir(dir) }
     }
 
     pub fn from_default_dir() -> Self {
@@ -75,9 +67,7 @@ impl ShellHookExecutor {
         for hook in hooks {
             let json_input = serde_json::to_string(&input).unwrap_or_default();
             let mut cmd = Command::new(&hook.command);
-            cmd.stdin(Stdio::piped())
-                .stdout(Stdio::piped())
-                .stderr(Stdio::piped());
+            cmd.stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::piped());
             #[cfg(windows)]
             axagent_kit::utils::hide_window(cmd.as_std_mut());
             let result = match cmd.spawn() {
@@ -123,8 +113,6 @@ impl ShellHookExecutor {
 
     pub async fn should_veto(&self, input: ShellHookInput) -> Option<String> {
         let results = self.execute(input).await;
-        results
-            .into_iter()
-            .find_map(|r| if r.veto { r.reason } else { None })
+        results.into_iter().find_map(|r| if r.veto { r.reason } else { None })
     }
 }

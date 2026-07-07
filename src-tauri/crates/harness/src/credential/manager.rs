@@ -34,10 +34,7 @@ pub struct CredentialManager {
 impl CredentialManager {
     /// Create a new credential manager backed by the given store.
     pub fn new(store: CredentialStore) -> Self {
-        Self {
-            store,
-            cache: std::sync::Mutex::new(HashMap::new()),
-        }
+        Self { store, cache: std::sync::Mutex::new(HashMap::new()) }
     }
 
     /// Get a credential by ID, loading from disk and caching on first access.
@@ -109,14 +106,11 @@ impl CredentialManager {
                 Ok(request.basic_auth(username, Some(password)))
             },
             CredentialType::BearerToken { token } => Ok(request.bearer_auth(token)),
-            CredentialType::OAuth2 {
-                client_id: _,
-                client_secret: _,
-                token_url: _,
-                scopes: _,
-            } => Err(AxAgentError::Internal(
-                "OAuth2 credential injection not yet implemented".to_string(),
-            )),
+            CredentialType::OAuth2 { client_id: _, client_secret: _, token_url: _, scopes: _ } => {
+                Err(AxAgentError::Internal(
+                    "OAuth2 credential injection not yet implemented".to_string(),
+                ))
+            },
             _ => Ok(request),
         }
     }
@@ -159,13 +153,7 @@ impl CredentialManager {
     pub fn get_smtp_config(&self, credential_id: &str) -> Result<SmtpConfig> {
         let cred = self.get_credential(credential_id)?;
         match &cred.credential_type {
-            CredentialType::Smtp {
-                host,
-                port,
-                user,
-                pass,
-                tls,
-            } => Ok(SmtpConfig {
+            CredentialType::Smtp { host, port, user, pass, tls } => Ok(SmtpConfig {
                 host: host.clone(),
                 port: *port,
                 user: user.clone(),

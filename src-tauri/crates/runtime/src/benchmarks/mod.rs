@@ -120,11 +120,7 @@ pub struct BenchmarkRunner {
 
 impl BenchmarkRunner {
     pub fn new(evaluator: Box<dyn BenchEvaluator>) -> Self {
-        Self {
-            suites: Vec::new(),
-            evaluator,
-            history: Vec::new(),
-        }
+        Self { suites: Vec::new(), evaluator, history: Vec::new() }
     }
 
     pub fn register_suite(&mut self, suite: BenchmarkSuite) {

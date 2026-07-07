@@ -43,12 +43,7 @@ pub struct TrainingConfig {
 
 impl Default for TrainingConfig {
     fn default() -> Self {
-        Self {
-            learning_rate: 0.001,
-            batch_size: 32,
-            epochs: 10,
-            gradient_clip: 1.0,
-        }
+        Self { learning_rate: 0.001, batch_size: 32, epochs: 10, gradient_clip: 1.0 }
     }
 }
 

@@ -13,9 +13,7 @@ pub struct HookChain {
 
 impl HookChain {
     pub fn new() -> Self {
-        Self {
-            hooks: Arc::new(RwLock::new(Vec::new())),
-        }
+        Self { hooks: Arc::new(RwLock::new(Vec::new())) }
     }
 
     pub async fn register(&self, hook: SharedHook) {
@@ -100,9 +98,7 @@ impl HookChain {
         for hook in sorted {
             if let Some(HookDecision::Veto { ref reason }) = hook.pre_llm_call(ctx).await {
                 tracing::warn!("Hook '{}' vetoed LLM call: {}", hook.name(), reason);
-                return Some(HookDecision::Veto {
-                    reason: reason.clone(),
-                });
+                return Some(HookDecision::Veto { reason: reason.clone() });
             }
         }
         None
@@ -187,9 +183,7 @@ mod tests {
 
         async fn pre_tool_call(&self, _ctx: &ToolCallContext) -> Option<HookDecision> {
             if self.should_veto {
-                Some(HookDecision::Veto {
-                    reason: "test veto".to_string(),
-                })
+                Some(HookDecision::Veto { reason: "test veto".to_string() })
             } else {
                 None
             }
@@ -200,10 +194,7 @@ mod tests {
     async fn test_hook_chain_veto() {
         let chain = HookChain::new();
         chain
-            .register(Arc::new(TestHook {
-                name: "test_hook".to_string(),
-                should_veto: true,
-            }))
+            .register(Arc::new(TestHook { name: "test_hook".to_string(), should_veto: true }))
             .await;
 
         let ctx = ToolCallContext {
@@ -225,10 +216,7 @@ mod tests {
     async fn test_hook_chain_allows() {
         let chain = HookChain::new();
         chain
-            .register(Arc::new(TestHook {
-                name: "passive_hook".to_string(),
-                should_veto: false,
-            }))
+            .register(Arc::new(TestHook { name: "passive_hook".to_string(), should_veto: false }))
             .await;
 
         let ctx = ToolCallContext {

@@ -100,10 +100,7 @@ pub async fn reminder_create(input: CreateReminderInput) -> Result<ReminderItem,
                 "monthly" => axagent_trajectory::RecurrenceFrequency::Monthly,
                 _ => return Err("recurrence_frequency 须为 daily/weekly/monthly".into()),
             };
-            Some(axagent_trajectory::ReminderRecurrence {
-                frequency,
-                interval,
-            })
+            Some(axagent_trajectory::ReminderRecurrence { frequency, interval })
         },
         _ => None,
     };
@@ -119,12 +116,10 @@ pub async fn reminder_create(input: CreateReminderInput) -> Result<ReminderItem,
     };
 
     let mut mgr = manager().lock().await;
-    mgr.add_reminder(reminder.clone())
-        .map_err(|e| format!("添加提醒失败: {e}"))?;
+    mgr.add_reminder(reminder.clone()).map_err(|e| format!("添加提醒失败: {e}"))?;
 
     Ok(ReminderItem::from(
-        mgr.get_reminder(&reminder.id)
-            .ok_or_else(|| String::from("添加后未找到提醒"))?,
+        mgr.get_reminder(&reminder.id).ok_or_else(|| String::from("添加后未找到提醒"))?,
     ))
 }
 
@@ -132,35 +127,20 @@ pub async fn reminder_create(input: CreateReminderInput) -> Result<ReminderItem,
 pub async fn reminder_list() -> Result<ReminderListResult, String> {
     let mgr = manager().lock().await;
 
-    let active: Vec<ReminderItem> = mgr
-        .get_active_reminders()
-        .into_iter()
-        .map(|r| r.into())
-        .collect();
-    let completed: Vec<ReminderItem> = mgr
-        .get_completed_history()
-        .iter()
-        .map(|r| r.into())
-        .collect();
-    let pending_notifications: Vec<ReminderNotificationItem> = mgr
-        .get_pending_notifications()
-        .into_iter()
-        .map(|n| n.into())
-        .collect();
+    let active: Vec<ReminderItem> =
+        mgr.get_active_reminders().into_iter().map(|r| r.into()).collect();
+    let completed: Vec<ReminderItem> =
+        mgr.get_completed_history().iter().map(|r| r.into()).collect();
+    let pending_notifications: Vec<ReminderNotificationItem> =
+        mgr.get_pending_notifications().into_iter().map(|n| n.into()).collect();
 
-    Ok(ReminderListResult {
-        active,
-        completed,
-        pending_notifications,
-    })
+    Ok(ReminderListResult { active, completed, pending_notifications })
 }
 
 #[tauri::command]
 pub async fn reminder_complete(id: String) -> Result<ReminderItem, String> {
     let mut mgr = manager().lock().await;
-    let r = mgr
-        .complete_reminder(&id)
-        .map_err(|e| format!("完成提醒失败: {e}"))?;
+    let r = mgr.complete_reminder(&id).map_err(|e| format!("完成提醒失败: {e}"))?;
     Ok(ReminderItem::from(&r))
 }
 
@@ -170,17 +150,14 @@ pub async fn reminder_snooze(
     duration_minutes: Option<i64>,
 ) -> Result<ReminderItem, String> {
     let mut mgr = manager().lock().await;
-    let r = mgr
-        .snooze_reminder(&id, duration_minutes)
-        .map_err(|e| format!("贪睡失败: {e}"))?;
+    let r = mgr.snooze_reminder(&id, duration_minutes).map_err(|e| format!("贪睡失败: {e}"))?;
     Ok(ReminderItem::from(&r))
 }
 
 #[tauri::command]
 pub async fn reminder_delete(id: String) -> Result<(), String> {
     let mut mgr = manager().lock().await;
-    mgr.delete_reminder(&id)
-        .map_err(|e| format!("删除提醒失败: {e}"))?;
+    mgr.delete_reminder(&id).map_err(|e| format!("删除提醒失败: {e}"))?;
     Ok(())
 }
 
@@ -210,8 +187,7 @@ pub async fn reminder_update(
 #[tauri::command]
 pub async fn reminder_acknowledge(notification_id: String) -> Result<(), String> {
     let mut mgr = manager().lock().await;
-    mgr.acknowledge_notification(&notification_id)
-        .map_err(|e| format!("确认通知失败: {e}"))?;
+    mgr.acknowledge_notification(&notification_id).map_err(|e| format!("确认通知失败: {e}"))?;
     Ok(())
 }
 

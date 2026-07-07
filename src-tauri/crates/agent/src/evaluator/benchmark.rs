@@ -120,9 +120,7 @@ pub struct BenchmarkSuite {
 
 impl BenchmarkSuite {
     pub fn new() -> Self {
-        let mut suite = Self {
-            benchmarks: HashMap::new(),
-        };
+        let mut suite = Self { benchmarks: HashMap::new() };
         suite.register_default_benchmarks();
         suite
     }
@@ -327,10 +325,7 @@ impl BenchmarkSuite {
     }
 
     pub fn by_category(&self, category: BenchmarkCategory) -> Vec<&Benchmark> {
-        self.benchmarks
-            .values()
-            .filter(|b| b.category == category)
-            .collect()
+        self.benchmarks.values().filter(|b| b.category == category).collect()
     }
 
     pub fn add(&mut self, benchmark: Benchmark) {
@@ -498,10 +493,7 @@ mod tests {
 
     #[test]
     fn test_task_output() {
-        let output = TaskOutput {
-            content: "result".to_string(),
-            format: "text".to_string(),
-        };
+        let output = TaskOutput { content: "result".to_string(), format: "text".to_string() };
         assert_eq!(output.content, "result");
         assert_eq!(output.format, "text");
     }
@@ -512,11 +504,7 @@ mod tests {
             id: "test_001".to_string(),
             name: "Test Task".to_string(),
             description: "A test task".to_string(),
-            input: TaskInput {
-                query: "query".to_string(),
-                context: None,
-                constraints: vec![],
-            },
+            input: TaskInput { query: "query".to_string(), context: None, constraints: vec![] },
             expected_output: Some(TaskOutput {
                 content: "expected".to_string(),
                 format: "text".to_string(),

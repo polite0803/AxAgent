@@ -190,10 +190,7 @@ async fn fetch_feishu_token(
     if let Some(code) = body.get("code").and_then(|v| v.as_i64())
         && code != 0
     {
-        let msg = body
-            .get("msg")
-            .and_then(|v| v.as_str())
-            .unwrap_or("unknown error");
+        let msg = body.get("msg").and_then(|v| v.as_str()).unwrap_or("unknown error");
         anyhow::bail!("Feishu API error: code={}, msg={}", code, msg);
     }
 
@@ -214,21 +211,14 @@ async fn poll_feishu_messages(
          &sort_type=ByCreateTimeDesc"
         .to_string();
 
-    let resp = client
-        .get(&url)
-        .header("Authorization", format!("Bearer {}", token))
-        .send()
-        .await?;
+    let resp = client.get(&url).header("Authorization", format!("Bearer {}", token)).send().await?;
 
     let json: serde_json::Value = resp.json().await?;
 
     if let Some(code) = json.get("code").and_then(|v| v.as_i64())
         && code != 0
     {
-        let msg = json
-            .get("msg")
-            .and_then(|v| v.as_str())
-            .unwrap_or("unknown");
+        let msg = json.get("msg").and_then(|v| v.as_str()).unwrap_or("unknown");
         anyhow::bail!("Feishu list messages failed: code={}, msg={}", code, msg);
     }
 
@@ -301,10 +291,7 @@ async fn send_feishu_text_message(
     if let Some(code) = json.get("code").and_then(|v| v.as_i64())
         && code != 0
     {
-        let msg = json
-            .get("msg")
-            .and_then(|v| v.as_str())
-            .unwrap_or("unknown");
+        let msg = json.get("msg").and_then(|v| v.as_str()).unwrap_or("unknown");
         anyhow::bail!("Feishu send message failed: code={}, msg={}", code, msg);
     }
     Ok(())

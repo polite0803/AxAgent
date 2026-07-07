@@ -69,10 +69,7 @@ impl Default for ContextPredictor {
 
 impl ContextPredictor {
     pub fn new() -> Self {
-        Self {
-            rules: Self::default_rules(),
-            pattern_weights: Self::default_weights(),
-        }
+        Self { rules: Self::default_rules(), pattern_weights: Self::default_weights() }
     }
 
     fn default_rules() -> Vec<PredictionRule> {
@@ -93,9 +90,7 @@ impl ContextPredictor {
             PredictionRule {
                 name: "error_detected_suggests_debug".to_string(),
                 condition: PredictionCondition::ErrorDetected,
-                intent: PredictedIntent::Debug {
-                    error: "detected".to_string(),
-                },
+                intent: PredictedIntent::Debug { error: "detected".to_string() },
                 base_confidence: 0.85,
                 reasoning: "An error was detected in the current context".to_string(),
             },
@@ -108,39 +103,25 @@ impl ContextPredictor {
                         "clean".to_string(),
                     ],
                 },
-                intent: PredictedIntent::Refactoring {
-                    target: "current".to_string(),
-                },
+                intent: PredictedIntent::Refactoring { target: "current".to_string() },
                 base_confidence: 0.75,
                 reasoning: "User mentioned refactoring in context".to_string(),
             },
             PredictionRule {
                 name: "test_keyword".to_string(),
                 condition: PredictionCondition::KeywordInContext {
-                    keywords: vec![
-                        "test".to_string(),
-                        "spec".to_string(),
-                        "coverage".to_string(),
-                    ],
+                    keywords: vec!["test".to_string(), "spec".to_string(), "coverage".to_string()],
                 },
-                intent: PredictedIntent::TestGeneration {
-                    target: "current".to_string(),
-                },
+                intent: PredictedIntent::TestGeneration { target: "current".to_string() },
                 base_confidence: 0.7,
                 reasoning: "User mentioned testing in context".to_string(),
             },
             PredictionRule {
                 name: "doc_keyword".to_string(),
                 condition: PredictionCondition::KeywordInContext {
-                    keywords: vec![
-                        "document".to_string(),
-                        "doc".to_string(),
-                        "readme".to_string(),
-                    ],
+                    keywords: vec!["document".to_string(), "doc".to_string(), "readme".to_string()],
                 },
-                intent: PredictedIntent::Documentation {
-                    topic: "current".to_string(),
-                },
+                intent: PredictedIntent::Documentation { topic: "current".to_string() },
                 base_confidence: 0.65,
                 reasoning: "User mentioned documentation in context".to_string(),
             },
@@ -150,9 +131,7 @@ impl ContextPredictor {
                     action: ActionType::SearchPerformed,
                     within_seconds: 60,
                 },
-                intent: PredictedIntent::Search {
-                    query_type: "general".to_string(),
-                },
+                intent: PredictedIntent::Search { query_type: "general".to_string() },
                 base_confidence: 0.6,
                 reasoning: "User performed a search recently".to_string(),
             },
@@ -187,17 +166,12 @@ impl ContextPredictor {
         scored_predictions
             .sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
 
-        let predictions: Vec<ContextPrediction> = scored_predictions
-            .into_iter()
-            .map(|(pred, _)| pred)
-            .collect();
+        let predictions: Vec<ContextPrediction> =
+            scored_predictions.into_iter().map(|(pred, _)| pred).collect();
 
         let top_prediction = predictions.first().cloned();
 
-        PredictionResult {
-            predictions,
-            top_prediction,
-        }
+        PredictionResult { predictions, top_prediction }
     }
 
     fn evaluate_rule(
@@ -206,10 +180,9 @@ impl ContextPredictor {
         features: &ContextFeatures,
     ) -> Option<(PredictedIntent, f32, String)> {
         let condition_met = match &rule.condition {
-            PredictionCondition::RecentAction {
-                action,
-                within_seconds,
-            } => self.has_recent_action(features, *action, *within_seconds),
+            PredictionCondition::RecentAction { action, within_seconds } => {
+                self.has_recent_action(features, *action, *within_seconds)
+            },
             PredictionCondition::ErrorDetected => !features.detected_errors.is_empty(),
             PredictionCondition::KeywordInContext { keywords } => {
                 self.has_keywords(features, keywords)
@@ -245,10 +218,7 @@ impl ContextPredictor {
     fn has_keywords(&self, features: &ContextFeatures, keywords: &[String]) -> bool {
         if let Some(ref current_file) = features.current_file {
             for keyword in keywords {
-                if current_file
-                    .to_lowercase()
-                    .contains(&keyword.to_lowercase())
-                {
+                if current_file.to_lowercase().contains(&keyword.to_lowercase()) {
                     return true;
                 }
             }
@@ -260,19 +230,11 @@ impl ContextPredictor {
         let mut boost = 1.0;
 
         if !features.detected_errors.is_empty() {
-            boost *= self
-                .pattern_weights
-                .get("error_confidence")
-                .copied()
-                .unwrap_or(1.0);
+            boost *= self.pattern_weights.get("error_confidence").copied().unwrap_or(1.0);
         }
 
         if matches!(features.user_activity_level, ActivityLevel::High) {
-            boost *= self
-                .pattern_weights
-                .get("recency_boost")
-                .copied()
-                .unwrap_or(1.0);
+            boost *= self.pattern_weights.get("recency_boost").copied().unwrap_or(1.0);
         }
 
         boost
@@ -284,18 +246,14 @@ impl ContextPredictor {
         features: &ContextFeatures,
     ) -> PredictedIntent {
         match intent {
-            PredictedIntent::CodeCompletion {
-                language: _,
-                context: _,
-            } => PredictedIntent::CodeCompletion {
-                language: features
-                    .current_language
-                    .clone()
-                    .unwrap_or_else(|| "unknown".to_string()),
-                context: features
-                    .current_file
-                    .clone()
-                    .unwrap_or_else(|| "unknown".to_string()),
+            PredictedIntent::CodeCompletion { language: _, context: _ } => {
+                PredictedIntent::CodeCompletion {
+                    language: features
+                        .current_language
+                        .clone()
+                        .unwrap_or_else(|| "unknown".to_string()),
+                    context: features.current_file.clone().unwrap_or_else(|| "unknown".to_string()),
+                }
             },
             PredictedIntent::Debug { error: _ } => PredictedIntent::Debug {
                 error: features
@@ -345,11 +303,7 @@ impl ContextPredictor {
     fn build_context_window(&self, features: &ContextFeatures) -> ContextWindow {
         ContextWindow {
             files: features.current_file.iter().cloned().collect(),
-            recent_actions: features
-                .recent_actions
-                .iter()
-                .map(|a| format!("{:?}", a))
-                .collect(),
+            recent_actions: features.recent_actions.iter().map(|a| format!("{:?}", a)).collect(),
             current_language: features.current_language.clone(),
             project_type: features.project_type.clone(),
         }
@@ -364,22 +318,12 @@ impl ContextPredictor {
         let now = Utc::now();
         let time_of_day = now.hour();
 
-        let day_names = [
-            "Sunday",
-            "Monday",
-            "Tuesday",
-            "Wednesday",
-            "Thursday",
-            "Friday",
-            "Saturday",
-        ];
+        let day_names =
+            ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
         let day_of_week = day_names[now.weekday().num_days_from_sunday() as usize].to_string();
 
-        let detected_errors: Vec<String> = recent_actions
-            .iter()
-            .filter(|a| a.to_lowercase().contains("error"))
-            .cloned()
-            .collect();
+        let detected_errors: Vec<String> =
+            recent_actions.iter().filter(|a| a.to_lowercase().contains("error")).cloned().collect();
 
         let detected_patterns: Vec<PatternMatch> = if let Some(ref file) = current_file {
             self.detect_file_patterns(file)
@@ -482,20 +426,10 @@ pub struct PredictionRule {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "camelCase")]
 pub enum PredictionCondition {
-    RecentAction {
-        action: ActionType,
-        within_seconds: u32,
-    },
+    RecentAction { action: ActionType, within_seconds: u32 },
     ErrorDetected,
-    KeywordInContext {
-        keywords: Vec<String>,
-    },
-    ActivityLevel {
-        level: ActivityLevel,
-    },
-    TimeInRange {
-        start: u32,
-        end: u32,
-    },
+    KeywordInContext { keywords: Vec<String> },
+    ActivityLevel { level: ActivityLevel },
+    TimeInRange { start: u32, end: u32 },
     Always,
 }

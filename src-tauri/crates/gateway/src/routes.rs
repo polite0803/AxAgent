@@ -35,9 +35,9 @@ async fn receive_webhook_with_path(
     body: Bytes,
 ) -> impl IntoResponse {
     match Platform::from_path_segment(&platform_str) {
-        Some(platform) => receive_webhook(State(state), Extension(platform), headers, body)
-            .await
-            .into_response(),
+        Some(platform) => {
+            receive_webhook(State(state), Extension(platform), headers, body).await.into_response()
+        },
         None => {
             let err_body = Json(json!({
                 "status": "unsupported_platform",
@@ -157,12 +157,7 @@ pub fn create_router(state: GatewayAppState) -> Router {
         .route("/api/platform/message", post(direct_message))
         .route("/api/webhook/{platform}", post(receive_webhook_with_path));
 
-    Router::new()
-        .merge(protected)
-        .merge(platform)
-        .merge(public)
-        .layer(cors)
-        .with_state(state)
+    Router::new().merge(protected).merge(platform).merge(public).layer(cors).with_state(state)
 }
 
 /// 构造网关 CORS 层。
@@ -199,10 +194,8 @@ fn build_cors_layer() -> CorsLayer {
     }
 
     // 启动时日志：让运维一眼能看见实际生效的白名单
-    let final_list: Vec<String> = allowed
-        .iter()
-        .map(|v| v.to_str().unwrap_or("<binary>").to_string())
-        .collect();
+    let final_list: Vec<String> =
+        allowed.iter().map(|v| v.to_str().unwrap_or("<binary>").to_string()).collect();
     tracing::info!(
         target: "axagent.gateway.cors",
         "CORS allowed origins: [{}]",
@@ -308,13 +301,7 @@ mod tests {
         let handle = create_test_pool().await.unwrap();
         let app = create_router(test_state(handle.conn));
         let response = app
-            .oneshot(
-                Request::builder()
-                    .method(method)
-                    .uri(uri)
-                    .body(Body::empty())
-                    .unwrap(),
-            )
+            .oneshot(Request::builder().method(method).uri(uri).body(Body::empty()).unwrap())
             .await
             .unwrap();
 
@@ -362,10 +349,8 @@ mod tests {
                 allowed.push(v);
             }
         }
-        let serialized: Vec<String> = allowed
-            .iter()
-            .map(|v| v.to_str().unwrap_or("").to_string())
-            .collect();
+        let serialized: Vec<String> =
+            allowed.iter().map(|v| v.to_str().unwrap_or("").to_string()).collect();
         assert!(!serialized.iter().any(|s| s.contains("1419")));
         assert!(!serialized.iter().any(|s| s.contains("tauri://")));
         assert!(serialized.iter().any(|s| s == "https://tauri.localhost"));

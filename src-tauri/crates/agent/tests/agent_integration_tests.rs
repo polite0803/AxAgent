@@ -84,8 +84,7 @@ impl MockReasoningProvider {
     }
 
     fn next_index(&self) -> usize {
-        self.call_index
-            .fetch_add(1, std::sync::atomic::Ordering::SeqCst)
+        self.call_index.fetch_add(1, std::sync::atomic::Ordering::SeqCst)
     }
 }
 
@@ -131,17 +130,16 @@ impl LlmReasoningProvider for MockReasoningProvider {
         }
         let idx = self.next_index();
         context.increment_depth();
-        let action = self
-            .plan_responses
-            .get(idx % self.plan_responses.len())
-            .cloned()
-            .unwrap_or_else(|| Action {
-                action_type: ActionType::Plan,
-                tool_name: None,
-                tool_input: None,
-                llm_prompt: Some("Mock plan".to_string()),
-                requires_confirmation: false,
-            });
+        let action =
+            self.plan_responses.get(idx % self.plan_responses.len()).cloned().unwrap_or_else(
+                || Action {
+                    action_type: ActionType::Plan,
+                    tool_name: None,
+                    tool_input: None,
+                    llm_prompt: Some("Mock plan".to_string()),
+                    requires_confirmation: false,
+                },
+            );
         Ok(action)
     }
 
@@ -204,8 +202,7 @@ impl MockToTProvider {
     }
 
     fn next_index(&self) -> usize {
-        self.call_index
-            .fetch_add(1, std::sync::atomic::Ordering::SeqCst)
+        self.call_index.fetch_add(1, std::sync::atomic::Ordering::SeqCst)
     }
 }
 
@@ -255,21 +252,11 @@ struct MockCoordinatorAgent {
 
 impl MockCoordinatorAgent {
     fn new() -> Self {
-        Self {
-            status: AgentStatus::Idle,
-            fail_on_execute: false,
-            pause_count: 0,
-            resume_count: 0,
-        }
+        Self { status: AgentStatus::Idle, fail_on_execute: false, pause_count: 0, resume_count: 0 }
     }
 
     fn with_failure() -> Self {
-        Self {
-            status: AgentStatus::Idle,
-            fail_on_execute: true,
-            pause_count: 0,
-            resume_count: 0,
-        }
+        Self { status: AgentStatus::Idle, fail_on_execute: true, pause_count: 0, resume_count: 0 }
     }
 }
 
@@ -375,13 +362,9 @@ mod test_react_engine_lifecycle {
     #[tokio::test]
     async fn test_react_engine_with_max_iterations_constraint() {
         let mock_provider = MockReasoningProvider::new();
-        let config = ReActConfig {
-            max_iterations: 2,
-            ..Default::default()
-        };
-        let mut engine = ReActEngine::new()
-            .with_config(config)
-            .with_reasoning_provider(Arc::new(mock_provider));
+        let config = ReActConfig { max_iterations: 2, ..Default::default() };
+        let mut engine =
+            ReActEngine::new().with_config(config).with_reasoning_provider(Arc::new(mock_provider));
 
         let result = engine.run("Long question with many parts").await;
 
@@ -438,9 +421,8 @@ mod test_react_engine_lifecycle {
             max_iterations: 50,
             ..Default::default()
         };
-        let mut engine = ReActEngine::new()
-            .with_config(config)
-            .with_reasoning_provider(Arc::new(mock_provider));
+        let mut engine =
+            ReActEngine::new().with_config(config).with_reasoning_provider(Arc::new(mock_provider));
 
         let result = engine.run("A very long and complex question").await;
 
@@ -457,9 +439,8 @@ mod test_react_engine_lifecycle {
             verification_enabled: false,
             ..Default::default()
         };
-        let mut engine = ReActEngine::new()
-            .with_config(config)
-            .with_reasoning_provider(Arc::new(mock_provider));
+        let mut engine =
+            ReActEngine::new().with_config(config).with_reasoning_provider(Arc::new(mock_provider));
 
         let result = engine.run("Test sequence").await;
 
@@ -604,16 +585,12 @@ mod test_hierarchical_planner_dynamic_replanning {
         let executable = planner.get_next_executable_tasks();
         let task1_id = executable[0].id.clone();
         planner.mark_task_started(&task1_id).unwrap();
-        planner
-            .mark_task_completed(&task1_id, serde_json::json!({"status": "ok"}))
-            .unwrap();
+        planner.mark_task_completed(&task1_id, serde_json::json!({"status": "ok"})).unwrap();
 
         let executable = planner.get_next_executable_tasks();
         let task2_id = executable[0].id.clone();
         planner.mark_task_started(&task2_id).unwrap();
-        planner
-            .mark_task_completed(&task2_id, serde_json::json!({"status": "ok"}))
-            .unwrap();
+        planner.mark_task_completed(&task2_id, serde_json::json!({"status": "ok"})).unwrap();
 
         let progress = planner.get_progress();
         assert_eq!(progress.completed_tasks, 2);
@@ -663,24 +640,16 @@ mod test_hierarchical_planner_dynamic_replanning {
         planner.start_execution().unwrap();
 
         let task1_id = planner.get_next_executable_tasks()[0].id.clone();
-        planner
-            .mark_task_completed(&task1_id, serde_json::json!({"result": "success"}))
-            .unwrap();
+        planner.mark_task_completed(&task1_id, serde_json::json!({"result": "success"})).unwrap();
 
         let task2_id = planner.get_next_executable_tasks()[0].id.clone();
-        planner
-            .mark_task_completed(&task2_id, serde_json::json!({"result": "success"}))
-            .unwrap();
+        planner.mark_task_completed(&task2_id, serde_json::json!({"result": "success"})).unwrap();
 
         let task3_id = planner.get_next_executable_tasks()[0].id.clone();
         planner.mark_task_started(&task3_id).unwrap();
-        planner
-            .mark_task_failed(&task3_id, "Connection timeout")
-            .unwrap();
+        planner.mark_task_failed(&task3_id, "Connection timeout").unwrap();
         planner.mark_task_started(&task3_id).unwrap();
-        planner
-            .mark_task_failed(&task3_id, "Connection timeout again")
-            .unwrap();
+        planner.mark_task_failed(&task3_id, "Connection timeout again").unwrap();
 
         let completed_before = planner.get_completed_steps();
         assert_eq!(completed_before.len(), 2);
@@ -706,12 +675,8 @@ mod test_hierarchical_planner_dynamic_replanning {
         assert!(matches!(record.reason, ReplanReason::StepFailed { .. }));
 
         let plan = planner.get_plan().unwrap();
-        let task3 = plan
-            .phases
-            .iter()
-            .flat_map(|p| p.tasks.iter())
-            .find(|t| t.id == task3_id)
-            .unwrap();
+        let task3 =
+            plan.phases.iter().flat_map(|p| p.tasks.iter()).find(|t| t.id == task3_id).unwrap();
         assert_eq!(task3.status, TaskStatus::Pending);
         assert_eq!(task3.retry_count, 0);
         assert_eq!(task3.error, None);
@@ -737,48 +702,30 @@ mod test_hierarchical_planner_dynamic_replanning {
         planner.start_execution().unwrap();
 
         let task_a_id = planner.get_next_executable_tasks()[0].id.clone();
-        planner
-            .mark_task_completed(&task_a_id, serde_json::json!({"data": "a"}))
-            .unwrap();
+        planner.mark_task_completed(&task_a_id, serde_json::json!({"data": "a"})).unwrap();
 
         let task_b_id = planner.get_next_executable_tasks()[0].id.clone();
-        planner
-            .mark_task_completed(&task_b_id, serde_json::json!({"data": "b"}))
-            .unwrap();
+        planner.mark_task_completed(&task_b_id, serde_json::json!({"data": "b"})).unwrap();
 
         let task_c_id = planner.get_next_executable_tasks()[0].id.clone();
         planner.mark_task_started(&task_c_id).unwrap();
-        planner
-            .mark_task_failed(&task_c_id, "Task C failed")
-            .unwrap();
+        planner.mark_task_failed(&task_c_id, "Task C failed").unwrap();
         planner.mark_task_started(&task_c_id).unwrap();
-        planner
-            .mark_task_failed(&task_c_id, "Task C failed again")
-            .unwrap();
+        planner.mark_task_failed(&task_c_id, "Task C failed again").unwrap();
 
         let reason = ReplanReason::StepFailed {
             task_id: task_c_id.clone(),
             error: "Task C failed".to_string(),
         };
-        let actions = vec![ReplanAction::Retry {
-            task_id: task_c_id.clone(),
-            modified_parameters: None,
-        }];
+        let actions =
+            vec![ReplanAction::Retry { task_id: task_c_id.clone(), modified_parameters: None }];
         planner.replan(reason, actions).unwrap();
 
         let plan = planner.get_plan().unwrap();
-        let task_a = plan
-            .phases
-            .iter()
-            .flat_map(|p| p.tasks.iter())
-            .find(|t| t.id == task_a_id)
-            .unwrap();
-        let task_b = plan
-            .phases
-            .iter()
-            .flat_map(|p| p.tasks.iter())
-            .find(|t| t.id == task_b_id)
-            .unwrap();
+        let task_a =
+            plan.phases.iter().flat_map(|p| p.tasks.iter()).find(|t| t.id == task_a_id).unwrap();
+        let task_b =
+            plan.phases.iter().flat_map(|p| p.tasks.iter()).find(|t| t.id == task_b_id).unwrap();
 
         assert_eq!(task_a.status, TaskStatus::Completed);
         assert_eq!(task_a.result, Some(serde_json::json!({"data": "a"})));
@@ -799,9 +746,8 @@ mod test_hierarchical_planner_dynamic_replanning {
 
         assert_eq!(planner.get_plan_versions().len(), 1);
 
-        let reason = ReplanReason::ManualIntervention {
-            reason: "Remove task for testing".to_string(),
-        };
+        let reason =
+            ReplanReason::ManualIntervention { reason: "Remove task for testing".to_string() };
         let actions = vec![ReplanAction::Remove {
             task_id: task1_id.clone(),
             reason: "Testing rollback".to_string(),
@@ -812,22 +758,15 @@ mod test_hierarchical_planner_dynamic_replanning {
 
         let plan_after_replan = planner.get_plan().unwrap();
         assert!(
-            plan_after_replan
-                .phases
-                .iter()
-                .flat_map(|p| p.tasks.iter())
-                .all(|t| t.id != task1_id)
+            plan_after_replan.phases.iter().flat_map(|p| p.tasks.iter()).all(|t| t.id != task1_id)
         );
 
         planner.rollback(0).unwrap();
 
         assert_eq!(planner.get_plan_versions().len(), 2);
         let restored_plan = planner.get_plan().unwrap();
-        let restored_task = restored_plan
-            .phases
-            .iter()
-            .flat_map(|p| p.tasks.iter())
-            .find(|t| t.id == task1_id);
+        let restored_task =
+            restored_plan.phases.iter().flat_map(|p| p.tasks.iter()).find(|t| t.id == task1_id);
         assert!(restored_task.is_some());
     }
 
@@ -840,43 +779,28 @@ mod test_hierarchical_planner_dynamic_replanning {
                 "Phase",
                 "Test skip and insert",
                 vec![],
-                vec![
-                    make_task("Task 1", "action1"),
-                    make_task("Task 2", "action2"),
-                ],
+                vec![make_task("Task 1", "action1"), make_task("Task 2", "action2")],
             )
             .build(&mut planner);
 
         let task1_id = planner.get_plan().unwrap().phases[0].tasks[0].id.clone();
         let phase_id = planner.get_plan().unwrap().phases[0].id.clone();
 
-        let reason = ReplanReason::ResourceConstraint {
-            constraint: "API rate limited".to_string(),
-        };
+        let reason =
+            ReplanReason::ResourceConstraint { constraint: "API rate limited".to_string() };
 
         let new_task = TaskBuilder::new("Replacement Task", "replacement").build();
 
         let actions = vec![
-            ReplanAction::Skip {
-                task_id: task1_id.clone(),
-                reason: "Rate limited".to_string(),
-            },
-            ReplanAction::Insert {
-                phase_id: phase_id.clone(),
-                task: new_task,
-                position: 1,
-            },
+            ReplanAction::Skip { task_id: task1_id.clone(), reason: "Rate limited".to_string() },
+            ReplanAction::Insert { phase_id: phase_id.clone(), task: new_task, position: 1 },
         ];
 
         planner.replan(reason, actions).unwrap();
 
         let plan = planner.get_plan().unwrap();
-        let skipped = plan
-            .phases
-            .iter()
-            .flat_map(|p| p.tasks.iter())
-            .find(|t| t.id == task1_id)
-            .unwrap();
+        let skipped =
+            plan.phases.iter().flat_map(|p| p.tasks.iter()).find(|t| t.id == task1_id).unwrap();
         assert_eq!(skipped.status, TaskStatus::Skipped);
         assert_eq!(plan.phases[0].tasks.len(), 3);
         assert_eq!(plan.phases[0].tasks[1].description, "Replacement Task");
@@ -897,9 +821,8 @@ mod test_hierarchical_planner_dynamic_replanning {
 
         let task_id = planner.get_plan().unwrap().phases[0].tasks[0].id.clone();
 
-        let reason = ReplanReason::ManualIntervention {
-            reason: "Upgrade task parameters".to_string(),
-        };
+        let reason =
+            ReplanReason::ManualIntervention { reason: "Upgrade task parameters".to_string() };
 
         let modifications = serde_json::json!({
             "description": "Modified task",
@@ -908,20 +831,13 @@ mod test_hierarchical_planner_dynamic_replanning {
             "parameters": {"new_param": "value"}
         });
 
-        let actions = vec![ReplanAction::ModifyTask {
-            task_id: task_id.clone(),
-            modifications,
-        }];
+        let actions = vec![ReplanAction::ModifyTask { task_id: task_id.clone(), modifications }];
 
         planner.replan(reason, actions).unwrap();
 
         let plan = planner.get_plan().unwrap();
-        let modified_task = plan
-            .phases
-            .iter()
-            .flat_map(|p| p.tasks.iter())
-            .find(|t| t.id == task_id)
-            .unwrap();
+        let modified_task =
+            plan.phases.iter().flat_map(|p| p.tasks.iter()).find(|t| t.id == task_id).unwrap();
 
         assert_eq!(modified_task.description, "Modified task");
         assert_eq!(modified_task.max_retries, 10);
@@ -974,17 +890,13 @@ mod test_tree_of_thoughts_reasoning {
         let root_id = engine.root_id.clone();
 
         let provider: Arc<dyn ToTLlmReasoningProvider> = Arc::new(MockToTProvider::new());
-        let children = engine
-            .generate_branching_options(root_id, "Test context", &provider)
-            .await
-            .unwrap();
+        let children =
+            engine.generate_branching_options(root_id, "Test context", &provider).await.unwrap();
 
         let mut scores = Vec::new();
         for child_id in &children {
-            let score = engine
-                .evaluate_and_score_node(child_id, "Test context", &provider)
-                .await
-                .unwrap();
+            let score =
+                engine.evaluate_and_score_node(child_id, "Test context", &provider).await.unwrap();
             scores.push((child_id.clone(), score));
 
             let node = engine.get_node(child_id).unwrap();
@@ -1003,15 +915,11 @@ mod test_tree_of_thoughts_reasoning {
         let root_id = engine.root_id.clone();
 
         let provider: Arc<dyn ToTLlmReasoningProvider> = Arc::new(MockToTProvider::new());
-        let children = engine
-            .generate_branching_options(root_id, "Test context", &provider)
-            .await
-            .unwrap();
+        let children =
+            engine.generate_branching_options(root_id, "Test context", &provider).await.unwrap();
 
         for child_id in &children {
-            let _ = engine
-                .evaluate_and_score_node(child_id, "Test context", &provider)
-                .await;
+            let _ = engine.evaluate_and_score_node(child_id, "Test context", &provider).await;
         }
 
         let pruned = engine.prune_below_threshold(0.3);
@@ -1034,9 +942,7 @@ mod test_tree_of_thoughts_reasoning {
             .unwrap();
 
         for child_id in &children {
-            let _ = engine
-                .evaluate_and_score_node(child_id, "Test context", &provider)
-                .await;
+            let _ = engine.evaluate_and_score_node(child_id, "Test context", &provider).await;
         }
 
         let best_path = engine.select_best_path();
@@ -1067,9 +973,7 @@ mod test_tree_of_thoughts_reasoning {
         assert_eq!(level1_children.len(), 3);
 
         for child_id in &level1_children {
-            let _ = engine
-                .evaluate_and_score_node(child_id, "Level 1 context", &provider)
-                .await;
+            let _ = engine.evaluate_and_score_node(child_id, "Level 1 context", &provider).await;
         }
 
         let first_child = &level1_children[0];
@@ -1107,15 +1011,11 @@ mod test_tree_of_thoughts_reasoning {
 
         let provider: Arc<dyn ToTLlmReasoningProvider> =
             Arc::new(MockToTProvider::new().with_eval_scores(vec![0.2, 0.8, 0.5]));
-        let children = engine
-            .generate_branching_options(root_id, "Scored context", &provider)
-            .await
-            .unwrap();
+        let children =
+            engine.generate_branching_options(root_id, "Scored context", &provider).await.unwrap();
 
         for child_id in &children {
-            let _ = engine
-                .evaluate_and_score_node(child_id, "Scored context", &provider)
-                .await;
+            let _ = engine.evaluate_and_score_node(child_id, "Scored context", &provider).await;
         }
 
         engine.prune_below_threshold(0.3);
@@ -1133,10 +1033,8 @@ mod test_tree_of_thoughts_reasoning {
 
         let provider: Arc<dyn ToTLlmReasoningProvider> = Arc::new(MockToTProvider::new());
 
-        let level1 = engine
-            .generate_branching_options(root_id.clone(), "Level 1", &provider)
-            .await
-            .unwrap();
+        let level1 =
+            engine.generate_branching_options(root_id.clone(), "Level 1", &provider).await.unwrap();
         assert_eq!(level1.len(), 2);
 
         let level2 = engine
@@ -1158,15 +1056,11 @@ mod test_tree_of_thoughts_reasoning {
         let root_id = engine.root_id.clone();
 
         let provider: Arc<dyn ToTLlmReasoningProvider> = Arc::new(MockToTProvider::new());
-        let children = engine
-            .generate_branching_options(root_id, "State test", &provider)
-            .await
-            .unwrap();
+        let children =
+            engine.generate_branching_options(root_id, "State test", &provider).await.unwrap();
 
         for child_id in &children {
-            let _ = engine
-                .evaluate_and_score_node(child_id, "State test", &provider)
-                .await;
+            let _ = engine.evaluate_and_score_node(child_id, "State test", &provider).await;
         }
 
         let state = engine.get_current_state();
@@ -1208,10 +1102,7 @@ mod test_tree_of_thoughts_reasoning {
             assert!(node.content.contains("Alternative reasoning path"));
         }
 
-        let eval = engine
-            .evaluate_thought(&root_id, "Failing context", &provider)
-            .await
-            .unwrap();
+        let eval = engine.evaluate_thought(&root_id, "Failing context", &provider).await.unwrap();
         assert!((0.0..=1.0).contains(&eval));
     }
 }
@@ -1339,9 +1230,7 @@ mod test_error_recovery_with_context {
         let classified = engine.classify_error("connection timeout");
         assert_eq!(classified.error_type, ErrorType::Transient);
 
-        let result = engine
-            .recover("connection timeout", || async { Ok::<i32, String>(42) })
-            .await;
+        let result = engine.recover("connection timeout", || async { Ok::<i32, String>(42) }).await;
         assert!(result.success);
     }
 
@@ -1489,10 +1378,7 @@ mod test_agent_coordinator_lifecycle {
         assert!(init_result.is_ok());
         assert_eq!(coordinator.get_status().await, AgentStatus::Idle);
 
-        let input = AgentInput {
-            content: "Hello, coordinator!".to_string(),
-            context: None,
-        };
+        let input = AgentInput { content: "Hello, coordinator!".to_string(), context: None };
         let exec_result = coordinator.execute(input).await;
         assert!(exec_result.is_ok());
 
@@ -1506,16 +1392,10 @@ mod test_agent_coordinator_lifecycle {
         let agent = Arc::new(tokio::sync::Mutex::new(MockCoordinatorAgent::new()));
         let coordinator = AgentCoordinator::new(agent, None, noop_cache(), noop_hook());
 
-        let input1 = AgentInput {
-            content: "first".to_string(),
-            context: None,
-        };
+        let input1 = AgentInput { content: "first".to_string(), context: None };
         let _ = coordinator.execute(input1).await;
 
-        let input2 = AgentInput {
-            content: "second".to_string(),
-            context: None,
-        };
+        let input2 = AgentInput { content: "second".to_string(), context: None };
         let result = coordinator.execute(input2).await;
         assert!(result.is_err());
     }
@@ -1525,10 +1405,7 @@ mod test_agent_coordinator_lifecycle {
         let agent = Arc::new(tokio::sync::Mutex::new(MockCoordinatorAgent::with_failure()));
         let coordinator = AgentCoordinator::new(agent, None, noop_cache(), noop_hook());
 
-        let input = AgentInput {
-            content: "test".to_string(),
-            context: None,
-        };
+        let input = AgentInput { content: "test".to_string(), context: None };
 
         let result = coordinator.execute(input).await;
         assert!(result.is_err());
@@ -1552,10 +1429,7 @@ mod test_agent_coordinator_lifecycle {
         // 在一个独立任务中执行，使其保持 Running 状态
         let coord = coordinator.clone();
         let exec_handle = tokio::spawn(async move {
-            let input = AgentInput {
-                content: "start".to_string(),
-                context: None,
-            };
+            let input = AgentInput { content: "start".to_string(), context: None };
             coord.execute(input).await
         });
 
@@ -1582,10 +1456,7 @@ mod test_agent_coordinator_lifecycle {
 
         let mut rx = bus.subscribe("test-sub".to_string(), vec![]);
 
-        let input = AgentInput {
-            content: "event test".to_string(),
-            context: None,
-        };
+        let input = AgentInput { content: "event test".to_string(), context: None };
         let _ = coordinator.execute(input).await;
 
         let event = rx.try_recv();
@@ -1635,15 +1506,13 @@ mod test_agent_coordinator_lifecycle {
         let temp_dir = tempfile::tempdir().unwrap();
         let manager = CheckpointManager::new(temp_dir.path().to_str().unwrap());
 
-        let cp1 = CheckpointBuilder::new("plan-list", 0)
-            .with_state(serde_json::json!({"v": 1}))
-            .build();
+        let cp1 =
+            CheckpointBuilder::new("plan-list", 0).with_state(serde_json::json!({"v": 1})).build();
 
         tokio::time::sleep(Duration::from_millis(10)).await;
 
-        let cp2 = CheckpointBuilder::new("plan-list", 1)
-            .with_state(serde_json::json!({"v": 2}))
-            .build();
+        let cp2 =
+            CheckpointBuilder::new("plan-list", 1).with_state(serde_json::json!({"v": 2})).build();
 
         tokio::time::sleep(Duration::from_millis(10)).await;
 
@@ -1683,11 +1552,7 @@ mod test_agent_coordinator_lifecycle {
         manager.save(&cp2).await.unwrap();
         tokio::time::sleep(Duration::from_millis(20)).await;
 
-        let latest = manager
-            .get_latest_for_plan("plan-latest")
-            .await
-            .unwrap()
-            .unwrap();
+        let latest = manager.get_latest_for_plan("plan-latest").await.unwrap().unwrap();
 
         assert!(
             latest.state["v"] == serde_json::json!(1) || latest.state["v"] == serde_json::json!(2),
@@ -2001,10 +1866,7 @@ mod test_tool_call_flow {
 
         let adjust_strategy = RecoveryStrategy::for_error_type(ErrorType::Recoverable);
         match &adjust_strategy {
-            RecoveryStrategy::AdjustAndRetry {
-                max_attempts,
-                adjustments,
-            } => {
+            RecoveryStrategy::AdjustAndRetry { max_attempts, adjustments } => {
                 assert_eq!(*max_attempts, 2);
                 assert_eq!(adjustments.len(), 2);
             },

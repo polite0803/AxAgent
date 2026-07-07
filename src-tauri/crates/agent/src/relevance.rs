@@ -22,11 +22,7 @@ pub struct RelevanceConfig {
 
 impl Default for RelevanceConfig {
     fn default() -> Self {
-        Self {
-            max_results: 20,
-            min_score_to_link: 1.0,
-            max_recommendations: 5,
-        }
+        Self { max_results: 20, min_score_to_link: 1.0, max_recommendations: 5 }
     }
 }
 
@@ -50,10 +46,7 @@ impl RelevanceEngine {
         signals
             .into_iter()
             .map(|(other_id, signal)| RankedPage {
-                title: graph
-                    .get_node_title(&other_id)
-                    .unwrap_or(&other_id)
-                    .to_string(),
+                title: graph.get_node_title(&other_id).unwrap_or(&other_id).to_string(),
                 score: signal.total_score(),
                 signal,
                 page_id: other_id,
@@ -130,9 +123,7 @@ impl RelevanceEngine {
     ) -> Vec<RelevanceEdge> {
         let mut edges = graph.build_relevance_edges(source_map, self.config.min_score_to_link);
         edges.sort_by(|a, b| {
-            a.total_score
-                .partial_cmp(&b.total_score)
-                .unwrap_or(std::cmp::Ordering::Equal)
+            a.total_score.partial_cmp(&b.total_score).unwrap_or(std::cmp::Ordering::Equal)
         });
         edges
     }
@@ -146,9 +137,7 @@ impl RelevanceEngine {
         let edges = graph.build_relevance_edges(source_map, self.config.min_score_to_link);
         let mut edges: Vec<_> = edges;
         edges.sort_by(|a, b| {
-            b.total_score
-                .partial_cmp(&a.total_score)
-                .unwrap_or(std::cmp::Ordering::Equal)
+            b.total_score.partial_cmp(&a.total_score).unwrap_or(std::cmp::Ordering::Equal)
         });
         edges.truncate(k);
         edges
@@ -246,10 +235,8 @@ mod tests {
     fn test_find_related_pages() {
         let graph = create_test_graph();
         let source_map = create_source_map();
-        let engine = RelevanceEngine::new(RelevanceConfig {
-            min_score_to_link: 0.0,
-            ..Default::default()
-        });
+        let engine =
+            RelevanceEngine::new(RelevanceConfig { min_score_to_link: 0.0, ..Default::default() });
 
         let related = engine.find_related_pages(&graph, "a", &source_map);
         assert!(!related.is_empty());

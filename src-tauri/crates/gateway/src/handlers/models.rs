@@ -38,10 +38,8 @@ pub async fn list_models(State(state): State<GatewayAppState>) -> impl IntoRespo
     for provider in providers.iter().filter(|p| p.enabled) {
         for model in provider.models.iter().filter(|m| m.enabled) {
             let key = (provider.id.clone(), model.model_id.clone());
-            let display_id = display_map
-                .get(&key)
-                .cloned()
-                .unwrap_or_else(|| model.model_id.clone());
+            let display_id =
+                display_map.get(&key).cloned().unwrap_or_else(|| model.model_id.clone());
             models.push(json!({
                 "id": display_id,
                 "object": "model",
@@ -79,10 +77,7 @@ pub(crate) fn provider_slug(name: &str) -> String {
         .chars()
         .map(|c| if c.is_ascii_alphanumeric() { c } else { '-' })
         .collect();
-    raw.split('-')
-        .filter(|s| !s.is_empty())
-        .collect::<Vec<_>>()
-        .join("-")
+    raw.split('-').filter(|s| !s.is_empty()).collect::<Vec<_>>().join("-")
 }
 
 /// Build a `provider_internal_id → public_id` map for all enabled providers.
@@ -97,10 +92,7 @@ pub(crate) fn build_provider_public_id_map(
     // Group enabled providers by their base slug.
     let mut slug_groups: HashMap<String, Vec<String>> = HashMap::new();
     for p in providers.iter().filter(|p| p.enabled) {
-        slug_groups
-            .entry(provider_slug(&p.name))
-            .or_default()
-            .push(p.id.clone());
+        slug_groups.entry(provider_slug(&p.name)).or_default().push(p.id.clone());
     }
 
     let mut map = HashMap::new();
@@ -181,15 +173,9 @@ pub(crate) fn parse_model_field(model: &str, known_public_ids: &HashSet<String>)
     if let Some((left, right)) = model.split_once('/')
         && known_public_ids.contains(left)
     {
-        return ParsedModel {
-            provider_hint: Some(left.to_string()),
-            model_id: right.to_string(),
-        };
+        return ParsedModel { provider_hint: Some(left.to_string()), model_id: right.to_string() };
     }
-    ParsedModel {
-        provider_hint: None,
-        model_id: model.to_string(),
-    }
+    ParsedModel { provider_hint: None, model_id: model.to_string() }
 }
 
 /// Resolve the `ProviderConfig` and canonical `model_id` string from a parsed
@@ -210,19 +196,13 @@ pub(crate) fn resolve_provider_for_model(
 
     match &parsed.provider_hint {
         Some(hint) => {
-            let provider_opt = enabled
-                .iter()
-                .find(|p| public_id_map.get(&p.id) == Some(hint));
+            let provider_opt = enabled.iter().find(|p| public_id_map.get(&p.id) == Some(hint));
 
             let provider = provider_opt.ok_or_else(|| {
                 error_response(StatusCode::NOT_FOUND, &format!("Provider '{}' not found", hint))
             })?;
 
-            if !provider
-                .models
-                .iter()
-                .any(|m| m.enabled && m.model_id == parsed.model_id)
-            {
+            if !provider.models.iter().any(|m| m.enabled && m.model_id == parsed.model_id) {
                 return Err(error_response(
                     StatusCode::NOT_FOUND,
                     &format!("Model '{}' not found on provider '{}'", parsed.model_id, hint),
@@ -235,11 +215,7 @@ pub(crate) fn resolve_provider_for_model(
             // Bare model_id: find matching enabled providers.
             let matching: Vec<&&ProviderConfig> = enabled
                 .iter()
-                .filter(|p| {
-                    p.models
-                        .iter()
-                        .any(|m| m.enabled && m.model_id == parsed.model_id)
-                })
+                .filter(|p| p.models.iter().any(|m| m.enabled && m.model_id == parsed.model_id))
                 .collect();
 
             match matching.len() {

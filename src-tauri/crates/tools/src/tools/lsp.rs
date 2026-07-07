@@ -47,10 +47,7 @@ impl Tool for LSPTool {
         let col = input["column"].as_u64().unwrap_or(0);
         let query = input["query"].as_str().unwrap_or("");
 
-        let ext = std::path::Path::new(fp)
-            .extension()
-            .and_then(|e| e.to_str())
-            .unwrap_or("");
+        let ext = std::path::Path::new(fp).extension().and_then(|e| e.to_str()).unwrap_or("");
         let (lsp, _args) = match ext {
             "rs" => ("rust-analyzer", "lsp"),
             "go" => ("gopls", "serve"),

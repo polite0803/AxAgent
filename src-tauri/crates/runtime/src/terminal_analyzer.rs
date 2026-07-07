@@ -117,10 +117,7 @@ impl TerminalAnalyzer {
             (r"(?mi)warn\s*:\s*", TerminalErrorType::LintWarning),
         ];
 
-        patterns
-            .into_iter()
-            .filter_map(|(p, t)| Regex::new(p).ok().map(|r| (r, t)))
-            .collect()
+        patterns.into_iter().filter_map(|(p, t)| Regex::new(p).ok().map(|r| (r, t))).collect()
     }
 
     pub fn push_output(&mut self, output: &str) {
@@ -185,10 +182,8 @@ impl TerminalAnalyzer {
                 if pattern.is_match(line) {
                     let context_start = line_idx.saturating_sub(2);
                     let context_end = (line_idx + 3).min(lines.len());
-                    let context: Vec<String> = lines[context_start..context_end]
-                        .iter()
-                        .map(|l| l.to_string())
-                        .collect();
+                    let context: Vec<String> =
+                        lines[context_start..context_end].iter().map(|l| l.to_string()).collect();
 
                     errors.push(TerminalError {
                         line_number: line_idx + 1,
@@ -205,10 +200,7 @@ impl TerminalAnalyzer {
     }
 
     fn detect_prompt_lines(&self) -> usize {
-        self.history
-            .iter()
-            .filter(|line| self.prompt_pattern.is_match(line))
-            .count()
+        self.history.iter().filter(|line| self.prompt_pattern.is_match(line)).count()
     }
 
     pub fn suggest_fixes(&self, analysis: &TerminalAnalysis) -> Vec<TerminalSuggestion> {
@@ -316,9 +308,7 @@ impl TerminalAnalyzer {
         }
 
         suggestions.sort_by(|a, b| {
-            b.confidence
-                .partial_cmp(&a.confidence)
-                .unwrap_or(std::cmp::Ordering::Equal)
+            b.confidence.partial_cmp(&a.confidence).unwrap_or(std::cmp::Ordering::Equal)
         });
         suggestions.dedup_by(|a, b| a.action == b.action);
         suggestions
@@ -368,12 +358,7 @@ mod tests {
         analyzer.push_output("running 3 tests\nFAILED test_addition\nassertion failed");
         let analysis = analyzer.analyze();
         assert!(analysis.has_errors);
-        assert!(
-            analysis
-                .errors
-                .iter()
-                .any(|e| e.error_type == TerminalErrorType::TestFailure)
-        );
+        assert!(analysis.errors.iter().any(|e| e.error_type == TerminalErrorType::TestFailure));
     }
 
     #[test]

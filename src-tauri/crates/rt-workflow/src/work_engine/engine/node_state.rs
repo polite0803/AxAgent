@@ -19,12 +19,7 @@ pub(crate) struct NodeCircuitBreaker {
 
 impl NodeCircuitBreaker {
     pub(crate) fn new() -> Self {
-        Self {
-            failure_count: 0,
-            failure_threshold: 3,
-            reset_timeout_ms: 60_000,
-            opened_at: None,
-        }
+        Self { failure_count: 0, failure_threshold: 3, reset_timeout_ms: 60_000, opened_at: None }
     }
 
     pub(crate) fn is_open(&self, now_ms: u64) -> bool {

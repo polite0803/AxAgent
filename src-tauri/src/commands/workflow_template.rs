@@ -62,14 +62,10 @@ pub async fn list_workflow_templates(
     is_preset: Option<bool>,
 ) -> Result<Vec<WorkflowTemplateResponse>, String> {
     let db = state.harness.db();
-    let templates = db_repo::list_workflow_templates(db, is_preset)
-        .await
-        .map_err(|e| e.to_string())?;
+    let templates =
+        db_repo::list_workflow_templates(db, is_preset).await.map_err(|e| e.to_string())?;
 
-    Ok(templates
-        .into_iter()
-        .map(workflow_template_response_from_model)
-        .collect())
+    Ok(templates.into_iter().map(workflow_template_response_from_model).collect())
 }
 
 #[tauri::command]
@@ -78,9 +74,7 @@ pub async fn get_workflow_template(
     id: String,
 ) -> Result<Option<WorkflowTemplateResponse>, String> {
     let db = state.harness.db();
-    let template = db_repo::get_workflow_template(db, &id)
-        .await
-        .map_err(|e| e.to_string())?;
+    let template = db_repo::get_workflow_template(db, &id).await.map_err(|e| e.to_string())?;
 
     Ok(template.map(workflow_template_response_from_model))
 }
@@ -129,14 +123,9 @@ pub async fn create_workflow_template(
     };
 
     let active_model = model_to_active_model(&template);
-    db_repo::insert_workflow_template(db, active_model)
-        .await
-        .map_err(|e| e.to_string())?;
+    db_repo::insert_workflow_template(db, active_model).await.map_err(|e| e.to_string())?;
 
-    state
-        .work_engine
-        .precompile_tool_defs(&template.id, &template.tool_defs)
-        .await;
+    state.work_engine.precompile_tool_defs(&template.id, &template.tool_defs).await;
 
     Ok(template.id)
 }
@@ -185,9 +174,7 @@ pub async fn delete_workflow_template(
     id: String,
 ) -> Result<bool, String> {
     let db = state.harness.db();
-    let deleted = db_repo::delete_workflow_template(db, &id)
-        .await
-        .map_err(|e| e.to_string())?;
+    let deleted = db_repo::delete_workflow_template(db, &id).await.map_err(|e| e.to_string())?;
     Ok(deleted)
 }
 
@@ -198,9 +185,7 @@ pub async fn duplicate_workflow_template(
 ) -> Result<String, String> {
     let db = state.harness.db();
 
-    let template = db_repo::get_workflow_template(db, &id)
-        .await
-        .map_err(|e| e.to_string())?;
+    let template = db_repo::get_workflow_template(db, &id).await.map_err(|e| e.to_string())?;
 
     let template = template.ok_or_else(|| {
         ErrorResponse::err_with_detail(workflow_err::NOT_FOUND, "Template not found")
@@ -232,9 +217,7 @@ pub async fn duplicate_workflow_template(
     };
 
     let active_model = model_to_active_model(&new_template);
-    db_repo::insert_workflow_template(db, active_model)
-        .await
-        .map_err(|e| e.to_string())?;
+    db_repo::insert_workflow_template(db, active_model).await.map_err(|e| e.to_string())?;
 
     Ok(new_template.id)
 }
@@ -257,9 +240,7 @@ pub async fn seed_preset_templates(state: State<'_, AppState>) -> Result<usize, 
         items.push(template);
     }
 
-    db_repo::seed_preset_templates(db, items)
-        .await
-        .map_err(|e| e.to_string())?;
+    db_repo::seed_preset_templates(db, items).await.map_err(|e| e.to_string())?;
 
     Ok(presets.len())
 }
@@ -270,9 +251,7 @@ pub async fn get_template_versions(
     id: String,
 ) -> Result<Vec<i32>, String> {
     let db = state.harness.db();
-    let versions = db_repo::get_template_versions(db, &id)
-        .await
-        .map_err(|e| e.to_string())?;
+    let versions = db_repo::get_template_versions(db, &id).await.map_err(|e| e.to_string())?;
     Ok(versions)
 }
 
@@ -283,9 +262,8 @@ pub async fn get_template_by_version(
     version: i32,
 ) -> Result<Option<WorkflowTemplateResponse>, String> {
     let db = state.harness.db();
-    let template = db_repo::get_template_by_version(db, &id, version)
-        .await
-        .map_err(|e| e.to_string())?;
+    let template =
+        db_repo::get_template_by_version(db, &id, version).await.map_err(|e| e.to_string())?;
     Ok(template.map(workflow_template_response_from_model))
 }
 
@@ -351,10 +329,7 @@ pub async fn validate_workflow_template(
         });
     }
 
-    let trigger_count = nodes
-        .iter()
-        .filter(|n| matches!(n, WorkflowNode::Trigger(_)))
-        .count();
+    let trigger_count = nodes.iter().filter(|n| matches!(n, WorkflowNode::Trigger(_))).count();
     if trigger_count == 0 {
         errors.push(ValidationError {
             error_type: "missing_trigger".to_string(),
@@ -372,10 +347,7 @@ pub async fn validate_workflow_template(
         });
     }
 
-    let end_count = nodes
-        .iter()
-        .filter(|n| matches!(n, WorkflowNode::End(_)))
-        .count();
+    let end_count = nodes.iter().filter(|n| matches!(n, WorkflowNode::End(_))).count();
     if end_count == 0 {
         warnings.push(ValidationWarning {
             warning_type: "missing_end".to_string(),
@@ -420,10 +392,7 @@ pub async fn validate_workflow_template(
         if edge.edge_type == EdgeType::LoopBack {
             continue;
         }
-        adjacency
-            .entry(edge.source.clone())
-            .or_default()
-            .push(edge.target.clone());
+        adjacency.entry(edge.source.clone()).or_default().push(edge.target.clone());
     }
 
     fn dfs(
@@ -608,10 +577,8 @@ pub async fn validate_workflow_template(
     }
 
     // ── 边类型校验：特定边类型必须源自对应节点类型 ──
-    let node_type_map: std::collections::HashMap<String, &str> = nodes
-        .iter()
-        .map(|n| (n.base_id().to_string(), node_type_name(n)))
-        .collect();
+    let node_type_map: std::collections::HashMap<String, &str> =
+        nodes.iter().map(|n| (n.base_id().to_string(), node_type_name(n))).collect();
 
     for edge in &edges {
         match &edge.edge_type {
@@ -675,11 +642,7 @@ pub async fn validate_workflow_template(
 
     let is_valid = errors.is_empty();
 
-    Ok(ValidationResult {
-        is_valid,
-        errors,
-        warnings,
-    })
+    Ok(ValidationResult { is_valid, errors, warnings })
 }
 
 #[tauri::command]
@@ -688,9 +651,7 @@ pub async fn export_workflow_template(
     id: String,
 ) -> Result<String, String> {
     let db = state.harness.db();
-    let template = db_repo::get_workflow_template(db, &id)
-        .await
-        .map_err(|e| e.to_string())?;
+    let template = db_repo::get_workflow_template(db, &id).await.map_err(|e| e.to_string())?;
 
     let template = template.ok_or_else(|| {
         ErrorResponse::err_with_detail(workflow_err::NOT_FOUND, "Template not found")
@@ -1011,10 +972,8 @@ pub async fn find_similar_workflows(
     db: &DatabaseConnection,
     nodes: &[WorkflowNode],
 ) -> Result<Vec<SimilarWorkflow>, String> {
-    let input_types: std::collections::HashSet<String> = nodes
-        .iter()
-        .map(|n| node_type_name(n).to_string())
-        .collect();
+    let input_types: std::collections::HashSet<String> =
+        nodes.iter().map(|n| node_type_name(n).to_string()).collect();
 
     if input_types.is_empty() {
         return Ok(Vec::new());
@@ -1029,10 +988,8 @@ pub async fn find_similar_workflows(
     for tmpl in &all {
         let existing_nodes: Vec<WorkflowNode> =
             serde_json::from_str(&tmpl.nodes).unwrap_or_default();
-        let existing_types: std::collections::HashSet<String> = existing_nodes
-            .iter()
-            .map(|n| node_type_name(n).to_string())
-            .collect();
+        let existing_types: std::collections::HashSet<String> =
+            existing_nodes.iter().map(|n| node_type_name(n).to_string()).collect();
 
         let intersection = input_types.intersection(&existing_types).count();
         let union = input_types.union(&existing_types).count();
@@ -1077,10 +1034,7 @@ async fn check_workflow_duplicate(
         return Ok(None);
     }
 
-    let all = workflow_template::Entity::find()
-        .all(db)
-        .await
-        .map_err(|e| e.to_string())?;
+    let all = workflow_template::Entity::find().all(db).await.map_err(|e| e.to_string())?;
 
     for tmpl in &all {
         let existing_tokens: std::collections::HashSet<String> = tmpl
@@ -1118,10 +1072,7 @@ fn extract_goal_from_n8n(node: &serde_json::Value) -> String {
             return format!("HTTP {} {}", method, url);
         }
         if node_type.contains("database") || node_type.contains("sql") {
-            let op = p
-                .get("operation")
-                .and_then(|v| v.as_str())
-                .unwrap_or("query");
+            let op = p.get("operation").and_then(|v| v.as_str()).unwrap_or("query");
             let table = p.get("table").and_then(|v| v.as_str()).unwrap_or("");
             return format!("SQL {} {}", op, table);
         }
@@ -1134,20 +1085,14 @@ fn extract_goal_from_n8n(node: &serde_json::Value) -> String {
             return format!("Execute {} function", lang);
         }
     }
-    let name = node
-        .get("name")
-        .and_then(|v| v.as_str())
-        .unwrap_or("Unnamed");
+    let name = node.get("name").and_then(|v| v.as_str()).unwrap_or("Unnamed");
     format!("{} ({})", name, node_type.rsplit('.').next().unwrap_or(node_type))
 }
 
 /// 从 n8n 节点参数提取 AxAgent AgentNodeConfig 配置
 fn extract_config_from_n8n(n8n_node: &serde_json::Value, node_id: &str) -> AgentNodeConfig {
     let node_type = n8n_node.get("type").and_then(|v| v.as_str()).unwrap_or("");
-    let node_name = n8n_node
-        .get("name")
-        .and_then(|v| v.as_str())
-        .unwrap_or("Unnamed");
+    let node_name = n8n_node.get("name").and_then(|v| v.as_str()).unwrap_or("Unnamed");
     let params = n8n_node.get("parameters");
     let goal = extract_goal_from_n8n(n8n_node);
 
@@ -1181,10 +1126,7 @@ fn extract_config_from_n8n(n8n_node: &serde_json::Value, node_id: &str) -> Agent
             || node_type.contains("sql")
             || node_type.contains("postgres")
         {
-            let op = p
-                .get("operation")
-                .and_then(|v| v.as_str())
-                .unwrap_or("query");
+            let op = p.get("operation").and_then(|v| v.as_str()).unwrap_or("query");
             prompt_parts.push(format!("操作类型：{op}"));
             if let Some(query) = p.get("query").and_then(|v| v.as_str()) {
                 prompt_parts.push(format!("SQL 语句：{query}"));
@@ -1307,20 +1249,12 @@ fn extract_config_from_n8n(n8n_node: &serde_json::Value, node_id: &str) -> Agent
             || node_type.contains("openai")
             || node_type.contains("openAi")
         {
-            p.get("model")
-                .and_then(|v| v.as_str())
-                .map(|s| s.to_string())
+            p.get("model").and_then(|v| v.as_str()).map(|s| s.to_string())
         } else {
             None
         };
-        let temperature = p
-            .get("temperature")
-            .and_then(|v| v.as_f64())
-            .map(|t| t as f32);
-        let max_tokens = p
-            .get("maxTokens")
-            .and_then(|v| v.as_u64())
-            .map(|t| t as u32);
+        let temperature = p.get("temperature").and_then(|v| v.as_f64()).map(|t| t as f32);
+        let max_tokens = p.get("maxTokens").and_then(|v| v.as_u64()).map(|t| t as u32);
         (model, temperature, max_tokens)
     } else {
         (None, None, None)
@@ -1354,11 +1288,8 @@ async fn convert_n8n_to_axagent(
 ) -> Result<axagent_harness::workflow_types::WorkflowTemplateData, String> {
     use axagent_harness::workflow_types::*;
 
-    let name = json
-        .get("name")
-        .and_then(|v| v.as_str())
-        .unwrap_or("Imported n8n Workflow")
-        .to_string();
+    let name =
+        json.get("name").and_then(|v| v.as_str()).unwrap_or("Imported n8n Workflow").to_string();
 
     let n8n_nodes = json
         .get("nodes")
@@ -1400,17 +1331,11 @@ async fn convert_n8n_to_axagent(
             .map(|s| s.to_string())
             .unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
 
-        let node_name = n8n_node
-            .get("name")
-            .and_then(|v| v.as_str())
-            .unwrap_or("Unnamed")
-            .to_string();
+        let node_name =
+            n8n_node.get("name").and_then(|v| v.as_str()).unwrap_or("Unnamed").to_string();
 
-        let n8n_type = n8n_node
-            .get("type")
-            .and_then(|v| v.as_str())
-            .unwrap_or("unknown")
-            .to_string();
+        let n8n_type =
+            n8n_node.get("type").and_then(|v| v.as_str()).unwrap_or("unknown").to_string();
 
         name_to_id.insert(node_name.clone(), node_id.clone());
 
@@ -1514,10 +1439,7 @@ async fn convert_n8n_to_axagent(
             parent_id: None,
         };
 
-        let agent_node = WorkflowNode::Agent(AgentNode {
-            base,
-            config: agent_config,
-        });
+        let agent_node = WorkflowNode::Agent(AgentNode { base, config: agent_config });
 
         ax_nodes.push(agent_node);
     }
@@ -1567,18 +1489,13 @@ async fn convert_n8n_to_axagent(
             id: "end_imported".to_string(),
             title: "End".to_string(),
             description: Some("Auto-created end node from n8n import".to_string()),
-            position: Position {
-                x: last_position.x + 250.0,
-                y: last_position.y,
-            },
+            position: Position { x: last_position.x + 250.0, y: last_position.y },
             retry: RetryConfig::default(),
             timeout: None,
             enabled: true,
             parent_id: None,
         },
-        config: EndNodeConfig {
-            output_var: Some("final_output".to_string()),
-        },
+        config: EndNodeConfig { output_var: Some("final_output".to_string()) },
     });
     ax_nodes.push(end_node);
 
@@ -1706,11 +1623,8 @@ async fn do_import_workflow(
     let raw_json: serde_json::Value =
         serde_json::from_str(&json_data).map_err(|e| format!("Invalid JSON: {}", e))?;
 
-    let workflow_name = raw_json
-        .get("name")
-        .and_then(|v| v.as_str())
-        .unwrap_or("Imported Workflow")
-        .to_string();
+    let workflow_name =
+        raw_json.get("name").and_then(|v| v.as_str()).unwrap_or("Imported Workflow").to_string();
 
     let mut new_template = if is_n8n_format(&raw_json) {
         convert_n8n_to_axagent(db, &raw_json).await?
@@ -1763,18 +1677,12 @@ async fn do_import_workflow(
         warnings.push(format!(
             "Node composition {}% similar to existing workflow(s): {}",
             (node_similar[0].similarity * 100.0) as u32,
-            node_similar
-                .iter()
-                .map(|s| s.name.as_str())
-                .collect::<Vec<_>>()
-                .join(", ")
+            node_similar.iter().map(|s| s.name.as_str()).collect::<Vec<_>>().join(", ")
         ));
     }
 
     let active_model = model_to_active_model(&new_template);
-    db_repo::insert_workflow_template(db, active_model)
-        .await
-        .map_err(|e| e.to_string())?;
+    db_repo::insert_workflow_template(db, active_model).await.map_err(|e| e.to_string())?;
 
     let mut errors: Vec<String> = Vec::new();
 
@@ -1782,19 +1690,13 @@ async fn do_import_workflow(
         errors.push("Workflow has no nodes".to_string());
     }
 
-    let has_trigger = new_template
-        .nodes
-        .iter()
-        .any(|n| matches!(n, WorkflowNode::Trigger(_)));
+    let has_trigger = new_template.nodes.iter().any(|n| matches!(n, WorkflowNode::Trigger(_)));
     if !has_trigger {
         warnings.push("Workflow has no trigger node".to_string());
     }
 
-    let node_ids: std::collections::HashSet<String> = new_template
-        .nodes
-        .iter()
-        .map(|n| n.base_id().to_string())
-        .collect();
+    let node_ids: std::collections::HashSet<String> =
+        new_template.nodes.iter().map(|n| n.base_id().to_string()).collect();
     for edge in &new_template.edges {
         if !node_ids.contains(&edge.source) {
             errors.push(format!(

@@ -8,11 +8,7 @@ use std::hash::{Hash, Hasher};
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CycleAlert {
     /// 重复调用：相同的工具+参数被反复执行
-    RepeatCall {
-        tool_name: String,
-        count: usize,
-        first_seen_at_iteration: usize,
-    },
+    RepeatCall { tool_name: String, count: usize, first_seen_at_iteration: usize },
     /// 无进展：连续多次迭代没有产生新的实质性进展
     NoProgress { stagnant_iterations: usize },
 }
@@ -105,9 +101,7 @@ impl CycleDetector {
         self.last_observation_hash = current_obs_hash;
 
         if self.no_progress_count >= self.max_no_progress {
-            Some(CycleAlert::NoProgress {
-                stagnant_iterations: self.no_progress_count,
-            })
+            Some(CycleAlert::NoProgress { stagnant_iterations: self.no_progress_count })
         } else {
             None
         }
@@ -197,16 +191,8 @@ mod tests {
         let mut detector = CycleDetector::new(3, 5);
 
         assert!(detector.check_repeated_call("bash", "ls -la", 1).is_none());
-        assert!(
-            detector
-                .check_repeated_call("bash", "cat file1", 2)
-                .is_none()
-        );
-        assert!(
-            detector
-                .check_repeated_call("bash", "cat file2", 3)
-                .is_none()
-        );
+        assert!(detector.check_repeated_call("bash", "cat file1", 2).is_none());
+        assert!(detector.check_repeated_call("bash", "cat file2", 3).is_none());
     }
 
     #[test]
@@ -214,33 +200,14 @@ mod tests {
         let mut detector = CycleDetector::new(3, 3);
 
         // 第一步：有进展（chain 增长）
-        assert!(
-            detector
-                .check_state_convergence(1, Some("output1"))
-                .is_none()
-        );
+        assert!(detector.check_state_convergence(1, Some("output1")).is_none());
         // 第二步：无进展（chain 长度不变，observation 相同）
-        assert!(
-            detector
-                .check_state_convergence(1, Some("output1"))
-                .is_none()
-        );
+        assert!(detector.check_state_convergence(1, Some("output1")).is_none());
         // 第三步：仍无进展
-        assert!(
-            detector
-                .check_state_convergence(1, Some("output1"))
-                .is_none()
-        );
+        assert!(detector.check_state_convergence(1, Some("output1")).is_none());
         // 第四步：触发告警
-        let alert = detector
-            .check_state_convergence(1, Some("output1"))
-            .unwrap();
-        assert_eq!(
-            alert,
-            CycleAlert::NoProgress {
-                stagnant_iterations: 3
-            }
-        );
+        let alert = detector.check_state_convergence(1, Some("output1")).unwrap();
+        assert_eq!(alert, CycleAlert::NoProgress { stagnant_iterations: 3 });
     }
 
     #[test]
@@ -258,21 +225,9 @@ mod tests {
     fn test_observation_change_is_progress() {
         let mut detector = CycleDetector::new(3, 3);
 
-        assert!(
-            detector
-                .check_state_convergence(1, Some("output A"))
-                .is_none()
-        );
-        assert!(
-            detector
-                .check_state_convergence(1, Some("output B"))
-                .is_none()
-        );
-        assert!(
-            detector
-                .check_state_convergence(1, Some("output C"))
-                .is_none()
-        );
+        assert!(detector.check_state_convergence(1, Some("output A")).is_none());
+        assert!(detector.check_state_convergence(1, Some("output B")).is_none());
+        assert!(detector.check_state_convergence(1, Some("output C")).is_none());
         // 每次 observation 都不同，不应该触发告警
     }
 

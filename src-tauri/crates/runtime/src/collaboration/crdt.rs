@@ -51,9 +51,7 @@ impl Default for CrdtEngine {
 
 impl CrdtEngine {
     pub fn new() -> Self {
-        Self {
-            documents: HashMap::new(),
-        }
+        Self { documents: HashMap::new() }
     }
 
     pub fn create_document(&mut self, id: &str, initial_content: &str) -> &CrdtDocument {
@@ -133,12 +131,7 @@ impl CrdtEngine {
         since_op_id: u64,
     ) -> Result<Vec<CrdtOperation>, String> {
         let doc = self.documents.get(doc_id).ok_or("Document not found")?;
-        Ok(doc
-            .operations
-            .iter()
-            .filter(|op| op.id > since_op_id)
-            .cloned()
-            .collect())
+        Ok(doc.operations.iter().filter(|op| op.id > since_op_id).cloned().collect())
     }
 
     pub fn get_document_content(&self, doc_id: &str) -> Result<String, String> {
@@ -149,9 +142,7 @@ impl CrdtEngine {
     }
 
     pub fn get_document(&self, doc_id: &str) -> Result<&CrdtDocument, String> {
-        self.documents
-            .get(doc_id)
-            .ok_or_else(|| "Document not found".to_string())
+        self.documents.get(doc_id).ok_or_else(|| "Document not found".to_string())
     }
 
     fn apply_op_to_content(content: &str, op: &CrdtOperation) -> String {
@@ -160,11 +151,7 @@ impl CrdtEngine {
             OperationType::Insert { text } => {
                 let mut result: String = chars[..op.position.min(chars.len())].iter().collect();
                 result.push_str(text);
-                result.push_str(
-                    &chars[op.position.min(chars.len())..]
-                        .iter()
-                        .collect::<String>(),
-                );
+                result.push_str(&chars[op.position.min(chars.len())..].iter().collect::<String>());
                 result
             },
             OperationType::Delete { length } => {

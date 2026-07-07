@@ -33,11 +33,7 @@ impl OtelProviders {
     pub fn init(config: &OtelConfig) -> Result<Self, String> {
         if !config.enabled {
             tracing::info!("OpenTelemetry disabled, skipping initialization");
-            return Ok(Self {
-                tracer_provider: None,
-                meter_provider: None,
-                enabled: false,
-            });
+            return Ok(Self { tracer_provider: None, meter_provider: None, enabled: false });
         }
 
         let resource = Resource::builder()
@@ -66,10 +62,8 @@ impl OtelProviders {
 
         let reader = PeriodicReader::builder(metric_exporter).build();
 
-        let meter_provider = SdkMeterProvider::builder()
-            .with_reader(reader)
-            .with_resource(resource)
-            .build();
+        let meter_provider =
+            SdkMeterProvider::builder().with_reader(reader).with_resource(resource).build();
 
         tracing::info!(
             endpoint = %config.endpoint,

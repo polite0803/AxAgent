@@ -74,17 +74,11 @@ pub async fn fetch_deepseek_balance(api_key: &str) -> Result<Option<Balance>, Ba
         .timeout(std::time::Duration::from_secs(BALANCE_FETCH_TIMEOUT_SECS))
         .build()?;
 
-    let resp = client
-        .get(DEEPSEEK_BALANCE_URL)
-        .bearer_auth(api_key)
-        .send()
-        .await?
-        .error_for_status()?;
+    let resp =
+        client.get(DEEPSEEK_BALANCE_URL).bearer_auth(api_key).send().await?.error_for_status()?;
 
-    let wire: DeepSeekBalanceResponse = resp
-        .json()
-        .await
-        .map_err(|e| BalanceError::Parse(e.to_string()))?;
+    let wire: DeepSeekBalanceResponse =
+        resp.json().await.map_err(|e| BalanceError::Parse(e.to_string()))?;
 
     Ok(Some(Balance {
         available: wire.is_available,
@@ -128,9 +122,7 @@ mod tests {
         let result = fetch_deepseek_balance("").await.expect("should be Ok");
         assert!(result.is_none());
 
-        let result = fetch_deepseek_balance("   \n\t  ")
-            .await
-            .expect("should be Ok");
+        let result = fetch_deepseek_balance("   \n\t  ").await.expect("should be Ok");
         assert!(result.is_none());
     }
 

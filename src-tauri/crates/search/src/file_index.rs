@@ -126,11 +126,7 @@ impl FileIndex {
             if path.is_dir() {
                 let rel = path.strip_prefix(root).unwrap_or(&path);
                 let rel_str = rel.to_string_lossy();
-                if config
-                    .exclude_patterns
-                    .iter()
-                    .any(|p| rel_str.contains(p.as_str()))
-                {
+                if config.exclude_patterns.iter().any(|p| rel_str.contains(p.as_str())) {
                     continue;
                 }
                 self.scan_recursive(root, &path, config, depth + 1, count)?;
@@ -145,11 +141,7 @@ impl FileIndex {
                     .map(|d| d.as_secs())
                     .unwrap_or(0);
 
-                let ext = path
-                    .extension()
-                    .and_then(|e| e.to_str())
-                    .unwrap_or("")
-                    .to_string();
+                let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("").to_string();
 
                 let path_str = path.to_string_lossy().to_string();
 
@@ -171,23 +163,15 @@ impl FileIndex {
         if extensions.is_empty() {
             return self.all_entries();
         }
-        let placeholders: Vec<String> = extensions
-            .iter()
-            .enumerate()
-            .map(|(i, _)| format!("?{}", i + 1))
-            .collect();
+        let placeholders: Vec<String> =
+            extensions.iter().enumerate().map(|(i, _)| format!("?{}", i + 1)).collect();
         let sql = format!(
             "SELECT path, extension, size_bytes, modified_at FROM file_index WHERE extension IN ({}) ORDER BY modified_at DESC",
             placeholders.join(", ")
         );
-        let mut stmt = self
-            .conn
-            .prepare(&sql)
-            .map_err(|e| format!("prepare: {e}"))?;
-        let params: Vec<&dyn rusqlite::types::ToSql> = extensions
-            .iter()
-            .map(|e| e as &dyn rusqlite::types::ToSql)
-            .collect();
+        let mut stmt = self.conn.prepare(&sql).map_err(|e| format!("prepare: {e}"))?;
+        let params: Vec<&dyn rusqlite::types::ToSql> =
+            extensions.iter().map(|e| e as &dyn rusqlite::types::ToSql).collect();
         let rows = stmt
             .query_map(params.as_slice(), |row| {
                 Ok(FileEntry {

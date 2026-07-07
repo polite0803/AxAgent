@@ -159,9 +159,7 @@ impl GatewayLinkManager {
             .iter()
             .filter(|(_, handle)| {
                 handle.state == LinkConnectionState::Connected
-                    && handle
-                        .last_health_check
-                        .is_none_or(|t| now.duration_since(t) > threshold)
+                    && handle.last_health_check.is_none_or(|t| now.duration_since(t) > threshold)
             })
             .map(|(id, _)| id.clone())
             .collect()
@@ -191,13 +189,7 @@ impl GatewayLinkConnectionHandle {
         link_id: String,
         api_key: Option<String>,
     ) -> Self {
-        Self {
-            manager,
-            db,
-            link_id,
-            api_key,
-            shutdown_tx: None,
-        }
+        Self { manager, db, link_id, api_key, shutdown_tx: None }
     }
 
     pub async fn start(&mut self) -> Result<()> {
@@ -342,9 +334,7 @@ impl GatewayLinkConnectionHandle {
             }
         }
 
-        manager
-            .update_link_state(&link_id, LinkConnectionState::Disconnected, None)
-            .await;
+        manager.update_link_state(&link_id, LinkConnectionState::Disconnected, None).await;
     }
 }
 

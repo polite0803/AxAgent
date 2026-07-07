@@ -30,10 +30,7 @@ pub struct ToolIndex {
 
 impl ToolIndex {
     pub fn new() -> Self {
-        Self {
-            tools: HashMap::new(),
-            category_index: HashMap::new(),
-        }
+        Self { tools: HashMap::new(), category_index: HashMap::new() }
     }
 
     pub fn search(&self, query: &str) -> Vec<&Tool> {

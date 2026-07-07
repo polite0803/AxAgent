@@ -57,16 +57,10 @@ impl ShellHooksConfig {
     }
 
     pub fn default_hooks_dir() -> PathBuf {
-        dirs::home_dir()
-            .expect("Could not determine home directory")
-            .join(".axagent")
-            .join("hooks")
+        dirs::home_dir().expect("Could not determine home directory").join(".axagent").join("hooks")
     }
 
     pub fn enabled_hooks_for(&self, event: &str) -> Vec<&ShellHookConfig> {
-        self.hooks
-            .iter()
-            .filter(|h| h.enabled && h.event == event)
-            .collect()
+        self.hooks.iter().filter(|h| h.enabled && h.event == event).collect()
     }
 }

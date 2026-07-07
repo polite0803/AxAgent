@@ -82,14 +82,7 @@ pub fn key_prefix(key: &str) -> String {
         return "*".repeat(chars.len());
     }
     let head: String = chars.iter().take(2).collect();
-    let tail: String = chars
-        .iter()
-        .rev()
-        .take(2)
-        .collect::<Vec<_>>()
-        .into_iter()
-        .rev()
-        .collect();
+    let tail: String = chars.iter().rev().take(2).collect::<Vec<_>>().into_iter().rev().collect();
     format!("{head}…{tail}")
 }
 

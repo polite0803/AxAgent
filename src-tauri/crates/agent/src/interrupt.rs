@@ -92,11 +92,7 @@ impl InterruptManager {
             return;
         }
 
-        let request = InterruptRequest {
-            level,
-            reason,
-            timestamp: chrono::Utc::now(),
-        };
+        let request = InterruptRequest { level, reason, timestamp: chrono::Utc::now() };
         *self.pending.write().await = Some(request);
         *self.state.write().await = InterruptState::Pending(level);
         *self.max_level.write().await = Some(level);
@@ -158,13 +154,11 @@ impl InterruptManager {
     }
 
     pub async fn soft_stop(&self) {
-        self.request(InterruptLevel::Soft, Some("User requested soft stop".to_string()))
-            .await;
+        self.request(InterruptLevel::Soft, Some("User requested soft stop".to_string())).await;
     }
 
     pub async fn hard_stop(&self) {
-        self.request(InterruptLevel::Hard, Some("User requested hard stop".to_string()))
-            .await;
+        self.request(InterruptLevel::Hard, Some("User requested hard stop".to_string())).await;
     }
 
     pub async fn graceful_stop(&self) {
@@ -230,9 +224,7 @@ mod tests {
     #[tokio::test]
     async fn test_interrupt_manager_request_soft() {
         let manager = InterruptManager::new(false);
-        manager
-            .request(InterruptLevel::Soft, Some("test".to_string()))
-            .await;
+        manager.request(InterruptLevel::Soft, Some("test".to_string())).await;
         assert_eq!(manager.state().await, InterruptState::Pending(InterruptLevel::Soft));
         let req = manager.check().await.unwrap();
         assert_eq!(req.level, InterruptLevel::Soft);

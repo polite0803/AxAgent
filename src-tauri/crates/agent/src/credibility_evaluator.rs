@@ -18,13 +18,7 @@ pub struct CredibilityScore {
 impl CredibilityScore {
     pub fn new(authority: f32, consistency: f32, recency: f32, objectivity: f32) -> Self {
         let overall = Self::weighted_score(authority, consistency, recency, objectivity);
-        Self {
-            overall,
-            authority,
-            consistency,
-            recency,
-            objectivity,
-        }
+        Self { overall, authority, consistency, recency, objectivity }
     }
 
     fn weighted_score(authority: f32, consistency: f32, recency: f32, objectivity: f32) -> f32 {
@@ -32,23 +26,11 @@ impl CredibilityScore {
     }
 
     pub fn min() -> Self {
-        Self {
-            overall: 0.0,
-            authority: 0.0,
-            consistency: 0.0,
-            recency: 0.0,
-            objectivity: 0.0,
-        }
+        Self { overall: 0.0, authority: 0.0, consistency: 0.0, recency: 0.0, objectivity: 0.0 }
     }
 
     pub fn max() -> Self {
-        Self {
-            overall: 1.0,
-            authority: 1.0,
-            consistency: 1.0,
-            recency: 1.0,
-            objectivity: 1.0,
-        }
+        Self { overall: 1.0, authority: 1.0, consistency: 1.0, recency: 1.0, objectivity: 1.0 }
     }
 
     pub fn is_high(&self) -> bool {
@@ -111,12 +93,7 @@ struct AuthorityWeight {
 
 impl Default for AuthorityWeight {
     fn default() -> Self {
-        Self {
-            base: 0.5,
-            official: 0.95,
-            media: 0.75,
-            personal: 0.40,
-        }
+        Self { base: 0.5, official: 0.95, media: 0.75, personal: 0.40 }
     }
 }
 
@@ -126,88 +103,45 @@ impl CredibilityEvaluator {
 
         source_weights.insert(
             SourceType::Academic,
-            AuthorityWeight {
-                base: 0.9,
-                official: 0.95,
-                media: 0.85,
-                personal: 0.7,
-            },
+            AuthorityWeight { base: 0.9, official: 0.95, media: 0.85, personal: 0.7 },
         );
 
         source_weights.insert(
             SourceType::Documentation,
-            AuthorityWeight {
-                base: 0.85,
-                official: 0.9,
-                media: 0.8,
-                personal: 0.75,
-            },
+            AuthorityWeight { base: 0.85, official: 0.9, media: 0.8, personal: 0.75 },
         );
 
         source_weights.insert(
             SourceType::GitHub,
-            AuthorityWeight {
-                base: 0.8,
-                official: 0.85,
-                media: 0.75,
-                personal: 0.7,
-            },
+            AuthorityWeight { base: 0.8, official: 0.85, media: 0.75, personal: 0.7 },
         );
 
         source_weights.insert(
             SourceType::News,
-            AuthorityWeight {
-                base: 0.7,
-                official: 0.85,
-                media: 0.75,
-                personal: 0.5,
-            },
+            AuthorityWeight { base: 0.7, official: 0.85, media: 0.75, personal: 0.5 },
         );
 
         source_weights.insert(
             SourceType::Wikipedia,
-            AuthorityWeight {
-                base: 0.65,
-                official: 0.75,
-                media: 0.65,
-                personal: 0.55,
-            },
+            AuthorityWeight { base: 0.65, official: 0.75, media: 0.65, personal: 0.55 },
         );
 
         source_weights.insert(
             SourceType::Web,
-            AuthorityWeight {
-                base: 0.5,
-                official: 0.8,
-                media: 0.6,
-                personal: 0.35,
-            },
+            AuthorityWeight { base: 0.5, official: 0.8, media: 0.6, personal: 0.35 },
         );
 
         source_weights.insert(
             SourceType::Blog,
-            AuthorityWeight {
-                base: 0.4,
-                official: 0.7,
-                media: 0.5,
-                personal: 0.3,
-            },
+            AuthorityWeight { base: 0.4, official: 0.7, media: 0.5, personal: 0.3 },
         );
 
         source_weights.insert(
             SourceType::Forum,
-            AuthorityWeight {
-                base: 0.35,
-                official: 0.6,
-                media: 0.45,
-                personal: 0.25,
-            },
+            AuthorityWeight { base: 0.35, official: 0.6, media: 0.45, personal: 0.25 },
         );
 
-        Self {
-            source_weights,
-            recency_threshold_days: 365,
-        }
+        Self { source_weights, recency_threshold_days: 365 }
     }
 
     pub fn with_recency_threshold(mut self, days: i64) -> Self {
@@ -473,10 +407,8 @@ impl CredibilityRanking {
     }
 
     pub fn rank(&self, assessments: Vec<CredibilityAssessment>) -> Vec<CredibilityAssessment> {
-        let mut filtered: Vec<_> = assessments
-            .into_iter()
-            .filter(|a| a.credibility.overall >= self.min_score)
-            .collect();
+        let mut filtered: Vec<_> =
+            assessments.into_iter().filter(|a| a.credibility.overall >= self.min_score).collect();
 
         filtered.sort_by(|a, b| {
             b.credibility
@@ -750,9 +682,7 @@ mod tests {
             score: 0.9,
             warnings: vec![],
         };
-        let assessment_with_val = evaluator
-            .evaluate_with_validation(&result, validation)
-            .await;
+        let assessment_with_val = evaluator.evaluate_with_validation(&result, validation).await;
         assert!(assessment_with_val.validation_result.is_some());
         assert!(assessment_with_val.credibility.overall != assessment_no_val.credibility.overall);
     }

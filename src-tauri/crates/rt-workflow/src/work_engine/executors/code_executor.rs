@@ -55,10 +55,7 @@ fn shared_rhai_engine() -> &'static Engine {
             }
         });
         engine.register_fn("join", |arr: rhai::Array, sep: &str| -> String {
-            arr.iter()
-                .map(|item| item.to_string())
-                .collect::<Vec<_>>()
-                .join(sep)
+            arr.iter().map(|item| item.to_string()).collect::<Vec<_>>().join(sep)
         });
         engine.register_fn("json_parse", |s: &str| -> rhai::Dynamic {
             match serde_json::from_str::<serde_json::Value>(s) {
@@ -136,9 +133,7 @@ async fn execute_rhai_directly(
         for (k, v) in scope_vars {
             scope.push_constant(k, v);
         }
-        engine
-            .eval_expression::<rhai::Dynamic>(&code_owned)
-            .map_err(|e| e.to_string())
+        engine.eval_expression::<rhai::Dynamic>(&code_owned).map_err(|e| e.to_string())
     });
     let result: rhai::Dynamic = match tokio::time::timeout(
         std::time::Duration::from_secs(30), // P2-18: 30s 硬上限
@@ -225,11 +220,7 @@ fn dynamic_to_json_value(v: &rhai::Dynamic) -> Value {
     }
     // Array
     if let Some(arr) = v.clone().try_cast::<rhai::Array>() {
-        return Value::Array(
-            arr.into_iter()
-                .map(|item| dynamic_to_json_value(&item))
-                .collect(),
-        );
+        return Value::Array(arr.into_iter().map(|item| dynamic_to_json_value(&item)).collect());
     }
     // Map
     if let Some(map) = v.clone().try_cast::<rhai::Map>() {

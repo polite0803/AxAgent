@@ -151,12 +151,7 @@ impl UpstreamProxyBootstrap {
 impl UpstreamProxyState {
     #[must_use]
     pub fn disabled() -> Self {
-        Self {
-            enabled: false,
-            proxy_url: None,
-            ca_bundle_path: None,
-            no_proxy: no_proxy_list(),
-        }
+        Self { enabled: false, proxy_url: None, ca_bundle_path: None, no_proxy: no_proxy_list() }
     }
 
     #[must_use]
@@ -228,11 +223,7 @@ pub fn inherited_upstream_proxy_env(
     }
     UPSTREAM_PROXY_ENV_KEYS
         .iter()
-        .filter_map(|key| {
-            env_map
-                .get(*key)
-                .map(|value| ((*key).to_string(), value.clone()))
-        })
+        .filter_map(|key| env_map.get(*key).map(|value| ((*key).to_string(), value.clone())))
         .collect()
 }
 

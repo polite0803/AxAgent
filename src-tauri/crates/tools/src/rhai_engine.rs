@@ -34,9 +34,7 @@ pub fn create_rhai_engine() -> Engine {
 
 /// 编译一段 Rhai 脚本
 pub fn compile_script(engine: &Engine, script: &str) -> Result<AST, String> {
-    engine
-        .compile(script)
-        .map_err(|e| format!("Rhai 编译失败: {e}"))
+    engine.compile(script).map_err(|e| format!("Rhai 编译失败: {e}"))
 }
 
 /// 从模板 tool_defs 批量编译 Rhai 工具（非 DAG 节点方式）
@@ -139,9 +137,8 @@ pub fn execute_rhai_ast(
         }
     });
 
-    let result: rhai::Dynamic = engine
-        .eval_ast_with_scope(&mut scope, ast)
-        .map_err(|e| format!("Rhai 执行失败: {e}"))?;
+    let result: rhai::Dynamic =
+        engine.eval_ast_with_scope(&mut scope, ast).map_err(|e| format!("Rhai 执行失败: {e}"))?;
 
     Ok(dynamic_to_json(result))
 }
@@ -258,9 +255,7 @@ pub struct RhaiEngine {
 impl RhaiEngine {
     #[must_use]
     pub fn new() -> Self {
-        Self {
-            cache: Mutex::new(HashMap::new()),
-        }
+        Self { cache: Mutex::new(HashMap::new()) }
     }
 }
 
@@ -275,10 +270,7 @@ impl HarnessRhaiEngineAdapter for RhaiEngine {
         let engine = create_rhai_engine();
         let mut cache = self.cache.lock().unwrap_or_else(|e| e.into_inner());
         for script in scripts {
-            let tool_name = script
-                .get("tool_name")
-                .and_then(|v| v.as_str())
-                .unwrap_or("");
+            let tool_name = script.get("tool_name").and_then(|v| v.as_str()).unwrap_or("");
             let code = script.get("code").and_then(|v| v.as_str()).unwrap_or("");
             if code.is_empty() {
                 continue;

@@ -86,10 +86,7 @@ impl Tool for FileEditTool {
             return Err(ToolError::invalid_input("old_string 和 new_string 相同，无需编辑"));
         }
 
-        let file_size = tokio::fs::metadata(path)
-            .await
-            .map(|m| m.len())
-            .unwrap_or(0);
+        let file_size = tokio::fs::metadata(path).await.map(|m| m.len()).unwrap_or(0);
         if file_size > MAX_FILE_SIZE {
             return Err(ToolError::invalid_input_for(
                 "FileEdit",
@@ -110,15 +107,8 @@ impl Tool for FileEditTool {
 
     fn check_permissions(&self, input: &Value, _ctx: &ToolContext) -> PermissionResult {
         let path = input["file_path"].as_str().unwrap_or("");
-        let dangerous_prefixes = [
-            "/etc",
-            "/boot",
-            "/sys",
-            "/proc",
-            "/dev",
-            "C:\\Windows",
-            "C:\\Program Files",
-        ];
+        let dangerous_prefixes =
+            ["/etc", "/boot", "/sys", "/proc", "/dev", "C:\\Windows", "C:\\Program Files"];
         for prefix in &dangerous_prefixes {
             if path.starts_with(prefix) {
                 return PermissionResult::Ask(format!("编辑系统路径 '{}'，确认？", path));
@@ -137,10 +127,7 @@ impl Tool for FileEditTool {
         let new_string = input["new_string"]
             .as_str()
             .ok_or_else(|| ToolError::invalid_input_for("FileEdit", "缺少 new_string 参数"))?;
-        let replace_all = input
-            .get("replace_all")
-            .and_then(|v| v.as_bool())
-            .unwrap_or(false);
+        let replace_all = input.get("replace_all").and_then(|v| v.as_bool()).unwrap_or(false);
 
         let original = tokio::fs::read_to_string(file_path).await.map_err(|e| {
             ToolError::execution_failed_for("FileEdit", format!("读取文件失败: {}", e))
@@ -188,8 +175,7 @@ impl Tool for FileEditTool {
 }
 
 fn normalize_quotes(s: &str) -> String {
-    s.replace(['\u{2018}', '\u{2019}'], "'")
-        .replace(['\u{201c}', '\u{201d}'], "\"")
+    s.replace(['\u{2018}', '\u{2019}'], "'").replace(['\u{201c}', '\u{201d}'], "\"")
 }
 
 async fn write_and_diff(

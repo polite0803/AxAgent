@@ -113,10 +113,7 @@ impl SuggestionEngine {
     }
 
     pub fn with_config(config: SuggestionEngineConfig) -> Self {
-        Self {
-            config,
-            suggestion_templates: Self::default_templates(),
-        }
+        Self { config, suggestion_templates: Self::default_templates() }
     }
 
     fn default_templates() -> HashMap<SuggestionType, Vec<SuggestionTemplate>> {
@@ -142,9 +139,7 @@ impl SuggestionEngine {
                 suggestion_type: SuggestionType::Refactor,
                 title_template: "Refactor {target}".to_string(),
                 description_template: "检测到潜在的重构机会".to_string(),
-                action: SuggestionAction::ShowRefactorOptions {
-                    target: "{target}".to_string(),
-                },
+                action: SuggestionAction::ShowRefactorOptions { target: "{target}".to_string() },
                 priority: Priority::Medium,
             }],
         );
@@ -155,9 +150,7 @@ impl SuggestionEngine {
                 suggestion_type: SuggestionType::Documentation,
                 title_template: "Generate documentation for {topic}".to_string(),
                 description_template: "为您生成文档".to_string(),
-                action: SuggestionAction::GenerateDocs {
-                    topic: "{topic}".to_string(),
-                },
+                action: SuggestionAction::GenerateDocs { topic: "{topic}".to_string() },
                 priority: Priority::Low,
             }],
         );
@@ -168,9 +161,7 @@ impl SuggestionEngine {
                 suggestion_type: SuggestionType::Test,
                 title_template: "Generate tests for {target}".to_string(),
                 description_template: "为您创建测试用例".to_string(),
-                action: SuggestionAction::GenerateTests {
-                    target: "{target}".to_string(),
-                },
+                action: SuggestionAction::GenerateTests { target: "{target}".to_string() },
                 priority: Priority::Medium,
             }],
         );
@@ -181,9 +172,7 @@ impl SuggestionEngine {
                 suggestion_type: SuggestionType::Optimization,
                 title_template: "Optimize {target}".to_string(),
                 description_template: "检测到性能优化机会".to_string(),
-                action: SuggestionAction::ShowOptimizations {
-                    target: "{target}".to_string(),
-                },
+                action: SuggestionAction::ShowOptimizations { target: "{target}".to_string() },
                 priority: Priority::Medium,
             }],
         );
@@ -194,9 +183,7 @@ impl SuggestionEngine {
                 suggestion_type: SuggestionType::Learning,
                 title_template: "Learn about {topic}".to_string(),
                 description_template: "推荐学习资源".to_string(),
-                action: SuggestionAction::ShowLearningResources {
-                    topic: "{topic}".to_string(),
-                },
+                action: SuggestionAction::ShowLearningResources { topic: "{topic}".to_string() },
                 priority: Priority::Low,
             }],
         );
@@ -276,9 +263,7 @@ impl SuggestionEngine {
             SuggestionType::Refactor,
             format!("Refactor {}", target),
             "检测到潜在的重构机会".to_string(),
-            SuggestionAction::ShowRefactorOptions {
-                target: target.to_string(),
-            },
+            SuggestionAction::ShowRefactorOptions { target: target.to_string() },
             Priority::Medium,
             self.config.suggestion_ttl_minutes,
         )]
@@ -289,9 +274,7 @@ impl SuggestionEngine {
             SuggestionType::Documentation,
             format!("Generate docs for {}", topic),
             "为您生成文档".to_string(),
-            SuggestionAction::GenerateDocs {
-                topic: topic.to_string(),
-            },
+            SuggestionAction::GenerateDocs { topic: topic.to_string() },
             Priority::Low,
             self.config.suggestion_ttl_minutes,
         )]
@@ -302,9 +285,7 @@ impl SuggestionEngine {
             SuggestionType::Test,
             format!("Generate tests for {}", target),
             "为您创建测试用例".to_string(),
-            SuggestionAction::GenerateTests {
-                target: target.to_string(),
-            },
+            SuggestionAction::GenerateTests { target: target.to_string() },
             Priority::Medium,
             self.config.suggestion_ttl_minutes,
         )]
@@ -315,9 +296,7 @@ impl SuggestionEngine {
             SuggestionType::Optimization,
             format!("Debug: {}", error),
             "分析并修复错误".to_string(),
-            SuggestionAction::ShowOptimizations {
-                target: error.to_string(),
-            },
+            SuggestionAction::ShowOptimizations { target: error.to_string() },
             Priority::High,
             self.config.suggestion_ttl_minutes,
         )]
@@ -328,9 +307,7 @@ impl SuggestionEngine {
             SuggestionType::Learning,
             "Search assistance".to_string(),
             "为您准备搜索建议".to_string(),
-            SuggestionAction::ShowLearningResources {
-                topic: "general".to_string(),
-            },
+            SuggestionAction::ShowLearningResources { topic: "general".to_string() },
             Priority::Low,
             self.config.suggestion_ttl_minutes,
         )]
@@ -351,9 +328,7 @@ impl SuggestionEngine {
                 SuggestionType::Test,
                 "Peak productivity time - Add tests".to_string(),
                 "您的高效工作时间，适合添加测试".to_string(),
-                SuggestionAction::GenerateTests {
-                    target: "current_file".to_string(),
-                },
+                SuggestionAction::GenerateTests { target: "current_file".to_string() },
                 Priority::Medium,
                 self.config.suggestion_ttl_minutes,
             ));
@@ -364,9 +339,7 @@ impl SuggestionEngine {
                 SuggestionType::Documentation,
                 "Add documentation".to_string(),
                 "建议添加详细文档".to_string(),
-                SuggestionAction::GenerateDocs {
-                    topic: "current".to_string(),
-                },
+                SuggestionAction::GenerateDocs { topic: "current".to_string() },
                 Priority::Low,
                 self.config.suggestion_ttl_minutes,
             ));

@@ -34,11 +34,7 @@ pub struct PrefetchResults {
 
 impl PrefetchResults {
     pub fn new() -> Self {
-        Self {
-            results: Vec::new(),
-            total_estimated_time_ms: 0,
-            critical_path: Vec::new(),
-        }
+        Self { results: Vec::new(), total_estimated_time_ms: 0, critical_path: Vec::new() }
     }
 
     pub fn add(&mut self, result: PrefetchResult) {
@@ -105,11 +101,7 @@ impl TaskPrefetcher {
     }
 
     pub fn with_config(config: PrefetcherConfig) -> Self {
-        Self {
-            config,
-            cache: HashMap::new(),
-            pending_prefetches: HashMap::new(),
-        }
+        Self { config, cache: HashMap::new(), pending_prefetches: HashMap::new() }
     }
 
     pub fn get_config(&self) -> &PrefetcherConfig {
@@ -276,11 +268,8 @@ impl TaskPrefetcher {
     }
 
     fn evict_oldest(&mut self) {
-        if let Some(oldest_key) = self
-            .cache
-            .iter()
-            .min_by_key(|(_, v)| v.created_at)
-            .map(|(k, _)| k.clone())
+        if let Some(oldest_key) =
+            self.cache.iter().min_by_key(|(_, v)| v.created_at).map(|(k, _)| k.clone())
         {
             self.cache.remove(&oldest_key);
         }

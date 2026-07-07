@@ -48,11 +48,7 @@ pub struct TokenBudgetPredictor {
 impl TokenBudgetPredictor {
     /// 创建指定上下文窗口大小的预测器
     pub fn new(context_window: u32) -> Self {
-        Self {
-            context_window,
-            compact_threshold_pct: 80,
-            history: Vec::new(),
-        }
+        Self { context_window, compact_threshold_pct: 80, history: Vec::new() }
     }
 
     /// 预估消息列表的 token 数（简化的字符/4 估算法）
@@ -164,9 +160,7 @@ mod tests {
     fn estimate_text_message() {
         let msg = ConversationMessage {
             role: MessageRole::User,
-            blocks: vec![ContentBlock::Text {
-                text: "hello world".to_string(),
-            }],
+            blocks: vec![ContentBlock::Text { text: "hello world".to_string() }],
             usage: None,
         };
         // 4 (角色) + "hello world" 11 字符 / 4 = 2 → max(1) → 2 → total: 4 + 2 = 6
@@ -197,9 +191,7 @@ mod tests {
         let mut predictor = TokenBudgetPredictor::new(100_000);
         let msg = ConversationMessage {
             role: crate::session::MessageRole::User,
-            blocks: vec![crate::session::ContentBlock::Text {
-                text: "hello".to_string(),
-            }],
+            blocks: vec![crate::session::ContentBlock::Text { text: "hello".to_string() }],
             usage: None,
         };
         let decision = predictor.evaluate(&[msg]);
@@ -242,9 +234,7 @@ mod tests {
         let mut predictor = TokenBudgetPredictor::new(100_000);
         let msg = ConversationMessage {
             role: MessageRole::User,
-            blocks: vec![ContentBlock::Text {
-                text: "a".to_string(),
-            }],
+            blocks: vec![ContentBlock::Text { text: "a".to_string() }],
             usage: None,
         };
         for _ in 0..25 {

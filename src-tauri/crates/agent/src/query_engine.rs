@@ -52,13 +52,7 @@ pub trait VectorSearch: Send + Sync {
 
 impl QueryEngine {
     pub fn new(db: Arc<DatabaseConnection>) -> Self {
-        Self {
-            db,
-            llm_adapter: None,
-            llm_ctx: None,
-            llm_model: None,
-            vector_store: None,
-        }
+        Self { db, llm_adapter: None, llm_ctx: None, llm_model: None, vector_store: None }
     }
 
     pub fn with_llm(
@@ -96,17 +90,11 @@ impl QueryEngine {
         let query_lower = ctx.query.to_lowercase();
         let query_words: Vec<&str> = query_lower.split_whitespace().collect();
 
-        let all_notes: Vec<axagent_dao::repo::note::Note> = db_notes
-            .into_iter()
-            .map(axagent_dao::repo::note::model_to_note)
-            .collect();
+        let all_notes: Vec<axagent_dao::repo::note::Note> =
+            db_notes.into_iter().map(axagent_dao::repo::note::model_to_note).collect();
 
         let avg_dl = if !all_notes.is_empty() {
-            all_notes
-                .iter()
-                .map(|n| n.content.len() as f64)
-                .sum::<f64>()
-                / all_notes.len() as f64
+            all_notes.iter().map(|n| n.content.len() as f64).sum::<f64>() / all_notes.len() as f64
         } else {
             1.0
         };
@@ -137,11 +125,7 @@ impl QueryEngine {
         scored.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
 
         let total = scored.len();
-        let paginated: Vec<_> = scored
-            .into_iter()
-            .skip(ctx.offset)
-            .take(ctx.limit)
-            .collect();
+        let paginated: Vec<_> = scored.into_iter().skip(ctx.offset).take(ctx.limit).collect();
 
         let mut pages = Vec::new();
         for (note, score) in paginated {
@@ -197,17 +181,11 @@ impl QueryEngine {
         let query_lower = ctx.query.to_lowercase();
         let query_words: Vec<&str> = query_lower.split_whitespace().collect();
 
-        let all_notes: Vec<axagent_dao::repo::note::Note> = db_notes
-            .into_iter()
-            .map(axagent_dao::repo::note::model_to_note)
-            .collect();
+        let all_notes: Vec<axagent_dao::repo::note::Note> =
+            db_notes.into_iter().map(axagent_dao::repo::note::model_to_note).collect();
 
         let avg_dl = if !all_notes.is_empty() {
-            all_notes
-                .iter()
-                .map(|n| n.content.len() as f64)
-                .sum::<f64>()
-                / all_notes.len() as f64
+            all_notes.iter().map(|n| n.content.len() as f64).sum::<f64>() / all_notes.len() as f64
         } else {
             1.0
         };
@@ -250,11 +228,7 @@ impl QueryEngine {
         combined.retain(|(_, s)| *s > 0.0);
 
         let total = combined.len();
-        let paginated: Vec<_> = combined
-            .into_iter()
-            .skip(ctx.offset)
-            .take(ctx.limit)
-            .collect();
+        let paginated: Vec<_> = combined.into_iter().skip(ctx.offset).take(ctx.limit).collect();
 
         let note_map: HashMap<String, axagent_dao::repo::note::Note> =
             all_notes.into_iter().map(|n| (n.id.clone(), n)).collect();
@@ -378,10 +352,8 @@ impl QueryEngine {
             store: None,
         };
 
-        let response = adapter
-            .chat(&ctx, request)
-            .await
-            .map_err(|e| format!("LLM call failed: {}", e))?;
+        let response =
+            adapter.chat(&ctx, request).await.map_err(|e| format!("LLM call failed: {}", e))?;
 
         Ok(response.content)
     }
@@ -490,12 +462,8 @@ fn extract_snippet_around_match(
         None
     };
 
-    let best_pos = best_pos.or_else(|| {
-        query_words
-            .iter()
-            .filter_map(|w| content_lower.find(w))
-            .min()
-    });
+    let best_pos =
+        best_pos.or_else(|| query_words.iter().filter_map(|w| content_lower.find(w)).min());
 
     let start = match best_pos {
         Some(pos) => pos.saturating_sub(context_chars),
@@ -542,10 +510,7 @@ mod tests {
 
     #[test]
     fn test_query_result_serialization() {
-        let result = QueryResult {
-            pages: vec![],
-            total: 0,
-        };
+        let result = QueryResult { pages: vec![], total: 0 };
         let json = serde_json::to_string(&result).unwrap();
         let deserialized: QueryResult = serde_json::from_str(&json).unwrap();
         assert_eq!(deserialized.total, 0);
@@ -656,10 +621,7 @@ mod tests {
 
     #[test]
     fn test_query_result_empty() {
-        let result = QueryResult {
-            pages: vec![],
-            total: 0,
-        };
+        let result = QueryResult { pages: vec![], total: 0 };
         assert!(result.pages.is_empty());
         assert_eq!(result.total, 0);
     }
@@ -855,9 +817,7 @@ mod tests {
             },
         ];
         pages.sort_by(|a, b| {
-            b.relevance_score
-                .partial_cmp(&a.relevance_score)
-                .unwrap_or(std::cmp::Ordering::Equal)
+            b.relevance_score.partial_cmp(&a.relevance_score).unwrap_or(std::cmp::Ordering::Equal)
         });
         assert_eq!(pages[0].relevance_score, 0.9);
         assert_eq!(pages[1].relevance_score, 0.6);
@@ -974,11 +934,8 @@ mod tests {
 
     #[test]
     fn test_score_filtering_zero() {
-        let mut scored: Vec<(String, f64)> = vec![
-            ("n1".to_string(), 0.5),
-            ("n2".to_string(), 0.0),
-            ("n3".to_string(), 0.3),
-        ];
+        let mut scored: Vec<(String, f64)> =
+            vec![("n1".to_string(), 0.5), ("n2".to_string(), 0.0), ("n3".to_string(), 0.3)];
         scored.retain(|(_, s)| *s > 0.0);
         assert_eq!(scored.len(), 2);
     }

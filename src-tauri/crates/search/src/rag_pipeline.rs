@@ -76,16 +76,11 @@ impl RAGPipeline {
             .collect();
 
         // 阶段 2：重排序
-        let reranked = self
-            .rerank_pipeline
-            .execute(query, hybrid_results, rerank_config)
-            .await;
+        let reranked = self.rerank_pipeline.execute(query, hybrid_results, rerank_config).await;
 
         // 阶段 3：质检
-        let chunks: Vec<(String, String)> = reranked
-            .iter()
-            .map(|r| (r.id.clone(), r.content.clone()))
-            .collect();
+        let chunks: Vec<(String, String)> =
+            reranked.iter().map(|r| (r.id.clone(), r.content.clone())).collect();
 
         let judgments = self.self_rag_gate.judge_chunks(query, &chunks).await?;
         let quality = self.self_rag_gate.evaluate_quality(&judgments);
@@ -105,11 +100,7 @@ impl RAGPipeline {
             })
             .collect();
 
-        Ok(PipelineOutput {
-            results: filtered,
-            quality,
-            retries: 0,
-        })
+        Ok(PipelineOutput { results: filtered, quality, retries: 0 })
     }
 }
 

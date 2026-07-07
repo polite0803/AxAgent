@@ -18,30 +18,19 @@ pub struct ConfigDiagnostic {
 /// Classification of the diagnostic.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum DiagnosticKind {
-    UnknownKey {
-        suggestion: Option<String>,
-    },
-    WrongType {
-        expected: &'static str,
-        got: &'static str,
-    },
-    Deprecated {
-        replacement: &'static str,
-    },
+    UnknownKey { suggestion: Option<String> },
+    WrongType { expected: &'static str, got: &'static str },
+    Deprecated { replacement: &'static str },
 }
 
 impl std::fmt::Display for ConfigDiagnostic {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let location = self
-            .line
-            .map_or_else(String::new, |line| format!(" (line {line})"));
+        let location = self.line.map_or_else(String::new, |line| format!(" (line {line})"));
         match &self.kind {
             DiagnosticKind::UnknownKey { suggestion: None } => {
                 write!(f, "{}: unknown key \"{}\"{location}", self.path, self.field)
             },
-            DiagnosticKind::UnknownKey {
-                suggestion: Some(hint),
-            } => {
+            DiagnosticKind::UnknownKey { suggestion: Some(hint) } => {
                 write!(
                     f,
                     "{}: unknown key \"{}\"{location}. Did you mean \"{}\"?",
@@ -113,9 +102,9 @@ impl FieldType {
             Self::String => value.as_str().is_some(),
             Self::Bool => value.as_bool().is_some(),
             Self::Object => value.as_object().is_some(),
-            Self::StringArray => value
-                .as_array()
-                .is_some_and(|arr| arr.iter().all(|v| v.as_str().is_some())),
+            Self::StringArray => {
+                value.as_array().is_some_and(|arr| arr.iter().all(|v| v.as_str().is_some()))
+            },
             Self::Number => value.as_i64().is_some(),
         }
     }
@@ -143,188 +132,65 @@ struct DeprecatedField {
 }
 
 const TOP_LEVEL_FIELDS: &[FieldSpec] = &[
-    FieldSpec {
-        name: "$schema",
-        expected: FieldType::String,
-    },
-    FieldSpec {
-        name: "model",
-        expected: FieldType::String,
-    },
-    FieldSpec {
-        name: "hooks",
-        expected: FieldType::Object,
-    },
-    FieldSpec {
-        name: "permissions",
-        expected: FieldType::Object,
-    },
-    FieldSpec {
-        name: "permissionMode",
-        expected: FieldType::String,
-    },
-    FieldSpec {
-        name: "mcpServers",
-        expected: FieldType::Object,
-    },
-    FieldSpec {
-        name: "oauth",
-        expected: FieldType::Object,
-    },
-    FieldSpec {
-        name: "enabledPlugins",
-        expected: FieldType::Object,
-    },
-    FieldSpec {
-        name: "plugins",
-        expected: FieldType::Object,
-    },
-    FieldSpec {
-        name: "sandbox",
-        expected: FieldType::Object,
-    },
-    FieldSpec {
-        name: "features",
-        expected: FieldType::Object,
-    },
-    FieldSpec {
-        name: "env",
-        expected: FieldType::Object,
-    },
-    FieldSpec {
-        name: "aliases",
-        expected: FieldType::Object,
-    },
-    FieldSpec {
-        name: "providerFallbacks",
-        expected: FieldType::Object,
-    },
-    FieldSpec {
-        name: "trustedRoots",
-        expected: FieldType::StringArray,
-    },
+    FieldSpec { name: "$schema", expected: FieldType::String },
+    FieldSpec { name: "model", expected: FieldType::String },
+    FieldSpec { name: "hooks", expected: FieldType::Object },
+    FieldSpec { name: "permissions", expected: FieldType::Object },
+    FieldSpec { name: "permissionMode", expected: FieldType::String },
+    FieldSpec { name: "mcpServers", expected: FieldType::Object },
+    FieldSpec { name: "oauth", expected: FieldType::Object },
+    FieldSpec { name: "enabledPlugins", expected: FieldType::Object },
+    FieldSpec { name: "plugins", expected: FieldType::Object },
+    FieldSpec { name: "sandbox", expected: FieldType::Object },
+    FieldSpec { name: "features", expected: FieldType::Object },
+    FieldSpec { name: "env", expected: FieldType::Object },
+    FieldSpec { name: "aliases", expected: FieldType::Object },
+    FieldSpec { name: "providerFallbacks", expected: FieldType::Object },
+    FieldSpec { name: "trustedRoots", expected: FieldType::StringArray },
 ];
 
 const HOOKS_FIELDS: &[FieldSpec] = &[
-    FieldSpec {
-        name: "PreToolUse",
-        expected: FieldType::StringArray,
-    },
-    FieldSpec {
-        name: "PostToolUse",
-        expected: FieldType::StringArray,
-    },
-    FieldSpec {
-        name: "PostToolUseFailure",
-        expected: FieldType::StringArray,
-    },
+    FieldSpec { name: "PreToolUse", expected: FieldType::StringArray },
+    FieldSpec { name: "PostToolUse", expected: FieldType::StringArray },
+    FieldSpec { name: "PostToolUseFailure", expected: FieldType::StringArray },
 ];
 
 const PERMISSIONS_FIELDS: &[FieldSpec] = &[
-    FieldSpec {
-        name: "defaultMode",
-        expected: FieldType::String,
-    },
-    FieldSpec {
-        name: "allow",
-        expected: FieldType::StringArray,
-    },
-    FieldSpec {
-        name: "deny",
-        expected: FieldType::StringArray,
-    },
-    FieldSpec {
-        name: "ask",
-        expected: FieldType::StringArray,
-    },
+    FieldSpec { name: "defaultMode", expected: FieldType::String },
+    FieldSpec { name: "allow", expected: FieldType::StringArray },
+    FieldSpec { name: "deny", expected: FieldType::StringArray },
+    FieldSpec { name: "ask", expected: FieldType::StringArray },
 ];
 
 const PLUGINS_FIELDS: &[FieldSpec] = &[
-    FieldSpec {
-        name: "enabled",
-        expected: FieldType::Object,
-    },
-    FieldSpec {
-        name: "externalDirectories",
-        expected: FieldType::StringArray,
-    },
-    FieldSpec {
-        name: "installRoot",
-        expected: FieldType::String,
-    },
-    FieldSpec {
-        name: "registryPath",
-        expected: FieldType::String,
-    },
-    FieldSpec {
-        name: "bundledRoot",
-        expected: FieldType::String,
-    },
-    FieldSpec {
-        name: "maxOutputTokens",
-        expected: FieldType::Number,
-    },
+    FieldSpec { name: "enabled", expected: FieldType::Object },
+    FieldSpec { name: "externalDirectories", expected: FieldType::StringArray },
+    FieldSpec { name: "installRoot", expected: FieldType::String },
+    FieldSpec { name: "registryPath", expected: FieldType::String },
+    FieldSpec { name: "bundledRoot", expected: FieldType::String },
+    FieldSpec { name: "maxOutputTokens", expected: FieldType::Number },
 ];
 
 const SANDBOX_FIELDS: &[FieldSpec] = &[
-    FieldSpec {
-        name: "enabled",
-        expected: FieldType::Bool,
-    },
-    FieldSpec {
-        name: "namespaceRestrictions",
-        expected: FieldType::Bool,
-    },
-    FieldSpec {
-        name: "networkIsolation",
-        expected: FieldType::Bool,
-    },
-    FieldSpec {
-        name: "filesystemMode",
-        expected: FieldType::String,
-    },
-    FieldSpec {
-        name: "allowedMounts",
-        expected: FieldType::StringArray,
-    },
+    FieldSpec { name: "enabled", expected: FieldType::Bool },
+    FieldSpec { name: "namespaceRestrictions", expected: FieldType::Bool },
+    FieldSpec { name: "networkIsolation", expected: FieldType::Bool },
+    FieldSpec { name: "filesystemMode", expected: FieldType::String },
+    FieldSpec { name: "allowedMounts", expected: FieldType::StringArray },
 ];
 
 const OAUTH_FIELDS: &[FieldSpec] = &[
-    FieldSpec {
-        name: "clientId",
-        expected: FieldType::String,
-    },
-    FieldSpec {
-        name: "authorizeUrl",
-        expected: FieldType::String,
-    },
-    FieldSpec {
-        name: "tokenUrl",
-        expected: FieldType::String,
-    },
-    FieldSpec {
-        name: "callbackPort",
-        expected: FieldType::Number,
-    },
-    FieldSpec {
-        name: "manualRedirectUrl",
-        expected: FieldType::String,
-    },
-    FieldSpec {
-        name: "scopes",
-        expected: FieldType::StringArray,
-    },
+    FieldSpec { name: "clientId", expected: FieldType::String },
+    FieldSpec { name: "authorizeUrl", expected: FieldType::String },
+    FieldSpec { name: "tokenUrl", expected: FieldType::String },
+    FieldSpec { name: "callbackPort", expected: FieldType::Number },
+    FieldSpec { name: "manualRedirectUrl", expected: FieldType::String },
+    FieldSpec { name: "scopes", expected: FieldType::StringArray },
 ];
 
 const DEPRECATED_FIELDS: &[DeprecatedField] = &[
-    DeprecatedField {
-        name: "permissionMode",
-        replacement: "permissions.defaultMode",
-    },
-    DeprecatedField {
-        name: "enabledPlugins",
-        replacement: "plugins.enabled",
-    },
+    DeprecatedField { name: "permissionMode", replacement: "permissions.defaultMode" },
+    DeprecatedField { name: "enabledPlugins", replacement: "plugins.enabled" },
 ];
 
 // ---- line-number resolution ----
@@ -355,10 +221,7 @@ fn validate_object_keys(
     source: &str,
     path_display: &str,
 ) -> ValidationResult {
-    let mut result = ValidationResult {
-        errors: Vec::new(),
-        warnings: Vec::new(),
-    };
+    let mut result = ValidationResult { errors: Vec::new(), warnings: Vec::new() };
 
     let known_names: Vec<&str> = known_fields.iter().map(|f| f.name).collect();
 
@@ -454,9 +317,7 @@ pub fn validate_config_file(
                 path: path_display.clone(),
                 field: deprecated.name.to_string(),
                 line: find_key_line(source, deprecated.name),
-                kind: DiagnosticKind::Deprecated {
-                    replacement: deprecated.replacement,
-                },
+                kind: DiagnosticKind::Deprecated { replacement: deprecated.replacement },
             });
         }
     }
@@ -565,10 +426,7 @@ mod tests {
         assert_eq!(result.errors[0].field, "model");
         assert!(matches!(
             result.errors[0].kind,
-            DiagnosticKind::WrongType {
-                expected: "a string",
-                got: "a number"
-            }
+            DiagnosticKind::WrongType { expected: "a string", got: "a number" }
         ));
     }
 
@@ -587,9 +445,7 @@ mod tests {
         assert_eq!(result.warnings[0].field, "permissionMode");
         assert!(matches!(
             result.warnings[0].kind,
-            DiagnosticKind::Deprecated {
-                replacement: "permissions.defaultMode"
-            }
+            DiagnosticKind::Deprecated { replacement: "permissions.defaultMode" }
         ));
     }
 
@@ -608,9 +464,7 @@ mod tests {
         assert_eq!(result.warnings[0].field, "enabledPlugins");
         assert!(matches!(
             result.warnings[0].kind,
-            DiagnosticKind::Deprecated {
-                replacement: "plugins.enabled"
-            }
+            DiagnosticKind::Deprecated { replacement: "plugins.enabled" }
         ));
     }
 
@@ -754,9 +608,7 @@ mod tests {
         // then
         assert_eq!(result.errors.len(), 1);
         match &result.errors[0].kind {
-            DiagnosticKind::UnknownKey {
-                suggestion: Some(s),
-            } => assert_eq!(s, "model"),
+            DiagnosticKind::UnknownKey { suggestion: Some(s) } => assert_eq!(s, "model"),
             other => panic!("expected suggestion, got {other:?}"),
         }
     }
@@ -818,10 +670,7 @@ mod tests {
         assert_eq!(result.errors[0].field, "sandbox.enabled");
         assert!(matches!(
             result.errors[0].kind,
-            DiagnosticKind::WrongType {
-                expected: "a boolean",
-                got: "a string"
-            }
+            DiagnosticKind::WrongType { expected: "a boolean", got: "a string" }
         ));
     }
 
@@ -849,10 +698,7 @@ mod tests {
             path: "/test/settings.json".to_string(),
             field: "model".to_string(),
             line: Some(2),
-            kind: DiagnosticKind::WrongType {
-                expected: "a string",
-                got: "a number",
-            },
+            kind: DiagnosticKind::WrongType { expected: "a string", got: "a number" },
         };
 
         // when
@@ -872,9 +718,7 @@ mod tests {
             path: "/test/settings.json".to_string(),
             field: "permissionMode".to_string(),
             line: Some(3),
-            kind: DiagnosticKind::Deprecated {
-                replacement: "permissions.defaultMode",
-            },
+            kind: DiagnosticKind::Deprecated { replacement: "permissions.defaultMode" },
         };
 
         // when

@@ -84,29 +84,21 @@ fn parse_frontmatter(content: &str) -> Option<Frontmatter> {
                 }
                 if !nested_lines.is_empty() {
                     // 去掉每行开头的公共缩进（2 空格或 4 空格）
-                    let dedented: Vec<String> = nested_lines
-                        .iter()
-                        .map(|l| l.trim_start().to_string())
-                        .collect();
+                    let dedented: Vec<String> =
+                        nested_lines.iter().map(|l| l.trim_start().to_string()).collect();
                     fields.push((key, dedented.join("\n")));
                 } else {
                     // 空值字段
                     fields.push((key, String::new()));
                 }
             } else {
-                let value = value
-                    .trim_start_matches('"')
-                    .trim_end_matches('"')
-                    .to_string();
+                let value = value.trim_start_matches('"').trim_end_matches('"').to_string();
                 fields.push((key, value));
             }
         }
     }
 
-    Some(Frontmatter {
-        fields,
-        body: body.trim().to_string(),
-    })
+    Some(Frontmatter { fields, body: body.trim().to_string() })
 }
 
 /// 解析 YAML 格式的字符串数组，如 `[FileRead, Grep, Glob]` 或 `[FileRead,Grep]`
@@ -255,11 +247,7 @@ fn build_definition(
 
     // 如果 frontmatter 中没有 name，从文件名提取
     if def.agent_type.is_empty() {
-        def.agent_type = path
-            .file_stem()
-            .and_then(|s| s.to_str())
-            .unwrap_or("unnamed")
-            .to_string();
+        def.agent_type = path.file_stem().and_then(|s| s.to_str()).unwrap_or("unnamed").to_string();
     }
 
     def
@@ -309,10 +297,7 @@ pub fn load_agents_from_dir(dir: &Path) -> Vec<AgentDefinition> {
 
 /// 获取用户级 agent 目录
 pub fn user_agents_dir() -> PathBuf {
-    dirs::home_dir()
-        .unwrap_or_default()
-        .join(".axagent")
-        .join("agents")
+    dirs::home_dir().unwrap_or_default().join(".axagent").join("agents")
 }
 
 /// 获取项目级 agent 目录
@@ -348,16 +333,12 @@ pub fn agent_memory_path(
             .join("agent-memory")
             .join(agent_type)
             .join("MEMORY.md"),
-        crate::agent_def_types::MemoryScope::Project => cwd
-            .join(".axagent")
-            .join("agent-memory")
-            .join(agent_type)
-            .join("MEMORY.md"),
-        crate::agent_def_types::MemoryScope::Local => cwd
-            .join(".axagent")
-            .join("agent-memory-local")
-            .join(agent_type)
-            .join("MEMORY.md"),
+        crate::agent_def_types::MemoryScope::Project => {
+            cwd.join(".axagent").join("agent-memory").join(agent_type).join("MEMORY.md")
+        },
+        crate::agent_def_types::MemoryScope::Local => {
+            cwd.join(".axagent").join("agent-memory-local").join(agent_type).join("MEMORY.md")
+        },
     }
 }
 
@@ -404,10 +385,8 @@ pub fn load_all_agent_memories(agent_type: &str, cwd: &Path) -> Option<String> {
         crate::agent_def_types::MemoryScope::Local,
     ];
 
-    let memories: Vec<String> = scopes
-        .iter()
-        .filter_map(|scope| load_agent_memory(agent_type, Some(scope), cwd))
-        .collect();
+    let memories: Vec<String> =
+        scopes.iter().filter_map(|scope| load_agent_memory(agent_type, Some(scope), cwd)).collect();
 
     if memories.is_empty() {
         None
@@ -434,22 +413,10 @@ background: true
 你是一个测试 agent。"#;
 
         let fm = parse_frontmatter(content).expect("should parse");
-        assert!(
-            fm.fields
-                .iter()
-                .any(|(k, v)| k == "name" && v == "test-agent")
-        );
-        assert!(
-            fm.fields
-                .iter()
-                .any(|(k, v)| k == "description" && v == "测试 agent")
-        );
+        assert!(fm.fields.iter().any(|(k, v)| k == "name" && v == "test-agent"));
+        assert!(fm.fields.iter().any(|(k, v)| k == "description" && v == "测试 agent"));
         assert!(fm.fields.iter().any(|(k, v)| k == "model" && v == "haiku"));
-        assert!(
-            fm.fields
-                .iter()
-                .any(|(k, v)| k == "background" && v == "true")
-        );
+        assert!(fm.fields.iter().any(|(k, v)| k == "background" && v == "true"));
         assert!(fm.body.contains("你是一个测试 agent"));
     }
 

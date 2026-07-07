@@ -125,12 +125,8 @@ fn build_cloud_workspace(
         return Err("Workspace URI is not a cloud URI".to_string());
     }
 
-    let backend = state
-        .sync_engine
-        .as_ref()
-        .ok_or("Cloud sync engine not available")?
-        .backend
-        .clone();
+    let backend =
+        state.sync_engine.as_ref().ok_or("Cloud sync engine not available")?.backend.clone();
 
     let cache_base = dirs::cache_dir()
         .or_else(dirs::home_dir)
@@ -168,9 +164,7 @@ pub async fn list_cloud_directory(
         })
         .collect();
 
-    Ok(CloudListResponse {
-        entries: entries_dto,
-    })
+    Ok(CloudListResponse { entries: entries_dto })
 }
 
 /// Sync a cloud workspace: bidirectional sync with conflict detection.
@@ -277,10 +271,7 @@ pub async fn get_cloud_conflicts(
         })
         .collect();
 
-    Ok(CloudConflictsResponse {
-        pending_conflicts: pending,
-        strategy: format!("{:?}", strategy),
-    })
+    Ok(CloudConflictsResponse { pending_conflicts: pending, strategy: format!("{:?}", strategy) })
 }
 
 /// Resolve a specific conflict.
@@ -380,12 +371,8 @@ pub async fn check_cloud_connection(config: CheckCloudConnectionRequest) -> Resu
         },
     };
 
-    let backend = cloud_config
-        .create_backend()
-        .map_err(|e| format!("Failed to create backend: {}", e))?;
+    let backend =
+        cloud_config.create_backend().map_err(|e| format!("Failed to create backend: {}", e))?;
 
-    backend
-        .check_connection()
-        .await
-        .map_err(|e| format!("Connection check failed: {}", e))
+    backend.check_connection().await.map_err(|e| format!("Connection check failed: {}", e))
 }

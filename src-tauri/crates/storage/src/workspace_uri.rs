@@ -59,12 +59,7 @@ impl WorkspaceUri {
 
         let path = normalize_cloud_path(&path);
 
-        Ok(Self {
-            scheme: scheme.to_string(),
-            authority,
-            path,
-            raw: raw.to_string(),
-        })
+        Ok(Self { scheme: scheme.to_string(), authority, path, raw: raw.to_string() })
     }
 
     fn parse_local(path_str: &str, raw: &str) -> Result<Self, String> {

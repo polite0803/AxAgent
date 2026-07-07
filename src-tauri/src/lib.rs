@@ -58,15 +58,14 @@ where
     T: Send + 'static,
 {
     std::thread::spawn(move || {
-        let rt = tokio::runtime::Builder::new_current_thread()
-            .enable_all()
-            .build()
-            .unwrap_or_else(|e| {
+        let rt = tokio::runtime::Builder::new_current_thread().enable_all().build().unwrap_or_else(
+            |e| {
                 android_utils::report_fatal_error(&format!(
                     "Failed to create tokio runtime for {task_name}: {e}"
                 ));
                 panic!("Fatal: tokio runtime creation failed for {task_name}: {e}");
-            });
+            },
+        );
         rt.block_on(f)
     })
     .join()
@@ -148,13 +147,8 @@ pub fn run() {
     }
 
     // ── TLS crypto provider ──
-    if rustls::crypto::aws_lc_rs::default_provider()
-        .install_default()
-        .is_err()
-    {
-        let ring_ok = rustls::crypto::ring::default_provider()
-            .install_default()
-            .is_ok();
+    if rustls::crypto::aws_lc_rs::default_provider().install_default().is_err() {
+        let ring_ok = rustls::crypto::ring::default_provider().install_default().is_ok();
         if !ring_ok {
             #[cfg(target_os = "android")]
             tracing::error!(

@@ -57,11 +57,7 @@ impl ContentSynthesizer {
         if trusted_sources.is_empty() {
             content.push_str(&self.generate_default_content(&section.title));
         } else {
-            content.push_str(
-                &self
-                    .synthesize_from_sources(&trusted_sources, &section.title)
-                    .await,
-            );
+            content.push_str(&self.synthesize_from_sources(&trusted_sources, &section.title).await);
             for source in &trusted_sources {
                 let citation = crate::research_state::Citation::new(
                     source.url.clone(),
@@ -124,10 +120,8 @@ impl ContentSynthesizer {
         let source_text = format!("{} {} {}", source.title, source.snippet, source.url);
         let source_lower = source_text.to_lowercase();
 
-        let keyword_matches = keywords
-            .iter()
-            .filter(|k| source_lower.contains(&k.to_lowercase()))
-            .count();
+        let keyword_matches =
+            keywords.iter().filter(|k| source_lower.contains(&k.to_lowercase())).count();
 
         let base_score = keyword_matches as f32 / keywords.len().max(1) as f32;
 
@@ -256,18 +250,9 @@ impl ContentSynthesizer {
 
     fn generate_source_stats(&self, sources: &[SearchResult]) -> String {
         let total = sources.len();
-        let academic = sources
-            .iter()
-            .filter(|s| s.source_type == SourceType::Academic)
-            .count();
-        let web = sources
-            .iter()
-            .filter(|s| s.source_type == SourceType::Web)
-            .count();
-        let docs = sources
-            .iter()
-            .filter(|s| s.source_type == SourceType::Documentation)
-            .count();
+        let academic = sources.iter().filter(|s| s.source_type == SourceType::Academic).count();
+        let web = sources.iter().filter(|s| s.source_type == SourceType::Web).count();
+        let docs = sources.iter().filter(|s| s.source_type == SourceType::Documentation).count();
 
         format!(
             "Analysis based on {} sources: {} academic papers, {} web sources, {} documentation entries.",

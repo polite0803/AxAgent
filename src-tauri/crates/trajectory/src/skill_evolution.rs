@@ -98,11 +98,8 @@ impl EvolutionPopulation {
     }
 
     pub fn evolve(&mut self, config: &EvolutionConfig) {
-        self.individuals.sort_by(|a, b| {
-            b.fitness
-                .partial_cmp(&a.fitness)
-                .unwrap_or(std::cmp::Ordering::Equal)
-        });
+        self.individuals
+            .sort_by(|a, b| b.fitness.partial_cmp(&a.fitness).unwrap_or(std::cmp::Ordering::Equal));
 
         let elite: Vec<SkillGenome> = self.individuals[..config.elite_count].to_vec();
 
@@ -194,9 +191,7 @@ fn crossover_genomes(parent1: &SkillGenome, parent2: &SkillGenome) -> SkillGenom
 
     let mut rng = rand::thread_rng();
 
-    let cross_point = rng
-        .gen_range(1..parent1.steps.len().max(2))
-        .min(parent1.steps.len());
+    let cross_point = rng.gen_range(1..parent1.steps.len().max(2)).min(parent1.steps.len());
 
     let mut child_steps = parent1.steps[..cross_point].to_vec();
     if cross_point < parent2.steps.len() {
@@ -291,9 +286,8 @@ fn parse_skill_content(content: &str) -> Vec<ProcedureStep> {
             continue;
         }
 
-        let tool_match: Option<String> = tool_regex
-            .captures(trimmed)
-            .and_then(|c| c.get(1).map(|m| m.as_str().to_string()));
+        let tool_match: Option<String> =
+            tool_regex.captures(trimmed).and_then(|c| c.get(1).map(|m| m.as_str().to_string()));
 
         if let Some(tool) = tool_match {
             steps.push(ProcedureStep {
@@ -411,12 +405,7 @@ impl SkillEvolutionEngine {
     }
 
     pub fn with_config(config: EvolutionConfig) -> Self {
-        Self {
-            config,
-            population: None,
-            llm_provider: None,
-            sandbox: None,
-        }
+        Self { config, population: None, llm_provider: None, sandbox: None }
     }
 
     pub fn set_llm_provider(&mut self, provider: Arc<dyn LlmEvolutionProvider>) {
@@ -429,10 +418,7 @@ impl SkillEvolutionEngine {
     }
 
     pub fn skill_count(&self) -> usize {
-        self.population
-            .as_ref()
-            .map(|p| p.individuals.len())
-            .unwrap_or(0)
+        self.population.as_ref().map(|p| p.individuals.len()).unwrap_or(0)
     }
 
     pub fn has_llm_provider(&self) -> bool {
@@ -455,11 +441,7 @@ impl SkillEvolutionEngine {
         };
 
         if !should_evolve {
-            return self
-                .population
-                .as_ref()
-                .and_then(|p| p.best_individual())
-                .cloned();
+            return self.population.as_ref().and_then(|p| p.best_individual()).cloned();
         }
 
         if let Some(ref mut pop) = self.population {
@@ -475,10 +457,7 @@ impl SkillEvolutionEngine {
             }
         }
 
-        self.population
-            .as_ref()
-            .and_then(|p| p.best_individual())
-            .cloned()
+        self.population.as_ref().and_then(|p| p.best_individual()).cloned()
     }
 
     pub async fn evolve_generation_v2(
@@ -492,11 +471,7 @@ impl SkillEvolutionEngine {
         };
 
         if !should_evolve {
-            return self
-                .population
-                .as_ref()
-                .and_then(|p| p.best_individual())
-                .cloned();
+            return self.population.as_ref().and_then(|p| p.best_individual()).cloned();
         }
 
         if let Some(ref mut pop) = self.population {
@@ -591,20 +566,13 @@ impl SkillEvolutionEngine {
             }
         }
 
-        self.population
-            .as_ref()
-            .and_then(|p| p.best_individual())
-            .cloned()
+        self.population.as_ref().and_then(|p| p.best_individual()).cloned()
     }
 
     fn evaluate_fitness_static(genome: &mut SkillGenome, test_trajectories: &[&Trajectory]) {
         let relevant: Vec<&Trajectory> = test_trajectories
             .iter()
-            .filter(|t| {
-                t.topic
-                    .to_lowercase()
-                    .contains(&genome.description.to_lowercase())
-            })
+            .filter(|t| t.topic.to_lowercase().contains(&genome.description.to_lowercase()))
             .cloned()
             .collect();
 
@@ -635,19 +603,12 @@ impl SkillEvolutionEngine {
 
         let time_score = (avg_time / 100.0).min(1.0);
 
-        let error_handling_bonus = genome
-            .steps
-            .iter()
-            .filter(|s| s.error_handling.is_some())
-            .count() as f64
-            / genome.steps.len().max(1) as f64
-            * 0.1;
+        let error_handling_bonus =
+            genome.steps.iter().filter(|s| s.error_handling.is_some()).count() as f64
+                / genome.steps.len().max(1) as f64
+                * 0.1;
 
-        let condition_bonus = genome
-            .steps
-            .iter()
-            .filter(|s| s.condition.is_some())
-            .count() as f64
+        let condition_bonus = genome.steps.iter().filter(|s| s.condition.is_some()).count() as f64
             / genome.steps.len().max(1) as f64
             * 0.05;
 

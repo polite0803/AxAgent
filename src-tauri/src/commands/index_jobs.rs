@@ -80,12 +80,7 @@ pub async fn index_jobs_stats(state: State<'_, AppState>) -> Result<IndexQueueSt
     let failed = index_jobs::count_jobs_by_status(db, INDEX_JOB_STATUS_FAILED)
         .await
         .map_err(|e| e.to_string())?;
-    Ok(IndexQueueStats {
-        pending,
-        running,
-        completed,
-        failed,
-    })
+    Ok(IndexQueueStats { pending, running, completed, failed })
 }
 
 #[tauri::command]
@@ -97,9 +92,7 @@ pub async fn index_jobs_retry(
     index_jobs::reset_job_for_retry(state.harness.db(), &job_id)
         .await
         .map_err(|e| e.to_string())?;
-    let job = index_jobs::get_job(state.harness.db(), &job_id)
-        .await
-        .map_err(|e| e.to_string())?;
+    let job = index_jobs::get_job(state.harness.db(), &job_id).await.map_err(|e| e.to_string())?;
     let _ = app.emit(
         "index-job-updated",
         serde_json::json!({ "jobId": job_id, "status": INDEX_JOB_STATUS_PENDING }),
@@ -113,12 +106,8 @@ pub async fn index_jobs_cancel(
     app: AppHandle,
     job_id: String,
 ) -> Result<IndexJob, String> {
-    index_jobs::cancel_job(state.harness.db(), &job_id)
-        .await
-        .map_err(|e| e.to_string())?;
-    let job = index_jobs::get_job(state.harness.db(), &job_id)
-        .await
-        .map_err(|e| e.to_string())?;
+    index_jobs::cancel_job(state.harness.db(), &job_id).await.map_err(|e| e.to_string())?;
+    let job = index_jobs::get_job(state.harness.db(), &job_id).await.map_err(|e| e.to_string())?;
     let _ = app.emit(
         "index-job-updated",
         serde_json::json!({ "jobId": job_id, "status": INDEX_JOB_STATUS_CANCELLED }),
@@ -140,9 +129,7 @@ pub async fn index_jobs_retry_all_failed(state: State<'_, AppState>) -> Result<u
 
 #[tauri::command]
 pub async fn index_jobs_clear_completed(state: State<'_, AppState>) -> Result<u64, String> {
-    index_jobs::cleanup_completed_jobs(state.harness.db(), 0)
-        .await
-        .map_err(|e| e.to_string())
+    index_jobs::cleanup_completed_jobs(state.harness.db(), 0).await.map_err(|e| e.to_string())
 }
 
 #[tauri::command]

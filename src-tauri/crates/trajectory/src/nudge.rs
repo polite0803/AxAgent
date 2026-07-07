@@ -163,19 +163,11 @@ impl Default for NudgeService {
 
 impl NudgeService {
     pub fn new() -> Self {
-        Self {
-            config: NudgeConfig::default(),
-            session: None,
-            history: Vec::new(),
-        }
+        Self { config: NudgeConfig::default(), session: None, history: Vec::new() }
     }
 
     pub fn with_config(config: NudgeConfig) -> Self {
-        Self {
-            config,
-            session: None,
-            history: Vec::new(),
-        }
+        Self { config, session: None, history: Vec::new() }
     }
 
     pub fn get_config(&self) -> &NudgeConfig {
@@ -238,10 +230,8 @@ impl NudgeService {
             self.start_session(session_id);
         }
 
-        let filtered_candidates: Vec<&NudgeCandidate> = candidates
-            .iter()
-            .filter(|c| !existing_ids.contains(&c.entity.id))
-            .collect();
+        let filtered_candidates: Vec<&NudgeCandidate> =
+            candidates.iter().filter(|c| !existing_ids.contains(&c.entity.id)).collect();
 
         let urgency_threshold = Self::urgency_to_number(&self.config.min_urgency_threshold);
         let mut new_nudges: Vec<Nudge> = Vec::new();
@@ -321,12 +311,7 @@ impl NudgeService {
         if let Some(session) = &self.session
             && session.session_id == session_id
         {
-            return session
-                .nudges
-                .iter()
-                .filter(|n| !n.presented)
-                .take(max_nudges)
-                .collect();
+            return session.nudges.iter().filter(|n| !n.presented).take(max_nudges).collect();
         }
         Vec::new()
     }
@@ -389,16 +374,10 @@ impl NudgeService {
             .iter()
             .filter(|n| n.action_taken == Some(NudgeAction::AddedToMemory))
             .count();
-        let dismissed = self
-            .history
-            .iter()
-            .filter(|n| n.action_taken == Some(NudgeAction::Dismissed))
-            .count();
-        let pending = self
-            .history
-            .iter()
-            .filter(|n| n.action_taken == Some(NudgeAction::Pending))
-            .count();
+        let dismissed =
+            self.history.iter().filter(|n| n.action_taken == Some(NudgeAction::Dismissed)).count();
+        let pending =
+            self.history.iter().filter(|n| n.action_taken == Some(NudgeAction::Pending)).count();
 
         NudgeStats {
             total_nudges: total,
@@ -553,10 +532,7 @@ mod tests {
 
     #[test]
     fn test_auto_add_high_confidence() {
-        let config = NudgeConfig {
-            auto_add_high_confidence: true,
-            ..Default::default()
-        };
+        let config = NudgeConfig { auto_add_high_confidence: true, ..Default::default() };
         let mut service = NudgeService::with_config(config);
         service.start_session("test_session".to_string());
 
@@ -580,10 +556,8 @@ mod tests {
 
         let nudges = service.generate_nudges(context, candidates);
 
-        let auto_added = nudges
-            .iter()
-            .filter(|n| n.action_taken == Some(NudgeAction::AddedToMemory))
-            .count();
+        let auto_added =
+            nudges.iter().filter(|n| n.action_taken == Some(NudgeAction::AddedToMemory)).count();
         assert!(auto_added >= 1);
     }
 }

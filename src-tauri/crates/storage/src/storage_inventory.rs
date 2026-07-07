@@ -28,17 +28,10 @@ pub fn scan_storage() -> StorageInventory {
             } else {
                 (0, 0)
             };
-            BucketStats {
-                bucket: name.to_string(),
-                file_count: count,
-                total_bytes: bytes,
-            }
+            BucketStats { bucket: name.to_string(), file_count: count, total_bytes: bytes }
         })
         .collect();
-    StorageInventory {
-        buckets,
-        documents_root: root.to_string_lossy().to_string(),
-    }
+    StorageInventory { buckets, documents_root: root.to_string_lossy().to_string() }
 }
 
 fn count_dir_contents(dir: &Path) -> (u64, u64) {

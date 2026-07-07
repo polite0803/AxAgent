@@ -20,10 +20,7 @@ pub fn init_cron_store(store: Arc<CronJobStore>) {
 
 /// 获取共享 CronJobStore
 fn cron_store() -> Arc<CronJobStore> {
-    SHARED_CRON_STORE
-        .get()
-        .cloned()
-        .unwrap_or_else(|| Arc::new(CronJobStore::new_ephemeral()))
+    SHARED_CRON_STORE.get().cloned().unwrap_or_else(|| Arc::new(CronJobStore::new_ephemeral()))
 }
 
 pub struct CronCreateTool;

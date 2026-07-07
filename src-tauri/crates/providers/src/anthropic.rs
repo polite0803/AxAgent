@@ -43,9 +43,7 @@ impl AnthropicAdapter {
     }
 
     fn base_url(ctx: &ProviderRequestContext) -> String {
-        ctx.base_url
-            .clone()
-            .unwrap_or_else(|| DEFAULT_BASE_URL.to_string())
+        ctx.base_url.clone().unwrap_or_else(|| DEFAULT_BASE_URL.to_string())
     }
 
     fn chat_url(ctx: &ProviderRequestContext) -> String {
@@ -268,10 +266,7 @@ fn convert_messages(
                     },
                 };
 
-                result.push(AnthropicMessage {
-                    role: msg.role.clone(),
-                    content,
-                });
+                result.push(AnthropicMessage { role: msg.role.clone(), content });
             },
         }
     }
@@ -331,9 +326,7 @@ mod tests {
                 ContentPart {
                     r#type: "image_url".to_string(),
                     text: None,
-                    image_url: Some(ImageUrl {
-                        url: "data:image/png;base64,YWJj".to_string(),
-                    }),
+                    image_url: Some(ImageUrl { url: "data:image/png;base64,YWJj".to_string() }),
                 },
             ]),
             tool_calls: None,
@@ -373,18 +366,13 @@ impl ProviderAdapter for AnthropicAdapter {
             if b == 0 {
                 None
             } else {
-                Some(AnthropicThinking {
-                    r#type: "enabled".to_string(),
-                    budget_tokens: b,
-                })
+                Some(AnthropicThinking { r#type: "enabled".to_string(), budget_tokens: b })
             }
         });
         let body = AnthropicRequest {
             model: request.model.clone(),
             messages,
-            max_tokens: request
-                .max_tokens
-                .unwrap_or(if thinking.is_some() { 16000 } else { 4096 }),
+            max_tokens: request.max_tokens.unwrap_or(if thinking.is_some() { 16000 } else { 4096 }),
             system,
             temperature: if thinking.is_some() {
                 None
@@ -417,17 +405,12 @@ impl ProviderAdapter for AnthropicAdapter {
 
         if !resp.status().is_success() {
             let s = resp.status();
-            let t = resp
-                .text()
-                .await
-                .unwrap_or_else(|e| format!("[body read error: {e}]"));
+            let t = resp.text().await.unwrap_or_else(|e| format!("[body read error: {e}]"));
             return Err(AxAgentError::Provider(format!("Anthropic API error {s}: {t}")));
         }
 
-        let ar: AnthropicResponse = resp
-            .json()
-            .await
-            .map_err(|e| AxAgentError::Provider(format!("Parse error: {e}")))?;
+        let ar: AnthropicResponse =
+            resp.json().await.map_err(|e| AxAgentError::Provider(format!("Parse error: {e}")))?;
 
         let mut content = String::new();
         let mut thinking = None;
@@ -507,18 +490,13 @@ impl ProviderAdapter for AnthropicAdapter {
             if b == 0 {
                 None
             } else {
-                Some(AnthropicThinking {
-                    r#type: "enabled".to_string(),
-                    budget_tokens: b,
-                })
+                Some(AnthropicThinking { r#type: "enabled".to_string(), budget_tokens: b })
             }
         });
         let body = AnthropicRequest {
             model: request.model.clone(),
             messages,
-            max_tokens: request
-                .max_tokens
-                .unwrap_or(if thinking.is_some() { 16000 } else { 4096 }),
+            max_tokens: request.max_tokens.unwrap_or(if thinking.is_some() { 16000 } else { 4096 }),
             system,
             temperature: if thinking.is_some() {
                 None
@@ -850,17 +828,12 @@ impl ProviderAdapter for AnthropicAdapter {
 
         if !resp.status().is_success() {
             let s = resp.status();
-            let t = resp
-                .text()
-                .await
-                .unwrap_or_else(|e| format!("[body read error: {e}]"));
+            let t = resp.text().await.unwrap_or_else(|e| format!("[body read error: {e}]"));
             return Err(AxAgentError::Provider(format!("Anthropic API error {s}: {t}")));
         }
 
-        let models: AnthropicModelsResponse = resp
-            .json()
-            .await
-            .map_err(|e| AxAgentError::Provider(format!("Parse error: {e}")))?;
+        let models: AnthropicModelsResponse =
+            resp.json().await.map_err(|e| AxAgentError::Provider(format!("Parse error: {e}")))?;
 
         Ok(models
             .data

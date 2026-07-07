@@ -93,11 +93,7 @@ impl GraphInsightAnalyzer {
         louvain: LouvainResult,
         source_map: HashMap<String, Vec<String>>,
     ) -> Self {
-        Self {
-            graph,
-            louvain,
-            source_map,
-        }
+        Self { graph, louvain, source_map }
     }
 
     pub fn analyze(&self) -> GraphInsights {
@@ -170,9 +166,7 @@ impl GraphInsightAnalyzer {
         }
 
         connections.sort_by(|a, b| {
-            b.surprise_score
-                .partial_cmp(&a.surprise_score)
-                .unwrap_or(std::cmp::Ordering::Equal)
+            b.surprise_score.partial_cmp(&a.surprise_score).unwrap_or(std::cmp::Ordering::Equal)
         });
 
         connections
@@ -302,11 +296,7 @@ impl GraphInsightAnalyzer {
     }
 
     fn find_isolated_pages(&self) -> Vec<String> {
-        self.graph
-            .get_node_ids()
-            .into_iter()
-            .filter(|n| self.graph.get_degree(n) == 0)
-            .collect()
+        self.graph.get_node_ids().into_iter().filter(|n| self.graph.get_degree(n) == 0).collect()
     }
 
     fn compute_stats(&self) -> GraphInsightStats {

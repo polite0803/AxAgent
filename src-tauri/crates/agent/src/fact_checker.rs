@@ -145,21 +145,13 @@ pub struct EnhancedRelevanceCalculator {
 
 impl EnhancedRelevanceCalculator {
     pub fn new() -> Self {
-        Self {
-            jaccard_weight: 0.3,
-            ngram_weight: 0.3,
-            key_term_weight: 0.3,
-            length_weight: 0.1,
-        }
+        Self { jaccard_weight: 0.3, ngram_weight: 0.3, key_term_weight: 0.3, length_weight: 0.1 }
     }
 
     fn extract_words(&self, text: &str) -> Vec<String> {
         text.split_whitespace()
             .map(|w| w.to_lowercase())
-            .filter(|w| {
-                w.chars()
-                    .all(|c| c.is_alphanumeric() || c == '-' || c == '\'')
-            })
+            .filter(|w| w.chars().all(|c| c.is_alphanumeric() || c == '-' || c == '\''))
             .collect()
     }
 
@@ -581,10 +573,7 @@ pub struct ClaimExtractor {
 
 impl ClaimExtractor {
     pub fn new() -> Self {
-        Self {
-            min_claim_length: 20,
-            max_claims_per_source: 10,
-        }
+        Self { min_claim_length: 20, max_claims_per_source: 10 }
     }
 
     pub fn with_config(mut self, min_length: usize, max_per_source: usize) -> Self {

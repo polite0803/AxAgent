@@ -16,10 +16,7 @@ fn default_plugins_dir() -> PathBuf {
 pub async fn dashboard_list_plugins(
     state: State<'_, AppState>,
 ) -> Result<Vec<DashboardPluginInfo>, String> {
-    let registry = state
-        .dashboard_registry
-        .as_ref()
-        .ok_or("Dashboard registry not initialized")?;
+    let registry = state.dashboard_registry.as_ref().ok_or("Dashboard registry not initialized")?;
     Ok(registry.list_plugins().await)
 }
 
@@ -28,10 +25,7 @@ pub async fn dashboard_register_plugin(
     state: State<'_, AppState>,
     manifest_json: String,
 ) -> Result<(), String> {
-    let registry = state
-        .dashboard_registry
-        .as_ref()
-        .ok_or("Dashboard registry not initialized")?;
+    let registry = state.dashboard_registry.as_ref().ok_or("Dashboard registry not initialized")?;
     let manifest: DashboardPluginManifest =
         serde_json::from_str(&manifest_json).map_err(|e| e.to_string())?;
 
@@ -42,9 +36,7 @@ pub async fn dashboard_register_plugin(
             "props": props,
             "frontend_entry": frontend_entry,
         });
-        axagent_runtime::dashboard_plugin::RenderOutput::Html {
-            content: panel_info.to_string(),
-        }
+        axagent_runtime::dashboard_plugin::RenderOutput::Html { content: panel_info.to_string() }
     });
 
     registry.register(Box::new(plugin)).await
@@ -55,10 +47,7 @@ pub async fn dashboard_unregister_plugin(
     state: State<'_, AppState>,
     plugin_id: String,
 ) -> Result<(), String> {
-    let registry = state
-        .dashboard_registry
-        .as_ref()
-        .ok_or("Dashboard registry not initialized")?;
+    let registry = state.dashboard_registry.as_ref().ok_or("Dashboard registry not initialized")?;
     registry.unregister(&plugin_id).await
 }
 
@@ -67,10 +56,7 @@ pub async fn dashboard_enable_plugin(
     state: State<'_, AppState>,
     plugin_id: String,
 ) -> Result<(), String> {
-    let registry = state
-        .dashboard_registry
-        .as_ref()
-        .ok_or("Dashboard registry not initialized")?;
+    let registry = state.dashboard_registry.as_ref().ok_or("Dashboard registry not initialized")?;
     registry.enable(&plugin_id).await
 }
 
@@ -79,10 +65,7 @@ pub async fn dashboard_disable_plugin(
     state: State<'_, AppState>,
     plugin_id: String,
 ) -> Result<(), String> {
-    let registry = state
-        .dashboard_registry
-        .as_ref()
-        .ok_or("Dashboard registry not initialized")?;
+    let registry = state.dashboard_registry.as_ref().ok_or("Dashboard registry not initialized")?;
     registry.disable(&plugin_id).await
 }
 
@@ -93,30 +76,19 @@ pub async fn dashboard_render_panel(
     panel_id: String,
     props: std::collections::HashMap<String, serde_json::Value>,
 ) -> Result<String, String> {
-    let registry = state
-        .dashboard_registry
-        .as_ref()
-        .ok_or("Dashboard registry not initialized")?;
-    registry
-        .render_panel(&plugin_id, &panel_id, props)
-        .await
-        .map(|r| match r {
-            axagent_runtime::dashboard_plugin::RenderOutput::Html { content } => content,
-            axagent_runtime::dashboard_plugin::RenderOutput::Data { payload } => {
-                payload.to_string()
-            },
-            axagent_runtime::dashboard_plugin::RenderOutput::Directive(d) => {
-                serde_json::to_string(&d).unwrap_or_default()
-            },
-        })
+    let registry = state.dashboard_registry.as_ref().ok_or("Dashboard registry not initialized")?;
+    registry.render_panel(&plugin_id, &panel_id, props).await.map(|r| match r {
+        axagent_runtime::dashboard_plugin::RenderOutput::Html { content } => content,
+        axagent_runtime::dashboard_plugin::RenderOutput::Data { payload } => payload.to_string(),
+        axagent_runtime::dashboard_plugin::RenderOutput::Directive(d) => {
+            serde_json::to_string(&d).unwrap_or_default()
+        },
+    })
 }
 
 #[tauri::command]
 pub async fn dashboard_reload_plugins(state: State<'_, AppState>) -> Result<(), String> {
-    let registry = state
-        .dashboard_registry
-        .as_ref()
-        .ok_or("Dashboard registry not initialized")?;
+    let registry = state.dashboard_registry.as_ref().ok_or("Dashboard registry not initialized")?;
     registry.reload().await
 }
 
@@ -125,9 +97,7 @@ pub async fn dashboard_open_plugins_folder(app: tauri::AppHandle) -> Result<(), 
     let dir = default_plugins_dir();
     std::fs::create_dir_all(&dir).map_err(|e| format!("Failed to create plugins dir: {}", e))?;
     use tauri_plugin_opener::OpenerExt;
-    app.opener()
-        .reveal_item_in_dir(&dir)
-        .map_err(|e| e.to_string())
+    app.opener().reveal_item_in_dir(&dir).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -144,11 +114,8 @@ pub async fn dashboard_install_plugin(
     std::fs::create_dir_all(&plugins_dir)
         .map_err(|e| format!("Failed to create plugins dir: {}", e))?;
 
-    let plugin_dir_name = source
-        .file_stem()
-        .and_then(|s| s.to_str())
-        .unwrap_or("plugin")
-        .to_string();
+    let plugin_dir_name =
+        source.file_stem().and_then(|s| s.to_str()).unwrap_or("plugin").to_string();
     let dest_dir = plugins_dir.join(&plugin_dir_name);
 
     if source.is_dir() {
@@ -174,10 +141,7 @@ pub async fn dashboard_install_plugin(
         return Err(ErrorResponse::err(dashboard_err::NO_MANIFEST));
     }
 
-    let registry = state
-        .dashboard_registry
-        .as_ref()
-        .ok_or("Dashboard registry not initialized")?;
+    let registry = state.dashboard_registry.as_ref().ok_or("Dashboard registry not initialized")?;
     registry.reload().await
 }
 

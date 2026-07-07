@@ -28,16 +28,12 @@ pub async fn workflow_ai_chat_stream(
     let resolved = resolve_ai_provider(&state).await?;
 
     let registry_key = resolved.provider_type.registry_key();
-    let adapter = state
-        .harness
-        .provider_registry()
-        .get(registry_key)
-        .ok_or_else(|| {
-            ErrorResponse::err_with_detail(
-                provider_err::ADAPTER_NOT_FOUND,
-                format!("Provider adapter not found for type: {}", registry_key),
-            )
-        })?;
+    let adapter = state.harness.provider_registry().get(registry_key).ok_or_else(|| {
+        ErrorResponse::err_with_detail(
+            provider_err::ADAPTER_NOT_FOUND,
+            format!("Provider adapter not found for type: {}", registry_key),
+        )
+    })?;
 
     let mut canvas_section = String::new();
     if let Some(nodes) = &current_nodes {
@@ -327,10 +323,8 @@ pub fn assert_v2_prompts_well_formed() {
                 "UPSTREAM_EXTENSION_FOR_CHAT missing required action_type token: {token}"
             );
         }
-        for token in [
-            "\"inject_context\":\"version_history\"",
-            "\"inject_context\":\"diagnostic\"",
-        ] {
+        for token in ["\"inject_context\":\"version_history\"", "\"inject_context\":\"diagnostic\""]
+        {
             assert!(
                 UPSTREAM_EXTENSION_FOR_CHAT.contains(token),
                 "UPSTREAM_EXTENSION_FOR_CHAT missing required inject_context marker: {token}"

@@ -34,13 +34,7 @@ impl CodeBlock {
         start_line: usize,
         end_line: usize,
     ) -> Self {
-        Self {
-            id,
-            language,
-            content,
-            start_line,
-            end_line,
-        }
+        Self { id, language, content, start_line, end_line }
     }
 
     pub fn infer_dependencies(&self) -> Vec<String> {
@@ -58,9 +52,8 @@ impl CodeBlock {
                             deps.push(module.to_string());
                         }
                     } else if trimmed.starts_with("from ")
-                        && let Some(module) = trimmed
-                            .strip_prefix("from ")
-                            .and_then(|s| s.split_whitespace().next())
+                        && let Some(module) =
+                            trimmed.strip_prefix("from ").and_then(|s| s.split_whitespace().next())
                         && module != "typing"
                         && module != "collections"
                     {
@@ -75,10 +68,8 @@ impl CodeBlock {
                         || trimmed.starts_with("let ")
                         || trimmed.starts_with("var "))
                         && trimmed.contains("require(")
-                        && let Some(module) = trimmed
-                            .split("require(")
-                            .nth(1)
-                            .and_then(|s| s.split(')').next())
+                        && let Some(module) =
+                            trimmed.split("require(").nth(1).and_then(|s| s.split(')').next())
                     {
                         let module = module.trim().trim_matches(|c| c == '\'' || c == '"');
                         deps.push(module.to_string());
@@ -637,10 +628,7 @@ impl SkillDecomposer {
                         let deps = block.infer_dependencies();
                         let deps_for_node = deps.clone();
                         for dep in &deps {
-                            if !tool_dependencies
-                                .iter()
-                                .any(|t: &ToolDependency| t.name == *dep)
-                            {
+                            if !tool_dependencies.iter().any(|t: &ToolDependency| t.name == *dep) {
                                 tool_dependencies.push(ToolDependency {
                                     name: dep.clone(),
                                     tool_type: "script_dependency".to_string(),
@@ -708,10 +696,7 @@ impl SkillDecomposer {
                 // Add tool dependency
                 tool_dependencies.push(ToolDependency {
                     name: tool_name.clone(),
-                    tool_type: step
-                        .tool_type
-                        .clone()
-                        .unwrap_or_else(|| "local".to_string()),
+                    tool_type: step.tool_type.clone().unwrap_or_else(|| "local".to_string()),
                     source_info: None,
                     status: super::tool_resolver::ToolDependencyStatus::Satisfied,
                 });
@@ -726,10 +711,8 @@ impl SkillDecomposer {
                     }
                 }));
             } else if step.is_condition {
-                let _condition_expr = step
-                    .condition_expression
-                    .clone()
-                    .unwrap_or_else(|| step.title.clone());
+                let _condition_expr =
+                    step.condition_expression.clone().unwrap_or_else(|| step.title.clone());
 
                 workflow_nodes.push(serde_json::json!({
                     "id": node_id,
@@ -1037,11 +1020,7 @@ impl SkillDecomposer {
                 .collect();
 
             if !steps.is_empty() {
-                branches.push(ParallelBranch {
-                    name,
-                    steps,
-                    raw_content: None,
-                });
+                branches.push(ParallelBranch { name, steps, raw_content: None });
             }
         }
 
@@ -1091,11 +1070,7 @@ impl SkillDecomposer {
             .and_then(|r| r.captures(description))
             .or_else(|| while_body_regex.and_then(|r| r.captures(description)))
             .or_else(|| loop_start_regex.and_then(|r| r.captures(description)))
-            .map(|caps| {
-                caps.get(1)
-                    .map(|m| m.as_str().to_string())
-                    .unwrap_or_default()
-            })
+            .map(|caps| caps.get(1).map(|m| m.as_str().to_string()).unwrap_or_default())
             .unwrap_or_default();
 
         let body_lines: Vec<String> = description

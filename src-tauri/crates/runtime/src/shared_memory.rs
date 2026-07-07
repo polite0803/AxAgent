@@ -77,11 +77,7 @@ impl SharedMemoryPool {
         }
 
         // Determine version: increment if overwriting existing entry
-        let next_version = self
-            .entries
-            .get(&full_key)
-            .map(|e| e.version + 1)
-            .unwrap_or(1);
+        let next_version = self.entries.get(&full_key).map(|e| e.version + 1).unwrap_or(1);
 
         let entry = MemoryEntry {
             key: key.to_string(),
@@ -96,10 +92,7 @@ impl SharedMemoryPool {
             version: next_version,
         };
 
-        self.namespaces
-            .entry(namespace.to_string())
-            .or_default()
-            .insert(full_key.clone());
+        self.namespaces.entry(namespace.to_string()).or_default().insert(full_key.clone());
 
         self.entries.insert(full_key, entry.clone());
 
@@ -148,10 +141,7 @@ impl SharedMemoryPool {
             e.ttl_secs = Some(ttl_secs);
         }
 
-        self.entries
-            .get(&full_key)
-            .cloned()
-            .ok_or(MemoryError::NotFound(full_key))
+        self.entries.get(&full_key).cloned().ok_or(MemoryError::NotFound(full_key))
     }
 
     pub fn get(
@@ -162,10 +152,7 @@ impl SharedMemoryPool {
     ) -> Result<MemoryEntry, MemoryError> {
         let full_key = format!("{}:{}", namespace, key);
 
-        let entry = self
-            .entries
-            .get(&full_key)
-            .ok_or(MemoryError::NotFound(full_key.clone()))?;
+        let entry = self.entries.get(&full_key).ok_or(MemoryError::NotFound(full_key.clone()))?;
 
         if entry.is_expired() {
             return Err(MemoryError::Expired(full_key));
@@ -214,12 +201,8 @@ impl SharedMemoryPool {
     }
 
     pub fn cleanup_expired(&mut self) -> usize {
-        let expired_keys: Vec<String> = self
-            .entries
-            .iter()
-            .filter(|(_, e)| e.is_expired())
-            .map(|(k, _)| k.clone())
-            .collect();
+        let expired_keys: Vec<String> =
+            self.entries.iter().filter(|(_, e)| e.is_expired()).map(|(k, _)| k.clone()).collect();
 
         for key in &expired_keys {
             if let Some(entry) = self.entries.remove(key)
@@ -233,10 +216,7 @@ impl SharedMemoryPool {
     }
 
     pub fn subscribe(&mut self, key_pattern: &str, agent_id: &str) {
-        self.subscribers
-            .entry(key_pattern.to_string())
-            .or_default()
-            .push(agent_id.to_string());
+        self.subscribers.entry(key_pattern.to_string()).or_default().push(agent_id.to_string());
     }
 
     pub fn unsubscribe(&mut self, key_pattern: &str, agent_id: &str) {
@@ -266,10 +246,8 @@ impl SharedMemoryPool {
     ) -> Result<(), MemoryError> {
         let full_key = format!("{}:{}", namespace, key);
 
-        let entry = self
-            .entries
-            .get_mut(&full_key)
-            .ok_or(MemoryError::NotFound(full_key.clone()))?;
+        let entry =
+            self.entries.get_mut(&full_key).ok_or(MemoryError::NotFound(full_key.clone()))?;
 
         entry.readers.insert(agent_id.to_string());
 
@@ -284,10 +262,8 @@ impl SharedMemoryPool {
     ) -> Result<(), MemoryError> {
         let full_key = format!("{}:{}", namespace, key);
 
-        let entry = self
-            .entries
-            .get_mut(&full_key)
-            .ok_or(MemoryError::NotFound(full_key.clone()))?;
+        let entry =
+            self.entries.get_mut(&full_key).ok_or(MemoryError::NotFound(full_key.clone()))?;
 
         entry.writers.insert(agent_id.to_string());
 
@@ -304,10 +280,8 @@ impl SharedMemoryPool {
     ) -> Result<bool, MemoryError> {
         let full_key = format!("{}:{}", namespace, key);
 
-        let entry = self
-            .entries
-            .get_mut(&full_key)
-            .ok_or(MemoryError::NotFound(full_key.clone()))?;
+        let entry =
+            self.entries.get_mut(&full_key).ok_or(MemoryError::NotFound(full_key.clone()))?;
 
         // Check write permission if writers set is non-empty
         if !entry.writers.is_empty() {
@@ -524,10 +498,7 @@ impl SharedMemory {
 
     pub fn stats(&self) -> MemoryStats {
         let pool = self.pool.read().unwrap_or_else(|e| e.into_inner());
-        MemoryStats {
-            total_entries: pool.size(),
-            namespaces: pool.list_all_namespaces().len(),
-        }
+        MemoryStats { total_entries: pool.size(), namespaces: pool.list_all_namespaces().len() }
     }
 
     pub fn save_snapshot(&self, path: &std::path::Path) -> Result<(), String> {
@@ -558,10 +529,7 @@ impl SharedMemory {
                 continue;
             }
             let full_key = format!("{}:{}", entry.namespace, entry.key);
-            pool.namespaces
-                .entry(entry.namespace.clone())
-                .or_default()
-                .insert(full_key.clone());
+            pool.namespaces.entry(entry.namespace.clone()).or_default().insert(full_key.clone());
             pool.entries.insert(full_key, entry);
             loaded += 1;
         }
@@ -582,10 +550,7 @@ pub struct MemoryStats {
 }
 
 fn current_timestamp() -> u64 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_secs()
+    SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_secs()
 }
 
 fn glob_match(pattern: &str, text: &str) -> bool {

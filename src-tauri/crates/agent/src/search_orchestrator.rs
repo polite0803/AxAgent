@@ -99,9 +99,7 @@ impl SearchOrchestrator {
         }
 
         all_results.sort_by(|a, b| {
-            b.relevance_score
-                .partial_cmp(&a.relevance_score)
-                .unwrap_or(std::cmp::Ordering::Equal)
+            b.relevance_score.partial_cmp(&a.relevance_score).unwrap_or(std::cmp::Ordering::Equal)
         });
 
         Ok(all_results)
@@ -183,10 +181,7 @@ impl SearchOrchestrator {
             .get(&source_type)
             .ok_or(OrchestratorError::NoProviderForSource(source_type))?;
 
-        provider
-            .search(query)
-            .await
-            .map_err(|e| OrchestratorError::ProviderError(e.to_string()))
+        provider.search(query).await.map_err(|e| OrchestratorError::ProviderError(e.to_string()))
     }
 
     fn deduplicate_results(&self, results: Vec<SearchResult>) -> Vec<SearchResult> {
@@ -232,9 +227,7 @@ pub struct SearchOrchestratorBuilder {
 
 impl SearchOrchestratorBuilder {
     pub fn new() -> Self {
-        Self {
-            orchestrator: SearchOrchestrator::new(),
-        }
+        Self { orchestrator: SearchOrchestrator::new() }
     }
 
     pub fn max_concurrent(mut self, max: usize) -> Self {
@@ -253,9 +246,7 @@ impl SearchOrchestratorBuilder {
     }
 
     pub fn add_provider(mut self, provider: Arc<dyn SearchProvider>) -> Self {
-        self.orchestrator
-            .providers
-            .insert(provider.source_type(), provider);
+        self.orchestrator.providers.insert(provider.source_type(), provider);
         self
     }
 
@@ -285,19 +276,11 @@ mod tests {
 
     impl MockSearchProvider {
         fn new(source_type: SourceType, results: Vec<SearchResult>) -> Self {
-            Self {
-                source_type,
-                results,
-                should_fail: false,
-            }
+            Self { source_type, results, should_fail: false }
         }
 
         fn failing(source_type: SourceType) -> Self {
-            Self {
-                source_type,
-                results: vec![],
-                should_fail: true,
-            }
+            Self { source_type, results: vec![], should_fail: true }
         }
     }
 
@@ -395,9 +378,7 @@ mod tests {
 
     #[test]
     fn test_orchestrator_builder_deduplication() {
-        let orch = SearchOrchestratorBuilder::new()
-            .deduplication(false)
-            .build();
+        let orch = SearchOrchestratorBuilder::new().deduplication(false).build();
         assert!(!orch.use_deduplication);
     }
 
@@ -433,9 +414,7 @@ mod tests {
     #[test]
     fn test_orchestrator_builder_add_provider() {
         let provider = Arc::new(MockSearchProvider::new(SourceType::Web, vec![]));
-        let orch = SearchOrchestratorBuilder::new()
-            .add_provider(provider)
-            .build();
+        let orch = SearchOrchestratorBuilder::new().add_provider(provider).build();
         assert!(orch.providers.contains_key(&SourceType::Web));
     }
 
@@ -547,9 +526,7 @@ mod tests {
             make_result("https://b.com", "Result B", SourceType::Web, 0.7),
         ];
         let provider = Arc::new(MockSearchProvider::new(SourceType::Web, results));
-        let orch = SearchOrchestrator::new()
-            .with_provider(provider)
-            .with_deduplication(true);
+        let orch = SearchOrchestrator::new().with_provider(provider).with_deduplication(true);
 
         let query = SearchQuery::new("test query".to_string())
             .with_sources(vec![SourceType::Web])
@@ -580,9 +557,7 @@ mod tests {
             make_result("https://same.com", "Second", SourceType::Web, 0.8),
         ];
         let provider = Arc::new(MockSearchProvider::new(SourceType::Web, results));
-        let orch = SearchOrchestrator::new()
-            .with_provider(provider)
-            .with_deduplication(true);
+        let orch = SearchOrchestrator::new().with_provider(provider).with_deduplication(true);
 
         let query = SearchQuery::new("test".to_string())
             .with_sources(vec![SourceType::Web])
@@ -601,9 +576,7 @@ mod tests {
             make_result("https://same.com", "Second", SourceType::Web, 0.8),
         ];
         let provider = Arc::new(MockSearchProvider::new(SourceType::Web, results));
-        let orch = SearchOrchestrator::new()
-            .with_provider(provider)
-            .with_deduplication(false);
+        let orch = SearchOrchestrator::new().with_provider(provider).with_deduplication(false);
 
         let query = SearchQuery::new("test".to_string())
             .with_sources(vec![SourceType::Web])
@@ -638,18 +611,13 @@ mod tests {
     #[tokio::test]
     async fn test_execute_multiple_source_types() {
         let web_results = vec![make_result("https://web.com", "Web", SourceType::Web, 0.8)];
-        let academic_results = vec![make_result(
-            "https://acad.com",
-            "Academic",
-            SourceType::Academic,
-            0.9,
-        )];
+        let academic_results =
+            vec![make_result("https://acad.com", "Academic", SourceType::Academic, 0.9)];
         let web_provider = Arc::new(MockSearchProvider::new(SourceType::Web, web_results));
         let academic_provider =
             Arc::new(MockSearchProvider::new(SourceType::Academic, academic_results));
-        let orch = SearchOrchestrator::new()
-            .with_provider(web_provider)
-            .with_provider(academic_provider);
+        let orch =
+            SearchOrchestrator::new().with_provider(web_provider).with_provider(academic_provider);
 
         let query = SearchQuery::new("test".to_string())
             .with_sources(vec![SourceType::Web, SourceType::Academic])

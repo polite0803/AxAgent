@@ -69,10 +69,8 @@ impl TaskExecutionRecord {
     }
 
     pub fn compute_duration(&mut self) {
-        self.duration_ms = self
-            .end_time
-            .signed_duration_since(self.start_time)
-            .num_milliseconds() as u64;
+        self.duration_ms =
+            self.end_time.signed_duration_since(self.start_time).num_milliseconds() as u64;
     }
 }
 
@@ -168,12 +166,7 @@ pub struct ReflectionConfig {
 
 impl Default for ReflectionConfig {
     fn default() -> Self {
-        Self {
-            enabled: true,
-            min_quality_threshold: 5,
-            store_insights: true,
-            max_history: 100,
-        }
+        Self { enabled: true, min_quality_threshold: 5, store_insights: true, max_history: 100 }
     }
 }
 
@@ -211,10 +204,8 @@ impl Reflector {
         reflection.error_patterns = errors;
         reflection.reusable_patterns = reusable;
 
-        let metrics_ref = reflection
-            .quality_metrics
-            .as_ref()
-            .expect("quality_metrics was set above");
+        let metrics_ref =
+            reflection.quality_metrics.as_ref().expect("quality_metrics was set above");
         reflection.knowledge_suggestions = self.generate_knowledge_suggestions(record, metrics_ref);
         reflection.improvement_suggestions =
             self.generate_improvement_suggestions(record, &reflection);
@@ -687,9 +678,8 @@ mod tests {
         let mut record =
             TaskExecutionRecord::new("test-1".to_string(), "Test task".to_string(), start, end);
         record.compute_duration();
-        record = record
-            .with_success(true)
-            .with_tools(vec!["tool1".to_string(), "tool2".to_string()]);
+        record =
+            record.with_success(true).with_tools(vec!["tool1".to_string(), "tool2".to_string()]);
 
         let reflection = reflector.reflect(&record).await;
 
@@ -714,11 +704,7 @@ mod tests {
         record.compute_duration();
         record = record
             .with_error("timeout: connection refused".to_string())
-            .with_tools(vec![
-                "search".to_string(),
-                "search".to_string(),
-                "read".to_string(),
-            ])
+            .with_tools(vec!["search".to_string(), "search".to_string(), "read".to_string()])
             .with_iterations(15);
 
         let reflection = reflector.reflect(&record).await;
@@ -754,9 +740,7 @@ mod tests {
             "read".to_string(),
         ]);
         assert!(
-            patterns
-                .iter()
-                .any(|p| p.contains("Retry with same approach") && p.contains("search"))
+            patterns.iter().any(|p| p.contains("Retry with same approach") && p.contains("search"))
         );
 
         let patterns = Reflector::detect_retry_patterns(&[

@@ -90,12 +90,7 @@ impl NpmRegistry {
         dest: &Path,
     ) -> Result<PathBuf, NpmError> {
         info!("npm: downloading tarball from {}", dist.tarball);
-        let response = self
-            .client
-            .get(&dist.tarball)
-            .send()
-            .await?
-            .error_for_status()?;
+        let response = self.client.get(&dist.tarball).send().await?.error_for_status()?;
         let bytes = response.bytes().await?;
         tarball::extract_tarball(&bytes, dest)?;
         let root = tarball::detect_package_root(dest)?;

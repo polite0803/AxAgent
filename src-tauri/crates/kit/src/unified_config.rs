@@ -175,9 +175,6 @@ impl Default for ConfigManager {
 
 impl Clone for ConfigManager {
     fn clone(&self) -> Self {
-        Self {
-            config: Arc::clone(&self.config),
-            overrides: Arc::clone(&self.overrides),
-        }
+        Self { config: Arc::clone(&self.config), overrides: Arc::clone(&self.overrides) }
     }
 }

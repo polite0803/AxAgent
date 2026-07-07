@@ -127,10 +127,7 @@ pub fn build_sequential_template(
                 id: id.clone(),
                 title: format!("Node {}", i),
                 description: None,
-                position: Position {
-                    x: 100.0,
-                    y: 100.0 + (i as f64 * 80.0),
-                },
+                position: Position { x: 100.0, y: 100.0 + (i as f64 * 80.0) },
                 retry: RetryConfig {
                     enabled: is_fail,
                     max_retries: if is_fail { 1 } else { 0 },
@@ -153,10 +150,7 @@ pub fn build_sequential_template(
             id: end_id.to_string(),
             title: "End".to_string(),
             description: None,
-            position: Position {
-                x: 100.0,
-                y: 100.0 + (node_count as f64 * 80.0) + 80.0,
-            },
+            position: Position { x: 100.0, y: 100.0 + (node_count as f64 * 80.0) + 80.0 },
             retry: RetryConfig::default(),
             timeout: Some(30),
             enabled: true,
@@ -198,11 +192,7 @@ pub struct WorkflowBenchRunner {
 impl WorkflowBenchRunner {
     /// 创建新的运行器，自动注册内置模板
     pub fn new() -> Self {
-        let mut runner = Self {
-            templates: HashMap::new(),
-            db: None,
-            results: Vec::new(),
-        };
+        let mut runner = Self { templates: HashMap::new(), db: None, results: Vec::new() };
         // 注册内置模板
         runner.register_builtin_templates();
         runner
@@ -211,28 +201,23 @@ impl WorkflowBenchRunner {
     fn register_builtin_templates(&mut self) {
         // 顺序执行模板
         let (nodes, edges) = build_sequential_template(3, &[], &[]);
-        self.templates
-            .insert("sequential".to_string(), (nodes, edges));
+        self.templates.insert("sequential".to_string(), (nodes, edges));
 
         // 带超时的顺序模板
         let (nodes, edges) = build_sequential_template(3, &["node_1".to_string()], &[]);
-        self.templates
-            .insert("sequential-with-timeout".to_string(), (nodes, edges));
+        self.templates.insert("sequential-with-timeout".to_string(), (nodes, edges));
 
         // 带重试的顺序模板
         let (nodes, edges) = build_sequential_template(3, &[], &["node_1".to_string()]);
-        self.templates
-            .insert("sequential-with-retry".to_string(), (nodes, edges));
+        self.templates.insert("sequential-with-retry".to_string(), (nodes, edges));
 
         // 大负载模板（10 个节点）
         let (nodes, edges) = build_sequential_template(10, &[], &[]);
-        self.templates
-            .insert("sequential-large".to_string(), (nodes, edges));
+        self.templates.insert("sequential-large".to_string(), (nodes, edges));
 
         // 超轻量模板（1 个节点）
         let (nodes, edges) = build_sequential_template(1, &[], &[]);
-        self.templates
-            .insert("sequential-minimal".to_string(), (nodes, edges));
+        self.templates.insert("sequential-minimal".to_string(), (nodes, edges));
     }
 
     /// 注册自定义模板
@@ -582,10 +567,7 @@ mod tests {
                 template_id: "sequential-minimal".to_string(),
                 ..Default::default()
             },
-            WorkflowBenchConfig {
-                template_id: "sequential".to_string(),
-                ..Default::default()
-            },
+            WorkflowBenchConfig { template_id: "sequential".to_string(), ..Default::default() },
         ];
         let results = runner.run_suite(&configs).await;
         assert_eq!(results.len(), 2);

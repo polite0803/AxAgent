@@ -64,9 +64,7 @@ impl LlmExecutionService for NoopLlmExecutionService {
         _messages: serde_json::Value,
         _config: &LlmCallConfig,
     ) -> Result<LlmCallResult, String> {
-        Ok(LlmCallResult {
-            content: String::new(),
-        })
+        Ok(LlmCallResult { content: String::new() })
     }
 }
 

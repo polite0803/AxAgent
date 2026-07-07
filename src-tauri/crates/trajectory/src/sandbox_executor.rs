@@ -175,9 +175,7 @@ impl SkillSandboxExecutor {
                     #[cfg(target_family = "windows")]
                     {
                         let mut scmd = Command::new("cmd");
-                        scmd.args(["/C", &cmd])
-                            .stdout(Stdio::piped())
-                            .stderr(Stdio::piped());
+                        scmd.args(["/C", &cmd]).stdout(Stdio::piped()).stderr(Stdio::piped());
                         axagent_kit::utils::hide_window(scmd.as_std_mut());
                         scmd.output()
                     }
@@ -466,30 +464,17 @@ mod tests {
         let step = make_step(0, "Use dangerous_tool with args", Some("dangerous_tool"));
         let result = executor.validate_step(&step);
         assert!(!result.allowed);
-        assert!(
-            result
-                .violations
-                .iter()
-                .any(|v| v.contains("not in allowed list"))
-        );
+        assert!(result.violations.iter().any(|v| v.contains("not in allowed list")));
     }
 
     #[test]
     fn test_validate_step_exceeds_max_steps() {
-        let policy = SandboxPolicy {
-            max_steps: 2,
-            ..SandboxPolicy::default()
-        };
+        let policy = SandboxPolicy { max_steps: 2, ..SandboxPolicy::default() };
         let executor = SkillSandboxExecutor::new(policy);
         let step = make_step(5, "Use read_file", Some("read_file"));
         let result = executor.validate_step(&step);
         assert!(!result.allowed);
-        assert!(
-            result
-                .violations
-                .iter()
-                .any(|v| v.contains("exceeds max_steps"))
-        );
+        assert!(result.violations.iter().any(|v| v.contains("exceeds max_steps")));
     }
 
     #[test]
@@ -498,12 +483,7 @@ mod tests {
         let step = make_step(0, "Use execute_bash with rm -rf /", Some("execute_bash"));
         let result = executor.validate_step(&step);
         assert!(!result.allowed);
-        assert!(
-            result
-                .violations
-                .iter()
-                .any(|v| v.contains("dangerous pattern"))
-        );
+        assert!(result.violations.iter().any(|v| v.contains("dangerous pattern")));
     }
 
     #[test]
@@ -567,11 +547,8 @@ mod tests {
     #[tokio::test]
     async fn test_skill_sandbox_executor_blocked_step() {
         let executor = SkillSandboxExecutor::with_default_policy();
-        let genome = make_genome(vec![make_step(
-            0,
-            "Use execute_bash with rm -rf /",
-            Some("execute_bash"),
-        )]);
+        let genome =
+            make_genome(vec![make_step(0, "Use execute_bash with rm -rf /", Some("execute_bash"))]);
         let result = executor.execute_skill(&genome, "test input").await.unwrap();
         assert!(!result.passed);
         assert!(!result.execution_errors.is_empty());

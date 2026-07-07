@@ -127,10 +127,7 @@ struct ApproximateIndex {
 
 impl ApproximateIndex {
     fn new(num_buckets: usize) -> Self {
-        Self {
-            buckets: Vec::with_capacity(num_buckets),
-            num_buckets,
-        }
+        Self { buckets: Vec::with_capacity(num_buckets), num_buckets }
     }
 
     fn assign_bucket(&self, embedding: &[f32]) -> usize {
@@ -194,10 +191,7 @@ impl ApproximateIndex {
             .iter()
             .take(max_buckets)
             .flat_map(|(idx, _)| {
-                self.buckets
-                    .get(*idx)
-                    .map(|b| b.entry_keys.clone())
-                    .unwrap_or_default()
+                self.buckets.get(*idx).map(|b| b.entry_keys.clone()).unwrap_or_default()
             })
             .collect()
     }
@@ -431,11 +425,8 @@ impl SemanticCache {
             return 0;
         }
 
-        let mut entries: Vec<_> = self
-            .entries
-            .iter()
-            .map(|(k, v)| (k.clone(), v.last_accessed))
-            .collect();
+        let mut entries: Vec<_> =
+            self.entries.iter().map(|(k, v)| (k.clone(), v.last_accessed)).collect();
 
         entries.sort_by_key(|(_, accessed)| *accessed);
 
@@ -882,11 +873,7 @@ mod tests {
         let evicted = cache.invalidate_least_used(1);
         assert_eq!(evicted, 1);
         assert_eq!(cache.entries.len(), 1);
-        assert!(
-            cache
-                .entries
-                .contains_key(&embedding_hash(&create_test_embedding(0.2)))
-        );
+        assert!(cache.entries.contains_key(&embedding_hash(&create_test_embedding(0.2))));
     }
 
     #[test]

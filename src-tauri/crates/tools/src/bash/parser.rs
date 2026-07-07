@@ -232,10 +232,7 @@ fn parse_tokens(tokens: &[Token]) -> Result<ParsedCommand, String> {
                 if i + 1 < tokens.len()
                     && let Token::Word(target) = &tokens[i + 1]
                 {
-                    redirects.push(Redirect {
-                        kind,
-                        target: target.clone(),
-                    });
+                    redirects.push(Redirect { kind, target: target.clone() });
                     i += 1;
                 }
             },
@@ -243,14 +240,7 @@ fn parse_tokens(tokens: &[Token]) -> Result<ParsedCommand, String> {
         i += 1;
     }
 
-    Ok(ParsedCommand {
-        argv,
-        redirects,
-        env_vars,
-        background,
-        next_pipe,
-        next_conditional,
-    })
+    Ok(ParsedCommand { argv, redirects, env_vars, background, next_pipe, next_conditional })
 }
 
 #[cfg(test)]

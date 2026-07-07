@@ -75,10 +75,7 @@ impl NodeExecutorTrait for ValidationExecutor {
                 }),
                 "contains" => {
                     if let (Some(actual), Some(expected)) = (&actual_value, &expected_value) {
-                        actual
-                            .as_str()
-                            .zip(expected.as_str())
-                            .is_some_and(|(a, e)| a.contains(e))
+                        actual.as_str().zip(expected.as_str()).is_some_and(|(a, e)| a.contains(e))
                     } else {
                         false
                     }

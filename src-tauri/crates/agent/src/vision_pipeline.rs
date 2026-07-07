@@ -126,11 +126,7 @@ impl VisionPipeline {
         ctx: ProviderRequestContext,
         model: String,
     ) -> Self {
-        Self {
-            adapter,
-            ctx,
-            model,
-        }
+        Self { adapter, ctx, model }
     }
 
     pub async fn analyze(
@@ -252,12 +248,7 @@ mod tests {
         let element = UiElement {
             element_type: "button".to_string(),
             label: Some("Submit".to_string()),
-            bounding_box: Some(BoundingBox {
-                x: 10.0,
-                y: 20.0,
-                width: 100.0,
-                height: 40.0,
-            }),
+            bounding_box: Some(BoundingBox { x: 10.0, y: 20.0, width: 100.0, height: 40.0 }),
             actionable: true,
         };
         let json = serde_json::to_string(&element).unwrap();
@@ -269,12 +260,7 @@ mod tests {
 
     #[test]
     fn test_bounding_box_serialization() {
-        let bbox = BoundingBox {
-            x: 1.0,
-            y: 2.0,
-            width: 100.0,
-            height: 50.0,
-        };
+        let bbox = BoundingBox { x: 1.0, y: 2.0, width: 100.0, height: 50.0 };
         let json = serde_json::to_string(&bbox).unwrap();
         let deserialized: BoundingBox = serde_json::from_str(&json).unwrap();
         assert!((deserialized.x - 1.0).abs() < f32::EPSILON);

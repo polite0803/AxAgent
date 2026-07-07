@@ -189,9 +189,7 @@ impl ProviderFallbackManager {
     pub async fn register(&self, entry: ProviderEntry) {
         let mut providers = self.providers.write().await;
         let mut health = self.health.write().await;
-        health
-            .entry(entry.provider_id.clone())
-            .or_insert_with(ProviderHealth::default);
+        health.entry(entry.provider_id.clone()).or_insert_with(ProviderHealth::default);
         providers.push(entry);
     }
 
@@ -280,10 +278,7 @@ impl ProviderFallbackManager {
         // 4. 所有 Provider 都 down 了,强制恢复冷却最短的那个,避免服务彻底不可用
         //    (P1-4 修复:不直接返回第一个,而是选择"冷得最透"的,即 last_check 最早的)
         if let Some(entry) = providers_guard.iter().min_by_key(|p| {
-            health_guard
-                .get(&p.provider_id)
-                .map(|h| h.last_check)
-                .unwrap_or_else(Instant::now)
+            health_guard.get(&p.provider_id).map(|h| h.last_check).unwrap_or_else(Instant::now)
         }) {
             if let Some(h) = health_guard.get_mut(&entry.provider_id) {
                 h.marked_down = false;
@@ -398,10 +393,8 @@ mod tests {
         })
         .await;
 
-        let (entry, is_fallback) = mgr
-            .select_provider(Some("openai"))
-            .await
-            .expect("should find provider");
+        let (entry, is_fallback) =
+            mgr.select_provider(Some("openai")).await.expect("should find provider");
         assert_eq!(entry.provider_id, "openai");
         assert!(!is_fallback);
     }
@@ -436,10 +429,8 @@ mod tests {
             }
         }
 
-        let (entry, is_fallback) = mgr
-            .select_provider(Some("openai"))
-            .await
-            .expect("should fallback");
+        let (entry, is_fallback) =
+            mgr.select_provider(Some("openai")).await.expect("should fallback");
         assert_eq!(entry.provider_id, "anthropic");
         assert!(is_fallback);
     }

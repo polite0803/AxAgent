@@ -23,11 +23,7 @@ pub struct TraceSummary {
 impl TraceSummary {
     pub fn from_spans(trace_id: String, spans: &[Span], metadata: &TraceMetadata) -> Self {
         let error_count = spans.iter().map(|s| s.errors.len()).sum();
-        let started_at = spans
-            .iter()
-            .map(|s| s.start_time)
-            .min()
-            .unwrap_or_else(Utc::now);
+        let started_at = spans.iter().map(|s| s.start_time).min().unwrap_or_else(Utc::now);
         let ended_at = spans.iter().filter_map(|s| s.end_time).max();
         let duration_ms = ended_at.map(|end| (end - started_at).num_milliseconds() as u64);
 
@@ -95,9 +91,7 @@ pub struct StorageError {
 
 impl StorageError {
     pub fn new(message: impl Into<String>) -> Self {
-        Self {
-            message: message.into(),
-        }
+        Self { message: message.into() }
     }
 }
 
@@ -115,15 +109,11 @@ pub struct InMemoryTraceStorage {
 
 impl InMemoryTraceStorage {
     pub fn new() -> Self {
-        Self {
-            traces: Arc::new(RwLock::new(HashMap::new())),
-        }
+        Self { traces: Arc::new(RwLock::new(HashMap::new())) }
     }
 
     pub fn with_capacity(capacity: usize) -> Self {
-        Self {
-            traces: Arc::new(RwLock::new(HashMap::with_capacity(capacity))),
-        }
+        Self { traces: Arc::new(RwLock::new(HashMap::with_capacity(capacity))) }
     }
 }
 
@@ -135,27 +125,21 @@ impl Default for InMemoryTraceStorage {
 
 impl TraceStorage for InMemoryTraceStorage {
     fn store(&self, trace: TraceExport) -> Result<(), StorageError> {
-        let mut traces = self
-            .traces
-            .write()
-            .map_err(|_| StorageError::new("Failed to acquire write lock"))?;
+        let mut traces =
+            self.traces.write().map_err(|_| StorageError::new("Failed to acquire write lock"))?;
         traces.insert(trace.trace_id.clone(), trace);
         Ok(())
     }
 
     fn get(&self, trace_id: &str) -> Result<Option<TraceExport>, StorageError> {
-        let traces = self
-            .traces
-            .read()
-            .map_err(|_| StorageError::new("Failed to acquire read lock"))?;
+        let traces =
+            self.traces.read().map_err(|_| StorageError::new("Failed to acquire read lock"))?;
         Ok(traces.get(trace_id).cloned())
     }
 
     fn list(&self, filter: &TraceFilter) -> Result<Vec<TraceSummary>, StorageError> {
-        let traces = self
-            .traces
-            .read()
-            .map_err(|_| StorageError::new("Failed to acquire read lock"))?;
+        let traces =
+            self.traces.read().map_err(|_| StorageError::new("Failed to acquire read lock"))?;
 
         let mut summaries: Vec<TraceSummary> = traces
             .values()
@@ -212,19 +196,15 @@ impl TraceStorage for InMemoryTraceStorage {
     }
 
     fn delete(&self, trace_id: &str) -> Result<(), StorageError> {
-        let mut traces = self
-            .traces
-            .write()
-            .map_err(|_| StorageError::new("Failed to acquire write lock"))?;
+        let mut traces =
+            self.traces.write().map_err(|_| StorageError::new("Failed to acquire write lock"))?;
         traces.remove(trace_id);
         Ok(())
     }
 
     fn clear(&self) -> Result<(), StorageError> {
-        let mut traces = self
-            .traces
-            .write()
-            .map_err(|_| StorageError::new("Failed to acquire write lock"))?;
+        let mut traces =
+            self.traces.write().map_err(|_| StorageError::new("Failed to acquire write lock"))?;
         traces.clear();
         Ok(())
     }

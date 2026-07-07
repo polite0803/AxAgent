@@ -127,18 +127,10 @@ impl Tracer {
         }
 
         let span_clone = span.clone();
-        self.spans
-            .write()
-            .unwrap_or_else(|e| e.into_inner())
-            .push(span);
+        self.spans.write().unwrap_or_else(|e| e.into_inner()).push(span);
         self.current_span = Some(span_id.clone());
 
-        SpanGuard {
-            tracer: self,
-            span_id,
-            span_type,
-            _span: span_clone,
-        }
+        SpanGuard { tracer: self, span_id, span_type, _span: span_clone }
     }
 
     pub fn end_span(&mut self, span_id: &str, status: SpanStatus) {
@@ -148,10 +140,7 @@ impl Tracer {
             span.duration_ms = span
                 .start_time
                 .checked_add_signed(chrono::Duration::milliseconds(0))
-                .and_then(|start| {
-                    span.end_time
-                        .map(|end| (end - start).num_milliseconds() as u64)
-                });
+                .and_then(|start| span.end_time.map(|end| (end - start).num_milliseconds() as u64));
             span.status = status;
         }
         drop(spans);
@@ -422,9 +411,7 @@ pub struct GlobalTracer {
 
 impl GlobalTracer {
     pub fn new() -> Self {
-        Self {
-            tracer: RwLock::new(None),
-        }
+        Self { tracer: RwLock::new(None) }
     }
 
     pub fn set(&self, tracer: Tracer) {
@@ -479,10 +466,7 @@ mod tests {
 
     #[test]
     fn test_tracer_builder() {
-        let tracer = TracerBuilder::new()
-            .trace_id("trace-1")
-            .session_id("session-1")
-            .build();
+        let tracer = TracerBuilder::new().trace_id("trace-1").session_id("session-1").build();
 
         assert_eq!(tracer.trace_id(), "trace-1");
     }

@@ -44,9 +44,7 @@ impl Default for ContextFileResolver {
 
 impl ContextFileResolver {
     pub fn new() -> Self {
-        Self {
-            cache: Arc::new(RwLock::new(None)),
-        }
+        Self { cache: Arc::new(RwLock::new(None)) }
     }
 
     pub async fn discover(&self, project_root: &Path) -> ContextFileResult {
@@ -62,10 +60,7 @@ impl ContextFileResolver {
             .collect::<Vec<_>>()
             .join("\n---\n\n");
 
-        let result = ContextFileResult {
-            files,
-            combined_content,
-        };
+        let result = ContextFileResult { files, combined_content };
         *self.cache.write().await = Some(result.clone());
         result
     }
@@ -229,9 +224,9 @@ fn evaluate_condition(condition_type: &str, condition_value: &str) -> bool {
     match condition_type {
         "platform" => std::env::consts::OS == condition_value,
         "toolset" => is_toolset_available(condition_value),
-        "personality" => std::env::var("AXAGENT_PERSONALITY")
-            .unwrap_or_default()
-            .eq(condition_value),
+        "personality" => {
+            std::env::var("AXAGENT_PERSONALITY").unwrap_or_default().eq(condition_value)
+        },
         _ => false,
     }
 }

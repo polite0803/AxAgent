@@ -74,12 +74,7 @@ pub async fn build_rag_llm_fn(db: &DatabaseConnection, master_key: &[u8; 32]) ->
 
     Some(Arc::new(move |prompt: String| {
         let bridge = bridge.clone();
-        Box::pin(async move {
-            bridge
-                .call_llm("", &prompt)
-                .await
-                .map_err(AxAgentError::Provider)
-        })
+        Box::pin(async move { bridge.call_llm("", &prompt).await.map_err(AxAgentError::Provider) })
     }))
 }
 
@@ -107,9 +102,7 @@ pub async fn build_embed_context(
     let key_row = axagent_dao::repo::provider::get_active_key(db, provider_id).await?;
     let decrypted_key = axagent_crypto::decrypt_key(&key_row.key_encrypted, master_key)?;
 
-    let global_settings = axagent_dao::repo::settings::get_settings(db)
-        .await
-        .unwrap_or_default();
+    let global_settings = axagent_dao::repo::settings::get_settings(db).await.unwrap_or_default();
     let resolved_proxy = ProviderProxyConfig::resolve(&provider.proxy_config, &global_settings);
 
     let ctx = ProviderRequestContext {
@@ -119,10 +112,7 @@ pub async fn build_embed_context(
         base_url: Some(resolve_base_url_for_type(&provider.api_host, &provider.provider_type)),
         api_path: None,
         proxy_config: resolved_proxy,
-        custom_headers: provider
-            .custom_headers
-            .as_ref()
-            .and_then(|s| serde_json::from_str(s).ok()),
+        custom_headers: provider.custom_headers.as_ref().and_then(|s| serde_json::from_str(s).ok()),
         api_mode: None,
         conversation: None,
         previous_response_id: None,
@@ -168,11 +158,7 @@ pub async fn generate_embeddings(
 
     // If texts fit in a single batch, use the simple path
     if texts.len() <= EMBED_BATCH_SIZE {
-        let request = EmbedRequest {
-            model: model_id,
-            input: texts,
-            dimensions,
-        };
+        let request = EmbedRequest { model: model_id, input: texts, dimensions };
         return embed_with_retry(&*adapter, &ctx, request).await;
     }
 
@@ -181,11 +167,7 @@ pub async fn generate_embeddings(
     let mut first_dimensions: Option<usize> = None;
 
     for batch in texts.chunks(EMBED_BATCH_SIZE) {
-        let request = EmbedRequest {
-            model: model_id.clone(),
-            input: batch.to_vec(),
-            dimensions,
-        };
+        let request = EmbedRequest { model: model_id.clone(), input: batch.to_vec(), dimensions };
         let response = embed_with_retry(&*adapter, &ctx, request).await?;
 
         if first_dimensions.is_none() {
@@ -194,10 +176,7 @@ pub async fn generate_embeddings(
         all_embeddings.extend(response.embeddings);
     }
 
-    Ok(EmbedResponse {
-        embeddings: all_embeddings,
-        dimensions: first_dimensions.unwrap_or(0),
-    })
+    Ok(EmbedResponse { embeddings: all_embeddings, dimensions: first_dimensions.unwrap_or(0) })
 }
 
 /// Execute a single embedding request with retry and exponential backoff.
@@ -451,16 +430,8 @@ pub async fn index_wiki_note(
     )
     .await?;
 
-    rag::index(
-        vector_store,
-        "wiki",
-        wiki_id,
-        note_id,
-        content,
-        embed_response.embeddings,
-        chunks,
-    )
-    .await
+    rag::index(vector_store, "wiki", wiki_id, note_id, content, embed_response.embeddings, chunks)
+        .await
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -620,10 +591,7 @@ pub async fn collect_rag_context(
     top_k: usize,
 ) -> RagContextResult {
     if kb_ids.is_empty() && mem_ids.is_empty() && wiki_ids.is_empty() {
-        return RagContextResult {
-            context_parts: vec![],
-            source_results: vec![],
-        };
+        return RagContextResult { context_parts: vec![], source_results: vec![] };
     }
 
     // Read pipeline config from global settings

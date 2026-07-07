@@ -42,18 +42,12 @@ pub async fn plugin_validate_source(
     let plugin_manager = state.plugin_manager.clone();
     tauri::async_runtime::spawn_blocking(move || {
         let manager = plugin_manager.blocking_read();
-        let manifest = manager
-            .validate_plugin_source(&source)
-            .map_err(|e| e.to_string())?;
+        let manifest = manager.validate_plugin_source(&source).map_err(|e| e.to_string())?;
         Ok(PluginManifestDto {
             name: manifest.name,
             version: manifest.version,
             description: manifest.description,
-            permissions: manifest
-                .permissions
-                .iter()
-                .map(|p| p.as_str().to_string())
-                .collect(),
+            permissions: manifest.permissions.iter().map(|p| p.as_str().to_string()).collect(),
             default_enabled: manifest.default_enabled,
             hooks: {
                 let mut hooks = serde_json::Map::new();
@@ -84,26 +78,17 @@ pub async fn plugin_validate_source(
             tools: manifest
                 .tools
                 .iter()
-                .map(|t| ToolDto {
-                    name: t.name.clone(),
-                    description: t.description.clone(),
-                })
+                .map(|t| ToolDto { name: t.name.clone(), description: t.description.clone() })
                 .collect(),
             mcp_servers: manifest
                 .mcp_servers
                 .iter()
-                .map(|m| McpServerDto {
-                    name: m.name.clone(),
-                    command: m.command.clone(),
-                })
+                .map(|m| McpServerDto { name: m.name.clone(), command: m.command.clone() })
                 .collect(),
             skills: manifest
                 .skills
                 .iter()
-                .map(|s| SkillDto {
-                    name: s.name.clone(),
-                    path: s.path.clone(),
-                })
+                .map(|s| SkillDto { name: s.name.clone(), path: s.path.clone() })
                 .collect(),
         })
     })

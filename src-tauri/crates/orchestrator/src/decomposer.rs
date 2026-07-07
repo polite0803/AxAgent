@@ -227,12 +227,7 @@ impl LlmBasedDecomposer {
         ctx: ProviderRequestContext,
         llm_service: Arc<dyn LlmExecutionService>,
     ) -> Self {
-        Self {
-            adapter,
-            ctx,
-            llm_service,
-            fallback: RuleBasedDecomposer,
-        }
+        Self { adapter, ctx, llm_service, fallback: RuleBasedDecomposer }
     }
 }
 
@@ -333,9 +328,7 @@ Respond with ONLY a JSON object:
 
         let result = tokio::task::block_in_place(|| {
             tokio::runtime::Handle::current().block_on(async {
-                self.llm_service
-                    .execute(&*self.adapter, &self.ctx, request_json, &config)
-                    .await
+                self.llm_service.execute(&*self.adapter, &self.ctx, request_json, &config).await
             })
         });
 
@@ -445,11 +438,7 @@ fn extract_json(text: &str) -> String {
 
     // Remove markdown code fences
     let text = if text.starts_with("```") {
-        text.lines()
-            .skip(1)
-            .filter(|l| !l.trim().starts_with("```"))
-            .collect::<Vec<_>>()
-            .join("\n")
+        text.lines().skip(1).filter(|l| !l.trim().starts_with("```")).collect::<Vec<_>>().join("\n")
     } else {
         text.to_string()
     };
@@ -470,9 +459,8 @@ mod tests {
     #[test]
     fn test_rule_based_review() {
         let decomposer = RuleBasedDecomposer::new();
-        let plan = decomposer
-            .decompose("Review the API design", OrchestrationStrategy::Ordered)
-            .unwrap();
+        let plan =
+            decomposer.decompose("Review the API design", OrchestrationStrategy::Ordered).unwrap();
         assert_eq!(plan.sub_tasks.len(), 3);
         assert!(plan.sub_tasks.iter().any(|t| t.id == "review"));
     }
@@ -490,9 +478,8 @@ mod tests {
     #[test]
     fn test_rule_based_design() {
         let decomposer = RuleBasedDecomposer::new();
-        let plan = decomposer
-            .decompose("Design new architecture", OrchestrationStrategy::Debate)
-            .unwrap();
+        let plan =
+            decomposer.decompose("Design new architecture", OrchestrationStrategy::Debate).unwrap();
         assert_eq!(plan.sub_tasks.len(), 3);
         assert!(plan.sub_tasks.iter().any(|t| t.id == "design"));
     }
@@ -500,9 +487,8 @@ mod tests {
     #[test]
     fn test_rule_based_default() {
         let decomposer = RuleBasedDecomposer::new();
-        let plan = decomposer
-            .decompose("Fix the login bug", OrchestrationStrategy::Ordered)
-            .unwrap();
+        let plan =
+            decomposer.decompose("Fix the login bug", OrchestrationStrategy::Ordered).unwrap();
         assert_eq!(plan.sub_tasks.len(), 3);
     }
 

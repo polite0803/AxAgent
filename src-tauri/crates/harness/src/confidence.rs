@@ -21,11 +21,7 @@ pub struct ConfidenceOutput {
 impl ConfidenceOutput {
     /// 基于原始文本结果创建一个默认置信度为 1.0 的 ConfidenceOutput
     pub fn from_text(text: impl Into<String>) -> Self {
-        Self {
-            result: serde_json::Value::String(text.into()),
-            confidence: 1.0,
-            reasoning: None,
-        }
+        Self { result: serde_json::Value::String(text.into()), confidence: 1.0, reasoning: None }
     }
 
     /// 尝试从 LLM 响应文本中解析 ConfidenceOutput。
@@ -38,19 +34,9 @@ impl ConfidenceOutput {
         if let Ok(value) = serde_json::from_str::<serde_json::Value>(response.trim())
             && let Some(result) = value.get("result")
         {
-            let confidence = value
-                .get("confidence")
-                .and_then(|c| c.as_f64())
-                .unwrap_or(1.0);
-            let reasoning = value
-                .get("reasoning")
-                .and_then(|r| r.as_str())
-                .map(|s| s.to_string());
-            return Some(Self {
-                result: result.clone(),
-                confidence,
-                reasoning,
-            });
+            let confidence = value.get("confidence").and_then(|c| c.as_f64()).unwrap_or(1.0);
+            let reasoning = value.get("reasoning").and_then(|r| r.as_str()).map(|s| s.to_string());
+            return Some(Self { result: result.clone(), confidence, reasoning });
         }
 
         // 尝试从文本中提取 JSON 块
@@ -61,19 +47,10 @@ impl ConfidenceOutput {
             if let Ok(value) = serde_json::from_str::<serde_json::Value>(json_str)
                 && let Some(result) = value.get("result")
             {
-                let confidence = value
-                    .get("confidence")
-                    .and_then(|c| c.as_f64())
-                    .unwrap_or(1.0);
-                let reasoning = value
-                    .get("reasoning")
-                    .and_then(|r| r.as_str())
-                    .map(|s| s.to_string());
-                return Some(Self {
-                    result: result.clone(),
-                    confidence,
-                    reasoning,
-                });
+                let confidence = value.get("confidence").and_then(|c| c.as_f64()).unwrap_or(1.0);
+                let reasoning =
+                    value.get("reasoning").and_then(|r| r.as_str()).map(|s| s.to_string());
+                return Some(Self { result: result.clone(), confidence, reasoning });
             }
         }
 
@@ -118,11 +95,8 @@ mod tests {
 
     #[test]
     fn test_confidence_threshold_check() {
-        let output = ConfidenceOutput {
-            result: serde_json::json!("ok"),
-            confidence: 0.7,
-            reasoning: None,
-        };
+        let output =
+            ConfidenceOutput { result: serde_json::json!("ok"), confidence: 0.7, reasoning: None };
         assert!(output.is_confident_enough(0.5));
         assert!(!output.is_confident_enough(0.8));
     }

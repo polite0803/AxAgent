@@ -40,11 +40,7 @@ pub struct ToolBatchItem {
 
 impl ToolBatchItem {
     pub fn new(tool_name: String, tool_input: serde_json::Value, tool_use_id: String) -> Self {
-        Self {
-            tool_name,
-            tool_input,
-            tool_use_id,
-        }
+        Self { tool_name, tool_input, tool_use_id }
     }
 }
 
@@ -68,12 +64,7 @@ pub struct OrchestratorConfig {
 
 impl Default for OrchestratorConfig {
     fn default() -> Self {
-        Self {
-            max_concurrency: 10,
-            timeout_secs: 120,
-            max_retries: 3,
-            retry_delay_ms: 1000,
-        }
+        Self { max_concurrency: 10, timeout_secs: 120, max_retries: 3, retry_delay_ms: 1000 }
     }
 }
 
@@ -97,9 +88,7 @@ impl Orchestrator {
         let mut results = Vec::new();
 
         if !concurrent.is_empty() {
-            let concurrent_results = self
-                .run_concurrently(concurrent, registry.clone(), ctx)
-                .await;
+            let concurrent_results = self.run_concurrently(concurrent, registry.clone(), ctx).await;
             results.extend(concurrent_results);
         }
 
@@ -120,10 +109,8 @@ impl Orchestrator {
         let mut serial = Vec::new();
 
         for req in requests {
-            let is_safe = registry
-                .find(&req.name)
-                .map(|t| t.is_concurrency_safe())
-                .unwrap_or(false);
+            let is_safe =
+                registry.find(&req.name).map(|t| t.is_concurrency_safe()).unwrap_or(false);
 
             if is_safe {
                 concurrent.push(req);
@@ -147,10 +134,7 @@ impl Orchestrator {
         let mut current_is_concurrent = None;
 
         for call in tool_calls {
-            let is_safe = concurrency_map
-                .get(&call.tool_name)
-                .copied()
-                .unwrap_or(false);
+            let is_safe = concurrency_map.get(&call.tool_name).copied().unwrap_or(false);
 
             match current_is_concurrent {
                 Some(prev) if prev == is_safe => {
@@ -276,11 +260,7 @@ async fn run_single(
     };
 
     if let Err(e) = tool.validate(&input, ctx).await {
-        return ToolCallResponse {
-            id,
-            name,
-            result: Err(e),
-        };
+        return ToolCallResponse { id, name, result: Err(e) };
     }
 
     // ── 重试循环 ──
@@ -300,11 +280,7 @@ async fn run_single(
         {
             Ok(call_result) => match call_result {
                 Ok(r) => {
-                    return ToolCallResponse {
-                        id,
-                        name,
-                        result: Ok(r),
-                    };
+                    return ToolCallResponse { id, name, result: Ok(r) };
                 },
                 Err(e) => {
                     if matches!(
@@ -346,18 +322,10 @@ async fn run_single(
 
         match result {
             Ok(r) => {
-                return ToolCallResponse {
-                    id,
-                    name,
-                    result: Ok(r),
-                };
+                return ToolCallResponse { id, name, result: Ok(r) };
             },
             Err(e) => {
-                return ToolCallResponse {
-                    id,
-                    name,
-                    result: Err(e),
-                };
+                return ToolCallResponse { id, name, result: Err(e) };
             },
         }
     }

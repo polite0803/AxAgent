@@ -156,12 +156,8 @@ impl TerminalBackend for LocalBackend {
             .ok_or_else(|| anyhow::anyhow!("Session not found: {}", session_id))?;
 
         let mut s = session.lock().await;
-        s.writer
-            .write_all(data)
-            .map_err(|e| anyhow::anyhow!("Write failed: {}", e))?;
-        s.writer
-            .flush()
-            .map_err(|e| anyhow::anyhow!("Flush failed: {}", e))?;
+        s.writer.write_all(data).map_err(|e| anyhow::anyhow!("Write failed: {}", e))?;
+        s.writer.flush().map_err(|e| anyhow::anyhow!("Flush failed: {}", e))?;
 
         Ok(())
     }

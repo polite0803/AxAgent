@@ -16,10 +16,7 @@ const NP: &NoopPromptProvider = &NoopPromptProvider;
 #[derive(Debug, Clone)]
 pub enum ReactiveCompactResult {
     /// 压缩成功，附带新的压缩结果
-    Compacted {
-        result: Box<CompactionResult>,
-        trigger: ReactiveTrigger,
-    },
+    Compacted { result: Box<CompactionResult>, trigger: ReactiveTrigger },
     /// 压缩失败，附带失败原因
     Failed { reason: String },
     /// 压缩被跳过（不适用或已禁用）
@@ -104,16 +101,10 @@ pub fn try_reactive_compact(
             };
         }
 
-        return ReactiveCompactResult::Compacted {
-            result: Box::new(retry_result),
-            trigger,
-        };
+        return ReactiveCompactResult::Compacted { result: Box::new(retry_result), trigger };
     }
 
-    ReactiveCompactResult::Compacted {
-        result: Box::new(result),
-        trigger,
-    }
+    ReactiveCompactResult::Compacted { result: Box::new(result), trigger }
 }
 
 /// 从 API 错误消息中检测是否需要响应式压缩。
@@ -161,9 +152,7 @@ mod tests {
             // 创建足够大的消息（~2500 tokens per message）以确保超过压缩阈值
             let text = format!("message {} {}", i, "x".repeat(10_000));
             if i % 2 == 0 {
-                session
-                    .push_message(ConversationMessage::user_text(&text))
-                    .unwrap();
+                session.push_message(ConversationMessage::user_text(&text)).unwrap();
             } else {
                 session
                     .push_message(ConversationMessage::assistant(vec![ContentBlock::Text { text }]))

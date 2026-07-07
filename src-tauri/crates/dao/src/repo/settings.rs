@@ -68,9 +68,7 @@ pub async fn set_setting(db: &DatabaseConnection, key: &str, value: &str) -> Res
         value: Set(value.to_string()),
     })
     .on_conflict(
-        OnConflict::column(settings::Column::Key)
-            .update_column(settings::Column::Value)
-            .to_owned(),
+        OnConflict::column(settings::Column::Key).update_column(settings::Column::Value).to_owned(),
     )
     .exec(db)
     .await?;

@@ -30,10 +30,7 @@ pub struct DatasetRegistry {
 
 impl DatasetRegistry {
     pub fn new() -> Self {
-        let mut registry = Self {
-            datasets: HashMap::new(),
-            custom_tasks: HashMap::new(),
-        };
+        let mut registry = Self { datasets: HashMap::new(), custom_tasks: HashMap::new() };
         registry.register_builtin_datasets();
         registry
     }
@@ -125,9 +122,7 @@ impl DatasetLoader {
     }
 
     pub fn with_base_path(path: PathBuf) -> Self {
-        Self {
-            base_path: Some(path),
-        }
+        Self { base_path: Some(path) }
     }
 
     pub fn load_from_file(&self, path: &str) -> Result<Benchmark, DatasetError> {
@@ -242,11 +237,7 @@ mod tests {
             id: "t1".to_string(),
             name: "Task 1".to_string(),
             description: "A task".to_string(),
-            input: TaskInput {
-                query: "query".to_string(),
-                context: None,
-                constraints: vec![],
-            },
+            input: TaskInput { query: "query".to_string(), context: None, constraints: vec![] },
             expected_output: None,
             evaluation_criteria: vec![EvaluationCriteria {
                 name: "c1".to_string(),

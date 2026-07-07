@@ -151,9 +151,8 @@ impl McpToolRegistry {
 
     pub fn read_resource(&self, server_name: &str, uri: &str) -> Result<McpResourceInfo, String> {
         let inner = lock_or_recover(self.inner.lock(), "mcp_tool_bridge");
-        let state = inner
-            .get(server_name)
-            .ok_or_else(|| format!("server '{}' not found", server_name))?;
+        let state =
+            inner.get(server_name).ok_or_else(|| format!("server '{}' not found", server_name))?;
 
         if state.status != McpConnectionStatus::Connected {
             return Err(format!(
@@ -195,9 +194,7 @@ impl McpToolRegistry {
         // 在当前 tokio 上下文中直接调用，不再创建嵌套 runtime
         let response = {
             let mut mgr = manager.lock().await;
-            mgr.discover_tools()
-                .await
-                .map_err(|error| error.to_string())?;
+            mgr.discover_tools().await.map_err(|error| error.to_string())?;
             let response = mgr
                 .call_tool(&qualified_tool_name, arguments)
                 .await
@@ -234,9 +231,8 @@ impl McpToolRegistry {
         arguments: &serde_json::Value,
     ) -> Result<serde_json::Value, String> {
         let inner = lock_or_recover(self.inner.lock(), "mcp_tool_bridge");
-        let state = inner
-            .get(server_name)
-            .ok_or_else(|| format!("server '{}' not found", server_name))?;
+        let state =
+            inner.get(server_name).ok_or_else(|| format!("server '{}' not found", server_name))?;
 
         if state.status != McpConnectionStatus::Connected {
             return Err(format!(
@@ -278,9 +274,8 @@ impl McpToolRegistry {
         arguments: &serde_json::Value,
     ) -> Result<serde_json::Value, String> {
         let inner = lock_or_recover(self.inner.lock(), "mcp_tool_bridge");
-        let state = inner
-            .get(server_name)
-            .ok_or_else(|| format!("server '{}' not found", server_name))?;
+        let state =
+            inner.get(server_name).ok_or_else(|| format!("server '{}' not found", server_name))?;
 
         if state.status != McpConnectionStatus::Connected {
             return Err(format!(
@@ -295,14 +290,10 @@ impl McpToolRegistry {
 
         let transport = state.transport.clone();
         let command = state.command.clone();
-        let args: Option<Vec<String>> = state
-            .args_json
-            .as_ref()
-            .and_then(|s| serde_json::from_str(s).ok());
-        let env: Option<std::collections::HashMap<String, String>> = state
-            .env_json
-            .as_ref()
-            .and_then(|s| serde_json::from_str(s).ok());
+        let args: Option<Vec<String>> =
+            state.args_json.as_ref().and_then(|s| serde_json::from_str(s).ok());
+        let env: Option<std::collections::HashMap<String, String>> =
+            state.env_json.as_ref().and_then(|s| serde_json::from_str(s).ok());
         let endpoint = state.endpoint.clone();
 
         drop(inner);
@@ -524,9 +515,7 @@ mod tests {
             None,
         );
 
-        let resource = registry
-            .read_resource("srv", "res://data")
-            .expect("should find");
+        let resource = registry.read_resource("srv", "res://data").expect("should find");
         assert_eq!(resource.name, "Data");
 
         assert!(registry.read_resource("srv", "res://missing").is_err());
@@ -534,20 +523,14 @@ mod tests {
 
     #[test]
     fn given_connected_server_without_manager_when_calling_tool_then_it_errors() {
-        let rt = tokio::runtime::Builder::new_current_thread()
-            .enable_all()
-            .build()
-            .expect("runtime");
+        let rt =
+            tokio::runtime::Builder::new_current_thread().enable_all().build().expect("runtime");
         rt.block_on(async {
             let registry = McpToolRegistry::new();
             registry.register_server(
                 "srv",
                 McpConnectionStatus::Connected,
-                vec![McpToolInfo {
-                    name: "greet".into(),
-                    description: None,
-                    input_schema: None,
-                }],
+                vec![McpToolInfo { name: "greet".into(), description: None, input_schema: None }],
                 vec![],
                 None,
             );
@@ -559,21 +542,14 @@ mod tests {
             assert!(error.contains("MCP server manager is not configured"));
 
             // Unknown tool should fail
-            assert!(
-                registry
-                    .call_tool("srv", "missing", &serde_json::json!({}))
-                    .await
-                    .is_err()
-            );
+            assert!(registry.call_tool("srv", "missing", &serde_json::json!({})).await.is_err());
         });
     }
 
     #[test]
     fn given_connected_server_with_manager_when_calling_tool_then_it_returns_live_result() {
-        let rt = tokio::runtime::Builder::new_current_thread()
-            .enable_all()
-            .build()
-            .expect("runtime");
+        let rt =
+            tokio::runtime::Builder::new_current_thread().enable_all().build().expect("runtime");
         rt.block_on(async {
             let root = temp_dir();
             fs::create_dir_all(&root).expect("temp dir");
@@ -599,9 +575,7 @@ mod tests {
                 vec![],
                 Some("bridge test server".into()),
             );
-            registry
-                .set_manager(Arc::clone(&manager))
-                .expect("manager should only be set once");
+            registry.set_manager(Arc::clone(&manager)).expect("manager should only be set once");
 
             let result = registry
                 .call_tool("alpha", "echo", &serde_json::json!({"text": "hello"}))
@@ -624,30 +598,19 @@ mod tests {
 
     #[test]
     fn rejects_tool_call_on_disconnected_server() {
-        let rt = tokio::runtime::Builder::new_current_thread()
-            .enable_all()
-            .build()
-            .expect("runtime");
+        let rt =
+            tokio::runtime::Builder::new_current_thread().enable_all().build().expect("runtime");
         rt.block_on(async {
             let registry = McpToolRegistry::new();
             registry.register_server(
                 "srv",
                 McpConnectionStatus::AuthRequired,
-                vec![McpToolInfo {
-                    name: "greet".into(),
-                    description: None,
-                    input_schema: None,
-                }],
+                vec![McpToolInfo { name: "greet".into(), description: None, input_schema: None }],
                 vec![],
                 None,
             );
 
-            assert!(
-                registry
-                    .call_tool("srv", "greet", &serde_json::json!({}))
-                    .await
-                    .is_err()
-            );
+            assert!(registry.call_tool("srv", "greet", &serde_json::json!({})).await.is_err());
         });
     }
 
@@ -656,9 +619,7 @@ mod tests {
         let registry = McpToolRegistry::new();
         registry.register_server("srv", McpConnectionStatus::AuthRequired, vec![], vec![], None);
 
-        registry
-            .set_auth_status("srv", McpConnectionStatus::Connected)
-            .expect("should succeed");
+        registry.set_auth_status("srv", McpConnectionStatus::Connected).expect("should succeed");
         let state = registry.get_server("srv").unwrap();
         assert_eq!(state.status, McpConnectionStatus::Connected);
 
@@ -669,26 +630,15 @@ mod tests {
 
     #[test]
     fn rejects_operations_on_missing_server() {
-        let rt = tokio::runtime::Builder::new_current_thread()
-            .enable_all()
-            .build()
-            .expect("runtime");
+        let rt =
+            tokio::runtime::Builder::new_current_thread().enable_all().build().expect("runtime");
         rt.block_on(async {
             let registry = McpToolRegistry::new();
             assert!(registry.list_resources("missing").is_err());
             assert!(registry.read_resource("missing", "uri").is_err());
             assert!(registry.list_tools("missing").is_err());
-            assert!(
-                registry
-                    .call_tool("missing", "tool", &serde_json::json!({}))
-                    .await
-                    .is_err()
-            );
-            assert!(
-                registry
-                    .set_auth_status("missing", McpConnectionStatus::Connected)
-                    .is_err()
-            );
+            assert!(registry.call_tool("missing", "tool", &serde_json::json!({})).await.is_err());
+            assert!(registry.set_auth_status("missing", McpConnectionStatus::Connected).is_err());
         });
     }
 
@@ -704,10 +654,8 @@ mod tests {
         ];
 
         // when
-        let rendered: Vec<_> = cases
-            .into_iter()
-            .map(|(status, expected)| (status.to_string(), expected))
-            .collect();
+        let rendered: Vec<_> =
+            cases.into_iter().map(|(status, expected)| (status.to_string(), expected)).collect();
 
         // then
         assert_eq!(
@@ -803,10 +751,8 @@ mod tests {
 
     #[test]
     fn call_tool_payload_structure() {
-        let rt = tokio::runtime::Builder::new_current_thread()
-            .enable_all()
-            .build()
-            .expect("runtime");
+        let rt =
+            tokio::runtime::Builder::new_current_thread().enable_all().build().expect("runtime");
         rt.block_on(async {
             let root = temp_dir();
             fs::create_dir_all(&root).expect("temp dir");
@@ -859,11 +805,7 @@ mod tests {
         registry.register_server(
             "srv",
             McpConnectionStatus::Connected,
-            vec![McpToolInfo {
-                name: "inspect".into(),
-                description: None,
-                input_schema: None,
-            }],
+            vec![McpToolInfo { name: "inspect".into(), description: None, input_schema: None }],
             vec![],
             Some("Inspector".into()),
         );

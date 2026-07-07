@@ -768,12 +768,7 @@ mod tests {
 
     #[test]
     fn deepseek_r1_pricing_is_well_known() {
-        for alias in [
-            "deepseek-v4-pro",
-            "deepseek-reasoner",
-            "deepseek-r1",
-            "DeepSeek-Reasoner",
-        ] {
+        for alias in ["deepseek-v4-pro", "deepseek-reasoner", "deepseek-r1", "DeepSeek-Reasoner"] {
             let pricing =
                 pricing_for_model(alias).unwrap_or_else(|| panic!("v4-pro pricing for {alias}"));
             assert!((pricing.input_cost_per_million - 0.435).abs() < 1e-9);
@@ -845,9 +840,7 @@ mod tests {
         let mut session = Session::new();
         session.messages = vec![ConversationMessage {
             role: MessageRole::Assistant,
-            blocks: vec![ContentBlock::Text {
-                text: "done".to_string(),
-            }],
+            blocks: vec![ContentBlock::Text { text: "done".to_string() }],
             usage: Some(TokenUsage {
                 input_tokens: 5,
                 output_tokens: 2,

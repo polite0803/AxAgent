@@ -176,11 +176,7 @@ impl InsightGenerator {
     pub async fn get_insights(&self, category: Option<InsightCategory>) -> Vec<Insight> {
         let insights = self.insights.read().await;
         match category {
-            Some(cat) => insights
-                .iter()
-                .filter(|i| i.category == cat)
-                .cloned()
-                .collect(),
+            Some(cat) => insights.iter().filter(|i| i.category == cat).cloned().collect(),
             None => insights.clone(),
         }
     }
@@ -199,9 +195,7 @@ impl InsightGenerator {
             .filter(|i| {
                 i.title.to_lowercase().contains(&query_lower)
                     || i.content.to_lowercase().contains(&query_lower)
-                    || i.tags
-                        .iter()
-                        .any(|t| t.to_lowercase().contains(&query_lower))
+                    || i.tags.iter().any(|t| t.to_lowercase().contains(&query_lower))
             })
             .cloned()
             .collect()
@@ -221,10 +215,8 @@ impl InsightGenerator {
         let stats = self.category_stats.read().await;
 
         let total = insights.len();
-        let by_category: HashMap<String, usize> = stats
-            .iter()
-            .map(|(k, v)| (k.as_str().to_string(), *v))
-            .collect();
+        let by_category: HashMap<String, usize> =
+            stats.iter().map(|(k, v)| (k.as_str().to_string(), *v)).collect();
 
         let avg_confidence = if total > 0 {
             insights.iter().map(|i| i.confidence).sum::<f32>() / total as f32
@@ -234,12 +226,7 @@ impl InsightGenerator {
 
         let most_used = insights.iter().max_by_key(|i| i.usage_count).cloned();
 
-        InsightStats {
-            total_insights: total,
-            by_category,
-            avg_confidence,
-            most_used,
-        }
+        InsightStats { total_insights: total, by_category, avg_confidence, most_used }
     }
 
     pub async fn delete_insight(&self, id: &str) -> bool {
@@ -273,11 +260,7 @@ impl InsightGenerator {
 
     pub async fn get_high_confidence_insights(&self, threshold: f32) -> Vec<Insight> {
         let insights = self.insights.read().await;
-        insights
-            .iter()
-            .filter(|i| i.confidence >= threshold)
-            .cloned()
-            .collect()
+        insights.iter().filter(|i| i.confidence >= threshold).cloned().collect()
     }
 
     pub fn generate_optimization_insight(
@@ -605,15 +588,11 @@ mod tests {
             ))
             .await;
 
-        let errors = generator
-            .get_insights(Some(InsightCategory::ErrorPattern))
-            .await;
+        let errors = generator.get_insights(Some(InsightCategory::ErrorPattern)).await;
         assert_eq!(errors.len(), 1);
         assert_eq!(errors[0].category, InsightCategory::ErrorPattern);
 
-        let knowledge = generator
-            .get_insights(Some(InsightCategory::Knowledge))
-            .await;
+        let knowledge = generator.get_insights(Some(InsightCategory::Knowledge)).await;
         assert_eq!(knowledge.len(), 1);
         assert_eq!(knowledge[0].category, InsightCategory::Knowledge);
 

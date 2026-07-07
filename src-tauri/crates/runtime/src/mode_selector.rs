@@ -96,10 +96,7 @@ pub struct ModeSelector {
 
 impl ModeSelector {
     pub fn new(registry: std::sync::Arc<ModuleRegistry>) -> Self {
-        Self {
-            registry,
-            current_mode: tokio::sync::RwLock::new(ActiveMode::General),
-        }
+        Self { registry, current_mode: tokio::sync::RwLock::new(ActiveMode::General) }
     }
 
     /// Enter Speed Mode — disable all non-essential modules.

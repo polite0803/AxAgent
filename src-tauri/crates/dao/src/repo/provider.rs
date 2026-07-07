@@ -61,9 +61,7 @@ fn model_from_entity(m: models::Model) -> Model {
         max_tokens: m.max_tokens.map(|v| v as u32),
         max_output_tokens: None,
         enabled: m.enabled != 0,
-        param_overrides: m
-            .param_overrides
-            .and_then(|s| serde_json::from_str(&s).ok()),
+        param_overrides: m.param_overrides.and_then(|s| serde_json::from_str(&s).ok()),
         input_price_per_mtok: m.input_price_per_mtok,
         output_price_per_mtok: m.output_price_per_mtok,
     }
@@ -201,19 +199,13 @@ pub async fn resolve_model_for_node(
                 .find(|m| m.enabled)
                 .map(|m| m.model_id.clone())
                 .unwrap_or_default();
-            let model = node_model
-                .or(session_model)
-                .unwrap_or(&default_model)
-                .to_string();
+            let model = node_model.or(session_model).unwrap_or(&default_model).to_string();
             return Ok((prov, key, model));
         }
     }
 
     let (prov, key, default_model) = resolve_project_default(db).await?;
-    let model = node_model
-        .or(session_model)
-        .unwrap_or(&default_model)
-        .to_string();
+    let model = node_model.or(session_model).unwrap_or(&default_model).to_string();
     Ok((prov, key, model))
 }
 
@@ -270,9 +262,7 @@ pub async fn update_provider(
     let provider_type = input.provider_type.unwrap_or(existing.provider_type);
     let proxy_json = match input.proxy_config {
         Some(ref pc) => Some(serde_json::to_string(pc).unwrap_or_default()),
-        None => existing
-            .proxy_config
-            .map(|pc| serde_json::to_string(&pc).unwrap_or_default()),
+        None => existing.proxy_config.map(|pc| serde_json::to_string(&pc).unwrap_or_default()),
     };
 
     let row = providers::Entity::find_by_id(id)
@@ -740,9 +730,8 @@ pub async fn list_providers_merged(db: &DatabaseConnection) -> Result<Vec<Provid
     let mut added_ids = std::collections::HashSet::new();
 
     for bp in &builtins {
-        if let Some(db_prov) = db_providers
-            .iter()
-            .find(|p| p.builtin_id.as_deref() == Some(bp.builtin_id))
+        if let Some(db_prov) =
+            db_providers.iter().find(|p| p.builtin_id.as_deref() == Some(bp.builtin_id))
         {
             result.push(db_prov.clone());
             added_ids.insert(db_prov.id.clone());
@@ -806,11 +795,7 @@ pub async fn list_providers_merged(db: &DatabaseConnection) -> Result<Vec<Provid
     }
 
     // Sort: enabled first (by sort_order), then disabled (by sort_order)
-    result.sort_by(|a, b| {
-        b.enabled
-            .cmp(&a.enabled)
-            .then(a.sort_order.cmp(&b.sort_order))
-    });
+    result.sort_by(|a, b| b.enabled.cmp(&a.enabled).then(a.sort_order.cmp(&b.sort_order)));
 
     Ok(result)
 }

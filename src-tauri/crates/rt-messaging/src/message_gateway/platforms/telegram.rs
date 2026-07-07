@@ -85,11 +85,8 @@ impl PlatformAdapter for TelegramAdapter {
                                 }
 
                                 let username = msg.from.as_ref().and_then(|u| u.username.clone());
-                                let user_id = msg
-                                    .from
-                                    .as_ref()
-                                    .map(|u| u.id.to_string())
-                                    .unwrap_or_default();
+                                let user_id =
+                                    msg.from.as_ref().map(|u| u.id.to_string()).unwrap_or_default();
                                 let text = msg.text.clone().unwrap_or_default();
                                 let chat_id = msg.chat.id;
                                 let _msg_id = msg.message_id;
@@ -186,9 +183,8 @@ impl PlatformAdapter for TelegramAdapter {
             .telegram_bot_token
             .as_deref()
             .ok_or_else(|| anyhow::anyhow!("Telegram bot token missing"))?;
-        let chat_id: i64 = chat_id
-            .parse()
-            .map_err(|_| anyhow::anyhow!("Invalid chat_id format"))?;
+        let chat_id: i64 =
+            chat_id.parse().map_err(|_| anyhow::anyhow!("Invalid chat_id format"))?;
 
         let url = format!("https://api.telegram.org/bot{}/sendMessage", bot_token);
         let mut body = serde_json::json!({

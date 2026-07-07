@@ -56,13 +56,7 @@ fn resolve_smtp_config(
         let sc = cm
             .get_smtp_config(cid)
             .map_err(|e| NodeError::exec_failed("EMAIL_CREDENTIAL_FAILED", e.to_string()))?;
-        Ok(SmtpConfig {
-            host: sc.host,
-            port: sc.port,
-            user: sc.user,
-            pass: sc.pass,
-            tls: sc.tls,
-        })
+        Ok(SmtpConfig { host: sc.host, port: sc.port, user: sc.user, pass: sc.pass, tls: sc.tls })
     } else {
         let host = host
             .filter(|h| !h.is_empty())
@@ -78,13 +72,7 @@ fn resolve_smtp_config(
         let pass = pass.unwrap_or("").to_string();
         // Default to TLS for port 587, plain for others
         let tls = port == 587;
-        Ok(SmtpConfig {
-            host,
-            port,
-            user,
-            pass,
-            tls,
-        })
+        Ok(SmtpConfig { host, port, user, pass, tls })
     }
 }
 

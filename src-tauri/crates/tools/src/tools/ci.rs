@@ -10,11 +10,7 @@ use serde_json::Value;
 use std::process::Command;
 
 fn has_gh_cli() -> bool {
-    Command::new("gh")
-        .args(["--version"])
-        .output()
-        .map(|o| o.status.success())
-        .unwrap_or(false)
+    Command::new("gh").args(["--version"]).output().map(|o| o.status.success()).unwrap_or(false)
 }
 
 // ── CiStatusTool ──
@@ -63,11 +59,7 @@ impl Tool for CiStatusTool {
         }
 
         let branch = input.get("branch").and_then(|v| v.as_str());
-        let limit = input
-            .get("limit")
-            .and_then(|v| v.as_u64())
-            .unwrap_or(5)
-            .to_string();
+        let limit = input.get("limit").and_then(|v| v.as_u64()).unwrap_or(5).to_string();
 
         let mut args = vec!["run", "list", "--limit", &limit];
         if let Some(b) = branch {
@@ -145,10 +137,7 @@ impl Tool for CiTriggerTool {
             .map_err(|e| ToolError::execution_failed(format!("触发 CI 失败: {}", e)))?;
 
         if output.status.success() {
-            Ok(ToolResult::success(format!(
-                "✅ 已触发 CI 工作流: {} (ref: {})",
-                workflow, git_ref
-            )))
+            Ok(ToolResult::success(format!("✅ 已触发 CI 工作流: {} (ref: {})", workflow, git_ref)))
         } else {
             let err = String::from_utf8_lossy(&output.stderr);
             Err(ToolError::execution_failed(format!("触发 CI 失败: {}", err)))

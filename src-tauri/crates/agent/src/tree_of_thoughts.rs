@@ -138,10 +138,7 @@ impl TreeOfThoughtsEngine {
             if node.is_leaf() || node.status == ThoughtStatus::Pruned {
                 return vec![node_id.to_string()];
             }
-            node.children
-                .iter()
-                .flat_map(|child_id| self.collect_leaves(child_id))
-                .collect()
+            node.children.iter().flat_map(|child_id| self.collect_leaves(child_id)).collect()
         } else {
             vec![]
         }
@@ -154,13 +151,10 @@ impl TreeOfThoughtsEngine {
         llm_client: &Arc<dyn LlmReasoningProvider>,
     ) -> Result<Vec<String>, AxAgentError> {
         let (parent_content, parent_status, _parent_children, parent_depth) = {
-            let parent = self
-                .tree
-                .get(&parent_id)
-                .ok_or_else(|| AxAgentError::Agent {
-                    source: None,
-                    context: format!("Parent node '{}' not found", parent_id),
-                })?;
+            let parent = self.tree.get(&parent_id).ok_or_else(|| AxAgentError::Agent {
+                source: None,
+                context: format!("Parent node '{}' not found", parent_id),
+            })?;
             (
                 parent.content.clone(),
                 parent.status.clone(),
@@ -234,12 +228,7 @@ approach, perspective, or sub-problem decomposition. Be concise and focused.",
             child_ids.push(child_id.clone());
         }
 
-        debug!(
-            "Generated {} children for parent {}: {:?}",
-            child_ids.len(),
-            parent_id,
-            child_ids
-        );
+        debug!("Generated {} children for parent {}: {:?}", child_ids.len(), parent_id, child_ids);
 
         Ok(child_ids)
     }
@@ -284,10 +273,8 @@ Respond with only a number between 0.0 and 1.0.",
                 score_str
                     .parse::<f64>()
                     .unwrap_or_else(|_| {
-                        let digits: String = score_str
-                            .chars()
-                            .filter(|c| c.is_ascii_digit() || *c == '.')
-                            .collect();
+                        let digits: String =
+                            score_str.chars().filter(|c| c.is_ascii_digit() || *c == '.').collect();
                         digits.parse::<f64>().unwrap_or(0.5)
                     })
                     .clamp(0.0, 1.0)
@@ -367,10 +354,7 @@ Respond with only a number between 0.0 and 1.0.",
             debug!(
                 "Pruned node {} (score: {:.3})",
                 node_id,
-                self.tree
-                    .get(node_id)
-                    .map(|n| n.evaluation_score)
-                    .unwrap_or(0.0)
+                self.tree.get(node_id).map(|n| n.evaluation_score).unwrap_or(0.0)
             );
         }
 
@@ -405,19 +389,11 @@ Respond with only a number between 0.0 and 1.0.",
             let best_child = active_children
                 .iter()
                 .max_by(|a, b| {
-                    let score_a = self
-                        .tree
-                        .get(a.as_str())
-                        .map(|n| n.evaluation_score)
-                        .unwrap_or(0.0);
-                    let score_b = self
-                        .tree
-                        .get(b.as_str())
-                        .map(|n| n.evaluation_score)
-                        .unwrap_or(0.0);
-                    score_a
-                        .partial_cmp(&score_b)
-                        .unwrap_or(std::cmp::Ordering::Equal)
+                    let score_a =
+                        self.tree.get(a.as_str()).map(|n| n.evaluation_score).unwrap_or(0.0);
+                    let score_b =
+                        self.tree.get(b.as_str()).map(|n| n.evaluation_score).unwrap_or(0.0);
+                    score_a.partial_cmp(&score_b).unwrap_or(std::cmp::Ordering::Equal)
                 })
                 .expect("active_children is non-empty after is_empty check");
 
@@ -462,19 +438,13 @@ Respond with only a number between 0.0 and 1.0.",
             .tree
             .values()
             .flat_map(|node| {
-                node.children.iter().map(|child_id| ToTEdge {
-                    from: node.id.clone(),
-                    to: child_id.clone(),
-                })
+                node.children
+                    .iter()
+                    .map(|child_id| ToTEdge { from: node.id.clone(), to: child_id.clone() })
             })
             .collect();
 
-        ToTStateSummary {
-            root_id: self.root_id.clone(),
-            nodes,
-            edges,
-            selected_path,
-        }
+        ToTStateSummary { root_id: self.root_id.clone(), nodes, edges, selected_path }
     }
 
     #[allow(clippy::result_large_err)]
@@ -497,11 +467,7 @@ Respond with only a number between 0.0 and 1.0.",
             node.status = ThoughtStatus::Explored;
         }
 
-        debug!(
-            "Backtracked to node {}: removed {} descendant nodes",
-            node_id,
-            descendants.len()
-        );
+        debug!("Backtracked to node {}: removed {} descendant nodes", node_id, descendants.len());
 
         Ok(())
     }
@@ -551,11 +517,7 @@ Respond with only a number between 0.0 and 1.0.",
         is_error: bool,
     ) {
         if let Some(node) = self.tree.get_mut(node_id) {
-            node.tool_calls.push(ToolCallResult {
-                tool_name,
-                output,
-                is_error,
-            });
+            node.tool_calls.push(ToolCallResult { tool_name, output, is_error });
         }
     }
 
@@ -564,17 +526,11 @@ Respond with only a number between 0.0 and 1.0.",
     }
 
     pub fn explored_nodes(&self) -> usize {
-        self.tree
-            .values()
-            .filter(|n| n.status == ThoughtStatus::Explored)
-            .count()
+        self.tree.values().filter(|n| n.status == ThoughtStatus::Explored).count()
     }
 
     pub fn pruned_nodes(&self) -> usize {
-        self.tree
-            .values()
-            .filter(|n| n.status == ThoughtStatus::Pruned)
-            .count()
+        self.tree.values().filter(|n| n.status == ThoughtStatus::Pruned).count()
     }
 
     pub fn get_leaves(&self) -> Vec<String> {
@@ -769,13 +725,7 @@ impl ProviderAdapterBridge {
         ctx: ProviderRequestContext,
         model: String,
     ) -> Self {
-        Self {
-            adapter,
-            ctx,
-            model,
-            llm_call_config: None,
-            llm_service: None,
-        }
+        Self { adapter, ctx, model, llm_call_config: None, llm_service: None }
     }
 
     /// 注入中心化 LLM 调用配置与执行服务
@@ -830,10 +780,7 @@ impl LlmReasoningProvider for ProviderAdapterBridge {
         if let (Some(config), Some(svc)) = (&self.llm_call_config, &self.llm_service) {
             let messages = serde_json::to_value(&request)
                 .map_err(|e| AxAgentError::Provider(e.to_string()))?;
-            return match svc
-                .execute(&*self.adapter, &self.ctx, messages, config)
-                .await
-            {
+            return match svc.execute(&*self.adapter, &self.ctx, messages, config).await {
                 Ok(result) => Ok(result.content),
                 Err(e) => Err(AxAgentError::Provider(e)),
             };
@@ -884,10 +831,7 @@ impl LlmReasoningProvider for ProviderAdapterBridge {
         if let (Some(config), Some(svc)) = (&self.llm_call_config, &self.llm_service) {
             let messages = serde_json::to_value(&request)
                 .map_err(|e| AxAgentError::Provider(e.to_string()))?;
-            return match svc
-                .execute(&*self.adapter, &self.ctx, messages, config)
-                .await
-            {
+            return match svc.execute(&*self.adapter, &self.ctx, messages, config).await {
                 Ok(result) => Ok(result.content),
                 Err(e) => Err(AxAgentError::Provider(e)),
             };
@@ -1400,9 +1344,7 @@ mod tests {
         root.status = ThoughtStatus::Pruned;
 
         let provider: Arc<dyn LlmReasoningProvider> = Arc::new(DefaultToTReasoningProvider::new());
-        let result = engine
-            .generate_branching_options(root_id, "test", &provider)
-            .await;
+        let result = engine.generate_branching_options(root_id, "test", &provider).await;
         assert!(result.is_ok());
         assert!(result.unwrap().is_empty());
     }
@@ -1411,9 +1353,7 @@ mod tests {
     async fn test_evaluate_thought_nonexistent_node() {
         let engine = TreeOfThoughtsEngine::new(3, 5, 0.3);
         let provider: Arc<dyn LlmReasoningProvider> = Arc::new(DefaultToTReasoningProvider::new());
-        let result = engine
-            .evaluate_thought("nonexistent", "test", &provider)
-            .await;
+        let result = engine.evaluate_thought("nonexistent", "test", &provider).await;
         assert!(result.is_err());
     }
 
@@ -1468,9 +1408,7 @@ mod tests {
         let root_id = engine.root_id.clone();
 
         let provider: Arc<dyn LlmReasoningProvider> = Arc::new(DefaultToTReasoningProvider::new());
-        let score = engine
-            .evaluate_and_score_node(&root_id, "test context", &provider)
-            .await;
+        let score = engine.evaluate_and_score_node(&root_id, "test context", &provider).await;
         assert!(score.is_ok());
         let s = score.unwrap();
         assert!((0.0..=1.0).contains(&s));

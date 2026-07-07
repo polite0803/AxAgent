@@ -23,11 +23,7 @@ pub struct ConditionExecutor {
 
 impl ConditionExecutor {
     pub fn new(db: Arc<DatabaseConnection>, master_key: [u8; 32]) -> Self {
-        Self {
-            db,
-            master_key,
-            provider_registry: None,
-        }
+        Self { db, master_key, provider_registry: None }
     }
 }
 
@@ -70,9 +66,7 @@ impl NodeExecutorTrait for ConditionExecutor {
 
         // LLM 动态路由模式：真正调用 LLM 判断分支
         if condition_node.config.judge_by_llm.unwrap_or(false) {
-            return self
-                .execute_llm_route(&condition_node.config, context, node.base_id())
-                .await;
+            return self.execute_llm_route(&condition_node.config, context, node.base_id()).await;
         }
 
         let mut results = Vec::new();
@@ -122,35 +116,30 @@ fn evaluate_single(
         CompareOperator::Lte => {
             !matches!(compare_values(actual, expected), std::cmp::Ordering::Greater)
         },
-        CompareOperator::Contains => actual
-            .as_str()
-            .zip(expected.as_str())
-            .is_some_and(|(a, e)| a.contains(e)),
-        CompareOperator::NotContains => actual
-            .as_str()
-            .zip(expected.as_str())
-            .is_none_or(|(a, e)| !a.contains(e)),
-        CompareOperator::StartsWith => actual
-            .as_str()
-            .zip(expected.as_str())
-            .is_some_and(|(a, e)| a.starts_with(e)),
-        CompareOperator::EndsWith => actual
-            .as_str()
-            .zip(expected.as_str())
-            .is_some_and(|(a, e)| a.ends_with(e)),
+        CompareOperator::Contains => {
+            actual.as_str().zip(expected.as_str()).is_some_and(|(a, e)| a.contains(e))
+        },
+        CompareOperator::NotContains => {
+            actual.as_str().zip(expected.as_str()).is_none_or(|(a, e)| !a.contains(e))
+        },
+        CompareOperator::StartsWith => {
+            actual.as_str().zip(expected.as_str()).is_some_and(|(a, e)| a.starts_with(e))
+        },
+        CompareOperator::EndsWith => {
+            actual.as_str().zip(expected.as_str()).is_some_and(|(a, e)| a.ends_with(e))
+        },
         CompareOperator::RegexMatch => {
             // 修复：原本降级为 contains。regex crate 已在 Cargo.toml 中可用，
             // 这里使用真正的正则匹配。编译失败时返回 false（不 panic 阻断流程）。
-            actual
-                .as_str()
-                .zip(expected.as_str())
-                .is_some_and(|(a, pat)| match regex::Regex::new(pat) {
+            actual.as_str().zip(expected.as_str()).is_some_and(|(a, pat)| {
+                match regex::Regex::new(pat) {
                     Ok(re) => re.is_match(a),
                     Err(e) => {
                         tracing::warn!("[condition] RegexMatch 模式 '{pat}' 编译失败: {e}");
                         false
                     },
-                })
+                }
+            })
         },
         CompareOperator::IsEmpty => {
             actual.is_null() || actual.as_str().is_some_and(|s| s.is_empty())
@@ -164,9 +153,9 @@ fn evaluate_single(
 /// 比较两个 JSON 值（数值按 f64，其他按字符串）。
 fn compare_values(a: &serde_json::Value, b: &serde_json::Value) -> std::cmp::Ordering {
     match (a.as_f64(), b.as_f64()) {
-        (Some(a_num), Some(b_num)) => a_num
-            .partial_cmp(&b_num)
-            .unwrap_or(std::cmp::Ordering::Equal),
+        (Some(a_num), Some(b_num)) => {
+            a_num.partial_cmp(&b_num).unwrap_or(std::cmp::Ordering::Equal)
+        },
         _ => a.to_string().cmp(&b.to_string()),
     }
 }
@@ -205,14 +194,10 @@ impl ConditionExecutor {
         // 2. 解析 provider + model
         // 优先级：节点 routing_model > 会话 __workflow_model__/__workflow_provider_id__ > 项目默认
         let node_model = config.routing_model.as_deref().filter(|m| !m.is_empty());
-        let session_model = context
-            .variables
-            .get(super::WORKFLOW_MODEL_VAR)
-            .and_then(|v| v.as_str());
-        let session_provider_id = context
-            .variables
-            .get(super::WORKFLOW_PROVIDER_ID_VAR)
-            .and_then(|v| v.as_str());
+        let session_model =
+            context.variables.get(super::WORKFLOW_MODEL_VAR).and_then(|v| v.as_str());
+        let session_provider_id =
+            context.variables.get(super::WORKFLOW_PROVIDER_ID_VAR).and_then(|v| v.as_str());
 
         let result = self
             .route_with_resolved_model(
@@ -342,10 +327,8 @@ impl ConditionExecutor {
             store: None,
         };
 
-        let response = adapter
-            .chat(&req_ctx, request)
-            .await
-            .map_err(|e| format!("LLM 调用失败: {e}"))?;
+        let response =
+            adapter.chat(&req_ctx, request).await.map_err(|e| format!("LLM 调用失败: {e}"))?;
 
         let text = response.content.trim().to_lowercase();
 
@@ -383,10 +366,7 @@ impl ConditionExecutor {
         } else if is_false {
             Ok(false)
         } else {
-            Err(format!(
-                "LLM response did not contain a clear true/false decision. Got: {}",
-                text
-            ))
+            Err(format!("LLM response did not contain a clear true/false decision. Got: {}", text))
         }
     }
 }
@@ -396,11 +376,7 @@ fn evaluate_llm_heuristic(
     config: &axagent_harness::workflow_types::ConditionNodeConfig,
     context: &ExecutionState,
 ) -> bool {
-    let meaningful_vars = context
-        .variables
-        .iter()
-        .filter(|(k, _)| !k.starts_with("__"))
-        .count();
+    let meaningful_vars = context.variables.iter().filter(|(k, _)| !k.starts_with("__")).count();
     if meaningful_vars > 0 {
         // 有变量但不足以判断，保守降级为 false（安全分支）
         return false;

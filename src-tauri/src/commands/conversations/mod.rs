@@ -258,9 +258,7 @@ pub(crate) async fn resolve_system_prompt(
     }
 
     // 3. Global default system prompt (lowest priority)
-    let settings = axagent_dao::repo::settings::get_settings(db)
-        .await
-        .unwrap_or_default();
+    let settings = axagent_dao::repo::settings::get_settings(db).await.unwrap_or_default();
     settings.default_system_prompt.filter(|s| !s.is_empty())
 }
 
@@ -285,9 +283,8 @@ pub(crate) async fn persist_attachments(
             )));
         }
 
-        let data = base64::engine::general_purpose::STANDARD
-            .decode(&attachment.data)
-            .map_err(|e| {
+        let data =
+            base64::engine::general_purpose::STANDARD.decode(&attachment.data).map_err(|e| {
                 axagent_harness::core_error::AxAgentError::Validation(format!(
                     "Invalid attachment base64 for {}: {}",
                     attachment.file_name, e
@@ -458,12 +455,9 @@ pub(crate) fn strip_display_tags(content: &str) -> String {
     // Also strip <memory-item> and <retrieved-context> boundary tags (injected into LLM context)
     let content = {
         let mut s = content.to_string();
-        for tag_name in &[
-            "knowledge-retrieval",
-            "memory-retrieval",
-            "memory-item",
-            "retrieved-context",
-        ] {
+        for tag_name in
+            &["knowledge-retrieval", "memory-retrieval", "memory-item", "retrieved-context"]
+        {
             let tag_start = format!("<{} ", tag_name);
             let tag_start_bare = format!("<{}>", tag_name);
             let tag_end = format!("</{}>", tag_name);
@@ -591,10 +585,8 @@ pub(crate) fn chat_message_from_message(
     file_store: &axagent_storage::file_store::FileStore,
     message: &Message,
 ) -> axagent_harness::core_error::Result<ChatMessage> {
-    let tool_calls: Option<Vec<ToolCall>> = message
-        .tool_calls_json
-        .as_ref()
-        .and_then(|s| serde_json::from_str(s).ok());
+    let tool_calls: Option<Vec<ToolCall>> =
+        message.tool_calls_json.as_ref().and_then(|s| serde_json::from_str(s).ok());
 
     Ok(ChatMessage {
         role: match message.role {
@@ -955,14 +947,7 @@ pub(crate) async fn consume_stream(
         >,
     >,
     params: StreamConsumptionParams<'_>,
-) -> (
-    String,
-    Option<TokenUsage>,
-    Option<Vec<ToolCall>>,
-    Option<String>,
-    Option<f64>,
-    Option<i64>,
-) {
+) -> (String, Option<TokenUsage>, Option<Vec<ToolCall>>, Option<String>, Option<f64>, Option<i64>) {
     let StreamConsumptionParams {
         conversation_id,
         message_id,
@@ -1139,9 +1124,8 @@ pub(crate) async fn consume_stream(
 
                 // On done: close any still-open <think> block
                 if is_done && in_thinking_block {
-                    let total_ms = thinking_block_start
-                        .map(|s| s.elapsed().as_millis() as u64)
-                        .unwrap_or(0);
+                    let total_ms =
+                        thinking_block_start.map(|s| s.elapsed().as_millis() as u64).unwrap_or(0);
                     thinking_durations.push(total_ms);
                     emit_content.push_str(&get_thinking_block_end());
                     in_thinking_block = false;
@@ -1233,9 +1217,7 @@ pub(crate) async fn consume_stream(
 
     // Close any dangling <think> block (e.g. stream cancelled mid-thinking)
     if in_thinking_block {
-        let total_ms = thinking_block_start
-            .map(|s| s.elapsed().as_millis() as u64)
-            .unwrap_or(0);
+        let total_ms = thinking_block_start.map(|s| s.elapsed().as_millis() as u64).unwrap_or(0);
         thinking_durations.push(total_ms);
         full_content.push_str(&get_thinking_block_end());
     }
@@ -1448,11 +1430,7 @@ pub(crate) async fn execute_tool_call(
         tracing::info!("[web_search] LLM called");
         let args: serde_json::Value =
             serde_json::from_str(&tool_call.function.arguments).unwrap_or(serde_json::Value::Null);
-        let query = args
-            .get("query")
-            .and_then(|v| v.as_str())
-            .unwrap_or("")
-            .to_string();
+        let query = args.get("query").and_then(|v| v.as_str()).unwrap_or("").to_string();
         if query.is_empty() {
             use crate::commands::error_code::tool as tool_err;
             return (
@@ -1861,10 +1839,7 @@ pub(crate) async fn generate_ai_title_with(
     use_max_completion_tokens: Option<bool>,
     harness: &axagent_runtime::harness::RuntimeHarness,
 ) -> Result<String, String> {
-    let prompt = settings
-        .title_summary_prompt
-        .as_deref()
-        .unwrap_or(DEFAULT_TITLE_PROMPT);
+    let prompt = settings.title_summary_prompt.as_deref().unwrap_or(DEFAULT_TITLE_PROMPT);
 
     let conversation_text = format_conversation_for_title(conversation_messages, 3000);
 
@@ -1889,10 +1864,7 @@ pub(crate) async fn generate_ai_title_with(
         model: model_id.to_string(),
         messages,
         stream: false,
-        temperature: settings
-            .title_summary_temperature
-            .map(|v| v as f64)
-            .or(Some(0.3)),
+        temperature: settings.title_summary_temperature.map(|v| v as f64).or(Some(0.3)),
         top_p: settings.title_summary_top_p.map(|v| v as f64),
         max_tokens: settings.title_summary_max_tokens.or(Some(50)),
         tools: None,
@@ -1907,14 +1879,11 @@ pub(crate) async fn generate_ai_title_with(
     };
 
     let registry_key = provider.provider_type.registry_key();
-    let adapter = harness
-        .provider_registry()
-        .get(registry_key)
-        .ok_or_else(|| {
-            let err = format!("Adapter not found for provider type: {}", registry_key);
-            tracing::error!("[title-gen] {}", err);
-            err
-        })?;
+    let adapter = harness.provider_registry().get(registry_key).ok_or_else(|| {
+        let err = format!("Adapter not found for provider type: {}", registry_key);
+        tracing::error!("[title-gen] {}", err);
+        err
+    })?;
 
     let response = adapter.chat(ctx, request).await.map_err(|e| {
         let err = format!("Chat API error: {}", e);
@@ -2001,9 +1970,8 @@ pub async fn regenerate_conversation_title(
     let decrypted_key = axagent_crypto::decrypt_key(&key_row.key_encrypted, &master_key)
         .map_err(|e| e.to_string())?;
 
-    let global_settings = axagent_dao::repo::settings::get_settings(&db)
-        .await
-        .map_err(|e| e.to_string())?;
+    let global_settings =
+        axagent_dao::repo::settings::get_settings(&db).await.map_err(|e| e.to_string())?;
 
     let resolved_proxy = ProviderProxyConfig::resolve(&provider.proxy_config, &global_settings);
     let ctx = ProviderRequestContext {
@@ -2013,10 +1981,7 @@ pub async fn regenerate_conversation_title(
         base_url: Some(resolve_base_url_for_type(&provider.api_host, &provider.provider_type)),
         api_path: provider.api_path.clone(),
         proxy_config: resolved_proxy,
-        custom_headers: provider
-            .custom_headers
-            .as_ref()
-            .and_then(|s| serde_json::from_str(s).ok()),
+        custom_headers: provider.custom_headers.as_ref().and_then(|s| serde_json::from_str(s).ok()),
         api_mode: None,
         conversation: None,
         previous_response_id: None,
@@ -2042,11 +2007,7 @@ pub async fn regenerate_conversation_title(
         let ai_title = generate_ai_title(
             &harness_clone,
             &conversation_messages,
-            TitleFallbackModel {
-                provider: &provider,
-                ctx: &ctx,
-                model_id: &conv_model_id,
-            },
+            TitleFallbackModel { provider: &provider, ctx: &ctx, model_id: &conv_model_id },
             &global_settings,
         )
         .await;
@@ -2070,10 +2031,7 @@ pub async fn regenerate_conversation_title(
                 } else {
                     let _ = app_clone.emit(
                         "conversation-title-updated",
-                        ConversationTitleUpdatedEvent {
-                            conversation_id: conv_id.clone(),
-                            title,
-                        },
+                        ConversationTitleUpdatedEvent { conversation_id: conv_id.clone(), title },
                     );
                     let _ = app_clone.emit(
                         "conversation-title-generating",
@@ -2120,14 +2078,10 @@ pub(crate) fn build_memory_retrieval_tag(sources: &[RagSourceResult]) -> String 
     if sources.is_empty() {
         return String::new();
     }
-    let knowledge: Vec<&RagSourceResult> = sources
-        .iter()
-        .filter(|s| s.source_type == "knowledge")
-        .collect();
-    let memory: Vec<&RagSourceResult> = sources
-        .iter()
-        .filter(|s| s.source_type != "knowledge")
-        .collect();
+    let knowledge: Vec<&RagSourceResult> =
+        sources.iter().filter(|s| s.source_type == "knowledge").collect();
+    let memory: Vec<&RagSourceResult> =
+        sources.iter().filter(|s| s.source_type != "knowledge").collect();
     let mut result = String::new();
     if !knowledge.is_empty() {
         let json = serde_json::to_string(&knowledge).unwrap_or_default();
@@ -2150,17 +2104,13 @@ pub(crate) fn dedup_rag_against_working_memory(wm_content: &str, context_parts: 
     let wm_lower = wm_content.to_lowercase();
     context_parts.retain(|part| {
         let part_lower = part.to_lowercase();
-        let part_words: std::collections::HashSet<&str> = part_lower
-            .split_whitespace()
-            .filter(|w| w.len() > 3)
-            .collect();
+        let part_words: std::collections::HashSet<&str> =
+            part_lower.split_whitespace().filter(|w| w.len() > 3).collect();
         if part_words.is_empty() {
             return true;
         }
-        let wm_words: std::collections::HashSet<&str> = wm_lower
-            .split_whitespace()
-            .filter(|w| w.len() > 3)
-            .collect();
+        let wm_words: std::collections::HashSet<&str> =
+            wm_lower.split_whitespace().filter(|w| w.len() > 3).collect();
         let overlap = part_words.intersection(&wm_words).count();
         (overlap as f64 / part_words.len() as f64) < 0.7
     });
@@ -2331,9 +2281,7 @@ pub(crate) fn build_message_content_turns_images_into_multipart_data_urls() {
 
     let result = {
         let file_store = axagent_storage::file_store::FileStore::with_root(temp_dir.clone());
-        let saved = file_store
-            .save_file(b"abc", "image.png", "image/png")
-            .unwrap();
+        let saved = file_store.save_file(b"abc", "image.png", "image/png").unwrap();
         let message = Message {
             id: "msg-1".into(),
             conversation_id: "conv-1".into(),
@@ -2462,14 +2410,9 @@ async fn delete_conversation_removes_attached_files_and_records() {
     .unwrap();
 
     let file_store = axagent_storage::file_store::FileStore::with_root(temp_dir.clone());
-    let saved = file_store
-        .save_file(b"cleanup me", "cleanup.png", "image/png")
-        .unwrap();
+    let saved = file_store.save_file(b"cleanup me", "cleanup.png", "image/png").unwrap();
     let physical_path = temp_dir.join(&saved.storage_path);
-    assert!(
-        physical_path.exists(),
-        "fixture file must exist before deleting the conversation"
-    );
+    assert!(physical_path.exists(), "fixture file must exist before deleting the conversation");
 
     axagent_dao::repo::stored_file::create_stored_file(
         &db,
@@ -2491,9 +2434,7 @@ async fn delete_conversation_removes_attached_files_and_records() {
         "deleting a conversation should clean up its attached files, got: {result:?}"
     );
     assert!(
-        axagent_dao::repo::conversation::get_conversation(&db, &conversation.id)
-            .await
-            .is_err(),
+        axagent_dao::repo::conversation::get_conversation(&db, &conversation.id).await.is_err(),
         "conversation must be deleted"
     );
     assert!(
@@ -2882,9 +2823,7 @@ pub(crate) async fn persist_attachments_registers_stored_files_for_files_page() 
 
     axagent_storage::storage_paths::set_documents_root(temp_dir.clone());
 
-    let persisted = persist_attachments(&state, &conversation.id, &attachments)
-        .await
-        .unwrap();
+    let persisted = persist_attachments(&state, &conversation.id, &attachments).await.unwrap();
     assert_eq!(persisted.len(), 1);
     assert!(
         persisted[0].file_path.starts_with("images/"),
@@ -2892,9 +2831,7 @@ pub(crate) async fn persist_attachments_registers_stored_files_for_files_page() 
         persisted[0].file_path
     );
 
-    let stored_files = axagent_dao::repo::stored_file::list_all_stored_files(&db)
-        .await
-        .unwrap();
+    let stored_files = axagent_dao::repo::stored_file::list_all_stored_files(&db).await.unwrap();
     assert_eq!(
         stored_files.len(),
         1,

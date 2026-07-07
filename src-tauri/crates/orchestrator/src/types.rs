@@ -308,18 +308,12 @@ impl DecompositionPlan {
 
     /// Count of completed sub-tasks.
     pub fn completed_count(&self) -> usize {
-        self.sub_tasks
-            .iter()
-            .filter(|st| st.status == SubTaskStatus::Completed)
-            .count()
+        self.sub_tasks.iter().filter(|st| st.status == SubTaskStatus::Completed).count()
     }
 
     /// Count of failed sub-tasks.
     pub fn failed_count(&self) -> usize {
-        self.sub_tasks
-            .iter()
-            .filter(|st| st.status == SubTaskStatus::Failed)
-            .count()
+        self.sub_tasks.iter().filter(|st| st.status == SubTaskStatus::Failed).count()
     }
 }
 
@@ -332,33 +326,17 @@ pub enum OrchestrationEvent {
     /// Mission received and decomposition started.
     DecompositionStarted { mission: String, strategy: String },
     /// Decomposition completed with N sub-tasks.
-    DecompositionCompleted {
-        sub_task_count: usize,
-        plan: DecompositionPlan,
-    },
+    DecompositionCompleted { sub_task_count: usize, plan: DecompositionPlan },
     /// A sub-task has been dispatched to a worker.
-    SubTaskDispatched {
-        sub_task_id: String,
-        worker_node_id: String,
-    },
+    SubTaskDispatched { sub_task_id: String, worker_node_id: String },
     /// A sub-task completed successfully.
-    SubTaskCompleted {
-        sub_task_id: String,
-        handover: Option<StructuredHandover>,
-    },
+    SubTaskCompleted { sub_task_id: String, handover: Option<StructuredHandover> },
     /// A sub-task failed.
     SubTaskFailed { sub_task_id: String, error: String },
     /// Replanning triggered due to failures.
-    ReplanTriggered {
-        failed_sub_tasks: Vec<String>,
-        replan_round: u32,
-    },
+    ReplanTriggered { failed_sub_tasks: Vec<String>, replan_round: u32 },
     /// Orchestration fully complete (all sub-tasks terminal).
-    OrchestrationCompleted {
-        total_sub_tasks: usize,
-        completed: usize,
-        failed: usize,
-    },
+    OrchestrationCompleted { total_sub_tasks: usize, completed: usize, failed: usize },
     /// Orchestration aborted (max replans exceeded).
     OrchestrationAborted { reason: String },
 }

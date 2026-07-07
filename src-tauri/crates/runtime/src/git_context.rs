@@ -136,10 +136,7 @@ fn read_recent_commits(cwd: &Path) -> Vec<GitCommitEntry> {
                 return None;
             }
             let (hash, subject) = line.split_once(' ')?;
-            Some(GitCommitEntry {
-                hash: hash.to_string(),
-                subject: subject.to_string(),
-            })
+            Some(GitCommitEntry { hash: hash.to_string(), subject: subject.to_string() })
         })
         .collect()
 }
@@ -265,14 +262,8 @@ mod tests {
         let context = GitContext {
             branch: Some("feat/test".to_string()),
             recent_commits: vec![
-                GitCommitEntry {
-                    hash: "abc1234".to_string(),
-                    subject: "add feature".to_string(),
-                },
-                GitCommitEntry {
-                    hash: "def5678".to_string(),
-                    subject: "fix bug".to_string(),
-                },
+                GitCommitEntry { hash: "abc1234".to_string(), subject: "add feature".to_string() },
+                GitCommitEntry { hash: "def5678".to_string(), subject: "fix bug".to_string() },
             ],
             staged_files: vec!["src/main.rs".to_string()],
         };

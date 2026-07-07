@@ -48,14 +48,10 @@ fn repeated_enable_disable_does_not_corrupt_state() {
     // 构造 config 并模拟 enable/disable 循环
     for _ in 0..50 {
         let mut config = PluginManagerConfig::new(tmp.path.clone());
-        config
-            .enabled_plugins
-            .insert("flaky-plugin".to_string(), true);
+        config.enabled_plugins.insert("flaky-plugin".to_string(), true);
         assert!(config.enabled_plugins.contains_key("flaky-plugin"));
 
-        config
-            .enabled_plugins
-            .insert("flaky-plugin".to_string(), false);
+        config.enabled_plugins.insert("flaky-plugin".to_string(), false);
         assert_eq!(config.enabled_plugins.get("flaky-plugin"), Some(&false));
 
         config.enabled_plugins.remove("flaky-plugin");

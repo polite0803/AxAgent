@@ -91,11 +91,8 @@ impl AgentImpl for AgentImplAdapter {
         )
         .await;
 
-        let result = if let Some(tool_name) = input
-            .context
-            .as_ref()
-            .and_then(|c| c.get("tool_name"))
-            .and_then(|v| v.as_str())
+        let result = if let Some(tool_name) =
+            input.context.as_ref().and_then(|c| c.get("tool_name")).and_then(|v| v.as_str())
         {
             let tool_input = input
                 .context
@@ -199,9 +196,7 @@ impl AgentImpl for AgentImplAdapter {
 
 impl std::fmt::Debug for AgentImplAdapter {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("AgentImplAdapter")
-            .field("event_bus", &self.event_bus.name())
-            .finish()
+        f.debug_struct("AgentImplAdapter").field("event_bus", &self.event_bus.name()).finish()
     }
 }
 
@@ -399,9 +394,7 @@ impl<M: AgentRuntimeManager + Send + Sync> AgentImpl for AgentRuntimeAdapter<M> 
 
 impl<M: AgentRuntimeManager + Send + Sync> std::fmt::Debug for AgentRuntimeAdapter<M> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("AgentRuntimeAdapter")
-            .field("event_bus", &self.event_bus.name())
-            .finish()
+        f.debug_struct("AgentRuntimeAdapter").field("event_bus", &self.event_bus.name()).finish()
     }
 }
 
@@ -464,9 +457,7 @@ mod tests {
         adapter.set_status(AgentStatus::Completed).await;
         assert_eq!(adapter.get_status().await, AgentStatus::Completed);
 
-        adapter
-            .set_status(AgentStatus::Failed("error".to_string()))
-            .await;
+        adapter.set_status(AgentStatus::Failed("error".to_string())).await;
         let status = adapter.get_status().await;
         assert!(matches!(status, AgentStatus::Failed(_)));
     }
@@ -485,10 +476,7 @@ mod tests {
         let mut adapter = AgentImplAdapter::new(None);
         adapter.initialize(AgentConfig::default()).await.unwrap();
 
-        let input = AgentInput {
-            content: "hello world".to_string(),
-            context: None,
-        };
+        let input = AgentInput { content: "hello world".to_string(), context: None };
         let result = adapter.execute(input).await;
         assert!(result.is_ok());
         let output = result.unwrap();
@@ -623,10 +611,7 @@ mod tests {
 
     #[test]
     fn test_agent_input_creation() {
-        let input = AgentInput {
-            content: "hello".to_string(),
-            context: None,
-        };
+        let input = AgentInput { content: "hello".to_string(), context: None };
         assert_eq!(input.content, "hello");
         assert!(input.context.is_none());
     }

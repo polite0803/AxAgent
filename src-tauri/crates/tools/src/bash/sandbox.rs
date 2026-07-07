@@ -194,10 +194,7 @@ fn apply_safe_env(cmd: &mut Command) {
 fn install_rlimits() {
     // SAFETY: 在 fork 后、exec 前调用；setrlimit 是 async-signal-safe。
     // RLIMIT_AS 256 MB
-    let mut lim_as = libc::rlimit {
-        rlim_cur: 256 * 1024 * 1024,
-        rlim_max: 256 * 1024 * 1024,
-    };
+    let mut lim_as = libc::rlimit { rlim_cur: 256 * 1024 * 1024, rlim_max: 256 * 1024 * 1024 };
     // rlim_t 在不同 unix 上可能是 u32 / u64，做一次显式转换。
     #[allow(clippy::useless_conversion)]
     // SAFETY: setrlimit is safe when called from a freshly forked child process (pre_exec)
@@ -210,10 +207,7 @@ fn install_rlimits() {
     }
 
     // RLIMIT_CPU 60s
-    let mut lim_cpu = libc::rlimit {
-        rlim_cur: 60,
-        rlim_max: 60,
-    };
+    let mut lim_cpu = libc::rlimit { rlim_cur: 60, rlim_max: 60 };
     #[allow(clippy::useless_conversion)]
     // SAFETY: setrlimit is safe when called from a freshly forked child process (pre_exec)
     // where only async-signal-safe functions are valid. The resource limits are
@@ -225,10 +219,7 @@ fn install_rlimits() {
     }
 
     // RLIMIT_NOFILE 1024
-    let mut lim_nofile = libc::rlimit {
-        rlim_cur: 1024,
-        rlim_max: 1024,
-    };
+    let mut lim_nofile = libc::rlimit { rlim_cur: 1024, rlim_max: 1024 };
     #[allow(clippy::useless_conversion)]
     // SAFETY: setrlimit is safe when called from a freshly forked child process (pre_exec)
     // where only async-signal-safe functions are valid. The resource limits are
@@ -265,10 +256,8 @@ mod tests {
         unsafe { std::env::set_var("AXAGENT_TEST_LEAK", "secret123") };
 
         // 强制 use_container=false；用本地 runner。
-        let runner = SandboxRunner::new(SandboxConfig {
-            use_container: false,
-            ..Default::default()
-        });
+        let runner =
+            SandboxRunner::new(SandboxConfig { use_container: false, ..Default::default() });
         let mut cmd = runner.build_command("echo \"LEAK=$AXAGENT_TEST_LEAK\"", "/tmp");
         let output = cmd
             .stdout(std::process::Stdio::piped())
@@ -297,10 +286,8 @@ mod tests {
     #[cfg(not(target_os = "windows"))]
     #[test]
     fn native_sandbox_uses_strict_mode() {
-        let runner = SandboxRunner::new(SandboxConfig {
-            use_container: false,
-            ..Default::default()
-        });
+        let runner =
+            SandboxRunner::new(SandboxConfig { use_container: false, ..Default::default() });
         // set -u 让未定义变量 $UNDEFINED_VAR 触发 non-zero exit。
         let mut cmd = runner.build_command("echo $UNDEFINED_VAR", "/tmp");
         let output = cmd
@@ -321,10 +308,8 @@ mod tests {
     #[cfg(not(target_os = "windows"))]
     #[test]
     fn native_sandbox_has_safe_path() {
-        let runner = SandboxRunner::new(SandboxConfig {
-            use_container: false,
-            ..Default::default()
-        });
+        let runner =
+            SandboxRunner::new(SandboxConfig { use_container: false, ..Default::default() });
         let mut cmd = runner.build_command("command -v sh", "/tmp");
         let output = cmd
             .stdout(std::process::Stdio::piped())
@@ -344,10 +329,8 @@ mod tests {
     fn apply_safe_env_clears_and_whitelists() {
         let mut cmd = Command::new("true");
         apply_safe_env(&mut cmd);
-        let keys: Vec<String> = cmd
-            .get_envs()
-            .map(|(k, _v)| k.to_string_lossy().into_owned())
-            .collect();
+        let keys: Vec<String> =
+            cmd.get_envs().map(|(k, _v)| k.to_string_lossy().into_owned()).collect();
         assert_eq!(
             keys.len(),
             4,
@@ -370,10 +353,8 @@ mod tests {
     /// Windows 路径走 cmd.exe，本测试只验证 builder 层 env 状态。
     #[test]
     fn build_native_command_clears_env() {
-        let runner = SandboxRunner::new(SandboxConfig {
-            use_container: false,
-            ..Default::default()
-        });
+        let runner =
+            SandboxRunner::new(SandboxConfig { use_container: false, ..Default::default() });
         let cmd = runner.build_command("true", "/tmp");
         let count = cmd.get_envs().count();
         // 4 = PATH/HOME/TMPDIR/LANG（apply_safe_env）

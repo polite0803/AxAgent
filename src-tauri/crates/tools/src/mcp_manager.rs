@@ -65,15 +65,11 @@ impl McpManager {
             .iter()
             .find_map(|(server_key, _)| {
                 let full_name = format!("{}_{}", server_key, name);
-                self.mcp_tools
-                    .get(&full_name)
-                    .map(|cfg| (server_key.clone(), cfg))
+                self.mcp_tools.get(&full_name).map(|cfg| (server_key.clone(), cfg))
             })
             .or_else(|| {
                 // 直接匹配（含前缀的完整名称）
-                self.mcp_tools
-                    .get(name)
-                    .map(|cfg| (cfg.server_id.clone(), cfg))
+                self.mcp_tools.get(name).map(|cfg| (cfg.server_id.clone(), cfg))
             })
     }
 

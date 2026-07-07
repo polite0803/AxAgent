@@ -193,11 +193,7 @@ mod tests {
         });
         let (valid, errors) = validate_against_schema(&value, &schema);
         assert!(!valid);
-        assert!(
-            errors
-                .iter()
-                .any(|e| e.contains("缺少必填字段") && e.contains("name"))
-        );
+        assert!(errors.iter().any(|e| e.contains("缺少必填字段") && e.contains("name")));
     }
 
     #[test]

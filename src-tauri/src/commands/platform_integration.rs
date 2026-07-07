@@ -53,11 +53,7 @@ pub async fn update_platform_config(
     axagent_dao::repo::platform_config::save_platform_config(state.harness.db(), &config)
         .await
         .map_err(|e| e.to_string())?;
-    state
-        .platform_manager
-        .reconcile(&config)
-        .await
-        .map_err(|e| e.to_string())
+    state.platform_manager.reconcile(&config).await.map_err(|e| e.to_string())
 }
 
 // ── 消息处理命令 ──
@@ -73,9 +69,7 @@ pub async fn process_telegram_message(
     username: Option<String>,
     _timestamp: i64,
 ) -> Result<Option<OutgoingMessage>, String> {
-    let user_id = from_user_id
-        .map(|id| id.to_string())
-        .unwrap_or_else(|| chat_id.to_string());
+    let user_id = from_user_id.map(|id| id.to_string()).unwrap_or_else(|| chat_id.to_string());
     let reply = state
         .platform_bridge
         .route_incoming_message(
@@ -306,11 +300,7 @@ pub async fn reconcile_platforms(
     state: State<'_, AppState>,
 ) -> Result<PlatformReconcileReport, String> {
     let config = axagent_dao::repo::platform_config::get_platform_config(state.harness.db()).await;
-    state
-        .platform_manager
-        .reconcile(&config)
-        .await
-        .map_err(|e| e.to_string())
+    state.platform_manager.reconcile(&config).await.map_err(|e| e.to_string())
 }
 
 // ── API Server 命令 ──

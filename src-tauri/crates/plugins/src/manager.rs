@@ -83,51 +83,18 @@ pub struct UpdateOutcome {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PluginManifestValidationError {
-    EmptyField {
-        field: &'static str,
-    },
-    EmptyEntryField {
-        kind: &'static str,
-        field: &'static str,
-        name: Option<String>,
-    },
-    InvalidPermission {
-        permission: String,
-    },
-    DuplicatePermission {
-        permission: String,
-    },
-    DuplicateEntry {
-        kind: &'static str,
-        name: String,
-    },
-    MissingPath {
-        kind: &'static str,
-        path: PathBuf,
-    },
-    PathIsDirectory {
-        kind: &'static str,
-        path: PathBuf,
-    },
-    InvalidToolInputSchema {
-        tool_name: String,
-    },
-    InvalidToolRequiredPermission {
-        tool_name: String,
-        permission: String,
-    },
-    UnsupportedManifestContract {
-        detail: String,
-    },
-    DependencyNotSatisfied {
-        plugin_name: String,
-        min_version: Option<String>,
-    },
-    IntegrityCheckFailed {
-        algorithm: String,
-        expected: String,
-        actual: String,
-    },
+    EmptyField { field: &'static str },
+    EmptyEntryField { kind: &'static str, field: &'static str, name: Option<String> },
+    InvalidPermission { permission: String },
+    DuplicatePermission { permission: String },
+    DuplicateEntry { kind: &'static str, name: String },
+    MissingPath { kind: &'static str, path: PathBuf },
+    PathIsDirectory { kind: &'static str, path: PathBuf },
+    InvalidToolInputSchema { tool_name: String },
+    InvalidToolRequiredPermission { tool_name: String, permission: String },
+    UnsupportedManifestContract { detail: String },
+    DependencyNotSatisfied { plugin_name: String, min_version: Option<String> },
+    IntegrityCheckFailed { algorithm: String, expected: String, actual: String },
 }
 
 impl Display for PluginManifestValidationError {
@@ -163,29 +130,19 @@ impl Display for PluginManifestValidationError {
             Self::InvalidToolInputSchema { tool_name } => {
                 write!(f, "plugin tool `{tool_name}` inputSchema must be a JSON object")
             },
-            Self::InvalidToolRequiredPermission {
-                tool_name,
-                permission,
-            } => write!(
+            Self::InvalidToolRequiredPermission { tool_name, permission } => write!(
                 f,
                 "plugin tool `{tool_name}` requiredPermission `{permission}` must be read-only, workspace-write, or danger-full-access"
             ),
             Self::UnsupportedManifestContract { detail } => f.write_str(detail),
-            Self::DependencyNotSatisfied {
-                plugin_name,
-                min_version,
-            } => match min_version {
+            Self::DependencyNotSatisfied { plugin_name, min_version } => match min_version {
                 Some(ver) => write!(
                     f,
                     "plugin dependency `{plugin_name}` (min version {ver}) is not satisfied"
                 ),
                 None => write!(f, "plugin dependency `{plugin_name}` is not installed"),
             },
-            Self::IntegrityCheckFailed {
-                algorithm,
-                expected,
-                actual,
-            } => {
+            Self::IntegrityCheckFailed { algorithm, expected, actual } => {
                 write!(
                     f,
                     "plugin integrity check failed ({algorithm}): expected {expected}, got {actual}"
@@ -254,12 +211,7 @@ impl PluginManager {
     #[must_use]
     pub fn new(config: PluginManagerConfig) -> Self {
         let skill_installer = SkillInstaller::new(config.config_home.join("skills"));
-        Self {
-            config,
-            mcp_launcher: McpLauncher::new(),
-            skill_installer,
-            npm_registry: None,
-        }
+        Self { config, mcp_launcher: McpLauncher::new(), skill_installer, npm_registry: None }
     }
 
     /// 注入 NPM Registry 服务（用于下载 npm 包）
@@ -284,12 +236,10 @@ impl PluginManager {
 
     #[must_use]
     pub fn registry_path(&self) -> PathBuf {
-        self.config.registry_path.clone().unwrap_or_else(|| {
-            self.config
-                .config_home
-                .join("plugins")
-                .join(REGISTRY_FILE_NAME)
-        })
+        self.config
+            .registry_path
+            .clone()
+            .unwrap_or_else(|| self.config.config_home.join("plugins").join(REGISTRY_FILE_NAME))
     }
 
     #[must_use]
@@ -391,12 +341,7 @@ impl PluginManager {
     }
 
     pub fn discover_plugins(&self) -> Result<Vec<PluginDefinition>, PluginError> {
-        Ok(self
-            .plugin_registry()?
-            .plugins
-            .into_iter()
-            .map(|plugin| plugin.definition)
-            .collect())
+        Ok(self.plugin_registry()?.plugins.into_iter().map(|plugin| plugin.definition).collect())
     }
 
     pub fn aggregated_hooks(&self) -> Result<PluginHooks, PluginError> {
@@ -462,19 +407,13 @@ impl PluginManager {
         self.write_enabled_state(&plugin_id, Some(true))?;
         self.config.enabled_plugins.insert(plugin_id.clone(), true);
 
-        Ok(InstallOutcome {
-            plugin_id,
-            version: manifest.version,
-            install_path,
-        })
+        Ok(InstallOutcome { plugin_id, version: manifest.version, install_path })
     }
 
     pub fn enable(&mut self, plugin_id: &str) -> Result<(), PluginError> {
         self.ensure_known_plugin(plugin_id)?;
         self.write_enabled_state(plugin_id, Some(true))?;
-        self.config
-            .enabled_plugins
-            .insert(plugin_id.to_string(), true);
+        self.config.enabled_plugins.insert(plugin_id.to_string(), true);
         let registry = self.load_registry()?;
         if let Some(record) = registry.plugins.get(plugin_id) {
             let manifest = load_plugin_from_directory(&record.install_path)?;
@@ -511,9 +450,7 @@ impl PluginManager {
         self.skill_installer.remove_plugin_skills(plugin_id).ok();
         self.ensure_known_plugin(plugin_id)?;
         self.write_enabled_state(plugin_id, Some(false))?;
-        self.config
-            .enabled_plugins
-            .insert(plugin_id.to_string(), false);
+        self.config.enabled_plugins.insert(plugin_id.to_string(), false);
         Ok(())
     }
 
@@ -580,11 +517,8 @@ impl PluginManager {
         let record = registry.plugins.remove(plugin_id).ok_or_else(|| {
             PluginError::NotFound(format!("plugin `{plugin_id}` is not installed"))
         })?;
-        let remaining_plugins: Vec<&InstalledPluginRecord> = registry
-            .plugins
-            .values()
-            .filter(|r| r.id != plugin_id)
-            .collect();
+        let remaining_plugins: Vec<&InstalledPluginRecord> =
+            registry.plugins.values().filter(|r| r.id != plugin_id).collect();
         let mut dependents = Vec::new();
         for other in &remaining_plugins {
             if let Ok(other_manifest) = load_plugin_from_directory(&other.install_path) {
@@ -648,9 +582,7 @@ impl PluginManager {
             updated_at_unix_ms: unix_time_ms(),
             ..record.clone()
         };
-        registry
-            .plugins
-            .insert(plugin_id.to_string(), updated_record);
+        registry.plugins.insert(plugin_id.to_string(), updated_record);
         self.store_registry(&registry)?;
 
         Ok(UpdateOutcome {
@@ -669,10 +601,8 @@ impl PluginManager {
         let mut stale_registry_ids = Vec::new();
 
         for install_path in discover_plugin_dirs(&self.install_root())? {
-            let matched_record = registry
-                .plugins
-                .values()
-                .find(|record| record.install_path == install_path);
+            let matched_record =
+                registry.plugins.values().find(|record| record.install_path == install_path);
             let kind = matched_record.map_or(PluginKind::External, |record| record.kind);
             let source = matched_record.map_or_else(
                 || install_path.display().to_string(),
@@ -810,11 +740,7 @@ impl PluginManager {
     }
 
     fn sync_bundled_plugins(&self) -> Result<(), PluginError> {
-        let bundled_root = self
-            .config
-            .bundled_root
-            .clone()
-            .unwrap_or_else(Self::bundled_root);
+        let bundled_root = self.config.bundled_root.clone().unwrap_or_else(Self::bundled_root);
         let bundled_plugins = discover_plugin_dirs(&bundled_root)?;
         let mut registry = self.load_registry()?;
         let mut changed = false;
@@ -894,14 +820,10 @@ impl PluginManager {
     }
 
     fn is_enabled(&self, metadata: &PluginMetadata) -> bool {
-        self.config
-            .enabled_plugins
-            .get(&metadata.id)
-            .copied()
-            .unwrap_or(match metadata.kind {
-                PluginKind::External => false,
-                PluginKind::Builtin | PluginKind::Bundled => metadata.default_enabled,
-            })
+        self.config.enabled_plugins.get(&metadata.id).copied().unwrap_or(match metadata.kind {
+            PluginKind::External => false,
+            PluginKind::Builtin | PluginKind::Bundled => metadata.default_enabled,
+        })
     }
 
     fn ensure_known_plugin(&self, plugin_id: &str) -> Result<(), PluginError> {
@@ -1071,10 +993,7 @@ fn load_manifest_from_skill_md(
         PluginError::NotFound(format!("SKILL.md not found at {}: {error}", manifest_path.display()))
     })?;
 
-    let dir_name = root
-        .file_name()
-        .and_then(|n| n.to_str())
-        .unwrap_or("unknown");
+    let dir_name = root.file_name().and_then(|n| n.to_str()).unwrap_or("unknown");
 
     let mut name = String::from(dir_name);
     let mut description = String::new();
@@ -1099,13 +1018,9 @@ fn load_manifest_from_skill_md(
         if let Some(v) = parsed.get("version").and_then(|v| v.as_str()) {
             version = v.to_string();
         }
-        if let Some(v) = parsed
-            .get("default_enabled")
-            .or(parsed.get("defaultEnabled"))
-        {
-            default_enabled = v
-                .as_bool()
-                .unwrap_or(v.as_str().is_none_or(|s| s.eq_ignore_ascii_case("true")));
+        if let Some(v) = parsed.get("default_enabled").or(parsed.get("defaultEnabled")) {
+            default_enabled =
+                v.as_bool().unwrap_or(v.as_str().is_none_or(|s| s.eq_ignore_ascii_case("true")));
         }
 
         for key in &["permissions"] {
@@ -1145,20 +1060,10 @@ fn load_manifest_from_skill_md(
             description
         },
         version,
-        permissions: permissions
-            .iter()
-            .filter_map(|p| PluginPermission::parse(p))
-            .collect(),
+        permissions: permissions.iter().filter_map(|p| PluginPermission::parse(p)).collect(),
         default_enabled,
-        hooks: PluginHooks {
-            pre_tool_use,
-            post_tool_use,
-            post_tool_use_failure,
-        },
-        lifecycle: PluginLifecycle {
-            init: init_commands,
-            shutdown: shutdown_commands,
-        },
+        hooks: PluginHooks { pre_tool_use, post_tool_use, post_tool_use_failure },
+        lifecycle: PluginLifecycle { init: init_commands, shutdown: shutdown_commands },
         tools: Vec::new(),
         commands: Vec::new(),
         scenarios: Vec::new(),
@@ -1406,10 +1311,7 @@ fn build_plugin_manifest(
         skills: raw
             .skills
             .into_iter()
-            .map(|r| PluginSkillEntry {
-                name: r.name,
-                path: r.path,
-            })
+            .map(|r| PluginSkillEntry { name: r.name, path: r.path })
             .collect(),
         agents: raw
             .agents
@@ -1559,10 +1461,7 @@ fn build_manifest_commands(
             continue;
         }
         if !seen.insert(name.clone()) {
-            errors.push(PluginManifestValidationError::DuplicateEntry {
-                kind: "command",
-                name,
-            });
+            errors.push(PluginManifestValidationError::DuplicateEntry { kind: "command", name });
             continue;
         }
         if command.description.trim().is_empty() {
@@ -1650,16 +1549,8 @@ fn resolve_hooks(root: &Path, hooks: &PluginHooks) -> PluginHooks {
 
 fn resolve_lifecycle(root: &Path, lifecycle: &PluginLifecycle) -> PluginLifecycle {
     PluginLifecycle {
-        init: lifecycle
-            .init
-            .iter()
-            .map(|entry| resolve_hook_entry(root, entry))
-            .collect(),
-        shutdown: lifecycle
-            .shutdown
-            .iter()
-            .map(|entry| resolve_hook_entry(root, entry))
-            .collect(),
+        init: lifecycle.init.iter().map(|entry| resolve_hook_entry(root, entry)).collect(),
+        shutdown: lifecycle.shutdown.iter().map(|entry| resolve_hook_entry(root, entry)).collect(),
     }
 }
 
@@ -1873,13 +1764,9 @@ pub(crate) fn parse_install_source(source: &str) -> Result<PluginInstallSource, 
             .extension()
             .is_some_and(|extension| extension.eq_ignore_ascii_case("git"))
     {
-        Ok(PluginInstallSource::GitUrl {
-            url: source.to_string(),
-        })
+        Ok(PluginInstallSource::GitUrl { url: source.to_string() })
     } else {
-        Ok(PluginInstallSource::LocalPath {
-            path: resolve_local_source(source)?,
-        })
+        Ok(PluginInstallSource::LocalPath { path: resolve_local_source(source)? })
     }
 }
 
@@ -2000,10 +1887,7 @@ fn describe_install_source(source: &PluginInstallSource) -> String {
 }
 
 fn unix_time_ms() -> u128 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .expect("time should be after epoch")
-        .as_millis()
+    SystemTime::now().duration_since(UNIX_EPOCH).expect("time should be after epoch").as_millis()
 }
 
 fn copy_dir_all(source: &Path, destination: &Path) -> Result<(), PluginError> {
@@ -2049,9 +1933,7 @@ fn ensure_object<'a>(root: &'a mut Map<String, Value>, key: &str) -> &'a mut Map
     if !root.get(key).is_some_and(Value::is_object) {
         root.insert(key.to_string(), Value::Object(Map::new()));
     }
-    root.get_mut(key)
-        .and_then(Value::as_object_mut)
-        .expect("object should exist")
+    root.get_mut(key).and_then(Value::as_object_mut).expect("object should exist")
 }
 
 /// Environment variable lock for test isolation.
@@ -2066,14 +1948,10 @@ fn version_satisfies(installed: &str, required: &str) -> bool {
     let installed_clean = strip_prerelease(installed);
     let required_clean = strip_prerelease(required);
 
-    let installed_parts: Vec<u32> = installed_clean
-        .split('.')
-        .filter_map(|s| s.parse().ok())
-        .collect();
-    let required_parts: Vec<u32> = required_clean
-        .split('.')
-        .filter_map(|s| s.parse().ok())
-        .collect();
+    let installed_parts: Vec<u32> =
+        installed_clean.split('.').filter_map(|s| s.parse().ok()).collect();
+    let required_parts: Vec<u32> =
+        required_clean.split('.').filter_map(|s| s.parse().ok()).collect();
 
     for i in 0..required_parts.len().max(installed_parts.len()) {
         let installed_val = installed_parts.get(i).copied().unwrap_or(0);
@@ -2111,11 +1989,7 @@ fn hash_plugin_directory(plugin_root: &Path) -> Result<String, PluginError> {
         let data = fs::read(file_path).map_err(PluginError::Io)?;
         use sha2::Digest;
         hasher.update(
-            file_path
-                .strip_prefix(plugin_root)
-                .unwrap_or(file_path)
-                .to_string_lossy()
-                .as_bytes(),
+            file_path.strip_prefix(plugin_root).unwrap_or(file_path).to_string_lossy().as_bytes(),
         );
         hasher.update(&data);
     }

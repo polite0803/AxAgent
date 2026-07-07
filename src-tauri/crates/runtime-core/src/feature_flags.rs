@@ -55,36 +55,18 @@ const BUILTIN_FEATURE_FLAGS: &[FeatureFlagDef] = &[
         default: false,
         description: "跨进程 Swarm/Teammate 协作",
     },
+    FeatureFlagDef { name: "REMOTE_AGENT", default: false, description: "远程 agent 执行" },
     FeatureFlagDef {
-        name: "REMOTE_AGENT",
-        default: false,
-        description: "远程 agent 执行",
+        name: "VERIFICATION_AGENT", default: false, description: "独立的验证 agent"
     },
     FeatureFlagDef {
-        name: "VERIFICATION_AGENT",
-        default: false,
-        description: "独立的验证 agent",
+        name: "TOOL_CONCURRENCY", default: true, description: "工具并发安全批量执行"
     },
+    FeatureFlagDef { name: "ACP_PROTOCOL", default: false, description: "ACP 协议服务端" },
     FeatureFlagDef {
-        name: "TOOL_CONCURRENCY",
-        default: true,
-        description: "工具并发安全批量执行",
+        name: "DREAM_TASK", default: true, description: "梦境任务（后台整合压缩）"
     },
-    FeatureFlagDef {
-        name: "ACP_PROTOCOL",
-        default: false,
-        description: "ACP 协议服务端",
-    },
-    FeatureFlagDef {
-        name: "DREAM_TASK",
-        default: true,
-        description: "梦境任务（后台整合压缩）",
-    },
-    FeatureFlagDef {
-        name: "SUBSCRIBE_PR",
-        default: true,
-        description: "PR 订阅通知",
-    },
+    FeatureFlagDef { name: "SUBSCRIBE_PR", default: true, description: "PR 订阅通知" },
 ];
 
 /// Feature Flag 全局状态
@@ -110,10 +92,7 @@ impl FeatureFlags {
 
         let flags = Self::build_flags(&config_overrides);
 
-        Self {
-            flags: RwLock::new(flags),
-            config_overrides,
-        }
+        Self { flags: RwLock::new(flags), config_overrides }
     }
 
     /// 无配置覆盖时的默认构造
@@ -280,10 +259,7 @@ impl Default for FeatureFlags {
 impl Clone for FeatureFlags {
     fn clone(&self) -> Self {
         let guard = self.flags.blocking_read();
-        Self {
-            flags: RwLock::new(guard.clone()),
-            config_overrides: self.config_overrides.clone(),
-        }
+        Self { flags: RwLock::new(guard.clone()), config_overrides: self.config_overrides.clone() }
     }
 }
 

@@ -3,14 +3,8 @@
 use std::path::PathBuf;
 use std::sync::LazyLock;
 
-const SKILL_DIR_PRIORITY: &[&str] = &[
-    "axagent",
-    "claude",
-    "trae",
-    "codebuddy",
-    "workbuddy",
-    "agents",
-];
+const SKILL_DIR_PRIORITY: &[&str] =
+    &["axagent", "claude", "trae", "codebuddy", "workbuddy", "agents"];
 
 static EXTERNAL_DIRS: LazyLock<Vec<PathBuf>> = LazyLock::new(load_external_dirs_from_config);
 
@@ -29,12 +23,7 @@ fn load_external_dirs_from_config() -> Vec<PathBuf> {
     let Some(dirs_arr) = doc["skills"]["external_dirs"].as_array() else {
         return Vec::new();
     };
-    dirs_arr
-        .iter()
-        .filter_map(|v| v.as_str())
-        .map(expand_path)
-        .filter(|p| p.is_dir())
-        .collect()
+    dirs_arr.iter().filter_map(|v| v.as_str()).map(expand_path).filter(|p| p.is_dir()).collect()
 }
 
 fn expand_path(input: &str) -> PathBuf {
@@ -49,9 +38,7 @@ fn expand_path(input: &str) -> PathBuf {
     };
 
     let env_expanded = if tilde_expanded.contains('$') {
-        shellexpand::env(&tilde_expanded)
-            .map(|s| s.to_string())
-            .unwrap_or(tilde_expanded)
+        shellexpand::env(&tilde_expanded).map(|s| s.to_string()).unwrap_or(tilde_expanded)
     } else {
         tilde_expanded
     };
@@ -85,10 +72,7 @@ static SKILL_DIRS: LazyLock<Vec<(String, PathBuf)>> = LazyLock::new(|| {
 });
 
 pub fn skill_dirs() -> Vec<(&'static str, PathBuf)> {
-    SKILL_DIRS
-        .iter()
-        .map(|(label, dir)| (label.as_str(), dir.clone()))
-        .collect()
+    SKILL_DIRS.iter().map(|(label, dir)| (label.as_str(), dir.clone())).collect()
 }
 
 pub fn all_skills_dirs() -> Vec<PathBuf> {

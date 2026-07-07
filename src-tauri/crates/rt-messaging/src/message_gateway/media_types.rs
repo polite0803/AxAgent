@@ -80,9 +80,7 @@ pub fn process_media_attachments(text: &str) -> (String, Vec<MediaAttachment>) {
     let audio_as_voice = text.contains("[[audio_as_voice]]");
     let as_document = text.contains("[[as_document]]");
 
-    let cleaned = text
-        .replace("[[audio_as_voice]]", "")
-        .replace("[[as_document]]", "");
+    let cleaned = text.replace("[[audio_as_voice]]", "").replace("[[as_document]]", "");
     let cleaned = cleaned.trim().to_string();
 
     let paths = extract_absolute_paths(text);
@@ -110,11 +108,7 @@ pub fn process_media_attachments(text: &str) -> (String, Vec<MediaAttachment>) {
             DeliveryMode::Native
         };
 
-        attachments.push(MediaAttachment {
-            path: path_str,
-            media_type,
-            delivery_mode,
-        });
+        attachments.push(MediaAttachment { path: path_str, media_type, delivery_mode });
     }
 
     (cleaned, attachments)

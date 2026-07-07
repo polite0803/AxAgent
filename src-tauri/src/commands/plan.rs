@@ -246,16 +246,12 @@ async fn generate_plan_via_llm(
     // Resolve provider adapter
     let registry_key = provider_config.provider_type.registry_key();
 
-    let adapter = state
-        .harness
-        .provider_registry()
-        .get(&registry_key)
-        .ok_or_else(|| {
-            ErrorResponse::err_with_detail(
-                provider_err::ADAPTER_NOT_FOUND,
-                format!("Provider adapter not found for: {}", registry_key),
-            )
-        })?;
+    let adapter = state.harness.provider_registry().get(&registry_key).ok_or_else(|| {
+        ErrorResponse::err_with_detail(
+            provider_err::ADAPTER_NOT_FOUND,
+            format!("Provider adapter not found for: {}", registry_key),
+        )
+    })?;
 
     // Get active key and decrypt
     let key_row = get_active_key(db, provider_id)
@@ -328,10 +324,8 @@ async fn generate_plan_via_llm(
     };
 
     // Call LLM
-    let response = adapter
-        .chat(&ctx, request)
-        .await
-        .map_err(|e| format!("LLM call failed: {}", e))?;
+    let response =
+        adapter.chat(&ctx, request).await.map_err(|e| format!("LLM call failed: {}", e))?;
 
     // Parse JSON from response
     let plan_json = extract_json_from_text(&response.content).map_err(|e| {
@@ -340,10 +334,7 @@ async fn generate_plan_via_llm(
     })?;
 
     // Validate and build Plan
-    let title = plan_json["title"]
-        .as_str()
-        .unwrap_or("Execution Plan")
-        .to_string();
+    let title = plan_json["title"].as_str().unwrap_or("Execution Plan").to_string();
     let steps_raw = plan_json["steps"]
         .as_array()
         .ok_or_else(|| "Plan response missing 'steps' array".to_string())?;
@@ -362,18 +353,13 @@ async fn generate_plan_via_llm(
         .iter()
         .enumerate()
         .map(|(idx, s)| {
-            let temp_id = s["id"]
-                .as_str()
-                .unwrap_or(&format!("step_{}", idx))
-                .to_string();
+            let temp_id = s["id"].as_str().unwrap_or(&format!("step_{}", idx)).to_string();
             let uuid = Uuid::new_v4().to_string();
             temp_id_to_uuid.insert(temp_id, uuid.clone());
 
-            let tools = s["estimatedTools"].as_array().map(|arr| {
-                arr.iter()
-                    .filter_map(|v| v.as_str().map(String::from))
-                    .collect()
-            });
+            let tools = s["estimatedTools"]
+                .as_array()
+                .map(|arr| arr.iter().filter_map(|v| v.as_str().map(String::from)).collect());
             PlanStep {
                 id: uuid,
                 title: s["title"].as_str().unwrap_or("Unnamed Step").to_string(),
@@ -497,9 +483,7 @@ async fn build_agent_context(
     let api_key = axagent_crypto::decrypt_key(&key.key_encrypted, state.harness.master_key())
         .map_err(|e| e.to_string())?;
 
-    let settings = axagent_dao::repo::settings::get_settings(db)
-        .await
-        .unwrap_or_default();
+    let settings = axagent_dao::repo::settings::get_settings(db).await.unwrap_or_default();
 
     let ctx = axagent_harness::ProviderRequestContext {
         api_key,
@@ -508,10 +492,7 @@ async fn build_agent_context(
         base_url: Some(resolve_base_url_for_type(&prov.api_host, &prov.provider_type)),
         api_path: prov.api_path.clone(),
         proxy_config: ProviderProxyConfig::resolve(&prov.proxy_config, &settings),
-        custom_headers: prov
-            .custom_headers
-            .as_ref()
-            .and_then(|s| serde_json::from_str(s).ok()),
+        custom_headers: prov.custom_headers.as_ref().and_then(|s| serde_json::from_str(s).ok()),
         api_mode: None,
         conversation: None,
         previous_response_id: None,
@@ -573,10 +554,8 @@ async fn build_step_tools(
             axagent_dao::repo::mcp_server::list_tools_for_server(db, server_id).await
         {
             for td in descriptors {
-                let parameters: Option<Value> = td
-                    .input_schema_json
-                    .as_ref()
-                    .and_then(|s| serde_json::from_str(s).ok());
+                let parameters: Option<Value> =
+                    td.input_schema_json.as_ref().and_then(|s| serde_json::from_str(s).ok());
 
                 chat_tools.push(ChatTool {
                     r#type: "function".to_string(),
@@ -840,10 +819,7 @@ pub async fn plan_generate(
     // Emit plan-generated event
     let _ = app.emit(
         "plan-generated",
-        PlanGeneratedEvent {
-            conversation_id: request.conversation_id.clone(),
-            plan: plan.clone(),
-        },
+        PlanGeneratedEvent { conversation_id: request.conversation_id.clone(), plan: plan.clone() },
     );
 
     Ok(plan)
@@ -885,9 +861,7 @@ pub async fn plan_execute(
     let mut am: axagent_entities::plans::ActiveModel = plan_row.clone().into();
     am.status = Set("executing".to_string());
     am.updated_at = Set(chrono::Utc::now().timestamp_millis());
-    am.update(db)
-        .await
-        .map_err(|e| format!("Failed to update plan: {}", e))?;
+    am.update(db).await.map_err(|e| format!("Failed to update plan: {}", e))?;
 
     // Parse steps
     let steps: Vec<PlanStep> = serde_json::from_str(&plan_row.steps_json)
@@ -898,10 +872,7 @@ pub async fn plan_execute(
         steps.iter().filter(|s| step_ids.contains(&s.id)).collect()
     } else {
         // Only execute explicitly approved steps — pending steps need user approval first
-        steps
-            .iter()
-            .filter(|s| s.status == PlanStepStatus::Approved)
-            .collect()
+        steps.iter().filter(|s| s.status == PlanStepStatus::Approved).collect()
     };
 
     if steps_to_run.is_empty() {
@@ -940,11 +911,7 @@ pub async fn plan_execute(
     let mut step_results: Vec<(String, String)> = Vec::new(); // (step_id, result)
 
     // Check if workflow engine is available for DAG execution
-    let use_dag_execution = state
-        .work_engine
-        .registered_executor_types()
-        .await
-        .contains(&"agent");
+    let use_dag_execution = state.work_engine.registered_executor_types().await.contains(&"agent");
 
     if use_dag_execution {
         // 转换 PlanStep → HierarchicalPlanner Plan → compile_plan_to_dag → WorkEngine 执行
@@ -964,9 +931,7 @@ pub async fn plan_execute(
                 .dependencies
                 .as_ref()
                 .map(|deps| {
-                    deps.iter()
-                        .filter_map(|sid| step_id_to_phase.get(sid).cloned())
-                        .collect()
+                    deps.iter().filter_map(|sid| step_id_to_phase.get(sid).cloned()).collect()
                 })
                 .unwrap_or_else(|| {
                     if i > 0 {
@@ -1037,17 +1002,10 @@ pub async fn plan_execute(
             result_key_to_step_id.insert(key, step.id.clone());
         }
 
-        match state
-            .work_engine
-            .create_workflow(&wf_name, wf_nodes, wf_edges)
-            .await
-        {
+        match state.work_engine.create_workflow(&wf_name, wf_nodes, wf_edges).await {
             Ok(wf) => {
                 // 注册运行中的工作流，plan_cancel 可据此中断执行
-                RUNNING_PLAN_WORKFLOWS
-                    .lock()
-                    .await
-                    .insert(request.plan_id.clone(), wf.id.clone());
+                RUNNING_PLAN_WORKFLOWS.lock().await.insert(request.plan_id.clone(), wf.id.clone());
 
                 let plan_id = request.plan_id.clone();
                 let conversation_id = request.conversation_id.clone();
@@ -1164,9 +1122,7 @@ pub async fn plan_execute(
     }
     let steps_json = serde_json::to_string(&updated_steps).unwrap_or_default();
 
-    let has_errors = updated_steps
-        .iter()
-        .any(|s| s.status == PlanStepStatus::Error);
+    let has_errors = updated_steps.iter().any(|s| s.status == PlanStepStatus::Error);
     let final_status = if has_errors { "partial" } else { "completed" };
 
     let mut am2: axagent_entities::plans::ActiveModel = plan_row.into();
@@ -1211,11 +1167,8 @@ pub async fn plan_cancel(
         }
     }
 
-    if let Some(row) = axagent_entities::plans::Entity::find_by_id(&request.plan_id)
-        .one(db)
-        .await
-        .ok()
-        .flatten()
+    if let Some(row) =
+        axagent_entities::plans::Entity::find_by_id(&request.plan_id).one(db).await.ok().flatten()
     {
         let mut am: axagent_entities::plans::ActiveModel = row.into();
         am.status = Set("cancelled".to_string());
@@ -1279,9 +1232,7 @@ pub async fn plan_activate(
     am.is_active = Set(1);
     am.status = Set("reviewing".to_string());
     am.updated_at = Set(chrono::Utc::now().timestamp_millis());
-    am.update(db)
-        .await
-        .map_err(|e| format!("DB error: {}", e))?;
+    am.update(db).await.map_err(|e| format!("DB error: {}", e))?;
 
     let steps: Vec<PlanStep> = serde_json::from_str(&row.steps_json).unwrap_or_default();
     Ok(Plan {
@@ -1439,9 +1390,7 @@ pub async fn plan_modify_step(
     let mut am: axagent_entities::plans::ActiveModel = row.clone().into();
     am.steps_json = Set(steps_json);
     am.updated_at = Set(now);
-    am.update(db)
-        .await
-        .map_err(|e| format!("Failed to update plan: {}", e))?;
+    am.update(db).await.map_err(|e| format!("Failed to update plan: {}", e))?;
 
     let status = match row.status.as_str() {
         "draft" => PlanStatus::Draft,

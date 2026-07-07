@@ -83,14 +83,8 @@ impl<C: LlmClient> MultiTurnDecomposer<C> {
             };
 
             let messages = vec![
-                ChatMessageInput {
-                    role: "system".to_string(),
-                    content: template.system.clone(),
-                },
-                ChatMessageInput {
-                    role: "user".to_string(),
-                    content: user_content,
-                },
+                ChatMessageInput { role: "system".to_string(), content: template.system.clone() },
+                ChatMessageInput { role: "user".to_string(), content: user_content },
             ];
 
             let msg_id = uuid::Uuid::new_v4().to_string();

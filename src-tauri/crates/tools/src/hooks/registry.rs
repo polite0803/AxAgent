@@ -19,11 +19,7 @@ pub struct HookRegistry {
 
 impl HookRegistry {
     pub fn new() -> Self {
-        Self {
-            hooks: Vec::new(),
-            event_index: HashMap::new(),
-            pattern_cache: HashMap::new(),
-        }
+        Self { hooks: Vec::new(), event_index: HashMap::new(), pattern_cache: HashMap::new() }
     }
 
     /// 注册 Hook
@@ -153,16 +149,8 @@ mod tests {
         let mut reg = HookRegistry::new();
         reg.register(make_hook("h1", "File*"));
 
-        assert_eq!(
-            reg.get_matching(&HookEventType::PreToolUse, "FileRead")
-                .len(),
-            1
-        );
-        assert_eq!(
-            reg.get_matching(&HookEventType::PreToolUse, "FileWrite")
-                .len(),
-            1
-        );
+        assert_eq!(reg.get_matching(&HookEventType::PreToolUse, "FileRead").len(), 1);
+        assert_eq!(reg.get_matching(&HookEventType::PreToolUse, "FileWrite").len(), 1);
         assert_eq!(reg.get_matching(&HookEventType::PreToolUse, "Bash").len(), 0);
     }
 
@@ -173,10 +161,6 @@ mod tests {
         hook.enabled = false;
         reg.register(hook);
 
-        assert_eq!(
-            reg.get_matching(&HookEventType::PreToolUse, "FileRead")
-                .len(),
-            0
-        );
+        assert_eq!(reg.get_matching(&HookEventType::PreToolUse, "FileRead").len(), 0);
     }
 }

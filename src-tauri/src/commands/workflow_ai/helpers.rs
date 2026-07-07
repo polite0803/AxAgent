@@ -178,11 +178,7 @@ pub(super) async fn resolve_ai_provider(state: &AppState) -> Result<ResolvedProv
         .map(|m| m.model_id.clone())
         .unwrap_or_else(|| "gpt-4".to_string());
 
-    Ok(ResolvedProvider {
-        ctx,
-        model_id,
-        provider_type: provider.provider_type.clone(),
-    })
+    Ok(ResolvedProvider { ctx, model_id, provider_type: provider.provider_type.clone() })
 }
 
 /// 27 种节点类型的完整 JSON Schema 文档。
@@ -635,10 +631,7 @@ fn layout_workflow_nodes(
     let max_depth = depths.values().copied().max().unwrap_or(0);
 
     for depth in 0..=max_depth {
-        let nodes_at_depth = depth_groups
-            .get(&depth)
-            .map(|v| v.as_slice())
-            .unwrap_or(&[]);
+        let nodes_at_depth = depth_groups.get(&depth).map(|v| v.as_slice()).unwrap_or(&[]);
         let count = nodes_at_depth.len().max(1);
         let total_width = (count as f64) * 220.0;
         let center_x = 400.0;
@@ -647,10 +640,7 @@ fn layout_workflow_nodes(
         for (i, id) in nodes_at_depth.iter().enumerate() {
             positions.insert(
                 (*id).to_string(),
-                Position {
-                    x: start_x + (i as f64) * 220.0,
-                    y: 80.0 + (depth as f64) * 140.0,
-                },
+                Position { x: start_x + (i as f64) * 220.0, y: 80.0 + (depth as f64) * 140.0 },
             );
         }
     }
@@ -672,10 +662,7 @@ fn layout_workflow_nodes(
     let mut container_children: std::collections::HashMap<String, Vec<String>> =
         std::collections::HashMap::new();
     for (child_id, parent_id) in parent_map {
-        container_children
-            .entry(parent_id.clone())
-            .or_default()
-            .push(child_id.clone());
+        container_children.entry(parent_id.clone()).or_default().push(child_id.clone());
     }
 
     for (parent_id, child_ids) in &container_children {
@@ -683,13 +670,8 @@ fn layout_workflow_nodes(
         let start_x = 50.0;
         let start_y = 60.0;
         for (i, child_id) in child_ids.iter().enumerate() {
-            positions.insert(
-                child_id.clone(),
-                Position {
-                    x: start_x,
-                    y: start_y + (i as f64) * 80.0,
-                },
-            );
+            positions
+                .insert(child_id.clone(), Position { x: start_x, y: start_y + (i as f64) * 80.0 });
         }
         if let Some(parent_pos) = positions.get_mut(parent_id) {
             let needed_height = (count as f64) * 80.0 + 80.0;
@@ -751,9 +733,7 @@ pub(super) fn parse_llm_response(
                     edges: vec![],
                     explanation: Some(format!(
                         "[AI 拒绝生成] {}",
-                        parsed
-                            .explanation
-                            .unwrap_or_else(|| "请求被拒绝".to_string())
+                        parsed.explanation.unwrap_or_else(|| "请求被拒绝".to_string())
                     )),
                 });
             },
@@ -763,9 +743,7 @@ pub(super) fn parse_llm_response(
                     edges: vec![],
                     explanation: Some(format!(
                         "[AI 请求澄清] {}",
-                        parsed
-                            .explanation
-                            .unwrap_or_else(|| "请补充更详细的需求".to_string())
+                        parsed.explanation.unwrap_or_else(|| "请补充更详细的需求".to_string())
                     )),
                 });
             },
@@ -786,11 +764,8 @@ pub(super) fn parse_llm_response(
         })
         .collect();
 
-    let edge_pairs: Vec<(String, String)> = parsed
-        .edges
-        .iter()
-        .map(|e| (e.source.clone(), e.target.clone()))
-        .collect();
+    let edge_pairs: Vec<(String, String)> =
+        parsed.edges.iter().map(|e| (e.source.clone(), e.target.clone())).collect();
 
     let mut parent_map: std::collections::HashMap<String, String> =
         std::collections::HashMap::new();
@@ -809,10 +784,10 @@ pub(super) fn parse_llm_response(
         let node_id = node_ids[i].clone();
         id_to_node_id.insert(llm_node.id.clone(), node_id.clone());
 
-        let position = positions.get(&node_id).cloned().unwrap_or(Position {
-            x: 100.0 + (i as f64) * 200.0,
-            y: 80.0 + (i as f64) * 140.0,
-        });
+        let position = positions
+            .get(&node_id)
+            .cloned()
+            .unwrap_or(Position { x: 100.0 + (i as f64) * 200.0, y: 80.0 + (i as f64) * 140.0 });
 
         let base = WorkflowNodeBase {
             continue_on_fail: false,
@@ -859,10 +834,7 @@ pub(super) fn parse_llm_response(
                         hallucination_guard: None,
                         input_mapping: std::collections::HashMap::new(),
                     });
-                WorkflowNode::Agent(AgentNode {
-                    base,
-                    config: agent_config,
-                })
+                WorkflowNode::Agent(AgentNode { base, config: agent_config })
             },
             "llm" => {
                 let llm_config: LLMNodeConfig = serde_json::from_value(llm_node.config.clone())
@@ -878,10 +850,7 @@ pub(super) fn parse_llm_response(
                         max_context_tokens: None,
                         reserved_output_tokens: None,
                     });
-                WorkflowNode::Llm(LLMNode {
-                    base,
-                    config: llm_config,
-                })
+                WorkflowNode::Llm(LLMNode { base, config: llm_config })
             },
             "condition" => {
                 let cond_config: ConditionNodeConfig = serde_json::from_value(
@@ -895,10 +864,7 @@ pub(super) fn parse_llm_response(
                     routing_model: None,
                     confidence_threshold: None,
                 });
-                WorkflowNode::Condition(ConditionNode {
-                    base,
-                    config: cond_config,
-                })
+                WorkflowNode::Condition(ConditionNode { base, config: cond_config })
             },
             "parallel" => {
                 let para_config: ParallelNodeConfig =
@@ -910,10 +876,7 @@ pub(super) fn parse_llm_response(
                         auto_input_from_parent: true,
                         sub_graph: None,
                     });
-                WorkflowNode::Parallel(ParallelNode {
-                    base,
-                    config: para_config,
-                })
+                WorkflowNode::Parallel(ParallelNode { base, config: para_config })
             },
             "loop" => {
                 let loop_config: LoopNodeConfig = serde_json::from_value(llm_node.config.clone())
@@ -932,10 +895,7 @@ pub(super) fn parse_llm_response(
                         interrupt_after_each: false,
                         interrupt_nodes: vec![],
                     });
-                WorkflowNode::Loop(LoopNode {
-                    base,
-                    config: loop_config,
-                })
+                WorkflowNode::Loop(LoopNode { base, config: loop_config })
             },
             "tool" => {
                 let tool_config: ToolNodeConfig = serde_json::from_value(llm_node.config.clone())
@@ -944,10 +904,7 @@ pub(super) fn parse_llm_response(
                         input_mapping: std::collections::HashMap::new(),
                         output_var: "".to_string(),
                     });
-                WorkflowNode::Tool(ToolNode {
-                    base,
-                    config: tool_config,
-                })
+                WorkflowNode::Tool(ToolNode { base, config: tool_config })
             },
             "code" => {
                 let code_config: CodeNodeConfig = serde_json::from_value(llm_node.config.clone())
@@ -959,10 +916,7 @@ pub(super) fn parse_llm_response(
                         execute_directly: false,
                         input_mapping: std::collections::HashMap::new(),
                     });
-                WorkflowNode::Code(CodeNode {
-                    base,
-                    config: code_config,
-                })
+                WorkflowNode::Code(CodeNode { base, config: code_config })
             },
             "merge" => {
                 let merge_config: MergeNodeConfig = serde_json::from_value(llm_node.config.clone())
@@ -971,10 +925,7 @@ pub(super) fn parse_llm_response(
                         inputs: vec![],
                         auto_inputs_from_branches: false,
                     });
-                WorkflowNode::Merge(MergeNode {
-                    base,
-                    config: merge_config,
-                })
+                WorkflowNode::Merge(MergeNode { base, config: merge_config })
             },
             "delay" => {
                 let delay_config: DelayNodeConfig = serde_json::from_value(llm_node.config.clone())
@@ -983,10 +934,7 @@ pub(super) fn parse_llm_response(
                         seconds: 5,
                         until: None,
                     });
-                WorkflowNode::Delay(DelayNode {
-                    base,
-                    config: delay_config,
-                })
+                WorkflowNode::Delay(DelayNode { base, config: delay_config })
             },
             "validation" => {
                 let val_config: ValidationNodeConfig = serde_json::from_value(
@@ -997,10 +945,7 @@ pub(super) fn parse_llm_response(
                     on_fail: "abort".to_string(),
                     max_retries: 0,
                 });
-                WorkflowNode::Validation(ValidationNode {
-                    base,
-                    config: val_config,
-                })
+                WorkflowNode::Validation(ValidationNode { base, config: val_config })
             },
             "subWorkflow" => {
                 let sub_config: SubWorkflowNodeConfig = serde_json::from_value(
@@ -1013,10 +958,7 @@ pub(super) fn parse_llm_response(
                     is_async: false,
                     sub_graph: None,
                 });
-                WorkflowNode::SubWorkflow(SubWorkflowNode {
-                    base,
-                    config: sub_config,
-                })
+                WorkflowNode::SubWorkflow(SubWorkflowNode { base, config: sub_config })
             },
             "documentParser" => {
                 let doc_config: DocumentParserNodeConfig = serde_json::from_value(
@@ -1027,10 +969,7 @@ pub(super) fn parse_llm_response(
                     parser_type: "auto".to_string(),
                     output_var: "parsed".to_string(),
                 });
-                WorkflowNode::DocumentParser(DocumentParserNode {
-                    base,
-                    config: doc_config,
-                })
+                WorkflowNode::DocumentParser(DocumentParserNode { base, config: doc_config })
             },
             "vectorRetrieve" => {
                 let vec_config: VectorRetrieveNodeConfig = serde_json::from_value(
@@ -1043,18 +982,12 @@ pub(super) fn parse_llm_response(
                     similarity_threshold: None,
                     output_var: "retrieved".to_string(),
                 });
-                WorkflowNode::VectorRetrieve(VectorRetrieveNode {
-                    base,
-                    config: vec_config,
-                })
+                WorkflowNode::VectorRetrieve(VectorRetrieveNode { base, config: vec_config })
             },
             "end" => {
                 let end_config: EndNodeConfig = serde_json::from_value(llm_node.config.clone())
                     .unwrap_or(EndNodeConfig { output_var: None });
-                WorkflowNode::End(EndNode {
-                    base,
-                    config: end_config,
-                })
+                WorkflowNode::End(EndNode { base, config: end_config })
             },
             "switch" => {
                 let cfg: SwitchNodeConfig = serde_json::from_value(llm_node.config.clone())
@@ -1247,14 +1180,10 @@ pub(super) fn parse_llm_response(
 
     let mut edges = Vec::new();
     for (i, llm_edge) in parsed.edges.iter().enumerate() {
-        let source_id = id_to_node_id
-            .get(&llm_edge.source)
-            .cloned()
-            .unwrap_or(llm_edge.source.clone());
-        let target_id = id_to_node_id
-            .get(&llm_edge.target)
-            .cloned()
-            .unwrap_or(llm_edge.target.clone());
+        let source_id =
+            id_to_node_id.get(&llm_edge.source).cloned().unwrap_or(llm_edge.source.clone());
+        let target_id =
+            id_to_node_id.get(&llm_edge.target).cloned().unwrap_or(llm_edge.target.clone());
 
         let edge_type = match llm_edge.edge_type.as_deref() {
             Some("conditionTrue") => EdgeType::ConditionTrue,

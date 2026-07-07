@@ -196,10 +196,7 @@ pub async fn fetch_dingtalk_token(
     if let Some(errcode) = body.get("errcode").and_then(|v| v.as_i64())
         && errcode != 0
     {
-        let errmsg = body
-            .get("errmsg")
-            .and_then(|v| v.as_str())
-            .unwrap_or("unknown");
+        let errmsg = body.get("errmsg").and_then(|v| v.as_str()).unwrap_or("unknown");
         anyhow::bail!("Dingtalk token error: errcode={}, errmsg={}", errcode, errmsg);
     }
 
@@ -222,12 +219,8 @@ async fn poll_dingtalk_robot_msgs(
         "processQueryKeys": ["senderId", "text", "openConversationId"]
     });
 
-    let resp = client
-        .post(&url)
-        .header("Content-Type", "application/json")
-        .json(&body)
-        .send()
-        .await?;
+    let resp =
+        client.post(&url).header("Content-Type", "application/json").json(&body).send().await?;
 
     let json: serde_json::Value = resp.json().await?;
     let mut results = Vec::new();
@@ -270,21 +263,14 @@ async fn send_dingtalk_message(
         }
     });
 
-    let resp = client
-        .post(&url)
-        .header("Content-Type", "application/json")
-        .json(&body)
-        .send()
-        .await?;
+    let resp =
+        client.post(&url).header("Content-Type", "application/json").json(&body).send().await?;
 
     let json: serde_json::Value = resp.json().await?;
     if let Some(errcode) = json.get("errcode").and_then(|v| v.as_i64())
         && errcode != 0
     {
-        let errmsg = json
-            .get("errmsg")
-            .and_then(|v| v.as_str())
-            .unwrap_or("unknown");
+        let errmsg = json.get("errmsg").and_then(|v| v.as_str()).unwrap_or("unknown");
         anyhow::bail!("Dingtalk send failed: errcode={}, errmsg={}", errcode, errmsg);
     }
     Ok(())

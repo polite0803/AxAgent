@@ -17,9 +17,7 @@ impl Default for ProfileManager {
 
 impl ProfileManager {
     pub fn new() -> Self {
-        Self {
-            active_profile: Arc::new(RwLock::new("default".to_string())),
-        }
+        Self { active_profile: Arc::new(RwLock::new("default".to_string())) }
     }
 
     pub async fn active_profile(&self) -> String {
@@ -96,9 +94,7 @@ impl ProfileManager {
 
     fn info_for(&self, name: &str, profile: &Profile) -> Result<ProfileInfo, ProfileError> {
         let dir = if name == "default" {
-            dirs::home_dir()
-                .expect("Could not determine home directory")
-                .join(".axagent")
+            dirs::home_dir().expect("Could not determine home directory").join(".axagent")
         } else {
             profile::profile_dir(name)
         };
@@ -115,9 +111,6 @@ impl ProfileManager {
     pub async fn active_info(&self) -> Result<ProfileInfo, ProfileError> {
         let name = self.active_profile().await;
         let profiles = self.list().await?;
-        profiles
-            .into_iter()
-            .find(|p| p.profile.name == name)
-            .ok_or(ProfileError::NotFound(name))
+        profiles.into_iter().find(|p| p.profile.name == name).ok_or(ProfileError::NotFound(name))
     }
 }

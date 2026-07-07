@@ -209,11 +209,7 @@ pub async fn trigger_skill_evolution(skill_id: String) -> Result<(), String> {
             stats_obj.insert(
                 "total_runs".into(),
                 serde_json::json!(
-                    stats_obj
-                        .get("total_runs")
-                        .and_then(|v| v.as_u64())
-                        .unwrap_or(0)
-                        + 1
+                    stats_obj.get("total_runs").and_then(|v| v.as_u64()).unwrap_or(0) + 1
                 ),
             );
             stats_obj.insert("last_run".into(), serde_json::json!(now));

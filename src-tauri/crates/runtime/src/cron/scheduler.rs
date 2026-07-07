@@ -127,9 +127,7 @@ fn match_cron_field(field: &str, current: i64, _min: i64, _max: i64) -> bool {
     }
 
     if field.contains(',') {
-        return field
-            .split(',')
-            .any(|p| match_cron_field(p, current, _min, _max));
+        return field.split(',').any(|p| match_cron_field(p, current, _min, _max));
     }
 
     if field.contains('-') {

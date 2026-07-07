@@ -170,10 +170,7 @@ pub(crate) async fn do_compress(
         model: comp_model_id.clone(),
         messages: summary_messages,
         stream: false,
-        temperature: settings
-            .compression_temperature
-            .map(|v| v as f64)
-            .or(Some(0.3)),
+        temperature: settings.compression_temperature.map(|v| v as f64).or(Some(0.3)),
         top_p: settings.compression_top_p.map(|v| v as f64),
         max_tokens: settings.compression_max_tokens.or(Some(1024)),
         tools: None,
@@ -254,17 +251,13 @@ pub async fn compress_context(
         axagent_dao::repo::provider::get_provider(state.harness.db(), &conversation.provider_id)
             .await
             .map_err(|e| e.to_string())?;
-    let key_row = provider
-        .keys
-        .first()
-        .ok_or_else(|| "No API key configured".to_string())?;
+    let key_row = provider.keys.first().ok_or_else(|| "No API key configured".to_string())?;
     let decrypted_key =
         axagent_crypto::decrypt_key(&key_row.key_encrypted, state.harness.master_key())
             .map_err(|e| e.to_string())?;
 
-    let global_settings = axagent_dao::repo::settings::get_settings(state.harness.db())
-        .await
-        .unwrap_or_default();
+    let global_settings =
+        axagent_dao::repo::settings::get_settings(state.harness.db()).await.unwrap_or_default();
     let resolved_proxy = ProviderProxyConfig::resolve(&provider.proxy_config, &global_settings);
 
     // Load messages after last marker
@@ -452,9 +445,7 @@ mod tests_conversation {
 
         let result = {
             let file_store = axagent_storage::file_store::FileStore::with_root(temp_dir.clone());
-            let saved = file_store
-                .save_file(b"abc", "image.png", "image/png")
-                .unwrap();
+            let saved = file_store.save_file(b"abc", "image.png", "image/png").unwrap();
             let message = Message {
                 id: "msg-1".into(),
                 conversation_id: "conv-1".into(),
@@ -583,14 +574,9 @@ mod tests_conversation {
         .unwrap();
 
         let file_store = axagent_storage::file_store::FileStore::with_root(temp_dir.clone());
-        let saved = file_store
-            .save_file(b"cleanup me", "cleanup.png", "image/png")
-            .unwrap();
+        let saved = file_store.save_file(b"cleanup me", "cleanup.png", "image/png").unwrap();
         let physical_path = temp_dir.join(&saved.storage_path);
-        assert!(
-            physical_path.exists(),
-            "fixture file must exist before deleting the conversation"
-        );
+        assert!(physical_path.exists(), "fixture file must exist before deleting the conversation");
 
         axagent_dao::repo::stored_file::create_stored_file(
             &db,
@@ -612,9 +598,7 @@ mod tests_conversation {
             "deleting a conversation should clean up its attached files, got: {result:?}"
         );
         assert!(
-            axagent_dao::repo::conversation::get_conversation(&db, &conversation.id)
-                .await
-                .is_err(),
+            axagent_dao::repo::conversation::get_conversation(&db, &conversation.id).await.is_err(),
             "conversation must be deleted"
         );
         assert!(
@@ -1027,9 +1011,7 @@ mod tests_conversation {
 
         axagent_storage::storage_paths::set_documents_root(temp_dir.clone());
 
-        let persisted = persist_attachments(&state, &conversation.id, &attachments)
-            .await
-            .unwrap();
+        let persisted = persist_attachments(&state, &conversation.id, &attachments).await.unwrap();
         assert_eq!(persisted.len(), 1);
         assert!(
             persisted[0].file_path.starts_with("images/"),
@@ -1037,9 +1019,8 @@ mod tests_conversation {
             persisted[0].file_path
         );
 
-        let stored_files = axagent_dao::repo::stored_file::list_all_stored_files(&db)
-            .await
-            .unwrap();
+        let stored_files =
+            axagent_dao::repo::stored_file::list_all_stored_files(&db).await.unwrap();
         assert_eq!(
             stored_files.len(),
             1,

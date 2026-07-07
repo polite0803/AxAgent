@@ -15,15 +15,9 @@ pub enum OrchestratorAction {
     /// 无操作。
     None,
     /// 应触发 RL 训练（负面反馈累积到阈值）。
-    TriggerRLTraining {
-        reason: String,
-        negative_count: usize,
-    },
+    TriggerRLTraining { reason: String, negative_count: usize },
     /// 应触发技能进化（正向反馈累积到阈值）。
-    TriggerSkillEvolution {
-        reason: String,
-        positive_count: usize,
-    },
+    TriggerSkillEvolution { reason: String, positive_count: usize },
     /// 经验池大小检查触发训练。
     TriggerPoolSizeCheck { pool_size: usize },
 }

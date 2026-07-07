@@ -452,11 +452,7 @@ pub struct SearchPlan {
 impl SearchPlan {
     pub fn new(queries: Vec<SearchQuery>) -> Self {
         let query_ids: Vec<String> = queries.iter().map(|q| q.id.clone()).collect();
-        Self {
-            id: uuid::Uuid::new_v4().to_string(),
-            queries,
-            parallel_groups: vec![query_ids],
-        }
+        Self { id: uuid::Uuid::new_v4().to_string(), queries, parallel_groups: vec![query_ids] }
     }
 
     pub fn with_parallel_groups(mut self, groups: Vec<Vec<String>>) -> Self {
@@ -518,10 +514,7 @@ pub struct ReportOutline {
 
 impl ReportOutline {
     pub fn new() -> Self {
-        Self {
-            title: String::new(),
-            sections: Vec::new(),
-        }
+        Self { title: String::new(), sections: Vec::new() }
     }
 
     pub fn with_title(mut self, title: String) -> Self {
@@ -856,10 +849,7 @@ mod tests {
 
     #[test]
     fn test_search_plan_new() {
-        let queries = vec![
-            SearchQuery::new("q1".to_string()),
-            SearchQuery::new("q2".to_string()),
-        ];
+        let queries = vec![SearchQuery::new("q1".to_string()), SearchQuery::new("q2".to_string())];
         let plan = SearchPlan::new(queries);
         assert_eq!(plan.queries.len(), 2);
         assert_eq!(plan.parallel_groups.len(), 1);

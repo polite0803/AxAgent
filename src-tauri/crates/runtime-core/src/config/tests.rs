@@ -26,14 +26,8 @@ fn rejects_non_object_settings_files() {
     fs::create_dir_all(&cwd).expect("project dir");
     fs::write(home.join("settings.json"), "[]").expect("write bad settings");
 
-    let error = ConfigLoader::new(&cwd, &home)
-        .load()
-        .expect_err("config should fail");
-    assert!(
-        error
-            .to_string()
-            .contains("top-level settings value must be a JSON object")
-    );
+    let error = ConfigLoader::new(&cwd, &home).load().expect_err("config should fail");
+    assert!(error.to_string().contains("top-level settings value must be a JSON object"));
 
     if root.exists() {
         fs::remove_dir_all(root).expect("cleanup temp dir");
@@ -71,9 +65,7 @@ fn loads_and_merges_claude_code_config_files_by_precedence() {
     )
     .expect("write local settings");
 
-    let loaded = ConfigLoader::new(&cwd, &home)
-        .load()
-        .expect("config should load");
+    let loaded = ConfigLoader::new(&cwd, &home).load().expect("config should load");
 
     assert_eq!(CLAW_SETTINGS_SCHEMA_NAME, "SettingsSchema");
     assert_eq!(loaded.loaded_entries().len(), 5);
@@ -81,14 +73,7 @@ fn loads_and_merges_claude_code_config_files_by_precedence() {
     assert_eq!(loaded.get("model"), Some(&JsonValue::String("opus".to_string())));
     assert_eq!(loaded.model(), Some("opus"));
     assert_eq!(loaded.permission_mode(), Some(ResolvedPermissionMode::WorkspaceWrite));
-    assert_eq!(
-        loaded
-            .get("env")
-            .and_then(JsonValue::as_object)
-            .expect("env object")
-            .len(),
-        4
-    );
+    assert_eq!(loaded.get("env").and_then(JsonValue::as_object).expect("env object").len(), 4);
     assert!(
         loaded
             .get("hooks")
@@ -137,9 +122,7 @@ fn parses_sandbox_config() {
     )
     .expect("write local settings");
 
-    let loaded = ConfigLoader::new(&cwd, &home)
-        .load()
-        .expect("config should load");
+    let loaded = ConfigLoader::new(&cwd, &home).load().expect("config should load");
 
     assert_eq!(loaded.sandbox().enabled, Some(true));
     assert_eq!(loaded.sandbox().namespace_restrictions, Some(false));
@@ -170,17 +153,12 @@ fn parses_provider_fallbacks_chain_with_primary_and_ordered_fallbacks() {
     .expect("write provider fallback settings");
 
     // when
-    let loaded = ConfigLoader::new(&cwd, &home)
-        .load()
-        .expect("config should load");
+    let loaded = ConfigLoader::new(&cwd, &home).load().expect("config should load");
 
     // then
     let chain = loaded.provider_fallbacks();
     assert_eq!(chain.primary(), Some("claude-opus-4-6"));
-    assert_eq!(
-        chain.fallbacks(),
-        &["deepseek-v4-flash".to_string(), "gpt-5.4-mini".to_string()]
-    );
+    assert_eq!(chain.fallbacks(), &["deepseek-v4-flash".to_string(), "gpt-5.4-mini".to_string()]);
     assert!(!chain.is_empty());
 
     fs::remove_dir_all(root).expect("cleanup temp dir");
@@ -197,9 +175,7 @@ fn provider_fallbacks_default_is_empty_when_unset() {
     fs::write(home.join("settings.json"), "{}").expect("write empty settings");
 
     // when
-    let loaded = ConfigLoader::new(&cwd, &home)
-        .load()
-        .expect("config should load");
+    let loaded = ConfigLoader::new(&cwd, &home).load().expect("config should load");
 
     // then
     let chain = loaded.provider_fallbacks();
@@ -225,9 +201,7 @@ fn parses_trusted_roots_from_settings() {
     .expect("write settings");
 
     // when
-    let loaded = ConfigLoader::new(&cwd, &home)
-        .load()
-        .expect("config should load");
+    let loaded = ConfigLoader::new(&cwd, &home).load().expect("config should load");
 
     // then
     let roots = loaded.trusted_roots();
@@ -247,9 +221,7 @@ fn trusted_roots_default_is_empty_when_unset() {
     fs::write(home.join("settings.json"), "{}").expect("write empty settings");
 
     // when
-    let loaded = ConfigLoader::new(&cwd, &home)
-        .load()
-        .expect("config should load");
+    let loaded = ConfigLoader::new(&cwd, &home).load().expect("config should load");
 
     // then
     assert!(loaded.trusted_roots().is_empty());
@@ -312,21 +284,13 @@ fn parses_typed_mcp_and_oauth_config() {
     )
     .expect("write local settings");
 
-    let loaded = ConfigLoader::new(&cwd, &home)
-        .load()
-        .expect("config should load");
+    let loaded = ConfigLoader::new(&cwd, &home).load().expect("config should load");
 
-    let stdio_server = loaded
-        .mcp()
-        .get("stdio-server")
-        .expect("stdio server should exist");
+    let stdio_server = loaded.mcp().get("stdio-server").expect("stdio server should exist");
     assert_eq!(stdio_server.scope, ConfigSource::User);
     assert_eq!(stdio_server.transport(), McpTransport::Stdio);
 
-    let remote_server = loaded
-        .mcp()
-        .get("remote-server")
-        .expect("remote server should exist");
+    let remote_server = loaded.mcp().get("remote-server").expect("remote server should exist");
     assert_eq!(remote_server.scope, ConfigSource::Local);
     assert_eq!(remote_server.transport(), McpTransport::Ws);
     match &remote_server.config {
@@ -364,14 +328,9 @@ fn infers_http_mcp_servers_from_url_only_config() {
     )
     .expect("write mcp settings");
 
-    let loaded = ConfigLoader::new(&cwd, &home)
-        .load()
-        .expect("config should load");
+    let loaded = ConfigLoader::new(&cwd, &home).load().expect("config should load");
 
-    let remote_server = loaded
-        .mcp()
-        .get("remote")
-        .expect("remote server should exist");
+    let remote_server = loaded.mcp().get("remote").expect("remote server should exist");
     assert_eq!(remote_server.transport(), McpTransport::Http);
     match &remote_server.config {
         McpServerConfig::Http(config) => {
@@ -402,18 +361,10 @@ fn parses_plugin_config_from_enabled_plugins() {
     )
     .expect("write user settings");
 
-    let loaded = ConfigLoader::new(&cwd, &home)
-        .load()
-        .expect("config should load");
+    let loaded = ConfigLoader::new(&cwd, &home).load().expect("config should load");
 
     assert_eq!(loaded.plugins().enabled_plugins().get("tool-guard@builtin"), Some(&true));
-    assert_eq!(
-        loaded
-            .plugins()
-            .enabled_plugins()
-            .get("sample-plugin@external"),
-        Some(&false)
-    );
+    assert_eq!(loaded.plugins().enabled_plugins().get("sample-plugin@external"), Some(&false));
 
     fs::remove_dir_all(root).expect("cleanup temp dir");
 }
@@ -442,17 +393,9 @@ fn parses_plugin_config() {
     )
     .expect("write plugin settings");
 
-    let loaded = ConfigLoader::new(&cwd, &home)
-        .load()
-        .expect("config should load");
+    let loaded = ConfigLoader::new(&cwd, &home).load().expect("config should load");
 
-    assert_eq!(
-        loaded
-            .plugins()
-            .enabled_plugins()
-            .get("core-helpers@builtin"),
-        Some(&true)
-    );
+    assert_eq!(loaded.plugins().enabled_plugins().get("core-helpers@builtin"), Some(&true));
     assert_eq!(loaded.plugins().external_directories(), &["./external-plugins".to_string()]);
     assert_eq!(loaded.plugins().install_root(), Some("plugin-cache/installed"));
     assert_eq!(loaded.plugins().registry_path(), Some("plugin-cache/installed.json"));
@@ -469,23 +412,14 @@ fn rejects_invalid_mcp_server_shapes() {
     let home = root.join("home").join(".claw");
     fs::create_dir_all(&home).expect("home config dir");
     fs::create_dir_all(&cwd).expect("project dir");
-    fs::write(
-        home.join("settings.json"),
-        r#"{"mcpServers":{"broken":{"type":"http","url":123}}}"#,
-    )
-    .expect("write broken settings");
+    fs::write(home.join("settings.json"), r#"{"mcpServers":{"broken":{"type":"http","url":123}}}"#)
+        .expect("write broken settings");
 
     // when
-    let error = ConfigLoader::new(&cwd, &home)
-        .load()
-        .expect_err("config should fail");
+    let error = ConfigLoader::new(&cwd, &home).load().expect_err("config should fail");
 
     // then
-    assert!(
-        error
-            .to_string()
-            .contains("mcpServers.broken: missing string field url")
-    );
+    assert!(error.to_string().contains("mcpServers.broken: missing string field url"));
 
     fs::remove_dir_all(root).expect("cleanup temp dir");
 }
@@ -511,9 +445,7 @@ fn parses_user_defined_model_aliases_from_settings() {
     .expect("write local settings");
 
     // when
-    let loaded = ConfigLoader::new(&cwd, &home)
-        .load()
-        .expect("config should load");
+    let loaded = ConfigLoader::new(&cwd, &home).load().expect("config should load");
 
     // then
     let aliases = loaded.aliases();
@@ -535,9 +467,7 @@ fn empty_settings_file_loads_defaults() {
     fs::write(home.join("settings.json"), "").expect("write empty settings");
 
     // when
-    let loaded = ConfigLoader::new(&cwd, &home)
-        .load()
-        .expect("empty settings should still load");
+    let loaded = ConfigLoader::new(&cwd, &home).load().expect("empty settings should still load");
 
     // then
     assert_eq!(loaded.loaded_entries().len(), 1);
@@ -565,10 +495,8 @@ fn deep_merge_objects_merges_nested_maps() {
     deep_merge_objects(&mut target, &source);
 
     // then
-    let env = target
-        .get("env")
-        .and_then(JsonValue::as_object)
-        .expect("env should remain an object");
+    let env =
+        target.get("env").and_then(JsonValue::as_object).expect("env should remain an object");
     assert_eq!(env.get("A"), Some(&JsonValue::String("1".to_string())));
     assert_eq!(env.get("B"), Some(&JsonValue::String("override".to_string())));
     assert_eq!(env.get("C"), Some(&JsonValue::String("3".to_string())));
@@ -591,9 +519,7 @@ fn rejects_invalid_hook_entries_before_merge() {
         .expect("write invalid project settings");
 
     // when
-    let error = ConfigLoader::new(&cwd, &home)
-        .load()
-        .expect_err("config should fail");
+    let error = ConfigLoader::new(&cwd, &home).load().expect_err("config should fail");
 
     // then — config validation now catches the mixed array before the hooks parser
     let rendered = error.to_string();
@@ -643,10 +569,7 @@ fn hook_config_merge_preserves_uniques() {
     // then
     assert_eq!(merged.pre_tool_use(), &["pre-a".to_string(), "pre-b".to_string()]);
     assert_eq!(merged.post_tool_use(), &["post-a".to_string(), "post-b".to_string()]);
-    assert_eq!(
-        merged.post_tool_use_failure(),
-        &["failure-a".to_string(), "failure-b".to_string()]
-    );
+    assert_eq!(merged.post_tool_use_failure(), &["failure-a".to_string(), "failure-b".to_string()]);
 }
 
 #[test]
@@ -674,9 +597,7 @@ fn validates_unknown_top_level_keys_with_line_and_field_name() {
         .expect("write user settings");
 
     // when
-    let error = ConfigLoader::new(&cwd, &home)
-        .load()
-        .expect_err("config should fail");
+    let error = ConfigLoader::new(&cwd, &home).load().expect_err("config should fail");
 
     // then
     let rendered = error.to_string();
@@ -706,9 +627,7 @@ fn validates_deprecated_top_level_keys_with_replacement_guidance() {
         .expect("write user settings");
 
     // when
-    let error = ConfigLoader::new(&cwd, &home)
-        .load()
-        .expect_err("config should fail");
+    let error = ConfigLoader::new(&cwd, &home).load().expect_err("config should fail");
 
     // then
     let rendered = error.to_string();
@@ -739,16 +658,11 @@ fn validates_wrong_type_for_known_field_with_field_path() {
     let user_settings = home.join("settings.json");
     fs::create_dir_all(&home).expect("home config dir");
     fs::create_dir_all(&cwd).expect("project dir");
-    fs::write(
-        &user_settings,
-        "{\n  \"hooks\": {\n    \"PreToolUse\": \"not-an-array\"\n  }\n}\n",
-    )
-    .expect("write user settings");
+    fs::write(&user_settings, "{\n  \"hooks\": {\n    \"PreToolUse\": \"not-an-array\"\n  }\n}\n")
+        .expect("write user settings");
 
     // when
-    let error = ConfigLoader::new(&cwd, &home)
-        .load()
-        .expect_err("config should fail");
+    let error = ConfigLoader::new(&cwd, &home).load().expect_err("config should fail");
 
     // then
     let rendered = error.to_string();
@@ -764,10 +678,7 @@ fn validates_wrong_type_for_known_field_with_field_path() {
         rendered.contains("PreToolUse"),
         "error should describe the type mismatch, got: {rendered}"
     );
-    assert!(
-        rendered.contains("array"),
-        "error should describe the expected type, got: {rendered}"
-    );
+    assert!(rendered.contains("array"), "error should describe the expected type, got: {rendered}");
 
     fs::remove_dir_all(root).expect("cleanup temp dir");
 }
@@ -784,16 +695,11 @@ fn unknown_top_level_key_suggests_closest_match() {
     fs::write(&user_settings, "{\n  \"modle\": \"opus\"\n}\n").expect("write user settings");
 
     // when
-    let error = ConfigLoader::new(&cwd, &home)
-        .load()
-        .expect_err("config should fail");
+    let error = ConfigLoader::new(&cwd, &home).load().expect_err("config should fail");
 
     // then
     let rendered = error.to_string();
-    assert!(
-        rendered.contains("modle"),
-        "error should name the offending field, got: {rendered}"
-    );
+    assert!(rendered.contains("modle"), "error should name the offending field, got: {rendered}");
     assert!(
         rendered.contains("model"),
         "error should suggest the closest known key, got: {rendered}"

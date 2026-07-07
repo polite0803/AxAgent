@@ -138,11 +138,7 @@ fn parse_analysis_response(response: &str) -> Result<ScreenAnalysis> {
     let parsed: serde_json::Value = serde_json::from_str(&json_str)
         .or_else(|_| {
             serde_json::from_str(
-                response
-                    .trim()
-                    .trim_start_matches("```json")
-                    .trim_end_matches("```")
-                    .trim(),
+                response.trim().trim_start_matches("```json").trim_end_matches("```").trim(),
             )
         })
         .map_err(|e| {
@@ -207,20 +203,13 @@ fn parse_element_response(response: &str) -> Result<Option<UIElementInfo>> {
     let parsed: serde_json::Value = serde_json::from_str(&json_str)
         .or_else(|_| {
             serde_json::from_str(
-                response
-                    .trim()
-                    .trim_start_matches("```json")
-                    .trim_end_matches("```")
-                    .trim(),
+                response.trim().trim_start_matches("```json").trim_end_matches("```").trim(),
             )
         })
         .map_err(|e| AxAgentError::Provider(format!("Failed to parse element: {}", e)))?;
 
     Ok(Some(UIElementInfo {
-        element_type: parsed["element_type"]
-            .as_str()
-            .unwrap_or("unknown")
-            .to_string(),
+        element_type: parsed["element_type"].as_str().unwrap_or("unknown").to_string(),
         name: parsed["name"].as_str().unwrap_or("").to_string(),
         description: parsed["description"].as_str().unwrap_or("").to_string(),
         bounds: axagent_kit::screen_vision::ElementBounds {
@@ -241,11 +230,7 @@ fn parse_actions_response(response: &str) -> Result<Vec<SuggestedAction>> {
     let parsed: serde_json::Value = serde_json::from_str(&json_str)
         .or_else(|_| {
             serde_json::from_str(
-                response
-                    .trim()
-                    .trim_start_matches("```json")
-                    .trim_end_matches("```")
-                    .trim(),
+                response.trim().trim_start_matches("```json").trim_end_matches("```").trim(),
             )
         })
         .map_err(|e| AxAgentError::Provider(format!("Failed to parse actions: {}", e)))?;

@@ -81,8 +81,7 @@ impl ParallelTask {
 
     pub fn duration_ms(&self) -> Option<u64> {
         self.completed_at.and_then(|completed| {
-            self.started_at
-                .map(|started| (completed - started).num_milliseconds() as u64)
+            self.started_at.map(|started| (completed - started).num_milliseconds() as u64)
         })
     }
 
@@ -177,31 +176,19 @@ impl ParallelExecution {
     }
 
     pub fn completed_count(&self) -> usize {
-        self.tasks
-            .iter()
-            .filter(|t| t.status == TaskStatus::Completed)
-            .count()
+        self.tasks.iter().filter(|t| t.status == TaskStatus::Completed).count()
     }
 
     pub fn failed_count(&self) -> usize {
-        self.tasks
-            .iter()
-            .filter(|t| t.status == TaskStatus::Failed)
-            .count()
+        self.tasks.iter().filter(|t| t.status == TaskStatus::Failed).count()
     }
 
     pub fn running_count(&self) -> usize {
-        self.tasks
-            .iter()
-            .filter(|t| t.status == TaskStatus::Running)
-            .count()
+        self.tasks.iter().filter(|t| t.status == TaskStatus::Running).count()
     }
 
     pub fn pending_count(&self) -> usize {
-        self.tasks
-            .iter()
-            .filter(|t| t.status == TaskStatus::Pending)
-            .count()
+        self.tasks.iter().filter(|t| t.status == TaskStatus::Pending).count()
     }
 
     pub fn overall_progress(&self) -> f32 {
@@ -242,8 +229,7 @@ impl ParallelExecution {
 
     pub fn duration_ms(&self) -> Option<u64> {
         self.completed_at.and_then(|completed| {
-            self.started_at
-                .map(|started| (completed - started).num_milliseconds() as u64)
+            self.started_at.map(|started| (completed - started).num_milliseconds() as u64)
         })
     }
 }
@@ -464,11 +450,8 @@ impl ParallelExecutionVerifier {
         }
 
         let with_results = completable.iter().filter(|t| t.result.is_some()).count();
-        let missing: Vec<&str> = completable
-            .iter()
-            .filter(|t| t.result.is_none())
-            .map(|t| t.name.as_str())
-            .collect();
+        let missing: Vec<&str> =
+            completable.iter().filter(|t| t.result.is_none()).map(|t| t.name.as_str()).collect();
 
         let passed = missing.is_empty();
         let score = with_results as f64 / completable.len() as f64;
@@ -645,11 +628,8 @@ impl ParallelExecutionVerifier {
 
     // ── 检查 4：超时合规 ──
     fn check_timeout_compliance(&self, execution: &ParallelExecution) -> VerificationCheck {
-        let tasks_with_timeout: Vec<&ParallelTask> = execution
-            .tasks
-            .iter()
-            .filter(|t| t.timeout_secs.is_some())
-            .collect();
+        let tasks_with_timeout: Vec<&ParallelTask> =
+            execution.tasks.iter().filter(|t| t.timeout_secs.is_some()).collect();
 
         if tasks_with_timeout.is_empty() {
             return VerificationCheck {
@@ -737,11 +717,8 @@ impl ParallelExecutionVerifier {
 
     // ── 检查 6：输出大小 ──
     fn check_output_size(&self, execution: &ParallelExecution) -> VerificationCheck {
-        let tasks_with_results: Vec<&ParallelTask> = execution
-            .tasks
-            .iter()
-            .filter(|t| t.result.is_some())
-            .collect();
+        let tasks_with_results: Vec<&ParallelTask> =
+            execution.tasks.iter().filter(|t| t.result.is_some()).collect();
 
         if tasks_with_results.is_empty() {
             return VerificationCheck {
@@ -828,10 +805,7 @@ impl Default for ParallelExecutionService {
 
 impl ParallelExecutionService {
     pub fn new(max_executions: usize) -> Self {
-        Self {
-            executions: Arc::new(RwLock::new(HashMap::new())),
-            max_executions,
-        }
+        Self { executions: Arc::new(RwLock::new(HashMap::new())), max_executions }
     }
 
     pub async fn create_execution(
@@ -897,30 +871,24 @@ impl ParallelExecutionService {
         }
 
         match strategy {
-            ExecutionStrategy::Sequential => execution
-                .tasks
-                .iter_mut()
-                .find(|t| t.status == TaskStatus::Pending)
-                .map(|t| {
+            ExecutionStrategy::Sequential => {
+                execution.tasks.iter_mut().find(|t| t.status == TaskStatus::Pending).map(|t| {
                     t.start(Uuid::new_v4().to_string());
                     t.clone()
-                }),
-            ExecutionStrategy::Parallel => execution
-                .tasks
-                .iter_mut()
-                .find(|t| t.status == TaskStatus::Pending)
-                .map(|t| {
+                })
+            },
+            ExecutionStrategy::Parallel => {
+                execution.tasks.iter_mut().find(|t| t.status == TaskStatus::Pending).map(|t| {
                     t.start(Uuid::new_v4().to_string());
                     t.clone()
-                }),
-            ExecutionStrategy::PriorityBased => execution
-                .tasks
-                .iter_mut()
-                .find(|t| t.status == TaskStatus::Pending)
-                .map(|t| {
+                })
+            },
+            ExecutionStrategy::PriorityBased => {
+                execution.tasks.iter_mut().find(|t| t.status == TaskStatus::Pending).map(|t| {
                     t.start(Uuid::new_v4().to_string());
                     t.clone()
-                }),
+                })
+            },
         }
     }
 
@@ -1012,11 +980,7 @@ impl ParallelExecutionService {
             failed: execution.failed_count(),
             duration_ms: execution.duration_ms().unwrap_or(0),
             aggregated_summary: execution.aggregated_result.clone().unwrap_or_default(),
-            task_results: execution
-                .tasks
-                .iter()
-                .map(TaskResultSummary::from)
-                .collect(),
+            task_results: execution.tasks.iter().map(TaskResultSummary::from).collect(),
         })
     }
 
@@ -1174,11 +1138,7 @@ mod tests {
         ];
         let exec = make_execution(tasks);
         let result = verifier.verify(&exec);
-        let check = result
-            .checks
-            .iter()
-            .find(|c| c.name == "output_completeness")
-            .unwrap();
+        let check = result.checks.iter().find(|c| c.name == "output_completeness").unwrap();
         assert!(check.passed);
         assert!((check.score - 1.0).abs() < 1e-10);
     }
@@ -1192,11 +1152,7 @@ mod tests {
         ];
         let exec = make_execution(tasks);
         let result = verifier.verify(&exec);
-        let check = result
-            .checks
-            .iter()
-            .find(|c| c.name == "output_completeness")
-            .unwrap();
+        let check = result.checks.iter().find(|c| c.name == "output_completeness").unwrap();
         assert!(!check.passed);
         assert!((check.score - 0.5).abs() < 1e-10);
     }
@@ -1206,17 +1162,10 @@ mod tests {
         let verifier = ParallelExecutionVerifier::with_defaults();
         let mut cancelled = make_completed_task("c1", None, None, None, 100);
         cancelled.status = TaskStatus::Cancelled;
-        let tasks = vec![
-            make_completed_task("t1", Some("result"), None, None, 100),
-            cancelled,
-        ];
+        let tasks = vec![make_completed_task("t1", Some("result"), None, None, 100), cancelled];
         let exec = make_execution(tasks);
         let result = verifier.verify(&exec);
-        let check = result
-            .checks
-            .iter()
-            .find(|c| c.name == "output_completeness")
-            .unwrap();
+        let check = result.checks.iter().find(|c| c.name == "output_completeness").unwrap();
         assert!(check.passed, "cancelled tasks should be ignored");
     }
 
@@ -1226,20 +1175,10 @@ mod tests {
         let schema =
             r#"{"type":"object","required":["name"],"properties":{"name":{"type":"string"}}}"#;
         let output = r#"{"name":"test","value":42}"#;
-        let tasks = vec![make_completed_task(
-            "t1",
-            Some(output),
-            Some(schema),
-            None,
-            100,
-        )];
+        let tasks = vec![make_completed_task("t1", Some(output), Some(schema), None, 100)];
         let exec = make_execution(tasks);
         let result = verifier.verify(&exec);
-        let check = result
-            .checks
-            .iter()
-            .find(|c| c.name == "schema_validation")
-            .unwrap();
+        let check = result.checks.iter().find(|c| c.name == "schema_validation").unwrap();
         assert!(check.passed);
     }
 
@@ -1249,20 +1188,10 @@ mod tests {
         let schema =
             r#"{"type":"object","required":["name"],"properties":{"name":{"type":"string"}}}"#;
         let output = r#"{"value":42}"#;
-        let tasks = vec![make_completed_task(
-            "t1",
-            Some(output),
-            Some(schema),
-            None,
-            100,
-        )];
+        let tasks = vec![make_completed_task("t1", Some(output), Some(schema), None, 100)];
         let exec = make_execution(tasks);
         let result = verifier.verify(&exec);
-        let check = result
-            .checks
-            .iter()
-            .find(|c| c.name == "schema_validation")
-            .unwrap();
+        let check = result.checks.iter().find(|c| c.name == "schema_validation").unwrap();
         assert!(!check.passed);
     }
 
@@ -1272,11 +1201,7 @@ mod tests {
         let tasks = vec![make_completed_task("t1", Some("data"), None, None, 100)];
         let exec = make_execution(tasks);
         let result = verifier.verify(&exec);
-        let check = result
-            .checks
-            .iter()
-            .find(|c| c.name == "schema_validation")
-            .unwrap();
+        let check = result.checks.iter().find(|c| c.name == "schema_validation").unwrap();
         assert!(check.passed, "no schema should pass");
     }
 
@@ -1289,11 +1214,7 @@ mod tests {
         ];
         let exec = make_execution(tasks);
         let result = verifier.verify(&exec);
-        let check = result
-            .checks
-            .iter()
-            .find(|c| c.name == "cross_task_consistency")
-            .unwrap();
+        let check = result.checks.iter().find(|c| c.name == "cross_task_consistency").unwrap();
         assert!(check.passed);
     }
 
@@ -1306,31 +1227,17 @@ mod tests {
         ];
         let exec = make_execution(tasks);
         let result = verifier.verify(&exec);
-        let check = result
-            .checks
-            .iter()
-            .find(|c| c.name == "cross_task_consistency")
-            .unwrap();
+        let check = result.checks.iter().find(|c| c.name == "cross_task_consistency").unwrap();
         assert!(!check.passed);
     }
 
     #[test]
     fn test_cross_task_consistency_insufficient() {
         let verifier = ParallelExecutionVerifier::with_defaults();
-        let tasks = vec![make_completed_task(
-            "t1",
-            Some(r#"{"a":1}"#),
-            None,
-            None,
-            100,
-        )];
+        let tasks = vec![make_completed_task("t1", Some(r#"{"a":1}"#), None, None, 100)];
         let exec = make_execution(tasks);
         let result = verifier.verify(&exec);
-        let check = result
-            .checks
-            .iter()
-            .find(|c| c.name == "cross_task_consistency")
-            .unwrap();
+        let check = result.checks.iter().find(|c| c.name == "cross_task_consistency").unwrap();
         assert!(check.passed, "< 2 tasks should pass");
     }
 
@@ -1343,11 +1250,7 @@ mod tests {
         ];
         let exec = make_execution(tasks);
         let result = verifier.verify(&exec);
-        let check = result
-            .checks
-            .iter()
-            .find(|c| c.name == "timeout_compliance")
-            .unwrap();
+        let check = result.checks.iter().find(|c| c.name == "timeout_compliance").unwrap();
         assert!(check.passed);
     }
 
@@ -1357,11 +1260,7 @@ mod tests {
         let tasks = vec![make_completed_task("t1", Some("r1"), None, Some(1), 5000)];
         let exec = make_execution(tasks);
         let result = verifier.verify(&exec);
-        let check = result
-            .checks
-            .iter()
-            .find(|c| c.name == "timeout_compliance")
-            .unwrap();
+        let check = result.checks.iter().find(|c| c.name == "timeout_compliance").unwrap();
         assert!(!check.passed);
     }
 
@@ -1376,11 +1275,7 @@ mod tests {
         ];
         let exec = make_execution(tasks);
         let result = verifier.verify(&exec);
-        let check = result
-            .checks
-            .iter()
-            .find(|c| c.name == "error_rate")
-            .unwrap();
+        let check = result.checks.iter().find(|c| c.name == "error_rate").unwrap();
         assert!(check.passed); // 25% < 30%
     }
 
@@ -1395,11 +1290,7 @@ mod tests {
         ];
         let exec = make_execution(tasks);
         let result = verifier.verify(&exec);
-        let check = result
-            .checks
-            .iter()
-            .find(|c| c.name == "error_rate")
-            .unwrap();
+        let check = result.checks.iter().find(|c| c.name == "error_rate").unwrap();
         assert!(!check.passed); // 50% > 20%
     }
 
@@ -1409,11 +1300,7 @@ mod tests {
         let tasks = vec![make_completed_task("t1", Some("small"), None, None, 100)];
         let exec = make_execution(tasks);
         let result = verifier.verify(&exec);
-        let check = result
-            .checks
-            .iter()
-            .find(|c| c.name == "output_size")
-            .unwrap();
+        let check = result.checks.iter().find(|c| c.name == "output_size").unwrap();
         assert!(check.passed);
     }
 
@@ -1425,11 +1312,7 @@ mod tests {
         let tasks = vec![make_completed_task("t1", Some("too long"), None, None, 100)];
         let exec = make_execution(tasks);
         let result = verifier.verify(&exec);
-        let check = result
-            .checks
-            .iter()
-            .find(|c| c.name == "output_size")
-            .unwrap();
+        let check = result.checks.iter().find(|c| c.name == "output_size").unwrap();
         assert!(!check.passed);
     }
 

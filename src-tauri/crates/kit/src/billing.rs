@@ -44,10 +44,8 @@ pub async fn fetch_deepseek_balance(api_key: &str) -> Result<DeepSeekBalance, St
         return Err(format!("Balance API returned {}: {}", status.as_u16(), body));
     }
 
-    let balance: DeepSeekBalance = response
-        .json()
-        .await
-        .map_err(|e| format!("Failed to parse balance response: {e}"))?;
+    let balance: DeepSeekBalance =
+        response.json().await.map_err(|e| format!("Failed to parse balance response: {e}"))?;
 
     Ok(balance)
 }

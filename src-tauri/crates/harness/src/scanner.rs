@@ -14,11 +14,7 @@ pub struct ScannerConfig {
 
 impl Default for ScannerConfig {
     fn default() -> Self {
-        Self {
-            ical_paths: Vec::new(),
-            file_paths: Vec::new(),
-            scan_interval_secs: 300,
-        }
+        Self { ical_paths: Vec::new(), file_paths: Vec::new(), scan_interval_secs: 300 }
     }
 }
 

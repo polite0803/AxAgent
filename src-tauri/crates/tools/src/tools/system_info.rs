@@ -84,11 +84,7 @@ impl Tool for ListProcessesTool {
     }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
-        let limit = input
-            .get("limit")
-            .and_then(|v| v.as_u64())
-            .map(|v| v as usize)
-            .unwrap_or(20);
+        let limit = input.get("limit").and_then(|v| v.as_u64()).map(|v| v as usize).unwrap_or(20);
 
         #[cfg(windows)]
         let output = {
@@ -99,10 +95,7 @@ impl Tool for ListProcessesTool {
         };
 
         #[cfg(not(windows))]
-        let output = tokio::process::Command::new("ps")
-            .args(["aux"])
-            .output()
-            .await;
+        let output = tokio::process::Command::new("ps").args(["aux"]).output().await;
 
         match output {
             Ok(o) => {

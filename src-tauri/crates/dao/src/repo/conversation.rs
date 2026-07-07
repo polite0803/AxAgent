@@ -79,10 +79,8 @@ async fn attach_workspace_dirs(
         .filter(agent_sessions::Column::ConversationId.is_in(ids))
         .all(db)
         .await?;
-    let cwd_map: std::collections::HashMap<String, Option<String>> = sessions
-        .into_iter()
-        .map(|s| (s.conversation_id, s.cwd))
-        .collect();
+    let cwd_map: std::collections::HashMap<String, Option<String>> =
+        sessions.into_iter().map(|s| (s.conversation_id, s.cwd)).collect();
     for conv in &mut convs {
         conv.workspace_dir = cwd_map.get(&conv.id).cloned().flatten();
     }
@@ -539,10 +537,8 @@ pub async fn archive_to_knowledge_base(
             "assistant" => {
                 if let Some(ref mut t) = current_turn {
                     let tc_json = msg.tool_calls_json.clone();
-                    t.assistant_msgs.push(TurnAssistantMsg {
-                        msg: msg.clone(),
-                        tool_calls_json: tc_json,
-                    });
+                    t.assistant_msgs
+                        .push(TurnAssistantMsg { msg: msg.clone(), tool_calls_json: tc_json });
                 }
             },
             "tool" => {
@@ -572,10 +568,7 @@ pub async fn archive_to_knowledge_base(
             .rfind(|a| a.tool_calls_json.is_none() && !a.msg.content.trim().is_empty())
             .map(|a| a.msg.content.clone())
             .unwrap_or_else(|| {
-                turn.assistant_msgs
-                    .last()
-                    .map(|a| a.msg.content.clone())
-                    .unwrap_or_default()
+                turn.assistant_msgs.last().map(|a| a.msg.content.clone()).unwrap_or_default()
             });
 
         let a_preview = if final_answer.len() > 200 {
@@ -801,12 +794,9 @@ pub async fn branch_conversation(
         .await?;
 
     // 3. Find the target message index
-    let target_idx = all_msgs
-        .iter()
-        .position(|m| m.id == until_message_id)
-        .ok_or_else(|| {
-            AxAgentError::NotFound(format!("Message {} in conversation", until_message_id))
-        })?;
+    let target_idx = all_msgs.iter().position(|m| m.id == until_message_id).ok_or_else(|| {
+        AxAgentError::NotFound(format!("Message {} in conversation", until_message_id))
+    })?;
 
     // 4. Slice messages up to (and including) the target
     let candidate_msgs = &all_msgs[..=target_idx];
@@ -827,20 +817,13 @@ pub async fn branch_conversation(
     // 6. Create new conversation with copied settings
     let new_id = gen_id();
     let now = now_ts();
-    let branch_title = custom_title
-        .map(|t| t.to_string())
-        .unwrap_or_else(|| source.title.clone());
+    let branch_title = custom_title.map(|t| t.to_string()).unwrap_or_else(|| source.title.clone());
 
     // Determine parent_conversation_id
     let parent_id = if as_child {
         // If source already has a parent, new branch is a sibling (same parent)
         // Otherwise, source becomes the parent
-        Some(
-            source
-                .parent_conversation_id
-                .clone()
-                .unwrap_or_else(|| source.id.clone()),
-        )
+        Some(source.parent_conversation_id.clone().unwrap_or_else(|| source.id.clone()))
     } else {
         None
     };
@@ -888,11 +871,7 @@ pub async fn branch_conversation(
         let new_msg_id = gen_id();
         id_map.insert(msg.id.clone(), new_msg_id.clone());
 
-        let new_parent = msg
-            .parent_message_id
-            .as_ref()
-            .and_then(|pid| id_map.get(pid))
-            .cloned();
+        let new_parent = msg.parent_message_id.as_ref().and_then(|pid| id_map.get(pid)).cloned();
 
         messages::ActiveModel {
             id: Set(new_msg_id),

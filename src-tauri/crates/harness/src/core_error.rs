@@ -114,10 +114,7 @@ pub enum AxAgentError {
 impl AxAgentError {
     /// Creates a new workflow error with the given context message
     pub fn workflow<S: Into<String>>(context: S) -> Self {
-        AxAgentError::Workflow {
-            source: None,
-            context: context.into(),
-        }
+        AxAgentError::Workflow { source: None, context: context.into() }
     }
 
     /// Creates a new workflow error with an underlying source error
@@ -125,26 +122,17 @@ impl AxAgentError {
         context: String,
         source: E,
     ) -> Self {
-        AxAgentError::Workflow {
-            source: Some(source.into()),
-            context,
-        }
+        AxAgentError::Workflow { source: Some(source.into()), context }
     }
 
     /// Creates a new agent error with the given context message
     pub fn agent<S: Into<String>>(context: S) -> Self {
-        AxAgentError::Agent {
-            source: None,
-            context: context.into(),
-        }
+        AxAgentError::Agent { source: None, context: context.into() }
     }
 
     /// Creates a new execution error with the given context message
     pub fn execution<S: Into<String>>(context: S) -> Self {
-        AxAgentError::Execution {
-            source: None,
-            context: context.into(),
-        }
+        AxAgentError::Execution { source: None, context: context.into() }
     }
 
     /// Creates a new internal error with the given context message
@@ -173,17 +161,14 @@ impl AxAgentError {
     /// Other variants are returned unchanged.
     pub fn add_context(self, ctx: String) -> Self {
         match self {
-            AxAgentError::Workflow { source, context } => AxAgentError::Workflow {
-                source,
-                context: format!("{}: {}", ctx, context),
+            AxAgentError::Workflow { source, context } => {
+                AxAgentError::Workflow { source, context: format!("{}: {}", ctx, context) }
             },
-            AxAgentError::Agent { source, context } => AxAgentError::Agent {
-                source,
-                context: format!("{}: {}", ctx, context),
+            AxAgentError::Agent { source, context } => {
+                AxAgentError::Agent { source, context: format!("{}: {}", ctx, context) }
             },
-            AxAgentError::Execution { source, context } => AxAgentError::Execution {
-                source,
-                context: format!("{}: {}", ctx, context),
+            AxAgentError::Execution { source, context } => {
+                AxAgentError::Execution { source, context: format!("{}: {}", ctx, context) }
             },
             _ => self,
         }
@@ -236,16 +221,11 @@ impl AxAgentError {
         }
 
         let (context, message) = match self {
-            AxAgentError::StructuredError {
-                context, message, ..
-            } => (context.clone(), message.clone()),
+            AxAgentError::StructuredError { context, message, .. } => {
+                (context.clone(), message.clone())
+            },
             _ => (
-                Box::new(
-                    ErrorContext::builder()
-                        .component("unknown")
-                        .operation("unknown")
-                        .build(),
-                ),
+                Box::new(ErrorContext::builder().component("unknown").operation("unknown").build()),
                 self.to_string(),
             ),
         };
@@ -499,10 +479,7 @@ mod tests {
 
     #[test]
     fn test_error_context() {
-        let err = AxAgentError::Workflow {
-            source: None,
-            context: "User not found".to_string(),
-        };
+        let err = AxAgentError::Workflow { source: None, context: "User not found".to_string() };
         let err_with_ctx = err.add_context("get_user".to_string());
         assert!(err_with_ctx.to_string().contains("get_user"));
     }
@@ -519,10 +496,7 @@ mod tests {
         let err =
             AxAgentError::workflow_with_source("workflow execution failed".to_string(), source);
         match err {
-            AxAgentError::Workflow {
-                source: Some(_),
-                context,
-            } => {
+            AxAgentError::Workflow { source: Some(_), context } => {
                 assert!(context.contains("workflow execution failed"));
             },
             _ => panic!("Expected Workflow error with source"),

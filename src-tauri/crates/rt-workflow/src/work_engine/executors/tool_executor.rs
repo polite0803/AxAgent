@@ -74,15 +74,11 @@ impl NodeExecutorTrait for ToolExecutor {
 
         // 解析输入映射
         let resolved_args: serde_json::Value =
-            tool_node
-                .config
-                .input_mapping
-                .iter()
-                .fold(serde_json::json!({}), |mut acc, (k, v)| {
-                    let resolved = resolve_var_path(v, context);
-                    acc[k] = resolved.unwrap_or(serde_json::Value::Null);
-                    acc
-                });
+            tool_node.config.input_mapping.iter().fold(serde_json::json!({}), |mut acc, (k, v)| {
+                let resolved = resolve_var_path(v, context);
+                acc[k] = resolved.unwrap_or(serde_json::Value::Null);
+                acc
+            });
 
         let tool_name = &tool_node.config.tool_name;
 
@@ -140,25 +136,18 @@ impl NodeExecutorTrait for ToolExecutor {
             .callbacks
             .as_ref()
             .and_then(|cbs| cbs.tool_handlers.get(tool_name).cloned())
-            .or_else(|| {
-                context
-                    .callbacks
-                    .as_ref()
-                    .and_then(|cbs| cbs.tool_fallback.clone())
-            });
+            .or_else(|| context.callbacks.as_ref().and_then(|cbs| cbs.tool_fallback.clone()));
 
         let output = if let Some(ref cb) = cb {
             tracing::warn!(
                 "[ToolExecutor] 工具 '{tool_name}' 通过回调路径执行（ToolRegistry 未配置）"
             );
-            cb(tool_name.clone(), resolved_args.clone())
-                .await
-                .map_err(|e| {
-                    NodeError::exec_failed(
-                        error_code::TOOL_CALL_FAILED,
-                        format!("Tool call failed: {e}"),
-                    )
-                })?
+            cb(tool_name.clone(), resolved_args.clone()).await.map_err(|e| {
+                NodeError::exec_failed(
+                    error_code::TOOL_CALL_FAILED,
+                    format!("Tool call failed: {e}"),
+                )
+            })?
         } else {
             return Err(NodeError::exec_failed(
                 error_code::TOOL_CALL_FAILED,

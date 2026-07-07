@@ -9,10 +9,7 @@ pub async fn insight_list(
 ) -> Result<Vec<serde_json::Value>, String> {
     let is = app_state.insight_system.read().await;
     let insights = is.get_insights();
-    Ok(insights
-        .iter()
-        .filter_map(|i| serde_json::to_value(i).ok())
-        .collect())
+    Ok(insights.iter().filter_map(|i| serde_json::to_value(i).ok()).collect())
 }
 
 #[tauri::command]
@@ -29,10 +26,7 @@ pub async fn insight_get_by_category(
     };
     let is = app_state.insight_system.read().await;
     let insights = is.get_insights_by_category(cat);
-    Ok(insights
-        .iter()
-        .filter_map(|i| serde_json::to_value(i).ok())
-        .collect())
+    Ok(insights.iter().filter_map(|i| serde_json::to_value(i).ok()).collect())
 }
 
 #[tauri::command]

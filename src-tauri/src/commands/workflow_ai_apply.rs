@@ -95,10 +95,7 @@ fn apply_value_path(
     }
     if segments.len() == 1 {
         if root_value.is_object() {
-            root_value
-                .as_object_mut()
-                .unwrap()
-                .insert(segments[0].to_string(), value);
+            root_value.as_object_mut().unwrap().insert(segments[0].to_string(), value);
         } else {
             *root_value = serde_json::json!({segments[0].to_string(): value});
         }
@@ -113,16 +110,12 @@ fn apply_value_path(
             *cur = serde_json::json!({});
         }
         let obj = cur.as_object_mut().unwrap();
-        cur = obj
-            .entry((*seg).to_string())
-            .or_insert(serde_json::json!({}));
+        cur = obj.entry((*seg).to_string()).or_insert(serde_json::json!({}));
     }
     if !cur.is_object() {
         *cur = serde_json::json!({});
     }
-    cur.as_object_mut()
-        .unwrap()
-        .insert((*last).to_string(), value);
+    cur.as_object_mut().unwrap().insert((*last).to_string(), value);
     Ok(())
 }
 
@@ -207,9 +200,7 @@ pub async fn apply_update_input_mapping(
 
     // 1. 找到包含该节点的 template
     // 简化策略:遍历所有 template;生产环境应在 input_mapping 上加索引表(下轮优化)
-    let templates = db_repo::list_workflow_templates(db, None)
-        .await
-        .map_err(|e| e.to_string())?;
+    let templates = db_repo::list_workflow_templates(db, None).await.map_err(|e| e.to_string())?;
 
     let mut target: Option<WorkflowTemplateResponse> = None;
     for t in templates {
@@ -231,10 +222,8 @@ pub async fn apply_update_input_mapping(
     for node in template.nodes.iter_mut() {
         if let WorkflowNode::SubWorkflow(sw) = node {
             if sw.base.id == node_id {
-                sw.config.input_mapping = mappings
-                    .iter()
-                    .map(|m| (m.target.clone(), m.source.clone()))
-                    .collect();
+                sw.config.input_mapping =
+                    mappings.iter().map(|m| (m.target.clone(), m.source.clone())).collect();
                 found = true;
                 break;
             }
@@ -309,12 +298,10 @@ pub async fn apply_edit_asset_file(
     // 1. 路径安全:在 app_data_dir 内的相对路径
     let base = &state.app_data_dir;
     let target = base.join(&path);
-    let canonical_target = target
-        .canonicalize()
-        .map_err(|e| format!("path '{path}' not resolvable: {e}"))?;
-    let canonical_base = base
-        .canonicalize()
-        .map_err(|e| format!("base path not resolvable: {e}"))?;
+    let canonical_target =
+        target.canonicalize().map_err(|e| format!("path '{path}' not resolvable: {e}"))?;
+    let canonical_base =
+        base.canonicalize().map_err(|e| format!("base path not resolvable: {e}"))?;
     if !canonical_target.starts_with(&canonical_base) {
         return Err(format!("path '{path}' escapes app_data_dir (security violation)"));
     }
@@ -412,9 +399,7 @@ pub async fn apply_edit_asset_file(
     }
 
     // 7. 写回
-    let canonical_path = canonical_target
-        .to_str()
-        .ok_or_else(|| "non-UTF8 path".to_string())?;
+    let canonical_path = canonical_target.to_str().ok_or_else(|| "non-UTF8 path".to_string())?;
     let target_path = Path::new(canonical_path);
     std::fs::write(target_path, &new_content).map_err(|e| format!("write failed: {e}"))?;
 
@@ -616,10 +601,7 @@ fn action_label(action: &super::_workflow_ai_protocol::ChatAction) -> &'static s
 #[allow(clippy::large_enum_variant)]
 enum Snapshot {
     TemplateSnapshot(WorkflowTemplateResponse),
-    AssetFileSnapshot {
-        path: std::path::PathBuf,
-        before: String,
-    },
+    AssetFileSnapshot { path: std::path::PathBuf, before: String },
 }
 
 /// 应用单条 ChatAction,并返回 snapshot
@@ -681,10 +663,7 @@ async fn apply_single_action(
                 data.description.clone(),
             )
             .await?;
-            Ok(Snapshot::AssetFileSnapshot {
-                path: target,
-                before,
-            })
+            Ok(Snapshot::AssetFileSnapshot { path: target, before })
         },
         ChatAction::ApplyDiffWithValidation { .. } => {
             Err("nested apply_diff_with_validation is not allowed".to_string())
@@ -726,16 +705,10 @@ async fn run_validation_hook(
     match validation.r#type.as_str() {
         "backtest" => {
             // 真实 backtest 引擎留待下轮;此处做占位:从 params 读阈值,返回模拟结果
-            let min_sample = validation
-                .params
-                .get("min_sample_count")
-                .and_then(|v| v.as_u64())
-                .unwrap_or(10);
-            let max_regression = validation
-                .params
-                .get("max_regression_pct")
-                .and_then(|v| v.as_f64())
-                .unwrap_or(5.0);
+            let min_sample =
+                validation.params.get("min_sample_count").and_then(|v| v.as_u64()).unwrap_or(10);
+            let max_regression =
+                validation.params.get("max_regression_pct").and_then(|v| v.as_f64()).unwrap_or(5.0);
             // 模拟数据:样本数达标、回归 < 阈值 → pass
             let metrics = serde_json::json!({
                 "type": "backtest",

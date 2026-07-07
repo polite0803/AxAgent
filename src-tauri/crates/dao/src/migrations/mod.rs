@@ -153,10 +153,7 @@ async fn record_version(
     description: &str,
 ) -> Result<(), DbErr> {
     use std::time::{SystemTime, UNIX_EPOCH};
-    let now = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map(|d| d.as_secs() as i64)
-        .unwrap_or(0);
+    let now = SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_secs() as i64).unwrap_or(0);
 
     db.execute_unprepared(&format!(
         "INSERT OR IGNORE INTO axagent_schema_version (version, applied_at, description) \
@@ -176,12 +173,8 @@ mod tests {
 
     #[tokio::test]
     async fn migrations_apply_cleanly_on_fresh_db() {
-        let db = Database::connect("sqlite::memory:")
-            .await
-            .expect("in-memory db");
-        run_migrations(&db)
-            .await
-            .expect("v1-v3 should apply on fresh db");
+        let db = Database::connect("sqlite::memory:").await.expect("in-memory db");
+        run_migrations(&db).await.expect("v1-v3 should apply on fresh db");
 
         // 验证关键表存在
         for table in &[
@@ -224,14 +217,10 @@ mod tests {
 
     #[tokio::test]
     async fn migrations_are_idempotent() {
-        let db = Database::connect("sqlite::memory:")
-            .await
-            .expect("in-memory db");
+        let db = Database::connect("sqlite::memory:").await.expect("in-memory db");
         run_migrations(&db).await.unwrap();
         // 第二次跑：所有 migration 都在 `applied_max >= m.version` 路径被 skip
-        run_migrations(&db)
-            .await
-            .expect("second run should be a no-op, not an error");
+        run_migrations(&db).await.expect("second run should be a no-op, not an error");
 
         let max: i32 = read_max_version(&db).await.unwrap();
         assert_eq!(max, CURRENT_VERSION, "version should be {}", CURRENT_VERSION);
@@ -285,8 +274,6 @@ mod tests {
         let db = Database::connect("sqlite::memory:").await.unwrap();
         // 不走 run_migrations，直接跑 v001
         v001_initial::up(db.clone()).await.unwrap();
-        v001_initial::up(db)
-            .await
-            .expect("v001 must be re-runnable in isolation");
+        v001_initial::up(db).await.expect("v001 must be re-runnable in isolation");
     }
 }

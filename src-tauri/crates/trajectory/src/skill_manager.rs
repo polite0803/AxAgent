@@ -178,10 +178,7 @@ impl Default for SkillManager {
 #[allow(dead_code)]
 impl SkillManager {
     pub(crate) fn new() -> Self {
-        Self {
-            skills: HashMap::new(),
-            name_index: HashMap::new(),
-        }
+        Self { skills: HashMap::new(), name_index: HashMap::new() }
     }
 
     pub(crate) fn create_skill(&mut self, params: SkillCreationParams) -> Skill {
@@ -244,10 +241,7 @@ impl SkillManager {
     }
 
     pub(crate) fn get_skills_by_category(&self, category: &str) -> Vec<&Skill> {
-        self.skills
-            .values()
-            .filter(|s| s.category == category)
-            .collect()
+        self.skills.values().filter(|s| s.category == category).collect()
     }
 
     pub(crate) fn list_skills(&self, filter: Option<SkillFilter>) -> Vec<SkillSummary> {

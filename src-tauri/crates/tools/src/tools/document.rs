@@ -43,18 +43,9 @@ impl Tool for ExportWordTool {
     }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
-        let markdown_text = input
-            .get("markdown")
-            .and_then(|v| v.as_str())
-            .unwrap_or_default();
-        let output_path = input
-            .get("output_path")
-            .and_then(|v| v.as_str())
-            .unwrap_or_default();
-        let title = input
-            .get("title")
-            .and_then(|v| v.as_str())
-            .unwrap_or("Document");
+        let markdown_text = input.get("markdown").and_then(|v| v.as_str()).unwrap_or_default();
+        let output_path = input.get("output_path").and_then(|v| v.as_str()).unwrap_or_default();
+        let title = input.get("title").and_then(|v| v.as_str()).unwrap_or("Document");
 
         if markdown_text.is_empty() {
             return Ok(ToolResult::error("Error: markdown 是必需的"));
@@ -95,25 +86,18 @@ fn build_docx_from_md(markdown_text: &str, title: &str) -> docx_rs::Docx {
 
     // ── 页面设置 ──
     doc = doc.page_size(11906, 16838); // A4
-    doc = doc.page_margin(
-        PageMargin::new()
+    doc = doc.page_margin(PageMargin::new()
             .top(1440)    // 1 inch
             .bottom(1440)
             .left(1440)
-            .right(1440),
-    );
+            .right(1440));
 
     // ── 文档样式 ──
-    let default_font = RunFonts::new()
-        .ascii("Calibri")
-        .hi_ansi("Calibri")
-        .east_asia("微软雅黑")
-        .cs("Calibri");
+    let default_font =
+        RunFonts::new().ascii("Calibri").hi_ansi("Calibri").east_asia("微软雅黑").cs("Calibri");
 
-    let heading_font = RunFonts::new()
-        .ascii("Calibri Light")
-        .hi_ansi("Calibri Light")
-        .east_asia("微软雅黑");
+    let heading_font =
+        RunFonts::new().ascii("Calibri Light").hi_ansi("Calibri Light").east_asia("微软雅黑");
 
     let styles = Styles::new()
         .default_fonts(default_font)
@@ -228,12 +212,7 @@ fn build_docx_from_md(markdown_text: &str, title: &str) -> docx_rs::Docx {
         Paragraph::new()
             .add_run(Run::new().add_text(title).size(36).bold().color("1a1a1a"))
             .align(AlignmentType::Center)
-            .line_spacing(
-                LineSpacing::new()
-                    .after(240)
-                    .line_rule(LineSpacingType::Auto)
-                    .line(276),
-            ),
+            .line_spacing(LineSpacing::new().after(240).line_rule(LineSpacingType::Auto).line(276)),
     );
 
     // ── 解析器设置 ──
@@ -357,9 +336,7 @@ fn build_docx_from_md(markdown_text: &str, title: &str) -> docx_rs::Docx {
                     );
                     link_url = Some(dest_url.to_string());
                 },
-                Tag::Image {
-                    dest_url, title, ..
-                } => {
+                Tag::Image { dest_url, title, .. } => {
                     flush_text(
                         &mut para_runs,
                         &mut text_buf,
@@ -446,9 +423,7 @@ fn build_docx_from_md(markdown_text: &str, title: &str) -> docx_rs::Docx {
                     };
                     let text = std::mem::take(&mut heading_text);
                     doc = doc.add_paragraph(
-                        Paragraph::new()
-                            .add_run(Run::new().add_text(text))
-                            .style(heading_style),
+                        Paragraph::new().add_run(Run::new().add_text(text)).style(heading_style),
                     );
                     para_runs.clear();
                     in_heading = None;
@@ -489,13 +464,10 @@ fn build_docx_from_md(markdown_text: &str, title: &str) -> docx_rs::Docx {
                     let p = Paragraph::new();
                     let p = add_runs_to_para(p, std::mem::take(&mut para_runs), in_blockquote);
                     if in_blockquote {
-                        doc = doc.add_paragraph(
-                            p.indent(Some(284), None, None, None).line_spacing(
-                                LineSpacing::new()
-                                    .line_rule(LineSpacingType::Auto)
-                                    .line(276),
-                            ),
-                        );
+                        doc =
+                            doc.add_paragraph(p.indent(Some(284), None, None, None).line_spacing(
+                                LineSpacing::new().line_rule(LineSpacingType::Auto).line(276),
+                            ));
                     } else {
                         doc = doc.add_paragraph(p);
                     }
@@ -612,20 +584,14 @@ fn build_docx_from_md(markdown_text: &str, title: &str) -> docx_rs::Docx {
 
                         // 表格边框：外框粗线，内线细线
                         let table_borders = TableBorders::new()
-                            .set(
-                                TableBorder::new(TableBorderPosition::Top)
-                                    .size(8)
-                                    .color("1F3864"),
-                            )
+                            .set(TableBorder::new(TableBorderPosition::Top).size(8).color("1F3864"))
                             .set(
                                 TableBorder::new(TableBorderPosition::Bottom)
                                     .size(8)
                                     .color("1F3864"),
                             )
                             .set(
-                                TableBorder::new(TableBorderPosition::Left)
-                                    .size(4)
-                                    .color("D0D0D0"),
+                                TableBorder::new(TableBorderPosition::Left).size(4).color("D0D0D0"),
                             )
                             .set(
                                 TableBorder::new(TableBorderPosition::Right)
@@ -641,13 +607,11 @@ fn build_docx_from_md(markdown_text: &str, title: &str) -> docx_rs::Docx {
                                 .width(5000, WidthType::Pct),
                         );
                         doc = doc.add_paragraph(
-                            Paragraph::new()
-                                .add_run(Run::new().add_text(""))
-                                .line_spacing(
-                                    docx_rs::LineSpacing::new()
-                                        .line_rule(docx_rs::LineSpacingType::Auto)
-                                        .line(240),
-                                ),
+                            Paragraph::new().add_run(Run::new().add_text("")).line_spacing(
+                                docx_rs::LineSpacing::new()
+                                    .line_rule(docx_rs::LineSpacingType::Auto)
+                                    .line(240),
+                            ),
                         );
                     }
                     table_rows.clear();
@@ -670,13 +634,11 @@ fn build_docx_from_md(markdown_text: &str, title: &str) -> docx_rs::Docx {
                 TagEnd::TableCell => {},
                 TagEnd::List(_) => {
                     doc = doc.add_paragraph(
-                        Paragraph::new()
-                            .add_run(Run::new().add_text(""))
-                            .line_spacing(
-                                docx_rs::LineSpacing::new()
-                                    .line_rule(docx_rs::LineSpacingType::Auto)
-                                    .line(240),
-                            ),
+                        Paragraph::new().add_run(Run::new().add_text("")).line_spacing(
+                            docx_rs::LineSpacing::new()
+                                .line_rule(docx_rs::LineSpacingType::Auto)
+                                .line(240),
+                        ),
                     );
                 },
                 TagEnd::Item if !para_runs.is_empty() => {
@@ -879,9 +841,7 @@ fn embed_image(mut doc: docx_rs::Docx, alt: &str, path: &str) -> docx_rs::Docx {
         Ok(bytes) => {
             let pic = Pic::new(&bytes);
             doc = doc.add_paragraph(
-                Paragraph::new()
-                    .add_run(Run::new().add_image(pic))
-                    .align(AlignmentType::Center),
+                Paragraph::new().add_run(Run::new().add_image(pic)).align(AlignmentType::Center),
             );
             if !alt.is_empty() {
                 doc = doc.add_paragraph(
@@ -945,10 +905,7 @@ impl Tool for RenderMarkdownTool {
     }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
-        let markdown_text = input
-            .get("markdown")
-            .and_then(|v| v.as_str())
-            .unwrap_or_default();
+        let markdown_text = input.get("markdown").and_then(|v| v.as_str()).unwrap_or_default();
 
         if markdown_text.is_empty() {
             return Ok(ToolResult::error("Error: markdown 是必需的"));
@@ -1007,18 +964,9 @@ impl Tool for ExportPdfTool {
     }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
-        let markdown_text = input
-            .get("markdown")
-            .and_then(|v| v.as_str())
-            .unwrap_or_default();
-        let output_path = input
-            .get("output_path")
-            .and_then(|v| v.as_str())
-            .unwrap_or_default();
-        let title = input
-            .get("title")
-            .and_then(|v| v.as_str())
-            .unwrap_or("Document");
+        let markdown_text = input.get("markdown").and_then(|v| v.as_str()).unwrap_or_default();
+        let output_path = input.get("output_path").and_then(|v| v.as_str()).unwrap_or_default();
+        let title = input.get("title").and_then(|v| v.as_str()).unwrap_or("Document");
 
         if markdown_text.is_empty() {
             return Ok(ToolResult::error("Error: markdown 是必需的"));
@@ -1090,13 +1038,7 @@ fn build_pdf(doc: &markdown::MdDocument, title: &str, output_path: &str) -> Resu
     };
 
     // 封面
-    cur.push(Line {
-        text: title.to_string(),
-        font: "F2",
-        size: 24.0,
-        x: ml,
-        gap: lh * 2.0,
-    });
+    cur.push(Line { text: title.to_string(), font: "F2", size: 24.0, x: ml, gap: lh * 2.0 });
     cur.push(Line {
         text: format!("由 AxAgent 生成 | {}", chrono::Local::now().format("%Y-%m-%d")),
         font: "F1",
@@ -1114,13 +1056,7 @@ fn build_pdf(doc: &markdown::MdDocument, title: &str, output_path: &str) -> Resu
                     2 => ("F2", 13.0),
                     _ => ("F2", 11.0),
                 };
-                cur.push(Line {
-                    text: String::new(),
-                    font: "F1",
-                    size: 6.0,
-                    x: ml,
-                    gap: 6.0,
-                });
+                cur.push(Line { text: String::new(), font: "F1", size: 6.0, x: ml, gap: 6.0 });
                 cur.push(Line {
                     text: text.clone(),
                     font,
@@ -1142,21 +1078,9 @@ fn build_pdf(doc: &markdown::MdDocument, title: &str, output_path: &str) -> Resu
                     continue;
                 }
                 for line in wrap_lines(&text, tw, 9.0) {
-                    cur.push(Line {
-                        text: line,
-                        font: "F1",
-                        size: 9.0,
-                        x: ml,
-                        gap: lh,
-                    });
+                    cur.push(Line { text: line, font: "F1", size: 9.0, x: ml, gap: lh });
                 }
-                cur.push(Line {
-                    text: String::new(),
-                    font: "F1",
-                    size: 4.0,
-                    x: ml,
-                    gap: 4.0,
-                });
+                cur.push(Line { text: String::new(), font: "F1", size: 4.0, x: ml, gap: 4.0 });
             },
             markdown::MdBlock::CodeBlock { code, .. } => {
                 for line in code.lines() {
@@ -1168,13 +1092,7 @@ fn build_pdf(doc: &markdown::MdDocument, title: &str, output_path: &str) -> Resu
                         gap: lh * 0.85,
                     });
                 }
-                cur.push(Line {
-                    text: String::new(),
-                    font: "F1",
-                    size: 4.0,
-                    x: ml,
-                    gap: 4.0,
-                });
+                cur.push(Line { text: String::new(), font: "F1", size: 4.0, x: ml, gap: 4.0 });
             },
             markdown::MdBlock::Table { headers, rows } => {
                 let cols = headers.len().max(1) as f64;
@@ -1195,13 +1113,7 @@ fn build_pdf(doc: &markdown::MdDocument, title: &str, output_path: &str) -> Resu
                         gap: lh * 0.85,
                     });
                 }
-                cur.push(Line {
-                    text: String::new(),
-                    font: "F1",
-                    size: 4.0,
-                    x: ml,
-                    gap: 4.0,
-                });
+                cur.push(Line { text: String::new(), font: "F1", size: 4.0, x: ml, gap: 4.0 });
             },
             markdown::MdBlock::List { items, .. } => {
                 for item in items {
@@ -1214,13 +1126,7 @@ fn build_pdf(doc: &markdown::MdDocument, title: &str, output_path: &str) -> Resu
                         gap: lh,
                     });
                 }
-                cur.push(Line {
-                    text: String::new(),
-                    font: "F1",
-                    size: 4.0,
-                    x: ml,
-                    gap: 4.0,
-                });
+                cur.push(Line { text: String::new(), font: "F1", size: 4.0, x: ml, gap: 4.0 });
             },
             markdown::MdBlock::Blockquote { inlines } => {
                 let text = inlines_to_plain_text(inlines);
@@ -1231,36 +1137,12 @@ fn build_pdf(doc: &markdown::MdDocument, title: &str, output_path: &str) -> Resu
                     x: ml + 14.0,
                     gap: lh * 1.1,
                 });
-                cur.push(Line {
-                    text: String::new(),
-                    font: "F1",
-                    size: 4.0,
-                    x: ml,
-                    gap: 4.0,
-                });
+                cur.push(Line { text: String::new(), font: "F1", size: 4.0, x: ml, gap: 4.0 });
             },
             markdown::MdBlock::HorizontalRule => {
-                cur.push(Line {
-                    text: String::new(),
-                    font: "F1",
-                    size: 4.0,
-                    x: ml,
-                    gap: 4.0,
-                });
-                cur.push(Line {
-                    text: "─".repeat(60),
-                    font: "F1",
-                    size: 7.0,
-                    x: ml,
-                    gap: lh,
-                });
-                cur.push(Line {
-                    text: String::new(),
-                    font: "F1",
-                    size: 4.0,
-                    x: ml,
-                    gap: 4.0,
-                });
+                cur.push(Line { text: String::new(), font: "F1", size: 4.0, x: ml, gap: 4.0 });
+                cur.push(Line { text: "─".repeat(60), font: "F1", size: 7.0, x: ml, gap: lh });
+                cur.push(Line { text: String::new(), font: "F1", size: 4.0, x: ml, gap: 4.0 });
             },
             markdown::MdBlock::Image { alt, .. } => {
                 cur.push(Line {
@@ -1270,13 +1152,7 @@ fn build_pdf(doc: &markdown::MdDocument, title: &str, output_path: &str) -> Resu
                     x: ml,
                     gap: lh,
                 });
-                cur.push(Line {
-                    text: String::new(),
-                    font: "F1",
-                    size: 4.0,
-                    x: ml,
-                    gap: 4.0,
-                });
+                cur.push(Line { text: String::new(), font: "F1", size: 4.0, x: ml, gap: 4.0 });
             },
         }
     }
@@ -1295,11 +1171,8 @@ fn build_pdf(doc: &markdown::MdDocument, title: &str, output_path: &str) -> Resu
                 y = mt;
             }
             if !line.text.is_empty() {
-                let escaped = line
-                    .text
-                    .replace('\\', "\\\\")
-                    .replace('(', "\\(")
-                    .replace(')', "\\)");
+                let escaped =
+                    line.text.replace('\\', "\\\\").replace('(', "\\(").replace(')', "\\)");
                 buf.extend_from_slice(
                     format!(
                         "/{} {} Tf\n1 0 0 1 {} {} Tm\n({}) Tj\n",
@@ -1352,15 +1225,11 @@ fn build_pdf(doc: &markdown::MdDocument, title: &str, output_path: &str) -> Resu
         }
     }
     let cat_id = pdf.new_object_id();
-    pdf.objects.insert(
-        cat_id,
-        Object::Dictionary(dictionary! { "Type" => "Catalog", "Pages" => pt_id }),
-    );
+    pdf.objects
+        .insert(cat_id, Object::Dictionary(dictionary! { "Type" => "Catalog", "Pages" => pt_id }));
     pdf.trailer.set("Root", Object::Reference(cat_id));
 
-    pdf.save(output_path)
-        .map(|_| ())
-        .map_err(|e| format!("保存 PDF 失败: {}", e))
+    pdf.save(output_path).map(|_| ()).map_err(|e| format!("保存 PDF 失败: {}", e))
 }
 
 fn wrap_lines(text: &str, max_w_pt: f64, font_pt: f64) -> Vec<String> {
@@ -1428,18 +1297,9 @@ impl Tool for ExportXlsxTool {
     }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
-        let markdown_text = input
-            .get("markdown")
-            .and_then(|v| v.as_str())
-            .unwrap_or_default();
-        let output_path = input
-            .get("output_path")
-            .and_then(|v| v.as_str())
-            .unwrap_or_default();
-        let sheet_name = input
-            .get("sheet_name")
-            .and_then(|v| v.as_str())
-            .unwrap_or("Sheet1");
+        let markdown_text = input.get("markdown").and_then(|v| v.as_str()).unwrap_or_default();
+        let output_path = input.get("output_path").and_then(|v| v.as_str()).unwrap_or_default();
+        let sheet_name = input.get("sheet_name").and_then(|v| v.as_str()).unwrap_or("Sheet1");
 
         if markdown_text.is_empty() {
             return Ok(ToolResult::error("Error: markdown 是必需的"));
@@ -1515,10 +1375,7 @@ fn build_xlsx(markdown_text: &str, sheet_name: &str, output_path: &str) -> Resul
         } else {
             sanitize_sheet_name(&format!("{}_{}", sheet_name, ti + 1))
         };
-        let worksheet = workbook
-            .add_worksheet()
-            .set_name(&name)
-            .map_err(|e| e.to_string())?;
+        let worksheet = workbook.add_worksheet().set_name(&name).map_err(|e| e.to_string())?;
 
         let num_cols = headers.len().max(1) as u16;
         let num_rows = rows.len() + 1;
@@ -1553,9 +1410,7 @@ fn build_xlsx(markdown_text: &str, sheet_name: &str, output_path: &str) -> Resul
         }
 
         // 冻结表头行
-        worksheet
-            .set_freeze_panes(1, 0)
-            .map_err(|e| e.to_string())?;
+        worksheet.set_freeze_panes(1, 0).map_err(|e| e.to_string())?;
 
         // 自动筛选
         worksheet
@@ -1564,10 +1419,8 @@ fn build_xlsx(markdown_text: &str, sheet_name: &str, output_path: &str) -> Resul
 
         // 自动列宽（基于表头和数据内容）
         for ci in 0..num_cols {
-            let mut max_width: f64 = headers
-                .get(ci as usize)
-                .map(|h| char_width_estimate(h))
-                .unwrap_or(8.0);
+            let mut max_width: f64 =
+                headers.get(ci as usize).map(|h| char_width_estimate(h)).unwrap_or(8.0);
             for row in rows.iter() {
                 if let Some(cell) = row.get(ci as usize) {
                     let w = char_width_estimate(cell);
@@ -1578,9 +1431,7 @@ fn build_xlsx(markdown_text: &str, sheet_name: &str, output_path: &str) -> Resul
             }
             // 限制列宽范围：8~40 字符宽度
             let col_width = max_width.clamp(8.0, 40.0) + 2.0;
-            worksheet
-                .set_column_width(ci, col_width)
-                .map_err(|e| e.to_string())?;
+            worksheet.set_column_width(ci, col_width).map_err(|e| e.to_string())?;
         }
 
         // 表头行高
@@ -1647,18 +1498,9 @@ impl Tool for ExportPptxTool {
     }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
-        let markdown_text = input
-            .get("markdown")
-            .and_then(|v| v.as_str())
-            .unwrap_or_default();
-        let output_path = input
-            .get("output_path")
-            .and_then(|v| v.as_str())
-            .unwrap_or_default();
-        let title = input
-            .get("title")
-            .and_then(|v| v.as_str())
-            .unwrap_or("Presentation");
+        let markdown_text = input.get("markdown").and_then(|v| v.as_str()).unwrap_or_default();
+        let output_path = input.get("output_path").and_then(|v| v.as_str()).unwrap_or_default();
+        let title = input.get("title").and_then(|v| v.as_str()).unwrap_or("Presentation");
 
         if markdown_text.is_empty() {
             return Ok(ToolResult::error("Error: markdown 是必需的"));
@@ -1760,24 +1602,16 @@ fn build_pptx(markdown_text: &str, title: &str, output_path: &str) -> Result<usi
     }
     content_types.push_str("</Types>");
 
-    zip_writer
-        .start_file("[Content_Types].xml", zip_options)
-        .map_err(|e| e.to_string())?;
-    zip_writer
-        .write_all(content_types.as_bytes())
-        .map_err(|e| e.to_string())?;
+    zip_writer.start_file("[Content_Types].xml", zip_options).map_err(|e| e.to_string())?;
+    zip_writer.write_all(content_types.as_bytes()).map_err(|e| e.to_string())?;
 
     // _rels/.rels
     let rels = "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n\
                 <Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">\n\
                 <Relationship Id=\"rId1\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument\" Target=\"ppt/presentation.xml\"/>\n\
                 </Relationships>";
-    zip_writer
-        .start_file("_rels/.rels", zip_options)
-        .map_err(|e| e.to_string())?;
-    zip_writer
-        .write_all(rels.as_bytes())
-        .map_err(|e| e.to_string())?;
+    zip_writer.start_file("_rels/.rels", zip_options).map_err(|e| e.to_string())?;
+    zip_writer.write_all(rels.as_bytes()).map_err(|e| e.to_string())?;
 
     // ppt/_rels/presentation.xml.rels
     let mut pres_rels = String::from(
@@ -1795,9 +1629,7 @@ fn build_pptx(markdown_text: &str, title: &str, output_path: &str) -> Result<usi
     zip_writer
         .start_file("ppt/_rels/presentation.xml.rels", zip_options)
         .map_err(|e| e.to_string())?;
-    zip_writer
-        .write_all(pres_rels.as_bytes())
-        .map_err(|e| e.to_string())?;
+    zip_writer.write_all(pres_rels.as_bytes()).map_err(|e| e.to_string())?;
 
     // ppt/presentation.xml
     let mut pres_xml = String::from(
@@ -1811,12 +1643,8 @@ fn build_pptx(markdown_text: &str, title: &str, output_path: &str) -> Result<usi
     }
     pres_xml.push_str("</p:sldIdLst>\n<p:sldSz cx=\"9144000\" cy=\"6858000\"/>\n</p:presentation>");
 
-    zip_writer
-        .start_file("ppt/presentation.xml", zip_options)
-        .map_err(|e| e.to_string())?;
-    zip_writer
-        .write_all(pres_xml.as_bytes())
-        .map_err(|e| e.to_string())?;
+    zip_writer.start_file("ppt/presentation.xml", zip_options).map_err(|e| e.to_string())?;
+    zip_writer.write_all(pres_xml.as_bytes()).map_err(|e| e.to_string())?;
 
     // 每张幻灯片 — 专业布局
     for (si, (slide_title, bullets)) in slides.iter().enumerate() {
@@ -1892,12 +1720,8 @@ fn build_pptx(markdown_text: &str, title: &str, output_path: &str) -> Result<usi
         slide_xml.push_str("</p:spTree>\n</p:cSld>\n</p:sld>");
 
         let slide_path = format!("ppt/slides/slide{}.xml", slide_num);
-        zip_writer
-            .start_file(&slide_path, zip_options)
-            .map_err(|e| e.to_string())?;
-        zip_writer
-            .write_all(slide_xml.as_bytes())
-            .map_err(|e| e.to_string())?;
+        zip_writer.start_file(&slide_path, zip_options).map_err(|e| e.to_string())?;
+        zip_writer.write_all(slide_xml.as_bytes()).map_err(|e| e.to_string())?;
     }
 
     zip_writer.finish().map_err(|e| e.to_string())?;
@@ -1958,10 +1782,7 @@ impl Tool for ReadXlsxTool {
     }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
-        let file_path = input
-            .get("path")
-            .and_then(|v| v.as_str())
-            .unwrap_or_default();
+        let file_path = input.get("path").and_then(|v| v.as_str()).unwrap_or_default();
 
         if file_path.is_empty() {
             return Ok(ToolResult::error("Error: path 是必需的"));
@@ -2012,10 +1833,7 @@ impl Tool for ReadPptxTool {
     }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
-        let file_path = input
-            .get("path")
-            .and_then(|v| v.as_str())
-            .unwrap_or_default();
+        let file_path = input.get("path").and_then(|v| v.as_str()).unwrap_or_default();
 
         if file_path.is_empty() {
             return Ok(ToolResult::error("Error: path 是必需的"));

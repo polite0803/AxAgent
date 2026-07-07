@@ -85,9 +85,7 @@ impl Default for AgentRegistry {
 
 impl AgentRegistry {
     pub fn new() -> Self {
-        Self {
-            agents: HashMap::new(),
-        }
+        Self { agents: HashMap::new() }
     }
     pub fn register(&mut self, name: &str, agent: Box<dyn Agent>) {
         self.agents.insert(name.to_string(), agent);

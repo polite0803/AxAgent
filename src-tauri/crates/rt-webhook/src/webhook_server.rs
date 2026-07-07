@@ -116,15 +116,9 @@ async fn whatsapp_verify_handler(
     State(state): State<Arc<WebhookServerState>>,
     axum::extract::Query(query): axum::extract::Query<WhatsAppVerifyQuery>,
 ) -> Result<String, StatusCode> {
-    let config_guard = state
-        .platform_config
-        .as_ref()
-        .ok_or(StatusCode::SERVICE_UNAVAILABLE)?;
+    let config_guard = state.platform_config.as_ref().ok_or(StatusCode::SERVICE_UNAVAILABLE)?;
     let config = config_guard.read().await;
-    let handler = state
-        .whatsapp_handler
-        .as_ref()
-        .ok_or(StatusCode::SERVICE_UNAVAILABLE)?;
+    let handler = state.whatsapp_handler.as_ref().ok_or(StatusCode::SERVICE_UNAVAILABLE)?;
 
     match handler.verify_challenge(
         &config,
@@ -179,17 +173,11 @@ async fn wechat_verify_handler(
     State(state): State<Arc<WebhookServerState>>,
     axum::extract::Query(query): axum::extract::Query<WeChatVerifyQuery>,
 ) -> Result<String, StatusCode> {
-    let config_guard = state
-        .platform_config
-        .as_ref()
-        .ok_or(StatusCode::SERVICE_UNAVAILABLE)?;
+    let config_guard = state.platform_config.as_ref().ok_or(StatusCode::SERVICE_UNAVAILABLE)?;
     let config = config_guard.read().await;
 
     let token = config.wechat_token.as_deref().unwrap_or("");
-    let handler = state
-        .wechat_handler
-        .as_ref()
-        .ok_or(StatusCode::SERVICE_UNAVAILABLE)?;
+    let handler = state.wechat_handler.as_ref().ok_or(StatusCode::SERVICE_UNAVAILABLE)?;
 
     match handler.verify_server(
         token,
@@ -210,15 +198,9 @@ async fn wechat_message_handler(
     State(state): State<Arc<WebhookServerState>>,
     body: axum::body::Bytes,
 ) -> Result<String, StatusCode> {
-    let config_guard = state
-        .platform_config
-        .as_ref()
-        .ok_or(StatusCode::SERVICE_UNAVAILABLE)?;
+    let config_guard = state.platform_config.as_ref().ok_or(StatusCode::SERVICE_UNAVAILABLE)?;
     let config = config_guard.read().await;
-    let handler = state
-        .wechat_handler
-        .as_ref()
-        .ok_or(StatusCode::SERVICE_UNAVAILABLE)?;
+    let handler = state.wechat_handler.as_ref().ok_or(StatusCode::SERVICE_UNAVAILABLE)?;
 
     let xml_body = String::from_utf8_lossy(&body).to_string();
 
@@ -295,10 +277,6 @@ async fn delete_subscription_handler(
     State(state): State<Arc<WebhookServerState>>,
     axum::extract::Path(id): axum::extract::Path<String>,
 ) -> Result<StatusCode, StatusCode> {
-    state
-        .subscription_manager
-        .unsubscribe(&id)
-        .await
-        .map_err(|_| StatusCode::NOT_FOUND)?;
+    state.subscription_manager.unsubscribe(&id).await.map_err(|_| StatusCode::NOT_FOUND)?;
     Ok(StatusCode::NO_CONTENT)
 }

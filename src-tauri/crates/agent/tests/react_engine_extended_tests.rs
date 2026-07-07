@@ -31,9 +31,7 @@ async fn test_react_engine_with_config_and_goal_eval() {
     use axagent_agent::reasoning_state::ReActConfig;
     let config = ReActConfig::for_simple_task();
 
-    let mut engine = ReActEngine::new()
-        .with_config(config)
-        .with_goal_evaluation(2);
+    let mut engine = ReActEngine::new().with_config(config).with_goal_evaluation(2);
 
     let result = engine.run("Write a short greeting").await;
     // Should complete without panic

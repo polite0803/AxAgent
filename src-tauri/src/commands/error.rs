@@ -38,11 +38,7 @@ pub struct ErrorResponse {
 impl ErrorResponse {
     /// 创建新的错误响应
     pub fn new(code: impl Into<String>) -> Self {
-        Self {
-            code: code.into(),
-            detail: None,
-            params: None,
-        }
+        Self { code: code.into(), detail: None, params: None }
     }
 
     pub fn err(code: impl Into<String>) -> String {
@@ -151,9 +147,8 @@ pub fn sanitize_error(msg: String) -> String {
         if let Some(start) = msg.find(&prefix) {
             // 用占位符替换从路径开头到第一个冒号/空格/换行之间的内容
             let after_prefix = &msg[start + 3..];
-            let path_end = after_prefix
-                .find([':', ' ', '\n', ')'])
-                .unwrap_or(after_prefix.len().min(60));
+            let path_end =
+                after_prefix.find([':', ' ', '\n', ')']).unwrap_or(after_prefix.len().min(60));
             return format!("{}[REDACTED]{}", &msg[..start], &after_prefix[path_end..]);
         }
     }

@@ -100,9 +100,9 @@ impl McpClientTransport {
                 headers_helper: config.headers_helper.clone(),
                 auth: McpClientAuth::None,
             }),
-            McpServerConfig::Sdk(config) => Self::Sdk(McpSdkTransport {
-                name: config.name.clone(),
-            }),
+            McpServerConfig::Sdk(config) => {
+                Self::Sdk(McpSdkTransport { name: config.name.clone() })
+            },
             McpServerConfig::ManagedProxy(config) => Self::ManagedProxy(McpManagedProxyTransport {
                 url: config.url.clone(),
                 id: config.id.clone(),
@@ -114,8 +114,7 @@ impl McpClientTransport {
 impl McpStdioTransport {
     #[must_use]
     pub fn resolved_tool_call_timeout_ms(&self) -> u64 {
-        self.tool_call_timeout_ms
-            .unwrap_or(DEFAULT_MCP_TOOL_CALL_TIMEOUT_MS)
+        self.tool_call_timeout_ms.unwrap_or(DEFAULT_MCP_TOOL_CALL_TIMEOUT_MS)
     }
 }
 
@@ -218,9 +217,7 @@ mod tests {
         };
         let sdk = ScopedMcpServerConfig {
             scope: ConfigSource::Local,
-            config: McpServerConfig::Sdk(McpSdkServerConfig {
-                name: "sdk-server".to_string(),
-            }),
+            config: McpServerConfig::Sdk(McpSdkServerConfig { name: "sdk-server".to_string() }),
         };
 
         let ws_bootstrap = McpClientBootstrap::from_scoped_config("ws server", &ws);

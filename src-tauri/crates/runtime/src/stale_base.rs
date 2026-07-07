@@ -70,20 +70,14 @@ pub fn check_base_commit(cwd: &Path, expected_base: Option<&BaseCommitSource>) -
         return if head_sha.starts_with(expected_raw) || expected_raw.starts_with(&head_sha) {
             BaseCommitState::Matches
         } else {
-            BaseCommitState::Diverged {
-                expected: expected_raw.to_string(),
-                actual: head_sha,
-            }
+            BaseCommitState::Diverged { expected: expected_raw.to_string(), actual: head_sha }
         };
     };
 
     if head_sha == expected_sha {
         BaseCommitState::Matches
     } else {
-        BaseCommitState::Diverged {
-            expected: expected_sha,
-            actual: head_sha,
-        }
+        BaseCommitState::Diverged { expected: expected_sha, actual: head_sha }
     }
 }
 
@@ -108,11 +102,7 @@ fn resolve_head_sha(cwd: &Path) -> Option<String> {
 }
 
 fn resolve_rev(cwd: &Path, rev: &str) -> Option<String> {
-    let output = Command::new("git")
-        .args(["rev-parse", rev])
-        .current_dir(cwd)
-        .output()
-        .ok()?;
+    let output = Command::new("git").args(["rev-parse", rev]).current_dir(cwd).output().ok()?;
     if !output.status.success() {
         return None;
     }
@@ -171,10 +161,7 @@ mod tests {
             .current_dir(repo)
             .output()
             .expect("git rev-parse HEAD");
-        String::from_utf8(output.stdout)
-            .expect("valid utf8")
-            .trim()
-            .to_string()
+        String::from_utf8(output.stdout).expect("valid utf8").trim().to_string()
     }
 
     #[test]
@@ -207,13 +194,7 @@ mod tests {
         let state = check_base_commit(&root, Some(&source));
 
         // then
-        assert_eq!(
-            state,
-            BaseCommitState::Diverged {
-                expected: old_sha,
-                actual: new_sha,
-            }
-        );
+        assert_eq!(state, BaseCommitState::Diverged { expected: old_sha, actual: new_sha });
         fs::remove_dir_all(&root).expect("cleanup");
     }
 
@@ -408,13 +389,7 @@ mod tests {
         let state = check_base_commit(&root, source.as_ref());
 
         // then
-        assert_eq!(
-            state,
-            BaseCommitState::Diverged {
-                expected: old_sha,
-                actual: new_sha,
-            }
-        );
+        assert_eq!(state, BaseCommitState::Diverged { expected: old_sha, actual: new_sha });
         fs::remove_dir_all(&root).expect("cleanup");
     }
 }

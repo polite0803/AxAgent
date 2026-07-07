@@ -80,86 +80,30 @@ impl Theme {
                 .selection_background
                 .clone()
                 .unwrap_or_else(|| "#585b7066".to_string()),
-            black: self
-                .colors
-                .black
-                .clone()
-                .unwrap_or_else(|| "#45475a".to_string()),
-            red: self
-                .colors
-                .red
-                .clone()
-                .unwrap_or_else(|| "#f38ba8".to_string()),
-            green: self
-                .colors
-                .green
-                .clone()
-                .unwrap_or_else(|| "#a6e3a1".to_string()),
-            yellow: self
-                .colors
-                .yellow
-                .clone()
-                .unwrap_or_else(|| "#f9e2af".to_string()),
-            blue: self
-                .colors
-                .blue
-                .clone()
-                .unwrap_or_else(|| "#89b4fa".to_string()),
-            magenta: self
-                .colors
-                .magenta
-                .clone()
-                .unwrap_or_else(|| "#f5c2e7".to_string()),
-            cyan: self
-                .colors
-                .cyan
-                .clone()
-                .unwrap_or_else(|| "#94e2d5".to_string()),
-            white: self
-                .colors
-                .white
-                .clone()
-                .unwrap_or_else(|| "#bac2de".to_string()),
-            bright_black: self
-                .colors
-                .bright_black
-                .clone()
-                .unwrap_or_else(|| "#585b70".to_string()),
-            bright_red: self
-                .colors
-                .bright_red
-                .clone()
-                .unwrap_or_else(|| "#f38ba8".to_string()),
-            bright_green: self
-                .colors
-                .bright_green
-                .clone()
-                .unwrap_or_else(|| "#a6e3a1".to_string()),
+            black: self.colors.black.clone().unwrap_or_else(|| "#45475a".to_string()),
+            red: self.colors.red.clone().unwrap_or_else(|| "#f38ba8".to_string()),
+            green: self.colors.green.clone().unwrap_or_else(|| "#a6e3a1".to_string()),
+            yellow: self.colors.yellow.clone().unwrap_or_else(|| "#f9e2af".to_string()),
+            blue: self.colors.blue.clone().unwrap_or_else(|| "#89b4fa".to_string()),
+            magenta: self.colors.magenta.clone().unwrap_or_else(|| "#f5c2e7".to_string()),
+            cyan: self.colors.cyan.clone().unwrap_or_else(|| "#94e2d5".to_string()),
+            white: self.colors.white.clone().unwrap_or_else(|| "#bac2de".to_string()),
+            bright_black: self.colors.bright_black.clone().unwrap_or_else(|| "#585b70".to_string()),
+            bright_red: self.colors.bright_red.clone().unwrap_or_else(|| "#f38ba8".to_string()),
+            bright_green: self.colors.bright_green.clone().unwrap_or_else(|| "#a6e3a1".to_string()),
             bright_yellow: self
                 .colors
                 .bright_yellow
                 .clone()
                 .unwrap_or_else(|| "#f9e2af".to_string()),
-            bright_blue: self
-                .colors
-                .bright_blue
-                .clone()
-                .unwrap_or_else(|| "#89b4fa".to_string()),
+            bright_blue: self.colors.bright_blue.clone().unwrap_or_else(|| "#89b4fa".to_string()),
             bright_magenta: self
                 .colors
                 .bright_magenta
                 .clone()
                 .unwrap_or_else(|| "#f5c2e7".to_string()),
-            bright_cyan: self
-                .colors
-                .bright_cyan
-                .clone()
-                .unwrap_or_else(|| "#94e2d5".to_string()),
-            bright_white: self
-                .colors
-                .bright_white
-                .clone()
-                .unwrap_or_else(|| "#a6adc8".to_string()),
+            bright_cyan: self.colors.bright_cyan.clone().unwrap_or_else(|| "#94e2d5".to_string()),
+            bright_white: self.colors.bright_white.clone().unwrap_or_else(|| "#a6adc8".to_string()),
         }
     }
 }
@@ -206,10 +150,7 @@ pub struct ThemeEngine {
 
 impl ThemeEngine {
     pub fn new(skins_dir: PathBuf) -> Self {
-        let mut engine = Self {
-            themes_dir: skins_dir,
-            built_in_themes: HashMap::new(),
-        };
+        let mut engine = Self { themes_dir: skins_dir, built_in_themes: HashMap::new() };
         engine.load_built_in_themes();
         engine
     }
@@ -372,11 +313,8 @@ impl ThemeEngine {
     }
 
     pub fn list_themes(&self) -> Vec<ThemeMetadata> {
-        let mut themes: Vec<ThemeMetadata> = self
-            .built_in_themes
-            .values()
-            .map(|t| t.metadata.clone())
-            .collect();
+        let mut themes: Vec<ThemeMetadata> =
+            self.built_in_themes.values().map(|t| t.metadata.clone()).collect();
 
         if let Ok(entries) = fs::read_dir(&self.themes_dir) {
             for entry in entries.flatten() {

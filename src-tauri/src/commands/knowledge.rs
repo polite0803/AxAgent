@@ -124,10 +124,7 @@ pub async fn delete_knowledge_document(
 ) -> Result<(), String> {
     // Delete vector embeddings for this document
     let collection_id = format!("kb_{}", base_id);
-    let _ = state
-        .vector_store
-        .delete_document_embeddings(&collection_id, &id)
-        .await;
+    let _ = state.vector_store.delete_document_embeddings(&collection_id, &id).await;
 
     axagent_dao::repo::knowledge::delete_document(state.harness.db(), &id)
         .await
@@ -178,9 +175,7 @@ pub async fn rebuild_knowledge_index(
         .await
         .map_err(|e| e.to_string())?;
 
-    let embedding_provider = kb
-        .embedding_provider
-        .ok_or("No embedding provider configured")?;
+    let embedding_provider = kb.embedding_provider.ok_or("No embedding provider configured")?;
 
     let collection_id = format!("kb_{}", base_id);
 
@@ -215,9 +210,7 @@ pub async fn rebuild_knowledge_index(
 
     tokio::spawn(catch_unwind_logged("knowledge.batch_index_docs", async move {
         for doc in &docs {
-            let chunks = match vector_store
-                .list_document_chunks_raw(&collection_id, &doc.id)
-                .await
+            let chunks = match vector_store.list_document_chunks_raw(&collection_id, &doc.id).await
             {
                 Ok(c) => c,
                 Err(e) => {
@@ -253,10 +246,7 @@ pub async fn rebuild_knowledge_index(
                 continue;
             }
 
-            let texts: Vec<String> = chunks
-                .iter()
-                .map(|(_, _, content)| content.clone())
-                .collect();
+            let texts: Vec<String> = chunks.iter().map(|(_, _, content)| content.clone()).collect();
             let rowids: Vec<i64> = chunks.iter().map(|(rid, _, _)| *rid).collect();
 
             match crate::indexing::generate_embeddings(
@@ -273,9 +263,8 @@ pub async fn rebuild_knowledge_index(
                     let entries: Vec<(i64, Vec<f32>)> =
                         rowids.into_iter().zip(embed_response.embeddings).collect();
 
-                    if let Err(e) = vector_store
-                        .upsert_document_embeddings(&collection_id, entries)
-                        .await
+                    if let Err(e) =
+                        vector_store.upsert_document_embeddings(&collection_id, entries).await
                     {
                         let err_msg = e.to_string();
                         tracing::error!(
@@ -360,9 +349,8 @@ pub async fn list_knowledge_containers(
         containers.push(KnowledgeContainer::from_memory_ns(&ns));
     }
 
-    let wikis = axagent_dao::repo::wiki::list_wikis(state.harness.db())
-        .await
-        .map_err(|e| e.to_string())?;
+    let wikis =
+        axagent_dao::repo::wiki::list_wikis(state.harness.db()).await.map_err(|e| e.to_string())?;
     for wiki in wikis {
         containers.push(KnowledgeContainer::from_wiki(&wiki));
     }
@@ -479,11 +467,7 @@ pub async fn clear_knowledge_index(
 ) -> Result<(), String> {
     let collection_id = format!("kb_{}", base_id);
     // Only clear embeddings (vec0), keep chunk metadata (_meta) intact
-    state
-        .vector_store
-        .clear_embeddings(&collection_id)
-        .await
-        .map_err(|e| e.to_string())?;
+    state.vector_store.clear_embeddings(&collection_id).await.map_err(|e| e.to_string())?;
 
     // Reset all documents to "pending"
     let docs = axagent_dao::repo::knowledge::list_documents(state.harness.db(), &base_id)
@@ -523,11 +507,7 @@ pub async fn delete_knowledge_chunk(
     chunk_id: String,
 ) -> Result<(), String> {
     let collection_id = format!("kb_{}", base_id);
-    state
-        .vector_store
-        .delete_chunk(&collection_id, &chunk_id)
-        .await
-        .map_err(|e| e.to_string())
+    state.vector_store.delete_chunk(&collection_id, &chunk_id).await.map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -571,9 +551,7 @@ pub async fn update_knowledge_chunk(
                 .await?;
 
                 if let Some(embedding) = embed_response.embeddings.into_iter().next() {
-                    vector_store
-                        .update_chunk_embedding(&collection_id, &cid, &embedding)
-                        .await?;
+                    vector_store.update_chunk_embedding(&collection_id, &cid, &embedding).await?;
                 }
                 Ok::<_, axagent_harness::core_error::AxAgentError>(())
             }
@@ -609,9 +587,8 @@ pub async fn add_knowledge_chunk(
         .await
         .map_err(|e| e.to_string())?;
 
-    let embedding_provider = kb
-        .embedding_provider
-        .ok_or_else(|| "No embedding provider configured".to_string())?;
+    let embedding_provider =
+        kb.embedding_provider.ok_or_else(|| "No embedding provider configured".to_string())?;
 
     let collection_id = format!("kb_{}", base_id);
     let db = state.harness.db().clone();
@@ -632,15 +609,9 @@ pub async fn add_knowledge_chunk(
         )
         .await?;
 
-        let embedding = embed_response
-            .embeddings
-            .into_iter()
-            .next()
-            .ok_or_else(|| {
-                axagent_harness::core_error::AxAgentError::Provider(
-                    "No embedding returned".to_string(),
-                )
-            })?;
+        let embedding = embed_response.embeddings.into_iter().next().ok_or_else(|| {
+            axagent_harness::core_error::AxAgentError::Provider("No embedding returned".to_string())
+        })?;
 
         let chunk_id = vector_store
             .add_single_chunk(&collection_id, &doc_id, &chunk_content, &embedding)
@@ -675,15 +646,11 @@ pub async fn reindex_knowledge_chunk(
         .await
         .map_err(|e| e.to_string())?;
 
-    let embedding_provider = kb
-        .embedding_provider
-        .ok_or_else(|| "No embedding provider configured".to_string())?;
+    let embedding_provider =
+        kb.embedding_provider.ok_or_else(|| "No embedding provider configured".to_string())?;
 
     // Whitelist check: base_id must only contain alphanumeric chars and hyphens (for safe table name usage)
-    if !base_id
-        .chars()
-        .all(|c| c.is_ascii_alphanumeric() || c == '-')
-    {
+    if !base_id.chars().all(|c| c.is_ascii_alphanumeric() || c == '-') {
         return Err(format!(
             "Invalid base_id: '{base_id}' — only ASCII alphanumeric and hyphens allowed"
         ));
@@ -705,8 +672,7 @@ pub async fn reindex_knowledge_chunk(
             .await
             .map_err(|e| e.to_string())?
             .ok_or_else(|| format!("Chunk {} not found", chunk_id))?;
-        row.try_get::<String>("", "content")
-            .map_err(|e| e.to_string())?
+        row.try_get::<String>("", "content").map_err(|e| e.to_string())?
     };
 
     // Embed the single chunk
@@ -729,9 +695,7 @@ pub async fn reindex_knowledge_chunk(
             .await?;
 
             if let Some(embedding) = embed_response.embeddings.into_iter().next() {
-                vector_store
-                    .update_chunk_embedding(&collection_id, &cid, &embedding)
-                    .await?;
+                vector_store.update_chunk_embedding(&collection_id, &cid, &embedding).await?;
             }
             Ok::<_, axagent_harness::core_error::AxAgentError>(())
         }
@@ -766,9 +730,7 @@ pub async fn rebuild_knowledge_document(
         .await
         .map_err(|e| e.to_string())?;
 
-    let embedding_provider = kb
-        .embedding_provider
-        .ok_or("No embedding provider configured")?;
+    let embedding_provider = kb.embedding_provider.ok_or("No embedding provider configured")?;
 
     let collection_id = format!("kb_{}", base_id);
 
@@ -802,10 +764,7 @@ pub async fn rebuild_knowledge_document(
     let provider_registry = state.harness.provider_registry().clone();
 
     tokio::spawn(catch_unwind_logged("knowledge.rebuild_doc", async move {
-        let texts: Vec<String> = chunks
-            .iter()
-            .map(|(_, _, content)| content.clone())
-            .collect();
+        let texts: Vec<String> = chunks.iter().map(|(_, _, content)| content.clone()).collect();
         let rowids: Vec<i64> = chunks.iter().map(|(rid, _, _)| *rid).collect();
 
         let result = crate::indexing::generate_embeddings(
@@ -823,9 +782,8 @@ pub async fn rebuild_knowledge_document(
                 let entries: Vec<(i64, Vec<f32>)> =
                     rowids.into_iter().zip(embed_response.embeddings).collect();
 
-                if let Err(e) = vector_store
-                    .upsert_document_embeddings(&collection_id, entries)
-                    .await
+                if let Err(e) =
+                    vector_store.upsert_document_embeddings(&collection_id, entries).await
                 {
                     let err_msg = e.to_string();
                     tracing::error!("Failed to upsert embeddings for doc {}: {}", doc_id, err_msg);

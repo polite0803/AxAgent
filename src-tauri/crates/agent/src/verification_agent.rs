@@ -119,10 +119,7 @@ mod tests {
     fn test_verification_result_failed() {
         let result = VerificationResult {
             passed: false,
-            issues: vec![
-                "missing error handling".to_string(),
-                "unused import".to_string(),
-            ],
+            issues: vec!["missing error handling".to_string(), "unused import".to_string()],
             suggestions: Vec::new(),
             summary: "verification failed".to_string(),
         };
@@ -242,10 +239,7 @@ mod tests {
     fn test_verification_result_with_issues_and_suggestions() {
         let result = VerificationResult {
             passed: false,
-            issues: vec![
-                "missing null check".to_string(),
-                "potential overflow".to_string(),
-            ],
+            issues: vec!["missing null check".to_string(), "potential overflow".to_string()],
             suggestions: vec![
                 "add null check before dereference".to_string(),
                 "use checked arithmetic".to_string(),

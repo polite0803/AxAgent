@@ -159,11 +159,7 @@ impl RetryPolicy {
     fn is_retryable(&self, err: &str) -> bool {
         let lower = err.to_lowercase();
         // 检查状态码
-        if self
-            .retryable_status_codes
-            .iter()
-            .any(|code| lower.contains(&code.to_string()))
-        {
+        if self.retryable_status_codes.iter().any(|code| lower.contains(&code.to_string())) {
             return true;
         }
         // 检查常见重试关键词
@@ -229,10 +225,7 @@ mod tests {
 
     #[test]
     fn test_is_retryable_by_status() {
-        let policy = RetryPolicy {
-            retryable_status_codes: vec![429, 500],
-            ..Default::default()
-        };
+        let policy = RetryPolicy { retryable_status_codes: vec![429, 500], ..Default::default() };
         assert!(policy.is_retryable("status 429"));
         assert!(policy.is_retryable("HTTP 500 error"));
         assert!(!policy.is_retryable("HTTP 400 bad request"));
@@ -252,10 +245,7 @@ mod tests {
 
     #[test]
     fn test_handle_fallback_fail() {
-        let policy = RetryPolicy {
-            fallback: FallbackStrategy::Fail,
-            ..Default::default()
-        };
+        let policy = RetryPolicy { fallback: FallbackStrategy::Fail, ..Default::default() };
         let result: Result<String, String> = policy.handle_fallback("server error");
         assert!(result.is_err());
         assert!(result.unwrap_err().contains("重试 3/3 次后失败"));
@@ -263,10 +253,8 @@ mod tests {
 
     #[test]
     fn test_handle_fallback_escalate() {
-        let policy = RetryPolicy {
-            fallback: FallbackStrategy::EscalateToHuman,
-            ..Default::default()
-        };
+        let policy =
+            RetryPolicy { fallback: FallbackStrategy::EscalateToHuman, ..Default::default() };
         let result: Result<String, String> = policy.handle_fallback("complex case");
         assert!(result.is_err());
         assert!(result.unwrap_err().contains("需人工处理"));
@@ -275,9 +263,7 @@ mod tests {
     #[test]
     fn test_handle_fallback_switch_model() {
         let policy = RetryPolicy {
-            fallback: FallbackStrategy::SwitchModel {
-                secondary_model: "gpt-4".into(),
-            },
+            fallback: FallbackStrategy::SwitchModel { secondary_model: "gpt-4".into() },
             ..Default::default()
         };
         let result: Result<String, String> = policy.handle_fallback("model overloaded");

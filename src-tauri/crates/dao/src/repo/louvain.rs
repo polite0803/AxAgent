@@ -70,12 +70,8 @@ pub struct LouvainDetector {
 impl LouvainDetector {
     pub fn new(graph: LinkGraph) -> Self {
         let total_edges = graph.edge_count() as f64;
-        let node_to_community: HashMap<String, i32> = graph
-            .get_node_ids()
-            .iter()
-            .enumerate()
-            .map(|(i, id)| (id.clone(), i as i32))
-            .collect();
+        let node_to_community: HashMap<String, i32> =
+            graph.get_node_ids().iter().enumerate().map(|(i, id)| (id.clone(), i as i32)).collect();
 
         let community_to_nodes: HashMap<i32, Vec<String>> = graph
             .get_node_ids()
@@ -84,12 +80,7 @@ impl LouvainDetector {
             .map(|(i, id)| (i as i32, vec![id.clone()]))
             .collect();
 
-        Self {
-            graph,
-            node_to_community,
-            community_to_nodes,
-            total_edges,
-        }
+        Self { graph, node_to_community, community_to_nodes, total_edges }
     }
 
     pub fn detect(mut self) -> LouvainResult {
@@ -162,12 +153,8 @@ impl LouvainDetector {
     }
 
     fn add_to_community(&mut self, node_id: &str, community: i32) {
-        self.node_to_community
-            .insert(node_id.to_string(), community);
-        self.community_to_nodes
-            .entry(community)
-            .or_default()
-            .push(node_id.to_string());
+        self.node_to_community.insert(node_id.to_string(), community);
+        self.community_to_nodes.entry(community).or_default().push(node_id.to_string());
     }
 
     fn get_neighbor_communities(&self, node_id: &str) -> Vec<i32> {
@@ -217,17 +204,10 @@ impl LouvainDetector {
 
             community_sizes.insert(community, nodes.len());
 
-            let top_node = nodes
-                .iter()
-                .max_by_key(|n| self.graph.get_degree(n))
-                .cloned()
-                .unwrap_or_default();
+            let top_node =
+                nodes.iter().max_by_key(|n| self.graph.get_degree(n)).cloned().unwrap_or_default();
 
-            let top_title = self
-                .graph
-                .get_node_title(&top_node)
-                .unwrap_or(&top_node)
-                .to_string();
+            let top_title = self.graph.get_node_title(&top_node).unwrap_or(&top_node).to_string();
             top_nodes.insert(community, top_title);
 
             let cohesion = self.compute_cohesion(nodes);

@@ -17,17 +17,11 @@ pub struct NoveltyEstimator {
 
 impl NoveltyEstimator {
     pub fn new() -> Self {
-        Self {
-            state_embedding_counts: HashMap::new(),
-            total_states: 0,
-        }
+        Self { state_embedding_counts: HashMap::new(), total_states: 0 }
     }
 
     pub fn compute_novelty(&mut self, state_key: &str) -> f64 {
-        let count = self
-            .state_embedding_counts
-            .entry(state_key.to_string())
-            .or_insert(0);
+        let count = self.state_embedding_counts.entry(state_key.to_string()).or_insert(0);
         let novelty = 1.0 / (1.0 + *count as f64);
         *count += 1;
         self.total_states += 1;
@@ -54,10 +48,7 @@ pub struct ProgressTracker {
 
 impl ProgressTracker {
     pub fn new(window_size: usize) -> Self {
-        Self {
-            performance_history: Vec::new(),
-            window_size,
-        }
+        Self { performance_history: Vec::new(), window_size }
     }
 
     pub fn record(&mut self, score: f64) {
@@ -69,10 +60,7 @@ impl ProgressTracker {
             return 0.0;
         }
 
-        let recent_start = self
-            .performance_history
-            .len()
-            .saturating_sub(self.window_size);
+        let recent_start = self.performance_history.len().saturating_sub(self.window_size);
         let older_end = recent_start;
         let older_start = older_end.saturating_sub(self.window_size);
 
@@ -104,9 +92,7 @@ pub struct InfoGainCalculator {
 
 impl InfoGainCalculator {
     pub fn new() -> Self {
-        Self {
-            knowledge_state: HashMap::new(),
-        }
+        Self { knowledge_state: HashMap::new() }
     }
 
     pub fn compute_information_gain(
@@ -155,11 +141,7 @@ pub struct IntrinsicMotivationConfig {
 
 impl Default for IntrinsicMotivationConfig {
     fn default() -> Self {
-        Self {
-            novelty_weight: 0.4,
-            progress_weight: 0.35,
-            info_gain_weight: 0.25,
-        }
+        Self { novelty_weight: 0.4, progress_weight: 0.35, info_gain_weight: 0.25 }
     }
 }
 
@@ -218,19 +200,11 @@ impl IntrinsicMotivationEngine {
     fn extract_knowledge_state(trajectory: &Trajectory) -> HashMap<String, f64> {
         let mut state = HashMap::new();
 
-        let tool_count = trajectory
-            .steps
-            .iter()
-            .filter(|s| s.tool_calls.is_some())
-            .count() as f64;
+        let tool_count = trajectory.steps.iter().filter(|s| s.tool_calls.is_some()).count() as f64;
         state.insert("tool_diversity".to_string(), tool_count / 10.0);
 
         let reasoning_ratio = if !trajectory.steps.is_empty() {
-            trajectory
-                .steps
-                .iter()
-                .filter(|s| s.reasoning.is_some())
-                .count() as f64
+            trajectory.steps.iter().filter(|s| s.reasoning.is_some()).count() as f64
                 / trajectory.steps.len() as f64
         } else {
             0.0
@@ -244,10 +218,7 @@ impl IntrinsicMotivationEngine {
                 .steps
                 .iter()
                 .filter(|s| {
-                    s.tool_results
-                        .as_ref()
-                        .map(|r| r.iter().any(|tr| tr.is_error))
-                        .unwrap_or(false)
+                    s.tool_results.as_ref().map(|r| r.iter().any(|tr| tr.is_error)).unwrap_or(false)
                 })
                 .count() as f64
                 / trajectory.steps.len() as f64
@@ -399,9 +370,8 @@ mod tests {
     #[test]
     fn test_info_gain_identical_states() {
         let calc = InfoGainCalculator::new();
-        let state: HashMap<String, f64> = vec![("a".to_string(), 0.5), ("b".to_string(), 0.3)]
-            .into_iter()
-            .collect();
+        let state: HashMap<String, f64> =
+            vec![("a".to_string(), 0.5), ("b".to_string(), 0.3)].into_iter().collect();
         let gain = calc.compute_information_gain(&state, &state);
         assert!(gain.abs() < 1e-6);
     }

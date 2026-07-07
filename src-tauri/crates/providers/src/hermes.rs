@@ -102,8 +102,7 @@ impl HermesAdapter {
     ) -> Pin<Box<dyn Stream<Item = Result<ChatStreamChunk>> + Send>> {
         match mode {
             ApiMode::ChatCompletions => {
-                self.chat_completions
-                    .chat_stream(ctx, request, cancel_token)
+                self.chat_completions.chat_stream(ctx, request, cancel_token)
             },
             ApiMode::CodexResponses => self.codex_responses.chat_stream(ctx, request, cancel_token),
             ApiMode::AnthropicMessages => self.anthropic.chat_stream(ctx, request, cancel_token),
@@ -150,9 +149,7 @@ impl HermesAdapter {
     }
 
     fn base_url(ctx: &ProviderRequestContext) -> String {
-        ctx.base_url
-            .clone()
-            .unwrap_or_else(|| default_url::HERMES_HOST.to_string())
+        ctx.base_url.clone().unwrap_or_else(|| default_url::HERMES_HOST.to_string())
     }
 
     #[allow(clippy::result_large_err)]
@@ -186,10 +183,8 @@ impl HermesAdapter {
             req = req.body(body.to_string());
         }
 
-        let resp = req
-            .send()
-            .await
-            .map_err(|e| AxAgentError::Provider(format!("Request failed: {e}")))?;
+        let resp =
+            req.send().await.map_err(|e| AxAgentError::Provider(format!("Request failed: {e}")))?;
 
         if !resp.status().is_success() {
             let status = resp.status();
@@ -197,9 +192,7 @@ impl HermesAdapter {
             return Err(AxAgentError::Provider(format!("Hermes API error {status}: {text}")));
         }
 
-        resp.text()
-            .await
-            .map_err(|e| AxAgentError::Provider(format!("Read error: {e}")))
+        resp.text().await.map_err(|e| AxAgentError::Provider(format!("Read error: {e}")))
     }
 }
 

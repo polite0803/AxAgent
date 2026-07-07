@@ -80,10 +80,7 @@ impl TriggerManager {
         self.unregister_schedule(workflow_id).await;
         let handle =
             scheduler::spawn_schedule(self, workflow_id, cron, timezone, input_params).await?;
-        self.active_schedules
-            .write()
-            .await
-            .insert(workflow_id.to_string(), handle);
+        self.active_schedules.write().await.insert(workflow_id.to_string(), handle);
         Ok(())
     }
 
@@ -104,8 +101,7 @@ impl TriggerManager {
         method: &str,
         response_mode: &str,
     ) {
-        self.register_webhook_with_secret(workflow_id, path, method, response_mode, None)
-            .await;
+        self.register_webhook_with_secret(workflow_id, path, method, response_mode, None).await;
     }
 
     /// P0-6: 注册带 HMAC 共享密钥的 webhook 路由。
@@ -143,9 +139,7 @@ impl TriggerManager {
     /// 注册事件订阅。
     pub async fn register_event(&self, workflow_id: &str, event_type: &str) {
         let mut subs = self.event_subscriptions.write().await;
-        subs.entry(event_type.to_string())
-            .or_default()
-            .push(workflow_id.to_string());
+        subs.entry(event_type.to_string()).or_default().push(workflow_id.to_string());
     }
 
     /// 注销事件订阅。
@@ -194,10 +188,7 @@ impl TriggerManager {
     pub async fn start_webhook_server(&self, bind_addr: &str) -> Result<(), String> {
         let bind_addr = bind_addr.to_string();
         let routes = self.get_webhook_routes().await;
-        let engine = self
-            .get_engine()
-            .await
-            .ok_or_else(|| "引擎未就绪".to_string())?;
+        let engine = self.get_engine().await.ok_or_else(|| "引擎未就绪".to_string())?;
 
         webhook_server::serve(bind_addr, engine, routes).await
     }

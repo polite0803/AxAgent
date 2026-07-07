@@ -13,17 +13,9 @@ use serde_json::Value;
 /// MCP 传输方式
 #[derive(Debug, Clone)]
 pub enum McpTransportConfig {
-    Stdio {
-        command: String,
-        args: Vec<String>,
-        env: HashMap<String, String>,
-    },
-    Http {
-        endpoint: String,
-    },
-    Sse {
-        endpoint: String,
-    },
+    Stdio { command: String, args: Vec<String>, env: HashMap<String, String> },
+    Http { endpoint: String },
+    Sse { endpoint: String },
 }
 
 /// MCP 工具包装器 - 将远程 MCP 工具暴露为本地 Tool trait 实现

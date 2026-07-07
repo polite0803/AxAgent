@@ -49,10 +49,7 @@ pub struct LintChecker {
 
 impl LintChecker {
     pub fn new(db: Arc<DatabaseConnection>) -> Self {
-        Self {
-            db,
-            parser: MarkdownParser::new(),
-        }
+        Self { db, parser: MarkdownParser::new() }
     }
 
     pub async fn lint_note(&self, note_id: &str) -> Result<LintResult, String> {
@@ -72,11 +69,7 @@ impl LintChecker {
 
         let score = Self::calculate_score(&issues);
 
-        Ok(LintResult {
-            note_id: note_id.to_string(),
-            issues,
-            score,
-        })
+        Ok(LintResult { note_id: note_id.to_string(), issues, score })
     }
 
     pub async fn lint_vault(&self, wiki_id: &str) -> Result<Vec<LintResult>, String> {
@@ -115,17 +108,11 @@ impl LintChecker {
             }
 
             let score = Self::calculate_score(&issues);
-            results.push(LintResult {
-                note_id: note.id.clone(),
-                issues,
-                score,
-            });
+            results.push(LintResult { note_id: note.id.clone(), issues, score });
         }
 
-        self.check_index_completeness(wiki_id, &all_titles, &mut results)
-            .await?;
-        self.check_orphan_pages(&note_ids, &linked_titles, &mut results)
-            .await?;
+        self.check_index_completeness(wiki_id, &all_titles, &mut results).await?;
+        self.check_orphan_pages(&note_ids, &linked_titles, &mut results).await?;
 
         Ok(results)
     }
@@ -247,13 +234,7 @@ impl LintChecker {
     ) {
         let lower = note.content.to_lowercase();
 
-        for phrase in &[
-            "unknown",
-            "not sure",
-            "cannot determine",
-            "i don't know",
-            "todo",
-        ] {
+        for phrase in &["unknown", "not sure", "cannot determine", "i don't know", "todo"] {
             if lower.contains(phrase) {
                 issues.push(LintIssue {
                     severity: IssueSeverity::Warning,
@@ -286,9 +267,7 @@ impl LintChecker {
             .map_err(|e| e.to_string())?
             .ok_or_else(|| format!("Wiki {} not found", wiki_id))?;
 
-        let index_path = std::path::Path::new(&wiki.root_path)
-            .join("notes")
-            .join("index.md");
+        let index_path = std::path::Path::new(&wiki.root_path).join("notes").join("index.md");
 
         if !index_path.exists() {
             results.push(LintResult {
@@ -304,9 +283,8 @@ impl LintChecker {
             return Ok(());
         }
 
-        let index_content = tokio::fs::read_to_string(&index_path)
-            .await
-            .map_err(|e| e.to_string())?;
+        let index_content =
+            tokio::fs::read_to_string(&index_path).await.map_err(|e| e.to_string())?;
 
         let mut indexed_titles: HashSet<String> = HashSet::new();
         let wiki_link_re = regex::Regex::new(r"\[\[([^\]|]+)").ok();
@@ -425,9 +403,7 @@ impl LintChecker {
             let mut am = wp.into_active_model();
             am.quality_score = Set(Some(result.score));
             am.last_linted_at = Set(Some(chrono::Utc::now().timestamp()));
-            am.update(self.db.as_ref())
-                .await
-                .map_err(|e| e.to_string())?;
+            am.update(self.db.as_ref()).await.map_err(|e| e.to_string())?;
         }
 
         Ok(result.score)
@@ -499,11 +475,7 @@ impl LintChecker {
                 if result.issues.iter().any(|i| i.code == "missing-index") {
                     fixed.push("Index is missing. Run compile to regenerate it.".to_string());
                 }
-                if result
-                    .issues
-                    .iter()
-                    .any(|i| i.code == "missing-index-entry")
-                {
+                if result.issues.iter().any(|i| i.code == "missing-index-entry") {
                     fixed.push(
                         "Index has missing entries. Run compile to regenerate it.".to_string(),
                     );
@@ -643,20 +615,11 @@ mod tests {
     #[test]
     fn test_lint_issue_type_variants() {
         let types = [
-            LintIssueType::BrokenLink {
-                page: "p".to_string(),
-                link: "l".to_string(),
-            },
-            LintIssueType::MissingIndexEntry {
-                page: "p".to_string(),
-            },
-            LintIssueType::OrphanPage {
-                page: "p".to_string(),
-            },
+            LintIssueType::BrokenLink { page: "p".to_string(), link: "l".to_string() },
+            LintIssueType::MissingIndexEntry { page: "p".to_string() },
+            LintIssueType::OrphanPage { page: "p".to_string() },
             LintIssueType::StaleOverview,
-            LintIssueType::IncompleteSourceSummary {
-                source: "s".to_string(),
-            },
+            LintIssueType::IncompleteSourceSummary { source: "s".to_string() },
         ];
         assert_eq!(types.len(), 5);
     }
@@ -838,16 +801,10 @@ mod tests {
         );
         let mut issues = Vec::new();
         checker.check_content_quality(&note, &mut issues);
-        let low_quality_issues: Vec<&LintIssue> = issues
-            .iter()
-            .filter(|i| i.code == "low-quality-phrase")
-            .collect();
+        let low_quality_issues: Vec<&LintIssue> =
+            issues.iter().filter(|i| i.code == "low-quality-phrase").collect();
         assert!(!low_quality_issues.is_empty());
-        assert!(
-            low_quality_issues
-                .iter()
-                .all(|i| i.severity == IssueSeverity::Warning)
-        );
+        assert!(low_quality_issues.iter().all(|i| i.severity == IssueSeverity::Warning));
     }
 
     #[tokio::test]
@@ -892,10 +849,8 @@ mod tests {
 
     #[test]
     fn test_lint_issue_type_debug_format() {
-        let issue_type = LintIssueType::BrokenLink {
-            page: "test".to_string(),
-            link: "link".to_string(),
-        };
+        let issue_type =
+            LintIssueType::BrokenLink { page: "test".to_string(), link: "link".to_string() };
         let debug_str = format!("{:?}", issue_type);
         assert!(debug_str.contains("BrokenLink"));
     }
@@ -1024,18 +979,14 @@ mod tests {
         let mut issues = Vec::new();
         checker.check_content_quality(&note_unknown, &mut issues);
         assert!(
-            issues
-                .iter()
-                .any(|i| i.code == "low-quality-phrase" && i.message.contains("unknown"))
+            issues.iter().any(|i| i.code == "low-quality-phrase" && i.message.contains("unknown"))
         );
 
         let note_todo = make_note("T", "llm", "TODO: implement this feature later.");
         let mut issues2 = Vec::new();
         checker.check_content_quality(&note_todo, &mut issues2);
         assert!(
-            issues2
-                .iter()
-                .any(|i| i.code == "low-quality-phrase" && i.message.contains("todo"))
+            issues2.iter().any(|i| i.code == "low-quality-phrase" && i.message.contains("todo"))
         );
     }
 

@@ -17,10 +17,7 @@ pub struct CostMetrics {
 
 impl CostMetrics {
     pub fn new(model: impl Into<String>) -> Self {
-        Self {
-            model: model.into(),
-            ..Default::default()
-        }
+        Self { model: model.into(), ..Default::default() }
     }
 
     pub fn add_tokens(&mut self, input: u64, output: u64) {
@@ -234,10 +231,8 @@ impl WorkflowMetrics {
         }
         self.total_duration_ms += duration_ms;
         if self.execution_count > 0 {
-            self.avg_duration_ms = self
-                .total_duration_ms
-                .checked_div(self.execution_count)
-                .unwrap_or(0);
+            self.avg_duration_ms =
+                self.total_duration_ms.checked_div(self.execution_count).unwrap_or(0);
         }
     }
 }

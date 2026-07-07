@@ -208,10 +208,7 @@ pub struct WebhookTriggerConfig {
     pub method: String,
     pub auth_type: String,
     /// 响应模式: "sync" 等待工作流完成后再返回, "async" 立即返回 202
-    #[serde(
-        default = "default_webhook_response_mode",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(default = "default_webhook_response_mode", skip_serializing_if = "Option::is_none")]
     pub response_mode: Option<String>,
 }
 
@@ -914,11 +911,7 @@ fn deserialize_tool_defs<'de, D: serde::Deserializer<'de>>(
             while let Some(elem) = seq.next_element::<serde_json::Value>()? {
                 match elem {
                     serde_json::Value::String(name) => {
-                        tools.push(ToolDef {
-                            name,
-                            description: None,
-                            parameters: None,
-                        });
+                        tools.push(ToolDef { name, description: None, parameters: None });
                     },
                     val => {
                         let tool: ToolDef =

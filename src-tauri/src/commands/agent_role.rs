@@ -46,10 +46,7 @@ pub async fn import_agent_roles(
         let entry = entry.map_err(|e| e.to_string())?;
         let file_path = entry.path();
 
-        if file_path
-            .extension()
-            .is_none_or(|e| e != "yaml" && e != "yml")
-        {
+        if file_path.extension().is_none_or(|e| e != "yaml" && e != "yml") {
             continue;
         }
 
@@ -85,11 +82,7 @@ pub async fn import_agent_roles(
         }
     }
 
-    Ok(ImportAgentRolesResult {
-        imported,
-        skipped,
-        errors,
-    })
+    Ok(ImportAgentRolesResult { imported, skipped, errors })
 }
 
 /// 快速更新 AgentRole 的 system_prompt
@@ -108,9 +101,7 @@ pub async fn update_agent_role(
     let mut am: axagent_entities::agent_roles::ActiveModel = row.into();
     am.system_prompt = Set(system_prompt);
     am.updated_at = Set(axagent_kit::utils::now_ts());
-    am.update(app_state.harness.db())
-        .await
-        .map_err(|e| e.to_string())?;
+    am.update(app_state.harness.db()).await.map_err(|e| e.to_string())?;
     Ok(())
 }
 
@@ -126,9 +117,7 @@ pub async fn delete_agent_role(app_state: State<'_, AppState>, id: String) -> Re
         return Err("内置角色不可删除".to_string());
     }
 
-    agent_role::delete_agent_role(app_state.harness.db(), &id)
-        .await
-        .map_err(|e| e.to_string())
+    agent_role::delete_agent_role(app_state.harness.db(), &id).await.map_err(|e| e.to_string())
 }
 
 /// 解析 Open Agent Spec YAML 文件，无 agent block 则返回 None
@@ -136,9 +125,7 @@ fn parse_open_agent_spec(yaml_str: &str) -> Result<AgentRoleDef, String> {
     let doc: serde_yaml::Value =
         serde_yaml::from_str(yaml_str).map_err(|e| format!("YAML parse error: {}", e))?;
 
-    let agent = doc
-        .get("agent")
-        .ok_or_else(|| "Missing 'agent' block".to_string())?;
+    let agent = doc.get("agent").ok_or_else(|| "Missing 'agent' block".to_string())?;
     let name = agent
         .get("name")
         .and_then(|v| v.as_str())
@@ -169,15 +156,9 @@ fn parse_open_agent_spec(yaml_str: &str) -> Result<AgentRoleDef, String> {
         })
         .unwrap_or_default();
 
-    let max_concurrent = doc
-        .get("max_concurrent")
-        .and_then(|v| v.as_u64())
-        .unwrap_or(3) as usize;
+    let max_concurrent = doc.get("max_concurrent").and_then(|v| v.as_u64()).unwrap_or(3) as usize;
 
-    let timeout_seconds = doc
-        .get("timeout_seconds")
-        .and_then(|v| v.as_u64())
-        .unwrap_or(600);
+    let timeout_seconds = doc.get("timeout_seconds").and_then(|v| v.as_u64()).unwrap_or(600);
 
     let description = agent
         .get("description")

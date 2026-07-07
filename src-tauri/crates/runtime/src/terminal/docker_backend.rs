@@ -141,13 +141,10 @@ impl TerminalBackend for DockerBackend {
             "Env": config.env.iter().map(|(k, v)| format!("{}={}", k, v)).collect::<Vec<_>>(),
         });
 
-        let resp = self
-            .docker_api_request("POST", "/containers/create", Some(create_body))
-            .await?;
+        let resp = self.docker_api_request("POST", "/containers/create", Some(create_body)).await?;
 
-        let container_id = resp["Id"]
-            .as_str()
-            .ok_or_else(|| anyhow::anyhow!("No container ID in response"))?;
+        let container_id =
+            resp["Id"].as_str().ok_or_else(|| anyhow::anyhow!("No container ID in response"))?;
 
         self.docker_api_request("POST", &format!("/containers/{}/start", container_id), None)
             .await?;
@@ -174,9 +171,7 @@ impl TerminalBackend for DockerBackend {
             .docker_api_request("POST", &format!("/containers/{}/exec", container_id), Some(body))
             .await?;
 
-        let exec_id = exec_resp["Id"]
-            .as_str()
-            .ok_or_else(|| anyhow::anyhow!("No exec ID"))?;
+        let exec_id = exec_resp["Id"].as_str().ok_or_else(|| anyhow::anyhow!("No exec ID"))?;
 
         self.docker_api_request(
             "POST",

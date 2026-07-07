@@ -41,10 +41,7 @@ pub fn build_provider_request_context(
         base_url: Some(resolve_base_url_for_type(&prov.api_host, &prov.provider_type)),
         api_path: prov.api_path.clone(),
         proxy_config: prov.proxy_config.clone(),
-        custom_headers: prov
-            .custom_headers
-            .as_ref()
-            .and_then(|s| serde_json::from_str(s).ok()),
+        custom_headers: prov.custom_headers.as_ref().and_then(|s| serde_json::from_str(s).ok()),
         api_mode: None,
         conversation: None,
         previous_response_id: None,

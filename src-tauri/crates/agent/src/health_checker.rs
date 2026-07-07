@@ -36,12 +36,7 @@ pub struct HealthMetric {
 
 impl HealthMetric {
     pub fn new(name: impl Into<String>, value: f64, is_healthy: bool) -> Self {
-        Self {
-            name: name.into(),
-            value,
-            timestamp: Instant::now(),
-            is_healthy,
-        }
+        Self { name: name.into(), value, timestamp: Instant::now(), is_healthy }
     }
 }
 
@@ -235,13 +230,8 @@ impl HealthChecker {
             issues.join("; ")
         };
 
-        let result = HealthCheckResult {
-            status,
-            message,
-            metrics,
-            timestamp: Instant::now(),
-            duration_ms,
-        };
+        let result =
+            HealthCheckResult { status, message, metrics, timestamp: Instant::now(), duration_ms };
 
         if let Err(e) = self.event_bus.emit(UnifiedAgentEvent::new(
             "health_checker",
@@ -280,20 +270,16 @@ impl HealthChecker {
 
     async fn calculate_throughput(&self) -> f64 {
         let ops = self.recent_operations.read().await;
-        let recent_window = ops
-            .iter()
-            .filter(|op| op.timestamp.elapsed() < Duration::from_secs(60))
-            .count();
+        let recent_window =
+            ops.iter().filter(|op| op.timestamp.elapsed() < Duration::from_secs(60)).count();
 
         recent_window as f64 / 60.0
     }
 
     async fn calculate_error_rate(&self) -> f64 {
         let ops = self.recent_operations.read().await;
-        let recent_ops: Vec<_> = ops
-            .iter()
-            .filter(|op| op.timestamp.elapsed() < Duration::from_secs(300))
-            .collect();
+        let recent_ops: Vec<_> =
+            ops.iter().filter(|op| op.timestamp.elapsed() < Duration::from_secs(300)).collect();
 
         if recent_ops.is_empty() {
             return 0.0;
@@ -305,10 +291,8 @@ impl HealthChecker {
 
     async fn calculate_avg_latency(&self) -> f64 {
         let ops = self.recent_operations.read().await;
-        let recent_ops: Vec<_> = ops
-            .iter()
-            .filter(|op| op.timestamp.elapsed() < Duration::from_secs(60))
-            .collect();
+        let recent_ops: Vec<_> =
+            ops.iter().filter(|op| op.timestamp.elapsed() < Duration::from_secs(60)).collect();
 
         if recent_ops.is_empty() {
             return 0.0;
@@ -336,9 +320,8 @@ impl HealthChecker {
             std::collections::HashMap::new();
 
         for op in ops.iter() {
-            let stats = stats_map
-                .entry(op.operation_type.clone())
-                .or_insert_with(|| OperationStats {
+            let stats =
+                stats_map.entry(op.operation_type.clone()).or_insert_with(|| OperationStats {
                     count: 0,
                     success_count: 0,
                     failure_count: 0,
@@ -376,10 +359,7 @@ pub struct HealthCheckRunner {
 
 impl HealthCheckRunner {
     pub fn new(checker: Arc<HealthChecker>, interval_secs: u64) -> Self {
-        Self {
-            checker,
-            interval_secs,
-        }
+        Self { checker, interval_secs }
     }
 
     pub async fn run<F>(self, on_unhealthy: F)

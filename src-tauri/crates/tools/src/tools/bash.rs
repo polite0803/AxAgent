@@ -77,10 +77,7 @@ impl Tool for BashTool {
             return Err(ToolError::invalid_input_for("Bash", "命令过长（最大 10000 字符）"));
         }
 
-        let timeout = input
-            .get("timeout")
-            .and_then(|v| v.as_u64())
-            .unwrap_or(DEFAULT_TIMEOUT_SECS);
+        let timeout = input.get("timeout").and_then(|v| v.as_u64()).unwrap_or(DEFAULT_TIMEOUT_SECS);
         if timeout > MAX_TIMEOUT_SECS {
             return Err(ToolError::invalid_input_for(
                 "Bash",
@@ -166,14 +163,10 @@ impl Tool for BashTool {
                 SecurityResult::Safe(_) => {},
             }
         }
-        let timeout_secs = input
-            .get("timeout")
-            .and_then(|v| v.as_u64())
-            .unwrap_or(DEFAULT_TIMEOUT_SECS);
-        let working_dir = input
-            .get("working_dir")
-            .and_then(|v| v.as_str())
-            .unwrap_or(&ctx.working_dir);
+        let timeout_secs =
+            input.get("timeout").and_then(|v| v.as_u64()).unwrap_or(DEFAULT_TIMEOUT_SECS);
+        let working_dir =
+            input.get("working_dir").and_then(|v| v.as_str()).unwrap_or(&ctx.working_dir);
 
         // heredoc / 注入检测
         if cmd.contains("<<") || cmd.contains("EOF") || cmd.contains("EOT") {
@@ -188,10 +181,7 @@ impl Tool for BashTool {
 
         // 自动后台: 超过 60s 的命令建议后台
         if timeout_secs > 60
-            && !input
-                .get("run_in_background")
-                .and_then(|v| v.as_bool())
-                .unwrap_or(false)
+            && !input.get("run_in_background").and_then(|v| v.as_bool()).unwrap_or(false)
         {
             // 命令超过 60 秒，建议使用 Monitor 或 run_in_background
         }

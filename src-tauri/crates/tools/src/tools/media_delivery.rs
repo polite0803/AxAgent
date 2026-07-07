@@ -182,10 +182,7 @@ impl Tool for MediaDetectTool {
     }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
-        let text = input
-            .get("text")
-            .and_then(|v| v.as_str())
-            .unwrap_or_default();
+        let text = input.get("text").and_then(|v| v.as_str()).unwrap_or_default();
         if text.is_empty() {
             return Ok(ToolResult::error("Error: text 是必需的"));
         }
@@ -264,18 +261,13 @@ impl Tool for MediaDeliverTool {
     }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
-        let text = input
-            .get("text")
-            .and_then(|v| v.as_str())
-            .unwrap_or_default();
+        let text = input.get("text").and_then(|v| v.as_str()).unwrap_or_default();
         if text.is_empty() {
             return Ok(ToolResult::error("Error: text 是必需的"));
         }
         let audio_as_voice = text.contains("[[audio_as_voice]]");
         let as_document = text.contains("[[as_document]]");
-        let cleaned = text
-            .replace("[[audio_as_voice]]", "")
-            .replace("[[as_document]]", "");
+        let cleaned = text.replace("[[audio_as_voice]]", "").replace("[[as_document]]", "");
         let cleaned = cleaned.trim().to_string();
         let media_list = scan_media_from_text(text);
         let mut attachments = Vec::new();
@@ -361,10 +353,7 @@ impl Tool for MediaPreviewTool {
     }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
-        let path_str = input
-            .get("path")
-            .and_then(|v| v.as_str())
-            .unwrap_or_default();
+        let path_str = input.get("path").and_then(|v| v.as_str()).unwrap_or_default();
         if path_str.is_empty() {
             return Ok(ToolResult::error("Error: path 是必需的"));
         }
@@ -380,11 +369,7 @@ impl Tool for MediaPreviewTool {
             return Ok(ToolResult::error(format!("不是文件: {}", path.display())));
         }
         let file_size = metadata.len();
-        let ext = path
-            .extension()
-            .and_then(|e| e.to_str())
-            .unwrap_or("")
-            .to_string();
+        let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("").to_string();
         let media_type = match detect_media_type(&ext) {
             Some(mt) => mt,
             None => return Ok(ToolResult::error(format!("无法识别的媒体类型: .{}", ext))),
@@ -511,15 +496,9 @@ fn estimate_audio_duration(data: &[u8], ext: &str, file_size: u64) -> Option<f64
 
 fn estimate_mp3_bitrate(data: &[u8]) -> u32 {
     let bitrate_table_v1 = [
-        [
-            0, 32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320, 0,
-        ],
-        [
-            0, 32, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320, 384, 0,
-        ],
-        [
-            0, 32, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320, 384, 0,
-        ],
+        [0, 32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320, 0],
+        [0, 32, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320, 384, 0],
+        [0, 32, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320, 384, 0],
     ];
     for i in 0..data.len().saturating_sub(4) {
         if data[i] == 0xFF && (data[i + 1] & 0xE0) == 0xE0 {

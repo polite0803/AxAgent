@@ -20,9 +20,7 @@ impl Default for NodeExecutor {
 
 impl NodeExecutor {
     pub fn new() -> Self {
-        Self {
-            dispatcher: NodeDispatcher::new(),
-        }
+        Self { dispatcher: NodeDispatcher::new() }
     }
 
     pub async fn execute_node(

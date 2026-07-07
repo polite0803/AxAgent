@@ -35,9 +35,7 @@ impl OpenAIAdapter {
     }
 
     fn base_url(ctx: &ProviderRequestContext) -> String {
-        ctx.base_url
-            .clone()
-            .unwrap_or_else(|| DEFAULT_BASE_URL.to_string())
+        ctx.base_url.clone().unwrap_or_else(|| DEFAULT_BASE_URL.to_string())
     }
 
     fn chat_url(ctx: &ProviderRequestContext) -> String {
@@ -164,10 +162,7 @@ fn extract_thinking(
     if reasoning.is_some() {
         return reasoning.clone();
     }
-    reasoning_details
-        .as_ref()
-        .and_then(|details| details.first())
-        .and_then(|d| d.text.clone())
+    reasoning_details.as_ref().and_then(|details| details.first()).and_then(|d| d.text.clone())
 }
 
 fn deserialize_optional_text<'de, D>(
@@ -203,15 +198,7 @@ fn extract_text_from_json(value: &serde_json::Value) -> Option<String> {
                 }
             },
             serde_json::Value::Object(map) => {
-                for key in [
-                    "text",
-                    "content",
-                    "delta",
-                    "parts",
-                    "part",
-                    "value",
-                    "output_text",
-                ] {
+                for key in ["text", "content", "delta", "parts", "part", "value", "output_text"] {
                     if let Some(child) = map.get(key) {
                         let before = out.len();
                         collect_text(child, out);
@@ -257,12 +244,7 @@ fn extract_gemini_compat_chunk(data: &str) -> Option<ChatStreamChunk> {
         .and_then(|candidates| candidates.first())
         .and_then(|candidate| candidate.content.as_ref())
         .map(|content| {
-            content
-                .parts
-                .iter()
-                .filter_map(|part| part.text.as_ref())
-                .cloned()
-                .collect::<String>()
+            content.parts.iter().filter_map(|part| part.text.as_ref()).cloned().collect::<String>()
         })
         .filter(|text| !text.is_empty());
 
@@ -351,11 +333,7 @@ impl OpenAIUsage {
     /// 归一化缓存命中 token 数: 优先取 OpenAI 嵌套 cached_tokens,
     /// 回退到 DeepSeek 顶层 prompt_cache_hit_tokens, 都没有则 None.
     fn cache_read_tokens(&self) -> Option<u32> {
-        if let Some(cached) = self
-            .prompt_tokens_details
-            .as_ref()
-            .and_then(|d| d.cached_tokens)
-        {
+        if let Some(cached) = self.prompt_tokens_details.as_ref().and_then(|d| d.cached_tokens) {
             return Some(cached);
         }
         if let Some(cached) = self.cached_tokens {
@@ -587,10 +565,7 @@ fn convert_messages(messages: &[ChatMessage]) -> Vec<OpenAIMessage> {
 }
 
 fn build_request(request: &ChatRequest, messages: &[ChatMessage], stream: bool) -> OpenAIRequest {
-    let thinking_style = request
-        .thinking_param_style
-        .as_deref()
-        .unwrap_or("reasoning_effort");
+    let thinking_style = request.thinking_param_style.as_deref().unwrap_or("reasoning_effort");
 
     // "none" style: never send any thinking-related params
     // "enable_thinking" style (SiliconFlow): enable_thinking + thinking_budget fields
@@ -647,9 +622,7 @@ fn build_request(request: &ChatRequest, messages: &[ChatMessage], stream: bool) 
         max_completion_tokens,
         stream,
         stream_options: if stream {
-            Some(StreamOptions {
-                include_usage: true,
-            })
+            Some(StreamOptions { include_usage: true })
         } else {
             None
         },
@@ -678,9 +651,7 @@ mod tests {
                 ContentPart {
                     r#type: "image_url".to_string(),
                     text: None,
-                    image_url: Some(ImageUrl {
-                        url: "data:image/png;base64,YWJj".to_string(),
-                    }),
+                    image_url: Some(ImageUrl { url: "data:image/png;base64,YWJj".to_string() }),
                 },
             ]),
             tool_calls: None,
@@ -728,10 +699,8 @@ impl ProviderAdapter for OpenAIAdapter {
             return Err(AxAgentError::Provider(format!("OpenAI API error {status}: {text}")));
         }
 
-        let oai: OpenAIResponse = resp
-            .json()
-            .await
-            .map_err(|e| AxAgentError::Provider(format!("Parse error: {e}")))?;
+        let oai: OpenAIResponse =
+            resp.json().await.map_err(|e| AxAgentError::Provider(format!("Parse error: {e}")))?;
 
         let choice = oai
             .choices
@@ -757,11 +726,7 @@ impl ProviderAdapter for OpenAIAdapter {
                     id: tc.id.clone().unwrap_or_default(),
                     call_type: tc.call_type.clone().unwrap_or_else(|| "function".into()),
                     function: axagent_harness::types::ToolCallFunction {
-                        name: tc
-                            .function
-                            .as_ref()
-                            .and_then(|f| f.name.clone())
-                            .unwrap_or_default(),
+                        name: tc.function.as_ref().and_then(|f| f.name.clone()).unwrap_or_default(),
                         arguments: tc
                             .function
                             .as_ref()
@@ -883,10 +848,7 @@ impl ProviderAdapter for OpenAIAdapter {
                         .as_ref()
                         .and_then(|delta| delta.tool_calls.as_ref())
                         .or_else(|| {
-                            choice
-                                .message
-                                .as_ref()
-                                .and_then(|message| message.tool_calls.as_ref())
+                            choice.message.as_ref().and_then(|message| message.tool_calls.as_ref())
                         });
                     if let Some(tc_deltas) = tool_call_deltas {
                         for tc in tc_deltas {
@@ -1074,10 +1036,8 @@ impl ProviderAdapter for OpenAIAdapter {
             return Err(AxAgentError::Provider(format!("OpenAI API error {s}: {t}")));
         }
 
-        let body = resp
-            .text()
-            .await
-            .map_err(|e| AxAgentError::Provider(format!("Read error: {e}")))?;
+        let body =
+            resp.text().await.map_err(|e| AxAgentError::Provider(format!("Read error: {e}")))?;
 
         let convert = |models: Vec<OpenAIModel>| -> Vec<Model> {
             models
@@ -1201,9 +1161,6 @@ impl ProviderAdapter for OpenAIAdapter {
         let dimensions = result.data.first().map(|d| d.embedding.len()).unwrap_or(0);
         let embeddings: Vec<Vec<f32>> = result.data.into_iter().map(|d| d.embedding).collect();
 
-        Ok(EmbedResponse {
-            embeddings,
-            dimensions,
-        })
+        Ok(EmbedResponse { embeddings, dimensions })
     }
 }

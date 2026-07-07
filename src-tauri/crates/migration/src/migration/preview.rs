@@ -11,9 +11,7 @@ pub fn preview_openclaw() -> Vec<MigrationItem> {
     if oc.join("SOUL.md").exists() {
         items.push(make_item(
             oc.join("SOUL.md"),
-            home.join("personalities")
-                .join("openclaw-import")
-                .join("SOUL.md"),
+            home.join("personalities").join("openclaw-import").join("SOUL.md"),
             "personality",
             "SOUL.md → personalities/openclaw-import/SOUL.md".to_string(),
         ));

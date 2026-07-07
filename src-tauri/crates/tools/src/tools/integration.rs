@@ -92,13 +92,7 @@ impl Tool for DifySearchTool {
             format!("{}/v1/knowledge-bases/{}/search", api_base.trim_end_matches('/'), base_id);
         let body = serde_json::json!({"query": query, "top_k": top_k});
         let client = reqwest::Client::new();
-        match client
-            .post(&url)
-            .bearer_auth(api_key)
-            .json(&body)
-            .send()
-            .await
-        {
+        match client.post(&url).bearer_auth(api_key).json(&body).send().await {
             Ok(resp) => match resp.text().await {
                 Ok(body) => Ok(ToolResult::success(format!(
                     "Dify 搜索结果:\n{}",

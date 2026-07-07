@@ -47,10 +47,7 @@ impl PreExecutionValidator {
     }
 
     fn validate_tool_call(&self, action: &Action) -> Result<(), PreValidationError> {
-        let tool_name = action
-            .tool_name
-            .as_deref()
-            .ok_or(PreValidationError::MissingToolName)?;
+        let tool_name = action.tool_name.as_deref().ok_or(PreValidationError::MissingToolName)?;
 
         let tool = self
             .tool_registry

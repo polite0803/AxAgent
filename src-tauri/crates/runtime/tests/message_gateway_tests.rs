@@ -19,12 +19,7 @@ fn test_validate_telegram_requires_token() {
     config.telegram_enabled = true;
     let result = config.validate();
     assert!(result.is_err());
-    assert!(
-        result
-            .unwrap_err()
-            .to_string()
-            .contains("Telegram bot token")
-    );
+    assert!(result.unwrap_err().to_string().contains("Telegram bot token"));
 }
 
 #[test]
@@ -42,12 +37,7 @@ fn test_validate_discord_requires_token() {
     config.discord_enabled = true;
     let result = config.validate();
     assert!(result.is_err());
-    assert!(
-        result
-            .unwrap_err()
-            .to_string()
-            .contains("Discord bot token")
-    );
+    assert!(result.unwrap_err().to_string().contains("Discord bot token"));
 }
 
 #[test]
@@ -105,32 +95,12 @@ fn test_serialize_deserialize_config() {
 
 #[test]
 fn test_allowed_users_filtering() {
-    let config = PlatformConfig {
-        telegram_allowed_users: Some(vec![111, 222]),
-        ..Default::default()
-    };
+    let config =
+        PlatformConfig { telegram_allowed_users: Some(vec![111, 222]), ..Default::default() };
 
-    assert!(
-        config
-            .telegram_allowed_users
-            .as_ref()
-            .unwrap()
-            .contains(&111)
-    );
-    assert!(
-        config
-            .telegram_allowed_users
-            .as_ref()
-            .unwrap()
-            .contains(&222)
-    );
-    assert!(
-        !config
-            .telegram_allowed_users
-            .as_ref()
-            .unwrap()
-            .contains(&333)
-    );
+    assert!(config.telegram_allowed_users.as_ref().unwrap().contains(&111));
+    assert!(config.telegram_allowed_users.as_ref().unwrap().contains(&222));
+    assert!(!config.telegram_allowed_users.as_ref().unwrap().contains(&333));
 }
 
 #[test]

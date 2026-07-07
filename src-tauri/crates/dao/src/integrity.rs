@@ -32,10 +32,7 @@ pub async fn detect_corruption(conn: &impl ConnectionTrait) -> Result<Corruption
     match exec_result {
         Ok(_) => {
             // 第二层：尝试读取 sqlite_master 确认数据库可正常查询
-            match conn
-                .execute_unprepared("SELECT COUNT(*) FROM sqlite_master;")
-                .await
-            {
+            match conn.execute_unprepared("SELECT COUNT(*) FROM sqlite_master;").await {
                 Ok(_) => Ok(CorruptionStatus::Healthy),
                 Err(e) => Ok(CorruptionStatus::Corrupted(format!(
                     "integrity_check passed but sqlite_master query failed: {e}"
@@ -89,12 +86,8 @@ pub async fn auto_recover(conn: &impl ConnectionTrait, db_path: &str) -> Result<
         return Ok(());
     }
 
-    let file_path = db_path
-        .strip_prefix("sqlite:")
-        .unwrap_or(db_path)
-        .split('?')
-        .next()
-        .unwrap_or(db_path);
+    let file_path =
+        db_path.strip_prefix("sqlite:").unwrap_or(db_path).split('?').next().unwrap_or(db_path);
 
     let path = Path::new(file_path);
     if !path.exists() {

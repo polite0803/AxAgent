@@ -36,11 +36,8 @@ impl NodeExecutorTrait for DocumentParserExecutor {
             ));
         };
         // 从上下文变量中获取输入文档内容
-        let input_content = context
-            .variables
-            .get(&dp.config.input_var)
-            .cloned()
-            .unwrap_or(serde_json::json!(null));
+        let input_content =
+            context.variables.get(&dp.config.input_var).cloned().unwrap_or(serde_json::json!(null));
         let content_preview = input_content
             .as_str()
             .map(|s| s.chars().take(500).collect::<String>())

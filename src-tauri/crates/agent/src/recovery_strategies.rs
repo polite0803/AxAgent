@@ -154,9 +154,8 @@ impl ErrorClassifier {
             return caps.get(1).map(|m| m.as_str().to_string());
         }
 
-        if let Some(caps) = regex_lite::Regex::new(r"\b(4\d{2}|5\d{2})\b")
-            .ok()
-            .and_then(|r| r.captures(error))
+        if let Some(caps) =
+            regex_lite::Regex::new(r"\b(4\d{2}|5\d{2})\b").ok().and_then(|r| r.captures(error))
         {
             return caps.get(1).map(|m| m.as_str().to_string());
         }
@@ -175,25 +174,12 @@ impl Default for ErrorClassifier {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum RecoveryStrategy {
-    Retry {
-        max_attempts: usize,
-        base_delay_ms: u64,
-        max_delay_ms: u64,
-        exponential_backoff: bool,
-    },
-    AdjustAndRetry {
-        max_attempts: usize,
-        adjustments: Vec<RecoveryAdjustment>,
-    },
-    Fallback {
-        fallback_value: String,
-    },
+    Retry { max_attempts: usize, base_delay_ms: u64, max_delay_ms: u64, exponential_backoff: bool },
+    AdjustAndRetry { max_attempts: usize, adjustments: Vec<RecoveryAdjustment> },
+    Fallback { fallback_value: String },
     SkipTask,
     Fail,
-    AutoRecover {
-        max_attempts: usize,
-        checkpoint_interval_secs: u64,
-    },
+    AutoRecover { max_attempts: usize, checkpoint_interval_secs: u64 },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -265,10 +251,7 @@ impl RecoveryStrategy {
     }
 
     pub fn for_interrupt() -> Self {
-        RecoveryStrategy::AutoRecover {
-            max_attempts: 3,
-            checkpoint_interval_secs: 30,
-        }
+        RecoveryStrategy::AutoRecover { max_attempts: 3, checkpoint_interval_secs: 30 }
     }
 }
 
@@ -329,14 +312,7 @@ pub struct RecoveryAttempt {
 
 impl RecoveryAttempt {
     pub fn new(attempt_number: usize, error: String, strategy: RecoveryStrategy) -> Self {
-        Self {
-            attempt_number,
-            error,
-            strategy,
-            delay_ms: None,
-            success: false,
-            message: None,
-        }
+        Self { attempt_number, error, strategy, delay_ms: None, success: false, message: None }
     }
 
     pub fn with_delay(mut self, delay_ms: u64) -> Self {
@@ -378,10 +354,7 @@ mod tests {
     fn test_for_error_type_recoverable() {
         let strategy = RecoveryStrategy::for_error_type(ErrorType::Recoverable);
         match strategy {
-            RecoveryStrategy::AdjustAndRetry {
-                max_attempts,
-                adjustments,
-            } => {
+            RecoveryStrategy::AdjustAndRetry { max_attempts, adjustments } => {
                 assert_eq!(max_attempts, 2);
                 assert_eq!(adjustments.len(), 2);
             },
@@ -439,36 +412,27 @@ mod tests {
 
     #[test]
     fn test_should_retry_fallback() {
-        let strategy = RecoveryStrategy::Fallback {
-            fallback_value: "default".to_string(),
-        };
+        let strategy = RecoveryStrategy::Fallback { fallback_value: "default".to_string() };
         assert!(strategy.should_retry());
     }
 
     #[test]
     fn test_should_retry_adjust_and_retry() {
-        let strategy = RecoveryStrategy::AdjustAndRetry {
-            max_attempts: 2,
-            adjustments: vec![],
-        };
+        let strategy = RecoveryStrategy::AdjustAndRetry { max_attempts: 2, adjustments: vec![] };
         assert!(strategy.should_retry());
     }
 
     #[test]
     fn test_should_retry_auto_recover() {
-        let strategy = RecoveryStrategy::AutoRecover {
-            max_attempts: 3,
-            checkpoint_interval_secs: 30,
-        };
+        let strategy =
+            RecoveryStrategy::AutoRecover { max_attempts: 3, checkpoint_interval_secs: 30 };
         assert!(strategy.should_retry());
     }
 
     #[test]
     fn test_should_retry_auto_recover_zero_attempts() {
-        let strategy = RecoveryStrategy::AutoRecover {
-            max_attempts: 0,
-            checkpoint_interval_secs: 30,
-        };
+        let strategy =
+            RecoveryStrategy::AutoRecover { max_attempts: 0, checkpoint_interval_secs: 30 };
         assert!(!strategy.should_retry());
     }
 
@@ -485,28 +449,19 @@ mod tests {
             5
         );
         assert_eq!(
-            RecoveryStrategy::AdjustAndRetry {
-                max_attempts: 3,
-                adjustments: vec![]
-            }
-            .max_attempts(),
+            RecoveryStrategy::AdjustAndRetry { max_attempts: 3, adjustments: vec![] }
+                .max_attempts(),
             3
         );
         assert_eq!(
-            RecoveryStrategy::Fallback {
-                fallback_value: "x".to_string()
-            }
-            .max_attempts(),
+            RecoveryStrategy::Fallback { fallback_value: "x".to_string() }.max_attempts(),
             1
         );
         assert_eq!(RecoveryStrategy::SkipTask.max_attempts(), 0);
         assert_eq!(RecoveryStrategy::Fail.max_attempts(), 0);
         assert_eq!(
-            RecoveryStrategy::AutoRecover {
-                max_attempts: 4,
-                checkpoint_interval_secs: 10
-            }
-            .max_attempts(),
+            RecoveryStrategy::AutoRecover { max_attempts: 4, checkpoint_interval_secs: 10 }
+                .max_attempts(),
             4
         );
     }
@@ -524,28 +479,18 @@ mod tests {
             "Retry with exponential backoff"
         );
         assert_eq!(
-            RecoveryStrategy::AdjustAndRetry {
-                max_attempts: 1,
-                adjustments: vec![]
-            }
-            .description(),
+            RecoveryStrategy::AdjustAndRetry { max_attempts: 1, adjustments: vec![] }.description(),
             "Adjust parameters and retry"
         );
         assert_eq!(
-            RecoveryStrategy::Fallback {
-                fallback_value: "x".to_string()
-            }
-            .description(),
+            RecoveryStrategy::Fallback { fallback_value: "x".to_string() }.description(),
             "Use fallback value"
         );
         assert_eq!(RecoveryStrategy::SkipTask.description(), "Skip this task");
         assert_eq!(RecoveryStrategy::Fail.description(), "Fail immediately");
         assert_eq!(
-            RecoveryStrategy::AutoRecover {
-                max_attempts: 1,
-                checkpoint_interval_secs: 10
-            }
-            .description(),
+            RecoveryStrategy::AutoRecover { max_attempts: 1, checkpoint_interval_secs: 10 }
+                .description(),
             "Auto-recover with checkpointing"
         );
     }
@@ -554,10 +499,7 @@ mod tests {
     fn test_for_interrupt() {
         let strategy = RecoveryStrategy::for_interrupt();
         match strategy {
-            RecoveryStrategy::AutoRecover {
-                max_attempts,
-                checkpoint_interval_secs,
-            } => {
+            RecoveryStrategy::AutoRecover { max_attempts, checkpoint_interval_secs } => {
                 assert_eq!(max_attempts, 3);
                 assert_eq!(checkpoint_interval_secs, 30);
             },

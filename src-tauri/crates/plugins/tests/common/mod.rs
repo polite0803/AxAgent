@@ -13,10 +13,8 @@ pub struct TempDir {
 
 impl TempDir {
     pub fn new(label: &str) -> Self {
-        let nanos = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_nanos();
+        let nanos =
+            std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos();
         let path = std::env::temp_dir().join(format!("plugin-test-{label}-{nanos}"));
         std::fs::create_dir_all(&path).expect("failed to create temp dir");
         TempDir { path }

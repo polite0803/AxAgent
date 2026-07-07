@@ -72,15 +72,10 @@ impl Tool for GrepTool {
             ));
         }
         let search_path = input["path"].as_str().unwrap_or(&ctx.working_dir);
-        let case_insensitive = input
-            .get("case_insensitive")
-            .and_then(|v| v.as_bool())
-            .unwrap_or(false);
+        let case_insensitive =
+            input.get("case_insensitive").and_then(|v| v.as_bool()).unwrap_or(false);
         let context = input.get("context").and_then(|v| v.as_i64()).unwrap_or(0) as u32;
-        let head_limit = input
-            .get("head_limit")
-            .and_then(|v| v.as_u64())
-            .unwrap_or(250) as usize;
+        let head_limit = input.get("head_limit").and_then(|v| v.as_u64()).unwrap_or(250) as usize;
 
         // 优先使用 rg (ripgrep)，回退到系统 grep
         let (mut cmd, prefer_rg) = if which::which("rg").is_ok() {
@@ -178,14 +173,9 @@ fn fallback_search(
     head_limit: usize,
 ) -> Result<ToolResult, ToolError> {
     let re = if case_insensitive {
-        regex::RegexBuilder::new(pattern)
-            .case_insensitive(true)
-            .size_limit(1_000_000)
-            .build()
+        regex::RegexBuilder::new(pattern).case_insensitive(true).size_limit(1_000_000).build()
     } else {
-        regex::RegexBuilder::new(pattern)
-            .size_limit(1_000_000)
-            .build()
+        regex::RegexBuilder::new(pattern).size_limit(1_000_000).build()
     }
     .map_err(|e| ToolError::invalid_input(format!("正则表达式无效: {}", e)))?;
 

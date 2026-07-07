@@ -266,13 +266,7 @@ impl FTS5Search {
             conn.execute(
                 r#"INSERT INTO trajectory_messages_fts (id, session_id, role, content, created_at)
                    VALUES (?1, ?2, ?3, ?4, ?5)"#,
-                params![
-                    msg.id,
-                    msg.session_id,
-                    msg.role,
-                    msg.content,
-                    msg.created_at.timestamp()
-                ],
+                params![msg.id, msg.session_id, msg.role, msg.content, msg.created_at.timestamp()],
             )?;
             debug!("Indexed message {} for FTS5", msg.id);
             Ok(())
@@ -584,10 +578,7 @@ impl FTS5Search {
             // i 来自 char_indices 所以必为 char boundary；window_end 同样需要落到 char boundary
             let window_end = floor_char_boundary(&content_lower, window_end);
             let window = &content_lower[i..window_end];
-            let matches = query_terms
-                .iter()
-                .filter(|t| window.contains(&t.to_lowercase()))
-                .count();
+            let matches = query_terms.iter().filter(|t| window.contains(&t.to_lowercase())).count();
             if matches > best_matches {
                 best_matches = matches;
                 best_pos = i;

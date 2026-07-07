@@ -18,13 +18,7 @@ pub struct PtySessionConfig {
 
 impl Default for PtySessionConfig {
     fn default() -> Self {
-        Self {
-            shell: None,
-            cwd: None,
-            env: HashMap::new(),
-            rows: 24,
-            cols: 80,
-        }
+        Self { shell: None, cwd: None, env: HashMap::new(), rows: 24, cols: 80 }
     }
 }
 
@@ -103,10 +97,8 @@ impl PtySession {
             .spawn_command(cmd)
             .map_err(|e| format!("Failed to spawn PTY child: {}", e))?;
 
-        let writer = pair
-            .master
-            .take_writer()
-            .map_err(|e| format!("Failed to take PTY writer: {}", e))?;
+        let writer =
+            pair.master.take_writer().map_err(|e| format!("Failed to take PTY writer: {}", e))?;
 
         let reader = pair
             .master
@@ -242,10 +234,7 @@ impl PtySession {
                     .writer
                     .write_all(data)
                     .map_err(|e| format!("Failed to write to PTY: {}", e))?;
-                inner
-                    .writer
-                    .flush()
-                    .map_err(|e| format!("Failed to flush PTY: {}", e))?;
+                inner.writer.flush().map_err(|e| format!("Failed to flush PTY: {}", e))?;
                 Ok(())
             },
             None => Err("PTY session not available".to_string()),
@@ -261,12 +250,7 @@ impl PtySession {
         match guard.as_mut() {
             Some(inner) => inner
                 .master
-                .resize(PtySize {
-                    rows,
-                    cols,
-                    pixel_width: 0,
-                    pixel_height: 0,
-                })
+                .resize(PtySize { rows, cols, pixel_width: 0, pixel_height: 0 })
                 .map_err(|e| format!("Failed to resize PTY: {}", e)),
             None => Err("PTY session not available".to_string()),
         }
@@ -284,10 +268,7 @@ impl PtySession {
         let mut guard = self.inner.lock().await;
         match guard.as_mut() {
             Some(inner) => {
-                inner
-                    .child
-                    .kill()
-                    .map_err(|e| format!("Failed to kill PTY child: {}", e))?;
+                inner.child.kill().map_err(|e| format!("Failed to kill PTY child: {}", e))?;
                 inner.status = PtySessionStatus::Exited;
                 drop(guard);
                 let mut s = self.status.write().await;

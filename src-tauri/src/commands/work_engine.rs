@@ -88,10 +88,7 @@ pub async fn start_workflow_execution(
     input: serde_json::Value,
 ) -> Result<String, String> {
     let engine = &*state.work_engine;
-    engine
-        .start_workflow(&workflow_id, input, None)
-        .await
-        .map_err(|e| e.to_string())
+    engine.start_workflow(&workflow_id, input, None).await.map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -100,10 +97,7 @@ pub async fn pause_workflow_execution(
     execution_id: String,
 ) -> Result<bool, String> {
     let engine = &*state.work_engine;
-    engine
-        .pause(&execution_id)
-        .await
-        .map_err(|e| e.to_string())?;
+    engine.pause(&execution_id).await.map_err(|e| e.to_string())?;
     Ok(true)
 }
 
@@ -113,10 +107,7 @@ pub async fn resume_workflow_execution(
     execution_id: String,
 ) -> Result<bool, String> {
     let engine = &*state.work_engine;
-    engine
-        .resume(&execution_id)
-        .await
-        .map_err(|e| e.to_string())?;
+    engine.resume(&execution_id).await.map_err(|e| e.to_string())?;
     Ok(true)
 }
 
@@ -126,10 +117,7 @@ pub async fn cancel_workflow_execution(
     execution_id: String,
 ) -> Result<bool, String> {
     let engine = &*state.work_engine;
-    engine
-        .cancel(&execution_id)
-        .await
-        .map_err(|e| e.to_string())?;
+    engine.cancel(&execution_id).await.map_err(|e| e.to_string())?;
     Ok(true)
 }
 
@@ -139,10 +127,7 @@ pub async fn get_workflow_execution_status(
     execution_id: String,
 ) -> Result<ExecutionStatusResponse, String> {
     let engine = &*state.work_engine;
-    let status = engine
-        .get_status(&execution_id)
-        .await
-        .map_err(|e| e.to_string())?;
+    let status = engine.get_status(&execution_id).await.map_err(|e| e.to_string())?;
 
     Ok(ExecutionStatusResponse {
         execution_id: status.execution_id,
@@ -151,11 +136,7 @@ pub async fn get_workflow_execution_status(
         current_node_id: status.current_node_id,
         total_time_ms: status.total_time_ms,
         node_count: status.node_records.len(),
-        node_records: status
-            .node_records
-            .into_iter()
-            .map(NodeRecordResponse::from)
-            .collect(),
+        node_records: status.node_records.into_iter().map(NodeRecordResponse::from).collect(),
         variables: serde_json::to_value(&status.variables).unwrap_or(serde_json::json!({})),
         parent_execution_id: status.parent_execution_id,
     })
@@ -167,15 +148,9 @@ pub async fn list_workflow_executions(
     workflow_id: String,
 ) -> Result<Vec<ExecutionSummaryResponse>, String> {
     let engine = &*state.work_engine;
-    let executions = engine
-        .list_executions(&workflow_id)
-        .await
-        .map_err(|e| e.to_string())?;
+    let executions = engine.list_executions(&workflow_id).await.map_err(|e| e.to_string())?;
 
-    Ok(executions
-        .into_iter()
-        .map(ExecutionSummaryResponse::from)
-        .collect())
+    Ok(executions.into_iter().map(ExecutionSummaryResponse::from).collect())
 }
 
 // ── 可视化工作流节点执行 ──
@@ -210,9 +185,7 @@ pub async fn execute_workflow_node(
     node_json: serde_json::Value,
 ) -> Result<serde_json::Value, String> {
     // P1-14: 限制 input 大小
-    let serialized_len = serde_json::to_string(&node_json)
-        .map(|s| s.len())
-        .unwrap_or(0);
+    let serialized_len = serde_json::to_string(&node_json).map(|s| s.len()).unwrap_or(0);
     if serialized_len > MAX_DEBUG_INPUT_BYTES {
         return Err(format!(
             "node_json 超过大小限制 ({} > {})",
@@ -235,10 +208,7 @@ pub async fn execute_workflow_node(
 
     let engine = &*state.work_engine;
     // P1-14: 校验 execution_id 归属 —— 防止任意调用方探测他人工作流
-    let status = engine
-        .get_status(&execution_id)
-        .await
-        .map_err(|e| e.to_string())?;
+    let status = engine.get_status(&execution_id).await.map_err(|e| e.to_string())?;
     if status.workflow_id.is_empty() {
         return Err("execution_id 无效或工作流未注册".to_string());
     }
@@ -252,12 +222,7 @@ pub async fn execute_workflow_node(
 #[tauri::command]
 pub async fn list_node_executor_types(state: State<'_, AppState>) -> Result<Vec<String>, String> {
     let engine = &*state.work_engine;
-    Ok(engine
-        .registered_executor_types()
-        .await
-        .into_iter()
-        .map(String::from)
-        .collect())
+    Ok(engine.registered_executor_types().await.into_iter().map(String::from).collect())
 }
 
 // ── Debug Commands ──
@@ -312,10 +277,8 @@ pub async fn debug_run_workflow(
         .map_err(|e| format!("output_schema 解析失败: {}", e))?;
 
     let engine = state.work_engine.clone();
-    let workflow = engine
-        .create_workflow(&template.name, nodes, edges)
-        .await
-        .map_err(|e| e.to_string())?;
+    let workflow =
+        engine.create_workflow(&template.name, nodes, edges).await.map_err(|e| e.to_string())?;
     let workflow_id = workflow.id.clone();
     let execution_id = uuid::Uuid::new_v4().to_string();
 
@@ -338,10 +301,7 @@ pub async fn debug_run_workflow(
             let total = evt.total_nodes;
             let completed = evt.completed_nodes;
             let wf_id = wid_for_progress.clone();
-            let exec_id = evt
-                .execution_id
-                .clone()
-                .unwrap_or_else(|| eid_for_progress.clone());
+            let exec_id = evt.execution_id.clone().unwrap_or_else(|| eid_for_progress.clone());
             let eng = engine_for_progress.clone();
             Box::pin(async move {
                 // ── 轻量级节点状态事件（实时）──
@@ -488,10 +448,7 @@ pub async fn set_workflow_breakpoints(
 ) -> Result<bool, String> {
     let bp: std::collections::HashSet<String> = node_ids.into_iter().collect();
     if let Some(eid) = execution_id {
-        state
-            .work_engine
-            .set_breakpoints_for_execution(&eid, bp)
-            .await;
+        state.work_engine.set_breakpoints_for_execution(&eid, bp).await;
     } else {
         state.work_engine.set_breakpoints(bp).await;
     }
@@ -556,7 +513,5 @@ pub async fn load_loop_checkpoint(
         .load_loop_checkpoint(&execution_id, &node_id)
         .await
         .map_err(|e| e.to_string())?;
-    cp.map(serde_json::to_value)
-        .transpose()
-        .map_err(|e| e.to_string())
+    cp.map(serde_json::to_value).transpose().map_err(|e| e.to_string())
 }

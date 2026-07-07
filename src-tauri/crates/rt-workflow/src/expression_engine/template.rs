@@ -72,10 +72,8 @@ pub fn resolve_value_templates(
             }
         },
         Value::Array(arr) => {
-            let resolved: Result<Vec<Value>, _> = arr
-                .iter()
-                .map(|v| resolve_value_templates(v, ctx))
-                .collect();
+            let resolved: Result<Vec<Value>, _> =
+                arr.iter().map(|v| resolve_value_templates(v, ctx)).collect();
             Ok(Value::Array(resolved?))
         },
         Value::Object(obj) => {

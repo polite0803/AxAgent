@@ -502,9 +502,5 @@ pub async fn style_get_stats(
 ) -> Result<StyleMigratorStatsResponse, String> {
     let _profile = app_state.user_profile.read().await;
 
-    Ok(StyleMigratorStatsResponse {
-        total_profiles: 1,
-        total_samples: 0,
-        average_confidence: 0.0,
-    })
+    Ok(StyleMigratorStatsResponse { total_profiles: 1, total_samples: 0, average_confidence: 0.0 })
 }

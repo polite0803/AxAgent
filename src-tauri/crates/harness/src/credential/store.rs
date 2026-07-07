@@ -59,10 +59,7 @@ impl CredentialStore {
     /// `store_dir` is the directory where encrypted credential files are kept.
     /// `master_key` is a 256-bit key used for AES-256-GCM encryption.
     pub fn new(store_dir: PathBuf, master_key: [u8; 32]) -> Self {
-        Self {
-            store_dir,
-            master_key,
-        }
+        Self { store_dir, master_key }
     }
 
     /// Derive or load the master key from environment / configuration.

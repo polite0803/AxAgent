@@ -56,10 +56,7 @@ pub struct FieldDef {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Compatibility {
     Compatible,
-    Incompatible {
-        message: String,
-        migration_steps: Vec<String>,
-    },
+    Incompatible { message: String, migration_steps: Vec<String> },
 }
 
 pub struct SchemaManager {
@@ -69,10 +66,7 @@ pub struct SchemaManager {
 
 impl SchemaManager {
     pub fn new(db: Arc<DatabaseConnection>) -> Self {
-        Self {
-            db,
-            cache: Arc::new(RwLock::new(None)),
-        }
+        Self { db, cache: Arc::new(RwLock::new(None)) }
     }
 
     pub async fn get_current_schema(&self, wiki_id: &str) -> Result<String> {
@@ -89,9 +83,7 @@ impl SchemaManager {
             .ok_or_else(|| AxAgentError::NotFound(format!("Wiki {} not found", wiki_id)))?;
 
         let schema_path = PathBuf::from(&wiki.root_path).join("SCHEMA.md");
-        let content = fs::read_to_string(&schema_path)
-            .await
-            .map_err(AxAgentError::Io)?;
+        let content = fs::read_to_string(&schema_path).await.map_err(AxAgentError::Io)?;
 
         {
             let mut cache = self.cache.write().await;
@@ -170,21 +162,13 @@ impl SchemaManager {
 
         let mut to_by_name: std::collections::HashMap<String, &FieldDef> =
             std::collections::HashMap::new();
-        for f in to_template
-            .required
-            .iter()
-            .chain(to_template.optional.iter())
-        {
+        for f in to_template.required.iter().chain(to_template.optional.iter()) {
             to_by_name.insert(f.name.clone(), f);
         }
 
         let mut from_by_name: std::collections::HashMap<String, &FieldDef> =
             std::collections::HashMap::new();
-        for f in from_template
-            .required
-            .iter()
-            .chain(from_template.optional.iter())
-        {
+        for f in from_template.required.iter().chain(from_template.optional.iter()) {
             from_by_name.insert(f.name.clone(), f);
         }
 
@@ -303,11 +287,8 @@ impl SchemaManager {
                 errors.push(format!("Unknown field: {}", key));
             }
 
-            let field_def = template
-                .required
-                .iter()
-                .chain(template.optional.iter())
-                .find(|f| &f.name == key);
+            let field_def =
+                template.required.iter().chain(template.optional.iter()).find(|f| &f.name == key);
 
             if let Some(def) = field_def
                 && !self.validate_field_type(&def.field_type, value)
@@ -389,9 +370,7 @@ impl SchemaManager {
             .ok_or_else(|| AxAgentError::NotFound(format!("Wiki {} not found", wiki_id)))?;
 
         let schema_path = PathBuf::from(&wiki.root_path).join("SCHEMA.md");
-        let content = fs::read_to_string(&schema_path)
-            .await
-            .map_err(AxAgentError::Io)?;
+        let content = fs::read_to_string(&schema_path).await.map_err(AxAgentError::Io)?;
 
         let content_hash = format!("{:x}", md5::compute(&content));
 
@@ -611,10 +590,7 @@ mod tests {
         let json = serde_json::to_string(&compat).unwrap();
         let deserialized: Compatibility = serde_json::from_str(&json).unwrap();
         match deserialized {
-            Compatibility::Incompatible {
-                message,
-                migration_steps,
-            } => {
+            Compatibility::Incompatible { message, migration_steps } => {
                 assert_eq!(message, "version mismatch");
                 assert_eq!(migration_steps.len(), 2);
             },
@@ -913,10 +889,7 @@ mod tests {
         let json = serde_json::to_string(&compat).unwrap();
         let deserialized: Compatibility = serde_json::from_str(&json).unwrap();
         match deserialized {
-            Compatibility::Incompatible {
-                message,
-                migration_steps,
-            } => {
+            Compatibility::Incompatible { message, migration_steps } => {
                 assert_eq!(message, "test message");
                 assert_eq!(migration_steps.len(), 1);
             },

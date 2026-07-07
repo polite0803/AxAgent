@@ -68,9 +68,7 @@ pub async fn create_collection(
         collection_id: Set(input.collection_id.clone()),
         dimensions: Set(input.dimensions),
         embedding_model: Set(input.embedding_model),
-        index_type: Set(input
-            .index_type
-            .unwrap_or_else(|| INDEX_TYPE_FLAT.to_string())),
+        index_type: Set(input.index_type.unwrap_or_else(|| INDEX_TYPE_FLAT.to_string())),
         hnsw_ef_construction: Set(input.hnsw_ef_construction),
         hnsw_m: Set(input.hnsw_m),
         hnsw_ef_search: Set(input.hnsw_ef_search),
@@ -97,9 +95,7 @@ pub async fn find_collection(
     db: &DatabaseConnection,
     collection_id: &str,
 ) -> Result<Option<VecCollection>> {
-    let model = vec_collections::Entity::find_by_id(collection_id)
-        .one(db)
-        .await?;
+    let model = vec_collections::Entity::find_by_id(collection_id).one(db).await?;
     Ok(model.map(model_to_collection))
 }
 
@@ -107,9 +103,7 @@ pub async fn get_collection_dimensions(
     db: &DatabaseConnection,
     collection_id: &str,
 ) -> Result<Option<i32>> {
-    let model = vec_collections::Entity::find_by_id(collection_id)
-        .one(db)
-        .await?;
+    let model = vec_collections::Entity::find_by_id(collection_id).one(db).await?;
     Ok(model.map(|m| m.dimensions))
 }
 
@@ -187,9 +181,7 @@ pub async fn mark_indexed(db: &DatabaseConnection, collection_id: &str) -> Resul
 }
 
 pub async fn delete_collection(db: &DatabaseConnection, collection_id: &str) -> Result<()> {
-    let result = vec_collections::Entity::delete_by_id(collection_id)
-        .exec(db)
-        .await?;
+    let result = vec_collections::Entity::delete_by_id(collection_id).exec(db).await?;
     if result.rows_affected == 0 {
         return Err(AxAgentError::NotFound(format!("VecCollection {}", collection_id)));
     }
@@ -197,9 +189,7 @@ pub async fn delete_collection(db: &DatabaseConnection, collection_id: &str) -> 
 }
 
 pub async fn collection_exists(db: &DatabaseConnection, collection_id: &str) -> Result<bool> {
-    let count = vec_collections::Entity::find_by_id(collection_id)
-        .count(db)
-        .await?;
+    let count = vec_collections::Entity::find_by_id(collection_id).count(db).await?;
     Ok(count > 0)
 }
 
@@ -216,12 +206,10 @@ pub async fn upsert_collection(
             )));
         }
 
-        let model = vec_collections::Entity::find_by_id(&input.collection_id)
-            .one(db)
-            .await?
-            .ok_or_else(|| {
-                AxAgentError::NotFound(format!("VecCollection {}", input.collection_id))
-            })?;
+        let model =
+            vec_collections::Entity::find_by_id(&input.collection_id).one(db).await?.ok_or_else(
+                || AxAgentError::NotFound(format!("VecCollection {}", input.collection_id)),
+            )?;
 
         let mut am: vec_collections::ActiveModel = model.into();
         if let Some(m) = input.embedding_model {

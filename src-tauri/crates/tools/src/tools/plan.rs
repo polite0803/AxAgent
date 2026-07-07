@@ -125,13 +125,7 @@ impl Tool for VerifyPlanExecutionTool {
 
     async fn call(&self, i: Value, _c: &ToolContext) -> Result<ToolResult, ToolError> {
         let summary = i["summary"].as_str().unwrap_or("");
-        let steps = i["steps_completed"]
-            .as_array()
-            .map(|a| a.len())
-            .unwrap_or(0);
-        Ok(ToolResult::success(format!(
-            "✅ 计划验证完成 — {} 个步骤已确认\n\n{}",
-            steps, summary
-        )))
+        let steps = i["steps_completed"].as_array().map(|a| a.len()).unwrap_or(0);
+        Ok(ToolResult::success(format!("✅ 计划验证完成 — {} 个步骤已确认\n\n{}", steps, summary)))
     }
 }

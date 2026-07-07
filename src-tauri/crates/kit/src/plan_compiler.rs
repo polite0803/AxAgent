@@ -246,9 +246,7 @@ pub fn compile_plan_to_dag(
             compensation: None,
             continue_on_fail: false,
         },
-        config: EndNodeConfig {
-            output_var: Some("plan_result".to_string()),
-        },
+        config: EndNodeConfig { output_var: Some("plan_result".to_string()) },
     }));
 
     // Connect leaf nodes to end

@@ -32,15 +32,9 @@ impl SessionStore {
     /// The on-disk layout becomes `<cwd>/.claw/sessions/<workspace_hash>/`.
     pub fn from_cwd(cwd: impl AsRef<Path>) -> Result<Self, SessionControlError> {
         let cwd = cwd.as_ref();
-        let sessions_root = cwd
-            .join(".claw")
-            .join("sessions")
-            .join(workspace_fingerprint(cwd));
+        let sessions_root = cwd.join(".claw").join("sessions").join(workspace_fingerprint(cwd));
         fs::create_dir_all(&sessions_root)?;
-        Ok(Self {
-            sessions_root,
-            workspace_root: cwd.to_path_buf(),
-        })
+        Ok(Self { sessions_root, workspace_root: cwd.to_path_buf() })
     }
 
     /// Build a store from an explicit `--data-dir` flag.
@@ -52,15 +46,10 @@ impl SessionStore {
         workspace_root: impl AsRef<Path>,
     ) -> Result<Self, SessionControlError> {
         let workspace_root = workspace_root.as_ref();
-        let sessions_root = data_dir
-            .as_ref()
-            .join("sessions")
-            .join(workspace_fingerprint(workspace_root));
+        let sessions_root =
+            data_dir.as_ref().join("sessions").join(workspace_fingerprint(workspace_root));
         fs::create_dir_all(&sessions_root)?;
-        Ok(Self {
-            sessions_root,
-            workspace_root: workspace_root.to_path_buf(),
-        })
+        Ok(Self { sessions_root, workspace_root: workspace_root.to_path_buf() })
     }
 
     /// The fully resolved sessions directory for this namespace.
@@ -78,19 +67,14 @@ impl SessionStore {
     #[must_use]
     pub fn create_handle(&self, session_id: &str) -> SessionHandle {
         let id = session_id.to_string();
-        let path = self
-            .sessions_root
-            .join(format!("{id}.{PRIMARY_SESSION_EXTENSION}"));
+        let path = self.sessions_root.join(format!("{id}.{PRIMARY_SESSION_EXTENSION}"));
         SessionHandle { id, path }
     }
 
     pub fn resolve_reference(&self, reference: &str) -> Result<SessionHandle, SessionControlError> {
         if is_session_reference_alias(reference) {
             let latest = self.latest_session()?;
-            return Ok(SessionHandle {
-                id: latest.id,
-                path: latest.path,
-            });
+            return Ok(SessionHandle { id: latest.id, path: latest.path });
         }
 
         let direct = PathBuf::from(reference);
@@ -160,10 +144,7 @@ impl SessionStore {
         let session = Session::load_from_path(&handle.path)?;
         self.validate_loaded_session(&handle.path, &session)?;
         Ok(LoadedManagedSession {
-            handle: SessionHandle {
-                id: session.session_id.clone(),
-                path: handle.path,
-            },
+            handle: SessionHandle { id: session.session_id.clone(), path: handle.path },
             session,
         })
     }
@@ -174,22 +155,12 @@ impl SessionStore {
         branch_name: Option<String>,
     ) -> Result<ForkedManagedSession, SessionControlError> {
         let parent_session_id = session.session_id.clone();
-        let forked = session
-            .fork(branch_name)
-            .with_workspace_root(self.workspace_root.clone());
+        let forked = session.fork(branch_name).with_workspace_root(self.workspace_root.clone());
         let handle = self.create_handle(&forked.session_id);
-        let branch_name = forked
-            .fork
-            .as_ref()
-            .and_then(|fork| fork.branch_name.clone());
+        let branch_name = forked.fork.as_ref().and_then(|fork| fork.branch_name.clone());
         let forked = forked.with_persistence_path(handle.path.clone());
         forked.save_to_path(&handle.path)?;
-        Ok(ForkedManagedSession {
-            parent_session_id,
-            handle,
-            session: forked,
-            branch_name,
-        })
+        Ok(ForkedManagedSession { parent_session_id, handle, session: forked, branch_name })
     }
 
     fn legacy_sessions_root(&self) -> Option<PathBuf> {
@@ -437,11 +408,9 @@ pub fn resolve_managed_session_path_for(
 
 #[must_use]
 pub fn is_managed_session_file(path: &Path) -> bool {
-    path.extension()
-        .and_then(|ext| ext.to_str())
-        .is_some_and(|extension| {
-            extension == PRIMARY_SESSION_EXTENSION || extension == LEGACY_SESSION_EXTENSION
-        })
+    path.extension().and_then(|ext| ext.to_str()).is_some_and(|extension| {
+        extension == PRIMARY_SESSION_EXTENSION || extension == LEGACY_SESSION_EXTENSION
+    })
 }
 
 pub fn list_managed_sessions() -> Result<Vec<ManagedSessionSummary>, SessionControlError> {
@@ -496,9 +465,7 @@ pub fn fork_managed_session_for(
 
 #[must_use]
 pub fn is_session_reference_alias(reference: &str) -> bool {
-    SESSION_REFERENCE_ALIASES
-        .iter()
-        .any(|alias| reference.eq_ignore_ascii_case(alias))
+    SESSION_REFERENCE_ALIASES.iter().any(|alias| reference.eq_ignore_ascii_case(alias))
 }
 
 fn session_id_from_path(path: &Path) -> Option<String> {
@@ -569,15 +536,11 @@ mod tests {
 
     fn persist_session(root: &Path, text: &str) -> Session {
         let mut session = Session::new().with_workspace_root(root.to_path_buf());
-        session
-            .push_user_text(text)
-            .expect("session message should save");
+        session.push_user_text(text).expect("session message should save");
         let handle = create_managed_session_handle_for(root, &session.session_id)
             .expect("managed session handle should build");
         let session = session.with_persistence_path(handle.path.clone());
-        session
-            .save_to_path(&handle.path)
-            .expect("session should persist");
+        session.save_to_path(&handle.path).expect("session should persist");
         session
     }
 
@@ -598,10 +561,7 @@ mod tests {
         summaries: &'a [ManagedSessionSummary],
         id: &str,
     ) -> &'a ManagedSessionSummary {
-        summaries
-            .iter()
-            .find(|summary| summary.id == id)
-            .expect("session summary should exist")
+        summaries.iter().find(|summary| summary.id == id).expect("session summary should exist")
     }
 
     #[test]
@@ -705,14 +665,10 @@ mod tests {
 
     fn persist_session_via_store(store: &SessionStore, text: &str) -> Session {
         let mut session = Session::new().with_workspace_root(store.workspace_root().to_path_buf());
-        session
-            .push_user_text(text)
-            .expect("session message should save");
+        session.push_user_text(text).expect("session message should save");
         let handle = store.create_handle(&session.session_id);
         let session = session.with_persistence_path(handle.path.clone());
-        session
-            .save_to_path(&handle.path)
-            .expect("session should persist");
+        session.save_to_path(&handle.path).expect("session should persist");
         session
     }
 
@@ -803,9 +759,8 @@ mod tests {
         let session = persist_session_via_store(&store, "round-trip message");
 
         // when
-        let loaded = store
-            .load_session(&session.session_id)
-            .expect("session should load via store");
+        let loaded =
+            store.load_session(&session.session_id).expect("session should load via store");
 
         // then
         assert_eq!(loaded.handle.id, session.session_id);
@@ -829,9 +784,7 @@ mod tests {
         let session = Session::new()
             .with_workspace_root(workspace_a.clone())
             .with_persistence_path(legacy_path.clone());
-        session
-            .save_to_path(&legacy_path)
-            .expect("legacy session should persist");
+        session.save_to_path(&legacy_path).expect("legacy session should persist");
 
         // when
         let err = store_b
@@ -861,14 +814,11 @@ mod tests {
         let session = Session::new()
             .with_workspace_root(base.clone())
             .with_persistence_path(legacy_path.clone());
-        session
-            .save_to_path(&legacy_path)
-            .expect("legacy session should persist");
+        session.save_to_path(&legacy_path).expect("legacy session should persist");
 
         // when
-        let loaded = store
-            .load_session("legacy-safe")
-            .expect("same-workspace legacy session should load");
+        let loaded =
+            store.load_session("legacy-safe").expect("same-workspace legacy session should load");
 
         // then
         assert_eq!(loaded.handle.id, session.session_id);
@@ -887,9 +837,7 @@ mod tests {
         let legacy_path = legacy_root.join("legacy-unbound.json");
         fs::create_dir_all(&legacy_root).expect("legacy root should exist");
         let session = Session::new().with_persistence_path(legacy_path.clone());
-        session
-            .save_to_path(&legacy_path)
-            .expect("legacy session should persist");
+        session.save_to_path(&legacy_path).expect("legacy session should persist");
 
         // when
         let loaded = store
@@ -914,9 +862,7 @@ mod tests {
 
         // when
         let latest = store.latest_session().expect("latest should resolve");
-        let handle = store
-            .resolve_reference("latest")
-            .expect("latest alias should resolve");
+        let handle = store.resolve_reference("latest").expect("latest alias should resolve");
 
         // then
         assert_eq!(latest.id, newer.session_id);
@@ -933,9 +879,8 @@ mod tests {
         let source = persist_session_via_store(&store, "parent work");
 
         // when
-        let forked = store
-            .fork_session(&source, Some("bugfix".to_string()))
-            .expect("fork should succeed");
+        let forked =
+            store.fork_session(&source, Some("bugfix".to_string())).expect("fork should succeed");
         let sessions = store.list_sessions().expect("list sessions");
 
         // then

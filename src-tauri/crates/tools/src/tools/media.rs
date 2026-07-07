@@ -37,17 +37,11 @@ impl Tool for GenerateImageTool {
     }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
-        let prompt = input
-            .get("prompt")
-            .and_then(|v| v.as_str())
-            .unwrap_or_default();
+        let prompt = input.get("prompt").and_then(|v| v.as_str()).unwrap_or_default();
         if prompt.is_empty() {
             return Ok(ToolResult::error("Error: prompt 是必需的"));
         }
-        let provider = input
-            .get("provider")
-            .and_then(|v| v.as_str())
-            .unwrap_or("flux");
+        let provider = input.get("provider").and_then(|v| v.as_str()).unwrap_or("flux");
         let api_key = input.get("api_key").and_then(|v| v.as_str()).unwrap_or("");
         let width = input.get("width").and_then(|v| v.as_u64()).unwrap_or(1024);
         let height = input.get("height").and_then(|v| v.as_u64()).unwrap_or(1024);
@@ -90,21 +84,12 @@ impl Tool for GenerateChartConfigTool {
     }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
-        let description = input
-            .get("description")
-            .and_then(|v| v.as_str())
-            .unwrap_or_default();
+        let description = input.get("description").and_then(|v| v.as_str()).unwrap_or_default();
         if description.is_empty() {
             return Ok(ToolResult::error("Error: description 是必需的"));
         }
-        let chart_type = input
-            .get("chart_type")
-            .and_then(|v| v.as_str())
-            .unwrap_or("auto");
-        let title = input
-            .get("title")
-            .and_then(|v| v.as_str())
-            .unwrap_or("Chart");
+        let chart_type = input.get("chart_type").and_then(|v| v.as_str()).unwrap_or("auto");
+        let title = input.get("title").and_then(|v| v.as_str()).unwrap_or("Chart");
         Ok(ToolResult::success(format!(
             "图表配置已生成: type={}, title={}, description={}",
             chart_type,
@@ -137,26 +122,12 @@ impl Tool for SequentialThinkingTool {
     }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
-        let thought = input
-            .get("thought")
-            .and_then(|v| v.as_str())
-            .unwrap_or_default();
-        let thought_number = input
-            .get("thought_number")
-            .and_then(|v| v.as_u64())
-            .unwrap_or(1);
-        let total_thoughts = input
-            .get("total_thoughts")
-            .and_then(|v| v.as_u64())
-            .unwrap_or(1);
-        let is_revision = input
-            .get("is_revision")
-            .and_then(|v| v.as_bool())
-            .unwrap_or(false);
-        let needs_more = input
-            .get("needs_more_thoughts")
-            .and_then(|v| v.as_bool())
-            .unwrap_or(false);
+        let thought = input.get("thought").and_then(|v| v.as_str()).unwrap_or_default();
+        let thought_number = input.get("thought_number").and_then(|v| v.as_u64()).unwrap_or(1);
+        let total_thoughts = input.get("total_thoughts").and_then(|v| v.as_u64()).unwrap_or(1);
+        let is_revision = input.get("is_revision").and_then(|v| v.as_bool()).unwrap_or(false);
+        let needs_more =
+            input.get("needs_more_thoughts").and_then(|v| v.as_bool()).unwrap_or(false);
 
         if thought.is_empty() {
             return Ok(ToolResult::error("Error: thought 是必需的"));
@@ -200,10 +171,7 @@ impl Tool for Base64ImageTool {
     }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
-        let path = input
-            .get("path")
-            .and_then(|v| v.as_str())
-            .unwrap_or_default();
+        let path = input.get("path").and_then(|v| v.as_str()).unwrap_or_default();
         if path.is_empty() {
             return Ok(ToolResult::error("Error: path 是必需的"));
         }

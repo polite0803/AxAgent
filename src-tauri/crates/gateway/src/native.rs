@@ -278,17 +278,11 @@ fn parse_gemini_model_action(model_action: &str) -> Option<ParsedGeminiModelActi
         _ => return None,
     };
 
-    Some(ParsedGeminiModelAction {
-        model: model.to_string(),
-        operation,
-    })
+    Some(ParsedGeminiModelAction { model: model.to_string(), operation })
 }
 
 fn parse_sse_json_line(line: &str) -> Option<serde_json::Value> {
-    let data = line
-        .strip_prefix("data:")?
-        .strip_prefix(' ')
-        .unwrap_or(line);
+    let data = line.strip_prefix("data:")?.strip_prefix(' ').unwrap_or(line);
 
     if data == "[DONE]" {
         return None;
@@ -298,22 +292,13 @@ fn parse_sse_json_line(line: &str) -> Option<serde_json::Value> {
 }
 
 fn extract_openai_response_usage(value: &serde_json::Value) -> Option<TokenUsage> {
-    let usage = value.get("usage").or_else(|| {
-        value
-            .get("response")
-            .and_then(|response| response.get("usage"))
-    })?;
+    let usage = value
+        .get("usage")
+        .or_else(|| value.get("response").and_then(|response| response.get("usage")))?;
 
-    let prompt_tokens: u32 = usage
-        .get("input_tokens")?
-        .as_u64()?
-        .try_into()
-        .unwrap_or(u32::MAX);
-    let completion_tokens: u32 = usage
-        .get("output_tokens")?
-        .as_u64()?
-        .try_into()
-        .unwrap_or(u32::MAX);
+    let prompt_tokens: u32 = usage.get("input_tokens")?.as_u64()?.try_into().unwrap_or(u32::MAX);
+    let completion_tokens: u32 =
+        usage.get("output_tokens")?.as_u64()?.try_into().unwrap_or(u32::MAX);
     let total_tokens = usage
         .get("total_tokens")
         .and_then(|value| value.as_u64())
@@ -538,13 +523,7 @@ async fn resolve_native_context(
             })?;
             let mut preferred_provider = None;
             for provider in &matching {
-                if state
-                    .adapter
-                    .providers()
-                    .get_active_key(&provider.id)
-                    .await
-                    .is_ok()
-                {
+                if state.adapter.providers().get_active_key(&provider.id).await.is_ok() {
                     preferred_provider = Some((*provider).clone());
                     break;
                 }
@@ -555,32 +534,19 @@ async fn resolve_native_context(
         (candidates[0].clone(), None)
     };
 
-    let provider_key = state
-        .adapter
-        .providers()
-        .get_active_key(&provider.id)
-        .await
-        .map_err(|_| {
+    let provider_key =
+        state.adapter.providers().get_active_key(&provider.id).await.map_err(|_| {
             error_response(
                 StatusCode::BAD_GATEWAY,
                 &format!("No active API key for provider '{}'", provider.name),
             )
         })?;
-    let api_key = state
-        .adapter
-        .crypto()
-        .decrypt_key(&provider_key.key_encrypted)
-        .map_err(|e| {
-            tracing::error!("Failed to decrypt provider key: {}", e);
-            error_response(StatusCode::INTERNAL_SERVER_ERROR, "Internal key error")
-        })?;
+    let api_key = state.adapter.crypto().decrypt_key(&provider_key.key_encrypted).map_err(|e| {
+        tracing::error!("Failed to decrypt provider key: {}", e);
+        error_response(StatusCode::INTERNAL_SERVER_ERROR, "Internal key error")
+    })?;
 
-    let global_settings = state
-        .adapter
-        .settings()
-        .get_settings()
-        .await
-        .unwrap_or_default();
+    let global_settings = state.adapter.settings().get_settings().await.unwrap_or_default();
     let resolved_proxy = ProviderProxyConfig::resolve(&provider.proxy_config, &global_settings);
 
     Ok(ResolvedNativeContext {
@@ -638,9 +604,7 @@ async fn record_native_outcome(
 
     let elapsed = start_time.elapsed().as_millis() as i32;
     let request_tokens = usage.map(|usage| usage.prompt_tokens as i64).unwrap_or(0);
-    let response_tokens = usage
-        .map(|usage| usage.completion_tokens as i64)
-        .unwrap_or(0);
+    let response_tokens = usage.map(|usage| usage.completion_tokens as i64).unwrap_or(0);
     let _ = adapter
         .request_log()
         .record_request_log(
@@ -1163,39 +1127,35 @@ mod tests {
             serde_json::from_slice(&bytes).unwrap()
         };
 
-        state
-            .captures
-            .lock()
-            .unwrap()
-            .push(CapturedUpstreamRequest {
-                method: parts.method.to_string(),
-                path_and_query: parts
-                    .uri
-                    .path_and_query()
-                    .map(|value| value.as_str().to_string())
-                    .unwrap_or_else(|| parts.uri.path().to_string()),
-                authorization: parts
-                    .headers
-                    .get(header::AUTHORIZATION)
-                    .and_then(|value| value.to_str().ok())
-                    .map(ToOwned::to_owned),
-                x_api_key: parts
-                    .headers
-                    .get("x-api-key")
-                    .and_then(|value| value.to_str().ok())
-                    .map(ToOwned::to_owned),
-                x_goog_api_key: parts
-                    .headers
-                    .get("x-goog-api-key")
-                    .and_then(|value| value.to_str().ok())
-                    .map(ToOwned::to_owned),
-                anthropic_version: parts
-                    .headers
-                    .get("anthropic-version")
-                    .and_then(|value| value.to_str().ok())
-                    .map(ToOwned::to_owned),
-                body: json_body,
-            });
+        state.captures.lock().unwrap().push(CapturedUpstreamRequest {
+            method: parts.method.to_string(),
+            path_and_query: parts
+                .uri
+                .path_and_query()
+                .map(|value| value.as_str().to_string())
+                .unwrap_or_else(|| parts.uri.path().to_string()),
+            authorization: parts
+                .headers
+                .get(header::AUTHORIZATION)
+                .and_then(|value| value.to_str().ok())
+                .map(ToOwned::to_owned),
+            x_api_key: parts
+                .headers
+                .get("x-api-key")
+                .and_then(|value| value.to_str().ok())
+                .map(ToOwned::to_owned),
+            x_goog_api_key: parts
+                .headers
+                .get("x-goog-api-key")
+                .and_then(|value| value.to_str().ok())
+                .map(ToOwned::to_owned),
+            anthropic_version: parts
+                .headers
+                .get("anthropic-version")
+                .and_then(|value| value.to_str().ok())
+                .map(ToOwned::to_owned),
+            body: json_body,
+        });
 
         let mut response = Response::builder().status(state.status);
         for (name, value) in state.headers.iter() {
@@ -1210,15 +1170,8 @@ mod tests {
         body: String,
     ) -> (String, Arc<Mutex<Vec<CapturedUpstreamRequest>>>, tokio::task::JoinHandle<()>) {
         let captures = Arc::new(Mutex::new(Vec::new()));
-        let state = MockUpstreamState {
-            captures: captures.clone(),
-            status,
-            headers,
-            body,
-        };
-        let app = Router::new()
-            .fallback(any(mock_upstream_handler))
-            .with_state(state);
+        let state = MockUpstreamState { captures: captures.clone(), status, headers, body };
+        let app = Router::new().fallback(any(mock_upstream_handler)).with_state(state);
         let listener = tokio::net::TcpListener::bind("127.1.0.0:0").await.unwrap();
         let addr = listener.local_addr().unwrap();
         let task = tokio::spawn(async move {
@@ -1524,9 +1477,7 @@ mod tests {
         assert_eq!(metrics.total_request_tokens, 11);
         assert_eq!(metrics.total_response_tokens, 7);
 
-        let logs = gateway_request_log::list_request_logs(&handle.conn, 10, 0)
-            .await
-            .unwrap();
+        let logs = gateway_request_log::list_request_logs(&handle.conn, 10, 0).await.unwrap();
         assert_eq!(logs.len(), 1);
         assert_eq!(logs[0].path, "/v1/responses");
         assert_eq!(logs[0].request_tokens, 11);
@@ -1596,9 +1547,7 @@ mod tests {
         assert_eq!(metrics.total_request_tokens, 61);
         assert_eq!(metrics.total_response_tokens, 17);
 
-        let logs = gateway_request_log::list_request_logs(&handle.conn, 10, 0)
-            .await
-            .unwrap();
+        let logs = gateway_request_log::list_request_logs(&handle.conn, 10, 0).await.unwrap();
         assert_eq!(logs[0].path, "/v1/messages");
         assert_eq!(logs[0].request_tokens, 61);
         assert_eq!(logs[0].response_tokens, 17);
@@ -1657,9 +1606,7 @@ mod tests {
         assert_eq!(metrics.total_requests, 0);
         assert_eq!(metrics.total_tokens, 0);
 
-        let logs = gateway_request_log::list_request_logs(&handle.conn, 10, 0)
-            .await
-            .unwrap();
+        let logs = gateway_request_log::list_request_logs(&handle.conn, 10, 0).await.unwrap();
         assert_eq!(logs[0].path, "/v1beta/models/gemini-2.5-pro:countTokens");
         assert_eq!(logs[0].request_tokens, 27);
         assert_eq!(logs[0].response_tokens, 0);

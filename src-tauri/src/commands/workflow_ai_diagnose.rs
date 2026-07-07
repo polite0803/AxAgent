@@ -189,13 +189,8 @@ Respond ONLY with valid JSON.",
 
     // 查找默认 provider 调用 LLM
     let db = state.harness.db();
-    let providers = provider::list_providers(db)
-        .await
-        .map_err(|e| e.to_string())?;
-    let default_prov = providers
-        .iter()
-        .find(|p| p.enabled)
-        .ok_or("No enabled provider found")?;
+    let providers = provider::list_providers(db).await.map_err(|e| e.to_string())?;
+    let default_prov = providers.iter().find(|p| p.enabled).ok_or("No enabled provider found")?;
     let key = provider_keys::Entity::find()
         .filter(provider_keys::Column::ProviderId.eq(&default_prov.id))
         .filter(provider_keys::Column::Enabled.eq(1))
@@ -227,13 +222,8 @@ Respond ONLY with valid JSON.",
         .await
         .map_err(|e| format!("LLM call failed: {e}"))?;
 
-    let result: serde_json::Value = resp
-        .json()
-        .await
-        .map_err(|e| format!("Parse failed: {e}"))?;
-    let content = result["choices"][0]["message"]["content"]
-        .as_str()
-        .unwrap_or("{}");
+    let result: serde_json::Value = resp.json().await.map_err(|e| format!("Parse failed: {e}"))?;
+    let content = result["choices"][0]["message"]["content"].as_str().unwrap_or("{}");
     let parsed: DiagnosticReportV2 =
         serde_json::from_str(content).map_err(|e| format!("LLM response parse failed: {e}"))?;
 
@@ -352,17 +342,15 @@ pub async fn apply_diagnostic_fixes(
 fn fix_to_chat_action(fix: &DiagnosticFix) -> Option<ChatAction> {
     use super::_workflow_ai_protocol::EditAssetFilePayload;
     match fix {
-        DiagnosticFix::UpdateVariable {
-            template_id,
-            name,
-            value,
-        } => Some(ChatAction::UpdateVariable {
-            data: super::_workflow_ai_protocol::UpdateVariablePayload {
-                template_id: template_id.clone(),
-                name: name.clone(),
-                value: value.clone(),
-            },
-        }),
+        DiagnosticFix::UpdateVariable { template_id, name, value } => {
+            Some(ChatAction::UpdateVariable {
+                data: super::_workflow_ai_protocol::UpdateVariablePayload {
+                    template_id: template_id.clone(),
+                    name: name.clone(),
+                    value: value.clone(),
+                },
+            })
+        },
         DiagnosticFix::UpdateInputMapping { node_id, mappings } => {
             Some(ChatAction::UpdateInputMapping {
                 data: super::_workflow_ai_protocol::UpdateInputMappingPayload {
@@ -377,30 +365,25 @@ fn fix_to_chat_action(fix: &DiagnosticFix) -> Option<ChatAction> {
                 },
             })
         },
-        DiagnosticFix::EditAssetFile {
-            path,
-            operation,
-            anchor_line,
-            code,
-            description,
-        } => Some(ChatAction::EditAssetFile {
-            data: EditAssetFilePayload {
-                path: path.clone(),
-                operation: *operation,
-                anchor_line: *anchor_line,
-                code: code.clone(),
-                description: description.clone(),
-            },
-        }),
-        DiagnosticFix::RollbackToVersion {
-            template_id,
-            version,
-        } => Some(ChatAction::RollbackToVersion {
-            data: super::_workflow_ai_protocol::RollbackToVersionPayload {
-                template_id: template_id.clone(),
-                version: *version,
-            },
-        }),
+        DiagnosticFix::EditAssetFile { path, operation, anchor_line, code, description } => {
+            Some(ChatAction::EditAssetFile {
+                data: EditAssetFilePayload {
+                    path: path.clone(),
+                    operation: *operation,
+                    anchor_line: *anchor_line,
+                    code: code.clone(),
+                    description: description.clone(),
+                },
+            })
+        },
+        DiagnosticFix::RollbackToVersion { template_id, version } => {
+            Some(ChatAction::RollbackToVersion {
+                data: super::_workflow_ai_protocol::RollbackToVersionPayload {
+                    template_id: template_id.clone(),
+                    version: *version,
+                },
+            })
+        },
         // 原 6 种(节点级 UI)由前端 store 路径处理
         DiagnosticFix::SetNodeField { .. }
         | DiagnosticFix::DeleteNode { .. }
@@ -433,10 +416,7 @@ mod tests {
     fn fix_to_chat_action_update_input_mapping() {
         let fix = DiagnosticFix::UpdateInputMapping {
             node_id: "n1".to_string(),
-            mappings: vec![InputMappingEntry {
-                target: "a".to_string(),
-                source: "b".to_string(),
-            }],
+            mappings: vec![InputMappingEntry { target: "a".to_string(), source: "b".to_string() }],
         };
         let action = fix_to_chat_action(&fix).expect("UpdateInputMapping should map to ChatAction");
         assert!(matches!(action, ChatAction::UpdateInputMapping { .. }));
@@ -458,10 +438,7 @@ mod tests {
 
     #[test]
     fn fix_to_chat_action_rollback_to_version() {
-        let fix = DiagnosticFix::RollbackToVersion {
-            template_id: "t1".to_string(),
-            version: 3,
-        };
+        let fix = DiagnosticFix::RollbackToVersion { template_id: "t1".to_string(), version: 3 };
         let action = fix_to_chat_action(&fix).expect("RollbackToVersion should map to ChatAction");
         assert!(matches!(action, ChatAction::RollbackToVersion { .. }));
     }
@@ -480,44 +457,32 @@ mod tests {
 
     #[test]
     fn fix_to_chat_action_delete_node_returns_none() {
-        let fix = DiagnosticFix::DeleteNode {
-            node_id: "n".to_string(),
-        };
+        let fix = DiagnosticFix::DeleteNode { node_id: "n".to_string() };
         assert!(fix_to_chat_action(&fix).is_none());
     }
 
     #[test]
     fn fix_to_chat_action_delete_edge_returns_none() {
-        let fix = DiagnosticFix::DeleteEdge {
-            edge_id: "e".to_string(),
-        };
+        let fix = DiagnosticFix::DeleteEdge { edge_id: "e".to_string() };
         assert!(fix_to_chat_action(&fix).is_none());
     }
 
     #[test]
     fn fix_to_chat_action_enable_retry_returns_none() {
-        let fix = DiagnosticFix::EnableRetry {
-            node_id: "n".to_string(),
-            max_retries: 3,
-        };
+        let fix = DiagnosticFix::EnableRetry { node_id: "n".to_string(), max_retries: 3 };
         assert!(fix_to_chat_action(&fix).is_none());
     }
 
     #[test]
     fn fix_to_chat_action_set_timeout_returns_none() {
-        let fix = DiagnosticFix::SetTimeout {
-            node_id: "n".to_string(),
-            timeout_ms: 1000,
-        };
+        let fix = DiagnosticFix::SetTimeout { node_id: "n".to_string(), timeout_ms: 1000 };
         assert!(fix_to_chat_action(&fix).is_none());
     }
 
     #[test]
     fn fix_to_chat_action_remove_debater_step_returns_none() {
-        let fix = DiagnosticFix::RemoveDebaterStep {
-            node_id: "n".to_string(),
-            step_id: "s".to_string(),
-        };
+        let fix =
+            DiagnosticFix::RemoveDebaterStep { node_id: "n".to_string(), step_id: "s".to_string() };
         assert!(fix_to_chat_action(&fix).is_none());
     }
 }

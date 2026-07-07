@@ -39,10 +39,7 @@ pub struct ReportGenerator {
 
 impl ReportGenerator {
     pub fn new(citation_tracker: Arc<CitationTracker>) -> Self {
-        Self {
-            outline_builder: OutlineBuilder::new(),
-            citation_tracker,
-        }
+        Self { outline_builder: OutlineBuilder::new(), citation_tracker }
     }
 
     pub fn with_style(mut self, style: ReportStyle) -> Self {
@@ -57,24 +54,17 @@ impl ReportGenerator {
     }
 
     pub async fn generate(&self, state: &ResearchState) -> Result<ResearchReport, ReportError> {
-        let outline = self
-            .build_outline(state)
-            .await
-            .map_err(ReportError::OutlineError)?;
+        let outline = self.build_outline(state).await.map_err(ReportError::OutlineError)?;
 
-        let sections_content = self
-            .generate_sections(&outline, state)
-            .await
-            .map_err(ReportError::SynthesisError)?;
+        let sections_content =
+            self.generate_sections(&outline, state).await.map_err(ReportError::SynthesisError)?;
 
         let content = sections_content.join("\n\n");
 
         let citations = self.citation_tracker.get_all_citations().await;
 
-        let summary = self
-            .generate_summary(&sections_content)
-            .await
-            .map_err(ReportError::SynthesisError)?;
+        let summary =
+            self.generate_summary(&sections_content).await.map_err(ReportError::SynthesisError)?;
 
         let report = ResearchReport {
             id: uuid::Uuid::new_v4().to_string(),
@@ -120,9 +110,7 @@ impl ReportGenerator {
 
         let sources: Vec<_> = state.search_results.clone();
 
-        let contents = synthesizer
-            .synthesize_batch(&outline.sections, &sources)
-            .await;
+        let contents = synthesizer.synthesize_batch(&outline.sections, &sources).await;
 
         let mut full_contents = Vec::new();
 
@@ -200,10 +188,7 @@ impl ReportGenerator {
         &self,
         state: &ResearchState,
     ) -> Result<String, ReportError> {
-        let outline = self
-            .build_outline(state)
-            .await
-            .map_err(ReportError::OutlineError)?;
+        let outline = self.build_outline(state).await.map_err(ReportError::OutlineError)?;
 
         let mut md = format!("# {}\n\n", outline.title);
 

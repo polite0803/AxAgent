@@ -24,10 +24,7 @@ pub async fn list_jobs(
             Ok(r) => r,
             Err(resp) => return resp,
         };
-    let adapter = match state
-        .provider_registry
-        .get(provider_type_to_str(&provider.provider_type))
-    {
+    let adapter = match state.provider_registry.get(provider_type_to_str(&provider.provider_type)) {
         Some(a) => a,
         None => {
             return error_response(StatusCode::BAD_GATEWAY, "No adapter available");
@@ -94,10 +91,7 @@ pub async fn create_job(
             Ok(r) => r,
             Err(resp) => return resp,
         };
-    let adapter = match state
-        .provider_registry
-        .get(provider_type_to_str(&provider.provider_type))
-    {
+    let adapter = match state.provider_registry.get(provider_type_to_str(&provider.provider_type)) {
         Some(a) => a,
         None => {
             return error_response(StatusCode::BAD_GATEWAY, "No adapter available");
@@ -167,10 +161,7 @@ pub async fn get_job(
             Ok(r) => r,
             Err(resp) => return resp,
         };
-    let adapter = match state
-        .provider_registry
-        .get(provider_type_to_str(&provider.provider_type))
-    {
+    let adapter = match state.provider_registry.get(provider_type_to_str(&provider.provider_type)) {
         Some(a) => a,
         None => {
             return error_response(StatusCode::BAD_GATEWAY, "No adapter available");
@@ -238,10 +229,7 @@ pub async fn update_job(
             Ok(r) => r,
             Err(resp) => return resp,
         };
-    let adapter = match state
-        .provider_registry
-        .get(provider_type_to_str(&provider.provider_type))
-    {
+    let adapter = match state.provider_registry.get(provider_type_to_str(&provider.provider_type)) {
         Some(a) => a,
         None => {
             return error_response(StatusCode::BAD_GATEWAY, "No adapter available");
@@ -311,10 +299,7 @@ pub async fn delete_job(
             Ok(r) => r,
             Err(resp) => return resp,
         };
-    let adapter = match state
-        .provider_registry
-        .get(provider_type_to_str(&provider.provider_type))
-    {
+    let adapter = match state.provider_registry.get(provider_type_to_str(&provider.provider_type)) {
         Some(a) => a,
         None => {
             return error_response(StatusCode::BAD_GATEWAY, "No adapter available");
@@ -375,10 +360,7 @@ pub async fn pause_job(
             Ok(r) => r,
             Err(resp) => return resp,
         };
-    let adapter = match state
-        .provider_registry
-        .get(provider_type_to_str(&provider.provider_type))
-    {
+    let adapter = match state.provider_registry.get(provider_type_to_str(&provider.provider_type)) {
         Some(a) => a,
         None => {
             return error_response(StatusCode::BAD_GATEWAY, "No adapter available");
@@ -439,10 +421,7 @@ pub async fn resume_job(
             Ok(r) => r,
             Err(resp) => return resp,
         };
-    let adapter = match state
-        .provider_registry
-        .get(provider_type_to_str(&provider.provider_type))
-    {
+    let adapter = match state.provider_registry.get(provider_type_to_str(&provider.provider_type)) {
         Some(a) => a,
         None => {
             return error_response(StatusCode::BAD_GATEWAY, "No adapter available");
@@ -503,10 +482,7 @@ pub async fn trigger_job(
             Ok(r) => r,
             Err(resp) => return resp,
         };
-    let adapter = match state
-        .provider_registry
-        .get(provider_type_to_str(&provider.provider_type))
-    {
+    let adapter = match state.provider_registry.get(provider_type_to_str(&provider.provider_type)) {
         Some(a) => a,
         None => {
             return error_response(StatusCode::BAD_GATEWAY, "No adapter available");
@@ -567,10 +543,7 @@ pub async fn list_runs(
             Ok(r) => r,
             Err(resp) => return resp,
         };
-    let adapter = match state
-        .provider_registry
-        .get(provider_type_to_str(&provider.provider_type))
-    {
+    let adapter = match state.provider_registry.get(provider_type_to_str(&provider.provider_type)) {
         Some(a) => a,
         None => {
             return error_response(StatusCode::BAD_GATEWAY, "No adapter available");
@@ -637,10 +610,7 @@ pub async fn trigger_run(
             Ok(r) => r,
             Err(resp) => return resp,
         };
-    let adapter = match state
-        .provider_registry
-        .get(provider_type_to_str(&provider.provider_type))
-    {
+    let adapter = match state.provider_registry.get(provider_type_to_str(&provider.provider_type)) {
         Some(a) => a,
         None => {
             return error_response(StatusCode::BAD_GATEWAY, "No adapter available");
@@ -709,10 +679,7 @@ pub async fn get_run(
             Ok(r) => r,
             Err(resp) => return resp,
         };
-    let adapter = match state
-        .provider_registry
-        .get(provider_type_to_str(&provider.provider_type))
-    {
+    let adapter = match state.provider_registry.get(provider_type_to_str(&provider.provider_type)) {
         Some(a) => a,
         None => {
             return error_response(StatusCode::BAD_GATEWAY, "No adapter available");
@@ -778,10 +745,7 @@ pub async fn cancel_run(
             Ok(r) => r,
             Err(resp) => return resp,
         };
-    let adapter = match state
-        .provider_registry
-        .get(provider_type_to_str(&provider.provider_type))
-    {
+    let adapter = match state.provider_registry.get(provider_type_to_str(&provider.provider_type)) {
         Some(a) => a,
         None => {
             return error_response(StatusCode::BAD_GATEWAY, "No adapter available");
@@ -840,10 +804,7 @@ pub async fn get_run_logs(
             Ok(r) => r,
             Err(resp) => return resp,
         };
-    let adapter = match state
-        .provider_registry
-        .get(provider_type_to_str(&provider.provider_type))
-    {
+    let adapter = match state.provider_registry.get(provider_type_to_str(&provider.provider_type)) {
         Some(a) => a,
         None => {
             return error_response(StatusCode::BAD_GATEWAY, "No adapter available");
@@ -909,10 +870,7 @@ pub async fn retry_run(
             Ok(r) => r,
             Err(resp) => return resp,
         };
-    let adapter = match state
-        .provider_registry
-        .get(provider_type_to_str(&provider.provider_type))
-    {
+    let adapter = match state.provider_registry.get(provider_type_to_str(&provider.provider_type)) {
         Some(a) => a,
         None => {
             return error_response(StatusCode::BAD_GATEWAY, "No adapter available");
@@ -978,10 +936,7 @@ pub async fn get_job_schedule(
             Ok(r) => r,
             Err(resp) => return resp,
         };
-    let adapter = match state
-        .provider_registry
-        .get(provider_type_to_str(&provider.provider_type))
-    {
+    let adapter = match state.provider_registry.get(provider_type_to_str(&provider.provider_type)) {
         Some(a) => a,
         None => {
             return error_response(StatusCode::BAD_GATEWAY, "No adapter available");
@@ -1048,10 +1003,7 @@ pub async fn update_job_schedule(
             Ok(r) => r,
             Err(resp) => return resp,
         };
-    let adapter = match state
-        .provider_registry
-        .get(provider_type_to_str(&provider.provider_type))
-    {
+    let adapter = match state.provider_registry.get(provider_type_to_str(&provider.provider_type)) {
         Some(a) => a,
         None => {
             return error_response(StatusCode::BAD_GATEWAY, "No adapter available");
@@ -1061,10 +1013,7 @@ pub async fn update_job_schedule(
     let schedule_str = serde_json::to_string(&schedule)
         .unwrap_or_else(|e| format!("{{\"error\":\"Serialization failed: {}\"}}", e));
 
-    match adapter
-        .update_job_schedule(&ctx, &job_id, &schedule_str)
-        .await
-    {
+    match adapter.update_job_schedule(&ctx, &job_id, &schedule_str).await {
         Ok(response_body) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
             record_log!(
@@ -1126,10 +1075,7 @@ pub async fn enable_job(
             Ok(r) => r,
             Err(resp) => return resp,
         };
-    let adapter = match state
-        .provider_registry
-        .get(provider_type_to_str(&provider.provider_type))
-    {
+    let adapter = match state.provider_registry.get(provider_type_to_str(&provider.provider_type)) {
         Some(a) => a,
         None => {
             return error_response(StatusCode::BAD_GATEWAY, "No adapter available");
@@ -1188,10 +1134,7 @@ pub async fn disable_job(
             Ok(r) => r,
             Err(resp) => return resp,
         };
-    let adapter = match state
-        .provider_registry
-        .get(provider_type_to_str(&provider.provider_type))
-    {
+    let adapter = match state.provider_registry.get(provider_type_to_str(&provider.provider_type)) {
         Some(a) => a,
         None => {
             return error_response(StatusCode::BAD_GATEWAY, "No adapter available");

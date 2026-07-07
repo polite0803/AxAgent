@@ -26,10 +26,7 @@ pub struct DecompositionCache {
 
 impl DecompositionCache {
     pub fn new(ttl_seconds: u64) -> Self {
-        Self {
-            cache: HashMap::new(),
-            ttl: Duration::from_secs(ttl_seconds),
-        }
+        Self { cache: HashMap::new(), ttl: Duration::from_secs(ttl_seconds) }
     }
 
     pub fn get(&self, key: &str) -> Option<CachedDecomposition> {
@@ -245,9 +242,7 @@ fn find_similar_local_tools(
     }
 
     matches.sort_by(|a, b| {
-        b.similarity_score
-            .partial_cmp(&a.similarity_score)
-            .unwrap_or(std::cmp::Ordering::Equal)
+        b.similarity_score.partial_cmp(&a.similarity_score).unwrap_or(std::cmp::Ordering::Equal)
     });
     matches
 }
@@ -311,9 +306,8 @@ fn create_plugin_manager() -> Result<PluginManager, String> {
 }
 
 async fn get_mcp_tool_names(db: &sea_orm::DatabaseConnection) -> Result<Vec<String>, String> {
-    let servers = axagent_dao::repo::mcp_server::list_mcp_servers(db)
-        .await
-        .map_err(|e| e.to_string())?;
+    let servers =
+        axagent_dao::repo::mcp_server::list_mcp_servers(db).await.map_err(|e| e.to_string())?;
     let mut tool_names = Vec::new();
     for server in servers {
         if let Ok(tools) =
@@ -335,10 +329,7 @@ async fn get_local_tool_names(state: &AppState) -> Vec<String> {
 fn get_plugin_tool_names() -> Result<Vec<String>, String> {
     let manager = create_plugin_manager()?;
     let tools = manager.aggregated_tools().map_err(|e| e.to_string())?;
-    Ok(tools
-        .into_iter()
-        .map(|t| t.definition().name.clone())
-        .collect())
+    Ok(tools.into_iter().map(|t| t.definition().name.clone()).collect())
 }
 
 // ── Commands ──
@@ -356,9 +347,7 @@ pub async fn preview_decomposition(
         if let Some(cached) = cache.get(&content_hash) {
             let dep_results = ToolResolver::check_tool_dependencies(
                 &cached.result.tool_dependencies,
-                &get_mcp_tool_names(state.harness.db())
-                    .await
-                    .unwrap_or_default(),
+                &get_mcp_tool_names(state.harness.db()).await.unwrap_or_default(),
                 &get_local_tool_names(&state).await,
                 &get_plugin_tool_names().unwrap_or_default(),
             );
@@ -399,9 +388,7 @@ pub async fn preview_decomposition(
 
     let result = axagent_trajectory::SkillDecomposer::decompose(&parsed).map_err(|e| e.message)?;
 
-    let mcp_tools = get_mcp_tool_names(state.harness.db())
-        .await
-        .unwrap_or_default();
+    let mcp_tools = get_mcp_tool_names(state.harness.db()).await.unwrap_or_default();
     let local_tools = get_local_tool_names(&state).await;
     let plugin_tools = get_plugin_tool_names().unwrap_or_default();
 
@@ -566,9 +553,7 @@ pub async fn check_tool_semantic_matches(
         }
     }
 
-    Ok(ToolSemanticCheckResponse {
-        matches: all_matches,
-    })
+    Ok(ToolSemanticCheckResponse { matches: all_matches })
 }
 
 #[tauri::command]
@@ -734,10 +719,8 @@ Only output the JSON, no other text."#,
         store: None,
     };
 
-    let response = adapter
-        .chat(&ctx, llm_request)
-        .await
-        .map_err(|e| format!("LLM call failed: {}", e))?;
+    let response =
+        adapter.chat(&ctx, llm_request).await.map_err(|e| format!("LLM call failed: {}", e))?;
 
     let content = response.content.trim();
 
@@ -796,14 +779,9 @@ pub async fn get_marketplace_skill_content(
             ));
         }
 
-        let body: serde_json::Value = response
-            .json()
-            .await
-            .map_err(|e| format!("Failed to parse repo info: {}", e))?;
-        body["default_branch"]
-            .as_str()
-            .unwrap_or("main")
-            .to_string()
+        let body: serde_json::Value =
+            response.json().await.map_err(|e| format!("Failed to parse repo info: {}", e))?;
+        body["default_branch"].as_str().unwrap_or("main").to_string()
     };
 
     let contents_url = format!(
@@ -822,29 +800,22 @@ pub async fn get_marketplace_skill_content(
         return Err(format!("GitHub Contents API returned {}", response.status()));
     }
 
-    let contents: Vec<serde_json::Value> = response
-        .json()
-        .await
-        .map_err(|e| format!("Failed to parse contents: {}", e))?;
+    let contents: Vec<serde_json::Value> =
+        response.json().await.map_err(|e| format!("Failed to parse contents: {}", e))?;
 
     let md_files: Vec<&serde_json::Value> = contents
         .iter()
         .filter(|item| {
             item["type"].as_str() == Some("file")
-                && item["name"]
-                    .as_str()
-                    .map(|n| n.to_uppercase().ends_with(".MD"))
-                    .unwrap_or(false)
+                && item["name"].as_str().map(|n| n.to_uppercase().ends_with(".MD")).unwrap_or(false)
         })
         .collect();
 
     for filename in &SKILL_FILENAMES {
-        if let Some(file) = md_files.iter().find(|f| {
-            f["name"]
-                .as_str()
-                .map(|n| n.eq_ignore_ascii_case(filename))
-                .unwrap_or(false)
-        }) {
+        if let Some(file) = md_files
+            .iter()
+            .find(|f| f["name"].as_str().map(|n| n.eq_ignore_ascii_case(filename)).unwrap_or(false))
+        {
             let download_url = file["download_url"].as_str().unwrap_or("");
             if download_url.is_empty() {
                 continue;

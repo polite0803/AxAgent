@@ -41,10 +41,7 @@ pub struct FrontendEventAdapter {
 impl FrontendEventAdapter {
     pub fn new(event_bus: Arc<AgentEventBus>) -> Self {
         let (frontend_sender, _) = broadcast::channel(1000);
-        Self {
-            event_bus,
-            frontend_sender,
-        }
+        Self { event_bus, frontend_sender }
     }
 
     pub fn subscribe(
@@ -95,9 +92,7 @@ impl FrontendEventAdapter {
 
 impl std::fmt::Debug for FrontendEventAdapter {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("FrontendEventAdapter")
-            .field("event_bus", &self.event_bus.name())
-            .finish()
+        f.debug_struct("FrontendEventAdapter").field("event_bus", &self.event_bus.name()).finish()
     }
 }
 
@@ -162,10 +157,7 @@ pub struct TauriEventEnvelope {
 
 impl TauriEventEnvelope {
     pub fn new(event_type: AgentEventType, payload: FrontendEventPayload) -> Self {
-        Self {
-            event_name: format!("agent::{}", event_type),
-            payload,
-        }
+        Self { event_name: format!("agent::{}", event_type), payload }
     }
 }
 
@@ -175,9 +167,7 @@ pub struct TauriEventAdapter {
 
 impl TauriEventAdapter {
     pub fn new(event_bus: Arc<AgentEventBus>) -> Self {
-        Self {
-            frontend_adapter: FrontendEventAdapter::new(event_bus),
-        }
+        Self { frontend_adapter: FrontendEventAdapter::new(event_bus) }
     }
 
     pub fn subscribe_all(&self) -> broadcast::Receiver<TauriEventEnvelope> {
@@ -226,9 +216,8 @@ impl TauriEventAdapter {
     ) -> broadcast::Receiver<TauriEventEnvelope> {
         let (tx, rx) = broadcast::channel(1000);
 
-        let receiver = self
-            .frontend_adapter
-            .subscribe(FrontendEventFilter::Specific(event_types.clone()));
+        let receiver =
+            self.frontend_adapter.subscribe(FrontendEventFilter::Specific(event_types.clone()));
 
         tokio::spawn(async move {
             let mut rx = receiver;

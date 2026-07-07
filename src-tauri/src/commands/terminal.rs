@@ -39,9 +39,7 @@ pub async fn git_get_branch() -> Result<String, String> {
 
 #[tauri::command]
 pub async fn git_status() -> Result<GitStatusInfo, String> {
-    let branch = git_get_branch()
-        .await
-        .unwrap_or_else(|_| "unknown".to_string());
+    let branch = git_get_branch().await.unwrap_or_else(|_| "unknown".to_string());
 
     let output = axagent_kit::utils::cmd("git")
         .args(["status", "--porcelain"])
@@ -71,23 +69,12 @@ pub async fn git_status() -> Result<GitStatusInfo, String> {
         }
     }
 
-    Ok(GitStatusInfo {
-        branch,
-        ahead: 0,
-        behind: 0,
-        dirty,
-        staged,
-        conflicted,
-    })
+    Ok(GitStatusInfo { branch, ahead: 0, behind: 0, dirty, staged, conflicted })
 }
 
 #[tauri::command]
 pub async fn system_get_info() -> Result<SystemInfo, String> {
-    Ok(SystemInfo {
-        cpu_usage: 0.0,
-        memory_usage: 0.0,
-        network_status: "connected".to_string(),
-    })
+    Ok(SystemInfo { cpu_usage: 0.0, memory_usage: 0.0, network_status: "connected".to_string() })
 }
 
 #[tauri::command]

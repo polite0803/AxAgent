@@ -79,10 +79,7 @@ pub fn chunk_text_with_separator_and_markdown(
         return vec![];
     }
     if text.len() <= chunk_size {
-        return vec![TextChunk {
-            index: 0,
-            content: text.to_string(),
-        }];
+        return vec![TextChunk { index: 0, content: text.to_string() }];
     }
 
     // If a custom separator is provided, use separator-first chunking
@@ -159,10 +156,7 @@ fn chunk_by_markdown_headings(text: &str, chunk_size: usize, overlap: usize) -> 
             // Smart-chunk the oversized section
             let sub_chunks = chunk_text_impl(section.trim(), chunk_size, overlap);
             for sub in sub_chunks {
-                chunks.push(TextChunk {
-                    index: chunks.len() as i32,
-                    content: sub.content,
-                });
+                chunks.push(TextChunk { index: chunks.len() as i32, content: sub.content });
             }
             continue;
         }
@@ -226,10 +220,7 @@ fn chunk_by_separator(text: &str, chunk_size: usize, overlap: usize, sep: &str) 
             // Smart-chunk the oversized segment
             let sub_chunks = chunk_text_impl(segment.trim(), chunk_size, overlap);
             for sub in sub_chunks {
-                chunks.push(TextChunk {
-                    index: chunks.len() as i32,
-                    content: sub.content,
-                });
+                chunks.push(TextChunk { index: chunks.len() as i32, content: sub.content });
             }
             continue;
         }
@@ -266,10 +257,7 @@ fn chunk_text_impl(text: &str, chunk_size: usize, overlap: usize) -> Vec<TextChu
         return vec![];
     }
     if text.len() <= chunk_size {
-        return vec![TextChunk {
-            index: 0,
-            content: text.to_string(),
-        }];
+        return vec![TextChunk { index: 0, content: text.to_string() }];
     }
 
     let mut chunks = Vec::new();
@@ -288,10 +276,8 @@ fn chunk_text_impl(text: &str, chunk_size: usize, overlap: usize) -> Vec<TextChu
 
         let chunk_content = text[start..actual_end].trim();
         if !chunk_content.is_empty() {
-            chunks.push(TextChunk {
-                index: chunks.len() as i32,
-                content: chunk_content.to_string(),
-            });
+            chunks
+                .push(TextChunk { index: chunks.len() as i32, content: chunk_content.to_string() });
         }
 
         // Move start forward by (chunk_size - overlap), but at least 1 char
@@ -440,10 +426,7 @@ pub fn chunk_for_code(
         return vec![];
     }
     if text.len() <= chunk_size {
-        return vec![TextChunk {
-            index: 0,
-            content: text.to_string(),
-        }];
+        return vec![TextChunk { index: 0, content: text.to_string() }];
     }
 
     let mut chunks = Vec::new();
@@ -460,10 +443,8 @@ pub fn chunk_for_code(
 
         let chunk_content = text[start..actual_end].trim();
         if !chunk_content.is_empty() {
-            chunks.push(TextChunk {
-                index: chunks.len() as i32,
-                content: chunk_content.to_string(),
-            });
+            chunks
+                .push(TextChunk { index: chunks.len() as i32, content: chunk_content.to_string() });
         }
 
         let advance = if actual_end - start > overlap {
@@ -519,12 +500,11 @@ pub fn chunk_by_mime_type(
         return chunk_for_code(text, chunk_size, overlap);
     }
 
-    let is_markdown = matches!(
-        lower_mime.as_str(),
-        "text/markdown" | "text/x-markdown" | "text/markdown+github"
-    ) || lower_mime.ends_with(".md")
-        || text.starts_with("# ")
-        || text.starts_with("## ");
+    let is_markdown =
+        matches!(lower_mime.as_str(), "text/markdown" | "text/x-markdown" | "text/markdown+github")
+            || lower_mime.ends_with(".md")
+            || text.starts_with("# ")
+            || text.starts_with("## ");
 
     let chunk_size = chunk_size.unwrap_or(DEFAULT_CHUNK_SIZE);
     let overlap = overlap.unwrap_or(DEFAULT_OVERLAP);

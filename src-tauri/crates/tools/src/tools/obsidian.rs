@@ -94,10 +94,7 @@ impl Tool for ObsidianListFilesTool {
     }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
-        let vault_path = input
-            .get("vault_path")
-            .and_then(|v| v.as_str())
-            .unwrap_or_default();
+        let vault_path = input.get("vault_path").and_then(|v| v.as_str()).unwrap_or_default();
         if vault_path.is_empty() {
             return Ok(ToolResult::error("Error: vault_path 是必需的"));
         }
@@ -114,11 +111,7 @@ impl Tool for ObsidianListFilesTool {
         if files.is_empty() {
             Ok(ToolResult::success("未找到 .md 文件"))
         } else {
-            Ok(ToolResult::success(format!(
-                "文件列表 ({}):\n{}",
-                files.len(),
-                files.join("\n")
-            )))
+            Ok(ToolResult::success(format!("文件列表 ({}):\n{}", files.len(), files.join("\n"))))
         }
     }
 }
@@ -144,14 +137,8 @@ impl Tool for ObsidianReadFileTool {
     }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
-        let vault_path = input
-            .get("vault_path")
-            .and_then(|v| v.as_str())
-            .unwrap_or_default();
-        let file_path = input
-            .get("file_path")
-            .and_then(|v| v.as_str())
-            .unwrap_or_default();
+        let vault_path = input.get("vault_path").and_then(|v| v.as_str()).unwrap_or_default();
+        let file_path = input.get("file_path").and_then(|v| v.as_str()).unwrap_or_default();
         if vault_path.is_empty() || file_path.is_empty() {
             return Ok(ToolResult::error("Error: vault_path 和 file_path 都是必需的"));
         }

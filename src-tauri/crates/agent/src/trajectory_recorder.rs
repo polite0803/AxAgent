@@ -25,12 +25,8 @@ pub struct TrajectorySummary {
 
 impl From<&Trajectory> for TrajectorySummary {
     fn from(t: &Trajectory) -> Self {
-        let tool_call_count = t
-            .steps
-            .iter()
-            .filter_map(|s| s.tool_calls.as_ref())
-            .map(|c| c.len())
-            .sum();
+        let tool_call_count =
+            t.steps.iter().filter_map(|s| s.tool_calls.as_ref()).map(|c| c.len()).sum();
         Self {
             id: t.id.clone(),
             session_id: t.session_id.clone(),
@@ -103,29 +99,17 @@ impl TrajectoryStore {
             Some(record) => {
                 let mut active: settings_model::ActiveModel = record.into();
                 active.value = Set(json);
-                active
-                    .update(self.db.as_ref())
-                    .await
-                    .map_err(|e| e.to_string())?;
+                active.update(self.db.as_ref()).await.map_err(|e| e.to_string())?;
             },
             None => {
-                let active = settings_model::ActiveModel {
-                    key: Set(key),
-                    value: Set(json),
-                };
-                active
-                    .insert(self.db.as_ref())
-                    .await
-                    .map_err(|e| e.to_string())?;
+                let active = settings_model::ActiveModel { key: Set(key), value: Set(json) };
+                active.insert(self.db.as_ref()).await.map_err(|e| e.to_string())?;
             },
         }
 
         let index_key = "trajectory_index".to_string();
-        let mut index: Vec<String> = self
-            .load_index(&index_key)
-            .await
-            .unwrap_or_default()
-            .unwrap_or_default();
+        let mut index: Vec<String> =
+            self.load_index(&index_key).await.unwrap_or_default().unwrap_or_default();
 
         if !index.contains(&trajectory.id) {
             index.push(trajectory.id.clone());
@@ -157,11 +141,8 @@ impl TrajectoryStore {
     }
 
     pub async fn list(&self, limit: usize) -> Result<Vec<TrajectorySummary>, String> {
-        let index = self
-            .load_index("trajectory_index")
-            .await
-            .unwrap_or_default()
-            .unwrap_or_default();
+        let index =
+            self.load_index("trajectory_index").await.unwrap_or_default().unwrap_or_default();
         let mut summaries = Vec::new();
 
         for id in index.iter().rev() {
@@ -209,17 +190,11 @@ impl TrajectoryStore {
         match existing {
             Some(record) => {
                 let active: settings_model::ActiveModel = record.into();
-                active
-                    .delete(self.db.as_ref())
-                    .await
-                    .map_err(|e| e.to_string())?;
+                active.delete(self.db.as_ref()).await.map_err(|e| e.to_string())?;
 
                 let index_key = "trajectory_index".to_string();
-                let mut index = self
-                    .load_index(&index_key)
-                    .await
-                    .unwrap_or_default()
-                    .unwrap_or_default();
+                let mut index =
+                    self.load_index(&index_key).await.unwrap_or_default().unwrap_or_default();
                 index.retain(|i| i != id);
                 self.save_index(&index_key, &index).await?;
 
@@ -265,20 +240,14 @@ impl TrajectoryStore {
             Some(record) => {
                 let mut active: settings_model::ActiveModel = record.into();
                 active.value = Set(json);
-                active
-                    .update(self.db.as_ref())
-                    .await
-                    .map_err(|e| e.to_string())?;
+                active.update(self.db.as_ref()).await.map_err(|e| e.to_string())?;
             },
             None => {
                 let active = settings_model::ActiveModel {
                     key: Set(index_key.to_string()),
                     value: Set(json),
                 };
-                active
-                    .insert(self.db.as_ref())
-                    .await
-                    .map_err(|e| e.to_string())?;
+                active.insert(self.db.as_ref()).await.map_err(|e| e.to_string())?;
             },
         }
 
@@ -296,11 +265,8 @@ impl TrajectoryReplayer {
     }
 
     pub async fn replay(&self, id: &str) -> Result<ReplayResult, String> {
-        let trajectory = self
-            .store
-            .load(id)
-            .await?
-            .ok_or_else(|| format!("Trajectory {} not found", id))?;
+        let trajectory =
+            self.store.load(id).await?.ok_or_else(|| format!("Trajectory {} not found", id))?;
 
         let mut replay_log = Vec::new();
         let mut prev_ts: u64 = 0;
@@ -347,11 +313,8 @@ impl TrajectoryReplayer {
 
         let mut insights = Vec::new();
 
-        let tool_steps: Vec<&TrajectoryStep> = trajectory
-            .steps
-            .iter()
-            .filter(|s| s.tool_calls.is_some())
-            .collect();
+        let tool_steps: Vec<&TrajectoryStep> =
+            trajectory.steps.iter().filter(|s| s.tool_calls.is_some()).collect();
         if !tool_steps.is_empty() {
             insights.push(format!(
                 "Used tools in {} out of {} steps ({:.0}% tool usage rate)",
@@ -372,11 +335,8 @@ impl TrajectoryReplayer {
             insights.push(format!("Encountered {} tool errors during execution", error_count));
         }
 
-        let reasoning_steps: Vec<&TrajectoryStep> = trajectory
-            .steps
-            .iter()
-            .filter(|s| s.reasoning.is_some())
-            .collect();
+        let reasoning_steps: Vec<&TrajectoryStep> =
+            trajectory.steps.iter().filter(|s| s.reasoning.is_some()).collect();
         if !reasoning_steps.is_empty() {
             insights.push(format!(
                 "Reasoning present in {} steps ({:.0}%)",
@@ -406,24 +366,14 @@ impl TrajectoryReplayer {
             trajectory.outcome, trajectory.quality.overall, trajectory.value_score
         ));
 
-        Ok(ReplayResult {
-            trajectory,
-            replay_log,
-            insights,
-        })
+        Ok(ReplayResult { trajectory, replay_log, insights })
     }
 
     pub async fn compare(&self, id_a: &str, id_b: &str) -> Result<ReplayComparison, String> {
-        let traj_a = self
-            .store
-            .load(id_a)
-            .await?
-            .ok_or_else(|| format!("Trajectory {} not found", id_a))?;
-        let traj_b = self
-            .store
-            .load(id_b)
-            .await?
-            .ok_or_else(|| format!("Trajectory {} not found", id_b))?;
+        let traj_a =
+            self.store.load(id_a).await?.ok_or_else(|| format!("Trajectory {} not found", id_a))?;
+        let traj_b =
+            self.store.load(id_b).await?.ok_or_else(|| format!("Trajectory {} not found", id_b))?;
 
         let summary_a = TrajectorySummary::from(&traj_a);
         let summary_b = TrajectorySummary::from(&traj_b);
@@ -600,10 +550,7 @@ impl TrajectoryRecorder {
     fn determine_outcome(&self, state: &TrajectoryRecorderState) -> TrajectoryOutcome {
         let has_errors = state.tool_results.iter().any(|r| r.is_error)
             || state.steps.iter().any(|s| {
-                s.tool_results
-                    .as_ref()
-                    .map(|r| r.iter().any(|tr| tr.is_error))
-                    .unwrap_or(false)
+                s.tool_results.as_ref().map(|r| r.iter().any(|tr| tr.is_error)).unwrap_or(false)
             });
 
         if has_errors || state.steps.is_empty() {
@@ -629,10 +576,7 @@ impl TrajectoryRecorder {
         let successful_tools = steps
             .iter()
             .filter(|s| {
-                s.tool_results
-                    .as_ref()
-                    .map(|r| !r.iter().any(|tr| tr.is_error))
-                    .unwrap_or(false)
+                s.tool_results.as_ref().map(|r| !r.iter().any(|tr| tr.is_error)).unwrap_or(false)
             })
             .count();
         let tool_efficiency = if tool_count > 0 {
@@ -1053,9 +997,7 @@ mod tests {
     async fn test_trajectory_recorder_record_llm_response() {
         let recorder = TrajectoryRecorder::new("sess1".into(), "user1".into(), "test topic".into());
         recorder.start_recording("input").await;
-        recorder
-            .record_llm_response("thinking about it", Some("reasoning step"))
-            .await;
+        recorder.record_llm_response("thinking about it", Some("reasoning step")).await;
         let traj = recorder.stop_recording().await;
         assert_eq!(traj.steps.len(), 1);
         assert_eq!(traj.steps[0].content, "thinking about it");
@@ -1066,15 +1008,9 @@ mod tests {
     async fn test_trajectory_recorder_record_tool_call_and_result() {
         let recorder = TrajectoryRecorder::new("sess1".into(), "user1".into(), "test topic".into());
         recorder.start_recording("input").await;
-        recorder
-            .record_tool_call("read_file", "tc1", r#"{"path":"/tmp"}"#)
-            .await;
-        recorder
-            .record_tool_result("tc1", "read_file", "file contents", false)
-            .await;
-        recorder
-            .record_llm_response("here is the result", None)
-            .await;
+        recorder.record_tool_call("read_file", "tc1", r#"{"path":"/tmp"}"#).await;
+        recorder.record_tool_result("tc1", "read_file", "file contents", false).await;
+        recorder.record_llm_response("here is the result", None).await;
         let traj = recorder.stop_recording().await;
         assert_eq!(traj.steps.len(), 1);
         let step = &traj.steps[0];
@@ -1090,9 +1026,7 @@ mod tests {
     async fn test_trajectory_recorder_no_record_when_not_recording() {
         let recorder = TrajectoryRecorder::new("sess1".into(), "user1".into(), "test topic".into());
         recorder.record_tool_call("read_file", "tc1", "{}").await;
-        recorder
-            .record_tool_result("tc1", "read_file", "result", false)
-            .await;
+        recorder.record_tool_result("tc1", "read_file", "result", false).await;
         recorder.record_llm_response("response", None).await;
         let traj = recorder.stop_recording().await;
         assert!(traj.steps.is_empty());
@@ -1103,9 +1037,7 @@ mod tests {
         let recorder = TrajectoryRecorder::new("sess1".into(), "user1".into(), "test topic".into());
         recorder.start_recording("input").await;
         recorder.record_tool_call("read_file", "tc1", "{}").await;
-        recorder
-            .record_tool_result("tc1", "read_file", "ok", false)
-            .await;
+        recorder.record_tool_result("tc1", "read_file", "ok", false).await;
         recorder.record_llm_response("done", None).await;
         let traj = recorder.stop_recording().await;
         assert_eq!(traj.outcome, TrajectoryOutcome::Success);
@@ -1116,9 +1048,7 @@ mod tests {
         let recorder = TrajectoryRecorder::new("sess1".into(), "user1".into(), "test topic".into());
         recorder.start_recording("input").await;
         recorder.record_tool_call("bad_tool", "tc1", "{}").await;
-        recorder
-            .record_tool_result("tc1", "bad_tool", "error!", true)
-            .await;
+        recorder.record_tool_result("tc1", "bad_tool", "error!", true).await;
         recorder.record_llm_response("oops", None).await;
         let traj = recorder.stop_recording().await;
         assert_eq!(traj.outcome, TrajectoryOutcome::Failure);
@@ -1137,12 +1067,8 @@ mod tests {
         let recorder = TrajectoryRecorder::new("sess1".into(), "user1".into(), "test topic".into());
         recorder.start_recording("input").await;
         recorder.record_tool_call("read_file", "tc1", "{}").await;
-        recorder
-            .record_tool_result("tc1", "read_file", "ok", false)
-            .await;
-        recorder
-            .record_llm_response("done", Some("reasoning"))
-            .await;
+        recorder.record_tool_result("tc1", "read_file", "ok", false).await;
+        recorder.record_llm_response("done", Some("reasoning")).await;
         let traj = recorder.stop_recording().await;
         assert!(traj.quality.overall > 0.0);
         assert!(traj.quality.task_completion > 0.0);
@@ -1156,9 +1082,7 @@ mod tests {
         let recorder = TrajectoryRecorder::new("sess1".into(), "user1".into(), "test topic".into());
         recorder.start_recording("input").await;
         recorder.record_tool_call("bad_tool", "tc1", "{}").await;
-        recorder
-            .record_tool_result("tc1", "bad_tool", "err", true)
-            .await;
+        recorder.record_tool_result("tc1", "bad_tool", "err", true).await;
         recorder.record_llm_response("failed", None).await;
         let traj = recorder.stop_recording().await;
         assert_eq!(traj.quality.task_completion, 0.0);
@@ -1178,9 +1102,7 @@ mod tests {
         let recorder = TrajectoryRecorder::new("sess1".into(), "user1".into(), "test topic".into());
         recorder.start_recording("input").await;
         recorder.record_tool_call("read_file", "tc1", "{}").await;
-        recorder
-            .record_tool_result("tc1", "read_file", "ok", false)
-            .await;
+        recorder.record_tool_result("tc1", "read_file", "ok", false).await;
         recorder.record_llm_response("done", None).await;
         let traj = recorder.stop_recording().await;
         assert!(traj.summary.contains("1 steps"));
@@ -1192,14 +1114,10 @@ mod tests {
         let recorder = TrajectoryRecorder::new("sess1".into(), "user1".into(), "test topic".into());
         recorder.start_recording("input").await;
         recorder.record_tool_call("read_file", "tc1", "{}").await;
-        recorder
-            .record_tool_result("tc1", "read_file", "ok", false)
-            .await;
+        recorder.record_tool_result("tc1", "read_file", "ok", false).await;
         recorder.record_llm_response("step1", None).await;
         recorder.record_tool_call("write_file", "tc2", "{}").await;
-        recorder
-            .record_tool_result("tc2", "write_file", "ok", false)
-            .await;
+        recorder.record_tool_result("tc2", "write_file", "ok", false).await;
         recorder.record_llm_response("step2", None).await;
         let traj = recorder.stop_recording().await;
         assert_eq!(traj.steps.len(), 2);
@@ -1287,11 +1205,8 @@ mod tests {
     #[test]
     fn test_replay_result_clone() {
         let traj = make_trajectory(TrajectoryOutcome::Success, vec![]);
-        let result = ReplayResult {
-            trajectory: traj,
-            replay_log: vec![],
-            insights: vec!["insight".into()],
-        };
+        let result =
+            ReplayResult { trajectory: traj, replay_log: vec![], insights: vec!["insight".into()] };
         let cloned = result.clone();
         assert_eq!(cloned.insights.len(), 1);
     }
@@ -1335,15 +1250,11 @@ mod tests {
         let recorder = TrajectoryRecorder::new("sess1".into(), "user1".into(), "test topic".into());
         recorder.start_recording("input").await;
         recorder.record_tool_call("read_file", "tc1", "{}").await;
-        recorder
-            .record_tool_result("tc1", "read_file", "ok", false)
-            .await;
+        recorder.record_tool_result("tc1", "read_file", "ok", false).await;
         recorder.record_llm_response("step1", None).await;
 
         recorder.record_tool_call("write_file", "tc2", "{}").await;
-        recorder
-            .record_tool_result("tc2", "write_file", "ok", false)
-            .await;
+        recorder.record_tool_result("tc2", "write_file", "ok", false).await;
         recorder.record_llm_response("step2", None).await;
 
         let traj = recorder.stop_recording().await;
@@ -1356,9 +1267,7 @@ mod tests {
     async fn test_trajectory_recorder_llm_response_without_tools() {
         let recorder = TrajectoryRecorder::new("sess1".into(), "user1".into(), "test topic".into());
         recorder.start_recording("input").await;
-        recorder
-            .record_llm_response("just thinking", Some("reasoning"))
-            .await;
+        recorder.record_llm_response("just thinking", Some("reasoning")).await;
         let traj = recorder.stop_recording().await;
         assert_eq!(traj.steps.len(), 1);
         assert!(traj.steps[0].tool_calls.is_none());
@@ -1371,12 +1280,8 @@ mod tests {
         let recorder = TrajectoryRecorder::new("sess1".into(), "user1".into(), "test topic".into());
         recorder.start_recording("input").await;
         recorder.record_tool_call("read_file", "tc1", "{}").await;
-        recorder
-            .record_tool_result("tc1", "read_file", "ok", false)
-            .await;
-        recorder
-            .record_llm_response("done", Some("deep reasoning"))
-            .await;
+        recorder.record_tool_result("tc1", "read_file", "ok", false).await;
+        recorder.record_llm_response("done", Some("deep reasoning")).await;
         let traj = recorder.stop_recording().await;
         assert!(traj.quality.overall >= 0.0 && traj.quality.overall <= 1.0);
     }

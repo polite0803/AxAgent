@@ -44,10 +44,7 @@ impl BenchEvaluator for SweBenchEvaluator {
             }
 
             let similarity = strsim::levenshtein(&normalized_output, &normalized_expected);
-            let max_len = normalized_output
-                .len()
-                .max(normalized_expected.len())
-                .max(1);
+            let max_len = normalized_output.len().max(normalized_expected.len()).max(1);
             let score = 1.0 - (similarity as f64 / max_len as f64);
 
             return BenchScore {
@@ -101,9 +98,7 @@ mod strsim {
                 } else {
                     1
                 };
-                dp[1][j] = (dp[0][j] + 1)
-                    .min(dp[1][j - 1] + 1)
-                    .min(dp[0][j - 1] + cost);
+                dp[1][j] = (dp[0][j] + 1).min(dp[1][j - 1] + 1).min(dp[0][j - 1] + cost);
             }
             dp.swap(0, 1);
         }

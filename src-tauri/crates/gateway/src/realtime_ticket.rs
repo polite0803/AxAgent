@@ -164,9 +164,6 @@ mod tests {
         // 10s background interval.
         let removed = store.sweep_now().await;
         assert!(removed >= 1, "sweep should have removed at least one ticket");
-        assert!(
-            store.consume(&ticket.ticket_id).await.is_none(),
-            "expired ticket should be swept"
-        );
+        assert!(store.consume(&ticket.ticket_id).await.is_none(), "expired ticket should be swept");
     }
 }

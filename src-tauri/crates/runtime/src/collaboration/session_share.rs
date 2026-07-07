@@ -88,9 +88,7 @@ impl Default for SessionShareManager {
 
 impl SessionShareManager {
     pub fn new() -> Self {
-        Self {
-            sessions: HashMap::new(),
-        }
+        Self { sessions: HashMap::new() }
     }
 
     pub fn create_session(
@@ -128,10 +126,8 @@ impl SessionShareManager {
         user_id: &str,
         display_name: &str,
     ) -> Result<ParticipantRole, String> {
-        let session = self
-            .sessions
-            .get_mut(session_id)
-            .ok_or_else(|| "Session not found".to_string())?;
+        let session =
+            self.sessions.get_mut(session_id).ok_or_else(|| "Session not found".to_string())?;
 
         if !session.is_active {
             return Err("Session is no longer active".to_string());
@@ -167,20 +163,16 @@ impl SessionShareManager {
     }
 
     pub fn leave_session(&mut self, session_id: &str, user_id: &str) -> Result<(), String> {
-        let session = self
-            .sessions
-            .get_mut(session_id)
-            .ok_or_else(|| "Session not found".to_string())?;
+        let session =
+            self.sessions.get_mut(session_id).ok_or_else(|| "Session not found".to_string())?;
 
         session.participants.retain(|p| p.user_id != user_id);
         Ok(())
     }
 
     pub fn close_session(&mut self, session_id: &str, owner_id: &str) -> Result<(), String> {
-        let session = self
-            .sessions
-            .get_mut(session_id)
-            .ok_or_else(|| "Session not found".to_string())?;
+        let session =
+            self.sessions.get_mut(session_id).ok_or_else(|| "Session not found".to_string())?;
 
         if session.owner_id != owner_id {
             return Err("Only the owner can close the session".to_string());
@@ -203,24 +195,18 @@ impl SessionShareManager {
         session_id: &str,
         resource: SharedResource,
     ) -> Result<(), String> {
-        let session = self
-            .sessions
-            .get_mut(session_id)
-            .ok_or_else(|| "Session not found".to_string())?;
+        let session =
+            self.sessions.get_mut(session_id).ok_or_else(|| "Session not found".to_string())?;
 
         session.shared_resources.push(resource);
         Ok(())
     }
 
     pub fn unshare_resource(&mut self, session_id: &str, resource_id: &str) -> Result<(), String> {
-        let session = self
-            .sessions
-            .get_mut(session_id)
-            .ok_or_else(|| "Session not found".to_string())?;
+        let session =
+            self.sessions.get_mut(session_id).ok_or_else(|| "Session not found".to_string())?;
 
-        session
-            .shared_resources
-            .retain(|r| r.resource_id != resource_id);
+        session.shared_resources.retain(|r| r.resource_id != resource_id);
         Ok(())
     }
 
@@ -230,16 +216,10 @@ impl SessionShareManager {
         user_id: &str,
         new_role: ParticipantRole,
     ) -> Result<(), String> {
-        let session = self
-            .sessions
-            .get_mut(session_id)
-            .ok_or_else(|| "Session not found".to_string())?;
+        let session =
+            self.sessions.get_mut(session_id).ok_or_else(|| "Session not found".to_string())?;
 
-        if let Some(participant) = session
-            .participants
-            .iter_mut()
-            .find(|p| p.user_id == user_id)
-        {
+        if let Some(participant) = session.participants.iter_mut().find(|p| p.user_id == user_id) {
             participant.role = new_role;
             Ok(())
         } else {
@@ -264,8 +244,5 @@ impl SessionShareManager {
 }
 
 fn now_ms() -> i64 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map(|d| d.as_millis() as i64)
-        .unwrap_or(0)
+    SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_millis() as i64).unwrap_or(0)
 }

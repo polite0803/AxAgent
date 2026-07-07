@@ -207,8 +207,7 @@ impl OrchestratorExecutor {
         sub_task_id: &str,
         handover: Option<StructuredHandover>,
     ) -> Result<Option<DecompositionPlan>, OrchestrationError> {
-        self.update_sub_task_status(sub_task_id, SubTaskStatus::Completed)
-            .await?;
+        self.update_sub_task_status(sub_task_id, SubTaskStatus::Completed).await?;
 
         self.emit(OrchestrationEvent::SubTaskCompleted {
             sub_task_id: sub_task_id.to_string(),
@@ -225,8 +224,7 @@ impl OrchestratorExecutor {
         sub_task_id: &str,
         error: &str,
     ) -> Result<Option<DecompositionPlan>, OrchestrationError> {
-        self.update_sub_task_status(sub_task_id, SubTaskStatus::Failed)
-            .await?;
+        self.update_sub_task_status(sub_task_id, SubTaskStatus::Failed).await?;
 
         // Update error field in plan
         {
@@ -438,12 +436,7 @@ impl OrchestratorExecutor {
             .read()
             .await
             .as_ref()
-            .map(|p| {
-                p.sub_tasks
-                    .iter()
-                    .map(|st| (st.id.clone(), st.status.to_string()))
-                    .collect()
-            })
+            .map(|p| p.sub_tasks.iter().map(|st| (st.id.clone(), st.status.to_string())).collect())
             .unwrap_or_default()
     }
 }
@@ -490,10 +483,7 @@ mod tests {
     #[tokio::test]
     async fn test_generate_subgraph() {
         let executor = OrchestratorExecutor::new();
-        executor
-            .receive_mission("Fix login bug", OrchestrationStrategy::Ordered)
-            .await
-            .unwrap();
+        executor.receive_mission("Fix login bug", OrchestrationStrategy::Ordered).await.unwrap();
 
         let graph = executor.generate_subgraph().await.unwrap();
         assert_eq!(graph.nodes.len(), 3);
@@ -504,29 +494,17 @@ mod tests {
     #[tokio::test]
     async fn test_report_completed_and_terminal() {
         let executor = OrchestratorExecutor::new();
-        executor
-            .receive_mission("Quick fix", OrchestrationStrategy::Ordered)
-            .await
-            .unwrap();
+        executor.receive_mission("Quick fix", OrchestrationStrategy::Ordered).await.unwrap();
 
         // Complete first two
-        let result = executor
-            .report_sub_task_completed("analyze", None)
-            .await
-            .unwrap();
+        let result = executor.report_sub_task_completed("analyze", None).await.unwrap();
         assert!(result.is_none()); // Not terminal yet
 
-        let result = executor
-            .report_sub_task_completed("implement", None)
-            .await
-            .unwrap();
+        let result = executor.report_sub_task_completed("implement", None).await.unwrap();
         assert!(result.is_none()); // Still not terminal
 
         // Complete last
-        let result = executor
-            .report_sub_task_completed("review", None)
-            .await
-            .unwrap();
+        let result = executor.report_sub_task_completed("review", None).await.unwrap();
         assert!(result.is_none()); // Terminal but no failures
 
         let state = executor.current_state().await;
@@ -536,20 +514,15 @@ mod tests {
     #[tokio::test]
     async fn test_replan_on_failure() {
         let executor = OrchestratorExecutor::new();
-        let plan = executor
-            .receive_mission("Quick fix", OrchestrationStrategy::Ordered)
-            .await
-            .unwrap();
+        let plan =
+            executor.receive_mission("Quick fix", OrchestrationStrategy::Ordered).await.unwrap();
 
         // Collect actual sub-task IDs from the plan
         let all_ids: Vec<String> = plan.sub_tasks.iter().map(|st| st.id.clone()).collect();
 
         // Fail ALL sub-tasks so the plan becomes terminal
         for id in &all_ids {
-            executor
-                .update_sub_task_status(id, SubTaskStatus::Failed)
-                .await
-                .unwrap();
+            executor.update_sub_task_status(id, SubTaskStatus::Failed).await.unwrap();
         }
 
         // Trigger replan — plan is terminal with failures
@@ -559,11 +532,7 @@ mod tests {
         assert!(result.is_some());
         let new_plan = result.unwrap();
         // Failed analyze should be reset to pending
-        let retried = new_plan
-            .sub_tasks
-            .iter()
-            .find(|st| st.id == "analyze")
-            .unwrap();
+        let retried = new_plan.sub_tasks.iter().find(|st| st.id == "analyze").unwrap();
         assert_eq!(retried.status, SubTaskStatus::Pending);
         assert_eq!(retried.attempts, 1);
 
@@ -588,10 +557,7 @@ mod tests {
         for _round in 0..=max_replans {
             // Fail all sub-tasks to make the plan terminal
             for id in &all_ids {
-                executor
-                    .update_sub_task_status(id, SubTaskStatus::Failed)
-                    .await
-                    .unwrap();
+                executor.update_sub_task_status(id, SubTaskStatus::Failed).await.unwrap();
             }
 
             // Trigger replan check. The first max_replans rounds succeed

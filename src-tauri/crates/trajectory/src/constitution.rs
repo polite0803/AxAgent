@@ -23,11 +23,7 @@ pub enum ConstitutionalRule {
     PreserveUserIntent,
     MaxModificationSize(f64),
     RequiredHumanApprovalFor(String),
-    Custom {
-        name: String,
-        description: String,
-        check_fn_name: String,
-    },
+    Custom { name: String, description: String, check_fn_name: String },
 }
 
 impl ConstitutionalRule {
@@ -126,9 +122,7 @@ pub struct CustomRuleRegistry {
 
 impl CustomRuleRegistry {
     pub fn new() -> Self {
-        Self {
-            checkers: HashMap::new(),
-        }
+        Self { checkers: HashMap::new() }
     }
 
     pub fn register(&mut self, checker: Arc<dyn CustomRuleChecker>) {
@@ -208,11 +202,7 @@ pub struct ConstitutionConfig {
 
 impl Default for ConstitutionConfig {
     fn default() -> Self {
-        Self {
-            enabled: true,
-            auto_revert_on_critical: true,
-            log_violations: true,
-        }
+        Self { enabled: true, auto_revert_on_critical: true, log_violations: true }
     }
 }
 
@@ -225,12 +215,7 @@ pub struct ImmutableConstitution {
 
 impl ImmutableConstitution {
     pub fn new(rules: Vec<ConstitutionalRule>, config: ConstitutionConfig) -> Self {
-        Self {
-            rules,
-            config,
-            violation_log: Vec::new(),
-            custom_registry: None,
-        }
+        Self { rules, config, violation_log: Vec::new(), custom_registry: None }
     }
 
     pub fn rule_count(&self) -> usize {
@@ -321,10 +306,7 @@ impl ImmutableConstitution {
                 },
                 ConstitutionalRule::NoSelfModificationOfReward => {
                     if modification.reason.to_lowercase().contains("reward")
-                        || modification
-                            .new_content
-                            .to_lowercase()
-                            .contains("reward_function")
+                        || modification.new_content.to_lowercase().contains("reward_function")
                     {
                         violations.push(ConstitutionViolation::new(
                             rule.name().to_string(),
@@ -408,12 +390,8 @@ impl ImmutableConstitution {
                     }
                 },
                 ConstitutionalRule::NoSelfModificationOfReward => {
-                    let reward_indicators = [
-                        "reward_function",
-                        "modify_reward",
-                        "set_reward",
-                        "hack_reward",
-                    ];
+                    let reward_indicators =
+                        ["reward_function", "modify_reward", "set_reward", "hack_reward"];
                     for indicator in &reward_indicators {
                         if code.contains(indicator) || description.contains(indicator) {
                             violations.push(ConstitutionViolation::new(
@@ -429,12 +407,8 @@ impl ImmutableConstitution {
                     }
                 },
                 ConstitutionalRule::PreserveUserIntent => {
-                    let manipulative_patterns = [
-                        "bypass",
-                        "override_safety",
-                        "ignore_constraint",
-                        "skip_validation",
-                    ];
+                    let manipulative_patterns =
+                        ["bypass", "override_safety", "ignore_constraint", "skip_validation"];
                     for pattern in &manipulative_patterns {
                         if code.contains(pattern) || description.contains(pattern) {
                             violations.push(ConstitutionViolation::new(
@@ -511,10 +485,8 @@ impl ImmutableConstitution {
             return Ok(());
         }
 
-        let has_rule = self
-            .rules
-            .iter()
-            .any(|r| matches!(r, ConstitutionalRule::NoSelfModificationOfReward));
+        let has_rule =
+            self.rules.iter().any(|r| matches!(r, ConstitutionalRule::NoSelfModificationOfReward));
 
         if !has_rule {
             return Ok(());
@@ -537,10 +509,7 @@ impl ImmutableConstitution {
 
         let variance: f64 = {
             let mean = recent_window.iter().sum::<f64>() / recent_window.len() as f64;
-            recent_window
-                .iter()
-                .map(|r| (r - mean).powi(2))
-                .sum::<f64>()
+            recent_window.iter().map(|r| (r - mean).powi(2)).sum::<f64>()
                 / recent_window.len() as f64
         };
         let suspiciously_low_variance = variance < 1e-6 && recent_mean > 0.9;
@@ -570,15 +539,11 @@ impl ImmutableConstitution {
     }
 
     pub fn has_fatal_violations(&self) -> bool {
-        self.violation_log
-            .iter()
-            .any(|v| v.severity == ViolationSeverity::Fatal)
+        self.violation_log.iter().any(|v| v.severity == ViolationSeverity::Fatal)
     }
 
     pub fn has_critical_violations(&self) -> bool {
-        self.violation_log
-            .iter()
-            .any(|v| v.severity == ViolationSeverity::Critical)
+        self.violation_log.iter().any(|v| v.severity == ViolationSeverity::Critical)
     }
 
     pub fn clear_violation_log(&mut self) {
@@ -688,11 +653,7 @@ mod tests {
         let result = constitution.validate_evolution(&modification);
         assert!(result.is_err());
         let violations = result.unwrap_err();
-        assert!(
-            violations
-                .iter()
-                .any(|v| v.rule_name == "max_modification_size")
-        );
+        assert!(violations.iter().any(|v| v.rule_name == "max_modification_size"));
     }
 
     #[test]
@@ -709,11 +670,7 @@ mod tests {
         let result = constitution.validate_evolution(&modification);
         assert!(result.is_err());
         let violations = result.unwrap_err();
-        assert!(
-            violations
-                .iter()
-                .any(|v| v.severity == ViolationSeverity::Fatal)
-        );
+        assert!(violations.iter().any(|v| v.severity == ViolationSeverity::Fatal));
     }
 
     #[test]
@@ -730,11 +687,7 @@ mod tests {
         let result = constitution.validate_evolution(&modification);
         assert!(result.is_err());
         let violations = result.unwrap_err();
-        assert!(
-            violations
-                .iter()
-                .any(|v| v.rule_name == "preserve_user_intent")
-        );
+        assert!(violations.iter().any(|v| v.rule_name == "preserve_user_intent"));
     }
 
     #[test]
@@ -758,11 +711,7 @@ mod tests {
         );
         assert!(result.is_err());
         let violations = result.unwrap_err();
-        assert!(
-            violations
-                .iter()
-                .any(|v| v.severity == ViolationSeverity::Fatal)
-        );
+        assert!(violations.iter().any(|v| v.severity == ViolationSeverity::Fatal));
     }
 
     #[test]
@@ -814,9 +763,8 @@ mod tests {
     #[test]
     fn test_check_reward_hacking_suspiciously_low_variance() {
         let constitution = default_constitution();
-        let rewards: Vec<f64> = vec![
-            0.1, 0.1, 0.1, 0.1, 0.1, 0.999999, 0.999999, 0.999999, 0.999999, 0.999999,
-        ];
+        let rewards: Vec<f64> =
+            vec![0.1, 0.1, 0.1, 0.1, 0.1, 0.999999, 0.999999, 0.999999, 0.999999, 0.999999];
         assert!(constitution.check_reward_hacking(&rewards).is_err());
     }
 

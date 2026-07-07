@@ -141,11 +141,7 @@ impl NodeExecutorTrait for DatabaseQueryExecutor {
         // P1-15: DDL/DML 权限校验 —— 只允许 SELECT 除非显式 allow_writes
         // 注：当前 DatabaseQueryNode 配置未必有 allow_writes 字段，按 SELECT-only 默认
         let normalized = normalize_sql(&c.query);
-        let upper_first = normalized
-            .split_whitespace()
-            .next()
-            .unwrap_or("")
-            .to_ascii_uppercase();
+        let upper_first = normalized.split_whitespace().next().unwrap_or("").to_ascii_uppercase();
         if DDL_DML_KEYWORDS.iter().any(|kw| upper_first == *kw) {
             let _ = pool.close().await;
             return Err(NodeError::exec_failed(

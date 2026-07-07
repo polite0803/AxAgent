@@ -314,10 +314,7 @@ pub fn edit_file(
 /// Expands a glob pattern and returns matching filenames.
 pub fn glob_search(pattern: &str, path: Option<&str>) -> io::Result<GlobSearchOutput> {
     let started = Instant::now();
-    let base_dir = path
-        .map(normalize_path)
-        .transpose()?
-        .unwrap_or(std::env::current_dir()?);
+    let base_dir = path.map(normalize_path).transpose()?.unwrap_or(std::env::current_dir()?);
     let search_pattern = if Path::new(pattern).is_absolute() {
         pattern.to_owned()
     } else {
@@ -342,10 +339,7 @@ pub fn glob_search(pattern: &str, path: Option<&str>) -> io::Result<GlobSearchOu
     }
 
     matches.sort_by_key(|path| {
-        fs::metadata(path)
-            .and_then(|metadata| metadata.modified())
-            .ok()
-            .map(Reverse)
+        fs::metadata(path).and_then(|metadata| metadata.modified()).ok().map(Reverse)
     });
 
     let truncated = matches.len() > 100;
@@ -365,12 +359,8 @@ pub fn glob_search(pattern: &str, path: Option<&str>) -> io::Result<GlobSearchOu
 
 /// Runs a regex search over workspace files with optional context lines.
 pub fn grep_search(input: &GrepSearchInput) -> io::Result<GrepSearchOutput> {
-    let base_path = input
-        .path
-        .as_deref()
-        .map(normalize_path)
-        .transpose()?
-        .unwrap_or(std::env::current_dir()?);
+    let base_path =
+        input.path.as_deref().map(normalize_path).transpose()?.unwrap_or(std::env::current_dir()?);
 
     let regex = RegexBuilder::new(&input.pattern)
         .case_insensitive(input.case_insensitive.unwrap_or(false))
@@ -385,10 +375,8 @@ pub fn grep_search(input: &GrepSearchInput) -> io::Result<GrepSearchOutput> {
         .transpose()
         .map_err(|error| io::Error::new(io::ErrorKind::InvalidInput, error.to_string()))?;
     let file_type = input.file_type.as_deref();
-    let output_mode = input
-        .output_mode
-        .clone()
-        .unwrap_or_else(|| String::from("files_with_matches"));
+    let output_mode =
+        input.output_mode.clone().unwrap_or_else(|| String::from("files_with_matches"));
     let context = input.context.or(input.context_short).unwrap_or(0);
 
     let mut filenames = Vec::new();
@@ -524,11 +512,7 @@ fn apply_limit<T>(
 
     let truncated = items.len() > explicit_limit;
     items.truncate(explicit_limit);
-    (
-        items,
-        truncated.then_some(explicit_limit),
-        (offset_value > 0).then_some(offset_value),
-    )
+    (items, truncated.then_some(explicit_limit), (offset_value > 0).then_some(offset_value))
 }
 
 fn make_patch(original: &str, updated: &str) -> Vec<StructuredPatchHunk> {
@@ -570,9 +554,7 @@ fn normalize_path_allow_missing(path: &str) -> io::Result<PathBuf> {
     }
 
     if let Some(parent) = candidate.parent() {
-        let canonical_parent = parent
-            .canonicalize()
-            .unwrap_or_else(|_| parent.to_path_buf());
+        let canonical_parent = parent.canonicalize().unwrap_or_else(|_| parent.to_path_buf());
         if let Some(name) = candidate.file_name() {
             return Ok(canonical_parent.join(name));
         }
@@ -589,9 +571,8 @@ pub fn read_file_in_workspace(
     workspace_root: &Path,
 ) -> io::Result<ReadFileOutput> {
     let absolute_path = normalize_path(path)?;
-    let canonical_root = workspace_root
-        .canonicalize()
-        .unwrap_or_else(|_| workspace_root.to_path_buf());
+    let canonical_root =
+        workspace_root.canonicalize().unwrap_or_else(|_| workspace_root.to_path_buf());
     validate_workspace_boundary(&absolute_path, &canonical_root)?;
     read_file(path, offset, limit)
 }
@@ -603,9 +584,8 @@ pub fn write_file_in_workspace(
     workspace_root: &Path,
 ) -> io::Result<WriteFileOutput> {
     let absolute_path = normalize_path_allow_missing(path)?;
-    let canonical_root = workspace_root
-        .canonicalize()
-        .unwrap_or_else(|_| workspace_root.to_path_buf());
+    let canonical_root =
+        workspace_root.canonicalize().unwrap_or_else(|_| workspace_root.to_path_buf());
     validate_workspace_boundary(&absolute_path, &canonical_root)?;
     write_file(path, content)
 }
@@ -619,9 +599,8 @@ pub fn edit_file_in_workspace(
     workspace_root: &Path,
 ) -> io::Result<EditFileOutput> {
     let absolute_path = normalize_path(path)?;
-    let canonical_root = workspace_root
-        .canonicalize()
-        .unwrap_or_else(|_| workspace_root.to_path_buf());
+    let canonical_root =
+        workspace_root.canonicalize().unwrap_or_else(|_| workspace_root.to_path_buf());
     validate_workspace_boundary(&absolute_path, &canonical_root)?;
     edit_file(path, old_string, new_string, replace_all)
 }
@@ -633,9 +612,8 @@ pub fn is_symlink_escape(path: &Path, workspace_root: &Path) -> io::Result<bool>
         return Ok(false);
     }
     let resolved = path.canonicalize()?;
-    let canonical_root = workspace_root
-        .canonicalize()
-        .unwrap_or_else(|_| workspace_root.to_path_buf());
+    let canonical_root =
+        workspace_root.canonicalize().unwrap_or_else(|_| workspace_root.to_path_buf());
     Ok(!resolved.starts_with(&canonical_root))
 }
 
@@ -830,10 +808,7 @@ mod tests {
         // workspace=/workspace，path=/workspace_evil/x → 必须拒绝。
         let workspace = std::env::temp_dir().join("clawd-test-prefix-lookalike");
         let _ = std::fs::create_dir_all(&workspace);
-        let lookalike = workspace
-            .parent()
-            .unwrap()
-            .join("clawd-test-prefix-lookalike_evil");
+        let lookalike = workspace.parent().unwrap().join("clawd-test-prefix-lookalike_evil");
         let _ = std::fs::create_dir_all(&lookalike);
         let f = lookalike.join("file.txt");
         let _ = std::fs::write(&f, "x");

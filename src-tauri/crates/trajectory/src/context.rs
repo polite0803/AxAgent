@@ -91,9 +91,7 @@ impl Default for ContextAssembler {
 
 impl ContextAssembler {
     pub fn new() -> Self {
-        Self {
-            budget: TokenBudget::default(),
-        }
+        Self { budget: TokenBudget::default() }
     }
 
     pub fn with_budget(budget: TokenBudget) -> Self {
@@ -250,20 +248,14 @@ impl ContextAssembler {
             suggestions.push("Token使用率过高，建议增加压缩比".to_string());
         }
 
-        let retrieved_count = context
-            .blocks
-            .iter()
-            .filter(|b| b.block_type == ContextBlockType::Retrieved)
-            .count();
+        let retrieved_count =
+            context.blocks.iter().filter(|b| b.block_type == ContextBlockType::Retrieved).count();
         if retrieved_count == 0 {
             suggestions.push("未使用检索记忆，考虑添加".to_string());
         }
 
-        let nudge_count = context
-            .blocks
-            .iter()
-            .filter(|b| b.block_type == ContextBlockType::Nudge)
-            .count();
+        let nudge_count =
+            context.blocks.iter().filter(|b| b.block_type == ContextBlockType::Nudge).count();
         if nudge_count == 0 {
             suggestions.push("未应用nudges，考虑添加".to_string());
         }

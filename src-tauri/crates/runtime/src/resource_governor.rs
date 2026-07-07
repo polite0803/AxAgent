@@ -148,8 +148,7 @@ impl ResourceGovernor {
 
         let should_freeze =
             matches!(self.current_state, ResourceState::High | ResourceState::Critical);
-        self.background_tasks_frozen
-            .store(should_freeze, Ordering::Release);
+        self.background_tasks_frozen.store(should_freeze, Ordering::Release);
 
         if matches!(self.current_state, ResourceState::Critical) {
             tracing::warn!(

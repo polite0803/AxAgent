@@ -118,11 +118,7 @@ pub struct AgentEventBus {
 impl AgentEventBus {
     pub fn new(name: impl Into<String>) -> Self {
         let (sender, _) = broadcast::channel(1000);
-        Self {
-            sender,
-            subscriptions: tokio::sync::RwLock::new(HashMap::new()),
-            name: name.into(),
-        }
+        Self { sender, subscriptions: tokio::sync::RwLock::new(HashMap::new()), name: name.into() }
     }
 
     pub fn builder() -> AgentEventBusBuilder {
@@ -139,10 +135,7 @@ impl AgentEventBus {
         event_types: Vec<AgentEventType>,
     ) -> broadcast::Receiver<UnifiedAgentEvent> {
         let receiver = self.sender.subscribe();
-        let subscription = EventSubscription {
-            event_types,
-            receiver: self.sender.subscribe(),
-        };
+        let subscription = EventSubscription { event_types, receiver: self.sender.subscribe() };
 
         let subscriber_id = subscriber_id.into();
         let subs = self.subscriptions.try_write();
@@ -201,9 +194,7 @@ impl AgentEventBus {
 
     pub async fn get_subscriptions(&self) -> Vec<(String, Vec<AgentEventType>)> {
         let subs = self.subscriptions.read().await;
-        subs.iter()
-            .map(|(id, sub)| (id.clone(), sub.event_types.clone()))
-            .collect()
+        subs.iter().map(|(id, sub)| (id.clone(), sub.event_types.clone())).collect()
     }
 }
 
@@ -222,9 +213,7 @@ pub struct AgentEventBusBuilder {
 
 impl AgentEventBusBuilder {
     pub fn new() -> Self {
-        Self {
-            name: "default".to_string(),
-        }
+        Self { name: "default".to_string() }
     }
 
     pub fn name(mut self, name: impl Into<String>) -> Self {

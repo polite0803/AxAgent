@@ -121,18 +121,9 @@ pub enum RuleEvaluationOutcome {
     /// 全部规则通过
     Pass,
     /// 违反了一条规则
-    Violation {
-        rule_name: String,
-        rule_description: String,
-        action: RuleAction,
-        reason: String,
-    },
+    Violation { rule_name: String, rule_description: String, action: RuleAction, reason: String },
     /// 需要人工审批
-    RequiresApproval {
-        rule_name: String,
-        rule_description: String,
-        reason: String,
-    },
+    RequiresApproval { rule_name: String, rule_description: String, reason: String },
 }
 
 // ── 预置规则构建器 ──

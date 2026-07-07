@@ -47,18 +47,13 @@ fn make_loop_base(id: &str) -> WorkflowNodeBase {
 }
 
 fn make_loop_node(config: LoopNodeConfig) -> WorkflowNode {
-    WorkflowNode::Loop(LoopNode {
-        base: make_loop_base("loop1"),
-        config,
-    })
+    WorkflowNode::Loop(LoopNode { base: make_loop_base("loop1"), config })
 }
 
 /// 内存版 LoopCheckpointOps —— 用 HashMap 模拟持久化层。
 /// key = (execution_id, node_id) 复合主键。
-fn in_memory_checkpoint_ops() -> (
-    LoopCheckpointOps,
-    Arc<tokio::sync::Mutex<HashMap<(String, String), LoopCheckpoint>>>,
-) {
+fn in_memory_checkpoint_ops()
+-> (LoopCheckpointOps, Arc<tokio::sync::Mutex<HashMap<(String, String), LoopCheckpoint>>>) {
     let store: Arc<tokio::sync::Mutex<HashMap<(String, String), LoopCheckpoint>>> =
         Arc::new(tokio::sync::Mutex::new(HashMap::new()));
     let s_save = store.clone();
@@ -123,18 +118,13 @@ fn make_state(execution_id: &str) -> ExecutionState {
 async fn loop_foreach_aggregates_results() {
     // 数组输入：交易列表。body 是"翻倍"工具：把当前元素乘 2 输出。
     let mut state = make_state("exec1");
-    state
-        .variables
-        .insert("tx_list".to_string(), serde_json::json!([1, 2, 3, 4]));
+    state.variables.insert("tx_list".to_string(), serde_json::json!([1, 2, 3, 4]));
 
     let body_fn: Arc<dyn Fn(String, ExecutionState) -> NodeOutput + Send + Sync> =
         Arc::new(|_step_id, ctx| {
             // 读 iteratee 变量，输出双倍
-            let item = ctx
-                .variables
-                .get("__loop_iteratee__")
-                .cloned()
-                .unwrap_or(serde_json::Value::Null);
+            let item =
+                ctx.variables.get("__loop_iteratee__").cloned().unwrap_or(serde_json::Value::Null);
             let n = item.as_i64().unwrap_or(0);
             NodeOutput {
                 output: serde_json::json!({"doubled": n * 2}),
@@ -168,16 +158,10 @@ async fn loop_foreach_aggregates_results() {
     // 验证聚合：4 个元素都被处理
     assert_eq!(out.output.get("iter_count").and_then(|v| v.as_u64()), Some(4));
     assert_eq!(out.output.get("loop_type").and_then(|v| v.as_str()), Some("forEach"));
-    let items = out
-        .output
-        .get("items")
-        .and_then(|v| v.as_array())
-        .expect("items array");
+    let items = out.output.get("items").and_then(|v| v.as_array()).expect("items array");
     assert_eq!(items.len(), 4);
-    let values: Vec<i64> = items
-        .iter()
-        .map(|v| v.get("doubled").and_then(|x| x.as_i64()).unwrap_or(-1))
-        .collect();
+    let values: Vec<i64> =
+        items.iter().map(|v| v.get("doubled").and_then(|x| x.as_i64()).unwrap_or(-1)).collect();
     assert_eq!(values, vec![2, 4, 6, 8], "forEach 应按顺序产出 2/4/6/8");
     assert_eq!(out.output_var.as_deref(), Some("iter_output"));
 }
@@ -187,9 +171,7 @@ async fn loop_foreach_aggregates_results() {
 #[tokio::test]
 async fn loop_interrupt_pause_then_resume_continues() {
     let mut state = make_state("exec2");
-    state
-        .variables
-        .insert("tx_list".to_string(), serde_json::json!([10, 20, 30]));
+    state.variables.insert("tx_list".to_string(), serde_json::json!([10, 20, 30]));
 
     // 模拟审批节点：第一次返回 pending（触发 interrupt），之后返回 approved。
     let call_count = Arc::new(std::sync::atomic::AtomicU32::new(0));
@@ -289,11 +271,7 @@ async fn loop_interrupt_pause_then_resume_continues() {
         Some(3),
         "iter_count 应为 3：首次 interrupt 不 append，后续 2 次 approved append"
     );
-    let items = result
-        .output
-        .get("items")
-        .and_then(|v| v.as_array())
-        .expect("items");
+    let items = result.output.get("items").and_then(|v| v.as_array()).expect("items");
     assert_eq!(items.len(), 3);
     // 全部 3 次都应被调用（iter 0 在 interrupt 时被调 1 次返回 pending，
     // resume 后 iter 0 再次被调返回 approved；iter 1/2 各调 1 次返回
@@ -313,17 +291,12 @@ async fn loop_interrupt_pause_then_resume_continues() {
 #[tokio::test]
 async fn loop_partial_results_arrive_in_order() {
     let mut state = make_state("exec3");
-    state
-        .variables
-        .insert("tx_list".to_string(), serde_json::json!(["a", "b", "c"]));
+    state.variables.insert("tx_list".to_string(), serde_json::json!(["a", "b", "c"]));
 
     let body_fn: Arc<dyn Fn(String, ExecutionState) -> NodeOutput + Send + Sync> =
         Arc::new(|_step_id, ctx| {
-            let item = ctx
-                .variables
-                .get("__loop_iteratee__")
-                .cloned()
-                .unwrap_or(serde_json::Value::Null);
+            let item =
+                ctx.variables.get("__loop_iteratee__").cloned().unwrap_or(serde_json::Value::Null);
             NodeOutput {
                 output: serde_json::json!({"echo": item}),
                 output_var: Some("echo_out".to_string()),

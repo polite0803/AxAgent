@@ -38,10 +38,7 @@ impl EnvLock {
         unsafe { env::set_var("XDG_CONFIG_HOME", temp_home.join(".config")) };
         unsafe { env::set_var("XDG_DATA_HOME", temp_home.join(".local/share")) };
 
-        EnvLock {
-            _guard: guard,
-            temp_home,
-        }
+        EnvLock { _guard: guard, temp_home }
     }
 
     /// Get the temporary home directory for this test

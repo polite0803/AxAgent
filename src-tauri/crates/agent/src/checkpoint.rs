@@ -231,10 +231,7 @@ impl CheckpointBuilder {
         let id = format!(
             "cp-{}-{}",
             self.plan_id,
-            SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .unwrap_or_default()
-                .as_millis()
+            SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_millis()
         );
 
         Checkpoint {

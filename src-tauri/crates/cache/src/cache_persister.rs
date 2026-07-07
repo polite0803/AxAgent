@@ -25,9 +25,7 @@ impl CachePersister {
     /// documents root (typically `~/Documents/axagent/cache/`).
     /// Requires `axagent_storage::storage_paths::documents_root()` at the call site.
     pub fn with_default_path() -> Self {
-        Self {
-            snapshot_dir: PathBuf::from("cache"),
-        }
+        Self { snapshot_dir: PathBuf::from("cache") }
     }
 
     /// Create a persister with an explicit snapshot directory (alias for `new`).
@@ -152,12 +150,8 @@ mod tests {
         assert!(!persister.snapshot_exists());
 
         let mut snapshot = CacheSnapshot::default();
-        snapshot
-            .embedding_cache
-            .insert("hash1".to_string(), vec![0.1, 0.2, 0.3]);
-        snapshot
-            .text_hash_cache
-            .insert("doc1".to_string(), "abc123".to_string());
+        snapshot.embedding_cache.insert("hash1".to_string(), vec![0.1, 0.2, 0.3]);
+        snapshot.text_hash_cache.insert("doc1".to_string(), "abc123".to_string());
 
         persister.save(&snapshot).unwrap();
         assert!(persister.snapshot_exists());

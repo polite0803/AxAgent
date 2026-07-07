@@ -59,9 +59,8 @@ pub async fn load_loop_checkpoint(
     let Some(row) = row else {
         return Ok(None);
     };
-    let payload: String = row
-        .try_get::<String>("", "payload_json")
-        .map_err(AxAgentError::Database)?;
+    let payload: String =
+        row.try_get::<String>("", "payload_json").map_err(AxAgentError::Database)?;
     let cp: LoopCheckpoint = serde_json::from_str(&payload)
         .map_err(|e| AxAgentError::Internal(format!("deserialize LoopCheckpoint failed: {e}")))?;
     Ok(Some(cp))

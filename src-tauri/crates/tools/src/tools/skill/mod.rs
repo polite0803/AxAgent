@@ -79,10 +79,7 @@ type SkillMetadata = (
 
 impl SkillIndex {
     fn new() -> Self {
-        Self {
-            entries: Vec::new(),
-            built_at: None,
-        }
+        Self { entries: Vec::new(), built_at: None }
     }
 
     fn ensure_built(&mut self) {
@@ -97,10 +94,7 @@ impl SkillIndex {
     }
 
     fn is_toolset_available(toolset_name: &str) -> bool {
-        AVAILABLE_TOOLSETS
-            .lock()
-            .map(|guard| guard.contains(toolset_name))
-            .unwrap_or(false)
+        AVAILABLE_TOOLSETS.lock().map(|guard| guard.contains(toolset_name)).unwrap_or(false)
     }
 
     fn should_include_entry(entry: &SkillIndexEntry) -> bool {
@@ -111,19 +105,13 @@ impl SkillIndex {
         }
 
         if !entry.requires_toolsets.is_empty()
-            && !entry
-                .requires_toolsets
-                .iter()
-                .all(|t| Self::is_toolset_available(t))
+            && !entry.requires_toolsets.iter().all(|t| Self::is_toolset_available(t))
         {
             return false;
         }
 
         if !entry.fallback_for_toolsets.is_empty()
-            && entry
-                .fallback_for_toolsets
-                .iter()
-                .any(|t| Self::is_toolset_available(t))
+            && entry.fallback_for_toolsets.iter().any(|t| Self::is_toolset_available(t))
         {
             return false;
         }
@@ -212,48 +200,34 @@ impl SkillIndex {
                     .unwrap_or("1.0.0")
                     .to_string();
                 if let Some(p) = frontmatter.get("platforms").and_then(|v| v.as_array()) {
-                    platforms = p
-                        .iter()
-                        .filter_map(|v| v.as_str().map(String::from))
-                        .collect();
+                    platforms = p.iter().filter_map(|v| v.as_str().map(String::from)).collect();
                 }
                 if let Some(meta) = frontmatter.get("metadata") {
-                    if let Some(cat) = meta
-                        .get("hermes")
-                        .and_then(|h| h.get("category"))
-                        .and_then(|c| c.as_str())
+                    if let Some(cat) =
+                        meta.get("hermes").and_then(|h| h.get("category")).and_then(|c| c.as_str())
                     {
                         category = cat.to_string();
                     }
-                    if let Some(t) = meta
-                        .get("hermes")
-                        .and_then(|h| h.get("tags"))
-                        .and_then(|ts| ts.as_array())
+                    if let Some(t) =
+                        meta.get("hermes").and_then(|h| h.get("tags")).and_then(|ts| ts.as_array())
                     {
-                        tags = t
-                            .iter()
-                            .filter_map(|v| v.as_str().map(String::from))
-                            .collect();
+                        tags = t.iter().filter_map(|v| v.as_str().map(String::from)).collect();
                     }
                     if let Some(rt) = meta
                         .get("hermes")
                         .and_then(|h| h.get("requires_toolsets"))
                         .and_then(|ts| ts.as_array())
                     {
-                        requires_toolsets = rt
-                            .iter()
-                            .filter_map(|v| v.as_str().map(String::from))
-                            .collect();
+                        requires_toolsets =
+                            rt.iter().filter_map(|v| v.as_str().map(String::from)).collect();
                     }
                     if let Some(ft) = meta
                         .get("hermes")
                         .and_then(|h| h.get("fallback_for_toolsets"))
                         .and_then(|ts| ts.as_array())
                     {
-                        fallback_for_toolsets = ft
-                            .iter()
-                            .filter_map(|v| v.as_str().map(String::from))
-                            .collect();
+                        fallback_for_toolsets =
+                            ft.iter().filter_map(|v| v.as_str().map(String::from)).collect();
                     }
                     if let Some(rt) = meta
                         .get("axagent")
@@ -261,10 +235,8 @@ impl SkillIndex {
                         .and_then(|ts| ts.as_array())
                         && requires_toolsets.is_empty()
                     {
-                        requires_toolsets = rt
-                            .iter()
-                            .filter_map(|v| v.as_str().map(String::from))
-                            .collect();
+                        requires_toolsets =
+                            rt.iter().filter_map(|v| v.as_str().map(String::from)).collect();
                     }
                     if let Some(ft) = meta
                         .get("axagent")
@@ -272,10 +244,8 @@ impl SkillIndex {
                         .and_then(|ts| ts.as_array())
                         && fallback_for_toolsets.is_empty()
                     {
-                        fallback_for_toolsets = ft
-                            .iter()
-                            .filter_map(|v| v.as_str().map(String::from))
-                            .collect();
+                        fallback_for_toolsets =
+                            ft.iter().filter_map(|v| v.as_str().map(String::from)).collect();
                     }
                     if let Some(env_vars) = meta
                         .get("axagent")
@@ -292,10 +262,8 @@ impl SkillIndex {
                     {
                         required_env_vars = Self::parse_env_vars_from_json(env_vars);
                     }
-                    if let Some(cs) = meta
-                        .get("axagent")
-                        .and_then(|a| a.get("config"))
-                        .and_then(|v| v.as_array())
+                    if let Some(cs) =
+                        meta.get("axagent").and_then(|a| a.get("config")).and_then(|v| v.as_array())
                     {
                         config_settings = Self::parse_config_settings_from_json(cs);
                     }
@@ -308,9 +276,8 @@ impl SkillIndex {
                         config_settings = Self::parse_config_settings_from_json(cs);
                     }
                 }
-                if let Some(env_vars) = frontmatter
-                    .get("required_environment_variables")
-                    .and_then(|v| v.as_array())
+                if let Some(env_vars) =
+                    frontmatter.get("required_environment_variables").and_then(|v| v.as_array())
                     && required_env_vars.is_empty()
                 {
                     required_env_vars = Self::parse_env_vars_from_json(env_vars);
@@ -333,32 +300,22 @@ impl SkillIndex {
                 description = manifest["description"].as_str().unwrap_or("").to_string();
             }
             if let Some(p) = manifest["platforms"].as_array() {
-                platforms = p
-                    .iter()
-                    .filter_map(|v| v.as_str().map(String::from))
-                    .collect();
+                platforms = p.iter().filter_map(|v| v.as_str().map(String::from)).collect();
             }
             if let Some(t) = manifest["tags"].as_array() {
-                tags = t
-                    .iter()
-                    .filter_map(|v| v.as_str().map(String::from))
-                    .collect();
+                tags = t.iter().filter_map(|v| v.as_str().map(String::from)).collect();
             }
             if let Some(rt) = manifest["requires_toolsets"].as_array()
                 && requires_toolsets.is_empty()
             {
-                requires_toolsets = rt
-                    .iter()
-                    .filter_map(|v| v.as_str().map(String::from))
-                    .collect();
+                requires_toolsets =
+                    rt.iter().filter_map(|v| v.as_str().map(String::from)).collect();
             }
             if let Some(ft) = manifest["fallback_for_toolsets"].as_array()
                 && fallback_for_toolsets.is_empty()
             {
-                fallback_for_toolsets = ft
-                    .iter()
-                    .filter_map(|v| v.as_str().map(String::from))
-                    .collect();
+                fallback_for_toolsets =
+                    ft.iter().filter_map(|v| v.as_str().map(String::from)).collect();
             }
             if let Some(env_vars) = manifest["required_environment_variables"].as_array()
                 && required_env_vars.is_empty()
@@ -391,16 +348,8 @@ impl SkillIndex {
                 let obj = v.as_object()?;
                 Some(RequiredEnvVar {
                     name: obj.get("name")?.as_str()?.to_string(),
-                    prompt: obj
-                        .get("prompt")
-                        .and_then(|v| v.as_str())
-                        .unwrap_or("")
-                        .to_string(),
-                    help: obj
-                        .get("help")
-                        .and_then(|v| v.as_str())
-                        .unwrap_or("")
-                        .to_string(),
+                    prompt: obj.get("prompt").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+                    help: obj.get("help").and_then(|v| v.as_str()).unwrap_or("").to_string(),
                     required_for: obj
                         .get("required_for")
                         .and_then(|v| v.as_str())
@@ -422,15 +371,8 @@ impl SkillIndex {
                         .and_then(|v| v.as_str())
                         .unwrap_or("")
                         .to_string(),
-                    default: obj
-                        .get("default")
-                        .and_then(|v| v.as_str())
-                        .map(String::from),
-                    prompt: obj
-                        .get("prompt")
-                        .and_then(|v| v.as_str())
-                        .unwrap_or("")
-                        .to_string(),
+                    default: obj.get("default").and_then(|v| v.as_str()).map(String::from),
+                    prompt: obj.get("prompt").and_then(|v| v.as_str()).unwrap_or("").to_string(),
                     setting_type: obj
                         .get("setting_type")
                         .and_then(|v| v.as_str())
@@ -640,11 +582,8 @@ impl Tool for SkillViewTool {
                 .map_err(|_| ToolError::execution_failed("Failed to acquire skill index lock"))?;
 
             let Some((source_kind, skill_dir)) = index.find_skill(skill_name) else {
-                let available: Vec<String> = index
-                    .list_skills(None)
-                    .iter()
-                    .map(|s| s.name.clone())
-                    .collect();
+                let available: Vec<String> =
+                    index.list_skills(None).iter().map(|s| s.name.clone()).collect();
                 return Err(ToolError::execution_failed(format!(
                     "Skill '{}' 未找到。可用的 skills: {}",
                     skill_name,
@@ -737,10 +676,8 @@ impl Tool for SkillViewTool {
                 let config_values = get_all_skill_config_values(skill_name);
                 let mut has_any_config = false;
                 for setting in &e.config_settings {
-                    let resolved = config_values
-                        .get(&setting.key)
-                        .cloned()
-                        .or(setting.default.clone());
+                    let resolved =
+                        config_values.get(&setting.key).cloned().or(setting.default.clone());
                     if let Some(val) = resolved {
                         if !has_any_config {
                             output.push_str("\n\n---\n**技能配置值**：\n\n");
@@ -1009,11 +946,7 @@ fn load_all_bundles() -> Vec<SkillBundle> {
         .map(|entries| {
             entries
                 .filter_map(|e| e.ok())
-                .filter(|e| {
-                    e.path()
-                        .extension()
-                        .is_some_and(|ext| ext == "yaml" || ext == "yml")
-                })
+                .filter(|e| e.path().extension().is_some_and(|ext| ext == "yaml" || ext == "yml"))
                 .filter_map(|e| {
                     let content = std::fs::read_to_string(e.path()).ok()?;
                     serde_yaml::from_str::<SkillBundle>(&content).ok()
@@ -1025,9 +958,7 @@ fn load_all_bundles() -> Vec<SkillBundle> {
 
 fn find_bundle(name: &str) -> Option<SkillBundle> {
     let slug = name.to_lowercase().replace(' ', "-");
-    load_all_bundles()
-        .into_iter()
-        .find(|b| b.slug() == slug || b.name == name)
+    load_all_bundles().into_iter().find(|b| b.slug() == slug || b.name == name)
 }
 
 pub struct SkillBundleListTool;
@@ -1109,11 +1040,7 @@ impl Tool for SkillBundleCreateTool {
         let name = input["name"].as_str().unwrap_or("").to_string();
         let skills: Vec<String> = input["skills"]
             .as_array()
-            .map(|arr| {
-                arr.iter()
-                    .filter_map(|v| v.as_str().map(String::from))
-                    .collect()
-            })
+            .map(|arr| arr.iter().filter_map(|v| v.as_str().map(String::from)).collect())
             .unwrap_or_default();
         if name.is_empty() || skills.is_empty() {
             return Err(ToolError::invalid_input("name and skills are required"));
@@ -1281,10 +1208,7 @@ static HUB_BASE_DIR: LazyLock<PathBuf> = LazyLock::new(|| {
 });
 
 static HUB_SKILLS_DIR: LazyLock<PathBuf> = LazyLock::new(|| {
-    dirs::home_dir()
-        .unwrap_or_else(|| PathBuf::from("."))
-        .join(".axagent")
-        .join("skills")
+    dirs::home_dir().unwrap_or_else(|| PathBuf::from(".")).join(".axagent").join("skills")
 });
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -1557,10 +1481,7 @@ fn copy_dir_recursive(src: &PathBuf, dst: &PathBuf) -> Result<(), ToolError> {
 // ── .env file helpers for F19 ──
 
 static ENV_FILE_PATH: LazyLock<PathBuf> = LazyLock::new(|| {
-    dirs::home_dir()
-        .unwrap_or_else(|| PathBuf::from("."))
-        .join(".axagent")
-        .join(".env")
+    dirs::home_dir().unwrap_or_else(|| PathBuf::from(".")).join(".axagent").join(".env")
 });
 
 fn read_env_file() -> std::collections::HashMap<String, String> {
@@ -1620,10 +1541,7 @@ pub(crate) fn is_env_var_set(name: &str) -> bool {
 // ── config.yaml helpers for F20 ──
 
 static CONFIG_FILE_PATH: LazyLock<PathBuf> = LazyLock::new(|| {
-    dirs::home_dir()
-        .unwrap_or_else(|| PathBuf::from("."))
-        .join(".axagent")
-        .join("config.yaml")
+    dirs::home_dir().unwrap_or_else(|| PathBuf::from(".")).join(".axagent").join("config.yaml")
 });
 
 fn read_config_yaml() -> serde_json::Value {
@@ -1682,10 +1600,8 @@ pub(crate) fn get_all_skill_config_values(
     let doc = read_config_yaml();
     let mut result = std::collections::HashMap::new();
     let prefix = format!("{}.", skill_name);
-    if let Some(config) = doc
-        .get("skills")
-        .and_then(|s| s.get("config"))
-        .and_then(|c| c.as_object())
+    if let Some(config) =
+        doc.get("skills").and_then(|s| s.get("config")).and_then(|c| c.as_object())
     {
         for (k, v) in config {
             if k.starts_with(&prefix)

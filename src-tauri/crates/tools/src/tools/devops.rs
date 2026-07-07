@@ -21,11 +21,7 @@ fn run_cmd(cmd: &str, args: &[&str], cwd: &str) -> Result<String, String> {
 }
 
 fn has_gh() -> bool {
-    Command::new("gh")
-        .args(["--version"])
-        .output()
-        .map(|o| o.status.success())
-        .unwrap_or(false)
+    Command::new("gh").args(["--version"]).output().map(|o| o.status.success()).unwrap_or(false)
 }
 
 // ── SecurityAuditTool ──
@@ -54,10 +50,7 @@ impl Tool for SecurityAuditTool {
     }
 
     async fn call(&self, input: Value, ctx: &ToolContext) -> Result<ToolResult, ToolError> {
-        let wd = input
-            .get("working_dir")
-            .and_then(|v| v.as_str())
-            .unwrap_or(&ctx.working_dir);
+        let wd = input.get("working_dir").and_then(|v| v.as_str()).unwrap_or(&ctx.working_dir);
         let _fix = input.get("fix").and_then(|v| v.as_bool()).unwrap_or(false);
         let mut results = vec!["## 安全审计\n".to_string()];
 
@@ -119,10 +112,7 @@ impl Tool for DeadCodeDetectTool {
     }
 
     async fn call(&self, input: Value, ctx: &ToolContext) -> Result<ToolResult, ToolError> {
-        let wd = input
-            .get("working_dir")
-            .and_then(|v| v.as_str())
-            .unwrap_or(&ctx.working_dir);
+        let wd = input.get("working_dir").and_then(|v| v.as_str()).unwrap_or(&ctx.working_dir);
         let mut results = vec!["## 死代码检测\n".to_string()];
 
         // Rust: cargo clippy with dead_code lint
@@ -190,14 +180,8 @@ impl Tool for BundleAnalyzeTool {
     }
 
     async fn call(&self, input: Value, ctx: &ToolContext) -> Result<ToolResult, ToolError> {
-        let wd = input
-            .get("working_dir")
-            .and_then(|v| v.as_str())
-            .unwrap_or(&ctx.working_dir);
-        let build_dir = input
-            .get("build_dir")
-            .and_then(|v| v.as_str())
-            .unwrap_or("dist");
+        let wd = input.get("working_dir").and_then(|v| v.as_str()).unwrap_or(&ctx.working_dir);
+        let build_dir = input.get("build_dir").and_then(|v| v.as_str()).unwrap_or("dist");
         let full_build = std::path::Path::new(wd).join(build_dir);
 
         let mut results = vec!["## Bundle 分析\n".to_string()];
@@ -290,11 +274,7 @@ impl Tool for IssueCreateTool {
         let mut args = vec!["issue", "create", "--title", title, "--body", body];
         let labels_str;
         if let Some(labels) = input["labels"].as_array() {
-            labels_str = labels
-                .iter()
-                .filter_map(|l| l.as_str())
-                .collect::<Vec<_>>()
-                .join(",");
+            labels_str = labels.iter().filter_map(|l| l.as_str()).collect::<Vec<_>>().join(",");
             if !labels_str.is_empty() {
                 args.extend(["--label", &labels_str]);
             }
@@ -351,15 +331,8 @@ impl Tool for IssueListTool {
                 "gh CLI 未安装。请安装 GitHub CLI 并运行 gh auth login",
             ));
         }
-        let state = input
-            .get("state")
-            .and_then(|v| v.as_str())
-            .unwrap_or("open");
-        let limit = input
-            .get("limit")
-            .and_then(|v| v.as_u64())
-            .unwrap_or(10)
-            .to_string();
+        let state = input.get("state").and_then(|v| v.as_str()).unwrap_or("open");
+        let limit = input.get("limit").and_then(|v| v.as_u64()).unwrap_or(10).to_string();
         let mut args = vec!["issue", "list", "--state", state, "--limit", &limit];
         let label_str;
         if let Some(l) = input["label"].as_str() {

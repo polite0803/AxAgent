@@ -63,16 +63,10 @@ impl Conversation {
             .filter(|s| s.container_type == "knowledge")
             .map(|s| s.id.clone())
             .collect();
-        self.enabled_memory_namespace_ids = sources
-            .iter()
-            .filter(|s| s.container_type == "memory")
-            .map(|s| s.id.clone())
-            .collect();
-        self.enabled_wiki_ids = sources
-            .iter()
-            .filter(|s| s.container_type == "wiki")
-            .map(|s| s.id.clone())
-            .collect();
+        self.enabled_memory_namespace_ids =
+            sources.iter().filter(|s| s.container_type == "memory").map(|s| s.id.clone()).collect();
+        self.enabled_wiki_ids =
+            sources.iter().filter(|s| s.container_type == "wiki").map(|s| s.id.clone()).collect();
     }
 
     pub fn source_ids_by_type(&self, container_type: &str) -> Vec<String> {
@@ -123,18 +117,9 @@ pub enum ContentBlock {
     #[serde(rename = "text")]
     Text { text: String },
     #[serde(rename = "tool_use")]
-    ToolUse {
-        id: String,
-        name: String,
-        input: String,
-    },
+    ToolUse { id: String, name: String, input: String },
     #[serde(rename = "tool_result")]
-    ToolResult {
-        tool_use_id: String,
-        tool_name: String,
-        output: String,
-        is_error: bool,
-    },
+    ToolResult { tool_use_id: String, tool_name: String, output: String, is_error: bool },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

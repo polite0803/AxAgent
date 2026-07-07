@@ -11,10 +11,8 @@ async fn test_create_react_engine() {
 
 #[tokio::test]
 async fn test_react_engine_with_config() {
-    let config = axagent_agent::reasoning_state::ReActConfig {
-        max_iterations: 10,
-        ..Default::default()
-    };
+    let config =
+        axagent_agent::reasoning_state::ReActConfig { max_iterations: 10, ..Default::default() };
     let engine = ReActEngine::new().with_config(config);
     let _ = engine.subscribe();
 }
@@ -35,10 +33,8 @@ async fn test_react_run_empty_input() {
 
 #[tokio::test]
 async fn test_react_run_with_max_iterations_constraint() {
-    let config = axagent_agent::reasoning_state::ReActConfig {
-        max_iterations: 1,
-        ..Default::default()
-    };
+    let config =
+        axagent_agent::reasoning_state::ReActConfig { max_iterations: 1, ..Default::default() };
     let mut engine = ReActEngine::new().with_config(config);
     let result = engine.run("Do something").await;
     assert!(result.iterations > 0);

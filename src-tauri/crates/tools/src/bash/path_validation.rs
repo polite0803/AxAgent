@@ -34,10 +34,7 @@ impl PathValidator {
             PathBuf::from(r"C:\Users\All Users"),
         ];
 
-        Self {
-            working_dir,
-            blocked_prefixes,
-        }
+        Self { working_dir, blocked_prefixes }
     }
 
     /// 验证单一路径

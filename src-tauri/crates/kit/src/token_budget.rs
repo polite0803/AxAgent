@@ -78,9 +78,7 @@ pub enum TokenBudgetDecision {
         budget: u64,
     },
     /// 停止循环；可选附带完成事件
-    Stop {
-        completion_event: Option<BudgetCompletionEvent>,
-    },
+    Stop { completion_event: Option<BudgetCompletionEvent> },
 }
 
 /// 预算耗尽时的完成事件信息。
@@ -110,15 +108,11 @@ impl TokenBudgetTracker {
     /// 4. 消耗 >= 90% 预算 → 停止
     pub fn check(&mut self, budget: Option<u64>, global_turn_tokens: u64) -> TokenBudgetDecision {
         let Some(budget) = budget else {
-            return TokenBudgetDecision::Stop {
-                completion_event: None,
-            };
+            return TokenBudgetDecision::Stop { completion_event: None };
         };
 
         if budget == 0 {
-            return TokenBudgetDecision::Stop {
-                completion_event: None,
-            };
+            return TokenBudgetDecision::Stop { completion_event: None };
         }
 
         let turn_tokens = global_turn_tokens;
@@ -159,9 +153,7 @@ impl TokenBudgetTracker {
             };
         }
 
-        TokenBudgetDecision::Stop {
-            completion_event: None,
-        }
+        TokenBudgetDecision::Stop { completion_event: None }
     }
 }
 
@@ -186,24 +178,14 @@ mod tests {
     fn test_no_budget_returns_stop() {
         let mut tracker = TokenBudgetTracker::new();
         let decision = tracker.check(None, 100);
-        assert!(matches!(
-            decision,
-            TokenBudgetDecision::Stop {
-                completion_event: None
-            }
-        ));
+        assert!(matches!(decision, TokenBudgetDecision::Stop { completion_event: None }));
     }
 
     #[test]
     fn test_zero_budget_returns_stop() {
         let mut tracker = TokenBudgetTracker::new();
         let decision = tracker.check(Some(0), 0);
-        assert!(matches!(
-            decision,
-            TokenBudgetDecision::Stop {
-                completion_event: None
-            }
-        ));
+        assert!(matches!(decision, TokenBudgetDecision::Stop { completion_event: None }));
     }
 
     #[test]
@@ -223,10 +205,7 @@ mod tests {
         // 95_000 tokens out of 100_000 budget = 95%, above 90%
         let decision = tracker.check(Some(100_000), 95_000);
         assert!(matches!(decision, TokenBudgetDecision::Stop { .. }));
-        if let TokenBudgetDecision::Stop {
-            completion_event: Some(event),
-        } = decision
-        {
+        if let TokenBudgetDecision::Stop { completion_event: Some(event) } = decision {
             assert_eq!(event.pct_used, 95);
             assert!(!event.diminishing_returns);
         }
@@ -256,10 +235,7 @@ mod tests {
             matches!(
                 decision4,
                 TokenBudgetDecision::Stop {
-                    completion_event: Some(BudgetCompletionEvent {
-                        diminishing_returns: true,
-                        ..
-                    })
+                    completion_event: Some(BudgetCompletionEvent { diminishing_returns: true, .. })
                 }
             ),
             "应该在连续 3 次 continuation 后（第 4 次调用）检测到收益递减"

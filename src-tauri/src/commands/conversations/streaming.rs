@@ -58,10 +58,8 @@ fn spawn_stream_task(
                 self.flags.remove(&self.key);
             }
         }
-        let _cancel_guard = CancelGuard {
-            flags: cancel_flags.clone(),
-            key: conversation_id.clone(),
-        };
+        let _cancel_guard =
+            CancelGuard { flags: cancel_flags.clone(), key: conversation_id.clone() };
 
         let future = std::panic::AssertUnwindSafe(async {
             // --- 原始 stream task 主体 ---
@@ -526,11 +524,7 @@ fn spawn_stream_task(
                 let ai_title = generate_ai_title(
                     &harness,
                     &auto_messages,
-                    TitleFallbackModel {
-                        provider: &provider,
-                        ctx: &ctx,
-                        model_id: &model_id,
-                    },
+                    TitleFallbackModel { provider: &provider, ctx: &ctx, model_id: &model_id },
                     &settings,
                 )
                 .await;
@@ -630,12 +624,7 @@ pub async fn send_message(
     state: State<'_, AppState>,
     params: SendMessageParams,
 ) -> Result<Message, String> {
-    let SendMessageParams {
-        conversation_id,
-        content,
-        attachments,
-        options,
-    } = params;
+    let SendMessageParams { conversation_id, content, attachments, options } = params;
     let SendMessageOptions {
         enabled_mcp_server_ids,
         thinking_budget,
@@ -695,25 +684,15 @@ pub async fn send_message(
     )
     .await
     .ok();
-    let model_param_overrides = resolved_model
-        .as_ref()
-        .and_then(|m| m.param_overrides.clone());
-    let no_system_role = model_param_overrides
-        .as_ref()
-        .and_then(|p| p.no_system_role)
-        .unwrap_or(false);
-    let use_max_completion_tokens = model_param_overrides
-        .as_ref()
-        .and_then(|p| p.use_max_completion_tokens);
-    let force_max_tokens = model_param_overrides
-        .as_ref()
-        .and_then(|p| p.force_max_tokens);
-    let thinking_param_style = model_param_overrides
-        .as_ref()
-        .and_then(|p| p.thinking_param_style.clone());
-    let request_delay_ms = model_param_overrides
-        .as_ref()
-        .and_then(|p| p.request_delay_ms);
+    let model_param_overrides = resolved_model.as_ref().and_then(|m| m.param_overrides.clone());
+    let no_system_role =
+        model_param_overrides.as_ref().and_then(|p| p.no_system_role).unwrap_or(false);
+    let use_max_completion_tokens =
+        model_param_overrides.as_ref().and_then(|p| p.use_max_completion_tokens);
+    let force_max_tokens = model_param_overrides.as_ref().and_then(|p| p.force_max_tokens);
+    let thinking_param_style =
+        model_param_overrides.as_ref().and_then(|p| p.thinking_param_style.clone());
+    let request_delay_ms = model_param_overrides.as_ref().and_then(|p| p.request_delay_ms);
 
     // 4. Build ChatRequest from conversation messages
     let db_messages =
@@ -940,9 +919,8 @@ pub async fn send_message(
     }
 
     // Resolve proxy config early (needed for both summary generation and main request)
-    let global_settings = axagent_dao::repo::settings::get_settings(state.harness.db())
-        .await
-        .unwrap_or_default();
+    let global_settings =
+        axagent_dao::repo::settings::get_settings(state.harness.db()).await.unwrap_or_default();
     let resolved_proxy = ProviderProxyConfig::resolve(&provider.proxy_config, &global_settings);
 
     // Get model info for token budget and param overrides
@@ -1040,10 +1018,7 @@ pub async fn send_message(
         base_url: Some(resolve_base_url_for_type(&provider.api_host, &provider.provider_type)),
         api_path: provider.api_path.clone(),
         proxy_config: resolved_proxy,
-        custom_headers: provider
-            .custom_headers
-            .as_ref()
-            .and_then(|s| serde_json::from_str(s).ok()),
+        custom_headers: provider.custom_headers.as_ref().and_then(|s| serde_json::from_str(s).ok()),
         api_mode: None,
         conversation: None,
         previous_response_id: None,
@@ -1105,10 +1080,7 @@ pub async fn send_message(
             ("DiscoverSkills", "搜索已安装的 Skill。query: 名称/描述关键词。"),
             ("FileRead", "读取文件。file_path: 路径, offset: 起始行, limit: 行数。"),
             ("FileWrite", "创建/覆盖文件。file_path: 路径, content: 内容。"),
-            (
-                "FileEdit",
-                "精确编辑文件。file_path: 路径, old_string: 旧文本, new_string: 新文本。",
-            ),
+            ("FileEdit", "精确编辑文件。file_path: 路径, old_string: 旧文本, new_string: 新文本。"),
             ("Glob", "glob 搜索文件。pattern: glob模式。"),
             ("Grep", "正则搜索文件内容。pattern: 正则表达式。"),
             ("Bash", "执行 shell 命令。command: 命令, description: 说明。"),
@@ -1142,10 +1114,8 @@ pub async fn send_message(
                     .await
             {
                 for td in descriptors {
-                    let parameters: Option<serde_json::Value> = td
-                        .input_schema_json
-                        .as_ref()
-                        .and_then(|s| serde_json::from_str(s).ok());
+                    let parameters: Option<serde_json::Value> =
+                        td.input_schema_json.as_ref().and_then(|s| serde_json::from_str(s).ok());
                     all_tools.push(ChatTool {
                         r#type: "function".to_string(),
                         function: ChatToolFunction {
@@ -1181,9 +1151,7 @@ pub async fn send_message(
     if state.stream_cancel_flags.contains_key(&conversation_id) {
         return Err("已有正在进行的请求，请等待完成后再发送".to_string());
     }
-    state
-        .stream_cancel_flags
-        .insert(conversation_id.clone(), cancel_flag.clone());
+    state.stream_cancel_flags.insert(conversation_id.clone(), cancel_flag.clone());
     spawn_stream_task(
         app,
         state.harness.db().clone(),
@@ -1225,11 +1193,7 @@ pub async fn regenerate_message(
     state: State<'_, AppState>,
     params: RegenerateMessageParams,
 ) -> Result<(), String> {
-    let RegenerateMessageParams {
-        conversation_id,
-        user_message_id,
-        options,
-    } = params;
+    let RegenerateMessageParams { conversation_id, user_message_id, options } = params;
     let SendMessageOptions {
         enabled_mcp_server_ids,
         thinking_budget,
@@ -1390,9 +1354,7 @@ pub async fn regenerate_message(
     };
 
     // Find the target user message position, then search for context-clear/compressed BEFORE it
-    let target_pos = remaining_messages
-        .iter()
-        .position(|m| m.id == last_user_msg.id);
+    let target_pos = remaining_messages.iter().position(|m| m.id == last_user_msg.id);
     let search_range = match target_pos {
         Some(pos) => &remaining_messages[..pos],
         None => &remaining_messages[..],
@@ -1429,9 +1391,8 @@ pub async fn regenerate_message(
     // 7. Spawn streaming with new version
     let assistant_message_id = axagent_kit::utils::gen_id();
 
-    let global_settings = axagent_dao::repo::settings::get_settings(state.harness.db())
-        .await
-        .unwrap_or_default();
+    let global_settings =
+        axagent_dao::repo::settings::get_settings(state.harness.db()).await.unwrap_or_default();
     let resolved_proxy = ProviderProxyConfig::resolve(&provider.proxy_config, &global_settings);
 
     let ctx = ProviderRequestContext {
@@ -1441,10 +1402,7 @@ pub async fn regenerate_message(
         base_url: Some(resolve_base_url_for_type(&provider.api_host, &provider.provider_type)),
         api_path: provider.api_path.clone(),
         proxy_config: resolved_proxy,
-        custom_headers: provider
-            .custom_headers
-            .as_ref()
-            .and_then(|s| serde_json::from_str(s).ok()),
+        custom_headers: provider.custom_headers.as_ref().and_then(|s| serde_json::from_str(s).ok()),
         api_mode: None,
         conversation: None,
         previous_response_id: None,
@@ -1491,10 +1449,7 @@ pub async fn regenerate_message(
             ("DiscoverSkills", "搜索已安装的 Skill。query: 名称/描述关键词。"),
             ("FileRead", "读取文件。file_path: 路径, offset: 起始行, limit: 行数。"),
             ("FileWrite", "创建/覆盖文件。file_path: 路径, content: 内容。"),
-            (
-                "FileEdit",
-                "精确编辑文件。file_path: 路径, old_string: 旧文本, new_string: 新文本。",
-            ),
+            ("FileEdit", "精确编辑文件。file_path: 路径, old_string: 旧文本, new_string: 新文本。"),
             ("Glob", "glob 搜索文件。pattern: glob模式。"),
             ("Grep", "正则搜索文件内容。pattern: 正则表达式。"),
             ("Bash", "执行 shell 命令。command: 命令, description: 说明。"),
@@ -1528,10 +1483,8 @@ pub async fn regenerate_message(
                     .await
             {
                 for td in descriptors {
-                    let parameters: Option<serde_json::Value> = td
-                        .input_schema_json
-                        .as_ref()
-                        .and_then(|s| serde_json::from_str(s).ok());
+                    let parameters: Option<serde_json::Value> =
+                        td.input_schema_json.as_ref().and_then(|s| serde_json::from_str(s).ok());
                     all_tools.push(ChatTool {
                         r#type: "function".to_string(),
                         function: ChatToolFunction {
@@ -1560,22 +1513,14 @@ pub async fn regenerate_message(
     .await
     .ok()
     .and_then(|m| m.param_overrides);
-    let use_max_completion_tokens = regen_model_overrides
-        .as_ref()
-        .and_then(|p| p.use_max_completion_tokens);
-    let force_max_tokens = regen_model_overrides
-        .as_ref()
-        .and_then(|p| p.force_max_tokens);
-    let no_system_role = regen_model_overrides
-        .as_ref()
-        .and_then(|p| p.no_system_role)
-        .unwrap_or(false);
-    let thinking_param_style = regen_model_overrides
-        .as_ref()
-        .and_then(|p| p.thinking_param_style.clone());
-    let regen_request_delay_ms = regen_model_overrides
-        .as_ref()
-        .and_then(|p| p.request_delay_ms);
+    let use_max_completion_tokens =
+        regen_model_overrides.as_ref().and_then(|p| p.use_max_completion_tokens);
+    let force_max_tokens = regen_model_overrides.as_ref().and_then(|p| p.force_max_tokens);
+    let no_system_role =
+        regen_model_overrides.as_ref().and_then(|p| p.no_system_role).unwrap_or(false);
+    let thinking_param_style =
+        regen_model_overrides.as_ref().and_then(|p| p.thinking_param_style.clone());
+    let regen_request_delay_ms = regen_model_overrides.as_ref().and_then(|p| p.request_delay_ms);
 
     // Convert system messages to user messages if model doesn't support system role
     if no_system_role {
@@ -1590,9 +1535,7 @@ pub async fn regenerate_message(
     if state.stream_cancel_flags.contains_key(&conversation_id) {
         return Err("已有正在进行的请求，请等待完成后再发送".to_string());
     }
-    state
-        .stream_cancel_flags
-        .insert(conversation_id.clone(), cancel_flag.clone());
+    state.stream_cancel_flags.insert(conversation_id.clone(), cancel_flag.clone());
     spawn_stream_task(
         app,
         state.harness.db().clone(),
@@ -1824,9 +1767,8 @@ pub async fn regenerate_with_model(
     }
 
     let assistant_message_id = axagent_kit::utils::gen_id();
-    let global_settings = axagent_dao::repo::settings::get_settings(state.harness.db())
-        .await
-        .unwrap_or_default();
+    let global_settings =
+        axagent_dao::repo::settings::get_settings(state.harness.db()).await.unwrap_or_default();
     let resolved_proxy = ProviderProxyConfig::resolve(&provider.proxy_config, &global_settings);
 
     let ctx = ProviderRequestContext {
@@ -1836,10 +1778,7 @@ pub async fn regenerate_with_model(
         base_url: Some(resolve_base_url_for_type(&provider.api_host, &provider.provider_type)),
         api_path: provider.api_path.clone(),
         proxy_config: resolved_proxy,
-        custom_headers: provider
-            .custom_headers
-            .as_ref()
-            .and_then(|s| serde_json::from_str(s).ok()),
+        custom_headers: provider.custom_headers.as_ref().and_then(|s| serde_json::from_str(s).ok()),
         api_mode: None,
         conversation: None,
         previous_response_id: None,
@@ -1884,10 +1823,7 @@ pub async fn regenerate_with_model(
             ("DiscoverSkills", "搜索已安装的 Skill。query: 名称/描述关键词。"),
             ("FileRead", "读取文件。file_path: 路径, offset: 起始行, limit: 行数。"),
             ("FileWrite", "创建/覆盖文件。file_path: 路径, content: 内容。"),
-            (
-                "FileEdit",
-                "精确编辑文件。file_path: 路径, old_string: 旧文本, new_string: 新文本。",
-            ),
+            ("FileEdit", "精确编辑文件。file_path: 路径, old_string: 旧文本, new_string: 新文本。"),
             ("Glob", "glob 搜索文件。pattern: glob模式。"),
             ("Grep", "正则搜索文件内容。pattern: 正则表达式。"),
             ("Bash", "执行 shell 命令。command: 命令, description: 说明。"),
@@ -1921,10 +1857,8 @@ pub async fn regenerate_with_model(
                     .await
             {
                 for td in descriptors {
-                    let parameters: Option<serde_json::Value> = td
-                        .input_schema_json
-                        .as_ref()
-                        .and_then(|s| serde_json::from_str(s).ok());
+                    let parameters: Option<serde_json::Value> =
+                        td.input_schema_json.as_ref().and_then(|s| serde_json::from_str(s).ok());
                     all_tools.push(ChatTool {
                         r#type: "function".to_string(),
                         function: ChatToolFunction {
@@ -1953,17 +1887,11 @@ pub async fn regenerate_with_model(
     .await
     .ok()
     .and_then(|m| m.param_overrides);
-    let use_max_completion_tokens = rwm_overrides
-        .as_ref()
-        .and_then(|p| p.use_max_completion_tokens);
+    let use_max_completion_tokens =
+        rwm_overrides.as_ref().and_then(|p| p.use_max_completion_tokens);
     let force_max_tokens = rwm_overrides.as_ref().and_then(|p| p.force_max_tokens);
-    let no_system_role = rwm_overrides
-        .as_ref()
-        .and_then(|p| p.no_system_role)
-        .unwrap_or(false);
-    let thinking_param_style = rwm_overrides
-        .as_ref()
-        .and_then(|p| p.thinking_param_style.clone());
+    let no_system_role = rwm_overrides.as_ref().and_then(|p| p.no_system_role).unwrap_or(false);
+    let thinking_param_style = rwm_overrides.as_ref().and_then(|p| p.thinking_param_style.clone());
     let rwm_request_delay_ms = rwm_overrides.as_ref().and_then(|p| p.request_delay_ms);
 
     if no_system_role {
@@ -1975,9 +1903,7 @@ pub async fn regenerate_with_model(
     }
 
     let cancel_flag = Arc::new(AtomicBool::new(false));
-    state
-        .stream_cancel_flags
-        .insert(conversation_id.clone(), cancel_flag.clone());
+    state.stream_cancel_flags.insert(conversation_id.clone(), cancel_flag.clone());
 
     // Pre-create the placeholder message BEFORE spawning the stream task so that
     // the frontend can immediately discover it via listMessageVersions and enable
@@ -2021,10 +1947,7 @@ pub async fn regenerate_with_model(
         "[regenerate_with_model] spawning stream: model={} total_messages={} has_system_prompt={}",
         &conversation.model_id,
         chat_messages.len(),
-        chat_messages
-            .first()
-            .map(|m| m.role == "system")
-            .unwrap_or(false)
+        chat_messages.first().map(|m| m.role == "system").unwrap_or(false)
     );
     spawn_stream_task(
         app,

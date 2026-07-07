@@ -358,10 +358,8 @@ impl ClosedLoopService {
             })
             .await?;
 
-        let complex_tasks: Vec<_> = recent_trajectories
-            .iter()
-            .filter(|t| t.steps.len() > 10)
-            .collect();
+        let complex_tasks: Vec<_> =
+            recent_trajectories.iter().filter(|t| t.steps.len() > 10).collect();
 
         for task in complex_tasks.iter().take(5) {
             if let Ok(similar_skills) = self.find_similar_skills(&task.topic).await {
@@ -442,14 +440,9 @@ impl ClosedLoopService {
     async fn evaluate_pattern_learning(&self) -> Result<Vec<PeriodicNudge>, anyhow::Error> {
         let mut nudges = Vec::new();
 
-        let patterns = self
-            .storage
-            .get_patterns_by_success_rate(0.0, Some(100))
-            .await?;
-        let high_failure_patterns: Vec<_> = patterns
-            .iter()
-            .filter(|p| p.success_rate < 0.3 && p.frequency > 3)
-            .collect();
+        let patterns = self.storage.get_patterns_by_success_rate(0.0, Some(100)).await?;
+        let high_failure_patterns: Vec<_> =
+            patterns.iter().filter(|p| p.success_rate < 0.3 && p.frequency > 3).collect();
 
         for pattern in high_failure_patterns.iter().take(3) {
             nudges.push(PeriodicNudge {
@@ -485,9 +478,8 @@ impl ClosedLoopService {
                 match auto_action.action_type.as_str() {
                     "save_to_memory" => {
                         if let Some(ref ms) = self.memory_service {
-                            let result = ms
-                                .add_memory_with_dedup("memory", &auto_action.target)
-                                .await;
+                            let result =
+                                ms.add_memory_with_dedup("memory", &auto_action.target).await;
                             if !result.success {
                                 tracing::debug!(
                                     "Closed-loop memory dedup skip: {}",
@@ -727,11 +719,7 @@ impl ClosedLoopService {
                 let words: Vec<&str> = step.content.split_whitespace().collect();
                 for word in words.iter().take(5) {
                     if word.len() > 4
-                        && word
-                            .chars()
-                            .next()
-                            .map(|c| c.is_uppercase())
-                            .unwrap_or(false)
+                        && word.chars().next().map(|c| c.is_uppercase()).unwrap_or(false)
                     {
                         entities.insert(word.to_string());
                     }
@@ -739,11 +727,7 @@ impl ClosedLoopService {
             }
         }
 
-        entities
-            .into_iter()
-            .take(10)
-            .map(|name| EntityRef { name })
-            .collect()
+        entities.into_iter().take(10).map(|name| EntityRef { name }).collect()
     }
 
     fn propose_memory_consolidation(
@@ -765,11 +749,7 @@ impl ClosedLoopService {
             memory_content: format!(
                 "用户经常处理与 {} 相关的主题。关键实体包括: {}",
                 theme,
-                entities
-                    .iter()
-                    .map(|e| e.name.as_str())
-                    .collect::<Vec<_>>()
-                    .join(", ")
+                entities.iter().map(|e| e.name.as_str()).collect::<Vec<_>>().join(", ")
             ),
             confidence,
         }
@@ -930,11 +910,7 @@ impl ClosedLoopService {
             improvements.push_str("- Add more error handling guidance\n\n");
         }
 
-        let tool_steps: Vec<_> = task
-            .steps
-            .iter()
-            .filter(|s| s.tool_calls.is_some())
-            .collect();
+        let tool_steps: Vec<_> = task.steps.iter().filter(|s| s.tool_calls.is_some()).collect();
 
         if !tool_steps.is_empty() {
             improvements.push_str("## New Step Suggestions\n");
@@ -997,11 +973,8 @@ impl ClosedLoopService {
             trajectory.outcome, trajectory.duration_ms
         );
 
-        let tool_steps: Vec<_> = trajectory
-            .steps
-            .iter()
-            .filter(|s| s.tool_calls.is_some())
-            .collect();
+        let tool_steps: Vec<_> =
+            trajectory.steps.iter().filter(|s| s.tool_calls.is_some()).collect();
 
         if !tool_steps.is_empty() {
             content += "## Procedure\n";

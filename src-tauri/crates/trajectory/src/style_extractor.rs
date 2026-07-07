@@ -128,9 +128,7 @@ pub struct StyleExtractor {
 
 impl StyleExtractor {
     pub fn new() -> Self {
-        Self {
-            min_pattern_frequency: 2,
-        }
+        Self { min_pattern_frequency: 2 }
     }
 
     pub fn extract_from_code(&self, samples: &[CodeSample]) -> ExtractedCodePatterns {
@@ -658,10 +656,8 @@ impl StyleExtractor {
             return 0.5;
         }
 
-        let total_words: usize = messages
-            .iter()
-            .map(|m| m.content.split_whitespace().count())
-            .sum();
+        let total_words: usize =
+            messages.iter().map(|m| m.content.split_whitespace().count()).sum();
 
         let avg_words = total_words as f32 / messages.len() as f32;
 

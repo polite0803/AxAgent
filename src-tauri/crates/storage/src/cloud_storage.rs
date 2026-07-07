@@ -235,13 +235,10 @@ impl S3Backend {
         let (headers, url) =
             self.sign_request_with_body(Method::POST, &path, &query, &[], content_type)?;
 
-        let resp = self
-            .client
-            .post(&url)
-            .headers(headers)
-            .send()
-            .await
-            .map_err(|e| AxAgentError::Gateway(format!("S3 initiate multipart failed: {}", e)))?;
+        let resp =
+            self.client.post(&url).headers(headers).send().await.map_err(|e| {
+                AxAgentError::Gateway(format!("S3 initiate multipart failed: {}", e))
+            })?;
 
         if !resp.status().is_success() {
             let body = resp.text().await.unwrap_or_default();
@@ -268,16 +265,10 @@ impl S3Backend {
 
         let (headers, url) = self.sign_request_with_body(Method::PUT, &path, &query, data, "")?;
 
-        let resp = self
-            .client
-            .put(&url)
-            .headers(headers)
-            .body(data.to_vec())
-            .send()
-            .await
-            .map_err(|e| {
-                AxAgentError::Gateway(format!("S3 upload part {} failed: {}", part_number, e))
-            })?;
+        let resp =
+            self.client.put(&url).headers(headers).body(data.to_vec()).send().await.map_err(
+                |e| AxAgentError::Gateway(format!("S3 upload part {} failed: {}", part_number, e)),
+            )?;
 
         if !resp.status().is_success() {
             let body = resp.text().await.unwrap_or_default();
@@ -329,14 +320,10 @@ impl S3Backend {
             "application/xml",
         )?;
 
-        let resp = self
-            .client
-            .post(&url)
-            .headers(headers)
-            .body(body_bytes)
-            .send()
-            .await
-            .map_err(|e| AxAgentError::Gateway(format!("S3 complete multipart failed: {}", e)))?;
+        let resp =
+            self.client.post(&url).headers(headers).body(body_bytes).send().await.map_err(|e| {
+                AxAgentError::Gateway(format!("S3 complete multipart failed: {}", e))
+            })?;
 
         if !resp.status().is_success() {
             let body = resp.text().await.unwrap_or_default();
@@ -409,10 +396,7 @@ impl S3Backend {
             completed_parts.push((part_number, etag));
         }
 
-        match self
-            .complete_multipart_upload(key, &upload_id, &completed_parts)
-            .await
-        {
+        match self.complete_multipart_upload(key, &upload_id, &completed_parts).await {
             Ok(meta) => Ok(meta),
             Err(e) => {
                 let _ = self.abort_multipart_upload(key, &upload_id).await;
@@ -477,11 +461,7 @@ impl S3Backend {
             h
         };
 
-        let signed_headers = headers
-            .keys()
-            .map(|k| k.as_str())
-            .collect::<Vec<_>>()
-            .join(";");
+        let signed_headers = headers.keys().map(|k| k.as_str()).collect::<Vec<_>>().join(";");
         let canonical_headers = headers
             .iter()
             .map(|(k, v)| format!("{}:{}", k, v.trim()))
@@ -563,46 +543,43 @@ impl StorageBackend for S3Backend {
         let path = format!("/{}", full_key);
 
         let (headers, url) = self.sign_request(Method::GET, &path, &BTreeMap::new(), "")?;
-        let data = retry_with_backoff(|| {
-            let headers = headers.clone();
-            let url = url.clone();
-            async move {
-                let resp = self
-                    .client
-                    .get(&url)
-                    .headers(headers)
-                    .send()
-                    .await
-                    .map_err(|e| AxAgentError::Gateway(format!("S3 download failed: {}", e)))?;
+        let data =
+            retry_with_backoff(|| {
+                let headers = headers.clone();
+                let url = url.clone();
+                async move {
+                    let resp =
+                        self.client.get(&url).headers(headers).send().await.map_err(|e| {
+                            AxAgentError::Gateway(format!("S3 download failed: {}", e))
+                        })?;
 
-                if !resp.status().is_success() {
-                    let status = resp.status();
-                    let body = resp.text().await.unwrap_or_default();
-                    if status.is_server_error() {
-                        return Err(AxAgentError::Gateway(format!(
-                            "S3 download server error ({}): {}",
-                            status, body
-                        )));
+                    if !resp.status().is_success() {
+                        let status = resp.status();
+                        let body = resp.text().await.unwrap_or_default();
+                        if status.is_server_error() {
+                            return Err(AxAgentError::Gateway(format!(
+                                "S3 download server error ({}): {}",
+                                status, body
+                            )));
+                        }
+                        return Err(AxAgentError::Gateway(format!("S3 download error: {}", body)));
                     }
-                    return Err(AxAgentError::Gateway(format!("S3 download error: {}", body)));
+
+                    let etag = resp
+                        .headers()
+                        .get("etag")
+                        .and_then(|h| h.to_str().ok())
+                        .map(|s| s.trim_matches('"').to_string());
+
+                    let data =
+                        resp.bytes().await.map(|b| b.to_vec()).map_err(|e| {
+                            AxAgentError::Gateway(format!("S3 read body error: {}", e))
+                        })?;
+
+                    Ok((data, etag))
                 }
-
-                let etag = resp
-                    .headers()
-                    .get("etag")
-                    .and_then(|h| h.to_str().ok())
-                    .map(|s| s.trim_matches('"').to_string());
-
-                let data = resp
-                    .bytes()
-                    .await
-                    .map(|b| b.to_vec())
-                    .map_err(|e| AxAgentError::Gateway(format!("S3 read body error: {}", e)))?;
-
-                Ok((data, etag))
-            }
-        })
-        .await?;
+            })
+            .await?;
 
         let data_len = data.0.len() as i64;
 
@@ -627,42 +604,39 @@ impl StorageBackend for S3Backend {
         let (headers, url) =
             self.sign_request_with_body(Method::PUT, &path, &BTreeMap::new(), data, content_type)?;
 
-        let resp = retry_with_backoff(|| {
-            let headers = headers.clone();
-            let url = url.clone();
-            let body = data.to_vec();
-            async move {
-                let resp = self
-                    .client
-                    .put(&url)
-                    .headers(headers)
-                    .body(body)
-                    .send()
-                    .await
-                    .map_err(|e| AxAgentError::Gateway(format!("S3 upload failed: {}", e)))?;
+        let resp =
+            retry_with_backoff(|| {
+                let headers = headers.clone();
+                let url = url.clone();
+                let body = data.to_vec();
+                async move {
+                    let resp =
+                        self.client.put(&url).headers(headers).body(body).send().await.map_err(
+                            |e| AxAgentError::Gateway(format!("S3 upload failed: {}", e)),
+                        )?;
 
-                if !resp.status().is_success() {
-                    let status = resp.status();
-                    let body = resp.text().await.unwrap_or_default();
-                    if status.is_server_error() {
-                        return Err(AxAgentError::Gateway(format!(
-                            "S3 upload server error ({}): {}",
-                            status, body
-                        )));
+                    if !resp.status().is_success() {
+                        let status = resp.status();
+                        let body = resp.text().await.unwrap_or_default();
+                        if status.is_server_error() {
+                            return Err(AxAgentError::Gateway(format!(
+                                "S3 upload server error ({}): {}",
+                                status, body
+                            )));
+                        }
+                        return Err(AxAgentError::Gateway(format!("S3 upload error: {}", body)));
                     }
-                    return Err(AxAgentError::Gateway(format!("S3 upload error: {}", body)));
+
+                    let etag = resp
+                        .headers()
+                        .get("etag")
+                        .and_then(|h| h.to_str().ok())
+                        .map(|s| s.trim_matches('"').to_string());
+
+                    Ok(etag)
                 }
-
-                let etag = resp
-                    .headers()
-                    .get("etag")
-                    .and_then(|h| h.to_str().ok())
-                    .map(|s| s.trim_matches('"').to_string());
-
-                Ok(etag)
-            }
-        })
-        .await?;
+            })
+            .await?;
 
         Ok(StorageObjectMeta {
             key: key.to_string(),
@@ -734,11 +708,7 @@ impl StorageBackend for S3Backend {
         let is_truncated = parse_s3_is_truncated(&body);
         let next_token = parse_s3_next_continuation_token(&body);
 
-        Ok(ListResult {
-            objects,
-            is_truncated,
-            continuation_token: next_token,
-        })
+        Ok(ListResult { objects, is_truncated, continuation_token: next_token })
     }
 
     async fn head(&self, key: &str) -> Result<StorageObjectMeta> {
@@ -771,12 +741,7 @@ impl StorageBackend for S3Backend {
             .and_then(|s| s.parse::<i64>().ok())
             .unwrap_or(0);
 
-        Ok(StorageObjectMeta {
-            key: key.to_string(),
-            etag,
-            last_modified: None,
-            size,
-        })
+        Ok(StorageObjectMeta { key: key.to_string(), etag, last_modified: None, size })
     }
 
     async fn check_connection(&self) -> Result<bool> {
@@ -848,22 +813,13 @@ impl StorageBackend for WebDavBackend {
         _continuation_token: Option<&str>,
     ) -> Result<ListResult> {
         let objects = self.client.list_recursive(prefix).await?;
-        Ok(ListResult {
-            objects,
-            is_truncated: false,
-            continuation_token: None,
-        })
+        Ok(ListResult { objects, is_truncated: false, continuation_token: None })
     }
 
     async fn head(&self, key: &str) -> Result<StorageObjectMeta> {
         let (etag, last_modified, size) = self.client.head_raw(key).await?;
 
-        Ok(StorageObjectMeta {
-            key: key.to_string(),
-            etag,
-            last_modified,
-            size,
-        })
+        Ok(StorageObjectMeta { key: key.to_string(), etag, last_modified, size })
     }
 
     async fn check_connection(&self) -> Result<bool> {
@@ -999,10 +955,7 @@ impl SyncManifest {
 
     /// Find the ETag for a given file key.
     pub fn get_etag(&self, key: &str) -> Option<&str> {
-        self.files
-            .iter()
-            .find(|f| f.key == key)
-            .and_then(|f| f.etag.as_deref())
+        self.files.iter().find(|f| f.key == key).and_then(|f| f.etag.as_deref())
     }
 
     /// Update or insert a file entry.
@@ -1133,10 +1086,7 @@ impl SyncEngine {
     /// Push database to cloud.
     pub async fn push_database(&self, data: &[u8]) -> Result<()> {
         let db_key = format!("profiles/{}/db/axagent.db", self.profile_name);
-        let meta = self
-            .backend
-            .put(&db_key, data, "application/x-sqlite3")
-            .await?;
+        let meta = self.backend.put(&db_key, data, "application/x-sqlite3").await?;
 
         let mut manifest = self.local_manifest.write().await;
         manifest.db_checksum = meta.etag.clone();
@@ -1198,9 +1148,7 @@ impl SyncEngine {
 
     async fn push_manifest(&self, manifest: &SyncManifest) -> Result<()> {
         let data = serde_json::to_vec_pretty(manifest)?;
-        self.backend
-            .put(&self.manifest_key, &data, "application/json")
-            .await?;
+        self.backend.put(&self.manifest_key, &data, "application/json").await?;
         Ok(())
     }
 }

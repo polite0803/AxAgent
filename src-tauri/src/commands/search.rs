@@ -96,9 +96,7 @@ async fn get_search_api_key(
 
     match model.api_key_ref {
         Some(ref encrypted) if !encrypted.is_empty() => {
-            axagent_crypto::decrypt_key(encrypted, master_key)
-                .map(Some)
-                .map_err(|e| e.to_string())
+            axagent_crypto::decrypt_key(encrypted, master_key).map(Some).map_err(|e| e.to_string())
         },
         _ => Ok(None),
     }
@@ -196,10 +194,8 @@ pub async fn execute_search(
         .build()
         .map_err(|e| e.to_string())?;
 
-    let mut req = client
-        .post(endpoint)
-        .header("Content-Type", "application/json")
-        .json(&serde_json::json!({
+    let mut req =
+        client.post(endpoint).header("Content-Type", "application/json").json(&serde_json::json!({
             "q": query,
             "max_results": provider.result_limit
         }));
@@ -253,10 +249,7 @@ async fn search_via_ddg(query: &str) -> Result<serde_json::Value, String> {
         .map_err(|e| format!("DDG request failed: {e}"))?;
 
     let status = resp.status();
-    let html = resp
-        .text()
-        .await
-        .map_err(|e| format!("DDG read failed: {e}"))?;
+    let html = resp.text().await.map_err(|e| format!("DDG read failed: {e}"))?;
 
     if !status.is_success() {
         tracing::warn!("[search] DDG returned HTTP {}", status.as_u16());
@@ -268,13 +261,7 @@ async fn search_via_ddg(query: &str) -> Result<serde_json::Value, String> {
         .split("result__a")
         .skip(1)
         .filter_map(|chunk| {
-            let title = chunk
-                .split("</a>")
-                .next()?
-                .rsplit('>')
-                .next()?
-                .trim()
-                .to_string();
+            let title = chunk.split("</a>").next()?.rsplit('>').next()?.trim().to_string();
             let snippet = chunk
                 .split("result__snippet")
                 .nth(1)?

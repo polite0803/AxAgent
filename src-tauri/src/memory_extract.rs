@@ -84,12 +84,8 @@ pub async fn extract_memories_from_messages(
     model: &str,
     lang: PromptLang,
 ) -> Result<ExtractionResult, String> {
-    let recent: Vec<_> = messages
-        .iter()
-        .rev()
-        .filter(|m| !matches!(m.role, MessageRole::System))
-        .take(20)
-        .collect();
+    let recent: Vec<_> =
+        messages.iter().rev().filter(|m| !matches!(m.role, MessageRole::System)).take(20).collect();
 
     if recent.len() < 3 {
         return Ok(ExtractionResult {
@@ -148,10 +144,8 @@ pub async fn extract_memories_from_messages(
         store: None,
     };
 
-    let response = adapter
-        .chat(ctx, request)
-        .await
-        .map_err(|e| format!("LLM call failed: {}", e))?;
+    let response =
+        adapter.chat(ctx, request).await.map_err(|e| format!("LLM call failed: {}", e))?;
 
     let items: Vec<ExtractedMemory> = match serde_json::from_str(&response.content) {
         Ok(parsed) => parsed,
@@ -182,10 +176,7 @@ pub async fn extract_memories_from_messages(
         })
         .collect();
 
-    Ok(ExtractionResult {
-        items,
-        conversation_id: conversation_id.to_string(),
-    })
+    Ok(ExtractionResult { items, conversation_id: conversation_id.to_string() })
 }
 
 // ── Memory Consolidation ──────────────────────────────────────────────────────
@@ -208,11 +199,8 @@ pub async fn consolidate_memories(
         .collect::<Vec<_>>()
         .join("\n");
 
-    let prompt = format!(
-        "Consolidate these {} similar memories into one:\n\n{}",
-        contents.len(),
-        combined
-    );
+    let prompt =
+        format!("Consolidate these {} similar memories into one:\n\n{}", contents.len(), combined);
 
     let request = ChatRequest {
         model: model.to_string(),
@@ -317,18 +305,11 @@ pub async fn extract_entities_from_messages(
     model: &str,
     lang: PromptLang,
 ) -> Result<EntityExtractionResult, String> {
-    let recent: Vec<_> = messages
-        .iter()
-        .rev()
-        .filter(|m| !matches!(m.role, MessageRole::System))
-        .take(15)
-        .collect();
+    let recent: Vec<_> =
+        messages.iter().rev().filter(|m| !matches!(m.role, MessageRole::System)).take(15).collect();
 
     if recent.len() < 2 {
-        return Ok(EntityExtractionResult {
-            entities: vec![],
-            relations: vec![],
-        });
+        return Ok(EntityExtractionResult { entities: vec![], relations: vec![] });
     }
 
     let mut transcript = String::new();
@@ -401,10 +382,8 @@ pub async fn extract_entities_from_messages(
             } else {
                 content.to_string()
             };
-            serde_json::from_str(&json_str).unwrap_or(EntityExtractionResult {
-                entities: vec![],
-                relations: vec![],
-            })
+            serde_json::from_str(&json_str)
+                .unwrap_or(EntityExtractionResult { entities: vec![], relations: vec![] })
         },
     };
 
@@ -517,8 +496,5 @@ pub async fn extract_incremental_memories(
         })
         .collect();
 
-    Ok(ExtractionResult {
-        items,
-        conversation_id: conversation_id.to_string(),
-    })
+    Ok(ExtractionResult { items, conversation_id: conversation_id.to_string() })
 }

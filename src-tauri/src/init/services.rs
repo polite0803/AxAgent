@@ -575,10 +575,8 @@ fn start_rl_reward_computation(state: &AppState) {
                     total_prm_rewards,
                     trajectories.len()
                 );
-                let reward_trajectories: Vec<_> = trajectories
-                    .iter()
-                    .filter(|t| !t.rewards.is_empty())
-                    .collect();
+                let reward_trajectories: Vec<_> =
+                    trajectories.iter().filter(|t| !t.rewards.is_empty()).collect();
                 if reward_trajectories.len() >= 3 {
                     let avg_reward: f64 = reward_trajectories
                         .iter()
@@ -768,17 +766,10 @@ fn start_skill_evolution(state: &AppState) {
                         tracing::info!(
                             "[evolution] Constitution warnings for skill '{}' evolution: {:?}",
                             skill.name,
-                            violations
-                                .iter()
-                                .map(|v| &v.description)
-                                .collect::<Vec<_>>()
+                            violations.iter().map(|v| &v.description).collect::<Vec<_>>()
                         );
                     }
-                    if modification
-                        .validation_result
-                        .as_ref()
-                        .is_some_and(|v| v.success)
-                    {
+                    if modification.validation_result.as_ref().is_some_and(|v| v.success) {
                         tracing::info!(
                             "[evolution] Skill '{}' evolved: {} (confidence={:.3})",
                             skill.name,
@@ -1009,10 +1000,7 @@ fn start_auto_tool_observation(state: &AppState) {
                 );
 
                 for (pattern, count) in frequent.iter().take(2) {
-                    if atc
-                        .get_tool(&axagent_trajectory::slugify(pattern))
-                        .is_none()
-                    {
+                    if atc.get_tool(&axagent_trajectory::slugify(pattern)).is_none() {
                         match atc
                             .create_tool_from_pattern(
                                 pattern,

@@ -63,9 +63,7 @@ impl RAGSource for KnowledgeRAG {
         db: &DatabaseConnection,
         container_id: &str,
     ) -> Result<String> {
-        let kb = sources::knowledge()
-            .get_knowledge_base(container_id)
-            .await?;
+        let kb = sources::knowledge().get_knowledge_base(container_id).await?;
         if let Some(provider) = kb.embedding_provider {
             return Ok(provider);
         }
@@ -287,10 +285,7 @@ pub async fn search<S: RAGSource + ?Sized>(
     dimensions: Option<usize>,
     embed_fn: impl AsyncEmbedFn,
 ) -> Result<Vec<VectorSearchResult>> {
-    let hybrid_opts = HybridSearchOptions {
-        top_k,
-        ..Default::default()
-    };
+    let hybrid_opts = HybridSearchOptions { top_k, ..Default::default() };
     let hybrid_results = search_hybrid(
         source,
         db,
@@ -348,9 +343,7 @@ pub async fn search_hybrid<S: RAGSource + ?Sized>(
     let searcher = HybridSearcher::new(db.clone());
     let _ = searcher.ensure_fts5_index(&cid).await;
 
-    let results = searcher
-        .hybrid_search(&cid, query, query_embedding, options)
-        .await?;
+    let results = searcher.hybrid_search(&cid, query, query_embedding, options).await?;
 
     Ok(results)
 }
@@ -370,12 +363,7 @@ pub enum ChunkStrategy {
     /// Embed the content directly as a single vector.
     Direct,
     /// Chunk a raw text string (e.g. extracted from a conversation archive).
-    FromText {
-        text: String,
-        chunk_size: usize,
-        overlap: usize,
-        separator: Option<String>,
-    },
+    FromText { text: String, chunk_size: usize, overlap: usize, separator: Option<String> },
 }
 
 /// Index content into a RAG source's vector collection.
@@ -430,13 +418,7 @@ pub fn prepare_chunks(
     strategy: &ChunkStrategy,
 ) -> Result<Vec<(String, String, i32)>> {
     match strategy {
-        ChunkStrategy::ParseAndChunk {
-            source_path,
-            mime_type,
-            chunk_size,
-            overlap,
-            separator,
-        } => {
+        ChunkStrategy::ParseAndChunk { source_path, mime_type, chunk_size, overlap, separator } => {
             let path = std::path::Path::new(source_path);
             let text = sources::parser().extract_text(path, mime_type)?;
 
@@ -464,12 +446,7 @@ pub fn prepare_chunks(
             // Return a placeholder that the caller fills in.
             Ok(vec![])
         },
-        ChunkStrategy::FromText {
-            text,
-            chunk_size,
-            overlap,
-            separator,
-        } => {
+        ChunkStrategy::FromText { text, chunk_size, overlap, separator } => {
             if text.trim().is_empty() {
                 return Ok(vec![]);
             }
@@ -507,10 +484,7 @@ pub async fn collect_knowledge_graph_context(
     let mut context_parts = Vec::new();
 
     for kb_id in kb_ids {
-        let entities = match sources::knowledge()
-            .search_entities(kb_id, query, top_k)
-            .await
-        {
+        let entities = match sources::knowledge().search_entities(kb_id, query, top_k).await {
             Ok(e) => e,
             Err(_) => continue,
         };
@@ -603,16 +577,12 @@ async fn resolve_source_config(
     container_id: &str,
 ) -> (usize, f32, Option<usize>) {
     let config = match source_type {
-        RAGSourceType::Memory => sources::memory()
-            .get_namespace(container_id)
-            .await
-            .ok()
-            .map(|ns| ns.source_config()),
-        RAGSourceType::Wiki => sources::wiki()
-            .get_wiki(container_id)
-            .await
-            .ok()
-            .map(|w| w.source_config()),
+        RAGSourceType::Memory => {
+            sources::memory().get_namespace(container_id).await.ok().map(|ns| ns.source_config())
+        },
+        RAGSourceType::Wiki => {
+            sources::wiki().get_wiki(container_id).await.ok().map(|w| w.source_config())
+        },
         RAGSourceType::Knowledge => sources::knowledge()
             .get_knowledge_base(container_id)
             .await
@@ -648,31 +618,20 @@ pub async fn collect_rag_context(
     embed_fn: impl AsyncEmbedFn,
 ) -> RagContextResult {
     if kb_ids.is_empty() && mem_ids.is_empty() && wiki_ids.is_empty() {
-        return RagContextResult {
-            context_parts: vec![],
-            source_results: vec![],
-        };
+        return RagContextResult { context_parts: vec![], source_results: vec![] };
     }
 
     let mut sources: Vec<RAGSourceRef> = Vec::new();
 
     for id in kb_ids {
-        sources.push(RAGSourceRef {
-            source_type: RAGSourceType::Knowledge,
-            container_id: id.clone(),
-        });
+        sources
+            .push(RAGSourceRef { source_type: RAGSourceType::Knowledge, container_id: id.clone() });
     }
     for id in mem_ids {
-        sources.push(RAGSourceRef {
-            source_type: RAGSourceType::Memory,
-            container_id: id.clone(),
-        });
+        sources.push(RAGSourceRef { source_type: RAGSourceType::Memory, container_id: id.clone() });
     }
     for id in wiki_ids {
-        sources.push(RAGSourceRef {
-            source_type: RAGSourceType::Wiki,
-            container_id: id.clone(),
-        });
+        sources.push(RAGSourceRef { source_type: RAGSourceType::Wiki, container_id: id.clone() });
     }
 
     let mut context_parts = Vec::new();
@@ -714,10 +673,8 @@ pub async fn collect_rag_context(
                 } else {
                     default_max_distance
                 };
-                let results: Vec<_> = raw_results
-                    .into_iter()
-                    .filter(|r| r.score <= effective_threshold)
-                    .collect();
+                let results: Vec<_> =
+                    raw_results.into_iter().filter(|r| r.score <= effective_threshold).collect();
                 if results.is_empty() {
                     continue;
                 }
@@ -782,10 +739,7 @@ pub async fn collect_rag_context(
         if !kb_doc_ids.is_empty() {
             match sources::knowledge().get_document_titles(&kb_doc_ids).await {
                 Ok(titles) => {
-                    for src in source_results
-                        .iter_mut()
-                        .filter(|s| s.source_type == "knowledge")
-                    {
+                    for src in source_results.iter_mut().filter(|s| s.source_type == "knowledge") {
                         for item in &mut src.items {
                             item.document_name = titles.get(&item.document_id).cloned();
                         }
@@ -804,10 +758,7 @@ pub async fn collect_rag_context(
     let (deduped_results, deduped_context) =
         deduplicate_cross_source(source_results, context_parts);
 
-    RagContextResult {
-        context_parts: deduped_context,
-        source_results: deduped_results,
-    }
+    RagContextResult { context_parts: deduped_context, source_results: deduped_results }
 }
 
 // ── Cross-source deduplication ───────────────────────────────────────────────
@@ -856,12 +807,7 @@ fn deduplicate_cross_source(
     let all_items: Vec<(usize, usize, &RagRetrievedItem)> = source_results
         .iter()
         .enumerate()
-        .flat_map(|(si, src)| {
-            src.items
-                .iter()
-                .enumerate()
-                .map(move |(ii, item)| (si, ii, item))
-        })
+        .flat_map(|(si, src)| src.items.iter().enumerate().map(move |(ii, item)| (si, ii, item)))
         .collect();
 
     let mut removed: std::collections::HashSet<(usize, usize)> = std::collections::HashSet::new();
@@ -909,11 +855,8 @@ fn deduplicate_cross_source(
         .into_iter()
         .enumerate()
         .map(|(si, mut src)| {
-            let removed_indices: std::collections::HashSet<usize> = removed
-                .iter()
-                .filter(|(s, _)| *s == si)
-                .map(|(_, ii)| *ii)
-                .collect();
+            let removed_indices: std::collections::HashSet<usize> =
+                removed.iter().filter(|(s, _)| *s == si).map(|(_, ii)| *ii).collect();
             if removed_indices.is_empty() {
                 src
             } else {
@@ -1178,15 +1121,7 @@ pub fn inject_function_only(source: &str, snippet: &str, max_context_chars: usiz
     };
 
     let before = &source[..snippet_start];
-    let fn_patterns = [
-        "fn ",
-        "def ",
-        "function ",
-        "class ",
-        "impl ",
-        "pub fn ",
-        "pub struct ",
-    ];
+    let fn_patterns = ["fn ", "def ", "function ", "class ", "impl ", "pub fn ", "pub struct "];
 
     let fn_start = before.lines().rev().take(50).find(|line| {
         let trimmed = line.trim();
@@ -1300,30 +1235,19 @@ pub async fn collect_rag_context_with_pipeline(
     let pipeline = crate::rag_pipeline::RAGPipeline::new(pipeline_config);
 
     if kb_ids.is_empty() && mem_ids.is_empty() && wiki_ids.is_empty() {
-        return RagContextResult {
-            context_parts: vec![],
-            source_results: vec![],
-        };
+        return RagContextResult { context_parts: vec![], source_results: vec![] };
     }
 
     let mut sources: Vec<RAGSourceRef> = Vec::new();
     for id in kb_ids {
-        sources.push(RAGSourceRef {
-            source_type: RAGSourceType::Knowledge,
-            container_id: id.clone(),
-        });
+        sources
+            .push(RAGSourceRef { source_type: RAGSourceType::Knowledge, container_id: id.clone() });
     }
     for id in mem_ids {
-        sources.push(RAGSourceRef {
-            source_type: RAGSourceType::Memory,
-            container_id: id.clone(),
-        });
+        sources.push(RAGSourceRef { source_type: RAGSourceType::Memory, container_id: id.clone() });
     }
     for id in wiki_ids {
-        sources.push(RAGSourceRef {
-            source_type: RAGSourceType::Wiki,
-            container_id: id.clone(),
-        });
+        sources.push(RAGSourceRef { source_type: RAGSourceType::Wiki, container_id: id.clone() });
     }
 
     let mut context_parts = Vec::new();
@@ -1423,10 +1347,7 @@ pub async fn collect_rag_context_with_pipeline(
         if !kb_doc_ids.is_empty() {
             match sources::knowledge().get_document_titles(&kb_doc_ids).await {
                 Ok(titles) => {
-                    for src in source_results
-                        .iter_mut()
-                        .filter(|s| s.source_type == "knowledge")
-                    {
+                    for src in source_results.iter_mut().filter(|s| s.source_type == "knowledge") {
                         for item in &mut src.items {
                             item.document_name = titles.get(&item.document_id).cloned();
                         }
@@ -1446,10 +1367,7 @@ pub async fn collect_rag_context_with_pipeline(
     let (deduped_results, deduped_context) =
         deduplicate_cross_source(source_results, context_parts);
 
-    RagContextResult {
-        context_parts: deduped_context,
-        source_results: deduped_results,
-    }
+    RagContextResult { context_parts: deduped_context, source_results: deduped_results }
 }
 
 #[cfg(test)]

@@ -113,12 +113,7 @@ fn read_path_from_shell(shell: &str) -> Option<String> {
     const END: &str = "__AxAgent_PATH_END__";
 
     let output = std::process::Command::new(shell)
-        .args([
-            "-i",
-            "-l",
-            "-c",
-            &format!("printf '{}'; printenv PATH; printf '{}'", START, END),
-        ])
+        .args(["-i", "-l", "-c", &format!("printf '{}'; printenv PATH; printf '{}'", START, END)])
         .stdin(std::process::Stdio::null())
         .stderr(std::process::Stdio::null())
         .output()
@@ -160,9 +155,7 @@ fn merge_paths(primary: &str, fallback: Option<&str>) -> String {
 
 #[cfg(all(unix, not(target_os = "android")))]
 fn path_score(path: &str) -> usize {
-    path.split(':')
-        .filter(|segment| !segment.is_empty())
-        .count()
+    path.split(':').filter(|segment| !segment.is_empty()).count()
 }
 
 #[cfg(all(not(unix), not(target_os = "android")))]
@@ -194,10 +187,8 @@ fn resolve_login_shell_path() -> Option<String> {
     // Merge and deduplicate while preserving order
     let combined = paths.join(";");
     let mut seen = std::collections::HashSet::new();
-    let deduped: Vec<&str> = combined
-        .split(';')
-        .filter(|s| !s.is_empty() && seen.insert(s.to_lowercase()))
-        .collect();
+    let deduped: Vec<&str> =
+        combined.split(';').filter(|s| !s.is_empty() && seen.insert(s.to_lowercase())).collect();
     Some(deduped.join(";"))
 }
 
@@ -340,11 +331,8 @@ fn value_to_map(v: Value) -> serde_json::Map<String, Value> {
 
 /// Extract text content from an rmcp CallToolResult.
 fn extract_call_result(result: &CallToolResult) -> (String, bool) {
-    let texts: Vec<String> = result
-        .content
-        .iter()
-        .filter_map(|c| c.as_text().map(|t| t.text.clone()))
-        .collect();
+    let texts: Vec<String> =
+        result.content.iter().filter_map(|c| c.as_text().map(|t| t.text.clone())).collect();
     let content = if texts.is_empty() {
         serde_json::to_string_pretty(&result.content).unwrap_or_else(|_| "null".into())
     } else {
@@ -417,10 +405,7 @@ pub struct McpConnectionPool {
 impl McpConnectionPool {
     /// Create a new connection pool with the given idle timeout.
     pub fn new(idle_timeout: std::time::Duration) -> Self {
-        Self {
-            connections: Mutex::new(HashMap::new()),
-            idle_timeout,
-        }
+        Self { connections: Mutex::new(HashMap::new()), idle_timeout }
     }
 
     /// Get an existing connection or create a new one for the given server config.
@@ -592,11 +577,7 @@ pub async fn call_tool_stdio_pooled(
         Ok(result) => {
             pool.touch(&key).await;
             let (content, is_error) = extract_call_result(&result);
-            Ok(McpToolResult {
-                content,
-                is_error,
-                progress: Vec::new(),
-            })
+            Ok(McpToolResult { content, is_error, progress: Vec::new() })
         },
         Err(e) => {
             let err_str = e.to_string();
@@ -659,11 +640,7 @@ pub async fn call_tool_stdio(
     let _ = client.cancel().await;
 
     let (content, is_error) = extract_call_result(&result);
-    Ok(McpToolResult {
-        content,
-        is_error,
-        progress: Vec::new(),
-    })
+    Ok(McpToolResult { content, is_error, progress: Vec::new() })
 }
 
 /// Discover tools from an MCP server via stdio transport.
@@ -781,11 +758,7 @@ pub async fn call_tool_http(
     let _ = client.cancel().await;
 
     let (content, is_error) = extract_call_result(&result);
-    Ok(McpToolResult {
-        content,
-        is_error,
-        progress: Vec::new(),
-    })
+    Ok(McpToolResult { content, is_error, progress: Vec::new() })
 }
 
 /// SSE transport uses the legacy MCP SSE protocol (GET /sse → endpoint → POST).
@@ -806,10 +779,8 @@ pub async fn call_tool_sse(
     });
     let response = sse_send_request(endpoint, request, auth_header).await?;
     let result_obj = response.get("result").ok_or_else(|| {
-        let err = response
-            .get("error")
-            .map(|e| e.to_string())
-            .unwrap_or_else(|| "unknown error".into());
+        let err =
+            response.get("error").map(|e| e.to_string()).unwrap_or_else(|| "unknown error".into());
         AxAgentError::Gateway(format!("MCP tool call error: {}", err))
     })?;
     let content_arr = result_obj.get("content").and_then(|c| c.as_array());
@@ -831,15 +802,8 @@ pub async fn call_tool_sse(
     } else {
         texts.join("\n")
     };
-    let is_error = result_obj
-        .get("isError")
-        .and_then(|v| v.as_bool())
-        .unwrap_or(false);
-    Ok(McpToolResult {
-        content,
-        is_error,
-        progress: Vec::new(),
-    })
+    let is_error = result_obj.get("isError").and_then(|v| v.as_bool()).unwrap_or(false);
+    Ok(McpToolResult { content, is_error, progress: Vec::new() })
 }
 
 /// Discover tools from an MCP server via HTTP transport.
@@ -882,19 +846,13 @@ pub async fn discover_tools_sse(endpoint: &str) -> Result<Vec<DiscoveredTool>> {
         AxAgentError::Gateway(err_msg)
     })?;
     let empty_tools = Vec::new();
-    let tools = result
-        .get("tools")
-        .and_then(|t| t.as_array())
-        .unwrap_or(&empty_tools);
+    let tools = result.get("tools").and_then(|t| t.as_array()).unwrap_or(&empty_tools);
     Ok(tools
         .iter()
         .filter_map(|t| {
             Some(DiscoveredTool {
                 name: t.get("name")?.as_str()?.to_string(),
-                description: t
-                    .get("description")
-                    .and_then(|d| d.as_str())
-                    .map(String::from),
+                description: t.get("description").and_then(|d| d.as_str()).map(String::from),
                 input_schema: t.get("inputSchema").cloned(),
             })
         })
@@ -951,11 +909,8 @@ pub async fn call_tool_unified_with_opts(
 ) -> Result<McpToolResult> {
     let mut progress = Vec::new();
     let mut report = |phase: &str, msg: &str, pct: Option<u8>| {
-        let p = McpToolProgress {
-            phase: phase.to_string(),
-            message: msg.to_string(),
-            percent: pct,
-        };
+        let p =
+            McpToolProgress { phase: phase.to_string(), message: msg.to_string(), percent: pct };
         if let Some(ref cb) = on_progress {
             cb(&p);
         }
@@ -964,9 +919,7 @@ pub async fn call_tool_unified_with_opts(
 
     // OAuth: resolve credentials for HTTP/SSE servers
     let auth_header = server_id.and_then(|_sid| {
-        std::env::var("MCP_OAUTH_TOKEN")
-            .ok()
-            .map(|token| format!("Bearer {token}"))
+        std::env::var("MCP_OAUTH_TOKEN").ok().map(|token| format!("Bearer {token}"))
     });
 
     match transport {
@@ -1116,9 +1069,7 @@ async fn sse_send_request(
             .await
             .ok_or_else(|| AxAgentError::Gateway("SSE stream ended before endpoint event".into()))?
             .map_err(|e| AxAgentError::Gateway(format!("SSE read error: {}", e)))?;
-        let text = String::from_utf8_lossy(&chunk)
-            .replace("\r\n", "\n")
-            .replace('\r', "\n");
+        let text = String::from_utf8_lossy(&chunk).replace("\r\n", "\n").replace('\r', "\n");
         buffer.push_str(&text);
 
         if let Some(url) = extract_sse_endpoint(&mut buffer, &base_url) {
@@ -1317,10 +1268,7 @@ mod tests {
             .as_std()
             .get_envs()
             .map(|(key, value)| {
-                (
-                    key.to_string_lossy().to_string(),
-                    value.map(|v| v.to_string_lossy().to_string()),
-                )
+                (key.to_string_lossy().to_string(), value.map(|v| v.to_string_lossy().to_string()))
             })
             .collect();
 
@@ -1337,11 +1285,7 @@ mod tests {
         let (cmd, args) = if cfg!(target_os = "windows") {
             (
                 "cmd".to_string(),
-                vec![
-                    "/c".to_string(),
-                    "echo".to_string(),
-                    "npm notice".to_string(),
-                ],
+                vec!["/c".to_string(), "echo".to_string(), "npm notice".to_string()],
             )
         } else {
             ("echo".to_string(), vec!["npm notice".to_string()])

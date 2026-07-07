@@ -104,11 +104,7 @@ pub async fn detect_ollama_availability(
                 })
                 .unwrap_or_default();
 
-            Ok(OllamaDetection {
-                available: !models.is_empty(),
-                models,
-                error: None,
-            })
+            Ok(OllamaDetection { available: !models.is_empty(), models, error: None })
         },
         Ok(resp) => Ok(OllamaDetection {
             available: false,
@@ -166,9 +162,7 @@ pub async fn apply_quick_start_preset(
 
             let provider_id = if let Some(ref p) = existing {
                 if !p.enabled {
-                    toggle_provider(db, &p.id, true)
-                        .await
-                        .map_err(|e| e.to_string())?;
+                    toggle_provider(db, &p.id, true).await.map_err(|e| e.to_string())?;
                 }
                 p.id.clone()
             } else {
@@ -208,9 +202,7 @@ pub async fn apply_quick_start_preset(
 
             let pid = if let Some(ref p) = existing {
                 if !p.enabled {
-                    toggle_provider(db, &p.id, true)
-                        .await
-                        .map_err(|e| e.to_string())?;
+                    toggle_provider(db, &p.id, true).await.map_err(|e| e.to_string())?;
                 }
                 p.id.clone()
             } else {
@@ -231,12 +223,10 @@ pub async fn apply_quick_start_preset(
             };
 
             if !key_val.is_empty() {
-                add_provider_key(db, &pid, &key_val, &key_prefix)
-                    .await
-                    .map_err(|e| {
-                        ErrorResponse::new(onboarding_err::API_KEY_FAILED)
-                            .with_detail(format!("添加 Key 失败: {}", e))
-                    })?;
+                add_provider_key(db, &pid, &key_val, &key_prefix).await.map_err(|e| {
+                    ErrorResponse::new(onboarding_err::API_KEY_FAILED)
+                        .with_detail(format!("添加 Key 失败: {}", e))
+                })?;
             }
 
             Ok(PresetResult {

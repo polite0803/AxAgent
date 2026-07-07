@@ -68,9 +68,7 @@ pub async fn create_backup(
         },
     }
 
-    let file_size = std::fs::metadata(&file_path)
-        .map(|m| m.len() as i64)
-        .unwrap_or(0);
+    let file_size = std::fs::metadata(&file_path).map(|m| m.len() as i64).unwrap_or(0);
     let checksum = compute_file_checksum(&file_path)?;
 
     // Count objects for manifest
@@ -175,10 +173,7 @@ pub async fn list_backups(
         .all(db)
         .await?;
 
-    Ok(models
-        .into_iter()
-        .map(|m| model_to_manifest(m, encoder))
-        .collect())
+    Ok(models.into_iter().map(|m| model_to_manifest(m, encoder)).collect())
 }
 
 pub async fn get_backup(
@@ -334,10 +329,8 @@ pub async fn restore_json_backup(
     }
 
     // 开始事务
-    let txn = db
-        .begin()
-        .await
-        .map_err(|e| AxAgentError::Gateway(format!("开始事务失败: {}", e)))?;
+    let txn =
+        db.begin().await.map_err(|e| AxAgentError::Gateway(format!("开始事务失败: {}", e)))?;
 
     for table_name in &table_order {
         let rows = match tables.get(*table_name).and_then(|v| v.as_array()) {
@@ -351,10 +344,7 @@ pub async fn restore_json_backup(
 
         // 表名合法性校验：仅允许 ASCII 字母数字 + 下划线，防止 JSON 备份中
         // 恶意表名通过 `INSERT INTO "{table_name}"` 注入 SQL 片段。
-        if !table_name
-            .chars()
-            .all(|c| c.is_ascii_alphanumeric() || c == '_')
-        {
+        if !table_name.chars().all(|c| c.is_ascii_alphanumeric() || c == '_') {
             return Err(AxAgentError::Gateway(format!(
                 "Invalid table name '{table_name}' in backup: only ASCII alphanumeric and underscore allowed"
             )));
@@ -411,10 +401,8 @@ pub async fn restore_json_backup(
                 placeholders.join(", "),
             );
 
-            let values: Vec<Value> = columns
-                .iter()
-                .map(|col| json_value_to_sea_value(&obj[*col]))
-                .collect();
+            let values: Vec<Value> =
+                columns.iter().map(|col| json_value_to_sea_value(&obj[*col])).collect();
 
             match txn
                 .execute_raw(Statement::from_sql_and_values(DatabaseBackend::Sqlite, &sql, values))
@@ -436,9 +424,7 @@ pub async fn restore_json_backup(
         });
     }
 
-    txn.commit()
-        .await
-        .map_err(|e| AxAgentError::Gateway(format!("提交事务失败: {}", e)))?;
+    txn.commit().await.map_err(|e| AxAgentError::Gateway(format!("提交事务失败: {}", e)))?;
 
     report.total_imported = report.tables_restored.iter().map(|t| t.rows_imported).sum();
     report.total_skipped = report.tables_restored.iter().map(|t| t.rows_skipped).sum();

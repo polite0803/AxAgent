@@ -166,10 +166,7 @@ impl LearningInsightSystem {
     }
 
     pub fn get_insights_by_category(&self, category: InsightCategory) -> Vec<&LearningInsight> {
-        self.insight_history
-            .iter()
-            .filter(|i| i.category == category)
-            .collect()
+        self.insight_history.iter().filter(|i| i.category == category).collect()
     }
 
     fn trim_history(&mut self) {
@@ -222,10 +219,7 @@ impl LearningInsightSystem {
     ) -> HashMap<InsightCategory, Vec<LearningInsight>> {
         let mut categorized: HashMap<InsightCategory, Vec<LearningInsight>> = HashMap::new();
         for insight in insights {
-            categorized
-                .entry(insight.category)
-                .or_default()
-                .push(insight.clone());
+            categorized.entry(insight.category).or_default().push(insight.clone());
         }
         categorized
     }
@@ -315,10 +309,7 @@ impl LearningInsightSystem {
             .iter()
             .filter_map(|i| {
                 if i.description.contains("skill") || i.description.contains("技能") {
-                    Some(SkillUsage {
-                        skill_id: i.id.clone(),
-                        count: 1,
-                    })
+                    Some(SkillUsage { skill_id: i.id.clone(), count: 1 })
                 } else {
                     None
                 }
@@ -357,10 +348,8 @@ impl LearningInsightSystem {
     fn generate_recommendations(&self, insights: &[LearningInsight]) -> Vec<Recommendation> {
         let mut recommendations = Vec::new();
 
-        let warning_count = insights
-            .iter()
-            .filter(|i| i.category == InsightCategory::Warning)
-            .count();
+        let warning_count =
+            insights.iter().filter(|i| i.category == InsightCategory::Warning).count();
 
         if warning_count > 0 {
             recommendations.push(Recommendation {
@@ -374,10 +363,8 @@ impl LearningInsightSystem {
             });
         }
 
-        let pattern_count = insights
-            .iter()
-            .filter(|i| i.category == InsightCategory::Pattern)
-            .count();
+        let pattern_count =
+            insights.iter().filter(|i| i.category == InsightCategory::Pattern).count();
 
         if pattern_count >= 3 {
             recommendations.push(Recommendation {
@@ -394,10 +381,8 @@ impl LearningInsightSystem {
             });
         }
 
-        let improvement_count = insights
-            .iter()
-            .filter(|i| i.category == InsightCategory::Improvement)
-            .count();
+        let improvement_count =
+            insights.iter().filter(|i| i.category == InsightCategory::Improvement).count();
 
         if improvement_count > 0 {
             recommendations.push(Recommendation {

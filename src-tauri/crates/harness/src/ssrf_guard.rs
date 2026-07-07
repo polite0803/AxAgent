@@ -48,8 +48,6 @@ impl SsrFGuard for NoopSsrFGuard {
         &self.config
     }
     async fn safe_client(&self) -> Result<reqwest::Client, String> {
-        reqwest::Client::builder()
-            .build()
-            .map_err(|e| e.to_string())
+        reqwest::Client::builder().build().map_err(|e| e.to_string())
     }
 }

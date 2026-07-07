@@ -22,10 +22,7 @@ impl InMemoryCache {
     }
 
     pub fn with_ttl(ttl: Duration) -> Self {
-        Self {
-            store: Arc::new(RwLock::new(HashMap::new())),
-            default_ttl: ttl,
-        }
+        Self { store: Arc::new(RwLock::new(HashMap::new())), default_ttl: ttl }
     }
 }
 

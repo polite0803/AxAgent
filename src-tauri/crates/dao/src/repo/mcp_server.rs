@@ -426,14 +426,8 @@ pub async fn create_mcp_server(
 ) -> Result<McpServer> {
     let id = gen_id();
 
-    let args_json = input
-        .args
-        .as_ref()
-        .map(|a| serde_json::to_string(a).unwrap_or_default());
-    let env_json = input
-        .env
-        .as_ref()
-        .map(|e| serde_json::to_string(e).unwrap_or_default());
+    let args_json = input.args.as_ref().map(|a| serde_json::to_string(a).unwrap_or_default());
+    let env_json = input.env.as_ref().map(|e| serde_json::to_string(e).unwrap_or_default());
 
     mcp_servers::ActiveModel {
         id: Set(id.clone()),
@@ -486,9 +480,7 @@ pub async fn update_mcp_server(
     let command = input.command.or(existing.command);
     let endpoint = input.endpoint.or(existing.endpoint);
     let enabled = input.enabled.unwrap_or(existing.enabled);
-    let permission_policy = input
-        .permission_policy
-        .unwrap_or(existing.permission_policy);
+    let permission_policy = input.permission_policy.unwrap_or(existing.permission_policy);
 
     let args_json = match input.args {
         Some(ref a) => Some(serde_json::to_string(a).unwrap_or_default()),
@@ -498,9 +490,7 @@ pub async fn update_mcp_server(
         Some(ref e) => Some(serde_json::to_string(e).unwrap_or_default()),
         None => existing.env_json,
     };
-    let discover_timeout_secs = input
-        .discover_timeout_secs
-        .or(existing.discover_timeout_secs);
+    let discover_timeout_secs = input.discover_timeout_secs.or(existing.discover_timeout_secs);
     let execute_timeout_secs = input.execute_timeout_secs.or(existing.execute_timeout_secs);
     let headers_json = input.headers_json.or(existing.headers_json);
     let icon_type = match input.icon_type {
@@ -601,10 +591,8 @@ pub async fn save_tool_descriptors(
     let mut result = Vec::with_capacity(tools.len());
     for tool in tools {
         let id = gen_id();
-        let input_schema_json = tool
-            .input_schema
-            .as_ref()
-            .map(|s| serde_json::to_string(s).unwrap_or_default());
+        let input_schema_json =
+            tool.input_schema.as_ref().map(|s| serde_json::to_string(s).unwrap_or_default());
 
         tool_descriptors::ActiveModel {
             id: Set(id.clone()),

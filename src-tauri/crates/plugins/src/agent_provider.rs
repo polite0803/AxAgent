@@ -22,9 +22,7 @@ pub struct PluginAgentRegistry {
 
 impl PluginAgentRegistry {
     pub fn new() -> Self {
-        Self {
-            agents: RwLock::new(HashMap::new()),
-        }
+        Self { agents: RwLock::new(HashMap::new()) }
     }
 
     pub async fn register(&self, def: PluginAgentDef) {
@@ -153,11 +151,8 @@ pub fn unregister_plugin_agents_sync(plugin_id: &str) {
     let registry = global_plugin_agents();
     let prefix = format!("{}/", plugin_id);
     let mut agents = registry.agents.blocking_write();
-    let to_remove: Vec<String> = agents
-        .keys()
-        .filter(|k| k.starts_with(&prefix))
-        .cloned()
-        .collect();
+    let to_remove: Vec<String> =
+        agents.keys().filter(|k| k.starts_with(&prefix)).cloned().collect();
     for agent_type in to_remove {
         agents.remove(&agent_type);
     }

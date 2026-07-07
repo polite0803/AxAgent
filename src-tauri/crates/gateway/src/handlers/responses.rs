@@ -57,11 +57,7 @@ pub async fn get_response(
         },
     };
 
-    let api_key = match state
-        .adapter
-        .crypto()
-        .decrypt_key(&provider_key.key_encrypted)
-    {
+    let api_key = match state.adapter.crypto().decrypt_key(&provider_key.key_encrypted) {
         Ok(k) => k,
         Err(e) => {
             tracing::error!("Failed to decrypt provider key: {}", e);
@@ -69,12 +65,7 @@ pub async fn get_response(
         },
     };
 
-    let global_settings = state
-        .adapter
-        .settings()
-        .get_settings()
-        .await
-        .unwrap_or_default();
+    let global_settings = state.adapter.settings().get_settings().await.unwrap_or_default();
     let resolved_proxy = ProviderProxyConfig::resolve(&provider.proxy_config, &global_settings);
 
     let ctx = ProviderRequestContext {
@@ -188,11 +179,7 @@ pub async fn delete_response(
         },
     };
 
-    let api_key = match state
-        .adapter
-        .crypto()
-        .decrypt_key(&provider_key.key_encrypted)
-    {
+    let api_key = match state.adapter.crypto().decrypt_key(&provider_key.key_encrypted) {
         Ok(k) => k,
         Err(e) => {
             tracing::error!("Failed to decrypt provider key: {}", e);
@@ -200,12 +187,7 @@ pub async fn delete_response(
         },
     };
 
-    let global_settings = state
-        .adapter
-        .settings()
-        .get_settings()
-        .await
-        .unwrap_or_default();
+    let global_settings = state.adapter.settings().get_settings().await.unwrap_or_default();
     let resolved_proxy = ProviderProxyConfig::resolve(&provider.proxy_config, &global_settings);
 
     let ctx = ProviderRequestContext {

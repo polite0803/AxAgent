@@ -15,11 +15,7 @@ pub struct RateLimitConfig {
 }
 impl Default for RateLimitConfig {
     fn default() -> Self {
-        Self {
-            max_requests: 60,
-            window_secs: 60,
-            hard_limit: true,
-        }
+        Self { max_requests: 60, window_secs: 60, hard_limit: true }
     }
 }
 #[derive(Debug, Clone)]

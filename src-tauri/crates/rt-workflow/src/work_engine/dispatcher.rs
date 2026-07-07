@@ -35,9 +35,7 @@ impl Default for NodeDispatcher {
 
 impl NodeDispatcher {
     pub fn new() -> Self {
-        Self {
-            executors: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
-        }
+        Self { executors: Arc::new(tokio::sync::RwLock::new(HashMap::new())) }
     }
 
     /// 一次性注册所有内置 executor（异步版本）。
@@ -116,12 +114,7 @@ impl NodeDispatcher {
             let outcome = br_engine.evaluate(node_type, &node_input);
             use axagent_harness::business_rules::RuleEvaluationOutcome;
             match &outcome {
-                RuleEvaluationOutcome::Violation {
-                    rule_name,
-                    action,
-                    reason,
-                    ..
-                } => {
+                RuleEvaluationOutcome::Violation { rule_name, action, reason, .. } => {
                     tracing::warn!(
                         node_id = %node.base_id(),
                         node_type,
@@ -153,9 +146,7 @@ impl NodeDispatcher {
                         },
                     }
                 },
-                RuleEvaluationOutcome::RequiresApproval {
-                    rule_name, reason, ..
-                } => {
+                RuleEvaluationOutcome::RequiresApproval { rule_name, reason, .. } => {
                     tracing::warn!(
                         node_id = %node.base_id(),
                         node_type,
@@ -175,9 +166,7 @@ impl NodeDispatcher {
         let executor = {
             let map = self.executors.read().await;
             map.get(node_type).cloned().unwrap_or_else(|| {
-                map.get("fallback")
-                    .cloned()
-                    .expect("FallbackExecutor must be registered")
+                map.get("fallback").cloned().expect("FallbackExecutor must be registered")
             })
         };
         tracing::info!(
@@ -355,10 +344,7 @@ mod tests {
 
     #[test]
     fn register_and_lookup() {
-        let rt = tokio::runtime::Builder::new_current_thread()
-            .enable_all()
-            .build()
-            .unwrap();
+        let rt = tokio::runtime::Builder::new_current_thread().enable_all().build().unwrap();
         let disp = NodeDispatcher::new();
         rt.block_on(disp.register(TestExecutor::new("testExec")));
         assert!(rt.block_on(disp.get_executor("testExec")).is_some());
@@ -367,10 +353,7 @@ mod tests {
 
     #[test]
     fn registered_types_collects_keys() {
-        let rt = tokio::runtime::Builder::new_current_thread()
-            .enable_all()
-            .build()
-            .unwrap();
+        let rt = tokio::runtime::Builder::new_current_thread().enable_all().build().unwrap();
         let disp = NodeDispatcher::new();
         rt.block_on(disp.register(TestExecutor::new("customA")));
         rt.block_on(disp.register(TestExecutor::new("customB")));

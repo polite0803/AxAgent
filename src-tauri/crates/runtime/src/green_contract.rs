@@ -63,14 +63,8 @@ impl GreenContract {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "outcome", rename_all = "snake_case")]
 pub enum GreenContractOutcome {
-    Satisfied {
-        required_level: GreenLevel,
-        observed_level: GreenLevel,
-    },
-    Unsatisfied {
-        required_level: GreenLevel,
-        observed_level: Option<GreenLevel>,
-    },
+    Satisfied { required_level: GreenLevel, observed_level: GreenLevel },
+    Unsatisfied { required_level: GreenLevel, observed_level: Option<GreenLevel> },
 }
 
 impl GreenContractOutcome {

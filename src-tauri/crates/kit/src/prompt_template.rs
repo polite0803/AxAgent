@@ -8,11 +8,7 @@ pub enum TemplateError {
     #[error("Variable `{0}` is missing")]
     MissingVariable(String),
     #[error("Invalid variable type for `{variable}`: expected {expected}, got {actual}")]
-    InvalidType {
-        variable: String,
-        expected: String,
-        actual: String,
-    },
+    InvalidType { variable: String, expected: String, actual: String },
     #[error("Template parsing error: {0}")]
     ParseError(String),
     #[error("JSON Schema validation failed: {0}")]
@@ -28,10 +24,7 @@ impl PromptTemplateRenderer {
     pub fn new(template: impl Into<String>) -> Self {
         let template = template.into();
         let variables = Self::extract_variables(&template);
-        Self {
-            template,
-            variables,
-        }
+        Self { template, variables }
     }
 
     pub fn with_schema(template: impl Into<String>, _schema: Option<&Value>) -> Self {
@@ -67,9 +60,7 @@ impl PromptTemplateRenderer {
 
         for var in &self.variables {
             let placeholder = format!("{{{}}}", var);
-            let value = vars
-                .get(var)
-                .ok_or_else(|| TemplateError::MissingVariable(var.clone()))?;
+            let value = vars.get(var).ok_or_else(|| TemplateError::MissingVariable(var.clone()))?;
 
             let value_str = match value {
                 Value::String(s) => s.clone(),
@@ -94,9 +85,7 @@ impl PromptTemplateRenderer {
             }
             Ok(())
         } else {
-            Err(TemplateError::SchemaValidationError(
-                "Variables must be a JSON object".to_string(),
-            ))
+            Err(TemplateError::SchemaValidationError("Variables must be a JSON object".to_string()))
         }
     }
 

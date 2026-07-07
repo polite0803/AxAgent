@@ -153,9 +153,6 @@ pub fn find_species(id: &str) -> Option<&'static SpeciesDef> {
 /// 随机选择一个物种（基于时间）
 pub fn random_species() -> &'static SpeciesDef {
     use std::time::{SystemTime, UNIX_EPOCH};
-    let nanos = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_nanos();
+    let nanos = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos();
     &ALL_SPECIES[(nanos as usize) % ALL_SPECIES.len()]
 }

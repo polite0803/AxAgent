@@ -27,10 +27,8 @@ pub fn set_tray_labels(
 }
 
 fn build_menu(app: &AppHandle) -> Result<Menu<tauri::Wry>, Box<dyn std::error::Error>> {
-    let (show_label, quit_label) = TRAY_LABELS
-        .lock()
-        .map_err(Box::<dyn std::error::Error>::from)?
-        .clone();
+    let (show_label, quit_label) =
+        TRAY_LABELS.lock().map_err(Box::<dyn std::error::Error>::from)?.clone();
     let show = MenuItem::with_id(app, "show", &show_label, true, None::<&str>)?;
     let quit = MenuItem::with_id(app, "quit", &quit_label, true, None::<&str>)?;
     let menu = Menu::with_items(app, &[&show, &quit])?;

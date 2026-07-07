@@ -34,11 +34,7 @@ impl RLTrainer {
     pub fn new(_config: TrainingConfig, tasks: Vec<TaskDefinition>) -> Self {
         let env = TrainingEnv::new(tasks);
         let compressor = TrajectoryCompressor::new(500);
-        Self {
-            env,
-            compressor,
-            episodes: Vec::new(),
-        }
+        Self { env, compressor, episodes: Vec::new() }
     }
 
     pub fn record_trajectory(&mut self, trajectory: &Trajectory) -> EvaluationResult {
@@ -63,15 +59,10 @@ impl RLTrainer {
     }
 
     pub fn export_jsonl(&self) -> Result<String, serde_json::Error> {
-        let compressed: Vec<&CompressedTrajectory> = self
-            .episodes
-            .iter()
-            .filter_map(|e| e.trajectory.as_ref())
-            .collect();
-        let lines: Result<Vec<String>, _> = compressed
-            .iter()
-            .map(|t| serde_json::to_string(*t))
-            .collect();
+        let compressed: Vec<&CompressedTrajectory> =
+            self.episodes.iter().filter_map(|e| e.trajectory.as_ref()).collect();
+        let lines: Result<Vec<String>, _> =
+            compressed.iter().map(|t| serde_json::to_string(*t)).collect();
         Ok(lines?.join("\n"))
     }
 
@@ -79,10 +70,7 @@ impl RLTrainer {
         let passed = self.episodes.iter().filter(|e| e.passed).count() as u32;
         let total = self.episodes.len() as u32;
         let avg_reward = if total > 0 {
-            self.episodes
-                .iter()
-                .filter_map(|e| e.reward.as_ref().map(|r| r.total))
-                .sum::<f64>()
+            self.episodes.iter().filter_map(|e| e.reward.as_ref().map(|r| r.total)).sum::<f64>()
                 / total as f64
         } else {
             0.0

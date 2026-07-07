@@ -83,12 +83,7 @@ impl SubAgent {
         model: Option<String>,
         tools: Vec<String>,
     ) -> Self {
-        self.metadata = SubAgentMetadata {
-            agent_type,
-            capabilities,
-            model,
-            tools,
-        };
+        self.metadata = SubAgentMetadata { agent_type, capabilities, model, tools };
         self
     }
 
@@ -322,10 +317,7 @@ impl Default for MessageBus {
 
 impl MessageBus {
     pub fn new(default_capacity: usize) -> Self {
-        Self {
-            mailboxes: Arc::new(RwLock::new(HashMap::new())),
-            default_capacity,
-        }
+        Self { mailboxes: Arc::new(RwLock::new(HashMap::new())), default_capacity }
     }
 
     /// Register a new agent mailbox. Returns false if already registered.
@@ -399,9 +391,7 @@ impl MessageBus {
             tracing::warn!("MessageBus lock poisoned, recovering: {}", e);
             e.into_inner()
         });
-        mbs.get(agent_id)
-            .map(|mb| mb.receive_by_kind(kind))
-            .unwrap_or_default()
+        mbs.get(agent_id).map(|mb| mb.receive_by_kind(kind)).unwrap_or_default()
     }
 
     /// Peek at all pending messages for an agent (non-consuming).
@@ -410,9 +400,7 @@ impl MessageBus {
             tracing::warn!("MessageBus lock poisoned, recovering: {}", e);
             e.into_inner()
         });
-        mbs.get(agent_id)
-            .map(|mb| mb.peek_all())
-            .unwrap_or_default()
+        mbs.get(agent_id).map(|mb| mb.peek_all()).unwrap_or_default()
     }
 
     /// Number of pending messages for an agent.
@@ -507,10 +495,7 @@ impl SubAgentRegistry {
 
     fn get_storage_path() -> Result<PathBuf> {
         if let Some(data_dir) = dirs::data_dir() {
-            let path = data_dir
-                .join("clawcode")
-                .join("trajectory")
-                .join("sub_agents.json");
+            let path = data_dir.join("clawcode").join("trajectory").join("sub_agents.json");
             return Ok(path);
         }
         Ok(PathBuf::from("sub_agents.json"))
@@ -625,10 +610,7 @@ impl SubAgentRegistry {
     }
 
     pub fn get_children(&self, parent_id: &str) -> Vec<&SubAgent> {
-        self.agents
-            .iter()
-            .filter(|a| a.parent_id.as_deref() == Some(parent_id))
-            .collect()
+        self.agents.iter().filter(|a| a.parent_id.as_deref() == Some(parent_id)).collect()
     }
 
     pub fn get_active_count(&self) -> usize {
@@ -792,15 +774,11 @@ impl SubAgentRegistry {
         child_id: &str,
         progress: f32,
     ) -> Result<(), AgentMessageError> {
-        let parent_id = self
-            .agents
-            .iter_mut()
-            .find(|a| a.id == child_id)
-            .and_then(|child| {
-                child.update_progress(progress);
-                self.dirty = true;
-                child.parent_id.clone()
-            });
+        let parent_id = self.agents.iter_mut().find(|a| a.id == child_id).and_then(|child| {
+            child.update_progress(progress);
+            self.dirty = true;
+            child.parent_id.clone()
+        });
 
         if let Some(pid) = parent_id {
             let msg = AgentMessage::new(
@@ -825,15 +803,11 @@ impl SubAgentRegistry {
         child_id: &str,
         result: String,
     ) -> Result<(), AgentMessageError> {
-        let parent_id = self
-            .agents
-            .iter_mut()
-            .find(|a| a.id == child_id)
-            .and_then(|child| {
-                child.complete(result.clone());
-                self.dirty = true;
-                child.parent_id.clone()
-            });
+        let parent_id = self.agents.iter_mut().find(|a| a.id == child_id).and_then(|child| {
+            child.complete(result.clone());
+            self.dirty = true;
+            child.parent_id.clone()
+        });
 
         if let Some(pid) = parent_id {
             let msg = AgentMessage::new(child_id, &pid, AgentMessageKind::TaskResult, result);
@@ -850,15 +824,11 @@ impl SubAgentRegistry {
 
     /// Report task error from a child agent to its parent.
     pub fn report_error(&mut self, child_id: &str, error: String) -> Result<(), AgentMessageError> {
-        let parent_id = self
-            .agents
-            .iter_mut()
-            .find(|a| a.id == child_id)
-            .and_then(|child| {
-                child.fail(error.clone());
-                self.dirty = true;
-                child.parent_id.clone()
-            });
+        let parent_id = self.agents.iter_mut().find(|a| a.id == child_id).and_then(|child| {
+            child.fail(error.clone());
+            self.dirty = true;
+            child.parent_id.clone()
+        });
 
         if let Some(pid) = parent_id {
             let msg = AgentMessage::new(child_id, &pid, AgentMessageKind::TaskError, error);
@@ -903,22 +873,14 @@ pub struct TaskDeduplicator {
 
 impl Default for TaskDeduplicator {
     fn default() -> Self {
-        Self {
-            similarity_threshold: 0.6,
-            known_tasks: Vec::new(),
-            max_capacity: 10_000,
-        }
+        Self { similarity_threshold: 0.6, known_tasks: Vec::new(), max_capacity: 10_000 }
     }
 }
 
 #[allow(dead_code)]
 impl TaskDeduplicator {
     pub(crate) fn new(similarity_threshold: f64) -> Self {
-        Self {
-            similarity_threshold,
-            known_tasks: Vec::new(),
-            max_capacity: 10_000,
-        }
+        Self { similarity_threshold, known_tasks: Vec::new(), max_capacity: 10_000 }
     }
 
     /// Tokenize a task description into lowercase words (split on whitespace/punctuation).
@@ -1057,9 +1019,7 @@ mod tests {
         );
 
         // Simulate child1 completing
-        registry
-            .report_completion(&child1.id, "Result A".to_string())
-            .unwrap();
+        registry.report_completion(&child1.id, "Result A".to_string()).unwrap();
         assert_eq!(registry.get(&child1.id).unwrap().status, SubAgentStatus::Completed);
 
         // Collect results — child1 done, child2 pending
@@ -1069,9 +1029,7 @@ mod tests {
         assert_eq!(pending[0], child2.id);
 
         // Simulate child2 completing
-        registry
-            .report_completion(&child2.id, "Result B".to_string())
-            .unwrap();
+        registry.report_completion(&child2.id, "Result B".to_string()).unwrap();
 
         // Now all children finished
         assert!(registry.all_children_finished(&parent.id));
@@ -1098,9 +1056,8 @@ mod tests {
         assert!((registry.get(&child.id).unwrap().progress - 0.5).abs() < 1.0);
 
         // Parent should have received a ProgressReport message
-        let msgs = registry
-            .message_bus()
-            .receive_by_kind(&parent.id, AgentMessageKind::ProgressReport);
+        let msgs =
+            registry.message_bus().receive_by_kind(&parent.id, AgentMessageKind::ProgressReport);
         assert_eq!(msgs.len(), 1);
         let progress: f32 = serde_json::from_str(&msgs[0].payload).unwrap();
         assert!((progress - 0.5).abs() < 1.0);
@@ -1119,14 +1076,10 @@ mod tests {
         let child =
             registry.create("worker".to_string(), "Worker".to_string(), Some(parent.id.clone()));
 
-        registry
-            .report_error(&child.id, "Something went wrong".to_string())
-            .unwrap();
+        registry.report_error(&child.id, "Something went wrong".to_string()).unwrap();
         assert_eq!(registry.get(&child.id).unwrap().status, SubAgentStatus::Failed);
 
-        let msgs = registry
-            .message_bus()
-            .receive_by_kind(&parent.id, AgentMessageKind::TaskError);
+        let msgs = registry.message_bus().receive_by_kind(&parent.id, AgentMessageKind::TaskError);
         assert_eq!(msgs.len(), 1);
         assert_eq!(msgs[0].payload, "Something went wrong");
 

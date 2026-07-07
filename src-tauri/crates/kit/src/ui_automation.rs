@@ -90,9 +90,7 @@ impl UIAutomation {
         enigo
             .move_mouse(x as i32, y as i32, Coordinate::Abs)
             .map_err(|e| anyhow::anyhow!("鼠标移动失败: {e}"))?;
-        enigo
-            .button(btn, Direction::Click)
-            .map_err(|e| anyhow::anyhow!("鼠标点击失败: {e}"))?;
+        enigo.button(btn, Direction::Click).map_err(|e| anyhow::anyhow!("鼠标点击失败: {e}"))?;
         Ok(())
     }
 
@@ -114,9 +112,7 @@ impl UIAutomation {
                 .map_err(|e| anyhow::anyhow!("点击聚焦失败: {e}"))?;
             tokio::time::sleep(std::time::Duration::from_millis(50)).await;
         }
-        enigo
-            .text(text)
-            .map_err(|e| anyhow::anyhow!("文本输入失败: {e}"))?;
+        enigo.text(text).map_err(|e| anyhow::anyhow!("文本输入失败: {e}"))?;
         Ok(())
     }
 
@@ -133,14 +129,10 @@ impl UIAutomation {
 
         for m in &modifiers {
             let mk = modifier_key(*m);
-            enigo
-                .key(mk, Direction::Press)
-                .map_err(|e| anyhow::anyhow!("按下修饰键失败: {e}"))?;
+            enigo.key(mk, Direction::Press).map_err(|e| anyhow::anyhow!("按下修饰键失败: {e}"))?;
         }
 
-        enigo
-            .key(key_enum, Direction::Click)
-            .map_err(|e| anyhow::anyhow!("按键失败: {e}"))?;
+        enigo.key(key_enum, Direction::Click).map_err(|e| anyhow::anyhow!("按键失败: {e}"))?;
 
         for m in modifiers.iter().rev() {
             let mk = modifier_key(*m);
@@ -164,9 +156,7 @@ impl UIAutomation {
         enigo
             .move_mouse(x as i32, y as i32, Coordinate::Abs)
             .map_err(|e| anyhow::anyhow!("鼠标移动失败: {e}"))?;
-        enigo
-            .scroll(-delta, Axis::Vertical)
-            .map_err(|e| anyhow::anyhow!("滚动失败: {e}"))?;
+        enigo.scroll(-delta, Axis::Vertical).map_err(|e| anyhow::anyhow!("滚动失败: {e}"))?;
         Ok(())
     }
 
@@ -283,10 +273,8 @@ end tell
 return output
 "#;
 
-        let output = tokio::process::Command::new("osascript")
-            .args(["-e", script])
-            .output()
-            .await?;
+        let output =
+            tokio::process::Command::new("osascript").args(["-e", script]).output().await?;
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
@@ -325,12 +313,7 @@ return output
                 role: "window".to_string(),
                 name: format!("{} - {}", app, title),
                 value: None,
-                bounds: CGRect {
-                    x,
-                    y,
-                    width: w,
-                    height: h,
-                },
+                bounds: CGRect { x, y, width: w, height: h },
                 is_clickable: w > 0.0 && h > 0.0,
                 is_editable: false,
                 children_count: None,
@@ -347,15 +330,8 @@ return output
     #[cfg(target_os = "linux")]
     async fn get_linux_elements(query: &UIElementQuery) -> Result<Vec<UIElement>> {
         // 尝试 wmctrl (X11 窗口管理器)
-        if std::process::Command::new("which")
-            .arg("wmctrl")
-            .output()
-            .is_ok()
-        {
-            let output = tokio::process::Command::new("wmctrl")
-                .args(["-l", "-G"])
-                .output()
-                .await?;
+        if std::process::Command::new("which").arg("wmctrl").output().is_ok() {
+            let output = tokio::process::Command::new("wmctrl").args(["-l", "-G"]).output().await?;
 
             if output.status.success() {
                 let text = String::from_utf8_lossy(&output.stdout);
@@ -384,12 +360,7 @@ return output
                             role: "window".to_string(),
                             name: title.clone(),
                             value: None,
-                            bounds: CGRect {
-                                x,
-                                y,
-                                width: w,
-                                height: h,
-                            },
+                            bounds: CGRect { x, y, width: w, height: h },
                             is_clickable: w > 0.0 && h > 0.0,
                             is_editable: false,
                             children_count: None,
@@ -403,11 +374,7 @@ return output
         }
 
         // Wayland 回退: 尝试 AT-SPI2 通过 gdbus
-        if std::process::Command::new("which")
-            .arg("gdbus")
-            .output()
-            .is_ok()
-        {
+        if std::process::Command::new("which").arg("gdbus").output().is_ok() {
             let output = tokio::process::Command::new("gdbus")
                 .args([
                     "call",
@@ -428,12 +395,7 @@ return output
                     role: "desktop".to_string(),
                     name: "Accessible desktop (AT-SPI2)".to_string(),
                     value: None,
-                    bounds: CGRect {
-                        x: 0.0,
-                        y: 0.0,
-                        width: 0.0,
-                        height: 0.0,
-                    },
+                    bounds: CGRect { x: 0.0, y: 0.0, width: 0.0, height: 0.0 },
                     is_clickable: false,
                     is_editable: false,
                     children_count: None,

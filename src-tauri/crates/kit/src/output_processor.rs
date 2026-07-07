@@ -90,9 +90,7 @@ impl Default for OutputProcessor {
 
 impl OutputProcessor {
     pub fn new() -> Self {
-        Self {
-            config: OutputProcessorConfig::default(),
-        }
+        Self { config: OutputProcessorConfig::default() }
     }
 
     pub fn with_config(config: OutputProcessorConfig) -> Self {
@@ -129,13 +127,7 @@ impl OutputProcessor {
 
         let processed_chars = text.chars().count();
 
-        ProcessedOutput {
-            text,
-            original_chars,
-            processed_chars,
-            segments,
-            deduplications_removed,
-        }
+        ProcessedOutput { text, original_chars, processed_chars, segments, deduplications_removed }
     }
 
     /// Detect and merge duplicate explanatory paragraphs.

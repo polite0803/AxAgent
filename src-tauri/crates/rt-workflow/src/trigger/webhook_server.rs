@@ -50,9 +50,7 @@ pub async fn serve(
         }
     });
 
-    handle
-        .await
-        .map_err(|e| format!("Webhook 服务器任务错误: {e}"))
+    handle.await.map_err(|e| format!("Webhook 服务器任务错误: {e}"))
 }
 
 /// P0-6: HMAC-SHA256 签名校验，constant_time_eq 比对。
@@ -148,10 +146,8 @@ async fn handle_request(
     match response_mode.as_str() {
         "sync" => {
             // 同步模式：等待工作流完成再返回结果
-            let run_opts = crate::work_engine::RunOptions {
-                input: Some(input),
-                ..Default::default()
-            };
+            let run_opts =
+                crate::work_engine::RunOptions { input: Some(input), ..Default::default() };
             // P0-6: 即使在 sync 模式，也用 tokio::spawn 异步执行，避免阻塞 tokio runtime
             // 当前 sync 语义下我们仍要等待结果；改用 spawn + oneshot 接收结果，保持 HTTP
             // 请求处理线程可取消（不阻塞其他 inbound 请求的 tiny_http accept 循环）。
@@ -159,9 +155,7 @@ async fn handle_request(
             let engine_for_task = engine.clone();
             let wf_id_for_task = wf_id.clone();
             tokio::spawn(async move {
-                let result = engine_for_task
-                    .run_workflow(&wf_id_for_task, run_opts)
-                    .await;
+                let result = engine_for_task.run_workflow(&wf_id_for_task, run_opts).await;
                 let _ = tx.send(result);
             });
             match rx.await {
@@ -216,21 +210,15 @@ async fn handle_request(
                 .to_string(),
             )
             .with_status_code(202)
-            .with_header(
-                "Content-Type: application/json"
-                    .parse::<tiny_http::Header>()
-                    .unwrap(),
-            );
+            .with_header("Content-Type: application/json".parse::<tiny_http::Header>().unwrap());
             let _ = request.respond(response);
 
             // 后台触发工作流
             let engine = engine.clone();
             let wf_id = wf_id.clone();
             tokio::spawn(async move {
-                let run_opts = crate::work_engine::RunOptions {
-                    input: Some(input),
-                    ..Default::default()
-                };
+                let run_opts =
+                    crate::work_engine::RunOptions { input: Some(input), ..Default::default() };
                 if let Err(e) = engine.run_workflow(&wf_id, run_opts).await {
                     tracing::error!(
                         workflow_id = %wf_id,

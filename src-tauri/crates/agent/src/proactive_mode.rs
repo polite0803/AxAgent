@@ -176,9 +176,7 @@ mod tests {
 
     impl TestFeatureFlags {
         fn new(initial: bool) -> Self {
-            Self {
-                enabled: AtomicBool::new(initial),
-            }
+            Self { enabled: AtomicBool::new(initial) }
         }
     }
 
@@ -209,18 +207,9 @@ mod tests {
 
     #[test]
     fn test_proactive_state_paused_equality() {
-        let paused_typing = ProactiveState::Paused {
-            reason: PauseReason::UserTyping,
-        };
-        let paused_api = ProactiveState::Paused {
-            reason: PauseReason::ApiError,
-        };
-        assert_eq!(
-            paused_typing,
-            ProactiveState::Paused {
-                reason: PauseReason::UserTyping
-            }
-        );
+        let paused_typing = ProactiveState::Paused { reason: PauseReason::UserTyping };
+        let paused_api = ProactiveState::Paused { reason: PauseReason::ApiError };
+        assert_eq!(paused_typing, ProactiveState::Paused { reason: PauseReason::UserTyping });
         assert_ne!(paused_typing, paused_api);
     }
 
@@ -265,12 +254,7 @@ mod tests {
         let mut mode = make_mode(true);
         mode.activate();
         mode.pause(PauseReason::ManualPause);
-        assert_eq!(
-            mode.state(),
-            ProactiveState::Paused {
-                reason: PauseReason::ManualPause
-            }
-        );
+        assert_eq!(mode.state(), ProactiveState::Paused { reason: PauseReason::ManualPause });
     }
 
     #[test]
@@ -301,12 +285,7 @@ mod tests {
         let mut mode = make_mode(true);
         mode.activate();
         mode.on_user_input();
-        assert_eq!(
-            mode.state(),
-            ProactiveState::Paused {
-                reason: PauseReason::UserTyping
-            }
-        );
+        assert_eq!(mode.state(), ProactiveState::Paused { reason: PauseReason::UserTyping });
     }
 
     #[test]
@@ -321,12 +300,7 @@ mod tests {
         let mut mode = make_mode(true);
         mode.activate();
         mode.on_api_error();
-        assert_eq!(
-            mode.state(),
-            ProactiveState::Paused {
-                reason: PauseReason::ApiError
-            }
-        );
+        assert_eq!(mode.state(), ProactiveState::Paused { reason: PauseReason::ApiError });
     }
 
     #[test]

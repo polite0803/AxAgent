@@ -93,11 +93,7 @@ pub async fn chat_completions(
         },
     };
 
-    let api_key = match state
-        .adapter
-        .crypto()
-        .decrypt_key(&provider_key.key_encrypted)
-    {
+    let api_key = match state.adapter.crypto().decrypt_key(&provider_key.key_encrypted) {
         Ok(k) => k,
         Err(e) => {
             tracing::error!("Failed to decrypt provider key: {}", e);
@@ -107,12 +103,7 @@ pub async fn chat_completions(
 
     let provider_type_str = provider_type_to_str(&provider.provider_type);
 
-    let global_settings = state
-        .adapter
-        .settings()
-        .get_settings()
-        .await
-        .unwrap_or_default();
+    let global_settings = state.adapter.settings().get_settings().await.unwrap_or_default();
     let resolved_proxy = ProviderProxyConfig::resolve(&provider.proxy_config, &global_settings);
 
     let ctx = ProviderRequestContext {
@@ -122,10 +113,7 @@ pub async fn chat_completions(
         base_url: Some(resolve_base_url_for_type(&provider.api_host, &provider.provider_type)),
         api_path: provider.api_path.clone(),
         proxy_config: resolved_proxy,
-        custom_headers: provider
-            .custom_headers
-            .as_ref()
-            .and_then(|s| serde_json::from_str(s).ok()),
+        custom_headers: provider.custom_headers.as_ref().and_then(|s| serde_json::from_str(s).ok()),
         api_mode: request.api_mode.clone(),
         conversation: request.conversation.clone(),
         previous_response_id: request.previous_response_id.clone(),
@@ -286,10 +274,7 @@ pub(crate) async fn handle_non_stream_with_failover(
     }
 
     let elapsed = start_time.elapsed().as_millis() as i32;
-    let err_msg = last_error
-        .as_ref()
-        .map(|e| e.to_string())
-        .unwrap_or_default();
+    let err_msg = last_error.as_ref().map(|e| e.to_string()).unwrap_or_default();
     record_log!(
         &state.adapter,
         gateway_key,
@@ -438,10 +423,7 @@ pub(crate) async fn handle_stream(
                     }
 
                     if let Some(data) = build_stream_chunk_response_body(&model_str, &chunk)
-                        && tx
-                            .send(Ok(Event::default().data(data.to_string())))
-                            .await
-                            .is_err()
+                        && tx.send(Ok(Event::default().data(data.to_string()))).await.is_err()
                     {
                         break;
                     }
@@ -489,9 +471,7 @@ pub(crate) async fn handle_stream(
     });
 
     let sse_stream = ReceiverStream::new(rx);
-    Sse::new(sse_stream)
-        .keep_alive(KeepAlive::default())
-        .into_response()
+    Sse::new(sse_stream).keep_alive(KeepAlive::default()).into_response()
 }
 
 fn build_non_stream_response_body(response: &ChatResponse) -> serde_json::Value {
@@ -499,11 +479,7 @@ fn build_non_stream_response_body(response: &ChatResponse) -> serde_json::Value 
         ("role".to_string(), json!("assistant")),
         ("content".to_string(), json!(response.content)),
     ]);
-    if let Some(reasoning) = response
-        .thinking
-        .as_deref()
-        .filter(|value| !value.is_empty())
-    {
+    if let Some(reasoning) = response.thinking.as_deref().filter(|value| !value.is_empty()) {
         message.insert("reasoning_content".to_string(), json!(reasoning));
     }
 

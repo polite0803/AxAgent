@@ -151,10 +151,7 @@ impl Trajectory {
         let successful_tools = steps
             .iter()
             .filter(|s| {
-                s.tool_results
-                    .as_ref()
-                    .map(|r| !r.iter().any(|tr| tr.is_error))
-                    .unwrap_or(false)
+                s.tool_results.as_ref().map(|r| !r.iter().any(|tr| tr.is_error)).unwrap_or(false)
             })
             .count();
         let tool_efficiency = if tool_count > 0 {
@@ -472,11 +469,7 @@ impl Trajectory {
             .join("\n\n");
 
         let mut completion = String::new();
-        for step in self
-            .steps
-            .iter()
-            .filter(|s| s.role == MessageRole::Assistant)
-        {
+        for step in self.steps.iter().filter(|s| s.role == MessageRole::Assistant) {
             completion.push_str(&step.content);
             if let Some(ref tool_calls) = step.tool_calls {
                 completion.push_str("\n\n<tool_calls>\n");
@@ -506,11 +499,7 @@ pub struct TrajectoryBuilder {
 
 impl TrajectoryBuilder {
     pub fn new(session_id: String, user_id: String) -> Self {
-        Self {
-            session_id,
-            user_id,
-            steps: Vec::new(),
-        }
+        Self { session_id, user_id, steps: Vec::new() }
     }
 
     pub fn add_step(mut self, step: TrajectoryStep) -> Self {

@@ -217,10 +217,8 @@ impl NodeExecutorTrait for HttpRequestExecutor {
 
         let status = response.status().as_u16();
         let headers = response.headers().clone();
-        let body_text = response
-            .text()
-            .await
-            .unwrap_or_else(|e| format!("Failed to read response body: {e}"));
+        let body_text =
+            response.text().await.unwrap_or_else(|e| format!("Failed to read response body: {e}"));
 
         let output = serde_json::json!({
             "status": status,

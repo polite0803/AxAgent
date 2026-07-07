@@ -50,9 +50,8 @@ pub(crate) async fn resolve_provider_and_adapter(
         })?;
 
     let registry_key = prov.provider_type.registry_key();
-    let adapter: Arc<dyn ProviderAdapter> = provider_registry
-        .and_then(|reg| reg.get(registry_key))
-        .ok_or_else(|| {
+    let adapter: Arc<dyn ProviderAdapter> =
+        provider_registry.and_then(|reg| reg.get(registry_key)).ok_or_else(|| {
             NodeError::exec_failed(
                 error_code::UNSUPPORTED_PROVIDER,
                 format!("{executor_label} 未找到 ProviderAdapter for type: {registry_key}"),

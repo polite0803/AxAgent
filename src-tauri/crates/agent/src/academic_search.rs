@@ -25,19 +25,11 @@ pub struct AcademicSources {
 
 impl AcademicSources {
     pub fn all() -> Self {
-        Self {
-            arxiv: true,
-            scholar: true,
-            pubmed: true,
-        }
+        Self { arxiv: true, scholar: true, pubmed: true }
     }
 
     pub fn only_arxiv() -> Self {
-        Self {
-            arxiv: true,
-            scholar: false,
-            pubmed: false,
-        }
+        Self { arxiv: true, scholar: false, pubmed: false }
     }
 }
 
@@ -195,10 +187,7 @@ impl AcademicSearchProvider {
             _ => self.get_arxiv_mock_results(&query_lower),
         };
 
-        mock_papers
-            .into_iter()
-            .take(query.max_results.min(10))
-            .collect()
+        mock_papers.into_iter().take(query.max_results.min(10)).collect()
     }
 
     fn get_arxiv_mock_results(&self, query_lower: &str) -> Vec<SearchResult> {
@@ -392,21 +381,12 @@ impl AcademicSearchProvider {
             && let Some(organic_results) = data.get("organic_results").and_then(|r| r.as_array())
         {
             for item in organic_results {
-                let title = item
-                    .get("title")
-                    .and_then(|t| t.as_str())
-                    .unwrap_or_default()
-                    .to_string();
-                let snippet = item
-                    .get("snippet")
-                    .and_then(|s| s.as_str())
-                    .unwrap_or_default()
-                    .to_string();
-                let link = item
-                    .get("link")
-                    .and_then(|l| l.as_str())
-                    .unwrap_or_default()
-                    .to_string();
+                let title =
+                    item.get("title").and_then(|t| t.as_str()).unwrap_or_default().to_string();
+                let snippet =
+                    item.get("snippet").and_then(|s| s.as_str()).unwrap_or_default().to_string();
+                let link =
+                    item.get("link").and_then(|l| l.as_str()).unwrap_or_default().to_string();
                 let _publication_info = item
                     .get("publication_info")
                     .and_then(|p| p.get("summary"))
@@ -470,10 +450,8 @@ impl AcademicSearchProvider {
         let mut results = Vec::new();
 
         if let Ok(data) = serde_json::from_str::<serde_json::Value>(json)
-            && let Some(id_list) = data
-                .get("esearchresult")
-                .and_then(|r| r.get("idlist"))
-                .and_then(|r| r.as_array())
+            && let Some(id_list) =
+                data.get("esearchresult").and_then(|r| r.get("idlist")).and_then(|r| r.as_array())
         {
             for id in id_list {
                 if let Some(id_str) = id.as_str() {
@@ -527,10 +505,7 @@ impl SearchProvider for AcademicSearchProvider {
 
         let is_pdf = url.contains(".pdf");
         let title = if url.contains("arxiv.org/abs") {
-            url.split("abs/")
-                .last()
-                .unwrap_or("Unknown Paper")
-                .to_string()
+            url.split("abs/").last().unwrap_or("Unknown Paper").to_string()
         } else {
             "Academic Paper".to_string()
         };
@@ -568,9 +543,7 @@ impl SearchProvider for AcademicSearchProvider {
     }
 
     fn rate_limit(&self) -> Option<Duration> {
-        self.config
-            .rate_limit_per_minute
-            .map(|rpm| Duration::from_secs(60 * 60 / rpm as u64))
+        self.config.rate_limit_per_minute.map(|rpm| Duration::from_secs(60 * 60 / rpm as u64))
     }
 }
 
@@ -580,9 +553,7 @@ pub struct AcademicSearchProviderBuilder {
 
 impl AcademicSearchProviderBuilder {
     pub fn new() -> Self {
-        Self {
-            provider: AcademicSearchProvider::new(),
-        }
+        Self { provider: AcademicSearchProvider::new() }
     }
 
     pub fn api_key(mut self, key: impl Into<String>) -> Self {

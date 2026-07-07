@@ -47,10 +47,8 @@ impl TokenSmugglingDetector {
         if total == 0.0 {
             return 0.0;
         }
-        let invisible = input
-            .chars()
-            .filter(|c| c.is_whitespace() || c.is_control())
-            .count() as f64;
+        let invisible =
+            input.chars().filter(|c| c.is_whitespace() || c.is_control()).count() as f64;
         invisible / total
     }
 
@@ -132,10 +130,7 @@ mod tests {
 
     #[test]
     fn respects_config_disabled() {
-        let config = GuardConfig {
-            enable_token_smuggling: false,
-            ..GuardConfig::default()
-        };
+        let config = GuardConfig { enable_token_smuggling: false, ..GuardConfig::default() };
         let detector = TokenSmugglingDetector::new(config);
         let input = "hello\u{200B}world";
         let result = detector.detect(input);

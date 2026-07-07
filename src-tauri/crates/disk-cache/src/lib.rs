@@ -111,10 +111,7 @@ impl DiskCache {
     }
 
     fn now_secs() -> u64 {
-        SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap_or_default()
-            .as_secs()
+        SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_secs()
     }
 
     // ── Search result caching ───────────────────────────────────────────────
@@ -327,9 +324,7 @@ mod tests {
 
         assert!(cache.get_search_results(&hash).unwrap().is_none());
 
-        cache
-            .store_search_results(&hash, "find user auth", r#"[{"file":"auth.rs"}]"#, 1)
-            .unwrap();
+        cache.store_search_results(&hash, "find user auth", r#"[{"file":"auth.rs"}]"#, 1).unwrap();
 
         let cached = cache.get_search_results(&hash).unwrap().unwrap();
         assert_eq!(cached.query_text, "find user auth");
@@ -341,23 +336,15 @@ mod tests {
     fn test_summary_store_and_load() {
         let cache = test_cache();
         // Use explicit timestamps to control ordering
-        assert!(
-            cache
-                .store_summary("conv1", "Fixed authentication bug", 5)
-                .is_ok()
-        );
+        assert!(cache.store_summary("conv1", "Fixed authentication bug", 5).is_ok());
         std::thread::sleep(std::time::Duration::from_secs(1));
         assert!(cache.store_summary("conv1", "Added unit tests", 3).is_ok());
 
         let summaries = cache.get_summaries("conv1").unwrap();
         assert_eq!(summaries.len(), 2);
         // Either order is acceptable for this test; both entries exist
-        let all_text: String = summaries
-            .iter()
-            .map(|s| &s.summary_text)
-            .cloned()
-            .collect::<Vec<_>>()
-            .join("|");
+        let all_text: String =
+            summaries.iter().map(|s| &s.summary_text).cloned().collect::<Vec<_>>().join("|");
         assert!(all_text.contains("unit tests"));
         assert!(all_text.contains("authentication"));
     }
@@ -365,17 +352,9 @@ mod tests {
     #[test]
     fn test_snapshot_recording() {
         let cache = test_cache();
-        assert!(
-            cache
-                .record_snapshot("snap1", 100, 500, "/cache/snap1.json")
-                .is_ok()
-        );
+        assert!(cache.record_snapshot("snap1", 100, 500, "/cache/snap1.json").is_ok());
         std::thread::sleep(std::time::Duration::from_secs(1));
-        assert!(
-            cache
-                .record_snapshot("snap2", 200, 800, "/cache/snap2.json")
-                .is_ok()
-        );
+        assert!(cache.record_snapshot("snap2", 200, 800, "/cache/snap2.json").is_ok());
 
         let snapshots = cache.list_snapshots().unwrap();
         assert_eq!(snapshots.len(), 2);

@@ -113,10 +113,7 @@ pub async fn start_parallel_execution(
     execution_id: String,
 ) -> Result<(), String> {
     let service = state.parallel_execution_service.write().await;
-    service
-        .start_execution(&execution_id)
-        .await
-        .ok_or_else(|| "Execution not found".to_string())
+    service.start_execution(&execution_id).await.ok_or_else(|| "Execution not found".to_string())
 }
 
 /// 验证一次并行执行的结果

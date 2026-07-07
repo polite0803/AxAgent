@@ -131,9 +131,7 @@ impl SandboxConfig {
             namespace_restrictions: namespace_override
                 .unwrap_or(self.namespace_restrictions.unwrap_or(true)),
             network_isolation: network_override.unwrap_or(self.network_isolation.unwrap_or(false)),
-            filesystem_mode: filesystem_mode_override
-                .or(self.filesystem_mode)
-                .unwrap_or_default(),
+            filesystem_mode: filesystem_mode_override.or(self.filesystem_mode).unwrap_or_default(),
             allowed_mounts: allowed_mounts_override.unwrap_or_else(|| self.allowed_mounts.clone()),
         }
     }
@@ -180,10 +178,7 @@ pub fn detect_container_environment_from(
     }
     markers.sort();
     markers.dedup();
-    ContainerEnvironment {
-        in_container: !markers.is_empty(),
-        markers,
-    }
+    ContainerEnvironment { in_container: !markers.is_empty(), markers }
 }
 
 #[must_use]
@@ -326,21 +321,14 @@ pub fn build_linux_sandbox_command(
     let mut env = vec![
         ("HOME".to_string(), sandbox_home.display().to_string()),
         ("TMPDIR".to_string(), sandbox_tmp.display().to_string()),
-        (
-            "CLAWD_SANDBOX_FILESYSTEM_MODE".to_string(),
-            status.filesystem_mode.as_str().to_string(),
-        ),
+        ("CLAWD_SANDBOX_FILESYSTEM_MODE".to_string(), status.filesystem_mode.as_str().to_string()),
         ("CLAWD_SANDBOX_ALLOWED_MOUNTS".to_string(), status.allowed_mounts.join(":")),
     ];
     if let Ok(path) = env::var("PATH") {
         env.push(("PATH".to_string(), path));
     }
 
-    Some(LinuxSandboxCommand {
-        program: "unshare".to_string(),
-        args,
-        env,
-    })
+    Some(LinuxSandboxCommand { program: "unshare".to_string(), args, env })
 }
 
 // ── Windows 沙箱命令构建 ──
@@ -366,10 +354,7 @@ pub fn build_windows_sandbox_command(
         args: vec!["/c".to_string(), command.to_string()],
         env: vec![
             ("__SANDBOX_MODE".to_string(), "1".to_string()),
-            (
-                "__SANDBOX_FILESYSTEM_MODE".to_string(),
-                status.filesystem_mode.as_str().to_string(),
-            ),
+            ("__SANDBOX_FILESYSTEM_MODE".to_string(), status.filesystem_mode.as_str().to_string()),
         ],
         use_app_container: false, // 完整 AppContainer 需要管理员权限配置，默认禁用
         integrity_level: "Low".to_string(),
@@ -562,11 +547,7 @@ fn detect_linux_seccomp_available() -> bool {
             && let Ok(content) = std::fs::read_to_string("/proc/sys/kernel/seccomp")
         {
             // 值 >= 2 表示支持 seccomp-bpf
-            return content
-                .trim()
-                .parse::<u32>()
-                .map(|v| v >= 2)
-                .unwrap_or(false);
+            return content.trim().parse::<u32>().map(|v| v >= 2).unwrap_or(false);
         }
         // 降级检测：尝试检查内核版本（>= 3.5 通常支持）
         #[cfg(target_os = "linux")]
@@ -681,24 +662,9 @@ mod tests {
         });
 
         assert!(detected.in_container);
-        assert!(
-            detected
-                .markers
-                .iter()
-                .any(|marker| marker == "/.dockerenv")
-        );
-        assert!(
-            detected
-                .markers
-                .iter()
-                .any(|marker| marker == "env:container=docker")
-        );
-        assert!(
-            detected
-                .markers
-                .iter()
-                .any(|marker| marker == "/proc/1/cgroup:docker")
-        );
+        assert!(detected.markers.iter().any(|marker| marker == "/.dockerenv"));
+        assert!(detected.markers.iter().any(|marker| marker == "env:container=docker"));
+        assert!(detected.markers.iter().any(|marker| marker == "/proc/1/cgroup:docker"));
     }
 
     #[test]
@@ -769,11 +735,7 @@ mod tests {
         // 结构体创建验证
         let cmd = MacosSandboxCommand {
             program: "sandbox-exec".to_string(),
-            args: vec![
-                "-p".to_string(),
-                "(version 1)".to_string(),
-                "sh".to_string(),
-            ],
+            args: vec!["-p".to_string(), "(version 1)".to_string(), "sh".to_string()],
             env: vec![],
             sandbox_profile: "(version 1)".to_string(),
         };

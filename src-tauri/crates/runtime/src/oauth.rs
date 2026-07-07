@@ -156,11 +156,7 @@ impl OAuthAuthorizationRequest {
             ("code_challenge", self.code_challenge.clone()),
             ("code_challenge_method", self.code_challenge_method.as_str().to_string()),
         ];
-        params.extend(
-            self.extra_params
-                .iter()
-                .map(|(key, value)| (key.as_str(), value.clone())),
-        );
+        params.extend(self.extra_params.iter().map(|(key, value)| (key.as_str(), value.clone())));
         let query = params
             .into_iter()
             .map(|(key, value)| format!("{}={}", percent_encode(key), percent_encode(&value)))
@@ -298,9 +294,7 @@ pub fn clear_oauth_credentials() -> io::Result<()> {
 }
 
 pub fn parse_oauth_callback_request_target(target: &str) -> Result<OAuthCallbackParams, String> {
-    let (path, query) = target
-        .split_once('?')
-        .map_or((target, ""), |(path, query)| (path, query));
+    let (path, query) = target.split_once('?').map_or((target, ""), |(path, query)| (path, query));
     if path != "/callback" {
         return Err(format!("unexpected callback path: {path}"));
     }
@@ -310,9 +304,7 @@ pub fn parse_oauth_callback_request_target(target: &str) -> Result<OAuthCallback
 pub fn parse_oauth_callback_query(query: &str) -> Result<OAuthCallbackParams, String> {
     let mut params = BTreeMap::new();
     for pair in query.split('&').filter(|pair| !pair.is_empty()) {
-        let (key, value) = pair
-            .split_once('=')
-            .map_or((pair, ""), |(key, value)| (key, value));
+        let (key, value) = pair.split_once('=').map_or((pair, ""), |(key, value)| (key, value));
         params.insert(percent_decode(key)?, percent_decode(value)?);
     }
     Ok(OAuthCallbackParams {
@@ -333,9 +325,8 @@ fn credentials_home_dir() -> io::Result<PathBuf> {
     if let Some(path) = std::env::var_os("CLAW_CONFIG_HOME") {
         return Ok(PathBuf::from(path));
     }
-    let home = std::env::var_os("HOME")
-        .or_else(|| std::env::var_os("USERPROFILE"))
-        .ok_or_else(|| {
+    let home =
+        std::env::var_os("HOME").or_else(|| std::env::var_os("USERPROFILE")).ok_or_else(|| {
             io::Error::new(
                 io::ErrorKind::NotFound,
                 "HOME is not set (on Windows, set USERPROFILE or HOME, \
@@ -489,10 +480,7 @@ mod tests {
         std::env::temp_dir().join(format!(
             "runtime-oauth-test-{}-{}",
             std::process::id(),
-            SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .expect("time")
-                .as_nanos()
+            SystemTime::now().duration_since(UNIX_EPOCH).expect("time").as_nanos()
         ))
     }
 

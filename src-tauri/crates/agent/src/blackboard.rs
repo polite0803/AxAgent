@@ -66,10 +66,7 @@ impl Blackboard {
             tags: Vec::new(),
             priority: EntryPriority::Normal,
         };
-        let event = BlackboardEvent::Written {
-            key: key.to_string(),
-            author: author.to_string(),
-        };
+        let event = BlackboardEvent::Written { key: key.to_string(), author: author.to_string() };
         {
             let guard = match self.entries.write() {
                 Ok(g) => g,
@@ -115,11 +112,7 @@ impl Blackboard {
                 return Vec::new();
             },
         };
-        guard
-            .values()
-            .filter(|e| e.tags.iter().any(|t| t == tag))
-            .cloned()
-            .collect()
+        guard.values().filter(|e| e.tags.iter().any(|t| t == tag)).cloned().collect()
     }
 
     pub fn read_by_author(&self, author: &str) -> Vec<BlackboardEntry> {
@@ -130,11 +123,7 @@ impl Blackboard {
                 return Vec::new();
             },
         };
-        guard
-            .values()
-            .filter(|e| e.author == author)
-            .cloned()
-            .collect()
+        guard.values().filter(|e| e.author == author).cloned().collect()
     }
 
     pub fn update(&self, key: &str, value: serde_json::Value) -> Option<BlackboardEntry> {
@@ -150,10 +139,8 @@ impl Blackboard {
             entry.value = value;
             entry.updated_at = Utc::now();
             let updated = entry.clone();
-            let event = BlackboardEvent::Updated {
-                key: key.to_string(),
-                author: entry.author.clone(),
-            };
+            let event =
+                BlackboardEvent::Updated { key: key.to_string(), author: entry.author.clone() };
             drop(map);
             let _ = self.event_sender.send(event);
             Some(updated)
@@ -173,9 +160,7 @@ impl Blackboard {
         let mut map = guard;
         let removed = map.remove(key);
         if removed.is_some() {
-            let event = BlackboardEvent::Deleted {
-                key: key.to_string(),
-            };
+            let event = BlackboardEvent::Deleted { key: key.to_string() };
             drop(map);
             let _ = self.event_sender.send(event);
         }
@@ -228,9 +213,7 @@ pub struct BlackboardManager {
 
 impl BlackboardManager {
     pub fn new() -> Self {
-        Self {
-            blackboards: Arc::new(RwLock::new(HashMap::new())),
-        }
+        Self { blackboards: Arc::new(RwLock::new(HashMap::new())) }
     }
 
     pub fn create_blackboard(&self, name: &str) -> Arc<Blackboard> {

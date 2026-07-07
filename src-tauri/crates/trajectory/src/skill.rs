@@ -392,9 +392,7 @@ impl Skill {
         );
         if !self.metadata.hermes.config.is_empty()
             && let Some(input_obj) = props.get_mut("input").and_then(|v| v.as_object_mut())
-            && let Some(props_obj) = input_obj
-                .get_mut("properties")
-                .and_then(|v| v.as_object_mut())
+            && let Some(props_obj) = input_obj.get_mut("properties").and_then(|v| v.as_object_mut())
         {
             for config in &self.metadata.hermes.config {
                 props_obj.insert(
@@ -485,11 +483,7 @@ pub(crate) struct SkillOptimizer {
 
 impl Default for SkillOptimizer {
     fn default() -> Self {
-        Self {
-            min_usages_for_analysis: 5,
-            improvement_threshold: 0.5,
-            quality_threshold: 0.3,
-        }
+        Self { min_usages_for_analysis: 5, improvement_threshold: 0.5, quality_threshold: 0.3 }
     }
 }
 
@@ -562,11 +556,7 @@ impl SkillOptimizer {
                 skill.content,
                 analysis.suggestions.join("\n")
             );
-        } else if analysis
-            .suggestions
-            .iter()
-            .any(|s| s.contains("error handling"))
-        {
+        } else if analysis.suggestions.iter().any(|s| s.contains("error handling")) {
             modification_type = ModificationType::LogicRevision;
             reason = "Add error handling guidance".to_string();
             new_content = format!(
@@ -574,11 +564,7 @@ impl SkillOptimizer {
                 skill.content,
                 analysis.suggestions.join("\n")
             );
-        } else if analysis
-            .suggestions
-            .iter()
-            .any(|s| s.contains("verification"))
-        {
+        } else if analysis.suggestions.iter().any(|s| s.contains("verification")) {
             modification_type = ModificationType::StepRefinement;
             reason = "Add verification checkpoints".to_string();
             new_content = format!(
@@ -698,10 +684,7 @@ pub(crate) struct SkillCreator {
 
 impl Default for SkillCreator {
     fn default() -> Self {
-        Self {
-            min_tool_calls: 3,
-            complexity_threshold: TaskComplexity::Medium,
-        }
+        Self { min_tool_calls: 3, complexity_threshold: TaskComplexity::Medium }
     }
 }
 
@@ -716,11 +699,7 @@ impl SkillCreator {
             return false;
         }
 
-        let tool_call_count = trajectory
-            .steps
-            .iter()
-            .filter(|s| s.tool_calls.is_some())
-            .count();
+        let tool_call_count = trajectory.steps.iter().filter(|s| s.tool_calls.is_some()).count();
 
         if tool_call_count < self.min_tool_calls {
             return false;
@@ -732,17 +711,13 @@ impl SkillCreator {
 
     #[allow(dead_code)]
     fn assess_complexity(&self, trajectory: &Trajectory) -> TaskComplexity {
-        let tool_count: usize = trajectory
+        let tool_count: usize =
+            trajectory.steps.iter().filter_map(|s| s.tool_calls.as_ref().map(|c| c.len())).sum();
+
+        let has_error = trajectory
             .steps
             .iter()
-            .filter_map(|s| s.tool_calls.as_ref().map(|c| c.len()))
-            .sum();
-
-        let has_error = trajectory.steps.iter().any(|s| {
-            s.tool_results
-                .as_ref()
-                .is_some_and(|r| r.iter().any(|tr| tr.is_error))
-        });
+            .any(|s| s.tool_results.as_ref().is_some_and(|r| r.iter().any(|tr| tr.is_error)));
 
         let has_reasoning = trajectory.steps.iter().any(|s| s.reasoning.is_some());
 

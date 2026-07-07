@@ -54,52 +54,16 @@ impl BehaviorEvent {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub(crate) enum BehaviorEventType {
-    CodeGeneration {
-        language: String,
-        framework: Option<String>,
-        line_count: u32,
-        has_tests: bool,
-    },
-    SearchQuery {
-        query_type: String,
-        result_count: u32,
-        clicked_result: Option<u32>,
-    },
-    ArtifactCreation {
-        artifact_type: String,
-        complexity: f32,
-    },
-    ConversationStart {
-        intent: Option<String>,
-    },
-    ToolUsage {
-        tool_name: String,
-        success: bool,
-        duration_ms: u64,
-    },
-    FeedbackGiven {
-        feedback_type: UserFeedbackType,
-        rating: Option<i32>,
-    },
-    PreferenceSet {
-        setting_key: String,
-        old_value: Option<String>,
-        new_value: String,
-    },
-    FileOpened {
-        file_path: String,
-        file_type: String,
-    },
-    FileEdited {
-        file_path: String,
-        edit_type: String,
-        lines_changed: u32,
-    },
-    ErrorOccurred {
-        error_type: String,
-        severity: ErrorSeverity,
-        recovered: bool,
-    },
+    CodeGeneration { language: String, framework: Option<String>, line_count: u32, has_tests: bool },
+    SearchQuery { query_type: String, result_count: u32, clicked_result: Option<u32> },
+    ArtifactCreation { artifact_type: String, complexity: f32 },
+    ConversationStart { intent: Option<String> },
+    ToolUsage { tool_name: String, success: bool, duration_ms: u64 },
+    FeedbackGiven { feedback_type: UserFeedbackType, rating: Option<i32> },
+    PreferenceSet { setting_key: String, old_value: Option<String>, new_value: String },
+    FileOpened { file_path: String, file_type: String },
+    FileEdited { file_path: String, edit_type: String, lines_changed: u32 },
+    ErrorOccurred { error_type: String, severity: ErrorSeverity, recovered: bool },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -227,11 +191,7 @@ pub(crate) struct BehaviorTracker {
 
 impl BehaviorTracker {
     pub(crate) fn new(user_id: String) -> Self {
-        Self {
-            user_id,
-            event_buffer: Vec::new(),
-            session_start: Utc::now(),
-        }
+        Self { user_id, event_buffer: Vec::new(), session_start: Utc::now() }
     }
 
     pub(crate) fn track_event(&mut self, event: BehaviorEvent) {
@@ -247,12 +207,7 @@ impl BehaviorTracker {
     ) {
         let event = BehaviorEvent::new(
             self.user_id.clone(),
-            BehaviorEventType::CodeGeneration {
-                language,
-                framework,
-                line_count,
-                has_tests,
-            },
+            BehaviorEventType::CodeGeneration { language, framework, line_count, has_tests },
         );
         self.track_event(event);
     }
@@ -265,11 +220,7 @@ impl BehaviorTracker {
     ) {
         let event = BehaviorEvent::new(
             self.user_id.clone(),
-            BehaviorEventType::SearchQuery {
-                query_type,
-                result_count,
-                clicked_result,
-            },
+            BehaviorEventType::SearchQuery { query_type, result_count, clicked_result },
         );
         self.track_event(event);
     }
@@ -277,11 +228,7 @@ impl BehaviorTracker {
     pub(crate) fn track_tool_usage(&mut self, tool_name: String, success: bool, duration_ms: u64) {
         let event = BehaviorEvent::new(
             self.user_id.clone(),
-            BehaviorEventType::ToolUsage {
-                tool_name,
-                success,
-                duration_ms,
-            },
+            BehaviorEventType::ToolUsage { tool_name, success, duration_ms },
         );
         self.track_event(event);
     }
@@ -289,10 +236,7 @@ impl BehaviorTracker {
     pub(crate) fn track_feedback(&mut self, feedback_type: UserFeedbackType, rating: Option<i32>) {
         let event = BehaviorEvent::new(
             self.user_id.clone(),
-            BehaviorEventType::FeedbackGiven {
-                feedback_type,
-                rating,
-            },
+            BehaviorEventType::FeedbackGiven { feedback_type, rating },
         );
         self.track_event(event);
     }
@@ -305,11 +249,7 @@ impl BehaviorTracker {
     ) {
         let event = BehaviorEvent::new(
             self.user_id.clone(),
-            BehaviorEventType::PreferenceSet {
-                setting_key,
-                old_value,
-                new_value,
-            },
+            BehaviorEventType::PreferenceSet { setting_key, old_value, new_value },
         );
         self.track_event(event);
     }
@@ -324,10 +264,7 @@ impl BehaviorTracker {
     }
 
     pub(crate) fn summarize(&self) -> BehaviorSummary {
-        let mut summary = BehaviorSummary {
-            user_id: self.user_id.clone(),
-            ..Default::default()
-        };
+        let mut summary = BehaviorSummary { user_id: self.user_id.clone(), ..Default::default() };
 
         summary.total_events = self.event_buffer.len() as u64;
 
@@ -345,10 +282,7 @@ impl BehaviorTracker {
                 BehaviorEventType::ErrorOccurred { .. } => "error",
             };
 
-            *summary
-                .events_by_type
-                .entry(type_name.to_string())
-                .or_insert(0) += 1;
+            *summary.events_by_type.entry(type_name.to_string()).or_insert(0) += 1;
         }
 
         summary

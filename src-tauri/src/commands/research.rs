@@ -96,10 +96,7 @@ fn extract_json(text: &str) -> Result<String, String> {
             .strip_prefix("```")
             .and_then(|s| s.strip_prefix("json").or(Some(s)))
             .unwrap_or(trimmed);
-        let stripped = stripped
-            .strip_suffix("```")
-            .map(|s| s.trim())
-            .unwrap_or(stripped.trim());
+        let stripped = stripped.strip_suffix("```").map(|s| s.trim()).unwrap_or(stripped.trim());
         if let Some(start) = stripped.find('{') {
             if let Some(end) = stripped.rfind('}') {
                 return Ok(stripped[start..=end].to_string());
@@ -266,10 +263,8 @@ pub async fn generate_research_report(
     };
 
     // 5. 调用 LLM
-    let response = adapter
-        .chat(&ctx, chat_request)
-        .await
-        .map_err(|e| format!("LLM 调用失败: {}", e))?;
+    let response =
+        adapter.chat(&ctx, chat_request).await.map_err(|e| format!("LLM 调用失败: {}", e))?;
 
     let json_text = extract_json(&response.content).map_err(|e| format!("JSON 提取失败: {}", e))?;
 

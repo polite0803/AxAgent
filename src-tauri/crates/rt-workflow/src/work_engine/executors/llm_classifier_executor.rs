@@ -19,11 +19,7 @@ pub struct LlmClassifierExecutor {
 
 impl LlmClassifierExecutor {
     pub fn new(db: Arc<DatabaseConnection>, master_key: [u8; 32]) -> Self {
-        Self {
-            db,
-            master_key,
-            provider_registry: None,
-        }
+        Self { db, master_key, provider_registry: None }
     }
 }
 
@@ -74,9 +70,7 @@ impl NodeExecutorTrait for LlmClassifierExecutor {
                 .collect::<Vec<_>>()
                 .join("\n")
         } else {
-            resolve_var_path(&c.input_var, context)
-                .map(value_to_input_text)
-                .unwrap_or_default()
+            resolve_var_path(&c.input_var, context).map(value_to_input_text).unwrap_or_default()
         };
 
         if input_text.is_empty() {
@@ -121,14 +115,10 @@ impl NodeExecutorTrait for LlmClassifierExecutor {
         };
 
         let node_model = c.model.as_deref().filter(|m| !m.is_empty());
-        let session_model = context
-            .variables
-            .get(super::WORKFLOW_MODEL_VAR)
-            .and_then(|v| v.as_str());
-        let session_provider_id = context
-            .variables
-            .get(super::WORKFLOW_PROVIDER_ID_VAR)
-            .and_then(|v| v.as_str());
+        let session_model =
+            context.variables.get(super::WORKFLOW_MODEL_VAR).and_then(|v| v.as_str());
+        let session_provider_id =
+            context.variables.get(super::WORKFLOW_PROVIDER_ID_VAR).and_then(|v| v.as_str());
 
         let (prov, key, model, adapter, api_key) = super::resolve_provider_and_adapter(
             &self.db,
@@ -240,15 +230,8 @@ impl NodeExecutorTrait for LlmClassifierExecutor {
                         ),
                     )
                 })?;
-            let label = parsed
-                .get("label")
-                .and_then(|l| l.as_str())
-                .unwrap_or("")
-                .to_string();
-            let confidence = parsed
-                .get("confidence")
-                .and_then(|c| c.as_f64())
-                .unwrap_or(0.0);
+            let label = parsed.get("label").and_then(|l| l.as_str()).unwrap_or("").to_string();
+            let confidence = parsed.get("confidence").and_then(|c| c.as_f64()).unwrap_or(0.0);
 
             if confidence < threshold {
                 let fallback = c.fallback_label.as_deref().unwrap_or("unknown");
@@ -465,9 +448,7 @@ mod tests {
 
     /// 正向用例需要真实 DB 才能跑过 `resolve_provider_and_adapter`。
     async fn make_executor_with_db() -> LlmClassifierExecutor {
-        let handle = axagent_dao::db::create_test_pool()
-            .await
-            .expect("create_test_pool");
+        let handle = axagent_dao::db::create_test_pool().await.expect("create_test_pool");
         LlmClassifierExecutor::new(Arc::new(handle.conn), [0u8; 32])
     }
 

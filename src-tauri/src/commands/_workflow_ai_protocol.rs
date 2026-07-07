@@ -65,9 +65,7 @@ pub enum ChatAction {
     /// LSP 风格锚点编辑任意文本文件(`.rhai`/`.md`/...)
     EditAssetFile { data: EditAssetFilePayload },
     /// 一组 action 打包,带 validation 钩子
-    ApplyDiffWithValidation {
-        data: ApplyDiffWithValidationPayload,
-    },
+    ApplyDiffWithValidation { data: ApplyDiffWithValidationPayload },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]

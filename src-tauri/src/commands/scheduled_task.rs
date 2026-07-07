@@ -91,10 +91,7 @@ fn cron_to_dto(job: &CronJob) -> ScheduledTaskDto {
         id: job.id.clone(),
         name: job.name.clone(),
         description: job.description.clone(),
-        task_type: job
-            .task_type
-            .clone()
-            .unwrap_or_else(|| "custom".to_string()),
+        task_type: job.task_type.clone().unwrap_or_else(|| "custom".to_string()),
         cron_expression: if job.schedule.is_empty() {
             None
         } else {
@@ -179,9 +176,7 @@ pub async fn create_scheduled_task(
     if let Some(ref cron) = input.cron_expression {
         validate_cron_expression(cron)?;
     }
-    let schedule = input
-        .cron_expression
-        .unwrap_or_else(|| "0 9 * * *".to_string());
+    let schedule = input.cron_expression.unwrap_or_else(|| "0 9 * * *".to_string());
     let desc = input.description.unwrap_or_else(|| input.name.clone());
     let mut job = CronJob::new(&input.name, &schedule, &desc, &desc);
     if let Some(ref task_type) = input.task_type {
@@ -261,10 +256,7 @@ pub async fn pause_scheduled_task(
     task_id: String,
 ) -> Result<(), String> {
     require_operator(&state)?;
-    state
-        .cron_job_store
-        .set_status(&task_id, CronJobStatus::Paused)
-        .await;
+    state.cron_job_store.set_status(&task_id, CronJobStatus::Paused).await;
     Ok(())
 }
 
@@ -274,10 +266,7 @@ pub async fn resume_scheduled_task(
     task_id: String,
 ) -> Result<(), String> {
     require_operator(&state)?;
-    state
-        .cron_job_store
-        .set_status(&task_id, CronJobStatus::Active)
-        .await;
+    state.cron_job_store.set_status(&task_id, CronJobStatus::Active).await;
     Ok(())
 }
 
@@ -297,10 +286,7 @@ pub async fn execute_scheduled_task(
         duration_ms: 0,
         executed_at: axagent_runtime_core::cron_job::now_millis(),
     };
-    state
-        .cron_job_store
-        .record_run(&task_id, result.clone())
-        .await;
+    state.cron_job_store.record_run(&task_id, result.clone()).await;
     Ok(TaskRunResultDto {
         success: result.success,
         output: result.output,
@@ -322,10 +308,7 @@ pub async fn get_scheduled_task_templates(
     ];
 
     // 查询所有已持久化的工作流模板
-    if let Ok(wf_templates) = workflow_template::Entity::find()
-        .all(state.harness.db())
-        .await
-    {
+    if let Ok(wf_templates) = workflow_template::Entity::find().all(state.harness.db()).await {
         for wt in wf_templates {
             templates.push(serde_json::json!({
                 "templateType": wt.id,

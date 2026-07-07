@@ -38,11 +38,7 @@ pub struct TaskDecomposer {
 
 impl TaskDecomposer {
     pub fn new() -> Self {
-        Self {
-            max_depth: 10,
-            llm_client: None,
-            tool_registry: None,
-        }
+        Self { max_depth: 10, llm_client: None, tool_registry: None }
     }
 
     pub fn with_max_depth(mut self, depth: usize) -> Self {
@@ -144,33 +140,20 @@ impl TaskDecomposer {
 
         let mut tasks = Vec::new();
         for (idx, task_val) in tasks_array.iter().enumerate() {
-            let id = task_val
-                .get("id")
-                .and_then(|v| v.as_str())
-                .unwrap_or(&idx.to_string())
-                .to_string();
+            let id =
+                task_val.get("id").and_then(|v| v.as_str()).unwrap_or(&idx.to_string()).to_string();
 
-            let description = task_val
-                .get("description")
-                .and_then(|v| v.as_str())
-                .unwrap_or("")
-                .to_string();
+            let description =
+                task_val.get("description").and_then(|v| v.as_str()).unwrap_or("").to_string();
 
-            let type_str = task_val
-                .get("type")
-                .and_then(|v| v.as_str())
-                .unwrap_or("query");
+            let type_str = task_val.get("type").and_then(|v| v.as_str()).unwrap_or("query");
 
             let task_type = type_str.parse::<TaskType>().unwrap_or(TaskType::Query);
 
             let dependencies = task_val
                 .get("dependencies")
                 .and_then(|v| v.as_array())
-                .map(|arr| {
-                    arr.iter()
-                        .filter_map(|v| v.as_str().map(String::from))
-                        .collect()
-                })
+                .map(|arr| arr.iter().filter_map(|v| v.as_str().map(String::from)).collect())
                 .unwrap_or_default();
 
             let mut task = TaskNode::new(id, description, task_type);
@@ -185,26 +168,16 @@ impl TaskDecomposer {
                 arr.iter()
                     .filter_map(|group| {
                         group.as_array().map(|g| {
-                            g.iter()
-                                .filter_map(|v| v.as_str().map(String::from))
-                                .collect()
+                            g.iter().filter_map(|v| v.as_str().map(String::from)).collect()
                         })
                     })
                     .collect()
             })
             .unwrap_or_else(|| self.infer_parallel_groups(&tasks));
 
-        let reasoning = value
-            .get("reasoning")
-            .and_then(|v| v.as_str())
-            .unwrap_or("")
-            .to_string();
+        let reasoning = value.get("reasoning").and_then(|v| v.as_str()).unwrap_or("").to_string();
 
-        Ok(DecompositionResult {
-            tasks,
-            parallel_groups,
-            reasoning,
-        })
+        Ok(DecompositionResult { tasks, parallel_groups, reasoning })
     }
 
     fn parse_fallback_response(
@@ -221,9 +194,8 @@ impl TaskDecomposer {
             .iter()
             .enumerate()
             .map(|(idx, line)| {
-                let description = line
-                    .trim()
-                    .trim_matches(|c| c == '-' || c == '*' || c == '•' || c == '→');
+                let description =
+                    line.trim().trim_matches(|c| c == '-' || c == '*' || c == '•' || c == '→');
                 TaskNode::new((idx + 1).to_string(), description.trim(), TaskType::Query)
             })
             .collect();
@@ -459,9 +431,7 @@ mod tests {
 
     #[test]
     fn test_task_decomposer_with_llm_client() {
-        let mock = MockLlmClient {
-            response: "{}".to_string(),
-        };
+        let mock = MockLlmClient { response: "{}".to_string() };
         let decomposer = TaskDecomposer::new().with_llm_client(Arc::new(mock));
         assert!(decomposer.llm_client.is_some());
     }
@@ -542,11 +512,8 @@ mod tests {
         let tasks: Vec<TaskNode> = (1..=5)
             .map(|i| TaskNode::new(i.to_string(), format!("task {}", i), TaskType::Query))
             .collect();
-        let result = DecompositionResult {
-            tasks,
-            parallel_groups: vec![],
-            reasoning: String::new(),
-        };
+        let result =
+            DecompositionResult { tasks, parallel_groups: vec![], reasoning: String::new() };
         let graph = decomposer.build_graph(result).unwrap();
         assert_eq!(graph.tasks.len(), 2);
     }
@@ -557,11 +524,8 @@ mod tests {
         let tasks: Vec<TaskNode> = (1..=3)
             .map(|i| TaskNode::new(i.to_string(), format!("task {}", i), TaskType::Query))
             .collect();
-        let result = DecompositionResult {
-            tasks,
-            parallel_groups: vec![],
-            reasoning: String::new(),
-        };
+        let result =
+            DecompositionResult { tasks, parallel_groups: vec![], reasoning: String::new() };
         let graph = decomposer.build_graph(result).unwrap();
         assert_eq!(graph.tasks.len(), 3);
     }

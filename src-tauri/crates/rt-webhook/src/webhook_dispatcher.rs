@@ -12,10 +12,7 @@ pub struct WebhookDispatcher {
 
 impl WebhookDispatcher {
     pub fn new(subscription_manager: Arc<dyn WebhookSubscriptionService>) -> Self {
-        Self {
-            subscription_manager,
-            client: Client::new(),
-        }
+        Self { subscription_manager, client: Client::new() }
     }
 
     pub async fn dispatch(
@@ -29,16 +26,10 @@ impl WebhookDispatcher {
             timestamp: chrono::Utc::now(),
             data,
         };
-        let subscriptions = self
-            .subscription_manager
-            .get_subscriptions_for_event(payload.event.as_str())
-            .await;
+        let subscriptions =
+            self.subscription_manager.get_subscriptions_for_event(payload.event.as_str()).await;
         if subscriptions.is_empty() {
-            return DispatchResult {
-                success_count: 0,
-                failure_count: 0,
-                errors: vec![],
-            };
+            return DispatchResult { success_count: 0, failure_count: 0, errors: vec![] };
         }
         let mut success_count = 0;
         let mut failure_count = 0;
@@ -48,25 +39,17 @@ impl WebhookDispatcher {
             match result {
                 Ok(_) => {
                     success_count += 1;
-                    self.subscription_manager
-                        .reset_failures(&subscription.id)
-                        .await;
+                    self.subscription_manager.reset_failures(&subscription.id).await;
                 },
                 Err(e) => {
                     failure_count += 1;
                     errors.push(e.clone());
-                    self.subscription_manager
-                        .increment_failure(&subscription.id)
-                        .await;
+                    self.subscription_manager.increment_failure(&subscription.id).await;
                     tracing::error!("Webhook dispatch failed for {}: {}", subscription.id, e);
                 },
             }
         }
-        DispatchResult {
-            success_count,
-            failure_count,
-            errors,
-        }
+        DispatchResult { success_count, failure_count, errors }
     }
 
     async fn send_webhook(
@@ -75,10 +58,8 @@ impl WebhookDispatcher {
         payload: &WebhookPayload,
     ) -> Result<(), String> {
         let json = serde_json::to_string(payload).map_err(|e| e.to_string())?;
-        let mut request = self
-            .client
-            .post(&subscription.url)
-            .header("Content-Type", "application/json");
+        let mut request =
+            self.client.post(&subscription.url).header("Content-Type", "application/json");
         if let Some(secret) = &subscription.secret {
             let signature = Self::generate_signature(json.as_bytes(), secret);
             request = request.header("X-Webhook-Signature", signature);
@@ -93,9 +74,7 @@ impl WebhookDispatcher {
         if !response.status().is_success() {
             return Err(format!("Webhook returned status: {}", response.status()));
         }
-        self.subscription_manager
-            .update_last_triggered(&subscription.id)
-            .await;
+        self.subscription_manager.update_last_triggered(&subscription.id).await;
         Ok(())
     }
 
@@ -128,27 +107,21 @@ impl WebhookEventEmitter {
         data.insert("tool_name".to_string(), serde_json::json!(tool_name));
         data.insert("arguments".to_string(), serde_json::json!(args));
         data.insert("result".to_string(), serde_json::json!(result));
-        self.dispatcher
-            .dispatch(WebhookEvent::ToolComplete, data)
-            .await;
+        self.dispatcher.dispatch(WebhookEvent::ToolComplete, data).await;
     }
 
     pub async fn emit_tool_error(&self, tool_name: &str, error: &str) {
         let mut data = HashMap::new();
         data.insert("tool_name".to_string(), serde_json::json!(tool_name));
         data.insert("error".to_string(), serde_json::json!(error));
-        self.dispatcher
-            .dispatch(WebhookEvent::ToolError, data)
-            .await;
+        self.dispatcher.dispatch(WebhookEvent::ToolError, data).await;
     }
 
     pub async fn emit_agent_error(&self, session_id: &str, error: &str) {
         let mut data = HashMap::new();
         data.insert("session_id".to_string(), serde_json::json!(session_id));
         data.insert("error".to_string(), serde_json::json!(error));
-        self.dispatcher
-            .dispatch(WebhookEvent::AgentError, data)
-            .await;
+        self.dispatcher.dispatch(WebhookEvent::AgentError, data).await;
     }
 
     pub async fn emit_agent_end(&self, session_id: &str, outcome: &str) {
@@ -161,8 +134,6 @@ impl WebhookEventEmitter {
     pub async fn emit_session_end(&self, session_id: &str) {
         let mut data = HashMap::new();
         data.insert("session_id".to_string(), serde_json::json!(session_id));
-        self.dispatcher
-            .dispatch(WebhookEvent::SessionEnd, data)
-            .await;
+        self.dispatcher.dispatch(WebhookEvent::SessionEnd, data).await;
     }
 }

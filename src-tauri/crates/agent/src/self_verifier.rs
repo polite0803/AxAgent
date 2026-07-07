@@ -106,11 +106,7 @@ impl LlmSemanticValidator {
         ctx: ProviderRequestContext,
         model: impl Into<String>,
     ) -> Self {
-        Self {
-            adapter,
-            ctx,
-            model: model.into(),
-        }
+        Self { adapter, ctx, model: model.into() }
     }
 
     fn build_validation_prompt(tool_name: &str, input: &str, output: &str) -> String {
@@ -191,15 +187,9 @@ impl SemanticValidator for LlmSemanticValidator {
         let content = response.content.trim();
 
         let json_str = if content.starts_with("```json") {
-            content
-                .trim_start_matches("```json")
-                .trim_end_matches("```")
-                .trim()
+            content.trim_start_matches("```json").trim_end_matches("```").trim()
         } else if content.starts_with("```") {
-            content
-                .trim_start_matches("```")
-                .trim_end_matches("```")
-                .trim()
+            content.trim_start_matches("```").trim_end_matches("```").trim()
         } else {
             content
         };
@@ -208,10 +198,7 @@ impl SemanticValidator for LlmSemanticValidator {
             VerificationError::ParseError(format!("Failed to parse LLM response as JSON: {}", e))
         })?;
 
-        let is_valid = parsed
-            .get("is_valid")
-            .and_then(|v| v.as_bool())
-            .unwrap_or(true);
+        let is_valid = parsed.get("is_valid").and_then(|v| v.as_bool()).unwrap_or(true);
 
         let confidence = parsed
             .get("confidence")
@@ -290,27 +277,15 @@ impl RuleBasedValidator {
             let mut m = HashMap::new();
             m.insert(
                 "read_file".to_string(),
-                vec![
-                    "contents".to_string(),
-                    "file".to_string(),
-                    "lines".to_string(),
-                ],
+                vec!["contents".to_string(), "file".to_string(), "lines".to_string()],
             );
             m.insert(
                 "write_file".to_string(),
-                vec![
-                    "written".to_string(),
-                    "created".to_string(),
-                    "saved".to_string(),
-                ],
+                vec!["written".to_string(), "created".to_string(), "saved".to_string()],
             );
             m.insert(
                 "edit_file".to_string(),
-                vec![
-                    "applied".to_string(),
-                    "updated".to_string(),
-                    "modified".to_string(),
-                ],
+                vec!["applied".to_string(), "updated".to_string(), "modified".to_string()],
             );
             m.insert(
                 "execute_command".to_string(),
@@ -323,11 +298,7 @@ impl RuleBasedValidator {
             );
             m.insert(
                 "web_search".to_string(),
-                vec![
-                    "results".to_string(),
-                    "found".to_string(),
-                    "matches".to_string(),
-                ],
+                vec!["results".to_string(), "found".to_string(), "matches".to_string()],
             );
             m
         };
@@ -342,11 +313,7 @@ impl RuleBasedValidator {
             m
         };
 
-        Self {
-            error_patterns,
-            success_patterns,
-            format_expectations,
-        }
+        Self { error_patterns, success_patterns, format_expectations }
     }
 
     fn detect_error_indicators(&self, output: &str) -> Vec<String> {
@@ -361,10 +328,7 @@ impl RuleBasedValidator {
     fn check_success_patterns(&self, tool_name: &str, output: &str) -> Option<f32> {
         let patterns = self.success_patterns.get(tool_name)?;
         let output_lower = output.to_lowercase();
-        let matches = patterns
-            .iter()
-            .filter(|p| output_lower.contains(&p.to_lowercase()))
-            .count();
+        let matches = patterns.iter().filter(|p| output_lower.contains(&p.to_lowercase())).count();
         if matches == 0 {
             Some(0.4)
         } else {
@@ -381,9 +345,8 @@ impl RuleBasedValidator {
 
         let lines: Vec<&str> = output.lines().collect();
         if lines.len() > 1 {
-            let has_consistent_delimiter = lines
-                .iter()
-                .all(|l| l.contains(": ") || l.contains(" = ") || l.contains("\t"));
+            let has_consistent_delimiter =
+                lines.iter().all(|l| l.contains(": ") || l.contains(" = ") || l.contains("\t"));
             if has_consistent_delimiter {
                 let has_colon = lines.iter().all(|l| l.contains(": "));
                 return if has_colon {
@@ -393,9 +356,8 @@ impl RuleBasedValidator {
                 };
             }
 
-            let has_path_chars = lines
-                .iter()
-                .all(|l| l.contains('/') || l.contains('\\') || l.contains('.'));
+            let has_path_chars =
+                lines.iter().all(|l| l.contains('/') || l.contains('\\') || l.contains('.'));
             if has_path_chars {
                 return OutputFormat::FilePath;
             }
@@ -541,11 +503,8 @@ impl SemanticValidator for RuleBasedValidator {
         let any_invalid = results.iter().any(|r| !r.is_valid);
         let avg_confidence =
             results.iter().map(|r| r.confidence).sum::<f32>() / results.len() as f32;
-        let combined_reason = results
-            .iter()
-            .map(|r| r.reason.clone())
-            .collect::<Vec<_>>()
-            .join("; ");
+        let combined_reason =
+            results.iter().map(|r| r.reason.clone()).collect::<Vec<_>>().join("; ");
         let mut corrections = Vec::new();
         for r in &results {
             corrections.extend(r.suggested_corrections.clone());
@@ -631,12 +590,7 @@ pub fn detect_state_change(before: &serde_json::Value, after: &serde_json::Value
         &mut changes,
     );
 
-    StateDiff {
-        keys_added,
-        keys_removed,
-        keys_modified,
-        changes,
-    }
+    StateDiff { keys_added, keys_removed, keys_modified, changes }
 }
 
 fn collect_diff(
@@ -871,9 +825,7 @@ impl SelfVerifier {
         };
 
         if let Some(ref validator) = self.semantic_validator {
-            let semantic_result = validator
-                .validate_semantically(tool_name, input, result)
-                .await?;
+            let semantic_result = validator.validate_semantically(tool_name, input, result).await?;
             if let Some(ref rb) = rule_based_result {
                 let combined = Self::combine_results(base_verification, specific_check, rb.clone());
                 return Ok(Self::merge_with_semantic(combined, semantic_result));
@@ -942,10 +894,7 @@ impl SelfVerifier {
             return Ok(VerificationResult::valid("File write verification passed"));
         }
 
-        Ok(VerificationResult::uncertain(
-            0.8,
-            "File write completed with unexpected output",
-        ))
+        Ok(VerificationResult::uncertain(0.8, "File write completed with unexpected output"))
     }
 
     async fn verify_search_result(
@@ -1029,10 +978,8 @@ impl SelfVerifier {
         if !query.is_empty() {
             let query_words: Vec<_> = query.split_whitespace().collect();
             let result_lower = result.to_lowercase();
-            let matches: usize = query_words
-                .iter()
-                .filter(|w| result_lower.contains(&w.to_lowercase()))
-                .count();
+            let matches: usize =
+                query_words.iter().filter(|w| result_lower.contains(&w.to_lowercase())).count();
 
             let match_ratio = matches as f32 / query_words.len() as f32;
             if match_ratio < 0.3 && !result.is_empty() {
@@ -1079,11 +1026,8 @@ impl SelfVerifier {
         &self,
         step: &ThoughtStep,
     ) -> Result<VerificationResult, VerificationError> {
-        let tool_name = step
-            .action
-            .as_ref()
-            .and_then(|a| a.tool_name.as_deref())
-            .unwrap_or("unknown");
+        let tool_name =
+            step.action.as_ref().and_then(|a| a.tool_name.as_deref()).unwrap_or("unknown");
         let result = step.result.as_deref().unwrap_or("");
 
         if result.to_lowercase().contains("error")
@@ -1175,12 +1119,7 @@ impl SelfVerifier {
         corrections.extend(specific.suggested_corrections);
         corrections.extend(semantic.suggested_corrections);
 
-        VerificationResult {
-            is_valid,
-            confidence,
-            reason,
-            suggested_corrections: corrections,
-        }
+        VerificationResult { is_valid, confidence, reason, suggested_corrections: corrections }
     }
 
     fn merge_with_semantic(
@@ -1325,10 +1264,7 @@ mod tests {
     #[test]
     fn test_rule_based_validator_success_patterns_unknown_tool() {
         let v = RuleBasedValidator::new();
-        assert!(
-            v.check_success_patterns("unknown_tool", "anything")
-                .is_none()
-        );
+        assert!(v.check_success_patterns("unknown_tool", "anything").is_none());
     }
 
     #[test]
@@ -1377,10 +1313,7 @@ mod tests {
     #[test]
     fn test_rule_based_validator_format_consistency_unknown_tool() {
         let v = RuleBasedValidator::new();
-        assert!(
-            v.check_format_consistency("unknown_tool", "anything")
-                .is_none()
-        );
+        assert!(v.check_format_consistency("unknown_tool", "anything").is_none());
     }
 
     #[test]
@@ -1407,9 +1340,8 @@ mod tests {
     #[tokio::test]
     async fn test_rule_based_validator_semantic_valid() {
         let v = RuleBasedValidator::new();
-        let result = v
-            .validate_semantically("read_file", "{}", "File contents loaded successfully")
-            .await;
+        let result =
+            v.validate_semantically("read_file", "{}", "File contents loaded successfully").await;
         assert!(result.is_ok());
         let r = result.unwrap();
         assert!(r.is_valid);
@@ -1429,9 +1361,8 @@ mod tests {
     #[tokio::test]
     async fn test_rule_based_validator_contextual_error() {
         let v = RuleBasedValidator::new();
-        let result = v
-            .validate_semantically("execute_command", "{}", "Build completed with 0 errors")
-            .await;
+        let result =
+            v.validate_semantically("execute_command", "{}", "Build completed with 0 errors").await;
         assert!(result.is_ok());
         let r = result.unwrap();
         assert!(r.is_valid);

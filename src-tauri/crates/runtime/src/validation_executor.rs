@@ -43,10 +43,7 @@ impl ValidationExecutor {
 
         for assertion in assertions {
             if let Err(e) = Self::check_assertion(assertion, context) {
-                failed_assertions.push(FailedAssertion {
-                    assertion: assertion.clone(),
-                    error: e,
-                });
+                failed_assertions.push(FailedAssertion { assertion: assertion.clone(), error: e });
             }
         }
 
@@ -60,10 +57,7 @@ impl ValidationExecutor {
     fn check_assertion(assertion: &Assertion, context: &serde_json::Value) -> Result<(), String> {
         match assertion.assertion_type {
             AssertionType::Equals => {
-                let expected = assertion
-                    .expected
-                    .as_ref()
-                    .ok_or("Missing expected value")?;
+                let expected = assertion.expected.as_ref().ok_or("Missing expected value")?;
                 let actual_path = assertion.actual.as_ref().ok_or("Missing actual path")?;
                 let actual_str = context
                     .get(actual_path)
@@ -77,10 +71,7 @@ impl ValidationExecutor {
                 }
             },
             AssertionType::Contains => {
-                let expected = assertion
-                    .expected
-                    .as_ref()
-                    .ok_or("Missing expected value")?;
+                let expected = assertion.expected.as_ref().ok_or("Missing expected value")?;
                 let actual_path = assertion.actual.as_ref().ok_or("Missing actual path")?;
                 let actual_str = context
                     .get(actual_path)

@@ -73,11 +73,7 @@ impl CitationTracker {
 
     pub async fn get_citations_by_source_type(&self, source_type: SourceType) -> Vec<Citation> {
         let citations = self.citations.read().await;
-        citations
-            .values()
-            .filter(|c| c.source_type == source_type)
-            .cloned()
-            .collect()
+        citations.values().filter(|c| c.source_type == source_type).cloned().collect()
     }
 
     pub async fn update_citation(&self, citation: Citation) -> Option<Citation> {
@@ -100,10 +96,7 @@ impl CitationTracker {
 
     pub async fn record_usage(&self, citation_id: String, usage: CitationUsage) {
         let mut usage_records = self.usage_records.write().await;
-        usage_records
-            .entry(citation_id)
-            .or_insert_with(Vec::new)
-            .push(usage);
+        usage_records.entry(citation_id).or_insert_with(Vec::new).push(usage);
     }
 
     pub async fn get_usage(&self, citation_id: &str) -> Vec<CitationUsage> {
@@ -142,10 +135,8 @@ impl CitationTracker {
         let mut most_used: Vec<CitationUsageCount> = usage_records
             .iter()
             .map(|(id, usages)| {
-                let source_title = citations
-                    .get(id)
-                    .map(|c| c.source_title.clone())
-                    .unwrap_or_default();
+                let source_title =
+                    citations.get(id).map(|c| c.source_title.clone()).unwrap_or_default();
                 CitationUsageCount {
                     citation_id: id.clone(),
                     source_title,
@@ -192,11 +183,7 @@ impl CitationTracker {
         citations
             .values()
             .filter(|c| {
-                !c.in_report
-                    && usage_records
-                        .get(&c.id)
-                        .map(|u| u.is_empty())
-                        .unwrap_or(true)
+                !c.in_report && usage_records.get(&c.id).map(|u| u.is_empty()).unwrap_or(true)
             })
             .cloned()
             .collect()
@@ -204,11 +191,7 @@ impl CitationTracker {
 
     pub async fn get_report_citations(&self) -> Vec<Citation> {
         let citations = self.citations.read().await;
-        citations
-            .values()
-            .filter(|c| c.in_report)
-            .cloned()
-            .collect()
+        citations.values().filter(|c| c.in_report).cloned().collect()
     }
 
     pub async fn clear(&self) {
@@ -266,12 +249,7 @@ impl CitationQuerier {
                 let sections: Vec<String> =
                     usages.iter().map(|u| u.used_in_section.clone()).collect();
 
-                CitationContext {
-                    citation: c,
-                    usage_count: usages.len(),
-                    last_used,
-                    sections,
-                }
+                CitationContext { citation: c, usage_count: usages.len(), last_used, sections }
             })
             .collect()
     }
@@ -291,12 +269,7 @@ impl CitationQuerier {
                 let sections: Vec<String> =
                     usages.iter().map(|u| u.used_in_section.clone()).collect();
 
-                CitationContext {
-                    citation: c,
-                    usage_count: usages.len(),
-                    last_used,
-                    sections,
-                }
+                CitationContext { citation: c, usage_count: usages.len(), last_used, sections }
             })
             .collect()
     }

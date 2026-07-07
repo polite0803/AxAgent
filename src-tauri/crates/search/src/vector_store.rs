@@ -125,11 +125,7 @@ pub struct HnswConfig {
 
 impl Default for HnswConfig {
     fn default() -> Self {
-        Self {
-            ef_construction: 100,
-            m: 16,
-            ef_search: 50,
-        }
+        Self { ef_construction: 100, m: 16, ef_search: 50 }
     }
 }
 
@@ -155,16 +151,11 @@ impl VectorStore {
 
     fn is_valid_collection_id(collection_id: &str) -> bool {
         !collection_id.is_empty()
-            && collection_id
-                .chars()
-                .all(|c| c.is_alphanumeric() || c == '-' || c == '_')
+            && collection_id.chars().all(|c| c.is_alphanumeric() || c == '-' || c == '_')
     }
 
     fn sanitize_collection_id(collection_id: &str) -> String {
-        collection_id
-            .chars()
-            .map(|c| if c == '-' { '_' } else { c })
-            .collect()
+        collection_id.chars().map(|c| if c == '-' { '_' } else { c }).collect()
     }
 
     fn validated_collection_name(collection_id: &str) -> Result<String> {
@@ -214,15 +205,9 @@ impl VectorStore {
                      COALESCE((SELECT COUNT(*) FROM vec_{sanitized}_meta), 0), {now}, {now})",
                     cid = collection_id.replace('\'', "''"),
                     sanitized = Self::sanitize_collection_id(collection_id),
-                    ef_c_val = ef_c
-                        .map(|v| v.to_string())
-                        .unwrap_or_else(|| "NULL".to_string()),
-                    m_val = m
-                        .map(|v| v.to_string())
-                        .unwrap_or_else(|| "NULL".to_string()),
-                    ef_s_val = ef_s
-                        .map(|v| v.to_string())
-                        .unwrap_or_else(|| "NULL".to_string()),
+                    ef_c_val = ef_c.map(|v| v.to_string()).unwrap_or_else(|| "NULL".to_string()),
+                    m_val = m.map(|v| v.to_string()).unwrap_or_else(|| "NULL".to_string()),
+                    ef_s_val = ef_s.map(|v| v.to_string()).unwrap_or_else(|| "NULL".to_string()),
                 )
             },
         };
@@ -258,16 +243,13 @@ impl VectorStore {
     }
 
     async fn registry_get_dimensions(&self, collection_id: &str) -> Option<usize> {
-        self.registry_get_collection(collection_id)
-            .await
-            .map(|(dim, _)| dim as usize)
+        self.registry_get_collection(collection_id).await.map(|(dim, _)| dim as usize)
     }
 
     async fn registry_delete_collection(&self, collection_id: &str) {
         let cid = collection_id.replace('\'', "''");
-        let _ = self
-            .exec(&format!("DELETE FROM vec_collections WHERE collection_id='{cid}'"))
-            .await;
+        let _ =
+            self.exec(&format!("DELETE FROM vec_collections WHERE collection_id='{cid}'")).await;
     }
 
     /// P2-2: 将 collection 在注册表中标记为 disabled，避免坏掉的 collection 被反复使用
@@ -312,14 +294,9 @@ impl VectorStore {
             .await
             .ok()
             .flatten();
-        Ok(row
-            .and_then(|r| r.try_get::<String>("", "type").ok())
-            .and_then(|t| {
-                t.trim_start_matches("float[")
-                    .trim_end_matches(']')
-                    .parse::<usize>()
-                    .ok()
-            }))
+        Ok(row.and_then(|r| r.try_get::<String>("", "type").ok()).and_then(|t| {
+            t.trim_start_matches("float[").trim_end_matches(']').parse::<usize>().ok()
+        }))
     }
 
     /// Ensure both the metadata and vec0 tables exist for a collection.
@@ -358,16 +335,14 @@ impl VectorStore {
                 )));
             }
             if registry_dim.is_none() {
-                self.registry_upsert_collection(collection_id, dimensions, "flat", None)
-                    .await;
+                self.registry_upsert_collection(collection_id, dimensions, "flat", None).await;
             }
         } else {
             self.exec(&format!(
                 "CREATE VIRTUAL TABLE IF NOT EXISTS {name} USING vec0(embedding float[{dimensions}])"
             ))
             .await?;
-            self.registry_upsert_collection(collection_id, dimensions, "flat", None)
-                .await;
+            self.registry_upsert_collection(collection_id, dimensions, "flat", None).await;
         }
 
         let _ = self.ensure_fts5_index(collection_id).await;
@@ -426,39 +401,28 @@ impl VectorStore {
                 let backup_meta = format!("{meta_table}_bak_{}", ts);
                 let backup_fts = format!("{fts_table}_bak_{}", ts);
                 // 尝试重命名
-                let rename_res = self
-                    .exec(&format!("ALTER TABLE {name} RENAME TO {backup_name}"))
-                    .await;
+                let rename_res =
+                    self.exec(&format!("ALTER TABLE {name} RENAME TO {backup_name}")).await;
                 if rename_res.is_err() {
                     // 旧表可能不存在（已删除），忽略
                 }
-                let _ = self
-                    .exec(&format!("ALTER TABLE {meta_table} RENAME TO {backup_meta}"))
-                    .await;
-                let _ = self
-                    .exec(&format!("ALTER TABLE {fts_table} RENAME TO {backup_fts}"))
-                    .await;
+                let _ =
+                    self.exec(&format!("ALTER TABLE {meta_table} RENAME TO {backup_meta}")).await;
+                let _ = self.exec(&format!("ALTER TABLE {fts_table} RENAME TO {backup_fts}")).await;
                 // 重建新表
                 match self.ensure_collection(collection_id, dimensions).await {
                     Ok(()) => {
                         // 重建成功后清理旧备份
-                        let _ = self
-                            .exec(&format!("DROP TABLE IF EXISTS {backup_name}"))
-                            .await;
-                        let _ = self
-                            .exec(&format!("DROP TABLE IF EXISTS {backup_meta}"))
-                            .await;
-                        let _ = self
-                            .exec(&format!("DROP TABLE IF EXISTS {backup_fts}"))
-                            .await;
+                        let _ = self.exec(&format!("DROP TABLE IF EXISTS {backup_name}")).await;
+                        let _ = self.exec(&format!("DROP TABLE IF EXISTS {backup_meta}")).await;
+                        let _ = self.exec(&format!("DROP TABLE IF EXISTS {backup_fts}")).await;
                         self.registry_delete_collection(collection_id).await;
                         Ok(())
                     },
                     Err(e) => {
                         // 重建失败：回滚重命名，保留原表
-                        let _ = self
-                            .exec(&format!("ALTER TABLE {backup_name} RENAME TO {name}"))
-                            .await;
+                        let _ =
+                            self.exec(&format!("ALTER TABLE {backup_name} RENAME TO {name}")).await;
                         let _ = self
                             .exec(&format!("ALTER TABLE {backup_meta} RENAME TO {meta_table}"))
                             .await;
@@ -587,8 +551,7 @@ impl VectorStore {
             }
         }
 
-        self.prepare_collection_for_indexing(collection_id, dimensions)
-            .await?;
+        self.prepare_collection_for_indexing(collection_id, dimensions).await?;
 
         let name = Self::validated_collection_name(collection_id)?;
         let doc_id = &records[0].document_id;
@@ -846,10 +809,7 @@ impl VectorStore {
                 document_id: row.try_get("", "document_id").map_err(Self::wrap)?,
                 chunk_index: row.try_get("", "chunk_index").map_err(Self::wrap)?,
                 content: row.try_get("", "content").map_err(Self::wrap)?,
-                score: row
-                    .try_get::<f64>("", "distance")
-                    .map(|v| v as f32)
-                    .map_err(Self::wrap)?,
+                score: row.try_get::<f64>("", "distance").map(|v| v as f32).map_err(Self::wrap)?,
                 has_embedding: true,
             });
         }
@@ -889,12 +849,8 @@ impl VectorStore {
         let name = Self::validated_collection_name(knowledge_base_id)?;
         let fts_table = format!("{name}_meta_fts");
         let _ = self.exec(&format!("DROP TABLE IF EXISTS {name}")).await;
-        let _ = self
-            .exec(&format!("DROP TABLE IF EXISTS {name}_meta"))
-            .await;
-        let _ = self
-            .exec(&format!("DROP TABLE IF EXISTS {fts_table}"))
-            .await;
+        let _ = self.exec(&format!("DROP TABLE IF EXISTS {name}_meta")).await;
+        let _ = self.exec(&format!("DROP TABLE IF EXISTS {fts_table}")).await;
         self.registry_delete_collection(knowledge_base_id).await;
         Ok(())
     }
@@ -912,9 +868,7 @@ impl VectorStore {
         let tmp_name = format!("{name}_old_{}", ts);
 
         // 1) 重命名旧表到临时名（vec0 表已存在时）
-        let rename_res = self
-            .exec(&format!("ALTER TABLE {name} RENAME TO {tmp_name}"))
-            .await;
+        let rename_res = self.exec(&format!("ALTER TABLE {name} RENAME TO {tmp_name}")).await;
         let renamed = rename_res.is_ok();
 
         // 2) 用记录的维度重建 vec0
@@ -927,9 +881,7 @@ impl VectorStore {
             if let Err(e) = create_res {
                 // CREATE 失败：回滚重命名
                 if renamed {
-                    let _ = self
-                        .exec(&format!("ALTER TABLE {tmp_name} RENAME TO {name}"))
-                        .await;
+                    let _ = self.exec(&format!("ALTER TABLE {tmp_name} RENAME TO {name}")).await;
                 } else {
                     // 没重命名过（说明原表不存在）→ 标记 collection 为 disabled
                     self.registry_mark_disabled(collection_id).await;
@@ -1021,8 +973,7 @@ impl VectorStore {
         entries: Vec<(i64, Vec<f32>)>, // (rowid, embedding)
     ) -> Result<()> {
         validate_collection_name(collection_id)?;
-        self.upsert_document_embeddings(collection_id, entries)
-            .await
+        self.upsert_document_embeddings(collection_id, entries).await
     }
 
     /// Insert or replace embeddings for specific rowids.
@@ -1354,8 +1305,7 @@ impl VectorStore {
 
     /// Delete rows from both vec0 and metadata tables by `document_id`.
     async fn delete_rows_by_document(&self, table_name: &str, document_id: &str) -> Result<()> {
-        self.delete_rows_by_document_inner(table_name, document_id)
-            .await
+        self.delete_rows_by_document_inner(table_name, document_id).await
     }
 
     /// Internal implementation of delete_rows_by_document (usable inside a transaction).

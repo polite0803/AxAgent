@@ -22,10 +22,8 @@ fn key_from_entity(m: gateway_keys::Model) -> GatewayKey {
 }
 
 pub async fn list_gateway_keys(db: &DatabaseConnection) -> Result<Vec<GatewayKey>> {
-    let rows = gateway_keys::Entity::find()
-        .order_by_desc(gateway_keys::Column::CreatedAt)
-        .all(db)
-        .await?;
+    let rows =
+        gateway_keys::Entity::find().order_by_desc(gateway_keys::Column::CreatedAt).all(db).await?;
 
     Ok(rows.into_iter().map(key_from_entity).collect())
 }
@@ -47,9 +45,7 @@ pub async fn create_gateway_key(
     };
     let key_prefix = crypto.key_prefix(&plain_key);
 
-    let encrypted_key = master_key
-        .map(|mk| crypto.encrypt_key_with(&plain_key, mk))
-        .transpose()?;
+    let encrypted_key = master_key.map(|mk| crypto.encrypt_key_with(&plain_key, mk)).transpose()?;
 
     gateway_keys::ActiveModel {
         id: Set(id.clone()),
@@ -69,10 +65,7 @@ pub async fn create_gateway_key(
         .await?
         .ok_or_else(|| AxAgentError::NotFound(format!("GatewayKey {}", id)))?;
 
-    Ok(CreateGatewayKeyResult {
-        gateway_key: key_from_entity(row),
-        plain_key,
-    })
+    Ok(CreateGatewayKeyResult { gateway_key: key_from_entity(row), plain_key })
 }
 
 pub async fn delete_gateway_key(db: &DatabaseConnection, id: &str) -> Result<()> {

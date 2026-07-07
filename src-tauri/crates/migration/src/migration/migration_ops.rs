@@ -32,10 +32,7 @@ pub fn migrate_openclaw(overwrite: bool) -> MigrationReport {
     let mut failed = Vec::new();
 
     if oc.join("SOUL.md").exists() {
-        let dest = home
-            .join("personalities")
-            .join("openclaw-import")
-            .join("SOUL.md");
+        let dest = home.join("personalities").join("openclaw-import").join("SOUL.md");
         match migrate_file(&oc.join("SOUL.md"), &dest, overwrite) {
             Ok(e) => migrated.push(e),
             Err(e) => match classify_entry(e) {
@@ -97,13 +94,7 @@ pub fn migrate_openclaw(overwrite: bool) -> MigrationReport {
         }
     }
 
-    MigrationReport {
-        platform: "OpenClaw".to_string(),
-        timestamp: ts,
-        migrated,
-        skipped,
-        failed,
-    }
+    MigrationReport { platform: "OpenClaw".to_string(), timestamp: ts, migrated, skipped, failed }
 }
 
 pub fn migrate_hermes(overwrite: bool) -> MigrationReport {
@@ -212,11 +203,5 @@ pub fn migrate_hermes(overwrite: bool) -> MigrationReport {
         }
     }
 
-    MigrationReport {
-        platform: "Hermes".to_string(),
-        timestamp: ts,
-        migrated,
-        skipped,
-        failed,
-    }
+    MigrationReport { platform: "Hermes".to_string(), timestamp: ts, migrated, skipped, failed }
 }

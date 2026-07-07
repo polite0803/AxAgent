@@ -112,11 +112,7 @@ impl DeepResearcher {
         search_provider: Arc<WebSearchProvider>,
         ingest_pipeline: Arc<IngestPipeline>,
     ) -> Self {
-        Self {
-            config,
-            search_provider,
-            ingest_pipeline,
-        }
+        Self { config, search_provider, ingest_pipeline }
     }
 
     pub async fn research(
@@ -141,8 +137,7 @@ impl DeepResearcher {
                 if let (Some(adapter), Some(ctx), Some(model)) =
                     (&llm_adapter, &llm_ctx, &llm_model)
                 {
-                    self.generate_queries(topic, &context, adapter.as_ref(), ctx, model)
-                        .await?
+                    self.generate_queries(topic, &context, adapter.as_ref(), ctx, model).await?
                 } else {
                     self.default_queries(topic)
                 }
@@ -299,10 +294,7 @@ Output JSON array of {{"query": "...", "rationale": "..."}}:
 
         Ok(parsed
             .into_iter()
-            .map(|q| ResearchQuery {
-                query: q.query,
-                rationale: q.rationale,
-            })
+            .map(|q| ResearchQuery { query: q.query, rationale: q.rationale })
             .collect())
     }
 
@@ -373,15 +365,9 @@ Output JSON array of {{"query": "...", "rationale": "..."}}:
                                 snippet: r.snippet,
                             })
                             .collect();
-                        ResearchFinding {
-                            query,
-                            results: search_results,
-                        }
+                        ResearchFinding { query, results: search_results }
                     },
-                    Err(_) => ResearchFinding {
-                        query,
-                        results: Vec::new(),
-                    },
+                    Err(_) => ResearchFinding { query, results: Vec::new() },
                 }
             });
 
@@ -409,11 +395,8 @@ Output JSON array of {{"query": "...", "rationale": "..."}}:
         _previous_gaps: &[String],
     ) -> (f32, Vec<String>) {
         let total_results: usize = all_findings.iter().map(|f| f.results.len()).sum();
-        let unique_urls: HashSet<&str> = all_findings
-            .iter()
-            .flat_map(|f| f.results.iter())
-            .map(|r| r.url.as_str())
-            .collect();
+        let unique_urls: HashSet<&str> =
+            all_findings.iter().flat_map(|f| f.results.iter()).map(|r| r.url.as_str()).collect();
 
         let unique_query_count = all_findings.len();
         let url_diversity = unique_urls.len() as f32;
@@ -463,13 +446,7 @@ Output JSON array of {{"query": "...", "rationale": "..."}}:
             ("current state", vec!["recent", "current", "latest", "2024", "2025", "today"]),
             (
                 "applications",
-                vec![
-                    "application",
-                    "use case",
-                    "example",
-                    "practice",
-                    "implementation",
-                ],
+                vec!["application", "use case", "example", "practice", "implementation"],
             ),
             ("challenges", vec!["challenge", "problem", "limitation", "issue", "controversy"]),
         ];
@@ -634,10 +611,7 @@ Output JSON array of {{"query": "...", "rationale": "..."}}:
         for finding in findings {
             for result in &finding.results {
                 let key = result.title.to_lowercase();
-                snippet_groups
-                    .entry(key)
-                    .or_default()
-                    .push(result.url.clone());
+                snippet_groups.entry(key).or_default().push(result.url.clone());
             }
         }
 
@@ -738,9 +712,7 @@ pub struct DeepResearcherBuilder {
 
 impl DeepResearcherBuilder {
     pub fn new() -> Self {
-        Self {
-            config: DeepResearchConfig::default(),
-        }
+        Self { config: DeepResearchConfig::default() }
     }
 
     pub fn max_queries(mut self, max: usize) -> Self {
@@ -1006,14 +978,9 @@ mod tests {
         let pipeline = Arc::new(IngestPipeline::new(db));
         let searcher = Arc::new(WebSearchProvider::new());
         let researcher = DeepResearcher::new(DeepResearchConfig::default(), searcher, pipeline);
-        let gaps = vec![
-            "definition of Rust".to_string(),
-            "history of Rust".to_string(),
-        ];
-        let queries = researcher
-            .generate_gap_queries("Rust", &gaps, None, None, None)
-            .await
-            .unwrap();
+        let gaps = vec!["definition of Rust".to_string(), "history of Rust".to_string()];
+        let queries =
+            researcher.generate_gap_queries("Rust", &gaps, None, None, None).await.unwrap();
         assert!(!queries.is_empty());
         assert!(queries.len() <= 5);
     }
@@ -1028,10 +995,7 @@ mod tests {
         let pipeline = Arc::new(IngestPipeline::new(db));
         let searcher = Arc::new(WebSearchProvider::new());
         let researcher = DeepResearcher::new(DeepResearchConfig::default(), searcher, pipeline);
-        let queries = researcher
-            .generate_gap_queries("Rust", &[], None, None, None)
-            .await
-            .unwrap();
+        let queries = researcher.generate_gap_queries("Rust", &[], None, None, None).await.unwrap();
         assert!(!queries.is_empty());
     }
 
@@ -1283,14 +1247,9 @@ mod tests {
     async fn test_url_deduplication_in_execute_searches() {
         let mut seen_urls: HashSet<String> = HashSet::new();
         seen_urls.insert("https://duplicate.com".to_string());
-        let new_urls = vec![
-            "https://duplicate.com".to_string(),
-            "https://unique.com".to_string(),
-        ];
-        let deduped: Vec<String> = new_urls
-            .into_iter()
-            .filter(|u| !seen_urls.contains(u))
-            .collect();
+        let new_urls = vec!["https://duplicate.com".to_string(), "https://unique.com".to_string()];
+        let deduped: Vec<String> =
+            new_urls.into_iter().filter(|u| !seen_urls.contains(u)).collect();
         for u in &deduped {
             seen_urls.insert(u.clone());
         }

@@ -410,10 +410,8 @@ impl MemoryService {
 
         let mut mem = self.working_memory.write().await;
 
-        let found = mem
-            .entries
-            .values()
-            .find(|e| e.memory_type == target && e.content.contains(old_text));
+        let found =
+            mem.entries.values().find(|e| e.memory_type == target && e.content.contains(old_text));
 
         if let Some(found) = found {
             let id = found.id.clone();
@@ -471,10 +469,8 @@ impl MemoryService {
 
         let mut mem = self.working_memory.write().await;
 
-        let found = mem
-            .entries
-            .values()
-            .find(|e| e.memory_type == target && e.content.contains(text));
+        let found =
+            mem.entries.values().find(|e| e.memory_type == target && e.content.contains(text));
 
         if let Some(found) = found {
             let id = found.id.clone();
@@ -631,12 +627,8 @@ impl MemoryService {
         let mut evicted = 0;
         let mut to_promote = Vec::new();
 
-        let expired_ids: Vec<String> = mem
-            .entries
-            .iter()
-            .filter(|(_, e)| e.is_expired())
-            .map(|(id, _)| id.clone())
-            .collect();
+        let expired_ids: Vec<String> =
+            mem.entries.iter().filter(|(_, e)| e.is_expired()).map(|(id, _)| id.clone()).collect();
 
         for id in &expired_ids {
             if let Err(e) = self.storage.delete_memory(id).await {
@@ -693,10 +685,8 @@ impl MemoryService {
         let mem = self.working_memory.read().await;
 
         let content_lower = content.to_lowercase();
-        let content_words: Vec<&str> = content_lower
-            .split_whitespace()
-            .filter(|w| w.len() > 2)
-            .collect();
+        let content_words: Vec<&str> =
+            content_lower.split_whitespace().filter(|w| w.len() > 2).collect();
 
         if content_words.is_empty() {
             return None;
@@ -704,19 +694,14 @@ impl MemoryService {
 
         for entry in mem.entries.values() {
             let entry_lower = entry.content.to_lowercase();
-            let entry_words: Vec<&str> = entry_lower
-                .split_whitespace()
-                .filter(|w| w.len() > 2)
-                .collect();
+            let entry_words: Vec<&str> =
+                entry_lower.split_whitespace().filter(|w| w.len() > 2).collect();
 
             if entry_words.is_empty() {
                 continue;
             }
 
-            let intersection = content_words
-                .iter()
-                .filter(|w| entry_words.contains(w))
-                .count();
+            let intersection = content_words.iter().filter(|w| entry_words.contains(w)).count();
             let union = content_words.len() + entry_words.len() - intersection;
             let similarity = if union > 0 {
                 intersection as f64 / union as f64
@@ -744,10 +729,8 @@ impl MemoryService {
         let mem = self.working_memory.read().await;
 
         let content_chars: Vec<char> = content.to_lowercase().chars().collect();
-        let content_bigrams: std::collections::HashSet<String> = content_chars
-            .windows(2)
-            .map(|w| w.iter().collect::<String>())
-            .collect();
+        let content_bigrams: std::collections::HashSet<String> =
+            content_chars.windows(2).map(|w| w.iter().collect::<String>()).collect();
 
         let mut best_match: Option<(String, f64, String)> = None;
 
@@ -757,10 +740,8 @@ impl MemoryService {
                     continue;
                 }
                 let entry_chars: Vec<char> = entry.content.to_lowercase().chars().collect();
-                let entry_bigrams: std::collections::HashSet<String> = entry_chars
-                    .windows(2)
-                    .map(|w| w.iter().collect::<String>())
-                    .collect();
+                let entry_bigrams: std::collections::HashSet<String> =
+                    entry_chars.windows(2).map(|w| w.iter().collect::<String>()).collect();
 
                 if entry_bigrams.is_empty() {
                     continue;
@@ -794,9 +775,7 @@ impl MemoryService {
 
         if let Some((_existing_id, _similarity, existing_content)) = best_match {
             let merged = self.merge_content(&existing_content, content);
-            return self
-                .replace_memory(target, &existing_content, &merged)
-                .await;
+            return self.replace_memory(target, &existing_content, &merged).await;
         }
 
         self.add_memory(target, content).await
@@ -827,30 +806,15 @@ impl MemoryService {
 
         let mut tier_counts: HashMap<String, usize> = HashMap::new();
         for entry in mem.entries.values() {
-            *tier_counts
-                .entry(entry.tier.as_str().to_string())
-                .or_insert(0) += 1;
+            *tier_counts.entry(entry.tier.as_str().to_string()).or_insert(0) += 1;
         }
 
-        let memory_count = mem
-            .entries
-            .values()
-            .filter(|e| e.memory_type == "memory")
-            .count();
-        let user_count = mem
-            .entries
-            .values()
-            .filter(|e| e.memory_type == "user")
-            .count();
+        let memory_count = mem.entries.values().filter(|e| e.memory_type == "memory").count();
+        let user_count = mem.entries.values().filter(|e| e.memory_type == "user").count();
 
         let total_tokens: usize = mem.entries.values().map(|e| e.content.len() / 4).sum();
 
-        MemoryUsage {
-            memory_count,
-            user_count,
-            total_tokens,
-            tier_counts,
-        }
+        MemoryUsage { memory_count, user_count, total_tokens, tier_counts }
     }
 
     pub async fn get_working_memory(&self) -> WorkingMemory {
@@ -979,10 +943,8 @@ impl MemoryService {
         let mem = self.working_memory.read().await;
 
         let query_lower = query.to_lowercase();
-        let query_words: Vec<&str> = query_lower
-            .split_whitespace()
-            .filter(|w| w.len() > 1)
-            .collect();
+        let query_words: Vec<&str> =
+            query_lower.split_whitespace().filter(|w| w.len() > 1).collect();
 
         let now = chrono::Utc::now().timestamp();
         let recency_boost = |last_accessed: i64| -> f64 {
@@ -1004,11 +966,8 @@ impl MemoryService {
             .filter(|e| !e.is_expired())
             .filter_map(|entry| {
                 let content_lower = entry.content.to_lowercase();
-                let matched_words: Vec<&str> = query_words
-                    .iter()
-                    .filter(|w| content_lower.contains(*w))
-                    .copied()
-                    .collect();
+                let matched_words: Vec<&str> =
+                    query_words.iter().filter(|w| content_lower.contains(*w)).copied().collect();
 
                 if matched_words.is_empty() {
                     return None;
@@ -1033,10 +992,7 @@ impl MemoryService {
                     ),
                 };
 
-                Some(ExplainedSearchResult {
-                    entry: entry.clone(),
-                    explanation,
-                })
+                Some(ExplainedSearchResult { entry: entry.clone(), explanation })
             })
             .collect();
 
@@ -1169,11 +1125,7 @@ impl MemoryService {
         limit: usize,
     ) -> Vec<GraphEnhancedResult> {
         let base_results = self.search_memories(query, limit).await;
-        let entities = self
-            .storage
-            .search_entities(query, 10)
-            .await
-            .unwrap_or_default();
+        let entities = self.storage.search_entities(query, 10).await.unwrap_or_default();
 
         let entity_ids: Vec<String> = entities.iter().map(|e| e.id.clone()).collect();
         let mut related_entity_ids = std::collections::HashSet::new();
@@ -1225,10 +1177,7 @@ impl MemoryService {
         let entities = match self.storage.get_all_entities().await {
             Ok(e) => e,
             Err(_) => {
-                return DisambiguationResult {
-                    merged: 0,
-                    total: 0,
-                };
+                return DisambiguationResult { merged: 0, total: 0 };
             },
         };
 
@@ -1249,14 +1198,8 @@ impl MemoryService {
                 let name_b = entities[j].name.to_lowercase().trim().to_string();
 
                 let is_same = name_a == name_b
-                    || entities[i]
-                        .aliases
-                        .iter()
-                        .any(|a| a.to_lowercase() == name_b)
-                    || entities[j]
-                        .aliases
-                        .iter()
-                        .any(|a| a.to_lowercase() == name_a);
+                    || entities[i].aliases.iter().any(|a| a.to_lowercase() == name_b)
+                    || entities[j].aliases.iter().any(|a| a.to_lowercase() == name_a);
 
                 if is_same && entities[i].entity_type == entities[j].entity_type {
                     let keep_id = if entities[i].mention_count >= entities[j].mention_count {
@@ -1270,10 +1213,7 @@ impl MemoryService {
                         &entities[i]
                     };
 
-                    if let Ok(rels) = self
-                        .storage
-                        .get_relationships_by_entity(&remove_id.id)
-                        .await
+                    if let Ok(rels) = self.storage.get_relationships_by_entity(&remove_id.id).await
                     {
                         for rel in &rels {
                             let new_source = if rel.source_id == remove_id.id {
@@ -1361,10 +1301,8 @@ impl MemoryService {
             }
 
             if cluster_ids.len() > 1 {
-                let cluster_entries: Vec<MemoryEntry> = cluster_ids
-                    .iter()
-                    .filter_map(|id| mem.entries.get(id).cloned())
-                    .collect();
+                let cluster_entries: Vec<MemoryEntry> =
+                    cluster_ids.iter().filter_map(|id| mem.entries.get(id).cloned()).collect();
 
                 let combined_content: Vec<String> =
                     cluster_entries.iter().map(|e| e.content.clone()).collect();
@@ -1372,11 +1310,8 @@ impl MemoryService {
                 let avg_importance = cluster_entries.iter().map(|e| e.importance).sum::<f64>()
                     / cluster_entries.len() as f64;
 
-                let best_tier = cluster_entries
-                    .iter()
-                    .map(|e| e.tier.prompt_priority())
-                    .max()
-                    .unwrap_or(1);
+                let best_tier =
+                    cluster_entries.iter().map(|e| e.tier.prompt_priority()).max().unwrap_or(1);
 
                 clusters.push(MemoryCluster {
                     ids: cluster_ids,

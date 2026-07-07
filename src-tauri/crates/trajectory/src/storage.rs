@@ -41,29 +41,20 @@ pub struct TrajectoryCleanupConfig {
 
 impl Default for TrajectoryCleanupConfig {
     fn default() -> Self {
-        Self {
-            max_age_days: Some(90),
-            max_trajectories: Some(10000),
-        }
+        Self { max_age_days: Some(90), max_trajectories: Some(10000) }
     }
 }
 
 impl TrajectoryStorage {
     pub fn new(db: Arc<DatabaseConnection>) -> Self {
-        Self {
-            db,
-            fts_searcher: None,
-        }
+        Self { db, fts_searcher: None }
     }
 
     pub fn with_fts(
         db: Arc<DatabaseConnection>,
         fts_conn: Arc<Mutex<rusqlite::Connection>>,
     ) -> Self {
-        Self {
-            db,
-            fts_searcher: Some(FTS5Search::new(fts_conn, FTS5Config::default())),
-        }
+        Self { db, fts_searcher: Some(FTS5Search::new(fts_conn, FTS5Config::default())) }
     }
 
     /// 从数据库文件路径创建带 FTS5 全文搜索的存储实例。
@@ -81,10 +72,7 @@ impl TrajectoryStorage {
         let conn = Arc::new(Mutex::new(conn));
         let fts = FTS5Search::new(conn, FTS5Config::default());
         fts.create_fts_tables().await?;
-        Ok(Self {
-            db,
-            fts_searcher: Some(fts),
-        })
+        Ok(Self { db, fts_searcher: Some(fts) })
     }
 
     // ── Trajectories ──
@@ -191,10 +179,7 @@ impl TrajectoryStorage {
     }
 
     pub async fn get_trajectory(&self, id: &str) -> Result<Option<Trajectory>> {
-        match trajectories::Entity::find_by_id(id)
-            .one(self.db.as_ref())
-            .await?
-        {
+        match trajectories::Entity::find_by_id(id).one(self.db.as_ref()).await? {
             Some(m) => Ok(Some(model_to_trajectory(
                 &m,
                 self.get_trajectory_steps(&m.id).await?,
@@ -295,9 +280,7 @@ impl TrajectoryStorage {
             total_deleted += self.cleanup_old_trajectories_by_age(max_age_days).await?;
         }
         if let Some(max_trajectories) = config.max_trajectories {
-            total_deleted += self
-                .cleanup_old_trajectories_by_count(max_trajectories)
-                .await?;
+            total_deleted += self.cleanup_old_trajectories_by_count(max_trajectories).await?;
         }
         Ok(total_deleted)
     }
@@ -520,9 +503,7 @@ impl TrajectoryStorage {
             .filter(trajectory_skill_executions::Column::SkillId.eq(id))
             .exec(&txn)
             .await?;
-        trajectory_skills::Entity::delete_by_id(id)
-            .exec(&txn)
-            .await?;
+        trajectory_skills::Entity::delete_by_id(id).exec(&txn).await?;
         txn.commit().await?;
         let _ = self.delete_skill_fts(id).await;
         info!("Deleted skill {}", id);
@@ -645,9 +626,7 @@ impl TrajectoryStorage {
             )
             .exec(&txn)
             .await?;
-        trajectory_entities::Entity::delete_by_id(id)
-            .exec(&txn)
-            .await?;
+        trajectory_entities::Entity::delete_by_id(id).exec(&txn).await?;
         txn.commit().await?;
         Ok(())
     }
@@ -701,9 +680,7 @@ impl TrajectoryStorage {
     }
 
     pub async fn delete_relationship(&self, id: &str) -> Result<()> {
-        trajectory_relationships::Entity::delete_by_id(id)
-            .exec(self.db.as_ref())
-            .await?;
+        trajectory_relationships::Entity::delete_by_id(id).exec(self.db.as_ref()).await?;
         Ok(())
     }
 
@@ -796,9 +773,7 @@ impl TrajectoryStorage {
             .exec(self.db.as_ref())
             .await?;
         // 最后删除 session 自身
-        trajectory_sessions::Entity::delete_by_id(id)
-            .exec(self.db.as_ref())
-            .await?;
+        trajectory_sessions::Entity::delete_by_id(id).exec(self.db.as_ref()).await?;
         Ok(())
     }
 
@@ -864,11 +839,7 @@ impl TrajectoryStorage {
                     .and_then(|s| s.parse::<i64>().ok())
                     .unwrap_or(0),
                 decay_rate: m.decay_rate,
-                created_at: m
-                    .created_at
-                    .as_ref()
-                    .and_then(|s| s.parse::<i64>().ok())
-                    .unwrap_or(0),
+                created_at: m.created_at.as_ref().and_then(|s| s.parse::<i64>().ok()).unwrap_or(0),
                 updated_at: m.updated_at.parse::<i64>().unwrap_or(0),
                 expires_at: m.expires_at.as_ref().and_then(|s| s.parse::<i64>().ok()),
                 nature: crate::memory::MemoryNature::from_str(&m.memory_nature),
@@ -884,14 +855,9 @@ impl TrajectoryStorage {
     }
 
     pub async fn save_memory(&self, mem: &crate::memory::MemoryEntry) -> Result<()> {
-        let _provenance_json = mem
-            .provenance
-            .as_ref()
-            .map(|p| serde_json::to_string(p).unwrap_or_default());
-        let source_conv_id = mem
-            .provenance
-            .as_ref()
-            .and_then(|p| p.conversation_id.clone());
+        let _provenance_json =
+            mem.provenance.as_ref().map(|p| serde_json::to_string(p).unwrap_or_default());
+        let source_conv_id = mem.provenance.as_ref().and_then(|p| p.conversation_id.clone());
         let source_msg_id = mem.provenance.as_ref().and_then(|p| p.message_id.clone());
         trajectory_memories::Entity::insert(trajectory_memories::ActiveModel {
             id: Set(mem.id.clone()),
@@ -937,9 +903,7 @@ impl TrajectoryStorage {
 
     /// P1-3: 删除 memory 时也清理 FTS 索引
     pub async fn delete_memory(&self, id: &str) -> Result<()> {
-        trajectory_memories::Entity::delete_by_id(id)
-            .exec(self.db.as_ref())
-            .await?;
+        trajectory_memories::Entity::delete_by_id(id).exec(self.db.as_ref()).await?;
         let _ = self.delete_memory_fts(id).await;
         Ok(())
     }
@@ -994,9 +958,8 @@ impl TrajectoryStorage {
     }
 
     pub async fn update_pattern_stats(&self, id: &str, sd: i32, fd: i32) -> Result<()> {
-        if let Some(m) = trajectory_learned_patterns::Entity::find_by_id(id)
-            .one(self.db.as_ref())
-            .await?
+        if let Some(m) =
+            trajectory_learned_patterns::Entity::find_by_id(id).one(self.db.as_ref()).await?
         {
             let mut am: trajectory_learned_patterns::ActiveModel = m.into_active_model();
             am.success = Set(am.success.take().unwrap_or(0) + sd);
@@ -1283,9 +1246,7 @@ fn model_to_trajectory(
             .unwrap_or_else(|_| Utc::now()),
         replay_count: m.replay_count as u32,
         last_replay_at: m.last_replay_at.as_ref().and_then(|s| {
-            chrono::DateTime::parse_from_rfc3339(s)
-                .map(|dt| dt.with_timezone(&Utc))
-                .ok()
+            chrono::DateTime::parse_from_rfc3339(s).map(|dt| dt.with_timezone(&Utc)).ok()
         }),
     }
 }
@@ -1353,14 +1314,10 @@ fn model_to_entity(e: &trajectory_entities::Model) -> Entity {
         mention_count: e.mention_count as u32,
         confidence: e.confidence,
         created_at: e.created_at.as_ref().and_then(|s| {
-            chrono::DateTime::parse_from_rfc3339(s)
-                .map(|dt| dt.with_timezone(&Utc))
-                .ok()
+            chrono::DateTime::parse_from_rfc3339(s).map(|dt| dt.with_timezone(&Utc)).ok()
         }),
         updated_at: e.updated_at.as_ref().and_then(|s| {
-            chrono::DateTime::parse_from_rfc3339(s)
-                .map(|dt| dt.with_timezone(&Utc))
-                .ok()
+            chrono::DateTime::parse_from_rfc3339(s).map(|dt| dt.with_timezone(&Utc)).ok()
         }),
     }
 }
@@ -1446,12 +1403,7 @@ impl TrajectoryQueue {
                 }
             }
         });
-        Self {
-            storage,
-            sender: tx,
-            handle,
-            shutdown_tx: Some(shutdown_tx),
-        }
+        Self { storage, sender: tx, handle, shutdown_tx: Some(shutdown_tx) }
     }
 
     /// P1-6: try_enqueue 失败时落盘（直接调用 storage.save_trajectory），
@@ -1531,13 +1483,7 @@ impl TrajectoryCleanupTask {
         config: TrajectoryCleanupConfig,
         interval: std::time::Duration,
     ) -> Self {
-        Self {
-            storage,
-            config,
-            interval,
-            handle: None,
-            shutdown_tx: None,
-        }
+        Self { storage, config, interval, handle: None, shutdown_tx: None }
     }
 
     pub fn start(&mut self) {

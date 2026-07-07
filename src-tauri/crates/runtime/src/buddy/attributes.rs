@@ -48,13 +48,7 @@ impl Attribute {
 
     /// 返回所有属性类型的数组
     pub fn all() -> &'static [Attribute] {
-        &[
-            Self::Debugging,
-            Self::Patience,
-            Self::Chaos,
-            Self::Wisdom,
-            Self::Snark,
-        ]
+        &[Self::Debugging, Self::Patience, Self::Chaos, Self::Wisdom, Self::Snark]
     }
 }
 

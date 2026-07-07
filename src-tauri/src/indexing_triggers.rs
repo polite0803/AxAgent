@@ -183,11 +183,7 @@ fn scan_code_files_recursive(
         if path.is_dir() {
             scan_code_files_recursive(&path, extensions, depth + 1, files)?;
         } else if path.is_file() {
-            let ext = path
-                .extension()
-                .and_then(|e| e.to_str())
-                .unwrap_or("")
-                .to_string();
+            let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("").to_string();
 
             if extensions.contains(&ext) {
                 if let Ok(content) = std::fs::read_to_string(&path) {

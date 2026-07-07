@@ -36,10 +36,7 @@ pub struct PauseState {
 
 impl PauseState {
     pub fn new() -> Self {
-        Self {
-            is_paused: Mutex::new(false),
-            condvar: Condvar::new(),
-        }
+        Self { is_paused: Mutex::new(false), condvar: Condvar::new() }
     }
 
     pub fn pause(&self) {
@@ -103,11 +100,7 @@ pub struct ApiRequest {
 pub enum AssistantEvent {
     TextDelta(String),
     ThinkingDelta(String),
-    ToolUse {
-        id: String,
-        name: String,
-        input: String,
-    },
+    ToolUse { id: String, name: String, input: String },
     Usage(TokenUsage),
     PromptCache(PromptCacheEvent),
     MessageStop,
@@ -175,9 +168,7 @@ pub struct RuntimeError {
 impl RuntimeError {
     #[must_use]
     pub fn new(message: impl Into<String>) -> Self {
-        Self {
-            message: message.into(),
-        }
+        Self { message: message.into() }
     }
 }
 
@@ -451,10 +442,7 @@ where
         }
 
         let probe_input = r#"{"pattern": "*.health-check-probe-"}"#;
-        let mut executor = self
-            .tool_executor
-            .lock()
-            .map_err(|e| format!("Lock error: {}", e))?;
+        let mut executor = self.tool_executor.lock().map_err(|e| format!("Lock error: {}", e))?;
         match executor.execute("glob_search", probe_input) {
             Ok(_) => Ok(()),
             Err(e) => Err(format!("Tool executor probe failed: {e}")),
@@ -617,10 +605,7 @@ where
             }
             system_prompt.extend(extra_blocks);
 
-            let request = ApiRequest {
-                system_prompt,
-                messages: self.session.messages.clone(),
-            };
+            let request = ApiRequest { system_prompt, messages: self.session.messages.clone() };
             let events = match self.api_client.stream(request) {
                 Ok(events) => events,
                 Err(error) => {
@@ -1083,10 +1068,7 @@ where
         let config = if false {
             crate::compact::emergency_compaction_config()
         } else {
-            CompactionConfig {
-                max_estimated_tokens: 0,
-                ..CompactionConfig::default()
-            }
+            CompactionConfig { max_estimated_tokens: 0, ..CompactionConfig::default() }
         };
 
         let result = compact_session(&self.session, config, NP);
@@ -1096,9 +1078,7 @@ where
         }
 
         self.session = result.compacted_session;
-        Some(AutoCompactionEvent {
-            removed_message_count: result.removed_message_count,
-        })
+        Some(AutoCompactionEvent { removed_message_count: result.removed_message_count })
     }
 
     fn record_turn_started(&self, user_input: &str) {
@@ -1177,10 +1157,7 @@ where
             "subprocess",
             "spawn",
         ];
-        if EXECUTE_PATTERNS
-            .iter()
-            .any(|p| Self::match_tool_pattern(&name_lower, p))
-        {
+        if EXECUTE_PATTERNS.iter().any(|p| Self::match_tool_pattern(&name_lower, p)) {
             return std::time::Duration::from_secs(300);
         }
 
@@ -1189,10 +1166,7 @@ where
             "write", "edit", "create", "delete", "remove", "move", "rename", "patch", "mkdir",
             "save", "put", "post", "upload", "install",
         ];
-        if WRITE_PATTERNS
-            .iter()
-            .any(|p| Self::match_tool_pattern(&name_lower, p))
-        {
+        if WRITE_PATTERNS.iter().any(|p| Self::match_tool_pattern(&name_lower, p)) {
             return std::time::Duration::from_secs(120);
         }
 
@@ -1201,10 +1175,7 @@ where
             "search", "query", "find", "rag", "vector", "web", "fetch", "http", "request", "api",
             "crawl",
         ];
-        if SEARCH_PATTERNS
-            .iter()
-            .any(|p| Self::match_tool_pattern(&name_lower, p))
-        {
+        if SEARCH_PATTERNS.iter().any(|p| Self::match_tool_pattern(&name_lower, p)) {
             return std::time::Duration::from_secs(60);
         }
 
@@ -1213,10 +1184,7 @@ where
             "read", "list", "get", "grep", "glob", "head", "cat", "stat", "ls", "dir", "type",
             "peek", "view",
         ];
-        if READ_PATTERNS
-            .iter()
-            .any(|p| Self::match_tool_pattern(&name_lower, p))
-        {
+        if READ_PATTERNS.iter().any(|p| Self::match_tool_pattern(&name_lower, p)) {
             return std::time::Duration::from_secs(30);
         }
 
@@ -1268,11 +1236,8 @@ where
             return;
         };
 
-        let Some(ContentBlock::ToolResult {
-            tool_name,
-            is_error,
-            ..
-        }) = result_message.blocks.first()
+        let Some(ContentBlock::ToolResult { tool_name, is_error, .. }) =
+            result_message.blocks.first()
         else {
             return;
         };
@@ -1324,9 +1289,7 @@ where
 #[must_use]
 pub fn auto_compaction_threshold_from_env() -> u32 {
     parse_auto_compaction_threshold(
-        std::env::var(AUTO_COMPACTION_THRESHOLD_ENV_VAR)
-            .ok()
-            .as_deref(),
+        std::env::var(AUTO_COMPACTION_THRESHOLD_ENV_VAR).ok().as_deref(),
     )
 }
 
@@ -1372,12 +1335,7 @@ fn build_assistant_message(
         if let Some(ContentBlock::Text { text }) = blocks.first_mut() {
             *text = format!("{}\n\n{}", thinking_text, text);
         } else {
-            blocks.insert(
-                0,
-                ContentBlock::Text {
-                    text: thinking_text,
-                },
-            );
+            blocks.insert(0, ContentBlock::Text { text: thinking_text });
         }
     }
 
@@ -1429,9 +1387,7 @@ fn build_assistant_message(
 
 fn flush_text_block(text: &mut String, blocks: &mut Vec<ContentBlock>) {
     if !text.is_empty() {
-        blocks.push(ContentBlock::Text {
-            text: std::mem::take(text),
-        });
+        blocks.push(ContentBlock::Text { text: std::mem::take(text) });
     }
 }
 
@@ -1471,9 +1427,7 @@ pub struct StaticToolExecutor {
 
 impl Default for StaticToolExecutor {
     fn default() -> Self {
-        Self {
-            handlers: std::sync::Mutex::new(BTreeMap::new()),
-        }
+        Self { handlers: std::sync::Mutex::new(BTreeMap::new()) }
     }
 }
 
@@ -1540,10 +1494,7 @@ mod tests {
             match self.call_count {
                 1 => {
                     assert!(
-                        request
-                            .messages
-                            .iter()
-                            .any(|message| message.role == MessageRole::User)
+                        request.messages.iter().any(|message| message.role == MessageRole::User)
                     );
                     Ok(vec![
                         AssistantEvent::TextDelta("Let me calculate that.".to_string()),
@@ -1563,10 +1514,8 @@ mod tests {
                     ])
                 },
                 2 => {
-                    let last_message = request
-                        .messages
-                        .last()
-                        .expect("tool result should be present");
+                    let last_message =
+                        request.messages.last().expect("tool result should be present");
                     assert_eq!(last_message.role, MessageRole::Tool);
                     Ok(vec![
                         AssistantEvent::TextDelta("The answer is 4.".to_string()),
@@ -1637,10 +1586,7 @@ mod tests {
         assert!(matches!(runtime.session().messages[1].blocks[1], ContentBlock::ToolUse { .. }));
         assert!(matches!(
             runtime.session().messages[2].blocks[0],
-            ContentBlock::ToolResult {
-                is_error: false,
-                ..
-            }
+            ContentBlock::ToolResult { is_error: false, .. }
         ));
     }
 
@@ -1683,20 +1629,14 @@ mod tests {
         struct RejectPrompter;
         impl PermissionPrompter for RejectPrompter {
             fn decide(&mut self, _request: &PermissionRequest) -> PermissionPromptDecision {
-                PermissionPromptDecision::Deny {
-                    reason: "not now".to_string(),
-                }
+                PermissionPromptDecision::Deny { reason: "not now".to_string() }
             }
         }
 
         struct SingleCallApiClient;
         impl ApiClient for SingleCallApiClient {
             fn stream(&mut self, request: ApiRequest) -> Result<Vec<AssistantEvent>, RuntimeError> {
-                if request
-                    .messages
-                    .iter()
-                    .any(|message| message.role == MessageRole::Tool)
-                {
+                if request.messages.iter().any(|message| message.role == MessageRole::Tool) {
                     return Ok(vec![
                         AssistantEvent::TextDelta("I could not use the tool.".to_string()),
                         AssistantEvent::MessageStop,
@@ -1737,11 +1677,7 @@ mod tests {
         struct SingleCallApiClient;
         impl ApiClient for SingleCallApiClient {
             fn stream(&mut self, request: ApiRequest) -> Result<Vec<AssistantEvent>, RuntimeError> {
-                if request
-                    .messages
-                    .iter()
-                    .any(|message| message.role == MessageRole::Tool)
-                {
+                if request.messages.iter().any(|message| message.role == MessageRole::Tool) {
                     return Ok(vec![
                         AssistantEvent::TextDelta("blocked".to_string()),
                         AssistantEvent::MessageStop,
@@ -1777,9 +1713,7 @@ mod tests {
             .expect("conversation should continue after hook denial");
 
         assert_eq!(summary.tool_results.len(), 1);
-        let ContentBlock::ToolResult {
-            is_error, output, ..
-        } = &summary.tool_results[0].blocks[0]
+        let ContentBlock::ToolResult { is_error, output, .. } = &summary.tool_results[0].blocks[0]
         else {
             panic!("expected tool result block");
         };
@@ -1795,11 +1729,7 @@ mod tests {
         struct SingleCallApiClient;
         impl ApiClient for SingleCallApiClient {
             fn stream(&mut self, request: ApiRequest) -> Result<Vec<AssistantEvent>, RuntimeError> {
-                if request
-                    .messages
-                    .iter()
-                    .any(|message| message.role == MessageRole::Tool)
-                {
+                if request.messages.iter().any(|message| message.role == MessageRole::Tool) {
                     return Ok(vec![
                         AssistantEvent::TextDelta("failed".to_string()),
                         AssistantEvent::MessageStop,
@@ -1838,9 +1768,7 @@ mod tests {
 
         // then
         assert_eq!(summary.tool_results.len(), 1);
-        let ContentBlock::ToolResult {
-            is_error, output, ..
-        } = &summary.tool_results[0].blocks[0]
+        let ContentBlock::ToolResult { is_error, output, .. } = &summary.tool_results[0].blocks[0]
         else {
             panic!("expected tool result block");
         };
@@ -1899,14 +1827,10 @@ mod tests {
             )),
         );
 
-        let summary = runtime
-            .run_turn("use add", None)
-            .expect("tool loop succeeds");
+        let summary = runtime.run_turn("use add", None).expect("tool loop succeeds");
 
         assert_eq!(summary.tool_results.len(), 1);
-        let ContentBlock::ToolResult {
-            is_error, output, ..
-        } = &summary.tool_results[0].blocks[0]
+        let ContentBlock::ToolResult { is_error, output, .. } = &summary.tool_results[0].blocks[0]
         else {
             panic!("expected tool result block");
         };
@@ -1973,23 +1897,16 @@ mod tests {
         );
 
         // when
-        let summary = runtime
-            .run_turn("use fail", None)
-            .expect("tool loop succeeds");
+        let summary = runtime.run_turn("use fail", None).expect("tool loop succeeds");
 
         // then
         assert_eq!(summary.tool_results.len(), 1);
-        let ContentBlock::ToolResult {
-            is_error, output, ..
-        } = &summary.tool_results[0].blocks[0]
+        let ContentBlock::ToolResult { is_error, output, .. } = &summary.tool_results[0].blocks[0]
         else {
             panic!("expected tool result block");
         };
         assert!(*is_error, "failure hook path should preserve error result: {output:?}");
-        assert!(
-            output.contains("tool exploded"),
-            "tool output missing failure reason: {output:?}"
-        );
+        assert!(output.contains("tool exploded"), "tool output missing failure reason: {output:?}");
         assert!(
             output.contains("failure hook ran"),
             "tool output missing failure hook feedback: {output:?}"
@@ -2008,28 +1925,21 @@ mod tests {
                 &mut self,
                 _request: ApiRequest,
             ) -> Result<Vec<AssistantEvent>, RuntimeError> {
-                Ok(vec![
-                    AssistantEvent::TextDelta("done".to_string()),
-                    AssistantEvent::MessageStop,
-                ])
+                Ok(vec![AssistantEvent::TextDelta("done".to_string()), AssistantEvent::MessageStop])
             }
         }
 
         let mut session = Session::new();
-        session
-            .messages
-            .push(crate::session::ConversationMessage::assistant_with_usage(
-                vec![ContentBlock::Text {
-                    text: "earlier".to_string(),
-                }],
-                Some(TokenUsage {
-                    input_tokens: 11,
-                    output_tokens: 7,
-                    cache_creation_input_tokens: 2,
-                    cache_read_input_tokens: 1,
-                    cache_miss_input_tokens: None,
-                }),
-            ));
+        session.messages.push(crate::session::ConversationMessage::assistant_with_usage(
+            vec![ContentBlock::Text { text: "earlier".to_string() }],
+            Some(TokenUsage {
+                input_tokens: 11,
+                output_tokens: 7,
+                cache_creation_input_tokens: 2,
+                cache_read_input_tokens: 1,
+                cache_miss_input_tokens: None,
+            }),
+        ));
 
         let runtime = ConversationRuntime::new(
             session,
@@ -2051,10 +1961,7 @@ mod tests {
                 &mut self,
                 _request: ApiRequest,
             ) -> Result<Vec<AssistantEvent>, RuntimeError> {
-                Ok(vec![
-                    AssistantEvent::TextDelta("done".to_string()),
-                    AssistantEvent::MessageStop,
-                ])
+                Ok(vec![AssistantEvent::TextDelta("done".to_string()), AssistantEvent::MessageStop])
             }
         }
 
@@ -2088,10 +1995,7 @@ mod tests {
                 &mut self,
                 _request: ApiRequest,
             ) -> Result<Vec<AssistantEvent>, RuntimeError> {
-                Ok(vec![
-                    AssistantEvent::TextDelta("done".to_string()),
-                    AssistantEvent::MessageStop,
-                ])
+                Ok(vec![AssistantEvent::TextDelta("done".to_string()), AssistantEvent::MessageStop])
             }
         }
 
@@ -2105,9 +2009,7 @@ mod tests {
             vec!["system".to_string()],
         );
 
-        runtime
-            .run_turn("persist this turn", None)
-            .expect("turn should succeed");
+        runtime.run_turn("persist this turn", None).expect("turn should succeed");
 
         let restored = Session::load_from_path(&path).expect("persisted session should reload");
         fs::remove_file(&path).expect("temp session file should be removable");
@@ -2121,9 +2023,7 @@ mod tests {
     #[test]
     fn forks_runtime_session_without_mutating_original() {
         let mut session = Session::new();
-        session
-            .push_user_text("branch me")
-            .expect("message should append");
+        session.push_user_text("branch me").expect("message should append");
 
         let runtime = ConversationRuntime::new(
             session.clone(),
@@ -2157,10 +2057,7 @@ mod tests {
 
     #[cfg(windows)]
     fn shell_snippet(script: &str) -> String {
-        let script = script
-            .replace("printf '", "echo ")
-            .replace('\'', "")
-            .replace(";", "&");
+        let script = script.replace("printf '", "echo ").replace('\'', "").replace(";", "&");
         script
     }
 
@@ -2229,16 +2126,9 @@ mod tests {
         )
         .with_auto_compaction_input_tokens_threshold(100_000);
 
-        let summary = runtime
-            .run_turn("trigger", None)
-            .expect("turn should succeed");
+        let summary = runtime.run_turn("trigger", None).expect("turn should succeed");
 
-        assert_eq!(
-            summary.auto_compaction,
-            Some(AutoCompactionEvent {
-                removed_message_count: 3,
-            })
-        );
+        assert_eq!(summary.auto_compaction, Some(AutoCompactionEvent { removed_message_count: 3 }));
         assert_eq!(runtime.session().messages[0].role, MessageRole::System);
     }
 
@@ -2273,9 +2163,7 @@ mod tests {
         )
         .with_auto_compaction_input_tokens_threshold(100_000);
 
-        let summary = runtime
-            .run_turn("trigger", None)
-            .expect("turn should succeed");
+        let summary = runtime.run_turn("trigger", None).expect("turn should succeed");
         assert_eq!(summary.auto_compaction, None);
         assert_eq!(runtime.session().messages.len(), 2);
     }
@@ -2325,9 +2213,7 @@ mod tests {
         let summary = runtime.run_turn("msg2", None).expect("turn 2");
         assert_eq!(
             summary.auto_compaction,
-            Some(AutoCompactionEvent {
-                removed_message_count: 0
-            }),
+            Some(AutoCompactionEvent { removed_message_count: 0 }),
             "turn 2 should trigger turn-count compaction (empty session: 0 removed)"
         );
     }
@@ -2343,9 +2229,7 @@ mod tests {
                 text: "Hi there! How can I help you?".to_string(),
             }]))
             .unwrap();
-        session
-            .push_message(ConversationMessage::user_text("What is 2+2?"))
-            .unwrap();
+        session.push_message(ConversationMessage::user_text("What is 2+2?")).unwrap();
         session
             .push_message(ConversationMessage::assistant(vec![ContentBlock::Text {
                 text: "2+2 = 4".to_string(),
@@ -2402,9 +2286,7 @@ mod tests {
 
         let mut session = Session::new();
         session.record_compaction("summarized earlier work", 4);
-        session
-            .push_user_text("previous message")
-            .expect("message should append");
+        session.push_user_text("previous message").expect("message should append");
 
         let tool_executor = StaticToolExecutor::new()
             .register("glob_search", |_input| Err(ToolError::new("transport unavailable")));
@@ -2420,9 +2302,7 @@ mod tests {
             .run_turn("trigger", None)
             .expect_err("health probe failure should abort the turn");
         assert!(
-            error
-                .to_string()
-                .contains("Session health probe failed after compaction"),
+            error.to_string().contains("Session health probe failed after compaction"),
             "unexpected error: {error}"
         );
         assert!(
@@ -2439,10 +2319,7 @@ mod tests {
                 &mut self,
                 _request: ApiRequest,
             ) -> Result<Vec<AssistantEvent>, RuntimeError> {
-                Ok(vec![
-                    AssistantEvent::TextDelta("done".to_string()),
-                    AssistantEvent::MessageStop,
-                ])
+                Ok(vec![AssistantEvent::TextDelta("done".to_string()), AssistantEvent::MessageStop])
             }
         }
 
@@ -2500,11 +2377,7 @@ mod tests {
             .expect_err("empty stream without stop event should error");
 
         // then
-        assert!(
-            error
-                .to_string()
-                .contains("assistant stream ended without a message stop event")
-        );
+        assert!(error.to_string().contains("assistant stream ended without a message stop event"));
     }
 
     #[test]
@@ -2517,11 +2390,7 @@ mod tests {
             build_assistant_message(events).expect_err("assistant messages should require content");
 
         // then
-        assert!(
-            error
-                .to_string()
-                .contains("assistant stream produced no content")
-        );
+        assert!(error.to_string().contains("assistant stream produced no content"));
     }
 
     #[test]
@@ -2530,9 +2399,7 @@ mod tests {
         let mut executor = StaticToolExecutor::new();
 
         // when
-        let error = executor
-            .execute("missing", "{}")
-            .expect_err("unregistered tools should fail");
+        let error = executor.execute("missing", "{}").expect_err("unregistered tools should fail");
 
         // then
         assert_eq!(error.to_string(), "[executionFailed] unknown tool: missing");
@@ -2604,9 +2471,7 @@ mod tests {
         );
 
         // when
-        let error = runtime
-            .run_turn("hello", None)
-            .expect_err("API failures should propagate");
+        let error = runtime.run_turn("hello", None).expect_err("API failures should propagate");
 
         // then
         assert_eq!(error.to_string(), "upstream failed");

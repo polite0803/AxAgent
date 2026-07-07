@@ -46,16 +46,12 @@ impl Default for OllamaAdapter {
 
 impl OllamaAdapter {
     pub fn new() -> Self {
-        Self {
-            inner: OpenAIAdapter::new(),
-        }
+        Self { inner: OpenAIAdapter::new() }
     }
 
     /// Resolve the effective base URL for an Ollama instance.
     fn base_url(ctx: &ProviderRequestContext) -> String {
-        ctx.base_url
-            .clone()
-            .unwrap_or_else(|| DEFAULT_OLLAMA_HOST.to_string())
+        ctx.base_url.clone().unwrap_or_else(|| DEFAULT_OLLAMA_HOST.to_string())
     }
 
     /// Resolve the effective chat URL for Ollama.
@@ -134,10 +130,8 @@ impl ProviderAdapter for OllamaAdapter {
             return Err(AxAgentError::Provider(super::diagnose_http_status("Ollama", s, &t)));
         }
 
-        let body = resp
-            .text()
-            .await
-            .map_err(|e| AxAgentError::Provider(format!("Read error: {e}")))?;
+        let body =
+            resp.text().await.map_err(|e| AxAgentError::Provider(format!("Read error: {e}")))?;
 
         let tags: OllamaTagsResponse = serde_json::from_str(&body).map_err(|e| {
             AxAgentError::Provider(format!(
@@ -208,10 +202,8 @@ impl ProviderAdapter for OllamaAdapter {
         let chat_url = Self::effective_chat_url(ctx);
 
         let client = self.get_client(ctx)?;
-        let resp = crate::apply_request_headers(client.get(&url), ctx)
-            .send()
-            .await
-            .map_err(|e| {
+        let resp =
+            crate::apply_request_headers(client.get(&url), ctx).send().await.map_err(|e| {
                 AxAgentError::Provider(format!(
                     "Ollama server not reachable at {}: {}. \
                      Make sure Ollama is running locally. You can start it with 'ollama serve'.",

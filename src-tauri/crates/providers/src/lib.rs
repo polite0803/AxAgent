@@ -153,9 +153,7 @@ pub fn extract_reasoning_from_text(text: &str) -> (String, Option<String>) {
                 && let Some(think_close_pos) = after_open.find(THINK_CLOSE)
             {
                 let content_start = close_bracket + 1;
-                let reasoning = after_open[content_start..think_close_pos]
-                    .trim()
-                    .to_string();
+                let reasoning = after_open[content_start..think_close_pos].trim().to_string();
                 if !reasoning.is_empty() {
                     reasoning_parts.push(reasoning);
                 }
@@ -169,9 +167,7 @@ pub fn extract_reasoning_from_text(text: &str) -> (String, Option<String>) {
         };
         let search_from = tag_end;
         if let Some(end) = after_open[search_from..].find(THINK_CLOSE) {
-            let reasoning = after_open[search_from..search_from + end]
-                .trim()
-                .to_string();
+            let reasoning = after_open[search_from..search_from + end].trim().to_string();
             if !reasoning.is_empty() {
                 reasoning_parts.push(reasoning);
             }

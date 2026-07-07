@@ -247,9 +247,7 @@ mod tests {
         for i in 0..10 {
             let text = format!("msg{} {}", i, "x".repeat(chars_per_msg.max(20)));
             if i % 2 == 0 {
-                session
-                    .push_message(ConversationMessage::user_text(&text))
-                    .unwrap();
+                session.push_message(ConversationMessage::user_text(&text)).unwrap();
             } else {
                 session
                     .push_message(ConversationMessage::assistant(vec![ContentBlock::Text { text }]))

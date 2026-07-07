@@ -333,11 +333,7 @@ pub async fn import_prompt_templates(
         }
     }
 
-    Ok(ImportPromptResult {
-        imported,
-        skipped,
-        errors,
-    })
+    Ok(ImportPromptResult { imported, skipped, errors })
 }
 
 // ========== 导出 ==========
@@ -503,10 +499,8 @@ pub async fn import_from_folder(
 ) -> Result<ImportPromptResult> {
     let mut inputs = Vec::new();
 
-    for entry in walkdir::WalkDir::new(folder_path)
-        .follow_links(true)
-        .into_iter()
-        .filter_map(|e| e.ok())
+    for entry in
+        walkdir::WalkDir::new(folder_path).follow_links(true).into_iter().filter_map(|e| e.ok())
     {
         let path = entry.path();
         if !path.is_file() {
@@ -575,16 +569,9 @@ async fn fetch_and_parse_prompt(
     client: &reqwest::Client,
     url: &str,
 ) -> std::result::Result<Option<ImportPromptTemplateInput>, String> {
-    let resp = client
-        .get(url)
-        .send()
-        .await
-        .map_err(|e| format!("下载失败: {}", e))?;
+    let resp = client.get(url).send().await.map_err(|e| format!("下载失败: {}", e))?;
 
-    let content = resp
-        .text()
-        .await
-        .map_err(|e| format!("读取内容失败: {}", e))?;
+    let content = resp.text().await.map_err(|e| format!("读取内容失败: {}", e))?;
 
     parse_yao_prompt(&content)
 }
@@ -599,9 +586,7 @@ pub fn parse_yao_prompt(
     }
 
     let rest = &content[3..];
-    let end_idx = rest
-        .find("---")
-        .ok_or_else(|| "缺少 YAML frontmatter 结束标记".to_string())?;
+    let end_idx = rest.find("---").ok_or_else(|| "缺少 YAML frontmatter 结束标记".to_string())?;
 
     let yaml_str = &rest[..end_idx].trim();
     let body = rest[end_idx + 3..].trim();
@@ -609,43 +594,23 @@ pub fn parse_yao_prompt(
     let fm: serde_yaml::Value =
         serde_yaml::from_str(yaml_str).map_err(|e| format!("YAML 解析失败: {}", e))?;
 
-    let title = fm
-        .get("title")
-        .and_then(|v| v.as_str())
-        .unwrap_or("未命名")
-        .to_string();
+    let title = fm.get("title").and_then(|v| v.as_str()).unwrap_or("未命名").to_string();
 
-    let description = fm
-        .get("description")
-        .and_then(|v| v.as_str())
-        .map(|s| s.to_string());
+    let description = fm.get("description").and_then(|v| v.as_str()).map(|s| s.to_string());
 
-    let category = fm
-        .get("category")
-        .and_then(|v| v.as_str())
-        .map(|s| s.to_string());
+    let category = fm.get("category").and_then(|v| v.as_str()).map(|s| s.to_string());
 
     let tags = fm.get("tags").and_then(|v| {
         if let Some(arr) = v.as_sequence() {
-            Some(
-                arr.iter()
-                    .filter_map(|t| t.as_str().map(String::from))
-                    .collect(),
-            )
+            Some(arr.iter().filter_map(|t| t.as_str().map(String::from)).collect())
         } else {
             v.as_str().map(|s| vec![s.to_string()])
         }
     });
 
-    let author = fm
-        .get("author")
-        .and_then(|v| v.as_str())
-        .map(|s| s.to_string());
+    let author = fm.get("author").and_then(|v| v.as_str()).map(|s| s.to_string());
 
-    let source = fm
-        .get("source")
-        .and_then(|v| v.as_str())
-        .map(|s| s.to_string());
+    let source = fm.get("source").and_then(|v| v.as_str()).map(|s| s.to_string());
 
     let prompt_content = if body.is_empty() {
         content.to_string()

@@ -56,10 +56,7 @@ pub struct HybridSearcher {
 
 impl HybridSearcher {
     pub fn new(db: DatabaseConnection) -> Self {
-        Self {
-            vector_store: VectorStore::new(db.clone()),
-            db,
-        }
+        Self { vector_store: VectorStore::new(db.clone()), db }
     }
 
     pub fn vector_store(&self) -> &VectorStore {
@@ -139,9 +136,7 @@ impl HybridSearcher {
             .vector_store
             .search(collection_id, query_embedding.clone(), options.top_k * 3)
             .await?;
-        let bm25_results = self
-            .bm25_search(collection_id, query, options.top_k * 3)
-            .await?;
+        let bm25_results = self.bm25_search(collection_id, query, options.top_k * 3).await?;
 
         let combined = match options.fusion {
             FusionAlgorithm::Weighted => self.merge_results_weighted(
@@ -168,9 +163,7 @@ impl HybridSearcher {
             .collect();
 
         filtered.sort_by(|a, b| {
-            b.combined_score
-                .partial_cmp(&a.combined_score)
-                .unwrap_or(std::cmp::Ordering::Equal)
+            b.combined_score.partial_cmp(&a.combined_score).unwrap_or(std::cmp::Ordering::Equal)
         });
 
         Ok(filtered)
@@ -221,13 +214,7 @@ impl HybridSearcher {
                         let bm25_raw: f64 = row.try_get("", "bm25_score").ok().unwrap_or(0.0);
                         let bm25_score = (-bm25_raw as f32).max(0.0);
 
-                        Some(Bm25Result {
-                            id,
-                            document_id,
-                            chunk_index,
-                            content,
-                            bm25_score,
-                        })
+                        Some(Bm25Result { id, document_id, chunk_index, content, bm25_score })
                     })
                     .collect();
 
@@ -235,13 +222,9 @@ impl HybridSearcher {
                     return Ok(results);
                 }
 
-                self.bm25_search_fallback(&meta_table, &sanitized, top_k)
-                    .await
+                self.bm25_search_fallback(&meta_table, &sanitized, top_k).await
             },
-            _ => {
-                self.bm25_search_fallback(&meta_table, &sanitized, top_k)
-                    .await
-            },
+            _ => self.bm25_search_fallback(&meta_table, &sanitized, top_k).await,
         }
     }
 
@@ -256,10 +239,8 @@ impl HybridSearcher {
             return Ok(vec![]);
         }
 
-        let conditions: Vec<String> = words
-            .iter()
-            .map(|w| format!("content LIKE '%{}%'", w.replace('\'', "''")))
-            .collect();
+        let conditions: Vec<String> =
+            words.iter().map(|w| format!("content LIKE '%{}%'", w.replace('\'', "''"))).collect();
         let where_clause = conditions.join(" OR ");
 
         let sql = format!(
@@ -290,13 +271,7 @@ impl HybridSearcher {
                 let content: String = row.try_get("", "content").ok()?;
                 let bm25_score: f32 = row.try_get("", "bm25_score").ok()?;
 
-                Some(Bm25Result {
-                    id,
-                    document_id,
-                    chunk_index,
-                    content,
-                    bm25_score,
-                })
+                Some(Bm25Result { id, document_id, chunk_index, content, bm25_score })
             })
             .collect();
 
@@ -362,16 +337,10 @@ impl HybridSearcher {
         let mut score_map: std::collections::HashMap<String, HybridSearchResult> =
             std::collections::HashMap::new();
 
-        let max_vector_distance = vector_results
-            .iter()
-            .map(|r| r.score)
-            .fold(0f32, f32::max)
-            .max(f32::EPSILON);
-        let max_bm25_score = bm25_results
-            .iter()
-            .map(|r| r.bm25_score)
-            .fold(0f32, f32::max)
-            .max(f32::EPSILON);
+        let max_vector_distance =
+            vector_results.iter().map(|r| r.score).fold(0f32, f32::max).max(f32::EPSILON);
+        let max_bm25_score =
+            bm25_results.iter().map(|r| r.bm25_score).fold(0f32, f32::max).max(f32::EPSILON);
 
         for vr in vector_results {
             let normalized_vector = 1.0 - (vr.score / max_vector_distance).clamp(0.0, 1.0);
@@ -441,10 +410,7 @@ struct Bm25Result {
 }
 
 fn sanitize_name_for_table(collection_id: &str) -> String {
-    collection_id
-        .chars()
-        .map(|c| if c == '-' { '_' } else { c })
-        .collect()
+    collection_id.chars().map(|c| if c == '-' { '_' } else { c }).collect()
 }
 
 fn sanitize_fts5_query(query: &str) -> String {

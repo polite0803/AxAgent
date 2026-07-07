@@ -16,9 +16,7 @@ fn run_command(cmd: &str, args: &[&str], cwd: &str, _timeout_secs: u64) -> Resul
     let child = safe_spawn(Command::new(cmd).args(args).current_dir(cwd))
         .map_err(|e| format!("命令启动失败: {}", e))?;
 
-    let output = child
-        .wait_with_output()
-        .map_err(|e| format!("等待命令结束失败: {}", e))?;
+    let output = child.wait_with_output().map_err(|e| format!("等待命令结束失败: {}", e))?;
 
     // 忽略 timeout_secs 参数以简化（std::process::Command 不直接支持 timeout）
 
@@ -92,14 +90,8 @@ impl Tool for RunTestsTool {
     }
 
     async fn call(&self, input: Value, ctx: &ToolContext) -> Result<ToolResult, ToolError> {
-        let scope = input
-            .get("scope")
-            .and_then(|v| v.as_str())
-            .unwrap_or("unit");
-        let wd = input
-            .get("working_dir")
-            .and_then(|v| v.as_str())
-            .unwrap_or(&ctx.working_dir);
+        let scope = input.get("scope").and_then(|v| v.as_str()).unwrap_or("unit");
+        let wd = input.get("working_dir").and_then(|v| v.as_str()).unwrap_or(&ctx.working_dir);
 
         let is_rust = std::path::Path::new(wd).join("Cargo.toml").exists();
 
@@ -169,14 +161,8 @@ impl Tool for RunLinterTool {
     }
 
     async fn call(&self, input: Value, ctx: &ToolContext) -> Result<ToolResult, ToolError> {
-        let lang = input
-            .get("language")
-            .and_then(|v| v.as_str())
-            .unwrap_or("all");
-        let wd = input
-            .get("working_dir")
-            .and_then(|v| v.as_str())
-            .unwrap_or(&ctx.working_dir);
+        let lang = input.get("language").and_then(|v| v.as_str()).unwrap_or("all");
+        let wd = input.get("working_dir").and_then(|v| v.as_str()).unwrap_or(&ctx.working_dir);
 
         let mut results = vec!["## 代码检查\n".to_string()];
 
@@ -244,14 +230,8 @@ impl Tool for RunTestCoverageTool {
     }
 
     async fn call(&self, input: Value, ctx: &ToolContext) -> Result<ToolResult, ToolError> {
-        let lang = input
-            .get("language")
-            .and_then(|v| v.as_str())
-            .unwrap_or("typescript");
-        let wd = input
-            .get("working_dir")
-            .and_then(|v| v.as_str())
-            .unwrap_or(&ctx.working_dir);
+        let lang = input.get("language").and_then(|v| v.as_str()).unwrap_or("typescript");
+        let wd = input.get("working_dir").and_then(|v| v.as_str()).unwrap_or(&ctx.working_dir);
 
         let result = match lang {
             "rust" => {

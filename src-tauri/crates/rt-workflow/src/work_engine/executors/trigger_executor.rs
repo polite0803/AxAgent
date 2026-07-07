@@ -50,10 +50,7 @@ impl NodeExecutorTrait for TriggerExecutor {
         let trigger_type = trigger_node.config.trigger_type.clone();
 
         // 获取 TriggerManager（若未注入则降级为旧版直通行为）
-        let tm = context
-            .callbacks
-            .as_ref()
-            .and_then(|cb| cb.trigger_manager.as_ref());
+        let tm = context.callbacks.as_ref().and_then(|cb| cb.trigger_manager.as_ref());
 
         match trigger_type {
             TriggerType::Manual => {
@@ -111,8 +108,7 @@ impl NodeExecutorTrait for TriggerExecutor {
                     serde_json::from_value::<EventTriggerConfig>(trigger_node.config.config.clone())
                     && let Some(tm) = tm
                 {
-                    tm.register_event(trigger_node.base.id.as_str(), &cfg.event_type)
-                        .await;
+                    tm.register_event(trigger_node.base.id.as_str(), &cfg.event_type).await;
                 }
                 Ok(NodeOutput {
                     output: build_output("event", &trigger_node.config.config),

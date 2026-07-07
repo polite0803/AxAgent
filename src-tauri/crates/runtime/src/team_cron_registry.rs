@@ -15,10 +15,7 @@ use serde::{Deserialize, Serialize};
 use crate::util::lock_or_recover;
 
 fn now_secs() -> u64 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_secs()
+    SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_secs()
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -97,10 +94,8 @@ impl TeamRegistry {
 
     pub fn delete(&self, team_id: &str) -> Result<Team, String> {
         let mut inner = lock_or_recover(self.inner.lock(), "team_cron_registry");
-        let team = inner
-            .teams
-            .get_mut(team_id)
-            .ok_or_else(|| format!("team not found: {team_id}"))?;
+        let team =
+            inner.teams.get_mut(team_id).ok_or_else(|| format!("team not found: {team_id}"))?;
         team.status = TeamStatus::Deleted;
         team.updated_at = now_secs();
         Ok(team.clone())
@@ -173,10 +168,8 @@ mod tests {
             (TeamStatus::Completed, "completed"),
             (TeamStatus::Deleted, "deleted"),
         ];
-        let rendered: Vec<_> = cases
-            .into_iter()
-            .map(|(status, expected)| (status.to_string(), expected))
-            .collect();
+        let rendered: Vec<_> =
+            cases.into_iter().map(|(status, expected)| (status.to_string(), expected)).collect();
         assert_eq!(
             rendered,
             vec![

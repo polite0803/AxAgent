@@ -42,12 +42,7 @@ pub struct StyleVector {
 }
 impl StyleVector {
     pub fn similarity(&self, other: &StyleVector) -> f64 {
-        let dot: f64 = self
-            .dimensions
-            .iter()
-            .zip(&other.dimensions)
-            .map(|(a, b)| a * b)
-            .sum();
+        let dot: f64 = self.dimensions.iter().zip(&other.dimensions).map(|(a, b)| a * b).sum();
         let ma: f64 = self.dimensions.iter().map(|d| d * d).sum::<f64>().sqrt();
         let mb: f64 = other.dimensions.iter().map(|d| d * d).sum::<f64>().sqrt();
         if ma == 0.0 || mb == 0.0 {

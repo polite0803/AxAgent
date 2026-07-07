@@ -19,9 +19,7 @@ use tokio::sync::Mutex;
 
 #[tauri::command]
 pub async fn list_backups(state: State<'_, AppState>) -> Result<Vec<BackupManifest>, String> {
-    backup::list_backups(state.harness.db(), &DefaultPathEncoder)
-        .await
-        .map_err(|e| e.to_string())
+    backup::list_backups(state.harness.db(), &DefaultPathEncoder).await.map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -29,9 +27,7 @@ pub async fn create_backup(
     state: State<'_, AppState>,
     format: String,
 ) -> Result<BackupManifest, String> {
-    let settings = get_settings(state.harness.db())
-        .await
-        .map_err(|e| e.to_string())?;
+    let settings = get_settings(state.harness.db()).await.map_err(|e| e.to_string())?;
     let decoded_backup_dir = axagent_storage::path_vars::decode_path_opt(&settings.backup_dir);
     let backup_dir = backup::resolve_backup_dir(decoded_backup_dir.as_deref(), &state.app_data_dir);
     backup::create_backup(state.harness.db(), &format, &backup_dir, &DefaultPathEncoder)
@@ -54,11 +50,8 @@ pub async fn restore_backup(
 
     match manifest.version.as_str() {
         "sqlite" => {
-            let db_path = state
-                .harness
-                .db_path()
-                .strip_prefix("sqlite:")
-                .unwrap_or(state.harness.db_path());
+            let db_path =
+                state.harness.db_path().strip_prefix("sqlite:").unwrap_or(state.harness.db_path());
             backup::restore_sqlite_backup(&backup_path, db_path)
                 .await
                 .map_err(|e| e.to_string())?;
@@ -121,9 +114,7 @@ pub async fn batch_delete_backups(
 
 #[tauri::command]
 pub async fn get_backup_settings(state: State<'_, AppState>) -> Result<AutoBackupSettings, String> {
-    let settings = get_settings(state.harness.db())
-        .await
-        .map_err(|e| e.to_string())?;
+    let settings = get_settings(state.harness.db()).await.map_err(|e| e.to_string())?;
     let decoded_backup_dir = axagent_storage::path_vars::decode_path_opt(&settings.backup_dir);
     let default_dir = backup::resolve_backup_dir(None, &state.app_data_dir);
     Ok(AutoBackupSettings {
@@ -142,9 +133,7 @@ pub async fn update_backup_settings(
     state: State<'_, AppState>,
     backup_settings: AutoBackupSettings,
 ) -> Result<(), String> {
-    let mut settings = get_settings(state.harness.db())
-        .await
-        .map_err(|e| e.to_string())?;
+    let mut settings = get_settings(state.harness.db()).await.map_err(|e| e.to_string())?;
     settings.auto_backup_enabled = backup_settings.enabled;
     settings.auto_backup_interval_hours = backup_settings.interval_hours;
     settings.auto_backup_max_count = backup_settings.max_count;
@@ -340,18 +329,11 @@ pub async fn list_cloud_backups(
     state: State<'_, AppState>,
     request: ListCloudBackupsRequest,
 ) -> Result<Vec<CloudBackupEntry>, String> {
-    let backend = state
-        .sync_engine
-        .as_ref()
-        .ok_or("云存储未配置")?
-        .backend
-        .clone();
+    let backend = state.sync_engine.as_ref().ok_or("云存储未配置")?.backend.clone();
 
     let prefix = request.prefix.unwrap_or_else(|| "backups/".to_string());
-    let result = backend
-        .list(&prefix, 100, None)
-        .await
-        .map_err(|e| format!("列出云端备份失败: {}", e))?;
+    let result =
+        backend.list(&prefix, 100, None).await.map_err(|e| format!("列出云端备份失败: {}", e))?;
 
     let entries = result
         .objects
@@ -378,21 +360,12 @@ pub async fn download_cloud_backup(
     state: State<'_, AppState>,
     request: DownloadCloudBackupRequest,
 ) -> Result<String, String> {
-    let backend = state
-        .sync_engine
-        .as_ref()
-        .ok_or("云存储未配置")?
-        .backend
-        .clone();
+    let backend = state.sync_engine.as_ref().ok_or("云存储未配置")?.backend.clone();
 
-    let obj = backend
-        .get(&request.cloud_key)
-        .await
-        .map_err(|e| format!("从云端下载备份失败: {}", e))?;
+    let obj =
+        backend.get(&request.cloud_key).await.map_err(|e| format!("从云端下载备份失败: {}", e))?;
 
-    let settings = get_settings(state.harness.db())
-        .await
-        .map_err(|e| e.to_string())?;
+    let settings = get_settings(state.harness.db()).await.map_err(|e| e.to_string())?;
     let decoded_backup_dir = axagent_storage::path_vars::decode_path_opt(&settings.backup_dir);
     let backup_dir = backup::resolve_backup_dir(decoded_backup_dir.as_deref(), &state.app_data_dir);
     std::fs::create_dir_all(&backup_dir).map_err(|e| format!("创建备份目录失败: {}", e))?;
@@ -404,12 +377,9 @@ pub async fn download_cloud_backup(
     let local_path = backup_dir.join(&file_name);
 
     // Canonicalize to prevent path traversal: verify the resolved path is within backup_dir
-    let canonical = local_path
-        .canonicalize()
-        .map_err(|e| format!("路径解析失败: {}", e))?;
-    let backup_canonical = backup_dir
-        .canonicalize()
-        .map_err(|e| format!("备份目录解析失败: {}", e))?;
+    let canonical = local_path.canonicalize().map_err(|e| format!("路径解析失败: {}", e))?;
+    let backup_canonical =
+        backup_dir.canonicalize().map_err(|e| format!("备份目录解析失败: {}", e))?;
     if !canonical.starts_with(&backup_canonical) {
         return Err("路径穿越检测失败：cloud_key 指向了备份目录之外的位置".to_string());
     }

@@ -65,9 +65,7 @@ impl PreferenceLearner {
         let patterns = self.analyzer.analyze(&events);
 
         let old_coding = self.profile.coding_style.clone();
-        let new_coding = self
-            .analyzer
-            .infer_coding_profile(&patterns.coding_patterns);
+        let new_coding = self.analyzer.infer_coding_profile(&patterns.coding_patterns);
         if old_coding != new_coding {
             let confidence_change = new_coding.confidence - old_coding.confidence;
             updates.push(ProfileUpdate {
@@ -123,13 +121,7 @@ impl PreferenceLearner {
         for topic in topics {
             if topic.topic.starts_with("code:") {
                 let lang = topic.topic.trim_start_matches("code:");
-                if !self
-                    .profile
-                    .domain_knowledge
-                    .expertise_areas
-                    .iter()
-                    .any(|a| a.name == lang)
-                {
+                if !self.profile.domain_knowledge.expertise_areas.iter().any(|a| a.name == lang) {
                     self.profile.domain_knowledge.expertise_areas.push(
                         crate::user_profile::ExpertiseArea {
                             name: lang.to_string(),
@@ -140,16 +132,9 @@ impl PreferenceLearner {
                     );
                 }
             } else if !topic.topic.contains(':')
-                && !self
-                    .profile
-                    .domain_knowledge
-                    .interest_topics
-                    .contains(&topic.topic)
+                && !self.profile.domain_knowledge.interest_topics.contains(&topic.topic)
             {
-                self.profile
-                    .domain_knowledge
-                    .interest_topics
-                    .push(topic.topic.clone());
+                self.profile.domain_knowledge.interest_topics.push(topic.topic.clone());
             }
         }
 
@@ -226,9 +211,7 @@ impl PreferenceLearner {
             _ => {},
         }
 
-        self.profile
-            .learning_state
-            .add_explicit_setting(field.to_string());
+        self.profile.learning_state.add_explicit_setting(field.to_string());
         self.profile.update_timestamp();
 
         ProfileUpdate {

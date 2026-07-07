@@ -250,11 +250,7 @@ mod tests {
         assert_eq!(manifest.name, "loader-demo");
         assert_eq!(manifest.version, "1.2.3");
         assert_eq!(
-            manifest
-                .permissions
-                .iter()
-                .map(|permission| permission.as_str())
-                .collect::<Vec<_>>(),
+            manifest.permissions.iter().map(|permission| permission.as_str()).collect::<Vec<_>>(),
             vec!["read", "write"]
         );
         assert_eq!(manifest.hooks.pre_tool_use, vec!["./hooks/pre.sh"]);
@@ -609,16 +605,8 @@ mod tests {
         let _guard = env_guard();
         let manager = PluginManager::new(PluginManagerConfig::new(temp_dir("discover")));
         let plugins = manager.list_plugins().expect("plugins should list");
-        assert!(
-            plugins
-                .iter()
-                .any(|plugin| plugin.metadata.kind == PluginKind::Builtin)
-        );
-        assert!(
-            plugins
-                .iter()
-                .any(|plugin| plugin.metadata.kind == PluginKind::Bundled)
-        );
+        assert!(plugins.iter().any(|plugin| plugin.metadata.kind == PluginKind::Builtin));
+        assert!(plugins.iter().any(|plugin| plugin.metadata.kind == PluginKind::Bundled));
     }
 
     #[test]
@@ -645,15 +633,8 @@ mod tests {
         assert_eq!(hooks.pre_tool_use.len(), 1);
         assert!(hooks.pre_tool_use[0].contains("pre.sh"));
 
-        manager
-            .disable("demo@external")
-            .expect("disable should work");
-        assert!(
-            manager
-                .aggregated_hooks()
-                .expect("hooks after disable")
-                .is_empty()
-        );
+        manager.disable("demo@external").expect("disable should work");
+        assert!(manager.aggregated_hooks().expect("hooks after disable").is_empty());
         manager.enable("demo@external").expect("enable should work");
 
         write_external_plugin(&source_root, "demo", "2.0.0");
@@ -661,9 +642,7 @@ mod tests {
         assert_eq!(update.old_version, "1.0.0");
         assert_eq!(update.new_version, "2.0.0");
 
-        manager
-            .uninstall("demo@external")
-            .expect("uninstall should work");
+        manager.uninstall("demo@external").expect("uninstall should work");
         assert!(
             !manager
                 .list_plugins()
@@ -687,9 +666,8 @@ mod tests {
         config.bundled_root = Some(bundled_root.clone());
         let manager = PluginManager::new(config);
 
-        let installed = manager
-            .list_installed_plugins()
-            .expect("bundled plugins should auto-install");
+        let installed =
+            manager.list_installed_plugins().expect("bundled plugins should auto-install");
         assert!(installed.iter().any(|plugin| {
             plugin.metadata.id == "starter@bundled"
                 && plugin.metadata.kind == PluginKind::Bundled
@@ -697,10 +675,8 @@ mod tests {
         }));
 
         let registry = manager.load_registry().expect("registry should exist");
-        let record = registry
-            .plugins
-            .get("starter@bundled")
-            .expect("bundled plugin should be recorded");
+        let record =
+            registry.plugins.get("starter@bundled").expect("bundled plugin should be recorded");
         assert_eq!(record.kind, PluginKind::Bundled);
         assert!(record.install_path.exists());
 
@@ -714,19 +690,10 @@ mod tests {
         let config_home = temp_dir("default-bundled-home");
         let manager = PluginManager::new(PluginManagerConfig::new(&config_home));
 
-        let installed = manager
-            .list_installed_plugins()
-            .expect("default bundled plugins should auto-install");
-        assert!(
-            installed
-                .iter()
-                .any(|plugin| plugin.metadata.id == "example-bundled@bundled")
-        );
-        assert!(
-            installed
-                .iter()
-                .any(|plugin| plugin.metadata.id == "sample-hooks@bundled")
-        );
+        let installed =
+            manager.list_installed_plugins().expect("default bundled plugins should auto-install");
+        assert!(installed.iter().any(|plugin| plugin.metadata.id == "example-bundled@bundled"));
+        assert!(installed.iter().any(|plugin| plugin.metadata.id == "sample-hooks@bundled"));
 
         let _ = fs::remove_dir_all(config_home);
     }
@@ -736,10 +703,8 @@ mod tests {
         let _guard = env_guard();
         let config_home = temp_dir("bundled-prune-home");
         let bundled_root = temp_dir("bundled-prune-root");
-        let stale_install_path = config_home
-            .join("plugins")
-            .join("installed")
-            .join("stale-bundled-external");
+        let stale_install_path =
+            config_home.join("plugins").join("installed").join("stale-bundled-external");
         write_bundled_plugin(&bundled_root.join("active"), "active", "0.1.0", false);
         write_file(
             stale_install_path.join(MANIFEST_RELATIVE_PATH).as_path(),
@@ -765,9 +730,7 @@ mod tests {
                 version: "0.1.0".to_string(),
                 description: "stale bundled plugin".to_string(),
                 install_path: stale_install_path.clone(),
-                source: PluginInstallSource::LocalPath {
-                    path: bundled_root.join("stale"),
-                },
+                source: PluginInstallSource::LocalPath { path: bundled_root.join("stale") },
                 installed_at_unix_ms: 1,
                 updated_at_unix_ms: 1,
             },
@@ -777,19 +740,9 @@ mod tests {
             .write_enabled_state("stale@bundled", Some(true))
             .expect("seed bundled enabled state");
 
-        let installed = manager
-            .list_installed_plugins()
-            .expect("bundled sync should succeed");
-        assert!(
-            installed
-                .iter()
-                .any(|plugin| plugin.metadata.id == "active@bundled")
-        );
-        assert!(
-            !installed
-                .iter()
-                .any(|plugin| plugin.metadata.id == "stale@bundled")
-        );
+        let installed = manager.list_installed_plugins().expect("bundled sync should succeed");
+        assert!(installed.iter().any(|plugin| plugin.metadata.id == "active@bundled"));
+        assert!(!installed.iter().any(|plugin| plugin.metadata.id == "stale@bundled"));
 
         let registry = manager.load_registry().expect("load registry");
         assert!(!registry.plugins.contains_key("stale@bundled"));
@@ -830,9 +783,7 @@ mod tests {
                 version: "1.0.0".to_string(),
                 description: "Registry fallback plugin".to_string(),
                 install_path: external_install_path.clone(),
-                source: PluginInstallSource::LocalPath {
-                    path: external_install_path.clone(),
-                },
+                source: PluginInstallSource::LocalPath { path: external_install_path.clone() },
                 installed_at_unix_ms: 1,
                 updated_at_unix_ms: 1,
             },
@@ -842,14 +793,9 @@ mod tests {
             .write_enabled_state("stale-external@external", Some(true))
             .expect("seed stale external enabled state");
 
-        let installed = manager
-            .list_installed_plugins()
-            .expect("registry fallback plugin should load");
-        assert!(
-            installed
-                .iter()
-                .any(|plugin| plugin.metadata.id == "registry-fallback@external")
-        );
+        let installed =
+            manager.list_installed_plugins().expect("registry fallback plugin should load");
+        assert!(installed.iter().any(|plugin| plugin.metadata.id == "registry-fallback@external"));
 
         let _ = fs::remove_dir_all(config_home);
         let _ = fs::remove_dir_all(bundled_root);
@@ -879,23 +825,16 @@ mod tests {
                 version: "1.0.0".to_string(),
                 description: "stale external plugin".to_string(),
                 install_path: missing_install_path.clone(),
-                source: PluginInstallSource::LocalPath {
-                    path: missing_install_path.clone(),
-                },
+                source: PluginInstallSource::LocalPath { path: missing_install_path.clone() },
                 installed_at_unix_ms: 1,
                 updated_at_unix_ms: 1,
             },
         );
         manager.store_registry(&registry).expect("store registry");
 
-        let installed = manager
-            .list_installed_plugins()
-            .expect("stale registry entries should be pruned");
-        assert!(
-            !installed
-                .iter()
-                .any(|plugin| plugin.metadata.id == "stale-external@external")
-        );
+        let installed =
+            manager.list_installed_plugins().expect("stale registry entries should be pruned");
+        assert!(!installed.iter().any(|plugin| plugin.metadata.id == "stale-external@external"));
 
         let registry = manager.load_registry().expect("load registry");
         assert!(!registry.plugins.contains_key("stale-external@external"));
@@ -915,9 +854,7 @@ mod tests {
         config.bundled_root = Some(bundled_root.clone());
         let mut manager = PluginManager::new(config.clone());
 
-        manager
-            .enable("starter@bundled")
-            .expect("enable bundled plugin should succeed");
+        manager.enable("starter@bundled").expect("enable bundled plugin should succeed");
         assert_eq!(
             load_enabled_plugins(&manager.settings_path()).get("starter@bundled"),
             Some(&true)
@@ -951,9 +888,7 @@ mod tests {
         config.bundled_root = Some(bundled_root.clone());
         let mut manager = PluginManager::new(config);
 
-        manager
-            .disable("starter@bundled")
-            .expect("disable bundled plugin should succeed");
+        manager.disable("starter@bundled").expect("disable bundled plugin should succeed");
         assert_eq!(
             load_enabled_plugins(&manager.settings_path()).get("starter@bundled"),
             Some(&false)
@@ -999,12 +934,8 @@ mod tests {
         write_external_plugin(&source_root, "registry-demo", "1.0.0");
 
         let mut manager = PluginManager::new(PluginManagerConfig::new(&config_home));
-        manager
-            .install(source_root.to_str().expect("utf8 path"))
-            .expect("install should succeed");
-        manager
-            .disable("registry-demo@external")
-            .expect("disable should succeed");
+        manager.install(source_root.to_str().expect("utf8 path")).expect("install should succeed");
+        manager.disable("registry-demo@external").expect("disable should succeed");
 
         let registry = manager.plugin_registry().expect("registry should build");
         let plugin = registry
@@ -1041,21 +972,11 @@ mod tests {
         assert!(report.registry().contains("valid-report@external"));
         assert_eq!(report.failures().len(), 1);
         assert_eq!(report.failures()[0].kind, PluginKind::External);
-        assert!(
-            report.failures()[0]
-                .plugin_root
-                .ends_with(Path::new("broken"))
-        );
-        assert!(
-            report.failures()[0]
-                .error()
-                .to_string()
-                .contains("does not exist")
-        );
+        assert!(report.failures()[0].plugin_root.ends_with(Path::new("broken")));
+        assert!(report.failures()[0].error().to_string().contains("does not exist"));
 
-        let error = manager
-            .plugin_registry()
-            .expect_err("strict registry should surface load failures");
+        let error =
+            manager.plugin_registry().expect_err("strict registry should surface load failures");
         match error {
             PluginError::LoadFailures(failures) => {
                 assert_eq!(failures.len(), 1);
@@ -1091,11 +1012,7 @@ mod tests {
         // then
         assert!(report.registry().contains("installed-valid@external"));
         assert_eq!(report.failures().len(), 1);
-        assert!(
-            report.failures()[0]
-                .plugin_root
-                .ends_with(Path::new("broken"))
-        );
+        assert!(report.failures()[0].plugin_root.ends_with(Path::new("broken")));
 
         let _ = fs::remove_dir_all(config_home);
         let _ = fs::remove_dir_all(bundled_root);
@@ -1190,9 +1107,7 @@ mod tests {
         write_tool_plugin(&source_root, "tool-demo", "1.0.0");
 
         let mut manager = PluginManager::new(PluginManagerConfig::new(&config_home));
-        manager
-            .install(source_root.to_str().expect("utf8 path"))
-            .expect("install should succeed");
+        manager.install(source_root.to_str().expect("utf8 path")).expect("install should succeed");
 
         let tools = manager.aggregated_tools().expect("tools should aggregate");
         assert_eq!(tools.len(), 1);
@@ -1232,14 +1147,9 @@ mod tests {
         config.install_root = Some(install_root);
         let manager = PluginManager::new(config);
 
-        let installed = manager
-            .list_installed_plugins()
-            .expect("installed plugins should scan directories");
-        assert!(
-            installed
-                .iter()
-                .any(|plugin| plugin.metadata.id == "scan-demo@external")
-        );
+        let installed =
+            manager.list_installed_plugins().expect("installed plugins should scan directories");
+        assert!(installed.iter().any(|plugin| plugin.metadata.id == "scan-demo@external"));
 
         let _ = fs::remove_dir_all(config_home);
         let _ = fs::remove_dir_all(bundled_root);
@@ -1269,11 +1179,7 @@ mod tests {
         let installed = manager
             .list_installed_plugins()
             .expect("installed plugins should scan packaged manifests");
-        assert!(
-            installed
-                .iter()
-                .any(|plugin| plugin.metadata.id == "scan-packaged@external")
-        );
+        assert!(installed.iter().any(|plugin| plugin.metadata.id == "scan-packaged@external"));
 
         let _ = fs::remove_dir_all(config_home);
         let _ = fs::remove_dir_all(bundled_root);
@@ -1313,9 +1219,7 @@ mod tests {
         let manager = PluginManager::new(config);
 
         // List installed plugins - should only see the test fixture, not host plugins
-        let installed = manager
-            .list_installed_plugins()
-            .expect("installed plugins should list");
+        let installed = manager.list_installed_plugins().expect("installed plugins should list");
 
         // Verify we only see the test fixture plugin
         assert_eq!(

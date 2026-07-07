@@ -61,9 +61,7 @@ impl tools::rpc::ToolExecutorAccess for registry::ToolRegistry {
         name: &str,
         input: serde_json::Value,
     ) -> Result<serde_json::Value, String> {
-        let tool = self
-            .find(name)
-            .ok_or_else(|| format!("Tool '{}' not found", name))?;
+        let tool = self.find(name).ok_or_else(|| format!("Tool '{}' not found", name))?;
         let ctx = ToolContext::new(
             std::env::current_dir()
                 .map(|p| p.to_string_lossy().to_string())

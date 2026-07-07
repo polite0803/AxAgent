@@ -57,9 +57,7 @@ pub struct LspMessageReader<R> {
 
 impl<R: AsyncReadExt + Unpin> LspMessageReader<R> {
     pub fn new(reader: R) -> Self {
-        Self {
-            reader: BufReader::new(reader),
-        }
+        Self { reader: BufReader::new(reader) }
     }
 
     pub async fn read_message(&mut self) -> io::Result<serde_json::Value> {
@@ -146,10 +144,7 @@ pub fn parse_response(
             .map_err(|e| format!("Failed to parse JSON-RPC error: {}", e))?;
         Ok((id, Err(rpc_error)))
     } else {
-        let result = value
-            .get("result")
-            .cloned()
-            .unwrap_or(serde_json::Value::Null);
+        let result = value.get("result").cloned().unwrap_or(serde_json::Value::Null);
         Ok((id, Ok(result)))
     }
 }
@@ -163,10 +158,7 @@ pub fn get_method(value: &serde_json::Value) -> Option<&str> {
 }
 
 pub fn get_params(value: &serde_json::Value) -> serde_json::Value {
-    value
-        .get("params")
-        .cloned()
-        .unwrap_or(serde_json::Value::Null)
+    value.get("params").cloned().unwrap_or(serde_json::Value::Null)
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

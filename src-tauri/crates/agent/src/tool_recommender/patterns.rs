@@ -31,24 +31,15 @@ pub struct UsagePatternDB {
 
 impl UsagePatternDB {
     pub fn new() -> Self {
-        Self {
-            patterns: HashMap::new(),
-            global_patterns: Vec::new(),
-        }
+        Self { patterns: HashMap::new(), global_patterns: Vec::new() }
     }
 
     pub fn add_pattern(&mut self, user_id: &str, pattern: UsagePattern) {
-        self.patterns
-            .entry(user_id.to_string())
-            .or_default()
-            .push(pattern);
+        self.patterns.entry(user_id.to_string()).or_default().push(pattern);
     }
 
     pub fn get_user_patterns(&self, user_id: &str) -> Vec<&UsagePattern> {
-        self.patterns
-            .get(user_id)
-            .map(|p| p.iter().collect())
-            .unwrap_or_default()
+        self.patterns.get(user_id).map(|p| p.iter().collect()).unwrap_or_default()
     }
 
     pub fn get_global_patterns(&self) -> &[GlobalPattern] {
@@ -74,9 +65,7 @@ impl UsagePatternDB {
         }
 
         similar.sort_by(|a, b| {
-            b.success_rate
-                .partial_cmp(&a.success_rate)
-                .unwrap_or(std::cmp::Ordering::Equal)
+            b.success_rate.partial_cmp(&a.success_rate).unwrap_or(std::cmp::Ordering::Equal)
         });
         similar
     }

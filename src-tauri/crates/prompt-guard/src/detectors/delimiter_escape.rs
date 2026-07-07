@@ -14,9 +14,7 @@ pub struct DelimiterEscaper {
 
 impl DelimiterEscaper {
     pub fn new(enable_unicode_homoglyph: bool) -> Self {
-        Self {
-            enable_unicode_homoglyph,
-        }
+        Self { enable_unicode_homoglyph }
     }
 
     /// 转义用户输入中的危险字符

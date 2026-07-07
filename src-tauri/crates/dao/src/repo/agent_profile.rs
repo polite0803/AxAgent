@@ -10,9 +10,7 @@ use axagent_harness::util_fns::now_ts;
 
 fn profile_from_entity(m: agent_profiles::Model) -> AgentProfile {
     let parse_json_arr = |raw: &Option<String>| -> Vec<String> {
-        raw.as_deref()
-            .and_then(|s| serde_json::from_str(s).ok())
-            .unwrap_or_default()
+        raw.as_deref().and_then(|s| serde_json::from_str(s).ok()).unwrap_or_default()
     };
 
     AgentProfile {
@@ -263,9 +261,7 @@ pub async fn delete_agent_profile(db: &DatabaseConnection, id: &str) -> Result<(
         .await?
         .ok_or_else(|| AxAgentError::NotFound(format!("AgentProfile {}", id)))?;
 
-    agent_profiles::Entity::delete_by_id(row.id)
-        .exec(db)
-        .await?;
+    agent_profiles::Entity::delete_by_id(row.id).exec(db).await?;
     Ok(())
 }
 

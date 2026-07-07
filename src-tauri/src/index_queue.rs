@@ -98,10 +98,7 @@ impl IndexJobService {
     }
 
     async fn recover_pending_jobs(&self) {
-        let reset_statuses = [
-            jobs::INDEX_JOB_STATUS_PROCESSING,
-            jobs::INDEX_JOB_STATUS_RETRYING,
-        ];
+        let reset_statuses = [jobs::INDEX_JOB_STATUS_PROCESSING, jobs::INDEX_JOB_STATUS_RETRYING];
         for status in &reset_statuses {
             match jobs::list_jobs_by_status(&self.db, status, 100).await {
                 Ok(pending) => {
@@ -147,9 +144,7 @@ impl IndexJobService {
     }
 
     async fn execute_job(&self, job_id: &str) -> Result<(), String> {
-        let job = jobs::get_job(&self.db, job_id)
-            .await
-            .map_err(|e| e.to_string())?;
+        let job = jobs::get_job(&self.db, job_id).await.map_err(|e| e.to_string())?;
 
         let delay_ms = if job.retry_count > 0 {
             let backoff = RETRY_BASE_DELAY_MS
@@ -231,9 +226,7 @@ impl IndexJobService {
             other => return Err(format!("未知容器类型: {}", other)),
         };
 
-        let container = self
-            .load_container(&container_type, &job.container_id)
-            .await?;
+        let container = self.load_container(&container_type, &job.container_id).await?;
 
         jobs::update_job_progress(&self.db, &job.id, Some(jobs::STAGE_PARSING), 10)
             .await

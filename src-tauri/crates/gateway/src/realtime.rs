@@ -112,9 +112,8 @@ pub async fn realtime_handler(
 
     // SECURITY (P1-9): 在 upgrade extractor 上设置 max_message_size / max_frame_size，
     // axum 0.8 不再支持 WebSocket::with_config()，必须在 WebSocketUpgrade 上配置。
-    let ws = ws
-        .max_message_size(REALTIME_MAX_MESSAGE_BYTES)
-        .max_frame_size(REALTIME_MAX_MESSAGE_BYTES);
+    let ws =
+        ws.max_message_size(REALTIME_MAX_MESSAGE_BYTES).max_frame_size(REALTIME_MAX_MESSAGE_BYTES);
 
     ws.on_upgrade(move |socket| handle_realtime_session(socket, state.db))
 }

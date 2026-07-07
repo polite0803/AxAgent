@@ -23,11 +23,7 @@ impl Default for ActionExecutor {
 
 impl ActionExecutor {
     pub fn new() -> Self {
-        Self {
-            _private: (),
-            pre_validator: None,
-            external_registry: None,
-        }
+        Self { _private: (), pre_validator: None, external_registry: None }
     }
 
     pub fn with_pre_validation(mut self, validator: PreExecutionValidator) -> Self {
@@ -67,12 +63,9 @@ impl ActionExecutor {
                 self.execute_tool(tool_name, input).await
             },
             ActionType::LlmCall => {
-                let prompt = action
-                    .llm_prompt
-                    .as_ref()
-                    .ok_or(ActionError::InvalidAction(
-                        "LlmCall action missing prompt".to_string(),
-                    ))?;
+                let prompt = action.llm_prompt.as_ref().ok_or(ActionError::InvalidAction(
+                    "LlmCall action missing prompt".to_string(),
+                ))?;
                 Ok(ActionResult::LlmResponse(prompt.to_string()))
             },
             ActionType::UserConfirm => {
@@ -162,10 +155,7 @@ impl ActionExecutor {
                         &format!("{tool_name}[{key}]: {path_str}"),
                     )));
                 }
-                if path
-                    .components()
-                    .any(|c| c == std::path::Component::ParentDir)
-                {
+                if path.components().any(|c| c == std::path::Component::ParentDir) {
                     return Err(ActionError::ToolExecution(axagent_harness::i18n::fmt_msg(
                         axagent_harness::i18n::I18nKey::AgentToolPathTraversalDenied,
                         &format!("{tool_name}[{key}]: {path_str}"),
@@ -285,11 +275,7 @@ impl ThoughtStepBuilder {
         state: crate::reasoning_state::ReasoningState,
         reasoning: impl Into<String>,
     ) -> Self {
-        Self {
-            state,
-            reasoning: reasoning.into(),
-            action: None,
-        }
+        Self { state, reasoning: reasoning.into(), action: None }
     }
 
     pub fn with_action(mut self, action: Action) -> Self {

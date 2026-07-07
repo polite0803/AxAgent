@@ -92,10 +92,7 @@ pub fn should_compact(
     let compactable = &session.messages[start..];
 
     compactable.len() > config.preserve_recent_messages
-        && compactable
-            .iter()
-            .map(estimate_message_tokens)
-            .sum::<usize>()
+        && compactable.iter().map(estimate_message_tokens).sum::<usize>()
             >= config.max_estimated_tokens
 }
 
@@ -221,15 +218,10 @@ pub fn compact_session(
         };
     }
 
-    let existing_summary = session
-        .messages
-        .first()
-        .and_then(|m| extract_existing_compacted_summary(m, provider));
+    let existing_summary =
+        session.messages.first().and_then(|m| extract_existing_compacted_summary(m, provider));
     let compacted_prefix_len = usize::from(existing_summary.is_some());
-    let raw_keep_from = session
-        .messages
-        .len()
-        .saturating_sub(config.preserve_recent_messages);
+    let raw_keep_from = session.messages.len().saturating_sub(config.preserve_recent_messages);
     // Ensure we do not split a tool-use / tool-result pair at the compaction
     // boundary. If the first preserved message is a user message whose first
     // block is a ToolResult, the assistant message with the matching ToolUse
@@ -259,10 +251,8 @@ pub fn compact_session(
             }
             // Check the message just before the current boundary.
             let preceding = &session.messages[k - 1];
-            let preceding_has_tool_use = preceding
-                .blocks
-                .iter()
-                .any(|b| matches!(b, ContentBlock::ToolUse { .. }));
+            let preceding_has_tool_use =
+                preceding.blocks.iter().any(|b| matches!(b, ContentBlock::ToolUse { .. }));
             if preceding_has_tool_use {
                 // Pair is intact — walk back one more to include the assistant turn.
                 k = k.saturating_sub(1);
@@ -383,18 +373,10 @@ fn compacted_summary_prefix_len(session: &Session, provider: &dyn PromptProvider
 }
 
 fn summarize_messages(messages: &[ConversationMessage]) -> String {
-    let user_messages = messages
-        .iter()
-        .filter(|message| message.role == MessageRole::User)
-        .count();
-    let assistant_messages = messages
-        .iter()
-        .filter(|message| message.role == MessageRole::Assistant)
-        .count();
-    let tool_messages = messages
-        .iter()
-        .filter(|message| message.role == MessageRole::Tool)
-        .count();
+    let user_messages = messages.iter().filter(|message| message.role == MessageRole::User).count();
+    let assistant_messages =
+        messages.iter().filter(|message| message.role == MessageRole::Assistant).count();
+    let tool_messages = messages.iter().filter(|message| message.role == MessageRole::Tool).count();
 
     let mut tool_names = messages
         .iter()
@@ -427,11 +409,7 @@ fn summarize_messages(messages: &[ConversationMessage]) -> String {
     let recent_user_requests = collect_recent_role_summaries(messages, MessageRole::User, 3);
     if !recent_user_requests.is_empty() {
         lines.push("- Recent user requests:".to_string());
-        lines.extend(
-            recent_user_requests
-                .into_iter()
-                .map(|request| format!("  - {request}")),
-        );
+        lines.extend(recent_user_requests.into_iter().map(|request| format!("  - {request}")));
     }
 
     let pending_work = infer_pending_work(messages);
@@ -457,12 +435,7 @@ fn summarize_messages(messages: &[ConversationMessage]) -> String {
             MessageRole::Assistant => "assistant",
             MessageRole::Tool => "tool",
         };
-        let content = message
-            .blocks
-            .iter()
-            .map(summarize_block)
-            .collect::<Vec<_>>()
-            .join(" | ");
+        let content = message.blocks.iter().map(summarize_block).collect::<Vec<_>>().join(" | ");
         lines.push(format!("  - {role}: {content}"));
     }
     lines.push("</summary>".to_string());
@@ -483,11 +456,7 @@ fn merge_compact_summaries(existing_summary: Option<&str>, new_summary: &str) ->
 
     if !previous_highlights.is_empty() {
         lines.push("- Previously compacted context:".to_string());
-        lines.extend(
-            previous_highlights
-                .into_iter()
-                .map(|line| format!("  {line}")),
-        );
+        lines.extend(previous_highlights.into_iter().map(|line| format!("  {line}")));
     }
 
     if !new_highlights.is_empty() {
@@ -508,12 +477,9 @@ fn summarize_block(block: &ContentBlock) -> String {
     let raw = match block {
         ContentBlock::Text { text } => text.clone(),
         ContentBlock::ToolUse { name, input, .. } => format!("tool_use {name}({input})"),
-        ContentBlock::ToolResult {
-            tool_name,
-            output,
-            is_error,
-            ..
-        } => format!("tool_result {tool_name}: {}{output}", if *is_error { "error " } else { "" }),
+        ContentBlock::ToolResult { tool_name, output, is_error, .. } => {
+            format!("tool_result {tool_name}: {}{output}", if *is_error { "error " } else { "" })
+        },
     };
     // Truncate to 500 chars (up from 160) to preserve more useful context
     // such as file paths, error messages, and key results.
@@ -641,9 +607,9 @@ pub fn estimate_message_tokens(message: &ConversationMessage) -> usize {
         .map(|block| match block {
             ContentBlock::Text { text } => text.len() / 4 + 1,
             ContentBlock::ToolUse { name, input, .. } => (name.len() + input.len()) / 4 + 1,
-            ContentBlock::ToolResult {
-                tool_name, output, ..
-            } => (tool_name.len() + output.len()) / 4 + 1,
+            ContentBlock::ToolResult { tool_name, output, .. } => {
+                (tool_name.len() + output.len()) / 4 + 1
+            },
         })
         .sum()
 }
@@ -787,13 +753,7 @@ pub fn summarize_turn(messages: &[ConversationMessage]) -> String {
             },
             MessageRole::Tool => {
                 for block in &message.blocks {
-                    if let ContentBlock::ToolResult {
-                        tool_name,
-                        output,
-                        is_error,
-                        ..
-                    } = block
-                    {
+                    if let ContentBlock::ToolResult { tool_name, output, is_error, .. } = block {
                         let status = if *is_error { "failed" } else { "ok" };
                         let output_short = output.chars().take(80).collect::<String>();
                         parts.push(format!("{tool_name}: {status} ({output_short})"));
@@ -954,15 +914,11 @@ mod tests {
         let mut session = Session::new();
         session.messages = vec![
             ConversationMessage::user_text("one ".repeat(200)),
-            ConversationMessage::assistant(vec![ContentBlock::Text {
-                text: "two ".repeat(200),
-            }]),
+            ConversationMessage::assistant(vec![ContentBlock::Text { text: "two ".repeat(200) }]),
             ConversationMessage::tool_result("1", "bash", "ok ".repeat(200), false),
             ConversationMessage {
                 role: MessageRole::Assistant,
-                blocks: vec![ContentBlock::Text {
-                    text: "recent".to_string(),
-                }],
+                blocks: vec![ContentBlock::Text { text: "recent".to_string() }],
                 usage: None,
             },
         ];
@@ -1038,21 +994,9 @@ mod tests {
         second_session.messages = follow_up_messages;
         let second = compact_session(&second_session, config, NP);
 
-        assert!(
-            second
-                .formatted_summary
-                .contains("Previously compacted context:")
-        );
-        assert!(
-            second
-                .formatted_summary
-                .contains("Scope: 2 earlier messages compacted")
-        );
-        assert!(
-            second
-                .formatted_summary
-                .contains("Newly compacted context:")
-        );
+        assert!(second.formatted_summary.contains("Previously compacted context:"));
+        assert!(second.formatted_summary.contains("Scope: 2 earlier messages compacted"));
+        assert!(second.formatted_summary.contains("Newly compacted context:"));
         assert!(
             second
                 .formatted_summary
@@ -1083,9 +1027,7 @@ mod tests {
                 usage: None,
             },
             ConversationMessage::user_text("tiny"),
-            ConversationMessage::assistant(vec![ContentBlock::Text {
-                text: "recent".to_string(),
-            }]),
+            ConversationMessage::assistant(vec![ContentBlock::Text { text: "recent".to_string() }]),
         ];
 
         assert!(!should_compact(
@@ -1101,9 +1043,7 @@ mod tests {
 
     #[test]
     fn truncates_long_blocks_in_summary() {
-        let summary = super::summarize_block(&ContentBlock::Text {
-            text: "x".repeat(600),
-        });
+        let summary = super::summarize_block(&ContentBlock::Text { text: "x".repeat(600) });
         assert!(summary.ends_with('…'));
         assert!(summary.chars().count() <= 501);
     }
@@ -1128,9 +1068,7 @@ mod tests {
         let tool_id = "call_abc";
         let mut session = Session::default();
         // Turn 1: user prompt
-        session
-            .push_message(ConversationMessage::user_text("Search for files"))
-            .unwrap();
+        session.push_message(ConversationMessage::user_text("Search for files")).unwrap();
         // Turn 2: assistant calls a tool
         session
             .push_message(ConversationMessage::assistant(vec![ContentBlock::ToolUse {
@@ -1158,10 +1096,8 @@ mod tests {
         // Compact preserving only 1 recent message — without the fix this
         // would cut the boundary so that the tool result (turn 3) is first,
         // without its preceding assistant tool_calls (turn 2).
-        let config = CompactionConfig {
-            preserve_recent_messages: 1,
-            ..CompactionConfig::default()
-        };
+        let config =
+            CompactionConfig { preserve_recent_messages: 1, ..CompactionConfig::default() };
         let result = compact_session(&session, config, NP);
         // After compaction, no two consecutive messages should have the pattern
         // tool_result immediately following a non-assistant message (i.e. an
@@ -1256,9 +1192,7 @@ mod tests {
     fn test_detect_task_boundary_finds_transition() {
         let messages = vec![
             ConversationMessage::user_text("Fix the bug"),
-            ConversationMessage::assistant(vec![ContentBlock::Text {
-                text: "Done".to_string(),
-            }]),
+            ConversationMessage::assistant(vec![ContentBlock::Text { text: "Done".to_string() }]),
             ConversationMessage::user_text("Thanks, looks good!"),
             ConversationMessage::assistant(vec![ContentBlock::Text {
                 text: "You're welcome".to_string(),
@@ -1273,9 +1207,7 @@ mod tests {
     fn test_detect_task_boundary_short_conversation() {
         let messages = vec![
             ConversationMessage::user_text("Hi"),
-            ConversationMessage::assistant(vec![ContentBlock::Text {
-                text: "Hello".to_string(),
-            }]),
+            ConversationMessage::assistant(vec![ContentBlock::Text { text: "Hello".to_string() }]),
         ];
         let boundary = super::detect_task_boundary(&messages);
         assert_eq!(boundary, None);
@@ -1285,9 +1217,7 @@ mod tests {
     fn test_cleanup_task_boundary_returns_count() {
         let messages = vec![
             ConversationMessage::user_text("do task A"),
-            ConversationMessage::assistant(vec![ContentBlock::Text {
-                text: "done A".to_string(),
-            }]),
+            ConversationMessage::assistant(vec![ContentBlock::Text { text: "done A".to_string() }]),
             ConversationMessage::user_text("thanks, looks good"),
             ConversationMessage::assistant(vec![ContentBlock::Text {
                 text: "welcome".to_string(),

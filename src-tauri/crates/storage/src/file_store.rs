@@ -23,24 +23,15 @@ pub struct SavedFile {
 
 impl FileStore {
     pub fn new() -> Self {
-        Self {
-            base_dir: crate::storage_paths::documents_root(),
-            sync_engine: None,
-        }
+        Self { base_dir: crate::storage_paths::documents_root(), sync_engine: None }
     }
 
     pub fn with_sync_engine(root: PathBuf, engine: Option<Arc<SyncEngine>>) -> Self {
-        Self {
-            base_dir: root,
-            sync_engine: engine,
-        }
+        Self { base_dir: root, sync_engine: engine }
     }
 
     pub fn with_root(root: PathBuf) -> Self {
-        Self {
-            base_dir: root,
-            sync_engine: None,
-        }
+        Self { base_dir: root, sync_engine: None }
     }
 }
 
@@ -89,11 +80,7 @@ impl FileStore {
             });
         }
 
-        Ok(SavedFile {
-            hash,
-            storage_path: relative_path,
-            size_bytes: data.len() as i64,
-        })
+        Ok(SavedFile { hash, storage_path: relative_path, size_bytes: data.len() as i64 })
     }
 
     pub fn read_file(&self, storage_path: &str) -> Result<Vec<u8>> {

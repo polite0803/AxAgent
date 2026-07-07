@@ -18,9 +18,7 @@ pub struct ProviderRegistry {
 
 impl ProviderRegistry {
     pub fn new() -> Self {
-        Self {
-            adapters: HashMap::new(),
-        }
+        Self { adapters: HashMap::new() }
     }
 
     /// Register a provider adapter (takes `Arc` to support the harness `ProviderRegistry` trait)

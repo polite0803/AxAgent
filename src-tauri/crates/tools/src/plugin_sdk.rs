@@ -229,9 +229,7 @@ fn infer_permissions_for_tool(tool: &PluginToolDef) -> Vec<PluginPermission> {
 
 impl SdkPluginRegistry {
     pub fn new() -> Self {
-        Self {
-            plugins: RwLock::new(HashMap::new()),
-        }
+        Self { plugins: RwLock::new(HashMap::new()) }
     }
 
     pub async fn register(&self, plugin: Box<dyn AxAgentPlugin>) -> Result<(), String> {
@@ -242,10 +240,7 @@ impl SdkPluginRegistry {
         }
         plugins.insert(
             id,
-            SdkPluginEntry {
-                plugin: Arc::new(RwLock::new(plugin)),
-                initialized: false,
-            },
+            SdkPluginEntry { plugin: Arc::new(RwLock::new(plugin)), initialized: false },
         );
         Ok(())
     }
@@ -413,9 +408,7 @@ pub async fn execute_sdk_plugin_tool(
     input: &serde_json::Value,
     ctx: &PluginContext,
 ) -> Result<PluginToolResult, String> {
-    global_sdk_plugins()
-        .execute_tool(plugin_id, tool_name, input, ctx)
-        .await
+    global_sdk_plugins().execute_tool(plugin_id, tool_name, input, ctx).await
 }
 
 #[cfg(test)]

@@ -20,36 +20,22 @@ use axagent_harness::workflow_types::{
 pub fn workflow_template_response_from_model(
     model: workflow_template::Model,
 ) -> WorkflowTemplateResponse {
-    let tags: Vec<String> = model
-        .tags
-        .as_ref()
-        .and_then(|t| serde_json::from_str(t).ok())
-        .unwrap_or_default();
+    let tags: Vec<String> =
+        model.tags.as_ref().and_then(|t| serde_json::from_str(t).ok()).unwrap_or_default();
 
-    let trigger_config: Option<TriggerConfig> = model
-        .trigger_config
-        .as_ref()
-        .and_then(|t| serde_json::from_str(t).ok());
+    let trigger_config: Option<TriggerConfig> =
+        model.trigger_config.as_ref().and_then(|t| serde_json::from_str(t).ok());
 
     let nodes: Vec<WorkflowNode> = serde_json::from_str(&model.nodes).unwrap_or_default();
     let edges: Vec<WorkflowEdge> = serde_json::from_str(&model.edges).unwrap_or_default();
-    let input_schema: Option<JsonSchema> = model
-        .input_schema
-        .as_ref()
-        .and_then(|s| serde_json::from_str(s).ok());
-    let output_schema: Option<JsonSchema> = model
-        .output_schema
-        .as_ref()
-        .and_then(|s| serde_json::from_str(s).ok());
-    let variables_vec: Vec<Variable> = model
-        .variables
-        .as_ref()
-        .and_then(|v| serde_json::from_str(v).ok())
-        .unwrap_or_default();
-    let error_config: Option<ErrorConfig> = model
-        .error_config
-        .as_ref()
-        .and_then(|e| serde_json::from_str(e).ok());
+    let input_schema: Option<JsonSchema> =
+        model.input_schema.as_ref().and_then(|s| serde_json::from_str(s).ok());
+    let output_schema: Option<JsonSchema> =
+        model.output_schema.as_ref().and_then(|s| serde_json::from_str(s).ok());
+    let variables_vec: Vec<Variable> =
+        model.variables.as_ref().and_then(|v| serde_json::from_str(v).ok()).unwrap_or_default();
+    let error_config: Option<ErrorConfig> =
+        model.error_config.as_ref().and_then(|e| serde_json::from_str(e).ok());
 
     WorkflowTemplateResponse {
         id: model.id,

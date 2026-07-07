@@ -30,12 +30,7 @@ impl LlmCallResult {
             completion_tokens: response.usage.completion_tokens,
             total_tokens: response.usage.total_tokens,
         };
-        Self {
-            response,
-            usage,
-            duration_ms,
-            cached,
-        }
+        Self { response, usage, duration_ms, cached }
     }
 }
 
@@ -205,11 +200,9 @@ pub async fn execute_llm(
             .map(|m| {
                 let text = match &m.content {
                     ChatContent::Text(t) => t.clone(),
-                    ChatContent::Multipart(parts) => parts
-                        .iter()
-                        .filter_map(|p| p.text.as_deref())
-                        .collect::<Vec<_>>()
-                        .join(" "),
+                    ChatContent::Multipart(parts) => {
+                        parts.iter().filter_map(|p| p.text.as_deref()).collect::<Vec<_>>().join(" ")
+                    },
                 };
                 // 简易估算：中文 * 2 + 非中文 / 4 + 10
                 let chinese_chars: usize = text.chars().filter(|&c| c as u32 > 0x2E80).count();
@@ -312,10 +305,7 @@ pub async fn execute_llm(
         let cloned_request = request.clone();
         policy
             .execute_with_retry(|| async {
-                adapter
-                    .chat(ctx, cloned_request.clone())
-                    .await
-                    .map_err(|e| e.to_string())
+                adapter.chat(ctx, cloned_request.clone()).await.map_err(|e| e.to_string())
             })
             .await
             .map_err(|e| {
@@ -365,10 +355,7 @@ pub async fn execute_llm(
     if let Some(threshold) = config.confidence_threshold {
         let response_text = &result.response.content;
         if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(response_text) {
-            let confidence = parsed
-                .get("confidence")
-                .and_then(|c| c.as_f64())
-                .unwrap_or(1.0);
+            let confidence = parsed.get("confidence").and_then(|c| c.as_f64()).unwrap_or(1.0);
             if confidence < threshold {
                 tracing::warn!(
                     "[execute_llm] 置信度 {:.2} 低于阈值 {:.2}，触发降级",

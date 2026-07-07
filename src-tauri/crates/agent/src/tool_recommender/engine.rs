@@ -100,11 +100,7 @@ impl ToolRecommender {
 
         for (id, tool) in &tool_index.tools {
             for category in &tool.categories {
-                tool_index
-                    .category_index
-                    .entry(category.clone())
-                    .or_default()
-                    .push(id.clone());
+                tool_index.category_index.entry(category.clone()).or_default().push(id.clone());
             }
         }
 
@@ -123,12 +119,7 @@ impl ToolRecommender {
         let confidence = self.calculate_confidence(&ranked);
         let alternatives = self.generate_alternatives(&ranked);
 
-        ToolRecommendation {
-            tools: ranked,
-            reasoning,
-            confidence,
-            alternatives,
-        }
+        ToolRecommendation { tools: ranked, reasoning, confidence, alternatives }
     }
 
     fn score_candidates(&self, candidates: &[&Tool], context: &TaskContext) -> Vec<ToolScore> {
@@ -171,10 +162,7 @@ impl ToolRecommender {
 
         match context.task_type {
             TaskType::InformationRetrieval => {
-                if tool
-                    .categories
-                    .contains(&"information_retrieval".to_string())
-                {
+                if tool.categories.contains(&"information_retrieval".to_string()) {
                     score += 0.5;
                 }
                 if tool.categories.contains(&"web".to_string()) {
@@ -263,11 +251,7 @@ impl ToolRecommender {
     }
 
     fn rank_tools(&self, mut scored: Vec<ToolScore>) -> Vec<ToolScore> {
-        scored.sort_by(|a, b| {
-            b.score
-                .partial_cmp(&a.score)
-                .unwrap_or(std::cmp::Ordering::Equal)
-        });
+        scored.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap_or(std::cmp::Ordering::Equal));
         scored
     }
 

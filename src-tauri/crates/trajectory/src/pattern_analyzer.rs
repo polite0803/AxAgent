@@ -73,9 +73,7 @@ pub(crate) struct PatternAnalyzer {
 
 impl PatternAnalyzer {
     pub(crate) fn new() -> Self {
-        Self {
-            min_confidence_threshold: 0.5,
-        }
+        Self { min_confidence_threshold: 0.5 }
     }
 
     pub(crate) fn analyze(&self, events: &[BehaviorEvent]) -> ExtractedPatterns {
@@ -114,27 +112,17 @@ impl PatternAnalyzer {
 
         for event in events {
             match &event.event_type {
-                BehaviorEventType::CodeGeneration {
-                    language,
-                    line_count,
-                    ..
-                } => {
+                BehaviorEventType::CodeGeneration { language, line_count, .. } => {
                     let naming_key = format!("lang:{}", language);
                     *naming_counts.entry(naming_key).or_insert(0) += 1;
 
                     if *line_count > 100 {
-                        *indentation_counts
-                            .entry("spacious".to_string())
-                            .or_insert(0) += 1;
+                        *indentation_counts.entry("spacious".to_string()).or_insert(0) += 1;
                     } else {
                         *indentation_counts.entry("compact".to_string()).or_insert(0) += 1;
                     }
                 },
-                BehaviorEventType::FileEdited {
-                    edit_type,
-                    lines_changed,
-                    ..
-                } => {
+                BehaviorEventType::FileEdited { edit_type, lines_changed, .. } => {
                     if *lines_changed > 50 {
                         *comment_counts.entry("extensive".to_string()).or_insert(0) += 1;
                     } else {
@@ -263,19 +251,14 @@ impl PatternAnalyzer {
         let mut tool_stats: HashMap<String, ToolStats> = HashMap::new();
 
         for event in events {
-            if let BehaviorEventType::ToolUsage {
-                tool_name,
-                success,
-                duration_ms,
-            } = &event.event_type
+            if let BehaviorEventType::ToolUsage { tool_name, success, duration_ms } =
+                &event.event_type
             {
-                let stats = tool_stats
-                    .entry(tool_name.clone())
-                    .or_insert_with(|| ToolStats {
-                        usage_count: 0,
-                        success_count: 0,
-                        total_duration_ms: 0,
-                    });
+                let stats = tool_stats.entry(tool_name.clone()).or_insert_with(|| ToolStats {
+                    usage_count: 0,
+                    success_count: 0,
+                    total_duration_ms: 0,
+                });
                 stats.usage_count += 1;
                 if *success {
                     stats.success_count += 1;
@@ -299,9 +282,7 @@ impl PatternAnalyzer {
         }
 
         patterns.sort_by(|a, b| {
-            b.usage_frequency
-                .partial_cmp(&a.usage_frequency)
-                .unwrap_or(std::cmp::Ordering::Equal)
+            b.usage_frequency.partial_cmp(&a.usage_frequency).unwrap_or(std::cmp::Ordering::Equal)
         });
         patterns.truncate(10);
 
@@ -328,10 +309,9 @@ impl PatternAnalyzer {
                 _ => return Vec::new(),
             };
 
-            let info = topic_counts.entry(topic).or_insert_with(|| TopicInfo {
-                count: 0,
-                last_seen: event.timestamp,
-            });
+            let info = topic_counts
+                .entry(topic)
+                .or_insert_with(|| TopicInfo { count: 0, last_seen: event.timestamp });
             info.count += 1;
             if event.timestamp > info.last_seen {
                 info.last_seen = event.timestamp;

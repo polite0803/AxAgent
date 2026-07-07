@@ -12,14 +12,10 @@ fn quickbar_url(app: &AppHandle) -> WebviewUrl {
             let base = dev_url.as_str().trim_end_matches('/');
             let fallback_url = "http://localhost:1420/index.html?__route=quickbar";
             WebviewUrl::External(
-                format!("{}/index.html?__route=quickbar", base)
-                    .parse()
-                    .unwrap_or_else(|_| {
-                        tracing::warn!("quickbar dev_url 格式无效，使用默认 URL");
-                        fallback_url
-                            .parse()
-                            .expect("hardcoded fallback URL is valid")
-                    }),
+                format!("{}/index.html?__route=quickbar", base).parse().unwrap_or_else(|_| {
+                    tracing::warn!("quickbar dev_url 格式无效，使用默认 URL");
+                    fallback_url.parse().expect("hardcoded fallback URL is valid")
+                }),
             )
         },
         None => WebviewUrl::App("index.html?__route=quickbar".into()),

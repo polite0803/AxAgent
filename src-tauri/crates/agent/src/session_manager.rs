@@ -66,10 +66,7 @@ pub fn estimate_tokens_from_text(text: &str) -> usize {
 }
 
 pub fn estimate_tokens_from_messages(messages: &[HarnessConversationMessage]) -> usize {
-    messages
-        .iter()
-        .map(|m| estimate_tokens_from_content_blocks(&m.blocks))
-        .sum()
+    messages.iter().map(|m| estimate_tokens_from_content_blocks(&m.blocks)).sum()
 }
 
 fn estimate_tokens_from_content_blocks(blocks: &[HarnessContentBlock]) -> usize {
@@ -82,12 +79,7 @@ fn estimate_tokens_from_content_blocks(blocks: &[HarnessContentBlock]) -> usize 
                     + estimate_tokens_from_text(name)
                     + estimate_tokens_from_text(input)
             },
-            HarnessContentBlock::ToolResult {
-                tool_use_id,
-                tool_name,
-                output,
-                ..
-            } => {
+            HarnessContentBlock::ToolResult { tool_use_id, tool_name, output, .. } => {
                 estimate_tokens_from_text(tool_use_id)
                     + estimate_tokens_from_text(tool_name)
                     + estimate_tokens_from_text(output)
@@ -403,14 +395,8 @@ impl SessionManager {
                 let db = self.db.clone();
                 let axagent_sid = axagent_session_id.to_string();
                 // 优先使用调用方传入的 usage;否则从 messages 末尾的 usage 字段汇总
-                let effective_usage = usage.or_else(|| {
-                    session
-                        .session()
-                        .messages
-                        .iter()
-                        .rev()
-                        .find_map(|m| m.usage)
-                });
+                let effective_usage =
+                    usage.or_else(|| session.session().messages.iter().rev().find_map(|m| m.usage));
                 let tokens_delta = effective_usage
                     .as_ref()
                     .map(|u| u.input_tokens as i32 + u.output_tokens as i32)
@@ -633,10 +619,7 @@ impl SessionManager {
                     &compressed_msgs,
                     &key_entities,
                 ),
-                None => axagent_harness::IntegrityResult {
-                    is_valid: true,
-                    checks: Vec::new(),
-                },
+                None => axagent_harness::IntegrityResult { is_valid: true, checks: Vec::new() },
             };
             if !integrity.is_valid {
                 let failed_checks: Vec<&str> = integrity
@@ -849,11 +832,7 @@ impl ChannelPermissionPrompter {
 
     /// Returns the number of pending permission requests.
     pub fn pending_count(&self) -> usize {
-        self.inner
-            .pending_senders
-            .lock()
-            .unwrap_or_else(|e| e.into_inner())
-            .len()
+        self.inner.pending_senders.lock().unwrap_or_else(|e| e.into_inner()).len()
     }
 
     /// Register a sender for a pending request. Called by `agent_approve` command
@@ -879,11 +858,7 @@ impl ChannelPermissionPrompter {
 
     /// Get the current "always allowed" set.
     pub fn get_always_allowed(&self) -> HashSet<String> {
-        self.inner
-            .always_allowed
-            .lock()
-            .map(|s| s.clone())
-            .unwrap_or_default()
+        self.inner.always_allowed.lock().map(|s| s.clone()).unwrap_or_default()
     }
 
     /// Clean up any stale pending senders (e.g. on conversation switch).
@@ -941,12 +916,8 @@ impl PermissionPrompter for ChannelPermissionPrompter {
                     .unwrap_or("");
                 if !path.is_empty() {
                     // Use the cwd as workspace root if available
-                    let workspace_root = self
-                        .inner
-                        .workspace_root
-                        .lock()
-                        .map(|s| s.clone())
-                        .unwrap_or_default();
+                    let workspace_root =
+                        self.inner.workspace_root.lock().map(|s| s.clone()).unwrap_or_default();
                     if !workspace_root.is_empty() {
                         let result = enforcer.check_file_write(path, &workspace_root);
                         if let axagent_runtime_core::permission_enforcer::EnforcementResult::Denied {
@@ -972,10 +943,7 @@ impl PermissionPrompter for ChannelPermissionPrompter {
             || tool_name_lower.contains("run"))
             && let Ok(input_val) = serde_json::from_str::<serde_json::Value>(&request.input)
         {
-            let command = input_val
-                .get("command")
-                .and_then(|v| v.as_str())
-                .unwrap_or("");
+            let command = input_val.get("command").and_then(|v| v.as_str()).unwrap_or("");
             if !command.is_empty() {
                 let result = enforcer.check_bash(command);
                 if let axagent_runtime_core::permission_enforcer::EnforcementResult::Denied {
@@ -1100,11 +1068,7 @@ pub struct TauriHookProgressReporter {
 
 impl TauriHookProgressReporter {
     pub fn new(app_handle: AppHandle, conversation_id: String) -> Self {
-        Self {
-            app_handle,
-            conversation_id,
-            progress: None,
-        }
+        Self { app_handle, conversation_id, progress: None }
     }
 
     pub fn with_progress(
@@ -1112,11 +1076,7 @@ impl TauriHookProgressReporter {
         conversation_id: String,
         progress: Arc<AgentExecutionProgress>,
     ) -> Self {
-        Self {
-            app_handle,
-            conversation_id,
-            progress: Some(progress),
-        }
+        Self { app_handle, conversation_id, progress: Some(progress) }
     }
 }
 
@@ -1263,9 +1223,7 @@ mod tests {
     fn test_estimate_tokens_from_messages_with_text() {
         let messages = vec![HarnessConversationMessage {
             role: HarnessMessageRole::User,
-            blocks: vec![HarnessContentBlock::Text {
-                text: "hello world".to_string(),
-            }],
+            blocks: vec![HarnessContentBlock::Text { text: "hello world".to_string() }],
             usage: None,
         }];
         assert_eq!(estimate_tokens_from_messages(&messages), 2);
@@ -1432,9 +1390,7 @@ mod tests {
 
     #[test]
     fn test_estimate_tokens_from_content_blocks_text() {
-        let blocks = vec![HarnessContentBlock::Text {
-            text: "hello world test!".to_string(),
-        }];
+        let blocks = vec![HarnessContentBlock::Text { text: "hello world test!".to_string() }];
         let tokens = estimate_tokens_from_content_blocks(&blocks);
         assert_eq!(tokens, 4);
     }
@@ -1465,12 +1421,8 @@ mod tests {
     #[test]
     fn test_estimate_tokens_from_content_blocks_multiple() {
         let blocks = vec![
-            HarnessContentBlock::Text {
-                text: "hello".to_string(),
-            },
-            HarnessContentBlock::Text {
-                text: "world".to_string(),
-            },
+            HarnessContentBlock::Text { text: "hello".to_string() },
+            HarnessContentBlock::Text { text: "world".to_string() },
         ];
         let tokens = estimate_tokens_from_content_blocks(&blocks);
         assert_eq!(tokens, 2);
@@ -1557,8 +1509,7 @@ mod tests {
     async fn test_session_manager_set_default_workspace_dir() {
         let db = setup_test_db().await;
         let mgr = SessionManager::new(db);
-        mgr.set_default_workspace_dir(Some("/tmp/workspace".to_string()))
-            .await;
+        mgr.set_default_workspace_dir(Some("/tmp/workspace".to_string())).await;
         let default_dir = mgr.default_workspace_dir.lock().await;
         assert_eq!(*default_dir, Some("/tmp/workspace".to_string()));
     }
@@ -1567,8 +1518,7 @@ mod tests {
     async fn test_session_manager_set_default_workspace_dir_none() {
         let db = setup_test_db().await;
         let mgr = SessionManager::new(db);
-        mgr.set_default_workspace_dir(Some("/tmp/workspace".to_string()))
-            .await;
+        mgr.set_default_workspace_dir(Some("/tmp/workspace".to_string())).await;
         mgr.set_default_workspace_dir(None).await;
         let default_dir = mgr.default_workspace_dir.lock().await;
         assert!(default_dir.is_none());
@@ -1601,10 +1551,8 @@ mod tests {
     async fn test_session_manager_create_session() {
         let db = setup_test_db().await;
         let mgr = SessionManager::new(db);
-        let session = mgr
-            .create_session("provider-1".to_string(), "conv-1".to_string())
-            .await
-            .unwrap();
+        let session =
+            mgr.create_session("provider-1".to_string(), "conv-1".to_string()).await.unwrap();
         assert_eq!(session.provider_id(), "provider-1");
         assert_eq!(session.conversation_id(), "conv-1");
         assert!(session.axagent_session_id().is_some());
@@ -1615,10 +1563,8 @@ mod tests {
     async fn test_session_manager_create_and_get_session() {
         let db = setup_test_db().await;
         let mgr = SessionManager::new(db);
-        let session = mgr
-            .create_session("provider-1".to_string(), "conv-1".to_string())
-            .await
-            .unwrap();
+        let session =
+            mgr.create_session("provider-1".to_string(), "conv-1".to_string()).await.unwrap();
         let session_id = session.session().session_id.clone();
         let retrieved = mgr.get_session(&session_id).await;
         assert!(retrieved.is_some());
@@ -1629,10 +1575,8 @@ mod tests {
     async fn test_session_manager_create_and_remove_session() {
         let db = setup_test_db().await;
         let mgr = SessionManager::new(db);
-        let session = mgr
-            .create_session("provider-1".to_string(), "conv-1".to_string())
-            .await
-            .unwrap();
+        let session =
+            mgr.create_session("provider-1".to_string(), "conv-1".to_string()).await.unwrap();
         let session_id = session.session().session_id.clone();
         assert_eq!(mgr.session_count().await, 1);
         let removed = mgr.remove_session(&session_id).await;
@@ -1673,9 +1617,7 @@ mod tests {
     async fn test_session_manager_clear_session() {
         let db = setup_test_db().await;
         let mgr = SessionManager::new(db);
-        mgr.create_session("provider-1".to_string(), "conv-1".to_string())
-            .await
-            .unwrap();
+        mgr.create_session("provider-1".to_string(), "conv-1".to_string()).await.unwrap();
         assert_eq!(mgr.session_count().await, 1);
         mgr.clear_session("conv-1").await;
         assert_eq!(mgr.session_count().await, 0);
@@ -1685,9 +1627,7 @@ mod tests {
     async fn test_session_manager_clear_session_nonexistent() {
         let db = setup_test_db().await;
         let mgr = SessionManager::new(db);
-        mgr.create_session("provider-1".to_string(), "conv-1".to_string())
-            .await
-            .unwrap();
+        mgr.create_session("provider-1".to_string(), "conv-1".to_string()).await.unwrap();
         mgr.clear_session("nonexistent").await;
         assert_eq!(mgr.session_count().await, 1);
     }
@@ -1696,15 +1636,9 @@ mod tests {
     async fn test_session_manager_multiple_sessions() {
         let db = setup_test_db().await;
         let mgr = SessionManager::new(db);
-        mgr.create_session("p1".to_string(), "conv-1".to_string())
-            .await
-            .unwrap();
-        mgr.create_session("p2".to_string(), "conv-2".to_string())
-            .await
-            .unwrap();
-        mgr.create_session("p3".to_string(), "conv-3".to_string())
-            .await
-            .unwrap();
+        mgr.create_session("p1".to_string(), "conv-1".to_string()).await.unwrap();
+        mgr.create_session("p2".to_string(), "conv-2".to_string()).await.unwrap();
+        mgr.create_session("p3".to_string(), "conv-3".to_string()).await.unwrap();
         assert_eq!(mgr.session_count().await, 3);
     }
 
@@ -1712,9 +1646,7 @@ mod tests {
     async fn test_session_manager_conversation_index() {
         let db = setup_test_db().await;
         let mgr = SessionManager::new(db);
-        mgr.create_session("p1".to_string(), "conv-1".to_string())
-            .await
-            .unwrap();
+        mgr.create_session("p1".to_string(), "conv-1".to_string()).await.unwrap();
         let conv_index = mgr.conversation_index.lock().await;
         assert!(conv_index.contains_key("conv-1"));
     }
@@ -1723,9 +1655,7 @@ mod tests {
     async fn test_session_manager_session_last_access_updated() {
         let db = setup_test_db().await;
         let mgr = SessionManager::new(db);
-        mgr.create_session("p1".to_string(), "conv-1".to_string())
-            .await
-            .unwrap();
+        mgr.create_session("p1".to_string(), "conv-1".to_string()).await.unwrap();
         let session_id = {
             let conv_index = mgr.conversation_index.lock().await;
             conv_index.get("conv-1").cloned().unwrap()
@@ -1742,14 +1672,7 @@ mod tests {
             workspace_root: std::sync::Mutex::new("/workspace".to_string()),
         };
         let inner = Arc::new(inner);
-        assert_eq!(
-            inner
-                .pending_senders
-                .lock()
-                .unwrap_or_else(|e| e.into_inner())
-                .len(),
-            0
-        );
+        assert_eq!(inner.pending_senders.lock().unwrap_or_else(|e| e.into_inner()).len(), 0);
     }
 
     #[test]
@@ -1837,9 +1760,7 @@ mod tests {
             }
         };
         assert!(result);
-        let decision = rx
-            .recv_timeout(std::time::Duration::from_millis(100))
-            .unwrap();
+        let decision = rx.recv_timeout(std::time::Duration::from_millis(100)).unwrap();
         assert!(matches!(decision, PermissionPromptDecision::Allow));
     }
 
@@ -1875,17 +1796,13 @@ mod tests {
         let messages = vec![
             HarnessConversationMessage {
                 role: HarnessMessageRole::User,
-                blocks: vec![HarnessContentBlock::Text {
-                    text: "hello".to_string(),
-                }],
+                blocks: vec![HarnessContentBlock::Text { text: "hello".to_string() }],
                 usage: None,
             },
             HarnessConversationMessage {
                 role: HarnessMessageRole::Assistant,
                 blocks: vec![
-                    HarnessContentBlock::Text {
-                        text: "response text here".to_string(),
-                    },
+                    HarnessContentBlock::Text { text: "response text here".to_string() },
                     HarnessContentBlock::ToolUse {
                         id: "id-1".to_string(),
                         name: "bash".to_string(),
@@ -1937,23 +1854,17 @@ mod tests {
         let messages = vec![
             HarnessConversationMessage {
                 role: HarnessMessageRole::User,
-                blocks: vec![HarnessContentBlock::Text {
-                    text: "first message".to_string(),
-                }],
+                blocks: vec![HarnessContentBlock::Text { text: "first message".to_string() }],
                 usage: None,
             },
             HarnessConversationMessage {
                 role: HarnessMessageRole::Assistant,
-                blocks: vec![HarnessContentBlock::Text {
-                    text: "second message".to_string(),
-                }],
+                blocks: vec![HarnessContentBlock::Text { text: "second message".to_string() }],
                 usage: None,
             },
             HarnessConversationMessage {
                 role: HarnessMessageRole::User,
-                blocks: vec![HarnessContentBlock::Text {
-                    text: "third message here".to_string(),
-                }],
+                blocks: vec![HarnessContentBlock::Text { text: "third message here".to_string() }],
                 usage: None,
             },
         ];

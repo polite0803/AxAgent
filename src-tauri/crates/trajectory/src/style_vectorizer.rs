@@ -41,12 +41,7 @@ impl Default for StyleDimensions {
 
 impl StyleVector {
     pub fn new(dimensions: StyleDimensions, source_confidence: f32, sample_count: u32) -> Self {
-        Self {
-            dimensions,
-            source_confidence,
-            learned_at: Utc::now(),
-            sample_count,
-        }
+        Self { dimensions, source_confidence, learned_at: Utc::now(), sample_count }
     }
 
     pub fn default_style() -> Self {
@@ -106,9 +101,7 @@ pub struct StyleVectorizer {
 
 impl StyleVectorizer {
     pub fn new() -> Self {
-        Self {
-            min_samples_for_confidence: 5,
-        }
+        Self { min_samples_for_confidence: 5 }
     }
 
     pub fn from_coding_samples(&self, samples: &[CodeSample]) -> StyleVector {
@@ -178,19 +171,11 @@ impl StyleVectorizer {
                 total += 1;
                 if func.contains('_') && !func.contains('-') {
                     snake_count += 1;
-                } else if func
-                    .chars()
-                    .next()
-                    .map(|c| c.is_lowercase())
-                    .unwrap_or(false)
+                } else if func.chars().next().map(|c| c.is_lowercase()).unwrap_or(false)
                     && func.chars().any(|c| c.is_uppercase())
                 {
                     camel_count += 1;
-                } else if func
-                    .chars()
-                    .next()
-                    .map(|c| c.is_uppercase())
-                    .unwrap_or(false)
+                } else if func.chars().next().map(|c| c.is_uppercase()).unwrap_or(false)
                     && func.chars().skip(1).any(|c| c.is_uppercase())
                 {
                     pascal_count += 1;
@@ -204,11 +189,7 @@ impl StyleVectorizer {
                 total += 1;
                 if var.contains('_') && !var.contains('-') {
                     snake_count += 1;
-                } else if var
-                    .chars()
-                    .next()
-                    .map(|c| c.is_lowercase())
-                    .unwrap_or(false)
+                } else if var.chars().next().map(|c| c.is_lowercase()).unwrap_or(false)
                     && var.chars().any(|c| c.is_uppercase())
                 {
                     camel_count += 1;
@@ -348,9 +329,7 @@ impl StyleVectorizer {
             "accordingly",
             "subsequently",
         ];
-        let informal_words = [
-            "btw", "lol", "omg", "gonna", "wanna", "gotta", "kinda", "sorta",
-        ];
+        let informal_words = ["btw", "lol", "omg", "gonna", "wanna", "gotta", "kinda", "sorta"];
 
         for msg in messages {
             let content_lower = msg.content.to_lowercase();
@@ -430,10 +409,8 @@ impl StyleVectorizer {
             return 0.5;
         }
 
-        let total_words: usize = messages
-            .iter()
-            .map(|m| m.content.split_whitespace().count())
-            .sum();
+        let total_words: usize =
+            messages.iter().map(|m| m.content.split_whitespace().count()).sum();
         let avg_words = total_words as f32 / messages.len() as f32;
 
         (avg_words / 200.0).min(1.0)
@@ -491,12 +468,8 @@ fn extract_function_names(code: &str) -> Vec<String> {
 fn extract_variable_names(code: &str) -> Vec<String> {
     let mut names = Vec::new();
 
-    let var_patterns = [
-        r"let\s+(?:mut\s+)?(\w+)",
-        r"var\s+(\w+)",
-        r"(\w+)\s*=",
-        r"(\w+)\s*:\s*\w+",
-    ];
+    let var_patterns =
+        [r"let\s+(?:mut\s+)?(\w+)", r"var\s+(\w+)", r"(\w+)\s*=", r"(\w+)\s*:\s*\w+"];
 
     for pattern in &var_patterns {
         if let Ok(re) = Regex::new(pattern) {

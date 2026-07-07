@@ -65,11 +65,7 @@ pub struct SpawnGuard {
 impl SpawnGuard {
     /// 创建 guard。`on_drop` 在 drop 时执行一次（前提是未 [`Self::finish`]）。
     pub fn new(name: &'static str, on_drop: impl FnOnce() + Send + 'static) -> Self {
-        Self {
-            name,
-            finished: AtomicBool::new(false),
-            on_drop: Some(Box::new(on_drop)),
-        }
+        Self { name, finished: AtomicBool::new(false), on_drop: Some(Box::new(on_drop)) }
     }
 
     /// 业务正常完成，阻止 drop 兜底回调。

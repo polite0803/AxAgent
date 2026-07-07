@@ -184,12 +184,7 @@ impl ReferenceBuilder {
 
             let key = format!(
                 "{}{}",
-                citation
-                    .source_title
-                    .split_whitespace()
-                    .next()
-                    .unwrap_or("ref")
-                    .to_lowercase(),
+                citation.source_title.split_whitespace().next().unwrap_or("ref").to_lowercase(),
                 &citation.id[..8]
             );
 
@@ -698,9 +693,7 @@ mod tests {
 
         let citations = tracker.get_all_citations().await;
         let builder = ReferenceBuilder::new(tracker);
-        let inline = builder
-            .build_inline_citations(&citations, ReferenceFormat::Markdown)
-            .await;
+        let inline = builder.build_inline_citations(&citations, ReferenceFormat::Markdown).await;
         assert!(inline.contains(&format!("[^{}]", id_prefix)));
     }
 
@@ -714,9 +707,7 @@ mod tests {
 
         let citations = tracker.get_all_citations().await;
         let builder = ReferenceBuilder::new(tracker);
-        let inline = builder
-            .build_inline_citations(&citations, ReferenceFormat::Html)
-            .await;
+        let inline = builder.build_inline_citations(&citations, ReferenceFormat::Html).await;
         assert!(inline.contains(&format!("#ref-{}", id_clone)));
         assert!(inline.contains("<sup>"));
     }
@@ -730,9 +721,7 @@ mod tests {
 
         let citations = tracker.get_all_citations().await;
         let builder = ReferenceBuilder::new(tracker);
-        let inline = builder
-            .build_inline_citations(&citations, ReferenceFormat::BibTeX)
-            .await;
+        let inline = builder.build_inline_citations(&citations, ReferenceFormat::BibTeX).await;
         assert!(inline.is_empty());
     }
 

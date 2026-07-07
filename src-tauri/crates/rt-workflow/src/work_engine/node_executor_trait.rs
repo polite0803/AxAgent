@@ -51,11 +51,7 @@ pub enum NodeError {
     Timeout { code: &'static str, detail: String },
 
     #[error("{code}: expected {expected}, got {got}")]
-    InvalidNodeType {
-        code: &'static str,
-        expected: String,
-        got: String,
-    },
+    InvalidNodeType { code: &'static str, expected: String, got: String },
 
     #[error("VARIABLE_NOT_FOUND: {0}")]
     VariableNotFound(String),
@@ -70,17 +66,11 @@ pub enum NodeError {
 impl NodeError {
     /// 创建执行失败错误
     pub fn exec_failed(code: &'static str, detail: impl std::fmt::Display) -> Self {
-        Self::ExecutionFailed {
-            code,
-            detail: detail.to_string(),
-        }
+        Self::ExecutionFailed { code, detail: detail.to_string() }
     }
     /// 创建超时错误
     pub fn timed_out(code: &'static str, detail: impl std::fmt::Display) -> Self {
-        Self::Timeout {
-            code,
-            detail: detail.to_string(),
-        }
+        Self::Timeout { code, detail: detail.to_string() }
     }
     /// 创建节点类型不匹配错误
     pub fn type_mismatch(expected: impl Into<String>, got: impl Into<String>) -> Self {

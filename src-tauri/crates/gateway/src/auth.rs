@@ -94,9 +94,7 @@ pub fn extract_client_ip<B>(
         }
     }
 
-    peer_ip
-        .map(|ip| ip.to_string())
-        .unwrap_or_else(|| "unknown".to_string())
+    peer_ip.map(|ip| ip.to_string()).unwrap_or_else(|| "unknown".to_string())
 }
 
 /// SECURITY (Phase 2 Task 2.3): per-IP 失败计数 + 冷却。
@@ -123,11 +121,7 @@ pub struct KeyVerifyLimiter {
 
 impl KeyVerifyLimiter {
     pub fn new(max_failures: u32, cooldown: Duration) -> Self {
-        Self {
-            failures: Mutex::new(HashMap::new()),
-            max_failures,
-            cooldown,
-        }
+        Self { failures: Mutex::new(HashMap::new()), max_failures, cooldown }
     }
 
     /// 检查 IP 是否仍在冷却期内（被 ban）。返回 `true` 表示允许请求。
@@ -188,10 +182,8 @@ pub async fn auth_middleware(
     // 配 `into_make_service_with_connect_info`，会让所有 unit test 都
     // 需要加 ConnectInfo 才能跑通。extension lookup 兼容 prod（已配）
     // 和 test（未配，后备到 XFF/"unknown"）两种场景。
-    let peer_addr = request
-        .extensions()
-        .get::<axum::extract::ConnectInfo<SocketAddr>>()
-        .map(|ci| ci.0);
+    let peer_addr =
+        request.extensions().get::<axum::extract::ConnectInfo<SocketAddr>>().map(|ci| ci.0);
     let client_ip = extract_client_ip(&request, peer_addr, &state.client_ip_policy);
 
     // SECURITY (Phase 2 Task 2.3): 限流检查。check() 走 sync 锁极快，
@@ -210,10 +202,7 @@ pub async fn auth_middleware(
             .into_response();
     }
 
-    let auth_header = request
-        .headers()
-        .get("authorization")
-        .and_then(|v| v.to_str().ok());
+    let auth_header = request.headers().get("authorization").and_then(|v| v.to_str().ok());
 
     let token = match auth_header {
         Some(h) if h.starts_with("Bearer ") => &h[7..],
@@ -337,8 +326,7 @@ mod tests {
     #[test]
     fn extract_client_ip_prefers_xff() {
         let mut req = Request::new(Body::empty());
-        req.headers_mut()
-            .insert("x-forwarded-for", "203.0.113.1, 10.0.0.1".parse().unwrap());
+        req.headers_mut().insert("x-forwarded-for", "203.0.113.1, 10.0.0.1".parse().unwrap());
         // peer 是 trusted proxy 时才解析 XFF
         let addr: SocketAddr = "10.0.0.1:54321".parse().unwrap();
         let policy = ClientIpPolicy::trust_all();
@@ -349,8 +337,7 @@ mod tests {
     #[test]
     fn extract_client_ip_falls_back_to_x_real_ip() {
         let mut req = Request::new(Body::empty());
-        req.headers_mut()
-            .insert("x-real-ip", "203.0.113.2".parse().unwrap());
+        req.headers_mut().insert("x-real-ip", "203.0.113.2".parse().unwrap());
         let addr: SocketAddr = "10.0.0.1:54321".parse().unwrap();
         let policy = ClientIpPolicy::trust_all();
         let ip = extract_client_ip(&req, Some(addr), &policy);
@@ -379,8 +366,7 @@ mod tests {
         // P1-7: 关键安全测试 —— 攻击者伪造 XFF，peer 不是 trusted proxy
         // 时必须忽略 header，否则 per-IP 限流形同虚设。
         let mut req = Request::new(Body::empty());
-        req.headers_mut()
-            .insert("x-forwarded-for", "1.2.3.4".parse().unwrap());
+        req.headers_mut().insert("x-forwarded-for", "1.2.3.4".parse().unwrap());
         let addr: SocketAddr = "203.0.113.99:54321".parse().unwrap();
         let policy = ClientIpPolicy::default(); // 没有任何 trusted proxy
         let ip = extract_client_ip(&req, Some(addr), &policy);

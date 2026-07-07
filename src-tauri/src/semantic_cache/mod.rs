@@ -25,10 +25,7 @@ pub struct CacheConfig {
 
 impl Default for CacheConfig {
     fn default() -> Self {
-        Self {
-            max_entries: 10_000,
-            default_ttl_secs: 3600,
-        }
+        Self { max_entries: 10_000, default_ttl_secs: 3600 }
     }
 }
 

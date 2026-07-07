@@ -53,9 +53,7 @@ pub struct ReportGenerator {
 
 impl ReportGenerator {
     pub fn new() -> Self {
-        Self {
-            include_recommendations: true,
-        }
+        Self { include_recommendations: true }
     }
 
     pub fn with_recommendations(mut self, include: bool) -> Self {
@@ -133,10 +131,7 @@ impl ReportGenerator {
                 crate::evaluator::benchmark::Difficulty::Hard => "hard",
                 crate::evaluator::benchmark::Difficulty::Expert => "expert",
             };
-            scores
-                .entry(category.to_string())
-                .or_default()
-                .push(task.overall_score);
+            scores.entry(category.to_string()).or_default().push(task.overall_score);
         }
 
         scores
@@ -165,18 +160,11 @@ impl ReportGenerator {
             recommendations.push(format!(
                 "{} 个任务未通过，建议针对性训练: {}",
                 failed_tasks.len(),
-                failed_tasks
-                    .iter()
-                    .map(|t| t.task_name.as_str())
-                    .collect::<Vec<_>>()
-                    .join(", ")
+                failed_tasks.iter().map(|t| t.task_name.as_str()).collect::<Vec<_>>().join(", ")
             ));
         }
 
-        let low_score_tasks: Vec<_> = tasks
-            .iter()
-            .filter(|t| t.score < 0.6 && t.success)
-            .collect();
+        let low_score_tasks: Vec<_> = tasks.iter().filter(|t| t.score < 0.6 && t.success).collect();
         if !low_score_tasks.is_empty() {
             recommendations
                 .push(format!("{} 个任务分数偏低(60%以下)，有改进空间", low_score_tasks.len()));
@@ -496,11 +484,7 @@ mod tests {
 
     #[test]
     fn test_criteria_score() {
-        let cs = CriteriaScore {
-            name: "test".to_string(),
-            score: 0.9,
-            passed: true,
-        };
+        let cs = CriteriaScore { name: "test".to_string(), score: 0.9, passed: true };
         assert!((cs.score - 0.9).abs() < 0.001);
         assert!(cs.passed);
     }

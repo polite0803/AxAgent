@@ -45,11 +45,7 @@ pub fn message_tokens(msg: &ChatMessage) -> usize {
         ChatContent::Text(s) => s.as_str(),
         ChatContent::Multipart(parts) => {
             return token_counter::estimate_tokens(
-                &parts
-                    .iter()
-                    .filter_map(|p| p.text.as_deref())
-                    .collect::<Vec<_>>()
-                    .join(" "),
+                &parts.iter().filter_map(|p| p.text.as_deref()).collect::<Vec<_>>().join(" "),
             ) + parts.iter().filter(|p| p.image_url.is_some()).count() * 85
                 + 4;
         },
@@ -140,10 +136,7 @@ pub fn build_context_with_query(
     match model_context_window {
         Some(ctx_window) => {
             // Use ContextAssembler's TokenBudget for consistent budget allocation
-            let budget = TokenBudget {
-                max_tokens: ctx_window,
-                ..TokenBudget::default()
-            };
+            let budget = TokenBudget { max_tokens: ctx_window, ..TokenBudget::default() };
             let _assembler = ContextAssembler::with_budget(budget);
 
             // Calculate history budget: total window minus fixed component budgets
@@ -517,11 +510,9 @@ pub fn build_summary_prompt(request: &SummarizationRequest) -> Vec<ChatMessage> 
         .map(|m| {
             let content_text = match &m.content {
                 ChatContent::Text(s) => s.clone(),
-                ChatContent::Multipart(parts) => parts
-                    .iter()
-                    .filter_map(|p| p.text.as_deref())
-                    .collect::<Vec<_>>()
-                    .join(" "),
+                ChatContent::Multipart(parts) => {
+                    parts.iter().filter_map(|p| p.text.as_deref()).collect::<Vec<_>>().join(" ")
+                },
             };
             let truncated = if content_text.len() > 2000 {
                 format!("{}...[已截断]", &content_text[..2000])
@@ -582,11 +573,9 @@ pub fn build_summary_prompt_with_custom(
         .map(|m| {
             let content_text = match &m.content {
                 ChatContent::Text(s) => s.clone(),
-                ChatContent::Multipart(parts) => parts
-                    .iter()
-                    .filter_map(|p| p.text.as_deref())
-                    .collect::<Vec<_>>()
-                    .join(" "),
+                ChatContent::Multipart(parts) => {
+                    parts.iter().filter_map(|p| p.text.as_deref()).collect::<Vec<_>>().join(" ")
+                },
             };
             let truncated = if content_text.len() > 2000 {
                 format!("{}...[已截断]", &content_text[..2000])

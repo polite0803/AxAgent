@@ -19,10 +19,7 @@ pub enum AgentRole {
     /// 安全守卫 — 仅验证工具
     SafetyGuard,
     /// 自定义角色
-    Custom {
-        name: String,
-        allowed_categories: Vec<String>,
-    },
+    Custom { name: String, allowed_categories: Vec<String> },
 }
 
 impl AgentRole {
@@ -50,10 +47,7 @@ impl AgentRole {
             AgentRole::Researcher => vec!["FileRead", "Network", "Knowledge", "Browser"],
             AgentRole::CodeReviewer => vec!["FileRead", "Vcs", "Knowledge"],
             AgentRole::SafetyGuard => vec!["FileRead", "Knowledge"],
-            AgentRole::Custom {
-                allowed_categories: _,
-                ..
-            } => {
+            AgentRole::Custom { allowed_categories: _, .. } => {
                 vec![]
             },
         }
@@ -182,21 +176,13 @@ pub struct TaskDecompositionConfig {
 
 impl Default for TaskDecompositionConfig {
     fn default() -> Self {
-        Self {
-            threshold: 3,
-            parallel_execution: true,
-            max_subtasks: 20,
-        }
+        Self { threshold: 3, parallel_execution: true, max_subtasks: 20 }
     }
 }
 
 impl TaskDecompositionConfig {
     pub fn new(threshold: usize) -> Self {
-        Self {
-            threshold,
-            parallel_execution: true,
-            max_subtasks: 20,
-        }
+        Self { threshold, parallel_execution: true, max_subtasks: 20 }
     }
 
     pub fn with_parallel(mut self, enabled: bool) -> Self {
@@ -220,23 +206,13 @@ pub struct ErrorRecoveryConfig {
 
 impl Default for ErrorRecoveryConfig {
     fn default() -> Self {
-        Self {
-            enabled: true,
-            max_attempts: 3,
-            base_delay_ms: 1000,
-            exponential_backoff: true,
-        }
+        Self { enabled: true, max_attempts: 3, base_delay_ms: 1000, exponential_backoff: true }
     }
 }
 
 impl ErrorRecoveryConfig {
     pub fn new(max_attempts: usize) -> Self {
-        Self {
-            enabled: true,
-            max_attempts,
-            base_delay_ms: 1000,
-            exponential_backoff: true,
-        }
+        Self { enabled: true, max_attempts, base_delay_ms: 1000, exponential_backoff: true }
     }
 
     pub fn with_delay(mut self, delay_ms: u64) -> Self {
@@ -259,11 +235,7 @@ pub struct ReflectionConfig {
 
 impl Default for ReflectionConfig {
     fn default() -> Self {
-        Self {
-            enabled: true,
-            store_insights: true,
-            min_quality_threshold: 5,
-        }
+        Self { enabled: true, store_insights: true, min_quality_threshold: 5 }
     }
 }
 
@@ -363,11 +335,7 @@ pub struct ConfigSnapshot {
 
 impl ConfigSnapshot {
     pub fn new(config: AgentConfig) -> Self {
-        Self {
-            config,
-            saved_at: chrono::Utc::now(),
-            description: None,
-        }
+        Self { config, saved_at: chrono::Utc::now(), description: None }
     }
 
     pub fn with_description(mut self, desc: String) -> Self {
@@ -484,10 +452,7 @@ impl Default for ConfigManager {
 
 impl Clone for ConfigManager {
     fn clone(&self) -> Self {
-        Self {
-            config: Arc::clone(&self.config),
-            snapshots: Arc::clone(&self.snapshots),
-        }
+        Self { config: Arc::clone(&self.config), snapshots: Arc::clone(&self.snapshots) }
     }
 }
 

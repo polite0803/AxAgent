@@ -634,9 +634,7 @@ pub struct DefaultInputSanitizer {
 
 impl DefaultInputSanitizer {
     pub fn new() -> Self {
-        Self {
-            output_sanitizer: DefaultOutputSanitizer::new(),
-        }
+        Self { output_sanitizer: DefaultOutputSanitizer::new() }
     }
 }
 

@@ -14,13 +14,7 @@ use crate::ToolError;
 fn is_safe_url(url: &str) -> Result<(), ToolError> {
     let parsed = url::Url::parse(url).map_err(|_| ToolError::invalid_input("无效的 URL"))?;
     let host = parsed.host_str().unwrap_or("");
-    let blocked_hosts = [
-        "127.0.0.1",
-        "0.0.0.0",
-        "localhost",
-        "::1",
-        "169.254.169.254",
-    ];
+    let blocked_hosts = ["127.0.0.1", "0.0.0.0", "localhost", "::1", "169.254.169.254"];
     for blocked in &blocked_hosts {
         if host == *blocked {
             return Err(ToolError::permission_denied(

@@ -640,29 +640,21 @@ impl Default for RoleConfig {
 
 impl RoleConfig {
     pub fn effective_system_prompt(&self) -> String {
-        self.custom_prompt
-            .clone()
-            .unwrap_or_else(|| self.role.system_prompt().to_string())
+        self.custom_prompt.clone().unwrap_or_else(|| self.role.system_prompt().to_string())
     }
 
     pub fn effective_tools(&self) -> Vec<String> {
-        self.custom_tools.clone().unwrap_or_else(|| {
-            self.role
-                .default_tools()
-                .iter()
-                .map(|s| s.to_string())
-                .collect()
-        })
+        self.custom_tools
+            .clone()
+            .unwrap_or_else(|| self.role.default_tools().iter().map(|s| s.to_string()).collect())
     }
 
     pub fn effective_max_concurrent(&self) -> usize {
-        self.custom_max_concurrent
-            .unwrap_or_else(|| self.role.max_concurrent())
+        self.custom_max_concurrent.unwrap_or_else(|| self.role.max_concurrent())
     }
 
     pub fn effective_timeout_seconds(&self) -> u64 {
-        self.custom_timeout_seconds
-            .unwrap_or_else(|| self.role.timeout_seconds())
+        self.custom_timeout_seconds.unwrap_or_else(|| self.role.timeout_seconds())
     }
 }
 
@@ -673,9 +665,7 @@ pub struct RoleRegistry {
 
 impl RoleRegistry {
     pub fn new() -> Self {
-        Self {
-            roles: HashMap::new(),
-        }
+        Self { roles: HashMap::new() }
     }
 
     pub fn register(&mut self, config: RoleConfig) {
@@ -742,10 +732,7 @@ fn default_schema_version() -> u32 {
 
 impl Default for RoleConfigFile {
     fn default() -> Self {
-        Self {
-            schema_version: 1,
-            roles: Vec::new(),
-        }
+        Self { schema_version: 1, roles: Vec::new() }
     }
 }
 
@@ -757,9 +744,7 @@ pub struct FileRoleRegistry {
 
 impl FileRoleRegistry {
     pub fn new() -> Self {
-        Self {
-            roles: RwLock::new(HashMap::new()),
-        }
+        Self { roles: RwLock::new(HashMap::new()) }
     }
 
     /// 从 YAML 或 JSON 文件加载角色定义。
@@ -779,10 +764,7 @@ impl FileRoleRegistry {
 
         let count = config.roles.len();
         let source = format!("file:{}", path.display());
-        let mut map = self
-            .roles
-            .write()
-            .map_err(|e| format!("Lock poisoned: {}", e))?;
+        let mut map = self.roles.write().map_err(|e| format!("Lock poisoned: {}", e))?;
 
         for mut role in config.roles {
             if role.source.is_empty() {
@@ -809,18 +791,12 @@ impl FileRoleRegistry {
 
     /// 列出所有文件角色的名称。
     pub fn role_names(&self) -> Vec<String> {
-        self.roles
-            .read()
-            .map(|map| map.keys().cloned().collect())
-            .unwrap_or_default()
+        self.roles.read().map(|map| map.keys().cloned().collect()).unwrap_or_default()
     }
 
     /// 列出所有文件角色定义。
     pub fn all_roles(&self) -> Vec<FileRoleDefinition> {
-        self.roles
-            .read()
-            .map(|map| map.values().cloned().collect())
-            .unwrap_or_default()
+        self.roles.read().map(|map| map.values().cloned().collect()).unwrap_or_default()
     }
 }
 

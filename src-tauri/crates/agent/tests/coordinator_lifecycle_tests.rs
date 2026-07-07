@@ -21,10 +21,7 @@ struct LifecycleAgent {
 
 impl LifecycleAgent {
     fn new(delay_ms: u64) -> Self {
-        Self {
-            status: AgentStatus::Idle,
-            delay_ms,
-        }
+        Self { status: AgentStatus::Idle, delay_ms }
     }
 }
 
@@ -79,17 +76,10 @@ async fn test_coordinator_execute_simple() {
     let agent = Arc::new(Mutex::new(LifecycleAgent::new(0)));
     let coordinator = AgentCoordinator::new(agent, None);
 
-    coordinator
-        .initialize(AgentConfig::default())
-        .await
-        .unwrap();
+    coordinator.initialize(AgentConfig::default()).await.unwrap();
 
-    let result = coordinator
-        .execute(AgentInput {
-            content: "test".to_string(),
-            context: None,
-        })
-        .await;
+    let result =
+        coordinator.execute(AgentInput { content: "test".to_string(), context: None }).await;
 
     assert!(result.is_ok(), "Execution should succeed");
     let output = result.unwrap();
@@ -101,27 +91,14 @@ async fn test_coordinator_cannot_execute_twice() {
     let agent = Arc::new(Mutex::new(LifecycleAgent::new(300)));
     let coordinator = AgentCoordinator::new(agent, None);
 
-    coordinator
-        .initialize(AgentConfig::default())
-        .await
-        .unwrap();
+    coordinator.initialize(AgentConfig::default()).await.unwrap();
 
     // First execution
-    let r1 = coordinator
-        .execute(AgentInput {
-            content: "first".to_string(),
-            context: None,
-        })
-        .await;
+    let r1 = coordinator.execute(AgentInput { content: "first".to_string(), context: None }).await;
     assert!(r1.is_ok(), "First execution should succeed");
 
     // Second execution without prepare_for_new_session should fail
-    let r2 = coordinator
-        .execute(AgentInput {
-            content: "second".to_string(),
-            context: None,
-        })
-        .await;
+    let r2 = coordinator.execute(AgentInput { content: "second".to_string(), context: None }).await;
     assert!(r2.is_err(), "Second execution should fail");
     match r2.unwrap_err() {
         AgentError::AlreadyRunning | AgentError::InvalidState(_) => { /* expected */ },
@@ -136,11 +113,7 @@ async fn test_coordinator_initialize_starts_idle() {
 
     // Before init, status is Idle
     let status = coordinator.get_status().await;
-    assert!(
-        matches!(status, AgentStatus::Idle),
-        "Expected Idle before init, got {:?}",
-        status
-    );
+    assert!(matches!(status, AgentStatus::Idle), "Expected Idle before init, got {:?}", status);
 }
 
 #[tokio::test]
@@ -148,18 +121,9 @@ async fn test_coordinator_prepare_for_new_session() {
     let agent = Arc::new(Mutex::new(LifecycleAgent::new(50)));
     let coordinator = AgentCoordinator::new(agent, None);
 
-    coordinator
-        .initialize(AgentConfig::default())
-        .await
-        .unwrap();
+    coordinator.initialize(AgentConfig::default()).await.unwrap();
 
-    coordinator
-        .execute(AgentInput {
-            content: "test".to_string(),
-            context: None,
-        })
-        .await
-        .unwrap();
+    coordinator.execute(AgentInput { content: "test".to_string(), context: None }).await.unwrap();
 
     // Should be able to prepare for a new session
     coordinator.prepare_for_new_session().await;

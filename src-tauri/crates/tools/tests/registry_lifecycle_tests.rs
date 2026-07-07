@@ -81,18 +81,10 @@ fn test_registry_lifecycle_register_and_find() {
 fn test_registry_lifecycle_register_all_and_list() {
     let mut reg = ToolRegistry::new();
     reg.register_all(vec![
-        Arc::new(NamedMockTool {
-            name: "lifecycle-a",
-            cat: ToolCategory::FileRead,
-        }) as Arc<dyn Tool>,
-        Arc::new(NamedMockTool {
-            name: "lifecycle-b",
-            cat: ToolCategory::FileWrite,
-        }),
-        Arc::new(NamedMockTool {
-            name: "lifecycle-c",
-            cat: ToolCategory::Network,
-        }),
+        Arc::new(NamedMockTool { name: "lifecycle-a", cat: ToolCategory::FileRead })
+            as Arc<dyn Tool>,
+        Arc::new(NamedMockTool { name: "lifecycle-b", cat: ToolCategory::FileWrite }),
+        Arc::new(NamedMockTool { name: "lifecycle-c", cat: ToolCategory::Network }),
     ]);
     assert_eq!(reg.list_all().len(), 3);
     assert_eq!(reg.len(), 3);
@@ -105,10 +97,8 @@ fn test_registry_lifecycle_register_all_and_list() {
 #[test]
 fn test_registry_lifecycle_disable_then_enable() {
     let mut reg = ToolRegistry::new();
-    let tool: Arc<dyn Tool> = Arc::new(NamedMockTool {
-        name: "reg-toggle",
-        cat: ToolCategory::Shell,
-    });
+    let tool: Arc<dyn Tool> =
+        Arc::new(NamedMockTool { name: "reg-toggle", cat: ToolCategory::Shell });
     reg.register(tool);
 
     // Initially enabled
@@ -138,18 +128,15 @@ fn test_registry_lifecycle_enable_nonexistent() {
 #[test]
 fn test_registry_lifecycle_disable_category() {
     let mut reg = ToolRegistry::new();
-    reg.register(Arc::new(NamedMockTool {
-        name: "cat-f1",
-        cat: ToolCategory::FileRead,
-    }) as Arc<dyn Tool>);
-    reg.register(Arc::new(NamedMockTool {
-        name: "cat-f2",
-        cat: ToolCategory::FileRead,
-    }) as Arc<dyn Tool>);
-    reg.register(Arc::new(NamedMockTool {
-        name: "cat-shell",
-        cat: ToolCategory::Shell,
-    }) as Arc<dyn Tool>);
+    reg.register(
+        Arc::new(NamedMockTool { name: "cat-f1", cat: ToolCategory::FileRead }) as Arc<dyn Tool>
+    );
+    reg.register(
+        Arc::new(NamedMockTool { name: "cat-f2", cat: ToolCategory::FileRead }) as Arc<dyn Tool>
+    );
+    reg.register(
+        Arc::new(NamedMockTool { name: "cat-shell", cat: ToolCategory::Shell }) as Arc<dyn Tool>
+    );
 
     reg.disable_category(ToolCategory::FileRead);
     assert!(reg.find("cat-f1").is_none(), "FileRead tool should be disabled");
@@ -164,10 +151,9 @@ fn test_registry_lifecycle_disable_category() {
 #[test]
 fn test_registry_lifecycle_unregister() {
     let mut reg = ToolRegistry::new();
-    reg.register(Arc::new(NamedMockTool {
-        name: "unreg-me",
-        cat: ToolCategory::Shell,
-    }) as Arc<dyn Tool>);
+    reg.register(
+        Arc::new(NamedMockTool { name: "unreg-me", cat: ToolCategory::Shell }) as Arc<dyn Tool>
+    );
     assert!(reg.contains("unreg-me"));
 
     reg.unregister("unreg-me");
@@ -188,18 +174,15 @@ fn test_registry_lifecycle_unregister_nonexistent() {
 #[test]
 fn test_registry_lifecycle_by_category() {
     let mut reg = ToolRegistry::new();
-    reg.register(Arc::new(NamedMockTool {
-        name: "bc-a1",
-        cat: ToolCategory::Shell,
-    }) as Arc<dyn Tool>);
-    reg.register(Arc::new(NamedMockTool {
-        name: "bc-a2",
-        cat: ToolCategory::Shell,
-    }) as Arc<dyn Tool>);
-    reg.register(Arc::new(NamedMockTool {
-        name: "bc-net",
-        cat: ToolCategory::Network,
-    }) as Arc<dyn Tool>);
+    reg.register(
+        Arc::new(NamedMockTool { name: "bc-a1", cat: ToolCategory::Shell }) as Arc<dyn Tool>
+    );
+    reg.register(
+        Arc::new(NamedMockTool { name: "bc-a2", cat: ToolCategory::Shell }) as Arc<dyn Tool>
+    );
+    reg.register(
+        Arc::new(NamedMockTool { name: "bc-net", cat: ToolCategory::Network }) as Arc<dyn Tool>
+    );
 
     let shell_tools = reg.by_category(ToolCategory::Shell);
     assert_eq!(shell_tools.len(), 2);
@@ -222,10 +205,9 @@ fn test_registry_lifecycle_empty_state() {
 #[test]
 fn test_registry_lifecycle_not_empty() {
     let mut reg = ToolRegistry::new();
-    reg.register(Arc::new(NamedMockTool {
-        name: "only-one",
-        cat: ToolCategory::Shell,
-    }) as Arc<dyn Tool>);
+    reg.register(
+        Arc::new(NamedMockTool { name: "only-one", cat: ToolCategory::Shell }) as Arc<dyn Tool>
+    );
     assert!(!reg.is_empty());
     assert_eq!(reg.total_registered(), 1);
 }

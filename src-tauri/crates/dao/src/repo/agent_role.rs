@@ -8,11 +8,8 @@ use axagent_harness::core_error::{AxAgentError, Result};
 use axagent_harness::types::AgentRoleDef;
 
 fn role_from_entity(m: agent_roles::Model) -> AgentRoleDef {
-    let tools: Vec<String> = m
-        .default_tools
-        .as_deref()
-        .and_then(|s| serde_json::from_str(s).ok())
-        .unwrap_or_default();
+    let tools: Vec<String> =
+        m.default_tools.as_deref().and_then(|s| serde_json::from_str(s).ok()).unwrap_or_default();
 
     AgentRoleDef {
         id: m.id,

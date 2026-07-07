@@ -11,11 +11,7 @@ pub fn detect_platforms() -> Vec<DetectedPlatform> {
         let skill_dir = oc.join("skills");
         let skill_count = if skill_dir.exists() {
             fs::read_dir(&skill_dir)
-                .map(|d| {
-                    d.filter_map(|e| e.ok())
-                        .filter(|e| e.path().is_dir())
-                        .count()
-                })
+                .map(|d| d.filter_map(|e| e.ok()).filter(|e| e.path().is_dir()).count())
                 .unwrap_or(0)
         } else {
             0
@@ -40,11 +36,7 @@ pub fn detect_platforms() -> Vec<DetectedPlatform> {
         let skill_dir = hm.join("skills");
         let skill_count = if skill_dir.exists() {
             fs::read_dir(&skill_dir)
-                .map(|d| {
-                    d.filter_map(|e| e.ok())
-                        .filter(|e| e.path().is_dir())
-                        .count()
-                })
+                .map(|d| d.filter_map(|e| e.ok()).filter(|e| e.path().is_dir()).count())
                 .unwrap_or(0)
         } else {
             0

@@ -156,12 +156,7 @@ pub struct ThresholdScheduler {
 
 impl ThresholdScheduler {
     pub fn new(increment_threshold: usize, pool_threshold: usize) -> Self {
-        Self {
-            last_train_pool_size: 0,
-            increment_threshold,
-            pool_threshold,
-            train_count: 0,
-        }
+        Self { last_train_pool_size: 0, increment_threshold, pool_threshold, train_count: 0 }
     }
 
     /// 检查当前经验池状态，必要时触发训练。
@@ -304,8 +299,7 @@ mod tests {
     fn test_auto_train_below_threshold() {
         let mut opt = RLOptimizer::new("test".into(), "test".into());
         for i in 0..5 {
-            opt.experience_pool
-                .add(make_experience(&format!("e{}", i), 0.5));
+            opt.experience_pool.add(make_experience(&format!("e{}", i), 0.5));
         }
         let result = auto_train_if_needed(&mut opt, 10);
         assert!(result.is_none());
@@ -315,8 +309,7 @@ mod tests {
     fn test_auto_train_above_threshold() {
         let mut opt = RLOptimizer::new("test".into(), "test".into());
         for i in 0..50 {
-            opt.experience_pool
-                .add(make_experience(&format!("e{}", i), 0.5));
+            opt.experience_pool.add(make_experience(&format!("e{}", i), 0.5));
         }
         let result = auto_train_if_needed(&mut opt, 10);
         assert!(result.is_some());
@@ -329,15 +322,13 @@ mod tests {
 
         // 先加 5 条 — 不触发
         for i in 0..5 {
-            opt.experience_pool
-                .add(make_experience(&format!("e{}", i), 0.5));
+            opt.experience_pool.add(make_experience(&format!("e{}", i), 0.5));
         }
         assert!(sched.check_and_train(&mut opt).is_none());
 
         // 再加 5 条 — 增量达到 10，应触发
         for i in 5..10 {
-            opt.experience_pool
-                .add(make_experience(&format!("e{}", i), 0.5));
+            opt.experience_pool.add(make_experience(&format!("e{}", i), 0.5));
         }
         let result = sched.check_and_train(&mut opt);
         assert!(result.is_some());
@@ -352,8 +343,7 @@ mod tests {
 
         // 加 20 条 — 池大小触发
         for i in 0..20 {
-            opt.experience_pool
-                .add(make_experience(&format!("e{}", i), 0.5));
+            opt.experience_pool.add(make_experience(&format!("e{}", i), 0.5));
         }
         let result = sched.check_and_train(&mut opt);
         assert!(result.is_some());
@@ -367,8 +357,7 @@ mod tests {
         let mut sched = ThresholdScheduler::new(5, 1000);
 
         for i in 0..10 {
-            opt.experience_pool
-                .add(make_experience(&format!("e{}", i), 0.5));
+            opt.experience_pool.add(make_experience(&format!("e{}", i), 0.5));
         }
         assert!(sched.check_and_train(&mut opt).is_some());
         assert_eq!(sched.train_count(), 1);
@@ -378,8 +367,7 @@ mod tests {
 
         // 再次加 10 条 — reset 后增量从 0 重新计数，应触发
         for i in 10..20 {
-            opt.experience_pool
-                .add(make_experience(&format!("e{}", i), 0.5));
+            opt.experience_pool.add(make_experience(&format!("e{}", i), 0.5));
         }
         assert!(sched.check_and_train(&mut opt).is_some());
         assert_eq!(sched.train_count(), 2);

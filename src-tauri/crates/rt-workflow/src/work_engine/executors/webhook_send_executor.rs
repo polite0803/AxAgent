@@ -97,9 +97,7 @@ impl NodeExecutorTrait for WebhookSendExecutor {
         if let Some(ref body) = c.body
             && !body.trim().is_empty()
         {
-            req = req
-                .header("Content-Type", "application/json")
-                .body(body.clone());
+            req = req.header("Content-Type", "application/json").body(body.clone());
         }
 
         let start = std::time::Instant::now();

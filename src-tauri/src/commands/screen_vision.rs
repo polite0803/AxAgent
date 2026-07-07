@@ -49,10 +49,7 @@ async fn capture_screenshot(
     monitor_index: Option<u32>,
 ) -> Result<axagent_kit::screen_capture::ScreenCaptureResult, String> {
     let capture = axagent_kit::screen_capture::ScreenCapture::new();
-    capture
-        .capture_full(monitor_index)
-        .await
-        .map_err(|e| format!("Screen capture failed: {}", e))
+    capture.capture_full(monitor_index).await.map_err(|e| format!("Screen capture failed: {}", e))
 }
 
 struct VisionContext {
@@ -76,9 +73,7 @@ async fn build_vision_context(
     let decrypted_key = axagent_crypto::decrypt_key(&key_row.key_encrypted, master_key)
         .map_err(|e| e.to_string())?;
 
-    let global_settings = axagent_dao::repo::settings::get_settings(db)
-        .await
-        .unwrap_or_default();
+    let global_settings = axagent_dao::repo::settings::get_settings(db).await.unwrap_or_default();
     let resolved_proxy = axagent_harness::types::ProviderProxyConfig::resolve(
         &provider.proxy_config,
         &global_settings,
@@ -96,10 +91,7 @@ async fn build_vision_context(
         )),
         api_path: provider.api_path,
         proxy_config: resolved_proxy,
-        custom_headers: provider
-            .custom_headers
-            .as_ref()
-            .and_then(|s| serde_json::from_str(s).ok()),
+        custom_headers: provider.custom_headers.as_ref().and_then(|s| serde_json::from_str(s).ok()),
         api_mode: None,
         conversation: None,
         previous_response_id: None,
@@ -321,9 +313,7 @@ pub async fn execute_vision_action(
             }
         },
         "hover" => {
-            UIAutomation::move_mouse(x, y)
-                .await
-                .map_err(|e| format!("Hover failed: {}", e))?;
+            UIAutomation::move_mouse(x, y).await.map_err(|e| format!("Hover failed: {}", e))?;
         },
         _ => {
             return Err(format!("Unknown action type: {}", action_type));

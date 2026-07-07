@@ -20,10 +20,7 @@ const BUILTIN_COMMANDS: &[&str] = &[
 ];
 
 static BUNDLE_DIR: LazyLock<PathBuf> = LazyLock::new(|| {
-    dirs::home_dir()
-        .unwrap_or_else(|| PathBuf::from("."))
-        .join(".axagent")
-        .join("skill-bundles")
+    dirs::home_dir().unwrap_or_else(|| PathBuf::from(".")).join(".axagent").join("skill-bundles")
 });
 
 static ACTIVE_PERSONALITY_FILE: LazyLock<PathBuf> = LazyLock::new(|| {
@@ -71,30 +68,19 @@ pub fn process_slash_command(text: &str) -> Option<SlashCommandAction> {
     }
 
     if BUILTIN_COMMANDS.contains(&command) {
-        return Some(SlashCommandAction::BuiltIn {
-            command: command.to_string(),
-            args,
-        });
+        return Some(SlashCommandAction::BuiltIn { command: command.to_string(), args });
     }
 
     if is_bundle_name(command) {
-        return Some(SlashCommandAction::LoadBundle {
-            name: command.to_string(),
-            args,
-        });
+        return Some(SlashCommandAction::LoadBundle { name: command.to_string(), args });
     }
 
     if is_skill_name(command) {
-        return Some(SlashCommandAction::LoadSkill {
-            name: command.to_string(),
-            args,
-        });
+        return Some(SlashCommandAction::LoadSkill { name: command.to_string(), args });
     }
 
     if is_personality_name(command) {
-        return Some(SlashCommandAction::SwitchPersonality {
-            name: command.to_string(),
-        });
+        return Some(SlashCommandAction::SwitchPersonality { name: command.to_string() });
     }
 
     Some(SlashCommandAction::Unknown)
@@ -114,9 +100,7 @@ fn is_bundle_name(name: &str) -> bool {
         return true;
     }
     let names = get_cached_bundle_names();
-    names
-        .iter()
-        .any(|b| b == name || b.to_lowercase().replace(' ', "-") == slug)
+    names.iter().any(|b| b == name || b.to_lowercase().replace(' ', "-") == slug)
 }
 
 fn get_cached_bundle_names() -> Vec<String> {
@@ -137,9 +121,7 @@ fn is_skill_name(name: &str) -> bool {
 }
 
 fn is_personality_name(name: &str) -> bool {
-    let personalities_dir = ACTIVE_PERSONALITY_FILE
-        .parent()
-        .unwrap_or_else(|| Path::new("."));
+    let personalities_dir = ACTIVE_PERSONALITY_FILE.parent().unwrap_or_else(|| Path::new("."));
     personalities_dir.join(name).join("SOUL.md").exists()
 }
 
@@ -147,9 +129,7 @@ pub fn switch_personality(name: &str) -> Result<String, String> {
     if name.contains('/') || name.contains('\\') || name.contains("..") || name.starts_with('.') {
         return Err(format!("Invalid personality name: '{}'", name));
     }
-    let personalities_dir = ACTIVE_PERSONALITY_FILE
-        .parent()
-        .unwrap_or_else(|| Path::new("."));
+    let personalities_dir = ACTIVE_PERSONALITY_FILE.parent().unwrap_or_else(|| Path::new("."));
     let dir = personalities_dir.join(name);
     if !dir.exists() || !dir.join("SOUL.md").exists() {
         return Err(format!(
@@ -166,9 +146,7 @@ pub fn switch_personality(name: &str) -> Result<String, String> {
 }
 
 fn list_personality_names() -> Vec<String> {
-    let personalities_dir = ACTIVE_PERSONALITY_FILE
-        .parent()
-        .unwrap_or_else(|| Path::new("."));
+    let personalities_dir = ACTIVE_PERSONALITY_FILE.parent().unwrap_or_else(|| Path::new("."));
     if !personalities_dir.exists() {
         return Vec::new();
     }
@@ -207,16 +185,10 @@ fn scan_bundle_names() -> Vec<String> {
         .map(|entries| {
             entries
                 .filter_map(|e| e.ok())
-                .filter(|e| {
-                    e.path()
-                        .extension()
-                        .is_some_and(|ext| ext == "yaml" || ext == "yml")
-                })
+                .filter(|e| e.path().extension().is_some_and(|ext| ext == "yaml" || ext == "yml"))
                 .filter_map(|e| {
                     let content = std::fs::read_to_string(e.path()).ok()?;
-                    serde_yaml::from_str::<BundleNameOnly>(&content)
-                        .ok()
-                        .map(|b| b.name)
+                    serde_yaml::from_str::<BundleNameOnly>(&content).ok().map(|b| b.name)
                 })
                 .collect()
         })
@@ -234,9 +206,8 @@ pub fn load_bundle_content(name: &str, args: &str) -> Option<String> {
         yml_path
     } else {
         let names = scan_bundle_names();
-        let matched = names
-            .iter()
-            .find(|b| *b == name || b.to_lowercase().replace(' ', "-") == slug)?;
+        let matched =
+            names.iter().find(|b| *b == name || b.to_lowercase().replace(' ', "-") == slug)?;
         let matched_slug = matched.to_lowercase().replace(' ', "-");
         let p = BUNDLE_DIR.join(format!("{}.yaml", matched_slug));
         if p.exists() {
@@ -254,11 +225,7 @@ pub fn load_bundle_content(name: &str, args: &str) -> Option<String> {
     let instruction = bundle["instruction"].as_str().unwrap_or("");
     let skills: Vec<String> = bundle["skills"]
         .as_sequence()
-        .map(|arr| {
-            arr.iter()
-                .filter_map(|v| v.as_str().map(String::from))
-                .collect()
-        })
+        .map(|arr| arr.iter().filter_map(|v| v.as_str().map(String::from)).collect())
         .unwrap_or_default();
 
     let mut output = format!("# Skill Bundle: {}\n\n", bundle_name);
@@ -337,11 +304,7 @@ pub fn apply_slash_command_to_input(text: &str) -> SlashCommandPreprocessed {
             } else {
                 format!("Skill bundle '{}' not found. Use /bundles to see available bundles.", name)
             };
-            SlashCommandPreprocessed {
-                modified_text,
-                personality_prompt: None,
-                is_builtin: false,
-            }
+            SlashCommandPreprocessed { modified_text, personality_prompt: None, is_builtin: false }
         },
         SlashCommandAction::LoadSkill { name, args } => {
             let modified_text = if let Some(content) = load_skill_content(&name, &args) {
@@ -357,11 +320,7 @@ pub fn apply_slash_command_to_input(text: &str) -> SlashCommandPreprocessed {
             } else {
                 format!("Skill '{}' not found. Use /skills to see available skills.", name)
             };
-            SlashCommandPreprocessed {
-                modified_text,
-                personality_prompt: None,
-                is_builtin: false,
-            }
+            SlashCommandPreprocessed { modified_text, personality_prompt: None, is_builtin: false }
         },
         SlashCommandAction::SwitchPersonality { name } => {
             let personality_prompt = match switch_personality(&name) {
@@ -427,10 +386,7 @@ mod tests {
         let action = process_slash_command("/new").unwrap();
         assert_eq!(
             action,
-            SlashCommandAction::BuiltIn {
-                command: "new".to_string(),
-                args: String::new()
-            }
+            SlashCommandAction::BuiltIn { command: "new".to_string(), args: String::new() }
         );
     }
 
@@ -439,10 +395,7 @@ mod tests {
         let action = process_slash_command("/model gpt-4").unwrap();
         assert_eq!(
             action,
-            SlashCommandAction::BuiltIn {
-                command: "model".to_string(),
-                args: "gpt-4".to_string()
-            }
+            SlashCommandAction::BuiltIn { command: "model".to_string(), args: "gpt-4".to_string() }
         );
     }
 
@@ -451,10 +404,7 @@ mod tests {
         let action = process_slash_command("/personality").unwrap();
         assert_eq!(
             action,
-            SlashCommandAction::BuiltIn {
-                command: "personality".to_string(),
-                args: String::new()
-            }
+            SlashCommandAction::BuiltIn { command: "personality".to_string(), args: String::new() }
         );
     }
 
@@ -477,10 +427,7 @@ mod tests {
         let action = process_slash_command("  /new  ").unwrap();
         assert_eq!(
             action,
-            SlashCommandAction::BuiltIn {
-                command: "new".to_string(),
-                args: String::new()
-            }
+            SlashCommandAction::BuiltIn { command: "new".to_string(), args: String::new() }
         );
     }
 
@@ -489,10 +436,7 @@ mod tests {
         let action = SlashCommandRouter::process("/stop").unwrap();
         assert_eq!(
             action,
-            SlashCommandAction::BuiltIn {
-                command: "stop".to_string(),
-                args: String::new()
-            }
+            SlashCommandAction::BuiltIn { command: "stop".to_string(), args: String::new() }
         );
     }
 
@@ -513,10 +457,7 @@ mod tests {
         let action = process_slash_command("/bundles").unwrap();
         assert_eq!(
             action,
-            SlashCommandAction::BuiltIn {
-                command: "bundles".to_string(),
-                args: String::new()
-            }
+            SlashCommandAction::BuiltIn { command: "bundles".to_string(), args: String::new() }
         );
     }
 
@@ -528,20 +469,16 @@ mod tests {
 
     #[test]
     fn test_action_debug_format() {
-        let action = SlashCommandAction::LoadBundle {
-            name: "test".to_string(),
-            args: "arg1".to_string(),
-        };
+        let action =
+            SlashCommandAction::LoadBundle { name: "test".to_string(), args: "arg1".to_string() };
         let debug = format!("{:?}", action);
         assert!(debug.contains("LoadBundle"));
     }
 
     #[test]
     fn test_action_clone() {
-        let action = SlashCommandAction::BuiltIn {
-            command: "new".to_string(),
-            args: String::new(),
-        };
+        let action =
+            SlashCommandAction::BuiltIn { command: "new".to_string(), args: String::new() };
         let cloned = action.clone();
         assert_eq!(action, cloned);
     }

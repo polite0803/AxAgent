@@ -43,9 +43,7 @@ pub struct RulePattern {
 
 impl RulePattern {
     pub fn new(pattern: &str) -> Self {
-        Self {
-            pattern: pattern.to_string(),
-        }
+        Self { pattern: pattern.to_string() }
     }
 }
 
@@ -98,11 +96,7 @@ pub struct PermissionDecision {
 
 impl PermissionDecision {
     pub fn new(behavior: PermissionBehavior, reason: impl Into<String>) -> Self {
-        Self {
-            behavior,
-            matched_rule: None,
-            reason: reason.into(),
-        }
+        Self { behavior, matched_rule: None, reason: reason.into() }
     }
 
     pub fn from_rule(rule: &PermissionRule) -> Self {
@@ -161,22 +155,19 @@ impl PermissionPolicy {
 
     /// 添加允许规则
     pub fn allow_rule(mut self, pattern: &str, description: &str) -> Self {
-        self.allow_rules
-            .push(PermissionRule::allow(pattern, description));
+        self.allow_rules.push(PermissionRule::allow(pattern, description));
         self
     }
 
     /// 添加拒绝规则
     pub fn deny_rule(mut self, pattern: &str, description: &str) -> Self {
-        self.deny_rules
-            .push(PermissionRule::deny(pattern, description));
+        self.deny_rules.push(PermissionRule::deny(pattern, description));
         self
     }
 
     /// 添加询问规则
     pub fn ask_rule(mut self, pattern: &str, description: &str) -> Self {
-        self.ask_rules
-            .push(PermissionRule::ask(pattern, description));
+        self.ask_rules.push(PermissionRule::ask(pattern, description));
         self
     }
 

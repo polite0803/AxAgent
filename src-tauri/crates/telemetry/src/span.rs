@@ -86,11 +86,9 @@ impl Span {
 
     pub fn finish(&mut self) {
         self.end_time = Some(Utc::now());
-        if let (Some(start), Some(end)) = (
-            self.start_time
-                .checked_sub_signed(chrono::Duration::milliseconds(0)),
-            self.end_time,
-        ) {
+        if let (Some(start), Some(end)) =
+            (self.start_time.checked_sub_signed(chrono::Duration::milliseconds(0)), self.end_time)
+        {
             self.duration_ms = Some((end - start).num_milliseconds() as u64);
         }
     }
@@ -123,11 +121,7 @@ pub struct SpanEvent {
 
 impl SpanEvent {
     pub fn new(name: impl Into<String>) -> Self {
-        Self {
-            name: name.into(),
-            timestamp: Utc::now(),
-            attributes: HashMap::new(),
-        }
+        Self { name: name.into(), timestamp: Utc::now(), attributes: HashMap::new() }
     }
 
     pub fn with_attribute(mut self, key: impl Into<String>, value: serde_json::Value) -> Self {

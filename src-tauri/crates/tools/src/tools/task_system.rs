@@ -174,9 +174,7 @@ impl Tool for TaskCreateTool {
         let command = input["command"].as_str().map(|s| s.to_string());
 
         let db = get_db(ctx);
-        let id = db_spawn_task(&db, &title, &desc)
-            .await
-            .unwrap_or_else(|_| "db-error".to_string());
+        let id = db_spawn_task(&db, &title, &desc).await.unwrap_or_else(|_| "db-error".to_string());
 
         // 如果是 bash 任务且有命令，需要告诉用户使用 spawn_background_task
         if task_type == "bash" && command.is_some() {
@@ -211,9 +209,7 @@ impl Tool for TaskGetTool {
         let id = input["task_id"].as_str().unwrap_or("?");
         let db = get_db(ctx);
         Ok(ToolResult::success(
-            db_get_task(&db, id)
-                .await
-                .unwrap_or_else(|e| format!("DB 错误: {}", e)),
+            db_get_task(&db, id).await.unwrap_or_else(|e| format!("DB 错误: {}", e)),
         ))
     }
 }
@@ -238,9 +234,7 @@ impl Tool for TaskListTool {
     async fn call(&self, _input: Value, ctx: &ToolContext) -> Result<ToolResult, ToolError> {
         let db = get_db(ctx);
         Ok(ToolResult::success(
-            db_list_tasks(&db)
-                .await
-                .unwrap_or_else(|e| format!("DB 错误: {}", e)),
+            db_list_tasks(&db).await.unwrap_or_else(|e| format!("DB 错误: {}", e)),
         ))
     }
 }
@@ -269,9 +263,7 @@ impl Tool for TaskStopTool {
         let id = input["task_id"].as_str().unwrap_or("?");
         let db = get_db(ctx);
         Ok(ToolResult::success(
-            db_stop_task(&db, id)
-                .await
-                .unwrap_or_else(|e| format!("DB 错误: {}", e)),
+            db_stop_task(&db, id).await.unwrap_or_else(|e| format!("DB 错误: {}", e)),
         ))
     }
 }
@@ -301,9 +293,7 @@ impl Tool for TaskUpdateTool {
         let status = input["status"].as_str().unwrap_or("pending").to_string();
         let db = get_db(ctx);
         Ok(ToolResult::success(
-            db_update_status(&db, id, &status)
-                .await
-                .unwrap_or_else(|e| format!("DB 错误: {}", e)),
+            db_update_status(&db, id, &status).await.unwrap_or_else(|e| format!("DB 错误: {}", e)),
         ))
     }
 }
@@ -329,9 +319,7 @@ impl Tool for TaskOutputTool {
         let id = input["task_id"].as_str().unwrap_or("?");
         let db = get_db(ctx);
         Ok(ToolResult::success(
-            db_get_output(&db, id)
-                .await
-                .unwrap_or_else(|e| format!("DB 错误: {}", e)),
+            db_get_output(&db, id).await.unwrap_or_else(|e| format!("DB 错误: {}", e)),
         ))
     }
 }

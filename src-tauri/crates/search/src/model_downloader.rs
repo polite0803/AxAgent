@@ -42,10 +42,8 @@ pub struct LocalModelInfo {
 impl ModelDownloader {
     /// 使用默认缓存路径创建下载管理器（~/.axagent/models/）
     pub fn new() -> Self {
-        let cache_dir = dirs::home_dir()
-            .unwrap_or_else(|| PathBuf::from("."))
-            .join(".axagent")
-            .join("models");
+        let cache_dir =
+            dirs::home_dir().unwrap_or_else(|| PathBuf::from(".")).join(".axagent").join("models");
         Self { cache_dir }
     }
 
@@ -105,10 +103,7 @@ impl ModelDownloader {
 
         // 优先 HuggingFace Hub
         if let Some(repo) = &preset.hf_repo {
-            match self
-                .download_from_hf(repo, &preset.filename, &preset.sha256)
-                .await
-            {
+            match self.download_from_hf(repo, &preset.filename, &preset.sha256).await {
                 Ok(path) => return Ok(path),
                 Err(e) => {
                     tracing::warn!("HF download failed: {}, trying direct URL", e);
@@ -118,8 +113,7 @@ impl ModelDownloader {
 
         // 回退到直链
         if let Some(url) = &preset.direct_url {
-            self.download_direct(&preset.filename, url, &preset.sha256)
-                .await
+            self.download_direct(&preset.filename, url, &preset.sha256).await
         } else {
             Err(axagent_harness::core_error::AxAgentError::ModelDownload(format!(
                 "No download source for {}",
@@ -159,14 +153,12 @@ impl ModelDownloader {
         url: &str,
         expected_sha256: &str,
     ) -> Result<PathBuf> {
-        tokio::fs::create_dir_all(&self.cache_dir)
-            .await
-            .map_err(|e| {
-                axagent_harness::core_error::AxAgentError::ModelDownload(format!(
-                    "Failed to create cache dir: {}",
-                    e
-                ))
-            })?;
+        tokio::fs::create_dir_all(&self.cache_dir).await.map_err(|e| {
+            axagent_harness::core_error::AxAgentError::ModelDownload(format!(
+                "Failed to create cache dir: {}",
+                e
+            ))
+        })?;
 
         let model_path = self.cache_dir.join(filename);
         let tmp_path = model_path.with_extension("download");
@@ -220,16 +212,12 @@ impl ModelDownloader {
 
         // 以追加模式打开（续传）或创建新文件
         let mut file = if tmp_path.exists() {
-            tokio::fs::OpenOptions::new()
-                .append(true)
-                .open(&tmp_path)
-                .await
-                .map_err(|e| {
-                    axagent_harness::core_error::AxAgentError::ModelDownload(format!(
-                        "Cannot open temp file: {}",
-                        e
-                    ))
-                })?
+            tokio::fs::OpenOptions::new().append(true).open(&tmp_path).await.map_err(|e| {
+                axagent_harness::core_error::AxAgentError::ModelDownload(format!(
+                    "Cannot open temp file: {}",
+                    e
+                ))
+            })?
         } else {
             tokio::fs::OpenOptions::new()
                 .create(true)
@@ -264,14 +252,12 @@ impl ModelDownloader {
             })?;
         }
 
-        tokio::fs::rename(&tmp_path, &model_path)
-            .await
-            .map_err(|e| {
-                axagent_harness::core_error::AxAgentError::ModelDownload(format!(
-                    "Rename temp file: {}",
-                    e
-                ))
-            })?;
+        tokio::fs::rename(&tmp_path, &model_path).await.map_err(|e| {
+            axagent_harness::core_error::AxAgentError::ModelDownload(format!(
+                "Rename temp file: {}",
+                e
+            ))
+        })?;
 
         // SHA256 完整性校验
         if !expected_sha256.is_empty() {
@@ -332,14 +318,11 @@ impl ModelDownloader {
             ));
         }
         let path = self.cache_dir.join(filename);
-        let canonical_base = self
-            .cache_dir
-            .canonicalize()
-            .map_err(axagent_harness::core_error::AxAgentError::Io)?;
+        let canonical_base =
+            self.cache_dir.canonicalize().map_err(axagent_harness::core_error::AxAgentError::Io)?;
         if path.exists() {
-            let canonical_path = path
-                .canonicalize()
-                .map_err(axagent_harness::core_error::AxAgentError::Io)?;
+            let canonical_path =
+                path.canonicalize().map_err(axagent_harness::core_error::AxAgentError::Io)?;
             if !canonical_path.starts_with(&canonical_base) {
                 return Err(axagent_harness::core_error::AxAgentError::Validation(
                     "Path traversal detected".to_string(),

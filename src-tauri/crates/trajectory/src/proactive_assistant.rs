@@ -244,16 +244,12 @@ impl ProactiveAssistant {
         if self.active_suggestions.len() >= self.config.max_suggestions {
             return;
         }
-        self.active_suggestions
-            .insert(suggestion.id.clone(), suggestion);
+        self.active_suggestions.insert(suggestion.id.clone(), suggestion);
     }
 
     pub fn get_active_suggestions(&self) -> Vec<&ProactiveSuggestion> {
         let now = Utc::now();
-        self.active_suggestions
-            .values()
-            .filter(|s| s.expires_at > now)
-            .collect()
+        self.active_suggestions.values().filter(|s| s.expires_at > now).collect()
     }
 
     pub fn dismiss_suggestion(&mut self, id: &str) -> Option<ProactiveSuggestion> {
@@ -299,10 +295,7 @@ impl ProactiveAssistant {
 
     pub fn get_due_reminders(&self) -> Vec<&Reminder> {
         let now = Utc::now();
-        self.reminders
-            .values()
-            .filter(|r| !r.completed && r.scheduled_at <= now)
-            .collect()
+        self.reminders.values().filter(|r| !r.completed && r.scheduled_at <= now).collect()
     }
 
     pub fn record_prediction(&mut self, prediction: ContextPrediction) {
@@ -368,10 +361,7 @@ impl Reminder {
     }
 
     pub fn with_recurrence(mut self, frequency: RecurrenceFrequency, interval: u32) -> Self {
-        self.recurrence = Some(ReminderRecurrence {
-            frequency,
-            interval,
-        });
+        self.recurrence = Some(ReminderRecurrence { frequency, interval });
         self
     }
 }

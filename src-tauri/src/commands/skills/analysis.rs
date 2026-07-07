@@ -17,9 +17,7 @@ pub async fn skill_analyze_frontend(
     // 读取技能内容
     // P2 #7: 使用 SkillState 中缓存的 PluginManager
     let plugin_manager = state.skill.plugin_manager.read().await;
-    let report = plugin_manager
-        .plugin_registry_report()
-        .map_err(|e| e.to_string())?;
+    let report = plugin_manager.plugin_registry_report().map_err(|e| e.to_string())?;
     let plugins = report.into_registry_allowing_failures();
     let plugin = plugins
         .summaries()
@@ -27,10 +25,7 @@ pub async fn skill_analyze_frontend(
         .find(|p| p.metadata.name == name)
         .ok_or_else(|| format!("Skill '{}' not found", name))?;
 
-    let skill_dir = plugin
-        .metadata
-        .root
-        .ok_or_else(|| "Skill has no root dir".to_string())?;
+    let skill_dir = plugin.metadata.root.ok_or_else(|| "Skill has no root dir".to_string())?;
     let raw_content = collect_skill_content(&skill_dir);
 
     let max_content_len = 8000;
@@ -354,11 +349,7 @@ pub fn skill_read_asset(name: String, file_name: String) -> Result<String, Error
     }
 
     // 允许文本类文件和常见二进制资源
-    let ext = canonical_requested
-        .extension()
-        .and_then(|e| e.to_str())
-        .unwrap_or("")
-        .to_lowercase();
+    let ext = canonical_requested.extension().and_then(|e| e.to_str()).unwrap_or("").to_lowercase();
     let allowed = [
         "html", "htm", "md", "txt", "css", "js", "json", "svg", "xml", "png", "jpg", "jpeg", "gif",
         "webp", "ico", "woff", "woff2", "ttf", "otf",

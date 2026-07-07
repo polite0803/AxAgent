@@ -28,10 +28,7 @@ pub struct DashboardRegistryConfig {
 
 impl Default for DashboardRegistryConfig {
     fn default() -> Self {
-        Self {
-            plugin_dirs: vec![],
-            auto_load: true,
-        }
+        Self { plugin_dirs: vec![], auto_load: true }
     }
 }
 
@@ -57,10 +54,7 @@ impl DashboardRegistry {
     }
 
     pub fn new_with_config(config: DashboardRegistryConfig) -> Self {
-        Self {
-            entries: RwLock::new(HashMap::new()),
-            config,
-        }
+        Self { entries: RwLock::new(HashMap::new()), config }
     }
 
     pub fn config(&self) -> &DashboardRegistryConfig {
@@ -74,13 +68,10 @@ impl DashboardRegistry {
             return Err(format!("Plugin '{}' already registered", id));
         }
         plugin.on_load().await?;
-        self.entries.write().await.insert(
-            id,
-            PluginEntry {
-                plugin: Arc::from(plugin),
-                enabled: true,
-            },
-        );
+        self.entries
+            .write()
+            .await
+            .insert(id, PluginEntry { plugin: Arc::from(plugin), enabled: true });
         tracing::info!("Plugin registered: {}", manifest.name);
         Ok(())
     }
@@ -97,11 +88,7 @@ impl DashboardRegistry {
     }
 
     pub async fn get_plugin(&self, plugin_id: &str) -> Option<Arc<dyn DashboardPlugin>> {
-        self.entries
-            .read()
-            .await
-            .get(plugin_id)
-            .map(|e| e.plugin.clone())
+        self.entries.read().await.get(plugin_id).map(|e| e.plugin.clone())
     }
 
     pub async fn list_plugins(&self) -> Vec<DashboardPluginInfo> {
@@ -214,10 +201,8 @@ impl DashboardRegistry {
 
         let old_entries = {
             let mut entries = self.entries.write().await;
-            let old: HashMap<String, (Arc<dyn DashboardPlugin>, bool)> = entries
-                .drain()
-                .map(|(id, entry)| (id, (entry.plugin, entry.enabled)))
-                .collect();
+            let old: HashMap<String, (Arc<dyn DashboardPlugin>, bool)> =
+                entries.drain().map(|(id, entry)| (id, (entry.plugin, entry.enabled))).collect();
             old
         };
 
@@ -275,10 +260,7 @@ impl DashboardRegistry {
 
                 new_entries.insert(
                     id,
-                    PluginEntry {
-                        plugin: Arc::from(plugin),
-                        enabled: preserved_enabled,
-                    },
+                    PluginEntry { plugin: Arc::from(plugin), enabled: preserved_enabled },
                 );
                 tracing::info!("Loaded plugin from: {:?}", path);
             }

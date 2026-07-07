@@ -248,10 +248,7 @@ async fn get_slack_socket_url(app_token: &str) -> anyhow::Result<String> {
 
     let body: serde_json::Value = resp.json().await?;
     if body.get("ok").and_then(|v| v.as_bool()) != Some(true) {
-        let error = body
-            .get("error")
-            .and_then(|v| v.as_str())
-            .unwrap_or("unknown");
+        let error = body.get("error").and_then(|v| v.as_str()).unwrap_or("unknown");
         anyhow::bail!("Slack apps.connections.open failed: {}", error);
     }
 

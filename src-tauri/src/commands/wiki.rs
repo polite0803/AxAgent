@@ -71,9 +71,7 @@ pub async fn wiki_notes_list(
 
 #[tauri::command]
 pub async fn wiki_notes_get(state: State<'_, AppState>, id: String) -> Result<Note, String> {
-    axagent_dao::repo::note::get_note(state.harness.db(), &id)
-        .await
-        .map_err(|e| e.to_string())
+    axagent_dao::repo::note::get_note(state.harness.db(), &id).await.map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -138,10 +136,7 @@ pub async fn wiki_notes_update(
 pub async fn wiki_notes_delete(state: State<'_, AppState>, id: String) -> Result<(), String> {
     if let Ok(existing) = axagent_dao::repo::note::get_note(state.harness.db(), &id).await {
         let collection_id = format!("wiki_{}", existing.vault_id);
-        let _ = state
-            .vector_store
-            .delete_document_embeddings(&collection_id, &id)
-            .await;
+        let _ = state.vector_store.delete_document_embeddings(&collection_id, &id).await;
 
         let _ = wiki::create_version(
             state.harness.db(),
@@ -154,9 +149,7 @@ pub async fn wiki_notes_delete(state: State<'_, AppState>, id: String) -> Result
         .await;
     }
 
-    axagent_dao::repo::note::delete_note(state.harness.db(), &id)
-        .await
-        .map_err(|e| e.to_string())
+    axagent_dao::repo::note::delete_note(state.harness.db(), &id).await.map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -169,10 +162,8 @@ pub async fn rebuild_wiki_index(
         .await
         .map_err(|e| e.to_string())?;
 
-    let _embedding_provider = wiki
-        .embedding_provider
-        .as_ref()
-        .ok_or("No embedding provider configured for this wiki")?;
+    let _embedding_provider =
+        wiki.embedding_provider.as_ref().ok_or("No embedding provider configured for this wiki")?;
 
     let container = axagent_search::rag::KnowledgeContainer::from_wiki(&wiki);
 
@@ -242,9 +233,7 @@ pub async fn wiki_notes_get_backlinks(
         .await
         .map_err(|e| e.to_string())?;
 
-    let target_note = axagent_dao::repo::note::get_note(state.harness.db(), &note_id)
-        .await
-        .ok();
+    let target_note = axagent_dao::repo::note::get_note(state.harness.db(), &note_id).await.ok();
     let target_title = target_note.as_ref().map(|n| n.title.as_str()).unwrap_or("");
 
     let mut map: std::collections::HashMap<String, BacklinkInfo> = std::collections::HashMap::new();
@@ -259,13 +248,11 @@ pub async fn wiki_notes_get_backlinks(
 
         let snippets = extract_link_context_snippets(&source_note.content, target_title, 80);
 
-        let entry = map
-            .entry(link.source_note_id.clone())
-            .or_insert_with(|| BacklinkInfo {
-                note_id: link.source_note_id.clone(),
-                title: source_note.title.clone(),
-                snippets: Vec::new(),
-            });
+        let entry = map.entry(link.source_note_id.clone()).or_insert_with(|| BacklinkInfo {
+            note_id: link.source_note_id.clone(),
+            title: source_note.title.clone(),
+            snippets: Vec::new(),
+        });
         entry.snippets.extend(snippets);
     }
 
@@ -366,10 +353,7 @@ async fn wiki_notes_search_hybrid(
         .await
         .map_err(|e| e.to_string())?;
 
-    let ep = wiki
-        .embedding_provider
-        .as_ref()
-        .ok_or("No embedding provider")?;
+    let ep = wiki.embedding_provider.as_ref().ok_or("No embedding provider")?;
     let dimensions = wiki.embedding_dimensions.map(|d| d as usize);
 
     let embed_fn = crate::indexing::ProviderEmbedFn;
@@ -420,11 +404,7 @@ async fn wiki_notes_search_hybrid(
         let snippet = extract_highlight_snippet(&note.content, query, 50, 150);
         let score = hybrid_result.combined_score as f64;
 
-        results.push(NoteSearchResult {
-            note: note.into(),
-            snippet,
-            score,
-        });
+        results.push(NoteSearchResult { note: note.into(), snippet, score });
     }
 
     Ok(results)
@@ -472,18 +452,10 @@ async fn wiki_notes_search_keyword(
 
         let snippet = extract_highlight_snippet(&note.content, query, 50, 150);
 
-        results.push(NoteSearchResult {
-            note: note.into(),
-            snippet,
-            score,
-        });
+        results.push(NoteSearchResult { note: note.into(), snippet, score });
     }
 
-    results.sort_by(|a, b| {
-        b.score
-            .partial_cmp(&a.score)
-            .unwrap_or(std::cmp::Ordering::Equal)
-    });
+    results.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap_or(std::cmp::Ordering::Equal));
     results.truncate(top_k);
 
     Ok(results)
@@ -551,12 +523,8 @@ fn extract_highlight_snippet(
         None
     };
 
-    let best_pos = best_pos.or_else(|| {
-        query_words
-            .iter()
-            .filter_map(|w| content_lower.find(w))
-            .min()
-    });
+    let best_pos =
+        best_pos.or_else(|| query_words.iter().filter_map(|w| content_lower.find(w)).min());
 
     let start = match best_pos {
         Some(pos) => pos.saturating_sub(context_chars),
@@ -618,9 +586,7 @@ pub async fn sync_note_to_knowledge_base(
 
     let file_name = format!("{}.md", note.title.replace('/', "_"));
     let data_dir = state.app_data_dir.join("wiki_sync").join(&note.vault_id);
-    create_dir_all_blocking(data_dir.clone())
-        .await
-        .map_err(|e| e.to_string())?;
+    create_dir_all_blocking(data_dir.clone()).await.map_err(|e| e.to_string())?;
 
     let full_path = data_dir.join(&file_name);
     write_file_blocking(full_path.clone(), note.content.into_bytes())
@@ -685,16 +651,10 @@ pub async fn sync_knowledge_document_to_wiki(
                 .map_err(|e| format!("Failed to extract text: {}", e))?
         } else {
             let collection_name = format!("kb_{}", &doc.knowledge_base_id);
-            match state
-                .vector_store
-                .list_document_chunks(&collection_name, &doc.id)
-                .await
-            {
-                Ok(chunks) if !chunks.is_empty() => chunks
-                    .into_iter()
-                    .map(|c| c.content)
-                    .collect::<Vec<_>>()
-                    .join("\n\n"),
+            match state.vector_store.list_document_chunks(&collection_name, &doc.id).await {
+                Ok(chunks) if !chunks.is_empty() => {
+                    chunks.into_iter().map(|c| c.content).collect::<Vec<_>>().join("\n\n")
+                },
                 _ => {
                     return Err(format!(
                         "Document file not found at '{}' and no indexed chunks available. \
@@ -730,9 +690,7 @@ pub async fn wiki_note_versions(
     state: State<'_, AppState>,
     note_id: String,
 ) -> Result<Vec<NoteVersion>, String> {
-    wiki::list_versions(state.harness.db(), &note_id)
-        .await
-        .map_err(|e| e.to_string())
+    wiki::list_versions(state.harness.db(), &note_id).await.map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -740,9 +698,7 @@ pub async fn wiki_note_get_version(
     state: State<'_, AppState>,
     version_id: i64,
 ) -> Result<NoteVersion, String> {
-    wiki::get_version(state.harness.db(), version_id)
-        .await
-        .map_err(|e| e.to_string())
+    wiki::get_version(state.harness.db(), version_id).await.map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -752,9 +708,8 @@ pub async fn wiki_note_restore_version(
     note_id: String,
     version_id: i64,
 ) -> Result<Note, String> {
-    let version = wiki::get_version(state.harness.db(), version_id)
-        .await
-        .map_err(|e| e.to_string())?;
+    let version =
+        wiki::get_version(state.harness.db(), version_id).await.map_err(|e| e.to_string())?;
 
     let note = axagent_dao::repo::note::get_note(state.harness.db(), &note_id)
         .await
@@ -794,9 +749,7 @@ pub async fn wiki_template_list(
     state: State<'_, AppState>,
     wiki_id: String,
 ) -> Result<Vec<WikiTemplate>, String> {
-    wiki::list_wiki_templates(state.harness.db(), &wiki_id)
-        .await
-        .map_err(|e| e.to_string())
+    wiki::list_wiki_templates(state.harness.db(), &wiki_id).await.map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -804,16 +757,12 @@ pub async fn wiki_template_create(
     state: State<'_, AppState>,
     input: CreateWikiTemplateInput,
 ) -> Result<WikiTemplate, String> {
-    wiki::create_wiki_template(state.harness.db(), input)
-        .await
-        .map_err(|e| e.to_string())
+    wiki::create_wiki_template(state.harness.db(), input).await.map_err(|e| e.to_string())
 }
 
 #[tauri::command]
 pub async fn wiki_template_delete(state: State<'_, AppState>, id: String) -> Result<(), String> {
-    wiki::delete_wiki_template(state.harness.db(), &id)
-        .await
-        .map_err(|e| e.to_string())
+    wiki::delete_wiki_template(state.harness.db(), &id).await.map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -828,9 +777,8 @@ pub async fn wiki_note_create_from_template(
         .await
         .map_err(|e| e.to_string())?;
 
-    let wiki_obj = wiki::get_wiki(state.harness.db(), &vault_id)
-        .await
-        .map_err(|e| e.to_string())?;
+    let wiki_obj =
+        wiki::get_wiki(state.harness.db(), &vault_id).await.map_err(|e| e.to_string())?;
 
     let content = wiki::apply_template_variables(&template.content, &wiki_obj.name);
 
@@ -967,24 +915,18 @@ pub async fn wiki_import_obsidian_vault(
             .and_then(|v| {
                 if v.is_sequence() {
                     v.as_sequence().map(|seq| {
-                        seq.iter()
-                            .filter_map(|item| item.as_str().map(String::from))
-                            .collect()
+                        seq.iter().filter_map(|item| item.as_str().map(String::from)).collect()
                     })
                 } else if v.is_string() {
-                    v.as_str()
-                        .map(|s| s.split(',').map(|t| t.trim().to_string()).collect())
+                    v.as_str().map(|s| s.split(',').map(|t| t.trim().to_string()).collect())
                 } else {
                     None
                 }
             })
             .unwrap_or_default();
 
-        let relative = file_path
-            .strip_prefix(root)
-            .unwrap_or(file_path)
-            .to_string_lossy()
-            .to_string();
+        let relative =
+            file_path.strip_prefix(root).unwrap_or(file_path).to_string_lossy().to_string();
 
         let content_with_tags = if tags.is_empty() {
             content.clone()
@@ -1015,11 +957,7 @@ pub async fn wiki_import_obsidian_vault(
         }
     }
 
-    Ok(ImportStats {
-        imported,
-        failed,
-        skipped,
-    })
+    Ok(ImportStats { imported, failed, skipped })
 }
 
 #[derive(Debug, Clone, serde::Serialize)]
@@ -1061,12 +999,7 @@ pub async fn wiki_import_knowledge_md(
     // 解析章节：按 `## ` 分割，跳过第一个（标题/引言）
     let sections: Vec<&str> = raw.split("\n## ").collect();
     if sections.is_empty() {
-        return Ok(KnowledgeMdImportStats {
-            imported: 0,
-            failed: 0,
-            skipped: 0,
-            total: 0,
-        });
+        return Ok(KnowledgeMdImportStats { imported: 0, failed: 0, skipped: 0, total: 0 });
     }
 
     // 获取已有笔记标题，跳过重复
@@ -1129,12 +1062,7 @@ pub async fn wiki_import_knowledge_md(
         }
     }
 
-    Ok(KnowledgeMdImportStats {
-        imported,
-        failed,
-        skipped,
-        total: sections.len(),
-    })
+    Ok(KnowledgeMdImportStats { imported, failed, skipped, total: sections.len() })
 }
 
 fn collect_md_files(current: &std::path::Path, files: &mut Vec<std::path::PathBuf>) {
@@ -1142,10 +1070,8 @@ fn collect_md_files(current: &std::path::Path, files: &mut Vec<std::path::PathBu
         for entry in entries.flatten() {
             let path = entry.path();
             if path.is_dir() {
-                let dir_name = path
-                    .file_name()
-                    .map(|n| n.to_string_lossy().to_string())
-                    .unwrap_or_default();
+                let dir_name =
+                    path.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
                 if dir_name.starts_with('.') {
                     continue;
                 }
@@ -1169,9 +1095,7 @@ fn parse_frontmatter(raw: &str) -> (serde_yaml::Value, String) {
     };
 
     let yaml_str = &rest[..end];
-    let body = rest[end + 3..]
-        .trim_start_matches('\n')
-        .trim_start_matches('\r');
+    let body = rest[end + 3..].trim_start_matches('\n').trim_start_matches('\r');
 
     let frontmatter = match serde_yaml::from_str::<serde_yaml::Value>(yaml_str) {
         Ok(v) => v,
@@ -1192,9 +1116,7 @@ pub async fn wiki_export_markdown(
         .map_err(|e| e.to_string())?;
 
     let output_dir = std::path::Path::new(&output_path);
-    create_dir_all_blocking(output_dir.to_path_buf())
-        .await
-        .map_err(|e| e.to_string())?;
+    create_dir_all_blocking(output_dir.to_path_buf()).await.map_err(|e| e.to_string())?;
 
     let mut exported = 0usize;
     let mut failed = 0usize;
@@ -1205,9 +1127,7 @@ pub async fn wiki_export_markdown(
                 output_dir.to_path_buf()
             } else {
                 let d = output_dir.join(sanitize_filename(pt));
-                create_dir_all_blocking(d.clone())
-                    .await
-                    .map_err(|e| e.to_string())?;
+                create_dir_all_blocking(d.clone()).await.map_err(|e| e.to_string())?;
                 d
             }
         } else {
@@ -1261,17 +1181,13 @@ pub async fn wiki_export_html(
         .map_err(|e| e.to_string())?;
 
     let output_dir = std::path::Path::new(&output_path);
-    create_dir_all_blocking(output_dir.to_path_buf())
-        .await
-        .map_err(|e| e.to_string())?;
+    create_dir_all_blocking(output_dir.to_path_buf()).await.map_err(|e| e.to_string())?;
 
     let mut exported = 0usize;
     let mut failed = 0usize;
 
-    let note_titles: std::collections::HashMap<String, String> = notes
-        .iter()
-        .map(|n| (n.title.clone(), sanitize_filename(&n.title)))
-        .collect();
+    let note_titles: std::collections::HashMap<String, String> =
+        notes.iter().map(|n| (n.title.clone(), sanitize_filename(&n.title))).collect();
 
     for note in &notes {
         let html_file_name = format!("{}.html", sanitize_filename(&note.title));
@@ -1374,9 +1290,7 @@ pub async fn wiki_note_export_pdf(
 
     let output = std::path::Path::new(&output_path);
     if let Some(parent) = output.parent() {
-        create_dir_all_blocking(parent.to_path_buf())
-            .await
-            .map_err(|e| e.to_string())?;
+        create_dir_all_blocking(parent.to_path_buf()).await.map_err(|e| e.to_string())?;
     }
 
     let html_body = markdown_to_simple_html(&note.content, &std::collections::HashMap::new());
@@ -1416,9 +1330,7 @@ ul, ol {{ padding-left: 2em; }}
         output.to_path_buf()
     };
 
-    write_file_blocking(html_output.clone(), html.into_bytes())
-        .await
-        .map_err(|e| e.to_string())?;
+    write_file_blocking(html_output.clone(), html.into_bytes()).await.map_err(|e| e.to_string())?;
 
     let html_path = html_output.to_string_lossy().to_string();
     let _ = open::that(&html_output);
@@ -1470,10 +1382,7 @@ fn escape_yaml_string(s: &str) -> String {
 }
 
 fn escape_html(s: &str) -> String {
-    s.replace('&', "&amp;")
-        .replace('<', "&lt;")
-        .replace('>', "&gt;")
-        .replace('"', "&quot;")
+    s.replace('&', "&amp;").replace('<', "&lt;").replace('>', "&gt;").replace('"', "&quot;")
 }
 
 fn extract_tags_from_note_content(content: &str) -> Vec<String> {

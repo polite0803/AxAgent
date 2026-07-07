@@ -104,10 +104,7 @@ fn make_base(id: &str, title: &str) -> WorkflowNodeBase {
 fn make_trigger(id: &str) -> WorkflowNode {
     WorkflowNode::Trigger(TriggerNode {
         base: make_base(id, "Trigger"),
-        config: TriggerConfig {
-            trigger_type: TriggerType::Manual,
-            config: serde_json::json!({}),
-        },
+        config: TriggerConfig { trigger_type: TriggerType::Manual, config: serde_json::json!({}) },
     })
 }
 
@@ -144,9 +141,7 @@ fn make_edge(source: &str, target: &str) -> WorkflowEdge {
 /// run_workflow 内部会调 `axagent_dao::repo::workflow_execution::create_workflow_execution`
 /// 写 DB 审计记录，所以必须用真实连接（不能是 `DatabaseConnection::default()`，那会返回 Disconnected）。
 async fn new_engine() -> Arc<WorkEngine> {
-    let handle = axagent_dao::db::create_test_pool()
-        .await
-        .expect("create_test_pool");
+    let handle = axagent_dao::db::create_test_pool().await.expect("create_test_pool");
     let engine = Arc::new(WorkEngine::new(
         Arc::new(handle.conn),
         [0u8; 32],
@@ -182,10 +177,7 @@ async fn per_node_exec_ctx_inherits_global_variables() {
     let wf = engine
         .create_workflow(
             "test_inherits_vars",
-            vec![
-                make_trigger("trigger"),
-                make_tool("tool1", "lookup", input_mapping, "result"),
-            ],
+            vec![make_trigger("trigger"), make_tool("tool1", "lookup", input_mapping, "result")],
             vec![make_edge("trigger", "tool1")],
         )
         .await
@@ -200,10 +192,7 @@ async fn per_node_exec_ctx_inherits_global_variables() {
         is_secret: false,
     }]);
 
-    let _ = engine
-        .run_workflow(&wf.id, options)
-        .await
-        .expect("run_workflow");
+    let _ = engine.run_workflow(&wf.id, options).await.expect("run_workflow");
 
     // 断言：tool 节点执行时收到了 stock_code = "600519"
     let captured = reg.captured().await;
@@ -230,10 +219,7 @@ async fn per_node_exec_ctx_input_params_fallback() {
     let wf = engine
         .create_workflow(
             "test_input_fallback",
-            vec![
-                make_trigger("trigger"),
-                make_tool("tool1", "lookup", input_mapping, "result"),
-            ],
+            vec![make_trigger("trigger"), make_tool("tool1", "lookup", input_mapping, "result")],
             vec![make_edge("trigger", "tool1")],
         )
         .await
@@ -244,10 +230,7 @@ async fn per_node_exec_ctx_input_params_fallback() {
     let mut options = RunOptions::new().with_max_concurrent(1);
     options.input = Some(serde_json::json!({"stock_code": "600519"}));
 
-    let _ = engine
-        .run_workflow(&wf.id, options)
-        .await
-        .expect("run_workflow");
+    let _ = engine.run_workflow(&wf.id, options).await.expect("run_workflow");
 
     let captured = reg.captured().await;
     assert_eq!(captured.len(), 1);
@@ -297,28 +280,20 @@ async fn per_node_exec_ctx_deps_results_take_precedence() {
                 make_tool("upstream_value", "upstream_tool", upstream_mapping, "upstream_output"),
                 make_tool("downstream", "downstream_tool", downstream_mapping, "downstream_output"),
             ],
-            vec![
-                make_edge("trigger", "upstream_value"),
-                make_edge("upstream_value", "downstream"),
-            ],
+            vec![make_edge("trigger", "upstream_value"), make_edge("upstream_value", "downstream")],
         )
         .await
         .expect("create_workflow");
 
-    let options = RunOptions::new()
-        .with_max_concurrent(1)
-        .with_variables(vec![Variable {
-            name: "value".to_string(),
-            var_type: "string".to_string(),
-            value: serde_json::json!("from_options"),
-            description: None,
-            is_secret: false,
-        }]);
+    let options = RunOptions::new().with_max_concurrent(1).with_variables(vec![Variable {
+        name: "value".to_string(),
+        var_type: "string".to_string(),
+        value: serde_json::json!("from_options"),
+        description: None,
+        is_secret: false,
+    }]);
 
-    let _ = engine
-        .run_workflow(&wf.id, options)
-        .await
-        .expect("run_workflow");
+    let _ = engine.run_workflow(&wf.id, options).await.expect("run_workflow");
 
     let captured = reg.captured().await;
     // upstream + downstream 各执行 1 次
@@ -326,10 +301,8 @@ async fn per_node_exec_ctx_deps_results_take_precedence() {
 
     // 断言 1：upstream 收到了来自 options.variables 的 value = "from_options"
     // （证明 state.variables fallback 生效：deps_results 没有 top-level "value" key）
-    let upstream_call = captured
-        .iter()
-        .find(|(n, _)| n == "upstream_tool")
-        .expect("upstream_tool 应被调用");
+    let upstream_call =
+        captured.iter().find(|(n, _)| n == "upstream_tool").expect("upstream_tool 应被调用");
     assert_eq!(
         upstream_call.1.get("value"),
         Some(&serde_json::json!("from_options")),
@@ -338,10 +311,8 @@ async fn per_node_exec_ctx_deps_results_take_precedence() {
 
     // 断言 2：downstream 通过 deps_results 路径拿到 upstream 的 result = "captured"
     // （证明 deps_results 合并后正确保留了上游节点输出，downstream 能解析 upstream_value.result）
-    let downstream_call = captured
-        .iter()
-        .find(|(n, _)| n == "downstream_tool")
-        .expect("downstream_tool 应被调用");
+    let downstream_call =
+        captured.iter().find(|(n, _)| n == "downstream_tool").expect("downstream_tool 应被调用");
     assert_eq!(
         downstream_call.1.get("value"),
         Some(&serde_json::json!("captured")),

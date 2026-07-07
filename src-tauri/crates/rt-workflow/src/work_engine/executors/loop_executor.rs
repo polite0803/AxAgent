@@ -109,17 +109,16 @@ impl NodeExecutorTrait for LoopExecutor {
         }
 
         // 解析回调：loop_body_dispatch 必须存在（由引擎注入）。
-        let loop_dispatch = context
-            .callbacks
-            .as_ref()
-            .and_then(|cb| cb.loop_body_dispatch.clone())
-            .ok_or_else(|| {
-                NodeError::exec_failed(
+        let loop_dispatch =
+            context.callbacks.as_ref().and_then(|cb| cb.loop_body_dispatch.clone()).ok_or_else(
+                || {
+                    NodeError::exec_failed(
                     error_code::VALIDATION_FAILED,
                     "Loop executor requires loop_body_dispatch callback (engine not initialized)"
                         .to_string(),
                 )
-            })?;
+                },
+            )?;
 
         let exec_id = context.execution_id.clone();
         let node_id = node.base_id().to_string();
@@ -138,10 +137,7 @@ impl NodeExecutorTrait for LoopExecutor {
         };
 
         // ── 决定迭代次数上限 ──
-        let max_iter = c
-            .max_iterations
-            .unwrap_or(items.len() as u32)
-            .min(MAX_ITERATIONS_HARD_CAP);
+        let max_iter = c.max_iterations.unwrap_or(items.len() as u32).min(MAX_ITERATIONS_HARD_CAP);
         let total = (items.len() as u32).min(max_iter);
 
         // ── 决定起点：恢复路径（读 checkpoint） vs 全新路径 ──
@@ -150,10 +146,8 @@ impl NodeExecutorTrait for LoopExecutor {
         let mut input_items = items.clone();
         let mut resumed_from_checkpoint = false;
 
-        if let Some(checkpoint_ops) = context
-            .callbacks
-            .as_ref()
-            .and_then(|cb| cb.loop_checkpoint.clone())
+        if let Some(checkpoint_ops) =
+            context.callbacks.as_ref().and_then(|cb| cb.loop_checkpoint.clone())
         {
             match (checkpoint_ops.load)(exec_id.clone(), node_id.clone()).await {
                 Ok(Some(cp)) => {
@@ -186,10 +180,8 @@ impl NodeExecutorTrait for LoopExecutor {
         }
 
         // ── iteratee_var 校验 ──
-        let iteratee_var_key = c
-            .iteratee_var
-            .clone()
-            .unwrap_or_else(|| "__loop_iteratee__".to_string());
+        let iteratee_var_key =
+            c.iteratee_var.clone().unwrap_or_else(|| "__loop_iteratee__".to_string());
         let output_var_key = c.effective_output_var().to_string();
         let partial_var_key = c.effective_partial_var().map(|s| s.to_string());
 
@@ -217,10 +209,7 @@ impl NodeExecutorTrait for LoopExecutor {
             let iter_vars: Arc<tokio::sync::Mutex<HashMap<String, serde_json::Value>>> =
                 Arc::new(tokio::sync::Mutex::new(context.variables.clone()));
             // 注入 iteratee 变量
-            iter_vars
-                .lock()
-                .await
-                .insert(iteratee_var_key.clone(), item.clone());
+            iter_vars.lock().await.insert(iteratee_var_key.clone(), item.clone());
             // 注入 partial_result（用于下游 body_step 看到累计结果）
             iter_vars
                 .lock()
@@ -248,10 +237,7 @@ impl NodeExecutorTrait for LoopExecutor {
                     Ok(out) => {
                         // 把 body_step 的输出写回 iter_vars（Arc 共享）
                         if let Some(ref out_var) = out.output_var {
-                            iter_vars
-                                .lock()
-                                .await
-                                .insert(out_var.clone(), out.output.clone());
+                            iter_vars.lock().await.insert(out_var.clone(), out.output.clone());
                         }
                         last_step_output = out.output.clone();
 
@@ -265,10 +251,8 @@ impl NodeExecutorTrait for LoopExecutor {
                         if !c.continue_on_error {
                             // 非继续模式：写检查点（保留 cursor 指向失败的那一轮，
                             // 便于事后排查），返回错误。
-                            if let Some(checkpoint_ops) = context
-                                .callbacks
-                                .as_ref()
-                                .and_then(|cb| cb.loop_checkpoint.clone())
+                            if let Some(checkpoint_ops) =
+                                context.callbacks.as_ref().and_then(|cb| cb.loop_checkpoint.clone())
                             {
                                 let cp = LoopCheckpoint {
                                     execution_id: exec_id.clone(),
@@ -306,10 +290,8 @@ impl NodeExecutorTrait for LoopExecutor {
                     saved_at_ms: chrono::Utc::now().timestamp_millis() as u64,
                     interrupting_step_id: Some(hit_step_id.clone()),
                 };
-                if let Some(checkpoint_ops) = context
-                    .callbacks
-                    .as_ref()
-                    .and_then(|cb| cb.loop_checkpoint.clone())
+                if let Some(checkpoint_ops) =
+                    context.callbacks.as_ref().and_then(|cb| cb.loop_checkpoint.clone())
                     && let Err(e) = (checkpoint_ops.save)(cp).await
                 {
                     tracing::error!(
@@ -375,10 +357,8 @@ impl NodeExecutorTrait for LoopExecutor {
 
                 // 重新读 checkpoint 决定下一步（resume_loop_iteration 可能更新了
                 // partial 或 cursor）。
-                if let Some(checkpoint_ops) = context
-                    .callbacks
-                    .as_ref()
-                    .and_then(|cb| cb.loop_checkpoint.clone())
+                if let Some(checkpoint_ops) =
+                    context.callbacks.as_ref().and_then(|cb| cb.loop_checkpoint.clone())
                     && let Ok(Some(updated_cp)) =
                         (checkpoint_ops.load)(exec_id.clone(), node_id.clone()).await
                 {
@@ -424,10 +404,8 @@ impl NodeExecutorTrait for LoopExecutor {
                     saved_at_ms: chrono::Utc::now().timestamp_millis() as u64,
                     interrupting_step_id: None,
                 };
-                if let Some(checkpoint_ops) = context
-                    .callbacks
-                    .as_ref()
-                    .and_then(|cb| cb.loop_checkpoint.clone())
+                if let Some(checkpoint_ops) =
+                    context.callbacks.as_ref().and_then(|cb| cb.loop_checkpoint.clone())
                 {
                     let _ = (checkpoint_ops.save)(cp).await;
                 }
@@ -439,10 +417,8 @@ impl NodeExecutorTrait for LoopExecutor {
                 );
                 sig.notified().await;
                 // resume 后读最新 cursor
-                if let Some(checkpoint_ops) = context
-                    .callbacks
-                    .as_ref()
-                    .and_then(|cb| cb.loop_checkpoint.clone())
+                if let Some(checkpoint_ops) =
+                    context.callbacks.as_ref().and_then(|cb| cb.loop_checkpoint.clone())
                     && let Ok(Some(updated_cp)) =
                         (checkpoint_ops.load)(exec_id.clone(), node_id.clone()).await
                 {
@@ -467,10 +443,8 @@ impl NodeExecutorTrait for LoopExecutor {
         }
 
         // ── 全部完成：清理检查点、聚合结果通过 output_var 暴露 ──
-        if let Some(checkpoint_ops) = context
-            .callbacks
-            .as_ref()
-            .and_then(|cb| cb.loop_checkpoint.clone())
+        if let Some(checkpoint_ops) =
+            context.callbacks.as_ref().and_then(|cb| cb.loop_checkpoint.clone())
         {
             let _ = (checkpoint_ops.delete)(exec_id.clone(), node_id.clone()).await;
         }

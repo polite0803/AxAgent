@@ -90,10 +90,7 @@ impl DashboardPluginAdapter {
     where
         F: Fn(&str, HashMap<String, serde_json::Value>) -> RenderOutput + Send + Sync + 'static,
     {
-        Self {
-            manifest,
-            render_fn: Box::new(render_fn),
-        }
+        Self { manifest, render_fn: Box::new(render_fn) }
     }
 }
 

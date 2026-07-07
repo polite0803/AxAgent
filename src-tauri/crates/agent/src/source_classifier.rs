@@ -215,26 +215,16 @@ impl SourceClassifier {
             },
         ];
 
-        Self {
-            known_domains,
-            patterns,
-        }
+        Self { known_domains, patterns }
     }
 
     pub fn classify(&self, url: &str) -> SourceClassification {
         let parsed = url::Url::parse(url).ok();
-        let domain = parsed
-            .as_ref()
-            .and_then(|u| u.host_str())
-            .unwrap_or("unknown")
-            .to_lowercase();
+        let domain = parsed.as_ref().and_then(|u| u.host_str()).unwrap_or("unknown").to_lowercase();
 
         let parts: Vec<&str> = domain.split('.').collect();
         let subdomains: Vec<String> = if parts.len() > 2 {
-            parts[..parts.len() - 2]
-                .iter()
-                .map(|s| s.to_string())
-                .collect()
+            parts[..parts.len() - 2].iter().map(|s| s.to_string()).collect()
         } else {
             Vec::new()
         };

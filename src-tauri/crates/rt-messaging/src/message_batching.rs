@@ -40,12 +40,7 @@ pub struct Batch<M> {
 
 impl<M> Batch<M> {
     pub fn new(id: String) -> Self {
-        Self {
-            id,
-            messages: Vec::new(),
-            created_at: Instant::now(),
-            size_bytes: 0,
-        }
+        Self { id, messages: Vec::new(), created_at: Instant::now(), size_bytes: 0 }
     }
 
     pub fn add(&mut self, message: M, size: usize) {
@@ -67,11 +62,7 @@ pub struct MessageBatcher {
 
 impl MessageBatcher {
     pub fn new(config: BatchingConfig, batch_tx: mpsc::Sender<Batch<AgentMessage>>) -> Self {
-        Self {
-            config,
-            pending: Arc::new(RwLock::new(VecDeque::new())),
-            batch_tx,
-        }
+        Self { config, pending: Arc::new(RwLock::new(VecDeque::new())), batch_tx }
     }
 
     pub async fn enqueue(&self, message: AgentMessage) -> Result<(), BatcherError> {
@@ -97,10 +88,7 @@ impl MessageBatcher {
             batch.add(msg, size);
         }
 
-        self.batch_tx
-            .send(batch)
-            .await
-            .map_err(|_| BatcherError::ChannelClosed)?;
+        self.batch_tx.send(batch).await.map_err(|_| BatcherError::ChannelClosed)?;
         Ok(())
     }
 
@@ -185,10 +173,7 @@ impl CompressionLevel {
 
 impl MessageCompressor {
     pub fn new(compression_type: CompressionType) -> Self {
-        Self {
-            compression_type,
-            level: CompressionLevel::Default,
-        }
+        Self { compression_type, level: CompressionLevel::Default }
     }
 
     pub fn with_level(mut self, level: CompressionLevel) -> Self {
@@ -219,12 +204,8 @@ impl MessageCompressor {
             Vec::new(),
             flate2::Compression::new(self.level.to_i32() as u32),
         );
-        encoder
-            .write_all(data)
-            .map_err(|e| BatcherError::CompressionFailed(e.to_string()))?;
-        encoder
-            .finish()
-            .map_err(|e| BatcherError::CompressionFailed(e.to_string()))
+        encoder.write_all(data).map_err(|e| BatcherError::CompressionFailed(e.to_string()))?;
+        encoder.finish().map_err(|e| BatcherError::CompressionFailed(e.to_string()))
     }
 
     fn decompress_gzip(&self, data: &[u8]) -> Result<Vec<u8>, BatcherError> {
@@ -241,12 +222,8 @@ impl MessageCompressor {
             Vec::new(),
             flate2::Compression::new(self.level.to_i32() as u32),
         );
-        encoder
-            .write_all(data)
-            .map_err(|e| BatcherError::CompressionFailed(e.to_string()))?;
-        encoder
-            .finish()
-            .map_err(|e| BatcherError::CompressionFailed(e.to_string()))
+        encoder.write_all(data).map_err(|e| BatcherError::CompressionFailed(e.to_string()))?;
+        encoder.finish().map_err(|e| BatcherError::CompressionFailed(e.to_string()))
     }
 
     fn decompress_deflate(&self, data: &[u8]) -> Result<Vec<u8>, BatcherError> {

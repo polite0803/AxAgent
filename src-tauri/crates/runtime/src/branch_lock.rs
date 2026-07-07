@@ -41,10 +41,7 @@ pub fn detect_branch_lock_collisions(intents: &[BranchLockIntent]) -> Vec<Branch
     }
 
     collisions.sort_by(|a, b| {
-        a.branch
-            .cmp(&b.branch)
-            .then(a.module.cmp(&b.module))
-            .then(a.lane_ids.cmp(&b.lane_ids))
+        a.branch.cmp(&b.branch).then(a.module.cmp(&b.module)).then(a.lane_ids.cmp(&b.lane_ids))
     });
     collisions.dedup();
     collisions

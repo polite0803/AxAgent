@@ -103,11 +103,7 @@ pub async fn list_local_tools(
     let mut registry = state.local_tool_registry.lock().await;
     registry.load_enabled_state(state.harness.db()).await;
     let disabled = registry.groups.disabled_tools.clone();
-    Ok(registry
-        .get_tool_groups()
-        .into_iter()
-        .map(|g| to_local_group(g, &disabled))
-        .collect())
+    Ok(registry.get_tool_groups().into_iter().map(|g| to_local_group(g, &disabled)).collect())
 }
 
 // ── 切换工具分类启禁 ──
@@ -119,10 +115,7 @@ pub async fn toggle_local_tool_group(
 ) -> Result<LocalToolGroupInfo, String> {
     let mut registry = state.local_tool_registry.lock().await;
     registry.load_enabled_state(state.harness.db()).await;
-    registry
-        .toggle_group(state.harness.db(), &group_id)
-        .await
-        .map_err(|e| e.to_string())?;
+    registry.toggle_group(state.harness.db(), &group_id).await.map_err(|e| e.to_string())?;
 
     let disabled = registry.groups.disabled_tools.clone();
     let groups = registry.get_tool_groups();
@@ -142,15 +135,8 @@ pub async fn toggle_single_tool(
 ) -> Result<Vec<LocalToolGroupInfo>, String> {
     let mut registry = state.local_tool_registry.lock().await;
     registry.load_enabled_state(state.harness.db()).await;
-    registry
-        .toggle_tool(state.harness.db(), &tool_name)
-        .await
-        .map_err(|e| e.to_string())?;
+    registry.toggle_tool(state.harness.db(), &tool_name).await.map_err(|e| e.to_string())?;
 
     let disabled = registry.groups.disabled_tools.clone();
-    Ok(registry
-        .get_tool_groups()
-        .into_iter()
-        .map(|g| to_local_group(g, &disabled))
-        .collect())
+    Ok(registry.get_tool_groups().into_iter().map(|g| to_local_group(g, &disabled)).collect())
 }

@@ -79,10 +79,8 @@ impl SteerManager {
         if pending.is_empty() {
             return None;
         }
-        let instructions: Vec<String> = pending
-            .iter()
-            .map(|m| format!("- [{}] {}", m.id, m.instruction))
-            .collect();
+        let instructions: Vec<String> =
+            pending.iter().map(|m| format!("- [{}] {}", m.id, m.instruction)).collect();
         Some(format!(
             "<steer-instructions type=\"temporary\">\n{}\n</steer-instructions>",
             instructions.join("\n")
@@ -202,15 +200,9 @@ mod tests {
     #[tokio::test]
     async fn test_steer_manager_set_injection_point() {
         let manager = SteerManager::new();
-        manager
-            .set_injection_point(SteerInjectionPoint::Immediate)
-            .await;
-        manager
-            .set_injection_point(SteerInjectionPoint::BeforeNextLlmCall)
-            .await;
-        manager
-            .set_injection_point(SteerInjectionPoint::AfterToolCall)
-            .await;
+        manager.set_injection_point(SteerInjectionPoint::Immediate).await;
+        manager.set_injection_point(SteerInjectionPoint::BeforeNextLlmCall).await;
+        manager.set_injection_point(SteerInjectionPoint::AfterToolCall).await;
     }
 
     #[tokio::test]

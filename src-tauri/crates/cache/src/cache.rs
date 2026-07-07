@@ -47,9 +47,7 @@ impl EmbeddingCache {
     ///
     /// - `max_entries`: Maximum number of embeddings to store
     pub fn new(max_entries: usize) -> Self {
-        Self {
-            cache: Cache::new(max_entries),
-        }
+        Self { cache: Cache::new(max_entries) }
     }
 
     /// Retrieves an embedding from the cache by key.
@@ -133,9 +131,7 @@ impl TextHashCache {
     ///
     /// - `max_entries`: Maximum number of hashes to store
     pub fn new(max_entries: usize) -> Self {
-        Self {
-            cache: Cache::new(max_entries),
-        }
+        Self { cache: Cache::new(max_entries) }
     }
 
     /// Retrieves a text hash from the cache by key.

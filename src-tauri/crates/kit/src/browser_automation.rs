@@ -62,22 +62,11 @@ impl PlaywrightClient {
         crate::utils::hide_window(child_builder.as_std_mut());
         let mut child = child_builder.spawn()?;
 
-        let stdin = child
-            .stdin
-            .take()
-            .ok_or_else(|| anyhow::anyhow!("No stdin"))?;
-        let stdout = child
-            .stdout
-            .take()
-            .ok_or_else(|| anyhow::anyhow!("No stdout"))?;
+        let stdin = child.stdin.take().ok_or_else(|| anyhow::anyhow!("No stdin"))?;
+        let stdout = child.stdout.take().ok_or_else(|| anyhow::anyhow!("No stdout"))?;
         let stdout_reader = BufReader::new(stdout);
 
-        let mut client = Self {
-            child,
-            stdin,
-            stdout_reader,
-            next_id: 1,
-        };
+        let mut client = Self { child, stdin, stdout_reader, next_id: 1 };
 
         let mut ready_line = String::new();
         client.stdout_reader.read_line(&mut ready_line).await?;
@@ -93,11 +82,7 @@ impl PlaywrightClient {
         let id = self.next_id;
         self.next_id += 1;
 
-        let request = BrowserRequest {
-            id,
-            method: method.to_string(),
-            params,
-        };
+        let request = BrowserRequest { id, method: method.to_string(), params };
 
         let request_json = serde_json::to_string(&request)? + "\n";
         self.stdin.write_all(request_json.as_bytes()).await?;
@@ -111,47 +96,36 @@ impl PlaywrightClient {
             anyhow::bail!("Browser automation error: {}", error);
         }
 
-        response
-            .result
-            .ok_or_else(|| anyhow::anyhow!("Empty response"))
+        response.result.ok_or_else(|| anyhow::anyhow!("Empty response"))
     }
 
     pub async fn navigate(&mut self, url: &str) -> Result<NavigateResult> {
-        let result = self
-            .call("navigate", serde_json::json!({ "url": url }))
-            .await?;
+        let result = self.call("navigate", serde_json::json!({ "url": url })).await?;
         serde_json::from_value(result).map_err(Into::into)
     }
 
     pub async fn screenshot(&mut self, full_page: bool) -> Result<ScreenshotResult> {
-        let result = self
-            .call("screenshot", serde_json::json!({ "fullPage": full_page }))
-            .await?;
+        let result = self.call("screenshot", serde_json::json!({ "fullPage": full_page })).await?;
         serde_json::from_value(result).map_err(Into::into)
     }
 
     pub async fn click(&mut self, selector: &str) -> Result<()> {
-        self.call("click", serde_json::json!({ "selector": selector }))
-            .await?;
+        self.call("click", serde_json::json!({ "selector": selector })).await?;
         Ok(())
     }
 
     pub async fn fill(&mut self, selector: &str, value: &str) -> Result<()> {
-        self.call("fill", serde_json::json!({ "selector": selector, "value": value }))
-            .await?;
+        self.call("fill", serde_json::json!({ "selector": selector, "value": value })).await?;
         Ok(())
     }
 
     pub async fn type_text(&mut self, selector: &str, text: &str) -> Result<()> {
-        self.call("type", serde_json::json!({ "selector": selector, "text": text }))
-            .await?;
+        self.call("type", serde_json::json!({ "selector": selector, "text": text })).await?;
         Ok(())
     }
 
     pub async fn extract_text(&mut self, selector: &str) -> Result<String> {
-        let result = self
-            .call("extract_text", serde_json::json!({ "selector": selector }))
-            .await?;
+        let result = self.call("extract_text", serde_json::json!({ "selector": selector })).await?;
         result["text"]
             .as_str()
             .map(|s| s.to_string())
@@ -159,16 +133,11 @@ impl PlaywrightClient {
     }
 
     pub async fn extract_all(&mut self, selector: &str) -> Result<Vec<ExtractedElement>> {
-        let result = self
-            .call("extract_all", serde_json::json!({ "selector": selector }))
-            .await?;
+        let result = self.call("extract_all", serde_json::json!({ "selector": selector })).await?;
         let elements = result["elements"]
             .as_array()
             .ok_or_else(|| anyhow::anyhow!("No elements in response"))?;
-        elements
-            .iter()
-            .map(|v| serde_json::from_value(v.clone()).map_err(Into::into))
-            .collect()
+        elements.iter().map(|v| serde_json::from_value(v.clone()).map_err(Into::into)).collect()
     }
 
     pub async fn get_content(&mut self) -> Result<String> {
@@ -192,8 +161,7 @@ impl PlaywrightClient {
     }
 
     pub async fn select_option(&mut self, selector: &str, value: &str) -> Result<()> {
-        self.call("select", serde_json::json!({ "selector": selector, "value": value }))
-            .await?;
+        self.call("select", serde_json::json!({ "selector": selector, "value": value })).await?;
         Ok(())
     }
 
@@ -205,8 +173,7 @@ impl PlaywrightClient {
     /// 在浏览器上下文中执行任意 JS 代码并返回序列化结果
     /// 可用于绕过 TLS 指纹限制（如 EastMoney WAF），因为 Chromium 的 TLS 指纹与真实浏览器一致
     pub async fn evaluate(&mut self, code: &str) -> Result<serde_json::Value> {
-        self.call("evaluate", serde_json::json!({ "code": code }))
-            .await
+        self.call("evaluate", serde_json::json!({ "code": code })).await
     }
 
     /// 通过浏览器 fetch API 发送 HTTP GET 请求，绕过 TLS 指纹检测
@@ -248,14 +215,12 @@ impl PlaywrightClient {
     /// CORS 不适用于页面导航，因此可绕过 EastMoney 等不设 CORS 头的 API
     /// 返回 { body, navigatedUrl, pageTitle, contentType } 的 JSON 结构
     pub async fn http_get_via_browser(&mut self, url: &str) -> Result<serde_json::Value> {
-        self.call("http_get", serde_json::json!({ "url": url }))
-            .await
+        self.call("http_get", serde_json::json!({ "url": url })).await
     }
 
     /// 通过当前页面的 fetch() 获取 JSON 内容（不导航，保持 cookies 有效）
     pub async fn http_get_via_fetch(&mut self, url: &str) -> Result<serde_json::Value> {
-        self.call("http_json", serde_json::json!({ "url": url }))
-            .await
+        self.call("http_json", serde_json::json!({ "url": url })).await
     }
 }
 

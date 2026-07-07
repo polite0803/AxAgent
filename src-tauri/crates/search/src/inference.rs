@@ -61,9 +61,7 @@ pub struct InferenceEngine {
 
 impl InferenceEngine {
     pub fn new() -> Self {
-        Self {
-            workers: Arc::new(RwLock::new(HashMap::new())),
-        }
+        Self { workers: Arc::new(RwLock::new(HashMap::new())) }
     }
 
     pub async fn is_loaded(&self, filename: &str) -> bool {
@@ -214,19 +212,11 @@ fn worker_main(
 
     for msg in rx {
         match msg {
-            WorkMsg::Rerank {
-                query,
-                documents,
-                reply,
-            } => {
+            WorkMsg::Rerank { query, documents, reply } => {
                 let scores = heuristic_rerank(&query, &documents);
                 let _ = reply.send(Ok(scores));
             },
-            WorkMsg::Judge {
-                query,
-                chunk_content,
-                reply,
-            } => {
+            WorkMsg::Judge { query, chunk_content, reply } => {
                 #[cfg(not(target_os = "android"))]
                 let result = match &loaded {
                     Some(m) => candle_judge(m, &query, &chunk_content),
@@ -288,11 +278,7 @@ fn load_candle_model(gguf: &Path, tok: &Path, kind: ModelKind) -> Option<CandleM
                 },
             };
             tracing::info!("Loaded LLaMA judge model from {}", gguf.display());
-            Some(CandleModel {
-                kind,
-                model,
-                tokenizer,
-            })
+            Some(CandleModel { kind, model, tokenizer })
         },
         ModelKind::Reranker => {
             tracing::info!("Reranker: heuristic mode (candle BERT GGUF requires 0.9+)");
@@ -382,11 +368,7 @@ fn heuristic_judge(query: &str, chunk: &str) -> JudgeOutput {
     } else {
         m as f32 / terms.len() as f32
     };
-    JudgeOutput {
-        relevant: score >= 0.3,
-        score,
-        reason: format!("{}/{} terms", m, terms.len()),
-    }
+    JudgeOutput { relevant: score >= 0.3, score, reason: format!("{}/{} terms", m, terms.len()) }
 }
 
 // ── 测试 ──────────────────────────────────────────────────────────────────
@@ -424,19 +406,14 @@ mod tests {
 
     #[tokio::test]
     async fn test_judge_fallback_relevant() {
-        let o = InferenceEngine::new()
-            .judge("x", "rust code", "rust programming")
-            .await
-            .unwrap();
+        let o = InferenceEngine::new().judge("x", "rust code", "rust programming").await.unwrap();
         assert!(o.relevant);
     }
 
     #[tokio::test]
     async fn test_judge_fallback_irrelevant() {
-        let o = InferenceEngine::new()
-            .judge("x", "rust programming", "python django")
-            .await
-            .unwrap();
+        let o =
+            InferenceEngine::new().judge("x", "rust programming", "python django").await.unwrap();
         assert!(!o.relevant || o.score < 0.5);
     }
 
@@ -450,11 +427,7 @@ mod tests {
 
     #[test]
     fn test_judge_output_struct() {
-        let o = JudgeOutput {
-            relevant: true,
-            score: 0.8,
-            reason: "ok".into(),
-        };
+        let o = JudgeOutput { relevant: true, score: 0.8, reason: "ok".into() };
         assert!(o.relevant);
         assert!(o.score > 0.5);
     }

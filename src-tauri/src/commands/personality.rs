@@ -14,10 +14,8 @@ pub struct PersonalityInfo {
 
 #[tauri::command]
 pub async fn personality_list(_state: State<'_, AppState>) -> Result<Vec<PersonalityInfo>, String> {
-    let active = axagent_agent::personality::PersonalityManager::get_active()
-        .ok()
-        .flatten()
-        .map(|p| p.name);
+    let active =
+        axagent_agent::personality::PersonalityManager::get_active().ok().flatten().map(|p| p.name);
     let personalities =
         axagent_agent::personality::PersonalityManager::list().map_err(|e| e.to_string())?;
     Ok(personalities

@@ -59,11 +59,7 @@ impl std::fmt::Debug for ToolRegistry {
 
 impl ToolRegistry {
     pub fn new() -> Self {
-        Self {
-            tools: HashMap::new(),
-            aliases: HashMap::new(),
-            disabled: HashSet::new(),
-        }
+        Self { tools: HashMap::new(), aliases: HashMap::new(), disabled: HashSet::new() }
     }
 
     /// 注册一个工具
@@ -207,10 +203,7 @@ impl ToolRegistry {
 
     /// 工具总数（不含禁用）
     pub fn len(&self) -> usize {
-        self.tools
-            .values()
-            .filter(|t| !self.disabled.contains(t.name()))
-            .count()
+        self.tools.values().filter(|t| !self.disabled.contains(t.name())).count()
     }
 
     /// 是否为空
@@ -225,11 +218,7 @@ impl ToolRegistry {
 
     /// 移除工具
     pub fn unregister(&mut self, name: &str) -> Option<Arc<dyn Tool>> {
-        let primary = self
-            .aliases
-            .get(name)
-            .cloned()
-            .unwrap_or_else(|| name.to_string());
+        let primary = self.aliases.get(name).cloned().unwrap_or_else(|| name.to_string());
         self.aliases.retain(|_, v| v != &primary);
         self.disabled.remove(&primary);
         self.tools.remove(&primary)
@@ -282,10 +271,7 @@ impl axagent_harness::ToolRegistry for ToolRegistry {
     }
 
     fn list_by_category(&self, category: ToolCategory) -> Vec<ToolInfo> {
-        self.by_category(category)
-            .into_iter()
-            .map(|t| ToolInfo::from_tool(t.as_ref()))
-            .collect()
+        self.by_category(category).into_iter().map(|t| ToolInfo::from_tool(t.as_ref())).collect()
     }
 
     fn is_disabled(&self, name: &str) -> bool {
@@ -300,9 +286,7 @@ pub struct ToolRegistryBuilder {
 
 impl ToolRegistryBuilder {
     pub fn new() -> Self {
-        Self {
-            registry: ToolRegistry::new(),
-        }
+        Self { registry: ToolRegistry::new() }
     }
 
     pub fn register(mut self, tool: impl Tool + 'static) -> Self {
@@ -722,10 +706,7 @@ impl UnifiedToolRegistry {
             ("builtin-desktop", "桌面控制"),
         ];
         for (gid, gname) in &default_groups {
-            self.groups
-                .group_names
-                .entry(gid.to_string())
-                .or_insert_with(|| gname.to_string());
+            self.groups.group_names.entry(gid.to_string()).or_insert_with(|| gname.to_string());
         }
 
         self.sync_disabled_to_inner();
@@ -737,12 +718,8 @@ impl UnifiedToolRegistry {
         for info in self.tools.list_all() {
             let gid = info.category.default_group();
             let entry = groups_map.entry(gid.to_string()).or_insert_with(|| {
-                let name = self
-                    .groups
-                    .group_names
-                    .get(gid)
-                    .cloned()
-                    .unwrap_or_else(|| gid.to_string());
+                let name =
+                    self.groups.group_names.get(gid).cloned().unwrap_or_else(|| gid.to_string());
                 let enabled = self.groups.group_enabled.get(gid).copied().unwrap_or(true);
                 (name, enabled, Vec::new())
             });
@@ -888,12 +865,8 @@ impl UnifiedToolRegistry {
 
     /// 列出所有已注册工具名（MCP 工具使用 server_id/tool_name 格式）
     pub fn list_all_tool_names(&self) -> Vec<String> {
-        let mut names: Vec<String> = self
-            .tools
-            .list_all()
-            .into_iter()
-            .map(|t| t.name.clone())
-            .collect();
+        let mut names: Vec<String> =
+            self.tools.list_all().into_iter().map(|t| t.name.clone()).collect();
         names.extend(self.mcp.mcp_tools.keys().cloned());
         names
     }
@@ -939,9 +912,7 @@ impl UnifiedToolRegistry {
         let sanitized_input = self.auditor.sanitize_input(input);
 
         // ── 权限检查（集成 PermissionPolicy） ──
-        let decision = self
-            .permission_policy
-            .authorize(tool_name, &sanitized_input);
+        let decision = self.permission_policy.authorize(tool_name, &sanitized_input);
         if decision.is_denied() {
             return Err(ToolError::permission_denied(tool_name, &decision.reason));
         }
@@ -959,9 +930,7 @@ impl UnifiedToolRegistry {
             if result.action == HookAction::Deny {
                 return Err(ToolError::permission_denied(
                     tool_name,
-                    &result
-                        .reason
-                        .unwrap_or_else(|| "PreToolUse Hook 拒绝执行".into()),
+                    &result.reason.unwrap_or_else(|| "PreToolUse Hook 拒绝执行".into()),
                 ));
             }
             if let Some(ref modified) = result.modified_input {
@@ -1041,10 +1010,8 @@ impl UnifiedToolRegistry {
                 c.clone()
             }
         });
-        let has_sensitive_output = output_content
-            .as_ref()
-            .map(|c| self.auditor.scan_output(c))
-            .unwrap_or(false);
+        let has_sensitive_output =
+            output_content.as_ref().map(|c| self.auditor.scan_output(c)).unwrap_or(false);
         let has_sensitive_input = input != sanitized_input;
 
         self.auditor
@@ -1068,12 +1035,8 @@ impl UnifiedToolRegistry {
             &HookEventType::PostToolUse
         };
         let output = result.as_ref().map(|r| &r.content).ok();
-        let post_hooks: Vec<HookConfig> = self
-            .hook_registry
-            .get_matching(event_type, tool_name)
-            .into_iter()
-            .cloned()
-            .collect();
+        let post_hooks: Vec<HookConfig> =
+            self.hook_registry.get_matching(event_type, tool_name).into_iter().cloned().collect();
         for hook in &post_hooks {
             let exec_input = if let Some(out) = output {
                 format!("tool_name={}, input={}, output={}", tool_name, effective_input, out)
@@ -1091,9 +1054,8 @@ impl UnifiedToolRegistry {
         tool_name: &str,
         input: &str,
     ) -> Result<ToolResult, crate::ToolError> {
-        let (mcp_key, config) = self
-            .resolve_mcp_tool(tool_name)
-            .ok_or_else(|| ToolError::not_found(tool_name))?;
+        let (mcp_key, config) =
+            self.resolve_mcp_tool(tool_name).ok_or_else(|| ToolError::not_found(tool_name))?;
 
         let server = self.mcp.mcp_servers.get(&config.server_id).ok_or_else(|| {
             ToolError::execution_failed(format!("MCP server '{}' 未找到", config.server_id))
@@ -1106,14 +1068,10 @@ impl UnifiedToolRegistry {
         // 准备传输参数
         let transport = server.transport.as_str();
         let command = server.command.as_deref();
-        let args: Option<Vec<String>> = server
-            .args_json
-            .as_ref()
-            .and_then(|s| serde_json::from_str(s).ok());
-        let env: Option<HashMap<String, String>> = server
-            .env_json
-            .as_ref()
-            .and_then(|s| serde_json::from_str(s).ok());
+        let args: Option<Vec<String>> =
+            server.args_json.as_ref().and_then(|s| serde_json::from_str(s).ok());
+        let env: Option<HashMap<String, String>> =
+            server.env_json.as_ref().and_then(|s| serde_json::from_str(s).ok());
         let endpoint = server.endpoint.as_deref();
 
         // 使用统一的 MCP 客户端入口（使用原始 MCP 工具名，不带前缀）

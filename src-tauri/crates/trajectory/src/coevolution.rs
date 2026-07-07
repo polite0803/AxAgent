@@ -160,11 +160,8 @@ impl CoevolutionEnvironment {
             return None;
         }
 
-        let categories: std::collections::HashSet<&str> = self
-            .task_templates
-            .iter()
-            .map(|t| t.category.as_str())
-            .collect();
+        let categories: std::collections::HashSet<&str> =
+            self.task_templates.iter().map(|t| t.category.as_str()).collect();
 
         let mut weakest: Option<&str> = None;
         let mut weakest_score = f64::MAX;
@@ -203,10 +200,7 @@ impl CoevolutionEnvironment {
     }
 
     pub fn update_category_performance(&mut self, category: &str, success_rate: f64) {
-        self.category_performance
-            .entry(category.to_string())
-            .or_default()
-            .push(success_rate);
+        self.category_performance.entry(category.to_string()).or_default().push(success_rate);
         self.update_performance(success_rate);
     }
 
@@ -215,10 +209,8 @@ impl CoevolutionEnvironment {
             return false;
         }
 
-        let recent_start = self
-            .agent_performance_history
-            .len()
-            .saturating_sub(self.config.performance_window);
+        let recent_start =
+            self.agent_performance_history.len().saturating_sub(self.config.performance_window);
         let recent: Vec<f64> = self.agent_performance_history[recent_start..].to_vec();
 
         let avg = recent.iter().sum::<f64>() / recent.len() as f64;
@@ -231,10 +223,8 @@ impl CoevolutionEnvironment {
             return false;
         }
 
-        let recent_start = self
-            .agent_performance_history
-            .len()
-            .saturating_sub(self.config.performance_window);
+        let recent_start =
+            self.agent_performance_history.len().saturating_sub(self.config.performance_window);
         let recent: Vec<f64> = self.agent_performance_history[recent_start..].to_vec();
 
         let avg = recent.iter().sum::<f64>() / recent.len() as f64;

@@ -139,9 +139,7 @@ impl HeuristicClassifier {
         }
 
         // 阻断 -c/-e 形式调用解释器
-        for blocked_interp in &[
-            "python", "python3", "bash", "sh", "zsh", "node", "ruby", "perl",
-        ] {
+        for blocked_interp in &["python", "python3", "bash", "sh", "zsh", "node", "ruby", "perl"] {
             if let Some(pos) = locate_token(&lower, blocked_interp) {
                 let after = lower[pos + blocked_interp.len()..].trim_start();
                 if after.starts_with("-c ") || after.starts_with("-e ") {
@@ -301,10 +299,7 @@ impl HeuristicClassifier {
 fn matches_glob(pattern: &str, text: &str) -> bool {
     let pattern_trim = pattern.trim_end_matches(['/', '\\']);
 
-    let p_segs: Vec<&str> = pattern_trim
-        .split(['/', '\\'])
-        .filter(|s| !s.is_empty())
-        .collect();
+    let p_segs: Vec<&str> = pattern_trim.split(['/', '\\']).filter(|s| !s.is_empty()).collect();
     let t_segs: Vec<&str> = text.split(['/', '\\']).filter(|s| !s.is_empty()).collect();
 
     if p_segs.len() > t_segs.len() {
@@ -452,10 +447,7 @@ fn decode_c_escapes(s: &str) -> String {
 }
 
 fn first_token(s: &str) -> String {
-    s.split_whitespace()
-        .next()
-        .map(|s| s.to_string())
-        .unwrap_or_default()
+    s.split_whitespace().next().map(|s| s.to_string()).unwrap_or_default()
 }
 
 fn locate_token(s: &str, token: &str) -> Option<usize> {

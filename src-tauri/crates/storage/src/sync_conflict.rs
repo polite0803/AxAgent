@@ -242,10 +242,7 @@ pub struct ConflictSummary {
 // ─── Utility Functions ───────────────────────────────────────────────
 
 fn current_epoch_ms() -> u64 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_millis() as u64
+    SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_millis() as u64
 }
 
 /// Compute SHA256 hash of file content for local change detection.
@@ -258,18 +255,14 @@ pub fn compute_content_hash(data: &[u8]) -> String {
 
 /// Parse RFC3339 timestamp to epoch ms.
 pub fn parse_rfc3339_to_ms(ts: &str) -> Option<u64> {
-    chrono::DateTime::parse_from_rfc3339(ts)
-        .ok()
-        .map(|dt| dt.timestamp_millis() as u64)
+    chrono::DateTime::parse_from_rfc3339(ts).ok().map(|dt| dt.timestamp_millis() as u64)
 }
 
 /// Convert epoch ms to RFC3339.
 pub fn epoch_ms_to_rfc3339(ms: u64) -> String {
     let secs = ms / 1000;
     let nsecs = (ms % 1000) * 1_000_000;
-    chrono::DateTime::from_timestamp(secs as i64, nsecs as u32)
-        .unwrap_or_default()
-        .to_rfc3339()
+    chrono::DateTime::from_timestamp(secs as i64, nsecs as u32).unwrap_or_default().to_rfc3339()
 }
 
 /// Get current time as RFC3339 string. Re-exported from harness.

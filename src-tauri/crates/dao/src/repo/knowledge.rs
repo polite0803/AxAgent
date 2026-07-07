@@ -183,9 +183,7 @@ pub async fn add_document(
     let id = gen_id();
 
     // Read actual file size from disk
-    let file_size = std::fs::metadata(source_path)
-        .map(|m| m.len() as i64)
-        .unwrap_or(0);
+    let file_size = std::fs::metadata(source_path).map(|m| m.len() as i64).unwrap_or(0);
 
     let am = knowledge_documents::ActiveModel {
         id: Set(id.clone()),
@@ -240,9 +238,7 @@ pub async fn get_document(db: &DatabaseConnection, id: &str) -> Result<Knowledge
 }
 
 pub async fn delete_document(db: &DatabaseConnection, id: &str) -> Result<()> {
-    let result = knowledge_documents::Entity::delete_by_id(id)
-        .exec(db)
-        .await?;
+    let result = knowledge_documents::Entity::delete_by_id(id).exec(db).await?;
 
     if result.rows_affected == 0 {
         return Err(AxAgentError::NotFound(format!("KnowledgeDocument {}", id)));

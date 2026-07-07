@@ -50,10 +50,7 @@ async fn run_migration(
     let mut path_map: HashMap<String, String> = HashMap::new();
 
     // 2. Query all stored_files
-    let rows = stored_files::Entity::find()
-        .all(db)
-        .await
-        .map_err(AxAgentError::Database)?;
+    let rows = stored_files::Entity::find().all(db).await.map_err(AxAgentError::Database)?;
 
     // 3. Process each stored file
     for row in rows {
@@ -112,11 +109,7 @@ async fn run_migration(
 
         let mut changed = false;
         for att in &mut atts {
-            let Some(fp) = att
-                .get("file_path")
-                .and_then(|v| v.as_str())
-                .map(String::from)
-            else {
+            let Some(fp) = att.get("file_path").and_then(|v| v.as_str()).map(String::from) else {
                 continue;
             };
             if fp.starts_with("images/") || fp.starts_with("files/") {
@@ -127,10 +120,7 @@ async fn run_migration(
                 p.clone()
             } else {
                 // Fallback: compute from attachment metadata
-                let name = att
-                    .get("file_name")
-                    .and_then(|v| v.as_str())
-                    .unwrap_or("file");
+                let name = att.get("file_name").and_then(|v| v.as_str()).unwrap_or("file");
                 let mime = att
                     .get("file_type")
                     .and_then(|v| v.as_str())
@@ -208,9 +198,7 @@ mod tests {
     async fn test_db() -> DatabaseConnection {
         let db = Database::connect("sqlite::memory:").await.unwrap();
         for ddl in [CREATE_STORED_FILES, CREATE_MESSAGES] {
-            db.execute_raw(Statement::from_string(DbBackend::Sqlite, ddl))
-                .await
-                .unwrap();
+            db.execute_raw(Statement::from_string(DbBackend::Sqlite, ddl)).await.unwrap();
         }
         db
     }
@@ -227,11 +215,7 @@ mod tests {
         let target = root.path().join("target");
         fs::create_dir_all(&legacy).unwrap();
         fs::create_dir_all(&target).unwrap();
-        TestDirs {
-            _root: root,
-            legacy,
-            target,
-        }
+        TestDirs { _root: root, legacy, target }
     }
 
     async fn insert_stored_file(
@@ -290,9 +274,7 @@ mod tests {
     async fn empty_db_is_noop() {
         let db = test_db().await;
         let dirs = test_dirs();
-        let r = run_migration(&db, &dirs.legacy, &dirs.target)
-            .await
-            .unwrap();
+        let r = run_migration(&db, &dirs.legacy, &dirs.target).await.unwrap();
         assert_eq!(r, MigrationReport::default());
     }
 
@@ -313,9 +295,7 @@ mod tests {
         )
         .await;
 
-        let r = run_migration(&db, &dirs.legacy, &dirs.target)
-            .await
-            .unwrap();
+        let r = run_migration(&db, &dirs.legacy, &dirs.target).await.unwrap();
         assert_eq!(r.files_skipped, 2);
         assert_eq!(r.files_moved, 0);
         assert_eq!(r.db_records_updated, 0);
@@ -341,9 +321,7 @@ mod tests {
         )
         .await;
 
-        let r = run_migration(&db, &dirs.legacy, &dirs.target)
-            .await
-            .unwrap();
+        let r = run_migration(&db, &dirs.legacy, &dirs.target).await.unwrap();
         assert_eq!(r.files_moved, 1);
         assert_eq!(r.db_records_updated, 1);
 
@@ -356,11 +334,7 @@ mod tests {
         assert!(old_dir.join("abcdef123456789.png").exists());
 
         // DB updated
-        let f = stored_files::Entity::find_by_id("f1")
-            .one(&db)
-            .await
-            .unwrap()
-            .unwrap();
+        let f = stored_files::Entity::find_by_id("f1").one(&db).await.unwrap().unwrap();
         assert_eq!(f.storage_path, "images/abcdef123456_photo.png");
     }
 
@@ -384,19 +358,13 @@ mod tests {
         )
         .await;
 
-        let r = run_migration(&db, &dirs.legacy, &dirs.target)
-            .await
-            .unwrap();
+        let r = run_migration(&db, &dirs.legacy, &dirs.target).await.unwrap();
         assert_eq!(r.files_moved, 1);
 
         let expected = dirs.target.join("files/fedcba654321_report.pdf");
         assert!(expected.exists());
 
-        let f = stored_files::Entity::find_by_id("f1")
-            .one(&db)
-            .await
-            .unwrap()
-            .unwrap();
+        let f = stored_files::Entity::find_by_id("f1").one(&db).await.unwrap().unwrap();
         assert_eq!(f.storage_path, "files/fedcba654321_report.pdf");
     }
 
@@ -417,18 +385,12 @@ mod tests {
         )
         .await;
 
-        let r = run_migration(&db, &dirs.legacy, &dirs.target)
-            .await
-            .unwrap();
+        let r = run_migration(&db, &dirs.legacy, &dirs.target).await.unwrap();
         assert_eq!(r.files_missing, 1);
         assert_eq!(r.files_moved, 0);
         assert_eq!(r.db_records_updated, 1);
 
-        let f = stored_files::Entity::find_by_id("f1")
-            .one(&db)
-            .await
-            .unwrap()
-            .unwrap();
+        let f = stored_files::Entity::find_by_id("f1").one(&db).await.unwrap().unwrap();
         assert_eq!(f.storage_path, "images/abcdef123456_photo.png");
     }
 
@@ -452,15 +414,11 @@ mod tests {
         )
         .await;
 
-        let r1 = run_migration(&db, &dirs.legacy, &dirs.target)
-            .await
-            .unwrap();
+        let r1 = run_migration(&db, &dirs.legacy, &dirs.target).await.unwrap();
         assert_eq!(r1.files_moved, 1);
         assert_eq!(r1.db_records_updated, 1);
 
-        let r2 = run_migration(&db, &dirs.legacy, &dirs.target)
-            .await
-            .unwrap();
+        let r2 = run_migration(&db, &dirs.legacy, &dirs.target).await.unwrap();
         assert_eq!(r2.files_skipped, 1);
         assert_eq!(r2.files_moved, 0);
         assert_eq!(r2.db_records_updated, 0);
@@ -489,16 +447,10 @@ mod tests {
         let att_json = r#"[{"id":"a1","file_type":"image/png","file_name":"photo.png","file_path":"conv1/abcdef123456789.png","file_size":100}]"#;
         insert_message(&db, "m1", "conv1", att_json).await;
 
-        let r = run_migration(&db, &dirs.legacy, &dirs.target)
-            .await
-            .unwrap();
+        let r = run_migration(&db, &dirs.legacy, &dirs.target).await.unwrap();
         assert_eq!(r.messages_updated, 1);
 
-        let m = messages::Entity::find_by_id("m1")
-            .one(&db)
-            .await
-            .unwrap()
-            .unwrap();
+        let m = messages::Entity::find_by_id("m1").one(&db).await.unwrap().unwrap();
         let atts: Vec<serde_json::Value> = serde_json::from_str(&m.attachments).unwrap();
         assert_eq!(atts[0]["file_path"].as_str().unwrap(), "images/abcdef123456_photo.png");
     }

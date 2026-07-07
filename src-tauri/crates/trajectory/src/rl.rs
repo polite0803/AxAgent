@@ -91,15 +91,8 @@ impl LlmJudge for DefaultLlmJudge {
     fn evaluate_reasoning(&self, reasoning: &str, _context: &str) -> LlmJudgeFuture<'_> {
         let length_score = (reasoning.len() as f64 / 500.0).min(1.0) * 0.2;
 
-        let structure_indicators = [
-            "first",
-            "then",
-            "next",
-            "finally",
-            "because",
-            "therefore",
-            "however",
-        ];
+        let structure_indicators =
+            ["first", "then", "next", "finally", "because", "therefore", "however"];
         let structure_count = structure_indicators
             .iter()
             .filter(|ind| reasoning.to_lowercase().contains(*ind))
@@ -147,11 +140,7 @@ pub struct RLEngine {
 
 impl RLEngine {
     pub fn new(config: RLConfig, weights: RewardWeights) -> Self {
-        Self {
-            config,
-            weights,
-            llm_judge: None,
-        }
+        Self { config, weights, llm_judge: None }
     }
 
     pub fn with_llm_judge(mut self, judge: Box<dyn LlmJudge>) -> Self {
@@ -446,18 +435,11 @@ impl RLEngine {
     fn compute_reasoning_quality(&self, reasoning: &str) -> f64 {
         let length_score = (reasoning.len() as f64 / 500.0).min(1.0) * 0.2;
 
-        let structure_indicators = [
-            "first",
-            "then",
-            "next",
-            "finally",
-            "because",
-            "therefore",
-            "however",
-        ]
-        .iter()
-        .filter(|ind| reasoning.to_lowercase().contains(*ind))
-        .count() as f64;
+        let structure_indicators =
+            ["first", "then", "next", "finally", "because", "therefore", "however"]
+                .iter()
+                .filter(|ind| reasoning.to_lowercase().contains(*ind))
+                .count() as f64;
         let structure_score = (structure_indicators / 7.0).min(1.0) * 0.4;
 
         let has_alternatives = reasoning.to_lowercase().contains("alternative")
@@ -486,10 +468,7 @@ impl RLEngine {
 
         let next_steps = &steps[current_idx + 1..];
         let has_recovery = next_steps.iter().any(|s| {
-            s.tool_results
-                .as_ref()
-                .map(|r| r.iter().any(|tr| !tr.is_error))
-                .unwrap_or(false)
+            s.tool_results.as_ref().map(|r| r.iter().any(|tr| !tr.is_error)).unwrap_or(false)
         });
 
         if has_recovery {
@@ -639,9 +618,7 @@ impl RLEngine {
             }
 
             if step.role == MessageRole::User {
-                *gradients
-                    .entry("user_engagement".to_string())
-                    .or_insert(0.0) += advantage * 0.3;
+                *gradients.entry("user_engagement".to_string()).or_insert(0.0) += advantage * 0.3;
             }
         }
 
@@ -681,12 +658,7 @@ pub struct RewardNormalizer {
 
 impl RewardNormalizer {
     pub fn new() -> Self {
-        Self {
-            running_mean: 0.0,
-            running_var: 1.0,
-            count: 0,
-            epsilon: 1e-8,
-        }
+        Self { running_mean: 0.0, running_var: 1.0, count: 0, epsilon: 1e-8 }
     }
 
     pub fn normalize(&mut self, rewards: &mut [RewardSignal]) {
@@ -795,10 +767,8 @@ mod tests {
         let rewards = engine.compute_rewards(&mut trajectory);
 
         assert!(!rewards.is_empty());
-        let final_reward = rewards
-            .iter()
-            .find(|r| r.reward_type == RewardType::TaskCompletion)
-            .unwrap();
+        let final_reward =
+            rewards.iter().find(|r| r.reward_type == RewardType::TaskCompletion).unwrap();
         assert!(final_reward.value > 0.0);
     }
 
@@ -811,10 +781,8 @@ mod tests {
         let mut trajectory = create_test_trajectory(TrajectoryOutcome::Failure);
         let rewards = engine.compute_rewards(&mut trajectory);
 
-        let final_reward = rewards
-            .iter()
-            .find(|r| r.reward_type == RewardType::TaskCompletion)
-            .unwrap();
+        let final_reward =
+            rewards.iter().find(|r| r.reward_type == RewardType::TaskCompletion).unwrap();
         assert!(final_reward.value < 0.0);
     }
 

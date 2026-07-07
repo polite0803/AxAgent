@@ -76,9 +76,6 @@ impl McpClientService for NoopMcpClientService {
         _tool_name: &str,
         _args: serde_json::Value,
     ) -> Result<McpToolCallResult, String> {
-        Ok(McpToolCallResult {
-            success: false,
-            content: serde_json::Value::Null,
-        })
+        Ok(McpToolCallResult { success: false, content: serde_json::Value::Null })
     }
 }

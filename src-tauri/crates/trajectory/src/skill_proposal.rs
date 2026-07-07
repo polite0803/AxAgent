@@ -34,12 +34,7 @@ impl SkillProposalService {
             .join(".axagent")
             .join("skill_proposals.json");
         let recent_proposals = Self::load_from_disk(&persist_path).unwrap_or_default();
-        Self {
-            storage,
-            recent_proposals,
-            topic_trajectory_count: HashMap::new(),
-            persist_path,
-        }
+        Self { storage, recent_proposals, topic_trajectory_count: HashMap::new(), persist_path }
     }
 
     fn load_from_disk(path: &std::path::Path) -> Option<Vec<SkillProposal>> {
@@ -66,10 +61,7 @@ impl SkillProposalService {
 
         let topic_key = trajectory.topic.to_lowercase();
 
-        let count = self
-            .topic_trajectory_count
-            .entry(topic_key.clone())
-            .or_insert(0);
+        let count = self.topic_trajectory_count.entry(topic_key.clone()).or_insert(0);
         *count += 1;
 
         let should_propose = match trajectory.outcome {
@@ -151,11 +143,8 @@ impl SkillProposalService {
             trajectory.outcome, trajectory.duration_ms
         );
 
-        let tool_steps: Vec<_> = trajectory
-            .steps
-            .iter()
-            .filter(|s| s.tool_calls.is_some())
-            .collect();
+        let tool_steps: Vec<_> =
+            trajectory.steps.iter().filter(|s| s.tool_calls.is_some()).collect();
 
         if !tool_steps.is_empty() {
             content += "## Procedure\n";
@@ -192,11 +181,7 @@ impl SkillProposalService {
 
         confidence += trajectory.quality.overall * 0.3;
 
-        let tool_count = trajectory
-            .steps
-            .iter()
-            .filter(|s| s.tool_calls.is_some())
-            .count();
+        let tool_count = trajectory.steps.iter().filter(|s| s.tool_calls.is_some()).count();
         if tool_count >= 3 {
             confidence += 0.1;
         }
@@ -215,15 +200,12 @@ impl SkillProposalService {
     }
 
     pub fn clear_proposal(&mut self, task_description: &str) {
-        self.recent_proposals
-            .retain(|p| p.task_description != task_description);
+        self.recent_proposals.retain(|p| p.task_description != task_description);
         self.save_to_disk();
     }
 
     pub fn get_proposal_by_name(&self, name: &str) -> Option<&SkillProposal> {
-        self.recent_proposals
-            .iter()
-            .find(|p| p.suggested_name == name)
+        self.recent_proposals.iter().find(|p| p.suggested_name == name)
     }
 }
 

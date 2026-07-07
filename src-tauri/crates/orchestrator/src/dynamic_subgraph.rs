@@ -48,10 +48,7 @@ impl GeneratedSubGraph {
 
     /// Returns the Workflow struct for submission to the work engine.
     pub fn to_workflow(&self) -> SubGraph {
-        SubGraph {
-            nodes: self.nodes.clone(),
-            edges: self.edges.clone(),
-        }
+        SubGraph { nodes: self.nodes.clone(), edges: self.edges.clone() }
     }
 }
 
@@ -80,11 +77,7 @@ impl DynamicSubGraph {
         plan: &DecompositionPlan,
     ) -> Result<GeneratedSubGraph, OrchestrationError> {
         // 1. Build Agent nodes for each sub-task
-        let nodes = plan
-            .sub_tasks
-            .iter()
-            .map(|st| self.build_agent_node(st))
-            .collect::<Vec<_>>();
+        let nodes = plan.sub_tasks.iter().map(|st| self.build_agent_node(st)).collect::<Vec<_>>();
 
         // 2. Build edges based on strategy and declared dependencies
         let edges = self.build_edges(plan, &nodes)?;
@@ -95,12 +88,7 @@ impl DynamicSubGraph {
         let id =
             format!("orchestrator_subgraph_{}", uuid::Uuid::new_v4().to_string().replace('-', "_"));
 
-        Ok(GeneratedSubGraph {
-            id,
-            nodes,
-            edges,
-            plan: plan.clone(),
-        })
+        Ok(GeneratedSubGraph { id, nodes, edges, plan: plan.clone() })
     }
 
     /// Build a single Agent node for a sub-task.
@@ -218,9 +206,8 @@ impl DynamicSubGraph {
                     let last_idx = plan.sub_tasks.len() - 1;
                     let adjudicator_id = &plan.sub_tasks[last_idx].id;
                     for st in plan.sub_tasks.iter().take(last_idx) {
-                        let already_connected = edges
-                            .iter()
-                            .any(|e| e.source == st.id && e.target == *adjudicator_id);
+                        let already_connected =
+                            edges.iter().any(|e| e.source == st.id && e.target == *adjudicator_id);
                         if !already_connected {
                             self.counter += 1;
                             edges.push(WorkflowEdge {
@@ -270,21 +257,15 @@ impl DynamicSubGraph {
 
         for edge in edges {
             *in_degree.entry(edge.target.as_str()).or_insert(0) += 1;
-            adjacency
-                .entry(edge.source.as_str())
-                .or_default()
-                .push(edge.target.as_str());
+            adjacency.entry(edge.source.as_str()).or_default().push(edge.target.as_str());
             // Ensure both ends are registered
             in_degree.entry(edge.source.as_str()).or_insert(0);
             adjacency.entry(edge.target.as_str()).or_default();
         }
 
         // Kahn's algorithm for cycle detection + topological order
-        let mut queue: VecDeque<&str> = in_degree
-            .iter()
-            .filter(|entry| *entry.1 == 0)
-            .map(|(&id, _)| id)
-            .collect();
+        let mut queue: VecDeque<&str> =
+            in_degree.iter().filter(|entry| *entry.1 == 0).map(|(&id, _)| id).collect();
 
         let mut sorted = Vec::new();
         while let Some(id) = queue.pop_front() {
@@ -411,12 +392,7 @@ mod tests {
         let graph = result.unwrap();
         assert_eq!(graph.nodes.len(), 2);
         // task_2 depends on task_1 → should have one edge
-        assert!(
-            graph
-                .edges
-                .iter()
-                .any(|e| e.source == "task_1" && e.target == "task_2")
-        );
+        assert!(graph.edges.iter().any(|e| e.source == "task_1" && e.target == "task_2"));
     }
 
     #[test]

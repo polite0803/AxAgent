@@ -33,10 +33,7 @@ impl fmt::Debug for RunningMcpProcess {
 #[derive(Debug, thiserror::Error)]
 pub enum McpLaunchError {
     #[error("MCP server `{server}` failed to start: {source}")]
-    SpawnFailed {
-        server: String,
-        source: std::io::Error,
-    },
+    SpawnFailed { server: String, source: std::io::Error },
     #[error("MCP server `{0}` exited immediately after start")]
     ImmediateExit(String),
     #[error("MCP server `{0}` did not become healthy within startup timeout")]
@@ -102,9 +99,7 @@ impl McpLauncher {
             for proc in processes {
                 let status = match proc.child.try_wait() {
                     Ok(None) => ServerHealthStatus::Running,
-                    Ok(Some(status)) => ServerHealthStatus::Exited {
-                        code: status.code(),
-                    },
+                    Ok(Some(status)) => ServerHealthStatus::Exited { code: status.code() },
                     Err(e) => ServerHealthStatus::Error(e.to_string()),
                 };
                 statuses.push(ServerHealthStatusEntry {

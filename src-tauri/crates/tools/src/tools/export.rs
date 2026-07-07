@@ -40,10 +40,7 @@ impl Tool for PdfInfoTool {
     }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
-        let file_path = input
-            .get("path")
-            .and_then(|v| v.as_str())
-            .unwrap_or_default();
+        let file_path = input.get("path").and_then(|v| v.as_str()).unwrap_or_default();
         if file_path.is_empty() {
             return Ok(ToolResult::error("Error: path 是必需的"));
         }
@@ -92,10 +89,7 @@ impl Tool for DetectEncodingTool {
     }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
-        let file_path = input
-            .get("path")
-            .and_then(|v| v.as_str())
-            .unwrap_or_default();
+        let file_path = input.get("path").and_then(|v| v.as_str()).unwrap_or_default();
         if file_path.is_empty() {
             return Ok(ToolResult::error("Error: path 是必需的"));
         }

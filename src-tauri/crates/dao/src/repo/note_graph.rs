@@ -101,22 +101,11 @@ impl LinkGraph {
         }
 
         for edge in &data.edges {
-            adjacency
-                .entry(edge.source.clone())
-                .or_default()
-                .push(edge.target.clone());
-            adjacency
-                .entry(edge.target.clone())
-                .or_default()
-                .push(edge.source.clone());
+            adjacency.entry(edge.source.clone()).or_default().push(edge.target.clone());
+            adjacency.entry(edge.target.clone()).or_default().push(edge.source.clone());
         }
 
-        Self {
-            nodes,
-            edges: data.edges,
-            adjacency,
-            node_titles,
-        }
+        Self { nodes, edges: data.edges, adjacency, node_titles }
     }
 
     pub fn node_count(&self) -> usize {
@@ -136,10 +125,7 @@ impl LinkGraph {
     }
 
     pub fn has_direct_link(&self, a: &str, b: &str) -> bool {
-        self.adjacency
-            .get(a)
-            .map(|neighbors| neighbors.contains(&b.to_string()))
-            .unwrap_or(false)
+        self.adjacency.get(a).map(|neighbors| neighbors.contains(&b.to_string())).unwrap_or(false)
     }
 
     pub fn get_node_ids(&self) -> Vec<String> {
@@ -197,9 +183,7 @@ impl LinkGraph {
             .collect();
 
         scored.sort_by(|a, b| {
-            b.1.total_score()
-                .partial_cmp(&a.1.total_score())
-                .unwrap_or(std::cmp::Ordering::Equal)
+            b.1.total_score().partial_cmp(&a.1.total_score()).unwrap_or(std::cmp::Ordering::Equal)
         });
         scored.truncate(k);
         scored
@@ -242,9 +226,7 @@ impl LinkGraph {
         }
 
         results.sort_by(|a, b| {
-            b.1.total_score()
-                .partial_cmp(&a.1.total_score())
-                .unwrap_or(std::cmp::Ordering::Equal)
+            b.1.total_score().partial_cmp(&a.1.total_score()).unwrap_or(std::cmp::Ordering::Equal)
         });
         results.truncate(top_k);
         results
@@ -282,18 +264,10 @@ impl LinkGraph {
         page_b: &str,
         source_map: &HashMap<String, Vec<String>>,
     ) -> f64 {
-        let sources_a: HashSet<_> = source_map
-            .get(page_a)
-            .cloned()
-            .unwrap_or_default()
-            .into_iter()
-            .collect();
-        let sources_b: HashSet<_> = source_map
-            .get(page_b)
-            .cloned()
-            .unwrap_or_default()
-            .into_iter()
-            .collect();
+        let sources_a: HashSet<_> =
+            source_map.get(page_a).cloned().unwrap_or_default().into_iter().collect();
+        let sources_b: HashSet<_> =
+            source_map.get(page_b).cloned().unwrap_or_default().into_iter().collect();
 
         if sources_a.is_empty() || sources_b.is_empty() {
             return 0.0;

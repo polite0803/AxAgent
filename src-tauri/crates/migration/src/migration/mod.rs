@@ -11,21 +11,15 @@ use std::sync::atomic::Ordering;
 use axagent_kit::secure_store::SecureStore;
 
 pub(crate) fn axagent_home() -> PathBuf {
-    dirs::home_dir()
-        .unwrap_or_else(|| PathBuf::from("."))
-        .join(".axagent")
+    dirs::home_dir().unwrap_or_else(|| PathBuf::from(".")).join(".axagent")
 }
 
 pub(crate) fn openclaw_home() -> PathBuf {
-    dirs::home_dir()
-        .unwrap_or_else(|| PathBuf::from("."))
-        .join(".openclaw")
+    dirs::home_dir().unwrap_or_else(|| PathBuf::from(".")).join(".openclaw")
 }
 
 pub(crate) fn hermes_home() -> PathBuf {
-    dirs::home_dir()
-        .unwrap_or_else(|| PathBuf::from("."))
-        .join(".hermes")
+    dirs::home_dir().unwrap_or_else(|| PathBuf::from(".")).join(".hermes")
 }
 
 pub(crate) fn timestamp_str() -> String {
@@ -55,11 +49,8 @@ impl MigrationLock {
             fs::create_dir_all(parent).map_err(|e| format!("创建锁目录失败: {}", e))?;
         }
         // 用 create_new 保证只有一个进程能拿到锁
-        let file = fs::OpenOptions::new()
-            .create_new(true)
-            .write(true)
-            .open(&path)
-            .map_err(|e| {
+        let file =
+            fs::OpenOptions::new().create_new(true).write(true).open(&path).map_err(|e| {
                 if e.kind() == std::io::ErrorKind::AlreadyExists {
                     format!(
                         "迁移正在进行中（锁文件 {} 已存在）。如确认无其他迁移，请删除该文件后重试",

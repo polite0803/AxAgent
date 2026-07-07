@@ -15,12 +15,7 @@ pub struct TraceExport {
 
 impl TraceExport {
     pub fn new(trace_id: String, spans: Vec<Span>, metadata: TraceMetadata) -> Self {
-        Self {
-            trace_id,
-            spans,
-            metadata,
-            exported_at: Utc::now(),
-        }
+        Self { trace_id, spans, metadata, exported_at: Utc::now() }
     }
 }
 
@@ -38,19 +33,13 @@ pub struct TracerError {
 
 impl Clone for TracerError {
     fn clone(&self) -> Self {
-        Self {
-            message: self.message.clone(),
-            source: None,
-        }
+        Self { message: self.message.clone(), source: None }
     }
 }
 
 impl TracerError {
     pub fn new(message: impl Into<String>) -> Self {
-        Self {
-            message: message.into(),
-            source: None,
-        }
+        Self { message: message.into(), source: None }
     }
 
     pub fn with_source<E: Error + Send + Sync + 'static>(mut self, source: E) -> Self {
@@ -90,10 +79,7 @@ pub struct ConsoleExporter {
 
 impl ConsoleExporter {
     pub fn new() -> Self {
-        Self {
-            include_inputs: false,
-            include_outputs: false,
-        }
+        Self { include_inputs: false, include_outputs: false }
     }
 
     pub fn with_io(mut self, include_inputs: bool, include_outputs: bool) -> Self {

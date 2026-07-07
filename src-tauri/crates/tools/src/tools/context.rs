@@ -17,14 +17,9 @@ pub struct SnipTool;
 pub struct ContextResolveTool;
 
 fn git_root() -> Option<String> {
-    let output = Command::new("git")
-        .args(["rev-parse", "--show-toplevel"])
-        .output()
-        .ok()?;
+    let output = Command::new("git").args(["rev-parse", "--show-toplevel"]).output().ok()?;
     if output.status.success() {
-        String::from_utf8(output.stdout)
-            .ok()
-            .map(|s| s.trim().to_string())
+        String::from_utf8(output.stdout).ok().map(|s| s.trim().to_string())
     } else {
         None
     }
@@ -64,9 +59,7 @@ fn git_branch() -> String {
         .ok()
         .and_then(|o| {
             if o.status.success() {
-                String::from_utf8(o.stdout)
-                    .ok()
-                    .map(|s| s.trim().to_string())
+                String::from_utf8(o.stdout).ok().map(|s| s.trim().to_string())
             } else {
                 None
             }
@@ -81,9 +74,7 @@ fn git_commit_count() -> String {
         .ok()
         .and_then(|o| {
             if o.status.success() {
-                String::from_utf8(o.stdout)
-                    .ok()
-                    .map(|s| s.trim().to_string())
+                String::from_utf8(o.stdout).ok().map(|s| s.trim().to_string())
             } else {
                 None
             }
@@ -124,10 +115,7 @@ impl Tool for CtxInspectTool {
     }
 
     async fn call(&self, input: Value, ctx: &ToolContext) -> Result<ToolResult, ToolError> {
-        let detail = input
-            .get("detail")
-            .and_then(|v| v.as_str())
-            .unwrap_or("basic");
+        let detail = input.get("detail").and_then(|v| v.as_str()).unwrap_or("basic");
         let is_full = detail == "full";
 
         let cwd = ctx.working_dir.clone();
@@ -155,9 +143,7 @@ impl Tool for CtxInspectTool {
         if is_full {
             lines.push(String::new());
             lines.push("### 最近 Git 日志".to_string());
-            if let Ok(output) = Command::new("git")
-                .args(["log", "--oneline", "-5"])
-                .output()
+            if let Ok(output) = Command::new("git").args(["log", "--oneline", "-5"]).output()
                 && output.status.success()
                 && let Ok(text) = String::from_utf8(output.stdout)
             {
@@ -297,10 +283,7 @@ impl Tool for ContextResolveTool {
             return Err(ToolError::invalid_input("text 参数不能为空"));
         }
 
-        let base_dir = input
-            .get("base_dir")
-            .and_then(|v| v.as_str())
-            .unwrap_or(&ctx.working_dir);
+        let base_dir = input.get("base_dir").and_then(|v| v.as_str()).unwrap_or(&ctx.working_dir);
 
         let base_path = Path::new(base_dir);
         let resolved = resolve_references_impl(&text, base_path).await;
@@ -419,9 +402,9 @@ fn eval_condition(condition_type: &str, condition_value: &str) -> bool {
     match condition_type {
         "platform" => std::env::consts::OS == condition_value,
         "toolset" => is_toolset_available(condition_value),
-        "personality" => std::env::var("AXAGENT_PERSONALITY")
-            .unwrap_or_default()
-            .eq(condition_value),
+        "personality" => {
+            std::env::var("AXAGENT_PERSONALITY").unwrap_or_default().eq(condition_value)
+        },
         _ => false,
     }
 }

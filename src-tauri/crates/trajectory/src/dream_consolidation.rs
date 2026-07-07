@@ -344,10 +344,7 @@ impl DreamConsolidator {
         &self,
         config: &DreamConsolidationConfig,
     ) -> Result<ReplaySample, String> {
-        let provider = self
-            .data_provider
-            .as_ref()
-            .ok_or("No data provider configured")?;
+        let provider = self.data_provider.as_ref().ok_or("No data provider configured")?;
 
         let experiences = provider
             .fetch_recent_experiences(config.experience_replay_sample_size)
@@ -364,9 +361,7 @@ impl DreamConsolidator {
 
         let mut sorted = experiences;
         sorted.sort_by(|a, b| {
-            b.quality_score
-                .partial_cmp(&a.quality_score)
-                .unwrap_or(std::cmp::Ordering::Equal)
+            b.quality_score.partial_cmp(&a.quality_score).unwrap_or(std::cmp::Ordering::Equal)
         });
 
         let top_k: Vec<ExperienceRecord> = sorted
@@ -386,11 +381,7 @@ impl DreamConsolidator {
             *topic_distribution.entry(record.topic.clone()).or_insert(0) += 1;
         }
 
-        Ok(ReplaySample {
-            records: top_k,
-            avg_quality,
-            topic_distribution,
-        })
+        Ok(ReplaySample { records: top_k, avg_quality, topic_distribution })
     }
 
     /// 知识蒸馏：从高质量轨迹中提取可复用知识
@@ -399,10 +390,7 @@ impl DreamConsolidator {
         replay: &ReplaySample,
         config: &DreamConsolidationConfig,
     ) -> Result<Vec<DistilledKnowledge>, String> {
-        let provider = self
-            .data_provider
-            .as_ref()
-            .ok_or("No data provider configured")?;
+        let provider = self.data_provider.as_ref().ok_or("No data provider configured")?;
 
         let mut distilled = Vec::new();
 
@@ -437,10 +425,8 @@ impl DreamConsolidator {
             }
 
             if prefix_len >= 2 {
-                let common_tools: Vec<String> = tool_seqs
-                    .first()
-                    .map(|s| s[..prefix_len].to_vec())
-                    .unwrap_or_default();
+                let common_tools: Vec<String> =
+                    tool_seqs.first().map(|s| s[..prefix_len].to_vec()).unwrap_or_default();
 
                 let knowledge = DistilledKnowledge {
                     id: uuid::Uuid::new_v4().to_string(),
@@ -544,10 +530,7 @@ impl DreamConsolidator {
         replay: &ReplaySample,
         config: &DreamConsolidationConfig,
     ) -> Result<Vec<ContrastivePair>, String> {
-        let _ = self
-            .data_provider
-            .as_ref()
-            .ok_or("No data provider configured")?;
+        let _ = self.data_provider.as_ref().ok_or("No data provider configured")?;
 
         let mut pairs = Vec::new();
 
@@ -651,10 +634,7 @@ impl DreamConsolidator {
         distilled: &[DistilledKnowledge],
         contrastive: &[ContrastivePair],
     ) -> Result<Vec<ConsolidationSuggestion>, String> {
-        let provider = self
-            .data_provider
-            .as_ref()
-            .ok_or("No data provider configured")?;
+        let provider = self.data_provider.as_ref().ok_or("No data provider configured")?;
 
         let mut suggestions = Vec::new();
 

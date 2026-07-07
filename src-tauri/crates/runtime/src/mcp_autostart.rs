@@ -41,9 +41,7 @@ pub fn discover_and_start() -> McpAutoStartResult {
     }
 
     for (name, config) in servers {
-        let enabled = config
-            .get("enabled")
-            .is_none_or(|v| v != "false" && v != "0");
+        let enabled = config.get("enabled").is_none_or(|v| v != "false" && v != "0");
 
         if !enabled {
             result.skipped.push(name);
@@ -63,20 +61,13 @@ pub fn discover_and_start() -> McpAutoStartResult {
             .map(|a| serde_json::from_str(a).unwrap_or_default())
             .unwrap_or_default();
 
-        let env: BTreeMap<String, String> = config
-            .get("env")
-            .and_then(|e| serde_json::from_str(e).ok())
-            .unwrap_or_default();
+        let env: BTreeMap<String, String> =
+            config.get("env").and_then(|e| serde_json::from_str(e).ok()).unwrap_or_default();
 
         match start_mcp_process(&command, &args, &env) {
             Ok(child) => {
                 tracing::info!("[MCP] 已启动服务器: {} ({})", name, command);
-                result.started.push(McpServerProcess {
-                    name,
-                    command,
-                    args,
-                    child: Some(child),
-                });
+                result.started.push(McpServerProcess { name, command, args, child: Some(child) });
             },
             Err(e) => {
                 tracing::warn!("[MCP] 启动失败: {} ({})", name, e);
@@ -95,10 +86,7 @@ fn start_mcp_process(
     env: &BTreeMap<String, String>,
 ) -> Result<Child, String> {
     let mut cmd = Command::new(command);
-    cmd.args(args)
-        .stdin(Stdio::piped())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped());
+    cmd.args(args).stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::piped());
 
     for (key, value) in env {
         cmd.env(key, value);

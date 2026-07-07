@@ -19,12 +19,7 @@ pub enum EnforcementResult {
         sensitive_path: bool,
     },
     /// 工具执行被拒绝
-    Denied {
-        tool: String,
-        active_mode: String,
-        required_mode: String,
-        reason: String,
-    },
+    Denied { tool: String, active_mode: String, required_mode: String, reason: String },
 }
 
 /// 权限检查抽象接口。
@@ -261,9 +256,7 @@ fn is_sensitive_path(path: &str) -> bool {
         "/System/Library/",
         "/Library/System/",
     ];
-    sensitive_prefixes
-        .iter()
-        .any(|prefix| path.starts_with(prefix))
+    sensitive_prefixes.iter().any(|prefix| path.starts_with(prefix))
 }
 
 /// 保守启发式检查：此 bash 命令是否为只读操作？
@@ -320,13 +313,8 @@ fn is_read_only_command(command: &str) -> bool {
     }
 
     // 第2层：提取第一个命令名（去掉路径前缀，如 /usr/bin/cat -> cat）
-    let first_token = trimmed
-        .split_whitespace()
-        .next()
-        .unwrap_or("")
-        .rsplit('/')
-        .next()
-        .unwrap_or("");
+    let first_token =
+        trimmed.split_whitespace().next().unwrap_or("").rsplit('/').next().unwrap_or("");
 
     // 第3层：白名单检查
     // 安全：解释器（python, python3, node, ruby）不在白名单中，
@@ -560,10 +548,8 @@ mod tests {
         ];
 
         // when
-        let active_modes: Vec<_> = modes
-            .into_iter()
-            .map(|mode| make_enforcer(mode).active_mode())
-            .collect();
+        let active_modes: Vec<_> =
+            modes.into_iter().map(|mode| make_enforcer(mode).active_mode()).collect();
 
         // then
         assert_eq!(active_modes, modes);
@@ -601,12 +587,7 @@ mod tests {
 
         // then
         match result {
-            EnforcementResult::Denied {
-                tool,
-                active_mode,
-                required_mode,
-                reason,
-            } => {
+            EnforcementResult::Denied { tool, active_mode, required_mode, reason } => {
                 assert_eq!(tool, "write_file");
                 assert_eq!(active_mode, "read-only");
                 assert_eq!(required_mode, "workspace-write");
@@ -718,12 +699,7 @@ mod tests {
 
         // then
         match result {
-            EnforcementResult::Denied {
-                tool,
-                active_mode,
-                required_mode,
-                reason,
-            } => {
+            EnforcementResult::Denied { tool, active_mode, required_mode, reason } => {
                 assert_eq!(tool, "bash");
                 assert_eq!(active_mode, "prompt");
                 assert_eq!(required_mode, "danger-full-access");
@@ -743,12 +719,7 @@ mod tests {
 
         // then
         match result {
-            EnforcementResult::Denied {
-                tool,
-                active_mode,
-                required_mode,
-                reason,
-            } => {
+            EnforcementResult::Denied { tool, active_mode, required_mode, reason } => {
                 assert_eq!(tool, "write_file");
                 assert_eq!(active_mode, "read-only");
                 assert_eq!(required_mode, "workspace-write");

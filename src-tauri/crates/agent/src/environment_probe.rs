@@ -166,11 +166,7 @@ impl EnvironmentProbe {
 
     pub fn get_disk_usage(&self, path: &std::path::Path) -> Option<DiskUsage> {
         let _metadata = std::fs::metadata(path).ok()?;
-        Some(DiskUsage {
-            total_bytes: 0,
-            used_bytes: 0,
-            available_bytes: 0,
-        })
+        Some(DiskUsage { total_bytes: 0, used_bytes: 0, available_bytes: 0 })
     }
 
     pub fn probe(&self, working_directory: &std::path::Path) -> EnvironmentSnapshot {
@@ -190,10 +186,7 @@ impl EnvironmentProbe {
                 None
             },
             network_status: if self.config.include_network {
-                Some(NetworkStatus {
-                    is_connected: true,
-                    interfaces: Vec::new(),
-                })
+                Some(NetworkStatus { is_connected: true, interfaces: Vec::new() })
             } else {
                 None
             },

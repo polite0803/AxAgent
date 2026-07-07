@@ -30,10 +30,7 @@ pub struct GoalEvaluator {
 
 impl GoalEvaluator {
     pub fn new(max_not_achieved: usize) -> Self {
-        Self {
-            consecutive_not_achieved: 0,
-            max_not_achieved,
-        }
+        Self { consecutive_not_achieved: 0, max_not_achieved }
     }
 
     /// 评估目标是否已达成
@@ -47,17 +44,11 @@ impl GoalEvaluator {
             .iter()
             .filter(|s| {
                 s.is_verified
-                    && s.observation
-                        .as_deref()
-                        .map(|o| o.contains("Error"))
-                        .unwrap_or(false)
+                    && s.observation.as_deref().map(|o| o.contains("Error")).unwrap_or(false)
             })
             .count();
-        let completed_steps = chain
-            .steps
-            .iter()
-            .filter(|s| s.is_verified && s.observation.is_some())
-            .count();
+        let completed_steps =
+            chain.steps.iter().filter(|s| s.is_verified && s.observation.is_some()).count();
 
         // 检查 sub_goals 覆盖率
         let sub_goals = &context.sub_goals;

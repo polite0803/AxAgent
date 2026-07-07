@@ -142,25 +142,18 @@ fn parse_atom_feed(
 
 fn extract_xml_tag(xml: &str, tag: &str) -> Option<String> {
     let pattern = format!(r"<{}[^>]*>(.*?)</{}>", tag, tag);
-    regex::Regex::new(&pattern)
-        .ok()
-        .and_then(|re| re.captures(xml).map(|c| c[1].to_string()))
+    regex::Regex::new(&pattern).ok().and_then(|re| re.captures(xml).map(|c| c[1].to_string()))
 }
 
 fn extract_xml_cdata(xml: &str, tag: &str) -> Option<String> {
     let pattern = format!(r"<{}[^>]*><!\[CDATA\[(.*?)\]\]></{}>", tag, tag);
-    regex::Regex::new(&pattern)
-        .ok()
-        .and_then(|re| re.captures(xml).map(|c| c[1].to_string()))
+    regex::Regex::new(&pattern).ok().and_then(|re| re.captures(xml).map(|c| c[1].to_string()))
 }
 
 fn extract_atom_link(xml: &str) -> Result<String, ToolError> {
     let re = regex::Regex::new(r#"<link[^>]*href="([^"]*)"[^>]*/>"#)
         .map_err(|e| ToolError::invalid_input(format!("正则表达式无效: {}", e)))?;
-    Ok(re
-        .captures(xml)
-        .map(|c| c[1].to_string())
-        .unwrap_or_default())
+    Ok(re.captures(xml).map(|c| c[1].to_string()).unwrap_or_default())
 }
 
 fn strip_html(text: &str) -> Result<String, ToolError> {

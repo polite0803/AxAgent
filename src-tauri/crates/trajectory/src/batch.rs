@@ -24,12 +24,7 @@ pub struct BatchConfig {
 
 impl Default for BatchConfig {
     fn default() -> Self {
-        Self {
-            max_batch_size: 1000,
-            max_concurrent: 10,
-            quality_threshold: 0.3,
-            deduplicate: true,
-        }
+        Self { max_batch_size: 1000, max_concurrent: 10, quality_threshold: 0.3, deduplicate: true }
     }
 }
 
@@ -63,11 +58,7 @@ pub enum SamplingStrategy {
     Random,
     TopK(usize),
     Threshold(f64),
-    Stratified {
-        success_rate: f64,
-        partial_rate: f64,
-        failure_rate: f64,
-    },
+    Stratified { success_rate: f64, partial_rate: f64, failure_rate: f64 },
     DiversityBased,
 }
 
@@ -114,11 +105,7 @@ impl BatchProcessor {
         trajectories: &[Trajectory],
         threshold: f64,
     ) -> Vec<Trajectory> {
-        trajectories
-            .iter()
-            .filter(|t| t.quality.overall >= threshold)
-            .cloned()
-            .collect()
+        trajectories.iter().filter(|t| t.quality.overall >= threshold).cloned().collect()
     }
 
     pub fn sample_for_training(
@@ -132,11 +119,7 @@ impl BatchProcessor {
                 let mut rng = rand::thread_rng();
                 let mut trajectories: Vec<_> = trajectories.iter().collect();
                 trajectories.shuffle(&mut rng);
-                trajectories
-                    .into_iter()
-                    .take(sample_size)
-                    .cloned()
-                    .collect()
+                trajectories.into_iter().take(sample_size).cloned().collect()
             },
             SamplingStrategy::TopK(k) => {
                 let mut trajectories: Vec<_> = trajectories.iter().collect();
@@ -148,16 +131,10 @@ impl BatchProcessor {
                 });
                 trajectories.into_iter().take(k).cloned().collect()
             },
-            SamplingStrategy::Threshold(threshold) => trajectories
-                .iter()
-                .filter(|t| t.quality.overall >= threshold)
-                .cloned()
-                .collect(),
-            SamplingStrategy::Stratified {
-                success_rate,
-                partial_rate,
-                failure_rate,
-            } => {
+            SamplingStrategy::Threshold(threshold) => {
+                trajectories.iter().filter(|t| t.quality.overall >= threshold).cloned().collect()
+            },
+            SamplingStrategy::Stratified { success_rate, partial_rate, failure_rate } => {
                 let success: Vec<_> = trajectories
                     .iter()
                     .filter(|t| t.outcome == TrajectoryOutcome::Success)
@@ -196,9 +173,7 @@ impl BatchProcessor {
 
         let mut sorted = trajectories.to_vec();
         sorted.sort_by(|a, b| {
-            b.value_score
-                .partial_cmp(&a.value_score)
-                .unwrap_or(std::cmp::Ordering::Equal)
+            b.value_score.partial_cmp(&a.value_score).unwrap_or(std::cmp::Ordering::Equal)
         });
 
         for trajectory in sorted {
@@ -206,11 +181,7 @@ impl BatchProcessor {
                 break;
             }
 
-            let topic_key = trajectory
-                .topic
-                .split_whitespace()
-                .take(3)
-                .collect::<String>();
+            let topic_key = trajectory.topic.split_whitespace().take(3).collect::<String>();
             let topic_count = topics_seen.get(&topic_key).copied().unwrap_or(0);
 
             let mut pattern_overlap = 0;
@@ -338,19 +309,15 @@ impl BatchProcessor {
 
         match options.format {
             ExportFormat::Jsonl => {
-                let jsonl: Vec<String> = filtered
-                    .iter()
-                    .map(|t| serde_json::to_string(t).unwrap_or_default())
-                    .collect();
+                let jsonl: Vec<String> =
+                    filtered.iter().map(|t| serde_json::to_string(t).unwrap_or_default()).collect();
                 Ok(jsonl.join("\n"))
             },
             ExportFormat::RlTraining => {
                 let entries: Vec<RLTrainingEntry> =
                     filtered.iter().map(|t| t.export_as_rl()).collect();
-                let jsonl: Vec<String> = entries
-                    .iter()
-                    .map(|e| serde_json::to_string(e).unwrap_or_default())
-                    .collect();
+                let jsonl: Vec<String> =
+                    entries.iter().map(|e| serde_json::to_string(e).unwrap_or_default()).collect();
                 Ok(jsonl.join("\n"))
             },
             ExportFormat::Compressed => {

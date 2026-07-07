@@ -120,10 +120,7 @@ impl FileAuthorizer {
         let path_str = req.path.clone();
         let level = req.level.clone();
         {
-            let mut pending = self
-                .pending_requests
-                .lock()
-                .unwrap_or_else(|e| e.into_inner());
+            let mut pending = self.pending_requests.lock().unwrap_or_else(|e| e.into_inner());
             pending.push(req);
         }
         self.audit(
@@ -148,10 +145,7 @@ impl FileAuthorizer {
 
     /// SECURITY (C10): 显式用户/UI 批准流程。
     pub fn approve_request(&self, request_id: &str, approver: &str) -> AuthorizationResponse {
-        let mut pending = self
-            .pending_requests
-            .lock()
-            .unwrap_or_else(|e| e.into_inner());
+        let mut pending = self.pending_requests.lock().unwrap_or_else(|e| e.into_inner());
         let pos = pending.iter().position(|r| r.id == request_id);
         let req = match pos {
             Some(i) => pending.remove(i),
@@ -207,10 +201,7 @@ impl FileAuthorizer {
         };
         let auth_id = auth.id.clone();
         {
-            let mut authorizations = self
-                .authorizations
-                .lock()
-                .unwrap_or_else(|e| e.into_inner());
+            let mut authorizations = self.authorizations.lock().unwrap_or_else(|e| e.into_inner());
             authorizations.insert(auth_id.clone(), auth);
         }
         self.audit(
@@ -234,10 +225,7 @@ impl FileAuthorizer {
     }
 
     pub fn deny_request(&self, request_id: &str, approver: &str) -> bool {
-        let mut pending = self
-            .pending_requests
-            .lock()
-            .unwrap_or_else(|e| e.into_inner());
+        let mut pending = self.pending_requests.lock().unwrap_or_else(|e| e.into_inner());
         if let Some(pos) = pending.iter().position(|r| r.id == request_id) {
             let req = pending.remove(pos);
             self.audit(
@@ -257,10 +245,7 @@ impl FileAuthorizer {
     /// SECURITY (H5): 路径匹配：精确 → 父目录递归 → 都检查 expires_at。
     pub fn check_authorization(&self, path: &str, required_level: &PermissionLevel) -> bool {
         let path = PathBuf::from(path);
-        let authorizations = self
-            .authorizations
-            .lock()
-            .unwrap_or_else(|e| e.into_inner());
+        let authorizations = self.authorizations.lock().unwrap_or_else(|e| e.into_inner());
 
         for auth in authorizations.values() {
             if self.is_expired(auth) {
@@ -277,29 +262,20 @@ impl FileAuthorizer {
     }
 
     pub fn revoke_authorization(&self, auth_id: &str) -> bool {
-        let mut authorizations = self
-            .authorizations
-            .lock()
-            .unwrap_or_else(|e| e.into_inner());
+        let mut authorizations = self.authorizations.lock().unwrap_or_else(|e| e.into_inner());
         authorizations.remove(auth_id).is_some()
     }
 
     pub fn revoke_all_for_path(&self, path: &str) -> usize {
         let path = PathBuf::from(path);
-        let mut authorizations = self
-            .authorizations
-            .lock()
-            .unwrap_or_else(|e| e.into_inner());
+        let mut authorizations = self.authorizations.lock().unwrap_or_else(|e| e.into_inner());
         let before = authorizations.len();
         authorizations.retain(|_, auth| !path_matches(&auth.path, &path));
         before - authorizations.len()
     }
 
     pub fn cleanup_expired(&self) -> usize {
-        let mut authorizations = self
-            .authorizations
-            .lock()
-            .unwrap_or_else(|e| e.into_inner());
+        let mut authorizations = self.authorizations.lock().unwrap_or_else(|e| e.into_inner());
         let before = authorizations.len();
         let now = Utc::now();
         authorizations.retain(|_, auth| match auth.expires_at {
@@ -310,26 +286,17 @@ impl FileAuthorizer {
     }
 
     pub fn list_authorizations(&self) -> Vec<FileAuthorization> {
-        let authorizations = self
-            .authorizations
-            .lock()
-            .unwrap_or_else(|e| e.into_inner());
+        let authorizations = self.authorizations.lock().unwrap_or_else(|e| e.into_inner());
         authorizations.values().cloned().collect()
     }
 
     pub fn get_authorization(&self, auth_id: &str) -> Option<FileAuthorization> {
-        let authorizations = self
-            .authorizations
-            .lock()
-            .unwrap_or_else(|e| e.into_inner());
+        let authorizations = self.authorizations.lock().unwrap_or_else(|e| e.into_inner());
         authorizations.get(auth_id).cloned()
     }
 
     pub fn renew_authorization(&self, auth_id: &str, additional_minutes: i64) -> bool {
-        let mut authorizations = self
-            .authorizations
-            .lock()
-            .unwrap_or_else(|e| e.into_inner());
+        let mut authorizations = self.authorizations.lock().unwrap_or_else(|e| e.into_inner());
         if let Some(auth) = authorizations.get_mut(auth_id) {
             if !auth.auto_renew {
                 return false;
@@ -393,26 +360,17 @@ impl FileAuthorizer {
     }
 
     pub fn add_pending_request(&self, request: AuthorizationRequest) {
-        let mut pending = self
-            .pending_requests
-            .lock()
-            .unwrap_or_else(|e| e.into_inner());
+        let mut pending = self.pending_requests.lock().unwrap_or_else(|e| e.into_inner());
         pending.push(request);
     }
 
     pub fn get_pending_requests(&self) -> Vec<AuthorizationRequest> {
-        let pending = self
-            .pending_requests
-            .lock()
-            .unwrap_or_else(|e| e.into_inner());
+        let pending = self.pending_requests.lock().unwrap_or_else(|e| e.into_inner());
         pending.clone()
     }
 
     pub fn clear_pending_requests(&self) {
-        let mut pending = self
-            .pending_requests
-            .lock()
-            .unwrap_or_else(|e| e.into_inner());
+        let mut pending = self.pending_requests.lock().unwrap_or_else(|e| e.into_inner());
         pending.clear();
     }
 

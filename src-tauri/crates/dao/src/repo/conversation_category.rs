@@ -137,9 +137,7 @@ pub async fn delete_conversation_category(db: &DatabaseConnection, id: &str) -> 
         .exec(db)
         .await?;
 
-    conversation_categories::Entity::delete_by_id(id)
-        .exec(db)
-        .await?;
+    conversation_categories::Entity::delete_by_id(id).exec(db).await?;
     Ok(())
 }
 

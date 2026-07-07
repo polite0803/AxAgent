@@ -146,11 +146,7 @@ pub async fn list_retryable_failed_jobs(db: &DatabaseConnection) -> Result<Vec<I
     let retry_col = Expr::col(index_jobs::Column::RetryCount);
     let max_col = Expr::col(index_jobs::Column::MaxRetries);
     let models = index_jobs::Entity::find()
-        .filter(
-            index_jobs::Column::Status
-                .eq(INDEX_JOB_STATUS_FAILED)
-                .and(retry_col.lt(max_col)),
-        )
+        .filter(index_jobs::Column::Status.eq(INDEX_JOB_STATUS_FAILED).and(retry_col.lt(max_col)))
         .order_by_asc(index_jobs::Column::CreatedAt)
         .all(db)
         .await?;
@@ -346,10 +342,8 @@ pub async fn cancel_pending_jobs_for_item(
 }
 
 pub async fn count_jobs_by_status(db: &DatabaseConnection, status: &str) -> Result<u64> {
-    let count = index_jobs::Entity::find()
-        .filter(index_jobs::Column::Status.eq(status))
-        .count(db)
-        .await?;
+    let count =
+        index_jobs::Entity::find().filter(index_jobs::Column::Status.eq(status)).count(db).await?;
     Ok(count)
 }
 

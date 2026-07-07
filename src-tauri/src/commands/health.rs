@@ -76,17 +76,10 @@ pub async fn get_service_health(
     }
     checks.push(mcp_check);
 
-    let version = app
-        .config()
-        .version
-        .clone()
-        .unwrap_or_else(|| env!("CARGO_PKG_VERSION").to_string());
+    let version =
+        app.config().version.clone().unwrap_or_else(|| env!("CARGO_PKG_VERSION").to_string());
 
-    Ok(ServiceHealthReport {
-        overall,
-        checks,
-        version,
-    })
+    Ok(ServiceHealthReport { overall, checks, version })
 }
 
 async fn check_database(state: &AppState) -> ServiceHealthCheck {

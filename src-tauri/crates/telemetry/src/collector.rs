@@ -106,9 +106,7 @@ impl MetricsCollector {
     }
 
     pub fn inc_workflow_execution(&self, status: &str) {
-        self.workflow_executions_total
-            .with_label_values(&[status])
-            .inc();
+        self.workflow_executions_total.with_label_values(&[status]).inc();
     }
 
     pub fn observe_workflow_duration(&self, duration_secs: f64) {
@@ -116,15 +114,11 @@ impl MetricsCollector {
     }
 
     pub fn inc_workflow_node_execution(&self, node_type: &str, status: &str) {
-        self.workflow_node_executions_total
-            .with_label_values(&[node_type, status])
-            .inc();
+        self.workflow_node_executions_total.with_label_values(&[node_type, status]).inc();
     }
 
     pub fn inc_llm_request(&self, model: &str, status: &str) {
-        self.llm_requests_total
-            .with_label_values(&[model, status])
-            .inc();
+        self.llm_requests_total.with_label_values(&[model, status]).inc();
     }
 
     pub fn inc_rag_retrieval(&self, status: &str) {

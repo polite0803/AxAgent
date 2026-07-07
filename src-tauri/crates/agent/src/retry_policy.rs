@@ -100,11 +100,7 @@ pub struct RetryState {
 
 impl RetryState {
     pub fn new() -> Self {
-        Self {
-            current_attempt: 0,
-            total_delay_ms: 0,
-            errors: Vec::new(),
-        }
+        Self { current_attempt: 0, total_delay_ms: 0, errors: Vec::new() }
     }
 
     pub fn increment(&mut self, error: String, delay_ms: u64) {
@@ -182,12 +178,7 @@ where
 #[derive(Debug, thiserror::Error)]
 pub enum RetryError {
     #[error("Retry exhausted after {attempts} attempts")]
-    Exhausted {
-        errors: Vec<String>,
-        attempts: usize,
-        last_error: String,
-        elapsed: Duration,
-    },
+    Exhausted { errors: Vec<String>, attempts: usize, last_error: String, elapsed: Duration },
 
     #[error("Retry cancelled")]
     Cancelled,
@@ -426,18 +417,16 @@ mod tests {
 
     #[tokio::test]
     async fn test_with_retry_success() {
-        let policy = RetryPolicy::new(3)
-            .with_base_delay(Duration::from_millis(1))
-            .with_jitter(false);
+        let policy =
+            RetryPolicy::new(3).with_base_delay(Duration::from_millis(1)).with_jitter(false);
         let result = with_retry(&policy, || async { Ok::<i32, String>(42) }).await;
         assert_eq!(result.unwrap(), 42);
     }
 
     #[tokio::test]
     async fn test_with_retry_eventual_success() {
-        let policy = RetryPolicy::new(3)
-            .with_base_delay(Duration::from_millis(1))
-            .with_jitter(false);
+        let policy =
+            RetryPolicy::new(3).with_base_delay(Duration::from_millis(1)).with_jitter(false);
         let mut count = 0;
         let result = with_retry(&policy, || {
             count += 1;
@@ -455,9 +444,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_with_retry_exhausted() {
-        let policy = RetryPolicy::new(2)
-            .with_base_delay(Duration::from_millis(1))
-            .with_jitter(false);
+        let policy =
+            RetryPolicy::new(2).with_base_delay(Duration::from_millis(1)).with_jitter(false);
         let result =
             with_retry(&policy, || async { Err::<i32, String>("always fails".to_string()) }).await;
         assert!(result.is_err());
@@ -469,9 +457,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_with_retry_unrecoverable_stops() {
-        let policy = RetryPolicy::new(5)
-            .with_base_delay(Duration::from_millis(1))
-            .with_jitter(false);
+        let policy =
+            RetryPolicy::new(5).with_base_delay(Duration::from_millis(1)).with_jitter(false);
         let result =
             with_retry(&policy, || async { Err::<i32, String>("syntax error".to_string()) }).await;
         assert!(result.is_err());

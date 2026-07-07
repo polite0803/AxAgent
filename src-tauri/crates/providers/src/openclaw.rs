@@ -17,9 +17,7 @@ pub struct OpenClawAdapter {
 
 impl OpenClawAdapter {
     pub fn new() -> Self {
-        Self {
-            inner: HermesAdapter::new(),
-        }
+        Self { inner: HermesAdapter::new() }
     }
 
     /// 构造使用 OpenClaw base_url 的 ProviderRequestContext,

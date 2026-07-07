@@ -145,9 +145,8 @@ pub async fn analyze_knowledge_integration(
         containers.push(KnowledgeContainer::from_memory_ns(ns));
     }
 
-    let wikis = axagent_dao::repo::wiki::list_wikis(state.harness.db())
-        .await
-        .map_err(|e| e.to_string())?;
+    let wikis =
+        axagent_dao::repo::wiki::list_wikis(state.harness.db()).await.map_err(|e| e.to_string())?;
     for wiki in &wikis {
         containers.push(KnowledgeContainer::from_wiki(wiki));
     }
@@ -180,15 +179,11 @@ pub async fn analyze_knowledge_integration(
             match embed_result {
                 Ok(response) => {
                     if let Some(query_embedding) = response.embeddings.into_iter().next() {
-                        match state
-                            .vector_store
-                            .search(&collection_name, query_embedding, 5)
-                            .await
+                        match state.vector_store.search(&collection_name, query_embedding, 5).await
                         {
-                            Ok(results) => results
-                                .into_iter()
-                                .map(|r| (r.id, r.content, r.score))
-                                .collect(),
+                            Ok(results) => {
+                                results.into_iter().map(|r| (r.id, r.content, r.score)).collect()
+                            },
                             Err(_) => vec![],
                         }
                     } else {

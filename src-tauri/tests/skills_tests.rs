@@ -83,9 +83,7 @@ mod skill_read_asset_tests {
 /// 模拟 compare_versions 的逻辑（从 skills.rs 提取）
 fn compare_versions(a: &str, b: &str) -> std::cmp::Ordering {
     let parse = |v: &str| -> Vec<u32> {
-        v.split(|c: char| !c.is_ascii_digit())
-            .filter_map(|s| s.parse::<u32>().ok())
-            .collect()
+        v.split(|c: char| !c.is_ascii_digit()).filter_map(|s| s.parse::<u32>().ok()).collect()
     };
     let va = parse(a);
     let vb = parse(b);
@@ -160,11 +158,7 @@ mod marketplace_cache_tests {
 
     impl SimCache {
         fn new(ttl_secs: u64) -> Self {
-            Self {
-                cache: HashMap::new(),
-                ttl: Duration::from_secs(ttl_secs),
-                max_capacity: 256,
-            }
+            Self { cache: HashMap::new(), ttl: Duration::from_secs(ttl_secs), max_capacity: 256 }
         }
 
         fn get(&self, key: &str) -> Option<Vec<String>> {
@@ -195,11 +189,8 @@ mod marketplace_cache_tests {
                 let mut entries: Vec<_> = self.cache.iter().collect();
                 entries.sort_by_key(|(_, (_, ts))| *ts);
                 let remove_count = entries.len() - self.max_capacity + 1;
-                let keys_to_remove: Vec<String> = entries
-                    .into_iter()
-                    .take(remove_count)
-                    .map(|(k, _)| k.clone())
-                    .collect();
+                let keys_to_remove: Vec<String> =
+                    entries.into_iter().take(remove_count).map(|(k, _)| k.clone()).collect();
                 for k in &keys_to_remove {
                     self.cache.remove(k);
                 }
@@ -312,10 +303,7 @@ mod collect_skill_content_tests {
             let path = entry.path();
             if path.is_dir() {
                 files.extend(collect_md_files(&path, depth + 1)?);
-            } else if path
-                .extension()
-                .is_some_and(|ext| ext.eq_ignore_ascii_case("md"))
-            {
+            } else if path.extension().is_some_and(|ext| ext.eq_ignore_ascii_case("md")) {
                 files.push(path);
             }
         }

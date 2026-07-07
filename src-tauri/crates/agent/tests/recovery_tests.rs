@@ -8,12 +8,7 @@ use std::time::Duration;
 fn test_transient_error_maps_to_retry() {
     let strategy = RecoveryStrategy::for_error_type(ErrorType::Transient);
     assert!(matches!(strategy, RecoveryStrategy::Retry { .. }));
-    if let RecoveryStrategy::Retry {
-        max_attempts,
-        exponential_backoff,
-        ..
-    } = strategy
-    {
+    if let RecoveryStrategy::Retry { max_attempts, exponential_backoff, .. } = strategy {
         assert!(max_attempts > 0);
         assert!(exponential_backoff);
     }
@@ -81,9 +76,7 @@ fn test_all_error_types_have_strategy() {
 
 #[test]
 fn test_fallback_strategy() {
-    let fallback = RecoveryStrategy::Fallback {
-        fallback_value: "default response".to_string(),
-    };
+    let fallback = RecoveryStrategy::Fallback { fallback_value: "default response".to_string() };
     assert!(matches!(fallback, RecoveryStrategy::Fallback { .. }));
 }
 

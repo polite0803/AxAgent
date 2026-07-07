@@ -20,10 +20,8 @@ pub async fn list_workflow_templates(
         query = query.filter(workflow_template::Column::IsPreset.eq(preset));
     }
 
-    let templates = query
-        .order_by(workflow_template::Column::UpdatedAt, Order::Desc)
-        .all(db)
-        .await?;
+    let templates =
+        query.order_by(workflow_template::Column::UpdatedAt, Order::Desc).all(db).await?;
     Ok(templates)
 }
 
@@ -130,9 +128,8 @@ pub async fn update_workflow_template(
             Set(output_schema.and_then(|s| serde_json::to_string(&s).ok()));
         active_model.variables = Set(Some(serde_json::to_string(&variables).unwrap_or_default()));
         active_model.error_config = Set(error_config.and_then(|e| serde_json::to_string(&e).ok()));
-        active_model.tool_defs = Set(tool_defs
-            .as_ref()
-            .map(|tds| serde_json::to_string(tds).unwrap_or_default()));
+        active_model.tool_defs =
+            Set(tool_defs.as_ref().map(|tds| serde_json::to_string(tds).unwrap_or_default()));
         active_model.version = Set(t.version + 1);
         active_model.updated_at = Set(chrono::Utc::now().timestamp_millis());
         active_model.update(db).await?;
@@ -283,19 +280,10 @@ fn build_active_model_from_data(
             .and_then(|c| serde_json::to_string(c).ok())),
         nodes: Set(serde_json::to_string(&item.nodes).unwrap_or_default()),
         edges: Set(serde_json::to_string(&item.edges).unwrap_or_default()),
-        input_schema: Set(item
-            .input_schema
-            .as_ref()
-            .and_then(|s| serde_json::to_string(s).ok())),
-        output_schema: Set(item
-            .output_schema
-            .as_ref()
-            .and_then(|s| serde_json::to_string(s).ok())),
+        input_schema: Set(item.input_schema.as_ref().and_then(|s| serde_json::to_string(s).ok())),
+        output_schema: Set(item.output_schema.as_ref().and_then(|s| serde_json::to_string(s).ok())),
         variables: Set(Some(serde_json::to_string(&item.variables).unwrap_or_default())),
-        error_config: Set(item
-            .error_config
-            .as_ref()
-            .and_then(|e| serde_json::to_string(e).ok())),
+        error_config: Set(item.error_config.as_ref().and_then(|e| serde_json::to_string(e).ok())),
         composite_source: Set(None),
         tool_defs: Set(None),
         created_at: Set(item.created_at),
@@ -314,38 +302,22 @@ pub fn template_model_to_data(
         name: model.name.clone(),
         description: model.description.clone(),
         icon: model.icon.clone(),
-        tags: model
-            .tags
-            .as_ref()
-            .and_then(|s| serde_json::from_str(s).ok())
-            .unwrap_or_default(),
+        tags: model.tags.as_ref().and_then(|s| serde_json::from_str(s).ok()).unwrap_or_default(),
         version: model.version,
         is_preset: model.is_preset,
         is_editable: model.is_editable,
         is_public: model.is_public,
-        trigger_config: model
-            .trigger_config
-            .as_ref()
-            .and_then(|s| serde_json::from_str(s).ok()),
+        trigger_config: model.trigger_config.as_ref().and_then(|s| serde_json::from_str(s).ok()),
         nodes: serde_json::from_str(&model.nodes).unwrap_or_default(),
         edges: serde_json::from_str(&model.edges).unwrap_or_default(),
-        input_schema: model
-            .input_schema
-            .as_ref()
-            .and_then(|s| serde_json::from_str(s).ok()),
-        output_schema: model
-            .output_schema
-            .as_ref()
-            .and_then(|s| serde_json::from_str(s).ok()),
+        input_schema: model.input_schema.as_ref().and_then(|s| serde_json::from_str(s).ok()),
+        output_schema: model.output_schema.as_ref().and_then(|s| serde_json::from_str(s).ok()),
         variables: model
             .variables
             .as_ref()
             .and_then(|s| serde_json::from_str(s).ok())
             .unwrap_or_default(),
-        error_config: model
-            .error_config
-            .as_ref()
-            .and_then(|s| serde_json::from_str(s).ok()),
+        error_config: model.error_config.as_ref().and_then(|s| serde_json::from_str(s).ok()),
         tool_defs: model
             .tool_defs
             .as_ref()
@@ -367,38 +339,22 @@ pub fn template_version_model_to_data(
         name: model.name.clone(),
         description: model.description.clone(),
         icon: model.icon.clone(),
-        tags: model
-            .tags
-            .as_ref()
-            .and_then(|s| serde_json::from_str(s).ok())
-            .unwrap_or_default(),
+        tags: model.tags.as_ref().and_then(|s| serde_json::from_str(s).ok()).unwrap_or_default(),
         version: model.version,
         is_preset: model.is_preset,
         is_editable: model.is_editable,
         is_public: model.is_public,
-        trigger_config: model
-            .trigger_config
-            .as_ref()
-            .and_then(|s| serde_json::from_str(s).ok()),
+        trigger_config: model.trigger_config.as_ref().and_then(|s| serde_json::from_str(s).ok()),
         nodes: serde_json::from_str(&model.nodes).unwrap_or_default(),
         edges: serde_json::from_str(&model.edges).unwrap_or_default(),
-        input_schema: model
-            .input_schema
-            .as_ref()
-            .and_then(|s| serde_json::from_str(s).ok()),
-        output_schema: model
-            .output_schema
-            .as_ref()
-            .and_then(|s| serde_json::from_str(s).ok()),
+        input_schema: model.input_schema.as_ref().and_then(|s| serde_json::from_str(s).ok()),
+        output_schema: model.output_schema.as_ref().and_then(|s| serde_json::from_str(s).ok()),
         variables: model
             .variables
             .as_ref()
             .and_then(|s| serde_json::from_str(s).ok())
             .unwrap_or_default(),
-        error_config: model
-            .error_config
-            .as_ref()
-            .and_then(|s| serde_json::from_str(s).ok()),
+        error_config: model.error_config.as_ref().and_then(|s| serde_json::from_str(s).ok()),
         created_at: model.created_at,
     }
 }

@@ -16,11 +16,7 @@ pub struct ToolGenerationInput {
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum GeneratedToolImplementation {
     /// Prompt template: executed by LLM at runtime
-    PromptTemplate {
-        template: String,
-        model: Option<String>,
-        temperature: Option<f32>,
-    },
+    PromptTemplate { template: String, model: Option<String>, temperature: Option<f32> },
     /// Script code: future extension
     Script { language: String, code: String },
 }

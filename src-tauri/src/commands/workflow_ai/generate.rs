@@ -19,16 +19,12 @@ pub async fn generate_workflow_from_prompt(
     let resolved = resolve_ai_provider(&state).await?;
 
     let registry_key = resolved.provider_type.registry_key();
-    let adapter = state
-        .harness
-        .provider_registry()
-        .get(registry_key)
-        .ok_or_else(|| {
-            ErrorResponse::err_with_detail(
-                provider_err::ADAPTER_NOT_FOUND,
-                format!("Provider adapter not found for type: {}", registry_key),
-            )
-        })?;
+    let adapter = state.harness.provider_registry().get(registry_key).ok_or_else(|| {
+        ErrorResponse::err_with_detail(
+            provider_err::ADAPTER_NOT_FOUND,
+            format!("Provider adapter not found for type: {}", registry_key),
+        )
+    })?;
 
     let mut context_section = String::new();
     if let Some(nodes) = &current_nodes {
@@ -50,10 +46,8 @@ pub async fn generate_workflow_from_prompt(
                         .map(|e| {
                             let src = e.get("source").and_then(|v| v.as_str()).unwrap_or("?");
                             let tgt = e.get("target").and_then(|v| v.as_str()).unwrap_or("?");
-                            let et = e
-                                .get("edge_type")
-                                .and_then(|v| v.as_str())
-                                .unwrap_or("direct");
+                            let et =
+                                e.get("edge_type").and_then(|v| v.as_str()).unwrap_or("direct");
                             format!("{} --[{}]--> {}", src, et, tgt)
                         })
                         .collect();
@@ -158,10 +152,8 @@ dataTransformer, webhookSend, logging, llmClassifier, aggregator, email, end
         store: None,
     };
 
-    let response = adapter
-        .chat(&resolved.ctx, request)
-        .await
-        .map_err(|e| format!("LLM API error: {}", e))?;
+    let response =
+        adapter.chat(&resolved.ctx, request).await.map_err(|e| format!("LLM API error: {}", e))?;
 
     parse_llm_response(&prompt, &response.content, &resolved.model_id)
 }
@@ -174,16 +166,12 @@ pub async fn optimize_agent_prompt(
     let resolved = resolve_ai_provider(&state).await?;
 
     let registry_key = resolved.provider_type.registry_key();
-    let adapter = state
-        .harness
-        .provider_registry()
-        .get(registry_key)
-        .ok_or_else(|| {
-            ErrorResponse::err_with_detail(
-                provider_err::ADAPTER_NOT_FOUND,
-                format!("Provider adapter not found for type: {}", registry_key),
-            )
-        })?;
+    let adapter = state.harness.provider_registry().get(registry_key).ok_or_else(|| {
+        ErrorResponse::err_with_detail(
+            provider_err::ADAPTER_NOT_FOUND,
+            format!("Provider adapter not found for type: {}", registry_key),
+        )
+    })?;
 
     let system_prompt = r#"You are an expert prompt engineer. Your task is to optimize the given agent prompt to make it more effective, clear, and structured.
 
@@ -240,10 +228,8 @@ Output ONLY the optimized prompt text, without any explanation or meta-commentar
         store: None,
     };
 
-    let response = adapter
-        .chat(&resolved.ctx, request)
-        .await
-        .map_err(|e| format!("LLM API error: {}", e))?;
+    let response =
+        adapter.chat(&resolved.ctx, request).await.map_err(|e| format!("LLM API error: {}", e))?;
 
     Ok(response.content)
 }
@@ -257,16 +243,12 @@ pub async fn recommend_nodes(
     let resolved = resolve_ai_provider(&state).await?;
 
     let registry_key = resolved.provider_type.registry_key();
-    let adapter = state
-        .harness
-        .provider_registry()
-        .get(registry_key)
-        .ok_or_else(|| {
-            ErrorResponse::err_with_detail(
-                provider_err::ADAPTER_NOT_FOUND,
-                format!("Provider adapter not found for type: {}", registry_key),
-            )
-        })?;
+    let adapter = state.harness.provider_registry().get(registry_key).ok_or_else(|| {
+        ErrorResponse::err_with_detail(
+            provider_err::ADAPTER_NOT_FOUND,
+            format!("Provider adapter not found for type: {}", registry_key),
+        )
+    })?;
 
     let system_prompt = r#"You are a workflow design assistant. Based on the user's description of their workflow needs, recommend the most suitable node types.
 
@@ -350,10 +332,8 @@ Rules:
         store: None,
     };
 
-    let response = adapter
-        .chat(&resolved.ctx, request)
-        .await
-        .map_err(|e| format!("LLM API error: {}", e))?;
+    let response =
+        adapter.chat(&resolved.ctx, request).await.map_err(|e| format!("LLM API error: {}", e))?;
 
     let json_str = match extract_json_from_response(&response.content) {
         Some(s) => s,
@@ -565,9 +545,7 @@ fn fallback_recommendations(context: &str) -> Vec<NodeRecommendation> {
     }
 
     recommendations.sort_by(|a, b| {
-        b.confidence
-            .partial_cmp(&a.confidence)
-            .unwrap_or(std::cmp::Ordering::Equal)
+        b.confidence.partial_cmp(&a.confidence).unwrap_or(std::cmp::Ordering::Equal)
     });
     recommendations.truncate(5);
 

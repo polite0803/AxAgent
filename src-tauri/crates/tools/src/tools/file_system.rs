@@ -87,11 +87,7 @@ impl Tool for ListDirectoryTool {
         let mut items = Vec::new();
         while let Ok(Some(entry)) = entries.next_entry().await {
             let name = entry.file_name().to_string_lossy().to_string();
-            let is_dir = entry
-                .file_type()
-                .await
-                .map(|ft| ft.is_dir())
-                .unwrap_or(false);
+            let is_dir = entry.file_type().await.map(|ft| ft.is_dir()).unwrap_or(false);
             let meta = entry.metadata().await.ok();
             let size = meta.as_ref().map(|m| m.len()).unwrap_or(0);
 
@@ -156,10 +152,7 @@ impl Tool for DeleteFileTool {
     }
 
     async fn call(&self, input: Value, ctx: &ToolContext) -> Result<ToolResult, ToolError> {
-        let path = input
-            .get("path")
-            .and_then(|v| v.as_str())
-            .unwrap_or_default();
+        let path = input.get("path").and_then(|v| v.as_str()).unwrap_or_default();
 
         if path.is_empty() {
             return Ok(ToolResult::error("Error: path 参数是必需的"));
@@ -209,10 +202,7 @@ impl Tool for CreateDirectoryTool {
     }
 
     async fn call(&self, input: Value, ctx: &ToolContext) -> Result<ToolResult, ToolError> {
-        let path = input
-            .get("path")
-            .and_then(|v| v.as_str())
-            .unwrap_or_default();
+        let path = input.get("path").and_then(|v| v.as_str()).unwrap_or_default();
 
         if path.is_empty() {
             return Ok(ToolResult::error("Error: path 参数是必需的"));
@@ -266,10 +256,7 @@ impl Tool for FileExistsTool {
     }
 
     async fn call(&self, input: Value, ctx: &ToolContext) -> Result<ToolResult, ToolError> {
-        let path = input
-            .get("path")
-            .and_then(|v| v.as_str())
-            .unwrap_or_default();
+        let path = input.get("path").and_then(|v| v.as_str()).unwrap_or_default();
 
         if path.is_empty() {
             return Ok(ToolResult::error("Error: path 参数是必需的"));
@@ -280,11 +267,7 @@ impl Tool for FileExistsTool {
             Err(_) => false,
         };
 
-        Ok(ToolResult::success(format!(
-            "{}: {}",
-            path,
-            if exists { "存在" } else { "不存在" }
-        )))
+        Ok(ToolResult::success(format!("{}: {}", path, if exists { "存在" } else { "不存在" })))
     }
 }
 
@@ -324,10 +307,7 @@ impl Tool for GetFileInfoTool {
     }
 
     async fn call(&self, input: Value, ctx: &ToolContext) -> Result<ToolResult, ToolError> {
-        let path = input
-            .get("path")
-            .and_then(|v| v.as_str())
-            .unwrap_or_default();
+        let path = input.get("path").and_then(|v| v.as_str()).unwrap_or_default();
 
         if path.is_empty() {
             return Ok(ToolResult::error("Error: path 参数是必需的"));
@@ -393,14 +373,8 @@ impl Tool for MoveFileTool {
     }
 
     async fn call(&self, input: Value, ctx: &ToolContext) -> Result<ToolResult, ToolError> {
-        let source = input
-            .get("source")
-            .and_then(|v| v.as_str())
-            .unwrap_or_default();
-        let destination = input
-            .get("destination")
-            .and_then(|v| v.as_str())
-            .unwrap_or_default();
+        let source = input.get("source").and_then(|v| v.as_str()).unwrap_or_default();
+        let destination = input.get("destination").and_then(|v| v.as_str()).unwrap_or_default();
 
         if source.is_empty() || destination.is_empty() {
             return Ok(ToolResult::error("Error: source 和 destination 参数都是必需的"));

@@ -6,10 +6,7 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use serde::{Deserialize, Serialize};
 
 fn now_secs() -> u64 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_secs()
+    SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_secs()
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
@@ -115,19 +112,9 @@ impl std::error::Error for McpErrorSurface {}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum McpPhaseResult {
-    Success {
-        phase: McpLifecyclePhase,
-        duration: Duration,
-    },
-    Failure {
-        phase: McpLifecyclePhase,
-        error: McpErrorSurface,
-    },
-    Timeout {
-        phase: McpLifecyclePhase,
-        waited: Duration,
-        error: McpErrorSurface,
-    },
+    Success { phase: McpLifecyclePhase, duration: Duration },
+    Failure { phase: McpLifecyclePhase, error: McpErrorSurface },
+    Timeout { phase: McpLifecyclePhase, waited: Duration, error: McpErrorSurface },
 }
 
 impl McpPhaseResult {
@@ -162,10 +149,7 @@ impl McpLifecycleState {
 
     #[must_use]
     pub fn errors_for_phase(&self, phase: McpLifecyclePhase) -> &[McpErrorSurface] {
-        self.phase_errors
-            .get(&phase)
-            .map(Vec::as_slice)
-            .unwrap_or(&[])
+        self.phase_errors.get(&phase).map(Vec::as_slice).unwrap_or(&[])
     }
 
     #[must_use]
@@ -189,10 +173,7 @@ impl McpLifecycleState {
     }
 
     fn record_error(&mut self, error: McpErrorSurface) {
-        self.phase_errors
-            .entry(error.phase)
-            .or_default()
-            .push(error);
+        self.phase_errors.entry(error.phase).or_default().push(error);
     }
 
     fn record_result(&mut self, result: McpPhaseResult) {
@@ -236,17 +217,10 @@ impl McpDegradedReport {
         let available_tools = dedupe_sorted(available_tools);
         let available_tool_set: BTreeSet<_> = available_tools.iter().cloned().collect();
         let expected_tools = dedupe_sorted(expected_tools);
-        let missing_tools = expected_tools
-            .into_iter()
-            .filter(|tool| !available_tool_set.contains(tool))
-            .collect();
+        let missing_tools =
+            expected_tools.into_iter().filter(|tool| !available_tool_set.contains(tool)).collect();
 
-        Self {
-            working_servers,
-            failed_servers,
-            available_tools,
-            missing_tools,
-        }
+        Self { working_servers, failed_servers, available_tools, missing_tools }
     }
 }
 
@@ -332,10 +306,7 @@ impl McpLifecycleValidator {
         }
 
         self.state.record_phase(phase);
-        let result = McpPhaseResult::Success {
-            phase,
-            duration: started.elapsed(),
-        };
+        let result = McpPhaseResult::Success { phase, duration: started.elapsed() };
         self.state.record_result(result.clone());
         result
     }
@@ -366,11 +337,7 @@ impl McpLifecycleValidator {
         );
         self.state.record_error(error.clone());
         self.state.record_phase(McpLifecyclePhase::ErrorSurfacing);
-        let result = McpPhaseResult::Timeout {
-            phase,
-            waited,
-            error,
-        };
+        let result = McpPhaseResult::Timeout { phase, waited, error };
         self.state.record_result(result.clone());
         result
     }
@@ -424,17 +391,11 @@ mod tests {
         ];
 
         // when
-        let results = phases
-            .into_iter()
-            .map(|phase| validator.run_phase(phase))
-            .collect::<Vec<_>>();
+        let results =
+            phases.into_iter().map(|phase| validator.run_phase(phase)).collect::<Vec<_>>();
 
         // then
-        assert!(
-            results
-                .iter()
-                .all(|result| matches!(result, McpPhaseResult::Success { .. }))
-        );
+        assert!(results.iter().all(|result| matches!(result, McpPhaseResult::Success { .. })));
         assert_eq!(validator.state().current_phase(), Some(McpLifecyclePhase::Cleanup));
         for phase in [
             McpLifecyclePhase::ConfigLoad,
@@ -533,13 +494,7 @@ mod tests {
             other => panic!("expected failure result, got {other:?}"),
         }
         assert_eq!(validator.state().current_phase(), Some(McpLifecyclePhase::ErrorSurfacing));
-        assert_eq!(
-            validator
-                .state()
-                .errors_for_phase(McpLifecyclePhase::Ready)
-                .len(),
-            1
-        );
+        assert_eq!(validator.state().errors_for_phase(McpLifecyclePhase::Ready).len(), 1);
     }
 
     #[test]
@@ -558,10 +513,7 @@ mod tests {
             ));
 
             match result {
-                McpPhaseResult::Failure {
-                    phase: failed_phase,
-                    error,
-                } => {
+                McpPhaseResult::Failure { phase: failed_phase, error } => {
                     assert_eq!(failed_phase, phase);
                     assert_eq!(error.phase, phase);
                     assert_eq!(error.recoverable, phase == McpLifecyclePhase::ResourceDiscovery);
@@ -588,11 +540,7 @@ mod tests {
 
         // then
         match result {
-            McpPhaseResult::Timeout {
-                phase,
-                waited: actual,
-                error,
-            } => {
+            McpPhaseResult::Timeout { phase, waited: actual, error } => {
                 assert_eq!(phase, McpLifecyclePhase::SpawnConnect);
                 assert_eq!(actual, waited);
                 assert!(error.recoverable);
@@ -600,9 +548,7 @@ mod tests {
             },
             other => panic!("expected timeout result, got {other:?}"),
         }
-        let errors = validator
-            .state()
-            .errors_for_phase(McpLifecyclePhase::SpawnConnect);
+        let errors = validator.state().errors_for_phase(McpLifecyclePhase::SpawnConnect);
         assert_eq!(errors.len(), 1);
         assert_eq!(errors[0].context.get("waited_ms").map(String::as_str), Some("250"));
         assert_eq!(validator.state().current_phase(), Some(McpLifecyclePhase::ErrorSurfacing));
@@ -627,16 +573,8 @@ mod tests {
         let report = McpDegradedReport::new(
             vec!["alpha".to_string(), "beta".to_string(), "alpha".to_string()],
             failed,
-            vec![
-                "alpha.echo".to_string(),
-                "beta.search".to_string(),
-                "alpha.echo".to_string(),
-            ],
-            vec![
-                "alpha.echo".to_string(),
-                "beta.search".to_string(),
-                "broken.fetch".to_string(),
-            ],
+            vec!["alpha.echo".to_string(), "beta.search".to_string(), "alpha.echo".to_string()],
+            vec!["alpha.echo".to_string(), "beta.search".to_string(), "broken.fetch".to_string()],
         );
 
         // then
@@ -680,12 +618,7 @@ mod tests {
         assert!(matches!(shutdown, McpPhaseResult::Success { .. }));
         assert!(matches!(cleanup, McpPhaseResult::Success { .. }));
         assert_eq!(validator.state().current_phase(), Some(McpLifecyclePhase::Cleanup));
-        assert!(
-            validator
-                .state()
-                .phase_timestamp(McpLifecyclePhase::ErrorSurfacing)
-                .is_some()
-        );
+        assert!(validator.state().phase_timestamp(McpLifecyclePhase::ErrorSurfacing).is_some());
     }
 
     #[test]

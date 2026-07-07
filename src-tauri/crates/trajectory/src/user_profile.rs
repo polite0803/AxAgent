@@ -377,11 +377,7 @@ pub struct TimeRange {
 
 impl Default for TimeRange {
     fn default() -> Self {
-        Self {
-            start_hour: 9,
-            end_hour: 17,
-            timezone: "UTC".to_string(),
-        }
+        Self { start_hour: 9, end_hour: 17, timezone: "UTC".to_string() }
     }
 }
 

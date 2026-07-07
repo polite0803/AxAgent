@@ -189,11 +189,7 @@ impl Tool for FileReadTool {
             )));
         }
 
-        let ext = path
-            .extension()
-            .and_then(|e| e.to_str())
-            .unwrap_or("")
-            .to_lowercase();
+        let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("").to_lowercase();
 
         match ext.as_str() {
             "png" | "jpg" | "jpeg" | "gif" | "bmp" | "webp" => read_image(file_path).await,
@@ -211,10 +207,7 @@ fn matches_glob(pattern: &str, text: &str) -> bool {
     let pattern_trim = pattern.trim_end_matches(['/', '\\']);
 
     // 手动 split 而非依赖 Path::components()，确保 Linux CI 上也能正确识别 \ 为分隔符
-    let p_segs: Vec<&str> = pattern_trim
-        .split(['/', '\\'])
-        .filter(|s| !s.is_empty())
-        .collect();
+    let p_segs: Vec<&str> = pattern_trim.split(['/', '\\']).filter(|s| !s.is_empty()).collect();
     let t_segs: Vec<&str> = text.split(['/', '\\']).filter(|s| !s.is_empty()).collect();
 
     if p_segs.len() > t_segs.len() {
@@ -298,10 +291,7 @@ async fn read_image(path: &str) -> Result<ToolResult, ToolError> {
 
     use base64::Engine;
     let b64 = base64::engine::general_purpose::STANDARD.encode(&bytes);
-    let ext = Path::new(path)
-        .extension()
-        .and_then(|e| e.to_str())
-        .unwrap_or("");
+    let ext = Path::new(path).extension().and_then(|e| e.to_str()).unwrap_or("");
 
     Ok(ToolResult::success(format!(
         "[图片] {} ({:.1} KB)\ndata:image/{};base64,{}",
@@ -342,12 +332,7 @@ async fn read_notebook(path: &str) -> Result<ToolResult, ToolError> {
             let cell_type = cell["cell_type"].as_str().unwrap_or("unknown");
             let source = cell["source"]
                 .as_array()
-                .map(|arr| {
-                    arr.iter()
-                        .filter_map(|v| v.as_str())
-                        .collect::<Vec<_>>()
-                        .join("")
-                })
+                .map(|arr| arr.iter().filter_map(|v| v.as_str()).collect::<Vec<_>>().join(""))
                 .unwrap_or_default();
             // SECURITY: 输出阶段做 HTML/script 剥离
             let safe_source = strip_html(&source);

@@ -123,25 +123,18 @@ impl ToolAuditor {
             }
         });
 
-        Self {
-            config,
-            rate_limits: RwLock::new(HashMap::new()),
-            log: RwLock::new(Vec::new()),
-            db,
-        }
+        Self { config, rate_limits: RwLock::new(HashMap::new()), log: RwLock::new(Vec::new()), db }
     }
 
     /// 检查频率限制，返回 Ok 表示允许，Err 表示触发限制
     pub async fn check_rate_limit(&self, tool_name: &str) -> Result<(), String> {
         let mut limits = self.rate_limits.write().await;
         let now = Instant::now();
-        let state = limits
-            .entry(tool_name.to_string())
-            .or_insert(RateLimitState {
-                last_call: now - Duration::from_secs(60),
-                call_count: 0,
-                window_start: now,
-            });
+        let state = limits.entry(tool_name.to_string()).or_insert(RateLimitState {
+            last_call: now - Duration::from_secs(60),
+            call_count: 0,
+            window_start: now,
+        });
 
         // 检查最小间隔
         let elapsed = now.duration_since(state.last_call);
@@ -265,8 +258,7 @@ impl ToolAuditor {
                         };
                         // 简单启发式：三个连续的长段 = 可能的 JWT
                         let is_base64 = |s: &str| {
-                            s.chars()
-                                .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
+                            s.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
                         };
                         if is_base64(header) && is_base64(parts[i + 1]) {
                             return true;
@@ -322,10 +314,7 @@ impl ToolAuditor {
     /// 按工具名筛选审计日志
     pub async fn logs_by_tool(&self, tool_name: &str) -> Vec<AuditEntry> {
         let log = self.log.read().await;
-        log.iter()
-            .filter(|e| e.tool_name == tool_name)
-            .cloned()
-            .collect()
+        log.iter().filter(|e| e.tool_name == tool_name).cloned().collect()
     }
 
     /// 获取审计摘要

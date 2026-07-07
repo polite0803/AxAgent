@@ -18,9 +18,7 @@ const SEARCH_CACHE_TTL_SECS: u64 = 300;
 /// 简易语义版本比较。返回 Ordering。
 fn compare_versions(a: &str, b: &str) -> std::cmp::Ordering {
     let parse = |v: &str| -> Vec<u32> {
-        v.split(|c: char| !c.is_ascii_digit())
-            .filter_map(|s| s.parse::<u32>().ok())
-            .collect()
+        v.split(|c: char| !c.is_ascii_digit()).filter_map(|s| s.parse::<u32>().ok()).collect()
     };
     let va = parse(a);
     let vb = parse(b);
@@ -73,11 +71,7 @@ pub struct MarketplaceSearchCache {
 
 impl MarketplaceSearchCache {
     pub fn new(ttl_seconds: u64) -> Self {
-        Self {
-            cache: HashMap::new(),
-            ttl: Duration::from_secs(ttl_seconds),
-            max_capacity: 256,
-        }
+        Self { cache: HashMap::new(), ttl: Duration::from_secs(ttl_seconds), max_capacity: 256 }
     }
 
     pub fn get(&self, key: &str) -> Option<Vec<MarketplaceSkill>> {
@@ -98,22 +92,13 @@ impl MarketplaceSearchCache {
             entries.sort_by_key(|(_, v)| v.created_at);
             let remove_count = entries.len() - self.max_capacity + 1;
             // P2 #6: 使用 into_iter() 消除多余 clone
-            let keys_to_remove: Vec<String> = entries
-                .into_iter()
-                .take(remove_count)
-                .map(|(k, _)| k.clone())
-                .collect();
+            let keys_to_remove: Vec<String> =
+                entries.into_iter().take(remove_count).map(|(k, _)| k.clone()).collect();
             for k in keys_to_remove {
                 self.cache.remove(&k);
             }
         }
-        self.cache.insert(
-            key,
-            CachedSearchResult {
-                results,
-                created_at: Instant::now(),
-            },
-        );
+        self.cache.insert(key, CachedSearchResult { results, created_at: Instant::now() });
     }
 
     pub fn cleanup_expired(&mut self) {
@@ -140,9 +125,7 @@ pub async fn list_skills(state: State<'_, AppState>) -> Result<Vec<SkillInfo>, S
     // which makes a single broken SKILL.md kill the entire skills page.
     // By using the report directly, we can show successfully loaded plugins
     // while logging failures.
-    let report = plugin_manager
-        .plugin_registry_report()
-        .map_err(|e| e.to_string())?;
+    let report = plugin_manager.plugin_registry_report().map_err(|e| e.to_string())?;
     let failures = report.failures();
     for f in failures {
         tracing::warn!("Skill load failure: {f}");
@@ -220,20 +203,15 @@ pub async fn get_skill(
     let plugin_manager = state.skill.plugin_manager.read().await;
     // Use plugin_registry_report() + into_registry_allowing_failures()
     // to tolerate individual plugin load failures (e.g. Claude Code format, missing version).
-    let report = plugin_manager
-        .plugin_registry_report()
-        .map_err(|e| e.to_string())?;
+    let report = plugin_manager.plugin_registry_report().map_err(|e| e.to_string())?;
     let failures = report.failures();
     for f in failures {
         tracing::warn!("Skill load failure: {f}");
     }
     let plugins = report.into_registry_allowing_failures();
 
-    let plugin = plugins
-        .summaries()
-        .into_iter()
-        .find(|p| p.metadata.name == name)
-        .ok_or_else(|| {
+    let plugin =
+        plugins.summaries().into_iter().find(|p| p.metadata.name == name).ok_or_else(|| {
             ErrorResponse::new(skill_err::NOT_FOUND).with_param("name".to_string(), name.clone())
         })?;
 
@@ -241,12 +219,8 @@ pub async fn get_skill(
         .await
         .map_err(|e| e.to_string())?;
 
-    let source_path = plugin
-        .metadata
-        .root
-        .as_ref()
-        .map(|p| p.to_string_lossy().to_string())
-        .unwrap_or_default();
+    let source_path =
+        plugin.metadata.root.as_ref().map(|p| p.to_string_lossy().to_string()).unwrap_or_default();
     let skill_dir = plugin.metadata.root.unwrap_or(PathBuf::new());
 
     // List files in skill directory
@@ -287,12 +261,7 @@ pub async fn get_skill(
         manifest: raw_manifest_json,
     };
 
-    Ok(SkillDetail {
-        info,
-        content,
-        files,
-        manifest: install_meta,
-    })
+    Ok(SkillDetail { info, content, files, manifest: install_meta })
 }
 
 // P2 #8: 文件大小和深度限制
@@ -345,10 +314,7 @@ pub(crate) fn collect_markdown_files(dir: &Path, depth: u32) -> std::io::Result<
         let path = entry.path();
         if path.is_dir() {
             files.extend(collect_markdown_files(&path, depth + 1)?);
-        } else if path
-            .extension()
-            .is_some_and(|ext| ext.eq_ignore_ascii_case("md"))
-        {
+        } else if path.extension().is_some_and(|ext| ext.eq_ignore_ascii_case("md")) {
             files.push(path);
         }
     }
@@ -454,11 +420,7 @@ pub async fn install_skill(
         },
     };
 
-    state
-        .trajectory_storage
-        .save_skill(&skill)
-        .await
-        .map_err(|e| e.to_string())?;
+    state.trajectory_storage.save_skill(&skill).await.map_err(|e| e.to_string())?;
 
     let _ = app.emit(
         "skill-state-changed",
@@ -499,11 +461,7 @@ fn check_skill_dependencies(skill_dir: &Path, target_dir: &Path) -> Result<(), S
                 ))
                 .with_param(
                     "skill",
-                    skill_dir
-                        .file_name()
-                        .unwrap_or_default()
-                        .to_string_lossy()
-                        .to_string(),
+                    skill_dir.file_name().unwrap_or_default().to_string_lossy().to_string(),
                 )
                 .with_param("dependency", dep_name.to_string()))?;
         }
@@ -522,10 +480,7 @@ fn load_plugin_scenarios(skill_dir: &Path) -> Vec<String> {
     if let Ok(contents) = std::fs::read_to_string(&skill_manifest_path) {
         if let Ok(manifest) = serde_json::from_str::<serde_json::Value>(&contents) {
             if let Some(scenarios) = manifest.get("scenarios").and_then(|v| v.as_array()) {
-                return scenarios
-                    .iter()
-                    .filter_map(|v| v.as_str().map(String::from))
-                    .collect();
+                return scenarios.iter().filter_map(|v| v.as_str().map(String::from)).collect();
             }
         }
     }
@@ -603,21 +558,12 @@ async fn install_from_github(
     }
 
     let mut git_cmd = axagent_kit::utils::cmd("git");
-    let git_available = git_cmd
-        .arg("--version")
-        .output()
-        .map(|o| o.status.success())
-        .unwrap_or(false);
+    let git_available =
+        git_cmd.arg("--version").output().map(|o| o.status.success()).unwrap_or(false);
 
     if git_available {
         let output = axagent_kit::utils::cmd("git")
-            .args([
-                "clone",
-                "--depth",
-                "1",
-                &git_url,
-                skill_target.to_str().unwrap_or(""),
-            ])
+            .args(["clone", "--depth", "1", &git_url, skill_target.to_str().unwrap_or("")])
             .output()
             .map_err(|e| format!("Failed to execute git: {}", e))?;
 
@@ -688,11 +634,7 @@ async fn install_from_github_zipball(
         .map(String::from)
         .ok_or("Empty archive")?;
 
-    let commit = top_dir
-        .split('-')
-        .next_back()
-        .unwrap_or("unknown")
-        .to_string();
+    let commit = top_dir.split('-').next_back().unwrap_or("unknown").to_string();
 
     let dest_canonical = temp_dir
         .path()
@@ -700,9 +642,7 @@ async fn install_from_github_zipball(
         .map_err(|e| format!("Failed to canonicalize temp dir: {}", e))?;
     // 阶段一：使用 enclosed_name() 验证所有 entry
     for i in 0..archive.len() {
-        let entry = archive
-            .by_index(i)
-            .map_err(|e| format!("Failed to read zip entry: {}", e))?;
+        let entry = archive.by_index(i).map_err(|e| format!("Failed to read zip entry: {}", e))?;
 
         // enclosed_name(): 非 UTF-8 或路径遍历路径时返回 None
         let entry_path = entry
@@ -722,15 +662,12 @@ async fn install_from_github_zipball(
     }
 
     // 阶段二：解压
-    archive
-        .extract(temp_dir.path())
-        .map_err(|e| format!("Failed to extract: {}", e))?;
+    archive.extract(temp_dir.path()).map_err(|e| format!("Failed to extract: {}", e))?;
 
     // 阶段三：解压后二次验证（防止 TOCTOU）
     for i in 0..archive.len() {
-        let entry = archive
-            .by_index(i)
-            .map_err(|e| format!("Failed to re-read zip entry: {}", e))?;
+        let entry =
+            archive.by_index(i).map_err(|e| format!("Failed to re-read zip entry: {}", e))?;
         let entry_path = entry.enclosed_name().ok_or_else(|| {
             format!("Invalid zip entry name during post-extract check: entry {}", i)
         })?;
@@ -890,13 +827,7 @@ pub async fn rollback_skill(skill_name: String, target_version: String) -> Resul
     std::fs::create_dir_all(&skill_dir).map_err(|e| e.to_string())?;
 
     let output = axagent_kit::utils::cmd("git")
-        .args([
-            "clone",
-            "--depth",
-            "50",
-            &git_url,
-            skill_dir.to_str().unwrap_or(""),
-        ])
+        .args(["clone", "--depth", "50", &git_url, skill_dir.to_str().unwrap_or("")])
         .output()
         .map_err(|e| format!("Failed to execute git: {}", e))?;
 
@@ -1010,10 +941,7 @@ pub(super) fn validate_skill_name(name: &str) -> Result<(), String> {
         return Err(format!("Skill name '{}' is a Windows reserved name", name));
     }
     // P2 #10: 仅允许字母、数字、连字符、下划线
-    if !name
-        .chars()
-        .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
-    {
+    if !name.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_') {
         return Err(
             "Skill name must only contain alphanumeric characters, hyphens, and underscores"
                 .to_string(),
@@ -1023,12 +951,10 @@ pub(super) fn validate_skill_name(name: &str) -> Result<(), String> {
 }
 
 fn ensure_path_under_base(path: &Path, base: &Path) -> Result<(), String> {
-    let canonical_path = path
-        .canonicalize()
-        .map_err(|e| format!("Failed to canonicalize path: {}", e))?;
-    let canonical_base = base
-        .canonicalize()
-        .map_err(|e| format!("Failed to canonicalize base: {}", e))?;
+    let canonical_path =
+        path.canonicalize().map_err(|e| format!("Failed to canonicalize path: {}", e))?;
+    let canonical_base =
+        base.canonicalize().map_err(|e| format!("Failed to canonicalize base: {}", e))?;
     if !canonical_path.starts_with(&canonical_base) {
         return Err("Path traversal detected".to_string());
     }

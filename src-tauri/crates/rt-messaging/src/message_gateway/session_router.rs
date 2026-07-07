@@ -26,9 +26,7 @@ pub struct RoutedSession {
 
 impl SessionRouter {
     pub fn new() -> Self {
-        Self {
-            sessions: HashMap::new(),
-        }
+        Self { sessions: HashMap::new() }
     }
 
     fn session_key(platform: &str, user_id: &str) -> String {
@@ -61,12 +59,10 @@ impl SessionRouter {
                 created_at: now,
                 last_activity: now,
             });
-        self.sessions
-            .get(&Self::session_key(platform, user_id))
-            .unwrap_or_else(|| {
-                // Just inserted above — this branch is unreachable
-                panic!("get_or_create_route: session was just inserted")
-            })
+        self.sessions.get(&Self::session_key(platform, user_id)).unwrap_or_else(|| {
+            // Just inserted above — this branch is unreachable
+            panic!("get_or_create_route: session was just inserted")
+        })
     }
 
     pub fn get_session(&self, platform: &str, user_id: &str) -> Option<&RoutedSession> {
@@ -92,10 +88,7 @@ impl SessionRouter {
     pub fn list_active_sessions(&self) -> Vec<&RoutedSession> {
         let now = Utc::now().timestamp_millis();
         let five_min = 5 * 60 * 1000;
-        self.sessions
-            .values()
-            .filter(|s| now - s.last_activity < five_min)
-            .collect()
+        self.sessions.values().filter(|s| now - s.last_activity < five_min).collect()
     }
 
     pub fn deactivate_session(&mut self, platform: &str, user_id: &str) {

@@ -98,12 +98,8 @@ impl Tool for WebSearchTool {
         let mut progress = Vec::new();
 
         let expansion = axagent_search::search::expand_search_queries(query);
-        let queries: Vec<&str> = expansion
-            .queries
-            .iter()
-            .take(MAX_EXPANDED_QUERIES)
-            .map(|s| s.as_str())
-            .collect();
+        let queries: Vec<&str> =
+            expansion.queries.iter().take(MAX_EXPANDED_QUERIES).map(|s| s.as_str()).collect();
 
         let mut all_results: Vec<axagent_search::search::SearchResult> = Vec::new();
         let mut seen_urls: HashSet<String> = HashSet::new();
@@ -173,10 +169,8 @@ impl Tool for WebSearchTool {
             .iter()
             .enumerate()
             .map(|(i, r)| {
-                let cred = r
-                    .credibility
-                    .map(|c| format!(" [可信度:{:.0}]", c * 10.0))
-                    .unwrap_or_default();
+                let cred =
+                    r.credibility.map(|c| format!(" [可信度:{:.0}]", c * 10.0)).unwrap_or_default();
                 format!("{}. {}{}\n   {}\n   {}", i + 1, r.title, cred, r.content, r.url)
             })
             .collect();

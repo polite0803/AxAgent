@@ -121,9 +121,7 @@ fn reconciled_lane_matches_reconcile_condition() {
         PolicyRule::new(
             "reconcile-first",
             PolicyCondition::LaneReconciled,
-            PolicyAction::Reconcile {
-                reason: ReconcileReason::AlreadyMerged,
-            },
+            PolicyAction::Reconcile { reason: ReconcileReason::AlreadyMerged },
             5,
         ),
         PolicyRule::new(
@@ -140,9 +138,7 @@ fn reconciled_lane_matches_reconcile_condition() {
     assert_eq!(
         actions,
         vec![
-            PolicyAction::Reconcile {
-                reason: ReconcileReason::AlreadyMerged,
-            },
+            PolicyAction::Reconcile { reason: ReconcileReason::AlreadyMerged },
             PolicyAction::CloseoutLane,
         ]
     );
@@ -151,10 +147,8 @@ fn reconciled_lane_matches_reconcile_condition() {
 /// stale_branch module: apply_policy generates correct actions
 #[test]
 fn stale_branch_apply_policy_produces_rebase_action() {
-    let stale = BranchFreshness::Stale {
-        commits_behind: 5,
-        missing_fixes: vec!["fix-123".to_string()],
-    };
+    let stale =
+        BranchFreshness::Stale { commits_behind: 5, missing_fixes: vec!["fix-123".to_string()] };
 
     let action = apply_policy(&stale, StaleBranchPolicy::AutoRebase);
     assert_eq!(action, StaleBranchAction::Rebase);
@@ -162,10 +156,7 @@ fn stale_branch_apply_policy_produces_rebase_action() {
 
 #[test]
 fn stale_branch_apply_policy_produces_merge_forward_action() {
-    let stale = BranchFreshness::Stale {
-        commits_behind: 3,
-        missing_fixes: vec![],
-    };
+    let stale = BranchFreshness::Stale { commits_behind: 3, missing_fixes: vec![] };
 
     let action = apply_policy(&stale, StaleBranchPolicy::AutoMergeForward);
     assert_eq!(action, StaleBranchAction::MergeForward);
@@ -173,10 +164,8 @@ fn stale_branch_apply_policy_produces_merge_forward_action() {
 
 #[test]
 fn stale_branch_apply_policy_warn_only() {
-    let stale = BranchFreshness::Stale {
-        commits_behind: 2,
-        missing_fixes: vec!["fix-456".to_string()],
-    };
+    let stale =
+        BranchFreshness::Stale { commits_behind: 2, missing_fixes: vec!["fix-456".to_string()] };
 
     let action = apply_policy(&stale, StaleBranchPolicy::WarnOnly);
     match action {
@@ -205,10 +194,8 @@ fn end_to_end_stale_lane_gets_merge_forward_action() {
     // 4. Return actions
 
     // given: detected stale state
-    let _freshness = BranchFreshness::Stale {
-        commits_behind: 5,
-        missing_fixes: vec!["fix-123".to_string()],
-    };
+    let _freshness =
+        BranchFreshness::Stale { commits_behind: 5, missing_fixes: vec!["fix-123".to_string()] };
 
     // when: build context and evaluate policy
     let context = LaneContext::new(
@@ -233,9 +220,7 @@ fn end_to_end_stale_lane_gets_merge_forward_action() {
         PolicyRule::new(
             "stale-warning",
             PolicyCondition::StaleBranch,
-            PolicyAction::Notify {
-                channel: "#build-status".to_string(),
-            },
+            PolicyAction::Notify { channel: "#build-status".to_string() },
             10,
         ),
     ]);
@@ -247,9 +232,7 @@ fn end_to_end_stale_lane_gets_merge_forward_action() {
         actions,
         vec![
             PolicyAction::MergeForward,
-            PolicyAction::Notify {
-                channel: "#build-status".to_string(),
-            },
+            PolicyAction::Notify { channel: "#build-status".to_string() },
         ]
     );
 }
@@ -311,9 +294,7 @@ fn worker_provider_failure_flows_through_recovery_to_policy() {
         .observe_completion(&worker.worker_id, "unknown", 0)
         .expect("completion observe should succeed");
     assert_eq!(failed_worker.status, WorkerStatus::Failed);
-    let failure = failed_worker
-        .last_error
-        .expect("worker should have recorded error");
+    let failure = failed_worker.last_error.expect("worker should have recorded error");
     assert_eq!(failure.kind, WorkerFailureKind::Provider);
 
     // Bridge: WorkerFailureKind -> FailureScenario

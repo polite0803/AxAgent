@@ -158,15 +158,8 @@ fn is_trivial_task(lower: &str, prompt_len: usize) -> bool {
     }
 
     // Translation patterns
-    let translation_patterns = [
-        "translate",
-        "翻译",
-        "traduire",
-        "übersetzen",
-        "翻成",
-        "译为",
-        "翻訳",
-    ];
+    let translation_patterns =
+        ["translate", "翻译", "traduire", "übersetzen", "翻成", "译为", "翻訳"];
     for pat in &translation_patterns {
         if lower.contains(pat) {
             return true;

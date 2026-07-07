@@ -115,24 +115,9 @@ impl HookEvent {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum HookProgressEvent {
-    Started {
-        event: HookEvent,
-        tool_name: String,
-        command: String,
-        tool_use_id: Option<String>,
-    },
-    Completed {
-        event: HookEvent,
-        tool_name: String,
-        command: String,
-        tool_use_id: Option<String>,
-    },
-    Cancelled {
-        event: HookEvent,
-        tool_name: String,
-        command: String,
-        tool_use_id: Option<String>,
-    },
+    Started { event: HookEvent, tool_name: String, command: String, tool_use_id: Option<String> },
+    Completed { event: HookEvent, tool_name: String, command: String, tool_use_id: Option<String> },
+    Cancelled { event: HookEvent, tool_name: String, command: String, tool_use_id: Option<String> },
 }
 
 pub trait HookProgressReporter: Send + Sync {
@@ -467,10 +452,7 @@ impl HookRunner {
                 denied: false,
                 failed: false,
                 cancelled: true,
-                messages: vec![format!(
-                    "{} hook cancelled before execution",
-                    event.as_str()
-                )],
+                messages: vec![format!("{} hook cancelled before execution", event.as_str())],
                 permission_override: None,
                 permission_reason: None,
                 updated_input: None,
@@ -716,10 +698,7 @@ fn parse_hook_output(stdout: &str) -> ParsedHookOutput {
                 _ => None,
             };
         }
-        if let Some(reason) = specific
-            .get("permissionDecisionReason")
-            .and_then(Value::as_str)
-        {
+        if let Some(reason) = specific.get("permissionDecisionReason").and_then(Value::as_str) {
             parsed.permission_reason = Some(reason.to_string());
         }
         if let Some(updated_input) = specific.get("updatedInput") {
@@ -929,12 +908,7 @@ mod tests {
 
         // then
         assert!(result.is_failed());
-        assert!(
-            result
-                .messages()
-                .iter()
-                .any(|message| message.contains("warning hook"))
-        );
+        assert!(result.messages().iter().any(|message| message.contains("warning hook")));
     }
 
     #[cfg(not(windows))]
@@ -992,28 +966,15 @@ mod tests {
 
         // then
         assert!(result.is_failed());
-        assert!(
-            result
-                .messages()
-                .iter()
-                .any(|message| message.contains("broken failure hook"))
-        );
-        assert!(
-            !result
-                .messages()
-                .iter()
-                .any(|message| message == "later failure hook")
-        );
+        assert!(result.messages().iter().any(|message| message.contains("broken failure hook")));
+        assert!(!result.messages().iter().any(|message| message == "later failure hook"));
     }
 
     #[test]
     fn executes_hooks_in_configured_order() {
         // given
         let runner = HookRunner::new(RuntimeHookConfig::new(
-            vec![
-                shell_snippet("echo 'first'"),
-                shell_snippet("echo 'second'"),
-            ],
+            vec![shell_snippet("echo 'first'"), shell_snippet("echo 'second'")],
             Vec::new(),
             Vec::new(),
         ));
@@ -1033,31 +994,19 @@ mod tests {
         assert_eq!(reporter.events.len(), 4);
         assert!(matches!(
             &reporter.events[0],
-            HookProgressEvent::Started {
-                event: HookEvent::PreToolUse,
-                ..
-            }
+            HookProgressEvent::Started { event: HookEvent::PreToolUse, .. }
         ));
         assert!(matches!(
             &reporter.events[1],
-            HookProgressEvent::Completed {
-                event: HookEvent::PreToolUse,
-                ..
-            }
+            HookProgressEvent::Completed { event: HookEvent::PreToolUse, .. }
         ));
         assert!(matches!(
             &reporter.events[2],
-            HookProgressEvent::Started {
-                event: HookEvent::PreToolUse,
-                ..
-            }
+            HookProgressEvent::Started { event: HookEvent::PreToolUse, .. }
         ));
         assert!(matches!(
             &reporter.events[3],
-            HookProgressEvent::Completed {
-                event: HookEvent::PreToolUse,
-                ..
-            }
+            HookProgressEvent::Completed { event: HookEvent::PreToolUse, .. }
         ));
     }
 
@@ -1065,10 +1014,7 @@ mod tests {
     fn stops_running_hooks_after_failure() {
         // given
         let runner = HookRunner::new(RuntimeHookConfig::new(
-            vec![
-                shell_snippet("echo 'broken'; exit 1"),
-                shell_snippet("echo 'later'"),
-            ],
+            vec![shell_snippet("echo 'broken'; exit 1"), shell_snippet("echo 'later'")],
             Vec::new(),
             Vec::new(),
         ));
@@ -1078,12 +1024,7 @@ mod tests {
 
         // then
         assert!(result.is_failed());
-        assert!(
-            result
-                .messages()
-                .iter()
-                .any(|message| message.contains("broken"))
-        );
+        assert!(result.messages().iter().any(|message| message.contains("broken")));
         assert!(!result.messages().iter().any(|message| message == "later"));
     }
 
@@ -1115,26 +1056,17 @@ mod tests {
         assert!(result.is_cancelled());
         assert!(reporter.events.iter().any(|event| matches!(
             event,
-            HookProgressEvent::Started {
-                event: HookEvent::PreToolUse,
-                ..
-            }
+            HookProgressEvent::Started { event: HookEvent::PreToolUse, .. }
         )));
         assert!(reporter.events.iter().any(|event| matches!(
             event,
-            HookProgressEvent::Cancelled {
-                event: HookEvent::PreToolUse,
-                ..
-            }
+            HookProgressEvent::Cancelled { event: HookEvent::PreToolUse, .. }
         )));
     }
 
     #[cfg(windows)]
     fn shell_snippet(script: &str) -> String {
-        script
-            .replace("printf '", "echo ")
-            .replace('\'', "")
-            .replace(';', "&")
+        script.replace("printf '", "echo ").replace('\'', "").replace(';', "&")
     }
 
     #[cfg(not(windows))]

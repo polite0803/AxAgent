@@ -267,9 +267,8 @@ impl Tool for NotebookEditTool {
         match edit_mode {
             "replace" => {
                 let cid = input["cell_id"].as_str();
-                if let Some(cell) = cells
-                    .iter_mut()
-                    .find(|c| cid.is_some_and(|id| c["id"].as_str() == Some(id)))
+                if let Some(cell) =
+                    cells.iter_mut().find(|c| cid.is_some_and(|id| c["id"].as_str() == Some(id)))
                 {
                     cell["source"] = Value::Array(vec![Value::String(new_source.to_string())]);
                     cell["cell_type"] = Value::String(cell_type.to_string());

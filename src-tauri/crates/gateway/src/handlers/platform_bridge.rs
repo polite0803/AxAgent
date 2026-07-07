@@ -401,21 +401,13 @@ async fn process_platform_message(
             "You are an AI assistant responding to a Slack message. \
              Sender: {}. Conversation: {}. Reply concisely in Slack-friendly format.",
             payload.message.sender_name.as_deref().unwrap_or("unknown"),
-            payload
-                .message
-                .conversation_id
-                .as_deref()
-                .unwrap_or("unknown"),
+            payload.message.conversation_id.as_deref().unwrap_or("unknown"),
         ),
         Platform::Discord => format!(
             "You are an AI assistant responding to a Discord message. \
              Sender: {}. Channel: {}. Use Discord markdown formatting.",
             payload.message.sender_name.as_deref().unwrap_or("unknown"),
-            payload
-                .message
-                .conversation_id
-                .as_deref()
-                .unwrap_or("unknown"),
+            payload.message.conversation_id.as_deref().unwrap_or("unknown"),
         ),
         _ => format!(
             "You are an AI assistant responding to a message from platform {:?}. \

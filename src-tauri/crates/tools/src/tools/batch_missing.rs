@@ -342,10 +342,7 @@ impl Tool for SubscribePRTool {
 
     async fn call(&self, i: Value, _c: &ToolContext) -> Result<ToolResult, ToolError> {
         let url = i["pr_url"].as_str().unwrap_or("?");
-        Ok(ToolResult::success(format!(
-            "🔔 已订阅 PR: {} (comment/review/ci/merge/close)",
-            url
-        )))
+        Ok(ToolResult::success(format!("🔔 已订阅 PR: {} (comment/review/ci/merge/close)", url)))
     }
 }
 

@@ -16,9 +16,7 @@ pub fn set_migration_runner(runner: Arc<dyn MigrationRunner>) {
 }
 
 fn runner() -> &'static Arc<dyn MigrationRunner> {
-    RUNNER
-        .get()
-        .expect("MigrationRunner not initialized; call set_migration_runner() at startup")
+    RUNNER.get().expect("MigrationRunner not initialized; call set_migration_runner() at startup")
 }
 
 #[async_trait]

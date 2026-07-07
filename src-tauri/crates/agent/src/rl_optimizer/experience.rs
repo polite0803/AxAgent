@@ -163,10 +163,7 @@ pub struct ExperienceBuffer {
 
 impl ExperienceBuffer {
     pub fn new(capacity: usize) -> Self {
-        Self {
-            capacity,
-            buffer: Vec::with_capacity(capacity),
-        }
+        Self { capacity, buffer: Vec::with_capacity(capacity) }
     }
 
     pub fn push(&mut self, experience: Experience) {
@@ -187,11 +184,7 @@ impl ExperienceBuffer {
             let j = i + (fastrand::usize(..(len - i)));
             indices.swap(i, j);
         }
-        indices
-            .into_iter()
-            .take(batch_size)
-            .map(|i| &self.buffer[i])
-            .collect()
+        indices.into_iter().take(batch_size).map(|i| &self.buffer[i]).collect()
     }
 
     pub fn len(&self) -> usize {

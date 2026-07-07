@@ -148,13 +148,7 @@ where
             None
         };
 
-        Self {
-            session,
-            conversation_runtime,
-            config,
-            event_sender,
-            proactive,
-        }
+        Self { session, conversation_runtime, config, event_sender, proactive }
     }
 
     pub fn subscribe(&self) -> broadcast::Receiver<AgentEvent> {
@@ -240,8 +234,7 @@ where
         // while self.conversation_runtime is simultaneously borrowed by run_turn.
         let mut prompter_box = self.config.permission_prompter.take();
         let result = if let Some(ref mut p) = prompter_box {
-            self.conversation_runtime
-                .run_turn(&effective_input, Some(&mut **p))
+            self.conversation_runtime.run_turn(&effective_input, Some(&mut **p))
         } else {
             self.conversation_runtime.run_turn(&effective_input, None)
         };
@@ -260,9 +253,7 @@ where
                         self.config.max_iterations
                     );
                 }
-                self.emit(AgentEvent::TurnCompleted {
-                    iteration: summary.iterations,
-                });
+                self.emit(AgentEvent::TurnCompleted { iteration: summary.iterations });
 
                 let response = summary
                     .assistant_messages
@@ -280,19 +271,13 @@ where
 
                 let tool_call_count = summary.tool_results.len();
 
-                Ok(AgentOutput {
-                    response,
-                    iterations: summary.iterations,
-                    tool_call_count,
-                })
+                Ok(AgentOutput { response, iterations: summary.iterations, tool_call_count })
             },
             Err(e) => {
                 if let Some(ref mut proactive) = self.proactive {
                     proactive.on_api_error();
                 }
-                self.emit(AgentEvent::Error {
-                    error: e.to_string(),
-                });
+                self.emit(AgentEvent::Error { error: e.to_string() });
                 Err(AgentRuntimeError::RuntimeError(format!(
                     "Agent '{}' error (timeout_secs={}): {}",
                     self.config.role, self.config.timeout_secs, e
@@ -336,11 +321,7 @@ mod tests {
 
     #[test]
     fn test_agent_output_zero_values() {
-        let output = AgentOutput {
-            response: String::new(),
-            iterations: 0,
-            tool_call_count: 0,
-        };
+        let output = AgentOutput { response: String::new(), iterations: 0, tool_call_count: 0 };
         assert!(output.response.is_empty());
         assert_eq!(output.iterations, 0);
         assert_eq!(output.tool_call_count, 0);
@@ -389,10 +370,7 @@ mod tests {
             tool_use_id: "id-1".to_string(),
         };
         match &event {
-            AgentEvent::ToolUse {
-                tool_name,
-                tool_use_id,
-            } => {
+            AgentEvent::ToolUse { tool_name, tool_use_id } => {
                 assert_eq!(tool_name, "read_file");
                 assert_eq!(tool_use_id, "id-1");
             },
@@ -402,15 +380,9 @@ mod tests {
 
     #[test]
     fn test_agent_event_tool_result() {
-        let event = AgentEvent::ToolResult {
-            tool_use_id: "id-1".to_string(),
-            is_error: false,
-        };
+        let event = AgentEvent::ToolResult { tool_use_id: "id-1".to_string(), is_error: false };
         match &event {
-            AgentEvent::ToolResult {
-                tool_use_id,
-                is_error,
-            } => {
+            AgentEvent::ToolResult { tool_use_id, is_error } => {
                 assert_eq!(tool_use_id, "id-1");
                 assert!(!is_error);
             },
@@ -420,10 +392,7 @@ mod tests {
 
     #[test]
     fn test_agent_event_tool_result_error() {
-        let event = AgentEvent::ToolResult {
-            tool_use_id: "id-2".to_string(),
-            is_error: true,
-        };
+        let event = AgentEvent::ToolResult { tool_use_id: "id-2".to_string(), is_error: true };
         match &event {
             AgentEvent::ToolResult { is_error, .. } => {
                 assert!(is_error);
@@ -434,9 +403,7 @@ mod tests {
 
     #[test]
     fn test_agent_event_error() {
-        let event = AgentEvent::Error {
-            error: "something failed".to_string(),
-        };
+        let event = AgentEvent::Error { error: "something failed".to_string() };
         match &event {
             AgentEvent::Error { error } => {
                 assert_eq!(error, "something failed");
@@ -471,11 +438,8 @@ mod tests {
 
     #[test]
     fn test_agent_output_clone() {
-        let output = AgentOutput {
-            response: "clone me".to_string(),
-            iterations: 2,
-            tool_call_count: 1,
-        };
+        let output =
+            AgentOutput { response: "clone me".to_string(), iterations: 2, tool_call_count: 1 };
         let cloned = output.clone();
         assert_eq!(cloned.response, "clone me");
         assert_eq!(cloned.iterations, 2);
@@ -484,11 +448,8 @@ mod tests {
 
     #[test]
     fn test_agent_output_debug() {
-        let output = AgentOutput {
-            response: "debug".to_string(),
-            iterations: 1,
-            tool_call_count: 0,
-        };
+        let output =
+            AgentOutput { response: "debug".to_string(), iterations: 1, tool_call_count: 0 };
         let debug_str = format!("{:?}", output);
         assert!(debug_str.contains("debug"));
     }
@@ -533,11 +494,7 @@ mod tests {
 
     #[test]
     fn test_agent_output_default_response() {
-        let output = AgentOutput {
-            response: String::new(),
-            iterations: 0,
-            tool_call_count: 0,
-        };
+        let output = AgentOutput { response: String::new(), iterations: 0, tool_call_count: 0 };
         assert!(output.response.is_empty());
         assert_eq!(output.iterations, 0);
         assert_eq!(output.tool_call_count, 0);
@@ -549,11 +506,7 @@ mod tests {
             tool_name: "write_file".to_string(),
             tool_use_id: "tool-123".to_string(),
         };
-        if let AgentEvent::ToolUse {
-            tool_name,
-            tool_use_id,
-        } = event
-        {
+        if let AgentEvent::ToolUse { tool_name, tool_use_id } = event {
             assert_eq!(tool_name, "write_file");
             assert_eq!(tool_use_id, "tool-123");
         }
@@ -561,15 +514,8 @@ mod tests {
 
     #[test]
     fn test_agent_event_tool_result_fields() {
-        let event = AgentEvent::ToolResult {
-            tool_use_id: "tool-456".to_string(),
-            is_error: true,
-        };
-        if let AgentEvent::ToolResult {
-            tool_use_id,
-            is_error,
-        } = event
-        {
+        let event = AgentEvent::ToolResult { tool_use_id: "tool-456".to_string(), is_error: true };
+        if let AgentEvent::ToolResult { tool_use_id, is_error } = event {
             assert_eq!(tool_use_id, "tool-456");
             assert!(is_error);
         }
@@ -577,9 +523,7 @@ mod tests {
 
     #[test]
     fn test_agent_event_error_field() {
-        let event = AgentEvent::Error {
-            error: "API timeout".to_string(),
-        };
+        let event = AgentEvent::Error { error: "API timeout".to_string() };
         if let AgentEvent::Error { error } = event {
             assert_eq!(error, "API timeout");
         }
@@ -617,11 +561,8 @@ mod tests {
 
     #[test]
     fn test_agent_output_clone_equality() {
-        let output = AgentOutput {
-            response: "hello".to_string(),
-            iterations: 3,
-            tool_call_count: 2,
-        };
+        let output =
+            AgentOutput { response: "hello".to_string(), iterations: 3, tool_call_count: 2 };
         let cloned = output.clone();
         assert_eq!(cloned.response, output.response);
         assert_eq!(cloned.iterations, output.iterations);
@@ -630,11 +571,8 @@ mod tests {
 
     #[test]
     fn test_agent_output_debug_format() {
-        let output = AgentOutput {
-            response: "test".to_string(),
-            iterations: 1,
-            tool_call_count: 0,
-        };
+        let output =
+            AgentOutput { response: "test".to_string(), iterations: 1, tool_call_count: 0 };
         let debug = format!("{:?}", output);
         assert!(debug.contains("test"));
         assert!(debug.contains("response"));
@@ -645,17 +583,9 @@ mod tests {
         let events = vec![
             AgentEvent::TurnStarted { iteration: 0 },
             AgentEvent::TurnCompleted { iteration: 1 },
-            AgentEvent::ToolUse {
-                tool_name: "t".to_string(),
-                tool_use_id: "id".to_string(),
-            },
-            AgentEvent::ToolResult {
-                tool_use_id: "id".to_string(),
-                is_error: false,
-            },
-            AgentEvent::Error {
-                error: "e".to_string(),
-            },
+            AgentEvent::ToolUse { tool_name: "t".to_string(), tool_use_id: "id".to_string() },
+            AgentEvent::ToolResult { tool_use_id: "id".to_string(), is_error: false },
+            AgentEvent::Error { error: "e".to_string() },
             AgentEvent::ProactiveTick,
         ];
         let cloned = events.clone();

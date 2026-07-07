@@ -48,18 +48,14 @@ impl RerankBackend for RuleReranker {
         chunks: &[(String, String, f32)],
     ) -> axagent_harness::core_error::Result<Vec<(String, f32)>> {
         let query_lower = query.to_lowercase();
-        let query_terms: Vec<&str> = query_lower
-            .split_whitespace()
-            .filter(|w| w.len() > 1)
-            .collect();
+        let query_terms: Vec<&str> =
+            query_lower.split_whitespace().filter(|w| w.len() > 1).collect();
         let mut scored: Vec<(String, f32)> = chunks
             .iter()
             .map(|(id, content, orig_score)| {
                 let content_lower = content.to_lowercase();
-                let exact_matches = query_terms
-                    .iter()
-                    .filter(|t| content_lower.contains(*t))
-                    .count() as f32;
+                let exact_matches =
+                    query_terms.iter().filter(|t| content_lower.contains(*t)).count() as f32;
                 let exact_score = exact_matches / query_terms.len().max(1) as f32;
                 let word_count = content.split_whitespace().count().max(1);
                 let coverage = query_terms
@@ -101,10 +97,7 @@ pub struct CrossEncoderReranker {
 
 impl CrossEncoderReranker {
     pub fn new(model_filename: String, engine: Arc<dyn InferenceEngine>) -> Self {
-        Self {
-            model_filename,
-            engine,
-        }
+        Self { model_filename, engine }
     }
 }
 
@@ -120,11 +113,7 @@ impl RerankBackend for CrossEncoderReranker {
         }
         let documents: Vec<String> = chunks.iter().map(|(_, c, _)| c.clone()).collect();
 
-        match self
-            .engine
-            .rerank(&self.model_filename, query, &documents)
-            .await
-        {
+        match self.engine.rerank(&self.model_filename, query, &documents).await {
             Ok(scores) => {
                 let mut result: Vec<(String, f32)> = chunks
                     .iter()
@@ -205,14 +194,8 @@ impl RerankPipeline {
                 scored.iter().map(|(id, s)| (id.as_str(), *s)).collect();
 
             current.sort_by(|a, b| {
-                let sa = score_map
-                    .get(a.id.as_str())
-                    .copied()
-                    .unwrap_or(a.combined_score);
-                let sb = score_map
-                    .get(b.id.as_str())
-                    .copied()
-                    .unwrap_or(b.combined_score);
+                let sa = score_map.get(a.id.as_str()).copied().unwrap_or(a.combined_score);
+                let sb = score_map.get(b.id.as_str()).copied().unwrap_or(b.combined_score);
                 sb.partial_cmp(&sa).unwrap_or(std::cmp::Ordering::Equal)
             });
 
@@ -301,18 +284,14 @@ mod tests {
             make_result("1", "The quick brown fox", 0.5),
             make_result("2", "fox jumps over the lazy dog", 0.9),
         ];
-        let reranked = pipeline
-            .execute("lazy dog", results, &RerankConfig::default())
-            .await;
+        let reranked = pipeline.execute("lazy dog", results, &RerankConfig::default()).await;
         assert_eq!(reranked[0].id, "2");
     }
 
     #[tokio::test]
     async fn test_empty_results() {
         let pipeline = create_rerank_pipeline(&RerankConfig::default(), None);
-        let reranked = pipeline
-            .execute("test", vec![], &RerankConfig::default())
-            .await;
+        let reranked = pipeline.execute("test", vec![], &RerankConfig::default()).await;
         assert!(reranked.is_empty());
     }
 

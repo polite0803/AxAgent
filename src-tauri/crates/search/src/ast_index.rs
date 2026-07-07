@@ -144,10 +144,7 @@ impl AstIndex {
         let variables = extract_variables(content, file_path, lang);
         let call_edges = extract_call_edges(content, file_path, &functions);
 
-        let tx = self
-            .conn
-            .unchecked_transaction()
-            .map_err(|e| format!("tx: {e}"))?;
+        let tx = self.conn.unchecked_transaction().map_err(|e| format!("tx: {e}"))?;
 
         tx.execute("DELETE FROM ast_functions WHERE file_path = ?1", params![file_path])
             .map_err(|e| format!("delete fn: {e}"))?;
@@ -303,17 +300,9 @@ impl AstIndex {
         let pattern = format!("%{query}%");
         let mut results = std::collections::HashSet::new();
 
-        for table in &[
-            "ast_functions",
-            "ast_classes",
-            "ast_interfaces",
-            "ast_variables",
-        ] {
+        for table in &["ast_functions", "ast_classes", "ast_interfaces", "ast_variables"] {
             let sql = format!("SELECT DISTINCT file_path FROM {table} WHERE name LIKE ?1 LIMIT ?2");
-            let mut stmt = self
-                .conn
-                .prepare(&sql)
-                .map_err(|e| format!("prepare {table}: {e}"))?;
+            let mut stmt = self.conn.prepare(&sql).map_err(|e| format!("prepare {table}: {e}"))?;
             let rows = stmt
                 .query_map(params![&pattern, limit], |row| row.get::<_, String>(0))
                 .map_err(|e| format!("query {table}: {e}"))?;
@@ -333,10 +322,8 @@ impl AstIndex {
             .conn
             .query_row("SELECT COUNT(*) FROM ast_functions", [], |r| r.get(0))
             .unwrap_or(0);
-        let cls_count: i64 = self
-            .conn
-            .query_row("SELECT COUNT(*) FROM ast_classes", [], |r| r.get(0))
-            .unwrap_or(0);
+        let cls_count: i64 =
+            self.conn.query_row("SELECT COUNT(*) FROM ast_classes", [], |r| r.get(0)).unwrap_or(0);
         Ok((fn_count + cls_count) as usize)
     }
 }
@@ -557,12 +544,7 @@ fn extract_rust_struct_enum_name(line: &str) -> Option<String> {
         let after = line.trim_start_matches("impl ");
         let name = after.split(['<', ' ', '{']).next()?.trim();
         if name == "for" {
-            after
-                .split("for ")
-                .nth(1)?
-                .split(['<', '{'])
-                .next()
-                .map(|n| n.trim().to_string())
+            after.split("for ").nth(1)?.split(['<', '{']).next().map(|n| n.trim().to_string())
         } else if name.is_empty() {
             None
         } else {
@@ -703,9 +685,7 @@ fn extract_variable_declaration(line: &str, lang: &str) -> Option<(String, Optio
                 return None;
             }
             if line.starts_with("let mut ") || line.starts_with("let ") {
-                let after = line
-                    .strip_prefix("let mut ")
-                    .or_else(|| line.strip_prefix("let "))?;
+                let after = line.strip_prefix("let mut ").or_else(|| line.strip_prefix("let "))?;
                 let name = after.split(['=', ':', ' ']).next()?.trim();
                 let type_ann = after
                     .split(':')

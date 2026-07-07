@@ -208,10 +208,7 @@ impl BuddyManager {
 
         // 使用系统时间的纳秒做伪随机选择，避免额外依赖 rand
         use std::time::{SystemTime, UNIX_EPOCH};
-        let nanos = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap_or_default()
-            .as_nanos();
+        let nanos = SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_nanos();
         let idx = (nanos as usize) % messages.len();
         messages[idx].clone()
     }

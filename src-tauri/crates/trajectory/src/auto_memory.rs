@@ -110,8 +110,7 @@ impl AutoMemoryExtractor {
             self.recent_extractions.drain(0..50);
         }
 
-        self.extraction_cache
-            .insert(trajectory.id.clone(), memories.clone());
+        self.extraction_cache.insert(trajectory.id.clone(), memories.clone());
 
         Some(MemoryExtractionResult {
             extracted_memories: memories,

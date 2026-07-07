@@ -101,14 +101,7 @@ impl KeywordPatterns {
         patterns.insert("humanizer", vec!["humanize", "ai text", "writing"]);
         patterns.insert(
             "data-analysis",
-            vec![
-                "data analysis",
-                "visualization",
-                "insights",
-                "analyze",
-                "compare",
-                "data sets",
-            ],
+            vec!["data analysis", "visualization", "insights", "analyze", "compare", "data sets"],
         );
         patterns
     }
@@ -118,21 +111,11 @@ struct ComplexityIndicators;
 
 impl ComplexityIndicators {
     fn get_high() -> Vec<&'static str> {
-        vec![
-            "analyze",
-            "compare",
-            "multiple",
-            "complex",
-            "integrate",
-            "migrate",
-            "build system",
-        ]
+        vec!["analyze", "compare", "multiple", "complex", "integrate", "migrate", "build system"]
     }
 
     fn get_medium() -> Vec<&'static str> {
-        vec![
-            "create", "generate", "process", "convert", "extract", "manage",
-        ]
+        vec!["create", "generate", "process", "convert", "extract", "manage"]
     }
 
     #[allow(dead_code)]
@@ -232,15 +215,11 @@ impl Default for SkillMatcher {
 #[allow(dead_code)]
 impl SkillMatcher {
     pub(crate) fn new() -> Self {
-        Self {
-            min_score_threshold: 0.1,
-        }
+        Self { min_score_threshold: 0.1 }
     }
 
     pub(crate) fn with_threshold(min_score_threshold: f64) -> Self {
-        Self {
-            min_score_threshold,
-        }
+        Self { min_score_threshold }
     }
 
     pub(crate) fn find_matches(
@@ -280,9 +259,7 @@ impl SkillMatcher {
         }
 
         matches.sort_by(|a, b| {
-            b.match_score
-                .partial_cmp(&a.match_score)
-                .unwrap_or(std::cmp::Ordering::Equal)
+            b.match_score.partial_cmp(&a.match_score).unwrap_or(std::cmp::Ordering::Equal)
         });
 
         let best_match = matches.first().cloned();

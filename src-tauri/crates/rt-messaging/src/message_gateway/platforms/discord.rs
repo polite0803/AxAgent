@@ -265,10 +265,7 @@ async fn handle_dispatch(
             }
 
             let author_id = data["author"]["id"].as_str().unwrap_or("").to_string();
-            let author_username = data["author"]["username"]
-                .as_str()
-                .unwrap_or("")
-                .to_string();
+            let author_username = data["author"]["username"].as_str().unwrap_or("").to_string();
             let content = data["content"].as_str().unwrap_or("").to_string();
 
             if author_id.is_empty() || content.is_empty() {

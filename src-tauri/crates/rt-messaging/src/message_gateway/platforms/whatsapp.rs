@@ -159,10 +159,7 @@ impl PlatformAdapter for WhatsAppAdapter {
 }
 
 fn resolve_api_version(config: &PlatformConfig) -> String {
-    config
-        .whatsapp_api_version
-        .clone()
-        .unwrap_or_else(|| "v22.0".to_string())
+    config.whatsapp_api_version.clone().unwrap_or_else(|| "v22.0".to_string())
 }
 
 // ── `axagent_harness::WhatsAppWebhookHandler` trait impl ──
@@ -181,10 +178,7 @@ impl axagent_harness::WhatsAppWebhookHandler for WhatsAppAdapter {
         token: &str,
         challenge: &str,
     ) -> Result<String, String> {
-        let expected_token = config
-            .whatsapp_webhook_verify_token
-            .as_deref()
-            .unwrap_or("");
+        let expected_token = config.whatsapp_webhook_verify_token.as_deref().unwrap_or("");
 
         if mode != "subscribe" {
             return Err(format!("Invalid hub.mode: {}", mode));
@@ -294,11 +288,8 @@ async fn verify_whatsapp(
 ) -> anyhow::Result<()> {
     let url = format!("https://graph.facebook.com/{}/{}", api_version, phone_number_id);
 
-    let resp = client
-        .get(&url)
-        .header("Authorization", format!("Bearer {}", access_token))
-        .send()
-        .await?;
+    let resp =
+        client.get(&url).header("Authorization", format!("Bearer {}", access_token)).send().await?;
 
     let status = resp.status();
     if !status.is_success() {

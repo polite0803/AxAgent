@@ -77,12 +77,7 @@ pub struct RecallPipeline<'a> {
 
 impl<'a> RecallPipeline<'a> {
     pub fn new(file_index: &'a FileIndex, ast_index: &'a AstIndex, config: PipelineConfig) -> Self {
-        Self {
-            file_index,
-            ast_index,
-            config,
-            semantic_cache: None,
-        }
+        Self { file_index, ast_index, config, semantic_cache: None }
     }
 
     pub fn with_semantic_cache(mut self, cache: Arc<Mutex<SemanticCache>>) -> Self {
@@ -118,12 +113,8 @@ impl<'a> RecallPipeline<'a> {
 
         // ── L1: File metadata filter ────────────────────────────────────
         let l1_files: Vec<String> = if self.config.l1_enabled {
-            let extensions: Vec<&str> = self
-                .config
-                .l1_code_extensions
-                .iter()
-                .map(|s| s.as_str())
-                .collect();
+            let extensions: Vec<&str> =
+                self.config.l1_code_extensions.iter().map(|s| s.as_str()).collect();
             let entries = self.file_index.filter_by_extension(&extensions)?;
             entries.into_iter().map(|e| e.path).collect()
         } else {
@@ -138,10 +129,7 @@ impl<'a> RecallPipeline<'a> {
         let ast_scored = if self.config.l2_enabled {
             self.score_ast_matches(query, &l1_files)?
         } else {
-            l1_files
-                .into_iter()
-                .map(|f| (f, 0.0f32, Vec::new()))
-                .collect()
+            l1_files.into_iter().map(|f| (f, 0.0f32, Vec::new())).collect()
         };
 
         // ── L3: Vector similarity sort ──────────────────────────────────
@@ -153,10 +141,8 @@ impl<'a> RecallPipeline<'a> {
                 ast_scored
                     .into_iter()
                     .map(|(file, ast_score, defs)| {
-                        let v_score = vector_scores
-                            .iter()
-                            .find(|(f, _)| f == &file)
-                            .map(|(_, s)| *s);
+                        let v_score =
+                            vector_scores.iter().find(|(f, _)| f == &file).map(|(_, s)| *s);
                         let combined = if let Some(vs) = v_score {
                             self.config.ast_weight * ast_score + self.config.vector_weight * vs
                         } else {
@@ -198,9 +184,7 @@ impl<'a> RecallPipeline<'a> {
 
         // Sort by combined score descending
         results.sort_by(|a, b| {
-            b.combined_score
-                .partial_cmp(&a.combined_score)
-                .unwrap_or(std::cmp::Ordering::Equal)
+            b.combined_score.partial_cmp(&a.combined_score).unwrap_or(std::cmp::Ordering::Equal)
         });
 
         let limit = if self.config.l3_enabled {
@@ -325,20 +309,14 @@ mod tests {
         fi.upsert("/src/lib.rs", "rs", 2048, 2000).unwrap();
         fi.upsert("/app.ts", "ts", 512, 500).unwrap();
 
-        ai.index_file("/src/main.rs", "fn calculate() -> u32 { 42 }\nfn render() {}")
-            .unwrap();
-        ai.index_file("/src/lib.rs", "pub fn add(a: i32, b: i32) -> i32 { a + b }")
-            .unwrap();
-        ai.index_file("/app.ts", "function hello() { console.log('hi'); }")
-            .unwrap();
+        ai.index_file("/src/main.rs", "fn calculate() -> u32 { 42 }\nfn render() {}").unwrap();
+        ai.index_file("/src/lib.rs", "pub fn add(a: i32, b: i32) -> i32 { a + b }").unwrap();
+        ai.index_file("/app.ts", "function hello() { console.log('hi'); }").unwrap();
 
         let pipeline = RecallPipeline::new(
             &fi,
             &ai,
-            PipelineConfig {
-                l3_enabled: false,
-                ..Default::default()
-            },
+            PipelineConfig { l3_enabled: false, ..Default::default() },
         );
 
         let results = pipeline.execute("calculate", None).unwrap();

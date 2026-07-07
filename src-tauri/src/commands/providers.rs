@@ -188,10 +188,7 @@ pub async fn validate_provider_key(
         )),
         api_path: provider.api_path.clone(),
         proxy_config: resolved_proxy,
-        custom_headers: provider
-            .custom_headers
-            .as_ref()
-            .and_then(|s| serde_json::from_str(s).ok()),
+        custom_headers: provider.custom_headers.as_ref().and_then(|s| serde_json::from_str(s).ok()),
         api_mode: None,
         conversation: None,
         previous_response_id: None,
@@ -323,10 +320,7 @@ pub async fn fetch_remote_models(
         )),
         api_path: provider.api_path.clone(),
         proxy_config: resolved_proxy,
-        custom_headers: provider
-            .custom_headers
-            .as_ref()
-            .and_then(|s| serde_json::from_str(s).ok()),
+        custom_headers: provider.custom_headers.as_ref().and_then(|s| serde_json::from_str(s).ok()),
         api_mode: None,
         conversation: None,
         previous_response_id: None,
@@ -419,10 +413,7 @@ pub async fn test_model(
         )),
         api_path: provider.api_path.clone(),
         proxy_config: resolved_proxy,
-        custom_headers: provider
-            .custom_headers
-            .as_ref()
-            .and_then(|s| serde_json::from_str(s).ok()),
+        custom_headers: provider.custom_headers.as_ref().and_then(|s| serde_json::from_str(s).ok()),
         api_mode: None,
         conversation: None,
         previous_response_id: None,
@@ -452,10 +443,7 @@ pub async fn test_model(
         store: None,
     };
     let start = Instant::now();
-    adapter
-        .chat(&ctx, request)
-        .await
-        .map_err(|e| e.to_string())?;
+    adapter.chat(&ctx, request).await.map_err(|e| e.to_string())?;
     Ok(start.elapsed().as_millis() as u64)
 }
 

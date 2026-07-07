@@ -188,10 +188,7 @@ fn resolve_cli_tool_connection_state(
     https_connected: bool,
 ) -> CliToolConnectionState {
     if !is_installed {
-        return CliToolConnectionState {
-            status: "not_installed",
-            connected_protocol: None,
-        };
+        return CliToolConnectionState { status: "not_installed", connected_protocol: None };
     }
 
     let connected_protocol = if https_connected {
@@ -255,13 +252,7 @@ async fn resolve_gateway_urls(
     tool: CliTool,
 ) -> Result<GatewayUrlOptions, String> {
     resolve_gateway_runtime_value(state, |listen_address, http_port, https_port, force_ssl| {
-        Ok(build_gateway_url_options(
-            listen_address,
-            http_port,
-            https_port,
-            force_ssl,
-            tool,
-        ))
+        Ok(build_gateway_url_options(listen_address, http_port, https_port, force_ssl, tool))
     })
     .await
 }
@@ -782,14 +773,12 @@ pub async fn generate_self_signed_cert(
     }
 
     let mut params = CertificateParams::new(subject_alt_names).map_err(|e| e.to_string())?;
-    params.distinguished_name.push(
-        rcgen::DnType::CommonName,
-        rcgen::DnValue::Utf8String("AxAgent Gateway".to_string()),
-    );
-    params.distinguished_name.push(
-        rcgen::DnType::OrganizationName,
-        rcgen::DnValue::Utf8String("AxAgent".to_string()),
-    );
+    params
+        .distinguished_name
+        .push(rcgen::DnType::CommonName, rcgen::DnValue::Utf8String("AxAgent Gateway".to_string()));
+    params
+        .distinguished_name
+        .push(rcgen::DnType::OrganizationName, rcgen::DnValue::Utf8String("AxAgent".to_string()));
 
     let cert = params.self_signed(&key_pair).map_err(|e| e.to_string())?;
 
@@ -818,11 +807,10 @@ pub async fn generate_self_signed_cert(
             .mode(0o600)
             .open(&tmp_path)
             .map_err(|e| format!("failed to create temp key file: {}", e))?;
-        file.write_all(key_pair.serialize_pem().as_bytes())
-            .map_err(|e| {
-                let _ = std::fs::remove_file(&tmp_path);
-                format!("failed to write temp key file: {}", e)
-            })?;
+        file.write_all(key_pair.serialize_pem().as_bytes()).map_err(|e| {
+            let _ = std::fs::remove_file(&tmp_path);
+            format!("failed to write temp key file: {}", e)
+        })?;
         // Flush and close before rename so content is durable.
         drop(file);
         std::fs::rename(&tmp_path, &key_path).map_err(|e| {
@@ -857,9 +845,8 @@ pub async fn get_active_gateway_platform(state: State<'_, AppState>) -> Result<S
         .map_err(|e| e.to_string())?;
 
     // 常见的平台 link_type 映射
-    let platform_link_types = [
-        "telegram", "discord", "slack", "wechat", "feishu", "dingtalk", "qq", "whatsapp",
-    ];
+    let platform_link_types =
+        ["telegram", "discord", "slack", "wechat", "feishu", "dingtalk", "qq", "whatsapp"];
     for link in &links {
         if link.enabled
             && link.status == "connected"

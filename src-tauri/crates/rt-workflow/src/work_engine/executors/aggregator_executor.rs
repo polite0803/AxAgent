@@ -34,10 +34,7 @@ fn collect_sources(
             if name.is_empty() {
                 return None;
             }
-            context
-                .variables
-                .get(name)
-                .map(|v| (name.clone(), v.clone()))
+            context.variables.get(name).map(|v| (name.clone(), v.clone()))
         })
         .collect()
 }

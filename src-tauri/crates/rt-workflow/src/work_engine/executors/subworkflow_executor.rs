@@ -40,12 +40,7 @@ pub struct SubWorkflowExecutorConfig {
 }
 impl Default for SubWorkflowExecutorConfig {
     fn default() -> Self {
-        Self {
-            timeout_secs: 300,
-            max_retries: 3,
-            cache_enabled: true,
-            cache_ttl_secs: 300,
-        }
+        Self { timeout_secs: 300, max_retries: 3, cache_enabled: true, cache_ttl_secs: 300 }
     }
 }
 
@@ -164,16 +159,14 @@ impl NodeExecutorTrait for SubWorkflowExecutor {
             },
         };
 
-        let cb = context
-            .callbacks
-            .as_ref()
-            .and_then(|cbs| cbs.subworkflow.clone())
-            .ok_or_else(|| {
+        let cb = context.callbacks.as_ref().and_then(|cbs| cbs.subworkflow.clone()).ok_or_else(
+            || {
                 NodeError::exec_failed(
                     error_code::SUBWORKFLOW_NOT_CONFIGURED,
                     "Sub-workflow engine callback not configured".to_string(),
                 )
-            })?;
+            },
+        )?;
 
         let mapped_input = Self::map_inputs(sub_node, context)?;
 

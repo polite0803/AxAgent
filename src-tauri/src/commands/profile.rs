@@ -20,9 +20,7 @@ pub async fn profile_create(
     display_name: String,
 ) -> Result<axagent_runtime::profile::ProfileInfo, String> {
     let mgr = manager.lock().await;
-    mgr.create(&name, &display_name)
-        .await
-        .map_err(|e| e.to_string())
+    mgr.create(&name, &display_name).await.map_err(|e| e.to_string())
 }
 
 #[tauri::command]

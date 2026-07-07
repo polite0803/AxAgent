@@ -23,13 +23,7 @@ use tokio_util::sync::CancellationToken;
 /// 失败时返回结构化错误，由调用方决定如何处理（错误展示 / 重试 / 退出）。
 /// 不再 `process::exit(1)`——harness 架构要求启动错误可被前端感知。
 pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState, String> {
-    let DatabaseInitResult {
-        db_handle,
-        master_key,
-        db_path,
-        app_dir,
-        ..
-    } = db_result;
+    let DatabaseInitResult { db_handle, master_key, db_path, app_dir, .. } = db_result;
 
     // db_handle 进入 harness（Step 4）；同时克隆 conn 给其它需要 DatabaseConnection 的
     // 旧式组件（vector_store / trajectory_storage / cron / semantic_cache 等）。
@@ -94,15 +88,10 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
     // ensure_preset_servers / migrate_hardcoded_paths / migrate_legacy_keys
     // 已合并到 axagent_dao::db::create_pool() 中，无需在此重复调用
 
-    let app_settings = axagent_dao::repo::settings::get_settings(&sea_db)
-        .await
-        .unwrap_or_default();
+    let app_settings = axagent_dao::repo::settings::get_settings(&sea_db).await.unwrap_or_default();
 
     axagent_storage::storage_paths::init_documents_root(
-        app_settings
-            .documents_root_override
-            .as_ref()
-            .map(PathBuf::from),
+        app_settings.documents_root_override.as_ref().map(PathBuf::from),
     );
     axagent_storage::storage_paths::ensure_documents_dirs().unwrap_or_else(|e| {
         tracing::warn!("Failed to create documents storage dirs (non-critical on mobile): {}", e);
@@ -174,9 +163,7 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
 
     let platform_bridge = harness.build_platform_bridge(platform_manager.clone());
 
-    platform_manager
-        .set_message_callback(platform_bridge.clone())
-        .await;
+    platform_manager.set_message_callback(platform_bridge.clone()).await;
 
     let sync_engine = create_sync_engine(&sea_db, &app_settings).await;
 
@@ -225,9 +212,8 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
     let reflector = Arc::new(axagent_agent::Reflector::new());
     let shared_memory: Arc<TokioRwLock<axagent_runtime::shared_memory::SharedMemory>> =
         Arc::new(TokioRwLock::new(axagent_runtime::shared_memory::SharedMemory::new()));
-    let sub_agent_registry: Arc<TokioRwLock<axagent_trajectory::SubAgentRegistry>> = Arc::new(
-        TokioRwLock::new(axagent_trajectory::SubAgentRegistry::new().unwrap_or_default()),
-    );
+    let sub_agent_registry: Arc<TokioRwLock<axagent_trajectory::SubAgentRegistry>> =
+        Arc::new(TokioRwLock::new(axagent_trajectory::SubAgentRegistry::new().unwrap_or_default()));
     let nudge_service: Arc<tokio::sync::Mutex<axagent_trajectory::NudgeService>> =
         Arc::new(tokio::sync::Mutex::new(axagent_trajectory::NudgeService::new()));
     let closed_loop_service =
@@ -356,21 +342,17 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
     let proactive_service: Arc<tokio::sync::RwLock<ProactiveService>> =
         Arc::new(tokio::sync::RwLock::new(ProactiveService::new()));
     let dashboard_registry: Option<Arc<axagent_runtime::dashboard_registry::DashboardRegistry>> =
-        Some(Arc::new(
-            axagent_runtime::dashboard_registry::DashboardRegistry::new_with_config(
-                axagent_runtime::dashboard_registry::DashboardRegistryConfig {
-                    plugin_dirs: vec![
-                        axagent_storage::storage_paths::documents_root().join("dashboard-plugins"),
-                    ],
-                    auto_load: true,
-                },
-            ),
-        ));
+        Some(Arc::new(axagent_runtime::dashboard_registry::DashboardRegistry::new_with_config(
+            axagent_runtime::dashboard_registry::DashboardRegistryConfig {
+                plugin_dirs: vec![
+                    axagent_storage::storage_paths::documents_root().join("dashboard-plugins"),
+                ],
+                auto_load: true,
+            },
+        )));
     let webhook_subscription_manager: Option<
         Arc<axagent_runtime::webhook_subscription::WebhookSubscriptionManager>,
-    > = Some(Arc::new(
-        axagent_runtime::webhook_subscription::WebhookSubscriptionManager::new(),
-    ));
+    > = Some(Arc::new(axagent_runtime::webhook_subscription::WebhookSubscriptionManager::new()));
     let semantic_cache: Arc<tokio::sync::Mutex<SemanticCacheState>> = {
         let cache = match SemanticCache::new(sea_db.clone(), CacheConfig::default()).await {
             Ok(c) => c,
@@ -692,9 +674,7 @@ async fn load_cloud_storage_config(
     _app_settings: &axagent_harness::types::AppSettings,
 ) -> Option<CloudStorageConfig> {
     use axagent_storage::cloud_storage::{BackendType, S3Config, S3ProviderPreset, SyncMode};
-    let settings = axagent_dao::repo::settings::get_settings(sea_db)
-        .await
-        .ok()?;
+    let settings = axagent_dao::repo::settings::get_settings(sea_db).await.ok()?;
 
     if !settings.cloud_sync_enabled {
         return None;
@@ -714,10 +694,7 @@ async fn load_cloud_storage_config(
         backend_type,
         sync_enabled: true,
         sync_mode: SyncMode::Sync,
-        profile_name: settings
-            .sync_profile_name
-            .clone()
-            .unwrap_or_else(|| "default".to_string()),
+        profile_name: settings.sync_profile_name.clone().unwrap_or_else(|| "default".to_string()),
         webdav: settings.webdav_host.as_ref().map(|h| {
             axagent_storage::cloud_storage::WebDavConfig {
                 host: h.clone(),

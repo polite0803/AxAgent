@@ -158,13 +158,7 @@ pub struct PredictionResult {
 
 impl From<TrajectoryPredictionResult> for PredictionResult {
     fn from(result: TrajectoryPredictionResult) -> Self {
-        Self {
-            predictions: result
-                .predictions
-                .iter()
-                .map(ContextPrediction::from)
-                .collect(),
-        }
+        Self { predictions: result.predictions.iter().map(ContextPrediction::from).collect() }
     }
 }
 
@@ -245,9 +239,8 @@ impl ProactiveService {
         let prediction_result = self.predictor.predict(&features);
 
         for prediction in &prediction_result.predictions {
-            let new_suggestions = self
-                .suggestion_engine
-                .generate_suggestions(&features, prediction, None);
+            let new_suggestions =
+                self.suggestion_engine.generate_suggestions(&features, prediction, None);
             for suggestion in new_suggestions {
                 self.assistant.add_suggestion(suggestion);
             }
@@ -265,9 +258,7 @@ impl ProactiveService {
     }
 
     pub fn snooze_suggestion(&mut self, id: &str, duration_minutes: i64) -> bool {
-        self.assistant
-            .snooze_suggestion(id, duration_minutes)
-            .is_some()
+        self.assistant.snooze_suggestion(id, duration_minutes).is_some()
     }
 
     pub fn predict(&self, context: ContextFeatures) -> PredictionResult {

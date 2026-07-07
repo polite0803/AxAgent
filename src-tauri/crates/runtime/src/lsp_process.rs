@@ -115,14 +115,8 @@ impl LspProcess {
             .spawn()
             .map_err(|e| format!("Failed to spawn LSP server '{}': {}", self.config.command, e))?;
 
-        let stdin = child
-            .stdin
-            .take()
-            .ok_or("Failed to get stdin of LSP process")?;
-        let stdout = child
-            .stdout
-            .take()
-            .ok_or("Failed to get stdout of LSP process")?;
+        let stdin = child.stdin.take().ok_or("Failed to get stdin of LSP process")?;
+        let stdout = child.stdout.take().ok_or("Failed to get stdout of LSP process")?;
 
         {
             let mut inner = self.inner.lock().await;
@@ -182,26 +176,21 @@ impl LspProcess {
 
         {
             let mut inner = self.inner.lock().await;
-            inner.capabilities = result
-                .get("capabilities")
-                .cloned()
-                .unwrap_or(serde_json::json!({}));
+            inner.capabilities =
+                result.get("capabilities").cloned().unwrap_or(serde_json::json!({}));
             inner.initialized = true;
         }
 
-        self.send_notification("initialized", serde_json::json!({}))
-            .await?;
+        self.send_notification("initialized", serde_json::json!({})).await?;
 
         Ok(())
     }
 
     pub async fn shutdown(&self) -> Result<(), String> {
-        self.shutdown
-            .store(true, std::sync::atomic::Ordering::SeqCst);
+        self.shutdown.store(true, std::sync::atomic::Ordering::SeqCst);
 
         let _ = self.send_request("shutdown", serde_json::Value::Null).await;
-        self.send_notification("exit", serde_json::Value::Null)
-            .await?;
+        self.send_notification("exit", serde_json::Value::Null).await?;
 
         let mut inner = self.inner.lock().await;
         if let Some(mut child) = inner.child.take() {
@@ -243,8 +232,7 @@ impl LspProcess {
             }
         });
 
-        self.send_notification("textDocument/didClose", params)
-            .await
+        self.send_notification("textDocument/didClose", params).await
     }
 
     pub async fn change_document(
@@ -263,8 +251,7 @@ impl LspProcess {
             "contentChanges": changes
         });
 
-        self.send_notification("textDocument/didChange", params)
-            .await
+        self.send_notification("textDocument/didChange", params).await
     }
 
     pub async fn hover(
@@ -339,8 +326,7 @@ impl LspProcess {
             "textDocument": { "uri": uri }
         });
 
-        self.send_request("textDocument/documentSymbol", params)
-            .await
+        self.send_request("textDocument/documentSymbol", params).await
     }
 
     pub async fn formatting(&self, path: &str) -> Result<serde_json::Value, String> {
@@ -425,10 +411,7 @@ impl LspProcess {
                 .write_all(content.as_bytes())
                 .await
                 .map_err(|e| format!("Failed to write LSP body: {}", e))?;
-            stdin
-                .flush()
-                .await
-                .map_err(|e| format!("Failed to flush LSP stdin: {}", e))?;
+            stdin.flush().await.map_err(|e| format!("Failed to flush LSP stdin: {}", e))?;
         } else {
             return Err("LSP process stdin not available".to_string());
         }
@@ -632,9 +615,7 @@ pub struct LspProcessManager {
 
 impl LspProcessManager {
     pub fn new() -> Self {
-        Self {
-            processes: Arc::new(RwLock::new(HashMap::new())),
-        }
+        Self { processes: Arc::new(RwLock::new(HashMap::new())) }
     }
 
     pub async fn start_server(

@@ -139,9 +139,8 @@ mod tests {
     #[test]
     fn test_default_purpose_template_replace_date() {
         let today = chrono::Utc::now().format("%Y-%m-%d").to_string();
-        let content = DEFAULT_PURPOSE_TEMPLATE
-            .replace("{wiki_name}", "Test")
-            .replace("{date}", &today);
+        let content =
+            DEFAULT_PURPOSE_TEMPLATE.replace("{wiki_name}", "Test").replace("{date}", &today);
         assert!(content.contains(&today));
         assert!(!content.contains("{date}"));
     }

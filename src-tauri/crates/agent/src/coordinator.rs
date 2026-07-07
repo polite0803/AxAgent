@@ -32,12 +32,8 @@ const ENGINE_SOURCE_MANUAL: u32 = 2;
 ///
 /// 工作者只能使用常规工具（文件操作、搜索、Web 请求等），
 /// 不能创建子 Agent、发送跨 Agent 消息或生成综合输出。
-pub const INTERNAL_ORCH_TOOLS: &[&str] = &[
-    "agent_create",
-    "agent_delete",
-    "send_message",
-    "synthetic_output",
-];
+pub const INTERNAL_ORCH_TOOLS: &[&str] =
+    &["agent_create", "agent_delete", "send_message", "synthetic_output"];
 
 /// 工作者 Agent 的定义。
 ///
@@ -63,10 +59,8 @@ impl WorkerDefinition {
         system_prompt: impl Into<String>,
     ) -> Self {
         // 自动过滤掉内部编排工具
-        let filtered_tools: Vec<String> = tools
-            .into_iter()
-            .filter(|t| !INTERNAL_ORCH_TOOLS.contains(&t.as_str()))
-            .collect();
+        let filtered_tools: Vec<String> =
+            tools.into_iter().filter(|t| !INTERNAL_ORCH_TOOLS.contains(&t.as_str())).collect();
 
         Self {
             agent_type: agent_type.into(),
@@ -524,16 +518,14 @@ impl<T: AgentImpl> AgentCoordinator<T> {
     /// 每次 execute() 被调用时，自动从任务描述中提取特征并选择最优推理引擎。
     /// 如果不调用此方法，默认使用 ReactEngine。
     pub fn with_reasoning_router(self) -> Self {
-        self.engine_selection_source
-            .store(ENGINE_SOURCE_AUTO, Ordering::Release);
+        self.engine_selection_source.store(ENGINE_SOURCE_AUTO, Ordering::Release);
         self
     }
 
     /// 手动指定推理引擎（覆盖自动选择）。
     pub fn with_reasoning_engine(self, engine: ReasoningEngine) -> Self {
         *self.reasoning_engine.blocking_write() = engine;
-        self.engine_selection_source
-            .store(ENGINE_SOURCE_MANUAL, Ordering::Release);
+        self.engine_selection_source.store(ENGINE_SOURCE_MANUAL, Ordering::Release);
         self
     }
 
@@ -568,17 +560,11 @@ impl<T: AgentImpl> AgentCoordinator<T> {
         let engine = engine_guard.as_mut()?;
 
         let root_id = engine.root_id.clone();
-        let child_ids = engine
-            .generate_branching_options(root_id, context, provider)
-            .await
-            .ok()?;
+        let child_ids = engine.generate_branching_options(root_id, context, provider).await.ok()?;
 
         let mut scored_ids = Vec::new();
         for child_id in &child_ids {
-            if let Ok(score) = engine
-                .evaluate_and_score_node(child_id, context, provider)
-                .await
-            {
+            if let Ok(score) = engine.evaluate_and_score_node(child_id, context, provider).await {
                 scored_ids.push((child_id.clone(), score));
             }
         }
@@ -813,9 +799,7 @@ impl<T: AgentImpl> AgentCoordinator<T> {
 
     pub async fn force_now(&self) {
         self.cache_service.set_force_immediate(true).await;
-        self.cache_service
-            .invalidate("--now flag: immediate invalidation")
-            .await;
+        self.cache_service.invalidate("--now flag: immediate invalidation").await;
     }
 
     pub async fn prepare_for_new_session(&self) {
@@ -947,8 +931,7 @@ impl<T: AgentImpl> AgentCoordinator<T> {
     }
 
     fn next_correlation_id(&self) -> u64 {
-        self.correlation_counter
-            .fetch_add(1, std::sync::atomic::Ordering::SeqCst)
+        self.correlation_counter.fetch_add(1, std::sync::atomic::Ordering::SeqCst)
     }
 
     /// 读取当前状态判别值（SeqCst load）。
@@ -966,10 +949,7 @@ impl<T: AgentImpl> AgentCoordinator<T> {
             if !from.contains(&current) {
                 return false;
             }
-            match self
-                .state
-                .compare_exchange(current, to, Ordering::SeqCst, Ordering::SeqCst)
-            {
+            match self.state.compare_exchange(current, to, Ordering::SeqCst, Ordering::SeqCst) {
                 Ok(_) => return true,
                 Err(actual) => current = actual,
             }
@@ -991,8 +971,6 @@ impl<T: AgentImpl> AgentCoordinator<T> {
 
 impl<T: AgentImpl> std::fmt::Debug for AgentCoordinator<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("AgentCoordinator")
-            .field("event_bus", &self.event_bus.name())
-            .finish()
+        f.debug_struct("AgentCoordinator").field("event_bus", &self.event_bus.name()).finish()
     }
 }

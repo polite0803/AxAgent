@@ -97,12 +97,8 @@ impl Tool for ComputerUseTool {
                 let text = input["text"]
                     .as_str()
                     .ok_or_else(|| ToolError::invalid_input_for(name, "type 需要 text 参数"))?;
-                let x = input["coordinate"]
-                    .as_array()
-                    .and_then(|c| c.first()?.as_f64());
-                let y = input["coordinate"]
-                    .as_array()
-                    .and_then(|c| c.get(1)?.as_f64());
+                let x = input["coordinate"].as_array().and_then(|c| c.first()?.as_f64());
+                let y = input["coordinate"].as_array().and_then(|c| c.get(1)?.as_f64());
                 computer_control::type_text(text.to_string(), x, y)
                     .await
                     .map_err(|e| ToolError::execution_failed_for(name, e.to_string()))?;
@@ -119,11 +115,7 @@ impl Tool for ComputerUseTool {
                 })?;
                 let modifiers: Vec<String> = input["modifiers"]
                     .as_array()
-                    .map(|arr| {
-                        arr.iter()
-                            .filter_map(|v| v.as_str().map(String::from))
-                            .collect()
-                    })
+                    .map(|arr| arr.iter().filter_map(|v| v.as_str().map(String::from)).collect())
                     .unwrap_or_default();
                 let desc = if modifiers.is_empty() {
                     format!("按键: {}", key)

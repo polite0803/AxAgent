@@ -13,10 +13,7 @@ pub struct HallucinationGuardConfig {
 
 impl Default for HallucinationGuardConfig {
     fn default() -> Self {
-        Self {
-            enabled: false,
-            match_threshold: 0.5,
-        }
+        Self { enabled: false, match_threshold: 0.5 }
     }
 }
 
@@ -55,10 +52,7 @@ pub fn check_anchor(output: &str, source_context: &str, threshold: f64) -> Ancho
         }
 
         // 检查每个关键术语是否出现在 source_context 中
-        let source_match = key_terms
-            .iter()
-            .filter(|w| source_context.contains(*w))
-            .count();
+        let source_match = key_terms.iter().filter(|w| source_context.contains(*w)).count();
         let match_rate = source_match as f64 / key_terms.len() as f64;
 
         if match_rate >= 0.5 {

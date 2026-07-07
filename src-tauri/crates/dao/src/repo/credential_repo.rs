@@ -73,10 +73,7 @@ pub async fn get_credential(db: &DatabaseConnection, id: &str) -> Result<Credent
 
 /// List all credential rows (metadata only).
 pub async fn list_credentials(db: &DatabaseConnection) -> Result<Vec<CredentialRow>> {
-    let rows = credentials::Entity::find()
-        .order_by_asc(credentials::Column::Name)
-        .all(db)
-        .await?;
+    let rows = credentials::Entity::find().order_by_asc(credentials::Column::Name).all(db).await?;
     Ok(rows.into_iter().map(row_from_entity).collect())
 }
 
@@ -118,9 +115,7 @@ pub async fn delete_credential(db: &DatabaseConnection, id: &str) -> Result<()> 
 
 /// Check if a credential exists by ID.
 pub async fn credential_exists(db: &DatabaseConnection, id: &str) -> Result<bool> {
-    let count = credentials::Entity::find()
-        .filter(credentials::Column::Id.eq(id))
-        .count(db)
-        .await?;
+    let count =
+        credentials::Entity::find().filter(credentials::Column::Id.eq(id)).count(db).await?;
     Ok(count > 0)
 }

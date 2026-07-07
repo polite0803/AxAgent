@@ -139,12 +139,8 @@ mod tests {
     #[test]
     fn roundtrip_axagent_home() {
         let home = dirs::home_dir().unwrap();
-        let original = home
-            .join(".axagent")
-            .join("ssl")
-            .join("cert.pem")
-            .to_string_lossy()
-            .to_string();
+        let original =
+            home.join(".axagent").join("ssl").join("cert.pem").to_string_lossy().to_string();
         let encoded = encode_path(&original);
         assert!(
             encoded.starts_with(VAR_AX_AGENT_HOME),
@@ -160,29 +156,17 @@ mod tests {
             Some(d) => d.join("axagent"),
             None => return, // CI 环境可能没有 Documents 目录，跳过测试
         };
-        let original = docs
-            .join("images")
-            .join("photo.jpg")
-            .to_string_lossy()
-            .to_string();
+        let original = docs.join("images").join("photo.jpg").to_string_lossy().to_string();
         let encoded = encode_path(&original);
-        assert!(
-            encoded.starts_with(VAR_DOCUMENTS),
-            "expected DOCUMENTS prefix, got: {}",
-            encoded
-        );
+        assert!(encoded.starts_with(VAR_DOCUMENTS), "expected DOCUMENTS prefix, got: {}", encoded);
         assert_eq!(decode_path(&encoded), original);
     }
 
     #[test]
     fn roundtrip_home() {
         let home = dirs::home_dir().unwrap();
-        let original = home
-            .join("some")
-            .join("random")
-            .join("file.txt")
-            .to_string_lossy()
-            .to_string();
+        let original =
+            home.join("some").join("random").join("file.txt").to_string_lossy().to_string();
         let encoded = encode_path(&original);
         assert!(encoded.starts_with(VAR_HOME), "expected HOME prefix, got: {}", encoded);
         assert_eq!(decode_path(&encoded), original);
@@ -191,11 +175,7 @@ mod tests {
     #[test]
     fn axagent_home_takes_priority_over_home() {
         let home = dirs::home_dir().unwrap();
-        let original = home
-            .join(".axagent")
-            .join("backups")
-            .to_string_lossy()
-            .to_string();
+        let original = home.join(".axagent").join("backups").to_string_lossy().to_string();
         let encoded = encode_path(&original);
         assert!(
             encoded.starts_with(VAR_AX_AGENT_HOME),
@@ -226,11 +206,7 @@ mod tests {
     #[test]
     fn option_helpers_some() {
         let home = dirs::home_dir().unwrap();
-        let path = home
-            .join(".axagent")
-            .join("backups")
-            .to_string_lossy()
-            .to_string();
+        let path = home.join(".axagent").join("backups").to_string_lossy().to_string();
         let encoded = encode_path_opt(&Some(path.clone()));
         assert!(encoded.as_ref().unwrap().starts_with(VAR_AX_AGENT_HOME));
         let decoded = decode_path_opt(&encoded);
@@ -250,23 +226,15 @@ mod tests {
     fn already_encoded_path_is_decoded() {
         let decoded = decode_path("{{AxAgent_HOME}}/ssl/cert.pem");
         let home = dirs::home_dir().unwrap();
-        let expected = home
-            .join(".axagent")
-            .join("ssl")
-            .join("cert.pem")
-            .to_string_lossy()
-            .to_string();
+        let expected =
+            home.join(".axagent").join("ssl").join("cert.pem").to_string_lossy().to_string();
         assert_eq!(decoded, expected);
     }
 
     #[test]
     fn path_without_variable_left_unchanged_by_decode() {
         let home = dirs::home_dir().unwrap();
-        let abs = home
-            .join(".axagent")
-            .join("foo")
-            .to_string_lossy()
-            .to_string();
+        let abs = home.join(".axagent").join("foo").to_string_lossy().to_string();
         assert_eq!(decode_path(&abs), abs);
     }
 }

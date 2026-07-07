@@ -13,10 +13,7 @@ pub struct RLtrainer {
 
 impl RLtrainer {
     pub fn new(optimizer: RLOptimizer) -> Self {
-        Self {
-            optimizer,
-            config: RLConfig::default(),
-        }
+        Self { optimizer, config: RLConfig::default() }
     }
 
     /// 执行一轮训练：从经验池采样 → 计算工具级奖励 → 更新策略权重
@@ -49,9 +46,7 @@ impl RLtrainer {
             .max_by(|(_, (ra, ca)), (_, (rb, cb))| {
                 let avg_a = ra / *ca as f32;
                 let avg_b = rb / *cb as f32;
-                avg_a
-                    .partial_cmp(&avg_b)
-                    .unwrap_or(std::cmp::Ordering::Equal)
+                avg_a.partial_cmp(&avg_b).unwrap_or(std::cmp::Ordering::Equal)
             })
             .map(|(name, _)| name.clone());
 
@@ -63,10 +58,8 @@ impl RLtrainer {
                 let avg_tool_reward = *reward_sum / *count as f32;
                 let tool_name = tool_key.split(':').next().unwrap_or(tool_key);
 
-                if let Some(existing) = policy
-                    .reward_signals
-                    .iter_mut()
-                    .find(|s| s.name == tool_name)
+                if let Some(existing) =
+                    policy.reward_signals.iter_mut().find(|s| s.name == tool_name)
                 {
                     // 移动平均更新权重
                     existing.weight = existing.weight * 0.7 + avg_tool_reward * 0.3;
@@ -205,10 +198,7 @@ impl RLtrainer {
 
         // 如果策略中有该工具的记录，加入策略权重
         if let Some(policy) = self.optimizer.policies.get("tool_selection")
-            && let Some(signal) = policy
-                .reward_signals
-                .iter()
-                .find(|s| s.name == action.tool_name)
+            && let Some(signal) = policy.reward_signals.iter().find(|s| s.name == action.tool_name)
         {
             reward = reward * 0.6 + signal.weight * 0.4;
         }
@@ -232,10 +222,7 @@ pub struct ExperienceCollector {
 
 impl ExperienceCollector {
     pub fn new() -> Self {
-        Self {
-            current_experience: None,
-            experience_buffer: Vec::new(),
-        }
+        Self { current_experience: None, experience_buffer: Vec::new() }
     }
 
     pub fn start_episode(&mut self, state: TaskState) {

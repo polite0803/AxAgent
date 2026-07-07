@@ -24,10 +24,7 @@ use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 
 fn now_ms() -> u128 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_millis()
+    SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_millis()
 }
 
 /// P1-10: 消息队列上限（背压控制）。超出后入队时丢弃最老消息。
@@ -223,8 +220,7 @@ impl MessageGateway {
     }
 
     pub fn register_transport<H: TransportHandler + 'static>(&mut self, handler: H) {
-        self.transport_handlers
-            .insert(handler.transport_type(), Arc::new(handler));
+        self.transport_handlers.insert(handler.transport_type(), Arc::new(handler));
     }
 
     /// 注册 endpoint：先调 transport 的 connect（async），拿到结果后再持写锁写 state。
@@ -246,13 +242,9 @@ impl MessageGateway {
     pub async fn unregister_endpoint(&self, agent_id: &str) -> Result<AgentEndpoint, GatewayError> {
         let endpoint = {
             let state = self.state.read().await;
-            state
-                .endpoints
-                .get(agent_id)
-                .cloned()
-                .ok_or_else(|| GatewayError::NotFound {
-                    entity: format!("endpoint {}", agent_id),
-                })?
+            state.endpoints.get(agent_id).cloned().ok_or_else(|| GatewayError::NotFound {
+                entity: format!("endpoint {}", agent_id),
+            })?
         };
 
         if let Some(handler) = self.transport_handlers.get(&endpoint.transport) {
@@ -317,19 +309,14 @@ impl MessageGateway {
     pub fn route_message(&self, message: &AgentMessage) -> Result<String, GatewayError> {
         // 同步接口不能 await：先尝试 read 锁（非阻塞），失败则返回错误。
         // 调用方应使用 `try_route_message` 的 async 替代品。
-        let state = self
-            .state
-            .try_read()
-            .map_err(|_| GatewayError::TransportError {
-                reason: "state lock contended; use async try_route_message".to_string(),
-            })?;
+        let state = self.state.try_read().map_err(|_| GatewayError::TransportError {
+            reason: "state lock contended; use async try_route_message".to_string(),
+        })?;
         state
             .routing_table
             .get(&message.to)
             .cloned()
-            .ok_or_else(|| GatewayError::NotFound {
-                entity: format!("route for {}", message.to),
-            })
+            .ok_or_else(|| GatewayError::NotFound { entity: format!("route for {}", message.to) })
     }
 
     pub async fn queue_message(&self, message: AgentMessage) -> Result<(), GatewayError> {
@@ -348,12 +335,8 @@ impl MessageGateway {
 
     pub async fn flush_queue(&self, agent_id: &str) -> Result<Vec<AgentMessage>, GatewayError> {
         let mut state = self.state.write().await;
-        let pending: Vec<AgentMessage> = state
-            .message_queue
-            .iter()
-            .filter(|m| m.to == agent_id)
-            .cloned()
-            .collect();
+        let pending: Vec<AgentMessage> =
+            state.message_queue.iter().filter(|m| m.to == agent_id).cloned().collect();
         state.message_queue.retain(|m| m.to != agent_id);
         Ok(pending)
     }
@@ -364,9 +347,7 @@ impl MessageGateway {
             .endpoints
             .get(agent_id)
             .cloned()
-            .ok_or_else(|| GatewayError::NotFound {
-                entity: format!("endpoint {}", agent_id),
-            })
+            .ok_or_else(|| GatewayError::NotFound { entity: format!("endpoint {}", agent_id) })
     }
 
     pub async fn list_endpoints(&self) -> Result<Vec<AgentEndpoint>, GatewayError> {
@@ -379,9 +360,7 @@ impl MessageGateway {
         let endpoint = state
             .endpoints
             .get_mut(agent_id)
-            .ok_or_else(|| GatewayError::NotFound {
-                entity: format!("endpoint {}", agent_id),
-            })?;
+            .ok_or_else(|| GatewayError::NotFound { entity: format!("endpoint {}", agent_id) })?;
         endpoint.last_seen = now_ms();
         Ok(())
     }
@@ -418,9 +397,7 @@ mod tests {
         let msg = AgentMessage::new(
             "agent_a",
             "agent_b",
-            MessagePayload::Text {
-                content: "Hello".to_string(),
-            },
+            MessagePayload::Text { content: "Hello".to_string() },
         );
 
         assert_eq!(msg.from, "agent_a");
@@ -449,13 +426,7 @@ mod tests {
     #[tokio::test]
     async fn test_message_queue() {
         let gateway = MessageGateway::new();
-        let msg = AgentMessage::new(
-            "a",
-            "b",
-            MessagePayload::Text {
-                content: "test".to_string(),
-            },
-        );
+        let msg = AgentMessage::new("a", "b", MessagePayload::Text { content: "test".to_string() });
 
         gateway.queue_message(msg).await.unwrap();
         let pending = gateway.flush_queue("b").await.unwrap();

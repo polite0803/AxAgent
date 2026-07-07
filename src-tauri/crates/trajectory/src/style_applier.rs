@@ -444,11 +444,7 @@ impl StyleApplier {
     }
 
     pub fn create_template(&self, name: &str, patterns: Vec<StylePattern>) -> CodeStyleTemplate {
-        CodeStyleTemplate {
-            name: name.to_string(),
-            patterns,
-            templates: Vec::new(),
-        }
+        CodeStyleTemplate { name: name.to_string(), patterns, templates: Vec::new() }
     }
 
     pub fn apply_template(&self, code: &str, template: &CodeStyleTemplate) -> String {

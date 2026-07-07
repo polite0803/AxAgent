@@ -42,9 +42,7 @@ pub async fn build_llm_bridge_from_db_with(
             .into_iter()
             .find(|p| p.id == pid && p.enabled && p.keys.iter().any(|k| k.enabled))?
     } else {
-        providers
-            .into_iter()
-            .find(|p| p.enabled && p.keys.iter().any(|k| k.enabled))?
+        providers.into_iter().find(|p| p.enabled && p.keys.iter().any(|k| k.enabled))?
     };
 
     let key = prov.keys.iter().find(|k| k.enabled)?;
@@ -61,10 +59,7 @@ pub async fn build_llm_bridge_from_db_with(
         base_url: Some(resolve_base_url_for_type(&prov.api_host, &prov.provider_type)),
         api_path: prov.api_path.clone(),
         proxy_config: prov.proxy_config,
-        custom_headers: prov
-            .custom_headers
-            .as_ref()
-            .and_then(|s| serde_json::from_str(s).ok()),
+        custom_headers: prov.custom_headers.as_ref().and_then(|s| serde_json::from_str(s).ok()),
         api_mode: None,
         conversation: None,
         previous_response_id: None,
@@ -74,10 +69,7 @@ pub async fn build_llm_bridge_from_db_with(
     let model = if let Some(mid) = preferred_model_id {
         mid.to_string()
     } else {
-        prov.models
-            .first()
-            .map(|m| m.model_id.clone())
-            .unwrap_or_else(|| "default".to_string())
+        prov.models.first().map(|m| m.model_id.clone()).unwrap_or_else(|| "default".to_string())
     };
 
     Some(ProviderLlmBridge::new(adapter, ctx, model))

@@ -21,10 +21,7 @@ pub enum ResearchError {
     #[error("Research failed: {0}")]
     Failed(String),
     #[error("Invalid state transition from {from:?} to {to:?}")]
-    InvalidStateTransition {
-        from: ResearchStatus,
-        to: ResearchStatus,
-    },
+    InvalidStateTransition { from: ResearchStatus, to: ResearchStatus },
     #[error("Search planning failed: {0}")]
     PlanningFailed(String),
     #[error("Search execution failed: {0}")]
@@ -37,37 +34,18 @@ pub enum ResearchError {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ResearchEvent {
-    Started {
-        topic: String,
-    },
-    PhaseChanged {
-        from: ResearchPhase,
-        to: ResearchPhase,
-    },
-    SourcesFound {
-        count: usize,
-    },
-    SourceProcessed {
-        source_id: String,
-    },
-    CitationAdded {
-        citation_id: String,
-    },
-    ReportGenerated {
-        report_id: String,
-    },
+    Started { topic: String },
+    PhaseChanged { from: ResearchPhase, to: ResearchPhase },
+    SourcesFound { count: usize },
+    SourceProcessed { source_id: String },
+    CitationAdded { citation_id: String },
+    ReportGenerated { report_id: String },
     Completed,
-    Failed {
-        error: String,
-    },
+    Failed { error: String },
     Paused,
     Resumed,
-    LlmGenerationStarted {
-        phase: String,
-    },
-    LlmGenerationCompleted {
-        phase: String,
-    },
+    LlmGenerationStarted { phase: String },
+    LlmGenerationCompleted { phase: String },
 }
 
 pub trait LlmContentGenerator: Send + Sync {
@@ -171,9 +149,7 @@ impl ResearchAgent {
         state.current_phase = ResearchPhase::Planning;
         state.progress = ResearchProgress::new().with_phase(ResearchPhase::Planning);
 
-        self.emit(ResearchEvent::Started {
-            topic: topic.clone(),
-        });
+        self.emit(ResearchEvent::Started { topic: topic.clone() });
         tracing::info!("Research started: {}", topic);
 
         Ok(state.id.clone())
@@ -240,9 +216,7 @@ impl ResearchAgent {
             }
         }
 
-        self.emit(ResearchEvent::SourcesFound {
-            count: results.len(),
-        });
+        self.emit(ResearchEvent::SourcesFound { count: results.len() });
         tracing::info!("Searching phase complete, found {} sources", results.len());
 
         Ok(results)
@@ -258,14 +232,10 @@ impl ResearchAgent {
         let mut sorted_results = results.clone();
         sorted_results.sort_by(|a, b| {
             let score_a = a.relevance_score
-                + a.credibility_score
-                    .unwrap_or(a.source_type.default_credibility());
+                + a.credibility_score.unwrap_or(a.source_type.default_credibility());
             let score_b = b.relevance_score
-                + b.credibility_score
-                    .unwrap_or(b.source_type.default_credibility());
-            score_b
-                .partial_cmp(&score_a)
-                .unwrap_or(std::cmp::Ordering::Equal)
+                + b.credibility_score.unwrap_or(b.source_type.default_credibility());
+            score_b.partial_cmp(&score_a).unwrap_or(std::cmp::Ordering::Equal)
         });
 
         let mut seen_urls: std::collections::HashSet<String> = std::collections::HashSet::new();
@@ -296,9 +266,7 @@ impl ResearchAgent {
             }
 
             citations_added += 1;
-            self.emit(ResearchEvent::CitationAdded {
-                citation_id: citation.id.clone(),
-            });
+            self.emit(ResearchEvent::CitationAdded { citation_id: citation.id.clone() });
         }
 
         tracing::info!(
@@ -348,9 +316,7 @@ impl ResearchAgent {
         let state = self.state.read().await.clone();
         let report = self.generate_report(&state).await?;
 
-        self.emit(ResearchEvent::ReportGenerated {
-            report_id: report.id.clone(),
-        });
+        self.emit(ResearchEvent::ReportGenerated { report_id: report.id.clone() });
 
         tracing::info!("Reporting phase complete, report_id: {}", report.id);
 
@@ -384,16 +350,12 @@ impl ResearchAgent {
         use crate::research_state::{OutlineSection, ReportOutline};
 
         if let Some(ref generator) = self.content_generator {
-            self.emit(ResearchEvent::LlmGenerationStarted {
-                phase: "outline".to_string(),
-            });
+            self.emit(ResearchEvent::LlmGenerationStarted { phase: "outline".to_string() });
 
             let context = self.build_research_context(state);
             let outline_json = generator.generate_outline(&state.topic, &context).await?;
 
-            self.emit(ResearchEvent::LlmGenerationCompleted {
-                phase: "outline".to_string(),
-            });
+            self.emit(ResearchEvent::LlmGenerationCompleted { phase: "outline".to_string() });
 
             if let Ok(outline) = serde_json::from_str::<Vec<OutlineSection>>(&outline_json) {
                 let mut report_outline =
@@ -433,20 +395,14 @@ impl ResearchAgent {
 
     async fn generate_content(&self, state: &ResearchState) -> Result<String, ResearchError> {
         if let Some(ref generator) = self.content_generator {
-            self.emit(ResearchEvent::LlmGenerationStarted {
-                phase: "content".to_string(),
-            });
+            self.emit(ResearchEvent::LlmGenerationStarted { phase: "content".to_string() });
 
             let sources = self.format_sources_for_llm(state);
             let outline = format!("{:?}", state.topic);
 
-            let content = generator
-                .generate_content(&state.topic, &outline, &sources)
-                .await?;
+            let content = generator.generate_content(&state.topic, &outline, &sources).await?;
 
-            self.emit(ResearchEvent::LlmGenerationCompleted {
-                phase: "content".to_string(),
-            });
+            self.emit(ResearchEvent::LlmGenerationCompleted { phase: "content".to_string() });
 
             return Ok(content);
         }
@@ -499,16 +455,12 @@ impl ResearchAgent {
 
     async fn generate_summary(&self, state: &ResearchState) -> Result<String, ResearchError> {
         if let Some(ref generator) = self.content_generator {
-            self.emit(ResearchEvent::LlmGenerationStarted {
-                phase: "summary".to_string(),
-            });
+            self.emit(ResearchEvent::LlmGenerationStarted { phase: "summary".to_string() });
 
             let findings = self.format_findings_for_llm(state);
             let summary = generator.generate_summary(&state.topic, &findings).await?;
 
-            self.emit(ResearchEvent::LlmGenerationCompleted {
-                phase: "summary".to_string(),
-            });
+            self.emit(ResearchEvent::LlmGenerationCompleted { phase: "summary".to_string() });
 
             return Ok(summary);
         }
@@ -587,10 +539,7 @@ impl ResearchAgent {
                 state.progress = progress.with_phase(new_phase);
             }
 
-            self.emit(ResearchEvent::PhaseChanged {
-                from: current_phase,
-                to: new_phase,
-            });
+            self.emit(ResearchEvent::PhaseChanged { from: current_phase, to: new_phase });
         }
     }
 }
@@ -614,10 +563,7 @@ impl Default for DefaultLlmContentGenerator {
 
 impl DefaultLlmContentGenerator {
     pub fn new() -> Self {
-        Self {
-            llm_adapter: None,
-            ctx: None,
-        }
+        Self { llm_adapter: None, ctx: None }
     }
 
     pub fn with_llm(
@@ -776,9 +722,7 @@ mod tests {
         let generator = DefaultLlmContentGenerator::new();
 
         let outline = generator.generate_outline("test", "context").await;
-        let content = generator
-            .generate_content("test", "outline", "sources")
-            .await;
+        let content = generator.generate_content("test", "outline", "sources").await;
         let summary = generator.generate_summary("test", "findings").await;
 
         assert!(outline.is_ok(), "outline fallback should succeed");
@@ -1048,9 +992,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_research_event_serialization() {
-        let event = ResearchEvent::Started {
-            topic: "test".to_string(),
-        };
+        let event = ResearchEvent::Started { topic: "test".to_string() };
         let json = serde_json::to_string(&event).unwrap();
         assert!(json.contains("test"));
 
@@ -1065,15 +1007,11 @@ mod tests {
         let json = serde_json::to_string(&event).unwrap();
         assert!(json.contains("5"));
 
-        let event = ResearchEvent::CitationAdded {
-            citation_id: "cit-1".to_string(),
-        };
+        let event = ResearchEvent::CitationAdded { citation_id: "cit-1".to_string() };
         let json = serde_json::to_string(&event).unwrap();
         assert!(json.contains("cit-1"));
 
-        let event = ResearchEvent::ReportGenerated {
-            report_id: "rep-1".to_string(),
-        };
+        let event = ResearchEvent::ReportGenerated { report_id: "rep-1".to_string() };
         let json = serde_json::to_string(&event).unwrap();
         assert!(json.contains("rep-1"));
 
@@ -1081,9 +1019,7 @@ mod tests {
         let json = serde_json::to_string(&event).unwrap();
         assert!(json.contains("Completed"));
 
-        let event = ResearchEvent::Failed {
-            error: "something went wrong".to_string(),
-        };
+        let event = ResearchEvent::Failed { error: "something went wrong".to_string() };
         let json = serde_json::to_string(&event).unwrap();
         assert!(json.contains("something went wrong"));
 

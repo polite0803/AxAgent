@@ -56,10 +56,7 @@ impl MetricsCalculator {
             let weighted_score = raw_score * criteria.weight;
             total_weighted += weighted_score;
 
-            let passed = criteria
-                .threshold
-                .map(|threshold| raw_score >= threshold)
-                .unwrap_or(true);
+            let passed = criteria.threshold.map(|threshold| raw_score >= threshold).unwrap_or(true);
 
             eval_scores.push(EvaluationScore {
                 criteria_name: criteria.name.clone(),
@@ -112,9 +109,8 @@ impl MetricsCalculator {
 
         for metric in task_metrics {
             for score in &metric.scores {
-                *score_breakdown
-                    .entry(score.criteria_name.clone())
-                    .or_insert(0.0) += score.raw_score;
+                *score_breakdown.entry(score.criteria_name.clone()).or_insert(0.0) +=
+                    score.raw_score;
             }
         }
 
@@ -209,9 +205,8 @@ pub fn levenshtein_distance(s1: &str, s2: &str) -> usize {
             } else {
                 1
             };
-            matrix[i][j] = (matrix[i - 1][j] + 1)
-                .min(matrix[i][j - 1] + 1)
-                .min(matrix[i - 1][j - 1] + cost);
+            matrix[i][j] =
+                (matrix[i - 1][j] + 1).min(matrix[i][j - 1] + 1).min(matrix[i - 1][j - 1] + cost);
         }
     }
 
@@ -244,10 +239,7 @@ pub fn contains_score(expected: &str, actual: &str) -> f32 {
         return 0.0;
     }
 
-    let matches = expected_parts
-        .iter()
-        .filter(|part| actual_lower.contains(*part))
-        .count();
+    let matches = expected_parts.iter().filter(|part| actual_lower.contains(*part)).count();
 
     matches as f32 / expected_parts.len() as f32
 }

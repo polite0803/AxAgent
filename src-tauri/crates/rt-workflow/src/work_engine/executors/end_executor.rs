@@ -56,9 +56,6 @@ impl NodeExecutorTrait for EndExecutor {
             })
         };
 
-        Ok(NodeOutput {
-            output,
-            output_var: end_node.config.output_var.clone(),
-        })
+        Ok(NodeOutput { output, output_var: end_node.config.output_var.clone() })
     }
 }

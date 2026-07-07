@@ -119,9 +119,8 @@ impl ExperimentRunner {
 
     pub async fn start_experiment(&self, id: &str) -> Result<(), String> {
         let mut experiments = self.experiments.write().await;
-        let config = experiments
-            .get_mut(id)
-            .ok_or_else(|| format!("Experiment '{}' not found", id))?;
+        let config =
+            experiments.get_mut(id).ok_or_else(|| format!("Experiment '{}' not found", id))?;
         if config.status != ExperimentStatus::Draft && config.status != ExperimentStatus::Paused {
             return Err(format!("Cannot start experiment in {:?} status", config.status));
         }
@@ -131,9 +130,8 @@ impl ExperimentRunner {
 
     pub async fn pause_experiment(&self, id: &str) -> Result<(), String> {
         let mut experiments = self.experiments.write().await;
-        let config = experiments
-            .get_mut(id)
-            .ok_or_else(|| format!("Experiment '{}' not found", id))?;
+        let config =
+            experiments.get_mut(id).ok_or_else(|| format!("Experiment '{}' not found", id))?;
         if config.status != ExperimentStatus::Running {
             return Err(format!("Cannot pause experiment in {:?} status", config.status));
         }
@@ -143,9 +141,8 @@ impl ExperimentRunner {
 
     pub async fn cancel_experiment(&self, id: &str) -> Result<(), String> {
         let mut experiments = self.experiments.write().await;
-        let config = experiments
-            .get_mut(id)
-            .ok_or_else(|| format!("Experiment '{}' not found", id))?;
+        let config =
+            experiments.get_mut(id).ok_or_else(|| format!("Experiment '{}' not found", id))?;
         if config.status == ExperimentStatus::Completed
             || config.status == ExperimentStatus::Cancelled
         {
@@ -169,10 +166,7 @@ impl ExperimentRunner {
         drop(experiments);
 
         let mut trial_results = self.trial_results.write().await;
-        trial_results
-            .entry(result.experiment_id.clone())
-            .or_insert_with(Vec::new)
-            .push(result);
+        trial_results.entry(result.experiment_id.clone()).or_insert_with(Vec::new).push(result);
         Ok(())
     }
 
@@ -191,18 +185,10 @@ impl ExperimentRunner {
         let results = trial_results.get(experiment_id);
 
         let control_trials: Vec<&TrialResult> = results
-            .map(|r| {
-                r.iter()
-                    .filter(|t| t.group == ExperimentGroup::Control)
-                    .collect()
-            })
+            .map(|r| r.iter().filter(|t| t.group == ExperimentGroup::Control).collect())
             .unwrap_or_default();
         let treatment_trials: Vec<&TrialResult> = results
-            .map(|r| {
-                r.iter()
-                    .filter(|t| t.group == ExperimentGroup::Treatment)
-                    .collect()
-            })
+            .map(|r| r.iter().filter(|t| t.group == ExperimentGroup::Treatment).collect())
             .unwrap_or_default();
 
         let control_stats = Self::compute_group_stats(ExperimentGroup::Control, &control_trials);
@@ -528,10 +514,7 @@ mod tests {
     #[tokio::test]
     async fn test_start_experiment_from_draft() {
         let runner = ExperimentRunner::new();
-        runner
-            .create_experiment(test_config("exp-start"))
-            .await
-            .unwrap();
+        runner.create_experiment(test_config("exp-start")).await.unwrap();
         assert!(runner.start_experiment("exp-start").await.is_ok());
         let exp = runner.get_experiment("exp-start").await.unwrap();
         assert_eq!(exp.status, ExperimentStatus::Running);
@@ -540,10 +523,7 @@ mod tests {
     #[tokio::test]
     async fn test_start_experiment_from_paused() {
         let runner = ExperimentRunner::new();
-        runner
-            .create_experiment(test_config("exp-resume"))
-            .await
-            .unwrap();
+        runner.create_experiment(test_config("exp-resume")).await.unwrap();
         runner.start_experiment("exp-resume").await.unwrap();
         runner.pause_experiment("exp-resume").await.unwrap();
         assert!(runner.start_experiment("exp-resume").await.is_ok());
@@ -554,10 +534,7 @@ mod tests {
     #[tokio::test]
     async fn test_start_experiment_invalid_state() {
         let runner = ExperimentRunner::new();
-        runner
-            .create_experiment(test_config("exp-bad-start"))
-            .await
-            .unwrap();
+        runner.create_experiment(test_config("exp-bad-start")).await.unwrap();
         runner.start_experiment("exp-bad-start").await.unwrap();
         let result = runner.start_experiment("exp-bad-start").await;
         assert!(result.is_err());
@@ -567,10 +544,7 @@ mod tests {
     #[tokio::test]
     async fn test_pause_experiment() {
         let runner = ExperimentRunner::new();
-        runner
-            .create_experiment(test_config("exp-pause"))
-            .await
-            .unwrap();
+        runner.create_experiment(test_config("exp-pause")).await.unwrap();
         runner.start_experiment("exp-pause").await.unwrap();
         assert!(runner.pause_experiment("exp-pause").await.is_ok());
         let exp = runner.get_experiment("exp-pause").await.unwrap();
@@ -580,10 +554,7 @@ mod tests {
     #[tokio::test]
     async fn test_pause_non_running_experiment() {
         let runner = ExperimentRunner::new();
-        runner
-            .create_experiment(test_config("exp-pause-bad"))
-            .await
-            .unwrap();
+        runner.create_experiment(test_config("exp-pause-bad")).await.unwrap();
         let result = runner.pause_experiment("exp-pause-bad").await;
         assert!(result.is_err());
         assert!(result.unwrap_err().contains("Cannot pause"));
@@ -592,10 +563,7 @@ mod tests {
     #[tokio::test]
     async fn test_cancel_experiment() {
         let runner = ExperimentRunner::new();
-        runner
-            .create_experiment(test_config("exp-cancel"))
-            .await
-            .unwrap();
+        runner.create_experiment(test_config("exp-cancel")).await.unwrap();
         runner.start_experiment("exp-cancel").await.unwrap();
         assert!(runner.cancel_experiment("exp-cancel").await.is_ok());
         let exp = runner.get_experiment("exp-cancel").await.unwrap();
@@ -605,10 +573,7 @@ mod tests {
     #[tokio::test]
     async fn test_cancel_completed_experiment() {
         let runner = ExperimentRunner::new();
-        runner
-            .create_experiment(test_config("exp-cancel-done"))
-            .await
-            .unwrap();
+        runner.create_experiment(test_config("exp-cancel-done")).await.unwrap();
         runner.start_experiment("exp-cancel-done").await.unwrap();
         let mut exp = runner.get_experiment("exp-cancel-done").await.unwrap();
         exp.status = ExperimentStatus::Completed;
@@ -624,10 +589,7 @@ mod tests {
     #[tokio::test]
     async fn test_record_trial_running_experiment() {
         let runner = ExperimentRunner::new();
-        runner
-            .create_experiment(test_config("exp-trial"))
-            .await
-            .unwrap();
+        runner.create_experiment(test_config("exp-trial")).await.unwrap();
         runner.start_experiment("exp-trial").await.unwrap();
         let trial = trial_result("exp-trial", ExperimentGroup::Control, true, 5, 1000, 0.9, false);
         assert!(runner.record_trial(trial).await.is_ok());
@@ -636,10 +598,7 @@ mod tests {
     #[tokio::test]
     async fn test_record_trial_non_running_experiment() {
         let runner = ExperimentRunner::new();
-        runner
-            .create_experiment(test_config("exp-trial-bad"))
-            .await
-            .unwrap();
+        runner.create_experiment(test_config("exp-trial-bad")).await.unwrap();
         let trial =
             trial_result("exp-trial-bad", ExperimentGroup::Control, true, 5, 1000, 0.9, false);
         let result = runner.record_trial(trial).await;
@@ -660,10 +619,7 @@ mod tests {
     #[tokio::test]
     async fn test_get_results_no_trials() {
         let runner = ExperimentRunner::new();
-        runner
-            .create_experiment(test_config("exp-empty"))
-            .await
-            .unwrap();
+        runner.create_experiment(test_config("exp-empty")).await.unwrap();
         let result = runner.get_results("exp-empty").await;
         assert!(result.is_ok());
         let res = result.unwrap().unwrap();
@@ -675,10 +631,7 @@ mod tests {
     #[tokio::test]
     async fn test_get_results_with_trials() {
         let runner = ExperimentRunner::new();
-        runner
-            .create_experiment(test_config("exp-results"))
-            .await
-            .unwrap();
+        runner.create_experiment(test_config("exp-results")).await.unwrap();
         runner.start_experiment("exp-results").await.unwrap();
         for _ in 0..15 {
             runner
@@ -724,14 +677,8 @@ mod tests {
     #[tokio::test]
     async fn test_list_experiments() {
         let runner = ExperimentRunner::new();
-        runner
-            .create_experiment(test_config("exp-a"))
-            .await
-            .unwrap();
-        runner
-            .create_experiment(test_config("exp-b"))
-            .await
-            .unwrap();
+        runner.create_experiment(test_config("exp-a")).await.unwrap();
+        runner.create_experiment(test_config("exp-b")).await.unwrap();
         let list = runner.list_experiments().await;
         assert_eq!(list.len(), 2);
     }
@@ -841,10 +788,7 @@ mod tests {
     #[tokio::test]
     async fn test_experiment_status_transitions() {
         let runner = ExperimentRunner::new();
-        runner
-            .create_experiment(test_config("exp-flow"))
-            .await
-            .unwrap();
+        runner.create_experiment(test_config("exp-flow")).await.unwrap();
         assert_eq!(
             runner.get_experiment("exp-flow").await.unwrap().status,
             ExperimentStatus::Draft
@@ -874,10 +818,7 @@ mod tests {
     #[tokio::test]
     async fn test_custom_metrics_in_trial() {
         let runner = ExperimentRunner::new();
-        runner
-            .create_experiment(test_config("exp-custom"))
-            .await
-            .unwrap();
+        runner.create_experiment(test_config("exp-custom")).await.unwrap();
         runner.start_experiment("exp-custom").await.unwrap();
         let mut custom = HashMap::new();
         custom.insert("latency_p99".to_string(), 250.0_f32);

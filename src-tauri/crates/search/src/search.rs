@@ -207,9 +207,7 @@ pub fn expand_search_queries(original: &str) -> QueryExpansion {
     let mut queries = vec![original.to_string()];
 
     let trimmed = original.trim();
-    let has_chinese = trimmed
-        .chars()
-        .any(|c| ('\u{4E00}'..='\u{9FFF}').contains(&c));
+    let has_chinese = trimmed.chars().any(|c| ('\u{4E00}'..='\u{9FFF}').contains(&c));
 
     let concise = trimmed
         .split_whitespace()
@@ -269,10 +267,7 @@ pub fn expand_search_queries(original: &str) -> QueryExpansion {
     queries.dedup();
     queries.truncate(5);
 
-    QueryExpansion {
-        original: original.to_string(),
-        queries,
-    }
+    QueryExpansion { original: original.to_string(), queries }
 }
 
 fn extract_technical_terms_chinese(text: &str) -> Vec<String> {
@@ -307,9 +302,7 @@ fn extract_technical_terms_chinese(text: &str) -> Vec<String> {
     }
 
     for word in text.split_whitespace() {
-        if word
-            .chars()
-            .all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-' || c == '.')
+        if word.chars().all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-' || c == '.')
             && word.len() > 2
         {
             terms.push(word.to_string());
@@ -661,9 +654,7 @@ pub async fn execute_iterative_search(
     all_results.sort_by(|a, b| {
         let a_score = a.content.len() as f32 * 0.01 + if !a.url.is_empty() { 1.0 } else { 0.0 };
         let b_score = b.content.len() as f32 * 0.01 + if !b.url.is_empty() { 1.0 } else { 0.0 };
-        b_score
-            .partial_cmp(&a_score)
-            .unwrap_or(std::cmp::Ordering::Equal)
+        b_score.partial_cmp(&a_score).unwrap_or(std::cmp::Ordering::Equal)
     });
     all_results.truncate(max_results as usize);
 
@@ -683,11 +674,7 @@ fn extract_covered_topics(results: &[SearchResult]) -> Vec<String> {
 
     for r in results {
         for word in r.title.split_whitespace() {
-            let w = word
-                .to_lowercase()
-                .chars()
-                .filter(|c| c.is_alphanumeric())
-                .collect::<String>();
+            let w = word.to_lowercase().chars().filter(|c| c.is_alphanumeric()).collect::<String>();
             if w.len() > 3 {
                 *words.entry(w).or_insert(0) += 1;
             }
@@ -747,15 +734,11 @@ pub fn rerank_search_results(query: &str, results: &mut Vec<SearchResult>) {
             let content_lower = r.content.to_lowercase();
             let _combined = format!("{} {}", title_lower, content_lower);
 
-            let exact_title_matches = query_terms
-                .iter()
-                .filter(|qt| title_lower.contains(qt.as_str()))
-                .count() as f32;
+            let exact_title_matches =
+                query_terms.iter().filter(|qt| title_lower.contains(qt.as_str())).count() as f32;
 
-            let content_matches = query_terms
-                .iter()
-                .filter(|qt| content_lower.contains(qt.as_str()))
-                .count() as f32;
+            let content_matches =
+                query_terms.iter().filter(|qt| content_lower.contains(qt.as_str())).count() as f32;
 
             let title_coverage = exact_title_matches / query_terms.len() as f32;
             let content_coverage = content_matches / query_terms.len() as f32;
@@ -811,9 +794,7 @@ fn is_official_source(url: &str) -> bool {
         "kubernetes.io",
     ];
 
-    official_domains
-        .iter()
-        .any(|d| url.to_lowercase().contains(d))
+    official_domains.iter().any(|d| url.to_lowercase().contains(d))
 }
 
 /// 评估 URL 可信度分数 0.0-1.0
@@ -1089,11 +1070,7 @@ async fn search_tavily(
         .build()
         .map_err(|e| AxAgentError::Provider(format!("HTTP client error: {e}")))?;
 
-    let body = TavilyRequest {
-        api_key,
-        query,
-        max_results: max_results.max(1),
-    };
+    let body = TavilyRequest { api_key, query, max_results: max_results.max(1) };
 
     let resp = client
         .post(url)
@@ -1166,10 +1143,7 @@ async fn search_zhipu(
         .build()
         .map_err(|e| AxAgentError::Provider(format!("HTTP client error: {e}")))?;
 
-    let body = ZhipuRequest {
-        search_query: query,
-        search_engine: "search_std",
-    };
+    let body = ZhipuRequest { search_query: query, search_engine: "search_std" };
 
     let resp = client
         .post(url)
@@ -1259,12 +1233,7 @@ async fn search_bocha(
         .build()
         .map_err(|e| AxAgentError::Provider(format!("HTTP client error: {e}")))?;
 
-    let body = BochaRequest {
-        query,
-        count: max_results.max(1),
-        summary: true,
-        page: 1,
-    };
+    let body = BochaRequest { query, count: max_results.max(1), summary: true, page: 1 };
 
     let resp = client
         .post(url)
@@ -1293,11 +1262,7 @@ async fn search_bocha(
         )));
     }
 
-    let results = data
-        .data
-        .and_then(|d| d.web_pages)
-        .and_then(|wp| wp.value)
-        .unwrap_or_default();
+    let results = data.data.and_then(|d| d.web_pages).and_then(|wp| wp.value).unwrap_or_default();
 
     Ok(results
         .into_iter()
@@ -1334,10 +1299,7 @@ async fn search_duckduckgo(query: &str, max_results: i32) -> Result<Vec<SearchRe
         if let Some(abs) = json.get("AbstractText").and_then(|v| v.as_str())
             && !abs.is_empty()
         {
-            let url = json
-                .get("AbstractURL")
-                .and_then(|v| v.as_str())
-                .unwrap_or("");
+            let url = json.get("AbstractURL").and_then(|v| v.as_str()).unwrap_or("");
             results.push(SearchResult {
                 title: "摘要".to_string(),
                 content: abs.to_string(),
@@ -1379,8 +1341,7 @@ async fn search_duckduckgo(query: &str, max_results: i32) -> Result<Vec<SearchRe
             let title_caps: Vec<String> = DDG_TITLE_RE
                 .captures_iter(&html)
                 .filter_map(|c| {
-                    c.get(1)
-                        .map(|m| DDG_TAG_RE.replace_all(m.as_str(), "").trim().to_string())
+                    c.get(1).map(|m| DDG_TAG_RE.replace_all(m.as_str(), "").trim().to_string())
                 })
                 .filter(|s| !s.is_empty())
                 .take(max_results as usize)
@@ -1389,8 +1350,7 @@ async fn search_duckduckgo(query: &str, max_results: i32) -> Result<Vec<SearchRe
             let snippet_caps: Vec<String> = DDG_SNIPPET_RE
                 .captures_iter(&html)
                 .filter_map(|c| {
-                    c.get(1)
-                        .map(|m| DDG_TAG_RE.replace_all(m.as_str(), "").trim().to_string())
+                    c.get(1).map(|m| DDG_TAG_RE.replace_all(m.as_str(), "").trim().to_string())
                 })
                 .filter(|s| !s.is_empty())
                 .take(max_results as usize)
@@ -1404,10 +1364,7 @@ async fn search_duckduckgo(query: &str, max_results: i32) -> Result<Vec<SearchRe
                 .take(max_results as usize)
                 .collect();
 
-            let count = title_caps
-                .len()
-                .max(snippet_caps.len())
-                .min(max_results as usize);
+            let count = title_caps.len().max(snippet_caps.len()).min(max_results as usize);
             for i in 0..count {
                 let title = title_caps.get(i).cloned().unwrap_or_default();
                 let snippet = snippet_caps.get(i).cloned().unwrap_or_default();
@@ -1425,11 +1382,7 @@ async fn search_duckduckgo(query: &str, max_results: i32) -> Result<Vec<SearchRe
             }
 
             if results.is_empty() {
-                for part in html
-                    .split("result__snippet")
-                    .skip(1)
-                    .take(max_results as usize)
-                {
+                for part in html.split("result__snippet").skip(1).take(max_results as usize) {
                     if let Some(start) = part.find('>')
                         && let Some(end) = part[start + 1..].find("</")
                     {
@@ -1496,10 +1449,8 @@ async fn search_serpapi(
     if !resp.status().is_success() {
         return Err(AxAgentError::Provider(format!("SerpAPI HTTP {}", resp.status())));
     }
-    let data: SerpApiResponse = resp
-        .json()
-        .await
-        .map_err(|e| AxAgentError::Provider(format!("SerpAPI parse: {e}")))?;
+    let data: SerpApiResponse =
+        resp.json().await.map_err(|e| AxAgentError::Provider(format!("SerpAPI parse: {e}")))?;
     let organic = data.organic_results.unwrap_or_default();
     Ok(organic
         .into_iter()
@@ -1560,10 +1511,8 @@ async fn search_brave(
     if !resp.status().is_success() {
         return Err(AxAgentError::Provider(format!("Brave HTTP {}", resp.status())));
     }
-    let data: BraveResponse = resp
-        .json()
-        .await
-        .map_err(|e| AxAgentError::Provider(format!("Brave parse: {e}")))?;
+    let data: BraveResponse =
+        resp.json().await.map_err(|e| AxAgentError::Provider(format!("Brave parse: {e}")))?;
     let web = data.web.and_then(|w| w.results).unwrap_or_default();
     Ok(web
         .into_iter()
@@ -1624,10 +1573,8 @@ async fn search_bing(
     if !resp.status().is_success() {
         return Err(AxAgentError::Provider(format!("Bing HTTP {}", resp.status())));
     }
-    let data: BingResponse = resp
-        .json()
-        .await
-        .map_err(|e| AxAgentError::Provider(format!("Bing parse: {e}")))?;
+    let data: BingResponse =
+        resp.json().await.map_err(|e| AxAgentError::Provider(format!("Bing parse: {e}")))?;
     let web = data.web_pages.and_then(|w| w.value).unwrap_or_default();
     Ok(web
         .into_iter()
@@ -1686,10 +1633,8 @@ async fn search_google_pse(
     if !resp.status().is_success() {
         return Err(AxAgentError::Provider(format!("Google PSE HTTP {}", resp.status())));
     }
-    let data: GooglePseResponse = resp
-        .json()
-        .await
-        .map_err(|e| AxAgentError::Provider(format!("Google PSE parse: {e}")))?;
+    let data: GooglePseResponse =
+        resp.json().await.map_err(|e| AxAgentError::Provider(format!("Google PSE parse: {e}")))?;
     let items = data.items.unwrap_or_default();
     Ok(items
         .into_iter()

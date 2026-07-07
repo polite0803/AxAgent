@@ -23,11 +23,7 @@ impl From<WebhookSubscription> for WebhookSubscriptionResponse {
         Self {
             id: sub.id,
             url: sub.url,
-            events: sub
-                .events
-                .iter()
-                .map(|e: &WebhookEvent| e.as_str().to_string())
-                .collect(),
+            events: sub.events.iter().map(|e: &WebhookEvent| e.as_str().to_string()).collect(),
             secret: sub.secret,
             enabled: sub.enabled,
             created_at: sub.created_at.to_rfc3339(),
@@ -61,9 +57,7 @@ pub async fn webhook_create_subscription(
     {
         // P0-5: 用 DNS 解析 + IpAddr 黑名单做严格 SSRF 校验，覆盖 link-local/云元数据/私网
         // subscription 路径在 manager.subscribe 内部会再次校验（双保险）。
-        assert_url_safe(&url, false)
-            .await
-            .map_err(|e| e.to_string())?;
+        assert_url_safe(&url, false).await.map_err(|e| e.to_string())?;
     }
     let manager = state.webhook_subscription_manager.as_ref().ok_or_else(|| {
         ErrorResponse::err_with_detail(
@@ -71,10 +65,8 @@ pub async fn webhook_create_subscription(
             "Webhook subscription manager not initialized",
         )
     })?;
-    let webhook_events: Vec<WebhookEvent> = events
-        .iter()
-        .filter_map(|e| WebhookEvent::from_event_str(e))
-        .collect();
+    let webhook_events: Vec<WebhookEvent> =
+        events.iter().filter_map(|e| WebhookEvent::from_event_str(e)).collect();
     let subscription = manager.subscribe(url, webhook_events, secret).await?;
     Ok(subscription.into())
 }

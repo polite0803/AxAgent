@@ -137,10 +137,7 @@ pub async fn execute_json_hooks(hooks: &[serde_json::Value], node_id: &str, even
             if command.is_empty() {
                 continue;
             }
-            let timeout = hook_json
-                .get("timeout_secs")
-                .and_then(|v| v.as_u64())
-                .unwrap_or(30);
+            let timeout = hook_json.get("timeout_secs").and_then(|v| v.as_u64()).unwrap_or(30);
             let output = tokio::time::timeout(
                 std::time::Duration::from_secs(timeout),
                 execute_shell_string(command, node_id),
@@ -157,14 +154,9 @@ pub async fn execute_json_hooks(hooks: &[serde_json::Value], node_id: &str, even
 
 async fn execute_shell_string(command: &str, node_id: &str) -> Result<String, String> {
     let mut cmd = tokio::process::Command::new(if cfg!(windows) { "cmd" } else { "sh" });
-    cmd.arg(if cfg!(windows) { "/C" } else { "-c" })
-        .arg(command)
-        .env("AXAGENT_NODE_ID", node_id);
+    cmd.arg(if cfg!(windows) { "/C" } else { "-c" }).arg(command).env("AXAGENT_NODE_ID", node_id);
     #[cfg(windows)]
     axagent_kit::utils::hide_window(cmd.as_std_mut());
-    let output = cmd
-        .output()
-        .await
-        .map_err(|e| format!("Hook shell failed: {e}"))?;
+    let output = cmd.output().await.map_err(|e| format!("Hook shell failed: {e}"))?;
     Ok(String::from_utf8_lossy(&output.stdout).trim().to_string())
 }

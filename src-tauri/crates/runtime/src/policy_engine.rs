@@ -22,12 +22,7 @@ impl PolicyRule {
         action: PolicyAction,
         priority: u32,
     ) -> Self {
-        Self {
-            name: name.into(),
-            condition,
-            action,
-            priority,
-        }
+        Self { name: name.into(), condition, action, priority }
     }
 
     #[must_use]
@@ -54,12 +49,8 @@ impl PolicyCondition {
     #[must_use]
     pub fn matches(&self, context: &LaneContext) -> bool {
         match self {
-            Self::And(conditions) => conditions
-                .iter()
-                .all(|condition| condition.matches(context)),
-            Self::Or(conditions) => conditions
-                .iter()
-                .any(|condition| condition.matches(context)),
+            Self::And(conditions) => conditions.iter().all(|condition| condition.matches(context)),
+            Self::Or(conditions) => conditions.iter().any(|condition| condition.matches(context)),
             Self::GreenAt { level } => context.green_level >= *level,
             Self::StaleBranch => context.branch_freshness >= STALE_BRANCH_THRESHOLD,
             Self::StartupBlocked => context.blocker == LaneBlocker::Startup,
@@ -302,9 +293,7 @@ mod tests {
             PolicyCondition::StartupBlocked,
             PolicyAction::Chain(vec![
                 PolicyAction::RecoverOnce,
-                PolicyAction::Escalate {
-                    reason: "startup remained blocked".to_string(),
-                },
+                PolicyAction::Escalate { reason: "startup remained blocked".to_string() },
             ]),
             15,
         )]);
@@ -326,9 +315,7 @@ mod tests {
             actions,
             vec![
                 PolicyAction::RecoverOnce,
-                PolicyAction::Escalate {
-                    reason: "startup remained blocked".to_string(),
-                },
+                PolicyAction::Escalate { reason: "startup remained blocked".to_string() },
             ]
         );
     }
@@ -372,17 +359,13 @@ mod tests {
             PolicyRule::new(
                 "first-notify",
                 PolicyCondition::And(vec![]),
-                PolicyAction::Notify {
-                    channel: "ops".to_string(),
-                },
+                PolicyAction::Notify { channel: "ops".to_string() },
                 10,
             ),
             PolicyRule::new(
                 "second-notify",
                 PolicyCondition::And(vec![]),
-                PolicyAction::Notify {
-                    channel: "review".to_string(),
-                },
+                PolicyAction::Notify { channel: "review".to_string() },
                 10,
             ),
             PolicyRule::new("merge", PolicyCondition::And(vec![]), PolicyAction::MergeToDev, 20),
@@ -396,12 +379,8 @@ mod tests {
         assert_eq!(
             actions,
             vec![
-                PolicyAction::Notify {
-                    channel: "ops".to_string(),
-                },
-                PolicyAction::Notify {
-                    channel: "review".to_string(),
-                },
+                PolicyAction::Notify { channel: "ops".to_string() },
+                PolicyAction::Notify { channel: "review".to_string() },
                 PolicyAction::MergeToDev,
                 PolicyAction::CleanupSession,
             ]
@@ -415,17 +394,13 @@ mod tests {
             PolicyRule::new(
                 "empty-and",
                 PolicyCondition::And(vec![]),
-                PolicyAction::Notify {
-                    channel: "orchestrator".to_string(),
-                },
+                PolicyAction::Notify { channel: "orchestrator".to_string() },
                 5,
             ),
             PolicyRule::new(
                 "empty-or",
                 PolicyCondition::Or(vec![]),
-                PolicyAction::Block {
-                    reason: "should not fire".to_string(),
-                },
+                PolicyAction::Block { reason: "should not fire".to_string() },
                 10,
             ),
             PolicyRule::new(
@@ -434,15 +409,11 @@ mod tests {
                     PolicyCondition::StartupBlocked,
                     PolicyCondition::And(vec![
                         PolicyCondition::GreenAt { level: 2 },
-                        PolicyCondition::TimedOut {
-                            duration: Duration::from_secs(5),
-                        },
+                        PolicyCondition::TimedOut { duration: Duration::from_secs(5) },
                     ]),
                 ]),
                 PolicyAction::Chain(vec![
-                    PolicyAction::Notify {
-                        channel: "alerts".to_string(),
-                    },
+                    PolicyAction::Notify { channel: "alerts".to_string() },
                     PolicyAction::Chain(vec![
                         PolicyAction::MergeForward,
                         PolicyAction::CleanupSession,
@@ -468,12 +439,8 @@ mod tests {
         assert_eq!(
             actions,
             vec![
-                PolicyAction::Notify {
-                    channel: "orchestrator".to_string(),
-                },
-                PolicyAction::Notify {
-                    channel: "alerts".to_string(),
-                },
+                PolicyAction::Notify { channel: "orchestrator".to_string() },
+                PolicyAction::Notify { channel: "alerts".to_string() },
                 PolicyAction::MergeForward,
                 PolicyAction::CleanupSession,
             ]
@@ -488,9 +455,7 @@ mod tests {
                 "reconcile-closeout",
                 PolicyCondition::LaneReconciled,
                 PolicyAction::Chain(vec![
-                    PolicyAction::Reconcile {
-                        reason: ReconcileReason::AlreadyMerged,
-                    },
+                    PolicyAction::Reconcile { reason: ReconcileReason::AlreadyMerged },
                     PolicyAction::CloseoutLane,
                     PolicyAction::CleanupSession,
                 ]),
@@ -519,9 +484,7 @@ mod tests {
         assert_eq!(
             actions,
             vec![
-                PolicyAction::Reconcile {
-                    reason: ReconcileReason::AlreadyMerged,
-                },
+                PolicyAction::Reconcile { reason: ReconcileReason::AlreadyMerged },
                 PolicyAction::CloseoutLane,
                 PolicyAction::CleanupSession,
                 PolicyAction::CloseoutLane,
@@ -544,9 +507,7 @@ mod tests {
         let engine = PolicyEngine::new(vec![PolicyRule::new(
             "reconcile-closeout",
             PolicyCondition::LaneReconciled,
-            PolicyAction::Reconcile {
-                reason: ReconcileReason::EmptyDiff,
-            },
+            PolicyAction::Reconcile { reason: ReconcileReason::EmptyDiff },
             5,
         )]);
         // Normal completed lane — not reconciled

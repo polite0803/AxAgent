@@ -54,12 +54,7 @@ impl MarkdownParser {
         let links = self.extract_links(&content_without_frontmatter);
         let raw_links = self.extract_raw_wiki_links(&content_without_frontmatter);
 
-        ParsedNote {
-            frontmatter,
-            content: content_without_frontmatter,
-            links,
-            raw_links,
-        }
+        ParsedNote { frontmatter, content: content_without_frontmatter, links, raw_links }
     }
 
     pub fn extract_frontmatter(&self, content: &str) -> ParsedFrontmatter {
@@ -117,10 +112,7 @@ impl MarkdownParser {
 
         for caps in self.link_regex.captures_iter(content) {
             let display = caps.get(1).map(|m| m.as_str().to_string());
-            let url = caps
-                .get(2)
-                .map(|m| m.as_str().to_string())
-                .unwrap_or_default();
+            let url = caps.get(2).map(|m| m.as_str().to_string()).unwrap_or_default();
 
             let link_type = if url.starts_with("http://") || url.starts_with("https://") {
                 "url"
@@ -140,17 +132,10 @@ impl MarkdownParser {
         }
 
         for caps in self.wiki_link_regex.captures_iter(content) {
-            let target = caps
-                .get(1)
-                .map(|m| m.as_str().to_string())
-                .unwrap_or_default();
+            let target = caps.get(1).map(|m| m.as_str().to_string()).unwrap_or_default();
             let display = caps.get(2).map(|m| m.as_str().to_string());
 
-            links.push(ParsedLink {
-                target,
-                display_text: display,
-                link_type: "wiki".to_string(),
-            });
+            links.push(ParsedLink { target, display_text: display, link_type: "wiki".to_string() });
         }
 
         links

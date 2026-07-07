@@ -40,9 +40,7 @@ impl GeminiAdapter {
     }
 
     fn base_url(ctx: &ProviderRequestContext) -> String {
-        ctx.base_url
-            .clone()
-            .unwrap_or_else(|| DEFAULT_BASE_URL.to_string())
+        ctx.base_url.clone().unwrap_or_else(|| DEFAULT_BASE_URL.to_string())
     }
 
     #[allow(clippy::result_large_err)]
@@ -347,10 +345,7 @@ fn convert_messages(messages: &[ChatMessage]) -> (Option<GeminiContent>, Vec<Gem
                         });
                     }
                 }
-                contents.push(GeminiContent {
-                    role: Some("model".to_string()),
-                    parts,
-                });
+                contents.push(GeminiContent { role: Some("model".to_string()), parts });
             },
             _ => {
                 let mut parts = Vec::new();
@@ -418,10 +413,7 @@ fn convert_messages(messages: &[ChatMessage]) -> (Option<GeminiContent>, Vec<Gem
                     other => other,
                 };
 
-                contents.push(GeminiContent {
-                    role: Some(role.to_string()),
-                    parts,
-                });
+                contents.push(GeminiContent { role: Some(role.to_string()), parts });
             },
         }
     }
@@ -430,9 +422,8 @@ fn convert_messages(messages: &[ChatMessage]) -> (Option<GeminiContent>, Vec<Gem
 }
 
 fn make_gen_config(request: &ChatRequest) -> Option<GeminiGenerationConfig> {
-    let thinking_config = request
-        .thinking_budget
-        .map(|b| GeminiThinkingConfig { thinking_budget: b });
+    let thinking_config =
+        request.thinking_budget.map(|b| GeminiThinkingConfig { thinking_budget: b });
     if request.temperature.is_some()
         || request.top_p.is_some()
         || request.max_tokens.is_some()
@@ -486,9 +477,7 @@ mod tests {
                 ContentPart {
                     r#type: "image_url".to_string(),
                     text: None,
-                    image_url: Some(ImageUrl {
-                        url: "data:image/png;base64,YWJj".to_string(),
-                    }),
+                    image_url: Some(ImageUrl { url: "data:image/png;base64,YWJj".to_string() }),
                 },
             ]),
             tool_calls: None,
@@ -542,10 +531,7 @@ impl ProviderAdapter for GeminiAdapter {
         };
 
         let resp = crate::apply_request_headers(
-            self.get_client(ctx)?
-                .post(&url)
-                .header("x-goog-api-key", &ctx.api_key)
-                .json(&body),
+            self.get_client(ctx)?.post(&url).header("x-goog-api-key", &ctx.api_key).json(&body),
             ctx,
         )
         .send()
@@ -558,10 +544,8 @@ impl ProviderAdapter for GeminiAdapter {
             return Err(AxAgentError::Provider(format!("Gemini API error {s}: {t}")));
         }
 
-        let gr: GeminiResponse = resp
-            .json()
-            .await
-            .map_err(|e| AxAgentError::Provider(format!("Parse error: {e}")))?;
+        let gr: GeminiResponse =
+            resp.json().await.map_err(|e| AxAgentError::Provider(format!("Parse error: {e}")))?;
 
         let parts = gr
             .candidates
@@ -642,10 +626,7 @@ impl ProviderAdapter for GeminiAdapter {
 
         tokio::spawn(async move {
             let resp = match crate::apply_stream_headers_to_request(
-                client
-                    .post(&url)
-                    .header("x-goog-api-key", &api_key)
-                    .json(&body),
+                client.post(&url).header("x-goog-api-key", &api_key).json(&body),
                 &custom_headers,
             )
             .send()
@@ -801,9 +782,7 @@ impl ProviderAdapter for GeminiAdapter {
         let url = format!("{}/models", Self::base_url(ctx));
 
         let resp = crate::apply_request_headers(
-            self.get_client(ctx)?
-                .get(&url)
-                .header("x-goog-api-key", &ctx.api_key),
+            self.get_client(ctx)?.get(&url).header("x-goog-api-key", &ctx.api_key),
             ctx,
         )
         .send()
@@ -816,30 +795,20 @@ impl ProviderAdapter for GeminiAdapter {
             return Err(AxAgentError::Provider(format!("Gemini API error {s}: {t}")));
         }
 
-        let models: GeminiModelsResponse = resp
-            .json()
-            .await
-            .map_err(|e| AxAgentError::Provider(format!("Parse error: {e}")))?;
+        let models: GeminiModelsResponse =
+            resp.json().await.map_err(|e| AxAgentError::Provider(format!("Parse error: {e}")))?;
 
         Ok(models
             .models
             .unwrap_or_default()
             .into_iter()
             .filter(|m| {
-                m.supported_generation_methods
-                    .as_ref()
-                    .is_none_or(|methods| {
-                        methods
-                            .iter()
-                            .any(|m| m == "generateContent" || m == "generateAnswer")
-                    })
+                m.supported_generation_methods.as_ref().is_none_or(|methods| {
+                    methods.iter().any(|m| m == "generateContent" || m == "generateAnswer")
+                })
             })
             .map(|m| {
-                let model_id = m
-                    .name
-                    .strip_prefix("models/")
-                    .unwrap_or(&m.name)
-                    .to_string();
+                let model_id = m.name.strip_prefix("models/").unwrap_or(&m.name).to_string();
                 let name = m.display_name.unwrap_or_else(|| model_id.clone());
                 let model_type = ModelType::detect(&model_id);
                 let mut caps = match model_type {
@@ -895,10 +864,7 @@ impl ProviderAdapter for GeminiAdapter {
         let body = serde_json::json!({ "requests": requests });
 
         let resp = crate::apply_request_headers(
-            self.get_client(ctx)?
-                .post(&url)
-                .header("x-goog-api-key", &ctx.api_key)
-                .json(&body),
+            self.get_client(ctx)?.post(&url).header("x-goog-api-key", &ctx.api_key).json(&body),
             ctx,
         )
         .send()
@@ -925,16 +891,9 @@ impl ProviderAdapter for GeminiAdapter {
             .await
             .map_err(|e| AxAgentError::Provider(format!("Gemini embed parse error: {e}")))?;
 
-        let dimensions = result
-            .embeddings
-            .first()
-            .map(|e| e.values.len())
-            .unwrap_or(0);
+        let dimensions = result.embeddings.first().map(|e| e.values.len()).unwrap_or(0);
         let embeddings: Vec<Vec<f32>> = result.embeddings.into_iter().map(|e| e.values).collect();
 
-        Ok(EmbedResponse {
-            embeddings,
-            dimensions,
-        })
+        Ok(EmbedResponse { embeddings, dimensions })
     }
 }

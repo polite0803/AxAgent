@@ -31,17 +31,13 @@ fn git_root() -> Result<String, ToolError> {
 }
 
 fn default_branch() -> String {
-    let output = Command::new("git")
-        .args(["branch", "-a"])
-        .output()
-        .ok()
-        .and_then(|o| {
-            if o.status.success() {
-                String::from_utf8(o.stdout).ok()
-            } else {
-                None
-            }
-        });
+    let output = Command::new("git").args(["branch", "-a"]).output().ok().and_then(|o| {
+        if o.status.success() {
+            String::from_utf8(o.stdout).ok()
+        } else {
+            None
+        }
+    });
     if let Some(ref branches) = output {
         for name in &["main", "master"] {
             if branches.lines().any(|l| l.contains(name)) {
@@ -195,9 +191,8 @@ impl Tool for ExitWorktreeTool {
             return Ok(ToolResult::success("📤 已离开 worktree（文件已保留）"));
         }
         let discard = i["discard_changes"].as_bool().unwrap_or(false);
-        let cwd = std::env::current_dir()
-            .map(|p| p.to_string_lossy().to_string())
-            .unwrap_or_default();
+        let cwd =
+            std::env::current_dir().map(|p| p.to_string_lossy().to_string()).unwrap_or_default();
         let worktrees = list_worktrees().unwrap_or_default();
         let current = worktrees.iter().find(|(p, _, _)| cwd.starts_with(p));
         let (wt_path, wt_branch) = match current {
@@ -219,11 +214,10 @@ impl Tool for ExitWorktreeTool {
         if discard {
             args.push("--force");
         }
-        let output = Command::new("git")
-            .args(&args)
-            .current_dir(&root)
-            .output()
-            .map_err(|e| ToolError::execution_failed(format!("git worktree remove 失败: {}", e)))?;
+        let output =
+            Command::new("git").args(&args).current_dir(&root).output().map_err(|e| {
+                ToolError::execution_failed(format!("git worktree remove 失败: {}", e))
+            })?;
         if !output.status.success() {
             let err = String::from_utf8_lossy(&output.stderr);
             let hint = if err.contains("modified") || err.contains("untracked") {
@@ -234,10 +228,8 @@ impl Tool for ExitWorktreeTool {
             return Err(ToolError::execution_failed(format!("删除失败: {}{}", err, hint)));
         }
         if wt_branch != "detached" {
-            let _ = Command::new("git")
-                .args(["branch", "-D", &wt_branch])
-                .current_dir(&root)
-                .output();
+            let _ =
+                Command::new("git").args(["branch", "-D", &wt_branch]).current_dir(&root).output();
         }
         fire_hook(
             axagent_runtime_core::HookEvent::ConfigChange,

@@ -232,12 +232,8 @@ impl AxAgentApiClient {
                 MessageRole::Tool => {
                     // Tool result messages: one ChatMessage per ToolResult block
                     for block in &message.blocks {
-                        if let ContentBlock::ToolResult {
-                            tool_use_id,
-                            output,
-                            is_error,
-                            ..
-                        } = block
+                        if let ContentBlock::ToolResult { tool_use_id, output, is_error, .. } =
+                            block
                         {
                             let content = if *is_error {
                                 format!("Error: {}", output)
@@ -409,9 +405,7 @@ impl ApiClient for AxAgentApiClient {
         for prompt_text in &request.system_prompt {
             all_conv_messages.push(ConversationMessage {
                 role: MessageRole::System,
-                blocks: vec![ContentBlock::Text {
-                    text: prompt_text.clone(),
-                }],
+                blocks: vec![ContentBlock::Text { text: prompt_text.clone() }],
                 usage: None,
             });
         }
@@ -438,8 +432,7 @@ impl ApiClient for AxAgentApiClient {
 
         // Call AxAgent's provider stream
         let mut stream =
-            self.adapter
-                .chat_stream(&self.ctx, chat_request, self.cancel_token.clone());
+            self.adapter.chat_stream(&self.ctx, chat_request, self.cancel_token.clone());
         let mut events = Vec::new();
         let on_event = self.on_event.clone();
 
@@ -556,9 +549,7 @@ mod tests {
     fn make_test_messages() -> Vec<ConversationMessage> {
         vec![ConversationMessage {
             role: MessageRole::User,
-            blocks: vec![ContentBlock::Text {
-                text: "Hello".to_string(),
-            }],
+            blocks: vec![ContentBlock::Text { text: "Hello".to_string() }],
             usage: None,
         }]
     }
@@ -575,9 +566,7 @@ mod tests {
     fn test_convert_messages_system() {
         let messages = vec![ConversationMessage {
             role: MessageRole::System,
-            blocks: vec![ContentBlock::Text {
-                text: "You are helpful".to_string(),
-            }],
+            blocks: vec![ContentBlock::Text { text: "You are helpful".to_string() }],
             usage: None,
         }];
         let result = AxAgentApiClient::convert_messages(&messages, &[]);
@@ -589,9 +578,7 @@ mod tests {
     fn test_convert_messages_assistant_with_text() {
         let messages = vec![ConversationMessage {
             role: MessageRole::Assistant,
-            blocks: vec![ContentBlock::Text {
-                text: "Hi there".to_string(),
-            }],
+            blocks: vec![ContentBlock::Text { text: "Hi there".to_string() }],
             usage: None,
         }];
         let result = AxAgentApiClient::convert_messages(&messages, &[]);
@@ -608,9 +595,7 @@ mod tests {
         let messages = vec![ConversationMessage {
             role: MessageRole::Assistant,
             blocks: vec![
-                ContentBlock::Text {
-                    text: "Let me check".to_string(),
-                },
+                ContentBlock::Text { text: "Let me check".to_string() },
                 ContentBlock::ToolUse {
                     id: "call_1".to_string(),
                     name: "search".to_string(),
@@ -649,9 +634,7 @@ mod tests {
     fn test_convert_messages_with_image_urls() {
         let messages = vec![ConversationMessage {
             role: MessageRole::User,
-            blocks: vec![ContentBlock::Text {
-                text: "Describe this image".to_string(),
-            }],
+            blocks: vec![ContentBlock::Text { text: "Describe this image".to_string() }],
             usage: None,
         }];
         let image_urls = vec!["data:image/png;base64,abc".to_string()];
@@ -672,16 +655,12 @@ mod tests {
         let messages = vec![
             ConversationMessage {
                 role: MessageRole::User,
-                blocks: vec![ContentBlock::Text {
-                    text: "First".to_string(),
-                }],
+                blocks: vec![ContentBlock::Text { text: "First".to_string() }],
                 usage: None,
             },
             ConversationMessage {
                 role: MessageRole::User,
-                blocks: vec![ContentBlock::Text {
-                    text: "Second".to_string(),
-                }],
+                blocks: vec![ContentBlock::Text { text: "Second".to_string() }],
                 usage: None,
             },
         ];
@@ -786,9 +765,7 @@ mod tests {
         let messages = vec![ConversationMessage {
             role: MessageRole::Assistant,
             blocks: vec![
-                ContentBlock::Text {
-                    text: "Let me search".to_string(),
-                },
+                ContentBlock::Text { text: "Let me search".to_string() },
                 ContentBlock::ToolUse {
                     id: "call_1".to_string(),
                     name: "search".to_string(),
@@ -838,9 +815,7 @@ mod tests {
     fn test_convert_messages_system_text() {
         let messages = vec![ConversationMessage {
             role: MessageRole::System,
-            blocks: vec![ContentBlock::Text {
-                text: "You are helpful".to_string(),
-            }],
+            blocks: vec![ContentBlock::Text { text: "You are helpful".to_string() }],
             usage: None,
         }];
         let result = AxAgentApiClient::convert_messages(&messages, &[]);
@@ -857,9 +832,7 @@ mod tests {
     fn test_convert_messages_image_urls_with_empty_text() {
         let messages = vec![ConversationMessage {
             role: MessageRole::User,
-            blocks: vec![ContentBlock::Text {
-                text: String::new(),
-            }],
+            blocks: vec![ContentBlock::Text { text: String::new() }],
             usage: None,
         }];
         let image_urls = vec!["data:image/png;base64,abc".to_string()];
@@ -877,9 +850,7 @@ mod tests {
     fn test_convert_messages_image_urls_multiple() {
         let messages = vec![ConversationMessage {
             role: MessageRole::User,
-            blocks: vec![ContentBlock::Text {
-                text: "Compare these".to_string(),
-            }],
+            blocks: vec![ContentBlock::Text { text: "Compare these".to_string() }],
             usage: None,
         }];
         let image_urls = vec![
@@ -902,9 +873,7 @@ mod tests {
     fn test_convert_messages_no_image_urls_on_system() {
         let messages = vec![ConversationMessage {
             role: MessageRole::System,
-            blocks: vec![ContentBlock::Text {
-                text: "System prompt".to_string(),
-            }],
+            blocks: vec![ContentBlock::Text { text: "System prompt".to_string() }],
             usage: None,
         }];
         let image_urls = vec!["data:image/png;base64,abc".to_string()];
@@ -958,23 +927,17 @@ mod tests {
         let messages = vec![
             ConversationMessage {
                 role: MessageRole::System,
-                blocks: vec![ContentBlock::Text {
-                    text: "System".to_string(),
-                }],
+                blocks: vec![ContentBlock::Text { text: "System".to_string() }],
                 usage: None,
             },
             ConversationMessage {
                 role: MessageRole::User,
-                blocks: vec![ContentBlock::Text {
-                    text: "Hello".to_string(),
-                }],
+                blocks: vec![ContentBlock::Text { text: "Hello".to_string() }],
                 usage: None,
             },
             ConversationMessage {
                 role: MessageRole::Assistant,
-                blocks: vec![ContentBlock::Text {
-                    text: "Hi".to_string(),
-                }],
+                blocks: vec![ContentBlock::Text { text: "Hi".to_string() }],
                 usage: None,
             },
             ConversationMessage {
@@ -1017,9 +980,7 @@ mod tests {
                     output: "result".to_string(),
                     is_error: false,
                 },
-                ContentBlock::Text {
-                    text: "extra text".to_string(),
-                },
+                ContentBlock::Text { text: "extra text".to_string() },
             ],
             usage: None,
         }];
@@ -1033,12 +994,8 @@ mod tests {
         let messages = vec![ConversationMessage {
             role: MessageRole::User,
             blocks: vec![
-                ContentBlock::Text {
-                    text: "Hello".to_string(),
-                },
-                ContentBlock::Text {
-                    text: " World".to_string(),
-                },
+                ContentBlock::Text { text: "Hello".to_string() },
+                ContentBlock::Text { text: " World".to_string() },
             ],
             usage: None,
         }];

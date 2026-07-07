@@ -20,10 +20,7 @@ pub struct DenialTracker {
 
 impl DenialTracker {
     pub fn new() -> Self {
-        Self {
-            denials: HashMap::new(),
-            degraded: Vec::new(),
-        }
+        Self { denials: HashMap::new(), degraded: Vec::new() }
     }
 
     /// 记录一次拒绝

@@ -37,9 +37,8 @@ pub async fn orchestrate_mission(
         .await
         .map_err(|e| format!("Orchestrator decompose failed: {e}"))?;
 
-    let subgraph = subgraph_builder
-        .generate(&plan)
-        .map_err(|e| format!("Subgraph generation failed: {e}"))?;
+    let subgraph =
+        subgraph_builder.generate(&plan).map_err(|e| format!("Subgraph generation failed: {e}"))?;
 
     let explanation = format!(
         "已将使命「{}」分解为 {} 个子任务，策略：{}",
@@ -48,8 +47,5 @@ pub async fn orchestrate_mission(
         strategy.as_str(),
     );
 
-    Ok(OrchestrateResult {
-        nodes: subgraph.nodes,
-        explanation,
-    })
+    Ok(OrchestrateResult { nodes: subgraph.nodes, explanation })
 }

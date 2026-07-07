@@ -286,8 +286,7 @@ impl FineTuneTrainer {
         self.complete_job(job_id, output_path_str.clone())?;
 
         let adapter_info = LoRAAdapterInfo::from_training_job(
-            self.get_job(job_id)
-                .ok_or_else(|| FineTuneError::NotFound(job_id.to_string()))?,
+            self.get_job(job_id).ok_or_else(|| FineTuneError::NotFound(job_id.to_string()))?,
             output_path_str.clone(),
         );
 
@@ -441,10 +440,8 @@ impl FineTuneTrainer {
         // Phase 3: Download and export adapter weights
         self.transition(job_id, JobStatus::Validating)?;
 
-        let adapter_url = final_response
-            .get("adapter_url")
-            .and_then(|v| v.as_str())
-            .ok_or_else(|| {
+        let adapter_url =
+            final_response.get("adapter_url").and_then(|v| v.as_str()).ok_or_else(|| {
                 FineTuneError::ValidationError("response missing 'adapter_url'".into())
             })?;
 
@@ -473,8 +470,7 @@ impl FineTuneTrainer {
         self.complete_job(job_id, output_path_str.clone())?;
 
         let adapter_info = LoRAAdapterInfo::from_training_job(
-            self.get_job(job_id)
-                .ok_or_else(|| FineTuneError::NotFound(job_id.to_string()))?,
+            self.get_job(job_id).ok_or_else(|| FineTuneError::NotFound(job_id.to_string()))?,
             output_path_str.clone(),
         );
 
@@ -492,9 +488,8 @@ impl FineTuneTrainer {
     // ── Private helpers ───────────────────────────────────────────────
 
     fn check_job_ready(&self, job_id: &str) -> Result<TrainingJob, FineTuneError> {
-        let job = self
-            .get_job(job_id)
-            .ok_or_else(|| FineTuneError::NotFound(job_id.to_string()))?;
+        let job =
+            self.get_job(job_id).ok_or_else(|| FineTuneError::NotFound(job_id.to_string()))?;
         if job.status != JobStatus::Pending {
             return Err(FineTuneError::ValidationError(format!(
                 "Cannot start job in status {:?}",
@@ -505,9 +500,8 @@ impl FineTuneTrainer {
     }
 
     fn transition(&mut self, job_id: &str, status: JobStatus) -> Result<(), FineTuneError> {
-        let job = self
-            .get_job_mut(job_id)
-            .ok_or_else(|| FineTuneError::NotFound(job_id.to_string()))?;
+        let job =
+            self.get_job_mut(job_id).ok_or_else(|| FineTuneError::NotFound(job_id.to_string()))?;
         job.status = status.clone();
         if status == JobStatus::Preparing {
             self.current_job = Some(job_id.to_string());
@@ -527,9 +521,8 @@ impl FineTuneTrainer {
         eta: u64,
         phase: TrainingPhase,
     ) -> Result<(), FineTuneError> {
-        let job = self
-            .get_job_mut(job_id)
-            .ok_or_else(|| FineTuneError::NotFound(job_id.to_string()))?;
+        let job =
+            self.get_job_mut(job_id).ok_or_else(|| FineTuneError::NotFound(job_id.to_string()))?;
         job.progress.current_epoch = epoch;
         job.progress.current_step = step;
         job.progress.loss = loss;
@@ -648,10 +641,8 @@ impl FineTuneTrainer {
             .await
             .map_err(|e| FineTuneError::ValidationError(format!("upload failed: {}", e)))?;
 
-        let body: serde_json::Value = resp
-            .json()
-            .await
-            .map_err(|e| FineTuneError::SerializationError(e.to_string()))?;
+        let body: serde_json::Value =
+            resp.json().await.map_err(|e| FineTuneError::SerializationError(e.to_string()))?;
 
         Ok(body)
     }
@@ -683,10 +674,8 @@ impl FineTuneTrainer {
             .await
             .map_err(|e| FineTuneError::ValidationError(format!("create job failed: {}", e)))?;
 
-        let body: serde_json::Value = resp
-            .json()
-            .await
-            .map_err(|e| FineTuneError::SerializationError(e.to_string()))?;
+        let body: serde_json::Value =
+            resp.json().await.map_err(|e| FineTuneError::SerializationError(e.to_string()))?;
 
         Ok(body)
     }
@@ -709,10 +698,8 @@ impl FineTuneTrainer {
                 .await
                 .map_err(|e| FineTuneError::ValidationError(format!("poll failed: {}", e)))?;
 
-            let body: serde_json::Value = resp
-                .json()
-                .await
-                .map_err(|e| FineTuneError::SerializationError(e.to_string()))?;
+            let body: serde_json::Value =
+                resp.json().await.map_err(|e| FineTuneError::SerializationError(e.to_string()))?;
 
             let status = body.get("status").and_then(|v| v.as_str()).unwrap_or("");
 
@@ -855,17 +842,9 @@ impl FineTuneTrainer {
 
     pub fn get_training_stats(&self) -> TrainingStats {
         let total = self.jobs.len();
-        let completed = self
-            .jobs
-            .iter()
-            .filter(|j| j.status == JobStatus::Completed)
-            .count();
+        let completed = self.jobs.iter().filter(|j| j.status == JobStatus::Completed).count();
         let running = self.jobs.iter().filter(|j| j.is_running()).count();
-        let failed = self
-            .jobs
-            .iter()
-            .filter(|j| j.status == JobStatus::Failed)
-            .count();
+        let failed = self.jobs.iter().filter(|j| j.status == JobStatus::Failed).count();
 
         TrainingStats {
             total_jobs: total,
@@ -928,11 +907,8 @@ impl DatasetConverter {
     }
 
     pub fn convert_to_jsonl(dataset: &FineTuneDataset) -> Result<String, FineTuneError> {
-        let lines: Vec<String> = dataset
-            .samples
-            .iter()
-            .map(|s| serde_json::to_string(s).unwrap_or_default())
-            .collect();
+        let lines: Vec<String> =
+            dataset.samples.iter().map(|s| serde_json::to_string(s).unwrap_or_default()).collect();
 
         Ok(lines.join("\n"))
     }
@@ -1001,11 +977,7 @@ mod tests {
         assert!(result.is_ok());
         let training_result = result.unwrap();
         assert_eq!(training_result.job_id, job.id);
-        assert!(
-            training_result
-                .output_lora_path
-                .contains("adapter_model.safetensors")
-        );
+        assert!(training_result.output_lora_path.contains("adapter_model.safetensors"));
         assert!(training_result.train_loss_curve.len() > 0);
         let found = trainer.get_job(&job.id).unwrap();
         assert_eq!(found.status, JobStatus::Completed);

@@ -14,9 +14,7 @@ pub struct SkillInstaller {
 
 impl SkillInstaller {
     pub fn new(skills_root: impl Into<PathBuf>) -> Self {
-        Self {
-            skills_root: skills_root.into(),
-        }
+        Self { skills_root: skills_root.into() }
     }
 
     /// 将插件 skills 部署到系统技能目录

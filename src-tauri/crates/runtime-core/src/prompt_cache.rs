@@ -107,9 +107,7 @@ pub struct PromptCache {
 
 impl PromptCache {
     pub fn new() -> Self {
-        Self {
-            state: Arc::new(RwLock::new(PromptCacheState::default())),
-        }
+        Self { state: Arc::new(RwLock::new(PromptCacheState::default())) }
     }
 
     pub async fn record_system_prompt(&self, content: &str) {

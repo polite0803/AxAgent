@@ -197,10 +197,7 @@ pub struct ReasoningContext {
 
 impl ReasoningContext {
     pub fn new(input: &str) -> Self {
-        Self {
-            original_input: input.to_string(),
-            ..Default::default()
-        }
+        Self { original_input: input.to_string(), ..Default::default() }
     }
 
     pub fn set_goal(&mut self, goal: String) {

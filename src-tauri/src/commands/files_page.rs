@@ -57,9 +57,7 @@ fn resolve_storage_path(storage_path: &str) -> Result<String, String> {
     // 写/打开类命令由调用方根据结果决定是否继续）。
     let documents_root = axagent_storage::storage_paths::documents_root();
     let canonical = resolved.canonicalize().unwrap_or(resolved);
-    let canonical_root = documents_root
-        .canonicalize()
-        .unwrap_or_else(|_| documents_root.clone());
+    let canonical_root = documents_root.canonicalize().unwrap_or_else(|_| documents_root.clone());
     if !canonical.starts_with(&canonical_root) {
         return Err(format!(
             "路径越界：'{}' 不在文档根目录 '{}' 内",
@@ -159,10 +157,7 @@ pub fn apply_search_filter(
         None | Some("") => entries,
         Some(q) => {
             let q = q.to_lowercase();
-            entries
-                .into_iter()
-                .filter(|e| e.display_name.to_lowercase().contains(&q))
-                .collect()
+            entries.into_iter().filter(|e| e.display_name.to_lowercase().contains(&q)).collect()
         },
     }
 }
@@ -315,9 +310,7 @@ fn open_attachment_file_validate(file_path: &str) -> Result<String, ErrorRespons
 pub async fn open_attachment_file(app: tauri::AppHandle, file_path: String) -> Result<(), String> {
     let abs = open_attachment_file_validate(&file_path)?;
     use tauri_plugin_opener::OpenerExt;
-    app.opener()
-        .open_path(&abs, None::<&str>)
-        .map_err(|e| e.to_string())
+    app.opener().open_path(&abs, None::<&str>).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -360,18 +353,14 @@ pub async fn list_files_page_entries(
 pub async fn open_files_page_entry(app: tauri::AppHandle, path: String) -> Result<(), String> {
     validate_path_for_open(&path)?;
     use tauri_plugin_opener::OpenerExt;
-    app.opener()
-        .open_path(&path, None::<&str>)
-        .map_err(|e| e.to_string())
+    app.opener().open_path(&path, None::<&str>).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
 pub async fn reveal_files_page_entry(app: tauri::AppHandle, path: String) -> Result<(), String> {
     validate_path_for_open(&path)?;
     use tauri_plugin_opener::OpenerExt;
-    app.opener()
-        .reveal_item_in_dir(&path)
-        .map_err(|e| e.to_string())
+    app.opener().reveal_item_in_dir(&path).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -437,10 +426,8 @@ mod tests {
     }
 
     fn make_temp_app_data_dir() -> std::path::PathBuf {
-        let unique = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_nanos();
+        let unique =
+            std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos();
         std::env::temp_dir().join(format!(
             "axagent-files-page-tests-{}-{}",
             std::process::id(),
@@ -490,11 +477,7 @@ mod tests {
         assert_eq!(entries.len(), 2);
         assert!(entries.iter().all(|e| e.category == "backups"));
         assert!(entries.iter().all(|e| e.source_kind == "backup_manifest"));
-        assert!(
-            entries
-                .iter()
-                .all(|e| e.id.starts_with("backup_manifest::"))
-        );
+        assert!(entries.iter().all(|e| e.id.starts_with("backup_manifest::")));
         assert!(entries.iter().any(|e| e.id == "backup_manifest::bk1"));
         assert!(entries.iter().any(|e| e.id == "backup_manifest::bk2"));
     }
@@ -516,16 +499,8 @@ mod tests {
     #[test]
     fn test_existing_file_rows_are_not_flagged_missing() {
         // current_exe() always exists on the test runner machine
-        let existing = std::env::current_exe()
-            .unwrap()
-            .to_string_lossy()
-            .to_string();
-        let files = vec![make_stored_file(
-            "1",
-            "app.bin",
-            "application/octet-stream",
-            &existing,
-        )];
+        let existing = std::env::current_exe().unwrap().to_string_lossy().to_string();
+        let files = vec![make_stored_file("1", "app.bin", "application/octet-stream", &existing)];
         let entries = build_file_entries(&files);
         assert_eq!(entries.len(), 1);
         assert!(!entries[0].missing, "existing file must not be flagged missing");
@@ -544,12 +519,8 @@ mod tests {
 
     #[test]
     fn test_stored_file_paths_resolve_under_documents_root() {
-        let files = vec![make_stored_file(
-            "1",
-            "photo.jpg",
-            "image/jpeg",
-            "images/abc123_photo.jpg",
-        )];
+        let files =
+            vec![make_stored_file("1", "photo.jpg", "image/jpeg", "images/abc123_photo.jpg")];
         let entries = build_image_entries(&files);
 
         let expected = axagent_storage::storage_paths::documents_root()
@@ -584,10 +555,7 @@ mod tests {
 
     #[test]
     fn test_open_succeeds_for_existing_path() {
-        let existing = std::env::current_exe()
-            .unwrap()
-            .to_string_lossy()
-            .to_string();
+        let existing = std::env::current_exe().unwrap().to_string_lossy().to_string();
         assert!(validate_path_for_open(&existing).is_ok());
     }
 
@@ -611,10 +579,7 @@ mod tests {
 
     #[test]
     fn test_open_attachment_accepts_existing_file() {
-        let existing = std::env::current_exe()
-            .unwrap()
-            .to_string_lossy()
-            .to_string();
+        let existing = std::env::current_exe().unwrap().to_string_lossy().to_string();
         // Absolute paths pass through resolve_storage_path unchanged
         assert!(open_attachment_file_validate(&existing).is_ok());
     }
@@ -652,9 +617,7 @@ mod tests {
         std::fs::create_dir_all(&app_data_dir).unwrap();
 
         let file_store = axagent_storage::file_store::FileStore::with_root(app_data_dir.clone());
-        let saved = file_store
-            .save_file(b"hello world", "photo.png", "image/png")
-            .unwrap();
+        let saved = file_store.save_file(b"hello world", "photo.png", "image/png").unwrap();
         let physical_path = app_data_dir.join(&saved.storage_path);
         assert!(physical_path.exists(), "test fixture file must exist before cleanup");
 
@@ -682,9 +645,7 @@ mod tests {
             "attachment cleanup must remove the backing file from disk"
         );
         assert!(
-            axagent_dao::repo::stored_file::get_stored_file(&db, "file-1")
-                .await
-                .is_err(),
+            axagent_dao::repo::stored_file::get_stored_file(&db, "file-1").await.is_err(),
             "attachment cleanup must also remove the stored-file record"
         );
 
@@ -698,9 +659,7 @@ mod tests {
         std::fs::create_dir_all(&app_data_dir).unwrap();
 
         let file_store = axagent_storage::file_store::FileStore::with_root(app_data_dir.clone());
-        let saved = file_store
-            .save_file(b"same-bytes", "shared.png", "image/png")
-            .unwrap();
+        let saved = file_store.save_file(b"same-bytes", "shared.png", "image/png").unwrap();
         let physical_path = app_data_dir.join(&saved.storage_path);
         assert!(physical_path.exists(), "shared fixture file must exist before cleanup");
 
@@ -730,15 +689,11 @@ mod tests {
             "cleanup must keep the shared backing file while another record still references it"
         );
         assert!(
-            axagent_dao::repo::stored_file::get_stored_file(&db, "file-1")
-                .await
-                .is_err(),
+            axagent_dao::repo::stored_file::get_stored_file(&db, "file-1").await.is_err(),
             "cleanup must remove the targeted record"
         );
         assert!(
-            axagent_dao::repo::stored_file::get_stored_file(&db, "file-2")
-                .await
-                .is_ok(),
+            axagent_dao::repo::stored_file::get_stored_file(&db, "file-2").await.is_ok(),
             "cleanup must preserve other records that still share the same storage path"
         );
 
@@ -832,10 +787,7 @@ mod tests {
 
     #[test]
     fn test_image_entry_has_preview_url_when_file_exists() {
-        let existing = std::env::current_exe()
-            .unwrap()
-            .to_string_lossy()
-            .to_string();
+        let existing = std::env::current_exe().unwrap().to_string_lossy().to_string();
         let files = vec![make_stored_file("1", "photo.jpg", "image/jpeg", &existing)];
         let entries = build_image_entries(&files);
         assert_eq!(entries.len(), 1);
@@ -852,12 +804,8 @@ mod tests {
 
     #[test]
     fn test_image_entry_has_no_preview_url_when_file_missing() {
-        let files = vec![make_stored_file(
-            "1",
-            "photo.jpg",
-            "image/jpeg",
-            "/nonexistent/photo.jpg",
-        )];
+        let files =
+            vec![make_stored_file("1", "photo.jpg", "image/jpeg", "/nonexistent/photo.jpg")];
         let entries = build_image_entries(&files);
         assert_eq!(entries.len(), 1);
         assert!(entries[0].preview_url.is_none(), "missing image must not have a preview_url");
@@ -865,18 +813,10 @@ mod tests {
 
     #[test]
     fn test_non_image_entry_has_no_preview_url() {
-        let files = vec![make_stored_file(
-            "1",
-            "doc.pdf",
-            "application/pdf",
-            "/tmp/doc.pdf",
-        )];
+        let files = vec![make_stored_file("1", "doc.pdf", "application/pdf", "/tmp/doc.pdf")];
         let entries = build_file_entries(&files);
         assert_eq!(entries.len(), 1);
-        assert!(
-            entries[0].preview_url.is_none(),
-            "non-image entries must not have a preview_url"
-        );
+        assert!(entries[0].preview_url.is_none(), "non-image entries must not have a preview_url");
     }
 
     #[test]
@@ -907,9 +847,7 @@ mod tests {
 
         // Save via FileStore directly (mirrors command logic without the Tauri runtime)
         let store = axagent_storage::file_store::FileStore::with_root(tmp.clone());
-        let decoded = base64::engine::general_purpose::STANDARD
-            .decode(&b64)
-            .unwrap();
+        let decoded = base64::engine::general_purpose::STANDARD.decode(&b64).unwrap();
         let saved = store.save_file(&decoded, "avatar", "image/png").unwrap();
 
         assert!(

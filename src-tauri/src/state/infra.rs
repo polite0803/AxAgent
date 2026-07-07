@@ -31,12 +31,6 @@ impl InfraState {
         file_authorizer: Arc<FileAuthorizer>,
         app_data_dir: PathBuf,
     ) -> Self {
-        Self {
-            harness,
-            vector_store,
-            indexing_semaphore,
-            file_authorizer,
-            app_data_dir,
-        }
+        Self { harness, vector_store, indexing_semaphore, file_authorizer, app_data_dir }
     }
 }

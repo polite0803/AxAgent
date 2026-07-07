@@ -38,10 +38,8 @@ fn main() {
     let exit_after_tools_list = std::env::var("MCP_EXIT_AFTER_TOOLS_LIST").is_ok();
     let fail_once_mode = std::env::var("MCP_FAIL_ONCE_MODE").ok();
     let fail_once_marker = std::env::var("MCP_FAIL_ONCE_MARKER").ok();
-    let tool_call_delay_ms: u64 = std::env::var("MCP_TOOL_CALL_DELAY_MS")
-        .ok()
-        .and_then(|s| s.parse().ok())
-        .unwrap_or(0);
+    let tool_call_delay_ms: u64 =
+        std::env::var("MCP_TOOL_CALL_DELAY_MS").ok().and_then(|s| s.parse().ok()).unwrap_or(0);
     let invalid_tool_call_response = std::env::var("MCP_INVALID_TOOL_CALL_RESPONSE").is_ok();
     let lowercase_content_length = std::env::var("MCP_LOWERCASE_CONTENT_LENGTH").is_ok();
     let mismatched_response_id = std::env::var("MCP_MISMATCHED_RESPONSE_ID").is_ok();
@@ -201,10 +199,8 @@ fn main() {
                 if tool_call_delay_ms > 0 {
                     std::thread::sleep(std::time::Duration::from_millis(tool_call_delay_ms));
                 }
-                let args = request["params"]
-                    .get("arguments")
-                    .cloned()
-                    .unwrap_or(serde_json::json!({}));
+                let args =
+                    request["params"].get("arguments").cloned().unwrap_or(serde_json::json!({}));
                 let tool_name = request["params"]["name"].as_str().unwrap_or("");
 
                 if tool_name == "fail" {

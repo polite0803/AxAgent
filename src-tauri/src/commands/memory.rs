@@ -24,9 +24,7 @@ fn provider_type_to_registry_key(pt: &ProviderType) -> &'static str {
 pub async fn list_memory_namespaces(
     state: State<'_, AppState>,
 ) -> Result<Vec<MemoryNamespace>, String> {
-    axagent_dao::repo::memory::list_namespaces(state.harness.db())
-        .await
-        .map_err(|e| e.to_string())
+    axagent_dao::repo::memory::list_namespaces(state.harness.db()).await.map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -118,10 +116,7 @@ pub async fn add_memory_item(
         )
         .map_err(|e| e.to_string())?;
 
-        Ok(MemoryItem {
-            index_status: "pending".to_string(),
-            ..item
-        })
+        Ok(MemoryItem { index_status: "pending".to_string(), ..item })
     } else {
         // No embedding provider — mark as skipped
         let _ = axagent_dao::repo::memory::update_item_index_status(
@@ -131,10 +126,7 @@ pub async fn add_memory_item(
             None,
         )
         .await;
-        Ok(MemoryItem {
-            index_status: "skipped".to_string(),
-            ..item
-        })
+        Ok(MemoryItem { index_status: "skipped".to_string(), ..item })
     }
 }
 
@@ -146,14 +138,9 @@ pub async fn delete_memory_item(
 ) -> Result<(), String> {
     // Delete vector embedding for this item
     let collection_id = format!("mem_{}", namespace_id);
-    let _ = state
-        .vector_store
-        .delete_document_embeddings(&collection_id, &id)
-        .await;
+    let _ = state.vector_store.delete_document_embeddings(&collection_id, &id).await;
 
-    axagent_dao::repo::memory::delete_item(state.harness.db(), &id)
-        .await
-        .map_err(|e| e.to_string())
+    axagent_dao::repo::memory::delete_item(state.harness.db(), &id).await.map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -196,10 +183,7 @@ pub async fn update_memory_item(
             )
             .map_err(|e| e.to_string())?;
 
-            return Ok(MemoryItem {
-                index_status: "pending".to_string(),
-                ..item
-            });
+            return Ok(MemoryItem { index_status: "pending".to_string(), ..item });
         }
     }
 
@@ -380,17 +364,11 @@ pub async fn auto_extract_incremental_memories(
     };
 
     let (provider, key_row, model_id, settings) = {
-        let settings = axagent_dao::repo::settings::get_settings(state.harness.db())
-            .await
-            .unwrap_or_default();
-        let provider_id = settings
-            .default_provider_id
-            .as_deref()
-            .ok_or("No default provider configured")?;
-        let model_id = settings
-            .default_model_id
-            .as_deref()
-            .ok_or("No default model configured")?;
+        let settings =
+            axagent_dao::repo::settings::get_settings(state.harness.db()).await.unwrap_or_default();
+        let provider_id =
+            settings.default_provider_id.as_deref().ok_or("No default provider configured")?;
+        let model_id = settings.default_model_id.as_deref().ok_or("No default model configured")?;
 
         let provider = axagent_dao::repo::provider::get_provider(state.harness.db(), provider_id)
             .await
@@ -413,10 +391,7 @@ pub async fn auto_extract_incremental_memories(
         base_url: Some(resolve_base_url_for_type(&provider.api_host, &provider.provider_type)),
         api_path: provider.api_path.clone(),
         proxy_config: proxy,
-        custom_headers: provider
-            .custom_headers
-            .as_ref()
-            .and_then(|s| serde_json::from_str(s).ok()),
+        custom_headers: provider.custom_headers.as_ref().and_then(|s| serde_json::from_str(s).ok()),
         api_mode: None,
         conversation: None,
         previous_response_id: None,
@@ -444,21 +419,16 @@ pub async fn auto_extract_incremental_memories(
         return Ok(serde_json::json!({"extracted": 0, "skipped": false}));
     }
 
-    let ns_config = axagent_dao::repo::memory::get_namespace(state.harness.db(), &namespace_id)
-        .await
-        .ok();
-    let can_vector_dedup = ns_config
-        .as_ref()
-        .and_then(|ns| ns.embedding_provider.clone())
-        .is_some();
+    let ns_config =
+        axagent_dao::repo::memory::get_namespace(state.harness.db(), &namespace_id).await.ok();
+    let can_vector_dedup =
+        ns_config.as_ref().and_then(|ns| ns.embedding_provider.clone()).is_some();
 
     let existing_items = axagent_dao::repo::memory::list_items(state.harness.db(), &namespace_id)
         .await
         .map_err(|e| e.to_string())?;
-    let existing_contents: std::collections::HashSet<String> = existing_items
-        .iter()
-        .map(|item| item.content.to_lowercase().trim().to_string())
-        .collect();
+    let existing_contents: std::collections::HashSet<String> =
+        existing_items.iter().map(|item| item.content.to_lowercase().trim().to_string()).collect();
 
     let mut saved_count = 0usize;
     for item in &result.items {
@@ -565,11 +535,7 @@ pub async fn clear_memory_index(
     namespace_id: String,
 ) -> Result<(), String> {
     let collection_id = format!("mem_{}", namespace_id);
-    state
-        .vector_store
-        .delete_collection(&collection_id)
-        .await
-        .map_err(|e| e.to_string())?;
+    state.vector_store.delete_collection(&collection_id).await.map_err(|e| e.to_string())?;
 
     // Reset all items to "pending"
     let items = axagent_dao::repo::memory::list_items(state.harness.db(), &namespace_id)
@@ -795,17 +761,11 @@ pub async fn extract_conversation_entities(
     }
 
     let (provider, key_row, model_id, settings) = {
-        let settings = axagent_dao::repo::settings::get_settings(state.harness.db())
-            .await
-            .unwrap_or_default();
-        let provider_id = settings
-            .default_provider_id
-            .as_deref()
-            .ok_or("No default provider configured")?;
-        let model_id = settings
-            .default_model_id
-            .as_deref()
-            .ok_or("No default model configured")?;
+        let settings =
+            axagent_dao::repo::settings::get_settings(state.harness.db()).await.unwrap_or_default();
+        let provider_id =
+            settings.default_provider_id.as_deref().ok_or("No default provider configured")?;
+        let model_id = settings.default_model_id.as_deref().ok_or("No default model configured")?;
         let provider = axagent_dao::repo::provider::get_provider(state.harness.db(), provider_id)
             .await
             .map_err(|e| e.to_string())?;
@@ -826,10 +786,7 @@ pub async fn extract_conversation_entities(
         base_url: Some(resolve_base_url_for_type(&provider.api_host, &provider.provider_type)),
         api_path: provider.api_path.clone(),
         proxy_config: proxy,
-        custom_headers: provider
-            .custom_headers
-            .as_ref()
-            .and_then(|s| serde_json::from_str(s).ok()),
+        custom_headers: provider.custom_headers.as_ref().and_then(|s| serde_json::from_str(s).ok()),
         api_mode: None,
         conversation: None,
         previous_response_id: None,
@@ -878,10 +835,8 @@ pub async fn extract_conversation_entities(
         };
         drop(existing);
 
-        let existing_entities = storage
-            .search_entities(&ext_entity.name, 5)
-            .await
-            .unwrap_or_default();
+        let existing_entities =
+            storage.search_entities(&ext_entity.name, 5).await.unwrap_or_default();
         let already_exists = existing_entities.iter().any(|e| {
             e.name.to_lowercase() == ext_entity.name.to_lowercase()
                 && e.entity_type
@@ -903,11 +858,7 @@ pub async fn extract_conversation_entities(
             updated.last_seen_at = now;
             updated.confidence = updated.confidence.max(ext_entity.confidence);
             for alias in &ext_entity.aliases {
-                if !updated
-                    .aliases
-                    .iter()
-                    .any(|a| a.to_lowercase() == alias.to_lowercase())
-                {
+                if !updated.aliases.iter().any(|a| a.to_lowercase() == alias.to_lowercase()) {
                     updated.aliases.push(alias.clone());
                 }
             }
@@ -923,14 +874,10 @@ pub async fn extract_conversation_entities(
     };
 
     for ext_rel in &result.relations {
-        let source_entities = storage
-            .search_entities(&ext_rel.source_name, 3)
-            .await
-            .unwrap_or_default();
-        let target_entities = storage
-            .search_entities(&ext_rel.target_name, 3)
-            .await
-            .unwrap_or_default();
+        let source_entities =
+            storage.search_entities(&ext_rel.source_name, 3).await.unwrap_or_default();
+        let target_entities =
+            storage.search_entities(&ext_rel.target_name, 3).await.unwrap_or_default();
 
         let source_id = match source_entities.first() {
             Some(e) => e.id.clone(),
@@ -992,14 +939,8 @@ pub async fn disambiguate_memory_entities(
 pub async fn list_knowledge_graph(state: State<'_, AppState>) -> Result<serde_json::Value, String> {
     let ms = state.memory_service.read().await;
     let storage = ms.storage();
-    let entities = storage
-        .get_all_entities()
-        .await
-        .map_err(|e| e.to_string())?;
-    let relationships = storage
-        .get_all_relationships()
-        .await
-        .map_err(|e| e.to_string())?;
+    let entities = storage.get_all_entities().await.map_err(|e| e.to_string())?;
+    let relationships = storage.get_all_relationships().await.map_err(|e| e.to_string())?;
     Ok(serde_json::json!({
         "entities": entities,
         "relationships": relationships,
@@ -1014,9 +955,7 @@ pub async fn search_memories_by_time(
     limit: Option<usize>,
 ) -> Result<serde_json::Value, String> {
     let ms = state.memory_service.read().await;
-    let results = ms
-        .search_memories_by_time_range(start_ts, end_ts, limit.unwrap_or(50))
-        .await;
+    let results = ms.search_memories_by_time_range(start_ts, end_ts, limit.unwrap_or(50)).await;
     Ok(serde_json::to_value(results).unwrap_or_default())
 }
 
@@ -1036,9 +975,7 @@ pub async fn search_memories_explained(
     limit: Option<usize>,
 ) -> Result<serde_json::Value, String> {
     let ms = state.memory_service.read().await;
-    let results = ms
-        .search_memories_explained(&query, limit.unwrap_or(10))
-        .await;
+    let results = ms.search_memories_explained(&query, limit.unwrap_or(10)).await;
     Ok(serde_json::to_value(results).unwrap_or_default())
 }
 
@@ -1074,9 +1011,7 @@ pub async fn find_memory_clusters(
     similarity_threshold: Option<f64>,
 ) -> Result<serde_json::Value, String> {
     let ms = state.memory_service.read().await;
-    let clusters = ms
-        .find_similar_clusters(similarity_threshold.unwrap_or(0.5))
-        .await;
+    let clusters = ms.find_similar_clusters(similarity_threshold.unwrap_or(0.5)).await;
     Ok(serde_json::to_value(clusters).unwrap_or_default())
 }
 
@@ -1093,10 +1028,8 @@ pub async fn consolidate_memory_cluster(
     let ms = state.memory_service.read().await;
     let mem = ms.get_working_memory().await;
 
-    let contents: Vec<String> = memory_ids
-        .iter()
-        .filter_map(|id| mem.entries.get(id).map(|e| e.content.clone()))
-        .collect();
+    let contents: Vec<String> =
+        memory_ids.iter().filter_map(|id| mem.entries.get(id).map(|e| e.content.clone())).collect();
 
     if contents.len() < 2 {
         return Err("Could not find enough memories for consolidation".to_string());
@@ -1105,17 +1038,11 @@ pub async fn consolidate_memory_cluster(
     drop(ms);
 
     let (provider, key_row, model_id, settings) = {
-        let settings = axagent_dao::repo::settings::get_settings(state.harness.db())
-            .await
-            .unwrap_or_default();
-        let provider_id = settings
-            .default_provider_id
-            .as_deref()
-            .ok_or("No default provider configured")?;
-        let model_id = settings
-            .default_model_id
-            .as_deref()
-            .ok_or("No default model configured")?;
+        let settings =
+            axagent_dao::repo::settings::get_settings(state.harness.db()).await.unwrap_or_default();
+        let provider_id =
+            settings.default_provider_id.as_deref().ok_or("No default provider configured")?;
+        let model_id = settings.default_model_id.as_deref().ok_or("No default model configured")?;
         let provider = axagent_dao::repo::provider::get_provider(state.harness.db(), provider_id)
             .await
             .map_err(|e| e.to_string())?;
@@ -1136,10 +1063,7 @@ pub async fn consolidate_memory_cluster(
         base_url: Some(resolve_base_url_for_type(&provider.api_host, &provider.provider_type)),
         api_path: provider.api_path.clone(),
         proxy_config: proxy,
-        custom_headers: provider
-            .custom_headers
-            .as_ref()
-            .and_then(|s| serde_json::from_str(s).ok()),
+        custom_headers: provider.custom_headers.as_ref().and_then(|s| serde_json::from_str(s).ok()),
         api_mode: None,
         conversation: None,
         previous_response_id: None,
@@ -1231,11 +1155,8 @@ async fn check_semantic_duplicate(
     let query_embedding = embed_result.embeddings.into_iter().next()?;
 
     let collection_name = format!("mem_{}", namespace_id);
-    let search_results = state
-        .vector_store
-        .search(&collection_name, query_embedding, 3)
-        .await
-        .ok()?;
+    let search_results =
+        state.vector_store.search(&collection_name, query_embedding, 3).await.ok()?;
 
     for result in &search_results {
         if result.score <= SEMANTIC_DEDUP_DISTANCE_THRESHOLD {
@@ -1258,17 +1179,11 @@ pub async fn extract_conversation_memories(
         .map_err(|e| e.to_string())?;
 
     let (provider, key_row, model_id, settings) = {
-        let settings = axagent_dao::repo::settings::get_settings(state.harness.db())
-            .await
-            .unwrap_or_default();
-        let provider_id = settings
-            .default_provider_id
-            .as_deref()
-            .ok_or("No default provider configured")?;
-        let model_id = settings
-            .default_model_id
-            .as_deref()
-            .ok_or("No default model configured")?;
+        let settings =
+            axagent_dao::repo::settings::get_settings(state.harness.db()).await.unwrap_or_default();
+        let provider_id =
+            settings.default_provider_id.as_deref().ok_or("No default provider configured")?;
+        let model_id = settings.default_model_id.as_deref().ok_or("No default model configured")?;
 
         let provider = axagent_dao::repo::provider::get_provider(state.harness.db(), provider_id)
             .await
@@ -1291,10 +1206,7 @@ pub async fn extract_conversation_memories(
         base_url: Some(resolve_base_url_for_type(&provider.api_host, &provider.provider_type)),
         api_path: provider.api_path.clone(),
         proxy_config: proxy,
-        custom_headers: provider
-            .custom_headers
-            .as_ref()
-            .and_then(|s| serde_json::from_str(s).ok()),
+        custom_headers: provider.custom_headers.as_ref().and_then(|s| serde_json::from_str(s).ok()),
         api_mode: None,
         conversation: None,
         previous_response_id: None,
@@ -1321,18 +1233,13 @@ pub async fn extract_conversation_memories(
     let existing_items = axagent_dao::repo::memory::list_items(state.harness.db(), &namespace_id)
         .await
         .map_err(|e| e.to_string())?;
-    let existing_contents: std::collections::HashSet<String> = existing_items
-        .iter()
-        .map(|item| item.content.to_lowercase().trim().to_string())
-        .collect();
+    let existing_contents: std::collections::HashSet<String> =
+        existing_items.iter().map(|item| item.content.to_lowercase().trim().to_string()).collect();
 
-    let ns_config = axagent_dao::repo::memory::get_namespace(state.harness.db(), &namespace_id)
-        .await
-        .ok();
-    let can_vector_dedup = ns_config
-        .as_ref()
-        .and_then(|ns| ns.embedding_provider.clone())
-        .is_some();
+    let ns_config =
+        axagent_dao::repo::memory::get_namespace(state.harness.db(), &namespace_id).await.ok();
+    let can_vector_dedup =
+        ns_config.as_ref().and_then(|ns| ns.embedding_provider.clone()).is_some();
 
     let mut saved = Vec::new();
     for item in &result.items {
@@ -1390,10 +1297,7 @@ pub async fn extract_conversation_memories(
                             None,
                         );
 
-                        saved.push(MemoryItem {
-                            index_status: "pending".to_string(),
-                            ..mem_item
-                        });
+                        saved.push(MemoryItem { index_status: "pending".to_string(), ..mem_item });
 
                         {
                             let ms = state.memory_service.read().await;
@@ -1434,10 +1338,7 @@ pub async fn extract_conversation_memories(
                     None,
                 )
                 .await;
-                saved.push(MemoryItem {
-                    index_status: "skipped".to_string(),
-                    ..mem_item
-                });
+                saved.push(MemoryItem { index_status: "skipped".to_string(), ..mem_item });
 
                 {
                     let ms = state.memory_service.read().await;

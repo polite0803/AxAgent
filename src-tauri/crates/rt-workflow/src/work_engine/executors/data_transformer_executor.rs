@@ -120,18 +120,13 @@ impl NodeExecutorTrait for DataTransformerExecutor {
         let input_value = if c.input_var.is_empty() {
             serde_json::Value::Null
         } else {
-            ctx.variables
-                .get(&c.input_var)
-                .cloned()
-                .unwrap_or(serde_json::Value::Null)
+            ctx.variables.get(&c.input_var).cloned().unwrap_or(serde_json::Value::Null)
         };
         scope.push("input", json_to_dynamic(&input_value));
 
         // Also inject as the var name itself if it's a simple identifier
         if !c.input_var.is_empty()
-            && c.input_var
-                .chars()
-                .all(|ch| ch.is_alphanumeric() || ch == '_')
+            && c.input_var.chars().all(|ch| ch.is_alphanumeric() || ch == '_')
         {
             scope.push(c.input_var.clone(), json_to_dynamic(&input_value));
         }

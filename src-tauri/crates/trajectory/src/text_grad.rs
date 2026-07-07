@@ -45,12 +45,7 @@ pub struct ComputationNode {
 
 impl ComputationNode {
     pub fn new(node_type: NodeType, content: impl Into<String>) -> Self {
-        Self {
-            id: Uuid::new_v4().to_string(),
-            node_type,
-            content: content.into(),
-            gradient: None,
-        }
+        Self { id: Uuid::new_v4().to_string(), node_type, content: content.into(), gradient: None }
     }
 
     pub fn with_id(mut self, id: impl Into<String>) -> Self {
@@ -76,10 +71,7 @@ pub struct ComputationEdge {
 
 impl ComputationEdge {
     pub fn new(source_id: impl Into<String>, target_id: impl Into<String>) -> Self {
-        Self {
-            source_id: source_id.into(),
-            target_id: target_id.into(),
-        }
+        Self { source_id: source_id.into(), target_id: target_id.into() }
     }
 }
 
@@ -91,10 +83,7 @@ pub struct ComputationGraph {
 
 impl ComputationGraph {
     pub fn new() -> Self {
-        Self {
-            nodes: Vec::new(),
-            edges: Vec::new(),
-        }
+        Self { nodes: Vec::new(), edges: Vec::new() }
     }
 
     pub fn add_node(&mut self, node: ComputationNode) -> &str {
@@ -141,17 +130,11 @@ impl ComputationGraph {
 
         for edge in &self.edges {
             *in_degree.entry(&edge.target_id).or_insert(0) += 1;
-            adjacency
-                .entry(&edge.source_id)
-                .or_default()
-                .push(&edge.target_id);
+            adjacency.entry(&edge.source_id).or_default().push(&edge.target_id);
         }
 
-        let mut queue: VecDeque<&str> = in_degree
-            .iter()
-            .filter(|&(_, &deg)| deg == 0)
-            .map(|(id, _)| *id)
-            .collect();
+        let mut queue: VecDeque<&str> =
+            in_degree.iter().filter(|&(_, &deg)| deg == 0).map(|(id, _)| *id).collect();
 
         let mut sorted = Vec::with_capacity(self.nodes.len());
 
@@ -188,10 +171,7 @@ impl ComputationGraph {
         for node_id in &order {
             let successor_feedbacks: Vec<String> = {
                 let succs = self.successors(node_id);
-                succs
-                    .iter()
-                    .filter_map(|s| s.gradient.as_ref().cloned())
-                    .collect()
+                succs.iter().filter_map(|s| s.gradient.as_ref().cloned()).collect()
             };
 
             let combined_feedback = if successor_feedbacks.is_empty() {
@@ -242,28 +222,19 @@ impl ComputationGraph {
     pub fn leaf_nodes(&self) -> Vec<&ComputationNode> {
         let target_ids: HashSet<&str> = self.edges.iter().map(|e| e.target_id.as_str()).collect();
 
-        self.nodes
-            .iter()
-            .filter(|n| !target_ids.contains(n.id.as_str()))
-            .collect()
+        self.nodes.iter().filter(|n| !target_ids.contains(n.id.as_str())).collect()
     }
 
     pub fn root_nodes(&self) -> Vec<&ComputationNode> {
         let source_ids: HashSet<&str> = self.edges.iter().map(|e| e.source_id.as_str()).collect();
 
-        self.nodes
-            .iter()
-            .filter(|n| !source_ids.contains(n.id.as_str()))
-            .collect()
+        self.nodes.iter().filter(|n| !source_ids.contains(n.id.as_str())).collect()
     }
 
     pub fn output_nodes(&self) -> Vec<&ComputationNode> {
         let source_ids: HashSet<&str> = self.edges.iter().map(|e| e.source_id.as_str()).collect();
 
-        self.nodes
-            .iter()
-            .filter(|n| !source_ids.contains(n.id.as_str()))
-            .collect()
+        self.nodes.iter().filter(|n| !source_ids.contains(n.id.as_str())).collect()
     }
 
     pub fn clear_gradients(&mut self) {
@@ -318,9 +289,7 @@ impl Default for DefaultTextGradProvider {
 
 impl DefaultTextGradProvider {
     pub fn new() -> Self {
-        Self {
-            max_gradient_length: 2000,
-        }
+        Self { max_gradient_length: 2000 }
     }
 
     #[allow(dead_code)]
@@ -446,11 +415,7 @@ pub struct TextGradEngine {
 
 impl TextGradEngine {
     pub fn new(graph: ComputationGraph, config: TextGradConfig) -> Self {
-        Self {
-            graph,
-            provider: Box::new(DefaultTextGradProvider::new()),
-            config,
-        }
+        Self { graph, provider: Box::new(DefaultTextGradProvider::new()), config }
     }
 
     pub fn set_provider(&mut self, provider: impl LlmTextGradProvider + 'static) {
@@ -480,8 +445,7 @@ impl TextGradEngine {
         target_id: impl Into<String>,
         _weight: f64,
     ) {
-        self.graph
-            .add_edge(ComputationEdge::new(source_id, target_id));
+        self.graph.add_edge(ComputationEdge::new(source_id, target_id));
     }
 
     pub async fn backward(
@@ -493,12 +457,7 @@ impl TextGradEngine {
     }
 
     pub fn stats(&self) -> TextGradStats {
-        let gradient_count = self
-            .graph
-            .nodes
-            .iter()
-            .filter(|n| n.gradient.is_some())
-            .count();
+        let gradient_count = self.graph.nodes.iter().filter(|n| n.gradient.is_some()).count();
         TextGradStats {
             node_count: self.graph.nodes.len(),
             edge_count: self.graph.edges.len(),
@@ -523,10 +482,7 @@ impl TextGradEngine {
         let order = match self.graph.topological_sort() {
             Ok(o) => o,
             Err(_) => {
-                return ForwardResult {
-                    output: String::new(),
-                    node_outputs,
-                };
+                return ForwardResult { output: String::new(), node_outputs };
             },
         };
 
@@ -558,10 +514,7 @@ impl TextGradEngine {
             .collect::<Vec<String>>()
             .join("\n");
 
-        ForwardResult {
-            output: final_output,
-            node_outputs,
-        }
+        ForwardResult { output: final_output, node_outputs }
     }
 
     pub async fn backward_text_grad(
@@ -575,10 +528,7 @@ impl TextGradEngine {
         for node_id in &order {
             let predecessor_gradients: Vec<String> = {
                 let preds = self.graph.predecessors(node_id);
-                preds
-                    .iter()
-                    .filter_map(|p| p.gradient.as_ref().cloned())
-                    .collect()
+                preds.iter().filter_map(|p| p.gradient.as_ref().cloned()).collect()
             };
 
             let combined_feedback = if predecessor_gradients.is_empty() {
@@ -592,17 +542,13 @@ impl TextGradEngine {
                 fb
             };
 
-            let node_content = self
-                .graph
-                .get_node(node_id)
-                .map(|n| n.content.clone())
-                .unwrap_or_default();
+            let node_content =
+                self.graph.get_node(node_id).map(|n| n.content.clone()).unwrap_or_default();
 
-            let gradient = self
-                .provider
-                .compute_gradient(&node_content, &combined_feedback)
-                .await
-                .map_err(|e| format!("Gradient computation failed for node {}: {}", node_id, e))?;
+            let gradient =
+                self.provider.compute_gradient(&node_content, &combined_feedback).await.map_err(
+                    |e| format!("Gradient computation failed for node {}: {}", node_id, e),
+                )?;
 
             let truncated = if gradient.len() > self.config.max_gradient_length {
                 gradient[..self.config.max_gradient_length].to_string()
@@ -1065,10 +1011,8 @@ mod tests {
     #[tokio::test]
     async fn test_default_provider_generic_feedback() {
         let provider = DefaultTextGradProvider::new();
-        let gradient = provider
-            .compute_gradient("Do something", "The result was okay")
-            .await
-            .unwrap();
+        let gradient =
+            provider.compute_gradient("Do something", "The result was okay").await.unwrap();
         assert!(!gradient.is_empty());
     }
 
@@ -1099,10 +1043,7 @@ mod tests {
         graph.add_edge(ComputationEdge::new("a", "b"));
 
         let mut engine = TextGradEngine::new(graph, TextGradConfig::default());
-        let gradients = engine
-            .backward_text_grad("The output was incorrect")
-            .await
-            .unwrap();
+        let gradients = engine.backward_text_grad("The output was incorrect").await.unwrap();
 
         assert!(!gradients.is_empty());
         assert!(gradients.contains_key("a"));
@@ -1122,14 +1063,7 @@ mod tests {
 
         let modifications = engine.apply_gradients();
         assert!(!modifications.is_empty());
-        assert!(
-            engine
-                .graph()
-                .get_node("a")
-                .unwrap()
-                .content
-                .contains("TextGrad revision")
-        );
+        assert!(engine.graph().get_node("a").unwrap().content.contains("TextGrad revision"));
         assert!(engine.graph().get_node("a").unwrap().gradient.is_none());
     }
 
@@ -1168,11 +1102,8 @@ mod tests {
         graph.add_node(n2);
         graph.add_edge(ComputationEdge::new("prompt", "tool"));
 
-        let config = TextGradConfig {
-            max_iterations: 3,
-            gradient_threshold: 0.001,
-            ..Default::default()
-        };
+        let config =
+            TextGradConfig { max_iterations: 3, gradient_threshold: 0.001, ..Default::default() };
 
         let mut engine = TextGradEngine::new(graph, config);
         let result = engine.optimize("The output had errors").await.unwrap();
@@ -1188,11 +1119,8 @@ mod tests {
         let n1 = ComputationNode::new(NodeType::Memory, "simple fact").with_id("mem");
         graph.add_node(n1);
 
-        let config = TextGradConfig {
-            max_iterations: 10,
-            gradient_threshold: 100.0,
-            ..Default::default()
-        };
+        let config =
+            TextGradConfig { max_iterations: 10, gradient_threshold: 100.0, ..Default::default() };
 
         let mut engine = TextGradEngine::new(graph, config);
         let result = engine.optimize("Minor feedback").await.unwrap();
@@ -1309,10 +1237,8 @@ mod tests {
         let forward1 = engine.forward();
         assert!(!forward1.output.is_empty());
 
-        let gradients = engine
-            .backward_text_grad("The code search returned incorrect results")
-            .await
-            .unwrap();
+        let gradients =
+            engine.backward_text_grad("The code search returned incorrect results").await.unwrap();
         assert_eq!(gradients.len(), 3);
 
         let modifications = engine.apply_gradients();

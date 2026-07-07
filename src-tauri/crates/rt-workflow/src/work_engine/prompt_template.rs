@@ -166,10 +166,7 @@ pub fn compile_prompt(template: &str) -> CompiledPrompt {
         segments.push(TemplateSegment::Static(String::new()));
     }
 
-    CompiledPrompt {
-        segments,
-        variable_refs: var_refs,
-    }
+    CompiledPrompt { segments, variable_refs: var_refs }
 }
 
 /// 合并相邻的 Static 段，减少碎片。
@@ -221,12 +218,9 @@ fn resolve_dot_path<'a>(
     let root_key = parts.next().unwrap_or("");
     let remainder = parts.next();
 
-    let mut current =
-        variables
-            .get(root_key)
-            .ok_or_else(|| TemplateRenderError::VariableNotFound {
-                path: path.to_string(),
-            })?;
+    let mut current = variables
+        .get(root_key)
+        .ok_or_else(|| TemplateRenderError::VariableNotFound { path: path.to_string() })?;
     if let Some(rest) = remainder {
         for segment in rest.split('.') {
             if !current.is_object() {
@@ -235,12 +229,9 @@ fn resolve_dot_path<'a>(
                     segment: segment.to_string(),
                 });
             }
-            current =
-                current
-                    .get(segment)
-                    .ok_or_else(|| TemplateRenderError::VariableNotFound {
-                        path: path.to_string(),
-                    })?;
+            current = current
+                .get(segment)
+                .ok_or_else(|| TemplateRenderError::VariableNotFound { path: path.to_string() })?;
         }
     }
     Ok(current)
@@ -409,10 +400,7 @@ pub fn assemble_template(req: TemplateRequest) -> CompiledPrompt {
         segments.push(TemplateSegment::Static(t.clone()));
     }
 
-    CompiledPrompt {
-        segments,
-        variable_refs: Vec::new(),
-    }
+    CompiledPrompt { segments, variable_refs: Vec::new() }
 }
 
 /// 简化版 wrap：head + body + tail。
@@ -440,9 +428,7 @@ mod tests {
     use super::*;
 
     fn vars(map: &[(&str, &str)]) -> HashMap<String, Value> {
-        map.iter()
-            .map(|(k, v)| (k.to_string(), Value::String(v.to_string())))
-            .collect()
+        map.iter().map(|(k, v)| (k.to_string(), Value::String(v.to_string()))).collect()
     }
 
     // ── compile ──
@@ -486,10 +472,7 @@ mod tests {
         let c = compile_prompt("{{a}}{{b}}");
         assert_eq!(
             c.segments,
-            vec![
-                TemplateSegment::Slot("a".to_string()),
-                TemplateSegment::Slot("b".to_string()),
-            ]
+            vec![TemplateSegment::Slot("a".to_string()), TemplateSegment::Slot("b".to_string()),]
         );
     }
 
@@ -631,10 +614,7 @@ mod tests {
         let c = compile_prompt("{{x}}}");
         assert_eq!(
             c.segments,
-            vec![
-                TemplateSegment::Slot("x".to_string()),
-                TemplateSegment::Static("}".to_string()),
-            ]
+            vec![TemplateSegment::Slot("x".to_string()), TemplateSegment::Static("}".to_string()),]
         );
     }
 

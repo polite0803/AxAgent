@@ -30,11 +30,7 @@ pub struct OutlineBuilder {
 
 impl OutlineBuilder {
     pub fn new() -> Self {
-        Self {
-            style: OutlineStyle::Standard,
-            max_sections: 6,
-            include_subsections: true,
-        }
+        Self { style: OutlineStyle::Standard, max_sections: 6, include_subsections: true }
     }
 
     pub fn with_style(mut self, style: OutlineStyle) -> Self {
@@ -77,14 +73,8 @@ impl OutlineBuilder {
     }
 
     fn build_standard_outline(&self, _topic: &str) -> Vec<OutlineSection> {
-        let section_titles = vec![
-            "Introduction",
-            "Background",
-            "Methods",
-            "Findings",
-            "Discussion",
-            "Conclusion",
-        ];
+        let section_titles =
+            vec!["Introduction", "Background", "Methods", "Findings", "Discussion", "Conclusion"];
 
         section_titles
             .into_iter()
@@ -212,11 +202,9 @@ impl OutlineBuilder {
         }
 
         match section {
-            "Introduction" => vec![
-                "Research Problem".to_string(),
-                "Objectives".to_string(),
-                "Scope".to_string(),
-            ],
+            "Introduction" => {
+                vec!["Research Problem".to_string(), "Objectives".to_string(), "Scope".to_string()]
+            },
             "Background" => vec![
                 "Historical Context".to_string(),
                 "Current State".to_string(),
@@ -237,11 +225,9 @@ impl OutlineBuilder {
                 "Implications".to_string(),
                 "Limitations".to_string(),
             ],
-            "Conclusion" => vec![
-                "Summary".to_string(),
-                "Contributions".to_string(),
-                "Future Work".to_string(),
-            ],
+            "Conclusion" => {
+                vec!["Summary".to_string(), "Contributions".to_string(), "Future Work".to_string()]
+            },
             _ => Vec::new(),
         }
     }
@@ -309,11 +295,9 @@ impl OutlineBuilder {
                 "Key Decisions".to_string(),
                 "Code Organization".to_string(),
             ],
-            "Testing" => vec![
-                "Test Strategy".to_string(),
-                "Test Cases".to_string(),
-                "Results".to_string(),
-            ],
+            "Testing" => {
+                vec!["Test Strategy".to_string(), "Test Cases".to_string(), "Results".to_string()]
+            },
             "Deployment" => vec![
                 "Deployment Strategy".to_string(),
                 "Configuration".to_string(),
@@ -388,19 +372,13 @@ mod tests {
         let outline = builder.build(&state).await;
 
         assert!(outline.title.contains("Research Report"));
-        assert!(
-            outline
-                .sections
-                .iter()
-                .any(|s| s.title.contains("Abstract"))
-        );
+        assert!(outline.sections.iter().any(|s| s.title.contains("Abstract")));
     }
 
     #[tokio::test]
     async fn test_build_executive_outline() {
-        let builder = OutlineBuilder::new()
-            .with_style(OutlineStyle::Executive)
-            .with_subsections(false);
+        let builder =
+            OutlineBuilder::new().with_style(OutlineStyle::Executive).with_subsections(false);
         let state = ResearchState::new("Business Topic".to_string());
 
         let outline = builder.build(&state).await;

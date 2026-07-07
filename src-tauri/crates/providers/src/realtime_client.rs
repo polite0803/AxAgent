@@ -167,11 +167,7 @@ impl RealtimeClient {
         let (mut write, mut read) = ws_stream.split();
 
         let session_msg = RealtimeClientMessage::SessionCreate {
-            model: self
-                .config
-                .model
-                .clone()
-                .unwrap_or_else(|| "gpt-4o-realtime".to_string()),
+            model: self.config.model.clone().unwrap_or_else(|| "gpt-4o-realtime".to_string()),
         };
         let msg_json = serde_json::to_string(&session_msg)
             .map_err(|e| RealtimeClientError::SerializationError(e.to_string()))?;
@@ -291,9 +287,7 @@ impl RealtimeClient {
     }
 
     pub async fn send_audio(&self, audio_data: &str) -> Result<(), RealtimeClientError> {
-        let msg = RealtimeClientMessage::AudioAppend {
-            audio: audio_data.to_string(),
-        };
+        let msg = RealtimeClientMessage::AudioAppend { audio: audio_data.to_string() };
         self.send_message(msg).await
     }
 
@@ -429,9 +423,7 @@ impl RealtimeStreamHandler {
                         tracing::error!("Max reconnect attempts reached for RealtimeClient");
                         break;
                     }
-                    let delay = self
-                        .client
-                        .calculate_backoff_delay(attempts.saturating_sub(1));
+                    let delay = self.client.calculate_backoff_delay(attempts.saturating_sub(1));
                     tracing::info!(
                         "Connection lost, attempting reconnect in {:?} (attempt {}/{})",
                         delay,

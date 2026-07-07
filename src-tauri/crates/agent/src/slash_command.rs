@@ -45,11 +45,7 @@ pub fn apply_slash_command_for_agent(text: &str) -> SlashCommandPreprocessed {
             } else {
                 format!("Skill bundle '{}' not found. Use /bundles to see available bundles.", name)
             };
-            SlashCommandPreprocessed {
-                modified_text,
-                personality_prompt: None,
-                is_builtin: false,
-            }
+            SlashCommandPreprocessed { modified_text, personality_prompt: None, is_builtin: false }
         },
         SlashCommandAction::LoadSkill { name, args } => {
             let modified_text = if let Some(content) = load_skill_content(&name, &args) {
@@ -65,11 +61,7 @@ pub fn apply_slash_command_for_agent(text: &str) -> SlashCommandPreprocessed {
             } else {
                 format!("Skill '{}' not found. Use /skills to see available skills.", name)
             };
-            SlashCommandPreprocessed {
-                modified_text,
-                personality_prompt: None,
-                is_builtin: false,
-            }
+            SlashCommandPreprocessed { modified_text, personality_prompt: None, is_builtin: false }
         },
         SlashCommandAction::SwitchPersonality { name } => {
             let personality_prompt = match handle_switch_personality(&name) {

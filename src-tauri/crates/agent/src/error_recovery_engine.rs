@@ -29,28 +29,12 @@ impl Default for RecoveryConfig {
 
 #[derive(Debug, Clone)]
 pub enum RecoveryEvent {
-    RecoveryStarted {
-        error: String,
-        error_type: ErrorType,
-    },
-    AttemptStarted {
-        attempt: usize,
-        strategy: String,
-    },
-    AttemptCompleted {
-        attempt: usize,
-        success: bool,
-    },
-    RecoveryCompleted {
-        result: RecoveryResult,
-    },
-    RecoveryFailed {
-        error: String,
-    },
-    RetryScheduled {
-        delay_ms: u64,
-        attempt: usize,
-    },
+    RecoveryStarted { error: String, error_type: ErrorType },
+    AttemptStarted { attempt: usize, strategy: String },
+    AttemptCompleted { attempt: usize, success: bool },
+    RecoveryCompleted { result: RecoveryResult },
+    RecoveryFailed { error: String },
+    RetryScheduled { delay_ms: u64, attempt: usize },
 }
 
 pub struct ErrorRecoveryEngine {
@@ -64,11 +48,7 @@ impl ErrorRecoveryEngine {
         let classifier = Arc::new(ErrorClassifier::new());
         let (event_sender, _) = broadcast::channel(100);
 
-        Self {
-            classifier,
-            config: RecoveryConfig::default(),
-            event_sender,
-        }
+        Self { classifier, config: RecoveryConfig::default(), event_sender }
     }
 
     pub fn with_config(mut self, config: RecoveryConfig) -> Self {
@@ -131,9 +111,7 @@ impl ErrorRecoveryEngine {
         let strategy = self.get_recovery_strategy(classified.error_type);
 
         if !strategy.should_retry() {
-            self.emit(RecoveryEvent::RecoveryFailed {
-                error: error.to_string(),
-            });
+            self.emit(RecoveryEvent::RecoveryFailed { error: error.to_string() });
 
             return RecoveryResult::failure(
                 strategy.description(),
@@ -145,9 +123,7 @@ impl ErrorRecoveryEngine {
 
         let result = self.execute_recovery(&strategy, &mut f, start).await;
 
-        self.emit(RecoveryEvent::RecoveryCompleted {
-            result: result.clone(),
-        });
+        self.emit(RecoveryEvent::RecoveryCompleted { result: result.clone() });
 
         result
     }
@@ -177,17 +153,11 @@ impl ErrorRecoveryEngine {
 
                 self.retry_with_policy(f, &policy, start).await
             },
-            RecoveryStrategy::AdjustAndRetry {
-                max_attempts,
-                adjustments,
-            } => {
-                self.adjust_and_retry(f, *max_attempts, adjustments, start)
-                    .await
+            RecoveryStrategy::AdjustAndRetry { max_attempts, adjustments } => {
+                self.adjust_and_retry(f, *max_attempts, adjustments, start).await
             },
             RecoveryStrategy::Fallback { fallback_value } => {
-                self.emit(RecoveryEvent::RecoveryFailed {
-                    error: "Using fallback".to_string(),
-                });
+                self.emit(RecoveryEvent::RecoveryFailed { error: "Using fallback".to_string() });
 
                 RecoveryResult::failure(
                     "Fallback",
@@ -205,10 +175,7 @@ impl ErrorRecoveryEngine {
                 "Immediate failure".to_string(),
                 start.elapsed().as_millis() as u64,
             ),
-            RecoveryStrategy::AutoRecover {
-                max_attempts,
-                checkpoint_interval_secs: _,
-            } => {
+            RecoveryStrategy::AutoRecover { max_attempts, checkpoint_interval_secs: _ } => {
                 let mut last_error = "Max attempts reached".to_string();
                 for attempt in 0..*max_attempts {
                     self.emit(RecoveryEvent::AttemptStarted {
@@ -218,10 +185,7 @@ impl ErrorRecoveryEngine {
                     let result = f().await;
                     match result {
                         Ok(_) => {
-                            self.emit(RecoveryEvent::AttemptCompleted {
-                                attempt,
-                                success: true,
-                            });
+                            self.emit(RecoveryEvent::AttemptCompleted { attempt, success: true });
                             return RecoveryResult {
                                 success: true,
                                 recovered: true,
@@ -233,16 +197,11 @@ impl ErrorRecoveryEngine {
                         },
                         Err(e) => {
                             last_error = e;
-                            self.emit(RecoveryEvent::AttemptCompleted {
-                                attempt,
-                                success: false,
-                            });
+                            self.emit(RecoveryEvent::AttemptCompleted { attempt, success: false });
                         },
                     }
                 }
-                self.emit(RecoveryEvent::RecoveryFailed {
-                    error: last_error.clone(),
-                });
+                self.emit(RecoveryEvent::RecoveryFailed { error: last_error.clone() });
                 RecoveryResult::failure(
                     "AutoRecover",
                     *max_attempts,
@@ -277,10 +236,7 @@ impl ErrorRecoveryEngine {
 
             match f().await {
                 Ok(_) => {
-                    self.emit(RecoveryEvent::AttemptCompleted {
-                        attempt: attempts,
-                        success: true,
-                    });
+                    self.emit(RecoveryEvent::AttemptCompleted { attempt: attempts, success: true });
 
                     return RecoveryResult::success(attempts, start.elapsed().as_millis() as u64);
                 },
@@ -493,10 +449,7 @@ mod tests {
     fn test_get_recovery_strategy_recoverable_without_adjustments() {
         // 关闭 adjustments 时,Recoverable 错误降级为纯 Retry(而非 Fail),
         // 保证关闭"调整参数"开关时仍可重试,只是不会自动调整参数。
-        let config = RecoveryConfig {
-            enable_adjustments: false,
-            ..RecoveryConfig::default()
-        };
+        let config = RecoveryConfig { enable_adjustments: false, ..RecoveryConfig::default() };
         let engine = ErrorRecoveryEngine::new().with_config(config);
         let strategy = engine.get_recovery_strategy(ErrorType::Recoverable);
         assert!(matches!(strategy, RecoveryStrategy::Retry { .. }));
@@ -604,24 +557,11 @@ mod tests {
                 error: "e".to_string(),
                 error_type: ErrorType::Transient,
             },
-            RecoveryEvent::AttemptStarted {
-                attempt: 1,
-                strategy: "Retry".to_string(),
-            },
-            RecoveryEvent::AttemptCompleted {
-                attempt: 1,
-                success: true,
-            },
-            RecoveryEvent::RecoveryCompleted {
-                result: RecoveryResult::success(1, 0),
-            },
-            RecoveryEvent::RecoveryFailed {
-                error: "e".to_string(),
-            },
-            RecoveryEvent::RetryScheduled {
-                delay_ms: 100,
-                attempt: 1,
-            },
+            RecoveryEvent::AttemptStarted { attempt: 1, strategy: "Retry".to_string() },
+            RecoveryEvent::AttemptCompleted { attempt: 1, success: true },
+            RecoveryEvent::RecoveryCompleted { result: RecoveryResult::success(1, 0) },
+            RecoveryEvent::RecoveryFailed { error: "e".to_string() },
+            RecoveryEvent::RetryScheduled { delay_ms: 100, attempt: 1 },
         ];
         assert_eq!(events.len(), 6);
     }
@@ -745,17 +685,13 @@ mod tests {
 
     #[test]
     fn test_recovery_context_with_task_id() {
-        let ctx = RecoveryContext::new()
-            .with_task_id("task-42".to_string())
-            .build();
+        let ctx = RecoveryContext::new().with_task_id("task-42".to_string()).build();
         assert_eq!(ctx.task_id, Some("task-42".to_string()));
     }
 
     #[test]
     fn test_recovery_context_with_error() {
-        let ctx = RecoveryContext::new()
-            .with_error("timeout".to_string())
-            .build();
+        let ctx = RecoveryContext::new().with_error("timeout".to_string()).build();
         assert_eq!(ctx.original_error, Some("timeout".to_string()));
     }
 
@@ -798,9 +734,8 @@ mod tests {
     #[tokio::test]
     async fn test_recover_success_returns_attempts() {
         let engine = ErrorRecoveryEngine::new();
-        let result = engine
-            .recover("connection timeout", || async { Ok::<i32, String>(100) })
-            .await;
+        let result =
+            engine.recover("connection timeout", || async { Ok::<i32, String>(100) }).await;
         assert!(result.success);
         assert_eq!(result.attempts_made, 1);
     }

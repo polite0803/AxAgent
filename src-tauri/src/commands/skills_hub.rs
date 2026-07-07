@@ -232,11 +232,7 @@ pub async fn skills_hub_export(skill_name: String) -> Result<SkillExportResult, 
 
     // 转换为 Hermes 格式
     let hermes = adapter.to_hermes_md();
-    let version = manifest
-        .get("version")
-        .and_then(|v| v.as_str())
-        .unwrap_or("0.1.0")
-        .to_string();
+    let version = manifest.get("version").and_then(|v| v.as_str()).unwrap_or("0.1.0").to_string();
 
     Ok(SkillExportResult {
         hermes_json: serde_json::to_string_pretty(&hermes)

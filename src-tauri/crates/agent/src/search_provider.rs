@@ -106,9 +106,7 @@ pub struct SearchProviderRegistry {
 
 impl SearchProviderRegistry {
     pub fn new() -> Self {
-        Self {
-            providers: Vec::new(),
-        }
+        Self { providers: Vec::new() }
     }
 
     pub fn register<P: SearchProvider + 'static>(&mut self, provider: P) {
@@ -116,10 +114,7 @@ impl SearchProviderRegistry {
     }
 
     pub fn get(&self, source_type: SourceType) -> Option<&dyn SearchProvider> {
-        self.providers
-            .iter()
-            .find(|p| p.source_type() == source_type)
-            .map(|p| p.as_ref())
+        self.providers.iter().find(|p| p.source_type() == source_type).map(|p| p.as_ref())
     }
 
     pub fn get_all(&self) -> Vec<&dyn SearchProvider> {
@@ -434,11 +429,7 @@ mod tests {
     #[test]
     fn test_search_provider_registry_get_all() {
         let mut registry = SearchProviderRegistry::new();
-        registry.register(MockProvider {
-            source: SourceType::Web,
-            name: "Web",
-            rate: None,
-        });
+        registry.register(MockProvider { source: SourceType::Web, name: "Web", rate: None });
         registry.register(MockProvider {
             source: SourceType::Academic,
             name: "Academic",
@@ -452,21 +443,13 @@ mod tests {
     #[test]
     fn test_search_provider_registry_get_by_types() {
         let mut registry = SearchProviderRegistry::new();
-        registry.register(MockProvider {
-            source: SourceType::Web,
-            name: "Web",
-            rate: None,
-        });
+        registry.register(MockProvider { source: SourceType::Web, name: "Web", rate: None });
         registry.register(MockProvider {
             source: SourceType::Academic,
             name: "Academic",
             rate: None,
         });
-        registry.register(MockProvider {
-            source: SourceType::GitHub,
-            name: "GitHub",
-            rate: None,
-        });
+        registry.register(MockProvider { source: SourceType::GitHub, name: "GitHub", rate: None });
 
         let filtered = registry.get_by_types(&[SourceType::Web, SourceType::Academic]);
         assert_eq!(filtered.len(), 2);
@@ -475,11 +458,7 @@ mod tests {
     #[test]
     fn test_search_provider_registry_get_by_types_empty() {
         let mut registry = SearchProviderRegistry::new();
-        registry.register(MockProvider {
-            source: SourceType::Web,
-            name: "Web",
-            rate: None,
-        });
+        registry.register(MockProvider { source: SourceType::Web, name: "Web", rate: None });
 
         let filtered = registry.get_by_types(&[SourceType::GitHub]);
         assert!(filtered.is_empty());
@@ -669,11 +648,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_mock_provider_search() {
-        let provider = MockProvider {
-            source: SourceType::Web,
-            name: "Test",
-            rate: None,
-        };
+        let provider = MockProvider { source: SourceType::Web, name: "Test", rate: None };
         let query = SearchQuery::new("test".to_string());
         let results = provider.search(&query).await.unwrap();
         assert_eq!(results.len(), 1);
@@ -682,25 +657,14 @@ mod tests {
 
     #[tokio::test]
     async fn test_mock_provider_extract() {
-        let provider = MockProvider {
-            source: SourceType::Web,
-            name: "Test",
-            rate: None,
-        };
-        let content = provider
-            .extract_content("https://example.com")
-            .await
-            .unwrap();
+        let provider = MockProvider { source: SourceType::Web, name: "Test", rate: None };
+        let content = provider.extract_content("https://example.com").await.unwrap();
         assert_eq!(content.url, "https://example.com");
     }
 
     #[tokio::test]
     async fn test_mock_provider_source_type() {
-        let provider = MockProvider {
-            source: SourceType::Academic,
-            name: "Academic",
-            rate: None,
-        };
+        let provider = MockProvider { source: SourceType::Academic, name: "Academic", rate: None };
         assert_eq!(provider.source_type(), SourceType::Academic);
         assert_eq!(provider.display_name(), "Academic");
     }

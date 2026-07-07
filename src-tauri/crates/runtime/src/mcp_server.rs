@@ -74,11 +74,7 @@ pub struct McpServer {
 impl McpServer {
     #[must_use]
     pub fn new(spec: McpServerSpec) -> Self {
-        Self {
-            spec,
-            stdin: BufReader::new(stdin()),
-            stdout: stdout(),
-        }
+        Self { spec, stdin: BufReader::new(stdin()), stdout: stdout() }
     }
 
     /// Runs the server until the client closes stdin.
@@ -179,10 +175,7 @@ impl McpServer {
     }
 
     fn handle_tools_list(&self, id: JsonRpcId) -> JsonRpcResponse<JsonValue> {
-        let result = McpListToolsResult {
-            tools: self.spec.tools.clone(),
-            next_cursor: None,
-        };
+        let result = McpListToolsResult { tools: self.spec.tools.clone(), next_cursor: None };
         JsonRpcResponse {
             jsonrpc: "2.0".to_string(),
             id,
@@ -214,10 +207,7 @@ impl McpServer {
         let mut data = std::collections::BTreeMap::new();
         data.insert("text".to_string(), JsonValue::String(text));
         let call_result = McpToolCallResult {
-            content: vec![McpToolCallContent {
-                kind: "text".to_string(),
-                data,
-            }],
+            content: vec![McpToolCallContent { kind: "text".to_string(), data }],
             structured_content: None,
             is_error: Some(is_error),
             meta: None,
@@ -236,11 +226,7 @@ fn invalid_params_response(id: JsonRpcId, message: &str) -> JsonRpcResponse<Json
         jsonrpc: "2.0".to_string(),
         id,
         result: None,
-        error: Some(JsonRpcError {
-            code: -32602,
-            message: message.to_string(),
-            data: None,
-        }),
+        error: Some(JsonRpcError { code: -32602, message: message.to_string(), data: None }),
     }
 }
 
@@ -387,12 +373,7 @@ mod tests {
         let result = response.result.expect("tools/call result");
         assert_eq!(result["isError"], false);
         assert_eq!(result["content"][0]["type"], "text");
-        assert!(
-            result["content"][0]["text"]
-                .as_str()
-                .unwrap()
-                .starts_with("called echo")
-        );
+        assert!(result["content"][0]["text"].as_str().unwrap().starts_with("called echo"));
     }
 
     #[test]

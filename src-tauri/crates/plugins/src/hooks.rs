@@ -41,12 +41,7 @@ pub struct HookRunResult {
 impl HookRunResult {
     #[must_use]
     pub fn allow(messages: Vec<String>) -> Self {
-        Self {
-            denied: false,
-            failed: false,
-            timed_out: false,
-            messages,
-        }
+        Self { denied: false, failed: false, timed_out: false, messages }
     }
 
     #[must_use]
@@ -360,10 +355,7 @@ fn shell_command(command: &str) -> CommandWithStdin {
     #[cfg(windows)]
     let command_builder = {
         let mut command_builder = Command::new("cmd");
-        command_builder
-            .creation_flags(0x08000000)
-            .arg("/C")
-            .arg(command);
+        command_builder.creation_flags(0x08000000).arg("/C").arg(command);
         CommandWithStdin::new(command_builder)
     };
 
@@ -634,18 +626,8 @@ mod tests {
         let result = runner.run_pre_tool_use("Bash", r#"{"command":"pwd"}"#);
 
         assert!(result.is_failed());
-        assert!(
-            result
-                .messages()
-                .iter()
-                .any(|message| message.contains("broken plugin hook"))
-        );
-        assert!(
-            !result
-                .messages()
-                .iter()
-                .any(|message| message == "later plugin hook")
-        );
+        assert!(result.messages().iter().any(|message| message.contains("broken plugin hook")));
+        assert!(!result.messages().iter().any(|message| message == "later plugin hook"));
     }
 
     #[test]

@@ -158,11 +158,7 @@ impl GitTools {
     ) -> Result<Vec<GitLogEntry>, String> {
         let output = run_git(
             repo_path,
-            &[
-                "log",
-                &format!("{}..HEAD", base_branch),
-                "--format=%H|%an|%ai|%s",
-            ],
+            &["log", &format!("{}..HEAD", base_branch), "--format=%H|%an|%ai|%s"],
         )?;
 
         Ok(output
@@ -226,11 +222,7 @@ impl GitTools {
                     ('C', _) => "copied".to_string(),
                     _ => format!("{}{}", index_status, worktree_status),
                 };
-                Some(GitStatusEntry {
-                    path,
-                    status,
-                    staged,
-                })
+                Some(GitStatusEntry { path, status, staged })
             })
             .collect())
     }
@@ -245,9 +237,8 @@ impl GitTools {
             ],
         )?;
 
-        let current_branch = run_git(repo_path, &["rev-parse", "--abbrev-ref", "HEAD"])
-            .ok()
-            .unwrap_or_default();
+        let current_branch =
+            run_git(repo_path, &["rev-parse", "--abbrev-ref", "HEAD"]).ok().unwrap_or_default();
 
         Ok(output
             .lines()
@@ -259,21 +250,10 @@ impl GitTools {
                 let name = parts[0].trim().to_string();
                 let is_current = name == current_branch.trim();
                 let is_remote = name.starts_with("remotes/");
-                let last_commit = parts
-                    .get(2)
-                    .map(|s| s.trim().to_string())
-                    .unwrap_or_default();
-                let last_commit_date = parts
-                    .get(3)
-                    .map(|s| s.trim().to_string())
-                    .unwrap_or_default();
-                Some(BranchInfo {
-                    name,
-                    is_current,
-                    is_remote,
-                    last_commit,
-                    last_commit_date,
-                })
+                let last_commit = parts.get(2).map(|s| s.trim().to_string()).unwrap_or_default();
+                let last_commit_date =
+                    parts.get(3).map(|s| s.trim().to_string()).unwrap_or_default();
+                Some(BranchInfo { name, is_current, is_remote, last_commit, last_commit_date })
             })
             .collect())
     }

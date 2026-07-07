@@ -92,10 +92,7 @@ impl ResourceLimits {
 
     #[cfg(all(unix, not(target_os = "android")))]
     fn set_rlimit(&self, resource: u32, soft: u64, hard: u64) -> Result<(), String> {
-        let rlim = libc::rlimit {
-            rlim_cur: soft.min(hard),
-            rlim_max: hard,
-        };
+        let rlim = libc::rlimit { rlim_cur: soft.min(hard), rlim_max: hard };
         // SAFETY: rlim is properly initialized with valid soft/hard limit values;
         // resource parameter is a valid libc rlimit resource constant;
         // setrlimit is called on the current process only;

@@ -14,17 +14,11 @@ struct MockAgent {
 
 impl MockAgent {
     fn new() -> Self {
-        Self {
-            status: AgentStatus::Idle,
-            should_fail: false,
-        }
+        Self { status: AgentStatus::Idle, should_fail: false }
     }
 
     fn with_failure() -> Self {
-        Self {
-            status: AgentStatus::Idle,
-            should_fail: true,
-        }
+        Self { status: AgentStatus::Idle, should_fail: true }
     }
 }
 
@@ -83,10 +77,7 @@ async fn test_coordinator_cannot_initialize_twice_without_cancel() {
     let agent = Arc::new(tokio::sync::Mutex::new(MockAgent::new()));
     let coordinator = AgentCoordinator::new(agent, None);
 
-    coordinator
-        .initialize(AgentConfig::default())
-        .await
-        .unwrap();
+    coordinator.initialize(AgentConfig::default()).await.unwrap();
     // After initialization, status is Idle, so a second init is valid
     let result = coordinator.initialize(AgentConfig::default()).await;
     assert!(result.is_ok());
@@ -97,10 +88,7 @@ async fn test_coordinator_execute_success() {
     let agent = Arc::new(tokio::sync::Mutex::new(MockAgent::new()));
     let coordinator = AgentCoordinator::new(agent, None);
 
-    let input = AgentInput {
-        content: "Hello, world!".to_string(),
-        context: None,
-    };
+    let input = AgentInput { content: "Hello, world!".to_string(), context: None };
 
     let result = coordinator.execute(input).await;
     assert!(result.is_ok());
@@ -114,10 +102,7 @@ async fn test_coordinator_execute_failure() {
     let agent = Arc::new(tokio::sync::Mutex::new(MockAgent::with_failure()));
     let coordinator = AgentCoordinator::new(agent, None);
 
-    let input = AgentInput {
-        content: "test".to_string(),
-        context: None,
-    };
+    let input = AgentInput { content: "test".to_string(), context: None };
 
     let result = coordinator.execute(input).await;
     assert!(result.is_err());
@@ -135,16 +120,10 @@ async fn test_coordinator_cannot_execute_while_running() {
     let coordinator = AgentCoordinator::new(agent, None);
 
     // Force into Running state via execute
-    let input = AgentInput {
-        content: "first".to_string(),
-        context: None,
-    };
+    let input = AgentInput { content: "first".to_string(), context: None };
     let _ = coordinator.execute(input).await;
 
-    let input2 = AgentInput {
-        content: "second".to_string(),
-        context: None,
-    };
+    let input2 = AgentInput { content: "second".to_string(), context: None };
     let result = coordinator.execute(input2).await;
     assert!(result.is_err());
 }
@@ -195,10 +174,7 @@ async fn test_coordinator_cache_integration() {
     let agent = Arc::new(tokio::sync::Mutex::new(MockAgent::new()));
     let coordinator = AgentCoordinator::new(agent, None);
 
-    coordinator
-        .prompt_cache
-        .record_system_prompt("test prompt")
-        .await;
+    coordinator.prompt_cache.record_system_prompt("test prompt").await;
     assert!(coordinator.prompt_cache.is_cache_valid().await);
 
     let state = coordinator.prompt_cache.get_state().await;
@@ -206,17 +182,11 @@ async fn test_coordinator_cache_integration() {
 
     // Check that the cache guard disallows modification when cache is valid
     // (without --now)
-    let guard_result = coordinator
-        .cache_guard
-        .guard_system_prompt_modification()
-        .await;
+    let guard_result = coordinator.cache_guard.guard_system_prompt_modification().await;
     assert!(guard_result.is_err());
 
     // With --now, it should allow
     coordinator.force_now().await;
-    let guard_result = coordinator
-        .cache_guard
-        .guard_system_prompt_modification()
-        .await;
+    let guard_result = coordinator.cache_guard.guard_system_prompt_modification().await;
     assert!(guard_result.is_ok());
 }

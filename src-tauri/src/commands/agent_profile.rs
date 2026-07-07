@@ -20,9 +20,7 @@ pub async fn list_agent_profiles(
     source: Option<String>,
 ) -> Result<Vec<AgentProfile>, String> {
     let db = app_state.harness.db();
-    agent_profile::list_agent_profiles(db, source.as_deref())
-        .await
-        .map_err(|e| e.to_string())
+    agent_profile::list_agent_profiles(db, source.as_deref()).await.map_err(|e| e.to_string())
 }
 
 /// 根据 ID 获取智能体能力集
@@ -32,9 +30,7 @@ pub async fn get_agent_profile(
     id: String,
 ) -> Result<AgentProfile, String> {
     let db = app_state.harness.db();
-    agent_profile::get_agent_profile(db, &id)
-        .await
-        .map_err(|e| e.to_string())
+    agent_profile::get_agent_profile(db, &id).await.map_err(|e| e.to_string())
 }
 
 /// 创建新的智能体能力集
@@ -102,9 +98,7 @@ pub async fn delete_agent_profile(
     id: String,
 ) -> Result<(), String> {
     let db = app_state.harness.db();
-    agent_profile::delete_agent_profile(db, &id)
-        .await
-        .map_err(|e| e.to_string())
+    agent_profile::delete_agent_profile(db, &id).await.map_err(|e| e.to_string())
 }
 
 /// 从 agency_experts 导入到 agent_profiles（兼容导入）
@@ -180,10 +174,7 @@ pub async fn ensure_agent_profile(
     let db = app_state.harness.db();
 
     // 已存在则直接返回
-    if axagent_dao::repo::agent_profile::get_agent_profile(db, &id)
-        .await
-        .is_ok()
-    {
+    if axagent_dao::repo::agent_profile::get_agent_profile(db, &id).await.is_ok() {
         return Ok(id);
     }
 

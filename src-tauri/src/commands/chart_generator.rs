@@ -100,10 +100,8 @@ Rules:
     };
 
     let adapter: Arc<dyn ProviderAdapter> = Arc::new(OpenAIAdapter::new());
-    let response: ChatResponse = adapter
-        .chat(&ctx, chat_request)
-        .await
-        .map_err(|e| e.to_string())?;
+    let response: ChatResponse =
+        adapter.chat(&ctx, chat_request).await.map_err(|e| e.to_string())?;
 
     let text = response.content;
 
@@ -117,23 +115,15 @@ Rules:
     let mut option: Value =
         serde_json::from_str(cleaned).map_err(|e| format!("Failed to parse JSON: {}", e))?;
 
-    let chart_type_result = option["_chartType"]
-        .as_str()
-        .unwrap_or(chart_type.as_deref().unwrap_or("bar"))
-        .to_string();
-    let title_result = option["_title"]
-        .as_str()
-        .unwrap_or(title.as_deref().unwrap_or(&description))
-        .to_string();
+    let chart_type_result =
+        option["_chartType"].as_str().unwrap_or(chart_type.as_deref().unwrap_or("bar")).to_string();
+    let title_result =
+        option["_title"].as_str().unwrap_or(title.as_deref().unwrap_or(&description)).to_string();
 
     if let Some(obj) = option.as_object_mut() {
         obj.remove("_chartType");
         obj.remove("_title");
     }
 
-    Ok(ChartGenResult {
-        option,
-        chart_type: chart_type_result,
-        title: title_result,
-    })
+    Ok(ChartGenResult { option, chart_type: chart_type_result, title: title_result })
 }

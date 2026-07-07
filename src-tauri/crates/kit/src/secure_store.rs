@@ -19,9 +19,7 @@ pub struct KeyringStore {
 
 impl KeyringStore {
     pub fn new(service: &str) -> Self {
-        Self {
-            service: service.to_string(),
-        }
+        Self { service: service.to_string() }
     }
 }
 
@@ -29,9 +27,7 @@ impl SecureStore for KeyringStore {
     fn store_secret(&self, key: &str, value: &str) -> Result<(), String> {
         let entry = keyring::Entry::new(&self.service, key)
             .map_err(|e| format!("keyring entry creation failed: {}", e))?;
-        entry
-            .set_password(value)
-            .map_err(|e| format!("keyring store failed: {}", e))
+        entry.set_password(value).map_err(|e| format!("keyring store failed: {}", e))
     }
 
     fn get_secret(&self, key: &str) -> Result<Option<String>, String> {
@@ -94,11 +90,8 @@ impl FallbackEnvStore {
         }
         let mut entries: Vec<_> = map.iter().collect();
         entries.sort_by_key(|(k, _)| *k);
-        let content = entries
-            .iter()
-            .map(|(k, v)| format!("{}={}", k, v))
-            .collect::<Vec<_>>()
-            .join("\n");
+        let content =
+            entries.iter().map(|(k, v)| format!("{}={}", k, v)).collect::<Vec<_>>().join("\n");
         fs::write(&self.env_path, content)
             .map_err(|e| format!("Failed to write secrets file: {}", e))
     }
@@ -133,10 +126,7 @@ pub struct CombinedSecureStore {
 
 impl CombinedSecureStore {
     pub fn new(service: &str, env_path: PathBuf) -> Self {
-        Self {
-            keyring: KeyringStore::new(service),
-            fallback: FallbackEnvStore::new(env_path),
-        }
+        Self { keyring: KeyringStore::new(service), fallback: FallbackEnvStore::new(env_path) }
     }
 
     pub fn with_default_paths() -> Self {
@@ -222,14 +212,7 @@ impl SecureStore for CombinedSecureStore {
 
 pub fn is_secret_key(key: &str) -> bool {
     let upper = key.to_uppercase();
-    const PATTERNS: &[&str] = &[
-        "KEY",
-        "SECRET",
-        "TOKEN",
-        "PASSWORD",
-        "CREDENTIAL",
-        "PRIVATE",
-    ];
+    const PATTERNS: &[&str] = &["KEY", "SECRET", "TOKEN", "PASSWORD", "CREDENTIAL", "PRIVATE"];
     PATTERNS.iter().any(|p| upper.contains(p))
 }
 

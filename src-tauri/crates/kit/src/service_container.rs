@@ -13,10 +13,7 @@ pub struct ServiceContainer {
 
 impl ServiceContainer {
     pub fn new() -> Self {
-        Self {
-            factories: RwLock::new(HashMap::new()),
-            instances: RwLock::new(HashMap::new()),
-        }
+        Self { factories: RwLock::new(HashMap::new()), instances: RwLock::new(HashMap::new()) }
     }
 
     pub fn register<T: 'static + Send + Sync + ?Sized>(
@@ -142,9 +139,7 @@ mod tests {
     fn test_register_factory() {
         let container = ServiceContainer::new();
         container.register::<dyn Greeter>(|| {
-            Arc::new(CountingGreeter {
-                count: AtomicU32::new(0),
-            }) as Arc<dyn Greeter>
+            Arc::new(CountingGreeter { count: AtomicU32::new(0) }) as Arc<dyn Greeter>
         });
 
         let first = container.resolve::<dyn Greeter>().unwrap();

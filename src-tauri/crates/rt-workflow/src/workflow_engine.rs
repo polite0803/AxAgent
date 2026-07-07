@@ -91,30 +91,22 @@ pub enum WorkflowStatus {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum WorkflowError {
     DuplicateNodeId(String),
-    InvalidDependency {
-        node_id: String,
-        missing_dep: String,
-    },
+    InvalidDependency { node_id: String, missing_dep: String },
     WorkflowNotFound,
     NodeNotFound,
     CycleDetected,
     SerializationError(String),
-    InputValidationFailed {
-        errors: Vec<String>,
-    },
-    OutputValidationFailed {
-        errors: Vec<String>,
-    },
+    InputValidationFailed { errors: Vec<String> },
+    OutputValidationFailed { errors: Vec<String> },
 }
 
 impl std::fmt::Display for WorkflowError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::DuplicateNodeId(id) => write!(f, "Duplicate node ID: {id}"),
-            Self::InvalidDependency {
-                node_id,
-                missing_dep,
-            } => write!(f, "Node '{node_id}' depends on non-existent '{missing_dep}'"),
+            Self::InvalidDependency { node_id, missing_dep } => {
+                write!(f, "Node '{node_id}' depends on non-existent '{missing_dep}'")
+            },
             Self::WorkflowNotFound => write!(f, "Workflow not found"),
             Self::NodeNotFound => write!(f, "Node not found"),
             Self::CycleDetected => write!(f, "Cycle detected in workflow"),
@@ -141,8 +133,5 @@ pub(crate) fn current_epoch_ms() -> u64 {
 }
 
 pub(crate) fn current_timestamp() -> u64 {
-    std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_secs()
+    std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap_or_default().as_secs()
 }

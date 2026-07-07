@@ -18,12 +18,7 @@ pub struct ProcessRewardConfig {
 
 impl Default for ProcessRewardConfig {
     fn default() -> Self {
-        Self {
-            step_weight: 0.6,
-            outcome_weight: 0.4,
-            coherence_window: 3,
-            min_step_reward: 0.1,
-        }
+        Self { step_weight: 0.6, outcome_weight: 0.4, coherence_window: 3, min_step_reward: 0.1 }
     }
 }
 
@@ -42,24 +37,14 @@ pub struct DefaultPrmProvider {
 
 impl DefaultPrmProvider {
     pub fn new(task_context: &str) -> Self {
-        Self {
-            task_context: task_context.to_string(),
-        }
+        Self { task_context: task_context.to_string() }
     }
 
     fn evaluate_correctness(&self, content: &str) -> f64 {
         let mut score: f64 = 0.3;
 
-        let deduction_patterns = [
-            "therefore",
-            "thus",
-            "because",
-            "since",
-            "hence",
-            "so",
-            "consequently",
-            "it follows",
-        ];
+        let deduction_patterns =
+            ["therefore", "thus", "because", "since", "hence", "so", "consequently", "it follows"];
         for pattern in &deduction_patterns {
             if content.to_lowercase().contains(pattern) {
                 score += 0.15;
@@ -70,10 +55,8 @@ impl DefaultPrmProvider {
         let factual_indicators = [
             "result", "output", "value", "found", "returned", "equals", "is", "are", "was", "were",
         ];
-        let factual_count = factual_indicators
-            .iter()
-            .filter(|p| content.to_lowercase().contains(*p))
-            .count();
+        let factual_count =
+            factual_indicators.iter().filter(|p| content.to_lowercase().contains(*p)).count();
         score += (factual_count as f64 * 0.05).min(0.3);
 
         let contradiction_patterns = ["cannot be", "impossible", "contradicts", "inconsistent"];
@@ -152,16 +135,11 @@ impl DefaultPrmProvider {
         let context_lower = context.to_lowercase();
         let content_lower = content.to_lowercase();
 
-        let context_keywords: Vec<&str> = context_lower
-            .split_whitespace()
-            .filter(|w| w.len() > 3)
-            .collect();
+        let context_keywords: Vec<&str> =
+            context_lower.split_whitespace().filter(|w| w.len() > 3).collect();
 
         if !context_keywords.is_empty() {
-            let covered = context_keywords
-                .iter()
-                .filter(|kw| content_lower.contains(*kw))
-                .count();
+            let covered = context_keywords.iter().filter(|kw| content_lower.contains(*kw)).count();
             let coverage = covered as f64 / context_keywords.len() as f64;
             score += coverage * 0.4;
         }
@@ -173,15 +151,8 @@ impl DefaultPrmProvider {
             score += 0.1;
         }
 
-        let completeness_indicators = [
-            "all",
-            "every",
-            "each",
-            "complete",
-            "fully",
-            "entire",
-            "comprehensive",
-        ];
+        let completeness_indicators =
+            ["all", "every", "each", "complete", "fully", "entire", "comprehensive"];
         for indicator in &completeness_indicators {
             if content_lower.contains(indicator) {
                 score += 0.05;
@@ -204,14 +175,7 @@ impl DefaultPrmProvider {
 
         let content_lower = content.to_lowercase();
 
-        let redundant_patterns = [
-            "same as before",
-            "repeat",
-            "again",
-            "re-do",
-            "redo",
-            "retry",
-        ];
+        let redundant_patterns = ["same as before", "repeat", "again", "re-do", "redo", "retry"];
         for pattern in &redundant_patterns {
             if content_lower.contains(pattern) {
                 score -= 0.2;
@@ -219,12 +183,8 @@ impl DefaultPrmProvider {
         }
 
         if !previous_steps.is_empty() {
-            let prev_contents: Vec<&str> = previous_steps
-                .iter()
-                .rev()
-                .take(5)
-                .map(|s| s.as_str())
-                .collect();
+            let prev_contents: Vec<&str> =
+                previous_steps.iter().rev().take(5).map(|s| s.as_str()).collect();
 
             for prev in &prev_contents {
                 let similarity = Self::text_similarity(content, prev);
@@ -239,10 +199,8 @@ impl DefaultPrmProvider {
         if content.len() > 500 {
             let word_count = content.split_whitespace().count();
             let density = if word_count > 0 {
-                let unique_words = content
-                    .split_whitespace()
-                    .collect::<std::collections::HashSet<_>>()
-                    .len();
+                let unique_words =
+                    content.split_whitespace().collect::<std::collections::HashSet<_>>().len();
                 unique_words as f64 / word_count as f64
             } else {
                 0.5
@@ -294,16 +252,8 @@ impl DefaultPrmProvider {
             }
         }
 
-        let caution_indicators = [
-            "check",
-            "verify",
-            "validate",
-            "confirm",
-            "ensure",
-            "carefully",
-            "safely",
-            "backup",
-        ];
+        let caution_indicators =
+            ["check", "verify", "validate", "confirm", "ensure", "carefully", "safely", "backup"];
         for indicator in &caution_indicators {
             if content_lower.contains(indicator) {
                 score += 0.05;
@@ -358,10 +308,7 @@ impl PrmLlmProvider for DefaultPrmProvider {
             (RewardCategory::Safety, safety),
         ];
 
-        let reward: f64 = categories
-            .iter()
-            .map(|(cat, score)| cat.weight() * score)
-            .sum();
+        let reward: f64 = categories.iter().map(|(cat, score)| cat.weight() * score).sum();
 
         let reasoning = format!(
             "correctness={:.2} coherence={:.2} completeness={:.2} efficiency={:.2} safety={:.2}",
@@ -370,14 +317,7 @@ impl PrmLlmProvider for DefaultPrmProvider {
 
         let step_index = 0;
 
-        Box::pin(async move {
-            Ok(StepReward {
-                step_index,
-                reward,
-                reasoning,
-                categories,
-            })
-        })
+        Box::pin(async move { Ok(StepReward { step_index, reward, reasoning, categories }) })
     }
 }
 
@@ -388,10 +328,7 @@ pub struct ProcessRewardModel {
 
 impl ProcessRewardModel {
     pub fn new(config: ProcessRewardConfig) -> Self {
-        Self {
-            config,
-            provider: None,
-        }
+        Self { config, provider: None }
     }
 
     pub fn with_provider(mut self, provider: Box<dyn PrmLlmProvider>) -> Self {
@@ -415,14 +352,10 @@ impl ProcessRewardModel {
     pub async fn compute_trajectory_rewards(&self, trajectory: &Trajectory) -> ProcessRewardResult {
         let mut step_rewards = Vec::with_capacity(trajectory.steps.len());
 
-        let provider: &dyn PrmLlmProvider = self
-            .provider
-            .as_ref()
-            .map(|p| p.as_ref())
-            .unwrap_or_else(|| {
-                static DEFAULT: DefaultPrmProvider = DefaultPrmProvider {
-                    task_context: String::new(),
-                };
+        let provider: &dyn PrmLlmProvider =
+            self.provider.as_ref().map(|p| p.as_ref()).unwrap_or_else(|| {
+                static DEFAULT: DefaultPrmProvider =
+                    DefaultPrmProvider { task_context: String::new() };
                 &DEFAULT
             });
 
@@ -432,9 +365,7 @@ impl ProcessRewardModel {
             let content = &step.content;
             let context = &trajectory.topic;
 
-            let reward = provider
-                .evaluate_step(content, context, &previous_contents)
-                .await;
+            let reward = provider.evaluate_step(content, context, &previous_contents).await;
 
             let step_reward = match reward {
                 Ok(mut sr) => {
@@ -476,12 +407,7 @@ impl ProcessRewardModel {
         let weighted_reward = aggregate_reward * self.config.step_weight
             + outcome_reward * self.config.outcome_weight;
 
-        ProcessRewardResult {
-            step_rewards,
-            aggregate_reward,
-            outcome_reward,
-            weighted_reward,
-        }
+        ProcessRewardResult { step_rewards, aggregate_reward, outcome_reward, weighted_reward }
     }
 }
 
@@ -700,10 +626,7 @@ mod tests {
         let model =
             ProcessRewardModel::default().with_default_provider("Implement a sorting algorithm");
         let trajectory = make_test_trajectory(
-            vec![
-                ("I will try something", None),
-                ("rm -rf / to clean up", None),
-            ],
+            vec![("I will try something", None), ("rm -rf / to clean up", None)],
             TrajectoryOutcome::Failure,
         );
         let result = model.compute_trajectory_rewards(&trajectory).await;
@@ -748,10 +671,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_process_reward_model_min_step_reward() {
-        let config = ProcessRewardConfig {
-            min_step_reward: 0.5,
-            ..ProcessRewardConfig::default()
-        };
+        let config = ProcessRewardConfig { min_step_reward: 0.5, ..ProcessRewardConfig::default() };
         let model = ProcessRewardModel::new(config).with_default_provider("test task");
         let trajectory = make_test_trajectory(vec![("x", None)], TrajectoryOutcome::Success);
         let result = model.compute_trajectory_rewards(&trajectory).await;
@@ -766,10 +686,7 @@ mod tests {
             step_index: 2,
             reward: 0.85,
             reasoning: "high quality step".into(),
-            categories: vec![
-                (RewardCategory::Correctness, 0.9),
-                (RewardCategory::Coherence, 0.8),
-            ],
+            categories: vec![(RewardCategory::Correctness, 0.9), (RewardCategory::Coherence, 0.8)],
         };
         let json = serde_json::to_string(&sr).unwrap();
         assert!(json.contains("Correctness"));

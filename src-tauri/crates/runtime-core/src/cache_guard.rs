@@ -12,10 +12,7 @@ pub struct CacheGuard {
 
 impl CacheGuard {
     pub fn new(cache: Arc<PromptCache>) -> Self {
-        Self {
-            cache,
-            force_immediate: Arc::new(RwLock::new(false)),
-        }
+        Self { cache, force_immediate: Arc::new(RwLock::new(false)) }
     }
 
     pub async fn set_force_immediate(&self, force: bool) {

@@ -83,14 +83,7 @@ impl SessionMemoryCompactConfig {
             self.usage_history.iter().copied().sum::<f64>() / self.usage_history.len() as f64;
 
         // 趋势：最近 3 次 vs 全部历史
-        let recent: f64 = self
-            .usage_history
-            .iter()
-            .rev()
-            .take(3)
-            .copied()
-            .sum::<f64>()
-            / 3.0;
+        let recent: f64 = self.usage_history.iter().rev().take(3).copied().sum::<f64>() / 3.0;
         let trend = recent - avg_usage; // 正值 = 使用率在上升
 
         // 基础压缩比例：基于平均使用率
@@ -249,18 +242,13 @@ fn build_session_memory_content(memories: &[StructuredMemory], max_tokens: u64) 
     let mut by_type: std::collections::BTreeMap<&str, Vec<&StructuredMemory>> =
         std::collections::BTreeMap::new();
     for mem in memories {
-        by_type
-            .entry(mem.memory_type.as_str())
-            .or_default()
-            .push(mem);
+        by_type.entry(mem.memory_type.as_str()).or_default().push(mem);
     }
 
     // 高置信度记忆优先
     for memories_list in by_type.values_mut() {
         memories_list.sort_by(|a, b| {
-            b.confidence
-                .partial_cmp(&a.confidence)
-                .unwrap_or(std::cmp::Ordering::Equal)
+            b.confidence.partial_cmp(&a.confidence).unwrap_or(std::cmp::Ordering::Equal)
         });
     }
 
@@ -343,11 +331,7 @@ fn compute_compact_start_index(
         accumulated_tokens += msg_tokens;
 
         // 检查文本块
-        if msg
-            .blocks
-            .iter()
-            .any(|b| matches!(b, ContentBlock::Text { .. }))
-        {
+        if msg.blocks.iter().any(|b| matches!(b, ContentBlock::Text { .. })) {
             text_block_messages += 1;
         }
 
@@ -381,20 +365,16 @@ fn adjust_index_to_preserve_pairs(messages: &[ConversationMessage], start_index:
         }
 
         let first_kept = &messages[adjusted];
-        let starts_with_tool_result = first_kept
-            .blocks
-            .first()
-            .is_some_and(|b| matches!(b, ContentBlock::ToolResult { .. }));
+        let starts_with_tool_result =
+            first_kept.blocks.first().is_some_and(|b| matches!(b, ContentBlock::ToolResult { .. }));
 
         if !starts_with_tool_result {
             break;
         }
 
         let preceding = &messages[adjusted - 1];
-        let preceding_has_tool_use = preceding
-            .blocks
-            .iter()
-            .any(|b| matches!(b, ContentBlock::ToolUse { .. }));
+        let preceding_has_tool_use =
+            preceding.blocks.iter().any(|b| matches!(b, ContentBlock::ToolUse { .. }));
 
         if preceding_has_tool_use {
             // 配对完整 — 再向前一步以包含 assistant 轮次
@@ -426,9 +406,7 @@ pub fn to_compaction_result(
 
     let mut compacted_messages = vec![ConversationMessage {
         role: MessageRole::System,
-        blocks: vec![ContentBlock::Text {
-            text: continuation_message,
-        }],
+        blocks: vec![ContentBlock::Text { text: continuation_message }],
         usage: None,
     }];
     compacted_messages.extend(sm_result.messages_to_keep.clone());
@@ -480,9 +458,7 @@ mod tests {
             // 创建足够大的消息以确保 token 估算值超过压缩阈值
             let text = format!("message {} {}", i, "x".repeat(10_000));
             if i % 2 == 0 {
-                session
-                    .push_message(ConversationMessage::user_text(&text))
-                    .unwrap();
+                session.push_message(ConversationMessage::user_text(&text)).unwrap();
             } else {
                 session
                     .push_message(ConversationMessage::assistant(vec![ContentBlock::Text { text }]))
@@ -495,10 +471,7 @@ mod tests {
     #[test]
     fn test_disabled_returns_none() {
         let session = make_test_session(20);
-        let config = SessionMemoryCompactConfig {
-            enabled: false,
-            ..Default::default()
-        };
+        let config = SessionMemoryCompactConfig { enabled: false, ..Default::default() };
         let result = try_session_memory_compact(
             &session,
             &make_test_memories(),
@@ -581,9 +554,7 @@ mod tests {
             .unwrap();
         // More messages
         for i in 0..5 {
-            session
-                .push_message(ConversationMessage::user_text(&format!("msg {}", i)))
-                .unwrap();
+            session.push_message(ConversationMessage::user_text(&format!("msg {}", i))).unwrap();
         }
 
         // 尝试在 tool_result 处切割
@@ -608,10 +579,7 @@ mod tests {
             &session,
             &make_test_memories(),
             &config,
-            CompactionConfig {
-                max_estimated_tokens: 500_000,
-                ..CompactionConfig::default()
-            },
+            CompactionConfig { max_estimated_tokens: 500_000, ..CompactionConfig::default() },
         )
         .unwrap();
 
@@ -732,10 +700,7 @@ mod tests {
         config2.record_usage(8_000, 128_000);
 
         let eff_min2 = config2.effective_min_tokens();
-        assert!(
-            eff_min2 <= 15_000,
-            "expected moderate min_tokens under low usage, got {eff_min2}"
-        );
+        assert!(eff_min2 <= 15_000, "expected moderate min_tokens under low usage, got {eff_min2}");
     }
 
     #[test]

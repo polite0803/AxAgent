@@ -52,10 +52,8 @@ pub async fn create_pool(db_path: &str) -> Result<DbHandle> {
     // 数据库完整性检测与自动恢复（在 PRAGMA 和迁移之前运行）
     crate::integrity::auto_recover(&conn, &url).await?;
 
-    conn.execute_raw(Statement::from_string(DbBackend::Sqlite, "PRAGMA journal_mode=WAL;"))
-        .await?;
-    conn.execute_raw(Statement::from_string(DbBackend::Sqlite, "PRAGMA foreign_keys=ON;"))
-        .await?;
+    conn.execute_raw(Statement::from_string(DbBackend::Sqlite, "PRAGMA journal_mode=WAL;")).await?;
+    conn.execute_raw(Statement::from_string(DbBackend::Sqlite, "PRAGMA foreign_keys=ON;")).await?;
     conn.execute_raw(Statement::from_string(DbBackend::Sqlite, "PRAGMA busy_timeout=5000;"))
         .await?;
     conn.execute_raw(Statement::from_string(DbBackend::Sqlite, "PRAGMA synchronous=NORMAL;"))
@@ -79,10 +77,7 @@ pub async fn create_pool(db_path: &str) -> Result<DbHandle> {
     // 工作流模板按需导入，通过前端工作流管理页面的"从预设导入"按钮触发 seed_preset_templates Tauri 命令。
 
     info!("Database initialized at {}", db_path);
-    Ok(DbHandle {
-        conn,
-        path: db_path.to_string(),
-    })
+    Ok(DbHandle { conn, path: db_path.to_string() })
 }
 
 pub fn default_db_path() -> String {
@@ -129,12 +124,8 @@ pub fn profile_db_path(profile_name: &str) -> String {
         PathBuf::from(".")
     });
 
-    let path = home
-        .join(".axagent")
-        .join("profiles")
-        .join(profile_name)
-        .join("data")
-        .join("axagent.db");
+    let path =
+        home.join(".axagent").join("profiles").join(profile_name).join("data").join("axagent.db");
     path.to_string_lossy().to_string()
 }
 
@@ -527,10 +518,7 @@ async fn seed_builtin_providers(db: &DatabaseConnection) -> Result<()> {
         provider::update_provider(
             db,
             &prov.id,
-            UpdateProviderInput {
-                sort_order: Some(idx as i32),
-                ..Default::default()
-            },
+            UpdateProviderInput { sort_order: Some(idx as i32), ..Default::default() },
         )
         .await?;
     }
@@ -541,15 +529,9 @@ async fn seed_builtin_providers(db: &DatabaseConnection) -> Result<()> {
 
 pub async fn create_test_pool() -> Result<DbHandle> {
     let mut opt = ConnectOptions::new("sqlite::memory:?mode=rwc");
-    opt.max_connections(1)
-        .min_connections(1)
-        .sqlx_logging(false);
+    opt.max_connections(1).min_connections(1).sqlx_logging(false);
     let conn = Database::connect(opt).await?;
-    conn.execute_raw(Statement::from_string(DbBackend::Sqlite, "PRAGMA foreign_keys=ON;"))
-        .await?;
+    conn.execute_raw(Statement::from_string(DbBackend::Sqlite, "PRAGMA foreign_keys=ON;")).await?;
     crate::ddl::run_initialization(&conn).await?;
-    Ok(DbHandle {
-        conn,
-        path: ":memory:".to_string(),
-    })
+    Ok(DbHandle { conn, path: ":memory:".to_string() })
 }

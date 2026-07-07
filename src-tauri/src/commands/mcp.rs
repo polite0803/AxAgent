@@ -117,29 +117,23 @@ pub async fn test_mcp_server(
                     .ok_or_else(|| format!("{} 服务器缺少 endpoint 配置", server.transport))?;
 
                 let tools = if server.transport == "http" {
-                    axagent_mcp::mcp_client::discover_tools_http(endpoint)
-                        .await
-                        .map_err(|e| {
-                            serde_json::to_string(
-                                &ErrorResponse::new(mcp_err::CONNECT_FAILED)
-                                    .with_detail(e.to_string()),
-                            )
-                            .unwrap_or_else(|e| {
-                                format!("{{\"error\":\"serialization failed: {}\"}}", e)
-                            })
-                        })?
+                    axagent_mcp::mcp_client::discover_tools_http(endpoint).await.map_err(|e| {
+                        serde_json::to_string(
+                            &ErrorResponse::new(mcp_err::CONNECT_FAILED).with_detail(e.to_string()),
+                        )
+                        .unwrap_or_else(|e| {
+                            format!("{{\"error\":\"serialization failed: {}\"}}", e)
+                        })
+                    })?
                 } else {
-                    axagent_mcp::mcp_client::discover_tools_sse(endpoint)
-                        .await
-                        .map_err(|e| {
-                            serde_json::to_string(
-                                &ErrorResponse::new(mcp_err::CONNECT_FAILED)
-                                    .with_detail(e.to_string()),
-                            )
-                            .unwrap_or_else(|e| {
-                                format!("{{\"error\":\"serialization failed: {}\"}}", e)
-                            })
-                        })?
+                    axagent_mcp::mcp_client::discover_tools_sse(endpoint).await.map_err(|e| {
+                        serde_json::to_string(
+                            &ErrorResponse::new(mcp_err::CONNECT_FAILED).with_detail(e.to_string()),
+                        )
+                        .unwrap_or_else(|e| {
+                            format!("{{\"error\":\"serialization failed: {}\"}}", e)
+                        })
+                    })?
                 };
                 Ok::<_, String>(serde_json::json!({
                     "ok": true,
@@ -277,9 +271,7 @@ async fn discover_mcp_tools_inner(
             .map(|d| axagent_mcp::mcp_client::DiscoveredTool {
                 name: d.name,
                 description: d.description,
-                input_schema: d
-                    .input_schema_json
-                    .and_then(|s| serde_json::from_str(&s).ok()),
+                input_schema: d.input_schema_json.and_then(|s| serde_json::from_str(&s).ok()),
             })
             .collect();
         return Ok(tools);
@@ -293,14 +285,10 @@ async fn discover_mcp_tools_inner(
     let timeout_duration = std::time::Duration::from_secs(timeout_secs);
 
     let command = server.command.as_deref();
-    let args: Option<Vec<String>> = server
-        .args_json
-        .as_ref()
-        .and_then(|s| serde_json::from_str(s).ok());
-    let env: Option<std::collections::HashMap<String, String>> = server
-        .env_json
-        .as_ref()
-        .and_then(|s| serde_json::from_str(s).ok());
+    let args: Option<Vec<String>> =
+        server.args_json.as_ref().and_then(|s| serde_json::from_str(s).ok());
+    let env: Option<std::collections::HashMap<String, String>> =
+        server.env_json.as_ref().and_then(|s| serde_json::from_str(s).ok());
     let endpoint = server.endpoint.as_deref();
 
     // 使用统一的发现入口
@@ -378,9 +366,7 @@ pub async fn discover_available_mcp_servers() -> Result<Vec<DiscoveredMcpServer>
                             .get("args")
                             .and_then(|v| v.as_array())
                             .map(|arr| {
-                                arr.iter()
-                                    .filter_map(|v| v.as_str().map(String::from))
-                                    .collect()
+                                arr.iter().filter_map(|v| v.as_str().map(String::from)).collect()
                             })
                             .unwrap_or_default();
                         let transport = config

@@ -29,19 +29,14 @@ pub fn score_message(msg: &ConversationMessage) -> u32 {
     }
 
     // 包含工具调用的消息更重要
-    let has_tool_use = msg
-        .blocks
-        .iter()
-        .any(|b| matches!(b, ContentBlock::ToolUse { .. }));
+    let has_tool_use = msg.blocks.iter().any(|b| matches!(b, ContentBlock::ToolUse { .. }));
     if has_tool_use {
         score += 15;
     }
 
     // 包含错误的工具结果减分（可丢弃）
-    let has_error = msg
-        .blocks
-        .iter()
-        .any(|b| matches!(b, ContentBlock::ToolResult { is_error: true, .. }));
+    let has_error =
+        msg.blocks.iter().any(|b| matches!(b, ContentBlock::ToolResult { is_error: true, .. }));
     if has_error {
         score -= 10;
     }
@@ -76,11 +71,8 @@ pub fn select_top_messages(messages: &[ConversationMessage], keep_count: usize) 
         return Vec::new();
     }
 
-    let mut scored: Vec<(usize, u32)> = messages
-        .iter()
-        .enumerate()
-        .map(|(i, msg)| (i, score_message(msg)))
-        .collect();
+    let mut scored: Vec<(usize, u32)> =
+        messages.iter().enumerate().map(|(i, msg)| (i, score_message(msg))).collect();
 
     // 按分数降序排列（稳定排序保证同分时保持原序）
     scored.sort_by_key(|b| std::cmp::Reverse(b.1));
@@ -100,16 +92,12 @@ mod tests {
     fn user_messages_score_higher() {
         let user_msg = ConversationMessage {
             role: MessageRole::User,
-            blocks: vec![ContentBlock::Text {
-                text: "帮我分析这个bug".into(),
-            }],
+            blocks: vec![ContentBlock::Text { text: "帮我分析这个bug".into() }],
             usage: None,
         };
         let assistant_msg = ConversationMessage {
             role: MessageRole::Assistant,
-            blocks: vec![ContentBlock::Text {
-                text: "好的".into(),
-            }],
+            blocks: vec![ContentBlock::Text { text: "好的".into() }],
             usage: None,
         };
         assert!(score_message(&user_msg) > score_message(&assistant_msg));
@@ -163,9 +151,7 @@ mod tests {
     fn long_text_scores_higher_than_short() {
         let long_msg = ConversationMessage {
             role: MessageRole::Assistant,
-            blocks: vec![ContentBlock::Text {
-                text: "x".repeat(600),
-            }],
+            blocks: vec![ContentBlock::Text { text: "x".repeat(600) }],
             usage: None,
         };
         let short_msg = ConversationMessage {

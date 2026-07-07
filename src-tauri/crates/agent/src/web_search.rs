@@ -17,12 +17,7 @@ pub struct WebSearchConfig {
 
 impl Default for WebSearchConfig {
     fn default() -> Self {
-        Self {
-            api_key: None,
-            endpoint: None,
-            timeout_secs: 30,
-            rate_limit_per_minute: Some(60),
-        }
+        Self { api_key: None, endpoint: None, timeout_secs: 30, rate_limit_per_minute: Some(60) }
     }
 }
 
@@ -43,10 +38,7 @@ impl WebSearchProvider {
             .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
             .build()
             .unwrap_or_default();
-        Self {
-            config,
-            http_client: client,
-        }
+        Self { config, http_client: client }
     }
 
     pub fn with_api_key(mut self, api_key: impl Into<String>) -> Self {
@@ -385,9 +377,7 @@ impl SearchProvider for WebSearchProvider {
     }
 
     fn rate_limit(&self) -> Option<Duration> {
-        self.config
-            .rate_limit_per_minute
-            .map(|rpm| Duration::from_secs(60 * 60 / rpm as u64))
+        self.config.rate_limit_per_minute.map(|rpm| Duration::from_secs(60 * 60 / rpm as u64))
     }
 }
 
@@ -397,9 +387,7 @@ pub struct WebSearchProviderBuilder {
 
 impl WebSearchProviderBuilder {
     pub fn new() -> Self {
-        Self {
-            provider: WebSearchProvider::new(),
-        }
+        Self { provider: WebSearchProvider::new() }
     }
 
     pub fn api_key(mut self, key: impl Into<String>) -> Self {
@@ -765,20 +753,14 @@ mod tests {
 
     #[test]
     fn test_rate_limit_none_when_not_set() {
-        let config = WebSearchConfig {
-            rate_limit_per_minute: None,
-            ..Default::default()
-        };
+        let config = WebSearchConfig { rate_limit_per_minute: None, ..Default::default() };
         let provider = WebSearchProvider::with_config(config);
         assert!(provider.rate_limit().is_none());
     }
 
     #[test]
     fn test_rate_limit_custom() {
-        let config = WebSearchConfig {
-            rate_limit_per_minute: Some(120),
-            ..Default::default()
-        };
+        let config = WebSearchConfig { rate_limit_per_minute: Some(120), ..Default::default() };
         let provider = WebSearchProvider::with_config(config);
         let rate_limit = provider.rate_limit();
         assert!(rate_limit.is_some());
@@ -813,17 +795,13 @@ mod tests {
 
     #[test]
     fn test_builder_with_api_key() {
-        let provider = WebSearchProviderBuilder::new()
-            .api_key("my-api-key")
-            .build();
+        let provider = WebSearchProviderBuilder::new().api_key("my-api-key").build();
         assert_eq!(provider.config.api_key, Some("my-api-key".to_string()));
     }
 
     #[test]
     fn test_builder_with_endpoint() {
-        let provider = WebSearchProviderBuilder::new()
-            .endpoint("https://search.api.com")
-            .build();
+        let provider = WebSearchProviderBuilder::new().endpoint("https://search.api.com").build();
         assert_eq!(provider.config.endpoint, Some("https://search.api.com".to_string()));
     }
 

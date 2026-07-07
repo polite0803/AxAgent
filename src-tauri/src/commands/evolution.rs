@@ -40,11 +40,8 @@ pub async fn get_evolution_stats(
     let sandbox_enabled = skill_evolution.has_sandbox();
     drop(skill_evolution);
 
-    let trajectories = state
-        .trajectory_storage
-        .get_trajectories(Some(1000))
-        .await
-        .unwrap_or_default();
+    let trajectories =
+        state.trajectory_storage.get_trajectories(Some(1000)).await.unwrap_or_default();
 
     let auto_tool = state.auto_tool_creator.lock().await;
     let auto_tools_count = auto_tool.tool_count();

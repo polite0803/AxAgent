@@ -64,11 +64,7 @@ impl WebDavClient {
             .timeout(std::time::Duration::from_secs(300))
             .build()
             .map_err(|e| AxAgentError::Gateway(format!("Failed to create HTTP client: {}", e)))?;
-        Ok(Self {
-            client,
-            config,
-            mkdir_cache: Mutex::new(HashSet::new()),
-        })
+        Ok(Self { client, config, mkdir_cache: Mutex::new(HashSet::new()) })
     }
 
     pub fn config(&self) -> &WebDavConfig {
@@ -169,10 +165,7 @@ impl WebDavClient {
                 },
             }
 
-            self.mkdir_cache
-                .lock()
-                .unwrap_or_else(|e| e.into_inner())
-                .insert(current.clone());
+            self.mkdir_cache.lock().unwrap_or_else(|e| e.into_inner()).insert(current.clone());
         }
         Ok(())
     }
@@ -235,10 +228,7 @@ impl WebDavClient {
                     },
                 }
 
-                self.mkdir_cache
-                    .lock()
-                    .unwrap_or_else(|e| e.into_inner())
-                    .insert(current.clone());
+                self.mkdir_cache.lock().unwrap_or_else(|e| e.into_inner()).insert(current.clone());
             }
         }
         Ok(())
@@ -303,11 +293,8 @@ impl WebDavClient {
             )));
         }
 
-        let etag = response
-            .headers()
-            .get("etag")
-            .and_then(|h| h.to_str().ok())
-            .map(|s| s.to_string());
+        let etag =
+            response.headers().get("etag").and_then(|h| h.to_str().ok()).map(|s| s.to_string());
 
         let last_modified = response
             .headers()
@@ -365,21 +352,16 @@ impl WebDavClient {
             },
         }
 
-        let etag = response
-            .headers()
-            .get("etag")
-            .and_then(|h| h.to_str().ok())
-            .map(|s| s.to_string());
+        let etag =
+            response.headers().get("etag").and_then(|h| h.to_str().ok()).map(|s| s.to_string());
 
         Ok(etag)
     }
 
     pub async fn delete_raw(&self, key: &str, if_match: Option<&str>) -> Result<()> {
         let url = self.file_url(key);
-        let mut req = self
-            .client
-            .delete(&url)
-            .basic_auth(&self.config.username, Some(&self.config.password));
+        let mut req =
+            self.client.delete(&url).basic_auth(&self.config.username, Some(&self.config.password));
 
         if let Some(etag) = if_match {
             req = req.header("If-Match", etag);
@@ -416,11 +398,8 @@ impl WebDavClient {
             return Err(AxAgentError::NotFound(format!("WebDAV object not found: {}", key)));
         }
 
-        let etag = response
-            .headers()
-            .get("etag")
-            .and_then(|h| h.to_str().ok())
-            .map(|s| s.to_string());
+        let etag =
+            response.headers().get("etag").and_then(|h| h.to_str().ok()).map(|s| s.to_string());
 
         let last_modified = response
             .headers()
@@ -589,8 +568,7 @@ pub fn create_backup_zip(
         add_directory_to_zip(&mut zip, ws_dir, "workspace", options)?;
     }
 
-    zip.finish()
-        .map_err(|e| AxAgentError::Gateway(format!("ZIP finalize error: {}", e)))?;
+    zip.finish().map_err(|e| AxAgentError::Gateway(format!("ZIP finalize error: {}", e)))?;
     Ok(())
 }
 
@@ -871,19 +849,13 @@ fn parse_propfind_response(xml: &str) -> Result<Vec<WebDavFileInfo>> {
             continue;
         }
 
-        let size: i64 = extract_xml_value(&block, "getcontentlength")
-            .and_then(|s| s.parse().ok())
-            .unwrap_or(0);
+        let size: i64 =
+            extract_xml_value(&block, "getcontentlength").and_then(|s| s.parse().ok()).unwrap_or(0);
 
         let last_modified = extract_xml_value(&block, "getlastmodified").unwrap_or_default();
         let hostname = parse_hostname_from_filename(&file_name);
 
-        files.push(WebDavFileInfo {
-            file_name,
-            size,
-            last_modified,
-            hostname,
-        });
+        files.push(WebDavFileInfo { file_name, size, last_modified, hostname });
     }
 
     files.sort_by(|a, b| b.file_name.cmp(&a.file_name));
@@ -913,10 +885,7 @@ fn parse_propfind_responses_for_sync(
         }
 
         let decoded_href = url_decode(&href);
-        let file_name = decoded_href
-            .split('/')
-            .rfind(|s| !s.is_empty())
-            .unwrap_or("");
+        let file_name = decoded_href.split('/').rfind(|s| !s.is_empty()).unwrap_or("");
         if file_name.is_empty() {
             continue;
         }
@@ -927,18 +896,12 @@ fn parse_propfind_responses_for_sync(
             continue;
         }
 
-        let size: i64 = extract_xml_value(&block, "getcontentlength")
-            .and_then(|s| s.parse().ok())
-            .unwrap_or(0);
+        let size: i64 =
+            extract_xml_value(&block, "getcontentlength").and_then(|s| s.parse().ok()).unwrap_or(0);
         let last_modified = extract_xml_value(&block, "getlastmodified");
         let etag = extract_xml_value(&block, "getetag").map(|s| s.trim_matches('"').to_string());
 
-        files.push(axagent_harness::StorageObjectMeta {
-            key,
-            etag,
-            last_modified,
-            size,
-        });
+        files.push(axagent_harness::StorageObjectMeta { key, etag, last_modified, size });
     }
     Ok(files)
 }
@@ -982,10 +945,7 @@ fn parse_propfind_responses_with_dirs(
             continue;
         }
 
-        let file_name = decoded_href
-            .split('/')
-            .rfind(|s| !s.is_empty())
-            .unwrap_or("");
+        let file_name = decoded_href.split('/').rfind(|s| !s.is_empty()).unwrap_or("");
         if file_name.is_empty() {
             continue;
         }
@@ -995,18 +955,12 @@ fn parse_propfind_responses_with_dirs(
             continue;
         }
 
-        let size: i64 = extract_xml_value(&block, "getcontentlength")
-            .and_then(|s| s.parse().ok())
-            .unwrap_or(0);
+        let size: i64 =
+            extract_xml_value(&block, "getcontentlength").and_then(|s| s.parse().ok()).unwrap_or(0);
         let last_modified = extract_xml_value(&block, "getlastmodified");
         let etag = extract_xml_value(&block, "getetag").map(|s| s.trim_matches('"').to_string());
 
-        files.push(axagent_harness::StorageObjectMeta {
-            key,
-            etag,
-            last_modified,
-            size,
-        });
+        files.push(axagent_harness::StorageObjectMeta { key, etag, last_modified, size });
     }
     Ok((files, subdirs))
 }
@@ -1035,9 +989,7 @@ fn split_xml_responses(xml: &str) -> Vec<String> {
 
         let mut pos = 0;
         while pos < lower.len() {
-            let start = lower[pos..]
-                .find(&open1)
-                .or_else(|| lower[pos..].find(&open2));
+            let start = lower[pos..].find(&open1).or_else(|| lower[pos..].find(&open2));
             if let Some(s) = start {
                 let abs_start = pos + s;
                 if let Some(end) = lower[abs_start..].find(&close) {

@@ -22,10 +22,7 @@ pub async fn reflect_on_task(
 
     let mut record = TaskExecutionRecord::new(task_id, task_description, start, end);
     record.compute_duration();
-    record = record
-        .with_success(success)
-        .with_tools(tools_used)
-        .with_iterations(iterations);
+    record = record.with_success(success).with_tools(tools_used).with_iterations(iterations);
     if let Some(e) = error {
         record = record.with_error(e);
     }

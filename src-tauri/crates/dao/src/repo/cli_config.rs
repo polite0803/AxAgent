@@ -68,13 +68,7 @@ impl CliTool {
     }
 
     pub fn all() -> &'static [CliTool] {
-        &[
-            Self::ClaudeCode,
-            Self::Codex,
-            Self::Gemini,
-            Self::OpenCode,
-            Self::Cursor,
-        ]
+        &[Self::ClaudeCode, Self::Codex, Self::Gemini, Self::OpenCode, Self::Cursor]
     }
 }
 
@@ -100,9 +94,7 @@ pub fn check_installed(tool: CliTool) -> bool {
 
 /// Returns true if any known config file for the tool exists on disk.
 pub fn check_config_exists(tool: CliTool) -> bool {
-    config_paths(tool)
-        .map(|paths| paths.iter().any(|p| p.exists()))
-        .unwrap_or(false)
+    config_paths(tool).map(|paths| paths.iter().any(|p| p.exists())).unwrap_or(false)
 }
 
 fn run_version_command(cmd: &str, arg: &str) -> Option<String> {
@@ -138,9 +130,7 @@ fn check_cursor_installed() -> bool {
     #[cfg(target_os = "windows")]
     {
         if let Ok(appdata) = std::env::var("LOCALAPPDATA") {
-            Path::new(&appdata)
-                .join("Programs/cursor/Cursor.exe")
-                .exists()
+            Path::new(&appdata).join("Programs/cursor/Cursor.exe").exists()
         } else {
             false
         }
@@ -175,14 +165,12 @@ fn config_paths(tool: CliTool) -> Result<Vec<PathBuf>> {
             home.join(".claude").join("settings.json"),
             home.join(".claude").join("config.json"),
         ]),
-        CliTool::Codex => Ok(vec![
-            home.join(".codex").join("auth.json"),
-            home.join(".codex").join("config.toml"),
-        ]),
-        CliTool::Gemini => Ok(vec![
-            home.join(".gemini").join(".env"),
-            home.join(".gemini").join("settings.json"),
-        ]),
+        CliTool::Codex => {
+            Ok(vec![home.join(".codex").join("auth.json"), home.join(".codex").join("config.toml")])
+        },
+        CliTool::Gemini => {
+            Ok(vec![home.join(".gemini").join(".env"), home.join(".gemini").join("settings.json")])
+        },
         CliTool::OpenCode => Ok(vec![home.join(".config").join("opencode").join("opencode.json")]),
         CliTool::Cursor => {
             #[cfg(target_os = "macos")]
@@ -222,10 +210,7 @@ fn backup_file(path: &Path, tool: CliTool) -> Result<()> {
     if !path.exists() {
         return Ok(());
     }
-    let filename = path
-        .file_name()
-        .and_then(|n| n.to_str())
-        .unwrap_or("config");
+    let filename = path.file_name().and_then(|n| n.to_str()).unwrap_or("config");
     let dest = backup_path(tool, filename)?;
     if let Some(parent) = dest.parent() {
         std::fs::create_dir_all(parent)
@@ -309,9 +294,7 @@ fn check_claude_code_connected(
     // Check settings.json
     let settings = read_json_file(settings_path)?;
     let env = settings.get("env");
-    let url_ok = env
-        .and_then(|value| value.get("ANTHROPIC_BASE_URL"))
-        .and_then(|v| v.as_str())
+    let url_ok = env.and_then(|value| value.get("ANTHROPIC_BASE_URL")).and_then(|v| v.as_str())
         == Some(gateway_url);
     let key_ok = env
         .and_then(|value| value.get("ANTHROPIC_AUTH_TOKEN"))
@@ -336,11 +319,8 @@ fn check_codex_connected(auth_path: &Path, config_path: &Path, gateway_url: &str
         return Ok(false);
     }
     let auth = read_json_file(auth_path)?;
-    let token_ok = auth
-        .get("OPENAI_API_KEY")
-        .and_then(|v| v.as_str())
-        .map(|t| !t.is_empty())
-        .unwrap_or(false);
+    let token_ok =
+        auth.get("OPENAI_API_KEY").and_then(|v| v.as_str()).map(|t| !t.is_empty()).unwrap_or(false);
     if !token_ok {
         return Ok(false);
     }
@@ -432,10 +412,8 @@ fn check_opencode_connected(path: &Path, gateway_url: &str) -> Result<bool> {
     }
     let json = read_json_file(path)?;
     let axagent = json.get("provider").and_then(|p| p.get("axagent"));
-    let url_ok = axagent
-        .and_then(|a| a.get("baseURL"))
-        .and_then(|v| v.as_str())
-        == Some(gateway_url);
+    let url_ok =
+        axagent.and_then(|a| a.get("baseURL")).and_then(|v| v.as_str()) == Some(gateway_url);
     let key_ok = axagent
         .and_then(|a| a.get("apiKey"))
         .and_then(|v| v.as_str())
@@ -452,11 +430,8 @@ fn check_cursor_connected(path: &Path, gateway_url: &str) -> Result<bool> {
     }
     let json = read_json_file(path)?;
     let url_ok = json.get("openai.apiBaseUrl").and_then(|v| v.as_str()) == Some(gateway_url);
-    let key_ok = json
-        .get("openai.apiKey")
-        .and_then(|v| v.as_str())
-        .map(|k| !k.is_empty())
-        .unwrap_or(false);
+    let key_ok =
+        json.get("openai.apiKey").and_then(|v| v.as_str()).map(|k| !k.is_empty()).unwrap_or(false);
     Ok(url_ok && key_ok)
 }
 
@@ -545,12 +520,9 @@ fn connect_claude_code(
     if !obj.contains_key("env") {
         obj.insert("env".into(), serde_json::json!({}));
     }
-    let env = obj
-        .get_mut("env")
-        .and_then(|value| value.as_object_mut())
-        .ok_or_else(|| {
-            AxAgentError::Gateway("Claude Code settings.env is not a JSON object".into())
-        })?;
+    let env = obj.get_mut("env").and_then(|value| value.as_object_mut()).ok_or_else(|| {
+        AxAgentError::Gateway("Claude Code settings.env is not a JSON object".into())
+    })?;
     env.insert("ANTHROPIC_BASE_URL".into(), serde_json::Value::String(gateway_url.into()));
     env.insert("ANTHROPIC_AUTH_TOKEN".into(), serde_json::Value::String(api_key.into()));
     let content = serde_json::to_string_pretty(&settings)
@@ -884,10 +856,7 @@ fn remove_toml_axagent_config(path: &Path) -> Result<()> {
         doc.remove("model_provider");
     }
     // Remove model_providers.any
-    if let Some(providers) = doc
-        .get_mut("model_providers")
-        .and_then(|v| v.as_table_mut())
-    {
+    if let Some(providers) = doc.get_mut("model_providers").and_then(|v| v.as_table_mut()) {
         providers.remove("any");
         if providers.is_empty() {
             doc.remove("model_providers");
@@ -1056,10 +1025,7 @@ fn read_json_file(path: &Path) -> Result<serde_json::Value> {
 /// Get the primary config path for display purposes
 pub fn get_config_path(tool: CliTool) -> Result<String> {
     let paths = config_paths(tool)?;
-    Ok(paths
-        .first()
-        .map(|p| p.display().to_string())
-        .unwrap_or_default())
+    Ok(paths.first().map(|p| p.display().to_string()).unwrap_or_default())
 }
 
 /// Check if a backup exists for the tool

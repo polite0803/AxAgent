@@ -7,10 +7,7 @@ use std::fs;
 use std::path::PathBuf;
 
 static PERSONALITIES_DIR: std::sync::LazyLock<PathBuf> = std::sync::LazyLock::new(|| {
-    dirs::home_dir()
-        .unwrap_or_else(|| PathBuf::from("."))
-        .join(".axagent")
-        .join("personalities")
+    dirs::home_dir().unwrap_or_else(|| PathBuf::from(".")).join(".axagent").join("personalities")
 });
 
 static ACTIVE_FILE: std::sync::LazyLock<PathBuf> = std::sync::LazyLock::new(|| {

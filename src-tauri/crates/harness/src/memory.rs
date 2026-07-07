@@ -89,10 +89,7 @@ pub struct NoopMemoryStore;
 #[async_trait]
 impl MemoryStore for NoopMemoryStore {
     async fn add_memory(&self, _req: MemoryAddRequest) -> Result<MemoryActionResultDto, String> {
-        Ok(MemoryActionResultDto {
-            success: true,
-            error: None,
-        })
+        Ok(MemoryActionResultDto { success: true, error: None })
     }
     async fn search_memories(
         &self,
@@ -113,24 +110,15 @@ impl MemoryStore for NoopMemoryStore {
         &self,
         _req: MemoryFeedbackRequest,
     ) -> Result<MemoryActionResultDto, String> {
-        Ok(MemoryActionResultDto {
-            success: true,
-            error: None,
-        })
+        Ok(MemoryActionResultDto { success: true, error: None })
     }
     async fn delete_memory(&self, _id: &str) -> Result<MemoryActionResultDto, String> {
-        Ok(MemoryActionResultDto {
-            success: true,
-            error: None,
-        })
+        Ok(MemoryActionResultDto { success: true, error: None })
     }
     async fn update_memory(
         &self,
         _req: MemoryUpdateRequest,
     ) -> Result<MemoryActionResultDto, String> {
-        Ok(MemoryActionResultDto {
-            success: true,
-            error: None,
-        })
+        Ok(MemoryActionResultDto { success: true, error: None })
     }
 }

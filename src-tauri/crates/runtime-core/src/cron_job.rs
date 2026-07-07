@@ -187,10 +187,7 @@ impl CronJobStore {
             info!("[CronJobStore] 从 DB 恢复了 {count} 个定时任务");
         }
 
-        Self {
-            jobs: Arc::new(RwLock::new(jobs)),
-            db,
-        }
+        Self { jobs: Arc::new(RwLock::new(jobs)), db }
     }
 
     /// 从 DB 加载全部任务，恢复时重置 next_run_at 为 0（立即触发）。

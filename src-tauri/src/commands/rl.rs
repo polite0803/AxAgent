@@ -46,10 +46,7 @@ pub fn rl_create_policy(
     policy_type: String,
     model_id: String,
 ) -> Result<Policy, String> {
-    Err(not_implemented(&format!(
-        "rl_create_policy({}, {}, {})",
-        name, policy_type, model_id
-    )))
+    Err(not_implemented(&format!("rl_create_policy({}, {}, {})", name, policy_type, model_id)))
 }
 
 #[command]

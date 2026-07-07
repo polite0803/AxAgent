@@ -108,24 +108,14 @@ impl McpOAuthStore {
         let store_path = Self::default_store_path();
         let oauth_key = Self::get_master_key(crypto_service.as_ref());
         let credentials = Self::load_from_disk(&store_path, crypto_service.as_ref(), &oauth_key);
-        Self {
-            credentials: RwLock::new(credentials),
-            store_path,
-            crypto_service,
-            oauth_key,
-        }
+        Self { credentials: RwLock::new(credentials), store_path, crypto_service, oauth_key }
     }
 
     #[must_use]
     pub fn with_path(store_path: PathBuf, crypto_service: Arc<dyn CryptoService>) -> Self {
         let oauth_key = Self::get_master_key(crypto_service.as_ref());
         let credentials = Self::load_from_disk(&store_path, crypto_service.as_ref(), &oauth_key);
-        Self {
-            credentials: RwLock::new(credentials),
-            store_path,
-            crypto_service,
-            oauth_key,
-        }
+        Self { credentials: RwLock::new(credentials), store_path, crypto_service, oauth_key }
     }
 
     /// 全局单例
@@ -134,10 +124,7 @@ impl McpOAuthStore {
     /// `init_global()` 初始化；否则会 panic。
     #[must_use]
     pub fn global() -> Arc<McpOAuthStore> {
-        GLOBAL_STORE
-            .get()
-            .expect("McpOAuthStore::global() called before init_global()")
-            .clone()
+        GLOBAL_STORE.get().expect("McpOAuthStore::global() called before init_global()").clone()
     }
 
     /// 初始化全局单例。
@@ -292,10 +279,8 @@ impl McpOAuthStore {
             .await
             .map_err(|e| format!("Token 刷新请求失败: {e}"))?;
 
-        let body: serde_json::Value = response
-            .json()
-            .await
-            .map_err(|e| format!("Token 刷新响应解析失败: {e}"))?;
+        let body: serde_json::Value =
+            response.json().await.map_err(|e| format!("Token 刷新响应解析失败: {e}"))?;
 
         let access_token = body["access_token"]
             .as_str()
@@ -359,10 +344,8 @@ pub async fn exchange_code_for_token(
         return Err(format!("Token 交换失败 ({}): {}", status, body));
     }
 
-    let body: serde_json::Value = response
-        .json()
-        .await
-        .map_err(|e| format!("Token 响应解析失败: {e}"))?;
+    let body: serde_json::Value =
+        response.json().await.map_err(|e| format!("Token 响应解析失败: {e}"))?;
 
     let access_token = body["access_token"]
         .as_str()

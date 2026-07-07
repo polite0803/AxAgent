@@ -276,10 +276,7 @@ pub struct RegisteredPlugin {
 impl RegisteredPlugin {
     #[must_use]
     pub fn new(definition: PluginDefinition, enabled: bool) -> Self {
-        Self {
-            definition,
-            enabled,
-        }
+        Self { definition, enabled }
     }
 
     #[must_use]
@@ -319,23 +316,14 @@ impl RegisteredPlugin {
         PluginSummary {
             metadata: self.metadata().clone(),
             enabled: self.enabled,
-            tool_names: self
-                .tools()
-                .iter()
-                .map(|t| t.definition().name.clone())
-                .collect(),
+            tool_names: self.tools().iter().map(|t| t.definition().name.clone()).collect(),
             mcp_server_names: self
                 .definition
                 .mcp_servers()
                 .iter()
                 .map(|m| m.name.clone())
                 .collect(),
-            skill_names: self
-                .definition
-                .skills()
-                .iter()
-                .map(|s| s.name.clone())
-                .collect(),
+            skill_names: self.definition.skills().iter().map(|s| s.name.clone()).collect(),
         }
     }
 }
@@ -360,12 +348,7 @@ pub struct PluginLoadFailure {
 impl PluginLoadFailure {
     #[must_use]
     pub fn new(plugin_root: PathBuf, kind: PluginKind, source: String, error: PluginError) -> Self {
-        Self {
-            plugin_root,
-            kind,
-            source,
-            error: Box::new(error),
-        }
+        Self { plugin_root, kind, source, error: Box::new(error) }
     }
 
     #[must_use]
@@ -475,9 +458,7 @@ impl PluginRegistry {
 
     #[must_use]
     pub fn get(&self, plugin_id: &str) -> Option<&RegisteredPlugin> {
-        self.plugins
-            .iter()
-            .find(|plugin| plugin.metadata().id == plugin_id)
+        self.plugins.iter().find(|plugin| plugin.metadata().id == plugin_id)
     }
 
     #[must_use]
@@ -491,13 +472,13 @@ impl PluginRegistry {
     }
 
     pub fn aggregated_hooks(&self) -> Result<PluginHooks, PluginError> {
-        self.plugins
-            .iter()
-            .filter(|plugin| plugin.is_enabled())
-            .try_fold(PluginHooks::default(), |acc, plugin| {
+        self.plugins.iter().filter(|plugin| plugin.is_enabled()).try_fold(
+            PluginHooks::default(),
+            |acc, plugin| {
                 plugin.validate()?;
                 Ok(acc.merged_with(plugin.hooks()))
-            })
+            },
+        )
     }
 
     pub fn aggregated_tools(&self) -> Result<Vec<PluginTool>, PluginError> {
@@ -530,12 +511,7 @@ impl PluginRegistry {
     }
 
     pub fn shutdown(&self) -> Result<(), PluginError> {
-        for plugin in self
-            .plugins
-            .iter()
-            .rev()
-            .filter(|plugin| plugin.is_enabled())
-        {
+        for plugin in self.plugins.iter().rev().filter(|plugin| plugin.is_enabled()) {
             plugin.shutdown()?;
         }
         Ok(())

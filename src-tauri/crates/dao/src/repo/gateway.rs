@@ -24,10 +24,8 @@ fn key_from_entity(m: gateway_keys::Model) -> GatewayKey {
 // --- Gateway Key CRUD ---
 
 pub async fn list_gateway_keys(db: &DatabaseConnection) -> Result<Vec<GatewayKey>> {
-    let rows = gateway_keys::Entity::find()
-        .order_by_desc(gateway_keys::Column::CreatedAt)
-        .all(db)
-        .await?;
+    let rows =
+        gateway_keys::Entity::find().order_by_desc(gateway_keys::Column::CreatedAt).all(db).await?;
 
     Ok(rows.into_iter().map(key_from_entity).collect())
 }
@@ -354,9 +352,7 @@ pub async fn get_connected_programs(db: &DatabaseConnection) -> Result<Vec<Conne
                 today_request_tokens: r.try_get::<i64>("", "today_request_tokens")? as u64,
                 today_response_tokens: r.try_get::<i64>("", "today_response_tokens")? as u64,
                 last_active_at,
-                is_active: last_active_at
-                    .map(|t| t >= active_threshold)
-                    .unwrap_or(false),
+                is_active: last_active_at.map(|t| t >= active_threshold).unwrap_or(false),
             })
         })
         .collect()

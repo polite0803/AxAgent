@@ -102,10 +102,8 @@ pub async fn delete_stored_files_by_conversation(
 }
 
 pub async fn list_all_stored_files(db: &DatabaseConnection) -> Result<Vec<StoredFile>> {
-    let models = stored_files::Entity::find()
-        .order_by_desc(stored_files::Column::CreatedAt)
-        .all(db)
-        .await?;
+    let models =
+        stored_files::Entity::find().order_by_desc(stored_files::Column::CreatedAt).all(db).await?;
     Ok(models.into_iter().map(model_to_stored_file).collect())
 }
 
@@ -121,10 +119,8 @@ pub async fn count_stored_files_with_storage_path(
 }
 
 pub async fn find_by_hash(db: &DatabaseConnection, hash: &str) -> Result<Option<StoredFile>> {
-    let model = stored_files::Entity::find()
-        .filter(stored_files::Column::Hash.eq(hash))
-        .one(db)
-        .await?;
+    let model =
+        stored_files::Entity::find().filter(stored_files::Column::Hash.eq(hash)).one(db).await?;
 
     Ok(model.map(model_to_stored_file))
 }

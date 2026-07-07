@@ -91,15 +91,9 @@ impl PluginHooks {
     #[must_use]
     pub fn merged_with(&self, other: &Self) -> Self {
         let mut merged = self.clone();
-        merged
-            .pre_tool_use
-            .extend(other.pre_tool_use.iter().cloned());
-        merged
-            .post_tool_use
-            .extend(other.post_tool_use.iter().cloned());
-        merged
-            .post_tool_use_failure
-            .extend(other.post_tool_use_failure.iter().cloned());
+        merged.pre_tool_use.extend(other.pre_tool_use.iter().cloned());
+        merged.post_tool_use.extend(other.post_tool_use.iter().cloned());
+        merged.post_tool_use_failure.extend(other.post_tool_use_failure.iter().cloned());
         merged
     }
 }
@@ -470,10 +464,7 @@ impl PluginTool {
                         "plugin tool `{}` requires read permission, but plugin `{}` only declares {:?}",
                         self.definition.name,
                         self.plugin_id,
-                        declared_permissions
-                            .iter()
-                            .map(|p| p.as_str())
-                            .collect::<Vec<_>>()
+                        declared_permissions.iter().map(|p| p.as_str()).collect::<Vec<_>>()
                     )));
                 }
                 Ok(())
@@ -484,10 +475,7 @@ impl PluginTool {
                         "plugin tool `{}` requires workspace-write permission, but plugin `{}` only declares {:?}",
                         self.definition.name,
                         self.plugin_id,
-                        declared_permissions
-                            .iter()
-                            .map(|p| p.as_str())
-                            .collect::<Vec<_>>()
+                        declared_permissions.iter().map(|p| p.as_str()).collect::<Vec<_>>()
                     )));
                 }
                 Ok(())
@@ -498,10 +486,7 @@ impl PluginTool {
                         "plugin tool `{}` requires danger-full-access permission, but plugin `{}` only declares {:?} (needs 'execute')",
                         self.definition.name,
                         self.plugin_id,
-                        declared_permissions
-                            .iter()
-                            .map(|p| p.as_str())
-                            .collect::<Vec<_>>()
+                        declared_permissions.iter().map(|p| p.as_str()).collect::<Vec<_>>()
                     )));
                 }
                 Ok(())
@@ -539,9 +524,7 @@ impl PluginTool {
             process.creation_flags(0x08000000);
         }
         if let Some(root) = &self.root {
-            process
-                .current_dir(root)
-                .env("CLAWD_PLUGIN_ROOT", root.display().to_string());
+            process.current_dir(root).env("CLAWD_PLUGIN_ROOT", root.display().to_string());
         }
 
         let mut child = process.spawn()?;
@@ -599,16 +582,9 @@ fn default_tool_permission_label() -> String {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum PluginInstallSource {
-    LocalPath {
-        path: PathBuf,
-    },
-    GitUrl {
-        url: String,
-    },
-    NpmPackage {
-        name: String,
-        version: Option<String>,
-    },
+    LocalPath { path: PathBuf },
+    GitUrl { url: String },
+    NpmPackage { name: String, version: Option<String> },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

@@ -29,9 +29,7 @@ pub async fn upload_file(
         .map_err(|e| format!("Failed to ensure documents dirs: {}", e))?;
     let file_store = axagent_storage::file_store::FileStore::new();
 
-    let saved = file_store
-        .save_file(&bytes, &file_name, &mime_type)
-        .map_err(|e| e.to_string())?;
+    let saved = file_store.save_file(&bytes, &file_name, &mime_type).map_err(|e| e.to_string())?;
 
     let id = axagent_kit::utils::gen_id();
     let stored = axagent_dao::repo::stored_file::create_stored_file(
@@ -59,9 +57,7 @@ pub async fn download_file(state: State<'_, AppState>, file_id: String) -> Resul
 
     let file_store = axagent_storage::file_store::FileStore::new();
 
-    let data = file_store
-        .read_file(&file.storage_path)
-        .map_err(|e| e.to_string())?;
+    let data = file_store.read_file(&file.storage_path).map_err(|e| e.to_string())?;
 
     Ok(base64::engine::general_purpose::STANDARD.encode(&data))
 }
@@ -133,6 +129,5 @@ pub async fn request_file_permission(
     reason: String,
 ) -> Result<(), String> {
     let event = FilePermissionRequestEvent { path, reason };
-    app.emit("file-permission-request", event)
-        .map_err(|e| format!("Failed to emit event: {}", e))
+    app.emit("file-permission-request", event).map_err(|e| format!("Failed to emit event: {}", e))
 }

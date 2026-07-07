@@ -24,9 +24,7 @@ pub fn restrict_file_permissions(path: &Path) -> Result<(), String> {
             .arg(format!("{}:(R,W)", username));
         #[cfg(windows)]
         axagent_kit::utils::hide_window(&mut scmd);
-        let result = scmd
-            .output()
-            .map_err(|e| format!("failed to run icacls: {}", e))?;
+        let result = scmd.output().map_err(|e| format!("failed to run icacls: {}", e))?;
         if !result.status.success() {
             let stderr = String::from_utf8_lossy(&result.stderr);
             tracing::warn!(
@@ -104,12 +102,7 @@ pub async fn init_database_with_dir(app_dir: PathBuf) -> Result<DatabaseInitResu
     // 注册 SeaORM 连接
     axagent_tools::global_state::set_sea_db(std::sync::Arc::new(db_handle.conn.clone()));
 
-    Ok(DatabaseInitResult {
-        db_handle,
-        db_path,
-        master_key,
-        app_dir,
-    })
+    Ok(DatabaseInitResult { db_handle, db_path, master_key, app_dir })
 }
 
 fn load_or_create_master_key(key_path: &Path, app_dir: &Path) -> Result<[u8; 32], String> {

@@ -59,9 +59,8 @@ pub fn evaluator_list_datasets() -> Result<Vec<Dataset>, String> {
 #[command]
 pub fn evaluator_import_dataset(path: String) -> Result<Dataset, String> {
     let loader = DatasetLoader::new();
-    let benchmark = loader
-        .load_from_file(&path)
-        .map_err(|e| format!("Failed to import dataset: {}", e))?;
+    let benchmark =
+        loader.load_from_file(&path).map_err(|e| format!("Failed to import dataset: {}", e))?;
 
     let mut s = suite().blocking_lock();
     let dataset = Dataset {

@@ -76,15 +76,10 @@ fn build_call_args(
     server: &axagent_entities::mcp_servers::Model,
 ) -> (Option<&str>, Option<Vec<String>>, HashMap<String, String>, Option<&str>) {
     let command = server.command.as_deref();
-    let args: Option<Vec<String>> = server
-        .args_json
-        .as_ref()
-        .and_then(|j| serde_json::from_str(j).ok());
-    let env: HashMap<String, String> = server
-        .env_json
-        .as_ref()
-        .and_then(|j| serde_json::from_str(j).ok())
-        .unwrap_or_default();
+    let args: Option<Vec<String>> =
+        server.args_json.as_ref().and_then(|j| serde_json::from_str(j).ok());
+    let env: HashMap<String, String> =
+        server.env_json.as_ref().and_then(|j| serde_json::from_str(j).ok()).unwrap_or_default();
     let endpoint = server.endpoint.as_deref();
     (command, args, env, endpoint)
 }
@@ -102,11 +97,7 @@ pub async fn list_mcp_servers(
         Ok(servers) => {
             let info: Vec<McpServerInfo> = servers
                 .into_iter()
-                .map(|s| McpServerInfo {
-                    id: s.id,
-                    name: s.name,
-                    transport: s.transport,
-                })
+                .map(|s| McpServerInfo { id: s.id, name: s.name, transport: s.transport })
                 .collect();
             (StatusCode::OK, Json(json!(info))).into_response()
         },
@@ -203,10 +194,9 @@ pub async fn call_mcp_tool(
             )
                 .into_response()
         },
-        Err(e) => (
-            StatusCode::BAD_GATEWAY,
-            Json(json!({ "error": format!("Failed to call tool: {e}") })),
-        )
-            .into_response(),
+        Err(e) => {
+            (StatusCode::BAD_GATEWAY, Json(json!({ "error": format!("Failed to call tool: {e}") })))
+                .into_response()
+        },
     }
 }

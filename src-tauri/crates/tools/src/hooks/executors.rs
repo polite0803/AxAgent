@@ -14,10 +14,8 @@ pub async fn execute_hook(hook: &HookConfig, tool_name: &str, input: &str) -> Ho
         HookExecutor::Http(http) => execute_http_hook(http, tool_name, input).await,
         HookExecutor::Prompt(prompt) => {
             // Prompt hook 返回注入内容
-            let context = prompt
-                .template
-                .replace("{{tool_name}}", tool_name)
-                .replace("{{input}}", input);
+            let context =
+                prompt.template.replace("{{tool_name}}", tool_name).replace("{{input}}", input);
             let mut r = HookResult::allowed();
             r.additional_context = Some(context);
             r
@@ -87,10 +85,7 @@ async fn execute_shell_hook(
                 if let Some(ctx) = json.get("context") {
                     r.additional_context = Some(ctx.as_str().unwrap_or("").to_string());
                 }
-                r.reason = json
-                    .get("reason")
-                    .and_then(|v| v.as_str())
-                    .map(|s| s.to_string());
+                r.reason = json.get("reason").and_then(|v| v.as_str()).map(|s| s.to_string());
                 r
             } else {
                 // 非 JSON 输出，作为附加上下文
@@ -151,10 +146,8 @@ async fn execute_http_hook(http: &super::HttpHookExec, tool_name: &str, input: &
                                 _ => HookAction::Allow,
                             };
                         }
-                        r.reason = json
-                            .get("reason")
-                            .and_then(|v| v.as_str())
-                            .map(|s| s.to_string());
+                        r.reason =
+                            json.get("reason").and_then(|v| v.as_str()).map(|s| s.to_string());
                         r
                     } else if status.is_success() {
                         let mut r = HookResult::allowed();

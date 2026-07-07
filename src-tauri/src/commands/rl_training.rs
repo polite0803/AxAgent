@@ -119,17 +119,13 @@ pub async fn stop_rl_training(training_id: String) -> Result<(), String> {
 pub async fn get_training_metrics(step: u64) -> Result<TrainingMetrics, String> {
     // Use the latest training's config for simulation, or defaults
     let store = training_state().lock().await;
-    let config = store
-        .values()
-        .next()
-        .map(|s| s.config.clone())
-        .unwrap_or(RLTrainingConfig {
-            algorithm: "ppo".into(),
-            learning_rate: 1e-5,
-            batch_size: 64,
-            epochs: 10,
-            max_steps: 10000,
-        });
+    let config = store.values().next().map(|s| s.config.clone()).unwrap_or(RLTrainingConfig {
+        algorithm: "ppo".into(),
+        learning_rate: 1e-5,
+        batch_size: 64,
+        epochs: 10,
+        max_steps: 10000,
+    });
     drop(store);
 
     Ok(simulate_metrics(step, &config))
@@ -148,35 +144,16 @@ pub async fn save_checkpoint(
     // Find the training with the matching step
     for state in store.values_mut() {
         if state.current_step <= step {
-            state.checkpoints.push(CheckpointInfo {
-                id,
-                name,
-                step,
-                loss,
-                reward,
-                timestamp,
-            });
+            state.checkpoints.push(CheckpointInfo { id, name, step, loss, reward, timestamp });
             return Ok(());
         }
     }
     // If no training found, add to a default entry
-    let ckpt = CheckpointInfo {
-        id,
-        name,
-        step,
-        loss,
-        reward,
-        timestamp,
-    };
+    let ckpt = CheckpointInfo { id, name, step, loss, reward, timestamp };
     // Store as standalone checkpoint (will be returned by list)
     let ckpt_id = ckpt.id.clone();
     // We use a second static for orphan checkpoints
-    CHECKPOINTS
-        .get()
-        .ok_or("CHECKPOINTS not initialized")?
-        .lock()
-        .await
-        .push(ckpt);
+    CHECKPOINTS.get().ok_or("CHECKPOINTS not initialized")?.lock().await.push(ckpt);
     tracing::info!(target: "rl_training", checkpoint_id = %ckpt_id, "Checkpoint saved");
     Ok(())
 }
@@ -190,9 +167,7 @@ fn checkpoints() -> &'static Mutex<Vec<CheckpointInfo>> {
 #[command]
 pub async fn load_checkpoint(checkpoint_id: String) -> Result<(), String> {
     let store = training_state().lock().await;
-    let found = store
-        .values()
-        .any(|s| s.checkpoints.iter().any(|c| c.id == checkpoint_id));
+    let found = store.values().any(|s| s.checkpoints.iter().any(|c| c.id == checkpoint_id));
     if found {
         tracing::info!(target: "rl_training", checkpoint_id = %checkpoint_id, "Checkpoint loaded");
         Ok(())

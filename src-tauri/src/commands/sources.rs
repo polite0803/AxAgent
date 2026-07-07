@@ -114,10 +114,7 @@ pub async fn create_source(
     let embedding_provider = if input.embedding_provider.is_some() {
         input.embedding_provider
     } else {
-        axagent_dao::repo::settings::get_settings(db)
-            .await
-            .ok()
-            .and_then(|s| s.default_provider_id)
+        axagent_dao::repo::settings::get_settings(db).await.ok().and_then(|s| s.default_provider_id)
     };
 
     match input.source_type.as_str() {

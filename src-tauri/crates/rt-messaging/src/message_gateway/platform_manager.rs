@@ -77,9 +77,7 @@ impl PlatformManager {
                             tracing::info!("[PlatformManager] {} started", name);
                         },
                         Err(e) => {
-                            report
-                                .errors
-                                .push((name.clone(), format!("start failed: {}", e)));
+                            report.errors.push((name.clone(), format!("start failed: {}", e)));
                             tracing::error!("[PlatformManager] {} start failed: {}", name, e);
                         },
                     }
@@ -92,9 +90,7 @@ impl PlatformManager {
                         tracing::info!("[PlatformManager] {} stopped", name);
                     },
                     Err(e) => {
-                        report
-                            .errors
-                            .push((name.clone(), format!("stop failed: {}", e)));
+                        report.errors.push((name.clone(), format!("stop failed: {}", e)));
                         tracing::error!("[PlatformManager] {} stop failed: {}", name, e);
                     },
                 }
@@ -191,10 +187,8 @@ impl PlatformManager {
             adapters
                 .iter()
                 .map(|(name, adapter)| {
-                    let active_count = active_sessions
-                        .iter()
-                        .filter(|s| s.platform == *name)
-                        .count() as i32;
+                    let active_count =
+                        active_sessions.iter().filter(|s| s.platform == *name).count() as i32;
                     AdapterInfo {
                         name: name.clone(),
                         enabled: adapter.is_enabled(config),

@@ -506,22 +506,13 @@ pub struct SourceRef {
 
 impl SourceRef {
     pub fn knowledge(id: impl Into<String>) -> Self {
-        SourceRef {
-            container_type: "knowledge".to_string(),
-            id: id.into(),
-        }
+        SourceRef { container_type: "knowledge".to_string(), id: id.into() }
     }
     pub fn memory(id: impl Into<String>) -> Self {
-        SourceRef {
-            container_type: "memory".to_string(),
-            id: id.into(),
-        }
+        SourceRef { container_type: "memory".to_string(), id: id.into() }
     }
     pub fn wiki(id: impl Into<String>) -> Self {
-        SourceRef {
-            container_type: "wiki".to_string(),
-            id: id.into(),
-        }
+        SourceRef { container_type: "wiki".to_string(), id: id.into() }
     }
 }
 
@@ -1074,21 +1065,10 @@ pub struct SkillUICommand {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "camelCase")]
 pub enum SkillCommandAction {
-    Navigate {
-        path: String,
-    },
-    InvokeBackend {
-        command: String,
-        args: serde_json::Value,
-    },
-    EmitEvent {
-        event: String,
-        payload: serde_json::Value,
-    },
-    Custom {
-        handler_id: String,
-        data: serde_json::Value,
-    },
+    Navigate { path: String },
+    InvokeBackend { command: String, args: serde_json::Value },
+    EmitEvent { event: String, payload: serde_json::Value },
+    Custom { handler_id: String, data: serde_json::Value },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

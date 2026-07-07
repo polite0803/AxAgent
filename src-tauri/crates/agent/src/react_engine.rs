@@ -329,10 +329,7 @@ impl LlmDrivenReasoningProvider {
         if let (Some(config), Some(svc)) = (&self.llm_call_config, &self.llm_service) {
             let messages = serde_json::to_value(&request)
                 .map_err(|e| ReActError::LlmReasoningError(e.to_string()))?;
-            return match svc
-                .execute(&*self.adapter, &self.ctx, messages, config)
-                .await
-            {
+            return match svc.execute(&*self.adapter, &self.ctx, messages, config).await {
                 Ok(result) => Ok(result.content),
                 Err(e) => Err(ReActError::LlmReasoningError(e)),
             };
@@ -395,11 +392,7 @@ impl LlmDrivenReasoningProvider {
 
         let parsed: ActionResponse = serde_json::from_str(&json_str).ok()?;
 
-        let action_type = parsed
-            .action_type
-            .as_deref()
-            .unwrap_or("plan")
-            .to_lowercase();
+        let action_type = parsed.action_type.as_deref().unwrap_or("plan").to_lowercase();
 
         match action_type.as_str() {
             "tool_call" | "toolcall" => {
@@ -433,13 +426,7 @@ impl LlmDrivenReasoningProvider {
                     tool_name: None,
                     tool_input: None,
                     llm_prompt: parsed.llm_prompt.or_else(|| {
-                        Some(
-                            parsed
-                                .tool_name
-                                .as_deref()
-                                .unwrap_or("execute plan")
-                                .to_string(),
-                        )
+                        Some(parsed.tool_name.as_deref().unwrap_or("execute plan").to_string())
                     }),
                     requires_confirmation: false,
                 })
@@ -454,13 +441,8 @@ impl LlmDrivenReasoningProvider {
             let remainder = &response[start + "tool_call:".len()..];
             let tool_name = remainder.lines().next().unwrap_or("").trim().to_string();
             if !tool_name.is_empty() {
-                let tool_input = remainder
-                    .lines()
-                    .skip(1)
-                    .collect::<Vec<_>>()
-                    .join("\n")
-                    .trim()
-                    .to_string();
+                let tool_input =
+                    remainder.lines().skip(1).collect::<Vec<_>>().join("\n").trim().to_string();
                 return Some(Action {
                     action_type: ActionType::ToolCall,
                     tool_name: Some(tool_name),
@@ -779,9 +761,8 @@ impl ReActEngine {
                 );
             }
 
-            let step_result: Result<(ReasoningState, bool), ReActError> = self
-                .process_state(user_input, state, &mut chain, &mut context)
-                .await;
+            let step_result: Result<(ReasoningState, bool), ReActError> =
+                self.process_state(user_input, state, &mut chain, &mut context).await;
 
             match step_result {
                 Ok((new_state, should_continue)) => {
@@ -1086,9 +1067,8 @@ impl ReActEngine {
                 );
             }
 
-            let step_result: Result<(ReasoningState, bool), ReActError> = self
-                .process_state(user_input, state, &mut chain, &mut context)
-                .await;
+            let step_result: Result<(ReasoningState, bool), ReActError> =
+                self.process_state(user_input, state, &mut chain, &mut context).await;
 
             match step_result {
                 Ok((new_state, should_continue)) => {
@@ -1212,38 +1192,26 @@ impl ReActEngine {
                 self.extract_sub_goals(user_input, context);
 
                 self.emit(ThoughtEvent::StepCompleted(
-                    chain
-                        .latest_step()
-                        .expect("step just added via add_step")
-                        .clone(),
+                    chain.latest_step().expect("step just added via add_step").clone(),
                 ));
 
                 Ok((ReasoningState::Thinking, true))
             },
 
             ReasoningState::Thinking => {
-                let reasoning = self
-                    .reasoning_provider
-                    .think(user_input, context, chain)
-                    .await?;
+                let reasoning = self.reasoning_provider.think(user_input, context, chain).await?;
                 let step = ThoughtStep::new(ReasoningState::Thinking, reasoning);
                 chain.add_step(step);
 
                 self.emit(ThoughtEvent::StepCompleted(
-                    chain
-                        .latest_step()
-                        .expect("step just added via add_step")
-                        .clone(),
+                    chain.latest_step().expect("step just added via add_step").clone(),
                 ));
 
                 Ok((ReasoningState::Planning, true))
             },
 
             ReasoningState::Planning => {
-                let action = self
-                    .reasoning_provider
-                    .plan(user_input, context, chain)
-                    .await?;
+                let action = self.reasoning_provider.plan(user_input, context, chain).await?;
                 let reasoning = format!(
                     "Creating plan: {}",
                     action.llm_prompt.as_deref().unwrap_or("execute action")
@@ -1252,10 +1220,7 @@ impl ReActEngine {
                 chain.add_step(step);
 
                 self.emit(ThoughtEvent::StepCompleted(
-                    chain
-                        .latest_step()
-                        .expect("step just added via add_step")
-                        .clone(),
+                    chain.latest_step().expect("step just added via add_step").clone(),
                 ));
 
                 Ok((ReasoningState::Acting, true))
@@ -1356,10 +1321,7 @@ impl ReActEngine {
                 chain.add_step(step);
 
                 self.emit(ThoughtEvent::StepCompleted(
-                    chain
-                        .latest_step()
-                        .expect("step just added via add_step")
-                        .clone(),
+                    chain.latest_step().expect("step just added via add_step").clone(),
                 ));
 
                 self.adjust_strategy(context);
@@ -1412,10 +1374,7 @@ impl ReActEngine {
                 }
 
                 self.emit(ThoughtEvent::StepCompleted(
-                    chain
-                        .latest_step()
-                        .expect("step just added via add_step")
-                        .clone(),
+                    chain.latest_step().expect("step just added via add_step").clone(),
                 ));
 
                 Ok((ReasoningState::Finished, true))
@@ -1576,10 +1535,7 @@ mod tests {
         let mut context = ReasoningContext::new("Test input");
         context.set_goal("Test goal".to_string());
         let chain = ThoughtChain::new();
-        let result = provider
-            .think("Test input", &context, &chain)
-            .await
-            .unwrap();
+        let result = provider.think("Test input", &context, &chain).await.unwrap();
         assert!(result.contains("Test goal"));
     }
 
@@ -1588,10 +1544,7 @@ mod tests {
         let provider = DefaultReasoningProvider::new();
         let mut context = ReasoningContext::new("Test input");
         let chain = ThoughtChain::new();
-        let action = provider
-            .plan("Test input", &mut context, &chain)
-            .await
-            .unwrap();
+        let action = provider.plan("Test input", &mut context, &chain).await.unwrap();
         assert_eq!(action.action_type, ActionType::Plan);
         assert!(action.llm_prompt.is_some());
     }

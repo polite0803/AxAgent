@@ -45,11 +45,7 @@ pub struct IncrementalIndexer {
 #[cfg(not(target_os = "android"))]
 impl IncrementalIndexer {
     pub fn new(watch_config: WatchConfig, file_index_config: FileIndexConfig) -> Self {
-        Self {
-            watch_config,
-            file_index_config,
-            last_event: RefCell::new(Instant::now()),
-        }
+        Self { watch_config, file_index_config, last_event: RefCell::new(Instant::now()) }
     }
 
     pub fn watch_and_index(
@@ -165,15 +161,9 @@ impl IncrementalIndexer {
             .map(|d| d.as_secs())
             .unwrap_or(0);
 
-        let rel = path
-            .strip_prefix(root)
-            .map_err(|e| format!("strip prefix: {e}"))?;
+        let rel = path.strip_prefix(root).map_err(|e| format!("strip prefix: {e}"))?;
         let rel_str = rel.to_string_lossy().to_string();
-        let ext = path
-            .extension()
-            .and_then(|e| e.to_str())
-            .unwrap_or("")
-            .to_string();
+        let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("").to_string();
 
         file_index.upsert(&rel_str, &ext, size, modified)?;
 
@@ -269,10 +259,7 @@ pub struct WatchConfig {
 #[cfg(target_os = "android")]
 impl Default for WatchConfig {
     fn default() -> Self {
-        Self {
-            debounce_ms: 500,
-            code_extensions: Vec::new(),
-        }
+        Self { debounce_ms: 500, code_extensions: Vec::new() }
     }
 }
 

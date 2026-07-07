@@ -14,12 +14,7 @@ pub struct RLConfig {
 }
 impl Default for RLConfig {
     fn default() -> Self {
-        Self {
-            learning_rate: 0.001,
-            discount_factor: 0.99,
-            exploration_rate: 0.1,
-            batch_size: 32,
-        }
+        Self { learning_rate: 0.001, discount_factor: 0.99, exploration_rate: 0.1, batch_size: 32 }
     }
 }
 
@@ -32,12 +27,7 @@ pub struct RewardWeights {
 }
 impl Default for RewardWeights {
     fn default() -> Self {
-        Self {
-            task_completion: 1.0,
-            efficiency: 0.5,
-            code_quality: 0.3,
-            user_satisfaction: 0.8,
-        }
+        Self { task_completion: 1.0, efficiency: 0.5, code_quality: 0.3, user_satisfaction: 0.8 }
     }
 }
 

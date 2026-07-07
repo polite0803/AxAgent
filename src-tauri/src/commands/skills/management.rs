@@ -23,9 +23,7 @@ pub async fn open_skill_dir(path: String) -> Result<(), String> {
     let dir = if p.is_dir() {
         p.to_path_buf()
     } else {
-        p.parent()
-            .map(|d| d.to_path_buf())
-            .unwrap_or_else(|| p.to_path_buf())
+        p.parent().map(|d| d.to_path_buf()).unwrap_or_else(|| p.to_path_buf())
     };
     if dir.exists() {
         open::that(&dir).map_err(|e| format!("Failed to open directory: {}", e))
@@ -120,11 +118,7 @@ fn get_installed_skill_info(repo: &str) -> Option<InstalledSkillInfo> {
 
     let version = load_plugin_version(&skill_target);
 
-    Some(InstalledSkillInfo {
-        commit,
-        version,
-        source_ref,
-    })
+    Some(InstalledSkillInfo { commit, version, source_ref })
 }
 
 async fn check_github_update(
@@ -134,10 +128,7 @@ async fn check_github_update(
 ) -> Option<(String, String)> {
     let url = format!("https://api.github.com/repos/{}/{}/commits?per_page=1", owner, repo);
 
-    let client = reqwest::Client::builder()
-        .timeout(Duration::from_secs(30))
-        .build()
-        .ok()?;
+    let client = reqwest::Client::builder().timeout(Duration::from_secs(30)).build().ok()?;
     let response = client
         .get(&url)
         .header("User-Agent", "AxAgent")
@@ -334,10 +325,8 @@ async fn search_skillhub_marketplace(
         let slug = item["slug"].as_str().unwrap_or("").to_string();
         let description = item["description"].as_str().unwrap_or("").to_string();
         let repo_obj = item.get("repo").ok_or("missing repo object")?;
-        let github_owner = repo_obj
-            .get("githubOwner")
-            .and_then(|v| v.as_str())
-            .ok_or("missing githubOwner")?;
+        let github_owner =
+            repo_obj.get("githubOwner").and_then(|v| v.as_str()).ok_or("missing githubOwner")?;
         let github_repo_name = repo_obj
             .get("githubRepoName")
             .and_then(|v| v.as_str())
@@ -350,17 +339,12 @@ async fn search_skillhub_marketplace(
         let categories = item
             .get("categories")
             .and_then(|v| v.as_array())
-            .map(|arr| {
-                arr.iter()
-                    .filter_map(|v| v.as_str().map(String::from))
-                    .collect()
-            });
+            .map(|arr| arr.iter().filter_map(|v| v.as_str().map(String::from)).collect());
 
-        let tags = item.get("tags").and_then(|v| v.as_array()).map(|arr| {
-            arr.iter()
-                .filter_map(|v| v.as_str().map(String::from))
-                .collect()
-        });
+        let tags = item
+            .get("tags")
+            .and_then(|v| v.as_array())
+            .map(|arr| arr.iter().filter_map(|v| v.as_str().map(String::from)).collect());
 
         let mut skill = MarketplaceSkill {
             name: if !name.is_empty() { name } else { slug },
@@ -529,10 +513,7 @@ fn validate_and_read_skill_md(name: &str) -> Result<(PathBuf, String), String> {
     if !path.exists() {
         return Err(format!("Skill '{}' not found", name));
     }
-    let canonical_dir = skills_dir()
-        .join(name)
-        .canonicalize()
-        .map_err(|e| e.to_string())?;
+    let canonical_dir = skills_dir().join(name).canonicalize().map_err(|e| e.to_string())?;
     let canonical_path = path.canonicalize().map_err(|e| e.to_string())?;
     if !canonical_path.starts_with(&canonical_dir) {
         return Err("Path traversal detected".to_string());
@@ -651,10 +632,7 @@ pub async fn skill_check_similar(
         name.clone()
     };
 
-    let similar = closed_loop
-        .find_similar_skills(&check_topic)
-        .await
-        .map_err(|e| e.to_string())?;
+    let similar = closed_loop.find_similar_skills(&check_topic).await.map_err(|e| e.to_string())?;
 
     if similar.is_empty() {
         return Ok(SkillCreateCheckResult {

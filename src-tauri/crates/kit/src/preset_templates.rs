@@ -117,10 +117,7 @@ fn step_to_agent_node(
         id: step.id.to_string(),
         title: format!("Agent: {}", step.role),
         description: Some(step.goal.to_string()),
-        position: Position {
-            x: 250.0,
-            y: 100.0 + (index as f64 * 200.0),
-        },
+        position: Position { x: 250.0, y: 100.0 + (index as f64 * 200.0) },
         retry: RetryConfig::default(),
         timeout: Some(300),
         enabled: true,
@@ -233,10 +230,8 @@ fn build_workflow_nodes(
     let mut nodes: Vec<WorkflowNode> = Vec::new();
     let parallel_groups = detect_parallel_groups(steps);
 
-    let parallel_group_ids: std::collections::HashSet<_> = parallel_groups
-        .iter()
-        .flat_map(|g| g.iter().map(|s| s.id))
-        .collect();
+    let parallel_group_ids: std::collections::HashSet<_> =
+        parallel_groups.iter().flat_map(|g| g.iter().map(|s| s.id)).collect();
 
     let mut node_index = 0;
     for (i, step) in steps.iter().enumerate() {
@@ -295,10 +290,7 @@ fn build_workflow_nodes(
                 id: format!("merge_{}", group[0].id),
                 title: "Merge".to_string(),
                 description: Some("Merges parallel branches".to_string()),
-                position: Position {
-                    x: 250.0,
-                    y: y + 250.0,
-                },
+                position: Position { x: 250.0, y: y + 250.0 },
                 retry: RetryConfig::default(),
                 timeout: None,
                 enabled: true,
@@ -339,20 +331,14 @@ fn build_stock_analysis_nodes(_steps: &[PresetStep], start_y: f64) -> Vec<Workfl
                 Branch {
                     id: "branch_fundamental".to_string(),
                     title: "Fundamental".to_string(),
-                    steps: vec![
-                        "fundamental-tool".to_string(),
-                        "fundamental-analyst".to_string(),
-                    ],
+                    steps: vec!["fundamental-tool".to_string(), "fundamental-analyst".to_string()],
                     branch_timeout_ms: None,
                     degrade_strategy: DegradeStrategy::default(),
                 },
                 Branch {
                     id: "branch_technical".to_string(),
                     title: "Technical".to_string(),
-                    steps: vec![
-                        "technical-tool".to_string(),
-                        "technical-analyst".to_string(),
-                    ],
+                    steps: vec!["technical-tool".to_string(), "technical-analyst".to_string()],
                     branch_timeout_ms: None,
                     degrade_strategy: DegradeStrategy::default(),
                 },
@@ -513,10 +499,7 @@ pub fn convert_preset_to_workflow_template(preset: &PresetTemplate) -> WorkflowT
             compensation: None,
             continue_on_fail: false,
         },
-        config: TriggerConfig {
-            trigger_type: TriggerType::Manual,
-            config: serde_json::json!({}),
-        },
+        config: TriggerConfig { trigger_type: TriggerType::Manual, config: serde_json::json!({}) },
     }));
 
     if preset.id == "stock-analysis" {
@@ -636,9 +619,8 @@ pub fn convert_preset_to_workflow_template(preset: &PresetTemplate) -> WorkflowT
         }
 
         if let Some(first_step) = preset.steps.first() {
-            let is_in_parallel = parallel_groups
-                .iter()
-                .any(|g| g.iter().any(|s| s.id == first_step.id));
+            let is_in_parallel =
+                parallel_groups.iter().any(|g| g.iter().any(|s| s.id == first_step.id));
             if !is_in_parallel {
                 edges.push(WorkflowEdge {
                     id: "edge_trigger_start".to_string(),
@@ -669,11 +651,7 @@ pub fn convert_preset_to_workflow_template(preset: &PresetTemplate) -> WorkflowT
         let non_parallel_last_steps: Vec<_> = preset
             .steps
             .iter()
-            .filter(|s| {
-                !parallel_groups
-                    .iter()
-                    .any(|g| g.iter().any(|gs| gs.id == s.id))
-            })
+            .filter(|s| !parallel_groups.iter().any(|g| g.iter().any(|gs| gs.id == s.id)))
             .collect();
 
         if let Some(last_step) = non_parallel_last_steps.last() {

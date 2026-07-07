@@ -89,11 +89,7 @@ impl Tool for ListKnowledgeBasesTool {
         if rows.is_empty() {
             Ok(ToolResult::success("未找到知识库。请在 设置 > 知识库 中创建。"))
         } else {
-            Ok(ToolResult::success(format!(
-                "可用知识库 ({}):\n{}",
-                rows.len(),
-                rows.join("\n")
-            )))
+            Ok(ToolResult::success(format!("可用知识库 ({}):\n{}", rows.len(), rows.join("\n"))))
         }
     }
 }
@@ -139,21 +135,9 @@ impl Tool for SearchKnowledgeTool {
     }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
-        let base_id = input
-            .get("base_id")
-            .and_then(|v| v.as_str())
-            .unwrap_or_default()
-            .to_string();
-        let query = input
-            .get("query")
-            .and_then(|v| v.as_str())
-            .unwrap_or_default()
-            .to_string();
-        let top_k = input
-            .get("top_k")
-            .and_then(|v| v.as_u64())
-            .map(|v| v as usize)
-            .unwrap_or(5);
+        let base_id = input.get("base_id").and_then(|v| v.as_str()).unwrap_or_default().to_string();
+        let query = input.get("query").and_then(|v| v.as_str()).unwrap_or_default().to_string();
+        let top_k = input.get("top_k").and_then(|v| v.as_u64()).map(|v| v as usize).unwrap_or(5);
 
         if query.is_empty() {
             return Ok(ToolResult::error("Error: query 参数是必需的"));
@@ -267,14 +251,8 @@ impl Tool for CreateKnowledgeEntityTool {
     }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
-        let kb_id = input
-            .get("knowledge_base_id")
-            .and_then(|v| v.as_str())
-            .unwrap_or_default();
-        let name = input
-            .get("name")
-            .and_then(|v| v.as_str())
-            .unwrap_or_default();
+        let kb_id = input.get("knowledge_base_id").and_then(|v| v.as_str()).unwrap_or_default();
+        let name = input.get("name").and_then(|v| v.as_str()).unwrap_or_default();
 
         if kb_id.is_empty() {
             return Ok(ToolResult::error("Error: knowledge_base_id 是必需的"));
@@ -365,14 +343,8 @@ impl Tool for CreateKnowledgeFlowTool {
     }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
-        let kb_id = input
-            .get("knowledge_base_id")
-            .and_then(|v| v.as_str())
-            .unwrap_or_default();
-        let name = input
-            .get("name")
-            .and_then(|v| v.as_str())
-            .unwrap_or_default();
+        let kb_id = input.get("knowledge_base_id").and_then(|v| v.as_str()).unwrap_or_default();
+        let name = input.get("name").and_then(|v| v.as_str()).unwrap_or_default();
 
         if kb_id.is_empty() {
             return Ok(ToolResult::error("Error: knowledge_base_id 是必需的"));
@@ -460,14 +432,8 @@ impl Tool for CreateKnowledgeInterfaceTool {
     }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
-        let kb_id = input
-            .get("knowledge_base_id")
-            .and_then(|v| v.as_str())
-            .unwrap_or_default();
-        let name = input
-            .get("name")
-            .and_then(|v| v.as_str())
-            .unwrap_or_default();
+        let kb_id = input.get("knowledge_base_id").and_then(|v| v.as_str()).unwrap_or_default();
+        let name = input.get("name").and_then(|v| v.as_str()).unwrap_or_default();
 
         if kb_id.is_empty() {
             return Ok(ToolResult::error("Error: knowledge_base_id 是必需的"));
@@ -552,18 +518,9 @@ impl Tool for AddKnowledgeDocumentTool {
     }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
-        let kb_id = input
-            .get("knowledge_base_id")
-            .and_then(|v| v.as_str())
-            .unwrap_or_default();
-        let title = input
-            .get("title")
-            .and_then(|v| v.as_str())
-            .unwrap_or_default();
-        let content = input
-            .get("content")
-            .and_then(|v| v.as_str())
-            .unwrap_or_default();
+        let kb_id = input.get("knowledge_base_id").and_then(|v| v.as_str()).unwrap_or_default();
+        let title = input.get("title").and_then(|v| v.as_str()).unwrap_or_default();
+        let content = input.get("content").and_then(|v| v.as_str()).unwrap_or_default();
 
         if kb_id.is_empty() {
             return Ok(ToolResult::error("Error: knowledge_base_id 是必需的"));

@@ -31,26 +31,10 @@ pub struct ResourceCost {
 }
 
 impl ResourceCost {
-    pub const ZERO: Self = Self {
-        cpu_percent: 0,
-        memory_mb: 0,
-        disk_mb: 0,
-    };
-    pub const LOW: Self = Self {
-        cpu_percent: 5,
-        memory_mb: 10,
-        disk_mb: 5,
-    };
-    pub const MEDIUM: Self = Self {
-        cpu_percent: 20,
-        memory_mb: 100,
-        disk_mb: 50,
-    };
-    pub const HIGH: Self = Self {
-        cpu_percent: 50,
-        memory_mb: 500,
-        disk_mb: 200,
-    };
+    pub const ZERO: Self = Self { cpu_percent: 0, memory_mb: 0, disk_mb: 0 };
+    pub const LOW: Self = Self { cpu_percent: 5, memory_mb: 10, disk_mb: 5 };
+    pub const MEDIUM: Self = Self { cpu_percent: 20, memory_mb: 100, disk_mb: 50 };
+    pub const HIGH: Self = Self { cpu_percent: 50, memory_mb: 500, disk_mb: 200 };
 }
 
 /// The lifecycle state of a module.
@@ -108,9 +92,7 @@ pub struct ModuleRegistry {
 
 impl ModuleRegistry {
     pub fn new() -> Self {
-        Self {
-            entries: RwLock::new(Vec::new()),
-        }
+        Self { entries: RwLock::new(Vec::new()) }
     }
 
     /// Register a module with the registry.
@@ -123,10 +105,7 @@ impl ModuleRegistry {
     /// Enable a module by ID.
     pub async fn enable_module(&self, module_id: &str) -> Result<(), String> {
         let mut entries = self.entries.write().await;
-        if let Some(entry) = entries
-            .iter_mut()
-            .find(|e| e.module.module_id() == module_id)
-        {
+        if let Some(entry) = entries.iter_mut().find(|e| e.module.module_id() == module_id) {
             entry.module.enable().await?;
             entry.state = entry.module.state();
             Ok(())
@@ -138,10 +117,7 @@ impl ModuleRegistry {
     /// Disable a module by ID.
     pub async fn disable_module(&self, module_id: &str) -> Result<(), String> {
         let mut entries = self.entries.write().await;
-        if let Some(entry) = entries
-            .iter_mut()
-            .find(|e| e.module.module_id() == module_id)
-        {
+        if let Some(entry) = entries.iter_mut().find(|e| e.module.module_id() == module_id) {
             entry.module.disable().await?;
             entry.state = entry.module.state();
             Ok(())
@@ -153,10 +129,7 @@ impl ModuleRegistry {
     /// Put a module to sleep.
     pub async fn sleep_module(&self, module_id: &str) -> Result<(), String> {
         let mut entries = self.entries.write().await;
-        if let Some(entry) = entries
-            .iter_mut()
-            .find(|e| e.module.module_id() == module_id)
-        {
+        if let Some(entry) = entries.iter_mut().find(|e| e.module.module_id() == module_id) {
             entry.module.sleep().await?;
             entry.state = entry.module.state();
             Ok(())
@@ -168,10 +141,7 @@ impl ModuleRegistry {
     /// Wake a sleeping module.
     pub async fn wake_module(&self, module_id: &str) -> Result<(), String> {
         let mut entries = self.entries.write().await;
-        if let Some(entry) = entries
-            .iter_mut()
-            .find(|e| e.module.module_id() == module_id)
-        {
+        if let Some(entry) = entries.iter_mut().find(|e| e.module.module_id() == module_id) {
             entry.module.wake().await?;
             entry.state = entry.module.state();
             Ok(())
@@ -183,10 +153,7 @@ impl ModuleRegistry {
     /// Get the state of a module.
     pub async fn module_state(&self, module_id: &str) -> Option<ModuleState> {
         let entries = self.entries.read().await;
-        entries
-            .iter()
-            .find(|e| e.module.module_id() == module_id)
-            .map(|e| e.module.state())
+        entries.iter().find(|e| e.module.module_id() == module_id).map(|e| e.module.state())
     }
 
     /// List all registered modules.
@@ -206,17 +173,17 @@ impl ModuleRegistry {
     /// Calculate total resource cost of all active modules.
     pub async fn total_resource_cost(&self) -> ResourceCost {
         let entries = self.entries.read().await;
-        entries
-            .iter()
-            .filter(|e| e.module.state() == ModuleState::Active)
-            .fold(ResourceCost::ZERO, |acc, e| {
+        entries.iter().filter(|e| e.module.state() == ModuleState::Active).fold(
+            ResourceCost::ZERO,
+            |acc, e| {
                 let cost = e.module.resource_cost();
                 ResourceCost {
                     cpu_percent: acc.cpu_percent.saturating_add(cost.cpu_percent),
                     memory_mb: acc.memory_mb.saturating_add(cost.memory_mb),
                     disk_mb: acc.disk_mb.saturating_add(cost.disk_mb),
                 }
-            })
+            },
+        )
     }
 
     /// Enable "Speed Mode": disable all non-essential modules, keep only code engine modules.
@@ -278,12 +245,7 @@ pub struct SimpleToggle {
 
 impl SimpleToggle {
     pub fn new(id: &'static str, name: &'static str, cost: ResourceCost) -> Self {
-        Self {
-            id,
-            name,
-            cost,
-            enabled: Arc::new(RwLock::new(false)),
-        }
+        Self { id, name, cost, enabled: Arc::new(RwLock::new(false)) }
     }
 
     pub async fn is_enabled(&self) -> bool {
@@ -396,20 +358,12 @@ mod tests {
         let a = Arc::new(SimpleToggle::new(
             "a",
             "A",
-            ResourceCost {
-                cpu_percent: 10,
-                memory_mb: 50,
-                disk_mb: 0,
-            },
+            ResourceCost { cpu_percent: 10, memory_mb: 50, disk_mb: 0 },
         ));
         let b = Arc::new(SimpleToggle::new(
             "b",
             "B",
-            ResourceCost {
-                cpu_percent: 20,
-                memory_mb: 100,
-                disk_mb: 0,
-            },
+            ResourceCost { cpu_percent: 20, memory_mb: 100, disk_mb: 0 },
         ));
         registry.register(a.clone()).await;
         registry.register(b.clone()).await;

@@ -29,10 +29,7 @@ pub struct OperationAuditor {
 
 impl OperationAuditor {
     pub fn new() -> Self {
-        Self {
-            entries: Mutex::new(Vec::new()),
-            confirm_threshold: Mutex::new(RiskLevel::Medium),
-        }
+        Self { entries: Mutex::new(Vec::new()), confirm_threshold: Mutex::new(RiskLevel::Medium) }
     }
 
     pub fn record(&self, entry: AuditEntry) {
@@ -44,10 +41,7 @@ impl OperationAuditor {
     }
 
     pub fn needs_confirmation(&self, risk: &RiskLevel) -> bool {
-        let threshold = self
-            .confirm_threshold
-            .lock()
-            .unwrap_or_else(|e| e.into_inner());
+        let threshold = self.confirm_threshold.lock().unwrap_or_else(|e| e.into_inner());
         matches!(
             (risk, &*threshold),
             (RiskLevel::High, _)
@@ -62,10 +56,7 @@ impl OperationAuditor {
     }
 
     pub fn set_confirm_threshold(&self, level: RiskLevel) {
-        let mut threshold = self
-            .confirm_threshold
-            .lock()
-            .unwrap_or_else(|e| e.into_inner());
+        let mut threshold = self.confirm_threshold.lock().unwrap_or_else(|e| e.into_inner());
         *threshold = level;
     }
 

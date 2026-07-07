@@ -415,27 +415,16 @@ pub struct RecoveryRecipe {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum RecoveryResult {
-    Recovered {
-        steps_taken: u32,
-    },
-    PartialRecovery {
-        recovered: Vec<RecoveryStep>,
-        remaining: Vec<RecoveryStep>,
-    },
-    EscalationRequired {
-        reason: String,
-    },
+    Recovered { steps_taken: u32 },
+    PartialRecovery { recovered: Vec<RecoveryStep>, remaining: Vec<RecoveryStep> },
+    EscalationRequired { reason: String },
 }
 
 /// Structured event emitted during recovery.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum RecoveryEvent {
-    RecoveryAttempted {
-        scenario: FailureScenario,
-        recipe: RecoveryRecipe,
-        result: RecoveryResult,
-    },
+    RecoveryAttempted { scenario: FailureScenario, recipe: RecoveryRecipe, result: RecoveryResult },
     RecoverySucceeded,
     RecoveryFailed,
     Escalated,
@@ -517,9 +506,7 @@ pub fn recipe_for(scenario: &FailureScenario) -> RecoveryRecipe {
         FailureScenario::PartialPluginStartup => RecoveryRecipe {
             scenario: *scenario,
             steps: vec![
-                RecoveryStep::RestartPlugin {
-                    name: "stalled".to_string(),
-                },
+                RecoveryStep::RestartPlugin { name: "stalled".to_string() },
                 RecoveryStep::RetryMcpHandshake { timeout: 3000 },
             ],
             max_attempts: 1,
@@ -582,15 +569,10 @@ pub fn attempt_recovery(scenario: &FailureScenario, ctx: &mut RecoveryContext) -
                 reason: format!("recovery failed at first step for {}", scenario),
             }
         } else {
-            RecoveryResult::PartialRecovery {
-                recovered: executed,
-                remaining,
-            }
+            RecoveryResult::PartialRecovery { recovered: executed, remaining }
         }
     } else {
-        RecoveryResult::Recovered {
-            steps_taken: recipe.steps.len() as u32,
-        }
+        RecoveryResult::Recovered { steps_taken: recipe.steps.len() as u32 }
     };
 
     // Emit the attempt as structured event data.
@@ -691,11 +673,7 @@ mod recovery_tests {
             "second attempt should require escalation, got: {second:?}"
         );
         assert_eq!(ctx.attempt_count(&scenario), 1);
-        assert!(
-            ctx.events()
-                .iter()
-                .any(|e| matches!(e, RecoveryEvent::Escalated))
-        );
+        assert!(ctx.events().iter().any(|e| matches!(e, RecoveryEvent::Escalated)));
     }
 
     #[test]
@@ -709,10 +687,7 @@ mod recovery_tests {
 
         // then
         match &result {
-            RecoveryResult::PartialRecovery {
-                recovered,
-                remaining,
-            } => {
+            RecoveryResult::PartialRecovery { recovered, remaining } => {
                 assert_eq!(recovered.len(), 1, "one step should have succeeded");
                 assert_eq!(remaining.len(), 1, "one step should remain");
                 assert!(matches!(recovered[0], RecoveryStep::RestartPlugin { .. }));
@@ -720,11 +695,7 @@ mod recovery_tests {
             },
             other => panic!("expected PartialRecovery, got {other:?}"),
         }
-        assert!(
-            ctx.events()
-                .iter()
-                .any(|e| matches!(e, RecoveryEvent::RecoveryFailed))
-        );
+        assert!(ctx.events().iter().any(|e| matches!(e, RecoveryEvent::RecoveryFailed)));
     }
 
     #[test]
@@ -745,11 +716,7 @@ mod recovery_tests {
             ),
             "zero-step failure should escalate, got: {result:?}"
         );
-        assert!(
-            ctx.events()
-                .iter()
-                .any(|e| matches!(e, RecoveryEvent::Escalated))
-        );
+        assert!(ctx.events().iter().any(|e| matches!(e, RecoveryEvent::Escalated)));
     }
 
     #[test]
@@ -769,11 +736,7 @@ mod recovery_tests {
             .expect("should have emitted RecoveryAttempted event");
 
         match attempted {
-            RecoveryEvent::RecoveryAttempted {
-                scenario: s,
-                recipe,
-                result,
-            } => {
+            RecoveryEvent::RecoveryAttempted { scenario: s, recipe, result } => {
                 assert_eq!(*s, scenario);
                 assert_eq!(recipe.scenario, scenario);
                 assert!(!recipe.steps.is_empty());
@@ -915,10 +878,6 @@ mod recovery_tests {
         // when — second attempt should escalate (max_attempts=1)
         let second = attempt_recovery(&scenario, &mut ctx);
         assert!(matches!(second, RecoveryResult::EscalationRequired { .. }));
-        assert!(
-            ctx.events()
-                .iter()
-                .any(|e| matches!(e, RecoveryEvent::Escalated))
-        );
+        assert!(ctx.events().iter().any(|e| matches!(e, RecoveryEvent::Escalated)));
     }
 }

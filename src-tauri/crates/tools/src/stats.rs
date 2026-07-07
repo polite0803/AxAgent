@@ -76,9 +76,7 @@ impl Default for ToolUsageStats {
 
 impl ToolUsageStats {
     pub fn new() -> Self {
-        Self {
-            metrics: Arc::new(parking_lot::RwLock::new(HashMap::new())),
-        }
+        Self { metrics: Arc::new(parking_lot::RwLock::new(HashMap::new())) }
     }
 
     pub fn record_execution(
@@ -109,10 +107,7 @@ impl ToolUsageStats {
 
     pub fn top_tools(&self, limit: usize) -> Vec<(String, ToolMetadata)> {
         let metrics = self.metrics.read();
-        let mut sorted: Vec<_> = metrics
-            .iter()
-            .map(|(k, v)| (k.clone(), v.clone()))
-            .collect();
+        let mut sorted: Vec<_> = metrics.iter().map(|(k, v)| (k.clone(), v.clone())).collect();
         sorted.sort_by_key(|(_, v)| std::cmp::Reverse(v.success_count));
         sorted.truncate(limit);
         sorted

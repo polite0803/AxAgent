@@ -39,11 +39,7 @@ fn make_session_info(session: &ShareSessionRecord) -> ShareSessionInfo {
 }
 
 fn generate_invite_code() -> String {
-    uuid::Uuid::new_v4()
-        .to_string()
-        .split_at(8)
-        .0
-        .to_uppercase()
+    uuid::Uuid::new_v4().to_string().split_at(8).0.to_uppercase()
 }
 
 // ─── Tauri 命令 ───
@@ -93,9 +89,7 @@ pub async fn join_share_session(
 
     // 按邀请码查找会话
     let conv_id = {
-        let found = sessions
-            .iter()
-            .find(|(_, s)| s.invite_code.eq_ignore_ascii_case(&invite_code));
+        let found = sessions.iter().find(|(_, s)| s.invite_code.eq_ignore_ascii_case(&invite_code));
         match found {
             Some((cid, _)) => cid.clone(),
             None => return Err("无效的邀请码".to_string()),
@@ -129,10 +123,7 @@ pub async fn list_share_participants(
     let store = &state.session_share_manager;
     let sessions = store.read().await;
 
-    let session = sessions
-        .values()
-        .find(|s| s.session_id == session_id)
-        .ok_or("会话不存在")?;
+    let session = sessions.values().find(|s| s.session_id == session_id).ok_or("会话不存在")?;
 
     Ok(session.participants.clone())
 }

@@ -225,10 +225,7 @@ fn estimate_tool_rounds(description: &str) -> usize {
         "calculate",
     ];
 
-    let keyword_count: usize = tool_keywords
-        .iter()
-        .map(|kw| lower.matches(kw).count())
-        .sum();
+    let keyword_count: usize = tool_keywords.iter().map(|kw| lower.matches(kw).count()).sum();
 
     // 每个关键词贡献 0.5 轮，最小 1 轮
     std::cmp::max(1, keyword_count / 2)
@@ -259,10 +256,7 @@ fn estimate_node_count(description: &str) -> usize {
         "concurrently",
     ];
 
-    let count: usize = step_keywords
-        .iter()
-        .map(|kw| lower.matches(kw).count())
-        .sum();
+    let count: usize = step_keywords.iter().map(|kw| lower.matches(kw).count()).sum();
 
     std::cmp::max(1, count + 1)
 }
@@ -332,10 +326,7 @@ pub fn ab_test_route(features: &TaskFeatures, variant: &str) -> (ReasoningEngine
             tree_of_thoughts_min_tool_rounds: 2,
             ..Default::default()
         },
-        "conservative_sm" => RouterThresholds {
-            state_machine_min_nodes: 15,
-            ..Default::default()
-        },
+        "conservative_sm" => RouterThresholds { state_machine_min_nodes: 15, ..Default::default() },
         other => {
             // 尝试从 JSON 解析自定义阈值
             serde_json::from_str(other).unwrap_or_default()

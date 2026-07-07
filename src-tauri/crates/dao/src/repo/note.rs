@@ -73,12 +73,8 @@ pub fn model_to_note(m: notes::Model) -> Note {
         content_hash: m.content_hash,
         author: m.author,
         page_type: m.page_type,
-        source_refs: m
-            .source_refs
-            .map(|j| serde_json::from_value(j).unwrap_or_default()),
-        related_pages: m
-            .related_pages
-            .map(|j| serde_json::from_value(j).unwrap_or_default()),
+        source_refs: m.source_refs.map(|j| serde_json::from_value(j).unwrap_or_default()),
+        related_pages: m.related_pages.map(|j| serde_json::from_value(j).unwrap_or_default()),
         quality_score: m.quality_score,
         last_linted_at: m.last_linted_at,
         last_compiled_at: m.last_compiled_at,
@@ -153,9 +149,7 @@ pub async fn create_note(db: &DatabaseConnection, input: CreateNoteInput) -> Res
         content_hash: Set(content_hash),
         author: Set(input.author.clone()),
         page_type: Set(input.page_type.clone()),
-        source_refs: Set(input
-            .source_refs
-            .map(|v| serde_json::to_value(v).unwrap_or_default())),
+        source_refs: Set(input.source_refs.map(|v| serde_json::to_value(v).unwrap_or_default())),
         related_pages: Set(None),
         quality_score: Set(None),
         last_linted_at: Set(None),
@@ -368,10 +362,8 @@ pub struct GraphData {
 
 pub async fn get_vault_graph(db: &DatabaseConnection, vault_id: &str) -> Result<GraphData> {
     let notes = list_notes(db, vault_id).await?;
-    let links = note_links::Entity::find()
-        .filter(note_links::Column::VaultId.eq(vault_id))
-        .all(db)
-        .await?;
+    let links =
+        note_links::Entity::find().filter(note_links::Column::VaultId.eq(vault_id)).all(db).await?;
     let backlinks = note_backlinks::Entity::find()
         .filter(note_backlinks::Column::VaultId.eq(vault_id))
         .all(db)
@@ -386,20 +378,14 @@ pub async fn get_vault_graph(db: &DatabaseConnection, vault_id: &str) -> Result<
     for link in &links {
         if note_ids.contains(&link.target_note_id) {
             *link_counts.entry(link.source_note_id.clone()).or_insert(0) += 1;
-            *backlink_counts
-                .entry(link.target_note_id.clone())
-                .or_insert(0) += 1;
+            *backlink_counts.entry(link.target_note_id.clone()).or_insert(0) += 1;
         }
     }
 
     for backlink in &backlinks {
         if note_ids.contains(&backlink.source_note_id) {
-            *link_counts
-                .entry(backlink.source_note_id.clone())
-                .or_insert(0) += 1;
-            *backlink_counts
-                .entry(backlink.target_note_id.clone())
-                .or_insert(0) += 1;
+            *link_counts.entry(backlink.source_note_id.clone()).or_insert(0) += 1;
+            *backlink_counts.entry(backlink.target_note_id.clone()).or_insert(0) += 1;
         }
     }
 

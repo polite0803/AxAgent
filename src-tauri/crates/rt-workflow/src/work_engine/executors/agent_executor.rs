@@ -332,17 +332,11 @@ impl NodeExecutorTrait for AgentExecutor {
         // 2. 解析 provider + key + model（带缓存）
         // 优先级：节点 config.model > 会话 __workflow_model__/__workflow_provider_id__ > profile.suggested_provider_id > 项目默认
         let node_model = an.config.model.as_deref().filter(|m| !m.is_empty());
-        let session_model = context
-            .variables
-            .get(super::WORKFLOW_MODEL_VAR)
-            .and_then(|v| v.as_str());
-        let session_provider_id = context
-            .variables
-            .get(super::WORKFLOW_PROVIDER_ID_VAR)
-            .and_then(|v| v.as_str());
-        let profile_suggested = profile
-            .as_ref()
-            .and_then(|p| p.suggested_provider_id.as_deref());
+        let session_model =
+            context.variables.get(super::WORKFLOW_MODEL_VAR).and_then(|v| v.as_str());
+        let session_provider_id =
+            context.variables.get(super::WORKFLOW_PROVIDER_ID_VAR).and_then(|v| v.as_str());
+        let profile_suggested = profile.as_ref().and_then(|p| p.suggested_provider_id.as_deref());
 
         let (prov, key, model, adapter, api_key) = self
             .resolve_provider(node_model, session_model, session_provider_id, profile_suggested)
@@ -370,10 +364,8 @@ impl NodeExecutorTrait for AgentExecutor {
 
         // 4. 构建 prompt：Role + Expert + 行内追加（运行时拼接，不预缓存）
         let role_desc = resolve_role(&an.config, profile.as_ref());
-        let role_name = profile
-            .as_ref()
-            .and_then(|p| p.agent_role.as_deref())
-            .unwrap_or("executor");
+        let role_name =
+            profile.as_ref().and_then(|p| p.agent_role.as_deref()).unwrap_or("executor");
         let mut all_segments: Vec<TemplateSegment> = Vec::new();
 
         // 4a. 角色前缀 + 领域头部约束（primacy 锚定）
@@ -443,11 +435,7 @@ impl NodeExecutorTrait for AgentExecutor {
 ——即使部分数据缺失，也要基于可用信息给出明确的看多/看空/中性判断，不要输出占位文本。\n\
 ——该股票的基本面信息（代码、名称、行业）已在上下文中给出，请充分利用。\n\
 ——绝不允许输出'数据缺失'、'无法获取'、'工具失败'、'抱歉'等拒绝句式。\n\n",
-                    missing_sources
-                        .iter()
-                        .map(|s| s.as_str())
-                        .collect::<Vec<_>>()
-                        .join(", ")
+                    missing_sources.iter().map(|s| s.as_str()).collect::<Vec<_>>().join(", ")
                 );
                 all_segments.push(TemplateSegment::Static(msg));
             }
@@ -572,17 +560,12 @@ impl NodeExecutorTrait for AgentExecutor {
             }
         }
 
-        let compiled = CompiledPrompt {
-            segments: all_segments,
-            variable_refs: Vec::new(),
-        };
+        let compiled = CompiledPrompt { segments: all_segments, variable_refs: Vec::new() };
 
         // 拉取内建变量(可选)。由主 crate 在 as-of 模式下注入 data_freshness / as_of_date 等
         // 跨领域通用状态;None 时行为与历史完全一致。
         let builtin_vars: Option<std::collections::HashMap<String, String>> =
-            lock_or_recover(self.builtin_vars_provider.lock())
-                .as_ref()
-                .map(|provider| provider());
+            lock_or_recover(self.builtin_vars_provider.lock()).as_ref().map(|provider| provider());
         // 内建变量注入 variables（若有），确保模板渲染时 `{{data_freshness}}` 等占位符可解析
         let mut enriched_variables = context.variables.clone();
         if let Some(ref vars) = builtin_vars {
@@ -657,16 +640,15 @@ impl NodeExecutorTrait for AgentExecutor {
         // 构建暴露给 LLM 的工具定义
         // 固定工具（上游 ToolNode 结果已注入 context_sources）不暴露
         // 向后兼容：exposed_tools 为空时暴露全部工具
-        let exposed_list: Vec<&axagent_harness::workflow_types::ToolDef> =
-            if an.config.exposed_tools.is_empty() {
-                an.config.tools.iter().collect()
-            } else {
-                an.config
-                    .tools
-                    .iter()
-                    .filter(|td| an.config.exposed_tools.contains(&td.name))
-                    .collect()
-            };
+        let exposed_list: Vec<&axagent_harness::workflow_types::ToolDef> = if an
+            .config
+            .exposed_tools
+            .is_empty()
+        {
+            an.config.tools.iter().collect()
+        } else {
+            an.config.tools.iter().filter(|td| an.config.exposed_tools.contains(&td.name)).collect()
+        };
 
         let tools: Option<Vec<axagent_harness::types::ChatTool>> = if exposed_list.is_empty() {
             None
@@ -764,9 +746,8 @@ impl NodeExecutorTrait for AgentExecutor {
             // 会让整个 JoinSet 卡住，其他已完成 Agent 的结果无法推进引擎。
             // 注：AgentNodeConfig.stream_chunk_timeout_secs 字段将在后续版本中扩展。
             let chunk_timeout = Duration::from_secs(120);
-            while let Some(chunk) = tokio::time::timeout(chunk_timeout, stream.next())
-                .await
-                .map_err(|_| {
+            while let Some(chunk) =
+                tokio::time::timeout(chunk_timeout, stream.next()).await.map_err(|_| {
                     NodeError::exec_failed(
                         error_code::TIMEOUT,
                         format!(
@@ -850,10 +831,7 @@ impl NodeExecutorTrait for AgentExecutor {
 
             // 检查是否有工具调用
             let tool_calls = stream_tool_calls;
-            let has_tool_calls = tool_calls
-                .as_ref()
-                .map(|tc| !tc.is_empty())
-                .unwrap_or(false);
+            let has_tool_calls = tool_calls.as_ref().map(|tc| !tc.is_empty()).unwrap_or(false);
 
             if !has_tool_calls {
                 // LLM 返回纯文本，结束循环
@@ -1213,10 +1191,7 @@ impl AgentExecutor {
             let phase_summaries: Vec<PlanPhaseSummary> = plan
                 .phases
                 .iter()
-                .map(|p| PlanPhaseSummary {
-                    name: p.name.clone(),
-                    task_count: p.tasks.len(),
-                })
+                .map(|p| PlanPhaseSummary { name: p.name.clone(), task_count: p.tasks.len() })
                 .collect();
             let approved = on_ready(PlanApprovalRequest {
                 goal: plan.goal.clone(),
@@ -1255,22 +1230,14 @@ impl AgentExecutor {
                 .clone()
             // data dropped here
         };
-        let phases_json: Vec<serde_json::Value> = plan
-            .phases
-            .iter()
-            .map(|p| serde_json::to_value(p).unwrap_or_default())
-            .collect();
+        let phases_json: Vec<serde_json::Value> =
+            plan.phases.iter().map(|p| serde_json::to_value(p).unwrap_or_default()).collect();
         // Bundle planner operations into a single lock scope to avoid TOCTOU
         {
             let mut planner = lock_or_recover(planner_arc.lock());
-            planner
-                .create_plan(&an.config.system_prompt, &phases_json)
-                .map_err(|e| {
-                    NodeError::exec_failed(
-                        error_code::VALIDATION_FAILED,
-                        format!("Plan 创建失败: {e}"),
-                    )
-                })?;
+            planner.create_plan(&an.config.system_prompt, &phases_json).map_err(|e| {
+                NodeError::exec_failed(error_code::VALIDATION_FAILED, format!("Plan 创建失败: {e}"))
+            })?;
             planner.start_execution().map_err(|e| {
                 NodeError::exec_failed(
                     error_code::UNSUPPORTED_PROVIDER,
@@ -1294,10 +1261,8 @@ impl AgentExecutor {
                         .to_string(),
                 ));
             }
-            let engine = lock_or_recover(self.engine.lock())
-                .as_ref()
-                .cloned()
-                .ok_or_else(|| {
+            let engine =
+                lock_or_recover(self.engine.lock()).as_ref().cloned().ok_or_else(|| {
                     NodeError::exec_failed(
                         error_code::VALIDATION_FAILED,
                         "Plan 模式需要 WorkEngine 引用，请通过 AgentExecutor::with_engine() 注入"
@@ -1515,12 +1480,7 @@ async fn execute_tool(
         .callbacks
         .as_ref()
         .and_then(|cbs| cbs.tool_handlers.get(tool_name).cloned())
-        .or_else(|| {
-            context
-                .callbacks
-                .as_ref()
-                .and_then(|cbs| cbs.tool_fallback.clone())
-        });
+        .or_else(|| context.callbacks.as_ref().and_then(|cbs| cbs.tool_fallback.clone()));
 
     match cb {
         Some(handler) => handler(tool_name.to_string(), args).await,
@@ -2603,9 +2563,7 @@ fn validate_strict_mode_output(
 
         // 模式3b: 括号缺失/截断修复（补充缺失的 ]/}，处理"数组未关继续写父级字段"模式）
         if let Some(trunc_fixed) = try_fix_truncated_json(trimmed)
-            && !candidates
-                .iter()
-                .any(|x| x.as_str() == trunc_fixed.as_str())
+            && !candidates.iter().any(|x| x.as_str() == trunc_fixed.as_str())
         {
             candidates.push(trunc_fixed);
         }
@@ -2657,9 +2615,7 @@ fn validate_strict_mode_output(
                 }
                 // 截断 JSON 修复
                 if let Some(trunc_fixed) = try_fix_truncated_json(c)
-                    && !candidates
-                        .iter()
-                        .any(|x| x.as_str() == trunc_fixed.as_str())
+                    && !candidates.iter().any(|x| x.as_str() == trunc_fixed.as_str())
                 {
                     fixes.push(trunc_fixed);
                 }

@@ -39,9 +39,7 @@ pub async fn apply_startup_settings(
     always_on_top: bool,
     close_to_tray: bool,
 ) -> Result<(), String> {
-    window
-        .set_always_on_top(always_on_top)
-        .map_err(|e| e.to_string())?;
+    window.set_always_on_top(always_on_top).map_err(|e| e.to_string())?;
     let state = app.state::<AppState>();
     state.close_to_tray.store(close_to_tray, Ordering::Relaxed);
     Ok(())
@@ -73,13 +71,7 @@ pub async fn send_desktop_notification(
     #[cfg(feature = "notification")]
     {
         use tauri_plugin_notification::NotificationExt;
-        match app
-            .notification()
-            .builder()
-            .title(&title)
-            .body(&body)
-            .show()
-        {
+        match app.notification().builder().title(&title).body(&body).show() {
             Ok(()) => return Ok(()),
             Err(e) => {
                 tracing::warn!("Native notification failed, falling back to log: {}", e);
@@ -136,9 +128,7 @@ pub async fn test_proxy(
         || proxy_address.starts_with("192.168.")
         || proxy_address.starts_with("169.254.")
         || proxy_address.contains(':')
-        || !proxy_address
-            .chars()
-            .all(|c| c.is_alphanumeric() || c == '.' || c == '-' || c == '_');
+        || !proxy_address.chars().all(|c| c.is_alphanumeric() || c == '.' || c == '-' || c == '_');
 
     if !is_private {
         if let Some(second_octet) = proxy_address

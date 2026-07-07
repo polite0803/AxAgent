@@ -42,17 +42,12 @@ impl Tool for WorkspaceReadTool {
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
         let filename = input.get("filename").and_then(|v| v.as_str()).unwrap_or("");
-        let workspace_path = input
-            .get("workspace_path")
-            .and_then(|v| v.as_str())
-            .unwrap_or_default();
+        let workspace_path =
+            input.get("workspace_path").and_then(|v| v.as_str()).unwrap_or_default();
         if workspace_path.is_empty() {
             return Ok(ToolResult::error("Error: workspace_path 是必需的"));
         }
-        let safe_name = filename
-            .replace("..", "")
-            .replace("\\", "")
-            .replace("/", "");
+        let safe_name = filename.replace("..", "").replace("\\", "").replace("/", "");
         let file_path = Path::new(workspace_path).join(&safe_name);
         if !file_path.starts_with(workspace_path) {
             return Ok(ToolResult::error("Error: 文件名包含非法路径组件"));
@@ -97,18 +92,10 @@ impl Tool for WorkspaceWriteTool {
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
         let filename = input.get("filename").and_then(|v| v.as_str()).unwrap_or("");
-        let workspace_path = input
-            .get("workspace_path")
-            .and_then(|v| v.as_str())
-            .unwrap_or_default();
-        let content_str = input
-            .get("content")
-            .and_then(|v| v.as_str())
-            .unwrap_or_default();
-        let mode = input
-            .get("mode")
-            .and_then(|v| v.as_str())
-            .unwrap_or("append");
+        let workspace_path =
+            input.get("workspace_path").and_then(|v| v.as_str()).unwrap_or_default();
+        let content_str = input.get("content").and_then(|v| v.as_str()).unwrap_or_default();
+        let mode = input.get("mode").and_then(|v| v.as_str()).unwrap_or("append");
         if workspace_path.is_empty() {
             return Ok(ToolResult::error("Error: workspace_path 是必需的"));
         }
@@ -116,10 +103,7 @@ impl Tool for WorkspaceWriteTool {
             return Ok(ToolResult::error("Error: content 是必需的"));
         }
 
-        let safe_name = filename
-            .replace("..", "")
-            .replace("\\", "")
-            .replace("/", "");
+        let safe_name = filename.replace("..", "").replace("\\", "").replace("/", "");
         let file_path = Path::new(workspace_path).join(&safe_name);
         if !file_path.starts_with(workspace_path) {
             return Ok(ToolResult::error("Error: 文件名包含非法路径组件"));

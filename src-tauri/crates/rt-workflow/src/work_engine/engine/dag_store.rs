@@ -55,10 +55,8 @@ fn make_edge(source: &str, target: &str) -> WorkflowEdge {
 /// Build a simple test Workflow from nodes and edges.
 #[cfg(test)]
 fn make_workflow(id: &str, nodes: Vec<WorkflowNode>, edges: Vec<WorkflowEdge>) -> Workflow {
-    let node_states: HashMap<String, NodeRuntimeState> = nodes
-        .iter()
-        .map(|n| (n.base_id().to_string(), NodeRuntimeState::default()))
-        .collect();
+    let node_states: HashMap<String, NodeRuntimeState> =
+        nodes.iter().map(|n| (n.base_id().to_string(), NodeRuntimeState::default())).collect();
     Workflow {
         id: id.to_string(),
         name: "test".to_string(),
@@ -107,14 +105,11 @@ impl WorkEngine {
                     .and_then(|r| r.as_bool())
                     .unwrap_or(false);
                 // source_handle 回退到 edge_type：ConditionTrue → "true", ConditionFalse → "false"
-                let branch = edge
-                    .source_handle
-                    .as_deref()
-                    .unwrap_or(match edge.edge_type {
-                        EdgeType::ConditionTrue => "true",
-                        EdgeType::ConditionFalse => "false",
-                        _ => "true",
-                    });
+                let branch = edge.source_handle.as_deref().unwrap_or(match edge.edge_type {
+                    EdgeType::ConditionTrue => "true",
+                    EdgeType::ConditionFalse => "false",
+                    _ => "true",
+                });
                 let should_follow = (branch == "true" && result) || (branch == "false" && !result);
                 if !should_follow {
                     continue;
@@ -128,9 +123,8 @@ impl WorkEngine {
                 .any(|n| n.base_id() == edge.source && matches!(n, WorkflowNode::Switch(_)));
             if is_switch_source {
                 let switch_output = workflow.results.get(edge.source.as_str());
-                let selected_case = switch_output
-                    .and_then(|o| o.get("matched_label"))
-                    .and_then(|v| v.as_str());
+                let selected_case =
+                    switch_output.and_then(|o| o.get("matched_label")).and_then(|v| v.as_str());
                 if let Some(ref handle) = edge.source_handle
                     && selected_case.is_none_or(|case| case != handle.as_str())
                 {
@@ -163,10 +157,8 @@ pub(crate) fn skip_disabled_branch_nodes(
     cond_node_id: &str,
 ) {
     let cond_output = workflow.results.get(cond_node_id);
-    let result = cond_output
-        .and_then(|o| o.get("result"))
-        .and_then(|r| r.as_bool())
-        .unwrap_or(false);
+    let result =
+        cond_output.and_then(|o| o.get("result")).and_then(|r| r.as_bool()).unwrap_or(false);
 
     // 确定要跳过的分支：result==true → 跳过 "false" 分支；result==false → 跳过 "true" 分支
     let skip_branch = if result { "false" } else { "true" };
@@ -178,14 +170,11 @@ pub(crate) fn skip_disabled_branch_nodes(
         if edge.edge_type != EdgeType::ConditionTrue && edge.edge_type != EdgeType::ConditionFalse {
             continue;
         }
-        let actual_branch = edge
-            .source_handle
-            .as_deref()
-            .unwrap_or(match edge.edge_type {
-                EdgeType::ConditionTrue => "true",
-                EdgeType::ConditionFalse => "false",
-                _ => "true",
-            });
+        let actual_branch = edge.source_handle.as_deref().unwrap_or(match edge.edge_type {
+            EdgeType::ConditionTrue => "true",
+            EdgeType::ConditionFalse => "false",
+            _ => "true",
+        });
         if actual_branch == skip_branch {
             mark_subtree_skipped(workflow, edges, &edge.target);
         }

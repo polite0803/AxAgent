@@ -68,10 +68,7 @@ pub fn validate_profile_name(name: &str) -> Result<(), ProfileError> {
     if name.len() > 64 {
         return Err(ProfileError::InvalidName("Name too long (max 64 chars)".to_string()));
     }
-    if !name
-        .chars()
-        .all(|c| c.is_alphanumeric() || c == '-' || c == '_')
-    {
+    if !name.chars().all(|c| c.is_alphanumeric() || c == '-' || c == '_') {
         return Err(ProfileError::InvalidName(
             "Name can only contain alphanumeric characters, hyphens, and underscores".to_string(),
         ));
@@ -83,10 +80,7 @@ pub fn validate_profile_name(name: &str) -> Result<(), ProfileError> {
 }
 
 pub fn profiles_root() -> PathBuf {
-    dirs::home_dir()
-        .expect("Could not determine home directory")
-        .join(".axagent")
-        .join("profiles")
+    dirs::home_dir().expect("Could not determine home directory").join(".axagent").join("profiles")
 }
 
 pub fn profile_dir(name: &str) -> PathBuf {

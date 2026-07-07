@@ -20,9 +20,7 @@ pub async fn get_storage_inventory() -> Result<StorageInventory, String> {
 pub async fn open_storage_directory(app: tauri::AppHandle) -> Result<(), String> {
     let root = storage_paths::documents_root();
     use tauri_plugin_opener::OpenerExt;
-    app.opener()
-        .reveal_item_in_dir(&root)
-        .map_err(|e| e.to_string())
+    app.opener().reveal_item_in_dir(&root).map_err(|e| e.to_string())
 }
 
 // -- Change documents root --
@@ -76,11 +74,7 @@ pub async fn validate_documents_root(path: String) -> Result<ValidateResult, Str
         let _ = std::fs::remove_dir(&target);
     }
 
-    Ok(ValidateResult {
-        exists,
-        is_empty,
-        writable,
-    })
+    Ok(ValidateResult { exists, is_empty, writable })
 }
 
 #[derive(Debug, Serialize)]
@@ -125,10 +119,7 @@ pub async fn change_documents_root(
         })?;
     }
 
-    let mut result = ChangeDocumentsRootResult {
-        files_moved: 0,
-        files_failed: 0,
-    };
+    let mut result = ChangeDocumentsRootResult { files_moved: 0, files_failed: 0 };
 
     // Migrate files if requested — move (rename or copy+delete)
     if migrate {
@@ -186,13 +177,10 @@ pub async fn change_documents_root(
 
     // Persist the setting
     let db = state.harness.db();
-    let mut settings = axagent_dao::repo::settings::get_settings(db)
-        .await
-        .map_err(|e| e.to_string())?;
+    let mut settings =
+        axagent_dao::repo::settings::get_settings(db).await.map_err(|e| e.to_string())?;
     settings.documents_root_override = Some(new_path);
-    axagent_dao::repo::settings::save_settings(db, &settings)
-        .await
-        .map_err(|e| e.to_string())?;
+    axagent_dao::repo::settings::save_settings(db, &settings).await.map_err(|e| e.to_string())?;
 
     // Update the in-process global so subsequent calls see the new root
     storage_paths::set_documents_root(new_root);
@@ -204,13 +192,10 @@ pub async fn change_documents_root(
 #[tauri::command]
 pub async fn reset_documents_root(state: State<'_, AppState>) -> Result<(), String> {
     let db = state.harness.db();
-    let mut settings = axagent_dao::repo::settings::get_settings(db)
-        .await
-        .map_err(|e| e.to_string())?;
+    let mut settings =
+        axagent_dao::repo::settings::get_settings(db).await.map_err(|e| e.to_string())?;
     settings.documents_root_override = None;
-    axagent_dao::repo::settings::save_settings(db, &settings)
-        .await
-        .map_err(|e| e.to_string())?;
+    axagent_dao::repo::settings::save_settings(db, &settings).await.map_err(|e| e.to_string())?;
 
     storage_paths::clear_documents_root_override();
     Ok(())

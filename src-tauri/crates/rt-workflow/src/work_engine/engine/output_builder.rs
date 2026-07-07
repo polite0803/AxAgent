@@ -76,11 +76,7 @@ fn filter_by_schema(
     let mut out = serde_json::Map::new();
     for (key, prop) in props {
         // 检查是否有 $source 自定义字段（标记值来源节点）
-        let source = prop
-            .default
-            .as_ref()
-            .and_then(|d| d.get("$source"))
-            .and_then(|s| s.as_str());
+        let source = prop.default.as_ref().and_then(|d| d.get("$source")).and_then(|s| s.as_str());
 
         if let Some(node_id) = source {
             // 从指定节点输出中提取
@@ -105,10 +101,8 @@ fn extract_nested(value: &serde_json::Value, _key: &str) -> serde_json::Value {
     match value {
         serde_json::Value::Object(obj) => {
             // 尝试提取常见的包装字段
-            if let Some(inner) = obj
-                .get("result")
-                .or_else(|| obj.get("output"))
-                .or_else(|| obj.get("content"))
+            if let Some(inner) =
+                obj.get("result").or_else(|| obj.get("output")).or_else(|| obj.get("content"))
             {
                 inner.clone()
             } else {

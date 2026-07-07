@@ -110,10 +110,8 @@ impl DetectedPattern {
         let avg_quality: f64 =
             trajectories.iter().map(|t| t.quality.overall).sum::<f64>() / trajectories.len() as f64;
 
-        let success_count = trajectories
-            .iter()
-            .filter(|t| t.outcome == TrajectoryOutcome::Success)
-            .count();
+        let success_count =
+            trajectories.iter().filter(|t| t.outcome == TrajectoryOutcome::Success).count();
         let success_rate = success_count as f64 / trajectories.len() as f64;
 
         let steps = Self::extract_common_steps(trajectories)?;
@@ -147,10 +145,8 @@ impl DetectedPattern {
         for (i, first_step) in first_steps.iter().enumerate() {
             let mut matching_count = 0;
             let mut has_tool = first_step.tool_calls.is_some();
-            let mut tool_name = first_step
-                .tool_calls
-                .as_ref()
-                .and_then(|c| c.first().map(|tc| tc.name.clone()));
+            let mut tool_name =
+                first_step.tool_calls.as_ref().and_then(|c| c.first().map(|tc| tc.name.clone()));
             let mut has_reasoning = first_step.reasoning.is_some();
 
             for trajectory in trajectories.iter().skip(1) {
@@ -245,10 +241,7 @@ impl Default for PatternLearner {
 
 impl PatternLearner {
     pub fn new(config: PatternConfig) -> Self {
-        Self {
-            config,
-            learned_patterns: HashMap::new(),
-        }
+        Self { config, learned_patterns: HashMap::new() }
     }
 
     pub fn learn_from_trajectory(&mut self, trajectory: &Trajectory) -> Vec<TrajectoryPattern> {
@@ -275,8 +268,7 @@ impl PatternLearner {
         }
 
         for pattern in &new_patterns {
-            self.learned_patterns
-                .insert(pattern.name.clone(), pattern.clone());
+            self.learned_patterns.insert(pattern.name.clone(), pattern.clone());
         }
 
         new_patterns
@@ -286,11 +278,7 @@ impl PatternLearner {
         let tool_names: Vec<_> = trajectory
             .steps
             .iter()
-            .filter_map(|s| {
-                s.tool_calls
-                    .as_ref()
-                    .and_then(|c| c.first().map(|tc| tc.name.clone()))
-            })
+            .filter_map(|s| s.tool_calls.as_ref().and_then(|c| c.first().map(|tc| tc.name.clone())))
             .collect();
 
         if tool_names.len() < 2 {
@@ -333,11 +321,8 @@ impl PatternLearner {
     }
 
     fn extract_reasoning_chain(&self, trajectory: &Trajectory) -> Option<TrajectoryPattern> {
-        let reasoning_steps: Vec<_> = trajectory
-            .steps
-            .iter()
-            .filter(|s| s.reasoning.is_some())
-            .collect();
+        let reasoning_steps: Vec<_> =
+            trajectory.steps.iter().filter(|s| s.reasoning.is_some()).collect();
 
         if reasoning_steps.len() < 2 {
             return None;
@@ -346,11 +331,7 @@ impl PatternLearner {
         let reasoning_preview: String = reasoning_steps
             .iter()
             .take(3)
-            .filter_map(|s| {
-                s.reasoning
-                    .as_ref()
-                    .map(|r| r.chars().take(30).collect::<String>())
-            })
+            .filter_map(|s| s.reasoning.as_ref().map(|r| r.chars().take(30).collect::<String>()))
             .collect::<Vec<_>>()
             .join(" -> ");
 
@@ -433,11 +414,7 @@ impl PatternLearner {
     }
 
     fn extract_multi_step(&self, trajectory: &Trajectory) -> Option<TrajectoryPattern> {
-        let tool_call_count = trajectory
-            .steps
-            .iter()
-            .filter(|s| s.tool_calls.is_some())
-            .count();
+        let tool_call_count = trajectory.steps.iter().filter(|s| s.tool_calls.is_some()).count();
 
         if tool_call_count < 3 {
             return None;
@@ -461,10 +438,7 @@ impl PatternLearner {
     }
 
     pub fn get_patterns_by_type(&self, pattern_type: PatternType) -> Vec<&TrajectoryPattern> {
-        self.learned_patterns
-            .values()
-            .filter(|p| p.pattern_type == pattern_type.as_str())
-            .collect()
+        self.learned_patterns.values().filter(|p| p.pattern_type == pattern_type.as_str()).collect()
     }
 
     pub fn get_high_value_patterns(&self, min_success_rate: f64) -> Vec<&TrajectoryPattern> {
@@ -485,11 +459,7 @@ impl PatternLearner {
         let trajectory_tools: Vec<_> = trajectory
             .steps
             .iter()
-            .filter_map(|s| {
-                s.tool_calls
-                    .as_ref()
-                    .and_then(|c| c.first().map(|tc| tc.name.clone()))
-            })
+            .filter_map(|s| s.tool_calls.as_ref().and_then(|c| c.first().map(|tc| tc.name.clone())))
             .collect();
 
         for pattern in self.learned_patterns.values() {
@@ -501,21 +471,14 @@ impl PatternLearner {
                 .description
                 .split("Tool sequence: ")
                 .nth(1)
-                .map(|s| {
-                    s.split("->")
-                        .map(|t| t.trim().to_string())
-                        .collect::<Vec<_>>()
-                })
+                .map(|s| s.split("->").map(|t| t.trim().to_string()).collect::<Vec<_>>())
                 .unwrap_or_default();
 
             if pattern_tools.is_empty() {
                 continue;
             }
 
-            let overlap = trajectory_tools
-                .iter()
-                .filter(|t| pattern_tools.contains(t))
-                .count();
+            let overlap = trajectory_tools.iter().filter(|t| pattern_tools.contains(t)).count();
 
             let similarity = overlap as f64 / pattern_tools.len().max(1) as f64;
 
@@ -587,10 +550,7 @@ impl Default for CrossSessionLearner {
 
 impl CrossSessionLearner {
     pub fn new() -> Self {
-        Self {
-            pattern_learner: PatternLearner::default(),
-            session_patterns: HashMap::new(),
-        }
+        Self { pattern_learner: PatternLearner::default(), session_patterns: HashMap::new() }
     }
 
     pub fn learn_from_sessions(
@@ -608,8 +568,7 @@ impl CrossSessionLearner {
                 all_patterns.extend(patterns);
             }
 
-            self.session_patterns
-                .insert(session_id.clone(), session_pattern_ids);
+            self.session_patterns.insert(session_id.clone(), session_pattern_ids);
         }
 
         let cross_session_patterns = self.extract_cross_session_patterns(&trajectories_by_session);
@@ -630,9 +589,7 @@ impl CrossSessionLearner {
                     .steps
                     .iter()
                     .filter_map(|s| {
-                        s.tool_calls
-                            .as_ref()
-                            .and_then(|c| c.first().map(|tc| tc.name.clone()))
+                        s.tool_calls.as_ref().and_then(|c| c.first().map(|tc| tc.name.clone()))
                     })
                     .collect::<Vec<_>>()
                     .join("->");
@@ -685,18 +642,12 @@ impl CrossSessionLearner {
         let mut insights = Vec::new();
 
         let pattern_freq: HashMap<&str, usize> =
-            self.session_patterns
-                .values()
-                .flatten()
-                .fold(HashMap::new(), |mut acc, id| {
-                    *acc.entry(id.as_str()).or_insert(0) += 1;
-                    acc
-                });
+            self.session_patterns.values().flatten().fold(HashMap::new(), |mut acc, id| {
+                *acc.entry(id.as_str()).or_insert(0) += 1;
+                acc
+            });
 
-        let high_freq: Vec<_> = pattern_freq
-            .iter()
-            .filter(|&(_, &count)| count >= 3)
-            .collect();
+        let high_freq: Vec<_> = pattern_freq.iter().filter(|&(_, &count)| count >= 3).collect();
 
         if !high_freq.is_empty() {
             insights.push(CrossSessionInsight {

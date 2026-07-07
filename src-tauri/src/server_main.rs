@@ -78,8 +78,6 @@ async fn async_main() {
     // ── 启动 Gateway ──
     // Gateway 已在 AppState 中持有，由 services 中的 api_server 任务管理
     // 保持进程运行
-    tokio::signal::ctrl_c()
-        .await
-        .expect("Failed to listen for Ctrl+C");
+    tokio::signal::ctrl_c().await.expect("Failed to listen for Ctrl+C");
     tracing::info!("Shutting down...");
 }

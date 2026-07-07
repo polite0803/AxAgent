@@ -203,10 +203,7 @@ impl TaskGraph {
     pub fn get_ready_tasks(&self) -> Vec<&TaskNode> {
         // 委托给 dependencies_resolved()，由 dependency_policy 决定就绪语义
         // （修复 2.5：之前用宽松 is_complete() 会把 Skipped/Failed 当作就绪）
-        self.tasks
-            .iter()
-            .filter(|t| t.is_ready() && self.dependencies_resolved(&t.id))
-            .collect()
+        self.tasks.iter().filter(|t| t.is_ready() && self.dependencies_resolved(&t.id)).collect()
     }
 
     pub fn all_complete(&self) -> bool {
@@ -250,10 +247,7 @@ impl TaskGraph {
             in_degree.insert(task.id.clone(), task.dependencies.len());
             dependencies.insert(task.id.clone(), task.dependencies.clone());
             for dep in &task.dependencies {
-                reverse_adj
-                    .entry(dep.clone())
-                    .or_default()
-                    .insert(task.id.clone());
+                reverse_adj.entry(dep.clone()).or_default().insert(task.id.clone());
             }
         }
 
@@ -325,14 +319,13 @@ impl TaskGraph {
             return false;
         };
         task.dependencies.iter().all(|dep_id| {
-            self.get_task(dep_id)
-                .is_some_and(|dep| match self.dependency_policy {
-                    DependencyPolicy::Complete => dep.is_completed(),
-                    DependencyPolicy::CompleteOrSkipped => {
-                        matches!(dep.status, TaskStatus::Completed | TaskStatus::Skipped)
-                    },
-                    DependencyPolicy::AnyResolved => dep.is_complete(),
-                })
+            self.get_task(dep_id).is_some_and(|dep| match self.dependency_policy {
+                DependencyPolicy::Complete => dep.is_completed(),
+                DependencyPolicy::CompleteOrSkipped => {
+                    matches!(dep.status, TaskStatus::Completed | TaskStatus::Skipped)
+                },
+                DependencyPolicy::AnyResolved => dep.is_complete(),
+            })
         })
     }
 
@@ -343,49 +336,18 @@ impl TaskGraph {
     }
 
     pub fn get_failed_task_ids(&self) -> Vec<String> {
-        self.tasks
-            .iter()
-            .filter(|t| t.status == TaskStatus::Failed)
-            .map(|t| t.id.clone())
-            .collect()
+        self.tasks.iter().filter(|t| t.status == TaskStatus::Failed).map(|t| t.id.clone()).collect()
     }
 
     pub fn get_status_summary(&self) -> TaskStatusSummary {
         let total = self.tasks.len();
-        let pending = self
-            .tasks
-            .iter()
-            .filter(|t| t.status == TaskStatus::Pending)
-            .count();
-        let running = self
-            .tasks
-            .iter()
-            .filter(|t| t.status == TaskStatus::Running)
-            .count();
-        let completed = self
-            .tasks
-            .iter()
-            .filter(|t| t.status == TaskStatus::Completed)
-            .count();
-        let failed = self
-            .tasks
-            .iter()
-            .filter(|t| t.status == TaskStatus::Failed)
-            .count();
-        let skipped = self
-            .tasks
-            .iter()
-            .filter(|t| t.status == TaskStatus::Skipped)
-            .count();
+        let pending = self.tasks.iter().filter(|t| t.status == TaskStatus::Pending).count();
+        let running = self.tasks.iter().filter(|t| t.status == TaskStatus::Running).count();
+        let completed = self.tasks.iter().filter(|t| t.status == TaskStatus::Completed).count();
+        let failed = self.tasks.iter().filter(|t| t.status == TaskStatus::Failed).count();
+        let skipped = self.tasks.iter().filter(|t| t.status == TaskStatus::Skipped).count();
 
-        TaskStatusSummary {
-            total,
-            pending,
-            running,
-            completed,
-            failed,
-            skipped,
-        }
+        TaskStatusSummary { total, pending, running, completed, failed, skipped }
     }
 }
 

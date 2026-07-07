@@ -293,11 +293,7 @@ fn read_git_diff(cwd: &Path) -> Option<String> {
 }
 
 fn read_git_output(cwd: &Path, args: &[&str]) -> Option<String> {
-    let output = Command::new("git")
-        .args(args)
-        .current_dir(cwd)
-        .output()
-        .ok()?;
+    let output = Command::new("git").args(args).current_dir(cwd).output().ok()?;
     if !output.status.success() {
         return None;
     }
@@ -503,14 +499,8 @@ impl TaskScene {
             "explain concept",
         ];
 
-        let code_score = code_keywords
-            .iter()
-            .filter(|k| lowered.contains(*k))
-            .count();
-        let research_score = research_keywords
-            .iter()
-            .filter(|k| lowered.contains(*k))
-            .count();
+        let code_score = code_keywords.iter().filter(|k| lowered.contains(*k)).count();
+        let research_score = research_keywords.iter().filter(|k| lowered.contains(*k)).count();
 
         if code_score >= 2 {
             TaskScene::Code
@@ -603,10 +593,7 @@ fn get_simple_system_section() -> String {
         "The system may automatically compress prior messages as context grows.".to_string(),
     ]);
 
-    std::iter::once("# System".to_string())
-        .chain(items)
-        .collect::<Vec<_>>()
-        .join("\n")
+    std::iter::once("# System".to_string()).chain(items).collect::<Vec<_>>().join("\n")
 }
 
 fn get_simple_doing_tasks_section() -> String {
@@ -619,10 +606,7 @@ fn get_simple_doing_tasks_section() -> String {
         "Report outcomes faithfully: if verification fails or was not run, say so explicitly.".to_string(),
     ]);
 
-    std::iter::once("# Doing tasks".to_string())
-        .chain(items)
-        .collect::<Vec<_>>()
-        .join("\n")
+    std::iter::once("# Doing tasks".to_string()).chain(items).collect::<Vec<_>>().join("\n")
 }
 
 fn get_actions_section() -> String {
@@ -698,11 +682,8 @@ mod tests {
             .expect("write nested instructions");
 
         let context = ProjectContext::discover(&nested, "2026-03-31").expect("context should load");
-        let contents = context
-            .instruction_files
-            .iter()
-            .map(|file| file.content.as_str())
-            .collect::<Vec<_>>();
+        let contents =
+            context.instruction_files.iter().map(|file| file.content.as_str()).collect::<Vec<_>>();
 
         assert_eq!(
             contents,
@@ -802,11 +783,9 @@ mod tests {
             .current_dir(&root)
             .status()
             .expect("git config name should run");
-        for (file, message) in [
-            ("a.txt", "first commit"),
-            ("b.txt", "second commit"),
-            ("c.txt", "third commit"),
-        ] {
+        for (file, message) in
+            [("a.txt", "first commit"), ("b.txt", "second commit"), ("c.txt", "third commit")]
+        {
             fs::write(root.join(file), "x\n").expect("write commit file");
             std::process::Command::new("git")
                 .args(["add", file])
@@ -835,16 +814,9 @@ mod tests {
             .render();
 
         // then: branch, recent commits and staged files are present in context
-        let gc = context
-            .git_context
-            .as_ref()
-            .expect("git context should be present");
-        let commits: String = gc
-            .recent_commits
-            .iter()
-            .map(|c| c.subject.clone())
-            .collect::<Vec<_>>()
-            .join("\n");
+        let gc = context.git_context.as_ref().expect("git context should be present");
+        let commits: String =
+            gc.recent_commits.iter().map(|c| c.subject.clone()).collect::<Vec<_>>().join("\n");
         assert!(commits.contains("first commit"));
         assert!(commits.contains("second commit"));
         assert!(commits.contains("third commit"));
@@ -963,9 +935,8 @@ mod tests {
 
         let project_context =
             ProjectContext::discover(&root, "2026-03-31").expect("context should load");
-        let config = ConfigLoader::new(&root, root.join("missing-home"))
-            .load()
-            .expect("config should load");
+        let config =
+            ConfigLoader::new(&root, root.join("missing-home")).load().expect("config should load");
         let prompt = SystemPromptBuilder::new()
             .with_output_style("Concise", "Prefer short answers.")
             .with_os("linux", "6.8")

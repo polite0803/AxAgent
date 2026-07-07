@@ -131,12 +131,7 @@ pub fn delete_training_job(job_id: String) -> Result<(), String> {
 
 #[command]
 pub fn get_training_stats() -> Result<TrainingStats, String> {
-    Ok(TrainingStats {
-        total_jobs: 0,
-        completed_jobs: 0,
-        running_jobs: 0,
-        failed_jobs: 0,
-    })
+    Ok(TrainingStats { total_jobs: 0, completed_jobs: 0, running_jobs: 0, failed_jobs: 0 })
 }
 
 #[command]

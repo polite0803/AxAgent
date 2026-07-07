@@ -52,10 +52,9 @@ fn apply_merge(
             }
             Ok(serde_json::Value::Array(values.to_vec()))
         },
-        MergeStrategy::Any | MergeStrategy::Race => values
-            .first()
-            .cloned()
-            .ok_or_else(|| "Merge.Any: 没有可用输入".to_string()),
+        MergeStrategy::Any | MergeStrategy::Race => {
+            values.first().cloned().ok_or_else(|| "Merge.Any: 没有可用输入".to_string())
+        },
         MergeStrategy::Majority => {
             if values.is_empty() {
                 return Err("Merge.Majority: 没有可用输入".to_string());
@@ -65,10 +64,7 @@ fn apply_merge(
             for v in values {
                 *counts.entry(v).or_insert(0) += 1;
             }
-            let majority = counts
-                .iter()
-                .max_by_key(|(_, c)| *c)
-                .map(|(v, _)| (*v).clone());
+            let majority = counts.iter().max_by_key(|(_, c)| *c).map(|(v, _)| (*v).clone());
             let max_count = counts.values().max().copied().unwrap_or(0);
             let required = values.len() / 2 + 1;
             match max_count {

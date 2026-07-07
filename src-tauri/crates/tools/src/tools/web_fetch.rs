@@ -120,10 +120,7 @@ impl Tool for WebFetchTool {
             .as_str()
             .ok_or_else(|| ToolError::invalid_input_for("WebFetch", "缺少 url 参数"))?;
         let prompt = input["prompt"].as_str().unwrap_or("").to_string();
-        let render_js = input
-            .get("render_js")
-            .and_then(|v| v.as_bool())
-            .unwrap_or(false);
+        let render_js = input.get("render_js").and_then(|v| v.as_bool()).unwrap_or(false);
         #[allow(unused_variables)]
         let render_wait_ms = input
             .get("render_wait_ms")
@@ -139,9 +136,7 @@ impl Tool for WebFetchTool {
         if render_js {
             #[cfg(not(target_os = "android"))]
             {
-                return self
-                    .fetch_with_js_rendering(url, &prompt, render_wait_ms, start)
-                    .await;
+                return self.fetch_with_js_rendering(url, &prompt, render_wait_ms, start).await;
             }
             #[cfg(target_os = "android")]
             {
@@ -294,9 +289,7 @@ impl WebFetchTool {
                     .map_err(|e| ToolError::execution_failed(format!("浏览器启动失败: {}", e)))?,
             );
         }
-        let client = guard
-            .as_mut()
-            .ok_or_else(|| ToolError::execution_failed("浏览器未启动"))?;
+        let client = guard.as_mut().ok_or_else(|| ToolError::execution_failed("浏览器未启动"))?;
 
         progress.push(ProgressEntry {
             phase: "rendering".into(),
@@ -460,19 +453,15 @@ fn extract_charset(content_type: &str) -> Option<String> {
 }
 
 fn detect_html_charset(html: &[u8]) -> Option<String> {
-    let head_end = html
-        .windows(6)
-        .position(|w| w == b"</head>" || w == b"</HEAD>")?;
+    let head_end = html.windows(6).position(|w| w == b"</head>" || w == b"</HEAD>")?;
     let head = &html[..head_end];
 
     let head_str = String::from_utf8_lossy(head);
 
     if let Some(pos) = head_str.find("charset=") {
         let rest = &head_str[pos + 8..];
-        let charset: String = rest
-            .chars()
-            .take_while(|c| c.is_alphanumeric() || *c == '-' || *c == '_')
-            .collect();
+        let charset: String =
+            rest.chars().take_while(|c| c.is_alphanumeric() || *c == '-' || *c == '_').collect();
         if !charset.is_empty() {
             return Some(charset);
         }
@@ -480,10 +469,8 @@ fn detect_html_charset(html: &[u8]) -> Option<String> {
 
     if let Some(pos) = head_str.find("charset ") {
         let rest = &head_str[pos + 8..];
-        let charset: String = rest
-            .chars()
-            .take_while(|c| c.is_alphanumeric() || *c == '-' || *c == '_')
-            .collect();
+        let charset: String =
+            rest.chars().take_while(|c| c.is_alphanumeric() || *c == '-' || *c == '_').collect();
         if !charset.is_empty() {
             return Some(charset);
         }

@@ -46,10 +46,7 @@ impl Tool for SessionSearchTool {
     }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
-        let query = input
-            .get("query")
-            .and_then(|v| v.as_str())
-            .unwrap_or_default();
+        let query = input.get("query").and_then(|v| v.as_str()).unwrap_or_default();
         let limit = input.get("limit").and_then(|v| v.as_i64()).unwrap_or(10) as i32;
         if query.is_empty() {
             return Ok(ToolResult::error("Error: query 是必需的"));
@@ -110,18 +107,9 @@ impl Tool for MemoryFlushTool {
     }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
-        let content = input
-            .get("content")
-            .and_then(|v| v.as_str())
-            .unwrap_or_default();
-        let target = input
-            .get("target")
-            .and_then(|v| v.as_str())
-            .unwrap_or("memory");
-        let category = input
-            .get("category")
-            .and_then(|v| v.as_str())
-            .unwrap_or("insight");
+        let content = input.get("content").and_then(|v| v.as_str()).unwrap_or_default();
+        let target = input.get("target").and_then(|v| v.as_str()).unwrap_or("memory");
+        let category = input.get("category").and_then(|v| v.as_str()).unwrap_or("insight");
         if content.is_empty() {
             return Ok(ToolResult::error("Error: content 是必需的"));
         }
@@ -208,16 +196,14 @@ impl Tool for AgentCheckpointTool {
     }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
-        let label = input
-            .get("label")
-            .and_then(|v| v.as_str())
-            .unwrap_or("checkpoint");
+        let label = input.get("label").and_then(|v| v.as_str()).unwrap_or("checkpoint");
         let data = input.get("data").and_then(|v| v.as_str()).unwrap_or("");
         let ts = chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
-        CHECKPOINTS
-            .lock()
-            .map_err(|e| ToolError::execution_failed(e.to_string()))?
-            .push((label.to_string(), data.to_string(), ts.clone()));
+        CHECKPOINTS.lock().map_err(|e| ToolError::execution_failed(e.to_string()))?.push((
+            label.to_string(),
+            data.to_string(),
+            ts.clone(),
+        ));
         Ok(ToolResult::success(format!("检查点已保存: {} ({})", label, ts)))
     }
 }
@@ -245,12 +231,9 @@ impl Tool for AgentStatusTool {
     }
 
     async fn call(&self, _input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
-        let checkpoints = CHECKPOINTS
-            .lock()
-            .map_err(|e| ToolError::execution_failed(e.to_string()))?;
-        let memory = AGENT_MEMORY
-            .lock()
-            .map_err(|e| ToolError::execution_failed(e.to_string()))?;
+        let checkpoints =
+            CHECKPOINTS.lock().map_err(|e| ToolError::execution_failed(e.to_string()))?;
+        let memory = AGENT_MEMORY.lock().map_err(|e| ToolError::execution_failed(e.to_string()))?;
         let mut lines = vec!["## Agent 会话状态\n".to_string()];
         lines.push(format!("检查点: {}", checkpoints.len()));
         lines.push(format!("记忆条目: {}", memory.len()));
@@ -290,14 +273,8 @@ impl Tool for AgentRememberTool {
     }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
-        let key = input
-            .get("key")
-            .and_then(|v| v.as_str())
-            .unwrap_or_default();
-        let value = input
-            .get("value")
-            .and_then(|v| v.as_str())
-            .unwrap_or_default();
+        let key = input.get("key").and_then(|v| v.as_str()).unwrap_or_default();
+        let value = input.get("value").and_then(|v| v.as_str()).unwrap_or_default();
         if key.is_empty() {
             return Ok(ToolResult::error("Error: key 是必需的"));
         }

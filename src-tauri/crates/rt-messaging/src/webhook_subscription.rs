@@ -71,9 +71,7 @@ pub async fn assert_url_safe(url: &str, require_https: bool) -> Result<(), Strin
     } else if scheme != "http" && scheme != "https" {
         return Err(format!("URL scheme '{scheme}' is not allowed (only http/https)"));
     }
-    let host = parsed
-        .host_str()
-        .ok_or_else(|| "URL has no host".to_string())?;
+    let host = parsed.host_str().ok_or_else(|| "URL has no host".to_string())?;
     if host.is_empty() {
         return Err("URL has empty host".to_string());
     }
@@ -121,9 +119,7 @@ impl Default for WebhookSubscriptionManager {
 
 impl WebhookSubscriptionManager {
     pub fn new() -> Self {
-        Self {
-            subscriptions: Arc::new(RwLock::new(std::collections::HashMap::new())),
-        }
+        Self { subscriptions: Arc::new(RwLock::new(std::collections::HashMap::new())) }
     }
 
     pub async fn subscribe(
@@ -145,10 +141,7 @@ impl WebhookSubscriptionManager {
             last_triggered: None,
             failure_count: 0,
         };
-        self.subscriptions
-            .write()
-            .await
-            .insert(subscription.id.clone(), subscription.clone());
+        self.subscriptions.write().await.insert(subscription.id.clone(), subscription.clone());
         tracing::info!(
             "Webhook subscribed: {} for {} events",
             subscription.id,
@@ -301,11 +294,7 @@ impl axagent_harness::WebhookSubscriptionService for WebhookSubscriptionManager 
                 id: s.id,
                 url: s.url,
                 secret: s.secret.clone(),
-                event: s
-                    .events
-                    .first()
-                    .map(|e| e.as_str().to_string())
-                    .unwrap_or_default(),
+                event: s.events.first().map(|e| e.as_str().to_string()).unwrap_or_default(),
                 enabled: s.enabled,
             })
             .collect()

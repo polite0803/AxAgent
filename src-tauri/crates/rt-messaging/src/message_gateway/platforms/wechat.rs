@@ -202,9 +202,7 @@ async fn fetch_wechat_token(
     );
     let resp = client.get(&url).send().await.ok()?;
     let body: serde_json::Value = resp.json().await.ok()?;
-    body.get("access_token")
-        .and_then(|v| v.as_str())
-        .map(|s| s.to_string())
+    body.get("access_token").and_then(|v| v.as_str()).map(|s| s.to_string())
 }
 
 async fn poll_wechat_cs_messages(

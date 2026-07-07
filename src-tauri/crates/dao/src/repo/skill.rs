@@ -10,19 +10,15 @@ use axagent_harness::util_fns::now_ts;
 
 /// Get all disabled skill names from the database.
 pub async fn get_disabled_skills(db: &DatabaseConnection) -> Result<HashSet<String>> {
-    let rows = skill_states::Entity::find()
-        .filter(skill_states::Column::Enabled.eq(0))
-        .all(db)
-        .await?;
+    let rows =
+        skill_states::Entity::find().filter(skill_states::Column::Enabled.eq(0)).all(db).await?;
     Ok(rows.into_iter().map(|r| r.name).collect())
 }
 
 /// Get all enabled skill names from the database.
 pub async fn get_enabled_skills(db: &DatabaseConnection) -> Result<HashSet<String>> {
-    let rows = skill_states::Entity::find()
-        .filter(skill_states::Column::Enabled.eq(1))
-        .all(db)
-        .await?;
+    let rows =
+        skill_states::Entity::find().filter(skill_states::Column::Enabled.eq(1)).all(db).await?;
     Ok(rows.into_iter().map(|r| r.name).collect())
 }
 

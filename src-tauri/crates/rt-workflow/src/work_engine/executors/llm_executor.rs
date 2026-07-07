@@ -24,11 +24,7 @@ pub struct LlmExecutor {
 
 impl LlmExecutor {
     pub fn new(db: Arc<DatabaseConnection>, master_key: [u8; 32]) -> Self {
-        Self {
-            db,
-            master_key,
-            provider_registry: None,
-        }
+        Self { db, master_key, provider_registry: None }
     }
 }
 
@@ -75,14 +71,10 @@ impl NodeExecutorTrait for LlmExecutor {
         } else {
             None
         };
-        let session_model = context
-            .variables
-            .get(super::WORKFLOW_MODEL_VAR)
-            .and_then(|v| v.as_str());
-        let session_provider_id = context
-            .variables
-            .get(super::WORKFLOW_PROVIDER_ID_VAR)
-            .and_then(|v| v.as_str());
+        let session_model =
+            context.variables.get(super::WORKFLOW_MODEL_VAR).and_then(|v| v.as_str());
+        let session_provider_id =
+            context.variables.get(super::WORKFLOW_PROVIDER_ID_VAR).and_then(|v| v.as_str());
         let (prov, key, model, adapter, api_key) = super::resolve_provider_and_adapter(
             &self.db,
             &self.master_key,
@@ -132,11 +124,8 @@ impl NodeExecutorTrait for LlmExecutor {
         // ── 严格模式约束注入（当 tool_permissions.strict_mode = true 时注入 system prompt） ──
         // 这是节点级别的 prompt 修改，execute_llm() 不处理此逻辑
         {
-            let strict_mode = context
-                .tool_permissions
-                .as_ref()
-                .map(|p| p.strict_mode)
-                .unwrap_or(false);
+            let strict_mode =
+                context.tool_permissions.as_ref().map(|p| p.strict_mode).unwrap_or(false);
             if strict_mode
                 && let Some(system_msg) = messages.iter_mut().find(|m| m.role == "system")
                 && let ChatContent::Text(ref mut text) = system_msg.content
@@ -192,17 +181,12 @@ impl NodeExecutorTrait for LlmExecutor {
         let llm_config = LlmCallConfig {
             max_context_tokens: llm_node.config.max_context_tokens,
             reserved_output_tokens: llm_node.config.reserved_output_tokens,
-            strict_mode: context
-                .tool_permissions
-                .as_ref()
-                .map(|p| p.strict_mode)
-                .unwrap_or(false),
+            strict_mode: context.tool_permissions.as_ref().map(|p| p.strict_mode).unwrap_or(false),
             ..Default::default()
         };
 
-        let result = execute_llm(&*adapter, &req_ctx, request.clone(), &llm_config)
-            .await
-            .map_err(|e| {
+        let result =
+            execute_llm(&*adapter, &req_ctx, request.clone(), &llm_config).await.map_err(|e| {
                 NodeError::exec_failed(
                     error_code::UNSUPPORTED_PROVIDER,
                     format!("LLM call failed: {e}"),
@@ -217,14 +201,9 @@ impl NodeExecutorTrait for LlmExecutor {
         {
             let secondary_request =
                 if matches!(cc_config.mode, axagent_harness::ConsistencyMode::CrossModelCompare) {
-                    let sec_model = cc_config
-                        .secondary_model
-                        .as_deref()
-                        .unwrap_or(&model_for_output);
-                    ChatRequest {
-                        model: sec_model.to_string(),
-                        ..request.clone()
-                    }
+                    let sec_model =
+                        cc_config.secondary_model.as_deref().unwrap_or(&model_for_output);
+                    ChatRequest { model: sec_model.to_string(), ..request.clone() }
                 } else {
                     request.clone()
                 };

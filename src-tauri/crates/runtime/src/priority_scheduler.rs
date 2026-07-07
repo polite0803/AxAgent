@@ -59,9 +59,7 @@ impl Ord for ScheduledTask {
         // 主排序键：优先级（同优先级时按 FIFO 入队顺序）。
         // 反饥饿只提升 priority，enqueue_seq 保持不变，确保老任务在同优先级中始终排在新任务之前。
         // 入队序号取反向以适配 BinaryHeap（max-heap）：较早入队者排在上层。
-        self.priority
-            .cmp(&other.priority)
-            .then_with(|| other.enqueue_seq.cmp(&self.enqueue_seq))
+        self.priority.cmp(&other.priority).then_with(|| other.enqueue_seq.cmp(&self.enqueue_seq))
     }
 }
 
@@ -135,13 +133,10 @@ impl PriorityScheduler {
                 self.total_allocated + task.resource_weight <= self.config.total_resource_capacity;
 
             if has_slot && has_capacity {
-                let task = self
-                    .waiting_queue
-                    .pop()
-                    .expect("peek guaranteed the queue is non-empty");
+                let task =
+                    self.waiting_queue.pop().expect("peek guaranteed the queue is non-empty");
                 self.total_allocated += task.resource_weight;
-                self.running_tasks
-                    .push((task.clone(), task.resource_weight));
+                self.running_tasks.push((task.clone(), task.resource_weight));
                 scheduled.push(task);
                 continue;
             }
@@ -150,8 +145,7 @@ impl PriorityScheduler {
             if self.config.preempt_enabled
                 && let Some(preempted) = self.try_preempt(&task)
             {
-                self.running_tasks
-                    .retain(|(t, _)| !preempted.preempted_task_ids.contains(&t.id));
+                self.running_tasks.retain(|(t, _)| !preempted.preempted_task_ids.contains(&t.id));
                 self.total_allocated = self.running_tasks.iter().map(|(_, w)| *w).sum();
                 // 修复 1.3：被抢占的任务必须重新放回等待队列
                 for preempted_task in preempted.preempted_tasks {
@@ -353,11 +347,8 @@ mod tests {
         // 验证 critical 已被调度
         assert!(scheduled.iter().any(|t| t.id == "critical"));
         // 验证 low 已从 running 移除
-        let running_ids: Vec<String> = scheduler
-            .get_running_tasks()
-            .iter()
-            .map(|t| t.id.clone())
-            .collect();
+        let running_ids: Vec<String> =
+            scheduler.get_running_tasks().iter().map(|t| t.id.clone()).collect();
         assert!(!running_ids.contains(&"low".to_string()));
         // 验证 low 已重新进入 waiting 队列（关键修复点：不再消失）
         assert_eq!(scheduler.waiting_count(), 1);

@@ -33,56 +33,24 @@ struct BuiltinGroupDef {
 
 /// 已迁移到本地 Rust 实现的内置 MCP 服务器子集（10 / 29）。
 const BUILTIN_GROUP_DEFS: &[BuiltinGroupDef] = &[
-    BuiltinGroupDef {
-        id: "builtin-fetch",
-        name: "@axagent/fetch",
-        default_enabled: true,
-    },
+    BuiltinGroupDef { id: "builtin-fetch", name: "@axagent/fetch", default_enabled: true },
     BuiltinGroupDef {
         id: "builtin-search-file",
         name: "@axagent/search-file",
         default_enabled: true,
     },
-    BuiltinGroupDef {
-        id: "builtin-skills",
-        name: "@axagent/skills",
-        default_enabled: true,
-    },
-    BuiltinGroupDef {
-        id: "builtin-session",
-        name: "@axagent/session",
-        default_enabled: true,
-    },
-    BuiltinGroupDef {
-        id: "builtin-search",
-        name: "@axagent/search",
-        default_enabled: true,
-    },
+    BuiltinGroupDef { id: "builtin-skills", name: "@axagent/skills", default_enabled: true },
+    BuiltinGroupDef { id: "builtin-session", name: "@axagent/session", default_enabled: true },
+    BuiltinGroupDef { id: "builtin-search", name: "@axagent/search", default_enabled: true },
     BuiltinGroupDef {
         id: "builtin-filesystem",
         name: "@axagent/filesystem",
         default_enabled: true,
     },
-    BuiltinGroupDef {
-        id: "builtin-system",
-        name: "@axagent/system",
-        default_enabled: true,
-    },
-    BuiltinGroupDef {
-        id: "builtin-knowledge",
-        name: "@axagent/knowledge",
-        default_enabled: true,
-    },
-    BuiltinGroupDef {
-        id: "builtin-storage",
-        name: "@axagent/storage",
-        default_enabled: true,
-    },
-    BuiltinGroupDef {
-        id: "builtin-memory",
-        name: "@axagent/memory",
-        default_enabled: true,
-    },
+    BuiltinGroupDef { id: "builtin-system", name: "@axagent/system", default_enabled: true },
+    BuiltinGroupDef { id: "builtin-knowledge", name: "@axagent/knowledge", default_enabled: true },
+    BuiltinGroupDef { id: "builtin-storage", name: "@axagent/storage", default_enabled: true },
+    BuiltinGroupDef { id: "builtin-memory", name: "@axagent/memory", default_enabled: true },
 ];
 
 // ── Settings key helpers ───────────────────────────────────────────────
@@ -176,17 +144,10 @@ pub fn is_builtin_group_id(id: &str) -> bool {
 
 /// Get the group name (e.g. "@axagent/fetch") for a builtin group ID.
 pub fn get_group_name(id: &str) -> Option<&'static str> {
-    BUILTIN_GROUP_DEFS
-        .iter()
-        .find(|d| d.id == id)
-        .map(|d| d.name)
+    BUILTIN_GROUP_DEFS.iter().find(|d| d.id == id).map(|d| d.name)
 }
 
 /// Get the default enabled state for a builtin group ID.
 pub fn get_default_enabled(id: &str) -> bool {
-    BUILTIN_GROUP_DEFS
-        .iter()
-        .find(|d| d.id == id)
-        .map(|d| d.default_enabled)
-        .unwrap_or(true)
+    BUILTIN_GROUP_DEFS.iter().find(|d| d.id == id).map(|d| d.default_enabled).unwrap_or(true)
 }

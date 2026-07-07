@@ -352,9 +352,7 @@ impl WorkEngine {
     pub async fn resume_breakpoints(&self, execution_id: &str) {
         let signal = {
             let executions = self.executions.lock().await;
-            executions
-                .get(execution_id)
-                .and_then(|s| s.pause_signal.clone())
+            executions.get(execution_id).and_then(|s| s.pause_signal.clone())
         };
         if let Some(sig) = signal {
             sig.notify_waiters();
@@ -371,9 +369,7 @@ impl WorkEngine {
     pub async fn step_breakpoint(&self, execution_id: &str) {
         let signal = {
             let executions = self.executions.lock().await;
-            executions
-                .get(execution_id)
-                .and_then(|s| s.pause_signal.clone())
+            executions.get(execution_id).and_then(|s| s.pause_signal.clone())
         };
         if let Some(sig) = signal {
             sig.notify_one();
@@ -443,10 +439,7 @@ impl WorkEngine {
                 "[RhaiEngine] tool_defs 编译了 {} 个工具 for {workflow_id}",
                 cache.len()
             );
-            self.compiled_rhai_scripts
-                .write()
-                .await
-                .insert(workflow_id.to_string(), cache);
+            self.compiled_rhai_scripts.write().await.insert(workflow_id.to_string(), cache);
         }
     }
 
@@ -551,10 +544,7 @@ impl WorkEngine {
     ///
     /// 多次调用：后者覆盖前者（标准 setter 语义）。
     pub async fn set_domain_constraints(&self, f: DomainConstraintsFn) {
-        *self
-            .domain_constraints
-            .lock()
-            .expect("domain_constraints mutex poisoned") = Some(f);
+        *self.domain_constraints.lock().expect("domain_constraints mutex poisoned") = Some(f);
     }
 
     /// 取出当前注册的领域约束（用于在执行 agent 节点时转发给 `AgentExecutor`）。
@@ -562,10 +552,7 @@ impl WorkEngine {
     /// 内部 clone 出 Arc，避免锁长时间持有。仅暴露给 crate 内部消费
     /// （engine.rs 的 run_workflow 中转发给 agent_executor）。
     pub(crate) fn domain_constraints(&self) -> Option<DomainConstraintsFn> {
-        self.domain_constraints
-            .lock()
-            .expect("domain_constraints mutex poisoned")
-            .clone()
+        self.domain_constraints.lock().expect("domain_constraints mutex poisoned").clone()
     }
 
     /// 注册业务规则引擎。
@@ -578,36 +565,25 @@ impl WorkEngine {
         &self,
         engine: Arc<axagent_harness::business_rules::BusinessRuleEngine>,
     ) {
-        *self
-            .business_rule_engine
-            .lock()
-            .expect("business_rule_engine mutex poisoned") = Some(engine);
+        *self.business_rule_engine.lock().expect("business_rule_engine mutex poisoned") =
+            Some(engine);
     }
 
     /// 取出当前注册的业务规则引擎（用于在执行节点时注入到 ExecutionState）。
     fn business_rule_engine(
         &self,
     ) -> Option<Arc<axagent_harness::business_rules::BusinessRuleEngine>> {
-        self.business_rule_engine
-            .lock()
-            .expect("business_rule_engine mutex poisoned")
-            .clone()
+        self.business_rule_engine.lock().expect("business_rule_engine mutex poisoned").clone()
     }
 
     /// 注册工具注册表（可选，设置后 tool_executor 优先走 ToolRegistry 中心化路径）
     pub async fn set_tool_registry(&self, registry: Arc<dyn axagent_harness::ToolRegistry>) {
-        *self
-            .tool_registry
-            .lock()
-            .expect("tool_registry mutex poisoned") = Some(registry);
+        *self.tool_registry.lock().expect("tool_registry mutex poisoned") = Some(registry);
     }
 
     /// 取出当前注册的工具注册表（用于在执行节点时注入到 ExecutionState）
     fn tool_registry(&self) -> Option<Arc<dyn axagent_harness::ToolRegistry>> {
-        self.tool_registry
-            .lock()
-            .expect("tool_registry mutex poisoned")
-            .clone()
+        self.tool_registry.lock().expect("tool_registry mutex poisoned").clone()
     }
 }
 
@@ -647,11 +623,8 @@ impl WorkEngine {
         // P0-2: dispatcher 的 register_arc 改 async 后，WorkEngine::new 处于同步上下文
         // 不能 await register。改用 pending_dispatcher_registrations 暂存，调用方在
         // tokio runtime 内执行 init_dispatcher 完成最终注册。
-        let pending_dispatcher_registrations: Vec<Box<dyn NodeExecutorTrait>> = vec![
-            Box::new(llm_exec),
-            Box::new(cond_exec),
-            Box::new(classifier_exec),
-        ];
+        let pending_dispatcher_registrations: Vec<Box<dyn NodeExecutorTrait>> =
+            vec![Box::new(llm_exec), Box::new(cond_exec), Box::new(classifier_exec)];
         let pending_dispatcher_registrations =
             Arc::new(tokio::sync::Mutex::new(pending_dispatcher_registrations));
 
@@ -711,8 +684,7 @@ impl WorkEngine {
         let disp = self.dispatcher.read().await;
         disp.init_builtin().await;
         // 共享 Arc：dispatcher 与 self.agent_executor 指向同一 AgentExecutor 实例
-        disp.register_arc(self.agent_executor.clone() as Arc<dyn NodeExecutorTrait>)
-            .await;
+        disp.register_arc(self.agent_executor.clone() as Arc<dyn NodeExecutorTrait>).await;
         drop(disp);
 
         // 取出 pending 中的 Llm / Condition / LlmClassifier 并注册
@@ -730,11 +702,7 @@ impl WorkEngine {
     /// 注册自定义节点执行器（供外部 crate 扩展）。
     /// 通过 dispatcher 的 register_external 门面方法转发。
     pub async fn register_executor(&self, executor: Arc<dyn NodeExecutorTrait>) {
-        self.dispatcher
-            .read()
-            .await
-            .register_external(executor)
-            .await;
+        self.dispatcher.read().await.register_external(executor).await;
     }
 
     pub async fn clear_node_breakers(&self) {
@@ -790,16 +758,11 @@ impl WorkEngine {
                 in_degree.entry(node.base_id()).or_insert(0);
             }
             for edge in &edges {
-                adj.entry(edge.source.as_str())
-                    .or_default()
-                    .push(edge.target.as_str());
+                adj.entry(edge.source.as_str()).or_default().push(edge.target.as_str());
                 *in_degree.entry(edge.target.as_str()).or_insert(0) += 1;
             }
-            let mut queue: Vec<&str> = in_degree
-                .iter()
-                .filter(|&(_, &deg)| deg == 0)
-                .map(|(&id, _)| id)
-                .collect();
+            let mut queue: Vec<&str> =
+                in_degree.iter().filter(|&(_, &deg)| deg == 0).map(|(&id, _)| id).collect();
             let mut visited = 0usize;
             while let Some(node) = queue.pop() {
                 visited += 1;
@@ -819,10 +782,8 @@ impl WorkEngine {
             }
         }
 
-        let node_states: HashMap<String, NodeRuntimeState> = nodes
-            .iter()
-            .map(|n| (n.base_id().to_string(), NodeRuntimeState::default()))
-            .collect();
+        let node_states: HashMap<String, NodeRuntimeState> =
+            nodes.iter().map(|n| (n.base_id().to_string(), NodeRuntimeState::default())).collect();
 
         // 编译 Agent 节点的 prompt 模板（阶段一）
         let mut compiled_map: HashMap<String, CompiledPrompt> = HashMap::new();
@@ -831,10 +792,7 @@ impl WorkEngine {
                 compiled_map.insert(an.base.id.clone(), compile_prompt(&an.config.system_prompt));
             }
         }
-        self.compiled_prompts
-            .write()
-            .await
-            .insert(workflow_id.clone(), compiled_map);
+        self.compiled_prompts.write().await.insert(workflow_id.clone(), compiled_map);
 
         // Rhai 工具由 precompile_tool_defs() 单独注册，不在 create_workflow 中编译
 
@@ -890,9 +848,7 @@ impl WorkEngine {
 
     pub async fn get_ready_steps(&self, workflow_id: &str) -> Result<Vec<String>, WorkflowError> {
         let workflows = self.workflows.read().await;
-        let workflow = workflows
-            .get(workflow_id)
-            .ok_or(WorkflowError::WorkflowNotFound)?;
+        let workflow = workflows.get(workflow_id).ok_or(WorkflowError::WorkflowNotFound)?;
         Ok(Self::compute_ready_nodes(workflow))
     }
 
@@ -907,14 +863,9 @@ impl WorkEngine {
         output_var: Option<&str>,
     ) -> Result<(), WorkflowError> {
         let mut workflows = self.workflows.write().await;
-        let workflow = workflows
-            .get_mut(workflow_id)
-            .ok_or(WorkflowError::WorkflowNotFound)?;
+        let workflow = workflows.get_mut(workflow_id).ok_or(WorkflowError::WorkflowNotFound)?;
 
-        let state = workflow
-            .node_states
-            .get_mut(node_id)
-            .ok_or(WorkflowError::NodeNotFound)?;
+        let state = workflow.node_states.get_mut(node_id).ok_or(WorkflowError::NodeNotFound)?;
 
         state.status = status;
         // ── 时间戳维护：保证 started_at/completed_at 在 status 变化时正确更新 ──
@@ -996,14 +947,8 @@ impl WorkEngine {
             .node_states
             .values()
             .all(|s| matches!(s.status, NodeStatus::Completed | NodeStatus::Skipped));
-        let any_skipped = workflow
-            .node_states
-            .values()
-            .any(|s| s.status == NodeStatus::Skipped);
-        let any_failed = workflow
-            .node_states
-            .values()
-            .any(|s| s.status == NodeStatus::Failed);
+        let any_skipped = workflow.node_states.values().any(|s| s.status == NodeStatus::Skipped);
+        let any_failed = workflow.node_states.values().any(|s| s.status == NodeStatus::Failed);
 
         if all_ok && any_skipped {
             workflow.status = WorkflowStatus::PartiallyCompleted;
@@ -1064,9 +1009,7 @@ impl WorkEngine {
         }
 
         let mut workflows = self.workflows.write().await;
-        let workflow = workflows
-            .get_mut(workflow_id)
-            .ok_or(WorkflowError::WorkflowNotFound)?;
+        let workflow = workflows.get_mut(workflow_id).ok_or(WorkflowError::WorkflowNotFound)?;
 
         for state in workflow.node_states.values_mut() {
             if matches!(state.status, NodeStatus::Pending | NodeStatus::Ready | NodeStatus::Running)
@@ -1082,9 +1025,7 @@ impl WorkEngine {
 
     pub async fn serialize_workflow(&self, workflow_id: &str) -> Result<String, WorkflowError> {
         let workflows = self.workflows.read().await;
-        let wf = workflows
-            .get(workflow_id)
-            .ok_or(WorkflowError::WorkflowNotFound)?;
+        let wf = workflows.get(workflow_id).ok_or(WorkflowError::WorkflowNotFound)?;
         serde_json::to_string(wf).map_err(|e| WorkflowError::SerializationError(e.to_string()))
     }
 
@@ -1107,21 +1048,15 @@ impl WorkEngine {
         );
         let _guard = span.enter();
 
-        let cancel_token = options
-            .parent_cancel_token
-            .as_ref()
-            .map(|t| t.child_token())
-            .unwrap_or_default();
+        let cancel_token =
+            options.parent_cancel_token.as_ref().map(|t| t.child_token()).unwrap_or_default();
         {
             let mut tokens = self.cancel_tokens.lock().await;
             tokens.insert(workflow_id.to_string(), cancel_token.clone());
         }
 
         // 构建执行输入：优先使用调用方传入的 input，否则用空对象
-        let mut input = options
-            .input
-            .clone()
-            .unwrap_or_else(|| serde_json::json!({}));
+        let mut input = options.input.clone().unwrap_or_else(|| serde_json::json!({}));
         // 将 model_id / provider_id 写入上下文，供执行器读取
         if let Some(ref model_id) = options.model_id {
             input[super::executors::WORKFLOW_MODEL_VAR] =
@@ -1207,9 +1142,7 @@ impl WorkEngine {
 
         let current_parent_execution_id = {
             let executions = self.executions.lock().await;
-            executions
-                .get(&execution_id)
-                .and_then(|s| s.parent_execution_id.clone())
+            executions.get(&execution_id).and_then(|s| s.parent_execution_id.clone())
         };
 
         // 清空 Agent executor 缓存（每次执行使用最新数据）
@@ -1476,10 +1409,7 @@ impl WorkEngine {
 
         let total_nodes = {
             let workflows = self.workflows.read().await;
-            workflows
-                .get(workflow_id)
-                .map(|w| w.nodes.len())
-                .unwrap_or(0)
+            workflows.get(workflow_id).map(|w| w.nodes.len()).unwrap_or(0)
         };
         let progress_cb = options.progress_callback.clone();
         let mut breakers: HashMap<String, NodeCircuitBreaker> =
@@ -1611,17 +1541,11 @@ impl WorkEngine {
                         return true;
                     }
                     if let Some(nt) = node_type_map.get(nid) {
-                        let limit = type_limits
-                            .get(nt.as_str())
-                            .copied()
-                            .unwrap_or(global_limit);
+                        let limit = type_limits.get(nt.as_str()).copied().unwrap_or(global_limit);
                         let active_of_type = active_nodes
                             .iter()
                             .filter(|an| {
-                                node_type_map
-                                    .get(an.as_str())
-                                    .map(|t| t == nt)
-                                    .unwrap_or(false)
+                                node_type_map.get(an.as_str()).map(|t| t == nt).unwrap_or(false)
                             })
                             .count();
                         if active_of_type >= limit {
@@ -1723,10 +1647,8 @@ impl WorkEngine {
                     .await;
                 }
 
-                let node_timeout = node
-                    .base_timeout()
-                    .map(Duration::from_secs)
-                    .unwrap_or(options.step_timeout);
+                let node_timeout =
+                    node.base_timeout().map(Duration::from_secs).unwrap_or(options.step_timeout);
                 let mut exec_ctx = ExecutionState::new(
                     format!("node_{}", uuid::Uuid::new_v4()),
                     workflow_id.to_string(),
@@ -1918,8 +1840,7 @@ impl WorkEngine {
                                     });
                                 });
                                 Box::pin(async move {
-                                    rx.await
-                                        .map_err(|_| "Sub-workflow task dropped".to_string())?
+                                    rx.await.map_err(|_| "Sub-workflow task dropped".to_string())?
                                 })
                             },
                         );
@@ -2641,10 +2562,7 @@ impl WorkEngine {
 
             let status = {
                 let workflows = self.workflows.read().await;
-                workflows
-                    .get(workflow_id)
-                    .map(|wf| wf.status)
-                    .unwrap_or(WorkflowStatus::Failed)
+                workflows.get(workflow_id).map(|wf| wf.status).unwrap_or(WorkflowStatus::Failed)
             };
             match status {
                 WorkflowStatus::Completed
@@ -2685,10 +2603,8 @@ impl WorkEngine {
             let persist_output = wf.output.clone().unwrap_or_else(|| {
                 serde_json::to_value(&wf.results).unwrap_or(serde_json::json!(null))
             });
-            let total_time_ms = wf
-                .completed_at
-                .map(|end| end.saturating_sub(wf.created_at) * 1000)
-                .unwrap_or(0);
+            let total_time_ms =
+                wf.completed_at.map(|end| end.saturating_sub(wf.created_at) * 1000).unwrap_or(0);
             let final_exec_status = match wf.status {
                 WorkflowStatus::Completed => ExecutionStatus::Completed,
                 WorkflowStatus::PartiallyCompleted => ExecutionStatus::PartiallyCompleted,
@@ -2815,18 +2731,9 @@ impl WorkEngine {
         let interrupt_signal = std::sync::Arc::new(tokio::sync::Notify::new());
         state.partial_result_tx = Some(partial_tx.clone());
         state.interrupt_signal = Some(interrupt_signal.clone());
-        self.loop_partial_txs
-            .lock()
-            .await
-            .insert(execution_id.clone(), partial_tx);
-        self.loop_interrupt_signals
-            .lock()
-            .await
-            .insert(execution_id.clone(), interrupt_signal);
-        self.executions
-            .lock()
-            .await
-            .insert(execution_id.clone(), state);
+        self.loop_partial_txs.lock().await.insert(execution_id.clone(), partial_tx);
+        self.loop_interrupt_signals.lock().await.insert(execution_id.clone(), interrupt_signal);
+        self.executions.lock().await.insert(execution_id.clone(), state);
         Ok(execution_id)
     }
 
@@ -2884,12 +2791,7 @@ impl WorkEngine {
                 tracing::warn!("[Loop] 取消时清理检查点失败: {e} (execution_id={execution_id})");
             }
             // 唤醒可能正在等待 interrupt 的 LoopExecutor
-            if let Some(sig) = self
-                .loop_interrupt_signals
-                .lock()
-                .await
-                .remove(execution_id)
-            {
+            if let Some(sig) = self.loop_interrupt_signals.lock().await.remove(execution_id) {
                 sig.notify_waiters();
             }
             self.loop_partial_txs.lock().await.remove(execution_id);
@@ -2916,11 +2818,7 @@ impl WorkEngine {
         &self,
         execution_id: &str,
     ) -> Option<tokio::sync::broadcast::Receiver<super::execution_state::PartialResultEvent>> {
-        self.loop_partial_txs
-            .lock()
-            .await
-            .get(execution_id)
-            .map(|tx| tx.subscribe())
+        self.loop_partial_txs.lock().await.get(execution_id).map(|tx| tx.subscribe())
     }
 
     /// 恢复因 interrupt 挂起的 Loop 节点。
@@ -2953,9 +2851,7 @@ impl WorkEngine {
             if let Some(state) = executions.get_mut(execution_id)
                 && let Some(ref iteratee_var) = decision.iteratee_var
             {
-                state
-                    .variables
-                    .insert(iteratee_var.clone(), new_item.clone());
+                state.variables.insert(iteratee_var.clone(), new_item.clone());
             }
         }
         // 唤醒 LoopExecutor
@@ -3033,9 +2929,7 @@ impl WorkEngine {
     ) {
         use std::hash::{Hash, Hasher};
         let input_str = serde_json::to_string(input_val).unwrap_or_default();
-        let output_str = output_val
-            .and_then(|o| serde_json::to_string(o).ok())
-            .unwrap_or_default();
+        let output_str = output_val.and_then(|o| serde_json::to_string(o).ok()).unwrap_or_default();
 
         let mut hasher = std::collections::hash_map::DefaultHasher::new();
         input_str.hash(&mut hasher);

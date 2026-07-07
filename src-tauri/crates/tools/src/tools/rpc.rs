@@ -44,9 +44,7 @@ pub fn set_tool_executor(executor: Arc<dyn ToolExecutorAccess>) {
 }
 
 fn axagent_dir() -> PathBuf {
-    dirs::home_dir()
-        .unwrap_or_else(|| PathBuf::from("."))
-        .join(".axagent")
+    dirs::home_dir().unwrap_or_else(|| PathBuf::from(".")).join(".axagent")
 }
 
 #[cfg(unix)]
@@ -96,11 +94,10 @@ fn append_audit_log(entry: &str) -> Result<(), ToolError> {
     })?;
     let timestamp = chrono::Utc::now().to_rfc3339();
     let line = format!("[{}] {}\n", timestamp, entry);
-    let mut file = std::fs::OpenOptions::new()
-        .create(true)
-        .append(true)
-        .open(audit_log_path())
-        .map_err(|e| ToolError::execution_failed(format!("Failed to open rpc-audit.log: {}", e)))?;
+    let mut file =
+        std::fs::OpenOptions::new().create(true).append(true).open(audit_log_path()).map_err(
+            |e| ToolError::execution_failed(format!("Failed to open rpc-audit.log: {}", e)),
+        )?;
     file.write_all(line.as_bytes())
         .map_err(|e| ToolError::execution_failed(format!("Failed to write rpc-audit.log: {}", e)))
 }
@@ -137,43 +134,23 @@ struct JsonRpcError {
 
 impl JsonRpcError {
     fn invalid_request() -> Self {
-        Self {
-            code: -32600,
-            message: "Invalid Request".to_string(),
-            data: None,
-        }
+        Self { code: -32600, message: "Invalid Request".to_string(), data: None }
     }
 
     fn method_not_found(method: &str) -> Self {
-        Self {
-            code: -32601,
-            message: format!("Method not found: {}", method),
-            data: None,
-        }
+        Self { code: -32601, message: format!("Method not found: {}", method), data: None }
     }
 
     fn invalid_params(msg: &str) -> Self {
-        Self {
-            code: -32602,
-            message: format!("Invalid params: {}", msg),
-            data: None,
-        }
+        Self { code: -32602, message: format!("Invalid params: {}", msg), data: None }
     }
 
     fn internal_error(msg: &str) -> Self {
-        Self {
-            code: -32603,
-            message: format!("Internal error: {}", msg),
-            data: None,
-        }
+        Self { code: -32603, message: format!("Internal error: {}", msg), data: None }
     }
 
     fn parse_error() -> Self {
-        Self {
-            code: -32700,
-            message: "Parse error".to_string(),
-            data: None,
-        }
+        Self { code: -32700, message: "Parse error".to_string(), data: None }
     }
 }
 
@@ -185,21 +162,11 @@ fn validate_request(req: &JsonRpcRequest) -> Result<(), JsonRpcError> {
 }
 
 fn make_success_response(id: Option<Value>, result: Value) -> JsonRpcResponse {
-    JsonRpcResponse {
-        jsonrpc: "2.0".to_string(),
-        result: Some(result),
-        error: None,
-        id,
-    }
+    JsonRpcResponse { jsonrpc: "2.0".to_string(), result: Some(result), error: None, id }
 }
 
 fn make_error_response(id: Option<Value>, error: JsonRpcError) -> JsonRpcResponse {
-    JsonRpcResponse {
-        jsonrpc: "2.0".to_string(),
-        result: None,
-        error: Some(error),
-        id,
-    }
+    JsonRpcResponse { jsonrpc: "2.0".to_string(), result: None, error: Some(error), id }
 }
 
 // ── RpcServer ──
@@ -404,9 +371,7 @@ async fn handle_unix_connection(stream: tokio::net::UnixStream) {
         },
     };
 
-    let _ = writer
-        .write_all(format!("{}\n", response_bytes).as_bytes())
-        .await;
+    let _ = writer.write_all(format!("{}\n", response_bytes).as_bytes()).await;
 }
 
 #[cfg(windows)]
@@ -436,9 +401,7 @@ async fn handle_pipe_connection(stream: tokio::net::windows::named_pipe::NamedPi
         },
     };
 
-    let _ = writer
-        .write_all(format!("{}\n", response_bytes).as_bytes())
-        .await;
+    let _ = writer.write_all(format!("{}\n", response_bytes).as_bytes()).await;
 }
 
 async fn process_rpc_message(msg: &str) -> Value {
@@ -487,11 +450,7 @@ async fn process_single_request(value: &Value) -> Value {
     let _ = append_audit_log(&format!(
         "method={} params={}",
         request.method,
-        request
-            .params
-            .as_ref()
-            .map(|p| p.to_string())
-            .unwrap_or_default()
+        request.params.as_ref().map(|p| p.to_string()).unwrap_or_default()
     ));
 
     let result = dispatch_rpc_method(&request.method, request.params.as_ref()).await;
@@ -536,10 +495,8 @@ async fn dispatch_rpc_method(method: &str, params: Option<&Value>) -> Result<Val
             let tool_name = params["tool"]
                 .as_str()
                 .ok_or_else(|| JsonRpcError::invalid_params("tool name required"))?;
-            let tool_input = params
-                .get("input")
-                .cloned()
-                .unwrap_or(Value::Object(serde_json::Map::new()));
+            let tool_input =
+                params.get("input").cloned().unwrap_or(Value::Object(serde_json::Map::new()));
 
             let executor = GLOBAL_TOOL_EXECUTOR.lock().clone();
             match executor {
@@ -822,10 +779,7 @@ impl Tool for RpcCallTool {
         let endpoint = input["endpoint"].as_str().unwrap_or("");
         let method = input["method"].as_str().unwrap_or("");
         let params = input.get("params").cloned();
-        let id = input
-            .get("id")
-            .cloned()
-            .unwrap_or(Value::Number(serde_json::Number::from(1)));
+        let id = input.get("id").cloned().unwrap_or(Value::Number(serde_json::Number::from(1)));
         let timeout_ms = input["timeout_ms"].as_u64().unwrap_or(30000);
 
         if endpoint.is_empty() {

@@ -31,14 +31,8 @@ impl Tool for RemoteFileUploadTool {
     }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
-        let local_path = input
-            .get("local_path")
-            .and_then(|v| v.as_str())
-            .unwrap_or_default();
-        let remote_name = input
-            .get("remote_name")
-            .and_then(|v| v.as_str())
-            .unwrap_or("");
+        let local_path = input.get("local_path").and_then(|v| v.as_str()).unwrap_or_default();
+        let remote_name = input.get("remote_name").and_then(|v| v.as_str()).unwrap_or("");
         if local_path.is_empty() {
             return Ok(ToolResult::error("Error: local_path 是必需的"));
         }
@@ -67,12 +61,9 @@ impl Tool for RemoteFileUploadTool {
         std::fs::create_dir_all(remote_dir).ok();
         let dest_path = remote_dir.join(&dest_name);
         if dest_path.exists() {
-            let canonical_remote = remote_dir
-                .canonicalize()
-                .unwrap_or_else(|_| remote_dir.to_path_buf());
-            let canonical_dest = dest_path
-                .canonicalize()
-                .unwrap_or_else(|_| dest_path.clone());
+            let canonical_remote =
+                remote_dir.canonicalize().unwrap_or_else(|_| remote_dir.to_path_buf());
+            let canonical_dest = dest_path.canonicalize().unwrap_or_else(|_| dest_path.clone());
             if !canonical_dest.starts_with(&canonical_remote) {
                 return Err(ToolError::permission_denied(
                     "RemoteFileUpload",
@@ -123,11 +114,7 @@ impl Tool for RemoteFileListTool {
         if files.is_empty() {
             Ok(ToolResult::success("远程存储为空"))
         } else {
-            Ok(ToolResult::success(format!(
-                "远程文件 ({}):\n{}",
-                files.len(),
-                files.join("\n")
-            )))
+            Ok(ToolResult::success(format!("远程文件 ({}):\n{}", files.len(), files.join("\n"))))
         }
     }
 }
@@ -153,10 +140,7 @@ impl Tool for RemoteFileDeleteTool {
     }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
-        let name = input
-            .get("remote_name")
-            .and_then(|v| v.as_str())
-            .unwrap_or_default();
+        let name = input.get("remote_name").and_then(|v| v.as_str()).unwrap_or_default();
         if name.is_empty() {
             return Ok(ToolResult::error("Error: remote_name 是必需的"));
         }
@@ -171,9 +155,8 @@ impl Tool for RemoteFileDeleteTool {
         if !path.exists() {
             return Ok(ToolResult::error(format!("文件未找到: {}", name)));
         }
-        let canonical_remote = remote_dir
-            .canonicalize()
-            .unwrap_or_else(|_| remote_dir.to_path_buf());
+        let canonical_remote =
+            remote_dir.canonicalize().unwrap_or_else(|_| remote_dir.to_path_buf());
         let canonical_path = path.canonicalize().unwrap_or_else(|_| path.clone());
         if !canonical_path.starts_with(&canonical_remote) {
             return Err(ToolError::permission_denied(
@@ -226,10 +209,7 @@ impl Tool for CacheInfoTool {
                 }
             }
         }
-        Ok(ToolResult::success(format!(
-            "缓存信息:\n  文件数: {}\n  总大小: {} bytes",
-            count, size
-        )))
+        Ok(ToolResult::success(format!("缓存信息:\n  文件数: {}\n  总大小: {} bytes", count, size)))
     }
 }
 

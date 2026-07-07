@@ -249,10 +249,7 @@ impl RuntimePluginConfig {
 
     #[must_use]
     pub fn state_for(&self, plugin_id: &str, default_enabled: bool) -> bool {
-        self.enabled_plugins
-            .get(plugin_id)
-            .copied()
-            .unwrap_or(default_enabled)
+        self.enabled_plugins.get(plugin_id).copied().unwrap_or(default_enabled)
     }
 }
 
@@ -489,10 +486,7 @@ pub(crate) fn read_optional_json_object(
     };
 
     if contents.trim().is_empty() {
-        return Ok(Some(ParsedConfigFile {
-            object: BTreeMap::new(),
-            source: contents,
-        }));
+        return Ok(Some(ParsedConfigFile { object: BTreeMap::new(), source: contents }));
     }
 
     let parsed = match JsonValue::parse(&contents) {
@@ -509,10 +503,7 @@ pub(crate) fn read_optional_json_object(
             path.display()
         )));
     };
-    Ok(Some(ParsedConfigFile {
-        object: object.clone(),
-        source: contents,
-    }))
+    Ok(Some(ParsedConfigFile { object: object.clone(), source: contents }))
 }
 
 pub(crate) fn merge_mcp_servers(
@@ -531,13 +522,7 @@ pub(crate) fn merge_mcp_servers(
             value,
             &format!("{}: mcpServers.{name}", path.display()),
         )?;
-        target.insert(
-            name.clone(),
-            ScopedMcpServerConfig {
-                scope: source,
-                config: parsed,
-            },
-        );
+        target.insert(name.clone(), ScopedMcpServerConfig { scope: source, config: parsed });
     }
     Ok(())
 }
@@ -876,9 +861,7 @@ fn expect_object<'a>(
     value: &'a JsonValue,
     context: &str,
 ) -> Result<&'a BTreeMap<String, JsonValue>, ConfigError> {
-    value
-        .as_object()
-        .ok_or_else(|| ConfigError::Parse(format!("{context}: expected JSON object")))
+    value.as_object().ok_or_else(|| ConfigError::Parse(format!("{context}: expected JSON object")))
 }
 
 fn expect_string<'a>(
@@ -989,12 +972,9 @@ fn parse_bool_map(value: &JsonValue, context: &str) -> Result<BTreeMap<String, b
     };
     map.iter()
         .map(|(key, value)| {
-            value
-                .as_bool()
-                .map(|enabled| (key.clone(), enabled))
-                .ok_or_else(|| {
-                    ConfigError::Parse(format!("{context}: field {key} must be a boolean"))
-                })
+            value.as_bool().map(|enabled| (key.clone(), enabled)).ok_or_else(|| {
+                ConfigError::Parse(format!("{context}: field {key} must be a boolean"))
+            })
         })
         .collect()
 }

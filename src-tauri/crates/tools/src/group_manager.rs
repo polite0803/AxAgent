@@ -45,17 +45,9 @@ impl ToolGroupManager {
             let group_key = t.category.default_group().to_string();
             let entry = groups.entry(group_key.clone()).or_insert_with(|| {
                 let enabled = self.group_enabled.get(&group_key).copied().unwrap_or(true);
-                let name = self
-                    .group_names
-                    .get(&group_key)
-                    .cloned()
-                    .unwrap_or_else(|| group_key.clone());
-                ToolGroupInfo {
-                    group_id: group_key,
-                    group_name: name,
-                    enabled,
-                    tools: Vec::new(),
-                }
+                let name =
+                    self.group_names.get(&group_key).cloned().unwrap_or_else(|| group_key.clone());
+                ToolGroupInfo { group_id: group_key, group_name: name, enabled, tools: Vec::new() }
             });
             entry.tools.push(t.clone());
         }
@@ -64,10 +56,6 @@ impl ToolGroupManager {
 
     /// 获取所有启用的工具名
     pub fn enabled_tool_names(&self, tools: &[ToolInfo]) -> Vec<String> {
-        tools
-            .iter()
-            .filter(|t| self.is_tool_enabled(t))
-            .map(|t| t.name.clone())
-            .collect()
+        tools.iter().filter(|t| self.is_tool_enabled(t)).map(|t| t.name.clone()).collect()
     }
 }

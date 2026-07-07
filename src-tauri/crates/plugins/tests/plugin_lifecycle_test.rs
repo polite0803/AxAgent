@@ -32,9 +32,7 @@ fn enable_updates_enabled_state() {
     assert!(config.enabled_plugins.is_empty());
 
     // 标记为启用
-    config
-        .enabled_plugins
-        .insert("test-plugin".to_string(), true);
+    config.enabled_plugins.insert("test-plugin".to_string(), true);
     assert_eq!(config.enabled_plugins.get("test-plugin"), Some(&true));
 }
 
@@ -44,12 +42,8 @@ fn disable_clears_enabled_state() {
     let mut config = PluginManagerConfig::new(tmp.path.clone());
 
     // Enable → Disable
-    config
-        .enabled_plugins
-        .insert("test-plugin".to_string(), true);
-    config
-        .enabled_plugins
-        .insert("test-plugin".to_string(), false);
+    config.enabled_plugins.insert("test-plugin".to_string(), true);
+    config.enabled_plugins.insert("test-plugin".to_string(), false);
 
     assert_eq!(config.enabled_plugins.get("test-plugin"), Some(&false));
 }
@@ -65,15 +59,11 @@ fn lifecycle_load_enable_disable_unload() {
 
     // 2. Simulate enable
     let mut config = PluginManagerConfig::new(tmp.path.clone());
-    config
-        .enabled_plugins
-        .insert("full-lifecycle".to_string(), true);
+    config.enabled_plugins.insert("full-lifecycle".to_string(), true);
     assert!(config.enabled_plugins.contains_key("full-lifecycle"));
 
     // 3. Simulate disable
-    config
-        .enabled_plugins
-        .insert("full-lifecycle".to_string(), false);
+    config.enabled_plugins.insert("full-lifecycle".to_string(), false);
     assert_eq!(config.enabled_plugins.get("full-lifecycle"), Some(&false));
 
     // 4. Simulate unload: remove from enabled set

@@ -77,10 +77,8 @@ pub async fn get_wiki_model(db: &DatabaseConnection, id: &str) -> Result<wikis::
 }
 
 pub async fn list_wikis(db: &DatabaseConnection) -> Result<Vec<Wiki>> {
-    let models = wikis::Entity::find()
-        .order_by(wikis::Column::UpdatedAt, Order::Desc)
-        .all(db)
-        .await?;
+    let models =
+        wikis::Entity::find().order_by(wikis::Column::UpdatedAt, Order::Desc).all(db).await?;
 
     Ok(models.into_iter().map(model_to_wiki).collect())
 }
@@ -247,9 +245,7 @@ pub async fn delete_old_versions(
     let count = to_delete.len();
 
     for id in to_delete {
-        wiki_page_versions::Entity::delete_by_id(id)
-            .exec(db)
-            .await?;
+        wiki_page_versions::Entity::delete_by_id(id).exec(db).await?;
     }
 
     Ok(count)

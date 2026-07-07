@@ -65,16 +65,9 @@ async fn count_messages_by_role(
     let total = rows.len() as u64;
 
     // 在 metadata 中累计 token
-    let prompt_total: u64 = rows
-        .iter()
-        .filter_map(|m| m.prompt_tokens)
-        .map(|t| t as u64)
-        .sum();
-    let completion_total: u64 = rows
-        .iter()
-        .filter_map(|m| m.completion_tokens)
-        .map(|t| t as u64)
-        .sum();
+    let prompt_total: u64 = rows.iter().filter_map(|m| m.prompt_tokens).map(|t| t as u64).sum();
+    let completion_total: u64 =
+        rows.iter().filter_map(|m| m.completion_tokens).map(|t| t as u64).sum();
 
     Ok((total, user_count, tool_count, prompt_total + completion_total))
 }

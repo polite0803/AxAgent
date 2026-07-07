@@ -33,9 +33,7 @@ impl Default for ImageGenConfig {
 }
 
 fn get_image_gen_config_path() -> PathBuf {
-    let app_dir = dirs::data_local_dir()
-        .unwrap_or_else(|| PathBuf::from("."))
-        .join("AxAgent");
+    let app_dir = dirs::data_local_dir().unwrap_or_else(|| PathBuf::from(".")).join("AxAgent");
     fs::create_dir_all(&app_dir).ok();
     app_dir.join("image_gen_config.json")
 }

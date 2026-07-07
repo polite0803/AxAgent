@@ -11,9 +11,7 @@ async fn test_prompt_cache_new_is_cache_invalid() {
 #[tokio::test]
 async fn test_record_system_prompt_makes_cache_valid() {
     let cache = PromptCache::new();
-    cache
-        .record_system_prompt("You are a helpful assistant.")
-        .await;
+    cache.record_system_prompt("You are a helpful assistant.").await;
     assert!(cache.is_cache_valid().await);
 }
 

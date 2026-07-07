@@ -31,16 +31,9 @@ impl ExecutionProgress {
 
     pub fn update(&mut self, graph: &TaskGraph) {
         self.total_tasks = graph.tasks.len();
-        self.completed_tasks = graph
-            .tasks
-            .iter()
-            .filter(|t| t.status == TaskStatus::Completed)
-            .count();
-        self.failed_tasks = graph
-            .tasks
-            .iter()
-            .filter(|t| t.status == TaskStatus::Failed)
-            .count();
+        self.completed_tasks =
+            graph.tasks.iter().filter(|t| t.status == TaskStatus::Completed).count();
+        self.failed_tasks = graph.tasks.iter().filter(|t| t.status == TaskStatus::Failed).count();
         self.current_tasks = graph
             .tasks
             .iter()
@@ -120,19 +113,11 @@ pub struct TaskResult {
 
 impl TaskResult {
     pub fn success(output: serde_json::Value, duration_ms: u64) -> Self {
-        Self {
-            output,
-            error: None,
-            duration_ms,
-        }
+        Self { output, error: None, duration_ms }
     }
 
     pub fn failed(error: String) -> Self {
-        Self {
-            output: serde_json::Value::Null,
-            error: Some(error),
-            duration_ms: 0,
-        }
+        Self { output: serde_json::Value::Null, error: Some(error), duration_ms: 0 }
     }
 
     pub fn is_success(&self) -> bool {
@@ -214,10 +199,7 @@ impl TaskExecutor {
 
         tracing::info!(
             "Task execution order: {:?}",
-            execution_order
-                .iter()
-                .map(|batch| batch.len())
-                .collect::<Vec<_>>()
+            execution_order.iter().map(|batch| batch.len()).collect::<Vec<_>>()
         );
 
         for (batch_idx, batch) in execution_order.iter().enumerate() {
@@ -426,16 +408,10 @@ impl TaskExecutorImpl for DefaultTaskExecutorImpl {
     ) -> Result<serde_json::Value, TaskExecutorError> {
         match context.task_type {
             crate::task::TaskType::ToolCall => {
-                let tool_name = context
-                    .inputs
-                    .get("tool_name")
-                    .and_then(|v| v.as_str())
-                    .unwrap_or("");
-                let tool_input = context
-                    .inputs
-                    .get("tool_input")
-                    .cloned()
-                    .unwrap_or(serde_json::json!({}));
+                let tool_name =
+                    context.inputs.get("tool_name").and_then(|v| v.as_str()).unwrap_or("");
+                let tool_input =
+                    context.inputs.get("tool_input").cloned().unwrap_or(serde_json::json!({}));
 
                 if tool_name.is_empty() {
                     return Err(TaskExecutorError::ExecutionFailed(
@@ -489,11 +465,8 @@ impl TaskExecutorImpl for DefaultTaskExecutorImpl {
                     .get("target")
                     .and_then(|v| v.as_str())
                     .unwrap_or(&context.description);
-                let expected = context
-                    .inputs
-                    .get("expected")
-                    .and_then(|v| v.as_str())
-                    .unwrap_or("");
+                let expected =
+                    context.inputs.get("expected").and_then(|v| v.as_str()).unwrap_or("");
 
                 let passed = if !expected.is_empty() {
                     target.contains(expected)
@@ -850,12 +823,7 @@ mod tests {
         };
         let result = executor.execute_task(&context).await.unwrap();
         assert_eq!(result["task_id"], "r1");
-        assert!(
-            result["output"]
-                .as_str()
-                .unwrap()
-                .contains("Reasoning completed")
-        );
+        assert!(result["output"].as_str().unwrap().contains("Reasoning completed"));
     }
 
     #[tokio::test]
@@ -886,12 +854,7 @@ mod tests {
         };
         let result = executor.execute_task(&context).await.unwrap();
         assert_eq!(result["task_id"], "q1");
-        assert!(
-            result["output"]
-                .as_str()
-                .unwrap()
-                .contains("Query executed")
-        );
+        assert!(result["output"].as_str().unwrap().contains("Query executed"));
     }
 
     #[tokio::test]

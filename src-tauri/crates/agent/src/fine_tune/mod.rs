@@ -46,12 +46,7 @@ pub struct GenerationParams {
 
 impl Default for GenerationParams {
     fn default() -> Self {
-        Self {
-            temperature: 0.7,
-            top_p: 0.9,
-            max_tokens: 4096,
-            repeat_penalty: 1.1,
-        }
+        Self { temperature: 0.7, top_p: 0.9, max_tokens: 4096, repeat_penalty: 1.1 }
     }
 }
 
@@ -74,8 +69,7 @@ impl ModelManager {
     }
 
     pub fn register_lora_adapter(&mut self, adapter: LoRAAdapterInfo) {
-        self.lora_adapters
-            .insert(adapter.adapter_id.clone(), adapter);
+        self.lora_adapters.insert(adapter.adapter_id.clone(), adapter);
     }
 
     pub fn set_active_config(&mut self, config: ActiveModelConfig) {
@@ -91,10 +85,7 @@ impl ModelManager {
     }
 
     pub fn get_adapters_for_base_model(&self, base_model: &str) -> Vec<&LoRAAdapterInfo> {
-        self.lora_adapters
-            .values()
-            .filter(|a| a.base_model == base_model)
-            .collect()
+        self.lora_adapters.values().filter(|a| a.base_model == base_model).collect()
     }
 }
 

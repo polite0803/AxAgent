@@ -99,11 +99,7 @@ impl ContextWindow {
             None
         };
 
-        Self {
-            recent_steps: recent.to_vec(),
-            summarized_prefix: summary,
-            crucial_steps: crucial,
-        }
+        Self { recent_steps: recent.to_vec(), summarized_prefix: summary, crucial_steps: crucial }
     }
 
     /// 格式化为 LLM prompt 可用的字符串

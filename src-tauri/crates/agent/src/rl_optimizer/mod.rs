@@ -50,10 +50,7 @@ pub struct ExperiencePool {
 
 impl ExperiencePool {
     pub fn new(max_size: usize) -> Self {
-        Self {
-            experiences: Vec::new(),
-            max_size,
-        }
+        Self { experiences: Vec::new(), max_size }
     }
 
     pub fn add(&mut self, experience: Experience) {
@@ -74,11 +71,7 @@ impl ExperiencePool {
             let j = i + (fastrand::usize(..(len - i)));
             indices.swap(i, j);
         }
-        indices
-            .into_iter()
-            .take(batch_size)
-            .map(|i| &self.experiences[i])
-            .collect()
+        indices.into_iter().take(batch_size).map(|i| &self.experiences[i]).collect()
     }
 }
 
@@ -224,9 +217,7 @@ impl RLOptimizer {
     }
 
     pub fn get_policy_stats(&self, policy_id: &str) -> Option<TrainingStats> {
-        self.policies
-            .get(policy_id)
-            .map(|p| p.training_stats.clone())
+        self.policies.get(policy_id).map(|p| p.training_stats.clone())
     }
 }
 

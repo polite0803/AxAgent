@@ -24,11 +24,7 @@ pub struct CircuitBreakerConfig {
 }
 impl Default for CircuitBreakerConfig {
     fn default() -> Self {
-        Self {
-            failure_threshold: 5,
-            recovery_timeout_secs: 30,
-            half_open_max_requests: 1,
-        }
+        Self { failure_threshold: 5, recovery_timeout_secs: 30, half_open_max_requests: 1 }
     }
 }
 

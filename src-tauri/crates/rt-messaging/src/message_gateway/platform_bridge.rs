@@ -37,13 +37,7 @@ impl PlatformBridge {
         master_key: [u8; 32],
         platform_manager: Arc<PlatformManager>,
     ) -> Self {
-        Self {
-            db,
-            master_key,
-            platform_manager,
-            webhook_dispatcher: None,
-            provider_registry: None,
-        }
+        Self { db, master_key, platform_manager, webhook_dispatcher: None, provider_registry: None }
     }
 
     /// 设置 Webhook 派发器，用于在收到平台消息时触发 webhook 事件
@@ -138,10 +132,7 @@ impl PlatformMessageCallback for PlatformBridge {
                 .await;
         }
 
-        match self
-            .route_incoming_message(platform, user_id, username, chat_id, text)
-            .await
-        {
+        match self.route_incoming_message(platform, user_id, username, chat_id, text).await {
             Ok(reply) => {
                 let processed = reply.map(|r| {
                     let (cleaned, attachments) =
@@ -235,10 +226,8 @@ impl PlatformBridge {
 
         // 尝试复用已有对话：查找已关联的 agent_session
         let conv_title = format!("[{}] {}", platform, username.unwrap_or(user_id));
-        let existing_conv_id = self
-            .platform_manager
-            .get_linked_agent_session(platform, user_id, Some(&self.db))
-            .await;
+        let existing_conv_id =
+            self.platform_manager.get_linked_agent_session(platform, user_id, Some(&self.db)).await;
 
         let conv = if let Some(ref existing_id) = existing_conv_id {
             match conversation::get_conversation(&self.db, existing_id).await {
@@ -329,9 +318,7 @@ impl PlatformBridge {
 
         conversation::increment_message_count(&self.db, &conv.id).await?;
 
-        self.platform_manager
-            .link_agent_session(platform, user_id, &conv.id)
-            .await;
+        self.platform_manager.link_agent_session(platform, user_id, &conv.id).await;
 
         // 持久化会话路由
         if let Err(e) = persist_session_route(&self.db, platform, user_id, &conv.id).await {
