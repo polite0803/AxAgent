@@ -300,6 +300,7 @@ mod tests {
                 std::time::Duration::from_secs(60),
             )),
             client_ip_policy: std::sync::Arc::new(ClientIpPolicy::trust_all()),
+            qr_bind_store: crate::qr_bind::QrBindStore::new(),
         }
     }
 
