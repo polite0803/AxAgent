@@ -25,7 +25,7 @@ const toolIcons: Record<string, React.ReactNode> = {
 function getToolIcon(toolName: string): React.ReactNode {
   const lower = toolName.toLowerCase();
   for (const [key, icon] of Object.entries(toolIcons)) {
-    if (lower.includes(key)) return icon;
+    if (lower.includes(key)) { return icon; }
   }
   return <Wrench size={14} />;
 }
@@ -53,7 +53,7 @@ export const ToolCallBlockView = React.memo(
       toolResultBlocks.map((r) => [r.tool_use_id, r]),
     );
 
-    if (toolUseBlocks.length === 0) return null;
+    if (toolUseBlocks.length === 0) { return null; }
 
     return (
       <div style={{ margin: "8px 0 0" }}>
