@@ -2647,7 +2647,18 @@
       "deepseekBalance": "DeepSeek 余额",
       "noValidKey": "无有效密钥"
     },
-    "stockAnalysis": "股票分析"
+    "stockAnalysis": "股票分析",
+    "persona": {
+      "editFailed": "编辑失败",
+      "switchFailed": "切换失败",
+      "createFailed": "创建失败",
+      "saveFailed": "保存失败",
+      "emptyContent": "（空）",
+      "personaList": "人格列表",
+      "cancel": "取消",
+      "nameLabel": "名称",
+      "namePlaceholder": "my-persona"
+    }
   },
   "backup": {
     "title": "备份中心",

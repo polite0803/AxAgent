@@ -57,7 +57,7 @@ export function PersonaPage() {
       const p = await personalityGet(name);
       setSelected(p);
     } catch {
-      message.error(t("settings.persona.edit") + " 失败");
+      message.error(t("settings.persona.editFailed"));
     } finally {
       setSelectedLoading(false);
     }
@@ -73,7 +73,7 @@ export function PersonaPage() {
       message.success(t("settings.persona.switchSuccess", { name }));
       loadList();
     } catch {
-      message.error("切换失败");
+      message.error(t("settings.persona.switchFailed"));
     }
   }, [t, loadList]);
 
@@ -95,7 +95,7 @@ export function PersonaPage() {
       setNewUser("");
       loadList();
     } catch {
-      message.error("创建失败");
+      message.error(t("settings.persona.createFailed"));
     } finally {
       setSaving(false);
     }
@@ -108,7 +108,7 @@ export function PersonaPage() {
       await personalityUpdateIdentity(selected.name, selected.identity);
       message.success(t("settings.persona.saved"));
     } catch {
-      message.error("保存失败");
+      message.error(t("settings.persona.saveFailed"));
     } finally {
       setSaving(false);
     }
@@ -121,7 +121,7 @@ export function PersonaPage() {
       await personalityUpdateUser(selected.name, selected.user);
       message.success(t("settings.persona.saved"));
     } catch {
-      message.error("保存失败");
+      message.error(t("settings.persona.saveFailed"));
     } finally {
       setSaving(false);
     }
@@ -220,7 +220,7 @@ export function PersonaPage() {
                 <div>
                   <Text type="secondary">{t("settings.persona.soul.description")}</Text>
                   <Paragraph style={{ marginTop: token.marginSM, whiteSpace: "pre-wrap" }}>
-                    {selected.content || <Text type="secondary">（空）</Text>}
+                    {selected.content || <Text type="secondary">{t("settings.persona.emptyContent")}</Text>}
                   </Paragraph>
                 </div>
               ),
@@ -303,7 +303,7 @@ export function PersonaPage() {
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "280px 1fr", gap: token.marginLG }}>
-        <Card size="small" title="人格列表" loading={loading}>
+        <Card size="small" title={t("settings.persona.personaList")} loading={loading}>
           {personaList}
         </Card>
         <Card size="small">
@@ -319,16 +319,16 @@ export function PersonaPage() {
         onOk={handleCreate}
         confirmLoading={saving}
         okText={t("settings.persona.create")}
-        cancelText="取消"
+        cancelText={t("settings.persona.cancel")}
         width={600}
       >
         <div style={{ display: "flex", flexDirection: "column", gap: token.margin }}>
           <div>
-            <Text strong>名称</Text>
+            <Text strong>{t("settings.persona.nameLabel")}</Text>
             <Input
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
-              placeholder="my-persona"
+              placeholder={t("settings.persona.namePlaceholder")}
               style={{ marginTop: 4 }}
             />
           </div>
