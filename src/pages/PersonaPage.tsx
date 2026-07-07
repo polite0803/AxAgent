@@ -11,7 +11,7 @@ import {
 import type { Personality, PersonalityInfo } from "@/types";
 import { Button, Card, Empty, Input, message, Modal, Space, Spin, Tabs, Tag, theme, Typography } from "antd";
 import { Plus, Save, User } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 const { TextArea } = Input;
@@ -34,7 +34,7 @@ export function PersonaPage() {
   const [newIdentity, setNewIdentity] = useState("");
   const [newUser, setNewUser] = useState("");
 
-  const loadList = async () => {
+  const loadList = useCallback(async () => {
     setLoading(true);
     try {
       const list = await personalityList();
@@ -44,13 +44,14 @@ export function PersonaPage() {
     } finally {
       setLoading(false);
     }
-  };
-
-  useEffect(() => {
-    loadList();
   }, []);
 
-  const loadSelected = async (name: string) => {
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    loadList();
+  }, [loadList]);
+
+  const loadSelected = useCallback(async (name: string) => {
     setSelectedLoading(true);
     try {
       const p = await personalityGet(name);
@@ -60,13 +61,13 @@ export function PersonaPage() {
     } finally {
       setSelectedLoading(false);
     }
-  };
+  }, [t]);
 
-  const handleSelect = (name: string) => {
+  const handleSelect: (name: string) => void = useCallback((name) => {
     loadSelected(name);
-  };
+  }, [loadSelected]);
 
-  const handleActivate = async (name: string) => {
+  const handleActivate = useCallback(async (name: string) => {
     try {
       await personalitySwitch(name);
       message.success(t("settings.persona.switchSuccess", { name }));
@@ -74,7 +75,7 @@ export function PersonaPage() {
     } catch {
       message.error("切换失败");
     }
-  };
+  }, [t, loadList]);
 
   const handleCreate = async () => {
     if (!newName.trim()) { return; }
@@ -100,7 +101,7 @@ export function PersonaPage() {
     }
   };
 
-  const handleSaveIdentity = async () => {
+  const handleSaveIdentity = useCallback(async () => {
     if (!selected) { return; }
     setSaving(true);
     try {
@@ -111,9 +112,9 @@ export function PersonaPage() {
     } finally {
       setSaving(false);
     }
-  };
+  }, [selected, t]);
 
-  const handleSaveUser = async () => {
+  const handleSaveUser = useCallback(async () => {
     if (!selected) { return; }
     setSaving(true);
     try {
@@ -124,7 +125,7 @@ export function PersonaPage() {
     } finally {
       setSaving(false);
     }
-  };
+  }, [selected, t]);
 
   const personaList = useMemo(
     () => (
@@ -185,7 +186,7 @@ export function PersonaPage() {
         )}
       </div>
     ),
-    [personas, selected, loading, token, t],
+    [personas, selected, loading, token, t, handleActivate, handleSelect],
   );
 
   const editorPanel = useMemo(() => {
@@ -278,7 +279,7 @@ export function PersonaPage() {
         />
       </div>
     );
-  }, [selected, selectedLoading, saving, token, t]);
+  }, [selected, selectedLoading, saving, token, t, handleSaveIdentity, handleSaveUser]);
 
   return (
     <div style={{ padding: token.paddingLG, maxWidth: 960, margin: "0 auto" }}>

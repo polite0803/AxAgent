@@ -1073,6 +1073,7 @@ export interface SkillSettingsCapability {
 // Phase-2 type modules
 export * from "./agent";
 export * from "./agentProfile";
+export * from "./approval";
 export * from "./artifact";
 export * from "./backup";
 export * from "./citation";
@@ -1085,6 +1086,7 @@ export * from "./mcp";
 export * from "./memory";
 export * from "./nudge";
 export * from "./permission";
+export * from "./persona";
 export * from "./platform";
 export * from "./proactive";
 export * from "./search";

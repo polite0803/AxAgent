@@ -540,3 +540,50 @@ export async function listen<T>(
   );
   return () => {};
 }
+
+// ── Personality / Persona ───────────────────────────────────────────────
+
+export interface PersonalityCreateBootstrapInput {
+  name: string;
+  soul?: string;
+  identity?: string;
+  user?: string;
+}
+
+export interface PersonalityInfo {
+  name: string;
+  description?: string;
+  is_active: boolean;
+}
+
+export interface Personality {
+  name: string;
+  description?: string;
+  content?: string;
+  identity: string;
+  user: string;
+}
+
+export function personalityList(): Promise<PersonalityInfo[]> {
+  return invoke("personality_list");
+}
+
+export function personalityGet(name: string): Promise<Personality> {
+  return invoke("personality_get", { name });
+}
+
+export function personalitySwitch(name: string): Promise<void> {
+  return invoke("personality_switch", { name });
+}
+
+export function personalityCreateBootstrap(input: PersonalityCreateBootstrapInput): Promise<void> {
+  return invoke("personality_create_bootstrap", input as unknown as Record<string, unknown>);
+}
+
+export function personalityUpdateIdentity(name: string, identity: string): Promise<void> {
+  return invoke("personality_update_identity", { name, identity });
+}
+
+export function personalityUpdateUser(name: string, user: string): Promise<void> {
+  return invoke("personality_update_user", { name, user });
+}

@@ -31,6 +31,7 @@ export { useStreamStore } from "./domain/streamStore";
 export { setupAgentEventListeners, useAgentStore } from "./feature/agentStore";
 export { useAppConfigStore } from "./feature/appConfigStore";
 export type { FeatureFlags, ModelTier as AppConfigModelTier } from "./feature/appConfigStore";
+export { useApprovalStore } from "./feature/approvalStore";
 export { useBackupStore } from "./feature/backupStore";
 export { useBuddyStore } from "./feature/buddyStore";
 export type { BuddyInfo, BuddyMessage, BuddyMood } from "./feature/buddyStore";
